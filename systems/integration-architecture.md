@@ -52,8 +52,8 @@ This document describes Kent Gale's personal and business systems operating envi
 
 | Device | Purpose | Platform Details |
 |--------|---------|------------------|
-| MacBook Pro | Primary development and business operations | File path: `/Users/kentgale/documents/code/` |
-| Windows Machine | Home setup (Windows 10 → Windows 11 transition) | File path: `D:\Users\Kent\Documents\Code\` |
+| MacBook Pro | Primary development and business operations | File path: `/Users/kentgale/Vaults-repos/` |
+| Windows Machine | Home setup (Windows 10 → Windows 11 transition) | File path: `C:\Users\Kent\Vaults-repos\` |
 | iPhone 14 Pro Max | Mobile productivity and communication | iOS ecosystem integration |
 | iPad Pro (6th gen) | Mobile content creation and review | |
 

@@ -3,7 +3,7 @@
 # PowerShell version for Windows
 
 # Source repository
-$RepoDir = "$env:USERPROFILE\Documents\Code\kg-automation"
+$RepoDir = "$env:USERPROFILE\Vaults-repos\kg-automation"
 
 # Canonical roots (Windows)
 $DropboxRoot = "$env:USERPROFILE\Dropbox"
@@ -39,13 +39,13 @@ Copy-Item -Path "$RepoDir\ai-agents\*" -Destination "$ProjectRoot\ai-agents\" -R
 
 # Copy documentation
 Write-Host "?? Syncing Documentation..." -ForegroundColor Yellow
-if (Test-Path "$ProjectRoot\Documentation") {
-    Remove-Item -Path "$ProjectRoot\Documentation\*" -Recurse -Force
+if (Test-Path "$ProjectRoot\docs") {
+    Remove-Item -Path "$ProjectRoot\docs\*" -Recurse -Force
 }
-if (-not (Test-Path "$ProjectRoot\Documentation")) {
-    New-Item -ItemType Directory -Path "$ProjectRoot\Documentation" -Force | Out-Null
+if (-not (Test-Path "$ProjectRoot\docs")) {
+    New-Item -ItemType Directory -Path "$ProjectRoot\docs" -Force | Out-Null
 }
-Copy-Item -Path "$RepoDir\Documentation\*" -Destination "$ProjectRoot\Documentation\" -Recurse -Force
+Copy-Item -Path "$RepoDir\docs\*" -Destination "$ProjectRoot\docs\" -Recurse -Force
 
 # Copy scripts (when they exist)
 if (Test-Path "$RepoDir\scripts") {

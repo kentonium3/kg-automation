@@ -10,7 +10,7 @@
 - **Status**: Deployed files, updated after Git commits
 
 ### **For Making Changes (Mac/Windows only)**
-- **Location**: Git repository paths (e.g., `~/Documents/Code/kg-automation/`)
+- **Location**: Git repository paths (e.g., `~/Vaults-repos/kg-automation/`)
 - **Purpose**: Source files for editing and version control
 - **Workflow**: Edit → Commit → Push → Deploy to Dropbox
 
@@ -47,7 +47,7 @@ STATE_ROOT="$AUTOMATION_ROOT/.state"
 BOOTSTRAP="$AUTOMATION_ROOT/ai-agents/ai-context-bootstrap.md"
 
 # Project-specific documentation
-PROJECT_DOCS="$PROJECT_ROOT/Documentation"
+PROJECT_DOCS="$PROJECT_ROOT/docs"
 PROJECT_AI="$PROJECT_ROOT/ai-agents"
 PROJECT_SYSTEMS="$PROJECT_ROOT/systems"
 PROJECT_RUNBOOKS="$PROJECT_ROOT/runbooks"
@@ -67,7 +67,7 @@ $StateRoot = "$AutomationRoot\.state"
 $Bootstrap = "$AutomationRoot\ai-agents\ai-context-bootstrap.md"
 
 # Project-specific documentation
-$ProjectDocs = "$ProjectRoot\Documentation"
+$ProjectDocs = "$ProjectRoot\docs"
 $ProjectAI = "$ProjectRoot\ai-agents"  
 $ProjectSystems = "$ProjectRoot\systems"
 $ProjectRunbooks = "$ProjectRoot\runbooks"
@@ -83,16 +83,16 @@ $ProjectWorkflows = "$ProjectRoot\workflows"
 2. `~/Library/CloudStorage/Dropbox/Automation/kg-automation/ai-agents/ai-collaboration-standards.md` — AI behavior standards
 3. `~/Library/CloudStorage/Dropbox/Automation/kg-automation/ai-agents/platform-capability-matrix.md` — AI capabilities by device
 4. `~/Library/CloudStorage/Dropbox/Automation/kg-automation/runbooks/session-continuity.md` — recovery procedures if context is lost
-5. `~/Library/CloudStorage/Dropbox/Automation/kg-automation/Documentation/execution-context-identification.md` — ECI (local-only machine identity on each device)
-6. `~/Library/CloudStorage/Dropbox/Automation/kg-automation/Documentation/diagrams/eci-sequence.mmd` — sequence diagram for ECI + job intake flow
+5. `~/Library/CloudStorage/Dropbox/Automation/kg-automation/docs/execution-context-identification.md` — ECI (local-only machine identity on each device)
+6. `~/Library/CloudStorage/Dropbox/Automation/kg-automation/docs/diagrams/eci-sequence.mmd` — sequence diagram for ECI + job intake flow
 
 ### **Windows Paths:**
 1. `C:\Users\Kent\Dropbox\Automation\kg-automation\systems\integration-architecture.md`
 2. `C:\Users\Kent\Dropbox\Automation\kg-automation\ai-agents\ai-collaboration-standards.md`
 3. `C:\Users\Kent\Dropbox\Automation\kg-automation\ai-agents\platform-capability-matrix.md`
 4. `C:\Users\Kent\Dropbox\Automation\kg-automation\runbooks\session-continuity.md`
-5. `C:\Users\Kent\Dropbox\Automation\kg-automation\Documentation\execution-context-identification.md`
-6. `C:\Users\Kent\Dropbox\Automation\kg-automation\Documentation\diagrams\eci-sequence.mmd`
+5. `C:\Users\Kent\Dropbox\Automation\kg-automation\docs\execution-context-identification.md`
+6. `C:\Users\Kent\Dropbox\Automation\kg-automation\docs\diagrams\eci-sequence.mmd`
 
 ## Project State
 - Phase: Setup/Documentation

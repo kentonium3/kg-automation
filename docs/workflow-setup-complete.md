@@ -26,7 +26,7 @@ This document captures the complete development and deployment workflow establis
 
 ### Mac Setup (Completed)
 ```
-~/Documents/Code/kg_automation/          ← Git repository (work here)
+~/Vaults-repos/kg_automation/          ← Git repository (work here)
 ├── .git/                               ← Git version control
 ├── .vscode/                            ← VS Code automation config
 │   ├── tasks.json                      ← Deployment tasks
@@ -34,14 +34,14 @@ This document captures the complete development and deployment workflow establis
 │   ├── settings.json                  ← Workspace settings
 │   └── launch.json                    ← Debug config
 ├── deploy-to-dropbox.sh               ← Deployment script
-├── Documentation/                      ← Project docs
+├── docs/                              ← Project docs
 ├── ai-agents/                         ← AI configurations
 ├── systems/                           ← System integration docs
 ├── runbooks/                          ← Operational procedures
 └── workflows/                         ← Process documentation
 
 ~/Library/CloudStorage/Dropbox/Automation/  ← Shared access (deployed files)
-├── Documentation/                      ← Current docs (from git)
+├── docs/                              ← Current docs (from git)
 ├── ai-agents/                         ← Current AI configs (from git)
 ├── systems/                           ← Current system docs (from git)
 ├── runbooks/                          ← Current runbooks (from git)
@@ -53,7 +53,7 @@ This document captures the complete development and deployment workflow establis
 
 ### Windows Setup (To Be Configured)
 ```
-C:\Users\Kent\Documents\Code\kg_automation\     ← Git repository
+C:\Users\Kent\Vaults-repos\kg_automation\     ← Git repository
 C:\Users\Kent\Dropbox\Automation\               ← Shared access (deployed files)
 ```
 
@@ -90,7 +90,7 @@ C:\Users\Kent\Dropbox\Automation\               ← Shared access (deployed file
 
 ### **Manual Git Operations:**
 ```bash
-cd ~/Documents/Code/kg_automation
+cd ~/Vaults-repos/kg_automation
 git add .
 git commit -m "Your commit message"
 git push origin main
@@ -103,7 +103,7 @@ git push origin main
 - Uses `rsync` for efficient file synchronization
 - Preserves file permissions and timestamps
 - Deletes files in Dropbox that no longer exist in git repo
-- Syncs all major project directories: Documentation, ai-agents, systems, runbooks, workflows
+- Syncs all major project directories: docs, ai-agents, systems, runbooks, workflows
 - Provides verbose output with progress indicators
 
 ### **Deployment Targets:**
@@ -117,7 +117,7 @@ git push origin main
 ## Cross-Platform Setup Instructions
 
 ### **Mac (Completed):**
-1. ✅ Repository cloned to `~/Documents/Code/kg_automation/`
+1. ✅ Repository cloned to `~/Vaults-repos/kg_automation/`
 2. ✅ VS Code configured with automation tasks
 3. ✅ Deployment script created and tested
 4. ✅ Dropbox sync verified working
@@ -125,13 +125,13 @@ git push origin main
 ### **Windows (Next Steps):**
 1. **Clone Repository:**
    ```bash
-   cd C:\Users\Kent\Documents\Code
+   cd C:\Users\Kent\Vaults-repos
    git clone https://github.com/kentonium3/kg_automation.git
    ```
 
 2. **Test Deployment Script:**
    ```bash
-   cd C:\Users\Kent\Documents\Code\kg_automation
+   cd C:\Users\Kent\Vaults-repos\kg_automation
    ./deploy-to-dropbox.sh
    ```
 

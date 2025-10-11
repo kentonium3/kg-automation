@@ -3,7 +3,7 @@
 # Deploy to project subdirectory, preserve global queue structure
 
 # Source repository
-REPO_DIR="$HOME/Documents/Code/kg-automation"
+REPO_DIR="$HOME/Vaults-repos/kg-automation"
 
 # Canonical roots (macOS)
 DROPBOX_ROOT="$HOME/Library/CloudStorage/Dropbox"
@@ -29,8 +29,8 @@ rsync -av --delete "$REPO_DIR/ai-agents/" "$PROJECT_ROOT/ai-agents/"
 
 # Copy documentation
 echo "📚 Syncing Documentation..."
-mkdir -p "$PROJECT_ROOT/Documentation"
-rsync -av --delete "$REPO_DIR/Documentation/" "$PROJECT_ROOT/Documentation/"
+mkdir -p "$PROJECT_ROOT/docs"
+rsync -av --delete "$REPO_DIR/docs/" "$PROJECT_ROOT/docs/"
 
 # Copy scripts (when they exist)
 if [ -d "$REPO_DIR/scripts" ]; then
