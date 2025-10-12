@@ -10,15 +10,15 @@
 ## Local beacons (keep private)
 **Standardized convention (simple & future-proof)**
 
-- **Windows:** `C:\temp\MACHINE_ID.txt`
-- **macOS:** `~/Library/Application Support/KG/MACHINE_ID.txt`
+- **Windows:** `C:\temp\MACHINE_ID_<machine-name>.txt` (e.g., `MACHINE_ID_OFFICE3.txt`)
+- **macOS:** `~/Library/Application Support/KG/MACHINE_ID_<machine-name>.txt` (e.g., `MACHINE_ID_MACBOOK.txt`)
 - **Rule:** **First non-empty line** = canonical `machine_id` (e.g., `Windows-Office3`, `kg_macbook_pro`).
 - Subsequent lines may contain optional metadata (e.g., `OS=...`, `HW=...`).
 - Optional env var fallback: `KG_PLATFORM=<ID>` if the file is missing.
 - **Policy:** These files are **local-only** and must **not** live in Dropbox. This avoids cross-system confusion when multiple machines are active.
 
 ## Worker matching (summary)
-1. Read local machine ID from `MACHINE_ID.txt` (first non-empty line) → fallback to env → hostname.
+1. Read local machine ID from `MACHINE_ID_<machine-name>.txt` (first non-empty line) → fallback to env → hostname.
 2. Peek at job JSON:
    - If `requested_executor` is empty → eligible to claim.
    - If `requested_executor` includes this machine (or role it provides) → claim.

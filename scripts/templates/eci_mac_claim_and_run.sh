@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # eci_mac_claim_and_run.sh — Template (copy to ~/bin/claim_and_run.sh)
 # Purpose: Minimal ECI worker for macOS. Claims only jobs targeted to this machine.
-# Identity source: ~/Library/Application Support/KG/MACHINE_ID.txt (first non-empty line).
+# Identity source: ~/Library/Application Support/KG/MACHINE_ID_*.txt (first non-empty line).
 set -euo pipefail
 
 # Canonical roots (macOS)
@@ -11,7 +11,8 @@ AUTOMATION_ROOT="$DROPBOX_ROOT/Automation"
 QUEUE_ROOT="${1:-$AUTOMATION_ROOT/.queue}"
 
 # 1) Determine local machine_id (local-only; never in Dropbox)
-id_file="$HOME/Library/Application Support/KG/MACHINE_ID.txt"
+id_dir="$HOME/Library/Application Support/KG"
+id_file="$(find "$id_dir" -name 'MACHINE_ID_*.txt' 2>/dev/null | head -n1 || true)"
 if [ -f "$id_file" ]; then
   machine_id="$(grep -m1 -v '^[[:space:]]*$' "$id_file" | tr -d '\r\n')"
 else

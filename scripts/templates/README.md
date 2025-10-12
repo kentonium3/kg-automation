@@ -4,8 +4,8 @@ These are **templates** for local ECI workers. Copy them to the correct local pa
 
 ## Identity Convention (both platforms)
 - File path (local-only):
-  - **Windows:** `C:\temp\MACHINE_ID.txt`
-  - **macOS:** `~/Library/Application Support/KG/MACHINE_ID.txt`
+  - **Windows:** `C:\temp\MACHINE_ID_<machine-name>.txt` (e.g., `MACHINE_ID_OFFICE3.txt`)
+  - **macOS:** `~/Library/Application Support/KG/MACHINE_ID_<machine-name>.txt` (e.g., `MACHINE_ID_MACBOOK.txt`)
 - **First non-empty line** = canonical `machine_id` (e.g., `Windows-Office3`, `kg_macbook_pro`)
 - Subsequent lines optional: `OS=...`, `HW=...`
 - These files must **not** be stored in Dropbox or the repo.
