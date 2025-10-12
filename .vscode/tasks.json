@@ -146,13 +146,6 @@
         "command": "./deploy-to-dropbox.sh"
       },
       "problemMatcher": []
-    },
-    {
-      "label": "Publish Repo Snapshot (Dropbox)",
-      "type": "shell",
-      "command": "powershell",
-      "args": ["-NoProfile","-ExecutionPolicy","Bypass","scripts/kg-repo-snapshot.ps1"],
-      "problemMatcher": []
     }
   ],
   "inputs": [
