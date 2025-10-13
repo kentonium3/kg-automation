@@ -34,13 +34,19 @@ jobs:
           python tooling/scripts/render_docgraph.py
 
       - name: Ensure no generated files were hand-edited (PRs only)
-        if: github.event_name == 'pull_request'
+        if: ${{ github.event_name == 'pull_request' }}
         run: |
-          CHANGED=$(git diff --name-only origin/${{ github.base_ref }}...HEAD)
-          echo "Changed files:
-$CHANGED"
+          git fetch origin ${{ github.base_ref }} --depth=1 || true
+          CHANGED="$(git diff --name-only origin/${{ github.base_ref }}...HEAD || true)"
+
+          echo "Changed files:"
+          echo "${CHANGED}"
+
           echo "Checking for forbidden edits to generated files..."
-          echo "$CHANGED" | grep -E '^(systems/_registry.yaml|workflows/registry.yaml|runbooks/registry.yaml|\.docgraph/)' && { echo '::error::Generated files must not be hand-edited. Run generators and commit results.'; exit 1; } || true
+          if echo "${CHANGED}" | grep -E '^(systems/_registry.yaml|workflows/registry.yaml|runbooks/registry.yaml|\.docgraph/)'; then
+            echo "::error::Generated files must not be hand-edited. Run generators and commit results."
+            exit 1
+          fi
 
       - name: Ensure working tree clean after generators
         run: |
@@ -69,6 +75,5 @@ $CHANGED"
                     if not os.path.exists(target):
                       bad.append(f"{p}:{i} -> {m.group(1)} missing")
           if bad:
-            print('
-'.join(bad)); sys.exit(1)
+            print('\n'.join(bad)); sys.exit(1)
           PY
