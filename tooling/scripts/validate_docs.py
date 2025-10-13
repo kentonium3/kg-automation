@@ -32,9 +32,24 @@ SCHEMAS = {
     'handoff': ROOT / 'ai-agents/shared/contracts/ai-handoff.schema.json'
 }
 
-EXCLUDE_SECRET_SCAN = {
-    'tooling/scripts/validate_docs.py',
-}
+ALLOWLIST_FILE = ROOT / 'tooling' / 'ci-secret-scan-allowlist.txt'
+
+def load_secret_allowlist():
+    try:
+        lines = ALLOWLIST_FILE.read_text(encoding='utf-8').splitlines()
+        items = set()
+        for ln in lines:
+            ln = ln.strip()
+            if not ln or ln.startswith('#'):
+                continue
+            items.add(ln.replace('\\', '/').lstrip('./'))
+        return items
+    except Exception:
+        return set()
+
+# If the file is missing, fall back to excluding this script (it embeds patterns).
+EXCLUDE_SECRET_SCAN = load_secret_allowlist() or {'tooling/scripts/validate_docs.py'}
+
 
 # ---------- helpers ----------
 
@@ -155,10 +170,9 @@ if SCHEMAS['handoff'].exists():
 for p in ROOT.rglob('*'):
     if p.is_dir():
         continue
-    if any(seg in p.parts for seg in ['.git','node_modules','.venv','.docgraph']):
+    if any(seg in p.parts for seg in ['.git', 'node_modules', '.venv', '.docgraph']):
         continue
 
-    # Skip files we know contain the regex patterns themselves
     rel = str(p).replace('\\', '/').lstrip('./')
     if rel in EXCLUDE_SECRET_SCAN:
         continue
@@ -168,10 +182,20 @@ for p in ROOT.rglob('*'):
     except Exception:
         continue
 
-    for pat in SECRET_PATTERNS:
-        if pat.search(txt):
-            err(f"Potential secret pattern in {p}")
+    # Scan line-by-line so we can skip obvious regex-definition lines
+    hit = False
+    for lineno, line in enumerate(txt.splitlines(), start=1):
+        # Ignore lines that define regex patterns (reduce false positives)
+        if 're.compile' in line or 'SECRET_PATTERNS' in line:
+            continue
+        for pat in SECRET_PATTERNS:
+            if pat.search(line):
+                err(f"Potential secret pattern in {p}:{lineno}")
+                hit = True
+                break
+        if hit:
             break
+
 
 
 # ---------- report ----------
