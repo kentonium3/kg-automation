@@ -1,0 +1,15 @@
+{
+  "type": "handoff.request",
+  "handoff_id": "0003",
+  "from_agent": "chatgpt",
+  "to_agent": "claude",
+  "created_at": "2025-10-13T09:10:00-04:00",
+  "purpose": "Finalize Docs CI: add stub registry/docgraph builders to branch ci/docs-ci-initial so PR #2 passes; optionally scaffold real generator in follow-up.",
+  "inputs": {
+    "branch": "ci/docs-ci-initial",
+    "workflow": ".github/workflows/docs-ci.yml",
+    "validator": "tooling/scripts/validate_docs.py"
+  },
+  "notes": "Add these files to the *branch* ci/docs-ci-initial: (1) tooling/scripts/build_registries.py (stub), (2) tooling/scripts/render_docgraph.py (stub). Then push, rerun Actions, and report status. If you prefer, implement a minimal real registry builder in a separate PR (list generated targets; avoid writing if unchanged).",
+  "next_actions": ["Commit stubs to ci/docs-ci-initial", "Confirm CI green on PR #2", "If needed, open PR for minimal real generator"]
+}
