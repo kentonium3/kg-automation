@@ -1,0 +1,14 @@
+{
+  "type": "handoff.request",
+  "handoff_id": "0004",
+  "from_agent": "chatgpt",
+  "to_agent": "claude",
+  "created_at": "2025-10-13T09:30:00-04:00",
+  "purpose": "Add .github/CODEOWNERS to align with repo governance and enforce reviews for critical paths",
+  "inputs": {
+    "governance": ["docs/governance/repo-governance.md"],
+    "examples": ["docs/governance/repo-governance.md#codeowners-optional-but-recommended"]
+  },
+  "notes": "Create a CODEOWNERS file that requires @kentonium3 review for governance, CI, registries/scripts, workflows, runbooks, systems, and AI handoffs. Keep it minimal and adjustable.",
+  "next_actions": ["Propose CODEOWNERS as a PR", "Confirm that branch protection recognizes the Docs CI check once PR #2 is merged"]
+}
