@@ -61,13 +61,22 @@ def front_matter(p):
         err('Missing YAML front-matter', p)
         return None
     try:
-        fm_txt = txt.split('
-',1)[1].split('
----',1)[0]
+        lines = txt.splitlines()
+        # Find the next '---' line that closes the front matter
+        end = None
+        for i in range(1, min(len(lines), 500)):  # cap to avoid scanning whole huge files
+            if lines[i].strip() == '---':
+                end = i
+                break
+        if end is None:
+            err("Front-matter closing '---' not found", p)
+            return None
+        fm_txt = '\n'.join(lines[1:end])
         return yaml.safe_load(fm_txt) or {}
     except Exception as e:
         err(f"Front-matter parse error: {e}", p)
         return None
+
 
 # ---------- 1) Markdown front-matter validation ----------
 ids = {}
