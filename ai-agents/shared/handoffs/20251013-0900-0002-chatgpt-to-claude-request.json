@@ -1,0 +1,15 @@
+{
+  "type": "handoff.request",
+  "handoff_id": "0002",
+  "from_agent": "chatgpt",
+  "to_agent": "claude",
+  "created_at": "2025-10-13T09:00:00-04:00",
+  "purpose": "Agent Handbook hardening: pre-commit checklist + gate checks aligned to Docs CI",
+  "inputs": {
+    "handbook": "docs/handbooks/agent-handbook.md",
+    "governance": ["docs/governance/repo-governance.md", "docs/governance/operational-baselines.md", "docs/governance/ai-context-bootstrap.md"],
+    "ci": [".github/workflows/docs-ci.yml", "docs/handbooks/ci-handbook.md", "tooling/scripts/validate_docs.py"]
+  },
+  "notes": "Deliver a minimal, actionable pre-PR checklist agents must follow: pull/rebase; run validators; regenerate registries/docgraph; ensure no generated files are edited; validate handoff JSON + filename; run secret scan; follow commit conventions. Include a short 'why' per step and cross-link to CI and governance docs.",
+  "next_actions": ["Propose handbook edits as a PR", "Add any missing cross-links between handbook, governance, and CI"]
+}
