@@ -32,6 +32,10 @@ SCHEMAS = {
     'handoff': ROOT / 'ai-agents/shared/contracts/ai-handoff.schema.json'
 }
 
+EXCLUDE_SECRET_SCAN = {
+    'tooling/scripts/validate_docs.py',
+}
+
 # ---------- helpers ----------
 
 def err(msg, path=None):
@@ -153,14 +157,22 @@ for p in ROOT.rglob('*'):
         continue
     if any(seg in p.parts for seg in ['.git','node_modules','.venv','.docgraph']):
         continue
+
+    # Skip files we know contain the regex patterns themselves
+    rel = str(p).replace('\\', '/').lstrip('./')
+    if rel in EXCLUDE_SECRET_SCAN:
+        continue
+
     try:
         txt = p.read_text(encoding='utf-8', errors='ignore')
     except Exception:
         continue
+
     for pat in SECRET_PATTERNS:
         if pat.search(txt):
             err(f"Potential secret pattern in {p}")
             break
+
 
 # ---------- report ----------
 if ERRORS:
