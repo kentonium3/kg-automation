@@ -1,0 +1,48 @@
+name: Handoff Runner
+
+on:
+  push:
+    paths:
+      - 'ai-agents/shared/handoffs/*.json'
+  workflow_dispatch:
+  schedule:
+    - cron: '*/30 * * * *'
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyyaml jsonschema
+
+      - name: Run handoff runner
+        env:
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_REF_NAME: ${{ github.ref_name }}
+          GITHUB_SHA: ${{ github.sha }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          python tooling/scripts/handoff_runner.py
+
+      - name: Commit response if changed
+        run: |
+          if ! git diff --quiet; then
+            git config user.name "handoff-runner[bot]"
+            git config user.email "handoff-runner@users.noreply.github.com"
+            git add -A
+            git commit -m "handoff: automated response by handoff-runner"
+            git push
+          fi
