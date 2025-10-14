@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import os, sys, json, re
+import os, sys, json
 from pathlib import Path
 
 ROOT = Path('.')
@@ -14,7 +14,6 @@ PRINT_PREFIX = '[handoff-runner] '
 def log(msg):
     print(PRINT_PREFIX + str(msg))
 
-
 def load_json(p: Path):
     try:
         return json.loads(p.read_text(encoding='utf-8'))
@@ -22,18 +21,14 @@ def load_json(p: Path):
         log(f'JSON parse error for {p}: {e}')
         return None
 
-
 def save_json(p: Path, data: dict):
     p.parent.mkdir(parents=True, exist_ok=True)
-    p.write_text(json.dumps(data, indent=2, ensure_ascii=False) + '
-', encoding='utf-8')
-
+    p.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding='utf-8')
 
 def find_requests():
     if not HANDOFFS.exists():
         return []
     return sorted([p for p in HANDOFFS.glob('*.json') if p.name.endswith('-request.json')])
-
 
 def counterpart_exists(req: Path):
     stem = req.name[:-len('-request.json')]
@@ -42,7 +37,6 @@ def counterpart_exists(req: Path):
             return True
     return False
 
-
 def load_schema():
     if SCHEMA.exists():
         try:
@@ -50,7 +44,6 @@ def load_schema():
         except Exception as e:
             log(f'Warning: could not parse schema: {e}')
     return None
-
 
 def validate_against_schema(data, schema):
     try:
@@ -61,7 +54,6 @@ def validate_against_schema(data, schema):
         return [str(e)]
 
 # ---------- processors ----------
-
 def plan_from_request(req_data: dict):
     purpose = req_data.get('purpose', '')
     inputs = req_data.get('inputs', {}) or {}
@@ -82,7 +74,6 @@ def plan_from_request(req_data: dict):
     plan.append({'action': 'summary', 'branch': BRANCH, 'sha': SHA, 'purpose': purpose, 'next_actions': next_actions})
     return plan
 
-
 def perform_file_edits(req_data: dict):
     inputs = req_data.get('inputs', {}) or {}
     edits = inputs.get('file_edits') or []
@@ -95,7 +86,6 @@ def perform_file_edits(req_data: dict):
             p.write_text(content, encoding='utf-8')
             wrote.append(path)
     return wrote
-
 
 def make_response(req_path: Path, req: dict, status: str, outputs: dict, notes: str, response_suffix='-github-runner-response.json'):
     stem = req_path.name[:-len('-request.json')]
@@ -115,7 +105,6 @@ def make_response(req_path: Path, req: dict, status: str, outputs: dict, notes: 
     return out
 
 # ---------- main ----------
-
 def main():
     processed = 0
     schema = load_schema()
