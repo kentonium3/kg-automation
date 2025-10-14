@@ -7,14 +7,17 @@
   "purpose": "Add .github/CODEOWNERS to align with repo governance and enforce reviews for critical paths",
   "inputs": {
     "governance": ["docs/governance/repo-governance.md"],
-    "examples": ["docs/governance/repo-governance.md#codeowners-optional-but-recommended"]
+    "examples": ["docs/governance/repo-governance.md#codeowners-optional-but-recommended"],
     "file_edits": [
-  {
-    "path": ".github/CODEOWNERS",
-    "content": "# Governance & CI require owner review\ndocs/governance/*   @kentonium3\n.github/*           @kentonium3\n\n# Registries & scripts\ntooling/scripts/*   @kentonium3\n\n# Workflows & runbooks\nworkflows/*         @kentonium3\nrunbooks/*          @kentonium3\n\n# Systems\nsystems/*           @kentonium3\n\n# AI handoffs\nai-agents/shared/*  @kentonium3\n"
-  }
-]
+      {
+        "path": ".github/CODEOWNERS",
+        "content": "# Governance & CI require owner review\ndocs/governance/*   @kentonium3\n.github/*           @kentonium3\n\n# Registries & scripts\ntooling/scripts/*   @kentonium3\n\n# Workflows & runbooks\nworkflows/*         @kentonium3\nrunbooks/*          @kentonium3\n\n# Systems\nsystems/*           @kentonium3\n\n# AI handoffs\nai-agents/shared/*  @kentonium3\n"
+      }
+    ]
   },
   "notes": "Create a CODEOWNERS file that requires @kentonium3 review for governance, CI, registries/scripts, workflows, runbooks, systems, and AI handoffs. Keep it minimal and adjustable.",
-  "next_actions": ["Propose CODEOWNERS as a PR", "Confirm that branch protection recognizes the Docs CI check once PR #2 is merged"]
+  "next_actions": [
+    "Propose CODEOWNERS as a PR",
+    "Confirm that branch protection recognizes the Docs CI check once PR #2 is merged"
+  ]
 }
