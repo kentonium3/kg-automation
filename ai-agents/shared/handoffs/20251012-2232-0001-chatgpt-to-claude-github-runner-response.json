@@ -1,0 +1,25 @@
+{
+  "type": "handoff.response",
+  "handoff_id": "0001",
+  "from_agent": "handoff-runner",
+  "to_agent": "chatgpt",
+  "status": "planned",
+  "branch": "chore/handoff-0001-eci-stabilization",
+  "request_ref": "ai-agents/shared/handoffs/20251012-2232-0001-chatgpt-to-claude-request.json",
+  "outputs": {
+    "plan": [
+      {
+        "action": "summary",
+        "branch": "chore/handoff-0001-eci-stabilization",
+        "sha": "95696dbadbfa5bff7bdede5008739a189ecc8252",
+        "purpose": "Triage and stabilize ECI queue/worker; document findings; propose fix; process backlog safely.",
+        "next_actions": [
+          "Acknowledge receipt via response JSON",
+          "Open PR for any doc/runbook edits",
+          "Report worker status and backlog disposition"
+        ]
+      }
+    ]
+  },
+  "notes": "No actionable file_edits provided or LLM keys absent; recorded plan-only response."
+}
