@@ -14,11 +14,16 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout current ref
+        uses: actions/checkout@v4
         with:
+          # Ensure we operate on the SAME ref that triggered the run
+          ref: ${{ github.ref }}
           fetch-depth: 0
+          persist-credentials: true
 
-      - uses: actions/setup-python@v5
+      - name: Setup Python
+        uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
@@ -37,12 +42,25 @@ jobs:
         run: |
           python tooling/scripts/handoff_runner.py
 
+      # NEW: show and stage changes BEFORE deciding to commit
+      - name: Show pending changes
+        run: |
+          echo "::group::git status"
+          git status --porcelain
+          echo "::endgroup::"
+          echo "::group::git diff (names)"
+          git diff --name-only
+          echo "::endgroup::"
+
       - name: Commit response if changed
         run: |
-          if ! git diff --quiet; then
-            git config user.name "handoff-runner[bot]"
-            git config user.email "handoff-runner@users.noreply.github.com"
-            git add -A
+          git config user.name "handoff-runner[bot]"
+          git config user.email "handoff-runner@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+          else
             git commit -m "handoff: automated response by handoff-runner"
-            git push
+            # Make sure we push to the same ref we checked out
+            git push origin "HEAD:${GITHUB_REF#refs/heads/}"
           fi
