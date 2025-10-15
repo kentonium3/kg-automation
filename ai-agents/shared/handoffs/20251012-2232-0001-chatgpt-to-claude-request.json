@@ -1,0 +1,16 @@
+{
+  "type": "handoff.request",
+  "handoff_id": "0001",
+  "from_agent": "chatgpt",
+  "to_agent": "claude",
+  "created_at": "2025-10-12T22:32:00-04:00",
+  "purpose": "Triage and stabilize ECI queue/worker; document findings; propose fix; process backlog safely.",
+  "inputs": {
+    "runbooks": ["runbooks/RB-queue-health.md", "runbooks/RB-eci-worker-health.md", "runbooks/RB-eci-worker-restart.md", "runbooks/RB-drift-generator-pause.md"],
+    "governance": ["docs/governance/operational-baselines.md", "docs/governance/ai-context-bootstrap.md"],
+    "scripts": ["tooling/scripts/queue-tools.ps1"],
+    "systems": ["systems/eci-worker/system.yaml"]
+  },
+  "notes": "Follow runbooks in order. Quarantine root jobs, return stale processing to inbox, restart worker, then reintroduce backlog in small batches. Update docs with any deltas you discover.",
+  "next_actions": ["Acknowledge receipt via response JSON", "Open PR for any doc/runbook edits", "Report worker status and backlog disposition"]
+}
