@@ -1,0 +1,79 @@
+name: Docs CI
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyyaml jsonschema
+
+      - name: Validate docs & handoffs
+        run: |
+          python tooling/scripts/validate_docs.py
+
+      - name: Build registries
+        run: |
+          python tooling/scripts/build_registries.py
+
+      - name: Render doc graph
+        run: |
+          python tooling/scripts/render_docgraph.py
+
+      - name: Ensure no generated files were hand-edited (PRs only)
+        if: ${{ github.event_name == 'pull_request' }}
+        run: |
+          git fetch origin ${{ github.base_ref }} --depth=1 || true
+          CHANGED="$(git diff --name-only origin/${{ github.base_ref }}...HEAD || true)"
+
+          echo "Changed files:"
+          echo "${CHANGED}"
+
+          echo "Checking for forbidden edits to generated files..."
+          if echo "${CHANGED}" | grep -E '^(systems/_registry.yaml|workflows/registry.yaml|runbooks/registry.yaml|\.docgraph/)'; then
+            echo "::error::Generated files must not be hand-edited. Run generators and commit results."
+            exit 1
+          fi
+
+      - name: Ensure working tree clean after generators
+        run: |
+          if ! git diff --quiet; then
+            git diff --name-only
+            echo '::error::Run registry/docgraph generators locally and commit results.'
+            exit 1
+          fi
+
+      - name: Check relative links
+        run: |
+          python - << 'PY'
+          import os, re, sys
+          bad=[]
+          for base,_,files in os.walk('.'):
+            for f in files:
+              if f.endswith('.md'):
+                p=os.path.join(base,f)
+                try:
+                  txt=open(p,encoding='utf-8').read().splitlines()
+                except Exception:
+                  continue
+                for i,l in enumerate(txt,1):
+                  for m in re.finditer(r'\(([^)]+\.md)\)', l):
+                    target=os.path.normpath(os.path.join(base,m.group(1)))
+                    if not os.path.exists(target):
+                      bad.append(f"{p}:{i} -> {m.group(1)} missing")
+          if bad:
+            print('\n'.join(bad)); sys.exit(1)
+          PY
