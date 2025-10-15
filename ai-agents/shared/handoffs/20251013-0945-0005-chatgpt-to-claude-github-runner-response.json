@@ -1,0 +1,37 @@
+{
+  "type": "handoff.response",
+  "handoff_id": "0005",
+  "from_agent": "handoff-runner",
+  "to_agent": "chatgpt",
+  "status": "planned",
+  "branch": "handoff/0005-bootstrap-hardening",
+  "request_ref": "ai-agents/shared/handoffs/20251013-0945-0005-chatgpt-to-claude-request.json",
+  "outputs": {
+    "plan": [
+      {
+        "action": "create_file_if_missing",
+        "path": "tooling/scripts/resolve_dropbox_path.ps1"
+      },
+      {
+        "action": "create_file_if_missing",
+        "path": "tooling/scripts/resolve_paths.py"
+      },
+      {
+        "action": "create_file_if_missing",
+        "path": "docs/handbooks/eci-path-resolution.md"
+      },
+      {
+        "action": "summary",
+        "branch": "handoff/0005-bootstrap-hardening",
+        "sha": "65c283008d1525ab97a112a60ac9b63e87f0c71c",
+        "purpose": "Bootstrap hardening: add Dropbox path resolver + update ai-context-bootstrap with Git-only fallback and handoff branch semantics",
+        "next_actions": [
+          "Create the resolver scripts and handbook",
+          "Edit ai-agents/ai-context-bootstrap.md to link to the handbook and include the algorithm",
+          "Open a PR with these changes and add a response JSON with status + paths"
+        ]
+      }
+    ]
+  },
+  "notes": "No actionable file_edits provided or LLM keys absent; recorded plan-only response."
+}
