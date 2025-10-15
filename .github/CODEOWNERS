@@ -1,0 +1,16 @@
+# Governance & CI require owner review
+docs/governance/*   @kentonium3
+.github/*           @kentonium3
+
+# Registries & scripts
+tooling/scripts/*   @kentonium3
+
+# Workflows & runbooks
+workflows/*         @kentonium3
+runbooks/*          @kentonium3
+
+# Systems
+systems/*           @kentonium3
+
+# AI handoffs
+ai-agents/shared/*  @kentonium3
