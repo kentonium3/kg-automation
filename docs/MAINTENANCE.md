@@ -1,3 +1,13 @@
+---
+id: HB-MAINTENANCE
+title: Maintenance & Housekeeping
+doc_type: handbook
+level: reference
+status: approved
+owners: [kent@intentional.biz]
+last_validated: 2025-10-15
+revision: 1.0
+---
 # Maintenance & Housekeeping
 
 ## Branch hygiene
