@@ -1,1 +1,162 @@
-import json, os, glob, pathlib, sys\n\nREQ_GLOB = 'ai-agents/shared/handoffs/*-request.json'\nRESP_SUFFIX = '-github-runner-response.json'\n\n# Denylist: runner will NOT write these paths unless explicitly allowed\nDENY_PREFIXES = [\n    '.github/workflows/'\n]\n\n# Helper\ndef _ensure_parent(p: pathlib.Path):\n    p.parent.mkdir(parents=True, exist_ok=True)\n\n# Returns tuple: (applied_edits, skipped_edits, notes)\ndef _apply_file_edits(req: dict):\n    inputs = req.get('inputs', {}) or {}\n    edits = inputs.get('file_edits', []) or []\n    allow_workflow_edit = bool(inputs.get('allow_workflow_edit', False))\n\n    applied, skipped = [], []\n\n    for e in edits:\n        path = e.get('path')\n        content = e.get('content', '')\n        if not path:\n            skipped.append({'path': path, 'reason': 'missing path'})\n            continue\n\n        # Enforce denylist\n        if any(path.startswith(prefix) for prefix in DENY_PREFIXES) and not allow_workflow_edit:\n            skipped.append({'path': path, 'reason': 'blocked by denylist (.github/workflows); set inputs.allow_workflow_edit=true to override'})\n            continue\n\n        p = pathlib.Path(path)\n        _ensure_parent(p)\n        # Write only if changed (idempotent)\n        old = None\n        if p.exists():\n            try:\n                old = p.read_text(encoding='utf-8')\n            except Exception:\n                pass\n        if old == content:\n            # no-op write, keep noise down\n            continue\n        p.write_text(content, encoding='utf-8')\n        applied.append(path)\n\n    notes = ''\n    if skipped:\n        notes = 'Some edits were skipped by denylist or validation.'\n    return applied, skipped, notes\n\n\ndef _respond_path(req_path: pathlib.Path) -> pathlib.Path:\n    s = req_path.name\n    if s.endswith('-request.json'):\n        s = s[:-len('-request.json')]\n    return req_path.with_name(f"{s}{RESP_SUFFIX}")\n\n\ndef _status(applied, skipped, had_edits_key):\n    if not had_edits_key:\n        return 'planned'  # no file_edits provided\n    if applied:\n        return 'completed'\n    # had file_edits but all skipped or no changes\n    return 'completed' if skipped else 'noop'\n\n\ndef main():\n    any_processed = False\n    for path in sorted(glob.glob(REQ_GLOB)):\n        req_p = pathlib.Path(path)\n        try:\n            data = json.loads(req_p.read_text(encoding='utf-8'))\n        except Exception as e:\n            print(f"[handoff-runner] JSON parse error for {req_p}: {e}")\n            # best-effort response\n            resp_p = _respond_path(req_p)\n            _ensure_parent(resp_p)\n            resp = {\n                'type': 'handoff.response',\n                'handoff_id': None,\n                'from_agent': 'handoff-runner',\n                'to_agent': data.get('from_agent') if isinstance(data, dict) else 'unknown',\n                'status': 'error',\n                'error': f'parse_error: {e}'\n            }\n            resp_p.write_text(json.dumps(resp, indent=2, ensure_ascii=False), encoding='utf-8')\n            print(f"[handoff-runner] Wrote response: {resp_p}")\n            any_processed = True\n            continue\n\n        had_edits_key = 'file_edits' in (data.get('inputs') or {})\n        applied, skipped, notes = _apply_file_edits(data)\n\n        resp = {\n            'type': 'handoff.response',\n            'handoff_id': data.get('handoff_id'),\n            'from_agent': 'handoff-runner',\n            'to_agent': data.get('from_agent'),\n            'status': _status(applied, skipped, had_edits_key),\n            'edited_files': applied,\n            'skipped_files': skipped,\n            'notes': notes\n        }\n        resp_p = _respond_path(req_p)\n        _ensure_parent(resp_p)\n        resp_p.write_text(json.dumps(resp, indent=2, ensure_ascii=False), encoding='utf-8')\n        print(f"[handoff-runner] Wrote response: {resp_p}")\n        any_processed = True\n\n    if not any_processed:\n        print('[handoff-runner] No new handoff requests to process.')\n\nif __name__ == '__main__':\n    main()\n
+#!/usr/bin/env python3
+"""
+Handoff Runner
+- Reads handoff request JSON files from ai-agents/shared/handoffs/*-request.json
+- Applies file edits to the current branch (never main)
+- Writes a matching *-github-runner-response.json
+- Honors a simple denylist (e.g., blocks .github/workflows/** by default)
+"""
+
+from __future__ import annotations
+import json
+import os
+from pathlib import Path
+from typing import List, Dict, Any
+import subprocess
+import sys
+import datetime
+
+ROOT = Path(__file__).resolve().parents[2]   # repo root
+HANDOFF_DIR = ROOT / "ai-agents" / "shared" / "handoffs"
+
+# ---- runner policy ----------------------------------------------------------
+
+DENYLIST_PREFIXES = [
+    ".github/workflows/",   # don't let the runner edit workflows
+]
+
+def is_denied(path: Path, allow_workflow_edit: bool) -> bool:
+    p = path.as_posix()
+    if not allow_workflow_edit:
+        for pref in DENYLIST_PREFIXES:
+            if p.startswith(pref):
+                return True
+    return False
+
+def current_branch() -> str:
+    try:
+        out = subprocess.check_output(["git", "rev-parse", "--abbrev-ref", "HEAD"], cwd=ROOT)
+        return out.decode().strip()
+    except Exception:
+        return ""
+
+def git_add_commit_if_changed(message: str) -> bool:
+    # Return True if a commit was created
+    changed = subprocess.run(["git", "status", "--porcelain"], cwd=ROOT, capture_output=True, text=True)
+    if changed.returncode != 0:
+        return False
+    if not changed.stdout.strip():
+        return False
+    subprocess.check_call(["git", "config", "user.name", "handoff-runner[bot]"], cwd=ROOT)
+    subprocess.check_call(["git", "config", "user.email", "handoff-runner@local"], cwd=ROOT)
+    subprocess.check_call(["git", "add", "-A"], cwd=ROOT)
+    subprocess.check_call(["git", "commit", "-m", message], cwd=ROOT)
+    return True
+
+# ---- core -------------------------------------------------------------------
+
+def find_requests() -> List[Path]:
+    if not HANDOFF_DIR.exists():
+        return []
+    return sorted(HANDOFF_DIR.glob("*-request.json"))
+
+def load_json(p: Path) -> Dict[str, Any]:
+    with p.open("r", encoding="utf-8") as f:
+        return json.load(f)
+
+def write_json(p: Path, data: Dict[str, Any]) -> None:
+    p.parent.mkdir(parents=True, exist_ok=True)
+    with p.open("w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2, ensure_ascii=False)
+
+def apply_file_edits(edits: List[Dict[str, Any]], allow_workflow_edit: bool) -> Dict[str, Any]:
+    written = []
+    denied = []
+    for e in edits:
+        rel = Path(e["path"]).as_posix().lstrip("/")           # normalize
+        tgt = ROOT / rel
+        if is_denied(Path(rel), allow_workflow_edit):
+            denied.append(rel)
+            continue
+        tgt.parent.mkdir(parents=True, exist_ok=True)
+        content = e.get("content", "")
+        # If caller provided "mode": "append", support it lightly
+        mode = e.get("mode", "write")
+        if mode == "append" and tgt.exists():
+            existing = tgt.read_text(encoding="utf-8")
+            tgt.write_text(existing + ("\n" if not existing.endswith("\n") else "") + content, encoding="utf-8")
+        else:
+            tgt.write_text(content, encoding="utf-8")
+        written.append(rel)
+    return {"written": written, "denied": denied}
+
+def process_request(req_path: Path) -> Path:
+    req = load_json(req_path)
+
+    # Inputs
+    inputs = req.get("inputs", {})
+    edits = inputs.get("file_edits", [])
+    allow_workflow_edit = bool(inputs.get("allow_workflow_edit", False))
+
+    # Safety: never on main
+    branch = current_branch()
+    if branch in ("main", "origin/main"):
+        raise SystemExit("Refusing to run on 'main' — create a feature branch.")
+
+    result = apply_file_edits(edits, allow_workflow_edit=allow_workflow_edit)
+
+    # Compose response JSON
+    ts = datetime.datetime.utcnow().strftime("%Y%m%d-%H%M")
+    base = req_path.stem.replace("-request", "")
+    resp_name = f"{ts}-{base}-github-runner-response.json"
+    resp_path = HANDOFF_DIR / resp_name
+    response = {
+        "type": "handoff.response",
+        "from_agent": "handoff-runner",
+        "request_file": str(req_path.relative_to(ROOT)),
+        "branch": branch,
+        "timestamp_utc": ts,
+        "result": result,
+        "notes": "Committed if any files changed; see Git history for this branch."
+    }
+    write_json(resp_path, response)
+
+    # Stage + commit if anything changed (files or response)
+    # We ensure the response is committed too.
+    git_add_commit_if_changed("handoff: automated response by handoff-runner")
+
+    return resp_path
+
+def main() -> None:
+    reqs = find_requests()
+    if not reqs:
+        print("[handoff-runner] No handoff requests found.")
+        return
+
+    processed = 0
+    for rp in reqs:
+        try:
+            print(f"[handoff-runner] Processing {rp.relative_to(ROOT)}")
+            out = process_request(rp)
+            print(f"[handoff-runner] Wrote response: {out.relative_to(ROOT)}")
+            processed += 1
+        except Exception as e:
+            # Always try to surface a response even on error
+            ts = datetime.datetime.utcnow().strftime("%Y%m%d-%H%M")
+            base = rp.stem.replace("-request", "")
+            resp_name = f"{ts}-{base}-github-runner-response.json"
+            resp_path = HANDOFF_DIR / resp_name
+            write_json(resp_path, {
+                "type": "handoff.response",
+                "from_agent": "handoff-runner",
+                "request_file": str(rp.relative_to(ROOT)),
+                "error": str(e),
+            })
+            git_add_commit_if_changed("handoff: automated response by handoff-runner (error)")
+            print(f"[handoff-runner] ERROR on {rp.name}: {e}", file=sys.stderr)
+
+    if processed == 0:
+        print("[handoff-runner] No new handoff requests to process.")
+
+if __name__ == "__main__":
+    main()
