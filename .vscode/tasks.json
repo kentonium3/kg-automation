@@ -1,0 +1,9 @@
+{
+  "$schema": "https://raw.githubusercontent.com/microsoft/vscode/master/src/vs/workbench/contrib/tasks/common/tasks.schema.json",
+  "version": "2.0.0",
+  "tasks": [
+    { "label": "docs: validate",          "type": "shell", "command": "python tooling/scripts/validate_docs.py" },
+    { "label": "docs: build registries",   "type": "shell", "command": "python tooling/scripts/build_registries.py" },
+    { "label": "docs: render docgraph",    "type": "shell", "command": "python tooling/scripts/render_docgraph.py" }
+  ]
+}

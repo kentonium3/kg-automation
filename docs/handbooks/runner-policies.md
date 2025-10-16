@@ -16,10 +16,10 @@ The runner will **not** edit files under these prefixes unless explicitly permit
 
 - `.github/workflows/`
 
-**Why:** workflow files affect CI/CD execution. Changes must go through a human-reviewed PR.
+Rationale: workflow files affect CI/CD execution. Changes must go through a human-reviewed PR.
 
-## How to override (rare)
-A request may opt in intentionally:
+## Overriding (explicit, per-request)
+To override (rare), set this flag in the handoff request:
 
 ```json
 {
@@ -28,3 +28,14 @@ A request may opt in intentionally:
     "file_edits": [ ... ]
   }
 }
+```
+
+Use only for exceptional cases and prefer a normal PR edited by a human.
+
+## Idempotent writes
+The runner only writes a file when content actually changes.
+
+## Responses
+Each request produces a `*-github-runner-response.json` with:
+- `status`: `planned` (no file_edits), `completed` (wrote files), or `noop` (no changes)
+- `edited_files`, `skipped_files`, and `notes`
