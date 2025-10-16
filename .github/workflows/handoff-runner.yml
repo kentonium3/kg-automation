@@ -2,18 +2,21 @@ name: Handoff Runner
 
 on:
   push:
+    branches-ignore: ['main']
     paths:
-      - 'ai-agents/shared/handoffs/*.json'
+      - 'ai-agents/shared/handoffs/**.json'
+  pull_request:
+    branches-ignore: ['main']
+    paths:
+      - 'ai-agents/shared/handoffs/**.json'
   workflow_dispatch:
-  # schedule:
-  #   - cron: '*/30 * * * *'
 
 jobs:
   run:
+    if: github.ref != 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
       contents: write
-      # (we DON'T need workflows: write if we merge this via PR)
     steps:
       - name: Checkout current ref
         uses: actions/checkout@v4
