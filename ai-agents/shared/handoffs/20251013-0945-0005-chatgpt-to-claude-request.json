@@ -1,0 +1,22 @@
+{
+  "type": "handoff.request",
+  "handoff_id": "0005",
+  "from_agent": "chatgpt",
+  "to_agent": "claude",
+  "created_at": "2025-10-13T09:45:00-04:00",
+  "purpose": "Bootstrap hardening: add Dropbox path resolver + update ai-context-bootstrap with Git-only fallback and handoff branch semantics",
+  "inputs": {
+    "docs_to_update": ["ai-agents/ai-context-bootstrap.md"],
+    "new_files": [
+      "tooling/scripts/resolve_dropbox_path.ps1",
+      "tooling/scripts/resolve_paths.py",
+      "docs/handbooks/eci-path-resolution.md"
+    ]
+  },
+  "notes": "Implement robust Dropbox path detection (Windows: %APPDATA%/Dropbox/info.json or %LOCALAPPDATA%/Dropbox/info.json; macOS: ~/Library/CloudStorage/Dropbox fallback). Update ai-context-bootstrap.md to (1) prefer resolver scripts to compute paths; (2) instruct agents running in containers to operate from Git only; (3) clarify that handoff JSON lives on its PR branch and must be read after git fetch/switch. Add a concise handbook page docs/handbooks/eci-path-resolution.md summarizing this procedure.",
+  "next_actions": [
+    "Create the resolver scripts and handbook",
+    "Edit ai-agents/ai-context-bootstrap.md to link to the handbook and include the algorithm",
+    "Open a PR with these changes and add a response JSON with status + paths"
+  ]
+}
