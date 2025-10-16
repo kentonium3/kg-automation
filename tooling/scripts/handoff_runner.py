@@ -1,149 +1,133 @@
-#!/usr/bin/env python3
-import os, sys, json
-from pathlib import Path
+# tooling/scripts/handoff_runner.py
+# Minimal, safe handoff runner:
+# - Reads ai-agents/shared/handoffs/*-request.json on the current branch checkout
+# - Applies file_edits with a denylist (blocks .github/workflows/** unless explicitly allowed)
+# - Writes a ...-github-runner-response.json next to each request
+# - Idempotent: only writes files when content changes
 
-ROOT = Path('.')
-HANDOFFS = ROOT / 'ai-agents' / 'shared' / 'handoffs'
-SCHEMA = ROOT / 'ai-agents' / 'shared' / 'contracts' / 'ai-handoff.schema.json'
-BRANCH = os.getenv('GITHUB_REF_NAME', '')
-SHA = os.getenv('GITHUB_SHA', '')
+import json
+import glob
+import pathlib
+from typing import List, Tuple, Dict, Any
 
-PRINT_PREFIX = '[handoff-runner] '
+REQ_GLOB = "ai-agents/shared/handoffs/*-request.json"
+RESP_SUFFIX = "-github-runner-response.json"
 
-# ---------- helpers ----------
-def log(msg):
-    print(PRINT_PREFIX + str(msg))
+# ---- Denylist (default block) ----
+# Paths starting with any of these prefixes will be skipped unless the request sets:
+#   inputs.allow_workflow_edit = true
+DENY_PREFIXES = [
+    ".github/workflows/",
+]
 
-def load_json(p: Path):
-    try:
-        return json.loads(p.read_text(encoding='utf-8'))
-    except Exception as e:
-        log(f'JSON parse error for {p}: {e}')
-        return None
-
-def save_json(p: Path, data: dict):
+def _ensure_parent(p: pathlib.Path) -> None:
     p.parent.mkdir(parents=True, exist_ok=True)
-    p.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding='utf-8')
 
-def find_requests():
-    if not HANDOFFS.exists():
-        return []
-    return sorted([p for p in HANDOFFS.glob('*.json') if p.name.endswith('-request.json')])
+def _respond_path(req_path: pathlib.Path) -> pathlib.Path:
+    name = req_path.name
+    if name.endswith("-request.json"):
+        name = name[:-len("-request.json")]
+    return req_path.with_name(f"{name}{RESP_SUFFIX}")
 
-def counterpart_exists(req: Path):
-    stem = req.name[:-len('-request.json')]
-    for suffix in ['-claude-to-chatgpt-response.json','-github-runner-response.json','-response.json']:
-        if (req.parent / f'{stem}{suffix}').exists():
-            return True
-    return False
+def _status(applied: List[str], skipped: List[Dict[str, str]], had_edits_key: bool) -> str:
+    if not had_edits_key:
+        return "planned"   # no inputs.file_edits provided
+    if applied:
+        return "completed" # wrote at least one file
+    # had file_edits key but nothing changed or all skipped
+    return "noop" if not skipped else "completed"
 
-def load_schema():
-    if SCHEMA.exists():
-        try:
-            return json.loads(SCHEMA.read_text(encoding='utf-8'))
-        except Exception as e:
-            log(f'Warning: could not parse schema: {e}')
-    return None
+def _apply_file_edits(req: Dict[str, Any]) -> Tuple[List[str], List[Dict[str, str]], str]:
+    """Apply file edits from a single request. Returns (applied_paths, skipped_info, notes)."""
+    inputs = req.get("inputs") or {}
+    edits = inputs.get("file_edits") or []
+    allow_workflow_edit = bool(inputs.get("allow_workflow_edit", False))
 
-def validate_against_schema(data, schema):
-    try:
-        from jsonschema import Draft7Validator
-        Draft7Validator(schema).validate(data)
-        return []
-    except Exception as e:
-        return [str(e)]
+    applied: List[str] = []
+    skipped: List[Dict[str, str]] = []
 
-# ---------- processors ----------
-def plan_from_request(req_data: dict):
-    purpose = req_data.get('purpose', '')
-    inputs = req_data.get('inputs', {}) or {}
-    next_actions = req_data.get('next_actions', []) or []
-
-    plan = []
-
-    file_edits = inputs.get('file_edits') or []
-    for edit in file_edits:
-        path = edit.get('path'); content = edit.get('content')
-        if path and content is not None:
-            plan.append({'action': 'write_file', 'path': path, 'bytes': len(content.encode('utf-8'))})
-
-    new_files = inputs.get('new_files') or []
-    for nf in new_files:
-        plan.append({'action': 'create_file_if_missing', 'path': nf})
-
-    plan.append({'action': 'summary', 'branch': BRANCH, 'sha': SHA, 'purpose': purpose, 'next_actions': next_actions})
-    return plan
-
-def perform_file_edits(req_data: dict):
-    inputs = req_data.get('inputs', {}) or {}
-    edits = inputs.get('file_edits') or []
-    wrote = []
-    for edit in edits:
-        path = edit.get('path'); content = edit.get('content')
-        if path and content is not None:
-            p = ROOT / path
-            p.parent.mkdir(parents=True, exist_ok=True)
-            p.write_text(content, encoding='utf-8')
-            wrote.append(path)
-    return wrote
-
-def make_response(req_path: Path, req: dict, status: str, outputs: dict, notes: str, response_suffix='-github-runner-response.json'):
-    stem = req_path.name[:-len('-request.json')]
-    response = {
-        'type': 'handoff.response',
-        'handoff_id': req.get('handoff_id'),
-        'from_agent': 'handoff-runner',
-        'to_agent': req.get('from_agent', 'chatgpt'),
-        'status': status,
-        'branch': BRANCH,
-        'request_ref': str(req_path),
-        'outputs': outputs,
-        'notes': notes
-    }
-    out = req_path.parent / f'{stem}{response_suffix}'
-    save_json(out, response)
-    return out
-
-# ---------- main ----------
-def main():
-    processed = 0
-    schema = load_schema()
-
-    for req_path in find_requests():
-        if counterpart_exists(req_path):
-            log(f'Skipping {req_path.name} (response already exists)')
+    for e in edits:
+        path = (e or {}).get("path")
+        content = (e or {}).get("content", "")
+        if not path:
+            skipped.append({"path": str(path), "reason": "missing path"})
             continue
 
-        req = load_json(req_path)
-        if req is None:
+        # Enforce denylist
+        if any(path.startswith(prefix) for prefix in DENY_PREFIXES) and not allow_workflow_edit:
+            skipped.append({
+                "path": path,
+                "reason": "blocked by denylist (.github/workflows/**); set inputs.allow_workflow_edit=true to override"
+            })
             continue
 
-        errors = []
-        if schema:
+        p = pathlib.Path(path)
+        _ensure_parent(p)
+
+        # Idempotent write: only write if content actually changes
+        prev = None
+        if p.exists():
             try:
-                errors = validate_against_schema(req, schema)
-            except Exception as e:
-                log(f'Schema validation failed with exception: {e}')
-        if errors:
-            log(f'Schema validation errors for {req_path.name}: {errors}')
+                prev = p.read_text(encoding="utf-8")
+            except Exception:
+                prev = None
 
-        wrote = perform_file_edits(req)
-        if wrote:
-            status = 'completed'
-            outputs = {'edited_files': wrote}
-            notes = 'Applied file_edits from request. No LLM required.'
-        else:
-            plan = plan_from_request(req)
-            status = 'planned'
-            outputs = {'plan': plan}
-            notes = 'No actionable file_edits provided or LLM keys absent; recorded plan-only response.'
+        if prev == content:
+            # No change; skip noisy commits
+            continue
 
-        out = make_response(req_path, req, status, outputs, notes)
-        log(f'Wrote response: {out}')
-        processed += 1
+        p.write_text(content, encoding="utf-8")
+        applied.append(path)
 
-    if processed == 0:
-        log('No new handoff requests to process.')
+    notes = "Some edits were skipped by denylist or validation." if skipped else ""
+    return applied, skipped, notes
 
-if __name__ == '__main__':
+def _process_request(req_path: pathlib.Path) -> None:
+    try:
+        raw = req_path.read_text(encoding="utf-8")
+        data = json.loads(raw)
+    except Exception as e:
+        # Write an error response and continue
+        resp = {
+            "type": "handoff.response",
+            "handoff_id": None,
+            "from_agent": "handoff-runner",
+            "to_agent": "unknown",
+            "status": "error",
+            "error": f"parse_error: {e}",
+        }
+        resp_path = _respond_path(req_path)
+        _ensure_parent(resp_path)
+        resp_path.write_text(json.dumps(resp, indent=2, ensure_ascii=False), encoding="utf-8")
+        print(f"[handoff-runner] JSON parse error for {req_path}: {e}")
+        print(f"[handoff-runner] Wrote response: {resp_path}")
+        return
+
+    had_edits_key = "file_edits" in (data.get("inputs") or {})
+    applied, skipped, notes = _apply_file_edits(data)
+
+    resp = {
+        "type": "handoff.response",
+        "handoff_id": data.get("handoff_id"),
+        "from_agent": "handoff-runner",
+        "to_agent": data.get("from_agent"),
+        "status": _status(applied, skipped, had_edits_key),
+        "edited_files": applied,
+        "skipped_files": skipped,
+        "notes": notes,
+    }
+    resp_path = _respond_path(req_path)
+    _ensure_parent(resp_path)
+    resp_path.write_text(json.dumps(resp, indent=2, ensure_ascii=False), encoding="utf-8")
+    print(f"[handoff-runner] Wrote response: {resp_path}")
+
+def main() -> None:
+    matched = sorted(glob.glob(REQ_GLOB))
+    if not matched:
+        print("[handoff-runner] No new handoff requests to process.")
+        return
+    for path in matched:
+        _process_request(pathlib.Path(path))
+
+if __name__ == "__main__":
     main()
