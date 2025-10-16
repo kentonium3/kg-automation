@@ -1,0 +1,29 @@
+{
+  "type": "handoff.request",
+  "handoff_id": "DEVCONTAINER",
+  "from_agent": "chatgpt",
+  "to_agent": "handoff-runner",
+  "created_at": "2025-10-15T12:00:00Z",
+  "purpose": "Add a dev container so Claude Code / Copilot / Cursor work in a stable toolchain",
+  "inputs": {
+    "file_edits": [
+      {
+        "path": ".devcontainer/devcontainer.json",
+        "content": "{\n  \"name\": \"kg-automation\",\n  \"image\": \"mcr.microsoft.com/devcontainers/python:3.11\",\n  \"features\": {\n    \"ghcr.io/devcontainers/features/git:1\": {},\n    \"ghcr.io/devcontainers/features/node:1\": { \"version\": \"lts\" }\n  },\n  \"postCreateCommand\": \"pip install -U pip && pip install -r tooling/requirements.txt || true\",\n  \"customizations\": {\n    \"vscode\": {\n      \"extensions\": [\n        \"ms-python.python\",\n        \"github.vscode-github-actions\",\n        \"streetsidesoftware.code-spell-checker\",\n        \"yzhang.markdown-all-in-one\"\n      ]\n    }\n  }\n}\n"
+      },
+      {
+        "path": "tooling/requirements.txt",
+        "content": "jsonschema\\npyyaml\\n"
+      },
+      {
+        "path": ".vscode/extensions.json",
+        "content": "{ \"recommendations\": [\"ms-python.python\",\"github.vscode-github-actions\",\"yzhang.markdown-all-in-one\"] }\n"
+      },
+      {
+        "path": ".vscode/settings.json",
+        "content": "{\n  \"files.eol\": \"\\n\",\n  \"[markdown]\": { \"editor.wordWrap\": \"on\" },\n  \"python.defaultInterpreterPath\": \"/usr/local/bin/python\"\n}\n"
+      }
+    ]
+  },
+  "notes": "Dev container for consistent git/Python environment across agents."
+}
