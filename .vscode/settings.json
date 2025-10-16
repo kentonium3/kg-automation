@@ -1,0 +1,5 @@
+{
+  "files.eol": "\n",
+  "[markdown]": { "editor.wordWrap": "on" },
+  "python.defaultInterpreterPath": "/usr/local/bin/python"
+}
