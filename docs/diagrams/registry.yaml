@@ -1,16 +1,16 @@
-# Diagram registry (extend as new diagrams are added)
-- id: DIAG-CAPABILITY-MAP
-  title: Capability Map — kg-automation
-  path: docs/diagrams/capability-map.mmd
-- id: DIAG-INTEGRATION-ARCH
-  title: Integration Architecture — kg-automation
-  path: docs/diagrams/integration-architecture.mmd
-- id: DIAG-ORCHESTRATION-FLOW
-  title: Orchestration Flow — Handoff Runner & CI
-  path: docs/diagrams/orchestration-flow.mmd
-- id: DIAG-ECI-SEQUENCE
-  title: ECI Sequence — Intake & Context
-  path: docs/diagrams/eci-sequence.mmd
-- id: DIAG-LIFECYCLE
-  title: Lifecycle Swimlane — Discovery to Release
-  path: docs/diagrams/lifecycle-swimlane.mmd
+diagrams:
+  - id: capability-map
+    file: capability-map.mmd
+    title: Capability Map
+  - id: eci-sequence
+    file: eci-sequence.mmd
+    title: ECI Sequence
+  - id: integration-architecture
+    file: integration-architecture.mmd
+    title: Integration Architecture
+  - id: lifecycle-swimlane
+    file: lifecycle-swimlane.mmd
+    title: Lifecycle Swimlane
+  - id: orchestration-flow
+    file: orchestration-flow.mmd
+    title: Orchestration Flow

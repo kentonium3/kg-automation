@@ -1,20 +1,12 @@
----
-id: DIAG-README
-title: Diagrams — How to Use
-doc_type: handbook
-level: reference
-status: approved
-owners: [kent@intentional.biz]
-last_validated: 2025-10-16
-revision: 1.0
----
+# Visual Documentation
 
-# Diagrams — How to Use
+This folder contains high-level system diagrams. Source is Mermaid (`.mmd`) unless noted.
 
-- All source diagrams live as **Mermaid** (`.mmd`) in this folder.
-- Preview directly on GitHub or in VS Code.
-- Agents should update diagrams by editing the `.mmd` sources.
+- capability-map.mmd
+- eci-sequence.mmd
+- integration-architecture.mmd
+- lifecycle-swimlane.mmd
+- orchestration-flow.mmd
+- registry.yaml
 
-## Useful links
-- Style Guide: `../handbooks/visual-docs-style.md`
-- Lifecycle overview: `../../workflows/lifecycle.md`
+See `../handbooks/visual-docs-style.md` for conventions.

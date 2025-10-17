@@ -1,0 +1,20 @@
+{
+  "type": "handoff.response",
+  "ok": true,
+  "handled_request": "20251017-2100-VISUAL-DOCS-VERIFY-chatgpt-to-handoff-runner-request.json",
+  "branch": "refs/heads/ops/handoff-visual-docs-verify",
+  "runner": "handoff-runner",
+  "created_at": "2025-10-17T21:34:05.841691Z",
+  "summary": {
+    "files_written": [
+      "docs/diagrams/README.md",
+      "docs/diagrams/capability-map.mmd",
+      "docs/diagrams/eci-sequence.mmd",
+      "docs/diagrams/integration-architecture.mmd",
+      "docs/diagrams/lifecycle-swimlane.mmd",
+      "docs/diagrams/orchestration-flow.mmd",
+      "docs/diagrams/registry.yaml",
+      "docs/handbooks/visual-docs-style.md"
+    ]
+  }
+}

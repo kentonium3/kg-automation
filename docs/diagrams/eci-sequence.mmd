@@ -1,13 +1,8 @@
-%% Title: ECI Sequence — Intake & Context
+%% ECI sequence (placeholder)
 sequenceDiagram
   participant U as User
-  participant A as Agent
-  participant E as ECI/Bootstrap Docs
-  participant R as Handoff Runner
-  U->>A: Start session
-  A->>E: Read bootstrap & path rules
-  A->>Repo: Open/checkout feature branch
-  A->>Repo: Create handoff request (json)
-  U->>R: Run runner on branch
-  R->>Repo: Apply edits, write response
-  A->>Repo: Open PR; follow checklist
+  participant A as AI
+  participant R as Runner
+  U->>A: Create handoff
+  A->>R: Process request
+  R-->>A: Response JSON
