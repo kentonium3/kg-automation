@@ -1,0 +1,47 @@
+{
+  "type": "handoff.request",
+  "handoff_id": "VISUAL-DOCS-VERIFY",
+  "from_agent": "chatgpt",
+  "to_agent": "handoff-runner",
+  "created_at": "2025-10-17T21:00:00Z",
+  "purpose": "Verify visual documentation files exist with baseline content; prepare a PR branch if changes are needed.",
+  "branch": "docs/visual-docs-audit",
+  "inputs": {
+    "file_edits": [
+      {
+        "path": "docs/diagrams/README.md",
+        "content": "# Visual Documentation\n\nThis folder contains high-level system diagrams. Source is Mermaid (`.mmd`) unless noted.\n\n- capability-map.mmd\n- eci-sequence.mmd\n- integration-architecture.mmd\n- lifecycle-swimlane.mmd\n- orchestration-flow.mmd\n- registry.yaml\n\nSee `../handbooks/visual-docs-style.md` for conventions.\n"
+      },
+      {
+        "path": "docs/diagrams/capability-map.mmd",
+        "content": "%% Capability Map (placeholder)\nflowchart TB\n  A[Business Need] --> B[Capabilities]\n  B --> C[Systems]\n"
+      },
+      {
+        "path": "docs/diagrams/eci-sequence.mmd",
+        "content": "%% ECI sequence (placeholder)\nsequenceDiagram\n  participant U as User\n  participant A as AI\n  participant R as Runner\n  U->>A: Create handoff\n  A->>R: Process request\n  R-->>A: Response JSON\n"
+      },
+      {
+        "path": "docs/diagrams/integration-architecture.mmd",
+        "content": "%% Integration Architecture (placeholder)\nflowchart LR\n  Repo[GitHub Repo] --> Actions[GitHub Actions]\n  Actions --> Runner[Handoff Runner]\n  Runner --> Docs[Docs/Diagrams]\n"
+      },
+      {
+        "path": "docs/diagrams/lifecycle-swimlane.mmd",
+        "content": "%% Lifecycle Swimlane (placeholder)\nflowchart LR\n  subgraph Plan\n  P1[Ideas]\n  end\n  subgraph Build\n  B1[PRs]\n  end\n  P1 --> B1\n"
+      },
+      {
+        "path": "docs/diagrams/orchestration-flow.mmd",
+        "content": "%% Orchestration Flow (placeholder)\nflowchart LR\n  H[Handoffs] --> R[Runner]\n  R --> C[Commits/PR]\n  C --> CI[Docs CI]\n"
+      },
+      {
+        "path": "docs/diagrams/registry.yaml",
+        "content": "diagrams:\n  - id: capability-map\n    file: capability-map.mmd\n    title: Capability Map\n  - id: eci-sequence\n    file: eci-sequence.mmd\n    title: ECI Sequence\n  - id: integration-architecture\n    file: integration-architecture.mmd\n    title: Integration Architecture\n  - id: lifecycle-swimlane\n    file: lifecycle-swimlane.mmd\n    title: Lifecycle Swimlane\n  - id: orchestration-flow\n    file: orchestration-flow.mmd\n    title: Orchestration Flow\n"
+      },
+      {
+        "path": "docs/handbooks/visual-docs-style.md",
+        "content": "---\ndoc_type: handbook\ntitle: Visual Docs Style Guide\naudience: agents_and_humans\nstatus: draft\n---\n\n## Purpose\nConventions for creating system diagrams that both humans and AIs can parse.\n\n## Conventions\n- Prefer Mermaid for source; keep files small & labeled.\n- Every diagram must be listed in `docs/diagrams/registry.yaml`.\n- Use descriptive IDs; avoid spaces in filenames.\n"
+      }
+    ],
+    "commit_message": "docs: verify/add visual-docs baseline files"
+  },
+  "notes": "Runner will create/commit only if files differ. After run, open the auto-suggested PR from the 'docs/visual-docs-audit' branch if there were changes."
+}
