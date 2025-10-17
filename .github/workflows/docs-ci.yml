@@ -6,7 +6,7 @@ on:
 # (Remove `push:` for this workflow to avoid a second context)
 
 jobs:
- validate:            # ← give the job a stable id
+ pr-validate:            # ← give the job a stable id
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
