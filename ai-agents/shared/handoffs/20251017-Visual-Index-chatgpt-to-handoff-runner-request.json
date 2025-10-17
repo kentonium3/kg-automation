@@ -1,0 +1,21 @@
+{
+  "type": "handoff.request",
+  "handoff_id": "VISUAL-INDEX",
+  "from_agent": "chatgpt",
+  "to_agent": "handoff-runner",
+  "created_at": "2025-10-17T12:30:00Z",
+  "purpose": "Add a Visual Docs Index and link it from the bootstrap for fast navigation.",
+  "inputs": {
+    "file_edits": [
+      {
+        "path": "docs/README.md",
+        "content": "---\nid: DOCS-INDEX\ntitle: Visual Docs Index\ndoc_type: handbook\nlevel: reference\nstatus: approved\nowners: [kent@intentional.biz]\nlast_validated: 2025-10-17\nrevision: 1.0\n---\n\n# Visual Docs Index\n\nUse this page to jump straight to the most important visuals and handbooks.\n\n## Diagrams (Mermaid)\n- [Capability Map](./diagrams/capability-map.mmd)\n- [Integration Architecture](./diagrams/integration-architecture.mmd)\n- [Orchestration Flow (Runner & CI)](./diagrams/orchestration-flow.mmd)\n- [ECI Sequence](./diagrams/eci-sequence.mmd)\n- [Lifecycle Swimlane](./diagrams/lifecycle-swimlane.mmd)\n\n## Handbooks\n- [Visual Documentation Style](./handbooks/visual-docs-style.md)\n- [Agent Handbook — Pre-PR Checklist](./handbooks/agent-handbook.md)\n- [Handoff Runner — How to Use](./handbooks/handoff-runner.md)\n\n## Registries\n- [Diagram Registry](./diagrams/registry.yaml)\n"
+      },
+      {
+        "path": "ai-agents/ai-context-bootstrap.md",
+        "content": "# AI Context Bootstrap — READ FIRST\n\n> **Canonical guidance for all AIs (ChatGPT, Claude, Claude Code, Gemini, Copilot, etc.) working on _kg-automation_.**\n\n## Operate GitHub-first\n- **System of record:** GitHub `kentonium3/kg-automation`.\n- **Read context** from Dropbox if available; **never edit** in Dropbox.\n- **Edit/generate** only in Git branches or dev container.\n- **Use Handoff Runner** for file creation/edits via JSON requests in `ai-agents/shared/handoffs/`.\n\n## Start here (navigation)\n- **Visual Docs Index:** `docs/README.md`\n- **Diagrams:** `docs/diagrams/`\n- **Handbooks:** `docs/handbooks/`\n\n## Handoff Runner — quick start\n1) Create a feature branch.\n2) Add `*-chatgpt-to-handoff-runner-request.json` under `ai-agents/shared/handoffs/`.\n3) Run **Actions → Handoff Runner** on that branch.\n4) Open PR → Docs CI (`Docs CI / validate (pull_request)`) must pass → merge.\n\n**Guards:** runner won’t run on `main`; it never edits `.github/workflows/**`.\n"
+      }
+    ]
+  },
+  "notes": "Adds a discoverable landing page for diagrams and key docs, and links it from the bootstrap."
+}
