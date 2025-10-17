@@ -1,7 +1,7 @@
 ---
 id: DIAG-README
 title: Diagrams — How to Use
-doc_type: document
+doc_type: handbook
 level: reference
 status: approved
 owners: [kent@intentional.biz]
@@ -12,7 +12,7 @@ revision: 1.0
 # Diagrams — How to Use
 
 - All source diagrams live as **Mermaid** (`.mmd`) in this folder.
-- Preview on GitHub or in VS Code.
+- Preview directly on GitHub or in VS Code.
 - Agents should update diagrams by editing the `.mmd` sources.
 
 ## Useful links
