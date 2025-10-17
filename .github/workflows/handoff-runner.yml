@@ -47,15 +47,19 @@ jobs:
           echo "::endgroup::"
           git diff --name-only || true
 
-      - name: Commit response if changed
+      # Keep this step ONLY to show what's there; don't gate the push on it
+      - name: Show pending changes
         run: |
-          if [ -n "$(git status --porcelain)" ]; then
-            git config user.name "handoff-runner[bot]"
-            git config user.email "handoff-runner@local"
-            git add -A
-            git commit -m "handoff: automated response by handoff-runner"
-            # Push to the same branch this workflow is running on
-            git push origin "HEAD:${GITHUB_REF#refs/heads/}"
-          else
-            echo "No changes to commit."
-          fi
+          echo "::group::git status"
+          git status
+          echo "::endgroup::"
+          git --no-pager log --oneline -3 || true
+
+      # Always push the branch, even if there are no pending changes
+      - name: Push branch (always)
+        run: |
+          BR="${GITHUB_REF#refs/heads/}"
+          echo "Pushing HEAD to origin:${BR}"
+          git config user.name "handoff-runner[bot]"
+          git config user.email "handoff-runner@local"
+          git push origin "HEAD:${BR}"
