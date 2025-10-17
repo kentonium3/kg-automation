@@ -1,7 +1,6 @@
 name: Handoff Runner
 
 on:
-  # manual only + push/PR on non-main (optional); keep workflow_dispatch at minimum
   workflow_dispatch:
   push:
     branches-ignore: ['main']
@@ -14,7 +13,7 @@ on:
       - 'ai-agents/shared/handoffs/**.json'
 
 permissions:
-  contents: write  # required to push commits
+  contents: write
 
 jobs:
   run:
@@ -26,40 +25,29 @@ jobs:
         uses: actions/checkout@v4
         with:
           persist-credentials: true
+          fetch-depth: 0
 
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
-      - name: Install deps
-        run: |
-          python -V
-
       - name: Run handoff runner
-        run: |
-          python tooling/scripts/handoff_runner.py
+        run: python tooling/scripts/handoff_runner.py
 
-      - name: Show pending changes
+      - name: Commit if changed
         run: |
-          echo "::group::git status"
-          git status
-          echo "::endgroup::"
-          git diff --name-only || true
+          if [ -n "$(git status --porcelain)" ]; then
+            git config user.name "handoff-runner[bot]"
+            git config user.email "handoff-runner@local"
+            git add -A
+            git commit -m "handoff: automated response by handoff-runner"
+          else
+            echo "No changes to commit."
+          fi
 
-      # Keep this step ONLY to show what's there; don't gate the push on it
-      - name: Show pending changes
-        run: |
-          echo "::group::git status"
-          git status
-          echo "::endgroup::"
-          git --no-pager log --oneline -3 || true
-
-      # Always push the branch, even if there are no pending changes
       - name: Push branch (always)
         run: |
           BR="${GITHUB_REF#refs/heads/}"
           echo "Pushing HEAD to origin:${BR}"
-          git config user.name "handoff-runner[bot]"
-          git config user.email "handoff-runner@local"
           git push origin "HEAD:${BR}"
