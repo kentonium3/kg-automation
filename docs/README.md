@@ -27,3 +27,4 @@ Use this page to jump straight to the most important visuals and handbooks.
 
 ## Registries
 - [Diagram Registry](./diagrams/registry.yaml)
+
