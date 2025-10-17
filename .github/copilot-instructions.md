@@ -1,3 +1,13 @@
+---
+id: GH-COPILOT-INSTRUCTIONS
+title: GitHub Copilot Instructions
+doc_type: handbook
+level: reference
+status: approved
+owners: [kent@intentional.biz]
+last_validated: 2025-10-17
+revision: 1.0
+---
 # GitHub Copilot instructions — kg-automation
 
 These instructions are a concise, actionable guide for AI coding agents working in this repository. Read the short "PRIMERS" below before making edits.
