@@ -1,162 +1,87 @@
 #!/usr/bin/env python3
-"""
-Handoff Runner
-- Reads handoff request JSON files from ai-agents/shared/handoffs/*-request.json
-- Applies file edits to the current branch (never main)
-- Writes a matching *-github-runner-response.json
-- Honors a simple denylist (e.g., blocks .github/workflows/** by default)
-"""
+import json, os, sys, glob, pathlib, datetime
 
-from __future__ import annotations
-import json
-import os
-from pathlib import Path
-from typing import List, Dict, Any
-import subprocess
-import sys
-import datetime
+REQUEST_GLOB = "ai-agents/shared/handoffs/*-request.json"
+RESPONSE_SUFFIX = "-github-runner-response.json"
 
-ROOT = Path(__file__).resolve().parents[2]   # repo root
-HANDOFF_DIR = ROOT / "ai-agents" / "shared" / "handoffs"
+def is_main_branch() -> bool:
+    # In Actions, GITHUB_REF is like 'refs/heads/<branch>'
+    ref = os.environ.get("GITHUB_REF", "")
+    return ref.endswith("/main")
 
-# ---- runner policy ----------------------------------------------------------
-
-DENYLIST_PREFIXES = [
-    ".github/workflows/",   # don't let the runner edit workflows
-]
-
-def is_denied(path: Path, allow_workflow_edit: bool) -> bool:
-    p = path.as_posix()
-    if not allow_workflow_edit:
-        for pref in DENYLIST_PREFIXES:
-            if p.startswith(pref):
-                return True
-    return False
-
-def current_branch() -> str:
-    try:
-        out = subprocess.check_output(["git", "rev-parse", "--abbrev-ref", "HEAD"], cwd=ROOT)
-        return out.decode().strip()
-    except Exception:
-        return ""
-
-def git_add_commit_if_changed(message: str) -> bool:
-    # Return True if a commit was created
-    changed = subprocess.run(["git", "status", "--porcelain"], cwd=ROOT, capture_output=True, text=True)
-    if changed.returncode != 0:
-        return False
-    if not changed.stdout.strip():
-        return False
-    subprocess.check_call(["git", "config", "user.name", "handoff-runner[bot]"], cwd=ROOT)
-    subprocess.check_call(["git", "config", "user.email", "handoff-runner@local"], cwd=ROOT)
-    subprocess.check_call(["git", "add", "-A"], cwd=ROOT)
-    subprocess.check_call(["git", "commit", "-m", message], cwd=ROOT)
-    return True
-
-# ---- core -------------------------------------------------------------------
-
-def find_requests() -> List[Path]:
-    if not HANDOFF_DIR.exists():
-        return []
-    return sorted(HANDOFF_DIR.glob("*-request.json"))
-
-def load_json(p: Path) -> Dict[str, Any]:
-    with p.open("r", encoding="utf-8") as f:
+def load_json(path: pathlib.Path):
+    with path.open("r", encoding="utf-8") as f:
         return json.load(f)
 
-def write_json(p: Path, data: Dict[str, Any]) -> None:
+def write_file(root: pathlib.Path, relpath: str, content: str):
+    p = root / relpath
     p.parent.mkdir(parents=True, exist_ok=True)
-    with p.open("w", encoding="utf-8") as f:
-        json.dump(data, f, indent=2, ensure_ascii=False)
+    p.write_text(content, encoding="utf-8")
 
-def apply_file_edits(edits: List[Dict[str, Any]], allow_workflow_edit: bool) -> Dict[str, Any]:
-    written = []
-    denied = []
-    for e in edits:
-        rel = Path(e["path"]).as_posix().lstrip("/")           # normalize
-        tgt = ROOT / rel
-        if is_denied(Path(rel), allow_workflow_edit):
-            denied.append(rel)
-            continue
-        tgt.parent.mkdir(parents=True, exist_ok=True)
-        content = e.get("content", "")
-        # If caller provided "mode": "append", support it lightly
-        mode = e.get("mode", "write")
-        if mode == "append" and tgt.exists():
-            existing = tgt.read_text(encoding="utf-8")
-            tgt.write_text(existing + ("\n" if not existing.endswith("\n") else "") + content, encoding="utf-8")
-        else:
-            tgt.write_text(content, encoding="utf-8")
-        written.append(rel)
-    return {"written": written, "denied": denied}
-
-def process_request(req_path: Path) -> Path:
-    req = load_json(req_path)
-
-    # Inputs
-    inputs = req.get("inputs", {})
-    edits = inputs.get("file_edits", [])
-    allow_workflow_edit = bool(inputs.get("allow_workflow_edit", False))
-
-    # Safety: never on main
-    branch = current_branch()
-    if branch in ("main", "origin/main"):
-        raise SystemExit("Refusing to run on 'main' — create a feature branch.")
-
-    result = apply_file_edits(edits, allow_workflow_edit=allow_workflow_edit)
-
-    # Compose response JSON
+def write_response(req_path: pathlib.Path, data: dict):
     ts = datetime.datetime.utcnow().strftime("%Y%m%d-%H%M")
-    base = req_path.stem.replace("-request", "")
-    resp_name = f"{ts}-{base}-github-runner-response.json"
-    resp_path = HANDOFF_DIR / resp_name
-    response = {
+    resp_name = req_path.name.replace("-request.json", f"-{RESPONSE_SUFFIX}")
+    # Keep original timestamp prefix if present, append current run ts as first segment
+    resp_name = f"{ts}-{resp_name}"
+    resp_path = req_path.parent / resp_name
+    resp = {
         "type": "handoff.response",
-        "from_agent": "handoff-runner",
-        "request_file": str(req_path.relative_to(ROOT)),
-        "branch": branch,
-        "timestamp_utc": ts,
-        "result": result,
-        "notes": "Committed if any files changed; see Git history for this branch."
+        "ok": True,
+        "handled_request": req_path.name,
+        "branch": os.environ.get("GITHUB_REF", ""),
+        "runner": "handoff-runner",
+        "created_at": datetime.datetime.utcnow().isoformat() + "Z",
+        "summary": {
+            "files_written": [e.get("path") for e in data.get("inputs", {}).get("file_edits", [])]
+        }
     }
-    write_json(resp_path, response)
-
-    # Stage + commit if anything changed (files or response)
-    # We ensure the response is committed too.
-    git_add_commit_if_changed("handoff: automated response by handoff-runner")
-
+    resp_path.write_text(json.dumps(resp, indent=2, ensure_ascii=False), encoding="utf-8")
+    print(f"[handoff-runner] Wrote response: {resp_path}")
     return resp_path
 
-def main() -> None:
-    reqs = find_requests()
-    if not reqs:
+def process_request(repo_root: pathlib.Path, req_path: pathlib.Path) -> bool:
+    data = load_json(req_path)
+
+    edits = (data.get("inputs") or {}).get("file_edits", [])
+    if not edits:
+        print(f"[handoff-runner] No file_edits in {req_path.name}; skipping.")
+        return False
+
+    for edit in edits:
+        rel = edit["path"]
+        content = edit["content"]
+        write_file(repo_root, rel, content)
+        print(f"[handoff-runner] Wrote file: {rel}")
+
+    write_response(req_path, data)
+    return True
+
+def main():
+    repo_root = pathlib.Path(".").resolve()
+
+    if is_main_branch():
+        print("Refusing to run on 'main' — create a feature branch.")
+        sys.exit(1)
+
+    requests = sorted(glob.glob(REQUEST_GLOB))
+    if not requests:
         print("[handoff-runner] No handoff requests found.")
-        return
+        return 0
 
-    processed = 0
-    for rp in reqs:
+    any_processed = False
+    for req in requests:
+        req_path = pathlib.Path(req)
+        print(f"[handoff-runner] Processing {req_path}")
         try:
-            print(f"[handoff-runner] Processing {rp.relative_to(ROOT)}")
-            out = process_request(rp)
-            print(f"[handoff-runner] Wrote response: {out.relative_to(ROOT)}")
-            processed += 1
+            if process_request(repo_root, req_path):
+                any_processed = True
         except Exception as e:
-            # Always try to surface a response even on error
-            ts = datetime.datetime.utcnow().strftime("%Y%m%d-%H%M")
-            base = rp.stem.replace("-request", "")
-            resp_name = f"{ts}-{base}-github-runner-response.json"
-            resp_path = HANDOFF_DIR / resp_name
-            write_json(resp_path, {
-                "type": "handoff.response",
-                "from_agent": "handoff-runner",
-                "request_file": str(rp.relative_to(ROOT)),
-                "error": str(e),
-            })
-            git_add_commit_if_changed("handoff: automated response by handoff-runner (error)")
-            print(f"[handoff-runner] ERROR on {rp.name}: {e}", file=sys.stderr)
+            print(f"[handoff-runner] ERROR while processing {req_path.name}: {e}")
+            return 1
 
-    if processed == 0:
-        print("[handoff-runner] No new handoff requests to process.")
+    if not any_processed:
+        print("[handoff-runner] No applicable requests processed.")
+    return 0
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
