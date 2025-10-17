@@ -1,13 +1,3 @@
----
-id: AI-BOOTSTRAP
-title: AI Context Bootstrap — READ FIRST
-doc_type: handbook
-level: reference
-status: approved
-owners: [kent@intentional.biz]
-last_validated: 2025-10-17
-revision: 1.0
----
 # AI Context Bootstrap — READ FIRST
 
 > **Canonical guidance for all AIs (ChatGPT, Claude, Claude Code, Gemini, Copilot, etc.) working on _kg-automation_.**

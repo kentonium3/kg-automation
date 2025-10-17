@@ -1,0 +1,14 @@
+{
+  "type": "handoff.response",
+  "ok": true,
+  "handled_request": "20251017-Visual-Index-chatgpt-to-handoff-runner-request.json",
+  "branch": "refs/heads/handoff-json-file-removals",
+  "runner": "handoff-runner",
+  "created_at": "2025-10-17T16:32:56.247096Z",
+  "summary": {
+    "files_written": [
+      "docs/README.md",
+      "ai-agents/ai-context-bootstrap.md"
+    ]
+  }
+}
