@@ -14,3 +14,9 @@
 - id: DIAG-LIFECYCLE
   title: Lifecycle Swimlane — Discovery to Release
   path: docs/diagrams/lifecycle-swimlane.mmd
+- id: claude-code-execution
+  file: claude-code-execution.mmd
+  title: Claude Code Execution
+- id: multi-agent-orchestration
+  file: multi-agent-orchestration.mmd
+  title: Multi-Agent Orchestration
