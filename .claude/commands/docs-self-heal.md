@@ -16,5 +16,6 @@ revision: v1.0
 2) For each failing file: add/normalize required front-matter keys; repair relative links
 3) Re-run validator locally; repeat until green
 4) Commit: `docs(ci): self-heal front-matter/links`
+5) **Push**: `git push -u origin $(git rev-parse --abbrev-ref HEAD)`
 
 Respects `.claude/config.json`.
