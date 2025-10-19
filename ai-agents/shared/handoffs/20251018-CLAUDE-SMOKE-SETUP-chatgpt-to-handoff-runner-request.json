@@ -1,0 +1,15 @@
+{
+  "type": "handoff.request",
+  "handoff_id": "CLAUDE-SMOKE-SETUP",
+  "from_agent": "chatgpt",
+  "to_agent": "handoff-runner",
+  "created_at": "2025-10-18T15:40:00Z",
+  "purpose": "Create a doc missing front-matter to let Claude Code self-heal it.",
+  "branch": "test/claude-code-smoke",
+  "inputs": {
+    "commit_message": "test(smoke): add doc missing front-matter for Claude Code self-heal",
+    "file_edits": [
+      { "path": "docs/misc/broken-doc.md", "content": "# Broken Doc\n\nThis file intentionally lacks front-matter so Docs CI fails.\n" }
+    ]
+  }
+}
