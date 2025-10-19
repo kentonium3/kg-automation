@@ -1,14 +1,14 @@
-﻿{
+{
   "mcpServers": {
     "github": {
       "command": "npx",
-      "args": [
-        "-y",
-        "@modelcontextprotocol/server-github"
-      ],
-      "env": {
-        "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_TOKEN}"
-      }
+      "args": ["-y", "@modelcontextprotocol/server-github"],
+      "env": {"GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_TOKEN}"}
+    },
+    "filesystem": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem"],
+      "env": {"ALLOWED_DIRECTORIES": ".,docs,ai-agents,systems"}
     }
   }
 }
