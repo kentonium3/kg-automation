@@ -14,11 +14,27 @@ Shared Obsidian configuration for the `docs` vault. We commit stable, cross-mach
 
 ## Commit Policy
 - **Committed:** app/appearance, core & community plugin lists, hotkeys, shared plugin settings, CSS snippets.
+- **Community plugin configuration files (data.json) are shared by default.** If a plugin stores per-user secrets or volatile caches, add those paths to `.gitignore`.
 - **Ignored:** `workspace*.json`, `graph.json`, plugin caches.
 
 ## Location
 Vault root: `kg-automation/docs`
 Config: `docs/.obsidian/`
+
+## Templater
+The Templater plugin automates front-matter updates and template workflows.
+
+### Configuration
+- **Templates folder:** `_templates`
+- **Scripts folder:** `_templater-scripts` (set this in Obsidian UI under Templater settings; then commit updated config)
+
+### Command: Bump Revision
+Bind a hotkey to template `_templates/_commands/bump-revision.md` to:
+- Increment `revision` (vMAJOR.MINOR → vMAJOR.(MINOR+1))
+- Update `last_validated` to today's date (YYYY-MM-DD)
+- Add missing keys with sensible defaults
+
+This ensures docs stay up-to-date with minimal manual overhead.
 
 ## Working Notes
 - If a plugin stores noisy per-user data, add it to `.gitignore` under `docs/.obsidian/plugins/<name>/**` as needed.
