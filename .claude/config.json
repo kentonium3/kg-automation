@@ -1,0 +1,12 @@
+﻿{
+  "permissions": {
+    "allowedTools": [
+      "Read",
+      "Write(docs/**)",
+      "Write(ai-agents/**)",
+      "Bash(git*)",
+      "Bash(python tooling/scripts/*)",
+      "Bash(gh*)"
+    ]
+  }
+}
