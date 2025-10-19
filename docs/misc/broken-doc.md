@@ -1,3 +1,15 @@
+---
+id: broken-doc
+title: Broken Doc
+doc_type: handbook
+level: reference
+status: draft
+owners:
+  - "@kentonium3"
+last_validated: 2025-10-19
+revision: v1.0
+---
+
 # Broken Doc
 
 This file intentionally lacks front-matter so Docs CI fails.
