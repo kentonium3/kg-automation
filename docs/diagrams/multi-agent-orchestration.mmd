@@ -1,0 +1,18 @@
+%% Title: Multi-Agent Orchestration — kg-automation
+flowchart TB
+  subgraph Plan
+    CGPT[ChatGPT Planner]
+  end
+  subgraph Execute
+    CC[Claude Code Executor]
+    RUN[Handoff Runner]
+  end
+  subgraph Controls
+    GOV[Repo Governance & Rulesets]
+    CI[(Docs CI)]
+  end
+  CGPT -->|handoff| CC
+  CGPT -->|handoff (scaffold)| RUN
+  CC -->|PRs| CI
+  RUN -->|PRs| CI
+  CI -->|status| GOV
