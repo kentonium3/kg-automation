@@ -1,13 +1,15 @@
-﻿---
-id: claude-code-guide
+---
+id: CLAUDE-CODE-GUIDE
 title: Claude Code Repository Guide
-doc_type: reference
+doc_type: handbook
 level: reference
 status: approved
-owners: [kent@intentional.biz]
+owners:
+  - "@kentonium3"
 last_validated: 2025-10-18
-revision: 1.0
+revision: v1.0
 ---
+
 
 # kg-automation Project Context
 
