@@ -1,0 +1,11 @@
+# Claude Code local settings
+.claude/settings.local.json
+
+# Obsidian (shared config allowed, volatile state ignored)
+docs/.obsidian/workspace.json
+docs/.obsidian/graph.json
+docs/.obsidian/workspace-mobile.json
+
+# Common plugin caches (safe to expand later)
+docs/.obsidian/plugins/**/cache/
+docs/.obsidian/plugins/**/.cache/
