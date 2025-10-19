@@ -19,11 +19,15 @@ Use this page to jump straight to the most important visuals and handbooks.
 - [Orchestration Flow (Runner & CI)](./diagrams/orchestration-flow.mmd)
 - [ECI Sequence](./diagrams/eci-sequence.mmd)
 - [Lifecycle Swimlane](./diagrams/lifecycle-swimlane.mmd)
-
+- [Claude Code Execution](.diagrams/claude-code-execution.mmd)
+- [Multi-agent-orchestration](.diagrams/multi-agent-orchestration.mmd)
+  
 ## Handbooks
 - [Visual Documentation Style](./handbooks/visual-docs-style.md)
 - [Agent Handbook — Pre-PR Checklist](./handbooks/agent-handbook.md)
 - [Handoff Runner — How to Use](./handbooks/handoff-runner.md)
+- [Claude Code — Execution Agent](./handbooks/claude-code.md)
+- [Execution Roles — Runner vs Claude Code](./handbooks/agent-execution-roles.md)
 
 ## Registries
 - [Diagram Registry](./diagrams/registry.yaml)
