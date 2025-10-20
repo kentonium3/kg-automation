@@ -9,6 +9,8 @@ last_validated: 2025-10-17
 revision: 1.0
 ---
 
+![Docs CI](https://github.com/kentonium3/kg-automation/actions/workflows/docs-ci.yml/badge.svg)
+
 # Visual Docs Index
 
 Use this page to jump straight to the most important visuals and handbooks.
