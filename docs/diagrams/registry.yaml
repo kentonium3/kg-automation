@@ -2,21 +2,28 @@
 - id: DIAG-CAPABILITY-MAP
   title: Capability Map — kg-automation
   path: docs/diagrams/capability-map.mmd
+  view: capability-map.view.md
 - id: DIAG-INTEGRATION-ARCH
   title: Integration Architecture — kg-automation
   path: docs/diagrams/integration-architecture.mmd
+  view: integration-architecture.view.md
 - id: DIAG-ORCHESTRATION-FLOW
   title: Orchestration Flow — Handoff Runner & CI
   path: docs/diagrams/orchestration-flow.mmd
+  view: orchestration-flow.view.md
 - id: DIAG-ECI-SEQUENCE
   title: ECI Sequence — Intake & Context
   path: docs/diagrams/eci-sequence.mmd
+  view: eci-sequence.view.md
 - id: DIAG-LIFECYCLE
   title: Lifecycle Swimlane — Discovery to Release
   path: docs/diagrams/lifecycle-swimlane.mmd
+  view: lifecycle-swimlane.view.md
 - id: claude-code-execution
   file: claude-code-execution.mmd
   title: Claude Code Execution
+  view: claude-code-execution.view.md
 - id: multi-agent-orchestration
   file: multi-agent-orchestration.mmd
   title: Multi-Agent Orchestration
+  view: multi-agent-orchestration.view.md
