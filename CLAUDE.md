@@ -38,6 +38,24 @@ When processing AI handoffs:
 4. Create response JSON with complete status information
 5. Use conventional commit format (docs:, ci:, feat:, fix:, handoff:)
 
+## Preset: Doc Hygiene
+Use the `doc-hygiene` preset to sync diagram wrappers, validate docs, and commit/push changes.
+
+**Usage in handoff requests:**
+```json
+{
+  "tasks": [
+    { "op": "preset", "name": "doc-hygiene" }
+  ]
+}
+```
+
+**Manual execution:**
+Alternatively, run the three commands on your branch:
+1. `python tooling/scripts/sync_mermaid_views.py --write`
+2. `python tooling/scripts/validate_docs.py`
+3. Commit and push changes
+
 ## Permissions & Safety
 ### Allowed Operations
 - Read any file in repository
