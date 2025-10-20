@@ -1,0 +1,12 @@
+{
+  "id": "cap-content-pipeline",
+  "name": "Content Pipeline",
+  "description": "From ideation to multi-channel publishing with review gates.",
+  "status": "planned",
+  "owners": ["@kentonium3"],
+  "inputs": ["user-stories", "research-notes"],
+  "outputs": ["drafts", "approved-assets", "published-links"],
+  "dependencies": ["cap-claude-code-exec", "cap-handoff-runner"],
+  "docs": ["docs/workflows/content-pipeline.md"],
+  "tags": ["docs", "automation", "publishing"]
+}

@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "External Service / Product",
+  "type": "object",
+  "required": ["id", "name", "category", "capabilities", "auth"],
+  "properties": {
+    "id": { "type": "string" },
+    "name": { "type": "string" },
+    "vendor": { "type": "string" },
+    "category": { "type": "string" },
+    "capabilities": { "type": "array", "items": { "type": "string" } },
+    "docs_url": { "type": "string" },
+    "auth": {
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": { "enum": ["oauth", "api_key", "basic", "none"] },
+        "scopes": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "limits": { "type": "object" }
+  }
+}

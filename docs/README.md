@@ -15,6 +15,18 @@ revision: 1.0
 
 Use this page to jump straight to the most important visuals and handbooks.
 
+## Strategy
+- [Vision & Conceptual Framework](<./strategy/vision-framework.md>)
+
+## Machine Schemas
+- [Capabilities Schema](<../systems/capabilities/schema.json>)
+- [Product Catalog Schema](<../systems/catalog/schema.json>)
+
+## Governance
+- [Project Charter](<../workflows/project-charter.md>)
+- [Decision Log](<../workflows/decision-log.md>)
+- [Risk Register](<../workflows/risk-register.md>)
+
 ## Diagrams (Mermaid)
 - [Capability Map](<./diagrams/capability-map.view.md>)
 - [Integration Architecture](<./diagrams/integration-architecture.view.md>)
