@@ -1,0 +1,10 @@
+{
+  "id": "svc-github",
+  "name": "GitHub",
+  "vendor": "GitHub",
+  "category": "VCS/CI",
+  "capabilities": ["pull_requests", "actions", "branch_protection", "rulesets"],
+  "docs_url": "https://docs.github.com/",
+  "auth": { "type": "oauth", "scopes": ["repo", "workflow"] },
+  "limits": {}
+}
