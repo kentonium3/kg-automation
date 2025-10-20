@@ -1,0 +1,10 @@
+{
+  "type": "claude.preset",
+  "id": "doc-hygiene",
+  "purpose": "Run diagrams sync and docs validator, commit and push.",
+  "tasks": [
+    { "op": "run_cmd", "cmd": "\"C:\\\\Program Files\\\\Python312\\\\python.exe\" tooling/scripts/sync_mermaid_views.py --write" },
+    { "op": "run_cmd", "cmd": "\"C:\\\\Program Files\\\\Python312\\\\python.exe\" tooling/scripts/validate_docs.py" },
+    { "op": "commit_push", "message": "docs(hygiene): sync diagram views and validate docs" }
+  ]
+}
