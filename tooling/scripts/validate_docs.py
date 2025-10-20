@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import os, re, sys, json
+import os, re, sys, json, subprocess
 from pathlib import Path
 
 try:
@@ -196,7 +196,21 @@ for p in ROOT.rglob('*'):
         if hit:
             break
 
+# ---------- 6) Mermaid wrapper sync check ----------
+def _run_mermaid_sync_check():
+    cmd = [sys.executable, "tooling/scripts/sync_mermaid_views.py", "--check"]
+    try:
+        res = subprocess.run(cmd, capture_output=True, text=True)
+        if res.returncode != 0:
+            if res.stdout.strip():
+                print(res.stdout.strip())
+            if res.stderr.strip():
+                print(res.stderr.strip())
+            err("docs/diagrams: wrapper drift detected (run sync_mermaid_views.py --write)")
+    except Exception as e:
+        err(f"failed to run mermaid sync check: {e}")
 
+_run_mermaid_sync_check()
 
 # ---------- report ----------
 if ERRORS:
