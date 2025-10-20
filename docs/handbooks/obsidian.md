@@ -46,6 +46,18 @@ This ensures docs stay up-to-date with minimal manual overhead.
   ```
 - Commit the changed wrappers and push.
 
+## Developer Shortcuts
+
+**PowerShell:**
+- `./tooling/scripts/docs_check.ps1` - Run docs validation
+- `./tooling/scripts/diagrams_sync.ps1` - Sync diagram wrappers and validate
+
+**Make (cross-platform):**
+- `make docs-check` - Run docs validation
+- `make diagrams-sync` - Sync diagram wrappers and validate
+
+Ensure Python is in PATH if using make.
+
 ## Working Notes
 - If a plugin stores noisy per-user data, add it to `.gitignore` under `docs/.obsidian/plugins/<name>/**` as needed.
 - Keep Docs CI green: Obsidian files are JSON; they are not scanned as docs.
