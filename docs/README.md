@@ -29,5 +29,9 @@ Use this page to jump straight to the most important visuals and handbooks.
 - [Claude Code — Execution Agent](<./handbooks/claude-code.md>)
 - [Execution Roles — Runner vs Claude Code](<./handbooks/agent-execution-roles.md>)
 
+## Templates
+- [User Story](<./_templates/user-story.md>)
+- [Decision Record (ADR-lite)](<./_templates/decision.md>)
+
 ## Registries
 - [Diagram Registry](<./diagrams/registry.yaml>)
