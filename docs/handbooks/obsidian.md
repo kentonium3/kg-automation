@@ -36,6 +36,16 @@ Bind a hotkey to template `_templates/_commands/bump-revision.md` to:
 
 This ensures docs stay up-to-date with minimal manual overhead.
 
+## Diagram Wrappers (Mermaid View)
+- Author sources in `docs/diagrams/*.mmd` (raw Mermaid).
+- Human-facing pages are `*.view.md` with a ```mermaid fenced block.
+- CI enforces that wrappers match sources. If CI fails with wrapper drift:
+  ```
+  python tooling/scripts/sync_mermaid_views.py --write
+  python tooling/scripts/validate_docs.py
+  ```
+- Commit the changed wrappers and push.
+
 ## Working Notes
 - If a plugin stores noisy per-user data, add it to `.gitignore` under `docs/.obsidian/plugins/<name>/**` as needed.
 - Keep Docs CI green: Obsidian files are JSON; they are not scanned as docs.
