@@ -1,0 +1,29 @@
+{
+  "readme": {
+    "id": "repo-readme",
+    "doc_type": "reference",
+    "level": "reference",
+    "status": "approved",
+    "owners": ["@kentonium3"],
+    "last_validated": "AUTO_TODAY",
+    "revision": "v1.0"
+  },
+  "guide": {
+    "id": "kg-sync-guide",
+    "doc_type": "handbook",
+    "level": "reference",
+    "status": "approved",
+    "owners": ["@kentonium3"],
+    "last_validated": "AUTO_TODAY",
+    "revision": "v1.0"
+  },
+  "charter": {
+    "id": "strategic-acceleration-charter",
+    "doc_type": "governance",
+    "level": "concept",
+    "status": "draft",
+    "owners": ["@kentonium3"],
+    "last_validated": "AUTO_TODAY",
+    "revision": "v0.1"
+  }
+}

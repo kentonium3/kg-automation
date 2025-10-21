@@ -1,4 +1,12 @@
 ---
+id: strategic-acceleration-charter
+doc_type: governance
+level: concept
+status: draft
+owners:
+  - '@kentonium3'
+last_validated: '2025-10-21'
+revision: v0.1
 machine_manifest: docs/strategy/strategic_acceleration_charter.json
 sync_policy: manual-approve
 last_synced: 2025-10-21T00:00:00Z

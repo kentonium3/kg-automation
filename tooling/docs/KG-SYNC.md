@@ -1,3 +1,14 @@
+---
+id: kg-sync-guide
+doc_type: handbook
+level: reference
+status: approved
+owners:
+  - '@kentonium3'
+last_validated: '2025-10-21'
+revision: v1.0
+---
+
 # KG Sync: Doc ⇄ JSON Watcher
 
 - Run once: `pip install -r requirements.txt`

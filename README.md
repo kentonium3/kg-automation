@@ -1,3 +1,14 @@
+---
+id: repo-readme
+doc_type: reference
+level: reference
+status: approved
+owners:
+  - '@kentonium3'
+last_validated: '2025-10-21'
+revision: v1.0
+---
+
 # Option B: Cross-Platform Doc ⇄ JSON Sync
 
 This folder contains a cross-platform synchronizer to keep a Markdown charter
