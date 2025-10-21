@@ -4,6 +4,24 @@
   "tasks": [
     { "label": "docs: validate",          "type": "shell", "command": "python tooling/scripts/validate_docs.py" },
     { "label": "docs: build registries",   "type": "shell", "command": "python tooling/scripts/build_registries.py" },
-    { "label": "docs: render docgraph",    "type": "shell", "command": "python tooling/scripts/render_docgraph.py" }
+    { "label": "docs: render docgraph",    "type": "shell", "command": "python tooling/scripts/render_docgraph.py" },
+    {
+      "label": "Watch: Doc→JSON sync (kg-sync)",
+      "type": "shell",
+      "command": "python",
+      "args": ["tooling/scripts/kg_sync_watch.py", "docs"],
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "python",
+        "fileLocation": ["relative", "${workspaceFolder}"],
+        "pattern": [{ "regexp": "^(.*)$", "file": 1, "message": 1 }],
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": "\\[WATCH\\] Watching",
+          "endsPattern": "\\[WRITE\\] Updated manifest:"
+        }
+      },
+      "presentation": { "reveal": "never", "clear": false, "panel": "dedicated" }
+    }
   ]
 }
