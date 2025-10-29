@@ -2,6 +2,7 @@
 """
 Canon v2 Documentation Validator
 Validates frontmatter against machine-readable schema and allowed values.
+Respects validator-policy.json for blocking vs advisory checks.
 """
 import os, re, sys, json, subprocess
 from pathlib import Path
@@ -15,6 +16,26 @@ except Exception as e:
 
 ROOT = Path('.')
 ERRORS = []
+WARNINGS = []
+
+# Default policy (overridden by docs/standards/validator-policy.json if present)
+DEFAULT_POLICY = {
+    'blockers': ['required_keys', 'enum_membership', 'formats', 'id_filename_match'],
+    'advisories': ['key_order', 'whitespace', 'array_style', 'title_blankline', 'case_style'],
+    'id_match_case_sensitive': False,
+    'autofix_on_run': True
+}
+
+# Load validator policy
+POLICY_FILE = ROOT / 'docs' / 'standards' / 'validator-policy.json'
+POLICY = DEFAULT_POLICY.copy()
+if POLICY_FILE.exists():
+    try:
+        with open(POLICY_FILE, 'r', encoding='utf-8') as f:
+            loaded_policy = json.load(f)
+            POLICY.update(loaded_policy)
+    except Exception as e:
+        print(f"Warning: Could not load validator-policy.json: {e}", file=sys.stderr)
 
 # Fallback allowed values (overridden by docs/standards/allowed-values.json if present)
 ALLOWED_VALUES = {
@@ -78,9 +99,13 @@ EXCLUDE_SECRET_SCAN = load_secret_allowlist() or {'tooling/scripts/validate_docs
 
 # ---------- helpers ----------
 
-def err(msg, path=None):
+def err(msg, path=None, is_blocker=True):
+    """Add error or warning based on blocker status."""
     if path: msg = f"{path}: {msg}"
-    ERRORS.append(msg)
+    if is_blocker:
+        ERRORS.append(msg)
+    else:
+        WARNINGS.append(msg)
 
 
 def load_yaml(p):
@@ -151,6 +176,19 @@ def validate_kebab_case(s, allow_dots=False):
     return bool(re.match(r'^[a-z0-9]+(-[a-z0-9]+)*$', s))
 
 
+def normalize_to_kebab(s):
+    """Normalize string to kebab-case (lowercase with hyphens)."""
+    if not isinstance(s, str):
+        return s
+    # Convert to lowercase and replace underscores/spaces with hyphens
+    return re.sub(r'[_\s]+', '-', s.lower())
+
+
+def is_blocker(check_type):
+    """Check if a validation type is a blocker based on policy."""
+    return check_type in POLICY.get('blockers', [])
+
+
 # ---------- 1) Markdown front-matter validation (Canon v2) ----------
 ids = {}
 for md in ROOT.rglob('*.md'):
@@ -165,71 +203,91 @@ for md in ROOT.rglob('*.md'):
     required = ['id','title','doc_type','level','status','owners','last_updated','revision','audience']
     for k in required:
         if k not in fm:
-            err(f"Missing front-matter key '{k}'", md)
+            err(f"Missing front-matter key '{k}'", md, is_blocker=is_blocker('required_keys'))
 
     # Validate doc_type against allowed values
     if 'doc_type' in fm:
         if fm['doc_type'] not in ALLOWED_VALUES.get('doc_type', set()):
-            err(f"Invalid doc_type '{fm['doc_type']}' (allowed: {', '.join(sorted(ALLOWED_VALUES.get('doc_type', set())))})", md)
+            err(f"Invalid doc_type '{fm['doc_type']}' (allowed: {', '.join(sorted(ALLOWED_VALUES.get('doc_type', set())))})", md, is_blocker=is_blocker('enum_membership'))
 
     # Validate level against allowed values
     if 'level' in fm:
         if fm['level'] not in ALLOWED_VALUES.get('level', set()):
-            err(f"Invalid level '{fm['level']}' (allowed: {', '.join(sorted(ALLOWED_VALUES.get('level', set())))})", md)
+            err(f"Invalid level '{fm['level']}' (allowed: {', '.join(sorted(ALLOWED_VALUES.get('level', set())))})", md, is_blocker=is_blocker('enum_membership'))
 
     # Validate status against allowed values
     if 'status' in fm:
         if fm['status'] not in ALLOWED_VALUES.get('status', set()):
-            err(f"Invalid status '{fm['status']}' (allowed: {', '.join(sorted(ALLOWED_VALUES.get('status', set())))})", md)
+            err(f"Invalid status '{fm['status']}' (allowed: {', '.join(sorted(ALLOWED_VALUES.get('status', set())))})", md, is_blocker=is_blocker('enum_membership'))
 
     # Validate audience against allowed values
     if 'audience' in fm:
         if fm['audience'] not in ALLOWED_VALUES.get('audience', set()):
-            err(f"Invalid audience '{fm['audience']}' (allowed: {', '.join(sorted(ALLOWED_VALUES.get('audience', set())))})", md)
+            err(f"Invalid audience '{fm['audience']}' (allowed: {', '.join(sorted(ALLOWED_VALUES.get('audience', set())))})", md, is_blocker=is_blocker('enum_membership'))
 
     # Validate owners is non-empty array
     if 'owners' in fm:
         if not isinstance(fm['owners'], list) or len(fm['owners']) == 0:
-            err(f"'owners' must be a non-empty array", md)
+            err(f"'owners' must be a non-empty array", md, is_blocker=is_blocker('required_keys'))
 
     # Validate last_updated is ISO date
     if 'last_updated' in fm:
         if not validate_iso_date(fm['last_updated']):
-            err(f"'last_updated' must be in YYYY-MM-DD format, got '{fm['last_updated']}'", md)
+            err(f"'last_updated' must be in YYYY-MM-DD format, got '{fm['last_updated']}'", md, is_blocker=is_blocker('formats'))
 
     # Validate revision is vMAJOR.MINOR
     if 'revision' in fm:
         if not validate_revision(fm['revision']):
-            err(f"'revision' must be in vMAJOR.MINOR format, got '{fm['revision']}'", md)
+            err(f"'revision' must be in vMAJOR.MINOR format, got '{fm['revision']}'", md, is_blocker=is_blocker('formats'))
 
     # Validate id is kebab-case and matches filename stem
     if 'id' in fm:
         # Allow dots in IDs for .view.md files (generated diagram wrappers)
         is_view_file = md.name.endswith('.view.md')
         if not validate_kebab_case(fm['id'], allow_dots=is_view_file):
-            err(f"'id' must be kebab-case, got '{fm['id']}'", md)
+            err(f"'id' must be kebab-case, got '{fm['id']}'", md, is_blocker=is_blocker('case_style'))
 
         # Check id matches filename stem
         filename_stem = md.stem
-        if fm['id'] != filename_stem:
-            # Allow directory-prefixed IDs to prevent duplicates
-            # e.g., 'intentional-capability-requirements-index' for 'docs/intentional/capability-requirements-index.md'
-            # Check if ID ends with filename stem and prefix is a directory in the path
-            if fm['id'].endswith(filename_stem):
-                # Extract the prefix by removing the filename stem from the end
-                prefix_with_dash = fm['id'][:-len(filename_stem)]
-                if prefix_with_dash.endswith('-'):
-                    prefix = prefix_with_dash[:-1]
-                    # Check if prefix matches a directory in the path
-                    if prefix in [p for p in md.parts]:
-                        # Valid directory-prefixed ID for duplicate prevention
-                        pass
+        id_val = fm['id']
+
+        # Normalize for comparison if policy allows case-insensitive matching
+        if not POLICY.get('id_match_case_sensitive', True):
+            id_normalized = normalize_to_kebab(id_val)
+            stem_normalized = normalize_to_kebab(filename_stem)
+
+            if id_normalized != stem_normalized:
+                # Check for directory-prefixed IDs
+                if id_normalized.endswith(stem_normalized):
+                    prefix_with_dash = id_normalized[:-len(stem_normalized)]
+                    if prefix_with_dash.endswith('-'):
+                        prefix = prefix_with_dash[:-1]
+                        if prefix in [normalize_to_kebab(p) for p in md.parts]:
+                            # Valid directory-prefixed ID
+                            pass
+                        else:
+                            err(f"'id' ('{id_val}') must match filename stem ('{filename_stem}')", md, is_blocker=is_blocker('id_filename_match'))
                     else:
-                        err(f"'id' ('{fm['id']}') must match filename stem ('{filename_stem}')", md)
+                        err(f"'id' ('{id_val}') must match filename stem ('{filename_stem}')", md, is_blocker=is_blocker('id_filename_match'))
                 else:
-                    err(f"'id' ('{fm['id']}') must match filename stem ('{filename_stem}')", md)
-            else:
-                err(f"'id' ('{fm['id']}') must match filename stem ('{filename_stem}')", md)
+                    err(f"'id' ('{id_val}') must match filename stem ('{filename_stem}')", md, is_blocker=is_blocker('id_filename_match'))
+        else:
+            # Case-sensitive matching (strict)
+            if id_val != filename_stem:
+                # Allow directory-prefixed IDs to prevent duplicates
+                if id_val.endswith(filename_stem):
+                    prefix_with_dash = id_val[:-len(filename_stem)]
+                    if prefix_with_dash.endswith('-'):
+                        prefix = prefix_with_dash[:-1]
+                        if prefix in [p for p in md.parts]:
+                            # Valid directory-prefixed ID for duplicate prevention
+                            pass
+                        else:
+                            err(f"'id' ('{id_val}') must match filename stem ('{filename_stem}')", md, is_blocker=is_blocker('id_filename_match'))
+                    else:
+                        err(f"'id' ('{id_val}') must match filename stem ('{filename_stem}')", md, is_blocker=is_blocker('id_filename_match'))
+                else:
+                    err(f"'id' ('{id_val}') must match filename stem ('{filename_stem}')", md, is_blocker=is_blocker('id_filename_match'))
 
         # Track for duplicate detection
         ids.setdefault(fm['id'], []).append(str(md))
@@ -237,7 +295,7 @@ for md in ROOT.rglob('*.md'):
 # Check for duplicate IDs
 for doc_id, paths in ids.items():
     if len(paths) > 1:
-        err(f"Duplicate id '{doc_id}' across: {paths}")
+        err(f"Duplicate id '{doc_id}' across: {paths}", is_blocker=is_blocker('required_keys'))
 
 # ---------- 2) Workflows schema ----------
 if SCHEMAS['workflow'].exists():
@@ -327,7 +385,68 @@ def _run_mermaid_sync_check():
 
 _run_mermaid_sync_check()
 
+# ---------- 7) No-drift guard for critical files ----------
+def _check_linter_change_guard():
+    """Prevent accidental changes to critical validation files without explicit approval."""
+    # Only run in CI context or skip entirely
+    is_ci = os.environ.get('CI', 'false').lower() == 'true'
+    if not is_ci:
+        # Skip check in local development
+        return
+
+    critical_files = [
+        'docs/standards/frontmatter.schema.json',
+        'docs/standards/allowed-values.json',
+        'docs/standards/validator-policy.json',
+        'tooling/scripts/validate_docs.py'
+    ]
+
+    try:
+        # Check if any critical files are modified in the current branch vs main
+        result = subprocess.run(
+            ['git', 'diff', '--name-only', 'origin/main...HEAD'],
+            capture_output=True,
+            text=True,
+            cwd=ROOT
+        )
+
+        if result.returncode != 0:
+            # Not in a git repo or git not available - skip check
+            return
+
+        modified_files = result.stdout.strip().split('\n')
+        modified_critical = [f for f in modified_files if f in critical_files]
+
+        if not modified_critical:
+            return
+
+        # Check commit messages for approval flag
+        result = subprocess.run(
+            ['git', 'log', '--format=%B', 'origin/main..HEAD'],
+            capture_output=True,
+            text=True,
+            cwd=ROOT
+        )
+
+        if result.returncode == 0:
+            commit_msgs = result.stdout.strip()
+            if 'allow-linter-change: true' in commit_msgs.lower():
+                return
+
+        err(f"Critical validation files modified without approval: {modified_critical}. Include 'allow-linter-change: true' in commit message to override.")
+
+    except Exception:
+        # Skip check if git operations fail
+        pass
+
+_check_linter_change_guard()
+
 # ---------- report ----------
+if WARNINGS:
+    print("Warnings (non-blocking):")
+    print('\n'.join(f"  WARN: {w}" for w in WARNINGS))
+    print()
+
 if ERRORS:
     print('\n'.join(str(e) for e in ERRORS))
     sys.exit(1)

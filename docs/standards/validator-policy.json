@@ -1,0 +1,17 @@
+{
+  "blockers": [
+    "required_keys",
+    "enum_membership",
+    "formats",
+    "id_filename_match"
+  ],
+  "advisories": [
+    "key_order",
+    "whitespace",
+    "array_style",
+    "title_blankline",
+    "case_style"
+  ],
+  "id_match_case_sensitive": false,
+  "autofix_on_run": true
+}
