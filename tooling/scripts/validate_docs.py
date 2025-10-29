@@ -136,10 +136,18 @@ def validate_revision(rev_str):
     return bool(re.match(r'^v\d+\.\d+$', rev_str))
 
 
-def validate_kebab_case(s):
-    """Validate kebab-case format."""
+def validate_kebab_case(s, allow_dots=False):
+    """Validate kebab-case format.
+
+    Args:
+        s: String to validate
+        allow_dots: If True, allow dots in addition to hyphens (for .view files)
+    """
     if not isinstance(s, str):
         return False
+    if allow_dots:
+        # Allow lowercase letters, numbers, hyphens, and dots
+        return bool(re.match(r'^[a-z0-9]+([-.][a-z0-9]+)*$', s))
     return bool(re.match(r'^[a-z0-9]+(-[a-z0-9]+)*$', s))
 
 
@@ -196,13 +204,32 @@ for md in ROOT.rglob('*.md'):
 
     # Validate id is kebab-case and matches filename stem
     if 'id' in fm:
-        if not validate_kebab_case(fm['id']):
+        # Allow dots in IDs for .view.md files (generated diagram wrappers)
+        is_view_file = md.name.endswith('.view.md')
+        if not validate_kebab_case(fm['id'], allow_dots=is_view_file):
             err(f"'id' must be kebab-case, got '{fm['id']}'", md)
 
         # Check id matches filename stem
         filename_stem = md.stem
         if fm['id'] != filename_stem:
-            err(f"'id' ('{fm['id']}') must match filename stem ('{filename_stem}')", md)
+            # Allow directory-prefixed IDs to prevent duplicates
+            # e.g., 'intentional-capability-requirements-index' for 'docs/intentional/capability-requirements-index.md'
+            # Check if ID ends with filename stem and prefix is a directory in the path
+            if fm['id'].endswith(filename_stem):
+                # Extract the prefix by removing the filename stem from the end
+                prefix_with_dash = fm['id'][:-len(filename_stem)]
+                if prefix_with_dash.endswith('-'):
+                    prefix = prefix_with_dash[:-1]
+                    # Check if prefix matches a directory in the path
+                    if prefix in [p for p in md.parts]:
+                        # Valid directory-prefixed ID for duplicate prevention
+                        pass
+                    else:
+                        err(f"'id' ('{fm['id']}') must match filename stem ('{filename_stem}')", md)
+                else:
+                    err(f"'id' ('{fm['id']}') must match filename stem ('{filename_stem}')", md)
+            else:
+                err(f"'id' ('{fm['id']}') must match filename stem ('{filename_stem}')", md)
 
         # Track for duplicate detection
         ids.setdefault(fm['id'], []).append(str(md))

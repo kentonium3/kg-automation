@@ -1,5 +1,5 @@
 ---
-id: lifecycle-swimlane-view
+id: lifecycle-swimlane.view
 title: Lifecycle Swimlane (Rendered)
 doc_type: guide
 level: reference

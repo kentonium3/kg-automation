@@ -1,5 +1,5 @@
 ---
-id: capability-map-view
+id: capability-map.view
 title: Capability Map (Rendered)
 doc_type: guide
 level: reference

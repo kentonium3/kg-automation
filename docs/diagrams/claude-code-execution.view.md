@@ -1,5 +1,5 @@
 ---
-id: claude-code-execution-view
+id: claude-code-execution.view
 title: Claude Code Execution (Rendered)
 doc_type: guide
 level: reference

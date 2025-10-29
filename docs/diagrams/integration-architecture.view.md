@@ -1,5 +1,5 @@
 ---
-id: integration-architecture-view
+id: integration-architecture.view
 title: Integration Architecture (Rendered)
 doc_type: guide
 level: reference

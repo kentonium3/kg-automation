@@ -1,5 +1,5 @@
 ---
-id: orchestration-flow-view
+id: orchestration-flow.view
 title: Orchestration Flow (Rendered)
 doc_type: guide
 level: reference

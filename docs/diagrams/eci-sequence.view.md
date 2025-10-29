@@ -1,5 +1,5 @@
 ---
-id: eci-sequence-view
+id: eci-sequence.view
 title: Eci Sequence (Rendered)
 doc_type: guide
 level: reference

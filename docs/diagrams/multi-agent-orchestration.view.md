@@ -1,5 +1,5 @@
 ---
-id: multi-agent-orchestration-view
+id: multi-agent-orchestration.view
 title: Multi Agent Orchestration (Rendered)
 doc_type: guide
 level: reference
