@@ -1,10 +1,14 @@
 #!/usr/bin/env python3
+"""
+Canon v2 Documentation Validator
+Validates frontmatter against machine-readable schema and allowed values.
+"""
 import os, re, sys, json, subprocess
 from pathlib import Path
 
 try:
     import yaml
-    from jsonschema import Draft7Validator
+    from jsonschema import Draft7Validator, Draft202012Validator
 except Exception as e:
     print('Missing deps: pip install pyyaml jsonschema', file=sys.stderr)
     sys.exit(1)
@@ -12,9 +16,31 @@ except Exception as e:
 ROOT = Path('.')
 ERRORS = []
 
-DOC_TYPES = {'concept','design','spec','runbook','workflow','reference','handbook','governance','adr'}
-LEVELS = {'concept','architecture','system','workflow','runbook','reference'}
-STATUSES = {'draft','proposed','approved','deprecated'}
+# Fallback allowed values (overridden by docs/standards/allowed-values.json if present)
+ALLOWED_VALUES = {
+    'doc_type': {'strategy','charter','decision','policy','handbook','runbook','guide','reference','readme','index','project','note'},
+    'level': {'overview','concept','howto','reference','policy'},
+    'status': {'draft','in_review','approved','deprecated','archived'},
+    'audience': {'agents','humans','agents_and_humans'}
+}
+
+# Load allowed values from JSON if available
+ALLOWED_VALUES_FILE = ROOT / 'docs' / 'standards' / 'allowed-values.json'
+if ALLOWED_VALUES_FILE.exists():
+    try:
+        with open(ALLOWED_VALUES_FILE, 'r', encoding='utf-8') as f:
+            loaded = json.load(f)
+            # Convert lists to sets for validation
+            for key, values in loaded.items():
+                if isinstance(values, list):
+                    ALLOWED_VALUES[key] = set(values)
+    except Exception as e:
+        print(f"Warning: Could not load allowed-values.json: {e}", file=sys.stderr)
+
+# Legacy compatibility - keep old constants for non-doc validation
+DOC_TYPES = ALLOWED_VALUES.get('doc_type', set())
+LEVELS = ALLOWED_VALUES.get('level', set())
+STATUSES = ALLOWED_VALUES.get('status', set())
 
 HANDOFF_PATTERN = re.compile(r'^[0-9]{8}-[0-9]{4,6}-[0-9]+-[a-z]+-to-[a-z]+-(request|response)\.json$')
 
@@ -47,7 +73,6 @@ def load_secret_allowlist():
     except Exception:
         return set()
 
-# If the file is missing, fall back to excluding this script (it embeds patterns).
 EXCLUDE_SECRET_SCAN = load_secret_allowlist() or {'tooling/scripts/validate_docs.py'}
 
 
@@ -75,15 +100,15 @@ def load_json(p):
 
 
 def front_matter(p):
+    """Extract YAML frontmatter from markdown file."""
     txt = Path(p).read_text(encoding='utf-8', errors='ignore')
     if not txt.startswith('---'):
         err('Missing YAML front-matter', p)
         return None
     try:
         lines = txt.splitlines()
-        # Find the next '---' line that closes the front matter
         end = None
-        for i in range(1, min(len(lines), 500)):  # cap to avoid scanning whole huge files
+        for i in range(1, min(len(lines), 500)):
             if lines[i].strip() == '---':
                 end = i
                 break
@@ -97,32 +122,92 @@ def front_matter(p):
         return None
 
 
-# ---------- 1) Markdown front-matter validation ----------
+def validate_iso_date(date_str):
+    """Validate YYYY-MM-DD format."""
+    if not isinstance(date_str, str):
+        return False
+    return bool(re.match(r'^\d{4}-\d{2}-\d{2}$', date_str))
+
+
+def validate_revision(rev_str):
+    """Validate vMAJOR.MINOR format."""
+    if not isinstance(rev_str, str):
+        return False
+    return bool(re.match(r'^v\d+\.\d+$', rev_str))
+
+
+def validate_kebab_case(s):
+    """Validate kebab-case format."""
+    if not isinstance(s, str):
+        return False
+    return bool(re.match(r'^[a-z0-9]+(-[a-z0-9]+)*$', s))
+
+
+# ---------- 1) Markdown front-matter validation (Canon v2) ----------
 ids = {}
 for md in ROOT.rglob('*.md'):
-    if any(seg in md.parts for seg in ['.git','node_modules','.venv']):
+    if any(seg in md.parts for seg in ['.git','node_modules','.venv','_templates']):
         continue
+
     fm = front_matter(md)
     if not isinstance(fm, dict):
         continue
-    required = ['id','doc_type','level','status','owners','last_validated','revision']
+
+    # Canon v2 required fields
+    required = ['id','title','doc_type','level','status','owners','last_updated','revision','audience']
     for k in required:
         if k not in fm:
             err(f"Missing front-matter key '{k}'", md)
-    if 'doc_type' in fm and fm['doc_type'] not in DOC_TYPES:
-        err(f"Invalid doc_type '{fm['doc_type']}'", md)
-    if 'level' in fm and fm['level'] not in LEVELS:
-        err(f"Invalid level '{fm['level']}'", md)
-    if 'status' in fm and fm['status'] not in STATUSES:
-        err(f"Invalid status '{fm['status']}'", md)
-    if 'id' in fm:
-        ids.setdefault(fm['id'], []).append(str(md))
-    # runbook extras
-    if fm.get('doc_type') == 'runbook':
-        for rk in ['audience','severity','last_tested','revision']:
-            if rk not in fm:
-                err(f"Runbook missing '{rk}'", md)
 
+    # Validate doc_type against allowed values
+    if 'doc_type' in fm:
+        if fm['doc_type'] not in ALLOWED_VALUES.get('doc_type', set()):
+            err(f"Invalid doc_type '{fm['doc_type']}' (allowed: {', '.join(sorted(ALLOWED_VALUES.get('doc_type', set())))})", md)
+
+    # Validate level against allowed values
+    if 'level' in fm:
+        if fm['level'] not in ALLOWED_VALUES.get('level', set()):
+            err(f"Invalid level '{fm['level']}' (allowed: {', '.join(sorted(ALLOWED_VALUES.get('level', set())))})", md)
+
+    # Validate status against allowed values
+    if 'status' in fm:
+        if fm['status'] not in ALLOWED_VALUES.get('status', set()):
+            err(f"Invalid status '{fm['status']}' (allowed: {', '.join(sorted(ALLOWED_VALUES.get('status', set())))})", md)
+
+    # Validate audience against allowed values
+    if 'audience' in fm:
+        if fm['audience'] not in ALLOWED_VALUES.get('audience', set()):
+            err(f"Invalid audience '{fm['audience']}' (allowed: {', '.join(sorted(ALLOWED_VALUES.get('audience', set())))})", md)
+
+    # Validate owners is non-empty array
+    if 'owners' in fm:
+        if not isinstance(fm['owners'], list) or len(fm['owners']) == 0:
+            err(f"'owners' must be a non-empty array", md)
+
+    # Validate last_updated is ISO date
+    if 'last_updated' in fm:
+        if not validate_iso_date(fm['last_updated']):
+            err(f"'last_updated' must be in YYYY-MM-DD format, got '{fm['last_updated']}'", md)
+
+    # Validate revision is vMAJOR.MINOR
+    if 'revision' in fm:
+        if not validate_revision(fm['revision']):
+            err(f"'revision' must be in vMAJOR.MINOR format, got '{fm['revision']}'", md)
+
+    # Validate id is kebab-case and matches filename stem
+    if 'id' in fm:
+        if not validate_kebab_case(fm['id']):
+            err(f"'id' must be kebab-case, got '{fm['id']}'", md)
+
+        # Check id matches filename stem
+        filename_stem = md.stem
+        if fm['id'] != filename_stem:
+            err(f"'id' ('{fm['id']}') must match filename stem ('{filename_stem}')", md)
+
+        # Track for duplicate detection
+        ids.setdefault(fm['id'], []).append(str(md))
+
+# Check for duplicate IDs
 for doc_id, paths in ids.items():
     if len(paths) > 1:
         err(f"Duplicate id '{doc_id}' across: {paths}")
@@ -131,29 +216,31 @@ for doc_id, paths in ids.items():
 if SCHEMAS['workflow'].exists():
     wf_schema = load_yaml(SCHEMAS['workflow'])
     if wf_schema:
-        from jsonschema import Draft7Validator
         wf_validator = Draft7Validator(wf_schema)
-        for y in (ROOT/'workflows').glob('*.yaml'):
-            data = load_yaml(y)
-            if data is None:
-                continue
-            for e in wf_validator.iter_errors(data):
-                err(f"workflow schema: {e.message}", y)
+        workflows_dir = ROOT / 'workflows'
+        if workflows_dir.exists():
+            for y in workflows_dir.glob('*.yaml'):
+                data = load_yaml(y)
+                if data is None:
+                    continue
+                for e in wf_validator.iter_errors(data):
+                    err(f"workflow schema: {e.message}", y)
 
 # ---------- 3) Systems basic check ----------
-for syml in (ROOT/'systems').glob('*/system.yaml'):
-    data = load_yaml(syml)
-    if not isinstance(data, dict):
-        continue
-    for k in ['id','name','owners','status','last_validated']:
-        if k not in data:
-            err(f"system.yaml missing '{k}'", syml)
+systems_dir = ROOT / 'systems'
+if systems_dir.exists():
+    for syml in systems_dir.glob('*/system.yaml'):
+        data = load_yaml(syml)
+        if not isinstance(data, dict):
+            continue
+        for k in ['id','name','owners','status','last_validated']:
+            if k not in data:
+                err(f"system.yaml missing '{k}'", syml)
 
 # ---------- 4) Handoffs validation ----------
 if SCHEMAS['handoff'].exists():
     h_schema = load_json(SCHEMAS['handoff'])
     if h_schema:
-        from jsonschema import Draft7Validator
         h_validator = Draft7Validator(h_schema)
         handoffs_dir = ROOT / 'ai-agents' / 'shared' / 'handoffs'
         if handoffs_dir.exists():
@@ -182,10 +269,8 @@ for p in ROOT.rglob('*'):
     except Exception:
         continue
 
-    # Scan line-by-line so we can skip obvious regex-definition lines
     hit = False
     for lineno, line in enumerate(txt.splitlines(), start=1):
-        # Ignore lines that define regex patterns (reduce false positives)
         if 're.compile' in line or 'SECRET_PATTERNS' in line:
             continue
         for pat in SECRET_PATTERNS:
@@ -198,7 +283,10 @@ for p in ROOT.rglob('*'):
 
 # ---------- 6) Mermaid wrapper sync check ----------
 def _run_mermaid_sync_check():
-    cmd = [sys.executable, "tooling/scripts/sync_mermaid_views.py", "--check"]
+    sync_script = ROOT / "tooling" / "scripts" / "sync_mermaid_views.py"
+    if not sync_script.exists():
+        return
+    cmd = [sys.executable, str(sync_script), "--check"]
     try:
         res = subprocess.run(cmd, capture_output=True, text=True)
         if res.returncode != 0:
