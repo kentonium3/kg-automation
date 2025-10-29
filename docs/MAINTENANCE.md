@@ -1,12 +1,14 @@
 ---
-id: HB-MAINTENANCE
+id: maintenance
 title: Maintenance & Housekeeping
 doc_type: handbook
 level: reference
 status: approved
-owners: [kent@intentional.biz]
-last_validated: 2025-10-15
-revision: 1.0
+owners:
+  - "@kent@intentional.biz"
+last_updated: "2025-10-15"
+revision: v1.0
+audience: agents_and_humans
 ---
 # Maintenance & Housekeeping
 

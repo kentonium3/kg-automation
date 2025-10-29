@@ -1,20 +1,14 @@
 ---
 id: strategic-acceleration-charter
-doc_type: governance
+title: Strategic Acceleration Charter (v0.1)
+doc_type: charter
 level: concept
 status: draft
 owners:
-  - '@kentonium3'
-last_validated: '2025-10-21'
+  - "@kentonium3"
+last_updated: "2025-10-21"
 revision: v0.1
-machine_manifest: docs/strategy/strategic_acceleration_charter.json
-sync_policy: manual-approve
-last_synced: 2025-10-21T00:00:00Z
-kind: strategic_acceleration_charter
-author: Kent Gale
-source_doc: docs/strategy/strategic_acceleration_charter.md
-market_intel_update_frequency: weekly
-version: "0.1"
+audience: agents_and_humans
 ---
 # Strategic Acceleration Charter (v0.1)
 

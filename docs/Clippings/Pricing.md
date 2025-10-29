@@ -1,14 +1,17 @@
 ---
+id: pricing
 title: Pricing
-source: https://www.activepieces.com/pricing
-author:
-  - "[[Activepieces]]"
-published:
-created: 2025-10-23
-description: Self host Activepieces as an alternative to Zapier to run unlimited tasks for free, or use Activepieces Cloud at a fraction of Zapier or Workato cost.
+doc_type: guide
+level: reference
+status: draft
+owners:
+  - "@kentonium3"
+last_updated: "2025-10-28"
+revision: v1.0
+audience: agents_and_humans
 tags:
   - clippings
-  - "#AI"
+  - None
   - AI_tooling
 ---
 2 huge announcements! [Watch video](https://www.youtube.com/watch?v=xn-lu9CUhRE)

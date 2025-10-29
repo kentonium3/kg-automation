@@ -1,0 +1,53 @@
+CLAUDE.md: Missing front-matter key 'last_updated'
+CLAUDE.md: Missing front-matter key 'audience'
+CLAUDE.md: 'id' must be kebab-case, got 'CLAUDE-CODE-GUIDE'
+CLAUDE.md: 'id' ('CLAUDE-CODE-GUIDE') must match filename stem ('claude' from 'CLAUDE')
+README.md: Missing front-matter key 'title'
+README.md: Missing front-matter key 'last_updated'
+README.md: Missing front-matter key 'audience'
+README.md: 'id' ('repo-readme') must match filename stem ('readme' from 'README')
+.github\copilot-instructions.md: Missing front-matter key 'last_updated'
+.github\copilot-instructions.md: Missing front-matter key 'audience'
+.github\copilot-instructions.md: 'revision' must be in vMAJOR.MINOR format, got '1.0'
+.github\copilot-instructions.md: 'id' must be kebab-case, got 'GH-COPILOT-INSTRUCTIONS'
+.github\copilot-instructions.md: 'id' ('GH-COPILOT-INSTRUCTIONS') must match filename stem ('copilot-instructions' from 'copilot-instructions')
+ai-agents\ai-context-bootstrap.md: Missing front-matter key 'last_updated'
+ai-agents\ai-context-bootstrap.md: Missing front-matter key 'audience'
+ai-agents\ai-context-bootstrap.md: 'revision' must be in vMAJOR.MINOR format, got '1.0'
+ai-agents\ai-context-bootstrap.md: 'id' must be kebab-case, got 'AI-BOOTSTRAP'
+ai-agents\ai-context-bootstrap.md: 'id' ('AI-BOOTSTRAP') must match filename stem ('ai-context-bootstrap' from 'ai-context-bootstrap')
+docs\README.md: 'id' ('docs-index') must match filename stem ('readme' from 'README')
+workflows\decision-log.md: Missing front-matter key 'last_updated'
+workflows\project-charter.md: Missing front-matter key 'last_updated'
+workflows\project-charter.md: 'id' ('project-charter-template') must match filename stem ('project-charter' from 'project-charter')
+workflows\risk-register.md: Missing front-matter key 'last_updated'
+.claude\commands\docs-self-heal.md: Missing front-matter key 'last_updated'
+.claude\commands\docs-self-heal.md: Missing front-matter key 'audience'
+.claude\commands\docs-self-heal.md: 'id' ('cmd-docs-self-heal') must match filename stem ('docs-self-heal' from 'docs-self-heal')
+.claude\commands\process-handoff.md: Missing front-matter key 'last_updated'
+.claude\commands\process-handoff.md: Missing front-matter key 'audience'
+.claude\commands\process-handoff.md: 'id' ('cmd-process-handoff') must match filename stem ('process-handoff' from 'process-handoff')
+docs\diagrams\capability-map.view.md: Missing front-matter key 'last_updated'
+docs\diagrams\capability-map.view.md: 'id' ('capability-map-view') must match filename stem ('capability-map.view' from 'capability-map.view')
+docs\diagrams\claude-code-execution.view.md: Missing front-matter key 'last_updated'
+docs\diagrams\claude-code-execution.view.md: 'id' ('claude-code-execution-view') must match filename stem ('claude-code-execution.view' from 'claude-code-execution.view')
+docs\diagrams\eci-sequence.view.md: Missing front-matter key 'last_updated'
+docs\diagrams\eci-sequence.view.md: 'id' ('eci-sequence-view') must match filename stem ('eci-sequence.view' from 'eci-sequence.view')
+docs\diagrams\integration-architecture.view.md: Missing front-matter key 'last_updated'
+docs\diagrams\integration-architecture.view.md: 'id' ('integration-architecture-view') must match filename stem ('integration-architecture.view' from 'integration-architecture.view')
+docs\diagrams\lifecycle-swimlane.view.md: Missing front-matter key 'last_updated'
+docs\diagrams\lifecycle-swimlane.view.md: 'id' ('lifecycle-swimlane-view') must match filename stem ('lifecycle-swimlane.view' from 'lifecycle-swimlane.view')
+docs\diagrams\multi-agent-orchestration.view.md: Missing front-matter key 'last_updated'
+docs\diagrams\multi-agent-orchestration.view.md: 'id' ('multi-agent-orchestration-view') must match filename stem ('multi-agent-orchestration.view' from 'multi-agent-orchestration.view')
+docs\diagrams\orchestration-flow.view.md: Missing front-matter key 'last_updated'
+docs\diagrams\orchestration-flow.view.md: 'id' ('orchestration-flow-view') must match filename stem ('orchestration-flow.view' from 'orchestration-flow.view')
+docs\diagrams\README.md: 'id' ('diagrams-readme') must match filename stem ('readme' from 'README')
+docs\intentional\capability_requirements_index.md: 'id' ('intentional-capability-requirements-index') must match filename stem ('capability-requirements-index' from 'capability_requirements_index')
+docs\intentional\meta_overview.md: 'id' ('intentional-meta-overview') must match filename stem ('meta-overview' from 'meta_overview')
+docs\metalbox\capability_requirements_index.md: 'id' ('metalbox-capability-requirements-index') must match filename stem ('capability-requirements-index' from 'capability_requirements_index')
+docs\metalbox\meta_overview.md: 'id' ('metalbox-meta-overview') must match filename stem ('meta-overview' from 'meta_overview')
+docs\standards\README.md: Missing YAML front-matter
+tooling\docs\KG-SYNC.md: Missing front-matter key 'title'
+tooling\docs\KG-SYNC.md: Missing front-matter key 'last_updated'
+tooling\docs\KG-SYNC.md: Missing front-matter key 'audience'
+tooling\docs\KG-SYNC.md: 'id' ('kg-sync-guide') must match filename stem ('kg-sync' from 'KG-SYNC')

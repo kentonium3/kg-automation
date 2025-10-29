@@ -1,12 +1,14 @@
 ---
-id: GOV-REPO-PROTECTION
+id: repo-governance
 title: Repository Governance — Branch Protection & PR Policy
-doc_type: governance
+doc_type: charter
 level: reference
 status: approved
-owners: [kent@intentional.biz]
-last_validated: 2025-10-12
-revision: 1.0
+owners:
+  - "@kent@intentional.biz"
+last_updated: "2025-10-12"
+revision: v1.0
+audience: agents_and_humans
 ---
 
 This page defines how changes land in `kg-automation`, for both humans and AI agents. It complements the CI, handoff protocol, and system/runbook governance.

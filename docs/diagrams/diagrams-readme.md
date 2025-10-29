@@ -1,12 +1,14 @@
 ---
-id: DIAG-README
+id: diagrams-readme
 title: Diagrams — How to Use
-doc_type: handbook
-level: reference
+doc_type: guide
+level: howto
 status: approved
-owners: [kent@intentional.biz]
-last_validated: 2025-10-16
-revision: 1.0
+owners:
+  - "@kent@intentional.biz"
+last_updated: "2025-10-16"
+revision: v1.0
+audience: agents_and_humans
 ---
 
 # Diagrams — How to Use

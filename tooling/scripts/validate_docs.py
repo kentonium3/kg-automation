@@ -199,10 +199,10 @@ for md in ROOT.rglob('*.md'):
         if not validate_kebab_case(fm['id']):
             err(f"'id' must be kebab-case, got '{fm['id']}'", md)
 
-        # Check id matches filename stem
-        filename_stem = md.stem
+        # Check id matches filename stem (normalized to kebab-case)
+        filename_stem = md.stem.lower().replace('_', '-')
         if fm['id'] != filename_stem:
-            err(f"'id' ('{fm['id']}') must match filename stem ('{filename_stem}')", md)
+            err(f"'id' ('{fm['id']}') must match filename stem ('{filename_stem}' from '{md.stem}')", md)
 
         # Track for duplicate detection
         ids.setdefault(fm['id'], []).append(str(md))

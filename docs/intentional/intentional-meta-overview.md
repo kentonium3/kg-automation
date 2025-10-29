@@ -1,13 +1,14 @@
 ---
-id: intentional_meta_overview
-doc_type: meta_reference
+id: intentional-meta-overview
 title: Intentional – Meta Overview and Platform Requirements Feed
-status: draft
+doc_type: reference
 level: concept
+status: draft
 owners:
-  - Kent Gale
-last_validated: 2025-10-27
-version: 0.1
+  - "@Kent Gale"
+last_updated: "2025-10-27"
+revision: v0.1
+audience: agents_and_humans
 ---
 
 # Intentional – Meta Overview

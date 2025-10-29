@@ -1,13 +1,14 @@
 ---
-id: intentional_capability_requirements_index
-doc_type: meta_index
+id: intentional-capability-requirements-index
 title: Intentional – Capability Requirements Index
-status: draft
+doc_type: index
 level: concept
+status: draft
 owners:
-  - Kent Gale
-last_validated: 2025-10-27
-version: 0.1
+  - "@Kent Gale"
+last_updated: "2025-10-27"
+revision: v0.1
+audience: agents_and_humans
 ---
 
 # Capability Requirements Index (Intentional)

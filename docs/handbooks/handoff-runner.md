@@ -1,12 +1,14 @@
 ---
-id: HB-HANDOFF-RUNNER
+id: handoff-runner
 title: Handoff Runner — GitHub Action Executor
 doc_type: handbook
 level: reference
 status: approved
-owners: [kent@intentional.biz]
-last_validated: 2025-10-14
-revision: 1.0
+owners:
+  - "@kent@intentional.biz"
+last_updated: "2025-10-14"
+revision: v1.0
+audience: agents_and_humans
 ---
 
 This GitHub Action processes `ai-agents/shared/handoffs/*-request.json` files and writes a corresponding response JSON. It lets handoffs run **without** relying on chat connectors or local shells.

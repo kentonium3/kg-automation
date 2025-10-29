@@ -1,12 +1,14 @@
 ---
-id: HB-AGENT
+id: agent-handbook
 title: Agent Handbook — Pre-PR Checklist
 doc_type: handbook
 level: reference
 status: approved
-owners: [kent@intentional.biz]
-last_validated: 2025-10-14
-revision: 1.0
+owners:
+  - "@kent@intentional.biz"
+last_updated: "2025-10-14"
+revision: v1.0
+audience: agents_and_humans
 ---
 
 # Agent Handbook — Pre-PR Checklist
@@ -16,7 +18,7 @@ Use this checklist before opening or updating any PR. It mirrors the enforced Do
 ## 1) Sync and scope
 - **Do:** fetch and ensure your task branch is up-to-date with its base.
 - **Why:** avoids merge conflicts and failing “require up-to-date” checks.
-- See: [Repo governance](../governance/repo-governance.md)
+- See: [Repo governance](<../governance/repo-governance.md>)
 
 ## 2) Validate docs & handoffs locally
 - **Do:**
@@ -24,7 +26,7 @@ Use this checklist before opening or updating any PR. It mirrors the enforced Do
   python tooling/scripts/validate_docs.py
   ```
 - **Why:** enforces front-matter, schema checks, handoff JSON filename/structure, and a basic secret scan.
-- See: [CI handbook](./ci-handbook.md)
+- See: [CI handbook](<./ci-handbook.md>)
 
 ## 3) (Re)generate registries
 - **Do:**
@@ -60,7 +62,7 @@ Use this checklist before opening or updating any PR. It mirrors the enforced Do
 
 ## 9) Bootstrap & execution context
 - **Do:** on Windows/macOS, resolve Dropbox paths using resolver scripts; in containers use GitHub-only operations (API/PR files) instead of host paths.
-- See: [ECI Path Resolution](./eci-path-resolution.md) and `ai-agents/ai-context-bootstrap.md`
+- See: [ECI Path Resolution](<./eci-path-resolution.md>) and `ai-agents/ai-context-bootstrap.md`
 
 ---
 
