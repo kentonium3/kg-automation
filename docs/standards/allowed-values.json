@@ -1,0 +1,35 @@
+{
+  "doc_type": [
+    "strategy",
+    "charter",
+    "decision",
+    "policy",
+    "handbook",
+    "runbook",
+    "guide",
+    "reference",
+    "readme",
+    "index",
+    "project",
+    "note"
+  ],
+  "level": [
+    "overview",
+    "concept",
+    "howto",
+    "reference",
+    "policy"
+  ],
+  "status": [
+    "draft",
+    "in_review",
+    "approved",
+    "deprecated",
+    "archived"
+  ],
+  "audience": [
+    "agents",
+    "humans",
+    "agents_and_humans"
+  ]
+}

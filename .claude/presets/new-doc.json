@@ -1,0 +1,27 @@
+{
+  "type": "claude.preset",
+  "id": "new-doc",
+  "purpose": "Create a standards-compliant doc.",
+  "tasks": [
+    {
+      "op": "run_policy",
+      "path": ".claude/policies/doc-standards.json"
+    },
+    {
+      "op": "ask",
+      "prompt": "Choose template: base|handbook|runbook"
+    },
+    {
+      "op": "create_from_template",
+      "template": "<answer>.md"
+    },
+    {
+      "op": "run_cmd",
+      "cmd": "\"C:\\\\Program Files\\\\Python312\\\\python.exe\" tooling/scripts/validate_docs.py"
+    },
+    {
+      "op": "commit_push",
+      "message": "docs: add new doc (canon v2 compliant)"
+    }
+  ]
+}

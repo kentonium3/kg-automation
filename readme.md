@@ -1,12 +1,15 @@
 ---
-id: repo-readme
-doc_type: reference
+id: readme
+title: kg-automation Repository
+doc_type: readme
 level: reference
 status: approved
 owners:
   - '@kentonium3'
 last_validated: '2025-10-21'
+last_updated: '2025-10-29'
 revision: v1.0
+audience: agents_and_humans
 ---
 
 # Option B: Cross-Platform Doc ⇄ JSON Sync

@@ -40,14 +40,14 @@ def build_view_content(src_rel: str, src_text: str, existing_fm: str | None) -> 
         title = f"{title_case_from_basename(basename)} (Rendered)"
         today = date.today().strftime("%Y-%m-%d")
         fm = (
-            "id: " + f"{basename}-view" + "\n"
+            "id: " + f"{basename}.view" + "\n"
             "title: " + title + "\n"
             "doc_type: guide\n"
             "level: reference\n"
             "status: approved\n"
             "owners:\n"
             "  - \"@kentonium3\"\n"
-            f"last_validated: {today}\n"
+            f"last_updated: '{today}'\n"
             "revision: v1.0\n"
             "audience: agents_and_humans\n"
         )

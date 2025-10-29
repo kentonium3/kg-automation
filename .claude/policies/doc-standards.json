@@ -1,0 +1,19 @@
+{
+  "pre_create_steps": [
+    {
+      "op": "read",
+      "path": "docs/standards/doc_standards.md",
+      "ignore_missing": true
+    },
+    {
+      "op": "read",
+      "path": "docs/standards/frontmatter.schema.json"
+    },
+    {
+      "op": "read",
+      "path": "docs/standards/allowed-values.json"
+    }
+  ],
+  "template_root": "docs/_templates",
+  "validator_cmd": "\"C:\\\\Program Files\\\\Python312\\\\python.exe\" tooling/scripts/validate_docs.py"
+}
