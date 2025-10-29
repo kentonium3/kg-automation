@@ -1,12 +1,14 @@
 ---
-id: HB-LOCAL-WORKER
+id: local-worker
 title: Local Worker — Contract & Usage
 doc_type: handbook
 level: reference
 status: approved
 owners: [kent@intentional.biz]
 last_validated: 2025-10-15
-revision: 1.0
+last_updated: '2025-10-29'
+revision: v1.0
+audience: agents_and_humans
 ---
 
 # Local Worker — Contract & Usage

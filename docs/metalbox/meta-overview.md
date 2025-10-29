@@ -1,13 +1,15 @@
 ---
-id: metalbox_meta_overview
-doc_type: meta_reference
+id: metalbox-meta-overview
+doc_type: reference
 title: Metalbox – Meta Overview and Platform Requirements Feed
 status: draft
 level: concept
 owners:
   - Kent Gale
 last_validated: 2025-10-27
-version: 0.1
+last_updated: '2025-10-29'
+revision: v0.1
+audience: agents_and_humans
 ---
 
 # Metalbox – Meta Overview

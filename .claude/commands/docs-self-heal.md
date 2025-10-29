@@ -1,12 +1,14 @@
 ---
-id: cmd-docs-self-heal
+id: docs-self-heal
 title: /docs-self-heal
 doc_type: handbook
 level: reference
 status: approved
 owners: ["@kentonium3"]
 last_validated: 2025-10-18
+last_updated: '2025-10-29'
 revision: v1.0
+audience: agents_and_humans
 ---
 
 **Purpose:** fix failing Docs CI for the current branch.

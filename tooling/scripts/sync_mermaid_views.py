@@ -47,7 +47,7 @@ def build_view_content(src_rel: str, src_text: str, existing_fm: str | None) -> 
             "status: approved\n"
             "owners:\n"
             "  - \"@kentonium3\"\n"
-            f"last_validated: {today}\n"
+            f"last_updated: '{today}'\n"
             "revision: v1.0\n"
             "audience: agents_and_humans\n"
         )

@@ -1,12 +1,14 @@
 ---
-id: AI-BOOTSTRAP
+id: ai-context-bootstrap
 title: AI Context Bootstrap — READ FIRST
 doc_type: handbook
 level: reference
 status: approved
 owners: [kent@intentional.biz]
 last_validated: 2025-10-17
-revision: 1.0
+last_updated: '2025-10-29'
+revision: v1.0
+audience: agents_and_humans
 ---
 # AI Context Bootstrap — READ FIRST
 
