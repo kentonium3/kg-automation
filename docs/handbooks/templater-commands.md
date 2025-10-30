@@ -1,4 +1,4 @@
-﻿---
+---
 id: templater-commands
 title: Templater Commands (Canon v2)
 doc_type: handbook
