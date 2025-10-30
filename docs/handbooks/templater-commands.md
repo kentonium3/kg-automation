@@ -24,3 +24,4 @@ Use CMD-P → **Templater: Run user function**:
 
 ## Base template (picker)
 Use **Templater: Create new note from template → base** to choose `doc_type`, `level`, `status`, and `audience` at creation. Then run **normalizeFm** and **enforceEnums** before committing.
+
