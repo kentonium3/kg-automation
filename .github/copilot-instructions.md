@@ -45,10 +45,10 @@ These instructions are a concise, actionable guide for AI coding agents working 
    ```
 
 ## File & Documentation Standards
-- Filenames: kebab-case (lowercase with hyphens)
-- Docs: Markdown with Mermaid diagrams
-- Contracts/schemas in `contracts/` (Git-versioned)
-- Runtime state: Dropbox Automation roots (NEVER edit directly)
+- **Documentation:** Follow Canon v2 standards defined in `docs/standards/doc-standards.md`
+- **Validation:** Run `python tooling/scripts/validate_docs.py` before commits
+- **Contracts:** Version controlled in `contracts/` directory
+- **Runtime State:** Managed in Dropbox Automation roots (NEVER edit directly)
 
 ## Safety & Permissions
 ### Allowed:
