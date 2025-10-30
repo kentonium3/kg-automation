@@ -127,6 +127,8 @@ def load_json(p):
 def front_matter(p):
     """Extract YAML frontmatter from markdown file."""
     txt = Path(p).read_text(encoding='utf-8', errors='ignore')
+    # tolerate UTF-8 BOM and leading whitespace/newlines before the fence
+    txt = txt.replace("\r\n", "\n").lstrip("\ufeff \t\r\n")
     if not txt.startswith('---'):
         err('Missing YAML front-matter', p)
         return None
