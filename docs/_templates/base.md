@@ -1,4 +1,4 @@
-﻿<%*
+<%*
 /**
  * Canon v2 base template (single template, picker-driven)
  */
@@ -72,7 +72,8 @@ level: <%* tR += level %>
 status: <%* tR += status %>
 owners:
   - "@kentonium3"
-last_updated: <%* tR += today %>
+last_updated: <%* tR += tp.date.now("YYYY-MM-DD") %>
+last_validated: <%* tR += tp.date.now("YYYY-MM-DD") %>
 revision: v1.0
 audience: <%* tR += audience %>
 tags: []

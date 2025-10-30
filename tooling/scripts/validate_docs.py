@@ -201,8 +201,8 @@ for md in ROOT.rglob('*.md'):
     if not isinstance(fm, dict):
         continue
 
-    # Canon v2 required fields
-    required = ['id','title','doc_type','level','status','owners','last_updated','revision','audience']
+    # Canon v2 required fields (note: last_updated/last_validated checked separately below)
+    required = ['id','title','doc_type','level','status','owners','revision','audience']
     for k in required:
         if k not in fm:
             err(f"Missing front-matter key '{k}'", md, is_blocker=is_blocker('required_keys'))
@@ -232,10 +232,67 @@ for md in ROOT.rglob('*.md'):
         if not isinstance(fm['owners'], list) or len(fm['owners']) == 0:
             err(f"'owners' must be a non-empty array", md, is_blocker=is_blocker('required_keys'))
 
-    # Validate last_updated is ISO date
-    if 'last_updated' in fm:
-        if not validate_iso_date(fm['last_updated']):
-            err(f"'last_updated' must be in YYYY-MM-DD format, got '{fm['last_updated']}'", md, is_blocker=is_blocker('formats'))
+    # Validate last_updated and last_validated (dual date policy)
+    # Accept quoted or unquoted dates; require at least one; warn if validation is stale
+    from datetime import date, timedelta
+
+    def normalize_date_value(val):
+        """Normalize date value to string (handles YAML date objects and quoted strings)."""
+        if val is None:
+            return None
+        # YAML may parse unquoted YYYY-MM-DD as date object
+        if isinstance(val, date):
+            return val.strftime('%Y-%m-%d')
+        if isinstance(val, str):
+            return val.strip().strip('"').strip("'")
+        return str(val)
+
+    def parse_iso_date(val):
+        """Parse YYYY-MM-DD date, handling YAML date objects and quoted strings."""
+        if val is None:
+            return None
+        # Handle YAML date objects directly
+        if isinstance(val, date):
+            return val
+        # Handle strings
+        s = normalize_date_value(val)
+        if not isinstance(s, str):
+            return None
+        if not re.match(r'^\d{4}-\d{2}-\d{2}$', s):
+            return None
+        try:
+            y, m, d = map(int, s.split('-'))
+            return date(y, m, d)
+        except:
+            return None
+
+    # Get both date fields
+    last_updated_raw = fm.get('last_updated')
+    last_validated_raw = fm.get('last_validated')
+
+    # Require at least one date field
+    if not last_updated_raw and not last_validated_raw:
+        err(f"Missing required date field: must have 'last_updated' or 'last_validated' (or both)", md, is_blocker=is_blocker('required_keys'))
+
+    # Validate last_updated format if present
+    if last_updated_raw:
+        normalized = normalize_date_value(last_updated_raw)
+        if not normalized or not re.match(r'^\d{4}-\d{2}-\d{2}$', normalized):
+            err(f"'last_updated' must be in YYYY-MM-DD format, got '{last_updated_raw}'", md, is_blocker=is_blocker('formats'))
+
+    # Validate last_validated format if present
+    if last_validated_raw:
+        normalized = normalize_date_value(last_validated_raw)
+        if not normalized or not re.match(r'^\d{4}-\d{2}-\d{2}$', normalized):
+            err(f"'last_validated' must be in YYYY-MM-DD format, got '{last_validated_raw}'", md, is_blocker=is_blocker('formats'))
+
+    # Warn if last_validated is stale (>14 days behind last_updated)
+    if last_updated_raw and last_validated_raw:
+        lu_date = parse_iso_date(last_updated_raw)
+        lv_date = parse_iso_date(last_validated_raw)
+        if lu_date and lv_date:
+            if lv_date < lu_date - timedelta(days=14):
+                print(f"Warning: {md}: last_validated ({lv_date}) lags last_updated ({lu_date}) by >14 days")
 
     # Validate revision is vMAJOR.MINOR
     if 'revision' in fm:
