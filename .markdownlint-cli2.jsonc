@@ -1,0 +1,17 @@
+{
+  "globs": [
+    "docs/**/*.md",
+    "!docs/_templates/**",
+    "!docs/.obsidian/**"
+  ],
+  "config": {
+    "MD009": false,
+    "MD012": false,
+    "MD022": false,
+    "MD025": {
+      "front_matter_title": ""
+    },
+    "MD032": false,
+    "MD034": false
+  }
+}
