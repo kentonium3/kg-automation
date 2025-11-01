@@ -6,13 +6,22 @@ level: reference
 status: approved
 owners: [kent@intentional.biz]
 last_validated: 2025-10-17
-last_updated: '2025-10-29'
+last_updated: '2025-11-01'
 revision: v1.0
 audience: agents_and_humans
 ---
 # AI Context Bootstrap — READ FIRST
 
 > **Canonical guidance for all AIs (ChatGPT, Claude, Claude Code, Gemini, Copilot, etc.) working on _kg-automation_.**
+
+## AI-Specific Instructions
+Each AI system should read their specific instruction file after this bootstrap:
+
+- **GitHub Copilot:** `ai-agents/copilot-instructions.md` — Copilot-specific workflow and repository guidance
+- **Claude Code:** `docs/handbooks/claude-code.md` — Code execution and repository modification procedures
+- **Claude:** `claude.md` — Claude agent configuration and capabilities
+- **ChatGPT:** `ai-agents/chatgpt-instructions.md` — Task processing and code generation guidance
+- **Gemini:** `ai-agents/gemini-instructions.md` — Repository interaction and workflow procedures
 
 ## Operate GitHub-first
 - **System of record:** GitHub `kentonium3/kg-automation`.
