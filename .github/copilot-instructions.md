@@ -35,12 +35,17 @@ These instructions are a concise, actionable guide for AI coding agents working 
   - Response: `handoff: response <id> <status> – <summary>`
 
 ## Typical dev -> deploy flow (Windows PowerShell example)
-1. git pull --rebase
-2. git add .
-3. git commit -m "<concise, conventional message>"
-4. git push origin main
-5. Deploy to Dropbox (sync runtime files):
-   powershell -NoProfile -ExecutionPolicy Bypass -File ./deploy-to-dropbox.ps1
+
+```bash
+# Pull and commit changes
+git pull --rebase
+git add .
+git commit -m "<concise, conventional message>"
+git push origin main
+
+# Deploy to Dropbox (sync runtime files)
+bash ./deploy-to-dropbox.sh
+```
 
 VS Code has tasks already configured (see workspace Tasks):
 - "Complete Deployment Workflow" (commits, pushes, then runs deploy-to-dropbox)
