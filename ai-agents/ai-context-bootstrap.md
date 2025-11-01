@@ -18,8 +18,8 @@ audience: agents_and_humans
 Each AI system should read their specific instruction file after this bootstrap:
 
 - **GitHub Copilot:** `ai-agents/copilot-instructions.md` — Copilot-specific workflow and repository guidance
-- **Claude Code:** `docs/handbooks/claude-code.md` — Code execution and repository modification procedures
-- **Claude:** `claude.md` — Claude agent configuration and capabilities
+- **Claude Code:** `ai-agents/claude-code-instructions.md` — Code execution and repository modification procedures
+- **Claude:** `ai-agents/claude-instructions.md` — Strategic planning and architecture guidance
 - **ChatGPT:** `ai-agents/chatgpt-instructions.md` — Task processing and code generation guidance
 - **Gemini:** `ai-agents/gemini-instructions.md` — Repository interaction and workflow procedures
 
