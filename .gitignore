@@ -2,6 +2,10 @@
 .claude/settings.local.json
 
 # Obsidian (shared config allowed, volatile state ignored)
+docs/.obsidian/*
+!docs/.obsidian/plugins/
+!docs/.obsidian/plugins/templater-obsidian/
+!docs/.obsidian/plugins/templater-obsidian/data.json
 docs/.obsidian/workspace.json
 docs/.obsidian/graph.json
 docs/.obsidian/workspace-mobile.json
@@ -9,3 +13,5 @@ docs/.obsidian/workspace-mobile.json
 # Common plugin caches (safe to expand later)
 docs/.obsidian/plugins/**/cache/
 docs/.obsidian/plugins/**/.cache/
+
+# Note: docs/.obsidian-shared/ is tracked (contains hotkeys.example.json)

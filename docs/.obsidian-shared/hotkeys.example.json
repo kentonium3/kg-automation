@@ -1,0 +1,11 @@
+{
+  "Templater: Insert template": [
+    { "template": "_run-revBump.md",      "hotkey": "Ctrl+Alt+B" },
+    { "template": "_run-normalizeFm.md",  "hotkey": "Ctrl+Alt+N" },
+    { "template": "_run-enforceEnums.md", "hotkey": "Ctrl+Alt+E" },
+    { "template": "_run-setTitleFromH1.md","hotkey": "Ctrl+Alt+T" }
+  ],
+  "Templater: Replace templates in the active file": [
+    { "hotkey": "Ctrl+Alt+R" }
+  ]
+}
