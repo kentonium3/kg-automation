@@ -1,12 +1,13 @@
 ---
-id: GH-COPILOT-INSTRUCTIONS
+id: copilot-instructions
 title: GitHub Copilot Instructions
 doc_type: handbook
 level: reference
 status: approved
 owners: [kent@intentional.biz]
-last_validated: 2025-10-17
-revision: 1.0
+last_validated: 2025-11-01
+revision: v1.0
+audience: agents_and_humans
 ---
 # GitHub Copilot instructions — kg-automation
 
