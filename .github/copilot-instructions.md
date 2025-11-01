@@ -1,72 +1,67 @@
 ---
-id: copilot-instructions
+id: GH-COPILOT-INSTRUCTIONS
 title: GitHub Copilot Instructions
 doc_type: handbook
 level: reference
 status: approved
 owners: [kent@intentional.biz]
 last_validated: 2025-10-17
-last_updated: '2025-10-29'
-revision: v1.1
-audience: agents_and_humans
+revision: 1.0
 ---
 # GitHub Copilot instructions — kg-automation
 
 These instructions are a concise, actionable guide for AI coding agents working in this repository. Read the short "PRIMERS" below before making edits.
 
 ## Must-read context (start here)
-- `ai-agents/ai-context-bootstrap.md` — READ FIRST in every session. Contains canonical platform paths and read-vs-edit rules.
-- `ai-agents/README.md` and `ai-exchange-bootstrap/docs/governance/ai-exchange.md` — protocol for AI↔AI handoffs.
-- **Visual navigation:** Start with `docs/README.md` and `docs/diagrams/` for system overview.
+- `ai-agents/ai-context-bootstrap.md` — READ FIRST in every session. It contains canonical platform paths and the read-vs-edit rules.
+- `ai-agents/README.md` and `ai-exchange-bootstrap/docs/governance/ai-exchange.md` — protocol for AI↔AI handoffs and commit conventions.
 
-## Repository & Branch Rules
-- Primary branch: `main` (protected)
-- Work branches: Use `feature/`, `fix/`, `docs/`, `ci/`, or `handoff/` prefix
-- All changes require PR review
-- CI/CD: GitHub Actions validates PRs and docs
+## Top-level rules (enforced workflow)
+- Always pull-before-write: run `git pull --rebase` before any changes. Small, reviewable commits preferred.
+- Edit in this Git repo (Vaults-repos/kg-automation). Do NOT edit files directly in Dropbox.
+- No secrets in the repo. Use references (e.g., `secrets:<alias>`) and external vaults.
+- Attribute authorship: commits should clearly identify the agent (name/email configured per-agent).
 
-## Handoff & Processing Rules
-1. **Format:** `YYYYMMDD-HHMMSS-<handoff-id>-<from>-to-<to>-<type>.json`
-   - Example: `20251012-123501-0001-chatgpt-to-claude-request.json`
-2. **Schema Validation:** Always validate handoff JSON before processing
-3. **Branch Strategy:** Checkout target branch before making edits
-4. **Commit Messages:**
-   - Request: `handoff: request <id> <from>→<to> – <purpose>`
-   - Response: `handoff: response <id> <status> – <summary>`
+## Where runtime state and queues live
+- Runtime queues, lock and state files live in Dropbox Automation roots (see `ai-agents/ai-context-bootstrap.md` for exact platform paths). Example runtime folder: `Dropbox\Automation\.queue` and `Dropbox\Automation\.state`.
+- Handoff files are versioned under: `ai-agents/shared/handoffs/` (JSON). Follow filename pattern and schemas in `ai-exchange-bootstrap` docs.
 
-## Development & Deployment Flow
-1. Create feature branch from main
-2. Make changes (use VS Code tasks where possible)
-3. Run validation: `python tooling/scripts/validate_docs.py`
-4. Push and create PR
-5. After merge, deploy to Dropbox:
-   ```powershell
-   ./deploy-to-dropbox.ps1
-   ```
+## Handoff & commit conventions (examples)
+- Handoff filename: `YYYYMMDD-HHMMSS-<handoff-id>-<from>-to-<to>-<type>.json`
+  - Example: `20251012-123501-0001-chatgpt-to-claude-request.json`
+- Commit messages for handoffs:
+  - Request: `handoff: request <id> <from>→<to> – <purpose>`
+  - Response: `handoff: response <id> <status> – <summary>`
 
-## File & Documentation Standards
-- **Documentation:** Follow Canon v2 standards defined in `docs/standards/doc-standards.md`
-- **Validation:** Run `python tooling/scripts/validate_docs.py` before commits
-- **Contracts:** Version controlled in `contracts/` directory
-- **Runtime State:** Managed in Dropbox Automation roots (NEVER edit directly)
+## Typical dev -> deploy flow (Windows PowerShell example)
+1. git pull --rebase
+2. git add .
+3. git commit -m "<concise, conventional message>"
+4. git push origin main
+5. Deploy to Dropbox (sync runtime files):
+   powershell -NoProfile -ExecutionPolicy Bypass -File ./deploy-to-dropbox.ps1
 
-## Safety & Permissions
-### Allowed:
-- Read any repository file
-- Write to `docs/`, `ai-agents/`, `systems/`, `runbooks/`, `workflows/`
-- Execute scripts in `tooling/scripts/`
-- Create/update markdown and JSON files
+VS Code has tasks already configured (see workspace Tasks):
+- "Complete Deployment Workflow" (commits, pushes, then runs deploy-to-dropbox)
+- "Quick Deploy (Skip Git)" (runs `deploy-to-dropbox.ps1` directly)
 
-### Never:
-- Edit files directly in Dropbox
-- Commit secrets (use `secrets:<alias>` references)
-- Modify CI configuration without review
-- Edit generated files (`*_registry.yaml`, `.docgraph/*`)
+## ECI worker templates and execution
+- Templates: `scripts/templates/eci_mac_claim_and_run.sh` and `scripts/templates/eci_win_Claim-And-Run.ps1`.
+- These are templates only — do NOT run them in-place. Copy to the platform-specific location first (see `scripts/templates/README.md`).
 
-## Quick References
-- **Visual Index:** `docs/README.md`
-- **Handoffs:** `ai-agents/shared/handoffs/`
-- **Templates:** `scripts/templates/`
-- **Deploy Scripts:** `deploy-to-dropbox.ps1`, `deploy_eci_framework.ps1`
+## File and documentation conventions
+- Filenames: kebab-case (lowercase with hyphens).
+- Docs: Markdown with Mermaid diagrams where useful. `.vscode/settings.json` enforces Markdown preferences and line-wrap rules.
+- Contracts/schemas: `contracts/` (versioned in repo). Runtime job queues live outside the repo in Dropbox.
 
-Need more examples or clarification? Let me know which section to expand.
+## Safety & coordination
+- Pull before processing shared/handoffs. If exclusive access is required, create a short-lived `.lock` file in the shared directory and remove it ASAP.
+- If you update operational governance, update `ai-exchange-bootstrap/docs/governance/ai-exchange.md` revision and note the change in a small PR.
+
+## Quick references (paths & examples)
+- Read-first: `ai-agents/ai-context-bootstrap.md`
+- Handoffs: `ai-agents/shared/handoffs/` (example JSON in `ai-agents/shared/handoffs/20251012-0712-0001-claude-to-chatgpt-response.json`)
+- Templates: `scripts/templates/` (`eci_*` files)
+- Deploy script: `deploy-to-dropbox.ps1` and `deploy_eci_framework.ps1`
+
+If anything here is unclear or you need more examples (more commit/PR examples, schema references, or task-run samples), tell me which section to expand and I will iterate.
