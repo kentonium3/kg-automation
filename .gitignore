@@ -15,3 +15,4 @@ docs/.obsidian/plugins/**/cache/
 docs/.obsidian/plugins/**/.cache/
 
 # Note: docs/.obsidian-shared/ is tracked (contains hotkeys.example.json)
+.DS_Store
