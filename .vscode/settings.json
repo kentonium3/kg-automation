@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 {
   "files.eol": "\n",
   "[markdown]": {
@@ -13,3 +14,20 @@
   },
   "python.defaultInterpreterPath": "/usr/local/bin/python"
 }
+=======
+{
+  "files.eol": "\n",
+  "[markdown]": {
+    "editor.wordWrap": "on",
+    "files.trimTrailingWhitespace": true
+  },
+  "markdownlint.config": {
+    "MD013": false,
+    "MD022": false,
+    "MD025": false,
+    "MD032": false,
+    "MD034": false
+  },
+  "python.defaultInterpreterPath": "/usr/local/bin/python"
+}
+>>>>>>> feat/reorganize-ai-instructions

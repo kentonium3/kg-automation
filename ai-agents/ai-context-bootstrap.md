@@ -23,6 +23,15 @@ Each AI system should read their specific instruction file after this bootstrap:
 - **ChatGPT:** `ai-agents/chatgpt-instructions.md` — Task processing and code generation guidance
 - **Gemini:** `ai-agents/gemini-instructions.md` — Repository interaction and workflow procedures
 
+## AI-Specific Instructions
+Each AI system should read their specific instruction file after this bootstrap:
+
+- **GitHub Copilot:** `ai-agents/copilot-instructions.md` — Copilot-specific workflow and repository guidance
+- **Claude Code:** `ai-agents/claude-code-instructions.md` — Code execution and repository modification procedures
+- **Claude:** `ai-agents/claude-instructions.md` — Strategic planning and architecture guidance
+- **ChatGPT:** `ai-agents/chatgpt-instructions.md` — Task processing and code generation guidance
+- **Gemini:** `ai-agents/gemini-instructions.md` — Repository interaction and workflow procedures
+
 ## Operate GitHub-first
 - **System of record:** GitHub `kentonium3/kg-automation`.
 - **Read context** from Dropbox if available; **never edit** in Dropbox.
