@@ -52,7 +52,7 @@ PROJECT_ROOT="$AUTOMATION_ROOT/kg-automation"
 
 ## Path Strategy by Task
 - **Bootstrap reading:** read required context from Dropbox (if running on a host with Dropbox installed) using the canonical paths above.
-- **Edits & generation:** work in your Git working copy (e.g., `C:/Users/Kent/Vaults-repos/kg-automation` or the dev container checkout).
+- **Edits & generation:** work in your Git working copy (e.g., `C:/Users/Kent/repos/kg-automation` or the dev container checkout).
 - **CI/Container:** operate only on repo paths; assume no Dropbox.
 
 ## Common Failure Modes & Fixes

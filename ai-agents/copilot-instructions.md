@@ -21,7 +21,7 @@ These instructions are a concise, actionable guide for AI coding agents working 
 
 ## Top-level rules (enforced workflow)
 - Always pull-before-write: run `git pull --rebase` before any changes. Small, reviewable commits preferred.
-- Edit in this Git repo (Vaults-repos/kg-automation). Do NOT edit files directly in Dropbox.
+- Edit in this Git repo (repos/kg-automation). Do NOT edit files directly in Dropbox.
 - No secrets in the repo. Use references (e.g., `secrets:<alias>`) and external vaults.
 - Attribute authorship: commits should clearly identify the agent (name/email configured per-agent).
 
@@ -96,7 +96,7 @@ These instructions are a concise, actionable guide for AI coding agents working 
 
 ## Top-level rules (enforced workflow)
 - Always pull-before-write: run `git pull --rebase` before any changes. Small, reviewable commits preferred.
-- Edit in this Git repo (Vaults-repos/kg-automation). Do NOT edit files directly in Dropbox.
+- Edit in this Git repo (repos/kg-automation). Do NOT edit files directly in Dropbox.
 - No secrets in the repo. Use references (e.g., `secrets:<alias>`) and external vaults.
 - Attribute authorship: commits should clearly identify the agent (name/email configured per-agent).
 
