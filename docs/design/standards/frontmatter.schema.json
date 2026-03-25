@@ -1,25 +1,19 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/kentonium3/kg-automation/docs/standards/frontmatter.schema.json",
+  "$id": "https://github.com/kentonium3/kg-automation/docs/design/standards/frontmatter.schema.json",
   "title": "kg-automation Documentation Frontmatter Schema",
-  "description": "Canon v2 schema for documentation frontmatter in kg-automation",
+  "description": "Canon v3 schema — lightweight frontmatter for kg-automation docs",
   "type": "object",
   "required": [
-    "id",
     "title",
     "doc_type",
-    "level",
-    "status",
-    "owners",
-    "last_updated",
-    "revision",
-    "audience"
+    "status"
   ],
   "properties": {
     "id": {
       "type": "string",
-      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
-      "description": "Unique identifier in kebab-case"
+      "pattern": "^[a-z0-9]+([-.][a-z0-9]+)*$",
+      "description": "Optional kebab-case identifier"
     },
     "title": {
       "type": "string",
@@ -44,17 +38,6 @@
       ],
       "description": "Document type classification"
     },
-    "level": {
-      "type": "string",
-      "enum": [
-        "overview",
-        "concept",
-        "howto",
-        "reference",
-        "policy"
-      ],
-      "description": "Documentation level/depth"
-    },
     "status": {
       "type": "string",
       "enum": [
@@ -66,23 +49,16 @@
       ],
       "description": "Document lifecycle status"
     },
-    "owners": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      },
-      "minItems": 1,
-      "description": "List of document owners (GitHub handles or names)"
-    },
-    "last_updated": {
+    "level": {
       "type": "string",
-      "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
-      "description": "Last update date in ISO format (YYYY-MM-DD)"
-    },
-    "revision": {
-      "type": "string",
-      "pattern": "^v\\d+\\.\\d+$",
-      "description": "Version number in vMAJOR.MINOR format"
+      "enum": [
+        "overview",
+        "concept",
+        "howto",
+        "reference",
+        "policy"
+      ],
+      "description": "Optional documentation level/depth"
     },
     "audience": {
       "type": "string",
@@ -91,29 +67,39 @@
         "humans",
         "agents_and_humans"
       ],
-      "description": "Target audience for the document"
+      "description": "Optional target audience"
+    },
+    "owners": {
+      "type": "array",
+      "items": { "type": "string" },
+      "minItems": 1,
+      "description": "Optional list of document owners"
+    },
+    "last_updated": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+      "description": "Optional last update date (YYYY-MM-DD)"
+    },
+    "revision": {
+      "type": "string",
+      "pattern": "^v\\d+\\.\\d+$",
+      "description": "Optional version in vMAJOR.MINOR format"
     },
     "tags": {
       "type": "array",
-      "items": {
-        "type": "string"
-      },
+      "items": { "type": "string" },
       "description": "Optional tags for categorization"
     },
     "aliases": {
       "type": "array",
-      "items": {
-        "type": "string"
-      },
-      "description": "Optional alternative names/identifiers"
+      "items": { "type": "string" },
+      "description": "Optional alternative names"
     },
     "links": {
       "type": "array",
-      "items": {
-        "type": "string"
-      },
+      "items": { "type": "string" },
       "description": "Optional related links"
     }
   },
-  "additionalProperties": false
+  "additionalProperties": true
 }

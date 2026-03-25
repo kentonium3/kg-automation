@@ -1,11 +1,11 @@
 {
   "blockers": [
     "required_keys",
-    "enum_membership",
-    "formats",
-    "id_filename_match"
+    "enum_membership"
   ],
   "advisories": [
+    "formats",
+    "id_filename_match",
     "key_order",
     "whitespace",
     "array_style",
