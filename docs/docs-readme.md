@@ -24,8 +24,7 @@ Use this page to jump straight to the most important visuals and handbooks.
 ### Diagrams (Mermaid)
 - [Capability Map](<./design/diagrams/capability-map.view.md>)
 - [Integration Architecture](<./design/diagrams/integration-architecture.view.md>)
-- [Orchestration Flow (Runner & CI)](<./design/diagrams/orchestration-flow.view.md>)
-- [ECI Sequence](<./design/diagrams/eci-sequence.view.md>)
+- [Orchestration Flow](<./design/diagrams/orchestration-flow.view.md>)
 - [Lifecycle Swimlane](<./design/diagrams/lifecycle-swimlane.view.md>)
 - [Claude Code Execution](<./design/diagrams/claude-code-execution.view.md>)
 - [Multi-Agent Orchestration](<./design/diagrams/multi-agent-orchestration.view.md>)
@@ -44,11 +43,10 @@ Use this page to jump straight to the most important visuals and handbooks.
 ## Handbooks
 - [Visual Documentation Style](<./handbooks/visual-docs-style.md>)
 - [Agent Handbook — Pre-PR Checklist](<./handbooks/agent-handbook.md>)
-- [Handoff Runner — How to Use](<./handbooks/handoff-runner.md>)
 - [Claude Code — Execution Agent](<./handbooks/claude-code.md>)
 - [Execution Roles — Runner vs Claude Code](<./handbooks/agent-execution-roles.md>)
 - [Maintenance & Housekeeping](<./handbooks/maintenance.md>)
-- [Mac Migration Plan](<./handbooks/mac-migration-plan.md>)
+- [office2 Backup & Security](<./handbooks/office2-backup-and-security.md>)
 - [Repo Governance](<./handbooks/repo-governance.md>)
 
 ## Templates
