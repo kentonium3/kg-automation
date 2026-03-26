@@ -45,6 +45,9 @@ making any architectural decisions. That document is the source of truth.
 The kgale account is for human use only. Agent actions must be traceable
 to the claude user.**
 
+**The claude user does not have sudo access. If a command requires sudo,
+stop and present the command to Kent to run manually via `ssh office2-kgale`.**
+
 **Windows is not a supported platform. Ignore any references to it.**
 **Dropbox is not used for coordination. Ignore any references to it.**
 **ChatGPT handoff JSON protocols are deprecated. Do not use them.**
