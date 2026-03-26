@@ -19,12 +19,12 @@
 **Requirement Refs**: FR-001, FR-002, NFR-002, NFR-004, C-002, C-003, C-004, C-005
 
 ### Included Subtasks
-- [ ] T001 Verify Node.js version on office2 (22.16+ required)
-- [ ] T002 Install OpenClaw via `npm install -g openclaw@v2026.3.24`
-- [ ] T003 Create directory structure (`/data/services/openclaw/secrets/`, `/data/services/openclaw/data/`)
-- [ ] T004 Set credential store permissions (directory mode 700, claude-owned)
-- [ ] T005 Create `scripts/openclaw/install.sh` in repo (captures installation steps)
-- [ ] T006 Provide Kent with instructions for placing the Anthropic API key
+- [x] T001 Verify Node.js version on office2 (22.16+ required)
+- [x] T002 Install OpenClaw via `npm install -g openclaw@v2026.3.24`
+- [x] T003 Create directory structure (`/data/services/openclaw/secrets/`, `/data/services/openclaw/data/`)
+- [x] T004 Set credential store permissions (directory mode 700, claude-owned)
+- [x] T005 Create `scripts/openclaw/install.sh` in repo (captures installation steps)
+- [x] T006 Provide Kent with instructions for placing the Anthropic API key
 
 ### Implementation Notes
 - SSH to office2 as claude: `ssh office2-claude`
