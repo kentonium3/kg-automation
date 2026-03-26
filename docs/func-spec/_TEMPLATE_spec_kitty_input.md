@@ -172,6 +172,41 @@ From: `docs/requirements/req_[component].md` (vX.Y)
 
 ---
 
+## Architecture Documentation Impact
+
+**Standing requirement**: Any feature that changes deployed services, credentials,
+data flows, or network topology must update the relevant architecture docs.
+See `docs/design/architecture/change-control.md` for the full protocol.
+
+*Remove this section entirely if the feature has no infrastructure impact.*
+
+### JSON Updates Required
+
+| File | Change |
+|---|---|
+| `data/service-inventory.json` | [Describe: add/update service entry, or N/A] |
+| `data/network-topology.json` | [Describe: add port, update binding, or N/A] |
+| `data/credential-manifest.json` | [Describe: add credential entry, or N/A] |
+| `data/data-flows.json` | [Describe: add/update flow, or N/A] |
+| `data/hardware-inventory.json` | [Describe: add host, or N/A] |
+
+### Markdown Updates Required
+
+| File | Change |
+|---|---|
+| `service-inventory.md` | [Describe update, or N/A] |
+| `data-flows.md` | [Describe update, or N/A] |
+| `credentials-and-secrets.md` | [Describe update, or N/A] |
+| `security-posture.md` | [Describe update, or N/A] |
+| `physical-topology.md` | [Describe update, or N/A] |
+
+**Success criteria for this section:**
+- [ ] All affected JSON files updated with `updated_by` set to this feature ID
+- [ ] Markdown views match JSON sources
+- [ ] Mermaid diagrams updated if topology or data flows changed
+
+---
+
 ## Success Criteria
 
 **Complete when:**
@@ -561,6 +596,7 @@ Before submitting spec to spec-kitty, verify:
 - [ ] Problem Statement with current vs target trees
 - [ ] "Study These Files First" section with discovery pointers
 - [ ] FR-X sections for all functional requirements
+- [ ] Architecture Documentation Updates section (infrastructure-changing features)
 - [ ] Out of Scope section with explicit boundaries
 - [ ] Success Criteria comprehensive checklist
 - [ ] Constitutional Compliance section
@@ -590,11 +626,58 @@ Before submitting spec to spec-kitty, verify:
 
 ---
 
+## Architecture Documentation Updates Section
+
+For any feature that deploys, modifies, or removes services, credentials, ports,
+or data flows, include this section before "Out of Scope":
+
+```markdown
+## Architecture Documentation Updates
+
+[Feature ID] changes the deployed system. Update the following files as part
+of implementation — not as a separate task.
+
+### JSON Updates Required
+
+| File | Change |
+|---|---|
+| `data/service-inventory.json` | [describe change] |
+| `data/credential-manifest.json` | [describe change] |
+| `data/network-topology.json` | [describe change if port/IP changes] |
+
+### Markdown Updates Required
+
+| File | Change |
+|---|---|
+| `service-inventory.md` | [describe change] |
+| `credentials-and-secrets.md` | [describe change] |
+
+### No Changes Required
+
+- [list files not affected and why]
+
+**Success criteria:**
+- [ ] All modified JSON files have `updated_by: "FXXX"`
+- [ ] Markdown views match JSON sources
+- [ ] Mermaid diagrams updated if topology changed
+```
+
+For features that make NO infrastructure changes (e.g., pure skill code,
+doc fixes), omit this section or note explicitly: "No architecture
+documentation updates required — this feature makes no changes to deployed
+services, credentials, ports, or data flows."
+
+All architecture docs live at: `docs/design/architecture/`
+Change control protocol: `docs/design/architecture/change-control.md`
+
+---
+
 ## Revision History
 
 | Version | Date | Changes |
 |---------|------|---------|
 | 1.0 | 2026-01-12 | Initial template based on F049 v4.0 reference implementation |
+| 1.1 | 2026-03-26 | Added Architecture Documentation Updates section requirement |
 
 ---
 
