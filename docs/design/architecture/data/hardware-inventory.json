@@ -1,0 +1,46 @@
+{
+  "schema_version": "1.0",
+  "last_updated": "2026-03-26",
+  "updated_by": "F001",
+  "hosts": [
+    {
+      "hostname": "office2",
+      "role": "always-on hub",
+      "hardware": "Dell XPS 8700",
+      "cpu": "Intel Core i7-4790 @ 3.60GHz",
+      "ram_gb": 32,
+      "os": "Ubuntu 24.04 LTS",
+      "kernel": "6.8.0-106-generic",
+      "disks": [
+        {"mount": "/", "device": "/dev/mapper/ubuntu--vg-ubuntu--lv", "size_gb": 98, "purpose": "OS and home directories"},
+        {"mount": "/data", "device": "/dev/sda1", "size_tb": 2.7, "purpose": "Services, transcripts, application data"},
+        {"mount": "/mnt/backups", "device": "/dev/sdg1", "size_gb": 916, "purpose": "Restic backup repository"}
+      ],
+      "network": {
+        "local_ip": "192.168.1.158",
+        "tailscale_ip": "100.92.197.90",
+        "tailscale_hostname": "office2"
+      }
+    },
+    {
+      "hostname": "kents-macbook-pro",
+      "role": "authoring and interaction endpoint",
+      "hardware": "MacBook Pro",
+      "os": "macOS",
+      "network": {
+        "tailscale_ip": "100.71.19.66",
+        "tailscale_hostname": "kents-macbook-pro"
+      }
+    },
+    {
+      "hostname": "iphone-14-pro-max",
+      "role": "mobile capture and task monitoring",
+      "hardware": "iPhone 14 Pro Max",
+      "os": "iOS",
+      "network": {
+        "tailscale_ip": "100.109.208.6",
+        "tailscale_hostname": "iphone-14-pro-max"
+      }
+    }
+  ]
+}

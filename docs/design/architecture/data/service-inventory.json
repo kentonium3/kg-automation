@@ -1,0 +1,87 @@
+{
+  "schema_version": "1.0",
+  "last_updated": "2026-03-26",
+  "updated_by": "F001",
+  "services": [
+    {
+      "name": "vikunja",
+      "type": "docker",
+      "image": "vikunja/vikunja:0.24.6",
+      "host": "office2",
+      "port": 3456,
+      "bind_ip": "100.92.197.90",
+      "systemd_unit": "vikunja.service",
+      "systemd_user": "claude",
+      "data_path": "/data/services/vikunja/data",
+      "data_owner": "1000:0",
+      "backup_included": true,
+      "deployed_by": "F001",
+      "status": "running",
+      "purpose": "Task store and web UI"
+    },
+    {
+      "name": "obsidian-sync",
+      "type": "native",
+      "binary": "/usr/bin/ob",
+      "host": "office2",
+      "systemd_unit": "obsidian-sync.service",
+      "systemd_user": "kgale",
+      "data_path": "/home/kgale/second-brain/vault",
+      "backup_included": true,
+      "deployed_by": "manual",
+      "status": "running",
+      "purpose": "Continuous Obsidian vault sync to office2"
+    },
+    {
+      "name": "transcribe-api",
+      "type": "docker",
+      "image": "transcribe_transcribe",
+      "host": "office2",
+      "port": 8787,
+      "bind_ip": "0.0.0.0",
+      "data_path": "/data/services/transcribe",
+      "backup_included": true,
+      "backup_excludes": ["/data/services/transcribe/models"],
+      "deployed_by": "manual",
+      "status": "running",
+      "purpose": "Whisper transcription API"
+    },
+    {
+      "name": "restic-backup",
+      "type": "cron",
+      "schedule": "0 4 * * *",
+      "script": "/data/services/backup/scripts/backup.sh",
+      "host": "office2",
+      "cron_user": "claude",
+      "repository": "/mnt/backups/restic-repo",
+      "password_file": "/home/claude/.config/restic/password",
+      "backup_sources": [
+        "/data/services",
+        "/data/transcripts",
+        "/home/claude",
+        "/home/kgale"
+      ],
+      "backup_excludes": [
+        "/data/services/transcribe/models",
+        "*.tmp",
+        "__pycache__",
+        ".cache"
+      ],
+      "deployed_by": "manual",
+      "status": "active",
+      "purpose": "Nightly GFS backup to local drive"
+    },
+    {
+      "name": "security-monitor",
+      "type": "cron",
+      "schedule": "0 3 * * *",
+      "script": "/data/services/security-monitor/scripts/audit.sh",
+      "host": "office2",
+      "cron_user": "claude",
+      "baselines_path": "/data/services/security-monitor/baselines",
+      "deployed_by": "manual",
+      "status": "active",
+      "purpose": "Daily security audit against baselines"
+    }
+  ]
+}

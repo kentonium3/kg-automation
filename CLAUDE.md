@@ -52,17 +52,21 @@ stop and present the command to Kent to run manually via `ssh office2-kgale`.**
 **Dropbox is not used for coordination. Ignore any references to it.**
 **ChatGPT handoff JSON protocols are deprecated. Do not use them.**
 
-## Canonical Design Document
+## Architecture Documentation
 
-`docs/design/personal-ai-system-spec-v03.md` — read this for:
+`docs/design/architecture/` — current-state system documentation:
+- Hardware, network, and service inventory (with machine-readable JSON in `data/`)
+- Data flows, credentials, identity model, backup, security posture
+- **Updated after every feature** — see `change-control.md` for the protocol
+
+`docs/design/personal-ai-system-spec-v03.md` — design intent (what we're building toward):
 - Full system architecture and topology
-- Two input paths (WhatsApp and Obsidian inbox)
-- Vikunja as task store and UI layer
-- OpenClaw as orchestration engine
-- Skill inventory and migration status
 - Implementation phases and feature sequence
-- Security requirements
 - Operating principles
+
+**Standing requirement**: Any feature that changes deployed services, credentials,
+data flows, or network topology must update the relevant files in
+`docs/design/architecture/` and `docs/design/architecture/data/`.
 
 ## Repository Structure
 

@@ -1,0 +1,41 @@
+{
+  "schema_version": "1.0",
+  "last_updated": "2026-03-26",
+  "updated_by": "F001",
+  "network": {
+    "type": "tailscale",
+    "tailnet_owner": "kentgale@",
+    "devices": [
+      {"hostname": "office2", "tailscale_ip": "100.92.197.90", "os": "linux"},
+      {"hostname": "kents-macbook-pro", "tailscale_ip": "100.71.19.66", "os": "macOS"},
+      {"hostname": "iphone-14-pro-max", "tailscale_ip": "100.109.208.6", "os": "iOS"}
+    ]
+  },
+  "port_assignments": [
+    {
+      "port": 3456,
+      "service": "vikunja",
+      "host": "office2",
+      "bind_ip": "100.92.197.90",
+      "protocol": "tcp",
+      "public_exposure": "none",
+      "access": "tailscale-only"
+    },
+    {
+      "port": 8787,
+      "service": "transcribe-api",
+      "host": "office2",
+      "bind_ip": "0.0.0.0",
+      "protocol": "tcp",
+      "public_exposure": "WARNING: bound to all interfaces",
+      "access": "should be tailscale-only"
+    }
+  ],
+  "access_rules": [
+    "All services must bind to Tailscale IP (100.92.197.90), never 0.0.0.0",
+    "SSH access for agents: ssh office2-claude only",
+    "SSH access for Kent: ssh office2-kgale",
+    "No services exposed to public internet",
+    "No port forwarding or NAT traversal outside Tailscale"
+  ]
+}

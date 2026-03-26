@@ -1,0 +1,54 @@
+---
+title: Physical Topology
+doc_type: reference
+status: approved
+---
+
+# Physical Topology
+
+Authoritative data: [`data/hardware-inventory.json`](data/hardware-inventory.json), [`data/network-topology.json`](data/network-topology.json)
+
+## Hosts
+
+### office2 — Always-On Hub
+
+| Attribute | Value |
+|-----------|-------|
+| Hardware | Dell XPS 8700 |
+| CPU | Intel Core i7-4790 @ 3.60GHz |
+| RAM | 32 GB |
+| OS | Ubuntu 24.04 LTS (kernel 6.8.0-106-generic) |
+| Local IP | 192.168.1.158 |
+| Tailscale IP | 100.92.197.90 |
+| Role | Always-on hub — runs all services |
+
+**Storage:**
+
+| Mount | Device | Size | Purpose |
+|-------|--------|------|---------|
+| `/` | LVM (SSD) | 98 GB | OS and home directories |
+| `/data` | `/dev/sda1` (HDD) | 2.7 TB | Services, transcripts, application data |
+| `/mnt/backups` | `/dev/sdg1` | 916 GB | Restic backup repository |
+
+### MacBook Pro — Authoring Endpoint
+
+| Attribute | Value |
+|-----------|-------|
+| Tailscale IP | 100.71.19.66 |
+| Role | Authoring, interaction, SSH to office2 |
+
+### iPhone 14 Pro Max — Mobile
+
+| Attribute | Value |
+|-----------|-------|
+| Tailscale IP | 100.109.208.6 |
+| Role | Mobile capture (Wispr Flow), task monitoring (Vikunja web UI) |
+
+## Network
+
+All inter-device communication uses **Tailscale**. No services are exposed to the public internet. No port forwarding or NAT traversal outside Tailscale.
+
+**SSH access:**
+- Agents: `ssh office2-claude` (claude user, no sudo)
+- Kent: `ssh office2-kgale` (kgale user, sudo available)
+- Host aliases defined in `~/.ssh/config` on Mac

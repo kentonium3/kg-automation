@@ -1,0 +1,63 @@
+{
+  "schema_version": "1.0",
+  "last_updated": "2026-03-26",
+  "updated_by": "F001",
+  "flows": [
+    {
+      "name": "vikunja-web-ui",
+      "status": "active",
+      "deployed_by": "F001",
+      "description": "Direct task management via browser",
+      "path": [
+        {"from": "Kent (Mac/iPhone)", "to": "Vikunja web UI", "protocol": "HTTP via Tailscale", "port": 3456},
+        {"from": "Vikunja web UI", "to": "SQLite", "path": "/data/services/vikunja/data/vikunja.db"}
+      ]
+    },
+    {
+      "name": "obsidian-sync",
+      "status": "active",
+      "deployed_by": "manual",
+      "description": "Continuous vault sync from Mac/iPhone to office2",
+      "path": [
+        {"from": "Obsidian (Mac/iPhone)", "to": "Obsidian Sync cloud", "protocol": "Obsidian Sync"},
+        {"from": "Obsidian Sync cloud", "to": "office2 (ob sync --continuous)", "path": "/home/kgale/second-brain/vault"}
+      ]
+    },
+    {
+      "name": "nightly-backup",
+      "status": "active",
+      "deployed_by": "manual",
+      "description": "Daily Restic backup at 4AM",
+      "path": [
+        {"from": "office2 (/data/services, /data/transcripts, /home/*)", "to": "Restic repo", "path": "/mnt/backups/restic-repo"}
+      ]
+    },
+    {
+      "name": "security-audit",
+      "status": "active",
+      "deployed_by": "manual",
+      "description": "Daily security baseline comparison at 3AM",
+      "path": [
+        {"from": "audit.sh", "to": "baseline comparison", "path": "/data/services/security-monitor/baselines/"},
+        {"from": "audit results", "to": "log files", "path": "/data/services/security-monitor/logs/"}
+      ]
+    }
+  ],
+  "planned_flows": [
+    {
+      "name": "whatsapp-command-channel",
+      "planned_by": "F003-F006",
+      "description": "WhatsApp voice/text → OpenClaw webhook → Whisper → Intent Parser → Vikunja"
+    },
+    {
+      "name": "obsidian-inbox-processing",
+      "planned_by": "F007-F010",
+      "description": "Obsidian 00-Inbox → hourly processor → vault routing + Vikunja API"
+    },
+    {
+      "name": "daily-briefing",
+      "planned_by": "F014",
+      "description": "Heartbeat → task summary → WhatsApp message to Kent"
+    }
+  ]
+}
