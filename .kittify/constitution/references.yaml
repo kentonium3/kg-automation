@@ -1,0 +1,43 @@
+schema_version: 1.0.0
+generated_at: '2026-03-26T04:46:08Z'
+mission: software-dev
+template_set: software-dev-default
+references:
+- id: USER:PROJECT_PROFILE
+  kind: user_profile
+  title: User Project Profile
+  summary: Project-specific interview answers captured for constitution 
+    compilation.
+  source_path: .kittify/constitution/interview/answers.yaml
+  local_path: library/user-project-profile.md
+- id: PARADIGM:test-first
+  kind: paradigm
+  title: Test-First Doctrine
+  summary: Prefer acceptance-first and red-green-refactor loops for 
+    deterministic delivery quality.
+  source_path: 
+    /Users/kentgale/.local/pipx/venvs/spec-kitty-cli/lib/python3.13/site-packages/doctrine/paradigms/test-first.paradigm.yaml
+  local_path: library/paradigm-test-first.md
+- id: DIRECTIVE:TEST_FIRST
+  kind: directive
+  title: Test-First Development
+  summary: Require test-first behavior across acceptance and implementation 
+    layers, selecting tactics based on scope and risk.
+  source_path: 
+    /Users/kentgale/.local/pipx/venvs/spec-kitty-cli/lib/python3.13/site-packages/doctrine/directives/test-first.directive.yaml
+  local_path: library/directive-test-first.md
+- id: TEMPLATE_SET:software-dev-default
+  kind: template_set
+  title: software-dev-default
+  summary: Build high-quality software with structured workflows and test-driven
+    development
+  source_path: 
+    /Users/kentgale/.local/pipx/venvs/spec-kitty-cli/lib/python3.13/site-packages/doctrine/missions/software-dev/mission.yaml
+  local_path: library/template-set-software-dev-default.md
+- id: STYLEGUIDE:python-implementation
+  kind: styleguide
+  title: Python Implementation Styleguide
+  summary: No summary provided.
+  source_path: 
+    /Users/kentgale/.local/pipx/venvs/spec-kitty-cli/lib/python3.13/site-packages/doctrine/styleguides/python-implementation.styleguide.yaml
+  local_path: library/styleguide-python-implementation.md

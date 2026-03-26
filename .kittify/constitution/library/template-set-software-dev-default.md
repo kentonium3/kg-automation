@@ -1,0 +1,198 @@
+# Template Set: software-dev-default
+
+- Mission: `software-dev`
+- Source: `/Users/kentgale/.local/pipx/venvs/spec-kitty-cli/lib/python3.13/site-packages/doctrine/missions/software-dev/mission.yaml`
+- Summary: Build high-quality software with structured workflows and test-driven development
+
+## Mission Definition
+
+```yaml
+mission:
+  name: software-dev
+  version: 2.0.0
+  description: Software development with enforced state machine workflow
+initial: discovery
+states:
+- name: discovery
+  display_name: Discovery & Research
+  on_enter:
+  - on_enter_state
+- name: specify
+  display_name: Specification
+  on_enter:
+  - on_enter_state
+- name: plan
+  display_name: Implementation Planning
+  on_enter:
+  - on_enter_state
+- name: implement
+  display_name: Implementation
+  on_enter:
+  - on_enter_state
+- name: review
+  display_name: Code Review
+  on_enter:
+  - on_enter_state
+- name: done
+  display_name: Complete
+  on_enter:
+  - on_enter_state
+transitions:
+- trigger: advance
+  source: discovery
+  dest: specify
+- trigger: advance
+  source: specify
+  dest: plan
+  conditions:
+  - artifact_exists("spec.md")
+- trigger: advance
+  source: plan
+  dest: implement
+  conditions:
+  - artifact_exists("plan.md")
+  - artifact_exists("tasks.md")
+- trigger: advance
+  source: implement
+  dest: review
+  conditions:
+  - all_wp_status("done")
+- trigger: advance
+  source: review
+  dest: done
+  conditions:
+  - gate_passed("review_approved")
+- trigger: rework
+  source: review
+  dest: implement
+guards:
+  has_spec:
+    description: Specification document must exist
+    check: artifact_exists("spec.md")
+  has_plan:
+    description: Implementation plan must exist
+    check: artifact_exists("plan.md")
+  has_tasks:
+    description: Task breakdown must exist
+    check: artifact_exists("tasks.md")
+  all_wps_done:
+    description: All work packages must be complete
+    check: all_wp_status("done")
+  review_passed:
+    description: Review must be approved
+    check: gate_passed("review_approved")
+inputs:
+- name: feature_description
+  type: string
+  required: true
+  description: User's feature description or request
+- name: project_root
+  type: path
+  required: true
+  description: Path to the project root directory
+- name: mission_override
+  type: string
+  required: false
+  description: Override mission selection
+outputs:
+- name: specification
+  type: artifact
+  path: spec.md
+  phase: specify
+  description: Feature specification document
+- name: implementation_plan
+  type: artifact
+  path: plan.md
+  phase: plan
+  description: Technical implementation plan
+- name: task_breakdown
+  type: artifact
+  path: tasks.md
+  phase: plan
+  description: Work package task list
+- name: source_code
+  type: artifact
+  path: src/
+  phase: implement
+  description: Implementation source code
+name: Software Dev Kitty
+description: Build high-quality software with structured workflows and 
+  test-driven development
+version: 1.0.0
+domain: software
+workflow:
+  phases:
+  - name: research
+    description: Research technologies and best practices
+  - name: design
+    description: Define architecture and contracts
+  - name: implement
+    description: Write code following TDD
+  - name: test
+    description: Validate implementation
+  - name: review
+    description: Code review and quality checks
+artifacts:
+  required:
+  - spec.md
+  - plan.md
+  - tasks.md
+  optional:
+  - data-model.md
+  - contracts/
+  - quickstart.md
+  - research.md
+  - checklists/
+paths:
+  workspace: src/
+  tests: tests/
+  deliverables: contracts/
+  documentation: docs/
+validation:
+  checks:
+  - git_clean
+  - all_tests_pass
+  - kanban_complete
+  - no_clarification_markers
+  custom_validators: true
+mcp_tools:
+  required:
+  - filesystem
+  - git
+  recommended:
+  - code-search
+  - test-runner
+  - docker
+  optional:
+  - github
+  - gitlab
+agent_context: "You are a software development agent following TDD practices.\nYour
+  constitution enforces Library-First, CLI Interface, and Test-First principles.\n\
+  You work in structured phases: research → design → implement → test → review.\n\n\
+  Key practices:\n- Tests before code (non-negotiable)\n- Library-first architecture\n\
+  - CLI interfaces for all features\n- Integration tests over mocks\n- Real dependencies
+  over mocks in testing\n"
+task_metadata:
+  required:
+  - task_id
+  - lane
+  - phase
+  - agent
+  optional:
+  - shell_pid
+  - assignee
+  - estimated_hours
+commands:
+  specify:
+    prompt: Define user scenarios and acceptance criteria
+  plan:
+    prompt: Design technical architecture and implementation plan
+  tasks:
+    prompt: Break into work packages with TDD workflow
+  implement:
+    prompt: Execute implementation following test-first methodology
+  review:
+    prompt: Perform code review and validate against specification
+  accept:
+    prompt: Validate feature completeness and quality gates
+```
