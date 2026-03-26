@@ -1,13 +1,8 @@
-# Governance & CI
+# CI & workflows
 .github/**            @kentonium3
-docs/governance/**    @kentonium3
 
-# Tooling & generators
+# Tooling & validation
 tooling/scripts/**    @kentonium3
 
-# Systems & runbooks
+# Systems
 systems/**            @kentonium3
-runbooks/**           @kentonium3
-
-# AI handoffs
-ai-agents/shared/**   @kentonium3

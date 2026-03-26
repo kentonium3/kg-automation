@@ -1,11 +1,8 @@
 
 ---
-id: spec-kitty-init-in-existing-repo
-doc_type: note
-owner: kent
+title: Spec-Kitty Installation Guide for Existing Repositories
+doc_type: handbook
 status: draft
-last_updated: 2025-11-08
-tags: []
 ---
 # Spec-Kitty Installation Guide for Existing Repositories
 
