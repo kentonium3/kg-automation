@@ -1,0 +1,12 @@
+vcs:
+  type: git
+agents:
+  available:
+  - copilot
+  - claude
+  - gemini
+  - codex
+  selection:
+    preferred_implementer: claude
+    preferred_reviewer: codex
+  auto_commit: true

@@ -1,0 +1,19 @@
+# Auto-generated from constitution.md — do not edit directly.
+# Run 'spec-kitty constitution sync' to regenerate.
+
+directives:
+- id: DIR-001
+  title: 'Apply doctrine directive `TEST_FIRST` to planning '
+  description: Apply doctrine directive `TEST_FIRST` to planning and implementation decisions.
+  severity: warn
+  applies_to: []
+- id: DIR-002
+  title: 'Respect risk boundaries: 02-Growth/_private/ is ne'
+  description: 'Respect risk boundaries: 02-Growth/_private/ is never read, written, or referenced by any agent or script — no exceptions. No      credentials in code or committed files. Anthropic API called direct — no third-party proxies. No community   OpenClaw skills without source review. All services Tailscale-only. No untrusted code executes near          credentials or personal data.'
+  severity: warn
+  applies_to: []
+- id: DIR-003
+  title: 'Keep documentation synchronized with workflow and '
+  description: Keep documentation synchronized with workflow and behavior changes.
+  severity: warn
+  applies_to: []
