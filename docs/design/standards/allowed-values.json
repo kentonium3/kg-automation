@@ -11,7 +11,8 @@
     "readme",
     "index",
     "project",
-    "note"
+    "note",
+    "func-spec"
   ],
   "level": [
     "overview",
