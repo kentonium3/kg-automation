@@ -1,7 +1,7 @@
 ---
 work_package_id: WP01
 title: Install OpenClaw and Credential Store
-lane: "doing"
+lane: "approved"
 dependencies: []
 requirement_refs:
 - C-002
@@ -27,10 +27,10 @@ subtasks:
 - T006
 phase: Phase 1 - Foundation
 assignee: ''
-agent: "claude"
-shell_pid: "99649"
-review_status: ''
-reviewed_by: ''
+agent: claude
+shell_pid: '99649'
+review_status: "approved"
+reviewed_by: "Kent Gale"
 review_feedback: ''
 history:
 - timestamp: '2026-03-26T22:28:20Z'
@@ -218,3 +218,4 @@ echo "   openclaw onboard --install-daemon"
 - 2026-03-26T22:45:57Z – claude – shell_pid=95461 – lane=doing – Assigned agent via workflow command
 - 2026-03-26T23:11:51Z – claude – shell_pid=95461 – lane=for_review – OpenClaw v2026.3.24 installed, credential store created (mode 700), API key placed (mode 600). install.sh committed.
 - 2026-03-26T23:12:07Z – claude – shell_pid=99649 – lane=doing – Started review via workflow command
+- 2026-03-26T23:12:17Z – claude – shell_pid=99649 – lane=approved – Review passed: OpenClaw v2026.3.24 installed, credential store mode 700, API key mode 600, install.sh clean.
