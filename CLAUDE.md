@@ -30,6 +30,24 @@ making any architectural decisions. That document is the source of truth.
 | GitHub | Version control, all agent changes via PR |
 | Obsidian Sync | Vault sync across all devices including office2 |
 
+## Server Access (office2)
+
+| Connection | Command |
+|---|---|
+| SSH as claude | `ssh office2-claude` |
+
+- **Local IP**: 192.168.1.158
+- **Tailscale IP**: 100.92.197.90
+- **Data drive**: `/data` (2.7TB)
+- SSH host aliases are defined in `~/.ssh/config` on the Mac
+
+**Agents must always use `ssh office2-claude` — never `ssh office2-kgale`.
+The kgale account is for human use only. Agent actions must be traceable
+to the claude user.**
+
+**The claude user does not have sudo access. If a command requires sudo,
+stop and present the command to Kent to run manually via `ssh office2-kgale`.**
+
 **Windows is not a supported platform. Ignore any references to it.**
 **Dropbox is not used for coordination. Ignore any references to it.**
 **ChatGPT handoff JSON protocols are deprecated. Do not use them.**
