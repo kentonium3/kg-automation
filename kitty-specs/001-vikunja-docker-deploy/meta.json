@@ -2,7 +2,9 @@
   "created_at": "2026-03-26T06:01:21.006200+00:00",
   "feature_number": "001",
   "feature_slug": "001-vikunja-docker-deploy",
-  "friendly_name": "vikunja docker deploy",
+  "friendly_name": "Vikunja Docker Deploy",
+  "source_description": "Deploy Vikunja on office2 as the foundational task store and web UI, with automated setup script, Restic backup integration, and ops runbook.",
+  "vcs": "git",
   "mission": "software-dev",
   "slug": "001-vikunja-docker-deploy",
   "target_branch": "main"
