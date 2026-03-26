@@ -1,87 +1,132 @@
 ---
 id: claude-code-instructions
-title: Claude Code Instructions
+title: Claude Code Instructions — kg-automation
 doc_type: handbook
 level: reference
 status: approved
 owners:
   - "@kentonium3"
-last_updated: '2025-11-01'
-revision: v1.0
+last_updated: '2026-03-25'
+revision: v3.0
 audience: agents_and_humans
 ---
+
 # Claude Code Instructions — kg-automation
 
-These instructions provide Claude Code-specific guidance for working in the kg-automation repository.
+Instructions for Claude Code working in the kg-automation repository.
 
-## Core Responsibilities
-- Direct code execution and file modifications
-- Repository operations and Git workflows
-- Script execution and validation
-- Automated testing and deployment
-- Command-line operations and tooling
+## Start Every Session By Reading
 
-## Workflow Rules
-1. **Always read first:**
-   - `ai-agents/ai-context-bootstrap.md` at the start of each session
-   - `CLAUDE.md` for repository-specific instructions and permissions
-   - Check current branch and Git status
+1. `CLAUDE.md` at repo root — read this first, always
+2. `docs/design/personal-ai-system-spec-v03.md` — canonical architecture
+3. `git log --oneline -10` — understand current state before touching anything
+4. `git status` — confirm clean working tree
 
-2. **File Operations:**
-   - Use Read tool before editing any existing file
-   - Prefer Edit tool over Write for existing files
-   - Follow conventional commit format (docs:, feat:, fix:, chore:, etc.)
-   - Never commit directly to main — always use feature branches
+## Role in This System
 
-3. **Git Workflow:**
-   - Create feature branches following pattern: `feature/`, `fix/`, `docs/`, `ci/`
-   - Run validation scripts before committing
-   - Create PRs with comprehensive descriptions
-   - Include CI validation status in PR body
+Claude Code is the **execution layer**. It implements what has been designed.
+Architecture decisions live in `docs/design/`. If something isn't in the spec,
+stop and ask rather than infer.
 
-4. **Command Execution:**
-   - Use Bash tool for terminal operations (git, npm, python, etc.)
-   - Use specialized tools for file operations (Read, Edit, Write, Glob, Grep)
-   - Validate command outputs and handle errors appropriately
-   - Document all automated actions clearly
+## Platform Reality
 
-## Repository-Specific Guidelines
-- **Allowed write locations:** `docs/`, `ai-agents/`, `systems/`, `runbooks/`, `workflows/`
-- **Restricted:** Never edit `.env` files or commit secrets
-- **Generated files:** Never edit `*_registry.yaml`, `.docgraph/*`
-- **CI configuration:** Requires review before modifications
+- **Mac (MacBook Pro)**: authoring and interaction only
+- **office2 (Ubuntu 24.04 LTS)**: always-on hub — this is where things run
+- **Tailscale**: the network between them
+- **Windows**: not supported, does not exist in this system
+- **Dropbox**: not used for coordination
 
-## Handoff Processing
-When processing handoff requests:
-1. Validate handoff JSON schema
-2. Checkout target branch before making edits
-3. Run validation scripts after file operations
-4. Create response JSON with complete status
-5. Use conventional commit format with handoff prefix
+When writing scripts or configs, target Linux (office2) unless explicitly told
+otherwise.
 
-## Validation & Testing
-- Run `python tooling/scripts/validate_docs.py` after doc changes
-- Run `python tooling/scripts/sync_mermaid_views.py --write` for diagrams
-- Execute preset workflows via `doc-hygiene` preset
-- Verify CI passes before merging PRs
+## Key Services on office2
 
-## Tool Usage Patterns
-- **Glob:** Find files by pattern (`**/*.md`, `docs/**/*.json`)
-- **Grep:** Search code content with regex
-- **Read:** Read file contents (always before Edit/Write)
-- **Edit:** Exact string replacement in existing files
-- **Write:** Create new files or overwrite (requires prior Read)
-- **Bash:** Terminal commands (git, validation scripts, npm, etc.)
+| Service | Details |
+|---|---|
+| OpenClaw | Orchestration engine, skills, WhatsApp webhook |
+| Vikunja | Docker container, port 3456, SQLite backend |
+| Obsidian Sync | `ob sync --continuous` via systemd (`obsidian-sync.service`) |
+| Restic | Backups at 4AM to `/mnt/backups/restic-repo` |
 
-## Safety & Permissions
-- Never run destructive git commands without user confirmation
-- Never force push to main/master
-- Never skip git hooks (--no-verify) without explicit request
-- Always validate before committing
-- Clear documentation of all automated actions
-- Respect repository governance and access controls
+Access office2 via Tailscale SSH. Never expose management ports to public internet.
 
-## Preset Commands
-- **doc-hygiene:** Sync diagrams, validate docs, commit/push changes
-  - Usage in handoff: `{"op": "preset", "name": "doc-hygiene"}`
-  - Manual: Run sync, validate, commit, push sequence
+## Skill Files
+
+Existing skills to be migrated from second-brain to office2/OpenClaw:
+
+| Skill | Current location | Status |
+|---|---|---|
+| inbox-processor | `~/second-brain/.claude/skills/inbox-processor/SKILL.md` | Migrate (FEAT-007) |
+| kent-voice | `~/second-brain/.claude/skills/kent-voice/SKILL.md` | Migrate (FEAT-008) |
+| vault-writer | `~/second-brain/.claude/skills/vault-writer/SKILL.md` | Migrate (FEAT-009) |
+
+When migrating: add Vikunja API task bridge to inbox-processor, no other
+changes to skill logic.
+
+## Git Workflow
+
+- Never commit directly to main
+- Branch pattern: `feature/FEAT-NNN-description`, `fix/`, `docs/`, `ci/`
+- Conventional commits: `feat:`, `fix:`, `docs:`, `chore:`, `ci:`
+- PR required for all changes — include spec reference in PR description
+- Read file before editing (always)
+
+## Write Permissions
+
+**Allowed**: `docs/`, `ai-agents/`, `systems/`, `scripts/`, `workflows/`
+**Never**: `.env` files, secrets in any file, `rm -rf`, force push
+**Review required**: `.github/workflows/`
+
+## Second Brain Boundary
+
+`~/second-brain/` is a separate repo. kg-automation scripts may **read** from
+the Obsidian vault path when explicitly required (e.g., inbox-processor reads
+`00-Inbox/`). Never write to second-brain paths from kg-automation unless the
+skill definition explicitly requires it (vault-writer does; nothing else does).
+
+**Absolute rule**: `~/second-brain/vault/Notes/02-Growth/_private/` is never
+read, written, referenced, or logged by any script or agent. No exceptions.
+
+## Credential Handling
+
+All credentials live in office2's scoped secrets store.
+- Named sets: `personal-google`, `intentional-google`, `whatsapp-meta`,
+  `anthropic`, `vikunja-api`
+- Never put credentials in code, scripts, or committed files
+- Skills request credentials by name — the resolver injects at runtime
+
+## Vikunja API
+
+Base URL (from office2 or Tailscale): `http://office2:3456/api/v1`
+Auth: JWT token from `/api/v1/login`, stored in secrets store as `vikunja-api`
+Key endpoints:
+- `POST /tasks` — create task
+- `PATCH /tasks/{id}` — update task
+- `GET /tasks/all` — list tasks with filter support
+- `POST /filters` — create saved filter
+
+## Feature Sequence (Phase 1)
+
+Current build order from spec Section 10:
+
+```
+FEAT-001  Vikunja Docker deploy on office2 + project structure
+FEAT-002  OpenClaw install and configuration
+FEAT-003  WhatsApp channel (Meta Cloud API)
+FEAT-004  Whisper transcription skill
+FEAT-005  Vikunja API skill (CRUD wrapper)
+FEAT-006  Intent Parser skill
+FEAT-007  Migrate inbox-processor + task bridge
+FEAT-008  Migrate kent-voice skill
+FEAT-009  Migrate vault-writer skill
+FEAT-010  Hourly inbox poll + on-demand trigger
+FEAT-011  Goal Context Loader skill
+FEAT-012  Personal Google Calendar skill
+FEAT-013  Task → Calendar event linking
+FEAT-014  Daily briefing heartbeat
+FEAT-015  Level 1–2 escalation heartbeat
+```
+
+Check `docs/func-spec/` for feature-level specs before implementing any FEAT.
+If a func-spec doesn't exist yet, create a GitHub issue rather than proceeding
+from the high-level spec alone.
