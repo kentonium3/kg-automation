@@ -82,6 +82,21 @@ systems/            ← capability definitions
 workflows/          ← defined workflows
 ```
 
+## Feature Development Workflow
+
+All features are implemented through spec-kitty. Always follow this sequence:
+
+```
+/spec-kitty.specify → /spec-kitty.plan → /spec-kitty.tasks → /spec-kitty.implement → /spec-kitty.review → /spec-kitty.merge
+```
+
+Do not skip steps. Do not perform research, write code, or make design decisions
+outside of the spec-kitty workflow. If a spec-kitty command fails, stop and report
+the error — do not work around it manually.
+
+See `docs/func-spec/claude-pre-implementation-prompt.md` for the standing
+orchestration directive.
+
 ## Git Workflow
 
 - Push directly to main for routine changes
@@ -94,6 +109,19 @@ workflows/          ← defined workflows
 **Write allowed**: `docs/`, `ai-agents/`, `systems/`, `scripts/`, `workflows/`
 **Never**: edit `.env` files, commit secrets, force push, `rm -rf`
 **CI**: never modify `.github/workflows/` without explicit instruction
+
+## Architecture Documentation
+
+The system maintains a live architecture documentation store at
+`docs/design/architecture/`. JSON files are the authoritative record;
+markdown files are narrative views.
+
+**Standing directive**: Any implementation that deploys, modifies, or removes
+a service, credential, port, or data flow MUST update the relevant files in
+`docs/design/architecture/data/` and their markdown counterparts as part of
+the same PR. This is not optional and not a separate task.
+
+See `docs/design/architecture/change-control.md` for the full update protocol.
 
 ## Second Brain Boundary
 
