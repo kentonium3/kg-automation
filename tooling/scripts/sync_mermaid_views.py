@@ -17,7 +17,7 @@ from pathlib import Path
 from datetime import date
 from typing import Tuple
 
-DIAGRAMS_DIR = Path("docs/design/diagrams")
+DIAGRAMS_DIR = Path("docs/design/architecture")
 
 FM_PATTERN = re.compile(r"^---\n(.*?)\n---\n", re.DOTALL)
 FENCE_START = "```mermaid"
