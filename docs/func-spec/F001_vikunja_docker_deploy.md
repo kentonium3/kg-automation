@@ -199,6 +199,34 @@ Metal Casework (parent project / Area)
 
 ---
 
+## Architecture Documentation Updates
+
+F001 changes the deployed system. The following architecture docs must be
+updated as part of implementation.
+
+### JSON Updates Required
+
+| File | Change |
+|---|---|
+| `data/service-inventory.json` | Add Vikunja service entry |
+| `data/network-topology.json` | Add Vikunja port assignment (3456, 100.92.197.90) |
+| `data/credential-manifest.json` | Add `vikunja-admin` credential entry |
+
+### Markdown Updates Required
+
+| File | Change |
+|---|---|
+| `service-inventory.md` | Add Vikunja to Running Services table and Deployment Details |
+| `credentials-and-secrets.md` | Add `vikunja-admin` to Active Credentials table |
+| `security-posture.md` | Note audit baseline reset after Vikunja deployment |
+
+**Success criteria for this section:**
+- [ ] All JSON files updated with `updated_by: "F001"`
+- [ ] Markdown views match JSON sources
+- [ ] Mermaid diagrams updated if topology changed
+
+---
+
 ## Out of Scope
 
 - ❌ OpenClaw integration — F002 and F005 handle this

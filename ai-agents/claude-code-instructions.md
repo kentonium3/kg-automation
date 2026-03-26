@@ -77,6 +77,27 @@ changes to skill logic.
 **Never**: `.env` files, secrets in any file, `rm -rf`, force push
 **Review required**: `.github/workflows/`
 
+## Architecture Documentation (Standing Directive)
+
+The system maintains a live architecture documentation store at
+`docs/design/architecture/`. **JSON files are authoritative; markdown
+files are views.**
+
+Any work package that deploys, modifies, or removes a service, credential,
+port, or data flow MUST update the relevant files in
+`docs/design/architecture/data/` and their markdown counterparts in the
+same commit. This is a non-optional deliverable, not a follow-up task.
+
+| Change type | JSON file to update |
+|---|---|
+| New/changed service | `service-inventory.json` |
+| New/changed credential | `credential-manifest.json` |
+| New/changed port or IP | `network-topology.json` |
+| New/changed data flow | `data-flows.json` |
+| New/changed hardware | `hardware-inventory.json` |
+
+Full protocol: `docs/design/architecture/change-control.md`
+
 ## Second Brain Boundary
 
 `~/second-brain/` is a separate repo. kg-automation scripts may **read** from
