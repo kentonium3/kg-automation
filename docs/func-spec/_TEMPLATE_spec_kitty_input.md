@@ -1,3 +1,9 @@
+---
+title: "TEMPLATE: Spec-Kitty Feature Specification Input"
+doc_type: reference
+status: approved
+---
+
 # TEMPLATE: Spec-Kitty Feature Specification Input
 
 **Version**: 1.0
