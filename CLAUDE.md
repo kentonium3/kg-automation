@@ -1,3 +1,9 @@
+---
+title: Claude Code Context — kg-automation
+doc_type: reference
+status: approved
+---
+
 # kg-automation — Claude Code Context
 
 This file is read automatically by Claude Code at session start.

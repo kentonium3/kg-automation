@@ -1,3 +1,9 @@
+---
+title: Personal AI Command & Accountability System — v0.3
+doc_type: strategy
+status: draft
+---
+
 # Personal AI Command & Accountability System
 ## Design Specification v0.3
 
