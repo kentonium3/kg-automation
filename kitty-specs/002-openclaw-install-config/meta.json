@@ -2,7 +2,9 @@
   "created_at": "2026-03-26T21:51:54.608665+00:00",
   "feature_number": "002",
   "feature_slug": "002-openclaw-install-config",
-  "friendly_name": "openclaw install config",
+  "friendly_name": "OpenClaw Install and Configuration",
+  "source_description": "Install OpenClaw on office2 via npm, configure Anthropic API direct, establish credential store, systemd service, ops runbook.",
+  "vcs": "git",
   "mission": "software-dev",
   "slug": "002-openclaw-install-config",
   "target_branch": "main"
