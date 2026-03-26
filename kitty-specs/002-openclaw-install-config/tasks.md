@@ -249,3 +249,8 @@
 | T029 | Verify Vikunja connectivity | WP05 | P1 | Yes |
 | T030 | Verify API key not in process environment | WP05 | P1 | Yes |
 | T031 | Document acceptance results | WP05 | P1 | No |
+
+<!-- status-model:start -->
+## Canonical Status (Generated)
+- WP01: for_review
+<!-- status-model:end -->
