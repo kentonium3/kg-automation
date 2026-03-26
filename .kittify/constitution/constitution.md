@@ -10,7 +10,7 @@ Generated: 2026-03-26T04:46:08Z
 
 ## Quality Gates
 
-- CI validation passes (validate_docs.py: frontmatter compliance + secret scan). PR required for all        changes to main. Self-review of diff before merge.
+- CI validation passes (validate_docs.py: frontmatter compliance + secret scan) on every push to main. Self-review of diff before push.
 
 ## Performance Benchmarks
 
@@ -18,7 +18,7 @@ Generated: 2026-03-26T04:46:08Z
 
 ## Branch Strategy
 
-- Solo maintainer project. Self-review via PR diff before merge. Use Claude Code or Claude Desktop as       architectural review partner when changes touch the v0.3 spec or cross-cutting concerns.
+- Solo maintainer project. Push directly to main. Use Claude Code or Claude Desktop as architectural review partner when changes touch the v0.3 spec or cross-cutting concerns.
 - Deployment constraints: Production services run on office2 (Ubuntu 24.04 LTS). Mac is authoring only. All scripts and configs     target Linux unless explicitly noted. Services accessible via Tailscale only — never exposed to public     internet.
 
 ## Governance Activation
@@ -36,8 +36,8 @@ template_set: software-dev-default
 - Intent: Drive accountable action on personal and business goals through always-on automation, frictionless        capture, and proactive follow-up.
 - Languages/Frameworks: Python 3.11+, Bash, Docker, YAML/Markdown docs. Vikunja REST API, Anthropic Claude API, OpenClaw skills.   Obsidian for knowledge store.
 - Testing: Validate all docs via validate_docs.py (frontmatter + secret scan) in CI. Python scripts must be tested   manually before merge. Add pytest coverage for any non-trivial Python modules as they emerge. No fixed       coverage target yet.
-- Quality Gates: CI validation passes (validate_docs.py: frontmatter compliance + secret scan). PR required for all        changes to main. Self-review of diff before merge.
-- Review Policy: Solo maintainer project. Self-review via PR diff before merge. Use Claude Code or Claude Desktop as       architectural review partner when changes touch the v0.3 spec or cross-cutting concerns.
+- Quality Gates: CI validation passes (validate_docs.py: frontmatter compliance + secret scan) on every push to main. Self-review of diff before push.
+- Review Policy: Solo maintainer project. Push directly to main. Use Claude Code or Claude Desktop as architectural review partner when changes touch the v0.3 spec or cross-cutting concerns.
 - Performance Targets: Inbox processing completes within 60 seconds of trigger. WhatsApp command responses within 10 seconds.    CI validation under 30 seconds. Heartbeat schedules fire on time.
 - Deployment Constraints: Production services run on office2 (Ubuntu 24.04 LTS). Mac is authoring only. All scripts and configs     target Linux unless explicitly noted. Services accessible via Tailscale only — never exposed to public     internet.
 
@@ -59,8 +59,8 @@ template_set: software-dev-default
 
 ## Amendment Process
 
-Edit constitution.md directly, run spec-kitty constitution sync, commit via PR. Review diff to confirm    derived files reflect intent before merge.
+Edit constitution.md directly, run spec-kitty constitution sync, commit and push. Review diff to confirm derived files reflect intent.
 
 ## Exception Policy
 
-Exceptions documented in PR description with rationale, scope, and expiration. No permanent exceptions    to privacy or security boundaries.
+Exceptions documented in commit message with rationale, scope, and expiration. No permanent exceptions to privacy or security boundaries.

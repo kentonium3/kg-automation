@@ -54,7 +54,7 @@ Claude Code handles execution. This Claude handles:
 - Multi-AI JSON handoff files
 - `ai-exchange-bootstrap/` patterns
 
-Current coordination is: GitHub Issues + PRs + spec-kitty feature specs.
+Current coordination is: GitHub Issues + spec-kitty feature specs.
 
 ## Spec-Kitty Workflow
 
@@ -69,8 +69,8 @@ When asked to work on a feature:
 
 ## Git and File Standards
 
-- Branch: `feature/`, `fix/`, `docs/`, `ci/`
-- Never commit to main directly
+- Push directly to main for routine changes
+- Use feature branches when useful (complex multi-step work, experiments)
 - Conventional commits: `feat:`, `fix:`, `docs:`, `chore:`
 - Write locations: `docs/`, `ai-agents/`, `systems/`, `scripts/`, `workflows/`
 - Never: `.env` files, secrets, force push, `.github/workflows/` without review

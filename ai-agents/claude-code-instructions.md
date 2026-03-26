@@ -65,10 +65,10 @@ changes to skill logic.
 
 ## Git Workflow
 
-- Never commit directly to main
-- Branch pattern: `feature/FEAT-NNN-description`, `fix/`, `docs/`, `ci/`
+- Push directly to main for routine changes
+- Use feature branches when useful (complex multi-step work, experiments)
 - Conventional commits: `feat:`, `fix:`, `docs:`, `chore:`, `ci:`
-- PR required for all changes — include spec reference in PR description
+- CI validates on every push to main
 - Read file before editing (always)
 
 ## Write Permissions

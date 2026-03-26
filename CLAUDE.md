@@ -27,7 +27,7 @@ making any architectural decisions. That document is the source of truth.
 | MacBook Pro | Primary authoring and interaction |
 | office2 (Ubuntu 24.04 LTS) | Always-on hub — OpenClaw, Vikunja, inbox processor |
 | iPhone | Mobile capture (Wispr Flow) and task monitoring (Vikunja web UI) |
-| GitHub | Version control, all agent changes via PR |
+| GitHub | Version control, CI validation on push |
 | Obsidian Sync | Vault sync across all devices including office2 |
 
 ## Server Access (office2)
@@ -80,10 +80,10 @@ workflows/          ← defined workflows
 
 ## Git Workflow
 
-- Never commit directly to main
-- Branch pattern: `feature/`, `fix/`, `docs/`, `ci/`
-- PR required for all changes
+- Push directly to main for routine changes
+- Use feature branches when useful (complex multi-step work, experiments)
 - Conventional commits: `feat:`, `fix:`, `docs:`, `chore:`, `ci:`
+- CI validates on every push to main
 
 ## Permissions
 

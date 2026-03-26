@@ -120,7 +120,7 @@ The pinned Vikunja version is recorded in two places:
    curl -s http://100.92.197.90:3456/api/v1/info | python3 -c "import sys,json; print(json.load(sys.stdin)['version'])"
    ```
 9. **Check data is intact** — log in to the web UI and verify tasks are present
-10. **Commit the version change** via PR to the kg-automation repo
+10. **Commit and push the version change** to the kg-automation repo
 
 ### Rollback
 
