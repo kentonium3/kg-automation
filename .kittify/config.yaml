@@ -10,3 +10,7 @@ agents:
     preferred_implementer: claude
     preferred_reviewer: codex
   auto_commit: true
+project:
+  uuid: 2c011d09-8272-470c-b9e2-e9ccf8ad3fbd
+  slug: kg-automation
+  node_id: 2af64e2d9c0e

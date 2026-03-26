@@ -1,7 +1,7 @@
 ---
 work_package_id: WP01
 title: Install OpenClaw and Credential Store
-lane: planned
+lane: "doing"
 dependencies: []
 requirement_refs:
 - C-002
@@ -15,6 +15,9 @@ requirement_refs:
 planning_base_branch: main
 merge_target_branch: main
 branch_strategy: Planning artifacts for this feature were generated on main. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into main unless the human explicitly redirects the landing branch.
+base_branch: main
+base_commit: 68249caa13e1c28a19b00679a2c7440a7df969a1
+created_at: '2026-03-26T22:45:57.076201+00:00'
 subtasks:
 - T001
 - T002
@@ -25,7 +28,7 @@ subtasks:
 phase: Phase 1 - Foundation
 assignee: ''
 agent: ''
-shell_pid: ''
+shell_pid: "95461"
 review_status: ''
 reviewed_by: ''
 review_feedback: ''
