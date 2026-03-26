@@ -27,7 +27,7 @@ subtasks:
 - T006
 phase: Phase 1 - Foundation
 assignee: ''
-agent: ''
+agent: "claude"
 shell_pid: "95461"
 review_status: ''
 reviewed_by: ''
@@ -215,3 +215,4 @@ echo "   openclaw onboard --install-daemon"
 ## Activity Log
 
 - 2026-03-26T22:28:20Z – system – lane=planned – Prompt created.
+- 2026-03-26T22:45:57Z – claude – shell_pid=95461 – lane=doing – Assigned agent via workflow command
