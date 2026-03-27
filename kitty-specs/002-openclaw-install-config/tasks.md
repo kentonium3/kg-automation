@@ -52,13 +52,13 @@
 **Requirement Refs**: FR-003, FR-004, NFR-001, NFR-003, C-001
 
 ### Included Subtasks
-- [ ] T007 Provide Kent with onboarding commands and expected prompts
-- [ ] T008 After Kent completes onboarding, verify OpenClaw is running
-- [ ] T009 Customize `~/.openclaw/openclaw.json` with SecretRef, workspace path, gateway loopback
-- [ ] T010 Capture the generated systemd unit file
-- [ ] T011 Adjust captured unit (User=claude, paths, Restart=always, RestartSec=10)
-- [ ] T012 Commit captured unit to `scripts/openclaw/openclaw.service`
-- [ ] T013 Install adjusted unit (sudo — present to Kent) and verify service
+- [x] T007 Provide Kent with onboarding commands and expected prompts
+- [x] T008 After Kent completes onboarding, verify OpenClaw is running
+- [x] T009 Customize `~/.openclaw/openclaw.json` with SecretRef, workspace path, gateway loopback
+- [x] T010 Capture the generated systemd unit file
+- [x] T011 Adjust captured unit (User=claude, paths, Restart=always, RestartSec=10)
+- [x] T012 Commit captured unit to `scripts/openclaw/openclaw.service`
+- [x] T013 Install adjusted unit (sudo — present to Kent) and verify service
 
 ### Implementation Notes
 - Kent runs `openclaw onboard --install-daemon` interactively
