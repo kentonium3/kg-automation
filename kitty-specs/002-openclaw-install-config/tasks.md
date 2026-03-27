@@ -154,13 +154,13 @@
 **Requirement Refs**: FR-001, FR-003, NFR-001, NFR-002, NFR-003
 
 ### Included Subtasks
-- [ ] T025 Verify `systemctl status openclaw` shows active
-- [ ] T026 Verify service restarts after `systemctl restart openclaw` (sudo — present to Kent)
-- [ ] T027 Verify no proxy references in logs (`journalctl -u openclaw`)
-- [ ] T028 Verify credential store permissions (directory 700, files 600, claude-owned)
-- [ ] T029 Verify Vikunja connectivity with stored token
-- [ ] T030 Verify API key not in process environment (`cat /proc/$(pgrep -f openclaw)/environ`)
-- [ ] T031 Document acceptance results
+- [x] T025 Verify `systemctl status openclaw` shows active
+- [x] T026 Verify service restarts after `systemctl restart openclaw` (sudo — present to Kent)
+- [x] T027 Verify no proxy references in logs (`journalctl -u openclaw`)
+- [x] T028 Verify credential store permissions (directory 700, files 600, claude-owned)
+- [x] T029 Verify Vikunja connectivity with stored token
+- [x] T030 Verify API key not in process environment (`cat /proc/$(pgrep -f openclaw)/environ`)
+- [x] T031 Document acceptance results
 
 ### Implementation Notes
 - All checks via `ssh office2-claude`
