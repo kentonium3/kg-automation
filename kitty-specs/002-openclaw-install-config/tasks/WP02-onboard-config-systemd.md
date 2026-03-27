@@ -1,7 +1,7 @@
 ---
 work_package_id: WP02
 title: Onboarding, Configuration, and systemd Capture
-lane: "doing"
+lane: "for_review"
 dependencies: [WP01]
 requirement_refs:
 - C-001
@@ -25,8 +25,8 @@ subtasks:
 - T013
 phase: Phase 2 - Configuration
 assignee: ''
-agent: "claude"
-shell_pid: "24161"
+agent: claude
+shell_pid: '24161'
 review_status: ''
 reviewed_by: ''
 review_feedback: ''
@@ -241,3 +241,4 @@ Kent runs OpenClaw onboarding interactively. After onboarding, customize the con
 
 - 2026-03-26T22:28:20Z – system – lane=planned – Prompt created.
 - 2026-03-27T02:03:27Z – claude – shell_pid=24161 – lane=doing – Assigned agent via workflow command
+- 2026-03-27T02:04:23Z – claude – shell_pid=24161 – lane=for_review – Onboarding complete, config customized, unit captured. Service active with Anthropic API via native auth.
