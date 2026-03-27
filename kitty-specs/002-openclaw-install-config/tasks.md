@@ -120,12 +120,12 @@
 **Requirement Refs**: FR-006, FR-007, FR-008
 
 ### Included Subtasks
-- [ ] T019 Create `docs/handbooks/openclaw-ops.md` with frontmatter
-- [ ] T020 Document start/stop/restart, logs, credential rotation, version updates, skill directory
-- [ ] T021 Update `docs/design/architecture/data/service-inventory.json` with OpenClaw entry
-- [ ] T022 Update `docs/design/architecture/data/credential-manifest.json` (move anthropic/vikunja-api from planned to active)
-- [ ] T023 Update `docs/design/architecture/service-inventory.md` and `credentials-and-secrets.md`
-- [ ] T024 Reset security audit baselines on office2 (may require sudo — present to Kent)
+- [x] T019 Create `docs/handbooks/openclaw-ops.md` with frontmatter
+- [x] T020 Document start/stop/restart, logs, credential rotation, version updates, skill directory
+- [x] T021 Update `docs/design/architecture/data/service-inventory.json` with OpenClaw entry
+- [x] T022 Update `docs/design/architecture/data/credential-manifest.json` (move anthropic/vikunja-api from planned to active)
+- [x] T023 Update `docs/design/architecture/service-inventory.md` and `credentials-and-secrets.md`
+- [x] T024 Reset security audit baselines on office2 (may require sudo — present to Kent)
 
 ### Implementation Notes
 - Runbook format: match `docs/handbooks/vikunja-ops.md` structure
