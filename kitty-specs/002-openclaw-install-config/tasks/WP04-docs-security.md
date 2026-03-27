@@ -1,7 +1,7 @@
 ---
 work_package_id: WP04
 title: Ops Runbook, Architecture Docs, Security Baseline
-lane: planned
+lane: "doing"
 dependencies: [WP02]
 requirement_refs:
 - FR-006
@@ -10,6 +10,9 @@ requirement_refs:
 planning_base_branch: main
 merge_target_branch: main
 branch_strategy: Planning artifacts for this feature were generated on main. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into main unless the human explicitly redirects the landing branch.
+base_branch: 002-openclaw-install-config-WP02
+base_commit: 95d7a6b28ac87d10c0ac91f94f11ab9d9f0b2361
+created_at: '2026-03-27T02:17:58.263465+00:00'
 subtasks:
 - T019
 - T020
@@ -20,7 +23,7 @@ subtasks:
 phase: Phase 2 - Documentation
 assignee: ''
 agent: ''
-shell_pid: ''
+shell_pid: "27348"
 review_status: ''
 reviewed_by: ''
 review_feedback: ''
