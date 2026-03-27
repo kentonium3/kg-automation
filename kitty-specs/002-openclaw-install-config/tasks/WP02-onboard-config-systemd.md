@@ -1,7 +1,7 @@
 ---
 work_package_id: WP02
 title: Onboarding, Configuration, and systemd Capture
-lane: planned
+lane: "doing"
 dependencies: [WP01]
 requirement_refs:
 - C-001
@@ -12,6 +12,9 @@ requirement_refs:
 planning_base_branch: main
 merge_target_branch: main
 branch_strategy: Planning artifacts for this feature were generated on main. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into main unless the human explicitly redirects the landing branch.
+base_branch: 002-openclaw-install-config-WP01
+base_commit: 5b3fde98a7cc8b8194c72ac0cc145b14321f4268
+created_at: '2026-03-27T02:03:26.725456+00:00'
 subtasks:
 - T007
 - T008
@@ -23,7 +26,7 @@ subtasks:
 phase: Phase 2 - Configuration
 assignee: ''
 agent: ''
-shell_pid: ''
+shell_pid: "24161"
 review_status: ''
 reviewed_by: ''
 review_feedback: ''
