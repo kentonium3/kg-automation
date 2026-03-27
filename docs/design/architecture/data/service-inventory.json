@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
-  "last_updated": "2026-03-26",
-  "updated_by": "F001",
+  "last_updated": "2026-03-27",
+  "updated_by": "F002",
   "services": [
     {
       "name": "vikunja",
@@ -82,6 +82,24 @@
       "deployed_by": "manual",
       "status": "active",
       "purpose": "Daily security audit against baselines"
+    },
+    {
+      "name": "openclaw-gateway",
+      "type": "npm-global",
+      "version": "v2026.3.24",
+      "host": "office2",
+      "port": 18789,
+      "bind_ip": "127.0.0.1",
+      "systemd_unit": "openclaw-gateway.service",
+      "systemd_level": "user",
+      "systemd_user": "claude",
+      "config_path": "/home/claude/.openclaw/openclaw.json",
+      "data_path": "/data/services/openclaw/data",
+      "secrets_path": "/data/services/openclaw/secrets",
+      "backup_included": true,
+      "deployed_by": "F002",
+      "status": "running",
+      "purpose": "Orchestration and intelligence layer"
     }
   ]
 }
