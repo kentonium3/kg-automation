@@ -1,7 +1,7 @@
 ---
 work_package_id: WP04
 title: Ops Runbook, Architecture Docs, Security Baseline
-lane: "doing"
+lane: "for_review"
 dependencies: [WP02]
 requirement_refs:
 - FR-006
@@ -22,8 +22,8 @@ subtasks:
 - T024
 phase: Phase 2 - Documentation
 assignee: ''
-agent: "claude"
-shell_pid: "27348"
+agent: claude
+shell_pid: '27348'
 review_status: ''
 reviewed_by: ''
 review_feedback: ''
@@ -221,3 +221,4 @@ Create the OpenClaw ops runbook, update architecture documentation (JSON + markd
 
 - 2026-03-26T22:28:20Z – system – lane=planned – Prompt created.
 - 2026-03-27T02:17:58Z – claude – shell_pid=27348 – lane=doing – Assigned agent via workflow command
+- 2026-03-27T02:23:22Z – claude – shell_pid=27348 – lane=for_review – Runbook, architecture docs, and security baselines complete.
