@@ -1,13 +1,16 @@
 ---
 work_package_id: WP03
 title: Vikunja Token and Connectivity
-lane: planned
+lane: "doing"
 dependencies: [WP02]
 requirement_refs:
 - FR-005
 planning_base_branch: main
 merge_target_branch: main
 branch_strategy: Planning artifacts for this feature were generated on main. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into main unless the human explicitly redirects the landing branch.
+base_branch: 002-openclaw-install-config-WP02
+base_commit: 95d7a6b28ac87d10c0ac91f94f11ab9d9f0b2361
+created_at: '2026-03-27T02:16:51.776660+00:00'
 subtasks:
 - T014
 - T015
@@ -17,7 +20,7 @@ subtasks:
 phase: Phase 2 - Integration
 assignee: ''
 agent: ''
-shell_pid: ''
+shell_pid: "26784"
 review_status: ''
 reviewed_by: ''
 review_feedback: ''
