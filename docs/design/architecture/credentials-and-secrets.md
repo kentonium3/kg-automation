@@ -22,13 +22,13 @@ Authoritative data: [`data/credential-manifest.json`](data/credential-manifest.j
 | `vikunja-admin` | username/password | Set interactively (first-run) | Web UI login, `setup_vikunja.py` |
 | `restic-password` | password file | `/home/claude/.config/restic/password` | `backup.sh` |
 | `tailscale-auth` | system-managed | Managed by `tailscaled` | Tailscale daemon |
+| `anthropic` | API key | OpenClaw native auth + `/data/services/openclaw/secrets/anthropic` (backup) | `openclaw-gateway` |
+| `vikunja-api` | API token | `/data/services/openclaw/secrets/vikunja-api` | `openclaw-gateway` |
 
 ## Planned Credentials (Not Yet Deployed)
 
 | Name | Type | Planned By | Purpose |
 |------|------|------------|---------|
-| `vikunja-api` | API token | F005 | Agent access to Vikunja REST API |
-| `anthropic` | API key | F002 | Claude API for OpenClaw |
 | `whatsapp-meta` | API token | F003 | Meta Cloud API for WhatsApp |
 | `personal-google` | OAuth | F012 | Personal Google Calendar |
 | `intentional-google` | OAuth | F012 (phase 3) | Intentional LLC Workspace |

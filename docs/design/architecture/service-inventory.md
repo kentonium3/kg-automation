@@ -17,6 +17,7 @@ All services run on office2 unless otherwise noted.
 | Vikunja | Docker | `vikunja/vikunja:0.24.6` | 3456 | 100.92.197.90 | `vikunja.service` | `/data/services/vikunja/data` |
 | Obsidian Sync | Native | `ob sync --continuous` | — | — | `obsidian-sync.service` | `/home/kgale/second-brain/vault` |
 | Transcribe API | Docker | `transcribe_transcribe` | 8787 | 0.0.0.0 | — | `/data/services/transcribe` |
+| OpenClaw Gateway | npm-global | `v2026.3.24` | 18789 | 127.0.0.1 | `openclaw-gateway.service` (user) | `/data/services/openclaw/data` |
 
 ## Scheduled Jobs
 
@@ -44,3 +45,14 @@ All services run on office2 unless otherwise noted.
 - **Deployed by**: Manual setup
 - **Note**: Bound to `0.0.0.0` — should be rebound to Tailscale IP in a future security hardening pass
 - **Backup**: Included, excluding `/data/services/transcribe/models`
+
+### OpenClaw Gateway (F002)
+- **Deployed by**: F002
+- **Installation**: `npm install -g openclaw@v2026.3.24` (global, requires sudo)
+- **Binary**: `/usr/bin/openclaw`
+- **Config**: `/home/claude/.openclaw/openclaw.json`
+- **Service level**: User-level systemd with lingering (not system-level)
+- **Config in repo**: `scripts/openclaw/openclaw-gateway.service`, `scripts/openclaw/install.sh`
+- **Credential store**: `/data/services/openclaw/secrets/` (mode 700)
+- **Backup**: Data at `/data/services/openclaw/data/` and config at `/home/claude/.openclaw/` — both in Restic scope
+- **Runbook**: `docs/handbooks/openclaw-ops.md`
