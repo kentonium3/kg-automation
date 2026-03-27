@@ -25,7 +25,7 @@ subtasks:
 - T031
 phase: Phase 3 - Verification
 assignee: ''
-agent: ''
+agent: "claude"
 shell_pid: "28862"
 review_status: ''
 reviewed_by: ''
@@ -174,3 +174,4 @@ Execute all acceptance scenarios from the spec. Document pass/fail results.
 ## Activity Log
 
 - 2026-03-26T22:28:20Z – system – lane=planned – Prompt created.
+- 2026-03-27T02:23:50Z – claude – shell_pid=28862 – lane=doing – Assigned agent via workflow command
