@@ -1,7 +1,7 @@
 ---
 work_package_id: WP03
 title: Vikunja Token and Connectivity
-lane: "doing"
+lane: "for_review"
 dependencies: [WP02]
 requirement_refs:
 - FR-005
@@ -19,8 +19,8 @@ subtasks:
 - T018
 phase: Phase 2 - Integration
 assignee: ''
-agent: "claude"
-shell_pid: "26784"
+agent: claude
+shell_pid: '26784'
 review_status: ''
 reviewed_by: ''
 review_feedback: ''
@@ -167,3 +167,4 @@ Generate a persistent Vikunja API token, store it in the credential store, and v
 
 - 2026-03-26T22:28:20Z – system – lane=planned – Prompt created.
 - 2026-03-27T02:16:52Z – claude – shell_pid=26784 – lane=doing – Assigned agent via workflow command
+- 2026-03-27T02:17:38Z – claude – shell_pid=26784 – lane=for_review – Token placed, mode 600, HTTP 200 verified, persists across restart.
