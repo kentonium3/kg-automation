@@ -88,11 +88,11 @@
 **Requirement Refs**: FR-005
 
 ### Included Subtasks
-- [ ] T014 Provide Kent with Vikunja token generation instructions (UI: Settings → API Tokens)
-- [ ] T015 Provide Kent with token placement command (`/data/services/openclaw/secrets/vikunja-api`)
-- [ ] T016 Verify token permissions (mode 600, claude-owned)
-- [ ] T017 Verify Vikunja connectivity from office2 using stored token
-- [ ] T018 Verify token persists across Vikunja container restart
+- [x] T014 Provide Kent with Vikunja token generation instructions (UI: Settings → API Tokens)
+- [x] T015 Provide Kent with token placement command (`/data/services/openclaw/secrets/vikunja-api`)
+- [x] T016 Verify token permissions (mode 600, claude-owned)
+- [x] T017 Verify Vikunja connectivity from office2 using stored token
+- [x] T018 Verify token persists across Vikunja container restart
 
 ### Implementation Notes
 - Kent generates token in Vikunja UI (name: `openclaw-agent`)
