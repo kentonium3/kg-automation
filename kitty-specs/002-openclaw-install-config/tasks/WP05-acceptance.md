@@ -1,7 +1,7 @@
 ---
 work_package_id: WP05
 title: Acceptance Testing
-lane: "doing"
+lane: "for_review"
 dependencies: [WP01, WP02, WP03, WP04]
 requirement_refs:
 - FR-001
@@ -25,8 +25,8 @@ subtasks:
 - T031
 phase: Phase 3 - Verification
 assignee: ''
-agent: "claude"
-shell_pid: "28862"
+agent: claude
+shell_pid: '28862'
 review_status: ''
 reviewed_by: ''
 review_feedback: ''
@@ -175,3 +175,4 @@ Execute all acceptance scenarios from the spec. Document pass/fail results.
 
 - 2026-03-26T22:28:20Z – system – lane=planned – Prompt created.
 - 2026-03-27T02:23:50Z – claude – shell_pid=28862 – lane=doing – Assigned agent via workflow command
+- 2026-03-27T02:26:11Z – claude – shell_pid=28862 – lane=for_review – All acceptance tests pass.
