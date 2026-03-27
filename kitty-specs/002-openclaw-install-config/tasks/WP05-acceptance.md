@@ -1,7 +1,7 @@
 ---
 work_package_id: WP05
 title: Acceptance Testing
-lane: "approved"
+lane: done
 dependencies: [WP01, WP02, WP03, WP04]
 requirement_refs:
 - FR-001
@@ -27,8 +27,8 @@ phase: Phase 3 - Verification
 assignee: ''
 agent: claude
 shell_pid: '28862'
-review_status: "approved"
-reviewed_by: "Kent Gale"
+review_status: approved
+reviewed_by: Kent Gale
 review_feedback: ''
 history:
 - timestamp: '2026-03-26T22:28:20Z'

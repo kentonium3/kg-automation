@@ -256,5 +256,5 @@
 - WP02: approved
 - WP03: approved
 - WP04: approved
-- WP05: approved
+- WP05: done
 <!-- status-model:end -->

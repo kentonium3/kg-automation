@@ -16,3 +16,6 @@ docs/.obsidian/plugins/**/.cache/
 
 # Note: docs/.obsidian-shared/ is tracked (contains hotkeys.example.json)
 .DS_Store
+
+# VS Code workspace state (local editor preference)
+.vscode/tasks.json

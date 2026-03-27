@@ -1,14 +1,14 @@
 {
-  "event_count": 17,
+  "event_count": 18,
   "feature_slug": "002-openclaw-install-config",
-  "last_event_id": "01KMPHT429AHZP2093V23X4BC7",
-  "materialized_at": "2026-03-27T02:26:12.682668+00:00",
+  "last_event_id": "01KMPHZQDPMQEZ36TT3HE49PBQ",
+  "materialized_at": "2026-03-27T02:29:16.343795+00:00",
   "summary": {
-    "approved": 5,
+    "approved": 4,
     "blocked": 0,
     "canceled": 0,
     "claimed": 0,
-    "done": 0,
+    "done": 1,
     "for_review": 0,
     "in_progress": 0,
     "planned": 0
@@ -43,11 +43,11 @@
       "last_transition_at": "2026-03-27T02:23:24.600138+00:00"
     },
     "WP05": {
-      "actor": "user",
+      "actor": "merge",
       "force_count": 1,
-      "lane": "approved",
-      "last_event_id": "01KMPHT429AHZP2093V23X4BC7",
-      "last_transition_at": "2026-03-27T02:26:12.681658+00:00"
+      "lane": "done",
+      "last_event_id": "01KMPHZQDPMQEZ36TT3HE49PBQ",
+      "last_transition_at": "2026-03-27T02:29:16.342639+00:00"
     }
   }
 }
