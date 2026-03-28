@@ -60,10 +60,10 @@
 **Estimated Prompt Size**: ~350 lines
 
 ### Included Subtasks
-- [ ] T008 Create `docs/handbooks/whatsapp-ops.md` with channel overview, pairing procedure, session management, re-pairing, Baileys risk acceptance, troubleshooting
-- [ ] T009 Update `docs/design/architecture/data/service-inventory.json` (add WhatsApp channel info to OpenClaw entry)
-- [ ] T010 Update `docs/design/architecture/data/credential-manifest.json` (update `whatsapp-meta` planned credential to reflect Baileys session approach)
-- [ ] T011 Update markdown architecture docs (`service-inventory.md`, note WhatsApp channel under OpenClaw)
+- [x] T008 Create `docs/handbooks/whatsapp-ops.md` with channel overview, pairing procedure, session management, re-pairing, Baileys risk acceptance, troubleshooting
+- [x] T009 Update `docs/design/architecture/data/service-inventory.json` (add WhatsApp channel info to OpenClaw entry)
+- [x] T010 Update `docs/design/architecture/data/credential-manifest.json` (update `whatsapp-meta` planned credential to reflect Baileys session approach)
+- [x] T011 Update markdown architecture docs (`service-inventory.md`, note WhatsApp channel under OpenClaw)
 
 ### Implementation Notes
 - Runbook follows format of `docs/handbooks/vikunja-ops.md` and `docs/handbooks/transcribe-ops.md`
