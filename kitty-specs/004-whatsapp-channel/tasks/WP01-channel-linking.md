@@ -1,7 +1,7 @@
 ---
 work_package_id: WP01
 title: WhatsApp Channel Linking, DM Config, and E2E Verification
-lane: "approved"
+lane: done
 dependencies: []
 requirement_refs:
 - C-001
@@ -36,8 +36,8 @@ phase: Phase 1 - Channel Setup
 assignee: ''
 agent: claude
 shell_pid: '97797'
-review_status: "approved"
-reviewed_by: "Kent Gale"
+review_status: approved
+reviewed_by: Kent Gale
 review_feedback: feedback://004-whatsapp-channel/WP01/20260328T191239Z-b0231b3b.md
 history:
 - timestamp: '2026-03-28T18:00:42Z'

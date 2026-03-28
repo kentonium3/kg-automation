@@ -111,6 +111,6 @@ WP01 must complete first (channel must be linked before documentation).
 
 <!-- status-model:start -->
 ## Canonical Status (Generated)
-- WP01: approved
-- WP02: approved
+- WP01: done
+- WP02: done
 <!-- status-model:end -->

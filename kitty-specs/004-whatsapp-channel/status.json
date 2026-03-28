@@ -1,32 +1,32 @@
 {
-  "event_count": 10,
+  "event_count": 12,
   "feature_slug": "004-whatsapp-channel",
-  "last_event_id": "01KMTZC0BXHT18AE938D92X9C7",
-  "materialized_at": "2026-03-28T19:40:07.934755+00:00",
+  "last_event_id": "01KMTZWDS0WJ8FBEHAATGPS3GG",
+  "materialized_at": "2026-03-28T19:49:05.953016+00:00",
   "summary": {
-    "approved": 2,
+    "approved": 0,
     "blocked": 0,
     "canceled": 0,
     "claimed": 0,
-    "done": 0,
+    "done": 2,
     "for_review": 0,
     "in_progress": 0,
     "planned": 0
   },
   "work_packages": {
     "WP01": {
-      "actor": "user",
-      "force_count": 3,
-      "lane": "approved",
-      "last_event_id": "01KMTZ769RDK4M80FRSRAC97E4",
-      "last_transition_at": "2026-03-28T19:37:30.168645+00:00"
+      "actor": "merge",
+      "force_count": 4,
+      "lane": "done",
+      "last_event_id": "01KMTZWDS0WJ8FBEHAATGPS3GG",
+      "last_transition_at": "2026-03-28T19:49:05.952140+00:00"
     },
     "WP02": {
-      "actor": "user",
+      "actor": "merge",
       "force_count": 1,
-      "lane": "approved",
-      "last_event_id": "01KMTZC0BXHT18AE938D92X9C7",
-      "last_transition_at": "2026-03-28T19:40:07.933200+00:00"
+      "lane": "done",
+      "last_event_id": "01KMTZCPYW72DNHYKXD387JC8N",
+      "last_transition_at": "2026-03-28T19:40:31.068390+00:00"
     }
   }
 }
