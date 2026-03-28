@@ -62,3 +62,15 @@ All services run on office2 unless otherwise noted.
 - **Credential store**: `/data/services/openclaw/secrets/` (mode 700)
 - **Backup**: Data at `/data/services/openclaw/data/` and config at `/home/claude/.openclaw/` — both in Restic scope
 - **Runbook**: `docs/handbooks/openclaw-ops.md`
+
+### WhatsApp Channel (F004)
+- **Deployed by**: F004
+- **Type**: OpenClaw channel (Baileys — unofficial WhatsApp Web protocol)
+- **Account**: Kent's personal cell (617) 930-0916 — linked device
+- **DM policy**: `pairing` — requires explicit pairing
+- **Group policy**: `allowlist` — no group chats by default
+- **Session storage**: `~/.openclaw/credentials/whatsapp/` (managed by OpenClaw)
+- **No external credentials**: Baileys session is managed internally, not in the credential store
+- **No new ports**: Baileys uses outbound WebSocket only
+- **Risk acceptance**: Baileys is unofficial; account ban risk accepted (see `security-posture.md`)
+- **Runbook**: `docs/handbooks/whatsapp-ops.md`

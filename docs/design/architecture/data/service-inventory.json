@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
   "last_updated": "2026-03-28",
-  "updated_by": "F003",
+  "updated_by": "F004",
   "services": [
     {
       "name": "vikunja",
@@ -101,7 +101,17 @@
       "backup_included": true,
       "deployed_by": "F002",
       "status": "running",
-      "purpose": "Orchestration and intelligence layer"
+      "purpose": "Orchestration and intelligence layer",
+      "channels": {
+        "whatsapp": {
+          "protocol": "baileys",
+          "account": "+16179300916",
+          "dm_policy": "pairing",
+          "group_policy": "allowlist",
+          "session_storage": "~/.openclaw/credentials/whatsapp/",
+          "deployed_by": "F004"
+        }
+      }
     }
   ]
 }
