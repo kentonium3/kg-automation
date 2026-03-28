@@ -20,13 +20,13 @@
 **Estimated Prompt Size**: ~400 lines
 
 ### Included Subtasks
-- [ ] T001 Verify DM access control (pairing policy + group allowlist already configured)
-- [ ] T002 Run `openclaw channels login --channel whatsapp` to display QR code
-- [ ] T003 Kent scans QR code — verify channel shows "linked"
-- [ ] T004 End-to-end text message test (Kent sends "hello", OpenClaw replies)
-- [ ] T005 Voice note arrival test (Kent sends voice note, verify audio payload in logs)
-- [ ] T006 Session persistence test (restart OpenClaw, verify reconnection within 30s)
-- [ ] T007 Verify no new ports (`ss -tlnp` unchanged from pre-deployment)
+- [x] T001 Verify DM access control (pairing policy + group allowlist already configured)
+- [x] T002 Run `openclaw channels login --channel whatsapp` to display QR code
+- [x] T003 Kent scans QR code — verify channel shows "linked"
+- [x] T004 End-to-end text message test (Kent sends "hello", OpenClaw replies)
+- [x] T005 Voice note arrival test (Kent sends voice note, verify audio payload in logs)
+- [x] T006 Session persistence test (restart OpenClaw, verify reconnection within 30s)
+- [x] T007 Verify no new ports (`ss -tlnp` unchanged from pre-deployment)
 
 ### Implementation Notes
 - SSH to office2 as claude: `ssh office2-claude`
