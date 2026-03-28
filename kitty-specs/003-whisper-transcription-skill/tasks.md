@@ -20,12 +20,12 @@
 **Estimated Prompt Size**: ~350 lines
 
 ### Included Subtasks
-- [ ] T001 Capture existing `docker-compose.yml` from `/data/services/transcribe/` on office2
-- [ ] T002 Update port binding from `"8787:8787"` to `"100.92.197.90:8787:8787"` in compose file
-- [ ] T003 Create `scripts/transcribe/transcribe.service` systemd unit wrapping `docker compose up -d`
-- [ ] T004 Create `scripts/transcribe/deploy.sh` deployment helper script
-- [ ] T005 Deploy: stop existing container, copy updated compose to office2, start via systemd (Kent runs sudo for systemd install)
-- [ ] T006 Verify rebind: `ss -tlnp | grep 8787`, health check at Tailscale IP, connectivity test
+- [x] T001 Capture existing `docker-compose.yml` from `/data/services/transcribe/` on office2
+- [x] T002 Update port binding from `"8787:8787"` to `"100.92.197.90:8787:8787"` in compose file
+- [x] T003 Create `scripts/transcribe/transcribe.service` systemd unit wrapping `docker compose up -d`
+- [x] T004 Create `scripts/transcribe/deploy.sh` deployment helper script
+- [x] T005 Deploy: stop existing container, copy updated compose to office2, start via systemd (Kent runs sudo for systemd install)
+- [x] T006 Verify rebind: `ss -tlnp | grep 8787`, health check at Tailscale IP, connectivity test
 
 ### Implementation Notes
 - SSH to office2 as claude: `ssh office2-claude`
