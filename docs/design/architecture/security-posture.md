@@ -46,6 +46,14 @@ status: approved
 
 **Agent context ceiling**: Agents may read `01-Constitution/` docs only from the second brain. All other vault content is off-limits unless explicitly required by a skill definition.
 
+## Policy Exceptions
+
+Exceptions to architecture and security policies are documented here with rationale, scope, and expiration. Each exception must be approved by Kent and linked to the feature that introduced it.
+
+| Constraint | Exception | Rationale | Scope | Expiration | Feature |
+|------------|-----------|-----------|-------|------------|---------|
+| Official API only (original F004 C-002) | OpenClaw's WhatsApp integration uses Baileys (unofficial WhatsApp Web protocol) | OpenClaw has no Meta Cloud API channel. Baileys is the only WhatsApp path available. | Personal single-user system at low message volume. Account ban risk understood and accepted. | No expiration — this is the native OpenClaw integration path. | F004 |
+
 ## Security Monitoring
 
 | Check | Schedule | Script | Baselines |

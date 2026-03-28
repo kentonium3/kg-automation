@@ -63,4 +63,13 @@ Edit constitution.md directly, run spec-kitty constitution sync, commit and push
 
 ## Exception Policy
 
-Exceptions documented in commit message with rationale, scope, and expiration. No permanent exceptions to privacy or security boundaries.
+Exceptions to architecture and security policies must be documented with rationale, scope, and expiration. Record exceptions in `docs/design/architecture/security-posture.md` under "Policy Exceptions" and in the feature spec that introduces them.
+
+Required fields for each exception:
+- **Constraint**: Which policy is being excepted
+- **Rationale**: Why the exception is necessary
+- **Scope**: What the exception covers and its boundaries
+- **Expiration**: When the exception expires, or "no expiration" with justification
+- **Feature**: Which feature introduced the exception
+
+**Hard boundaries (no exceptions)**: Privacy boundaries (02-Growth/_private/), credential-in-code prohibition, and agent traceability requirements cannot be excepted.
