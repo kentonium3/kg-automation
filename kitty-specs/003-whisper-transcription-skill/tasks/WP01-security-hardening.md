@@ -27,7 +27,7 @@ subtasks:
 - T006
 phase: Phase 1 - Foundation
 assignee: ''
-agent: ''
+agent: "claude"
 shell_pid: "68164"
 review_status: ''
 reviewed_by: ''
@@ -368,3 +368,4 @@ echo "curl http://100.92.197.90:8787/health"
 ## Activity Log
 
 - 2026-03-28T16:22:31Z – system – lane=planned – Prompt created.
+- 2026-03-28T16:33:46Z – claude – shell_pid=68164 – lane=doing – Assigned agent via workflow command
