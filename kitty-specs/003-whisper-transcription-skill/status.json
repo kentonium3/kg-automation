@@ -1,25 +1,25 @@
 {
-  "event_count": 2,
+  "event_count": 3,
   "feature_slug": "003-whisper-transcription-skill",
-  "last_event_id": "01KMTN24RM4ATZN6BB2R9C614R",
-  "materialized_at": "2026-03-28T16:39:58.997642+00:00",
+  "last_event_id": "01KMTN408HW5YBY4H4CSJ7ZZ59",
+  "materialized_at": "2026-03-28T16:40:59.922390+00:00",
   "summary": {
     "approved": 0,
     "blocked": 0,
     "canceled": 0,
     "claimed": 0,
     "done": 0,
-    "for_review": 1,
-    "in_progress": 0,
+    "for_review": 0,
+    "in_progress": 1,
     "planned": 0
   },
   "work_packages": {
     "WP01": {
-      "actor": "user",
-      "force_count": 1,
-      "lane": "for_review",
-      "last_event_id": "01KMTN24RM4ATZN6BB2R9C614R",
-      "last_transition_at": "2026-03-28T16:39:58.996879+00:00"
+      "actor": "claude",
+      "force_count": 2,
+      "lane": "in_progress",
+      "last_event_id": "01KMTN408HW5YBY4H4CSJ7ZZ59",
+      "last_transition_at": "2026-03-28T16:40:59.921863+00:00"
     }
   }
 }

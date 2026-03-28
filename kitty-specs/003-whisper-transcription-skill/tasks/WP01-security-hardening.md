@@ -1,7 +1,7 @@
 ---
 work_package_id: WP01
 title: Security Hardening — Rebind, systemd, Deploy Config
-lane: "for_review"
+lane: "doing"
 dependencies: []
 requirement_refs:
 - C-001
@@ -27,8 +27,8 @@ subtasks:
 - T006
 phase: Phase 1 - Foundation
 assignee: ''
-agent: claude
-shell_pid: '68164'
+agent: "claude"
+shell_pid: "69945"
 review_status: ''
 reviewed_by: ''
 review_feedback: ''
@@ -370,3 +370,4 @@ echo "curl http://100.92.197.90:8787/health"
 - 2026-03-28T16:22:31Z – system – lane=planned – Prompt created.
 - 2026-03-28T16:33:46Z – claude – shell_pid=68164 – lane=doing – Assigned agent via workflow command
 - 2026-03-28T16:39:59Z – claude – shell_pid=68164 – lane=for_review – Ready for review: transcribe-api rebound to 100.92.197.90:8787, systemd unit active, deploy script committed
+- 2026-03-28T16:41:00Z – claude – shell_pid=69945 – lane=doing – Started review via workflow command
