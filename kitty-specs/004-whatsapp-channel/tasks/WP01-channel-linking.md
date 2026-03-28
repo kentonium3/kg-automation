@@ -1,7 +1,7 @@
 ---
 work_package_id: WP01
 title: WhatsApp Channel Linking, DM Config, and E2E Verification
-lane: "planned"
+lane: "doing"
 dependencies: []
 requirement_refs:
 - C-001
@@ -22,8 +22,8 @@ planning_base_branch: main
 merge_target_branch: main
 branch_strategy: Planning artifacts for this feature were generated on main. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into main unless the human explicitly redirects the landing branch.
 base_branch: main
-base_commit: 805fa120c0003f8ecee9303e2838fcff7bdff410
-created_at: '2026-03-28T18:10:41.637572+00:00'
+base_commit: 4c16137bbd7c9d5b759d14750dacd42229c9ad26
+created_at: '2026-03-28T19:23:25.722056+00:00'
 subtasks:
 - T001
 - T002
@@ -35,10 +35,10 @@ subtasks:
 phase: Phase 1 - Channel Setup
 assignee: ''
 agent: claude
-shell_pid: '85118'
-review_status: "has_feedback"
-reviewed_by: "Kent Gale"
-review_feedback: "feedback://004-whatsapp-channel/WP01/20260328T191239Z-b0231b3b.md"
+shell_pid: "95351"
+review_status: has_feedback
+reviewed_by: Kent Gale
+review_feedback: feedback://004-whatsapp-channel/WP01/20260328T191239Z-b0231b3b.md
 history:
 - timestamp: '2026-03-28T18:00:42Z'
   lane: planned
