@@ -61,11 +61,11 @@ history:
 
 ## Objectives & Success Criteria
 
-Configure DM access control on the existing OpenClaw WhatsApp channel, link the Google Voice WhatsApp account via QR code (Kent must scan), and verify end-to-end text messaging, voice note arrival, session persistence, and port safety.
+Verify DM access control on the existing OpenClaw WhatsApp channel, link Kent's existing WhatsApp account ((617) 930-0916) as a linked device via QR code (Kent must scan), and verify end-to-end text messaging, voice note arrival, session persistence, and port safety.
 
 **Success**:
 - `openclaw channels list` shows WhatsApp as "linked, enabled"
-- Text message from Kent's iPhone to (617) 564-0182 reaches OpenClaw and reply comes back
+- A WhatsApp message reaches OpenClaw and a reply comes back
 - Voice note audio payload arrives in OpenClaw logs
 - Session survives OpenClaw restart (reconnects within 30 seconds)
 - `ss -tlnp` shows no new publicly exposed ports
@@ -90,8 +90,9 @@ Configure DM access control on the existing OpenClaw WhatsApp channel, link the 
   ```
 - **Constraint C-001**: No new inbound ports (Baileys is outbound WebSocket only)
 - **Constraint C-002**: Agent SSH identity — `ssh office2-claude`
-- **Constraint C-003**: Personal DM only — only Kent's personal number accepted
-- **Constraint C-005**: Baileys risk accepted — unofficial protocol, account ban risk understood
+- **Constraint C-003**: DM policy enforcement — only authorized interactions processed
+- **Constraint C-004**: Baileys risk accepted — unofficial protocol, account ban risk understood
+- **Account**: Kent's personal cell (617) 930-0916 — OpenClaw links as additional device, no separate number needed
 
 **CRITICAL**: This WP requires Kent's interactive participation for QR code scanning (T002/T003). The agent cannot complete those steps autonomously. Present the QR code and wait for Kent to scan.
 
@@ -99,7 +100,7 @@ Configure DM access control on the existing OpenClaw WhatsApp channel, link the 
 
 ### Subtask T001 – Configure DM Access Control
 
-**Purpose**: Restrict the WhatsApp channel to only accept messages from Kent's personal number. Without this, anyone who messages the Google Voice number could interact with OpenClaw.
+**Purpose**: Verify the DM and group policies are configured correctly. The `pairing` policy and `allowlist` group policy are already set — confirm they're appropriate for Kent's linked-device setup.
 
 **Steps**:
 1. SSH to office2: `ssh office2-claude`
@@ -128,7 +129,7 @@ Configure DM access control on the existing OpenClaw WhatsApp channel, link the 
 
 **Parallel?**: No — must complete before T002.
 
-**IMPORTANT**: Ask Kent for his personal WhatsApp number if you don't have it. Do not guess.
+**NOTE**: Kent's WhatsApp number is (617) 930-0916. OpenClaw links as a device on this existing account.
 
 ### Subtask T002 – Display QR Code for Linking
 
@@ -175,7 +176,6 @@ Configure DM access control on the existing OpenClaw WhatsApp channel, link the 
    openclaw channels status --deep
    ```
 6. If pairing fails:
-   - Check if the Google Voice number has WhatsApp installed and registered
    - Check OpenClaw logs: `journalctl --user -u openclaw-gateway --since "5 minutes ago"`
    - Re-run the login command and try again
 
@@ -197,7 +197,7 @@ Configure DM access control on the existing OpenClaw WhatsApp channel, link the 
    ```bash
    journalctl --user -u openclaw-gateway -f
    ```
-2. Ask Kent to send "hello" from his personal iPhone WhatsApp to (617) 564-0182
+2. Ask Kent to send a test message via WhatsApp (the exact interaction pattern depends on OpenClaw's DM model — it may be self-chat, or messaging from another contact)
 3. Watch the logs for the incoming message
 4. Verify OpenClaw processes the message and sends a reply
 5. Ask Kent to confirm the reply arrived on his iPhone
@@ -222,7 +222,7 @@ Configure DM access control on the existing OpenClaw WhatsApp channel, link the 
 
 **Steps**:
 1. Continue tailing logs: `journalctl --user -u openclaw-gateway -f`
-2. Ask Kent to send a short voice note from his personal WhatsApp to (617) 564-0182
+2. Ask Kent to send a short voice note via the same WhatsApp interaction pattern used in T004
 3. Watch the logs for the incoming media message
 4. Verify the log shows:
    - Message type indicates audio/voice note
@@ -304,10 +304,9 @@ Configure DM access control on the existing OpenClaw WhatsApp channel, link the 
 ## Risks & Mitigations
 
 - **QR code timeout**: Re-run `openclaw channels login --channel whatsapp` if it expires.
-- **Google Voice WhatsApp not set up**: Kent must have WhatsApp registered on the Google Voice number before this WP starts. If not set up, this is a blocker.
-- **DM policy blocks Kent**: If `pairing` mode requires additional config, check OpenClaw docs for how to pair a specific number.
+- **DM policy blocks interaction**: If `pairing` mode requires additional config, check OpenClaw docs for how to configure the DM flow.
 - **Baileys session doesn't persist**: Check the credentials directory. If empty after restart, the session storage may not be configured correctly.
-- **Meta bans the account**: This is the accepted Baileys risk. If it happens during testing, try again with the same or a different number.
+- **Meta bans the account**: This is the accepted Baileys risk. If it happens, re-pair after any ban is lifted.
 
 ## Review Guidance
 

@@ -13,14 +13,14 @@
 
 ## Work Package WP01: WhatsApp Channel Linking, DM Config, and E2E Verification (Priority: P0)
 
-**Goal**: Configure DM access control, link the Google Voice WhatsApp account to OpenClaw via QR code (Kent interactive), and verify end-to-end text messaging, voice note arrival, session persistence, and port safety.
-**Independent Test**: `openclaw channels list` shows WhatsApp as linked. Text message from Kent's iPhone reaches OpenClaw and reply comes back. Voice note audio payload arrives in logs.
+**Goal**: Verify DM access control, link Kent's existing WhatsApp account ((617) 930-0916) to OpenClaw as a linked device via QR code (Kent interactive), and verify end-to-end text messaging, voice note arrival, session persistence, and port safety.
+**Independent Test**: `openclaw channels list` shows WhatsApp as linked. A WhatsApp message reaches OpenClaw and reply comes back. Voice note audio payload arrives in logs.
 **Prompt**: `tasks/WP01-channel-linking.md`
 **Requirement Refs**: FR-001, FR-002, FR-003, FR-004, FR-005, FR-006, FR-007, NFR-001, NFR-002, C-001, C-002, C-003, C-004, C-005
 **Estimated Prompt Size**: ~400 lines
 
 ### Included Subtasks
-- [ ] T001 Configure DM access control (`allowFrom` with Kent's personal number)
+- [ ] T001 Verify DM access control (pairing policy + group allowlist already configured)
 - [ ] T002 Run `openclaw channels login --channel whatsapp` to display QR code
 - [ ] T003 Kent scans QR code — verify channel shows "linked"
 - [ ] T004 End-to-end text message test (Kent sends "hello", OpenClaw replies)
@@ -31,6 +31,7 @@
 ### Implementation Notes
 - SSH to office2 as claude: `ssh office2-claude`
 - WhatsApp channel is already added and enabled in OpenClaw — just needs linking
+- Kent's account: (617) 930-0916 — OpenClaw links as additional device, no separate number
 - Current config: `dmPolicy: "pairing"`, `groupPolicy: "allowlist"`, `mediaMaxMb: 50`
 - QR code step is interactive — Kent must be present to scan from iPhone WhatsApp
 - OpenClaw is a user-level systemd service: `systemctl --user restart openclaw-gateway`
@@ -45,9 +46,8 @@
 
 ### Risks & Mitigations
 - **QR code expires**: Re-run `openclaw channels login --channel whatsapp` if it times out
-- **DM access control config unclear**: Check `openclaw channels add --help` for exact flags
 - **Session doesn't persist**: Check `~/.openclaw/credentials/whatsapp/` for stored session after restart
-- **Google Voice WhatsApp not set up**: Kent must have WhatsApp installed and registered on the Google Voice number before linking
+- **DM policy blocks interaction**: Check OpenClaw docs for pairing flow configuration
 
 ---
 

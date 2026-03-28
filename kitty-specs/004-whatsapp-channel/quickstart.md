@@ -6,8 +6,8 @@
 ## Prerequisites
 
 - office2 running with OpenClaw 2026.3.24 (F002 complete)
-- Google Voice number (617) 564-0182 with active WhatsApp account
-- Kent available to scan QR code from WhatsApp on iPhone
+- Kent has WhatsApp on his iPhone with number (617) 930-0916
+- Kent available to scan QR code from WhatsApp Linked Devices
 - SSH access via `ssh office2-claude`
 
 ## Steps
@@ -21,21 +21,15 @@ openclaw channels list
 openclaw channels status
 ```
 
-### 2. Configure DM Access Control
+### 2. Link WhatsApp Account (Kent Interactive)
 
 ```bash
-# Update config to restrict access to Kent's personal number
-# Exact config field TBD during implementation — check openclaw channels add --help
-```
-
-### 3. Link WhatsApp Account (Kent Interactive)
-
-```bash
-# This displays a QR code — Kent scans it from WhatsApp on iPhone
+# This displays a QR code — Kent scans it from WhatsApp
+# iPhone: Settings → Linked Devices → Link a Device
 openclaw channels login --channel whatsapp
 ```
 
-### 4. Verify Pairing
+### 3. Verify Pairing
 
 ```bash
 openclaw channels list
@@ -43,16 +37,16 @@ openclaw channels list
 openclaw channels status --deep
 ```
 
-### 5. End-to-End Test
+### 4. End-to-End Test
 
-- [ ] Kent sends "hello" from personal WhatsApp to (617) 564-0182
+- [ ] Kent sends a message via WhatsApp that reaches OpenClaw
 - [ ] OpenClaw receives the message (check logs)
 - [ ] OpenClaw sends a reply
 - [ ] Kent receives the reply on iPhone
 - [ ] Kent sends a voice note
 - [ ] OpenClaw receives the audio payload (check logs)
 
-### 6. Verify Session Persistence
+### 5. Verify Session Persistence
 
 ```bash
 # Restart OpenClaw and confirm reconnection
@@ -62,7 +56,7 @@ openclaw channels status --deep
 # Expected: still linked
 ```
 
-### 7. Verify No New Ports
+### 6. Verify No New Ports
 
 ```bash
 ss -tlnp | grep -E '(3456|18789|8787)'

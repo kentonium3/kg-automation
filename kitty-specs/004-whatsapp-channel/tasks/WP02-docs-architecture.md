@@ -84,7 +84,7 @@ Create the operations runbook for the WhatsApp channel, update architecture docu
 
    **Channel Overview**:
    - Channel type: WhatsApp via OpenClaw native Baileys integration
-   - Dedicated number: (617) 564-0182 (Google Voice)
+   - Account: Kent's personal cell (617) 930-0916 — OpenClaw linked as additional device
    - Protocol: Baileys (unofficial WhatsApp Web — see Risk Acceptance below)
    - Authentication: QR code linked device pairing
    - Session storage: `~/.openclaw/credentials/whatsapp/` on office2
@@ -128,7 +128,7 @@ Create the operations runbook for the WhatsApp channel, update architecture docu
    - OpenClaw uses Baileys (unofficial WhatsApp Web protocol) — this is the only WhatsApp path in OpenClaw
    - Meta could ban the account at any time for using unofficial clients
    - Accepted risk for personal single-user system at low message volume
-   - If banned: pair a new number via the QR login flow
+   - If banned: re-pair after ban is lifted
    - Policy exception documented in `docs/design/architecture/security-posture.md`
 
 3. Run doc validation:
@@ -209,7 +209,7 @@ Create the operations runbook for the WhatsApp channel, update architecture docu
 1. Read and update `docs/design/architecture/service-inventory.md`:
    - Under the OpenClaw entry, note that WhatsApp channel is active via Baileys
    - Add F004 to deployment details section
-   - Note the dedicated number: (617) 564-0182
+   - Note the account: Kent's personal cell (617) 930-0916, OpenClaw as linked device
 
 2. Verify `docs/design/architecture/security-posture.md`:
    - The Baileys policy exception was already added during planning

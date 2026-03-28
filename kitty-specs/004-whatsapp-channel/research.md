@@ -16,7 +16,15 @@
 - Session credentials stored at `~/.openclaw/credentials/whatsapp/<accountId>/creds.json`
 - No inbound ports, no webhook, no Meta app needed
 
-**Risk acceptance**: Baileys is unofficial. Meta could ban the account. This risk is accepted for a personal single-user system at low message volume. If banned, a new number can be paired.
+**Risk acceptance**: Baileys is unofficial. Meta could ban the account. This risk is accepted for a personal single-user system at low message volume.
+
+## R-001b: Phone Number — Use Kent's Existing Cell
+
+**Decision**: Use Kent's existing WhatsApp on his personal cell (617) 930-0916. No separate number needed.
+
+**Discovery**: WhatsApp no longer accepts Google Voice (deprecated — not used) (VoIP) numbers for registration. More importantly, a separate number was never required — OpenClaw's Baileys channel links as a "linked device" on an existing WhatsApp account (like WhatsApp Web/Desktop). The original func-spec's assumption of a dedicated number was incorrect.
+
+**Impact**: Removes Google Voice (deprecated — not used) dependency entirely. Kent simply scans the QR code from his existing WhatsApp to link OpenClaw as an additional device.
 
 ## R-002: Current OpenClaw WhatsApp Configuration
 
@@ -74,7 +82,7 @@
 
 **Decision**: Meta Cloud API is not used. Original constraint C-002 ("official API only") has been removed.
 
-**Original plan**: Register Google Voice number with Meta Business Manager, configure webhook, use Tailscale Funnel for Meta's webhook delivery.
+**Original plan**: Register a dedicated number with Meta Business Manager, configure webhook, use Tailscale Funnel for Meta's webhook delivery.
 
 **What changed**: OpenClaw has no Meta Cloud API integration. Baileys is the only WhatsApp path. The constraint was written without knowledge of OpenClaw's actual architecture.
 

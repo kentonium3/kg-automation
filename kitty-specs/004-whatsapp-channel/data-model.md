@@ -30,7 +30,7 @@ Stored at `~/.openclaw/credentials/whatsapp/<accountId>/creds.json` (managed by 
 |-------|------|-------------|
 | Session keys | object | Baileys WebSocket session keys |
 | Account ID | string | WhatsApp account identifier |
-| Phone number | string | Paired phone number |
+| Phone number | string | Kent's personal cell (617) 930-0916 |
 
 ### File System Artifacts
 

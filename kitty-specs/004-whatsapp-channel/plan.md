@@ -5,7 +5,7 @@
 
 ## Summary
 
-Link the existing Google Voice WhatsApp account to OpenClaw via its native Baileys-based WhatsApp channel. Configure DM access control to accept only Kent's personal number, verify end-to-end messaging (text and voice note), confirm session persistence across restarts, and document the channel in runbook and architecture docs.
+Link Kent's existing WhatsApp account ((617) 930-0916) to OpenClaw as a linked device via its native Baileys-based WhatsApp channel. Configure DM and group policies, verify end-to-end messaging (text and voice note), confirm session persistence across restarts, and document the channel in runbook and architecture docs.
 
 This feature is dramatically simpler than originally scoped. OpenClaw already has the WhatsApp channel added and enabled — only QR code linking and access control configuration remain.
 
@@ -42,7 +42,8 @@ This feature is dramatically simpler than originally scoped. OpenClaw already ha
 
 - `dmPolicy: "pairing"` already set — requires explicit pairing
 - `groupPolicy: "allowlist"` — no group chats by default
-- Implementation must configure `allowFrom` with Kent's personal number
+- `pairing` policy combined with linked-device model provides adequate access control
+- Kent's account: (617) 930-0916 — OpenClaw links as additional device, no separate number needed
 
 ## Constitution Check
 

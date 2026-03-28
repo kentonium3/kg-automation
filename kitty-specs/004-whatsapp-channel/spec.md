@@ -9,68 +9,71 @@
 
 During planning research, it was discovered that OpenClaw's WhatsApp integration uses **Baileys** (an unofficial WhatsApp Web protocol library), not Meta Cloud API. OpenClaw has no Meta Cloud API channel at all.
 
-**Decision**: Use OpenClaw's native Baileys-based WhatsApp channel. The original constraint C-002 ("official API only") has been **removed** based on the following risk acceptance:
+**Decision**: Use OpenClaw's native Baileys-based WhatsApp channel. The original constraint ("official API only") has been **removed** based on the following risk acceptance:
 
 - This is a personal single-user system with low message volume
 - Baileys is OpenClaw's only WhatsApp path — there is no official API alternative within OpenClaw
-- Account ban risk is acceptable; if Meta bans the number, a new number can be paired
-- The dramatic simplification (no Tailscale Funnel, no Meta app, no webhook, no dedicated number registration) justifies the trade-off
+- Account ban risk is acceptable; if Meta bans the account, re-pair is straightforward
+- The dramatic simplification (no Tailscale Funnel, no Meta app, no webhook, no separate number) justifies the trade-off
 
-**What this changes from the original func-spec**:
-- No Meta Cloud API app needed
-- No Tailscale Funnel needed (Baileys uses outbound WebSocket, not inbound webhook)
-- No webhook verification challenge to handle
-- No dedicated number registration with Meta Business Manager
-- Authentication is via QR code scan, not API tokens
-- Session credentials are managed by OpenClaw internally, not in the external credential store
+## Architecture Decision: Linked Device on Kent's Existing Number
+
+OpenClaw links as a **linked device** on Kent's existing WhatsApp account (personal cell number). No separate dedicated number is needed.
+
+**Rationale**: WhatsApp no longer accepts Google Voice (VoIP) numbers for registration. More importantly, a separate number was never architecturally required — OpenClaw's Baileys channel operates as a "linked device" on an existing WhatsApp account, just like WhatsApp Web or Desktop.
+
+**What this means**:
+- Kent's existing WhatsApp on his personal cell (617) 930-0916 is the account
+- OpenClaw links as an additional device via QR code scan
+- Messages Kent sends to himself (or that others send to Kent) can be processed by OpenClaw
+- Kent interacts with OpenClaw by messaging himself (self-chat) or via a designated contact flow per OpenClaw's DM policy
 
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - WhatsApp Account Pairing (Priority: P0)
 
-Kent needs the Google Voice WhatsApp account paired with OpenClaw so the system can send and receive messages on the dedicated number.
+Kent needs his existing WhatsApp account linked to OpenClaw as a "linked device" so the system can send and receive messages.
 
 **Why this priority**: Without pairing, no messages can flow. This is the prerequisite for everything else.
 
-**Independent Test**: `openclaw channels list` shows the WhatsApp channel as connected. A test message sent to the number reaches OpenClaw.
+**Independent Test**: `openclaw channels list` shows the WhatsApp channel as connected.
 
 **Acceptance Scenarios**:
 
-1. **Given** the Google Voice number (617) 564-0182 has an active WhatsApp account, **When** `openclaw channels login --channel whatsapp` is run, **Then** a QR code is displayed for Kent to scan.
-2. **Given** Kent scans the QR code with the Google Voice WhatsApp app, **When** pairing completes, **Then** OpenClaw shows the channel as connected.
+1. **Given** Kent has WhatsApp on his iPhone with number (617) 930-0916, **When** `openclaw channels login --channel whatsapp` is run, **Then** a QR code is displayed for Kent to scan.
+2. **Given** Kent scans the QR code from WhatsApp Linked Devices, **When** pairing completes, **Then** OpenClaw shows the channel as connected.
 3. **Given** the channel is paired, **When** office2 reboots, **Then** the session reconnects automatically without re-scanning the QR code.
 
 ---
 
 ### User Story 2 - End-to-End Message Flow (Priority: P0)
 
-Kent needs to send a WhatsApp message to the dedicated number and receive a reply from OpenClaw, confirming the full bidirectional communication path works.
+Kent needs to send a WhatsApp message that reaches OpenClaw and receive a reply, confirming the full bidirectional communication path works.
 
 **Why this priority**: This validates that OpenClaw's WhatsApp channel is functional end-to-end.
 
-**Independent Test**: Send a text message from Kent's personal iPhone WhatsApp to (617) 564-0182. Receive a reply from OpenClaw.
+**Independent Test**: Send a message via WhatsApp that reaches OpenClaw. Receive a reply.
 
 **Acceptance Scenarios**:
 
-1. **Given** the WhatsApp channel is paired and OpenClaw is running, **When** Kent sends "hello" to the dedicated number, **Then** the message reaches OpenClaw and a reply arrives on Kent's iPhone.
+1. **Given** the WhatsApp channel is paired and OpenClaw is running, **When** Kent sends a message, **Then** the message reaches OpenClaw and a reply arrives.
 2. **Given** the channel is working, **When** Kent sends a voice note, **Then** the audio payload arrives at OpenClaw (transcription is F003 scope — here we verify arrival only).
-3. **Given** OpenClaw is temporarily unavailable, **When** a message is sent, **Then** the Baileys session reconnects automatically when OpenClaw restarts and queued messages are delivered.
+3. **Given** OpenClaw is temporarily unavailable, **When** a message is sent, **Then** the Baileys session reconnects automatically when OpenClaw restarts.
 
 ---
 
 ### User Story 3 - Channel Security Configuration (Priority: P1)
 
-Kent needs the WhatsApp channel configured to only accept messages from his personal number and ignore all other senders, preventing unauthorized access to the system.
+Kent needs the WhatsApp channel configured with appropriate DM and group policies so only authorized interactions are processed.
 
-**Why this priority**: Without DM filtering, anyone who discovers the number could send commands to OpenClaw.
+**Why this priority**: Proper access control prevents unintended message processing.
 
-**Independent Test**: A message from an unknown number is ignored by OpenClaw. Only messages from Kent's personal number are processed.
+**Independent Test**: OpenClaw's DM policy restricts who can interact. Group messages are ignored.
 
 **Acceptance Scenarios**:
 
-1. **Given** `allowFrom` is configured with Kent's personal number, **When** a message arrives from an unknown number, **Then** OpenClaw ignores it.
-2. **Given** `dmPolicy` is set appropriately, **When** Kent messages the number, **Then** OpenClaw processes the message normally.
-3. **Given** `groupPolicy` is set to ignore, **When** the number is added to a group chat, **Then** OpenClaw does not respond to group messages.
+1. **Given** `dmPolicy` is set to `pairing`, **When** an unknown contact messages Kent, **Then** OpenClaw does not process it as a command.
+2. **Given** `groupPolicy` is set to `allowlist`, **When** a group message arrives, **Then** OpenClaw does not respond.
 
 ---
 
@@ -92,9 +95,9 @@ Kent or a future agent needs the channel documented and architecture docs update
 ### Edge Cases
 
 - What if the Baileys session drops and can't reconnect? → Re-pair by running the QR code login flow again. Document in runbook.
-- What if Meta bans the Google Voice number for using Baileys? → Pair a new number. The ban risk is accepted per the architecture decision above.
+- What if Meta bans the account for using Baileys? → Re-pair after any ban is lifted, or accept the limitation. The ban risk is accepted per the architecture decision above.
 - What if OpenClaw's Baileys library version has a breaking change? → Pin OpenClaw version. Update only after testing.
-- What if the Google Voice WhatsApp account is logged out on all devices? → The QR code pairing acts as a "linked device." If Kent logs out on the phone, the linked device session may be invalidated. Re-pair needed.
+- What if Kent unlinks OpenClaw from WhatsApp Linked Devices on his phone? → The linked device session is invalidated. Re-pair needed.
 - What if multiple messages arrive while OpenClaw is restarting? → Baileys has reconnection with configurable backoff. Messages sent during downtime may be lost if the WebSocket disconnects. Document this limitation.
 
 ## Requirements *(mandatory)*
@@ -103,12 +106,12 @@ Kent or a future agent needs the channel documented and architecture docs update
 
 | ID | Title | User Story | Priority | Status |
 |----|-------|------------|----------|--------|
-| FR-001 | WhatsApp channel addition | As Kent, I want the WhatsApp channel added to OpenClaw so it can send and receive messages. | High | Open |
-| FR-002 | QR code pairing | As Kent, I want to pair the Google Voice WhatsApp account with OpenClaw via QR code so the channel is authenticated. | High | Open |
-| FR-003 | DM filtering | As Kent, I want only my personal number accepted by OpenClaw so unauthorized senders are ignored. | High | Open |
+| FR-001 | WhatsApp channel linking | As Kent, I want OpenClaw linked as a device on my existing WhatsApp account so it can send and receive messages. | High | Open |
+| FR-002 | QR code pairing | As Kent, I want to pair OpenClaw with my WhatsApp via QR code scan. | High | Open |
+| FR-003 | DM policy configuration | As Kent, I want the DM policy configured so only authorized interactions are processed. | High | Open |
 | FR-004 | Group chat policy | As Kent, I want group messages ignored so OpenClaw only responds to direct messages. | High | Open |
-| FR-005 | End-to-end text verification | As Kent, I want to verify that a text message sent from my iPhone reaches OpenClaw and a reply comes back. | High | Open |
-| FR-006 | Voice note arrival verification | As Kent, I want to verify that a voice note sent from my iPhone arrives at OpenClaw (audio payload, not transcription). | High | Open |
+| FR-005 | End-to-end text verification | As Kent, I want to verify that a text message reaches OpenClaw and a reply comes back. | High | Open |
+| FR-006 | Voice note arrival verification | As Kent, I want to verify that a voice note arrives at OpenClaw (audio payload, not transcription). | High | Open |
 | FR-007 | Session persistence | As Kent, I want the WhatsApp session to survive OpenClaw restarts and office2 reboots without re-scanning the QR code. | High | Open |
 | FR-008 | Operations runbook | As Kent, I want an ops runbook documenting the WhatsApp channel, re-pairing procedure, and Baileys risk acceptance. | Medium | Open |
 | FR-009 | Architecture doc updates | As Kent, I want architecture documentation updated to reflect the WhatsApp channel integration. | Medium | Open |
@@ -127,13 +130,12 @@ Kent or a future agent needs the channel documented and architecture docs update
 |----|-------|------------|----------|----------|--------|
 | C-001 | No inbound ports | office2 must not have any new publicly exposed inbound ports (Baileys uses outbound WebSocket only) | Security | High | Open |
 | C-002 | Agent SSH identity | All commands via `ssh office2-claude`; sudo presented to Kent | Security | High | Open |
-| C-003 | Personal DM only | Only direct messages from Kent's personal number are processed — no group chats, no unknown senders | Security | High | Open |
-| C-004 | Google Voice number | Use existing Google Voice number (617) 564-0182 — do not acquire a new number | Architecture | Medium | Open |
-| C-005 | Baileys risk accepted | Baileys (unofficial WhatsApp Web protocol) is accepted for this personal system despite account-ban risk | Architecture | Medium | Open |
+| C-003 | DM policy enforcement | DM and group policies must be configured to prevent unintended message processing | Security | High | Open |
+| C-004 | Baileys risk accepted | Baileys (unofficial WhatsApp Web protocol) is accepted for this personal system despite account-ban risk | Architecture | Medium | Open |
 
 ### Key Entities
 
-- **Google Voice Number**: (617) 564-0182 — the dedicated system WhatsApp identity, distinct from Kent's personal number.
+- **Kent's WhatsApp Account**: (617) 930-0916 — Kent's personal cell, existing WhatsApp account. OpenClaw links as an additional device.
 - **OpenClaw WhatsApp Channel**: OpenClaw's native Baileys-based WhatsApp integration, configured via `openclaw channels add/login`.
 - **Baileys Session**: The WebSocket session credentials stored at `~/.openclaw/credentials/whatsapp/` on office2, maintaining the linked-device pairing.
 - **OpenClaw Gateway**: The existing OpenClaw instance on `127.0.0.1:18789` that processes messages.
@@ -142,10 +144,10 @@ Kent or a future agent needs the channel documented and architecture docs update
 
 ### Measurable Outcomes
 
-- **SC-001**: A WhatsApp text message sent from Kent's iPhone to (617) 564-0182 reaches OpenClaw and a reply arrives within 10 seconds.
-- **SC-002**: A WhatsApp voice note sent to the number is received by OpenClaw (audio payload arrives, verified in logs).
+- **SC-001**: A WhatsApp message reaches OpenClaw and a reply arrives within 10 seconds.
+- **SC-002**: A WhatsApp voice note is received by OpenClaw (audio payload arrives, verified in logs).
 - **SC-003**: The WhatsApp session survives an OpenClaw restart and reconnects within 30 seconds.
 - **SC-004**: `ss -tlnp` on office2 shows no new publicly exposed inbound ports compared to pre-deployment baseline.
-- **SC-005**: Messages from unknown numbers are ignored by OpenClaw (only Kent's personal number is accepted).
+- **SC-005**: DM and group policies are configured per OpenClaw's channel settings.
 - **SC-006**: Runbook at `docs/handbooks/whatsapp-ops.md` passes CI validation and covers pairing, re-pairing, session management, and Baileys risk acceptance.
 - **SC-007**: Architecture docs reflect the WhatsApp channel integration and Baileys risk acceptance.
