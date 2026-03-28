@@ -1,0 +1,17 @@
+[Unit]
+Description=Transcribe API (Whisper)
+After=docker.service network-online.target
+Wants=network-online.target
+Requires=docker.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+User=claude
+ExecStart=/usr/bin/docker-compose -f /data/services/transcribe/docker-compose.yml up -d
+ExecStop=/usr/bin/docker-compose -f /data/services/transcribe/docker-compose.yml down
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
