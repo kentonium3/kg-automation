@@ -1,7 +1,7 @@
 ---
 work_package_id: WP03
 title: Ops Runbook, Architecture Docs, and Final Acceptance
-lane: planned
+lane: "doing"
 dependencies:
 - WP01
 requirement_refs:
@@ -11,7 +11,9 @@ requirement_refs:
 planning_base_branch: main
 merge_target_branch: main
 branch_strategy: Planning artifacts for this feature were generated on main. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into main unless the human explicitly redirects the landing branch.
-created_at: '2026-03-28T16:22:31Z'
+base_branch: 003-whisper-transcription-skill-WP01
+base_commit: 8792c83fc3ac1758a5ed5f77aed2e9a78df5ed24
+created_at: '2026-03-28T16:43:43.478436+00:00'
 subtasks:
 - T011
 - T012
@@ -21,7 +23,7 @@ subtasks:
 phase: Phase 2 - Documentation
 assignee: ''
 agent: ''
-shell_pid: ''
+shell_pid: "70769"
 review_status: ''
 reviewed_by: ''
 review_feedback: ''
