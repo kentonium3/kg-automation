@@ -151,3 +151,8 @@ WP01 must complete first. WP02 and WP03 can proceed in parallel after WP01.
 | T013 | WP03 | Update network-topology.json |
 | T014 | WP03 | Update markdown arch docs |
 | T015 | WP03 | Verify zero 0.0.0.0 bindings |
+
+<!-- status-model:start -->
+## Canonical Status (Generated)
+- WP01: for_review
+<!-- status-model:end -->
