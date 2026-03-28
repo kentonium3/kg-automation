@@ -358,7 +358,8 @@ See `docs/design/architecture/change-control.md` for the full protocol.
 ### Notes for Implementation
 **Purpose**: Guide pattern discovery  
 **Content**: Pointers to existing patterns to study  
-**Key**: Focus on WHERE to look, not WHAT to implement
+**Key**: Focus on WHERE to look, not WHAT to implement  
+**Warning**: This section is the most common place for HOW to creep in. If you find yourself writing a command, file path inside a third-party tool, or implementation step — delete it. A discovery pointer is "inspect the running container to find the API contract", not "run `curl -X POST...`".
 
 ---
 
@@ -418,6 +419,19 @@ Component
 **Don't design UI implementation:**
 - ❌ "Add ctk.CTkRadioButton at line 45 with variable export_type_var"
 - ✅ "UI must allow user to select between 3 export types"
+
+**Don't prescribe paths inside third-party tools:**
+- ❌ "Commit skill to `/home/claude/.openclaw/skills/whisper/`"
+- ✅ "Skill must be installed in OpenClaw's skill system and version-controlled in the repo"
+- ❌ "Update the `-p` flag from `0.0.0.0:8787:8787` to `100.92.197.90:8787:8787`"
+- ✅ "Service must bind to Tailscale IP only — not 0.0.0.0"
+- The planning phase discovers the correct internal paths and mechanisms for third-party tools
+
+**Don't put specific commands in Notes for Implementation:**
+- ❌ "`curl -X POST http://localhost:8787/transcribe -F 'file=@test.ogg'`"
+- ✅ "Planning phase must discover the API contract by inspecting the running service"
+- Notes for Implementation should point to WHERE to look, never HOW to do it
+- If you find yourself writing a shell command, CLI flag, or code snippet — stop, it belongs in planning
 
 ---
 
@@ -614,8 +628,10 @@ Before submitting spec to spec-kitty, verify:
 - [ ] No time estimates (let tasks phase handle)
 - [ ] No file lists (let planning phase identify)
 - [ ] No testing instructions (let review phase handle)
-- [ ] No implementation code examples
+- [ ] No implementation code examples or CLI commands
 - [ ] No prescriptive UI designs (dropdowns vs radios, etc.)
+- [ ] No paths inside third-party tool internals (OpenClaw, Docker, systemd, etc.)
+- [ ] Notes for Implementation contains only discovery pointers, not HOW steps
 
 ### Clarity
 - [ ] Visual trees use ✅/❌ effectively
@@ -678,6 +694,7 @@ Change control protocol: `docs/design/architecture/change-control.md`
 |---------|------|---------|
 | 1.0 | 2026-01-12 | Initial template based on F049 v4.0 reference implementation |
 | 1.1 | 2026-03-26 | Added Architecture Documentation Updates section requirement |
+| 1.2 | 2026-03-28 | Strengthened DON'T rules: no third-party tool paths, no commands in Notes for Implementation |
 
 ---
 

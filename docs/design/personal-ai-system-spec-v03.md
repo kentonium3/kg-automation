@@ -382,8 +382,8 @@ Every task in Vikunja carries an identity label. Calendar and email operations u
 
 | # | Question | Status |
 |---|---|---|
-| OQ-01 | WhatsApp webhook: Tailscale tunnel vs Cloudflare Worker? | Deferred to FEAT-002 |
-| OQ-02 | Whisper model size for office2 hardware? | Deferred to FEAT-003 |
+| OQ-01 | WhatsApp webhook: Tailscale tunnel vs Cloudflare Worker? | Deferred to F004 |
+| OQ-02 | Whisper model size for office2 hardware? | Deferred to F003 |
 | OQ-04 | Does agent ever read private growth content? | **Resolved: NO. Absolute rule.** |
 | OQ-05 | Tasks spanning both identities? | Deferred to Phase 3 |
 | OQ-06 | Obsidian CLI sync mode on office2? | **Resolved: continuous daemon via systemd** |
@@ -438,28 +438,28 @@ Every task in Vikunja carries an identity label. Calendar and email operations u
 ## 10. Spec-Kitty Feature Sequence (Phase 1)
 
 ```
-FEAT-001  Vikunja Docker deploy on office2 + initial project structure
-FEAT-002  OpenClaw baseline install and configuration on office2
-FEAT-003  WhatsApp channel (dedicated number, Meta Cloud API)
-FEAT-004  Whisper transcription skill (local, office2)
-FEAT-005  Vikunja API skill (CRUD wrapper — used by all agent skills)
-FEAT-006  Intent Parser skill (WhatsApp text + transcript → Vikunja)
-FEAT-007  Migrate inbox-processor skill + task bridge to Vikunja API
-FEAT-008  Migrate kent-voice skill to office2
-FEAT-009  Migrate vault-writer skill to office2
-FEAT-010  Hourly inbox poll + on-demand WhatsApp trigger heartbeat
-FEAT-011  Goal Context Loader skill (reads constitution docs)
-FEAT-012  Personal Google Calendar skill (OAuth + event management)
-FEAT-013  Task → Calendar event linking
-FEAT-014  Daily briefing heartbeat (WhatsApp)
-FEAT-015  Level 1–2 escalation heartbeat (Vikunja label state)
+F001  Vikunja Docker deploy on office2 + initial project structure
+F002  OpenClaw baseline install and configuration on office2
+F003  Whisper transcription skill (local, office2)
+F004  WhatsApp channel (dedicated number, Meta Cloud API)
+F005  Vikunja API skill (CRUD wrapper — used by all agent skills)
+F006  Intent Parser skill (WhatsApp text + transcript → Vikunja)
+F007  Migrate inbox-processor skill + task bridge to Vikunja API
+F008  Migrate kent-voice skill to office2
+F009  Migrate vault-writer skill to office2
+F010  Hourly inbox poll + on-demand WhatsApp trigger heartbeat
+F011  Goal Context Loader skill (reads constitution docs)
+F012  Personal Google Calendar skill (OAuth + event management)
+F013  Task → Calendar event linking
+F014  Daily briefing heartbeat (WhatsApp)
+F015  Level 1–2 escalation heartbeat (Vikunja label state)
 ```
 
 **Sequencing notes**:
-- FEAT-001 (Vikunja) before FEAT-005 (API skill) — API skill needs a running instance to test against
-- FEAT-005 (Vikunja API skill) before FEAT-006, 007 — all task-writing skills depend on it
-- FEAT-007–009 (skill migration) before FEAT-011 (Goal Context Loader) — inbox-processor defines the canonical pattern for reading constitution docs
-- Constitution document review (Goals-MOC.md structure) should happen alongside FEAT-001 — it is the foundation the intelligence layer reasons against
+- F001 (Vikunja) before F005 (API skill) — API skill needs a running instance to test against
+- F005 (Vikunja API skill) before F006, F007 — all task-writing skills depend on it
+- F007–F009 (skill migration) before F011 (Goal Context Loader) — inbox-processor defines the canonical pattern for reading constitution docs
+- Constitution document review (Goals-MOC.md structure) should happen alongside F001 — it is the foundation the intelligence layer reasons against
 
 ---
 

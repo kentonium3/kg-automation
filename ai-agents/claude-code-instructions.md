@@ -131,23 +131,23 @@ Key endpoints:
 Current build order from spec Section 10:
 
 ```
-FEAT-001  Vikunja Docker deploy on office2 + project structure
-FEAT-002  OpenClaw install and configuration
-FEAT-003  WhatsApp channel (Meta Cloud API)
-FEAT-004  Whisper transcription skill
-FEAT-005  Vikunja API skill (CRUD wrapper)
-FEAT-006  Intent Parser skill
-FEAT-007  Migrate inbox-processor + task bridge
-FEAT-008  Migrate kent-voice skill
-FEAT-009  Migrate vault-writer skill
-FEAT-010  Hourly inbox poll + on-demand trigger
-FEAT-011  Goal Context Loader skill
-FEAT-012  Personal Google Calendar skill
-FEAT-013  Task → Calendar event linking
-FEAT-014  Daily briefing heartbeat
-FEAT-015  Level 1–2 escalation heartbeat
+F001  Vikunja Docker deploy on office2 + project structure
+F002  OpenClaw install and configuration
+F003  Whisper transcription skill
+F004  WhatsApp channel (Meta Cloud API)
+F005  Vikunja API skill (CRUD wrapper)
+F006  Intent Parser skill
+F007  Migrate inbox-processor + task bridge
+F008  Migrate kent-voice skill
+F009  Migrate vault-writer skill
+F010  Hourly inbox poll + on-demand trigger
+F011  Goal Context Loader skill
+F012  Personal Google Calendar skill
+F013  Task → Calendar event linking
+F014  Daily briefing heartbeat
+F015  Level 1–2 escalation heartbeat
 ```
 
-Check `docs/func-spec/` for feature-level specs before implementing any FEAT.
+Check `docs/func-spec/` for feature-level specs before implementing any feature.
 If a func-spec doesn't exist yet, create a GitHub issue rather than proceeding
 from the high-level spec alone.
