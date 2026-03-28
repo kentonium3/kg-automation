@@ -108,3 +108,8 @@ WP01 must complete first (channel must be linked before documentation).
 | T009 | WP02 | Update service-inventory.json |
 | T010 | WP02 | Update credential-manifest.json |
 | T011 | WP02 | Update markdown arch docs |
+
+<!-- status-model:start -->
+## Canonical Status (Generated)
+- WP01: planned
+<!-- status-model:end -->

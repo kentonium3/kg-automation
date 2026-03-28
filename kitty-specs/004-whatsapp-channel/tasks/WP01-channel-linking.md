@@ -1,7 +1,7 @@
 ---
 work_package_id: WP01
 title: WhatsApp Channel Linking, DM Config, and E2E Verification
-lane: "doing"
+lane: "planned"
 dependencies: []
 requirement_refs:
 - C-001
@@ -34,11 +34,11 @@ subtasks:
 - T007
 phase: Phase 1 - Channel Setup
 assignee: ''
-agent: "claude"
-shell_pid: "85118"
-review_status: ''
-reviewed_by: ''
-review_feedback: ''
+agent: claude
+shell_pid: '85118'
+review_status: "has_feedback"
+reviewed_by: "Kent Gale"
+review_feedback: "feedback://004-whatsapp-channel/WP01/20260328T191239Z-b0231b3b.md"
 history:
 - timestamp: '2026-03-28T18:00:42Z'
   lane: planned
@@ -322,3 +322,4 @@ Configure DM access control on the existing OpenClaw WhatsApp channel, link the 
 
 - 2026-03-28T18:00:42Z – system – lane=planned – Prompt created.
 - 2026-03-28T18:10:42Z – claude – shell_pid=85118 – lane=doing – Assigned agent via workflow command
+- 2026-03-28T19:12:39Z – claude – shell_pid=85118 – lane=planned – Moved to planned
