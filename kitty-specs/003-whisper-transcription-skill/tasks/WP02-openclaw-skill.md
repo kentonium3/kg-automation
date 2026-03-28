@@ -1,7 +1,7 @@
 ---
 work_package_id: WP02
 title: OpenClaw Whisper Skill and End-to-End Verification
-lane: "approved"
+lane: done
 dependencies:
 - WP01
 requirement_refs:
@@ -26,8 +26,8 @@ phase: Phase 2 - Implementation
 assignee: ''
 agent: claude
 shell_pid: '72410'
-review_status: "approved"
-reviewed_by: "Kent Gale"
+review_status: approved
+reviewed_by: Kent Gale
 review_feedback: ''
 history:
 - timestamp: '2026-03-28T16:22:31Z'

@@ -1,14 +1,14 @@
 {
-  "event_count": 15,
+  "event_count": 17,
   "feature_slug": "003-whisper-transcription-skill",
-  "last_event_id": "01KMTNRRX3GBFPREM0TCEMC293",
-  "materialized_at": "2026-03-28T16:52:20.516978+00:00",
+  "last_event_id": "01KMTNTF7V0E4AQ8J47J9AS0XK",
+  "materialized_at": "2026-03-28T16:53:16.157104+00:00",
   "summary": {
-    "approved": 3,
+    "approved": 1,
     "blocked": 0,
     "canceled": 0,
     "claimed": 0,
-    "done": 0,
+    "done": 2,
     "for_review": 0,
     "in_progress": 0,
     "planned": 0
@@ -22,18 +22,18 @@
       "last_transition_at": "2026-03-28T16:41:34.427207+00:00"
     },
     "WP02": {
-      "actor": "user",
+      "actor": "merge",
       "force_count": 2,
-      "lane": "approved",
-      "last_event_id": "01KMTNRRX3GBFPREM0TCEMC293",
-      "last_transition_at": "2026-03-28T16:52:20.516018+00:00"
+      "lane": "done",
+      "last_event_id": "01KMTNTEZRQGFJF72P43MPKRSB",
+      "last_transition_at": "2026-03-28T16:53:15.896270+00:00"
     },
     "WP03": {
-      "actor": "user",
+      "actor": "merge",
       "force_count": 2,
-      "lane": "approved",
-      "last_event_id": "01KMTNPHBJ8CZ37NTS46ES3E19",
-      "last_transition_at": "2026-03-28T16:51:07.250179+00:00"
+      "lane": "done",
+      "last_event_id": "01KMTNTF7V0E4AQ8J47J9AS0XK",
+      "last_transition_at": "2026-03-28T16:53:16.156015+00:00"
     }
   }
 }

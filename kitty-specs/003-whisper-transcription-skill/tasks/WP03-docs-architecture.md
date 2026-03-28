@@ -1,7 +1,7 @@
 ---
 work_package_id: WP03
 title: Ops Runbook, Architecture Docs, and Final Acceptance
-lane: "approved"
+lane: done
 dependencies:
 - WP01
 requirement_refs:
@@ -24,8 +24,8 @@ phase: Phase 2 - Documentation
 assignee: ''
 agent: claude
 shell_pid: '72524'
-review_status: "approved"
-reviewed_by: "Kent Gale"
+review_status: approved
+reviewed_by: Kent Gale
 review_feedback: ''
 history:
 - timestamp: '2026-03-28T16:22:31Z'

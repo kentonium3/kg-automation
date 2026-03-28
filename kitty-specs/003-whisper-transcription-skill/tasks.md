@@ -155,6 +155,6 @@ WP01 must complete first. WP02 and WP03 can proceed in parallel after WP01.
 <!-- status-model:start -->
 ## Canonical Status (Generated)
 - WP01: approved
-- WP02: approved
-- WP03: approved
+- WP02: done
+- WP03: done
 <!-- status-model:end -->
