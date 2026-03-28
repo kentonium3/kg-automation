@@ -16,7 +16,7 @@ All services run on office2 unless otherwise noted.
 |---------|------|---------------|------|---------|-------------|-----------|
 | Vikunja | Docker | `vikunja/vikunja:0.24.6` | 3456 | 100.92.197.90 | `vikunja.service` | `/data/services/vikunja/data` |
 | Obsidian Sync | Native | `ob sync --continuous` | — | — | `obsidian-sync.service` | `/home/kgale/second-brain/vault` |
-| Transcribe API | Docker | `transcribe_transcribe` | 8787 | 0.0.0.0 | — | `/data/services/transcribe` |
+| Transcribe API | Docker | `transcribe_transcribe` | 8787 | 100.92.197.90 | `transcribe.service` | `/data/services/transcribe` |
 | OpenClaw Gateway | npm-global | `v2026.3.24` | 18789 | 127.0.0.1 | `openclaw-gateway.service` (user) | `/data/services/openclaw/data` |
 
 ## Scheduled Jobs
@@ -41,10 +41,16 @@ All services run on office2 unless otherwise noted.
 - **Runs as**: kgale user
 - **Purpose**: Keeps the Obsidian vault on office2 in sync with Mac/iPhone
 
-### Transcribe API (pre-F001)
-- **Deployed by**: Manual setup
-- **Note**: Bound to `0.0.0.0` — should be rebound to Tailscale IP in a future security hardening pass
-- **Backup**: Included, excluding `/data/services/transcribe/models`
+### Transcribe API (F003)
+- **Deployed by**: F003
+- **Compose file**: `/data/services/transcribe/docker-compose.yml`
+- **Image**: `transcribe_transcribe` (locally built)
+- **Model**: `medium.en` (faster-whisper), 4 workers, 4GB memory limit
+- **systemd unit**: `transcribe.service`
+- **Port binding**: `100.92.197.90:8787` (Tailscale IP only)
+- **Data**: transcripts at `/data/transcripts/`, models at `/data/services/transcribe/models/`
+- **Backup**: Included, excluding `/data/services/transcribe/models` (re-downloadable)
+- **Runbook**: `docs/handbooks/transcribe-ops.md`
 
 ### OpenClaw Gateway (F002)
 - **Deployed by**: F002

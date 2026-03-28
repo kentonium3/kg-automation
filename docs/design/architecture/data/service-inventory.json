@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
-  "last_updated": "2026-03-27",
-  "updated_by": "F002",
+  "last_updated": "2026-03-28",
+  "updated_by": "F003",
   "services": [
     {
       "name": "vikunja",
@@ -38,11 +38,13 @@
       "image": "transcribe_transcribe",
       "host": "office2",
       "port": 8787,
-      "bind_ip": "0.0.0.0",
+      "bind_ip": "100.92.197.90",
+      "port_binding": "100.92.197.90:8787:8787",
+      "systemd_unit": "transcribe.service",
       "data_path": "/data/services/transcribe",
       "backup_included": true,
       "backup_excludes": ["/data/services/transcribe/models"],
-      "deployed_by": "manual",
+      "deployed_by": "F003",
       "status": "running",
       "purpose": "Whisper transcription API"
     },

@@ -13,7 +13,7 @@ status: approved
 - No port forwarding or NAT traversal outside Tailscale
 - Docker's default networking bypasses iptables/ufw — explicit IP binding is the only reliable control
 
-**Known exception**: `transcribe-api` is currently bound to `0.0.0.0:8787`. This should be rebound to the Tailscale IP in a future hardening pass.
+**As of F003**: All managed services on office2 are now bound exclusively to the Tailscale IP (`100.92.197.90`). The last `0.0.0.0` binding (transcribe-api on port 8787) was eliminated in F003. Zero `0.0.0.0` bindings remain for managed services.
 
 ## Supply Chain
 
