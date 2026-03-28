@@ -35,7 +35,7 @@
 
 ## Notes
 
-- Tailscale Funnel replaces the Cloudflare Tunnel approach from the original func-spec
-- Planning phase must research: Tailscale Funnel setup on Ubuntu 24.04, OpenClaw webhook path, Meta verification handling
-- Google Voice VoIP risk noted as edge case — fallback requires user decision
-- The spec references Meta Cloud API and Tailscale Funnel by name as these are architectural decisions, not implementation details
+- Spec rewritten after planning research discovered OpenClaw uses Baileys, not Meta Cloud API
+- Original C-002 (official API only) removed — Baileys risk acceptance documented in spec
+- Tailscale Funnel, Meta Cloud API, webhook verification all removed from scope
+- WhatsApp channel already added and enabled in OpenClaw — only linking needed

@@ -1,108 +1,88 @@
-# Implementation Plan: [FEATURE]
-*Path: [templates/plan-template.md](templates/plan-template.md)*
+# Implementation Plan: WhatsApp Channel
 
-
-**Branch**: `[###-feature-name]` | **Date**: [DATE] | **Spec**: [link]
-**Input**: Feature specification from `/kitty-specs/[###-feature-name]/spec.md`
-
-**Note**: This template is filled in by the `/spec-kitty.plan` command. See `src/specify_cli/missions/software-dev/command-templates/plan.md` for the execution workflow.
-
-The planner will not begin until all planning questions have been answered—capture those answers in this document before progressing to later phases.
+**Branch**: `004-whatsapp-channel` | **Date**: 2026-03-28 | **Spec**: [spec.md](spec.md)
+**Input**: Feature specification from `kitty-specs/004-whatsapp-channel/spec.md`
 
 ## Summary
 
-[Extract from feature spec: primary requirement + technical approach from research]
+Link the existing Google Voice WhatsApp account to OpenClaw via its native Baileys-based WhatsApp channel. Configure DM access control to accept only Kent's personal number, verify end-to-end messaging (text and voice note), confirm session persistence across restarts, and document the channel in runbook and architecture docs.
+
+This feature is dramatically simpler than originally scoped. OpenClaw already has the WhatsApp channel added and enabled — only QR code linking and access control configuration remain.
 
 ## Technical Context
 
-<!--
-  ACTION REQUIRED: Replace the content in this section with the technical details
-  for the project. The structure here is presented in advisory capacity to guide
-  the iteration process.
--->
+**Language/Version**: Bash (configuration commands), Markdown (runbook, architecture docs)
+**Primary Dependencies**: OpenClaw 2026.3.24 (existing), Baileys (bundled with OpenClaw)
+**Storage**: Session credentials at `~/.openclaw/credentials/whatsapp/` (managed by OpenClaw)
+**Testing**: Manual verification — send messages, check logs, restart service
+**Target Platform**: Ubuntu 24.04 LTS on office2
+**Project Type**: Configuration + documentation
+**Performance Goals**: Messages delivered within 5 seconds, session reconnects within 30 seconds
+**Constraints**: No inbound ports, personal DM only, Baileys risk accepted
+**Scale/Scope**: Single channel configuration + one runbook + architecture doc updates
 
-**Language/Version**: [e.g., Python 3.11, Swift 5.9, Rust 1.75 or NEEDS CLARIFICATION]  
-**Primary Dependencies**: [e.g., FastAPI, UIKit, LLVM or NEEDS CLARIFICATION]  
-**Storage**: [if applicable, e.g., PostgreSQL, CoreData, files or N/A]  
-**Testing**: [e.g., pytest, XCTest, cargo test or NEEDS CLARIFICATION]  
-**Target Platform**: [e.g., Linux server, iOS 15+, WASM or NEEDS CLARIFICATION]
-**Project Type**: [single/web/mobile - determines source structure]  
-**Performance Goals**: [domain-specific, e.g., 1000 req/s, 10k lines/sec, 60 fps or NEEDS CLARIFICATION]  
-**Constraints**: [domain-specific, e.g., <200ms p95, <100MB memory, offline-capable or NEEDS CLARIFICATION]  
-**Scale/Scope**: [domain-specific, e.g., 10k users, 1M LOC, 50 screens or NEEDS CLARIFICATION]
+## Research Findings
+
+### OpenClaw WhatsApp Architecture (R-001, R-002)
+
+- OpenClaw uses Baileys (outbound WebSocket), not Meta Cloud API
+- WhatsApp channel already added and enabled: `not linked, enabled`
+- Config already has `dmPolicy: "pairing"`, `groupPolicy: "allowlist"`, `mediaMaxMb: 50`
+- Linking requires `openclaw channels login --channel whatsapp` → QR code → Kent scans
+- Session persists via `~/.openclaw/credentials/whatsapp/`
+
+### What Was Removed From Scope (R-004, R-006)
+
+- Meta Cloud API app — not used by OpenClaw
+- Tailscale Funnel — not needed (Baileys is outbound-only)
+- Webhook verification — no webhooks involved
+- External credential store entries — Baileys session managed internally by OpenClaw
+
+### DM Access Control (R-003)
+
+- `dmPolicy: "pairing"` already set — requires explicit pairing
+- `groupPolicy: "allowlist"` — no group chats by default
+- Implementation must configure `allowFrom` with Kent's personal number
 
 ## Constitution Check
 
-*GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
-
-[Gates determined based on constitution file]
+| Gate | Status | Notes |
+|------|--------|-------|
+| No inbound ports | Pass | Baileys uses outbound WebSocket only |
+| Agent traceability | Pass | `ssh office2-claude` only |
+| Documentation adjacent | Pass | Runbook and architecture docs updated |
+| No credentials in code | Pass | Baileys session managed by OpenClaw internally |
+| Baileys risk accepted | Exception | Unofficial protocol accepted per Kent's decision — documented in spec |
 
 ## Project Structure
 
 ### Documentation (this feature)
 
 ```
-kitty-specs/[###-feature]/
-├── plan.md              # This file (/spec-kitty.plan command output)
-├── research.md          # Phase 0 output (/spec-kitty.plan command)
-├── data-model.md        # Phase 1 output (/spec-kitty.plan command)
-├── quickstart.md        # Phase 1 output (/spec-kitty.plan command)
-├── contracts/           # Phase 1 output (/spec-kitty.plan command)
-└── tasks.md             # Phase 2 output (/spec-kitty.tasks command - NOT created by /spec-kitty.plan)
+kitty-specs/004-whatsapp-channel/
+├── plan.md              # This file
+├── research.md          # Phase 0 output
+├── data-model.md        # Phase 1 output
+├── quickstart.md        # Phase 1 output
+└── tasks.md             # Phase 2 output
 ```
 
 ### Source Code (repository root)
-<!--
-  ACTION REQUIRED: Replace the placeholder tree below with the concrete layout
-  for this feature. Delete unused options and expand the chosen structure with
-  real paths (e.g., apps/admin, packages/something). The delivered plan must
-  not include Option labels.
--->
 
 ```
-# [REMOVE IF UNUSED] Option 1: Single project (DEFAULT)
-src/
-├── models/
-├── services/
-├── cli/
-└── lib/
-
-tests/
-├── contract/
-├── integration/
-└── unit/
-
-# [REMOVE IF UNUSED] Option 2: Web application (when "frontend" + "backend" detected)
-backend/
-├── src/
-│   ├── models/
-│   ├── services/
-│   └── api/
-└── tests/
-
-frontend/
-├── src/
-│   ├── components/
-│   ├── pages/
-│   └── services/
-└── tests/
-
-# [REMOVE IF UNUSED] Option 3: Mobile + API (when "iOS/Android" detected)
-api/
-└── [same as backend above]
-
-ios/ or android/
-└── [platform-specific structure: feature modules, UI flows, platform tests]
+docs/handbooks/
+└── whatsapp-ops.md      # Operations runbook
 ```
 
-**Structure Decision**: [Document the selected structure and reference the real
-directories captured above]
+**Structure Decision**: Configuration-only feature. No scripts or deploy files needed — OpenClaw channel management is done via CLI commands on office2. Only deliverable files are the runbook and architecture doc updates.
 
-## Complexity Tracking
+## Dependency Graph
 
-*Fill ONLY if Constitution Check has violations that must be justified*
+```
+WP-01: WhatsApp channel linking + DM config + E2E verification (Kent interactive)
+  └── WP-02: Ops runbook + architecture docs + session persistence verification
+```
 
-| Violation | Why Needed | Simpler Alternative Rejected Because |
-|-----------|------------|-------------------------------------|
-| [e.g., 4th project] | [current need] | [why 3 projects insufficient] |
-| [e.g., Repository pattern] | [specific problem] | [why direct DB access insufficient] |
+WP-01 must complete first (channel must be linked before documentation can capture the actual state). WP-02 follows.
+
+**Key implementation note**: WP-01 requires Kent's interactive participation (QR code scanning). The agent cannot complete this step autonomously.
