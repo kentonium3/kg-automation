@@ -94,11 +94,11 @@
 **Estimated Prompt Size**: ~350 lines
 
 ### Included Subtasks
-- [ ] T011 Create `docs/handbooks/transcribe-ops.md` with service overview, API contract, start/stop/restart, image update, log inspection, known limitations
-- [ ] T012 Update `docs/design/architecture/data/service-inventory.json`: transcribe-api entry (bind_ip, systemd_unit, deployed_by)
-- [ ] T013 Update `docs/design/architecture/data/network-topology.json`: port 8787 entry (remove 0.0.0.0 warning, set bind_ip to 100.92.197.90)
-- [ ] T014 Update `docs/design/architecture/service-inventory.md` and `docs/design/architecture/security-posture.md` to reflect changes
-- [ ] T015 Verify zero `0.0.0.0` bindings remain in architecture docs and on live system
+- [x] T011 Create `docs/handbooks/transcribe-ops.md` with service overview, API contract, start/stop/restart, image update, log inspection, known limitations
+- [x] T012 Update `docs/design/architecture/data/service-inventory.json`: transcribe-api entry (bind_ip, systemd_unit, deployed_by)
+- [x] T013 Update `docs/design/architecture/data/network-topology.json`: port 8787 entry (remove 0.0.0.0 warning, set bind_ip to 100.92.197.90)
+- [x] T014 Update `docs/design/architecture/service-inventory.md` and `docs/design/architecture/security-posture.md` to reflect changes
+- [x] T015 Verify zero `0.0.0.0` bindings remain in architecture docs and on live system
 
 ### Implementation Notes
 - Runbook follows the format of `docs/handbooks/vikunja-ops.md` (F001) — read it for structure
