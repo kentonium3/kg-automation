@@ -1,0 +1,21 @@
+version: "3.8"
+
+services:
+  transcribe:
+    build: .
+    container_name: transcribe-api
+    restart: unless-stopped
+    ports:
+      - "100.92.197.90:8787:8787"
+    volumes:
+      - /data/transcripts:/data/transcripts
+      - /data/services/transcribe/models:/models
+    environment:
+      - WHISPER_MODEL_SIZE=medium.en
+      - WHISPER_MODEL_DIR=/models
+      - TRANSCRIPTS_DIR=/data/transcripts
+      - WORKERS=4
+    deploy:
+      resources:
+        limits:
+          memory: 4g
