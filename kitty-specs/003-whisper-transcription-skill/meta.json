@@ -1,0 +1,9 @@
+{
+  "created_at": "2026-03-28T16:06:13.820001+00:00",
+  "feature_number": "003",
+  "feature_slug": "003-whisper-transcription-skill",
+  "friendly_name": "whisper transcription skill",
+  "mission": "software-dev",
+  "slug": "003-whisper-transcription-skill",
+  "target_branch": "main"
+}
