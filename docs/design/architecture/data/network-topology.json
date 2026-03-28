@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
-  "last_updated": "2026-03-26",
-  "updated_by": "F001",
+  "last_updated": "2026-03-28",
+  "updated_by": "F003",
   "network": {
     "type": "tailscale",
     "tailnet_owner": "kentgale@",
@@ -25,10 +25,10 @@
       "port": 8787,
       "service": "transcribe-api",
       "host": "office2",
-      "bind_ip": "0.0.0.0",
+      "bind_ip": "100.92.197.90",
       "protocol": "tcp",
-      "public_exposure": "WARNING: bound to all interfaces",
-      "access": "should be tailscale-only"
+      "public_exposure": "none",
+      "access": "tailscale-only"
     }
   ],
   "access_rules": [
