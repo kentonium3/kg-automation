@@ -111,5 +111,5 @@ WP01 must complete first (channel must be linked before documentation).
 
 <!-- status-model:start -->
 ## Canonical Status (Generated)
-- WP01: planned
+- WP01: for_review
 <!-- status-model:end -->
