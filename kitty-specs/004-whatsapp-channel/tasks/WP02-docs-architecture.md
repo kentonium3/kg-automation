@@ -1,7 +1,7 @@
 ---
 work_package_id: WP02
 title: Ops Runbook and Architecture Documentation
-lane: "doing"
+lane: "for_review"
 dependencies:
 - WP01
 requirement_refs:
@@ -20,8 +20,8 @@ subtasks:
 - T011
 phase: Phase 2 - Documentation
 assignee: ''
-agent: "claude"
-shell_pid: "98014"
+agent: claude
+shell_pid: '98014'
 review_status: ''
 reviewed_by: ''
 review_feedback: ''
@@ -249,3 +249,4 @@ Create the operations runbook for the WhatsApp channel, update architecture docu
 
 - 2026-03-28T18:00:42Z – system – lane=planned – Prompt created.
 - 2026-03-28T19:37:37Z – claude – shell_pid=98014 – lane=doing – Assigned agent via workflow command
+- 2026-03-28T19:39:49Z – claude – shell_pid=98014 – lane=for_review – Ready for review: runbook created, service-inventory.json updated with WhatsApp channel, credential-manifest.json updated (whatsapp-meta replaced with whatsapp-session), service-inventory.md updated
