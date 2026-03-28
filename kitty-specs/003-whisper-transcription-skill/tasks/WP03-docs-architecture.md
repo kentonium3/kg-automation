@@ -1,7 +1,7 @@
 ---
 work_package_id: WP03
 title: Ops Runbook, Architecture Docs, and Final Acceptance
-lane: "for_review"
+lane: "doing"
 dependencies:
 - WP01
 requirement_refs:
@@ -22,8 +22,8 @@ subtasks:
 - T015
 phase: Phase 2 - Documentation
 assignee: ''
-agent: claude
-shell_pid: '70769'
+agent: "claude"
+shell_pid: "72524"
 review_status: ''
 reviewed_by: ''
 review_feedback: ''
@@ -307,3 +307,4 @@ Create the operations runbook for the transcription service, update all architec
 - 2026-03-28T16:22:31Z – system – lane=planned – Prompt created.
 - 2026-03-28T16:43:43Z – claude – shell_pid=70769 – lane=doing – Assigned agent via workflow command
 - 2026-03-28T16:46:53Z – claude – shell_pid=70769 – lane=for_review – Ready for review: runbook created, architecture docs updated, zero 0.0.0.0 bindings confirmed
+- 2026-03-28T16:49:34Z – claude – shell_pid=72524 – lane=doing – Started review via workflow command
