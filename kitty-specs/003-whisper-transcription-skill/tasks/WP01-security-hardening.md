@@ -1,7 +1,7 @@
 ---
 work_package_id: WP01
 title: Security Hardening — Rebind, systemd, Deploy Config
-lane: "doing"
+lane: "approved"
 dependencies: []
 requirement_refs:
 - C-001
@@ -27,10 +27,10 @@ subtasks:
 - T006
 phase: Phase 1 - Foundation
 assignee: ''
-agent: "claude"
-shell_pid: "69945"
-review_status: ''
-reviewed_by: ''
+agent: claude
+shell_pid: '69945'
+review_status: "approved"
+reviewed_by: "Kent Gale"
 review_feedback: ''
 history:
 - timestamp: '2026-03-28T16:22:31Z'
@@ -371,3 +371,4 @@ echo "curl http://100.92.197.90:8787/health"
 - 2026-03-28T16:33:46Z – claude – shell_pid=68164 – lane=doing – Assigned agent via workflow command
 - 2026-03-28T16:39:59Z – claude – shell_pid=68164 – lane=for_review – Ready for review: transcribe-api rebound to 100.92.197.90:8787, systemd unit active, deploy script committed
 - 2026-03-28T16:41:00Z – claude – shell_pid=69945 – lane=doing – Started review via workflow command
+- 2026-03-28T16:41:34Z – claude – shell_pid=69945 – lane=approved – Review passed: port rebound to 100.92.197.90:8787 confirmed, systemd active+enabled, health OK, deployed files match repo, all constraints met, docker-compose v1 correctly used
