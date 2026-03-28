@@ -58,10 +58,10 @@
 **Estimated Prompt Size**: ~300 lines
 
 ### Included Subtasks
-- [ ] T007 Write `SKILL.md` with full API contract, async workflow instructions, and error handling guidance
-- [ ] T008 Install skill to `~/.openclaw/skills/whisper/SKILL.md` on office2
-- [ ] T009 Commit skill source to `scripts/openclaw/skills/whisper/SKILL.md` in repo
-- [ ] T010 End-to-end verification: submit sample audio to transcribe-api via skill workflow, confirm transcript
+- [x] T007 Write `SKILL.md` with full API contract, async workflow instructions, and error handling guidance
+- [x] T008 Install skill to `~/.openclaw/skills/whisper/SKILL.md` on office2
+- [x] T009 Commit skill source to `scripts/openclaw/skills/whisper/SKILL.md` in repo
+- [x] T010 End-to-end verification: submit sample audio to transcribe-api via skill workflow, confirm transcript
 
 ### Implementation Notes
 - The skill is a markdown prompt document, NOT executable code
