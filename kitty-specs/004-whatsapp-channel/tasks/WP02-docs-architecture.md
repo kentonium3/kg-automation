@@ -20,7 +20,7 @@ subtasks:
 - T011
 phase: Phase 2 - Documentation
 assignee: ''
-agent: ''
+agent: "claude"
 shell_pid: "98014"
 review_status: ''
 reviewed_by: ''
@@ -248,3 +248,4 @@ Create the operations runbook for the WhatsApp channel, update architecture docu
 ## Activity Log
 
 - 2026-03-28T18:00:42Z – system – lane=planned – Prompt created.
+- 2026-03-28T19:37:37Z – claude – shell_pid=98014 – lane=doing – Assigned agent via workflow command
