@@ -1,7 +1,7 @@
 ---
 work_package_id: WP02
 title: Ops Runbook and Architecture Documentation
-lane: planned
+lane: "doing"
 dependencies:
 - WP01
 requirement_refs:
@@ -10,7 +10,9 @@ requirement_refs:
 planning_base_branch: main
 merge_target_branch: main
 branch_strategy: Planning artifacts for this feature were generated on main. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into main unless the human explicitly redirects the landing branch.
-created_at: '2026-03-28T18:00:42Z'
+base_branch: 004-whatsapp-channel-WP01
+base_commit: 65e46f8bcf77fb18d9b6ce7ab1a923ee3d86979f
+created_at: '2026-03-28T19:37:37.111083+00:00'
 subtasks:
 - T008
 - T009
@@ -19,7 +21,7 @@ subtasks:
 phase: Phase 2 - Documentation
 assignee: ''
 agent: ''
-shell_pid: ''
+shell_pid: "98014"
 review_status: ''
 reviewed_by: ''
 review_feedback: ''
