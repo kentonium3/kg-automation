@@ -34,7 +34,7 @@ subtasks:
 - T007
 phase: Phase 1 - Channel Setup
 assignee: ''
-agent: ''
+agent: "claude"
 shell_pid: "85118"
 review_status: ''
 reviewed_by: ''
@@ -321,3 +321,4 @@ Configure DM access control on the existing OpenClaw WhatsApp channel, link the 
 ## Activity Log
 
 - 2026-03-28T18:00:42Z – system – lane=planned – Prompt created.
+- 2026-03-28T18:10:42Z – claude – shell_pid=85118 – lane=doing – Assigned agent via workflow command
