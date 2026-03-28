@@ -1,108 +1,104 @@
-# Implementation Plan: [FEATURE]
-*Path: [templates/plan-template.md](templates/plan-template.md)*
+# Implementation Plan: Whisper Transcription Skill
 
-
-**Branch**: `[###-feature-name]` | **Date**: [DATE] | **Spec**: [link]
-**Input**: Feature specification from `/kitty-specs/[###-feature-name]/spec.md`
-
-**Note**: This template is filled in by the `/spec-kitty.plan` command. See `src/specify_cli/missions/software-dev/command-templates/plan.md` for the execution workflow.
-
-The planner will not begin until all planning questions have been answered—capture those answers in this document before progressing to later phases.
+**Branch**: `003-whisper-transcription-skill` | **Date**: 2026-03-28 | **Spec**: [spec.md](spec.md)
+**Input**: Feature specification from `kitty-specs/003-whisper-transcription-skill/spec.md`
 
 ## Summary
 
-[Extract from feature spec: primary requirement + technical approach from research]
+Harden the existing `transcribe-api` Docker service by rebinding from `0.0.0.0` to `100.92.197.90`, wrapping it in a systemd unit via Docker Compose, and committing the deployment config. Build an OpenClaw SKILL.md that documents the transcription API contract and instructs the agent how to transcribe audio. Eliminate the last `0.0.0.0` binding on office2.
 
 ## Technical Context
 
-<!--
-  ACTION REQUIRED: Replace the content in this section with the technical details
-  for the project. The structure here is presented in advisory capacity to guide
-  the iteration process.
--->
+**Language/Version**: Bash (deployment scripts), Markdown (OpenClaw skill)
+**Primary Dependencies**: Docker, Docker Compose (existing), faster-whisper (existing transcribe-api)
+**Storage**: Transcripts at `/data/transcripts/`, models at `/data/services/transcribe/models/`
+**Testing**: Manual verification — submit audio, confirm transcript
+**Target Platform**: Ubuntu 24.04 LTS on office2
+**Project Type**: Infrastructure hardening + skill creation
+**Performance Goals**: 30-second audio transcribed within 30 seconds
+**Constraints**: Tailscale-only binding, no image rebuild, Compose-based deployment
+**Scale/Scope**: Single service rebind + one OpenClaw skill
 
-**Language/Version**: [e.g., Python 3.11, Swift 5.9, Rust 1.75 or NEEDS CLARIFICATION]  
-**Primary Dependencies**: [e.g., FastAPI, UIKit, LLVM or NEEDS CLARIFICATION]  
-**Storage**: [if applicable, e.g., PostgreSQL, CoreData, files or N/A]  
-**Testing**: [e.g., pytest, XCTest, cargo test or NEEDS CLARIFICATION]  
-**Target Platform**: [e.g., Linux server, iOS 15+, WASM or NEEDS CLARIFICATION]
-**Project Type**: [single/web/mobile - determines source structure]  
-**Performance Goals**: [domain-specific, e.g., 1000 req/s, 10k lines/sec, 60 fps or NEEDS CLARIFICATION]  
-**Constraints**: [domain-specific, e.g., <200ms p95, <100MB memory, offline-capable or NEEDS CLARIFICATION]  
-**Scale/Scope**: [domain-specific, e.g., 10k users, 1M LOC, 50 screens or NEEDS CLARIFICATION]
+## Research Findings
+
+### Transcribe API Contract (discovered from live service)
+
+- **FastAPI** service, OpenAPI spec at `/openapi.json`
+- **Model**: `medium.en` (faster-whisper)
+- **Async pattern**: POST returns job ID, poll for result
+
+**Endpoints**:
+- `POST /transcribe/file` — multipart upload, returns `TranscriptMeta` (id, status)
+- `POST /transcribe/url` — JSON body with URL, returns `TranscriptMeta`
+- `GET /transcripts/{id}` — retrieve transcript by ID
+- `GET /transcripts/{id}/text` — plain text only
+- `GET /transcripts` — list recent transcripts
+- `GET /health` — health check
+
+**Workflow**: Upload audio → get job ID → poll `/transcripts/{id}` until status is complete → read `/transcripts/{id}/text`
+
+### Docker Compose Config (existing)
+
+- Image: `transcribe_transcribe` (locally built)
+- Ports: `8787:8787` (currently `0.0.0.0`)
+- Volumes: `/data/transcripts`, `/data/services/transcribe/models`
+- Environment: `WHISPER_MODEL_SIZE=medium.en`, 4 workers, 4GB memory limit
+- `restart: unless-stopped` (Docker-level, not systemd)
+
+### OpenClaw Skill Format (researched)
+
+- Skills are `SKILL.md` files with YAML frontmatter
+- They are **markdown prompt documents**, not executable code
+- The skill teaches the agent how to use its built-in tools (exec, web_search, etc.) to accomplish a task
+- For calling the transcribe API, the skill instructs the agent to use `curl` via the exec tool
+- Skills can be placed in `~/.openclaw/skills/` or workspace `skills/` directories
 
 ## Constitution Check
 
-*GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
-
-[Gates determined based on constitution file]
+| Gate | Status | Notes |
+|------|--------|-------|
+| Tailscale-only binding | ✅ Pass | Rebinding from `0.0.0.0` to `100.92.197.90` |
+| No image rebuild | ✅ Pass | Reusing existing image, changing only port binding |
+| Agent traceability | ✅ Pass | `ssh office2-claude` only |
+| Documentation adjacent | ✅ Pass | Runbook and architecture docs updated |
+| No credentials needed | ✅ Pass | transcribe-api has no auth |
 
 ## Project Structure
 
 ### Documentation (this feature)
 
 ```
-kitty-specs/[###-feature]/
-├── plan.md              # This file (/spec-kitty.plan command output)
-├── research.md          # Phase 0 output (/spec-kitty.plan command)
-├── data-model.md        # Phase 1 output (/spec-kitty.plan command)
-├── quickstart.md        # Phase 1 output (/spec-kitty.plan command)
-├── contracts/           # Phase 1 output (/spec-kitty.plan command)
-└── tasks.md             # Phase 2 output (/spec-kitty.tasks command - NOT created by /spec-kitty.plan)
+kitty-specs/003-whisper-transcription-skill/
+├── plan.md              # This file
+├── research.md          # Phase 0 output
+├── data-model.md        # Phase 1 output
+├── quickstart.md        # Phase 1 output
+└── tasks.md             # Phase 2 output
 ```
 
 ### Source Code (repository root)
-<!--
-  ACTION REQUIRED: Replace the placeholder tree below with the concrete layout
-  for this feature. Delete unused options and expand the chosen structure with
-  real paths (e.g., apps/admin, packages/something). The delivered plan must
-  not include Option labels.
--->
 
 ```
-# [REMOVE IF UNUSED] Option 1: Single project (DEFAULT)
-src/
-├── models/
-├── services/
-├── cli/
-└── lib/
+scripts/transcribe/
+├── docker-compose.yml   # Captured from office2 with corrected port binding
+├── transcribe.service   # systemd unit wrapping docker compose
+└── deploy.sh            # Deployment helper script
 
-tests/
-├── contract/
-├── integration/
-└── unit/
+scripts/openclaw/skills/whisper/
+└── SKILL.md             # OpenClaw skill for audio transcription
 
-# [REMOVE IF UNUSED] Option 2: Web application (when "frontend" + "backend" detected)
-backend/
-├── src/
-│   ├── models/
-│   ├── services/
-│   └── api/
-└── tests/
-
-frontend/
-├── src/
-│   ├── components/
-│   ├── pages/
-│   └── services/
-└── tests/
-
-# [REMOVE IF UNUSED] Option 3: Mobile + API (when "iOS/Android" detected)
-api/
-└── [same as backend above]
-
-ios/ or android/
-└── [platform-specific structure: feature modules, UI flows, platform tests]
+docs/handbooks/
+└── transcribe-ops.md    # Operations runbook
 ```
 
-**Structure Decision**: [Document the selected structure and reference the real
-directories captured above]
+**Structure Decision**: Infrastructure hardening feature. Deployment scripts committed to `scripts/transcribe/`. OpenClaw skill source committed to `scripts/openclaw/skills/whisper/` and symlinked/copied to the OpenClaw skills directory on office2.
 
-## Complexity Tracking
+## Dependency Graph
 
-*Fill ONLY if Constitution Check has violations that must be justified*
+```
+WP-01: Security hardening (rebind + systemd + deploy config)
+  └── WP-02: OpenClaw skill + API contract documentation
+  └── WP-03: Ops runbook + architecture docs + acceptance testing
+```
 
-| Violation | Why Needed | Simpler Alternative Rejected Because |
-|-----------|------------|-------------------------------------|
-| [e.g., 4th project] | [current need] | [why 3 projects insufficient] |
-| [e.g., Repository pattern] | [specific problem] | [why direct DB access insufficient] |
+WP-01 must complete first (service must be rebound before skill uses it). WP-02 and WP-03 can proceed in parallel after WP-01.
