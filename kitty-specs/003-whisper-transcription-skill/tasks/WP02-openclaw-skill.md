@@ -1,7 +1,7 @@
 ---
 work_package_id: WP02
 title: OpenClaw Whisper Skill and End-to-End Verification
-lane: "doing"
+lane: "for_review"
 dependencies:
 - WP01
 requirement_refs:
@@ -24,8 +24,8 @@ subtasks:
 - T010
 phase: Phase 2 - Implementation
 assignee: ''
-agent: "claude"
-shell_pid: "70497"
+agent: claude
+shell_pid: '70497'
 review_status: ''
 reviewed_by: ''
 review_feedback: ''
@@ -281,3 +281,4 @@ Create an OpenClaw SKILL.md that documents the transcription API contract and in
 
 - 2026-03-28T16:22:31Z – system – lane=planned – Prompt created.
 - 2026-03-28T16:43:21Z – claude – shell_pid=70497 – lane=doing – Assigned agent via workflow command
+- 2026-03-28T16:47:08Z – claude – shell_pid=70497 – lane=for_review – Ready for review: SKILL.md created with verified API contract, installed on office2, E2E tested (health, upload, poll, text retrieval, error handling all pass)
