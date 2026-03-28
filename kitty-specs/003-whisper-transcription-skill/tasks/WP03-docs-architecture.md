@@ -22,7 +22,7 @@ subtasks:
 - T015
 phase: Phase 2 - Documentation
 assignee: ''
-agent: ''
+agent: "claude"
 shell_pid: "70769"
 review_status: ''
 reviewed_by: ''
@@ -305,3 +305,4 @@ Create the operations runbook for the transcription service, update all architec
 ## Activity Log
 
 - 2026-03-28T16:22:31Z – system – lane=planned – Prompt created.
+- 2026-03-28T16:43:43Z – claude – shell_pid=70769 – lane=doing – Assigned agent via workflow command
