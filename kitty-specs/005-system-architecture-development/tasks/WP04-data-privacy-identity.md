@@ -20,6 +20,7 @@ subtasks:
 - T021
 - T022
 shell_pid: "63902"
+agent: "claude"
 history:
 - timestamp: '2026-03-29T03:15:46Z'
   lane: planned
@@ -214,3 +215,7 @@ Verify that:
 - Data ownership has no ambiguous items (every data type has a clear owner)
 - Identity model is practical (not theoretical) — maps to real configuration
 - Open decisions are clearly flagged for Kent's input
+
+## Activity Log
+
+- 2026-03-29T03:45:30Z – claude – shell_pid=63902 – lane=doing – Assigned agent via workflow command
