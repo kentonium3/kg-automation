@@ -1,7 +1,7 @@
 ---
 work_package_id: WP06
 title: Integration Map and Agent Team Architecture
-lane: planned
+lane: "doing"
 dependencies:
 - WP02
 - WP03
@@ -13,6 +13,9 @@ requirement_refs:
 planning_base_branch: main
 merge_target_branch: main
 branch_strategy: Planning artifacts for this feature were generated on main. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into main unless the human explicitly redirects the landing branch.
+base_branch: 005-system-architecture-development-WP06-merge-base
+base_commit: 89af6f0c50cf069f2e5a82d694a17db19d57d7d3
+created_at: '2026-03-29T03:50:26.502803+00:00'
 subtasks:
 - T030
 - T031
@@ -20,6 +23,7 @@ subtasks:
 - T033
 - T034
 - T035
+shell_pid: "65140"
 history:
 - timestamp: '2026-03-29T03:15:46Z'
   lane: planned
