@@ -1,7 +1,7 @@
 ---
 work_package_id: WP08
 title: Feature and Capability Roadmap
-lane: planned
+lane: "doing"
 dependencies:
 - WP07
 - WP02
@@ -11,6 +11,9 @@ requirement_refs:
 planning_base_branch: main
 merge_target_branch: main
 branch_strategy: Planning artifacts for this feature were generated on main. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into main unless the human explicitly redirects the landing branch.
+base_branch: 005-system-architecture-development-WP08-merge-base
+base_commit: 1f2ec33e4a04a3d27a659b527b4a1cd89ef83d0d
+created_at: '2026-03-29T04:00:19.325910+00:00'
 subtasks:
 - T043
 - T044
@@ -18,6 +21,7 @@ subtasks:
 - T046
 - T047
 - T048
+shell_pid: "67938"
 history:
 - timestamp: '2026-03-29T03:15:46Z'
   lane: planned
