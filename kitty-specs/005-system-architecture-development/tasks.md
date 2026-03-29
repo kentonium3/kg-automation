@@ -373,4 +373,5 @@ WP04: Data/Privacy/Identity ───┘──→ WP06: Integration Map + Agent 
 ## Canonical Status (Generated)
 - WP01: approved
 - WP02: for_review
+- WP03: for_review
 <!-- status-model:end -->
