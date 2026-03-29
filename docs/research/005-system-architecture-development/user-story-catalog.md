@@ -1,11 +1,15 @@
 # User Story Catalog: Felix System Architecture
 
-**Date**: 2026-03-29
+**Date**: 2026-03-29 (revised 2026-03-29)
 **WP**: WP05 — User Story Catalog (Deliverable 1)
-**Status**: Complete
+**Status**: Complete — revised to reflect prioritized feedback
 
 **Format**: As [persona], I want [capability], so that [outcome].
 **Personas**: Kent (primary), Felix (the system acting on Kent's behalf)
+
+**Priority note**: Goal/outcome management and commitment tracking are the
+highest-priority capability areas. All other areas are subordinate until
+these are functional and delivering daily value.
 
 ---
 
@@ -43,11 +47,49 @@
 
 ## Capability Area B: SuperAdmin — Executive Digital Assistant
 
-### Core Stories
+**Priority order within this area**: Goal/outcome management → Commitment
+and habit tracking → Task and time coordination → Briefings and escalation
+→ Email and scheduling → Everything else.
+
+### Goal and Outcome Management (HIGHEST PRIORITY)
+
+**B-G01** As Kent, I want to declare outcomes with specific dates and measurable evidence (e.g., "On June 30th, 2026, I have established $5K/month income through Intentional consulting as evidenced by deposits in my business checking account"), so that I have a concrete anchor against which all other commitments are evaluated.
+
+**B-G02** As Kent, I want to see all active goal declarations in one view with their target dates and current status, so that I always know what I'm working toward and how far away each goal is.
+
+**B-G03** As Felix, I want to surface my active goal declarations when Kent considers taking on a new commitment, so that Kent can make a conscious trade-off decision before saying yes.
+
+**B-G04** As Kent, I want to capture a goal declaration by speaking into WhatsApp and have it structured and stored automatically, so that the friction of committing to a goal is minimal.
+
+**B-G05** As Kent, I want a weekly review of progress toward each declared outcome — not just task completion — so that I can see whether I'm actually moving toward my goals or just staying busy.
+
+**B-G06** As Kent, I want to evaluate any new commitment against my current goal load before taking it on, so that I say no more often, more intentionally, and with less guilt.
+
+### Commitment and Habit Tracking (HIGHEST PRIORITY)
+
+**B-H01** As Kent, I want a daily habit check-in delivered via WhatsApp for each recurring commitment (meditation, exercise, physical therapy, learning blocks, and others), so that I have a moment of conscious accountability each day.
+
+**B-H02** As Kent, I want to mark recurring commitments as complete, rescheduled, or "will not do" directly from WhatsApp, so that tracking has no friction.
+
+**B-H03** As Kent, I want a weekly pattern report showing my habit completion rate vs. the prior week across all recurring commitments, so that I can see whether I'm improving or regressing week over week.
+
+**B-H04** As Kent, I want to track and see how I'm doing at keeping commitments to myself — not just to others — so that I can adjust my behavior and build self-trust over time.
+
+**B-H05** As Kent, I want new commitments evaluated against my current load before I take them on, so that I don't unknowingly undermine existing commitments by adding more.
+
+**B-H06** As Felix, I want to detect when Kent's commitment load exceeds what's realistic given available time, so that I can flag oversubscription before it causes failure.
+
+### Privacy Boundary for Transformation Work
+
+**B-P01** As Kent, I want deep personal transformation work to remain entirely within `02-Growth/_private/` with no agent access under any circumstance, while calendar items that arise from that work (meditation schedule, 5K training plan, recurring habits) are managed in the main system, so that private and operational domains remain cleanly separated.
+
+**B-P02** As Kent, I want the CoWork-in-private model to work as a sub-system: Claude assists with personal development work within that context, and only the operational artifacts (calendar events, habits, recurring tasks) surface into Felix, never the underlying content or context.
+
+### Task and Time Management (HIGH PRIORITY)
 
 **B-01** As Kent, I want to dictate a voice note and have it automatically classified, routed, and actioned, so that I can capture thoughts without being at a computer.
 
-**B-02** As Kent, I want a daily briefing delivered to my WhatsApp each morning, so that I start the day with clear priorities.
+**B-02** As Kent, I want a daily briefing delivered to my WhatsApp each morning, so that I start the day with clear priorities oriented around my declared goals.
 
 **B-03** As Kent, I want overdue commitments escalated to me persistently until I resolve them, so that important work doesn't quietly expire.
 
@@ -55,19 +97,19 @@
 
 **B-05** As Kent, I want my email triaged and summarized, so that I can process communications efficiently.
 
-**B-06** As Kent, I want my to-do list and calendar coordinated and updated, so that priorities are given time on the calendar for work to be done.
+**B-06** As Kent, I want my to-do list and calendar coordinated, so that the tasks I've committed to are given dedicated time on the calendar and don't just sit as intentions.
 
-**B-07** As Kent, I want interactive alerting and negotiation of tasks, conflicting priorities, and oversubscribed commitments, so that the most important decisions and tasks get done.
+**B-07** As Kent, I want interactive alerting and negotiation of tasks, conflicting priorities, and oversubscribed commitments, so that the most important decisions and tasks get done and I'm not passively failing at things I said yes to.
 
 **B-08** As Kent, I want to be reminded of repeating tasks and appointments on my phone via WhatsApp (meditation, exercise, physical therapy, meetings, calls), and I want to mark them as complete, rescheduled, or "will not do."
 
-**B-09** As Kent, I want to track and get reports on my track record of getting things done when I say they will be done, so that I can improve my reliability.
+**B-09** As Kent, I want to track and get reports on my track record of getting things done when I say they will be done, so that I can see patterns and improve my reliability.
 
 **B-10** As Kent, I want goal context (constitution docs) informing every priority decision, so that daily actions align with declared life and business priorities.
 
 **B-11** As Kent, I want email drafts prepared for my review before sending, so that I maintain quality and voice while saving time on composition.
 
-**B-12** As Kent, I want a weekly review that surfaces deferred tasks, checks constitution freshness, and highlights upcoming commitments, so that nothing important quietly expires.
+**B-12** As Kent, I want a weekly review that surfaces deferred tasks, checks constitution freshness, highlights progress toward declared outcomes, and surfaces upcoming commitments, so that nothing important quietly expires.
 
 ### Enhancement Stories
 
@@ -194,13 +236,18 @@
 | Area | Core Stories | Enhancement Stories | Cross-Team Stories | Total |
 |------|-------------|--------------------|--------------------|-------|
 | Core Hub (A) | 10 | 2 | — | 12 |
-| SuperAdmin (B) | 12 | 4 | 2 | 18 |
+| SuperAdmin (B) — Goal/Outcome | 6 | — | — | 6 |
+| SuperAdmin (B) — Habit/Commitment | 6 | — | — | 6 |
+| SuperAdmin (B) — Privacy Boundary | 2 | — | — | 2 |
+| SuperAdmin (B) — Task/Time/Other | 12 | 4 | 2 | 18 |
 | Development (C) | 4 | 2 | 1 | 7 |
 | Content Creation (D) | 7 | 2 | 2 | 11 |
 | BizOps (E) | 6 | 4 | 2 | 12 |
-| **Total** | **39** | **14** | **7** | **60** |
+| **Total** | **53** | **14** | **7** | **74** |
 
 All seed stories from the research brief (including Kent's additions) are
-incorporated. Stories expanded using findings from WP01 (audit), WP02
-(OpenClaw capabilities), WP03 (integration needs), and WP04 (data/privacy/
-identity).
+incorporated. Goal/outcome management and commitment/habit tracking stories
+added based on prioritization feedback. Privacy boundary stories added to
+formally capture the CoWork-in-private model. Stories expanded using findings
+from WP01 (audit), WP02 (OpenClaw capabilities), WP03 (integration needs),
+and WP04 (data/privacy/identity).

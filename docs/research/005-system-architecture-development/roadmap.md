@@ -1,10 +1,26 @@
 # Feature and Capability Roadmap: Felix System Architecture
 
-**Date**: 2026-03-29
+**Date**: 2026-03-29 (revised 2026-03-29)
 **WP**: WP08 — Feature and Capability Roadmap (Deliverable 6)
-**Status**: Complete
+**Status**: Complete — revised to reflect prioritized feedback
 **Note**: Previous F005-F015 numbering from v0.3 is discarded. New feature
 numbers are assigned below based on the validated v1.0 architecture.
+
+---
+
+## Guiding Principle
+
+The roadmap follows a user/infrastructure/user/infrastructure pattern.
+Infrastructure is only built when a specific user feature requires it.
+No infrastructure is built speculatively. The immediate roadmap (Phase 1)
+is detailed and firm. Phase 2 is directional. Phase 3 is intentional but
+loose — experience using Phase 1 and 2 features will inform the details.
+
+**Top priority**: Goal/outcome management and commitment/habit tracking.
+These capabilities are foundational — if Felix helps Kent focus on fewer,
+more intentional actions and tracks follow-through, everything else gets
+easier. All other capability areas are subordinate until these are
+functional and delivering daily value.
 
 ---
 
@@ -14,365 +30,480 @@ numbers are assigned below based on the validated v1.0 architecture.
 |---------|------|----------------|-----------------|
 | F001 | Vikunja Docker deploy, project structure, identity labels, saved filters | Core Hub (A) | Task store for all teams, web UI for Kent |
 | F002 | OpenClaw install, credential store, Anthropic API direct | Core Hub (A) | Agent orchestration engine, LLM intelligence |
-| F003 | Whisper transcription skill, transcribe-api hardening (Tailscale-only) | Core Hub (A) | Voice note processing pipeline |
+| F003 | Whisper transcription skill, transcribe-api rebind to Tailscale-only | Core Hub (A) | Voice note processing pipeline |
 | F004 | WhatsApp channel (Baileys), QR pairing, E2E messaging verified | Core Hub (A) | Inbound/outbound messaging channel |
 
 **Current capability coverage**:
-- Core Hub: Infrastructure deployed, no agent teams or automation yet
-- SuperAdmin: Task store exists (Vikunja), no automation
-- Development: Claude Code and spec-kitty used manually, not Felix-integrated
-- Content Creation: No integrations
-- BizOps: No integrations
+- Infrastructure is in place: task store, orchestration, transcription, WhatsApp
+- Zero automation is running — no agents, no skills, no heartbeats
+- No goal declarations, no habit tracking, no briefings, no escalation
 
 ---
 
-## Phase 1: Foundation Completion
+## Phase 1: Goal Management and Commitment Tracking
+
+**Theme**: Make a serious game of doing what you say you're going to do.
 
 **Entry criteria**: F005 (this research project) complete and approved.
-**Exit criteria**: All foundation features deployed. All 5 teams can operate
-at Gate 1. Central action logging active.
 
-**Goal**: Complete the infrastructure foundation so that capability areas can
-grow independently.
+**Exit criteria**: Kent can declare goals with target dates and evidence,
+track recurring commitments daily via WhatsApp, see weekly progress
+reports, and receive persistent escalation on overdue items. The core
+accountability loop is operational.
 
-### F006: Central Action Logging
+**Pattern**: user → infra → user → infra → user → infra → user → infra
 
-**Description**: Deploy OpenTelemetry collector on office2. Configure OpenClaw
-to export traces, metrics, and logs via OTLP. Create Felix-specific enrichment
-layer (team, action type, autonomy gate). Queryable audit store at
-`/data/services/felix-audit/`.
+---
 
-**Area**: Core Hub (A)
-**Priority**: P0 — all teams need this before operating
-**Dependencies**: F002 (OpenClaw deployed)
-**Complexity**: Medium
-**Enables**: Governance compliance, Gate 1 operation for all agents
+### F006 — User Feature: Goal and Outcome Structure
 
-### F007: Agent Team Structure
+**What it delivers to Kent**: A formal place in the system to declare goals
+using the outcome declaration format ("On [date], I have [outcome] as
+evidenced by [observable proof]"). Goal declarations live in Vikunja as
+a dedicated project with date anchoring and in Obsidian (01-Constitution/)
+as the authoritative reference. No new services deployed.
 
-**Description**: Configure 5 teams as named agents in OpenClaw with isolated
-workspaces, identity files, standing orders, and tool policies. Configure
-felix-core-router for message classification and team routing. Enable
-agent-to-agent messaging per the communication matrix. Set all agents to
-Gate 1.
+**Why first**: Until goals exist as structured data the system can reason
+against, everything else is just task management. This feature creates the
+anchor for all subsequent priority and commitment decisions.
 
-**Area**: Core Hub (A)
-**Priority**: P0 — prerequisite for all team operations
-**Dependencies**: F002 (OpenClaw), F006 (logging — agents must log from start)
-**Complexity**: Large
-**Enables**: All five capability areas
+**Capability area**: SuperAdmin (B) — Goal and Outcome Management
+**User stories**: B-G01, B-G02, B-G04
+**Dependencies**: F001 (Vikunja), F004 (WhatsApp for capture)
+**Infrastructure built**: Vikunja project structure extended for goal
+declarations. Goal template defined in Obsidian.
+**Complexity**: Small — configuration and structure, no new services
 
-### F008: Google Calendar + Gmail Integration (OAuth2)
+**Success criteria**:
+- [ ] Kent can declare a goal via WhatsApp voice note and have it structured
+  and stored in Vikunja and Obsidian
+- [ ] All active goal declarations visible in a single Vikunja view with
+  target dates
+- [ ] Goal declaration format documented and usable
 
-**Description**: Implement OAuth2 authorization flow (localhost redirect on
-MacBook, refresh tokens to office2). Create Calendar and Gmail API skills
-for OpenClaw. Store `personal-google` credential in secrets store.
+---
 
-**Area**: SuperAdmin (B)
-**Priority**: P0 — enables scheduling, briefings, email triage
-**Dependencies**: F002 (OpenClaw), F007 (agent team — felix-admin-calendar,
-felix-admin-email need to exist)
-**Complexity**: Medium
-**Enables**: B-04 (scheduling), B-05 (email triage), B-06 (calendar coordination)
+### F007 — Infrastructure: Vikunja API Skill
 
-### F009: Vikunja API Skill
+**What it enables**: OpenClaw can read and write Vikunja tasks, projects,
+labels, and filters programmatically. Foundation skill for all task
+automation — nothing that touches Vikunja works without this.
 
-**Description**: Create OpenClaw skill wrapping Vikunja REST API for task
-CRUD, label management, filter queries, project management. This is the
-foundation skill used by all task-writing agents.
-
-**Area**: Core Hub (A)
-**Priority**: P0 — all task-related automation depends on this
+**Capability area**: Core Hub (A)
 **Dependencies**: F001 (Vikunja), F002 (OpenClaw)
+**Complexity**: Medium — REST API wrapper skill
+
+**Success criteria**:
+- [ ] OpenClaw can create, read, update, and delete tasks via Vikunja API
+- [ ] OpenClaw can query by project, label, due date, and filter
+- [ ] Skill tested end-to-end against live Vikunja instance
+
+---
+
+### F008 — User Feature: Daily Habit Check-in and Commitment Tracking
+
+**What it delivers to Kent**: Daily WhatsApp prompts for each recurring
+commitment (meditation, exercise, PT, learning blocks, etc.). Kent marks
+each as complete / rescheduled / will-not-do directly in WhatsApp. State
+stored in Vikunja. Weekly pattern report shows completion rate this week
+vs. last week across all habits.
+
+**Why here**: This is the core of the accountability loop. Once goals
+exist (F006) and Vikunja can be written to (F007), this feature closes the
+daily loop — capture intent, track execution, report pattern.
+
+**Capability area**: SuperAdmin (B) — Commitment and Habit Tracking
+**User stories**: B-H01, B-H02, B-H03, B-H04, B-08, B-09
+**Dependencies**: F004 (WhatsApp), F006 (goal structure), F007 (Vikunja API)
+**Infrastructure built**: Minimal agent (felix-admin-heartbeat) configured
+in OpenClaw. Cron job for daily check-in delivery. Weekly report cron.
 **Complexity**: Medium
-**Enables**: F010-F013, all task automation
 
-### F010: Constitution Update
+**Success criteria**:
+- [ ] Daily habit check-in delivered via WhatsApp at configured time
+- [ ] Kent can respond complete / rescheduled / will-not-do and state is recorded
+- [ ] Weekly pattern report delivered showing this-week vs. last-week rates
+- [ ] Track record is visible in Vikunja
 
-**Description**: Update `.kittify/constitution/constitution.md` to formally
-incorporate the four new directives (narrow scope, earned autonomy, central
-logging, safety parameters). Update architecture documentation store to
-reflect v1.0.
+---
 
-**Area**: Core Hub (A)
-**Priority**: P1 — governance formalization
-**Dependencies**: F005 (v1.0 document approved)
+### F009 — Infrastructure: Constitution Update and Minimal Agent Setup
+
+**What it enables**: Constitution formally updated with the four new
+directives. Only the specific agents needed for the Phase 1 features are
+configured — felix-admin-heartbeat (already started in F008) and
+felix-core-router (minimal routing for WhatsApp → correct handler). All
+agents set to Gate 1.
+
+**Why minimal**: Don't build all five teams before knowing which agents
+deliver value. Build what's needed for the features in flight.
+
+**Capability area**: Core Hub (A)
+**Dependencies**: F005 approval, F008 (agents to configure)
 **Complexity**: Small
-**Enables**: Governance compliance for all agents
+
+**Success criteria**:
+- [ ] Constitution updated with narrow scope, earned autonomy, central
+  logging, and safety parameter directives
+- [ ] felix-admin-heartbeat operational at Gate 1
+- [ ] felix-core-router routes WhatsApp messages to correct handler
+
+---
+
+### F010 — User Feature: Escalation Engine
+
+**What it delivers to Kent**: Persistent follow-up on tasks and commitments
+that are overdue or unaddressed. Escalation increases in urgency over time
+(levels 1–4). Interactive resolution via WhatsApp: snooze / abandon / new
+date / negotiate. Agent has explicit permission to be uncomfortable to ignore.
+
+**Why here**: Goal declarations and habit tracking are only useful if the
+system follows through when Kent doesn't. This feature adds the insistence.
+
+**Capability area**: SuperAdmin (B)
+**User stories**: B-03, B-07, B-H05, B-H06
+**Dependencies**: F007 (Vikunja API), F008 (habit state), F009 (agents)
+**Infrastructure built**: felix-admin-escalation agent configured.
+Escalation label taxonomy in Vikunja (escalation-1 through escalation-4).
+**Complexity**: Medium
+
+**Success criteria**:
+- [ ] Overdue tasks escalate through four levels via WhatsApp
+- [ ] Kent can snooze, abandon, or set a new date interactively
+- [ ] Escalation state visible in Vikunja via labels
+- [ ] Agent does not accept silence at level 3+
+
+---
+
+### F011 — Infrastructure: Central Action Logging
+
+**What it enables**: OpenTelemetry collector deployed on office2. OpenClaw
+exports traces, metrics, and logs. Felix-specific enrichment layer (team,
+action type, autonomy gate). Queryable at `/data/services/felix-audit/`.
+
+**Why here (not earlier)**: Placed after the first wave of user features
+are live and generating agent activity worth logging. Building audit
+infrastructure before any agents were running would have been speculative.
+Now there's real activity to capture.
+
+**Capability area**: Core Hub (A)
+**Dependencies**: F008, F010 (agents operational)
+**Complexity**: Medium
+
+**Success criteria**:
+- [ ] All agent actions from felix-admin-* captured in structured log
+- [ ] Log queryable for audit review
+- [ ] Gate transitions recorded
+
+---
+
+### F012 — User Feature: Daily Briefing
+
+**What it delivers to Kent**: Morning WhatsApp briefing at 8 AM: active
+goals with days-to-target, today's tasks and calendar, habit check-in
+prompt, upcoming escalations. By this point the goal structure, habit
+tracking, and escalation engine are all feeding into it. The briefing is
+the daily operating summary.
+
+**Capability area**: SuperAdmin (B)
+**User stories**: B-02, B-G05, B-10
+**Dependencies**: F007 (Vikunja API), F009 (agents), F010 (escalation state)
+**Infrastructure built**: felix-admin-briefing agent. Daily cron at 8 AM.
+**Complexity**: Medium
+
+**Success criteria**:
+- [ ] Briefing delivered daily at 8 AM via WhatsApp
+- [ ] Briefing includes active goals with target dates
+- [ ] Briefing includes today's tasks, overdue items, and upcoming escalations
+- [ ] Briefing includes habit check-in prompt
+
+---
+
+### F013 — Infrastructure: Google OAuth2 + Calendar Integration
+
+**What it enables**: One-time OAuth2 authorization (localhost redirect on
+Mac). Refresh tokens stored in office2 secrets store. Google Calendar
+API skill for OpenClaw. Google Contacts (free with same credential).
+
+**Why here**: Calendar is needed to give tasks and goals time blocks (F014).
+Placed after the core accountability loop (F006–F012) is operational.
+
+**Capability area**: SuperAdmin (B)
+**Dependencies**: F002 (OpenClaw credential store), F007 (Vikunja API skill)
+**Complexity**: Medium
+
+**Success criteria**:
+- [ ] OAuth2 authorization complete for personal Google account
+- [ ] Refresh tokens in office2 secrets store
+- [ ] OpenClaw can read and write Google Calendar events
+
+---
+
+### F014 — User Feature: Calendar and Task Coordination
+
+**What it delivers to Kent**: Declared goals and committed tasks are given
+time blocks on the calendar. Calendar and task list stay synchronized.
+Conflict detection before scheduling. Meeting scheduling from natural
+language via WhatsApp. Recurring habits from the private boundary appear
+as calendar events without exposing their origin.
+
+**Capability area**: SuperAdmin (B)
+**User stories**: B-04, B-06, B-13, B-14, B-P01
+**Dependencies**: F007 (Vikunja API), F012 (briefing), F013 (Calendar)
+**Infrastructure built**: felix-admin-calendar agent configured.
+**Complexity**: Medium
+
+**Success criteria**:
+- [ ] Tasks with due dates can be time-blocked on Google Calendar
+- [ ] Calendar conflict detection works before scheduling
+- [ ] Recurring habits appear on calendar (origin stays private)
+- [ ] Meeting scheduling via WhatsApp creates calendar events
+
+---
 
 ### Phase 1 Dependency Graph
 
 ```
-F005 (this project) ──→ F010 (Constitution Update)
-                    ──→ F006 (Action Logging) ──→ F007 (Agent Teams) ──→ F008 (Google OAuth2)
-                                                                    ──→ F009 (Vikunja API Skill)
+F005 (approved)
+  │
+  ├── F006 (Goal Structure) ──→ F007 (Vikunja API) ──→ F008 (Habit Tracking)
+  │                                                         │
+  │                                                         ▼
+  │                                                    F009 (Constitution + Agents)
+  │                                                         │
+  │                                                         ▼
+  │                                                    F010 (Escalation)
+  │                                                         │
+  │                                                         ▼
+  │                                                    F011 (Action Logging)
+  │                                                         │
+  │                                                         ▼
+  │                                                    F012 (Daily Briefing)
+  │                                                         │
+  │                                                    F013 (Google OAuth2)
+  │                                                         │
+  │                                                         ▼
+  └──────────────────────────────────────────────────→ F014 (Calendar Coordination)
 ```
 
-**Parallel tracks**: F006 and F009 can start simultaneously after F005.
-F010 can start immediately after F005. F007 depends on F006. F008 depends
-on F007.
+**Critical path**: F005 → F006 → F007 → F008 → F009 → F010 → F012 → F013 → F014
+
+**Shortest path to first value**: F006 (goal structure) — immediate,
+no new services.
+
+**First time-sensitive value**: F008 (daily habit check-in) — four
+features in.
 
 ---
 
-## Phase 2: Capability Area Buildout
+## Phase 2: Capture Pipeline and Business Foundations
 
-**Entry criteria**: Phase 1 foundation complete (F006-F010 deployed).
-**Exit criteria**: Each capability area has its first operational features.
-Agents operating at Gate 1 with demonstrated reliability.
+**Theme**: Complete the capture-to-action loop and establish the first
+business operations capability.
 
-**Goal**: Each area builds its initial automation. Multiple areas can build
-in parallel since they operate on different integrations.
+**Entry criteria**: Phase 1 complete. Kent is using goal declarations,
+habit tracking, escalation, and daily briefing daily. The accountability
+loop is working.
 
-### SuperAdmin (Area B) — First Features
+**Exit criteria**: Voice capture from Obsidian inbox is automated. First
+BizOps capability (CRM) is operational. Content creation pipeline can
+produce drafts on demand.
 
-**F011: Voice Capture Pipeline**
-- Inbox-processor skill migrated from Cowork concept. Scans 00-Inbox/ hourly.
-  Routes content to vault destinations and tasks to Vikunja.
-- Dependencies: F007, F009
-- Complexity: Medium
-- Enables: B-01 (voice capture), B-15 (process inbox now)
-
-**F012: Daily Briefing**
-- felix-admin-briefing compiles daily briefing from Vikunja (Today/Upcoming/
-  Overdue), Google Calendar (events), and optionally CRM pipeline. Delivers
-  via WhatsApp at 8 AM.
-- Dependencies: F007, F008, F009
-- Complexity: Medium
-- Enables: B-02 (daily briefing), B-12 (weekly review)
-
-**F013: Escalation Engine**
-- felix-admin-escalation monitors overdue tasks via Vikunja labels
-  (escalation-1 through escalation-4). Sends WhatsApp reminders with
-  increasing urgency. Interactive resolution (snooze/abandon/new date).
-- Dependencies: F007, F009
-- Complexity: Medium
-- Enables: B-03 (escalation), B-07 (priority negotiation), B-08 (reminders)
-
-### Content Creation (Area D) — First Features
-
-**F014: Canva Integration**
-- Connect Canva API via OAuth2. Create skill for design generation, export,
-  brand kit access. Assign to felix-content-designer.
-- Dependencies: F007
-- Complexity: Medium
-- Enables: D-02 (presentations), D-05 (diagrams/graphics), D-06 (brand identity)
-
-**F015: Content Pipeline**
-- felix-content-writer generates multi-format content (blog, LinkedIn, white
-  paper, email) from briefs using Claude API. felix-content-formatter
-  transforms between formats. Output to second brain (04-Business/) or
-  `/data/content/`.
-- Dependencies: F007
-- Complexity: Medium
-- Enables: D-01 (blog drafts), D-03 (multi-format), D-07 (white papers)
-
-### BizOps (Area E) — First Features
-
-**F016: CRM Integration**
-- Connect HubSpot (or confirmed CRM) via private app token. Create skill for
-  contact CRUD, deal pipeline, lead tracking. Polling for updates (no webhook).
-- Dependencies: F007, **CRM platform confirmed (open decision OD-1)**
-- Complexity: Medium
-- Enables: E-01 (lead capture), E-05 (pipeline tracking), E-06 (prospect comms)
-
-**F017: Business Reporting**
-- felix-bizops-reporting generates weekly business report from Vikunja tasks,
-  CRM pipeline, and campaign metrics. Delivers via WhatsApp.
-- Dependencies: F007, F009, F016
-- Complexity: Small
-- Enables: E-04 (weekly report)
-
-### Development (Area C) — First Features
-
-**F018: Felix-Integrated Development Workflows**
-- felix-dev-orchestrator coordinates spec-kitty workflows via shell execution.
-  Triggers Claude Code sessions. Receives completion via OpenClaw inbound
-  webhooks from CI. Development status in daily briefing.
-- Dependencies: F007, F006 (logging)
-- Complexity: Medium
-- Enables: C-03 (orchestrated dev), C-05 (dev status in briefing), C-06 (async Claude Code)
-
-### Phase 2 Dependency Graph
-
-```
-Phase 1 Complete
-  │
-  ├── SuperAdmin Track:  F011 (Capture) ──→ F012 (Briefing) ──→ F013 (Escalation)
-  │
-  ├── Content Track:     F014 (Canva) ──┐
-  │                      F015 (Pipeline)┘ (parallel)
-  │
-  ├── BizOps Track:      F016 (CRM) ──→ F017 (Reporting)
-  │                      [blocked by OD-1 CRM decision]
-  │
-  └── Development Track: F018 (Dev Workflows)
-```
-
-**Parallel tracks**: All four area tracks can proceed simultaneously.
-Within SuperAdmin, F011-F013 are sequential. BizOps F016 is blocked until
-Kent confirms CRM choice.
+**Note on certainty**: Phase 2 features are directional. The exact
+sequencing will be refined based on what's most valuable after Phase 1
+is operational. The user/infra pattern continues.
 
 ---
 
-## Phase 3: Advanced Capabilities
+### F015 — User Feature: Voice Capture Pipeline
 
-**Entry criteria**: Phase 2 features operational, agents demonstrating
-reliability at Gate 1. Some agents may advance to Gate 2.
-**Exit criteria**: Cross-team automation working, advanced content types,
-multi-business operations.
+**What it delivers to Kent**: Obsidian inbox processed hourly (and
+on-demand via WhatsApp). Notes classified and routed to vault destinations.
+Task/commitment items routed to Vikunja. The full capture-classify-route
+loop from Wispr Flow → Obsidian → Felix → Vikunja.
 
-### Cross-Team Automation
+**Capability area**: SuperAdmin (B)
+**User stories**: B-01, B-15
+**Dependencies**: F007 (Vikunja API), F009 (agents)
+**Infrastructure built**: felix-admin-capture agent. Hourly inbox poll cron.
+**Complexity**: Medium (migrates inbox-processor from Cowork pattern)
 
-**F019: Cross-Team Request Routing**
-- Enable automated request flow between teams (BizOps → Content Creation
-  for campaign materials, SuperAdmin → Content Creation for meeting prep).
-  Requires agent-to-agent messaging patterns validated in Phase 2.
-- Dependencies: F014, F015 (Content pipeline operational)
-- Complexity: Medium
+---
 
-**F020: Multi-Business Identity Routing**
-- Extend identity model to fully route by Vikunja label across calendar,
-  email, CRM, and content. Add Intentional Google Workspace credentials.
-  Add metal casework label and routing.
-- Dependencies: F008, F016
-- Complexity: Medium
+### F016 — Infrastructure: Weekly Review Skeleton
 
-### Advanced SuperAdmin
+**What it enables**: Weekly review cron (Sunday 6 PM). Queries goal
+progress, habit completion rates, Someday surfacing, constitution
+freshness check. Feeds the weekly pattern report already started in F008.
 
-**F021: Goal Context Loader**
-- Reads constitution docs (Goals-MOC, Identity, Values, Vision, Personal-Brand)
-  to inform priority reasoning. Constitution hash tracking for change detection.
-- Dependencies: F007
-- Complexity: Small
+**Capability area**: SuperAdmin (B)
+**Dependencies**: F008, F012, F015
 
-**F022: Track Record Reporting**
-- Historical analysis of task completion vs. due dates. Trend reporting.
-  Delivered via WhatsApp or as part of weekly review.
-- Dependencies: F009, F012
-- Complexity: Small
+---
 
-### Advanced Content
+### F017 — User Feature: Goal Progress Review (Weekly)
 
-**F023: Cross-Platform Publishing**
-- Automated scheduling and publishing to LinkedIn, Instagram, personal
-  website, and email. Requires social media API integration or Buffer.
-- Dependencies: F015, **Social media tool confirmed (OD-4)**
-- Complexity: Medium-Large
+**What it delivers to Kent**: Sunday evening WhatsApp summary: progress
+toward each declared outcome, habit completion rates this week vs. last,
+Someday items surfaced for consideration, upcoming week preview.
 
-**F024: Email Marketing Campaigns**
-- Campaign creation, audience management, send scheduling via confirmed
-  email marketing platform.
-- Dependencies: F016, **Email marketing platform confirmed (OD-5)**
-- Complexity: Medium
+**Capability area**: SuperAdmin (B)
+**User stories**: B-G05, B-H03, B-12
+**Dependencies**: F012 (briefing agent), F015 (capture), F016 (weekly cron)
 
-### Advanced BizOps
+---
 
-**F025: Invoicing Integration**
-- Connect invoicing tool. Create/send invoices from work descriptions.
-  Track payments.
-- Dependencies: **Invoicing tool confirmed (OD-2)**
-- Complexity: Medium
+### F018 — Infrastructure: CRM Integration (pending OD-1 decision)
 
-**F026: Metal Casework Operations**
-- When metal casework business becomes active: order management, customer
-  communications, separate CRM pipeline or instance.
-- Dependencies: F020 (identity routing), **Order management tool confirmed (OD-3)**
-- Complexity: Large
+**What it enables**: HubSpot (or confirmed CRM) connected via private app
+token. Contact CRUD, deal pipeline, lead tracking. Polling for updates.
 
-### Advanced Core Hub
+**Blocked by**: Open Decision OD-1 — Kent must confirm CRM platform
+before this can be specced.
 
-**F027: Agent Autonomy Advancement**
-- Formal process for advancing agents from Gate 1 → Gate 2 based on
-  performance data from action log. Tooling to review agent performance
-  and make gate transition decisions.
-- Dependencies: F006, F007, 90+ days of operation
-- Complexity: Medium
+**Capability area**: BizOps (E)
+**Dependencies**: F009 (agents), OD-1 confirmed
 
-**F028: System Self-Diagnosis**
-- Core Hub agents diagnose common issues (service down, credential expired,
-  sync stalled) and propose remediation to Kent.
-- Dependencies: F007
-- Complexity: Medium
+---
+
+### F019 — User Feature: Lead Capture and Pipeline Tracking
+
+**What it delivers to Kent**: New leads from website auto-entered into
+CRM with context. Deal pipeline visible in weekly business report.
+Prospect follow-ups managed via WhatsApp commands.
+
+**Capability area**: BizOps (E)
+**User stories**: E-01, E-04, E-05
+**Dependencies**: F018 (CRM integration)
+
+---
+
+### F020 — Infrastructure: Canva Integration
+
+**What it enables**: Canva API via OAuth2. Design generation, export,
+brand kit access assigned to felix-content-designer.
+
+**Capability area**: Content Creation (D)
+**Dependencies**: F009 (agents)
+
+---
+
+### F021 — User Feature: Content Draft Pipeline
+
+**What it delivers to Kent**: Blog posts, LinkedIn posts, white papers,
+and email copy generated from briefs via WhatsApp. Multi-format
+transformation (one brief → blog + LinkedIn + email versions).
+Output to second brain (04-Business/) or office2.
+
+**Capability area**: Content Creation (D)
+**User stories**: D-01, D-02, D-03, D-07
+**Dependencies**: F020 (Canva), F009 (agents)
+
+---
+
+## Phase 3: Advanced Capabilities and Cross-Team Automation
+
+**Theme**: Cross-team automation, multi-business operations, advanced
+content, autonomy progression.
+
+**Certainty level**: Intentional but loose. Phase 1 and 2 experience
+will substantially shape the details.
+
+**Entry criteria**: Phase 2 operational. Agents have 30–90 days of Gate 1
+history. Some agents ready for Gate 2 evaluation.
+
+### Indicative Phase 3 Features (subject to revision)
+
+- **F022**: Cross-team request routing (BizOps → Content, SuperAdmin → Content)
+- **F023**: Multi-business identity routing (Intentional Workspace, metal casework label)
+- **F024**: Goal Context Loader (constitution docs inform every priority decision)
+- **F025**: Cross-platform publishing (LinkedIn, Instagram, website, email)
+- **F026**: Email marketing campaigns (Mailchimp or HubSpot Email)
+- **F027**: Invoicing integration (tool TBD — open decision OD-2)
+- **F028**: Felix-integrated development workflows (spec-kitty + Claude Code via OpenClaw)
+- **F029**: Agent autonomy advancement (formal Gate 1 → Gate 2 process based on audit log)
+- **F030**: System self-diagnosis (Core Hub detects service failures and proposes fixes)
+- **F031**: Metal casework operations (when business is active — order management, CRM)
 
 ---
 
 ## Phase Summary
 
-| Phase | Features | Key Deliverables | Parallel Tracks |
-|-------|----------|-----------------|-----------------|
-| Current | F001-F004 | Infrastructure foundation | — |
-| F005 | Research | v1.0 architecture, roadmap | — |
-| Phase 1 | F006-F010 | Logging, teams, OAuth2, Vikunja API, constitution | F006+F009+F010 parallel |
-| Phase 2 | F011-F018 | Briefings, escalation, Canva, content pipeline, CRM, dev workflows | 4 area tracks parallel |
-| Phase 3 | F019-F028 | Cross-team, multi-business, publishing, invoicing, autonomy | Multiple parallel tracks |
+| Phase | Features | Primary Theme | Certainty |
+|-------|----------|--------------|-----------|
+| Deployed | F001–F004 | Infrastructure foundation | Complete |
+| F005 | Research | Architecture and roadmap | Complete |
+| Phase 1 | F006–F014 | Goal management and commitment tracking | High — detailed and firm |
+| Phase 2 | F015–F021 | Capture pipeline and business foundations | Medium — directional |
+| Phase 3 | F022–F031 | Cross-team, advanced content, autonomy | Low — intentional but loose |
 
-## Feature Dependency Map (All Phases)
+---
+
+## Full Feature Dependency Map
 
 ```
-F001-F004 (deployed)
+F001–F004 (deployed)
   │
-  └── F005 (this project)
+  └── F005 (this project, approved)
         │
-        ├── F006 (Action Logging) ───────────────────────────────┐
-        │     └── F007 (Agent Teams) ───────────────────────────┤
-        │           ├── F008 (Google OAuth2) ──→ F012 (Briefing)│
-        │           ├── F009 (Vikunja API) ──→ F011 (Capture)   │
-        │           │                     ──→ F013 (Escalation)  │
-        │           ├── F014 (Canva) ───────────────────────────┤
-        │           ├── F015 (Content Pipeline) ────────────────┤
-        │           ├── F016 (CRM) [blocked: OD-1] ──→ F017    │
-        │           ├── F018 (Dev Workflows)                    │
-        │           └── F021 (Goal Context) ──→ F022 (Tracking) │
+        ├── F006 (Goal Structure) ─→ F007 (Vikunja API) ─→ F008 (Habit Tracking)
         │                                                        │
-        ├── F010 (Constitution Update)                           │
+        │                                                   F009 (Constitution + Agents)
         │                                                        │
-        └── Phase 3 features depend on Phase 2 ─────────────────┘
-              F019 (Cross-Team) ← F014, F015
-              F020 (Multi-Business) ← F008, F016
-              F023 (Publishing) ← F015, [OD-4]
-              F024 (Email Marketing) ← F016, [OD-5]
-              F025 (Invoicing) ← [OD-2]
-              F026 (Metal Casework Ops) ← F020, [OD-3]
-              F027 (Autonomy Advancement) ← F006, F007, 90+ days
-              F028 (Self-Diagnosis) ← F007
+        │                                                   F010 (Escalation)
+        │                                                        │
+        │                                                   F011 (Action Logging)
+        │                                                        │
+        │                                                   F012 (Daily Briefing)
+        │                                                        │
+        │                                               F013 (Google OAuth2)
+        │                                                        │
+        │                                               F014 (Calendar Coordination)
+        │                                                        │
+        │                                     ┌──────────────────┤
+        │                                     │                  │
+        │                              F015 (Capture)    F018 (CRM) [blocked: OD-1]
+        │                                     │                  │
+        │                              F016 (Weekly Infra)  F019 (Lead Capture)
+        │                                     │
+        │                              F017 (Weekly Review)
+        │                                     │
+        │                             F020 (Canva) ─→ F021 (Content Pipeline)
+        │
+        Phase 3 features build on Phase 2 operations and agent history
 ```
 
-## Critical Path
+---
 
-The longest dependency chain is:
-```
-F005 → F006 → F007 → F008 → F012 (Daily Briefing)
-```
+## Open Decisions Blocking Features
 
-This means the daily briefing (one of the highest-value SuperAdmin features)
-requires all foundation work complete first. Estimated: 4-5 feature cycles
-after F005.
+| Decision | Blocks | Phase | Action Needed |
+|----------|--------|-------|--------------|
+| OD-1: CRM platform (HubSpot?) | F018, F019 | Phase 2 | Kent confirms CRM choice |
+| OD-2: Invoicing tool | F027 | Phase 3 | Kent decides invoicing tool |
+| OD-3: Order management | F031 | Phase 3 | Defer — metal casework pre-revenue |
+| OD-4: Social media tool | F025 | Phase 3 | Buffer or direct APIs |
+| OD-5: Email marketing | F026 | Phase 3 | HubSpot Email or Mailchimp |
 
-**Shortest path to value**: F005 → F006 → F007 → F009 → F011 (Voice Capture
-Pipeline). This enables the core capture-classify-route workflow.
+**Phase 1 is completely unblocked.** All F006–F014 features can proceed
+without any open decision being resolved.
 
-## Open Decisions That Block Features
-
-| Decision | Blocks | Phase | Impact if Deferred |
-|----------|--------|-------|-------------------|
-| OD-1: CRM platform | F016, F017 | Phase 2 | BizOps delayed |
-| OD-2: Invoicing tool | F025 | Phase 3 | Invoicing delayed |
-| OD-3: Order management | F026 | Phase 3 | Metal casework ops delayed (acceptable — pre-revenue) |
-| OD-4: Social media tool | F023 | Phase 3 | Cross-platform publishing delayed |
-| OD-5: Email marketing | F024 | Phase 3 | Campaign email delayed |
-
-**Phase 1 and Phase 2 SuperAdmin/Content/Dev tracks are NOT blocked by any
-open decisions.** Only BizOps F016 is blocked by OD-1 (CRM confirmation).
+---
 
 ## Constraints and Assumptions
 
-- **Single operator**: Kent is the only user. Roadmap is paced for one person
+- **Single operator**: Kent is the only user. Roadmap paced for one person
   directing AI agents, not a team.
-- **office2 hardware**: Dell XPS 8700 with 32GB RAM, i7-4790, 2.7TB HDD.
-  May constrain concurrent service count in later phases.
-- **Tailscale-only**: No public internet exposure. Webhook-dependent features
-  use polling unless Kent approves Tailscale Funnel.
-- **Feature cycle time**: Estimated 1-3 days per feature using spec-kitty +
-  Claude Code, depending on complexity.
-- **Gate progression**: Agents need 30-90 days at each gate before advancing.
-  Phase 3 autonomous features require significant Gate 1/2 history.
+- **Privacy is absolute**: `02-Growth/_private/` — no agent access under
+  any circumstance. Operational artifacts (calendar events, habits) from
+  private work surface into Felix; underlying content never does.
+- **office2 hardware**: Dell XPS 8700, 32GB RAM, i7-4790, 2.7TB HDD.
+  Sufficient for Phase 1–2. May be a factor in Phase 3 concurrency.
+- **Tailscale-only**: No public internet exposure. Webhook-dependent
+  features use polling unless Kent approves Tailscale Funnel.
+- **Feature cycle time**: Estimated 1–3 days per feature using spec-kitty
+  + Claude Code depending on complexity.
+- **Gate progression**: Agents need 30–90 days at each gate before
+  advancing. Phase 3 autonomous features require substantial Gate 1/2 history.
+- **Roadmap is living**: Phase 2 and 3 details will be revised based on
+  what's learned operating Phase 1 features. This is expected and healthy.
