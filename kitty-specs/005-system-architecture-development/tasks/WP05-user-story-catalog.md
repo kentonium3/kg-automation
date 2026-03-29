@@ -1,7 +1,7 @@
 ---
 work_package_id: WP05
 title: User Story Catalog
-lane: "approved"
+lane: done
 dependencies:
 - WP01
 - WP02
@@ -25,8 +25,8 @@ subtasks:
 - T029
 agent: claude
 shell_pid: '66329'
-reviewed_by: "Kent Gale"
-review_status: "approved"
+review_status: approved
+reviewed_by: Kent Gale
 history:
 - timestamp: '2026-03-29T03:15:46Z'
   lane: planned

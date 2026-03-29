@@ -1,7 +1,7 @@
 ---
 work_package_id: WP07
 title: Data Architecture and Canonical Architecture Document
-lane: "approved"
+lane: done
 dependencies:
 - WP01
 requirement_refs:
@@ -25,8 +25,8 @@ subtasks:
 - T042
 agent: claude
 shell_pid: '67722'
-reviewed_by: "Kent Gale"
-review_status: "approved"
+review_status: approved
+reviewed_by: Kent Gale
 history:
 - timestamp: '2026-03-29T03:15:46Z'
   lane: planned

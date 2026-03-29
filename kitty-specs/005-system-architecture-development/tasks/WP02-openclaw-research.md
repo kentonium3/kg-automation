@@ -1,7 +1,7 @@
 ---
 work_package_id: WP02
 title: OpenClaw Capability Research
-lane: "approved"
+lane: done
 dependencies: []
 requirement_refs:
 - FR-004
@@ -22,8 +22,8 @@ subtasks:
 - T012
 agent: claude
 shell_pid: '63432'
-reviewed_by: "Kent Gale"
-review_status: "approved"
+review_status: approved
+reviewed_by: Kent Gale
 history:
 - timestamp: '2026-03-29T03:15:46Z'
   lane: planned

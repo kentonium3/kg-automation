@@ -1,7 +1,7 @@
 ---
 work_package_id: WP03
 title: Integration and Tool Research
-lane: "approved"
+lane: done
 dependencies: []
 requirement_refs:
 - FR-003
@@ -19,8 +19,8 @@ subtasks:
 - T017
 agent: claude
 shell_pid: '63573'
-reviewed_by: "Kent Gale"
-review_status: "approved"
+review_status: approved
+reviewed_by: Kent Gale
 history:
 - timestamp: '2026-03-29T03:15:46Z'
   lane: planned

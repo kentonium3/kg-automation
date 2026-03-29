@@ -1,7 +1,7 @@
 ---
 work_package_id: WP01
 title: Local Architecture Audit
-lane: "approved"
+lane: done
 dependencies: []
 requirement_refs:
 - FR-001
@@ -20,8 +20,8 @@ subtasks:
 - T006
 agent: claude
 shell_pid: '60789'
-reviewed_by: "Kent Gale"
-review_status: "approved"
+review_status: approved
+reviewed_by: Kent Gale
 history:
 - timestamp: '2026-03-29T03:15:46Z'
   lane: planned

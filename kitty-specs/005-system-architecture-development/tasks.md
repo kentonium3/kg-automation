@@ -371,12 +371,12 @@ WP04: Data/Privacy/Identity ───┘──→ WP06: Integration Map + Agent 
 
 <!-- status-model:start -->
 ## Canonical Status (Generated)
-- WP01: approved
-- WP02: approved
-- WP03: approved
-- WP04: approved
-- WP05: approved
-- WP06: approved
-- WP07: approved
-- WP08: approved
+- WP01: done
+- WP02: done
+- WP03: done
+- WP04: done
+- WP05: done
+- WP06: done
+- WP07: done
+- WP08: done
 <!-- status-model:end -->

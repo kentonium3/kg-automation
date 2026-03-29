@@ -1,7 +1,7 @@
 ---
 work_package_id: WP08
 title: Feature and Capability Roadmap
-lane: "approved"
+lane: done
 dependencies:
 - WP07
 - WP02
@@ -23,8 +23,8 @@ subtasks:
 - T048
 agent: claude
 shell_pid: '68664'
-reviewed_by: "Kent Gale"
-review_status: "approved"
+review_status: approved
+reviewed_by: Kent Gale
 history:
 - timestamp: '2026-03-29T03:15:46Z'
   lane: planned
