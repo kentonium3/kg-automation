@@ -271,12 +271,12 @@
 **Estimated Prompt Size**: ~350 lines
 
 ### Included Subtasks
-- [ ] T043 Map F001-F004 to capability areas in the roadmap (what's already built)
-- [ ] T044 Define Phase 1: Foundation completion — what must be built before capability areas can grow
-- [ ] T045 Define Phase 2: Capability area buildout — prioritized by dependency and business value
-- [ ] T046 Define Phase 3: Advanced capabilities — cross-team features, autonomous operations
-- [ ] T047 Map dependencies between features and capabilities — prerequisite relationships
-- [ ] T048 Produce the roadmap document with feature numbers, priorities, and phase assignments
+- [x] T043 Map F001-F004 to capability areas in the roadmap (what's already built)
+- [x] T044 Define Phase 1: Foundation completion — what must be built before capability areas can grow
+- [x] T045 Define Phase 2: Capability area buildout — prioritized by dependency and business value
+- [x] T046 Define Phase 3: Advanced capabilities — cross-team features, autonomous operations
+- [x] T047 Map dependencies between features and capabilities — prerequisite relationships
+- [x] T048 Produce the roadmap document with feature numbers, priorities, and phase assignments
 
 ### Implementation Notes
 - Previous F005-F015 numbering is discarded — new feature numbers assigned by this roadmap
