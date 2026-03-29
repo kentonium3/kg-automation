@@ -24,6 +24,7 @@ subtasks:
 - T034
 - T035
 shell_pid: "65140"
+agent: "claude"
 history:
 - timestamp: '2026-03-29T03:15:46Z'
   lane: planned
@@ -215,3 +216,7 @@ Verify that:
 - Cross-team patterns are concrete, not abstract
 - Autonomy model is practical and maps to OpenClaw capabilities
 - Onboarding process supports extensibility without sacrificing governance
+
+## Activity Log
+
+- 2026-03-29T03:50:26Z – claude – shell_pid=65140 – lane=doing – Assigned agent via workflow command
