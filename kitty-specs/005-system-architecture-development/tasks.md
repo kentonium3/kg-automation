@@ -161,13 +161,13 @@
 **Estimated Prompt Size**: ~400 lines
 
 ### Included Subtasks
-- [ ] T023 Expand Core Hub (Area A) user stories using OpenClaw capability findings from WP02
-- [ ] T024 Expand SuperAdmin (Area B) user stories using integration and privacy findings from WP03 and WP04
-- [ ] T025 Expand Development (Area C) user stories using Claude Code/spec-kitty coordination findings from WP02
-- [ ] T026 Expand Content Creation (Area D) user stories using tool research from WP03
-- [ ] T027 Expand BizOps (Area E) user stories using business system research from WP03
-- [ ] T028 Gap analysis — review catalog for missing capabilities and cross-team interactions
-- [ ] T029 Produce research/user-story-catalog.md with all stories grouped by capability area
+- [x] T023 Expand Core Hub (Area A) user stories using OpenClaw capability findings from WP02
+- [x] T024 Expand SuperAdmin (Area B) user stories using integration and privacy findings from WP03 and WP04
+- [x] T025 Expand Development (Area C) user stories using Claude Code/spec-kitty coordination findings from WP02
+- [x] T026 Expand Content Creation (Area D) user stories using tool research from WP03
+- [x] T027 Expand BizOps (Area E) user stories using business system research from WP03
+- [x] T028 Gap analysis — review catalog for missing capabilities and cross-team interactions
+- [x] T029 Produce research/user-story-catalog.md with all stories grouped by capability area
 
 ### Implementation Notes
 - Start from seed stories in `docs/func-spec/F005_system_architecture_review.md`
