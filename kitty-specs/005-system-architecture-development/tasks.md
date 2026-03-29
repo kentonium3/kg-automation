@@ -368,3 +368,8 @@ WP04: Data/Privacy/Identity ───┘──→ WP06: Integration Map + Agent 
 | T046 | WP08 | Define Phase 3 advanced capabilities |
 | T047 | WP08 | Map feature dependencies |
 | T048 | WP08 | Produce roadmap document |
+
+<!-- status-model:start -->
+## Canonical Status (Generated)
+- WP01: for_review
+<!-- status-model:end -->

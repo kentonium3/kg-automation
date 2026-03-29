@@ -1,7 +1,7 @@
 ---
 work_package_id: WP01
 title: Local Architecture Audit
-lane: "doing"
+lane: "for_review"
 dependencies: []
 requirement_refs:
 - FR-001
@@ -18,8 +18,8 @@ subtasks:
 - T004
 - T005
 - T006
-shell_pid: "59705"
-agent: "claude"
+agent: claude
+shell_pid: '59705'
 history:
 - timestamp: '2026-03-29T03:15:46Z'
   lane: planned
@@ -216,3 +216,4 @@ Verify that:
 ## Activity Log
 
 - 2026-03-29T03:25:18Z – claude – shell_pid=59705 – lane=doing – Assigned agent via workflow command
+- 2026-03-29T03:29:05Z – claude – shell_pid=59705 – lane=for_review – Ready for review: audit covers all deployed services, drift analysis (4 items), gap analysis (11 unbuilt Phase 1 items), undocumented state (6 items), and governance gaps (4 new directives)
