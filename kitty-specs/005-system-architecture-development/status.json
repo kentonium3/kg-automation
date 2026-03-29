@@ -1,16 +1,16 @@
 {
-  "event_count": 25,
+  "event_count": 27,
   "feature_slug": "005-system-architecture-development",
-  "last_event_id": "01KMVVN8S451HCD6ZSM6K3ZGWA",
-  "materialized_at": "2026-03-29T03:54:31.589273+00:00",
+  "last_event_id": "01KMVVNNB93G0G0DH9HDCBZMR4",
+  "materialized_at": "2026-03-29T03:54:44.458465+00:00",
   "summary": {
-    "approved": 4,
+    "approved": 5,
     "blocked": 0,
     "canceled": 0,
     "claimed": 0,
     "done": 0,
     "for_review": 1,
-    "in_progress": 1,
+    "in_progress": 0,
     "planned": 0
   },
   "work_packages": {
@@ -43,11 +43,11 @@
       "last_transition_at": "2026-03-29T03:48:43.491260+00:00"
     },
     "WP05": {
-      "actor": "claude",
+      "actor": "user",
       "force_count": 2,
-      "lane": "in_progress",
-      "last_event_id": "01KMVVN8S451HCD6ZSM6K3ZGWA",
-      "last_transition_at": "2026-03-29T03:54:31.588229+00:00"
+      "lane": "approved",
+      "last_event_id": "01KMVVNNB93G0G0DH9HDCBZMR4",
+      "last_transition_at": "2026-03-29T03:54:44.457540+00:00"
     },
     "WP06": {
       "actor": "user",
