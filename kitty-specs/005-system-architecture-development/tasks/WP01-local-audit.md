@@ -19,6 +19,7 @@ subtasks:
 - T005
 - T006
 shell_pid: "59705"
+agent: "claude"
 history:
 - timestamp: '2026-03-29T03:15:46Z'
   lane: planned
@@ -211,3 +212,7 @@ Verify that:
 - Every F001-F004 feature is accounted for
 - Governance gaps are specific, not vague
 - Drift items have clear impact assessments
+
+## Activity Log
+
+- 2026-03-29T03:25:18Z – claude – shell_pid=59705 – lane=doing – Assigned agent via workflow command
