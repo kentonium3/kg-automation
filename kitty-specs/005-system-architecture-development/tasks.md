@@ -91,11 +91,11 @@
 **Estimated Prompt Size**: ~400 lines
 
 ### Included Subtasks
-- [ ] T013 Research SuperAdmin integration needs — Google Calendar, Gmail, and identify additional requirements from user stories (RQ-6)
-- [ ] T014 Research BizOps business system needs — HubSpot and identify CRM, invoicing, order management requirements (RQ-7)
-- [ ] T015 Research Content Creation tool needs beyond Canva — analyze content requirements from user stories across all teams (RQ-8)
-- [ ] T016 Research email integration approaches given Tailscale-only and security constraints (RQ-9)
-- [ ] T017 Consolidate findings into research/integration-needs.md with confirmed tools, open decisions, and per-capability summaries
+- [x] T013 Research SuperAdmin integration needs — Google Calendar, Gmail, and identify additional requirements from user stories (RQ-6)
+- [x] T014 Research BizOps business system needs — HubSpot and identify CRM, invoicing, order management requirements (RQ-7)
+- [x] T015 Research Content Creation tool needs beyond Canva — analyze content requirements from user stories across all teams (RQ-8)
+- [x] T016 Research email integration approaches given Tailscale-only and security constraints (RQ-9)
+- [x] T017 Consolidate findings into research/integration-needs.md with confirmed tools, open decisions, and per-capability summaries
 
 ### Implementation Notes
 - External tool docs should be consulted only to the depth needed to answer the research questions
