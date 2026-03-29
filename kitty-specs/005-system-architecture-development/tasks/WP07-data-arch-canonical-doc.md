@@ -1,7 +1,7 @@
 ---
 work_package_id: WP07
 title: Data Architecture and Canonical Architecture Document
-lane: planned
+lane: "doing"
 dependencies:
 - WP01
 requirement_refs:
@@ -12,6 +12,9 @@ requirement_refs:
 planning_base_branch: main
 merge_target_branch: main
 branch_strategy: Planning artifacts for this feature were generated on main. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into main unless the human explicitly redirects the landing branch.
+base_branch: 005-system-architecture-development-WP01
+base_commit: 325bb965119e74f43543db7511a3b1891f69a97b
+created_at: '2026-03-29T03:55:42.107133+00:00'
 subtasks:
 - T036
 - T037
@@ -20,6 +23,7 @@ subtasks:
 - T040
 - T041
 - T042
+shell_pid: "66703"
 history:
 - timestamp: '2026-03-29T03:15:46Z'
   lane: planned
