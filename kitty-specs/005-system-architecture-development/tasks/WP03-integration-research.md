@@ -1,19 +1,23 @@
 ---
 work_package_id: WP03
 title: Integration and Tool Research
-lane: planned
+lane: "doing"
 dependencies: []
 requirement_refs:
 - FR-003
 planning_base_branch: main
 merge_target_branch: main
 branch_strategy: Planning artifacts for this feature were generated on main. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into main unless the human explicitly redirects the landing branch.
+base_branch: main
+base_commit: cd735ae94882c2248543139e182847a72002ec2f
+created_at: '2026-03-29T03:32:11.498031+00:00'
 subtasks:
 - T013
 - T014
 - T015
 - T016
 - T017
+shell_pid: "61173"
 history:
 - timestamp: '2026-03-29T03:15:46Z'
   lane: planned
