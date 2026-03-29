@@ -1,7 +1,7 @@
 ---
 work_package_id: WP04
 title: Data, Privacy, and Identity Research
-lane: "doing"
+lane: "for_review"
 dependencies:
 - WP02
 requirement_refs:
@@ -19,8 +19,8 @@ subtasks:
 - T020
 - T021
 - T022
-shell_pid: "63902"
-agent: "claude"
+agent: claude
+shell_pid: '63902'
 history:
 - timestamp: '2026-03-29T03:15:46Z'
   lane: planned
@@ -219,3 +219,4 @@ Verify that:
 ## Activity Log
 
 - 2026-03-29T03:45:30Z – claude – shell_pid=63902 – lane=doing – Assigned agent via workflow command
+- 2026-03-29T03:48:20Z – claude – shell_pid=63902 – lane=for_review – Ready for review: data ownership model across 4 stores, tiered privacy boundary with absolute 02-Growth/_private/ preserved, personal brand mapped as cross-cutting, identity model extended to 3 contexts. 8 open items for Kent documented.
