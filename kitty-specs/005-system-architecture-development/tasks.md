@@ -126,11 +126,11 @@
 **Estimated Prompt Size**: ~350 lines
 
 ### Included Subtasks
-- [ ] T018 Research data ownership model: what persists in Vikunja vs OpenClaw vs second brain per capability area (RQ-10)
-- [ ] T019 Define SuperAdmin privacy boundary relative to 02-Growth/ (excluding _private/ which is absolute) (RQ-11)
-- [ ] T020 Map personal brand content domain and its location in second brain structure (RQ-12)
-- [ ] T021 Design identity model extension for personal, Intentional, and metal casework contexts (RQ-13)
-- [ ] T022 Consolidate findings into research/data-privacy-identity.md
+- [x] T018 Research data ownership model: what persists in Vikunja vs OpenClaw vs second brain per capability area (RQ-10)
+- [x] T019 Define SuperAdmin privacy boundary relative to 02-Growth/ (excluding _private/ which is absolute) (RQ-11)
+- [x] T020 Map personal brand content domain and its location in second brain structure (RQ-12)
+- [x] T021 Design identity model extension for personal, Intentional, and metal casework contexts (RQ-13)
+- [x] T022 Consolidate findings into research/data-privacy-identity.md
 
 ### Implementation Notes
 - 02-Growth/_private/ is absolute non-negotiable — research must not weaken this boundary
