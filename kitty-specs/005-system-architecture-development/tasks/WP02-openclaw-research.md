@@ -1,7 +1,7 @@
 ---
 work_package_id: WP02
 title: OpenClaw Capability Research
-lane: planned
+lane: "doing"
 dependencies: []
 requirement_refs:
 - FR-004
@@ -10,6 +10,9 @@ requirement_refs:
 planning_base_branch: main
 merge_target_branch: main
 branch_strategy: Planning artifacts for this feature were generated on main. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into main unless the human explicitly redirects the landing branch.
+base_branch: main
+base_commit: b15f1301b93621a43e19562c789b78c3c79480b3
+created_at: '2026-03-29T03:32:08.619523+00:00'
 subtasks:
 - T007
 - T008
@@ -17,6 +20,7 @@ subtasks:
 - T010
 - T011
 - T012
+shell_pid: "61111"
 history:
 - timestamp: '2026-03-29T03:15:46Z'
   lane: planned
