@@ -21,6 +21,7 @@ subtasks:
 - T011
 - T012
 shell_pid: "61111"
+agent: "claude"
 history:
 - timestamp: '2026-03-29T03:15:46Z'
   lane: planned
@@ -213,3 +214,7 @@ Verify that:
 - Gaps are specific (not "may not support X" but "docs show no support for X")
 - The team mapping proposal is concrete enough to implement
 - Autonomy gates are practical, not theoretical
+
+## Activity Log
+
+- 2026-03-29T03:32:09Z – claude – shell_pid=61111 – lane=doing – Assigned agent via workflow command
