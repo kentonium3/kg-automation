@@ -376,5 +376,5 @@ WP04: Data/Privacy/Identity ───┘──→ WP06: Integration Map + Agent 
 - WP03: approved
 - WP04: approved
 - WP05: approved
-- WP06: for_review
+- WP06: in_progress
 <!-- status-model:end -->

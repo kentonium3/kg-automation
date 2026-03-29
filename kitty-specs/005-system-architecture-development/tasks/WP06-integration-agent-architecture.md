@@ -1,7 +1,7 @@
 ---
 work_package_id: WP06
 title: Integration Map and Agent Team Architecture
-lane: "for_review"
+lane: "doing"
 dependencies:
 - WP02
 - WP03
@@ -23,8 +23,8 @@ subtasks:
 - T033
 - T034
 - T035
-agent: claude
-shell_pid: '65140'
+agent: "claude"
+shell_pid: "66468"
 history:
 - timestamp: '2026-03-29T03:15:46Z'
   lane: planned
@@ -221,3 +221,4 @@ Verify that:
 
 - 2026-03-29T03:50:26Z – claude – shell_pid=65140 – lane=doing – Assigned agent via workflow command
 - 2026-03-29T03:54:24Z – claude – shell_pid=65140 – lane=for_review – Ready for review: Integration map with 30+ entries and 12 open decisions. Agent team architecture with 5 teams, 16 agents, 4 orchestration patterns, 3-gate autonomy model, onboarding process, and communication matrix.
+- 2026-03-29T03:54:50Z – claude – shell_pid=66468 – lane=doing – Started review via workflow command
