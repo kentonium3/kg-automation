@@ -4,9 +4,6 @@ title: Data Architecture and Canonical Architecture Document
 lane: planned
 dependencies:
 - WP01
-- WP04
-- WP05
-- WP06
 requirement_refs:
 - FR-005
 - FR-006

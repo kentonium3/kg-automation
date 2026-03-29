@@ -4,6 +4,8 @@ title: Feature and Capability Roadmap
 lane: planned
 dependencies:
 - WP07
+- WP02
+- WP05
 requirement_refs:
 - FR-007
 planning_base_branch: main
