@@ -1,7 +1,7 @@
 ---
 work_package_id: WP05
 title: User Story Catalog
-lane: "for_review"
+lane: "doing"
 dependencies:
 - WP01
 - WP02
@@ -23,8 +23,8 @@ subtasks:
 - T027
 - T028
 - T029
-agent: claude
-shell_pid: '65029'
+agent: "claude"
+shell_pid: "66329"
 history:
 - timestamp: '2026-03-29T03:15:46Z'
   lane: planned
@@ -209,3 +209,4 @@ Verify that:
 
 - 2026-03-29T03:50:23Z – claude – shell_pid=65029 – lane=doing – Assigned agent via workflow command
 - 2026-03-29T03:54:22Z – claude – shell_pid=65029 – lane=for_review – Ready for review: 60 user stories (39 core, 14 enhancement, 7 cross-team) across 5 capability areas. All seed stories incorporated. Cross-team interaction matrix included.
+- 2026-03-29T03:54:31Z – claude – shell_pid=66329 – lane=doing – Started review via workflow command
