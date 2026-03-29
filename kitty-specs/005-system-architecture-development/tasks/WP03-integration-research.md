@@ -18,6 +18,7 @@ subtasks:
 - T016
 - T017
 shell_pid: "61173"
+agent: "claude"
 history:
 - timestamp: '2026-03-29T03:15:46Z'
   lane: planned
@@ -212,3 +213,7 @@ Verify that:
 - Open decisions have at least 2-3 options with clear criteria
 - Tailscale-only constraint is checked for every integration
 - No tool choice is assumed without explicit confirmation from Kent
+
+## Activity Log
+
+- 2026-03-29T03:32:11Z – claude – shell_pid=61173 – lane=doing – Assigned agent via workflow command
