@@ -233,13 +233,13 @@
 **Estimated Prompt Size**: ~500 lines
 
 ### Included Subtasks
-- [ ] T036 Produce data architecture from WP04 research — what lives in Vikunja, second brain, OpenClaw, and action log
-- [ ] T037 Extend identity model for personal, Intentional, and metal casework contexts
-- [ ] T038 Draft v1.0 canonical architecture document — vision, capability areas, topology
-- [ ] T039 Write agent team structure and integration catalog sections using WP06 outputs
-- [ ] T040 Write data architecture and security architecture sections
-- [ ] T041 Incorporate constitution directives throughout (narrow scope, earned autonomy, central logging, safety)
-- [ ] T042 Validate consistency with F001-F004 as built (using WP01 audit)
+- [x] T036 Produce data architecture from WP04 research — what lives in Vikunja, second brain, OpenClaw, and action log
+- [x] T037 Extend identity model for personal, Intentional, and metal casework contexts
+- [x] T038 Draft v1.0 canonical architecture document — vision, capability areas, topology
+- [x] T039 Write agent team structure and integration catalog sections using WP06 outputs
+- [x] T040 Write data architecture and security architecture sections
+- [x] T041 Incorporate constitution directives throughout (narrow scope, earned autonomy, central logging, safety)
+- [x] T042 Validate consistency with F001-F004 as built (using WP01 audit)
 
 ### Implementation Notes
 - v1.0 replaces `docs/design/personal-ai-system-spec-v03.md`
