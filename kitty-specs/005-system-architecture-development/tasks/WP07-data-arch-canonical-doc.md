@@ -1,7 +1,7 @@
 ---
 work_package_id: WP07
 title: Data Architecture and Canonical Architecture Document
-lane: "for_review"
+lane: "doing"
 dependencies:
 - WP01
 requirement_refs:
@@ -23,8 +23,8 @@ subtasks:
 - T040
 - T041
 - T042
-agent: claude
-shell_pid: '66703'
+agent: "claude"
+shell_pid: "67722"
 history:
 - timestamp: '2026-03-29T03:15:46Z'
   lane: planned
@@ -246,3 +246,4 @@ Verify that:
 
 - 2026-03-29T03:55:42Z – claude – shell_pid=66703 – lane=doing – Assigned agent via workflow command
 - 2026-03-29T03:59:25Z – claude – shell_pid=66703 – lane=for_review – Ready for review: data architecture document + v1.0 canonical architecture document. v1.0 covers all 11 required sections, incorporates 4 constitution directives, validated consistent with F001-F004. 8 open decisions documented for Kent.
+- 2026-03-29T03:59:37Z – claude – shell_pid=67722 – lane=doing – Started review via workflow command
