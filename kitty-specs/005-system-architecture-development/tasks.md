@@ -198,12 +198,12 @@
 **Estimated Prompt Size**: ~500 lines
 
 ### Included Subtasks
-- [ ] T030 Compile integration map from WP03 research — organize by capability area with purpose, auth, data flow, constraints
-- [ ] T031 Design agent team architecture within OpenClaw based on WP02 findings — team names, scope boundaries, agent granularity
-- [ ] T032 Design orchestration patterns between teams — how Core Hub relates to other teams, cross-team communication
-- [ ] T033 Apply three-gate autonomy model per team — define progression criteria for each gate
-- [ ] T034 Design onboarding process for new agents, tools, and integrations into capability areas
-- [ ] T035 Produce research/integration-map.md and research/agent-team-architecture.md
+- [x] T030 Compile integration map from WP03 research — organize by capability area with purpose, auth, data flow, constraints
+- [x] T031 Design agent team architecture within OpenClaw based on WP02 findings — team names, scope boundaries, agent granularity
+- [x] T032 Design orchestration patterns between teams — how Core Hub relates to other teams, cross-team communication
+- [x] T033 Apply three-gate autonomy model per team — define progression criteria for each gate
+- [x] T034 Design onboarding process for new agents, tools, and integrations into capability areas
+- [x] T035 Produce research/integration-map.md and research/agent-team-architecture.md
 
 ### Implementation Notes
 - Integration map entries: purpose, authentication method, data flow direction, known constraints, open decisions
