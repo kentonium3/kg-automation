@@ -1,7 +1,7 @@
 ---
 work_package_id: WP03
 title: Integration and Tool Research
-lane: "for_review"
+lane: "doing"
 dependencies: []
 requirement_refs:
 - FR-003
@@ -17,8 +17,8 @@ subtasks:
 - T015
 - T016
 - T017
-agent: claude
-shell_pid: '61173'
+agent: "claude"
+shell_pid: "63573"
 history:
 - timestamp: '2026-03-29T03:15:46Z'
   lane: planned
@@ -218,3 +218,4 @@ Verify that:
 
 - 2026-03-29T03:32:11Z – claude – shell_pid=61173 – lane=doing – Assigned agent via workflow command
 - 2026-03-29T03:41:09Z – claude – shell_pid=61173 – lane=for_review – Ready for review: Integration research complete for RQ-6,7,8,9. 6 confirmed integrations, 12 open decisions documented with options and criteria. Gmail API via OAuth2 recommended for email.
+- 2026-03-29T03:43:54Z – claude – shell_pid=63573 – lane=doing – Started review via workflow command
