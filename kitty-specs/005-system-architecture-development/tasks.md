@@ -55,12 +55,12 @@
 **Estimated Prompt Size**: ~450 lines
 
 ### Included Subtasks
-- [ ] T007 Research OpenClaw's native concepts: skills, agents, orchestrators — document how they map to the team model (RQ-1, RQ-2)
-- [ ] T008 Research OpenClaw's logging and observability capabilities (RQ-3)
-- [ ] T009 Research how autonomy gates and human-in-the-loop approval flows could be modeled in OpenClaw (RQ-4)
-- [ ] T010 Research OpenClaw's coordination with external tools like Claude Code and spec-kitty (RQ-5)
-- [ ] T011 Research OpenClaw's identity/persona model and how Felix as a system identity maps to it (RQ-14)
-- [ ] T012 Consolidate findings into research/openclaw-capabilities.md with Decision/Rationale/Alternatives for each question
+- [x] T007 Research OpenClaw's native concepts: skills, agents, orchestrators — document how they map to the team model (RQ-1, RQ-2)
+- [x] T008 Research OpenClaw's logging and observability capabilities (RQ-3)
+- [x] T009 Research how autonomy gates and human-in-the-loop approval flows could be modeled in OpenClaw (RQ-4)
+- [x] T010 Research OpenClaw's coordination with external tools like Claude Code and spec-kitty (RQ-5)
+- [x] T011 Research OpenClaw's identity/persona model and how Felix as a system identity maps to it (RQ-14)
+- [x] T012 Consolidate findings into research/openclaw-capabilities.md with Decision/Rationale/Alternatives for each question
 
 ### Implementation Notes
 - Primary source: docs.openclaw.ai
