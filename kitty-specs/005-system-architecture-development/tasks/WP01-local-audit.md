@@ -1,13 +1,16 @@
 ---
 work_package_id: WP01
 title: Local Architecture Audit
-lane: planned
+lane: "doing"
 dependencies: []
 requirement_refs:
 - FR-001
 planning_base_branch: main
 merge_target_branch: main
 branch_strategy: Planning artifacts for this feature were generated on main. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into main unless the human explicitly redirects the landing branch.
+base_branch: main
+base_commit: 32be96bda28feab3130d5ec4f7aa63a21443d67f
+created_at: '2026-03-29T03:25:18.117480+00:00'
 subtasks:
 - T001
 - T002
@@ -15,6 +18,7 @@ subtasks:
 - T004
 - T005
 - T006
+shell_pid: "59705"
 history:
 - timestamp: '2026-03-29T03:15:46Z'
   lane: planned
