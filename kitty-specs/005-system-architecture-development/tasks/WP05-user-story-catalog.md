@@ -1,7 +1,7 @@
 ---
 work_package_id: WP05
 title: User Story Catalog
-lane: planned
+lane: "doing"
 dependencies:
 - WP01
 - WP02
@@ -12,6 +12,9 @@ requirement_refs:
 planning_base_branch: main
 merge_target_branch: main
 branch_strategy: Planning artifacts for this feature were generated on main. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into main unless the human explicitly redirects the landing branch.
+base_branch: 005-system-architecture-development-WP05-merge-base
+base_commit: d7b822eff6351deb1d110c81b1218574cfee385d
+created_at: '2026-03-29T03:50:23.125376+00:00'
 subtasks:
 - T023
 - T024
@@ -20,6 +23,7 @@ subtasks:
 - T027
 - T028
 - T029
+shell_pid: "65029"
 history:
 - timestamp: '2026-03-29T03:15:46Z'
   lane: planned
