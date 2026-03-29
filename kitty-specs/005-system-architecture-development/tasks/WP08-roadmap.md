@@ -22,6 +22,7 @@ subtasks:
 - T047
 - T048
 shell_pid: "67938"
+agent: "claude"
 history:
 - timestamp: '2026-03-29T03:15:46Z'
   lane: planned
@@ -236,3 +237,7 @@ Verify that:
 - The roadmap is realistic (not a wishlist)
 - Open decisions are explicitly linked to affected features
 - The previous F005-F015 numbering is not used anywhere
+
+## Activity Log
+
+- 2026-03-29T04:00:19Z – claude – shell_pid=67938 – lane=doing – Assigned agent via workflow command
