@@ -24,6 +24,7 @@ subtasks:
 - T028
 - T029
 shell_pid: "65029"
+agent: "claude"
 history:
 - timestamp: '2026-03-29T03:15:46Z'
   lane: planned
@@ -203,3 +204,7 @@ Verify that:
 - No stories assume implementation details
 - Cross-team interactions are bidirectional (if BizOps calls Content Creation, there's a story for each side)
 - Stories respect privacy boundaries from WP04
+
+## Activity Log
+
+- 2026-03-29T03:50:23Z – claude – shell_pid=65029 – lane=doing – Assigned agent via workflow command
