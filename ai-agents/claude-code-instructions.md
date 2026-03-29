@@ -131,22 +131,21 @@ Key endpoints:
 Current build order from spec Section 10:
 
 ```
-F001  Vikunja Docker deploy on office2 + project structure
-F002  OpenClaw install and configuration
-F003  Whisper transcription skill
-F004  WhatsApp channel (Meta Cloud API)
-F005  Vikunja API skill (CRUD wrapper)
-F006  Intent Parser skill
-F007  Migrate inbox-processor + task bridge
-F008  Migrate kent-voice skill
-F009  Migrate vault-writer skill
-F010  Hourly inbox poll + on-demand trigger
-F011  Goal Context Loader skill
-F012  Personal Google Calendar skill
-F013  Task → Calendar event linking
-F014  Daily briefing heartbeat
-F015  Level 1–2 escalation heartbeat
+F001  Vikunja Docker deploy on office2 + project structure          ✅ COMPLETE
+F002  OpenClaw install and configuration                            ✅ COMPLETE
+F003  Whisper transcription skill                                   ✅ COMPLETE
+F004  WhatsApp channel (Baileys, personal number)                   ✅ COMPLETE
+F005  System architecture review and vision expansion (research)
+      NOTE: F005 is a research mission. Output is a revised
+      architecture document v1.0 and capability roadmap.
+      F006+ are defined by F005 output — do not use the old
+      F006–F015 sequence below. It is superseded.
+F006+ TBD — pending F005 architecture review approval
 ```
+
+**IMPORTANT**: The feature sequence beyond F004 is under review.
+Do not implement any features numbered F006 or higher until F005
+(architecture review) is complete and approved by Kent.
 
 Check `docs/func-spec/` for feature-level specs before implementing any feature.
 If a func-spec doesn't exist yet, create a GitHub issue rather than proceeding

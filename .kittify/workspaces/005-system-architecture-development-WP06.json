@@ -1,0 +1,15 @@
+{
+  "wp_id": "WP06",
+  "feature_slug": "005-system-architecture-development",
+  "worktree_path": ".worktrees/005-system-architecture-development-WP06",
+  "branch_name": "005-system-architecture-development-WP06",
+  "base_branch": "005-system-architecture-development-WP06-merge-base",
+  "base_commit": "89af6f0c50cf069f2e5a82d694a17db19d57d7d3",
+  "dependencies": [
+    "WP02",
+    "WP03"
+  ],
+  "created_at": "2026-03-29T03:50:26.502803+00:00",
+  "created_by": "implement-command-multi-parent-merge",
+  "vcs_backend": "git"
+}

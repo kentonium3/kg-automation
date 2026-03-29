@@ -1,11 +1,11 @@
 ---
-title: "R001: kg-automation System Architecture Review and Vision Expansion"
+title: "F005: kg-automation System Architecture Review and Vision Expansion"
 doc_type: research-brief
 status: draft
-feature: R001
+feature: F005
 ---
 
-# R001: kg-automation System Architecture Review and Vision Expansion
+# F005: kg-automation System Architecture Review and Vision Expansion
 
 **Version**: 1.0
 **Priority**: HIGH
@@ -80,13 +80,13 @@ research project.
 ## The Expanded Vision
 
 Kent describes the system as **"Felix"** — named after Felix the Cat's magic
-bag, from which virtually anything he wanted would emerge. The system is an
-AI-assisted personal operating system with five capability areas and
-associated agent teams.
+bag, from which virtually anything he wanted would emerge. Felix is the
+AI-assisted personal operating system as a whole — the complete system
+comprising five capability areas and their associated agent teams.
 
-### Capability Area A: Felix — kg-automation System
+### Capability Area A: Core Hub — System Infrastructure
 
-The system that builds, operates, and extends itself. Felix is the
+The team that builds, operates, and extends Felix. Core Hub is the
 infrastructure team.
 
 **In scope:**
@@ -117,10 +117,12 @@ transformation and areas near the private boundary (`02-Growth/`) is
 to be determined — but the absolute privacy boundary on `02-Growth/_private/`
 is non-negotiable regardless.
 
-**Key question for research**: What integrations are needed? What is the
-right scope boundary between SuperAdmin and Felix?
+**Scope boundary**: SuperAdmin performs executive and personal administrative
+functions within the system created and maintained by Core Hub and Kent.
+Integration requirements (Google Calendar, Gmail, etc.) remain to be
+fully enumerated during research.
 
-### Capability Area C: Development — Application & System Development
+### Capability Area C: Development — Application & Business System Development
 
 AI-assisted development of applications and systems for business operations.
 
@@ -132,9 +134,8 @@ AI-assisted development of applications and systems for business operations.
 - Metal casework project: visual designer tool and website
 - Any future business application development
 
-**Key question for research**: How does this team relate to Claude Code and
-spec-kitty? Is this team orchestrating those tools, or is it a separate
-capability layer?
+**Tooling**: This team uses Claude Code and spec-kitty as implementation
+tools for building applications and projects requiring development.
 
 ### Capability Area D: Content Creation
 
@@ -149,8 +150,9 @@ Copy and visual content creation across all projects and businesses.
 - Marketing materials
 - Serves other teams (A, B, C, E) as a shared service
 
-**Key question for research**: What AI tools and integrations are needed?
-What is the right boundary between Content Creation and the other teams?
+**Tooling**: The full tool suite is TBD. Canva is confirmed. Additional
+tools will be identified as content needs from other teams are better
+understood.
 
 ### Capability Area E: BizOps — Business Operations
 
@@ -216,7 +218,7 @@ Personas: Kent (primary), Felix (the system acting on Kent's behalf)
 
 ### Seed stories — expand and validate these
 
-**Capability A (Felix)**
+**Capability A (Core Hub)**
 - As Kent, I want to add a new integration to the system by describing what
   I want, so that Felix can research, propose, implement, and validate it
   without me writing code.
@@ -238,6 +240,10 @@ Personas: Kent (primary), Felix (the system acting on Kent's behalf)
   so that my calendar is updated without manual entry.
 - As Kent, I want my email triaged and summarized, so that I can process
   communications efficiently.
+- As Kent, I want my do-list and calendar coordinated and updated so priorities are given time on the calendar for work to be done.
+- As Kent, I want interactive alerting and negotiation of tasks, conflicting priorities, oversubscribed commitments and tasks so the most important decisions and tasks get done.
+- As Kent, I want to be reminded of repeating tasks and appointments on my phone via WhatsApp such as meditation, exercise, physical therapy, meetings, calls, etc. and I want to be able to mark them as complete, rescheduled, or "will not do".
+- As Kent, I want to track and get reports on my track record of getting things done when I say they will be done.
 
 **Capability C (Development)**
 - As Kent, I want to describe a new feature for the Intentional website and
@@ -252,10 +258,15 @@ Personas: Kent (primary), Felix (the system acting on Kent's behalf)
   so that I can focus on review and refinement rather than generation.
 - As Kent, I want a presentation created from a brief, so that I can deliver
   professional materials without spending hours in PowerPoint.
+- As Kent, I want to have different versions of a topic generated that are approriate as a blog post, LinkedIn teaser post, white paper, Instagram post, or email.
+- As Kent, I want any videos I generate make available to post on LinkedIn or Instagram as resources for marketing and content campaigns.
+- As Kent, I want to be able to describe conceptual diagrams and graphics and have a few versions of them generated so I can iterate on them with IA assistance until satisfied. (I assume this uses an approriate AI tool to generate these diagrams and graphics)
 
 **Capability E (BizOps)**
 - As Kent, I want new leads from my website automatically entered into my
   CRM with context, so that no prospect falls through the cracks.
+- As Kent, I want to describe a marketing campaign and have the plan generated along with materials for my review and approval before it is executed.
+- As Kent, I want to describe a series of blog posts and have the system schedule versions of them to appear on my personal web site, LinkedIn, Instagram, and in email to the target audiences.
 - As Kent, I want a weekly business report delivered to my WhatsApp, so that
   I have situational awareness without pulling reports manually.
 
@@ -278,8 +289,8 @@ not assume them.
    native support, or does this need a separate logging layer?
 4. How should the three-gate autonomy model (Human In The Middle → Human
    Monitored → Autonomous) be implemented within OpenClaw?
-5. What is the correct relationship between OpenClaw and Claude Code / spec-kitty
-   in the context of Capability Area C (Development)?
+5. Claude Code and spec-kitty are tools used by the Development team (Area C).
+   How should OpenClaw orchestrate or coordinate with these tools?
 
 ### Integrations
 
@@ -289,7 +300,8 @@ not assume them.
    HubSpot is mentioned. What CRM, invoicing, order management systems
    does Kent currently use or plan to use?
 8. What AI tools are needed for Capability D (Content Creation)?
-   Canva is connected. What else?
+   Canva is confirmed. What additional tools are required to serve content
+   needs across all capability areas?
 9. What is the right approach to email integration given security constraints?
 
 ### Data and privacy
@@ -306,8 +318,9 @@ not assume them.
 13. The current spec describes two identities (personal, intentional).
     The expanded vision adds metal casework as a third business context.
     How should the identity model be extended?
-14. What is "Felix" as a system identity? Is it a persona, an agent team,
-    an orchestrator, or something else within OpenClaw?
+14. Felix is the name of the complete system — all five capability areas
+    collectively. How should this system-wide identity be represented within
+    OpenClaw's architecture?
 
 ---
 
@@ -326,6 +339,9 @@ These constraints are locked and must be respected in the output architecture:
 - **Agents start at Human In The Middle** — autonomy must be earned
 - **Narrow agent scope** — each agent has one clearly defined responsibility
 - **All agent actions logged centrally** — non-negotiable
+- **Extensible architecture** — capability areas will grow as core
+  infrastructure matures. The system design must accommodate new tools,
+  integrations, and agent teams without major architectural rework.
 
 ---
 
@@ -348,7 +364,8 @@ A proposed architecture for the five agent teams within OpenClaw, including:
 - Team names and scope boundaries
 - Agent granularity within each team
 - Orchestration patterns between teams
-- How Felix (the system itself) relates to other teams
+- How Core Hub relates to the other capability area teams
+- How new agents, tools, and integrations are onboarded into a capability area
 - How the three-gate autonomy model applies per team
 
 ### Deliverable 4: Data Architecture
