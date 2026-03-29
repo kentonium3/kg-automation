@@ -1,7 +1,7 @@
 ---
 work_package_id: WP02
 title: OpenClaw Capability Research
-lane: "doing"
+lane: "for_review"
 dependencies: []
 requirement_refs:
 - FR-004
@@ -20,8 +20,8 @@ subtasks:
 - T010
 - T011
 - T012
-shell_pid: "61111"
-agent: "claude"
+agent: claude
+shell_pid: '61111'
 history:
 - timestamp: '2026-03-29T03:15:46Z'
   lane: planned
@@ -218,3 +218,4 @@ Verify that:
 ## Activity Log
 
 - 2026-03-29T03:32:09Z – claude – shell_pid=61111 – lane=doing – Assigned agent via workflow command
+- 2026-03-29T03:38:23Z – claude – shell_pid=61111 – lane=for_review – Ready for review: OpenClaw capability research complete for RQ-1,2,3,4,5,14. Teams modeled via named agents, logging via OpenTelemetry+custom layer, autonomy via exec approval system, external tools via shell exec+webhooks, identity via per-agent workspace files.
