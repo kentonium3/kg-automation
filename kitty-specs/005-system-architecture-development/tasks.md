@@ -20,12 +20,12 @@
 **Estimated Prompt Size**: ~350 lines
 
 ### Included Subtasks
-- [ ] T001 Read and catalog `docs/design/personal-ai-system-spec-v03.md` — extract all designed components, services, and data flows
-- [ ] T002 Read and catalog `docs/design/architecture/data/` JSON files — extract actual deployed state (services, credentials, ports, data flows)
-- [ ] T003 Read all func-specs (F001-F004) — extract what was specified for each feature
-- [ ] T004 Read all handbooks — extract what was actually implemented and documented operationally
-- [ ] T005 Read constitution — extract current governance state and identify gaps relative to the four new directives
-- [ ] T006 Produce audit report: designed vs. actual state, drift, gaps, undocumented state, governance gaps
+- [x] T001 Read and catalog `docs/design/personal-ai-system-spec-v03.md` — extract all designed components, services, and data flows
+- [x] T002 Read and catalog `docs/design/architecture/data/` JSON files — extract actual deployed state (services, credentials, ports, data flows)
+- [x] T003 Read all func-specs (F001-F004) — extract what was specified for each feature
+- [x] T004 Read all handbooks — extract what was actually implemented and documented operationally
+- [x] T005 Read constitution — extract current governance state and identify gaps relative to the four new directives
+- [x] T006 Produce audit report: designed vs. actual state, drift, gaps, undocumented state, governance gaps
 
 ### Implementation Notes
 - All sources are local files in the repo — no external access needed
