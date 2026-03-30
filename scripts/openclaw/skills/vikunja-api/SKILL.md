@@ -143,3 +143,130 @@ Every task created by an agent **MUST** have one of these identity labels:
 If the caller does not specify which identity label to use, ask them before
 creating the task. Do not guess or default — the identity label is a required
 business rule.
+
+## Tasks
+
+### Create Task
+
+Creating a task is a two-step process: create the task, then add an identity label.
+
+**Step 1 — Create the task in a project:**
+
+```bash
+curl -s -X PUT \
+  -H "Authorization: Bearer $(cat /data/services/openclaw/secrets/vikunja-api)" \
+  -H "Content-Type: application/json" \
+  -d '{"title": "TASK_TITLE", "description": "DESCRIPTION", "due_date": "2026-04-15T00:00:00Z", "priority": 1}' \
+  https://office2.tail0f5f56.ts.net/api/v1/projects/PROJECT_ID/tasks
+```
+
+- Replace `PROJECT_ID` with the ID obtained from project resolution (never hardcode)
+- `title` is required. `description`, `due_date`, and `priority` are optional.
+- `due_date` must be ISO 8601 format (e.g., `2026-04-15T00:00:00Z`)
+- `priority` is an integer (higher = more important)
+- The response includes the new task's `id` — save it for the next step
+
+**Step 2 — Add an identity label:**
+
+```bash
+curl -s -X PUT \
+  -H "Authorization: Bearer $(cat /data/services/openclaw/secrets/vikunja-api)" \
+  -H "Content-Type: application/json" \
+  -d '{"label_id": LABEL_ID}' \
+  https://office2.tail0f5f56.ts.net/api/v1/tasks/TASK_ID/labels
+```
+
+- Replace `LABEL_ID` with the ID obtained from label resolution (never hardcode)
+- Replace `TASK_ID` with the ID returned in Step 1
+- **Every agent-created task MUST have an identity label.** If the caller does not
+  specify one, ask before creating.
+
+**Required fields for task creation:**
+- `title` — the task text
+- Project — specified by name, resolved to ID via the Projects section
+- Identity label — one of personal, intentional, or metalcasework
+
+**Optional fields:**
+- `description` — task description (supports markdown)
+- `due_date` — ISO 8601 datetime
+- `priority` — integer
+
+If Step 2 (label assignment) fails after Step 1 succeeds, report that the task
+was created but the label could not be assigned. Include the task ID so it can
+be fixed manually.
+
+### Duplicate Check (Idempotent Creation)
+
+Before creating a task, check if one with the same title already exists in the
+target project:
+
+```bash
+curl -s -H "Authorization: Bearer $(cat /data/services/openclaw/secrets/vikunja-api)" \
+  "https://office2.tail0f5f56.ts.net/api/v1/projects/PROJECT_ID/tasks?s=SEARCH_TERM"
+```
+
+- The `s` parameter searches task titles
+- If a task with an **exact** title match is found, return it instead of creating
+  a new one
+- If partial matches are found, surface them to the caller for confirmation
+- Only create a new task if no exact match exists
+
+### Read Task
+
+```bash
+curl -s -H "Authorization: Bearer $(cat /data/services/openclaw/secrets/vikunja-api)" \
+  https://office2.tail0f5f56.ts.net/api/v1/tasks/TASK_ID
+```
+
+Returns the full task object including:
+- `id`, `title`, `description` — task content
+- `due_date`, `done`, `done_at` — status and dates
+- `priority` — numeric priority
+- `project_id` — which project the task belongs to
+- `labels` — array of assigned labels (read-only here, populated automatically)
+- `created`, `updated` — timestamps
+
+### Update Task
+
+```bash
+curl -s -X POST \
+  -H "Authorization: Bearer $(cat /data/services/openclaw/secrets/vikunja-api)" \
+  -H "Content-Type: application/json" \
+  -d '{"description": "Updated description"}' \
+  https://office2.tail0f5f56.ts.net/api/v1/tasks/TASK_ID
+```
+
+- Uses **POST** (not PUT) — this is the Vikunja convention for updates
+- Send only the fields you want to change (partial update)
+- Updatable fields: `title`, `description`, `due_date`, `priority`, `done`,
+  `hex_color`, `percent_done`, `start_date`, `end_date`, `repeat_after`
+
+### Complete Task
+
+Mark a task as done:
+
+```bash
+curl -s -X POST \
+  -H "Authorization: Bearer $(cat /data/services/openclaw/secrets/vikunja-api)" \
+  -H "Content-Type: application/json" \
+  -d '{"done": true}' \
+  https://office2.tail0f5f56.ts.net/api/v1/tasks/TASK_ID
+```
+
+This is a convenience alias — it's just an update that sets `done: true`.
+Vikunja will auto-populate `done_at` with the current timestamp.
+
+### Delete Task
+
+```bash
+curl -s -X DELETE \
+  -H "Authorization: Bearer $(cat /data/services/openclaw/secrets/vikunja-api)" \
+  https://office2.tail0f5f56.ts.net/api/v1/tasks/TASK_ID
+```
+
+**WARNING: DELETE IS PERMANENT.** Vikunja v0.24.6 has no soft-delete or archive
+endpoint. Once deleted, a task cannot be recovered.
+
+- Only use for test cleanup or when explicitly requested by Kent
+- Prefer marking tasks as complete (`done: true`) rather than deleting
+- Always confirm with the caller before deleting a task
