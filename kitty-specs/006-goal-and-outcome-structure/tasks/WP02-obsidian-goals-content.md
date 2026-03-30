@@ -1,7 +1,7 @@
 ---
 work_package_id: WP02
 title: Obsidian Goals Format and Content
-lane: planned
+lane: "doing"
 dependencies: [WP01]
 requirement_refs:
 - FR-001
@@ -11,6 +11,9 @@ requirement_refs:
 planning_base_branch: main
 merge_target_branch: main
 branch_strategy: Planning artifacts for this feature were generated on main. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into main unless the human explicitly redirects the landing branch.
+base_branch: 006-goal-and-outcome-structure-WP01
+base_commit: e0a1e2ae87ad52c5ce972c47c21a7da6f7ac761c
+created_at: '2026-03-30T14:55:23.981194+00:00'
 subtasks:
 - T007
 - T008
@@ -18,7 +21,7 @@ subtasks:
 phase: Phase 1 - Core Implementation
 assignee: ''
 agent: ''
-shell_pid: ''
+shell_pid: "55849"
 review_status: ''
 reviewed_by: ''
 history:
