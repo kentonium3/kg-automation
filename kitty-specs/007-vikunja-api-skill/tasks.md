@@ -46,10 +46,10 @@ This establishes the skill document that all subsequent WPs extend.
 check Vikunja health and resolve project/label names to IDs.
 
 **Included subtasks**:
-- [ ] T001: SKILL.md frontmatter (name, description, version, metadata)
-- [ ] T002: Health check instructions (GET /info, no auth)
-- [ ] T003: Project resolution (list all, get by name, pseudo-projects)
-- [ ] T004: Label resolution (list all, get by name)
+- [x] T001: SKILL.md frontmatter (name, description, version, metadata)
+- [x] T002: Health check instructions (GET /info, no auth)
+- [x] T003: Project resolution (list all, get by name, pseudo-projects)
+- [x] T004: Label resolution (list all, get by name)
 
 **Prompt file**: [tasks/WP01-skill-foundation.md](tasks/WP01-skill-foundation.md)
 
