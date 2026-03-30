@@ -19,7 +19,7 @@ preconditions (worktrees exist) are no longer met, requiring manual recovery.
 After the crash, the following state is observed:
 
 | Post-merge step | State after crash |
-|---|---|
+| --- | --- |
 | Git merge commits | Completed |
 | Status lane transitions (WP → done) | Changes written but **not committed** |
 | Merge state file (.kittify/merge-state.json) | Removed (cleanup completed) |
@@ -31,7 +31,7 @@ After the crash, the following state is observed:
 
 Running `spec-kitty merge --feature <slug>` after the crash fails with:
 
-```
+```text
 Error: No WP worktrees found for feature '006-goal-and-outcome-structure'.
 Check the feature slug or create workspaces first.
 ```
@@ -46,7 +46,7 @@ already removed before the crash.
 ## Observed Incidents
 
 | # | Date | Feature | Last WP | Notes |
-|---|---|---|---|---|
+| --- | --- | --- | --- | --- |
 | 1 | ~2026-03 | Unknown | Unknown | First observed occurrence |
 | 2 | ~2026-03 | Unknown | Unknown | Same pattern, recovered with /spec-kitty.merge |
 | 3 | 2026-03-30 | F006 (006-goal-and-outcome-structure) | WP03 | Detailed state captured |
@@ -116,8 +116,11 @@ git push
 
 ## Environment
 
-- OS: macOS Darwin 25.3.0
+- OS: macOS Darwin x64 25.3.0
 - Python: 3.13
 - spec-kitty-cli: 2.1.2
-- IDE: VS Code (version unknown — crashed)
+- VS Code: 1.113.0 (Universal), commit cfbea10c5ffb233ea9177d34726e6056e89913dc
+- Electron: 39.8.3
+- Chromium: 142.0.7444.265
+- Node.js: 22.22.1
 - Feature: 006-goal-and-outcome-structure (3 WPs)
