@@ -22,7 +22,7 @@ subtasks:
 - T006
 phase: Phase 1 - Core Implementation
 assignee: ''
-agent: ''
+agent: "claude"
 shell_pid: "52606"
 review_status: ''
 reviewed_by: ''
@@ -247,3 +247,4 @@ and a "Goals" saved filter showing active goals sorted by target date.
 ## Activity Log
 
 - 2026-03-30T14:32:29Z – system – lane=planned – Prompt created.
+- 2026-03-30T14:40:51Z – claude – shell_pid=52606 – lane=doing – Assigned agent via workflow command
