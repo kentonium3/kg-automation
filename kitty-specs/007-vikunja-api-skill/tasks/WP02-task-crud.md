@@ -1,7 +1,7 @@
 ---
 work_package_id: WP02
 title: Task CRUD Operations
-lane: "doing"
+lane: "for_review"
 dependencies: [WP01]
 requirement_refs:
 - FR-001
@@ -20,8 +20,8 @@ base_branch: 007-vikunja-api-skill-WP01
 base_commit: 5d97124cb3320d5f3662e83777019c28f7481c0a
 created_at: '2026-03-30T23:23:23.023871+00:00'
 subtasks: [T005, T006, T007, T008, T009, T010]
-shell_pid: "31927"
-agent: "claude-opus"
+agent: claude-opus
+shell_pid: '31927'
 history:
 - date: '2026-03-30T22:03:15Z'
   event: created
@@ -224,3 +224,4 @@ duplicates (FR-007).
 ## Activity Log
 
 - 2026-03-30T23:23:23Z – claude-opus – shell_pid=31927 – lane=doing – Assigned agent via workflow command
+- 2026-03-30T23:24:23Z – claude-opus – shell_pid=31927 – lane=for_review – Ready for review: Task CRUD operations — create with label, duplicate check, read, update, complete, delete with warning
