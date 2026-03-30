@@ -1,7 +1,7 @@
 ---
 work_package_id: WP01
 title: Vikunja Goal Structure
-lane: planned
+lane: "doing"
 dependencies: []
 requirement_refs:
 - FR-003
@@ -10,6 +10,9 @@ requirement_refs:
 planning_base_branch: main
 merge_target_branch: main
 branch_strategy: Planning artifacts for this feature were generated on main. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into main unless the human explicitly redirects the landing branch.
+base_branch: main
+base_commit: 9d25354e02d25cd6062b8f217fd731db5dc281dc
+created_at: '2026-03-30T14:40:51.296983+00:00'
 subtasks:
 - T001
 - T002
@@ -20,7 +23,7 @@ subtasks:
 phase: Phase 1 - Core Implementation
 assignee: ''
 agent: ''
-shell_pid: ''
+shell_pid: "52606"
 review_status: ''
 reviewed_by: ''
 history:
