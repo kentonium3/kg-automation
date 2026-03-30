@@ -19,7 +19,7 @@ subtasks:
 - T013
 phase: Phase 2 - Documentation
 assignee: ''
-agent: ''
+agent: "claude"
 shell_pid: "57617"
 review_status: ''
 reviewed_by: ''
@@ -228,3 +228,4 @@ F006 doesn't change services or credentials, but it adds a new data structure
 ## Activity Log
 
 - 2026-03-30T14:32:29Z – system – lane=planned – Prompt created.
+- 2026-03-30T15:04:02Z – claude – shell_pid=57617 – lane=doing – Assigned agent via workflow command
