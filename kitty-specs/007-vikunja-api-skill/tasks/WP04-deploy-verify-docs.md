@@ -1,7 +1,7 @@
 ---
 work_package_id: WP04
 title: Deployment, Verification, and Documentation
-lane: "doing"
+lane: "for_review"
 dependencies: [WP02, WP03]
 requirement_refs:
 - FR-021
@@ -14,8 +14,8 @@ base_branch: 007-vikunja-api-skill-WP02
 base_commit: af03d7e8eb1d51e02a4268da40507fd8d0a556de
 created_at: '2026-03-30T23:31:31.907525+00:00'
 subtasks: [T015, T016, T017, T018, T019, T020]
-shell_pid: "33890"
-agent: "claude-opus"
+agent: claude-opus
+shell_pid: '33890'
 history:
 - date: '2026-03-30T22:03:15Z'
   event: created
@@ -268,3 +268,4 @@ run end-to-end tests against live Vikunja, and update operational documentation.
 ## Activity Log
 
 - 2026-03-30T23:31:32Z – claude-opus – shell_pid=33890 – lane=doing – Assigned agent via workflow command
+- 2026-03-30T23:37:57Z – claude-opus – shell_pid=33890 – lane=for_review – Ready for review: Skill deployed to office2, E2E CRUD verified, Goals filter returns 3 goals, runbooks and architecture updated
