@@ -1,7 +1,7 @@
 ---
 work_package_id: WP01
 title: SKILL.md Foundation — Frontmatter and Resolution
-lane: planned
+lane: "doing"
 dependencies: []
 requirement_refs:
 - C-001
@@ -17,7 +17,11 @@ requirement_refs:
 planning_base_branch: main
 merge_target_branch: main
 branch_strategy: Planning artifacts for this feature were generated on main. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into main unless the human explicitly redirects the landing branch.
+base_branch: main
+base_commit: 12ea7bbccfd30d5eec8abd0beb854ba386e6eca3
+created_at: '2026-03-30T23:16:06.555173+00:00'
 subtasks: [T001, T002, T003, T004]
+shell_pid: "30524"
 history:
 - date: '2026-03-30T22:03:15Z'
   event: created
