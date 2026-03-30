@@ -95,10 +95,10 @@ operations, comprehensive error handling instructions, and usage examples.
 task, and correctly handle error scenarios (bad project name, missing fields).
 
 **Included subtasks**:
-- [ ] T011: Filter execution (pseudo-projects Today/Upcoming/Overdue, /tasks/all with filters)
-- [ ] T012: Comment operations (add with [Felix] prefix, read comments)
-- [ ] T013: Error handling section (all error categories from FR-017 through FR-020)
-- [ ] T014: Usage examples (common agent scenarios and workflows)
+- [x] T011: Filter execution (pseudo-projects Today/Upcoming/Overdue, /tasks/all with filters)
+- [x] T012: Comment operations (add with [Felix] prefix, read comments)
+- [x] T013: Error handling section (all error categories from FR-017 through FR-020)
+- [x] T014: Usage examples (common agent scenarios and workflows)
 
 **Parallel opportunity**: WP03 can be implemented in parallel with WP02 (both
 depend on WP01 but not on each other).
