@@ -153,5 +153,5 @@
 ## Canonical Status (Generated)
 - WP01: approved
 - WP02: approved
-- WP03: approved
+- WP03: done
 <!-- status-model:end -->
