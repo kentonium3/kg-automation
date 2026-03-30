@@ -150,3 +150,8 @@ WP02 and WP03 can run in parallel after WP01 completes.
 - WP03: planned
 - WP04: planned
 <!-- status-model:end -->
+
+<!-- status-model:start -->
+## Canonical Status (Generated)
+- WP01: for_review
+<!-- status-model:end -->

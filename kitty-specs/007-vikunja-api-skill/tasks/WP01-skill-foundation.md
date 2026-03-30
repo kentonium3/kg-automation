@@ -1,7 +1,7 @@
 ---
 work_package_id: WP01
 title: SKILL.md Foundation — Frontmatter and Resolution
-lane: "doing"
+lane: "for_review"
 dependencies: []
 requirement_refs:
 - C-001
@@ -21,8 +21,8 @@ base_branch: main
 base_commit: 12ea7bbccfd30d5eec8abd0beb854ba386e6eca3
 created_at: '2026-03-30T23:16:06.555173+00:00'
 subtasks: [T001, T002, T003, T004]
-shell_pid: "30524"
-agent: "claude-opus"
+agent: claude-opus
+shell_pid: '30524'
 history:
 - date: '2026-03-30T22:03:15Z'
   event: created
@@ -171,3 +171,4 @@ pseudo-projects.
 ## Activity Log
 
 - 2026-03-30T23:16:06Z – claude-opus – shell_pid=30524 – lane=doing – Assigned agent via workflow command
+- 2026-03-30T23:17:22Z – claude-opus – shell_pid=30524 – lane=for_review – Ready for review: SKILL.md foundation with frontmatter, health check, auth pattern, project/label resolution
