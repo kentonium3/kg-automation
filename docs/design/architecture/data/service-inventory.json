@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
   "last_updated": "2026-03-30",
-  "updated_by": "F006",
+  "updated_by": "ops-fix",
   "services": [
     {
       "name": "vikunja",
@@ -16,9 +16,11 @@
       "data_owner": "1000:0",
       "backup_included": true,
       "deployed_by": "F001",
+      "public_url": "http://100.92.197.90:3456",
+      "restart_policy": "unless-stopped",
       "status": "running",
       "purpose": "Task store and web UI",
-      "notes": "F006 added Goals project for structured goal declarations with metalcasework label and Goals saved filter"
+      "notes": "F006 added Goals project for structured goal declarations with metalcasework label and Goals saved filter. Public URL set to explicit Tailscale IP for mobile access (was hostname office2:3456)."
     },
     {
       "name": "obsidian-sync",
