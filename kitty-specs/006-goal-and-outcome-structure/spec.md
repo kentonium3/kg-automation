@@ -180,8 +180,8 @@ and is actionable without external context.
 | C-001 | No new services, ports, or credentials are introduced — this is configuration and content only | Approved |
 | C-002 | `02-Growth/_private/` is never accessed by any agent or script | Approved |
 | C-003 | Goals that arise from private work may be captured in the standard format without referencing their origin context | Approved |
-| C-004 | WhatsApp voice capture (FR-4 from original func-spec) is explicitly deferred to a follow-on feature | Approved |
-| C-005 | Goal evaluation prompt (FR-5 from original func-spec) is explicitly deferred to a follow-on feature | Approved |
+| C-004 | WhatsApp voice capture (original func-spec requirement 4) is explicitly deferred to a follow-on feature | Approved |
+| C-005 | Goal evaluation prompt (original func-spec requirement 5) is explicitly deferred to a follow-on feature | Approved |
 | C-006 | No programmatic enforcement of goal validity in F006 — validation is documented in the ops runbook for manual use | Approved |
 
 ### Key Entities
