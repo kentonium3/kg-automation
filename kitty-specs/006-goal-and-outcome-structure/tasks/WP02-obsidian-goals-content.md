@@ -1,7 +1,7 @@
 ---
 work_package_id: WP02
 title: Obsidian Goals Format and Content
-lane: "approved"
+lane: "done"
 dependencies: [WP01]
 requirement_refs:
 - FR-001
@@ -248,3 +248,4 @@ as evidenced by [observable, concrete proof].
 - 2026-03-30T14:55:24Z – claude – shell_pid=55849 – lane=doing – Assigned agent via workflow command
 - 2026-03-30T14:57:24Z – claude – shell_pid=55849 – lane=for_review – Ready for review: Goals-MOC.md written to office2 with canonical format, 3 real declarations matching Vikunja, organized by identity context. Legacy backed up.
 - 2026-03-30T15:03:55Z – claude – shell_pid=55849 – lane=approved – Review passed: Goals-MOC.md confirmed correct in Obsidian with 3 real declarations, canonical format, organized by identity context. Local edit approach adopted.
+- 2026-03-30T15:33:33Z – claude – shell_pid=55849 – lane=done – Done override: WP02 was merged to main in commit history; branch deleted during prior merge cleanup
