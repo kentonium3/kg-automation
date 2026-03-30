@@ -70,12 +70,12 @@ creation (duplicate check before creating).
 update it, mark it complete, and delete it.
 
 **Included subtasks**:
-- [ ] T005: Task creation with label assignment (two-step: create + add label)
-- [ ] T006: Task read by ID
-- [ ] T007: Task update (partial field update)
-- [ ] T008: Task completion (set done=true)
-- [ ] T009: Task deletion with permanent-delete warning
-- [ ] T010: Idempotent creation (check existing by title before creating)
+- [x] T005: Task creation with label assignment (two-step: create + add label)
+- [x] T006: Task read by ID
+- [x] T007: Task update (partial field update)
+- [x] T008: Task completion (set done=true)
+- [x] T009: Task deletion with permanent-delete warning
+- [x] T010: Idempotent creation (check existing by title before creating)
 
 **Prompt file**: [tasks/WP02-task-crud.md](tasks/WP02-task-crud.md)
 
