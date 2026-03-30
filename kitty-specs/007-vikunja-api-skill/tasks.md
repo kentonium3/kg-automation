@@ -122,12 +122,12 @@ runbook and architecture docs.
 agent can complete a full CRUD round-trip; Goals filter returns declarations.
 
 **Included subtasks**:
-- [ ] T015: Deploy skill to office2 (~/.openclaw/skills/vikunja-api/)
-- [ ] T016: Verify skill appears in openclaw skills list
-- [ ] T017: End-to-end CRUD test (create, read, update, complete, delete)
-- [ ] T018: Verify Goals filter returns active goal declarations
-- [ ] T019: Update vikunja-ops.md runbook with skill usage and troubleshooting
-- [ ] T020: Update architecture docs (data-flows, credential-manifest) if needed
+- [x] T015: Deploy skill to office2 (~/.openclaw/skills/vikunja-api/)
+- [x] T016: Verify skill appears in openclaw skills list
+- [x] T017: End-to-end CRUD test (create, read, update, complete, delete)
+- [x] T018: Verify Goals filter returns active goal declarations
+- [x] T019: Update vikunja-ops.md runbook with skill usage and troubleshooting
+- [x] T020: Update architecture docs (data-flows, credential-manifest) if needed
 
 **Prompt file**: [tasks/WP04-deploy-verify-docs.md](tasks/WP04-deploy-verify-docs.md)
 
