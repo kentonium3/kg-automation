@@ -95,10 +95,10 @@
 
 ### Included Subtasks
 
-- [ ] T010 Create `docs/handbooks/goals-ops.md` covering: format reference, manual goal creation (Vikunja + Obsidian two-step), goal closure, goal retirement, valid vs invalid examples
-- [ ] T011 [P] Update `docs/handbooks/vikunja-ops.md` with Goals project structure, labels (including metalcasework), and Goals saved filter
-- [ ] T012 [P] Update `docs/design/architecture/data/service-inventory.json` with Goals project note under Vikunja entry
-- [ ] T013 [P] Update `docs/design/architecture/service-inventory.md` with narrative note about Goals project
+- [x] T010 Create `docs/handbooks/goals-ops.md` covering: format reference, manual goal creation (Vikunja + Obsidian two-step), goal closure, goal retirement, valid vs invalid examples
+- [x] T011 [P] Update `docs/handbooks/vikunja-ops.md` with Goals project structure, labels (including metalcasework), and Goals saved filter
+- [x] T012 [P] Update `docs/design/architecture/data/service-inventory.json` with Goals project note under Vikunja entry
+- [x] T013 [P] Update `docs/design/architecture/service-inventory.md` with narrative note about Goals project
 
 ### Implementation Notes
 
