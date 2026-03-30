@@ -18,12 +18,12 @@
 
 ### Included Subtasks
 
-- [ ] T001 Create `scripts/vikunja/setup_goals.py` with auth and API client pattern from `setup_vikunja.py`
-- [ ] T002 Add idempotent `metalcasework` label creation (#ff9800 orange)
-- [ ] T003 Create top-level `Goals` project (idempotent, check by title)
-- [ ] T004 Create seed goal declaration task(s) with title, description (canonical format + evidence), due date, and identity label
-- [ ] T005 Create "Goals" saved filter (`project = <goals_project_id> && done = false`, sorted by due date ascending)
-- [ ] T006 Verify setup via API queries (project exists, task has correct fields, filter works)
+- [x] T001 Create `scripts/vikunja/setup_goals.py` with auth and API client pattern from `setup_vikunja.py`
+- [x] T002 Add idempotent `metalcasework` label creation (#ff9800 orange)
+- [x] T003 Create top-level `Goals` project (idempotent, check by title)
+- [x] T004 Create seed goal declaration task(s) with title, description (canonical format + evidence), due date, and identity label
+- [x] T005 Create "Goals" saved filter (`project = <goals_project_id> && done = false`, sorted by due date ascending)
+- [x] T006 Verify setup via API queries (project exists, task has correct fields, filter works)
 
 ### Implementation Notes
 
