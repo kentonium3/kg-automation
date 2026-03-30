@@ -1,7 +1,7 @@
 ---
 work_package_id: WP04
 title: Deployment, Verification, and Documentation
-lane: planned
+lane: "doing"
 dependencies: [WP02, WP03]
 requirement_refs:
 - FR-021
@@ -10,7 +10,11 @@ requirement_refs:
 planning_base_branch: main
 merge_target_branch: main
 branch_strategy: Planning artifacts for this feature were generated on main. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into main unless the human explicitly redirects the landing branch.
+base_branch: 007-vikunja-api-skill-WP02
+base_commit: af03d7e8eb1d51e02a4268da40507fd8d0a556de
+created_at: '2026-03-30T23:31:31.907525+00:00'
 subtasks: [T015, T016, T017, T018, T019, T020]
+shell_pid: "33890"
 history:
 - date: '2026-03-30T22:03:15Z'
   event: created
