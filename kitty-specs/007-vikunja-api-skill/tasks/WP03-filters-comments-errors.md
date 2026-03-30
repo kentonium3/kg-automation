@@ -1,7 +1,7 @@
 ---
 work_package_id: WP03
 title: Filters, Comments, and Error Handling
-lane: planned
+lane: "doing"
 dependencies: [WP01]
 requirement_refs:
 - FR-012
@@ -15,7 +15,11 @@ requirement_refs:
 planning_base_branch: main
 merge_target_branch: main
 branch_strategy: Planning artifacts for this feature were generated on main. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into main unless the human explicitly redirects the landing branch.
+base_branch: 007-vikunja-api-skill-WP01
+base_commit: 5d97124cb3320d5f3662e83777019c28f7481c0a
+created_at: '2026-03-30T23:24:36.620124+00:00'
 subtasks: [T011, T012, T013, T014]
+shell_pid: "32349"
 history:
 - date: '2026-03-30T22:03:15Z'
   event: created
