@@ -1,7 +1,7 @@
 ---
 work_package_id: WP03
 title: Documentation and Architecture Updates
-lane: planned
+lane: "doing"
 dependencies: [WP01, WP02]
 requirement_refs:
 - FR-008
@@ -9,6 +9,9 @@ requirement_refs:
 planning_base_branch: main
 merge_target_branch: main
 branch_strategy: Planning artifacts for this feature were generated on main. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into main unless the human explicitly redirects the landing branch.
+base_branch: 006-goal-and-outcome-structure-WP03-merge-base
+base_commit: f737713aee0cd52c95e6a381e219675988d7aab7
+created_at: '2026-03-30T15:04:02.352614+00:00'
 subtasks:
 - T010
 - T011
@@ -17,7 +20,7 @@ subtasks:
 phase: Phase 2 - Documentation
 assignee: ''
 agent: ''
-shell_pid: ''
+shell_pid: "57617"
 review_status: ''
 reviewed_by: ''
 history:
