@@ -152,5 +152,5 @@
 <!-- status-model:start -->
 ## Canonical Status (Generated)
 - WP01: approved
-- WP02: for_review
+- WP02: approved
 <!-- status-model:end -->
