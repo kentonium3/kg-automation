@@ -20,6 +20,7 @@ base_commit: 5d97124cb3320d5f3662e83777019c28f7481c0a
 created_at: '2026-03-30T23:24:36.620124+00:00'
 subtasks: [T011, T012, T013, T014]
 shell_pid: "32349"
+agent: "claude-opus"
 history:
 - date: '2026-03-30T22:03:15Z'
   event: created
@@ -231,3 +232,7 @@ through FR-020.
   against the Swagger docs but should be tested end-to-end in WP04.
 - **URL encoding**: Filter expressions with spaces and operators need URL
   encoding in curl. Document this clearly.
+
+## Activity Log
+
+- 2026-03-30T23:24:36Z – claude-opus – shell_pid=32349 – lane=doing – Assigned agent via workflow command
