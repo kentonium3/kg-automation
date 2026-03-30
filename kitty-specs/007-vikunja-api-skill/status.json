@@ -1,15 +1,15 @@
 {
-  "event_count": 7,
+  "event_count": 9,
   "feature_slug": "007-vikunja-api-skill",
-  "last_event_id": "01KN0H02DRQMAPZ49C22J6ENTW",
-  "materialized_at": "2026-03-30T23:24:23.353119+00:00",
+  "last_event_id": "01KN0H3GB0FJKTRAATK8YWCKSP",
+  "materialized_at": "2026-03-30T23:26:15.904976+00:00",
   "summary": {
     "approved": 1,
     "blocked": 0,
     "canceled": 0,
     "claimed": 0,
     "done": 0,
-    "for_review": 1,
+    "for_review": 2,
     "in_progress": 0,
     "planned": 0
   },
@@ -27,6 +27,13 @@
       "lane": "for_review",
       "last_event_id": "01KN0H02DRQMAPZ49C22J6ENTW",
       "last_transition_at": "2026-03-30T23:24:23.352458+00:00"
+    },
+    "WP03": {
+      "actor": "user",
+      "force_count": 1,
+      "lane": "for_review",
+      "last_event_id": "01KN0H3GB0FJKTRAATK8YWCKSP",
+      "last_transition_at": "2026-03-30T23:26:15.904036+00:00"
     }
   }
 }

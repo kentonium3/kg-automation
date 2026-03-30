@@ -155,4 +155,5 @@ WP02 and WP03 can run in parallel after WP01 completes.
 ## Canonical Status (Generated)
 - WP01: approved
 - WP02: for_review
+- WP03: for_review
 <!-- status-model:end -->
