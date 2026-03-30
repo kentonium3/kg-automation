@@ -22,6 +22,7 @@ base_commit: 12ea7bbccfd30d5eec8abd0beb854ba386e6eca3
 created_at: '2026-03-30T23:16:06.555173+00:00'
 subtasks: [T001, T002, T003, T004]
 shell_pid: "30524"
+agent: "claude-opus"
 history:
 - date: '2026-03-30T22:03:15Z'
   event: created
@@ -166,3 +167,7 @@ pseudo-projects.
 
 - **Credential leak**: Ensure the SKILL.md never contains the actual token value.
   Use `$(cat /data/services/openclaw/secrets/vikunja-api)` in all curl examples.
+
+## Activity Log
+
+- 2026-03-30T23:16:06Z – claude-opus – shell_pid=30524 – lane=doing – Assigned agent via workflow command
