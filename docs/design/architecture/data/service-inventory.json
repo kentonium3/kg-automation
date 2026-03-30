@@ -9,17 +9,18 @@
       "image": "vikunja/vikunja:0.24.6",
       "host": "office2",
       "port": 3456,
-      "bind_ip": "100.92.197.90",
+      "bind_ip": "127.0.0.1",
       "managed_by": "docker-restart-policy",
       "data_path": "/data/services/vikunja/data",
       "data_owner": "1000:0",
       "backup_included": true,
       "deployed_by": "F001",
-      "public_url": "http://100.92.197.90:3456",
+      "public_url": "https://office2.tail0f5f56.ts.net",
+      "tls_termination": "tailscale-serve",
       "restart_policy": "unless-stopped",
       "status": "running",
       "purpose": "Task store and web UI",
-      "notes": "F006 added Goals project for structured goal declarations with metalcasework label and Goals saved filter. Public URL set to explicit Tailscale IP for mobile access (was hostname office2:3456)."
+      "notes": "F006 added Goals project. HTTPS via Tailscale Serve with auto-provisioned certs. Container bound to localhost, Tailscale Serve proxies port 443 to localhost:3456."
     },
     {
       "name": "obsidian-sync",
