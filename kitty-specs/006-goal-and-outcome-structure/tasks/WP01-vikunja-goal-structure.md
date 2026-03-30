@@ -1,7 +1,7 @@
 ---
 work_package_id: WP01
 title: Vikunja Goal Structure
-lane: "approved"
+lane: "done"
 dependencies: []
 requirement_refs:
 - FR-003
@@ -250,3 +250,4 @@ and a "Goals" saved filter showing active goals sorted by target date.
 - 2026-03-30T14:40:51Z – claude – shell_pid=52606 – lane=doing – Assigned agent via workflow command
 - 2026-03-30T14:52:04Z – claude – shell_pid=52606 – lane=for_review – Ready for review: setup_goals.py creates Goals project, metalcasework label, 3 seed goals, and Goals filter. All verification checks pass.
 - 2026-03-30T14:55:11Z – claude – shell_pid=52606 – lane=approved – Review passed: setup_goals.py creates Goals project, metalcasework label, 3 seed goals, and Goals filter. All verification checks pass. Vikunja web UI confirmed by Kent.
+- 2026-03-30T15:33:32Z – claude – shell_pid=52606 – lane=done – Done override: WP01 was merged to main in commit history; branch deleted during prior merge cleanup
