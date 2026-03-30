@@ -13,10 +13,10 @@ Authoritative data: [`data/data-flows.json`](data/data-flows.json)
 ### Vikunja Web UI (F001)
 
 ```
-Kent (Mac/iPhone) → HTTP via Tailscale → Vikunja :3456 → SQLite
+Kent (Mac/iPhone) → HTTPS via Tailscale Serve → Vikunja :3456 → SQLite
 ```
 
-Direct task management through the browser. Accessible from any Tailscale-connected device at `http://office2:3456`.
+Direct task management through the browser. Accessible from any Tailscale-connected device at `https://office2.tail0f5f56.ts.net`.
 
 ### Obsidian Vault Sync
 

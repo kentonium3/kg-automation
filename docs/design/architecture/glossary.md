@@ -11,8 +11,8 @@ Canonical terms used across kg-automation documentation, code, and agent instruc
 | Term | Definition |
 |------|-----------|
 | **office2** | Ubuntu 24.04 LTS server (Dell XPS 8700). Always-on hub for all services. Tailscale IP: `100.92.197.90`. |
-| **Tailscale** | Mesh VPN providing encrypted connectivity between office2, Mac, and iPhone. All service access is Tailscale-only. |
-| **Vikunja** | Open-source task management system. Runs as Docker container on office2. Serves as the task store and web UI. REST API at port 3456. |
+| **Tailscale** | Mesh VPN providing encrypted connectivity between office2, Mac, and iPhone. All service access is Tailscale-only. Tailscale Serve provides HTTPS termination with auto-provisioned certs. |
+| **Vikunja** | Open-source task management system. Runs as Docker container on office2. Serves as the task store and web UI. Accessible at `https://office2.tail0f5f56.ts.net` via Tailscale Serve. |
 | **OpenClaw** | Orchestration and intelligence layer (planned, F002). Calls Anthropic API directly. Runs skills on office2. |
 | **Obsidian Sync** | Cloud sync service keeping the Obsidian vault consistent across Mac, iPhone, and office2. Daemon runs on office2 as `obsidian-sync.service`. |
 | **second-brain** | Kent's Obsidian vault at `~/second-brain/vault/Notes/`. Separate repo (`kentonium3/second-brain`). Contains constitution docs, growth journals, and private content. |

@@ -28,15 +28,15 @@ graph TB
     end
 
     subgraph office2_services["office2 Services"]
-        vikunja["Vikunja :3456<br/>Task store + web UI"]
+        vikunja["Vikunja<br/>Task store + web UI<br/>HTTPS via Tailscale Serve"]
         obsidian_sync["Obsidian Sync<br/>Vault sync daemon"]
         transcribe["Transcribe API :8787<br/>Whisper"]
         restic["Restic Backup<br/>4AM daily"]
         security["Security Monitor<br/>3AM daily"]
     end
 
-    mac -->|"SSH / HTTP"| office2
-    iphone -->|"HTTP"| office2
+    mac -->|"SSH / HTTPS"| office2
+    iphone -->|"HTTPS"| office2
     office2 --> office2_storage
     office2 --> office2_services
     vikunja --> data_disk

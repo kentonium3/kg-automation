@@ -21,7 +21,7 @@ graph LR
     end
 
     subgraph office2["office2"]
-        vikunja_ui["Vikunja Web UI<br/>:3456"]
+        vikunja_ui["Vikunja Web UI<br/>HTTPS :443 → :3456"]
         vikunja_db[("SQLite<br/>/data/services/vikunja/data")]
         ob_sync["Obsidian Sync<br/>daemon"]
         vault[("Obsidian Vault<br/>/home/kgale/second-brain")]
@@ -31,7 +31,7 @@ graph LR
         baselines[("Baselines<br/>/data/services/security-monitor")]
     end
 
-    browser -->|"HTTP via Tailscale"| vikunja_ui
+    browser -->|"HTTPS via Tailscale Serve"| vikunja_ui
     vikunja_ui --> vikunja_db
     obsidian_app -->|"Obsidian Sync"| ob_sync
     ob_sync --> vault

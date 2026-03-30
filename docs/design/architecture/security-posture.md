@@ -8,12 +8,14 @@ status: approved
 
 ## Network Security
 
-- **All services bind to Tailscale IP only** (`100.92.197.90`), never `0.0.0.0`
-- No services exposed to the public internet
+- **Services bind to Tailscale IP** (`100.92.197.90`) unless fronted by Tailscale Serve, which allows `0.0.0.0` binding safely
+- No services exposed to the public internet (Tailscale Funnel is disabled)
 - No port forwarding or NAT traversal outside Tailscale
-- Docker's default networking bypasses iptables/ufw — explicit IP binding is the only reliable control
+- Docker's default networking bypasses iptables/ufw — explicit IP binding is the primary control for non-Serve services
 
-**As of F003**: All managed services on office2 are now bound exclusively to the Tailscale IP (`100.92.197.90`). The last `0.0.0.0` binding (transcribe-api on port 8787) was eliminated in F003. Zero `0.0.0.0` bindings remain for managed services.
+**Tailscale Serve**: Vikunja is fronted by Tailscale Serve, which terminates TLS on port 443 and proxies to the container on localhost:3456. Certs are auto-provisioned from Let's Encrypt and auto-renewed. Access is tailnet-only.
+
+**As of F003**: Transcribe API and OpenClaw bind exclusively to Tailscale IP. Vikunja binds to `0.0.0.0:3456` but is accessed via Tailscale Serve on HTTPS — direct port 3456 is not reachable from outside the host.
 
 ## Supply Chain
 

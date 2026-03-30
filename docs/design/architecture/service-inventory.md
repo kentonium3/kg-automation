@@ -14,7 +14,7 @@ All services run on office2 unless otherwise noted.
 
 | Service | Type | Version/Image | Port | Bind IP | systemd Unit | Data Path |
 |---------|------|---------------|------|---------|-------------|-----------|
-| Vikunja | Docker | `vikunja/vikunja:0.24.6` | 3456 | 100.92.197.90 | `vikunja.service` | `/data/services/vikunja/data` |
+| Vikunja | Docker | `vikunja/vikunja:0.24.6` | 3456 | 0.0.0.0 | `vikunja.service` (system) | `/data/services/vikunja/data` |
 | Obsidian Sync | Native | `ob sync --continuous` | — | — | `obsidian-sync.service` | `/home/kgale/second-brain/vault` |
 | Transcribe API | Docker | `transcribe_transcribe` | 8787 | 100.92.197.90 | `transcribe.service` | `/data/services/transcribe` |
 | OpenClaw Gateway | npm-global | `v2026.3.24` | 18789 | 127.0.0.1 | `openclaw-gateway.service` (user) | `/data/services/openclaw/data` |
@@ -30,6 +30,9 @@ All services run on office2 unless otherwise noted.
 
 ### Vikunja (F001)
 - **Deployed by**: F001
+- **Public URL**: `https://office2.tail0f5f56.ts.net`
+- **TLS**: Tailscale Serve (auto-provisioned Let's Encrypt certs, auto-renewed)
+- **systemd unit**: `vikunja.service` (system-level, runs as claude user, `Restart=always`)
 - **Config in repo**: `scripts/vikunja/deploy.sh`, `scripts/vikunja/vikunja.service`
 - **Setup script**: `scripts/vikunja/setup_vikunja.py` (projects, labels, filters)
 - **Data owner**: uid 1000:gid 0 (matches container runtime user)

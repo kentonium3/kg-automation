@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
-  "last_updated": "2026-03-26",
-  "updated_by": "F001",
+  "last_updated": "2026-03-30",
+  "updated_by": "ops-fix",
   "flows": [
     {
       "name": "vikunja-web-ui",
@@ -9,7 +9,7 @@
       "deployed_by": "F001",
       "description": "Direct task management via browser",
       "path": [
-        {"from": "Kent (Mac/iPhone)", "to": "Vikunja web UI", "protocol": "HTTP via Tailscale", "port": 3456},
+        {"from": "Kent (Mac/iPhone)", "to": "Vikunja web UI", "protocol": "HTTPS via Tailscale Serve", "port": 443, "backend_port": 3456},
         {"from": "Vikunja web UI", "to": "SQLite", "path": "/data/services/vikunja/data/vikunja.db"}
       ]
     },
