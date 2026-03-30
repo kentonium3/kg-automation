@@ -58,9 +58,9 @@
 
 ### Included Subtasks
 
-- [ ] T007 Write Goals-MOC.md with canonical format definition, rules, and template section showing three required elements
-- [ ] T008 [P] Populate Goals-MOC.md with real declarations organized by identity context (Personal, Intentional, Metal Casework) with Archive section
-- [ ] T009 Verify Obsidian Sync delivers Goals-MOC.md to all devices
+- [x] T007 Write Goals-MOC.md with canonical format definition, rules, and template section showing three required elements
+- [x] T008 [P] Populate Goals-MOC.md with real declarations organized by identity context (Personal, Intentional, Metal Casework) with Archive section
+- [x] T009 Verify Obsidian Sync delivers Goals-MOC.md to all devices
 
 ### Implementation Notes
 
