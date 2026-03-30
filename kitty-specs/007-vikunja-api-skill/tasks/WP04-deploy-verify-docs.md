@@ -15,6 +15,7 @@ base_commit: af03d7e8eb1d51e02a4268da40507fd8d0a556de
 created_at: '2026-03-30T23:31:31.907525+00:00'
 subtasks: [T015, T016, T017, T018, T019, T020]
 shell_pid: "33890"
+agent: "claude-opus"
 history:
 - date: '2026-03-30T22:03:15Z'
   event: created
@@ -263,3 +264,7 @@ run end-to-end tests against live Vikunja, and update operational documentation.
 - **openclaw agent --message may not work as expected**: If the agent doesn't
   invoke the skill on a natural language message, fall back to direct curl
   verification. The skill is still valid even if agent routing needs tuning.
+
+## Activity Log
+
+- 2026-03-30T23:31:32Z – claude-opus – shell_pid=33890 – lane=doing – Assigned agent via workflow command
