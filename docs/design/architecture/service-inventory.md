@@ -35,6 +35,7 @@ All services run on office2 unless otherwise noted.
 - **Data owner**: uid 1000:gid 0 (matches container runtime user)
 - **Backup**: Automatically included (under `/data/services/`)
 - **Runbook**: `docs/handbooks/vikunja-ops.md`
+- **F006 additions**: Goals project (top-level, id=11) for structured goal declarations, `metalcasework` label (#ff9800), Goals saved filter. Setup script: `scripts/vikunja/setup_goals.py`. Goals runbook: `docs/handbooks/goals-ops.md`
 
 ### Obsidian Sync (pre-F001)
 - **Deployed by**: Manual setup
