@@ -21,6 +21,7 @@ base_commit: 5d97124cb3320d5f3662e83777019c28f7481c0a
 created_at: '2026-03-30T23:23:23.023871+00:00'
 subtasks: [T005, T006, T007, T008, T009, T010]
 shell_pid: "31927"
+agent: "claude-opus"
 history:
 - date: '2026-03-30T22:03:15Z'
   event: created
@@ -219,3 +220,7 @@ duplicates (FR-007).
 - **Label assignment race**: If the label assignment fails after task creation,
   the agent should report the task was created without a label rather than
   failing silently.
+
+## Activity Log
+
+- 2026-03-30T23:23:23Z – claude-opus – shell_pid=31927 – lane=doing – Assigned agent via workflow command
