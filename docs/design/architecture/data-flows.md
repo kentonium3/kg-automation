@@ -42,6 +42,16 @@ audit.sh → compare running state against baselines → log alerts
 
 Runs at 3AM daily. Checks: Docker images, enabled services, listening ports, SSH keys, crontabs, pip packages, hosts file, pth files.
 
+### OpenClaw → Vikunja API (F007)
+
+```
+OpenClaw agent → HTTPS via Tailscale Serve → Vikunja REST API :3456 → SQLite
+```
+
+OpenClaw agents use the vikunja_api skill to create, read, update, and query tasks
+via the Vikunja REST API. Authentication is via Bearer token read from the
+credential store at runtime. Used by all downstream features that touch tasks.
+
 ## Planned Flows (Not Yet Implemented)
 
 | Flow | Features | Description |

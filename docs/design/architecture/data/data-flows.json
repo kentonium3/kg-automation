@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
   "last_updated": "2026-03-30",
-  "updated_by": "ops-fix",
+  "updated_by": "F007",
   "flows": [
     {
       "name": "vikunja-web-ui",
@@ -40,6 +40,16 @@
       "path": [
         {"from": "audit.sh", "to": "baseline comparison", "path": "/data/services/security-monitor/baselines/"},
         {"from": "audit results", "to": "log files", "path": "/data/services/security-monitor/logs/"}
+      ]
+    },
+    {
+      "name": "openclaw-vikunja-api",
+      "status": "active",
+      "deployed_by": "F007",
+      "description": "OpenClaw agent task operations via Vikunja REST API",
+      "path": [
+        {"from": "OpenClaw agent", "to": "Vikunja REST API", "protocol": "HTTPS via Tailscale Serve", "port": 443, "backend_port": 3456},
+        {"from": "Vikunja REST API", "to": "SQLite", "path": "/data/services/vikunja/data/vikunja.db"}
       ]
     }
   ],

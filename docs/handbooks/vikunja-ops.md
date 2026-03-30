@@ -134,8 +134,8 @@ If the new version has issues:
 
 ### Web UI URLs
 
-- **From any Tailscale device**: `http://office2:3456`
-- **Using Tailscale IP directly**: `http://100.92.197.90:3456`
+- **Canonical URL (HTTPS)**: `https://office2.tail0f5f56.ts.net`
+- **Tailscale Serve**: TLS terminated by Tailscale Serve on port 443, proxied to localhost:3456
 
 ### Requirements
 
@@ -145,7 +145,7 @@ If the new version has issues:
 ### iPhone access
 
 1. Ensure the Tailscale app is connected on iPhone
-2. Open Safari to `http://100.92.197.90:3456`
+2. Open Safari to `https://office2.tail0f5f56.ts.net`
 
 ### Troubleshooting connectivity
 
@@ -201,6 +201,54 @@ python3 scripts/vikunja/setup_goals.py
 ```
 
 See `docs/handbooks/goals-ops.md` for full goal lifecycle operations.
+
+## Vikunja API Skill (F007)
+
+The Vikunja API skill teaches OpenClaw agents how to interact with Vikunja's
+REST API for task management.
+
+### Skill Locations
+
+- **Source in repo**: `scripts/openclaw/skills/vikunja-api/SKILL.md`
+- **Deployed on office2**: `~/.openclaw/skills/vikunja-api/SKILL.md`
+- **API base URL**: `https://office2.tail0f5f56.ts.net/api/v1`
+
+### Update Skill on office2
+
+After editing the SKILL.md in the repo, copy it to office2:
+
+```bash
+ssh office2-claude "cat > ~/.openclaw/skills/vikunja-api/SKILL.md" \
+  < scripts/openclaw/skills/vikunja-api/SKILL.md
+```
+
+The skills watcher should pick up changes automatically. If not:
+
+```bash
+ssh office2-claude "openclaw gateway restart"
+```
+
+### Verify Skill
+
+```bash
+ssh office2-claude "openclaw skills list" | grep vikunja
+ssh office2-claude "openclaw skills info vikunja_api"
+```
+
+### API Token
+
+- **Token location**: `/data/services/openclaw/secrets/vikunja-api` (mode 600)
+- **Token name in Vikunja**: `openclaw-agent`
+- **Rotation**: See the API Token section in openclaw-ops.md
+
+### Troubleshooting
+
+| Symptom | Check | Fix |
+| --- | --- | --- |
+| Skill not in skills list | `ls ~/.openclaw/skills/vikunja-api/SKILL.md` | Re-deploy, restart gateway |
+| 401 auth errors | Token file exists and is non-empty | Rotate token (see openclaw-ops.md) |
+| Connection errors | Vikunja running? `systemctl status vikunja` | Start service |
+| Wrong API URL | Check SKILL.md base URL | Should be `https://office2.tail0f5f56.ts.net/api/v1` |
 
 ## Security Baseline Reset
 

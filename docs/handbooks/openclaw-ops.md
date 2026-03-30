@@ -117,7 +117,14 @@ curl -s http://127.0.0.1:18789/
 
 ## Skill Directory
 
-Skills are managed by OpenClaw at `/home/claude/.openclaw/skills/`. No custom skills are installed in F002. Future features (F003+) will add skills here.
+Skills are managed by OpenClaw at `/home/claude/.openclaw/skills/`.
+
+### Installed Custom Skills
+
+| Skill | Source | Deployed By | Purpose |
+| --- | --- | --- | --- |
+| whisper | `scripts/openclaw/skills/whisper/SKILL.md` | F003 | Whisper transcription via office2 API |
+| vikunja_api | `scripts/openclaw/skills/vikunja-api/SKILL.md` | F007 | Vikunja task CRUD, projects, labels, filters, comments |
 
 ```bash
 # List installed skills:
