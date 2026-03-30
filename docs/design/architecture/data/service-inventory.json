@@ -9,18 +9,19 @@
       "image": "vikunja/vikunja:0.24.6",
       "host": "office2",
       "port": 3456,
-      "bind_ip": "127.0.0.1",
-      "managed_by": "docker-restart-policy",
+      "bind_ip": "0.0.0.0",
+      "systemd_unit": "vikunja.service",
+      "systemd_level": "system",
+      "systemd_user": "claude",
       "data_path": "/data/services/vikunja/data",
       "data_owner": "1000:0",
       "backup_included": true,
       "deployed_by": "F001",
       "public_url": "https://office2.tail0f5f56.ts.net",
       "tls_termination": "tailscale-serve",
-      "restart_policy": "unless-stopped",
       "status": "running",
       "purpose": "Task store and web UI",
-      "notes": "F006 added Goals project. HTTPS via Tailscale Serve with auto-provisioned certs. Container bound to localhost, Tailscale Serve proxies port 443 to localhost:3456."
+      "notes": "F006 added Goals project. HTTPS via Tailscale Serve with auto-provisioned certs. Systemd unit runs container with --rm; restart handled by systemd (Restart=always), not Docker restart policy."
     },
     {
       "name": "obsidian-sync",
