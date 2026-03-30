@@ -1,0 +1,15 @@
+{
+  "wp_id": "WP03",
+  "feature_slug": "006-goal-and-outcome-structure",
+  "worktree_path": ".worktrees/006-goal-and-outcome-structure-WP03",
+  "branch_name": "006-goal-and-outcome-structure-WP03",
+  "base_branch": "006-goal-and-outcome-structure-WP03-merge-base",
+  "base_commit": "f737713aee0cd52c95e6a381e219675988d7aab7",
+  "dependencies": [
+    "WP01",
+    "WP02"
+  ],
+  "created_at": "2026-03-30T15:04:02.352614+00:00",
+  "created_by": "implement-command-multi-parent-merge",
+  "vcs_backend": "git"
+}
