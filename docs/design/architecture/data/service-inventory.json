@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
-  "last_updated": "2026-03-28",
-  "updated_by": "F004",
+  "last_updated": "2026-03-30",
+  "updated_by": "F006",
   "services": [
     {
       "name": "vikunja",
@@ -17,7 +17,8 @@
       "backup_included": true,
       "deployed_by": "F001",
       "status": "running",
-      "purpose": "Task store and web UI"
+      "purpose": "Task store and web UI",
+      "notes": "F006 added Goals project for structured goal declarations with metalcasework label and Goals saved filter"
     },
     {
       "name": "obsidian-sync",

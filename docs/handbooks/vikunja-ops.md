@@ -157,6 +157,51 @@ If the new version has issues:
 | Timeout from iPhone | Tailscale app on iPhone | Open Tailscale app, verify connection |
 | Port bound to 0.0.0.0 | `ss -tlnp \| grep 3456` | **Security issue** — stop service, check vikunja.service bind address |
 
+## Goals Project (F006)
+
+The Goals project holds goal declarations — outcome statements with target dates
+and evidence criteria. Goals are distinct from tasks: they are anchors, not actions.
+
+### Project Structure
+
+```
+Goals                        ← Top-level project (id=11)
+├── Intentional: $5K/month consulting income
+├── Intentional: $2.5K/month consulting income by Q2
+└── Personal: Complete Against the Tide 5K
+```
+
+### Identity Labels
+
+| Label | Color | Created By |
+| --- | --- | --- |
+| personal | #2196f3 (blue) | F001 |
+| intentional | #4caf50 (green) | F001 |
+| metalcasework | #ff9800 (orange) | F006 |
+
+Every goal task must have exactly one identity label.
+
+### Saved Filters
+
+| Filter | Expression | Sort | Created By |
+| --- | --- | --- | --- |
+| Today | `due_date >= now/d && due_date < now/d+1d && done = false` | due_date asc | F001 |
+| Upcoming | `due_date > now/d && due_date <= now+14d && done = false` | due_date asc | F001 |
+| Overdue | `due_date < now/d && done = false` | due_date asc | F001 |
+| Goals | `project = 11 && done = false` | due_date asc | F006 |
+
+### Setup Script
+
+```bash
+# Verify goals setup:
+python3 scripts/vikunja/setup_goals.py --verify-only
+
+# Re-run setup (idempotent):
+python3 scripts/vikunja/setup_goals.py
+```
+
+See `docs/handbooks/goals-ops.md` for full goal lifecycle operations.
+
 ## Security Baseline Reset
 
 After deploying or upgrading Vikunja, the security monitoring baselines on office2 need to be updated to reflect the new expected state.
