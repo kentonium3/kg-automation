@@ -148,3 +148,8 @@
 | T011 | Update vikunja-ops.md | WP03 | P2 | Yes |
 | T012 | Update service-inventory.json | WP03 | P2 | Yes |
 | T013 | Update service-inventory.md | WP03 | P2 | Yes |
+
+<!-- status-model:start -->
+## Canonical Status (Generated)
+- WP01: for_review
+<!-- status-model:end -->

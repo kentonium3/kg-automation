@@ -1,7 +1,7 @@
 ---
 work_package_id: WP01
 title: Vikunja Goal Structure
-lane: "doing"
+lane: "for_review"
 dependencies: []
 requirement_refs:
 - FR-003
@@ -22,8 +22,8 @@ subtasks:
 - T006
 phase: Phase 1 - Core Implementation
 assignee: ''
-agent: "claude"
-shell_pid: "52606"
+agent: claude
+shell_pid: '52606'
 review_status: ''
 reviewed_by: ''
 history:
@@ -248,3 +248,4 @@ and a "Goals" saved filter showing active goals sorted by target date.
 
 - 2026-03-30T14:32:29Z – system – lane=planned – Prompt created.
 - 2026-03-30T14:40:51Z – claude – shell_pid=52606 – lane=doing – Assigned agent via workflow command
+- 2026-03-30T14:52:04Z – claude – shell_pid=52606 – lane=for_review – Ready for review: setup_goals.py creates Goals project, metalcasework label, 3 seed goals, and Goals filter. All verification checks pass.
