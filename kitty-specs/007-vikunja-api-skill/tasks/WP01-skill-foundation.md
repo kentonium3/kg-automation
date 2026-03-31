@@ -1,7 +1,7 @@
 ---
 work_package_id: WP01
 title: SKILL.md Foundation — Frontmatter and Resolution
-lane: "approved"
+lane: "done"
 dependencies: []
 requirement_refs:
 - C-001
@@ -23,8 +23,8 @@ created_at: '2026-03-30T23:16:06.555173+00:00'
 subtasks: [T001, T002, T003, T004]
 agent: claude-opus
 shell_pid: '31159'
-reviewed_by: "Kent Gale"
 review_status: "approved"
+reviewed_by: "Kent Gale"
 history:
 - date: '2026-03-30T22:03:15Z'
   event: created
@@ -176,3 +176,4 @@ pseudo-projects.
 - 2026-03-30T23:17:22Z – claude-opus – shell_pid=30524 – lane=for_review – Ready for review: SKILL.md foundation with frontmatter, health check, auth pattern, project/label resolution
 - 2026-03-30T23:18:30Z – claude-opus – shell_pid=31159 – lane=doing – Started review via workflow command
 - 2026-03-30T23:19:43Z – claude-opus – shell_pid=31159 – lane=approved – Review passed: SKILL.md foundation with correct frontmatter, health check, auth pattern, project/label resolution. No credentials in source. All subtasks addressed.
+- 2026-03-31T00:41:32Z – claude-opus – shell_pid=31159 – lane=done – Done override: Merged to main via manual step-by-step merge (crash diagnostic protocol)
