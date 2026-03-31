@@ -118,20 +118,41 @@ curl -s http://127.0.0.1:18789/
 ## Skill Directory
 
 Skills are managed by OpenClaw at `/home/claude/.openclaw/skills/`.
-
-### Installed Custom Skills
-
-| Skill | Source | Deployed By | Purpose |
-| --- | --- | --- | --- |
-| whisper | `scripts/openclaw/skills/whisper/SKILL.md` | F003 | Whisper transcription via office2 API |
-| vikunja_api | `scripts/openclaw/skills/vikunja-api/SKILL.md` | F007 | Vikunja task CRUD, projects, labels, filters, comments |
+Skills committed to the kg-automation repo live at `scripts/openclaw/skills/`.
 
 ```bash
 # List installed skills:
 openclaw skills list
 
-# Install a skill (review source first per constitution):
-openclaw skills install <skill-name>
+# Install a skill from the workspace:
+openclaw skills install <skill-slug>
+
+# Search ClawHub (public registry) for community skills:
+openclaw skills search "<query>"
+```
+
+### ClawHub — Public Skill Registry
+
+ClawHub (`clawhub.ai`) is the public registry for OpenClaw skills. It supports
+discovery, versioning, and publishing. The kg-automation skills can be published
+to ClawHub for backup and versioning using the `clawhub` CLI.
+
+**Constitution policy**: Community skills from ClawHub must be read and reviewed
+before installation. Never run `openclaw skills install <community-skill>` without
+first reading the skill's SKILL.md and any supporting files. This is a hard
+boundary — no exceptions.
+
+**Publishing own skills** (backup/versioning — permitted):
+```bash
+# Install clawhub CLI (if needed):
+npm i -g clawhub
+
+# Publish a skill:
+clawhub skill publish ./scripts/openclaw/skills/whisper \
+  --slug kg-whisper --name "Whisper Transcription" --version 1.0.0 --tags latest
+
+# Sync all skills:
+clawhub sync --all
 ```
 
 ## Data and Backups

@@ -4,7 +4,7 @@
 **Version:** spec-kitty-cli 2.1.2
 **Severity:** Medium - Recurring crash with no automated recovery path
 **Reporter:** Claude Opus (via Kent Gale)
-**Status:** DIAGNOSED - VS Code file watcher + Git extension crash on rapid worktree removal
+**Status:** RESOLVED - GitLens was the primary crash contributor; uninstalling it eliminated the crash
 
 ## Summary
 
@@ -287,6 +287,60 @@ git branch -d 006-goal-and-outcome-structure-WP03-merge-base
 git push
 ```
 
+## Variable Changes Before Next Test Cycle
+
+**2026-03-30**: GitLens (`eamodio.gitlens`) uninstalled from VS Code. This removes one of the two suspected crash contributors. The next spec-kitty merge should use the step-by-step protocol in this document to determine whether the built-in Git extension alone is sufficient to trigger the crash, or whether the crash is resolved.
+
+Expected outcomes:
+- **Crash resolved**: GitLens was the primary contributor. File a bug report against GitLens.
+- **Crash persists**: Built-in Git extension is the culprit. Add `log stream --process "Code Helper"` instrumentation and test disabling the built-in Git extension (`"git.enabled": false` in VS Code settings).
+
+## Resolution (2026-03-30)
+
+**Crash resolved.** Uninstalling GitLens eliminated the crash.
+
+### Test: F007 merge (4 WPs, step-by-step from VS Code integrated terminal)
+
+Executed the full merge protocol from the VS Code integrated terminal while
+monitoring from an external terminal:
+
+**Monitoring setup** (external terminal):
+```bash
+tail -f "<VS Code logs>/exthost/vscode.git/Git.log" &
+log stream --predicate 'process == "Code Helper" OR process == "Electron"' --level error
+```
+
+**Merge steps executed** (VS Code integrated terminal):
+1. `git checkout main && git pull --ff-only` — stable
+2. `git merge --no-ff 007-vikunja-api-skill-WP04` — stable (single effective tip)
+3. `git worktree remove .worktrees/007-vikunja-api-skill-WP01` — stable
+4. `git worktree remove .worktrees/007-vikunja-api-skill-WP02` — stable
+5. `git worktree remove .worktrees/007-vikunja-api-skill-WP03` — stable
+6. `git worktree remove .worktrees/007-vikunja-api-skill-WP04` — stable
+7. `git branch -d` (all 4 branches) — stable
+8. Status transitions and push — stable
+
+**Result**: All 4 worktree removals completed without a VS Code crash. The
+built-in Git extension logged ENOENT warnings for the deleted worktree HEAD
+files (as expected) but handled them gracefully — no window crash.
+
+### Conclusion
+
+**GitLens (`eamodio.gitlens`) was the primary crash contributor.** The built-in
+Git extension alone handles worktree removal gracefully. GitLens's concurrent
+worktree tracking (visible in its separate `GitLens (Git).log`) created a
+cascading failure when combined with the built-in Git extension's ENOENT errors
+and the file watcher shutdowns.
+
+### Recommendation
+
+- **Do not reinstall GitLens** unless this issue is fixed upstream
+- If GitLens is needed in the future, disable it before running `spec-kitty merge`
+- Consider filing a bug report against GitLens: rapid worktree removal causes
+  VS Code window crash when GitLens is active
+
+---
+
 ## Environment
 
 - OS: macOS Darwin x64 25.3.0
@@ -296,4 +350,5 @@ git push
 - Electron: 39.8.3
 - Chromium: 142.0.7444.265
 - Node.js: 22.22.1
-- Feature: 006-goal-and-outcome-structure (3 WPs)
+- Feature (crash incidents 1-3): 006-goal-and-outcome-structure (3 WPs)
+- Feature (resolution test): 007-vikunja-api-skill (4 WPs)
