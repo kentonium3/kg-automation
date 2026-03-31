@@ -20,6 +20,7 @@ base_commit: 98c0596263a548f4520100bb66ca26b3e0136121
 created_at: '2026-03-31T03:09:09.346708+00:00'
 subtasks: [T011, T012, T013, T014, T015, T016]
 shell_pid: "68877"
+agent: "claude-code"
 history:
 - date: '2026-03-31T02:04:57Z'
   event: created
@@ -219,3 +220,7 @@ inference, duplicate detection, and error handling.
 - **vikunja_api skill not readable from agent**: The agent needs to
   `cat ~/.openclaw/skills/vikunja-api/SKILL.md` to learn the API. Verify
   this path is accessible from the felix-admin-capture agent's context.
+
+## Activity Log
+
+- 2026-03-31T03:09:09Z – claude-code – shell_pid=68877 – lane=doing – Assigned agent via workflow command
