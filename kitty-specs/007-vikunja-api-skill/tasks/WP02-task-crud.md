@@ -1,7 +1,7 @@
 ---
 work_package_id: WP02
 title: Task CRUD Operations
-lane: "approved"
+lane: "done"
 dependencies: [WP01]
 requirement_refs:
 - FR-001
@@ -22,8 +22,8 @@ created_at: '2026-03-30T23:23:23.023871+00:00'
 subtasks: [T005, T006, T007, T008, T009, T010]
 agent: claude-opus
 shell_pid: '33048'
-reviewed_by: "Kent Gale"
 review_status: "approved"
+reviewed_by: "Kent Gale"
 history:
 - date: '2026-03-30T22:03:15Z'
   event: created
@@ -229,3 +229,4 @@ duplicates (FR-007).
 - 2026-03-30T23:24:23Z – claude-opus – shell_pid=31927 – lane=for_review – Ready for review: Task CRUD operations — create with label, duplicate check, read, update, complete, delete with warning
 - 2026-03-30T23:27:25Z – claude-opus – shell_pid=33048 – lane=doing – Started review via workflow command
 - 2026-03-30T23:27:50Z – claude-opus – shell_pid=33048 – lane=approved – Review passed: Task CRUD complete — two-step create, duplicate check, read, update, complete, delete with warning. Correct HTTP methods throughout.
+- 2026-03-31T00:41:41Z – claude-opus – shell_pid=33048 – lane=done – Done override: Merged to main via WP04 (ancestor of effective merge tip)
