@@ -32,9 +32,11 @@ this, commitments exist as intentions without a track record.
 |---|-------|-----------|---------------|
 | 1 | Wake at 5:00 AM | Mon–Sat | personal |
 | 2 | Meditate 45 min | Daily | personal |
-| 3 | Functional strength training 45 min | Mon/Wed/Fri | personal |
-| 4 | 10K steps (monthly average) | Daily | personal |
-| 5 | Read 30 min minimum | Daily (evening) | personal |
+| 3 | Morning shoulder PT | Daily | personal |
+| 4 | Functional strength training 45 min | Mon/Wed/Fri | personal |
+| 5 | 10K steps (monthly average) | Daily | personal |
+| 6 | Read 30 min minimum | Daily (evening) | personal |
+| 7 | Evening shoulder PT | Daily | personal |
 
 ## User scenarios
 
@@ -150,7 +152,7 @@ appears in check-ins but history is preserved.
 
 ## Success criteria
 
-1. Habits project exists in Vikunja with Kent's 5 recurring commitments, each
+1. Habits project exists in Vikunja with Kent's 7 recurring commitments, each
    with correct identity label and frequency.
 2. Daily check-in is delivered at the configured time via WhatsApp, listing
    only today's scheduled habits, excluding already-completed ones.
