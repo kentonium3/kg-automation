@@ -17,6 +17,7 @@ base_commit: aa93b5727523d7098b41cae718db38ab3f9fdc6c
 created_at: '2026-03-31T04:01:10.109376+00:00'
 subtasks: [T026, T027, T028]
 shell_pid: "78903"
+agent: "claude-code"
 history:
 - date: '2026-03-31T02:04:57Z'
   event: created
@@ -167,3 +168,7 @@ new agent and cron jobs, and verify the original Cowork skills are unchanged.
 - **Architecture doc conflicts**: If other features have updated
   service-inventory.json since the worktree was created, the merge may
   conflict. Resolve by taking the latest version and adding F008 entries.
+
+## Activity Log
+
+- 2026-03-31T04:01:10Z – claude-code – shell_pid=78903 – lane=doing – Assigned agent via workflow command
