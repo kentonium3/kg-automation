@@ -223,4 +223,5 @@ WP05 and WP06 can run in parallel after WP04 completes.
 - WP02: approved
 - WP03: approved
 - WP04: approved
+- WP05: for_review
 <!-- status-model:end -->
