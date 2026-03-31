@@ -133,12 +133,12 @@ Goals-MOC.md and Vikunja Goals project; aspiration is flagged as potential-goal.
 Verify cron jobs exist and a manual run completes successfully.
 
 **Included subtasks**:
-- [ ] T017: Felix declaration validation rules in AGENTS.md
-- [ ] T018: Valid declaration routing (Goals-MOC.md + Vikunja Goals project)
-- [ ] T019: Potential-goal flagging for partial/aspirational items
-- [ ] T020: Add 3 cron jobs (7 AM, 12 PM, 6 PM ET)
-- [ ] T021: Test manual cron run against real inbox notes
-- [ ] T022: Verify idempotency (run twice, same result)
+- [x] T017: Felix declaration validation rules in AGENTS.md
+- [x] T018: Valid declaration routing (Goals-MOC.md + Vikunja Goals project)
+- [x] T019: Potential-goal flagging for partial/aspirational items
+- [x] T020: Add 3 cron jobs (7 AM, 12 PM, 6 PM ET)
+- [x] T021: Test manual cron run against real inbox notes
+- [x] T022: Verify idempotency (run twice, same result)
 
 **Prompt file**: [tasks/WP04-goals-and-scheduling.md](tasks/WP04-goals-and-scheduling.md)
 
