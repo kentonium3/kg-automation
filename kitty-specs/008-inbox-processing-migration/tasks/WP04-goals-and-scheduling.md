@@ -19,6 +19,7 @@ base_commit: a13b1e4b164a8019b47660f1a81f56de63ee6a89
 created_at: '2026-03-31T03:13:04.809808+00:00'
 subtasks: [T017, T018, T019, T020, T021, T022]
 shell_pid: "69931"
+agent: "claude-code"
 history:
 - date: '2026-03-31T02:04:57Z'
   event: created
@@ -236,3 +237,7 @@ execution and test the full processing cycle.
   `--timeout-seconds`. Monitor first few runs.
 - **Goals-MOC.md structure**: Read the current file to understand section
   structure before writing instructions to modify it.
+
+## Activity Log
+
+- 2026-03-31T03:13:05Z – claude-code – shell_pid=69931 – lane=doing – Assigned agent via workflow command
