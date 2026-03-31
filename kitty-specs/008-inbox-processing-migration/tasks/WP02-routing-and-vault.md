@@ -20,6 +20,7 @@ base_commit: c419b9c0eda3b6802fdf24b2fff4bfd66f37b679
 created_at: '2026-03-31T03:02:43.919668+00:00'
 subtasks: [T006, T007, T008, T009, T010]
 shell_pid: "67468"
+agent: "claude-code"
 history:
 - date: '2026-03-31T02:04:57Z'
   event: created
@@ -240,3 +241,7 @@ inbox-processor SKILL.md.
   If too large, move reference tables to TOOLS.md (also auto-injected).
 - **Behavioral drift**: The standing orders must match inbox-processor behavior
   exactly. Any deviation is a bug, not an improvement.
+
+## Activity Log
+
+- 2026-03-31T03:02:44Z – claude-code – shell_pid=67468 – lane=doing – Assigned agent via workflow command
