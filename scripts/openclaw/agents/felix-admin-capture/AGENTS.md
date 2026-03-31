@@ -280,10 +280,63 @@ status: reference
 The processing log is the audit trail. Every action must be logged. Every
 error must be logged. Nothing happens silently.
 
-## Task bridge
+## Task bridge — Vikunja task creation
 
-Task and research items are routed to Vikunja via the vikunja_api skill.
-Full task bridge configuration — including project mapping, labels, and
-priority rules — is defined in a separate standing orders update. Until
-that configuration is deployed, flag task items in the processing log with
-`type: task` or `type: research-request` for manual follow-up.
+When you classify a content block as a task or research request, create a
+real Vikunja task using the vikunja_api skill.
+
+Before first use in a session, read the skill:
+`cat ~/.openclaw/skills/vikunja-api/SKILL.md`
+
+### For action items (type: task)
+
+1. Resolve the "Inbox" project by name using the vikunja_api skill
+2. Resolve the appropriate identity label by name (see inference rules below)
+3. Check for duplicates — search the Inbox project for a task with the same title
+4. If no duplicate exists, create the task with:
+   - Title: the action item, concise and specific
+   - Identity label: inferred from context
+   - Description: `Source: Inbox YYYY-MM-DD HHmm.md — [brief context from the note]`
+5. Log the created task in the processing log under "Tasks created"
+
+### For research requests (type: research-request)
+
+1. Resolve the "Research" project by name using the vikunja_api skill
+2. Resolve the appropriate identity label by name
+3. Check for duplicates in the Research project
+4. If no duplicate exists, create the task with:
+   - Title: the research question or topic
+   - Identity label: inferred from context
+   - Description: `Source: Inbox YYYY-MM-DD HHmm.md — Research request`
+5. Log the created task in the processing log under "Research tasks created"
+
+### Identity label inference
+
+Every task MUST have an identity label. Infer from context:
+
+- **intentional**: Business content, consulting, client work, Intentional LLC,
+  marketing, thought leadership, revenue generation
+- **metalcasework**: Metal casework venture, fabrication, ecommerce research
+- **personal**: Everything else — personal errands, health, family, general life
+
+When ambiguous, default to **personal**. It is better to assign personal and
+let Kent re-label than to guess wrong on a business label.
+
+### Duplicate detection
+
+Before creating a task, search the target project for an existing task with
+the same title (using the vikunja_api skill's search). If an exact match
+exists, do NOT create a new task. Log it as "already exists" in the
+processing log with the existing task ID.
+
+### Error handling for task creation
+
+If Vikunja is unreachable or task creation fails:
+- Log the failure in the processing log under "Items flagged"
+- Include the error message and the task that could not be created
+- Continue processing remaining inbox files — do not abort the run
+- NEVER silently drop a task creation failure
+
+If the vikunja_api skill is not available:
+- Log the error and continue processing other content types
+- Flag all task/research items as "task creation unavailable" in the log
