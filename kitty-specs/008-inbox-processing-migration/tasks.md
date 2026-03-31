@@ -53,11 +53,11 @@ create the felix-admin-capture agent on office2, deploy the workspace, and verif
 workspace at `/data/services/openclaw/inbox-agent/`.
 
 **Included subtasks**:
-- [ ] T001: Write SOUL.md with kent-voice authoring identity
-- [ ] T002: Write USER.md, IDENTITY.md, TOOLS.md
-- [ ] T003: Create felix-admin-capture agent on office2
-- [ ] T004: Deploy workspace files to office2
-- [ ] T005: Verify agent appears in openclaw agents list
+- [x] T001: Write SOUL.md with kent-voice authoring identity
+- [x] T002: Write USER.md, IDENTITY.md, TOOLS.md
+- [x] T003: Create felix-admin-capture agent on office2
+- [x] T004: Deploy workspace files to office2
+- [x] T005: Verify agent appears in openclaw agents list
 
 **Prompt file**: [tasks/WP01-agent-foundation.md](tasks/WP01-agent-foundation.md)
 
