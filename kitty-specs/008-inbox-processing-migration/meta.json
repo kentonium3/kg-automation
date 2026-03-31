@@ -2,7 +2,9 @@
   "created_at": "2026-03-31T02:04:57.278270+00:00",
   "feature_number": "008",
   "feature_slug": "008-inbox-processing-migration",
-  "friendly_name": "inbox processing migration",
+  "friendly_name": "Inbox Processing Migration",
+  "vcs": "git",
+  "source_description": "Migrate Obsidian inbox processing from Mac Claude sessions to always-on OpenClaw agent on office2 with Vikunja task bridge",
   "mission": "software-dev",
   "slug": "008-inbox-processing-migration",
   "target_branch": "main"
