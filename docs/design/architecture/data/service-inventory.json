@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
-  "last_updated": "2026-03-30",
-  "updated_by": "ops-fix",
+  "last_updated": "2026-03-31",
+  "updated_by": "F008",
   "services": [
     {
       "name": "vikunja",
@@ -115,7 +115,33 @@
           "session_storage": "~/.openclaw/credentials/whatsapp/",
           "deployed_by": "F004"
         }
+      },
+      "agents": {
+        "felix-admin-capture": {
+          "workspace": "/data/services/openclaw/inbox-agent",
+          "model": "anthropic/claude-sonnet-4-6",
+          "purpose": "Obsidian inbox processing — classifies, routes, creates Vikunja tasks",
+          "source_in_repo": "scripts/openclaw/agents/felix-admin-capture/",
+          "deployed_by": "F008"
+        }
       }
+    },
+    {
+      "name": "inbox-processing",
+      "type": "openclaw-cron",
+      "host": "office2",
+      "agent": "felix-admin-capture",
+      "schedules": [
+        {"name": "inbox-morning", "cron": "0 11 * * *", "local_time": "7:00 AM ET"},
+        {"name": "inbox-midday", "cron": "0 16 * * *", "local_time": "12:00 PM ET"},
+        {"name": "inbox-evening", "cron": "0 22 * * *", "local_time": "6:00 PM ET"}
+      ],
+      "timeout_seconds": 300,
+      "session_mode": "isolated",
+      "deployed_by": "F008",
+      "status": "active",
+      "purpose": "3x daily Obsidian inbox processing",
+      "runbook": "docs/handbooks/inbox-ops.md"
     }
   ]
 }

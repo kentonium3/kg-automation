@@ -21,10 +21,13 @@ All services run on office2 unless otherwise noted.
 
 ## Scheduled Jobs
 
-| Job | Schedule | Script | User | Purpose |
-|-----|----------|--------|------|---------|
+| Job | Schedule | Script/Agent | User | Purpose |
+|-----|----------|-------------|------|---------|
 | Restic Backup | 4AM daily | `/data/services/backup/scripts/backup.sh` | claude | GFS backup to `/mnt/backups/restic-repo` |
 | Security Audit | 3AM daily | `/data/services/security-monitor/scripts/audit.sh` | claude | Baseline drift detection |
+| Inbox Processing (morning) | 7AM ET daily | OpenClaw cron → felix-admin-capture | claude | Obsidian inbox processing |
+| Inbox Processing (midday) | 12PM ET daily | OpenClaw cron → felix-admin-capture | claude | Obsidian inbox processing |
+| Inbox Processing (evening) | 6PM ET daily | OpenClaw cron → felix-admin-capture | claude | Obsidian inbox processing |
 
 ## Deployment Details
 
@@ -66,6 +69,20 @@ All services run on office2 unless otherwise noted.
 - **Credential store**: `/data/services/openclaw/secrets/` (mode 700)
 - **Backup**: Data at `/data/services/openclaw/data/` and config at `/home/claude/.openclaw/` — both in Restic scope
 - **Runbook**: `docs/handbooks/openclaw-ops.md`
+
+### Felix Admin Capture Agent (F008)
+- **Deployed by**: F008
+- **Type**: OpenClaw agent (sub-agent of the gateway)
+- **Agent name**: `felix-admin-capture`
+- **Workspace**: `/data/services/openclaw/inbox-agent/`
+- **Source in repo**: `scripts/openclaw/agents/felix-admin-capture/`
+- **Model**: `anthropic/claude-sonnet-4-6`
+- **Purpose**: Autonomous Obsidian inbox processing — classifies content, routes to vault locations, creates Vikunja tasks, writes processing logs
+- **Schedule**: 3x daily via OpenClaw cron (7 AM, 12 PM, 6 PM ET)
+- **Processing logs**: `/home/kgale/second-brain/agents/logs/inbox-processing-YYYY-MM-DD.md`
+- **Vikunja projects used**: Inbox (tasks), Research (research requests), Goals (goal declarations)
+- **Privacy boundary**: `02-Growth/_private/` is never accessed
+- **Runbook**: `docs/handbooks/inbox-ops.md`
 
 ### WhatsApp Channel (F004)
 - **Deployed by**: F004
