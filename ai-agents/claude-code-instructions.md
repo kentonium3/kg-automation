@@ -135,17 +135,26 @@ F001  Vikunja Docker deploy on office2 + project structure          ✅ COMPLETE
 F002  OpenClaw install and configuration                            ✅ COMPLETE
 F003  Whisper transcription skill                                   ✅ COMPLETE
 F004  WhatsApp channel (Baileys, personal number)                   ✅ COMPLETE
-F005  System architecture review and vision expansion (research)
-      NOTE: F005 is a research mission. Output is a revised
-      architecture document v1.0 and capability roadmap.
-      F006+ are defined by F005 output — do not use the old
-      F006–F015 sequence below. It is superseded.
-F006+ TBD — pending F005 architecture review approval
+F005  System architecture review and vision expansion               ✅ COMPLETE
+F006  Goal and outcome structure (Vikunja + Goals-MOC.md)           ✅ COMPLETE
+F007  Vikunja API skill                                             ✅ COMPLETE
+F008  Inbox processing migration to office2
+F009  Daily habit check-in and commitment tracking
+F010  Constitution update and minimal agent setup
+F011  Escalation engine
+F012  Central action logging
+F013  Daily briefing
+F014  Google OAuth2 + Calendar integration
+F015  Calendar and task coordination
 ```
 
-**IMPORTANT**: The feature sequence beyond F004 is under review.
-Do not implement any features numbered F006 or higher until F005
-(architecture review) is complete and approved by Kent.
+**Sequencing notes**:
+- F008 before F009 — inbox migration adds the task bridge F009 depends on
+- F010 before F011 — agents must be configured before escalation can run
+- F012 after F011 — log agents once they are running
+- F013 after F010 — briefing agent needs the agent setup from F010
+- F014 before F015 — Calendar integration is F015's dependency
+- Phase 2 (F016+) defined in roadmap doc, sequencing TBD after Phase 1 complete
 
 Check `docs/func-spec/` for feature-level specs before implementing any feature.
 If a func-spec doesn't exist yet, create a GitHub issue rather than proceeding

@@ -32,11 +32,16 @@ functional and delivering daily value.
 | F002 | OpenClaw install, credential store, Anthropic API direct | Core Hub (A) | Agent orchestration engine, LLM intelligence |
 | F003 | Whisper transcription skill, transcribe-api rebind to Tailscale-only | Core Hub (A) | Voice note processing pipeline |
 | F004 | WhatsApp channel (Baileys), QR pairing, E2E messaging verified | Core Hub (A) | Inbound/outbound messaging channel |
+| F005 | Architecture research, user stories, roadmap, agent team design | Core Hub (A) | v1.0 architecture and roadmap approved |
+| F006 | Goal declaration format, Vikunja Goals project, Goals-MOC.md reset | SuperAdmin (B) | Goal structure the system can reason against |
+| F007 | Vikunja API skill deployed to OpenClaw | Core Hub (A) | All future task automation enabled |
 
 **Current capability coverage**:
 - Infrastructure is in place: task store, orchestration, transcription, WhatsApp
-- Zero automation is running — no agents, no skills, no heartbeats
-- No goal declarations, no habit tracking, no briefings, no escalation
+- Goal structure exists: Goals project in Vikunja, Goals-MOC.md clean slate
+- OpenClaw can read and write Vikunja tasks via API skill
+- Zero automation running — no agents, no heartbeats, no scheduled jobs
+- No habit tracking, no briefings, no escalation yet
 
 ---
 
@@ -55,7 +60,7 @@ accountability loop is operational.
 
 ---
 
-### F006 — User Feature: Goal and Outcome Structure
+### F006 — User Feature: Goal and Outcome Structure ✅ COMPLETE
 
 **What it delivers to Kent**: A formal place in the system to declare goals
 using the outcome declaration format ("On [date], I have [outcome] as
@@ -83,7 +88,7 @@ declarations. Goal template defined in Obsidian.
 
 ---
 
-### F007 — Infrastructure: Vikunja API Skill
+### F007 — Infrastructure: Vikunja API Skill ✅ COMPLETE
 
 **What it enables**: OpenClaw can read and write Vikunja tasks, projects,
 labels, and filters programmatically. Foundation skill for all task
@@ -100,7 +105,37 @@ automation — nothing that touches Vikunja works without this.
 
 ---
 
-### F008 — User Feature: Daily Habit Check-in and Commitment Tracking
+### F008 — Infrastructure: Inbox Processing Migration to office2
+
+**What it delivers to Kent**: The three Cowork skills (inbox-processor,
+kent-voice, vault-writer) migrate from Mac-based execution to an always-on
+OpenClaw agent on office2. Runs 3× daily instead of once on Mac wake.
+Adds the Vikunja task bridge so actionable inbox items create real tasks.
+Mac independence means notes are processed even when the Mac is asleep.
+
+**Why here**: The inbox is the primary capture channel for second brain
+building. Moving it to office2 means the system starts accumulating context
+about Kent continuously, not intermittently. The task bridge added here
+enables F009 — habit state needs a reliable write path to Vikunja.
+
+**Capability area**: SuperAdmin (B) + Core Hub (A)
+**User stories**: B-01, B-15
+**Dependencies**: F007 (Vikunja API skill), F004 (WhatsApp for on-demand trigger)
+**Infrastructure built**: felix-admin-capture agent (minimal). Obsidian vault
+access verified for claude user. 3× daily cron. On-demand WhatsApp trigger.
+**Complexity**: Medium
+
+**Success criteria**:
+- [ ] Inbox notes processed 3× daily on office2 without Mac involvement
+- [ ] Actionable items in inbox notes create Vikunja tasks via API skill
+- [ ] On-demand trigger via WhatsApp ("process my inbox now") works
+- [ ] kent-voice and vault-writer skill authoring standards preserved
+- [ ] Privacy boundary enforced: 02-Growth/_private/ never accessed
+- [ ] Cowork Mac skills retained as fallback during transition period
+
+---
+
+### F009 — User Feature: Daily Habit Check-in and Commitment Tracking
 
 **What it delivers to Kent**: Daily WhatsApp prompts for each recurring
 commitment (meditation, exercise, PT, learning blocks, etc.). Kent marks
