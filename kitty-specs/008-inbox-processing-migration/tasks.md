@@ -79,11 +79,11 @@ entries match the existing inbox-processor SKILL.md. Verify privacy boundary
 is stated. Verify processing log format is defined.
 
 **Included subtasks**:
-- [ ] T006: Routing table section (all content types → destinations)
-- [ ] T007: Vault-writer standards (frontmatter, naming, wikilinks, voice)
-- [ ] T008: Privacy boundary (02-Growth/_private/ absolute rule)
-- [ ] T009: Edge case handling (empty files, multi-domain, shared content)
-- [ ] T010: Processing log format and location
+- [x] T006: Routing table section (all content types → destinations)
+- [x] T007: Vault-writer standards (frontmatter, naming, wikilinks, voice)
+- [x] T008: Privacy boundary (02-Growth/_private/ absolute rule)
+- [x] T009: Edge case handling (empty files, multi-domain, shared content)
+- [x] T010: Processing log format and location
 
 **Prompt file**: [tasks/WP02-routing-and-vault.md](tasks/WP02-routing-and-vault.md)
 
