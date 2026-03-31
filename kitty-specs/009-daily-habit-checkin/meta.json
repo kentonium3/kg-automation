@@ -2,8 +2,10 @@
   "created_at": "2026-03-31T21:44:40.039694+00:00",
   "feature_number": "009",
   "feature_slug": "009-daily-habit-checkin",
-  "friendly_name": "daily habit checkin",
+  "friendly_name": "Daily Habit Check-in",
   "mission": "software-dev",
   "slug": "009-daily-habit-checkin",
-  "target_branch": "main"
+  "target_branch": "main",
+  "vcs": "git",
+  "source_description": "Daily habit accountability loop via WhatsApp with Vikunja-backed completion tracking and weekly pattern reporting"
 }
