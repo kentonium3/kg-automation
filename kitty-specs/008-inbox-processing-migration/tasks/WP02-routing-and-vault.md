@@ -1,7 +1,7 @@
 ---
 work_package_id: WP02
 title: Standing Orders — Routing and Vault Operations
-lane: "doing"
+lane: "approved"
 dependencies: [WP01]
 requirement_refs:
 - C-001
@@ -19,8 +19,10 @@ base_branch: 008-inbox-processing-migration-WP01
 base_commit: c419b9c0eda3b6802fdf24b2fff4bfd66f37b679
 created_at: '2026-03-31T03:02:43.919668+00:00'
 subtasks: [T006, T007, T008, T009, T010]
-agent: "claude-code"
-shell_pid: "68445"
+agent: claude-code
+shell_pid: '68445'
+reviewed_by: "Kent Gale"
+review_status: "approved"
 history:
 - date: '2026-03-31T02:04:57Z'
   event: created
@@ -247,3 +249,4 @@ inbox-processor SKILL.md.
 - 2026-03-31T03:02:44Z – claude-code – shell_pid=67468 – lane=doing – Assigned agent via workflow command
 - 2026-03-31T03:04:56Z – claude-code – shell_pid=67468 – lane=for_review – Ready for review: AGENTS.md with full routing table, vault-writer standards, privacy boundary, edge cases, processing log format, and task bridge placeholder. Deployed to office2 and verified agent reads it correctly.
 - 2026-03-31T03:07:20Z – claude-code – shell_pid=68445 – lane=doing – Started review via workflow command
+- 2026-03-31T03:08:27Z – claude-code – shell_pid=68445 – lane=approved – Review passed: AGENTS.md faithfully replicates all 18 routing entries from inbox-processor, vault-writer standards, Felix goal declaration format, privacy boundary, 5 edge cases, and processing log format. 11KB within 20K bootstrap limit. Deployed and verified on office2.

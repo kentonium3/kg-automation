@@ -220,5 +220,5 @@ WP05 and WP06 can run in parallel after WP04 completes.
 <!-- status-model:start -->
 ## Canonical Status (Generated)
 - WP01: approved
-- WP02: in_progress
+- WP02: approved
 <!-- status-model:end -->
