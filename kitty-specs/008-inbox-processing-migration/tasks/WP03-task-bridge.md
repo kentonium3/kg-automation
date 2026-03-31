@@ -1,7 +1,7 @@
 ---
 work_package_id: WP03
 title: Standing Orders — Vikunja Task Bridge
-lane: planned
+lane: "doing"
 dependencies: [WP02]
 requirement_refs:
 - C-002
@@ -15,7 +15,11 @@ requirement_refs:
 planning_base_branch: main
 merge_target_branch: main
 branch_strategy: Planning artifacts for this feature were generated on main. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into main unless the human explicitly redirects the landing branch.
+base_branch: 008-inbox-processing-migration-WP02
+base_commit: 98c0596263a548f4520100bb66ca26b3e0136121
+created_at: '2026-03-31T03:09:09.346708+00:00'
 subtasks: [T011, T012, T013, T014, T015, T016]
+shell_pid: "68877"
 history:
 - date: '2026-03-31T02:04:57Z'
   event: created
