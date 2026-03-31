@@ -1,7 +1,7 @@
 ---
 work_package_id: WP04
 title: Goal Routing and Scheduling
-lane: "doing"
+lane: "approved"
 dependencies: [WP03]
 requirement_refs:
 - FR-015
@@ -18,8 +18,10 @@ base_branch: 008-inbox-processing-migration-WP03
 base_commit: a13b1e4b164a8019b47660f1a81f56de63ee6a89
 created_at: '2026-03-31T03:13:04.809808+00:00'
 subtasks: [T017, T018, T019, T020, T021, T022]
-agent: "claude-code"
-shell_pid: "72973"
+agent: claude-code
+shell_pid: '72973'
+reviewed_by: "Kent Gale"
+review_status: "approved"
 history:
 - date: '2026-03-31T02:04:57Z'
   event: created
@@ -243,3 +245,4 @@ execution and test the full processing cycle.
 - 2026-03-31T03:13:05Z – claude-code – shell_pid=69931 – lane=doing – Assigned agent via workflow command
 - 2026-03-31T03:22:28Z – claude-code – shell_pid=69931 – lane=for_review – Ready for review: Goal declaration handling with 3-element validation, dual routing (Goals-MOC.md + Vikunja), potential-goal flagging. 3 cron jobs configured. Manual test: processed 3 notes, 2 Vikunja tasks created, processing log written. Idempotency verified.
 - 2026-03-31T03:28:59Z – claude-code – shell_pid=72973 – lane=doing – Started review via workflow command
+- 2026-03-31T03:31:12Z – claude-code – shell_pid=72973 – lane=approved – Review passed: Goal declaration handling with 3-element validation, dual routing to Goals-MOC.md + Vikunja, potential-goal flagging with examples. 3 cron jobs verified on office2. Manual test: 3 notes processed, 2 Vikunja tasks, structured log. Idempotency confirmed.
