@@ -216,3 +216,8 @@ WP05 and WP06 can run in parallel after WP04 completes.
 - WP05: planned
 - WP06: planned
 <!-- status-model:end -->
+
+<!-- status-model:start -->
+## Canonical Status (Generated)
+- WP01: for_review
+<!-- status-model:end -->

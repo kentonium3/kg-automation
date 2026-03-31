@@ -1,7 +1,7 @@
 ---
 work_package_id: WP01
 title: Agent Workspace Foundation
-lane: "doing"
+lane: "for_review"
 dependencies: []
 requirement_refs:
 - C-003
@@ -17,8 +17,8 @@ base_branch: main
 base_commit: f663bad0dbc28b762c1024badb9ed88b35192736
 created_at: '2026-03-31T02:56:29.193865+00:00'
 subtasks: [T001, T002, T003, T004, T005]
-shell_pid: "66038"
-agent: "claude-code"
+agent: claude-code
+shell_pid: '66038'
 history:
 - date: '2026-03-31T02:04:57Z'
   event: created
@@ -210,3 +210,4 @@ tool notes.
 ## Activity Log
 
 - 2026-03-31T02:56:29Z – claude-code – shell_pid=66038 – lane=doing – Assigned agent via workflow command
+- 2026-03-31T02:58:43Z – claude-code – shell_pid=66038 – lane=for_review – Ready for review: All 4 workspace files created, agent registered on office2, deployed, and verified operational
