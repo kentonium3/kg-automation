@@ -1,0 +1,14 @@
+{
+  "wp_id": "WP06",
+  "feature_slug": "008-inbox-processing-migration",
+  "worktree_path": ".worktrees/008-inbox-processing-migration-WP06",
+  "branch_name": "008-inbox-processing-migration-WP06",
+  "base_branch": "008-inbox-processing-migration-WP04",
+  "base_commit": "aa93b5727523d7098b41cae718db38ab3f9fdc6c",
+  "dependencies": [
+    "WP04"
+  ],
+  "created_at": "2026-03-31T04:01:10.109376+00:00",
+  "created_by": "implement-command",
+  "vcs_backend": "git"
+}
