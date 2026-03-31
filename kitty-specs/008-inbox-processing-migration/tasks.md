@@ -105,12 +105,12 @@ item and a research request. Verify both create Vikunja tasks in the correct
 projects with correct labels.
 
 **Included subtasks**:
-- [ ] T011: Create Research project in Vikunja
-- [ ] T012: Task bridge section — task items → Inbox project via F007
-- [ ] T013: Identity label inference rules (context → personal/intentional/metalcasework)
-- [ ] T014: Duplicate task detection (search before create)
-- [ ] T015: Research request routing → Research project
-- [ ] T016: Task creation error handling (log failures, never drop silently)
+- [x] T011: Create Research project in Vikunja
+- [x] T012: Task bridge section — task items → Inbox project via F007
+- [x] T013: Identity label inference rules (context → personal/intentional/metalcasework)
+- [x] T014: Duplicate task detection (search before create)
+- [x] T015: Research request routing → Research project
+- [x] T016: Task creation error handling (log failures, never drop silently)
 
 **Prompt file**: [tasks/WP03-task-bridge.md](tasks/WP03-task-bridge.md)
 
