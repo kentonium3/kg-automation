@@ -16,6 +16,7 @@ base_commit: aa93b5727523d7098b41cae718db38ab3f9fdc6c
 created_at: '2026-03-31T03:35:07.379677+00:00'
 subtasks: [T023, T024, T025]
 shell_pid: "74032"
+agent: "claude-code"
 history:
 - date: '2026-03-31T02:04:57Z'
   event: created
@@ -172,3 +173,7 @@ requires a future OpenClaw feature.
   the fallback approach ready.
 - **Test inbox notes may sync**: Creating test notes on office2 may sync
   to Mac/iPhone via Obsidian Sync. Clean up promptly to avoid confusion.
+
+## Activity Log
+
+- 2026-03-31T03:35:07Z – claude-code – shell_pid=74032 – lane=doing – Assigned agent via workflow command
