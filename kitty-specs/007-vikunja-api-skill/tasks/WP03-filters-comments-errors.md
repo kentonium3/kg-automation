@@ -1,7 +1,7 @@
 ---
 work_package_id: WP03
 title: Filters, Comments, and Error Handling
-lane: "approved"
+lane: "done"
 dependencies: [WP01]
 requirement_refs:
 - FR-012
@@ -21,8 +21,8 @@ created_at: '2026-03-30T23:24:36.620124+00:00'
 subtasks: [T011, T012, T013, T014]
 agent: claude-opus
 shell_pid: '33222'
-reviewed_by: "Kent Gale"
 review_status: "approved"
+reviewed_by: "Kent Gale"
 history:
 - date: '2026-03-30T22:03:15Z'
   event: created
@@ -241,3 +241,4 @@ through FR-020.
 - 2026-03-30T23:26:15Z – claude-opus – shell_pid=32349 – lane=for_review – Ready for review: Filters, comments, error handling, usage examples
 - 2026-03-30T23:27:56Z – claude-opus – shell_pid=33222 – lane=doing – Started review via workflow command
 - 2026-03-30T23:28:26Z – claude-opus – shell_pid=33222 – lane=approved – Review passed: Filters, comments, error handling, usage examples. All error categories covered, constitution directives stated, 4 usage examples.
+- 2026-03-31T00:41:43Z – claude-opus – shell_pid=33222 – lane=done – Done override: Merged to main via WP04 (ancestor of effective merge tip)
