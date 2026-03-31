@@ -165,9 +165,9 @@ requests, goal declarations, journal entries, and unclassifiable content.
 If this doesn't work, document the limitation and defer.
 
 **Included subtasks**:
-- [ ] T023: Add inbox-trigger instruction to main agent workspace
-- [ ] T024: Test WhatsApp trigger end-to-end
-- [ ] T025: Comprehensive end-to-end test with all content types
+- [x] T023: Add inbox-trigger instruction to main agent workspace
+- [x] T024: Test WhatsApp trigger end-to-end
+- [x] T025: Comprehensive end-to-end test with all content types
 
 **Prompt file**: [tasks/WP05-whatsapp-and-e2e.md](tasks/WP05-whatsapp-and-e2e.md)
 
