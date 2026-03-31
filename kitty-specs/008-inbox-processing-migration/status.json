@@ -1,16 +1,16 @@
 {
-  "event_count": 13,
+  "event_count": 15,
   "feature_slug": "008-inbox-processing-migration",
-  "last_event_id": "01KN0Y0RZFA9T00BYMSDE7QCHM",
-  "materialized_at": "2026-03-31T03:11:57.936772+00:00",
+  "last_event_id": "01KN0Y1M67Q3BXAR2GXAE71G8S",
+  "materialized_at": "2026-03-31T03:12:25.800272+00:00",
   "summary": {
-    "approved": 2,
+    "approved": 3,
     "blocked": 0,
     "canceled": 0,
     "claimed": 0,
     "done": 0,
     "for_review": 0,
-    "in_progress": 1,
+    "in_progress": 0,
     "planned": 0
   },
   "work_packages": {
@@ -29,11 +29,11 @@
       "last_transition_at": "2026-03-31T03:08:27.182001+00:00"
     },
     "WP03": {
-      "actor": "claude-code",
+      "actor": "user",
       "force_count": 2,
-      "lane": "in_progress",
-      "last_event_id": "01KN0Y0RZFA9T00BYMSDE7QCHM",
-      "last_transition_at": "2026-03-31T03:11:57.935900+00:00"
+      "lane": "approved",
+      "last_event_id": "01KN0Y1M67Q3BXAR2GXAE71G8S",
+      "last_transition_at": "2026-03-31T03:12:25.799553+00:00"
     }
   }
 }
