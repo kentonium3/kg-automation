@@ -1,7 +1,7 @@
 ---
 work_package_id: WP04
 title: Goal Routing and Scheduling
-lane: planned
+lane: "doing"
 dependencies: [WP03]
 requirement_refs:
 - FR-015
@@ -14,7 +14,11 @@ requirement_refs:
 planning_base_branch: main
 merge_target_branch: main
 branch_strategy: Planning artifacts for this feature were generated on main. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into main unless the human explicitly redirects the landing branch.
+base_branch: 008-inbox-processing-migration-WP03
+base_commit: a13b1e4b164a8019b47660f1a81f56de63ee6a89
+created_at: '2026-03-31T03:13:04.809808+00:00'
 subtasks: [T017, T018, T019, T020, T021, T022]
+shell_pid: "69931"
 history:
 - date: '2026-03-31T02:04:57Z'
   event: created
