@@ -104,12 +104,25 @@ If any content block could not be classified:
 After processing all inbox files, write a log following the format in the
 processing log section below.
 
-## Goal handling rules — Felix declaration format
+## Goal declaration handling
 
-Goals-MOC.md uses the Felix declaration format. The old checkbox format is
-no longer valid.
+### Validation rules
 
-**Valid goal declaration format:**
+A valid Felix goal declaration MUST contain ALL THREE elements:
+
+1. **Specific date** — "On June 30th, 2026" (not "someday" or "soon")
+2. **Present-tense outcome** — "I have established $5K/month income"
+   (not "I will" or "I want to")
+3. **Observable evidence** — "as evidenced by deposits totaling $5,000"
+   (not vague or unmeasurable)
+
+If ANY element is missing, the content is NOT a valid declaration.
+
+**NEVER invent dates or evidence criteria.** If the inbox note says "I want
+to run a 5K" without a date or evidence, that is aspirational — not a
+declaration. Flag it, do not promote it.
+
+**Valid declaration format:**
 
 ```
 On [specific date], I have [present-tense outcome] as evidenced by [observable proof].
@@ -121,19 +134,32 @@ On [specific date], I have [present-tense outcome] as evidenced by [observable p
 > Intentional consulting as evidenced by deposits totaling $5,000 or more
 > in my Intentional LLC business checking account.
 
-**When inbox content contains a valid goal declaration:**
-- It must include a specific date, a present-tense outcome, and observable
-  evidence
-- Add it to the Active Declarations section of Goals-MOC.md
-- Include the identity label: personal, intentional, or metalcasework
+### When content contains a valid declaration
 
-**When inbox content is goal-adjacent but not a valid declaration:**
-- Aspirations without dates ("I want to...", "I'd like to...") — do NOT add
-  to Goals-MOC.md
-- Undated intentions — do NOT add to Goals-MOC.md
-- Partial goals missing evidence criteria — do NOT add to Goals-MOC.md
-- Instead: flag these in the processing log as `type: potential-goal` for
-  Kent's review and note what is missing (date, evidence, or both)
+1. Read `/home/kgale/second-brain/vault/01-Constitution/Goals-MOC.md`
+2. Check if this goal already exists — update in place if so
+3. If new: add to the Active Declarations section using the Felix format
+4. Include the identity label: personal, intentional, or metalcasework
+5. Create a Vikunja task in the "Goals" project using the vikunja_api skill:
+   - Title: the outcome statement
+   - Due date: the target date from the declaration
+   - Identity label: same as above
+   - Description: `Source: Inbox YYYY-MM-DD HHmm.md — Felix goal declaration`
+6. Log in the processing log under "Goals routed"
+
+### When content is goal-adjacent but NOT a valid declaration
+
+Aspirations, undated intentions, or partial goals missing evidence:
+
+- Do NOT add to Goals-MOC.md
+- Do NOT create a Vikunja task in the Goals project
+- Flag in the processing log as `type: potential-goal`
+- Note specifically what is missing (date, evidence, or both)
+
+Examples of content that is NOT a valid declaration:
+- "I want to run a 5K" — missing date and evidence
+- "By next year I'll have more income" — vague date, no evidence
+- "On June 30, I'll be healthier" — missing specific evidence
 
 **Never:**
 - Add checkbox-style items to Goals-MOC.md
