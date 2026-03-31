@@ -187,9 +187,9 @@ the new agent and cron jobs, and verify the original Cowork skills are intact.
 (both depend on WP04 but not on each other).
 
 **Included subtasks**:
-- [ ] T026: Create docs/handbooks/inbox-ops.md
-- [ ] T027: Update service-inventory.json and service-inventory.md
-- [ ] T028: Verify Cowork skills unchanged at ~/second-brain/.claude/skills/
+- [x] T026: Create docs/handbooks/inbox-ops.md
+- [x] T027: Update service-inventory.json and service-inventory.md
+- [x] T028: Verify Cowork skills unchanged at ~/second-brain/.claude/skills/
 
 **Prompt file**: [tasks/WP06-docs-and-fallback.md](tasks/WP06-docs-and-fallback.md)
 
