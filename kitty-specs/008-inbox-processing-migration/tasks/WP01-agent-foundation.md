@@ -18,6 +18,7 @@ base_commit: f663bad0dbc28b762c1024badb9ed88b35192736
 created_at: '2026-03-31T02:56:29.193865+00:00'
 subtasks: [T001, T002, T003, T004, T005]
 shell_pid: "66038"
+agent: "claude-code"
 history:
 - date: '2026-03-31T02:04:57Z'
   event: created
@@ -205,3 +206,7 @@ tool notes.
   take effect immediately, restart: `systemctl --user restart openclaw-gateway`
 - **Model availability**: If `anthropic/claude-sonnet-4-6` is unavailable, check
   OpenClaw's model configuration
+
+## Activity Log
+
+- 2026-03-31T02:56:29Z – claude-code – shell_pid=66038 – lane=doing – Assigned agent via workflow command
