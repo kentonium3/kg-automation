@@ -1,7 +1,7 @@
 ---
 work_package_id: WP03
 title: Standing Orders — Vikunja Task Bridge
-lane: "doing"
+lane: "for_review"
 dependencies: [WP02]
 requirement_refs:
 - C-002
@@ -19,8 +19,8 @@ base_branch: 008-inbox-processing-migration-WP02
 base_commit: 98c0596263a548f4520100bb66ca26b3e0136121
 created_at: '2026-03-31T03:09:09.346708+00:00'
 subtasks: [T011, T012, T013, T014, T015, T016]
-shell_pid: "68877"
-agent: "claude-code"
+agent: claude-code
+shell_pid: '68877'
 history:
 - date: '2026-03-31T02:04:57Z'
   event: created
@@ -224,3 +224,4 @@ inference, duplicate detection, and error handling.
 ## Activity Log
 
 - 2026-03-31T03:09:09Z – claude-code – shell_pid=68877 – lane=doing – Assigned agent via workflow command
+- 2026-03-31T03:11:15Z – claude-code – shell_pid=68877 – lane=for_review – Ready for review: Research project created in Vikunja (id=12), task bridge section added to AGENTS.md with task/research routing, identity label inference, duplicate detection, and error handling. Deployed to office2.
