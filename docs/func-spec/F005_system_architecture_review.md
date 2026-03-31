@@ -1,6 +1,6 @@
 ---
 title: "F005: kg-automation System Architecture Review and Vision Expansion"
-doc_type: research-brief
+doc_type: func-spec
 status: draft
 feature: F005
 ---

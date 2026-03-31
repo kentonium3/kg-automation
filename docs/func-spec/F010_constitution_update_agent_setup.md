@@ -1,7 +1,7 @@
 ---
 title: "F010: Constitution Update and Minimal Agent Setup"
 doc_type: func-spec
-status: stub
+status: draft
 feature: F010
 ---
 
