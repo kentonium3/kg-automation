@@ -1,0 +1,16 @@
+{
+  "wp_id": "WP04",
+  "feature_slug": "010-obsidian-sync-office2",
+  "worktree_path": ".worktrees/010-obsidian-sync-office2-WP04",
+  "branch_name": "010-obsidian-sync-office2-WP04",
+  "base_branch": "010-obsidian-sync-office2-WP04-merge-base",
+  "base_commit": "777e67dc56fb71eefea41f4fd38664cfdf40496f",
+  "dependencies": [
+    "WP01",
+    "WP02",
+    "WP03"
+  ],
+  "created_at": "2026-04-01T15:29:24.244269+00:00",
+  "created_by": "implement-command-multi-parent-merge",
+  "vcs_backend": "git"
+}

@@ -138,22 +138,23 @@ F004  WhatsApp channel (Baileys, personal number)                   ✅ COMPLETE
 F005  System architecture review and vision expansion               ✅ COMPLETE
 F006  Goal and outcome structure (Vikunja + Goals-MOC.md)           ✅ COMPLETE
 F007  Vikunja API skill                                             ✅ COMPLETE
-F008  Inbox processing migration to office2
-F009  Daily habit check-in and commitment tracking
-F010  Constitution update and minimal agent setup
-F011  Escalation engine
-F012  Central action logging
-F013  Daily briefing
-F014  Google OAuth2 + Calendar integration
-F015  Calendar and task coordination
+F008  Inbox processing migration to office2                        ✅ COMPLETE
+F009  Daily habit check-in and commitment tracking                  ✅ COMPLETE
+F010  Obsidian Sync on office2 (vault sync — F008 prerequisite)
+F011  Constitution update and minimal agent setup
+F012  Escalation engine
+F013  Central action logging
+F014  Daily briefing
+F015  Google OAuth2 + Calendar integration
+F016  Calendar and task coordination
 ```
 
 **Sequencing notes**:
-- F008 before F009 — inbox migration adds the task bridge F009 depends on
-- F010 before F011 — agents must be configured before escalation can run
-- F012 after F011 — log agents once they are running
-- F013 after F010 — briefing agent needs the agent setup from F010
-- F014 before F015 — Calendar integration is F015's dependency
+- F010 is a retroactive fix — F008 deployed but vault was never syncing
+- F011 before F012 — agents must be configured before escalation can run
+- F013 after F012 — log agents once they are running
+- F014 after F011 — briefing agent needs the agent setup from F011
+- F015 before F016 — Calendar integration is F016's dependency
 - Phase 2 (F016+) defined in roadmap doc, sequencing TBD after Phase 1 complete
 
 Check `docs/func-spec/` for feature-level specs before implementing any feature.
