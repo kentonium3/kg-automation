@@ -94,3 +94,8 @@ the manual setup steps on office2.
 - [ ] T015: Add backfill verification and inbox processing trigger instructions
 
 **Prompt file**: [tasks/WP04-quickstart-validation.md](tasks/WP04-quickstart-validation.md)
+
+<!-- status-model:start -->
+## Canonical Status (Generated)
+- WP01: for_review
+<!-- status-model:end -->
