@@ -119,11 +119,11 @@
 **Goal**: Update both agents' standing orders with constitution preamble, write the governance runbook, and update architecture documentation.
 
 **Included subtasks**:
-- [ ] T013: Update `scripts/openclaw/agents/felix-admin-capture/AGENTS.md` with constitution preamble (autonomy level, constitution reference, compliance declaration)
-- [ ] T014: Update `scripts/openclaw/agents/felix-admin-habits/AGENTS.md` with constitution preamble
-- [ ] T015: Write `docs/handbooks/felix-governance.md` runbook — autonomy level promotion/demotion, new agent registration, activity surfacing, constitution violation handling
-- [ ] T016: Update `docs/design/architecture/data/service-inventory.json` — add `autonomy_level` field to each agent entry, set `updated_by: "F012"`
-- [ ] T017: Update `docs/handbooks/openclaw-ops.md` — add references to FELIX-CONSTITUTION.md and AGENT-REGISTRY.md
+- [x] T013: Update `scripts/openclaw/agents/felix-admin-capture/AGENTS.md` with constitution preamble (autonomy level, constitution reference, compliance declaration)
+- [x] T014: Update `scripts/openclaw/agents/felix-admin-habits/AGENTS.md` with constitution preamble
+- [x] T015: Write `docs/handbooks/felix-governance.md` runbook — autonomy level promotion/demotion, new agent registration, activity surfacing, constitution violation handling
+- [x] T016: Update `docs/design/architecture/data/service-inventory.json` — add `autonomy_level` field to each agent entry, set `updated_by: "F012"`
+- [x] T017: Update `docs/handbooks/openclaw-ops.md` — add references to FELIX-CONSTITUTION.md and AGENT-REGISTRY.md
 
 **Parallel opportunities**: T013/T014 parallel with each other; T016/T017 parallel with each other and with T015.
 
