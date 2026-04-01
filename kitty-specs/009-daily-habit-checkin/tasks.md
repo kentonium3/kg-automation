@@ -159,5 +159,5 @@ be deferred if needed but is required for feature acceptance.
 - WP03: approved
 - WP04: approved
 - WP05: approved
-- WP06: for_review
+- WP06: in_progress
 <!-- status-model:end -->
