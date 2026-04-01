@@ -29,11 +29,11 @@ vault-snapshot git backup script, the snapshot systemd service and timer
 (2AM ET daily), and the `.gitignore` additions for the second-brain repo.
 
 **Included subtasks**:
-- [ ] T001: Create `scripts/office2/obsidian-sync.service` — systemd user unit for `ob sync --continuous`
-- [ ] T002: Create `scripts/office2/vault-snapshot.sh` — outbound-only git snapshot script
-- [ ] T003: Create `scripts/office2/vault-snapshot.service` — systemd unit to run snapshot script
-- [ ] T004: Create `scripts/office2/vault-snapshot.timer` — systemd timer for 2AM ET daily
-- [ ] T005: Create `scripts/office2/gitignore-additions.txt` — `.gitignore` additions for second-brain repo
+- [x] T001: Create `scripts/office2/obsidian-sync.service` — systemd user unit for `ob sync --continuous`
+- [x] T002: Create `scripts/office2/vault-snapshot.sh` — outbound-only git snapshot script
+- [x] T003: Create `scripts/office2/vault-snapshot.service` — systemd unit to run snapshot script
+- [x] T004: Create `scripts/office2/vault-snapshot.timer` — systemd timer for 2AM ET daily
+- [x] T005: Create `scripts/office2/gitignore-additions.txt` — `.gitignore` additions for second-brain repo
 
 **Prompt file**: [tasks/WP01-service-and-scripts.md](tasks/WP01-service-and-scripts.md)
 
