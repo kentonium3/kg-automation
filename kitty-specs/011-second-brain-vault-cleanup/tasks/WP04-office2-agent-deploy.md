@@ -1,14 +1,18 @@
 ---
 work_package_id: WP04
 title: Deploy Updated Agent Files to Office2
-lane: planned
+lane: "doing"
 dependencies: [WP03]
 requirement_refs:
 - FR-14
 planning_base_branch: main
 merge_target_branch: main
 branch_strategy: Planning artifacts for this feature were generated on main. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into main unless the human explicitly redirects the landing branch.
+base_branch: 011-second-brain-vault-cleanup-WP03
+base_commit: 7ada443ff046627f7a445a5f71b17f9263a4d166
+created_at: '2026-04-01T19:31:53.904132+00:00'
 subtasks: [T016, T017, T018]
+shell_pid: "27150"
 history:
 - date: '2026-04-01T18:30:16Z'
   event: created
