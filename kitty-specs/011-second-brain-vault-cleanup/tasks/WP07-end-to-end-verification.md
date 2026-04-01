@@ -13,6 +13,7 @@ base_commit: 317d9e7fe413d12649521666dcbae4867b45b56c
 created_at: '2026-04-01T20:10:31.684002+00:00'
 subtasks: [T034, T035, T036, T037, T038]
 shell_pid: "35282"
+agent: "claude-code"
 history:
 - date: '2026-04-01T18:30:16Z'
   event: created
@@ -204,3 +205,7 @@ git add -A && git commit -m "chore: remove F011 sync test files" && git push
 - **Agent invocation**: The exact command to trigger a manual inbox run
   depends on the OpenClaw configuration. Check the workspace README or
   agent config for the correct invocation.
+
+## Activity Log
+
+- 2026-04-01T20:10:32Z – claude-code – shell_pid=35282 – lane=doing – Assigned agent via workflow command
