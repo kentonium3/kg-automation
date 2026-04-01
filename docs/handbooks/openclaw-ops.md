@@ -182,3 +182,25 @@ cd /data/services/security-monitor && ./scripts/generate-baselines.sh
 - **Binding**: Loopback only (not exposed to network)
 - **Gateway port**: 18789
 - **Dashboard**: `openclaw dashboard --no-open` (prints URL with auth token)
+
+## Governance
+
+Felix agents operate under a formal governance framework established in F012.
+All agents are registered, assigned an autonomy level, and bound by the
+Felix Constitution.
+
+### Key Documents
+
+| Document | Path | Purpose |
+|----------|------|---------|
+| Felix Constitution | `docs/constitution/FELIX-CONSTITUTION.md` | Top-level governance — autonomy levels, principles, boundaries |
+| Agent Registry (human-readable) | `docs/constitution/AGENT-REGISTRY.md` | Quick-reference agent list with current autonomy levels |
+| Agent Registry (machine-readable) | `docs/constitution/agent-registry.json` | Authoritative agent state, transition history |
+| Governance Runbook | `docs/handbooks/felix-governance.md` | Operational procedures for promotions, demotions, registration |
+
+### Quick Reference
+
+- All agents start at **Assisted (Level 1)** and require explicit promotion
+- Each agent's `AGENTS.md` includes a governance preamble referencing the constitution
+- The constitution is the tiebreaker when standing orders are ambiguous
+- See the [Felix Governance Runbook](felix-governance.md) for all procedures
