@@ -70,11 +70,11 @@ workflow and completion marking via WhatsApp. This is the core processing
 loop — the most critical deliverable.
 
 **Included subtasks**:
-- [ ] T010: Write AGENTS.md — authority and processing workflow overview
-- [ ] T011: Check-in generation section (query habits, filter by day/frequency, exclude completed, format message)
-- [ ] T012: Completion marking section (natural language parsing, Vikunja comment CRUD, confirmation)
-- [ ] T013: Comment format specification and idempotency rules
-- [ ] T014: Deploy AGENTS.md to office2 and verify agent reads it
+- [x] T010: Write AGENTS.md — authority and processing workflow overview
+- [x] T011: Check-in generation section (query habits, filter by day/frequency, exclude completed, format message)
+- [x] T012: Completion marking section (natural language parsing, Vikunja comment CRUD, confirmation)
+- [x] T013: Comment format specification and idempotency rules
+- [x] T014: Deploy AGENTS.md to office2 and verify agent reads it
 
 **Prompt file**: [tasks/WP03-checkin-completion.md](tasks/WP03-checkin-completion.md)
 
