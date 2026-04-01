@@ -131,9 +131,9 @@ Create the habits operations runbook and update architecture documentation
 with the new agent and cron jobs.
 
 **Included subtasks**:
-- [ ] T026: Create docs/handbooks/habits-ops.md operations runbook
-- [ ] T027: Update service-inventory.json with agent and cron entries
-- [ ] T028: Update service-inventory.md narrative
+- [x] T026: Create docs/handbooks/habits-ops.md operations runbook
+- [x] T027: Update service-inventory.json with agent and cron entries
+- [x] T028: Update service-inventory.md narrative
 
 **Prompt file**: [tasks/WP06-docs-architecture.md](tasks/WP06-docs-architecture.md)
 
