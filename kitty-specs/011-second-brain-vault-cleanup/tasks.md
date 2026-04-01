@@ -141,7 +141,7 @@ handbooks to reflect the vault rename, vault-snapshot removal, and new
 bidirectional sync timer.
 
 **Included subtasks**:
-- [ ] T025: Update `docs/design/architecture/data/service-inventory.json` — remove vault-snapshot, update obsidian-sync, add second-brain-sync [P]
+- [x] T025: Update `docs/design/architecture/data/service-inventory.json` — remove vault-snapshot, update obsidian-sync, add second-brain-sync [P]
 - [ ] T026: Update `docs/design/architecture/data/data-flows.json` — vault → notes, add sync flow [P]
 - [ ] T027: Update `docs/design/architecture/service-inventory.md` narrative [P]
 - [ ] T028: Update `docs/design/architecture/data-flows.md` narrative [P]
