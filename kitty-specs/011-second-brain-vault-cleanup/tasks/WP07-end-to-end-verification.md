@@ -1,7 +1,7 @@
 ---
 work_package_id: WP07
 title: End-to-End Verification
-lane: "approved"
+lane: done
 dependencies: [WP04, WP05, WP06]
 requirement_refs:
 - FR-21
@@ -14,8 +14,8 @@ created_at: '2026-04-01T20:10:31.684002+00:00'
 subtasks: [T034, T035, T036, T037, T038]
 agent: claude-code
 shell_pid: '35282'
-reviewed_by: "Kent Gale"
-review_status: "approved"
+review_status: approved
+reviewed_by: Kent Gale
 history:
 - date: '2026-04-01T18:30:16Z'
   event: created

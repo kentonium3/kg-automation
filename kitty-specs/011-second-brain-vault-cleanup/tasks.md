@@ -182,5 +182,5 @@ references remain.
 - WP04: approved
 - WP05: approved
 - WP06: approved
-- WP07: approved
+- WP07: done
 <!-- status-model:end -->

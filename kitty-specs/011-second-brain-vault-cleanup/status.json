@@ -1,14 +1,14 @@
 {
-  "event_count": 27,
+  "event_count": 28,
   "feature_slug": "011-second-brain-vault-cleanup",
-  "last_event_id": "01KN5ARH75VRDT0F8JVJPNS1RJ",
-  "materialized_at": "2026-04-01T20:11:37.062689+00:00",
+  "last_event_id": "01KN5ASBE3NNXSCRKSAPQ41FS5",
+  "materialized_at": "2026-04-01T20:12:03.909987+00:00",
   "summary": {
-    "approved": 7,
+    "approved": 6,
     "blocked": 0,
     "canceled": 0,
     "claimed": 0,
-    "done": 0,
+    "done": 1,
     "for_review": 0,
     "in_progress": 0,
     "planned": 0
@@ -57,11 +57,11 @@
       "last_transition_at": "2026-04-01T19:49:19.256303+00:00"
     },
     "WP07": {
-      "actor": "user",
+      "actor": "merge",
       "force_count": 1,
-      "lane": "approved",
-      "last_event_id": "01KN5ARH75VRDT0F8JVJPNS1RJ",
-      "last_transition_at": "2026-04-01T20:11:37.061818+00:00"
+      "lane": "done",
+      "last_event_id": "01KN5ASBE3NNXSCRKSAPQ41FS5",
+      "last_transition_at": "2026-04-01T20:12:03.907658+00:00"
     }
   }
 }
