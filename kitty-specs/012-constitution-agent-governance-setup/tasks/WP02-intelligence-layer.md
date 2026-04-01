@@ -1,7 +1,7 @@
 ---
 work_package_id: WP02
 title: Intelligence Layer
-lane: planned
+lane: "doing"
 dependencies: []
 requirement_refs:
 - FR-008
@@ -13,7 +13,11 @@ requirement_refs:
 planning_base_branch: main
 merge_target_branch: main
 branch_strategy: Planning artifacts for this feature were generated on main. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into main unless the human explicitly redirects the landing branch.
+base_branch: main
+base_commit: 1166c44659920564f30a4e55274d0bec7aab7cab
+created_at: '2026-04-01T22:25:23.920555+00:00'
 subtasks: [T005, T006, T007, T008, T009, T010]
+shell_pid: "56766"
 history:
 - date: '2026-04-01T22:12:34Z'
   event: created
