@@ -140,8 +140,8 @@ F006  Goal and outcome structure (Vikunja + Goals-MOC.md)           ✅ COMPLETE
 F007  Vikunja API skill                                             ✅ COMPLETE
 F008  Inbox processing migration to office2                        ✅ COMPLETE
 F009  Daily habit check-in and commitment tracking                  ✅ COMPLETE
-F010  Obsidian Sync on office2 (vault sync — F008 prerequisite)
-F011  Second brain vault cleanup (remove git snapshot, rename vault to notes)
+F010  Obsidian Sync on office2 (vault sync — F008 prerequisite)          ✅ COMPLETE
+F011  Second brain vault cleanup (remove git snapshot, rename vault to notes) ✅ COMPLETE
 F012  Constitution update and minimal agent setup
 F013  Escalation engine
 F014  Central action logging

@@ -13,9 +13,10 @@
   },
   "python.defaultInterpreterPath": "/usr/local/bin/python3",
 
-  // DIAGNOSTIC: Disable Git extension before spec-kitty merge to test
-  // whether it causes the VS Code crash during worktree removal.
+  // Exclude spec-kitty worktrees from file watching to prevent FSEvents
+  // overflow during worktree removal, which crashes VS Code (SIGTERM).
   // See docs/diagnostics/spec-kitty-feedback/merge-crash-incomplete-cleanup.md
-  // Toggle to true before merge, back to false after.
-  // "git.enabled": false
+  "files.watcherExclude": {
+    "**/.worktrees/**": true
+  }
 }

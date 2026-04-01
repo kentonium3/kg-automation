@@ -4,7 +4,7 @@
 **Version:** spec-kitty-cli 2.1.2
 **Severity:** Medium - Recurring crash with no automated recovery path
 **Reporter:** Claude Opus (via Kent Gale)
-**Status:** ROOT CAUSE IDENTIFIED - macOS code signing enforcement kills VS Code after background update replaces binaries mid-session
+**Status:** OPEN - Multiple crash mechanisms; code signing theory disproved by incident 6 (updates disabled, no binary replacement)
 
 ## Summary
 
@@ -59,11 +59,13 @@ already removed before the crash.
 | 3 | 2026-03-30 | F006 (006-goal-and-outcome-structure) | WP03 | Detailed state captured |
 | 4 | 2026-04-01 | F009 (009-daily-habit-checkin) | WP06 | GitLens NOT installed; 6 WPs |
 | 5 | 2026-04-01 | F010 (010-obsidian-sync-office2) | WP04 | Root cause confirmed: errSecCSStaticCodeChanged + SIGTERM |
+| 6 | 2026-04-01 | F011 (011-second-brain-vault-cleanup) | WP07 | Updates disabled, no binary replacement, FSEvents overflow |
 
 Note: Incidents 1 and 2 were not fully documented. The pattern was recognized
 on incident 3. Incident 4 disproved the GitLens-only hypothesis. Incident 5
-confirmed the true root cause: macOS code signing enforcement after a
-background update replaced VS Code binaries mid-session.
+identified code signing enforcement as *one* crash mechanism. Incident 6
+disproved it as *the only* mechanism — crash occurred with updates disabled
+and no binary replacement during the session.
 
 ## Root Cause (Confirmed — Incident 5)
 
@@ -487,13 +489,18 @@ branches, push).
 
 ## Next Steps
 
-1. **Verify fix**: The next merge after applying `"update.mode": "manual"`
-   should complete without a crash, confirming the root cause.
+1. **Investigate FSEvents overflow** — Incident 6 shows the FSEvents client
+   drops events during rapid worktree deletion, followed immediately by
+   SIGTERM. This may be the primary crash mechanism, with code signing being
+   a separate (but coincidental) trigger in incident 5.
 
-2. **Monitor**: If a crash recurs with manual update mode, the root cause
-   theory is wrong and further investigation is needed. Check
-   `errSecCSStaticCodeChanged` in system logs to rule out other binary
-   replacement sources (Homebrew, MDM, etc.).
+2. **Test mitigation**: Run merges from an external terminal (outside VS Code)
+   to confirm the crash is VS Code-specific. If merges succeed externally,
+   the fix is to run `spec-kitty merge` from a standalone terminal.
+
+3. **File VS Code bug**: The FSEvents overflow → SIGTERM cascade appears to
+   be a VS Code/Electron bug where rapid directory deletion causes
+   unrecoverable file watcher state.
 
 ---
 
@@ -509,4 +516,112 @@ branches, push).
 - Feature (crash incidents 1-3): 006-goal-and-outcome-structure (3 WPs)
 - Feature (resolution test): 007-vikunja-api-skill (4 WPs)
 - Feature (incident 4): 009-daily-habit-checkin (6 WPs)
-- Feature (incident 5, root cause confirmed): 010-obsidian-sync-office2 (4 WPs)
+- Feature (incident 5, code signing confirmed): 010-obsidian-sync-office2 (4 WPs)
+- Feature (incident 6, code signing disproved as sole cause): 011-second-brain-vault-cleanup (7 WPs, 1 worktree at merge time)
+
+## Incident 6: F011 Merge Crash (2026-04-01) — Updates Disabled, No Binary Replacement
+
+### Summary
+
+Crash occurred with `"update.mode": "manual"` applied, disproving the
+code signing theory as the sole root cause. VS Code binaries were NOT
+replaced during the session. The Electron binary was last modified at
+11:52:27 — before the session started at 12:21:05.
+
+### Timeline
+
+| Time (local) | Event |
+| --- | --- |
+| 12:21:05 | Session start; log confirms "manual checks only; automatic updates are disabled" |
+| 15:39:35 | Claude Code extension: "WebSocket is not open" error (early instability sign?) |
+| 16:12:03.791 | Last normal Git extension command (`git status -z -uall`, 19ms) |
+| 16:12:04.327 | First file watcher shutdown (watched path got deleted) |
+| 16:12:04.939 | 7th file watcher shutdown |
+| 16:12:05.052 | **FSEvents DROPPED EVENTS**: "Events were dropped by the FSEvents client. File system must be re-scanned." |
+| 16:12:05.655 | Git ENOENT: worktree HEAD files (.git/worktrees/...-WP01/HEAD, WP02/HEAD) |
+| 16:12:05.772 | shared-process crashed with code 15 and reason 'killed' |
+| 16:12:05.775 | ptyHost terminated unexpectedly with code 15 |
+| 16:12:05.783 | fileWatcher crashed with code 15 and reason 'killed' |
+| 16:12:05.858 | extensionHost crashed with code 15 and reason 'killed' |
+| 16:12:05.862 | renderer process gone (reason: killed, code: 15) |
+| 16:12:06.228 | network process gone (exitCode: 15, crashed: true) |
+
+### State after crash
+
+| Post-merge step | State |
+| --- | --- |
+| Git merge commit | Completed (`a768b9b Merge WP07`) |
+| Status lane transitions | Written but **uncommitted** |
+| Worktree removal | Completed |
+| WP branch deletion | **Incomplete** (merge-base branch remained) |
+| Push to origin | **Not performed** |
+
+### Key evidence
+
+1. **Updates were disabled** — main.log line 2: "manual checks only;
+   automatic updates are disabled by user preference"
+2. **No binary replacement during session** — Electron modified at 11:52,
+   session started at 12:21. Code Helper at 05:58, Info.plist at 05:47.
+3. **No `errSecCSStaticCodeChanged`** in system logs (searched ±1 hour)
+4. **No macOS crash reports** — `~/Library/Logs/DiagReports/` empty
+5. **No jetsam/memory pressure** — no OOM kill evidence
+6. **FSEvents overflow** — "Events were dropped by the FSEvents client"
+   occurs 720ms before the SIGTERM cascade
+7. **All processes killed with SIGTERM (code 15)** — same exit code as
+   incident 5, but different trigger
+8. **System logs empty** for crash timeframe — rotated before capture
+
+### Analysis
+
+The crash mechanism for incident 6 is NOT code signing enforcement. The
+sequence is:
+
+1. spec-kitty merge removes the WP07 worktree (rapid directory tree deletion)
+2. VS Code's file watcher detects 7+ watched paths being deleted
+3. The FSEvents client (macOS file system event API) is overwhelmed and
+   **drops events**, logging the error
+4. ~700ms later, all VS Code child processes receive SIGTERM (code 15)
+
+The gap between FSEvents overflow (16:12:05.052) and the first SIGTERM
+(16:12:05.772) is consistent with Electron's main process detecting an
+unrecoverable state in its file watching infrastructure and terminating
+all children, OR with macOS itself sending SIGTERM due to the FSEvents
+error.
+
+### Implications for root cause
+
+There are likely **two distinct crash mechanisms**:
+
+1. **Code signing enforcement** (incident 5) — confirmed by
+   `errSecCSStaticCodeChanged` in system logs. Triggered when VS Code
+   spawns new subprocesses after binaries are replaced mid-session.
+   Fixed by `"update.mode": "manual"`.
+
+2. **FSEvents overflow** (incident 6) — triggered by rapid directory
+   deletion during worktree removal. The FSEvents client drops events,
+   leading to SIGTERM cascade. NOT fixed by update mode setting.
+
+Both produce identical symptoms (exit code 15 on all processes) but have
+different triggers. The code signing fix addresses only mechanism 1.
+
+### Recovery performed
+
+```bash
+git add kitty-specs/011-second-brain-vault-cleanup/status.events.jsonl \
+       kitty-specs/011-second-brain-vault-cleanup/status.json \
+       kitty-specs/011-second-brain-vault-cleanup/tasks.md \
+       kitty-specs/011-second-brain-vault-cleanup/tasks/WP07-end-to-end-verification.md
+git commit -m "chore: commit F011 post-merge status updates after VS Code crash"
+git branch -d 011-second-brain-vault-cleanup-WP07-merge-base
+git push
+```
+
+### Log sources
+
+| Source | Key evidence |
+| --- | --- |
+| `~/Library/Application Support/Code/logs/20260401T122104/main.log` | Update mode confirmed manual; exit code 15 on all processes |
+| `~/Library/Application Support/Code/logs/20260401T122104/window1/fileWatcher.log` | 7 watcher shutdowns + FSEvents dropped events |
+| `~/Library/Application Support/Code/logs/20260401T122104/window1/exthost/vscode.git/Git.log` | Normal operation until ENOENT at crash time |
+| `~/Library/Application Support/Code/logs/20260401T122104/window1/renderer.log` | File watcher shutdowns + FSEvents overflow visible here too |
+| macOS system log | Empty for crash timeframe (rotated) |
