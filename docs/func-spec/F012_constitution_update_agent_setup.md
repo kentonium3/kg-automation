@@ -1,13 +1,13 @@
 ---
-title: "F011: Constitution Update and Minimal Agent Setup"
+title: "F012: Constitution Update and Minimal Agent Setup"
 doc_type: func-spec
 status: stub
-feature: F011
+feature: F012
 ---
 
-# F011: Constitution Update and Minimal Agent Setup
+# F012: Constitution Update and Minimal Agent Setup
 
-**Version**: 0.1 (stub — full spec to be written after F010)
+**Version**: 0.1 (stub — full spec to be written after F011)
 **Priority**: HIGH
 **Type**: Infrastructure
 
@@ -15,8 +15,8 @@ feature: F011
 
 ## Status
 
-This is a placeholder stub. The full spec will be written after F010
-(Obsidian Sync on office2) is complete.
+This is a placeholder stub. The full spec will be written after F011
+(Second Brain Vault Cleanup) is complete.
 
 ---
 

@@ -141,12 +141,13 @@ F007  Vikunja API skill                                             ✅ COMPLETE
 F008  Inbox processing migration to office2                        ✅ COMPLETE
 F009  Daily habit check-in and commitment tracking                  ✅ COMPLETE
 F010  Obsidian Sync on office2 (vault sync — F008 prerequisite)
-F011  Constitution update and minimal agent setup
-F012  Escalation engine
-F013  Central action logging
-F014  Daily briefing
-F015  Google OAuth2 + Calendar integration
-F016  Calendar and task coordination
+F011  Second brain vault cleanup (remove git snapshot, rename vault to notes)
+F012  Constitution update and minimal agent setup
+F013  Escalation engine
+F014  Central action logging
+F015  Daily briefing
+F016  Google OAuth2 + Calendar integration
+F017  Calendar and task coordination
 ```
 
 **Sequencing notes**:

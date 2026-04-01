@@ -695,6 +695,22 @@ Change control protocol: `docs/design/architecture/change-control.md`
 | 1.0 | 2026-01-12 | Initial template based on F049 v4.0 reference implementation |
 | 1.1 | 2026-03-26 | Added Architecture Documentation Updates section requirement |
 | 1.2 | 2026-03-28 | Strengthened DON'T rules: no third-party tool paths, no commands in Notes for Implementation |
+| 1.3 | 2026-04-01 | Added feature insertion numbering process |
+
+---
+
+## Feature Insertion Numbering Process
+
+When inserting a new feature into the sequence at number N:
+
+1. Rename the highest-numbered spec file from FX to F(X+1) — update the
+   internal `feature:` field and title to match
+2. Continue renaming downward (F(X-1) to FX, etc.) until the gap is open
+   at the desired number N
+3. Write the new spec at FN
+
+No tombstones. No deletions of valid content. Displaced files are simply
+renamed to their new numbers with internal references updated.
 
 ---
 
