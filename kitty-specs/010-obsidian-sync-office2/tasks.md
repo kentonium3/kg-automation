@@ -89,9 +89,9 @@ and a validation checklist. This is the document Kent follows to perform
 the manual setup steps on office2.
 
 **Included subtasks**:
-- [ ] T013: Finalize `kitty-specs/010-obsidian-sync-office2/quickstart.md` with exact file paths and expected outputs
-- [ ] T014: Create `scripts/office2/validate-obsidian-sync.sh` — post-setup validation script
-- [ ] T015: Add backfill verification and inbox processing trigger instructions
+- [x] T013: Finalize `kitty-specs/010-obsidian-sync-office2/quickstart.md` with exact file paths and expected outputs
+- [x] T014: Create `scripts/office2/validate-obsidian-sync.sh` — post-setup validation script
+- [x] T015: Add backfill verification and inbox processing trigger instructions
 
 **Prompt file**: [tasks/WP04-quickstart-validation.md](tasks/WP04-quickstart-validation.md)
 
