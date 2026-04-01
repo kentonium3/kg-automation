@@ -39,9 +39,9 @@ Initialize the second-brain git repository on Mac, push to GitHub, and
 provide Kent with exact commands for setting up git credentials on office2.
 
 **Included subtasks**:
-- [ ] T001: Initialize git repo in `~/second-brain/` on Mac with `.gitignore` excluding `notes/`
-- [ ] T002: Create GitHub repo (kentonium3/second-brain), push Mac repo as origin
-- [ ] T003: Document and present manual git credential setup commands for Kent to run on office2 as kgale
+- [x] T001: Initialize git repo in `~/second-brain/` on Mac with `.gitignore` excluding `notes/`
+- [x] T002: Create GitHub repo (kentonium3/second-brain), push Mac repo as origin
+- [x] T003: Document and present manual git credential setup commands for Kent to run on office2 as kgale
 
 **Prompt file**: [tasks/WP01-prerequisites.md](tasks/WP01-prerequisites.md)
 
