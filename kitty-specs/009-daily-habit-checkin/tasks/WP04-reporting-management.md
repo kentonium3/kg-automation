@@ -16,6 +16,7 @@ base_commit: 0355fa3dffb155d793e4e71f8d52516b10189415
 created_at: '2026-04-01T03:33:44.262953+00:00'
 subtasks: [T015, T016, T017, T018]
 shell_pid: "96346"
+agent: "claude-code"
 history:
 - date: '2026-04-01T01:46:04Z'
   event: created
@@ -228,3 +229,7 @@ agent's standing orders.
 - **AGENTS.md approaching size limit**: Check file size after adding these
   sections. If over 18K chars, consider moving the track record and management
   sections to a separate reference file.
+
+## Activity Log
+
+- 2026-04-01T03:33:44Z – claude-code – shell_pid=96346 – lane=doing – Assigned agent via workflow command
