@@ -1,7 +1,7 @@
 ---
 work_package_id: WP04
 title: Quickstart Guide and Validation
-lane: "doing"
+lane: "for_review"
 dependencies: [WP01, WP02, WP03]
 requirement_refs:
 - FR-06
@@ -15,8 +15,8 @@ base_branch: 010-obsidian-sync-office2-WP04-merge-base
 base_commit: 777e67dc56fb71eefea41f4fd38664cfdf40496f
 created_at: '2026-04-01T15:29:24.244269+00:00'
 subtasks: [T013, T014, T015]
-shell_pid: "84242"
-agent: "claude-code"
+agent: claude-code
+shell_pid: '84242'
 history:
 - date: '2026-04-01T15:17:40Z'
   event: created
@@ -226,3 +226,4 @@ triggering the first inbox processing run after sync is current.
 ## Activity Log
 
 - 2026-04-01T15:29:24Z – claude-code – shell_pid=84242 – lane=doing – Assigned agent via workflow command
+- 2026-04-01T15:44:00Z – claude-code – shell_pid=84242 – lane=for_review – Ready for review: validation script and quickstart guide finalized
