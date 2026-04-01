@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
-  "last_updated": "2026-03-31",
-  "updated_by": "F008",
+  "last_updated": "2026-04-01",
+  "updated_by": "F009",
   "services": [
     {
       "name": "vikunja",
@@ -110,7 +110,7 @@
         "whatsapp": {
           "protocol": "baileys",
           "account": "+16179300916",
-          "dm_policy": "pairing",
+          "dm_policy": "disabled",
           "group_policy": "allowlist",
           "session_storage": "~/.openclaw/credentials/whatsapp/",
           "deployed_by": "F004"
@@ -123,6 +123,13 @@
           "purpose": "Obsidian inbox processing — classifies, routes, creates Vikunja tasks",
           "source_in_repo": "scripts/openclaw/agents/felix-admin-capture/",
           "deployed_by": "F008"
+        },
+        "felix-admin-habits": {
+          "workspace": "/data/services/openclaw/habits-agent",
+          "model": "anthropic/claude-sonnet-4-6",
+          "purpose": "Daily habit check-in, completion tracking, weekly pattern reports",
+          "source_in_repo": "scripts/openclaw/agents/felix-admin-habits/",
+          "deployed_by": "F009"
         }
       }
     },
@@ -142,6 +149,22 @@
       "status": "active",
       "purpose": "3x daily Obsidian inbox processing",
       "runbook": "docs/handbooks/inbox-ops.md"
+    },
+    {
+      "name": "habit-checkin",
+      "type": "openclaw-cron",
+      "host": "office2",
+      "agent": "felix-admin-habits",
+      "schedules": [
+        {"name": "habits-morning-checkin", "cron": "5 11 * * *", "local_time": "7:05 AM ET"},
+        {"name": "habits-weekly-report", "cron": "0 22 * * 0", "local_time": "Sunday 6:00 PM ET"}
+      ],
+      "timeout_seconds": 120,
+      "session_mode": "isolated",
+      "deployed_by": "F009",
+      "status": "active",
+      "purpose": "Daily habit check-in and weekly pattern report",
+      "runbook": "docs/handbooks/habits-ops.md"
     }
   ]
 }
