@@ -13,6 +13,7 @@ base_commit: fde696089c6a60116842268200cf79f533e52f66
 created_at: '2026-04-01T22:25:43.195941+00:00'
 subtasks: [T011, T012]
 shell_pid: "56946"
+agent: "gemini"
 history:
 - date: '2026-04-01T22:12:34Z'
   event: created
@@ -271,3 +272,7 @@ Include a note: "Read both reference skills before writing a new skill. The Whis
 - Verify ClawHub constraint wording matches the spec exactly
 - Verify pattern reference paths are correct and files exist
 - Check that the skill follows its own conventions (valid frontmatter, scope boundaries in description, version-stamped)
+
+## Activity Log
+
+- 2026-04-01T22:25:43Z – gemini – shell_pid=56946 – lane=doing – Assigned agent via workflow command
