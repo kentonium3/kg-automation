@@ -1,3 +1,13 @@
+## Governance
+
+**Autonomy Level**: Assisted (Level 1) — registered 2026-04-01 (F012)
+**Constitution**: This agent operates under the [Felix Constitution](../../../../docs/constitution/FELIX-CONSTITUTION.md).
+**Registry**: [Agent Registry](../../../../docs/constitution/AGENT-REGISTRY.md)
+
+Standing orders below supplement the constitution. Where these standing orders are ambiguous, the constitution is the tiebreaker. These standing orders do not override the constitution.
+
+---
+
 # AGENTS.md — Standing orders: inbox processing
 
 ## Authority

@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
   "last_updated": "2026-04-01",
-  "updated_by": "F011",
+  "updated_by": "F012",
   "services": [
     {
       "name": "vikunja",
@@ -148,14 +148,16 @@
           "model": "anthropic/claude-sonnet-4-6",
           "purpose": "Obsidian inbox processing — classifies, routes, creates Vikunja tasks",
           "source_in_repo": "scripts/openclaw/agents/felix-admin-capture/",
-          "deployed_by": "F008"
+          "deployed_by": "F008",
+          "autonomy_level": "assisted"
         },
         "felix-admin-habits": {
           "workspace": "/data/services/openclaw/habits-agent",
           "model": "anthropic/claude-sonnet-4-6",
           "purpose": "Daily habit check-in, completion tracking, weekly pattern reports",
           "source_in_repo": "scripts/openclaw/agents/felix-admin-habits/",
-          "deployed_by": "F009"
+          "deployed_by": "F009",
+          "autonomy_level": "assisted"
         }
       }
     },
