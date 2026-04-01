@@ -79,13 +79,13 @@ Update all files in the kg-automation repo that reference the old
 files — historical docs are left as-is.
 
 **Included subtasks**:
-- [ ] T009: Update `scripts/office2/validate-obsidian-sync.sh` (vault → notes) [P]
-- [ ] T010: Update `scripts/openclaw/agents/felix-admin-capture/TOOLS.md` (vault → notes) [P]
-- [ ] T011: Update `scripts/openclaw/agents/felix-admin-capture/AGENTS.md` (vault → notes) [P]
-- [ ] T012: Update `scripts/openclaw/agents/felix-admin-habits/TOOLS.md` (vault → notes) [P]
-- [ ] T013: Update `CLAUDE.md` privacy boundary path (vault → notes) [P]
-- [ ] T014: Update `ai-agents/claude-code-instructions.md` privacy path (vault → notes) [P]
-- [ ] T015: Update `ai-agents/claude-instructions.md` privacy path (vault → notes) [P]
+- [x] T009: Update `scripts/office2/validate-obsidian-sync.sh` (vault → notes) [P]
+- [x] T010: Update `scripts/openclaw/agents/felix-admin-capture/TOOLS.md` (vault → notes) [P]
+- [x] T011: Update `scripts/openclaw/agents/felix-admin-capture/AGENTS.md` (vault → notes) [P]
+- [x] T012: Update `scripts/openclaw/agents/felix-admin-habits/TOOLS.md` (vault → notes) [P]
+- [x] T013: Update `CLAUDE.md` privacy boundary path (vault → notes) [P]
+- [x] T014: Update `ai-agents/claude-code-instructions.md` privacy path (vault → notes) [P]
+- [x] T015: Update `ai-agents/claude-instructions.md` privacy path (vault → notes) [P]
 
 **Prompt file**: [tasks/WP03-repo-path-updates.md](tasks/WP03-repo-path-updates.md)
 
