@@ -15,7 +15,7 @@ All services run on office2 unless otherwise noted.
 | Service | Type | Version/Image | Port | Bind IP | systemd Unit | Data Path |
 |---------|------|---------------|------|---------|-------------|-----------|
 | Vikunja | Docker | `vikunja/vikunja:0.24.6` | 3456 | 0.0.0.0 | `vikunja.service` (system) | `/data/services/vikunja/data` |
-| Obsidian Sync | Native | `ob sync --continuous` | — | — | `obsidian-sync.service` | `/home/kgale/second-brain/vault` |
+| Obsidian Sync | Native | `ob` v0.0.8, `ob sync --continuous` | — | — | `obsidian-sync.service` (user) | `/home/kgale/second-brain/vault` |
 | Transcribe API | Docker | `transcribe_transcribe` | 8787 | 100.92.197.90 | `transcribe.service` | `/data/services/transcribe` |
 | OpenClaw Gateway | npm-global | `v2026.3.24` | 18789 | 127.0.0.1 | `openclaw-gateway.service` (user) | `/data/services/openclaw/data` |
 
@@ -30,6 +30,7 @@ All services run on office2 unless otherwise noted.
 | Inbox Processing (evening) | 6PM ET daily | OpenClaw cron → felix-admin-capture | claude | Obsidian inbox processing |
 | Habit Check-in (morning) | 7:05 AM ET daily | OpenClaw cron → felix-admin-habits | claude | Daily habit check-in via WhatsApp |
 | Habit Report (weekly) | Sunday 6PM ET | OpenClaw cron → felix-admin-habits | claude | Weekly habit pattern report via WhatsApp |
+| Vault Snapshot | 2AM ET daily | `/home/kgale/helper-scripts/vault-snapshot.sh` | kgale | Git snapshot of vault → GitHub (backup/version history) |
 
 ## Deployment Details
 
@@ -45,10 +46,26 @@ All services run on office2 unless otherwise noted.
 - **Runbook**: `docs/handbooks/vikunja-ops.md`
 - **F006 additions**: Goals project (top-level, id=11) for structured goal declarations, `metalcasework` label (#ff9800), Goals saved filter. Setup script: `scripts/vikunja/setup_goals.py`. Goals runbook: `docs/handbooks/goals-ops.md`
 
-### Obsidian Sync (pre-F001)
-- **Deployed by**: Manual setup
+### Obsidian Sync (pre-F001, updated F010)
+- **Deployed by**: Manual setup, updated by F010
+- **Binary**: `/usr/bin/ob` (v0.0.8)
+- **Command**: `ob sync --path /home/kgale/second-brain/vault --continuous`
+- **Runs as**: kgale user (user-level systemd unit)
+- **systemd unit**: `obsidian-sync.service` (user unit under kgale)
+- **Auth**: `ob login` (interactive, credentials stored locally by ob)
+- **Sync direction**: Bidirectional (Mac, iPhone, and office2 via Obsidian Sync cloud)
+- **Conflict strategy**: Merge
+- **Excluded folders**: `02-Growth/_private`
+- **Purpose**: Continuous live sync of the Obsidian vault across all three devices
+
+### Vault Snapshot (F010)
+- **Deployed by**: F010
+- **Script**: `/home/kgale/helper-scripts/vault-snapshot.sh`
+- **Schedule**: 2AM ET daily (systemd timer)
 - **Runs as**: kgale user
-- **Purpose**: Keeps the Obsidian vault on office2 in sync with Mac/iPhone
+- **Data path**: `/home/kgale/second-brain`
+- **Direction**: Outbound-only (git add, commit, push to GitHub)
+- **Purpose**: Daily git snapshot of the vault for backup and version history. This is not the live sync mechanism — Obsidian Sync handles that. Git is purely for backup.
 
 ### Transcribe API (F003)
 - **Deployed by**: F003

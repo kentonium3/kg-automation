@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
   "last_updated": "2026-04-01",
-  "updated_by": "F009",
+  "updated_by": "F010",
   "services": [
     {
       "name": "vikunja",
@@ -26,15 +26,40 @@
     {
       "name": "obsidian-sync",
       "type": "native",
+      "description": "Continuous Obsidian vault sync via ob CLI",
       "binary": "/usr/bin/ob",
+      "version": "0.0.8",
+      "command": "ob sync --path /home/kgale/second-brain/vault --continuous",
       "host": "office2",
-      "systemd_unit": "obsidian-sync.service",
+      "user": "kgale",
+      "systemd_unit": "obsidian-sync.service (user unit)",
       "systemd_user": "kgale",
       "data_path": "/home/kgale/second-brain/vault",
+      "auth_method": "ob login (interactive, credentials stored locally by ob)",
+      "sync_direction": "bidirectional",
+      "conflict_strategy": "merge",
+      "excluded_folders": ["02-Growth/_private"],
       "backup_included": true,
       "deployed_by": "manual",
-      "status": "running",
-      "purpose": "Continuous Obsidian vault sync to office2"
+      "status": "active",
+      "purpose": "Continuous Obsidian vault sync to office2",
+      "updated_by": "F010"
+    },
+    {
+      "name": "vault-snapshot",
+      "type": "scheduled",
+      "description": "Daily git snapshot of vault for backup/version history",
+      "binary": "/home/kgale/helper-scripts/vault-snapshot.sh",
+      "schedule": "2AM ET daily (systemd timer)",
+      "host": "office2",
+      "user": "kgale",
+      "data_path": "/home/kgale/second-brain",
+      "direction": "outbound-only (add, commit, push)",
+      "backup_included": true,
+      "deployed_by": "F010",
+      "status": "active",
+      "purpose": "Daily git snapshot of vault for backup/version history",
+      "updated_by": "F010"
     },
     {
       "name": "transcribe-api",
