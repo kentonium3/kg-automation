@@ -13,6 +13,7 @@ base_commit: 7b1144c895e92aec2a2af42d2314a157e02bd1d2
 created_at: '2026-04-01T15:25:39.979178+00:00'
 subtasks: [T006, T007, T008]
 shell_pid: "83022"
+agent: "claude-code"
 history:
 - date: '2026-04-01T15:17:40Z'
   event: created
@@ -174,3 +175,7 @@ troubleshooting scenarios.
 - Verify vault path consistency (`/home/kgale/second-brain/vault`)
 - Verify privacy boundary not referenced in any command examples
 - Check that runbook passes `validate_docs.py` (frontmatter compliance)
+
+## Activity Log
+
+- 2026-04-01T15:25:40Z – claude-code – shell_pid=83022 – lane=doing – Assigned agent via workflow command
