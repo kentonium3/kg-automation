@@ -18,6 +18,7 @@ base_commit: 1166c44659920564f30a4e55274d0bec7aab7cab
 created_at: '2026-04-01T22:25:23.920555+00:00'
 subtasks: [T005, T006, T007, T008, T009, T010]
 shell_pid: "56766"
+agent: "claude"
 history:
 - date: '2026-04-01T22:12:34Z'
   event: created
@@ -396,3 +397,7 @@ Check Obsidian: 00-System/agent-activity/overview.md
 - Verify digest includes log references (FR-013)
 - Verify `--dry-run` does not write files
 - Check that no paths are hardcoded — everything goes through ObservationConfig
+
+## Activity Log
+
+- 2026-04-01T22:25:24Z – claude – shell_pid=56766 – lane=doing – Assigned agent via workflow command
