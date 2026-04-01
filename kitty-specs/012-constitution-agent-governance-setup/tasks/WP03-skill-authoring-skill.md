@@ -1,7 +1,7 @@
 ---
 work_package_id: WP03
 title: Skill-Authoring Skill
-lane: "approved"
+lane: "done"
 dependencies: []
 requirement_refs:
 - FR-015
@@ -14,8 +14,8 @@ created_at: '2026-04-01T22:25:43.195941+00:00'
 subtasks: [T011, T012]
 agent: gemini
 shell_pid: '56946'
-reviewed_by: "Kent Gale"
 review_status: "approved"
+reviewed_by: "Kent Gale"
 history:
 - date: '2026-04-01T22:12:34Z'
   event: created
@@ -280,3 +280,4 @@ Include a note: "Read both reference skills before writing a new skill. The Whis
 - 2026-04-01T22:25:43Z – gemini – shell_pid=56946 – lane=doing – Assigned agent via workflow command
 - 2026-04-01T22:33:11Z – gemini – shell_pid=56946 – lane=for_review – Ready for review: skill-authoring skill complete, 221 lines, all 9 sections
 - 2026-04-01T22:34:52Z – gemini – shell_pid=56946 – lane=approved – Review passed: all 9 sections, 8 conventions, ClawHub exact wording, actionable review checklists, NFR-004 self-containment met.
+- 2026-04-01T22:45:26Z – gemini – shell_pid=56946 – lane=done – Moved to done
