@@ -180,3 +180,8 @@ WP04 ──→ WP05
 ## MVP Scope
 
 **WP01 alone** delivers the constitution and agent registry — the core governance framework. All other WPs build on it but the governance documents have immediate value even before the intelligence layer or deployment.
+
+<!-- status-model:start -->
+## Canonical Status (Generated)
+- WP01: for_review
+<!-- status-model:end -->
