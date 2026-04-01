@@ -35,4 +35,10 @@ Running from VS Code integrated terminal. 5 worktrees, all branches already merg
 - Status: COMPLETE — all 5 deleted, stable
 
 ## Step 5: Commit status files and push
-- Status: STARTING
+- Status: COMPLETE — pushed to origin
+
+## Result: NO CRASH
+- All 10 cleanup steps completed without VS Code crash
+- 5-second pauses between worktree removals may have prevented FSEvents overflow
+- This is consistent with the FSEvents overflow theory: spacing out deletions
+  avoids the event queue saturation that triggers SIGTERM

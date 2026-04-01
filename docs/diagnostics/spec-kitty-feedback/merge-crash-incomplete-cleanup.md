@@ -60,6 +60,7 @@ already removed before the crash.
 | 4 | 2026-04-01 | F009 (009-daily-habit-checkin) | WP06 | GitLens NOT installed; 6 WPs |
 | 5 | 2026-04-01 | F010 (010-obsidian-sync-office2) | WP04 | Root cause confirmed: errSecCSStaticCodeChanged + SIGTERM |
 | 6 | 2026-04-01 | F011 (011-second-brain-vault-cleanup) | WP07 | Updates disabled, no binary replacement, FSEvents overflow |
+| 7 | 2026-04-01 | F012 (012-constitution-agent-governance-setup) | WP05 | **NO CRASH** — manual step-by-step with 5s pauses between worktree removals |
 
 Note: Incidents 1 and 2 were not fully documented. The pattern was recognized
 on incident 3. Incident 4 disproved the GitLens-only hypothesis. Incident 5
@@ -518,6 +519,7 @@ branches, push).
 - Feature (incident 4): 009-daily-habit-checkin (6 WPs)
 - Feature (incident 5, code signing confirmed): 010-obsidian-sync-office2 (4 WPs)
 - Feature (incident 6, code signing disproved as sole cause): 011-second-brain-vault-cleanup (7 WPs, 1 worktree at merge time)
+- Feature (incident 7, NO CRASH): 012-constitution-agent-governance-setup (5 WPs, 5 worktrees removed with 5s pauses)
 
 ## Incident 6: F011 Merge Crash (2026-04-01) — Updates Disabled, No Binary Replacement
 
@@ -625,3 +627,87 @@ git push
 | `~/Library/Application Support/Code/logs/20260401T122104/window1/exthost/vscode.git/Git.log` | Normal operation until ENOENT at crash time |
 | `~/Library/Application Support/Code/logs/20260401T122104/window1/renderer.log` | File watcher shutdowns + FSEvents overflow visible here too |
 | macOS system log | Empty for crash timeframe (rotated) |
+
+---
+
+## Incident 7: F012 Merge (2026-04-01) — NO CRASH — Manual Step-by-Step with Pauses
+
+### Summary
+
+No crash occurred. Merge cleanup was performed manually, one step at a time,
+with 5-second pauses between each worktree removal. This is the first successful
+multi-WP merge cleanup from the VS Code integrated terminal since incident 3.
+
+### Context
+
+- Feature: 012-constitution-agent-governance-setup (5 WPs)
+- All 5 WP branches had already been merged to main during implementation
+- Cleanup consisted only of worktree removal and branch deletion (no merge step)
+- VS Code updates disabled (`"update.mode": "manual"`)
+- Session duration: ~2 hours at time of cleanup
+- Breadcrumb file written before each step: `docs/diagnostics/f012-merge-breadcrumbs.md`
+
+### Procedure executed
+
+All steps run from VS Code integrated terminal (Claude Code).
+
+| Step | Command | Wait after | Result |
+| --- | --- | --- | --- |
+| 1 | `git checkout main && git pull --ff-only` | — | Stable |
+| 3a | `git worktree remove .worktrees/...-WP01` | 5s | Stable |
+| 3b | `git worktree remove .worktrees/...-WP02` | 5s | Stable |
+| 3c | `git worktree remove .worktrees/...-WP03` | 5s | Stable |
+| 3d | `git worktree remove .worktrees/...-WP04` | 5s | Stable |
+| 3e | `git worktree remove .worktrees/...-WP05` | 5s | Stable |
+| 4 | `git branch -d` (all 5 branches) | — | Stable |
+| 5 | `git add`, `git commit`, `git push` | — | Stable |
+
+Step 2 (merge WP branches) was skipped because all branches were already
+integrated into main.
+
+### Key difference from prior incidents
+
+The only procedural difference from `spec-kitty merge` is **timing**:
+
+- `spec-kitty merge`: removes all worktrees in rapid succession (no delay)
+- This test: 5-second pause between each worktree removal
+
+Prior incidents showed FSEvents overflow ("Events were dropped by the FSEvents
+client") occurring when multiple worktrees were deleted rapidly. The 5-second
+pause gives the FSEvents client time to drain its event queue between deletions.
+
+### Implications
+
+This result is consistent with the FSEvents overflow theory from incident 6:
+
+1. Rapid worktree deletion saturates the FSEvents event queue
+2. macOS drops events when the queue overflows
+3. VS Code/Electron detects the unrecoverable file watcher state
+4. SIGTERM cascade kills all child processes
+
+Spacing out the deletions avoids step 1, preventing the entire cascade.
+
+### Suggested spec-kitty fix
+
+Add a configurable delay between worktree removals in `spec-kitty merge`.
+A 5-second pause between each removal appears sufficient to prevent the
+FSEvents overflow. This is a simple, low-risk mitigation:
+
+```python
+# In merge/executor.py, between worktree removals:
+import time
+time.sleep(5)  # Prevent FSEvents overflow on macOS
+```
+
+Alternatively, `spec-kitty merge` could accept a `--worktree-removal-delay`
+flag (default 5s on macOS, 0s elsewhere).
+
+### Caveats
+
+- This is a single successful test (N=1). The crash is not 100% reproducible
+  even without pauses (F007 had 4 WPs and no crash). The pauses may be
+  sufficient but are not yet proven necessary.
+- The session was shorter (~2 hours) than typical crash sessions (11+ hours).
+  Session duration may still be a contributing factor.
+- Further testing needed: run `spec-kitty merge` with the delay on a future
+  multi-WP feature to confirm the fix works programmatically.
