@@ -148,7 +148,7 @@ bidirectional sync timer.
 - [x] T029: Update `docs/design/architecture/glossary.md` — vault definition → notes [P]
 - [x] T030: Update `docs/design/architecture/security-posture.md` — privacy path [P]
 - [x] T031: Update `docs/design/architecture/backup-and-recovery.md` — backup path [P]
-- [ ] T032: Update `docs/handbooks/obsidian-sync-ops.md` — vault → notes, remove git snapshot section
+- [x] T032: Update `docs/handbooks/obsidian-sync-ops.md` — vault → notes, remove git snapshot section
 - [ ] T033: Update `docs/handbooks/inbox-ops.md` — vault → notes
 
 **Prompt file**: [tasks/WP06-architecture-docs.md](tasks/WP06-architecture-docs.md)
