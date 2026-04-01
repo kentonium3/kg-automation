@@ -19,6 +19,7 @@ base_commit: bfaff56d4e61ead85480b258bc288b7a3fabafe0
 created_at: '2026-04-01T03:40:38.251027+00:00'
 subtasks: [T019, T020, T021, T022, T023, T024, T025]
 shell_pid: "97929"
+agent: "claude-code"
 history:
 - date: '2026-04-01T01:46:04Z'
   event: created
@@ -226,3 +227,7 @@ end-to-end.
   natural language. Iterate on the delegation prompt if needed.
 - **Session lock conflicts**: If the habits agent session is locked from a
   previous run, clear locks before testing.
+
+## Activity Log
+
+- 2026-04-01T03:40:38Z – claude-code – shell_pid=97929 – lane=doing – Assigned agent via workflow command
