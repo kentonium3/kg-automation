@@ -1,7 +1,7 @@
 ---
 work_package_id: WP02
 title: Vault Rename and Obsidian Sync Service Update
-lane: planned
+lane: "doing"
 dependencies: []
 requirement_refs:
 - FR-01
@@ -14,7 +14,11 @@ requirement_refs:
 planning_base_branch: main
 merge_target_branch: main
 branch_strategy: Planning artifacts for this feature were generated on main. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into main unless the human explicitly redirects the landing branch.
+base_branch: main
+base_commit: d4735d77fc92bc0aae076aeb356dbe9c818a459c
+created_at: '2026-04-01T18:54:33.797605+00:00'
 subtasks: [T004, T005, T006, T007, T008]
+shell_pid: "19966"
 history:
 - date: '2026-04-01T18:30:16Z'
   event: created
