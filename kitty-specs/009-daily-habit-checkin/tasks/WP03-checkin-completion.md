@@ -20,6 +20,7 @@ base_commit: f43b5c1b511f26d7b80a8978e5d496b5870e6f33
 created_at: '2026-04-01T03:25:51.130787+00:00'
 subtasks: [T010, T011, T012, T013, T014]
 shell_pid: "94649"
+agent: "claude-code"
 history:
 - date: '2026-04-01T01:46:04Z'
   event: created
@@ -286,3 +287,7 @@ it processes Kent's replies.
 - **Fuzzy matching complexity**: Natural language parsing depends on the LLM's
   ability to match "training" to "Functional strength training 45 min". Include
   enough examples to prime the behavior.
+
+## Activity Log
+
+- 2026-04-01T03:25:51Z – claude-code – shell_pid=94649 – lane=doing – Assigned agent via workflow command
