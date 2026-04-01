@@ -16,6 +16,7 @@ base_commit: 6cb3c04d00c1296989e37ebc43ab409723f170d1
 created_at: '2026-04-01T19:18:36.273851+00:00'
 subtasks: [T019, T020, T021, T022, T023, T024]
 shell_pid: "24220"
+agent: "claude-code"
 history:
 - date: '2026-04-01T18:30:16Z'
   event: created
@@ -290,3 +291,7 @@ notes/
 - **SSH key passphrase**: If Kent set a passphrase on the SSH key, the
   automated sync script won't be able to authenticate without an ssh-agent.
   Recommend no passphrase for the deploy key.
+
+## Activity Log
+
+- 2026-04-01T19:18:36Z – claude-code – shell_pid=24220 – lane=doing – Assigned agent via workflow command
