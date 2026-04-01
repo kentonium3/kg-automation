@@ -28,6 +28,8 @@ All services run on office2 unless otherwise noted.
 | Inbox Processing (morning) | 7AM ET daily | OpenClaw cron → felix-admin-capture | claude | Obsidian inbox processing |
 | Inbox Processing (midday) | 12PM ET daily | OpenClaw cron → felix-admin-capture | claude | Obsidian inbox processing |
 | Inbox Processing (evening) | 6PM ET daily | OpenClaw cron → felix-admin-capture | claude | Obsidian inbox processing |
+| Habit Check-in (morning) | 7:05 AM ET daily | OpenClaw cron → felix-admin-habits | claude | Daily habit check-in via WhatsApp |
+| Habit Report (weekly) | Sunday 6PM ET | OpenClaw cron → felix-admin-habits | claude | Weekly habit pattern report via WhatsApp |
 
 ## Deployment Details
 
@@ -84,11 +86,26 @@ All services run on office2 unless otherwise noted.
 - **Privacy boundary**: `02-Growth/_private/` is never accessed
 - **Runbook**: `docs/handbooks/inbox-ops.md`
 
+### Felix Admin Habits Agent (F009)
+- **Deployed by**: F009
+- **Type**: OpenClaw agent (sub-agent of the gateway)
+- **Agent name**: `felix-admin-habits`
+- **Workspace**: `/data/services/openclaw/habits-agent/`
+- **Source in repo**: `scripts/openclaw/agents/felix-admin-habits/`
+- **Model**: `anthropic/claude-sonnet-4-6`
+- **Purpose**: Daily habit check-in delivery, completion tracking via Vikunja comments, weekly pattern reports, on-demand track record queries, habit management (add/pause/remove)
+- **Schedule**: Morning check-in at 7:05 AM ET daily, weekly report Sunday 6 PM ET
+- **Vikunja project**: Habits (id=13) with 7 habit tasks (ids 14-20)
+- **Completion storage**: Comments on habit tasks in format `[Felix] YYYY-MM-DD | {state} | note`
+- **WhatsApp delivery**: Cron jobs use `--to` for direct delivery; completion marking via main agent delegation
+- **Privacy boundary**: `02-Growth/_private/` is never accessed
+- **Runbook**: `docs/handbooks/habits-ops.md`
+
 ### WhatsApp Channel (F004)
 - **Deployed by**: F004
 - **Type**: OpenClaw channel (Baileys — unofficial WhatsApp Web protocol)
 - **Account**: Kent's personal cell (617) 930-0916 — linked device
-- **DM policy**: `pairing` — requires explicit pairing
+- **DM policy**: `disabled` — unknown contacts silently ignored
 - **Group policy**: `allowlist` — no group chats by default
 - **Session storage**: `~/.openclaw/credentials/whatsapp/` (managed by OpenClaw)
 - **No external credentials**: Baileys session is managed internally, not in the credential store
