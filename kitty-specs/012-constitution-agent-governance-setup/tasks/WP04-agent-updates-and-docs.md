@@ -1,7 +1,7 @@
 ---
 work_package_id: WP04
 title: Agent Standing Orders & Documentation
-lane: "approved"
+lane: "done"
 dependencies: []
 requirement_refs:
 - FR-014
@@ -18,8 +18,8 @@ created_at: '2026-04-01T22:26:08.263431+00:00'
 subtasks: [T013, T014, T015, T016, T017]
 agent: gemini
 shell_pid: '57146'
-reviewed_by: "Kent Gale"
 review_status: "approved"
+reviewed_by: "Kent Gale"
 history:
 - date: '2026-04-01T22:12:34Z'
   event: created
@@ -259,3 +259,4 @@ status: active
 - 2026-04-01T22:26:08Z – gemini – shell_pid=57146 – lane=doing – Assigned agent via workflow command
 - 2026-04-01T22:33:13Z – gemini – shell_pid=57146 – lane=for_review – Ready for review: agent updates and governance docs, 5 files modified/created
 - 2026-04-01T22:34:54Z – gemini – shell_pid=57146 – lane=approved – Review passed: AGENTS.md additive-only verified, runbook 6 sections complete, service-inventory minimal changes, openclaw-ops governance section added.
+- 2026-04-01T22:45:28Z – gemini – shell_pid=57146 – lane=done – Moved to done
