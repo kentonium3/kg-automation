@@ -1,7 +1,7 @@
 ---
 work_package_id: WP03
 title: Standing Orders — Check-in and Completion
-lane: "doing"
+lane: "approved"
 dependencies: [WP02]
 requirement_refs:
 - C-003
@@ -19,8 +19,10 @@ base_branch: 009-daily-habit-checkin-WP02
 base_commit: f43b5c1b511f26d7b80a8978e5d496b5870e6f33
 created_at: '2026-04-01T03:25:51.130787+00:00'
 subtasks: [T010, T011, T012, T013, T014]
-agent: "claude-code"
-shell_pid: "95879"
+agent: claude-code
+shell_pid: '95879'
+reviewed_by: "Kent Gale"
+review_status: "approved"
 history:
 - date: '2026-04-01T01:46:04Z'
   event: created
@@ -293,3 +295,4 @@ it processes Kent's replies.
 - 2026-04-01T03:25:51Z – claude-code – shell_pid=94649 – lane=doing – Assigned agent via workflow command
 - 2026-04-01T03:28:49Z – claude-code – shell_pid=94649 – lane=for_review – Ready for review: AGENTS.md with check-in generation, completion marking, comment format/idempotency, weekly reports, on-demand track record, habit management. Deployed to office2 and verified — agent correctly summarizes its workflow.
 - 2026-04-01T03:31:34Z – claude-code – shell_pid=95879 – lane=doing – Started review via workflow command
+- 2026-04-01T03:32:15Z – claude-code – shell_pid=95879 – lane=approved – Review passed: AGENTS.md covers all 5 subtasks — authority/scope, check-in generation with frequency filtering and exclusion, completion marking with fuzzy matching and idempotency, comment format spec, and verified deployment to office2 (8.9KB). Also includes weekly report, track record, and habit management sections aligned with FR-4/5/6.
