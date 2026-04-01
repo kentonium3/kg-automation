@@ -173,3 +173,8 @@ references remain.
 - [ ] T038: Create test file on office2, verify appears in origin within 15 minutes
 
 **Prompt file**: [tasks/WP07-end-to-end-verification.md](tasks/WP07-end-to-end-verification.md)
+
+<!-- status-model:start -->
+## Canonical Status (Generated)
+- WP01: for_review
+<!-- status-model:end -->

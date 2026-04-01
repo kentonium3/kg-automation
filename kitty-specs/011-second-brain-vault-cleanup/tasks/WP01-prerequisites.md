@@ -1,7 +1,7 @@
 ---
 work_package_id: WP01
 title: Prerequisites — Mac Repo and Office2 Git Credentials
-lane: "doing"
+lane: "for_review"
 dependencies: []
 requirement_refs:
 - FR-15
@@ -13,8 +13,8 @@ base_branch: main
 base_commit: 001469d86b01754a066625ccc3ed52697568c5f7
 created_at: '2026-04-01T18:37:52.447799+00:00'
 subtasks: [T001, T002, T003]
-shell_pid: "17035"
-agent: "claude-code"
+agent: claude-code
+shell_pid: '17035'
 history:
 - date: '2026-04-01T18:30:16Z'
   event: created
@@ -150,3 +150,4 @@ proceed. Do not attempt to run these commands via SSH as the claude user.
 ## Activity Log
 
 - 2026-04-01T18:37:52Z – claude-code – shell_pid=17035 – lane=doing – Assigned agent via workflow command
+- 2026-04-01T18:50:51Z – claude-code – shell_pid=17035 – lane=for_review – Ready for review: Mac repo initialized, GitHub remote pushed, office2 git credentials confirmed working
