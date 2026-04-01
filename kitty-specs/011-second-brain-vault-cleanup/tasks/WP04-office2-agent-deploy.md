@@ -1,7 +1,7 @@
 ---
 work_package_id: WP04
 title: Deploy Updated Agent Files to Office2
-lane: "doing"
+lane: "for_review"
 dependencies: [WP03]
 requirement_refs:
 - FR-14
@@ -12,8 +12,8 @@ base_branch: 011-second-brain-vault-cleanup-WP03
 base_commit: 7ada443ff046627f7a445a5f71b17f9263a4d166
 created_at: '2026-04-01T19:31:53.904132+00:00'
 subtasks: [T016, T017, T018]
-shell_pid: "27150"
-agent: "claude-code"
+agent: claude-code
+shell_pid: '27150'
 history:
 - date: '2026-04-01T18:30:16Z'
   event: created
@@ -145,3 +145,4 @@ Expected: no output.
 ## Activity Log
 
 - 2026-04-01T19:31:54Z – claude-code – shell_pid=27150 – lane=doing – Assigned agent via workflow command
+- 2026-04-01T19:32:40Z – claude-code – shell_pid=27150 – lane=for_review – Ready for review: 3 agent files deployed to office2, zero stale vault references remain
