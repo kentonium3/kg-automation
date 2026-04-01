@@ -1,7 +1,7 @@
 ---
 work_package_id: WP05
 title: Scheduling and WhatsApp Integration
-lane: planned
+lane: "doing"
 dependencies: [WP04]
 requirement_refs:
 - FR-003
@@ -14,7 +14,11 @@ requirement_refs:
 planning_base_branch: main
 merge_target_branch: main
 branch_strategy: Planning artifacts for this feature were generated on main. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into main unless the human explicitly redirects the landing branch.
+base_branch: 009-daily-habit-checkin-WP04
+base_commit: bfaff56d4e61ead85480b258bc288b7a3fabafe0
+created_at: '2026-04-01T03:40:38.251027+00:00'
 subtasks: [T019, T020, T021, T022, T023, T024, T025]
+shell_pid: "97929"
 history:
 - date: '2026-04-01T01:46:04Z'
   event: created
