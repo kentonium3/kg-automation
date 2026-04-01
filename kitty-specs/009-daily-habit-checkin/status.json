@@ -1,14 +1,14 @@
 {
-  "event_count": 30,
+  "event_count": 31,
   "feature_slug": "009-daily-habit-checkin",
-  "last_event_id": "01KN3K6MRKWPB0B2HW32A58C3A",
-  "materialized_at": "2026-04-01T04:00:39.188845+00:00",
+  "last_event_id": "01KN3KKSVG7B4A0SBNGWSV16XT",
+  "materialized_at": "2026-04-01T04:07:50.385378+00:00",
   "summary": {
-    "approved": 6,
+    "approved": 5,
     "blocked": 0,
     "canceled": 0,
     "claimed": 0,
-    "done": 0,
+    "done": 1,
     "for_review": 0,
     "in_progress": 0,
     "planned": 0
@@ -50,11 +50,11 @@
       "last_transition_at": "2026-04-01T03:56:22.127430+00:00"
     },
     "WP06": {
-      "actor": "user",
+      "actor": "merge",
       "force_count": 2,
-      "lane": "approved",
-      "last_event_id": "01KN3K6MRKWPB0B2HW32A58C3A",
-      "last_transition_at": "2026-04-01T04:00:39.187316+00:00"
+      "lane": "done",
+      "last_event_id": "01KN3KKSVG7B4A0SBNGWSV16XT",
+      "last_transition_at": "2026-04-01T04:07:50.384237+00:00"
     }
   }
 }

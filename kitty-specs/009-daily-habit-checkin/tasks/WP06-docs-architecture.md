@@ -1,7 +1,7 @@
 ---
 work_package_id: WP06
 title: Documentation and Architecture Updates
-lane: "approved"
+lane: done
 dependencies: [WP05]
 requirement_refs:
 - FR-012
@@ -15,8 +15,8 @@ created_at: '2026-04-01T03:56:54.955362+00:00'
 subtasks: [T026, T027, T028]
 agent: claude-code
 shell_pid: '2870'
-reviewed_by: "Kent Gale"
-review_status: "approved"
+review_status: approved
+reviewed_by: Kent Gale
 history:
 - date: '2026-04-01T01:46:04Z'
   event: created
