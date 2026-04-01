@@ -1,0 +1,12 @@
+{
+  "wp_id": "WP03",
+  "feature_slug": "012-constitution-agent-governance-setup",
+  "worktree_path": ".worktrees/012-constitution-agent-governance-setup-WP03",
+  "branch_name": "012-constitution-agent-governance-setup-WP03",
+  "base_branch": "main",
+  "base_commit": "fde696089c6a60116842268200cf79f533e52f66",
+  "dependencies": [],
+  "created_at": "2026-04-01T22:25:43.195941+00:00",
+  "created_by": "implement-command",
+  "vcs_backend": "git"
+}
