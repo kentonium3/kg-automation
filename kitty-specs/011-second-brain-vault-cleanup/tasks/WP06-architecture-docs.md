@@ -1,7 +1,7 @@
 ---
 work_package_id: WP06
 title: Architecture Docs and Handbooks
-lane: planned
+lane: "doing"
 dependencies: [WP02]
 requirement_refs:
 - FR-04
@@ -12,7 +12,11 @@ requirement_refs:
 planning_base_branch: main
 merge_target_branch: main
 branch_strategy: Planning artifacts for this feature were generated on main. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into main unless the human explicitly redirects the landing branch.
+base_branch: 011-second-brain-vault-cleanup-WP02
+base_commit: 811a6d2ba4c590e0b8a098c939a613a01eb8fda4
+created_at: '2026-04-01T19:32:55.435729+00:00'
 subtasks: [T025, T026, T027, T028, T029, T030, T031, T032, T033]
+shell_pid: "27623"
 history:
 - date: '2026-04-01T18:30:16Z'
   event: created
