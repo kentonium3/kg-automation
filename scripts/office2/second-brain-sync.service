@@ -1,0 +1,9 @@
+[Unit]
+Description=Second Brain bidirectional git sync
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/home/kgale/helper-scripts/second-brain-sync.sh
+Environment=HOME=/home/kgale
