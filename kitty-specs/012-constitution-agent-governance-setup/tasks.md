@@ -99,8 +99,8 @@
 **Goal**: Create the skill-authoring skill that teaches agents how to write compliant OpenClaw skills conforming to project standards.
 
 **Included subtasks**:
-- [ ] T011: Study existing Whisper and Vikunja API skills to extract format patterns, conventions, and best practices
-- [ ] T012: Write `scripts/openclaw/skills/skill-author/SKILL.md` — complete with frontmatter, format specification, project conventions, community skill review criteria, and pattern reference examples
+- [x] T011: Study existing Whisper and Vikunja API skills to extract format patterns, conventions, and best practices
+- [x] T012: Write `scripts/openclaw/skills/skill-author/SKILL.md` — complete with frontmatter, format specification, project conventions, community skill review criteria, and pattern reference examples
 
 **Parallel opportunities**: Entire WP parallelizable with WP02 and WP04.
 
