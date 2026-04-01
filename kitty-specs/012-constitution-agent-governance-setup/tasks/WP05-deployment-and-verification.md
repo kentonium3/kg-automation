@@ -1,7 +1,7 @@
 ---
 work_package_id: WP05
 title: Deployment & Verification
-lane: "doing"
+lane: "for_review"
 dependencies: []
 requirement_refs:
 - FR-016
@@ -13,8 +13,8 @@ base_branch: main
 base_commit: 20bd35a398d5ecbc0cb325a8dd876dc21b1c4d1b
 created_at: '2026-04-01T22:44:25.794585+00:00'
 subtasks: [T018, T019, T020, T021, T022]
-shell_pid: "60285"
-agent: "claude"
+agent: claude
+shell_pid: '60285'
 history:
 - date: '2026-04-01T22:12:34Z'
   event: created
@@ -260,3 +260,4 @@ ssh office2-claude "cd /path/to/kg-automation && python3 scripts/openclaw/observ
 ## Activity Log
 
 - 2026-04-01T22:44:26Z – claude – shell_pid=60285 – lane=doing – Assigned agent via workflow command
+- 2026-04-01T22:53:23Z – claude – shell_pid=60285 – lane=for_review – Deployment WP: all server-side. Constitution, registry, skill, agent workspaces deployed to office2. Cron configured at 23:00 UTC. Dry-run passed. Real digest created. Obsidian Sync confirmed. Import fix merged to main.
