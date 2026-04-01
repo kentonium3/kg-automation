@@ -74,12 +74,12 @@
 **Goal**: Build the centralized summarization script that reads agent logs, applies autonomy-level-based filtering, writes Obsidian digests, and sends WhatsApp critical alerts.
 
 **Included subtasks**:
-- [ ] T005: Define standardized log format specification and create sample log fixtures for testing
-- [ ] T006: Write `scripts/openclaw/observation/tests/test_summarize.py` (test-first per TEST_FIRST directive)
-- [ ] T007: Write `scripts/openclaw/observation/config.py` — loads agent-registry.json, resolves log/output paths
-- [ ] T008: Write `scripts/openclaw/observation/summarize.py` — core: reads logs, filters by category, applies autonomy-level rules, produces consolidated digest
-- [ ] T009: Add WhatsApp critical alert path (conditional on DM policy being enabled)
-- [ ] T010: Implement Obsidian digest output — overview.md and per-agent files written to `~/second-brain/notes/00-System/agent-activity/`
+- [x] T005: Define standardized log format specification and create sample log fixtures for testing
+- [x] T006: Write `scripts/openclaw/observation/tests/test_summarize.py` (test-first per TEST_FIRST directive)
+- [x] T007: Write `scripts/openclaw/observation/config.py` — loads agent-registry.json, resolves log/output paths
+- [x] T008: Write `scripts/openclaw/observation/summarize.py` — core: reads logs, filters by category, applies autonomy-level rules, produces consolidated digest
+- [x] T009: Add WhatsApp critical alert path (conditional on DM policy being enabled)
+- [x] T010: Implement Obsidian digest output — overview.md and per-agent files written to `~/second-brain/notes/00-System/agent-activity/`
 
 **Parallel opportunities**: T007 (config) can be developed in parallel with T005/T006 (fixtures/tests).
 
