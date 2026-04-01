@@ -90,10 +90,10 @@ Add weekly pattern report generation, on-demand track record query, and
 habit add/pause/remove functionality to AGENTS.md.
 
 **Included subtasks**:
-- [ ] T015: Weekly pattern report section (query history, calculate rates, format concise report)
-- [ ] T016: On-demand track record query section (4-week summary)
-- [ ] T017: Habit add/pause/remove section (WhatsApp-based management with confirmation)
-- [ ] T018: Deploy updated AGENTS.md to office2 and verify
+- [x] T015: Weekly pattern report section (query history, calculate rates, format concise report)
+- [x] T016: On-demand track record query section (4-week summary)
+- [x] T017: Habit add/pause/remove section (WhatsApp-based management with confirmation)
+- [x] T018: Deploy updated AGENTS.md to office2 and verify
 
 **Prompt file**: [tasks/WP04-reporting-management.md](tasks/WP04-reporting-management.md)
 
