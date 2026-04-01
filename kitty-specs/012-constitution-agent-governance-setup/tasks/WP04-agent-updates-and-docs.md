@@ -1,7 +1,7 @@
 ---
 work_package_id: WP04
 title: Agent Standing Orders & Documentation
-lane: "doing"
+lane: "for_review"
 dependencies: []
 requirement_refs:
 - FR-014
@@ -16,8 +16,8 @@ base_branch: main
 base_commit: e86d4912ddfeb4e9d5d2e49c8d2fc4e5b2a47c2e
 created_at: '2026-04-01T22:26:08.263431+00:00'
 subtasks: [T013, T014, T015, T016, T017]
-shell_pid: "57146"
-agent: "gemini"
+agent: gemini
+shell_pid: '57146'
 history:
 - date: '2026-04-01T22:12:34Z'
   event: created
@@ -255,3 +255,4 @@ status: active
 ## Activity Log
 
 - 2026-04-01T22:26:08Z – gemini – shell_pid=57146 – lane=doing – Assigned agent via workflow command
+- 2026-04-01T22:33:13Z – gemini – shell_pid=57146 – lane=for_review – Ready for review: agent updates and governance docs, 5 files modified/created
