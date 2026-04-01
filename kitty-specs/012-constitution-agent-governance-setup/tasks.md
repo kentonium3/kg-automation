@@ -47,10 +47,10 @@
 **Goal**: Create the Felix constitution document and dual-format agent registry (JSON + Markdown) with both existing agents registered at Assisted (Level 1).
 
 **Included subtasks**:
-- [ ] T001: Read existing agent standing orders (AGENTS.md, SOUL.md, IDENTITY.md, TOOLS.md for both agents) to understand current conventions before writing constitution
-- [ ] T002: Write `docs/constitution/FELIX-CONSTITUTION.md` — four directives, autonomy level model, privacy boundary (extensible), ClawHub constraint, activity surfacing per level, amendment process
-- [ ] T003: Write `docs/constitution/agent-registry.json` — both agents at Assisted, complete transition history entries
-- [ ] T004: Write `docs/constitution/AGENT-REGISTRY.md` — human-readable narrative view consistent with JSON
+- [x] T001: Read existing agent standing orders (AGENTS.md, SOUL.md, IDENTITY.md, TOOLS.md for both agents) to understand current conventions before writing constitution
+- [x] T002: Write `docs/constitution/FELIX-CONSTITUTION.md` — four directives, autonomy level model, privacy boundary (extensible), ClawHub constraint, activity surfacing per level, amendment process
+- [x] T003: Write `docs/constitution/agent-registry.json` — both agents at Assisted, complete transition history entries
+- [x] T004: Write `docs/constitution/AGENT-REGISTRY.md` — human-readable narrative view consistent with JSON
 
 **Parallel opportunities**: T003 and T004 can be written in parallel after T002.
 
