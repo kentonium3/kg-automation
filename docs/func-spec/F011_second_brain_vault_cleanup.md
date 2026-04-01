@@ -53,8 +53,7 @@ office2 /home/kgale/second-brain/
 └── [other dirs]
 
 Mac ~/second-brain/
-└── vault/
-    └── Notes/                ← actual vault content (Obsidian Sync source)
+└── notes/                    ← vault content (already renamed, Obsidian Sync source)
 
 vault-snapshot service
 └── ✅ Deployed by F010
@@ -76,8 +75,7 @@ office2 /home/kgale/second-brain/
 └── [other dirs]
 
 Mac ~/second-brain/
-└── vault/
-    └── Notes/                ← unchanged on Mac (Obsidian owns this path)
+└── notes/                    ← already restructured (matches server target)
 
 vault-snapshot service
 └── ❌ Removed — cron job and script deleted
@@ -96,11 +94,11 @@ All path references updated:
 
 ## Note on Mac Vault Path
 
-The Mac vault path (`~/second-brain/vault/Notes/`) is owned and managed
-by Obsidian — do not rename or restructure it on Mac. Obsidian Sync
-identifies the vault by its internal ID, not the filesystem path, so
-the office2 rename does not require any change on Mac or iPhone. The
-office2 rename is purely a server-side filesystem operation.
+The Mac vault has already been restructured to match the target server
+path. The Mac vault is now at `~/second-brain/notes/` — the `vault/`
+wrapper directory was removed and `Notes/` was renamed to `notes/` and
+moved up a level. The office2 rename (FR-3) brings the server into
+alignment with the Mac, not the other way around.
 
 ---
 
