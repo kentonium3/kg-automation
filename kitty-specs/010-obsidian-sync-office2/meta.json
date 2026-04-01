@@ -2,8 +2,10 @@
   "created_at": "2026-04-01T14:57:32.501142+00:00",
   "feature_number": "010",
   "feature_slug": "010-obsidian-sync-office2",
-  "friendly_name": "obsidian sync office2",
+  "friendly_name": "Obsidian Sync on office2",
   "mission": "software-dev",
-  "slug": "010-obsidian-sync-office2",
-  "target_branch": "main"
+  "slug": "obsidian-sync-office2",
+  "source_description": "Configure Obsidian Sync on office2 via ob CLI, define git coexistence strategy, backfill stale vault, update architecture docs",
+  "target_branch": "main",
+  "vcs": "git"
 }
