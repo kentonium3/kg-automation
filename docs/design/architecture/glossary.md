@@ -15,7 +15,7 @@ Canonical terms used across kg-automation documentation, code, and agent instruc
 | **Vikunja** | Open-source task management system. Runs as Docker container on office2. Serves as the task store and web UI. Accessible at `https://office2.tail0f5f56.ts.net` via Tailscale Serve. |
 | **OpenClaw** | Orchestration and intelligence layer (planned, F002). Calls Anthropic API directly. Runs skills on office2. |
 | **Obsidian Sync** | Cloud sync service keeping the Obsidian vault consistent across Mac, iPhone, and office2. Daemon runs on office2 as `obsidian-sync.service`. |
-| **second-brain** | Kent's Obsidian vault at `~/second-brain/vault/Notes/`. Separate repo (`kentonium3/second-brain`). Contains constitution docs, growth journals, and private content. |
+| **second-brain** | Kent's Obsidian vault at `~/second-brain/notes/`. Separate repo (`kentonium3/second-brain`). Contains constitution docs, growth journals, and private content. Vault content synced via Obsidian Sync; non-vault content (agents/, logs/) synced via git. |
 | **Restic** | Backup tool. Runs at 4AM daily, backs up `/data/services`, `/data/transcripts`, and `/home/*` to `/mnt/backups/restic-repo`. |
 | **spec-kitty** | Workflow management system for feature specification, planning, implementation, review, and merge. |
 | **func-spec** | Feature specification document in `docs/func-spec/`. Defines requirements before implementation. |

@@ -23,7 +23,7 @@ status: approved
 | `/data/services` | All service data (Vikunja, transcribe, security monitor, backup logs) |
 | `/data/transcripts` | Transcription outputs |
 | `/home/claude` | Claude user home (configs, scripts) |
-| `/home/kgale` | Kgale user home (second-brain vault, configs) |
+| `/home/kgale` | Kgale user home (second-brain notes, configs) |
 
 ### Exclusions
 
@@ -35,7 +35,7 @@ status: approved
 | Service | Data Path | Backed Up? |
 |---------|-----------|------------|
 | Vikunja | `/data/services/vikunja/data` | Yes (under `/data/services`) |
-| Obsidian Vault | `/home/kgale/second-brain/vault` | Yes (under `/home/kgale`) |
+| Obsidian Vault | `/home/kgale/second-brain/notes` | Yes (under `/home/kgale`) |
 | Transcribe | `/data/services/transcribe` | Yes (excluding models) |
 | Security Baselines | `/data/services/security-monitor/baselines` | Yes |
 
