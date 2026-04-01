@@ -1,7 +1,7 @@
 ---
 work_package_id: WP06
 title: Documentation and Architecture Updates
-lane: planned
+lane: "doing"
 dependencies: [WP05]
 requirement_refs:
 - FR-012
@@ -9,7 +9,11 @@ requirement_refs:
 planning_base_branch: main
 merge_target_branch: main
 branch_strategy: Planning artifacts for this feature were generated on main. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into main unless the human explicitly redirects the landing branch.
+base_branch: 009-daily-habit-checkin-WP05
+base_commit: f28885767a163d185a9f0b4bc43d1bdd0b2e6523
+created_at: '2026-04-01T03:56:54.955362+00:00'
 subtasks: [T026, T027, T028]
+shell_pid: "1991"
 history:
 - date: '2026-04-01T01:46:04Z'
   event: created
