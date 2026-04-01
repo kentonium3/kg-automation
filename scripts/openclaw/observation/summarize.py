@@ -26,7 +26,10 @@ import sys
 from datetime import datetime, date
 from pathlib import Path
 
-from scripts.openclaw.observation.config import ObservationConfig
+try:
+    from scripts.openclaw.observation.config import ObservationConfig
+except ImportError:
+    from config import ObservationConfig
 
 CATEGORY_PATTERN = re.compile(r"^\s*-\s*\[(\w+)\]\s*(.*)")
 AGENT_PATTERN = re.compile(r"\*\*Agent\*\*:\s*(.+)")

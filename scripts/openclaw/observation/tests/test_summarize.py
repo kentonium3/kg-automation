@@ -9,14 +9,30 @@ from pathlib import Path
 
 import pytest
 
-from scripts.openclaw.observation.config import ObservationConfig
-from scripts.openclaw.observation.summarize import (
-    parse_log_file,
-    filter_actions_by_autonomy,
-    generate_digest,
-    detect_critical_alerts,
-    summarize_routine_actions,
-)
+import sys
+
+_parent = str(Path(__file__).resolve().parent.parent)
+if _parent not in sys.path:
+    sys.path.insert(0, _parent)
+
+try:
+    from scripts.openclaw.observation.config import ObservationConfig
+    from scripts.openclaw.observation.summarize import (
+        parse_log_file,
+        filter_actions_by_autonomy,
+        generate_digest,
+        detect_critical_alerts,
+        summarize_routine_actions,
+    )
+except ImportError:
+    from config import ObservationConfig
+    from summarize import (
+        parse_log_file,
+        filter_actions_by_autonomy,
+        generate_digest,
+        detect_critical_alerts,
+        summarize_routine_actions,
+    )
 
 FIXTURES_DIR = Path(__file__).parent / "fixtures"
 
