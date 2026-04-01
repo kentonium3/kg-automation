@@ -146,11 +146,11 @@
 **Goal**: Deploy all F012 artifacts to office2 and verify the complete system works end-to-end.
 
 **Included subtasks**:
-- [ ] T018: Deploy governance docs (constitution, registry, runbook, architecture updates) to office2
-- [ ] T019: Deploy skill-authoring skill and updated agent workspace files to office2
-- [ ] T020: Set up intelligence layer on office2 — deploy script, configure cron (7 PM ET daily), create `~/second-brain/notes/00-System/agent-activity/` directory
-- [ ] T021: Run dry-run test of intelligence layer with existing log files on office2
-- [ ] T022: Verify Obsidian Sync picks up digest files on Mac and iPhone
+- [x] T018: Deploy governance docs (constitution, registry, runbook, architecture updates) to office2
+- [x] T019: Deploy skill-authoring skill and updated agent workspace files to office2
+- [x] T020: Set up intelligence layer on office2 — deploy script, configure cron (7 PM ET daily), create `~/second-brain/notes/00-System/agent-activity/` directory
+- [x] T021: Run dry-run test of intelligence layer with existing log files on office2
+- [x] T022: Verify Obsidian Sync picks up digest files on Mac and iPhone
 
 **Parallel opportunities**: T018 and T019 can run in parallel.
 
