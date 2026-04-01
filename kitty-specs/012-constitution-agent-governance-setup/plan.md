@@ -1,108 +1,183 @@
-# Implementation Plan: [FEATURE]
-*Path: [templates/plan-template.md](templates/plan-template.md)*
+# Implementation Plan: Constitution & Agent Governance Setup
 
-
-**Branch**: `[###-feature-name]` | **Date**: [DATE] | **Spec**: [link]
-**Input**: Feature specification from `/kitty-specs/[###-feature-name]/spec.md`
-
-**Note**: This template is filled in by the `/spec-kitty.plan` command. See `src/specify_cli/missions/software-dev/command-templates/plan.md` for the execution workflow.
-
-The planner will not begin until all planning questions have been answered—capture those answers in this document before progressing to later phases.
+**Branch**: `main` | **Date**: 2026-04-01 | **Spec**: [spec.md](spec.md)
+**Input**: Feature specification from `kitty-specs/012-constitution-agent-governance-setup/spec.md`
 
 ## Summary
 
-[Extract from feature spec: primary requirement + technical approach from research]
+Formalize the Felix governance framework by creating a constitution document, centralized JSON agent registry, Observation Mode (audit logging + Obsidian-based surfacing with WhatsApp critical alerts), a skill-authoring skill, agent standing order updates, and an operational runbook. All governance documents are authored in the repo and deployed to office2. The centralized intelligence layer runs as a scheduled script on office2 that reads standardized agent logs and produces consolidated digests in the Obsidian vault.
 
 ## Technical Context
 
-<!--
-  ACTION REQUIRED: Replace the content in this section with the technical details
-  for the project. The structure here is presented in advisory capacity to guide
-  the iteration process.
--->
-
-**Language/Version**: [e.g., Python 3.11, Swift 5.9, Rust 1.75 or NEEDS CLARIFICATION]  
-**Primary Dependencies**: [e.g., FastAPI, UIKit, LLVM or NEEDS CLARIFICATION]  
-**Storage**: [if applicable, e.g., PostgreSQL, CoreData, files or N/A]  
-**Testing**: [e.g., pytest, XCTest, cargo test or NEEDS CLARIFICATION]  
-**Target Platform**: [e.g., Linux server, iOS 15+, WASM or NEEDS CLARIFICATION]
-**Project Type**: [single/web/mobile - determines source structure]  
-**Performance Goals**: [domain-specific, e.g., 1000 req/s, 10k lines/sec, 60 fps or NEEDS CLARIFICATION]  
-**Constraints**: [domain-specific, e.g., <200ms p95, <100MB memory, offline-capable or NEEDS CLARIFICATION]  
-**Scale/Scope**: [domain-specific, e.g., 10k users, 1M LOC, 50 screens or NEEDS CLARIFICATION]
+**Language/Version**: Python 3.11+ (intelligence layer script), Markdown (governance documents, skills)
+**Primary Dependencies**: OpenClaw (agent orchestration), Obsidian Sync (digest delivery), Baileys/WhatsApp (critical alerts)
+**Storage**: File-based — JSON registry, Markdown documents, Markdown activity logs
+**Testing**: Manual validation of governance documents; pytest for the intelligence layer script; integration test via agent dry-run on office2
+**Target Platform**: office2 (Ubuntu 24.04 LTS), deployed via SSH as claude user
+**Project Type**: Single project — mixed documentation + script
+**Performance Goals**: Intelligence layer completes in under 60 seconds; agent run time overhead under 60 seconds
+**Constraints**: No new credentials; Tailscale-only; claude user only; no sudo
+**Scale/Scope**: 2 agents currently; architecture supports growth to 10+ without rearchitecting
 
 ## Constitution Check
 
-*GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
+*GATE: Pre-Phase 0*
 
-[Gates determined based on constitution file]
+| Gate | Status | Notes |
+|------|--------|-------|
+| Testing standards | PASS | Intelligence layer script will have pytest coverage. Governance docs validated manually. |
+| Quality gates | PASS | CI validation (validate_docs.py) runs on push. Self-review before push. |
+| Performance benchmarks | PASS | Intelligence layer target: under 60 seconds. Agent overhead: under 60 seconds. |
+| Branch strategy | PASS | Push directly to main. Solo maintainer. |
+| Deployment constraints | PASS | All services on office2 (Ubuntu 24.04 LTS). Tailscale-only. |
+| Risk boundaries | PASS | `02-Growth/_private/` never accessed. No credentials in code. No community skills without review. |
+| Documentation sync | PASS | Architecture docs updated as part of this feature (FR-020, FR-021). |
+| TEST_FIRST directive | PASS | Intelligence layer developed test-first. Governance docs validated against checklist. |
+
+*No violations. No complexity tracking needed.*
 
 ## Project Structure
 
 ### Documentation (this feature)
 
 ```
-kitty-specs/[###-feature]/
-├── plan.md              # This file (/spec-kitty.plan command output)
-├── research.md          # Phase 0 output (/spec-kitty.plan command)
-├── data-model.md        # Phase 1 output (/spec-kitty.plan command)
-├── quickstart.md        # Phase 1 output (/spec-kitty.plan command)
-├── contracts/           # Phase 1 output (/spec-kitty.plan command)
-└── tasks.md             # Phase 2 output (/spec-kitty.tasks command - NOT created by /spec-kitty.plan)
+kitty-specs/012-constitution-agent-governance-setup/
+├── plan.md              # This file
+├── spec.md              # Feature specification
+├── research.md          # Phase 0 research output
+├── data-model.md        # Phase 1 data model
+├── quickstart.md        # Phase 1 quickstart guide
+├── checklists/
+│   └── requirements.md  # Spec quality checklist
+└── tasks.md             # Phase 2 output (NOT created by /spec-kitty.plan)
 ```
 
 ### Source Code (repository root)
-<!--
-  ACTION REQUIRED: Replace the placeholder tree below with the concrete layout
-  for this feature. Delete unused options and expand the chosen structure with
-  real paths (e.g., apps/admin, packages/something). The delivered plan must
-  not include Option labels.
--->
 
 ```
-# [REMOVE IF UNUSED] Option 1: Single project (DEFAULT)
-src/
-├── models/
-├── services/
-├── cli/
-└── lib/
+docs/constitution/
+├── FELIX-CONSTITUTION.md          # Governance document (FR-001 through FR-004)
+├── AGENT-REGISTRY.md              # Human-readable agent registry (FR-005)
+└── agent-registry.json            # Machine-readable agent registry (FR-005, FR-006)
 
-tests/
-├── contract/
-├── integration/
-└── unit/
+scripts/openclaw/
+├── agents/
+│   ├── felix-admin-capture/
+│   │   └── AGENTS.md              # Updated with constitution preamble (FR-017)
+│   └── felix-admin-habits/
+│       └── AGENTS.md              # Updated with constitution preamble (FR-017)
+├── skills/
+│   └── skill-author/
+│       └── SKILL.md               # Skill-authoring skill (FR-015)
+└── observation/
+    ├── summarize.py               # Centralized intelligence layer (FR-009, FR-010)
+    ├── config.py                  # Configuration loading from agent-registry.json
+    └── tests/
+        ├── test_summarize.py      # Unit tests for intelligence layer
+        └── fixtures/              # Sample log files for testing
 
-# [REMOVE IF UNUSED] Option 2: Web application (when "frontend" + "backend" detected)
-backend/
-├── src/
-│   ├── models/
-│   ├── services/
-│   └── api/
-└── tests/
+docs/handbooks/
+└── felix-governance.md            # Operations runbook (FR-019)
 
-frontend/
-├── src/
-│   ├── components/
-│   ├── pages/
-│   └── services/
-└── tests/
+docs/design/architecture/data/
+└── service-inventory.json         # Updated with gate fields (FR-020)
 
-# [REMOVE IF UNUSED] Option 3: Mobile + API (when "iOS/Android" detected)
-api/
-└── [same as backend above]
-
-ios/ or android/
-└── [platform-specific structure: feature modules, UI flows, platform tests]
+docs/handbooks/
+└── openclaw-ops.md                # Updated with constitution references (FR-021)
 ```
 
-**Structure Decision**: [Document the selected structure and reference the real
-directories captured above]
+**Structure Decision**: This feature is primarily documentation (governance docs, skills, standing orders) with one Python script (the intelligence layer). No web frontend, no API backend. The script lives at `scripts/openclaw/observation/` alongside the existing agent and skill directories.
 
-## Complexity Tracking
+## Design Decisions (from research.md)
 
-*Fill ONLY if Constitution Check has violations that must be justified*
+### Observation Mode Delivery
 
-| Violation | Why Needed | Simpler Alternative Rejected Because |
-|-----------|------------|-------------------------------------|
-| [e.g., 4th project] | [current need] | [why 3 projects insufficient] |
-| [e.g., Repository pattern] | [specific problem] | [why direct DB access insufficient] |
+**Primary:** Obsidian notes in `~/second-brain/notes/00-System/agent-activity/`
+**Critical alerts:** WhatsApp (when DM policy is re-enabled)
+**Fallback:** Obsidian-only (critical alerts marked prominently in digest)
+
+See [research.md](research.md) — Decision 1 for full evaluation.
+
+### Intelligence Layer Architecture
+
+**Centralized summarization script** (`scripts/openclaw/observation/summarize.py`):
+- Runs daily at 7:00 PM ET via cron on office2 (after last agent run at 6:00 PM)
+- Reads all agent logs from `~/second-brain/agents/logs/` for the current day
+- Reads `agent-registry.json` for observation_mode state per agent
+- Applies log category filtering: routine → counts, flagged/error/security → elevated detail
+- Writes consolidated digest to `~/second-brain/notes/00-System/agent-activity/overview.md`
+- Writes per-agent detail to `~/second-brain/notes/00-System/agent-activity/{agent-name}.md`
+- Sends WhatsApp critical alert if errors/security items exist and WhatsApp is enabled
+
+**Cadence:** Daily digest at 7:00 PM ET + immediate critical alerts at run time
+**Time window:** Rolling 24 hours, reset at digest time
+**Retention:** Digest overwritten each cycle; raw logs retained 90 days
+
+### Agent Registry
+
+**Dual-format:**
+- `docs/constitution/agent-registry.json` — machine-readable, authoritative
+- `docs/constitution/AGENT-REGISTRY.md` — human-readable narrative view
+
+JSON schema defined in [data-model.md](data-model.md).
+
+### Standardized Log Format
+
+All agents must write logs with these categories for the intelligence layer to process:
+- **routine** — normal successful operations (summarized as counts)
+- **flagged** — items requiring Kent's attention (elevated with detail)
+- **error** — operation failures (always surfaced as critical alert)
+- **security** — security concerns (always surfaced as critical alert)
+
+The existing felix-admin-capture log format is the base. felix-admin-habits adopts the same format. The intelligence layer parses these categories from the structured markdown.
+
+### Standing Order Updates
+
+Additive only. A governance preamble is prepended to each agent's AGENTS.md:
+- Current gate level
+- Reference to FELIX-CONSTITUTION.md
+- Statement that standing orders supplement but do not override the constitution
+
+No existing standing order content is modified.
+
+### Skill-Authoring Skill
+
+Bootstrapped from Whisper and Vikunja API skills. Augmented with:
+- External best practices for agent skill design
+- Community skill review criteria (security, quality, compatibility, scope)
+- Project-specific conventions (credential store, no hardcoded IDs, error handling, identity labels)
+- Living document — updated when project conventions change
+
+## Constitution Check (Post-Design)
+
+| Gate | Status | Notes |
+|------|--------|-------|
+| Testing standards | PASS | `scripts/openclaw/observation/tests/` with pytest. Governance docs validated against checklist. |
+| Risk boundaries | PASS | Privacy boundary encoded in constitution. No credentials introduced. Tailscale-only. |
+| Documentation sync | PASS | service-inventory.json and openclaw-ops.md updated in same feature. |
+| TEST_FIRST directive | PASS | Intelligence layer: tests written before implementation. Sample log fixtures in test directory. |
+
+*No new violations. Design is consistent with pre-Phase 0 check.*
+
+## Implementation Sequence
+
+1. **Read existing agent files** — understand current conventions before writing constitution
+2. **Write constitution** — formalize patterns already working (FR-001 through FR-004)
+3. **Write agent registry** — JSON + Markdown, register both agents at Gate 1 (FR-005 through FR-007)
+4. **Standardize log format** — define categories, update agent log sections if needed (FR-008)
+5. **Write intelligence layer** — centralized summarizer script with tests (FR-009, FR-010)
+6. **Configure Observation Mode** — state in registry, cron schedule, digest file creation (FR-011 through FR-013)
+7. **Write skill-authoring skill** — SKILL.md with conventions and review criteria (FR-015)
+8. **Update agent standing orders** — additive preamble referencing constitution (FR-017)
+9. **Write governance runbook** — operational procedures (FR-019)
+10. **Update architecture docs** — service-inventory.json gate fields, openclaw-ops.md refs (FR-020, FR-021)
+11. **Deploy to office2** — all updated files via SSH as claude user (FR-016, FR-018)
+
+## Risk Mitigations
+
+| Risk | Mitigation |
+|------|-----------|
+| Constitution contradicts working agent behavior | FR-001 requires reading existing AGENTS.md before writing. Constitution formalizes existing patterns. |
+| WhatsApp unavailable for critical alerts | Obsidian digest still contains critical alerts (marked prominently). Graceful degradation. |
+| Intelligence layer log parsing breaks on format changes | Standardized log categories defined in constitution. Tests use fixture logs. |
+| Skill-authoring skill becomes stale | Constitution mandates update when conventions change. Version-stamped. |
