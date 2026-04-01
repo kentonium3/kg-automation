@@ -5,7 +5,7 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-ExecStart=/usr/bin/ob sync --path /home/kgale/second-brain/vault --continuous
+ExecStart=/usr/bin/ob sync --path /home/kgale/second-brain/notes --continuous
 Restart=on-failure
 RestartSec=30
 Environment=HOME=/home/kgale
