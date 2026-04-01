@@ -17,6 +17,7 @@ base_commit: 811a6d2ba4c590e0b8a098c939a613a01eb8fda4
 created_at: '2026-04-01T19:32:55.435729+00:00'
 subtasks: [T025, T026, T027, T028, T029, T030, T031, T032, T033]
 shell_pid: "27623"
+agent: "claude-code"
 history:
 - date: '2026-04-01T18:30:16Z'
   event: created
@@ -216,3 +217,7 @@ handbooks to reflect: (1) vault-snapshot removal, (2) vault → notes rename,
   Validate with `python3 -m json.tool` after each edit.
 - **Markdown link integrity**: Ensure any cross-references between docs
   still resolve after edits.
+
+## Activity Log
+
+- 2026-04-01T19:32:55Z – claude-code – shell_pid=27623 – lane=doing – Assigned agent via workflow command
