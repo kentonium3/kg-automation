@@ -1,7 +1,7 @@
 ---
 work_package_id: WP02
 title: Vault Rename and Obsidian Sync Service Update
-lane: "approved"
+lane: done
 dependencies: []
 requirement_refs:
 - FR-01

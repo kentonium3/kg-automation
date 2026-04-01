@@ -1,60 +1,60 @@
 {
-  "event_count": 28,
+  "event_count": 34,
   "feature_slug": "011-second-brain-vault-cleanup",
-  "last_event_id": "01KN5ASBE3NNXSCRKSAPQ41FS5",
-  "materialized_at": "2026-04-01T20:12:03.909987+00:00",
+  "last_event_id": "manual-recovery-WP06-done",
+  "materialized_at": "2026-04-01T20:41:34.842597+00:00",
   "summary": {
-    "approved": 6,
+    "approved": 0,
     "blocked": 0,
     "canceled": 0,
     "claimed": 0,
-    "done": 1,
+    "done": 7,
     "for_review": 0,
     "in_progress": 0,
     "planned": 0
   },
   "work_packages": {
     "WP01": {
-      "actor": "user",
-      "force_count": 2,
-      "lane": "approved",
-      "last_event_id": "01KN5683Y4GNQNZQW6SGVKPDH4",
-      "last_transition_at": "2026-04-01T18:52:44.868942+00:00"
+      "actor": "manual-recovery",
+      "force_count": 3,
+      "lane": "done",
+      "last_event_id": "manual-recovery-WP01-done",
+      "last_transition_at": "2026-04-01T20:41:34.592597+00:00"
     },
     "WP02": {
-      "actor": "user",
-      "force_count": 2,
-      "lane": "approved",
-      "last_event_id": "01KN57PE8FEYSZH80J802645BR",
-      "last_transition_at": "2026-04-01T19:18:02.767907+00:00"
+      "actor": "manual-recovery",
+      "force_count": 3,
+      "lane": "done",
+      "last_event_id": "manual-recovery-WP02-done",
+      "last_transition_at": "2026-04-01T20:41:34.642597+00:00"
     },
     "WP03": {
-      "actor": "user",
-      "force_count": 2,
-      "lane": "approved",
-      "last_event_id": "01KN57X6H8NWWKJMD06NG4DA0V",
-      "last_transition_at": "2026-04-01T19:21:44.232856+00:00"
+      "actor": "manual-recovery",
+      "force_count": 3,
+      "lane": "done",
+      "last_event_id": "manual-recovery-WP03-done",
+      "last_transition_at": "2026-04-01T20:41:34.692597+00:00"
     },
     "WP04": {
-      "actor": "user",
-      "force_count": 1,
-      "lane": "approved",
-      "last_event_id": "01KN58HDGJ0Z5BGA6Z1XN5TNKW",
-      "last_transition_at": "2026-04-01T19:32:46.738664+00:00"
+      "actor": "manual-recovery",
+      "force_count": 2,
+      "lane": "done",
+      "last_event_id": "manual-recovery-WP04-done",
+      "last_transition_at": "2026-04-01T20:41:34.742597+00:00"
     },
     "WP05": {
-      "actor": "user",
-      "force_count": 1,
-      "lane": "approved",
-      "last_event_id": "01KN58FGFMB993C6SGPQBWYJD3",
-      "last_transition_at": "2026-04-01T19:31:44.244542+00:00"
+      "actor": "manual-recovery",
+      "force_count": 2,
+      "lane": "done",
+      "last_event_id": "manual-recovery-WP05-done",
+      "last_transition_at": "2026-04-01T20:41:34.792597+00:00"
     },
     "WP06": {
-      "actor": "user",
-      "force_count": 1,
-      "lane": "approved",
-      "last_event_id": "01KN59FPRRM45XBQT25FTRY282",
-      "last_transition_at": "2026-04-01T19:49:19.256303+00:00"
+      "actor": "manual-recovery",
+      "force_count": 2,
+      "lane": "done",
+      "last_event_id": "manual-recovery-WP06-done",
+      "last_transition_at": "2026-04-01T20:41:34.842597+00:00"
     },
     "WP07": {
       "actor": "merge",

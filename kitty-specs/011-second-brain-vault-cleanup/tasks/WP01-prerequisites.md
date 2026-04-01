@@ -1,7 +1,7 @@
 ---
 work_package_id: WP01
 title: Prerequisites — Mac Repo and Office2 Git Credentials
-lane: "approved"
+lane: done
 dependencies: []
 requirement_refs:
 - FR-15

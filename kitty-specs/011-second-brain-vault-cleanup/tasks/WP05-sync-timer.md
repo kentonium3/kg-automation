@@ -1,7 +1,7 @@
 ---
 work_package_id: WP05
 title: Bidirectional Git Sync Timer
-lane: "approved"
+lane: done
 dependencies: [WP01]
 requirement_refs:
 - FR-17

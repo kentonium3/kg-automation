@@ -1,7 +1,7 @@
 ---
 work_package_id: WP03
 title: Repository Path Updates
-lane: "approved"
+lane: done
 dependencies: [WP02]
 requirement_refs:
 - FR-05

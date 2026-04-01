@@ -1,7 +1,7 @@
 ---
 work_package_id: WP04
 title: Deploy Updated Agent Files to Office2
-lane: "approved"
+lane: done
 dependencies: [WP03]
 requirement_refs:
 - FR-14

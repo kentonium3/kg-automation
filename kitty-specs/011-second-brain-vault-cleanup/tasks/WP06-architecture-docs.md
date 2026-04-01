@@ -1,7 +1,7 @@
 ---
 work_package_id: WP06
 title: Architecture Docs and Handbooks
-lane: "approved"
+lane: done
 dependencies: [WP02]
 requirement_refs:
 - FR-04
