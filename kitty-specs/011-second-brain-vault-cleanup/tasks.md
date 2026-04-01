@@ -144,7 +144,7 @@ bidirectional sync timer.
 - [x] T025: Update `docs/design/architecture/data/service-inventory.json` — remove vault-snapshot, update obsidian-sync, add second-brain-sync [P]
 - [x] T026: Update `docs/design/architecture/data/data-flows.json` — vault → notes, add sync flow [P]
 - [x] T027: Update `docs/design/architecture/service-inventory.md` narrative [P]
-- [ ] T028: Update `docs/design/architecture/data-flows.md` narrative [P]
+- [x] T028: Update `docs/design/architecture/data-flows.md` narrative [P]
 - [ ] T029: Update `docs/design/architecture/glossary.md` — vault definition → notes [P]
 - [ ] T030: Update `docs/design/architecture/security-posture.md` — privacy path [P]
 - [ ] T031: Update `docs/design/architecture/backup-and-recovery.md` — backup path [P]
