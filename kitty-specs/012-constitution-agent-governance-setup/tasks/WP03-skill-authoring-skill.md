@@ -1,14 +1,18 @@
 ---
 work_package_id: WP03
 title: Skill-Authoring Skill
-lane: planned
+lane: "doing"
 dependencies: []
 requirement_refs:
 - FR-015
 planning_base_branch: main
 merge_target_branch: main
 branch_strategy: Planning artifacts for this feature were generated on main. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into main unless the human explicitly redirects the landing branch.
+base_branch: main
+base_commit: fde696089c6a60116842268200cf79f533e52f66
+created_at: '2026-04-01T22:25:43.195941+00:00'
 subtasks: [T011, T012]
+shell_pid: "56946"
 history:
 - date: '2026-04-01T22:12:34Z'
   event: created
