@@ -1,7 +1,7 @@
 ---
 work_package_id: WP04
 title: Quickstart Guide and Validation
-lane: "approved"
+lane: done
 dependencies: [WP01, WP02, WP03]
 requirement_refs:
 - FR-06
@@ -17,8 +17,8 @@ created_at: '2026-04-01T15:29:24.244269+00:00'
 subtasks: [T013, T014, T015]
 agent: claude-code
 shell_pid: '84242'
-reviewed_by: "Kent Gale"
-review_status: "approved"
+review_status: approved
+reviewed_by: Kent Gale
 history:
 - date: '2026-04-01T15:17:40Z'
   event: created
