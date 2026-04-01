@@ -1,7 +1,7 @@
 ---
 work_package_id: WP01
 title: Systemd Service and Sync Scripts
-lane: "doing"
+lane: "approved"
 dependencies: []
 requirement_refs:
 - FR-01
@@ -20,8 +20,10 @@ base_branch: main
 base_commit: fed93f37768f5e4863964f90dd4d51b720aa3df8
 created_at: '2026-04-01T15:23:53.181349+00:00'
 subtasks: [T001, T002, T003, T004, T005]
-agent: "claude-code"
-shell_pid: "82860"
+agent: claude-code
+shell_pid: '82860'
+reviewed_by: "Kent Gale"
+review_status: "approved"
 history:
 - date: '2026-04-01T15:17:40Z'
   event: created
@@ -274,3 +276,4 @@ repo to exclude Obsidian Sync metadata files from git snapshots.
 - 2026-04-01T15:23:53Z – claude-code – shell_pid=82396 – lane=doing – Assigned agent via workflow command
 - 2026-04-01T15:24:43Z – claude-code – shell_pid=82396 – lane=for_review – Ready for review: systemd service, snapshot script/timer, gitignore additions
 - 2026-04-01T15:25:09Z – claude-code – shell_pid=82860 – lane=doing – Started review via workflow command
+- 2026-04-01T15:25:28Z – claude-code – shell_pid=82860 – lane=approved – Review passed: all 5 deliverables correct — service, script, timer, snapshot service, gitignore. Vault paths consistent, no secrets, outbound-only snapshot, privacy boundary included.
