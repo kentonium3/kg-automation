@@ -15,6 +15,7 @@ base_commit: 9268f58f9c8dcd1d7996eb78e18d9fa4f5c760fd
 created_at: '2026-04-01T03:14:40.863076+00:00'
 subtasks: [T006, T007, T008, T009]
 shell_pid: "92134"
+agent: "claude-code"
 history:
 - date: '2026-04-01T01:46:04Z'
   event: created
@@ -177,3 +178,7 @@ validate that the comment-based completion storage approach works.
 - **Comment search may not support ILIKE on all Vikunja versions**: If
   search returns empty, fall back to fetching all comments and filtering
   client-side. Document the finding.
+
+## Activity Log
+
+- 2026-04-01T03:14:41Z – claude-code – shell_pid=92134 – lane=doing – Assigned agent via workflow command
