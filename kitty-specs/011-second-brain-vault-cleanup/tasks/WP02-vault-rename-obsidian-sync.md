@@ -19,6 +19,7 @@ base_commit: d4735d77fc92bc0aae076aeb356dbe9c818a459c
 created_at: '2026-04-01T18:54:33.797605+00:00'
 subtasks: [T004, T005, T006, T007, T008]
 shell_pid: "19966"
+agent: "claude-code"
 history:
 - date: '2026-04-01T18:30:16Z'
   event: created
@@ -168,3 +169,7 @@ syncs correctly using the vault's internal ID.
 - **Permission issues on rename**: The `claude` user is in the `secondbrain`
   group but directory ownership is `kgale:secondbrain`. The `mv` should work
   if the parent directory has group write permission. If not, present to Kent.
+
+## Activity Log
+
+- 2026-04-01T18:54:34Z – claude-code – shell_pid=19966 – lane=doing – Assigned agent via workflow command
