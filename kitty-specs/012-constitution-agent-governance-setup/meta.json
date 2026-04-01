@@ -2,8 +2,10 @@
   "created_at": "2026-04-01T21:13:21.279127+00:00",
   "feature_number": "012",
   "feature_slug": "012-constitution-agent-governance-setup",
-  "friendly_name": "constitution agent governance setup",
+  "friendly_name": "Constitution & Agent Governance Setup",
   "mission": "software-dev",
-  "slug": "012-constitution-agent-governance-setup",
-  "target_branch": "main"
+  "slug": "constitution-agent-governance-setup",
+  "source_description": "Formalize Felix governance framework: constitution, agent registry, observation mode, skill-authoring skill, and agent standing order updates",
+  "target_branch": "main",
+  "vcs": "git"
 }
