@@ -1,0 +1,8 @@
+[Unit]
+Description=Obsidian Vault Git Snapshot
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/home/kgale/helper-scripts/vault-snapshot.sh
+Environment=HOME=/home/kgale

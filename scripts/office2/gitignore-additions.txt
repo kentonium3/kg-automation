@@ -1,0 +1,9 @@
+# Obsidian workspace state (device-specific, changes constantly)
+.obsidian/workspace.json
+.obsidian/workspace-mobile.json
+
+# Obsidian Sync internal metadata
+.obsidian/sync-*.json
+
+# Privacy boundary (constitutional hard boundary)
+02-Growth/_private/

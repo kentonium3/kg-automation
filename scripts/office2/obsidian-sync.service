@@ -1,0 +1,14 @@
+[Unit]
+Description=Obsidian Sync (continuous)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/ob sync --path /home/kgale/second-brain/vault --continuous
+Restart=on-failure
+RestartSec=30
+Environment=HOME=/home/kgale
+
+[Install]
+WantedBy=default.target
