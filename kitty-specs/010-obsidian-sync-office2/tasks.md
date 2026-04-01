@@ -50,9 +50,9 @@ status checks, re-authentication, git coexistence strategy, manual sync
 triggers, and troubleshooting procedures.
 
 **Included subtasks**:
-- [ ] T006: Create runbook with standard kg-automation frontmatter
-- [ ] T007: Document sync configuration, status checks, and re-authentication procedures
-- [ ] T008: Document git coexistence strategy, snapshot schedule, and troubleshooting
+- [x] T006: Create runbook with standard kg-automation frontmatter
+- [x] T007: Document sync configuration, status checks, and re-authentication procedures
+- [x] T008: Document git coexistence strategy, snapshot schedule, and troubleshooting
 
 **Prompt file**: [tasks/WP02-operations-runbook.md](tasks/WP02-operations-runbook.md)
 
