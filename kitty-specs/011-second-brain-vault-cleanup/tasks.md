@@ -119,12 +119,12 @@ Create the bidirectional sync script and systemd timer, initialize the
 git repo on office2, and deploy and enable the timer.
 
 **Included subtasks**:
-- [ ] T019: Create `scripts/office2/second-brain-sync.sh` — bidirectional pull/commit/push script
-- [ ] T020: Create `scripts/office2/second-brain-sync.service` — systemd unit to run sync script
-- [ ] T021: Create `scripts/office2/second-brain-sync.timer` — 15-minute systemd timer
-- [ ] T022: Initialize git repo on office2 (`/home/kgale/second-brain/`), add remote, pull from origin
-- [ ] T023: Create `.gitignore` on office2 with `notes/` excluded
-- [ ] T024: Deploy sync script and timer to office2, enable and start
+- [x] T019: Create `scripts/office2/second-brain-sync.sh` — bidirectional pull/commit/push script
+- [x] T020: Create `scripts/office2/second-brain-sync.service` — systemd unit to run sync script
+- [x] T021: Create `scripts/office2/second-brain-sync.timer` — 15-minute systemd timer
+- [x] T022: Initialize git repo on office2 (`/home/kgale/second-brain/`), add remote, pull from origin
+- [x] T023: Create `.gitignore` on office2 with `notes/` excluded
+- [x] T024: Deploy sync script and timer to office2, enable and start
 
 **Prompt file**: [tasks/WP05-sync-timer.md](tasks/WP05-sync-timer.md)
 
