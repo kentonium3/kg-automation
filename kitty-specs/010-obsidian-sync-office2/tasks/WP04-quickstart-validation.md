@@ -1,7 +1,7 @@
 ---
 work_package_id: WP04
 title: Quickstart Guide and Validation
-lane: planned
+lane: "doing"
 dependencies: [WP01, WP02, WP03]
 requirement_refs:
 - FR-06
@@ -11,7 +11,11 @@ requirement_refs:
 planning_base_branch: main
 merge_target_branch: main
 branch_strategy: Planning artifacts for this feature were generated on main. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into main unless the human explicitly redirects the landing branch.
+base_branch: 010-obsidian-sync-office2-WP04-merge-base
+base_commit: 777e67dc56fb71eefea41f4fd38664cfdf40496f
+created_at: '2026-04-01T15:29:24.244269+00:00'
 subtasks: [T013, T014, T015]
+shell_pid: "84242"
 history:
 - date: '2026-04-01T15:17:40Z'
   event: created
