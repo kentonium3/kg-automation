@@ -153,11 +153,6 @@ WP01 through WP05 deliver the complete daily habit loop. WP06 (docs) can
 be deferred if needed but is required for feature acceptance.
 
 <!-- status-model:start -->
-## Canonical status (generated)
-- WP01: planned
-- WP02: planned
-- WP03: planned
-- WP04: planned
-- WP05: planned
-- WP06: planned
+## Canonical Status (Generated)
+- WP01: for_review
 <!-- status-model:end -->
