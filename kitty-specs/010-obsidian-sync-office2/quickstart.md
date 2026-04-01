@@ -71,7 +71,21 @@ Verify backfill — inbox notes from March 22 onward should appear:
 ls -lt /home/kgale/second-brain/vault/00-Inbox/
 ```
 
-## Step 5: Install and Enable Systemd Service
+## Step 5: Update .gitignore
+
+Append the required exclusions to the second-brain repo's `.gitignore`:
+
+```bash
+cat ~/repos/kg-automation/scripts/office2/gitignore-additions.txt >> /home/kgale/second-brain/.gitignore
+```
+
+Verify:
+
+```bash
+cat /home/kgale/second-brain/.gitignore
+```
+
+## Step 6: Install and Enable Systemd Service
 
 ```bash
 mkdir -p ~/.config/systemd/user
@@ -95,7 +109,7 @@ systemctl --user status obsidian-sync
 
 Expected: `active (running)`.
 
-## Step 6: Install Git Snapshot Timer
+## Step 7: Install Git Snapshot Timer
 
 ```bash
 # Copy snapshot script and timer
@@ -116,7 +130,19 @@ Verify:
 systemctl --user list-timers | grep vault
 ```
 
-## Step 7: Verification Tests
+## Step 8: Run Validation Script
+
+Copy and run the automated validation:
+
+```bash
+cp ~/repos/kg-automation/scripts/office2/validate-obsidian-sync.sh ~/helper-scripts/
+chmod +x ~/helper-scripts/validate-obsidian-sync.sh
+~/helper-scripts/validate-obsidian-sync.sh
+```
+
+Expected: all checks PASS. If any FAIL, see troubleshooting below.
+
+## Step 9: Verification Tests
 
 ### Sync latency (Mac → office2)
 
@@ -151,14 +177,42 @@ systemctl --user status obsidian-sync
 
 Verify clean commit and push.
 
-## Step 8: Trigger Backfill Processing
+## Step 10: Verify Backfill
 
-After confirming sync is current, trigger a manual inbox processing run:
+Compare inbox file counts between office2 and Mac:
 
 ```bash
-openclaw agent --agent felix-admin-capture --message "Process the inbox now. Read all unprocessed files in 00-Inbox/, classify and route content per your standing orders, create Vikunja tasks for action items and research requests, route valid goal declarations, and write the processing log." --json --timeout 300
+# On office2 (as kgale):
+ls /home/kgale/second-brain/vault/00-Inbox/ | wc -l
 ```
 
-## Troubleshooting
+```bash
+# On Mac:
+ls ~/second-brain/vault/Notes/00-Inbox/ | wc -l
+```
 
-See `docs/handbooks/obsidian-sync-ops.md` for troubleshooting procedures.
+Counts should match (or be within sync latency — a few files difference is OK).
+
+## Step 11: Trigger Backfill Processing
+
+After confirming sync is current, trigger a manual inbox processing run
+(run as claude user):
+
+```bash
+ssh office2-claude
+openclaw agent --agent felix-admin-capture \
+  --message "Process the inbox now. Read all unprocessed files in 00-Inbox/, classify and route content per your standing orders, create Vikunja tasks for action items and research requests, route valid goal declarations, and write the processing log." \
+  --json --timeout 300
+```
+
+Verify processing log:
+
+```bash
+ls -t /home/kgale/second-brain/agents/logs/inbox-processing-*.md | head -1
+```
+
+## Related Documentation
+
+- Operations runbook: `docs/handbooks/obsidian-sync-ops.md`
+- Architecture: `docs/design/architecture/service-inventory.md`
+- Inbox processor: `scripts/openclaw/agents/felix-admin-capture/TOOLS.md`
