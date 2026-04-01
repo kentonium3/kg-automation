@@ -100,5 +100,5 @@ the manual setup steps on office2.
 - WP01: approved
 - WP02: approved
 - WP03: approved
-- WP04: for_review
+- WP04: approved
 <!-- status-model:end -->
