@@ -18,13 +18,25 @@ Kent (Mac/iPhone) → HTTPS via Tailscale Serve → Vikunja :3456 → SQLite
 
 Direct task management through the browser. Accessible from any Tailscale-connected device at `https://office2.tail0f5f56.ts.net`.
 
-### Obsidian Vault Sync
+### Obsidian Vault Sync (updated F010)
 
+**Live sync** (Obsidian Sync — bidirectional):
 ```
-Obsidian (Mac/iPhone) → Obsidian Sync cloud → office2 (ob sync --continuous)
+Mac (Obsidian) ↔ Obsidian Sync cloud ↔ office2 (ob sync --continuous) ↔ Obsidian Sync cloud ↔ iPhone (Obsidian)
 ```
 
-Continuous sync daemon keeps the vault at `/home/kgale/second-brain/vault` current. Near real-time — no manual trigger needed.
+Three-device sync loop: Mac, office2, and iPhone all stay in sync via Obsidian Sync cloud. The `ob` CLI on office2 runs as a continuous daemon (`obsidian-sync.service`, kgale user unit). Changes on any device propagate to the others in near real-time. Obsidian Sync is the live sync mechanism — not git.
+
+**Consumer**: `felix-admin-capture` reads from `/home/kgale/second-brain/vault/00-Inbox/` (3x daily via OpenClaw cron).
+
+### Vault Snapshot (F010)
+
+**Backup** (git — outbound-only):
+```
+office2 vault (/home/kgale/second-brain) → git add/commit → git push → GitHub
+```
+
+Daily git snapshot at 2AM ET via systemd timer. Outbound-only — never pulls. Provides backup and version history. This is not the live sync mechanism.
 
 ### Nightly Backup
 
