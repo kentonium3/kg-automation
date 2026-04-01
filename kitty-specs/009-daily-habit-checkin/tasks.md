@@ -155,5 +155,5 @@ be deferred if needed but is required for feature acceptance.
 <!-- status-model:start -->
 ## Canonical Status (Generated)
 - WP01: approved
-- WP02: in_progress
+- WP02: approved
 <!-- status-model:end -->
