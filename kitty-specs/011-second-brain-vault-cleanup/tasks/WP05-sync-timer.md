@@ -1,7 +1,7 @@
 ---
 work_package_id: WP05
 title: Bidirectional Git Sync Timer
-lane: "doing"
+lane: "for_review"
 dependencies: [WP01]
 requirement_refs:
 - FR-17
@@ -15,8 +15,8 @@ base_branch: 011-second-brain-vault-cleanup-WP01
 base_commit: 6cb3c04d00c1296989e37ebc43ab409723f170d1
 created_at: '2026-04-01T19:18:36.273851+00:00'
 subtasks: [T019, T020, T021, T022, T023, T024]
-shell_pid: "24220"
-agent: "claude-code"
+agent: claude-code
+shell_pid: '24220'
 history:
 - date: '2026-04-01T18:30:16Z'
   event: created
@@ -295,3 +295,4 @@ notes/
 ## Activity Log
 
 - 2026-04-01T19:18:36Z – claude-code – shell_pid=24220 – lane=doing – Assigned agent via workflow command
+- 2026-04-01T19:31:06Z – claude-code – shell_pid=24220 – lane=for_review – Ready for review: sync script and timer created, git repo initialized on office2, timer deployed and running
