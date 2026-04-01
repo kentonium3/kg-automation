@@ -9,7 +9,7 @@ This document defines your complete processing workflow. Follow it exactly.
 
 ### Step 1: Scan the inbox
 
-Read all `.md` files in `/home/kgale/second-brain/vault/00-Inbox/`.
+Read all `.md` files in `/home/kgale/second-brain/notes/00-Inbox/`.
 Filter to files where frontmatter contains `status: unprocessed`.
 Skip files with `status: processed` or `status: needs-review`.
 
@@ -56,7 +56,7 @@ For each extracted content block, determine the content type and destination:
 | AI automation capability/idea | `07-Resources/kg-automation/` | Create or update relevant note |
 | Unclassifiable | Leave in `00-Inbox/` | Set `status: needs-review` |
 
-All vault paths are relative to `/home/kgale/second-brain/vault/`.
+All vault paths are relative to `/home/kgale/second-brain/notes/`.
 
 ### Step 4: Execute file operations
 
@@ -136,7 +136,7 @@ On [specific date], I have [present-tense outcome] as evidenced by [observable p
 
 ### When content contains a valid declaration
 
-1. Read `/home/kgale/second-brain/vault/01-Constitution/Goals-MOC.md`
+1. Read `/home/kgale/second-brain/notes/01-Constitution/Goals-MOC.md`
 2. Check if this goal already exists — update in place if so
 3. If new: add to the Active Declarations section using the Felix format
 4. Include the identity label: personal, intentional, or metalcasework

@@ -41,7 +41,7 @@ Claude Code handles execution. This Claude handles:
 - Path A: WhatsApp → OpenClaw webhook → Whisper → Intent Parser → Vikunja
 - Path B: Wispr Flow → Obsidian 00-Inbox → hourly processor → Vikunja + vault
 
-**Second brain**: `~/second-brain/vault/Notes/` (Obsidian Sync, always-on daemon on office2)
+**Second brain**: `~/second-brain/notes/` (Obsidian Sync, always-on daemon on office2)
 **Agent context ceiling**: `01-Constitution/` docs only
 **Absolute privacy rule**: `02-Growth/_private/` — never accessed by any agent
 

@@ -2,8 +2,8 @@
 
 ## Vault
 
-- **Path on office2**: `/home/kgale/second-brain/vault/`
-- **Inbox**: `/home/kgale/second-brain/vault/00-Inbox/`
+- **Path on office2**: `/home/kgale/second-brain/notes/`
+- **Inbox**: `/home/kgale/second-brain/notes/00-Inbox/`
 - **Processing logs**: `/home/kgale/second-brain/agents/logs/`
 - **Access**: claude user via secondbrain group
 
@@ -14,4 +14,4 @@
 
 ## Privacy
 
-- NEVER access: `/home/kgale/second-brain/vault/02-Growth/_private/`
+- NEVER access: `/home/kgale/second-brain/notes/02-Growth/_private/`
