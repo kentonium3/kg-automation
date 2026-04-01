@@ -109,13 +109,13 @@ Add cron jobs for morning check-in and weekly report. Patch the main agent
 with habits delegation. Test the full WhatsApp loop end-to-end.
 
 **Included subtasks**:
-- [ ] T019: Add morning check-in cron job (7:05 AM ET, without --no-deliver)
-- [ ] T020: Add weekly report cron job (Sunday 6 PM ET, without --no-deliver)
-- [ ] T021: Patch main agent AGENTS.md with habits delegation instruction
-- [ ] T022: Test proactive check-in delivery via WhatsApp
-- [ ] T023: Test completion marking via WhatsApp reply
-- [ ] T024: Test weekly report delivery
-- [ ] T025: Verify full loop: cron → check-in → reply → completion recorded → confirmed
+- [x] T019: Add morning check-in cron job (7:05 AM ET, without --no-deliver)
+- [x] T020: Add weekly report cron job (Sunday 6 PM ET, without --no-deliver)
+- [x] T021: Patch main agent AGENTS.md with habits delegation instruction
+- [x] T022: Test proactive check-in delivery via WhatsApp
+- [x] T023: Test completion marking via WhatsApp reply
+- [x] T024: Test weekly report delivery
+- [x] T025: Verify full loop: cron → check-in → reply → completion recorded → confirmed
 
 **Prompt file**: [tasks/WP05-scheduling-whatsapp.md](tasks/WP05-scheduling-whatsapp.md)
 
