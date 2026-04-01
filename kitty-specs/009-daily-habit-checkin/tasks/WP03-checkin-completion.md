@@ -1,7 +1,7 @@
 ---
 work_package_id: WP03
 title: Standing Orders — Check-in and Completion
-lane: planned
+lane: "doing"
 dependencies: [WP02]
 requirement_refs:
 - C-003
@@ -15,7 +15,11 @@ requirement_refs:
 planning_base_branch: main
 merge_target_branch: main
 branch_strategy: Planning artifacts for this feature were generated on main. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into main unless the human explicitly redirects the landing branch.
+base_branch: 009-daily-habit-checkin-WP02
+base_commit: f43b5c1b511f26d7b80a8978e5d496b5870e6f33
+created_at: '2026-04-01T03:25:51.130787+00:00'
 subtasks: [T010, T011, T012, T013, T014]
+shell_pid: "94649"
 history:
 - date: '2026-04-01T01:46:04Z'
   event: created
