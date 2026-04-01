@@ -14,6 +14,7 @@ base_commit: 001469d86b01754a066625ccc3ed52697568c5f7
 created_at: '2026-04-01T18:37:52.447799+00:00'
 subtasks: [T001, T002, T003]
 shell_pid: "17035"
+agent: "claude-code"
 history:
 - date: '2026-04-01T18:30:16Z'
   event: created
@@ -145,3 +146,7 @@ proceed. Do not attempt to run these commands via SSH as the claude user.
   use the existing repo or choose a different name
 - Kent's email for .gitconfig: Agent should ask Kent for the correct email
   rather than guessing
+
+## Activity Log
+
+- 2026-04-01T18:37:52Z – claude-code – shell_pid=17035 – lane=doing – Assigned agent via workflow command
