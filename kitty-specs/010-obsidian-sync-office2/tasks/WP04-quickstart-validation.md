@@ -16,6 +16,7 @@ base_commit: 777e67dc56fb71eefea41f4fd38664cfdf40496f
 created_at: '2026-04-01T15:29:24.244269+00:00'
 subtasks: [T013, T014, T015]
 shell_pid: "84242"
+agent: "claude-code"
 history:
 - date: '2026-04-01T15:17:40Z'
   event: created
@@ -221,3 +222,7 @@ triggering the first inbox processing run after sync is current.
 - Verify the validation script covers all success criteria from the spec
 - Verify inbox processing command matches existing patterns
 - Check that no step requires the `claude` user to do something that needs `kgale` access (or vice versa)
+
+## Activity Log
+
+- 2026-04-01T15:29:24Z – claude-code – shell_pid=84242 – lane=doing – Assigned agent via workflow command
