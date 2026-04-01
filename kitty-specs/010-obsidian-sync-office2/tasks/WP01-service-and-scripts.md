@@ -21,6 +21,7 @@ base_commit: fed93f37768f5e4863964f90dd4d51b720aa3df8
 created_at: '2026-04-01T15:23:53.181349+00:00'
 subtasks: [T001, T002, T003, T004, T005]
 shell_pid: "82396"
+agent: "claude-code"
 history:
 - date: '2026-04-01T15:17:40Z'
   event: created
@@ -267,3 +268,7 @@ repo to exclude Obsidian Sync metadata files from git snapshots.
 - Verify vault path consistency across all files
 - Verify timer schedule avoids inbox processing windows
 - Verify privacy boundary (`02-Growth/_private/`) in gitignore additions
+
+## Activity Log
+
+- 2026-04-01T15:23:53Z – claude-code – shell_pid=82396 – lane=doing – Assigned agent via workflow command
