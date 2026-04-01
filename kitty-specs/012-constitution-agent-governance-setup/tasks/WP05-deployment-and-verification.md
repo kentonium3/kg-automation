@@ -2,13 +2,13 @@
 work_package_id: WP05
 title: Deployment & Verification
 lane: planned
-dependencies: [WP01, WP02, WP03, WP04]
+dependencies: []
 requirement_refs:
 - FR-016
 - FR-018
 planning_base_branch: main
 merge_target_branch: main
-branch_strategy: Planning branch is main. Final merge target is main. Actual base_branch may differ for stacked WPs during implement.
+branch_strategy: Planning artifacts for this feature were generated on main. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into main unless the human explicitly redirects the landing branch.
 subtasks: [T018, T019, T020, T021, T022]
 history:
 - date: '2026-04-01T22:12:34Z'

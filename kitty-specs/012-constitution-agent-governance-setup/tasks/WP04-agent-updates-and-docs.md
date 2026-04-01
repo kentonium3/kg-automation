@@ -2,7 +2,7 @@
 work_package_id: WP04
 title: Agent Standing Orders & Documentation
 lane: planned
-dependencies: [WP01]
+dependencies: []
 requirement_refs:
 - FR-014
 - FR-017
@@ -11,7 +11,7 @@ requirement_refs:
 - FR-021
 planning_base_branch: main
 merge_target_branch: main
-branch_strategy: Planning branch is main. Final merge target is main. Actual base_branch may differ for stacked WPs during implement.
+branch_strategy: Planning artifacts for this feature were generated on main. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into main unless the human explicitly redirects the landing branch.
 subtasks: [T013, T014, T015, T016, T017]
 history:
 - date: '2026-04-01T22:12:34Z'
