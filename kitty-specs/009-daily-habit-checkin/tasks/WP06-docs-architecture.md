@@ -14,6 +14,7 @@ base_commit: f28885767a163d185a9f0b4bc43d1bdd0b2e6523
 created_at: '2026-04-01T03:56:54.955362+00:00'
 subtasks: [T026, T027, T028]
 shell_pid: "1991"
+agent: "claude-code"
 history:
 - date: '2026-04-01T01:46:04Z'
   event: created
@@ -165,3 +166,7 @@ with the new agent and cron jobs.
 - **Architecture doc conflicts**: If other features have updated
   service-inventory.json since the worktree was created, resolve by
   taking the latest version and adding F009 entries.
+
+## Activity Log
+
+- 2026-04-01T03:56:55Z – claude-code – shell_pid=1991 – lane=doing – Assigned agent via workflow command
