@@ -105,7 +105,7 @@ the Obsidian vault path when explicitly required (e.g., inbox-processor reads
 `00-Inbox/`). Never write to second-brain paths from kg-automation unless the
 skill definition explicitly requires it (vault-writer does; nothing else does).
 
-**Absolute rule**: `~/second-brain/vault/Notes/02-Growth/_private/` is never
+**Absolute rule**: `~/second-brain/notes/02-Growth/_private/` is never
 read, written, referenced, or logged by any script or agent. No exceptions.
 
 ## Credential Handling

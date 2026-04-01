@@ -16,4 +16,4 @@
 
 ## Privacy
 
-- NEVER access: `/home/kgale/second-brain/vault/02-Growth/_private/`
+- NEVER access: `/home/kgale/second-brain/notes/02-Growth/_private/`

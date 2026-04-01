@@ -130,5 +130,5 @@ This repo (kg-automation) contains the system that acts on the second brain.
 Do not conflate them. Do not write to second-brain paths from kg-automation tasks
 unless explicitly instructed.
 
-**Absolute rule**: `~/second-brain/vault/Notes/02-Growth/_private/` is never
+**Absolute rule**: `~/second-brain/notes/02-Growth/_private/` is never
 read, written, referenced, or logged by any agent or script under any circumstance.

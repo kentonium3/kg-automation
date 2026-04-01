@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
   "last_updated": "2026-04-01",
-  "updated_by": "F010",
+  "updated_by": "F011",
   "flows": [
     {
       "name": "vikunja-web-ui",
@@ -17,26 +17,25 @@
       "name": "obsidian-sync",
       "status": "active",
       "deployed_by": "manual",
-      "updated_by": "F010",
+      "updated_by": "F011",
       "description": "Live bidirectional vault sync: Mac ↔ Obsidian Cloud ↔ office2 ↔ iPhone",
       "path": [
         {"from": "Mac (Obsidian)", "to": "Obsidian Sync cloud", "protocol": "Obsidian Sync", "direction": "bidirectional"},
-        {"from": "Obsidian Sync cloud", "to": "office2 (ob sync --continuous)", "path": "/home/kgale/second-brain/vault", "direction": "bidirectional"},
+        {"from": "Obsidian Sync cloud", "to": "office2 (ob sync --continuous)", "path": "/home/kgale/second-brain/notes", "direction": "bidirectional"},
         {"from": "iPhone (Obsidian)", "to": "Obsidian Sync cloud", "protocol": "Obsidian Sync", "direction": "bidirectional"}
       ],
       "consumers": [
-        {"agent": "felix-admin-capture", "reads_from": "/home/kgale/second-brain/vault/00-Inbox/"}
+        {"agent": "felix-admin-capture", "reads_from": "/home/kgale/second-brain/notes/00-Inbox/"}
       ]
     },
     {
-      "name": "vault-snapshot",
+      "name": "second-brain-sync",
       "status": "active",
-      "deployed_by": "F010",
-      "updated_by": "F010",
-      "description": "Daily git snapshot of vault: office2 → git → GitHub (outbound-only, 2AM ET)",
+      "deployed_by": "F011",
+      "description": "Bidirectional git sync for non-vault second-brain content: office2 ↔ GitHub (every 15 min)",
       "path": [
-        {"from": "office2 vault", "to": "git (local)", "path": "/home/kgale/second-brain", "direction": "outbound-only"},
-        {"from": "git (local)", "to": "GitHub", "protocol": "git push", "direction": "outbound-only"}
+        {"from": "office2 (/home/kgale/second-brain)", "to": "git (local)", "path": "/home/kgale/second-brain", "direction": "bidirectional"},
+        {"from": "git (local)", "to": "GitHub", "protocol": "git pull --rebase + push", "direction": "bidirectional"}
       ]
     },
     {

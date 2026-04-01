@@ -122,7 +122,7 @@ manually using the original Cowork skills on Mac.
    ```
    Use the inbox-processor skill to process my inbox
    ```
-3. The skill reads from `~/second-brain/vault/Notes/00-Inbox/`
+3. The skill reads from `~/second-brain/notes/00-Inbox/`
 4. Results are written directly to the vault (syncs to office2 via Obsidian Sync)
 
 ### Skill locations (Mac)
@@ -139,7 +139,7 @@ simultaneously on the same inbox files. This will cause duplicate processing.
 | Symptom | Check | Fix |
 |---------|-------|-----|
 | No processing logs | `ssh office2-claude "openclaw cron list"` | Verify cron jobs exist and are enabled |
-| Vault not accessible | `ssh office2-claude "ls /home/kgale/second-brain/vault/00-Inbox/"` | Check Obsidian Sync: `ssh office2-kgale "systemctl status obsidian-sync"` |
+| Vault not accessible | `ssh office2-claude "ls /home/kgale/second-brain/notes/00-Inbox/"` | Check Obsidian Sync: `ssh office2-kgale "systemctl status obsidian-sync"` |
 | Vikunja tasks not created | Check processing log error section | Verify vikunja_api skill and API token |
 | Agent not responding | `ssh office2-claude "openclaw agents list"` | Restart gateway: `ssh office2-claude "systemctl --user restart openclaw-gateway"` |
 | Session lock error | Check for stale `.lock` files | `ssh office2-claude "rm -f ~/.openclaw/agents/felix-admin-capture/sessions/*.lock"` |

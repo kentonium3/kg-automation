@@ -53,7 +53,7 @@ alias repos='cd ~/repos'
 alias kga='cd ~/repos/kg-automation'
 alias intent='cd ~/repos/intentional'
 alias sb='cd ~/second-brain'
-alias vault='cd ~/second-brain/vault'
+alias vault='cd ~/second-brain/notes'
 
 # Python/pip aliases for clarity
 alias pip='pip3'
