@@ -101,9 +101,9 @@ Copy the updated agent workspace files from the repo to the deployed
 locations on office2 and restart the OpenClaw agents.
 
 **Included subtasks**:
-- [ ] T016: Copy updated TOOLS.md and AGENTS.md to `/data/services/openclaw/inbox-agent/`
-- [ ] T017: Copy updated TOOLS.md to `/data/services/openclaw/habits-agent/`
-- [ ] T018: Restart OpenClaw agents (or present restart commands to Kent)
+- [x] T016: Copy updated TOOLS.md and AGENTS.md to `/data/services/openclaw/inbox-agent/`
+- [x] T017: Copy updated TOOLS.md to `/data/services/openclaw/habits-agent/`
+- [x] T018: Restart OpenClaw agents (or present restart commands to Kent)
 
 **Prompt file**: [tasks/WP04-office2-agent-deploy.md](tasks/WP04-office2-agent-deploy.md)
 
