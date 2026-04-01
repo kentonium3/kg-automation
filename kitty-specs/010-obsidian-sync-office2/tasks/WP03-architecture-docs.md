@@ -1,7 +1,7 @@
 ---
 work_package_id: WP03
 title: Architecture Documentation Updates
-lane: "doing"
+lane: "for_review"
 dependencies: [WP01]
 requirement_refs:
 - FR-14
@@ -13,8 +13,8 @@ base_branch: 010-obsidian-sync-office2-WP01
 base_commit: 7b1144c895e92aec2a2af42d2314a157e02bd1d2
 created_at: '2026-04-01T15:25:46.960507+00:00'
 subtasks: [T009, T010, T011, T012]
-shell_pid: "83167"
-agent: "claude-code"
+agent: claude-code
+shell_pid: '83167'
 history:
 - date: '2026-04-01T15:17:40Z'
   event: created
@@ -211,3 +211,4 @@ and add the vault-snapshot service.
 ## Activity Log
 
 - 2026-04-01T15:25:47Z – claude-code – shell_pid=83167 – lane=doing – Assigned agent via workflow command
+- 2026-04-01T15:28:45Z – claude-code – shell_pid=83167 – lane=for_review – Ready for review: architecture JSON and markdown updates for both services
