@@ -1,7 +1,7 @@
 ---
 work_package_id: WP02
 title: Intelligence Layer
-lane: "approved"
+lane: "done"
 dependencies: []
 requirement_refs:
 - FR-008
@@ -19,8 +19,8 @@ created_at: '2026-04-01T22:25:23.920555+00:00'
 subtasks: [T005, T006, T007, T008, T009, T010]
 agent: claude
 shell_pid: '56766'
-reviewed_by: "Kent Gale"
 review_status: "approved"
+reviewed_by: "Kent Gale"
 history:
 - date: '2026-04-01T22:12:34Z'
   event: created
@@ -405,3 +405,4 @@ Check Obsidian: 00-System/agent-activity/overview.md
 - 2026-04-01T22:25:24Z – claude – shell_pid=56766 – lane=doing – Assigned agent via workflow command
 - 2026-04-01T22:32:28Z – claude – shell_pid=56766 – lane=for_review – Ready for review: 21 tests passing, log parsing, autonomy filtering, Obsidian digest, WhatsApp alert with graceful degradation
 - 2026-04-01T22:34:50Z – claude – shell_pid=56766 – lane=approved – Review passed: 21 tests passing, autonomy filtering correct, digest generation with log refs, WhatsApp graceful degradation, all paths configurable.
+- 2026-04-01T22:45:25Z – claude – shell_pid=56766 – lane=done – Moved to done

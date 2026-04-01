@@ -1,14 +1,14 @@
 {
-  "event_count": 15,
+  "event_count": 16,
   "feature_slug": "012-constitution-agent-governance-setup",
-  "last_event_id": "01KN5KJ3V14162B52K420H0ABV",
-  "materialized_at": "2026-04-01T22:45:23.939788+00:00",
+  "last_event_id": "01KN5KJ5A0H26M3Y9FBNGWSGEB",
+  "materialized_at": "2026-04-01T22:45:25.441266+00:00",
   "summary": {
-    "approved": 3,
+    "approved": 2,
     "blocked": 0,
     "canceled": 0,
     "claimed": 0,
-    "done": 1,
+    "done": 2,
     "for_review": 0,
     "in_progress": 0,
     "planned": 0
@@ -23,10 +23,10 @@
     },
     "WP02": {
       "actor": "user",
-      "force_count": 1,
-      "lane": "approved",
-      "last_event_id": "01KN5JYSHKAX9R5T59P9EG7V6Y",
-      "last_transition_at": "2026-04-01T22:34:50.803527+00:00"
+      "force_count": 2,
+      "lane": "done",
+      "last_event_id": "01KN5KJ5A0H26M3Y9FBNGWSGEB",
+      "last_transition_at": "2026-04-01T22:45:25.440159+00:00"
     },
     "WP03": {
       "actor": "user",
