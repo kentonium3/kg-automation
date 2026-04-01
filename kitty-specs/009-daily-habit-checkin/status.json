@@ -1,16 +1,16 @@
 {
-  "event_count": 18,
+  "event_count": 20,
   "feature_slug": "009-daily-habit-checkin",
-  "last_event_id": "01KN3HYD4B6XZFY99QMB8VTDCC",
-  "materialized_at": "2026-04-01T03:38:40.652614+00:00",
+  "last_event_id": "01KN3HZ62AMNT29QVWN8EHT4EM",
+  "materialized_at": "2026-04-01T03:39:06.187849+00:00",
   "summary": {
-    "approved": 3,
+    "approved": 4,
     "blocked": 0,
     "canceled": 0,
     "claimed": 0,
     "done": 0,
     "for_review": 0,
-    "in_progress": 1,
+    "in_progress": 0,
     "planned": 0
   },
   "work_packages": {
@@ -36,11 +36,11 @@
       "last_transition_at": "2026-04-01T03:32:15.177149+00:00"
     },
     "WP04": {
-      "actor": "claude-code",
+      "actor": "user",
       "force_count": 2,
-      "lane": "in_progress",
-      "last_event_id": "01KN3HYD4B6XZFY99QMB8VTDCC",
-      "last_transition_at": "2026-04-01T03:38:40.651481+00:00"
+      "lane": "approved",
+      "last_event_id": "01KN3HZ62AMNT29QVWN8EHT4EM",
+      "last_transition_at": "2026-04-01T03:39:06.186665+00:00"
     }
   }
 }
