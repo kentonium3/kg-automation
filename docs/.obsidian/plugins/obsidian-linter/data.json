@@ -271,7 +271,6 @@
     }
   },
   "lintOnSave": true,
-  "lintOnSaveExclude": ["docs/_templates/**", "docs/.obsidian/**"],
   "recordLintOnSaveLogs": false,
   "displayChanged": true,
   "lintOnFileChange": true,
@@ -289,5 +288,9 @@
     "minimumNumberOfDollarSignsToBeAMathBlock": 2,
     "escapeCharacter": "\"",
     "removeUnnecessaryEscapeCharsForMultiLineArrays": false
-  }
+  },
+  "lintOnSaveExclude": [
+    "docs/_templates/**",
+    "docs/.obsidian/**"
+  ]
 }
