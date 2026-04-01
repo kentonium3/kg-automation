@@ -29,11 +29,11 @@ office2, deploy the workspace, and verify operational. Reuse SOUL.md and
 USER.md patterns from felix-admin-capture.
 
 **Included subtasks**:
-- [ ] T001: Write SOUL.md with kent-voice identity (reuse from felix-admin-capture)
-- [ ] T002: Write USER.md, IDENTITY.md, TOOLS.md
-- [ ] T003: Create felix-admin-habits agent on office2
-- [ ] T004: Deploy workspace files to office2
-- [ ] T005: Verify agent is operational
+- [x] T001: Write SOUL.md with kent-voice identity (reuse from felix-admin-capture)
+- [x] T002: Write USER.md, IDENTITY.md, TOOLS.md
+- [x] T003: Create felix-admin-habits agent on office2
+- [x] T004: Deploy workspace files to office2
+- [x] T005: Verify agent is operational
 
 **Prompt file**: [tasks/WP01-agent-foundation.md](tasks/WP01-agent-foundation.md)
 
