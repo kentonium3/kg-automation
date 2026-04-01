@@ -1,14 +1,18 @@
 ---
 work_package_id: WP07
 title: End-to-End Verification
-lane: planned
+lane: "doing"
 dependencies: [WP04, WP05, WP06]
 requirement_refs:
 - FR-21
 planning_base_branch: main
 merge_target_branch: main
 branch_strategy: Planning artifacts for this feature were generated on main. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into main unless the human explicitly redirects the landing branch.
+base_branch: 011-second-brain-vault-cleanup-WP07-merge-base
+base_commit: 317d9e7fe413d12649521666dcbae4867b45b56c
+created_at: '2026-04-01T20:10:31.684002+00:00'
 subtasks: [T034, T035, T036, T037, T038]
+shell_pid: "35282"
 history:
 - date: '2026-04-01T18:30:16Z'
   event: created
