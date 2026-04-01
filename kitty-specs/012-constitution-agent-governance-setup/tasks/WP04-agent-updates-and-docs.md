@@ -17,6 +17,7 @@ base_commit: e86d4912ddfeb4e9d5d2e49c8d2fc4e5b2a47c2e
 created_at: '2026-04-01T22:26:08.263431+00:00'
 subtasks: [T013, T014, T015, T016, T017]
 shell_pid: "57146"
+agent: "gemini"
 history:
 - date: '2026-04-01T22:12:34Z'
   event: created
@@ -250,3 +251,7 @@ status: active
 - Verify service-inventory.json changes are minimal and targeted (only autonomy_level + updated_by)
 - Verify openclaw-ops.md references use correct paths
 - Check that autonomy level is consistently "Assisted" / "assisted" (markdown uses title case, JSON uses lowercase)
+
+## Activity Log
+
+- 2026-04-01T22:26:08Z – gemini – shell_pid=57146 – lane=doing – Assigned agent via workflow command
