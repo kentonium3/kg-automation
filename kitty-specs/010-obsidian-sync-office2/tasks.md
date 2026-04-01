@@ -69,10 +69,10 @@ Obsidian Sync as the live vault sync mechanism and git as the snapshot
 backup layer.
 
 **Included subtasks**:
-- [ ] T009: Update `docs/design/architecture/data/service-inventory.json` — obsidian-sync entry with correct config, auth method, status
-- [ ] T010: Update `docs/design/architecture/data/data-flows.json` — vault sync flow reflecting Obsidian Sync as live mechanism
-- [ ] T011: Update `docs/design/architecture/service-inventory.md` — narrative for obsidian-sync service
-- [ ] T012: Update `docs/design/architecture/data-flows.md` — narrative for vault sync data flow
+- [x] T009: Update `docs/design/architecture/data/service-inventory.json` — obsidian-sync entry with correct config, auth method, status
+- [x] T010: Update `docs/design/architecture/data/data-flows.json` — vault sync flow reflecting Obsidian Sync as live mechanism
+- [x] T011: Update `docs/design/architecture/service-inventory.md` — narrative for obsidian-sync service
+- [x] T012: Update `docs/design/architecture/data-flows.md` — narrative for vault sync data flow
 
 **Prompt file**: [tasks/WP03-architecture-docs.md](tasks/WP03-architecture-docs.md)
 
