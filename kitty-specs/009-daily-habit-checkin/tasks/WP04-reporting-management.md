@@ -1,7 +1,7 @@
 ---
 work_package_id: WP04
 title: Standing Orders — Reporting and Habit Management
-lane: "doing"
+lane: "for_review"
 dependencies: [WP03]
 requirement_refs:
 - FR-008
@@ -15,8 +15,8 @@ base_branch: 009-daily-habit-checkin-WP03
 base_commit: 0355fa3dffb155d793e4e71f8d52516b10189415
 created_at: '2026-04-01T03:33:44.262953+00:00'
 subtasks: [T015, T016, T017, T018]
-shell_pid: "96346"
-agent: "claude-code"
+agent: claude-code
+shell_pid: '96346'
 history:
 - date: '2026-04-01T01:46:04Z'
   event: created
@@ -233,3 +233,4 @@ agent's standing orders.
 ## Activity Log
 
 - 2026-04-01T03:33:44Z – claude-code – shell_pid=96346 – lane=doing – Assigned agent via workflow command
+- 2026-04-01T03:37:26Z – claude-code – shell_pid=96346 – lane=for_review – Ready for review: Weekly report with bar indicators, track record with arrow format, habit management with add/pause/remove/resume. Deployed to office2 (9.9KB). Session cache prevents live verification but file content confirmed via grep/wc.
