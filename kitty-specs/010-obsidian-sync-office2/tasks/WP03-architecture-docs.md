@@ -1,7 +1,7 @@
 ---
 work_package_id: WP03
 title: Architecture Documentation Updates
-lane: planned
+lane: "doing"
 dependencies: [WP01]
 requirement_refs:
 - FR-14
@@ -9,7 +9,11 @@ requirement_refs:
 planning_base_branch: main
 merge_target_branch: main
 branch_strategy: Planning artifacts for this feature were generated on main. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into main unless the human explicitly redirects the landing branch.
+base_branch: 010-obsidian-sync-office2-WP01
+base_commit: 7b1144c895e92aec2a2af42d2314a157e02bd1d2
+created_at: '2026-04-01T15:25:46.960507+00:00'
 subtasks: [T009, T010, T011, T012]
+shell_pid: "83167"
 history:
 - date: '2026-04-01T15:17:40Z'
   event: created
