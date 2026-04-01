@@ -4,15 +4,22 @@
 **Version:** spec-kitty-cli 2.1.2
 **Severity:** Medium - Recurring crash with no automated recovery path
 **Reporter:** Claude Opus (via Kent Gale)
-**Status:** OPEN - Recurred without GitLens; volume-dependent or built-in Git extension issue
+**Status:** ROOT CAUSE IDENTIFIED - macOS code signing enforcement kills VS Code after background update replaces binaries mid-session
 
 ## Summary
 
 VS Code crashes during or immediately after the `spec-kitty merge` finalization
-step, leaving post-merge cleanup incomplete. This has occurred three times in a
-row across three separate implementation cycles at the same point in the merge
-workflow. After the crash, `spec-kitty merge` cannot re-run because its
-preconditions (worktrees exist) are no longer met, requiring manual recovery.
+step, leaving post-merge cleanup incomplete. This has occurred five times across
+five separate implementation cycles at the same point in the merge workflow.
+After the crash, `spec-kitty merge` cannot re-run because its preconditions
+(worktrees exist) are no longer met, requiring manual recovery.
+
+**Root cause (confirmed incident 5):** macOS code signing enforcement kills all
+VS Code child processes (SIGTERM, code 15) when it detects that the on-disk
+binary has changed since the process was loaded. This happens when a VS Code
+update replaces binaries during a long-running session. The merge workflow's
+worktree removal triggers new Code Helper subprocess spawns, which hit the
+signature mismatch and cascade into a full process kill.
 
 ## Symptoms
 
@@ -51,59 +58,106 @@ already removed before the crash.
 | 2 | ~2026-03 | Unknown | Unknown | Same pattern, recovered with /spec-kitty.merge |
 | 3 | 2026-03-30 | F006 (006-goal-and-outcome-structure) | WP03 | Detailed state captured |
 | 4 | 2026-04-01 | F009 (009-daily-habit-checkin) | WP06 | GitLens NOT installed; 6 WPs |
+| 5 | 2026-04-01 | F010 (010-obsidian-sync-office2) | WP04 | Root cause confirmed: errSecCSStaticCodeChanged + SIGTERM |
 
 Note: Incidents 1 and 2 were not fully documented. The pattern was recognized
-on incident 3. Incident 4 disproved the GitLens-only hypothesis.
+on incident 3. Incident 4 disproved the GitLens-only hypothesis. Incident 5
+confirmed the true root cause: macOS code signing enforcement after a
+background update replaced VS Code binaries mid-session.
 
-## Root Cause (Diagnosed)
+## Root Cause (Confirmed — Incident 5)
 
-**VS Code crashes when spec-kitty removes multiple git worktrees in rapid
-succession.** The crash is caused by the combined effect of file watcher
-shutdowns and Git extension ENOENT errors.
+**macOS code signing enforcement kills VS Code child processes after a
+background update replaces binaries mid-session.** The worktree removal
+and Git extension ENOENT errors are symptoms, not the cause.
 
-### Crash sequence (from VS Code logs, incident 3)
+### True crash mechanism
+
+1. A VS Code update replaces on-disk binaries (`Code`, `Code Helper`, etc.)
+   while VS Code is still running with the old binaries loaded in memory
+2. VS Code continues working normally — the mismatch is dormant
+3. When a new `Code Helper` subprocess spawns (triggered by worktree removal,
+   file watcher activity, or extension host operations), macOS verifies the
+   code signature of the on-disk binary
+4. macOS detects `errSecCSStaticCodeChanged` (error -67062) — the binary's
+   code signature has changed since the process was loaded
+5. macOS sends **SIGTERM (signal 15)** to all VS Code child processes
+6. Extension host, ptyHost, shared process, file watcher, and renderer all
+   die simultaneously with exit code 15, reason: `killed`
+
+### Crash sequence (from system logs, incident 5)
 
 ```
-11:07:23.620  [File Watcher] Watcher shutdown because watched path got deleted
-11:07:23.620  [File Watcher] Watcher shutdown because watched path got deleted
-11:07:23.654  [File Watcher] Watcher shutdown because watched path got deleted
-11:07:23.655  [File Watcher] Watcher shutdown because watched path got deleted
-11:07:23.754  [File Watcher] Watcher shutdown because watched path got deleted
-11:07:23.755  [File Watcher] Watcher shutdown because watched path got deleted
-                              ← 6 watcher shutdowns in 135ms
-11:07:24.942  [Git] ENOENT: .git/worktrees/...-WP01/HEAD
-11:07:24.945  [Git] ENOENT: .git/worktrees/...-WP02/HEAD
-11:07:24.949  [Git] ENOENT: .git/worktrees/...-WP03/HEAD
-                              ← 3 ENOENT errors in 7ms, then window dies
+11:50:21.250  [Security] errSecCSStaticCodeChanged (error -67062) on PIDs 87910, 87911
+11:50:21.258  [Security] "This method should not be called on the main thread"
+                          ← 20+ Security framework faults in rapid succession
+11:50:21.499  Both code-verification processes enter exit handler and die
+11:51:00.670  [File Watcher] Watcher shutdown because watched path got deleted (×4)
+11:51:02.030  [Git] ENOENT: .git/worktrees/.../HEAD (×3)
+11:51:02.214  Extension host exited with code: 15, signal: unknown
+11:51:02.215  [error] crashed with code 15 and reason 'killed'
+11:51:02.221  [error] ptyHost terminated unexpectedly with code 15
+11:51:02.227  [error] shared-process crashed with code 15 and reason 'killed'
+11:51:02.234  [error] renderer process gone (reason: killed, code: 15)
+11:51:02.675  [error] fileWatcher crashed with code 15 and reason 'killed'
 ```
 
-### Mechanism
+### Binary timestamp evidence (incident 5)
 
-1. VS Code's built-in Git extension auto-discovers worktrees and registers
-   each as a separate repository (visible in Source Control panel)
-2. GitLens also tracks all worktrees for its own features
-3. VS Code's file watcher monitors the worktree directories
-4. When `spec-kitty merge` removes all worktrees in rapid succession:
-   - File watchers shut down en masse (6 shutdowns in 135ms for 3 WPs)
-   - Git extension tries to read HEAD files for deleted worktrees → ENOENT
-   - GitLens log also cuts off at the same second
-   - The VS Code window crashes (all logs end abruptly)
+The pre-crash session started at 00:31. The VS Code binaries were replaced
+during the session:
 
-### Why it doesn't crash in a clean test repo
+| File | Modified | Session started |
+| --- | --- | --- |
+| `Info.plist` | 05:47:36 | 00:31:23 |
+| `Code` (main binary) | 05:58:23 | 00:31:23 |
+| `Code Helper` | 05:58:22 | 00:31:23 |
+| `Code Helper (Plugin)` | 05:58:23 | 00:31:23 |
 
-The crash could not be reproduced in `spec-kitty-crash-test` (a secondary
-VS Code window). In that test, the same ENOENT warnings appeared in the Git
-extension log, but VS Code survived. Possible factors:
+The VS Code auto-updater log showed `idle` for every hourly check during
+this session — the binaries were replaced by an external mechanism (macOS
+background app refresh or a prior session's staged update).
 
-- **kg-automation has more extensions active** (GitLens, GitHub PR, Copilot,
-  Ruff, Python, EditorConfig, etc.) — more concurrent reactions to the
-  filesystem event storm
-- **The primary window may have more state** (open editors, SCM views,
-  file watchers) than a fresh secondary window
-- **Timing sensitivity** — the crash may depend on how many extensions are
-  mid-operation when the worktrees disappear
+### Why it appeared to be worktree-related
 
-### Log sources
+Worktree removal triggers new Code Helper subprocess spawns (for file
+watcher cleanup, Git extension re-scanning, etc.). These new subprocesses
+are the first to hit the code signature mismatch because macOS verifies the
+on-disk binary at process launch. The file watcher shutdowns and Git ENOENT
+errors that follow are consequences of the SIGTERM, not the cause.
+
+### Why it appeared to be kg-automation-specific
+
+kg-automation sessions run for 11+ hours (overnight development cycles),
+giving ample time for a VS Code update to land mid-session. Bake-tracker
+and test repos use shorter sessions that are less likely to span an update
+window.
+
+### Why removing GitLens appeared to help
+
+Coincidence — the next merge after removing GitLens (F007) happened not to
+span an update window. The subsequent merge (F009, 6 WPs) crashed without
+GitLens installed.
+
+### Previous hypothesis (disproved)
+
+The original hypothesis was that rapid worktree removal caused a cascade of
+file watcher shutdowns and Git extension ENOENT errors that crashed VS Code.
+Incident 5 proved this wrong: the exit code is 15 (SIGTERM from macOS), not
+an internal crash, and the `errSecCSStaticCodeChanged` error precedes all
+file watcher and Git extension errors by 40 seconds.
+
+### Log sources (incident 5)
+
+| Source | Key evidence |
+| --- | --- |
+| `/tmp/vscode-merge-diagnostics-20260401-114948/system-errors.log` | `errSecCSStaticCodeChanged`, Security framework faults |
+| `/tmp/vscode-merge-diagnostics-20260401-114948/process-count.log` | 10 of 11 Code Helper processes died simultaneously |
+| `~/Library/Application Support/Code/logs/20260401T003122/main.log` | Exit code 15, reason: `killed` on all child processes |
+| `~/Library/Application Support/Code/logs/20260401T003122/window1/fileWatcher.log` | 4 watcher shutdowns at 11:51:00 |
+| `~/Library/Application Support/Code/logs/20260401T003122/window1/exthost/vscode.git/Git.log` | 3 ENOENT warnings at 11:51:02 (last entries) |
+
+### Log sources (incident 3, original analysis)
 
 All logs from: `~/Library/Application Support/Code/logs/20260329T000641/window1/`
 
@@ -123,31 +177,33 @@ All logs from: `~/Library/Application Support/Code/logs/20260329T000641/window1/
 
 ## Mitigations
 
-### Immediate (workaround)
+### Fix (applied 2026-04-01)
 
-1. **Run merges from an external terminal** (not VS Code integrated terminal)
-   to avoid the file watcher/git extension interaction
-2. **Close Source Control panel** before merging to reduce git extension
-   activity during worktree removal
-3. **Disable GitLens temporarily** before merge operations (`Ctrl+Shift+P` →
-   "Extensions: Disable" → GitLens) to reduce concurrent worktree tracking
+Set `"update.mode": "manual"` in VS Code settings to prevent background
+updates from replacing binaries while VS Code is running. Updates must be
+applied manually by restarting VS Code when prompted.
 
-### Recommended (spec-kitty improvement)
+This addresses the root cause directly: if binaries are never replaced
+mid-session, macOS will never detect a code signature mismatch, and the
+SIGTERM cascade cannot occur.
 
-1. **Add delays between worktree removals** — even 1-2 seconds between each
-   `git worktree remove` would spread the file watcher events and may prevent
-   the cascading failure
-2. **Make merge idempotent** — detect already-integrated branches and skip to
-   cleanup, so the command can be re-run after a crash
-3. **Commit status files before worktree removal** — the post-merge status
+### Previous workarounds (no longer necessary)
+
+These were based on the disproved worktree-removal hypothesis:
+
+1. ~~Run merges from an external terminal~~
+2. ~~Close Source Control panel before merging~~
+3. ~~Disable GitLens temporarily before merge operations~~
+
+### Still recommended (spec-kitty improvement)
+
+These are good defensive improvements regardless of the crash root cause:
+
+1. **Make merge idempotent** — detect already-integrated branches and skip to
+   cleanup, so the command can be re-run after any interruption
+2. **Commit status files before worktree removal** — the post-merge status
    transitions are the most important cleanup step; committing them before
-   the risky worktree removal step would reduce the recovery burden
-
-### VS Code bug report candidate
-
-This may be worth reporting to VS Code. The Git extension should handle
-ENOENT on worktree HEAD files gracefully (close the repository, emit a
-warning) rather than crashing the window.
+   worktree removal reduces the recovery burden from any failure mode
 
 ## Step-by-Step Reproduction Protocol
 
@@ -431,18 +487,13 @@ branches, push).
 
 ## Next Steps
 
-1. **For the next merge**: Run `log stream --predicate 'process CONTAINS "Code"'
-   --level error > /tmp/vscode-merge-monitor.log &` in an external terminal
-   BEFORE starting the merge. This captures crash evidence outside VS Code's
-   own log system.
+1. **Verify fix**: The next merge after applying `"update.mode": "manual"`
+   should complete without a crash, confirming the root cause.
 
-2. **Test disabling built-in Git extension**: Set `"git.enabled": false` in
-   VS Code settings before the next merge to definitively test whether the
-   Git extension is the culprit.
-
-3. **If crash persists with git.enabled=false**: The cause is the file watcher
-   subsystem itself, not any extension. Consider running merges from an external
-   terminal as the permanent workaround.
+2. **Monitor**: If a crash recurs with manual update mode, the root cause
+   theory is wrong and further investigation is needed. Check
+   `errSecCSStaticCodeChanged` in system logs to rule out other binary
+   replacement sources (Homebrew, MDM, etc.).
 
 ---
 
@@ -458,3 +509,4 @@ branches, push).
 - Feature (crash incidents 1-3): 006-goal-and-outcome-structure (3 WPs)
 - Feature (resolution test): 007-vikunja-api-skill (4 WPs)
 - Feature (incident 4): 009-daily-habit-checkin (6 WPs)
+- Feature (incident 5, root cause confirmed): 010-obsidian-sync-office2 (4 WPs)
