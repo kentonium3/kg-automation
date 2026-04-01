@@ -8,11 +8,11 @@ status: approved
 
 ## Overview
 
-This runbook covers the operation and maintenance of Obsidian Sync on office2, including the `ob` CLI for live sync management, git snapshot backup for version history, and the overall vault sync topology:
+This runbook covers the operation and maintenance of Obsidian Sync on office2, including the `ob` CLI for live sync management and the overall vault sync topology:
 
 **Mac <-> Obsidian Cloud <-> office2 <-> iPhone**
 
-All vault data flows through Obsidian Sync as the authoritative live sync mechanism. Git provides a complementary outbound-only snapshot for backup and version history.
+All vault data flows through Obsidian Sync as the authoritative live sync mechanism. Non-vault content (agents/, logs/) is synced separately via `second-brain-sync.timer` (bidirectional git, every 15 min).
 
 ## Architecture
 
@@ -21,11 +21,10 @@ All vault data flows through Obsidian Sync as the authoritative live sync mechan
 | Layer | Direction | Path |
 |---|---|---|
 | Obsidian Sync (live, bidirectional) | Mac <-> Obsidian Cloud <-> office2 <-> iPhone | Real-time vault synchronization |
-| Git snapshot (backup, outbound-only) | office2 -> GitHub | 2AM ET daily |
 
 ### Consumer
 
-- **felix-admin-capture** reads `/home/kgale/second-brain/vault/00-Inbox/` to process incoming notes and tasks.
+- **felix-admin-capture** reads `/home/kgale/second-brain/notes/00-Inbox/` to process incoming notes and tasks.
 
 ## Service Configuration
 
@@ -76,7 +75,7 @@ systemctl --user status obsidian-sync
 ### Sync Status
 
 ```bash
-ob sync-status --path /home/kgale/second-brain/vault
+ob sync-status --path /home/kgale/second-brain/notes
 ```
 
 ### Login Status
@@ -87,16 +86,10 @@ ob login
 
 Shows current authentication status when already logged in.
 
-### Timer Status
+### Git Sync Timer Status
 
 ```bash
-systemctl --user list-timers | grep vault
-```
-
-### Last Git Snapshot
-
-```bash
-cd /home/kgale/second-brain && git log --oneline -1
+systemctl --user list-timers | grep second-brain
 ```
 
 ## Re-authentication
@@ -118,34 +111,15 @@ cd /home/kgale/second-brain && git log --oneline -1
 
 3. Verify sync is healthy:
    ```bash
-   ob sync-status --path /home/kgale/second-brain/vault
+   ob sync-status --path /home/kgale/second-brain/notes
    ```
-
-## Git Coexistence Strategy
-
-| Concern | Approach |
-|---|---|
-| Live vault state | Obsidian Sync is authoritative |
-| Backup/version history | Git periodic snapshot |
-| Direction | Outbound-only (add, commit, push — never pulls) |
-| Schedule | 2AM ET daily via systemd timer |
-| Conflict avoidance | Avoids inbox processing windows (7AM, 12PM, 6PM ET) |
-| Exclusions | `.gitignore` excludes workspace and sync metadata |
-
-The git snapshot is strictly one-way. It captures the current vault state and pushes to GitHub. It never pulls from the remote, which prevents git from interfering with Obsidian Sync's conflict resolution.
 
 ## Manual Operations
 
 ### Manual Sync
 
 ```bash
-ob sync --path /home/kgale/second-brain/vault
-```
-
-### Manual Git Snapshot
-
-```bash
-~/helper-scripts/vault-snapshot.sh
+ob sync --path /home/kgale/second-brain/notes
 ```
 
 ### Force Re-sync (Last Resort)
@@ -153,8 +127,8 @@ ob sync --path /home/kgale/second-brain/vault
 If sync is in a broken state and normal restart does not resolve it:
 
 ```bash
-ob sync-unlink --path /home/kgale/second-brain/vault
-ob sync-setup --path /home/kgale/second-brain/vault
+ob sync-unlink --path /home/kgale/second-brain/notes
+ob sync-setup --path /home/kgale/second-brain/notes
 ```
 
 This unlinks and re-links the vault to Obsidian Sync. Use only when other troubleshooting steps have failed.
@@ -169,7 +143,7 @@ This unlinks and re-links the vault to Obsidian Sync. Use only when other troubl
    ```
 2. Check sync status for errors:
    ```bash
-   ob sync-status --path /home/kgale/second-brain/vault
+   ob sync-status --path /home/kgale/second-brain/notes
    ```
 3. Check network connectivity from office2.
 
@@ -184,12 +158,6 @@ Check the journal for error details:
 ```bash
 journalctl --user -u obsidian-sync
 ```
-
-### Git Snapshot Fails
-
-- Check available disk space: `df -h /home/kgale/second-brain`
-- Check git remote is reachable: `cd /home/kgale/second-brain && git remote -v`
-- Check `.gitignore` is not excluding expected files
 
 ### After Reboot
 

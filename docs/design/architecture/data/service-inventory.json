@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
   "last_updated": "2026-04-01",
-  "updated_by": "F010",
+  "updated_by": "F011",
   "services": [
     {
       "name": "vikunja",
@@ -29,12 +29,13 @@
       "description": "Continuous Obsidian vault sync via ob CLI",
       "binary": "/usr/bin/ob",
       "version": "0.0.8",
-      "command": "ob sync --path /home/kgale/second-brain/vault --continuous",
+      "command": "ob sync --path /home/kgale/second-brain/notes --continuous",
       "host": "office2",
       "user": "kgale",
       "systemd_unit": "obsidian-sync.service (user unit)",
       "systemd_user": "kgale",
-      "data_path": "/home/kgale/second-brain/vault",
+      "data_path": "/home/kgale/second-brain/notes",
+      "vault_id": "3dca727577026343c5dc34b17e05692e",
       "auth_method": "ob login (interactive, credentials stored locally by ob)",
       "sync_direction": "bidirectional",
       "conflict_strategy": "merge",
@@ -43,23 +44,23 @@
       "deployed_by": "manual",
       "status": "active",
       "purpose": "Continuous Obsidian vault sync to office2",
-      "updated_by": "F010"
+      "updated_by": "F011"
     },
     {
-      "name": "vault-snapshot",
+      "name": "second-brain-sync",
       "type": "scheduled",
-      "description": "Daily git snapshot of vault for backup/version history",
-      "binary": "/home/kgale/helper-scripts/vault-snapshot.sh",
-      "schedule": "2AM ET daily (systemd timer)",
+      "description": "Bidirectional git sync for non-vault second-brain content",
       "host": "office2",
       "user": "kgale",
+      "systemd_unit": "second-brain-sync.timer (user unit)",
+      "systemd_user": "kgale",
+      "schedule": "every 15 minutes",
       "data_path": "/home/kgale/second-brain",
-      "direction": "outbound-only (add, commit, push)",
+      "direction": "bidirectional (pull --rebase, then push)",
       "backup_included": true,
-      "deployed_by": "F010",
+      "deployed_by": "F011",
       "status": "active",
-      "purpose": "Daily git snapshot of vault for backup/version history",
-      "updated_by": "F010"
+      "purpose": "Bidirectional git sync for non-vault content (agents/, logs/, config)"
     },
     {
       "name": "transcribe-api",

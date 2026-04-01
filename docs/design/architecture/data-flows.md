@@ -18,25 +18,25 @@ Kent (Mac/iPhone) → HTTPS via Tailscale Serve → Vikunja :3456 → SQLite
 
 Direct task management through the browser. Accessible from any Tailscale-connected device at `https://office2.tail0f5f56.ts.net`.
 
-### Obsidian Vault Sync (updated F010)
+### Obsidian Vault Sync (updated F011)
 
 **Live sync** (Obsidian Sync — bidirectional):
 ```
 Mac (Obsidian) ↔ Obsidian Sync cloud ↔ office2 (ob sync --continuous) ↔ Obsidian Sync cloud ↔ iPhone (Obsidian)
 ```
 
-Three-device sync loop: Mac, office2, and iPhone all stay in sync via Obsidian Sync cloud. The `ob` CLI on office2 runs as a continuous daemon (`obsidian-sync.service`, kgale user unit). Changes on any device propagate to the others in near real-time. Obsidian Sync is the live sync mechanism — not git.
+Three-device sync loop: Mac, office2, and iPhone all stay in sync via Obsidian Sync cloud. The `ob` CLI on office2 runs as a continuous daemon (`obsidian-sync.service`, kgale user unit), syncing to `/home/kgale/second-brain/notes`. Changes on any device propagate to the others in near real-time. Obsidian Sync is the live sync mechanism — not git.
 
-**Consumer**: `felix-admin-capture` reads from `/home/kgale/second-brain/vault/00-Inbox/` (3x daily via OpenClaw cron).
+**Consumer**: `felix-admin-capture` reads from `/home/kgale/second-brain/notes/00-Inbox/` (3x daily via OpenClaw cron).
 
-### Vault Snapshot (F010)
+### Second Brain Git Sync (F011)
 
-**Backup** (git — outbound-only):
+**Non-vault content** (git — bidirectional, every 15 min):
 ```
-office2 vault (/home/kgale/second-brain) → git add/commit → git push → GitHub
+office2 (/home/kgale/second-brain) ↔ git pull --rebase + push ↔ GitHub
 ```
 
-Daily git snapshot at 2AM ET via systemd timer. Outbound-only — never pulls. Provides backup and version history. This is not the live sync mechanism.
+Bidirectional git sync every 15 minutes via `second-brain-sync.timer` (kgale user unit). Syncs non-vault content (agents/, logs/, config). Vault content (`notes/`) is excluded via `.gitignore` — Obsidian Sync handles that. Replaces the old outbound-only vault-snapshot.
 
 ### Nightly Backup
 
@@ -78,7 +78,7 @@ credential store at runtime. Used by all downstream features that touch tasks.
 | Data | Path | Backed Up |
 |------|------|-----------|
 | Vikunja tasks (SQLite) | `/data/services/vikunja/data/vikunja.db` | Yes |
-| Obsidian vault | `/home/kgale/second-brain/vault` | Yes |
+| Obsidian vault | `/home/kgale/second-brain/notes` | Yes |
 | Transcribe data | `/data/services/transcribe` | Yes (excl. models) |
 | Backup repo | `/mnt/backups/restic-repo` | N/A (is the backup) |
 | Security baselines | `/data/services/security-monitor/baselines` | Yes |
