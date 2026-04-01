@@ -170,7 +170,7 @@ references remain.
 - [x] T035: Create test note on Mac, verify appears on office2 in `notes/00-Inbox/` within 5 minutes
 - [x] T036: Trigger manual inbox processing run, verify success
 - [x] T037: Push test file from Mac, verify office2 pulls within 15 minutes
-- [ ] T038: Create test file on office2, verify appears in origin within 15 minutes
+- [x] T038: Create test file on office2, verify appears in origin within 15 minutes
 
 **Prompt file**: [tasks/WP07-end-to-end-verification.md](tasks/WP07-end-to-end-verification.md)
 
