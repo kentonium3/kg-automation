@@ -20,12 +20,12 @@ cat docs/constitution/FELIX-CONSTITUTION.md | head -20
 # Verify JSON registry
 python3 -c "import json; r=json.load(open('docs/constitution/agent-registry.json')); print(json.dumps(r, indent=2))"
 
-# Verify both agents registered at Gate 1
+# Verify both agents registered at Assisted
 python3 -c "
 import json
 r = json.load(open('docs/constitution/agent-registry.json'))
 for name, agent in r['agents'].items():
-    print(f'{name}: Gate {agent[\"gate\"]}, Observation: {agent[\"observation_mode\"]}')
+    print(f'{name}: autonomy_level={agent[\"autonomy_level\"]}')
 "
 ```
 
@@ -47,7 +47,7 @@ cd scripts/openclaw/observation && python -m pytest tests/ -v
 ssh office2-claude "python3 /data/services/openclaw/observation/summarize.py --dry-run"
 ```
 
-### 4. Observation Mode (on office2)
+### 4. Activity Surfacing (on office2)
 
 ```bash
 # Verify digest files exist after a run

@@ -3,7 +3,7 @@
 **Feature**: 012-constitution-agent-governance-setup
 **Date**: 2026-04-01
 
-## Decision 1: Observation Mode Delivery Mechanism
+## Decision 1: Activity Surfacing Delivery Mechanism
 
 ### Evaluation
 
@@ -86,6 +86,7 @@
 - Not embedded in individual agents — decoupled from agent execution
 - Runs on a cron schedule (daily at 7:00 PM ET) on office2
 - Reads standardized log files, applies filtering/consolidation rules, writes Obsidian digest
+- Reads `agent-registry.json` for each agent's autonomy level to determine surfacing behavior
 
 **Rationale:**
 - Standardized log format enables centralized processing
@@ -93,6 +94,7 @@
 - Decoupled from agent execution — agent run time unaffected
 - Single place to adjust filtering rules, summary format, and delivery logic
 - Scales without modifying each agent as new agents are added
+- Autonomy level determines surfacing depth: Assisted/Observed → all activity; Autonomous → exceptions only
 
 **Future extensibility:** When agent count grows or log formats diverge, per-agent summarization rules can be added to the centralized service without rearchitecting.
 
@@ -115,7 +117,7 @@
 
 - `docs/constitution/agent-registry.json` — authoritative operational record
   - Used by the centralized summarizer, agents, and tooling
-  - Fields per agent: name, team, scope, gate, observation_mode, deployed_feature, gate_history
+  - Fields per agent: name, team, scope, autonomy_level, deployed_feature, transition_history
 - `docs/constitution/AGENT-REGISTRY.md` — human-readable narrative view
   - Generated/maintained alongside JSON, not a separate source of truth
   - Used by Kent for quick reference
@@ -130,23 +132,24 @@
     "felix-admin-capture": {
       "team": "SuperAdmin (B)",
       "scope": "Obsidian inbox processing — classifies notes, routes to vault, creates Vikunja tasks",
-      "gate": 1,
-      "observation_mode": "on",
+      "autonomy_level": "assisted",
       "deployed_feature": "F008",
       "registered": "2026-04-01",
-      "gate_history": [
-        { "date": "2026-04-01", "gate": 1, "reason": "Initial registration (F012)", "decided_by": "Kent Gale" }
+      "transition_history": [
+        { "date": "2026-04-01", "autonomy_level": "assisted", "reason": "Initial registration (F012)", "decided_by": "Kent Gale" }
       ]
     }
   }
 }
 ```
 
+**Autonomy level values:** `assisted` (Level 1), `observed` (Level 2), `autonomous` (Level 3)
+
 **Future extensibility:** When Felix becomes self-modifying, the JSON registry moves to a runtime-writable store on office2 with sync-back to repo. For now, repo-authored and deployed.
 
 ---
 
-## Decision 8: Observation Mode File Structure
+## Decision 8: Activity Surfacing File Structure
 
 ### Decision: Per-agent files + consolidated overview
 
@@ -165,6 +168,32 @@
 - Per-agent files provide drill-down if the overview surfaces something needing investigation
 - All files overwritten each digest cycle (rolling)
 - Vault path `notes/00-System/agent-activity/` chosen to align with vault taxonomy
+
+---
+
+## Decision 9: Autonomy Level Model (Nomenclature)
+
+### Decision: "Autonomy Level" with values assisted / observed / autonomous
+
+Replaces the earlier "gate" terminology. Rationale:
+- "Gate" implies one-way progression (you pass through a gate). These operating modes can move in any direction — an agent can be promoted or demoted based on behavior, modifications, or Kent's judgment.
+- "Autonomy Level" is explicit about what it describes: the degree of independence granted to the agent.
+- Values describe the agent's operating mode: `assisted` (Kent confirms), `observed` (agent acts, all surfaced), `autonomous` (agent acts, exceptions only).
+
+**Definitions:**
+- **Assisted (Level 1):** Agent proposes actions, Kent confirms before execution. All new agents start here.
+- **Observed (Level 2):** Agent executes autonomously, all activity surfaced to Kent. Minimum 30 days at Assisted + Kent's decision to promote.
+- **Autonomous (Level 3):** Agent executes autonomously, only exceptions surfaced. Minimum 30 days at Observed + Kent's decision to promote.
+
+**Transitions:**
+- Promotion: requires minimum 30 days at current level + Kent's explicit decision. Never automatic.
+- Demotion: can happen at any time for any reason (unexpected behavior, code modification, Kent's judgment).
+
+**Surfacing behavior is determined by autonomy level — not a separate toggle:**
+- Assisted: Daily digest includes all activity (Kent also sees each action via confirmation)
+- Observed: Daily digest includes all activity (this IS the observation)
+- Autonomous: Daily digest includes only exceptions (flagged, error, security)
+- Critical alerts: always surfaced at every level, no exceptions
 
 ---
 

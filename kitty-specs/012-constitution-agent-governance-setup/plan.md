@@ -5,7 +5,7 @@
 
 ## Summary
 
-Formalize the Felix governance framework by creating a constitution document, centralized JSON agent registry, Observation Mode (audit logging + Obsidian-based surfacing with WhatsApp critical alerts), a skill-authoring skill, agent standing order updates, and an operational runbook. All governance documents are authored in the repo and deployed to office2. The centralized intelligence layer runs as a scheduled script on office2 that reads standardized agent logs and produces consolidated digests in the Obsidian vault.
+Formalize the Felix governance framework by creating a constitution document, centralized JSON agent registry with autonomy levels, activity surfacing via Obsidian (with WhatsApp critical alerts), a skill-authoring skill, agent standing order updates, and an operational runbook. All governance documents are authored in the repo and deployed to office2. The centralized intelligence layer runs as a scheduled script on office2 that reads standardized agent logs and produces consolidated digests in the Obsidian vault, with surfacing depth determined by each agent's autonomy level.
 
 ## Technical Context
 
@@ -23,8 +23,8 @@ Formalize the Felix governance framework by creating a constitution document, ce
 
 *GATE: Pre-Phase 0*
 
-| Gate | Status | Notes |
-|------|--------|-------|
+| Check | Status | Notes |
+|-------|--------|-------|
 | Testing standards | PASS | Intelligence layer script will have pytest coverage. Governance docs validated manually. |
 | Quality gates | PASS | CI validation (validate_docs.py) runs on push. Self-review before push. |
 | Performance benchmarks | PASS | Intelligence layer target: under 60 seconds. Agent overhead: under 60 seconds. |
@@ -80,7 +80,7 @@ docs/handbooks/
 └── felix-governance.md            # Operations runbook (FR-019)
 
 docs/design/architecture/data/
-└── service-inventory.json         # Updated with gate fields (FR-020)
+└── service-inventory.json         # Updated with autonomy_level fields (FR-020)
 
 docs/handbooks/
 └── openclaw-ops.md                # Updated with constitution references (FR-021)
@@ -90,7 +90,22 @@ docs/handbooks/
 
 ## Design Decisions (from research.md)
 
-### Observation Mode Delivery
+### Autonomy Level Model
+
+Three operating modes that determine agent behavior and surfacing depth:
+
+| Level | Name | Agent Behavior | Surfacing Behavior |
+|-------|------|---------------|-------------------|
+| 1 | **Assisted** | Proposes actions, Kent confirms | All activity in daily digest |
+| 2 | **Observed** | Executes autonomously | All activity in daily digest |
+| 3 | **Autonomous** | Executes autonomously | Only exceptions in daily digest |
+
+- Critical alerts (errors, security) always surface at every level — no exceptions
+- Promotion: 30+ days at current level + Kent's explicit decision
+- Demotion: any time, any reason, no minimum time
+- Surfacing behavior is determined by autonomy level — not a separate toggle
+
+### Activity Surfacing Delivery
 
 **Primary:** Obsidian notes in `~/second-brain/notes/00-System/agent-activity/`
 **Critical alerts:** WhatsApp (when DM policy is re-enabled)
@@ -103,8 +118,10 @@ See [research.md](research.md) — Decision 1 for full evaluation.
 **Centralized summarization script** (`scripts/openclaw/observation/summarize.py`):
 - Runs daily at 7:00 PM ET via cron on office2 (after last agent run at 6:00 PM)
 - Reads all agent logs from `~/second-brain/agents/logs/` for the current day
-- Reads `agent-registry.json` for observation_mode state per agent
-- Applies log category filtering: routine → counts, flagged/error/security → elevated detail
+- Reads `agent-registry.json` for each agent's autonomy level
+- Applies surfacing rules based on autonomy level:
+  - Assisted/Observed: routine → counts, flagged/error/security → elevated detail
+  - Autonomous: routine → omitted, flagged/error/security → elevated detail
 - Writes consolidated digest to `~/second-brain/notes/00-System/agent-activity/overview.md`
 - Writes per-agent detail to `~/second-brain/notes/00-System/agent-activity/{agent-name}.md`
 - Sends WhatsApp critical alert if errors/security items exist and WhatsApp is enabled
@@ -119,22 +136,23 @@ See [research.md](research.md) — Decision 1 for full evaluation.
 - `docs/constitution/agent-registry.json` — machine-readable, authoritative
 - `docs/constitution/AGENT-REGISTRY.md` — human-readable narrative view
 
+Autonomy level stored as string enum (`assisted`/`observed`/`autonomous`) in JSON registry.
 JSON schema defined in [data-model.md](data-model.md).
 
 ### Standardized Log Format
 
 All agents must write logs with these categories for the intelligence layer to process:
-- **routine** — normal successful operations (summarized as counts)
-- **flagged** — items requiring Kent's attention (elevated with detail)
-- **error** — operation failures (always surfaced as critical alert)
-- **security** — security concerns (always surfaced as critical alert)
+- **routine** — normal successful operations (surfaced as counts at Assisted/Observed; omitted at Autonomous)
+- **flagged** — items requiring Kent's attention (elevated with detail at all levels)
+- **error** — operation failures (always surfaced as critical alert at all levels)
+- **security** — security concerns (always surfaced as critical alert at all levels)
 
 The existing felix-admin-capture log format is the base. felix-admin-habits adopts the same format. The intelligence layer parses these categories from the structured markdown.
 
 ### Standing Order Updates
 
 Additive only. A governance preamble is prepended to each agent's AGENTS.md:
-- Current gate level
+- Current autonomy level
 - Reference to FELIX-CONSTITUTION.md
 - Statement that standing orders supplement but do not override the constitution
 
@@ -150,8 +168,8 @@ Bootstrapped from Whisper and Vikunja API skills. Augmented with:
 
 ## Constitution Check (Post-Design)
 
-| Gate | Status | Notes |
-|------|--------|-------|
+| Check | Status | Notes |
+|-------|--------|-------|
 | Testing standards | PASS | `scripts/openclaw/observation/tests/` with pytest. Governance docs validated against checklist. |
 | Risk boundaries | PASS | Privacy boundary encoded in constitution. No credentials introduced. Tailscale-only. |
 | Documentation sync | PASS | service-inventory.json and openclaw-ops.md updated in same feature. |
@@ -162,15 +180,15 @@ Bootstrapped from Whisper and Vikunja API skills. Augmented with:
 ## Implementation Sequence
 
 1. **Read existing agent files** — understand current conventions before writing constitution
-2. **Write constitution** — formalize patterns already working (FR-001 through FR-004)
-3. **Write agent registry** — JSON + Markdown, register both agents at Gate 1 (FR-005 through FR-007)
+2. **Write constitution** — formalize patterns already working, including autonomy level model (FR-001 through FR-004)
+3. **Write agent registry** — JSON + Markdown, register both agents at Assisted (FR-005 through FR-007)
 4. **Standardize log format** — define categories, update agent log sections if needed (FR-008)
-5. **Write intelligence layer** — centralized summarizer script with tests (FR-009, FR-010)
-6. **Configure Observation Mode** — state in registry, cron schedule, digest file creation (FR-011 through FR-013)
+5. **Write intelligence layer** — centralized summarizer script with tests (FR-009, FR-010, FR-011)
+6. **Configure activity surfacing** — cron schedule, digest file creation (FR-012, FR-013)
 7. **Write skill-authoring skill** — SKILL.md with conventions and review criteria (FR-015)
-8. **Update agent standing orders** — additive preamble referencing constitution (FR-017)
-9. **Write governance runbook** — operational procedures (FR-019)
-10. **Update architecture docs** — service-inventory.json gate fields, openclaw-ops.md refs (FR-020, FR-021)
+8. **Update agent standing orders** — additive preamble referencing constitution, stating autonomy level (FR-017)
+9. **Write governance runbook** — operational procedures including promotion/demotion (FR-019)
+10. **Update architecture docs** — service-inventory.json autonomy_level fields, openclaw-ops.md refs (FR-020, FR-021)
 11. **Deploy to office2** — all updated files via SSH as claude user (FR-016, FR-018)
 
 ## Risk Mitigations
@@ -181,3 +199,4 @@ Bootstrapped from Whisper and Vikunja API skills. Augmented with:
 | WhatsApp unavailable for critical alerts | Obsidian digest still contains critical alerts (marked prominently). Graceful degradation. |
 | Intelligence layer log parsing breaks on format changes | Standardized log categories defined in constitution. Tests use fixture logs. |
 | Skill-authoring skill becomes stale | Constitution mandates update when conventions change. Version-stamped. |
+| Agent demoted but standing orders not updated | Registry is authoritative for autonomy level. Standing orders state level at registration; intelligence layer reads current level from registry, not AGENTS.md. |
