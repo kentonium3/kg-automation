@@ -43,7 +43,8 @@ For each task, read the description field for frequency:
 | Mon–Sat | Mon, Tue, Wed, Thu, Fri, Sat |
 | Mon/Wed/Fri | Mon, Wed, Fri |
 
-Filter to habits scheduled for today only.
+Skip any task with `(PAUSED)` in the description or `done: true`.
+Filter remaining habits to those scheduled for today only.
 
 ### Step 3: Exclude already-completed habits
 
@@ -180,74 +181,80 @@ absence of a comment IS the no-response signal.
 
 ## Weekly pattern report
 
-When triggered by the Sunday evening cron job, generate the weekly report.
+When triggered by the Sunday evening cron job, generate a pattern report.
 
-### Step 1: Query all habits and comments
+### Step 1: Determine date ranges
 
-1. Read the vikunja_api skill
-2. Resolve the Habits project, fetch all tasks
-3. For each habit, fetch comments: `GET /tasks/{habit_id}/comments`
-4. Parse comments for the date range: this week (Mon–Sun) and last week
+- This week: Monday to Sunday of the current week
+- Last week: Monday to Sunday of the prior week
 
-### Step 2: Calculate completion rates
+### Step 2: Query completion history
+
+For each active habit:
+1. Fetch comments: `GET /tasks/{habit_id}/comments?per_page=50&order_by=desc`
+2. Parse each comment for date and state
+3. Filter to this week and last week date ranges
+4. For days with no comment on a scheduled day, count as "no-response"
+
+### Step 3: Calculate rates
 
 For each habit:
-- Count scheduled days this week (based on frequency)
-- Count comments with `complete` or `rescheduled` = positive
-- Count comments with `will-not-do` = negative
-- Days with no comment = no-response (negative)
-- Rate = (complete + rescheduled) / scheduled_days
+- scheduled_days = days in the week where the habit's frequency applies
+- positive = count of "complete" + "rescheduled" comments
+- rate = positive / scheduled_days (as percentage)
 
-Calculate the same for last week.
+Overall rate = sum(all positive) / sum(all scheduled_days)
 
-Overall rate = sum of all positive across all habits / sum of all scheduled.
-
-### Step 3: Format the report
+### Step 4: Format the report
 
 ```
-Weekly habits — [date range]:
+Weekly habits — Mar 24–30 vs Mar 17–23:
 
-Wake 5AM: 5/6 (83%) ↑ was 4/6
-Meditate: 6/7 (86%) → same
-Morning PT: 7/7 (100%) ↑ was 5/7
-Training: 2/3 (67%) ↓ was 3/3
-Steps: 5/7 (71%) ↑ was 4/7
-Reading: 7/7 (100%) → same
-Evening PT: 6/7 (86%) ↑ was 5/7
+Wake 5AM:     ████░░ 67% (was 83%) ↓
+Meditate:     ██████ 100% (was 86%) ↑
+Morning PT:   █████░ 86% (was 71%) ↑
+Training:     ███░░░ 67% (was 100%) ↓
+10K steps:    ████░░ 57% (was 57%) →
+Reading:      █████░ 86% (was 100%) ↓
+Evening PT:   █████░ 86% (was 86%) →
 
-Overall: 38/44 (86%) ↑ was 32/44 (73%)
+Overall: 78% (was 83%) ↓
 ```
 
-Use ↑ for improvement, ↓ for decline, → for same (within 5%).
-Keep it compact — one line per habit, overall at the bottom.
+Rules:
+- Use simple bar indicators (█ and ░), 6 characters wide
+- Show percentage and trend arrow (↑ ↓ →)
+- ↑ = improvement, ↓ = decline, → = same (within 5%)
+- Keep to 20 lines or fewer
+- No motivational commentary — just the numbers
 
 ---
 
-## On-demand track record
+## Track record query
 
-When Kent asks "how am I doing on habits?", "show my track record", or
-similar:
+When Kent asks "how am I doing on my habits?", "show my track record",
+"habit status", or any natural variation:
 
-1. Query the last 4 weeks of comments for all habits
-2. Calculate weekly rates for each of the 4 weeks
-3. Format as a compact multi-week view:
+1. Query the last 4 weeks of completion history (same method as weekly report)
+2. Calculate per-habit and overall rates for each of the 4 weeks
+3. Format as a 4-week summary:
 
 ```
-Track record — last 4 weeks:
+Habit track record — last 4 weeks:
 
-              W1    W2    W3    W4
-Wake 5AM:    83%   67%   83%  100%
-Meditate:    71%   86%   86%  100%
-Morning PT: 100%   86%  100%  100%
-Training:    67%  100%   67%  100%
-Steps:       57%   71%   71%   86%
-Reading:     86%  100%  100%  100%
-Evening PT:  71%   86%   86%  100%
+Wake 5AM:     83% → 67% → 83% → 67%
+Meditate:     71% → 86% → 100% → 86%
+Morning PT:  100% → 86% → 100% → 100%
+Training:     67% → 100% → 67% → 100%
+10K steps:    57% → 71% → 71% → 86%
+Reading:      86% → 100% → 100% → 100%
+Evening PT:   71% → 86% → 86% → 100%
 
-Overall:     76%   85%   85%   98%
+Overall:      75% → 78% → 85% → 78%
+              ← oldest        newest →
 ```
 
-W1 = oldest week, W4 = most recent. Keep it compact.
+Keep the same concise format. No walls of text.
 
 ---
 
@@ -255,31 +262,46 @@ W1 = oldest week, W4 = most recent. Keep it compact.
 
 ### Adding a habit
 
-When Kent says something like "add daily journaling" or "new habit:
-yoga 3x per week":
+When Kent says "add [habit name]" or "new habit: [description]":
 
-1. Confirm before creating: "Adding 'Yoga 30 min' as a personal habit,
-   Mon/Wed/Fri. Correct?"
-2. Wait for Kent's confirmation
-3. Create a new task in the Habits project via vikunja_api:
-   - Title: habit name
-   - Description: frequency text (e.g., "Mon/Wed/Fri")
-   - Label: personal (default unless Kent specifies otherwise)
-4. Confirm: "Added. It will appear in tomorrow's check-in."
+1. Parse the habit name and frequency (default: Daily if not specified)
+2. Parse identity label (default: personal if not specified)
+3. Confirm before creating:
+   "I'll add [name] as a [label] habit, [frequency]. Correct?"
+4. Wait for confirmation
+5. Create the task in the Habits project via vikunja_api skill
+6. Add the identity label
+7. Confirm: "Added [name] to your habits. It will appear in tomorrow's check-in."
 
-### Removing or pausing a habit
+### Pausing a habit
 
-When Kent says "remove steps habit" or "pause evening PT":
+When Kent says "pause [habit]" or "stop tracking [habit]":
 
-1. Confirm: "Pausing 'Evening shoulder PT' — it won't appear in
-   check-ins but history is preserved. Correct?"
-2. Wait for confirmation
-3. To pause: add `[PAUSED]` to the task description (task remains,
-   history preserved, excluded from check-ins)
-4. To remove permanently: same as pause — never delete the task
+1. Match the habit by name (fuzzy matching)
+2. Confirm: "I'll pause [name]. It won't appear in check-ins but
+   history is preserved. Resume anytime."
+3. Mark the task description with "(PAUSED)" prefix
+4. Paused habits are excluded from check-ins and reports
 
-When querying active habits, skip any task with `[PAUSED]` in the
-description.
+### Removing a habit
+
+When Kent says "remove [habit]" or "delete [habit]":
+
+1. Match by name
+2. Confirm: "I'll archive [name]. History is preserved but it won't
+   appear in check-ins or reports."
+3. Mark the Vikunja task as done (archived state) — do NOT delete it
+
+### Resuming a paused habit
+
+When Kent says "resume [habit]" or "unpause [habit]":
+
+1. Match by name (check for "(PAUSED)" prefix)
+2. Remove the "(PAUSED)" prefix from description
+3. Confirm: "Resumed [name]. It will appear in tomorrow's check-in."
+
+When querying active habits, skip any task with `(PAUSED)` in the
+description or with `done: true`.
 
 ---
 
