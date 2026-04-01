@@ -19,3 +19,4 @@ docs/.obsidian/plugins/**/.cache/
 
 # VS Code workspace state (local editor preference)
 .vscode/tasks.json
+__pycache__/
