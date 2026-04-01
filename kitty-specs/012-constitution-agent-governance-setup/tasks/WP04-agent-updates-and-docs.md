@@ -1,7 +1,7 @@
 ---
 work_package_id: WP04
 title: Agent Standing Orders & Documentation
-lane: planned
+lane: "doing"
 dependencies: []
 requirement_refs:
 - FR-014
@@ -12,7 +12,11 @@ requirement_refs:
 planning_base_branch: main
 merge_target_branch: main
 branch_strategy: Planning artifacts for this feature were generated on main. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into main unless the human explicitly redirects the landing branch.
+base_branch: main
+base_commit: e86d4912ddfeb4e9d5d2e49c8d2fc4e5b2a47c2e
+created_at: '2026-04-01T22:26:08.263431+00:00'
 subtasks: [T013, T014, T015, T016, T017]
+shell_pid: "57146"
 history:
 - date: '2026-04-01T22:12:34Z'
   event: created
