@@ -19,6 +19,7 @@ base_commit: 7281c5dcc60eead8b6ebb5677e38ef714ca7bad3
 created_at: '2026-04-01T22:21:07.998156+00:00'
 subtasks: [T001, T002, T003, T004]
 shell_pid: "55885"
+agent: "claude"
 history:
 - date: '2026-04-01T22:12:34Z'
   event: created
@@ -245,3 +246,7 @@ This WP is the foundation — every other WP references the constitution or regi
 - Verify constitution is concise enough for agent context inclusion (FR-002) — aim for under 200 lines
 - Verify privacy boundary wording is absolute — no wiggle room
 - Verify ClawHub constraint wording matches the exact text from the spec
+
+## Activity Log
+
+- 2026-04-01T22:21:08Z – claude – shell_pid=55885 – lane=doing – Assigned agent via workflow command
