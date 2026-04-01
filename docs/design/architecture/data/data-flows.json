@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
-  "last_updated": "2026-03-30",
-  "updated_by": "F007",
+  "last_updated": "2026-04-01",
+  "updated_by": "F010",
   "flows": [
     {
       "name": "vikunja-web-ui",
@@ -17,10 +17,26 @@
       "name": "obsidian-sync",
       "status": "active",
       "deployed_by": "manual",
-      "description": "Continuous vault sync from Mac/iPhone to office2",
+      "updated_by": "F010",
+      "description": "Live bidirectional vault sync: Mac ↔ Obsidian Cloud ↔ office2 ↔ iPhone",
       "path": [
-        {"from": "Obsidian (Mac/iPhone)", "to": "Obsidian Sync cloud", "protocol": "Obsidian Sync"},
-        {"from": "Obsidian Sync cloud", "to": "office2 (ob sync --continuous)", "path": "/home/kgale/second-brain/vault"}
+        {"from": "Mac (Obsidian)", "to": "Obsidian Sync cloud", "protocol": "Obsidian Sync", "direction": "bidirectional"},
+        {"from": "Obsidian Sync cloud", "to": "office2 (ob sync --continuous)", "path": "/home/kgale/second-brain/vault", "direction": "bidirectional"},
+        {"from": "iPhone (Obsidian)", "to": "Obsidian Sync cloud", "protocol": "Obsidian Sync", "direction": "bidirectional"}
+      ],
+      "consumers": [
+        {"agent": "felix-admin-capture", "reads_from": "/home/kgale/second-brain/vault/00-Inbox/"}
+      ]
+    },
+    {
+      "name": "vault-snapshot",
+      "status": "active",
+      "deployed_by": "F010",
+      "updated_by": "F010",
+      "description": "Daily git snapshot of vault: office2 → git → GitHub (outbound-only, 2AM ET)",
+      "path": [
+        {"from": "office2 vault", "to": "git (local)", "path": "/home/kgale/second-brain", "direction": "outbound-only"},
+        {"from": "git (local)", "to": "GitHub", "protocol": "git push", "direction": "outbound-only"}
       ]
     },
     {
