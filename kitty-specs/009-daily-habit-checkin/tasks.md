@@ -50,10 +50,10 @@ labels and frequency descriptions, verify the comment-based completion
 storage approach works.
 
 **Included subtasks**:
-- [ ] T006: Create Habits project in Vikunja
-- [ ] T007: Create 7 habit tasks with labels and frequency descriptions
-- [ ] T008: Verify habit tasks via API query
-- [ ] T009: Test comment CRUD on a habit task (validate storage approach)
+- [x] T006: Create Habits project in Vikunja
+- [x] T007: Create 7 habit tasks with labels and frequency descriptions
+- [x] T008: Verify habit tasks via API query
+- [x] T009: Test comment CRUD on a habit task (validate storage approach)
 
 **Prompt file**: [tasks/WP02-vikunja-habits.md](tasks/WP02-vikunja-habits.md)
 
