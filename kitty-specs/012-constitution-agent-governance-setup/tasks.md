@@ -183,7 +183,7 @@ WP04 ──→ WP05
 
 <!-- status-model:start -->
 ## Canonical Status (Generated)
-- WP01: approved
+- WP01: done
 - WP02: approved
 - WP03: approved
 - WP04: approved

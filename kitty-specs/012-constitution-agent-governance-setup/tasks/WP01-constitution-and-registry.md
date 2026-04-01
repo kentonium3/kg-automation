@@ -1,7 +1,7 @@
 ---
 work_package_id: WP01
 title: Constitution & Agent Registry
-lane: "approved"
+lane: "done"
 dependencies: []
 requirement_refs:
 - FR-001
@@ -20,8 +20,8 @@ created_at: '2026-04-01T22:21:07.998156+00:00'
 subtasks: [T001, T002, T003, T004]
 agent: claude
 shell_pid: '58964'
-reviewed_by: "Kent Gale"
 review_status: "approved"
+reviewed_by: "Kent Gale"
 history:
 - date: '2026-04-01T22:12:34Z'
   event: created
@@ -255,3 +255,4 @@ This WP is the foundation — every other WP references the constitution or regi
 - 2026-04-01T22:24:26Z – claude – shell_pid=55885 – lane=for_review – Ready for review: Constitution, JSON registry, and Markdown registry created. 116-line constitution covers all four directives, autonomy levels, privacy boundary, ClawHub constraint, and activity surfacing rules. No gate terminology. No contradictions with existing agent standing orders.
 - 2026-04-01T22:34:06Z – claude – shell_pid=58964 – lane=doing – Started review via workflow command
 - 2026-04-01T22:34:49Z – claude – shell_pid=58964 – lane=approved – Review passed: constitution complete with all directives, correct autonomy terminology, extensible privacy, ClawHub exact wording. Registry valid JSON + consistent markdown.
+- 2026-04-01T22:45:24Z – claude – shell_pid=58964 – lane=done – Moved to done
