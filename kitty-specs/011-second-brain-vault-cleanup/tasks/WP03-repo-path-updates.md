@@ -17,6 +17,7 @@ base_commit: 811a6d2ba4c590e0b8a098c939a613a01eb8fda4
 created_at: '2026-04-01T19:18:10.948619+00:00'
 subtasks: [T009, T010, T011, T012, T013, T014, T015]
 shell_pid: "24022"
+agent: "claude-code"
 history:
 - date: '2026-04-01T18:30:16Z'
   event: created
@@ -172,3 +173,7 @@ Expected: no output (zero matches in actionable files).
   updated. Read each file fully before editing.
 - **CLAUDE.md format sensitivity**: CLAUDE.md is read by Claude Code at
   session start. Ensure edits preserve the existing markdown structure.
+
+## Activity Log
+
+- 2026-04-01T19:18:11Z – claude-code – shell_pid=24022 – lane=doing – Assigned agent via workflow command
