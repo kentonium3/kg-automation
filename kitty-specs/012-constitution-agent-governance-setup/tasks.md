@@ -184,7 +184,7 @@ WP04 ──→ WP05
 <!-- status-model:start -->
 ## Canonical Status (Generated)
 - WP01: approved
-- WP02: for_review
+- WP02: approved
 - WP03: for_review
 - WP04: for_review
 <!-- status-model:end -->
