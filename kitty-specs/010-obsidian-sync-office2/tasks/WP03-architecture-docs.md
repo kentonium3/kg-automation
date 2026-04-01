@@ -1,7 +1,7 @@
 ---
 work_package_id: WP03
 title: Architecture Documentation Updates
-lane: "for_review"
+lane: "approved"
 dependencies: [WP01]
 requirement_refs:
 - FR-14
@@ -15,6 +15,8 @@ created_at: '2026-04-01T15:25:46.960507+00:00'
 subtasks: [T009, T010, T011, T012]
 agent: claude-code
 shell_pid: '83167'
+reviewed_by: "Kent Gale"
+review_status: "approved"
 history:
 - date: '2026-04-01T15:17:40Z'
   event: created
@@ -212,3 +214,4 @@ and add the vault-snapshot service.
 
 - 2026-04-01T15:25:47Z – claude-code – shell_pid=83167 – lane=doing – Assigned agent via workflow command
 - 2026-04-01T15:28:45Z – claude-code – shell_pid=83167 – lane=for_review – Ready for review: architecture JSON and markdown updates for both services
+- 2026-04-01T15:29:10Z – claude-code – shell_pid=83167 – lane=approved – Review passed: JSON valid, F010 markers present, both services documented in narrative
