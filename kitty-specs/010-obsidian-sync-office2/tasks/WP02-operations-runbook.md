@@ -1,14 +1,18 @@
 ---
 work_package_id: WP02
 title: Operations Runbook
-lane: planned
+lane: "doing"
 dependencies: [WP01]
 requirement_refs:
 - FR-13
 planning_base_branch: main
 merge_target_branch: main
 branch_strategy: Planning artifacts for this feature were generated on main. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into main unless the human explicitly redirects the landing branch.
+base_branch: 010-obsidian-sync-office2-WP01
+base_commit: 7b1144c895e92aec2a2af42d2314a157e02bd1d2
+created_at: '2026-04-01T15:25:39.979178+00:00'
 subtasks: [T006, T007, T008]
+shell_pid: "83022"
 history:
 - date: '2026-04-01T15:17:40Z'
   event: created
