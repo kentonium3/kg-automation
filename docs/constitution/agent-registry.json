@@ -1,0 +1,39 @@
+{
+  "version": "1.0",
+  "updated": "2026-04-01",
+  "updated_by": "F012",
+  "agents": {
+    "felix-admin-capture": {
+      "team": "SuperAdmin (B)",
+      "scope": "Obsidian inbox processing — classifies notes, routes to vault, creates Vikunja tasks",
+      "autonomy_level": "assisted",
+      "deployed_feature": "F008",
+      "registered": "2026-04-01",
+      "transition_history": [
+        {
+          "date": "2026-04-01",
+          "autonomy_level": "assisted",
+          "direction": "registration",
+          "reason": "Initial registration under Felix governance framework (F012)",
+          "decided_by": "Kent Gale"
+        }
+      ]
+    },
+    "felix-admin-habits": {
+      "team": "SuperAdmin (B)",
+      "scope": "Daily habit check-ins, completion recording, and pattern reporting",
+      "autonomy_level": "assisted",
+      "deployed_feature": "F009",
+      "registered": "2026-04-01",
+      "transition_history": [
+        {
+          "date": "2026-04-01",
+          "autonomy_level": "assisted",
+          "direction": "registration",
+          "reason": "Initial registration under Felix governance framework (F012)",
+          "decided_by": "Kent Gale"
+        }
+      ]
+    }
+  }
+}
