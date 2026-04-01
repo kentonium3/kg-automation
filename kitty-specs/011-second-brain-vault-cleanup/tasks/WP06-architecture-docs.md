@@ -1,7 +1,7 @@
 ---
 work_package_id: WP06
 title: Architecture Docs and Handbooks
-lane: "doing"
+lane: "approved"
 dependencies: [WP02]
 requirement_refs:
 - FR-04
@@ -16,8 +16,10 @@ base_branch: 011-second-brain-vault-cleanup-WP02
 base_commit: 811a6d2ba4c590e0b8a098c939a613a01eb8fda4
 created_at: '2026-04-01T19:32:55.435729+00:00'
 subtasks: [T025, T026, T027, T028, T029, T030, T031, T032, T033]
-shell_pid: "27623"
-agent: "claude-code"
+agent: claude-code
+shell_pid: '27623'
+reviewed_by: "Kent Gale"
+review_status: "approved"
 history:
 - date: '2026-04-01T18:30:16Z'
   event: created
@@ -221,3 +223,4 @@ handbooks to reflect: (1) vault-snapshot removal, (2) vault → notes rename,
 ## Activity Log
 
 - 2026-04-01T19:32:55Z – claude-code – shell_pid=27623 – lane=doing – Assigned agent via workflow command
+- 2026-04-01T19:49:19Z – claude-code – shell_pid=27623 – lane=approved – Review passed: All 9 files updated correctly. vault-snapshot removed, second-brain-sync added, all vault→notes path renames applied. JSON valid, updated_by F011 set. No stale vault references remain in architecture docs or handbooks.

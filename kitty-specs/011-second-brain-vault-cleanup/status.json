@@ -1,10 +1,10 @@
 {
-  "event_count": 21,
+  "event_count": 24,
   "feature_slug": "011-second-brain-vault-cleanup",
-  "last_event_id": "01KN58HDGJ0Z5BGA6Z1XN5TNKW",
-  "materialized_at": "2026-04-01T19:32:46.739605+00:00",
+  "last_event_id": "01KN59FPRRM45XBQT25FTRY282",
+  "materialized_at": "2026-04-01T19:49:19.257545+00:00",
   "summary": {
-    "approved": 5,
+    "approved": 6,
     "blocked": 0,
     "canceled": 0,
     "claimed": 0,
@@ -48,6 +48,13 @@
       "lane": "approved",
       "last_event_id": "01KN58FGFMB993C6SGPQBWYJD3",
       "last_transition_at": "2026-04-01T19:31:44.244542+00:00"
+    },
+    "WP06": {
+      "actor": "user",
+      "force_count": 1,
+      "lane": "approved",
+      "last_event_id": "01KN59FPRRM45XBQT25FTRY282",
+      "last_transition_at": "2026-04-01T19:49:19.256303+00:00"
     }
   }
 }
