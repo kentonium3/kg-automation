@@ -1,0 +1,9 @@
+{
+  "created_at": "2026-04-01T18:16:47.320572+00:00",
+  "feature_number": "011",
+  "feature_slug": "011-second-brain-vault-cleanup",
+  "friendly_name": "second brain vault cleanup",
+  "mission": "software-dev",
+  "slug": "011-second-brain-vault-cleanup",
+  "target_branch": "main"
+}
