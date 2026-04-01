@@ -14,6 +14,7 @@ base_commit: 20bd35a398d5ecbc0cb325a8dd876dc21b1c4d1b
 created_at: '2026-04-01T22:44:25.794585+00:00'
 subtasks: [T018, T019, T020, T021, T022]
 shell_pid: "60285"
+agent: "claude"
 history:
 - date: '2026-04-01T22:12:34Z'
   event: created
@@ -255,3 +256,7 @@ ssh office2-claude "cd /path/to/kg-automation && python3 scripts/openclaw/observ
 - Check that dry-run produces valid output format
 - If Obsidian Sync doesn't work for this path, verify the limitation is documented in felix-governance.md runbook
 - Verify no `sudo` commands are used (C-003: claude user has no sudo access)
+
+## Activity Log
+
+- 2026-04-01T22:44:26Z – claude – shell_pid=60285 – lane=doing – Assigned agent via workflow command
