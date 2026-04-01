@@ -1,7 +1,7 @@
 ---
 work_package_id: WP05
 title: Scheduling and WhatsApp Integration
-lane: "doing"
+lane: "for_review"
 dependencies: [WP04]
 requirement_refs:
 - FR-003
@@ -18,8 +18,8 @@ base_branch: 009-daily-habit-checkin-WP04
 base_commit: bfaff56d4e61ead85480b258bc288b7a3fabafe0
 created_at: '2026-04-01T03:40:38.251027+00:00'
 subtasks: [T019, T020, T021, T022, T023, T024, T025]
-shell_pid: "97929"
-agent: "claude-code"
+agent: claude-code
+shell_pid: '97929'
 history:
 - date: '2026-04-01T01:46:04Z'
   event: created
@@ -231,3 +231,4 @@ end-to-end.
 ## Activity Log
 
 - 2026-04-01T03:40:38Z – claude-code – shell_pid=97929 – lane=doing – Assigned agent via workflow command
+- 2026-04-01T03:55:26Z – claude-code – shell_pid=97929 – lane=for_review – Ready for review: 2 cron jobs (morning checkin + weekly report) with --to delivery, main agent delegation patch, full WhatsApp e2e verified (check-in delivery, completion marking with Vikunja comments, idempotency, weekly report with bar indicators, track record query).
