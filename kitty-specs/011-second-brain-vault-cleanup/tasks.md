@@ -179,6 +179,6 @@ references remain.
 - WP01: approved
 - WP02: approved
 - WP03: approved
-- WP04: for_review
+- WP04: approved
 - WP05: approved
 <!-- status-model:end -->
