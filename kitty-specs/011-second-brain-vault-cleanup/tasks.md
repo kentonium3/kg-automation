@@ -168,7 +168,7 @@ references remain.
 **Included subtasks**:
 - [x] T034: Run grep audit for remaining `second-brain/vault` references in repo and on office2
 - [x] T035: Create test note on Mac, verify appears on office2 in `notes/00-Inbox/` within 5 minutes
-- [ ] T036: Trigger manual inbox processing run, verify success
+- [x] T036: Trigger manual inbox processing run, verify success
 - [ ] T037: Push test file from Mac, verify office2 pulls within 15 minutes
 - [ ] T038: Create test file on office2, verify appears in origin within 15 minutes
 
