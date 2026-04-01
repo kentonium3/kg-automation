@@ -11,5 +11,11 @@
     "MD032": false,
     "MD034": false
   },
-  "python.defaultInterpreterPath": "/usr/local/bin/python3"
+  "python.defaultInterpreterPath": "/usr/local/bin/python3",
+
+  // DIAGNOSTIC: Disable Git extension before spec-kitty merge to test
+  // whether it causes the VS Code crash during worktree removal.
+  // See docs/diagnostics/spec-kitty-feedback/merge-crash-incomplete-cleanup.md
+  // Toggle to true before merge, back to false after.
+  // "git.enabled": false
 }

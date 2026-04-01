@@ -4,7 +4,7 @@
 **Version:** spec-kitty-cli 2.1.2
 **Severity:** Medium - Recurring crash with no automated recovery path
 **Reporter:** Claude Opus (via Kent Gale)
-**Status:** RESOLVED - GitLens was the primary crash contributor; uninstalling it eliminated the crash
+**Status:** OPEN - Recurred without GitLens; volume-dependent or built-in Git extension issue
 
 ## Summary
 
@@ -50,9 +50,10 @@ already removed before the crash.
 | 1 | ~2026-03 | Unknown | Unknown | First observed occurrence |
 | 2 | ~2026-03 | Unknown | Unknown | Same pattern, recovered with /spec-kitty.merge |
 | 3 | 2026-03-30 | F006 (006-goal-and-outcome-structure) | WP03 | Detailed state captured |
+| 4 | 2026-04-01 | F009 (009-daily-habit-checkin) | WP06 | GitLens NOT installed; 6 WPs |
 
 Note: Incidents 1 and 2 were not fully documented. The pattern was recognized
-on incident 3.
+on incident 3. Incident 4 disproved the GitLens-only hypothesis.
 
 ## Root Cause (Diagnosed)
 
@@ -295,9 +296,9 @@ Expected outcomes:
 - **Crash resolved**: GitLens was the primary contributor. File a bug report against GitLens.
 - **Crash persists**: Built-in Git extension is the culprit. Add `log stream --process "Code Helper"` instrumentation and test disabling the built-in Git extension (`"git.enabled": false` in VS Code settings).
 
-## Resolution (2026-03-30)
+## Prior Resolution Attempt (2026-03-30) — Disproved
 
-**Crash resolved.** Uninstalling GitLens eliminated the crash.
+**GitLens was removed, crash appeared resolved, but recurred on 2026-04-01.**
 
 ### Test: F007 merge (4 WPs, step-by-step from VS Code integrated terminal)
 
@@ -324,20 +325,124 @@ log stream --predicate 'process == "Code Helper" OR process == "Electron"' --lev
 built-in Git extension logged ENOENT warnings for the deleted worktree HEAD
 files (as expected) but handled them gracefully — no window crash.
 
-### Conclusion
+**Conclusion at the time**: GitLens was the primary contributor. This was
+**disproved** by incident 4 (below).
 
-**GitLens (`eamodio.gitlens`) was the primary crash contributor.** The built-in
-Git extension alone handles worktree removal gracefully. GitLens's concurrent
-worktree tracking (visible in its separate `GitLens (Git).log`) created a
-cascading failure when combined with the built-in Git extension's ENOENT errors
-and the file watcher shutdowns.
+---
 
-### Recommendation
+## Incident 4: F009 Merge Crash (2026-04-01) — GitLens NOT Installed
 
-- **Do not reinstall GitLens** unless this issue is fixed upstream
-- If GitLens is needed in the future, disable it before running `spec-kitty merge`
-- Consider filing a bug report against GitLens: rapid worktree removal causes
-  VS Code window crash when GitLens is active
+### Timeline (from git reflog)
+
+| Time | Event |
+| --- | --- |
+| 00:07:49 | `checkout: moving from main to main` (merge prep) |
+| 00:07:50 | `merge 009-daily-habit-checkin-WP06: Merge made by 'ort' strategy` |
+| 00:08–00:12 | **VS Code crash** — window dies, Claude Code session lost |
+| 00:13:12 | Manual recovery: `commit F009 post-merge status updates after VS Code crash` |
+
+### State after crash
+
+Same pattern as all previous incidents:
+
+| Post-merge step | State |
+| --- | --- |
+| Git merge commits | Completed (WP06 merge at 00:07:50) |
+| Status file updates (JSONL, snapshot, frontmatter) | Written but **uncommitted** |
+| Worktree removal | Completed (none remaining) |
+| WP branch deletion | Completed (none remaining) |
+| Push to origin | **Not performed** |
+
+### Key differences from prior incidents
+
+- **GitLens was NOT installed** — uninstalled 2026-03-30
+- **6 WPs** — largest merge to date (F006 had 3, F007 had 4)
+- Merge was run via `spec-kitty merge` (not step-by-step protocol)
+- Pre-crash VS Code window logs were **not preserved** — log rotation
+  removed the session before it could be captured
+
+### Forensic analysis: spec-kitty merge execution order
+
+Source analysis of `specify_cli/merge/executor.py` reveals the exact operation
+sequence within `merge_workspace_per_wp()`:
+
+1. **Merge WP branches** into target (lines 585–624)
+   - After each merge: `_mark_wp_merged_done()` updates status files
+   - Status JSONL, snapshot JSON, and frontmatter are written **but not committed**
+2. **Push to remote** (lines 627–636) — if `--push` flag set
+3. **Remove worktrees** (lines 639–659) — `git worktree remove --force`
+4. **Delete branches** (lines 661–684) — `git branch -d`, falls back to `-D`
+5. **Render completion message** (lines 686–694)
+6. **Exit** — status files remain uncommitted by design
+
+The crash consistently interrupts at step 3 or between steps 3–4. Status file
+writes (step 1) have always completed before the crash point.
+
+### Log evidence
+
+Pre-crash VS Code session logs were lost to rotation. The post-restart session
+(`20260401T001803`) shows a normal startup with no crash artifacts. The
+`cli.log` at `20260401T000822` (00:08, immediately after crash) shows only
+`code --list-extensions` — likely the previous Claude session's diagnostics.
+
+No macOS crash reports were generated (`~/Library/Logs/DiagReports/` empty),
+suggesting the Electron process exited uncleanly but did not segfault.
+
+### Volume hypothesis
+
+| Feature | WP count | GitLens | Crash? |
+| --- | --- | --- | --- |
+| F006 | 3 | Yes | Yes (incidents 1–3) |
+| F007 | 4 | No | No |
+| F009 | 6 | No | **Yes** (incident 4) |
+
+GitLens lowers the crash threshold. Without GitLens, the built-in Git extension
+alone may still crash when the worktree count is high enough. The threshold
+appears to be somewhere between 4 and 6 worktrees.
+
+**However**: bake-tracker has run spec-kitty merges with many more than 6 WPs
+without crashing, also from the VS Code integrated terminal. This rules out
+both WP count and terminal type as the sole factor. The crash is
+**kg-automation-specific**. Possible differentiators:
+
+- **VS Code window identity**: kg-automation and bake-tracker open in separate
+  VS Code windows. The kg-automation window may carry more accumulated state
+  (open editors, SCM panel state, longer uptime)
+- **File watcher load**: kg-automation has ~400+ tracked files, heavily
+  markdown-based; bake-tracker is smaller and Python-focused. More active
+  file watchers = more concurrent reactions to worktree deletion
+- **Workspace settings**: kg-automation has markdownlint, markdown word-wrap,
+  and trimming enabled — extensions that register additional file watchers
+  on the doc-heavy tree
+- **Repo size/complexity**: kg-automation has more directories, kitty-specs
+  artifacts, and nested status files — the Git extension's `status -z -uall`
+  scan is heavier
+
+The crash appears to require a threshold of concurrent file watcher + Git
+extension activity during worktree removal that kg-automation exceeds but
+bake-tracker does not. Next test: `"git.enabled": false` in kg-automation
+workspace settings before merging.
+
+## Recovery Script
+
+A recovery script is available at `scripts/merge-crash-recovery.sh`. It detects
+and completes the standard post-crash cleanup (commit status files, delete stale
+branches, push).
+
+## Next Steps
+
+1. **For the next merge**: Run `log stream --predicate 'process CONTAINS "Code"'
+   --level error > /tmp/vscode-merge-monitor.log &` in an external terminal
+   BEFORE starting the merge. This captures crash evidence outside VS Code's
+   own log system.
+
+2. **Test disabling built-in Git extension**: Set `"git.enabled": false` in
+   VS Code settings before the next merge to definitively test whether the
+   Git extension is the culprit.
+
+3. **If crash persists with git.enabled=false**: The cause is the file watcher
+   subsystem itself, not any extension. Consider running merges from an external
+   terminal as the permanent workaround.
 
 ---
 
@@ -352,3 +457,4 @@ and the file watcher shutdowns.
 - Node.js: 22.22.1
 - Feature (crash incidents 1-3): 006-goal-and-outcome-structure (3 WPs)
 - Feature (resolution test): 007-vikunja-api-skill (4 WPs)
+- Feature (incident 4): 009-daily-habit-checkin (6 WPs)
