@@ -58,11 +58,11 @@ unit file in the repo, deploy it to office2, and verify Obsidian Sync
 resumes with the new path.
 
 **Included subtasks**:
-- [ ] T004: Verify vault-snapshot absence on office2 (confirm no timer, service, or script)
-- [ ] T005: Rename `/home/kgale/second-brain/vault/` to `/home/kgale/second-brain/notes/` on office2
-- [ ] T006: Update `scripts/office2/obsidian-sync.service` in repo (vault → notes path)
-- [ ] T007: Deploy updated obsidian-sync.service to office2 and enable/start it
-- [ ] T008: Verify Obsidian Sync resumes — create test note on Mac, confirm appears on office2
+- [x] T004: Verify vault-snapshot absence on office2 (confirm no timer, service, or script)
+- [x] T005: Rename `/home/kgale/second-brain/vault/` to `/home/kgale/second-brain/notes/` on office2
+- [x] T006: Update `scripts/office2/obsidian-sync.service` in repo (vault → notes path)
+- [x] T007: Deploy updated obsidian-sync.service to office2 and enable/start it
+- [x] T008: Verify Obsidian Sync resumes — create test note on Mac, confirm appears on office2
 
 **Prompt file**: [tasks/WP02-vault-rename-obsidian-sync.md](tasks/WP02-vault-rename-obsidian-sync.md)
 
