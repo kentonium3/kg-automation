@@ -13,6 +13,7 @@ base_commit: 7ada443ff046627f7a445a5f71b17f9263a4d166
 created_at: '2026-04-01T19:31:53.904132+00:00'
 subtasks: [T016, T017, T018]
 shell_pid: "27150"
+agent: "claude-code"
 history:
 - date: '2026-04-01T18:30:16Z'
   event: created
@@ -140,3 +141,7 @@ Expected: no output.
 - **Agent state**: If an agent is mid-execution during file copy, it will
   use the old file for that run. This is harmless — the next run picks up
   the new file.
+
+## Activity Log
+
+- 2026-04-01T19:31:54Z – claude-code – shell_pid=27150 – lane=doing – Assigned agent via workflow command
