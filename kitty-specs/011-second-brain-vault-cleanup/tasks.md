@@ -146,7 +146,7 @@ bidirectional sync timer.
 - [x] T027: Update `docs/design/architecture/service-inventory.md` narrative [P]
 - [x] T028: Update `docs/design/architecture/data-flows.md` narrative [P]
 - [x] T029: Update `docs/design/architecture/glossary.md` — vault definition → notes [P]
-- [ ] T030: Update `docs/design/architecture/security-posture.md` — privacy path [P]
+- [x] T030: Update `docs/design/architecture/security-posture.md` — privacy path [P]
 - [ ] T031: Update `docs/design/architecture/backup-and-recovery.md` — backup path [P]
 - [ ] T032: Update `docs/handbooks/obsidian-sync-ops.md` — vault → notes, remove git snapshot section
 - [ ] T033: Update `docs/handbooks/inbox-ops.md` — vault → notes
