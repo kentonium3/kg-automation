@@ -1,7 +1,7 @@
 ---
 work_package_id: WP05
 title: Deployment & Verification
-lane: planned
+lane: "doing"
 dependencies: []
 requirement_refs:
 - FR-016
@@ -9,7 +9,11 @@ requirement_refs:
 planning_base_branch: main
 merge_target_branch: main
 branch_strategy: Planning artifacts for this feature were generated on main. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into main unless the human explicitly redirects the landing branch.
+base_branch: main
+base_commit: 20bd35a398d5ecbc0cb325a8dd876dc21b1c4d1b
+created_at: '2026-04-01T22:44:25.794585+00:00'
 subtasks: [T018, T019, T020, T021, T022]
+shell_pid: "60285"
 history:
 - date: '2026-04-01T22:12:34Z'
   event: created
