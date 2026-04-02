@@ -30,6 +30,7 @@ All services run on office2 unless otherwise noted.
 | Inbox Processing (evening) | 6PM ET daily | OpenClaw cron → felix-admin-capture | claude | Obsidian inbox processing |
 | Habit Check-in (morning) | 7:05 AM ET daily | OpenClaw cron → felix-admin-habits | claude | Daily habit check-in via WhatsApp |
 | Habit Report (weekly) | Sunday 6PM ET | OpenClaw cron → felix-admin-habits | claude | Weekly habit pattern report via WhatsApp |
+| Incomplete Task Detection | Every 4 hours (`0 */4 * * *`) | OpenClaw cron → felix-admin-tasker | claude | Poll Inbox for flat tasks |
 | Second Brain Sync | Every 15 min | `second-brain-sync.timer` (systemd) | kgale | Bidirectional git sync for non-vault content |
 
 ## Deployment Details
@@ -118,6 +119,37 @@ All services run on office2 unless otherwise noted.
 - **WhatsApp delivery**: Cron jobs use `--to` for direct delivery; completion marking via main agent delegation
 - **Privacy boundary**: `02-Growth/_private/` is never accessed
 - **Runbook**: `docs/handbooks/habits-ops.md`
+
+### Felix Admin Tasker Agent (F013)
+- **Deployed by**: F013
+- **Type**: OpenClaw agent (sub-agent of the gateway)
+- **Agent name**: `felix-admin-tasker`
+- **Workspace**: `/data/services/openclaw/tasker-agent/`
+- **Source in repo**: `scripts/openclaw/agents/felix-admin-tasker/`
+- **Model**: `anthropic/claude-sonnet-4-6`
+- **Purpose**: Task intelligence — transforms raw tasks into structured Vikunja entries
+- **Skills**: task-intelligence, vikunja-api
+- **Autonomy**: Assisted (Level 1)
+- **Trigger**: Delegation from felix-admin-capture, cron (incomplete detection), manual
+- **Schedule**: Every 4 hours via OpenClaw cron (`0 */4 * * *`)
+- **Privacy boundary**: `02-Growth/_private/` is never accessed
+
+**Cron setup command** (run on office2):
+```bash
+openclaw cron add \
+  --name "task-detection" \
+  --cron "0 */4 * * *" \
+  --agent felix-admin-tasker \
+  --session isolated \
+  --message '{"action": "detect_incomplete"}' \
+  --no-deliver
+```
+
+**Cron timing rationale**:
+- Every 4 hours = 6 runs per day
+- Balances detection speed vs. polling overhead
+- Not too frequent (avoids redundant checks) but catches tasks within half a workday
+- Configurable: adjust via `openclaw cron update` if 4 hours is too frequent/infrequent
 
 ### WhatsApp Channel (F004)
 - **Deployed by**: F004
