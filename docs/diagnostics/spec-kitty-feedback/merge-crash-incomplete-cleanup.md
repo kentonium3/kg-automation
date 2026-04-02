@@ -488,6 +488,61 @@ A recovery script is available at `scripts/merge-crash-recovery.sh`. It detects
 and completes the standard post-crash cleanup (commit status files, delete stale
 branches, push).
 
+## Hypothesis: Markdown Linter Auto-Fix as Crash Amplifier (2026-04-02)
+
+During F013 recovery, the markdownlint extension (or markdown-all-in-one
+formatter) was observed auto-modifying `service-inventory.md` within ~100ms
+of every git merge operation. This blocked `git merge` commands (dirty
+working tree) and required repeated stash/restore cycles.
+
+### The amplification mechanism
+
+During spec-kitty worktree operations, the linter creates a feedback loop:
+
+1. Git operation creates/modifies/deletes files
+2. VS Code file watcher detects the changes (FSEvents)
+3. Markdownlint or markdown formatter auto-fixes affected files
+4. The auto-fix writes to disk, generating *additional* FSEvents
+5. Steps 2-4 repeat for each auto-fixed file
+
+Each linter auto-fix generates at minimum 3 filesystem events (read, write
+temp, atomic rename). In a markdown-heavy repo like kg-automation with 400+
+tracked files, this multiplies the FSEvents burst from worktree operations.
+
+### Why kg-automation crashes but bake-tracker doesn't
+
+This may explain the project-specific crash pattern:
+
+| Factor | kg-automation | bake-tracker |
+| --- | --- | --- |
+| Markdown files | ~400+ | ~20 |
+| Markdownlint enabled | Yes | Yes |
+| Markdown formatter on save | Yes (markdown-all-in-one) | No |
+| `files.trimTrailingWhitespace` for markdown | Yes | No |
+| FSEvents load during worktree ops | High (file changes × linter fixes) | Low |
+
+The linter auto-fix multiplier may be what pushes kg-automation over the
+FSEvents queue overflow threshold while bake-tracker stays under it.
+
+### Mitigation applied (2026-04-02)
+
+In `.vscode/settings.json`:
+
+- `"editor.formatOnSave": false` for markdown — disables markdown-all-in-one
+  formatter from rewriting files on save
+- `"editor.codeActionsOnSave": {}` for markdown — disables markdownlint
+  auto-fix on save
+- `"markdownlint.run": "onSave"` — linting still runs and shows warnings,
+  but does not auto-modify files
+
+Linting remains active for visibility. Only the auto-modification is disabled.
+
+### Testing needed
+
+The next multi-WP merge should be run from the VS Code integrated terminal
+with these settings to see if the crash is eliminated or reduced. If the
+crash persists, the linter was not the primary amplifier.
+
 ## Next Steps
 
 1. **Investigate FSEvents overflow** — Incident 6 shows the FSEvents client
@@ -495,11 +550,14 @@ branches, push).
    SIGTERM. This may be the primary crash mechanism, with code signing being
    a separate (but coincidental) trigger in incident 5.
 
-2. **Test mitigation**: Run merges from an external terminal (outside VS Code)
+2. **Test linter hypothesis** — Run next merge with markdown auto-fix
+   disabled (applied 2026-04-02). Compare FSEvents behavior.
+
+3. **Test mitigation**: Run merges from an external terminal (outside VS Code)
    to confirm the crash is VS Code-specific. If merges succeed externally,
    the fix is to run `spec-kitty merge` from a standalone terminal.
 
-3. **File VS Code bug**: The FSEvents overflow → SIGTERM cascade appears to
+4. **File VS Code bug**: The FSEvents overflow → SIGTERM cascade appears to
    be a VS Code/Electron bug where rapid directory deletion causes
    unrecoverable file watcher state.
 

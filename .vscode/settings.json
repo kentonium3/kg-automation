@@ -1,8 +1,16 @@
 {
   "files.eol": "\n",
+
+  // Disable markdown auto-formatting on save to reduce FSEvents load during
+  // git operations. Linting still runs (warnings shown) but does not
+  // auto-modify files, preventing the feedback loop of:
+  //   git operation → file change → linter auto-fix → more file changes
+  // See docs/diagnostics/spec-kitty-feedback/merge-crash-incomplete-cleanup.md
   "[markdown]": {
     "editor.wordWrap": "on",
-    "files.trimTrailingWhitespace": true
+    "files.trimTrailingWhitespace": true,
+    "editor.formatOnSave": false,
+    "editor.codeActionsOnSave": {}
   },
   "markdownlint.config": {
     "MD013": false,
@@ -11,6 +19,8 @@
     "MD032": false,
     "MD034": false
   },
+  "markdownlint.run": "onSave",
+
   "python.defaultInterpreterPath": "/usr/local/bin/python3",
 
   // Exclude spec-kitty worktrees from file watching to prevent FSEvents
