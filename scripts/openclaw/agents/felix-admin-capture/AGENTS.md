@@ -61,8 +61,8 @@ For each extracted content block, determine the content type and destination:
 | Financial goals or planning | `05-Finance/` | Create or update `_Goals.md` |
 | Journal-style personal reflection | `06-Journal/` | Create dated journal entry |
 | Book, resource, tool reference | `07-Resources/` | Create resource note |
-| Task or action item | Vikunja | Create task via task bridge (see task bridge section) |
-| Research request | Vikunja | Create task in Research project (see task bridge section) |
+| Task or action item | Vikunja | Delegate to felix-admin-tasker (fallback: create flat Vikunja task) |
+| Research request | Vikunja | Delegate to felix-admin-tasker (fallback: create flat Vikunja task) |
 | AI automation capability/idea | `07-Resources/kg-automation/` | Create or update relevant note |
 | Unclassifiable | Leave in `00-Inbox/` | Set `status: needs-review` |
 
@@ -316,9 +316,107 @@ status: reference
 The processing log is the audit trail. Every action must be logged. Every
 error must be logged. Nothing happens silently.
 
-## Task bridge — Vikunja task creation
+## Task delegation to felix-admin-tasker
 
-When you classify a content block as a task or research request, create a
+When content is classified as an action item or research request, delegate
+to felix-admin-tasker instead of creating a flat Vikunja task directly.
+
+**Note (F013)**: Task creation now delegates to felix-admin-tasker for
+intelligent structuring. The flat task bridge is preserved as fallback
+only. See fallback section below.
+
+### Delegation command
+
+```bash
+openclaw agent --agent felix-admin-tasker \
+  --message '<JSON payload>' \
+  --json --timeout 120
+```
+
+### Building the delegation payload
+
+From the inbox note content you have already extracted:
+
+1. **raw_text** — the task description (you already have this from classification)
+2. **source_reference** — the inbox file path (e.g., `00-Inbox/2026-04-02-voice-note.md`)
+3. **inferred_identity** — apply your existing identity inference rules:
+   - **intentional**: business, consulting, client, revenue, marketing
+   - **metalcasework**: metal casework, fabrication, ecommerce
+   - **personal**: everything else (default)
+4. **date_signals** — extract any date/time phrases from the raw text:
+   - Look for: "next week", "by Friday", "April 15", "tomorrow", "end of month"
+   - Pass as array of strings, preserving original phrasing
+5. **context_signals** — extract project/priority/goal hints:
+   - Look for: project names, priority words ("urgent", "important"), goal references
+   - Pass as array of strings
+
+### Payload format
+
+```json
+{
+  "action": "enrich_task",
+  "raw_text": "Schedule appointment with PT for knee follow-up",
+  "source_reference": "00-Inbox/2026-04-02-voice-dump.md",
+  "inferred_identity": "personal",
+  "date_signals": [],
+  "context_signals": ["PT", "knee", "health"]
+}
+```
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| action | string | yes | Always `"enrich_task"` for new task handoff |
+| raw_text | string | yes | Original task description |
+| source_reference | string | yes | Path to originating inbox note |
+| inferred_identity | string | no | Identity label if you could infer it |
+| date_signals | string[] | no | Date/time references found in text |
+| context_signals | string[] | no | Keywords suggesting project, priority, or goal |
+
+### Delegation response
+
+felix-admin-tasker returns JSON indicating handoff acceptance:
+
+```json
+{
+  "status": "accepted",
+  "task_text": "Schedule appointment with PT for knee follow-up",
+  "next_step": "proposing_to_kent"
+}
+```
+
+Or on error:
+
+```json
+{
+  "status": "error",
+  "error": "Vikunja API unavailable",
+  "fallback_required": true
+}
+```
+
+### Fallback logic
+
+**Fallback**: If delegation fails (timeout, error, or agent unavailable):
+
+1. Log the failure: `felix-admin-tasker delegation failed: {reason}. Falling back to flat task creation.`
+2. Create the task using the existing Task Bridge procedure below (flat task in Inbox)
+3. Add a comment to the flat task: `[Felix] enrichment | pending | {timestamp} | delegation fallback — tasker unavailable`
+4. Continue processing remaining inbox files — do not halt
+
+**Delegation is considered failed if**:
+
+- Command returns non-zero exit code
+- Response JSON has `"status": "error"` with `"fallback_required": true`
+- Command times out (120 seconds)
+
+---
+
+## Task bridge — Vikunja task creation (fallback)
+
+**This section is the fallback path** when felix-admin-tasker delegation
+fails. The primary path is delegation (section above).
+
+When delegation fails and you fall back to this section, create a
 real Vikunja task using the vikunja_api skill.
 
 Before first use in a session, read the skill:
@@ -376,3 +474,14 @@ If Vikunja is unreachable or task creation fails:
 If the vikunja_api skill is not available:
 - Log the error and continue processing other content types
 - Flag all task/research items as "task creation unavailable" in the log
+
+<!-- F013 Deployment Note:
+To transition to delegation without losing tasks:
+1. Deploy felix-admin-tasker workspace and skill to office2 FIRST
+2. Verify tasker responds to manual test delegation
+3. THEN update this AGENTS.md on office2 with the delegation section
+4. The fallback path ensures any in-flight tasks during the transition
+   land as flat tasks in Inbox if tasker is not yet ready
+5. felix-admin-tasker's detect_incomplete polling will catch any flat
+   tasks created during the transition window
+-->
