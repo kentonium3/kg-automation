@@ -136,7 +136,7 @@ project by name at runtime via `GET /projects`. Never hardcode project IDs.**
 | Consulting, client work, marketing, thought leadership, revenue, sales, invoice | intentional | Intentional LLC |
 | Business acquisition, CT course | personal | Business Acquisition |
 | Health, fitness, PT, medical, physical therapy, doctor, dentist, exercise, diet | personal | Health & Conditioning |
-| Personal growth, habits, mindset, learning, reading, journaling, meditation | personal | Personal Growth |
+| Personal growth, habits, mindset, learning, reading, journaling, meditation | personal | Personal Growth & Transformation |
 | Metal casework, fabrication, ecommerce research, metalbox | metalcasework | Metal Casework |
 | Day-to-day errands, household, shopping, appointments, car maintenance | personal | Everyday |
 | Ambiguous / no clear signal | — | Ask Kent; default to Inbox |
