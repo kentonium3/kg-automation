@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
-  "last_updated": "2026-04-01",
-  "updated_by": "F012",
+  "last_updated": "2026-04-02",
+  "updated_by": "F013",
   "services": [
     {
       "name": "vikunja",
@@ -158,6 +158,17 @@
           "source_in_repo": "scripts/openclaw/agents/felix-admin-habits/",
           "deployed_by": "F009",
           "autonomy_level": "assisted"
+        },
+        "felix-admin-tasker": {
+          "workspace": "/data/services/openclaw/tasker-agent",
+          "model": "anthropic/claude-sonnet-4-6",
+          "purpose": "Task intelligence — transforms raw tasks into structured Vikunja entries",
+          "source_in_repo": "scripts/openclaw/agents/felix-admin-tasker/",
+          "skills": ["task-intelligence", "vikunja-api"],
+          "triggers": ["delegation", "cron", "manual"],
+          "deployed_by": "F013",
+          "autonomy_level": "assisted",
+          "updated_by": "F013"
         }
       }
     },
@@ -193,6 +204,21 @@
       "status": "active",
       "purpose": "Daily habit check-in and weekly pattern report",
       "runbook": "docs/handbooks/habits-ops.md"
+    },
+    {
+      "name": "task-detection",
+      "type": "openclaw-cron",
+      "host": "office2",
+      "agent": "felix-admin-tasker",
+      "schedules": [
+        {"name": "task-detection", "cron": "0 */4 * * *", "local_time": "Every 4 hours UTC"}
+      ],
+      "timeout_seconds": 300,
+      "session_mode": "isolated",
+      "deployed_by": "F013",
+      "status": "active",
+      "purpose": "Detect and enrich incomplete tasks in Vikunja Inbox",
+      "updated_by": "F013"
     }
   ]
 }

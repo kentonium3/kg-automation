@@ -40,3 +40,20 @@ The authoritative record for agent registration and autonomy levels is
 | Date | Level | Direction | Reason | Decided By |
 |------|-------|-----------|--------|------------|
 | 2026-04-01 | Assisted | Registration | Initial registration under Felix governance framework (F012) | Kent Gale |
+
+---
+
+## felix-admin-tasker
+
+**Team**: SuperAdmin (B)
+**Scope**: Task structuring and enrichment — transforms raw task descriptions into fully structured Vikunja tasks
+**Does NOT handle**: Inbox processing, habit tracking, briefings, calendar, email
+**Current Autonomy Level**: Assisted (Level 1)
+**Deployed**: F013 (2026-04-02)
+**Registered**: F013 (2026-04-02)
+
+### Transition History
+
+| Date | Level | Direction | Reason | Decided By |
+|------|-------|-----------|--------|------------|
+| 2026-04-02 | Assisted | Registration | Initial registration under Felix governance framework (F013) | Kent Gale |
