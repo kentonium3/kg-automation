@@ -6,7 +6,7 @@ status: approved
 
 # Service Inventory
 
-Authoritative data: [`data/service-inventory.json`](data/service-inventory.json)
+Authoritative data: [`data/service-inventory.json`](<./data/service-inventory.json>)
 
 All services run on office2 unless otherwise noted.
 
