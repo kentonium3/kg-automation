@@ -1,7 +1,8 @@
 ---
 work_package_id: WP02
 title: Agent Identity & Configuration
-dependencies: []
+dependencies:
+- WP01
 requirement_refs:
 - C-001
 - C-002
@@ -10,7 +11,7 @@ requirement_refs:
 - NFR-007
 planning_base_branch: main
 merge_target_branch: main
-branch_strategy: 'Planning branch: main. Merge target: main. No dependencies — branch from main. Can run in parallel with WP01.'
+branch_strategy: Planning artifacts for this feature were generated on main. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into main unless the human explicitly redirects the landing branch.
 subtasks: [T007, T008, T009, T010]
 history:
 - date: '2026-04-02T12:53:14Z'
