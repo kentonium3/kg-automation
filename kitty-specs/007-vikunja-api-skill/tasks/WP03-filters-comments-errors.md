@@ -1,7 +1,6 @@
 ---
 work_package_id: WP03
 title: Filters, Comments, and Error Handling
-lane: "done"
 dependencies: [WP01]
 requirement_refs:
 - FR-012
@@ -19,14 +18,16 @@ base_branch: 007-vikunja-api-skill-WP01
 base_commit: 5d97124cb3320d5f3662e83777019c28f7481c0a
 created_at: '2026-03-30T23:24:36.620124+00:00'
 subtasks: [T011, T012, T013, T014]
-agent: claude-opus
-shell_pid: '33222'
-review_status: "approved"
-reviewed_by: "Kent Gale"
 history:
 - date: '2026-03-30T22:03:15Z'
   event: created
   actor: claude
+authoritative_surface: kitty-specs/007-vikunja-api-skill/contracts/vikunja-api-contract.md/
+execution_mode: code_change
+mission_id: 01KN5QX3WHZRDC03C5G6MQ2Y75
+owned_files:
+- kitty-specs/007-vikunja-api-skill/contracts/vikunja-api-contract.md
+wp_code: WP03
 ---
 
 # WP03: Filters, Comments, and Error Handling

@@ -1,7 +1,6 @@
 ---
 work_package_id: WP01
 title: Prerequisites — Mac Repo and Office2 Git Credentials
-lane: done
 dependencies: []
 requirement_refs:
 - FR-15
@@ -13,14 +12,16 @@ base_branch: main
 base_commit: 001469d86b01754a066625ccc3ed52697568c5f7
 created_at: '2026-04-01T18:37:52.447799+00:00'
 subtasks: [T001, T002, T003]
-agent: claude-code
-shell_pid: '19475'
-reviewed_by: "Kent Gale"
-review_status: "approved"
 history:
 - date: '2026-04-01T18:30:16Z'
   event: created
   actor: claude
+authoritative_surface: src/
+execution_mode: code_change
+mission_id: 01KN5QX3WPT8E1MP9T6H487WY6
+owned_files:
+- src/**
+wp_code: WP01
 ---
 
 # WP01: Prerequisites — Mac Repo and Office2 Git Credentials

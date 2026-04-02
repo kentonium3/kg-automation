@@ -5,10 +5,41 @@
 spec_kitty:
   version: 2.1.2
   initialized_at: '2026-03-25T23:07:06.539751'
-  last_upgraded_at: null
+  last_upgraded_at: '2026-04-02T00:01:22.540779+00:00'
+  project_uuid: 01KN5QX3W066J4SZQF14J1D8PD
+  schema_version: 3
+  schema_capabilities:
+  - canonical_context
+  - event_log_authority
+  - ownership_manifest
+  - thin_shims
 environment:
   python_version: 3.13.12
   platform: darwin
   platform_version: macOS-26.3.1-x86_64-i386-64bit-Mach-O
 migrations:
-  applied: []
+  applied:
+  - id: 2.1.2_fix_glossary_context_skill
+    applied_at: '2026-04-01T20:01:18.147812'
+    result: success
+    notes: Replaced .claude/skills/spec-kitty-glossary-context/SKILL.md; Replaced .agents/skills/spec-kitty-glossary-context/SKILL.md
+  - id: 2.1.2_fix_orchestrator_api_skill
+    applied_at: '2026-04-01T20:01:18.154847'
+    result: success
+    notes: Replaced .claude/skills/spec-kitty-orchestrator-api-operator/SKILL.md; Replaced .agents/skills/spec-kitty-orchestrator-api-operator/SKILL.md
+  - id: 2.1.2_fix_runtime_next_skill
+    applied_at: '2026-04-01T20:01:18.162451'
+    result: success
+    notes: Replaced .claude/skills/spec-kitty-runtime-next/SKILL.md; Replaced .agents/skills/spec-kitty-runtime-next/SKILL.md
+  - id: 2.1.3_fix_planning_repository_terminology
+    applied_at: '2026-04-01T20:01:18.200827'
+    result: success
+    notes: .claude/commands/spec-kitty.tasks.md; .claude/commands/spec-kitty.specify.md; .claude/commands/spec-kitty.tasks-packages.md; .claude/commands/spec-kitty.tasks-outline.md; .claude/commands/spec-kitty.tasks-finalize.md; .claude/commands/spec-kitty.plan.md; .github/prompts/spec-kitty.specify.prompt.md; .github/prompts/spec-kitty.tasks-outline.prompt.md; .github/prompts/spec-kitty.tasks-packages.prompt.md; .github/prompts/spec-kitty.plan.prompt.md; .github/prompts/spec-kitty.tasks-finalize.prompt.md; .github/prompts/spec-kitty.tasks.prompt.md; .codex/prompts/spec-kitty.tasks.md; .codex/prompts/spec-kitty.specify.md; .codex/prompts/spec-kitty.tasks_finalize.md; .codex/prompts/spec-kitty.tasks_packages.md; .codex/prompts/spec-kitty.tasks_outline.md; .codex/prompts/spec-kitty.plan.md
+  - id: 2.1.3_restore_prompt_commands
+    applied_at: '2026-04-01T20:01:18.212845'
+    result: skipped
+    notes: Not applicable
+  - id: 2.1.4_enforce_command_file_state
+    applied_at: '2026-04-01T20:01:18.424910'
+    result: success
+    notes: 'Wrote prompt: .claude/commands/spec-kitty.analyze.md; Wrote prompt: .claude/commands/spec-kitty.checklist.md; Wrote prompt: .claude/commands/spec-kitty.constitution.md; Wrote prompt: .claude/commands/spec-kitty.plan.md; Wrote prompt: .claude/commands/spec-kitty.research.md; Wrote prompt: .claude/commands/spec-kitty.specify.md; Wrote prompt: .claude/commands/spec-kitty.tasks.md; Wrote prompt: .claude/commands/spec-kitty.tasks-outline.md; Wrote prompt: .claude/commands/spec-kitty.tasks-packages.md; Wrote shim: .claude/commands/spec-kitty.accept.md; Wrote shim: .claude/commands/spec-kitty.dashboard.md; Wrote shim: .claude/commands/spec-kitty.implement.md; Wrote shim: .claude/commands/spec-kitty.merge.md; Wrote shim: .claude/commands/spec-kitty.review.md; Wrote shim: .claude/commands/spec-kitty.status.md; Wrote shim: .claude/commands/spec-kitty.tasks-finalize.md; Wrote prompt: .github/prompts/spec-kitty.analyze.prompt.md; Wrote prompt: .github/prompts/spec-kitty.checklist.prompt.md; Wrote prompt: .github/prompts/spec-kitty.constitution.prompt.md; Wrote prompt: .github/prompts/spec-kitty.plan.prompt.md; Wrote prompt: .github/prompts/spec-kitty.research.prompt.md; Wrote prompt: .github/prompts/spec-kitty.specify.prompt.md; Wrote prompt: .github/prompts/spec-kitty.tasks.prompt.md; Wrote prompt: .github/prompts/spec-kitty.tasks-outline.prompt.md; Wrote prompt: .github/prompts/spec-kitty.tasks-packages.prompt.md; Wrote shim: .github/prompts/spec-kitty.accept.prompt.md; Wrote shim: .github/prompts/spec-kitty.dashboard.prompt.md; Wrote shim: .github/prompts/spec-kitty.implement.prompt.md; Wrote shim: .github/prompts/spec-kitty.merge.prompt.md; Wrote shim: .github/prompts/spec-kitty.review.prompt.md; Wrote shim: .github/prompts/spec-kitty.status.prompt.md; Wrote shim: .github/prompts/spec-kitty.tasks-finalize.prompt.md; Wrote prompt: .gemini/commands/spec-kitty.analyze.toml; Wrote prompt: .gemini/commands/spec-kitty.checklist.toml; Wrote prompt: .gemini/commands/spec-kitty.constitution.toml; Wrote prompt: .gemini/commands/spec-kitty.plan.toml; Wrote prompt: .gemini/commands/spec-kitty.research.toml; Wrote prompt: .gemini/commands/spec-kitty.specify.toml; Wrote prompt: .gemini/commands/spec-kitty.tasks.toml; Wrote prompt: .gemini/commands/spec-kitty.tasks-outline.toml; Wrote prompt: .gemini/commands/spec-kitty.tasks-packages.toml; Wrote shim: .gemini/commands/spec-kitty.accept.toml; Wrote shim: .gemini/commands/spec-kitty.dashboard.toml; Wrote shim: .gemini/commands/spec-kitty.implement.toml; Wrote shim: .gemini/commands/spec-kitty.merge.toml; Wrote shim: .gemini/commands/spec-kitty.review.toml; Wrote shim: .gemini/commands/spec-kitty.status.toml; Wrote shim: .gemini/commands/spec-kitty.tasks-finalize.toml; Wrote prompt: .codex/prompts/spec-kitty.analyze.md; Wrote prompt: .codex/prompts/spec-kitty.checklist.md; Wrote prompt: .codex/prompts/spec-kitty.constitution.md; Wrote prompt: .codex/prompts/spec-kitty.plan.md; Wrote prompt: .codex/prompts/spec-kitty.research.md; Wrote prompt: .codex/prompts/spec-kitty.specify.md; Wrote prompt: .codex/prompts/spec-kitty.tasks.md; Wrote prompt: .codex/prompts/spec-kitty.tasks_outline.md; Wrote prompt: .codex/prompts/spec-kitty.tasks_packages.md; Wrote shim: .codex/prompts/spec-kitty.accept.md; Wrote shim: .codex/prompts/spec-kitty.dashboard.md; Wrote shim: .codex/prompts/spec-kitty.implement.md; Wrote shim: .codex/prompts/spec-kitty.merge.md; Wrote shim: .codex/prompts/spec-kitty.review.md; Wrote shim: .codex/prompts/spec-kitty.status.md; Wrote shim: .codex/prompts/spec-kitty.tasks_finalize.md'

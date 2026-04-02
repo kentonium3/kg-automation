@@ -7,5 +7,6 @@
   "vcs": "git",
   "mission": "software-dev",
   "slug": "001-vikunja-docker-deploy",
-  "target_branch": "main"
+  "target_branch": "main",
+  "mission_id": "01KN5QX3W9YZC8278D6BM01V28"
 }

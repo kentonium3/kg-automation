@@ -1,7 +1,6 @@
 ---
 work_package_id: WP01
 title: Systemd Service and Sync Scripts
-lane: "approved"
 dependencies: []
 requirement_refs:
 - FR-01
@@ -20,14 +19,16 @@ base_branch: main
 base_commit: fed93f37768f5e4863964f90dd4d51b720aa3df8
 created_at: '2026-04-01T15:23:53.181349+00:00'
 subtasks: [T001, T002, T003, T004, T005]
-agent: claude-code
-shell_pid: '82860'
-reviewed_by: "Kent Gale"
-review_status: "approved"
 history:
 - date: '2026-04-01T15:17:40Z'
   event: created
   actor: claude
+authoritative_surface: src/
+execution_mode: code_change
+mission_id: 01KN5QX3WNQ7X8S386F2A0ME8Q
+owned_files:
+- src/**
+wp_code: WP01
 ---
 
 # WP01: Systemd Service and Sync Scripts

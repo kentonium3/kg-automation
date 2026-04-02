@@ -1,7 +1,6 @@
 ---
 work_package_id: WP06
 title: Architecture Docs and Handbooks
-lane: done
 dependencies: [WP02]
 requirement_refs:
 - FR-04
@@ -16,14 +15,18 @@ base_branch: 011-second-brain-vault-cleanup-WP02
 base_commit: 811a6d2ba4c590e0b8a098c939a613a01eb8fda4
 created_at: '2026-04-01T19:32:55.435729+00:00'
 subtasks: [T025, T026, T027, T028, T029, T030, T031, T032, T033]
-agent: claude-code
-shell_pid: '27623'
-reviewed_by: "Kent Gale"
-review_status: "approved"
 history:
 - date: '2026-04-01T18:30:16Z'
   event: created
   actor: claude
+authoritative_surface: docs/
+execution_mode: code_change
+mission_id: 01KN5QX3WPT8E1MP9T6H487WY6
+owned_files:
+- docs/design/architecture/**
+- docs/handbooks/inbox-ops.md
+- docs/handbooks/obsidian-sync-ops.md
+wp_code: WP06
 ---
 
 # WP06: Architecture Docs and Handbooks

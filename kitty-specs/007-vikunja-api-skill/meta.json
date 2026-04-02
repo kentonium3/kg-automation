@@ -7,5 +7,6 @@
   "source_description": "OpenClaw skill wrapping Vikunja REST API for task CRUD, project/label queries, filter execution, and comments",
   "mission": "software-dev",
   "slug": "007-vikunja-api-skill",
-  "target_branch": "main"
+  "target_branch": "main",
+  "mission_id": "01KN5QX3WHZRDC03C5G6MQ2Y75"
 }

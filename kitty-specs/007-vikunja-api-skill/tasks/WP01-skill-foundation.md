@@ -1,7 +1,6 @@
 ---
 work_package_id: WP01
 title: SKILL.md Foundation — Frontmatter and Resolution
-lane: "done"
 dependencies: []
 requirement_refs:
 - C-001
@@ -21,14 +20,16 @@ base_branch: main
 base_commit: 12ea7bbccfd30d5eec8abd0beb854ba386e6eca3
 created_at: '2026-03-30T23:16:06.555173+00:00'
 subtasks: [T001, T002, T003, T004]
-agent: claude-opus
-shell_pid: '31159'
-review_status: "approved"
-reviewed_by: "Kent Gale"
 history:
 - date: '2026-03-30T22:03:15Z'
   event: created
   actor: claude
+authoritative_surface: kitty-specs/007-vikunja-api-skill/contracts/vikunja-api-contract.md/
+execution_mode: code_change
+mission_id: 01KN5QX3WHZRDC03C5G6MQ2Y75
+owned_files:
+- kitty-specs/007-vikunja-api-skill/contracts/vikunja-api-contract.md
+wp_code: WP01
 ---
 
 # WP01: SKILL.md Foundation — Frontmatter and Resolution

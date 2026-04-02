@@ -7,5 +7,6 @@
   "source_description": "Migrate Obsidian inbox processing from Mac Claude sessions to always-on OpenClaw agent on office2 with Vikunja task bridge",
   "mission": "software-dev",
   "slug": "008-inbox-processing-migration",
-  "target_branch": "main"
+  "target_branch": "main",
+  "mission_id": "01KN5QX3WJGAVA67AVPSBGXX96"
 }

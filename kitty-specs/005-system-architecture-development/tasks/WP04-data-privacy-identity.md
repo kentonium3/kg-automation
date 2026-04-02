@@ -1,7 +1,6 @@
 ---
 work_package_id: WP04
 title: Data, Privacy, and Identity Research
-lane: done
 dependencies:
 - WP02
 requirement_refs:
@@ -19,16 +18,18 @@ subtasks:
 - T020
 - T021
 - T022
-agent: claude
-shell_pid: '64682'
-review_status: approved
-reviewed_by: Kent Gale
 history:
 - timestamp: '2026-03-29T03:15:46Z'
   lane: planned
   agent: system
   shell_pid: ''
   action: Prompt generated via /spec-kitty.tasks
+authoritative_surface: kitty-specs/005-system-architecture-development/
+execution_mode: planning_artifact
+mission_id: 01KN5QX3WEJQ6KMCTQ8K1FX4FS
+owned_files:
+- kitty-specs/005-system-architecture-development/**
+wp_code: WP04
 ---
 
 # Work Package Prompt: WP04 – Data, Privacy, and Identity Research

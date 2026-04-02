@@ -1,7 +1,6 @@
 ---
 work_package_id: WP02
 title: OpenClaw Whisper Skill and End-to-End Verification
-lane: done
 dependencies:
 - WP01
 requirement_refs:
@@ -23,18 +22,18 @@ subtasks:
 - T009
 - T010
 phase: Phase 2 - Implementation
-assignee: ''
-agent: claude
-shell_pid: '72410'
-review_status: approved
-reviewed_by: Kent Gale
-review_feedback: ''
 history:
 - timestamp: '2026-03-28T16:22:31Z'
   lane: planned
   agent: system
   shell_pid: ''
   action: Prompt generated via /spec-kitty.tasks
+authoritative_surface: kitty-specs/003-whisper-transcription-skill/
+execution_mode: planning_artifact
+mission_id: 01KN5QX3WCFA855XAHAHZ10CB4
+owned_files:
+- kitty-specs/003-whisper-transcription-skill/**
+wp_code: WP02
 ---
 
 # Work Package Prompt: WP02 – OpenClaw Whisper Skill and End-to-End Verification

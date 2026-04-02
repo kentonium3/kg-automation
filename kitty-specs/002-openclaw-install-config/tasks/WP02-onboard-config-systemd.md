@@ -1,7 +1,6 @@
 ---
 work_package_id: WP02
 title: Onboarding, Configuration, and systemd Capture
-lane: "approved"
 dependencies: [WP01]
 requirement_refs:
 - C-001
@@ -24,18 +23,18 @@ subtasks:
 - T012
 - T013
 phase: Phase 2 - Configuration
-assignee: ''
-agent: claude
-shell_pid: '24161'
-review_status: "approved"
-reviewed_by: "Kent Gale"
-review_feedback: ''
 history:
 - timestamp: '2026-03-26T22:28:20Z'
   lane: planned
   agent: system
   shell_pid: ''
   action: Prompt generated via /spec-kitty.tasks
+authoritative_surface: kitty-specs/002-openclaw-install-config/
+execution_mode: planning_artifact
+mission_id: 01KN5QX3WBC1M57EENV2JHWAT7
+owned_files:
+- kitty-specs/002-openclaw-install-config/**
+wp_code: WP02
 ---
 
 # Work Package Prompt: WP02 – Onboarding, Configuration, and systemd Capture

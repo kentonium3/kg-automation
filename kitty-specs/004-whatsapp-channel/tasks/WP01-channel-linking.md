@@ -1,7 +1,6 @@
 ---
 work_package_id: WP01
 title: WhatsApp Channel Linking, DM Config, and E2E Verification
-lane: done
 dependencies: []
 requirement_refs:
 - C-001
@@ -33,18 +32,18 @@ subtasks:
 - T006
 - T007
 phase: Phase 1 - Channel Setup
-assignee: ''
-agent: claude
-shell_pid: '97797'
-review_status: approved
-reviewed_by: Kent Gale
-review_feedback: feedback://004-whatsapp-channel/WP01/20260328T191239Z-b0231b3b.md
 history:
 - timestamp: '2026-03-28T18:00:42Z'
   lane: planned
   agent: system
   shell_pid: ''
   action: Prompt generated via /spec-kitty.tasks
+authoritative_surface: kitty-specs/004-whatsapp-channel/
+execution_mode: planning_artifact
+mission_id: 01KN5QX3WDVP7JH72J2D8NHKMX
+owned_files:
+- kitty-specs/004-whatsapp-channel/**
+wp_code: WP01
 ---
 
 # Work Package Prompt: WP01 – WhatsApp Channel Linking, DM Config, and E2E Verification

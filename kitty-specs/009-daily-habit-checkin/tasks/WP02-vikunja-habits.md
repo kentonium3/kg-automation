@@ -1,7 +1,6 @@
 ---
 work_package_id: WP02
 title: Vikunja Habits Project and Initial Habits
-lane: "approved"
 dependencies: [WP01]
 requirement_refs:
 - C-006
@@ -14,14 +13,16 @@ base_branch: 009-daily-habit-checkin-WP01
 base_commit: 9268f58f9c8dcd1d7996eb78e18d9fa4f5c760fd
 created_at: '2026-04-01T03:14:40.863076+00:00'
 subtasks: [T006, T007, T008, T009]
-agent: claude-code
-shell_pid: '93277'
-reviewed_by: "Kent Gale"
-review_status: "approved"
 history:
 - date: '2026-04-01T01:46:04Z'
   event: created
   actor: claude
+authoritative_surface: kitty-specs/009-daily-habit-checkin/data-model.md/
+execution_mode: code_change
+mission_id: 01KN5QX3WMQC0B8XXG1QKT3N9E
+owned_files:
+- kitty-specs/009-daily-habit-checkin/data-model.md
+wp_code: WP02
 ---
 
 # WP02: Vikunja Habits Project and Initial Habits

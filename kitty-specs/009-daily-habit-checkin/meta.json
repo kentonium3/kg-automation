@@ -7,5 +7,6 @@
   "slug": "009-daily-habit-checkin",
   "target_branch": "main",
   "vcs": "git",
-  "source_description": "Daily habit accountability loop via WhatsApp with Vikunja-backed completion tracking and weekly pattern reporting"
+  "source_description": "Daily habit accountability loop via WhatsApp with Vikunja-backed completion tracking and weekly pattern reporting",
+  "mission_id": "01KN5QX3WMQC0B8XXG1QKT3N9E"
 }

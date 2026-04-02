@@ -1,7 +1,6 @@
 ---
 work_package_id: WP02
 title: Obsidian Goals Format and Content
-lane: "done"
 dependencies: [WP01]
 requirement_refs:
 - FR-001
@@ -19,17 +18,18 @@ subtasks:
 - T008
 - T009
 phase: Phase 1 - Core Implementation
-assignee: ''
-agent: claude
-shell_pid: '55849'
-review_status: "approved"
-reviewed_by: "Kent Gale"
 history:
 - timestamp: '2026-03-30T14:32:29Z'
   lane: planned
   agent: system
   shell_pid: ''
   action: Prompt generated via /spec-kitty.tasks
+authoritative_surface: kitty-specs/006-goal-and-outcome-structure/
+execution_mode: planning_artifact
+mission_id: 01KN5QX3WGCV3TGJ9CKAPFQ5N7
+owned_files:
+- kitty-specs/006-goal-and-outcome-structure/**
+wp_code: WP02
 ---
 
 # Work Package Prompt: WP02 – Obsidian Goals Format and Content

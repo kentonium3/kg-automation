@@ -1,7 +1,6 @@
 ---
 work_package_id: WP06
 title: Documentation and Fallback Verification
-lane: "approved"
 dependencies: [WP04]
 requirement_refs:
 - C-006
@@ -16,14 +15,20 @@ base_branch: 008-inbox-processing-migration-WP04
 base_commit: aa93b5727523d7098b41cae718db38ab3f9fdc6c
 created_at: '2026-03-31T04:01:10.109376+00:00'
 subtasks: [T026, T027, T028]
-agent: claude-code
-shell_pid: '79534'
-reviewed_by: "Kent Gale"
-review_status: "approved"
 history:
 - date: '2026-03-31T02:04:57Z'
   event: created
   actor: claude
+authoritative_surface: docs/
+execution_mode: code_change
+mission_id: 01KN5QX3WJGAVA67AVPSBGXX96
+owned_files:
+- docs/design/architecture/data/service-inventory.json
+- docs/design/architecture/service-inventory.md
+- docs/handbooks/inbox-ops.md
+- docs/handbooks/openclaw-ops.md
+- docs/handbooks/vikunja-ops.md
+wp_code: WP06
 ---
 
 # WP06: Documentation and Fallback Verification

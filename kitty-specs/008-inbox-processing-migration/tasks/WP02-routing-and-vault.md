@@ -1,7 +1,6 @@
 ---
 work_package_id: WP02
 title: Standing Orders — Routing and Vault Operations
-lane: "approved"
 dependencies: [WP01]
 requirement_refs:
 - C-001
@@ -19,14 +18,16 @@ base_branch: 008-inbox-processing-migration-WP01
 base_commit: c419b9c0eda3b6802fdf24b2fff4bfd66f37b679
 created_at: '2026-03-31T03:02:43.919668+00:00'
 subtasks: [T006, T007, T008, T009, T010]
-agent: claude-code
-shell_pid: '68445'
-reviewed_by: "Kent Gale"
-review_status: "approved"
 history:
 - date: '2026-03-31T02:04:57Z'
   event: created
   actor: claude
+authoritative_surface: src/
+execution_mode: code_change
+mission_id: 01KN5QX3WJGAVA67AVPSBGXX96
+owned_files:
+- src/**
+wp_code: WP02
 ---
 
 # WP02: Standing Orders — Routing and Vault Operations

@@ -1,7 +1,6 @@
 ---
 work_package_id: WP01
 title: Security Hardening — Rebind, systemd, Deploy Config
-lane: "approved"
 dependencies: []
 requirement_refs:
 - C-001
@@ -26,18 +25,18 @@ subtasks:
 - T005
 - T006
 phase: Phase 1 - Foundation
-assignee: ''
-agent: claude
-shell_pid: '69945'
-review_status: "approved"
-reviewed_by: "Kent Gale"
-review_feedback: ''
 history:
 - timestamp: '2026-03-28T16:22:31Z'
   lane: planned
   agent: system
   shell_pid: ''
   action: Prompt generated via /spec-kitty.tasks
+authoritative_surface: kitty-specs/003-whisper-transcription-skill/
+execution_mode: planning_artifact
+mission_id: 01KN5QX3WCFA855XAHAHZ10CB4
+owned_files:
+- kitty-specs/003-whisper-transcription-skill/**
+wp_code: WP01
 ---
 
 # Work Package Prompt: WP01 – Security Hardening — Rebind, systemd, Deploy Config

@@ -1,7 +1,6 @@
 ---
 work_package_id: WP03
 title: Repository Path Updates
-lane: done
 dependencies: [WP02]
 requirement_refs:
 - FR-05
@@ -16,14 +15,16 @@ base_branch: 011-second-brain-vault-cleanup-WP02
 base_commit: 811a6d2ba4c590e0b8a098c939a613a01eb8fda4
 created_at: '2026-04-01T19:18:10.948619+00:00'
 subtasks: [T009, T010, T011, T012, T013, T014, T015]
-agent: claude-code
-shell_pid: '24923'
-reviewed_by: "Kent Gale"
-review_status: "approved"
 history:
 - date: '2026-04-01T18:30:16Z'
   event: created
   actor: claude
+authoritative_surface: kitty-specs/011-second-brain-vault-cleanup/
+execution_mode: planning_artifact
+mission_id: 01KN5QX3WPT8E1MP9T6H487WY6
+owned_files:
+- kitty-specs/011-second-brain-vault-cleanup/**
+wp_code: WP03
 ---
 
 # WP03: Repository Path Updates

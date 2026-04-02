@@ -1,7 +1,6 @@
 ---
 work_package_id: WP03
 title: Standing Orders — Vikunja Task Bridge
-lane: "approved"
 dependencies: [WP02]
 requirement_refs:
 - C-002
@@ -19,14 +18,16 @@ base_branch: 008-inbox-processing-migration-WP02
 base_commit: 98c0596263a548f4520100bb66ca26b3e0136121
 created_at: '2026-03-31T03:09:09.346708+00:00'
 subtasks: [T011, T012, T013, T014, T015, T016]
-agent: claude-code
-shell_pid: '69648'
-reviewed_by: "Kent Gale"
-review_status: "approved"
 history:
 - date: '2026-03-31T02:04:57Z'
   event: created
   actor: claude
+authoritative_surface: kitty-specs/007-vikunja-api-skill/contracts/vikunja-api-contract.md/
+execution_mode: code_change
+mission_id: 01KN5QX3WJGAVA67AVPSBGXX96
+owned_files:
+- kitty-specs/007-vikunja-api-skill/contracts/vikunja-api-contract.md
+wp_code: WP03
 ---
 
 # WP03: Standing Orders — Vikunja Task Bridge

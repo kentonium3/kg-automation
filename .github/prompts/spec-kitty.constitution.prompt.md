@@ -1,9 +1,4 @@
----
-description: Generate or update the project constitution from a structured interview.
----
-
-
-
+<!-- spec-kitty-command-version: 3.0.3 -->
 # /spec-kitty.constitution - Interview + Compile Constitution
 
 ## User Input
@@ -13,6 +8,8 @@ $ARGUMENTS
 ```
 
 You **MUST** consider the user input before proceeding (if not empty).
+
+**In repos with multiple features, always pass `--feature <slug>` to every spec-kitty command.**
 
 ## Command Contract
 

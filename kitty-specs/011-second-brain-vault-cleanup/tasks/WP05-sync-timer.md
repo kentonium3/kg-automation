@@ -1,7 +1,6 @@
 ---
 work_package_id: WP05
 title: Bidirectional Git Sync Timer
-lane: done
 dependencies: [WP01]
 requirement_refs:
 - FR-17
@@ -15,14 +14,16 @@ base_branch: 011-second-brain-vault-cleanup-WP01
 base_commit: 6cb3c04d00c1296989e37ebc43ab409723f170d1
 created_at: '2026-04-01T19:18:36.273851+00:00'
 subtasks: [T019, T020, T021, T022, T023, T024]
-agent: claude-code
-shell_pid: '24220'
-reviewed_by: "Kent Gale"
-review_status: "approved"
 history:
 - date: '2026-04-01T18:30:16Z'
   event: created
   actor: claude
+authoritative_surface: src/
+execution_mode: code_change
+mission_id: 01KN5QX3WPT8E1MP9T6H487WY6
+owned_files:
+- src/**
+wp_code: WP05
 ---
 
 # WP05: Bidirectional Git Sync Timer

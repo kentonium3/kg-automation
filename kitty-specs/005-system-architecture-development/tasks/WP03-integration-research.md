@@ -1,7 +1,6 @@
 ---
 work_package_id: WP03
 title: Integration and Tool Research
-lane: done
 dependencies: []
 requirement_refs:
 - FR-003
@@ -17,16 +16,18 @@ subtasks:
 - T015
 - T016
 - T017
-agent: claude
-shell_pid: '63573'
-review_status: approved
-reviewed_by: Kent Gale
 history:
 - timestamp: '2026-03-29T03:15:46Z'
   lane: planned
   agent: system
   shell_pid: ''
   action: Prompt generated via /spec-kitty.tasks
+authoritative_surface: kitty-specs/005-system-architecture-development/
+execution_mode: planning_artifact
+mission_id: 01KN5QX3WEJQ6KMCTQ8K1FX4FS
+owned_files:
+- kitty-specs/005-system-architecture-development/**
+wp_code: WP03
 ---
 
 # Work Package Prompt: WP03 – Integration and Tool Research

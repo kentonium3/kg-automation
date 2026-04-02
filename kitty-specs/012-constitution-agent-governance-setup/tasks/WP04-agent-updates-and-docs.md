@@ -1,7 +1,6 @@
 ---
 work_package_id: WP04
 title: Agent Standing Orders & Documentation
-lane: "done"
 dependencies: []
 requirement_refs:
 - FR-014
@@ -16,15 +15,20 @@ base_branch: main
 base_commit: e86d4912ddfeb4e9d5d2e49c8d2fc4e5b2a47c2e
 created_at: '2026-04-01T22:26:08.263431+00:00'
 subtasks: [T013, T014, T015, T016, T017]
-agent: gemini
-shell_pid: '57146'
-review_status: "approved"
-reviewed_by: "Kent Gale"
 history:
 - date: '2026-04-01T22:12:34Z'
   event: created
   agent: claude
+authoritative_surface: docs/
+execution_mode: code_change
+mission_id: 01KN5QX3WQ3CEY5FNQ77X9MCNF
+owned_files:
+- docs/constitution/**
+- docs/design/architecture/data/service-inventory.json
+- docs/handbooks/felix-governance.md
+- docs/handbooks/openclaw-ops.md
 priority: P1
+wp_code: WP04
 ---
 
 # WP04: Agent Standing Orders & Documentation

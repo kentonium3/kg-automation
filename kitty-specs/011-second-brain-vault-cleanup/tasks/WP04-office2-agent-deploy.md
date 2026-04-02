@@ -1,7 +1,6 @@
 ---
 work_package_id: WP04
 title: Deploy Updated Agent Files to Office2
-lane: done
 dependencies: [WP03]
 requirement_refs:
 - FR-14
@@ -12,14 +11,16 @@ base_branch: 011-second-brain-vault-cleanup-WP03
 base_commit: 7ada443ff046627f7a445a5f71b17f9263a4d166
 created_at: '2026-04-01T19:31:53.904132+00:00'
 subtasks: [T016, T017, T018]
-agent: claude-code
-shell_pid: '27150'
-reviewed_by: "Kent Gale"
-review_status: "approved"
 history:
 - date: '2026-04-01T18:30:16Z'
   event: created
   actor: claude
+authoritative_surface: src/
+execution_mode: code_change
+mission_id: 01KN5QX3WPT8E1MP9T6H487WY6
+owned_files:
+- src/**
+wp_code: WP04
 ---
 
 # WP04: Deploy Updated Agent Files to Office2

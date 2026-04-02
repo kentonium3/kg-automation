@@ -1,7 +1,6 @@
 ---
 work_package_id: WP03
 title: Architecture Documentation Updates
-lane: "approved"
 dependencies: [WP01]
 requirement_refs:
 - FR-14
@@ -13,14 +12,16 @@ base_branch: 010-obsidian-sync-office2-WP01
 base_commit: 7b1144c895e92aec2a2af42d2314a157e02bd1d2
 created_at: '2026-04-01T15:25:46.960507+00:00'
 subtasks: [T009, T010, T011, T012]
-agent: claude-code
-shell_pid: '83167'
-reviewed_by: "Kent Gale"
-review_status: "approved"
 history:
 - date: '2026-04-01T15:17:40Z'
   event: created
   actor: claude
+authoritative_surface: docs/design/architecture/
+execution_mode: code_change
+mission_id: 01KN5QX3WNQ7X8S386F2A0ME8Q
+owned_files:
+- docs/design/architecture/**
+wp_code: WP03
 ---
 
 # WP03: Architecture Documentation Updates

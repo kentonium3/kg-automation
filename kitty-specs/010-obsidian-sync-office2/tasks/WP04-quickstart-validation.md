@@ -1,7 +1,6 @@
 ---
 work_package_id: WP04
 title: Quickstart Guide and Validation
-lane: done
 dependencies: [WP01, WP02, WP03]
 requirement_refs:
 - FR-06
@@ -15,14 +14,16 @@ base_branch: 010-obsidian-sync-office2-WP04-merge-base
 base_commit: 777e67dc56fb71eefea41f4fd38664cfdf40496f
 created_at: '2026-04-01T15:29:24.244269+00:00'
 subtasks: [T013, T014, T015]
-agent: claude-code
-shell_pid: '84242'
-review_status: approved
-reviewed_by: Kent Gale
 history:
 - date: '2026-04-01T15:17:40Z'
   event: created
   actor: claude
+authoritative_surface: kitty-specs/010-obsidian-sync-office2/
+execution_mode: planning_artifact
+mission_id: 01KN5QX3WNQ7X8S386F2A0ME8Q
+owned_files:
+- kitty-specs/010-obsidian-sync-office2/**
+wp_code: WP04
 ---
 
 # WP04: Quickstart Guide and Validation

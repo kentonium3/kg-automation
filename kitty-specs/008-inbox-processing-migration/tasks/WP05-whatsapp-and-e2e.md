@@ -1,7 +1,6 @@
 ---
 work_package_id: WP05
 title: WhatsApp Trigger and End-to-End Test
-lane: "approved"
 dependencies: [WP04]
 requirement_refs:
 - C-007
@@ -15,14 +14,16 @@ base_branch: 008-inbox-processing-migration-WP04
 base_commit: aa93b5727523d7098b41cae718db38ab3f9fdc6c
 created_at: '2026-03-31T03:35:07.379677+00:00'
 subtasks: [T023, T024, T025]
-agent: claude-code
-shell_pid: '78580'
-reviewed_by: "Kent Gale"
-review_status: "approved"
 history:
 - date: '2026-03-31T02:04:57Z'
   event: created
   actor: claude
+authoritative_surface: src/
+execution_mode: code_change
+mission_id: 01KN5QX3WJGAVA67AVPSBGXX96
+owned_files:
+- src/**
+wp_code: WP05
 ---
 
 # WP05: WhatsApp Trigger and End-to-End Test

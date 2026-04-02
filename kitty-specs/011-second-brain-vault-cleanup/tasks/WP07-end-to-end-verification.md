@@ -1,7 +1,6 @@
 ---
 work_package_id: WP07
 title: End-to-End Verification
-lane: done
 dependencies: [WP04, WP05, WP06]
 requirement_refs:
 - FR-21
@@ -12,14 +11,16 @@ base_branch: 011-second-brain-vault-cleanup-WP07-merge-base
 base_commit: 317d9e7fe413d12649521666dcbae4867b45b56c
 created_at: '2026-04-01T20:10:31.684002+00:00'
 subtasks: [T034, T035, T036, T037, T038]
-agent: claude-code
-shell_pid: '35282'
-review_status: approved
-reviewed_by: Kent Gale
 history:
 - date: '2026-04-01T18:30:16Z'
   event: created
   actor: claude
+authoritative_surface: kitty-specs/011-second-brain-vault-cleanup/
+execution_mode: planning_artifact
+mission_id: 01KN5QX3WPT8E1MP9T6H487WY6
+owned_files:
+- kitty-specs/011-second-brain-vault-cleanup/**
+wp_code: WP07
 ---
 
 # WP07: End-to-End Verification

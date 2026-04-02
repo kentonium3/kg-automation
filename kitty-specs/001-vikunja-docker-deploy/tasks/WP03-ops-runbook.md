@@ -1,7 +1,6 @@
 ---
 work_package_id: WP03
 title: Ops Runbook and Security Baseline
-lane: planned
 dependencies: [WP01]
 requirement_refs:
 - C-002
@@ -17,18 +16,21 @@ subtasks:
 - T019
 - T020
 phase: Phase 2 - Documentation
-assignee: ''
-agent: ''
-shell_pid: ''
-review_status: ''
-reviewed_by: ''
-review_feedback: ''
 history:
 - timestamp: '2026-03-26T06:31:38Z'
   lane: planned
   agent: system
   shell_pid: ''
   action: Prompt generated via /spec-kitty.tasks
+authoritative_surface: ''
+execution_mode: code_change
+mission_id: 01KN5QX3W9YZC8278D6BM01V28
+owned_files:
+- docs/design/standards/allowed-values.json
+- docs/handbooks/vikunja-ops.md
+- kitty-specs/001-vikunja-docker-deploy/plan.md
+- kitty-specs/001-vikunja-docker-deploy/research.md
+wp_code: WP03
 ---
 
 # Work Package Prompt: WP03 – Ops Runbook and Security Baseline

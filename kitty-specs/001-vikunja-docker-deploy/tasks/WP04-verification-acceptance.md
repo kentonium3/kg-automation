@@ -1,7 +1,6 @@
 ---
 work_package_id: WP04
 title: Verification and Acceptance
-lane: planned
 dependencies: [WP01, WP02, WP03]
 requirement_refs:
 - C-001
@@ -21,18 +20,19 @@ subtasks:
 - T026
 - T027
 phase: Phase 3 - Verification
-assignee: ''
-agent: ''
-shell_pid: ''
-review_status: ''
-reviewed_by: ''
-review_feedback: ''
 history:
 - timestamp: '2026-03-26T06:31:38Z'
   lane: planned
   agent: system
   shell_pid: ''
   action: Prompt generated via /spec-kitty.tasks
+authoritative_surface: kitty-specs/001-vikunja-docker-deploy/
+execution_mode: code_change
+mission_id: 01KN5QX3W9YZC8278D6BM01V28
+owned_files:
+- kitty-specs/001-vikunja-docker-deploy/quickstart.md
+- kitty-specs/001-vikunja-docker-deploy/spec.md
+wp_code: WP04
 ---
 
 # Work Package Prompt: WP04 – Verification and Acceptance

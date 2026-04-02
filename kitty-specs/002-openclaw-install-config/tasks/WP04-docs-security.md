@@ -1,7 +1,6 @@
 ---
 work_package_id: WP04
 title: Ops Runbook, Architecture Docs, Security Baseline
-lane: "approved"
 dependencies: [WP02]
 requirement_refs:
 - FR-006
@@ -21,18 +20,21 @@ subtasks:
 - T023
 - T024
 phase: Phase 2 - Documentation
-assignee: ''
-agent: claude
-shell_pid: '27348'
-review_status: "approved"
-reviewed_by: "Kent Gale"
-review_feedback: ''
 history:
 - timestamp: '2026-03-26T22:28:20Z'
   lane: planned
   agent: system
   shell_pid: ''
   action: Prompt generated via /spec-kitty.tasks
+authoritative_surface: docs/
+execution_mode: code_change
+mission_id: 01KN5QX3WBC1M57EENV2JHWAT7
+owned_files:
+- docs/design/architecture/**
+- docs/func-spec/F002_openclaw_install.md
+- docs/handbooks/openclaw-ops.md
+- docs/handbooks/vikunja-ops.md
+wp_code: WP04
 ---
 
 # Work Package Prompt: WP04 – Ops Runbook, Architecture Docs, Security Baseline

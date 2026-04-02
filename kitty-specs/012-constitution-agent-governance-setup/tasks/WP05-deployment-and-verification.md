@@ -1,7 +1,6 @@
 ---
 work_package_id: WP05
 title: Deployment & Verification
-lane: "done"
 dependencies: []
 requirement_refs:
 - FR-016
@@ -13,15 +12,22 @@ base_branch: main
 base_commit: 20bd35a398d5ecbc0cb325a8dd876dc21b1c4d1b
 created_at: '2026-04-01T22:44:25.794585+00:00'
 subtasks: [T018, T019, T020, T021, T022]
-agent: claude
-shell_pid: '60285'
-review_status: "approved"
-reviewed_by: "Kent Gale"
 history:
 - date: '2026-04-01T22:12:34Z'
   event: created
   agent: claude
+authoritative_surface: ''
+execution_mode: code_change
+mission_id: 01KN5QX3WQ3CEY5FNQ77X9MCNF
+owned_files:
+- docs/constitution/AGENT-REGISTRY.md
+- docs/constitution/FELIX-CONSTITUTION.md
+- docs/constitution/agent-registry.json
+- docs/handbooks/felix-governance.md
+- docs/handbooks/openclaw-ops.md
+- kitty-specs/012-constitution-agent-governance-setup/quickstart.md
 priority: P2
+wp_code: WP05
 ---
 
 # WP05: Deployment & Verification

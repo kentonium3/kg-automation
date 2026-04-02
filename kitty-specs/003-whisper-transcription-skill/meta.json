@@ -7,5 +7,6 @@
   "vcs": "git",
   "mission": "software-dev",
   "slug": "003-whisper-transcription-skill",
-  "target_branch": "main"
+  "target_branch": "main",
+  "mission_id": "01KN5QX3WCFA855XAHAHZ10CB4"
 }

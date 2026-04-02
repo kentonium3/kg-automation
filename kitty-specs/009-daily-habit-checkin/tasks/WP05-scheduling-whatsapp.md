@@ -1,7 +1,6 @@
 ---
 work_package_id: WP05
 title: Scheduling and WhatsApp Integration
-lane: "approved"
 dependencies: [WP04]
 requirement_refs:
 - FR-003
@@ -18,14 +17,16 @@ base_branch: 009-daily-habit-checkin-WP04
 base_commit: bfaff56d4e61ead85480b258bc288b7a3fabafe0
 created_at: '2026-04-01T03:40:38.251027+00:00'
 subtasks: [T019, T020, T021, T022, T023, T024, T025]
-agent: claude-code
-shell_pid: '1676'
-reviewed_by: "Kent Gale"
-review_status: "approved"
 history:
 - date: '2026-04-01T01:46:04Z'
   event: created
   actor: claude
+authoritative_surface: kitty-specs/009-daily-habit-checkin/
+execution_mode: planning_artifact
+mission_id: 01KN5QX3WMQC0B8XXG1QKT3N9E
+owned_files:
+- kitty-specs/009-daily-habit-checkin/**
+wp_code: WP05
 ---
 
 # WP05: Scheduling and WhatsApp Integration

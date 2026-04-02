@@ -1,7 +1,6 @@
 ---
 work_package_id: WP02
 title: Intelligence Layer
-lane: "done"
 dependencies: []
 requirement_refs:
 - FR-008
@@ -17,15 +16,21 @@ base_branch: main
 base_commit: 1166c44659920564f30a4e55274d0bec7aab7cab
 created_at: '2026-04-01T22:25:23.920555+00:00'
 subtasks: [T005, T006, T007, T008, T009, T010]
-agent: claude
-shell_pid: '56766'
-review_status: "approved"
-reviewed_by: "Kent Gale"
 history:
 - date: '2026-04-01T22:12:34Z'
   event: created
   agent: claude
+authoritative_surface: ''
+execution_mode: code_change
+mission_id: 01KN5QX3WQ3CEY5FNQ77X9MCNF
+owned_files:
+- docs/constitution/agent-registry.json
+- docs/handbooks/openclaw-ops.md
+- tests/__init__.py
+- tests/fixtures/**
+- tests/test_summarize.py
 priority: P1
+wp_code: WP02
 ---
 
 # WP02: Intelligence Layer

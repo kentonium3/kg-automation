@@ -1,7 +1,6 @@
 ---
 work_package_id: WP03
 title: Standing Orders — Check-in and Completion
-lane: "approved"
 dependencies: [WP02]
 requirement_refs:
 - C-003
@@ -19,14 +18,16 @@ base_branch: 009-daily-habit-checkin-WP02
 base_commit: f43b5c1b511f26d7b80a8978e5d496b5870e6f33
 created_at: '2026-04-01T03:25:51.130787+00:00'
 subtasks: [T010, T011, T012, T013, T014]
-agent: claude-code
-shell_pid: '95879'
-reviewed_by: "Kent Gale"
-review_status: "approved"
 history:
 - date: '2026-04-01T01:46:04Z'
   event: created
   actor: claude
+authoritative_surface: kitty-specs/009-daily-habit-checkin/
+execution_mode: planning_artifact
+mission_id: 01KN5QX3WMQC0B8XXG1QKT3N9E
+owned_files:
+- kitty-specs/009-daily-habit-checkin/**
+wp_code: WP03
 ---
 
 # WP03: Standing Orders — Check-in and Completion

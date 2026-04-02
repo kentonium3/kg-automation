@@ -1,10 +1,4 @@
----
-description: Perform a non-destructive cross-artifact consistency and quality analysis
-  across spec.md, plan.md, and tasks.md after task generation.
----
-
-
-
+<!-- spec-kitty-command-version: 3.0.3 -->
 ## User Input
 
 ```text
@@ -12,6 +6,8 @@ $ARGUMENTS
 ```
 
 You **MUST** consider the user input before proceeding (if not empty).
+
+**In repos with multiple features, always pass `--feature <slug>` to every spec-kitty command.**
 
 ## Goal
 

@@ -1,7 +1,6 @@
 ---
 work_package_id: WP05
 title: Acceptance Testing
-lane: done
 dependencies: [WP01, WP02, WP03, WP04]
 requirement_refs:
 - FR-001
@@ -24,18 +23,18 @@ subtasks:
 - T030
 - T031
 phase: Phase 3 - Verification
-assignee: ''
-agent: claude
-shell_pid: '28862'
-review_status: approved
-reviewed_by: Kent Gale
-review_feedback: ''
 history:
 - timestamp: '2026-03-26T22:28:20Z'
   lane: planned
   agent: system
   shell_pid: ''
   action: Prompt generated via /spec-kitty.tasks
+authoritative_surface: docs/handbooks/f002-acceptance-results.md/
+execution_mode: code_change
+mission_id: 01KN5QX3WBC1M57EENV2JHWAT7
+owned_files:
+- docs/handbooks/f002-acceptance-results.md
+wp_code: WP05
 ---
 
 # Work Package Prompt: WP05 – Acceptance Testing

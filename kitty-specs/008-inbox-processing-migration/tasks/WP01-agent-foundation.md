@@ -1,7 +1,6 @@
 ---
 work_package_id: WP01
 title: Agent Workspace Foundation
-lane: "approved"
 dependencies: []
 requirement_refs:
 - C-003
@@ -17,14 +16,16 @@ base_branch: main
 base_commit: f663bad0dbc28b762c1024badb9ed88b35192736
 created_at: '2026-03-31T02:56:29.193865+00:00'
 subtasks: [T001, T002, T003, T004, T005]
-agent: claude-code
-shell_pid: '66995'
-reviewed_by: "Kent Gale"
-review_status: "approved"
 history:
 - date: '2026-03-31T02:04:57Z'
   event: created
   actor: claude
+authoritative_surface: kitty-specs/008-inbox-processing-migration/
+execution_mode: planning_artifact
+mission_id: 01KN5QX3WJGAVA67AVPSBGXX96
+owned_files:
+- kitty-specs/008-inbox-processing-migration/**
+wp_code: WP01
 ---
 
 # WP01: Agent Workspace Foundation

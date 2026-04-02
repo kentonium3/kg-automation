@@ -1,7 +1,6 @@
 ---
 work_package_id: WP02
 title: Operations Runbook
-lane: "approved"
 dependencies: [WP01]
 requirement_refs:
 - FR-13
@@ -12,14 +11,18 @@ base_branch: 010-obsidian-sync-office2-WP01
 base_commit: 7b1144c895e92aec2a2af42d2314a157e02bd1d2
 created_at: '2026-04-01T15:25:39.979178+00:00'
 subtasks: [T006, T007, T008]
-agent: claude-code
-shell_pid: '83022'
-reviewed_by: "Kent Gale"
-review_status: "approved"
 history:
 - date: '2026-04-01T15:17:40Z'
   event: created
   actor: claude
+authoritative_surface: ''
+execution_mode: code_change
+mission_id: 01KN5QX3WNQ7X8S386F2A0ME8Q
+owned_files:
+- docs/design/architecture/service-inventory.md
+- docs/handbooks/**
+- kitty-specs/010-obsidian-sync-office2/quickstart.md
+wp_code: WP02
 ---
 
 # WP02: Operations Runbook

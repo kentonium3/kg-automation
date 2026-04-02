@@ -1,7 +1,6 @@
 ---
 work_package_id: WP02
 title: Ops Runbook and Architecture Documentation
-lane: done
 dependencies:
 - WP01
 requirement_refs:
@@ -19,18 +18,25 @@ subtasks:
 - T010
 - T011
 phase: Phase 2 - Documentation
-assignee: ''
-agent: claude
-shell_pid: '98014'
-review_status: approved
-reviewed_by: Kent Gale
-review_feedback: ''
 history:
 - timestamp: '2026-03-28T18:00:42Z'
   lane: planned
   agent: system
   shell_pid: ''
   action: Prompt generated via /spec-kitty.tasks
+authoritative_surface: ''
+execution_mode: code_change
+mission_id: 01KN5QX3WDVP7JH72J2D8NHKMX
+owned_files:
+- docs/design/architecture/data/credential-manifest.json
+- docs/design/architecture/data/service-inventory.json
+- docs/design/architecture/security-posture.md
+- docs/design/architecture/service-inventory.md
+- docs/handbooks/transcribe-ops.md
+- docs/handbooks/vikunja-ops.md
+- docs/handbooks/whatsapp-ops.md
+- kitty-specs/004-whatsapp-channel/research.md
+wp_code: WP02
 ---
 
 # Work Package Prompt: WP02 – Ops Runbook and Architecture Documentation

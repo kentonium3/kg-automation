@@ -1,7 +1,6 @@
 ---
 work_package_id: WP08
 title: Feature and Capability Roadmap
-lane: done
 dependencies:
 - WP07
 - WP02
@@ -21,16 +20,18 @@ subtasks:
 - T046
 - T047
 - T048
-agent: claude
-shell_pid: '68664'
-review_status: approved
-reviewed_by: Kent Gale
 history:
 - timestamp: '2026-03-29T03:15:46Z'
   lane: planned
   agent: system
   shell_pid: ''
   action: Prompt generated via /spec-kitty.tasks
+authoritative_surface: docs/design/roadmap.md/
+execution_mode: code_change
+mission_id: 01KN5QX3WEJQ6KMCTQ8K1FX4FS
+owned_files:
+- docs/design/roadmap.md
+wp_code: WP08
 ---
 
 # Work Package Prompt: WP08 – Feature and Capability Roadmap

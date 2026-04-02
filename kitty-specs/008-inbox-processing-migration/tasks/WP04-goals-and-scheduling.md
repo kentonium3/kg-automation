@@ -1,7 +1,6 @@
 ---
 work_package_id: WP04
 title: Goal Routing and Scheduling
-lane: "approved"
 dependencies: [WP03]
 requirement_refs:
 - FR-015
@@ -18,14 +17,16 @@ base_branch: 008-inbox-processing-migration-WP03
 base_commit: a13b1e4b164a8019b47660f1a81f56de63ee6a89
 created_at: '2026-03-31T03:13:04.809808+00:00'
 subtasks: [T017, T018, T019, T020, T021, T022]
-agent: claude-code
-shell_pid: '72973'
-reviewed_by: "Kent Gale"
-review_status: "approved"
 history:
 - date: '2026-03-31T02:04:57Z'
   event: created
   actor: claude
+authoritative_surface: kitty-specs/008-inbox-processing-migration/
+execution_mode: planning_artifact
+mission_id: 01KN5QX3WJGAVA67AVPSBGXX96
+owned_files:
+- kitty-specs/008-inbox-processing-migration/**
+wp_code: WP04
 ---
 
 # WP04: Goal Routing and Scheduling

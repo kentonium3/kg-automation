@@ -1,7 +1,6 @@
 ---
 work_package_id: WP01
 title: Constitution & Agent Registry
-lane: "done"
 dependencies: []
 requirement_refs:
 - FR-001
@@ -18,15 +17,17 @@ base_branch: main
 base_commit: 7281c5dcc60eead8b6ebb5677e38ef714ca7bad3
 created_at: '2026-04-01T22:21:07.998156+00:00'
 subtasks: [T001, T002, T003, T004]
-agent: claude
-shell_pid: '58964'
-review_status: "approved"
-reviewed_by: "Kent Gale"
 history:
 - date: '2026-04-01T22:12:34Z'
   event: created
   agent: claude
+authoritative_surface: kitty-specs/012-constitution-agent-governance-setup/
+execution_mode: planning_artifact
+mission_id: 01KN5QX3WQ3CEY5FNQ77X9MCNF
+owned_files:
+- kitty-specs/012-constitution-agent-governance-setup/**
 priority: P0
+wp_code: WP01
 ---
 
 # WP01: Constitution & Agent Registry

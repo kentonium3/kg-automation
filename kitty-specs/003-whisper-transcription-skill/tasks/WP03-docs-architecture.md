@@ -1,7 +1,6 @@
 ---
 work_package_id: WP03
 title: Ops Runbook, Architecture Docs, and Final Acceptance
-lane: done
 dependencies:
 - WP01
 requirement_refs:
@@ -21,18 +20,23 @@ subtasks:
 - T014
 - T015
 phase: Phase 2 - Documentation
-assignee: ''
-agent: claude
-shell_pid: '72524'
-review_status: approved
-reviewed_by: Kent Gale
-review_feedback: ''
 history:
 - timestamp: '2026-03-28T16:22:31Z'
   lane: planned
   agent: system
   shell_pid: ''
   action: Prompt generated via /spec-kitty.tasks
+authoritative_surface: ''
+execution_mode: code_change
+mission_id: 01KN5QX3WCFA855XAHAHZ10CB4
+owned_files:
+- docs/design/architecture/**
+- docs/handbooks/transcribe-ops.md
+- docs/handbooks/vikunja-ops.md
+- docs/standards/**
+- kitty-specs/003-whisper-transcription-skill/data-model.md
+- kitty-specs/003-whisper-transcription-skill/research.md
+wp_code: WP03
 ---
 
 # Work Package Prompt: WP03 – Ops Runbook, Architecture Docs, and Final Acceptance

@@ -1,7 +1,6 @@
 ---
 work_package_id: WP03
 title: Skill-Authoring Skill
-lane: "done"
 dependencies: []
 requirement_refs:
 - FR-015
@@ -12,15 +11,17 @@ base_branch: main
 base_commit: fde696089c6a60116842268200cf79f533e52f66
 created_at: '2026-04-01T22:25:43.195941+00:00'
 subtasks: [T011, T012]
-agent: gemini
-shell_pid: '56946'
-review_status: "approved"
-reviewed_by: "Kent Gale"
 history:
 - date: '2026-04-01T22:12:34Z'
   event: created
   agent: claude
+authoritative_surface: src/
+execution_mode: code_change
+mission_id: 01KN5QX3WQ3CEY5FNQ77X9MCNF
+owned_files:
+- src/**
 priority: P1
+wp_code: WP03
 ---
 
 # WP03: Skill-Authoring Skill

@@ -1,7 +1,6 @@
 ---
 work_package_id: WP04
 title: Standing Orders — Reporting and Habit Management
-lane: "approved"
 dependencies: [WP03]
 requirement_refs:
 - FR-008
@@ -15,14 +14,16 @@ base_branch: 009-daily-habit-checkin-WP03
 base_commit: 0355fa3dffb155d793e4e71f8d52516b10189415
 created_at: '2026-04-01T03:33:44.262953+00:00'
 subtasks: [T015, T016, T017, T018]
-agent: claude-code
-shell_pid: '97500'
-reviewed_by: "Kent Gale"
-review_status: "approved"
 history:
 - date: '2026-04-01T01:46:04Z'
   event: created
   actor: claude
+authoritative_surface: kitty-specs/009-daily-habit-checkin/
+execution_mode: planning_artifact
+mission_id: 01KN5QX3WMQC0B8XXG1QKT3N9E
+owned_files:
+- kitty-specs/009-daily-habit-checkin/**
+wp_code: WP04
 ---
 
 # WP04: Standing Orders — Reporting and Habit Management

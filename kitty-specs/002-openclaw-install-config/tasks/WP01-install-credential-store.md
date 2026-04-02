@@ -1,7 +1,6 @@
 ---
 work_package_id: WP01
 title: Install OpenClaw and Credential Store
-lane: "approved"
 dependencies: []
 requirement_refs:
 - C-002
@@ -26,18 +25,19 @@ subtasks:
 - T005
 - T006
 phase: Phase 1 - Foundation
-assignee: ''
-agent: claude
-shell_pid: '99649'
-review_status: "approved"
-reviewed_by: "Kent Gale"
-review_feedback: ''
 history:
 - timestamp: '2026-03-26T22:28:20Z'
   lane: planned
   agent: system
   shell_pid: ''
   action: Prompt generated via /spec-kitty.tasks
+authoritative_surface: kitty-specs/002-openclaw-install-config/
+execution_mode: code_change
+mission_id: 01KN5QX3WBC1M57EENV2JHWAT7
+owned_files:
+- kitty-specs/002-openclaw-install-config/data-model.md
+- kitty-specs/002-openclaw-install-config/research.md
+wp_code: WP01
 ---
 
 # Work Package Prompt: WP01 – Install OpenClaw and Credential Store

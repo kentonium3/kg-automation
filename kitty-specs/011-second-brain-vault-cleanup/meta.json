@@ -7,5 +7,6 @@
   "slug": "011-second-brain-vault-cleanup",
   "source_description": "Remove redundant vault-snapshot service, rename vault to notes on office2, initialize git repo for non-vault content with bidirectional sync timer, update all path references",
   "target_branch": "main",
-  "vcs": "git"
+  "vcs": "git",
+  "mission_id": "01KN5QX3WPT8E1MP9T6H487WY6"
 }

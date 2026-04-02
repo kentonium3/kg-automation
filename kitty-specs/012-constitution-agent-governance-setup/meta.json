@@ -7,5 +7,6 @@
   "slug": "constitution-agent-governance-setup",
   "source_description": "Formalize Felix governance framework: constitution, agent registry, observation mode, skill-authoring skill, and agent standing order updates",
   "target_branch": "main",
-  "vcs": "git"
+  "vcs": "git",
+  "mission_id": "01KN5QX3WQ3CEY5FNQ77X9MCNF"
 }

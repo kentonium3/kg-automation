@@ -1,7 +1,6 @@
 ---
 work_package_id: WP02
 title: Vault Rename and Obsidian Sync Service Update
-lane: done
 dependencies: []
 requirement_refs:
 - FR-01
@@ -18,14 +17,16 @@ base_branch: main
 base_commit: d4735d77fc92bc0aae076aeb356dbe9c818a459c
 created_at: '2026-04-01T18:54:33.797605+00:00'
 subtasks: [T004, T005, T006, T007, T008]
-agent: claude-code
-shell_pid: '23697'
-reviewed_by: "Kent Gale"
-review_status: "approved"
 history:
 - date: '2026-04-01T18:30:16Z'
   event: created
   actor: claude
+authoritative_surface: src/
+execution_mode: code_change
+mission_id: 01KN5QX3WPT8E1MP9T6H487WY6
+owned_files:
+- src/**
+wp_code: WP02
 ---
 
 # WP02: Vault Rename and Obsidian Sync Service Update

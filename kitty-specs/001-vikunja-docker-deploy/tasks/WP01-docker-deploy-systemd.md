@@ -1,7 +1,6 @@
 ---
 work_package_id: WP01
 title: Docker Deploy and systemd Service
-lane: planned
 dependencies: []
 requirement_refs:
 - C-001
@@ -24,18 +23,18 @@ subtasks:
 - T006
 - T007
 phase: Phase 1 - Foundation
-assignee: ''
-agent: ''
-shell_pid: ''
-review_status: ''
-reviewed_by: ''
-review_feedback: ''
 history:
 - timestamp: '2026-03-26T06:31:38Z'
   lane: planned
   agent: system
   shell_pid: ''
   action: Prompt generated via /spec-kitty.tasks
+authoritative_surface: kitty-specs/001-vikunja-docker-deploy/
+execution_mode: planning_artifact
+mission_id: 01KN5QX3W9YZC8278D6BM01V28
+owned_files:
+- kitty-specs/001-vikunja-docker-deploy/**
+wp_code: WP01
 ---
 
 # Work Package Prompt: WP01 – Docker Deploy and systemd Service
