@@ -1,3 +1,9 @@
+---
+title: Second Brain Directory Structure Audit
+doc_type: reference
+status: approved
+---
+
 # Second Brain Directory Structure Audit
 
 **Date:** 2026-04-01

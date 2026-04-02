@@ -1,3 +1,9 @@
+---
+title: Felix Agent Registry
+doc_type: reference
+status: approved
+---
+
 # Felix Agent Registry
 
 The authoritative record for agent registration and autonomy levels is

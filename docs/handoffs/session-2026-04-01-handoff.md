@@ -1,7 +1,7 @@
 ---
 title: "Session Handoff: 2026-04-01"
 doc_type: reference
-status: active
+status: approved
 ---
 
 # Session Handoff: 2026-04-01

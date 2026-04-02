@@ -1,3 +1,9 @@
+---
+title: Felix Constitution
+doc_type: reference
+status: approved
+---
+
 # Felix Constitution
 
 **Version**: 1.0

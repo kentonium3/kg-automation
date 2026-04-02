@@ -1,7 +1,7 @@
 ---
 title: Felix Governance Runbook
 doc_type: handbook
-status: active
+status: approved
 ---
 
 # Felix Governance Runbook
