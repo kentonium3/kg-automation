@@ -4,7 +4,7 @@
 # Sends push notification via ntfy.sh when alerts are detected
 #
 # Setup:
-#   1. Set NTFY_TOPIC below to a hard-to-guess string (keep it private)
+#   1. NTFY_TOPIC is set below
 #   2. Install the ntfy app on your phone: https://ntfy.sh
 #   3. Subscribe to your topic in the app
 #   4. On first run, baselines are created automatically
@@ -21,8 +21,7 @@ LOGFILE="$LOG_DIR/audit-$DATE.log"
 ALERT_FILE="$LOG_DIR/alerts-$DATE.log"
 ALERT=0
 
-# ntfy topic — change this to something unguessable, keep it private
-# Anyone who knows this string can subscribe to your alerts
+# ntfy topic — keep this private
 NTFY_TOPIC="felix-office2-k9x4m2"
 
 # --- Helpers ---
@@ -79,9 +78,16 @@ pc=$(docker ps --format '{{.Names}}' 2>/dev/null | grep -i "node-setup" || true)
 log "IOC checks: done"
 
 # 5. Listening ports
+# Exclude ephemeral localhost ports (>32768) — these change on every reboot
+# and are internal-only, not a security concern.
 log "Scanning listening ports..."
 tmp=$(mktemp)
-ss -tlnp 2>/dev/null | tail -n +2 | awk '{print $4}' | sort > "$tmp"
+ss -tlnp 2>/dev/null | tail -n +2 | awk '{print $4}' \
+    | grep -vE '^127\.0\.0\.1:[3-9][0-9]{4}$' \
+    | grep -vE '^127\.0\.0\.1:[0-9]{6}$' \
+    | grep -vE '^\[::1\]:[3-9][0-9]{4}$' \
+    | grep -vE '^\[::1\]:[0-9]{6}$' \
+    | sort > "$tmp"
 check_baseline "listening-ports.txt" "$tmp"
 rm -f "$tmp"
 
