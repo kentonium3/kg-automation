@@ -13,7 +13,7 @@ ExecStartPre=-/usr/bin/docker rm -f vikunja
 ExecStart=/usr/bin/docker run --rm --name vikunja \
   -p 100.92.197.90:3456:3456 \
   -v /data/services/vikunja/data:/app/vikunja/files \
-  -e VIKUNJA_SERVICE_PUBLICURL=http://office2:3456 \
+  -e VIKUNJA_SERVICE_PUBLICURL=https://office2.tail0f5f56.ts.net \
   -e VIKUNJA_SERVICE_INTERFACE=:3456 \
   -e VIKUNJA_DATABASE_TYPE=sqlite \
   -e VIKUNJA_DATABASE_PATH=/app/vikunja/files/vikunja.db \
