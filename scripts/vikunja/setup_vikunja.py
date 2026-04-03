@@ -22,7 +22,6 @@ DEFAULT_URL = "http://100.92.197.90:3456/api/v1"
 
 PROJECTS = [
     {"name": "Everyday", "children": [
-        {"name": "Inbox"},
         {"name": "Someday"},
     ]},
     {"name": "Personal Growth & Transformation"},
@@ -60,6 +59,14 @@ FILTERS = [
         "title": "Overdue",
         "filters": {
             "filter": "due_date < now/d && done = false",
+            "sort_by": ["due_date"],
+            "order_by": ["asc"],
+        },
+    },
+    {
+        "title": "Goals",
+        "filters": {
+            "filter": "project = 11 && done = false",
             "sort_by": ["due_date"],
             "order_by": ["asc"],
         },
