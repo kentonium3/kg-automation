@@ -6,8 +6,8 @@ last_updated: 2026-03-26
 ---
 
 # Adversarial Analysis: Personal AI Command & Accountability System
-**Date**: 2026-03-26  
-**Target**: System Specification v0.3  
+**Date**: 2026-03-26
+**Target**: System Specification v0.3
 **Status**: Draft
 
 ## Executive Summary
@@ -30,12 +30,12 @@ WhatsApp is the primary real-time input. It is the most likely vector for "Jailb
 
 ## 2. Reliability & Resilience: The "Always-On" Illusion
 ### 2.1 The Obsidian Sync Daemon (ob-sync)
-Path B (Obsidian Inbox) depends on a systemd daemon running `ob sync --continuous`. 
+Path B (Obsidian Inbox) depends on a systemd daemon running `ob sync --continuous`.
 - **Failure Mode**: If this daemon hangs or the Obsidian Sync cloud service has an outage, Kent may continue to capture into his "Inbox" on his Mac/iPhone, but the office2 agent will see nothing. The system fails silently until the next manual check.
 - **Recommendation**: Add a "Sync Health" check to the Daily Briefing. If the vault hasn't seen a file change or a successful sync in X hours, alert Kent via WhatsApp.
 
 ### 2.2 Tailscale Dependency
-The system is "Tailscale-only." 
+The system is "Tailscale-only."
 - **Failure Mode**: If Tailscale has a global outage or the office2 node loses its Tailscale session, the system becomes a black box. Kent cannot check Vikunja to see what he should be doing.
 - **Recommendation**: Ensure the WhatsApp webhook (Path A) has an independent path (e.g., Cloudflare Tunnel) so the agent can at least report its status or "I'm blind to the vault right now" via WhatsApp.
 
@@ -48,7 +48,7 @@ The backup script (`backup.sh`) copies `/data/services/vikunja/data/vikunja.db` 
 - **Recommendation**: Use `sqlite3 .backup` or a filesystem snapshot (if using ZFS/LVM) to ensure a consistent state before Restic picks it up.
 
 ### 3.2 Identity Routing Errors
-Identity is managed via labels (`personal`/`intentional`). 
+Identity is managed via labels (`personal`/`intentional`).
 - **Failure Mode**: If the Intent Parser mislabels a task, a personal appointment could be written to the Intentional LLC Google Calendar, leaking personal data to business collaborators or vice versa.
 - **Recommendation**: Implement a "Confirmation Loop" for calendar writes specifically, where the agent states: "I am adding this to your [Personal/Intentional] calendar. Correct?"
 
