@@ -1,18 +1,22 @@
 #!/usr/bin/env python3
 """Felix Observation Intelligence Layer.
 
-Centralized summarization script that reads agent activity logs,
-applies autonomy-level-based filtering, and produces consolidated
-digests for the Obsidian vault. Sends WhatsApp critical alerts
-when errors or security items are detected.
+Centralized summarization script that reads agent activity logs (JSONL format),
+applies autonomy-level-based filtering, and produces consolidated digests for
+the Obsidian vault. Sends WhatsApp critical alerts when errors or security
+items are detected.
 
-Standardized log format:
-  Each agent writes a markdown log to ~/second-brain/agents/logs/ after
-  every run. Action lines are tagged with categories:
-    [routine]  — normal successful operations
-    [flagged]  — items requiring Kent's attention
-    [error]    — operation failures (critical alert)
-    [security] — security concerns (critical alert)
+JSONL log format:
+  Each agent writes a JSONL log to ~/second-brain/agents/logs/{agent-name}/
+  after every run. Each line is a JSON object with fields:
+    ts, run_id, agent, autonomy_level, category, action, target, outcome
+  Optional fields: context (object), trace (object)
+
+  Categories:
+    routine  - normal successful operations
+    flagged  - items requiring Kent's attention
+    error    - operation failures (critical alert)
+    security - security concerns (critical alert)
 
 Usage:
   python summarize.py                    # Normal run (today's logs)
@@ -21,9 +25,11 @@ Usage:
 """
 
 import argparse
+import json
+import os
 import re
 import sys
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 from pathlib import Path
 
 try:
@@ -31,80 +37,82 @@ try:
 except ImportError:
     from config import ObservationConfig
 
-CATEGORY_PATTERN = re.compile(r"^\s*-\s*\[(\w+)\]\s*(.*)")
-AGENT_PATTERN = re.compile(r"\*\*Agent\*\*:\s*(.+)")
-RUN_TIME_PATTERN = re.compile(r"\*\*Run time\*\*:\s*(.+)")
-SUMMARY_LINE_PATTERN = re.compile(r"^\s*-\s*(.+?):\s*(\d+)")
+# Required fields in each JSONL log entry
+REQUIRED_FIELDS = {"agent", "category", "action", "target", "outcome"}
+
+# Retention window: digest files older than this many days are deleted
+RETENTION_DAYS = 5
+
+# Pattern to extract date from digest filenames like YYYY-MM-DD-log.md
+DIGEST_DATE_PATTERN = re.compile(r"^(\d{4}-\d{2}-\d{2})-log\.md$")
 
 
-def parse_log_file(path):
-    """Parse a structured agent activity log file.
+def parse_jsonl_log(path):
+    """Parse a JSONL log file and return a list of action dicts.
 
-    Returns a dict with agent_name, run_time, actions (list of
-    {category, text}), and summary (dict of counts).
+    Each returned dict has at minimum: category, text, agent_name, run_id, ts.
+    The 'category' and 'text' keys are compatible with the processing layer
+    (filter_actions_by_autonomy, detect_critical_alerts, summarize_routine_actions).
+
+    Invalid lines are logged to stderr and skipped.
+    Empty lines are skipped silently.
     """
     path = Path(path)
-    content = path.read_text()
+    entries = []
 
-    agent_name = "unknown"
-    run_time = "unknown"
-    actions = []
-    summary = {}
+    with open(path) as f:
+        for line_num, raw_line in enumerate(f, 1):
+            line = raw_line.strip()
+            if not line:
+                continue
 
-    in_actions = False
-    in_summary = False
+            try:
+                entry = json.loads(line)
+            except json.JSONDecodeError as e:
+                print(
+                    f"WARNING: Skipping malformed line {line_num} in {path}: {e}",
+                    file=sys.stderr,
+                )
+                continue
 
-    for line in content.split("\n"):
-        agent_match = AGENT_PATTERN.search(line)
-        if agent_match:
-            agent_name = agent_match.group(1).strip()
-            continue
+            if not isinstance(entry, dict):
+                print(
+                    f"WARNING: Skipping malformed line {line_num} in {path}: "
+                    f"expected object, got {type(entry).__name__}",
+                    file=sys.stderr,
+                )
+                continue
 
-        run_match = RUN_TIME_PATTERN.search(line)
-        if run_match:
-            run_time = run_match.group(1).strip()
-            continue
+            missing = REQUIRED_FIELDS - set(entry.keys())
+            if missing:
+                print(
+                    f"WARNING: Skipping malformed line {line_num} in {path}: "
+                    f"missing required fields: {sorted(missing)}",
+                    file=sys.stderr,
+                )
+                continue
 
-        if line.strip().startswith("## Actions taken"):
-            in_actions = True
-            in_summary = False
-            continue
+            # Build processing-layer compatible dict
+            action_dict = {
+                "category": entry["category"],
+                "text": f"{entry['action']}: {entry['target']}",
+                "agent_name": entry["agent"],
+                "run_id": entry.get("run_id", "unknown"),
+                "ts": entry.get("ts", ""),
+                "outcome": entry["outcome"],
+            }
 
-        if line.strip().startswith("## Summary"):
-            in_actions = False
-            in_summary = True
-            continue
+            # Preserve optional fields
+            if "context" in entry:
+                action_dict["context"] = entry["context"]
+            if "trace" in entry:
+                action_dict["trace"] = entry["trace"]
+            if "autonomy_level" in entry:
+                action_dict["autonomy_level"] = entry["autonomy_level"]
 
-        if line.strip().startswith("## ") and line.strip() != "## Actions taken" and line.strip() != "## Summary":
-            in_actions = False
-            in_summary = False
-            continue
+            entries.append(action_dict)
 
-        if in_actions and line.strip().startswith("-"):
-            cat_match = CATEGORY_PATTERN.match(line)
-            if cat_match:
-                actions.append({
-                    "category": cat_match.group(1),
-                    "text": cat_match.group(2).strip(),
-                })
-            elif line.strip().startswith("- "):
-                actions.append({
-                    "category": "routine",
-                    "text": line.strip()[2:],
-                })
-
-        if in_summary:
-            sum_match = SUMMARY_LINE_PATTERN.match(line)
-            if sum_match:
-                summary[sum_match.group(1).strip()] = int(sum_match.group(2))
-
-    return {
-        "agent_name": agent_name,
-        "run_time": run_time,
-        "actions": actions,
-        "summary": summary,
-        "source_file": str(path.name),
-    }
+    return entries
 
 
 def filter_actions_by_autonomy(actions, autonomy_level):
@@ -165,7 +173,7 @@ def generate_digest(agent_digests, target_date):
         if digest.get("elevated"):
             lines.append("**Attention needed:**")
             for item in digest["elevated"]:
-                icon = "🚨" if item["category"] in ("error", "security") else "⚠"
+                icon = "\U0001f6a8" if item["category"] in ("error", "security") else "\u26a0"
                 lines.append(f"- {icon} {item['text']}")
             lines.append("")
 
@@ -178,7 +186,7 @@ def generate_digest(agent_digests, target_date):
         lines.append("")
 
     if has_critical:
-        lines.append("🚨 **Critical alerts detected** — see details above.")
+        lines.append("\U0001f6a8 **Critical alerts detected** \u2014 see details above.")
     else:
         lines.append("*No critical alerts today.*")
     lines.append("")
@@ -186,28 +194,40 @@ def generate_digest(agent_digests, target_date):
     return "\n".join(lines)
 
 
-def generate_agent_detail(agent_name, parsed_logs, autonomy_level, target_date):
-    """Generate per-agent detail file content."""
+def generate_agent_detail(agent_name, run_groups, autonomy_level, target_date):
+    """Generate per-agent detail file content.
+
+    Args:
+        agent_name: Name of the agent.
+        run_groups: List of (run_id, actions_list) tuples, one per run.
+        autonomy_level: The agent's autonomy level string.
+        target_date: Date string (YYYY-MM-DD) for the filename.
+
+    Returns:
+        Markdown string for the per-agent detail file.
+    """
     level = autonomy_level.capitalize()
     lines = [
         f"# {agent_name} — {target_date}",
         "",
-        f"*Autonomy Level: {level} | Runs today: {len(parsed_logs)}*",
+        f"*Autonomy Level: {level} | Runs today: {len(run_groups)}*",
         "",
     ]
 
     flagged_items = []
 
-    for i, log in enumerate(parsed_logs, 1):
-        lines.append(f"## Run {i} — {log['run_time']}")
+    for i, (run_id, actions) in enumerate(run_groups, 1):
+        # Use the first entry's ts as run time if available
+        run_time = actions[0].get("ts", "unknown") if actions else "unknown"
+        lines.append(f"## Run {i} — {run_time}")
 
-        routine_count = sum(1 for a in log["actions"] if a["category"] == "routine")
+        routine_count = sum(1 for a in actions if a["category"] == "routine")
         if routine_count:
             lines.append(f"**Routine**: {routine_count} actions completed")
 
-        elevated = [a for a in log["actions"] if a["category"] in ("flagged", "error", "security")]
+        elevated = [a for a in actions if a["category"] in ("flagged", "error", "security")]
         for item in elevated:
-            icon = "🚨" if item["category"] in ("error", "security") else "⚠"
+            icon = "\U0001f6a8" if item["category"] in ("error", "security") else "\u26a0"
             lines.append(f"**{item['category'].capitalize()}**: {icon} {item['text']}")
             flagged_items.append(item)
 
@@ -217,14 +237,8 @@ def generate_agent_detail(agent_name, parsed_logs, autonomy_level, target_date):
         lines.append("## Flagged Items")
         lines.append("")
         for item in flagged_items:
-            icon = "🚨" if item["category"] in ("error", "security") else "⚠"
+            icon = "\U0001f6a8" if item["category"] in ("error", "security") else "\u26a0"
             lines.append(f"- {icon} {item['text']}")
-        lines.append("")
-
-    if parsed_logs:
-        lines.append("## Full Log")
-        lines.append("")
-        lines.append(f"`{parsed_logs[0]['source_file']}`")
         lines.append("")
 
     return "\n".join(lines)
@@ -235,7 +249,7 @@ def format_whatsapp_alert(critical_items, target_date):
 
     Kept under 5 lines for WhatsApp readability.
     """
-    lines = [f"🚨 Felix Alert — {target_date}", ""]
+    lines = [f"\U0001f6a8 Felix Alert — {target_date}", ""]
 
     for agent_name, items in critical_items.items():
         count = len(items)
@@ -245,19 +259,89 @@ def format_whatsapp_alert(critical_items, target_date):
             lines.append(f'  "{items[0]["text"]}"')
 
     lines.append("")
-    lines.append("Check Obsidian: 00-System/agent-activity/overview.md")
+    lines.append("Check Obsidian: Agent-Logs/overview.md")
 
     return "\n".join(lines)
 
 
 def find_log_files(log_dir, target_date):
-    """Find all log files for the target date."""
+    """Find JSONL log files for target_date across all agent subdirectories.
+
+    Walks log_dir looking for subdirectories (each is an agent name).
+    In each subdirectory, looks for {target_date}.jsonl.
+
+    Returns dict: {agent_name: Path} mapping agent names to their daily log files.
+    """
     log_dir = Path(log_dir)
     if not log_dir.exists():
-        return []
+        return {}
 
     date_str = target_date if isinstance(target_date, str) else target_date.isoformat()
-    return sorted(log_dir.glob(f"*{date_str}*"))
+    result = {}
+
+    for entry in sorted(log_dir.iterdir()):
+        if not entry.is_dir():
+            continue
+        agent_name = entry.name
+        log_file = entry / f"{date_str}.jsonl"
+        if log_file.exists():
+            result[agent_name] = log_file
+
+    return result
+
+
+def _group_by_run_id(actions):
+    """Group a list of action dicts by run_id, preserving order.
+
+    Returns a list of (run_id, [actions]) tuples.
+    """
+    seen = {}
+    order = []
+    for action in actions:
+        rid = action.get("run_id", "unknown")
+        if rid not in seen:
+            seen[rid] = []
+            order.append(rid)
+        seen[rid].append(action)
+    return [(rid, seen[rid]) for rid in order]
+
+
+def _apply_retention(agent_logs_dir, target_date):
+    """Delete digest files with filename dates > RETENTION_DAYS old.
+
+    Scans each agent subdirectory under agent_logs_dir for files matching
+    YYYY-MM-DD-log.md. Files with dates more than RETENTION_DAYS before
+    target_date are deleted.
+
+    overview.md is never subject to retention.
+    """
+    if not agent_logs_dir.exists():
+        return
+
+    if isinstance(target_date, str):
+        target_dt = date.fromisoformat(target_date)
+    else:
+        target_dt = target_date
+
+    cutoff = target_dt - timedelta(days=RETENTION_DAYS)
+
+    for entry in agent_logs_dir.iterdir():
+        if not entry.is_dir():
+            continue
+        for file in entry.iterdir():
+            match = DIGEST_DATE_PATTERN.match(file.name)
+            if not match:
+                continue
+            try:
+                file_date = date.fromisoformat(match.group(1))
+            except ValueError:
+                print(
+                    f"WARNING: Could not parse date from filename {file}: skipping retention",
+                    file=sys.stderr,
+                )
+                continue
+            if file_date < cutoff:
+                file.unlink()
 
 
 def run(config, target_date, dry_run=False):
@@ -265,64 +349,86 @@ def run(config, target_date, dry_run=False):
 
     Returns a dict with the digest content and critical alert status.
     """
-    log_files = find_log_files(config.log_dir, target_date)
+    agent_logs_dir = config.output_dir / "Agent-Logs"
+    agent_log_files = find_log_files(config.log_dir, target_date)
 
-    if not log_files:
+    if not agent_log_files:
         overview = (
             f"# Agent Activity — {target_date}\n\n"
             f"*Generated: {datetime.now().strftime('%Y-%m-%d %H:%M')} ET*\n\n"
             "No agent activity recorded today.\n"
         )
         if not dry_run:
-            config.output_dir.mkdir(parents=True, exist_ok=True)
-            (config.output_dir / "overview.md").write_text(overview)
+            agent_logs_dir.mkdir(parents=True, exist_ok=True)
+            (agent_logs_dir / "overview.md").write_text(overview)
         return {"overview": overview, "critical": False, "alert_message": None}
 
-    # Group parsed logs by agent
-    agent_logs = {}
-    for log_file in log_files:
+    # Check idempotency: skip agents whose JSONL hasn't changed since last digest
+    agents_to_process = {}
+    any_processed = False
+
+    for agent_name, log_path in agent_log_files.items():
+        digest_path = agent_logs_dir / agent_name / f"{target_date}-log.md"
+        if digest_path.exists():
+            log_mtime = os.path.getmtime(log_path)
+            digest_mtime = os.path.getmtime(digest_path)
+            if log_mtime <= digest_mtime:
+                continue  # Skip — no new content
+        agents_to_process[agent_name] = log_path
+        any_processed = True
+
+    if not any_processed:
+        # All agents skipped — no new content
+        # Read existing overview if available
+        overview_path = agent_logs_dir / "overview.md"
+        if overview_path.exists():
+            overview = overview_path.read_text()
+        else:
+            overview = ""
+        return {"overview": overview, "critical": False, "alert_message": None}
+
+    # Parse all agent logs (including skipped ones for complete overview)
+    all_agent_actions = {}
+    for agent_name, log_path in agent_log_files.items():
         try:
-            parsed = parse_log_file(log_file)
-            agent_name = parsed["agent_name"]
-            if agent_name not in agent_logs:
-                agent_logs[agent_name] = []
-            agent_logs[agent_name].append(parsed)
+            actions = parse_jsonl_log(log_path)
+            if actions:
+                all_agent_actions[agent_name] = actions
         except Exception as e:
-            print(f"Warning: Failed to parse {log_file}: {e}", file=sys.stderr)
+            print(f"Warning: Failed to parse {log_path}: {e}", file=sys.stderr)
 
     # Build digests per agent
     agent_digests = {}
     critical_items = {}
 
-    for agent_name, logs in agent_logs.items():
+    for agent_name, actions in all_agent_actions.items():
         try:
             level = config.autonomy_level(agent_name)
         except KeyError:
             level = "assisted"  # default for unregistered agents
 
-        all_actions = []
-        for log in logs:
-            all_actions.extend(log["actions"])
+        run_groups = _group_by_run_id(actions)
 
-        filtered = filter_actions_by_autonomy(all_actions, level)
+        filtered = filter_actions_by_autonomy(actions, level)
         routine = [a for a in filtered if a["category"] == "routine"]
         elevated = [a for a in filtered if a["category"] != "routine"]
-        is_critical = detect_critical_alerts(all_actions)
+        is_critical = detect_critical_alerts(actions)
 
         routine_summary = summarize_routine_actions(routine) if routine else None
 
         agent_digests[agent_name] = {
             "autonomy_level": level,
-            "runs": len(logs),
+            "runs": len(run_groups),
             "routine_summary": routine_summary,
             "elevated": elevated,
             "critical": is_critical,
-            "log_ref": f"agents/logs/{logs[0]['source_file']}",
+            "log_ref": f"Agent-Logs/{agent_name}/{target_date}-log.md",
+            "run_groups": run_groups,
         }
 
         if is_critical:
             critical_items[agent_name] = [
-                a for a in all_actions if a["category"] in ("error", "security")
+                a for a in actions if a["category"] in ("error", "security")
             ]
 
     # Generate outputs
@@ -338,19 +444,30 @@ def run(config, target_date, dry_run=False):
         if alert_message:
             print("\n=== WHATSAPP ALERT ===")
             print(alert_message)
-        for agent_name, logs in agent_logs.items():
-            level = agent_digests[agent_name]["autonomy_level"]
-            detail = generate_agent_detail(agent_name, logs, level, target_date)
+        for agent_name, digest in agent_digests.items():
+            detail = generate_agent_detail(
+                agent_name, digest["run_groups"],
+                digest["autonomy_level"], target_date,
+            )
             print(f"\n=== {agent_name.upper()} DETAIL ===")
             print(detail)
     else:
-        config.output_dir.mkdir(parents=True, exist_ok=True)
-        (config.output_dir / "overview.md").write_text(overview)
-        for agent_name, logs in agent_logs.items():
-            level = agent_digests[agent_name]["autonomy_level"]
-            detail = generate_agent_detail(agent_name, logs, level, target_date)
-            safe_name = agent_name.replace("/", "-")
-            (config.output_dir / f"{safe_name}.md").write_text(detail)
+        agent_logs_dir.mkdir(parents=True, exist_ok=True)
+        (agent_logs_dir / "overview.md").write_text(overview)
+
+        for agent_name, digest in agent_digests.items():
+            if agent_name not in agents_to_process:
+                continue  # Skip writing for idempotent agents
+            agent_dir = agent_logs_dir / agent_name
+            agent_dir.mkdir(parents=True, exist_ok=True)
+            detail = generate_agent_detail(
+                agent_name, digest["run_groups"],
+                digest["autonomy_level"], target_date,
+            )
+            (agent_dir / f"{target_date}-log.md").write_text(detail)
+
+        # Retention: clean up old digest files
+        _apply_retention(agent_logs_dir, target_date)
 
         # WhatsApp critical alert (T009)
         if alert_message:
