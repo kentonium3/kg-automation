@@ -1,4 +1,5 @@
 ---
+title: "Vikunja Integration Improvements"
 id: untitled
 doc_type: note
 owner: kent

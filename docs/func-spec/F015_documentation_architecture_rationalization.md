@@ -1,6 +1,6 @@
 ---
 title: "F015: Documentation Architecture Rationalization"
-doc_type: feature-spec
+doc_type: func-spec
 status: draft
 ---
 

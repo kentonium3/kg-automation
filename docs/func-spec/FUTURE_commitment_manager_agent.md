@@ -1,7 +1,7 @@
 ---
 title: "Future Feature: Commitment Manager Agent"
 doc_type: func-spec
-status: concept-stub
+status: draft
 ---
 
 # Future Feature: Commitment Manager Agent

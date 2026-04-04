@@ -1,6 +1,6 @@
 ---
 title: "F016: Change Control Governance & Incident Management"
-doc_type: feature-spec
+doc_type: func-spec
 status: draft
 ---
 

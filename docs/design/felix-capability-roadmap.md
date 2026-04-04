@@ -1,7 +1,7 @@
 ---
 title: "Felix — Capability Roadmap & Strategy"
 doc_type: strategy
-status: active
+status: approved
 owners:
   - "@kentonium3"
 last_updated: '2026-04-03'
