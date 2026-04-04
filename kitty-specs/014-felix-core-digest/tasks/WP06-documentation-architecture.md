@@ -301,3 +301,4 @@ authoritative JSON.
 ## Activity Log
 
 - 2026-04-04T16:19:37Z – claude – shell_pid=99713 – Started implementation via workflow command
+- 2026-04-04T16:48:10Z – claude – shell_pid=99713 – All 7 subtasks done. Runbook, JSON, and Markdown architecture docs updated.
