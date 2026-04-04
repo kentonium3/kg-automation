@@ -170,10 +170,10 @@ No fields silently dropped.
 
 ### Included Subtasks
 
-- [ ] T018: Update felix-admin-capture AGENTS.md Action Logging section
-- [ ] T019: Update felix-admin-habits AGENTS.md Action Logging section
-- [ ] T020: Update felix-admin-tasker AGENTS.md Action Logging section
-- [ ] T021: Cross-verify field mappings against research.md R4
+- [x] T018: Update felix-admin-capture AGENTS.md Action Logging section
+- [x] T019: Update felix-admin-habits AGENTS.md Action Logging section
+- [x] T020: Update felix-admin-tasker AGENTS.md Action Logging section
+- [x] T021: Cross-verify field mappings against research.md R4
 
 ### Risks
 
