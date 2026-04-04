@@ -75,3 +75,18 @@ class ObservationConfig:
                 f"Registered agents: {list(self._registry['agents'].keys())}"
             )
         return self._registry["agents"][agent_name]["autonomy_level"]
+
+    def log_verbosity(self, agent_name):
+        """Return log verbosity level for the given agent.
+
+        Returns 'standard' if the agent exists but has no log_verbosity field
+        (graceful degradation for agents registered before F014).
+
+        Raises KeyError if the agent is not in the registry.
+        """
+        if agent_name not in self._registry["agents"]:
+            raise KeyError(
+                f"Agent '{agent_name}' not found in registry. "
+                f"Registered agents: {list(self._registry['agents'].keys())}"
+            )
+        return self._registry["agents"][agent_name].get("log_verbosity", "standard")
