@@ -1,0 +1,10 @@
+[Unit]
+Description=Felix Core Digest — generate agent activity digests
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 /home/claude/repos/kg-automation/scripts/openclaw/observation/summarize.py
+Environment=HOME=/home/claude
+WorkingDirectory=/home/claude/repos/kg-automation
