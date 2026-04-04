@@ -102,12 +102,12 @@ between stochastic agent judgment and well-formed JSONL output. Test-first.
 
 ### Included Subtasks
 
-- [ ] T005: Write test_log_action.py (all test cases, test-first)
-- [ ] T006: Implement log_action.py CLI interface (argparse)
-- [ ] T007: Implement schema validation (required fields, category enum)
-- [ ] T008: Implement JSONL serialization, ts/run_id generation, file I/O
-- [ ] T009: Implement truncation enforcement (120 char max)
-- [ ] T010: Implement verbosity filtering (reads registry via config.py)
+- [x] T005: Write test_log_action.py (all test cases, test-first)
+- [x] T006: Implement log_action.py CLI interface (argparse)
+- [x] T007: Implement schema validation (required fields, category enum)
+- [x] T008: Implement JSONL serialization, ts/run_id generation, file I/O
+- [x] T009: Implement truncation enforcement (120 char max)
+- [x] T010: Implement verbosity filtering (reads registry via config.py)
 
 ### Parallel Opportunity
 
