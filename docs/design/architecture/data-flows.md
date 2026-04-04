@@ -6,7 +6,7 @@ status: approved
 
 # Data Flows
 
-Authoritative data: [`data/data-flows.json`](data/data-flows.json)
+Authoritative data: [`data/data-flows.json`](<./data/data-flows.json>)
 
 ## Active Flows
 
