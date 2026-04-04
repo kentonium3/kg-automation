@@ -1,12 +1,13 @@
 {
   "version": "1.0",
-  "updated": "2026-04-01",
-  "updated_by": "F012",
+  "updated": "2026-04-04",
+  "updated_by": "F014",
   "agents": {
     "felix-admin-capture": {
       "team": "SuperAdmin (B)",
       "scope": "Obsidian inbox processing — classifies notes, routes to vault, creates Vikunja tasks",
       "autonomy_level": "assisted",
+      "log_verbosity": "standard",
       "deployed_feature": "F008",
       "registered": "2026-04-01",
       "transition_history": [
@@ -23,6 +24,7 @@
       "team": "SuperAdmin (B)",
       "scope": "Daily habit check-ins, completion recording, and pattern reporting",
       "autonomy_level": "assisted",
+      "log_verbosity": "standard",
       "deployed_feature": "F009",
       "registered": "2026-04-01",
       "transition_history": [
@@ -31,6 +33,23 @@
           "autonomy_level": "assisted",
           "direction": "registration",
           "reason": "Initial registration under Felix governance framework (F012)",
+          "decided_by": "Kent Gale"
+        }
+      ]
+    },
+    "felix-admin-tasker": {
+      "team": "SuperAdmin (B)",
+      "scope": "Task intelligence — enrichment proposals, retroactive enrichment, incomplete task detection",
+      "autonomy_level": "assisted",
+      "log_verbosity": "standard",
+      "deployed_feature": "F013",
+      "registered": "2026-04-04",
+      "transition_history": [
+        {
+          "date": "2026-04-04",
+          "autonomy_level": "assisted",
+          "direction": "registration",
+          "reason": "Added to registry during F014; was deployed in F013 but not registered",
           "decided_by": "Kent Gale"
         }
       ]
