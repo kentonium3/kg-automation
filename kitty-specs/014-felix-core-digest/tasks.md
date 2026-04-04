@@ -196,10 +196,10 @@ and include the gitignore update step for the second-brain repo.
 
 ### Included Subtasks
 
-- [ ] T022: Create felix-core-digest.timer (systemd user timer)
-- [ ] T023: Create felix-core-digest.service (systemd oneshot)
-- [ ] T024: Create deploy-f014.sh following F013 pattern
-- [ ] T025: Add gitignore update and validation to deploy script
+- [x] T022: Create felix-core-digest.timer (systemd user timer)
+- [x] T023: Create felix-core-digest.service (systemd oneshot)
+- [x] T024: Create deploy-f014.sh following F013 pattern
+- [x] T025: Add gitignore update and validation to deploy script
 
 ### Risks
 
