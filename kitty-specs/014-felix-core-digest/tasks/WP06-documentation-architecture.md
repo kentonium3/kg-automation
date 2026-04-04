@@ -12,7 +12,8 @@ base_branch: 014-felix-core-digest-WP05
 base_commit: 861d1f1401a2975ed369677125eac0ea60285256
 created_at: '2026-04-04T16:19:37.192830+00:00'
 subtasks: [T026, T027, T028, T029, T030, T031, T032]
-shell_pid: '99713'
+shell_pid: "99713"
+agent: "claude"
 history:
 - date: '2026-04-04'
   action: created
@@ -296,3 +297,7 @@ authoritative JSON.
 3. Verify Markdown matches JSON content exactly
 4. Confirm AGENT-REGISTRY.md was NOT modified
 5. Grep for `00-System/agent-activity` — should not appear in updated docs
+
+## Activity Log
+
+- 2026-04-04T16:19:37Z – claude – shell_pid=99713 – Started implementation via workflow command
