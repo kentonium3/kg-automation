@@ -135,13 +135,13 @@ and rewrite all test fixtures.
 
 ### Included Subtasks
 
-- [ ] T011: Create JSONL equivalents of 6 existing Markdown fixtures
-- [ ] T012: Implement parse_jsonl_log() replacing parse_log_file()
-- [ ] T013: Rewrite find_log_files() for per-agent subdirectory walking
-- [ ] T014: Add malformed JSONL line handling (stderr + skip)
-- [ ] T015: Update digest output: new paths, generate_digest(), generate_agent_detail()
-- [ ] T016: Implement 5-day retention and idempotency check
-- [ ] T017: Update test_summarize.py for JSONL; remove old Markdown fixtures and regex
+- [x] T011: Create JSONL equivalents of 6 existing Markdown fixtures
+- [x] T012: Implement parse_jsonl_log() replacing parse_log_file()
+- [x] T013: Rewrite find_log_files() for per-agent subdirectory walking
+- [x] T014: Add malformed JSONL line handling (stderr + skip)
+- [x] T015: Update digest output: new paths, generate_digest(), generate_agent_detail()
+- [x] T016: Implement 5-day retention and idempotency check
+- [x] T017: Update test_summarize.py for JSONL; remove old Markdown fixtures and regex
 
 ### Parallel Opportunity
 
