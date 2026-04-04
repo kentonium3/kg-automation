@@ -17,7 +17,8 @@ base_branch: 014-felix-core-digest-WP01
 base_commit: 1cc6045874580b1c667cd01084ae1076d74bcfbf
 created_at: '2026-04-04T15:34:34.535128+00:00'
 subtasks: [T005, T006, T007, T008, T009, T010]
-shell_pid: '92524'
+shell_pid: "92524"
+agent: "claude"
 history:
 - date: '2026-04-04'
   action: created
@@ -284,3 +285,7 @@ field value exceeding 120 characters is truncated.
 3. Confirm truncation applies to all user-supplied string fields
 4. Verify file append mode (never truncate)
 5. Run tests with `--tb=short` to check error paths
+
+## Activity Log
+
+- 2026-04-04T15:34:34Z – claude – shell_pid=92524 – Started implementation via workflow command
