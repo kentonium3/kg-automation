@@ -135,7 +135,25 @@ If the new version has issues:
 ### Web UI URLs
 
 - **Canonical URL (HTTPS)**: `https://office2.tail0f5f56.ts.net`
-- **Tailscale Serve**: TLS terminated by Tailscale Serve on port 443, proxied to localhost:3456
+- **Tailscale Serve**: TLS terminated by Tailscale Serve on port 443, proxied to `http://100.92.197.90:3456`
+
+### Tailscale Serve Configuration
+
+Tailscale Serve proxies HTTPS on port 443 to the Vikunja container. The proxy
+target must be `http://100.92.197.90:3456` (Tailscale IP), **not** `localhost:3456`,
+because the Docker container is bound to the Tailscale IP only — it does not
+listen on localhost.
+
+```bash
+# View current serve config:
+ssh office2-kgale 'sudo tailscale serve status'
+
+# Set or reset the proxy target:
+ssh office2-kgale 'sudo tailscale serve --bg https+insecure://100.92.197.90:3456'
+```
+
+The UFW firewall must allow port 443 on the tailscale0 interface. This rule is
+included in `scripts/office2/security-monitor/configure-ufw.sh`.
 
 ### Requirements
 

@@ -28,6 +28,9 @@ ufw allow from 192.168.1.0/24 to any port 22 proto tcp comment 'SSH from home LA
 # SSH: allow from Tailscale address range (100.64.0.0/10 per RFC 6598)
 ufw allow from 100.64.0.0/10 to any port 22 proto tcp comment 'SSH from Tailscale'
 
+# HTTPS: allow Tailscale Serve on tailscale0 interface (proxies to Vikunja)
+ufw allow in on tailscale0 to any port 443 proto tcp comment 'Tailscale HTTPS serve'
+
 echo ""
 echo "=== Enabling UFW ==="
 # --force skips the interactive "may disrupt existing connections" prompt
