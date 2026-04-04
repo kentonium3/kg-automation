@@ -18,8 +18,8 @@ base_branch: 014-felix-core-digest-WP01
 base_commit: 1cc6045874580b1c667cd01084ae1076d74bcfbf
 created_at: '2026-04-04T15:35:20.433513+00:00'
 subtasks: [T011, T012, T013, T014, T015, T016, T017]
-shell_pid: "92783"
-agent: "gemini"
+shell_pid: "96073"
+agent: "claude"
 history:
 - date: '2026-04-04'
   action: created
@@ -378,3 +378,4 @@ Markdown parsing artifacts.
 
 - 2026-04-04T15:35:20Z – gemini – shell_pid=92783 – Started implementation via workflow command
 - 2026-04-04T15:54:08Z – gemini – shell_pid=92783 – All 7 subtasks done. 53/53 tests passing. JSONL parsing, new output paths, retention, idempotency, all fixtures replaced.
+- 2026-04-04T15:54:15Z – claude – shell_pid=96073 – Started review via workflow command
