@@ -19,7 +19,7 @@ Generated: 2026-03-26T04:46:08Z
 ## Branch Strategy
 
 - Solo maintainer project. Push directly to main. Use Claude Code or Claude Desktop as architectural review partner when changes touch the v0.3 spec or cross-cutting concerns.
-- Deployment constraints: Production services run on office2 (Ubuntu 24.04 LTS). Mac is authoring only. All scripts and configs     target Linux unless explicitly noted. Services accessible via Tailscale only — never exposed to public     internet.
+- Deployment constraints: Production services run on office2 (Ubuntu 24.04 LTS). Mac is authoring only. All scripts and configs target Linux unless explicitly noted. Services accessible via Tailscale only — never exposed to public internet. Every feature that deploys code, agents, skills, or scheduled services to office2 must include a deploy script at `scripts/deploy/deploy-f{NNN}.sh`. See `docs/handbooks/deployment.md` for the established pattern, SSH host alias requirements, and per-resource deployment procedures. Use `scripts/deploy/deploy-f013.sh` as the reference implementation.
 
 ## Governance Activation
 
@@ -39,7 +39,7 @@ template_set: software-dev-default
 - Quality Gates: CI validation passes (validate_docs.py: frontmatter compliance + secret scan) on every push to main. Self-review of diff before push.
 - Review Policy: Solo maintainer project. Push directly to main. Use Claude Code or Claude Desktop as architectural review partner when changes touch the v0.3 spec or cross-cutting concerns.
 - Performance Targets: Inbox processing completes within 60 seconds of trigger. WhatsApp command responses within 10 seconds.    CI validation under 30 seconds. Heartbeat schedules fire on time.
-- Deployment Constraints: Production services run on office2 (Ubuntu 24.04 LTS). Mac is authoring only. All scripts and configs     target Linux unless explicitly noted. Services accessible via Tailscale only — never exposed to public     internet.
+- Deployment Constraints: Production services run on office2 (Ubuntu 24.04 LTS). Mac is authoring only. All scripts and configs target Linux unless explicitly noted. Services accessible via Tailscale only — never exposed to public internet. Every feature that deploys to office2 must include a deploy script at `scripts/deploy/deploy-f{NNN}.sh`. See `docs/handbooks/deployment.md` for the full deployment pattern.
 
 ## Project Directives
 
@@ -56,6 +56,7 @@ template_set: software-dev-default
 | `DIRECTIVE:TEST_FIRST` | directive | Require test-first behavior across acceptance and implementation layers, selecting tactics based on scope and risk. | `library/directive-test-first.md` |
 | `TEMPLATE_SET:software-dev-default` | template_set | Build high-quality software with structured workflows and test-driven development | `library/template-set-software-dev-default.md` |
 | `STYLEGUIDE:python-implementation` | styleguide | No summary provided. | `library/styleguide-python-implementation.md` |
+| `RUNBOOK:deployment` | runbook | Deploy script pattern, SSH host alias setup, per-resource deployment procedures for office2. Reference implementation: `scripts/deploy/deploy-f013.sh`. | `docs/handbooks/deployment.md` |
 
 ## Amendment Process
 

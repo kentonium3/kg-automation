@@ -30,9 +30,17 @@ echo "  Registry deployed"
 
 echo ""
 echo "--- Stage 3: Deploy AGENTS.md files ---"
-for agent in felix-admin-capture felix-admin-habits felix-admin-tasker; do
+# Workspace names don't follow a uniform pattern — use explicit mapping
+declare -A WORKSPACES=(
+  [felix-admin-capture]="inbox-agent"
+  [felix-admin-habits]="habits-agent"
+  [felix-admin-tasker]="tasker-agent"
+)
+for agent in "${!WORKSPACES[@]}"; do
+  ws="${WORKSPACES[$agent]}"
+  ssh office2-claude "mkdir -p /data/services/openclaw/$ws"
   scp "$REPO_ROOT/scripts/openclaw/agents/$agent/AGENTS.md" \
-    "office2-claude:/data/services/openclaw/${agent##felix-admin-}-agent/AGENTS.md"
+    "office2-claude:/data/services/openclaw/$ws/AGENTS.md"
 done
 echo "  Agent workspaces updated"
 
