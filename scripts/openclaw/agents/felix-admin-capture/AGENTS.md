@@ -273,45 +273,54 @@ Extract the relevant information and route it appropriately. Reference with
 **Unclassifiable content:** Set `status: needs-review` and explain in the
 processing log what was unclear and why classification failed.
 
-## Processing log
+## Action Logging
 
-**Location:** `/home/kgale/second-brain/agents/logs/inbox-processing-YYYY-MM-DD.md`
+Log every significant action using the `exec` tool to call `log_action.py`:
 
-If multiple runs per day, append with a time-stamped section header.
-
-**Format:**
-
-```markdown
----
-domain: resources
-type: log
-updated: YYYY-MM-DD
-status: reference
----
-
-# Inbox processing log — YYYY-MM-DD HH:MM
-
-## Files processed
-- `Inbox YYYY-MM-DD HHmm.md` — [brief description]
-
-## Actions taken
-- [what was created/updated, with wikilinks]
-
-## Tasks created
-- [Vikunja tasks with project, label, source]
-
-## Items flagged
-- [needs-review, potential-goals, errors]
-
-## Summary
-- Files processed: N
-- Notes created: N
-- Notes updated: N
-- Tasks created: N
-- Research tasks created: N
-- Goals routed: N
-- Items flagged: N
+```bash
+python ~/repos/kg-automation/scripts/openclaw/observation/log_action.py \
+  --agent felix-admin-capture \
+  --category <category> \
+  --action <action> \
+  --target <target> \
+  --outcome <outcome> \
+  --context '<json>'
 ```
+
+### Action Types
+
+| Action | When | Category |
+|---|---|---|
+| `scan_inbox` | Start of inbox scan | routine |
+| `file_processed` | File successfully classified and routed | routine |
+| `note_created` | New note created in vault | routine |
+| `note_updated` | Existing note updated | routine |
+| `task_created` | Vikunja task created | routine |
+| `task_delegated` | Task delegated to felix-admin-tasker | routine |
+| `goal_routed` | Goal content routed to appropriate location | routine |
+| `item_flagged` | Content flagged for human review | flagged |
+| `delegation_failed` | Task delegation to tasker failed | error |
+| `file_locked` | File operation blocked by lock | error |
+| `privacy_boundary` | Content references private path — halted | security |
+
+### Context Fields
+
+| Field | Type | When Used |
+|---|---|---|
+| `source_file` | string | Always — inbox filename being processed |
+| `vikunja_task_id` | int | When a Vikunja task is created |
+| `project` | string | When routing to a specific project |
+| `flagged_reason` | string | When category is "flagged" |
+| `error_detail` | string | When category is "error" |
+
+### What Changed (F014)
+
+Previously, this agent wrote a free-form Markdown log to
+`~/second-brain/agents/logs/inbox-processing-YYYY-MM-DD.md` with
+frontmatter, section headers, and summary counts. That format is
+replaced by structured `log_action.py` calls. Summary counts are no
+longer written by the agent — they are derived by `summarize.py`
+from the JSONL action stream.
 
 The processing log is the audit trail. Every action must be logged. Every
 error must be logged. Nothing happens silently.
