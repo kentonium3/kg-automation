@@ -1,0 +1,60 @@
+{
+  "event_count": 6,
+  "feature_slug": "014-felix-core-digest",
+  "last_event_id": "01KNBGBMS8T0BGZCXW7CMRWWQV",
+  "materialized_at": "2026-04-04T05:44:52.784503+00:00",
+  "summary": {
+    "approved": 0,
+    "blocked": 0,
+    "canceled": 0,
+    "claimed": 0,
+    "done": 0,
+    "for_review": 0,
+    "in_progress": 0,
+    "planned": 6
+  },
+  "work_packages": {
+    "WP01": {
+      "actor": "finalize-tasks",
+      "force_count": 1,
+      "lane": "planned",
+      "last_event_id": "01KNBGBMN0RCD017B1XSFS58CM",
+      "last_transition_at": "2026-04-04T05:44:52.640778+00:00"
+    },
+    "WP02": {
+      "actor": "finalize-tasks",
+      "force_count": 1,
+      "lane": "planned",
+      "last_event_id": "01KNBGBMRG1P5G3C5ZY5ADDW8C",
+      "last_transition_at": "2026-04-04T05:44:52.752898+00:00"
+    },
+    "WP03": {
+      "actor": "finalize-tasks",
+      "force_count": 1,
+      "lane": "planned",
+      "last_event_id": "01KNBGBMRPX5B94NW469B6FQ2Z",
+      "last_transition_at": "2026-04-04T05:44:52.758812+00:00"
+    },
+    "WP04": {
+      "actor": "finalize-tasks",
+      "force_count": 1,
+      "lane": "planned",
+      "last_event_id": "01KNBGBMRX787YGHTTNH6RWS1W",
+      "last_transition_at": "2026-04-04T05:44:52.765224+00:00"
+    },
+    "WP05": {
+      "actor": "finalize-tasks",
+      "force_count": 1,
+      "lane": "planned",
+      "last_event_id": "01KNBGBMS3P16KFNQTM122MHRY",
+      "last_transition_at": "2026-04-04T05:44:52.771536+00:00"
+    },
+    "WP06": {
+      "actor": "finalize-tasks",
+      "force_count": 1,
+      "lane": "planned",
+      "last_event_id": "01KNBGBMS8T0BGZCXW7CMRWWQV",
+      "last_transition_at": "2026-04-04T05:44:52.776745+00:00"
+    }
+  }
+}
