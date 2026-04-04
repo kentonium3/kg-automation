@@ -32,6 +32,7 @@ All services run on office2 unless otherwise noted.
 | Habit Report (weekly) | Sunday 6PM ET | OpenClaw cron → felix-admin-habits | claude | Weekly habit pattern report via WhatsApp |
 | Incomplete Task Detection | Every 4 hours (`0 */4 * * *`) | OpenClaw cron → felix-admin-tasker | claude | Poll Inbox for flat tasks |
 | Second Brain Sync | Every 15 min | `second-brain-sync.timer` (systemd) | kgale | Bidirectional git sync for non-vault content |
+| Felix Core Digest | Every 15 min | `felix-core-digest.timer` (systemd) | claude | Agent activity log summarization → Obsidian digests |
 
 ## Deployment Details
 
@@ -150,6 +151,21 @@ openclaw cron add \
 - Balances detection speed vs. polling overhead
 - Not too frequent (avoids redundant checks) but catches tasks within half a workday
 - Configurable: adjust via `openclaw cron update` if 4 hours is too frequent/infrequent
+
+### Felix Core Digest (F014)
+- **Deployed by**: F014
+- **Type**: Scheduled service (systemd user timer)
+- **systemd unit**: `felix-core-digest.timer` + `felix-core-digest.service` (user unit under claude)
+- **Schedule**: Every 15 minutes (OnUnitActiveSec=15min, OnBootSec=3min, Persistent=true)
+- **Runs as**: claude user
+- **ExecStart**: `/usr/bin/python3 /home/claude/repos/kg-automation/scripts/openclaw/observation/summarize.py`
+- **Input**: JSONL log files at `~/second-brain/agents/logs/{agent}/YYYY-MM-DD.jsonl`
+- **Output**: Markdown digests at `~/second-brain/notes/Agent-Logs/`
+- **Retention**: 5 days (digest files deleted by filename date)
+- **Idempotency**: Skips writes when no new JSONL content since last run
+- **Source in repo**: `scripts/openclaw/observation/summarize.py`
+- **Log writer**: `scripts/openclaw/observation/log_action.py` (utility, not a service)
+- **Runbook**: `docs/handbooks/observation-ops.md`
 
 ### WhatsApp Channel (F004)
 - **Deployed by**: F004

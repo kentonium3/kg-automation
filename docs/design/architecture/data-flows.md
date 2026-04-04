@@ -64,6 +64,20 @@ OpenClaw agents use the vikunja_api skill to create, read, update, and query tas
 via the Vikunja REST API. Authentication is via Bearer token read from the
 credential store at runtime. Used by all downstream features that touch tasks.
 
+### Observation Digest (F014)
+
+```
+Felix agent → log_action.py → JSONL → summarize.py (15-min timer) → Markdown → Obsidian Sync → Kent's devices
+```
+
+Agent activity logging and digest generation pipeline:
+1. Felix agents call `log_action.py` via OpenClaw's exec tool with structured arguments
+2. `log_action.py` validates, enforces schema, and appends a JSONL entry to `~/second-brain/agents/logs/{agent}/YYYY-MM-DD.jsonl`
+3. `summarize.py` runs every 15 minutes via systemd timer, reads JSONL, generates per-agent Markdown digests at `~/second-brain/notes/Agent-Logs/`
+4. Digests reach Kent's Mac and iPhone via the existing Obsidian Sync flow
+
+Raw JSONL logs are gitignored in the second-brain repo. Digest Markdown flows through Obsidian Sync (not git).
+
 ## Planned Flows (Not Yet Implemented)
 
 | Flow | Features | Description |
@@ -84,3 +98,5 @@ credential store at runtime. Used by all downstream features that touch tasks.
 | Security baselines | `/data/services/security-monitor/baselines` | Yes |
 | Security/audit logs | `/data/services/security-monitor/logs` | Yes |
 | Backup logs | `/data/services/backup/logs` | Yes |
+| Agent JSONL logs | `/home/claude/second-brain/agents/logs/` | No (gitignored, ephemeral) |
+| Agent digest files | `/home/claude/second-brain/notes/Agent-Logs/` | Via Obsidian Sync |

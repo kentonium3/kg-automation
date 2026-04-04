@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
-  "last_updated": "2026-04-02",
-  "updated_by": "F013",
+  "last_updated": "2026-04-04",
+  "updated_by": "F014",
   "services": [
     {
       "name": "vikunja",
@@ -219,6 +219,26 @@
       "status": "active",
       "purpose": "Detect and enrich incomplete tasks in Vikunja Inbox",
       "updated_by": "F013"
+    },
+    {
+      "name": "felix-core-digest",
+      "type": "scheduled",
+      "description": "Agent activity log summarization — reads JSONL, generates Markdown digests",
+      "host": "office2",
+      "user": "claude",
+      "systemd_unit": "felix-core-digest.timer (user unit)",
+      "systemd_user": "claude",
+      "schedule": "every 15 minutes",
+      "exec_start": "/usr/bin/python3 /home/claude/repos/kg-automation/scripts/openclaw/observation/summarize.py",
+      "source_in_repo": "scripts/openclaw/observation/summarize.py",
+      "input_path": "/home/claude/second-brain/agents/logs/",
+      "output_path": "/home/claude/second-brain/notes/Agent-Logs/",
+      "retention": "5 days (digest files only, by filename date)",
+      "deployed_by": "F014",
+      "status": "active",
+      "purpose": "Observation intelligence layer — reads agent JSONL logs, generates per-agent Markdown digests for Obsidian",
+      "runbook": "docs/handbooks/observation-ops.md",
+      "updated_by": "F014"
     }
   ]
 }
