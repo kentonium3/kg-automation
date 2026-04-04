@@ -380,3 +380,4 @@ Markdown parsing artifacts.
 - 2026-04-04T15:54:08Z – gemini – shell_pid=92783 – All 7 subtasks done. 53/53 tests passing. JSONL parsing, new output paths, retention, idempotency, all fixtures replaced.
 - 2026-04-04T15:54:15Z – claude – shell_pid=96073 – Started review via workflow command
 - 2026-04-04T15:54:33Z – claude – shell_pid=96073 – Review passed: regex removed, JSONL parsing in place, Agent-Logs/ output, retention+idempotency tested, 53/53 tests, no MD artifacts remain
+- 2026-04-04T16:52:27Z – claude – shell_pid=96073 – Merged to main, 72/72 tests passing
