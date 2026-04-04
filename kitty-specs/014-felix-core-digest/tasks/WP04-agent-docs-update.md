@@ -12,7 +12,7 @@ base_branch: 014-felix-core-digest-WP02
 base_commit: 0cd529e780b8fd84a3aad9a96bef737d873b0b21
 created_at: '2026-04-04T15:38:48.993549+00:00'
 subtasks: [T018, T019, T020, T021]
-shell_pid: "93657"
+shell_pid: "95751"
 agent: "claude"
 history:
 - date: '2026-04-04'
@@ -344,3 +344,4 @@ transition from old formats to new.
 
 - 2026-04-04T15:38:49Z – claude – shell_pid=93657 – Started implementation via workflow command
 - 2026-04-04T15:53:03Z – claude – shell_pid=93657 – All 4 subtasks done. Three AGENTS.md files updated with log_action.py references.
+- 2026-04-04T15:53:13Z – claude – shell_pid=95751 – Started review via workflow command
