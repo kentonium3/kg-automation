@@ -222,13 +222,13 @@ to reflect the deployed state.
 
 ### Included Subtasks
 
-- [ ] T026: Create docs/handbooks/observation-ops.md runbook
-- [ ] T027: Update service-inventory.json (felix-core-digest as type "cron")
-- [ ] T028: Update data-flows.json (observation flow)
-- [ ] T029: Update service-inventory.md
-- [ ] T030: Update data-flows.md
-- [ ] T031: Verify JSON-Markdown consistency
-- [ ] T032: Cross-verify architecture docs reflect deployed state
+- [x] T026: Create docs/handbooks/observation-ops.md runbook
+- [x] T027: Update service-inventory.json (felix-core-digest as type "cron")
+- [x] T028: Update data-flows.json (observation flow)
+- [x] T029: Update service-inventory.md
+- [x] T030: Update data-flows.md
+- [x] T031: Verify JSON-Markdown consistency
+- [x] T032: Cross-verify architecture docs reflect deployed state
 
 ### Risks
 
