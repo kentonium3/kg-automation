@@ -346,3 +346,4 @@ transition from old formats to new.
 - 2026-04-04T15:53:03Z – claude – shell_pid=93657 – All 4 subtasks done. Three AGENTS.md files updated with log_action.py references.
 - 2026-04-04T15:53:13Z – claude – shell_pid=95751 – Started review via workflow command
 - 2026-04-04T15:53:15Z – claude – shell_pid=95751 – Review passed: all three agents updated, field mappings verified against R4, habits Vikunja comments unchanged, Directive 3 compliance preserved
+- 2026-04-04T16:52:29Z – claude – shell_pid=95751 – Merged to main, 72/72 tests passing
