@@ -12,7 +12,7 @@ requirement_refs:
 - FR-07
 planning_base_branch: main
 merge_target_branch: main
-branch_strategy: 'Planning branch: main. Merge target: main. Depends on WP01 — actual base branch may differ during implement.'
+branch_strategy: Planning artifacts for this feature were generated on main. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into main unless the human explicitly redirects the landing branch.
 subtasks: [T005, T006, T007, T008, T009, T010]
 history:
 - date: '2026-04-04'
