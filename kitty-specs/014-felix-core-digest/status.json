@@ -1,16 +1,16 @@
 {
-  "event_count": 17,
+  "event_count": 18,
   "feature_slug": "014-felix-core-digest",
-  "last_event_id": "01KNCJ8013BW5T2C1J4A9P7Z8V",
-  "materialized_at": "2026-04-04T15:37:04.805118+00:00",
+  "last_event_id": "01KNCJ85P6KNHNNYMJ78MQDVF9",
+  "materialized_at": "2026-04-04T15:37:10.600270+00:00",
   "summary": {
     "approved": 1,
     "blocked": 0,
     "canceled": 0,
     "claimed": 0,
     "done": 0,
-    "for_review": 1,
-    "in_progress": 1,
+    "for_review": 0,
+    "in_progress": 2,
     "planned": 3
   },
   "work_packages": {
@@ -22,11 +22,11 @@
       "last_transition_at": "2026-04-04T15:33:52.177530+00:00"
     },
     "WP02": {
-      "actor": "user",
-      "force_count": 1,
-      "lane": "for_review",
-      "last_event_id": "01KNCJ8013BW5T2C1J4A9P7Z8V",
-      "last_transition_at": "2026-04-04T15:37:04.803140+00:00"
+      "actor": "claude",
+      "force_count": 2,
+      "lane": "in_progress",
+      "last_event_id": "01KNCJ85P6KNHNNYMJ78MQDVF9",
+      "last_transition_at": "2026-04-04T15:37:10.599064+00:00"
     },
     "WP03": {
       "actor": "gemini",
