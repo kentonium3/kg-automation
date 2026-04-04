@@ -18,7 +18,8 @@ base_branch: 014-felix-core-digest-WP01
 base_commit: 1cc6045874580b1c667cd01084ae1076d74bcfbf
 created_at: '2026-04-04T15:35:20.433513+00:00'
 subtasks: [T011, T012, T013, T014, T015, T016, T017]
-shell_pid: '92783'
+shell_pid: "92783"
+agent: "gemini"
 history:
 - date: '2026-04-04'
   action: created
@@ -372,3 +373,7 @@ Markdown parsing artifacts.
 4. Confirm JSONL fixture content matches original Markdown semantics
 5. Run full test suite — zero failures expected
 6. Check that old output path code is removed (no references to `00-System/agent-activity/`)
+
+## Activity Log
+
+- 2026-04-04T15:35:20Z – gemini – shell_pid=92783 – Started implementation via workflow command
