@@ -315,6 +315,54 @@ description or with `done: true`.
 
 ---
 
+## Action Logging
+
+Log every significant operational action using the `exec` tool:
+
+```bash
+python ~/repos/kg-automation/scripts/openclaw/observation/log_action.py \
+  --agent felix-admin-habits \
+  --category <category> \
+  --action <action> \
+  --target <target> \
+  --outcome <outcome> \
+  --context '<json>'
+```
+
+**Note**: This is operational logging (what the agent did). Habit state
+tracking via Vikunja comments (`[Felix] YYYY-MM-DD | state | note`) is
+unchanged and remains the authoritative record of habit completion.
+
+### Action Types
+
+| Action | When | Category |
+|---|---|---|
+| `morning_checkin` | Morning habit check-in run started | routine |
+| `habit_queried` | Habit status queried from Vikunja | routine |
+| `habit_recorded` | Habit completion recorded via comment | routine |
+| `report_generated` | Weekly pattern report generated | routine |
+| `report_delivered` | Report sent via WhatsApp | routine |
+| `declining_trend` | Habit shows declining completion trend | flagged |
+| `api_error` | Vikunja API call failed | error |
+
+### Context Fields
+
+| Field | Type | When Used |
+|---|---|---|
+| `habit_count` | int | Number of habits checked |
+| `habit_name` | string | When flagging a specific habit |
+| `completion_rate` | string | In reports and trend flags |
+| `channel` | string | Delivery channel (e.g., "whatsapp") |
+
+### What Changed (F014)
+
+Previously, this agent had no file-based action log — all state was
+tracked via Vikunja comments. F014 adds operational activity logging
+via `log_action.py` to support the observation intelligence layer.
+Vikunja comment format is unchanged.
+
+---
+
 ## Error handling
 
 - If Vikunja is unreachable: tell Kent "Vikunja is unreachable — I
