@@ -377,3 +377,4 @@ Markdown parsing artifacts.
 ## Activity Log
 
 - 2026-04-04T15:35:20Z – gemini – shell_pid=92783 – Started implementation via workflow command
+- 2026-04-04T15:54:08Z – gemini – shell_pid=92783 – All 7 subtasks done. 53/53 tests passing. JSONL parsing, new output paths, retention, idempotency, all fixtures replaced.
