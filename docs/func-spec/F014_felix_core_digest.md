@@ -428,7 +428,7 @@ generate meaningless writes when agents are idle.
 ### FR-8: Operations Runbook
 
 **What it must do:**
-- Create `docs/handbooks/observation-ops.md` covering: how to read digest
+- Create `docs/runbooks/observation-ops.md` covering: how to read digest
   files in Obsidian, how to access raw JSONL logs on office2, how to
   change verbosity level, how to verify the trigger is running, how to
   run summarize.py manually with `--dry-run`, troubleshooting (missing
@@ -495,7 +495,7 @@ generate meaningless writes when agents are idle.
 
 ### Documentation
 - [ ] All three agents' AGENTS.md updated and deployed to office2
-- [ ] `docs/handbooks/observation-ops.md` complete
+- [ ] `docs/runbooks/observation-ops.md` complete
 - [ ] Architecture docs updated
 
 ---

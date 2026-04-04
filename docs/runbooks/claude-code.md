@@ -27,4 +27,4 @@ Claude Code acts as an autonomous **execution agent** for kg-automation: it read
 - **/process-handoff**: apply a request, validate, commit, push, respond
 - **/docs-self-heal**: parse CI failure, fix front-matter/links, validate, push
 
-See also: `docs/handbooks/agent-execution-roles.md`.
+See also: `docs/runbooks/agent-execution-roles.md`.

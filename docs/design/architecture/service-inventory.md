@@ -45,8 +45,8 @@ All services run on office2 unless otherwise noted.
 - **Setup script**: `scripts/vikunja/setup_vikunja.py` (projects, labels, filters)
 - **Data owner**: uid 1000:gid 0 (matches container runtime user)
 - **Backup**: Automatically included (under `/data/services/`)
-- **Runbook**: `docs/handbooks/vikunja-ops.md`
-- **F006 additions**: Goals project (top-level, id=11) for structured goal declarations, `metalcasework` label (#ff9800), Goals saved filter. Setup script: `scripts/vikunja/setup_goals.py`. Goals runbook: `docs/handbooks/goals-ops.md`
+- **Runbook**: `docs/runbooks/vikunja-ops.md`
+- **F006 additions**: Goals project (top-level, id=11) for structured goal declarations, `metalcasework` label (#ff9800), Goals saved filter. Setup script: `scripts/vikunja/setup_goals.py`. Goals runbook: `docs/runbooks/goals-ops.md`
 
 ### Obsidian Sync (pre-F001, updated F011)
 - **Deployed by**: Manual setup, updated by F011
@@ -79,7 +79,7 @@ All services run on office2 unless otherwise noted.
 - **Port binding**: `100.92.197.90:8787` (Tailscale IP only)
 - **Data**: transcripts at `/data/transcripts/`, models at `/data/services/transcribe/models/`
 - **Backup**: Included, excluding `/data/services/transcribe/models` (re-downloadable)
-- **Runbook**: `docs/handbooks/transcribe-ops.md`
+- **Runbook**: `docs/runbooks/transcribe-ops.md`
 
 ### OpenClaw Gateway (F002)
 - **Deployed by**: F002
@@ -90,7 +90,7 @@ All services run on office2 unless otherwise noted.
 - **Config in repo**: `scripts/openclaw/openclaw-gateway.service`, `scripts/openclaw/install.sh`
 - **Credential store**: `/data/services/openclaw/secrets/` (mode 700)
 - **Backup**: Data at `/data/services/openclaw/data/` and config at `/home/claude/.openclaw/` — both in Restic scope
-- **Runbook**: `docs/handbooks/openclaw-ops.md`
+- **Runbook**: `docs/runbooks/openclaw-ops.md`
 
 ### Felix Admin Capture Agent (F008)
 - **Deployed by**: F008
@@ -104,7 +104,7 @@ All services run on office2 unless otherwise noted.
 - **Processing logs**: `/home/kgale/second-brain/agents/logs/inbox-processing-YYYY-MM-DD.md`
 - **Vikunja projects used**: Inbox (tasks), Research (research requests), Goals (goal declarations)
 - **Privacy boundary**: `02-Growth/_private/` is never accessed
-- **Runbook**: `docs/handbooks/inbox-ops.md`
+- **Runbook**: `docs/runbooks/inbox-ops.md`
 
 ### Felix Admin Habits Agent (F009)
 - **Deployed by**: F009
@@ -119,7 +119,7 @@ All services run on office2 unless otherwise noted.
 - **Completion storage**: Comments on habit tasks in format `[Felix] YYYY-MM-DD | {state} | note`
 - **WhatsApp delivery**: Cron jobs use `--to` for direct delivery; completion marking via main agent delegation
 - **Privacy boundary**: `02-Growth/_private/` is never accessed
-- **Runbook**: `docs/handbooks/habits-ops.md`
+- **Runbook**: `docs/runbooks/habits-ops.md`
 
 ### Felix Admin Tasker Agent (F013)
 - **Deployed by**: F013
@@ -165,7 +165,7 @@ openclaw cron add \
 - **Idempotency**: Skips writes when no new JSONL content since last run
 - **Source in repo**: `scripts/openclaw/observation/summarize.py`
 - **Log writer**: `scripts/openclaw/observation/log_action.py` (utility, not a service)
-- **Runbook**: `docs/handbooks/observation-ops.md`
+- **Runbook**: `docs/runbooks/observation-ops.md`
 
 ### WhatsApp Channel (F004)
 - **Deployed by**: F004
@@ -177,4 +177,4 @@ openclaw cron add \
 - **No external credentials**: Baileys session is managed internally, not in the credential store
 - **No new ports**: Baileys uses outbound WebSocket only
 - **Risk acceptance**: Baileys is unofficial; account ban risk accepted (see `security-posture.md`)
-- **Runbook**: `docs/handbooks/whatsapp-ops.md`
+- **Runbook**: `docs/runbooks/whatsapp-ops.md`

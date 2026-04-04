@@ -412,7 +412,7 @@ Before beginning research, the planning phase MUST read:
 4. `.kittify/constitution/constitution.md` — current constitution
 5. `docs/func-spec/F001_vikunja_docker_deploy.md` through
    `docs/func-spec/F004_whatsapp_channel.md` — what has been specced
-6. `docs/handbooks/` — all handbooks (what has been implemented)
+6. `docs/runbooks/` — all handbooks (what has been implemented)
 7. `CLAUDE.md` — project-level agent instructions
 
 ---

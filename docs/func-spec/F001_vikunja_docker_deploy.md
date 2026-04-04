@@ -185,7 +185,7 @@ Metal Casework (parent project / Area)
 ### FR-6: Deployment Documentation
 
 **What it must do:**
-- Create a runbook at `docs/handbooks/vikunja-ops.md` covering:
+- Create a runbook at `docs/runbooks/vikunja-ops.md` covering:
   - How to start/stop/restart the Vikunja service
   - Where the SQLite database lives
   - How to check backup status
@@ -193,7 +193,7 @@ Metal Casework (parent project / Area)
   - How to access the web UI via Tailscale
 
 **Success criteria:**
-- [ ] Runbook exists at `docs/handbooks/vikunja-ops.md`
+- [ ] Runbook exists at `docs/runbooks/vikunja-ops.md`
 - [ ] All five topics covered
 - [ ] Passes doc validation (frontmatter compliant)
 
@@ -260,7 +260,7 @@ updated as part of implementation.
 - [ ] All three saved filters working
 
 ### Documentation
-- [ ] `docs/handbooks/vikunja-ops.md` complete and passing CI
+- [ ] `docs/runbooks/vikunja-ops.md` complete and passing CI
 
 ### Quality
 - [ ] No credentials committed to repo

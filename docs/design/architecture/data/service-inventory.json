@@ -187,7 +187,7 @@
       "deployed_by": "F008",
       "status": "active",
       "purpose": "3x daily Obsidian inbox processing",
-      "runbook": "docs/handbooks/inbox-ops.md"
+      "runbook": "docs/runbooks/inbox-ops.md"
     },
     {
       "name": "habit-checkin",
@@ -203,7 +203,7 @@
       "deployed_by": "F009",
       "status": "active",
       "purpose": "Daily habit check-in and weekly pattern report",
-      "runbook": "docs/handbooks/habits-ops.md"
+      "runbook": "docs/runbooks/habits-ops.md"
     },
     {
       "name": "task-detection",
@@ -237,7 +237,7 @@
       "deployed_by": "F014",
       "status": "active",
       "purpose": "Observation intelligence layer — reads agent JSONL logs, generates per-agent Markdown digests for Obsidian",
-      "runbook": "docs/handbooks/observation-ops.md",
+      "runbook": "docs/runbooks/observation-ops.md",
       "updated_by": "F014"
     }
   ]

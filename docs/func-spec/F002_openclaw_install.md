@@ -70,9 +70,9 @@ Before implementation, the planning phase MUST read:
 
 2. **F001 artifacts — understand what's already established**
    - `scripts/vikunja/vikunja.service` — systemd unit pattern to copy for openclaw.service
-   - `docs/handbooks/office2-backup-and-security.md` — credential store location,
+   - `docs/runbooks/office2-backup-and-security.md` — credential store location,
      `claude` user permissions, security audit baseline reset procedure
-   - `docs/handbooks/vikunja-ops.md` — runbook format to match for openclaw-ops.md
+   - `docs/runbooks/vikunja-ops.md` — runbook format to match for openclaw-ops.md
 
 3. **OpenClaw documentation**
    - https://openclaw.ai and https://github.com/openclaw/openclaw
@@ -105,7 +105,7 @@ Before implementation, the planning phase MUST read:
 
 **Success criteria:**
 - [ ] OpenClaw installed at `/data/services/openclaw/app/`
-- [ ] Specific version tag recorded in `docs/handbooks/openclaw-ops.md`
+- [ ] Specific version tag recorded in `docs/runbooks/openclaw-ops.md`
 - [ ] `claude` user owns all installation files
 - [ ] Build completes without errors
 
@@ -200,7 +200,7 @@ but the binding is to the Tailscale interface.
 - After OpenClaw service is running, reset the security audit baselines
   to incorporate the new service
 - This prevents the daily 3AM audit from generating false-positive alerts
-- Follow the procedure documented in `docs/handbooks/office2-backup-and-security.md`
+- Follow the procedure documented in `docs/runbooks/office2-backup-and-security.md`
 
 **Success criteria:**
 - [ ] Security audit baselines reset after OpenClaw installation
@@ -211,7 +211,7 @@ but the binding is to the Tailscale interface.
 ### FR-7: Operations Runbook
 
 **What it must do:**
-- Create `docs/handbooks/openclaw-ops.md` covering:
+- Create `docs/runbooks/openclaw-ops.md` covering:
   - Installed version (pinned tag)
   - How to start/stop/restart the OpenClaw service
   - Where credentials live and how to rotate them
@@ -221,7 +221,7 @@ but the binding is to the Tailscale interface.
   - Skill directory location (for future features)
 
 **Success criteria:**
-- [ ] Runbook exists at `docs/handbooks/openclaw-ops.md`
+- [ ] Runbook exists at `docs/runbooks/openclaw-ops.md`
 - [ ] All topics covered
 - [ ] Passes doc validation (frontmatter compliant)
 
@@ -311,7 +311,7 @@ modified JSON file.
 - [ ] Audit baselines reset
 
 ### Documentation
-- [ ] `docs/handbooks/openclaw-ops.md` complete and CI-passing
+- [ ] `docs/runbooks/openclaw-ops.md` complete and CI-passing
 
 ---
 
@@ -393,7 +393,7 @@ human intervention.
 
 **Pattern discovery (planning phase):**
 - Read `scripts/vikunja/vikunja.service` for systemd unit template to copy
-- Read `docs/handbooks/vikunja-ops.md` for runbook structure to match
+- Read `docs/runbooks/vikunja-ops.md` for runbook structure to match
 - Check OpenClaw's README for the correct env var or config file for
   setting the API provider and model
 - Determine whether OpenClaw reads API key from env var, config file, or

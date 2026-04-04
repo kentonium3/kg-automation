@@ -18,7 +18,7 @@ status: draft
   inbox-evening (6 PM ET)
 - WhatsApp trigger via main agent delegation (openclaw agent --agent, not
   cron run — cron run by name not supported from agent turns)
-- Ops runbook at docs/handbooks/inbox-ops.md
+- Ops runbook at docs/runbooks/inbox-ops.md
 - Architecture docs updated (service-inventory.json/md)
 - Pushed to origin/main
 

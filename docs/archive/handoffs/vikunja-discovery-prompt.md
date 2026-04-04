@@ -36,7 +36,7 @@ exists in Vikunja right now so that a cleanup plan can be designed.
 
 **Repo files to read before starting:**
 - `scripts/vikunja/setup_vikunja.py` — what was intended to be created
-- `docs/handbooks/vikunja-ops.md` — documented expected state
+- `docs/runbooks/vikunja-ops.md` — documented expected state
 - `docs/Vikunja.md` — Kent's notes on known issues with the current setup
 
 **Vikunja API reference (version 0.24.6):**

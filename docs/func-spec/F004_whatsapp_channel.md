@@ -94,7 +94,7 @@ Before implementation, the planning phase MUST read:
 1. **Architecture and prior features**
    - `docs/design/architecture/data/service-inventory.json` — OpenClaw
      gateway details established in F002
-   - `docs/handbooks/openclaw-ops.md` — OpenClaw configuration patterns,
+   - `docs/runbooks/openclaw-ops.md` — OpenClaw configuration patterns,
      service management, credential store location
 
 2. **OpenClaw WhatsApp/Baileys integration docs**
@@ -179,7 +179,7 @@ Before implementation, the planning phase MUST read:
 ### FR-6: Operations Runbook
 
 **What it must do:**
-- Create `docs/handbooks/whatsapp-ops.md` covering:
+- Create `docs/runbooks/whatsapp-ops.md` covering:
   - How Baileys pairing works
   - How to check channel status
   - How to re-pair if the session expires or is invalidated
@@ -187,7 +187,7 @@ Before implementation, the planning phase MUST read:
   - Baileys risk acceptance rationale
 
 **Success criteria:**
-- [ ] Runbook exists at `docs/handbooks/whatsapp-ops.md`
+- [ ] Runbook exists at `docs/runbooks/whatsapp-ops.md`
 - [ ] Passes doc validation (frontmatter compliant)
 
 ---
@@ -255,7 +255,7 @@ F004 makes the following changes to the deployed system.
 - [ ] Audit baselines reset
 
 ### Documentation
-- [ ] `docs/handbooks/whatsapp-ops.md` complete and CI-passing
+- [ ] `docs/runbooks/whatsapp-ops.md` complete and CI-passing
 - [ ] Architecture docs updated
 
 ---

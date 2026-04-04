@@ -110,7 +110,7 @@ intentions. The system stores and surfaces them in this format consistently.
 Before implementation, the planning phase MUST read:
 
 1. **What Vikunja currently has — F001 artifacts**
-   - `docs/handbooks/vikunja-ops.md` — current project structure, labels, and
+   - `docs/runbooks/vikunja-ops.md` — current project structure, labels, and
      saved filters established in F001
    - `docs/design/architecture/data/service-inventory.json` — current Vikunja
      version and access details
@@ -125,7 +125,7 @@ Before implementation, the planning phase MUST read:
    - Note: the vault syncs between Mac, iPhone, and office2 via Obsidian Sync
 
 3. **OpenClaw capabilities for goal capture**
-   - `docs/handbooks/openclaw-ops.md` — how OpenClaw skills work, how WhatsApp
+   - `docs/runbooks/openclaw-ops.md` — how OpenClaw skills work, how WhatsApp
      messages are processed, how the transcribe-api skill is invoked
    - F003 func-spec and implementation artifacts — the whisper skill pattern
      is the model for processing voice input in OpenClaw
@@ -181,7 +181,7 @@ Before implementation, the planning phase MUST read:
   metalcasework) — goals without an identity label are invalid
 
 **Pattern reference:** Study the existing project structure and saved filter
-patterns established in F001 (`docs/handbooks/vikunja-ops.md`) — extend
+patterns established in F001 (`docs/runbooks/vikunja-ops.md`) — extend
 consistently, don't duplicate
 
 **Success criteria:**
@@ -349,7 +349,7 @@ changes are entirely in Vikunja's data structure and Obsidian content.
 - [ ] Goal appears in both Vikunja and Goals-MOC.md after capture
 
 ### Quality
-- [ ] Ops runbook at `docs/handbooks/goals-ops.md` documenting the format,
+- [ ] Ops runbook at `docs/runbooks/goals-ops.md` documenting the format,
   how to add goals manually, how to close/retire a goal
 - [ ] Architecture docs updated per above
 
@@ -455,7 +455,7 @@ integration — those are later features that build on this foundation.
   since F006 needs to write at least one structured goal record
 
 **Ops runbook scope:**
-- The runbook at `docs/handbooks/goals-ops.md` must cover: the goal declaration
+- The runbook at `docs/runbooks/goals-ops.md` must cover: the goal declaration
   format, how to add a goal manually (Vikunja + Obsidian), how to close a goal
   when achieved, how to retire an abandoned goal, and what a valid vs invalid
   declaration looks like

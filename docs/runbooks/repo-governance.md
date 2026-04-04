@@ -64,7 +64,7 @@ The workflow enforces:
 7. Clean working tree after generators
 8. Quick relative link check
 
-See `docs/handbooks/ci-handbook.md` for how to pass locally.
+See `docs/runbooks/ci-handbook.md` for how to pass locally.
 
 ## AI agent rules
 - **No direct pushes to `main`.** Open PRs from a task branch.

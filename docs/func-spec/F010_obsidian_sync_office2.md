@@ -214,7 +214,7 @@ Before implementation, the planning phase MUST read:
 ### FR-5: Operations Runbook
 
 **What it must do:**
-- Create or update `docs/handbooks/obsidian-sync-ops.md` covering:
+- Create or update `docs/runbooks/obsidian-sync-ops.md` covering:
   - How Obsidian Sync is configured on office2
   - How to check sync status
   - How to re-authenticate if credentials expire
@@ -282,7 +282,7 @@ F010 changes the vault sync mechanism — a significant data flow change.
 - [ ] Backlogged unprocessed inbox notes processed
 
 ### Documentation
-- [ ] `docs/handbooks/obsidian-sync-ops.md` complete and CI-passing
+- [ ] `docs/runbooks/obsidian-sync-ops.md` complete and CI-passing
 - [ ] Architecture docs updated
 
 ---

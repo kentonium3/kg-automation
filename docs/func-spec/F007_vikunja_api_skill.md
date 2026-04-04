@@ -70,7 +70,7 @@ Vikunja
 Before implementation, the planning phase MUST read:
 
 1. **What Vikunja currently has — post-F006 state**
-   - `docs/handbooks/vikunja-ops.md` — current project structure, saved
+   - `docs/runbooks/vikunja-ops.md` — current project structure, saved
      filters, identity labels, Goals project (id=11), API token location
    - `docs/design/architecture/data/service-inventory.json` — Vikunja's
      current URL (`https://office2.tail0f5f56.ts.net`), bind config, and
@@ -79,7 +79,7 @@ Before implementation, the planning phase MUST read:
      token location at `/data/services/openclaw/secrets/vikunja-api`
 
 2. **OpenClaw skill system**
-   - `docs/handbooks/openclaw-ops.md` — skill directory, how skills are
+   - `docs/runbooks/openclaw-ops.md` — skill directory, how skills are
      installed, credential store location
    - F003 func-spec and its artifacts — the Whisper skill is the closest
      existing pattern for an OpenClaw skill that calls an external service.

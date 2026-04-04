@@ -295,5 +295,5 @@ When felix-admin-capture cannot delegate to felix-admin-tasker:
    ```bash
    ssh office2-claude "grep -i 'api\|401\|403\|404\|500' ~/second-brain/agents/logs/task-intelligence-\$(date +%Y-%m-%d).md"
    ```
-4. If Vikunja is down, see `docs/handbooks/vikunja-ops.md` for service
+4. If Vikunja is down, see `docs/runbooks/vikunja-ops.md` for service
    management procedures

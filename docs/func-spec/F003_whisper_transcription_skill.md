@@ -53,7 +53,7 @@ office2
 └── ✅ transcribe-api config committed to scripts/transcribe/
 └── ✅ OpenClaw whisper skill calls transcribe-api at 100.92.197.90:8787
 └── ✅ Voice audio → skill → transcript text returned to OpenClaw
-└── ✅ Runbook at docs/handbooks/transcribe-ops.md
+└── ✅ Runbook at docs/runbooks/transcribe-ops.md
 ```
 
 ---
@@ -73,7 +73,7 @@ Before implementation, the planning phase MUST read:
      accept (multipart audio? base64? file path?)? What does it return?
 
 2. **OpenClaw skill system**
-   - `docs/handbooks/openclaw-ops.md` — skill directory at
+   - `docs/runbooks/openclaw-ops.md` — skill directory at
      `/home/claude/.openclaw/skills/`
    - OpenClaw skill documentation at https://docs.openclaw.ai — understand
      how skills receive input, call external services, and return results
@@ -88,7 +88,7 @@ Before implementation, the planning phase MUST read:
 4. **F001 and F002 artifacts**
    - `scripts/vikunja/vikunja.service` — systemd unit pattern to copy for
      `transcribe.service`
-   - `docs/handbooks/vikunja-ops.md` — runbook format to match
+   - `docs/runbooks/vikunja-ops.md` — runbook format to match
 
 ---
 
@@ -144,7 +144,7 @@ rules. This is the last remaining `0.0.0.0`-bound service on office2.
 - Document in the runbook and in a comment block in the skill file
 
 **Success criteria:**
-- [ ] API contract documented in `docs/handbooks/transcribe-ops.md`
+- [ ] API contract documented in `docs/runbooks/transcribe-ops.md`
 - [ ] Accepted audio formats confirmed (at minimum: ogg/opus from WhatsApp
   voice notes, mp4/m4a from general audio)
 
@@ -202,7 +202,7 @@ rules. This is the last remaining `0.0.0.0`-bound service on office2.
 ### FR-6: Operations Runbook
 
 **What it must do:**
-- Create `docs/handbooks/transcribe-ops.md` covering:
+- Create `docs/runbooks/transcribe-ops.md` covering:
   - What the transcribe-api is and which Whisper model it runs
   - How to start/stop/restart the service
   - The API contract (endpoint, input, output)
@@ -211,7 +211,7 @@ rules. This is the last remaining `0.0.0.0`-bound service on office2.
   - Known audio format limitations
 
 **Success criteria:**
-- [ ] Runbook exists at `docs/handbooks/transcribe-ops.md`
+- [ ] Runbook exists at `docs/runbooks/transcribe-ops.md`
 - [ ] API contract documented
 - [ ] Passes doc validation (frontmatter compliant)
 
@@ -280,7 +280,7 @@ implementation — not as a separate task.
 - [ ] Skill source in `scripts/openclaw/skills/whisper/`
 
 ### Documentation
-- [ ] `docs/handbooks/transcribe-ops.md` complete and CI-passing
+- [ ] `docs/runbooks/transcribe-ops.md` complete and CI-passing
 - [ ] Architecture docs updated — `0.0.0.0` eliminated from network topology
 
 ---

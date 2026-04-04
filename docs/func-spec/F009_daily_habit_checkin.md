@@ -79,7 +79,7 @@ OpenClaw
 Before implementation, the planning phase MUST read:
 
 1. **What exists in Vikunja — post-F007 state**
-   - `docs/handbooks/vikunja-ops.md` — current project structure, labels,
+   - `docs/runbooks/vikunja-ops.md` — current project structure, labels,
      filters. Understand what's already there before adding new structure.
    - `docs/design/architecture/data/service-inventory.json` — Vikunja URL,
      API token location
@@ -91,14 +91,14 @@ Before implementation, the planning phase MUST read:
    - `scripts/openclaw/agents/felix-admin-capture/` — the felix-admin-capture
      agent is the closest existing pattern. Study how it was configured
      (SOUL.md, AGENTS.md, TOOLS.md) before designing the habits agent.
-   - `docs/handbooks/inbox-ops.md` — how cron jobs were configured for the
+   - `docs/runbooks/inbox-ops.md` — how cron jobs were configured for the
      capture agent; the habits agent follows the same pattern
 
 3. **WhatsApp channel current state**
    - `docs/design/architecture/data/service-inventory.json` — dmPolicy is
      now `"disabled"`. Kent's own paired number still receives and sends
      messages normally. Unknown contacts are silently ignored.
-   - `docs/handbooks/openclaw-ops.md` — how the WhatsApp channel delivers
+   - `docs/runbooks/openclaw-ops.md` — how the WhatsApp channel delivers
      messages and processes replies
 
 4. **User stories and research**
@@ -298,7 +298,7 @@ F007 — apply the same project-plus-label pattern consistently
 ### FR-7: Operations Runbook
 
 **What it must do:**
-- Create `docs/handbooks/habits-ops.md` covering:
+- Create `docs/runbooks/habits-ops.md` covering:
   - How to view and manage habits in Vikunja
   - How to manually trigger a check-in or weekly report
   - How to add/remove habits outside of WhatsApp (direct Vikunja)
@@ -306,7 +306,7 @@ F007 — apply the same project-plus-label pattern consistently
   - Troubleshooting common issues
 
 **Success criteria:**
-- [ ] Runbook exists at `docs/handbooks/habits-ops.md`
+- [ ] Runbook exists at `docs/runbooks/habits-ops.md`
 - [ ] Passes doc validation (frontmatter compliant)
 
 ---
@@ -371,7 +371,7 @@ F010 adds a new agent and cron jobs. No new services or credentials.
 - [ ] Habits can be paused/removed without losing history
 
 ### Documentation
-- [ ] `docs/handbooks/habits-ops.md` complete and CI-passing
+- [ ] `docs/runbooks/habits-ops.md` complete and CI-passing
 - [ ] Architecture docs updated
 
 ---

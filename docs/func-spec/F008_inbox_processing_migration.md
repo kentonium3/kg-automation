@@ -99,12 +99,12 @@ Before implementation, the planning phase MUST read:
      standards, frontmatter requirements, domain routing table, safety rules.
 
 2. **What F007 delivered**
-   - `docs/handbooks/vikunja-ops.md` — Vikunja project structure including
+   - `docs/runbooks/vikunja-ops.md` — Vikunja project structure including
      the Inbox project (where task items should land), Goals project (id=11,
      where goal declarations should land), identity labels
    - `scripts/openclaw/skills/whisper/SKILL.md` — the OpenClaw skill format
      pattern. The migrated skills must follow this format.
-   - `docs/handbooks/openclaw-ops.md` — how skills are installed, agent
+   - `docs/runbooks/openclaw-ops.md` — how skills are installed, agent
      configuration, cron scheduling
 
 3. **Infrastructure already in place**
@@ -286,7 +286,7 @@ Before implementation, the planning phase MUST read:
 ### FR-7: Operations Runbook
 
 **What it must do:**
-- Create or update `docs/handbooks/inbox-ops.md` covering:
+- Create or update `docs/runbooks/inbox-ops.md` covering:
   - How the inbox processing agent runs (schedule, trigger, agent name)
   - How to check the processing log
   - How to manually trigger a run
@@ -373,7 +373,7 @@ credentials.
 - [ ] Cowork skills intact and documented
 
 ### Documentation
-- [ ] `docs/handbooks/inbox-ops.md` complete and CI-passing
+- [ ] `docs/runbooks/inbox-ops.md` complete and CI-passing
 - [ ] Architecture docs updated
 
 ---

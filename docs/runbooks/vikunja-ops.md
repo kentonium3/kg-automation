@@ -218,7 +218,7 @@ python3 scripts/vikunja/setup_goals.py --verify-only
 python3 scripts/vikunja/setup_goals.py
 ```
 
-See `docs/handbooks/goals-ops.md` for full goal lifecycle operations.
+See `docs/runbooks/goals-ops.md` for full goal lifecycle operations.
 
 ## Vikunja API Skill (F007)
 

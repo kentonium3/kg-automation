@@ -92,7 +92,7 @@ Before implementation, the planning phase MUST read:
      identity model before formalizing it
 
 2. **All places the four directives and constraints are currently documented**
-   - `docs/handbooks/openclaw-ops.md` — ClawHub constraint documented here
+   - `docs/runbooks/openclaw-ops.md` — ClawHub constraint documented here
    - `docs/diagnostics/security-incidents/2026-03-31-whatsapp-pairing-and-axios.md`
      — security incident that reinforces the need for formal governance
    - The F010 stub (now F012 stub) — Observation Mode requirements captured here
@@ -429,7 +429,7 @@ Surfaced summary (intelligence layer):
 ### FR-7: Operations Runbook
 
 **What it must do:**
-- Create `docs/handbooks/felix-governance.md` covering:
+- Create `docs/runbooks/felix-governance.md` covering:
   - How to read the constitution and agent registry
   - How to advance an agent's gate level (what evidence is required, who decides)
   - How to register a new agent
@@ -437,7 +437,7 @@ Surfaced summary (intelligence layer):
   - How to handle a constitution violation (agent acting outside scope)
 
 **Success criteria:**
-- [ ] Runbook exists at `docs/handbooks/felix-governance.md`
+- [ ] Runbook exists at `docs/runbooks/felix-governance.md`
 - [ ] Covers gate advancement procedure with minimum evidence requirements
 - [ ] Covers new agent registration procedure
 
@@ -452,7 +452,7 @@ F012 adds no new services, ports, or credentials.
 | File | Change |
 |---|---|
 | `docs/design/architecture/data/service-inventory.json` | Update updated_by to F012; add gate field to each agent entry |
-| `docs/handbooks/openclaw-ops.md` | Add reference to FELIX-CONSTITUTION.md and AGENT-REGISTRY.md |
+| `docs/runbooks/openclaw-ops.md` | Add reference to FELIX-CONSTITUTION.md and AGENT-REGISTRY.md |
 
 **Success criteria:**
 - [ ] service-inventory.json updated with `updated_by: "F012"` and gate
@@ -500,7 +500,7 @@ F012 adds no new services, ports, or credentials.
 - [ ] Updated workspace files deployed to office2
 
 ### Documentation
-- [ ] `docs/handbooks/felix-governance.md` complete
+- [ ] `docs/runbooks/felix-governance.md` complete
 - [ ] Architecture docs updated
 
 ---

@@ -62,9 +62,9 @@ WP06 workspace is at `.worktrees/011-second-brain-vault-cleanup-WP06`.
 5. `docs/design/architecture/glossary.md` — vault definition → notes
 6. `docs/design/architecture/security-posture.md` — privacy path update
 7. `docs/design/architecture/backup-and-recovery.md` — backup path update
-8. `docs/handbooks/obsidian-sync-ops.md` — vault → notes (7+ references),
+8. `docs/runbooks/obsidian-sync-ops.md` — vault → notes (7+ references),
    remove git coexistence/snapshot section
-9. `docs/handbooks/inbox-ops.md` — vault → notes (Mac fallback path, troubleshooting)
+9. `docs/runbooks/inbox-ops.md` — vault → notes (Mac fallback path, troubleshooting)
 
 After WP06, commit and move to review/approved, then implement WP07
 (end-to-end verification).

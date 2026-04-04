@@ -41,7 +41,7 @@ Each AI system should read their specific instruction file after this bootstrap:
 ## Start here (navigation)
 - **Visual Docs Index:** `docs/README.md`
 - **Diagrams:** `docs/diagrams/`
-- **Handbooks:** `docs/handbooks/`
+- **Handbooks:** `docs/runbooks/`
 
 ## Handoff Runner — quick start
 1) Create a feature branch.

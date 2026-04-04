@@ -259,11 +259,11 @@ Before implementation, the planning phase MUST read and understand:
   - Remove vault-snapshot service entry
   - Update obsidian-sync `data_path` to `notes/`
   - Set `updated_by: "F011"`
-- Update `docs/handbooks/obsidian-sync-ops.md` to reflect:
+- Update `docs/runbooks/obsidian-sync-ops.md` to reflect:
   - New vault path (`notes/`)
   - Removal of git snapshot strategy
   - Restic as the sole backup mechanism for vault content
-- Update `docs/handbooks/inbox-ops.md` vault path references
+- Update `docs/runbooks/inbox-ops.md` vault path references
 
 **Success criteria:**
 - [ ] Architecture JSON files updated with `updated_by: "F011"`
@@ -286,8 +286,8 @@ Before implementation, the planning phase MUST read and understand:
 |---|---|
 | `service-inventory.md` | Remove vault-snapshot; update obsidian-sync path |
 | `data-flows.md` | Remove git snapshot from vault data flow; confirm Obsidian Sync + Restic are the documented mechanisms |
-| `docs/handbooks/obsidian-sync-ops.md` | Update vault path, remove git coexistence section |
-| `docs/handbooks/inbox-ops.md` | Update vault path references |
+| `docs/runbooks/obsidian-sync-ops.md` | Update vault path, remove git coexistence section |
+| `docs/runbooks/inbox-ops.md` | Update vault path references |
 
 ---
 

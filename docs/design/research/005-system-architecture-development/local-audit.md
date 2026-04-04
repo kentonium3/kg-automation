@@ -117,7 +117,7 @@
 - Identity labels created: personal (blue), intentional (green)
 - Three saved filters: Today, Upcoming, Overdue
 - systemd service with boot startup
-- Ops runbook at docs/handbooks/vikunja-ops.md
+- Ops runbook at docs/runbooks/vikunja-ops.md
 
 ### F002: OpenClaw Install — COMPLETE
 
@@ -126,7 +126,7 @@
 - Direct Anthropic API connection verified (no proxy)
 - Credential store pattern established at /data/services/openclaw/secrets/
 - User-level systemd service (openclaw-gateway) for claude user
-- Ops runbook at docs/handbooks/openclaw-ops.md
+- Ops runbook at docs/runbooks/openclaw-ops.md
 
 ### F003: Whisper Transcription Skill — COMPLETE
 
@@ -135,7 +135,7 @@
 - OpenClaw whisper skill installed and functional
 - Eliminated last 0.0.0.0 binding on office2
 - systemd service (transcribe.service) with boot startup
-- Ops runbook at docs/handbooks/transcribe-ops.md
+- Ops runbook at docs/runbooks/transcribe-ops.md
 
 ### F004: WhatsApp Channel — COMPLETE
 
@@ -147,7 +147,7 @@
 - DM policy: pairing, Group policy: allowlist
 - Outbound WebSocket only — no inbound ports
 - Session persists across restarts
-- Ops runbook at docs/handbooks/whatsapp-ops.md
+- Ops runbook at docs/runbooks/whatsapp-ops.md
 
 ---
 
@@ -220,7 +220,7 @@ v0.3 mentions "Restic backup (4AM daily)" briefly. The actual implementation is 
 - Tier 1: Timeshift OS snapshots (daily/7, weekly/4, monthly/3)
 - Tier 2: Restic encrypted GFS backup (daily/7, weekly/4, monthly/6, yearly/1)
 - Dedicated 1 TB USB external backup drive
-- Documented in docs/handbooks/office2-backup-and-security.md
+- Documented in docs/runbooks/office2-backup-and-security.md
 
 **Impact on v1.0**: This is more robust than designed. Document the full backup architecture.
 
@@ -230,7 +230,7 @@ v0.3 mentions "audit.sh (3AM daily)" briefly. The actual implementation is a com
 - 8 check types (Docker, services, ports, SSH keys, crontabs, pip, hosts, .pth files)
 - Baseline files auto-updated after intentional changes
 - C2 sinkholing in /etc/hosts
-- Documented in docs/handbooks/office2-backup-and-security.md
+- Documented in docs/runbooks/office2-backup-and-security.md
 
 **Impact on v1.0**: Document fully. This is a Core Hub operational capability.
 

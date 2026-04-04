@@ -98,7 +98,7 @@ Vikunja (retroactive enrichment)
 Before implementation, the planning phase MUST read:
 
 1. **Vikunja's full capabilities**
-   - `docs/handbooks/vikunja-ops.md` — current project structure,
+   - `docs/runbooks/vikunja-ops.md` — current project structure,
      labels, filters
    - `scripts/openclaw/skills/vikunja-api/SKILL.md` — the full API
      skill including task relationships, all updatable fields, repeat
@@ -421,7 +421,7 @@ Felix: Got it. Creating:
 ### FR-8: Operations Runbook
 
 **What it must do:**
-- Create `docs/handbooks/task-intelligence-ops.md` covering:
+- Create `docs/runbooks/task-intelligence-ops.md` covering:
   - How felix-admin-tasker operates
   - How to trigger retroactive enrichment manually
   - How to check enrichment status

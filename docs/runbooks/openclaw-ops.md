@@ -196,11 +196,11 @@ Felix Constitution.
 | Felix Constitution | `docs/constitution/FELIX-CONSTITUTION.md` | Top-level governance — autonomy levels, principles, boundaries |
 | Agent Registry (human-readable) | `docs/constitution/AGENT-REGISTRY.md` | Quick-reference agent list with current autonomy levels |
 | Agent Registry (machine-readable) | `docs/constitution/agent-registry.json` | Authoritative agent state, transition history |
-| Governance Runbook | `docs/handbooks/felix-governance.md` | Operational procedures for promotions, demotions, registration |
+| Governance Runbook | `docs/runbooks/felix-governance.md` | Operational procedures for promotions, demotions, registration |
 
 ### Quick Reference
 
 - All agents start at **Assisted (Level 1)** and require explicit promotion
 - Each agent's `AGENTS.md` includes a governance preamble referencing the constitution
 - The constitution is the tiebreaker when standing orders are ambiguous
-- See the [Felix Governance Runbook](felix-governance.md) for all procedures
+- See the [Felix Governance Runbook](<./felix-governance.md>) for all procedures
