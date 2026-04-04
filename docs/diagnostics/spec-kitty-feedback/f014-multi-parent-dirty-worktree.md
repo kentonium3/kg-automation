@@ -4,7 +4,7 @@
 **Spec-Kitty Version**: 3.0.3
 **Reporter**: Kent Gale (via Claude Code)
 **Priority**: Medium — blocks parallel WP creation when planning artifacts are uncommitted
-**Status**: OPEN
+**Status**: PENDING INVESTIGATION — root cause of dirty working tree unconfirmed
 
 ## Summary
 
@@ -100,6 +100,36 @@ creation, since they're spec-kitty-generated artifacts anyway.
 - Python: 3.13.12
 - spec-kitty-cli: 3.0.3
 - Feature: 014-felix-core-digest (6 WPs)
+
+## Open Questions
+
+1. **What dirtied agent-registry.json?** The file was clean at session start
+   (git status showed no modifications). The only commit modifying it was
+   WP01's implementation (on a branch, not main). Something between session
+   start and WP05 creation modified the main repo's copy without committing.
+   Candidates: constitution sync, parallel agent operations, stash/pop
+   artifacts, or spec-kitty lane-transition commands. Unconfirmed.
+
+2. **Does spec-kitty's own workflow produce this dirty state?** The report's
+   root cause section claims lane-transition commands dirty the tree. This
+   is plausible but unproven. The `move-task` and `mark-status` commands
+   DO commit their changes to main (observed in reflog), so they may not be
+   the source. Need controlled reproduction.
+
+3. **Is the merge-base creation method inherently fragile?** Regardless of
+   what caused the dirty state, the merge-base creation uses
+   `git checkout -b` in the main repo, which requires a clean tree. A more
+   robust approach (worktree-based or plumbing-based) would avoid this class
+   of failure entirely.
+
+## Next Steps
+
+- Reproduce in a controlled session with careful state tracking after each
+  spec-kitty command
+- Run `git status` before and after every lane transition to identify which
+  command (if any) dirties the tree
+- If reproducible with spec-kitty operations alone, update this report and
+  submit
 
 ## Discovered
 
