@@ -76,10 +76,10 @@ add log_verbosity to all agents, and expose the verbosity lookup in config.py.
 
 ### Included Subtasks
 
-- [ ] T001: Add felix-admin-tasker to agent-registry.json
-- [ ] T002: Add log_verbosity: "standard" to all three agents in registry
-- [ ] T003: Implement log_verbosity() in config.py
-- [ ] T004: Write tests for log_verbosity() in test_config.py
+- [x] T001: Add felix-admin-tasker to agent-registry.json
+- [x] T002: Add log_verbosity: "standard" to all three agents in registry
+- [x] T003: Implement log_verbosity() in config.py
+- [x] T004: Write tests for log_verbosity() in test_config.py
 
 ### Risks
 
