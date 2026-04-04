@@ -12,7 +12,8 @@ base_branch: 014-felix-core-digest-WP02
 base_commit: 0cd529e780b8fd84a3aad9a96bef737d873b0b21
 created_at: '2026-04-04T15:38:48.993549+00:00'
 subtasks: [T018, T019, T020, T021]
-shell_pid: '93657'
+shell_pid: "93657"
+agent: "claude"
 history:
 - date: '2026-04-04'
   action: created
@@ -338,3 +339,7 @@ transition from old formats to new.
 2. Verify every previously-logged field has a mapping
 3. Check that the habits agent Vikunja comment section is untouched
 4. Verify exec tool command syntax is correct for each agent
+
+## Activity Log
+
+- 2026-04-04T15:38:49Z – claude – shell_pid=93657 – Started implementation via workflow command
