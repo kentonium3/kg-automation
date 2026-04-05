@@ -193,11 +193,11 @@ None.
 
 ### Included Subtasks
 
-- [ ] T020 Fix top-level explanation docs (Vikunja.md note → explanation; adversarial-analysis strategy → explanation; strategic-acceleration-charter charter → explanation)
-- [ ] T021 Fix top-level reference docs (felix-capability-roadmap strategy → reference; personal-ai-system-spec-v1.0 strategy → reference + add `supersedes`)
-- [ ] T022 Deprecate `personal-ai-system-spec-v03.md`: status → deprecated, add `superseded_by` + set `doc_type: reference`
-- [ ] T023 Fix standards frontmatter (doc-standards policy → standard; obsidian-linter-alignment reference → standard)
-- [ ] T024 Validate no files retain legacy values (strategy, charter, note, policy) in doc_type
+- [x] T020 Fix top-level explanation docs (Vikunja.md note → explanation; adversarial-analysis strategy → explanation; strategic-acceleration-charter charter → explanation)
+- [x] T021 Fix top-level reference docs (felix-capability-roadmap strategy → reference; personal-ai-system-spec-v1.0 strategy → reference + add `supersedes`)
+- [x] T022 Deprecate `personal-ai-system-spec-v03.md`: status → deprecated, add `superseded_by` + set `doc_type: reference`
+- [x] T023 Fix standards frontmatter (doc-standards policy → standard; obsidian-linter-alignment reference → standard)
+- [x] T024 Validate no files retain legacy values (strategy, charter, note, policy) in doc_type
 
 ### Implementation Notes
 
