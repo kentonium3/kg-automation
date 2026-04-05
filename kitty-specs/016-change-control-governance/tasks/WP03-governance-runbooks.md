@@ -200,3 +200,4 @@ N/A — documentation feature, no automated tests.
 - No checklist friction for Tiers 3/4.
 
 ## Activity Log
+- 2026-04-05T23:46:47Z – unknown – shell_pid=60933 – Pre-flight + verification created
