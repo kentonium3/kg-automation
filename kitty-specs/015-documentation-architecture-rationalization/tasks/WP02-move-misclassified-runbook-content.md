@@ -17,8 +17,8 @@ subtasks:
 - T007
 phase: Phase 0 - Foundation
 assignee: ''
-agent: ''
-shell_pid: '97926'
+agent: "claude"
+shell_pid: "98071"
 history:
 - at: '2026-04-05T01:28:56Z'
   actor: system
@@ -150,3 +150,7 @@ N/A — documentation move, no automated tests.
 - Both moves committed to main.
 - Frontmatter `doc_type` corrected per Divio standard.
 - Git history preserved via `git mv`.
+
+## Activity Log
+
+- 2026-04-05T03:58:15Z – claude – shell_pid=98071 – Started implementation via workflow command
