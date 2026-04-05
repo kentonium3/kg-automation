@@ -15,8 +15,8 @@ subtasks:
 - T040
 phase: Phase 0 - Foundation
 assignee: ''
-agent: ''
-shell_pid: '7862'
+agent: "claude"
+shell_pid: "7862"
 history:
 - at: '2026-04-05T01:28:56Z'
   actor: system
@@ -129,3 +129,7 @@ N/A — documentation feature, no automated tests.
 - F016 spec updated with resolved paths.
 - No path TBDs remain.
 - Committed to main.
+
+## Activity Log
+
+- 2026-04-05T04:34:00Z – claude – shell_pid=7862 – Started implementation via workflow command
