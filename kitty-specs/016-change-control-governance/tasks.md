@@ -125,12 +125,12 @@ Depends on WP01 (taxonomy must exist to reference) and WP03 (checklist must exis
 
 ### Included Subtasks
 
-- [ ] T023 Create `docs/runbooks/governance/incident-postmortem-template.md` with all required sections
-- [ ] T024 Define template: summary, timeline, root cause chain, impact, what went well, what failed, follow-on actions
-- [ ] T025 Create `docs/issues/postmortems/2026-04-03-vikunja-ufw-outage.md`
-- [ ] T026 Complete origin incident postmortem with all root causes, follow-on actions (Vikunja task placeholders)
-- [ ] T027 Walk pre-flight checklist through origin incident: UFW port 443 change scenario
-- [ ] T028 Document walkthrough result proving checklist catches the port 443 dependency gap
+- [x] T023 Create `docs/runbooks/governance/incident-postmortem-template.md` with all required sections
+- [x] T024 Define template: summary, timeline, root cause chain, impact, what went well, what failed, follow-on actions
+- [x] T025 Create `docs/issues/postmortems/2026-04-03-vikunja-ufw-outage.md`
+- [x] T026 Complete origin incident postmortem with all root causes, follow-on actions (Vikunja task placeholders)
+- [x] T027 Walk pre-flight checklist through origin incident: UFW port 443 change scenario
+- [x] T028 Document walkthrough result proving checklist catches the port 443 dependency gap
 
 ### Dependencies
 
