@@ -154,3 +154,4 @@ N/A — documentation move, no automated tests.
 ## Activity Log
 
 - 2026-04-05T03:58:15Z – claude – shell_pid=98071 – Started implementation via workflow command
+- 2026-04-05T03:59:53Z – claude – shell_pid=98071 – Ready for review: Moved visual-docs-style.md to docs/design/standards/ (handbook→standard) and office2-backup-and-security.md to docs/design/ (handbook→explanation). History preserved via git mv (verified via git log --follow). T005-T007 complete.
