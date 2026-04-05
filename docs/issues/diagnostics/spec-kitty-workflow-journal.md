@@ -308,3 +308,41 @@ Since the file write happens on disk (not just in memory), any subsequent `git a
 **Ongoing risk**: If `/spec-kitty.implement` or any other spec-kitty command triggers bootstrap on this feature, the dependencies will likely be stripped again. Monitor closely during implement phase. If seen again, journal as a recurring hit on this bug pattern.
 
 ---
+
+## 2026-04-04 — No supported post-analyze refinement path (workflow design gap)
+
+**Feature**: 015-documentation-architecture-rationalization
+**Spec-kitty version**: 3.0.3
+**Workflow step**: analyze (post-output remediation)
+**Severity**: design-gap (not a bug; missing tool for a common need)
+
+**What the analyze prompt says**:
+The `/spec-kitty.analyze` slash-command's "Next Actions" section instructs the LLM to suggest:
+> "Provide explicit command suggestions: e.g., 'Run /spec-kitty.specify with refinement', 'Run /plan to adjust architecture', 'Manually edit tasks.md to add coverage for performance-metrics'"
+
+**What actually works in spec-kitty 3.0.3**:
+- `/spec-kitty.specify` calls `spec-kitty agent feature create-feature`, which **always allocates the next ordinal number** (e.g., 016, 017). It is designed for NEW features, not refinement of existing ones. There is no "refinement mode".
+- `/spec-kitty.plan` calls `setup-plan`, which scaffolds plan.md from the mission template. Re-running on an existing feature risks overwriting hand-authored content.
+- `/spec-kitty.tasks` regenerates `tasks.md` + scaffolds new WP files. Re-running destroys existing WP prompts unless the LLM carefully preserves them.
+- `spec-kitty agent feature` has NO refine/update-spec command.
+
+**The workflow gap**:
+After `/spec-kitty.analyze` produces findings that point to spec/plan/tasks drift, there is no supported command path for refining the spec. The user must either:
+- **Manually edit** the relevant artifact(s) and accept that no spec-kitty command orchestrates the fix, OR
+- **Abandon the feature** and start a new one with the corrected spec (wasteful; loses planning work).
+
+**Impact**:
+- Users following the analyze prompt's guidance literally will try to run `/spec-kitty.specify` and either get confused when it creates a new feature ordinal, or inadvertently duplicate the feature.
+- Kent correctly caught this on F015 and refused to run `/spec-kitty.specify`, preferring to understand the intended workflow first.
+
+**Resolution path chosen for F015**:
+Manually applied 9 edits to spec.md via the Edit tool to resolve /analyze findings I1, C1, I3. Did NOT re-run /plan or /tasks (to preserve hand-crafted plan.md, tasks.md, WP prompts, and the already-patched dependency DAG). Will re-run /spec-kitty.analyze as pure read-only verification.
+
+**Recommended upstream fixes**:
+1. **Add a `spec-kitty agent feature refine --feature <slug>` command** that allows iterating on spec.md/plan.md/tasks.md within an existing feature. It should support targeted updates without scaffolding-from-template.
+2. **Correct the /analyze slash-command prompt** to not suggest `/spec-kitty.specify with refinement` — that phrase doesn't describe a real capability in 3.0.3.
+3. **Document the manual-edit workflow** as the supported path until (1) ships.
+
+**Resolution**: bug-filed-candidate + documentation-fix-candidate. Kent's refusal to re-run specify on an existing feature was the correct decision given current tooling.
+
+---
