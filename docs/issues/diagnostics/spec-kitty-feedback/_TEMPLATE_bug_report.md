@@ -94,20 +94,40 @@ YYYY-MM-DD by {name/agent} during {feature or workflow context}
 
 ## Template Usage Notes
 
-**Filename convention**:
+**Filename convention** (three tiers):
 
-- **Unsubmitted** (in-progress / ready to file): `xx_<short-slug>.md`
-  - The `xx_` prefix visually groups pending reports together at the top of
-    directory listings, signaling "needs filing".
-- **Submitted** (has an upstream issue number): `<issue-number>_<short-slug>.md`
-  - Replace `xx_` with the GitHub issue number once filed
-    (e.g., `42_finalize-tasks-strips-dependencies.md`).
+- **In progress** (still gathering evidence, not yet ready to file): no prefix.
+  Filename is just `{short-slug}.md`. Report is a stub, needs investigation,
+  or has unresolved root-cause questions.
+- **Ready to submit** (evidence complete, awaiting filing): `xx_{short-slug}.md`.
+  The `xx_` prefix visually groups reports that are actionable-but-unfiled.
+- **Submitted** (has an upstream issue number): `{issue-number}_{short-slug}.md`.
+  Replace `xx_` with the GitHub issue number once filed
+  (e.g., `42_finalize-tasks-strips-dependencies.md`).
 - **F### feature number**: do NOT include in the filename. Record the
   originating feature in the `## Discovered` section inside the doc body.
   Filename audience = maintainer (who doesn't care which F# surfaced it);
   F### audience = us (who traces lineage via the doc body).
 - **Template filename**: stays `_TEMPLATE_bug_report.md` — the leading
-  underscore keeps it sorted at the top ahead of `xx_` entries.
+  underscore keeps it sorted at the top of all three tiers.
+
+**Typical progression**:
+
+```text
+stub-or-draft.md          → evidence gathering
+xx_stub-or-draft.md       → renamed when ready to file
+42_stub-or-draft.md       → renamed when upstream issue opened
+```
+
+**Directory-listing sort order** (alphabetical, by leading character):
+
+1. `_TEMPLATE_*.md` (underscore sorts first)
+2. `{issue#}_*.md` (digits sort before letters)
+3. `xx_*.md` (lowercase x)
+4. `{slug}.md` (no prefix — drafts in progress)
+
+This groups submitted reports together, ready-to-submit together, and
+in-progress together, visible at a glance.
 
 **When to create a new bug report**:
 
