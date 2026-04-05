@@ -35,7 +35,11 @@ All `reference`. Felix agent governance, autonomy levels, and principles.
 
 ### docs/runbooks/governance/ — Governance operations
 
-Empty (created for F016). Populated with governance runbooks (promotions, demotions, violation handling) when F016 runs.
+Change control governance runbooks (F016):
+
+- [Pre-Flight Change Checklist](runbooks/governance/pre-flight-checklist.md) — `runbook` `both` — mandatory pre-flight assessment for Tier 0/1/2 changes
+- [Post-Change Verification Protocol](runbooks/governance/post-change-verification.md) — `runbook` `both` — health-check verification after Tier 0/1/2 changes
+- [Incident Postmortem Template](runbooks/governance/incident-postmortem-template.md) — `runbook` `both` — reusable template for blameless incident analysis
 
 ---
 
@@ -54,6 +58,7 @@ All `reference`. Describes deployed services, topology, credentials, and data fl
 - [Security Posture](design/architecture/security-posture.md) — policy exceptions recorded here
 - [Backup & Recovery](design/architecture/backup-and-recovery.md)
 - [Change Control Protocol](design/architecture/change-control.md) — protocol for updating this INDEX and architecture docs
+- [Service Dependencies Diagram](design/architecture/service-dependencies.view.md) — `guide` — Mermaid diagram of all office2 service dependencies (F016)
 - [Glossary](design/architecture/glossary.md)
 
 ### docs/design/architecture/data/ — Canonical machine-readable home
@@ -67,6 +72,7 @@ All `reference`. Authoritative operational state (JSON) + schemas. **Exempt from
 - [Data Flows (JSON)](design/architecture/data/data-flows.json)
 - [Capabilities Schema (JSON)](design/architecture/data/capabilities-schema.json)
 - [Catalog Schema (JSON)](design/architecture/data/catalog-schema.json)
+- [Change Risk Taxonomy (JSON)](design/architecture/data/change-risk-taxonomy.json) — five-tier risk taxonomy with guardrail protocols (F016)
 
 ---
 
@@ -207,7 +213,9 @@ All `diagnostic`. Runtime issue tracking and troubleshooting notes. **Exempt fro
 
 ### docs/issues/postmortems/ — Post-incident analysis
 
-All `postmortem`. Populated by F016 onwards. Filename format: `YYYY-MM-DD_incident-slug.md`.
+All `postmortem`. Filename format: `YYYY-MM-DD_incident-slug.md`.
+
+- [2026-04-03: Vikunja UFW Outage](issues/postmortems/2026-04-03-vikunja-ufw-outage.md) — `postmortem` — origin incident for F016 change control governance
 
 ---
 

@@ -46,6 +46,7 @@ template_set: software-dev-default
 1. Apply doctrine directive `TEST_FIRST` to planning and implementation decisions.
 2. Respect risk boundaries: 02-Growth/_private/ is never read, written, or referenced by any agent or script — no exceptions. No      credentials in code or committed files. Anthropic API called direct — no third-party proxies. No community   OpenClaw skills without source review. All services Tailscale-only. No untrusted code executes near          credentials or personal data.
 3. Keep documentation synchronized with workflow and behavior changes.
+4. Follow documentation standards: machine-readable files (JSON) are the authoritative record; narrative markdown provides context and rationale; diagrams are the preferred format for system structure, service dependencies, data flows, and network topology. When machine-readable and narrative conflict, JSON wins.
 
 ## Reference Index
 
