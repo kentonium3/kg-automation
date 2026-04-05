@@ -18,7 +18,7 @@ Instructions for Claude Code working in the kg-automation repository.
 ## Start Every Session By Reading
 
 1. `CLAUDE.md` at repo root — read this first, always
-2. `docs/design/personal-ai-system-spec-v03.md` — canonical architecture
+2. `docs/design/personal-ai-system-spec-v1.0.md` — canonical architecture
 3. `git log --oneline -10` — understand current state before touching anything
 4. `git status` — confirm clean working tree
 

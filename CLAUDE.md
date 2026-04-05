@@ -17,7 +17,7 @@ Tailscale-accessible) with OpenClaw as the orchestration engine and Vikunja as
 the task store and UI layer.
 
 This is not a general-purpose automation repo. It is a personal system with a
-specific architecture. Read `docs/design/personal-ai-system-spec-v03.md` before
+specific architecture. Read `docs/design/personal-ai-system-spec-v1.0.md` before
 making any architectural decisions. That document is the source of truth.
 
 ## Platform
@@ -54,12 +54,18 @@ stop and present the command to Kent to run manually via `ssh office2-kgale`.**
 
 ## Architecture Documentation
 
+**Documentation map**: [`docs/INDEX.md`](docs/INDEX.md) — master index of all active documentation, grouped by directory with Divio type annotations. Start here to discover docs by topic or type.
+
+**Governance**: [`docs/constitution/FELIX-CONSTITUTION.md`](docs/constitution/FELIX-CONSTITUTION.md) — top-level governance, autonomy levels, principles. See also [`docs/constitution/AGENT-REGISTRY.md`](docs/constitution/AGENT-REGISTRY.md).
+
+**Machine-readable operational state**: `docs/design/architecture/data/` is the canonical home for JSON artifacts (service inventory, topology, credentials, data-flows, schemas). Exempt from moves.
+
 `docs/design/architecture/` — current-state system documentation:
 - Hardware, network, and service inventory (with machine-readable JSON in `data/`)
 - Data flows, credentials, identity model, backup, security posture
 - **Updated after every feature** — see `change-control.md` for the protocol
 
-`docs/design/personal-ai-system-spec-v03.md` — design intent (what we're building toward):
+`docs/design/personal-ai-system-spec-v1.0.md` — design intent (what we're building toward):
 - Full system architecture and topology
 - Implementation phases and feature sequence
 - Operating principles
