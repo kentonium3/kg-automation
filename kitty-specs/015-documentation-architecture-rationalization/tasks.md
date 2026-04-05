@@ -162,9 +162,9 @@ T014 and T015 can be done in parallel.
 
 ### Included Subtasks
 
-- [ ] T017 Add frontmatter to `docs/issues/diagnostics/f012-merge-breadcrumbs.md`
-- [ ] T018 [P] Add frontmatter to 5 files in `docs/issues/diagnostics/spec-kitty-feedback/`
-- [ ] T019 Validate all files have `doc_type: diagnostic` and a `status` value
+- [x] T017 Add frontmatter to `docs/issues/diagnostics/f012-merge-breadcrumbs.md`
+- [x] T018 [P] Add frontmatter to 5 files in `docs/issues/diagnostics/spec-kitty-feedback/`
+- [x] T019 Validate all files have `doc_type: diagnostic` and a `status` value
 
 ### Implementation Notes
 
