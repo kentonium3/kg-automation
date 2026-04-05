@@ -28,8 +28,8 @@ subtasks:
 - T031
 phase: Phase 2 - Master Index
 assignee: ''
-agent: ''
-shell_pid: '4187'
+agent: "claude"
+shell_pid: "4187"
 history:
 - at: '2026-04-05T01:28:56Z'
   actor: system
@@ -332,3 +332,7 @@ N/A — documentation feature, no automated tests.
 
 - `docs/INDEX.md` committed to main with complete directory coverage.
 - All ~102 active documents reachable via INDEX.md.
+
+## Activity Log
+
+- 2026-04-05T04:21:40Z – claude – shell_pid=4187 – Started implementation via workflow command
