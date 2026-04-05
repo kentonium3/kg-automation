@@ -19,8 +19,8 @@ subtasks:
 - T038
 phase: Phase 3 - Entry Point Updates
 assignee: ''
-agent: ''
-shell_pid: '6723'
+agent: "claude"
+shell_pid: "6723"
 history:
 - at: '2026-04-05T01:28:56Z'
   actor: system
@@ -183,3 +183,7 @@ N/A — documentation feature, no automated tests.
 
 - Both files updated and committed to main.
 - Canonical home statement + INDEX.md rule + schema co-location in place.
+
+## Activity Log
+
+- 2026-04-05T04:29:45Z – claude – shell_pid=6723 – Started implementation via workflow command
