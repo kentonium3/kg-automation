@@ -1,0 +1,85 @@
+{
+  "schema_version": "1.0",
+  "last_updated": "2026-04-05",
+  "updated_by": "F016",
+  "description": "Five-tier risk taxonomy for change control governance. Classifies changes by blast radius, reversibility, and lockout potential. Each tier assigns a guardrail protocol governing AI autonomy.",
+  "tiers": [
+    {
+      "tier": 0,
+      "name": "Host / Foundational",
+      "scope": "SSH, sudoers, UFW, iptables, kernel parameters, system file permissions",
+      "guardrail_protocol": "hard_lock",
+      "guardrail_description": "AI generates script only; human executes manually via ssh office2-kgale. This protocol cannot be overridden by urgency framing or explicit instruction to proceed.",
+      "examples": [
+        "ufw rules",
+        "iptables rules",
+        "sshd_config changes",
+        "sudoers modifications",
+        "chmod/chown on system files",
+        "kernel parameter tuning",
+        "systemd system-level unit changes"
+      ],
+      "overridable": false
+    },
+    {
+      "tier": 1,
+      "name": "Connectivity / Fabric",
+      "scope": "Tailscale configuration, Docker networks, proxy/DNS, API gateways, port bindings",
+      "guardrail_protocol": "verification_required",
+      "guardrail_description": "AI must confirm connectivity of all dependent services before and after the change. Surface dependent services from service inventory.",
+      "examples": [
+        "tailscale serve configuration",
+        "Docker network changes",
+        "port binding changes",
+        "DNS record updates",
+        "reverse proxy configuration"
+      ],
+      "overridable": true
+    },
+    {
+      "tier": 2,
+      "name": "Application / State",
+      "scope": "Database schemas, service environment files, Docker Compose volumes, application configuration",
+      "guardrail_protocol": "snapshot_required",
+      "guardrail_description": "AI must confirm a recent backup or snapshot exists before modifying. Trigger Restic backup if none exists within the last 24 hours.",
+      "examples": [
+        "Docker Compose environment changes",
+        "Vikunja application configuration",
+        "database schema migrations",
+        "service data volume modifications",
+        "credential rotation"
+      ],
+      "overridable": true
+    },
+    {
+      "tier": 3,
+      "name": "Logic / Workflow",
+      "scope": "Python scripts, agent prompts, cron jobs, logic flows, OpenClaw skills",
+      "guardrail_protocol": "standard",
+      "guardrail_description": "AI may modify and test via dry-run or sandbox where available. No pre-flight checklist required.",
+      "examples": [
+        "agent AGENTS.md updates",
+        "cron schedule changes",
+        "OpenClaw skill script modifications",
+        "Python automation scripts",
+        "workflow logic changes"
+      ],
+      "overridable": true
+    },
+    {
+      "tier": 4,
+      "name": "Schema / Metadata",
+      "scope": "CLAUDE.md, READMEs, comments, logging verbosity, documentation frontmatter",
+      "guardrail_protocol": "auto_commit",
+      "guardrail_description": "AI has full autonomy to update and sync. No pre-flight or verification steps required.",
+      "examples": [
+        "CLAUDE.md edits",
+        "documentation frontmatter updates",
+        "README updates",
+        "code comments",
+        "logging verbosity changes"
+      ],
+      "overridable": true
+    }
+  ]
+}
