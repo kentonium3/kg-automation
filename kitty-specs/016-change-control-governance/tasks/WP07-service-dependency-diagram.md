@@ -169,3 +169,7 @@ N/A — governance feature, no automated tests. Manual validation per quickstart
 - `docs/design/architecture/service-dependencies.view.md` committed with complete Mermaid dependency diagram.
 - All 11 services shown with risk tiers and dependency edges.
 - Critical port 443 chain prominently visible.
+
+## Activity Log
+
+- 2026-04-05T23:46:50Z – unknown – shell_pid=61151 – Mermaid diagram created with all 11 services
