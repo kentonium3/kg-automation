@@ -22,10 +22,10 @@ description: Work packages for F016 Change Control Governance & Incident Managem
 
 ### Included Subtasks
 
-- [ ] T001 Create `docs/design/architecture/data/change-risk-taxonomy.json` with schema metadata
-- [ ] T002 Define all 5 tiers (0-4) with name, scope, guardrail_protocol, guardrail_description, examples
-- [ ] T003 Set Tier 0 `overridable: false`; Tiers 1-4 `overridable: true`
-- [ ] T004 Validate JSON parses correctly and all fields populated
+- [x] T001 Create `docs/design/architecture/data/change-risk-taxonomy.json` with schema metadata
+- [x] T002 Define all 5 tiers (0-4) with name, scope, guardrail_protocol, guardrail_description, examples
+- [x] T003 Set Tier 0 `overridable: false`; Tiers 1-4 `overridable: true`
+- [x] T004 Validate JSON parses correctly and all fields populated
 
 ### Dependencies
 
