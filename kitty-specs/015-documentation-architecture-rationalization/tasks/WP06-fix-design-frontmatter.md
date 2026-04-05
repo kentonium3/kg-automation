@@ -19,8 +19,8 @@ subtasks:
 - T024
 phase: Phase 1 - Frontmatter Corrections
 assignee: ''
-agent: ''
-shell_pid: '3129'
+agent: "claude"
+shell_pid: "3129"
 history:
 - at: '2026-04-05T01:28:56Z'
   actor: system
@@ -174,3 +174,7 @@ N/A — documentation feature, no automated tests.
 - 13 files have corrected frontmatter committed to main.
 - Deprecation pointer in place.
 - Validation grep passes.
+
+## Activity Log
+
+- 2026-04-05T04:17:21Z – claude – shell_pid=3129 – Started implementation via workflow command
