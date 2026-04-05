@@ -222,10 +222,10 @@ Depends on WP01 (taxonomy), WP02 (enriched inventory), WP03 (checklist/verificat
 
 ### Included Subtasks
 
-- [ ] T040 Add governance runbook files (pre-flight-checklist, post-change-verification, incident-postmortem-template) to INDEX.md runbooks section
-- [ ] T041 Add `change-risk-taxonomy.json` to machine-readable artifacts section
-- [ ] T042 Add `2026-04-03-vikunja-ufw-outage.md` entry to postmortems section
-- [ ] T043 Add `service-dependencies.view.md` entry to architecture section
+- [x] T040 Add governance runbook files (pre-flight-checklist, post-change-verification, incident-postmortem-template) to INDEX.md runbooks section
+- [x] T041 Add `change-risk-taxonomy.json` to machine-readable artifacts section
+- [x] T042 Add `2026-04-03-vikunja-ufw-outage.md` entry to postmortems section
+- [x] T043 Add `service-dependencies.view.md` entry to architecture section
 
 ### Dependencies
 
