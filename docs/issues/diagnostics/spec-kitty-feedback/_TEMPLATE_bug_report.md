@@ -1,94 +1,94 @@
 ---
-title: "Bug Report: <short title>"
+title: "Bug Report: {short title}"
 doc_type: diagnostic
 status: active
 ---
-# Bug Report: <short title>
+# Bug Report: {short title}
 
 **Date**: YYYY-MM-DD
-**Spec-Kitty Version**: <x.y.z>
-**Reporter**: <name> (via <agent or tool>)
-**Priority**: <Critical | High | Medium | Low> — <one-line impact>
-**Status**: <PENDING INVESTIGATION | READY TO FILE | FILED <#issue> | FIXED in <version>>
+**Spec-Kitty Version**: {x.y.z}
+**Reporter**: {name} (via {agent or tool})
+**Priority**: {Critical | High | Medium | Low} — {one-line impact}
+**Status**: <PENDING INVESTIGATION | READY TO FILE | FILED <#issue> | FIXED in {version}>
 
 ## Summary
 
-<One-paragraph problem statement. What went wrong and why it matters. No more than 4-5 sentences.>
+{One-paragraph problem statement. What went wrong and why it matters. No more than 4-5 sentences.}
 
 ## Reproduction
 
 ### Prerequisites
 
-- <Preconditions required to hit the bug>
-- <State the repo/feature/workflow must be in>
+- {Preconditions required to hit the bug}
+- {State the repo/feature/workflow must be in}
 
 ### Steps
 
 ```bash
-<exact commands to reproduce>
+{exact commands to reproduce}
 ```
 
 ### Expected Behavior
 
-<What should happen according to documentation, command name, or reasonable expectations.>
+{What should happen according to documentation, command name, or reasonable expectations.}
 
 ### Actual Behavior
 
-<What actually happens. Include command output verbatim when available.>
+{What actually happens. Include command output verbatim when available.}
 
 ```text
-<command output / error message / diff showing the unexpected mutation>
+{command output / error message / diff showing the unexpected mutation}
 ```
 
 ### Root Cause
 
-<If known or strongly suspected, describe the mechanism. Link to source files in the spec-kitty-cli package if reproducible.>
+{If known or strongly suspected, describe the mechanism. Link to source files in the spec-kitty-cli package if reproducible.}
 
-## Workaround Applied (<Feature ID>)
+## Workaround Applied ({Feature ID})
 
-<Describe what the user/agent did to work around the bug. Include exact commands if they were run, and call out any manual steps that violated normal workflow.>
+{Describe what the user/agent did to work around the bug. Include exact commands if they were run, and call out any manual steps that violated normal workflow.}
 
 ```bash
-<workaround commands>
+{workaround commands}
 ```
 
 ## Suggested Fix
 
-Option A: <primary recommendation>
+Option A: {primary recommendation}
 
-Option B: <alternative approach>
+Option B: {alternative approach}
 
-Option C: <fallback / defensive option>
+Option C: {fallback / defensive option}
 
 ## Impact
 
-- <Who hits this and how often>
-- <What work is lost or corrupted if not worked around>
-- <Downstream consequences in the spec-kitty workflow>
+- {Who hits this and how often}
+- {What work is lost or corrupted if not worked around}
+- {Downstream consequences in the spec-kitty workflow}
 
 ## Environment
 
-- OS: <e.g., macOS Darwin 25.3.0>
-- Python: <e.g., 3.13.12>
-- spec-kitty-cli: <version>
-- Feature: <feature-slug where bug observed>
+- OS: {e.g., macOS Darwin 25.3.0}
+- Python: {e.g., 3.13.12}
+- spec-kitty-cli: {version}
+- Feature: {feature-slug where bug observed}
 
 ## Open Questions
 
-1. **<Question about root cause, scope, or behavior under different conditions>?**
-   <Context + what's unknown.>
+1. **{Question about root cause, scope, or behavior under different conditions}?**
+   {Context + what's unknown.}
 
-2. **<Question about fix design or compatibility>?**
-   <Context.>
+2. **{Question about fix design or compatibility}?**
+   {Context.}
 
 ## Next Steps
 
-- <Action needed to validate, reproduce more cleanly, or file upstream>
-- <Data to gather before filing>
+- {Action needed to validate, reproduce more cleanly, or file upstream}
+- {Data to gather before filing}
 
 ## Discovered
 
-YYYY-MM-DD by <name/agent> during <feature or workflow context>
+YYYY-MM-DD by {name/agent} during {feature or workflow context}
 
 ---
 
@@ -116,7 +116,7 @@ YYYY-MM-DD by <name/agent> during <feature or workflow context>
 
 **Cross-reference the running journal**:
 
-The [spec-kitty workflow journal](../spec-kitty-workflow-journal.md) captures
+The [spec-kitty workflow journal](<../spec-kitty-workflow-journal.md>) captures
 observations during feature work. Promote an entry to a standalone bug report
 here when:
 
