@@ -20,7 +20,7 @@ subtasks:
 phase: Phase 3 - Entry Point Updates
 assignee: ''
 agent: "claude"
-shell_pid: "5671"
+shell_pid: "6451"
 history:
 - at: '2026-04-05T01:28:56Z'
   actor: system
@@ -191,3 +191,4 @@ N/A — documentation feature, no automated tests.
 
 - 2026-04-05T04:25:48Z – claude – shell_pid=5671 – Started implementation via workflow command
 - 2026-04-05T04:28:23Z – claude – shell_pid=5671 – Ready for review: CLAUDE.md now references INDEX.md, constitution, and data/ canonical home. All 5 v03 refs updated to v1.0 (2 in CLAUDE.md + 1 in ai-agents/claude-code-instructions.md + 2 in ai-agents/claude-instructions.md). NFR-001 chain-of-reference now complete.
+- 2026-04-05T04:28:50Z – claude – shell_pid=6451 – Started review via workflow command
