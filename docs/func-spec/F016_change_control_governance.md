@@ -339,11 +339,11 @@ part of implementation — not as a separate task.
 
 | File | Purpose |
 |---|---|
-| `data/change-risk-taxonomy.json` | Machine-readable five-tier taxonomy with guardrail protocol definitions |
-| `governance/pre-flight-checklist.md` | Pre-flight checklists for Tier 0/1 and Tier 2 |
-| `governance/post-change-verification.md` | Per-tier verification protocol |
-| `governance/incident-postmortem-template.md` | Reusable postmortem template |
-| `postmortems/2026-04-03-vikunja-ufw-outage.md` | First postmortem — F015 origin incident |
+| `docs/design/architecture/data/change-risk-taxonomy.json` | Machine-readable five-tier taxonomy with guardrail protocol definitions |
+| `docs/runbooks/governance/pre-flight-checklist.md` | Pre-flight checklists for Tier 0/1 and Tier 2 |
+| `docs/runbooks/governance/post-change-verification.md` | Per-tier verification protocol |
+| `docs/runbooks/governance/incident-postmortem-template.md` | Reusable postmortem template |
+| `docs/issues/postmortems/2026-04-03-vikunja-ufw-outage.md` | First postmortem — F015 origin incident |
 
 **Success criteria for this section:**
 - [ ] All affected JSON files updated with `updated_by: "F015"`
