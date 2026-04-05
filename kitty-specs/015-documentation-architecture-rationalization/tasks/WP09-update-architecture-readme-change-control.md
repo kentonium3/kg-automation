@@ -187,3 +187,4 @@ N/A — documentation feature, no automated tests.
 ## Activity Log
 
 - 2026-04-05T04:29:45Z – claude – shell_pid=6723 – Started implementation via workflow command
+- 2026-04-05T04:30:46Z – claude – shell_pid=6723 – Ready for review: Architecture README documents canonical data home + schema co-location. change-control.md updated with INDEX.md maintenance rule.
