@@ -21,7 +21,7 @@ subtasks:
 phase: Phase 3 - Cleanup
 assignee: ''
 agent: "claude"
-shell_pid: "11028"
+shell_pid: "12181"
 history:
 - at: '2026-04-05T01:28:56Z'
   actor: system
@@ -160,3 +160,4 @@ N/A — documentation feature, no automated tests.
 
 - 2026-04-05T04:49:19Z – claude – shell_pid=11028 – Started implementation via workflow command
 - 2026-04-05T04:51:41Z – claude – shell_pid=11028 – Ready for review: docs-readme.md archived (status: archived, superseded_by: docs/INDEX.md, 97% similarity preserved via git mv). F002 2 link refs updated to new office2-backup path. F015 spec retains 4 descriptive prose references to docs/docs-readme.md (historical, describing the archive operation) — left in place per WP11 scope; these are inline code backticks, not markdown links.
+- 2026-04-05T04:53:44Z – claude – shell_pid=12181 – Started review via workflow command
