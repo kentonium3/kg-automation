@@ -1,7 +1,7 @@
 ---
 id: templater-commands
 title: Templater Commands (Canon v2)
-doc_type: handbook
+doc_type: reference
 level: reference
 status: approved
 owners:

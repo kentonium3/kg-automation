@@ -1,6 +1,7 @@
 ---
 title: Deployment Runbook
-doc_type: handbook
+doc_type: runbook
+audience: both
 status: approved
 ---
 
@@ -233,7 +234,7 @@ ssh office2-claude \
 ```
 
 If the audit flags unexpected changes from the new deployment, update
-the baselines. See `docs/runbooks/office2-backup-and-security.md` for
+the baselines. See `docs/design/office2-backup-and-security.md` for
 the baseline reset procedure.
 
 ### Verify in Obsidian (for agent/digest changes)
@@ -253,7 +254,7 @@ the expected sync window after deployment.
 **Permission denied on office2**
 - The `claude` account has scoped sudo for specific operations
 - If a deploy step needs elevated permissions, check
-  `docs/runbooks/office2-backup-and-security.md` for what `claude` can sudo
+  `docs/design/office2-backup-and-security.md` for what `claude` can sudo
 - Operations requiring `kgale` permissions must be run manually by Kent
 
 **OpenClaw cron job not appearing**
@@ -270,7 +271,7 @@ the expected sync window after deployment.
 ## Related documents
 
 - `docs/runbooks/openclaw-ops.md` — OpenClaw service management
-- `docs/runbooks/office2-backup-and-security.md` — security baseline reset
+- `docs/design/office2-backup-and-security.md` — security baseline reset
 - `docs/runbooks/maintenance.md` — branch and CI conventions
 - `docs/design/architecture/change-control.md` — architecture doc update protocol
 - `scripts/deploy/deploy-f013.sh` — reference deploy script
