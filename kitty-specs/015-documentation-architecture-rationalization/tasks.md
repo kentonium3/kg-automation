@@ -131,9 +131,9 @@ T008, T009, T010, T011 are parallel-safe (different file subsets).
 
 ### Included Subtasks
 
-- [ ] T014 Add frontmatter to 5 explanation-type research files (agent-team-architecture, data-architecture, data-privacy-identity, integration-needs, openclaw-capabilities)
-- [ ] T015 [P] Add frontmatter to 4 reference-type research files (integration-map, local-audit, roadmap, user-story-catalog)
-- [ ] T016 Update `local-audit.md` link references: `docs/runbooks/office2-backup-and-security.md` → `docs/design/office2-backup-and-security.md` (2 occurrences)
+- [x] T014 Add frontmatter to 5 explanation-type research files (agent-team-architecture, data-architecture, data-privacy-identity, integration-needs, openclaw-capabilities)
+- [x] T015 [P] Add frontmatter to 4 reference-type research files (integration-map, local-audit, roadmap, user-story-catalog)
+- [x] T016 Update `local-audit.md` link references: `docs/runbooks/office2-backup-and-security.md` → `docs/design/office2-backup-and-security.md` (2 occurrences)
 
 ### Implementation Notes
 
