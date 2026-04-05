@@ -9,7 +9,7 @@ status: active
 **Spec-Kitty Version**: 3.0.3
 **Reporter**: Kent Gale (via Claude Code)
 **Priority**: CRITICAL — silently destroys the dependency DAG that `/spec-kitty.implement` relies on for correct WP sequencing
-**Status**: READY TO FILE
+**Status**: FILED https://github.com/Priivacy-ai/spec-kitty/issues/406
 
 ## Summary
 
