@@ -3,6 +3,7 @@ work_package_id: WP03
 title: Governance Runbooks — Checklists + Verification
 dependencies:
 - WP01
+- WP02
 requirement_refs:
 - FR-004
 - FR-005

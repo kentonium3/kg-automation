@@ -3,6 +3,7 @@ work_package_id: WP04
 title: CLAUDE.md Guardrail Rules + Doc Standards Pointer
 dependencies:
 - WP01
+- WP03
 requirement_refs:
 - FR-006
 - FR-009

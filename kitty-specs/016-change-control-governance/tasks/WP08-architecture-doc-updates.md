@@ -3,6 +3,9 @@ work_package_id: WP08
 title: Architecture Doc Updates + Markdown Views
 dependencies:
 - WP01
+- WP02
+- WP03
+- WP07
 requirement_refs:
 - FR-011
 - FR-012
