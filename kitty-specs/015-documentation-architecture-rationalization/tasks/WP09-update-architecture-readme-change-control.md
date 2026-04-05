@@ -189,3 +189,4 @@ N/A — documentation feature, no automated tests.
 - 2026-04-05T04:29:45Z – claude – shell_pid=6723 – Started implementation via workflow command
 - 2026-04-05T04:30:46Z – claude – shell_pid=6723 – Ready for review: Architecture README documents canonical data home + schema co-location. change-control.md updated with INDEX.md maintenance rule.
 - 2026-04-05T04:31:51Z – claude – shell_pid=7366 – Started review via workflow command
+- 2026-04-05T04:32:13Z – claude – shell_pid=7366 – Review passed: architecture README documents docs/design/architecture/data/ as canonical machine-readable home + schema co-location convention. change-control.md updated with 2 table rows + dedicated INDEX.md Maintenance section treating staleness as protocol violation. Additions are surgical, integrate naturally with existing doc structure.
