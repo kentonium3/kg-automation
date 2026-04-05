@@ -194,3 +194,4 @@ N/A — documentation change, no automated tests.
 - Committed to main.
 
 ## Activity Log
+- 2026-04-05T23:47:50Z – unknown – shell_pid=62840 – Tier 0 Hard Lock + Tier 1-4 guardrails + doc standards pointer added. Tier 0 is explicit and unoverridable.
