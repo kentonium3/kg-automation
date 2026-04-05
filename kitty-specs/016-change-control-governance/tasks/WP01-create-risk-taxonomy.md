@@ -17,8 +17,8 @@ subtasks:
 - T004
 phase: Phase 0 - Foundation
 assignee: ''
-agent: ''
-shell_pid: '59029'
+agent: "claude"
+shell_pid: "59029"
 history:
 - at: '2026-04-05T23:00:03Z'
   actor: system
@@ -177,3 +177,4 @@ N/A — data artifact, no automated tests.
 - Tier 0 non-overridable.
 
 ## Activity Log
+- 2026-04-05T23:34:43Z – claude – shell_pid=59029 – Started implementation via workflow command
