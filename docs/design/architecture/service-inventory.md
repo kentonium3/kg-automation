@@ -167,6 +167,19 @@ openclaw cron add \
 - **Log writer**: `scripts/openclaw/observation/log_action.py` (utility, not a service)
 - **Runbook**: `docs/runbooks/observation-ops.md`
 
+## Schema v1.1 Fields
+
+As of F016, `service-inventory.json` includes additional fields on each service entry to support change control governance:
+
+| Field | Type | Purpose |
+|-------|------|---------|
+| `risk_tier` | integer (0-4) | Risk classification per the five-tier taxonomy in `data/change-risk-taxonomy.json`. Determines which guardrail protocol applies to changes affecting this service. |
+| `dependencies` | array of strings | Services this entry depends on. Used by the pre-flight checklist (`docs/runbooks/governance/pre-flight-checklist.md`) to assess blast radius before a change. |
+| `health_check` | object | Defines how to verify the service is healthy after a change. Used by post-change verification (`docs/runbooks/governance/post-change-verification.md`). Contains `command` and `expected` fields. |
+| `config_files` | array of strings | Filesystem paths to configuration files for this service. Referenced during pre-flight to ensure config backups exist before changes. |
+
+These fields are consumed by the governance runbooks — not by runtime automation. The visual dependency graph is rendered in `docs/design/architecture/service-dependencies.view.md`.
+
 ### WhatsApp Channel (F004)
 - **Deployed by**: F004
 - **Type**: OpenClaw channel (Baileys — unofficial WhatsApp Web protocol)

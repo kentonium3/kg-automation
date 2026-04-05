@@ -65,6 +65,26 @@ When a feature adds, moves, archives, or deletes any document or directory under
 - Updating frontmatter metadata alone (e.g., `last_validated`)
 - Touching files under `docs/archive/` (frozen historical artifacts)
 
+## Risk-Tiered Change Control
+
+All changes to the deployed system are classified by a five-tier risk taxonomy defined in `docs/design/architecture/data/change-risk-taxonomy.json`:
+
+| Tier | Label | Guardrail |
+|------|-------|-----------|
+| 0 | Hard Lock | AI generates scripts, human executes — host/foundational changes (UFW, iptables, SSH) |
+| 1 | Human-Gated | AI prepares, human approves before execution |
+| 2 | Supervised | AI executes with post-change verification |
+| 3 | Notify | AI executes autonomously, human notified |
+| 4 | Auto-Commit | Routine changes committed without notification |
+
+**Pre-flight assessment**: Tier 0 and Tier 1 changes require a mandatory pre-flight checklist before execution. See `docs/runbooks/governance/pre-flight-checklist.md`.
+
+**Post-change verification**: Tier 0, 1, and 2 changes require post-change service health verification. See `docs/runbooks/governance/post-change-verification.md`.
+
+**Dependency awareness**: The service dependency graph (`docs/design/architecture/data/service-inventory.json` — `dependencies` field) is consulted during pre-flight to identify blast radius. See `docs/design/architecture/service-dependencies.view.md` for a visual map.
+
+**Postmortems**: When a change causes an incident, a postmortem is filed in `docs/issues/postmortems/`.
+
 ## CI Validation
 
 `validate_docs.py` runs on every push to main. All markdown files in `docs/design/architecture/` must have valid YAML frontmatter (title, doc_type, status).

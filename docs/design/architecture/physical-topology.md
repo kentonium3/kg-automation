@@ -6,7 +6,7 @@ status: approved
 
 # Physical Topology
 
-Authoritative data: [`data/hardware-inventory.json`](data/hardware-inventory.json), [`data/network-topology.json`](data/network-topology.json)
+Authoritative data: [`data/hardware-inventory.json`](<./data/hardware-inventory.json>), [`data/network-topology.json`](<./data/network-topology.json>)
 
 ## Hosts
 
@@ -48,7 +48,13 @@ Authoritative data: [`data/hardware-inventory.json`](data/hardware-inventory.jso
 
 All inter-device communication uses **Tailscale**. No services are exposed to the public internet. No port forwarding or NAT traversal outside Tailscale.
 
+**Tailscale Serve**: Port 443 on the `tailscale0` interface proxies to `100.92.197.90:3456` (Vikunja). TLS is terminated by Tailscale with auto-provisioned Let's Encrypt certificates. Access is tailnet-only (Funnel disabled).
+
 **SSH access:**
 - Agents: `ssh office2-claude` (claude user, no sudo)
 - Kent: `ssh office2-kgale` (kgale user, sudo available)
 - Host aliases defined in `~/.ssh/config` on Mac
+
+## Service Dependencies
+
+See [Service Dependencies Diagram](<./service-dependencies.view.md>) for a visual map of how services on office2 depend on each other. This diagram is derived from the `dependencies` field in `data/service-inventory.json` and is used during change control pre-flight assessment to determine blast radius.
