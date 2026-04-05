@@ -168,3 +168,7 @@ N/A — governance feature, no automated tests. Manual validation per quickstart
 - `docs/INDEX.md` updated with all new F016 files.
 - All entries correctly annotated and placed in appropriate sections.
 - No pre-existing entries removed.
+
+## Activity Log
+
+- 2026-04-05T23:51:32Z – unknown – shell_pid=63587 – INDEX.md updated with all F016 files per C-006
