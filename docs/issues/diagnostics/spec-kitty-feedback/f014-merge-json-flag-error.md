@@ -1,3 +1,8 @@
+---
+title: "Bug Report: Feature Merge Fails With Spurious --json Error"
+doc_type: diagnostic
+status: active
+---
 # Bug Report: Feature Merge Fails With Spurious --json Error
 
 **Date**: 2026-04-04

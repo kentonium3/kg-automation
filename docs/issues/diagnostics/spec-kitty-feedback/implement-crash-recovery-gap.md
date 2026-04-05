@@ -1,3 +1,8 @@
+---
+title: "Feature Request: Crash Recovery for Implementation Phase"
+doc_type: diagnostic
+status: active
+---
 # Feature Request: Crash Recovery for Implementation Phase
 
 **Date**: 2026-04-02

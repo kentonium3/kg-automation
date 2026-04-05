@@ -1,3 +1,8 @@
+---
+title: "Issue Report: VS Code Crash During Merge Leaves Incomplete Cleanup"
+doc_type: diagnostic
+status: active
+---
 # Issue Report: VS Code Crash During Merge Leaves Incomplete Cleanup
 
 **Date:** 2026-03-30
