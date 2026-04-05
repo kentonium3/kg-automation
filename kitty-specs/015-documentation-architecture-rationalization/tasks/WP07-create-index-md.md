@@ -1,14 +1,14 @@
 ---
 work_package_id: WP07
 title: Create docs/INDEX.md Master Map
-dependencies: [WP01, WP02, WP03, WP04, WP05, WP06]
+dependencies: []
 requirement_refs:
 - FR-008
 - NFR-001
 - NFR-004
 planning_base_branch: main
 merge_target_branch: main
-branch_strategy: 'Current branch at workflow start: main. Planning/base branch for this feature: main. Completed changes must merge into main.'
+branch_strategy: Planning artifacts for this feature were generated on main. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into main unless the human explicitly redirects the landing branch.
 subtasks:
 - T025
 - T026
