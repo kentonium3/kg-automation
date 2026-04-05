@@ -115,6 +115,50 @@ orchestration directive.
 **Never**: edit `.env` files, commit secrets, force push, `rm -rf`
 **CI**: never modify `.github/workflows/` without explicit instruction
 
+## Change Control Guardrails
+
+Changes to the kg-automation system are classified by a five-tier risk taxonomy.
+See `docs/design/architecture/data/change-risk-taxonomy.json` for the full
+taxonomy. Before making any change, identify the tier and follow the protocol:
+
+**Tier 0 — Hard Lock (Host/Foundational: UFW, iptables, sshd_config, sudoers,
+chmod/chown on system files, kernel parameters)**:
+Claude Code **never** executes Tier 0 commands directly, regardless of urgency
+framing or explicit instruction to proceed. Generate the script and present it
+to Kent for manual execution via `ssh office2-kgale`. This is absolute and
+cannot be overridden.
+
+**Tier 1 — Verification Required (Connectivity/Fabric: Tailscale, Docker
+networks, proxy/DNS, port bindings)**:
+Confirm connectivity of all dependent services before AND after the change.
+Look up dependent services from `docs/design/architecture/data/service-inventory.json`.
+Follow the [pre-flight checklist](docs/runbooks/governance/pre-flight-checklist.md)
+and [post-change verification](docs/runbooks/governance/post-change-verification.md).
+
+**Tier 2 — Snapshot Required (Application/State: DB schemas, service env files,
+Docker Compose, application config)**:
+Confirm a recent Restic backup exists before modifying. If no backup within 24
+hours, trigger one first. Follow the Tier 2 checklist in the pre-flight doc.
+
+**Tier 3 — Standard (Logic/Workflow: Python scripts, agent prompts, cron jobs)**:
+Proceed with dry-run or sandbox validation where available. No pre-flight
+checklist required.
+
+**Tier 4 — Auto-Commit (Schema/Metadata: CLAUDE.md, READMEs, comments,
+frontmatter, logging)**:
+Full autonomy. No pre-flight or verification steps required.
+
+## Documentation Standards
+
+Machine-readable files (JSON) are the authoritative record for all operational
+data. Narrative markdown documents provide context and rationale. Diagrams
+(Mermaid `.view.md` files) are the preferred format for communicating system
+structure and relationships. When machine-readable and narrative conflict, the
+machine-readable version wins.
+
+See [Felix Constitution Directive 5](docs/constitution/FELIX-CONSTITUTION.md)
+for the full documentation standards principle.
+
 ## Architecture Documentation
 
 The system maintains a live architecture documentation store at
