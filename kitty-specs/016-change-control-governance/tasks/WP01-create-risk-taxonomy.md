@@ -178,3 +178,4 @@ N/A — data artifact, no automated tests.
 
 ## Activity Log
 - 2026-04-05T23:34:43Z – claude – shell_pid=59029 – Started implementation via workflow command
+- 2026-04-05T23:35:50Z – claude – shell_pid=59029 – Risk taxonomy JSON created with 5 tiers. Valid JSON, Tier 0 overridable=false, all protocols defined.
