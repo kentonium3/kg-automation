@@ -1,7 +1,7 @@
 ---
 title: "Bug Report: Accept Action Not Registered in Context Resolver"
 doc_type: diagnostic
-status: active
+status: FILED https://github.com/Priivacy-ai/spec-kitty/issues/414
 ---
 # Bug Report: Accept Action Not Registered in Context Resolver
 

@@ -1,7 +1,7 @@
 ---
 title: "Feature Request: Crash Recovery for Implementation Phase"
 doc_type: diagnostic
-status: active
+status: FILED https://github.com/Priivacy-ai/spec-kitty/issues/415
 ---
 # Feature Request: Crash Recovery for Implementation Phase
 
@@ -39,8 +39,8 @@ confirmed root causes are:
    mechanism 1.
 
 These are external to spec-kitty — the crashes are caused by macOS/VS Code
-interactions with rapid filesystem changes. However, spec-kitty needs to be
-resilient to this failure mode because it will continue to occur.
+interactions with rapid filesystem changes. However, it would be helpful if spec-kitty
+were resilient to this failure mode should the session be interrupted for any reason.
 
 ## The Stuck State
 
@@ -170,10 +170,10 @@ leaves the status ledger inconsistent.
 
 - Any feature interrupted by a crash during implementation is unrecoverable
   through the spec-kitty workflow
-- The agent operating rules (CLAUDE.md) prohibit manual workarounds, creating
+- My local agent operating rules (CLAUDE.md) prohibit manual workarounds, creating
   a complete deadlock
 - This has occurred once so far (F013) but the crash pattern is recurring
-  (8 incidents across 7 features), so it will happen again
+  (8 incidents across 7 features), so it will likely happen again
 
 ## Recovery Attempts (F013, 2026-04-02)
 
