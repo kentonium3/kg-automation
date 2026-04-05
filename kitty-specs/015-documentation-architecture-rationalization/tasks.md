@@ -96,12 +96,12 @@ None — destination dirs `docs/design/standards/` and `docs/design/` already ex
 
 ### Included Subtasks
 
-- [ ] T008 Fix handbook → runbook + add audience on 10 service-ops runbooks (vikunja-ops, goals-ops, habits-ops, inbox-ops, observation-ops, openclaw-ops, transcribe-ops, whatsapp-ops, obsidian-sync-ops, task-intelligence-ops)
-- [ ] T009 Fix handbook → runbook + add audience on 4 setup/deployment runbooks (deployment, obsidian-setup, obsidian, spec-kitty-init-in-existing-repo)
-- [ ] T010 Fix handbook → runbook + add audience on 6 process/governance runbooks (felix-governance, ci-handbook, agent-handbook, agent-execution-roles, claude-code, maintenance)
-- [ ] T011 Fix misclassifications: templater-commands handbook → reference; repo-governance policy → standard
-- [ ] T012 Update `docs/runbooks/deployment.md` link references: `docs/runbooks/office2-backup-and-security.md` → `docs/design/office2-backup-and-security.md` (3 occurrences)
-- [ ] T013 Validate all runbooks/* files have correct frontmatter values
+- [x] T008 Fix handbook → runbook + add audience on 10 service-ops runbooks (vikunja-ops, goals-ops, habits-ops, inbox-ops, observation-ops, openclaw-ops, transcribe-ops, whatsapp-ops, obsidian-sync-ops, task-intelligence-ops)
+- [x] T009 Fix handbook → runbook + add audience on 4 setup/deployment runbooks (deployment, obsidian-setup, obsidian, spec-kitty-init-in-existing-repo)
+- [x] T010 Fix handbook → runbook + add audience on 6 process/governance runbooks (felix-governance, ci-handbook, agent-handbook, agent-execution-roles, claude-code, maintenance)
+- [x] T011 Fix misclassifications: templater-commands handbook → reference; repo-governance policy → standard
+- [x] T012 Update `docs/runbooks/deployment.md` link references: `docs/runbooks/office2-backup-and-security.md` → `docs/design/office2-backup-and-security.md` (3 occurrences)
+- [x] T013 Validate all runbooks/* files have correct frontmatter values
 
 ### Implementation Notes
 
