@@ -23,8 +23,8 @@ subtasks:
 - T011
 phase: Phase 1 - Data Enrichment
 assignee: ''
-agent: ''
-shell_pid: '60032'
+agent: "claude"
+shell_pid: "60801"
 history:
 - at: '2026-04-05T23:00:03Z'
   actor: system
@@ -208,3 +208,4 @@ N/A — data enrichment, no automated tests.
 
 ## Activity Log
 - 2026-04-05T23:40:41Z – unknown – shell_pid=60032 – 11 services enriched with risk_tier/deps/health/config. Vikunja tailscale-serve:443 dep confirmed. Schema v1.1.
+- 2026-04-05T23:40:50Z – claude – shell_pid=60801 – Started review via workflow command
