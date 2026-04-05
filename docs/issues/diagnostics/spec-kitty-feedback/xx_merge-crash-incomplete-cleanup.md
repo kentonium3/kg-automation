@@ -11,6 +11,8 @@ status: active
 **Priority**: HIGH — merge operation is non-idempotent; any interruption requires manual recovery
 **Status**: READY TO FILE — related to #415 (implement-phase recovery) and #410 (umbrella)
 
+**Companion evidence**: `spec-kitty-workflow-journal.md` (attached to this issue) — a running journal of spec-kitty workflow observations captured during live feature development, including the real-time decision-making trail from workflow interruptions and crash recoveries.
+
 ## Summary
 
 `spec-kitty merge` performs a multi-step sequence (merge branches → push → remove worktrees → delete branches → commit status files) but is **non-idempotent**: if interrupted between steps (e.g., by a VS Code crash during rapid worktree removal), the command cannot be re-run to completion. Its pre-flight check requires worktrees to exist, even when the actual merge work is done and only cleanup remains. Additionally, status file updates are written by step 1 but committed LAST, so any interruption loses them.
