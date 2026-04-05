@@ -227,3 +227,4 @@ N/A — documentation feature, no automated tests.
 - Blameless tone throughout.
 
 ## Activity Log
+- 2026-04-05T23:44:20Z – unknown – shell_pid=61151 – Template + origin postmortem + checklist walkthrough complete. Walkthrough validates FR-016: checklist catches port 443 gap at Step 2.
