@@ -196,3 +196,4 @@ N/A — documentation change, no automated tests.
 ## Activity Log
 - 2026-04-05T23:47:50Z – unknown – shell_pid=62840 – Tier 0 Hard Lock + Tier 1-4 guardrails + doc standards pointer added. Tier 0 is explicit and unoverridable.
 - 2026-04-05T23:47:52Z – claude – shell_pid=63145 – Started review via workflow command
+- 2026-04-05T23:47:54Z – claude – shell_pid=63145 – Review passed: Tier 0 Hard Lock explicit and unambiguous. Tier 3/4 zero friction. Doc standards pointer to constitution.
