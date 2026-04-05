@@ -154,3 +154,4 @@ N/A — governance feature, no automated tests. Manual validation per quickstart
 ## Activity Log
 
 - 2026-04-05T23:34:47Z – claude – shell_pid=59092 – Started implementation via workflow command
+- 2026-04-05T23:36:48Z – claude – shell_pid=59092 – Directive 5: Documentation Standards added to Felix constitution (both FELIX-CONSTITUTION.md and .kittify/constitution.md). User needs to run spec-kitty constitution sync after merge.
