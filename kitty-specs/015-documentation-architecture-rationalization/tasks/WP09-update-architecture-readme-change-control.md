@@ -20,7 +20,7 @@ subtasks:
 phase: Phase 3 - Entry Point Updates
 assignee: ''
 agent: "claude"
-shell_pid: "6723"
+shell_pid: "7366"
 history:
 - at: '2026-04-05T01:28:56Z'
   actor: system
@@ -188,3 +188,4 @@ N/A — documentation feature, no automated tests.
 
 - 2026-04-05T04:29:45Z – claude – shell_pid=6723 – Started implementation via workflow command
 - 2026-04-05T04:30:46Z – claude – shell_pid=6723 – Ready for review: Architecture README documents canonical data home + schema co-location. change-control.md updated with INDEX.md maintenance rule.
+- 2026-04-05T04:31:51Z – claude – shell_pid=7366 – Started review via workflow command
