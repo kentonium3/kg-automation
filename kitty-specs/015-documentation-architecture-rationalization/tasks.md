@@ -293,9 +293,9 @@ T032, T033 can be combined. T034 and T035 can be done in parallel.
 
 ### Included Subtasks
 
-- [ ] T036 Update `docs/design/architecture/README.md` with canonical machine-readable artifact home statement
-- [ ] T037 Update `docs/design/architecture/change-control.md` to require `docs/INDEX.md` updates on every feature
-- [ ] T038 Document schema co-location convention (schemas live with or link to the data they describe)
+- [x] T036 Update `docs/design/architecture/README.md` with canonical machine-readable artifact home statement
+- [x] T037 Update `docs/design/architecture/change-control.md` to require `docs/INDEX.md` updates on every feature
+- [x] T038 Document schema co-location convention (schemas live with or link to the data they describe)
 
 ### Implementation Notes
 
