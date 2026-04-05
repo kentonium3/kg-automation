@@ -10,6 +10,16 @@ Current-state documentation of the kg-automation system. Updated after every fea
 
 **JSON files in `data/` are the authoritative record.** Markdown files are narrative views. When they conflict, JSON wins.
 
+## Machine-Readable Artifact Home
+
+`docs/design/architecture/data/` is the **canonical home** for all current-state operational machine-readable artifacts describing the kg-automation system: service inventory, hardware inventory, network topology, credential manifest, data flows, and their associated JSON schemas.
+
+- **Authoritative record**: These JSON files are the source of truth. Narrative `.md` companions render the JSON as prose for human readers.
+- **Exempt from moves**: Files in `data/` are not relocated by documentation-rationalization work (constraint enforced by F015).
+- **Schema co-location**: Schema files (`*-schema.json`) live alongside the data files they describe within `data/`. Schemas that describe cross-cutting standards (e.g., frontmatter, validator policy) live in `docs/design/standards/` as the exception.
+
+See [`docs/INDEX.md`](../../INDEX.md) for the complete listing of machine-readable artifacts across the repo.
+
 ## Documents
 
 | Document | Purpose |
