@@ -46,13 +46,13 @@ None — this is the foundational WP that everything else references.
 
 ### Included Subtasks
 
-- [ ] T005 Add `risk_tier` field (integer 0-4) to all 11 service records
-- [ ] T006 [P] Add `dependencies` array to all service records with specific targets
-- [ ] T007 [P] Add `health_check` object to all service records (method, endpoint, expected, timeout)
-- [ ] T008 [P] Add `config_files` array to services that have configuration files
-- [ ] T009 Verify Vikunja captures dependency on `tailscale-serve:443`
-- [ ] T010 Add `tailscale_serve` config to `network-topology.json` port 443 entry
-- [ ] T011 Bump `schema_version` to `"1.1"`, set `updated_by: "F016"`
+- [x] T005 Add `risk_tier` field (integer 0-4) to all 11 service records
+- [x] T006 [P] Add `dependencies` array to all service records with specific targets
+- [x] T007 [P] Add `health_check` object to all service records (method, endpoint, expected, timeout)
+- [x] T008 [P] Add `config_files` array to services that have configuration files
+- [x] T009 Verify Vikunja captures dependency on `tailscale-serve:443`
+- [x] T010 Add `tailscale_serve` config to `network-topology.json` port 443 entry
+- [x] T011 Bump `schema_version` to `"1.1"`, set `updated_by: "F016"`
 
 ### Dependencies
 
