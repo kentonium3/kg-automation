@@ -177,3 +177,4 @@ N/A — documentation feature, no automated tests.
 ## Activity Log
 
 - 2026-04-05T04:09:08Z – claude – shell_pid=1073 – Started implementation via workflow command
+- 2026-04-05T04:10:21Z – claude – shell_pid=1073 – Ready for review: Added frontmatter to 9 research files in docs/design/research/005-* (5 explanation + 4 reference). local-audit.md 2 link refs updated to moved office2-backup path. Titles derived from H1s. data-privacy-identity.md flagged with divio_ambiguity for potential overlap with data-architecture.md.
