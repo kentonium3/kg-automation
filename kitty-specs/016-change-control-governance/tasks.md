@@ -151,9 +151,9 @@ Depends on WP02 (origin incident references Vikunja's dependency data from enric
 
 ### Included Subtasks
 
-- [ ] T029 Add "Directive 5: Documentation Standards" to `docs/constitution/FELIX-CONSTITUTION.md`
-- [ ] T030 Add matching content to `.kittify/constitution/constitution.md`
-- [ ] T031 Run `spec-kitty constitution sync` and verify derived artifacts update cleanly
+- [x] T029 Add "Directive 5: Documentation Standards" to `docs/constitution/FELIX-CONSTITUTION.md`
+- [x] T030 Add matching content to `.kittify/constitution/constitution.md`
+- [x] T031 Run `spec-kitty constitution sync` and verify derived artifacts update cleanly
 
 ### Dependencies
 
