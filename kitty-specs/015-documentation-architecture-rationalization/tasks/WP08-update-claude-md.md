@@ -190,3 +190,4 @@ N/A — documentation feature, no automated tests.
 ## Activity Log
 
 - 2026-04-05T04:25:48Z – claude – shell_pid=5671 – Started implementation via workflow command
+- 2026-04-05T04:28:23Z – claude – shell_pid=5671 – Ready for review: CLAUDE.md now references INDEX.md, constitution, and data/ canonical home. All 5 v03 refs updated to v1.0 (2 in CLAUDE.md + 1 in ai-agents/claude-code-instructions.md + 2 in ai-agents/claude-instructions.md). NFR-001 chain-of-reference now complete.
