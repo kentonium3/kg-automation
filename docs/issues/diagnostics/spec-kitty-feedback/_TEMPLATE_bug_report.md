@@ -94,6 +94,21 @@ YYYY-MM-DD by {name/agent} during {feature or workflow context}
 
 ## Template Usage Notes
 
+**Filename convention**:
+
+- **Unsubmitted** (in-progress / ready to file): `xx_<short-slug>.md`
+  - The `xx_` prefix visually groups pending reports together at the top of
+    directory listings, signaling "needs filing".
+- **Submitted** (has an upstream issue number): `<issue-number>_<short-slug>.md`
+  - Replace `xx_` with the GitHub issue number once filed
+    (e.g., `42_finalize-tasks-strips-dependencies.md`).
+- **F### feature number**: do NOT include in the filename. Record the
+  originating feature in the `## Discovered` section inside the doc body.
+  Filename audience = maintainer (who doesn't care which F# surfaced it);
+  F### audience = us (who traces lineage via the doc body).
+- **Template filename**: stays `_TEMPLATE_bug_report.md` — the leading
+  underscore keeps it sorted at the top ahead of `xx_` entries.
+
 **When to create a new bug report**:
 
 - Behavior contradicts documentation, command help text, or a flag's name
