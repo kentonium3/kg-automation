@@ -197,11 +197,11 @@ Depends on WP02 (diagram uses enriched dependency data from service inventory).
 
 ### Included Subtasks
 
-- [ ] T035 Update `docs/design/architecture/README.md` (governance refs, taxonomy in Data Files, diagram ref)
-- [ ] T036 Update `docs/design/architecture/change-control.md` (risk taxonomy, checklist, verification protocol refs)
-- [ ] T037 Update `docs/design/architecture/security-posture.md` (reference change control governance)
-- [ ] T038 Update `docs/design/architecture/service-inventory.md` to match enriched JSON
-- [ ] T039 Update `docs/design/architecture/physical-topology.md` (Tailscale serve, diagram ref)
+- [x] T035 Update `docs/design/architecture/README.md` (governance refs, taxonomy in Data Files, diagram ref)
+- [x] T036 Update `docs/design/architecture/change-control.md` (risk taxonomy, checklist, verification protocol refs)
+- [x] T037 Update `docs/design/architecture/security-posture.md` (reference change control governance)
+- [x] T038 Update `docs/design/architecture/service-inventory.md` to match enriched JSON
+- [x] T039 Update `docs/design/architecture/physical-topology.md` (Tailscale serve, diagram ref)
 
 ### Dependencies
 
