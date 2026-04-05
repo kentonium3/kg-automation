@@ -100,11 +100,11 @@ Depends on WP01 (checklists reference tier definitions) and WP02 (checklists ref
 
 ### Included Subtasks
 
-- [ ] T018 Add new "Change Control Guardrails" section to CLAUDE.md after Permissions
-- [ ] T019 Write Tier 0 Hard Lock rule — explicit, unambiguous, unoverridable by urgency or instruction
-- [ ] T020 Write Tier 1-4 guardrail rules referencing taxonomy file path
-- [ ] T021 Add documentation standards summary + pointer to Felix constitution (FR-009)
-- [ ] T022 Verify rules cause zero friction for Tier 3/4 changes (NFR-002)
+- [x] T018 Add new "Change Control Guardrails" section to CLAUDE.md after Permissions
+- [x] T019 Write Tier 0 Hard Lock rule — explicit, unambiguous, unoverridable by urgency or instruction
+- [x] T020 Write Tier 1-4 guardrail rules referencing taxonomy file path
+- [x] T021 Add documentation standards summary + pointer to Felix constitution (FR-009)
+- [x] T022 Verify rules cause zero friction for Tier 3/4 changes (NFR-002)
 
 ### Dependencies
 
