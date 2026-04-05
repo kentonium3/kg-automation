@@ -25,8 +25,8 @@ subtasks:
 - T013
 phase: Phase 1 - Frontmatter Corrections
 assignee: ''
-agent: ''
-shell_pid: '99090'
+agent: "claude"
+shell_pid: "99090"
 history:
 - at: '2026-04-05T01:28:56Z'
   actor: system
@@ -213,3 +213,7 @@ N/A — documentation feature, no automated tests (per spec constraint C-006).
 - All 24 files have correct frontmatter committed to main.
 - deployment.md links updated.
 - grep validations return expected results.
+
+## Activity Log
+
+- 2026-04-05T04:03:25Z – claude – shell_pid=99090 – Started implementation via workflow command
