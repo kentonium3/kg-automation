@@ -1,6 +1,7 @@
 ---
 title: "Felix — Personal AI Operating System: Architecture Specification v1.0"
-doc_type: strategy
+doc_type: reference
+supersedes: docs/design/personal-ai-system-spec-v03.md
 status: draft
 ---
 

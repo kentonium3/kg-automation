@@ -1,7 +1,8 @@
 
 ---
 title: Spec-Kitty Installation Guide for Existing Repositories
-doc_type: handbook
+doc_type: runbook
+audience: human-only
 status: draft
 ---
 # Spec-Kitty Installation Guide for Existing Repositories

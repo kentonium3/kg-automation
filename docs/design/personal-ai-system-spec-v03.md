@@ -1,7 +1,8 @@
 ---
 title: Personal AI Command & Accountability System — v0.3
-doc_type: strategy
-status: draft
+doc_type: reference
+status: deprecated
+superseded_by: docs/design/personal-ai-system-spec-v1.0.md
 ---
 
 # Personal AI Command & Accountability System

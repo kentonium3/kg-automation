@@ -1,3 +1,8 @@
+---
+title: "Bug Report: Accept Action Not Registered in Context Resolver"
+doc_type: diagnostic
+status: active
+---
 # Bug Report: Accept Action Not Registered in Context Resolver
 
 **Date**: 2026-04-04

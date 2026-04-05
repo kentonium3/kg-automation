@@ -1,6 +1,7 @@
 ---
 title: Felix Governance Runbook
-doc_type: handbook
+doc_type: runbook
+audience: human-only
 status: approved
 ---
 

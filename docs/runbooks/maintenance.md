@@ -1,14 +1,14 @@
 ---
 id: maintenance
 title: Maintenance & Housekeeping
-doc_type: handbook
+doc_type: runbook
 level: reference
 status: approved
 owners: [kent@intentional.biz]
 last_validated: 2025-10-15
 last_updated: '2025-10-29'
 revision: v1.0
-audience: agents_and_humans
+audience: both
 ---
 # Maintenance & Housekeeping
 

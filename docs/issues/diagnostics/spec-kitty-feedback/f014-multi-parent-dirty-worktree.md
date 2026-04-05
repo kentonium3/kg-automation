@@ -1,3 +1,8 @@
+---
+title: "Bug Report: Multi-Parent Merge-Base Creation Fails on Dirty Working Tree"
+doc_type: diagnostic
+status: active
+---
 # Bug Report: Multi-Parent Merge-Base Creation Fails on Dirty Working Tree
 
 **Date**: 2026-04-04

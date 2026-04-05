@@ -1,7 +1,7 @@
 ---
 title: "Vikunja Integration Improvements"
 id: untitled
-doc_type: note
+doc_type: explanation
 owner: kent
 status: draft
 last_updated: 2026-04-01

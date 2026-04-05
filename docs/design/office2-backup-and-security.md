@@ -1,11 +1,11 @@
 ---
 id: office2-backup-and-security
 title: "office2 — Backup Strategy, Configuration & Security Model"
-doc_type: handbook
+doc_type: explanation
 level: reference
 status: approved
 owners: [kent@intentional.biz]
-last_validated: 2026-03-25
+last_validated: 2026-04-05
 last_updated: "2026-03-25"
 revision: v1.0
 audience: agents_and_humans

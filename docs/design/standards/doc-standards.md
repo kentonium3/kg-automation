@@ -1,6 +1,6 @@
 ---
 title: "kg-automation Documentation Standards (Canon v3)"
-doc_type: policy
+doc_type: standard
 status: approved
 ---
 

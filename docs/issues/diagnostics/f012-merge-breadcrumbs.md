@@ -1,3 +1,8 @@
+---
+title: "F012 Merge Breadcrumbs — Incident 7 Test"
+doc_type: diagnostic
+status: resolved
+---
 # F012 Merge Breadcrumbs — Incident 7 Test
 
 Crash reproduction protocol per merge-crash-incomplete-cleanup.md.

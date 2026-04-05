@@ -1,7 +1,7 @@
 ---
 id: strategic-acceleration-charter
 title: Strategic Acceleration Charter
-doc_type: charter
+doc_type: explanation
 level: concept
 status: draft
 owners:

@@ -1,7 +1,7 @@
 ---
 id: repo-governance
 title: Repository Governance — Branch Protection & PR Policy
-doc_type: policy
+doc_type: standard
 level: reference
 status: approved
 owners: [kent@intentional.biz]

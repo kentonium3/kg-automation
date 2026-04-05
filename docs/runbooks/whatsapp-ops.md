@@ -1,6 +1,7 @@
 ---
 title: WhatsApp Channel Operations Runbook
-doc_type: handbook
+doc_type: runbook
+audience: both
 status: draft
 ---
 

@@ -1,7 +1,7 @@
 ---
 id: obsidian-linter-alignment
 title: Obsidian Linter Alignment
-doc_type: reference
+doc_type: standard
 level: overview
 status: approved
 owners:

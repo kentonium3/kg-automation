@@ -1,6 +1,6 @@
 ---
 title: "Adversarial Analysis: Personal AI Command & Accountability System"
-doc_type: strategy
+doc_type: explanation
 status: draft
 last_updated: 2026-03-26
 ---

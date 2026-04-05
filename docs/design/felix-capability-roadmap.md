@@ -1,6 +1,6 @@
 ---
 title: "Felix — Capability Roadmap & Strategy"
-doc_type: strategy
+doc_type: reference
 status: approved
 owners:
   - "@kentonium3"
