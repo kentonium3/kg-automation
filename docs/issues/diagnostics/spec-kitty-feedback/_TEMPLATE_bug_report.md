@@ -9,7 +9,7 @@ status: active
 **Spec-Kitty Version**: {x.y.z}
 **Reporter**: {name} (via {agent or tool})
 **Priority**: {Critical | High | Medium | Low} — {one-line impact}
-**Status**: <PENDING INVESTIGATION | READY TO FILE | FILED <#issue> | FIXED in {version}>
+**Status**: {PENDING INVESTIGATION | READY TO FILE | FILED #issue | FIXED in version}
 
 ## Summary
 
