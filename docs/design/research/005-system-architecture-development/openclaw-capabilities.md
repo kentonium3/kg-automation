@@ -1,3 +1,9 @@
+---
+title: "OpenClaw Capability Research: F005 System Architecture Development"
+doc_type: explanation
+status: approved
+owners: [kgale]
+---
 # OpenClaw Capability Research: F005 System Architecture Development
 
 **Date**: 2026-03-29

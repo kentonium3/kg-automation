@@ -1,3 +1,9 @@
+---
+title: "Local Architecture Audit: F005 System Architecture Development"
+doc_type: reference
+status: approved
+owners: [kgale]
+---
 # Local Architecture Audit: F005 System Architecture Development
 
 **Date**: 2026-03-29
@@ -220,7 +226,7 @@ v0.3 mentions "Restic backup (4AM daily)" briefly. The actual implementation is 
 - Tier 1: Timeshift OS snapshots (daily/7, weekly/4, monthly/3)
 - Tier 2: Restic encrypted GFS backup (daily/7, weekly/4, monthly/6, yearly/1)
 - Dedicated 1 TB USB external backup drive
-- Documented in docs/runbooks/office2-backup-and-security.md
+- Documented in docs/design/office2-backup-and-security.md
 
 **Impact on v1.0**: This is more robust than designed. Document the full backup architecture.
 
@@ -230,7 +236,7 @@ v0.3 mentions "audit.sh (3AM daily)" briefly. The actual implementation is a com
 - 8 check types (Docker, services, ports, SSH keys, crontabs, pip, hosts, .pth files)
 - Baseline files auto-updated after intentional changes
 - C2 sinkholing in /etc/hosts
-- Documented in docs/runbooks/office2-backup-and-security.md
+- Documented in docs/design/office2-backup-and-security.md
 
 **Impact on v1.0**: Document fully. This is a Core Hub operational capability.
 

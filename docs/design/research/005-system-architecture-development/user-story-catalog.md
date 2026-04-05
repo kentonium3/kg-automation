@@ -1,3 +1,9 @@
+---
+title: "User Story Catalog: Felix System Architecture"
+doc_type: reference
+status: approved
+owners: [kgale]
+---
 # User Story Catalog: Felix System Architecture
 
 **Date**: 2026-03-29 (revised 2026-03-29)

@@ -1,3 +1,9 @@
+---
+title: "Feature and Capability Roadmap: Felix System Architecture"
+doc_type: reference
+status: approved
+owners: [kgale]
+---
 # Feature and Capability Roadmap: Felix System Architecture
 
 **Date**: 2026-03-29 (revised 2026-03-29)

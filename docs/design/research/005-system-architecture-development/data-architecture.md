@@ -1,3 +1,9 @@
+---
+title: "Data Architecture: Felix System Architecture"
+doc_type: explanation
+status: approved
+owners: [kgale]
+---
 # Data Architecture: Felix System Architecture
 
 **Date**: 2026-03-29

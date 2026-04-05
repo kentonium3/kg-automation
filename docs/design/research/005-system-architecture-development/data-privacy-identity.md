@@ -1,3 +1,10 @@
+---
+title: "Data, Privacy, and Identity Research: F005 System Architecture Development"
+doc_type: explanation
+status: approved
+owners: [kgale]
+divio_ambiguity: "overlap with data-architecture.md; consider consolidating"
+---
 # Data, Privacy, and Identity Research: F005 System Architecture Development
 
 **Date**: 2026-03-29

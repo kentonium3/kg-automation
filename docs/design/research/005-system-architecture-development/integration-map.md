@@ -1,3 +1,9 @@
+---
+title: "Integration Map: Felix System Architecture"
+doc_type: reference
+status: approved
+owners: [kgale]
+---
 # Integration Map: Felix System Architecture
 
 **Date**: 2026-03-29
