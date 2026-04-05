@@ -19,8 +19,8 @@ subtasks:
 - T035
 phase: Phase 3 - Entry Point Updates
 assignee: ''
-agent: ''
-shell_pid: '5671'
+agent: "claude"
+shell_pid: "5671"
 history:
 - at: '2026-04-05T01:28:56Z'
   actor: system
@@ -186,3 +186,7 @@ N/A — documentation feature, no automated tests.
 - CLAUDE.md references INDEX.md, constitution, and machine-readable home.
 - All v03 → v1.0 updates complete in CLAUDE.md + ai-agents/.
 - All changes committed to main.
+
+## Activity Log
+
+- 2026-04-05T04:25:48Z – claude – shell_pid=5671 – Started implementation via workflow command
