@@ -26,8 +26,8 @@ subtasks:
 - T039
 phase: Phase 3 - Documentation
 assignee: ''
-agent: ''
-shell_pid: '63332'
+agent: "claude"
+shell_pid: "64025"
 history:
 - at: '2026-04-05T23:00:03Z'
   actor: system
@@ -207,3 +207,4 @@ N/A — governance feature, no automated tests. Manual validation per quickstart
 ## Activity Log
 
 - 2026-04-05T23:50:12Z – unknown – shell_pid=63332 – 5 architecture docs updated with governance references
+- 2026-04-05T23:50:14Z – claude – shell_pid=64025 – Started review via workflow command
