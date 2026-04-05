@@ -1,16 +1,16 @@
 {
-  "event_count": 30,
+  "event_count": 31,
   "feature_slug": "016-change-control-governance",
-  "last_event_id": "01KNG0GXTT47SRFP33YC2C1G1A",
-  "materialized_at": "2026-04-05T23:44:20.828076+00:00",
+  "last_event_id": "01KNG0H7JASVH9QXZARSVZQF1P",
+  "materialized_at": "2026-04-05T23:44:30.796015+00:00",
   "summary": {
     "approved": 3,
     "blocked": 0,
     "canceled": 0,
     "claimed": 0,
     "done": 0,
-    "for_review": 1,
-    "in_progress": 0,
+    "for_review": 0,
+    "in_progress": 1,
     "planned": 5
   },
   "work_packages": {
@@ -43,11 +43,11 @@
       "last_transition_at": "2026-04-05T23:29:09.175834+00:00"
     },
     "WP05": {
-      "actor": "user",
-      "force_count": 1,
-      "lane": "for_review",
-      "last_event_id": "01KNG0GXTT47SRFP33YC2C1G1A",
-      "last_transition_at": "2026-04-05T23:44:20.826583+00:00"
+      "actor": "claude",
+      "force_count": 2,
+      "lane": "in_progress",
+      "last_event_id": "01KNG0H7JASVH9QXZARSVZQF1P",
+      "last_transition_at": "2026-04-05T23:44:30.794887+00:00"
     },
     "WP06": {
       "actor": "user",
