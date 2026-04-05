@@ -324,8 +324,8 @@ T036, T037, T038 parallel-safe.
 
 ### Included Subtasks
 
-- [ ] T039 Replace F016 TBD paths with resolved values: governance → `docs/runbooks/governance/`, postmortems → `docs/postmortems/`, change risk taxonomy → `docs/design/architecture/data/`
-- [ ] T040 Verify F016 spec is ready for spec-kitty (no TBD markers remain)
+- [x] T039 Replace F016 TBD paths with resolved values: governance → `docs/runbooks/governance/`, postmortems → `docs/postmortems/`, change risk taxonomy → `docs/design/architecture/data/`
+- [x] T040 Verify F016 spec is ready for spec-kitty (no TBD markers remain)
 
 ### Implementation Notes
 
