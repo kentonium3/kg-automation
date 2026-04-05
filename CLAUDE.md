@@ -79,13 +79,12 @@ data flows, or network topology must update the relevant files in
 ```
 ai-agents/          ← agent instruction files (this file's siblings)
 docs/
-  design/           ← architecture specs (start here)
+  constitution/     ← governance — Felix constitution, agent registry
+  design/           ← architecture specs, standards, research
   func-spec/        ← feature specs (spec-kitty output)
-  handbooks/        ← operational runbooks
-  standards/        ← doc standards
+  issues/           ← diagnostics and postmortems
+  runbooks/         ← operational runbooks (how-to guides)
 scripts/            ← automation scripts
-systems/            ← capability definitions
-workflows/          ← defined workflows
 ```
 
 ## Feature Development Workflow
