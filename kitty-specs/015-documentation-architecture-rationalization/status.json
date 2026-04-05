@@ -1,14 +1,14 @@
 {
-  "event_count": 77,
+  "event_count": 81,
   "feature_slug": "015-documentation-architecture-rationalization",
-  "last_event_id": "01KNDZV8QAKEDMMH14DWTCNZWG",
-  "materialized_at": "2026-04-05T04:54:02.220091+00:00",
+  "last_event_id": "01KNE1FV5WP83PMS1T72QG8K3H",
+  "materialized_at": "2026-04-05T05:22:45.056246+00:00",
   "summary": {
-    "approved": 11,
+    "approved": 7,
     "blocked": 0,
     "canceled": 0,
     "claimed": 0,
-    "done": 0,
+    "done": 4,
     "for_review": 0,
     "in_progress": 0,
     "planned": 0
@@ -64,32 +64,32 @@
       "last_transition_at": "2026-04-05T04:25:05.187102+00:00"
     },
     "WP08": {
-      "actor": "user",
+      "actor": "merge",
       "force_count": 2,
-      "lane": "approved",
-      "last_event_id": "01KNDYDRXZ1DV1Y08ES8D5A6S1",
-      "last_transition_at": "2026-04-05T04:29:11.487456+00:00"
+      "lane": "done",
+      "last_event_id": "01KNE1FT97912WBF7VYF01YNPG",
+      "last_transition_at": "2026-04-05T05:22:44.135397+00:00"
     },
     "WP09": {
-      "actor": "user",
+      "actor": "merge",
       "force_count": 2,
-      "lane": "approved",
-      "last_event_id": "01KNDYKAGWNYEW6EE8VXSQAX8G",
-      "last_transition_at": "2026-04-05T04:32:13.340950+00:00"
+      "lane": "done",
+      "last_event_id": "01KNE1FTN4ND27GGDVYJEHYZ5B",
+      "last_transition_at": "2026-04-05T05:22:44.516304+00:00"
     },
     "WP10": {
-      "actor": "user",
+      "actor": "merge",
       "force_count": 2,
-      "lane": "approved",
-      "last_event_id": "01KNDYTCC47HS6WACAWA4PE7QB",
-      "last_transition_at": "2026-04-05T04:36:04.612890+00:00"
+      "lane": "done",
+      "last_event_id": "01KNE1FTWSX6SH0D082HVA9FFF",
+      "last_transition_at": "2026-04-05T05:22:44.761936+00:00"
     },
     "WP11": {
-      "actor": "user",
+      "actor": "merge",
       "force_count": 2,
-      "lane": "approved",
-      "last_event_id": "01KNDZV8QAKEDMMH14DWTCNZWG",
-      "last_transition_at": "2026-04-05T04:54:02.218871+00:00"
+      "lane": "done",
+      "last_event_id": "01KNE1FV5WP83PMS1T72QG8K3H",
+      "last_transition_at": "2026-04-05T05:22:45.052971+00:00"
     }
   }
 }
