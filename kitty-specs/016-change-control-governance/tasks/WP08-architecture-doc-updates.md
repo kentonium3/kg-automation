@@ -203,3 +203,7 @@ N/A — governance feature, no automated tests. Manual validation per quickstart
 - README tables include all new F016 artifacts.
 - service-inventory.md fully synchronized with enriched JSON.
 - All cross-references resolve to existing files.
+
+## Activity Log
+
+- 2026-04-05T23:50:12Z – unknown – shell_pid=63332 – 5 architecture docs updated with governance references
