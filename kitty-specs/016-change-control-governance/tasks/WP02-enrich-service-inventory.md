@@ -207,3 +207,4 @@ N/A — data enrichment, no automated tests.
 - Schema backward-compatible.
 
 ## Activity Log
+- 2026-04-05T23:40:41Z – unknown – shell_pid=60032 – 11 services enriched with risk_tier/deps/health/config. Vikunja tailscale-serve:443 dep confirmed. Schema v1.1.
