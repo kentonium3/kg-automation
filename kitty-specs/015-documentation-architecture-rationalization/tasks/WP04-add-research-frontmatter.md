@@ -10,14 +10,17 @@ requirement_refs:
 planning_base_branch: main
 merge_target_branch: main
 branch_strategy: Planning artifacts for this feature were generated on main. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into main unless the human explicitly redirects the landing branch.
+base_branch: 015-documentation-architecture-rationalization-WP02
+base_commit: c8d79f055da0e15ce0bb06b931f28e58334d98de
+created_at: '2026-04-05T04:09:08.135645+00:00'
 subtasks:
 - T014
 - T015
 - T016
 phase: Phase 1 - Frontmatter Corrections
 assignee: ''
-agent: ''
-shell_pid: ''
+agent: "claude"
+shell_pid: "1637"
 history:
 - at: '2026-04-05T01:28:56Z'
   actor: system
@@ -170,3 +173,10 @@ N/A — documentation feature, no automated tests.
 
 - 9 files have frontmatter committed to main.
 - local-audit.md 2 links updated.
+
+## Activity Log
+
+- 2026-04-05T04:09:08Z – claude – shell_pid=1073 – Started implementation via workflow command
+- 2026-04-05T04:10:21Z – claude – shell_pid=1073 – Ready for review: Added frontmatter to 9 research files in docs/design/research/005-* (5 explanation + 4 reference). local-audit.md 2 link refs updated to moved office2-backup path. Titles derived from H1s. data-privacy-identity.md flagged with divio_ambiguity for potential overlap with data-architecture.md.
+- 2026-04-05T04:10:50Z – claude – shell_pid=1637 – Started review via workflow command
+- 2026-04-05T04:11:19Z – claude – shell_pid=1637 – Review passed: 9 F005 research docs now have valid frontmatter. 5 files classified as explanation (design rationale), 4 as reference (inventories). Titles derived from H1s correctly. local-audit.md 2 link references updated to WP02's new office2-backup path. data-privacy-identity.md flagged with divio_ambiguity for potential overlap with data-architecture.md (content consolidation can be a future task).

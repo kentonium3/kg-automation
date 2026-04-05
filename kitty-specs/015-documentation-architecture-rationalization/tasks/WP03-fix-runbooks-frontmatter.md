@@ -13,6 +13,9 @@ requirement_refs:
 planning_base_branch: main
 merge_target_branch: main
 branch_strategy: Planning artifacts for this feature were generated on main. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into main unless the human explicitly redirects the landing branch.
+base_branch: 015-documentation-architecture-rationalization-WP03-merge-base
+base_commit: f2b57c53d3aef43f0c1d0d7b4580f8ccba1afb38
+created_at: '2026-04-05T04:03:24.636514+00:00'
 subtasks:
 - T008
 - T009
@@ -22,8 +25,8 @@ subtasks:
 - T013
 phase: Phase 1 - Frontmatter Corrections
 assignee: ''
-agent: ''
-shell_pid: ''
+agent: "claude"
+shell_pid: "99965"
 history:
 - at: '2026-04-05T01:28:56Z'
   actor: system
@@ -210,3 +213,10 @@ N/A — documentation feature, no automated tests (per spec constraint C-006).
 - All 24 files have correct frontmatter committed to main.
 - deployment.md links updated.
 - grep validations return expected results.
+
+## Activity Log
+
+- 2026-04-05T04:03:25Z – claude – shell_pid=99090 – Started implementation via workflow command
+- 2026-04-05T04:06:27Z – claude – shell_pid=99090 – Ready for review: Fixed 22 files in docs/runbooks/. 20 runbooks get doc_type=runbook + audience, 2 misclassifications fixed in-place (templater-commands→reference, repo-governance→standard), deployment.md 3 link refs updated to moved office2-backup path. All T013 validation greps pass.
+- 2026-04-05T04:07:04Z – claude – shell_pid=99965 – Started review via workflow command
+- 2026-04-05T04:07:48Z – claude – shell_pid=99965 – Review passed: 22 files updated with surgical frontmatter edits. 20 runbooks now have canonical doc_type=runbook + audience per research.md §7 assignments. 2 misclassifications (templater-commands, repo-governance) fixed in-place with correct non-runbook doc_types. deployment.md 3 link references correctly updated to WP02's new path. All T013 validation greps pass. No legacy handbook/policy values remain.
