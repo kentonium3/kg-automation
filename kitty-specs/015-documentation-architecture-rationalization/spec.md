@@ -128,7 +128,7 @@ Physical directory restructuring (renaming `handbooks/` to `runbooks/`, moving `
 4. **All content moves are reference-safe**: The planning phase will audit all inbound references before content is moved, so no feature work results in broken links.
 5. **F016 spec is editable**: Updating F016 paths in this feature does not require a separate spec-kitty flow for F016 itself.
 6. **Manual validation is sufficient**: No automated link-checker or CI gate is introduced — correctness is verified by manual review of the gap analysis and by reading `INDEX.md` end-to-end.
-7. **`docs/diagnostics/` content classification is deferred**: It is exempt from archival but its individual files' frontmatter may still be reviewed if needed — the exemption is about structure, not content discipline.
+7. **`docs/issues/diagnostics/` content classification is deferred**: It is exempt from archival but its individual files' frontmatter may still be reviewed if needed — the exemption is about structure, not content discipline.
 
 ## Out of Scope
 
@@ -137,7 +137,7 @@ Physical directory restructuring (renaming `handbooks/` to `runbooks/`, moving `
 - F016 implementation — this feature resolves F016's path dependencies; F016 runs after F015 acceptance.
 - Automated doc validation, CI link-checking, frontmatter schema enforcement — a separate feature.
 - Any changes to `docs/design/architecture/data/` contents (JSON files, schemas) — policy documentation only.
-- Any work inside `docs/diagnostics/` beyond incidental frontmatter review.
+- Any work inside `docs/issues/diagnostics/` beyond incidental frontmatter review.
 - Changes outside `docs/`, `CLAUDE.md`, `ai-agents/`, and `docs/func-spec/F016_*` (F016 spec path updates).
 
 ## Dependencies
