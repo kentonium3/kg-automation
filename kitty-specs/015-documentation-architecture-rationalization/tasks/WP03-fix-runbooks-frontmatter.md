@@ -217,3 +217,4 @@ N/A — documentation feature, no automated tests (per spec constraint C-006).
 ## Activity Log
 
 - 2026-04-05T04:03:25Z – claude – shell_pid=99090 – Started implementation via workflow command
+- 2026-04-05T04:06:27Z – claude – shell_pid=99090 – Ready for review: Fixed 22 files in docs/runbooks/. 20 runbooks get doc_type=runbook + audience, 2 misclassifications fixed in-place (templater-commands→reference, repo-governance→standard), deployment.md 3 link refs updated to moved office2-backup path. All T013 validation greps pass.
