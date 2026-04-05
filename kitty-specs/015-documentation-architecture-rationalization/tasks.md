@@ -33,10 +33,10 @@ All changes occur under `docs/`, `CLAUDE.md` (repo root), and `ai-agents/`. No `
 
 ### Included Subtasks
 
-- [ ] T001 Create `docs/design/standards/divio-classification.md` with frontmatter + intro
-- [ ] T002 [P] Document the 7 canonical `doc_type` values with Divio-parent mapping
-- [ ] T003 [P] Document canonical home rules and legacy-value migration table
-- [ ] T004 [P] Document audience declaration rules and supersession pattern
+- [x] T001 Create `docs/design/standards/divio-classification.md` with frontmatter + intro
+- [x] T002 [P] Document the 7 canonical `doc_type` values with Divio-parent mapping
+- [x] T003 [P] Document canonical home rules and legacy-value migration table
+- [x] T004 [P] Document audience declaration rules and supersession pattern
 
 ### Implementation Notes
 
