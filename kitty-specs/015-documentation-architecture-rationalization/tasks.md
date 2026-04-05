@@ -261,10 +261,10 @@ T026–T030 can be drafted in parallel after T025.
 
 ### Included Subtasks
 
-- [ ] T032 Add CLAUDE.md section referencing `docs/INDEX.md` as the documentation map
-- [ ] T033 Add CLAUDE.md reference to `docs/constitution/FELIX-CONSTITUTION.md` and `docs/design/architecture/data/` as canonical machine-readable home
-- [ ] T034 Update CLAUDE.md: `personal-ai-system-spec-v03.md` → `personal-ai-system-spec-v1.0.md` (2 occurrences)
-- [ ] T035 Update `ai-agents/claude-code-instructions.md` and `ai-agents/claude-instructions.md`: v03 → v1.0 references
+- [x] T032 Add CLAUDE.md section referencing `docs/INDEX.md` as the documentation map
+- [x] T033 Add CLAUDE.md reference to `docs/constitution/FELIX-CONSTITUTION.md` and `docs/design/architecture/data/` as canonical machine-readable home
+- [x] T034 Update CLAUDE.md: `personal-ai-system-spec-v03.md` → `personal-ai-system-spec-v1.0.md` (2 occurrences)
+- [x] T035 Update `ai-agents/claude-code-instructions.md` and `ai-agents/claude-instructions.md`: v03 → v1.0 references
 
 ### Implementation Notes
 
