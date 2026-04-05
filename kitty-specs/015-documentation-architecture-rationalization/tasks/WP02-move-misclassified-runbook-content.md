@@ -18,7 +18,7 @@ subtasks:
 phase: Phase 0 - Foundation
 assignee: ''
 agent: "claude"
-shell_pid: "98071"
+shell_pid: "98753"
 history:
 - at: '2026-04-05T01:28:56Z'
   actor: system
@@ -155,3 +155,4 @@ N/A — documentation move, no automated tests.
 
 - 2026-04-05T03:58:15Z – claude – shell_pid=98071 – Started implementation via workflow command
 - 2026-04-05T03:59:53Z – claude – shell_pid=98071 – Ready for review: Moved visual-docs-style.md to docs/design/standards/ (handbook→standard) and office2-backup-and-security.md to docs/design/ (handbook→explanation). History preserved via git mv (verified via git log --follow). T005-T007 complete.
+- 2026-04-05T04:01:49Z – claude – shell_pid=98753 – Started review via workflow command
