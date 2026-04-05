@@ -22,8 +22,8 @@ subtasks:
 - T017
 phase: Phase 2 - Governance Docs
 assignee: ''
-agent: ''
-shell_pid: '60933'
+agent: "claude"
+shell_pid: "62497"
 history:
 - at: '2026-04-05T23:00:03Z'
   actor: system
@@ -201,3 +201,4 @@ N/A — documentation feature, no automated tests.
 
 ## Activity Log
 - 2026-04-05T23:46:47Z – unknown – shell_pid=60933 – Pre-flight + verification created
+- 2026-04-05T23:46:51Z – claude – shell_pid=62497 – Started review via workflow command
