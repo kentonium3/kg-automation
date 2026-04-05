@@ -20,7 +20,7 @@ subtasks:
 phase: Phase 1 - Frontmatter Corrections
 assignee: ''
 agent: "claude"
-shell_pid: "3129"
+shell_pid: "3857"
 history:
 - at: '2026-04-05T01:28:56Z'
   actor: system
@@ -179,3 +179,4 @@ N/A — documentation feature, no automated tests.
 
 - 2026-04-05T04:17:21Z – claude – shell_pid=3129 – Started implementation via workflow command
 - 2026-04-05T04:19:18Z – claude – shell_pid=3129 – Ready for review: Fixed 8 frontmatter corrections in docs/design/ + standards/. v03 deprecated with superseded_by pointer, v1.0 now references supersedes. No legacy doc_type values (strategy/charter/note/policy) remain.
+- 2026-04-05T04:20:21Z – claude – shell_pid=3857 – Started review via workflow command
