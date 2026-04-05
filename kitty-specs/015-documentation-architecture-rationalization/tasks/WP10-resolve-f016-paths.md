@@ -135,3 +135,4 @@ N/A — documentation feature, no automated tests.
 - 2026-04-05T04:34:00Z – claude – shell_pid=7862 – Started implementation via workflow command
 - 2026-04-05T04:35:14Z – claude – shell_pid=7862 – Ready for review: F016 New Files Required table now uses fully-qualified canonical paths per FR-012. 3 governance files → docs/runbooks/governance/, 1 postmortem → docs/issues/postmortems/, change-risk-taxonomy → docs/design/architecture/data/. Zero TBDs remain.
 - 2026-04-05T04:35:51Z – claude – shell_pid=8489 – Started review via workflow command
+- 2026-04-05T04:36:04Z – claude – shell_pid=8489 – Review passed: F016 'New Files Required' table uses fully-qualified canonical paths per F015 FR-012. Governance→docs/runbooks/governance/, postmortems→docs/issues/postmortems/, change-risk-taxonomy→docs/design/architecture/data/. Zero TBD markers. F016 unblocked for spec-kitty entry.
