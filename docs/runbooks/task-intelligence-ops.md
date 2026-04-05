@@ -1,6 +1,7 @@
 ---
 title: "Task Intelligence Operations"
-doc_type: handbook
+doc_type: runbook
+audience: agent-executable
 status: approved
 feature: F013
 last_validated: 2026-04-02

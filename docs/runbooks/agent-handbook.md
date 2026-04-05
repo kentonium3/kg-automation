@@ -1,14 +1,14 @@
 ---
 id: agent-handbook
 title: Agent Handbook — Pre-PR Checklist
-doc_type: handbook
+doc_type: runbook
 level: reference
 status: approved
 owners: [kent@intentional.biz]
 last_validated: 2025-11-01
 last_updated: '2025-10-29'
 revision: v1.0
-audience: agents_and_humans
+audience: human-only
 ---
 
 # Agent Handbook — Pre-PR Checklist

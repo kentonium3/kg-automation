@@ -1,7 +1,7 @@
 ---
 id: obsidian-setup
 title: Obsidian Setup Guide
-doc_type: handbook
+doc_type: runbook
 level: howto
 status: approved
 owners:
@@ -9,7 +9,7 @@ owners:
 last_updated: '2025-11-01'
 last_validated: '2025-11-01'
 revision: v1.0
-audience: agents_and_humans
+audience: both
 ---
 
 # Obsidian Setup Guide

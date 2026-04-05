@@ -1,6 +1,7 @@
 ---
 title: Observation Intelligence Layer — Operations Runbook
-doc_type: handbook
+doc_type: runbook
+audience: both
 status: approved
 feature: F014
 ---

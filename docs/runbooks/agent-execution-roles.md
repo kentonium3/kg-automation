@@ -1,14 +1,14 @@
 ---
 id: agent-execution-roles
 title: Execution Roles — Runner vs Claude Code
-doc_type: handbook
+doc_type: runbook
 level: reference
 status: approved
 owners: ["@kentonium3"]
 last_validated: 2025-10-18
 last_updated: '2025-10-29'
 revision: v1.0
-audience: agents_and_humans
+audience: human-only
 ---
 
 | Capability | Handoff Runner (GH Actions) | Claude Code |
