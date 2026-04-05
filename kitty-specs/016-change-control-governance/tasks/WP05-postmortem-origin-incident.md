@@ -3,7 +3,6 @@ work_package_id: WP05
 title: Postmortem Template + Origin Incident + Walkthrough
 dependencies:
 - WP02
-- WP03
 requirement_refs:
 - FR-007
 - FR-008
