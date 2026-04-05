@@ -1,7 +1,7 @@
 {
-  "schema_version": "1.0",
-  "last_updated": "2026-03-30",
-  "updated_by": "ops-fix",
+  "schema_version": "1.1",
+  "last_updated": "2026-04-05",
+  "updated_by": "F016",
   "network": {
     "type": "tailscale",
     "tailnet_owner": "kentgale@",
@@ -31,6 +31,24 @@
       "protocol": "tcp",
       "public_exposure": "none",
       "access": "tailscale-only"
+    },
+    {
+      "port": 443,
+      "service": "tailscale-serve",
+      "host": "office2",
+      "bind_ip": "tailscale0",
+      "protocol": "tcp",
+      "public_exposure": "tailnet-only",
+      "access": "tailscale-only",
+      "tls_termination": "tailscale-serve",
+      "public_url": "https://office2.tail0f5f56.ts.net",
+      "tailscale_serve": {
+        "listen_port": 443,
+        "backend": "https+insecure://100.92.197.90:3456",
+        "backend_service": "vikunja",
+        "interface": "tailscale0",
+        "ufw_rule": "allow in on tailscale0 to any port 443 proto tcp"
+      }
     }
   ],
   "access_rules": [

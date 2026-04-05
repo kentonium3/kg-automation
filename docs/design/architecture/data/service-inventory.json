@@ -1,7 +1,7 @@
 {
-  "schema_version": "1.0",
-  "last_updated": "2026-04-04",
-  "updated_by": "F014",
+  "schema_version": "1.1",
+  "last_updated": "2026-04-05",
+  "updated_by": "F016",
   "services": [
     {
       "name": "vikunja",
@@ -21,7 +21,22 @@
       "tls_termination": "tailscale-serve",
       "status": "running",
       "purpose": "Task store and web UI",
-      "notes": "F006 added Goals project. HTTPS via Tailscale Serve with auto-provisioned certs. Systemd unit runs container with --rm; restart handled by systemd (Restart=always), not Docker restart policy."
+      "notes": "F006 added Goals project. HTTPS via Tailscale Serve with auto-provisioned certs. Systemd unit runs container with --rm; restart handled by systemd (Restart=always), not Docker restart policy.",
+      "risk_tier": 2,
+      "dependencies": [
+        {"target": "docker", "type": "requires", "description": "Runs as Docker container via systemd"},
+        {"target": "tailscale-serve:443", "type": "requires", "description": "HTTPS ingress — origin incident 2026-04-03 traced to this dependency chain"}
+      ],
+      "health_check": {
+        "method": "http",
+        "endpoint": "http://100.92.197.90:3456/api/v1/info",
+        "expected": 200,
+        "timeout_seconds": 5
+      },
+      "config_files": [
+        {"path": "/etc/systemd/system/vikunja.service", "format": "systemd-unit"},
+        {"path": "/data/services/vikunja/docker-compose.yml", "format": "yaml"}
+      ]
     },
     {
       "name": "obsidian-sync",
@@ -44,7 +59,21 @@
       "deployed_by": "manual",
       "status": "active",
       "purpose": "Continuous Obsidian vault sync to office2",
-      "updated_by": "F011"
+      "updated_by": "F011",
+      "risk_tier": 3,
+      "dependencies": [
+        {"target": "second-brain-sync", "type": "optional", "description": "Git sync handles non-vault content; obsidian-sync handles vault notes. Independent but complementary."},
+        {"target": "obsidian-cloud", "type": "requires", "description": "Connects to Obsidian's sync servers for bidirectional vault sync"}
+      ],
+      "health_check": {
+        "method": "systemd-status",
+        "endpoint": "systemctl --user status obsidian-sync.service",
+        "expected": "active",
+        "timeout_seconds": 5
+      },
+      "config_files": [
+        {"path": "/home/kgale/.config/systemd/user/obsidian-sync.service", "format": "systemd-unit"}
+      ]
     },
     {
       "name": "second-brain-sync",
@@ -60,7 +89,22 @@
       "backup_included": true,
       "deployed_by": "F011",
       "status": "active",
-      "purpose": "Bidirectional git sync for non-vault content (agents/, logs/, config)"
+      "purpose": "Bidirectional git sync for non-vault content (agents/, logs/, config)",
+      "risk_tier": 3,
+      "dependencies": [
+        {"target": "github.com", "type": "requires", "description": "Remote git origin for push/pull operations"},
+        {"target": "tailscale", "type": "requires", "description": "Network connectivity for git remote access"}
+      ],
+      "health_check": {
+        "method": "systemd-status",
+        "endpoint": "systemctl --user status second-brain-sync.timer",
+        "expected": "active",
+        "timeout_seconds": 5
+      },
+      "config_files": [
+        {"path": "/home/kgale/.config/systemd/user/second-brain-sync.service", "format": "systemd-unit"},
+        {"path": "/home/kgale/.config/systemd/user/second-brain-sync.timer", "format": "systemd-unit"}
+      ]
     },
     {
       "name": "transcribe-api",
@@ -76,7 +120,21 @@
       "backup_excludes": ["/data/services/transcribe/models"],
       "deployed_by": "F003",
       "status": "running",
-      "purpose": "Whisper transcription API"
+      "purpose": "Whisper transcription API",
+      "risk_tier": 2,
+      "dependencies": [
+        {"target": "docker", "type": "requires", "description": "Runs as Docker container via systemd"}
+      ],
+      "health_check": {
+        "method": "http",
+        "endpoint": "http://100.92.197.90:8787/health",
+        "expected": 200,
+        "timeout_seconds": 10
+      },
+      "config_files": [
+        {"path": "/etc/systemd/system/transcribe.service", "format": "systemd-unit"},
+        {"path": "/data/services/transcribe/docker-compose.yml", "format": "yaml"}
+      ]
     },
     {
       "name": "restic-backup",
@@ -101,7 +159,22 @@
       ],
       "deployed_by": "manual",
       "status": "active",
-      "purpose": "Nightly GFS backup to local drive"
+      "purpose": "Nightly GFS backup to local drive",
+      "risk_tier": 2,
+      "dependencies": [
+        {"target": "/data", "type": "requires", "description": "Source data drive must be mounted"},
+        {"target": "/mnt/backups", "type": "requires", "description": "Backup target drive must be mounted"}
+      ],
+      "health_check": {
+        "method": "shell",
+        "endpoint": "restic -r /mnt/backups/restic-repo snapshots --latest 1 --json",
+        "expected": "snapshot within 24h",
+        "timeout_seconds": 10
+      },
+      "config_files": [
+        {"path": "/data/services/backup/scripts/backup.sh", "format": "bash"},
+        {"path": "/home/claude/.config/restic/password", "format": "env"}
+      ]
     },
     {
       "name": "security-monitor",
@@ -113,7 +186,20 @@
       "baselines_path": "/data/services/security-monitor/baselines",
       "deployed_by": "manual",
       "status": "active",
-      "purpose": "Daily security audit against baselines"
+      "purpose": "Daily security audit against baselines",
+      "risk_tier": 1,
+      "dependencies": [
+        {"target": "cron", "type": "requires", "description": "Scheduled via crontab for claude user"}
+      ],
+      "health_check": {
+        "method": "shell",
+        "endpoint": "ls -t /data/services/security-monitor/baselines/*.json | head -1",
+        "expected": "baseline file updated within 24h",
+        "timeout_seconds": 5
+      },
+      "config_files": [
+        {"path": "/data/services/security-monitor/scripts/audit.sh", "format": "bash"}
+      ]
     },
     {
       "name": "openclaw-gateway",
@@ -170,7 +256,23 @@
           "autonomy_level": "assisted",
           "updated_by": "F013"
         }
-      }
+      },
+      "risk_tier": 2,
+      "dependencies": [
+        {"target": "anthropic-api", "type": "requires", "description": "External API for LLM inference (Claude models)"},
+        {"target": "vikunja:3456", "type": "requires", "description": "Vikunja API for task CRUD operations"},
+        {"target": "nodejs", "type": "requires", "description": "Node.js runtime for npm-global package"}
+      ],
+      "health_check": {
+        "method": "systemd-status",
+        "endpoint": "systemctl --user status openclaw-gateway.service",
+        "expected": "active",
+        "timeout_seconds": 5
+      },
+      "config_files": [
+        {"path": "/home/claude/.config/systemd/user/openclaw-gateway.service", "format": "systemd-unit"},
+        {"path": "/home/claude/.openclaw/openclaw.json", "format": "json"}
+      ]
     },
     {
       "name": "inbox-processing",
@@ -187,7 +289,18 @@
       "deployed_by": "F008",
       "status": "active",
       "purpose": "3x daily Obsidian inbox processing",
-      "runbook": "docs/runbooks/inbox-ops.md"
+      "runbook": "docs/runbooks/inbox-ops.md",
+      "risk_tier": 3,
+      "dependencies": [
+        {"target": "openclaw-gateway:18789", "type": "requires", "description": "Dispatched by OpenClaw cron scheduler"}
+      ],
+      "health_check": {
+        "method": "none",
+        "note": "Scheduled job — health inferred from agent activity logs"
+      },
+      "config_files": [
+        {"path": "/data/services/openclaw/inbox-agent/AGENTS.md", "format": "markdown", "source_in_repo": "scripts/openclaw/agents/felix-admin-capture/AGENTS.md"}
+      ]
     },
     {
       "name": "habit-checkin",
@@ -203,7 +316,18 @@
       "deployed_by": "F009",
       "status": "active",
       "purpose": "Daily habit check-in and weekly pattern report",
-      "runbook": "docs/runbooks/habits-ops.md"
+      "runbook": "docs/runbooks/habits-ops.md",
+      "risk_tier": 3,
+      "dependencies": [
+        {"target": "openclaw-gateway:18789", "type": "requires", "description": "Dispatched by OpenClaw cron scheduler"}
+      ],
+      "health_check": {
+        "method": "none",
+        "note": "Scheduled job — health inferred from agent activity logs"
+      },
+      "config_files": [
+        {"path": "/data/services/openclaw/habits-agent/AGENTS.md", "format": "markdown", "source_in_repo": "scripts/openclaw/agents/felix-admin-habits/AGENTS.md"}
+      ]
     },
     {
       "name": "task-detection",
@@ -218,7 +342,18 @@
       "deployed_by": "F013",
       "status": "active",
       "purpose": "Detect and enrich incomplete tasks in Vikunja Inbox",
-      "updated_by": "F013"
+      "updated_by": "F013",
+      "risk_tier": 3,
+      "dependencies": [
+        {"target": "openclaw-gateway:18789", "type": "requires", "description": "Dispatched by OpenClaw cron scheduler"}
+      ],
+      "health_check": {
+        "method": "none",
+        "note": "Scheduled job — health inferred from agent activity logs"
+      },
+      "config_files": [
+        {"path": "/data/services/openclaw/tasker-agent/AGENTS.md", "format": "markdown", "source_in_repo": "scripts/openclaw/agents/felix-admin-tasker/AGENTS.md"}
+      ]
     },
     {
       "name": "felix-core-digest",
@@ -238,7 +373,22 @@
       "status": "active",
       "purpose": "Observation intelligence layer — reads agent JSONL logs, generates per-agent Markdown digests for Obsidian",
       "runbook": "docs/runbooks/observation-ops.md",
-      "updated_by": "F014"
+      "updated_by": "F014",
+      "risk_tier": 3,
+      "dependencies": [
+        {"target": "/home/claude/second-brain/agents/logs/", "type": "requires", "description": "Input JSONL agent activity logs"},
+        {"target": "python3", "type": "requires", "description": "Python runtime for summarize.py script"}
+      ],
+      "health_check": {
+        "method": "systemd-status",
+        "endpoint": "systemctl --user status felix-core-digest.timer",
+        "expected": "active",
+        "timeout_seconds": 5
+      },
+      "config_files": [
+        {"path": "/home/claude/.config/systemd/user/felix-core-digest.service", "format": "systemd-unit"},
+        {"path": "/home/claude/.config/systemd/user/felix-core-digest.timer", "format": "systemd-unit"}
+      ]
     }
   ]
 }
