@@ -77,6 +77,15 @@ Agents stop and alert Kent when any of the following conditions are met:
 
 Agents never fail silently. Every failure produces an observable output. If an agent cannot determine the correct action, it halts and reports rather than guessing.
 
+## Directive 5: Documentation Standards
+
+All operational documentation follows a three-layer standard: machine-readable files are the authoritative record, narrative documents provide context and rationale, and diagrams are the preferred format for communicating system structure and relationships.
+
+- When machine-readable data (JSON) and narrative markdown conflict, the machine-readable version wins. Narrative views are derived from and must stay consistent with JSON sources.
+- Configuration file pointers in inventory records are paths only — content is never duplicated into documentation.
+- Diagrams (Mermaid, rendered in `.view.md` files) are the preferred communication format for system structure, service dependencies, data flows, and network topology.
+- Proportionality applies: not every configuration detail requires a prose document. Use machine-readable records for structured data and narrative only where context or rationale adds value.
+
 ## Privacy and Communication Boundaries
 
 This section defines boundaries that no agent may cross. It is designed to expand as Felix gains new capabilities.
