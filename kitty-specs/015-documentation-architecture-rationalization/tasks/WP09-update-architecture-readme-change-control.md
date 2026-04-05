@@ -1,7 +1,8 @@
 ---
 work_package_id: WP09
 title: Update Architecture README + Change-Control Protocol
-dependencies: []
+dependencies:
+- WP07
 requirement_refs:
 - FR-006
 - FR-007

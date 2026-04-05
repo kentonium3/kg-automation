@@ -1,7 +1,8 @@
 ---
 work_package_id: WP04
 title: Add Frontmatter to Research Docs + Link Updates
-dependencies: []
+dependencies:
+- WP02
 requirement_refs:
 - FR-004
 - FR-013

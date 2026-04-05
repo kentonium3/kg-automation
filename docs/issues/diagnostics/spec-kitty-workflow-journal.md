@@ -154,3 +154,120 @@ OR: `setup-plan` looks at the constitution template set rather than the feature'
 **Downstream impact**: Plan must be hand-adapted from the software-dev template to fit a documentation curation feature. Downstream `/spec-kitty.tasks` may also scaffold from the software-dev tasks template, producing WP structures that don't fit doc curation work.
 
 ---
+
+## 2026-04-04 — finalize-tasks overwrote LLM-authored dependency frontmatter (internal workflow inconsistency)
+
+**Feature**: 015-documentation-architecture-rationalization
+**Spec-kitty version**: 3.0.3
+**Workflow step**: tasks (finalize-tasks, final step of /spec-kitty.tasks)
+**Severity**: soft-error (execution DAG corrupted; downstream impact on /spec-kitty.implement)
+
+**What I expected**:
+The `/spec-kitty.tasks` slash-command prompt explicitly instructs the LLM to parse dependencies from tasks.md and write them to each WP's frontmatter, with this exemplar:
+
+```yaml
+---
+work_package_id: "WP02"
+title: "Build API"
+dependencies: ["WP01"]  # Generated from tasks.md
+---
+```
+
+I followed this instruction: for all 11 WPs, I parsed the tasks.md Dependencies sections and wrote the corresponding `dependencies` array to each WP's frontmatter before the finalization step.
+
+I expected `finalize-tasks` to either (a) honor the LLM-authored `dependencies` frontmatter, or (b) re-parse tasks.md and match what the LLM wrote.
+
+**What actually happened**:
+`finalize-tasks` re-parsed tasks.md itself and OVERWROTE the LLM-authored frontmatter in 10 of 11 WPs. The `updated_wp_count: 0` field in its JSON output was misleading — the commit it created (`5dd07155`) shows `dependencies: [WP01, WP02]` → `dependencies: []` diffs on multiple WP files.
+
+**Dependency outcomes**:
+
+| WP | LLM-authored (in frontmatter + in tasks.md) | Post-finalize frontmatter |
+|---|---|---|
+| WP01 | `[]` | `[]` ✓ |
+| WP02 | `[]` | `[]` ✓ |
+| WP03 | `[WP01, WP02]` | `[]` ❌ |
+| WP04 | `[WP02]` | `[]` ❌ |
+| WP05 | `[]` | `[]` ✓ |
+| WP06 | `[WP01]` | `[]` ❌ |
+| WP07 | `[WP01, WP02, WP03, WP04, WP05, WP06]` | `[]` ❌ |
+| WP08 | `[WP07]` | `[]` ❌ |
+| WP09 | `[WP07]` | `[]` ❌ |
+| WP10 | `[]` | `[]` ✓ |
+| WP11 | `[WP02, WP07]` | `[WP01, WP02, WP07]` ⚠️ |
+
+Only WP11's dependencies survived parsing, AND the parser spuriously added `WP01` that was not declared in tasks.md's WP11 Dependencies section.
+
+**Evidence**:
+- `finalize-tasks` JSON output: `"updated_wp_count": 0` (claim), but `git show 5dd07155` shows 10 WP files with `dependencies: []` overwriting LLM-authored arrays.
+- tasks.md's WP03 section explicitly lists "- WP01 (cite Divio standard)" and "- WP02 (new path for office2-backup-and-security.md must exist)" under `### Dependencies` — parser did not pick these up.
+- tasks.md's WP11 section at line 387 has "WP11 (depends on WP07 + WP02)" — the "depends on" keyword is the only WP entry using that wording, and it's the only one that survived.
+
+**Hypothesis**: The dependency parser in `finalize-tasks` uses a regex pattern that requires "depends on WP##" or "Dependencies: WP##" explicit phrases, NOT the bulleted `- WP## (reason)` format that the slash-command prompt tells the LLM to generate. When the parser finds no match, it writes `dependencies: []` to the frontmatter, silently destroying the LLM's work.
+
+**Supporting observation**: The slash-command prompt (v3.0.3) tells the LLM:
+> "Parse dependencies from tasks.md for dependency relationships:
+> - Explicit phrases: 'Depends on WP##', 'Dependencies: WP##'
+> - Phase grouping: Phase 2 WPs typically depend on Phase 1
+> - Default to empty if unclear"
+
+The LLM did follow this — multiple phrase forms were used in tasks.md. But the Python parser in `finalize-tasks` appears to implement a narrower recognition strategy, creating a round-trip mismatch: LLM generates → Python discards.
+
+**Decision-making**:
+- This is NOT manual compensation on my part — I was following documented slash-command instructions.
+- Manual `git` reverts or commit rewrites would be workarounds and violate the "no workflow workarounds" directive.
+- Two spec-kitty-native options: (a) edit tasks.md wording to use "depends on" phrasing, then re-run finalize-tasks; (b) accept the stripped state.
+- User decision: **manually patch the WP frontmatter to restore the dependency DAG** (option 2 from the reported options). Rationale: restoring the expected functional state is necessary for downstream `/spec-kitty.implement` to honor the dependency DAG. This is a post-workflow-error repair, not a pre-emptive workaround.
+
+**Resolution**: bug-filed-candidate — recommend filing upstream:
+> "finalize-tasks destroys LLM-authored dependencies frontmatter when parser fails to match bullet-format `### Dependencies` sections in tasks.md. Parser and slash-command-prompt guidance are inconsistent: the slash-command tells the LLM to parse bullet lists and write them to frontmatter; finalize-tasks then parses tasks.md again with a narrower regex and zeros out whatever the LLM wrote."
+
+**Downstream impact**:
+- **Critical**: With empty `dependencies` in WP frontmatter, `/spec-kitty.implement` cannot correctly determine `--base` flags. All 11 WPs would look parallel-startable, breaking the DAG:
+  - WP03 could start before WP01's Divio standards doc exists (would need to cite it).
+  - WP07 could start before all frontmatter fixes (WP01-06) are done.
+  - WP08 could start before INDEX.md (WP07) exists.
+- **Already fixed**: Manual frontmatter patch committed to restore the DAG (see journal entry below, following this one).
+
+**Process lesson**:
+- The slash-command should be internally consistent: either the LLM OR the Python parser should own dependency extraction, not both.
+- When `finalize-tasks` overrides LLM output, it should either (a) warn when doing so, or (b) set `updated_wp_count` to reflect the actual mutations.
+- This sequence would be hard to detect without careful inspection — the workflow succeeded (exit code 0), the success message was clear, and only commit-diff inspection revealed the dependency loss.
+
+---
+
+## 2026-04-04 — Manual frontmatter patch to restore F015 WP dependencies (workflow error repair)
+
+**Feature**: 015-documentation-architecture-rationalization
+**Spec-kitty version**: 3.0.3
+**Workflow step**: post-tasks (manual repair after finalize-tasks workflow error)
+**Severity**: N/A — user-directed repair of the preceding workflow error
+
+**What happened**:
+Per user directive, manually patched the `dependencies` frontmatter field on 7 WP prompt files to restore the execution DAG that finalize-tasks had destroyed. Used the Edit tool to set each WP's `dependencies` array to its designed value as documented in tasks.md's `### Dependencies` sections.
+
+**Files patched**:
+
+- WP03: `dependencies: []` → `[WP01, WP02]`
+- WP04: `dependencies: []` → `[WP02]`
+- WP06: `dependencies: []` → `[WP01]`
+- WP07: `dependencies: []` → `[WP01, WP02, WP03, WP04, WP05, WP06]`
+- WP08: `dependencies: []` → `[WP07]`
+- WP09: `dependencies: []` → `[WP07]`
+- WP11: `dependencies: [WP01, WP02, WP07]` → `[WP02, WP07]` (removed spurious WP01)
+
+**Rationale for the manual patch**:
+- finalize-tasks produced an invalid execution DAG that would cause `/spec-kitty.implement` to authorize incorrect WP parallelism.
+- Restoring the LLM-authored dependency state matches what tasks.md declares and what the slash-command prompt directed the LLM to produce.
+- This is post-error repair, not pre-emptive workaround: the workflow tool ran, completed, and produced incorrect output; the user explicitly directed this repair.
+
+**Process boundary preserved**:
+- Did NOT manually re-run or bypass finalize-tasks.
+- Did NOT force-push or revert the finalize-tasks commit.
+- Did NOT invent new dependencies beyond what tasks.md already declared.
+
+**Committed in**: (commit hash recorded in next commit after this journal entry)
+
+**Follow-up action recommended**: When filing the finalize-tasks parser bug upstream, include this manual-repair workflow as context to show the actual user impact.
+
+---

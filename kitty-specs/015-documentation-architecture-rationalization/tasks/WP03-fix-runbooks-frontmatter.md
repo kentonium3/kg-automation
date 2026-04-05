@@ -1,7 +1,9 @@
 ---
 work_package_id: WP03
 title: Fix docs/runbooks/ Frontmatter + Audience + Link Updates
-dependencies: []
+dependencies:
+- WP01
+- WP02
 requirement_refs:
 - FR-003
 - FR-004

@@ -1,7 +1,8 @@
 ---
 work_package_id: WP08
 title: Update CLAUDE.md + AI Agent Instructions
-dependencies: []
+dependencies:
+- WP07
 requirement_refs:
 - FR-009
 - NFR-001

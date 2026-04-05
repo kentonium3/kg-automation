@@ -1,7 +1,8 @@
 ---
 work_package_id: WP06
 title: Fix docs/design/ Top-Level + Standards Frontmatter
-dependencies: []
+dependencies:
+- WP01
 requirement_refs:
 - FR-004
 planning_base_branch: main

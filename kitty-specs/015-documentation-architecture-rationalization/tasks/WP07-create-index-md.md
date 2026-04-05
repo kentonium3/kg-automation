@@ -1,7 +1,13 @@
 ---
 work_package_id: WP07
 title: Create docs/INDEX.md Master Map
-dependencies: []
+dependencies:
+- WP01
+- WP02
+- WP03
+- WP04
+- WP05
+- WP06
 requirement_refs:
 - FR-008
 - NFR-001

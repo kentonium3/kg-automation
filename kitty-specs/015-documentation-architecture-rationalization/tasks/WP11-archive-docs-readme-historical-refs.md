@@ -2,7 +2,6 @@
 work_package_id: WP11
 title: Archive docs-readme.md + Update Historical Spec References
 dependencies:
-- WP01
 - WP02
 - WP07
 requirement_refs:
