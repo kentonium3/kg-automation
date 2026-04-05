@@ -56,6 +56,10 @@ Exceptions to architecture and security policies are documented here with ration
 |------------|-----------|-----------|-------|------------|---------|
 | Official API only (original F004 C-002) | OpenClaw's WhatsApp integration uses Baileys (unofficial WhatsApp Web protocol) | OpenClaw has no Meta Cloud API channel. Baileys is the only WhatsApp path available. | Personal single-user system at low message volume. Account ban risk understood and accepted. | No expiration — this is the native OpenClaw integration path. | F004 |
 
+## Change Control Governance
+
+Change control is governed by a five-tier risk taxonomy (`docs/design/architecture/data/change-risk-taxonomy.json`). Tier 0 (Host/Foundational) changes including UFW, iptables, and SSH configuration follow a Hard Lock protocol — AI agents generate scripts but never execute directly. Tier 1 changes require human approval before execution. See `docs/runbooks/governance/pre-flight-checklist.md` for the full pre-flight assessment and `docs/runbooks/governance/post-change-verification.md` for post-change health checks.
+
 ## Security Monitoring
 
 | Check | Schedule | Script | Baselines |

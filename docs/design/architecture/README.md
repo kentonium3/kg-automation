@@ -32,6 +32,10 @@ See [`docs/INDEX.md`](../../INDEX.md) for the complete listing of machine-readab
 | [Backup and Recovery](backup-and-recovery.md) | Restic scope, retention, restore |
 | [Security Posture](security-posture.md) | Tailscale-only, supply chain, privacy |
 | [Change Control](change-control.md) | Update protocol after each feature |
+| [Service Dependencies Diagram](service-dependencies.view.md) | Visual map of service dependency graph |
+| [Pre-Flight Checklist](../runbooks/governance/pre-flight-checklist.md) | Change control pre-flight assessment |
+| [Post-Change Verification](../runbooks/governance/post-change-verification.md) | Post-change service health verification |
+| [Postmortems](../../issues/postmortems/) | Incident analysis records |
 | [Glossary](glossary.md) | Canonical terms |
 
 ## Data Files
@@ -43,6 +47,7 @@ See [`docs/INDEX.md`](../../INDEX.md) for the complete listing of machine-readab
 | [network-topology.json](data/network-topology.json) | Tailscale IPs, port assignments |
 | [credential-manifest.json](data/credential-manifest.json) | Named credentials, scopes |
 | [data-flows.json](data/data-flows.json) | Input paths, pipelines, storage targets |
+| [change-risk-taxonomy.json](data/change-risk-taxonomy.json) | Five-tier risk taxonomy with guardrail protocols |
 
 ## Update Protocol
 
