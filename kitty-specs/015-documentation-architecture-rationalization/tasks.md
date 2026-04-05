@@ -226,13 +226,13 @@ T020, T021, T023 parallel-safe.
 
 ### Included Subtasks
 
-- [ ] T025 Create `docs/INDEX.md` with frontmatter, overview, and usage guidance
-- [ ] T026 Add Constitution + Governance section (docs/constitution/, CLAUDE.md refs)
-- [ ] T027 Add System Architecture section (docs/design/architecture/ + data/, schemas, machine-readable home)
-- [ ] T028 Add Operational Runbooks section (docs/runbooks/, grouped by agent-executable vs human-only)
-- [ ] T029 Add Design + Standards section (docs/design/ top-level, docs/design/standards/, docs/design/research/)
-- [ ] T030 Add Feature Specifications + Diagnostics/Postmortems sections (docs/func-spec/, docs/issues/, docs/postmortems/)
-- [ ] T031 Verify every active doc is reachable in ≤3 hops from CLAUDE.md via INDEX.md
+- [x] T025 Create `docs/INDEX.md` with frontmatter, overview, and usage guidance
+- [x] T026 Add Constitution + Governance section (docs/constitution/, CLAUDE.md refs)
+- [x] T027 Add System Architecture section (docs/design/architecture/ + data/, schemas, machine-readable home)
+- [x] T028 Add Operational Runbooks section (docs/runbooks/, grouped by agent-executable vs human-only)
+- [x] T029 Add Design + Standards section (docs/design/ top-level, docs/design/standards/, docs/design/research/)
+- [x] T030 Add Feature Specifications + Diagnostics/Postmortems sections (docs/func-spec/, docs/issues/, docs/postmortems/)
+- [x] T031 Verify every active doc is reachable in ≤3 hops from CLAUDE.md via INDEX.md
 
 ### Implementation Notes
 
