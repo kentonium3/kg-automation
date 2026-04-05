@@ -336,3 +336,4 @@ N/A — documentation feature, no automated tests.
 ## Activity Log
 
 - 2026-04-05T04:21:40Z – claude – shell_pid=4187 – Started implementation via workflow command
+- 2026-04-05T04:24:16Z – claude – shell_pid=4187 – Ready for review: docs/INDEX.md created (241 lines). Covers all 12 active directories. All 7 subtasks complete. All spot-checked links resolve. NFR-001 (≤3 hop reachability from CLAUDE.md) verification partial — completes after WP08 adds CLAUDE.md→INDEX.md link.

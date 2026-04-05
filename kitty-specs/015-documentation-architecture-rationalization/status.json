@@ -1,17 +1,17 @@
 {
-  "event_count": 47,
+  "event_count": 50,
   "feature_slug": "015-documentation-architecture-rationalization",
-  "last_event_id": "01KNDXY5M56MRA3Y4TVKP8KQP7",
-  "materialized_at": "2026-04-05T04:20:40.198943+00:00",
+  "last_event_id": "01KNDY4RA62VQ8RAZQBFBBS7BW",
+  "materialized_at": "2026-04-05T04:24:15.944109+00:00",
   "summary": {
     "approved": 6,
     "blocked": 0,
     "canceled": 0,
     "claimed": 0,
     "done": 0,
-    "for_review": 0,
+    "for_review": 1,
     "in_progress": 0,
-    "planned": 5
+    "planned": 4
   },
   "work_packages": {
     "WP01": {
@@ -57,11 +57,11 @@
       "last_transition_at": "2026-04-05T04:20:40.197226+00:00"
     },
     "WP07": {
-      "actor": "finalize-tasks",
+      "actor": "user",
       "force_count": 1,
-      "lane": "planned",
-      "last_event_id": "01KNDN4NY4VE9RYGYETQ17BTG9",
-      "last_transition_at": "2026-04-05T01:46:56.325014+00:00"
+      "lane": "for_review",
+      "last_event_id": "01KNDY4RA62VQ8RAZQBFBBS7BW",
+      "last_transition_at": "2026-04-05T04:24:15.943010+00:00"
     },
     "WP08": {
       "actor": "finalize-tasks",
