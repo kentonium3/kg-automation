@@ -346,3 +346,117 @@ Manually applied 9 edits to spec.md via the Edit tool to resolve /analyze findin
 **Resolution**: bug-filed-candidate + documentation-fix-candidate. Kent's refusal to re-run specify on an existing feature was the correct decision given current tooling.
 
 ---
+
+## 2026-04-05 — F015 pre-merge state snapshot (crash-recovery context)
+
+**Feature**: 015-documentation-architecture-rationalization
+**Spec-kitty version**: 3.0.3
+**Workflow step**: pre-merge (before `/spec-kitty.merge`)
+**Severity**: observation (captured proactively for crash recovery)
+
+**Context**: Kent noted that `/spec-kitty.merge` historically triggers VS Code crashes. Capturing comprehensive state BEFORE invoking merge so recovery has full context if the command crashes mid-operation.
+
+### Current state at snapshot time
+
+**Main branch HEAD**: `602fc1b chore: commit F015 workspace metadata files`
+
+**All 11 WP branches (approved, not yet merged)**:
+
+| WP | Branch HEAD | Dependencies | Commit message |
+|---|---|---|---|
+| WP01 | `b8d9fc6` | (none) | feat(WP01): add Divio classification standard reference doc |
+| WP02 | `c8d79f0` | (none) | feat(WP02): move misclassified runbook content to canonical homes |
+| WP03 | `6a9bb57` | WP01, WP02 | feat(WP03): correct docs/runbooks/ frontmatter, add audience, update links |
+| WP04 | `12e4baf` | WP02 | feat(WP04): add frontmatter to F005 research docs + update moved links |
+| WP05 | `e5c96b1` | (none) | feat(WP05): add frontmatter to 6 diagnostic files |
+| WP06 | `7f59cca` | WP01 | feat(WP06): correct doc_type frontmatter in docs/design/ + standards |
+| WP07 | `09da0c5` | WP01–WP06 | feat(WP07): create docs/INDEX.md master documentation map |
+| WP08 | `41f09fb` | WP07 | feat(WP08): update CLAUDE.md + AI agent instructions with INDEX refs |
+| WP09 | `f6251f5` | WP07 | feat(WP09): document canonical data home + INDEX.md maintenance rule |
+| WP10 | `cc15e14` | (none) | feat(WP10): resolve F016 path dependencies per F015 FR-012 |
+| WP11 | `c2c339f` | WP02, WP07 | feat(WP11): archive docs-readme.md + update F002 historical link refs |
+
+**All 11 worktrees present** at `.worktrees/015-documentation-architecture-rationalization-WP{01..11}/`.
+
+**All 11 WPs in lane `approved`** (verified via `spec-kitty agent feature accept`).
+
+### Pre-merge accept output summary
+
+- `all_done: true`
+- `ok: false` (due to activity_issues — lane=approved vs expected=done)
+- `git_dirty: []` (resolved by committing 11 workspace JSONs at commit `602fc1b`)
+- `metadata_issues: []`
+- `missing_artifacts: []`
+- `path_violations: []`
+- `warnings: [Optional artifacts missing: contracts]` (expected for doc feature)
+- `activity_issues: 11 entries` (all: "canonical lane is 'approved', expected 'done'")
+
+The accept check reports `ok: false` even when all work is substantively complete. The `approved → done` transition is expected to happen at merge time (per `move-task --help` examples which show `--done-override-reason` only for exceptional manual cases).
+
+### Expected merge behavior (from dry-run)
+
+`spec-kitty agent feature merge --dry-run` output:
+
+- **effective_wp_branches**: `[WP08, WP09, WP10, WP11]` — DAG leaves
+- **skipped_already_in_target**: `[]`
+- **skipped_ancestor_of**: WP01-WP07 all skipped (they are ancestors of the 4 leaves)
+- **reason_summary**: "Skipped 7 branch(es) that are ancestors of another candidate tip"
+
+**Planned steps** (from dry-run, 27 steps total):
+
+1. `git checkout main`
+2. `git pull --ff-only`
+3. `git merge --no-ff 015-documentation-architecture-rationalization-WP08 -m "Merge WP08 ..."`
+4. `git merge --no-ff 015-documentation-architecture-rationalization-WP09 -m "Merge WP09 ..."`
+5. `git merge --no-ff 015-documentation-architecture-rationalization-WP10 -m "Merge WP10 ..."`
+6. `git merge --no-ff 015-documentation-architecture-rationalization-WP11 -m "Merge WP11 ..."`
+7-17. `git worktree remove <worktree_path>` (×11)
+18-28. `git branch -d <wp-branch>` (×11)
+
+Merging WP08, WP09, WP10, WP11 transitively brings in all 11 WPs' work because of the DAG structure (WP08/WP09 stacked on WP07 which has merge base with WP01-WP06; WP11 stacked on WP02+WP07 merge base).
+
+### Crash recovery information
+
+**If merge crashes during git operations**:
+
+1. **Check main HEAD**: compare to `602fc1b` (pre-merge state). If main advanced, some merges completed.
+2. **Check remaining WP branches**: branches that still exist have not been merged/deleted.
+3. **Check remaining worktrees**: `git worktree list` — worktrees still present have not been cleaned up.
+4. **Re-run merge**: spec-kitty merge is idempotent for already-merged branches (dry-run showed `skipped_already_in_target: []` but it would populate if main advanced).
+5. **Manual intervention**: if a merge conflict arises, the user resolves in main repo then `git merge --continue`, then re-run `spec-kitty agent feature merge`.
+
+**If the CLAUDE.md in worktrees reads stale content**: The worktree base is prior to F015 spec alignment. CLAUDE.md in each worktree contains OLD v03 references and OLD directory structure references. This is EXPECTED — those worktrees branched from a pre-WP08 state. The merged main will have the updated CLAUDE.md after WP08 lands.
+
+**Branch naming convention**: All F015 work lives on `015-documentation-architecture-rationalization-WP{01..11}` branches. None are pushed to origin — all work is local.
+
+**Origin sync state**: origin/main is at `634a28b` (from earlier spec-kitty-workflow-journal push). Main locally is 49 commits ahead of origin at snapshot time (`602fc1b`). After merge completes, main will be ~53+ commits ahead, then Kent will push.
+
+### Delivered work summary (to appear on main after merge)
+
+- `docs/INDEX.md` — master documentation map (241 lines, 84 verified links)
+- `docs/design/standards/divio-classification.md` — authoritative Divio taxonomy
+- `docs/runbooks/*` — 24 files with corrected frontmatter + audience declarations
+- `docs/design/research/005-*/` — 9 files with newly-added frontmatter
+- `docs/issues/diagnostics/` — 6 files with newly-added frontmatter
+- `docs/design/*.md` + `docs/design/standards/` — 8 files with doc_type corrections
+- `CLAUDE.md` — new INDEX.md + constitution + data/ references; v03→v1.0 updates
+- `ai-agents/claude-code-instructions.md` + `ai-agents/claude-instructions.md` — v03→v1.0 updates
+- `docs/design/architecture/README.md` — canonical machine-readable home section
+- `docs/design/architecture/change-control.md` — INDEX.md maintenance rule
+- `docs/func-spec/F016_change_control_governance.md` — resolved TBD paths
+- `docs/archive/docs-readme.md` — archived (was `docs/docs-readme.md`)
+- `docs/func-spec/F002_openclaw_install.md` — 2 link reference updates
+- Two file moves recorded via `git mv`:
+  - `docs/runbooks/visual-docs-style.md` → `docs/design/standards/visual-docs-style.md`
+  - `docs/runbooks/office2-backup-and-security.md` → `docs/design/office2-backup-and-security.md`
+- F015 spec itself updated for alignment with plan/tasks reality (I1/C1/I3 remediation)
+
+### Recurring spec-kitty observations (referenced by this entry)
+
+- Documentation mission template mismatch (software-dev default used throughout)
+- False-positive jsdoc/sphinx generator detection persisted in meta.json
+- `finalize-tasks` parser dropped LLM-authored dependencies (required manual repair in commit `64c0632`)
+- Multi-parent merge base auto-creation worked correctly (WP03 + WP07 + WP11)
+- Manual dependency patches survived all subsequent spec-kitty commands through implement/review/approved (no re-strip observed post-`64c0632`)
+
+---
