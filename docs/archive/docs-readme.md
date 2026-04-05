@@ -3,7 +3,8 @@ id: docs-readme
 title: Visual Docs Index
 doc_type: readme
 level: reference
-status: approved
+status: archived
+superseded_by: docs/INDEX.md
 owners: [kent@intentional.biz]
 last_validated: 2025-10-17
 last_updated: '2025-10-29'

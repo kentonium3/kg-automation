@@ -70,7 +70,7 @@ Before implementation, the planning phase MUST read:
 
 2. **F001 artifacts — understand what's already established**
    - `scripts/vikunja/vikunja.service` — systemd unit pattern to copy for openclaw.service
-   - `docs/runbooks/office2-backup-and-security.md` — credential store location,
+   - `docs/design/office2-backup-and-security.md` — credential store location,
      `claude` user permissions, security audit baseline reset procedure
    - `docs/runbooks/vikunja-ops.md` — runbook format to match for openclaw-ops.md
 
@@ -200,7 +200,7 @@ but the binding is to the Tailscale interface.
 - After OpenClaw service is running, reset the security audit baselines
   to incorporate the new service
 - This prevents the daily 3AM audit from generating false-positive alerts
-- Follow the procedure documented in `docs/runbooks/office2-backup-and-security.md`
+- Follow the procedure documented in `docs/design/office2-backup-and-security.md`
 
 **Success criteria:**
 - [ ] Security audit baselines reset after OpenClaw installation
