@@ -90,12 +90,67 @@ spec-kitty's `auto_commit` mechanism only fires inside its own Python CLI code p
 
 F014's git history shows its spec body DID land in a commit, so there's a path by which this normally works — just not visible from my seat.
 
-**Resolution**: user-decision — Kent directed: "start journal, then proceed with C (let workflow run without manual compensation) to see what happens naturally." Proceeding to `/spec-kitty.plan` next.
+**Resolution**: behavior clarified during `/spec-kitty.plan` on 2026-04-04. See Update below.
 
-**Downstream impact**:
-- If `/spec-kitty.plan` runs `check-prerequisites`, it may fail or warn about dirty working tree.
-- If plan silently commits the accumulated changes, that confirms the intended pattern.
-- If plan does neither (proceeds and leaves both specify + plan outputs uncommitted), the dirty-state will compound and future workflow steps may hit harder errors.
-- Ultimate risk: merge-time conflicts or spec-kitty state-machine confusion because identity files were updated out-of-band.
+**Update (2026-04-04, after /spec-kitty.plan setup-plan)**:
+`spec-kitty agent feature setup-plan` rewrote `meta.json` (to add `documentation_state`) and in doing so picked up the LLM-authored changes that were sitting in the working tree, committing them together. So auto_commit DOES catch LLM-edited files — but only when spec-kitty itself next writes to that file. `spec.md` remained uncommitted because no spec-kitty command writes to `spec.md` after `create-feature`.
+
+**Revised hypothesis**: auto_commit creates one commit per spec-kitty-authored file write, and the staged working-tree state of that file is included in the diff. Files that spec-kitty never writes to (like the LLM-authored `spec.md` body) remain uncommitted indefinitely unless a later workflow step touches them.
+
+**Downstream impact**: If `spec.md` is never written-to by spec-kitty again (likely), the LLM-authored spec body will remain uncommitted through tasks/implement/review. This may cause merge or accept to fail if those steps verify clean working tree.
+
+---
+
+## 2026-04-04 — False-positive documentation-generator detection during setup-plan
+
+**Feature**: 015-documentation-architecture-rationalization
+**Spec-kitty version**: 3.0.3
+**Workflow step**: plan (setup-plan)
+**Severity**: soft-error (incorrect data persisted to meta.json)
+
+**What I expected**:
+Documentation mission's `setup-plan` should only report generators it can verify are actually configured for the project (e.g., a `docs/conf.py` for Sphinx, a `jsdoc.json` for JSDoc).
+
+**What actually happened**:
+`setup-plan` output reported `generators_detected: [{jsdoc}, {sphinx}]` and wrote the same entries to `meta.json` under `documentation_state.generators_configured`, with empty `config_path` strings for both. Neither generator is actually configured in this repo — there is no `jsdoc.json`, no `conf.py`, no Sphinx doctree, no package.json jsdoc dependency. This is a false positive.
+
+**Evidence**:
+- `setup-plan --json` output: `"generators_detected": [{"name": "jsdoc", "language": "javascript", "config_path": ""}, {"name": "sphinx", "language": "python", "config_path": ""}]`
+- meta.json commit `fbd28f5 Update generator config for feature 015-...` shows both generators persisted with empty config paths.
+- Repo file search: no `jsdoc.json`, no `conf.py`, no `sphinx` config anywhere in the project.
+
+**Hypothesis**: The documentation-mission scanner is heuristic-based (detects presence of Python/JavaScript source files and assumes the associated generators apply) rather than config-file-based. Empty `config_path` is the telltale — there's no config file backing either assertion.
+
+**Resolution**: bug-filed-candidate — recommend filing upstream: "documentation-mission setup-plan should only report generators whose config files are actually present; empty config_path indicates a false positive".
+
+**Downstream impact**: The plan template will reference these non-existent generators. If tasks/WPs are scaffolded from this data, work packages like "configure JSDoc" or "configure Sphinx" may be generated for generators that shouldn't be part of this feature. For F015, the feature isn't about code-doc generation at all — it's about human-authored markdown curation. Mitigating by flagging as N/A in plan.md.
+
+---
+
+## 2026-04-04 — Wrong mission template scaffolded for documentation-mission feature
+
+**Feature**: 015-documentation-architecture-rationalization
+**Spec-kitty version**: 3.0.3
+**Workflow step**: plan (setup-plan)
+**Severity**: soft-error (scaffolded artifact from wrong template)
+
+**What I expected**:
+With `mission: documentation` in `meta.json`, `setup-plan` should scaffold `plan.md` from the documentation-mission's plan template (`specify_cli/missions/documentation/templates/plan-template.md`), which has doc-appropriate fields (Divio types, generator setup, accessibility, WTD principles, Phase 0 = doc audit).
+
+**What actually happened**:
+`setup-plan` scaffolded `plan.md` using the software-dev default template. The resulting file has software-dev-oriented fields: `Language/Version`, `Primary Dependencies`, `Testing`, `Target Platform`, `Performance Goals`, `Source Code (repository root)` with `src/models/`, `src/services/`, `tests/contract/` layout — none of which apply to a documentation curation feature.
+
+**Evidence**:
+- Constitution context (`spec-kitty constitution context --action plan --json`): `"Template set: software-dev-default", "Paradigms: test-first", "Directives: TEST_FIRST"`
+- The documentation mission IS installed: `specify_cli/missions/documentation/` contains `plan-template.md`, `spec-template.md`, `tasks-template.md`.
+- Scaffolded `plan.md` (committed as `616bef5`) starts with `# Implementation Plan: [FEATURE]` and references `src/specify_cli/missions/software-dev/command-templates/plan.md`.
+
+**Hypothesis**: The constitution template set (`software-dev-default`) overrides per-feature mission selection when scaffolding planning artifacts. `meta.json.mission: "documentation"` is recorded but not honored by `setup-plan`'s template selection.
+
+OR: `setup-plan` looks at the constitution template set rather than the feature's mission to pick templates. If so, the docs for how mission selection interacts with constitution templates needs clarification.
+
+**Resolution**: bug-filed-candidate — recommend filing upstream: "setup-plan should scaffold plan.md from the feature's mission-specific template (per meta.json.mission), not from the constitution's global template set".
+
+**Downstream impact**: Plan must be hand-adapted from the software-dev template to fit a documentation curation feature. Downstream `/spec-kitty.tasks` may also scaffold from the software-dev tasks template, producing WP structures that don't fit doc curation work.
 
 ---
