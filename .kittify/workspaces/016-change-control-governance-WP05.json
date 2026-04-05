@@ -1,0 +1,15 @@
+{
+  "wp_id": "WP05",
+  "feature_slug": "016-change-control-governance",
+  "worktree_path": ".worktrees/016-change-control-governance-WP05",
+  "branch_name": "016-change-control-governance-WP05",
+  "base_branch": "016-change-control-governance-WP05-merge-base",
+  "base_commit": "f758ab83480cad22de0facb7565ec4298e890500",
+  "dependencies": [
+    "WP02",
+    "WP03"
+  ],
+  "created_at": "2026-04-05T23:41:36.249286+00:00",
+  "created_by": "implement-command-multi-parent-merge",
+  "vcs_backend": "git"
+}
