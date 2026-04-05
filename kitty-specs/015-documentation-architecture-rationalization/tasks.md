@@ -350,9 +350,9 @@ None — paths are known from directory structure.
 
 ### Included Subtasks
 
-- [ ] T041 `git mv docs/docs-readme.md docs/archive/docs-readme.md` and update frontmatter (status: archived, superseded_by: docs/INDEX.md)
-- [ ] T042 Update `docs/func-spec/F002_openclaw_install.md` references to `office2-backup-and-security.md` → new path (2 occurrences)
-- [ ] T043 Verify no active (non-archived) doc references the original `docs/docs-readme.md` path
+- [x] T041 `git mv docs/docs-readme.md docs/archive/docs-readme.md` and update frontmatter (status: archived, superseded_by: docs/INDEX.md)
+- [x] T042 Update `docs/func-spec/F002_openclaw_install.md` references to `office2-backup-and-security.md` → new path (2 occurrences)
+- [x] T043 Verify no active (non-archived) doc references the original `docs/docs-readme.md` path
 
 ### Implementation Notes
 
