@@ -23,8 +23,8 @@ subtasks:
 - T022
 phase: Phase 3 - Enforcement
 assignee: ''
-agent: ''
-shell_pid: '62840'
+agent: "claude"
+shell_pid: "63145"
 history:
 - at: '2026-04-05T23:00:03Z'
   actor: system
@@ -195,3 +195,4 @@ N/A — documentation change, no automated tests.
 
 ## Activity Log
 - 2026-04-05T23:47:50Z – unknown – shell_pid=62840 – Tier 0 Hard Lock + Tier 1-4 guardrails + doc standards pointer added. Tier 0 is explicit and unoverridable.
+- 2026-04-05T23:47:52Z – claude – shell_pid=63145 – Started review via workflow command
