@@ -271,3 +271,40 @@ Per user directive, manually patched the `dependencies` frontmatter field on 7 W
 **Follow-up action recommended**: When filing the finalize-tasks parser bug upstream, include this manual-repair workflow as context to show the actual user impact.
 
 ---
+
+## 2026-04-04 — finalize-tasks --validate-only is NOT actually read-only (mutates frontmatter)
+
+**Feature**: 015-documentation-architecture-rationalization
+**Spec-kitty version**: 3.0.3
+**Workflow step**: tasks (finalize-tasks --validate-only)
+**Severity**: soft-error (surprise mutation; undermines manual repair attempts)
+
+**What I expected**:
+`finalize-tasks --validate-only` should be a dry-run flag that validates the current state without modifying any files. The slash-command prompt calls it out for "ownership validation before committing" and the `--validate-only` convention across CLI tooling universally means "read-only, no mutations".
+
+**What actually happened**:
+After manually patching the 7 WP prompt files to restore stripped dependencies, I ran `spec-kitty agent feature finalize-tasks --validate-only --json` to verify that the patched DAG validated. The command returned `validation_passed` and reported no errors. But when I inspected the files afterward, ALL SEVEN MANUAL PATCHES HAD BEEN REVERTED — `dependencies: []` once again on WP03, WP04, WP06, WP07, WP08, WP09, and `dependencies: [WP01, WP02, WP07]` on WP11 (with the spurious WP01 back).
+
+**Evidence**:
+- JSON output: `"result": "validation_passed", "bootstrap": {"total_wps": 11, "newly_seeded": 0, "already_initialized": 11}` — note the bootstrap section is included even under `--validate-only`.
+- `git status kitty-specs/015-documentation-architecture-rationalization/tasks/` showed NO changes (files matched HEAD), meaning the patches had been silently reverted to match the last commit which was the stripped version from `finalize-tasks`.
+- Directly grepping the WP03 file confirmed `dependencies: []` instead of the `[WP01, WP02]` I had just written.
+
+**Hypothesis**: The bootstrap step inside `finalize-tasks` runs unconditionally, before the validate/commit fork, and it re-parses `tasks.md` and rewrites WP frontmatter based on the parser's (buggy) output. The `--validate-only` flag only suppresses the final "commit" step — it does NOT skip the mutation-inducing bootstrap step. The combination is: bootstrap writes stripped values, validator validates the stripped (trivially-acyclic) state, command returns success, writes-to-disk are uncommitted but persisted.
+
+Since the file write happens on disk (not just in memory), any subsequent `git add` / `git commit` could capture the stripped state as authoritative. This is a silent data-loss pattern.
+
+**Why this is a bigger deal than it seems**:
+- It means manual repair is unstable. Every subsequent spec-kitty command that includes a bootstrap step will re-strip the manually-patched dependencies.
+- The user has no way to say "leave my frontmatter alone" — bootstrap always runs.
+- Even `--validate-only`, which should be the safest possible flag, is destructive.
+- Documentation / mental models for `--validate-only` lead users to expect a safe dry-run. This violates that contract.
+
+**Resolution**: bug-filed-candidate — recommend filing upstream:
+> "finalize-tasks --validate-only is not actually read-only. The bootstrap step inside finalize-tasks runs unconditionally and rewrites WP frontmatter even when --validate-only is set. Either (a) bootstrap should be skipped under --validate-only, or (b) bootstrap should be idempotent (read current frontmatter, preserve if non-empty), or (c) the flag should be renamed to reflect that it's not read-only."
+
+**Mitigation applied**: After discovering the revert, re-applied the 7 patches with the Edit tool and immediately committed them via git. Committed in commit `64c0632` on main. Verified post-commit that the stored frontmatter contains the correct dependency DAG (confirmed via grep against all 11 WP files).
+
+**Ongoing risk**: If `/spec-kitty.implement` or any other spec-kitty command triggers bootstrap on this feature, the dependencies will likely be stripped again. Monitor closely during implement phase. If seen again, journal as a recurring hit on this bug pattern.
+
+---
