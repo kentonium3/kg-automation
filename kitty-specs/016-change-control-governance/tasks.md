@@ -174,9 +174,9 @@ None — constitution edit is independent of other F016 deliverables.
 
 ### Included Subtasks
 
-- [ ] T032 Create `docs/design/architecture/service-dependencies.view.md` with frontmatter
-- [ ] T033 Write Mermaid `graph LR` showing all 11 services with dependency edges from enriched inventory
-- [ ] T034 Include risk_tier labels on nodes; ensure port 443 Tailscale→Vikunja chain is visible
+- [x] T032 Create `docs/design/architecture/service-dependencies.view.md` with frontmatter
+- [x] T033 Write Mermaid `graph LR` showing all 11 services with dependency edges from enriched inventory
+- [x] T034 Include risk_tier labels on nodes; ensure port 443 Tailscale→Vikunja chain is visible
 
 ### Dependencies
 
