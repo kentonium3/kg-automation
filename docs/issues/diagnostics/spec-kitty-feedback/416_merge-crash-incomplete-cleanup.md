@@ -9,7 +9,7 @@ status: active
 **Spec-Kitty Version**: 3.0.3 (originally observed on 2.1.2; pattern unchanged through 3.0.3)
 **Reporter**: Kent Gale (via Claude Code)
 **Priority**: HIGH — merge operation is non-idempotent; any interruption requires manual recovery
-**Status**: READY TO FILE — related to #415 (implement-phase recovery) and #410 (umbrella)
+**Status**: FILED — related to #415 (implement-phase recovery) and #410 (umbrella)
 
 **Companion evidence**: `spec-kitty-workflow-journal.md` (attached to this issue) — a running journal of spec-kitty workflow observations captured during live feature development, including the real-time decision-making trail from workflow interruptions and crash recoveries.
 

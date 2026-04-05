@@ -9,7 +9,7 @@ status: active
 **Spec-Kitty Version**: 3.0.3
 **Reporter**: Kent Gale (via Claude Code)
 **Priority**: HIGH — violates the "--validate-only" flag contract, silently destroys user edits
-**Status**: WATCHING https://github.com/Priivacy-ai/spec-kitty/issues/410 — may be subsumed by broader upstream fix
+**Status**: FILED https://github.com/Priivacy-ai/spec-kitty/issues/417 WATCHING https://github.com/Priivacy-ai/spec-kitty/issues/410 — may be subsumed by broader upstream fix
 
 ## Summary
 
