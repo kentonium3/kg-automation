@@ -19,8 +19,8 @@ subtasks:
 - T016
 phase: Phase 1 - Frontmatter Corrections
 assignee: ''
-agent: ''
-shell_pid: '1073'
+agent: "claude"
+shell_pid: "1073"
 history:
 - at: '2026-04-05T01:28:56Z'
   actor: system
@@ -173,3 +173,7 @@ N/A — documentation feature, no automated tests.
 
 - 9 files have frontmatter committed to main.
 - local-audit.md 2 links updated.
+
+## Activity Log
+
+- 2026-04-05T04:09:08Z – claude – shell_pid=1073 – Started implementation via workflow command
