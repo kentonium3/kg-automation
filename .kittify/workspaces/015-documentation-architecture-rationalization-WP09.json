@@ -1,0 +1,14 @@
+{
+  "wp_id": "WP09",
+  "feature_slug": "015-documentation-architecture-rationalization",
+  "worktree_path": ".worktrees/015-documentation-architecture-rationalization-WP09",
+  "branch_name": "015-documentation-architecture-rationalization-WP09",
+  "base_branch": "015-documentation-architecture-rationalization-WP07",
+  "base_commit": "09da0c563d8d729876c57567453b2c1422c7e871",
+  "dependencies": [
+    "WP07"
+  ],
+  "created_at": "2026-04-05T04:29:45.151740+00:00",
+  "created_by": "implement-command",
+  "vcs_backend": "git"
+}
