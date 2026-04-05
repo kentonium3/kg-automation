@@ -104,19 +104,23 @@ YYYY-MM-DD by {name/agent} during {feature or workflow context}
 - **Submitted** (has an upstream issue number): `{issue-number}_{short-slug}.md`.
   Replace `xx_` with the GitHub issue number once filed
   (e.g., `42_finalize-tasks-strips-dependencies.md`).
+- **Archived** (issue resolved, released, and confirmed in our workflow):
+  `git mv` to `docs/archive/spec-kitty-feedback/{issue-number}_{short-slug}.md`.
+  Historical record only; no further maintenance.
 - **F### feature number**: do NOT include in the filename. Record the
   originating feature in the `## Discovered` section inside the doc body.
   Filename audience = maintainer (who doesn't care which F# surfaced it);
   F### audience = us (who traces lineage via the doc body).
 - **Template filename**: stays `_TEMPLATE_bug_report.md` — the leading
-  underscore keeps it sorted at the top of all three tiers.
+  underscore keeps it sorted at the top of all three active tiers.
 
 **Typical progression**:
 
 ```text
-stub-or-draft.md          → evidence gathering
-xx_stub-or-draft.md       → renamed when ready to file
-42_stub-or-draft.md       → renamed when upstream issue opened
+stub-or-draft.md                                       → evidence gathering
+xx_stub-or-draft.md                                    → renamed when ready to file
+42_stub-or-draft.md                                    → renamed when upstream issue opened
+docs/archive/spec-kitty-feedback/42_stub-or-draft.md   → moved after fix released + confirmed
 ```
 
 **Directory-listing sort order** (alphabetical, by leading character):
