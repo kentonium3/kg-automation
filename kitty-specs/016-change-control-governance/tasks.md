@@ -74,12 +74,12 @@ Depends on WP01 (risk_tier values reference the taxonomy tier numbers).
 
 ### Included Subtasks
 
-- [ ] T012 Create `docs/runbooks/governance/pre-flight-checklist.md` with frontmatter
-- [ ] T013 Define Tier 0/1 checklist: port/interface impact, dependent service lookup, rollback procedure, operator availability, verification plan
-- [ ] T014 Define Tier 2 checklist (lighter): backup confirm, health check, rollback plan
-- [ ] T015 Create `docs/runbooks/governance/post-change-verification.md` with frontmatter
-- [ ] T016 Define per-tier verification steps referencing service inventory health-check endpoints
-- [ ] T017 Define rollback trigger condition on verification failure
+- [x] T012 Create `docs/runbooks/governance/pre-flight-checklist.md` with frontmatter
+- [x] T013 Define Tier 0/1 checklist: port/interface impact, dependent service lookup, rollback procedure, operator availability, verification plan
+- [x] T014 Define Tier 2 checklist (lighter): backup confirm, health check, rollback plan
+- [x] T015 Create `docs/runbooks/governance/post-change-verification.md` with frontmatter
+- [x] T016 Define per-tier verification steps referencing service inventory health-check endpoints
+- [x] T017 Define rollback trigger condition on verification failure
 
 ### Dependencies
 
