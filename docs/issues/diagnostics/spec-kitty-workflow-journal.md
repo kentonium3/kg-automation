@@ -18,7 +18,7 @@ status: active
 
 ## Entry Template
 
-```
+```markdown
 ## YYYY-MM-DD — {short title}
 
 **Feature**: {NNN-slug}
@@ -65,15 +65,18 @@ Subsequent LLM edits via the Write tool — setting `mission: documentation` in 
 - Config: `/Users/kentgale/repos/kg-automation/.kittify/config.yaml` contains `auto_commit: true` at top level (not nested under `agents`).
 - `create-feature` JSON output (excerpt): `"write_mode": "update_existing_files", "next_step": "Read then update spec_file/meta_file; do not recreate with blind write."`
 - `git status --short` after LLM edits:
-  ```
+
+  ```text
    M kitty-specs/015-documentation-architecture-rationalization/meta.json
    M kitty-specs/015-documentation-architecture-rationalization/spec.md
   ?? kitty-specs/015-documentation-architecture-rationalization/checklists/
   ?? kitty-specs/015-documentation-architecture-rationalization/status.events.jsonl
   ?? kitty-specs/015-documentation-architecture-rationalization/tasks/
   ```
+
 - `git log --oneline -3`:
-  ```
+
+  ```text
   d574abb Add meta for feature 015-documentation-architecture-rationalization
   6c35834 Add spec for feature 015-documentation-architecture-rationalization
   c5a47d5 refactor: consolidate diagnostics and postmortems under docs/issues
