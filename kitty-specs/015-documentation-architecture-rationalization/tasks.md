@@ -65,9 +65,9 @@ None — this is the foundational WP that everything else cites.
 
 ### Included Subtasks
 
-- [ ] T005 `git mv docs/runbooks/visual-docs-style.md docs/design/standards/visual-docs-style.md` + update `doc_type: handbook` → `standard`
-- [ ] T006 `git mv docs/runbooks/office2-backup-and-security.md docs/design/office2-backup-and-security.md` + update `doc_type: handbook` → `explanation`
-- [ ] T007 Verify new paths exist, old paths don't, history preserved via `git log --follow`
+- [x] T005 `git mv docs/runbooks/visual-docs-style.md docs/design/standards/visual-docs-style.md` + update `doc_type: handbook` → `standard`
+- [x] T006 `git mv docs/runbooks/office2-backup-and-security.md docs/design/office2-backup-and-security.md` + update `doc_type: handbook` → `explanation`
+- [x] T007 Verify new paths exist, old paths don't, history preserved via `git log --follow`
 
 ### Implementation Notes
 
