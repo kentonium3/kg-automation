@@ -1,11 +1,11 @@
 ---
 id: visual-docs-style
 title: Visual Documentation Style Guide
-doc_type: handbook
+doc_type: standard
 level: reference
 status: approved
 owners: [kent@intentional.biz]
-last_validated: 2025-10-16
+last_validated: 2026-04-05
 last_updated: '2025-10-29'
 revision: v1.0
 audience: agents_and_humans
