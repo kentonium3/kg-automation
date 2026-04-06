@@ -36,7 +36,7 @@ evidence-backed answers and an architecture recommendation.
 
 **Included subtasks**:
 - [x] T001 — Verify Vikunja version on office2
-- [ ] T002 — Complete RQ-2: current F009 deployment state
+- [x] T002 — Complete RQ-2: current F009 deployment state
 - [ ] T003 — Research RQ-1: Vikunja recurring task behavior
 - [ ] T004 — Evaluate RQ-3: three candidate approaches vs. five criteria
 - [ ] T005 — Confirm RQ-4: API capabilities for recommended approach
