@@ -12,7 +12,7 @@
 | ID | Description | WP | Parallel |
 |----|-------------|-----|----------|
 | T001 | Create escalation skill (SKILL.md) with full model definition | WP01 | — | [D] |
-| T002 | Create IDENTITY.md for felix-admin-escalation | WP02 | — |
+| T002 | Create IDENTITY.md for felix-admin-escalation | WP02 | — | [D] |
 | T003 | Create SOUL.md (copy from habits agent, adapt identity) | WP02 | [P] with T002 |
 | T004 | Create USER.md (copy from habits agent) | WP02 | [P] with T002 |
 | T005 | Create TOOLS.md with Vikunja API references for escalation | WP02 | [P] with T002 |
