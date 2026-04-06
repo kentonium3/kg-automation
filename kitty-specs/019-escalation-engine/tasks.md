@@ -23,7 +23,7 @@
 | T010 | Deploy agent workspace files to office2 | WP03 | after T008 | [D] |
 | T011 | Create escalation cron job (daily, 8:00 AM ET) | WP03 | after T010 | [D] |
 | T012 | Register agent in AGENT-REGISTRY.md at Assisted (Level 1) | WP03 | [D] |
-| T013 | Update service-inventory.json with agent and cron entries | WP03 | [P] |
+| T013 | Update service-inventory.json with agent and cron entries | WP03 | [D] |
 | T014 | Update service-inventory.md narrative | WP03 | after T013 |
 | T015 | Create escalation-ops.md runbook | WP04 | — |
 | T016 | Verify — trigger cron and confirm alert delivery | WP04 | after WP03 |
