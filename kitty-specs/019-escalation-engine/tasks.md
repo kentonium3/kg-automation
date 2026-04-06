@@ -25,7 +25,7 @@
 | T012 | Register agent in AGENT-REGISTRY.md at Assisted (Level 1) | WP03 | [D] |
 | T013 | Update service-inventory.json with agent and cron entries | WP03 | [D] |
 | T014 | Update service-inventory.md narrative | WP03 | after T013 | [D] |
-| T015 | Create escalation-ops.md runbook | WP04 | — |
+| T015 | Create escalation-ops.md runbook | WP04 | — | [D] |
 | T016 | Verify — trigger cron and confirm alert delivery | WP04 | after WP03 |
 | T017 | Verify — test response handling (done, snooze) | WP04 | after T016 |
 | T018 | Verify — confirm silent run when no tasks qualify | WP04 | after T016 |
