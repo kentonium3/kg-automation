@@ -19,7 +19,7 @@
 | T006 | Create AGENTS.md — detection, level determination, alerting | WP02 | after T001 | [D] |
 | T007 | Create AGENTS.md — response handling section | WP02 | after T006 | [D] |
 | T008 | Register agent in OpenClaw on office2 | WP03 | — | [D] |
-| T009 | Deploy skill to office2 | WP03 | [P] with T008 |
+| T009 | Deploy skill to office2 | WP03 | [P] with T008 | [D] |
 | T010 | Deploy agent workspace files to office2 | WP03 | after T008 |
 | T011 | Create escalation cron job (daily, 8:00 AM ET) | WP03 | after T010 |
 | T012 | Register agent in AGENT-REGISTRY.md at Assisted (Level 1) | WP03 | [P] |
