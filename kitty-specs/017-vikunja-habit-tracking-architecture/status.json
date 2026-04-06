@@ -1,25 +1,25 @@
 {
-  "event_count": 7,
+  "event_count": 8,
   "feature_slug": "017-vikunja-habit-tracking-architecture",
-  "last_event_id": "01KNJ0TCMC85CY9WZTWAHJZ877",
-  "materialized_at": "2026-04-06T18:27:59.757307+00:00",
+  "last_event_id": "01KNJ0WTBESB0X0EX8XYBE1B34",
+  "materialized_at": "2026-04-06T18:29:19.343470+00:00",
   "summary": {
-    "approved": 1,
+    "approved": 0,
     "blocked": 0,
     "canceled": 0,
     "claimed": 0,
-    "done": 0,
+    "done": 1,
     "for_review": 0,
     "in_progress": 0,
     "planned": 0
   },
   "work_packages": {
     "WP01": {
-      "actor": "user",
+      "actor": "merge",
       "force_count": 2,
-      "lane": "approved",
-      "last_event_id": "01KNJ0TCMC85CY9WZTWAHJZ877",
-      "last_transition_at": "2026-04-06T18:27:59.756606+00:00"
+      "lane": "done",
+      "last_event_id": "01KNJ0WTBESB0X0EX8XYBE1B34",
+      "last_transition_at": "2026-04-06T18:29:19.342694+00:00"
     }
   }
 }
