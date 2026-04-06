@@ -56,7 +56,33 @@ For each task, read the description field for frequency:
 Skip any task with `(PAUSED)` in the description or `done: true`.
 Filter remaining habits to those scheduled for today only.
 
-### Step 3: Exclude already-completed habits
+### Step 3: Set due_date for Today filter visibility
+
+For each habit that passed the schedule filter in Step 2, set its
+`due_date` to today so it appears in the Vikunja Today filter:
+
+```
+PUT /api/v1/tasks/{habit_id}
+Content-Type: application/json
+
+{"due_date": "<YYYY-MM-DD>T00:00:00Z"}
+```
+
+Where `<YYYY-MM-DD>` is today's date from Step 1.
+
+Rules:
+- Skip any habit with `(PAUSED)` in the description or `done: true`
+  (these were already excluded in Step 2)
+- If the API call fails for one habit, log the error and continue
+  with the remaining habits — do NOT stop the check-in workflow
+- This step is a visibility aid only — the `due_date` field is NOT
+  used for completion tracking (comments are the authority)
+- Habits not scheduled today retain their previous `due_date` — do
+  not modify them
+
+---
+
+### Step 4: Exclude already-completed habits
 
 For each scheduled habit, check if a completion comment exists for today:
 `GET /tasks/{habit_id}/comments`
@@ -67,7 +93,7 @@ and a state of `complete`. If found, exclude that habit from the check-in.
 Habits marked `rescheduled` or `will-not-do` are also excluded — they
 have already been addressed today.
 
-### Step 4: Format the check-in message
+### Step 5: Format the check-in message
 
 Format as a concise WhatsApp message — one line per habit:
 

@@ -12,7 +12,9 @@ status: draft
 The felix-admin-habits agent manages Kent's daily habit check-ins and
 accountability tracking. It runs on office2 via OpenClaw, delivering a
 morning check-in via WhatsApp and recording completion state in Vikunja.
-A weekly pattern report runs Sunday evenings.
+A weekly pattern report runs Sunday evenings. The agent also sets
+`due_date = today` on each scheduled habit so they appear in the
+Vikunja Today filter.
 
 ## Agent management
 
@@ -96,7 +98,10 @@ ssh office2-claude "openclaw agent --agent felix-admin-habits \
 ### View habits
 
 All habits are tasks in the Habits project. Each has a title, frequency
-in the description field, and a personal identity label.
+in the description field, and a personal identity label. The agent sets
+`due_date` to today on each scheduled habit during the morning check-in
+(F018). This is a visibility mechanism for the Vikunja Today filter —
+the comment model remains the authoritative source of completion state.
 
 ### Current habits
 
@@ -169,6 +174,7 @@ Send any of these via WhatsApp (routed through the main agent):
 | Delivery error | `ssh office2-claude "openclaw cron runs --id <uuid>"` | Check `--to` flag is set on the cron job |
 | Session cache stale | Agent uses old AGENTS.md | Restart gateway or wait for isolated session |
 | Main agent not delegating | Send habit message, check response | Verify habits delegation in `/data/services/openclaw/data/AGENTS.md` |
+| Habits not in Today filter | Verify morning cron ran: `ssh office2-claude "openclaw cron runs --id <uuid>"` | If cron succeeded, check task due_dates via API. If cron failed, investigate cron error. |
 
 ## Privacy boundary
 
