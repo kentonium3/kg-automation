@@ -35,7 +35,7 @@ research questions, producing a single `findings.md` document with
 evidence-backed answers and an architecture recommendation.
 
 **Included subtasks**:
-- [ ] T001 — Verify Vikunja version on office2
+- [x] T001 — Verify Vikunja version on office2
 - [ ] T002 — Complete RQ-2: current F009 deployment state
 - [ ] T003 — Research RQ-1: Vikunja recurring task behavior
 - [ ] T004 — Evaluate RQ-3: three candidate approaches vs. five criteria
