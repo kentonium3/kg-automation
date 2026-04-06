@@ -15,7 +15,8 @@ base_branch: main
 base_commit: 2a39adad78006cb5315584147485318ceed2c970
 created_at: '2026-04-06T18:13:51.316232+00:00'
 subtasks: [T001, T002, T003, T004, T005, T006]
-shell_pid: '99350'
+shell_pid: "2294"
+agent: "claude"
 history:
 - date: '2026-04-06'
   action: created
@@ -316,3 +317,4 @@ When reviewing `findings.md`:
 ## Activity Log
 
 - 2026-04-06T18:27:20Z – unknown – shell_pid=99350 – Moved to for_review
+- 2026-04-06T18:27:26Z – claude – shell_pid=2294 – Started review via workflow command
