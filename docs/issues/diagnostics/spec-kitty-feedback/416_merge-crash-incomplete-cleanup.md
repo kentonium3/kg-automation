@@ -187,8 +187,9 @@ First observed 2026-03-29 by Kent Gale during F006 merge. Documented across 8 in
 | 6 | 2026-04-01 | F011 | 7 | no | **manual** | Yes | FSEvents overflow confirmed (mechanism 2) |
 | 7 | 2026-04-01 | F012 | 5 | no | manual | **No** | 5s pauses between worktree removes |
 | 8 | 2026-04-05 | F015 | 11 | no | manual | **No** | 11 worktrees removed, no delay, session <3h |
+| 9 | 2026-04-05 | F016 | 9 | no | manual | Yes | Same session as F015; FSEvents overflow after extended session |
 
-Incident 8 (F015) did not crash despite having 11 worktrees — suggesting the FSEvents threshold depends on session state accumulation over time, not just worktree count. Both N=1 successful runs (7 and 8) had shorter-than-typical sessions.
+Incident 8 (F015) did not crash despite having 11 worktrees — suggesting the FSEvents threshold depends on session state accumulation over time, not just worktree count. Incident 9 (F016) crashed in the same session as incident 8, with fewer worktrees (9 vs 11), reinforcing the session-duration/accumulated-state hypothesis. Both successful runs (7 and 8) had shorter-than-typical sessions.
 
 ## Appendix B: Post-Crash Repository State
 

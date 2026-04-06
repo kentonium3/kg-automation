@@ -491,3 +491,50 @@ These branches were auto-created during `/spec-kitty.implement` when a WP had mu
 **Impact**: Low-severity cruft. Would accumulate ~N merge-base branches per feature where N = number of multi-parent WPs. Not destructive but clutters `git branch` output over time.
 
 ---
+
+## 2026-04-05 — VS Code crash during F016 merge (incident 9)
+
+**Feature**: 016-change-control-governance
+**Spec-kitty version**: 3.0.3
+**Workflow step**: merge
+**Severity**: hard-error (non-idempotent merge interrupted; manual recovery required)
+
+**What I expected**:
+`spec-kitty merge --target main --feature 016-change-control-governance` to complete all steps: merge DAG leaves, mark all 9 WPs as done, remove worktrees, delete branches, commit status files.
+
+**What actually happened**:
+VS Code crashed during merge execution. The crash occurred after:
+- WP08 merge commit (`7207ce2`) completed
+- WP09 merge commit (`2a1d455`) completed (these are DAG leaves; all 9 WPs' work is transitively in main)
+- WP09 status transitioned to `done` (last event: `01KNG1ABAJTR98HHGPHE66PWH7` at 23:58:13 UTC)
+- All 9 worktrees removed
+- All 9 WP branches deleted
+
+But before:
+- WP01–WP08 status transitions to `done` (all still show `approved` in status.json)
+- 5 merge-base branches cleaned up (WP03, WP04, WP05, WP08, WP09 merge-base branches remain)
+- Status files committed (status.json, status.events.jsonl modified but uncommitted)
+- `docs/INDEX.md` committed (modified by WP09 merge but uncommitted)
+- Push to origin
+
+**Evidence**:
+- `git log --oneline -2`: `2a1d455 Merge WP09 from 016-change-control-governance` / `7207ce2 Merge WP08 from 016-change-control-governance`
+- `git worktree list`: only main (`2a1d455`)
+- `git branch -l "016-*"`: 5 merge-base branches only (no WP branches)
+- `git status --short`: ` M docs/INDEX.md`, ` M kitty-specs/016-change-control-governance/status.events.jsonl`, ` M kitty-specs/016-change-control-governance/status.json`
+- status.json: WP09 lane=`done`, WP01–WP08 lane=`approved`
+- Last event in JSONL: `actor: "merge"`, `wp_id: "WP09"`, `to_lane: "done"`
+
+**Hypothesis**: Same FSEvents overflow mechanism as #416 incidents 3–6. Session duration and worktree removal rate overwhelmed macOS FSEvents queue, causing VS Code crash. The merge processed WP09 last (or only got through one WP's status transition) before the crash killed the process.
+
+**Recovery plan**:
+1. Commit uncommitted files: `docs/INDEX.md` + `kitty-specs/016-change-control-governance/status.*`
+2. Delete 5 stale merge-base branches
+3. Push to origin
+4. WP01–WP08 status showing `approved` instead of `done` is a known consequence — the merge actor didn't complete the lane transition events for those WPs
+
+**Resolution**: manual recovery required (same pattern as #416 incidents 3–6)
+
+**Downstream impact**: Feature work is fully merged to main. Only bookkeeping (status files, stale branches, push) remains incomplete. The `approved` status on WP01–WP08 is cosmetically incorrect but functionally irrelevant since the feature is complete.
+
+---
