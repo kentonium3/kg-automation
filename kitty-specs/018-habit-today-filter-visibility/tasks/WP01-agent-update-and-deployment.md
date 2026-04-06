@@ -288,3 +288,4 @@ should (strength training and wake-at-5 are not scheduled).
 
 - 2026-04-06T18:47:46Z – unknown – shell_pid=5091 – Moved to for_review
 - 2026-04-06T18:47:52Z – claude – shell_pid=6204 – Started review via workflow command
+- 2026-04-06T18:48:11Z – claude – shell_pid=6204 – Review passed: AGENTS.md Step 3 correctly positioned. Step numbering consistent. Error handling non-blocking. habits-ops.md updated with due_date docs and troubleshooting. Deployed to office2 and verified — all 7 tasks have today's due_date. WhatsApp delivery confirmed.
