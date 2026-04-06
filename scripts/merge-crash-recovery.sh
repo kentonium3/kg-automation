@@ -11,6 +11,23 @@
 #
 # Usage: ./scripts/merge-crash-recovery.sh <feature-slug>
 # Example: ./scripts/merge-crash-recovery.sh 009-daily-habit-checkin
+#
+# CAPTURING THE CRASH (for diagnosing which command triggers it):
+#
+# Before running the merge, wrap the Claude Code session in `script -F` to
+# stream all terminal output to a file in real-time. The -F flag flushes on
+# every write, so when VS Code crashes (SIGTERM, exit code 15) the log is
+# already on disk up to the last line printed.
+#
+#   mkdir -p ~/merge-captures
+#   script -F ~/merge-captures/f0XX-merge-$(date +%Y%m%d).log
+#   claude                    # start Claude Code inside the script session
+#   # ... proceed with merge ...
+#   # If VS Code crashes, the log survives at ~/merge-captures/
+#   # After recovery, if the script session survived, type 'exit' to close it
+#
+# Place the log file outside the repo to avoid adding FSEvents load to the
+# already-saturated event queue during worktree removal.
 
 set -euo pipefail
 

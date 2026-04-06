@@ -525,7 +525,12 @@ But before:
 - status.json: WP09 lane=`done`, WP01–WP08 lane=`approved`
 - Last event in JSONL: `actor: "merge"`, `wp_id: "WP09"`, `to_lane: "done"`
 
-**Hypothesis**: Same FSEvents overflow mechanism as #416 incidents 3–6. Session duration and worktree removal rate overwhelmed macOS FSEvents queue, causing VS Code crash. The merge processed WP09 last (or only got through one WP's status transition) before the crash killed the process.
+**Additional observations**:
+- No parallel development in this session — all workflow steps walked through sequentially (unlike F015 which had parallel WP implementation). Eliminates concurrent worktree writes as a contributing factor.
+- markdownlint auto-fix was already disabled (changed to on-save on 2026-04-02). Crash still occurred, disproving the hypothesis that the linter auto-fix loop was the primary FSEvents amplifier.
+- F015 merge (incident 8, 11 worktrees) succeeded without crashing earlier in the same session. F016 crashed with fewer worktrees (9). Reinforces that accumulated session state — not worktree count or parallel activity — is the dominant factor.
+
+**Hypothesis**: Same FSEvents overflow mechanism as #416 incidents 3–6. Session duration and accumulated filesystem event state overwhelmed macOS FSEvents queue, causing VS Code crash. The merge processed WP09 last (or only got through one WP's status transition) before the crash killed the process.
 
 **Recovery plan**:
 1. Commit uncommitted files: `docs/INDEX.md` + `kitty-specs/016-change-control-governance/status.*`

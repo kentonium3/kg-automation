@@ -155,7 +155,7 @@ Committing the status file updates between step 1 and step 3 would ensure that t
 
 1. **Is the 5-second worktree-removal delay sufficient in all cases?** Incident 7 was N=1 with 5 WPs and a short session. Need more test data to confirm the delay works under typical kg-automation session load (11+ hour sessions, 6+ WPs, markdownlint enabled).
 
-2. **Is the linter auto-fix loop a significant FSEvents amplifier?** kg-automation disabled markdownlint auto-fix on save (2026-04-02) to reduce filesystem-event amplification, but testing pending. If it's a major amplifier, spec-kitty's guidance might include a VS Code settings recommendation for markdown-heavy repos.
+2. **~~Is the linter auto-fix loop a significant FSEvents amplifier?~~** ANSWERED (incident 9): No. markdownlint auto-fix was disabled (on-save only) before F016 merge and the crash still occurred. The linter is not the primary amplifier.
 
 3. **Why is the crash project-specific?** kg-automation hits it; bake-tracker does not. Suspected factors include markdown file count, linter/formatter load, workspace settings, and VS Code session duration. Understanding this would help characterize which users will hit the FSEvents issue and which won't.
 
@@ -187,9 +187,9 @@ First observed 2026-03-29 by Kent Gale during F006 merge. Documented across 8 in
 | 6 | 2026-04-01 | F011 | 7 | no | **manual** | Yes | FSEvents overflow confirmed (mechanism 2) |
 | 7 | 2026-04-01 | F012 | 5 | no | manual | **No** | 5s pauses between worktree removes |
 | 8 | 2026-04-05 | F015 | 11 | no | manual | **No** | 11 worktrees removed, no delay, session <3h |
-| 9 | 2026-04-05 | F016 | 9 | no | manual | Yes | Same session as F015; FSEvents overflow after extended session |
+| 9 | 2026-04-05 | F016 | 9 | no | manual | Yes | Same session as F015; no parallel dev; markdownlint on-save (not auto-fix) |
 
-Incident 8 (F015) did not crash despite having 11 worktrees — suggesting the FSEvents threshold depends on session state accumulation over time, not just worktree count. Incident 9 (F016) crashed in the same session as incident 8, with fewer worktrees (9 vs 11), reinforcing the session-duration/accumulated-state hypothesis. Both successful runs (7 and 8) had shorter-than-typical sessions.
+Incident 8 (F015) did not crash despite having 11 worktrees — suggesting the FSEvents threshold depends on session state accumulation over time, not just worktree count. Incident 9 (F016) crashed in the same session as incident 8, with fewer worktrees (9 vs 11), no parallel development (sequential workflow steps only), and markdownlint auto-fix already disabled (on-save since 2026-04-02). This eliminates three hypothesized contributing factors: worktree count, parallel worktree writes, and linter auto-fix amplification. The dominant factor appears to be accumulated FSEvents session state. Both successful runs (7 and 8) had shorter-than-typical sessions.
 
 ## Appendix B: Post-Crash Repository State
 
