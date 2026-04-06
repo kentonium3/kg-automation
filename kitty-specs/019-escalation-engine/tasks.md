@@ -29,7 +29,7 @@
 | T016 | Verify — trigger cron and confirm alert delivery | WP04 | after WP03 | [D] |
 | T017 | Verify — test response handling (done, snooze) | WP04 | after T016 | [D] |
 | T018 | Verify — confirm silent run when no tasks qualify | WP04 | after T016 | [D] |
-| T019 | Verify — check escalation comments written correctly | WP04 | after T016 |
+| T019 | Verify — check escalation comments written correctly | WP04 | after T016 | [D] |
 
 ---
 
