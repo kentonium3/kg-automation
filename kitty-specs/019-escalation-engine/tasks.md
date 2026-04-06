@@ -21,7 +21,7 @@
 | T008 | Register agent in OpenClaw on office2 | WP03 | — | [D] |
 | T009 | Deploy skill to office2 | WP03 | [P] with T008 | [D] |
 | T010 | Deploy agent workspace files to office2 | WP03 | after T008 | [D] |
-| T011 | Create escalation cron job (daily, 8:00 AM ET) | WP03 | after T010 |
+| T011 | Create escalation cron job (daily, 8:00 AM ET) | WP03 | after T010 | [D] |
 | T012 | Register agent in AGENT-REGISTRY.md at Assisted (Level 1) | WP03 | [P] |
 | T013 | Update service-inventory.json with agent and cron entries | WP03 | [P] |
 | T014 | Update service-inventory.md narrative | WP03 | after T013 |
