@@ -282,3 +282,7 @@ should (strength training and wake-at-5 are not scheduled).
 ---
 
 **END OF WORK PACKAGE**
+
+## Activity Log
+
+- 2026-04-06T18:47:46Z – unknown – shell_pid=5091 – Moved to for_review
