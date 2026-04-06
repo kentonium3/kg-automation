@@ -1,108 +1,216 @@
-# Implementation Plan: [FEATURE]
-*Path: [templates/plan-template.md](templates/plan-template.md)*
+# Implementation Plan: F019 Escalation Engine
 
+**Branch**: `main` | **Date**: 2026-04-06 | **Spec**: [spec.md](spec.md)
+**Input**: Feature specification from `kitty-specs/019-escalation-engine/spec.md`
+**Mission**: software-dev
 
-**Branch**: `[###-feature-name]` | **Date**: [DATE] | **Spec**: [link]
-**Input**: Feature specification from `/kitty-specs/[###-feature-name]/spec.md`
-
-**Note**: This template is filled in by the `/spec-kitty.plan` command. See `src/specify_cli/missions/software-dev/command-templates/plan.md` for the execution workflow.
-
-The planner will not begin until all planning questions have been answered—capture those answers in this document before progressing to later phases.
+---
 
 ## Summary
 
-[Extract from feature spec: primary requirement + technical approach from research]
+Build `felix-admin-escalation`, a new specialist agent that runs daily,
+detects overdue and at-risk tasks in Vikunja (filtered by priority >= 2
+and excluding Habits/Goals projects), delivers level-appropriate WhatsApp
+alerts (Level 1 nudge / Level 2 insistence), tracks escalation state via
+structured `[Felix-Escalation]` Vikunja comments, and handles Kent's
+responses (done, snooze, dismiss, reschedule, acknowledge). Includes
+escalation skill, ops runbook, agent registration, and architecture updates.
 
 ## Technical Context
 
-<!--
-  ACTION REQUIRED: Replace the content in this section with the technical details
-  for the project. The structure here is presented in advisory capacity to guide
-  the iteration process.
--->
+**Language/Version**: Markdown (agent instruction files) + OpenClaw skill
+definition; no application code written
+**Primary Dependencies**: OpenClaw agent system, Vikunja REST API (task
+queries, comments, task updates), WhatsApp delivery via OpenClaw `--to`
+**Storage**: Vikunja comments (escalation state), Vikunja task fields
+(done, due_date)
+**Testing**: Manual verification — trigger cron, confirm alert delivery,
+test response handling
+**Target Platform**: office2 (Ubuntu 24.04 LTS) — agent runtime
+**Constraints**: 120-second cron timeout; append-only comments; no
+autonomous task mutations
 
-**Language/Version**: [e.g., Python 3.11, Swift 5.9, Rust 1.75 or NEEDS CLARIFICATION]  
-**Primary Dependencies**: [e.g., FastAPI, UIKit, LLVM or NEEDS CLARIFICATION]  
-**Storage**: [if applicable, e.g., PostgreSQL, CoreData, files or N/A]  
-**Testing**: [e.g., pytest, XCTest, cargo test or NEEDS CLARIFICATION]  
-**Target Platform**: [e.g., Linux server, iOS 15+, WASM or NEEDS CLARIFICATION]
-**Project Type**: [single/web/mobile - determines source structure]  
-**Performance Goals**: [domain-specific, e.g., 1000 req/s, 10k lines/sec, 60 fps or NEEDS CLARIFICATION]  
-**Constraints**: [domain-specific, e.g., <200ms p95, <100MB memory, offline-capable or NEEDS CLARIFICATION]  
-**Scale/Scope**: [domain-specific, e.g., 10k users, 1M LOC, 50 screens or NEEDS CLARIFICATION]
+## Research Findings
 
-## Charter Check
+### Vikunja project IDs (confirmed via live API query)
 
-*GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
+| Project | ID | Escalation scope |
+|---------|-----|-----------------|
+| Inbox | 1 | In scope |
+| Everyday | 2 | In scope |
+| Someday | 4 | In scope |
+| Personal Growth & Transformation | 5 | In scope |
+| Business Acquisition | 6 | In scope |
+| CT-90day | 7 | In scope |
+| Health & Conditioning | 8 | In scope |
+| Intentional LLC | 9 | In scope |
+| Metal Casework | 10 | In scope |
+| Goals | 11 | **Excluded** |
+| Research | 12 | In scope |
+| Habits | 13 | **Excluded** |
 
-[Gates determined based on charter file]
+### Vikunja priority values (confirmed from task schema)
+
+| Value | Meaning | Escalation |
+|-------|---------|-----------|
+| 0 | Unset | Excluded |
+| 1 | Low | Excluded |
+| 2 | Medium | **Included** |
+| 3 | High | **Included** |
+| 4 | Urgent | **Included** |
+
+**Priority filter**: `priority >= 2` (medium and above).
+
+### Pattern reference: felix-admin-habits
+
+The habits agent established the cron-agent pattern this feature copies:
+- Workspace files: SOUL.md, USER.md, IDENTITY.md, TOOLS.md, AGENTS.md
+- Cron configuration: `openclaw cron create` with `--to +16179300916`
+- Comment-as-state: `[Felix] YYYY-MM-DD | state | note`
+- Deployment: `cat > /data/services/openclaw/<agent>/<file>` via SSH
+
+The escalation agent follows all of these patterns with the
+`[Felix-Escalation]` prefix distinguishing its comments.
+
+## Constitution Check
+
+*Charter file not yet migrated to 3.1.0a format. Governance checked
+against `docs/constitution/FELIX-CONSTITUTION.md` directly.*
+
+- **Insistence is a feature** (Design Principle 2): This feature
+  implements the directive. Pass.
+- **Kent has final say** (Design Principle 3): Agent detects and alerts;
+  task mutations only on Kent's explicit response. Pass.
+- **Narrow scope** (Directive 1): Agent handles escalation only — no
+  habits, goals, briefings, calendar. Pass.
+- **Never fail silently** (Directive 4): Vikunja/WhatsApp failures logged.
+  Pass.
+- **Earned autonomy** (Directive 2): Starts at Assisted (Level 1). Pass.
+- **Privacy** (absolute): `02-Growth/_private/` never read. Pass.
+
+No violations. No complexity tracking needed.
 
 ## Project Structure
 
 ### Documentation (this feature)
 
 ```
-kitty-specs/[###-feature]/
-├── plan.md              # This file (/spec-kitty.plan command output)
-├── research.md          # Phase 0 output (/spec-kitty.plan command)
-├── data-model.md        # Phase 1 output (/spec-kitty.plan command)
-├── quickstart.md        # Phase 1 output (/spec-kitty.plan command)
-├── contracts/           # Phase 1 output (/spec-kitty.plan command)
-└── tasks.md             # Phase 2 output (/spec-kitty.tasks command - NOT created by /spec-kitty.plan)
+kitty-specs/019-escalation-engine/
+├── plan.md              # This file
+├── spec.md              # Feature specification
+├── meta.json            # Feature identity metadata
+├── research.md          # Research findings (below)
+├── checklists/
+│   └── requirements.md  # Spec quality checklist (complete)
+└── tasks/               # Work package files (created by /spec-kitty.tasks)
 ```
 
-### Source Code (repository root)
-<!--
-  ACTION REQUIRED: Replace the placeholder tree below with the concrete layout
-  for this feature. Delete unused options and expand the chosen structure with
-  real paths (e.g., apps/admin, packages/something). The delivered plan must
-  not include Option labels.
--->
+### Files Created/Modified (repository)
 
 ```
-# [REMOVE IF UNUSED] Option 1: Single project (DEFAULT)
-src/
-├── models/
-├── services/
-├── cli/
-└── lib/
+scripts/openclaw/agents/felix-admin-escalation/
+├── SOUL.md              # Kent-voice authoring identity (copy from habits)
+├── USER.md              # Kent's context (copy from habits)
+├── IDENTITY.md          # Agent identity metadata
+├── TOOLS.md             # Vikunja API reference, escalation-specific
+└── AGENTS.md            # Standing orders: detection, alerting, response
 
-tests/
-├── contract/
-├── integration/
-└── unit/
+scripts/openclaw/skills/escalation/
+└── SKILL.md             # Self-contained escalation model
 
-# [REMOVE IF UNUSED] Option 2: Web application (when "frontend" + "backend" detected)
-backend/
-├── src/
-│   ├── models/
-│   ├── services/
-│   └── api/
-└── tests/
+docs/runbooks/
+└── escalation-ops.md    # Operations runbook
 
-frontend/
-├── src/
-│   ├── components/
-│   ├── pages/
-│   └── services/
-└── tests/
+docs/constitution/
+└── AGENT-REGISTRY.md    # Add felix-admin-escalation entry
 
-# [REMOVE IF UNUSED] Option 3: Mobile + API (when "iOS/Android" detected)
-api/
-└── [same as backend above]
-
-ios/ or android/
-└── [platform-specific structure: feature modules, UI flows, platform tests]
+docs/design/architecture/data/
+└── service-inventory.json  # Add agent and cron entries
+docs/design/architecture/
+└── service-inventory.md    # Narrative update
 ```
 
-**Structure Decision**: [Document the selected structure and reference the real
-directories captured above]
+### Deployed Files (office2)
 
-## Complexity Tracking
+```
+/data/services/openclaw/escalation-agent/
+├── SOUL.md
+├── USER.md
+├── IDENTITY.md
+├── TOOLS.md
+└── AGENTS.md
 
-*Fill ONLY if Charter Check has violations that must be justified*
+/home/claude/.openclaw/skills/escalation/
+└── SKILL.md
+```
 
-| Violation | Why Needed | Simpler Alternative Rejected Because |
-|-----------|------------|-------------------------------------|
-| [e.g., 4th project] | [current need] | [why 3 projects insufficient] |
-| [e.g., Repository pattern] | [specific problem] | [why direct DB access insufficient] |
+## Implementation Approach
+
+### Phase 1: Agent foundation
+
+Create the agent workspace files following the habits agent pattern.
+The AGENTS.md is the core — it defines the escalation detection logic,
+level determination, message formatting, comment writing, and response
+handling. The skill (SKILL.md) encodes the model in a reusable,
+self-contained format.
+
+### Phase 2: Cron and deployment
+
+Configure the OpenClaw cron job (run daily, after 7:05 AM ET, with
+WhatsApp delivery). Deploy all workspace files and skill to office2.
+Register the agent in OpenClaw.
+
+### Phase 3: Documentation and architecture
+
+Create the ops runbook. Register the agent in AGENT-REGISTRY.md.
+Update service-inventory.json and service-inventory.md.
+
+### Phase 4: Verification
+
+Trigger the escalation cron manually. Verify alert delivery, comment
+writing, and response handling. Test edge cases: silent run (no
+qualifying tasks), Level 2 escalation, snooze expiry.
+
+## Escalation State Machine
+
+```
+Task overdue (priority >= 2, not Habits/Goals)
+    │
+    ├── No prior escalation → Level 1 sent
+    │   │
+    │   ├── Kent responds (done/snooze/dismiss/reschedule) → recorded
+    │   │
+    │   └── No response for 2+ days → Level 2 sent
+    │       │
+    │       ├── Kent responds → recorded
+    │       │
+    │       └── No response → Level 2 repeated (max once/day)
+    │
+    ├── Snoozed → skip until snooze expires → re-enter at Level 1
+    │
+    ├── Dismissed → skip permanently
+    │   (unless due_date updated to future date → re-enter at Level 1)
+    │
+    └── Done → skip (task complete)
+```
+
+## Risks
+
+| Risk | Likelihood | Impact | Mitigation |
+|------|-----------|--------|------------|
+| Alert fatigue on first run (many overdue tasks) | Medium | Medium | 7-task cap, priority filter, snooze/dismiss available |
+| Level 2 tone perceived as aggressive | Low | Low | Intentional — "insistence is a feature"; configurable in skill |
+| Comment accumulation slows queries | Low | Low | Agent only reads most recent escalation comment |
+| Response parsing misidentifies task numbers | Low | Medium | Numbers match message-as-sent; out-of-range prompts clarification |
+
+---
+
+**Branch contract (confirmed)**:
+- Current branch: `main`
+- Planning/base branch: `main`
+- Merge target: `main`
+- Branch matches target: **yes**
+
+---
+
+**END OF PLAN**
