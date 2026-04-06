@@ -202,7 +202,7 @@ All `spec` (except templates/instructions). See [directory listing](func-spec/) 
 
 **Active research missions**:
 
-- [R001 — Vikunja Habit Tracking Architecture](<./func-spec/R001_vikunja_habit_tracking_architecture.md>) — informs revised F009
+- [F017 — Vikunja Habit Tracking Architecture Research](<./func-spec/F017_vikunja_habit_tracking_architecture_research.md>) — informs revised F009
 
 ---
 

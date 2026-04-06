@@ -17,3 +17,8 @@ directives:
   description: Keep documentation synchronized with workflow and behavior changes.
   severity: warn
   applies_to: []
+- id: DIR-004
+  title: 'Follow documentation standards: machine-readable f'
+  description: 'Follow documentation standards: machine-readable files (JSON) are the authoritative record; narrative markdown provides context and rationale; diagrams are the preferred format for system structure, service dependencies, data flows, and network topology. When machine-readable and narrative conflict, JSON wins.'
+  severity: warn
+  applies_to: []

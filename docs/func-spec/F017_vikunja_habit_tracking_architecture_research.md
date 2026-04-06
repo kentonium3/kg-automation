@@ -1,10 +1,10 @@
 ---
-title: "R001: Vikunja Habit Tracking Architecture"
+title: "F017: Vikunja Habit Tracking Architecture Research"
 doc_type: func-spec
 status: draft
 ---
 
-# R001: Vikunja Habit Tracking Architecture
+# F017: Vikunja Habit Tracking Architecture Research
 
 **Version**: 1.0
 **Priority**: HIGH

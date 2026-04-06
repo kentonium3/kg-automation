@@ -72,7 +72,7 @@ output → done            requires: publication approved
 ## Template Structure
 
 ```markdown
-# RXXX: [Research Topic]
+# FXXX: [Research Topic]
 
 **Version**: 1.0
 **Priority**: [HIGH | MEDIUM | LOW]

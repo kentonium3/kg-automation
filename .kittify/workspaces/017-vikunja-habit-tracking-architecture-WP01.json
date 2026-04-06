@@ -1,0 +1,12 @@
+{
+  "wp_id": "WP01",
+  "feature_slug": "017-vikunja-habit-tracking-architecture",
+  "worktree_path": ".worktrees/017-vikunja-habit-tracking-architecture-WP01",
+  "branch_name": "017-vikunja-habit-tracking-architecture-WP01",
+  "base_branch": "main",
+  "base_commit": "2a39adad78006cb5315584147485318ceed2c970",
+  "dependencies": [],
+  "created_at": "2026-04-06T18:13:51.316232+00:00",
+  "created_by": "implement-command",
+  "vcs_backend": "git"
+}
