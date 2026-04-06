@@ -16,7 +16,7 @@
 | T003 | Create SOUL.md (copy from habits agent, adapt identity) | WP02 | [P] with T002 | [D] |
 | T004 | Create USER.md (copy from habits agent) | WP02 | [P] with T002 | [D] |
 | T005 | Create TOOLS.md with Vikunja API references for escalation | WP02 | [P] with T002 | [D] |
-| T006 | Create AGENTS.md — detection, level determination, alerting | WP02 | after T001 |
+| T006 | Create AGENTS.md — detection, level determination, alerting | WP02 | after T001 | [D] |
 | T007 | Create AGENTS.md — response handling section | WP02 | after T006 |
 | T008 | Register agent in OpenClaw on office2 | WP03 | — |
 | T009 | Deploy skill to office2 | WP03 | [P] with T008 |
