@@ -1,0 +1,1 @@
+{"actor": "finalize-tasks", "at": "2026-04-06T18:40:56.771432+00:00", "event_id": "01KNJ1J3E31RM3DBXKKCF9YB0C", "evidence": null, "execution_mode": "worktree", "feature_slug": "018-habit-today-filter-visibility", "force": true, "from_lane": "planned", "policy_metadata": null, "reason": "canonical bootstrap", "review_ref": null, "to_lane": "planned", "wp_id": "WP01"}
