@@ -1,0 +1,1 @@
+/Users/kentgale/.claude/skills/spec-kitty-charter-doctrine/SKILL.md

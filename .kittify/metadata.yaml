@@ -3,9 +3,9 @@
 # DO NOT EDIT MANUALLY
 
 spec_kitty:
-  version: 3.0.3
+  version: 3.1.0a6
   initialized_at: '2026-03-25T23:07:06.539751'
-  last_upgraded_at: '2026-04-01T20:01:23.089974'
+  last_upgraded_at: '2026-04-06T14:54:59.308752'
 environment:
   python_version: 3.13.12
   platform: darwin
@@ -87,3 +87,8 @@ migrations:
     applied_at: '2026-04-01T20:01:23.084257'
     result: skipped
     notes: Not applicable
+  - id: 3.0.3_globalize_skill_pack
+    applied_at: '2026-04-06T14:54:59.298788'
+    result: success
+    notes: Relinked 10 canonical skill(s) for 4 agent(s) (112 managed files); Updated
+      .kittify/skills-manifest.json for global canonical skill links

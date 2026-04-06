@@ -1,0 +1,1 @@
+/Users/kentgale/.agents/skills/ad-hoc-profile-load/SKILL.md
