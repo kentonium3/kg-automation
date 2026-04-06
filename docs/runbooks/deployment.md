@@ -1,7 +1,7 @@
 ---
 title: Deployment Runbook
 doc_type: runbook
-audience: both
+audience: agents_and_humans
 status: approved
 ---
 

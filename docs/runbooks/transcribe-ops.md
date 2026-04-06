@@ -1,7 +1,7 @@
 ---
 title: Transcribe API Operations Runbook
 doc_type: runbook
-audience: agent-executable
+audience: agents
 status: draft
 ---
 

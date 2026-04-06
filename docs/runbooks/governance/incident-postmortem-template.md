@@ -2,7 +2,7 @@
 title: Incident Postmortem Template
 doc_type: runbook
 status: approved
-audience: both
+audience: agents_and_humans
 owners: [kgale]
 last_validated: 2026-04-05
 ---

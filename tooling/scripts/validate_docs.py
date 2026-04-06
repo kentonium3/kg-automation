@@ -34,8 +34,9 @@ if POLICY_FILE.exists():
 
 # ---------- Load allowed values ----------
 ALLOWED_VALUES = {
-    'doc_type': {'strategy','charter','decision','policy','handbook','runbook',
-                 'guide','reference','readme','index','project','note','func-spec'},
+    'doc_type': {'strategy','charter','decision','explanation','policy','handbook',
+                 'postmortem','runbook','guide','reference','readme','index',
+                 'project','note','func-spec','standard'},
     'status': {'draft','in_review','approved','deprecated','archived'},
     'level': {'overview','concept','howto','reference','policy'},
     'audience': {'agents','humans','agents_and_humans'},

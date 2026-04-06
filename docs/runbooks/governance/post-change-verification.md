@@ -2,14 +2,14 @@
 title: Post-Change Verification Protocol
 doc_type: runbook
 status: approved
-audience: both
+audience: agents_and_humans
 owners: [kgale]
 last_validated: 2026-04-05
 ---
 
 # Post-Change Verification Protocol
 
-Mandatory verification after Tier 0, 1, and 2 changes. Uses health-check endpoints from the [enriched service inventory](../../design/architecture/data/service-inventory.json).
+Mandatory verification after Tier 0, 1, and 2 changes. Uses health-check endpoints from the [enriched service inventory](<../../design/architecture/data/service-inventory.json>).
 
 ---
 
@@ -17,7 +17,7 @@ Mandatory verification after Tier 0, 1, and 2 changes. Uses health-check endpoin
 
 1. **Wait 30 seconds** after the change completes to allow services to stabilize.
 
-2. **For EACH dependent service** identified during the [pre-flight checklist](pre-flight-checklist.md) step 2:
+2. **For EACH dependent service** identified during the [pre-flight checklist](<./pre-flight-checklist.md>) step 2:
    - Run its health-check endpoint (from `service-inventory.json`)
    - Compare result against `health_check.expected` value
    - Record: service name, endpoint, expected, actual, pass/fail
@@ -46,7 +46,7 @@ Do NOT wait for the service to recover on its own. Execute the rollback procedur
 
 **After rollback**:
 - Confirm all dependent services pass their health checks
-- Document what failed and why in an [incident postmortem](incident-postmortem-template.md) if the outage lasted more than 15 minutes or affected users
+- Document what failed and why in an [incident postmortem](<./incident-postmortem-template.md>) if the outage lasted more than 15 minutes or affected users
 
 ---
 

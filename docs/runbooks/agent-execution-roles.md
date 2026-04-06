@@ -8,7 +8,7 @@ owners: ["@kentonium3"]
 last_validated: 2025-10-18
 last_updated: '2025-10-29'
 revision: v1.0
-audience: human-only
+audience: humans
 ---
 
 | Capability | Handoff Runner (GH Actions) | Claude Code |

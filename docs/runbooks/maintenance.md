@@ -8,7 +8,7 @@ owners: [kent@intentional.biz]
 last_validated: 2025-10-15
 last_updated: '2025-10-29'
 revision: v1.0
-audience: both
+audience: agents_and_humans
 ---
 # Maintenance & Housekeeping
 

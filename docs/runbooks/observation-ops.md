@@ -1,7 +1,7 @@
 ---
 title: Observation Intelligence Layer — Operations Runbook
 doc_type: runbook
-audience: both
+audience: agents_and_humans
 status: approved
 feature: F014
 ---

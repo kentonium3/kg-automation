@@ -2,7 +2,7 @@
 ---
 title: Spec-Kitty Installation Guide for Existing Repositories
 doc_type: runbook
-audience: human-only
+audience: humans
 status: draft
 ---
 # Spec-Kitty Installation Guide for Existing Repositories

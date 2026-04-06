@@ -1,7 +1,7 @@
 ---
 title: Inbox Processing Operations Runbook
 doc_type: runbook
-audience: agent-executable
+audience: agents
 status: draft
 ---
 

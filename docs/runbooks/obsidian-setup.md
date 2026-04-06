@@ -9,7 +9,7 @@ owners:
 last_updated: '2025-11-01'
 last_validated: '2025-11-01'
 revision: v1.0
-audience: both
+audience: agents_and_humans
 ---
 
 # Obsidian Setup Guide

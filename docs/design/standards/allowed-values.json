@@ -3,8 +3,10 @@
     "strategy",
     "charter",
     "decision",
+    "explanation",
     "policy",
     "handbook",
+    "postmortem",
     "runbook",
     "guide",
     "reference",
@@ -12,7 +14,8 @@
     "index",
     "project",
     "note",
-    "func-spec"
+    "func-spec",
+    "standard"
   ],
   "level": [
     "overview",

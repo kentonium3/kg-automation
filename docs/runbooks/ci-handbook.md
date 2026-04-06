@@ -8,7 +8,7 @@ owners: [kent@intentional.biz]
 last_validated: 2025-11-01
 last_updated: '2025-10-29'
 revision: v1.0
-audience: human-only
+audience: humans
 ---
 
 # What the CI does

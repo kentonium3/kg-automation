@@ -2,14 +2,14 @@
 title: Pre-Flight Change Checklist
 doc_type: runbook
 status: approved
-audience: both
+audience: agents_and_humans
 owners: [kgale]
 last_validated: 2026-04-05
 ---
 
 # Pre-Flight Change Checklist
 
-Mandatory assessment before Tier 0, 1, and 2 changes per the [change-risk taxonomy](../../design/architecture/data/change-risk-taxonomy.json). Referenced from [CLAUDE.md](../../../CLAUDE.md) guardrail rules and [change-control.md](../../design/architecture/change-control.md).
+Mandatory assessment before Tier 0, 1, and 2 changes per the [change-risk taxonomy](<../../design/architecture/data/change-risk-taxonomy.json>). Referenced from [CLAUDE.md](../../../CLAUDE.md) guardrail rules and [change-control.md](<../../design/architecture/change-control.md>).
 
 ---
 
@@ -27,7 +27,7 @@ Complete ALL steps before executing the change:
 
 - [ ] **5. Confirm operator availability** — Kent must be present and able to respond to issues before the change is applied. This is NOT a maintenance window — it is an availability check appropriate for a solo operator. If Kent is unavailable, defer the change.
 
-- [ ] **6. Define post-change verification plan** — list which health checks to run (from step 3), in what order, and what constitutes success. Reference the [post-change verification protocol](post-change-verification.md).
+- [ ] **6. Define post-change verification plan** — list which health checks to run (from step 3), in what order, and what constitutes success. Reference the [post-change verification protocol](<./post-change-verification.md>).
 
 ---
 
