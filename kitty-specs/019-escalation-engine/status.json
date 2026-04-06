@@ -1,7 +1,7 @@
 {
-  "event_count": 5,
-  "last_event_id": "01KNJ6MCJ17S5WKSY8NDK9X6PP",
-  "materialized_at": "2026-04-06T20:09:34.530309+00:00",
+  "event_count": 6,
+  "last_event_id": "01KNJ6MEEMN8V2PXSPG0GJMSXJ",
+  "materialized_at": "2026-04-06T20:09:36.469799+00:00",
   "mission_slug": "019-escalation-engine",
   "summary": {
     "approved": 0,
@@ -9,9 +9,9 @@
     "canceled": 0,
     "claimed": 0,
     "done": 0,
-    "for_review": 1,
+    "for_review": 2,
     "in_progress": 0,
-    "planned": 3
+    "planned": 2
   },
   "work_packages": {
     "WP01": {
@@ -22,11 +22,11 @@
       "last_transition_at": "2026-04-06T20:09:34.529433+00:00"
     },
     "WP02": {
-      "actor": "finalize-tasks",
-      "force_count": 1,
-      "lane": "planned",
-      "last_event_id": "01KNJ4SVKB20Q3CQ7V937YDKYE",
-      "last_transition_at": "2026-04-06T19:37:36.620013+00:00"
+      "actor": "user",
+      "force_count": 2,
+      "lane": "for_review",
+      "last_event_id": "01KNJ6MEEMN8V2PXSPG0GJMSXJ",
+      "last_transition_at": "2026-04-06T20:09:36.468430+00:00"
     },
     "WP03": {
       "actor": "finalize-tasks",
