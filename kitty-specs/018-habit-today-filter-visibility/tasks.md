@@ -34,7 +34,7 @@ workflow, update the runbook, deploy to office2, and verify habits appear
 in the Vikunja Today filter.
 
 **Included subtasks**:
-- [ ] T001 — Read current AGENTS.md and identify insertion point
+- [x] T001 — Read current AGENTS.md and identify insertion point
 - [ ] T002 — Add due_date step to AGENTS.md (repo copy)
 - [ ] T003 — Update habits-ops.md runbook
 - [ ] T004 — Deploy updated AGENTS.md to office2
