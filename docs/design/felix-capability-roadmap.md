@@ -3,7 +3,7 @@ title: "Felix — Capability Roadmap & Strategy"
 doc_type: reference
 status: approved
 owners: ["@kentonium3"]
-last_updated: '2026-04-05'
+last_updated: '2026-04-06'
 revision: v0.3
 audience: agents_and_humans
 ---
@@ -167,7 +167,7 @@ EA is ready to expand to additional capability areas when all of the following a
 
 ### F-Series Feature Progress
 
-**Completed: F001–F016**
+**Completed: F001–F018**
 
 | # | Feature | Type | Cluster |
 |---|---------|------|---------|

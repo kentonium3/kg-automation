@@ -190,7 +190,9 @@ All `spec` (except templates/instructions). See [directory listing](func-spec/) 
 - F013 — Vikunja Task Intelligence Agent
 - F014 — Felix Core Digest
 - F015 — Documentation Architecture Rationalization (this feature)
-- F016 — Change Control Governance (pending spec-kitty)
+- F016 — Change Control Governance & Incident Management
+- F017 — Vikunja Habit Tracking Architecture Research
+- F018 — Habit Today Filter Visibility
 - FUTURE — Commitment Manager Agent
 
 **Templates & instructions**:
