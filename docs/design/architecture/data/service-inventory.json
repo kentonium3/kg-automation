@@ -1,7 +1,7 @@
 {
   "schema_version": "1.1",
-  "last_updated": "2026-04-06",
-  "updated_by": "F019",
+  "last_updated": "2026-04-05",
+  "updated_by": "F016",
   "services": [
     {
       "name": "vikunja",
@@ -255,17 +255,6 @@
           "deployed_by": "F013",
           "autonomy_level": "assisted",
           "updated_by": "F013"
-        },
-        "felix-admin-escalation": {
-          "workspace": "/data/services/openclaw/escalation-agent",
-          "model": "anthropic/claude-sonnet-4-6",
-          "purpose": "Overdue task escalation — detects overdue tasks, delivers WhatsApp alerts, tracks escalation state via comments",
-          "source_in_repo": "scripts/openclaw/agents/felix-admin-escalation/",
-          "skills": ["escalation", "vikunja-api"],
-          "triggers": ["cron", "manual"],
-          "deployed_by": "F019",
-          "autonomy_level": "assisted",
-          "updated_by": "F019"
         }
       },
       "risk_tier": 2,
@@ -364,33 +353,6 @@
       },
       "config_files": [
         {"path": "/data/services/openclaw/tasker-agent/AGENTS.md", "format": "markdown", "source_in_repo": "scripts/openclaw/agents/felix-admin-tasker/AGENTS.md"}
-      ]
-    },
-    {
-      "name": "escalation-daily",
-      "type": "openclaw-cron",
-      "host": "office2",
-      "agent": "felix-admin-escalation",
-      "schedules": [
-        {"name": "escalation-daily", "cron": "0 12 * * *", "local_time": "8:00 AM ET daily"}
-      ],
-      "timeout_seconds": 120,
-      "session_mode": "isolated",
-      "delivery": {"to": "+16179300916", "channel": "whatsapp"},
-      "deployed_by": "F019",
-      "status": "active",
-      "purpose": "Daily overdue task escalation check and WhatsApp alert delivery",
-      "updated_by": "F019",
-      "risk_tier": 3,
-      "dependencies": [
-        {"target": "openclaw-gateway:18789", "type": "requires", "description": "Dispatched by OpenClaw cron scheduler"}
-      ],
-      "health_check": {
-        "method": "none",
-        "note": "Scheduled job — health inferred from agent activity logs"
-      },
-      "config_files": [
-        {"path": "/data/services/openclaw/escalation-agent/AGENTS.md", "format": "markdown", "source_in_repo": "scripts/openclaw/agents/felix-admin-escalation/AGENTS.md"}
       ]
     },
     {

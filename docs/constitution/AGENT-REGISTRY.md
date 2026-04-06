@@ -57,20 +57,3 @@ The authoritative record for agent registration and autonomy levels is
 | Date | Level | Direction | Reason | Decided By |
 |------|-------|-----------|--------|------------|
 | 2026-04-02 | Assisted | Registration | Initial registration under Felix governance framework (F013) | Kent Gale |
-
----
-
-## felix-admin-escalation
-
-**Team**: SuperAdmin (B)
-**Scope**: Overdue and at-risk task escalation — detects tasks past due date, delivers level-appropriate WhatsApp alerts, tracks escalation state via Vikunja comments, handles responses
-**Does NOT handle**: Habits, inbox processing, task structuring, briefings, calendar, goal-level commitment assessment
-**Current Autonomy Level**: Assisted (Level 1)
-**Deployed**: F019 (2026-04-06)
-**Registered**: F019 (2026-04-06)
-
-### Transition History
-
-| Date | Level | Direction | Reason | Decided By |
-|------|-------|-----------|--------|------------|
-| 2026-04-06 | Assisted | Registration | Initial registration under Felix governance framework (F019) | Kent Gale |
