@@ -4,7 +4,7 @@ doc_type: reference
 status: approved
 owners:
   - "@kentonium3"
-last_updated: '2026-04-03'
+last_updated: '2026-04-05'
 revision: v0.3
 audience: agents_and_humans
 ---
@@ -12,7 +12,7 @@ audience: agents_and_humans
 # Felix — Capability Roadmap & Strategy
 ## Living Document — Status & Decision Support
 
-**Last updated**: 2026-04-03 | **Current focus**: Executive Assistant (Area B) | **F-Series**: F013 complete, F014 next
+**Last updated**: 2026-04-05 | **Current focus**: Executive Assistant (Area B) | **F-Series**: F016 complete, F017 next
 
 ---
 
@@ -168,7 +168,7 @@ EA is ready to expand to additional capability areas when all of the following a
 
 ### F-Series Feature Progress
 
-**Completed: F001–F013**
+**Completed: F001–F016**
 
 | # | Feature | Type | Cluster |
 |---|---------|------|---------|
@@ -185,21 +185,24 @@ EA is ready to expand to additional capability areas when all of the following a
 | F011 | Second brain vault cleanup | U | Knowledge Foundation |
 | F012 | Constitution + agent governance setup | I | Knowledge Foundation |
 | F013 | Vikunja Task Intelligence Agent (`felix-admin-tasker`) | U | Task Intelligence |
+| F014 | Felix Core Digest | U | Briefing & Reporting |
+| F015 | Documentation Architecture Rationalization | I | Infrastructure Core |
+| F016 | Change Control Governance & Incident Management | I | Infrastructure Core |
 
 **Planned (not yet spec'd, sequenced by dependency)**
 
 | Feature | Type | Cluster | Depends On |
 |---------|------|---------|------------|
-| Escalation engine (F014) | I | Accountability Engine | F013 |
-| Commitment Manager Agent | U | Accountability Engine | F013, F014 |
-| Google Calendar skill — OAuth (F015) | I | Calendar Integration | F013 |
-| Task ↔ calendar event linking (F016) | U | Calendar Integration | F015 |
-| Daily briefing heartbeat (F017) | U | Briefing & Reporting | F013, F015 |
-| Level 1–2 escalation heartbeat (F018) | U | Accountability Engine | F014, F015 |
-| Gmail integration skill (F019) | I | Email Integration | F015 OAuth creds |
-| Email triage + digest agent (F020) | U | Email Integration | F019 |
-| Solicitation folder hygiene (F021) | U | Email Integration | F019 |
-| Deep research job management | U | Task Intelligence | F014, F017 |
+| Escalation engine (F017) | I | Accountability Engine | F013 |
+| Commitment Manager Agent (F018) | U | Accountability Engine | F013, F017 |
+| Google Calendar skill — OAuth (F019) | I | Calendar Integration | F013 |
+| Task ↔ calendar event linking (F020) | U | Calendar Integration | F019 |
+| Daily briefing heartbeat (F021) | U | Briefing & Reporting | F013, F019 |
+| Level 1–2 escalation heartbeat (F022) | U | Accountability Engine | F017, F019 |
+| Gmail integration skill (F023) | I | Email Integration | F019 OAuth creds |
+| Email triage + digest agent (F024) | U | Email Integration | F023 |
+| Solicitation folder hygiene (F025) | U | Email Integration | F023 |
+| Deep research job management | U | Task Intelligence | F017, F021 |
 
 ---
 
