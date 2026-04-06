@@ -35,7 +35,7 @@ in the Vikunja Today filter.
 
 **Included subtasks**:
 - [x] T001 — Read current AGENTS.md and identify insertion point
-- [ ] T002 — Add due_date step to AGENTS.md (repo copy)
+- [x] T002 — Add due_date step to AGENTS.md (repo copy)
 - [ ] T003 — Update habits-ops.md runbook
 - [ ] T004 — Deploy updated AGENTS.md to office2
 - [ ] T005 — Verify Today filter visibility
