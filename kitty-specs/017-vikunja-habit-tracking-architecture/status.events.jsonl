@@ -1,0 +1,1 @@
+{"actor": "finalize-tasks", "at": "2026-04-06T18:06:30.646421+00:00", "event_id": "01KNHZK1QNPMMX2TKPGSV1NDX7", "evidence": null, "execution_mode": "worktree", "feature_slug": "017-vikunja-habit-tracking-architecture", "force": true, "from_lane": "planned", "policy_metadata": null, "reason": "canonical bootstrap", "review_ref": null, "to_lane": "planned", "wp_id": "WP01"}
