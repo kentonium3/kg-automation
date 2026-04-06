@@ -1,0 +1,20 @@
+{
+  "wp_id": "WP01",
+  "mission_slug": "019-escalation-engine",
+  "worktree_path": ".worktrees/019-escalation-engine-lane-a",
+  "branch_name": "kitty/mission-019-escalation-engine-lane-a",
+  "base_branch": "kitty/mission-019-escalation-engine",
+  "base_commit": "2b8c5bee4cd0d599647f500242ae9ab1c3dab340",
+  "dependencies": [],
+  "created_at": "2026-04-06T19:50:11.710693+00:00",
+  "created_by": "implement-command-lane",
+  "vcs_backend": "git",
+  "lane_id": "lane-a",
+  "lane_wp_ids": [
+    "WP01",
+    "WP02",
+    "WP03",
+    "WP04"
+  ],
+  "current_wp": "WP01"
+}

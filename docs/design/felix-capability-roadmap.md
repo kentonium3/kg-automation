@@ -195,15 +195,16 @@ EA is ready to expand to additional capability areas when all of the following a
 | Feature | Type | Cluster | Depends On |
 |---------|------|---------|------------|
 | Escalation engine (F019) | I | Accountability Engine | F013 |
-| Commitment Manager Agent (F020) | U | Accountability Engine | F013, F019 |
-| Google Calendar skill — OAuth (F021) | I | Calendar Integration | F013 |
-| Task ↔ calendar event linking (F022) | U | Calendar Integration | F021 |
-| Daily briefing heartbeat (F023) | U | Briefing & Reporting | F013, F021 |
-| Level 1–2 escalation heartbeat (F024) | U | Accountability Engine | F019, F021 |
-| Gmail integration skill (F025) | I | Email Integration | F021 OAuth creds |
-| Email triage + digest agent (F026) | U | Email Integration | F025 |
-| Solicitation folder hygiene (F027) | U | Email Integration | F025 |
-| Deep research job management (F028) | U | Task Intelligence | F019, F023 |
+| spec-kitty charter setup and governance migration (F020) | I | Infrastructure Core | — |
+| Commitment Manager Agent (F021) | U | Accountability Engine | F013, F019 |
+| Google Calendar skill — OAuth (F022) | I | Calendar Integration | F013 |
+| Task ↔ calendar event linking (F023) | U | Calendar Integration | F022 |
+| Daily briefing heartbeat (F024) | U | Briefing & Reporting | F013, F022 |
+| Level 1–2 escalation heartbeat (F025) | U | Accountability Engine | F019, F022 |
+| Gmail integration skill (F026) | I | Email Integration | F022 OAuth creds |
+| Email triage + digest agent (F027) | U | Email Integration | F026 |
+| Solicitation folder hygiene (F028) | U | Email Integration | F026 |
+| Deep research job management (F029) | U | Task Intelligence | F019, F024 |
 
 ---
 

@@ -2,6 +2,7 @@
 title: Spec-Kitty Workflow Journal
 doc_type: diagnostic
 status: active
+tags: [416]
 ---
 
 # Spec-Kitty Workflow Journal
@@ -206,6 +207,7 @@ Only WP11's dependencies survived parsing, AND the parser spuriously added `WP01
 **Hypothesis**: The dependency parser in `finalize-tasks` uses a regex pattern that requires "depends on WP##" or "Dependencies: WP##" explicit phrases, NOT the bulleted `- WP## (reason)` format that the slash-command prompt tells the LLM to generate. When the parser finds no match, it writes `dependencies: []` to the frontmatter, silently destroying the LLM's work.
 
 **Supporting observation**: The slash-command prompt (v3.0.3) tells the LLM:
+
 > "Parse dependencies from tasks.md for dependency relationships:
 > - Explicit phrases: 'Depends on WP##', 'Dependencies: WP##'
 > - Phase grouping: Phase 2 WPs typically depend on Phase 1
@@ -220,6 +222,7 @@ The LLM did follow this — multiple phrase forms were used in tasks.md. But the
 - User decision: **manually patch the WP frontmatter to restore the dependency DAG** (option 2 from the reported options). Rationale: restoring the expected functional state is necessary for downstream `/spec-kitty.implement` to honor the dependency DAG. This is a post-workflow-error repair, not a pre-emptive workaround.
 
 **Resolution**: bug-filed-candidate — recommend filing upstream:
+
 > "finalize-tasks destroys LLM-authored dependencies frontmatter when parser fails to match bullet-format `### Dependencies` sections in tasks.md. Parser and slash-command-prompt guidance are inconsistent: the slash-command tells the LLM to parse bullet lists and write them to frontmatter; finalize-tasks then parses tasks.md again with a narrower regex and zeros out whatever the LLM wrote."
 
 **Downstream impact**:
@@ -301,6 +304,7 @@ Since the file write happens on disk (not just in memory), any subsequent `git a
 - Documentation / mental models for `--validate-only` lead users to expect a safe dry-run. This violates that contract.
 
 **Resolution**: bug-filed-candidate — recommend filing upstream:
+
 > "finalize-tasks --validate-only is not actually read-only. The bootstrap step inside finalize-tasks runs unconditionally and rewrites WP frontmatter even when --validate-only is set. Either (a) bootstrap should be skipped under --validate-only, or (b) bootstrap should be idempotent (read current frontmatter, preserve if non-empty), or (c) the flag should be renamed to reflect that it's not read-only."
 
 **Mitigation applied**: After discovering the revert, re-applied the 7 patches with the Edit tool and immediately committed them via git. Committed in commit `64c0632` on main. Verified post-commit that the stored frontmatter contains the correct dependency DAG (confirmed via grep against all 11 WP files).
@@ -318,6 +322,7 @@ Since the file write happens on disk (not just in memory), any subsequent `git a
 
 **What the analyze prompt says**:
 The `/spec-kitty.analyze` slash-command's "Next Actions" section instructs the LLM to suggest:
+
 > "Provide explicit command suggestions: e.g., 'Run /spec-kitty.specify with refinement', 'Run /plan to adjust architecture', 'Manually edit tasks.md to add coverage for performance-metrics'"
 
 **What actually works in spec-kitty 3.0.3**:
