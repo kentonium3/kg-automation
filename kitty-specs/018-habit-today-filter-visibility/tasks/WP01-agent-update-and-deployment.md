@@ -17,7 +17,8 @@ base_branch: main
 base_commit: 157e6bf55db76c16ca8c50016fad3b8f2fc6e2a6
 created_at: '2026-04-06T18:42:42.938147+00:00'
 subtasks: [T001, T002, T003, T004, T005]
-shell_pid: '5091'
+shell_pid: "6204"
+agent: "claude"
 history:
 - date: '2026-04-06'
   action: created
@@ -286,3 +287,4 @@ should (strength training and wake-at-5 are not scheduled).
 ## Activity Log
 
 - 2026-04-06T18:47:46Z – unknown – shell_pid=5091 – Moved to for_review
+- 2026-04-06T18:47:52Z – claude – shell_pid=6204 – Started review via workflow command
