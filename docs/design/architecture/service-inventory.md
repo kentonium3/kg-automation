@@ -31,6 +31,7 @@ All services run on office2 unless otherwise noted.
 | Habit Check-in (morning) | 7:05 AM ET daily | OpenClaw cron → felix-admin-habits | claude | Daily habit check-in via WhatsApp |
 | Habit Report (weekly) | Sunday 6PM ET | OpenClaw cron → felix-admin-habits | claude | Weekly habit pattern report via WhatsApp |
 | Incomplete Task Detection | Every 4 hours (`0 */4 * * *`) | OpenClaw cron → felix-admin-tasker | claude | Poll Inbox for flat tasks |
+| Escalation Check (daily) | 8:00 AM ET daily | OpenClaw cron → felix-admin-escalation | claude | Overdue task escalation via WhatsApp |
 | Second Brain Sync | Every 15 min | `second-brain-sync.timer` (systemd) | kgale | Bidirectional git sync for non-vault content |
 | Felix Core Digest | Every 15 min | `felix-core-digest.timer` (systemd) | claude | Agent activity log summarization → Obsidian digests |
 
@@ -151,6 +152,21 @@ openclaw cron add \
 - Balances detection speed vs. polling overhead
 - Not too frequent (avoids redundant checks) but catches tasks within half a workday
 - Configurable: adjust via `openclaw cron update` if 4 hours is too frequent/infrequent
+
+### Felix Admin Escalation Agent (F019)
+- **Deployed by**: F019
+- **Type**: OpenClaw agent (sub-agent of the gateway)
+- **Agent name**: `felix-admin-escalation`
+- **Workspace**: `/data/services/openclaw/escalation-agent/`
+- **Source in repo**: `scripts/openclaw/agents/felix-admin-escalation/`
+- **Model**: `anthropic/claude-sonnet-4-6`
+- **Purpose**: Overdue task escalation — detects tasks past due date, delivers level-appropriate WhatsApp alerts, tracks escalation state via Vikunja comments
+- **Skills**: escalation, vikunja-api
+- **Autonomy**: Assisted (Level 1)
+- **Trigger**: Cron (daily), manual
+- **Schedule**: Daily at 8:00 AM ET via OpenClaw cron (`0 12 * * *`)
+- **Delivery**: WhatsApp to +16179300916
+- **Privacy boundary**: `02-Growth/_private/` is never accessed
 
 ### Felix Core Digest (F014)
 - **Deployed by**: F014

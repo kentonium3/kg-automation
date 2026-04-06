@@ -194,7 +194,7 @@ All `spec` (except templates/instructions). See [directory listing](func-spec/) 
 - F017 — Vikunja Habit Tracking Architecture Research
 - F018 — Habit Today Filter Visibility
 - F019 — Escalation Engine
-- F020 — spec-kitty Charter Setup and Governance Migration
+- F020 — Google Calendar OAuth Skill
 - FUTURE — Commitment Manager Agent
 
 **Templates & instructions**:

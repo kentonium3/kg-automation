@@ -1,0 +1,57 @@
+schema_version: 1.0.0
+mission: software-dev
+profile: minimal
+answers:
+  project_intent: Deliver digital assistant and automation capabilities which 
+    allow Kent to maximize time spent on high value tasks while driving 
+    accountable action on jpersonal and business goals.
+  languages_frameworks: Python 3.11+, Bash, Docker, YAML/Markdown docs. Vikunja 
+    REST API, Anthropic Claude API, OpenClaw skills.   Obsidian for knowledge 
+    store.
+  testing_requirements: Validate all docs via validate_docs.py (frontmatter + 
+    secret scan) in CI. Python scripts must be tested   manually before merge. 
+    Add pytest coverage for any non-trivial Python modules as they emerge. No 
+    fixed       coverage target yet.
+  quality_gates: 'CI validation passes (validate_docs.py: frontmatter compliance +
+    secret scan) on every push to main. Self-review of diff before push.'
+  review_policy: Solo maintainer project. Push directly to main. Use Claude Code
+    or Claude Desktop as architectural review partner when changes touch the 
+    v0.3 spec or cross-cutting concerns.
+  performance_targets: Inbox processing completes within 60 seconds of trigger. 
+    WhatsApp command responses within 10 seconds.    CI validation under 30 
+    seconds. Heartbeat schedules fire on time.
+  deployment_constraints: Production services run on office2 (Ubuntu 24.04 LTS).
+    Mac is authoring only. All scripts and configs target Linux unless 
+    explicitly noted. Services accessible via Tailscale only — never exposed to 
+    public internet. Every feature that deploys to office2 must include a deploy
+    script at `scripts/deploy/deploy-f{NNN}.sh`. See 
+    `docs/runbooks/deployment.md` for the full deployment pattern.
+selected_paradigms:
+- DOCS_ADJACENT
+selected_directives:
+- DIRECTIVE_001
+- DIRECTIVE_003
+- DIRECTIVE_010
+- DIRECTIVE_018
+- DIRECTIVE_024
+- DIRECTIVE_025
+- DIRECTIVE_028
+- DIRECTIVE_029
+- DIRECTIVE_030
+- DIRECTIVE_031
+- DIRECTIVE_032
+- DIRECTIVE_033
+- DIRECTIVE_034
+available_tools:
+- spec-kitty
+- vs code
+- git
+- github
+- pytest
+- python
+- mermaid
+- claude
+- gemini
+- codex
+agent_profile:
+agent_role:

@@ -11,7 +11,7 @@ audience: agents_and_humans
 # Felix — Capability Roadmap & Strategy
 ## Living Document — Status & Decision Support
 
-**Last updated**: 2026-04-06 | **Current focus**: Executive Assistant (Area B) | **F-Series**: F018 complete, F019 next
+**Last updated**: 2026-04-06 | **Current focus**: Executive Assistant (Area B) | **F-Series**: F019 complete, F020 next
 
 ---
 
@@ -189,22 +189,21 @@ EA is ready to expand to additional capability areas when all of the following a
 | F016 | Change Control Governance & Incident Management | I | Infrastructure Core |
 | F017 | Vikunja Habit Tracking Architecture Research | I | Infrastructure Core |
 | F018 | Habit Today Filter Visibility | U | Task Intelligence |
+| F019 | Escalation Engine | I | Accountability Engine |
 
 **Planned (not yet spec'd, sequenced by dependency)**
 
 | Feature | Type | Cluster | Depends On |
 |---------|------|---------|------------|
-| Escalation engine (F019) | I | Accountability Engine | F013 |
-| spec-kitty charter setup and governance migration (F020) | I | Infrastructure Core | — |
-| Commitment Manager Agent (F021) | U | Accountability Engine | F013, F019 |
-| Google Calendar skill — OAuth (F022) | I | Calendar Integration | F013 |
-| Task ↔ calendar event linking (F023) | U | Calendar Integration | F022 |
-| Daily briefing heartbeat (F024) | U | Briefing & Reporting | F013, F022 |
-| Level 1–2 escalation heartbeat (F025) | U | Accountability Engine | F019, F022 |
-| Gmail integration skill (F026) | I | Email Integration | F022 OAuth creds |
-| Email triage + digest agent (F027) | U | Email Integration | F026 |
-| Solicitation folder hygiene (F028) | U | Email Integration | F026 |
-| Deep research job management (F029) | U | Task Intelligence | F019, F024 |
+| Google Calendar skill — OAuth (F020) | I | Calendar Integration | F013 |
+| Task ↔ calendar event linking (F021) | U | Calendar Integration | F020 |
+| Daily briefing heartbeat (F022) | U | Briefing & Reporting | F013, F020 |
+| Level 1–2 escalation heartbeat (F023) | U | Accountability Engine | F019, F020 |
+| Gmail integration skill (F024) | I | Email Integration | F020 OAuth creds |
+| Email triage + digest agent (F025) | U | Email Integration | F024 |
+| Solicitation folder hygiene (F026) | U | Email Integration | F024 |
+| Commitment Manager Agent | U | Accountability Engine | F013, F019 |
+| Deep research job management | U | Task Intelligence | F019, F022 |
 
 ---
 

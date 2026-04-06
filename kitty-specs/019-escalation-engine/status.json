@@ -1,46 +1,46 @@
 {
-  "event_count": 12,
-  "last_event_id": "01KNJ6NNWSJ1F4R55KVCH2V582",
-  "materialized_at": "2026-04-06T20:10:16.859050+00:00",
+  "event_count": 16,
+  "last_event_id": "01KNJ6R6F81V34AXS9NVM6MBC4",
+  "materialized_at": "2026-04-06T20:11:39.369180+00:00",
   "mission_slug": "019-escalation-engine",
   "summary": {
-    "approved": 4,
+    "approved": 0,
     "blocked": 0,
     "canceled": 0,
     "claimed": 0,
-    "done": 0,
+    "done": 4,
     "for_review": 0,
     "in_progress": 0,
     "planned": 0
   },
   "work_packages": {
     "WP01": {
-      "actor": "user",
+      "actor": "merge",
       "force_count": 3,
-      "lane": "approved",
-      "last_event_id": "01KNJ6NGHXNDXN1NRPHQX976HR",
-      "last_transition_at": "2026-04-06T20:10:11.390032+00:00"
+      "lane": "done",
+      "last_event_id": "01KNJ6R6B879SABC6R5A6QSPT0",
+      "last_transition_at": "2026-04-06T20:11:39.240416+00:00"
     },
     "WP02": {
-      "actor": "user",
+      "actor": "merge",
       "force_count": 3,
-      "lane": "approved",
-      "last_event_id": "01KNJ6NJC9M0VJ7VQN3D8BQN70",
-      "last_transition_at": "2026-04-06T20:10:13.257817+00:00"
+      "lane": "done",
+      "last_event_id": "01KNJ6R6EK602BQGY2BVVY07YQ",
+      "last_transition_at": "2026-04-06T20:11:39.347956+00:00"
     },
     "WP03": {
-      "actor": "user",
+      "actor": "merge",
       "force_count": 3,
-      "lane": "approved",
-      "last_event_id": "01KNJ6NM51F85H67CCC1A8Z3F9",
-      "last_transition_at": "2026-04-06T20:10:15.073244+00:00"
+      "lane": "done",
+      "last_event_id": "01KNJ6R6EYBYM1RVJKB4HBKK24",
+      "last_transition_at": "2026-04-06T20:11:39.358259+00:00"
     },
     "WP04": {
-      "actor": "user",
+      "actor": "merge",
       "force_count": 3,
-      "lane": "approved",
-      "last_event_id": "01KNJ6NNWSJ1F4R55KVCH2V582",
-      "last_transition_at": "2026-04-06T20:10:16.857862+00:00"
+      "lane": "done",
+      "last_event_id": "01KNJ6R6F81V34AXS9NVM6MBC4",
+      "last_transition_at": "2026-04-06T20:11:39.368353+00:00"
     }
   }
 }
