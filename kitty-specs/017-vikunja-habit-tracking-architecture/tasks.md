@@ -40,7 +40,7 @@ evidence-backed answers and an architecture recommendation.
 - [x] T003 — Research RQ-1: Vikunja recurring task behavior
 - [x] T004 — Evaluate RQ-3: three candidate approaches vs. five criteria
 - [x] T005 — Confirm RQ-4: API capabilities for recommended approach
-- [ ] T006 — Write architecture recommendation
+- [x] T006 — Write architecture recommendation
 
 **Parallel opportunities**: T002 and T003 are independent after T001
 completes (version verification). Both can proceed simultaneously.
