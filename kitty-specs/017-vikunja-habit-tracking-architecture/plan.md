@@ -1,108 +1,173 @@
-# Implementation Plan: [FEATURE]
-*Path: [templates/plan-template.md](templates/plan-template.md)*
+# Implementation Plan: F017 Vikunja Habit Tracking Architecture
 
+**Branch**: `main` | **Date**: 2026-04-06 | **Spec**: [spec.md](spec.md)
+**Input**: Feature specification from `kitty-specs/017-vikunja-habit-tracking-architecture/spec.md`
+**Mission**: research
 
-**Branch**: `[###-feature-name]` | **Date**: [DATE] | **Spec**: [link]
-**Input**: Feature specification from `/kitty-specs/[###-feature-name]/spec.md`
-
-**Note**: This template is filled in by the `/spec-kitty.plan` command. See `src/specify_cli/missions/software-dev/command-templates/plan.md` for the execution workflow.
-
-The planner will not begin until all planning questions have been answered—capture those answers in this document before progressing to later phases.
+---
 
 ## Summary
 
-[Extract from feature spec: primary requirement + technical approach from research]
+Investigate the correct Vikunja data model for daily habit tracking so
+habits appear in the Today filter. Four research questions examine
+Vikunja's native recurring task behavior, the current F009 deployment
+state, three candidate approaches against five evaluation criteria, and
+the API capabilities needed to implement the recommended approach.
+Findings feed directly into a revised F009 implementation spec.
 
 ## Technical Context
 
-<!--
-  ACTION REQUIRED: Replace the content in this section with the technical details
-  for the project. The structure here is presented in advisory capacity to guide
-  the iteration process.
--->
+This is a research mission — no code is written. The "implementation"
+is structured investigation producing documentation.
 
-**Language/Version**: [e.g., Python 3.11, Swift 5.9, Rust 1.75 or NEEDS CLARIFICATION]  
-**Primary Dependencies**: [e.g., FastAPI, UIKit, LLVM or NEEDS CLARIFICATION]  
-**Storage**: [if applicable, e.g., PostgreSQL, CoreData, files or N/A]  
-**Testing**: [e.g., pytest, XCTest, cargo test or NEEDS CLARIFICATION]  
-**Target Platform**: [e.g., Linux server, iOS 15+, WASM or NEEDS CLARIFICATION]
-**Project Type**: [single/web/mobile - determines source structure]  
-**Performance Goals**: [domain-specific, e.g., 1000 req/s, 10k lines/sec, 60 fps or NEEDS CLARIFICATION]  
-**Constraints**: [domain-specific, e.g., <200ms p95, <100MB memory, offline-capable or NEEDS CLARIFICATION]  
-**Scale/Scope**: [domain-specific, e.g., 10k users, 1M LOC, 50 screens or NEEDS CLARIFICATION]
+**Tools**: Vikunja REST API (read-only queries), SSH to office2, web
+research (Vikunja docs, community forum, API reference)
+**Storage**: N/A (research outputs are markdown documents)
+**Testing**: N/A (findings validated against success criteria in spec)
+**Target Platform**: N/A (research deliverables only)
+**Constraints**: Read-only access to live Vikunja instance and office2;
+no task creation, modification, or agent file changes during research
 
 ## Constitution Check
 
-*GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
+*GATE: Passed. Research mission — no code, no deployments, no service
+changes. Constitution governance applies to the downstream F009
+implementation, not to this investigation.*
 
-[Gates determined based on constitution file]
+- Felix Constitution Directive 5 (documentation standards): Applies —
+  findings.md must follow documentation conventions
+- Autonomy Level 1 (Assisted): The habits agent operates at Level 1;
+  this research does not change that
+- No tier-gated changes: All research is read-only (below Tier 4)
 
 ## Project Structure
 
 ### Documentation (this feature)
 
 ```
-kitty-specs/[###-feature]/
-├── plan.md              # This file (/spec-kitty.plan command output)
-├── research.md          # Phase 0 output (/spec-kitty.plan command)
-├── data-model.md        # Phase 1 output (/spec-kitty.plan command)
-├── quickstart.md        # Phase 1 output (/spec-kitty.plan command)
-├── contracts/           # Phase 1 output (/spec-kitty.plan command)
-└── tasks.md             # Phase 2 output (/spec-kitty.tasks command - NOT created by /spec-kitty.plan)
+kitty-specs/017-vikunja-habit-tracking-architecture/
+├── plan.md              # This file
+├── research.md          # Phase 0: methodology and source plan
+├── spec.md              # Feature specification
+├── meta.json            # Feature identity metadata
+├── checklists/
+│   └── requirements.md  # Spec quality checklist (complete)
+└── tasks/               # Work package files (created by /spec-kitty.tasks)
 ```
 
-### Source Code (repository root)
-<!--
-  ACTION REQUIRED: Replace the placeholder tree below with the concrete layout
-  for this feature. Delete unused options and expand the chosen structure with
-  real paths (e.g., apps/admin, packages/something). The delivered plan must
-  not include Option labels.
--->
+### Source Code
 
-```
-# [REMOVE IF UNUSED] Option 1: Single project (DEFAULT)
-src/
-├── models/
-├── services/
-├── cli/
-└── lib/
+No source code is produced by this research mission. The downstream
+F009 revised implementation spec will define code changes.
 
-tests/
-├── contract/
-├── integration/
-└── unit/
+## Research Methodology
 
-# [REMOVE IF UNUSED] Option 2: Web application (when "frontend" + "backend" detected)
-backend/
-├── src/
-│   ├── models/
-│   ├── services/
-│   └── api/
-└── tests/
+### Phase 0: Source Plan and Methodology
 
-frontend/
-├── src/
-│   ├── components/
-│   ├── pages/
-│   └── services/
-└── tests/
+The research follows the dependency order defined in the spec:
 
-# [REMOVE IF UNUSED] Option 3: Mobile + API (when "iOS/Android" detected)
-api/
-└── [same as backend above]
+**Independent track (can begin immediately)**:
+- **RQ-2**: Inspect the current F009 deployment state on office2.
+  Partially answered by diagnostic work already performed — task IDs
+  14-20 have no due_date set, cron is running and delivering, agent
+  queries static tasks and records completions as comments. The WP
+  should verify this is complete and document it formally.
 
-ios/ or android/
-└── [platform-specific structure: feature modules, UI flows, platform tests]
-```
+**Sequential track (dependency chain)**:
+- **RQ-1**: Verify Vikunja's native recurring task behavior. Sources:
+  Vikunja API docs, help docs on dates/reminders, community forum
+  threads, and ideally a read-only inspection of the task schema fields
+  (repeat_mode, repeat_after) on the live instance. Must confirm: what
+  happens to due_date, done status, and comments when a recurring task
+  is marked complete.
+- **RQ-3** (depends on RQ-1): Evaluate three candidate approaches
+  against the five evaluation criteria. Option C's external log
+  component is evaluated open-ended.
+- **RQ-4** (depends on RQ-3): Confirm API endpoints and fields needed
+  for the recommended approach.
 
-**Structure Decision**: [Document the selected structure and reference the real
-directories captured above]
+### Sources to consult
 
-## Complexity Tracking
+| Source | Type | RQs served |
+|--------|------|------------|
+| Live Vikunja instance (API queries via office2) | Primary | RQ-1, RQ-2 |
+| Vikunja API reference (try.vikunja.io/api/v1/docs) | Primary | RQ-1, RQ-4 |
+| Vikunja help docs (vikunja.io/help/dates-and-reminders/) | Secondary | RQ-1 |
+| Vikunja community forum | Secondary | RQ-1 |
+| docs/func-spec/F009_daily_habit_checkin.md | Internal | RQ-2, RQ-3 |
+| docs/runbooks/habits-ops.md | Internal | RQ-2 |
+| AGENTS.md on office2 | Internal | RQ-2 |
+| docs/design/architecture/data/service-inventory.json | Internal | Version verification |
+| Pre-research diagnostic findings (this conversation) | Internal | RQ-2 (partial) |
 
-*Fill ONLY if Constitution Check has violations that must be justified*
+### Version verification
 
-| Violation | Why Needed | Simpler Alternative Rejected Because |
-|-----------|------------|-------------------------------------|
-| [e.g., 4th project] | [current need] | [why 3 projects insufficient] |
-| [e.g., Repository pattern] | [specific problem] | [why direct DB access insufficient] |
+Before consulting external sources, confirm the Vikunja version running
+on office2 from `service-inventory.json`. All findings must be validated
+against this version — community posts referencing older versions should
+be flagged as potentially outdated.
+
+## Evaluation Framework
+
+The spec defines five evaluation criteria. Each candidate approach must
+be assessed against all five:
+
+| Criterion | Weight | Measurement |
+|-----------|--------|-------------|
+| Today filter visibility | High | Does the approach produce tasks with due_date = today that appear in the Today filter? |
+| Skipped state expressible | High | Can "will not do" be recorded distinctly from "complete"? |
+| Completion history survives 90 days | High | Are individual records queryable by date across 90+ days? |
+| 48-hour catch-up window | Medium | Can a missed habit be marked retroactively? |
+| Agent implementation complexity | Medium | Can felix-admin-habits implement this without a new external data store? |
+
+### Candidate approaches to evaluate
+
+- **Option A**: Native Vikunja recurring tasks (repeat_mode + repeat_after)
+- **Option B**: Agent-managed daily task creation (new child tasks with dated due_date)
+- **Option C**: Hybrid (Vikunja tasks for Today visibility + lightweight external log for history/state)
+
+## Expected Deliverables
+
+A single `findings.md` document organized by research question:
+
+1. **RQ-2 — Current State Report**: What F009 actually deployed vs. what
+   the spec intended
+2. **RQ-1 — Recurring Task Behavior**: Verified description of Vikunja's
+   native model, with version-specific evidence
+3. **RQ-3 — Candidate Comparison**: Table mapping three options against
+   five criteria, with evidence citations and a single recommendation
+4. **RQ-4 — API Capability Confirmation**: Endpoint-level detail for
+   implementing the recommended approach
+
+Plus an **Architecture Recommendation** section with:
+- The recommended approach (one of A/B/C)
+- Rationale mapped to evaluation criteria
+- Known risks and limitations
+- Specific guidance for the revised F009 implementation spec
+
+## Work Package Strategy
+
+Single WP covering the full investigation. One review cycle at the end
+against the spec's success criteria. The findings document is organized
+by RQ so each section can be evaluated on its own merits during review.
+
+## Risks
+
+| Risk | Likelihood | Impact | Mitigation |
+|------|-----------|--------|------------|
+| Vikunja recurring task behavior differs from documentation | Medium | High | Verify against live instance, not just docs |
+| No candidate approach satisfies all five criteria | Low | Medium | Spec allows documenting "best available trade-off" |
+| Community forum sources reference wrong Vikunja version | Medium | Low | Version-check all external findings against service-inventory.json |
+| office2 or Vikunja unavailable during research | Low | High | Most external source research can proceed independently; retry API queries |
+
+---
+
+**Branch contract (confirmed)**:
+- Current branch: `main`
+- Planning/base branch: `main`
+- Merge target: `main`
+- Branch matches target: **yes**
+
+---
+
+**END OF PLAN**
