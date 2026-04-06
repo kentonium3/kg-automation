@@ -196,8 +196,13 @@ All `spec` (except templates/instructions). See [directory listing](func-spec/) 
 **Templates & instructions**:
 
 - [Spec-Kitty Feature Specification Template](<./func-spec/_TEMPLATE_spec_kitty_input.md>) — `reference`
+- [Spec-Kitty Research Mission Template](<./func-spec/_TEMPLATE_spec_kitty_research_input.md>) — `reference`
 - [Claude Pre-Implementation Prompt](<./func-spec/claude-pre-implementation-prompt.md>) — `reference` — standing orchestration directive
 - [F015 Augmentation for Alignment](<./func-spec/F015_aug_for_alignment.md>) — `reference` — F015 spec refinement inputs
+
+**Active research missions**:
+
+- [R001 — Vikunja Habit Tracking Architecture](<./func-spec/R001_vikunja_habit_tracking_architecture.md>) — informs revised F009
 
 ---
 
