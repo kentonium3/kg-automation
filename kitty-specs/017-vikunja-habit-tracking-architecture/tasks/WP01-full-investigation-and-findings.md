@@ -312,3 +312,7 @@ When reviewing `findings.md`:
 ---
 
 **END OF WORK PACKAGE**
+
+## Activity Log
+
+- 2026-04-06T18:27:20Z – unknown – shell_pid=99350 – Moved to for_review
