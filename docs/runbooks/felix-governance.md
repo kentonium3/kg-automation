@@ -212,7 +212,42 @@ via WhatsApp (when enabled).
 - **Cron schedule**: Daily at 7:00 PM ET on office2
 - **Log source**: `~/second-brain/agents/logs/`
 
-## 6. Constitution Violation Handling
+## 6. Issue Tracking
+
+Issues, bugs, feature requests, and infrastructure work are tracked on
+GitHub using a structured label taxonomy, milestones, and a project board.
+
+**GitHub Project**: [Felix Roadmap](https://github.com/users/kentonium3/projects/1)
+
+### Issue lifecycle
+
+1. **Triage**: New issues receive a P-label (priority + type) and one or
+   more area/ labels (domain). See `docs/runbooks/repo-governance.md` for
+   the full label taxonomy.
+2. **Milestone assignment**: Issues are assigned to the appropriate
+   capability milestone (e.g., Platform-Production-Ready, EA-Calendaring).
+3. **Project board**: Issues are added to the Felix Roadmap project for
+   visibility across Board, Table, and Roadmap views.
+4. **Feature implementation**: Issues that require spec-kitty feature
+   development are linked to the corresponding feature spec (e.g., F019).
+5. **Closure**: Issues are closed when the implementing feature is merged
+   or the issue is otherwise resolved.
+
+### Creating issues
+
+Use the `gh` CLI:
+
+```bash
+gh issue create --repo kentonium3/kg-automation \
+  --title "<Type>: <Description>" \
+  --label "<P-label>,<area-label>" \
+  --milestone "<Milestone>"
+```
+
+See `docs/runbooks/repo-governance.md` for full details including how to
+add issues to the project board.
+
+## 7. Constitution Violation Handling
 
 When an agent acts outside its defined scope or violates a constitutional
 directive, follow this procedure immediately.

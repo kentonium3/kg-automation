@@ -157,15 +157,26 @@ status: active
 | bake-tracker docs | ~30 | 0 | 0 |
 | **TOTAL** | **~105** | **5** | **15** |
 
-## Remediation Plan (Phase 2)
+## Remediation Status
 
-### Single commit per project
+**All Tier 1-4 items remediated as of 2026-04-07.**
 
-1. **~/.claude/CLAUDE.md** — commit as user-global update (manual, outside repo)
-2. **~/repos/bake-tracker/CLAUDE.md** — single commit
-3. **~/repos/intentional/CLAUDE.md** — single commit
-4. **~/.claude/projects/-Users-kentgale-Vaults-repos-bake-tracker/memory/spec-kitty-workflow.md** — manual update (outside any repo)
-5. **~/repos/kg-automation/.kittify/constitution/constitution.md** — special handling (regeneration path)
+| Item | Status | Date |
+|------|--------|------|
+| `~/.claude/CLAUDE.md` | Remediated — 8-lane model, event log authority | 2026-04-05 |
+| `~/repos/bake-tracker/CLAUDE.md` | Remediated — full rewrite with 3.0.x patterns | 2026-04-05 |
+| `~/repos/intentional/CLAUDE.md` | Remediated — "event log writes" phrasing | 2026-04-05 |
+| bake-tracker memory `spec-kitty-workflow.md` | Needs rewrite (bake-tracker project scope) | Pending |
+| kg-automation `.kittify/constitution/constitution.md` | Superseded by 3.1.0a charter migration | Deferred |
+| kg-automation memory `project_speckitty_template_bug.md` | Needs validation against 3.0.3 | Pending |
+
+### Original plan (preserved for reference)
+
+1. **~/.claude/CLAUDE.md** — Done
+2. **~/repos/bake-tracker/CLAUDE.md** — Done
+3. **~/repos/intentional/CLAUDE.md** — Done
+4. **bake-tracker memory** — Pending (next bake-tracker session)
+5. **kg-automation constitution** — Deferred (charter migration in progress)
 
 ### Files to leave alone (out of scope)
 
