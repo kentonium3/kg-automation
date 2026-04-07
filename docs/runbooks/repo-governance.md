@@ -1,97 +1,173 @@
 ---
-id: repo-governance
-title: Repository Governance — Branch Protection & PR Policy
-doc_type: standard
-level: reference
+title: Repository Governance
+doc_type: runbook
 status: approved
 owners: [kent@intentional.biz]
-last_validated: 2025-11-01
-last_updated: '2025-10-29'
-revision: v1.0
+last_validated: 2026-04-07
+last_updated: '2026-04-07'
+revision: v2.0
 audience: agents_and_humans
 ---
 
-This page defines how changes land in `kg-automation`, for both humans and AI agents. It complements the CI, handoff protocol, and system/runbook governance.
+# Repository governance
 
-## Branching model
-- **Default branch:** `main` (protected)
-- **Contribution branches:** short‑lived, task‑scoped. Examples:
-  - `handoff/0002-agent-handbook-checklist`
-  - `ci/docs-ci-initial`
-  - `feat/<capability>-<short-desc>`
-  - `docs/<area>-<short-desc>`
+This page defines how changes land in kg-automation, how issues are
+tracked, and how the repository is organized for both humans and AI
+agents.
 
-## Protection rules for `main` (recommended)
-Enable in *Settings → Branches → Add rule → Branch name pattern: `main`*
+## Git workflow
 
-**Pull requests**
-- Require a pull request before merging
-- Require approvals: **1**
-- Dismiss stale approvals on new commits
-- Require conversation resolution
-- (Optional) Require review from Code Owners
+- **Default branch**: `main`
+- **Push model**: Push directly to `main` for routine changes. Feature
+  branches are used for complex multi-step work via spec-kitty (worktrees
+  and lane branches are managed automatically).
+- **Conventional commits**: `feat:`, `fix:`, `docs:`, `chore:`, `ci:`,
+  `refactor:`
+- **CI**: Docs CI validates on every push to main (frontmatter, secrets
+  scan). A pre-commit hook runs `validate_docs.py` locally before each
+  commit.
 
-**Status checks**
-- Require status checks to pass before merging
-  - Select **Docs CI**
-- Require branches to be up to date before merging
+## Feature development
 
-**Push restrictions**
-- Restrict who can push: allow **owner only** (agents use PRs)
+All features are implemented through spec-kitty:
 
-**History & safety**
-- Prevent force pushes
-- Prevent branch deletions
-- (Optional) Require linear history (squash/merge)
+```text
+specify -> plan -> tasks -> implement -> review -> merge
+```
 
-**Administrators**
-- Leave “Include administrators” **off** initially (emergency bypass)
+Spec-kitty manages worktrees, branches, and lane-based merges. Do not
+create feature branches manually — the workflow handles this.
 
-## Pull request policy
-- Pull before working; keep PRs small and focused.
-- Commit messages use conventional prefixes: `feat:`, `fix:`, `docs:`, `ci:`, `chore:`
-- Handoff threads use: `handoff: request <id> …` / `handoff: response <id> …`
-- Resolve all comments; CI must pass.
+See `docs/func-spec/claude-pre-implementation-prompt.md` for the
+standing orchestration directive.
 
-## Continuous Integration (Docs CI)
-The workflow enforces:
-1. Front‑matter on all `.md` (`id, doc_type, level, status, owners, last_validated, revision`)
-2. Workflow schema checks (if schema present)
-3. Runbook front‑matter extras (`audience, severity, last_tested`)
-4. AI handoff JSON validation + filename convention
-5. Registry + doc graph rebuild
-6. No hand edits to generated files
-7. Clean working tree after generators
-8. Quick relative link check
+## Issue management
 
-See `docs/runbooks/ci-handbook.md` for how to pass locally.
+Issues are tracked on GitHub using a structured label taxonomy,
+milestones, and a project board.
+
+### Label taxonomy
+
+Issues receive exactly one P-label (priority + type) and one or more
+area/ labels (domain).
+
+**P-labels (triage gate)**
+
+| Label | Meaning |
+|-------|---------|
+| P0-bug | Critical / blocking active work |
+| P1-bug | Confirmed bug, fix in current cycle |
+| P2-bug | Known bug, backlog |
+| P0-infra | Critical infra, blocking active work |
+| P1-infra | Infra work, current cycle |
+| P2-infra | Infra work, backlog |
+| P1-feature | Approved, next cycle |
+| P2-feature | Approved, future backlog |
+| P3-candidate | Proposed, not yet approved |
+| P1-rfc | RFC under active review |
+| P2-rfc | RFC parked for future consideration |
+| P1-debt | Tech debt, current cycle |
+| P2-debt | Tech debt, backlog |
+
+**Area labels (domain)**
+
+| Label | Scope |
+|-------|-------|
+| area/infrastructure | office2, Docker, Tailscale, networking, hardware, credentials, monitoring |
+| area/security | Hardening, audit, access control, fail2ban, UFW |
+| area/felix-core | Constitution, agent registry, operating modes, ClawHub |
+| area/ea | Executive Assistant capability |
+| area/task-intel | Vikunja, task enrichment, escalation engine |
+| area/content | Copy, graphics, video, transcription shared services |
+| area/docs | Documentation architecture, MkDocs, Obsidian sync |
+| area/biz-ops | Intentional LLC, CT acquisition, metalbox |
+
+### Milestones
+
+Milestones represent capability clusters on the Felix roadmap:
+
+- **Platform-Production-Ready** — office2 stable, security hardened,
+  GPU inference operational
+- **Felix-Intelligence-Layer** — task enrichment, escalation engine
+- **EA-Calendaring** — calendar management
+- **EA-Voice** — conversational voice interaction
+- **EA-InboxManagement** — email triage and priority alerts
+- **EA-OutcomePlanning** — weekly planning against goals
+- **EA-Coaching** — behavioral intervention
+- **Felix-DeepResearch** — autonomous research
+- **Intentional-LLC-Operational** — client pipeline and tooling
+- **Acquisition-Research-Active** — CT acquisition workflow
+
+### Project board
+
+The **Felix Roadmap** project
+(https://github.com/users/kentonium3/projects/1) provides three views:
+
+- **Board** — columns by Phase (matches milestones)
+- **Table** — sorted by priority
+- **Roadmap** — timeline by milestone
+
+Custom fields: **Domain** (matches area/ labels), **Phase** (matches
+milestones).
+
+### Creating issues
+
+```bash
+gh issue create --repo kentonium3/kg-automation \
+  --title "<Type>: <Short description>" \
+  --label "<P-label>,<area-label>" \
+  --milestone "<Milestone>"
+```
+
+After creation, add to the project:
+
+```bash
+GITHUB_TOKEN= gh project item-add 1 --owner kentonium3 \
+  --url <issue-url>
+```
+
+Note: `GITHUB_TOKEN` env var must be unset for `gh project` commands
+to use the CLI's stored auth which has the `project` scope.
+
+## Continuous Integration
+
+The Docs CI workflow validates on every push to main:
+
+1. YAML frontmatter on all docs (required: `title`, `doc_type`, `status`)
+2. Enum validation (`doc_type`, `status`, `level`, `audience` against
+   `docs/design/standards/allowed-values.json`)
+3. Secret pattern scan (AWS keys, GitHub tokens, private keys)
+
+A pre-commit hook runs the same validation locally before each commit.
+
+See `docs/runbooks/ci-handbook.md` for details.
+
+## Secrets and sensitive data
+
+- Never commit credentials. Use references or the office2 credential
+  store (`/data/services/openclaw/secrets/`).
+- CI runs a pattern scan; violations block the commit.
+- See `docs/design/architecture/data/credential-manifest.json` for the
+  full credential inventory.
 
 ## AI agent rules
-- **No direct pushes to `main`.** Open PRs from a task branch.
-- Use `ai-agents/shared/handoffs/` with the contract `ai-agents/shared/contracts/ai-handoff.schema.json`.
-- Filename format: `YYYYMMDD-HHMMSS-<id>-<from>-to-<to>-<type>.json`.
-- Reference all outputs (paths, PR links) in the response JSON.
 
-## Secrets & sensitive data
-- Do not commit secrets. Use references (e.g., `secrets:<alias>`) or external secret stores.
-- CI runs a basic pattern scan; violations block merges.
+- Agents push directly to `main` for routine changes (same as humans).
+- Feature work uses spec-kitty workflows (worktrees, lane branches).
+- Never edit `.env` files, commit secrets, force push, or `rm -rf`.
+- Never modify `.github/workflows/` without explicit instruction.
+- On spec-kitty workflow failure: stop and report, do not work around.
 
-## Emergencies (hotfixes)
-- Owner may push/merge to `main` if needed. Record a short post‑merge note in the PR or an ADR explaining the exception.
+## Governance framework
 
-## CODEOWNERS (optional but recommended)
-Add `.github/CODEOWNERS` to enforce reviews for critical areas. Example:
+Felix agents operate under a formal governance framework:
 
-```
-# Require owner review for governance and CI
-docs/governance/*   @kentonium3
-.github/*           @kentonium3
-# Require review for registries/scripts
-tooling/scripts/*   @kentonium3
-```
+| Document | Path |
+|----------|------|
+| Felix Constitution | `docs/constitution/FELIX-CONSTITUTION.md` |
+| Agent Registry | `docs/constitution/AGENT-REGISTRY.md` |
+| Governance Runbook | `docs/runbooks/felix-governance.md` |
+| Change Control | `docs/design/architecture/change-control.md` |
+| Risk Register | `docs/design/risk-register.md` |
 
-## Onboarding checklist
-- Enable branch protection for `main` using the settings above.
-- Merge CI PR (#2).
-- Communicate to agents: PR‑only flow, CI must pass, use handoff protocol.
-- Create teams/permissions if collaborators join later.
+All agents start at Assisted (Level 1) and require explicit promotion.
