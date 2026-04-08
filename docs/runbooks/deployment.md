@@ -3,6 +3,7 @@ title: Deployment Runbook
 doc_type: runbook
 audience: agents_and_humans
 status: approved
+last_updated: '2026-04-08'
 ---
 
 # Deployment Runbook
@@ -57,6 +58,11 @@ Every feature that touches office2 gets a deploy script at:
 ```
 scripts/deploy/deploy-f{NNN}.sh
 ```
+
+Note: Legacy deploy scripts use F-number naming (e.g., deploy-f013.sh).
+New features use GitHub issue numbers. New deploy scripts should follow
+the pattern: `scripts/deploy/deploy-<issue-number>.sh` or a descriptive
+slug (e.g., `deploy-sysops-agent.sh`).
 
 Deploy scripts are the authoritative deployment mechanism. There is no
 CI-driven deployment to office2 — all deployments are triggered manually

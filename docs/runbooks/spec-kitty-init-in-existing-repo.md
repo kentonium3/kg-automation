@@ -3,8 +3,20 @@
 title: Spec-Kitty Installation Guide for Existing Repositories
 doc_type: runbook
 audience: humans
-status: draft
+status: historical
 ---
+
+> **HISTORICAL**: spec-kitty is already installed and configured in this
+> repository. This guide documents the steps that were followed during
+> initial setup. It is retained for reference in case of reinstallation
+> or migration. The current spec-kitty workflow is documented in CLAUDE.md.
+>
+> Note: Step 5 "Create Project Constitution" uses the old spec-kitty 1.x
+> terminology. In spec-kitty 3.x, this is now called a "charter" and is
+> managed via `spec-kitty charter interview`. The Felix Constitution at
+> `docs/constitution/FELIX-CONSTITUTION.md` is a separate document from
+> the spec-kitty charter at `.kittify/charter/charter.md`.
+
 # Spec-Kitty Installation Guide for Existing Repositories
 
 **Purpose:** Initialize Spec-Kitty in an existing git repository to enable spec-driven development with real-time kanban tracking.

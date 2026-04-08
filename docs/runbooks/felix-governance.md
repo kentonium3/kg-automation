@@ -86,7 +86,7 @@ reliable operation and are never automatic.
    agent's workspace on office2.
 
 9. **Commit changes** with message format:
-   `chore: promote <agent-name> to <level> (F###)`
+   `chore: promote <agent-name> to <level>`
 
 ### Minimum Evidence for Promotion
 
@@ -122,7 +122,7 @@ for any reason, with no minimum time requirement.
 5. **Deploy updated files to office2.**
 
 6. **Commit changes** with message format:
-   `chore: demote <agent-name> to <level> — <brief reason>`
+   `chore: demote <agent-name> to <level> — <brief reason> (#NNN)`
 
 ### Common Demotion Triggers
 
@@ -154,7 +154,7 @@ Every new agent must be registered before its first run.
    - `name`: human-readable name
    - `autonomy_level`: `"assisted"`
    - `registered`: today's date
-   - `registered_by`: the feature ID
+   - `registered_by`: the GitHub issue number (e.g., "#42")
    - `purpose`: what the agent does
    - `standing_orders`: path to AGENTS.md
    - `transition_history`: initial entry with direction `"registration"`

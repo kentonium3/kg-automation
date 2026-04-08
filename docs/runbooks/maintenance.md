@@ -3,13 +3,18 @@ id: maintenance
 title: Maintenance & Housekeeping
 doc_type: runbook
 level: reference
-status: approved
+status: superseded
 owners: [kent@intentional.biz]
 last_validated: 2025-10-15
 last_updated: '2025-10-29'
 revision: v1.0
 audience: agents_and_humans
 ---
+> **SUPERSEDED**: The dual branch ruleset model (dev-human / dev-agent)
+> and GH Actions runner branch naming conventions were retired in April
+> 2026. This file is retained as historical record. For current branch
+> conventions, see `docs/runbooks/repo-governance.md`.
+
 # Maintenance & Housekeeping
 
 ## Branch hygiene

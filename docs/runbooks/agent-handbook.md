@@ -3,13 +3,18 @@ id: agent-handbook
 title: Agent Handbook — Pre-PR Checklist
 doc_type: runbook
 level: reference
-status: approved
+status: superseded
 owners: [kent@intentional.biz]
 last_validated: 2025-11-01
 last_updated: '2025-10-29'
 revision: v1.0
 audience: humans
 ---
+
+> **SUPERSEDED**: This handbook describes the multi-platform workflow
+> (Mac + Windows + GitHub Actions runner + handoff JSON files) which
+> was retired in April 2026. The content is retained as historical
+> record only. For current workflow, see `docs/runbooks/repo-governance.md`.
 
 # Agent Handbook — Pre-PR Checklist
 

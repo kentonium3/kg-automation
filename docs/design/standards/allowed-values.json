@@ -29,6 +29,8 @@
     "in_review",
     "approved",
     "deprecated",
+    "superseded",
+    "historical",
     "archived"
   ],
   "audience": [

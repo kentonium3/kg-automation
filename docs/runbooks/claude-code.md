@@ -3,13 +3,19 @@ id: claude-code
 title: Claude Code — Execution Agent
 doc_type: runbook
 level: reference
-status: approved
+status: superseded
 owners: ["@kentonium3"]
 last_validated: 2025-10-18
 last_updated: '2025-10-29'
 revision: v1.0
 audience: humans
 ---
+
+> **SUPERSEDED**: The handoff processing and docs self-heal slash commands
+> described here were part of the old GitHub Actions runner workflow,
+> retired in April 2026. Claude Code is still the primary execution agent
+> but operates under the workflow described in CLAUDE.md and
+> `docs/runbooks/repo-governance.md`.
 
 Claude Code acts as an autonomous **execution agent** for kg-automation: it reads handoffs, performs multi-step git/docs tasks, runs scripts, validates locally, and pushes PRs—always under repo governance.
 

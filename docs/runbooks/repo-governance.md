@@ -4,8 +4,8 @@ doc_type: runbook
 status: approved
 owners: [kent@intentional.biz]
 last_validated: 2026-04-07
-last_updated: '2026-04-07'
-revision: v2.0
+last_updated: '2026-04-08'
+revision: v2.1
 audience: agents_and_humans
 ---
 
@@ -38,8 +38,9 @@ specify -> plan -> tasks -> implement -> review -> merge
 Spec-kitty manages worktrees, branches, and lane-based merges. Do not
 create feature branches manually — the workflow handles this.
 
-See `docs/func-spec/claude-pre-implementation-prompt.md` for the
-standing orchestration directive.
+See `CLAUDE.md` for the session initialization and issue queue query
+pattern. Feature specs live in the GitHub issue queue — use
+`gh issue list` to find the next work item.
 
 ## Issue management
 
@@ -128,6 +129,20 @@ GITHUB_TOKEN= gh project item-add 1 --owner kentonium3 \
 
 Note: `GITHUB_TOKEN` env var must be unset for `gh project` commands
 to use the CLI's stored auth which has the `project` scope.
+
+### Using issue templates
+
+GitHub issue templates are available at `.github/ISSUE_TEMPLATE/`:
+- `feature.md` — new capabilities (use for all new Felix features)
+- `bug.md` — defects and incorrect behavior
+- `rfc.md` — design proposals and decisions
+- `infra.md` — infrastructure changes with risk tier classification
+
+Templates are applied automatically when creating issues via the
+GitHub UI at: https://github.com/kentonium3/kg-automation/issues/new/choose
+
+When creating issues via `gh` CLI, the template body must be provided
+manually using `--body-file` or `--body`.
 
 ## Continuous Integration
 
