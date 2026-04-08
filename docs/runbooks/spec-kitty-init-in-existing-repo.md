@@ -3,7 +3,7 @@
 title: Spec-Kitty Installation Guide for Existing Repositories
 doc_type: runbook
 audience: humans
-status: historical
+status: deprecated
 ---
 
 > **HISTORICAL**: spec-kitty is already installed and configured in this
