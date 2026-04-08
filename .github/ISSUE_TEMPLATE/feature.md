@@ -71,6 +71,26 @@ Before implementation, planning phase must read:
 
 ---
 
+## Assumptions
+
+<!--
+List anything this spec takes for granted that the plan phase should
+validate before implementation begins. Unvalidated assumptions that
+turn out to be wrong will surface in plan.md — flag them here so they
+are not missed.
+
+Examples:
+- "Assumes X service is running on office2" → plan phase confirms
+- "Assumes GitHub Actions triggers on PR merge" → plan phase confirms
+  (note: spec-kitty merges create merge commits directly, not PRs —
+  any workflow trigger on `pull_request` will NOT fire on spec-kitty
+  merges; design triggers accordingly)
+-->
+
+- 
+
+---
+
 ## Functional Requirements
 
 <!--

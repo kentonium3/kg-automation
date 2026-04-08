@@ -86,7 +86,7 @@ docs/
   runbooks/         ← operational runbooks (how-to guides)
 scripts/            ← automation scripts
 .github/
-  ISSUE_TEMPLATE/   ← issue templates (feature, bug, rfc, infra)
+  ISSUE_TEMPLATE/   ← issue templates (feature, bug, rfc, infra, docs-debt)
 ```
 
 ## Feature Development Workflow
@@ -132,12 +132,17 @@ live in the GitHub issue queue.
 - Push directly to main for routine changes
 - Use feature branches when useful (complex multi-step work, experiments)
 - Conventional commits: `feat:`, `fix:`, `docs:`, `chore:`, `ci:`
+- Append `[doc-audit]` to any commit that contains maintenance or patch
+  changes not tracked through a formal issue — signals that associated
+  docs should be verified on the next audit run
+  (e.g. `fix: repair vikunja filter logic [doc-audit]`)
 - CI validates on every push to main
-- Append `[doc-audit]` to commit messages when a commit includes documentation
-  maintenance changes that are not the primary purpose of the commit. This
-  signals to the future felix-doc-auditor agent that the commit contains
-  untracked maintenance changes worth auditing. Advisory only — no CI
-  enforcement. Example: `fix: repair vikunja filter logic [doc-audit]`
+
+**spec-kitty merge behavior:** spec-kitty merges create merge commits
+directly to main — they do NOT create pull requests. Any GitHub Actions
+workflow that triggers on `pull_request` will NOT fire on spec-kitty
+merges. Design workflow triggers and automation accordingly. The weekly
+audit cron is the safety net for changes that escape the PR-based trigger.
 
 ## Permissions
 
