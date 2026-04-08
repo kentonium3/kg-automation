@@ -17,7 +17,7 @@
 | T004 | Add `[doc-audit]` commit tag convention to CLAUDE.md | WP02 | [D] |
 | T005 | Create doc-audit-trigger.yml (post-merge action) | WP02 | — | [D] |
 | T006 | Create doc-audit-weekly.yml (weekly cron stub) | WP02 | [D] |
-| T007 | Update docs/INDEX.md to reference domain map and template | WP02 | [P] |
+| T007 | Update docs/INDEX.md to reference domain map and template | WP02 | [D] |
 | T008 | Update docs/design/architecture/README.md Data Files table | WP02 | [P] |
 
 ---
