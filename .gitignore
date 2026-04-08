@@ -20,6 +20,9 @@ docs/.obsidian/plugins/**/.cache/
 # VS Code workspace state (local editor preference)
 .vscode/tasks.json
 __pycache__/
+# Temporary prompt files and scratch
+temp/
+
 .kittify/derived/
 .kittify/runtime/
 .kittify/.migration-backup/
