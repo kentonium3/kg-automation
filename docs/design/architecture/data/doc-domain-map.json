@@ -1,0 +1,86 @@
+{
+  "schema_version": "1.0",
+  "last_updated": "2026-04-08",
+  "updated_by": "#104",
+  "description": "Maps area labels to documentation files requiring verification when that domain changes. Used by doc-audit-trigger.yml and the future felix-doc-auditor agent (#105).",
+  "domains": {
+    "area/infrastructure": [
+      "docs/design/architecture/physical-topology.md",
+      "docs/design/architecture/service-inventory.md",
+      "docs/design/architecture/data/hardware-inventory.json",
+      "docs/design/architecture/data/network-topology.json",
+      "docs/design/architecture/data/service-inventory.json",
+      "docs/design/architecture/backup-and-recovery.md",
+      "docs/design/architecture/service-dependencies.view.md",
+      "docs/design/architecture/change-control.md",
+      "docs/design/architecture/data-flows.md",
+      "docs/design/architecture/data/data-flows.json",
+      "docs/design/architecture/data-flows.view.md",
+      "docs/runbooks/deployment.md",
+      "docs/runbooks/governance/pre-flight-checklist.md",
+      "docs/runbooks/governance/post-change-verification.md",
+      "docs/runbooks/governance/incident-postmortem-template.md",
+      "docs/design/office2-backup-and-security.md"
+    ],
+    "area/security": [
+      "docs/design/architecture/security-posture.md",
+      "docs/design/architecture/credentials-and-secrets.md",
+      "docs/design/architecture/data/credential-manifest.json",
+      "docs/design/architecture/identity-model.md",
+      "docs/design/architecture/data/change-risk-taxonomy.json",
+      "docs/design/architecture/change-control.md",
+      "docs/runbooks/governance/pre-flight-checklist.md"
+    ],
+    "area/felix-core": [
+      "docs/constitution/FELIX-CONSTITUTION.md",
+      "docs/constitution/AGENT-REGISTRY.md",
+      "docs/constitution/agent-registry.json",
+      "docs/runbooks/felix-governance.md",
+      "docs/design/felix-capability-roadmap.md",
+      "docs/design/personal-ai-system-spec-v1.0.md",
+      "docs/design/architecture/data/capabilities-schema.json",
+      "docs/design/architecture/data/catalog-schema.json",
+      "docs/runbooks/openclaw-ops.md"
+    ],
+    "area/ea": [
+      "docs/runbooks/escalation-ops.md",
+      "docs/runbooks/observation-ops.md"
+    ],
+    "area/task-intel": [
+      "docs/runbooks/task-intelligence-ops.md",
+      "docs/runbooks/vikunja-ops.md",
+      "docs/design/Vikunja.md"
+    ],
+    "area/content": [
+      "docs/runbooks/obsidian-sync-ops.md",
+      "docs/runbooks/obsidian-setup.md",
+      "docs/runbooks/obsidian.md",
+      "docs/runbooks/transcribe-ops.md",
+      "docs/runbooks/inbox-ops.md",
+      "docs/runbooks/whatsapp-ops.md"
+    ],
+    "area/docs": [
+      "docs/INDEX.md",
+      "docs/design/standards/doc-standards.md",
+      "docs/design/standards/divio-classification.md",
+      "docs/design/standards/visual-docs-style.md",
+      "docs/design/standards/obsidian-linter-alignment.md",
+      "docs/design/standards/allowed-values.json",
+      "docs/design/standards/validator-policy.json",
+      "docs/design/architecture/glossary.md",
+      "docs/design/architecture/README.md",
+      "docs/runbooks/templater-commands.md",
+      "docs/runbooks/repo-governance.md",
+      "docs/runbooks/github-issues-workflow.md"
+    ],
+    "area/biz-ops": [
+      "docs/runbooks/goals-ops.md",
+      "docs/runbooks/habits-ops.md",
+      "docs/design/vision-framework.md",
+      "docs/design/strategic-acceleration-charter.md",
+      "docs/design/adversarial-analysis.md",
+      "docs/design/risk-register.md",
+      "docs/design/decision-log.md"
+    ]
+  }
+}
