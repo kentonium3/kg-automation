@@ -14,7 +14,7 @@
 | T001 | Create doc-domain-map.json with all 8 area labels | WP01 | — | [D] |
 | T002 | Create docs-debt.md issue template | WP01 | [D] |
 | T003 | Validate domain map covers all active docs from INDEX.md | WP01 | — | [D] |
-| T004 | Add `[doc-audit]` commit tag convention to CLAUDE.md | WP02 | [P] |
+| T004 | Add `[doc-audit]` commit tag convention to CLAUDE.md | WP02 | [D] |
 | T005 | Create doc-audit-trigger.yml (post-merge action) | WP02 | — |
 | T006 | Create doc-audit-weekly.yml (weekly cron stub) | WP02 | [P] |
 | T007 | Update docs/INDEX.md to reference domain map and template | WP02 | [P] |
@@ -69,11 +69,11 @@ both GitHub Actions workflows (post-merge trigger and weekly cron stub),
 and update INDEX.md and architecture README to reference the new artifacts.
 
 **Included subtasks**:
-- [ ] T004: Add `[doc-audit]` tag convention to CLAUDE.md Git Workflow section
-- [ ] T005: Create .github/workflows/doc-audit-trigger.yml
-- [ ] T006: Create .github/workflows/doc-audit-weekly.yml
-- [ ] T007: Update docs/INDEX.md with domain map and template references
-- [ ] T008: Update docs/design/architecture/README.md Data Files table
+- [x] T004: Add `[doc-audit]` tag convention to CLAUDE.md Git Workflow section
+- [x] T005: Create .github/workflows/doc-audit-trigger.yml
+- [x] T006: Create .github/workflows/doc-audit-weekly.yml
+- [x] T007: Update docs/INDEX.md with domain map and template references
+- [x] T008: Update docs/design/architecture/README.md Data Files table
 
 **Implementation sketch**:
 1. Add `[doc-audit]` tag paragraph to CLAUDE.md under Git Workflow
