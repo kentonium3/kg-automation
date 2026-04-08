@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Felix Documentation
+    url: https://github.com/kentonium3/kg-automation/blob/main/docs/INDEX.md
+    about: Read the documentation index before filing an issue

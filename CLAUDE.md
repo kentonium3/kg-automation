@@ -81,26 +81,51 @@ ai-agents/          ← agent instruction files (this file's siblings)
 docs/
   constitution/     ← governance — Felix constitution, agent registry
   design/           ← architecture specs, standards, research
-  func-spec/        ← feature specs (spec-kitty output)
+  func-spec/        ← historical feature specs (F001–F020 archive)
   issues/           ← diagnostics and postmortems
   runbooks/         ← operational runbooks (how-to guides)
 scripts/            ← automation scripts
+.github/
+  ISSUE_TEMPLATE/   ← issue templates (feature, bug, rfc, infra)
 ```
 
 ## Feature Development Workflow
 
-All features are implemented through spec-kitty. Always follow this sequence:
+**Finding the next work item:**
 
+Query the issue queue for the highest priority open feature in the active
+milestone:
+
+```bash
+gh issue list --repo kentonium3/kg-automation \
+  --label P1-feature \
+  --state open \
+  --limit 5 \
+  --json number,title,body,labels,milestone
 ```
-/spec-kitty.specify → /spec-kitty.plan → /spec-kitty.tasks → /spec-kitty.implement → /spec-kitty.review → /spec-kitty.merge
-```
 
-Do not skip steps. Do not perform research, write code, or make design decisions
-outside of the spec-kitty workflow. If a spec-kitty command fails, stop and report
-the error — do not work around it manually.
+Select the highest priority open issue. Read the full issue body — it is
+the spec. If multiple P1-feature issues exist, prefer the one assigned to
+the active milestone.
 
-See `docs/func-spec/claude-pre-implementation-prompt.md` for the standing
-orchestration directive.
+**Implementation sequence:**
+1. Read the issue body completely before starting anything else
+2. Run spec-kitty specify using the issue body as input
+3. Follow the full spec-kitty workflow:
+   `/spec-kitty.specify → /spec-kitty.plan → /spec-kitty.tasks →
+    /spec-kitty.implement → /spec-kitty.review → /spec-kitty.merge`
+4. On merge, close the issue: `gh issue close <number> --repo kentonium3/kg-automation`
+5. Add a comment to the issue with the merge commit hash and any relevant notes
+
+**Issue types and their workflows:**
+- `P1-feature` / `P2-feature` → full spec-kitty workflow above
+- `P1-bug` / `P2-bug` → spec-kitty software-dev mission, fix-focused
+- `P1-infra` / `P2-infra` → check risk tier in issue body first; Tier 0 = generate only
+- `P1-rfc` → discussion and decision recording; no implementation until converted to feature/infra issue
+
+**Legacy specs:** `docs/func-spec/` contains historical specs F001–F020.
+These are the archive record. Do not create new files there — new features
+live in the GitHub issue queue.
 
 ## Git Workflow
 
