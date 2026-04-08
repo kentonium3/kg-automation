@@ -37,9 +37,9 @@ affected documentation files, and the docs-debt issue template for filing
 documentation gaps.
 
 **Included subtasks**:
-- [ ] T001: Create doc-domain-map.json at docs/design/architecture/data/
-- [ ] T002: Create .github/ISSUE_TEMPLATE/docs-debt.md
-- [ ] T003: Validate domain map completeness against INDEX.md
+- [x] T001: Create doc-domain-map.json at docs/design/architecture/data/
+- [x] T002: Create .github/ISSUE_TEMPLATE/docs-debt.md
+- [x] T003: Validate domain map completeness against INDEX.md
 
 **Implementation sketch**:
 1. Build JSON object keyed by area label (8 entries)

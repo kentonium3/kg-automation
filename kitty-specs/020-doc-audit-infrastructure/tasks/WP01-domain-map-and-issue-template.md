@@ -212,3 +212,7 @@ in docs/INDEX.md. Every active doc should appear in at least one domain.
 3. Check that the issue template has all 6 required sections
 4. Verify JSON validity
 5. Check that the template frontmatter labels field uses `P2-debt` (not a new label)
+
+## Activity Log
+
+- 2026-04-08T19:50:46Z – unknown – shell_pid=9432 – Review passed: domain map covers 8 areas/60 docs with full INDEX.md coverage; issue template has all 6 required sections; JSON valid; all paths verified
