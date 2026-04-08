@@ -1,0 +1,50 @@
+{
+  "version": 1,
+  "mission_slug": "020-doc-audit-infrastructure",
+  "mission_id": "020-doc-audit-infrastructure",
+  "mission_branch": "kitty/mission-020-doc-audit-infrastructure",
+  "target_branch": "main",
+  "lanes": [
+    {
+      "lane_id": "lane-a",
+      "wp_ids": [
+        "WP01",
+        "WP02"
+      ],
+      "write_scope": [
+        ".github/ISSUE_TEMPLATE/docs-debt.md",
+        ".github/workflows/doc-audit-trigger.yml",
+        ".github/workflows/doc-audit-weekly.yml",
+        "CLAUDE.md",
+        "docs/INDEX.md",
+        "docs/design/architecture/README.md",
+        "docs/design/architecture/data/doc-domain-map.json"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "artifact-rendering",
+        "tracker-integration"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    }
+  ],
+  "computed_at": "2026-04-08T19:44:15.192828+00:00",
+  "computed_from": "dependency_graph+ownership",
+  "planning_artifact_wps": [],
+  "collapse_report": {
+    "events": [
+      {
+        "wp_a": "WP02",
+        "wp_b": "WP01",
+        "rule": "dependency",
+        "evidence": "WP02 depends on WP01"
+      }
+    ],
+    "total_merges": 1,
+    "independent_wps_collapsed": 0,
+    "by_rule": {
+      "dependency": 1
+    }
+  }
+}
