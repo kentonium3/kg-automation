@@ -79,7 +79,7 @@ SKIP_DIRS = {'.git', 'node_modules', '.venv', '_templates', '.obsidian',
              '.obsidian-shared', '_templater-scripts', 'archive', '.kittify',
              'kitty-specs', '.agents', '.claude', '.codex', '.gemini',
              '.github', 'scripts', 'research', 'diagnostics',
-             '.pytest_cache'}
+             '.pytest_cache', 'temp'}
 
 def is_blocker(check_type):
     return check_type in POLICY.get('blockers', [])
