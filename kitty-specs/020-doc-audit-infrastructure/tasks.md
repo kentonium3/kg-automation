@@ -13,7 +13,7 @@
 |----|-------------|-------------|----------|
 | T001 | Create doc-domain-map.json with all 8 area labels | WP01 | — | [D] |
 | T002 | Create docs-debt.md issue template | WP01 | [D] |
-| T003 | Validate domain map covers all active docs from INDEX.md | WP01 | — |
+| T003 | Validate domain map covers all active docs from INDEX.md | WP01 | — | [D] |
 | T004 | Add `[doc-audit]` commit tag convention to CLAUDE.md | WP02 | [P] |
 | T005 | Create doc-audit-trigger.yml (post-merge action) | WP02 | — |
 | T006 | Create doc-audit-weekly.yml (weekly cron stub) | WP02 | [P] |
