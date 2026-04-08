@@ -133,10 +133,12 @@ to use the CLI's stored auth which has the `project` scope.
 ### Using issue templates
 
 GitHub issue templates are available at `.github/ISSUE_TEMPLATE/`:
-- `feature.md` — new capabilities (use for all new Felix features)
+- `feature.md` — new capabilities (software-dev missions)
+- `research.md` — investigations that must complete before a feature can be specced
 - `bug.md` — defects and incorrect behavior
 - `rfc.md` — design proposals and decisions
 - `infra.md` — infrastructure changes with risk tier classification
+- `docs-debt.md` — documentation gaps or outdated content
 
 Templates are applied automatically when creating issues via the
 GitHub UI at: https://github.com/kentonium3/kg-automation/issues/new/choose

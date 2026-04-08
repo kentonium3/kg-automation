@@ -145,6 +145,7 @@ historical record. New features are tracked as GitHub Issues — see
 - [Feature Specification Template](<./func-spec/_TEMPLATE_spec_kitty_input.md>)
 - [Research Mission Template](<./func-spec/_TEMPLATE_spec_kitty_research_input.md>)
 - [Docs Debt Issue Template](<../.github/ISSUE_TEMPLATE/docs-debt.md>)
+- [Research Issue Template](<../.github/ISSUE_TEMPLATE/research.md>)
 
 ---
 

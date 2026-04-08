@@ -107,8 +107,13 @@ The issue body replaces the old `docs/func-spec/F0NN_*.md` files.
 The body follows the template structure:
 
 - **Feature issues**: Executive summary, problem statement, study these
-  files first, functional requirements with acceptance criteria
-  checkboxes, out of scope, architecture impact, constitutional compliance
+  files first, assumptions, functional requirements with acceptance
+  criteria checkboxes, out of scope, architecture impact, constitutional
+  compliance
+- **Research issues**: Research purpose, research questions (RQ-X) with
+  acceptable answer forms, known sources, evaluation criteria (if
+  comparative), expected outputs, success criteria including downstream
+  readiness
 - **Bug issues**: Summary, reproduction, expected vs actual, root cause,
   suggested fix, success criteria
 - **RFC issues**: Question, options, recommendation, decision record
@@ -160,13 +165,31 @@ gh project item-add <project-num> \
 
 | Template | Use for | Default label |
 |----------|---------|---------------|
-| feature.md | New capabilities | P3-candidate |
+| feature.md | New capabilities (software-dev missions) | P3-candidate |
+| research.md | Investigations that must complete before a feature can be specced | P3-candidate |
 | bug.md | Defects | P3-candidate |
 | rfc.md | Design decisions | P1-rfc |
 | infra.md | Infrastructure changes | P3-candidate |
+| docs-debt.md | Documentation gaps or outdated content | P2-debt |
 
 Templates enforce consistent structure. The `config.yml` disables blank
 issues — all issues must use a template.
+
+### Choosing between feature and research templates
+
+Use **feature** when the work produces code, config, or infrastructure
+changes — the body becomes the input to `/spec-kitty.specify` for a
+`software-dev` mission.
+
+Use **research** when the work produces findings and a recommendation
+that unblock a subsequent feature — the body becomes the input to
+`/spec-kitty.specify --mission research`. Research issues define
+research questions (RQ-X) with acceptable answer forms, not functional
+requirements (FR-X).
+
+Use **docs-debt** when an audit or review identifies a documentation
+gap — these are typically created automatically by the doc-audit
+workflows or manually during review.
 
 ## Label reference
 
