@@ -1,8 +1,7 @@
 name: Doc Audit Trigger
 
 on:
-  pull_request:
-    types: [closed]
+  push:
     branches: [main]
 
 permissions:
@@ -12,29 +11,13 @@ permissions:
 jobs:
   create-audit-issue:
     runs-on: ubuntu-latest
-    if: github.event.pull_request.merged == true
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
 
-      - name: Extract area labels
-        id: labels
-        run: |
-          AREA_LABELS=$(echo '${{ toJson(github.event.pull_request.labels) }}' | \
-            jq -r '[.[] | select(.name | startswith("area/")) | .name] | join(",")')
-          echo "area_labels=$AREA_LABELS" >> "$GITHUB_OUTPUT"
-          if [ -z "$AREA_LABELS" ]; then
-            echo "skip=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "skip=false" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Skip if no area labels
-        if: steps.labels.outputs.skip == 'true'
-        run: echo "No area labels — skipping audit issue creation"
-
-      - name: Build audit checklist
-        if: steps.labels.outputs.skip != 'true'
-        id: checklist
+      - name: Identify affected domains
+        id: domains
         run: |
           DOMAIN_MAP="docs/design/architecture/data/doc-domain-map.json"
           if [ ! -f "$DOMAIN_MAP" ]; then
@@ -43,12 +26,50 @@ jobs:
             exit 0
           fi
 
-          IFS=',' read -ra LABELS <<< "${{ steps.labels.outputs.area_labels }}"
+          # Get files changed in this push
+          CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD 2>/dev/null || echo "")
+          if [ -z "$CHANGED_FILES" ]; then
+            echo "No changed files detected — skipping"
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # Match changed files against domain map paths to find affected domains
+          AFFECTED_DOMAINS=""
+          for domain in $(jq -r '.domains | keys[]' "$DOMAIN_MAP"); do
+            DOMAIN_PATHS=$(jq -r --arg d "$domain" '.domains[$d] | .[]' "$DOMAIN_MAP")
+            for changed in $CHANGED_FILES; do
+              # Check if the changed file is within a domain path's directory tree
+              while IFS= read -r domain_path; do
+                domain_dir=$(dirname "$domain_path")
+                if [[ "$changed" == "$domain_dir"/* || "$changed" == "$domain_path" ]]; then
+                  if [[ ! ",$AFFECTED_DOMAINS," == *",$domain,"* ]]; then
+                    AFFECTED_DOMAINS="${AFFECTED_DOMAINS:+$AFFECTED_DOMAINS,}$domain"
+                  fi
+                  break 2
+                fi
+              done <<< "$DOMAIN_PATHS"
+            done
+          done
+
+          if [ -z "$AFFECTED_DOMAINS" ]; then
+            echo "No domain-mapped paths affected — skipping"
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "affected_domains=$AFFECTED_DOMAINS" >> "$GITHUB_OUTPUT"
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build audit checklist
+        if: steps.domains.outputs.skip != 'true'
+        run: |
+          DOMAIN_MAP="docs/design/architecture/data/doc-domain-map.json"
+          IFS=',' read -ra DOMAINS <<< "${{ steps.domains.outputs.affected_domains }}"
           CHECKLIST=""
-          for label in "${LABELS[@]}"; do
-            DOCS=$(jq -r --arg l "$label" '.domains[$l] // [] | .[]' "$DOMAIN_MAP")
+          for domain in "${DOMAINS[@]}"; do
+            DOCS=$(jq -r --arg d "$domain" '.domains[$d] // [] | .[]' "$DOMAIN_MAP")
             if [ -n "$DOCS" ]; then
-              CHECKLIST="${CHECKLIST}\n### ${label}\n"
+              CHECKLIST="${CHECKLIST}\n### ${domain}\n"
               while IFS= read -r doc; do
                 CHECKLIST="${CHECKLIST}- [ ] ${doc}\n"
               done <<< "$DOCS"
@@ -56,23 +77,23 @@ jobs:
           done
 
           echo -e "$CHECKLIST" > /tmp/audit-checklist.md
-          echo "skip=false" >> "$GITHUB_OUTPUT"
 
       - name: Create audit issue
-        if: steps.labels.outputs.skip != 'true' && steps.checklist.outputs.skip != 'true'
+        if: steps.domains.outputs.skip != 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          PR_NUMBER=${{ github.event.pull_request.number }}
-          PR_TITLE="${{ github.event.pull_request.title }}"
-          AREA_LABELS="${{ steps.labels.outputs.area_labels }}"
+          COMMIT_SHA="${{ github.sha }}"
+          SHORT_SHA="${COMMIT_SHA:0:7}"
+          COMMIT_MSG=$(git log -1 --pretty=%s)
+          AFFECTED_DOMAINS="${{ steps.domains.outputs.affected_domains }}"
 
-          BODY="## Doc Audit: PR #${PR_NUMBER}
+          BODY="## Doc Audit: ${SHORT_SHA}
 
-          **PR**: #${PR_NUMBER} — ${PR_TITLE}
-          **Areas**: ${AREA_LABELS}
+          **Commit**: ${SHORT_SHA} — ${COMMIT_MSG}
+          **Affected domains**: ${AFFECTED_DOMAINS}
 
-          Review the following documentation for accuracy after this merge:
+          Review the following documentation for accuracy after this change:
 
           $(cat /tmp/audit-checklist.md)
 
@@ -80,12 +101,12 @@ jobs:
           *Auto-generated by doc-audit-trigger. See doc-domain-map.json for scope.*"
 
           LABEL_ARGS="--label P2-debt"
-          IFS=',' read -ra LABELS <<< "$AREA_LABELS"
-          for label in "${LABELS[@]}"; do
-            LABEL_ARGS="$LABEL_ARGS --label $label"
+          IFS=',' read -ra DOMAINS <<< "$AFFECTED_DOMAINS"
+          for domain in "${DOMAINS[@]}"; do
+            LABEL_ARGS="$LABEL_ARGS --label $domain"
           done
 
           gh issue create \
-            --title "Doc audit: PR #${PR_NUMBER} (${AREA_LABELS})" \
+            --title "Doc audit: ${SHORT_SHA} (${AFFECTED_DOMAINS})" \
             $LABEL_ARGS \
             --body "$BODY"
