@@ -1,108 +1,128 @@
-# Implementation Plan: [FEATURE]
-*Path: [templates/plan-template.md](templates/plan-template.md)*
+# Implementation Plan: Doc Audit Infrastructure
 
+**Branch**: `main` | **Date**: 2026-04-08 | **Spec**: [spec.md](spec.md)
+**GitHub Issue**: #104
+**Mission**: software-dev
 
-**Branch**: `[###-feature-name]` | **Date**: [DATE] | **Spec**: [link]
-**Input**: Feature specification from `/kitty-specs/[###-feature-name]/spec.md`
-
-**Note**: This template is filled in by the `/spec-kitty.plan` command. See `src/specify_cli/missions/software-dev/command-templates/plan.md` for the execution workflow.
-
-The planner will not begin until all planning questions have been answered—capture those answers in this document before progressing to later phases.
+---
 
 ## Summary
 
-[Extract from feature spec: primary requirement + technical approach from research]
+Create the infrastructure for systematic documentation auditing: a JSON
+domain map, a docs-debt issue template, a commit tag convention, a
+post-merge GitHub Action trigger, and a weekly cron stub. All artifacts
+are static files (JSON, YAML, Markdown) — no application code.
 
 ## Technical Context
 
-<!--
-  ACTION REQUIRED: Replace the content in this section with the technical details
-  for the project. The structure here is presented in advisory capacity to guide
-  the iteration process.
--->
+**Language/Version**: YAML (GitHub Actions workflows, issue template),
+JSON (domain map), Markdown (CLAUDE.md edit, INDEX.md updates)
+**Primary Dependencies**: GitHub Actions, `gh` CLI, `GITHUB_TOKEN`
+**Testing**: Manual verification — merge a test PR, confirm audit issue
+creation; verify weekly cron fires on schedule
+**Constraints**: Actions must not block merges (non-required check);
+`GITHUB_TOKEN` only (no additional secrets)
 
-**Language/Version**: [e.g., Python 3.11, Swift 5.9, Rust 1.75 or NEEDS CLARIFICATION]  
-**Primary Dependencies**: [e.g., FastAPI, UIKit, LLVM or NEEDS CLARIFICATION]  
-**Storage**: [if applicable, e.g., PostgreSQL, CoreData, files or N/A]  
-**Testing**: [e.g., pytest, XCTest, cargo test or NEEDS CLARIFICATION]  
-**Target Platform**: [e.g., Linux server, iOS 15+, WASM or NEEDS CLARIFICATION]
-**Project Type**: [single/web/mobile - determines source structure]  
-**Performance Goals**: [domain-specific, e.g., 1000 req/s, 10k lines/sec, 60 fps or NEEDS CLARIFICATION]  
-**Constraints**: [domain-specific, e.g., <200ms p95, <100MB memory, offline-capable or NEEDS CLARIFICATION]  
-**Scale/Scope**: [domain-specific, e.g., 10k users, 1M LOC, 50 screens or NEEDS CLARIFICATION]
+## Research Findings
 
-## Charter Check
+### Post-merge trigger mechanism
 
-*GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
+**Decision**: Trigger on PR merge to main only (not on push).
+**Rationale**: spec-kitty merges create merge commits directly, not PRs.
+Triggering on push would require commit-message parsing to detect area
+labels, which is fragile. PR-triggered audits cover manual PRs; the
+weekly stub is the safety net for spec-kitty merges and direct pushes.
+**Alternative rejected**: Push trigger with commit parsing — too complex,
+false positive risk.
 
-[Gates determined based on charter file]
+### Label for audit issues
+
+**Decision**: Use `P2-debt` for auto-created audit issues, plus the
+relevant `area/` label(s) from the PR.
+**Rationale**: The existing `P1-debt`/`P2-debt` labels serve the same
+purpose as the proposed `type/debt`. Auto-created audits are P2 (not
+blocking current work); manually-filed critical gaps can use P1-debt.
+**Alternative rejected**: Creating a new `type/debt` label — adds
+taxonomy complexity with no benefit.
+
+### Domain map schema
+
+**Decision**: JSON object keyed by area label name, each value is an
+array of relative file paths.
+**Rationale**: Matches the pattern of other architecture data files
+(service-inventory.json). Simple enough to edit by hand.
+
+## Constitution Check
+
+*Charter not migrated. Governance checked against Felix Constitution.*
+
+- No agents deployed — N/A for autonomy levels
+- GitHub Actions run in GitHub's environment, not on office2 — no Tier
+  concerns
+- No credentials or secrets involved beyond GITHUB_TOKEN
+- No privacy boundary impact
+
+Pass.
 
 ## Project Structure
 
-### Documentation (this feature)
+### Files Created
 
 ```
-kitty-specs/[###-feature]/
-├── plan.md              # This file (/spec-kitty.plan command output)
-├── research.md          # Phase 0 output (/spec-kitty.plan command)
-├── data-model.md        # Phase 1 output (/spec-kitty.plan command)
-├── quickstart.md        # Phase 1 output (/spec-kitty.plan command)
-├── contracts/           # Phase 1 output (/spec-kitty.plan command)
-└── tasks.md             # Phase 2 output (/spec-kitty.tasks command - NOT created by /spec-kitty.plan)
+docs/design/architecture/data/
+└── doc-domain-map.json          # FR-1: domain→docs mapping
+
+.github/ISSUE_TEMPLATE/
+└── docs-debt.md                 # FR-2: documentation gap template
+
+.github/workflows/
+├── doc-audit-trigger.yml        # FR-4: post-merge audit issue creation
+└── doc-audit-weekly.yml         # FR-5: weekly safety-net stub
 ```
 
-### Source Code (repository root)
-<!--
-  ACTION REQUIRED: Replace the placeholder tree below with the concrete layout
-  for this feature. Delete unused options and expand the chosen structure with
-  real paths (e.g., apps/admin, packages/something). The delivered plan must
-  not include Option labels.
--->
+### Files Modified
 
 ```
-# [REMOVE IF UNUSED] Option 1: Single project (DEFAULT)
-src/
-├── models/
-├── services/
-├── cli/
-└── lib/
-
-tests/
-├── contract/
-├── integration/
-└── unit/
-
-# [REMOVE IF UNUSED] Option 2: Web application (when "frontend" + "backend" detected)
-backend/
-├── src/
-│   ├── models/
-│   ├── services/
-│   └── api/
-└── tests/
-
-frontend/
-├── src/
-│   ├── components/
-│   ├── pages/
-│   └── services/
-└── tests/
-
-# [REMOVE IF UNUSED] Option 3: Mobile + API (when "iOS/Android" detected)
-api/
-└── [same as backend above]
-
-ios/ or android/
-└── [platform-specific structure: feature modules, UI flows, platform tests]
+CLAUDE.md                        # FR-3: [doc-audit] tag convention
+docs/INDEX.md                    # FR-6: domain map + template references
+docs/design/architecture/README.md  # FR-6: domain map in Data Files table
 ```
 
-**Structure Decision**: [Document the selected structure and reference the real
-directories captured above]
+## Implementation Approach
 
-## Complexity Tracking
+### WP1: Domain map + issue template (static files)
 
-*Fill ONLY if Charter Check has violations that must be justified*
+Create the doc-domain-map.json with entries for all 8 area labels.
+Create the docs-debt.md issue template following the existing template
+pattern. These are the foundation that the GitHub Actions reference.
 
-| Violation | Why Needed | Simpler Alternative Rejected Because |
-|-----------|------------|-------------------------------------|
-| [e.g., 4th project] | [current need] | [why 3 projects insufficient] |
-| [e.g., Repository pattern] | [specific problem] | [why direct DB access insufficient] |
+### WP2: CLAUDE.md convention + GitHub Actions + INDEX updates
+
+Add the `[doc-audit]` tag to CLAUDE.md. Create both workflows. Update
+INDEX.md and architecture README. The workflows reference
+doc-domain-map.json from WP1.
+
+### Verification
+
+After merging, create a test PR with an area label and merge it to
+confirm the post-merge action fires correctly.
+
+## Risks
+
+| Risk | Likelihood | Impact | Mitigation |
+|------|-----------|--------|------------|
+| Post-merge action fails silently | Low | Low | Non-required check; weekly stub is backup |
+| Domain map becomes stale | Medium | Medium | Updating map is part of definition of done for new docs |
+| Audit issue volume too high | Low | Low | P2-debt is backlog priority; can be triaged down |
+
+---
+
+**Branch contract (confirmed)**:
+- Current branch: `main`
+- Planning/base branch: `main`
+- Merge target: `main`
+- Branch matches target: **yes**
+
+---
+
+**END OF PLAN**
