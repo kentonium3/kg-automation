@@ -48,6 +48,7 @@ See [`docs/INDEX.md`](<../../INDEX.md>) for the complete listing of machine-read
 | [credential-manifest.json](<./data/credential-manifest.json>) | Named credentials, scopes |
 | [data-flows.json](<./data/data-flows.json>) | Input paths, pipelines, storage targets |
 | [change-risk-taxonomy.json](<./data/change-risk-taxonomy.json>) | Five-tier risk taxonomy with guardrail protocols |
+| [doc-domain-map.json](<./data/doc-domain-map.json>) | Area label → doc file mapping for audit scope |
 
 ## Update Protocol
 

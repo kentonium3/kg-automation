@@ -133,6 +133,11 @@ live in the GitHub issue queue.
 - Use feature branches when useful (complex multi-step work, experiments)
 - Conventional commits: `feat:`, `fix:`, `docs:`, `chore:`, `ci:`
 - CI validates on every push to main
+- Append `[doc-audit]` to commit messages when a commit includes documentation
+  maintenance changes that are not the primary purpose of the commit. This
+  signals to the future felix-doc-auditor agent that the commit contains
+  untracked maintenance changes worth auditing. Advisory only — no CI
+  enforcement. Example: `fix: repair vikunja filter logic [doc-audit]`
 
 ## Permissions
 
