@@ -433,3 +433,7 @@ README so it's discoverable alongside other JSON data files.
 4. Verify INDEX.md and architecture README changes are additive only
 5. Confirm both workflows have correct permissions block
 6. Check that neither workflow is set as a required check
+
+## Activity Log
+
+- 2026-04-08T19:55:03Z – unknown – shell_pid=10913 – Review passed: CLAUDE.md tag convention added, both workflows correct (trigger + weekly), INDEX.md and architecture README updated, all GITHUB_TOKEN only, no required checks
