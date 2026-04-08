@@ -1,49 +1,50 @@
 ---
-title: "F020: Google Calendar OAuth Skill"
+title: "F020: gog Google Workspace Skill — Calendar Foundation"
 doc_type: func-spec
 status: draft
 feature: F020
 ---
 
-# F020: Google Calendar OAuth Skill
+# F020: gog Google Workspace Skill — Calendar Foundation
 
-**Version**: 1.1
+**Version**: 2.0
 **Priority**: HIGH
 **Type**: Infrastructure
 **Recommended Mission Type**: `software-dev`
-**Depends on**: F013 (structured tasks exist to link to calendar events)
+**Depends on**: F013
 
-**Implementation note (pre-spec-kitty)**: OAuth2 credentials are already established
-outside the spec-kitty workflow. See Credential State below.
+**Approach change (v2.0)**: Rather than building a custom `google-calendar` skill
+from scratch, this feature adopts `gog` — the official Google Workspace CLI from
+OpenClaw's own creator (steipete). `gog` covers Gmail, Calendar, Drive, Contacts,
+Sheets, and Docs in a single tool, eliminating the need to build custom skills for
+each Google service as Felix grows. **F020 activates Calendar only**; additional
+services (Gmail, Drive, etc.) are enabled in future features as needed.
+
+**Constitution approval**: Kent Gale has explicitly approved installation of
+`gog` from `openclaw/openclaw` (steipete's repo) — 2026-04-06.
 
 ---
 
 ## Executive Summary
 
-OAuth2 credentials are established and OpenClaw can already read and write to
-Google Calendar. The remaining work is the skill layer: a `google-calendar` skill
-that teaches OpenClaw agents to use the API consistently, and the supporting
-architecture documentation updates.
+OAuth2 credentials for Google are established on office2. The remaining work is
+installing `gog`, configuring it with existing credentials, writing a thin Felix
+SKILL.md wrapper scoped to the personal calendar, and retiring the now-superseded
+custom credential files in favour of gog's auth store.
 
-**Calendar scope — personal only**: This feature and all downstream calendar
-features (F021–F023) concern **kentgale@gmail.com exclusively**. The Google Cloud
-project lives under the Intentional Google organization (`kent@intentional.biz`),
-and OpenClaw has visibility into both the personal and Intentional calendars.
-However, agents must only read and write the personal calendar (`kentgale@gmail.com`)
-unless explicitly directed otherwise in a future feature spec. The Intentional
-calendar (`kent@intentional.biz`) is visible but out of scope.
+Adopting `gog` instead of a custom skill delivers:
+- Calendar access now (F020)
+- Gmail, Drive, Contacts, Sheets, Docs available in future features without
+  additional OAuth plumbing — just enabling APIs and extending gog's scope
 
 Current gaps:
-- ✅ OAuth2 credentials established on office2 (completed pre-spec-kitty)
-- ✅ OpenClaw confirmed reading and writing both personal and Intentional calendars
-- ❌ No `google-calendar` skill exists for OpenClaw agents
-- ❌ Agents have no consistent, documented API interaction pattern
-- ❌ `credential-manifest.json` entry for `personal-google` remains as `planned`
-
-This spec delivers: a one-time OAuth2 authorization flow for Kent's personal Google
-Calendar, a persistent refresh token stored on office2, and a `google-calendar` skill
-that teaches OpenClaw agents to list events, query availability, and create, update,
-and delete events via the Google Calendar API v3.
+- ✅ OAuth2 client credentials established on office2 (pre-spec-kitty)
+- ✅ OpenClaw confirmed read/write access to both personal and Intentional calendars
+- ❌ `gog` not installed on office2
+- ❌ `gog` not configured with Kent's Google account
+- ❌ No Felix SKILL.md wrapper for agents to use
+- ❌ Custom plaintext credential files superseded but not retired
+- ❌ `credential-manifest.json` not updated to reflect gog auth store
 
 ---
 
@@ -51,63 +52,29 @@ and delete events via the Google Calendar API v3.
 
 **Current State:**
 ```
-office2 credential store (/data/services/openclaw/secrets/)
-├── vikunja-api          ✅
-├── anthropic            ✅
-└── google-calendar-*    ❌ DOESN'T EXIST
-
-OpenClaw skills (~/.openclaw/skills/)
-├── vikunja-api/         ✅
-├── task-intelligence/   ✅
-├── escalation/          ✅ (F019)
-└── google-calendar/     ❌ DOESN'T EXIST
-
-Downstream features blocked:
-├── F023 — Task ↔ calendar event linking    ❌ blocked on this
-├── F024 — Daily briefing heartbeat         ❌ blocked on this
-└── F025 — Level 1-2 escalation heartbeat   ❌ blocked on this
+office2
+├── /data/services/openclaw/secrets/google-calendar-client-id     ← superseded
+├── /data/services/openclaw/secrets/google-calendar-client-secret ← superseded
+├── /data/services/openclaw/secrets/google-calendar-refresh-token ← superseded
+├── scripts/google/authorize-calendar.py  ← superseded (kept for reference)
+└── [no gog binary]
+    [no gog auth configured]
+    [no google-calendar SKILL.md]
 ```
 
 **Target State:**
 ```
-office2 credential store
-├── google-calendar-client-id        ✅ already present
-├── google-calendar-client-secret    ✅ already present
-└── google-calendar-refresh-token    ✅ already present
+office2
+├── gog binary installed and on PATH
+├── gog auth store configured for kentgale@gmail.com (calendar scope)
+└── ~/.openclaw/skills/google-calendar/SKILL.md  ← Felix wrapper for gog
 
-OpenClaw skills
-└── google-calendar/SKILL.md         ✅ Teaches agents to use Calendar API v3
-                                        PERSONAL CALENDAR ONLY (kentgale@gmail.com)
+docs/
+└── runbooks/google-calendar-ops.md  ← operations and setup guide
 
 credential-manifest.json
-└── personal-google entry            ✅ Updated from planned → active with storage paths
-
-Downstream features
-├── F021 — Task ↔ calendar event linking    ✅ unblocked
-├── F022 — Daily briefing heartbeat         ✅ unblocked
-└── F023 — Level 1-2 escalation heartbeat   ✅ unblocked
+└── personal-google  ← updated: gog auth store, calendar scope only
 ```
-
----
-
-## Credential State (Pre-Spec-Kitty Establishment)
-
-The following credentials were established manually before this spec ran:
-
-| File | Status |
-|------|--------|
-| `/data/services/openclaw/secrets/google-calendar-client-id` | ✅ Present, mode 600 |
-| `/data/services/openclaw/secrets/google-calendar-client-secret` | ✅ Present, mode 600 |
-| `/data/services/openclaw/secrets/google-calendar-refresh-token` | ✅ Present, mode 600 |
-
-The Google Cloud project is hosted under the Intentional Google organization
-(`kent@intentional.biz`). OpenClaw has confirmed read/write access to both
-`kentgale@gmail.com` (personal) and `kent@intentional.biz` (Intentional) calendars.
-**This feature and all downstream features target `kentgale@gmail.com` only.**
-
-FR-1 (Google Cloud project setup) and FR-2 (credential storage) from the original
-spec are complete. FR-3 (authorization script) is also complete — `scripts/google/authorize-calendar.py`
-was run and produced the stored refresh token.
 
 ---
 
@@ -115,229 +82,212 @@ was run and produced the stored refresh token.
 
 Before implementation, the planning phase MUST read:
 
-1. **Existing credential patterns**
-   - `docs/design/architecture/data/credential-manifest.json` — the `personal-google`
-     planned credential entry is the target; see the `vikunja-api` entry as the
-     pattern for how stored credentials are documented
-   - `/data/services/openclaw/secrets/` on office2 — credentials are already present
+1. **gog documentation and source**
+   - `https://github.com/steipete/gogcli` — gog source repository; study the
+     README for installation options on Linux (office2 is Ubuntu 24.04 LTS)
+   - `https://gogcli.sh` — gog homepage
+   - The gog SKILL.md from openclaw/openclaw:
+     `https://github.com/openclaw/openclaw/blob/main/skills/gog/SKILL.md`
+   - Understand the auth flow: `gog auth credentials`, `gog auth add`, `gog auth list`
 
-2. **Vikunja API skill as the pattern reference**
-   - `scripts/openclaw/skills/vikunja-api/SKILL.md` — this is the exact structural
-     pattern the google-calendar skill must follow: health check, authentication,
-     operations, error handling, usage examples
-   - Study the auth pattern specifically — the vikunja-api skill reads a token from
-     a file at runtime; the google-calendar skill does the same with a refresh-token
-     exchange step added
+2. **Existing credentials on office2**
+   - `/data/services/openclaw/secrets/google-calendar-client-id`
+   - `/data/services/openclaw/secrets/google-calendar-client-secret`
+   - `/data/services/openclaw/secrets/google-calendar-refresh-token`
+   - These were created for the prior approach. gog needs `client_secret.json`
+     (standard Google OAuth2 JSON format). The planning phase must determine
+     how to construct the client_secret.json from these stored values, OR
+     whether to re-run gog's native auth flow from scratch.
 
-3. **Google Calendar API v3 documentation**
-   - `https://developers.google.com/calendar/api/v3/reference` — authoritative
-     reference for all endpoints used in this feature
-   - `https://developers.google.com/identity/protocols/oauth2` — OAuth2 flow
-   - Key resource: `Events: list`, `Events: insert`, `Events: update`, `Events: delete`
-   - Key resource: `Calendars: get`, `CalendarList: list`
+3. **Existing auth script**
+   - `scripts/google/authorize-calendar.py` — prior approach; keep for reference
+     and to document what it set up. Do not delete.
 
-4. **OpenClaw skill deployment pattern**
-   - `docs/runbooks/openclaw-ops.md` — how skills are deployed to office2
-   - `docs/runbooks/vikunja-ops.md` "Update Skill on office2" section — the
-     `cat >` deployment pattern applies identically here
+4. **Vikunja API skill as structural pattern**
+   - `scripts/openclaw/skills/vikunja-api/SKILL.md` — Felix SKILL.md wrappers
+     in this project are thin instruction documents for agents. The google-calendar
+     wrapper follows the same structural conventions.
 
-5. **Architecture change-control protocol**
-   - `docs/design/architecture/change-control.md` — this feature adds a credential
-     and a service integration; architecture docs must be updated per the protocol
+5. **Credential manifest and ops runbook**
+   - `docs/design/architecture/data/credential-manifest.json` — `personal-google`
+     entry needs updating to reflect gog auth store
+   - `docs/design/architecture/credentials-and-secrets.md` — storage mechanism
+     narrative updated in maintenance-2026-04-06; verify gog auth store section
+     remains accurate after this feature
 
 ---
 
-## OAuth2 Setup Model
+## Kent's Manual Prerequisites
 
-Google Calendar requires OAuth2 with a refresh token for server-side automation.
-The setup is a one-time manual flow followed by fully automated token refresh.
+**Before Claude Code can proceed with FR-2 and beyond, Kent must:**
 
-### One-time setup (human-in-the-loop required)
+1. **Verify Google APIs enabled in the Cloud Console** (console.cloud.google.com)
+   - For F020 (calendar only): Google Calendar API — confirm it is enabled
+   - For future features (enable now to avoid repeat visits):
+     - Gmail API → F025+ (email triage)
+     - Google Drive API → future Drive integration
+     - Google People API → Contacts
+     - Google Sheets API → Sheets
+     - Google Docs API → Docs
+   - Location: APIs & Services → Library → search each by name → Enable
 
-1. Kent creates a Google Cloud project with Calendar API enabled and generates
-   OAuth2 client credentials (client ID and client secret) in the Google Console
-2. Client ID and client secret stored on office2 in the credential store
-3. An authorization script generates the OAuth2 consent URL
-4. Kent opens the URL in a browser, selects the personal Google account, and
-   approves Calendar access
-5. The script exchanges the authorization code for an access token + refresh token
-6. Refresh token stored on office2 in the credential store
-7. Access token is ephemeral — never stored, always obtained by refreshing
+2. **Confirm OAuth consent screen scopes** include Calendar (and others if enabled)
+   - APIs & Services → OAuth consent screen → Edit → Scopes
+   - Add: `https://www.googleapis.com/auth/calendar`
+   - Add future scopes now if enabling additional APIs above
 
-### Automated token refresh (no human required)
-
-The google-calendar skill includes a token refresh procedure:
-1. Read client ID, client secret, and refresh token from the credential store
-2. POST to `https://oauth2.googleapis.com/token` with `grant_type=refresh_token`
-3. Receive a fresh access token (valid 3600 seconds)
-4. Use the access token for all Calendar API calls in that session
-
-The refresh token is long-lived and persists until explicitly revoked. The skill
-handles the refresh transparently — agents call the skill and receive calendar data;
-the token exchange happens inside the skill's auth procedure.
-
-### OAuth2 scope
-
-Request only the minimum scope needed:
-- `https://www.googleapis.com/auth/calendar` — full read/write access to all
-  calendars on the account
-
-A read-only scope (`calendar.readonly`) would be insufficient because agents
-must be able to create events (task↔event linking, time-blocking). Full calendar
-scope is appropriate given the use cases.
+These steps cannot be automated — they require access to the Google Cloud Console
+under the Intentional organization account. The Cloud project was created during
+initial OAuth setup.
 
 ---
 
 ## Functional Requirements
 
-### FR-1: Google Cloud Project and OAuth2 Credentials ✅ COMPLETE
-
-Completed pre-spec-kitty. Google Cloud project under Intentional organization,
-Calendar API enabled, Desktop app OAuth2 credentials generated. Client ID,
-client secret, and refresh token stored on office2.
-
----
-
-### FR-2: Credential Storage on office2 ✅ COMPLETE
-
-All three credential files present at `/data/services/openclaw/secrets/` with
-mode 600. See Credential State section above.
-
----
-
-### FR-3: OAuth2 Authorization Script ✅ COMPLETE
-
-`scripts/google/authorize-calendar.py` exists and was successfully run.
-Refresh token is stored and verified working.
-
----
-
-### FR-4: Google Calendar Skill
+### FR-1: Install gog on office2
 
 **What it must do:**
-- Create `scripts/openclaw/skills/google-calendar/SKILL.md` following the exact
-  structural pattern of the vikunja-api skill
-- Teach agents to perform the following operations using the Google Calendar API v3:
-  - **Token refresh** — exchange refresh token for access token (prerequisite to all calls)
-  - **List calendars** — enumerate calendars on the account to resolve the primary
-    calendar ID and any named calendars
-  - **List events** — retrieve events in a date range from a specified calendar
-  - **Get event** — retrieve a single event by ID
-  - **Create event** — create a new calendar event with title, time, description,
-    and optional attendees
-  - **Update event** — modify an existing event
-  - **Delete event** — remove an event
+- Install the `gog` binary on office2 such that it is available on the PATH
+  for the `claude` user
+- office2 runs Ubuntu 24.04 LTS — determine the appropriate install method:
+  - Homebrew on Linux (`brew install steipete/tap/gogcli`) if brew is available,
+    or can be installed without sudo
+  - Build from source (`git clone https://github.com/steipete/gogcli && make`)
+    as an alternative if brew is not viable
+- Verify: `gog --version` returns a version string
 
 **Business rules:**
-- All API calls use `curl` via the `exec` tool, consistent with vikunja-api pattern
-- Token refresh must be performed at the start of every agent session that uses
-  this skill — access tokens expire after 3600 seconds
-- Never log or print the access token, client secret, or refresh token values
-- The skill must include the full token refresh procedure, not just the API calls
-- Error handling must follow the vikunja-api pattern: pre-flight validation,
-  HTTP error responses, halt-on-ambiguity
-
-**Calendar scope — PERSONAL ONLY:**
-- This skill operates on `kentgale@gmail.com` exclusively
-- The canonical calendar ID is `primary` — this resolves to the primary calendar
-  of whichever account authorized the OAuth token (kentgale@gmail.com)
-- The skill must NOT read from or write to `kent@intentional.biz` calendar
-- If an agent session somehow surfaces the Intentional calendar, the skill must
-  ignore it and operate on `primary` only
-- Future access to the Intentional calendar requires a separate feature spec and
-  a separate credential (`intentional-google`)
+- Installation must not require sudo for ongoing use — only the install step
+  itself may require elevated access if unavoidable
+- The binary must be accessible to the `claude` user (the agent execution account)
 
 **Success criteria:**
-- [ ] Skill written at `scripts/openclaw/skills/google-calendar/SKILL.md`
-- [ ] Skill covers all seven operations: token refresh, list calendars, list events,
-  get event, create event, update event, delete event
-- [ ] Skill includes complete token refresh procedure with credential file paths
-- [ ] Error handling covers auth failures, 403, 404, network errors
-- [ ] Skill deployed to office2 at `~/.openclaw/skills/google-calendar/SKILL.md`
-- [ ] Skill follows vikunja-api structural pattern exactly
+- [ ] `gog --version` succeeds as the claude user on office2
+- [ ] Install method documented in `docs/runbooks/google-calendar-ops.md`
 
 ---
 
-### FR-5: End-to-End Verification ✅ PARTIALLY COMPLETE
-
-OpenClaw has already confirmed read/write access to both calendars. The
-verification step for this spec is confirming the **skill itself** (once written)
-can list events via the documented curl pattern — not just that the API works.
-
-### FR-5: Skill Verification
+### FR-2: Configure gog with Google Account
 
 **What it must do:**
-- Verify the complete credential + skill pipeline works end-to-end by running
-  a read-only test: list the next 5 events on the primary calendar
-- The test must be run via Claude Code using `ssh office2-claude` to confirm the
-  skill works in the actual agent execution environment
-- Any errors in the token refresh, API call, or response parsing must be resolved
-  before the feature is accepted
+- Configure gog with Kent's personal Google account (`kentgale@gmail.com`)
+  scoped to Calendar service only for this feature
+- Use the existing client credentials stored in the office2 secret store to
+  construct the `client_secret.json` required by `gog auth credentials`
+- Run `gog auth credentials /path/to/client_secret.json`
+- Run `gog auth add kentgale@gmail.com --services calendar`
+- This step requires an interactive OAuth consent flow — Kent must be present
+  at the terminal or a URL must be printed for out-of-band authorization
+
+**Business rules:**
+- gog manages its own token store — after auth, the plaintext credential files
+  in `/data/services/openclaw/secrets/google-calendar-*` are superseded but
+  NOT deleted (kept as reference and fallback)
+- Set `GOG_ACCOUNT=kentgale@gmail.com` as a persistent environment variable
+  for the claude user to avoid requiring `--account` on every gog call
+- Calendar scope only for F020 — additional services added in future features
 
 **Success criteria:**
-- [ ] `google-calendar` skill lists next 5 events from primary calendar successfully
-- [ ] Token refresh completes without errors
-- [ ] Response includes event titles and start times
-- [ ] No credentials appear in output
+- [ ] `gog auth list` shows `kentgale@gmail.com` with calendar service
+- [ ] `GOG_ACCOUNT` environment variable set for claude user
+- [ ] Interactive auth step documented in runbook
 
 ---
 
-### FR-6: Operations Runbook
+### FR-3: Felix Google Calendar SKILL.md Wrapper
 
 **What it must do:**
+- Create `scripts/openclaw/skills/google-calendar/SKILL.md` — a Felix-specific
+  wrapper that teaches agents how to use `gog` for calendar operations, scoped
+  to `kentgale@gmail.com` personal calendar exclusively
+- This is NOT a copy of gog's own SKILL.md — it is a thin Felix wrapper that:
+  - States the personal-only scope constraint explicitly
+  - Documents the specific `gog calendar` commands agents should use
+  - Specifies `GOG_ACCOUNT=kentgale@gmail.com` / `primary` as the calendar target
+  - Includes error handling guidance (token issues, API quota, calendar not found)
+  - References the operations runbook for credential rotation
+
+**Covered operations:**
+- List upcoming events (date range, max results)
+- Get a specific event by ID
+- Create an event (title, start/end, description, location)
+- Update an event
+- Delete an event
+
+**Business rules:**
+- Skill operates on `kentgale@gmail.com` / `primary` calendar exclusively
+- Skill must NOT use or reference `kent@intentional.biz` calendar
+- Agents use `gog calendar` subcommands via `exec` — not raw Google API calls
+- Output format: always use `--json` flag for machine-readable responses
+- Confirm before creating or deleting events (constitutional Assisted-mode behavior)
+
+**Success criteria:**
+- [ ] SKILL.md at `scripts/openclaw/skills/google-calendar/SKILL.md`
+- [ ] Skill deployed to `~/.openclaw/skills/google-calendar/SKILL.md` on office2
+- [ ] Personal-only scope constraint stated explicitly in skill
+- [ ] All five operations documented with working gog commands
+- [ ] `--json` output format specified throughout
+
+---
+
+### FR-4: End-to-End Verification
+
+**What it must do:**
+- Confirm the full pipeline works by listing the next 5 events on the primary
+  personal calendar via the SKILL.md-documented commands
+- Confirm no Intentional calendar events appear in the output
+
+**Success criteria:**
+- [ ] `gog calendar events primary --max 5 --json` succeeds as claude user
+- [ ] Response contains event titles and start times from kentgale@gmail.com
+- [ ] No kent@intentional.biz events in output
+
+---
+
+### FR-5: Retire Superseded Files and Update Documentation
+
+**What it must do:**
+- Move the three plaintext credential files to an archived location or add a
+  `SUPERSEDED-BY-GOG` prefix so their status is clear — do not delete them
+- Update `credential-manifest.json`: `personal-google` entry reflects gog auth
+  store as storage mechanism
+- Update `docs/design/architecture/credentials-and-secrets.md` if the gog auth
+  store section needs any correction after actual installation
 - Create `docs/runbooks/google-calendar-ops.md` covering:
-  - One-time setup steps (Google Cloud Console steps Kent must perform)
-  - How to run the authorization script
-  - How to verify the credential is working
-  - How to rotate the refresh token (re-run authorization script)
-  - Troubleshooting: token expired, API quota exceeded, wrong calendar ID
+  - How gog is installed on office2
+  - How to re-authorize if the token is revoked (`gog auth add` again)
+  - How to add additional Google services in future features
+  - How to verify the calendar connection is working
+  - Troubleshooting: token expired, wrong account, API not enabled
 
 **Success criteria:**
-- [ ] Runbook exists and covers all topics
-- [ ] Google Cloud Console steps documented with enough detail for Kent to follow
-  without further guidance
+- [ ] Superseded plaintext files clearly marked or archived (not deleted)
+- [ ] `credential-manifest.json` updated with gog storage mechanism
+- [ ] `google-calendar-ops.md` runbook created and complete
+- [ ] Architecture docs consistent with actual installation
 
 ---
 
 ## Architecture Documentation Updates
 
-F022 adds OAuth credentials and a new external API integration.
-
-### JSON Updates Required
-
 | File | Change |
 |------|--------|
-| `data/credential-manifest.json` | Update `personal-google` from `planned_credentials` to `credentials`; add storage paths, used_by, deployed_by |
-| `data/service-inventory.json` | Add `google-calendar-api` integration entry under openclaw-gateway; set `updated_by: "F022"` |
-| `data/data-flows.json` | Add Google Calendar API as an external data source; data flow: office2 → Google Calendar API (read/write events) |
-
-### Markdown Updates Required
-
-| File | Change |
-|------|--------|
-| `service-inventory.md` | Add Google Calendar API integration under OpenClaw external integrations |
-| `credentials-and-secrets.md` | Add personal-google OAuth credential section |
-| `data-flows.md` | Add Google Calendar data flow |
-
-**Success criteria:**
-- [ ] All JSON files updated with `updated_by: "F022"`
-- [ ] `personal-google` moved from `planned_credentials` to `credentials` in manifest
-- [ ] Markdown views match JSON sources
+| `data/credential-manifest.json` | Update `personal-google` storage to reflect gog auth store; set `updated_by: "F020"` |
+| `data/service-inventory.json` | Add `gog` as an installed tool under office2; set `updated_by: "F020"` |
+| `credentials-and-secrets.md` | Verify gog auth store section accurate post-install |
+| `service-inventory.md` | Add gog entry |
 
 ---
 
 ## Out of Scope
 
-- ❌ Task ↔ calendar event linking — F023; that feature builds on this one
-- ❌ Daily briefing with calendar context — F024
-- ❌ Calendar-aware escalation heartbeat — F025
-- ❌ Intentional LLC Google Workspace calendar — separate credential (`intentional-google`)
-  planned but not in this feature; personal calendar only
-- ❌ Google Meet / video conferencing integration — not needed at basic level
-- ❌ Calendar event reminders or notifications — out of scope for the skill layer
-- ❌ Recurring event creation — skill documents the API capability but agents
-  are not required to use it in this feature; complex recurrence rules are future scope
-- ❌ Two-way sync with Vikunja tasks — F023
+- ❌ Gmail integration — enabling Gmail API in Cloud Console is a prerequisite
+  step Kent performs now; Gmail agent capability is F025+
+- ❌ Drive, Contacts, Sheets, Docs — same; APIs enabled now, skills built later
+- ❌ Task ↔ calendar event linking — F021
+- ❌ Intentional LLC calendar (`kent@intentional.biz`) — separate future feature
+- ❌ Deleting the prior `authorize-calendar.py` script — keep for reference
+- ❌ Multi-account gog configuration — personal account only for now
 
 ---
 
@@ -345,135 +295,117 @@ F022 adds OAuth credentials and a new external API integration.
 
 **Complete when:**
 
-### OAuth Setup
-- [ ] Client ID and client secret stored on office2 (mode 600)
-- [ ] Authorization script runs and produces authorization URL
-- [ ] Kent completes authorization flow
-- [ ] Refresh token stored on office2 (mode 600)
+### Installation
+- [ ] `gog --version` succeeds as claude user on office2
+- [ ] `gog auth list` shows `kentgale@gmail.com` with calendar service
 
 ### Skill
-- [ ] `google-calendar` skill written and deployed to office2
-- [ ] All seven operations documented with working curl examples
-- [ ] Token refresh procedure included and tested
-- [ ] Error handling complete
+- [ ] SKILL.md deployed and agents can use `gog calendar` commands
+- [ ] Personal-only scope constraint enforced in skill
+- [ ] `--json` output throughout
 
 ### Verification
-- [ ] Skill lists next 5 events from primary calendar (kentgale@gmail.com) via documented curl pattern
-- [ ] Token refresh procedure in skill executes correctly
-- [ ] Intentional calendar events do not appear in output
+- [ ] 5-event listing from primary calendar succeeds
+- [ ] No Intentional calendar contamination
 
 ### Documentation
-- [ ] `docs/runbooks/google-calendar-ops.md` complete
-- [ ] `credential-manifest.json` updated (planned → active)
-- [ ] `service-inventory.json` updated
-- [ ] `data-flows.json` updated
-- [ ] Markdown views updated
+- [ ] `google-calendar-ops.md` runbook complete
+- [ ] `credential-manifest.json` updated
+- [ ] Superseded credential files marked/archived
 
 ---
 
 ## Architecture Principles
 
-### Refresh Token as the Stored Credential
+### Adopt over Build
 
-Google OAuth2 access tokens expire after one hour. Storing them persistently is
-pointless and a mild security liability. The refresh token is the persistent
-credential — long-lived, revocable, and scopable. The access token is ephemeral:
-obtained at session start, used, and discarded. This is the correct pattern for
-automated server-side Google API use.
+`gog` is maintained by the creator of OpenClaw and covers the full Google
+Workspace surface. Building and maintaining a custom skill for each Google
+service would be redundant work with worse coverage. The adoption pattern —
+install once, extend scope feature by feature — is more durable than the
+build-from-scratch pattern.
 
-### Minimum Scope
+### Credential Model: gog auth store
 
-The `calendar` scope (full read/write) is the minimum that supports the
-downstream use cases (creating events for task↔calendar linking, reading events
-for briefings). A narrower `calendar.readonly` scope would require re-authorization
-when write capability is needed. Request the right scope once.
+gog manages its own token store. This is the correct home for credentials
+that gog consumes. The plaintext file pattern (used for `vikunja-api`) remains
+appropriate for skills that read tokens directly via `cat` — it is not the
+right pattern for OAuth2 tokens that have their own managed refresh lifecycle.
 
-### Same Credential Store Pattern
+### Thin Wrapper, Not Reimplementation
 
-Google Calendar credentials follow the same layout as `vikunja-api`: plain text
-files in `/data/services/openclaw/secrets/`, owned by claude, mode 600. No new
-patterns, no new tooling. Consistency with the existing credential architecture
-is worth more than any marginal optimization.
-
-### Skill as the API Abstraction Layer
-
-Agents never interact with the Google Calendar API directly from their AGENTS.md
-standing orders — they use the skill. The skill abstracts the token refresh,
-URL construction, response parsing, and error handling. This means changes to
-the authentication model or API version are made in one place (the skill) rather
-than in every agent that uses calendar access.
+The Felix SKILL.md does not reimplement gog's functionality. It scopes gog to
+Felix's use case: kentgale@gmail.com, calendar only, JSON output, confirm before
+mutating. Agents read the wrapper; the wrapper tells them which gog commands to
+run. Gog handles auth, token refresh, and API interaction.
 
 ---
 
 ## Constitutional Compliance
 
-✅ **No credentials in code**: All credential values read at runtime from
-`/data/services/openclaw/secrets/` — never hardcoded or logged.
+✅ **ClawHub approval**: Kent explicitly approved `gog` installation — 2026-04-06.
 
-✅ **Narrow scope**: This feature delivers credential setup and the skill.
-It does not build any calendar-using agent behaviors — those are F023–F025.
+✅ **No credentials in code**: gog auth store manages tokens; no secrets
+in SKILL.md or committed files.
 
-✅ **Never fail silently**: Token refresh failures, API errors, and network
-issues are all surfaced explicitly in the skill's error handling section.
+✅ **Narrow scope**: Calendar only for F020; additional services in future specs.
 
-✅ **Privacy is absolute**: `02-Growth/_private/` content is not involved.
-Calendar events are Kent's personal data; the skill reads and writes only what
-agents are explicitly directed to access.
+✅ **Never fail silently**: SKILL.md error handling covers token expiry, quota
+exceeded, and API-not-enabled errors.
 
 ---
 
 ## Risk Considerations
 
-**Risk: Google OAuth consent screen requires app verification for external apps**
-- If the Cloud project is set up with "External" user type, Google may limit
-  access to test users until the app is verified.
-- Mitigation: Set the OAuth consent screen to "Internal" if using Google Workspace,
-  or add Kent's personal account as a test user for an external project. The
-  authorization script does not need to be a published app.
+**Risk: gog install on Ubuntu 24.04 is non-trivial**
+- gog's primary install is via Homebrew (`steipete/tap/gogcli`). Homebrew
+  on Linux is functional but heavier than on Mac.
+- Mitigation: Planning phase checks whether building from source
+  (`git clone && make`) is simpler on Ubuntu. Either approach is acceptable.
 
-**Risk: Refresh token revoked without warning**
-- Google revokes refresh tokens if the account password changes, security
-  review triggers, or the token is unused for 6+ months.
-- Mitigation: The runbook (FR-6) documents the re-authorization procedure.
-  The skill's error handling surfaces token revocation (HTTP 401 with
-  `invalid_grant` error) clearly.
+**Risk: Existing refresh token incompatible with gog's auth store**
+- gog runs its own OAuth consent flow and manages tokens independently.
+  The refresh token in our plaintext files may not be importable.
+- Mitigation: Re-running the OAuth consent flow via gog is acceptable and
+  expected. The prior credentials are not lost — they remain as plaintext
+  files. FR-2 explicitly allows for a fresh auth flow.
 
-**Risk: API quota exceeded**
-- Google Calendar API has per-user quotas. Normal Felix agent use is well
-  within limits, but runaway agents could hit them.
-- Mitigation: Skill documents the quota error response (HTTP 429). No
-  automated retry — halt and report.
-
-**Risk: Authorization script fails on office2 (no browser available)**
-- The interactive OAuth2 flow requires a browser to open the consent URL.
-  office2 has no GUI.
-- Mitigation: The script prints the authorization URL for Kent to open on
-  any device. The authorization code can be pasted back into the script
-  (manual redirect approach). This is a one-time setup step.
+**Risk: Calendar API scope insufficient after re-authorization via gog**
+- If the OAuth consent screen scopes don't include Calendar, gog auth will
+  fail or return permission errors.
+- Mitigation: Kent's manual prerequisite (FR-0) confirms scopes before
+  FR-2 runs.
 
 ---
 
 ## Notes for Implementation
 
-**Pattern Discovery (Planning Phase):**
-- Study `scripts/openclaw/skills/vikunja-api/SKILL.md` section by section before
-  writing the google-calendar skill — match the structure exactly
-- Study `/data/services/openclaw/secrets/vikunja-api` permissions for the
-  credential store file layout
-- Review Google Calendar API v3 reference for Events and CalendarList resources
-  before writing skill curl examples — verify endpoint signatures at planning time
+**Determine install method first (planning phase):**
+Check if Homebrew is available on office2 as the claude user. If not, assess
+whether `make install` from source is feasible without sudo for the install
+step. Document the chosen approach in the runbook before proceeding.
 
-**Authorization script approach:**
-- The simplest approach for office2: print the auth URL, wait for Kent to paste
-  the authorization code back into the terminal. No localhost server needed.
-- Python's `google-auth-oauthlib` library handles the OAuth2 flow cleanly, but
-  a pure stdlib approach using `urllib` is also viable — planning phase decides
+**Constructing client_secret.json:**
+gog's `auth credentials` command expects the standard Google OAuth2 JSON
+format: `{"installed": {"client_id": "...", "client_secret": "...", ...}}`.
+The planning phase must construct this from the stored credential files and
+confirm the exact JSON structure expected by gog before running the command.
+The constructed JSON should be written to a temporary file and not committed.
 
-**Skill token refresh pattern:**
-- The refresh call is a `curl -X POST` to `https://oauth2.googleapis.com/token`
-  with `client_id`, `client_secret`, `refresh_token`, and `grant_type=refresh_token`
-- The response contains `access_token` — capture it as a shell variable for the
-  remainder of the session, never write it to disk
+**GOG_ACCOUNT environment variable:**
+Set in `/home/claude/.profile` or `/home/claude/.bashrc` so it persists across
+sessions and cron invocations. Confirm it is visible to OpenClaw skill `exec`
+calls in the agent execution environment.
+
+---
+
+## Revision History
+
+| Version | Date | Changes |
+|---------|------|---------|
+| 1.0 | 2026-04-06 | Initial draft — custom curl-based google-calendar skill |
+| 1.1 | 2026-04-06 | Pre-spec-kitty credential establishment noted; scope clarified to kentgale@gmail.com |
+| 2.0 | 2026-04-06 | Complete rewrite: adopt gog instead of building custom skill; credential model updated to gog auth store |
 
 ---
 

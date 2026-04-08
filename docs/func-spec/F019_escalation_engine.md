@@ -39,6 +39,7 @@ heartbeat (F024) will build.
 ## Problem Statement
 
 **Current State:**
+
 ```
 Vikunja (post-F013)
 ├── ✅ Tasks have due dates, priorities, and project placement
@@ -54,6 +55,7 @@ Felix
 ```
 
 **Target State:**
+
 ```
 felix-admin-escalation (F019) — new specialist agent
 ├── ✅ Daily run: queries Vikunja for overdue and at-risk tasks
@@ -176,6 +178,7 @@ deciding whether to escalate and at what level.
 - Include a prompt for response at the end of the message
 
 **Example message format:**
+
 ```
 ⚠️ Tasks needing attention:
 
@@ -212,6 +215,7 @@ mark done ("1 done"), or update the date ("1 move to friday").
   must reflect the seriousness: not a casual nudge
 
 **Example Level 2 task line:**
+
 ```
 🔴 [Intentional] Send consulting proposal to Acme — 5 days overdue
 ```
@@ -241,12 +245,14 @@ mark done ("1 done"), or update the date ("1 move to friday").
 **Required comment format:**
 
 Escalation sent:
+
 ```
 [Felix-Escalation] YYYY-MM-DD | level-1 | sent
 [Felix-Escalation] YYYY-MM-DD | level-2 | sent
 ```
 
 Response recorded:
+
 ```
 [Felix-Escalation] YYYY-MM-DD | snoozed:Nd | acknowledged
 [Felix-Escalation] YYYY-MM-DD | dismissed | acknowledged
@@ -282,6 +288,7 @@ Response recorded:
   - **Acknowledge only**: Record that the alert was seen; Level 2 demotes to Level 1
 
 **Natural language response examples:**
+
 ```
 "1 done" → mark task #1 as complete
 "2 snooze 3d" → snooze task #2 for 3 days

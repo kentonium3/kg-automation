@@ -1,62 +1,51 @@
 ---
-id: readme
-title: kg-automation Repository
+title: Felix — kg-automation
 doc_type: readme
-level: reference
 status: approved
 owners:
   - '@kentonium3'
-last_validated: '2025-10-21'
-last_updated: '2025-10-29'
-revision: v1.0
-audience: agents_and_humans
+last_validated: '2026-04-08'
+last_updated: '2026-04-08'
 ---
 
-# Option B: Cross-Platform Doc ⇄ JSON Sync
+<p align="center">
+  <img src="docs/assets/felixhead.gif" width="180" alt="Felix the Cat"/>
+</p>
 
-This folder contains a cross-platform synchronizer to keep a Markdown charter
-and its machine-readable JSON manifest in sync.
+<h1 align="center">Felix</h1>
+<p align="center"><em>A personal AI operating system — built on kg-automation</em></p>
 
-## Files
-- `scripts/kg_sync_docs.py` — Markdown → JSON converter (Python 3.9+)
-- `docs/strategy/strategic_acceleration_charter.md` — example source Markdown
-- `docs/strategy/strategic_acceleration_charter.json` — generated manifest (output)
-- `.github/workflows/charter-sync.yml` — CI check to ensure JSON matches Markdown
+<p align="center">
+  <img src="https://img.shields.io/badge/status-active-brightgreen" alt="active"/>
+  <img src="https://img.shields.io/badge/spec--kitty-3.x-orange" alt="spec-kitty"/>
+  <img src="https://img.shields.io/badge/platform-macOS%20%7C%20Ubuntu-blue" alt="platform"/>
+</p>
 
-## Usage
-```bash
-# one-shot write/update locally
-python scripts/kg_sync_docs.py docs/strategy/strategic_acceleration_charter.md --write
+---
 
-# CI-style check (non-zero exit if out-of-sync)
-python scripts/kg_sync_docs.py docs/strategy/strategic_acceleration_charter.md --check
-```
+Named after Felix the Cat and his magical bag of tricks — the idea that
+the right tool appears at exactly the right moment. Felix is a growing
+network of specialist agents handling executive assistant work, task
+intelligence, habit tracking, escalation, and business operations.
+Distant cousin of [spec-kitty](https://github.com/Priivacy-ai/spec-kitty).
+Built with [OpenClaw](https://openclaw.io) as the agent runtime.
 
+## What Felix does today
 
-## Watch mode (recommended)
-Install deps once:
-```bash
-pip install -r requirements.txt
-```
+| Capability | Status |
+|---|---|
+| Inbox processing and task capture | Live |
+| Task intelligence and enrichment | Live |
+| Daily habit check-in via WhatsApp | Live |
+| Observation layer — agent activity digest | Live |
+| Escalation engine — proactive task insistence | Live |
+| Google Calendar skill (gog) | In progress |
+| Voice interaction | Planned |
+| Email inbox management | Planned |
 
-Start the watcher (recursively sync any Markdown with `machine_manifest` front-matter):
-```bash
-python scripts/kg_sync_watch.py docs
-```
+## Architecture
 
-### VS Code
-- Open the repo in VS Code
-- Run task: **Watch: Doc→JSON sync** (Terminal → Run Task)
-- The task runs in the background and updates JSON on every save.
-- CI still enforces consistency if edits happen outside VS Code.
-
-### One-shot full sync
-```bash
-python scripts/kg_sync_watch.py docs --once
-```
-
-## Document ⇄ JSON Sync (KG Sync)
-- Install: `pip install -r requirements.txt`
-- Watcher: `python tooling/scripts/kg_sync_watch.py docs`
-- VS Code: Run Task → **Watch: Doc→JSON sync (kg-sync)**
-- Optional pre-commit hook: `git config core.hooksPath tooling/hooks`
+Felix runs on a MacBook Pro (primary) and a Ubuntu 24.04 office server
+(office2), connected via Tailscale mesh. Agents operate at three autonomy
+levels: Assisted (human-in-the-loop), Observed (autonomous with distilled
+reporting), and Autonomous (full autonomy).
