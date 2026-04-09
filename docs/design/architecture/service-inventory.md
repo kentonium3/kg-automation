@@ -25,9 +25,10 @@ All services run on office2 unless otherwise noted.
 |-----|----------|-------------|------|---------|
 | Restic Backup | 4AM daily | `/data/services/backup/scripts/backup.sh` | claude | GFS backup to `/mnt/backups/restic-repo` |
 | Security Audit | 3AM daily | `/data/services/security-monitor/scripts/audit.sh` | claude | Baseline drift detection |
-| Inbox Processing (morning) | 7AM ET daily | OpenClaw cron → felix-admin-capture | claude | Obsidian inbox processing |
-| Inbox Processing (midday) | 12PM ET daily | OpenClaw cron → felix-admin-capture | claude | Obsidian inbox processing |
-| Inbox Processing (evening) | 6PM ET daily | OpenClaw cron → felix-admin-capture | claude | Obsidian inbox processing |
+| Inbox Processing (morning) | 7 AM ET daily | OpenClaw cron → felix-admin-capture | claude | Obsidian inbox processing |
+| Inbox Processing (midday) | 12 PM ET daily | OpenClaw cron → felix-admin-capture | claude | Obsidian inbox processing |
+| Inbox Processing (afternoon) | 5 PM ET daily | OpenClaw cron → felix-admin-capture | claude | Obsidian inbox processing |
+| Inbox Processing (evening) | 10 PM ET daily | OpenClaw cron → felix-admin-capture | claude | Obsidian inbox processing |
 | Habit Check-in (morning) | 7:05 AM ET daily | OpenClaw cron → felix-admin-habits | claude | Daily habit check-in via WhatsApp |
 | Habit Report (weekly) | Sunday 6PM ET | OpenClaw cron → felix-admin-habits | claude | Weekly habit pattern report via WhatsApp |
 | Incomplete Task Detection | Every 4 hours (`0 */4 * * *`) | OpenClaw cron → felix-admin-tasker | claude | Poll Inbox for flat tasks |
@@ -102,7 +103,7 @@ All services run on office2 unless otherwise noted.
 - **Source in repo**: `scripts/openclaw/agents/felix-admin-capture/`
 - **Model**: `anthropic/claude-haiku-4-5` (optimizable) — validated 2026-04-09
 - **Purpose**: Autonomous Obsidian inbox processing — classifies content, routes to vault locations, creates Vikunja tasks, writes processing logs
-- **Schedule**: 3x daily via OpenClaw cron (7 AM, 12 PM, 6 PM ET)
+- **Schedule**: 4x daily via OpenClaw cron (7 AM, 12 PM, 5 PM, 10 PM ET)
 - **Processing logs**: `/home/kgale/second-brain/agents/logs/inbox-processing-YYYY-MM-DD.md`
 - **Vikunja projects used**: Inbox (tasks), Research (research requests), Goals (goal declarations)
 - **Privacy boundary**: `02-Growth/_private/` is never accessed
