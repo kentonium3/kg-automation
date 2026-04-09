@@ -137,14 +137,23 @@ Select the highest priority open issue. Read the full issue body — it is
 the spec. If multiple P1-feature issues exist, prefer the one assigned to
 the active milestone.
 
+**Spec readiness gate:**
+Before entering the spec-kitty workflow, the issue MUST have the `spec: ready`
+label. If an issue only has `spec: brief`, it needs to be promoted first:
+rewrite the issue body against the structured template
+(`.github/ISSUE_TEMPLATE/feature.md` or `infra.md`), then swap the label
+from `spec: brief` to `spec: ready`. Do not run `/spec-kitty.specify` on
+a `spec: brief` issue. See #139 for the full process.
+
 **Implementation sequence:**
-1. Read the issue body completely before starting anything else
-2. Run spec-kitty specify using the issue body as input
-3. Follow the full spec-kitty workflow:
+1. Verify the issue has the `spec: ready` label
+2. Read the issue body completely before starting anything else
+3. Run spec-kitty specify using the issue body as input
+4. Follow the full spec-kitty workflow:
    `/spec-kitty.specify → /spec-kitty.plan → /spec-kitty.tasks →
     /spec-kitty.implement → /spec-kitty.review → /spec-kitty.merge`
-4. On merge, close the issue: `gh issue close <number> --repo kentonium3/kg-automation`
-5. Add a comment to the issue with the merge commit hash and any relevant notes
+5. On merge, close the issue: `gh issue close <number> --repo kentonium3/kg-automation`
+6. Add a comment to the issue with the merge commit hash and any relevant notes
 
 **Issue types and their workflows:**
 - `P1-feature` / `P2-feature` → full spec-kitty workflow above
