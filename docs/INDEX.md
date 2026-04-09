@@ -78,6 +78,7 @@ Authoritative operational state. **Exempt from moves (F015 constraint C-001)**.
 - [Habits Operations](<./runbooks/habits-ops.md>)
 - [Task Intelligence Operations](<./runbooks/task-intelligence-ops.md>)
 - [Escalation Engine Operations](<./runbooks/escalation-ops.md>)
+- [OpenClaw Agent Setup](<./runbooks/openclaw-agent-setup.md>)
 
 ### Human and mixed-audience runbooks
 

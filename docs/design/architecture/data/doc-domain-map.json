@@ -40,7 +40,8 @@
       "docs/design/personal-ai-system-spec-v1.0.md",
       "docs/design/architecture/data/capabilities-schema.json",
       "docs/design/architecture/data/catalog-schema.json",
-      "docs/runbooks/openclaw-ops.md"
+      "docs/runbooks/openclaw-ops.md",
+      "docs/runbooks/openclaw-agent-setup.md"
     ],
     "area/ea": [
       "docs/runbooks/escalation-ops.md",

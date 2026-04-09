@@ -74,6 +74,13 @@ stop and present the command to Kent to run manually via `ssh office2-kgale`.**
 data flows, or network topology must update the relevant files in
 `docs/design/architecture/` and `docs/design/architecture/data/`.
 
+**Standing requirement**: Any work that deploys, modifies, or registers an
+OpenClaw agent must read `docs/runbooks/openclaw-agent-setup.md` first.
+That runbook defines the required workspace files (IDENTITY.md, SOUL.md,
+AGENTS.md), the openclaw.json registration, and the verification steps.
+An agent is not deployed until both the governance registry and OpenClaw
+config are updated.
+
 ## Repository Structure
 
 ```
