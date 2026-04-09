@@ -124,15 +124,6 @@ Authoritative operational state. **Exempt from moves (F015 constraint C-001)**.
 - [Allowed Values (JSON)](<./design/standards/allowed-values.json>)
 - [Validator Policy (JSON)](<./design/standards/validator-policy.json>)
 
-### docs/design/research/ — Architecture research
-
-- [Agent Team Architecture](<./design/research/005-system-architecture-development/agent-team-architecture.md>)
-- [Data Architecture](<./design/research/005-system-architecture-development/data-architecture.md>)
-- [OpenClaw Capability Research](<./design/research/005-system-architecture-development/openclaw-capabilities.md>)
-- [OpenClaw Runtime State Audit](<./design/research/005-system-architecture-development/openclaw-runtime-state-audit.md>)
-- [Integration Map](<./design/research/005-system-architecture-development/integration-map.md>)
-- [User Story Catalog](<./design/research/005-system-architecture-development/user-story-catalog.md>)
-
 ---
 
 ## Feature Specifications (docs/func-spec/)
