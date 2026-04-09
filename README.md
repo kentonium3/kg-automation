@@ -27,7 +27,8 @@ Named after Felix the Cat and his magical bag of tricks — the idea that
 the right tool appears at exactly the right moment. Felix is a growing
 network of specialist agents handling executive assistant work, task
 intelligence, habit tracking, escalation, and business operations.
-Distant cousin of [spec-kitty](https://github.com/Priivacy-ai/spec-kitty).
+Distant cousin of [spec-kitty](https://github.com/Priivacy-ai/spec-kitty) of whom
+Felix reveres and owes its existence to.
 Built with [OpenClaw](https://openclaw.io) as the agent runtime.
 
 ## What Felix does today
