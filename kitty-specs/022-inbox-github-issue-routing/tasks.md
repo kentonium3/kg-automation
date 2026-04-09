@@ -8,11 +8,11 @@
 
 | ID | Description | WP | Parallel |
 |---|---|---|---|
-| T001 | Add GitHub issue row to routing table | WP01 | |
-| T002 | Write trigger phrase detection rules | WP01 | |
-| T003 | Write title inference instructions | WP01 | |
-| T004 | Write label inference instructions with label list | WP01 | |
-| T005 | Write gh issue create command template and error handling | WP01 | |
+| T001 | Add GitHub issue row to routing table | WP01 | | [D] |
+| T002 | Write trigger phrase detection rules | WP01 | | [D] |
+| T003 | Write title inference instructions | WP01 | | [D] |
+| T004 | Write label inference instructions with label list | WP01 | | [D] |
+| T005 | Write gh issue create command template and error handling | WP01 | | [D] |
 | T006 | Write confirmation response handling (accept/modify/reject) | WP02 | |
 | T007 | Write out-of-scope handling (multi-repo, insufficient content) | WP02 | |
 | T008 | Add GitHub issue action types to logging table | WP02 | |
@@ -36,11 +36,11 @@
 **Prompt file**: [WP01-agents-issue-creation.md](tasks/WP01-agents-issue-creation.md)
 
 **Subtasks**:
-- [ ] T001: Add GitHub issue row to routing table
-- [ ] T002: Write trigger phrase detection rules
-- [ ] T003: Write title inference instructions
-- [ ] T004: Write label inference instructions with label list
-- [ ] T005: Write gh issue create command template and error handling
+- [x] T001: Add GitHub issue row to routing table
+- [x] T002: Write trigger phrase detection rules
+- [x] T003: Write title inference instructions
+- [x] T004: Write label inference instructions with label list
+- [x] T005: Write gh issue create command template and error handling
 
 **Estimated prompt size**: ~400 lines
 
