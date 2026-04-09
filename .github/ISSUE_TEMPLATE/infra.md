@@ -2,11 +2,16 @@
 name: Infra
 about: Infrastructure change — server, networking, credentials, hardware, config
 title: "Infra: "
-labels: P3-candidate
+labels: P3-candidate, spec: brief
 assignees: ''
 ---
 
 <!--
+TWO-STAGE SPEC LIFECYCLE:
+  1. "spec: brief" (default) — capture the idea. Fill in what you know.
+  2. "spec: ready" — before entering spec-kitty workflow, all template
+     sections must be complete. Swap the label when ready.
+
 Infrastructure changes are governed by the five-tier risk taxonomy.
 Identify the tier FIRST — it determines what Claude Code can and cannot do.
 See docs/design/architecture/data/change-risk-taxonomy.json

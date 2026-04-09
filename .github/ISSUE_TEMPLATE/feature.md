@@ -2,12 +2,22 @@
 name: Feature
 about: New capability or enhancement to Felix
 title: "Feature: "
-labels: P3-candidate
+labels: P3-candidate, spec: brief
 assignees: ''
 ---
 
 <!--
 INSTRUCTIONS FOR AUTHOR
+
+TWO-STAGE SPEC LIFECYCLE:
+  1. "spec: brief" (default) — capture the idea. Fill in what you know.
+     Incomplete sections are fine. This is for prioritization and discussion.
+  2. "spec: ready" — before entering spec-kitty workflow, all template
+     sections must be complete. Swap the label when the body meets the
+     template standard. An issue cannot enter /spec-kitty.specify until
+     it has "spec: ready".
+
+WRITING GUIDELINES:
 - Focus on WHAT and WHY — not HOW
 - HOW is determined by spec-kitty planning phase
 - Discovery pointers (where to look) are welcome; implementation steps are not
