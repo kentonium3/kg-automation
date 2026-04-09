@@ -64,6 +64,7 @@ For each extracted content block, determine the content type and destination:
 | Task or action item | Vikunja | Delegate to felix-admin-tasker (fallback: create flat Vikunja task) |
 | Research request | Vikunja | Delegate to felix-admin-tasker (fallback: create flat Vikunja task) |
 | AI automation capability/idea | `07-Resources/kg-automation/` | Create or update relevant note |
+| GitHub issue request | GitHub (kentonium3/kg-automation) | Create issue via gh CLI, confirm via WhatsApp |
 | Unclassifiable | Leave in `00-Inbox/` | Set `status: needs-review` |
 
 All vault paths are relative to `/home/kgale/second-brain/notes/`.
@@ -494,3 +495,126 @@ To transition to delegation without losing tasks:
 5. felix-admin-tasker's detect_incomplete polling will catch any flat
    tasks created during the transition window
 -->
+
+
+## GitHub issue creation
+
+When a content block contains an explicit GitHub issue trigger phrase,
+create a GitHub issue instead of routing through other paths.
+
+### Trigger detection
+
+A content block is a GitHub issue request ONLY when it contains one of
+these explicit phrases (case-insensitive):
+- "file a github issue"
+- "github issue for"
+- "this is a github issue"
+- "create a github issue"
+- "open a github issue"
+
+The word "issue" alone is NOT a trigger. It must appear with "github."
+Examples that are NOT triggers:
+- "I had an issue with..." -> route as journal/personal
+- "there is an issue in the code" -> route as AI automation idea
+- "the issue is that..." -> route based on surrounding content
+
+If a content block contains a GitHub issue trigger AND other content
+(e.g., "Had a great workout. Also, file a github issue for..."),
+split the block: route the non-issue content normally, create a
+GitHub issue from the issue-related portion.
+
+### Title inference
+
+Generate a concise issue title from the content following the trigger phrase.
+
+Rules:
+1. Remove the trigger phrase itself ("file a github issue for" -> remove)
+2. Distill the remaining content into a clear summary (60-80 characters max)
+3. Remove voice transcription artifacts: filler words ("um", "like",
+   "you know"), false starts, and repetitions
+4. Add the appropriate prefix based on content:
+   - Describing a new capability -> "Feature: ..."
+   - Describing something broken -> "Bug: ..."
+   - Describing infrastructure/server work -> "Infra: ..."
+   - Requesting investigation/analysis -> "RFC: ..."
+   - If unclear, default to "Feature: ..."
+
+Example:
+- Input: "file a github issue for, um, improving the escalation agent's
+  priority threshold logic, it should be configurable instead of hard-coded"
+- Title: "Feature: Configurable escalation priority threshold"
+
+### Label inference
+
+Apply labels from this known set. Never invent labels.
+
+**Priority + type label** (pick exactly one):
+
+Determine type first:
+- New capability or enhancement -> "feature"
+- Something broken -> "bug"
+- Infrastructure/server/config -> "infra"
+- Investigation or discussion -> "rfc"
+
+Then determine priority from urgency signals:
+- "urgent", "blocking", "critical", "right now", "asap" -> P1
+- "when we get to it", "someday", "nice to have", "low priority" -> P3
+- No urgency signal -> P2 (default)
+
+Combine: e.g., P2-feature, P1-bug, P2-infra, P1-rfc
+
+**Area label** (pick at most one, omit if uncertain):
+- area/infrastructure -- office2, Docker, networking, hardware, credentials
+- area/security -- hardening, access control, audit
+- area/felix-core -- constitution, agent registry, operating modes
+- area/ea -- executive assistant capability
+- area/task-intel -- Vikunja, task enrichment, escalation
+- area/content -- transcription, media processing
+- area/docs -- documentation architecture, Obsidian
+- area/biz-ops -- Intentional LLC, business
+
+**Always apply**: `spec: brief`
+
+Final label set example: `P2-feature`, `area/felix-core`, `spec: brief`
+
+### Creating the issue
+
+Run this command to create the issue:
+
+    gh issue create \
+      --repo kentonium3/kg-automation \
+      --title "<inferred title>" \
+      --label "<P-label>" --label "<area-label>" --label "spec: brief" \
+      --body "<issue body>"
+
+If no area label was inferred, omit that `--label` flag.
+
+**Issue body format**:
+
+    ## Summary
+
+    <1-2 sentence distilled summary of what is needed and why>
+
+    ## Source
+
+    Captured from inbox note on <date>.
+
+    > <original transcription text, quoted>
+
+After creating: capture the issue URL from the command output.
+Include it in the processing summary.
+
+### Error handling
+
+If `gh issue create` fails:
+1. Log the error with action type `github_issue_failed`
+2. Include the failure in the processing summary:
+   "Warning: GitHub issue creation failed: <error message>. Content preserved in inbox."
+3. Set the content block status to `needs-review` -- do NOT discard it
+4. Do NOT retry -- Kent will see the failure in the summary
+
+Common failure modes:
+- "Bad credentials" or "authentication" -> gh auth expired. Report to Kent.
+- Network timeout -> transient. Report to Kent.
+- Any other error -> report the error message verbatim.
+
