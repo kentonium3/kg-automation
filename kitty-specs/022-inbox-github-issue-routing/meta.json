@@ -1,0 +1,10 @@
+{
+  "created_at": "2026-04-09T19:57:33.684717+00:00",
+  "friendly_name": "inbox github issue routing",
+  "mission_id": "01KNSX4HKM991Z98V5V26WSGPD",
+  "mission_number": "022",
+  "mission_slug": "022-inbox-github-issue-routing",
+  "mission_type": "software-dev",
+  "slug": "022-inbox-github-issue-routing",
+  "target_branch": "main"
+}
