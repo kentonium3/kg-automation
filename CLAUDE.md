@@ -139,11 +139,18 @@ the active milestone.
 
 **Spec readiness gate:**
 Before entering the spec-kitty workflow, the issue MUST have the `spec: ready`
-label. If an issue only has `spec: brief`, it needs to be promoted first:
-rewrite the issue body against the structured template
-(`.github/ISSUE_TEMPLATE/feature.md` or `infra.md`), then swap the label
-from `spec: brief` to `spec: ready`. Do not run `/spec-kitty.specify` on
-a `spec: brief` issue. See #139 for the full process.
+label. Issues follow a three-label lifecycle:
+
+- `spec: brief` — default on new feature/infra issues. Low-friction capture.
+- `spec: pending` — auto-added by GitHub Actions when a P1/P2 priority label
+  is applied. Signals "needs body formalized before spec-kitty." Visible in
+  project board for planning/sweep queries.
+- `spec: ready` — manually applied after the issue body meets the structured
+  template (`.github/ISSUE_TEMPLATE/feature.md` or `infra.md`). Clears the
+  issue for `/spec-kitty.specify`.
+
+Do not run `/spec-kitty.specify` on an issue without `spec: ready`.
+To find issues needing formalization, query for `spec: pending`.
 
 **Implementation sequence:**
 1. Verify the issue has the `spec: ready` label

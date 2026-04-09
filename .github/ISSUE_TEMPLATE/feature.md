@@ -9,13 +9,13 @@ assignees: ''
 <!--
 INSTRUCTIONS FOR AUTHOR
 
-TWO-STAGE SPEC LIFECYCLE:
+SPEC LIFECYCLE (3 labels, auto-managed):
   1. "spec: brief" (default) — capture the idea. Fill in what you know.
      Incomplete sections are fine. This is for prioritization and discussion.
-  2. "spec: ready" — before entering spec-kitty workflow, all template
-     sections must be complete. Swap the label when the body meets the
-     template standard. An issue cannot enter /spec-kitty.specify until
-     it has "spec: ready".
+  2. "spec: pending" — auto-added when promoted to P1/P2. Signals the
+     issue body needs to be formalized against this template.
+  3. "spec: ready" — manually applied when the body is complete. Clears
+     the issue for /spec-kitty.specify. Cannot enter workflow without it.
 
 WRITING GUIDELINES:
 - Focus on WHAT and WHY — not HOW

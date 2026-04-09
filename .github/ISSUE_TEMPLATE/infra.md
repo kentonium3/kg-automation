@@ -7,10 +7,10 @@ assignees: ''
 ---
 
 <!--
-TWO-STAGE SPEC LIFECYCLE:
+SPEC LIFECYCLE (3 labels, auto-managed):
   1. "spec: brief" (default) — capture the idea. Fill in what you know.
-  2. "spec: ready" — before entering spec-kitty workflow, all template
-     sections must be complete. Swap the label when ready.
+  2. "spec: pending" — auto-added when promoted to P1/P2.
+  3. "spec: ready" — manually applied when body is complete. Required for spec-kitty.
 
 Infrastructure changes are governed by the five-tier risk taxonomy.
 Identify the tier FIRST — it determines what Claude Code can and cannot do.
