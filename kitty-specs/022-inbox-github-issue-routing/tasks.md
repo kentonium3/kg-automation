@@ -17,9 +17,9 @@
 | T007 | Write out-of-scope handling (multi-repo, insufficient content) | WP02 | | [D] |
 | T008 | Add GitHub issue action types to logging table | WP02 | | [D] |
 | T009 | Add GitHub section to TOOLS.md | WP02 | | [D] |
-| T010 | Update repo-side copies of AGENTS.md and TOOLS.md | WP03 | |
-| T011 | Update service-inventory.md | WP03 | [P] |
-| T012 | Test feature with a real inbox note | WP03 | |
+| T010 | Update repo-side copies of AGENTS.md and TOOLS.md | WP03 | | [D] |
+| T011 | Update service-inventory.md | WP03 | [D] |
+| T012 | Test feature with a real inbox note | WP03 | | [D] |
 
 ---
 
@@ -77,9 +77,9 @@
 **Prompt file**: [WP03-repo-sync-validation.md](tasks/WP03-repo-sync-validation.md)
 
 **Subtasks**:
-- [ ] T010: Update repo-side copies of AGENTS.md and TOOLS.md
-- [ ] T011: Update service-inventory.md
-- [ ] T012: Test feature with a real inbox note
+- [x] T010: Update repo-side copies of AGENTS.md and TOOLS.md
+- [x] T011: Update service-inventory.md
+- [x] T012: Test feature with a real inbox note
 
 **Estimated prompt size**: ~250 lines
 
