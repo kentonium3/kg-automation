@@ -127,8 +127,13 @@ GITHUB_TOKEN= gh project item-add 1 --owner kentonium3 \
   --url <issue-url>
 ```
 
-Note: `GITHUB_TOKEN` env var must be unset for `gh project` commands
-to use the CLI's stored auth which has the `project` scope.
+Note: **All `gh project` commands require the `GITHUB_TOKEN=` prefix.**
+Claude Code injects a `GITHUB_TOKEN` env var at session start with
+`repo` scope only — it lacks `project` and `workflow` scopes. The
+`GITHUB_TOKEN=` prefix clears it for that command, causing `gh` to
+fall through to the keyring token (from `gh auth login`) which has
+the required scopes. This applies to `gh project list`, `gh project
+item-add`, `gh project view`, and all other `gh project` subcommands.
 
 ### Using issue templates
 

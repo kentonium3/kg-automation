@@ -151,15 +151,19 @@ provides three views: Board (by milestone), Table (by priority), Roadmap.
 Add an issue to the project after creation:
 
 ```bash
-# Get project number
-gh project list --owner kentonium3
+# List projects (prefix clears Claude Code's token, falls through to keyring)
+GITHUB_TOKEN= gh project list --owner kentonium3
 
-# Add issue (unset GITHUB_TOKEN first if set — project scope uses CLI auth)
-unset GITHUB_TOKEN
-gh project item-add <project-num> \
+# Add issue to project
+GITHUB_TOKEN= gh project item-add 1 \
   --owner kentonium3 \
   --url https://github.com/kentonium3/kg-automation/issues/<number>
 ```
+
+Note: Claude Code injects a `GITHUB_TOKEN` with `repo` scope only — it
+lacks `project` scope. The `GITHUB_TOKEN=` prefix clears it for that
+command so `gh` uses the keyring token (from `gh auth login`) which has
+the required scopes. See `docs/runbooks/repo-governance.md` for details.
 
 ## Issue templates reference
 
