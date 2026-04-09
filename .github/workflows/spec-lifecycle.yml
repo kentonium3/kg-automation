@@ -1,0 +1,88 @@
+name: Spec Lifecycle Labels
+
+on:
+  issues:
+    types: [labeled, unlabeled]
+
+permissions:
+  issues: write
+
+jobs:
+  priority-promotion:
+    # When P1/P2 priority label is added, add spec: pending and remove spec: brief
+    if: >-
+      github.event.action == 'labeled' &&
+      contains(fromJSON('["P1-feature","P2-feature","P1-infra","P2-infra"]'), github.event.label.name)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check for spec labels
+        id: check
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const labels = context.payload.issue.labels.map(l => l.name);
+            // Skip if already spec: ready or spec: pending
+            if (labels.includes('spec: ready') || labels.includes('spec: pending')) {
+              core.setOutput('skip', 'true');
+              return;
+            }
+            // Skip non-feature/infra issues (bugs, RFCs, debt)
+            const skipTypes = ['P1-rfc', 'P2-bug', 'P2-debt', 'P3-candidate'];
+            if (skipTypes.some(t => labels.includes(t))) {
+              core.setOutput('skip', 'true');
+              return;
+            }
+            core.setOutput('skip', 'false');
+
+      - name: Add spec pending and comment
+        if: steps.check.outputs.skip != 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const issue_number = context.issue.number;
+
+            // Add spec: pending
+            await github.rest.issues.addLabels({
+              owner, repo, issue_number,
+              labels: ['spec: pending']
+            });
+
+            // Remove spec: brief if present
+            const labels = context.payload.issue.labels.map(l => l.name);
+            if (labels.includes('spec: brief')) {
+              await github.rest.issues.removeLabel({
+                owner, repo, issue_number,
+                name: 'spec: brief'
+              }).catch(() => {});
+            }
+
+            // Post reminder comment
+            await github.rest.issues.createComment({
+              owner, repo, issue_number,
+              body: `This issue was promoted to ${context.payload.label.name}. Before it can enter the spec-kitty workflow, the issue body needs to meet the [template standard](/.github/ISSUE_TEMPLATE/feature.md).\n\nWhen the body is complete, swap \`spec: pending\` → \`spec: ready\`.`
+            });
+
+  spec-ready-cleanup:
+    # When spec: ready is added, remove spec: pending and spec: brief
+    if: >-
+      github.event.action == 'labeled' &&
+      github.event.label.name == 'spec: ready'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Remove prior spec labels
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const issue_number = context.issue.number;
+            const labels = context.payload.issue.labels.map(l => l.name);
+
+            for (const label of ['spec: pending', 'spec: brief']) {
+              if (labels.includes(label)) {
+                await github.rest.issues.removeLabel({
+                  owner, repo, issue_number,
+                  name: label
+                }).catch(() => {});
+              }
+            }
