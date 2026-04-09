@@ -19,7 +19,8 @@ subtasks:
 - T003
 - T004
 - T005
-shell_pid: '23571'
+shell_pid: "23571"
+agent: "claude"
 history:
 - date: '2026-04-09T20:07:16Z'
   action: created
@@ -291,3 +292,7 @@ Add GitHub issue routing to the inbox agent's standing orders on office2. This c
 - Verify the trigger phrase list covers natural voice patterns
 - Verify the label list matches `gh label list --repo kentonium3/kg-automation`
 - Check that error handling never loses content
+
+## Activity Log
+
+- 2026-04-09T20:49:35Z – claude – shell_pid=23571 – Assigned agent via action command
