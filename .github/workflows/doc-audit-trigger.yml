@@ -34,15 +34,13 @@ jobs:
             exit 0
           fi
 
-          # Match changed files against domain map paths to find affected domains
+          # Match changed files against exact paths in the domain map
           AFFECTED_DOMAINS=""
           for domain in $(jq -r '.domains | keys[]' "$DOMAIN_MAP"); do
             DOMAIN_PATHS=$(jq -r --arg d "$domain" '.domains[$d] | .[]' "$DOMAIN_MAP")
             for changed in $CHANGED_FILES; do
-              # Check if the changed file is within a domain path's directory tree
               while IFS= read -r domain_path; do
-                domain_dir=$(dirname "$domain_path")
-                if [[ "$changed" == "$domain_dir"/* || "$changed" == "$domain_path" ]]; then
+                if [[ "$changed" == "$domain_path" ]]; then
                   if [[ ! ",$AFFECTED_DOMAINS," == *",$domain,"* ]]; then
                     AFFECTED_DOMAINS="${AFFECTED_DOMAINS:+$AFFECTED_DOMAINS,}$domain"
                   fi
