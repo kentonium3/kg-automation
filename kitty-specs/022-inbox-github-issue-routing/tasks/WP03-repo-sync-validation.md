@@ -147,3 +147,7 @@ Sync the updated agent files from office2 to the repo-side copies, update the se
 - Verify repo copies exactly match office2 (diff should show zero differences)
 - Check that the test was actually run (not just planned)
 - If the test failed, review the failure mode — is it a Haiku capability issue or an instruction clarity issue?
+
+## Activity Log
+
+- 2026-04-09T21:04:07Z – unknown – End-to-end test passed — issue #147 created
