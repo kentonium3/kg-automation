@@ -1,8 +1,10 @@
 {
   "event_count": 12,
   "last_event_id": "01KNQAMPDW06D1BSAA7DAPPNEW",
-  "materialized_at": "2026-04-08T19:55:51.101427+00:00",
+  "materialized_at": "2026-04-08T19:55:51.100523+00:00",
+  "mission_number": "020",
   "mission_slug": "020-doc-audit-infrastructure",
+  "mission_type": "software-dev",
   "summary": {
     "approved": 0,
     "blocked": 0,
@@ -11,6 +13,7 @@
     "done": 2,
     "for_review": 0,
     "in_progress": 0,
+    "in_review": 0,
     "planned": 0
   },
   "work_packages": {

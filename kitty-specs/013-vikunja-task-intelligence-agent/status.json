@@ -1,8 +1,10 @@
 {
   "event_count": 7,
-  "feature_slug": "013-vikunja-task-intelligence-agent",
   "last_event_id": "01KN74M0R181Q0KA7CZCSBW753",
-  "materialized_at": "2026-04-02T13:02:46.533516+00:00",
+  "materialized_at": "2026-04-02T13:02:46.529814+00:00",
+  "mission_number": "013",
+  "mission_slug": "013-vikunja-task-intelligence-agent",
+  "mission_type": "software-dev",
   "summary": {
     "approved": 0,
     "blocked": 0,
@@ -11,6 +13,7 @@
     "done": 0,
     "for_review": 0,
     "in_progress": 0,
+    "in_review": 0,
     "planned": 7
   },
   "work_packages": {

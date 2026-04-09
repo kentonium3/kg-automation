@@ -14,7 +14,7 @@
 - **Deployment Constraints**: Production services run on office2 (Ubuntu 24.04 LTS). Mac is authoring only. All scripts and configs     target Linux unless explicitly noted. Services accessible via Tailscale only — never exposed to public     internet.
 - **Documentation Policy**: All markdown files require YAML frontmatter (title, doc_type, status). Architecture decisions live in     docs/design/. Feature specs in docs/func-spec/ before implementation. Conventional commits (feat:, fix:,   docs:, chore:, ci:). Update docs when behavior changes.
 - **Risk Boundaries**: 02-Growth/_private/ is never read, written, or referenced by any agent or script — no exceptions. No      credentials in code or committed files. Anthropic API called direct — no third-party proxies. No community   OpenClaw skills without source review. All services Tailscale-only. No untrusted code executes near          credentials or personal data.
-- **Amendment Process**: Edit constitution.md directly, run spec-kitty constitution sync, commit via PR. Review diff to confirm    derived files reflect intent before merge.
+- **Amendment Process**: Edit charter.md directly, run spec-kitty charter sync, commit via PR. Review diff to confirm    derived files reflect intent before merge.
 - **Exception Policy**: Exceptions documented in PR description with rationale, scope, and expiration. No permanent exceptions    to privacy or security boundaries.
 
 ## Selected Doctrine

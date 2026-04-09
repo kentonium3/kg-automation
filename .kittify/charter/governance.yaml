@@ -1,5 +1,5 @@
-# Auto-generated from constitution.md — do not edit directly.
-# Run 'spec-kitty constitution sync' to regenerate.
+# Auto-generated from charter.md — do not edit directly.
+# Run 'spec-kitty charter sync' to regenerate.
 
 testing:
   min_coverage: 0

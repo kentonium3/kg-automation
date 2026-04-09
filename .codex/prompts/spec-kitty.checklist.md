@@ -1,4 +1,4 @@
-<!-- spec-kitty-command-version: 3.0.3 -->
+<!-- spec-kitty-command-version: 3.1.1 -->
 ## Checklist Purpose: "Unit Tests for English"
 
 **CRITICAL CONCEPT**: Checklists are **UNIT TESTS FOR REQUIREMENTS WRITING** - they validate the quality, clarity, and completeness of requirements in a given domain.
@@ -18,7 +18,7 @@
 
 **Metaphor**: If your spec is code written in English, the checklist is its unit test suite. You're testing whether the requirements are well-written, complete, unambiguous, and ready for implementation - NOT whether the implementation works.
 
-**In repos with multiple features, always pass `--feature <slug>` to every spec-kitty command.**
+**In repos with multiple missions, always pass `--mission <slug>` to every spec-kitty command.**
 
 ## User Input
 
@@ -30,7 +30,7 @@ You **MUST** consider the user input before proceeding (if not empty).
 
 ## Execution Steps
 
-1. **Setup**: Run `spec-kitty agent feature check-prerequisites --json` from repo root and parse JSON for feature_dir and available_docs list.
+1. **Setup**: Run `spec-kitty agent mission check-prerequisites --json --mission <mission-slug>` from repo root and parse JSON for feature_dir and available_docs list.
    - All file paths must be absolute.
    - Treat `target_branch` / `base_branch` in the JSON payload as canonical branch context for this run.
 

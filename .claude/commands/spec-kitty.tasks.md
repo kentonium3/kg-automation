@@ -1,4 +1,4 @@
-<!-- spec-kitty-command-version: 3.0.3 -->
+<!-- spec-kitty-command-version: 3.1.1 -->
 # /spec-kitty.tasks - Generate Work Packages
 
 **Version**: 0.11.0+
@@ -38,9 +38,9 @@
 
 **Do NOT cd anywhere**. Stay in the project root checkout root.
 
-**Worktrees created later**: After tasks are generated, use `spec-kitty implement WP##` to create workspace for each WP.
+**Worktrees created later**: After tasks are finalized, run your agent loop: `spec-kitty next --agent <agent> --mission <slug>`. Your agent will call `spec-kitty agent action implement WP## --agent <name>` for each WP. `finalize_tasks` computes the execution lanes, and each lane gets exactly one worktree.
 
-**In repos with multiple features, always pass `--feature <slug>` to every spec-kitty command.**
+**In repos with multiple missions, always pass `--mission <slug>` to every spec-kitty command.**
 
 ## User Input
 
@@ -55,11 +55,11 @@ You **MUST** consider the user input before proceeding (if not empty).
 Before proceeding, resolve canonical command context:
 
 ```bash
-spec-kitty agent context resolve --action tasks --json
+spec-kitty agent context resolve --action tasks --mission <mission-slug> --json
 ```
 
 Treat the resolver JSON as canonical for:
-- `feature_slug`
+- `mission_slug`
 - `feature_dir`
 - `current_branch`
 - `target_branch`
@@ -109,6 +109,26 @@ Prompts do not rediscover feature context. Commands do.
    - Capture prerequisites, dependencies, and parallelizability markers (`[P]` means safe to parallelize per file/concern).
    - Maintain the subtask list internally; it feeds the work-package roll-up and the prompts.
 
+   ### Task Tracking Format
+
+   Use **checkbox format** for all per-WP task tracking rows in `tasks.md`:
+
+   ```markdown
+   - [ ] T001 Description of task (WP01)
+   - [ ] T002 Another task (WP01)
+   ```
+
+   Do **not** use pipe-table format for tracking rows in work-package sections.
+   `mark-status` targets these per-WP checkbox rows; it also supports pipe-table
+   rows for backward compatibility, but new generation must use checkboxes exclusively.
+
+   **Important distinction — Subtask Index vs. tracking rows**:
+   The top-level **Subtask Index** pipe-table (e.g. `| T001 | desc | WP | Parallel |`) is
+   a **reference table** only — it is not a tracking surface.  The `[P]` marker in its
+   "Parallel" column indicates parallelism, not task status.  `mark-status` tracks
+   progress via the per-WP checkbox rows (`- [ ] T001 …`) below each work-package
+   heading, not via the index table.
+
 5. **Roll subtasks into work packages** (IDs `WP01`, `WP02`, ...):
 
    **IDEAL WORK PACKAGE SIZE** (most important guideline):
@@ -150,7 +170,7 @@ Prompts do not rediscover feature context. Commands do.
    - WRONG (do not create): `feature_dir/tasks/planned/`, `feature_dir/tasks/doing/`, or ANY status subdirectories
    - WRONG (do not create): `/tasks/`, `tasks/`, or any path not under feature_dir
    - Use `artifact_dirs.tasks_dir` when available.
-   - Do **not** shell out with `mkdir -p`; `create-feature` already creates `tasks/` in normal flow.
+   - Do **not** shell out with `mkdir -p`; `create` already creates `tasks/` in normal flow.
    - If `tasks/` is missing unexpectedly, report the mismatch instead of improvising shell directory setup.
    - For each work package:
      - Derive a kebab-case slug from the title; filename: `WPxx-slug.md`
@@ -158,7 +178,7 @@ Prompts do not rediscover feature context. Commands do.
      - Follow the WP prompt template structure defined below in this prompt (**do NOT write instructions to read a template file from `.kittify/`**) to capture:
      - Frontmatter with `work_package_id`, `subtasks` array, `dependencies`, `planning_base_branch`, `merge_target_branch`, `branch_strategy`, `owned_files`, `authoritative_surface`, `execution_mode`, and history entry
        - Objective, context, detailed guidance per subtask
-       - A Branch Strategy section that repeats the planning branch, final merge target, and notes that the actual `base_branch` may later differ for stacked WPs during `/spec-kitty.implement`
+       - A Branch Strategy section that repeats the planning branch, final merge target, and explains that execution worktrees are allocated per computed lane from `lanes.json`
        - Test strategy (only if requested)
        - Definition of Done, risks, reviewer guidance
      - Update `tasks.md` to reference the prompt filename
@@ -178,7 +198,7 @@ Prompts do not rediscover feature context. Commands do.
    - No two WPs may have overlapping `owned_files`.
    - Use specific paths, not broad globs like `src/**`.
    - Agents working on a WP must not modify files outside their `owned_files` list.
-   - Run `spec-kitty agent feature finalize-tasks --validate-only --json` to check ownership before committing.
+   - Run `spec-kitty agent mission finalize-tasks --validate-only --mission <mission-slug> --json` to check ownership before committing.
 
 8. **Finalize tasks with dependency parsing and commit**:
    After generating all WP prompt files, run the finalization command to:
@@ -189,14 +209,15 @@ Prompts do not rediscover feature context. Commands do.
 
    **CRITICAL**: Run this command from repo root:
    ```bash
-   spec-kitty agent feature finalize-tasks --json --feature <feature-slug>
+   spec-kitty agent mission finalize-tasks --json --mission <mission-slug>
    ```
 
-   This step is MANDATORY for workspace-per-WP features. Without it:
+   This step is MANDATORY. Without it:
    - Dependencies won't be in frontmatter
    - Branching-strategy metadata won't be normalized into every WP prompt
+   - `lanes.json` won't be available to resolve the real workspace path/branch for each WP
    - Requirement refs won't be validated/normalized
-   - Agents won't know which --base flag to use
+   - Agents won't know which lane a WP belongs to or which workspace to enter
    - Tasks won't be committed to target branch
 
    **IMPORTANT - DO NOT COMMIT AGAIN AFTER THIS COMMAND**:
@@ -216,6 +237,7 @@ Prompts do not rediscover feature context. Commands do.
    - Prompt generation stats (files written, directory structure, any skipped items with rationale)
    - Finalization status (dependencies parsed, X WP files updated, committed to target branch)
    - Next suggested command (e.g., `/spec-kitty.analyze` or `/spec-kitty.implement`)
+   - **Implementation handoff offer** (see Step 10 below)
 
 Context for work-package planning: $ARGUMENTS
 
@@ -243,8 +265,8 @@ subtasks: ["T001", "T002"]
 ```
 
 **Include the correct implementation command**:
-- No dependencies: `spec-kitty implement WP01`
-- With dependencies: `spec-kitty implement WP02 --base WP01`
+- No dependencies: `spec-kitty agent action implement WP01 --agent <name>`
+- With dependencies: `spec-kitty agent action implement WP02 --agent <name>`
 
 The WP prompt must show the correct command so agents don't branch from the wrong base.
 
@@ -256,12 +278,12 @@ WP file's YAML frontmatter — no sidecar files needed.
 
 **Batch mode (recommended)** — register all WP mappings at once:
 ```bash
-spec-kitty agent tasks map-requirements --batch '{"WP01":["FR-001","FR-002"],"WP02":["FR-003","FR-004"]}' --json
+spec-kitty agent tasks map-requirements --batch '{"WP01":["FR-001","FR-002"],"WP02":["FR-003","FR-004"]}' --mission <mission-slug> --json
 ```
 
 **Individual mode** — register one WP at a time:
 ```bash
-spec-kitty agent tasks map-requirements --wp WP01 --refs FR-001,FR-002 --json
+spec-kitty agent tasks map-requirements --wp WP01 --refs FR-001,FR-002 --mission <mission-slug> --json
 ```
 
 The response includes a coverage summary showing which FRs are still unmapped. Keep calling
@@ -392,11 +414,11 @@ frontmatter. Use `--replace` to overwrite a WP's refs (e.g., to correct a bad ma
 
 Resolve the feature slug from explicit user direction, current branch, or current directory path.
 
-If ambiguous, run `check-prerequisites` once without `--feature`, parse the JSON candidate list, and select one explicit feature slug.
+If ambiguous, run `check-prerequisites` once without `--mission`, parse the JSON candidate list, and select one explicit mission slug.
 
 ### Step 2: Setup
 
-Run `spec-kitty agent feature check-prerequisites --json --paths-only --include-tasks --feature <feature-slug>` and capture `feature_dir`.
+Run `spec-kitty agent mission check-prerequisites --json --paths-only --include-tasks --mission <mission-slug>` and capture `feature_dir`.
 
 ### Step 3: Load Design Documents
 
@@ -493,6 +515,19 @@ Provide summary with:
 - Parallelization opportunities
 - MVP scope
 - Next command
+
+### Step 10: Implementation Handoff Offer
+
+After reporting, ask the user directly:
+
+> **Should I use the `/spec-kitty-implement-review` skill to fully implement all WPs until completion?**
+> This will dispatch implementing and reviewing agents for every WP, handle rejection cycles, and merge all lanes when done.
+
+- If the user says **yes**: invoke the `spec-kitty-implement-review` skill with the mission slug. The user may also specify which agents to use for implementation and review (e.g., "yes, use sonnet for implementing and opus for reviewing").
+- If the user says **no** or wants to do it manually: end here and let them run `/spec-kitty.implement` at their own pace.
+- If the user asks for a subset (e.g., "just WP01 and WP02 for now"): invoke the skill with that scope.
+
+This handoff is the natural transition from planning to execution. Do NOT skip the question — always offer it explicitly so the user can choose their execution strategy.
 
 ## ⚠️ Common Mistakes to Avoid
 
@@ -598,4 +633,3 @@ A rushed job with vague, oversized WPs causes:
 - Rework and review cycles
 - Feature failure
 
-**Invest the tokens now. Be thorough. Future agents will thank you.**

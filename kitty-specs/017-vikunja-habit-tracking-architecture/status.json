@@ -1,8 +1,10 @@
 {
   "event_count": 8,
-  "feature_slug": "017-vikunja-habit-tracking-architecture",
   "last_event_id": "01KNJ0WTBESB0X0EX8XYBE1B34",
-  "materialized_at": "2026-04-06T18:29:19.343470+00:00",
+  "materialized_at": "2026-04-06T18:29:19.342694+00:00",
+  "mission_number": "017",
+  "mission_slug": "017-vikunja-habit-tracking-architecture",
+  "mission_type": "research",
   "summary": {
     "approved": 0,
     "blocked": 0,
@@ -11,6 +13,7 @@
     "done": 1,
     "for_review": 0,
     "in_progress": 0,
+    "in_review": 0,
     "planned": 0
   },
   "work_packages": {

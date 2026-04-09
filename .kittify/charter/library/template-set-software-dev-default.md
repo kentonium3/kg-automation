@@ -167,7 +167,7 @@ mcp_tools:
   - github
   - gitlab
 agent_context: "You are a software development agent following TDD practices.\nYour
-  constitution enforces Library-First, CLI Interface, and Test-First principles.\n\
+  charter enforces Library-First, CLI Interface, and Test-First principles.\n\
   You work in structured phases: research → design → implement → test → review.\n\n\
   Key practices:\n- Tests before code (non-negotiable)\n- Library-first architecture\n\
   - CLI interfaces for all features\n- Integration tests over mocks\n- Real dependencies

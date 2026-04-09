@@ -1,8 +1,10 @@
 {
   "event_count": 8,
-  "feature_slug": "018-habit-today-filter-visibility",
   "last_event_id": "01KNJ20X8XPT05WC9RGGWBYJHH",
-  "materialized_at": "2026-04-06T18:49:01.982463+00:00",
+  "materialized_at": "2026-04-06T18:49:01.981505+00:00",
+  "mission_number": "018",
+  "mission_slug": "018-habit-today-filter-visibility",
+  "mission_type": "software-dev",
   "summary": {
     "approved": 0,
     "blocked": 0,
@@ -11,6 +13,7 @@
     "done": 1,
     "for_review": 0,
     "in_progress": 0,
+    "in_review": 0,
     "planned": 0
   },
   "work_packages": {

@@ -6,9 +6,9 @@ references:
 - id: USER:PROJECT_PROFILE
   kind: user_profile
   title: User Project Profile
-  summary: Project-specific interview answers captured for constitution 
+  summary: Project-specific interview answers captured for charter 
     compilation.
-  source_path: .kittify/constitution/interview/answers.yaml
+  source_path: .kittify/charter/interview/answers.yaml
   local_path: library/user-project-profile.md
 - id: PARADIGM:test-first
   kind: paradigm

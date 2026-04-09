@@ -3,9 +3,9 @@
 # DO NOT EDIT MANUALLY
 
 spec_kitty:
-  version: 3.1.0a6
+  version: 3.1.1
   initialized_at: '2026-03-25T23:07:06.539751'
-  last_upgraded_at: '2026-04-06T14:54:59.308752'
+  last_upgraded_at: '2026-04-09T14:09:18.662304'
 environment:
   python_version: 3.13.12
   platform: darwin
@@ -92,3 +92,84 @@ migrations:
     result: success
     notes: Relinked 10 canonical skill(s) for 4 agent(s) (112 managed files); Updated
       .kittify/skills-manifest.json for global canonical skill links
+  - id: 3.1.1_charter_rename
+    applied_at: '2026-04-09T14:09:18.217536'
+    result: success
+    notes: Merged constitution.md from constitution/ to charter/; Merged context-state.json
+      from constitution/ to charter/; Merged directives.yaml from constitution/ to
+      charter/; Merged governance.yaml from constitution/ to charter/; Merged library
+      from constitution/ to charter/; Merged metadata.yaml from constitution/ to charter/;
+      Merged references.yaml from constitution/ to charter/; Removed residual .kittify/constitution/
+      after merge; Renamed charter/constitution.md -> charter/charter.md; Rewrote
+      content in .kittify/charter/charter.md; Rewrote content in .kittify/charter/directives.yaml;
+      Rewrote content in .kittify/charter/governance.yaml; Rewrote content in .kittify/charter/library/styleguide-python-implementation.md;
+      Rewrote content in .kittify/charter/library/template-set-software-dev-default.md;
+      Rewrote content in .kittify/charter/library/user-project-profile.md; Rewrote
+      content in .kittify/charter/metadata.yaml; Rewrote content in .kittify/charter/references.yaml;
+      Rewrote content in .claude/commands/spec-kitty.analyze.md; Rewrote content in
+      .claude/commands/spec-kitty.constitution.md; Rewrote content in .claude/commands/spec-kitty.plan.md;
+      Rewrote content in .claude/commands/spec-kitty.specify.md; Rewrote content in
+      .github/prompts/spec-kitty.analyze.prompt.md; Rewrote content in .github/prompts/spec-kitty.constitution.prompt.md;
+      Rewrote content in .github/prompts/spec-kitty.plan.prompt.md; Rewrote content
+      in .github/prompts/spec-kitty.specify.prompt.md; Rewrote content in .codex/prompts/spec-kitty.analyze.md;
+      Rewrote content in .codex/prompts/spec-kitty.constitution.md; Rewrote content
+      in .codex/prompts/spec-kitty.plan.md; Rewrote content in .codex/prompts/spec-kitty.specify.md;
+      Renamed .claude/commands/spec-kitty.constitution.md -> spec-kitty.charter.md;
+      Renamed .codex/prompts/spec-kitty.constitution.md -> spec-kitty.charter.md
+  - id: 3.1.1_direct_canonical_commands
+    applied_at: '2026-04-09T14:09:18.474028'
+    result: success
+    notes: 'Regenerated: .claude/commands/spec-kitty.accept.md; Regenerated: .claude/commands/spec-kitty.dashboard.md;
+      Regenerated: .claude/commands/spec-kitty.implement.md; Regenerated: .claude/commands/spec-kitty.merge.md;
+      Regenerated: .claude/commands/spec-kitty.review.md; Regenerated: .claude/commands/spec-kitty.status.md;
+      Regenerated: .claude/commands/spec-kitty.tasks-finalize.md; Regenerated: .codex/prompts/spec-kitty.accept.md;
+      Regenerated: .codex/prompts/spec-kitty.dashboard.md; Regenerated: .codex/prompts/spec-kitty.implement.md;
+      Regenerated: .codex/prompts/spec-kitty.merge.md; Regenerated: .codex/prompts/spec-kitty.review.md;
+      Regenerated: .codex/prompts/spec-kitty.status.md; Regenerated: .codex/prompts/spec-kitty.tasks-finalize.md;
+      Regenerated: .gemini/commands/spec-kitty.accept.md; Regenerated: .gemini/commands/spec-kitty.dashboard.md;
+      Regenerated: .gemini/commands/spec-kitty.implement.md; Regenerated: .gemini/commands/spec-kitty.merge.md;
+      Regenerated: .gemini/commands/spec-kitty.review.md; Regenerated: .gemini/commands/spec-kitty.status.md;
+      Regenerated: .gemini/commands/spec-kitty.tasks-finalize.md; Regenerated: .github/prompts/spec-kitty.accept.md;
+      Regenerated: .github/prompts/spec-kitty.dashboard.md; Regenerated: .github/prompts/spec-kitty.implement.md;
+      Regenerated: .github/prompts/spec-kitty.merge.md; Regenerated: .github/prompts/spec-kitty.review.md;
+      Regenerated: .github/prompts/spec-kitty.status.md; Regenerated: .github/prompts/spec-kitty.tasks-finalize.md;
+      Regenerated: .claude/commands/spec-kitty.analyze.md; Regenerated: .claude/commands/spec-kitty.charter.md;
+      Regenerated: .claude/commands/spec-kitty.checklist.md; Regenerated: .claude/commands/spec-kitty.plan.md;
+      Regenerated: .claude/commands/spec-kitty.research.md; Regenerated: .claude/commands/spec-kitty.specify.md;
+      Regenerated: .claude/commands/spec-kitty.tasks-outline.md; Regenerated: .claude/commands/spec-kitty.tasks-packages.md;
+      Regenerated: .claude/commands/spec-kitty.tasks.md; Regenerated: .codex/prompts/spec-kitty.analyze.md;
+      Regenerated: .codex/prompts/spec-kitty.charter.md; Regenerated: .codex/prompts/spec-kitty.checklist.md;
+      Regenerated: .codex/prompts/spec-kitty.plan.md; Regenerated: .codex/prompts/spec-kitty.research.md;
+      Regenerated: .codex/prompts/spec-kitty.specify.md; Regenerated: .codex/prompts/spec-kitty.tasks.md;
+      Regenerated: .codex/prompts/spec-kitty.tasks_outline.md; Regenerated: .codex/prompts/spec-kitty.tasks_packages.md;
+      Regenerated: .gemini/commands/spec-kitty.analyze.toml; Regenerated: .gemini/commands/spec-kitty.charter.toml;
+      Regenerated: .gemini/commands/spec-kitty.checklist.toml; Regenerated: .gemini/commands/spec-kitty.plan.toml;
+      Regenerated: .gemini/commands/spec-kitty.research.toml; Regenerated: .gemini/commands/spec-kitty.specify.toml;
+      Regenerated: .gemini/commands/spec-kitty.tasks-outline.toml; Regenerated: .gemini/commands/spec-kitty.tasks-packages.toml;
+      Regenerated: .gemini/commands/spec-kitty.tasks.toml; Regenerated: .github/prompts/spec-kitty.analyze.prompt.md;
+      Regenerated: .github/prompts/spec-kitty.charter.prompt.md; Regenerated: .github/prompts/spec-kitty.checklist.prompt.md;
+      Regenerated: .github/prompts/spec-kitty.plan.prompt.md; Regenerated: .github/prompts/spec-kitty.research.prompt.md;
+      Regenerated: .github/prompts/spec-kitty.specify.prompt.md; Regenerated: .github/prompts/spec-kitty.tasks-outline.prompt.md;
+      Regenerated: .github/prompts/spec-kitty.tasks-packages.prompt.md; Regenerated:
+      .github/prompts/spec-kitty.tasks.prompt.md; Deleted stale: .github/prompts/spec-kitty.constitution.prompt.md;
+      Deleted stale: .gemini/commands/spec-kitty.constitution.toml'
+  - id: 3.1.1_event_log_merge_driver
+    applied_at: '2026-04-09T14:09:18.586523'
+    result: success
+    notes: 'Added .gitattributes entry: kitty-specs/**/status.events.jsonl merge=spec-kitty-event-log;
+      Configured git merge.spec-kitty-event-log.name; Configured git merge.spec-kitty-event-log.driver'
+  - id: 3.1.1_normalize_status_json
+    applied_at: '2026-04-09T14:09:18.651234'
+    result: success
+    notes: '002-openclaw-install-config: normalised status.json; 003-whisper-transcription-skill:
+      normalised status.json; 004-whatsapp-channel: normalised status.json; 005-system-architecture-development:
+      normalised status.json; 006-goal-and-outcome-structure: normalised status.json;
+      007-vikunja-api-skill: normalised status.json; 008-inbox-processing-migration:
+      normalised status.json; 009-daily-habit-checkin: normalised status.json; 010-obsidian-sync-office2:
+      normalised status.json; 011-second-brain-vault-cleanup: normalised status.json;
+      012-constitution-agent-governance-setup: normalised status.json; 013-vikunja-task-intelligence-agent:
+      normalised status.json; 014-felix-core-digest: normalised status.json; 015-documentation-architecture-rationalization:
+      normalised status.json; 016-change-control-governance: normalised status.json;
+      017-vikunja-habit-tracking-architecture: normalised status.json; 018-habit-today-filter-visibility:
+      normalised status.json; 019-escalation-engine: normalised status.json; 020-doc-audit-infrastructure:
+      normalised status.json; 021-openclaw-agent-model-tiering: normalised status.json'

@@ -16,5 +16,5 @@ principles:
 - Keep functions focused and side effects minimal.
 - Prefer clear names over abbreviated names.
 references:
-- .kittify/memory/constitution.md
+- .kittify/memory/charter.md
 ```
