@@ -98,6 +98,13 @@ scripts/            ← automation scripts
 
 ## Feature Development Workflow
 
+**Issue-first rule**: Every non-trivial change should have a GitHub issue
+before implementation begins. If the user asks for a fix, feature, or
+investigation without referencing an issue, ask: *"Want me to create an
+issue for this first?"* Quick doc edits, typo fixes, and CLAUDE.md
+updates are exempt. Everything else gets an issue — it takes 30 seconds
+and gives us an audit trail, doc-audit triggers, and agent awareness.
+
 **Finding the next work item:**
 
 Query the issue queue for the highest priority open feature in the active
