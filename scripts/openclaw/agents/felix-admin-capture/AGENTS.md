@@ -301,6 +301,11 @@ python ~/repos/kg-automation/scripts/openclaw/observation/log_action.py \
 | `goal_routed` | Goal content routed to appropriate location | routine |
 | `item_flagged` | Content flagged for human review | flagged |
 | `delegation_failed` | Task delegation to tasker failed | error |
+| `github_issue_created` | GitHub issue created from inbox content | routine |
+| `github_issue_failed` | GitHub issue creation failed | error |
+| `github_issue_updated` | Issue labels updated per Kent's request | routine |
+| `github_issue_rejected` | Issue closed per Kent's rejection | routine |
+| `github_issue_out_of_scope` | Issue request was out of scope | flagged |
 | `file_locked` | File operation blocked by lock | error |
 | `privacy_boundary` | Content references private path — halted | security |
 
@@ -313,6 +318,8 @@ python ~/repos/kg-automation/scripts/openclaw/observation/log_action.py \
 | `project` | string | When routing to a specific project |
 | `flagged_reason` | string | When category is "flagged" |
 | `error_detail` | string | When category is "error" |
+| `github_issue_number` | int | When a GitHub issue is created or updated |
+| `github_issue_url` | string | When a GitHub issue is created |
 
 ### What Changed (F014)
 
@@ -617,4 +624,62 @@ Common failure modes:
 - "Bad credentials" or "authentication" -> gh auth expired. Report to Kent.
 - Network timeout -> transient. Report to Kent.
 - Any other error -> report the error message verbatim.
+
+### Processing summary format
+
+When one or more GitHub issues were created during this run, include them
+in the processing summary under a "GitHub Issues" heading:
+
+    **GitHub Issues Created:**
+    - #<number>: <title> -- labels: <P-label>, <area-label>, spec: brief
+      <URL>
+
+If multiple issues were created, list each on its own line.
+
+### Handling Kent's response
+
+Kent may reply to the processing summary with instructions about the
+created issue(s). Recognize these response intents:
+
+**Accept** (no action needed):
+- "ok", "good", "yes", "looks good", "fine", "perfect"
+- No response at all (silence = acceptance, issue stands as-is)
+
+**Modify labels**:
+- "change to P1", "make it P1", "upgrade priority"
+- "add area/security", "wrong area, should be infrastructure"
+- "change to bug", "this is actually a bug not a feature"
+- Parse the intent and run:
+
+      gh issue edit <number> --repo kentonium3/kg-automation         --remove-label "<old-label>" --add-label "<new-label>"
+
+- Confirm back: "Updated #<number>: now <new-labels>"
+
+**Reject**:
+- "reject", "cancel", "delete", "never mind", "remove it"
+- Close the issue:
+
+      gh issue close <number> --repo kentonium3/kg-automation         --comment "Rejected from inbox processing per Kent's request."
+
+- Confirm back: "Closed #<number>."
+
+If Kent's response is ambiguous (cannot determine accept/modify/reject),
+ask for clarification: "I created #<number> (<title>). Would you like
+to keep it as-is, change the labels, or reject it?"
+
+### Out-of-scope requests
+
+**Multi-repo requests**: If Kent says "file a github issue on intentional"
+or names any repo other than kg-automation, respond:
+"I can currently only create issues on kentonium3/kg-automation.
+Multi-repo support is not available yet. I have noted the request in
+the processing summary -- you can create the issue manually."
+Route the content block to `needs-review` status.
+
+**Insufficient content**: If the trigger phrase is present but the content
+after it is too vague to create a meaningful issue (e.g., "file a github
+issue for... that thing we talked about"), respond:
+"I detected a GitHub issue request but could not determine what the issue
+should be about. The note is preserved in the inbox for manual review."
+Set status to `needs-review`.
 
