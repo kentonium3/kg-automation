@@ -104,7 +104,29 @@ Add the agent to the `agents.list` array in `~/.openclaw/openclaw.json`:
 | `name` | Display name (typically same as id) |
 | `workspace` | Path to the agent's workspace directory containing AGENTS.md, SOUL.md, etc. |
 | `agentDir` | Path to the agent's runtime directory under `~/.openclaw/agents/` |
-| `model` | LLM model for this agent |
+| `model` | LLM model for this agent (see Model Tier Assignment below) |
+
+### Model Tier Assignment
+
+New agents default to Haiku (`anthropic/claude-haiku-4-5`) — the global
+default in `openclaw.json`. Only use Sonnet or higher when the task requires
+complex multi-step reasoning, trend analysis, or orchestration.
+
+When registering a new agent:
+
+1. **Set the `model` field** in the `openclaw.json` agent entry
+2. **Add `model`, `model_policy`, and `model_rationale`** to the agent's
+   entry in `docs/constitution/agent-registry.json`
+3. **Update `AGENT-REGISTRY.md`** with the model assignment
+
+Model policy values:
+- **pinned**: Must stay on this model. Change requires validation with
+  representative production inputs and documented justification.
+- **optimizable**: May move to a cheaper model if one passes quality validation.
+
+If Sonnet is needed, document why in `model_rationale`. If unsure, start with
+Haiku and validate — it's easier to upgrade than to discover a downgrade broke
+something.
 
 ### Agent runtime directory
 

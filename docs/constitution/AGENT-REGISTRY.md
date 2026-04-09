@@ -11,11 +11,28 @@ The authoritative record for agent registration and autonomy levels is
 
 ---
 
+## Model Assignment Policy
+
+New agents default to Haiku (`anthropic/claude-haiku-4-5`) unless the task
+requires complex reasoning, trend analysis, or orchestration. Model assignment
+is based on task complexity, not autonomy level.
+
+- **Pinned**: Agent must stay on its assigned model. Change requires validation
+  with representative production inputs and documented justification.
+- **Optimizable**: Agent may move to a cheaper model in the future if one
+  becomes available and passes quality validation.
+
+To change an agent's model tier: validate on representative inputs, document
+results, update this registry and `agent-registry.json`.
+
+---
+
 ## felix-admin-capture
 
 **Team**: SuperAdmin (B)
 **Scope**: Obsidian inbox processing — classifies notes, routes to vault, creates Vikunja tasks
 **Current Autonomy Level**: Assisted (Level 1)
+**Model**: Haiku (optimizable) — validated 2026-04-09, equivalent routing accuracy
 **Deployed**: F008 (2026-03-31)
 **Registered**: F012 (2026-04-01)
 
@@ -32,6 +49,7 @@ The authoritative record for agent registration and autonomy levels is
 **Team**: SuperAdmin (B)
 **Scope**: Daily habit check-ins, completion recording, and pattern reporting
 **Current Autonomy Level**: Assisted (Level 1)
+**Model**: Sonnet (pinned) — Haiku failed workflow execution (2026-04-09). Pending #141 agent split.
 **Deployed**: F009 (2026-03-31)
 **Registered**: F012 (2026-04-01)
 
@@ -49,6 +67,7 @@ The authoritative record for agent registration and autonomy levels is
 **Scope**: Task structuring and enrichment — transforms raw task descriptions into fully structured Vikunja tasks
 **Does NOT handle**: Inbox processing, habit tracking, briefings, calendar, email
 **Current Autonomy Level**: Assisted (Level 1)
+**Model**: Sonnet (pinned) — complex multi-step reasoning, pre-classified
 **Deployed**: F013 (2026-04-02)
 **Registered**: F013 (2026-04-02)
 
@@ -66,6 +85,7 @@ The authoritative record for agent registration and autonomy levels is
 **Scope**: Overdue and at-risk task escalation — detects tasks past due date, delivers level-appropriate WhatsApp alerts, tracks escalation state via Vikunja comments, handles responses
 **Does NOT handle**: Habits, inbox processing, task structuring, briefings, calendar, goal-level commitment assessment
 **Current Autonomy Level**: Assisted (Level 1)
+**Model**: Sonnet (pinned) — Haiku produced false positive on priority threshold (2026-04-09). High consequence agent.
 **Deployed**: F019 (2026-04-06)
 **Registered**: F019 (2026-04-06)
 

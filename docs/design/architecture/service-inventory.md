@@ -91,6 +91,7 @@ All services run on office2 unless otherwise noted.
 - **Config in repo**: `scripts/openclaw/openclaw-gateway.service`, `scripts/openclaw/install.sh`
 - **Credential store**: `/data/services/openclaw/secrets/` (mode 700)
 - **Backup**: Data at `/data/services/openclaw/data/` and config at `/home/claude/.openclaw/` — both in Restic scope
+- **Model tiering**: Global default is Haiku; per-agent model override via `agents.list[].model` in `openclaw.json`. See agent registry for per-agent assignments.
 - **Runbook**: `docs/runbooks/openclaw-ops.md`
 
 ### Felix Admin Capture Agent (F008)
@@ -99,7 +100,7 @@ All services run on office2 unless otherwise noted.
 - **Agent name**: `felix-admin-capture`
 - **Workspace**: `/data/services/openclaw/inbox-agent/`
 - **Source in repo**: `scripts/openclaw/agents/felix-admin-capture/`
-- **Model**: `anthropic/claude-sonnet-4-6`
+- **Model**: `anthropic/claude-haiku-4-5` (optimizable) — validated 2026-04-09
 - **Purpose**: Autonomous Obsidian inbox processing — classifies content, routes to vault locations, creates Vikunja tasks, writes processing logs
 - **Schedule**: 3x daily via OpenClaw cron (7 AM, 12 PM, 6 PM ET)
 - **Processing logs**: `/home/kgale/second-brain/agents/logs/inbox-processing-YYYY-MM-DD.md`
