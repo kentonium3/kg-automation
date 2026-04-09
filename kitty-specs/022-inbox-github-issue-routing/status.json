@@ -1,16 +1,16 @@
 {
-  "event_count": 18,
-  "last_event_id": "01KNT0YFF99VJJTX9A2WJMQ00M",
-  "materialized_at": "2026-04-09T21:04:09.193227+00:00",
+  "event_count": 21,
+  "last_event_id": "01KNT115SCJTH6SKT109K2MH4Z",
+  "materialized_at": "2026-04-09T21:05:37.580537+00:00",
   "mission_number": "022",
   "mission_slug": "022-inbox-github-issue-routing",
   "mission_type": "software-dev",
   "summary": {
-    "approved": 3,
+    "approved": 0,
     "blocked": 0,
     "canceled": 0,
     "claimed": 0,
-    "done": 0,
+    "done": 3,
     "for_review": 0,
     "in_progress": 0,
     "in_review": 0,
@@ -18,25 +18,25 @@
   },
   "work_packages": {
     "WP01": {
-      "actor": "user",
+      "actor": "merge",
       "force_count": 1,
-      "lane": "approved",
-      "last_event_id": "01KNT0Q0EZF9KYB4KYDA8W4KQW",
-      "last_transition_at": "2026-04-09T21:00:04.447404+00:00"
+      "lane": "done",
+      "last_event_id": "01KNT115MNNXT598SWADY244T5",
+      "last_transition_at": "2026-04-09T21:05:37.429732+00:00"
     },
     "WP02": {
-      "actor": "user",
+      "actor": "merge",
       "force_count": 1,
-      "lane": "approved",
-      "last_event_id": "01KNT0S4R2ZQZ06X2XFG0059FA",
-      "last_transition_at": "2026-04-09T21:01:14.370769+00:00"
+      "lane": "done",
+      "last_event_id": "01KNT115RVK0DNQ1GS8GAAGC5R",
+      "last_transition_at": "2026-04-09T21:05:37.563920+00:00"
     },
     "WP03": {
-      "actor": "user",
+      "actor": "merge",
       "force_count": 1,
-      "lane": "approved",
-      "last_event_id": "01KNT0YFF99VJJTX9A2WJMQ00M",
-      "last_transition_at": "2026-04-09T21:04:09.193227+00:00"
+      "lane": "done",
+      "last_event_id": "01KNT115SCJTH6SKT109K2MH4Z",
+      "last_transition_at": "2026-04-09T21:05:37.580537+00:00"
     }
   }
 }
