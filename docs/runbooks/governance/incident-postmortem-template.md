@@ -9,7 +9,7 @@ last_validated: 2026-04-05
 
 # Incident Postmortem Template
 
-This is the standard postmortem template for kg-automation. Copy this file to `docs/issues/postmortems/YYYY-MM-DD_incident-slug.md` and fill in each section.
+This is the standard postmortem template for kg-automation. File postmortems as GitHub issues with the `P1-bug` or `P2-bug` label, or archive to `docs/archive/YYYY-MM-DD_incident-slug.md`. Use this template for structure.
 
 **Target completion time**: Under 30 minutes. Focus on facts and actionable follow-ups, not exhaustive narrative.
 

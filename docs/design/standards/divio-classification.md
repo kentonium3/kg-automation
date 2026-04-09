@@ -37,8 +37,8 @@ Seven canonical `doc_type` values cover every active document. Three are Divio p
 | `spec` | reference (sub) | Feature specification produced via spec-kitty | `docs/func-spec/F013_vikunja_task_intelligence_agent.md`, `docs/func-spec/F015_documentation_architecture_rationalization.md` |
 | `explanation` | explanation | Rationale — WHY decisions were made, design principles, context behind the architecture | `docs/design/adversarial-analysis.md`, `docs/design/office2-backup-and-security.md` |
 | `standard` | explanation (sub) | Cross-cutting authoring or operational standards with rationale | `docs/design/standards/doc-standards.md`, `docs/design/standards/divio-classification.md` (this file), `docs/runbooks/repo-governance.md` |
-| `postmortem` | explanation (sub) | Post-incident analysis — what happened, why, what changes | `docs/issues/postmortems/YYYY-MM-DD_*.md` |
-| `diagnostic` | how-to (sub) | Incident diagnostics, troubleshooting notes, runtime-used issue logs | `docs/issues/diagnostics/spec-kitty-workflow-journal.md`, `docs/issues/diagnostics/f012-merge-breadcrumbs.md` |
+| `postmortem` | explanation (sub) | Post-incident analysis — what happened, why, what changes | GitHub issues or `docs/archive/YYYY-MM-DD_*.md` |
+| `diagnostic` | how-to (sub) | Incident diagnostics, troubleshooting notes, runtime-used issue logs | `docs/diagnostics/` |
 
 **Dominant-type rule**: If a document mixes types, pick the dominant type and note the secondary type in a `divio_ambiguity` frontmatter field.
 
@@ -55,8 +55,8 @@ Each `doc_type` lives in a single canonical directory. This enforces discoverabi
 | `spec` | `docs/func-spec/` | Always |
 | `explanation` | `docs/design/` top-level | Design rationale. Service-specific rationale may live alongside its runbook with `doc_type: explanation` flagged |
 | `standard` | `docs/design/standards/` | Cross-cutting standards consolidated here |
-| `postmortem` | `docs/issues/postmortems/` | Filename format: `YYYY-MM-DD_incident-slug.md` |
-| `diagnostic` | `docs/issues/diagnostics/` | Exempt from restructuring per F015 constraint C-002 |
+| `postmortem` | GitHub issues or `docs/archive/` | Filename format: `YYYY-MM-DD_incident-slug.md` |
+| `diagnostic` | `docs/diagnostics/` | Active troubleshooting and upstream bug reporting |
 
 **Machine-readable artifacts (JSON files)**:
 

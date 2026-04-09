@@ -147,7 +147,7 @@ and the ClawHub install approval requirement in the Felix Constitution.
 exfiltration if the `claude` account is compromised (e.g., via a malicious
 OpenClaw skill). Precedent exists for this attack vector. Encrypting secrets
 at rest is tracked as the long-term mitigation under R-001 in the
-[risk register](<../risk-register.md>) and D06 in the
+[risk register](<../../archive/risk-register.md>) (archived; now [issue #114](https://github.com/kentonium3/kg-automation/issues/114)) and D06 in the
 [capability roadmap](<../felix-capability-roadmap.md>).
 
 ---

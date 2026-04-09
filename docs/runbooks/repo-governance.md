@@ -190,6 +190,6 @@ Felix agents operate under a formal governance framework:
 | Agent Registry | `docs/constitution/AGENT-REGISTRY.md` |
 | Governance Runbook | `docs/runbooks/felix-governance.md` |
 | Change Control | `docs/design/architecture/change-control.md` |
-| Risk Register | `docs/design/risk-register.md` |
+| Risk Register | `docs/archive/risk-register.md` *(archived — now tracked in GitHub issues)* |
 
 All agents start at Assisted (Level 1) and require explicit promotion.

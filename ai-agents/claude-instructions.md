@@ -18,7 +18,7 @@ Instructions for Claude (claude.ai project sessions) working in kg-automation.
 ## Start Every Session By Reading
 
 1. `CLAUDE.md` at repo root — platform, boundaries, quick context
-2. `docs/design/personal-ai-system-spec-v1.0.md` — canonical architecture
+2. `docs/design/felix-capability-roadmap.md` — design intent, capability status, and roadmap
 3. Recent git log: `git log --oneline -10` — understand current state
 
 ## Role in This System
@@ -59,7 +59,7 @@ Current coordination is: GitHub Issues + spec-kitty feature specs.
 ## Spec-Kitty Workflow
 
 Features are implemented via spec-kitty user stories. The current Phase 1
-feature sequence is in `docs/design/personal-ai-system-spec-v1.0.md` Section 10.
+feature sequence is in `docs/design/felix-capability-roadmap.md` and the GitHub issue queue.
 
 When asked to work on a feature:
 1. Confirm it aligns with the spec

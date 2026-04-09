@@ -191,19 +191,19 @@ EA is ready to expand to additional capability areas when all of the following a
 | F018 | Habit Today Filter Visibility | U | Task Intelligence |
 | F019 | Escalation Engine | I | Accountability Engine |
 
-**Planned (not yet spec'd, sequenced by dependency)**
+**Planned (tracked in GitHub issues, sequenced by dependency)**
 
-| Feature | Type | Cluster | Depends On |
-|---------|------|---------|------------|
-| Google Calendar skill — OAuth (F020) | I | Calendar Integration | F013 |
-| Task ↔ calendar event linking (F021) | U | Calendar Integration | F020 |
-| Daily briefing heartbeat (F022) | U | Briefing & Reporting | F013, F020 |
-| Level 1–2 escalation heartbeat (F023) | U | Accountability Engine | F019, F020 |
-| Gmail integration skill (F024) | I | Email Integration | F020 OAuth creds |
-| Email triage + digest agent (F025) | U | Email Integration | F024 |
-| Solicitation folder hygiene (F026) | U | Email Integration | F024 |
-| Commitment Manager Agent | U | Accountability Engine | F013, F019 |
-| Deep research job management | U | Task Intelligence | F019, F022 |
+| Feature | Type | Cluster | Depends On | Issue |
+|---------|------|---------|------------|-------|
+| Google Calendar skill — OAuth (F020) | I | Calendar Integration | F013 | #100 |
+| Task ↔ calendar event linking (F021) | U | Calendar Integration | F020 | #117 |
+| Daily briefing heartbeat (F022) | U | Briefing & Reporting | F013, F020 | #118 |
+| Level 1–2 escalation heartbeat (F023) | U | Accountability Engine | F019, F020 | #119 |
+| Gmail integration skill (F024) | I | Email Integration | F020 OAuth creds | #120 |
+| Email triage + digest agent (F025) | U | Email Integration | F024 | #121 |
+| Solicitation folder hygiene (F026) | U | Email Integration | F024 | #122 |
+| Deep research job management | U | Task Intelligence | F019, F022 | #123 |
+| Commitment Manager Agent | U | Accountability Engine | F013, F019 | #101 |
 
 ---
 
@@ -388,9 +388,10 @@ These govern every feature decision. They change only with deliberate review.
 ---
 
 *This is a living document. It is the authoritative source for roadmap intent,
-capability status, and open decisions. Tactical feature specs live in
-`docs/func-spec/`. The reference architecture lives in
-`docs/design/personal-ai-system-spec-v1.0.md`.*
+capability status, and open decisions. The GitHub issue queue is the authoritative
+work backlog — all planned features are tracked there. Historical feature specs
+are in `docs/func-spec/`. The original architecture spec is archived at
+`docs/archive/personal-ai-system-spec-v1.0.md`.*
 
 *Version increments on structural change. Minor updates (status, decisions) are
 made in place with `last_updated` refreshed.*

@@ -12,8 +12,9 @@ tags: [416]
 **Standing directive**: When a spec-kitty workflow produces unexpected behavior — even if not a hard error — append an entry here before attempting any compensating action. Do not use git or other tools to simulate what spec-kitty should have done.
 
 **Related**:
-- `docs/issues/diagnostics/spec-kitty-feedback/` — individual incident reports intended for upstream reporting to spec-kitty-cli
-- This file is a running internal log; individual entries may graduate to standalone reports under `spec-kitty-feedback/` if they warrant upstream attention
+- Upstream bug reports are now tracked as GitHub issues (archived reports at `docs/archive/spec-kitty-feedback/`)
+- Bug report template: `docs/diagnostics/spec-kitty-bug-report-template.md`
+- This file is a running internal log; entries may graduate to GitHub issues when they warrant upstream attention
 
 ---
 

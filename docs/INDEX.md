@@ -12,7 +12,7 @@ last_validated: 2026-04-08
 Master map for all active documentation under `docs/`. Referenced from
 `CLAUDE.md` as the starting point for agents discovering documentation.
 
-**Scope**: `docs/**` excluding `docs/archive/` and `docs/issues/diagnostics/`
+**Scope**: `docs/**` excluding `docs/archive/`
 (both exempt from restructuring).
 
 ---
@@ -105,15 +105,15 @@ Authoritative operational state. **Exempt from moves (F015 constraint C-001)**.
 
 ### docs/design/ — Vision and rationale
 
-- [Vision & Architecture](<./design/vision-framework.md>)
-- [Personal AI System Spec v1.0](<./design/personal-ai-system-spec-v1.0.md>) — current authoritative system spec
-- [Felix Capability Roadmap](<./design/felix-capability-roadmap.md>) — living capability status and feature sequence
-- [Strategic Acceleration Charter](<./design/strategic-acceleration-charter.md>)
-- [Adversarial Analysis](<./design/adversarial-analysis.md>)
+- [Felix Capability Roadmap](<./design/felix-capability-roadmap.md>) — living capability status, feature sequence, and design principles
+- [Vision & Architecture](<./archive/vision-framework.md>) *(archived — superseded by capability roadmap)*
+- [Personal AI System Spec v1.0](<./archive/personal-ai-system-spec-v1.0.md>) *(archived — design intent consolidated into roadmap; work items in GitHub issues)*
+- [Strategic Acceleration Charter](<./archive/strategic-acceleration-charter.md>) *(archived — pre-Felix era, superseded by capability roadmap)*
+- [Adversarial Analysis](<./archive/adversarial-analysis.md>) *(archived — items extracted to #126, #119)*
 - [office2 Backup & Security](<./design/office2-backup-and-security.md>)
-- [Vikunja Integration Notes](<./design/Vikunja.md>)
-- [Risk Register](<./design/risk-register.md>)
-- [Decision Log](<./design/decision-log.md>)
+- [Vikunja Integration Notes](<./archive/Vikunja.md>) *(archived — items covered by #103)*
+- [Risk Register](<./archive/risk-register.md>) *(archived — items transcribed to GitHub issues #114, #115, #116)*
+- [Decision Log](<./archive/decision-log.md>) *(archived — decisions tracked as GitHub issues with RFC labels)*
 
 ### docs/design/standards/ — Cross-cutting standards
 
@@ -150,19 +150,12 @@ historical record. New features are tracked as GitHub Issues — see
 
 ---
 
-## Issues (docs/issues/)
+## Diagnostics (docs/diagnostics/)
 
-### docs/issues/diagnostics/ — Incident diagnostics
+Active troubleshooting and upstream bug reporting.
 
-Exempt from restructuring. Runtime issue tracking and troubleshooting.
-
-- [Spec-Kitty Workflow Journal](<./issues/diagnostics/spec-kitty-workflow-journal.md>)
-- [Spec-Kitty Feedback](issues/diagnostics/spec-kitty-feedback/) — upstream bug reports
-- [Obsolete Workflow References Audit](<./issues/diagnostics/obsolete-workflow-references-audit.md>)
-
-### docs/issues/postmortems/
-
-- [2026-04-03: Vikunja UFW Outage](<./issues/postmortems/2026-04-03-vikunja-ufw-outage.md>)
+- [Spec-Kitty Workflow Journal](<./diagnostics/spec-kitty-workflow-journal.md>)
+- [Spec-Kitty Bug Report Template](<./diagnostics/spec-kitty-bug-report-template.md>)
 
 ---
 

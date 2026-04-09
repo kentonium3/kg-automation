@@ -28,8 +28,9 @@ Tailscale-accessible) with OpenClaw as the orchestration engine and Vikunja as
 the task store and UI layer.
 
 This is not a general-purpose automation repo. It is a personal system with a
-specific architecture. Read `docs/design/personal-ai-system-spec-v1.0.md` before
-making any architectural decisions. That document is the source of truth.
+specific architecture. Read `docs/design/felix-capability-roadmap.md` for design
+intent, capability status, and open decisions. The GitHub issue queue is the
+authoritative work backlog.
 
 ## Platform
 
@@ -76,10 +77,10 @@ stop and present the command to Kent to run manually via `ssh office2-kgale`.**
 - Data flows, credentials, identity model, backup, security posture
 - **Updated after every feature** — see `change-control.md` for the protocol
 
-`docs/design/personal-ai-system-spec-v1.0.md` — design intent (what we're building toward):
-- Full system architecture and topology
-- Implementation phases and feature sequence
-- Operating principles
+`docs/design/felix-capability-roadmap.md` — design intent and roadmap:
+- Capability area status and feature sequence
+- Open decisions and design principles
+- Feature cluster progress (GitHub issues are the authoritative backlog)
 
 **Standing requirement**: Any feature that changes deployed services, credentials,
 data flows, or network topology must update the relevant files in
@@ -97,15 +98,25 @@ config are updated.
 ```
 ai-agents/          ← agent instruction files (this file's siblings)
 docs/
+  archive/          ← frozen historical artifacts
   constitution/     ← governance — Felix constitution, agent registry
   design/           ← architecture specs, standards, research
+  diagnostics/      ← active troubleshooting (spec-kitty workflow journal)
   func-spec/        ← historical feature specs (F001–F020 archive)
-  issues/           ← diagnostics and postmortems
   runbooks/         ← operational runbooks (how-to guides)
 scripts/            ← automation scripts
+kitty-specs/        ← spec-kitty managed (DO NOT EDIT — see below)
+.kittify/           ← spec-kitty managed (DO NOT EDIT — see below)
 .github/
   ISSUE_TEMPLATE/   ← issue templates (feature, bug, rfc, infra, docs-debt)
 ```
+
+**`kitty-specs/` and `.kittify/` are owned by spec-kitty.** These directories
+contain mission specifications, work packages, status event logs, and workflow
+configuration managed exclusively by spec-kitty commands. Agents and humans
+must **never** directly create, edit, move, or delete files in these directories.
+All changes flow through spec-kitty slash commands (`/spec-kitty.*`). Reading
+these files for context is fine; writing to them is not.
 
 ## Feature Development Workflow
 

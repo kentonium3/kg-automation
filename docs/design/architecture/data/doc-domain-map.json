@@ -37,7 +37,6 @@
       "docs/constitution/agent-registry.json",
       "docs/runbooks/felix-governance.md",
       "docs/design/felix-capability-roadmap.md",
-      "docs/design/personal-ai-system-spec-v1.0.md",
       "docs/design/architecture/data/capabilities-schema.json",
       "docs/design/architecture/data/catalog-schema.json",
       "docs/runbooks/openclaw-ops.md",
@@ -77,11 +76,7 @@
     "area/biz-ops": [
       "docs/runbooks/goals-ops.md",
       "docs/runbooks/habits-ops.md",
-      "docs/design/vision-framework.md",
-      "docs/design/strategic-acceleration-charter.md",
-      "docs/design/adversarial-analysis.md",
-      "docs/design/risk-register.md",
-      "docs/design/decision-log.md"
+      "docs/design/felix-capability-roadmap.md"
     ]
   }
 }

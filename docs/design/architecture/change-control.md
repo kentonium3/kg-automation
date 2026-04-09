@@ -83,7 +83,7 @@ All changes to the deployed system are classified by a five-tier risk taxonomy d
 
 **Dependency awareness**: The service dependency graph (`docs/design/architecture/data/service-inventory.json` — `dependencies` field) is consulted during pre-flight to identify blast radius. See `docs/design/architecture/service-dependencies.view.md` for a visual map.
 
-**Postmortems**: When a change causes an incident, a postmortem is filed in `docs/issues/postmortems/`.
+**Postmortems**: When a change causes an incident, a postmortem is filed as a GitHub issue or archived to `docs/archive/`.
 
 ## CI Validation
 
