@@ -13,10 +13,10 @@
 | T003 | Write title inference instructions | WP01 | | [D] |
 | T004 | Write label inference instructions with label list | WP01 | | [D] |
 | T005 | Write gh issue create command template and error handling | WP01 | | [D] |
-| T006 | Write confirmation response handling (accept/modify/reject) | WP02 | |
-| T007 | Write out-of-scope handling (multi-repo, insufficient content) | WP02 | |
-| T008 | Add GitHub issue action types to logging table | WP02 | |
-| T009 | Add GitHub section to TOOLS.md | WP02 | |
+| T006 | Write confirmation response handling (accept/modify/reject) | WP02 | | [D] |
+| T007 | Write out-of-scope handling (multi-repo, insufficient content) | WP02 | | [D] |
+| T008 | Add GitHub issue action types to logging table | WP02 | | [D] |
+| T009 | Add GitHub section to TOOLS.md | WP02 | | [D] |
 | T010 | Update repo-side copies of AGENTS.md and TOOLS.md | WP03 | |
 | T011 | Update service-inventory.md | WP03 | [P] |
 | T012 | Test feature with a real inbox note | WP03 | |
@@ -57,10 +57,10 @@
 **Prompt file**: [WP02-agents-confirmation-logging.md](tasks/WP02-agents-confirmation-logging.md)
 
 **Subtasks**:
-- [ ] T006: Write confirmation response handling (accept/modify/reject)
-- [ ] T007: Write out-of-scope handling (multi-repo, insufficient content)
-- [ ] T008: Add GitHub issue action types to logging table
-- [ ] T009: Add GitHub section to TOOLS.md
+- [x] T006: Write confirmation response handling (accept/modify/reject)
+- [x] T007: Write out-of-scope handling (multi-repo, insufficient content)
+- [x] T008: Add GitHub issue action types to logging table
+- [x] T009: Add GitHub section to TOOLS.md
 
 **Estimated prompt size**: ~300 lines
 
