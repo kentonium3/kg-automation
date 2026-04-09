@@ -10,12 +10,16 @@ requirement_refs:
 planning_base_branch: main
 merge_target_branch: main
 branch_strategy: Planning artifacts for this feature were generated on main. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into main unless the human explicitly redirects the landing branch.
+base_branch: kitty/mission-022-inbox-github-issue-routing
+base_commit: 6bdced9ac55e7e79edad9c8200d09f0f3c18ff9e
+created_at: '2026-04-09T20:49:34.473020+00:00'
 subtasks:
 - T001
 - T002
 - T003
 - T004
 - T005
+shell_pid: '23571'
 history:
 - date: '2026-04-09T20:07:16Z'
   action: created
