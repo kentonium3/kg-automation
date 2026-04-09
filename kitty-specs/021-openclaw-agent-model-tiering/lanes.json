@@ -1,0 +1,34 @@
+{
+  "version": 1,
+  "mission_slug": "021-openclaw-agent-model-tiering",
+  "mission_id": "021-openclaw-agent-model-tiering",
+  "mission_branch": "kitty/mission-021-openclaw-agent-model-tiering",
+  "target_branch": "main",
+  "lanes": [
+    {
+      "lane_id": "lane-a",
+      "wp_ids": [
+        "WP05"
+      ],
+      "write_scope": [
+        "docs/constitution/AGENT-REGISTRY.md",
+        "docs/constitution/agent-registry.json",
+        "docs/design/architecture/service-inventory.md",
+        "docs/runbooks/openclaw-agent-setup.md"
+      ],
+      "predicted_surfaces": [
+        "api"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    }
+  ],
+  "computed_at": "2026-04-09T17:23:39.323449+00:00",
+  "computed_from": "dependency_graph+ownership",
+  "planning_artifact_wps": [
+    "WP01",
+    "WP02",
+    "WP03",
+    "WP04"
+  ]
+}

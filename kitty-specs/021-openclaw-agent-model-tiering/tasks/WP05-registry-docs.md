@@ -7,7 +7,7 @@ requirement_refs:
 - FR-006
 planning_base_branch: main
 merge_target_branch: main
-branch_strategy: Branch from WP04 or main — depends on whether WP04 produced repo changes
+branch_strategy: Planning artifacts for this feature were generated on main. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into main unless the human explicitly redirects the landing branch.
 subtasks: [T017, T018, T019, T020, T021]
 history:
 - date: '2026-04-09T17:18:21Z'
