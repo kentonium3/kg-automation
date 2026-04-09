@@ -1,0 +1,9 @@
+{
+  "created_at": "2026-04-09T17:05:15.541011+00:00",
+  "friendly_name": "openclaw agent model tiering",
+  "mission_number": "021",
+  "mission_slug": "021-openclaw-agent-model-tiering",
+  "mission_type": "software-dev",
+  "slug": "021-openclaw-agent-model-tiering",
+  "target_branch": "main"
+}
