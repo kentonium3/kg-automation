@@ -1,0 +1,20 @@
+{
+  "wp_id": "WP02",
+  "mission_slug": "020-doc-audit-infrastructure",
+  "worktree_path": ".worktrees/020-doc-audit-infrastructure-lane-a",
+  "branch_name": "kitty/mission-020-doc-audit-infrastructure-lane-a",
+  "base_branch": "kitty/mission-020-doc-audit-infrastructure",
+  "base_commit": "54ef6098847f13714538dca47bc6e53e46a03396",
+  "dependencies": [
+    "WP01"
+  ],
+  "created_at": "2026-04-08T19:45:37.847634+00:00",
+  "created_by": "implement-command-lane",
+  "vcs_backend": "git",
+  "lane_id": "lane-a",
+  "lane_wp_ids": [
+    "WP01",
+    "WP02"
+  ],
+  "current_wp": "WP02"
+}
