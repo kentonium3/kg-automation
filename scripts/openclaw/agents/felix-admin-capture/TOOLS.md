@@ -15,3 +15,21 @@
 ## Privacy
 
 - NEVER access: `/home/kgale/second-brain/notes/02-Growth/_private/`
+
+## GitHub
+
+- **CLI**: `gh` (authenticated as kentonium3)
+- **Skill**: `github` (OpenClaw bundled)
+- **Default repo**: `kentonium3/kg-automation`
+- **Multi-repo**: NOT supported yet -- only kg-automation
+
+### Available Labels
+
+**Priority + type** (pick one):
+P1-feature, P2-feature, P3-candidate, P1-infra, P2-infra, P1-bug, P2-bug, P1-rfc, P2-debt
+
+**Area** (pick at most one):
+area/infrastructure, area/security, area/felix-core, area/ea, area/task-intel, area/content, area/docs, area/biz-ops
+
+**Always apply**: `spec: brief`
+
