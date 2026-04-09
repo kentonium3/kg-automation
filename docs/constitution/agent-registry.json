@@ -1,7 +1,7 @@
 {
-  "version": "1.0",
-  "updated": "2026-04-04",
-  "updated_by": "F014",
+  "version": "1.1",
+  "updated": "2026-04-08",
+  "updated_by": "manual-sync",
   "agents": {
     "felix-admin-capture": {
       "team": "SuperAdmin (B)",
@@ -50,6 +50,23 @@
           "autonomy_level": "assisted",
           "direction": "registration",
           "reason": "Added to registry during F014; was deployed in F013 but not registered",
+          "decided_by": "Kent Gale"
+        }
+      ]
+    },
+    "felix-admin-escalation": {
+      "team": "SuperAdmin (B)",
+      "scope": "Overdue and at-risk task escalation — detects tasks past due date, delivers level-appropriate WhatsApp alerts, tracks escalation state via Vikunja comments, handles responses",
+      "autonomy_level": "assisted",
+      "log_verbosity": "standard",
+      "deployed_feature": "F019",
+      "registered": "2026-04-06",
+      "transition_history": [
+        {
+          "date": "2026-04-06",
+          "autonomy_level": "assisted",
+          "direction": "registration",
+          "reason": "Initial registration under Felix governance framework (F019)",
           "decided_by": "Kent Gale"
         }
       ]
