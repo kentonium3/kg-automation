@@ -1,0 +1,56 @@
+{
+  "event_count": 30,
+  "last_event_id": "01KNSPBDRA8C3R16B2VGYNTBKB",
+  "materialized_at": "2026-04-09T17:58:59.082626+00:00",
+  "mission_number": "021",
+  "mission_slug": "021-openclaw-agent-model-tiering",
+  "mission_type": "software-dev",
+  "summary": {
+    "approved": 0,
+    "blocked": 0,
+    "canceled": 0,
+    "claimed": 0,
+    "done": 5,
+    "for_review": 0,
+    "in_progress": 0,
+    "in_review": 0,
+    "planned": 0
+  },
+  "work_packages": {
+    "WP01": {
+      "actor": "claude",
+      "force_count": 1,
+      "lane": "done",
+      "last_event_id": "01KNSMJ20YA21GZ9HDT2QMJ28R",
+      "last_transition_at": "2026-04-09T17:27:39.294502+00:00"
+    },
+    "WP02": {
+      "actor": "claude",
+      "force_count": 1,
+      "lane": "done",
+      "last_event_id": "01KNSNP2KGXF1EKP24ZX19AYC3",
+      "last_transition_at": "2026-04-09T17:47:19.536234+00:00"
+    },
+    "WP03": {
+      "actor": "claude",
+      "force_count": 1,
+      "lane": "done",
+      "last_event_id": "01KNSNX2NK622BERRB8WK6JJCH",
+      "last_transition_at": "2026-04-09T17:51:08.979370+00:00"
+    },
+    "WP04": {
+      "actor": "claude",
+      "force_count": 1,
+      "lane": "done",
+      "last_event_id": "01KNSP6KZJXFK7JN0EX2PHQM6V",
+      "last_transition_at": "2026-04-09T17:56:21.618093+00:00"
+    },
+    "WP05": {
+      "actor": "claude",
+      "force_count": 1,
+      "lane": "done",
+      "last_event_id": "01KNSPBDRA8C3R16B2VGYNTBKB",
+      "last_transition_at": "2026-04-09T17:58:59.082626+00:00"
+    }
+  }
+}
