@@ -9,6 +9,17 @@ status: approved
 This file is read automatically by Claude Code at session start.
 Read this first. Read nothing else until this is complete.
 
+## Issue-First Habit
+
+When the user asks for a bug fix, feature, investigation, or any change
+that touches deployed services, agent config, or multiple files — ask
+*"Want me to create an issue for this first?"* before starting work.
+This applies during casual conversation, not just during planned
+workflow execution. The issue takes 30 seconds and gives us audit
+trail, doc-audit triggers, and cross-session context. Exempt: typo
+fixes, single-line doc edits, CLAUDE.md updates, and pure research
+questions.
+
 ## What This System Is
 
 kg-automation is Kent Gale's personal AI operating system — an always-on
@@ -97,13 +108,6 @@ scripts/            ← automation scripts
 ```
 
 ## Feature Development Workflow
-
-**Issue-first rule**: Every non-trivial change should have a GitHub issue
-before implementation begins. If the user asks for a fix, feature, or
-investigation without referencing an issue, ask: *"Want me to create an
-issue for this first?"* Quick doc edits, typo fixes, and CLAUDE.md
-updates are exempt. Everything else gets an issue — it takes 30 seconds
-and gives us an audit trail, doc-audit triggers, and agent awareness.
 
 **Finding the next work item:**
 
