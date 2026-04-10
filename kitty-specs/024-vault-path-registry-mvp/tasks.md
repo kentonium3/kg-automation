@@ -8,12 +8,12 @@
 
 | ID | Description | WP | Parallel |
 |---|---|---|---|
-| T001 | Create scripts/vault/ directory and paths.json with inbox entry | WP01 | |
-| T002 | Create Python resolver module (resolver.py) | WP01 | [P] |
-| T003 | Create shell resolver (paths.sh) | WP01 | [P] |
-| T004 | Create README.md documenting schema and usage | WP01 | [P] |
-| T005 | Manual verify Python resolver (import and lookup) | WP01 | |
-| T006 | Manual verify shell resolver (source and env var) | WP01 | |
+| T001 | Create scripts/vault/ directory and paths.json with inbox entry | WP01 | | [D] |
+| T002 | Create Python resolver module (resolver.py) | WP01 | [D] |
+| T003 | Create shell resolver (paths.sh) | WP01 | [D] |
+| T004 | Create README.md documenting schema and usage | WP01 | [D] |
+| T005 | Manual verify Python resolver (import and lookup) | WP01 | | [D] |
+| T006 | Manual verify shell resolver (source and env var) | WP01 | | [D] |
 | T007 | Create targets.json schema (empty targets list) | WP02 | |
 | T008 | Create deploy.py with dry-run default, marker validation, idempotent writes | WP02 | |
 | T009 | Manual verify deploy.py dry-run and apply modes | WP02 | |
@@ -40,12 +40,12 @@
 **Prompt file**: [WP01-registry-foundation.md](tasks/WP01-registry-foundation.md)
 
 **Subtasks**:
-- [ ] T001: Create scripts/vault/ directory and paths.json with inbox entry
-- [ ] T002: Create Python resolver module (resolver.py)
-- [ ] T003: Create shell resolver (paths.sh)
-- [ ] T004: Create README.md documenting schema and usage
-- [ ] T005: Manual verify Python resolver (import and lookup)
-- [ ] T006: Manual verify shell resolver (source and env var)
+- [x] T001: Create scripts/vault/ directory and paths.json with inbox entry
+- [x] T002: Create Python resolver module (resolver.py)
+- [x] T003: Create shell resolver (paths.sh)
+- [x] T004: Create README.md documenting schema and usage
+- [x] T005: Manual verify Python resolver (import and lookup)
+- [x] T006: Manual verify shell resolver (source and env var)
 
 **Estimated prompt size**: ~450 lines
 
