@@ -421,3 +421,4 @@ if __name__ == "__main__":
 ## Activity Log
 
 - 2026-04-10T15:37:12Z – claude – shell_pid=15016 – Started implementation via action command
+- 2026-04-10T15:38:45Z – claude – shell_pid=15016 – Deploy script complete with dry-run default, unknown marker errors, empty targets handled
