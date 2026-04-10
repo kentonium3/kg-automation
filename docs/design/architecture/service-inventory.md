@@ -102,7 +102,7 @@ All services run on office2 unless otherwise noted.
 - **Workspace**: `/data/services/openclaw/inbox-agent/`
 - **Source in repo**: `scripts/openclaw/agents/felix-admin-capture/`
 - **Model**: `anthropic/claude-haiku-4-5` (optimizable) — validated 2026-04-09
-- **Purpose**: Autonomous Obsidian inbox processing — classifies content, routes to vault locations, creates Vikunja tasks, routes GitHub issue requests to kentonium3/kg-automation, writes processing logs
+- **Purpose**: Autonomous Obsidian inbox processing — classifies content, routes to vault locations, creates Vikunja tasks, writes processing logs
 - **Schedule**: 4x daily via OpenClaw cron (7 AM, 12 PM, 5 PM, 10 PM ET)
 - **Processing logs**: `/home/kgale/second-brain/agents/logs/inbox-processing-YYYY-MM-DD.md`
 - **Vikunja projects used**: Inbox (tasks), Research (research requests), Goals (goal declarations)
