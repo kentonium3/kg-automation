@@ -8,11 +8,11 @@
 
 | ID | Description | WP | Parallel |
 |---|---|---|---|
-| T001 | Backup current vikunja_api skill (pre-flight) | WP01 | |
-| T002 | Update vikunja_api skill example to use ET offset | WP01 | |
-| T003 | Update skill description to forbid `Z` suffix | WP01 | |
-| T004 | Add dynamic offset resolution note to skill | WP01 | |
-| T005 | Verify skill change: grep for remaining Z examples | WP01 | |
+| T001 | Backup current vikunja_api skill (pre-flight) | WP01 | | [D] |
+| T002 | Update vikunja_api skill example to use ET offset | WP01 | | [D] |
+| T003 | Update skill description to forbid `Z` suffix | WP01 | | [D] |
+| T004 | Add dynamic offset resolution note to skill | WP01 | | [D] |
+| T005 | Verify skill change: grep for remaining Z examples | WP01 | | [D] |
 | T006 | Update habits AGENTS.md template from 00:00:00 to 23:59:59 | WP02 | |
 | T007 | Add explanation block about end-of-day convention | WP02 | |
 | T008 | Sync habits AGENTS.md to repo copy | WP02 | |
@@ -39,11 +39,11 @@
 **Prompt file**: [WP01-fix-vikunja-skill.md](tasks/WP01-fix-vikunja-skill.md)
 
 **Subtasks**:
-- [ ] T001: Backup current vikunja_api skill (pre-flight)
-- [ ] T002: Update vikunja_api skill example to use ET offset
-- [ ] T003: Update skill description to forbid `Z` suffix
-- [ ] T004: Add dynamic offset resolution note to skill
-- [ ] T005: Verify skill change: grep for remaining Z examples
+- [x] T001: Backup current vikunja_api skill (pre-flight)
+- [x] T002: Update vikunja_api skill example to use ET offset
+- [x] T003: Update skill description to forbid `Z` suffix
+- [x] T004: Add dynamic offset resolution note to skill
+- [x] T005: Verify skill change: grep for remaining Z examples
 
 **Estimated prompt size**: ~350 lines
 
