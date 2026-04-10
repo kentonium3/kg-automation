@@ -1,7 +1,7 @@
 {
-  "event_count": 15,
-  "last_event_id": "01KNW0QNTYRJFDBC45MVH1YB53",
-  "materialized_at": "2026-04-10T15:38:55.198853+00:00",
+  "event_count": 16,
+  "last_event_id": "01KNW1R33V1AFM99134C8ZARA9",
+  "materialized_at": "2026-04-10T15:56:37.371377+00:00",
   "mission_number": "024",
   "mission_slug": "024-vault-path-registry-mvp",
   "mission_type": "software-dev",
@@ -11,8 +11,8 @@
     "canceled": 0,
     "claimed": 0,
     "done": 0,
-    "for_review": 0,
-    "in_progress": 1,
+    "for_review": 1,
+    "in_progress": 0,
     "in_review": 0,
     "planned": 0
   },
@@ -32,11 +32,11 @@
       "last_transition_at": "2026-04-10T15:38:47.444709+00:00"
     },
     "WP03": {
-      "actor": "claude",
+      "actor": "user",
       "force_count": 1,
-      "lane": "in_progress",
-      "last_event_id": "01KNW0QNTYRJFDBC45MVH1YB53",
-      "last_transition_at": "2026-04-10T15:38:55.198853+00:00"
+      "lane": "for_review",
+      "last_event_id": "01KNW1R33V1AFM99134C8ZARA9",
+      "last_transition_at": "2026-04-10T15:56:37.371377+00:00"
     }
   }
 }
