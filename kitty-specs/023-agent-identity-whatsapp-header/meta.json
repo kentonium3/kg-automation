@@ -1,0 +1,10 @@
+{
+  "created_at": "2026-04-10T02:24:41.865114+00:00",
+  "friendly_name": "agent identity whatsapp header",
+  "mission_id": "01KNTK9DC85TZD4WMDRSEDZQKS",
+  "mission_number": "023",
+  "mission_slug": "023-agent-identity-whatsapp-header",
+  "mission_type": "software-dev",
+  "slug": "023-agent-identity-whatsapp-header",
+  "target_branch": "main"
+}
