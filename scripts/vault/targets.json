@@ -1,4 +1,10 @@
 {
   "version": 1,
-  "targets": []
+  "targets": [
+    {
+      "template": "scripts/openclaw/agents/felix-admin-capture/AGENTS.md.tmpl",
+      "output": "scripts/openclaw/agents/felix-admin-capture/AGENTS.md",
+      "office2_path": "/data/services/openclaw/inbox-agent/AGENTS.md"
+    }
+  ]
 }
