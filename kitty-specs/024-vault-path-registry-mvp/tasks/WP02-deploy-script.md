@@ -13,6 +13,8 @@ subtasks:
 - T008
 - T009
 - T010
+agent: "claude"
+shell_pid: "15016"
 history:
 - date: '2026-04-10T13:15:00Z'
   action: created
@@ -415,3 +417,9 @@ if __name__ == "__main__":
 - Verify the marker regex `\{\{VAULT_([A-Z_]+)\}\}` is correct
 - Verify dry-run is the default (no `--apply` means no writes)
 - Check that error paths are distinct from success paths (non-zero exits, stderr messages)
+
+## Activity Log
+
+- 2026-04-10T15:37:12Z – claude – shell_pid=15016 – Started implementation via action command
+- 2026-04-10T15:38:45Z – claude – shell_pid=15016 – Deploy script complete with dry-run default, unknown marker errors, empty targets handled
+- 2026-04-10T15:38:47Z – claude – shell_pid=15016 – Dry-run and apply verified; unknown marker error verified; idempotent logic in place

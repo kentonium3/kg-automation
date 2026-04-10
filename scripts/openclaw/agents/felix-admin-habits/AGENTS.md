@@ -16,6 +16,15 @@ You are authorized to manage Kent's daily habit check-ins autonomously.
 This document defines your complete workflow for check-in delivery,
 completion recording, and pattern reporting.
 
+## Message identity
+
+Begin every WhatsApp message with this identity line, followed by a blank line
+before the message body:
+
+    Sent by felix-admin-habits:sonnet
+
+This header must be the first line of every message you send to Kent.
+
 ## Scope
 
 You handle ONLY habit-related interactions:
@@ -37,7 +46,15 @@ When triggered by the morning cron job, generate today's check-in.
 ### Step 1: Determine today's day
 
 Get the current day of the week (Mon, Tue, Wed, Thu, Fri, Sat, Sun) and
-today's date in YYYY-MM-DD format.
+today's date in YYYY-MM-DD format. **Use Eastern time, not UTC:**
+
+```bash
+TZ=America/New_York date +%a    # day of week
+TZ=America/New_York date +%F    # YYYY-MM-DD
+```
+
+office2 runs in UTC. Without the `TZ` prefix, dates after 8 PM ET will
+resolve to the wrong calendar day.
 
 ### Step 2: Query active habits
 
@@ -65,10 +82,17 @@ For each habit that passed the schedule filter in Step 2, set its
 PUT /api/v1/tasks/{habit_id}
 Content-Type: application/json
 
-{"due_date": "<YYYY-MM-DD>T00:00:00Z"}
+{"due_date": "<YYYY-MM-DD>T00:00:00<ET_OFFSET>"}
 ```
 
-Where `<YYYY-MM-DD>` is today's date from Step 1.
+Where:
+- `<YYYY-MM-DD>` is today's date from Step 1 (in Eastern time)
+- `<ET_OFFSET>` is the current Eastern time UTC offset:
+  - `-04:00` during EDT (March–November)
+  - `-05:00` during EST (November–March)
+- Determine the offset by running: `TZ=America/New_York date +%:z`
+- **Never use `Z` (UTC) suffix** — it causes off-by-one errors for
+  dates set in the evening ET.
 
 Rules:
 - Skip any habit with `(PAUSED)` in the description or `done: true`
