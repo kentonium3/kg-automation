@@ -18,12 +18,12 @@
 | T008 | Create deploy.py with dry-run default, marker validation, idempotent writes | WP02 | | [D] |
 | T009 | Manual verify deploy.py dry-run and apply modes | WP02 | | [D] |
 | T010 | Manual verify deploy.py error handling (unknown marker) | WP02 | | [D] |
-| T011 | Create AGENTS.md.tmpl from current AGENTS.md with {{VAULT_INBOX}} on line 22 | WP03 | |
-| T012 | Add felix-admin-capture target entry to targets.json | WP03 | |
-| T013 | Run deploy in dry-run, verify expected diff | WP03 | |
-| T014 | Run deploy with --apply, verify resolved file matches original | WP03 | |
-| T015 | SCP resolved AGENTS.md to office2 and verify | WP03 | |
-| T016 | Trigger inbox agent cron, verify no regression | WP03 | |
+| T011 | Create AGENTS.md.tmpl from current AGENTS.md with {{VAULT_INBOX}} on line 22 | WP03 | | [D] |
+| T012 | Add felix-admin-capture target entry to targets.json | WP03 | | [D] |
+| T013 | Run deploy in dry-run, verify expected diff | WP03 | | [D] |
+| T014 | Run deploy with --apply, verify resolved file matches original | WP03 | | [D] |
+| T015 | SCP resolved AGENTS.md to office2 and verify | WP03 | | [D] |
+| T016 | Trigger inbox agent cron, verify no regression | WP03 | | [D] |
 
 ---
 
@@ -82,12 +82,12 @@
 **Prompt file**: [WP03-migration-verification.md](tasks/WP03-migration-verification.md)
 
 **Subtasks**:
-- [ ] T011: Create AGENTS.md.tmpl from current AGENTS.md with {{VAULT_INBOX}} on line 22
-- [ ] T012: Add felix-admin-capture target entry to targets.json
-- [ ] T013: Run deploy in dry-run, verify expected diff
-- [ ] T014: Run deploy with --apply, verify resolved file matches original
-- [ ] T015: SCP resolved AGENTS.md to office2 and verify
-- [ ] T016: Trigger inbox agent cron, verify no regression
+- [x] T011: Create AGENTS.md.tmpl from current AGENTS.md with {{VAULT_INBOX}} on line 22
+- [x] T012: Add felix-admin-capture target entry to targets.json
+- [x] T013: Run deploy in dry-run, verify expected diff
+- [x] T014: Run deploy with --apply, verify resolved file matches original
+- [x] T015: SCP resolved AGENTS.md to office2 and verify
+- [x] T016: Trigger inbox agent cron, verify no regression
 
 **Estimated prompt size**: ~400 lines
 
