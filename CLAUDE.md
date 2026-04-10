@@ -162,6 +162,32 @@ To find issues needing formalization, query for `spec: pending`.
 5. On merge, close the issue: `gh issue close <number> --repo kentonium3/kg-automation`
 6. Add a comment to the issue with the merge commit hash and any relevant notes
 
+**Auto-driving the workflow:**
+When Kent says to "proceed through the workflow" or equivalent, drive the full
+arc (specify → plan → tasks → implement → review → merge) without waiting for
+him to type each slash command. For EACH workflow step, read the corresponding
+command file from disk before executing:
+
+- `~/.claude/commands/spec-kitty.specify.md`
+- `~/.claude/commands/spec-kitty.plan.md`
+- `~/.claude/commands/spec-kitty.tasks.md`
+- `~/.claude/commands/spec-kitty.implement.md`
+- `~/.claude/commands/spec-kitty.review.md`
+- `~/.claude/commands/spec-kitty.merge.md`
+
+These files are the canonical runbooks — the same content a slash command
+loads. Read the file fresh each step (spec-kitty upgrades may update them).
+Follow the instructions in the file as if Kent had invoked the slash command.
+
+**Only stop for:**
+1. Mandatory stops marked in the command file (e.g., "MANDATORY STOP POINT")
+2. Required input from Kent (discovery questions, scope decisions, approvals)
+3. Workflow errors or unexpected state that can't be resolved autonomously
+
+Do not stop to ask "should I proceed to the next step?" — the instruction to
+drive the workflow IS the approval for all subsequent steps until a genuine
+stop condition is hit.
+
 **Issue types and their workflows:**
 - `P1-feature` / `P2-feature` → full spec-kitty workflow above
 - `P1-bug` / `P2-bug` → spec-kitty software-dev mission, fix-focused
