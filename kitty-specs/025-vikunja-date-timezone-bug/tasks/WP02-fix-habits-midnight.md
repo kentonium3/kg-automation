@@ -189,3 +189,4 @@ Morning cron fires at 7:05 AM ET. By then, the task (due at midnight ET) has alr
 ## Activity Log
 
 - 2026-04-10T17:49:05Z – claude:opus-4.6:implementer:implementer – shell_pid=36019 – Assigned agent via action command
+- 2026-04-10T17:53:11Z – claude:opus-4.6:implementer:implementer – shell_pid=36019 – Habits template updated to end-of-day, verified with real cron run
