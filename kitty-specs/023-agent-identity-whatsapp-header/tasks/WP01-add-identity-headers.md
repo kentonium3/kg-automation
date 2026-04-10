@@ -8,6 +8,9 @@ requirement_refs:
 planning_base_branch: main
 merge_target_branch: main
 branch_strategy: Planning artifacts for this feature were generated on main. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into main unless the human explicitly redirects the landing branch.
+base_branch: kitty/mission-023-agent-identity-whatsapp-header
+base_commit: b3f539805a4ecf6eff644e374932572bd9be0ded
+created_at: '2026-04-10T02:41:00.498263+00:00'
 subtasks:
 - T001
 - T002
@@ -16,6 +19,7 @@ subtasks:
 - T005
 - T006
 - T007
+shell_pid: '68853'
 history:
 - date: '2026-04-10T02:37:26Z'
   action: created
