@@ -13,6 +13,8 @@ subtasks:
 - T008
 - T009
 - T010
+agent: "claude"
+shell_pid: "15016"
 history:
 - date: '2026-04-10T13:15:00Z'
   action: created
@@ -415,3 +417,7 @@ if __name__ == "__main__":
 - Verify the marker regex `\{\{VAULT_([A-Z_]+)\}\}` is correct
 - Verify dry-run is the default (no `--apply` means no writes)
 - Check that error paths are distinct from success paths (non-zero exits, stderr messages)
+
+## Activity Log
+
+- 2026-04-10T15:37:12Z – claude – shell_pid=15016 – Started implementation via action command
