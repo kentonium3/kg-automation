@@ -8,13 +8,13 @@
 
 | ID | Description | WP | Parallel |
 |---|---|---|---|
-| T001 | Add header to felix-admin-capture AGENTS.md | WP01 | [P] |
-| T002 | Add header to felix-admin-habits AGENTS.md | WP01 | [P] |
-| T003 | Add header to felix-admin-escalation AGENTS.md | WP01 | [P] |
-| T004 | Add header to felix-admin-tasker AGENTS.md | WP01 | [P] |
-| T005 | Investigate and add header to main agent | WP01 | |
-| T006 | Sync updated AGENTS.md files to repo | WP01 | |
-| T007 | Verify by triggering agent and checking output | WP01 | |
+| T001 | Add header to felix-admin-capture AGENTS.md | WP01 | [P] | [D] |
+| T002 | Add header to felix-admin-habits AGENTS.md | WP01 | [D] |
+| T003 | Add header to felix-admin-escalation AGENTS.md | WP01 | [D] |
+| T004 | Add header to felix-admin-tasker AGENTS.md | WP01 | [D] |
+| T005 | Investigate and add header to main agent | WP01 | | [D] |
+| T006 | Sync updated AGENTS.md files to repo | WP01 | | [D] |
+| T007 | Verify by triggering agent and checking output | WP01 | | [D] |
 
 ---
 
@@ -31,13 +31,13 @@
 **Prompt file**: [WP01-add-identity-headers.md](tasks/WP01-add-identity-headers.md)
 
 **Subtasks**:
-- [ ] T001: Add header to felix-admin-capture AGENTS.md
-- [ ] T002: Add header to felix-admin-habits AGENTS.md
-- [ ] T003: Add header to felix-admin-escalation AGENTS.md
-- [ ] T004: Add header to felix-admin-tasker AGENTS.md
-- [ ] T005: Investigate and add header to main agent
-- [ ] T006: Sync updated AGENTS.md files to repo
-- [ ] T007: Verify by triggering agent and checking output
+- [x] T001: Add header to felix-admin-capture AGENTS.md
+- [x] T002: Add header to felix-admin-habits AGENTS.md
+- [x] T003: Add header to felix-admin-escalation AGENTS.md
+- [x] T004: Add header to felix-admin-tasker AGENTS.md
+- [x] T005: Investigate and add header to main agent
+- [x] T006: Sync updated AGENTS.md files to repo
+- [x] T007: Verify by triggering agent and checking output
 
 **Estimated prompt size**: ~400 lines
 
