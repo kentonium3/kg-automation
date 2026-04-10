@@ -422,3 +422,4 @@ if __name__ == "__main__":
 
 - 2026-04-10T15:37:12Z – claude – shell_pid=15016 – Started implementation via action command
 - 2026-04-10T15:38:45Z – claude – shell_pid=15016 – Deploy script complete with dry-run default, unknown marker errors, empty targets handled
+- 2026-04-10T15:38:47Z – claude – shell_pid=15016 – Dry-run and apply verified; unknown marker error verified; idempotent logic in place
