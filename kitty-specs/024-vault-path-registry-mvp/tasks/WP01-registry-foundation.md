@@ -19,7 +19,8 @@ subtasks:
 - T004
 - T005
 - T006
-shell_pid: '14356'
+shell_pid: "14356"
+agent: "claude"
 history:
 - date: '2026-04-10T13:15:00Z'
   action: created
@@ -416,3 +417,7 @@ remains hardcoded for defense in depth.
 - Bash syntax must be valid (`bash -n`)
 - Manual verification outputs match expected paths
 - README is complete and clear
+
+## Activity Log
+
+- 2026-04-10T15:34:56Z – claude – shell_pid=14356 – Assigned agent via action command
