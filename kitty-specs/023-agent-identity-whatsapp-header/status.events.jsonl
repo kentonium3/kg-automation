@@ -1,0 +1,1 @@
+{"actor": "finalize-tasks", "at": "2026-04-10T02:38:56.208970+00:00", "event_id": "01KNTM3FPG2AMSJQX0R33SBS8P", "evidence": null, "execution_mode": "worktree", "force": true, "from_lane": "planned", "mission_slug": "023-agent-identity-whatsapp-header", "policy_metadata": null, "reason": "canonical bootstrap", "review_ref": null, "to_lane": "planned", "wp_id": "WP01"}
