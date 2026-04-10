@@ -10,11 +10,16 @@ requirement_refs:
 planning_base_branch: main
 merge_target_branch: main
 branch_strategy: Planning artifacts for this feature were generated on main. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into main unless the human explicitly redirects the landing branch.
+base_branch: kitty/mission-025-vikunja-date-timezone-bug
+base_commit: 00f4da2f128e3abd4c03fcdf063d18b61c15038e
+created_at: '2026-04-10T17:49:04.816559+00:00'
 subtasks:
 - T006
 - T007
 - T008
 - T009
+shell_pid: "37013"
+agent: "claude:opus-4.6:reviewer:reviewer"
 history:
 - date: '2026-04-10T17:15:00Z'
   action: created
@@ -180,3 +185,10 @@ Morning cron fires at 7:05 AM ET. By then, the task (due at midnight ET) has alr
 - Verify the explanation text references the relevant issue and mission
 - Check the md5 match between office2 and repo copies
 - Confirm the real-run verification was done (not just planned)
+
+## Activity Log
+
+- 2026-04-10T17:49:05Z – claude:opus-4.6:implementer:implementer – shell_pid=36019 – Assigned agent via action command
+- 2026-04-10T17:53:11Z – claude:opus-4.6:implementer:implementer – shell_pid=36019 – Habits template updated to end-of-day, verified with real cron run
+- 2026-04-10T17:53:37Z – claude:opus-4.6:reviewer:reviewer – shell_pid=37013 – Started review via action command
+- 2026-04-10T18:03:25Z – claude:opus-4.6:reviewer:reviewer – shell_pid=37013 – Review passed: all 7 acceptance criteria verified. Approve transition used --force to bypass spec-kitty review-lock self-blocking guard (see #153).

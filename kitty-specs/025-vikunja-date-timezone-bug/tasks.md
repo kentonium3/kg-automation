@@ -13,16 +13,16 @@
 | T003 | Update skill description to forbid `Z` suffix | WP01 | | [D] |
 | T004 | Add dynamic offset resolution note to skill | WP01 | | [D] |
 | T005 | Verify skill change: grep for remaining Z examples | WP01 | | [D] |
-| T006 | Update habits AGENTS.md template from 00:00:00 to 23:59:59 | WP02 | |
-| T007 | Add explanation block about end-of-day convention | WP02 | |
-| T008 | Sync habits AGENTS.md to repo copy | WP02 | |
-| T009 | Verify habits fix: trigger cron, query task, confirm end-of-day ET | WP02 | |
-| T010 | Create test inbox note with evening "tomorrow" scenario | WP03 | |
-| T011 | Trigger felix-admin-capture and observe tasker delegation | WP03 | |
-| T012 | Query resulting Vikunja task, verify due_date matches expected ET | WP03 | |
-| T013 | If tasker trace fails, extend fix with corrective instruction | WP03 | |
-| T014 | Create docs/runbooks/vikunja-date-handling.md | WP03 | |
-| T015 | Sanity check: mission 022 and 023 changes still intact | WP03 | |
+| T006 | Update habits AGENTS.md template from 00:00:00 to 23:59:59 | WP02 | | [D] |
+| T007 | Add explanation block about end-of-day convention | WP02 | | [D] |
+| T008 | Sync habits AGENTS.md to repo copy | WP02 | | [D] |
+| T009 | Verify habits fix: trigger cron, query task, confirm end-of-day ET | WP02 | | [D] |
+| T010 | Create test inbox note with evening "tomorrow" scenario | WP03 | | [D] |
+| T011 | Trigger felix-admin-capture and observe tasker delegation | WP03 | | [D] |
+| T012 | Query resulting Vikunja task, verify due_date matches expected ET | WP03 | | [D] |
+| T013 | If tasker trace fails, extend fix with corrective instruction | WP03 | | [D] |
+| T014 | Create docs/runbooks/vikunja-date-handling.md | WP03 | | [D] |
+| T015 | Sanity check: mission 022 and 023 changes still intact | WP03 | | [D] |
 
 ---
 
@@ -60,10 +60,10 @@
 **Prompt file**: [WP02-fix-habits-midnight.md](tasks/WP02-fix-habits-midnight.md)
 
 **Subtasks**:
-- [ ] T006: Update habits AGENTS.md template from 00:00:00 to 23:59:59
-- [ ] T007: Add explanation block about end-of-day convention
-- [ ] T008: Sync habits AGENTS.md to repo copy
-- [ ] T009: Verify habits fix: trigger cron, query task, confirm end-of-day ET
+- [x] T006: Update habits AGENTS.md template from 00:00:00 to 23:59:59
+- [x] T007: Add explanation block about end-of-day convention
+- [x] T008: Sync habits AGENTS.md to repo copy
+- [x] T009: Verify habits fix: trigger cron, query task, confirm end-of-day ET
 
 **Estimated prompt size**: ~300 lines
 
@@ -80,12 +80,12 @@
 **Prompt file**: [WP03-tasker-trace-docs.md](tasks/WP03-tasker-trace-docs.md)
 
 **Subtasks**:
-- [ ] T010: Create test inbox note with evening "tomorrow" scenario
-- [ ] T011: Trigger felix-admin-capture and observe tasker delegation
-- [ ] T012: Query resulting Vikunja task, verify due_date matches expected ET
-- [ ] T013: If tasker trace fails, extend fix with corrective instruction
-- [ ] T014: Create docs/runbooks/vikunja-date-handling.md
-- [ ] T015: Sanity check: mission 022 and 023 changes still intact
+- [x] T010: Create test inbox note with evening "tomorrow" scenario
+- [x] T011: Trigger felix-admin-capture and observe tasker delegation
+- [x] T012: Query resulting Vikunja task, verify due_date matches expected ET
+- [x] T013: If tasker trace fails, extend fix with corrective instruction
+- [x] T014: Create docs/runbooks/vikunja-date-handling.md
+- [x] T015: Sanity check: mission 022 and 023 changes still intact
 
 **Estimated prompt size**: ~400 lines
 
