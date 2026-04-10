@@ -1,0 +1,42 @@
+{
+  "event_count": 5,
+  "last_event_id": "01KNW7PBAQ1HVDEBQ81Z7THXBX",
+  "materialized_at": "2026-04-10T17:40:31.704028+00:00",
+  "mission_number": "025",
+  "mission_slug": "025-vikunja-date-timezone-bug",
+  "mission_type": "software-dev",
+  "summary": {
+    "approved": 0,
+    "blocked": 0,
+    "canceled": 0,
+    "claimed": 0,
+    "done": 0,
+    "for_review": 0,
+    "in_progress": 1,
+    "in_review": 0,
+    "planned": 2
+  },
+  "work_packages": {
+    "WP01": {
+      "actor": "claude:opus-4.6:implementer:implementer",
+      "force_count": 1,
+      "lane": "in_progress",
+      "last_event_id": "01KNW7PBAQ1HVDEBQ81Z7THXBX",
+      "last_transition_at": "2026-04-10T17:40:31.704028+00:00"
+    },
+    "WP02": {
+      "actor": "finalize-tasks",
+      "force_count": 1,
+      "lane": "planned",
+      "last_event_id": "01KNW6M26JV1QWTAJ5X3ZPEZAM",
+      "last_transition_at": "2026-04-10T17:21:48.242218+00:00"
+    },
+    "WP03": {
+      "actor": "finalize-tasks",
+      "force_count": 1,
+      "lane": "planned",
+      "last_event_id": "01KNW6M26QMSE15PRJ67H6H6J5",
+      "last_transition_at": "2026-04-10T17:21:48.247067+00:00"
+    }
+  }
+}
