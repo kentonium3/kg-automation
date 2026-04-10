@@ -1,108 +1,76 @@
-# Implementation Plan: [FEATURE]
-*Path: [templates/plan-template.md](templates/plan-template.md)*
+# Implementation Plan: Agent Identity Header in WhatsApp Messages
 
-
-**Branch**: `[###-feature-name]` | **Date**: [DATE] | **Spec**: [link]
-**Input**: Feature specification from `/kitty-specs/[###-feature-name]/spec.md`
-
-**Note**: This template is filled in by the `/spec-kitty.plan` command. See `src/specify_cli/missions/software-dev/command-templates/plan.md` for the execution workflow.
-
-The planner will not begin until all planning questions have been answered—capture those answers in this document before progressing to later phases.
+**Branch**: `main` | **Date**: 2026-04-09 | **Spec**: [spec.md](spec.md)
+**Input**: Feature specification from `kitty-specs/023-agent-identity-whatsapp-header/spec.md`
+**Source Issue**: #147
 
 ## Summary
 
-[Extract from feature spec: primary requirement + technical approach from research]
+Add a `Sent by <agent-id>:<model-short-name>` identity header as the first line of every WhatsApp message from Felix agents. This is a standing-orders-only change — update each agent's AGENTS.md output format section to prepend the header.
 
 ## Technical Context
 
-<!--
-  ACTION REQUIRED: Replace the content in this section with the technical details
-  for the project. The structure here is presented in advisory capacity to guide
-  the iteration process.
--->
+**Platform**: office2 via `ssh office2-claude`
+**Change control**: Tier 3 (agent prompts) — no backup required
+**Approach**: Hardcode agent ID and model short name in each agent's standing orders. Dynamic detection is unnecessary since model assignments change infrequently and are documented in the agent registry.
 
-**Language/Version**: [e.g., Python 3.11, Swift 5.9, Rust 1.75 or NEEDS CLARIFICATION]  
-**Primary Dependencies**: [e.g., FastAPI, UIKit, LLVM or NEEDS CLARIFICATION]  
-**Storage**: [if applicable, e.g., PostgreSQL, CoreData, files or N/A]  
-**Testing**: [e.g., pytest, XCTest, cargo test or NEEDS CLARIFICATION]  
-**Target Platform**: [e.g., Linux server, iOS 15+, WASM or NEEDS CLARIFICATION]
-**Project Type**: [single/web/mobile - determines source structure]  
-**Performance Goals**: [domain-specific, e.g., 1000 req/s, 10k lines/sec, 60 fps or NEEDS CLARIFICATION]  
-**Constraints**: [domain-specific, e.g., <200ms p95, <100MB memory, offline-capable or NEEDS CLARIFICATION]  
-**Scale/Scope**: [domain-specific, e.g., 10k users, 1M LOC, 50 screens or NEEDS CLARIFICATION]
+## Research Findings
 
-## Charter Check
+All WhatsApp-sending agents identified through live discovery:
 
-*GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
+| Agent | Agent ID | Model | Short Name | WhatsApp Delivery |
+|---|---|---|---|---|
+| Inbox | felix-admin-capture | claude-haiku-4-5 | haiku | Cron delivery to +16179300916 |
+| Habits | felix-admin-habits | claude-sonnet-4-6 | sonnet | Cron delivery to +16179300916 |
+| Escalation | felix-admin-escalation | claude-sonnet-4-6 | sonnet | Cron delivery to +16179300916 |
+| Tasker | felix-admin-tasker | claude-sonnet-4-6 | sonnet | Direct WhatsApp messages to Kent |
+| Health Check | main | claude-sonnet-4-6 | sonnet | Cron delivery to +16179300916 |
 
-[Gates determined based on charter file]
+**5 agents total.** All need the header.
 
-## Project Structure
+## Implementation Approach
 
-### Documentation (this feature)
+For each agent:
+1. Read the AGENTS.md on office2
+2. Find the output/summary format section
+3. Add an instruction: "Begin every WhatsApp message with: `Sent by <agent-id>:<model-short-name>`" followed by a blank line before the message body
+4. The agent ID and model short name are hardcoded — update them if model tier changes
 
-```
-kitty-specs/[###-feature]/
-├── plan.md              # This file (/spec-kitty.plan command output)
-├── research.md          # Phase 0 output (/spec-kitty.plan command)
-├── data-model.md        # Phase 1 output (/spec-kitty.plan command)
-├── quickstart.md        # Phase 1 output (/spec-kitty.plan command)
-├── contracts/           # Phase 1 output (/spec-kitty.plan command)
-└── tasks.md             # Phase 2 output (/spec-kitty.tasks command - NOT created by /spec-kitty.plan)
-```
+**Model short name mapping:**
+- `anthropic/claude-haiku-4-5` → `haiku`
+- `anthropic/claude-sonnet-4-6` → `sonnet`
 
-### Source Code (repository root)
-<!--
-  ACTION REQUIRED: Replace the placeholder tree below with the concrete layout
-  for this feature. Delete unused options and expand the chosen structure with
-  real paths (e.g., apps/admin, packages/something). The delivered plan must
-  not include Option labels.
--->
+**No research.md needed** — all agents identified, all model assignments known from mission 021.
+
+## Files Modified
+
+### On office2
 
 ```
-# [REMOVE IF UNUSED] Option 1: Single project (DEFAULT)
-src/
-├── models/
-├── services/
-├── cli/
-└── lib/
-
-tests/
-├── contract/
-├── integration/
-└── unit/
-
-# [REMOVE IF UNUSED] Option 2: Web application (when "frontend" + "backend" detected)
-backend/
-├── src/
-│   ├── models/
-│   ├── services/
-│   └── api/
-└── tests/
-
-frontend/
-├── src/
-│   ├── components/
-│   ├── pages/
-│   └── services/
-└── tests/
-
-# [REMOVE IF UNUSED] Option 3: Mobile + API (when "iOS/Android" detected)
-api/
-└── [same as backend above]
-
-ios/ or android/
-└── [platform-specific structure: feature modules, UI flows, platform tests]
+/data/services/openclaw/inbox-agent/AGENTS.md        ← felix-admin-capture:haiku
+/data/services/openclaw/habits-agent/AGENTS.md       ← felix-admin-habits:sonnet
+/data/services/openclaw/escalation-agent/AGENTS.md   ← felix-admin-escalation:sonnet
+/data/services/openclaw/tasker-agent/AGENTS.md       ← felix-admin-tasker:sonnet
 ```
 
-**Structure Decision**: [Document the selected structure and reference the real
-directories captured above]
+The `main` agent (health checks) needs investigation — it may use a built-in skill or workspace-level instructions. Planning phase discovered it delivers to WhatsApp but its output format may be controlled differently.
 
-## Complexity Tracking
+### In kg-automation repo
 
-*Fill ONLY if Charter Check has violations that must be justified*
+```
+scripts/openclaw/agents/felix-admin-capture/AGENTS.md
+scripts/openclaw/agents/felix-admin-habits/AGENTS.md
+scripts/openclaw/agents/felix-admin-escalation/AGENTS.md
+scripts/openclaw/agents/felix-admin-tasker/AGENTS.md
+```
 
-| Violation | Why Needed | Simpler Alternative Rejected Because |
-|-----------|------------|-------------------------------------|
-| [e.g., 4th project] | [current need] | [why 3 projects insufficient] |
-| [e.g., Repository pattern] | [specific problem] | [why direct DB access insufficient] |
+## Branch Contract
+
+- Current branch: `main`
+- Planning/base branch: `main`
+- Merge target: `main`
+- Branch matches target: **true**
+
+---
+
+**PLAN COMPLETE** — Ready for `/spec-kitty.tasks --mission 023-agent-identity-whatsapp-header`
