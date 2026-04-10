@@ -1,0 +1,61 @@
+{
+  "version": 1,
+  "mission_slug": "025-vikunja-date-timezone-bug",
+  "mission_id": "01KNW5R9B1Q13K8CQ9RYVX7VR2",
+  "mission_branch": "kitty/mission-025-vikunja-date-timezone-bug",
+  "target_branch": "main",
+  "lanes": [
+    {
+      "lane_id": "lane-a",
+      "wp_ids": [
+        "WP02",
+        "WP03"
+      ],
+      "write_scope": [
+        "docs/runbooks/vikunja-date-handling.md",
+        "scripts/openclaw/agents/felix-admin-habits/AGENTS.md"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "artifact-rendering",
+        "tracker-integration"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    },
+    {
+      "lane_id": "lane-planning",
+      "wp_ids": [
+        "WP01"
+      ],
+      "write_scope": [
+        "kitty-specs/025-vikunja-date-timezone-bug/artifacts/skill-update-report.md"
+      ],
+      "predicted_surfaces": [
+        "planning"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    }
+  ],
+  "computed_at": "2026-04-10T17:21:48.255862+00:00",
+  "computed_from": "dependency_graph+ownership",
+  "planning_artifact_wps": [
+    "WP01"
+  ],
+  "collapse_report": {
+    "events": [
+      {
+        "wp_a": "WP03",
+        "wp_b": "WP02",
+        "rule": "dependency",
+        "evidence": "WP03 depends on WP02"
+      }
+    ],
+    "total_merges": 1,
+    "independent_wps_collapsed": 0,
+    "by_rule": {
+      "dependency": 1
+    }
+  }
+}
