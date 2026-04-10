@@ -1,6 +1,8 @@
 {
   "created_at": "2026-04-10T13:13:02.741601+00:00",
-  "friendly_name": "vault path registry mvp",
+  "friendly_name": "Vault Path Registry MVP",
+  "source_description": "GitHub issue #150 — build registry infrastructure, migrate inbox path as proof",
+  "vcs": "git",
   "mission_id": "01KNVRCJGNJ5B4D8JD2ZBZ42SN",
   "mission_number": "024",
   "mission_slug": "024-vault-path-registry-mvp",
