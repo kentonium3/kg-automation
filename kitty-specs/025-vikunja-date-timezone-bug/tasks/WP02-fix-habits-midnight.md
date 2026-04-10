@@ -18,7 +18,8 @@ subtasks:
 - T007
 - T008
 - T009
-shell_pid: '36019'
+shell_pid: "36019"
+agent: "claude:opus-4.6:implementer:implementer"
 history:
 - date: '2026-04-10T17:15:00Z'
   action: created
@@ -184,3 +185,7 @@ Morning cron fires at 7:05 AM ET. By then, the task (due at midnight ET) has alr
 - Verify the explanation text references the relevant issue and mission
 - Check the md5 match between office2 and repo copies
 - Confirm the real-run verification was done (not just planned)
+
+## Activity Log
+
+- 2026-04-10T17:49:05Z – claude:opus-4.6:implementer:implementer – shell_pid=36019 – Assigned agent via action command
