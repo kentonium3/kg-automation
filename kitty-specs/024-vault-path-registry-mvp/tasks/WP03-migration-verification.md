@@ -15,8 +15,6 @@ subtasks:
 - T014
 - T015
 - T016
-agent: "claude"
-shell_pid: "15484"
 history:
 - date: '2026-04-10T13:15:00Z'
   action: created
@@ -274,7 +272,3 @@ Alternatively, just trust the idempotency and proceed to T014.
 - Confirm office2 file matches repo file
 - Confirm inbox agent session log shows normal completion
 - Confirm `git diff` shows only the additions (new `.tmpl`, updated `targets.json`) and no unexpected changes to `AGENTS.md`
-
-## Activity Log
-
-- 2026-04-10T15:38:55Z – claude – shell_pid=15484 – Started implementation via action command

@@ -8,16 +8,16 @@
 
 | ID | Description | WP | Parallel |
 |---|---|---|---|
-| T001 | Create scripts/vault/ directory and paths.json with inbox entry | WP01 | | [D] |
-| T002 | Create Python resolver module (resolver.py) | WP01 | [D] |
-| T003 | Create shell resolver (paths.sh) | WP01 | [D] |
-| T004 | Create README.md documenting schema and usage | WP01 | [D] |
-| T005 | Manual verify Python resolver (import and lookup) | WP01 | | [D] |
-| T006 | Manual verify shell resolver (source and env var) | WP01 | | [D] |
-| T007 | Create targets.json schema (empty targets list) | WP02 | | [D] |
-| T008 | Create deploy.py with dry-run default, marker validation, idempotent writes | WP02 | | [D] |
-| T009 | Manual verify deploy.py dry-run and apply modes | WP02 | | [D] |
-| T010 | Manual verify deploy.py error handling (unknown marker) | WP02 | | [D] |
+| T001 | Create scripts/vault/ directory and paths.json with inbox entry | WP01 | |
+| T002 | Create Python resolver module (resolver.py) | WP01 | [P] |
+| T003 | Create shell resolver (paths.sh) | WP01 | [P] |
+| T004 | Create README.md documenting schema and usage | WP01 | [P] |
+| T005 | Manual verify Python resolver (import and lookup) | WP01 | |
+| T006 | Manual verify shell resolver (source and env var) | WP01 | |
+| T007 | Create targets.json schema (empty targets list) | WP02 | |
+| T008 | Create deploy.py with dry-run default, marker validation, idempotent writes | WP02 | |
+| T009 | Manual verify deploy.py dry-run and apply modes | WP02 | |
+| T010 | Manual verify deploy.py error handling (unknown marker) | WP02 | |
 | T011 | Create AGENTS.md.tmpl from current AGENTS.md with {{VAULT_INBOX}} on line 22 | WP03 | |
 | T012 | Add felix-admin-capture target entry to targets.json | WP03 | |
 | T013 | Run deploy in dry-run, verify expected diff | WP03 | |
@@ -40,12 +40,12 @@
 **Prompt file**: [WP01-registry-foundation.md](tasks/WP01-registry-foundation.md)
 
 **Subtasks**:
-- [x] T001: Create scripts/vault/ directory and paths.json with inbox entry
-- [x] T002: Create Python resolver module (resolver.py)
-- [x] T003: Create shell resolver (paths.sh)
-- [x] T004: Create README.md documenting schema and usage
-- [x] T005: Manual verify Python resolver (import and lookup)
-- [x] T006: Manual verify shell resolver (source and env var)
+- [ ] T001: Create scripts/vault/ directory and paths.json with inbox entry
+- [ ] T002: Create Python resolver module (resolver.py)
+- [ ] T003: Create shell resolver (paths.sh)
+- [ ] T004: Create README.md documenting schema and usage
+- [ ] T005: Manual verify Python resolver (import and lookup)
+- [ ] T006: Manual verify shell resolver (source and env var)
 
 **Estimated prompt size**: ~450 lines
 
@@ -62,10 +62,10 @@
 **Prompt file**: [WP02-deploy-script.md](tasks/WP02-deploy-script.md)
 
 **Subtasks**:
-- [x] T007: Create targets.json schema (empty targets list)
-- [x] T008: Create deploy.py with dry-run default, marker validation, idempotent writes
-- [x] T009: Manual verify deploy.py dry-run and apply modes
-- [x] T010: Manual verify deploy.py error handling (unknown marker)
+- [ ] T007: Create targets.json schema (empty targets list)
+- [ ] T008: Create deploy.py with dry-run default, marker validation, idempotent writes
+- [ ] T009: Manual verify deploy.py dry-run and apply modes
+- [ ] T010: Manual verify deploy.py error handling (unknown marker)
 
 **Estimated prompt size**: ~400 lines
 
