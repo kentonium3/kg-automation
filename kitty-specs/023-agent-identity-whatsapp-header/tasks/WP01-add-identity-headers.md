@@ -19,7 +19,8 @@ subtasks:
 - T005
 - T006
 - T007
-shell_pid: '68853'
+shell_pid: "68853"
+agent: "claude"
 history:
 - date: '2026-04-10T02:37:26Z'
   action: created
@@ -255,3 +256,7 @@ Sent by felix-admin-escalation:sonnet
 - Verify the header instruction is placed where the agent will see it when composing WhatsApp output
 - Check that the model short name matches the agent's configured model from mission 021
 - Confirm repo copies match office2 exactly
+
+## Activity Log
+
+- 2026-04-10T02:41:00Z – claude – shell_pid=68853 – Assigned agent via action command
