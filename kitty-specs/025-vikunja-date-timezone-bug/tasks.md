@@ -13,10 +13,10 @@
 | T003 | Update skill description to forbid `Z` suffix | WP01 | | [D] |
 | T004 | Add dynamic offset resolution note to skill | WP01 | | [D] |
 | T005 | Verify skill change: grep for remaining Z examples | WP01 | | [D] |
-| T006 | Update habits AGENTS.md template from 00:00:00 to 23:59:59 | WP02 | |
-| T007 | Add explanation block about end-of-day convention | WP02 | |
-| T008 | Sync habits AGENTS.md to repo copy | WP02 | |
-| T009 | Verify habits fix: trigger cron, query task, confirm end-of-day ET | WP02 | |
+| T006 | Update habits AGENTS.md template from 00:00:00 to 23:59:59 | WP02 | | [D] |
+| T007 | Add explanation block about end-of-day convention | WP02 | | [D] |
+| T008 | Sync habits AGENTS.md to repo copy | WP02 | | [D] |
+| T009 | Verify habits fix: trigger cron, query task, confirm end-of-day ET | WP02 | | [D] |
 | T010 | Create test inbox note with evening "tomorrow" scenario | WP03 | |
 | T011 | Trigger felix-admin-capture and observe tasker delegation | WP03 | |
 | T012 | Query resulting Vikunja task, verify due_date matches expected ET | WP03 | |
@@ -60,10 +60,10 @@
 **Prompt file**: [WP02-fix-habits-midnight.md](tasks/WP02-fix-habits-midnight.md)
 
 **Subtasks**:
-- [ ] T006: Update habits AGENTS.md template from 00:00:00 to 23:59:59
-- [ ] T007: Add explanation block about end-of-day convention
-- [ ] T008: Sync habits AGENTS.md to repo copy
-- [ ] T009: Verify habits fix: trigger cron, query task, confirm end-of-day ET
+- [x] T006: Update habits AGENTS.md template from 00:00:00 to 23:59:59
+- [x] T007: Add explanation block about end-of-day convention
+- [x] T008: Sync habits AGENTS.md to repo copy
+- [x] T009: Verify habits fix: trigger cron, query task, confirm end-of-day ET
 
 **Estimated prompt size**: ~300 lines
 
