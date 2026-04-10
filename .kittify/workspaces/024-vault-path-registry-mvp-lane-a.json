@@ -1,0 +1,19 @@
+{
+  "wp_id": "WP01",
+  "mission_slug": "024-vault-path-registry-mvp",
+  "worktree_path": ".worktrees/024-vault-path-registry-mvp-lane-a",
+  "branch_name": "kitty/mission-024-vault-path-registry-mvp-lane-a",
+  "base_branch": "kitty/mission-024-vault-path-registry-mvp",
+  "base_commit": "47a0f13a2386115fd0dc1e35e8ba22d057bd3e29",
+  "dependencies": [],
+  "created_at": "2026-04-10T15:34:56.162918+00:00",
+  "created_by": "implement-command-lane",
+  "vcs_backend": "git",
+  "lane_id": "lane-a",
+  "lane_wp_ids": [
+    "WP01",
+    "WP02",
+    "WP03"
+  ],
+  "current_wp": "WP01"
+}
