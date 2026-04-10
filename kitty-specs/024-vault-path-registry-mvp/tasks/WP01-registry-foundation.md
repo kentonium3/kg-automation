@@ -421,3 +421,4 @@ remains hardcoded for defense in depth.
 ## Activity Log
 
 - 2026-04-10T15:34:56Z – claude – shell_pid=14356 – Assigned agent via action command
+- 2026-04-10T15:37:01Z – claude – shell_pid=14356 – Registry, resolvers, and README complete. Both resolvers verified.
