@@ -9,6 +9,9 @@ requirement_refs:
 planning_base_branch: main
 merge_target_branch: main
 branch_strategy: Planning artifacts for this feature were generated on main. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into main unless the human explicitly redirects the landing branch.
+base_branch: kitty/mission-024-vault-path-registry-mvp
+base_commit: 47a0f13a2386115fd0dc1e35e8ba22d057bd3e29
+created_at: '2026-04-10T15:34:56.162918+00:00'
 subtasks:
 - T001
 - T002
@@ -16,6 +19,7 @@ subtasks:
 - T004
 - T005
 - T006
+shell_pid: '14356'
 history:
 - date: '2026-04-10T13:15:00Z'
   action: created

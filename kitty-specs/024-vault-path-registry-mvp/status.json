@@ -1,7 +1,7 @@
 {
-  "event_count": 3,
-  "last_event_id": "01KNW0FNE9MDE3DXK76P69355G",
-  "materialized_at": "2026-04-10T15:34:32.649275+00:00",
+  "event_count": 5,
+  "last_event_id": "01KNW0GCHE63XZ51QTWXE761NY",
+  "materialized_at": "2026-04-10T15:34:56.302055+00:00",
   "mission_number": "024",
   "mission_slug": "024-vault-path-registry-mvp",
   "mission_type": "software-dev",
@@ -12,17 +12,17 @@
     "claimed": 0,
     "done": 0,
     "for_review": 0,
-    "in_progress": 0,
+    "in_progress": 1,
     "in_review": 0,
-    "planned": 3
+    "planned": 2
   },
   "work_packages": {
     "WP01": {
-      "actor": "finalize-tasks",
+      "actor": "implement-command",
       "force_count": 1,
-      "lane": "planned",
-      "last_event_id": "01KNW0FN9BCSY9DF1Q7N2WZC4Y",
-      "last_transition_at": "2026-04-10T15:34:32.491559+00:00"
+      "lane": "in_progress",
+      "last_event_id": "01KNW0GCHE63XZ51QTWXE761NY",
+      "last_transition_at": "2026-04-10T15:34:56.302055+00:00"
     },
     "WP02": {
       "actor": "finalize-tasks",
