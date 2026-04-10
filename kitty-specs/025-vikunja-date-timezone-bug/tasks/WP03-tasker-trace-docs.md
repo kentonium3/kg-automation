@@ -16,6 +16,8 @@ subtasks:
 - T013
 - T014
 - T015
+agent: "claude:opus-4.6:implementer:implementer"
+shell_pid: "38890"
 history:
 - date: '2026-04-10T17:15:00Z'
   action: created
@@ -292,3 +294,7 @@ WP01 fixed the canonical vikunja_api skill. WP02 fixed the habits midnight ancho
 - Confirm the runbook is comprehensive and references prior artifacts
 - Check that the sanity check passed (no drift)
 - If T013 was executed, verify the fix is minimal and focused
+
+## Activity Log
+
+- 2026-04-10T18:04:13Z – claude:opus-4.6:implementer:implementer – shell_pid=38890 – Started implementation via action command
