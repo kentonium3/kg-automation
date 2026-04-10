@@ -82,8 +82,19 @@ For each habit that passed the schedule filter in Step 2, set its
 PUT /api/v1/tasks/{habit_id}
 Content-Type: application/json
 
-{"due_date": "<YYYY-MM-DD>T00:00:00<ET_OFFSET>"}
+{"due_date": "<YYYY-MM-DD>T23:59:59<ET_OFFSET>"}
 ```
+
+**Why end-of-day (23:59:59) instead of midnight (00:00:00)?**
+
+A midnight anchor makes the task appear overdue from the moment the
+morning cron fires at 7:05 AM ET, because the deadline is already in
+the past. End-of-day anchoring means the task stays "on time"
+throughout the day and only flips to overdue after midnight ET.
+
+This is the correct convention for daily tasks that should be
+completed "sometime today." Do NOT change this back to 00:00:00
+without understanding issue #112 and the research in mission 025.
 
 Where:
 - `<YYYY-MM-DD>` is today's date from Step 1 (in Eastern time)
