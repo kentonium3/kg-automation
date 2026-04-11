@@ -24,14 +24,14 @@
 | T011 | Run `deploy.py --apply` and verify byte-fidelity of resolved output | WP02 | | [D] |
 | T012 | Verify WP02 acceptance (grep zero stale literals, zero unknown markers) | WP02 | | [D] |
 | T013 | Commit WP02 changes to mission branch | WP02 | | [D] |
-| T014 | Audit `docs/` for vault path references, produce update list | WP03 | |
-| T015 | Update architecture JSON data files (`service-inventory.json`, `data-flows.json`) | WP03 | |
-| T016 | Regenerate markdown views in `docs/design/architecture/` to match JSON | WP03 | |
-| T017 | Update runbooks under `docs/runbooks/` referencing vault paths | WP03 | [P] |
-| T018 | Create new runbook `docs/runbooks/vault-path-registry-migration.md` with C4 summary | WP03 | [P] |
-| T019 | Update `docs/INDEX.md` with new runbook entry | WP03 | [P] |
-| T020 | Update `docs/design/felix-capability-roadmap.md` (registry MVP→full) | WP03 | [P] |
-| T021 | Verify WP03 acceptance (`validate_docs.py`, grep zero hits in docs) | WP03 | |
+| T014 | Audit `docs/` for vault path references, produce update list | WP03 | | [D] |
+| T015 | Update architecture JSON data files (`service-inventory.json`, `data-flows.json`) | WP03 | | [D] |
+| T016 | Regenerate markdown views in `docs/design/architecture/` to match JSON | WP03 | | [D] |
+| T017 | Update runbooks under `docs/runbooks/` referencing vault paths | WP03 | [D] |
+| T018 | Create new runbook `docs/runbooks/vault-path-registry-migration.md` with C4 summary | WP03 | [D] |
+| T019 | Update `docs/INDEX.md` with new runbook entry | WP03 | [D] |
+| T020 | Update `docs/design/felix-capability-roadmap.md` (registry MVP→full) | WP03 | [D] |
+| T021 | Verify WP03 acceptance (`validate_docs.py`, grep zero hits in docs) | WP03 | | [D] |
 | T022 | Capture pre-deploy baseline (agent outputs, resolved file hashes) | WP04 | |
 | T023 | Run `deploy-f026.sh --apply --mode pre-rename` | WP04 | |
 | T024 | Verify resolved files byte-match pre-deploy snapshots | WP04 | |
@@ -113,14 +113,14 @@
 **Prompt file:** [WP03-documentation-synchronization.md](tasks/WP03-documentation-synchronization.md)
 
 **Subtasks:**
-- [ ] T014: Audit `docs/` for vault path references, produce update list
-- [ ] T015: Update architecture JSON data files with new folder names and `updated_by: #152`
-- [ ] T016: Regenerate markdown views in `docs/design/architecture/` to match JSON
-- [ ] T017: Update runbooks under `docs/runbooks/` referencing vault paths
-- [ ] T018: Create new runbook `docs/runbooks/vault-path-registry-migration.md` with C4 summary
-- [ ] T019: Update `docs/INDEX.md` with new runbook entry
-- [ ] T020: Update `docs/design/felix-capability-roadmap.md` (registry MVP→full)
-- [ ] T021: Verify WP03 acceptance (`validate_docs.py`, grep zero hits in docs)
+- [x] T014: Audit `docs/` for vault path references, produce update list
+- [x] T015: Update architecture JSON data files with new folder names and `updated_by: #152`
+- [x] T016: Regenerate markdown views in `docs/design/architecture/` to match JSON
+- [x] T017: Update runbooks under `docs/runbooks/` referencing vault paths
+- [x] T018: Create new runbook `docs/runbooks/vault-path-registry-migration.md` with C4 summary
+- [x] T019: Update `docs/INDEX.md` with new runbook entry
+- [x] T020: Update `docs/design/felix-capability-roadmap.md` (registry MVP→full)
+- [x] T021: Verify WP03 acceptance (`validate_docs.py`, grep zero hits in docs)
 
 **Estimated prompt size:** ~470 lines
 
