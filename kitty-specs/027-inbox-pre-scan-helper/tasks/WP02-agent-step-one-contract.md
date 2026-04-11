@@ -201,3 +201,4 @@ spec-kitty agent action implement WP02 --mission 027-inbox-pre-scan-helper --age
 ## Activity Log
 
 - 2026-04-11T18:59:24Z – claude:opus-4-6:implementer:implementer – shell_pid=55000 – Started implementation via action command
+- 2026-04-11T19:02:14Z – claude:opus-4-6:implementer:implementer – shell_pid=55000 – Ready for review: Step 1 now invokes prescan.py, IDLE sentinel on empty, processes unprocessed_paths on non-empty
