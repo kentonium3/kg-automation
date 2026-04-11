@@ -19,6 +19,8 @@ subtasks:
 - T019
 - T020
 - T021
+agent: "claude:opus-4-6:implementer:implementer"
+shell_pid: "14489"
 history:
 - date: '2026-04-11T01:15:00Z'
   action: created
@@ -398,3 +400,7 @@ The reviewer should confirm:
 - `docs/INDEX.md` includes the new runbook in the right section
 - No drift introduced into `docs/archive/` or `docs/func-spec/` (those are frozen)
 - `validate_docs.py` output is clean (no warnings, no errors)
+
+## Activity Log
+
+- 2026-04-11T02:40:19Z – claude:opus-4-6:implementer:implementer – shell_pid=14489 – Started implementation via action command
