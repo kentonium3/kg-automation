@@ -1,16 +1,16 @@
 {
-  "event_count": 29,
-  "last_event_id": "01KNZA5ZDTC6Q3P2PRBMWGZCJE",
-  "materialized_at": "2026-04-11T22:21:44.250963+00:00",
+  "event_count": 34,
+  "last_event_id": "01KNZA6RRZVRGK88YQSJBWTXSR",
+  "materialized_at": "2026-04-11T22:22:10.207850+00:00",
   "mission_number": "027",
   "mission_slug": "027-inbox-pre-scan-helper",
   "mission_type": "software-dev",
   "summary": {
-    "approved": 5,
+    "approved": 0,
     "blocked": 0,
     "canceled": 0,
     "claimed": 0,
-    "done": 0,
+    "done": 5,
     "for_review": 0,
     "in_progress": 0,
     "in_review": 0,
@@ -18,39 +18,39 @@
   },
   "work_packages": {
     "WP01": {
-      "actor": "user",
+      "actor": "merge",
       "force_count": 1,
-      "lane": "approved",
-      "last_event_id": "01KNYYK82GBDH3K5ZQ32DFKS9J",
-      "last_transition_at": "2026-04-11T18:59:16.176601+00:00"
+      "lane": "done",
+      "last_event_id": "01KNZA6RK4HXH13NKXADMTM12D",
+      "last_transition_at": "2026-04-11T22:22:10.020492+00:00"
     },
     "WP02": {
-      "actor": "user",
+      "actor": "merge",
       "force_count": 1,
-      "lane": "approved",
-      "last_event_id": "01KNYYX0P56X9DX7KYQV84GZM5",
-      "last_transition_at": "2026-04-11T19:04:36.293156+00:00"
+      "lane": "done",
+      "last_event_id": "01KNZA6RQKAZN85A7J5JHVN0X9",
+      "last_transition_at": "2026-04-11T22:22:10.163581+00:00"
     },
     "WP03": {
-      "actor": "user",
+      "actor": "merge",
       "force_count": 1,
-      "lane": "approved",
-      "last_event_id": "01KNZ8A8JWVNM3QP8AWT55MSK2",
-      "last_transition_at": "2026-04-11T21:49:07.548081+00:00"
+      "lane": "done",
+      "last_event_id": "01KNZA6RR2HMPYVEA425DPG3DM",
+      "last_transition_at": "2026-04-11T22:22:10.178862+00:00"
     },
     "WP04": {
-      "actor": "user",
+      "actor": "merge",
       "force_count": 1,
-      "lane": "approved",
-      "last_event_id": "01KNYYH1Q4KYGQBHN3SPSQ3WQJ",
-      "last_transition_at": "2026-04-11T18:58:04.132329+00:00"
+      "lane": "done",
+      "last_event_id": "01KNZA6RRJ77HXF6B1W0H6M2JM",
+      "last_transition_at": "2026-04-11T22:22:10.194490+00:00"
     },
     "WP05": {
-      "actor": "user",
+      "actor": "merge",
       "force_count": 2,
-      "lane": "approved",
-      "last_event_id": "01KNZA5ZDTC6Q3P2PRBMWGZCJE",
-      "last_transition_at": "2026-04-11T22:21:44.250963+00:00"
+      "lane": "done",
+      "last_event_id": "01KNZA6RRZVRGK88YQSJBWTXSR",
+      "last_transition_at": "2026-04-11T22:22:10.207850+00:00"
     }
   }
 }
