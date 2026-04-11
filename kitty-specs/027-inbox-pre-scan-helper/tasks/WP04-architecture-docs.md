@@ -14,7 +14,8 @@ subtasks:
 - T018
 - T019
 - T020
-shell_pid: '50006'
+shell_pid: "50006"
+agent: "claude:opus-4-6:docs-implementer:implementer"
 history:
 - date: '2026-04-11'
   event: created
@@ -204,3 +205,7 @@ This WP is independent and can run in parallel with WP01, WP02.
 ```bash
 spec-kitty agent action implement WP04 --mission 027-inbox-pre-scan-helper --agent <tool>:<model>:<profile>:<role>
 ```
+
+## Activity Log
+
+- 2026-04-11T18:25:58Z – claude:opus-4-6:docs-implementer:implementer – shell_pid=50006 – Assigned agent via action command
