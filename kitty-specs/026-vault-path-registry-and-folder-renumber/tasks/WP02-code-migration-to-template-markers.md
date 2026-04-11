@@ -20,8 +20,8 @@ subtasks:
 - T011
 - T012
 - T013
-agent: "claude:opus-4-6:implementer:implementer"
-shell_pid: "9528"
+agent: "claude:opus-4-6:reviewer:reviewer"
+shell_pid: "13742"
 history:
 - date: '2026-04-11T01:15:00Z'
   action: created
@@ -403,3 +403,4 @@ The reviewer should confirm:
 
 - 2026-04-11T02:12:39Z – claude:opus-4-6:implementer:implementer – shell_pid=9528 – Started implementation via action command
 - 2026-04-11T02:35:54Z – claude:opus-4-6:implementer:implementer – shell_pid=9528 – WP02 ready for review. Summary: 6 new .tmpl sources created + felix-admin-capture/AGENTS.md.tmpl extended with VAULT_CONSTITUTION marker; 2 scripts refactored (validate-obsidian-sync.sh sources paths.sh for VAULT_INBOX; openclaw/observation/config.py imports get_vault_path for system path); CLAUDE.md skipped per WP01 audit (boundary-only hit). deploy.py --apply ran clean (0 errors, 0 unresolved markers); all 7 targets are SHA256-identical pre/post apply (byte-fidelity for NFR-001 verified). Many .tmpl files contain only relative-path or natural-language folder-name references (routing tables, JSON examples, prose mentions); these were created as byte-faithful copies since the resolver returns absolute paths and cannot substitute relative fragments without breaking NFR-001. Residual folder-name grep hits fall into 2 buckets: (a) absolute-path output from marker substitution (will flip to new names post-WP05 automatically) and (b) relative/natural-language references that are inherent and not resolver-migratable. Using --force because the kitty-specs/ guard flagged WP01's wp01-migration-targets.md (committed in 6969d7e); my HEAD commit 71c664c touches zero kitty-specs files, and per the WP02 prompt's pre-approved guidance for this situation.
+- 2026-04-11T02:36:43Z – claude:opus-4-6:reviewer:reviewer – shell_pid=13742 – Started review via action command
