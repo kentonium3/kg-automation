@@ -17,13 +17,13 @@
 | T004 | Create `scripts/deploy/deploy-f026.sh` wrapper | WP01 | [D] |
 | T005 | Audit `.kittify/charter/charter.md` for non-`_private/` vault path refs | WP01 | [D] |
 | T006 | Verify WP01 acceptance (resolver, dry-run, wrapper help) | WP01 | | [D] |
-| T007 | Convert OpenClaw agent workspace files to `.tmpl` sources | WP02 | |
-| T008 | Convert `ai-agents/` Claude instruction files to `.tmpl` | WP02 | [P] |
-| T009 | Convert `CLAUDE.md` to `CLAUDE.md.tmpl` (preserve `_private/` boundary) | WP02 | [P] |
-| T010 | Audit and convert scripts under `scripts/` referencing vault paths | WP02 | [P] |
-| T011 | Run `deploy.py --apply` and verify byte-fidelity of resolved output | WP02 | |
-| T012 | Verify WP02 acceptance (grep zero stale literals, zero unknown markers) | WP02 | |
-| T013 | Commit WP02 changes to mission branch | WP02 | |
+| T007 | Convert OpenClaw agent workspace files to `.tmpl` sources | WP02 | | [D] |
+| T008 | Convert `ai-agents/` Claude instruction files to `.tmpl` | WP02 | [D] |
+| T009 | Convert `CLAUDE.md` to `CLAUDE.md.tmpl` (preserve `_private/` boundary) | WP02 | [D] |
+| T010 | Audit and convert scripts under `scripts/` referencing vault paths | WP02 | [D] |
+| T011 | Run `deploy.py --apply` and verify byte-fidelity of resolved output | WP02 | | [D] |
+| T012 | Verify WP02 acceptance (grep zero stale literals, zero unknown markers) | WP02 | | [D] |
+| T013 | Commit WP02 changes to mission branch | WP02 | | [D] |
 | T014 | Audit `docs/` for vault path references, produce update list | WP03 | |
 | T015 | Update architecture JSON data files (`service-inventory.json`, `data-flows.json`) | WP03 | |
 | T016 | Regenerate markdown views in `docs/design/architecture/` to match JSON | WP03 | |
@@ -90,13 +90,13 @@
 **Prompt file:** [WP02-code-migration-to-template-markers.md](tasks/WP02-code-migration-to-template-markers.md)
 
 **Subtasks:**
-- [ ] T007: Convert OpenClaw agent workspace files to `.tmpl` sources
-- [ ] T008: Convert `ai-agents/` Claude instruction files to `.tmpl`
-- [ ] T009: Convert `CLAUDE.md` to `CLAUDE.md.tmpl` (preserve `_private/` boundary)
-- [ ] T010: Audit and convert scripts under `scripts/` referencing vault paths
-- [ ] T011: Run `deploy.py --apply` and verify byte-fidelity of resolved output
-- [ ] T012: Verify WP02 acceptance (grep zero stale literals, zero unknown markers)
-- [ ] T013: Commit WP02 changes to mission branch
+- [x] T007: Convert OpenClaw agent workspace files to `.tmpl` sources
+- [x] T008: Convert `ai-agents/` Claude instruction files to `.tmpl`
+- [x] T009: Convert `CLAUDE.md` to `CLAUDE.md.tmpl` (preserve `_private/` boundary)
+- [x] T010: Audit and convert scripts under `scripts/` referencing vault paths
+- [x] T011: Run `deploy.py --apply` and verify byte-fidelity of resolved output
+- [x] T012: Verify WP02 acceptance (grep zero stale literals, zero unknown markers)
+- [x] T013: Commit WP02 changes to mission branch
 
 **Estimated prompt size:** ~480 lines
 
