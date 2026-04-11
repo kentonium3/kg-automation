@@ -17,6 +17,8 @@ subtasks:
 - T024
 - T025
 - T026
+agent: "claude:opus-4-6:implementer:implementer"
+shell_pid: "25929"
 history:
 - date: '2026-04-11T01:15:00Z'
   action: created
@@ -325,3 +327,7 @@ The reviewer should confirm:
 - The operator authorization section is explicit and not pre-checked
 - The deploy wrapper ran in pre-rename mode specifically — NOT post-rename (that would prematurely pause the cron)
 - No files outside this WP's owned_files list were modified
+
+## Activity Log
+
+- 2026-04-11T03:43:45Z – claude:opus-4-6:implementer:implementer – shell_pid=25929 – Started implementation via action command
