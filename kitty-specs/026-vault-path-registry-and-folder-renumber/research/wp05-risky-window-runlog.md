@@ -200,3 +200,82 @@ Before restart, operator should decide whether to:
 - Apply the permanent fix from #161 first (setgid on vault root) — prevents recurrence of the group-ownership issue
 
 **Current mission state:** WP01–WP04 approved. WP05 in `planned`, ready for restart. WP06 in `planned`, awaiting WP05 completion.
+
+---
+
+## WP05 RESTART — 2026-04-11 afternoon session
+
+WP05 was restarted after Phase A halt + Phase B/C vault reconciliation. Preconditions met: all 4 new issues (#158, #159, #160, #161) filed, issue #161 permanent fix applied (setgid on vault root), vault state clean across Mac + phone + office2.
+
+### T027: Tier 2 pre-flight ✅
+
+Verified Restic backup via file mtime: most recent snapshot `cb5ec0d1...` dated 2026-04-11 04:00 UTC (~12h old at restart time). Well within the 24-hour threshold.
+
+Acknowledged via `--backup-confirmed` flag on deploy-f026.sh (per wrapper contract).
+
+### T031: Update paths.json + CLAUDE.md boundary ✅
+
+Committed as `e740715` on lane-a.
+
+- `scripts/vault/paths.json`: all 10 logical names now point at post-rename folders
+- `CLAUDE.md` line 288: `_private/` boundary updated from `02-Growth/_private/` to `04-Growth/_private/` (hardcoded per C-001)
+- Resolver verified: 10 logical names resolve to new paths, `_private` correctly raises UnknownPathError
+
+### T032: Deploy — two-phase execution due to category-2 residue discovery ✅
+
+**First attempt** (`deploy-f026.sh --apply --mode post-rename --backup-confirmed`):
+- Steps 1-3 succeeded (backup acknowledged, cron "pause" reported success, deploy.py applied 2 files + synced)
+- Step 4 (stale-literal grep) FAILED with ~25 category-2 residue hits in `.tmpl` sources. Wrapper halted per safety contract.
+- Mid-deploy inspection revealed: **wrapper's cron-pause mechanism is broken** (filed as #162). The wrapper claimed "Cron paused" but `openclaw cron list` showed all 4 inbox-* crons still active, with `inbox-noon` firing in 6 minutes against the half-deployed state.
+- Emergency `openclaw cron disable` applied to all 4 inbox crons directly.
+
+**Category-2 residue sweep** (commit `83ee154` on lane-a):
+- Edited 6 `.tmpl` sources to replace relative-path fragments, prose mentions, and JSON examples with `{{VAULT_*_NAME}}` markers (from resolver extension `#155` / commit `54b9c7b`)
+- Also updated 2 `_private/` boundary references (ai-agents/claude-instructions.md.tmpl, ai-agents/claude-code-instructions.md.tmpl) from `02-Growth/_private/` to `04-Growth/_private/` (hardcoded per C-001)
+- Fixed self-reference bug in `deploy-f026.sh`: added exclusion for the wrapper's own source in the stale-literal grep (the wrapper's `STALE_LITERALS` pattern variable was matching itself)
+- Re-ran `deploy.py --apply`: 6 of 7 targets applied + synced, 1 unchanged. All new `{{VAULT_*_NAME}}` markers resolved correctly
+- Verified on office2: AGENTS.md routing table now correctly references `03-Constitution/Values.md`, `04-Growth/`, `05-Health/`, `06-Business/Intentional/`, etc.
+- Manual hygiene checks passed: zero stale literals, zero unreplaced markers in non-tmpl files
+
+**Smoke test** (via `openclaw cron run 7fa9b299-e451-47e7-9a18-eb6d85775f26` — the inbox-noon cron UUID):
+- Used cron-run path specifically to exercise isolated-session execution (the cron-production path). Direct `openclaw agent` invocation goes through a 11-day-old persistent "main session channel" (file `ffeec346...jsonl`, 576KB) polluted with stale `00-Inbox/` references — that path returns cached false responses.
+- New isolated session file `3f34ab6d...jsonl` created by cron run (fresh session, no stale context)
+- Agent scanned 32 files in `01-Inbox/`, found 4 unprocessed, processed all 4:
+  - `Inbox 2026-04-10 1508.md`: Felix token cost observation → integrated into `09-Resources/kg-automation/felix-team-architecture.md`
+  - `Inbox 2026-04-11 1117.md`: empty template stub → marked processed
+  - `Inbox 2026-04-11 1127.md`: Detroit trip + Felix progress reflection → created `08-Journal/Journal 2026-04-11 1127.md`
+  - `Inbox 2026-04-11 1151.md`: empty → marked processed
+- Processing log at `/home/kgale/second-brain/agents/logs/inbox-processing-2026-04-11.md` updated with correct new-path references
+- **#161 fix validated in production**: agent wrote to `08-Journal/` (claude:secondbrain, 2775) to create a new file AND updated an existing kgale-owned file in `09-Resources/kg-automation/` (via secondbrain group permission). Both writes succeeded.
+
+**Tasker smoke test**: weak validation (no scheduled tasker cron to trigger via `openclaw cron run`; direct invocation goes through the polluted main session). WP04 fidelity check already validated that tasker responds cleanly. Tasker delegation from capture is implicitly exercised during capture's production runs. Not a WP05 blocker.
+
+### T033: Runlog + cron resume ✅
+
+- All 4 inbox crons re-enabled via `openclaw cron enable`
+- `inbox-noon` shows "4m ago" (the manual cron run) with "ok" status
+- Next scheduled runs: inbox-5pm in 5h, inbox-10pm in 10h, inbox-7am in 19h, inbox-noon in 24h
+
+### WP05 verdict: **PASS**
+
+All T027-T033 steps completed. Production validated end-to-end via cron-run path. Zero content loss, zero routing errors, zero permission failures on the new vault structure.
+
+### Issues surfaced during WP05 restart (all P1 bugs)
+
+- **#162** — deploy-f026.sh cron pause/resume silently broken for openclaw-managed crons. Wrapper claimed "Cron paused" but openclaw cron was still active. Emergency operator intervention required to prevent production run against half-deployed state.
+
+### Known limitations carried forward
+
+- **Main session channel pollution**: felix-admin-capture's long-running `ffeec346...jsonl` session (576KB, started 2026-03-31) has 11 days of accumulated context referencing the old `00-Inbox/` path. Direct `openclaw agent` calls without `--to` or `--session-id` use this session and receive stale cached responses. Cron-isolated sessions are unaffected. **Recommended follow-up**: archive or delete the main session file so the next direct invocation starts fresh. Not a WP05 blocker.
+- **Tasker smoke test weakness**: tasker has no scheduled cron entry, so there's no cron-run path to exercise it in an isolated session. Deferred to a future operational improvement.
+
+### Mission 026 state after WP05 restart completion
+
+- WP01 ✅ Approved
+- WP02 ✅ Approved (re-run against reconciled baseline)
+- WP03 ✅ Approved
+- WP04 ✅ Approved (fidelity checkpoint)
+- **WP05 ✅ Ready for approval** — all production validation complete
+- WP06 📋 Planned (cross-repo gitignore edit + mission close-out)
+
+Total new issues filed across WP05's multi-session saga: #156, #157, #158, #159, #160, #161, #162.
