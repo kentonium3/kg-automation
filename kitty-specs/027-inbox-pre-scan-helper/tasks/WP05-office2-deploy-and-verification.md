@@ -7,6 +7,9 @@ dependencies:
 - WP03
 - WP04
 requirement_refs:
+- C-005
+- C-006
+- C-007
 - NFR-001
 - NFR-003
 - NFR-005
