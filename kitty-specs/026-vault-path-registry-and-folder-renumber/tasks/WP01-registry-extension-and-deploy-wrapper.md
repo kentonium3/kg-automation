@@ -405,3 +405,4 @@ The reviewer should confirm:
 ## Activity Log
 
 - 2026-04-11T01:44:18Z – claude:opus-4-6:implementer:implementer – shell_pid=4174 – Assigned agent via action command
+- 2026-04-11T02:03:04Z – claude:opus-4-6:implementer:implementer – shell_pid=4174 – WP01 ready for review: registry extended with 10 logical names, deploy-f026.sh wrapper created, audit artifact documents migration targets for WP02. Used --force because the research artifact at kitty-specs/026-.../research/wp01-migration-targets.md was pre-approved by the operator as a documentation-artifact exception per the WP01 prompt (T001 step 6) and the implementer handoff.
