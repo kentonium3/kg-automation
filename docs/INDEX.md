@@ -4,7 +4,7 @@ doc_type: reference
 status: approved
 owners: [kgale]
 version: "2.0"
-last_validated: 2026-04-08
+last_validated: 2026-04-10
 ---
 
 # kg-automation Documentation Index
@@ -83,6 +83,7 @@ Authoritative operational state. **Exempt from moves (F015 constraint C-001)**.
 ### Human and mixed-audience runbooks
 
 - [Felix Governance](<./runbooks/felix-governance.md>) — agent registration, promotion, demotion, violation handling
+- [Vault Path Registry Migration](<./runbooks/vault-path-registry-migration.md>) — reusable playbook for migrating vault folder names through the registry (how-to guide; first executed by mission 026 / #152)
 - [Deployment Runbook](<./runbooks/deployment.md>) — how features are deployed to office2
 - [Repository Governance](<./runbooks/repo-governance.md>) — git workflow, labels, milestones, issue management
 - [GitHub Issues Workflow](<./runbooks/github-issues-workflow.md>) — issue lifecycle, templates, triage, project board

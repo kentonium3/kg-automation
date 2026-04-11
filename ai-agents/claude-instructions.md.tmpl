@@ -39,10 +39,10 @@ Claude Code handles execution. This Claude handles:
 **Task store + UI**: Vikunja (Docker on office2, REST API, SQLite)
 **Input paths**:
 - Path A: WhatsApp → OpenClaw webhook → Whisper → Intent Parser → Vikunja
-- Path B: Wispr Flow → Obsidian 01-Inbox → hourly processor → Vikunja + vault
+- Path B: Wispr Flow → Obsidian {{VAULT_INBOX_NAME}} → hourly processor → Vikunja + vault
 
 **Second brain**: `~/second-brain/notes/` (Obsidian Sync, always-on daemon on office2)
-**Agent context ceiling**: `03-Constitution/` docs only
+**Agent context ceiling**: `{{VAULT_CONSTITUTION_NAME}}/` docs only
 **Absolute privacy rule**: `04-Growth/_private/` — never accessed by any agent
 
 ## What Is Deprecated (Do Not Reference)

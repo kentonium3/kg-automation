@@ -92,7 +92,7 @@ This section defines boundaries that no agent may cross. It is designed to expan
 
 **Current boundaries:**
 
-1. The directory `~/second-brain/notes/02-Growth/_private/` is never read, written, referenced, or logged by any agent or script under any circumstance. There are no exceptions to this rule.
+1. The directory `~/second-brain/notes/04-Growth/_private/` is never read, written, referenced, or logged by any agent or script under any circumstance. There are no exceptions to this rule. (Path renumbered from `02-Growth/_private/` in mission 026 / #152; the constitutional boundary itself is unchanged — only the parent folder ordinal moved.)
 
 **Future boundaries:**
 

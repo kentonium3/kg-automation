@@ -60,7 +60,8 @@ All services run on office2 unless otherwise noted.
 - **Auth**: `ob login` (interactive, credentials stored locally by ob)
 - **Sync direction**: Bidirectional (Mac, iPhone, and office2 via Obsidian Sync cloud)
 - **Conflict strategy**: Merge
-- **Excluded folders**: `02-Growth/_private`
+- **Excluded folders**: `04-Growth/_private`
+- **Consumer folders**: `01-Inbox` (input to `felix-admin-capture`), `02-Inbox-Processed` (destination after processing; consumed by #149)
 - **Purpose**: Continuous live sync of the Obsidian vault across all three devices
 
 ### Second Brain Sync (F011)
@@ -106,7 +107,7 @@ All services run on office2 unless otherwise noted.
 - **Schedule**: 4x daily via OpenClaw cron (7 AM, 12 PM, 5 PM, 10 PM ET)
 - **Processing logs**: `/home/kgale/second-brain/agents/logs/inbox-processing-YYYY-MM-DD.md`
 - **Vikunja projects used**: Inbox (tasks), Research (research requests), Goals (goal declarations)
-- **Privacy boundary**: `02-Growth/_private/` is never accessed
+- **Privacy boundary**: `04-Growth/_private/` is never accessed
 - **Runbook**: `docs/runbooks/inbox-ops.md`
 
 ### Felix Admin Habits Agent (F009)
@@ -121,7 +122,7 @@ All services run on office2 unless otherwise noted.
 - **Vikunja project**: Habits (id=13) with 7 habit tasks (ids 14-20)
 - **Completion storage**: Comments on habit tasks in format `[Felix] YYYY-MM-DD | {state} | note`
 - **WhatsApp delivery**: Cron jobs use `--to` for direct delivery; completion marking via main agent delegation
-- **Privacy boundary**: `02-Growth/_private/` is never accessed
+- **Privacy boundary**: `04-Growth/_private/` is never accessed
 - **Runbook**: `docs/runbooks/habits-ops.md`
 
 ### Felix Admin Tasker Agent (F013)
@@ -136,7 +137,7 @@ All services run on office2 unless otherwise noted.
 - **Autonomy**: Assisted (Level 1)
 - **Trigger**: Delegation from felix-admin-capture, cron (incomplete detection), manual
 - **Schedule**: Every 4 hours via OpenClaw cron (`0 */4 * * *`)
-- **Privacy boundary**: `02-Growth/_private/` is never accessed
+- **Privacy boundary**: `04-Growth/_private/` is never accessed
 
 **Cron setup command** (run on office2):
 ```bash
@@ -168,7 +169,7 @@ openclaw cron add \
 - **Trigger**: Cron (daily), manual
 - **Schedule**: Daily at 8:00 AM ET via OpenClaw cron (`0 12 * * *`)
 - **Delivery**: WhatsApp to +16179300916
-- **Privacy boundary**: `02-Growth/_private/` is never accessed
+- **Privacy boundary**: `04-Growth/_private/` is never accessed
 
 ### Felix Core Digest (F014)
 - **Deployed by**: F014

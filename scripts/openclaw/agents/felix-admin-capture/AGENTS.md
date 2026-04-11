@@ -28,7 +28,7 @@ This header must be the first line of every message you send to Kent.
 
 ### Step 1: Scan the inbox
 
-Read all `.md` files in `/home/kgale/second-brain/notes/00-Inbox/`.
+Read all `.md` files in `/home/kgale/second-brain/notes/01-Inbox/`.
 Filter to files where frontmatter contains `status: unprocessed`.
 Skip files with `status: processed` or `status: needs-review`.
 
@@ -56,25 +56,25 @@ For each extracted content block, determine the content type and destination:
 
 | Content type | Destination | Action |
 |---|---|---|
-| Values, beliefs, principles | `01-Constitution/Values.md` | Integrate into appropriate section |
-| Goal — new or update | `01-Constitution/Goals-MOC.md` | Felix declaration format only (see goal rules) |
-| Vision, aspiration, future state | `01-Constitution/Vision.md` | Integrate into narrative |
-| Life story, biography, family history | `01-Constitution/Life-Narrative.md` | Append chronologically |
-| Identity statement or reframing | `01-Constitution/Identity.md` | Integrate into appropriate section |
-| Personal brand or positioning | `01-Constitution/Personal-Brand.md` | Update relevant section |
-| Growth/transformation reflection | `02-Growth/` | Create note or update existing |
-| Health/fitness data or note | `03-Health/` | Route to appropriate file |
-| Consulting/Intentional LLC content | `04-Business/Intentional/` | Route to appropriate file |
-| CT Acquisition/deal content | `04-Business/Acquisition/` | Route to appropriate file |
-| Metal casework content | `04-Business/Metal-Casework/` | Route to appropriate file |
-| Financial goals or planning | `05-Finance/` | Create or update `_Goals.md` |
-| Journal-style personal reflection | `06-Journal/` | Create dated journal entry |
-| Book, resource, tool reference | `07-Resources/` | Create resource note |
+| Values, beliefs, principles | `03-Constitution/Values.md` | Integrate into appropriate section |
+| Goal — new or update | `03-Constitution/Goals-MOC.md` | Felix declaration format only (see goal rules) |
+| Vision, aspiration, future state | `03-Constitution/Vision.md` | Integrate into narrative |
+| Life story, biography, family history | `03-Constitution/Life-Narrative.md` | Append chronologically |
+| Identity statement or reframing | `03-Constitution/Identity.md` | Integrate into appropriate section |
+| Personal brand or positioning | `03-Constitution/Personal-Brand.md` | Update relevant section |
+| Growth/transformation reflection | `04-Growth/` | Create note or update existing |
+| Health/fitness data or note | `05-Health/` | Route to appropriate file |
+| Consulting/Intentional LLC content | `06-Business/Intentional/` | Route to appropriate file |
+| CT Acquisition/deal content | `06-Business/Acquisition/` | Route to appropriate file |
+| Metal casework content | `06-Business/Metal-Casework/` | Route to appropriate file |
+| Financial goals or planning | `07-Finance/` | Create or update `_Goals.md` |
+| Journal-style personal reflection | `08-Journal/` | Create dated journal entry |
+| Book, resource, tool reference | `09-Resources/` | Create resource note |
 | Task or action item | Vikunja | Delegate to felix-admin-tasker (fallback: create flat Vikunja task) |
 | Research request | Vikunja | Delegate to felix-admin-tasker (fallback: create flat Vikunja task) |
-| AI automation capability/idea | `07-Resources/kg-automation/` | Create or update relevant note |
+| AI automation capability/idea | `09-Resources/kg-automation/` | Create or update relevant note |
 | GitHub issue request | GitHub (kentonium3/kg-automation) | Create issue via gh CLI, confirm via WhatsApp |
-| Unclassifiable | Leave in `00-Inbox/` | Set `status: needs-review` |
+| Unclassifiable | Leave in `01-Inbox/` | Set `status: needs-review` |
 
 All vault paths are relative to `/home/kgale/second-brain/notes/`.
 
@@ -87,7 +87,7 @@ For each routed content block:
    that file rather than creating a duplicate.
 
 2. **Update canonical documents** — when routing to constitution files
-   (`01-Constitution/`):
+   (`03-Constitution/`):
    - Read the current file first
    - Identify the correct section for the new content
    - Integrate naturally — the new content should read as if Kent wrote it
@@ -156,7 +156,7 @@ On [specific date], I have [present-tense outcome] as evidenced by [observable p
 
 ### When content contains a valid declaration
 
-1. Read `/home/kgale/second-brain/notes/01-Constitution/Goals-MOC.md`
+1. Read `/home/kgale/second-brain/notes/03-Constitution/Goals-MOC.md`
 2. Check if this goal already exists — update in place if so
 3. If new: add to the Active Declarations section using the Felix format
 4. Include the identity label: personal, intentional, or metalcasework
@@ -219,13 +219,13 @@ related: ["[[other-note]]"]
 - **Index/overview files:** `_Index.md` or `_MOC.md`
 - **Processing logs:** `inbox-processing-YYYY-MM-DD.md`
 
-### Updating canonical documents (01-Constitution/)
+### Updating canonical documents (03-Constitution/)
 
 - Never overwrite existing content — integrate or append
 - Preserve the existing structure and voice
 - Update the `updated:` field in frontmatter to today's date
 - If the update is substantial, create a backup in
-  `01-Constitution/_backups/` first (format: `Filename_YYYYMMDD_HHMMSS.md`)
+  `03-Constitution/_backups/` first (format: `Filename_YYYYMMDD_HHMMSS.md`)
 
 ### Cross-linking
 
@@ -244,7 +244,7 @@ related: ["[[other-note]]"]
 - Creating processing logs
 
 **Requires confirmation:**
-- Modifying constitution files (`01-Constitution/`) — proceed if directed by
+- Modifying constitution files (`03-Constitution/`) — proceed if directed by
   processing workflow with clear extracted content, but back up first
 - Moving files between folders
 - Any action affecting more than 10 files
@@ -252,13 +252,13 @@ related: ["[[other-note]]"]
 **Never allowed:**
 - Deleting files
 - Modifying `_system/` folder contents
-- Overwriting journal entries (`06-Journal/`)
+- Overwriting journal entries (`08-Journal/`)
 
 ## Privacy — absolute rule
 
 **NEVER** read, process, route to, reference, or log any content in or from
-`02-Growth/_private/`. If inbox content mentions private growth work, route
-only to `02-Growth/` public files or `02-Growth/_bridge.md`. Never log or
+`04-Growth/_private/`. If inbox content mentions private growth work, route
+only to `04-Growth/` public files or `04-Growth/_bridge.md`. Never log or
 reference `_private/` contents. This rule has no exceptions.
 
 ## Edge cases
@@ -273,7 +273,7 @@ wikilinks from the other relevant locations. Do not duplicate the full content.
 
 **Content that updates existing goals:** When inbox content mentions goals —
 whether new goals or progress on existing ones — always check
-`01-Constitution/Goals-MOC.md` first. If the goal already exists, update it
+`03-Constitution/Goals-MOC.md` first. If the goal already exists, update it
 in place. If it is new, add it to the correct domain section.
 
 **Shared content (Facebook posts, emails):** Treat as source material.
@@ -364,7 +364,7 @@ openclaw agent --agent felix-admin-tasker \
 From the inbox note content you have already extracted:
 
 1. **raw_text** — the task description (you already have this from classification)
-2. **source_reference** — the inbox file path (e.g., `00-Inbox/2026-04-02-voice-note.md`)
+2. **source_reference** — the inbox file path (e.g., `01-Inbox/2026-04-02-voice-note.md`)
 3. **inferred_identity** — apply your existing identity inference rules:
    - **intentional**: business, consulting, client, revenue, marketing
    - **metalcasework**: metal casework, fabrication, ecommerce
@@ -382,7 +382,7 @@ From the inbox note content you have already extracted:
 {
   "action": "enrich_task",
   "raw_text": "Schedule appointment with PT for knee follow-up",
-  "source_reference": "00-Inbox/2026-04-02-voice-dump.md",
+  "source_reference": "01-Inbox/2026-04-02-voice-dump.md",
   "inferred_identity": "personal",
   "date_signals": [],
   "context_signals": ["PT", "knee", "health"]

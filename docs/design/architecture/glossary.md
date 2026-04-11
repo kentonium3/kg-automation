@@ -21,9 +21,11 @@ Canonical terms used across kg-automation documentation, code, and agent instruc
 | **func-spec** | Feature specification document in `docs/func-spec/`. Defines requirements before implementation. |
 | **FEAT-NNN** | Feature identifier from the v0.3 spec Phase 1 roadmap (e.g., FEAT-001 = Vikunja deploy). |
 | **Wispr Flow** | Voice-to-text input device used on Mac and iPhone. Transcribes speech and outputs text into Obsidian notes. Not a pipeline component. |
-| **00-Inbox** | Obsidian vault folder where Wispr Flow output and quick captures land. Processed by the inbox-processor skill. |
-| **01-Constitution** | Obsidian vault folder containing life/business goals, values, identity docs. Agent context ceiling — the only vault content agents may read. |
-| **02-Growth/_private** | Obsidian vault folder that is absolutely off-limits to all agents and scripts. No exceptions. |
+| **01-Inbox** | Obsidian vault folder where Wispr Flow output and quick captures land. Processed by the `felix-admin-capture` agent. Renumbered from `00-Inbox` in mission 026 (#152) to eliminate the `00-` prefix collision with `00-System`. |
+| **02-Inbox-Processed** | Obsidian vault folder that receives inbox items moved out of `01-Inbox` after processing. Created in mission 026 (#152); consumed by the inbox pre-scan helper planned in #149. |
+| **03-Constitution** | Obsidian vault folder containing life/business goals, values, identity docs. Agent context ceiling — the only vault content agents may read. Renumbered from `01-Constitution` in mission 026 (#152). |
+| **04-Growth/_private** | Obsidian vault folder that is absolutely off-limits to all agents and scripts. No exceptions. Privacy boundary path renumbered from `02-Growth/_private` in mission 026 (#152). |
+| **vault path registry** | The `scripts/vault/` registry that maps logical names (`inbox`, `inbox_processed`, `constitution`, ...) to physical vault folder paths. Resolved at deploy time via `{{VAULT_*}}` template markers. Introduced in mission 024 (#150) for the inbox alone, extended in mission 026 (#152) to cover every top-level vault folder. |
 | **personal** | Vikunja label for tasks belonging to Kent's personal Google identity. Blue (#2196f3). |
 | **intentional** | Vikunja label for tasks belonging to Intentional LLC Google identity. Green (#4caf50). |
 | **claude user** | Linux user on office2 for all agent operations. No sudo. SSH alias: `office2-claude`. |

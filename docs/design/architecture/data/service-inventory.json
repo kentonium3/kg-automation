@@ -1,7 +1,7 @@
 {
   "schema_version": "1.1",
-  "last_updated": "2026-04-06",
-  "updated_by": "F019",
+  "last_updated": "2026-04-10",
+  "updated_by": "#152",
   "services": [
     {
       "name": "vikunja",
@@ -54,7 +54,8 @@
       "auth_method": "ob login (interactive, credentials stored locally by ob)",
       "sync_direction": "bidirectional",
       "conflict_strategy": "merge",
-      "excluded_folders": ["02-Growth/_private"],
+      "excluded_folders": ["04-Growth/_private"],
+      "consumer_folders": ["01-Inbox", "02-Inbox-Processed"],
       "backup_included": true,
       "deployed_by": "manual",
       "status": "active",

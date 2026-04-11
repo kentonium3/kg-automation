@@ -216,6 +216,7 @@ ssh office2-claude "openclaw cron enable <uuid>"
 
 ## Privacy boundary
 
-**Absolute rule**: `02-Growth/_private/` is never read, processed, routed to,
+**Absolute rule**: `04-Growth/_private/` is never read, processed, routed to,
 referenced, or logged. Tasks from private context appear as task names only.
 This is enforced in SOUL.md, AGENTS.md, and TOOLS.md. There are no exceptions.
+(Path renumbered from `02-Growth/_private/` in mission 026 / #152.)

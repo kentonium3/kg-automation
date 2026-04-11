@@ -5,6 +5,33 @@
       "template": "scripts/openclaw/agents/felix-admin-capture/AGENTS.md.tmpl",
       "output": "scripts/openclaw/agents/felix-admin-capture/AGENTS.md",
       "office2_path": "/data/services/openclaw/inbox-agent/AGENTS.md"
+    },
+    {
+      "template": "scripts/openclaw/agents/felix-admin-capture/USER.md.tmpl",
+      "output": "scripts/openclaw/agents/felix-admin-capture/USER.md",
+      "office2_path": "/data/services/openclaw/inbox-agent/USER.md"
+    },
+    {
+      "template": "scripts/openclaw/agents/felix-admin-capture/TOOLS.md.tmpl",
+      "output": "scripts/openclaw/agents/felix-admin-capture/TOOLS.md",
+      "office2_path": "/data/services/openclaw/inbox-agent/TOOLS.md"
+    },
+    {
+      "template": "scripts/openclaw/agents/felix-admin-tasker/AGENTS.md.tmpl",
+      "output": "scripts/openclaw/agents/felix-admin-tasker/AGENTS.md",
+      "office2_path": "/data/services/openclaw/tasker-agent/AGENTS.md"
+    },
+    {
+      "template": "scripts/openclaw/agents/main-patches/inbox-delegation.md.tmpl",
+      "output": "scripts/openclaw/agents/main-patches/inbox-delegation.md"
+    },
+    {
+      "template": "ai-agents/claude-instructions.md.tmpl",
+      "output": "ai-agents/claude-instructions.md"
+    },
+    {
+      "template": "ai-agents/claude-code-instructions.md.tmpl",
+      "output": "ai-agents/claude-code-instructions.md"
     }
   ]
 }

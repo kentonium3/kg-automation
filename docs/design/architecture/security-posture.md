@@ -44,9 +44,9 @@ status: approved
 
 ## Privacy Boundaries
 
-**Absolute rule**: `~/second-brain/notes/02-Growth/_private/` is never read, written, referenced, or logged by any agent or script under any circumstance. No exceptions.
+**Absolute rule**: `~/second-brain/notes/04-Growth/_private/` is never read, written, referenced, or logged by any agent or script under any circumstance. No exceptions. (Path renumbered from `02-Growth/_private/` in mission 026 / #152.)
 
-**Agent context ceiling**: Agents may read `01-Constitution/` docs only from the second brain. All other vault content is off-limits unless explicitly required by a skill definition.
+**Agent context ceiling**: Agents may read `03-Constitution/` docs only from the second brain. All other vault content is off-limits unless explicitly required by a skill definition.
 
 ## Policy Exceptions
 

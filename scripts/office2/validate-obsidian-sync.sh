@@ -3,6 +3,10 @@
 # Run as kgale user on office2 after completing quickstart guide.
 set -euo pipefail
 
+# Source the vault path resolver to populate $VAULT_* variables
+# shellcheck source=../vault/paths.sh
+source "$(dirname "$0")/../vault/paths.sh"
+
 PASS=0
 FAIL=0
 
@@ -40,7 +44,7 @@ echo ""
 echo "--- Vault content ---"
 check "Vault directory exists" test -d /home/kgale/second-brain/notes
 check ".obsidian directory exists" test -d /home/kgale/second-brain/notes/.obsidian
-check "Inbox directory has files" bash -c 'test -n "$(ls /home/kgale/second-brain/notes/00-Inbox/ 2>/dev/null)"'
+check "Inbox directory has files" bash -c "test -n \"\$(ls '$VAULT_INBOX/' 2>/dev/null)\""
 
 echo ""
 echo "--- Git sync ---"

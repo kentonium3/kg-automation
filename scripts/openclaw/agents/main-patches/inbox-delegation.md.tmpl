@@ -13,7 +13,7 @@ processing", or any natural variation of processing Obsidian inbox captures:
 
 1. Trigger the inbox processing agent by running:
    ```bash
-   openclaw agent --agent felix-admin-capture --message "Process the inbox now. Read all unprocessed files in 01-Inbox/, classify and route content per your standing orders, create Vikunja tasks for action items and research requests, route valid goal declarations, and write the processing log." --json --timeout 300
+   openclaw agent --agent felix-admin-capture --message "Process the inbox now. Read all unprocessed files in {{VAULT_INBOX_NAME}}/, classify and route content per your standing orders, create Vikunja tasks for action items and research requests, route valid goal declarations, and write the processing log." --json --timeout 300
    ```
 2. Wait for the result
 3. Read the latest processing log:

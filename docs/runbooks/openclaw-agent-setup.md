@@ -79,7 +79,7 @@ direct, no filler.
 
 ## Privacy boundary
 
-NEVER read, process, route to, or reference `02-Growth/_private/`.
+NEVER read, process, route to, or reference `04-Growth/_private/`.
 ```
 
 ## OpenClaw configuration

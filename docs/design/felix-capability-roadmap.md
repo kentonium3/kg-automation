@@ -191,6 +191,12 @@ EA is ready to expand to additional capability areas when all of the following a
 | F018 | Habit Today Filter Visibility | U | Task Intelligence |
 | F019 | Escalation Engine | I | Accountability Engine |
 
+### Knowledge Foundation tooling — Vault Path Registry
+
+| Capability | Status | Issues | Cluster | Notes |
+|---|---|---|---|---|
+| Vault path registry | ✅ Full | #150 (mission 024 — MVP), #152 (mission 026 — extension) | Knowledge Foundation | Mission 024 (#150) shipped the registry MVP for the inbox alone. Mission 026 (#152) extended it to every top-level vault folder, renumbered the folders to a clean 00–09 ordinal sequence, and created the `02-Inbox-Processed/` destination folder. The registry is the single source of truth for vault folder names; consumers reference logical names (`{{VAULT_INBOX}}`, `{{VAULT_INBOX_PROCESSED}}`, etc.) and the deploy script resolves them at build time. The `02-Inbox-Processed/` folder unblocks the `#149` inbox pre-scan helper mission. |
+
 **Planned (tracked in GitHub issues, sequenced by dependency)**
 
 | Feature | Type | Cluster | Depends On | Issue |
@@ -267,7 +273,7 @@ orders, not as a blanket system-wide policy.
 
 Permissions may be implemented by direction (rules and skill configuration) or at the
 OS level via user and group access controls. Both mechanisms are valid and may be
-combined. `02-Growth/_private/` remains absolutely off-limits to all agents — no
+combined. `04-Growth/_private/` remains absolutely off-limits to all agents — no
 exceptions, no opt-in.
 
 A formal agent permission strategy is needed as the agent inventory grows. This is
@@ -364,7 +370,7 @@ These govern every feature decision. They change only with deliberate review.
 5. **Narrow agent scope** — One responsibility per agent
 6. **Earned autonomy** — Gate 1 (Human In Middle) → Gate 2 (Monitored) → Gate 3 (Autonomous)
 7. **Central action logging** — All agent actions logged at machine-auditable granularity
-8. **Privacy is absolute** — `02-Growth/_private/` is never accessed by any agent. No exceptions.
+8. **Privacy is absolute** — `04-Growth/_private/` is never accessed by any agent. No exceptions. (Path renumbered from `02-Growth/_private/` in mission 026 / #152.)
 9. **GitOps and spec discipline** — Protected main branch; specs before implementation; "What and Why, not How"
 10. **Extensible architecture** — New tools and agent teams without major rework
 11. **Security and governance are first-class** — Supply chain integrity, adversarial inspection,

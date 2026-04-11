@@ -102,7 +102,7 @@ Full protocol: `docs/design/architecture/change-control.md`
 
 `~/second-brain/` is a separate repo. kg-automation scripts may **read** from
 the Obsidian vault path when explicitly required (e.g., inbox-processor reads
-`01-Inbox/`). Never write to second-brain paths from kg-automation unless the
+`{{VAULT_INBOX_NAME}}/`). Never write to second-brain paths from kg-automation unless the
 skill definition explicitly requires it (vault-writer does; nothing else does).
 
 **Absolute rule**: `~/second-brain/notes/04-Growth/_private/` is never

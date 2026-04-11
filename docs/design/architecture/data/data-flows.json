@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
-  "last_updated": "2026-04-04",
-  "updated_by": "F014",
+  "last_updated": "2026-04-10",
+  "updated_by": "#152",
   "flows": [
     {
       "name": "vikunja-web-ui",
@@ -25,7 +25,8 @@
         {"from": "iPhone (Obsidian)", "to": "Obsidian Sync cloud", "protocol": "Obsidian Sync", "direction": "bidirectional"}
       ],
       "consumers": [
-        {"agent": "felix-admin-capture", "reads_from": "/home/kgale/second-brain/notes/00-Inbox/"}
+        {"agent": "felix-admin-capture", "reads_from": "/home/kgale/second-brain/notes/01-Inbox/"},
+        {"agent": "felix-admin-capture", "writes_to": "/home/kgale/second-brain/notes/02-Inbox-Processed/", "note": "Destination created in mission 026 (#152); consumed by the inbox pre-scan helper planned in #149."}
       ]
     },
     {
@@ -90,7 +91,7 @@
     {
       "name": "obsidian-inbox-processing",
       "planned_by": "F007-F010",
-      "description": "Obsidian 00-Inbox → hourly processor → vault routing + Vikunja API"
+      "description": "Obsidian 01-Inbox → hourly processor → vault routing + Vikunja API"
     },
     {
       "name": "daily-briefing",

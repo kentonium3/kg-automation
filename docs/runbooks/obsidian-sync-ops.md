@@ -25,7 +25,7 @@ All vault data flows through Obsidian Sync as the authoritative live sync mechan
 
 ### Consumer
 
-- **felix-admin-capture** reads `/home/kgale/second-brain/notes/00-Inbox/` to process incoming notes and tasks.
+- **felix-admin-capture** reads `/home/kgale/second-brain/notes/01-Inbox/` to process incoming notes and tasks. After processing, items move to `/home/kgale/second-brain/notes/02-Inbox-Processed/` (consumed by the inbox pre-scan helper planned in #149).
 
 ## Service Configuration
 

@@ -93,7 +93,7 @@ whenever a goal is added, closed, or retired.
 
 ### Step 2 — Obsidian
 
-1. Open `01-Constitution/Goals-MOC.md` in Obsidian
+1. Open `03-Constitution/Goals-MOC.md` in Obsidian
 2. Add the declaration as a blockquote under the appropriate identity section
    (Personal, Intentional, or Metal Casework):
    ```markdown
@@ -112,7 +112,7 @@ When a goal's target date has been reached and the evidence criteria are met:
 
 ### Step 2 — Obsidian
 
-1. Open `01-Constitution/Goals-MOC.md`
+1. Open `03-Constitution/Goals-MOC.md`
 2. Move the declaration from its active section to **Archive > Achieved**
 3. Add the date achieved:
    ```markdown
@@ -138,7 +138,7 @@ When a goal is no longer being pursued (changed priorities, no longer relevant):
 
 ### Step 2 — Obsidian
 
-1. Open `01-Constitution/Goals-MOC.md`
+1. Open `03-Constitution/Goals-MOC.md`
 2. Move the declaration from its active section to **Archive > Retired**
 3. Add the date and reason:
    ```markdown
@@ -152,7 +152,7 @@ When a goal is no longer being pursued (changed priorities, no longer relevant):
 
 - **Vikunja**: Use the **Goals** saved filter — shows all active (incomplete)
   goal declarations sorted by target date (nearest first)
-- **Obsidian**: Open `01-Constitution/Goals-MOC.md` — active declarations are
+- **Obsidian**: Open `03-Constitution/Goals-MOC.md` — active declarations are
   listed under their identity sections
 - **Mobile**: Open Vikunja at `http://100.92.197.90:3456` on iPhone (requires
   Tailscale) or view Goals-MOC.md in the Obsidian mobile app

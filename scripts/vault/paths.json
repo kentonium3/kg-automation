@@ -1,7 +1,16 @@
 {
   "version": 1,
-  "updated": "2026-04-10",
+  "updated": "2026-04-11",
   "paths": {
-    "inbox": "/home/kgale/second-brain/notes/00-Inbox"
+    "system":          "/home/kgale/second-brain/notes/00-System",
+    "inbox":           "/home/kgale/second-brain/notes/01-Inbox",
+    "inbox_processed": "/home/kgale/second-brain/notes/02-Inbox-Processed",
+    "constitution":    "/home/kgale/second-brain/notes/03-Constitution",
+    "growth":          "/home/kgale/second-brain/notes/04-Growth",
+    "health":          "/home/kgale/second-brain/notes/05-Health",
+    "business":        "/home/kgale/second-brain/notes/06-Business",
+    "finance":         "/home/kgale/second-brain/notes/07-Finance",
+    "journal":         "/home/kgale/second-brain/notes/08-Journal",
+    "resources":       "/home/kgale/second-brain/notes/09-Resources"
   }
 }

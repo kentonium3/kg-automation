@@ -27,7 +27,7 @@ Mac (Obsidian) ↔ Obsidian Sync cloud ↔ office2 (ob sync --continuous) ↔ Ob
 
 Three-device sync loop: Mac, office2, and iPhone all stay in sync via Obsidian Sync cloud. The `ob` CLI on office2 runs as a continuous daemon (`obsidian-sync.service`, kgale user unit), syncing to `/home/kgale/second-brain/notes`. Changes on any device propagate to the others in near real-time. Obsidian Sync is the live sync mechanism — not git.
 
-**Consumer**: `felix-admin-capture` reads from `/home/kgale/second-brain/notes/00-Inbox/` (3x daily via OpenClaw cron).
+**Consumer**: `felix-admin-capture` reads from `/home/kgale/second-brain/notes/01-Inbox/` (3x daily via OpenClaw cron). Processed items are moved to `/home/kgale/second-brain/notes/02-Inbox-Processed/` once the inbox pre-scan helper (#149) ships.
 
 ### Second Brain Git Sync (F011)
 
@@ -83,7 +83,7 @@ Raw JSONL logs are gitignored in the second-brain repo. Digest Markdown flows th
 | Flow | Features | Description |
 |------|----------|-------------|
 | WhatsApp Command Channel | F003–F006 | WhatsApp voice/text → OpenClaw → Whisper → Intent Parser → Vikunja |
-| Obsidian Inbox Processing | F007–F010 | 00-Inbox → hourly processor → vault routing + Vikunja API |
+| Obsidian Inbox Processing | F007–F010 | 01-Inbox → hourly processor → vault routing + Vikunja API |
 | Daily Briefing | F014 | Heartbeat → task summary → WhatsApp to Kent |
 | Escalation Heartbeat | F015 | Vikunja label state → escalation logic → WhatsApp alert |
 

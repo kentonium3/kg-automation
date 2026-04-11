@@ -4,7 +4,17 @@ Loads agent-registry.json and resolves paths for log reading and digest output.
 """
 
 import json
+import sys
 from pathlib import Path
+
+# Add repo root to path so we can import scripts.vault.resolver regardless of
+# how this module is invoked (as `python3 -m scripts.openclaw.observation.config`
+# or from within package imports under the openclaw service).
+_REPO_ROOT_FOR_RESOLVER = Path(__file__).resolve().parent.parent.parent.parent
+if str(_REPO_ROOT_FOR_RESOLVER) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT_FOR_RESOLVER))
+
+from scripts.vault.resolver import get_vault_path  # noqa: E402
 
 
 class ObservationConfig:
@@ -19,7 +29,8 @@ class ObservationConfig:
             log_dir: Path to agent log directory. Defaults to
                 ~/second-brain/agents/logs/
             output_dir: Path to Obsidian digest output directory. Defaults to
-                ~/second-brain/notes/00-System/agent-activity/
+                the vault `system` path (resolved via get_vault_path) +
+                `/agent-activity/`.
         """
         if registry_path is None:
             repo_root = Path(__file__).resolve().parent.parent.parent.parent
@@ -27,7 +38,7 @@ class ObservationConfig:
 
         self._registry_path = Path(registry_path)
         self._log_dir = Path(log_dir) if log_dir else Path.home() / "second-brain" / "agents" / "logs"
-        self._output_dir = Path(output_dir) if output_dir else Path.home() / "second-brain" / "notes" / "00-System" / "agent-activity"
+        self._output_dir = Path(output_dir) if output_dir else Path(get_vault_path("system")) / "agent-activity"
 
         self._registry = self._load_registry()
 

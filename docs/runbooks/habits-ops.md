@@ -178,7 +178,7 @@ Send any of these via WhatsApp (routed through the main agent):
 
 ## Privacy boundary
 
-**Absolute rule**: `02-Growth/_private/` is never read, processed, routed to,
+**Absolute rule**: `04-Growth/_private/` is never read, processed, routed to,
 referenced, or logged. Habits originating from private context appear only as
 habit names. This is enforced in SOUL.md, AGENTS.md, and TOOLS.md. There are
-no exceptions.
+no exceptions. (Path renumbered from `02-Growth/_private/` in mission 026 / #152.)
