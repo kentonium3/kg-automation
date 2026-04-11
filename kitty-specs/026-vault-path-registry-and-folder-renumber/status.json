@@ -1,7 +1,7 @@
 {
-  "event_count": 11,
-  "last_event_id": "01KNX4YM7CC2478W12X04FPX2D",
-  "materialized_at": "2026-04-11T02:11:51.660527+00:00",
+  "event_count": 13,
+  "last_event_id": "01KNX5031W0RF72G2HPSQ51ATC",
+  "materialized_at": "2026-04-11T02:12:39.612097+00:00",
   "mission_number": "026",
   "mission_slug": "026-vault-path-registry-and-folder-renumber",
   "mission_type": "software-dev",
@@ -12,9 +12,9 @@
     "claimed": 0,
     "done": 0,
     "for_review": 0,
-    "in_progress": 0,
+    "in_progress": 1,
     "in_review": 0,
-    "planned": 5
+    "planned": 4
   },
   "work_packages": {
     "WP01": {
@@ -25,11 +25,11 @@
       "last_transition_at": "2026-04-11T02:11:51.660527+00:00"
     },
     "WP02": {
-      "actor": "finalize-tasks",
+      "actor": "claude:opus-4-6:implementer:implementer",
       "force_count": 1,
-      "lane": "planned",
-      "last_event_id": "01KNX2F37T8V7NMGM8QQJNFHN0",
-      "last_transition_at": "2026-04-11T01:28:25.594347+00:00"
+      "lane": "in_progress",
+      "last_event_id": "01KNX5031W0RF72G2HPSQ51ATC",
+      "last_transition_at": "2026-04-11T02:12:39.612097+00:00"
     },
     "WP03": {
       "actor": "finalize-tasks",

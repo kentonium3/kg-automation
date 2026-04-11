@@ -20,6 +20,8 @@ subtasks:
 - T011
 - T012
 - T013
+agent: "claude:opus-4-6:implementer:implementer"
+shell_pid: "9528"
 history:
 - date: '2026-04-11T01:15:00Z'
   action: created
@@ -396,3 +398,7 @@ The reviewer should confirm:
 - Refactored scripts from T010 use `get_vault_path()` correctly and can import the resolver without circular-import issues
 - The commit message clearly states "no runtime behavior change in this commit"
 - The grep-for-residue check returns zero hits
+
+## Activity Log
+
+- 2026-04-11T02:12:39Z – claude:opus-4-6:implementer:implementer – shell_pid=9528 – Started implementation via action command
