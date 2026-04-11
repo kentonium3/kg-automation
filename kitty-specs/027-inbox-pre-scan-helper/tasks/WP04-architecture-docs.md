@@ -7,10 +7,14 @@ requirement_refs:
 planning_base_branch: main
 merge_target_branch: main
 branch_strategy: Planning artifacts for this feature were generated on main. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into main unless the human explicitly redirects the landing branch.
+base_branch: kitty/mission-027-inbox-pre-scan-helper
+base_commit: 5a37041139b391e371347fb2fbb373422072569e
+created_at: '2026-04-11T18:25:57.954299+00:00'
 subtasks:
 - T018
 - T019
 - T020
+shell_pid: '50006'
 history:
 - date: '2026-04-11'
   event: created
