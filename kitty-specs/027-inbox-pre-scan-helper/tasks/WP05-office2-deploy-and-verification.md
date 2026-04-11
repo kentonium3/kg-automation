@@ -349,3 +349,4 @@ spec-kitty agent action implement WP05 --mission 027-inbox-pre-scan-helper --age
 ## Activity Log
 
 - 2026-04-11T21:54:57Z – claude:opus-4-6:orchestrator:implementer – shell_pid=77642 – Started implementation via action command
+- 2026-04-11T22:21:36Z – claude:opus-4-6:orchestrator:implementer – shell_pid=77642 – WP05 complete: all 10 success criteria verified live on office2. 4 integration bugs fixed during deploy (scripts/vault rsync, ssh stdin, frontmatter parser, workspace path). Close-out artifact at kitty-specs/027-inbox-pre-scan-helper/research/wp05-deploy-verification.md. NFR-003 threshold amendment recommended post-merge.
