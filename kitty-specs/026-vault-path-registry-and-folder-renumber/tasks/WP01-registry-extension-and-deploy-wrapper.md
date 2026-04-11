@@ -19,7 +19,8 @@ subtasks:
 - T004
 - T005
 - T006
-shell_pid: '4174'
+shell_pid: "4174"
+agent: "claude:opus-4-6:implementer:implementer"
 history:
 - date: '2026-04-11T01:15:00Z'
   action: created
@@ -400,3 +401,7 @@ The reviewer should confirm:
 - `deploy-f026.sh` is reviewable (not auto-generated glue with no logic); the flag handling, mode dispatch, and error-on-failure behavior are clearly implemented
 - The T005 charter audit produced either zero non-boundary hits or a documented operator action
 - No production files have been migrated yet — `grep` for old folder names still returns hits in exactly the files the audit identified (none have been converted to `.tmpl` yet)
+
+## Activity Log
+
+- 2026-04-11T01:44:18Z – claude:opus-4-6:implementer:implementer – shell_pid=4174 – Assigned agent via action command
