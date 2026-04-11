@@ -23,9 +23,9 @@ Five work packages totaling 27 subtasks. WP01, WP02, and WP04 are independent an
 | T005 | Implement JSON stdout + stderr + daily log file output | WP01 | | [D] |
 | T006 | Create test fixture files under `tests/scripts/inbox/fixtures/` | WP01 | [D] |
 | T007 | Write pytest unit tests under `tests/scripts/inbox/test_prescan.py` | WP01 | | [D] |
-| T008 | Identify which agent workspace file owns "Step 1" | WP02 | |
-| T009 | Update that file with new Step 1 contract | WP02 | |
-| T010 | Verify render through vault path registry deploy (no new markers) | WP02 | |
+| T008 | Identify which agent workspace file owns "Step 1" | WP02 | | [D] |
+| T009 | Update that file with new Step 1 contract | WP02 | | [D] |
+| T010 | Verify render through vault path registry deploy (no new markers) | WP02 | | [D] |
 | T011 | Create `deploy-149.sh` skeleton with `--dry-run` and `--apply` flags | WP03 | |
 | T012 | Implement pre-flight checks (Restic age, office2 reachability, repo file presence) | WP03 | |
 | T013 | Implement helper deploy step (rsync) + `--self-check` verification | WP03 | |
@@ -85,9 +85,9 @@ Five work packages totaling 27 subtasks. WP01, WP02, and WP04 are independent an
 **Authoritative surface**: `ai-agents/felix-admin-capture/`
 
 **Subtasks:**
-- [ ] T008 Read `ai-agents/felix-admin-capture/` files (IDENTITY.md, SOUL.md, AGENTS.md, USER.md, TOOLS.md and their `.tmpl` counterparts) and identify which file owns the "Step 1: scan the inbox" instruction. Record the finding in the WP runlog. (WP02)
-- [ ] T009 Update the identified file(s) — likely `AGENTS.md.tmpl` or `SOUL.md.tmpl` — with the new Step 1 contract per `plan.md` design section. Preserve all other standing orders. Use the `{{VAULT_INBOX}}` and `{{VAULT_INBOX_PROCESSED}}` markers (already defined by mission 026) where vault paths are needed. Hardcode the helper path `/home/claude/kg-automation/scripts/inbox/prescan.py` (it is a deploy artifact, not a vault path). (WP02)
-- [ ] T010 Confirm the updated file renders correctly through the vault path registry deploy mechanism: no new `{{VAULT_*}}` markers introduced, existing markers preserved, no orphaned substitution placeholders. Spot-check by running the resolver locally against the file and diffing against a known-good render. (WP02)
+- [x] T008 Read `ai-agents/felix-admin-capture/` files (IDENTITY.md, SOUL.md, AGENTS.md, USER.md, TOOLS.md and their `.tmpl` counterparts) and identify which file owns the "Step 1: scan the inbox" instruction. Record the finding in the WP runlog. (WP02)
+- [x] T009 Update the identified file(s) — likely `AGENTS.md.tmpl` or `SOUL.md.tmpl` — with the new Step 1 contract per `plan.md` design section. Preserve all other standing orders. Use the `{{VAULT_INBOX}}` and `{{VAULT_INBOX_PROCESSED}}` markers (already defined by mission 026) where vault paths are needed. Hardcode the helper path `/home/claude/kg-automation/scripts/inbox/prescan.py` (it is a deploy artifact, not a vault path). (WP02)
+- [x] T010 Confirm the updated file renders correctly through the vault path registry deploy mechanism: no new `{{VAULT_*}}` markers introduced, existing markers preserved, no orphaned substitution placeholders. Spot-check by running the resolver locally against the file and diffing against a known-good render. (WP02)
 
 **Parallel opportunities:** none (sequential within the WP)
 
