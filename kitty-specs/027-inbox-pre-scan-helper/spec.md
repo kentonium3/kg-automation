@@ -23,7 +23,7 @@ Kent's intent is that the agent does real cognitive work — routing, classifyin
 ### Primary Scenarios
 
 **Scenario 1 — Empty run (most common case).**
-The 12:00 inbox cron fires. `{{VAULT_INBOX}}` contains 30 files, all with `status: processed`. The pre-scan helper runs, finds zero unprocessed files, and signals "empty" to cron. `felix-admin-capture` is not invoked. Zero agent tokens are consumed. A log line records "0 unprocessed" for the run.
+The 12:00 inbox cron fires. `{{VAULT_INBOX}}` contains 30 files, all with `status: processed`. `felix-admin-capture` is invoked (it is always invoked — this mission does not change the cron trigger model). Its Step 1 runs `prescan.py`, which reports zero unprocessed files. The agent replies with the IDLE sentinel and takes no further action. Total token spend for the run stays under the NFR-003 budget. No Vikunja tasks, no vault writes, no WhatsApp sends. A helper log line records "0 unprocessed, 0 archived" for the run.
 
 **Scenario 2 — Single-item run (typical work case).**
 The 17:00 inbox cron fires. `{{VAULT_INBOX}}` contains 30 files, one of which has `status: unprocessed`. The helper identifies the one file, and cron invokes `felix-admin-capture` with that file's path. The agent reads only that file, routes it, and writes the outcome. Processed-file cleanup (Scenario 4) runs as part of the same helper invocation regardless of the unprocessed count.
@@ -35,7 +35,7 @@ A cron run fires after Kent has captured several notes rapidly. Three files have
 As part of every helper invocation (regardless of how many unprocessed files are present), the helper identifies processed files older than seven days and moves them to `{{VAULT_INBOX_PROCESSED}}`. The move is logged with source path, destination path, timestamp, and reason. Recent processed files (<7 days) stay in `{{VAULT_INBOX}}` so the agent retains short-term context.
 
 **Scenario 5 — Helper failure.**
-The helper encounters an unrecoverable error (e.g., `{{VAULT_INBOX_PROCESSED}}` does not exist, frontmatter parse error on a file, registry resolver returns an error). The failure is logged with a clear message, the helper exits non-zero, and `felix-admin-capture` is NOT invoked. The next cron run retries.
+The helper encounters an unrecoverable error (e.g., `{{VAULT_INBOX_PROCESSED}}` does not exist, frontmatter parse error on a file, registry resolver returns an error). The helper exits non-zero and writes a clear error message to its log and stderr. The agent (invoked by cron as usual) reads the helper's non-zero exit and stderr, reports the error as its turn output, and does NOT attempt to process any files. The next cron run retries from scratch. OpenClaw cron's built-in `failureAlert` mechanism fires a WhatsApp notification after 2 consecutive failed runs.
 
 ### Edge Cases
 
@@ -59,12 +59,12 @@ The helper encounters an unrecoverable error (e.g., `{{VAULT_INBOX_PROCESSED}}` 
 | FR-006 | The helper MUST be idempotent. Re-running on an unchanged inbox MUST produce the same unprocessed list and no additional archive moves. | Draft |
 | FR-007 | The helper MUST exit non-zero and log a clear error message when `{{VAULT_INBOX_PROCESSED}}` does not exist, when registry resolution fails, or when any unrecoverable parse/filesystem error occurs. The helper MUST NOT attempt to create vault directories. | Draft |
 | FR-008 | The helper MUST NOT read, write, reference, or log any path under `~/second-brain/notes/04-Growth/_private/`, consistent with the Felix constitutional privacy boundary. | Draft |
-| FR-009 | The `felix-admin-capture` cron invocation MUST be replaced with a sequence that runs the helper first and invokes the agent only when the helper reports at least one unprocessed file. On empty runs the agent MUST NOT be invoked and no agent tokens MUST be consumed. | Draft |
+| FR-009 | The `felix-admin-capture` agent's Step 1 MUST be changed so that it runs the helper first and replies with an IDLE sentinel (producing no downstream effects) when the helper reports zero unprocessed files. Empty runs MUST consume no more than the minimal-token budget defined in NFR-003 and MUST NOT cause Vikunja writes, vault writes, task creation, or any other downstream side effects. | Draft |
 | FR-010 | When the agent is invoked, the helper's unprocessed list MUST be passed to it as input (env var, argument, or file — selected during planning) so that the agent's Step 1 input contract is "read these files" rather than "scan the inbox". | Draft |
-| FR-011 | If the helper exits non-zero, the cron sequence MUST log the failure and MUST NOT invoke the agent. The next cron run retries from scratch. | Draft |
+| FR-011 | If the helper exits non-zero, the agent's Step 1 MUST surface the error as its turn output and MUST NOT attempt to process any files. Two consecutive non-zero helper exits MUST trigger the existing openclaw `failureAlert` WhatsApp notification. The next cron run retries from scratch. | Draft |
 | FR-012 | The `felix-admin-capture` agent workspace (IDENTITY.md / SOUL.md / AGENTS.md, whichever defines Step 1) MUST be updated to describe the new input contract so future edits do not revert it. | Draft |
 | FR-013 | The helper's canonical source MUST live in the kg-automation repository under `scripts/inbox/` (exact subdirectory confirmed during planning) and MUST be deployed to office2 via a one-shot deploy wrapper patterned on mission 026's `deploy-f026.sh`. | Draft |
-| FR-014 | The deploy wrapper MUST follow the change-control protocol established by missions 024 and 026: snapshot the prior state of any file it replaces, apply atomically where possible, verify post-apply, and pause `felix-admin-capture` cron during the risky window using the correct `openclaw cron disable <uuid>` path (NOT the system crontab fallback that #162 identified as broken). | Draft |
+| FR-014 | The deploy wrapper MUST apply changes in a strict order that makes any cron-fire interleaving safe: (1) copy the helper script to office2, (2) update the agent workspace files, (3) update the openclaw cron payload messages via `openclaw cron edit <uuid>`. In this order, any cron that fires mid-deploy runs the legacy Step 1 (scan the inbox) harmlessly; no intermediate state is broken. The wrapper MUST verify each step before proceeding. The wrapper MUST NOT use the system crontab fallback identified as broken in #162. | Draft |
 | FR-015 | Architecture documentation (`docs/design/architecture/data/service-inventory.json` and its markdown counterpart, at minimum) MUST be updated to reflect the pre-scan helper as a component of the `felix-admin-capture` service path. | Draft |
 
 ## Non-Functional Requirements
@@ -73,7 +73,7 @@ The helper encounters an unrecoverable error (e.g., `{{VAULT_INBOX_PROCESSED}}` 
 |---|---|---|---|
 | NFR-001 | Helper runtime on the current inbox size | ≤ 1 second wall-clock on office2 for up to 50 files | Draft |
 | NFR-002 | Helper must not consume LLM tokens or make network calls | 0 tokens, 0 network calls per invocation | Draft |
-| NFR-003 | Empty-run token cost (no unprocessed files) | 0 agent tokens consumed end-to-end | Draft |
+| NFR-003 | Empty-run token cost (no unprocessed files) | ≤ 500 total agent tokens per empty run (Haiku prompt + short IDLE reply); zero Vikunja/vault writes; zero WhatsApp sends | Draft |
 | NFR-004 | Frontmatter parsing must be robust to YAML edge cases | Zero false positives on a corpus of 50 real inbox files including multi-line values, quoted strings, and files with missing/empty frontmatter | Draft |
 | NFR-005 | Deploy wrapper risky-window duration | ≤ 15 minutes between cron pause and cron resume | Draft |
 | NFR-006 | Helper logging verbosity | One log line per run at minimum (counts + status); one line per archive move | Draft |
@@ -94,14 +94,14 @@ The helper encounters an unrecoverable error (e.g., `{{VAULT_INBOX_PROCESSED}}` 
 
 | ID | Criterion | Measurement |
 |---|---|---|
-| SC-001 | Empty inbox run costs zero agent tokens | Observe a cron run where `{{VAULT_INBOX}}` has zero unprocessed files; confirm via logs that `felix-admin-capture` was not invoked and no Anthropic tokens were billed for that run. |
+| SC-001 | Empty inbox run stays within the minimal-token budget | Observe a cron run where `{{VAULT_INBOX}}` has zero unprocessed files; confirm via the openclaw run-history record that the agent turn completed with ≤500 total tokens and replied with the IDLE sentinel; confirm via Vikunja and vault audit that no downstream writes occurred for that run. |
 | SC-002 | Non-empty run routes correctly | Place a known unprocessed test file in `{{VAULT_INBOX}}`, trigger the cron, confirm the agent processed only that file (not the other ~28), and confirm the expected downstream effect (Vikunja task, vault write, or whatever the file's content dictates). |
 | SC-003 | Stale processed files archive on schedule | Place a processed file with an 8-day-old mtime in `{{VAULT_INBOX}}`, trigger the helper, confirm the file is now in `{{VAULT_INBOX_PROCESSED}}` and the move is recorded in the helper log. |
 | SC-004 | Recent processed files stay put | Place a processed file with a 6-day-old mtime, trigger the helper, confirm the file remains in `{{VAULT_INBOX}}` and no move is logged for it. |
 | SC-005 | Unprocessed files are never archived | Place an unprocessed file with a 30-day-old mtime, trigger the helper, confirm the file remains in `{{VAULT_INBOX}}` and no move is logged for it. |
 | SC-006 | Helper fails loud on missing destination | Temporarily rename `{{VAULT_INBOX_PROCESSED}}`, trigger the helper, confirm non-zero exit, confirm `felix-admin-capture` is not invoked, confirm the cron run's failure is visible in logs. Restore directory. |
 | SC-007 | Agent workspace reflects the new contract | Read `ai-agents/felix-admin-capture/` files and confirm Step 1 describes the helper-provided input list, not "scan the inbox". |
-| SC-008 | Deploy wrapper pauses cron correctly | Observe a full deploy run: confirm `openclaw cron list` shows `inbox-*` crons disabled during the risky window and re-enabled after verification. The #162 failure mode (system crontab fallback) MUST NOT appear. |
+| SC-008 | Deploy wrapper applies changes in safe order | Observe a full deploy run: confirm the wrapper copies the helper first, then updates agent workspace files, then calls `openclaw cron edit` for each of the 4 inbox crons. Confirm via `openclaw cron list` that all 4 cron payloads show the new message. Confirm that any cron that fires mid-deploy would have run the legacy Step 1 harmlessly (no intermediate broken state exists). |
 | SC-009 | Architecture docs updated | `docs/design/architecture/data/service-inventory.json` references the pre-scan helper; markdown counterpart matches; JSON `updated_by` field notes this mission's slug. |
 | SC-010 | Issue #149 closeable | All issue #149 acceptance criteria (as listed in the issue body) are satisfied; closure comment can be posted after `/spec-kitty.merge`. |
 
