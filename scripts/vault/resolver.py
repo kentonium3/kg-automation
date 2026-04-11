@@ -3,11 +3,13 @@
 Read scripts/vault/paths.json and return absolute paths by logical name.
 
 Usage:
-    from scripts.vault.resolver import get_vault_path
-    inbox = get_vault_path("inbox")
+    from scripts.vault.resolver import get_vault_path, get_vault_folder_name
+    inbox = get_vault_path("inbox")                  # "/home/kgale/.../01-Inbox"
+    inbox_name = get_vault_folder_name("inbox")      # "01-Inbox"
 
 CLI:
-    python3 scripts/vault/resolver.py inbox
+    python3 scripts/vault/resolver.py inbox          # prints absolute path
+    python3 scripts/vault/resolver.py inbox --name   # prints folder name only
 """
 import json
 import sys
@@ -66,6 +68,30 @@ def get_vault_path(name: str) -> str:
     return paths[name]
 
 
+def get_vault_folder_name(name: str) -> str:
+    """Return the basename (folder name only) for a logical vault name.
+
+    This is a sibling to get_vault_path() that returns just the final path
+    component. Useful for references that need to preserve relative-path
+    shape or appear in natural-language prose — e.g., rendering
+    "01-Inbox/Values.md" in a routing table or "the 01-Inbox folder" in
+    docs, while still flowing the underlying identifier through the
+    registry so renames propagate automatically.
+
+    Args:
+        name: Logical name (e.g., "inbox")
+
+    Returns:
+        Folder basename as a string (e.g., "01-Inbox").
+
+    Raises:
+        RegistryNotFoundError: Registry file missing or malformed.
+        UnknownPathError: Logical name not in registry.
+    """
+    absolute = get_vault_path(name)
+    return Path(absolute).name
+
+
 def list_vault_paths() -> dict:
     """Return a copy of all logical name to path mappings."""
     registry = _load_registry()
@@ -73,11 +99,21 @@ def list_vault_paths() -> dict:
 
 
 if __name__ == "__main__":
+    # Usage:
+    #   python3 resolver.py <logical-name>          -> absolute path
+    #   python3 resolver.py <logical-name> --name   -> folder name only
     if len(sys.argv) < 2:
-        print("Usage: python3 resolver.py <logical-name>", file=sys.stderr)
+        print(
+            "Usage: python3 resolver.py <logical-name> [--name]",
+            file=sys.stderr,
+        )
         sys.exit(1)
+    name_only = "--name" in sys.argv[2:]
     try:
-        print(get_vault_path(sys.argv[1]))
+        if name_only:
+            print(get_vault_folder_name(sys.argv[1]))
+        else:
+            print(get_vault_path(sys.argv[1]))
     except VaultPathError as e:
         print(f"Error: {e}", file=sys.stderr)
         sys.exit(1)

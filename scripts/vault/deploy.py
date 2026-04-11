@@ -4,11 +4,20 @@
 Reads scripts/vault/paths.json and scripts/vault/targets.json, then for each
 target:
   1. Reads the .tmpl source file
-  2. Finds all {{VAULT_<NAME>}} markers
+  2. Finds all {{VAULT_<NAME>}} and {{VAULT_<NAME>_NAME}} markers
   3. Validates that every marker has a corresponding registry entry
-  4. Replaces markers with resolved paths
+  4. Replaces markers with resolved paths (full path for {{VAULT_<NAME>}};
+     folder basename only for {{VAULT_<NAME>_NAME}})
   5. Writes the resolved content to the output file (apply mode only)
   6. Optionally SCPs to office2 if office2_path is set (apply mode only)
+
+Marker forms:
+  {{VAULT_INBOX}}       -> /home/kgale/second-brain/notes/01-Inbox
+  {{VAULT_INBOX_NAME}}  -> 01-Inbox
+
+Use the _NAME form when you need relative-path shape or a bare folder name
+(routing tables, JSON examples, natural-language prose) while still flowing
+the identifier through the registry so renames propagate automatically.
 
 Usage:
     python3 scripts/vault/deploy.py              # dry-run (default)
@@ -17,6 +26,7 @@ Usage:
 """
 import argparse
 import json
+import os
 import re
 import subprocess
 import sys
@@ -28,7 +38,10 @@ _REPO_ROOT = _VAULT_DIR.parent.parent
 _PATHS_FILE = _VAULT_DIR / "paths.json"
 _TARGETS_FILE = _VAULT_DIR / "targets.json"
 
-# Pattern matches {{VAULT_SOMETHING}} where SOMETHING is uppercase/underscore
+# Pattern matches {{VAULT_SOMETHING}} where SOMETHING is uppercase/underscore.
+# The trailing "_NAME" suffix (if present) switches the resolution mode from
+# "full absolute path" to "folder basename only". Detection happens in the
+# substitution callback, not in the regex.
 _MARKER_PATTERN = re.compile(r"\{\{VAULT_([A-Z_]+)\}\}")
 
 
@@ -59,15 +72,34 @@ def _find_markers(content: str) -> set:
 
 
 def _resolve_content(content: str, paths: dict) -> str:
-    """Replace all {{VAULT_*}} markers with values from paths."""
+    """Replace all {{VAULT_*}} and {{VAULT_*_NAME}} markers.
+
+    Resolution rules:
+      {{VAULT_<LOGICAL>}}       -> paths[<LOGICAL>] (absolute path)
+      {{VAULT_<LOGICAL>_NAME}}  -> basename of paths[<LOGICAL>] (folder name)
+
+    The regex captures the full inner name (e.g., "INBOX_NAME" or "INBOX").
+    We detect the "_NAME" suffix in the callback, look up the underlying
+    logical name, and return either the full path or its basename.
+    """
     def replace(match):
-        name = match.group(1)
-        if name not in paths:
+        raw = match.group(1)
+        if raw.endswith("_NAME"):
+            logical = raw[: -len("_NAME")]
+            if logical not in paths:
+                raise DeployError(
+                    f"Unknown marker {{{{VAULT_{raw}}}}}. "
+                    f"Available logical names: "
+                    f"{', '.join(sorted(paths.keys())) or '(none)'}"
+                )
+            return os.path.basename(paths[logical])
+        # Full-path form
+        if raw not in paths:
             raise DeployError(
-                f"Unknown marker {{{{VAULT_{name}}}}}. "
+                f"Unknown marker {{{{VAULT_{raw}}}}}. "
                 f"Available: {', '.join(sorted(paths.keys())) or '(none)'}"
             )
-        return paths[name]
+        return paths[raw]
     return _MARKER_PATTERN.sub(replace, content)
 
 

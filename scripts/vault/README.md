@@ -40,26 +40,40 @@ agent standing orders, scripts, and documentation by centralizing them in
 ## Python usage
 
 ```python
-from scripts.vault.resolver import get_vault_path
+from scripts.vault.resolver import get_vault_path, get_vault_folder_name
 
 inbox_path = get_vault_path("inbox")
-# → "/home/kgale/second-brain/notes/00-Inbox"
+# → "/home/kgale/second-brain/notes/01-Inbox"
+
+inbox_name = get_vault_folder_name("inbox")
+# → "01-Inbox"
 ```
 
 Raises `UnknownPathError` if the logical name is not registered.
 Raises `RegistryNotFoundError` if the registry file is missing or malformed.
 
-CLI usage: `python3 scripts/vault/resolver.py inbox`
+CLI usage:
+
+```bash
+python3 scripts/vault/resolver.py inbox         # prints absolute path
+python3 scripts/vault/resolver.py inbox --name  # prints folder name only
+```
 
 ## Shell usage
 
 ```bash
 source scripts/vault/paths.sh
-echo "$VAULT_INBOX"
-# → /home/kgale/second-brain/notes/00-Inbox
+echo "$VAULT_INBOX"       # → /home/kgale/second-brain/notes/01-Inbox
+echo "$VAULT_INBOX_NAME"  # → 01-Inbox
 ```
 
-Each logical name is exported as `VAULT_<UPPERCASE_NAME>`.
+Each logical name is exported in two forms:
+- `VAULT_<UPPERCASE_NAME>` — absolute path
+- `VAULT_<UPPERCASE_NAME>_NAME` — folder basename only
+
+Use the `_NAME` form when you need the shape of a relative-path reference or
+a bare folder name (routing tables, JSON examples, natural-language prose)
+while still flowing the identifier through the registry so renames propagate.
 
 ## Deploy workflow
 
@@ -76,9 +90,33 @@ python3 scripts/vault/deploy.py --apply
 python3 scripts/vault/deploy.py --apply --no-office2
 ```
 
+### Marker forms in `.tmpl` files
+
+Two marker forms are supported:
+
+| Marker | Resolves to | Use when |
+|---|---|---|
+| `{{VAULT_INBOX}}` | `/home/kgale/second-brain/notes/01-Inbox` (absolute path) | You need the full, unambiguous path — e.g., in an absolute-path reference inside an agent standing order |
+| `{{VAULT_INBOX_NAME}}` | `01-Inbox` (folder name only) | You need the shape of a relative reference, a bare folder name in a routing table, or a natural-language mention — while still flowing the identifier through the registry |
+
+Example mixing both forms in a single `.tmpl`:
+
+```markdown
+<!-- absolute-path reference (agent reads the file directly) -->
+Read the inbox at `{{VAULT_INBOX}}/*.md`
+
+<!-- relative-path fragment in a routing table -->
+| Topic | Route to |
+|---|---|
+| goals | `{{VAULT_CONSTITUTION_NAME}}/Goals-MOC.md` |
+
+<!-- natural-language prose -->
+Items older than 7 days are moved to the `{{VAULT_INBOX_PROCESSED_NAME}}` folder.
+```
+
 ### Adding a new migration
 
-1. Create a `.tmpl` version of your target file with `{{VAULT_<NAME>}}` markers
+1. Create a `.tmpl` version of your target file with `{{VAULT_<NAME>}}` or `{{VAULT_<NAME>_NAME}}` markers
 2. Add an entry to `targets.json` pointing to the template and output
 3. Run `python3 scripts/vault/deploy.py` (dry-run) to preview
 4. Run with `--apply` to write the resolved file
