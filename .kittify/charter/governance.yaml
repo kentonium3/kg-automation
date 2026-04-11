@@ -21,9 +21,9 @@ branch_strategy:
   rules: []
 doctrine:
   selected_paradigms:
-  - test-first
+  - c4-incremental-detail-modeling
   selected_directives:
-  - TEST_FIRST
+  - DIRECTIVE_034
   available_tools:
   - git
   - python

@@ -25,8 +25,8 @@ Generated: 2026-03-26T04:46:08Z
 
 ```yaml
 mission: software-dev
-selected_paradigms: [test-first]
-selected_directives: [TEST_FIRST]
+selected_paradigms: [c4-incremental-detail-modeling]
+selected_directives: [DIRECTIVE_034]
 available_tools: [git, python, spec-kitty]
 template_set: software-dev-default
 ```
@@ -47,6 +47,7 @@ template_set: software-dev-default
 2. Respect risk boundaries: 02-Growth/_private/ is never read, written, or referenced by any agent or script — no exceptions. No      credentials in code or committed files. Anthropic API called direct — no third-party proxies. No community   OpenClaw skills without source review. All services Tailscale-only. No untrusted code executes near          credentials or personal data.
 3. Keep documentation synchronized with workflow and behavior changes.
 4. Follow documentation standards: machine-readable files (JSON) are the authoritative record; narrative markdown provides context and rationale; diagrams are the preferred format for system structure, service dependencies, data flows, and network topology. When machine-readable and narrative conflict, JSON wins.
+5. Every mission specification must include an explicit documentation-synchronization requirement covering architecture JSON, markdown views, runbooks, INDEX, and roadmap status as applicable.
 
 ## Reference Index
 

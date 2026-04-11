@@ -22,3 +22,8 @@ directives:
   description: 'Follow documentation standards: machine-readable files (JSON) are the authoritative record; narrative markdown provides context and rationale; diagrams are the preferred format for system structure, service dependencies, data flows, and network topology. When machine-readable and narrative conflict, JSON wins.'
   severity: warn
   applies_to: []
+- id: DIR-005
+  title: Every mission specification must include an explic
+  description: Every mission specification must include an explicit documentation-synchronization requirement covering architecture JSON, markdown views, runbooks, INDEX, and roadmap status as applicable.
+  severity: warn
+  applies_to: []
