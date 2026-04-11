@@ -1,0 +1,127 @@
+{
+  "version": 1,
+  "mission_slug": "026-vault-path-registry-and-folder-renumber",
+  "mission_id": "01KNWXH81HPVTXM8NMBSDWH0Q9",
+  "mission_branch": "kitty/mission-026-vault-path-registry-and-folder-renumber",
+  "target_branch": "main",
+  "lanes": [
+    {
+      "lane_id": "lane-a",
+      "wp_ids": [
+        "WP01",
+        "WP02",
+        "WP03"
+      ],
+      "write_scope": [
+        "CLAUDE.md",
+        "CLAUDE.md.tmpl",
+        "ai-agents/claude-code-instructions.md",
+        "ai-agents/claude-code-instructions.md.tmpl",
+        "ai-agents/claude-instructions.md",
+        "ai-agents/claude-instructions.md.tmpl",
+        "docs/INDEX.md",
+        "docs/constitution/FELIX-CONSTITUTION.md",
+        "docs/design/architecture/data-flows.md",
+        "docs/design/architecture/data/data-flows.json",
+        "docs/design/architecture/data/service-inventory.json",
+        "docs/design/architecture/glossary.md",
+        "docs/design/architecture/security-posture.md",
+        "docs/design/architecture/service-inventory.md",
+        "docs/design/felix-capability-roadmap.md",
+        "docs/runbooks/escalation-ops.md",
+        "docs/runbooks/felix-governance.md",
+        "docs/runbooks/goals-ops.md",
+        "docs/runbooks/habits-ops.md",
+        "docs/runbooks/inbox-ops.md",
+        "docs/runbooks/obsidian-sync-ops.md",
+        "docs/runbooks/openclaw-agent-setup.md",
+        "docs/runbooks/vault-path-registry-migration.md",
+        "scripts/deploy/deploy-f026.sh",
+        "scripts/openclaw/agents/felix-admin-capture/AGENTS.md.tmpl",
+        "scripts/openclaw/agents/felix-admin-capture/TOOLS.md",
+        "scripts/openclaw/agents/felix-admin-capture/TOOLS.md.tmpl",
+        "scripts/openclaw/agents/felix-admin-escalation/AGENTS.md",
+        "scripts/openclaw/agents/felix-admin-escalation/AGENTS.md.tmpl",
+        "scripts/openclaw/agents/felix-admin-escalation/SOUL.md",
+        "scripts/openclaw/agents/felix-admin-escalation/SOUL.md.tmpl",
+        "scripts/openclaw/agents/felix-admin-escalation/TOOLS.md",
+        "scripts/openclaw/agents/felix-admin-escalation/TOOLS.md.tmpl",
+        "scripts/openclaw/agents/felix-admin-habits/AGENTS.md",
+        "scripts/openclaw/agents/felix-admin-habits/AGENTS.md.tmpl",
+        "scripts/openclaw/agents/felix-admin-tasker/AGENTS.md",
+        "scripts/openclaw/agents/felix-admin-tasker/AGENTS.md.tmpl",
+        "scripts/openclaw/agents/felix-admin-tasker/SOUL.md",
+        "scripts/openclaw/agents/felix-admin-tasker/SOUL.md.tmpl",
+        "scripts/openclaw/agents/felix-admin-tasker/TOOLS.md",
+        "scripts/openclaw/agents/felix-admin-tasker/TOOLS.md.tmpl",
+        "scripts/openclaw/agents/felix-admin-tasker/USER.md",
+        "scripts/openclaw/agents/felix-admin-tasker/USER.md.tmpl",
+        "scripts/openclaw/agents/main-patches/inbox-delegation.md",
+        "scripts/openclaw/agents/main-patches/inbox-delegation.md.tmpl",
+        "scripts/openclaw/agents/main/SOUL.md",
+        "scripts/openclaw/agents/main/SOUL.md.tmpl",
+        "scripts/openclaw/agents/main/USER.md",
+        "scripts/openclaw/agents/main/USER.md.tmpl",
+        "scripts/vault/paths.json",
+        "scripts/vault/targets.json"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "app-shell",
+        "artifact-rendering",
+        "legacy-cleanup",
+        "tracker-integration",
+        "workspace"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    },
+    {
+      "lane_id": "lane-planning",
+      "wp_ids": [
+        "WP04",
+        "WP05",
+        "WP06"
+      ],
+      "write_scope": [
+        "kitty-specs/026-vault-path-registry-and-folder-renumber/research/wp04-baseline-capture.md",
+        "kitty-specs/026-vault-path-registry-and-folder-renumber/research/wp04-fidelity-checkpoint.md",
+        "kitty-specs/026-vault-path-registry-and-folder-renumber/research/wp05-risky-window-runlog.md",
+        "kitty-specs/026-vault-path-registry-and-folder-renumber/research/wp06-mission-closeout.md"
+      ],
+      "predicted_surfaces": [
+        "planning"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    }
+  ],
+  "computed_at": "2026-04-11T01:28:25.640138+00:00",
+  "computed_from": "dependency_graph+ownership",
+  "planning_artifact_wps": [
+    "WP04",
+    "WP05",
+    "WP06"
+  ],
+  "collapse_report": {
+    "events": [
+      {
+        "wp_a": "WP02",
+        "wp_b": "WP01",
+        "rule": "dependency",
+        "evidence": "WP02 depends on WP01"
+      },
+      {
+        "wp_a": "WP03",
+        "wp_b": "WP02",
+        "rule": "dependency",
+        "evidence": "WP03 depends on WP02"
+      }
+    ],
+    "total_merges": 2,
+    "independent_wps_collapsed": 0,
+    "by_rule": {
+      "dependency": 2
+    }
+  }
+}
