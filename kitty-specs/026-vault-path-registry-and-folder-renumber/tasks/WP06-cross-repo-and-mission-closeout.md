@@ -15,6 +15,8 @@ subtasks:
 - T035
 - T036
 - T037
+agent: "claude:opus-4-6:implementer:implementer"
+shell_pid: "31150"
 history:
 - date: '2026-04-11T01:15:00Z'
   action: created
@@ -332,3 +334,7 @@ The reviewer should confirm:
 - The GitHub issue #152 closure comment (draft or actual) includes the #149 unblocking note and the #154 reference
 - No files under `_private/` were read or referenced during the operation
 - The runlog artifact is complete and honest — not a sanitized "everything's fine" report
+
+## Activity Log
+
+- 2026-04-11T16:19:02Z – claude:opus-4-6:implementer:implementer – shell_pid=31150 – Started implementation via action command
