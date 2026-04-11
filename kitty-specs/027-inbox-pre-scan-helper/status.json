@@ -1,7 +1,7 @@
 {
-  "event_count": 10,
-  "last_event_id": "01KNYWTY0B319JST2HQB88YGRB",
-  "materialized_at": "2026-04-11T18:28:30.859626+00:00",
+  "event_count": 11,
+  "last_event_id": "01KNYX0C53B7909TW7ERNZR3RX",
+  "materialized_at": "2026-04-11T18:31:29.187517+00:00",
   "mission_number": "027",
   "mission_slug": "027-inbox-pre-scan-helper",
   "mission_type": "software-dev",
@@ -11,18 +11,18 @@
     "canceled": 0,
     "claimed": 0,
     "done": 0,
-    "for_review": 1,
-    "in_progress": 1,
+    "for_review": 2,
+    "in_progress": 0,
     "in_review": 0,
     "planned": 3
   },
   "work_packages": {
     "WP01": {
-      "actor": "implement-command",
+      "actor": "user",
       "force_count": 1,
-      "lane": "in_progress",
-      "last_event_id": "01KNYWP29ENPZR70HQA5FPYZSN",
-      "last_transition_at": "2026-04-11T18:25:51.406182+00:00"
+      "lane": "for_review",
+      "last_event_id": "01KNYX0C53B7909TW7ERNZR3RX",
+      "last_transition_at": "2026-04-11T18:31:29.187517+00:00"
     },
     "WP02": {
       "actor": "finalize-tasks",
