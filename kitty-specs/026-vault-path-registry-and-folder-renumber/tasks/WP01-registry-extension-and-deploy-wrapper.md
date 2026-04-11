@@ -9,6 +9,9 @@ requirement_refs:
 planning_base_branch: main
 merge_target_branch: main
 branch_strategy: Planning artifacts for this feature were generated on main. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into main unless the human explicitly redirects the landing branch.
+base_branch: kitty/mission-026-vault-path-registry-and-folder-renumber
+base_commit: 60cc93f91087ac512e9d4535c62cbf9978063fec
+created_at: '2026-04-11T01:44:17.736022+00:00'
 subtasks:
 - T001
 - T002
@@ -16,6 +19,7 @@ subtasks:
 - T004
 - T005
 - T006
+shell_pid: '4174'
 history:
 - date: '2026-04-11T01:15:00Z'
   action: created
