@@ -114,3 +114,89 @@ After sync is verified healthy and vault state is clean:
 - WP02 re-run commit: `27680fe`
 - WP04 checkpoint commit: `0ec9790`
 - This halt: no code changes — only cron re-enable on office2 and this runlog artifact
+
+---
+
+## Phase B / Phase C completion — 2026-04-11 morning session
+
+Path A halt handled the sync divergence as a separate workstream. Vault state reconciliation completed successfully this morning. WP05 restart preconditions now met.
+
+### Phase B — Vault reconciliation execution
+
+All 4 duplicated folder pairs cleaned up. Operator (Kent) drove decisions; Claude executed file operations on the Mac with 2-second human-pacing delays between ops.
+
+| Pair | Mac action | Office2 action | Outcome |
+|---|---|---|---|
+| `00-Inbox` → `01-Inbox` | Moved newer 1047.md (`status: processed`); deleted 2 test artifacts; removed old folder | Via Obsidian Sync | ✅ Clean |
+| `03-Health` → `05-Health` | Moved newer Health-Fitness.md (Apr 9 walking entry); removed old folder | Via Obsidian Sync | ✅ Clean |
+| `06-Journal` → `08-Journal` | Moved Apr 9 1047.md journal entry; removed old folder | Via Obsidian Sync | ✅ Clean |
+| `07-Resources` → `09-Resources` | Removed empty old folder (Mac's 07-Resources was always empty, .yaml never synced due to Obsidian's default exclusion of non-md file types) | Moved `media-consumption.yaml` via ssh; removed old folder | ✅ Clean |
+
+Zero content loss. Two test-artifact inbox notes deliberately deleted per operator confirmation.
+
+### Mid-Phase-B discovery — group ownership bug on new sync-created folders
+
+When Claude attempted to move `media-consumption.yaml` on office2 from `07-Resources/` to `09-Resources/`, the operation failed with permission denied. Diagnosis revealed that **all 8 newly-renamed folders on office2 had `kgale:kgale` group ownership instead of the expected `kgale:secondbrain`.**
+
+Root cause: Obsidian Sync (`ob sync`) creates new directories as user kgale, and new directories inherit kgale's primary group (`kgale`), not the vault-wide `secondbrain` group. The pre-rename folders had deliberate `secondbrain` ownership (set up during earlier vault cleanup missions), but that pattern was not preserved through the rename operation because the parent `notes/` directory doesn't have the setgid bit.
+
+This would have been a **P1 blocker for WP05 deploy** — felix-admin-capture would have failed to write to the renamed `01-Inbox/` once the post-rename deploy happened. Silent agent write failures in production cron runs.
+
+Operator ran the manual chgrp fix from the kgale shell:
+```bash
+for dir in 01-Inbox 03-Constitution 04-Growth 05-Health 06-Business 07-Finance 08-Journal 09-Resources; do
+  chgrp -R secondbrain "/home/kgale/second-brain/notes/$dir"
+  chmod g+w "/home/kgale/second-brain/notes/$dir"
+done
+chmod 2775 /home/kgale/second-brain/notes/01-Inbox
+```
+
+This unblocked Phase B completion. Filed as #161 for the permanent setgid-root fix.
+
+### Phase C — Operator verification
+
+Operator confirmed all 5 Phase C verification items:
+
+1. ✅ Mac Obsidian sidebar shows clean 10-folder 00–09 sequence, no old folders
+2. ✅ Obsidian sync panel shows active syncing with zero errors
+3. ✅ iPhone Obsidian matches Mac state
+4. ✅ Spot-checked wikilinks resolve correctly
+5. ✅ Test capture lands in `01-Inbox/` with correct frontmatter (required phone config update in addition to Mac config)
+
+Additional useful finding: Obsidian has an "sync all other types" option for non-markdown files which is **disabled by default**. This explains why `media-consumption.yaml` never reached the Mac. Not a bug — a sync-filter feature. Leaving it disabled until issue #160 (media tracking methodology) is resolved.
+
+### New issues filed this morning
+
+- **#158** — P1-bug: Obsidian Sync silent failure office2 → cloud direction (~4–5 day divergence, no alerting)
+- **#159** — P2-infra: Runbook improvement — claude user cannot verify Restic backups via documented method
+- **#160** — P3-candidate: Operator decision on media-consumption.yaml + design pattern concern for agent-created non-markdown vault files
+- **#161** — P1-bug: Obsidian Sync creates new folders with wrong group ownership, breaking agent write access
+
+### WP05 restart preconditions — status check
+
+| Precondition | Status |
+|---|---|
+| Vault state clean across Mac, phone, office2 (10-folder 00–09 sequence) | ✅ Met |
+| felix-admin-capture cron running normally | ✅ Met |
+| `02-Inbox-Processed/` folder exists on Mac and office2 with correct permissions | ✅ Met (created during original T029, permissions verified) |
+| New renamed folders on office2 have `kgale:secondbrain` + group-write | ✅ Met (after operator chgrp fix) |
+| `01-Inbox/` has setgid for secondbrain group inheritance | ✅ Met |
+| Obsidian capture pipeline targets new path (new notes land in 01-Inbox with correct frontmatter) | ✅ Met (operator updated Mac + phone config) |
+| Lane-a branch has all reconciliation commits | ✅ Met (no changes needed since Phase B was mostly vault operations) |
+| Obsidian Sync root cause understood | ⚠️ Unresolved (issue #158 — not a blocker for WP05 restart but should be addressed) |
+
+### Outstanding cleanup items (non-blocking)
+
+- **Vault CLAUDE.md drift** — `~/second-brain/notes/CLAUDE.md` has ~35 stale folder references accumulated across the 8 renames. Not agent-consumed (agents read kg-automation's CLAUDE.md), but operator-visible documentation. Requires operator authorization to edit (second-brain repo).
+- **Frontmatter wikilink in `06-Business/daily-work-priorities.md:15`** — YAML frontmatter wikilink `"[[04-Business/Acquisition/Deal-Criteria]]"` needs update to `"[[06-Business/Acquisition/Deal-Criteria]]"`. One-line change. Requires operator authorization.
+
+### Ready to restart WP05
+
+WP05 is currently in `planned` state. When restarted, the execution path skips T029 (02-Inbox-Processed already exists) and T030 (renames already done on Mac and office2). The restart effectively picks up at T031 (update `paths.json` and `CLAUDE.md.tmpl` in lane-a) and proceeds through T032 (deploy-f026.sh --apply --mode post-rename) and T033 (runlog + WP06 gate).
+
+Before restart, operator should decide whether to:
+- Proceed directly with WP05 restart (preconditions met; all blockers cleared)
+- Investigate issue #158 (silent sync failure) first — not a blocker but the root cause is unresolved
+- Apply the permanent fix from #161 first (setgid on vault root) — prevents recurrence of the group-ownership issue
+
+**Current mission state:** WP01–WP04 approved. WP05 in `planned`, ready for restart. WP06 in `planned`, awaiting WP05 completion.
