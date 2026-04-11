@@ -11,12 +11,12 @@
 
 | ID | Description | WP | Parallel |
 |---|---|---|---|
-| T001 | Audit repo for files requiring migration (complete target list) | WP01 | |
-| T002 | Extend `scripts/vault/paths.json` with all 10 logical names | WP01 | |
-| T003 | Extend `scripts/vault/targets.json` with all migration target entries | WP01 | |
-| T004 | Create `scripts/deploy/deploy-f026.sh` wrapper | WP01 | [P] |
-| T005 | Audit `.kittify/charter/charter.md` for non-`_private/` vault path refs | WP01 | [P] |
-| T006 | Verify WP01 acceptance (resolver, dry-run, wrapper help) | WP01 | |
+| T001 | Audit repo for files requiring migration (complete target list) | WP01 | | [D] |
+| T002 | Extend `scripts/vault/paths.json` with all 10 logical names | WP01 | | [D] |
+| T003 | Extend `scripts/vault/targets.json` with all migration target entries | WP01 | | [D] |
+| T004 | Create `scripts/deploy/deploy-f026.sh` wrapper | WP01 | [D] |
+| T005 | Audit `.kittify/charter/charter.md` for non-`_private/` vault path refs | WP01 | [D] |
+| T006 | Verify WP01 acceptance (resolver, dry-run, wrapper help) | WP01 | | [D] |
 | T007 | Convert OpenClaw agent workspace files to `.tmpl` sources | WP02 | |
 | T008 | Convert `ai-agents/` Claude instruction files to `.tmpl` | WP02 | [P] |
 | T009 | Convert `CLAUDE.md` to `CLAUDE.md.tmpl` (preserve `_private/` boundary) | WP02 | [P] |
@@ -68,12 +68,12 @@
 **Prompt file:** [WP01-registry-extension-and-deploy-wrapper.md](tasks/WP01-registry-extension-and-deploy-wrapper.md)
 
 **Subtasks:**
-- [ ] T001: Audit repo for files requiring migration (complete target list)
-- [ ] T002: Extend `scripts/vault/paths.json` with all 10 logical names
-- [ ] T003: Extend `scripts/vault/targets.json` with all migration target entries
-- [ ] T004: Create `scripts/deploy/deploy-f026.sh` wrapper
-- [ ] T005: Audit `.kittify/charter/charter.md` for non-`_private/` vault path refs
-- [ ] T006: Verify WP01 acceptance (resolver, dry-run, wrapper help)
+- [x] T001: Audit repo for files requiring migration (complete target list)
+- [x] T002: Extend `scripts/vault/paths.json` with all 10 logical names
+- [x] T003: Extend `scripts/vault/targets.json` with all migration target entries
+- [x] T004: Create `scripts/deploy/deploy-f026.sh` wrapper
+- [x] T005: Audit `.kittify/charter/charter.md` for non-`_private/` vault path refs
+- [x] T006: Verify WP01 acceptance (resolver, dry-run, wrapper help)
 
 **Estimated prompt size:** ~420 lines
 
