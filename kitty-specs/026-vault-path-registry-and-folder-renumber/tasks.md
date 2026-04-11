@@ -37,13 +37,13 @@
 | T024 | Verify resolved files byte-match pre-deploy snapshots | WP04 | | [D] |
 | T025 | Re-invoke `felix-admin-capture` and `felix-admin-tasker`, diff vs baseline (NFR-001) | WP04 | | [D] |
 | T026 | Record WP04 fidelity checkpoint + operator authorization gate for WP05 | WP04 | | [D] |
-| T027 | Tier 2 pre-flight (Restic backup verification) | WP05 | |
-| T028 | Pause `felix-admin-capture` cron on office2 + verify paused | WP05 | |
-| T029 | Create `02-Inbox-Processed/` folder on disk | WP05 | |
-| T030 | Rename vault folders via Obsidian UI (one-at-a-time with inter-rename wikilink verification) | WP05 | |
-| T031 | Update `paths.json` and `CLAUDE.md` `_private/` boundary line to new folder names | WP05 | |
-| T032 | Run `deploy-f026.sh --apply --mode post-rename` (deploy + greps + smoke tests + wikilink + cron resume) | WP05 | |
-| T033 | Record WP05 runlog + operator authorization gate for WP06 | WP05 | |
+| T027 | Tier 2 pre-flight (Restic backup verification) | WP05 | | [D] |
+| T028 | Pause `felix-admin-capture` cron on office2 + verify paused | WP05 | | [D] |
+| T029 | Create `02-Inbox-Processed/` folder on disk | WP05 | | [D] |
+| T030 | Rename vault folders via Obsidian UI (one-at-a-time with inter-rename wikilink verification) | WP05 | | [D] |
+| T031 | Update `paths.json` and `CLAUDE.md` `_private/` boundary line to new folder names | WP05 | | [D] |
+| T032 | Run `deploy-f026.sh --apply --mode post-rename` (deploy + greps + smoke tests + wikilink + cron resume) | WP05 | | [D] |
+| T033 | Record WP05 runlog + operator authorization gate for WP06 | WP05 | | [D] |
 | T034 | Execute cross-repo operation in `~/second-brain/` (`.gitignore`, `git rm --cached`, commit, push) | WP06 | |
 | T035 | Verify `_private/` gitignore effectiveness via `git check-ignore` | WP06 | |
 | T036 | Final mission verification — walk through all 10 Success Criteria from `spec.md` | WP06 | |
@@ -158,13 +158,13 @@
 **Prompt file:** [WP05-folder-rename-and-post-rename-deploy.md](tasks/WP05-folder-rename-and-post-rename-deploy.md)
 
 **Subtasks:**
-- [ ] T027: Tier 2 pre-flight (Restic backup verification)
-- [ ] T028: Pause `felix-admin-capture` cron on office2 + verify paused
-- [ ] T029: Create `02-Inbox-Processed/` folder on disk
-- [ ] T030: Rename vault folders via Obsidian UI with inter-rename wikilink verification
-- [ ] T031: Update `paths.json` and `CLAUDE.md` `_private/` boundary line
-- [ ] T032: Run `deploy-f026.sh --apply --mode post-rename`
-- [ ] T033: Record WP05 runlog + operator authorization gate for WP06
+- [x] T027: Tier 2 pre-flight (Restic backup verification)
+- [x] T028: Pause `felix-admin-capture` cron on office2 + verify paused
+- [x] T029: Create `02-Inbox-Processed/` folder on disk
+- [x] T030: Rename vault folders via Obsidian UI with inter-rename wikilink verification
+- [x] T031: Update `paths.json` and `CLAUDE.md` `_private/` boundary line
+- [x] T032: Run `deploy-f026.sh --apply --mode post-rename`
+- [x] T033: Record WP05 runlog + operator authorization gate for WP06
 
 **Estimated prompt size:** ~450 lines
 
