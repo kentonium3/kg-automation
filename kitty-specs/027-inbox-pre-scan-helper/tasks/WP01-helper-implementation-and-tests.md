@@ -33,7 +33,8 @@ subtasks:
 - T005
 - T006
 - T007
-shell_pid: '49934'
+shell_pid: "49934"
+agent: "claude:opus-4-6:python-implementer:implementer"
 history:
 - date: '2026-04-11'
   event: created
@@ -333,3 +334,7 @@ Use `spec-kitty next --agent <your-name> --mission 027-inbox-pre-scan-helper` to
 ```bash
 spec-kitty agent action implement WP01 --mission 027-inbox-pre-scan-helper --agent <tool>:<model>:<profile>:<role>
 ```
+
+## Activity Log
+
+- 2026-04-11T18:25:51Z – claude:opus-4-6:python-implementer:implementer – shell_pid=49934 – Assigned agent via action command
