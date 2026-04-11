@@ -16,13 +16,13 @@ Five work packages totaling 27 subtasks. WP01, WP02, and WP04 are independent an
 
 | ID | Description | WP | Parallel |
 |---|---|---|---|
-| T001 | Create `prescan.py` skeleton with CLI entry point and args | WP01 | |
-| T002 | Implement vault path registry resolver | WP01 | |
-| T003 | Implement InboxFile classification (frontmatter + mtime rules) | WP01 | |
-| T004 | Implement stale-processed archive move logic | WP01 | |
-| T005 | Implement JSON stdout + stderr + daily log file output | WP01 | |
-| T006 | Create test fixture files under `tests/scripts/inbox/fixtures/` | WP01 | [P] |
-| T007 | Write pytest unit tests under `tests/scripts/inbox/test_prescan.py` | WP01 | |
+| T001 | Create `prescan.py` skeleton with CLI entry point and args | WP01 | | [D] |
+| T002 | Implement vault path registry resolver | WP01 | | [D] |
+| T003 | Implement InboxFile classification (frontmatter + mtime rules) | WP01 | | [D] |
+| T004 | Implement stale-processed archive move logic | WP01 | | [D] |
+| T005 | Implement JSON stdout + stderr + daily log file output | WP01 | | [D] |
+| T006 | Create test fixture files under `tests/scripts/inbox/fixtures/` | WP01 | [D] |
+| T007 | Write pytest unit tests under `tests/scripts/inbox/test_prescan.py` | WP01 | | [D] |
 | T008 | Identify which agent workspace file owns "Step 1" | WP02 | |
 | T009 | Update that file with new Step 1 contract | WP02 | |
 | T010 | Verify render through vault path registry deploy (no new markers) | WP02 | |
@@ -56,13 +56,13 @@ Five work packages totaling 27 subtasks. WP01, WP02, and WP04 are independent an
 **Authoritative surface**: `scripts/inbox/`
 
 **Subtasks:**
-- [ ] T001 Create `scripts/inbox/prescan.py` skeleton with CLI entry point, argparse for `--self-check`, module docstring, stdlib imports (WP01)
-- [ ] T002 Implement vault path registry resolver: read `scripts/vault/paths.json`, return absolute paths for `inbox` and `inbox_processed`; fail loud on missing or unreadable registry (WP01)
-- [ ] T003 Implement InboxFile classification per `data-model.md`: PyYAML frontmatter parsing, mtime-based age computation, classification rules (unprocessed / processed-recent / processed-stale / unknown-treated-as-unprocessed) (WP01)
-- [ ] T004 Implement stale-processed archive move: iterate classified files, move `processed-stale` entries to `{{VAULT_INBOX_PROCESSED}}`, collect warnings on destination-exists or permission errors, preserve filenames (WP01)
-- [ ] T005 Implement output layer: JSON `PrescanResult` to stdout, human-readable log lines to stderr, daily append-only log at `/home/claude/second-brain/agents/logs/inbox-prescan-YYYY-MM-DD.md`, and `--self-check` mode that exits early after registry resolution (WP01)
-- [ ] T006 Create 7 test fixture files under `tests/scripts/inbox/fixtures/`: `processed-recent.md`, `processed-stale.md`, `unprocessed.md`, `no-frontmatter.md`, `no-status.md`, `malformed-yaml.md`, `unknown-status.md` (WP01)
-- [ ] T007 Write pytest unit tests under `tests/scripts/inbox/test_prescan.py` covering all FR-001–FR-008 behaviors, edge cases (missing/malformed/unknown status, exactly-7-days boundary, idempotence, `_private/` defense-in-depth), and the `--self-check` mode (WP01)
+- [x] T001 Create `scripts/inbox/prescan.py` skeleton with CLI entry point, argparse for `--self-check`, module docstring, stdlib imports (WP01)
+- [x] T002 Implement vault path registry resolver: read `scripts/vault/paths.json`, return absolute paths for `inbox` and `inbox_processed`; fail loud on missing or unreadable registry (WP01)
+- [x] T003 Implement InboxFile classification per `data-model.md`: PyYAML frontmatter parsing, mtime-based age computation, classification rules (unprocessed / processed-recent / processed-stale / unknown-treated-as-unprocessed) (WP01)
+- [x] T004 Implement stale-processed archive move: iterate classified files, move `processed-stale` entries to `{{VAULT_INBOX_PROCESSED}}`, collect warnings on destination-exists or permission errors, preserve filenames (WP01)
+- [x] T005 Implement output layer: JSON `PrescanResult` to stdout, human-readable log lines to stderr, daily append-only log at `/home/claude/second-brain/agents/logs/inbox-prescan-YYYY-MM-DD.md`, and `--self-check` mode that exits early after registry resolution (WP01)
+- [x] T006 Create 7 test fixture files under `tests/scripts/inbox/fixtures/`: `processed-recent.md`, `processed-stale.md`, `unprocessed.md`, `no-frontmatter.md`, `no-status.md`, `malformed-yaml.md`, `unknown-status.md` (WP01)
+- [x] T007 Write pytest unit tests under `tests/scripts/inbox/test_prescan.py` covering all FR-001–FR-008 behaviors, edge cases (missing/malformed/unknown status, exactly-7-days boundary, idempotence, `_private/` defense-in-depth), and the `--self-check` mode (WP01)
 
 **Parallel opportunities:**
 - T006 (fixture creation) can run in parallel with T001–T005 (implementation) because fixtures are file-only and have no code dependencies. But T007 must run last.
