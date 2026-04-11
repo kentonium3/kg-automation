@@ -14,6 +14,8 @@ subtasks:
 - T008
 - T009
 - T010
+agent: "claude:opus-4-6:implementer:implementer"
+shell_pid: "55000"
 history:
 - date: '2026-04-11'
   event: created
@@ -195,3 +197,7 @@ Branch on the result:
 ```bash
 spec-kitty agent action implement WP02 --mission 027-inbox-pre-scan-helper --agent <tool>:<model>:<profile>:<role>
 ```
+
+## Activity Log
+
+- 2026-04-11T18:59:24Z – claude:opus-4-6:implementer:implementer – shell_pid=55000 – Started implementation via action command

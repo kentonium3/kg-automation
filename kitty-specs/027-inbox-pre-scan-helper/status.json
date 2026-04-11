@@ -1,7 +1,7 @@
 {
-  "event_count": 15,
-  "last_event_id": "01KNYYK82GBDH3K5ZQ32DFKS9J",
-  "materialized_at": "2026-04-11T18:59:16.176601+00:00",
+  "event_count": 17,
+  "last_event_id": "01KNYYKFV9AH232MKA9GZ58X39",
+  "materialized_at": "2026-04-11T18:59:24.137920+00:00",
   "mission_number": "027",
   "mission_slug": "027-inbox-pre-scan-helper",
   "mission_type": "software-dev",
@@ -12,9 +12,9 @@
     "claimed": 0,
     "done": 0,
     "for_review": 0,
-    "in_progress": 0,
+    "in_progress": 1,
     "in_review": 0,
-    "planned": 3
+    "planned": 2
   },
   "work_packages": {
     "WP01": {
@@ -25,11 +25,11 @@
       "last_transition_at": "2026-04-11T18:59:16.176601+00:00"
     },
     "WP02": {
-      "actor": "finalize-tasks",
+      "actor": "claude:opus-4-6:implementer:implementer",
       "force_count": 1,
-      "lane": "planned",
-      "last_event_id": "01KNYWJY01DWM3TM7RMS1Y9XYW",
-      "last_transition_at": "2026-04-11T18:24:08.705862+00:00"
+      "lane": "in_progress",
+      "last_event_id": "01KNYYKFV9AH232MKA9GZ58X39",
+      "last_transition_at": "2026-04-11T18:59:24.137920+00:00"
     },
     "WP03": {
       "actor": "finalize-tasks",
