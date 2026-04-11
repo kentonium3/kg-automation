@@ -33,9 +33,9 @@ Five work packages totaling 27 subtasks. WP01, WP02, and WP04 are independent an
 | T015 | Implement `openclaw cron edit` step for the 4 inbox cron UUIDs | WP03 | |
 | T016 | Implement post-flight smoke test (trigger one cron, verify run history) | WP03 | |
 | T017 | Implement rollback-instruction printer on failure (no auto-rollback) | WP03 | |
-| T018 | Update `service-inventory.json` — add helper component under felix-admin-capture | WP04 | [P] |
-| T019 | Update `service-inventory.md` markdown view to match JSON | WP04 | |
-| T020 | Verify JSON ↔ markdown consistency | WP04 | |
+| T018 | Update `service-inventory.json` — add helper component under felix-admin-capture | WP04 | [D] |
+| T019 | Update `service-inventory.md` markdown view to match JSON | WP04 | | [D] |
+| T020 | Verify JSON ↔ markdown consistency | WP04 | | [D] |
 | T021 | Pre-flight verification (Restic age, office2 up, run `--dry-run`) | WP05 | |
 | T022 | Execute `deploy-149.sh --apply` | WP05 | |
 | T023 | Smoke test empty run: trigger cron, verify IDLE + ≤500 tokens + helper log + no downstream writes | WP05 | |
@@ -140,9 +140,9 @@ Five work packages totaling 27 subtasks. WP01, WP02, and WP04 are independent an
 **Authoritative surface**: `docs/design/architecture/`
 
 **Subtasks:**
-- [ ] T018 Update `docs/design/architecture/data/service-inventory.json`: locate the `felix-admin-capture` service entry, add `inbox-prescan-helper` as a component with owner, language (Python), deploy path (`/home/claude/kg-automation/scripts/inbox/prescan.py`), log path (`/home/claude/second-brain/agents/logs/inbox-prescan-*.md`), and dependency on `scripts/vault/paths.json`. Set the service's `updated_by` to `027-inbox-pre-scan-helper` and `updated_at` to the mission commit date. (WP04)
-- [ ] T019 Update `docs/design/architecture/service-inventory.md` to match the JSON: rewrite the `felix-admin-capture` section to describe the pre-scan-then-act pattern, referencing the helper component, the Step 1 contract, and the cron payload message change (WP04)
-- [ ] T020 Verify JSON ↔ markdown consistency: run any existing doc-sync tooling (`python tooling/scripts/validate_docs.py` or similar), or manually diff the section. Confirm the standing directive from `CLAUDE.md` ("JSON files are authoritative; markdown files are views") is satisfied. (WP04)
+- [x] T018 Update `docs/design/architecture/data/service-inventory.json`: locate the `felix-admin-capture` service entry, add `inbox-prescan-helper` as a component with owner, language (Python), deploy path (`/home/claude/kg-automation/scripts/inbox/prescan.py`), log path (`/home/claude/second-brain/agents/logs/inbox-prescan-*.md`), and dependency on `scripts/vault/paths.json`. Set the service's `updated_by` to `027-inbox-pre-scan-helper` and `updated_at` to the mission commit date. (WP04)
+- [x] T019 Update `docs/design/architecture/service-inventory.md` to match the JSON: rewrite the `felix-admin-capture` section to describe the pre-scan-then-act pattern, referencing the helper component, the Step 1 contract, and the cron payload message change (WP04)
+- [x] T020 Verify JSON ↔ markdown consistency: run any existing doc-sync tooling (`python tooling/scripts/validate_docs.py` or similar), or manually diff the section. Confirm the standing directive from `CLAUDE.md` ("JSON files are authoritative; markdown files are views") is satisfied. (WP04)
 
 **Parallel opportunities:**
 - T018 (JSON) and T019 (markdown) touch different files and can be drafted in parallel, but T020 must run after both.
