@@ -20,8 +20,8 @@ subtasks:
 - T011
 - T012
 - T013
-agent: "claude:opus-4-6:implementer:implementer"
-shell_pid: "41488"
+agent: "claude:opus-4-6:reviewer:reviewer"
+shell_pid: "42489"
 history:
 - date: '2026-04-11T01:15:00Z'
   action: created
@@ -408,3 +408,4 @@ The reviewer should confirm:
 - 2026-04-11T05:21:23Z – claude:opus-4-6:reviewer:reviewer – shell_pid=13742 – Moved to planned
 - 2026-04-11T05:21:40Z – claude:opus-4-6:implementer:implementer – shell_pid=41488 – Started implementation via action command
 - 2026-04-11T05:25:40Z – claude:opus-4-6:implementer:implementer – shell_pid=41488 – WP02 re-run complete: .tmpl sources regenerated against reconciled baseline from #156 Phase 1. Commit 27680fe. Deploy verified byte-identical, office2 hashes match. --force used to bypass spec-kitty #589 lane-branch guard (verified source code changes are all expected WP01/WP02/WP03 outputs + Phase 1 reconciliation + resolver extension, no unexpected drift).
+- 2026-04-11T05:25:51Z – claude:opus-4-6:reviewer:reviewer – shell_pid=42489 – Started review via action command
