@@ -36,13 +36,13 @@ Five work packages totaling 27 subtasks. WP01, WP02, and WP04 are independent an
 | T018 | Update `service-inventory.json` — add helper component under felix-admin-capture | WP04 | [D] |
 | T019 | Update `service-inventory.md` markdown view to match JSON | WP04 | | [D] |
 | T020 | Verify JSON ↔ markdown consistency | WP04 | | [D] |
-| T021 | Pre-flight verification (Restic age, office2 up, run `--dry-run`) | WP05 | |
-| T022 | Execute `deploy-149.sh --apply` | WP05 | |
-| T023 | Smoke test empty run: trigger cron, verify IDLE + ≤500 tokens + helper log + no downstream writes | WP05 | |
-| T024 | Smoke test non-empty run: plant an unprocessed file, trigger cron, verify agent processes correctly | WP05 | |
-| T025 | Smoke test archive: plant a stale processed file, verify archive move on next helper run | WP05 | |
-| T026 | Capture all 10 success criteria evidence into mission close-out artifact | WP05 | |
-| T027 | Draft issue #149 closure comment (posted after /spec-kitty.merge) | WP05 | |
+| T021 | Pre-flight verification (Restic age, office2 up, run `--dry-run`) | WP05 | | [D] |
+| T022 | Execute `deploy-149.sh --apply` | WP05 | | [D] |
+| T023 | Smoke test empty run: trigger cron, verify IDLE + ≤500 tokens + helper log + no downstream writes | WP05 | | [D] |
+| T024 | Smoke test non-empty run: plant an unprocessed file, trigger cron, verify agent processes correctly | WP05 | | [D] |
+| T025 | Smoke test archive: plant a stale processed file, verify archive move on next helper run | WP05 | | [D] |
+| T026 | Capture all 10 success criteria evidence into mission close-out artifact | WP05 | | [D] |
+| T027 | Draft issue #149 closure comment (posted after /spec-kitty.merge) | WP05 | | [D] |
 
 ## Work Packages
 
@@ -165,13 +165,13 @@ Five work packages totaling 27 subtasks. WP01, WP02, and WP04 are independent an
 **Authoritative surface**: `kitty-specs/027-inbox-pre-scan-helper/research/`
 
 **Subtasks:**
-- [ ] T021 Pre-flight verification: confirm Restic backup age ≤24h; confirm `ssh office2-claude` works; run `./scripts/deploy/deploy-149.sh --dry-run` and capture its output into the runlog (WP05)
-- [ ] T022 Execute `./scripts/deploy/deploy-149.sh --apply`; capture full output into the runlog; confirm the wrapper's Step 8 post-flight smoke test passes (WP05)
-- [ ] T023 Empty-run smoke test: confirm the current inbox has 0 unprocessed files; trigger `openclaw cron run <inbox-noon-uuid>`; observe via `openclaw cron runs <uuid>` that the agent replied with IDLE, total token count ≤500; confirm no new Vikunja tasks, no new vault files, no WhatsApp sends happened during the run window; confirm the helper daily log recorded "0 unprocessed, 0 archived" (WP05)
-- [ ] T024 Non-empty smoke test: plant a known unprocessed test file in `01-Inbox/` (e.g., `Inbox 2026-04-11 1200 test.md` with `status: unprocessed`); trigger a cron; verify the agent processed only that file (check agent processing log); verify the file's status toggled to `processed` post-run; verify downstream effects were exactly what the test file's content instructed (WP05)
-- [ ] T025 Archive smoke test: plant a test file with `status: processed` and mtime 8 days ago (via `touch -d`); trigger a cron (or wait for a real one); verify the file moved from `01-Inbox/` to `02-Inbox-Processed/`; verify the helper log recorded the move with correct src/dst/age_days (WP05)
-- [ ] T026 Write mission close-out artifact at `kitty-specs/027-inbox-pre-scan-helper/research/wp05-deploy-verification.md` capturing: deploy timestamp, wrapper output, all 10 success criteria evidence (SC-001 through SC-010) with direct log/run-history quotes, any anomalies observed, any follow-on issues filed (WP05)
-- [ ] T027 Draft the issue #149 closure comment referencing the merge commit hash (to be filled in post-merge), the helper artifact path, the 10 success criteria results, and the "#158 close follow-on" note; store the draft in the close-out artifact so it's posted from the workflow immediately after `/spec-kitty.merge` (WP05)
+- [x] T021 Pre-flight verification: confirm Restic backup age ≤24h; confirm `ssh office2-claude` works; run `./scripts/deploy/deploy-149.sh --dry-run` and capture its output into the runlog (WP05)
+- [x] T022 Execute `./scripts/deploy/deploy-149.sh --apply`; capture full output into the runlog; confirm the wrapper's Step 8 post-flight smoke test passes (WP05)
+- [x] T023 Empty-run smoke test: confirm the current inbox has 0 unprocessed files; trigger `openclaw cron run <inbox-noon-uuid>`; observe via `openclaw cron runs <uuid>` that the agent replied with IDLE, total token count ≤500; confirm no new Vikunja tasks, no new vault files, no WhatsApp sends happened during the run window; confirm the helper daily log recorded "0 unprocessed, 0 archived" (WP05)
+- [x] T024 Non-empty smoke test: plant a known unprocessed test file in `01-Inbox/` (e.g., `Inbox 2026-04-11 1200 test.md` with `status: unprocessed`); trigger a cron; verify the agent processed only that file (check agent processing log); verify the file's status toggled to `processed` post-run; verify downstream effects were exactly what the test file's content instructed (WP05)
+- [x] T025 Archive smoke test: plant a test file with `status: processed` and mtime 8 days ago (via `touch -d`); trigger a cron (or wait for a real one); verify the file moved from `01-Inbox/` to `02-Inbox-Processed/`; verify the helper log recorded the move with correct src/dst/age_days (WP05)
+- [x] T026 Write mission close-out artifact at `kitty-specs/027-inbox-pre-scan-helper/research/wp05-deploy-verification.md` capturing: deploy timestamp, wrapper output, all 10 success criteria evidence (SC-001 through SC-010) with direct log/run-history quotes, any anomalies observed, any follow-on issues filed (WP05)
+- [x] T027 Draft the issue #149 closure comment referencing the merge commit hash (to be filled in post-merge), the helper artifact path, the 10 success criteria results, and the "#158 close follow-on" note; store the draft in the close-out artifact so it's posted from the workflow immediately after `/spec-kitty.merge` (WP05)
 
 **Parallel opportunities:** none (sequential gate)
 
