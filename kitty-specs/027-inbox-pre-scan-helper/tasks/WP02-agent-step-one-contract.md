@@ -202,3 +202,4 @@ spec-kitty agent action implement WP02 --mission 027-inbox-pre-scan-helper --age
 
 - 2026-04-11T18:59:24Z – claude:opus-4-6:implementer:implementer – shell_pid=55000 – Started implementation via action command
 - 2026-04-11T19:02:14Z – claude:opus-4-6:implementer:implementer – shell_pid=55000 – Ready for review: Step 1 now invokes prescan.py, IDLE sentinel on empty, processes unprocessed_paths on non-empty
+- 2026-04-11T19:04:36Z – claude:opus-4-6:implementer:implementer – shell_pid=55000 – Review PASS: Step 1 contract cleanly updated in AGENTS.md.tmpl. All 3 branches (error/empty/non-empty) explicitly covered. Helper path is literal with explanatory comment. No new vault markers. deploy.py dry-run parses cleanly. Committed .md staleness vs updated .tmpl is expected pre-deploy state — WP03 will re-render via deploy.py which is its explicit scope. FR-009/010/011/012 satisfied.
