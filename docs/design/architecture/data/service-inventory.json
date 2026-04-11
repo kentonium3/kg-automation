@@ -1,7 +1,7 @@
 {
   "schema_version": "1.1",
-  "last_updated": "2026-04-10",
-  "updated_by": "#152",
+  "last_updated": "2026-04-11",
+  "updated_by": "027-inbox-pre-scan-helper",
   "services": [
     {
       "name": "vikunja",
@@ -236,7 +236,22 @@
           "purpose": "Obsidian inbox processing — classifies, routes, creates Vikunja tasks",
           "source_in_repo": "scripts/openclaw/agents/felix-admin-capture/",
           "deployed_by": "F008",
-          "autonomy_level": "assisted"
+          "autonomy_level": "assisted",
+          "updated_by": "027-inbox-pre-scan-helper",
+          "updated_at": "2026-04-11",
+          "components": [
+            {
+              "id": "inbox-prescan-helper",
+              "type": "script",
+              "language": "python",
+              "source": "scripts/inbox/prescan.py",
+              "deploy_path": "/home/claude/kg-automation/scripts/inbox/prescan.py",
+              "log_path": "/home/claude/second-brain/agents/logs/inbox-prescan-*.md",
+              "dependencies": ["scripts/vault/paths.json"],
+              "invoked_by": "felix-admin-capture step 1",
+              "introduced_by": "027-inbox-pre-scan-helper"
+            }
+          ]
         },
         "felix-admin-habits": {
           "workspace": "/data/services/openclaw/habits-agent",

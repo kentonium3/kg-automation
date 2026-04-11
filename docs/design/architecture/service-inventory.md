@@ -109,6 +109,22 @@ All services run on office2 unless otherwise noted.
 - **Vikunja projects used**: Inbox (tasks), Research (research requests), Goals (goal declarations)
 - **Privacy boundary**: `04-Growth/_private/` is never accessed
 - **Runbook**: `docs/runbooks/inbox-ops.md`
+- **Updated by**: `027-inbox-pre-scan-helper` (2026-04-11)
+
+#### Components
+
+- **inbox-prescan-helper** (Python script, `scripts/inbox/prescan.py`) — Introduced by mission `027-inbox-pre-scan-helper` (issue #149). Deployed to `/home/claude/kg-automation/scripts/inbox/prescan.py` on office2. The agent's Step 1 runs this helper before any cognitive work, implementing a pre-scan-then-act pattern. The helper:
+  1. Resolves `{{VAULT_INBOX}}` and `{{VAULT_INBOX_PROCESSED}}` via the vault path registry (`scripts/vault/paths.json`)
+  2. Lists files in the inbox with `status: unprocessed`
+  3. Archives stale (>7 day) processed files to `{{VAULT_INBOX_PROCESSED}}`
+  4. Returns a JSON result with unprocessed paths, archived entries, and warnings
+
+  When the helper reports zero unprocessed files, the agent replies with the single token `IDLE` and takes no further action. This bounds empty-run cost to ≤500 tokens and eliminates agent-side inbox scanning.
+
+  - **Language**: Python
+  - **Dependencies**: `scripts/vault/paths.json`
+  - **Invoked by**: `felix-admin-capture` step 1
+  - **Helper log**: `/home/claude/second-brain/agents/logs/inbox-prescan-YYYY-MM-DD.md` (daily rotation, append-only)
 
 ### Felix Admin Habits Agent (F009)
 - **Deployed by**: F009
