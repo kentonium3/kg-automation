@@ -32,11 +32,11 @@
 | T019 | Update `docs/INDEX.md` with new runbook entry | WP03 | [D] |
 | T020 | Update `docs/design/felix-capability-roadmap.md` (registry MVP→full) | WP03 | [D] |
 | T021 | Verify WP03 acceptance (`validate_docs.py`, grep zero hits in docs) | WP03 | | [D] |
-| T022 | Capture pre-deploy baseline (agent outputs, resolved file hashes) | WP04 | |
-| T023 | Run `deploy-f026.sh --apply --mode pre-rename` | WP04 | |
-| T024 | Verify resolved files byte-match pre-deploy snapshots | WP04 | |
-| T025 | Re-invoke `felix-admin-capture` and `felix-admin-tasker`, diff vs baseline (NFR-001) | WP04 | |
-| T026 | Record WP04 fidelity checkpoint + operator authorization gate for WP05 | WP04 | |
+| T022 | Capture pre-deploy baseline (agent outputs, resolved file hashes) | WP04 | | [D] |
+| T023 | Run `deploy-f026.sh --apply --mode pre-rename` | WP04 | | [D] |
+| T024 | Verify resolved files byte-match pre-deploy snapshots | WP04 | | [D] |
+| T025 | Re-invoke `felix-admin-capture` and `felix-admin-tasker`, diff vs baseline (NFR-001) | WP04 | | [D] |
+| T026 | Record WP04 fidelity checkpoint + operator authorization gate for WP05 | WP04 | | [D] |
 | T027 | Tier 2 pre-flight (Restic backup verification) | WP05 | |
 | T028 | Pause `felix-admin-capture` cron on office2 + verify paused | WP05 | |
 | T029 | Create `02-Inbox-Processed/` folder on disk | WP05 | |
@@ -137,11 +137,11 @@
 **Prompt file:** [WP04-pre-rename-deploy-and-fidelity-checkpoint.md](tasks/WP04-pre-rename-deploy-and-fidelity-checkpoint.md)
 
 **Subtasks:**
-- [ ] T022: Capture pre-deploy baseline (agent outputs, resolved file hashes)
-- [ ] T023: Run `deploy-f026.sh --apply --mode pre-rename`
-- [ ] T024: Verify resolved files byte-match pre-deploy snapshots
-- [ ] T025: Re-invoke `felix-admin-capture` and `felix-admin-tasker`, diff vs baseline (NFR-001)
-- [ ] T026: Record WP04 fidelity checkpoint + operator authorization gate for WP05
+- [x] T022: Capture pre-deploy baseline (agent outputs, resolved file hashes)
+- [x] T023: Run `deploy-f026.sh --apply --mode pre-rename`
+- [x] T024: Verify resolved files byte-match pre-deploy snapshots
+- [x] T025: Re-invoke `felix-admin-capture` and `felix-admin-tasker`, diff vs baseline (NFR-001)
+- [x] T026: Record WP04 fidelity checkpoint + operator authorization gate for WP05
 
 **Estimated prompt size:** ~320 lines
 
