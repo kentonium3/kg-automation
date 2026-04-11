@@ -404,3 +404,4 @@ The reviewer should confirm:
 ## Activity Log
 
 - 2026-04-11T02:40:19Z – claude:opus-4-6:implementer:implementer – shell_pid=14489 – Started implementation via action command
+- 2026-04-11T02:56:37Z – claude:opus-4-6:implementer:implementer – shell_pid=14489 – WP03 ready for review: architecture JSON/markdown updated with post-rename folder names and updated_by: #152, runbooks synced, new vault-path-registry-migration runbook created with C4 summary (Levels 1-4) and 10-step playbook, INDEX.md and felix-capability-roadmap.md updated, validate_docs.py passes. --force per spec-kitty #589 (research artifacts under kitty-specs/research/ are legitimate WP audit deliverables)
