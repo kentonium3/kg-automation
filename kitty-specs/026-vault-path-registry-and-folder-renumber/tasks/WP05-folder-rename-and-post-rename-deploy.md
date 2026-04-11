@@ -481,3 +481,4 @@ The reviewer should confirm:
 - 2026-04-11T05:37:53Z – claude:opus-4-6:implementer:implementer – shell_pid=44827 – Started implementation via action command
 - 2026-04-11T06:33:40Z – claude:opus-4-6:implementer:implementer – shell_pid=44827 – Moved to planned
 - 2026-04-11T15:37:48Z – claude:opus-4-6:implementer:implementer – shell_pid=24186 – Started implementation via action command
+- 2026-04-11T16:17:41Z – claude:opus-4-6:implementer:implementer – shell_pid=24186 – WP05 restart PASS: T027-T033 all complete. Deploy applied, smoke test via cron-run path validated end-to-end (4 unprocessed inbox items processed correctly against new 01-Inbox path, routing to 08-Journal and 09-Resources worked, #161 group-ownership fix validated in production). Cron re-enabled. Full runlog in kitty-specs/026-.../research/wp05-risky-window-runlog.md. See #162 for wrapper cron-pause bug discovered during execution.
