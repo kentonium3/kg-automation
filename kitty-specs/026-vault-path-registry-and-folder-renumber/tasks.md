@@ -44,10 +44,10 @@
 | T031 | Update `paths.json` and `CLAUDE.md` `_private/` boundary line to new folder names | WP05 | | [D] |
 | T032 | Run `deploy-f026.sh --apply --mode post-rename` (deploy + greps + smoke tests + wikilink + cron resume) | WP05 | | [D] |
 | T033 | Record WP05 runlog + operator authorization gate for WP06 | WP05 | | [D] |
-| T034 | Execute cross-repo operation in `~/second-brain/` (`.gitignore`, `git rm --cached`, commit, push) | WP06 | |
-| T035 | Verify `_private/` gitignore effectiveness via `git check-ignore` | WP06 | |
-| T036 | Final mission verification — walk through all 10 Success Criteria from `spec.md` | WP06 | |
-| T037 | Close GitHub issue #152 with merge commit reference | WP06 | |
+| T034 | Execute cross-repo operation in `~/second-brain/` (`.gitignore`, `git rm --cached`, commit, push) | WP06 | | [D] |
+| T035 | Verify `_private/` gitignore effectiveness via `git check-ignore` | WP06 | | [D] |
+| T036 | Final mission verification — walk through all 10 Success Criteria from `spec.md` | WP06 | | [D] |
+| T037 | Close GitHub issue #152 with merge commit reference | WP06 | | [D] |
 
 **Total:** 37 subtasks across 6 work packages.
 
@@ -181,10 +181,10 @@
 **Prompt file:** [WP06-cross-repo-and-mission-closeout.md](tasks/WP06-cross-repo-and-mission-closeout.md)
 
 **Subtasks:**
-- [ ] T034: Execute cross-repo operation in `~/second-brain/`
-- [ ] T035: Verify `_private/` gitignore effectiveness via `git check-ignore`
-- [ ] T036: Final mission verification — walk through all 10 Success Criteria
-- [ ] T037: Close GitHub issue #152 with merge commit reference
+- [x] T034: Execute cross-repo operation in `~/second-brain/`
+- [x] T035: Verify `_private/` gitignore effectiveness via `git check-ignore`
+- [x] T036: Final mission verification — walk through all 10 Success Criteria
+- [x] T037: Close GitHub issue #152 with merge commit reference
 
 **Estimated prompt size:** ~280 lines
 
