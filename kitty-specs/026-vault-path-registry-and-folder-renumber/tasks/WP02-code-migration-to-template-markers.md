@@ -20,8 +20,8 @@ subtasks:
 - T011
 - T012
 - T013
-agent: "claude:opus-4-6:reviewer:reviewer"
-shell_pid: "13742"
+agent: "claude:opus-4-6:implementer:implementer"
+shell_pid: "41488"
 history:
 - date: '2026-04-11T01:15:00Z'
   action: created
@@ -406,3 +406,4 @@ The reviewer should confirm:
 - 2026-04-11T02:36:43Z – claude:opus-4-6:reviewer:reviewer – shell_pid=13742 – Started review via action command
 - 2026-04-11T02:39:41Z – claude:opus-4-6:reviewer:reviewer – shell_pid=13742 – Review passed: 6 new .tmpl sources + felix-admin-capture/AGENTS.md.tmpl extended (1-line addition of {{VAULT_CONSTITUTION}}, mission 024 content preserved); 2 scripts refactored (validate-obsidian-sync.sh sources paths.sh, observation/config.py imports get_vault_path); CLAUDE.md skip is correct per WP01 audit (boundary-only). NFR-001 byte-fidelity verified: all 7 targets SHA256-identical pre/post deploy.py --apply. Residue grep accounts for every hit: (a) absolute-path output of marker substitution in resolved outputs, (b) relative-path fragments / prose / JSON examples in those same resolved outputs (inherent resolver limitation, mission 024 precedent), (c) WP01-owned deploy-f026.sh STALE_LITERALS pattern. No unaccounted file. Note for WP05 planning: category-2 residue (relative paths in routing tables / JSON examples / prose) is not resolver-substitutable without breaking NFR-001; WP05 should refine its hygiene grep with documented exclusions OR do in-place sed replacement as part of the rename commit. --force used because only .spec-kitty/ is untracked (spec-kitty #589 known issue, pre-approved per WP02 review prompt).
 - 2026-04-11T05:21:23Z – claude:opus-4-6:reviewer:reviewer – shell_pid=13742 – Moved to planned
+- 2026-04-11T05:21:40Z – claude:opus-4-6:implementer:implementer – shell_pid=41488 – Started implementation via action command
