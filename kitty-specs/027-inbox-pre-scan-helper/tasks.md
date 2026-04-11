@@ -26,13 +26,13 @@ Five work packages totaling 27 subtasks. WP01, WP02, and WP04 are independent an
 | T008 | Identify which agent workspace file owns "Step 1" | WP02 | | [D] |
 | T009 | Update that file with new Step 1 contract | WP02 | | [D] |
 | T010 | Verify render through vault path registry deploy (no new markers) | WP02 | | [D] |
-| T011 | Create `deploy-149.sh` skeleton with `--dry-run` and `--apply` flags | WP03 | |
-| T012 | Implement pre-flight checks (Restic age, office2 reachability, repo file presence) | WP03 | |
-| T013 | Implement helper deploy step (rsync) + `--self-check` verification | WP03 | |
-| T014 | Implement agent workspace deploy step (rsync + diff verify) | WP03 | |
-| T015 | Implement `openclaw cron edit` step for the 4 inbox cron UUIDs | WP03 | |
-| T016 | Implement post-flight smoke test (trigger one cron, verify run history) | WP03 | |
-| T017 | Implement rollback-instruction printer on failure (no auto-rollback) | WP03 | |
+| T011 | Create `deploy-149.sh` skeleton with `--dry-run` and `--apply` flags | WP03 | | [D] |
+| T012 | Implement pre-flight checks (Restic age, office2 reachability, repo file presence) | WP03 | | [D] |
+| T013 | Implement helper deploy step (rsync) + `--self-check` verification | WP03 | | [D] |
+| T014 | Implement agent workspace deploy step (rsync + diff verify) | WP03 | | [D] |
+| T015 | Implement `openclaw cron edit` step for the 4 inbox cron UUIDs | WP03 | | [D] |
+| T016 | Implement post-flight smoke test (trigger one cron, verify run history) | WP03 | | [D] |
+| T017 | Implement rollback-instruction printer on failure (no auto-rollback) | WP03 | | [D] |
 | T018 | Update `service-inventory.json` — add helper component under felix-admin-capture | WP04 | [D] |
 | T019 | Update `service-inventory.md` markdown view to match JSON | WP04 | | [D] |
 | T020 | Verify JSON ↔ markdown consistency | WP04 | | [D] |
@@ -110,13 +110,13 @@ Five work packages totaling 27 subtasks. WP01, WP02, and WP04 are independent an
 **Authoritative surface**: `scripts/deploy/`
 
 **Subtasks:**
-- [ ] T011 Create `scripts/deploy/deploy-149.sh` with shebang, `set -euo pipefail`, `--dry-run` / `--apply` flag parsing, step-numbered output, halt-on-error behavior (WP03)
-- [ ] T012 Implement pre-flight checks: Restic backup age ≤24h (via `restic snapshots --last 1 --json` or equivalent), `ssh office2-claude true` reachability, presence of `scripts/inbox/prescan.py`, `ai-agents/felix-admin-capture/`, and each of the files the wrapper will rsync (WP03)
-- [ ] T013 Implement Step 2 "copy helper": rsync `scripts/inbox/` to `/home/claude/kg-automation/scripts/inbox/` on office2; then Step 3 "verify helper": ssh and run `python3 .../prescan.py --self-check`, halt on non-zero exit or non-matching JSON (WP03)
-- [ ] T014 Implement Step 4 "copy agent workspace": rsync updated `ai-agents/felix-admin-capture/` files to `/home/claude/.openclaw/agents/felix-admin-capture/`; then Step 5 "verify agent workspace": ssh and diff deployed files vs. repo sources; halt on any diff beyond whitespace (WP03)
-- [ ] T015 Implement Step 6 "edit openclaw cron payloads": resolve the 4 inbox cron UUIDs by name via `openclaw cron list --json` (NOT hardcoded), then call `openclaw cron edit <uuid> --message "<new message>"` for each; halt on any edit failure; then Step 7 "verify cron state": `openclaw cron list --json` and confirm all 4 show the new payload message (WP03)
-- [ ] T016 Implement Step 8 "post-flight smoke test": `openclaw cron run <inbox-noon-uuid>` (debug trigger), wait for completion, confirm via `openclaw cron runs <uuid>` that the turn completed successfully; read the helper daily log file and confirm a new entry was written (WP03)
-- [ ] T017 Implement rollback-instruction printer: on any step failure, print a clear manual rollback recipe (which file to restore from git, which cron message to revert to, which ssh commands to run). Never auto-execute rollback. (WP03)
+- [x] T011 Create `scripts/deploy/deploy-149.sh` with shebang, `set -euo pipefail`, `--dry-run` / `--apply` flag parsing, step-numbered output, halt-on-error behavior (WP03)
+- [x] T012 Implement pre-flight checks: Restic backup age ≤24h (via `restic snapshots --last 1 --json` or equivalent), `ssh office2-claude true` reachability, presence of `scripts/inbox/prescan.py`, `ai-agents/felix-admin-capture/`, and each of the files the wrapper will rsync (WP03)
+- [x] T013 Implement Step 2 "copy helper": rsync `scripts/inbox/` to `/home/claude/kg-automation/scripts/inbox/` on office2; then Step 3 "verify helper": ssh and run `python3 .../prescan.py --self-check`, halt on non-zero exit or non-matching JSON (WP03)
+- [x] T014 Implement Step 4 "copy agent workspace": rsync updated `ai-agents/felix-admin-capture/` files to `/home/claude/.openclaw/agents/felix-admin-capture/`; then Step 5 "verify agent workspace": ssh and diff deployed files vs. repo sources; halt on any diff beyond whitespace (WP03)
+- [x] T015 Implement Step 6 "edit openclaw cron payloads": resolve the 4 inbox cron UUIDs by name via `openclaw cron list --json` (NOT hardcoded), then call `openclaw cron edit <uuid> --message "<new message>"` for each; halt on any edit failure; then Step 7 "verify cron state": `openclaw cron list --json` and confirm all 4 show the new payload message (WP03)
+- [x] T016 Implement Step 8 "post-flight smoke test": `openclaw cron run <inbox-noon-uuid>` (debug trigger), wait for completion, confirm via `openclaw cron runs <uuid>` that the turn completed successfully; read the helper daily log file and confirm a new entry was written (WP03)
+- [x] T017 Implement rollback-instruction printer: on any step failure, print a clear manual rollback recipe (which file to restore from git, which cron message to revert to, which ssh commands to run). Never auto-execute rollback. (WP03)
 
 **Parallel opportunities:** none (each step depends on the previous)
 
