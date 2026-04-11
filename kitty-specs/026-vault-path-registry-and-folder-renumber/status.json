@@ -1,12 +1,12 @@
 {
-  "event_count": 24,
-  "last_event_id": "01KNXBNJ8J8GT4ZRFHVDPA9CK9",
-  "materialized_at": "2026-04-11T04:09:14.770183+00:00",
+  "event_count": 25,
+  "last_event_id": "01KNXFSNDJWAEJ9MVNVRBD22SH",
+  "materialized_at": "2026-04-11T05:21:23.378597+00:00",
   "mission_number": "026",
   "mission_slug": "026-vault-path-registry-and-folder-renumber",
   "mission_type": "software-dev",
   "summary": {
-    "approved": 3,
+    "approved": 2,
     "blocked": 0,
     "canceled": 0,
     "claimed": 0,
@@ -14,7 +14,7 @@
     "for_review": 0,
     "in_progress": 0,
     "in_review": 0,
-    "planned": 3
+    "planned": 4
   },
   "work_packages": {
     "WP01": {
@@ -27,9 +27,9 @@
     "WP02": {
       "actor": "user",
       "force_count": 4,
-      "lane": "approved",
-      "last_event_id": "01KNX6HJXZJ85JHJG60XQT3B2E",
-      "last_transition_at": "2026-04-11T02:39:41.503241+00:00"
+      "lane": "planned",
+      "last_event_id": "01KNXFSNDJWAEJ9MVNVRBD22SH",
+      "last_transition_at": "2026-04-11T05:21:23.378597+00:00"
     },
     "WP03": {
       "actor": "user",
