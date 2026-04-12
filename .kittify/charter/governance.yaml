@@ -23,10 +23,17 @@ doctrine:
   selected_paradigms:
   - c4-incremental-detail-modeling
   selected_directives:
+  - DIRECTIVE_001
+  - DIRECTIVE_003
+  - DIRECTIVE_010
+  - DIRECTIVE_024
+  - DIRECTIVE_031
+  - DIRECTIVE_033
   - DIRECTIVE_034
   available_tools:
   - git
   - python
   - spec-kitty
+  - pytest
   template_set: software-dev-default
 enforcement: {}
