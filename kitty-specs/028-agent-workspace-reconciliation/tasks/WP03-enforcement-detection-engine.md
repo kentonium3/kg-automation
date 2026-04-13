@@ -13,6 +13,8 @@ subtasks:
 - T010
 - T011
 - T012
+agent: "claude:opus-4-6:implementer:implementer"
+shell_pid: "87484"
 history:
 - date: '2026-04-13'
   action: created
@@ -248,3 +250,7 @@ Additionally, the script checks factory-default files: if a file's current hash 
 - Check that `None` hash (missing file) is treated as a change from baseline
 - Ensure tests cover the factory-default transition case (was default, now customized)
 - Confirm no SSH calls leak into unit tests
+
+## Activity Log
+
+- 2026-04-13T18:21:32Z – claude:opus-4-6:implementer:implementer – shell_pid=87484 – Started implementation via action command
