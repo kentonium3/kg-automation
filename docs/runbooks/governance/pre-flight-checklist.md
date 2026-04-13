@@ -33,7 +33,10 @@ Complete ALL steps before executing the change:
 
 ## Tier 2 Checklist (Lighter — Mandatory for Application/State changes)
 
-- [ ] **1. Confirm recent backup exists** — verify a Restic snapshot exists within the last 24 hours. If not, trigger one before proceeding: `ssh office2-claude 'restic snapshots --latest 1'`. If the latest snapshot is older than 24 hours, run a backup first.
+- [ ] **1. Confirm recent backup exists** — verify a Restic backup ran within the last 24 hours. The `claude` user cannot run `restic snapshots` directly (snapshot files are `root:root` mode 400). Use one of these methods instead:
+  - **Backup log** (preferred): `ssh office2-claude 'tail -5 /data/services/backup/logs/backup-$(date +%Y-%m-%d).log'` — look for "Backup complete" and a snapshot count.
+  - **Directory mtime**: `ssh office2-claude 'ls -laht /mnt/backups/restic-repo/snapshots/ | head -3'` — most recent file's mtime confirms when the last backup ran.
+  - Deploy scripts accept `--backup-confirmed` as an operator attestation flag after manual verification.
 
 - [ ] **2. Note affected service's health-check endpoint** — from `service-inventory.json`, record the service's `health_check.endpoint` and `health_check.expected`.
 
