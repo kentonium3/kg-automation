@@ -190,3 +190,5 @@ This is the integration gate WP required by the charter. It exercises the real e
 - 2026-04-13T19:14:26Z – claude:opus-4-6:implementer:implementer – shell_pid=857 – Started implementation via action command
 - 2026-04-13T19:17:58Z – claude:opus-4-6:implementer:implementer – shell_pid=857 – Cycle 2: zero-drift gate, repo sync, integration evidence committed
 - 2026-04-13T19:18:21Z – codex:gpt-4o:reviewer:reviewer – shell_pid=1967 – Started review via action command
+- 2026-04-13T19:21:29Z – codex:gpt-4o:reviewer:reviewer – shell_pid=1967 – Moved to planned
+- 2026-04-13T19:21:49Z – codex:gpt-4o:reviewer:reviewer – shell_pid=1967 – Moved to planned
