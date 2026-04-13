@@ -18,13 +18,15 @@
       "repo_path": "scripts/openclaw/agents/main",
       "files": {
         "AGENTS.md": {
-          "sha256": "bbd2866d407f77aa...",
+          "repo_sha256": "bbd2866d407f77aa...",
+          "office2_sha256": "bbd2866d407f77aa...",
           "lines": 258,
           "tracked": true,
           "factory_default": false
         },
         "TOOLS.md": {
-          "sha256": "78f3e26b8625ea28...",
+          "repo_sha256": "78f3e26b8625ea28...",
+          "office2_sha256": "78f3e26b8625ea28...",
           "lines": 40,
           "tracked": true,
           "factory_default": true
@@ -45,7 +47,8 @@
 | `agents.*.workspace_path` | string | Absolute path to workspace on office2 |
 | `agents.*.repo_path` | string | Relative path to repo directory (from repo root) |
 | `agents.*.files` | object | Keyed by filename (e.g., `AGENTS.md`) |
-| `agents.*.files.*.sha256` | string | Full SHA256 hash of the reconciled file |
+| `agents.*.files.*.repo_sha256` | string | SHA256 hash of the repo file at last reconciliation |
+| `agents.*.files.*.office2_sha256` | string | SHA256 hash of the office2 file at last reconciliation |
 | `agents.*.files.*.lines` | integer | Line count at reconciliation time |
 | `agents.*.files.*.tracked` | boolean | Whether this file is tracked in the repo |
 | `agents.*.files.*.factory_default` | boolean | Whether this file currently matches a known factory baseline hash |
@@ -54,7 +57,8 @@
 
 - Every agent in `openclaw.json` must have an entry in `agents`
 - Every workspace file on office2 must have an entry in `files`
-- `sha256` must match both the repo file and the office2 file at generation time (zero-drift invariant)
+- `repo_sha256` must match `office2_sha256` at generation time (zero-drift invariant)
+- Both hashes are stored separately to support three-way diff: enforcement compares current repo hash and current office2 hash against their respective baseline values to determine which side changed
 - `tracked: false` is only valid when `factory_default: true` (untracked customized files are a policy violation)
 
 ## Entity: Factory Baselines
@@ -97,7 +101,7 @@
 
 ```json
 {
-  "enforcement_mode": "notify",
+  "enforcement_mode": "last-author-wins",
   "agents": {
     "main": {
       "workspace_path": "/data/services/openclaw/data",
@@ -123,7 +127,7 @@
 
 | Field | Type | Description |
 |---|---|---|
-| `enforcement_mode` | enum: `self-heal`, `notify` | Controls whether drift triggers auto-remediation or notification only. Set based on R4 research outcome. |
+| `enforcement_mode` | enum: `last-author-wins`, `notify-only` | Controls whether drift triggers auto-remediation (three-way diff, last author wins) or notification only. Default: `last-author-wins`. |
 | `agents` | object | Agent-to-workspace mapping (mirrors baseline manifest structure) |
 | `notification.channel` | string | Delivery channel for alerts (`whatsapp`) |
 | `notification.openclaw_agent` | string | Which OpenClaw agent sends the notification |
@@ -140,8 +144,13 @@
 File lifecycle:
   factory-default (untracked) → customized (detected) → captured-to-repo (tracked) → monitored (enforcement)
 
-Enforcement modes:
-  R4 research pending → "notify" (safe default)
-  R4 confirms read-only → "self-heal" (auto-deploy repo→office2)
-  R4 finds runtime writes → stays "notify" (defer self-heal to follow-up)
+Enforcement actions (last-author-wins mode):
+  repo changed, office2 unchanged → auto-deploy repo→office2
+  office2 changed, repo unchanged → auto-capture office2→repo + commit
+  both changed → conflict → file issue + WhatsApp notify
+  neither changed → no action
+
+Factory-default transition:
+  file hash matches factory baseline → untracked (no alerts)
+  file hash diverges from factory baseline → file issue + WhatsApp notify → operator captures to repo → becomes tracked
 ```

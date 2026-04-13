@@ -74,29 +74,36 @@
 
 ## R4: OpenClaw workspace file lifecycle (RESEARCH GATE — blocks self-heal decision)
 
-**Decision**: DEFERRED TO IMPLEMENTATION PHASE. Must be researched before enforcement behavior is finalized.
+**Decision**: RESOLVED. OpenClaw workspace files are read-write from multiple authors. Enforcement must use "last author edits win" strategy with three-way diff.
 
 **Question**: Does OpenClaw write to workspace files (`SOUL.md`, `TOOLS.md`, `USER.md`, `IDENTITY.md`, `AGENTS.md`) at runtime, or are they operator-managed config files that OpenClaw reads but never modifies?
 
-**What we know**:
-- `HEARTBEAT.md` is explicitly a runtime-written file (excluded from tracking)
-- `BOOTSTRAP.md` is a transient birth-certificate file (deleted after first run)
-- `IDENTITY.md` template says "Fill this in during your first conversation. Make it yours." — suggesting agent self-edit is expected
-- The 5 core files appear to function as config: agents read them at session start for identity, standing orders, tools, and user context
-- No evidence of runtime writes to these files observed in the current data (hash stability across days suggests no background mutation)
+**Answer (from OpenClaw documentation, 2026-04-13)**:
 
-**What we don't know**:
-- Whether OpenClaw has a built-in mechanism for agents to self-modify workspace files
-- Whether OpenClaw updates these files during version upgrades
-- Whether skills can write to workspace files
-- Official OpenClaw documentation on workspace file lifecycle
+OpenClaw agent files are populated through three mechanisms:
 
-**Impact on enforcement design**:
-- If files are read-only config → repo-authoritative self-heal is safe
-- If OpenClaw writes to them → need merge strategy or notify-only for those files
-- Research should check OpenClaw docs and/or test with a controlled modification
+1. **Initial bootstrapping (automatic/guided)**: On first run, `BOOTSTRAP.md` initiates a one-time setup ritual (guided Q&A). The system writes answers to `IDENTITY.md`, `USER.md`, and `SOUL.md`. `BOOTSTRAP.md` is then deleted.
+2. **Manual edits (direct control)**: Operator opens files in a text editor to fine-tune instructions. This is the primary maintenance path for `AGENTS.md` and `TOOLS.md`.
+3. **Organic evolution (autonomous updates)**: As the agent interacts, it can analyze interaction history and suggest or perform updates to workspace files to better reflect the user's working style and the agent's evolving persona.
 
-**Approach**: First WP should include OpenClaw docs research + a controlled test (modify a file on office2, observe if OpenClaw reverts/modifies it). Enforcement behavior is gated on this finding.
+**File priority**: `AGENTS.md` (operating manual) takes priority over `SOUL.md` if there are conflicting instructions.
+
+**Critical implication**: Because agents can autonomously update their own files (mechanism 3), **repo-authoritative self-heal is NOT safe**. An auto-deploy from repo would overwrite legitimate agent evolution. The enforcement mechanism must determine *which side changed last* and act accordingly.
+
+**Enforcement strategy — "last author edits win" via three-way diff**:
+
+The baseline manifest records the reconciled hash for each file. The enforcement script compares current hashes on both sides against the baseline:
+
+| Repo vs baseline | Office2 vs baseline | Interpretation | Action |
+|---|---|---|---|
+| Changed | Unchanged | Repo was last author (mission commit, manual edit) | Auto-deploy repo→office2 |
+| Unchanged | Changed | Office2 was last author (agent evolution, manual edit, bootstrap) | Auto-capture office2→repo + commit |
+| Changed | Changed | Both sides edited since last sync | Conflict → file issue + WhatsApp notify |
+| Unchanged | Unchanged | No drift | No action |
+
+**Remaining risk with auto-capture (office2→repo)**: Committing content that an agent autonomously generated requires trust that the content is safe to commit. For this mission, auto-capture will commit with a `chore: drift-reconcile` prefix so changes are auditable. If the content is problematic, `git revert` is the recovery path.
+
+**OpenClaw docs also recommend**: Git-versioning the workspace folder to track changes to agent identity over time. This aligns with our repo-as-source-of-truth approach.
 
 ## R5: Existing deploy infrastructure
 

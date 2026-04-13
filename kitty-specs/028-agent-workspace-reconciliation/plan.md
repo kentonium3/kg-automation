@@ -91,14 +91,20 @@ No charter violations to justify.
 
 ## Design Decisions
 
-### D1: Enforcement behavior gated on R4 research
+### D1: Enforcement uses "last author edits win" via three-way diff
 
-The enforcement script's response to detected drift depends on whether OpenClaw writes to workspace files at runtime:
+R4 research resolved: OpenClaw agents can autonomously update their own workspace files ("organic evolution"). This means repo-authoritative self-heal is NOT safe — it would overwrite legitimate agent evolution.
 
-- **If read-only config** (expected): enforcement auto-deploys repo→office2 on drift (self-heal). Only files that match factory baselines or exhibit bidirectional conflict trigger notifications.
-- **If OpenClaw writes**: enforcement detects drift and sends WhatsApp notification + files GitHub issue. No auto-remediation. Self-healing deferred to follow-up.
+The enforcement script uses a three-way diff against the baseline manifest:
 
-The enforcement script will be designed with both code paths. The R4 research outcome selects which path is active via config.
+| Repo vs baseline | Office2 vs baseline | Action |
+|---|---|---|
+| Changed | Unchanged | Auto-deploy repo→office2 (repo was last author) |
+| Unchanged | Changed | Auto-capture office2→repo + commit (office2 was last author) |
+| Changed | Changed | Conflict → file issue + WhatsApp notify (both edited) |
+| Unchanged | Unchanged | No action |
+
+Auto-capture commits use `chore: drift-reconcile` prefix for auditability. `git revert` is the recovery path if auto-captured content is problematic.
 
 ### D2: Notification mechanism
 
@@ -126,16 +132,16 @@ The mapping between repo directory names and office2 workspace paths is not deri
 
 ## Phased Implementation Strategy
 
-### Phase A: Research + Reconciliation (WPs 1-2)
+### Phase A: Reconciliation (WPs 1-2)
 
-1. **R4 research**: Investigate OpenClaw workspace file lifecycle via docs + controlled test
-2. **One-time reconciliation**: Capture office2→repo files, deploy repo→office2 files, retire main-patches, record baseline manifest
+1. **One-time reconciliation**: Capture office2→repo files (main agent 3 files, capture AGENTS.md), retire main-patches, commit baseline
+2. **Baseline manifest + factory baselines**: Generate machine-readable JSON records of all tracked file hashes and known factory-default hashes
 
 ### Phase B: Enforcement (WPs 3-4)
 
-3. **Enforcement script**: Python script with drift detection, factory-default awareness, notification via OpenClaw CLI
-4. **Deploy + integration verification**: Deploy enforcement to office2 cron, deploy reconciled tasker files, verify end-to-end
+3. **Enforcement script**: Python script with three-way diff detection, factory-default awareness, last-author-wins auto-remediation, conflict notification via OpenClaw CLI + GitHub issue creation
+4. **Deploy + integration verification**: Deploy enforcement cron to office2, deploy reconciled tasker files repo→office2, verify end-to-end with controlled drift test
 
 ### Phase C: Documentation (WP 5)
 
-5. **Runbook + policy**: Document reconciliation process, factory-default lifecycle policy, enforcement mechanism
+5. **Runbook + policy**: Document reconciliation process, factory-default lifecycle policy, enforcement mechanism, and the last-author-wins strategy
