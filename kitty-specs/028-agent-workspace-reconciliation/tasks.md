@@ -32,10 +32,10 @@
 | T021 | Install drift-check.py + cron job on office2 | WP05 | | [D] |
 | T022 | Post-reconciliation zero-drift verification (hash comparison) | WP05 | | [D] |
 | T023 | Controlled drift test (introduce change, verify detection + action) | WP05 | | [D] |
-| T024 | Write runbook: agent-workspace-reconciliation.md | WP06 | |
-| T025 | Document factory-default lifecycle policy in runbook | WP06 | |
-| T026 | Document last-author-wins enforcement strategy in runbook | WP06 | |
-| T027 | Update docs/INDEX.md with new runbook entry | WP06 | |
+| T024 | Write runbook: agent-workspace-reconciliation.md | WP06 | | [D] |
+| T025 | Document factory-default lifecycle policy in runbook | WP06 | | [D] |
+| T026 | Document last-author-wins enforcement strategy in runbook | WP06 | | [D] |
+| T027 | Update docs/INDEX.md with new runbook entry | WP06 | | [D] |
 
 ## Work Packages
 
@@ -170,10 +170,10 @@
 **Estimated prompt size**: ~300 lines
 **Prompt**: [WP06-runbook-and-documentation.md](tasks/WP06-runbook-and-documentation.md)
 
-- [ ] T024 Write runbook: agent-workspace-reconciliation.md (WP06)
-- [ ] T025 Document factory-default lifecycle policy in runbook (WP06)
-- [ ] T026 Document last-author-wins enforcement strategy in runbook (WP06)
-- [ ] T027 Update docs/INDEX.md with new runbook entry (WP06)
+- [x] T024 Write runbook: agent-workspace-reconciliation.md (WP06)
+- [x] T025 Document factory-default lifecycle policy in runbook (WP06)
+- [x] T026 Document last-author-wins enforcement strategy in runbook (WP06)
+- [x] T027 Update docs/INDEX.md with new runbook entry (WP06)
 
 **Implementation sketch**:
 1. Write `docs/runbooks/agent-workspace-reconciliation.md` covering: what the enforcement script does, how to run it manually, how the three-way diff works, how to add a new agent, how to handle conflicts
