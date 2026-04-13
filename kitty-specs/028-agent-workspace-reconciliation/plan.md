@@ -1,108 +1,141 @@
-# Implementation Plan: [FEATURE]
-*Path: [templates/plan-template.md](templates/plan-template.md)*
+# Implementation Plan: Agent Workspace Reconciliation
 
-
-**Branch**: `[###-feature-name]` | **Date**: [DATE] | **Spec**: [link]
-**Input**: Feature specification from `/kitty-specs/[###-feature-name]/spec.md`
-
-**Note**: This template is filled in by the `/spec-kitty.plan` command. See `src/specify_cli/missions/software-dev/command-templates/plan.md` for the execution workflow.
-
-The planner will not begin until all planning questions have been answered—capture those answers in this document before progressing to later phases.
+**Branch**: `main` | **Date**: 2026-04-13 | **Spec**: [spec.md](spec.md)
+**Input**: Feature specification from `kitty-specs/028-agent-workspace-reconciliation/spec.md`
+**Source issue**: [#166](https://github.com/kentonium3/kg-automation/issues/166)
 
 ## Summary
 
-[Extract from feature spec: primary requirement + technical approach from research]
+Reconcile all OpenClaw agent workspace files between the kg-automation repo and office2, establishing the repo as the single source of truth. Three workstreams: (1) one-time bidirectional reconciliation based on fresh live probe data, (2) main agent single-file migration retiring the `main-patches/` overlay pattern, and (3) cron-based drift enforcement with behavior gated on OpenClaw workspace file lifecycle research — self-heal if files are operator-managed read-only config, detect+notify if OpenClaw writes to them at runtime.
 
 ## Technical Context
 
-<!--
-  ACTION REQUIRED: Replace the content in this section with the technical details
-  for the project. The structure here is presented in advisory capacity to guide
-  the iteration process.
--->
-
-**Language/Version**: [e.g., Python 3.11, Swift 5.9, Rust 1.75 or NEEDS CLARIFICATION]  
-**Primary Dependencies**: [e.g., FastAPI, UIKit, LLVM or NEEDS CLARIFICATION]  
-**Storage**: [if applicable, e.g., PostgreSQL, CoreData, files or N/A]  
-**Testing**: [e.g., pytest, XCTest, cargo test or NEEDS CLARIFICATION]  
-**Target Platform**: [e.g., Linux server, iOS 15+, WASM or NEEDS CLARIFICATION]
-**Project Type**: [single/web/mobile - determines source structure]  
-**Performance Goals**: [domain-specific, e.g., 1000 req/s, 10k lines/sec, 60 fps or NEEDS CLARIFICATION]  
-**Constraints**: [domain-specific, e.g., <200ms p95, <100MB memory, offline-capable or NEEDS CLARIFICATION]  
-**Scale/Scope**: [domain-specific, e.g., 10k users, 1M LOC, 50 screens or NEEDS CLARIFICATION]
+**Language/Version**: Python 3.11+ (enforcement script), Bash (deploy/reconciliation wrappers)
+**Primary Dependencies**: OpenClaw CLI (`openclaw agent --deliver`), SSH/SCP, `sha256sum`, `jq`
+**Storage**: JSON baseline manifest at `scripts/openclaw/agents/baseline-manifest.json`
+**Testing**: pytest for enforcement script logic; live integration verification against office2
+**Target Platform**: office2 (Ubuntu 24.04 LTS) for enforcement cron; Mac for repo-side tooling
+**Project Type**: single — scripts under `scripts/openclaw/` and `scripts/deploy/`
+**Constraints**: Tier 2 pre-flight for deploy; `claude` user only; no sudo
 
 ## Charter Check
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on charter file]
+| Charter requirement | Status | Notes |
+|---|---|---|
+| DIRECTIVE_001 (Architectural Integrity) | Pass | Clear separation: reconciliation script, enforcement script, deploy wrapper, baseline manifest |
+| DIRECTIVE_003 (Decision Documentation) | Pass | R4 research gate documents the self-heal vs notify decision with rationale |
+| DIRECTIVE_010 (Specification Fidelity) | Pass | Plan maps directly to FR-001 through FR-012 |
+| DIRECTIVE_024 (Locality of Change) | Pass | Changes confined to `scripts/openclaw/`, `scripts/deploy/`, `docs/runbooks/` |
+| DIRECTIVE_031 (Context-Aware Design) | Pass | Live probes already conducted; R4 research gate requires further probing before enforcement design |
+| DIRECTIVE_033 (Targeted Staging) | Pass | Each WP has clear file ownership boundaries |
+| DIRECTIVE_034 (Test-First) | Pass | Integration verification WP is explicit; enforcement script gets pytest coverage |
+| Deploy script required | Pass | Deploy wrapper at `scripts/deploy/deploy-028.sh` |
+| Tier 2 pre-flight for deploy | Pass | Deploy step requires `--backup-confirmed` attestation |
+| Integration gate (WP05-equivalent) | Pass | Dedicated integration/verification WP planned |
+| Doc sync | Pass | Runbook + architecture doc updates included |
+| Sparse-checkout recovery post-merge | Pass | Known bug workaround will be applied |
 
 ## Project Structure
 
 ### Documentation (this feature)
 
 ```
-kitty-specs/[###-feature]/
-├── plan.md              # This file (/spec-kitty.plan command output)
-├── research.md          # Phase 0 output (/spec-kitty.plan command)
-├── data-model.md        # Phase 1 output (/spec-kitty.plan command)
-├── quickstart.md        # Phase 1 output (/spec-kitty.plan command)
-├── contracts/           # Phase 1 output (/spec-kitty.plan command)
-└── tasks.md             # Phase 2 output (/spec-kitty.tasks command - NOT created by /spec-kitty.plan)
+kitty-specs/028-agent-workspace-reconciliation/
+├── spec.md              # Feature specification
+├── plan.md              # This file
+├── research.md          # Phase 0 research (drift probe, notification channels, OpenClaw lifecycle)
+├── data-model.md        # Baseline manifest schema
+├── checklists/
+│   └── requirements.md  # Specification quality checklist
+└── tasks/
+    └── README.md        # Task index (generated by /spec-kitty.tasks)
 ```
 
 ### Source Code (repository root)
-<!--
-  ACTION REQUIRED: Replace the placeholder tree below with the concrete layout
-  for this feature. Delete unused options and expand the chosen structure with
-  real paths (e.g., apps/admin, packages/something). The delivered plan must
-  not include Option labels.
--->
 
 ```
-# [REMOVE IF UNUSED] Option 1: Single project (DEFAULT)
-src/
-├── models/
-├── services/
-├── cli/
-└── lib/
+scripts/
+├── openclaw/
+│   ├── agents/
+│   │   ├── main/                    # Main agent workspace files (3 new captures + 2 existing)
+│   │   │   ├── AGENTS.md
+│   │   │   ├── SOUL.md
+│   │   │   ├── TOOLS.md
+│   │   │   ├── USER.md
+│   │   │   └── IDENTITY.md
+│   │   ├── felix-admin-capture/     # Updated AGENTS.md (capture from office2)
+│   │   ├── felix-admin-habits/      # Already reconciled
+│   │   ├── felix-admin-escalation/  # Already reconciled
+│   │   ├── felix-admin-tasker/      # Repo authoritative (deploy to office2)
+│   │   ├── main-patches/            # RETIRED — moved to archive or deleted
+│   │   ├── baseline-manifest.json   # Post-reconciliation hash manifest
+│   │   └── factory-baselines.json   # Known factory-default template hashes
+│   └── enforcement/
+│       ├── drift-check.py           # Enforcement script (runs on office2 via cron)
+│       └── drift-check-config.json  # Agent mapping + notification config
+├── deploy/
+│   └── deploy-028.sh               # Deploy wrapper (reconciliation + enforcement install)
 
-tests/
-├── contract/
-├── integration/
-└── unit/
-
-# [REMOVE IF UNUSED] Option 2: Web application (when "frontend" + "backend" detected)
-backend/
-├── src/
-│   ├── models/
-│   ├── services/
-│   └── api/
-└── tests/
-
-frontend/
-├── src/
-│   ├── components/
-│   ├── pages/
-│   └── services/
-└── tests/
-
-# [REMOVE IF UNUSED] Option 3: Mobile + API (when "iOS/Android" detected)
-api/
-└── [same as backend above]
-
-ios/ or android/
-└── [platform-specific structure: feature modules, UI flows, platform tests]
+docs/
+└── runbooks/
+    └── agent-workspace-reconciliation.md  # Reconciliation process + factory-default lifecycle policy
 ```
 
-**Structure Decision**: [Document the selected structure and reference the real
-directories captured above]
+**Structure Decision**: Enforcement script lives under `scripts/openclaw/enforcement/` — it's an OpenClaw-adjacent operational tool. Deploy wrapper follows established `scripts/deploy/deploy-f{NNN}.sh` pattern. Baseline manifest and factory baselines are JSON (machine-readable authoritative records per charter directive 4).
 
 ## Complexity Tracking
 
-*Fill ONLY if Charter Check has violations that must be justified*
+No charter violations to justify.
 
-| Violation | Why Needed | Simpler Alternative Rejected Because |
-|-----------|------------|-------------------------------------|
-| [e.g., 4th project] | [current need] | [why 3 projects insufficient] |
-| [e.g., Repository pattern] | [specific problem] | [why direct DB access insufficient] |
+## Design Decisions
+
+### D1: Enforcement behavior gated on R4 research
+
+The enforcement script's response to detected drift depends on whether OpenClaw writes to workspace files at runtime:
+
+- **If read-only config** (expected): enforcement auto-deploys repo→office2 on drift (self-heal). Only files that match factory baselines or exhibit bidirectional conflict trigger notifications.
+- **If OpenClaw writes**: enforcement detects drift and sends WhatsApp notification + files GitHub issue. No auto-remediation. Self-healing deferred to follow-up.
+
+The enforcement script will be designed with both code paths. The R4 research outcome selects which path is active via config.
+
+### D2: Notification mechanism
+
+WhatsApp via `openclaw agent --deliver --channel whatsapp --to <kent-number> --message "<alert>"`. This is the established pattern for agent→Kent messaging. No new service provisioning needed.
+
+For issue filing on unreconcilable drift or factory-default threshold crossing: `gh issue create` from office2 (gh CLI available).
+
+### D3: Main agent file management
+
+Option A confirmed: capture merged files from office2, commit as single files under `scripts/openclaw/agents/main/`. The `main-patches/` directory is retired (contents are already reflected in the merged AGENTS.md on office2).
+
+### D4: Agent-to-workspace mapping
+
+The mapping between repo directory names and office2 workspace paths is not derivable algorithmically. The enforcement config stores this mapping explicitly, sourced from `openclaw.json` during setup. See research.md R7 for the current mapping.
+
+### D5: Factory-default lifecycle policy
+
+**Trigger**: A file's SHA256 hash diverges from the known factory baseline hash recorded in `factory-baselines.json`.
+
+**Response**: File an issue labeled `drift-alert` + WhatsApp notification. The issue body includes the agent name, file name, the new hash, and a diff summary.
+
+**Ownership**: The enforcement cron script owns detection. Remediation (capturing the customized file to repo) is manual until automated capture is proven safe.
+
+**Generalization**: The factory-baselines.json format supports multiple apps, not just OpenClaw. Each entry keys on `{app}/{agent}/{file}` with the factory hash value.
+
+## Phased Implementation Strategy
+
+### Phase A: Research + Reconciliation (WPs 1-2)
+
+1. **R4 research**: Investigate OpenClaw workspace file lifecycle via docs + controlled test
+2. **One-time reconciliation**: Capture office2→repo files, deploy repo→office2 files, retire main-patches, record baseline manifest
+
+### Phase B: Enforcement (WPs 3-4)
+
+3. **Enforcement script**: Python script with drift detection, factory-default awareness, notification via OpenClaw CLI
+4. **Deploy + integration verification**: Deploy enforcement to office2 cron, deploy reconciled tasker files, verify end-to-end
+
+### Phase C: Documentation (WP 5)
+
+5. **Runbook + policy**: Document reconciliation process, factory-default lifecycle policy, enforcement mechanism
