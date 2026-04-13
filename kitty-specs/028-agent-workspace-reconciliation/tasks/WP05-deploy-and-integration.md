@@ -16,8 +16,8 @@ subtasks:
 - T021
 - T022
 - T023
-agent: "codex:gpt-4o:reviewer:reviewer"
-shell_pid: "99591"
+agent: "claude:opus-4-6:implementer:implementer"
+shell_pid: "857"
 history:
 - date: '2026-04-13'
   action: created
@@ -187,3 +187,4 @@ This is the integration gate WP required by the charter. It exercises the real e
 - 2026-04-13T19:11:33Z – claude:opus-4-6:implementer:implementer – shell_pid=98511 – Deploy complete: 4 tasker files + enforcement cron on office2, 25/25 files matching post-deploy
 - 2026-04-13T19:12:03Z – codex:gpt-4o:reviewer:reviewer – shell_pid=99591 – Started review via action command
 - 2026-04-13T19:14:24Z – codex:gpt-4o:reviewer:reviewer – shell_pid=99591 – Moved to planned
+- 2026-04-13T19:14:26Z – claude:opus-4-6:implementer:implementer – shell_pid=857 – Started implementation via action command

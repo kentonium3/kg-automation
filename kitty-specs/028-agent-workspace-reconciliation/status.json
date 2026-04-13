@@ -1,7 +1,7 @@
 {
-  "event_count": 69,
-  "last_event_id": "01KP448D217WVANDB55G6JARVX",
-  "materialized_at": "2026-04-13T19:14:24.449394+00:00",
+  "event_count": 71,
+  "last_event_id": "01KP448F9JR0JC0AB691XNK9VE",
+  "materialized_at": "2026-04-13T19:14:26.738282+00:00",
   "mission_number": "028",
   "mission_slug": "028-agent-workspace-reconciliation",
   "mission_type": "software-dev",
@@ -12,9 +12,9 @@
     "claimed": 0,
     "done": 0,
     "for_review": 0,
-    "in_progress": 0,
+    "in_progress": 1,
     "in_review": 0,
-    "planned": 2
+    "planned": 1
   },
   "work_packages": {
     "WP01": {
@@ -46,11 +46,11 @@
       "last_transition_at": "2026-04-13T19:00:58.763453+00:00"
     },
     "WP05": {
-      "actor": "user",
+      "actor": "claude:opus-4-6:implementer:implementer",
       "force_count": 4,
-      "lane": "planned",
-      "last_event_id": "01KP448D217WVANDB55G6JARVX",
-      "last_transition_at": "2026-04-13T19:14:24.449394+00:00"
+      "lane": "in_progress",
+      "last_event_id": "01KP448F9JR0JC0AB691XNK9VE",
+      "last_transition_at": "2026-04-13T19:14:26.738282+00:00"
     },
     "WP06": {
       "actor": "finalize-tasks",
