@@ -27,11 +27,11 @@
 | T016 | Implement WhatsApp notification via openclaw agent --deliver | WP04 | | [D] |
 | T017 | Implement GitHub issue creation for conflicts/factory transitions | WP04 | | [D] |
 | T018 | Write pytest tests for remediation and notification logic | WP04 | | [D] |
-| T019 | Create deploy-028.sh following safe-deploy pattern | WP05 | |
-| T020 | Deploy reconciled tasker files repo→office2 via SCP | WP05 | |
-| T021 | Install drift-check.py + cron job on office2 | WP05 | |
-| T022 | Post-reconciliation zero-drift verification (hash comparison) | WP05 | |
-| T023 | Controlled drift test (introduce change, verify detection + action) | WP05 | |
+| T019 | Create deploy-028.sh following safe-deploy pattern | WP05 | | [D] |
+| T020 | Deploy reconciled tasker files repo→office2 via SCP | WP05 | | [D] |
+| T021 | Install drift-check.py + cron job on office2 | WP05 | | [D] |
+| T022 | Post-reconciliation zero-drift verification (hash comparison) | WP05 | | [D] |
+| T023 | Controlled drift test (introduce change, verify detection + action) | WP05 | | [D] |
 | T024 | Write runbook: agent-workspace-reconciliation.md | WP06 | |
 | T025 | Document factory-default lifecycle policy in runbook | WP06 | |
 | T026 | Document last-author-wins enforcement strategy in runbook | WP06 | |
@@ -145,11 +145,11 @@
 **Estimated prompt size**: ~400 lines
 **Prompt**: [WP05-deploy-and-integration.md](tasks/WP05-deploy-and-integration.md)
 
-- [ ] T019 Create deploy-028.sh following safe-deploy pattern (WP05)
-- [ ] T020 Deploy reconciled tasker files repo→office2 via SCP (WP05)
-- [ ] T021 Install drift-check.py + cron job on office2 (WP05)
-- [ ] T022 Post-reconciliation zero-drift verification (hash comparison) (WP05)
-- [ ] T023 Controlled drift test (introduce change, verify detection + action) (WP05)
+- [x] T019 Create deploy-028.sh following safe-deploy pattern (WP05)
+- [x] T020 Deploy reconciled tasker files repo→office2 via SCP (WP05)
+- [x] T021 Install drift-check.py + cron job on office2 (WP05)
+- [x] T022 Post-reconciliation zero-drift verification (hash comparison) (WP05)
+- [x] T023 Controlled drift test (introduce change, verify detection + action) (WP05)
 
 **Implementation sketch**:
 1. Create deploy-028.sh: pre-flight (Restic age check, SSH reachability, --backup-confirmed gate), copy artifacts (tasker files + enforcement script), verify, post-flight smoke test
