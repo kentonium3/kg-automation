@@ -13,8 +13,8 @@ subtasks:
 - T006
 - T007
 - T008
-agent: "codex:gpt-4o:reviewer:reviewer"
-shell_pid: "83947"
+agent: "claude:opus-4-6:implementer:implementer"
+shell_pid: "86086"
 history:
 - date: '2026-04-13'
   action: created
@@ -225,3 +225,4 @@ See data-model.md for full schemas.
 - 2026-04-13T18:07:32Z – codex:gpt-4o:reviewer:reviewer – shell_pid=83947 – Started review via action command
 - 2026-04-13T18:12:04Z – codex:gpt-4o:reviewer:reviewer – shell_pid=83947 – Moved to planned
 - 2026-04-13T18:12:38Z – codex:gpt-4o:reviewer:reviewer – shell_pid=83947 – Moved to planned
+- 2026-04-13T18:17:05Z – claude:opus-4-6:implementer:implementer – shell_pid=86086 – Started implementation via action command
