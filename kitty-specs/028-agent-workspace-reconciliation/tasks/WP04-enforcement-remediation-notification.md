@@ -17,8 +17,8 @@ subtasks:
 - T016
 - T017
 - T018
-agent: "claude:opus-4-6:implementer:implementer"
-shell_pid: "96043"
+agent: "codex:gpt-4o:reviewer:reviewer"
+shell_pid: "96494"
 history:
 - date: '2026-04-13'
   action: created
@@ -352,3 +352,4 @@ The enforcement script (`drift_check.py`) calls detection → remediation → no
 - 2026-04-13T18:55:20Z – codex:gpt-4o:reviewer:reviewer – shell_pid=94760 – Moved to planned
 - 2026-04-13T18:55:22Z – claude:opus-4-6:implementer:implementer – shell_pid=96043 – Started implementation via action command
 - 2026-04-13T18:56:34Z – claude:opus-4-6:implementer:implementer – shell_pid=96043 – Cycle 3: hash verification added, JSON output consolidated, 57 tests
+- 2026-04-13T18:56:58Z – codex:gpt-4o:reviewer:reviewer – shell_pid=96494 – Started review via action command
