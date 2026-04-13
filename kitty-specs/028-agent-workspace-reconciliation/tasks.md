@@ -9,11 +9,11 @@
 
 | ID | Description | WP | Parallel |
 |---|---|---|---|
-| T001 | Capture main/AGENTS.md from office2 to repo | WP01 | [P] |
-| T002 | Capture main/TOOLS.md from office2 to repo | WP01 | [P] |
-| T003 | Capture main/IDENTITY.md from office2 to repo | WP01 | [P] |
-| T004 | Capture capture/AGENTS.md from office2 to update repo | WP01 | [P] |
-| T005 | Archive and remove main-patches/ directory | WP01 | |
+| T001 | Capture main/AGENTS.md from office2 to repo | WP01 | [P] | [D] |
+| T002 | Capture main/TOOLS.md from office2 to repo | WP01 | [D] |
+| T003 | Capture main/IDENTITY.md from office2 to repo | WP01 | [D] |
+| T004 | Capture capture/AGENTS.md from office2 to update repo | WP01 | [D] |
+| T005 | Archive and remove main-patches/ directory | WP01 | | [D] |
 | T006 | Generate baseline-manifest.json from reconciled state | WP02 | |
 | T007 | Generate factory-baselines.json with known factory hashes | WP02 | [P] |
 | T008 | Create drift-check-config.json with agent mapping | WP02 | [P] |
@@ -47,11 +47,11 @@
 **Estimated prompt size**: ~350 lines
 **Prompt**: [WP01-office2-captures-and-retirement.md](tasks/WP01-office2-captures-and-retirement.md)
 
-- [ ] T001 Capture main/AGENTS.md from office2 to repo (WP01)
-- [ ] T002 Capture main/TOOLS.md from office2 to repo (WP01)
-- [ ] T003 Capture main/IDENTITY.md from office2 to repo (WP01)
-- [ ] T004 Capture capture/AGENTS.md from office2 to update repo (WP01)
-- [ ] T005 Archive and remove main-patches/ directory (WP01)
+- [x] T001 Capture main/AGENTS.md from office2 to repo (WP01)
+- [x] T002 Capture main/TOOLS.md from office2 to repo (WP01)
+- [x] T003 Capture main/IDENTITY.md from office2 to repo (WP01)
+- [x] T004 Capture capture/AGENTS.md from office2 to update repo (WP01)
+- [x] T005 Archive and remove main-patches/ directory (WP01)
 
 **Implementation sketch**:
 1. SCP each file from office2 workspace path to repo agent directory
