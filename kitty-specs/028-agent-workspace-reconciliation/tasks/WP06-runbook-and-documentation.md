@@ -222,3 +222,4 @@ This WP can run in parallel with WP05 since it touches different files (`docs/` 
 ## Activity Log
 
 - 2026-04-13T19:27:02Z – claude:opus-4-6:implementer:implementer – shell_pid=4484 – Started implementation via action command
+- 2026-04-13T19:29:32Z – claude:opus-4-6:implementer:implementer – shell_pid=4484 – Ready for review: runbook + INDEX.md updated
