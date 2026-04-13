@@ -13,6 +13,8 @@ subtasks:
 - T006
 - T007
 - T008
+agent: "claude:opus-4-6:implementer:implementer"
+shell_pid: "80964"
 history:
 - date: '2026-04-13'
   action: created
@@ -211,3 +213,7 @@ See data-model.md for full schemas.
 - Verify JSON schemas match data-model.md
 - Spot-check at least 2 agents' hashes against live office2 state
 - Confirm factory baseline hashes match known unmodified templates
+
+## Activity Log
+
+- 2026-04-13T17:54:06Z – claude:opus-4-6:implementer:implementer – shell_pid=80964 – Started implementation via action command
