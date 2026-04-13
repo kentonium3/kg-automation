@@ -226,3 +226,4 @@ This WP can run in parallel with WP05 since it touches different files (`docs/` 
 - 2026-04-13T19:31:14Z – codex:gpt-4o:reviewer:reviewer – shell_pid=5267 – Started review via action command
 - 2026-04-13T19:34:25Z – codex:gpt-4o:reviewer:reviewer – shell_pid=5267 – Moved to planned
 - 2026-04-13T19:34:27Z – claude:opus-4-6:implementer:implementer – shell_pid=6143 – Started implementation via action command
+- 2026-04-13T19:35:27Z – claude:opus-4-6:implementer:implementer – shell_pid=6143 – Arbiter decision: Approved. All 3 doc issues fixed — check --json documented, ownership/generalization added, INDEX alphabetized. Documentation WP with no functional impact; all corrections are straightforward additions.
