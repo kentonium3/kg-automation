@@ -13,8 +13,8 @@ subtasks:
 - T006
 - T007
 - T008
-agent: "claude:opus-4-6:implementer:implementer"
-shell_pid: "86086"
+agent: "codex:gpt-4o:reviewer:reviewer"
+shell_pid: "86459"
 history:
 - date: '2026-04-13'
   action: created
@@ -227,3 +227,4 @@ See data-model.md for full schemas.
 - 2026-04-13T18:12:38Z – codex:gpt-4o:reviewer:reviewer – shell_pid=83947 – Moved to planned
 - 2026-04-13T18:17:05Z – claude:opus-4-6:implementer:implementer – shell_pid=86086 – Started implementation via action command
 - 2026-04-13T18:18:10Z – claude:opus-4-6:implementer:implementer – shell_pid=86086 – Cycle 3: fixed repo_root resolution (git rev-parse), removed incorrect template_minimal factory baseline, regenerated manifest from fixed script (21/25 match)
+- 2026-04-13T18:18:34Z – codex:gpt-4o:reviewer:reviewer – shell_pid=86459 – Started review via action command
