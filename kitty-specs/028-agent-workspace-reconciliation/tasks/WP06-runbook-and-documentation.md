@@ -13,6 +13,8 @@ subtasks:
 - T025
 - T026
 - T027
+agent: "claude:opus-4-6:implementer:implementer"
+shell_pid: "4484"
 history:
 - date: '2026-04-13'
   action: created
@@ -216,3 +218,7 @@ This WP can run in parallel with WP05 since it touches different files (`docs/` 
 - Check that the factory-default policy answers the 4 questions from the discovery section of #166
 - Verify the "adding a new agent" procedure is actionable (could a new session follow it without asking questions?)
 - Confirm YAML frontmatter passes `validate_docs.py`
+
+## Activity Log
+
+- 2026-04-13T19:27:02Z – claude:opus-4-6:implementer:implementer – shell_pid=4484 – Started implementation via action command
