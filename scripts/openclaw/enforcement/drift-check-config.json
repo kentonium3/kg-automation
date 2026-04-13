@@ -36,7 +36,7 @@
   "notification": {
     "channel": "whatsapp",
     "openclaw_agent": "main",
-    "recipient": "<kent-e164-number>",
+    "recipient": "+16179300916",
     "issue_repo": "kentonium3/kg-automation",
     "issue_labels": ["drift-alert", "area/felix-core"]
   },

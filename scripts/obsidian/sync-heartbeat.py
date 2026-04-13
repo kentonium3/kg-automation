@@ -35,7 +35,7 @@ HEARTBEAT_FILE = "00-System/sync-heartbeat.md"
 STATE_FILE = "/tmp/sync-heartbeat-state.json"
 MAX_FAILURES = 3
 OPENCLAW_AGENT = "main"
-WHATSAPP_RECIPIENT = "<kent-e164-number>"
+WHATSAPP_RECIPIENT = "+16179300916"
 
 
 def write_heartbeat(vault_path: str, heartbeat_file: str, dry_run: bool = False) -> str:
