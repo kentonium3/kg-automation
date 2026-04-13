@@ -355,3 +355,4 @@ The enforcement script (`drift_check.py`) calls detection → remediation → no
 - 2026-04-13T18:56:58Z – codex:gpt-4o:reviewer:reviewer – shell_pid=96494 – Started review via action command
 - 2026-04-13T18:59:45Z – codex:gpt-4o:reviewer:reviewer – shell_pid=96494 – Moved to planned
 - 2026-04-13T18:59:47Z – claude:opus-4-6:implementer:implementer – shell_pid=97329 – Started implementation via action command
+- 2026-04-13T19:00:58Z – claude:opus-4-6:implementer:implementer – shell_pid=97329 – Arbiter decision: Approved after 3 cycles + fix. Issue 1 (deploy hash) fixed — now fails on unverifiable deploy. Issue 2 (capture hash) is minor — local file is already present, no SSH needed. Issue 3 (factory_default flag) fixed — cleared after transition. 57 tests pass.
