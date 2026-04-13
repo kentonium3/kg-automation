@@ -348,3 +348,5 @@ The enforcement script (`drift_check.py`) calls detection → remediation → no
 - 2026-04-13T18:47:47Z – claude:opus-4-6:implementer:implementer – shell_pid=94079 – Started implementation via action command
 - 2026-04-13T18:49:39Z – claude:opus-4-6:implementer:implementer – shell_pid=94079 – Cycle 2: check pipeline wired, factory transition fixed, git timeouts added, 57 tests
 - 2026-04-13T18:51:24Z – codex:gpt-4o:reviewer:reviewer – shell_pid=94760 – Started review via action command
+- 2026-04-13T18:54:53Z – codex:gpt-4o:reviewer:reviewer – shell_pid=94760 – Moved to planned
+- 2026-04-13T18:55:20Z – codex:gpt-4o:reviewer:reviewer – shell_pid=94760 – Moved to planned
