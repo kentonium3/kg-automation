@@ -21,12 +21,12 @@
 | T010 | Implement three-way diff logic (current vs baseline for both sides) | WP03 | | [D] |
 | T011 | Implement factory-default threshold detection | WP03 | | [D] |
 | T012 | Write pytest tests for detection engine | WP03 | | [D] |
-| T013 | Implement auto-deploy action (repo→office2 via SCP) | WP04 | |
-| T014 | Implement auto-capture action (office2→repo + git commit) | WP04 | |
-| T015 | Implement conflict detection and notification routing | WP04 | |
-| T016 | Implement WhatsApp notification via openclaw agent --deliver | WP04 | |
-| T017 | Implement GitHub issue creation for conflicts/factory transitions | WP04 | |
-| T018 | Write pytest tests for remediation and notification logic | WP04 | |
+| T013 | Implement auto-deploy action (repo→office2 via SCP) | WP04 | | [D] |
+| T014 | Implement auto-capture action (office2→repo + git commit) | WP04 | | [D] |
+| T015 | Implement conflict detection and notification routing | WP04 | | [D] |
+| T016 | Implement WhatsApp notification via openclaw agent --deliver | WP04 | | [D] |
+| T017 | Implement GitHub issue creation for conflicts/factory transitions | WP04 | | [D] |
+| T018 | Write pytest tests for remediation and notification logic | WP04 | | [D] |
 | T019 | Create deploy-028.sh following safe-deploy pattern | WP05 | |
 | T020 | Deploy reconciled tasker files repo→office2 via SCP | WP05 | |
 | T021 | Install drift-check.py + cron job on office2 | WP05 | |
@@ -118,12 +118,12 @@
 **Estimated prompt size**: ~450 lines
 **Prompt**: [WP04-enforcement-remediation-notification.md](tasks/WP04-enforcement-remediation-notification.md)
 
-- [ ] T013 Implement auto-deploy action (repo→office2 via SCP) (WP04)
-- [ ] T014 Implement auto-capture action (office2→repo + git commit) (WP04)
-- [ ] T015 Implement conflict detection and notification routing (WP04)
-- [ ] T016 Implement WhatsApp notification via openclaw agent --deliver (WP04)
-- [ ] T017 Implement GitHub issue creation for conflicts/factory transitions (WP04)
-- [ ] T018 Write pytest tests for remediation and notification logic (WP04)
+- [x] T013 Implement auto-deploy action (repo→office2 via SCP) (WP04)
+- [x] T014 Implement auto-capture action (office2→repo + git commit) (WP04)
+- [x] T015 Implement conflict detection and notification routing (WP04)
+- [x] T016 Implement WhatsApp notification via openclaw agent --deliver (WP04)
+- [x] T017 Implement GitHub issue creation for conflicts/factory transitions (WP04)
+- [x] T018 Write pytest tests for remediation and notification logic (WP04)
 
 **Implementation sketch**:
 1. Auto-deploy: SCP repo file → office2 workspace path, verify hash post-copy, update baseline manifest
