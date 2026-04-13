@@ -16,8 +16,8 @@ subtasks:
 - T021
 - T022
 - T023
-agent: "codex:gpt-4o:reviewer:reviewer"
-shell_pid: "1967"
+agent: "claude:opus-4-6:implementer:implementer"
+shell_pid: "3024"
 history:
 - date: '2026-04-13'
   action: created
@@ -192,3 +192,4 @@ This is the integration gate WP required by the charter. It exercises the real e
 - 2026-04-13T19:18:21Z – codex:gpt-4o:reviewer:reviewer – shell_pid=1967 – Started review via action command
 - 2026-04-13T19:21:29Z – codex:gpt-4o:reviewer:reviewer – shell_pid=1967 – Moved to planned
 - 2026-04-13T19:21:49Z – codex:gpt-4o:reviewer:reviewer – shell_pid=1967 – Moved to planned
+- 2026-04-13T19:21:51Z – claude:opus-4-6:implementer:implementer – shell_pid=3024 – Started implementation via action command
