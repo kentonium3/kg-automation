@@ -14,9 +14,9 @@
 | T003 | Capture main/IDENTITY.md from office2 to repo | WP01 | [D] |
 | T004 | Capture capture/AGENTS.md from office2 to update repo | WP01 | [D] |
 | T005 | Archive and remove main-patches/ directory | WP01 | | [D] |
-| T006 | Generate baseline-manifest.json from reconciled state | WP02 | |
-| T007 | Generate factory-baselines.json with known factory hashes | WP02 | [P] |
-| T008 | Create drift-check-config.json with agent mapping | WP02 | [P] |
+| T006 | Generate baseline-manifest.json from reconciled state | WP02 | | [D] |
+| T007 | Generate factory-baselines.json with known factory hashes | WP02 | [D] |
+| T008 | Create drift-check-config.json with agent mapping | WP02 | [D] |
 | T009 | Create drift-check.py — CLI entry, manifest loading, hash computation | WP03 | |
 | T010 | Implement three-way diff logic (current vs baseline for both sides) | WP03 | |
 | T011 | Implement factory-default threshold detection | WP03 | |
@@ -71,9 +71,9 @@
 **Estimated prompt size**: ~300 lines
 **Prompt**: [WP02-baseline-manifests-and-config.md](tasks/WP02-baseline-manifests-and-config.md)
 
-- [ ] T006 Generate baseline-manifest.json from reconciled state (WP02)
-- [ ] T007 Generate factory-baselines.json with known factory hashes (WP02)
-- [ ] T008 Create drift-check-config.json with agent mapping (WP02)
+- [x] T006 Generate baseline-manifest.json from reconciled state (WP02)
+- [x] T007 Generate factory-baselines.json with known factory hashes (WP02)
+- [x] T008 Create drift-check-config.json with agent mapping (WP02)
 
 **Implementation sketch**:
 1. Write a Python helper script to probe all agent workspaces on office2, compute SHA256 hashes, and output baseline-manifest.json
