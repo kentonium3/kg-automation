@@ -1,0 +1,46 @@
+{
+  "enforcement_mode": "last-author-wins",
+  "ssh_host": "office2-claude",
+  "agents": {
+    "main": {
+      "workspace_path": "/data/services/openclaw/data",
+      "repo_path": "scripts/openclaw/agents/main",
+      "tracked_files": ["AGENTS.md", "SOUL.md", "TOOLS.md", "USER.md", "IDENTITY.md"],
+      "excluded_files": ["HEARTBEAT.md", "BOOTSTRAP.md"]
+    },
+    "felix-admin-capture": {
+      "workspace_path": "/data/services/openclaw/inbox-agent",
+      "repo_path": "scripts/openclaw/agents/felix-admin-capture",
+      "tracked_files": ["AGENTS.md", "SOUL.md", "TOOLS.md", "USER.md", "IDENTITY.md"],
+      "excluded_files": ["HEARTBEAT.md", "BOOTSTRAP.md"]
+    },
+    "felix-admin-habits": {
+      "workspace_path": "/data/services/openclaw/habits-agent",
+      "repo_path": "scripts/openclaw/agents/felix-admin-habits",
+      "tracked_files": ["AGENTS.md", "SOUL.md", "TOOLS.md", "USER.md", "IDENTITY.md"],
+      "excluded_files": ["HEARTBEAT.md", "BOOTSTRAP.md"]
+    },
+    "felix-admin-escalation": {
+      "workspace_path": "/data/services/openclaw/escalation-agent",
+      "repo_path": "scripts/openclaw/agents/felix-admin-escalation",
+      "tracked_files": ["AGENTS.md", "SOUL.md", "TOOLS.md", "USER.md", "IDENTITY.md"],
+      "excluded_files": ["HEARTBEAT.md", "BOOTSTRAP.md"]
+    },
+    "felix-admin-tasker": {
+      "workspace_path": "/data/services/openclaw/tasker-agent",
+      "repo_path": "scripts/openclaw/agents/felix-admin-tasker",
+      "tracked_files": ["AGENTS.md", "SOUL.md", "TOOLS.md", "USER.md", "IDENTITY.md"],
+      "excluded_files": ["HEARTBEAT.md", "BOOTSTRAP.md"]
+    }
+  },
+  "notification": {
+    "channel": "whatsapp",
+    "openclaw_agent": "main",
+    "recipient": "<kent-e164-number>",
+    "issue_repo": "kentonium3/kg-automation",
+    "issue_labels": ["drift-alert", "area/felix-core"]
+  },
+  "factory_baselines_path": "../agents/factory-baselines.json",
+  "baseline_manifest_path": "../agents/baseline-manifest.json",
+  "repo_root": "/home/claude/kg-automation"
+}

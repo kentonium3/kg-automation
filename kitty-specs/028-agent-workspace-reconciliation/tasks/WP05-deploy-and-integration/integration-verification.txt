@@ -1,0 +1,58 @@
+=== T023: Controlled Drift Test ===
+Date: 2026-04-13T19:17:13Z
+
+--- Test 1: OFFICE2_CHANGED detection ---
+Change applied to tasker/SOUL.md on office2
+  Local:  8191697d610cd278bd9419ee6eb536f58d8d31fb8ed8dcf7f9c33970fe9da176
+  Remote: 3cfb0871ec0ba1b430e7c2ffede1fb683716da4965670081a68f9ce0f3e221ce
+  RESULT: Drift detected (PASS)
+
+Reverting...
+  Post-revert: 8191697d610cd278bd9419ee6eb536f58d8d31fb8ed8dcf7f9c33970fe9da176
+  Revert: PASS
+
+--- Zero-drift final check ---
+  MATCH main/AGENTS.md
+  MATCH main/SOUL.md
+  MATCH main/TOOLS.md
+  MATCH main/USER.md
+  MATCH main/IDENTITY.md
+  MATCH felix-admin-capture/AGENTS.md
+  MATCH felix-admin-capture/SOUL.md
+  MATCH felix-admin-capture/TOOLS.md
+  MATCH felix-admin-capture/USER.md
+  MATCH felix-admin-capture/IDENTITY.md
+  MATCH felix-admin-habits/AGENTS.md
+  MATCH felix-admin-habits/SOUL.md
+  MATCH felix-admin-habits/TOOLS.md
+  MATCH felix-admin-habits/USER.md
+  MATCH felix-admin-habits/IDENTITY.md
+  MATCH felix-admin-escalation/AGENTS.md
+  MATCH felix-admin-escalation/SOUL.md
+  MATCH felix-admin-escalation/TOOLS.md
+  MATCH felix-admin-escalation/USER.md
+  MATCH felix-admin-escalation/IDENTITY.md
+  MATCH felix-admin-tasker/AGENTS.md
+  MATCH felix-admin-tasker/SOUL.md
+  MATCH felix-admin-tasker/TOOLS.md
+  MATCH felix-admin-tasker/USER.md
+  MATCH felix-admin-tasker/IDENTITY.md
+Total drift: 0
+FINAL: PASS
+
+--- Test 2: REPO_CHANGED detection ---
+Date: 2026-04-13T19:22:39Z
+Change applied to repo tasker/SOUL.md
+  Local (modified):  6836d98df03506cece11a6ff8e2a84a04d66ea721ea30d497a765568e63b1872
+  Remote (unchanged): 8191697d610cd278bd9419ee6eb536f58d8d31fb8ed8dcf7f9c33970fe9da176
+  RESULT: Repo-side drift detected (PASS)
+Deploying repo version to office2...
+  Post-deploy remote: 6836d98df03506cece11a6ff8e2a84a04d66ea721ea30d497a765568e63b1872
+  Deploy verification: PASS (hashes match)
+
+Reverting repo change and re-deploying clean version...
+  Post-revert local:  8191697d610cd278bd9419ee6eb536f58d8d31fb8ed8dcf7f9c33970fe9da176
+  Post-revert remote: 8191697d610cd278bd9419ee6eb536f58d8d31fb8ed8dcf7f9c33970fe9da176
+  Cleanup: PASS (zero drift)
+
+=== All controlled drift tests COMPLETE ===

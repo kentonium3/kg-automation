@@ -1,0 +1,211 @@
+{
+  "generated_at": "2026-04-13T19:11:15Z",
+  "generated_by": "generate_manifest.py",
+  "agents": {
+    "main": {
+      "workspace_path": "/data/services/openclaw/data",
+      "repo_path": "scripts/openclaw/agents/main",
+      "files": {
+        "AGENTS.md": {
+          "repo_sha256": "bbd2866d407f77aabc44fcf888dda03e95df3939de1c5aa8a41fe86814657e0c",
+          "office2_sha256": "bbd2866d407f77aabc44fcf888dda03e95df3939de1c5aa8a41fe86814657e0c",
+          "lines": 258,
+          "tracked": true,
+          "factory_default": false
+        },
+        "SOUL.md": {
+          "repo_sha256": "5201fd3508b30a2f12fd6ca562fed75803668c59f1bbde6bea4fd8426b0d3512",
+          "office2_sha256": "5201fd3508b30a2f12fd6ca562fed75803668c59f1bbde6bea4fd8426b0d3512",
+          "lines": 156,
+          "tracked": true,
+          "factory_default": false
+        },
+        "TOOLS.md": {
+          "repo_sha256": "78f3e26b8625ea283c615cec291d4978da5f9f01df730628c5c42094418b8dc2",
+          "office2_sha256": "78f3e26b8625ea283c615cec291d4978da5f9f01df730628c5c42094418b8dc2",
+          "lines": 40,
+          "tracked": true,
+          "factory_default": true
+        },
+        "USER.md": {
+          "repo_sha256": "6e348c9d922809558ff76ce44485168449892c33ac75b421796100b3aec06283",
+          "office2_sha256": "6e348c9d922809558ff76ce44485168449892c33ac75b421796100b3aec06283",
+          "lines": 56,
+          "tracked": true,
+          "factory_default": false
+        },
+        "IDENTITY.md": {
+          "repo_sha256": "1379f924cf4b4d6d0a306ecc2544a913dab706a1325fcf8eb9b267686ee8551c",
+          "office2_sha256": "1379f924cf4b4d6d0a306ecc2544a913dab706a1325fcf8eb9b267686ee8551c",
+          "lines": 23,
+          "tracked": true,
+          "factory_default": true
+        }
+      }
+    },
+    "felix-admin-capture": {
+      "workspace_path": "/data/services/openclaw/inbox-agent",
+      "repo_path": "scripts/openclaw/agents/felix-admin-capture",
+      "files": {
+        "AGENTS.md": {
+          "repo_sha256": "9d68f37a91c9cb59e4e68e0ef68dbd34ee15d39b4578cb73dd33db8dc97e54c1",
+          "office2_sha256": "9d68f37a91c9cb59e4e68e0ef68dbd34ee15d39b4578cb73dd33db8dc97e54c1",
+          "lines": 728,
+          "tracked": true,
+          "factory_default": false
+        },
+        "SOUL.md": {
+          "repo_sha256": "be847ca5a894a42c98ba0d1e0fcc95d38ab462ebc67f474f37be17d3a3d1c4dc",
+          "office2_sha256": "be847ca5a894a42c98ba0d1e0fcc95d38ab462ebc67f474f37be17d3a3d1c4dc",
+          "lines": 59,
+          "tracked": true,
+          "factory_default": false
+        },
+        "TOOLS.md": {
+          "repo_sha256": "8d912570ba8c58660f298b343e588ca80be6b0dc25f1e663cc3d2a9cd2d17ab8",
+          "office2_sha256": "8d912570ba8c58660f298b343e588ca80be6b0dc25f1e663cc3d2a9cd2d17ab8",
+          "lines": 35,
+          "tracked": true,
+          "factory_default": false
+        },
+        "USER.md": {
+          "repo_sha256": "705c762014603e65ff8e454ea57876d178a99b68d2f8b350e75c1323859e57c2",
+          "office2_sha256": "705c762014603e65ff8e454ea57876d178a99b68d2f8b350e75c1323859e57c2",
+          "lines": 21,
+          "tracked": true,
+          "factory_default": false
+        },
+        "IDENTITY.md": {
+          "repo_sha256": "3b82183c34c38a7c229d71a824a4f21d0797977af2b9063becbd538ff2470ce0",
+          "office2_sha256": "3b82183c34c38a7c229d71a824a4f21d0797977af2b9063becbd538ff2470ce0",
+          "lines": 6,
+          "tracked": true,
+          "factory_default": false
+        }
+      }
+    },
+    "felix-admin-habits": {
+      "workspace_path": "/data/services/openclaw/habits-agent",
+      "repo_path": "scripts/openclaw/agents/felix-admin-habits",
+      "files": {
+        "AGENTS.md": {
+          "repo_sha256": "fdea575bf9ec6c29a3e9929de19029615d9913b1555e942688fa10b6add891a8",
+          "office2_sha256": "fdea575bf9ec6c29a3e9929de19029615d9913b1555e942688fa10b6add891a8",
+          "lines": 442,
+          "tracked": true,
+          "factory_default": false
+        },
+        "SOUL.md": {
+          "repo_sha256": "a2a96ac7d4971441a50d8cd3d06fb548d47bf04463e74fc8a8d76365c236d933",
+          "office2_sha256": "a2a96ac7d4971441a50d8cd3d06fb548d47bf04463e74fc8a8d76365c236d933",
+          "lines": 59,
+          "tracked": true,
+          "factory_default": false
+        },
+        "TOOLS.md": {
+          "repo_sha256": "c0e2dc3cafa33f8f3a2378513bf0aedb17e24525cc50eea1c71a58b423dd8da0",
+          "office2_sha256": "c0e2dc3cafa33f8f3a2378513bf0aedb17e24525cc50eea1c71a58b423dd8da0",
+          "lines": 19,
+          "tracked": true,
+          "factory_default": false
+        },
+        "USER.md": {
+          "repo_sha256": "e8113a7bcbeffd02b96eddbe2ea91ec69f1216766a6933a16bfa1afb66a7cc23",
+          "office2_sha256": "e8113a7bcbeffd02b96eddbe2ea91ec69f1216766a6933a16bfa1afb66a7cc23",
+          "lines": 21,
+          "tracked": true,
+          "factory_default": false
+        },
+        "IDENTITY.md": {
+          "repo_sha256": "5d1a46c4f0b0d3043e999fc90479275ba4b73db8dbeffc9bbfab57cfafb6206a",
+          "office2_sha256": "5d1a46c4f0b0d3043e999fc90479275ba4b73db8dbeffc9bbfab57cfafb6206a",
+          "lines": 6,
+          "tracked": true,
+          "factory_default": false
+        }
+      }
+    },
+    "felix-admin-escalation": {
+      "workspace_path": "/data/services/openclaw/escalation-agent",
+      "repo_path": "scripts/openclaw/agents/felix-admin-escalation",
+      "files": {
+        "AGENTS.md": {
+          "repo_sha256": "51c3fa4e557658ff27a70a362e325e13ab92a74c161fbb730fe9514f13ef1148",
+          "office2_sha256": "51c3fa4e557658ff27a70a362e325e13ab92a74c161fbb730fe9514f13ef1148",
+          "lines": 231,
+          "tracked": true,
+          "factory_default": false
+        },
+        "SOUL.md": {
+          "repo_sha256": "d6150fe897fa1aace46f77c2dc77c87baf3e5a1094b8581908a2f1ae34b3478c",
+          "office2_sha256": "d6150fe897fa1aace46f77c2dc77c87baf3e5a1094b8581908a2f1ae34b3478c",
+          "lines": 57,
+          "tracked": true,
+          "factory_default": false
+        },
+        "TOOLS.md": {
+          "repo_sha256": "34b9294b927d7b77f2c7bea1da0379420f8f4e9352314b40b6860bd38f055a72",
+          "office2_sha256": "34b9294b927d7b77f2c7bea1da0379420f8f4e9352314b40b6860bd38f055a72",
+          "lines": 86,
+          "tracked": true,
+          "factory_default": false
+        },
+        "USER.md": {
+          "repo_sha256": "cf4ae99e9c394be35d9b5af8b5c42db6ba68da3d6298df8f77e25b9840bd0252",
+          "office2_sha256": "cf4ae99e9c394be35d9b5af8b5c42db6ba68da3d6298df8f77e25b9840bd0252",
+          "lines": 23,
+          "tracked": true,
+          "factory_default": false
+        },
+        "IDENTITY.md": {
+          "repo_sha256": "c8a308c2b4ee292fbd34c8aa83ec95fea4643f946095dde097f60e318fb3f585",
+          "office2_sha256": "c8a308c2b4ee292fbd34c8aa83ec95fea4643f946095dde097f60e318fb3f585",
+          "lines": 6,
+          "tracked": true,
+          "factory_default": false
+        }
+      }
+    },
+    "felix-admin-tasker": {
+      "workspace_path": "/data/services/openclaw/tasker-agent",
+      "repo_path": "scripts/openclaw/agents/felix-admin-tasker",
+      "files": {
+        "AGENTS.md": {
+          "repo_sha256": "2980e3b697fec84099ecd5d42d157839f30977955d23e5e24a4825c7aeed9637",
+          "office2_sha256": "2980e3b697fec84099ecd5d42d157839f30977955d23e5e24a4825c7aeed9637",
+          "lines": 497,
+          "tracked": true,
+          "factory_default": false
+        },
+        "SOUL.md": {
+          "repo_sha256": "8191697d610cd278bd9419ee6eb536f58d8d31fb8ed8dcf7f9c33970fe9da176",
+          "office2_sha256": "8191697d610cd278bd9419ee6eb536f58d8d31fb8ed8dcf7f9c33970fe9da176",
+          "lines": 68,
+          "tracked": true,
+          "factory_default": false
+        },
+        "TOOLS.md": {
+          "repo_sha256": "5f75657ed9a81e75e6f2befcad46a8c5734d8d171dce4fad4609b2c3e0f6ac44",
+          "office2_sha256": "5f75657ed9a81e75e6f2befcad46a8c5734d8d171dce4fad4609b2c3e0f6ac44",
+          "lines": 41,
+          "tracked": true,
+          "factory_default": false
+        },
+        "USER.md": {
+          "repo_sha256": "2e8d4c0086ded4f0837a5d193406e0e405b1516470a808bcded6856aaaf8ac70",
+          "office2_sha256": "2e8d4c0086ded4f0837a5d193406e0e405b1516470a808bcded6856aaaf8ac70",
+          "lines": 35,
+          "tracked": true,
+          "factory_default": false
+        },
+        "IDENTITY.md": {
+          "repo_sha256": "deb45bfa6105ac273c5a57ea5272d5de4c067ff306fcabe403caa5881e6c6867",
+          "office2_sha256": "deb45bfa6105ac273c5a57ea5272d5de4c067ff306fcabe403caa5881e6c6867",
+          "lines": 23,
+          "tracked": true,
+          "factory_default": false
+        }
+      }
+    }
+  }
+}

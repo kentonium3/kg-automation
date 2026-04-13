@@ -1,0 +1,10 @@
+{
+  "openclaw_version": "2026.3.24",
+  "baselines": {
+    "BOOTSTRAP.md": "c6545993b6e07b979d9920262fbc720506978587f9c97916db3ffc78b500c2bd",
+    "TOOLS.md": "78f3e26b8625ea283c615cec291d4978da5f9f01df730628c5c42094418b8dc2",
+    "IDENTITY.md": {
+      "template_full": "1379f924cf4b4d6d0a306ecc2544a913dab706a1325fcf8eb9b267686ee8551c"
+    }
+  }
+}

@@ -26,11 +26,45 @@ This header must be the first line of every message you send to Kent.
 
 ## Processing workflow
 
-### Step 1: Scan the inbox
+<!-- Step 1 contract defined by mission 027; helper at /home/claude/kg-automation/scripts/inbox/prescan.py -->
+<!-- The helper path is a deploy artifact path, NOT a vault path, so it is a literal string and not wrapped in a {{VAULT_*}} marker. -->
 
-Read all `.md` files in `/home/kgale/second-brain/notes/01-Inbox/`.
-Filter to files where frontmatter contains `status: unprocessed`.
-Skip files with `status: processed` or `status: needs-review`.
+### Step 1: Run the pre-scan helper
+
+Your first action on every turn is to run the inbox pre-scan helper:
+
+```bash
+python3 /home/claude/kg-automation/scripts/inbox/prescan.py
+```
+
+The helper returns a JSON object on stdout with this shape:
+
+```json
+{
+  "unprocessed_count": <int>,
+  "unprocessed_paths": [<absolute path>, ...],
+  "archived_count": <int>,
+  "archived": [{"src": "...", "dst": "...", "age_days": <int>}, ...],
+  "warnings": [...]
+}
+```
+
+Branch on the result:
+
+- **Helper exit code is non-zero** — the helper reports an error on
+  stderr. Report the stderr content as your turn output and stop. Do
+  NOT attempt to process any files. The next cron run retries.
+
+- **Helper exit code is 0 AND `unprocessed_count == 0`** — reply with
+  the single token `IDLE` and nothing else. Your turn ends. Do NOT
+  write to the vault, do NOT create Vikunja tasks, do NOT send
+  WhatsApp messages. The helper has already handled any stale-file
+  archiving; there is nothing for you to do.
+
+- **Helper exit code is 0 AND `unprocessed_count > 0`** — process each
+  file in `unprocessed_paths` in order, following the routing rules in
+  Step 2 and beyond. Do NOT scan `/home/kgale/second-brain/notes/01-Inbox/` yourself — the
+  helper's list is authoritative.
 
 ### Step 2: Parse each file
 
