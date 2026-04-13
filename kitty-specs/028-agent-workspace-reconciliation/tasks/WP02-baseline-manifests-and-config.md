@@ -219,3 +219,4 @@ See data-model.md for full schemas.
 - 2026-04-13T17:54:06Z – claude:opus-4-6:implementer:implementer – shell_pid=80964 – Started implementation via action command
 - 2026-04-13T17:58:48Z – claude:opus-4-6:implementer:implementer – shell_pid=80964 – Ready for review: baseline manifest (25 files), factory baselines, enforcement config
 - 2026-04-13T18:02:23Z – codex:gpt-4o:reviewer:reviewer – shell_pid=82637 – Started review via action command
+- 2026-04-13T18:05:10Z – codex:gpt-4o:reviewer:reviewer – shell_pid=82637 – Moved to planned
