@@ -223,3 +223,5 @@ See data-model.md for full schemas.
 - 2026-04-13T18:05:19Z – claude:opus-4-6:implementer:implementer – shell_pid=83505 – Started implementation via action command
 - 2026-04-13T18:06:06Z – claude:opus-4-6:implementer:implementer – shell_pid=83505 – Cycle 2: added generate_manifest.py per review feedback
 - 2026-04-13T18:07:32Z – codex:gpt-4o:reviewer:reviewer – shell_pid=83947 – Started review via action command
+- 2026-04-13T18:12:04Z – codex:gpt-4o:reviewer:reviewer – shell_pid=83947 – Moved to planned
+- 2026-04-13T18:12:38Z – codex:gpt-4o:reviewer:reviewer – shell_pid=83947 – Moved to planned
