@@ -17,10 +17,10 @@
 | T006 | Generate baseline-manifest.json from reconciled state | WP02 | | [D] |
 | T007 | Generate factory-baselines.json with known factory hashes | WP02 | [D] |
 | T008 | Create drift-check-config.json with agent mapping | WP02 | [D] |
-| T009 | Create drift-check.py — CLI entry, manifest loading, hash computation | WP03 | |
-| T010 | Implement three-way diff logic (current vs baseline for both sides) | WP03 | |
-| T011 | Implement factory-default threshold detection | WP03 | |
-| T012 | Write pytest tests for detection engine | WP03 | |
+| T009 | Create drift-check.py — CLI entry, manifest loading, hash computation | WP03 | | [D] |
+| T010 | Implement three-way diff logic (current vs baseline for both sides) | WP03 | | [D] |
+| T011 | Implement factory-default threshold detection | WP03 | | [D] |
+| T012 | Write pytest tests for detection engine | WP03 | | [D] |
 | T013 | Implement auto-deploy action (repo→office2 via SCP) | WP04 | |
 | T014 | Implement auto-capture action (office2→repo + git commit) | WP04 | |
 | T015 | Implement conflict detection and notification routing | WP04 | |
@@ -92,10 +92,10 @@
 **Estimated prompt size**: ~400 lines
 **Prompt**: [WP03-enforcement-detection-engine.md](tasks/WP03-enforcement-detection-engine.md)
 
-- [ ] T009 Create drift-check.py — CLI entry, manifest loading, hash computation (WP03)
-- [ ] T010 Implement three-way diff logic (current vs baseline for both sides) (WP03)
-- [ ] T011 Implement factory-default threshold detection (WP03)
-- [ ] T012 Write pytest tests for detection engine (WP03)
+- [x] T009 Create drift-check.py — CLI entry, manifest loading, hash computation (WP03)
+- [x] T010 Implement three-way diff logic (current vs baseline for both sides) (WP03)
+- [x] T011 Implement factory-default threshold detection (WP03)
+- [x] T012 Write pytest tests for detection engine (WP03)
 
 **Implementation sketch**:
 1. Create `scripts/openclaw/enforcement/drift-check.py` with argparse CLI
