@@ -1,0 +1,19 @@
+{
+  "wp_id": "WP01",
+  "mission_slug": "026-vault-path-registry-and-folder-renumber",
+  "worktree_path": ".worktrees/026-vault-path-registry-and-folder-renumber-lane-a",
+  "branch_name": "kitty/mission-026-vault-path-registry-and-folder-renumber-lane-a",
+  "base_branch": "kitty/mission-026-vault-path-registry-and-folder-renumber",
+  "base_commit": "60cc93f91087ac512e9d4535c62cbf9978063fec",
+  "dependencies": [],
+  "created_at": "2026-04-11T01:44:17.736022+00:00",
+  "created_by": "implement-command-lane",
+  "vcs_backend": "git",
+  "lane_id": "lane-a",
+  "lane_wp_ids": [
+    "WP01",
+    "WP02",
+    "WP03"
+  ],
+  "current_wp": "WP01"
+}

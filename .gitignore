@@ -26,3 +26,13 @@ temp/
 .kittify/derived/
 .kittify/runtime/
 .kittify/.migration-backup/
+.kittify/cache/
+.kittify/missions/
+.kittify/scripts/
+
+# Agent sandbox residue (Codex, etc.)
+.codex-tmp-home/
+.tmp-home/
+
+# Spec-kitty worktree state
+.claude/worktrees/

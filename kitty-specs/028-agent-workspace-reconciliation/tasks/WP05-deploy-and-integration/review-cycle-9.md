@@ -1,0 +1,14 @@
+---
+affected_files: []
+cycle_number: 9
+mission_slug: 028-agent-workspace-reconciliation
+reproduction_command:
+reviewed_at: '2026-04-13T19:24:52Z'
+reviewer_agent: unknown
+verdict: rejected
+wp_id: WP05
+---
+
+**Issue 1**: `deploy-028.sh` syncs the office2 repo clone after copying tracked files into that clone instead of before deployment. In [scripts/deploy/deploy-028.sh](/Users/kentgale/repos/kg-automation/.worktrees/028-agent-workspace-reconciliation-lane-a/scripts/deploy/deploy-028.sh:149) the script SCPs enforcement files and manifests into `/home/claude/kg-automation/...`, and only later at [scripts/deploy/deploy-028.sh](/Users/kentgale/repos/kg-automation/.worktrees/028-agent-workspace-reconciliation-lane-a/scripts/deploy/deploy-028.sh:237) runs `git pull --ff-only`. If the office2 clone is behind, those earlier SCPs create local modifications in tracked files and `git pull --ff-only` can fail or leave the clone in a dirty, partially updated state. Fix this by syncing the office2 repo clone before any writes into `/home/claude/kg-automation`, then deploy the enforcement files/manifests against the updated clone and verify the final state.
+
+**Issue 2**: The required enforcement smoke test is still missing from the deploy flow and the recorded evidence. WP05 requires the post-flight check to run `python3 scripts/openclaw/enforcement/drift_check.py check --dry-run --json` on office2, and T022 requires a manual `check --json` verification over all 25 files. Instead, [scripts/deploy/deploy-028.sh](/Users/kentgale/repos/kg-automation/.worktrees/028-agent-workspace-reconciliation-lane-a/scripts/deploy/deploy-028.sh:253) performs only a direct hash loop, which does not verify that the actual enforcement CLI/config path works end to end after deployment. Update the script to invoke the enforcement command as specified, and add evidence showing the JSON result from the deployed `drift_check.py` run covering all 25 tracked files in the final zero-drift state.

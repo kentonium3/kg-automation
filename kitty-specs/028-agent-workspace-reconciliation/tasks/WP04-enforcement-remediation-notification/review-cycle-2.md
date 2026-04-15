@@ -1,0 +1,18 @@
+---
+affected_files: []
+cycle_number: 2
+mission_slug: 028-agent-workspace-reconciliation
+reproduction_command:
+reviewed_at: '2026-04-13T18:45:58Z'
+reviewer_agent: unknown
+verdict: rejected
+wp_id: WP04
+---
+
+**Issue 1**: `drift_check.py check` never executes remediation or notification, so the enforcement script is still detect-only instead of detect -> remediate -> notify. In [scripts/openclaw/enforcement/drift_check.py](/Users/kentgale/repos/kg-automation/.worktrees/028-agent-workspace-reconciliation-lane-a/scripts/openclaw/enforcement/drift_check.py:193), `main()` computes hashes, calls `detect_all_drift()`, prints results, and exits without ever calling `process_drift_results()` or `notify()`. Wire the `check` command to invoke the remediation/notification layer, preserve `report` as output-only, and extend CLI tests to prove `check`, `check --dry-run`, and `check --json` exercise the end-to-end flow.
+
+**Issue 2**: Factory-default transition detection is wired to the wrong side, so the required GitHub issue / WhatsApp path will be missed in the real `OFFICE2_CHANGED` case. In [scripts/openclaw/enforcement/detection.py](/Users/kentgale/repos/kg-automation/.worktrees/028-agent-workspace-reconciliation-lane-a/scripts/openclaw/enforcement/detection.py:123), `is_factory_default` is evaluated against `current_repo`, and in [scripts/openclaw/enforcement/remediation.py](/Users/kentgale/repos/kg-automation/.worktrees/028-agent-workspace-reconciliation-lane-a/scripts/openclaw/enforcement/remediation.py:143) the transition check depends on `not result.is_factory_default`. For an office2-only customization, the repo file is still the old factory version, so `result.is_factory_default` remains `True` and the transition is never reported. Compute factory-default status from the side being evaluated for transition (office2 before capture, or add explicit per-side factory flags), then add a test that reproduces the real office2-only transition instead of constructing an artificial `DriftResult(factory=False)`.
+
+**Issue 3**: Remediation marks the manifest reconciled without verifying that the copy actually produced matching content, and some subprocess calls still have no timeout. In [scripts/openclaw/enforcement/remediation.py](/Users/kentgale/repos/kg-automation/.worktrees/028-agent-workspace-reconciliation-lane-a/scripts/openclaw/enforcement/remediation.py:28) and [scripts/openclaw/enforcement/remediation.py](/Users/kentgale/repos/kg-automation/.worktrees/028-agent-workspace-reconciliation-lane-a/scripts/openclaw/enforcement/remediation.py:54), the SCP helpers return success immediately after `scp`, and `process_drift_results()` updates both manifest hashes from the precomputed value at lines 126 and 142. That violates the WP requirement to verify hashes after deploy/capture and can record a false clean baseline if the remote/local content is not what was expected. Also, the `git add` and `git commit` subprocesses at lines 63-67 lack timeouts, which conflicts with the reviewer guidance to ensure subprocess calls have timeouts. Add post-transfer hash verification before updating the manifest, fail remediation on mismatch, and give every subprocess call an explicit timeout.
+
+Because WP05 and WP06 depend on WP04, they should rebase after the WP04 fixes land.

@@ -1,0 +1,17 @@
+{
+  "wp_id": "WP04",
+  "mission_slug": "027-inbox-pre-scan-helper",
+  "worktree_path": ".worktrees/027-inbox-pre-scan-helper-lane-b",
+  "branch_name": "kitty/mission-027-inbox-pre-scan-helper-lane-b",
+  "base_branch": "kitty/mission-027-inbox-pre-scan-helper",
+  "base_commit": "5a37041139b391e371347fb2fbb373422072569e",
+  "dependencies": [],
+  "created_at": "2026-04-11T18:25:57.954299+00:00",
+  "created_by": "implement-command-lane",
+  "vcs_backend": "git",
+  "lane_id": "lane-b",
+  "lane_wp_ids": [
+    "WP04"
+  ],
+  "current_wp": "WP04"
+}
