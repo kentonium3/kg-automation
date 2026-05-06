@@ -114,3 +114,4 @@ If any content block could not be classified:
 - 2026-05-06T17:19:20Z – claude:opus:implementer:implementer – shell_pid=96925 – Started implementation via action command
 - 2026-05-06T17:19:50Z – claude:opus:implementer:implementer – shell_pid=96925 – Ready for review
 - 2026-05-06T17:19:58Z – claude:opus:implementer:implementer – shell_pid=96925 – Review passed: clean agent instruction update, processed_at instruction clear with example format, needs-review exclusion explicit
+- 2026-05-06T17:22:05Z – claude:opus:implementer:implementer – shell_pid=96925 – Done override: Feature merged to main (commit 64007c0)
