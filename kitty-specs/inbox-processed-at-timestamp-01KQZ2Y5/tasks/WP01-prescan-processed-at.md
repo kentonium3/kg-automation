@@ -15,8 +15,8 @@ subtasks:
 - T001
 - T002
 - T003
-shell_pid: "92396"
-agent: "claude:opus:implementer:implementer"
+shell_pid: "95789"
+agent: "claude:opus:reviewer:reviewer"
 history:
 - date: '2026-05-06'
   event: created
@@ -154,3 +154,4 @@ fall back to mtime without crashing or changing classification behavior.
 
 - 2026-05-06T16:53:58Z – claude:opus:implementer:implementer – shell_pid=92396 – Assigned agent via action command
 - 2026-05-06T17:10:41Z – claude:opus:implementer:implementer – shell_pid=92396 – Ready for review
+- 2026-05-06T17:14:24Z – claude:opus:reviewer:reviewer – shell_pid=95789 – Started review via action command
