@@ -1,0 +1,54 @@
+{
+  "version": 1,
+  "mission_slug": "inbox-processed-at-timestamp-01KQZ2Y5",
+  "mission_id": "01KQZ2Y5FMK7C9H5HQQR1PENE5",
+  "mission_branch": "kitty/mission-inbox-processed-at-timestamp-01KQZ2Y5",
+  "target_branch": "main",
+  "lanes": [
+    {
+      "lane_id": "lane-a",
+      "wp_ids": [
+        "WP01",
+        "WP02",
+        "WP03"
+      ],
+      "write_scope": [
+        "scripts/inbox/prescan.py",
+        "scripts/openclaw/agents/felix-admin-capture/AGENTS.md",
+        "tests/scripts/inbox/fixtures/processed-recent.md",
+        "tests/scripts/inbox/fixtures/processed-stale.md",
+        "tests/scripts/inbox/test_prescan.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "legacy-cleanup"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    }
+  ],
+  "computed_at": "2026-05-06T16:51:42.962287+00:00",
+  "computed_from": "dependency_graph+ownership",
+  "planning_artifact_wps": [],
+  "collapse_report": {
+    "events": [
+      {
+        "wp_a": "WP02",
+        "wp_b": "WP01",
+        "rule": "dependency",
+        "evidence": "WP02 depends on WP01"
+      },
+      {
+        "wp_a": "WP03",
+        "wp_b": "WP01",
+        "rule": "dependency",
+        "evidence": "WP03 depends on WP01"
+      }
+    ],
+    "total_merges": 2,
+    "independent_wps_collapsed": 0,
+    "by_rule": {
+      "dependency": 2
+    }
+  }
+}

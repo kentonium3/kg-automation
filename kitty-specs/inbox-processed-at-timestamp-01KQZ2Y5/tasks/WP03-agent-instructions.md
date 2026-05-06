@@ -1,14 +1,16 @@
 ---
 work_package_id: WP03
 title: Update agent instructions to write processed_at
-dependencies: []
+dependencies:
+- WP01
+- WP02
 requirement_refs:
 - FR-01
 - FR-02
 - FR-03
 planning_base_branch: main
 merge_target_branch: main
-branch_strategy: Worktree allocated per computed lane from lanes.json. Merges into main.
+branch_strategy: Planning artifacts for this feature were generated on main. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into main unless the human explicitly redirects the landing branch.
 subtasks:
 - T009
 history:
