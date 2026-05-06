@@ -17,7 +17,7 @@ jobs:
     steps:
       - name: Check for spec labels
         id: check
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             const labels = context.payload.issue.labels.map(l => l.name);
@@ -36,7 +36,7 @@ jobs:
 
       - name: Add spec pending and comment
         if: steps.check.outputs.skip != 'true'
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             const { owner, repo } = context.repo;
@@ -71,7 +71,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Remove prior spec labels
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             const { owner, repo } = context.repo;
