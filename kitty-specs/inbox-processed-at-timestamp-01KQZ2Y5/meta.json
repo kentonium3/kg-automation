@@ -1,0 +1,10 @@
+{
+  "created_at": "2026-05-06T16:46:32.178286+00:00",
+  "friendly_name": "inbox processed at timestamp",
+  "mission_id": "01KQZ2Y5FMK7C9H5HQQR1PENE5",
+  "mission_number": null,
+  "mission_slug": "inbox-processed-at-timestamp-01KQZ2Y5",
+  "mission_type": "software-dev",
+  "slug": "inbox-processed-at-timestamp-01KQZ2Y5",
+  "target_branch": "main"
+}
