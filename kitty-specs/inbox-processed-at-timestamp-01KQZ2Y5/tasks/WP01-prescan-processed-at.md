@@ -15,7 +15,8 @@ subtasks:
 - T001
 - T002
 - T003
-shell_pid: '92396'
+shell_pid: "92396"
+agent: "claude:opus:implementer:implementer"
 history:
 - date: '2026-05-06'
   event: created
@@ -148,3 +149,7 @@ fall back to mtime without crashing or changing classification behavior.
 - Verify the mtime fallback path is still exercised for files without `processed_at`
 - Verify no new imports beyond stdlib
 - Check that the helper function is pure (no side effects, no file I/O)
+
+## Activity Log
+
+- 2026-05-06T16:53:58Z – claude:opus:implementer:implementer – shell_pid=92396 – Assigned agent via action command
