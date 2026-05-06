@@ -7,9 +7,9 @@
 
 | ID | Description | WP | Parallel |
 |----|-------------|-----|----------|
-| T001 | Add processed_at parsing to classify_file() | WP01 | |
-| T002 | Handle processed_at as both str and datetime from YAML | WP01 | |
-| T003 | Graceful fallback when processed_at is malformed | WP01 | |
+| T001 | Add processed_at parsing to classify_file() | WP01 | | [D] |
+| T002 | Handle processed_at as both str and datetime from YAML | WP01 | | [D] |
+| T003 | Graceful fallback when processed_at is malformed | WP01 | | [D] |
 | T004 | Update processed-recent.md fixture with processed_at | WP02 | |
 | T005 | Update processed-stale.md fixture with processed_at | WP02 | [P] |
 | T006 | Add test: processed_at-based age calculation | WP02 | |
@@ -26,9 +26,9 @@
 **Dependencies**: None
 **Estimated prompt size**: ~250 lines
 
-- [ ] T001 Add processed_at parsing to classify_file() (WP01)
-- [ ] T002 Handle processed_at as both str and datetime from YAML (WP01)
-- [ ] T003 Graceful fallback when processed_at is malformed (WP01)
+- [x] T001 Add processed_at parsing to classify_file() (WP01)
+- [x] T002 Handle processed_at as both str and datetime from YAML (WP01)
+- [x] T003 Graceful fallback when processed_at is malformed (WP01)
 
 **Prompt file**: `tasks/WP01-prescan-processed-at.md`
 
