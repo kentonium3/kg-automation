@@ -15,6 +15,8 @@ subtasks:
 - T006
 - T007
 - T008
+agent: "claude:opus:implementer:implementer"
+shell_pid: "96144"
 history:
 - date: '2026-05-06'
   event: created
@@ -203,3 +205,7 @@ def test_classify_falls_back_to_mtime_on_malformed_processed_at(tmp_path):
   that the boundary tests override behavior correctly. If boundary tests break,
   those tests should create their own inline frontmatter rather than using fixtures.
 - Verify the new tests are independent (use inline frontmatter, not fixtures)
+
+## Activity Log
+
+- 2026-05-06T17:15:57Z – claude:opus:implementer:implementer – shell_pid=96144 – Started implementation via action command
