@@ -3,9 +3,9 @@
 # DO NOT EDIT MANUALLY
 
 spec_kitty:
-  version: 3.1.1
+  version: 3.1.5
   initialized_at: '2026-03-25T23:07:06.539751'
-  last_upgraded_at: '2026-04-09T14:09:18.662304'
+  last_upgraded_at: '2026-05-06T13:38:54.095473'
 environment:
   python_version: 3.13.12
   platform: darwin
@@ -173,3 +173,31 @@ migrations:
       017-vikunja-habit-tracking-architecture: normalised status.json; 018-habit-today-filter-visibility:
       normalised status.json; 019-escalation-engine: normalised status.json; 020-doc-audit-infrastructure:
       normalised status.json; 021-openclaw-agent-model-tiering: normalised status.json'
+  - id: 3.1.2_globalize_commands
+    applied_at: '2026-05-06T13:38:54.080634'
+    result: success
+    notes: 'Removed: .claude/commands/spec-kitty.accept.md; Removed: .claude/commands/spec-kitty.analyze.md;
+      Removed: .claude/commands/spec-kitty.charter.md; Removed: .claude/commands/spec-kitty.checklist.md;
+      Removed: .claude/commands/spec-kitty.dashboard.md; Removed: .claude/commands/spec-kitty.implement.md;
+      Removed: .claude/commands/spec-kitty.merge.md; Removed: .claude/commands/spec-kitty.plan.md;
+      Removed: .claude/commands/spec-kitty.research.md; Removed: .claude/commands/spec-kitty.review.md;
+      Removed: .claude/commands/spec-kitty.specify.md; Removed: .claude/commands/spec-kitty.status.md;
+      Removed: .claude/commands/spec-kitty.tasks-finalize.md; Removed: .claude/commands/spec-kitty.tasks-outline.md;
+      Removed: .claude/commands/spec-kitty.tasks-packages.md; Removed: .claude/commands/spec-kitty.tasks.md;
+      Removed: .github/prompts/spec-kitty.accept.md; Removed: .github/prompts/spec-kitty.analyze.prompt.md;
+      Removed: .github/prompts/spec-kitty.charter.prompt.md; Removed: .github/prompts/spec-kitty.checklist.prompt.md;
+      Removed: .github/prompts/spec-kitty.dashboard.md; Removed: .github/prompts/spec-kitty.implement.md;
+      Removed: .github/prompts/spec-kitty.merge.md; Removed: .github/prompts/spec-kitty.plan.prompt.md;
+      Removed: .github/prompts/spec-kitty.research.prompt.md; Removed: .github/prompts/spec-kitty.review.md;
+      Removed: .github/prompts/spec-kitty.specify.prompt.md; Removed: .github/prompts/spec-kitty.status.md;
+      Removed: .github/prompts/spec-kitty.tasks-finalize.md; Removed: .github/prompts/spec-kitty.tasks-outline.prompt.md;
+      Removed: .github/prompts/spec-kitty.tasks-packages.prompt.md; Removed: .github/prompts/spec-kitty.tasks.prompt.md;
+      Removed empty directory: .github/prompts; Removed: .gemini/commands/spec-kitty.accept.md;
+      Removed: .gemini/commands/spec-kitty.analyze.toml; Removed: .gemini/commands/spec-kitty.charter.toml;
+      Removed: .gemini/commands/spec-kitty.checklist.toml; Removed: .gemini/commands/spec-kitty.dashboard.md;
+      Removed: .gemini/commands/spec-kitty.implement.md; Removed: .gemini/commands/spec-kitty.merge.md;
+      Removed: .gemini/commands/spec-kitty.plan.toml; Removed: .gemini/commands/spec-kitty.research.toml;
+      Removed: .gemini/commands/spec-kitty.review.md; Removed: .gemini/commands/spec-kitty.specify.toml;
+      Removed: .gemini/commands/spec-kitty.status.md; Removed: .gemini/commands/spec-kitty.tasks-finalize.md;
+      Removed: .gemini/commands/spec-kitty.tasks-outline.toml; Removed: .gemini/commands/spec-kitty.tasks-packages.toml;
+      Removed: .gemini/commands/spec-kitty.tasks.toml; Removed empty directory: .gemini/commands'
