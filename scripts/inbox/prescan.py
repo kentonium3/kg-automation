@@ -209,6 +209,28 @@ def _extract_frontmatter_block(text: str) -> Optional[str]:
     return None  # unterminated fence → no frontmatter
 
 
+def _parse_processed_at_age(
+    raw: object, now_utc: datetime
+) -> Optional[float]:
+    """Parse a ``processed_at`` frontmatter value and return age in days.
+
+    Returns ``None`` when the value is missing, malformed, or unparseable —
+    the caller should fall back to filesystem mtime in that case.
+    """
+    if isinstance(raw, datetime):
+        ts = raw if raw.tzinfo else raw.replace(tzinfo=timezone.utc)
+    elif isinstance(raw, str):
+        try:
+            ts = datetime.fromisoformat(raw)
+        except (ValueError, TypeError):
+            return None
+        if ts.tzinfo is None:
+            ts = ts.replace(tzinfo=timezone.utc)
+    else:
+        return None
+    return (now_utc - ts).total_seconds() / 86400.0
+
+
 def classify_file(path: Path, now_utc: datetime) -> InboxFile:
     """Classify a single ``.md`` file per the data-model rules."""
     mtime_raw = os.path.getmtime(path)
@@ -275,6 +297,12 @@ def classify_file(path: Path, now_utc: datetime) -> InboxFile:
     elif status_raw == "unprocessed":
         classification = "unprocessed"
     elif status_raw == "processed":
+        # Prefer processed_at frontmatter over filesystem mtime (issue #187).
+        processed_at_age = _parse_processed_at_age(
+            frontmatter.get("processed_at"), now_utc
+        )
+        if processed_at_age is not None:
+            age_days = processed_at_age
         if age_days > STALE_AGE_DAYS:
             classification = "processed-stale"
         else:

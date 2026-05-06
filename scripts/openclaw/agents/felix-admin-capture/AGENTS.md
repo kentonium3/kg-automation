@@ -147,10 +147,13 @@ For each routed content block:
 
 After successfully processing all content blocks from an inbox file:
 - Update frontmatter: `status: processed`
+- Update frontmatter: `processed_at: "<current timestamp>"` using your local
+  timezone in ISO 8601 format (e.g. `processed_at: "2026-05-06T12:30:00-04:00"`)
+- Quote the timestamp value in the YAML frontmatter
 - Do NOT delete the original file — preserve it as a record
 
 If any content block could not be classified:
-- Set `status: needs-review` instead
+- Set `status: needs-review` instead (do NOT write `processed_at`)
 - Add a note in the processing log explaining what was unclear
 
 ### Step 6: Write the processing log

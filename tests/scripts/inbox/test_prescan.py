@@ -220,8 +220,13 @@ def test_classify_processed_stale(tmp_path):
 
 
 def test_classify_processed_at_boundary_exactly_7_days(tmp_path):
-    """age == 7.0 days is NOT stale — the boundary is exclusive."""
-    f = _copy_fixture("processed-recent.md", tmp_path, dst_name="boundary.md")
+    """age == 7.0 days is NOT stale — the boundary is exclusive.
+
+    Uses inline frontmatter without processed_at so the boundary is tested
+    against filesystem mtime (the legacy fallback path).
+    """
+    f = tmp_path / "boundary.md"
+    f.write_text("---\nstatus: processed\ntitle: boundary\n---\nbody\n")
     # Pin both the reference ``now`` and the mtime so age_days is exactly 7.0.
     now_utc = datetime.now(timezone.utc)
     target = now_utc - timedelta(days=7.0)
@@ -232,7 +237,9 @@ def test_classify_processed_at_boundary_exactly_7_days(tmp_path):
 
 
 def test_classify_processed_at_boundary_just_over_7_days(tmp_path):
-    f = _copy_fixture("processed-recent.md", tmp_path, dst_name="boundary.md")
+    """Uses inline frontmatter without processed_at to test mtime boundary."""
+    f = tmp_path / "boundary.md"
+    f.write_text("---\nstatus: processed\ntitle: boundary\n---\nbody\n")
     now_utc = datetime.now(timezone.utc)
     target = now_utc - timedelta(days=7.0, seconds=1)
     ts = target.timestamp()
@@ -301,6 +308,52 @@ def test_classify_unknown_status_treated_as_unprocessed(tmp_path):
     result = classify_file(f, datetime.now(timezone.utc))
     assert result.classification == "unknown-treated-as-unprocessed"
     assert "unknown status" in (result.warning or "").lower()
+
+
+# ---------------------------------------------------------------------------
+# processed_at frontmatter (issue #187)
+# ---------------------------------------------------------------------------
+
+
+def test_classify_uses_processed_at_over_mtime(tmp_path):
+    """processed_at in frontmatter takes priority over filesystem mtime."""
+    now_utc = datetime.now(timezone.utc)
+    three_days_ago = now_utc - timedelta(days=3)
+    processed_at_str = three_days_ago.isoformat()
+    f = tmp_path / "with-processed-at.md"
+    f.write_text(
+        f'---\nstatus: processed\nprocessed_at: "{processed_at_str}"\n---\nbody\n',
+        encoding="utf-8",
+    )
+    _set_age(f, 10)  # mtime says 10 days — would be stale
+    result = classify_file(f, now_utc)
+    assert result.classification == "processed-recent"
+    assert result.status_raw == "processed"
+
+
+def test_classify_falls_back_to_mtime_without_processed_at(tmp_path):
+    """Without processed_at, age comes from filesystem mtime (backward compat)."""
+    f = tmp_path / "no-processed-at.md"
+    f.write_text(
+        "---\nstatus: processed\ntitle: Legacy note\n---\nbody\n",
+        encoding="utf-8",
+    )
+    _set_age(f, 8)
+    result = classify_file(f, datetime.now(timezone.utc))
+    assert result.classification == "processed-stale"
+
+
+def test_classify_falls_back_to_mtime_on_malformed_processed_at(tmp_path):
+    """Malformed processed_at falls back to mtime silently."""
+    f = tmp_path / "bad-processed-at.md"
+    f.write_text(
+        '---\nstatus: processed\nprocessed_at: "not-a-date"\n---\nbody\n',
+        encoding="utf-8",
+    )
+    _set_age(f, 3)
+    result = classify_file(f, datetime.now(timezone.utc))
+    assert result.classification == "processed-recent"
+    assert result.warning is None
 
 
 # ---------------------------------------------------------------------------
