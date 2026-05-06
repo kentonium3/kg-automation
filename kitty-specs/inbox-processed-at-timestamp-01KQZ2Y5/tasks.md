@@ -15,7 +15,7 @@
 | T006 | Add test: processed_at-based age calculation | WP02 | | [D] |
 | T007 | Add test: mtime fallback when processed_at absent | WP02 | [D] |
 | T008 | Add test: malformed processed_at fallback | WP02 | [D] |
-| T009 | Update AGENTS.md Step 5 to instruct writing processed_at | WP03 | [P] |
+| T009 | Update AGENTS.md Step 5 to instruct writing processed_at | WP03 | [D] |
 
 ## Work Packages
 
@@ -58,7 +58,7 @@
 **Dependencies**: None (independent of WP01/WP02)
 **Estimated prompt size**: ~200 lines
 
-- [ ] T009 Update AGENTS.md Step 5 to instruct writing processed_at (WP03)
+- [x] T009 Update AGENTS.md Step 5 to instruct writing processed_at (WP03)
 
 **Prompt file**: `tasks/WP03-agent-instructions.md`
 
