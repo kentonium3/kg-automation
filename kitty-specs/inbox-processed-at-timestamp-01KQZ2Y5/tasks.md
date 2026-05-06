@@ -10,11 +10,11 @@
 | T001 | Add processed_at parsing to classify_file() | WP01 | | [D] |
 | T002 | Handle processed_at as both str and datetime from YAML | WP01 | | [D] |
 | T003 | Graceful fallback when processed_at is malformed | WP01 | | [D] |
-| T004 | Update processed-recent.md fixture with processed_at | WP02 | |
-| T005 | Update processed-stale.md fixture with processed_at | WP02 | [P] |
-| T006 | Add test: processed_at-based age calculation | WP02 | |
-| T007 | Add test: mtime fallback when processed_at absent | WP02 | [P] |
-| T008 | Add test: malformed processed_at fallback | WP02 | [P] |
+| T004 | Update processed-recent.md fixture with processed_at | WP02 | | [D] |
+| T005 | Update processed-stale.md fixture with processed_at | WP02 | [D] |
+| T006 | Add test: processed_at-based age calculation | WP02 | | [D] |
+| T007 | Add test: mtime fallback when processed_at absent | WP02 | [D] |
+| T008 | Add test: malformed processed_at fallback | WP02 | [D] |
 | T009 | Update AGENTS.md Step 5 to instruct writing processed_at | WP03 | [P] |
 
 ## Work Packages
@@ -41,11 +41,11 @@
 **Dependencies**: WP01
 **Estimated prompt size**: ~300 lines
 
-- [ ] T004 Update processed-recent.md fixture with processed_at (WP02)
-- [ ] T005 Update processed-stale.md fixture with processed_at (WP02)
-- [ ] T006 Add test: processed_at-based age calculation (WP02)
-- [ ] T007 Add test: mtime fallback when processed_at absent (WP02)
-- [ ] T008 Add test: malformed processed_at fallback (WP02)
+- [x] T004 Update processed-recent.md fixture with processed_at (WP02)
+- [x] T005 Update processed-stale.md fixture with processed_at (WP02)
+- [x] T006 Add test: processed_at-based age calculation (WP02)
+- [x] T007 Add test: mtime fallback when processed_at absent (WP02)
+- [x] T008 Add test: malformed processed_at fallback (WP02)
 
 **Prompt file**: `tasks/WP02-test-processed-at.md`
 
