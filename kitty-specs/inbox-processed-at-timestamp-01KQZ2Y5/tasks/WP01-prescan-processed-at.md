@@ -156,3 +156,4 @@ fall back to mtime without crashing or changing classification behavior.
 - 2026-05-06T17:10:41Z – claude:opus:implementer:implementer – shell_pid=92396 – Ready for review
 - 2026-05-06T17:14:24Z – claude:opus:reviewer:reviewer – shell_pid=95789 – Started review via action command
 - 2026-05-06T17:14:41Z – claude:opus:reviewer:reviewer – shell_pid=95789 – Review passed: clean implementation, pure helper, mtime fallback intact
+- 2026-05-06T17:21:58Z – claude:opus:reviewer:reviewer – shell_pid=95789 – Done override: Feature merged to main (commit 64007c0)
