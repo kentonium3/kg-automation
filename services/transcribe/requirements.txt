@@ -1,0 +1,8 @@
+fastapi==0.115.12
+uvicorn[standard]==0.34.2
+faster-whisper==1.1.1
+python-multipart==0.0.20
+httpx==0.28.1
+yt-dlp==2025.3.21
+requests
+nvidia-cudnn-cu12==9.*

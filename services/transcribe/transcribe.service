@@ -8,8 +8,8 @@ Requires=docker.service
 Type=oneshot
 RemainAfterExit=yes
 User=claude
-ExecStart=/usr/bin/docker-compose -f /data/services/transcribe/docker-compose.yml up -d
-ExecStop=/usr/bin/docker-compose -f /data/services/transcribe/docker-compose.yml down
+ExecStart=/usr/bin/docker compose -f /home/claude/kg-automation/services/transcribe/docker-compose.yml up -d
+ExecStop=/usr/bin/docker compose -f /home/claude/kg-automation/services/transcribe/docker-compose.yml down
 Restart=on-failure
 RestartSec=10
 
