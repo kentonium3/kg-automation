@@ -16,8 +16,9 @@ All services run on office2 unless otherwise noted.
 |---------|------|---------------|------|---------|-------------|-----------|
 | Vikunja | Docker | `vikunja/vikunja:0.24.6` | 3456 | 0.0.0.0 | `vikunja.service` (system) | `/data/services/vikunja/data` |
 | Obsidian Sync | Native | `ob` v0.0.8, `ob sync --continuous` | — | — | `obsidian-sync.service` (user) | `/home/kgale/second-brain/notes` |
-| Transcribe API | Docker | `transcribe_transcribe` | 8787 | 100.92.197.90 | `transcribe.service` | `/data/services/transcribe` |
+| Transcribe API | Docker (GPU) | `transcribe-transcribe` | 8787 | 100.92.197.90 | `transcribe.service` | `/data/services/transcribe` |
 | OpenClaw Gateway | npm-global | `v2026.3.24` | 18789 | 127.0.0.1 | `openclaw-gateway.service` (user) | `/data/services/openclaw/data` |
+| Ollama | Host binary | `ollama` (latest, 0.23.2) | 11434 | 127.0.0.1 (localhost) | `ollama.service` (system, user `ollama`) | `/usr/share/ollama/.ollama` |
 
 ## Scheduled Jobs
 
@@ -73,16 +74,18 @@ All services run on office2 unless otherwise noted.
 - **Direction**: Bidirectional (git pull --rebase, then push)
 - **Purpose**: Keeps non-vault content (agents/, logs/, config) in sync between office2 and GitHub. Vault content (`notes/`) is excluded via `.gitignore` — Obsidian Sync handles that.
 
-### Transcribe API (F003)
+### Transcribe API (F003, GPU-accelerated 2026-05-08 via issue #80)
 - **Deployed by**: F003
 - **Compose file**: `/data/services/transcribe/docker-compose.yml`
-- **Image**: `transcribe_transcribe` (locally built)
+- **Image**: `transcribe-transcribe` (locally built; renamed from `transcribe_transcribe` when migrating to compose v2 on 2026-05-08)
 - **Model**: `medium.en` (faster-whisper), 4 workers, 4GB memory limit
 - **systemd unit**: `transcribe.service`
 - **Port binding**: `100.92.197.90:8787` (Tailscale IP only)
 - **Data**: transcripts at `/data/transcripts/`, models at `/data/services/transcribe/models/`
 - **Backup**: Included, excluding `/data/services/transcribe/models` (re-downloadable)
 - **Runbook**: `docs/runbooks/transcribe-ops.md`
+- **GPU acceleration** (issue #80, 2026-05-08): runs on GTX 1060 6GB via `nvidia-container-toolkit`. Compute type `int8` (Pascal-appropriate; float16 not supported on this generation). Model VRAM ~830 MiB. Real-time factor ~7x for medium.en (15.8 min audio → 2.3 min processing).
+- **GPU runtime requirements**: Compose file declares `deploy.resources.reservations.devices` requesting NVIDIA driver. Container needs `LD_LIBRARY_PATH` set to pip-installed nvidia lib paths so ctranslate2 can find `libcublas.so.12` (cuDNN auto-discovers, cuBLAS does not).
 
 ### OpenClaw Gateway (F002)
 - **Deployed by**: F002
@@ -95,6 +98,16 @@ All services run on office2 unless otherwise noted.
 - **Backup**: Data at `/data/services/openclaw/data/` and config at `/home/claude/.openclaw/` — both in Restic scope
 - **Model tiering**: Global default is Haiku; per-agent model override via `agents.list[].model` in `openclaw.json`. See agent registry for per-agent assignments.
 - **Runbook**: `docs/runbooks/openclaw-ops.md`
+
+### Ollama (issue #80, 2026-05-08)
+- **Deployed by**: issue-80-gpu-install
+- **Binary**: `/usr/local/bin/ollama` (installed via official `ollama.com/install.sh`)
+- **systemd unit**: `ollama.service` (system-level, runs as `ollama` user)
+- **Port binding**: `127.0.0.1:11434` — **localhost only**, not exposed via Tailscale. If remote access is needed later, use SSH port-forward or add a Tailscale serve rule explicitly.
+- **GPU**: auto-detected NVIDIA driver, runs inference on GTX 1060 (verified with `llama3.2:3b`).
+- **Data**: models at `/usr/share/ollama/.ollama/models/` (re-pullable from ollama.com — backup excluded by design)
+- **Purpose**: Local LLM inference runtime for future agent / RAG workflows. No active workload yet — installed as part of the GPU compute capability rollout.
+- **Verification**: `curl -s http://127.0.0.1:11434/api/version` from office2 should return JSON with the version field.
 
 ### Felix Admin Capture Agent (F008)
 - **Deployed by**: F008

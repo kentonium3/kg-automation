@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
-  "last_updated": "2026-03-26",
-  "updated_by": "F001",
+  "last_updated": "2026-05-08",
+  "updated_by": "ops-gpu-install",
   "hosts": [
     {
       "hostname": "office2",
@@ -10,7 +10,17 @@
       "cpu": "Intel Core i7-4790 @ 3.60GHz",
       "ram_gb": 32,
       "os": "Ubuntu 24.04 LTS",
-      "kernel": "6.8.0-106-generic",
+      "kernel": "6.8.0-111-generic",
+      "gpu": {
+        "model": "NVIDIA GeForce GTX 1060 6GB",
+        "architecture": "Pascal (GP106)",
+        "vram_gb": 6,
+        "driver": "nvidia-driver-535-server",
+        "driver_version": "535.288.01",
+        "cuda_version": "12.2",
+        "compute_capability": "6.1",
+        "installed": "2026-05-08"
+      },
       "disks": [
         {"mount": "/", "device": "/dev/mapper/ubuntu--vg-ubuntu--lv", "size_gb": 98, "purpose": "OS and home directories"},
         {"mount": "/data", "device": "/dev/sda1", "size_tb": 2.7, "purpose": "Services, transcripts, application data"},

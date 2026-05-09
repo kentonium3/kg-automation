@@ -17,7 +17,8 @@ Authoritative data: [`data/hardware-inventory.json`](<./data/hardware-inventory.
 | Hardware | Dell XPS 8700 |
 | CPU | Intel Core i7-4790 @ 3.60GHz |
 | RAM | 32 GB |
-| OS | Ubuntu 24.04 LTS (kernel 6.8.0-106-generic) |
+| GPU | NVIDIA GeForce GTX 1060 6GB (Pascal GP106, compute 6.1) — driver 535.288.01, CUDA 12.2 |
+| OS | Ubuntu 24.04 LTS (kernel 6.8.0-111-generic) |
 | Local IP | 192.168.1.158 |
 | Tailscale IP | 100.92.197.90 |
 | Role | Always-on hub — runs all services |

@@ -1,7 +1,7 @@
 {
   "schema_version": "1.1",
-  "last_updated": "2026-04-11",
-  "updated_by": "027-inbox-pre-scan-helper",
+  "last_updated": "2026-05-08",
+  "updated_by": "issue-80-gpu-install",
   "services": [
     {
       "name": "vikunja",
@@ -110,7 +110,7 @@
     {
       "name": "transcribe-api",
       "type": "docker",
-      "image": "transcribe_transcribe",
+      "image": "transcribe-transcribe",
       "host": "office2",
       "port": 8787,
       "bind_ip": "100.92.197.90",
@@ -123,8 +123,18 @@
       "status": "running",
       "purpose": "Whisper transcription API",
       "risk_tier": 2,
+      "gpu_acceleration": {
+        "enabled_on": "2026-05-08",
+        "backend": "faster-whisper on CUDA via nvidia-container-toolkit",
+        "compute_type": "int8",
+        "model": "medium.en",
+        "vram_usage_mb": 830,
+        "real_time_factor": "~7x (GTX 1060 Pascal, INT8)",
+        "ld_library_path_required": ["/usr/local/lib/python3.12/site-packages/nvidia/cublas/lib", "/usr/local/lib/python3.12/site-packages/nvidia/cudnn/lib"]
+      },
       "dependencies": [
-        {"target": "docker", "type": "requires", "description": "Runs as Docker container via systemd"}
+        {"target": "docker", "type": "requires", "description": "Runs as Docker container via systemd"},
+        {"target": "nvidia-container-toolkit", "type": "requires", "description": "GPU runtime for CUDA inference"}
       ],
       "health_check": {
         "method": "http",
@@ -442,6 +452,42 @@
       "config_files": [
         {"path": "/home/claude/.config/systemd/user/felix-core-digest.service", "format": "systemd-unit"},
         {"path": "/home/claude/.config/systemd/user/felix-core-digest.timer", "format": "systemd-unit"}
+      ]
+    },
+    {
+      "name": "ollama",
+      "type": "host-binary",
+      "host": "office2",
+      "binary": "/usr/local/bin/ollama",
+      "port": 11434,
+      "bind_ip": "127.0.0.1",
+      "exposed_via_tailscale": false,
+      "systemd_unit": "ollama.service",
+      "systemd_user": "ollama",
+      "data_path": "/usr/share/ollama/.ollama",
+      "backup_included": false,
+      "backup_excludes_reason": "Models can be re-pulled from ollama.com; minimal user state.",
+      "deployed_by": "issue-80-gpu-install",
+      "deployed_on": "2026-05-08",
+      "status": "running",
+      "purpose": "Local LLM inference runtime (GPU-accelerated)",
+      "risk_tier": 3,
+      "gpu_acceleration": {
+        "enabled_on": "2026-05-08",
+        "auto_detected": true,
+        "verified_with": "llama3.2:3b inference, ~2s wall-clock for short prompt"
+      },
+      "dependencies": [
+        {"target": "nvidia-driver", "type": "requires", "description": "NVIDIA kernel driver for GPU compute"}
+      ],
+      "health_check": {
+        "method": "http",
+        "endpoint": "http://127.0.0.1:11434/api/version",
+        "expected": 200,
+        "timeout_seconds": 5
+      },
+      "config_files": [
+        {"path": "/etc/systemd/system/ollama.service", "format": "systemd-unit"}
       ]
     }
   ]
