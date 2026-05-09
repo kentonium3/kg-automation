@@ -1,0 +1,10 @@
+{
+  "created_at": "2026-05-09T23:54:10.775879+00:00",
+  "friendly_name": "felix doc auditor agent",
+  "mission_id": "01KR7JK9QTHM5F4PD3YC43KDQW",
+  "mission_number": null,
+  "mission_slug": "felix-doc-auditor-agent-01KR7JK9",
+  "mission_type": "software-dev",
+  "slug": "felix-doc-auditor-agent-01KR7JK9",
+  "target_branch": "main"
+}
