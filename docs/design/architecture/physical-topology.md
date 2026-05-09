@@ -31,6 +31,16 @@ Authoritative data: [`data/hardware-inventory.json`](<./data/hardware-inventory.
 | `/data` | `/dev/sda1` (HDD) | 2.7 TB | Services, transcripts, application data |
 | `/mnt/backups` | `/dev/sdg1` | 916 GB | Restic backup repository |
 
+**BIOS / firmware:**
+
+| Setting | Value | Notes |
+|---------|-------|-------|
+| BIOS version | A13 (2018-06-13) | Final firmware Dell shipped for the XPS 8700; no further updates expected |
+| AC power restoration | Power on | Auto-recovers after power outages — important for "always-on hub" role (set 2026-05-08 after a Detroit outage took the server offline for two days) |
+| Primary display | PCIe / discrete GPU | GTX 1060 drives the console |
+| Secure boot | Enabled | Canonical-signed nvidia driver works without MOK enrollment |
+| Console resolution | 800x600 (firmware ceiling) | UEFI hands the kernel a low-res framebuffer at POST and it cannot be overridden in OS — see issue #191 |
+
 ### MacBook Pro — Authoring Endpoint
 
 | Attribute | Value |
