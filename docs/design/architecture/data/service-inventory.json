@@ -1,7 +1,7 @@
 {
   "schema_version": "1.1",
-  "last_updated": "2026-05-08",
-  "updated_by": "issue-80-gpu-install",
+  "last_updated": "2026-05-09",
+  "updated_by": "issue-190-transcribe-source-in-git",
   "services": [
     {
       "name": "vikunja",
@@ -142,9 +142,11 @@
         "expected": 200,
         "timeout_seconds": 10
       },
+      "source_in_repo": "services/transcribe/",
+      "deploy_flow": "Edit in repo → push → git pull on office2 (/home/claude/kg-automation) → docker compose up -d --build (or systemctl restart transcribe). Models bind mount at /data/services/transcribe/models/ stays unchanged.",
       "config_files": [
-        {"path": "/etc/systemd/system/transcribe.service", "format": "systemd-unit"},
-        {"path": "/data/services/transcribe/docker-compose.yml", "format": "yaml"}
+        {"path": "/etc/systemd/system/transcribe.service", "format": "systemd-unit", "source_in_repo": "services/transcribe/transcribe.service"},
+        {"path": "/home/claude/kg-automation/services/transcribe/docker-compose.yml", "format": "yaml", "source_in_repo": "services/transcribe/docker-compose.yml"}
       ]
     },
     {

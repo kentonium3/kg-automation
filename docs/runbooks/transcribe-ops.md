@@ -14,14 +14,16 @@ This runbook covers day-to-day operations for the Whisper transcription API serv
 The transcribe service provides an HTTP API for audio transcription using faster-whisper.
 
 **Service name**: `transcribe` (systemd)
-**Container name**: managed via Docker Compose
-**Image**: `transcribe_transcribe` (locally built)
+**Container name**: `transcribe-api` (managed via Docker Compose)
+**Image**: `transcribe-transcribe` (locally built)
 **Port**: `100.92.197.90:8787` (Tailscale IP only)
 **Model**: `medium.en` (faster-whisper), English only
 **Workers**: 4
 **Memory limit**: 4GB
-**Compose file**: `/data/services/transcribe/docker-compose.yml`
-**Data**: transcripts at `/data/transcripts/`, models at `/data/services/transcribe/models/`
+**GPU**: GTX 1060 6GB via `nvidia-container-toolkit`, `compute_type=int8`, ~830 MiB VRAM, ~7x real-time
+**Source in repo**: `services/transcribe/` (Dockerfile, app/, requirements.txt, docker-compose.yml, transcribe.service)
+**Compose file on office2**: `/home/claude/kg-automation/services/transcribe/docker-compose.yml` (clone of this repo)
+**Data**: transcripts at `/data/transcripts/`, models at `/data/services/transcribe/models/` (bind mounts; unchanged when source moved into git in #190)
 
 ## Service Management
 
@@ -51,8 +53,12 @@ journalctl -u transcribe --since "1 hour ago"
 journalctl -u transcribe --since today
 
 # Docker Compose logs (no sudo required):
-docker compose -f /data/services/transcribe/docker-compose.yml logs -f
-docker compose -f /data/services/transcribe/docker-compose.yml logs --tail 50
+docker compose -f /home/claude/kg-automation/services/transcribe/docker-compose.yml logs -f
+docker compose -f /home/claude/kg-automation/services/transcribe/docker-compose.yml logs --tail 50
+
+# Or just by container name:
+docker logs -f transcribe-api
+docker logs --tail 50 transcribe-api
 ```
 
 ## API Contract
@@ -158,9 +164,11 @@ The transcription API uses an asynchronous workflow:
 
 ### Data locations
 
-- **Transcripts**: `/data/transcripts/`
-- **Models**: `/data/services/transcribe/models/`
-- **Compose and config**: `/data/services/transcribe/`
+- **Source code**: `services/transcribe/` in the kg-automation repo (clone at `/home/claude/kg-automation/services/transcribe/` on office2)
+- **Transcripts**: `/data/transcripts/` (bind mount into container at `/data/transcripts`)
+- **Models**: `/data/services/transcribe/models/` (bind mount into container at `/models`)
+- **systemd unit (deployed)**: `/etc/systemd/system/transcribe.service`
+- **systemd unit (source)**: `services/transcribe/transcribe.service` in repo
 
 ### Backup
 
@@ -168,23 +176,48 @@ Transcript data is automatically included in the nightly Restic backup because i
 
 **Models are excluded from backup** — they are large and re-downloadable from Hugging Face.
 
-## Updating the Docker Image
+**Source code** is backed by git — the repo at `/home/claude/kg-automation/` is included in Restic too, but the canonical source-of-truth is GitHub.
 
-The image is locally built from the Dockerfile in `/data/services/transcribe/`.
+## Updating the Service
 
-1. **Rebuild the image**:
+Since #190, the source lives in `services/transcribe/` in this repo. The deploy flow is git-based — no scp, no in-place edits on office2.
+
+### Code changes (Dockerfile, app/, requirements.txt, docker-compose.yml)
+
+1. **Edit in your local clone of this repo**, on the Mac. Test locally if possible.
+2. **Commit and push** to main:
    ```bash
-   cd /data/services/transcribe && docker compose build
+   cd ~/repos/kg-automation
+   git add services/transcribe/
+   git commit -m "feat(transcribe): <change description>"
+   git push origin main
    ```
-2. **Restart the service** (requires sudo — run as kgale):
+3. **Pull on office2** (no sudo required):
    ```bash
-   sudo systemctl restart transcribe
+   ssh office2-claude "cd /home/claude/kg-automation && git pull origin main"
    ```
-3. **Verify**:
+4. **Rebuild and restart** (rebuild only needed for code/dep changes; pure config changes can skip `--build`):
+   ```bash
+   ssh office2-claude "cd /home/claude/kg-automation/services/transcribe && docker compose up -d --build"
+   ```
+   Or via systemd (which doesn't rebuild — for that, do step above first):
+   ```bash
+   ssh office2-kgale "sudo systemctl restart transcribe"
+   ```
+5. **Verify**:
    ```bash
    systemctl status transcribe
    curl -s http://100.92.197.90:8787/health
+   nvidia-smi --query-compute-apps=pid,process_name,used_memory --format=csv  # confirm GPU still in use
    ```
+
+### Systemd unit changes (`services/transcribe/transcribe.service`)
+
+The unit is **not** auto-deployed by `git pull` — it lives under `/etc/systemd/system/` which requires sudo. After editing the source unit in repo:
+
+```bash
+ssh office2-kgale "sudo cp /home/claude/kg-automation/services/transcribe/transcribe.service /etc/systemd/system/transcribe.service && sudo systemctl daemon-reload && sudo systemctl restart transcribe"
+```
 
 ## Known Limitations
 

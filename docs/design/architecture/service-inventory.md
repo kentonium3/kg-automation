@@ -74,14 +74,16 @@ All services run on office2 unless otherwise noted.
 - **Direction**: Bidirectional (git pull --rebase, then push)
 - **Purpose**: Keeps non-vault content (agents/, logs/, config) in sync between office2 and GitHub. Vault content (`notes/`) is excluded via `.gitignore` — Obsidian Sync handles that.
 
-### Transcribe API (F003, GPU-accelerated 2026-05-08 via issue #80)
+### Transcribe API (F003, GPU-accelerated 2026-05-08 via issue #80, source under git 2026-05-09 via issue #190)
 - **Deployed by**: F003
-- **Compose file**: `/data/services/transcribe/docker-compose.yml`
+- **Source in repo**: `services/transcribe/` (Dockerfile, app/, requirements.txt, docker-compose.yml, transcribe.service)
+- **Compose file on office2**: `/home/claude/kg-automation/services/transcribe/docker-compose.yml` (cloned from this repo; was `/data/services/transcribe/docker-compose.yml` before #190)
+- **Deploy flow**: edit in repo → push → `git pull` on office2 → `docker compose up -d --build` (or `sudo systemctl restart transcribe`)
 - **Image**: `transcribe-transcribe` (locally built; renamed from `transcribe_transcribe` when migrating to compose v2 on 2026-05-08)
 - **Model**: `medium.en` (faster-whisper), 4 workers, 4GB memory limit
 - **systemd unit**: `transcribe.service`
 - **Port binding**: `100.92.197.90:8787` (Tailscale IP only)
-- **Data**: transcripts at `/data/transcripts/`, models at `/data/services/transcribe/models/`
+- **Data**: transcripts at `/data/transcripts/`, models at `/data/services/transcribe/models/` (bind mount, unchanged by #190)
 - **Backup**: Included, excluding `/data/services/transcribe/models` (re-downloadable)
 - **Runbook**: `docs/runbooks/transcribe-ops.md`
 - **GPU acceleration** (issue #80, 2026-05-08): runs on GTX 1060 6GB via `nvidia-container-toolkit`. Compute type `int8` (Pascal-appropriate; float16 not supported on this generation). Model VRAM ~830 MiB. Real-time factor ~7x for medium.en (15.8 min audio → 2.3 min processing).
