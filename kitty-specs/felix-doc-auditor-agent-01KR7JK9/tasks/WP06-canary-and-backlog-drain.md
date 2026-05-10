@@ -322,3 +322,4 @@ spec-kitty agent action implement WP06 --agent <agent-name>
 ## Activity Log
 
 - 2026-05-10T17:31:51Z – claude:opus:orchestrator:orchestrator – shell_pid=48801 – Started implementation via action command
+- 2026-05-10T17:32:17Z – claude:opus:orchestrator:orchestrator – shell_pid=48801 – Canary-log.md stub committed explaining the deferral. T022-T026 (manual canary, cron enable, backlog drain) deferred to issue #195 (post-merge ops) — they require the merged mission to land on office2's main checkout before they can run. This is acknowledged scope adjustment per orchestrator-Kent decision (option A).
