@@ -31,9 +31,9 @@
 | T011 | Add felix-doc-auditor entry to service-inventory.json | WP03 | [D] |
 | T012 | Add narrative section for felix-doc-auditor to service-inventory.md | WP03 | [D] |
 | T013 | Add doc-auditor-ops.md reference to doc-domain-map.json | WP03 | [D] |
-| T014 | Write docs/runbooks/doc-auditor-ops.md | WP04 | |
-| T015 | Update docs/INDEX.md with new runbook + skill references | WP04 | [P] |
-| T016 | Modify .github/workflows/doc-audit-weekly.yml per R-012 (FR-008 fix) | WP04 | [P] |
+| T014 | Write docs/runbooks/doc-auditor-ops.md | WP04 | | [D] |
+| T015 | Update docs/INDEX.md with new runbook + skill references | WP04 | [D] |
+| T016 | Modify .github/workflows/doc-audit-weekly.yml per R-012 (FR-008 fix) | WP04 | [D] |
 | T017 | Create scripts/office2/deploy/felix-doc-auditor.sh deploy helper | WP05 | |
 | T018 | Run the deploy helper on office2 (Kent runs with sudo where needed) | WP05 | |
 | T019 | Register agent in /home/claude/.openclaw/openclaw.json (cron initially disabled) | WP05 | |
@@ -115,9 +115,9 @@
 - **Priority**: P1 — runbook is required by FR-007; weekly fix unblocks suppressed weekly audits
 - **Independent test**: Manual workflow trigger via `gh workflow run doc-audit-weekly.yml` after the fix lands creates a new weekly issue even with #186 still open (proves R-012 fix); runbook is readable and complete; INDEX has the new entries linked.
 - **Included subtasks**:
-  - [ ] T014 Write `docs/runbooks/doc-auditor-ops.md` (operation, manual trigger, domain-map management, threshold tuning, troubleshooting, kill switch, stale-lock recovery)
-  - [ ] T015 Update `docs/INDEX.md` with the new runbook + skill references (per change-control protocol for new docs)
-  - [ ] T016 Modify `.github/workflows/doc-audit-weekly.yml` per R-012 — scope the "skip if exists" check to current week's date in title
+  - [x] T014 Write `docs/runbooks/doc-auditor-ops.md` (operation, manual trigger, domain-map management, threshold tuning, troubleshooting, kill switch, stale-lock recovery)
+  - [x] T015 Update `docs/INDEX.md` with the new runbook + skill references (per change-control protocol for new docs)
+  - [x] T016 Modify `.github/workflows/doc-audit-weekly.yml` per R-012 — scope the "skip if exists" check to current week's date in title
 - **Implementation sketch**: T014 is the largest piece — write the runbook covering all FR-007 topics. T015 is a short addition to the index following the existing alphabetical pattern. T016 is a 5-line YAML change exactly per R-012. Order: T014 → T015 (index references the new runbook so order matters) → T016 (independent).
 - **Parallel opportunities**: T015 and T016 are [P] within the WP. T014 is sequenced first.
 - **Dependencies**: None
