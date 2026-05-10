@@ -10,7 +10,7 @@ description: >-
   (AGENTS.md), runtime orchestration (OpenClaw cron), the WhatsApp send
   mechanism (TOOLS.md), or the GitHub Actions workflows that create the
   audit issues in the first place.
-version: 1.0.0
+version: 1.1.0
 ---
 
 # Doc-Audit Skill
@@ -222,9 +222,36 @@ against what is **documented**:
    matching narrative entry in `service-inventory.md` and a runbook (if
    the service warrants one). A deployed service without an entry is a
    missing artifact.
-3. **Skills** — for each `scripts/openclaw/skills/*/SKILL.md` file,
-   verify an entry in `docs/INDEX.md`. A skill without an index entry
-   is a missing artifact.
+
+### What is NOT a missing artifact
+
+The audit check is for **human-navigable documentation**. Files that
+are agent-readable contracts (discovered or bound through other
+mechanisms) MUST NOT be flagged as missing INDEX entries.
+
+Specifically excluded from missing-artifact detection:
+
+- **`scripts/openclaw/skills/*/SKILL.md`** — skills are auto-discovered
+  by OpenClaw (`openclaw skills list`) and bound to consumers via each
+  agent's own `AGENTS.md` / `TOOLS.md` (`cat ~/.openclaw/skills/<name>/SKILL.md`
+  pattern). They have a separate registry and should NOT be in
+  `docs/INDEX.md`. Front-matter recognition: `name:` + `version:`
+  fields without `doc_type` ⇒ skill, exclude.
+
+- **`scripts/openclaw/agents/*/{IDENTITY,SOUL,TOOLS,USER,AGENTS}.md`** —
+  agent workspace files are bound via `openclaw.json` registration and
+  loaded by the OpenClaw runtime; they are not human-navigable docs.
+
+- **Anything under `kitty-specs/` or `.kittify/`** — managed exclusively
+  by spec-kitty, never INDEX-tracked.
+
+- **Anything under `docs/archive/`** — archival; INDEX explicitly marks
+  archived items but the archived files themselves are not active docs.
+
+**Heuristic for ambiguity**: if a file's front-matter has `doc_type` set
+(e.g., `reference`, `runbook`, `guide`), expect it in INDEX. If the
+front-matter is `name:` + `version:` with no `doc_type`, treat as a
+skill or agent contract, do not flag.
 
 A doc is **missing** only if absent. Thin or stale docs are judgment
 gaps (Section 4.2), not missing artifacts. File one debt issue per
@@ -456,6 +483,20 @@ and #4 (`updated_by` for the changed entry).
 
 **Action**: edit `service-inventory.json` to bump `last_updated` and
 `updated_by`. Single commit, atomic per FR-002.
+
+### Example E — Skill file is NOT a missing artifact (exclusion)
+
+**Triggering commit**: `bb2018d` — `feat(kitty/mission-felix-doc-auditor-agent-01KR7JK9): squash merge of mission`. The merge created `scripts/openclaw/skills/doc-audit/SKILL.md`.
+
+**Audit triggered**: weekly full-scope audit (#186, 2026-04-19).
+
+**Finding**: missing-artifact detection scans `scripts/openclaw/skills/*/SKILL.md` and finds 6 SKILL.md files (doc-audit, escalation, skill-author, task-intelligence, vikunja-api, whisper). None of them appear in `docs/INDEX.md`.
+
+**Classification**: **NOT a missing artifact** — these are skill contracts excluded per Section 6 "What is NOT a missing artifact". Skills are auto-discovered by OpenClaw (`openclaw skills list`) and bound to consumers via per-agent standing orders. They have a separate registry and should NOT be in `docs/INDEX.md`.
+
+**Action**: do not file debt issues. Mention in the audit summary's "Items requiring human review" only if the auditor wants to confirm the policy applies (e.g., on first run after a heuristic update). Otherwise silently skip.
+
+**Why this rule was added (v1.1.0)**: the v1.0.0 heuristic flagged these 6 files during audit #186, producing false-positive debt issues. Refined per issue #201 to exclude SKILL.md files and agent workspace files from the missing-INDEX check.
 
 ---
 
