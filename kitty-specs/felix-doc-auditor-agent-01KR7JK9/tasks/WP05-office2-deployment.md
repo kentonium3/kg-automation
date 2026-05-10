@@ -321,3 +321,4 @@ spec-kitty agent action implement WP05 --agent <agent-name>
 ## Activity Log
 
 - 2026-05-10T17:17:05Z – claude:sonnet:implementer:implementer – shell_pid=45945 – Started implementation via action command
+- 2026-05-10T17:29:30Z – claude:sonnet:implementer:implementer – shell_pid=45945 – T017 (deploy script) and T020 (GitHub label) complete. T018/T019/T021 deferred to issue #195 (post-merge ops) — they require the merged mission to land on office2's main checkout before they can run. This is acknowledged scope adjustment per orchestrator-Kent decision (option A: defer ops to post-merge issue).
