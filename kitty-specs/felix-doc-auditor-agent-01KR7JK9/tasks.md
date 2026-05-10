@@ -34,7 +34,7 @@
 | T014 | Write docs/runbooks/doc-auditor-ops.md | WP04 | | [D] |
 | T015 | Update docs/INDEX.md with new runbook + skill references | WP04 | [D] |
 | T016 | Modify .github/workflows/doc-audit-weekly.yml per R-012 (FR-008 fix) | WP04 | [D] |
-| T017 | Create scripts/office2/deploy/felix-doc-auditor.sh deploy helper | WP05 | |
+| T017 | Create scripts/office2/deploy/felix-doc-auditor.sh deploy helper | WP05 | | [D] |
 | T018 | Run the deploy helper on office2 (Kent runs with sudo where needed) | WP05 | |
 | T019 | Register agent in /home/claude/.openclaw/openclaw.json (cron initially disabled) | WP05 | |
 | T020 | Create GitHub label `status:in-progress` (one-time, via gh CLI) | WP05 | [D] |
@@ -133,7 +133,7 @@
 - **Priority**: P1 — required for canary + run
 - **Independent test**: `openclaw agents | grep felix-doc-auditor` returns the agent identity card; `gh label list --repo kentonium3/kg-automation | grep status:in-progress` returns the new label; the cron entry exists in openclaw.json but is disabled.
 - **Included subtasks**:
-  - [ ] T017 Create `scripts/office2/deploy/felix-doc-auditor.sh` (idempotent helper that pulls the repo, deploys workspace + skill, prints verification commands)
+  - [x] T017 Create `scripts/office2/deploy/felix-doc-auditor.sh` (idempotent helper that pulls the repo, deploys workspace + skill, prints verification commands)
   - [ ] T018 Run the deploy helper on office2 (Kent runs with sudo where needed)
   - [ ] T019 Register agent in `/home/claude/.openclaw/openclaw.json` (manual edit — sensitive config not in repo; cron entry initially disabled)
   - [x] T020 Create GitHub label `status:in-progress` via `gh label create` (one-time)
