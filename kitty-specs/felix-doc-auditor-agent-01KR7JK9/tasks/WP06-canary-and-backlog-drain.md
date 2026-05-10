@@ -14,6 +14,8 @@ subtasks:
 - T024
 - T025
 - T026
+agent: "claude:opus:orchestrator:orchestrator"
+shell_pid: "48801"
 history:
 - at: '2026-05-09T23:54:00Z'
   actor: spec-kitty.tasks
@@ -316,3 +318,7 @@ A reviewer should check:
 ```bash
 spec-kitty agent action implement WP06 --agent <agent-name>
 ```
+
+## Activity Log
+
+- 2026-05-10T17:31:51Z – claude:opus:orchestrator:orchestrator – shell_pid=48801 – Started implementation via action command
