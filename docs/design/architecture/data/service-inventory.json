@@ -143,6 +143,7 @@
         "timeout_seconds": 10
       },
       "source_in_repo": "services/transcribe/",
+      "updated_by": "#190",
       "deploy_flow": "Edit in repo → push → git pull on office2 (/home/claude/kg-automation) → docker compose up -d --build (or systemctl restart transcribe). Models bind mount at /data/services/transcribe/models/ stays unchanged.",
       "config_files": [
         {"path": "/etc/systemd/system/transcribe.service", "format": "systemd-unit", "source_in_repo": "services/transcribe/transcribe.service"},
