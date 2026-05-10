@@ -18,11 +18,11 @@
 
 | ID | Description | WP | Parallel |
 |---|---|---|---|
-| T001 | Create IDENTITY.md for felix-doc-auditor agent | WP01 | [P] |
-| T002 | Create SOUL.md for felix-doc-auditor agent | WP01 | [P] |
-| T003 | Create TOOLS.md for felix-doc-auditor agent | WP01 | [P] |
-| T004 | Create USER.md for felix-doc-auditor agent | WP01 | [P] |
-| T005 | Create AGENTS.md for felix-doc-auditor (standing orders) | WP01 | |
+| T001 | Create IDENTITY.md for felix-doc-auditor agent | WP01 | [P] | [D] |
+| T002 | Create SOUL.md for felix-doc-auditor agent | WP01 | [D] |
+| T003 | Create TOOLS.md for felix-doc-auditor agent | WP01 | [D] |
+| T004 | Create USER.md for felix-doc-auditor agent | WP01 | [D] |
+| T005 | Create AGENTS.md for felix-doc-auditor (standing orders) | WP01 | | [D] |
 | T006 | Write doc-audit skill SKILL.md | WP02 | |
 | T007 | Add worked examples section to SKILL.md | WP02 | |
 | T008 | Validate skill against skill-author conventions | WP02 | |
@@ -57,11 +57,11 @@
 - **Priority**: P1 — foundational; all other WPs reference these files
 - **Independent test**: New agent passes `openclaw agents` listing locally if deployed (deploy is WP05); standing orders document compiles cleanly when read by another agent for review
 - **Included subtasks**:
-  - [ ] T001 Create IDENTITY.md
-  - [ ] T002 Create SOUL.md
-  - [ ] T003 Create TOOLS.md
-  - [ ] T004 Create USER.md
-  - [ ] T005 Create AGENTS.md (the standing-orders document — the largest of the five)
+  - [x] T001 Create IDENTITY.md
+  - [x] T002 Create SOUL.md
+  - [x] T003 Create TOOLS.md
+  - [x] T004 Create USER.md
+  - [x] T005 Create AGENTS.md (the standing-orders document — the largest of the five)
 - **Implementation sketch**: Read `scripts/openclaw/agents/felix-admin-habits/` for the pattern. Write the four small files (IDENTITY, SOUL, TOOLS, USER) in any order. Write AGENTS.md last because it references all the others. AGENTS.md embeds the WhatsApp reply parser pattern (per R-007, copied from felix-admin-habits) and the audit workflow per the data-model lifecycle diagram. Use the contracts in `contracts/` as authoritative templates for message formats.
 - **Parallel opportunities**: T001-T004 are [P] — independent files. T005 sequenced last (references the others).
 - **Dependencies**: None
