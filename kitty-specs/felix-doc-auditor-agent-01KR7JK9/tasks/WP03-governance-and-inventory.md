@@ -255,3 +255,4 @@ spec-kitty agent action implement WP03 --agent <agent-name>
 - 2026-05-10T17:02:22Z – claude:sonnet:implementer:implementer – shell_pid=41730 – Ready for review: 5 file modifications per contracts/agent-registry-entry.template.md and WP prompt JSON spec. Both JSON files validate cleanly. Markdown narratives match JSON authoritative.
 - 2026-05-10T17:02:50Z – codex:gpt5:reviewer:reviewer – shell_pid=42747 – Started review via action command
 - 2026-05-10T17:05:26Z – codex:gpt5:reviewer:reviewer – shell_pid=42747 – Review passed by codex (sandbox denied direct move-task; orchestrator recorded). Codex verified: registry schema deviation correct, JSON validates, markdown/JSON aligned, domain-map reference present.
+- 2026-05-10T17:37:36Z – codex:gpt5:reviewer:reviewer – shell_pid=42747 – Done override: Mission merged to main (commit bb2018d)
