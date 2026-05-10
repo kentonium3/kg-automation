@@ -1,18 +1,18 @@
 {
-  "event_count": 46,
-  "last_event_id": "01KR9F4T531K7N34CFVW8Z471G",
-  "materialized_at": "2026-05-10T17:32:16.931432+00:00",
+  "event_count": 49,
+  "last_event_id": "01KR9F6DJXGR77HPXCYEEX1GD9",
+  "materialized_at": "2026-05-10T17:33:09.597497+00:00",
   "mission_number": "",
   "mission_slug": "felix-doc-auditor-agent-01KR7JK9",
   "mission_type": "software-dev",
   "summary": {
-    "approved": 4,
+    "approved": 5,
     "blocked": 0,
     "canceled": 0,
     "claimed": 0,
     "done": 0,
     "for_review": 1,
-    "in_progress": 1,
+    "in_progress": 0,
     "in_review": 0,
     "planned": 0
   },
@@ -46,11 +46,11 @@
       "last_transition_at": "2026-05-10T17:14:02.486095+00:00"
     },
     "WP05": {
-      "actor": "codex:gpt5:reviewer:reviewer",
+      "actor": "user",
       "force_count": 2,
-      "lane": "in_progress",
-      "last_event_id": "01KR9F0FH0GZZHJ5QVMGK47SY2",
-      "last_transition_at": "2026-05-10T17:29:54.976629+00:00"
+      "lane": "approved",
+      "last_event_id": "01KR9F6DJXGR77HPXCYEEX1GD9",
+      "last_transition_at": "2026-05-10T17:33:09.597497+00:00"
     },
     "WP06": {
       "actor": "user",
