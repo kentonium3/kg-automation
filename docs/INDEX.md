@@ -69,6 +69,7 @@ Authoritative operational state. **Exempt from moves (F015 constraint C-001)**.
 
 ### Agent-executable runbooks
 
+- [Doc Auditor Operations](<./runbooks/doc-auditor-ops.md>) — felix-doc-auditor agent operations: how it runs, manual triggers, scope management, stale-lock recovery, kill switch
 - [Vikunja Operations](<./runbooks/vikunja-ops.md>)
 - [OpenClaw Operations](<./runbooks/openclaw-ops.md>)
 - [Obsidian Sync Operations](<./runbooks/obsidian-sync-ops.md>)

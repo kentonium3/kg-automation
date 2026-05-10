@@ -1,7 +1,7 @@
 {
   "schema_version": "1.1",
-  "last_updated": "2026-05-09",
-  "updated_by": "issue-190-transcribe-source-in-git",
+  "last_updated": "2026-05-10",
+  "updated_by": "issue-105-doc-auditor",
   "services": [
     {
       "name": "vikunja",
@@ -419,6 +419,41 @@
       },
       "config_files": [
         {"path": "/data/services/openclaw/escalation-agent/AGENTS.md", "format": "markdown", "source_in_repo": "scripts/openclaw/agents/felix-admin-escalation/AGENTS.md"}
+      ]
+    },
+    {
+      "name": "felix-doc-auditor",
+      "type": "openclaw-cron",
+      "host": "office2",
+      "agent": "felix-doc-auditor",
+      "schedules": [
+        {"name": "doc-audit-poll", "cron": "0 * * * *", "local_time": "Every 60 minutes (top of each hour UTC)"}
+      ],
+      "timeout_seconds": 1800,
+      "session_mode": "isolated",
+      "deployed_by": "#105",
+      "deployed_on": "2026-05-10",
+      "status": "active",
+      "purpose": "Documentation audit — processes Doc Audit and Weekly Doc Audit issues; classifies docs as high-confidence edit (commits directly) or judgment gap (files docs-debt issue); detects missing artifacts",
+      "model": "anthropic/claude-sonnet-4-6",
+      "model_policy": "pinned",
+      "autonomy_level": "Assisted (Level 1)",
+      "risk_tier": 3,
+      "dependencies": [
+        {"target": "openclaw-gateway:18789", "type": "requires", "description": "Dispatched by OpenClaw cron scheduler"},
+        {"target": "doc-audit", "type": "requires", "description": "Reads ~/.openclaw/skills/doc-audit/SKILL.md at start of every audit"},
+        {"target": "doc-domain-map.json", "type": "requires", "description": "Scope contract"},
+        {"target": "gh-cli", "type": "requires", "description": "All GitHub interactions (issues, comments, labels)"}
+      ],
+      "health_check": {
+        "method": "logs",
+        "endpoint": "/home/kgale/second-brain/agents/logs/doc-auditor-YYYY-MM-DD.md",
+        "expected": "regular activity entries during audit-issue presence",
+        "timeout_seconds": 60
+      },
+      "config_files": [
+        {"path": "/data/services/openclaw/felix-doc-auditor/AGENTS.md", "format": "markdown", "source_in_repo": "scripts/openclaw/agents/felix-doc-auditor/AGENTS.md"},
+        {"path": "~/.openclaw/skills/doc-audit/SKILL.md", "format": "markdown", "source_in_repo": "scripts/openclaw/skills/doc-audit/SKILL.md"}
       ]
     },
     {

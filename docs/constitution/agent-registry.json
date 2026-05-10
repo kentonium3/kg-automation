@@ -1,7 +1,7 @@
 {
-  "version": "1.2",
-  "updated": "2026-04-09",
-  "updated_by": "021-openclaw-agent-model-tiering",
+  "version": "1.3",
+  "updated": "2026-05-10",
+  "updated_by": "issue-105-doc-auditor",
   "agents": {
     "felix-admin-capture": {
       "team": "SuperAdmin (B)",
@@ -79,6 +79,27 @@
           "autonomy_level": "assisted",
           "direction": "registration",
           "reason": "Initial registration under Felix governance framework (F019)",
+          "decided_by": "Kent Gale"
+        }
+      ]
+    },
+    "felix-doc-auditor": {
+      "team": "SuperAdmin (B)",
+      "scope": "Documentation audit — processes Doc Audit and Weekly Doc Audit issues; classifies each in-scope doc as high-confidence edit (commits directly) or judgment gap (files docs-debt issue); detects missing artifacts",
+      "autonomy_level": "assisted",
+      "model": "anthropic/claude-sonnet-4-6",
+      "model_policy": "pinned",
+      "model_rationale": "Judgment-heavy work — edit-vs-debt threshold and debt-issue outline drafting",
+      "log_verbosity": "standard",
+      "deployed_feature": "#105",
+      "mission_id": "01KR7JK9QTHM5F4PD3YC43KDQW",
+      "registered": "2026-05-10",
+      "transition_history": [
+        {
+          "date": "2026-05-10",
+          "autonomy_level": "assisted",
+          "direction": "registration",
+          "reason": "Initial deployment per #105 / mission 01KR7JK9. Planned promotion to Supervised after ~1 week of clean operation per Felix Constitution autonomy promotion process.",
           "decided_by": "Kent Gale"
         }
       ]

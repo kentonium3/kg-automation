@@ -15,16 +15,17 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - name: Check for existing weekly audit
+      - name: Check for existing weekly audit (current week only)
         id: existing
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          DATE=$(date +%Y-%m-%d)
           COUNT=$(gh issue list --label "P2-debt" --state open \
-            --search "Weekly doc audit" --json number --jq 'length')
+            --search "Weekly doc audit — ${DATE} in:title" --json number --jq 'length')
           if [ "$COUNT" -gt "0" ]; then
             echo "skip=true" >> "$GITHUB_OUTPUT"
-            echo "Open weekly audit issue already exists — skipping"
+            echo "Open weekly audit issue already exists for ${DATE} — skipping"
           else
             echo "skip=false" >> "$GITHUB_OUTPUT"
           fi

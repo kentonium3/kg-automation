@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
-  "last_updated": "2026-04-08",
-  "updated_by": "#104",
+  "last_updated": "2026-05-10",
+  "updated_by": "#105",
   "description": "Maps area labels to documentation files requiring verification when that domain changes. Used by doc-audit-trigger.yml and the future felix-doc-auditor agent (#105).",
   "domains": {
     "area/infrastructure": [
@@ -35,6 +35,7 @@
       "docs/constitution/FELIX-CONSTITUTION.md",
       "docs/constitution/AGENT-REGISTRY.md",
       "docs/constitution/agent-registry.json",
+      "docs/runbooks/doc-auditor-ops.md",
       "docs/runbooks/felix-governance.md",
       "docs/design/felix-capability-roadmap.md",
       "docs/design/architecture/data/capabilities-schema.json",

@@ -94,3 +94,20 @@ results, update this registry and `agent-registry.json`.
 | Date | Level | Direction | Reason | Decided By |
 |------|-------|-----------|--------|------------|
 | 2026-04-06 | Assisted | Registration | Initial registration under Felix governance framework (F019) | Kent Gale |
+
+---
+
+## felix-doc-auditor
+
+**Team**: SuperAdmin (B)
+**Scope**: Documentation audit — processes Doc Audit and Weekly Doc Audit issues; classifies each in-scope doc as high-confidence edit (commits directly) or judgment gap (files docs-debt issue); detects missing artifacts
+**Current Autonomy Level**: Assisted (Level 1)
+**Model**: Sonnet (pinned — judgment-heavy work; promotion to Haiku requires validation per Model Assignment Policy)
+**Deployed**: 2026-05-10 (#105 / mission `felix-doc-auditor-agent-01KR7JK9`)
+**Registered**: 2026-05-10 (#105 / mission `felix-doc-auditor-agent-01KR7JK9`)
+
+### Transition History
+
+| Date | Level | Direction | Reason | Decided By |
+|------|-------|-----------|--------|------------|
+| 2026-05-10 | Assisted | Registration | Initial deployment per #105 / mission `felix-doc-auditor-agent-01KR7JK9`. Planned promotion to Supervised after ~1 week of clean operation per Felix Constitution autonomy promotion process. | Kent Gale |
