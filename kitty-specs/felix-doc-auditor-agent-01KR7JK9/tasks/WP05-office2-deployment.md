@@ -17,8 +17,8 @@ subtasks:
 - T019
 - T020
 - T021
-agent: "claude:sonnet:implementer:implementer"
-shell_pid: "45945"
+agent: "codex:gpt5:reviewer:reviewer"
+shell_pid: "48270"
 history:
 - at: '2026-05-09T23:54:00Z'
   actor: spec-kitty.tasks
@@ -322,3 +322,4 @@ spec-kitty agent action implement WP05 --agent <agent-name>
 
 - 2026-05-10T17:17:05Z – claude:sonnet:implementer:implementer – shell_pid=45945 – Started implementation via action command
 - 2026-05-10T17:29:30Z – claude:sonnet:implementer:implementer – shell_pid=45945 – T017 (deploy script) and T020 (GitHub label) complete. T018/T019/T021 deferred to issue #195 (post-merge ops) — they require the merged mission to land on office2's main checkout before they can run. This is acknowledged scope adjustment per orchestrator-Kent decision (option A: defer ops to post-merge issue).
+- 2026-05-10T17:29:55Z – codex:gpt5:reviewer:reviewer – shell_pid=48270 – Started review via action command
