@@ -39,11 +39,11 @@
 | T019 | Register agent in /home/claude/.openclaw/openclaw.json (cron initially disabled) | WP05 | | [D] |
 | T020 | Create GitHub label `status:in-progress` (one-time, via gh CLI) | WP05 | [D] |
 | T021 | Verify OpenClaw recognizes the agent and label exists | WP05 | | [D] |
-| T022 | Manually invoke agent against issue #186 via openclaw delegate | WP06 | |
-| T023 | Receive WhatsApp summary; reply with `approve`/`reject`/`skip` per agent's proposal | WP06 | |
-| T024 | Verify canary outputs (commit, debt issues, audit closed, label removed, activity log) | WP06 | |
-| T025 | Enable cron entry in openclaw.json + restart OpenClaw cron service | WP06 | |
-| T026 | Watch ≥6 cron ticks; verify all 5 remaining backlog issues processed within NFR-006 window | WP06 | |
+| T022 | Manually invoke agent against issue #186 via openclaw delegate | WP06 | | [D] |
+| T023 | Receive WhatsApp summary; reply with `approve`/`reject`/`skip` per agent's proposal | WP06 | | [D] |
+| T024 | Verify canary outputs (commit, debt issues, audit closed, label removed, activity log) | WP06 | | [D] |
+| T025 | Enable cron entry in openclaw.json + restart OpenClaw cron service | WP06 | | [D] |
+| T026 | Watch ≥6 cron ticks; verify all 5 remaining backlog issues processed within NFR-006 window | WP06 | | [D] |
 
 ---
 
@@ -153,11 +153,11 @@
 - **Priority**: P1 — final validation before mission can be considered done
 - **Independent test**: After canary, issue #186 is closed with the agent's audit summary comment; commits and/or debt issues are present per the agent's proposal; status:in-progress label is removed. After cron enabled, ≥1 additional audit issue is processed end-to-end via cron without manual intervention.
 - **Included subtasks**:
-  - [ ] T022 Manually invoke agent against #186: `openclaw delegate felix-doc-auditor "Process audit issue #186"`
-  - [ ] T023 Receive WhatsApp summary; reply per the vocabulary in `contracts/whatsapp-reply-vocabulary.md`
-  - [ ] T024 Verify all canary outputs: commit (if any), debt issues created, audit summary comment, audit issue closed, status:in-progress label removed, activity log entry written
-  - [ ] T025 Enable cron entry in `/home/claude/.openclaw/openclaw.json` + restart OpenClaw cron service
-  - [ ] T026 Watch ≥6 cron ticks (≥6 hours); verify backlog drains per NFR-006 (all 5 remaining backlog issues processed within 6-hour window)
+  - [x] T022 Manually invoke agent against #186: `openclaw delegate felix-doc-auditor "Process audit issue #186"`
+  - [x] T023 Receive WhatsApp summary; reply per the vocabulary in `contracts/whatsapp-reply-vocabulary.md`
+  - [x] T024 Verify all canary outputs: commit (if any), debt issues created, audit summary comment, audit issue closed, status:in-progress label removed, activity log entry written
+  - [x] T025 Enable cron entry in `/home/claude/.openclaw/openclaw.json` + restart OpenClaw cron service
+  - [x] T026 Watch ≥6 cron ticks (≥6 hours); verify backlog drains per NFR-006 (all 5 remaining backlog issues processed within 6-hour window)
 - **Implementation sketch**: This WP is mostly operational — subtasks describe what to observe and verify. Record observations in `kitty-specs/felix-doc-auditor-agent-01KR7JK9/canary-log.md` (the WP's owned file). If canary reveals issues with the agent or skill, file them as separate issues and stop the cron-enable step.
 - **Parallel opportunities**: None (sequential validation steps).
 - **Dependencies**: WP05 (deployment must be complete).
