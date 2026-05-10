@@ -272,3 +272,4 @@ spec-kitty agent action implement WP04 --agent <agent-name>
 ## Activity Log
 
 - 2026-05-10T17:05:32Z – claude:sonnet:implementer:implementer – shell_pid=43434 – Started implementation via action command
+- 2026-05-10T17:09:48Z – claude:sonnet:implementer:implementer – shell_pid=43434 – Ready for review: ops runbook (~380 lines, 9 sections), INDEX update, FR-008 weekly workflow fix per R-012. YAML validates.
