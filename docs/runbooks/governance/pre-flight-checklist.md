@@ -4,7 +4,7 @@ doc_type: runbook
 status: approved
 audience: agents_and_humans
 owners: [kgale]
-last_validated: 2026-04-05
+last_validated: 2026-04-13
 ---
 
 # Pre-Flight Change Checklist
