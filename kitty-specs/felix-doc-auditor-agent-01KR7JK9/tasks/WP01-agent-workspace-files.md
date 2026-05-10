@@ -8,12 +8,16 @@ requirement_refs:
 planning_base_branch: main
 merge_target_branch: main
 branch_strategy: Planning artifacts for this feature were generated on main. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into main unless the human explicitly redirects the landing branch.
+base_branch: kitty/mission-felix-doc-auditor-agent-01KR7JK9
+base_commit: 5449fa23604b06f7d0019d1713decd7e174249f0
+created_at: '2026-05-10T00:47:13.513838+00:00'
 subtasks:
 - T001
 - T002
 - T003
 - T004
 - T005
+shell_pid: '13632'
 history:
 - at: '2026-05-09T23:54:00Z'
   actor: spec-kitty.tasks
