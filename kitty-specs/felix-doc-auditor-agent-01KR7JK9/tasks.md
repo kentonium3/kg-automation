@@ -35,10 +35,10 @@
 | T015 | Update docs/INDEX.md with new runbook + skill references | WP04 | [D] |
 | T016 | Modify .github/workflows/doc-audit-weekly.yml per R-012 (FR-008 fix) | WP04 | [D] |
 | T017 | Create scripts/office2/deploy/felix-doc-auditor.sh deploy helper | WP05 | | [D] |
-| T018 | Run the deploy helper on office2 (Kent runs with sudo where needed) | WP05 | |
-| T019 | Register agent in /home/claude/.openclaw/openclaw.json (cron initially disabled) | WP05 | |
+| T018 | Run the deploy helper on office2 (Kent runs with sudo where needed) | WP05 | | [D] |
+| T019 | Register agent in /home/claude/.openclaw/openclaw.json (cron initially disabled) | WP05 | | [D] |
 | T020 | Create GitHub label `status:in-progress` (one-time, via gh CLI) | WP05 | [D] |
-| T021 | Verify OpenClaw recognizes the agent and label exists | WP05 | |
+| T021 | Verify OpenClaw recognizes the agent and label exists | WP05 | | [D] |
 | T022 | Manually invoke agent against issue #186 via openclaw delegate | WP06 | |
 | T023 | Receive WhatsApp summary; reply with `approve`/`reject`/`skip` per agent's proposal | WP06 | |
 | T024 | Verify canary outputs (commit, debt issues, audit closed, label removed, activity log) | WP06 | |
@@ -134,10 +134,10 @@
 - **Independent test**: `openclaw agents | grep felix-doc-auditor` returns the agent identity card; `gh label list --repo kentonium3/kg-automation | grep status:in-progress` returns the new label; the cron entry exists in openclaw.json but is disabled.
 - **Included subtasks**:
   - [x] T017 Create `scripts/office2/deploy/felix-doc-auditor.sh` (idempotent helper that pulls the repo, deploys workspace + skill, prints verification commands)
-  - [ ] T018 Run the deploy helper on office2 (Kent runs with sudo where needed)
-  - [ ] T019 Register agent in `/home/claude/.openclaw/openclaw.json` (manual edit — sensitive config not in repo; cron entry initially disabled)
+  - [x] T018 Run the deploy helper on office2 (Kent runs with sudo where needed)
+  - [x] T019 Register agent in `/home/claude/.openclaw/openclaw.json` (manual edit — sensitive config not in repo; cron entry initially disabled)
   - [x] T020 Create GitHub label `status:in-progress` via `gh label create` (one-time)
-  - [ ] T021 Verify deployment (openclaw agents listing, label list, openclaw.json content)
+  - [x] T021 Verify deployment (openclaw agents listing, label list, openclaw.json content)
 - **Implementation sketch**: Write deploy.sh first (T017) — it codifies the procedure for re-deployment. Run it (T018) which exercises pull + workspace deploy + skill deploy. Then T019 manually edits openclaw.json. T020 is a quick gh command. T021 confirms everything.
 - **Parallel opportunities**: T020 (label) is [P] — can happen any time before the canary, independent of office2 work.
 - **Dependencies**: WP01, WP02, WP03, WP04 (all in-repo work must be merged to main before office2 pulls).
