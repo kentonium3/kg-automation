@@ -13,8 +13,6 @@
   Pattern: `git add <files>` → `git commit -m <message>` (per
   `contracts/commit-message.template.md`) → `git pull --rebase origin main`
   → `git push origin main`.
-- **OpenClaw send-message** — outbound WhatsApp messages for Level 1
-  approval requests. Pattern matches felix-admin-habits.
 - **`TZ=America/New_York date`** — all date/timestamp computation. office2
   runs UTC; without the TZ prefix dates after 8 PM ET resolve to the wrong
   calendar day.

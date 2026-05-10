@@ -7,10 +7,12 @@ description: >-
   format, and per-failure-mode error handling. Use when processing any
   issue titled "Doc audit:" or "Weekly doc audit —".
   Does NOT handle: agent identity (IDENTITY.md), agent standing orders
-  (AGENTS.md), runtime orchestration (OpenClaw cron), the WhatsApp send
-  mechanism (TOOLS.md), or the GitHub Actions workflows that create the
-  audit issues in the first place.
-version: 1.1.0
+  (AGENTS.md), runtime orchestration (OpenClaw cron), the GitHub-CLI
+  invocation surface (TOOLS.md), or the GitHub Actions workflows that
+  create the audit issues in the first place. Approval at Level 1 is
+  via GitHub issue labels (v1.2.0+); the previous WhatsApp flow was
+  replaced — see #207.
+version: 1.2.0
 ---
 
 # Doc-Audit Skill
@@ -47,7 +49,7 @@ Every invocation of this skill receives:
 | Domain map path | hardcoded | `docs/design/architecture/data/doc-domain-map.json` — the scope contract per spec C-005 |
 | System-state sources | enumerated below | Read once at start of audit; cached for the audit's duration only |
 | Repo working directory | OpenClaw env | The local clone the agent edits (`/home/claude/kg-automation/` on office2) |
-| Current autonomy level | `agent-registry.json` | Determines whether Level 1 WhatsApp approval applies |
+| Current autonomy level | `agent-registry.json` | Determines whether Level 1 GitHub-issue approval gate applies |
 
 **System-state sources** (all read-only from this skill's perspective):
 
@@ -84,39 +86,49 @@ Execute these steps in order. Steps map 1:1 to the lifecycle in
    `proposed_value`, `evidence_source`, `confidence` ∈ {high, judgment}.
 6. **Missing-artifact detection** (Section 6) — runs on every audit
    regardless of scope.
-7. **Level 1 approval** (Assisted only) — if the audit has **any proposed
-   action** (one or more high-confidence edits, debt issues to file,
-   missing artifacts to flag, OR a non-empty audit close), send the
-   WhatsApp summary per the format contract and wait for a reply. Skip
-   this step at Level 2+. The truly empty audit (zero edits, zero debt,
-   zero missing artifacts) is a no-op and skips the WhatsApp message
-   entirely — see the contract at
-   `kitty-specs/felix-doc-auditor-agent-01KR7JK9/contracts/whatsapp-summary.template.md`
-   ("If there are zero proposed edits AND zero missing artifacts AND
-   zero debt issues to file, do not send a WhatsApp message"). For
-   approve/reject/skip/timeout semantics — including the **debt-only
-   audit** branch where no edits exist but debt issues and a close
-   are still gated — see Section 8.5.
-8. **Branch on outcome** (Level 1, after reply) or proceed unconditionally
-   (Level 2+):
-   - **Edit-bearing flow** (one or more high-confidence edits approved):
-     commit approved edits atomically (Section 7), then file debt issues
-     for judgment gaps and missing artifacts (Section 8), then post the
-     summary and close (Section 10).
-   - **Debt-only flow** (zero high-confidence edits, but debt and/or
-     missing artifacts present): no commit. File debt issues per the
-     reply semantics in Section 8.5, then post the summary and close
-     per the same semantics.
-   - **Empty no-op flow** (zero of all categories): no WhatsApp, no
-     commit, no debt issues. Post the empty audit summary and close.
-9. **File docs-debt issues** for judgment gaps and missing artifacts (one
-   issue per gap, per Section 8). At Level 1, gated by the reply per
-   Section 8.5.
-10. **Post the audit summary comment** on the originating audit issue and
-    **close** it. Format per the contract referenced in Section 11. At
-    Level 1, the close is gated by the reply per Section 8.5.
-11. **Append an activity log entry** (NFR-008) and release the
-    `status:in-progress` label.
+7. **File docs-debt and missing-artifact issues autonomously** (no gate at
+   any autonomy level — these are tracked-work artifacts, not file
+   mutations, and are fully reversible by closing the issue). Apply
+   labels per Section 8 and cross-reference the originating audit.
+8. **Branch on remaining outcome:**
+   - **Empty audit** (zero high-confidence edits, zero debt, zero
+     missing): post an empty audit-summary comment on the originating
+     audit, close the audit, release the `status:in-progress` label.
+     Done.
+   - **Debt-only audit** (zero high-confidence edits, but debt and/or
+     missing-artifact issues already filed in step 7): post the
+     audit-summary comment listing what was filed, close the originating
+     audit, release the lock. Done. **No human gate required** at any
+     autonomy level — debt issues are themselves the deferred work.
+   - **Edit-bearing audit** (one or more high-confidence edits proposed):
+     proceed to step 9.
+9. **Level 1 approval gate (GitHub issue)** — Assisted level only. Skip
+   this and steps 10–11 at Level 2+ (commit directly, then jump to
+   step 12).
+
+   At Level 1, file an **"Audit #N: pending approval"** issue per the
+   contract at
+   `kitty-specs/felix-doc-auditor-agent-01KR7JK9/contracts/audit-pending-approval-issue.template.md`.
+   The issue body lists each proposed edit as a numbered before/after
+   diff block, cross-references the originating audit + any debt
+   issues just filed, and includes the label-based decision instructions.
+   Apply labels: `audit-pending-approval`, plus the matching `area/*`
+   labels.
+
+   Comment on the originating audit issue: "Pending review at #<new>"
+   and **leave the audit open** with the `status:in-progress` label
+   intact — the audit remains locked until the decision lands.
+
+   **Exit the agent's turn here.** Decision processing happens on a
+   subsequent cron tick (Section 8.6). The agent does **not** poll or
+   wait synchronously — Kent decides asynchronously and the agent
+   picks up the decision on its next run.
+10. (Reserved for cron-tick decision processing — see Section 8.6.)
+11. (Reserved.)
+12. **At Level 2+, after committing**: post the audit summary comment on
+    the originating audit, close it, release the lock.
+13. **Append an activity log entry** (NFR-008) — record what was filed,
+    what's pending approval, what was committed (if Level 2+).
 
 ## 4. Confidence Threshold Rules
 
@@ -188,9 +200,9 @@ the change appears trivial and would otherwise qualify as high confidence**:
 4. `kitty-specs/` and `.kittify/` — managed exclusively by spec-kitty
 
 If the audit surfaces a finding against a guardrailed file, file a
-`docs-debt` issue describing the finding. Do not edit. Do not propose
-the edit via WhatsApp. The constitution's authority over its own contents
-is absolute.
+`docs-debt` issue describing the finding. Do not edit. Do not include
+the proposed change in any pending-approval issue. The constitution's
+authority over its own contents is absolute.
 
 ## 5. Comparison Rules
 
@@ -309,51 +321,76 @@ Apply labels: `P2-debt`, the matching `area/*` label(s), and `type/debt`.
 
 **One issue per gap** — never bundle. Bundling dilutes the draft outline.
 
-### 8.5 Level 1 Reply Semantics (FR-005, FR-009)
+### 8.5 Level 1 Approval Gate (GitHub issue, label-based decisions)
 
-At Level 1 (Assisted), the WhatsApp summary fires whenever the audit has
-**any** proposed action — high-confidence edits, debt issues to file,
-missing artifacts to flag, OR a non-empty audit close. Kent's reply
-gates the **entire** action set, not just commits. The semantics differ
-slightly between edit-bearing audits and debt-only audits.
+At Level 1 (Assisted), the agent files a single "Audit #N: pending
+approval" issue containing the proposed high-confidence edits as
+before/after diff blocks. **Only file mutations are gated** — debt
+issues and missing-artifact issues are filed autonomously in workflow
+step 7, regardless of approval state.
 
-**Edit-bearing audits** (one or more high-confidence edits proposed):
+Kent decides asynchronously by applying ONE of three labels to the
+pending-approval issue. The agent picks up the decision on its next
+cron tick (Section 8.6).
 
-| Reply | Action |
+| Decision label | Action |
 |---|---|
-| `approve` | Commit all approved edits atomically (Section 7), file all debt and missing-artifact issues (Section 8), post the summary, and close the audit (Section 10). |
-| `approve N,M` | Commit only the listed edits (e.g., `approve 1,3`); demote the rest to debt issues; file all debt and missing-artifact issues; post the summary; close the audit. |
-| `reject` | No commit. Demote ALL high-confidence edits to debt issues; file the demoted edits plus the originally-judged debt and missing-artifact issues; post the summary; close the audit. Record the rejection in the activity log. |
-| `skip` | Close the audit with a skip note. No commit, no debt issues filed, no missing-artifact issues filed. Activity log entry records the skip. |
-| `timeout (2h, default-deny)` | Same as `reject` (file all proposals as debt; close). |
+| `audit-approve` | Apply all proposed edits, commit atomically (Section 7), post the audit summary on the originating audit, close both pending-approval and originating audit, release the `status:in-progress` lock. |
+| `audit-reject` | Do not commit. Demote each proposed edit to a separate `docs-debt` issue (with the proposed before/after as evidence), close both pending-approval and originating audit, release the lock. Activity log records the rejection. |
+| `audit-skip` | Close both pending-approval and originating audit with a skip note. No commit, no demotion, no further debt issues. Release the lock. Activity log records the skip. |
 
-**Debt-only audits** (zero high-confidence edits, but debt issues and/or
-missing artifacts present, and/or the audit needs to close):
+**No timeout.** Decisions are asynchronous — pending-approval issues
+stay open indefinitely until Kent applies a label. The originating
+audit's `status:in-progress` lock blocks the cron from picking up the
+same audit again, but does not gate other audits.
 
-| Reply | Action |
-|---|---|
-| `approve` | File all debt and missing-artifact issues; post the summary; close the audit. |
-| `reject` | Do **NOT** file the debt or missing-artifact issues. Do **NOT** close the audit (leave it open at `status:in-progress` cleared, awaiting human follow-up). Record the rejection in the activity log, including the proposed-but-unfiled findings so a human can review. |
-| `skip` | Close the audit with a skip note. Do **NOT** file the debt or missing-artifact issues. Activity log entry records the skip. |
-| `timeout (2h, default-deny)` | Same as `reject` (do not file, do not close). |
+**Why not `audit-approve N,M` (partial approve)?** The original WhatsApp
+flow supported partial approval. Under the GitHub flow, if Kent wants
+only some of the edits, he can either (a) apply `audit-approve` after
+striking out the unwanted lines from the issue body and noting the
+exclusion, or (b) apply `audit-reject` and let the agent file all of
+them as debt issues, then approve the desired ones individually as
+follow-up. Partial-approve via additional labels is deferred unless
+operationally needed.
 
-**Empty audits** (zero of all categories): no WhatsApp message is sent
-(per the contract at
-`kitty-specs/felix-doc-auditor-agent-01KR7JK9/contracts/whatsapp-summary.template.md`).
-Post the empty audit summary and close the audit unconditionally — the
-no-op close is the audit completing cleanly, not an action that needs
-ratification.
+### 8.6 Cron-Tick Decision Processing
 
-**Why the debt-only `reject` does NOT close:** the rejection signals
-Kent disagrees with the proposed action set. Auto-closing in that case
-would discard the audit's findings entirely. Leaving the audit open
-preserves the work for human triage. By contrast, `skip` is an explicit
-"acknowledge but don't act" — the audit closes because Kent has
-positively decided it is not worth pursuing.
+On every cron tick, **before** scanning for new audit issues, the agent
+checks for pending-approval issues with a decision label applied:
 
-**Reply parsing**: see the vocabulary contract at
-`kitty-specs/felix-doc-auditor-agent-01KR7JK9/contracts/whatsapp-reply-vocabulary.md`
-for exact strings, case-insensitivity rules, and ambiguity handling.
+```
+gh issue list --repo kentonium3/kg-automation \
+  --label "audit-pending-approval" --state open \
+  --json number,title,labels,body
+```
+
+For each result, examine its labels:
+
+- If a decision label (`audit-approve`, `audit-reject`, `audit-skip`)
+  is present → apply that decision per the table in Section 8.5
+- If no decision label → leave alone; Kent hasn't decided yet
+- If multiple decision labels → treat as ambiguous, post a clarifying
+  comment, do nothing else
+
+Apply each decision in order (oldest pending-approval first), then
+proceed to the new-audit scan.
+
+**Race condition note**: if Kent applies a decision label while the
+agent is mid-tick processing a different audit, the next tick picks it
+up. No special handling required — the cron is idempotent and the
+audit lock prevents collisions.
+
+**Empty audits** (zero of all categories): the agent posts the empty
+audit-summary comment on the originating audit issue and closes it
+unconditionally — the no-op close is the audit completing cleanly, not
+an action that needs ratification. No pending-approval issue is filed.
+
+**Debt-only audits**: in v1.2.0 these no longer require an approval
+gate. Debt issues are filed autonomously in workflow step 7, the audit
+summary is posted, and the audit is closed in step 8. Previous
+versions gated debt-only audits behind a WhatsApp reply; v1.2.0 drops
+this gate because debt issues are tracked-work artifacts, not
+mutations, and are individually reviewable / closeable post-hoc.
 
 ## 9. Error Handling
 
@@ -362,7 +399,7 @@ for exact strings, case-insensitivity rules, and ambiguity handling.
 | Doc unreadable / locked / missing | Log to audit summary's "Items requiring human review"; skip this doc; continue with the rest. **Never** abort the whole audit (NFR-003). |
 | `git push` fails (rebase needed) | `git pull --rebase origin main`. If clean, retry push. If the rebase produces conflicts, abort the commit (`git rebase --abort`), demote ALL proposals from this audit to debt issues, record the conflict in the summary's "Items requiring human review". Never resolve conflicts manually — that is judgment work. |
 | GitHub API rate limit (HTTP 403 with rate-limit headers) | Exponential backoff: 30s, 60s, 120s. After 3 failed retries, leave the audit at `status:in-progress` and exit; the next cron tick (60 min) retries. |
-| WhatsApp delivery fails (Level 1 only) | Do NOT commit. Leave the audit at `status:in-progress`. Log a clear error to the activity log (including the failed message body, so it can be re-sent manually). Recovery is via the runbook. |
+| `gh issue create` fails (Level 1 pending-approval filing) | Do NOT commit. Leave the audit at `status:in-progress`. Log the failure to the activity log including the proposed-edits block. Next cron tick retries. Recovery is via the runbook. |
 | Domain map missing / unreadable | **Critical.** Post a comment on the audit issue stating the map could not be read, and that the map is the scope contract (C-005). Do not mutate anything else. Release the lock. |
 | Skill missing / unreadable | Same handling as domain map missing. Post a comment, do not proceed, release the lock. |
 | Stale lock detected (own label from prior crashed tick) | Do NOT silently resume. Skip this audit; the runbook documents manual cleanup. |
@@ -373,12 +410,14 @@ The following contracts are **authoritative** for the formats this skill
 produces. The skill defers to them — when format details disagree, the
 contract files win. Do not duplicate their content; reference them.
 
-- WhatsApp summary (outbound, Level 1 only):
-  `kitty-specs/felix-doc-auditor-agent-01KR7JK9/contracts/whatsapp-summary.template.md`
-- WhatsApp reply parsing vocabulary:
-  `kitty-specs/felix-doc-auditor-agent-01KR7JK9/contracts/whatsapp-reply-vocabulary.md`
-- Audit summary GitHub comment:
+- Audit pending-approval issue (Level 1 only):
+  `kitty-specs/felix-doc-auditor-agent-01KR7JK9/contracts/audit-pending-approval-issue.template.md`
+- Audit summary GitHub comment (posted on the originating audit at close):
   `kitty-specs/felix-doc-auditor-agent-01KR7JK9/contracts/audit-summary-comment.template.md`
+- WhatsApp templates (DEPRECATED in v1.2.0; retained for archival):
+  `kitty-specs/felix-doc-auditor-agent-01KR7JK9/contracts/whatsapp-summary.template.md`,
+  `whatsapp-reply-vocabulary.md`. Replaced by GitHub-issue approval per
+  issue #207.
 - Agent registry entry (used when a missing-artifact run produces a new
   agent registration that becomes a high-confidence registry-entry-add):
   `kitty-specs/felix-doc-auditor-agent-01KR7JK9/contracts/agent-registry-entry.template.md`
