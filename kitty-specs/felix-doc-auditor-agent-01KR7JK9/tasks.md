@@ -26,11 +26,11 @@
 | T006 | Write doc-audit skill SKILL.md | WP02 | | [D] |
 | T007 | Add worked examples section to SKILL.md | WP02 | | [D] |
 | T008 | Validate skill against skill-author conventions | WP02 | | [D] |
-| T009 | Add felix-doc-auditor entry to AGENT-REGISTRY.md | WP03 | [P] |
-| T010 | Add felix-doc-auditor entry to agent-registry.json | WP03 | [P] |
-| T011 | Add felix-doc-auditor entry to service-inventory.json | WP03 | [P] |
-| T012 | Add narrative section for felix-doc-auditor to service-inventory.md | WP03 | [P] |
-| T013 | Add doc-auditor-ops.md reference to doc-domain-map.json | WP03 | [P] |
+| T009 | Add felix-doc-auditor entry to AGENT-REGISTRY.md | WP03 | [D] |
+| T010 | Add felix-doc-auditor entry to agent-registry.json | WP03 | [D] |
+| T011 | Add felix-doc-auditor entry to service-inventory.json | WP03 | [D] |
+| T012 | Add narrative section for felix-doc-auditor to service-inventory.md | WP03 | [D] |
+| T013 | Add doc-auditor-ops.md reference to doc-domain-map.json | WP03 | [D] |
 | T014 | Write docs/runbooks/doc-auditor-ops.md | WP04 | |
 | T015 | Update docs/INDEX.md with new runbook + skill references | WP04 | [P] |
 | T016 | Modify .github/workflows/doc-audit-weekly.yml per R-012 (FR-008 fix) | WP04 | [P] |
@@ -95,11 +95,11 @@
 - **Priority**: P1 — governance registration is required for the agent to operate under Felix
 - **Independent test**: `python3 -m json.tool` validates both modified JSON files cleanly; `git diff` shows the new entries match the contract templates.
 - **Included subtasks**:
-  - [ ] T009 Add felix-doc-auditor entry to AGENT-REGISTRY.md
-  - [ ] T010 Add felix-doc-auditor entry to agent-registry.json (transition_history seeded)
-  - [ ] T011 Add felix-doc-auditor entry to service-inventory.json
-  - [ ] T012 Add narrative section for felix-doc-auditor to service-inventory.md
-  - [ ] T013 Add doc-auditor-ops.md reference to doc-domain-map.json (under area/felix-core)
+  - [x] T009 Add felix-doc-auditor entry to AGENT-REGISTRY.md
+  - [x] T010 Add felix-doc-auditor entry to agent-registry.json (transition_history seeded)
+  - [x] T011 Add felix-doc-auditor entry to service-inventory.json
+  - [x] T012 Add narrative section for felix-doc-auditor to service-inventory.md
+  - [x] T013 Add doc-auditor-ops.md reference to doc-domain-map.json (under area/felix-core)
 - **Implementation sketch**: All five subtasks are file-modification tasks with templated content. Use `contracts/agent-registry-entry.template.md` as the authoritative source for AGENT-REGISTRY.md and agent-registry.json content. For service-inventory.json, follow the felix-admin-tasker entry as a structural model (it's the closest existing OpenClaw cron agent). For service-inventory.md, follow the prose pattern of the existing felix-admin-* sections.
 - **Parallel opportunities**: All 5 subtasks are [P] — independent files (no cross-dependencies between the 5 file edits).
 - **Dependencies**: None (registration entries can land before the agent workspace files exist; the registry is metadata).
