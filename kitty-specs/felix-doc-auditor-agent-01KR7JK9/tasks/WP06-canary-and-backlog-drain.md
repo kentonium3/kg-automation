@@ -14,8 +14,8 @@ subtasks:
 - T024
 - T025
 - T026
-agent: "claude:opus:orchestrator:orchestrator"
-shell_pid: "48801"
+agent: "codex:gpt5:reviewer:reviewer"
+shell_pid: "49246"
 history:
 - at: '2026-05-09T23:54:00Z'
   actor: spec-kitty.tasks
@@ -323,3 +323,4 @@ spec-kitty agent action implement WP06 --agent <agent-name>
 
 - 2026-05-10T17:31:51Z – claude:opus:orchestrator:orchestrator – shell_pid=48801 – Started implementation via action command
 - 2026-05-10T17:32:17Z – claude:opus:orchestrator:orchestrator – shell_pid=48801 – Canary-log.md stub committed explaining the deferral. T022-T026 (manual canary, cron enable, backlog drain) deferred to issue #195 (post-merge ops) — they require the merged mission to land on office2's main checkout before they can run. This is acknowledged scope adjustment per orchestrator-Kent decision (option A).
+- 2026-05-10T17:33:13Z – codex:gpt5:reviewer:reviewer – shell_pid=49246 – Started review via action command
