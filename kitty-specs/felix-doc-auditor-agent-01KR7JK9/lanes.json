@@ -1,0 +1,93 @@
+{
+  "version": 1,
+  "mission_slug": "felix-doc-auditor-agent-01KR7JK9",
+  "mission_id": "01KR7JK9QTHM5F4PD3YC43KDQW",
+  "mission_branch": "kitty/mission-felix-doc-auditor-agent-01KR7JK9",
+  "target_branch": "main",
+  "lanes": [
+    {
+      "lane_id": "lane-a",
+      "wp_ids": [
+        "WP01",
+        "WP02",
+        "WP03",
+        "WP04",
+        "WP05"
+      ],
+      "write_scope": [
+        ".github/workflows/doc-audit-weekly.yml",
+        "docs/INDEX.md",
+        "docs/constitution/AGENT-REGISTRY.md",
+        "docs/constitution/agent-registry.json",
+        "docs/design/architecture/data/doc-domain-map.json",
+        "docs/design/architecture/data/service-inventory.json",
+        "docs/design/architecture/service-inventory.md",
+        "docs/runbooks/doc-auditor-ops.md",
+        "scripts/office2/deploy/felix-doc-auditor.sh",
+        "scripts/openclaw/agents/felix-doc-auditor/**",
+        "scripts/openclaw/skills/doc-audit/**"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "artifact-rendering",
+        "legacy-cleanup",
+        "tracker-integration",
+        "workspace"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    },
+    {
+      "lane_id": "lane-planning",
+      "wp_ids": [
+        "WP06"
+      ],
+      "write_scope": [
+        "kitty-specs/felix-doc-auditor-agent-01KR7JK9/canary-log.md"
+      ],
+      "predicted_surfaces": [
+        "planning"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    }
+  ],
+  "computed_at": "2026-05-10T00:33:15.068504+00:00",
+  "computed_from": "dependency_graph+ownership",
+  "planning_artifact_wps": [
+    "WP06"
+  ],
+  "collapse_report": {
+    "events": [
+      {
+        "wp_a": "WP02",
+        "wp_b": "WP01",
+        "rule": "dependency",
+        "evidence": "WP02 depends on WP01"
+      },
+      {
+        "wp_a": "WP05",
+        "wp_b": "WP01",
+        "rule": "dependency",
+        "evidence": "WP05 depends on WP01"
+      },
+      {
+        "wp_a": "WP05",
+        "wp_b": "WP03",
+        "rule": "dependency",
+        "evidence": "WP05 depends on WP03"
+      },
+      {
+        "wp_a": "WP05",
+        "wp_b": "WP04",
+        "rule": "dependency",
+        "evidence": "WP05 depends on WP04"
+      }
+    ],
+    "total_merges": 4,
+    "independent_wps_collapsed": 0,
+    "by_rule": {
+      "dependency": 4
+    }
+  }
+}
