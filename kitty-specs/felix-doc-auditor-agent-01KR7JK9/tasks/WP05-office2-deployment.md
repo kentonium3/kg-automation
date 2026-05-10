@@ -17,6 +17,8 @@ subtasks:
 - T019
 - T020
 - T021
+agent: "claude:sonnet:implementer:implementer"
+shell_pid: "45945"
 history:
 - at: '2026-05-09T23:54:00Z'
   actor: spec-kitty.tasks
@@ -315,3 +317,7 @@ A reviewer should check:
 ```bash
 spec-kitty agent action implement WP05 --agent <agent-name>
 ```
+
+## Activity Log
+
+- 2026-05-10T17:17:05Z – claude:sonnet:implementer:implementer – shell_pid=45945 – Started implementation via action command
