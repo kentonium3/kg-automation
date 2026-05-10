@@ -23,9 +23,9 @@
 | T003 | Create TOOLS.md for felix-doc-auditor agent | WP01 | [D] |
 | T004 | Create USER.md for felix-doc-auditor agent | WP01 | [D] |
 | T005 | Create AGENTS.md for felix-doc-auditor (standing orders) | WP01 | | [D] |
-| T006 | Write doc-audit skill SKILL.md | WP02 | |
-| T007 | Add worked examples section to SKILL.md | WP02 | |
-| T008 | Validate skill against skill-author conventions | WP02 | |
+| T006 | Write doc-audit skill SKILL.md | WP02 | | [D] |
+| T007 | Add worked examples section to SKILL.md | WP02 | | [D] |
+| T008 | Validate skill against skill-author conventions | WP02 | | [D] |
 | T009 | Add felix-doc-auditor entry to AGENT-REGISTRY.md | WP03 | [P] |
 | T010 | Add felix-doc-auditor entry to agent-registry.json | WP03 | [P] |
 | T011 | Add felix-doc-auditor entry to service-inventory.json | WP03 | [P] |
@@ -77,9 +77,9 @@
 - **Priority**: P1 — agent depends on this for execution
 - **Independent test**: Skill passes `skill-author/SKILL.md` conformance check (front matter, structure, sections per `scripts/openclaw/skills/skill-author/SKILL.md`).
 - **Included subtasks**:
-  - [ ] T006 Write SKILL.md (front matter, what-this-skill-is, inputs, workflow, confidence rules, comparison rules, commit format, error handling)
-  - [ ] T007 Add a worked-examples section using recent commits as illustrations (frontmatter date update, version bump, dead-ref removal)
-  - [ ] T008 Validate against `skill-author/SKILL.md` conventions (review pass)
+  - [x] T006 Write SKILL.md (front matter, what-this-skill-is, inputs, workflow, confidence rules, comparison rules, commit format, error handling)
+  - [x] T007 Add a worked-examples section using recent commits as illustrations (frontmatter date update, version bump, dead-ref removal)
+  - [x] T008 Validate against `skill-author/SKILL.md` conventions (review pass)
 - **Implementation sketch**: Read `scripts/openclaw/skills/skill-author/SKILL.md` first to internalize conventions. Read `scripts/openclaw/skills/vikunja-api/SKILL.md` and `scripts/openclaw/skills/escalation/SKILL.md` for examples of the format. Compose the skill section by section per R-013. Examples should reference real recent commits in this repo to demonstrate the high-confidence threshold.
 - **Parallel opportunities**: None internal (sequential sections build on each other).
 - **Dependencies**: None (skill is independent of the agent workspace; cross-reference is in WP01's AGENTS.md).
