@@ -1,10 +1,13 @@
 {
   "created_at": "2026-05-09T23:54:10.775879+00:00",
-  "friendly_name": "felix doc auditor agent",
+  "friendly_name": "Felix Doc Auditor Agent",
   "mission_id": "01KR7JK9QTHM5F4PD3YC43KDQW",
   "mission_number": null,
   "mission_slug": "felix-doc-auditor-agent-01KR7JK9",
   "mission_type": "software-dev",
   "slug": "felix-doc-auditor-agent-01KR7JK9",
-  "target_branch": "main"
+  "target_branch": "main",
+  "vcs": "git",
+  "source_description": "GitHub issue #105 — Feature: felix-doc-auditor — Documentation Gap Analysis Agent. Builds a specialist OpenClaw agent that processes the audit issues created by doc-audit-trigger.yml and doc-audit-weekly.yml, making high-confidence doc edits directly and creating structured docs-debt issues for gaps requiring judgment. Folds in a small fix to the weekly-audit suppression bug (issue #186 has been blocking new weekly audit issues since 2026-04-19)."
 }
+
