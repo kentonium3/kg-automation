@@ -13,8 +13,8 @@ subtasks:
 - T011
 - T012
 - T013
-agent: "claude:sonnet:implementer:implementer"
-shell_pid: "41730"
+agent: "codex:gpt5:reviewer:reviewer"
+shell_pid: "42747"
 history:
 - at: '2026-05-09T23:54:00Z'
   actor: spec-kitty.tasks
@@ -253,3 +253,4 @@ spec-kitty agent action implement WP03 --agent <agent-name>
 
 - 2026-05-10T16:58:11Z – claude:sonnet:implementer:implementer – shell_pid=41730 – Started implementation via action command
 - 2026-05-10T17:02:22Z – claude:sonnet:implementer:implementer – shell_pid=41730 – Ready for review: 5 file modifications per contracts/agent-registry-entry.template.md and WP prompt JSON spec. Both JSON files validate cleanly. Markdown narratives match JSON authoritative.
+- 2026-05-10T17:02:50Z – codex:gpt5:reviewer:reviewer – shell_pid=42747 – Started review via action command
