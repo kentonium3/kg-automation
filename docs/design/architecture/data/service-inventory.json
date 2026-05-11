@@ -1,7 +1,7 @@
 {
   "schema_version": "1.1",
   "last_updated": "2026-05-11",
-  "updated_by": "issue-105-doc-auditor + #223-systemd-timer",
+  "updated_by": "issue-105-doc-auditor + #223-systemd-timer + #208-restic-healthcheck",
   "services": [
     {
       "name": "vikunja",
@@ -172,6 +172,7 @@
         ".cache"
       ],
       "deployed_by": "manual",
+      "updated_by": "#159 + #208",
       "status": "active",
       "purpose": "Nightly GFS backup to local drive",
       "risk_tier": 2,
@@ -181,9 +182,10 @@
       ],
       "health_check": {
         "method": "shell",
-        "endpoint": "restic -r /mnt/backups/restic-repo snapshots --latest 1 --json",
-        "expected": "snapshot within 24h",
-        "timeout_seconds": 10
+        "endpoint": "tail -5 /data/services/backup/logs/backup-$(date -u +%Y-%m-%d).log",
+        "expected": "=== Backup complete === marker in output with snapshot count",
+        "timeout_seconds": 5,
+        "note": "Backup runs at 04:00 UTC daily; log files are world-readable (mode 644, owned root:root) so the claude user can tail them. Snapshot files themselves are root:root mode 400 — claude cannot run `restic snapshots` directly. Full verification (requires sudo via kgale): `sudo RESTIC_REPOSITORY=/mnt/backups/restic-repo RESTIC_PASSWORD_FILE=/home/claude/.config/restic/password restic snapshots --latest 1`. See backup-and-recovery.md §Verification."
       },
       "config_files": [
         {"path": "/data/services/backup/scripts/backup.sh", "format": "bash"},
