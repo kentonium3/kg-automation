@@ -434,6 +434,7 @@
       "session_mode": "isolated",
       "deployed_by": "#105",
       "deployed_on": "2026-05-10",
+      "updated_by": "#215",
       "status": "active",
       "purpose": "Documentation audit — processes Doc Audit and Weekly Doc Audit issues; classifies docs as high-confidence edit (commits directly) or judgment gap (files docs-debt issue); detects missing artifacts",
       "model": "anthropic/claude-sonnet-4-6",
