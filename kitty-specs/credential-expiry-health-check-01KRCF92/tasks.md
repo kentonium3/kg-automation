@@ -37,10 +37,10 @@
 | T018 | Implement `dedup_check(title_prefix)` via `gh issue list --search 'in:title …'` | WP04 | — | [D] |
 | T019 | Implement `create_issue(title, body, labels, assignees)` via `gh issue create` | WP04 | — | [D] |
 | T020 | Write `tests/security/test_github_writer.py` covering titles, bodies, stubbed `gh` invocations | WP04 | — | [D] |
-| T021 | Implement `vikunja_writer.py` skeleton: token loader, title + description templating | WP05 | — |
-| T022 | Implement `lookup_inbox_project_id()` via Vikunja API | WP05 | — |
-| T023 | Implement `create_task(credential, boundary, github_issue_number)` with `due_date = boundary − 7 days` | WP05 | — |
-| T024 | Write `tests/security/test_vikunja_writer.py` (templating, due-date math, stubbed API) | WP05 | — |
+| T021 | Implement `vikunja_writer.py` skeleton: token loader, title + description templating | WP05 | — | [D] |
+| T022 | Implement `lookup_inbox_project_id()` via Vikunja API | WP05 | — | [D] |
+| T023 | Implement `create_task(credential, boundary, github_issue_number)` with `due_date = boundary − 7 days` | WP05 | — | [D] |
+| T024 | Write `tests/security/test_vikunja_writer.py` (templating, due-date math, stubbed API) | WP05 | — | [D] |
 | T025 | Implement `orchestrator.py`: per-cycle loop tying readers + writers + dedup together | WP06 | — |
 | T026 | Implement `__main__.py`: argparse, structured logging, `--dry-run` and `--manifest` flags | WP06 | — |
 | T027 | Cycle ID generation + structured log lines per `data-model.md` §CycleLog | WP06 | [P] with T026 |
@@ -200,10 +200,10 @@ WP01 (foundation)
 
 **Subtasks**:
 
-- [ ] T021 Implement `vikunja_writer.py` skeleton: token loader, title + description templating (WP05)
-- [ ] T022 Implement `lookup_inbox_project_id()` via Vikunja API (WP05)
-- [ ] T023 Implement `create_task(credential, boundary, github_issue_number)` with `due_date = boundary − 7 days` (WP05)
-- [ ] T024 Write `tests/security/test_vikunja_writer.py` (templating, due-date math, stubbed API) (WP05)
+- [x] T021 Implement `vikunja_writer.py` skeleton: token loader, title + description templating (WP05)
+- [x] T022 Implement `lookup_inbox_project_id()` via Vikunja API (WP05)
+- [x] T023 Implement `create_task(credential, boundary, github_issue_number)` with `due_date = boundary − 7 days` (WP05)
+- [x] T024 Write `tests/security/test_vikunja_writer.py` (templating, due-date math, stubbed API) (WP05)
 
 **Implementation sketch**: T021 establishes the writer; uses stdlib `urllib.request` rather than `requests` (no external deps). T022 caches Inbox project ID per-process. T023 ties it together.
 
