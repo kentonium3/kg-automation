@@ -27,11 +27,11 @@
 | T008 | Implement `cadence.py` (compute_boundary, is_within_warning_window) per `data-model.md` | WP02 | [P] with T007 | [D] |
 | T009 | Write `tests/security/test_manifest.py` against the manifest fixtures | WP02 | — | [D] |
 | T010 | Write `tests/security/test_cadence.py` (boundary math, warning-window edge cases) | WP02 | [D] |
-| T011 | Implement `signals.py` skeleton with `ActivitySignalFailure` dataclass + reader registry | WP03 | — |
-| T012 | Implement `tailscale_auth_signal(credential)` per `contracts/activity-signal-readers.md` §Reader 1 | WP03 | — |
-| T013 | Implement `whatsapp_session_signal(credential)` + `openclaw channels status` duration parser per §Reader 2 | WP03 | [P] with T012 |
-| T014 | Write `tests/security/test_tailscale_signal.py` against tailscale fixtures | WP03 | — |
-| T015 | Write `tests/security/test_whatsapp_signal.py` + duration-parser unit tests | WP03 | [P] |
+| T011 | Implement `signals.py` skeleton with `ActivitySignalFailure` dataclass + reader registry | WP03 | — | [D] |
+| T012 | Implement `tailscale_auth_signal(credential)` per `contracts/activity-signal-readers.md` §Reader 1 | WP03 | — | [D] |
+| T013 | Implement `whatsapp_session_signal(credential)` + `openclaw channels status` duration parser per §Reader 2 | WP03 | [P] with T012 | [D] |
+| T014 | Write `tests/security/test_tailscale_signal.py` against tailscale fixtures | WP03 | — | [D] |
+| T015 | Write `tests/security/test_whatsapp_signal.py` + duration-parser unit tests | WP03 | [D] |
 | T016 | Implement `github_writer.py` title generation for all 3 variants per `contracts/github-issue-writer.md` | WP04 | — |
 | T017 | Implement body templating for all 3 variants (cadence, activity-staleness, manifest-quality batch) | WP04 | — |
 | T018 | Implement `dedup_check(title_prefix)` via `gh issue list --search 'in:title …'` | WP04 | — |
@@ -148,11 +148,11 @@ WP01 (foundation)
 
 **Subtasks**:
 
-- [ ] T011 Implement `signals.py` skeleton with `ActivitySignalFailure` dataclass + reader registry (WP03)
-- [ ] T012 Implement `tailscale_auth_signal(credential)` per `contracts/activity-signal-readers.md` §Reader 1 (WP03)
-- [ ] T013 Implement `whatsapp_session_signal(credential)` + `openclaw channels status` duration parser (WP03)
-- [ ] T014 Write `tests/security/test_tailscale_signal.py` against tailscale fixtures (WP03)
-- [ ] T015 Write `tests/security/test_whatsapp_signal.py` + duration-parser unit tests (WP03)
+- [x] T011 Implement `signals.py` skeleton with `ActivitySignalFailure` dataclass + reader registry (WP03)
+- [x] T012 Implement `tailscale_auth_signal(credential)` per `contracts/activity-signal-readers.md` §Reader 1 (WP03)
+- [x] T013 Implement `whatsapp_session_signal(credential)` + `openclaw channels status` duration parser (WP03)
+- [x] T014 Write `tests/security/test_tailscale_signal.py` against tailscale fixtures (WP03)
+- [x] T015 Write `tests/security/test_whatsapp_signal.py` + duration-parser unit tests (WP03)
 
 **Implementation sketch**: T011 sets up the shared types. T012 and T013 are independent (different external tools); T013 includes the duration parser (e.g., `2w ago` → `timedelta(days=14)`).
 
