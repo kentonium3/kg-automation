@@ -32,11 +32,11 @@
 | T013 | Implement `whatsapp_session_signal(credential)` + `openclaw channels status` duration parser per §Reader 2 | WP03 | [P] with T012 | [D] |
 | T014 | Write `tests/security/test_tailscale_signal.py` against tailscale fixtures | WP03 | — | [D] |
 | T015 | Write `tests/security/test_whatsapp_signal.py` + duration-parser unit tests | WP03 | [D] |
-| T016 | Implement `github_writer.py` title generation for all 3 variants per `contracts/github-issue-writer.md` | WP04 | — |
-| T017 | Implement body templating for all 3 variants (cadence, activity-staleness, manifest-quality batch) | WP04 | — |
-| T018 | Implement `dedup_check(title_prefix)` via `gh issue list --search 'in:title …'` | WP04 | — |
-| T019 | Implement `create_issue(title, body, labels, assignees)` via `gh issue create` | WP04 | — |
-| T020 | Write `tests/security/test_github_writer.py` covering titles, bodies, stubbed `gh` invocations | WP04 | — |
+| T016 | Implement `github_writer.py` title generation for all 3 variants per `contracts/github-issue-writer.md` | WP04 | — | [D] |
+| T017 | Implement body templating for all 3 variants (cadence, activity-staleness, manifest-quality batch) | WP04 | — | [D] |
+| T018 | Implement `dedup_check(title_prefix)` via `gh issue list --search 'in:title …'` | WP04 | — | [D] |
+| T019 | Implement `create_issue(title, body, labels, assignees)` via `gh issue create` | WP04 | — | [D] |
+| T020 | Write `tests/security/test_github_writer.py` covering titles, bodies, stubbed `gh` invocations | WP04 | — | [D] |
 | T021 | Implement `vikunja_writer.py` skeleton: token loader, title + description templating | WP05 | — |
 | T022 | Implement `lookup_inbox_project_id()` via Vikunja API | WP05 | — |
 | T023 | Implement `create_task(credential, boundary, github_issue_number)` with `due_date = boundary − 7 days` | WP05 | — |
@@ -174,11 +174,11 @@ WP01 (foundation)
 
 **Subtasks**:
 
-- [ ] T016 Implement `github_writer.py` title generation for all 3 variants per contract (WP04)
-- [ ] T017 Implement body templating for all 3 variants (cadence, activity-staleness, manifest-quality batch) (WP04)
-- [ ] T018 Implement `dedup_check(title_prefix)` via `gh issue list --search 'in:title …'` (WP04)
-- [ ] T019 Implement `create_issue(title, body, labels, assignees)` via `gh issue create` (WP04)
-- [ ] T020 Write `tests/security/test_github_writer.py` covering titles, bodies, stubbed `gh` invocations (WP04)
+- [x] T016 Implement `github_writer.py` title generation for all 3 variants per contract (WP04)
+- [x] T017 Implement body templating for all 3 variants (cadence, activity-staleness, manifest-quality batch) (WP04)
+- [x] T018 Implement `dedup_check(title_prefix)` via `gh issue list --search 'in:title …'` (WP04)
+- [x] T019 Implement `create_issue(title, body, labels, assignees)` via `gh issue create` (WP04)
+- [x] T020 Write `tests/security/test_github_writer.py` covering titles, bodies, stubbed `gh` invocations (WP04)
 
 **Implementation sketch**: T016 + T017 are pure functions over Credential records; T018 + T019 shell out via `subprocess.run(["gh", ...])`. Tests mock `subprocess.run`.
 
