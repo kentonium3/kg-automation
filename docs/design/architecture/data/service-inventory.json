@@ -1,7 +1,7 @@
 {
   "schema_version": "1.1",
   "last_updated": "2026-05-11",
-  "updated_by": "issue-105-doc-auditor + #223-systemd-timer + #208-restic-healthcheck + #202-obsidian-sync-system-level + #203-sync-heartbeat",
+  "updated_by": "issue-105-doc-auditor + #223-systemd-timer + #208-restic-healthcheck + #202-obsidian-sync-system-level + #203-sync-heartbeat + #199-inbox-schedules",
   "services": [
     {
       "name": "vikunja",
@@ -352,16 +352,20 @@
       "type": "openclaw-cron",
       "host": "office2",
       "agent": "felix-admin-capture",
+      "schedules_timezone": "America/New_York",
+      "schedules_note": "Cron expressions below are evaluated in the America/New_York timezone by OpenClaw (DST-aware). Names match openclaw cron list entries on office2.",
       "schedules": [
-        {"name": "inbox-morning", "cron": "0 11 * * *", "local_time": "7:00 AM ET"},
-        {"name": "inbox-midday", "cron": "0 16 * * *", "local_time": "12:00 PM ET"},
-        {"name": "inbox-evening", "cron": "0 22 * * *", "local_time": "6:00 PM ET"}
+        {"name": "inbox-7am", "cron": "0 7 * * *", "local_time": "7:00 AM ET"},
+        {"name": "inbox-noon", "cron": "0 12 * * *", "local_time": "12:00 PM ET"},
+        {"name": "inbox-5pm", "cron": "0 17 * * *", "local_time": "5:00 PM ET"},
+        {"name": "inbox-10pm", "cron": "0 22 * * *", "local_time": "10:00 PM ET"}
       ],
       "timeout_seconds": 300,
       "session_mode": "isolated",
       "deployed_by": "F008",
+      "updated_by": "#199",
       "status": "active",
-      "purpose": "3x daily Obsidian inbox processing",
+      "purpose": "4x daily Obsidian inbox processing",
       "runbook": "docs/runbooks/inbox-ops.md",
       "risk_tier": 3,
       "dependencies": [

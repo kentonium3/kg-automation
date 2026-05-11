@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
-  "last_updated": "2026-05-10",
-  "updated_by": "#105",
+  "last_updated": "2026-05-11",
+  "updated_by": "#105 + #198",
   "description": "Maps area labels to documentation files requiring verification when that domain changes. Used by doc-audit-trigger.yml and the future felix-doc-auditor agent (#105).",
   "domains": {
     "area/infrastructure": [
@@ -49,8 +49,7 @@
     ],
     "area/task-intel": [
       "docs/runbooks/task-intelligence-ops.md",
-      "docs/runbooks/vikunja-ops.md",
-      "docs/design/Vikunja.md"
+      "docs/runbooks/vikunja-ops.md"
     ],
     "area/content": [
       "docs/runbooks/obsidian-sync-ops.md",
