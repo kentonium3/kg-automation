@@ -22,11 +22,11 @@
 | T003 | Create `tests/security/fixtures/manifest-near-expiry.json` (one credential inside warning window) | WP01 | [D] |
 | T004 | Create manifest-quality fixtures (missing field, bad cadence, invalid JSON, not-a-dict) | WP01 | [D] |
 | T005 | Capture/synthesize activity signal fixtures (tailscale + openclaw) | WP01 | [D] |
-| T006 | Create package skeleton `scripts/security/credential_health_check/__init__.py` | WP02 | — |
-| T007 | Implement `manifest.py` (Credential, ManifestQualityIssue, read_manifest, ManifestUnreadableError) per `contracts/manifest-reader.md` | WP02 | — |
-| T008 | Implement `cadence.py` (compute_boundary, is_within_warning_window) per `data-model.md` | WP02 | [P] with T007 |
-| T009 | Write `tests/security/test_manifest.py` against the manifest fixtures | WP02 | — |
-| T010 | Write `tests/security/test_cadence.py` (boundary math, warning-window edge cases) | WP02 | [P] |
+| T006 | Create package skeleton `scripts/security/credential_health_check/__init__.py` | WP02 | — | [D] |
+| T007 | Implement `manifest.py` (Credential, ManifestQualityIssue, read_manifest, ManifestUnreadableError) per `contracts/manifest-reader.md` | WP02 | — | [D] |
+| T008 | Implement `cadence.py` (compute_boundary, is_within_warning_window) per `data-model.md` | WP02 | [P] with T007 | [D] |
+| T009 | Write `tests/security/test_manifest.py` against the manifest fixtures | WP02 | — | [D] |
+| T010 | Write `tests/security/test_cadence.py` (boundary math, warning-window edge cases) | WP02 | [D] |
 | T011 | Implement `signals.py` skeleton with `ActivitySignalFailure` dataclass + reader registry | WP03 | — |
 | T012 | Implement `tailscale_auth_signal(credential)` per `contracts/activity-signal-readers.md` §Reader 1 | WP03 | — |
 | T013 | Implement `whatsapp_session_signal(credential)` + `openclaw channels status` duration parser per §Reader 2 | WP03 | [P] with T012 |
@@ -120,11 +120,11 @@ WP01 (foundation)
 
 **Subtasks**:
 
-- [ ] T006 Create package skeleton `scripts/security/credential_health_check/__init__.py` (WP02)
-- [ ] T007 Implement `manifest.py` (Credential, ManifestQualityIssue, read_manifest, ManifestUnreadableError) (WP02)
-- [ ] T008 Implement `cadence.py` (compute_boundary, is_within_warning_window) (WP02)
-- [ ] T009 Write `tests/security/test_manifest.py` against the manifest fixtures (WP02)
-- [ ] T010 Write `tests/security/test_cadence.py` (boundary math, warning-window edge cases) (WP02)
+- [x] T006 Create package skeleton `scripts/security/credential_health_check/__init__.py` (WP02)
+- [x] T007 Implement `manifest.py` (Credential, ManifestQualityIssue, read_manifest, ManifestUnreadableError) (WP02)
+- [x] T008 Implement `cadence.py` (compute_boundary, is_within_warning_window) (WP02)
+- [x] T009 Write `tests/security/test_manifest.py` against the manifest fixtures (WP02)
+- [x] T010 Write `tests/security/test_cadence.py` (boundary math, warning-window edge cases) (WP02)
 
 **Note on R-004 revision**: research §R-004 originally chose single-file. Spec-kitty's WP ownership model requires non-overlapping `owned_files`, so this WP introduces a package layout (`scripts/security/credential_health_check/`) with module-per-concern. The package contains five small modules plus `__main__.py`; total LOC is comparable to a single file. Update `research.md` R-004 in this WP to reflect the revised decision.
 
