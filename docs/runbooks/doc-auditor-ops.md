@@ -4,7 +4,7 @@ doc_type: runbook
 audience: agents_and_humans
 status: draft
 last_updated: '2026-05-11'
-updated_by: '#226'
+updated_by: '#226 + doc-audit followup'
 ---
 
 # Doc Auditor Operations Runbook
@@ -25,7 +25,8 @@ files structured `docs-debt` issues, and closes the originating audit issue.
 **Agent name**: `felix-doc-auditor`
 **Current autonomy level**: Assisted (Level 1)
 **Model**: Sonnet (pinned per Model Assignment Policy)
-**Schedule**: cron `0 * * * *` (every 60 minutes)
+**Schedule**: hourly (`OnCalendar=hourly`, top of each UTC hour)
+**Trigger mechanism**: systemd user timer `felix-doc-auditor.timer` + oneshot service `felix-doc-auditor.service` (units in repo at [`scripts/office2/`](<../../scripts/office2/>), deployed to `~/.config/systemd/user/` on office2)
 **Host**: office2 (Ubuntu 24.04 LTS)
 **Run-as user**: `claude`
 **Workspace (repo)**: [`scripts/openclaw/agents/felix-doc-auditor/`](../../scripts/openclaw/agents/felix-doc-auditor/) — IDENTITY.md, SOUL.md, AGENTS.md, TOOLS.md
@@ -33,7 +34,6 @@ files structured `docs-debt` issues, and closes the originating audit issue.
 **Skill (repo)**: [`scripts/openclaw/skills/doc-audit/SKILL.md`](../../scripts/openclaw/skills/doc-audit/SKILL.md)
 **Skill (deployed)**: `~/.openclaw/skills/doc-audit/SKILL.md` on office2
 **Activity log**: `/home/kgale/second-brain/agents/logs/doc-auditor-YYYY-MM-DD.md`
-**OpenClaw registration**: `/home/claude/.openclaw/openclaw.json` (cron entry)
 
 **Source-of-truth in this repo**:
 
@@ -115,13 +115,25 @@ For the per-doc state machine and full data model, see
 
 ### What runs where
 
-- **Cron schedule**: lives in `/home/claude/.openclaw/openclaw.json` on
-  office2 (managed by OpenClaw).
+- **Schedule**: systemd user timer `felix-doc-auditor.timer` at
+  `~/.config/systemd/user/` (claude user) — fires hourly per
+  `OnCalendar=hourly` with `Persistent=true` so missed ticks during
+  downtime fire on next boot. The timer activates the matching
+  `felix-doc-auditor.service` oneshot.
+- **Per-tick invocation**: `felix-doc-auditor.service` runs
+  `openclaw agent --agent felix-doc-auditor --message 'Cron tick…' --timeout 1500`
+  with `TimeoutStartSec=30min` as the outer failsafe (agent's own 25-min
+  timeout catches stuck runs first).
 - **Audit logic**: `~/.openclaw/skills/doc-audit/SKILL.md` (the skill).
 - **Standing orders**: `/data/services/openclaw/felix-doc-auditor/AGENTS.md`
   (the agent workspace).
 - **Outbound WhatsApp**: standard OpenClaw `send-message` tool, same as
   every `felix-admin-*` agent.
+
+Note: unlike the `felix-admin-*` agents (which are dispatched by OpenClaw's
+internal cron inside `openclaw-gateway.service`), `felix-doc-auditor` is
+triggered by an independent systemd user timer. `openclaw.json` has no
+cron schema and is not used to register or schedule this agent.
 
 ## Manual Trigger
 
@@ -238,47 +250,52 @@ re-attempting.
 
 ## Kill Switch
 
-Two levels of disable, in order of preference.
+Two levels of disable, in order of preference. Both run as the claude
+user — no sudo required.
 
-### Soft kill — disable the agent's cron entry only
+### Soft kill — disable the agent's hourly timer only
 
-Other OpenClaw agents continue to run.
+Other OpenClaw agents and the gateway continue to run.
 
 1. SSH to office2 as claude:
    ```
    ssh office2-claude
    ```
-2. Edit `/home/claude/.openclaw/openclaw.json`. Find the `felix-doc-auditor`
-   cron entry and either:
-   - Set `enabled: false` on the cron entry, or
-   - Comment out the cron line (per existing convention used by other
-     `felix-admin-*` agents when paused).
-3. Restart the OpenClaw cron service to pick up the change. The exact
-   command depends on whether OpenClaw runs as a system service or a user
-   service — check the [OpenClaw Operations runbook](<./openclaw-ops.md>):
+2. Stop the running timer and disable it so it doesn't re-arm on boot:
    ```
-   # System service (requires sudo via kgale):
-   sudo systemctl restart openclaw-cron
-   # OR user service:
-   systemctl --user restart openclaw-cron
+   systemctl --user stop felix-doc-auditor.timer
    ```
-4. Verify: `systemctl list-timers --all 2>&1 | grep openclaw` should no
-   longer show a `felix-doc-auditor` next-run.
+   ```
+   systemctl --user disable felix-doc-auditor.timer
+   ```
+3. Verify the timer is gone from the active list:
+   ```
+   systemctl --user list-timers --all | grep felix-doc-auditor
+   ```
+   No output (or an `inactive`/`dead` row) confirms the soft kill is in
+   effect.
 
-To re-enable: reverse the edit and restart again.
+To re-enable:
 
-### Heavy kill — stop all OpenClaw cron agents
+```
+systemctl --user enable --now felix-doc-auditor.timer
+```
+
+### Heavy kill — stop the OpenClaw gateway (affects all felix-admin-* agents)
 
 Use this only when there is a system-wide concern (e.g., GitHub API
-outage, runaway agent in another component).
+outage, runaway agent in another component). `felix-doc-auditor` is
+**not** dispatched by the gateway's internal cron — stopping the gateway
+halts the `felix-admin-*` agents but leaves the doc-auditor timer
+running. To take the doc-auditor down too, also perform the [soft
+kill](<#soft-kill--disable-the-agents-hourly-timer-only>) above.
 
 ```
-sudo systemctl stop openclaw-cron
+systemctl --user stop openclaw-gateway.service
 ```
 
-This halts every cron-triggered OpenClaw agent. Re-start with
-`sudo systemctl start openclaw-cron` once the underlying issue is
-resolved.
+Re-start with `systemctl --user start openclaw-gateway.service` once
+the underlying issue is resolved.
 
 Any audit issue currently carrying `status:in-progress` when the kill
 switch is hit will become a stale lock — clear it per
@@ -338,12 +355,12 @@ Demotion follows the same flip in reverse.
 
 | Symptom | Likely cause | Fix |
 |---|---|---|
-| Agent never processes audit issues | Cron entry disabled or OpenClaw cron service stopped | Check `cat /home/claude/.openclaw/openclaw.json | jq '.crons[] | select(.agent == "felix-doc-auditor")'`; restart `openclaw-cron` |
+| Agent never processes audit issues | Timer disabled, service failing, or last run errored out | `systemctl --user status felix-doc-auditor.timer felix-doc-auditor.service` — confirm both are `enabled` and the timer's `Last:` / `Next:` look healthy. Tail `journalctl --user -u felix-doc-auditor --since "2 hours ago"` for the last invocation's exit status. If the timer is inactive, re-arm with `systemctl --user enable --now felix-doc-auditor.timer`. |
 | Issue stuck at `status:in-progress` for >30 min | Agent crashed mid-run, WhatsApp delivery failed at Level 1, or network blip | [Stale-Lock Recovery](<#stale-lock-recovery>) — remove the label; next tick will retry |
 | Agent files debt issues for what should be high-confidence types | Skill threshold misconfigured | Review confidence rules in `scripts/openclaw/skills/doc-audit/SKILL.md`; demote/promote categories per [Adjusting the Confidence Threshold](<#adjusting-the-confidence-threshold>) |
 | Agent commits an incorrect doc edit | Comparison rules wrong, or system-state source out of date | Revert the commit (`git revert <sha>`); reopen the audit issue (`gh issue reopen <#>`); inspect skill comparison rules; consider lowering autonomy until the rule is fixed |
 | WhatsApp delivery fails | Existing WhatsApp service issue | Per [`docs/runbooks/whatsapp-ops.md`](<./whatsapp-ops.md>). At Level 1 the agent halts (no commits without approval); the audit issue stays open with `status:in-progress` until the lock is manually cleared. |
-| GitHub API rate-limit hit (5000/hr authenticated) | Many audits stacked + many commits/issues per audit | Lower polling cadence in `openclaw.json` (e.g., to every 2 hours); investigate why backlog accumulated |
+| GitHub API rate-limit hit (5000/hr authenticated) | Many audits stacked + many commits/issues per audit | Lower the timer cadence: edit `scripts/office2/felix-doc-auditor.timer` (set `OnCalendar` to e.g. `*-*-* */2:00:00` for every 2 hours), redeploy via `scripts/office2/deploy/felix-doc-auditor.sh`, then `systemctl --user daemon-reload && systemctl --user restart felix-doc-auditor.timer`. Investigate why the backlog accumulated. |
 | Agent reads a file outside the domain map's scope | Skill or AGENTS.md mistake | Inspect activity log at `/home/kgale/second-brain/agents/logs/doc-auditor-*.md`; tighten `TOOLS.md` disallowed-paths list; redeploy workspace |
 | Doc unreadable mid-audit | File missing, permissions issue, encoding error | Per spec NFR-003 the agent logs the failure, skips the doc, includes it in the audit summary as "could not read", and continues. Manual follow-up via the summary's flagged item. |
 | Weekly audit not created on Sunday | Stale weekly issue blocks creation (pre-FR-008 fix) | Confirm the FR-008 fix is in `.github/workflows/doc-audit-weekly.yml` (search query must include `in:title` and current `${DATE}`). Manually trigger: `gh workflow run doc-audit-weekly.yml`. |

@@ -1,7 +1,7 @@
 {
   "schema_version": "1.1",
-  "last_updated": "2026-05-10",
-  "updated_by": "issue-105-doc-auditor",
+  "last_updated": "2026-05-11",
+  "updated_by": "issue-105-doc-auditor + #223-systemd-timer",
   "services": [
     {
       "name": "vikunja",
@@ -424,17 +424,20 @@
     },
     {
       "name": "felix-doc-auditor",
-      "type": "openclaw-cron",
+      "type": "systemd-timer",
       "host": "office2",
       "agent": "felix-doc-auditor",
-      "schedules": [
-        {"name": "doc-audit-poll", "cron": "0 * * * *", "local_time": "Every 60 minutes (top of each hour UTC)"}
-      ],
+      "user": "claude",
+      "systemd_unit": "felix-doc-auditor.timer (user unit) + felix-doc-auditor.service (user oneshot)",
+      "systemd_user": "claude",
+      "schedule": "hourly (OnCalendar=hourly, Persistent=true)",
+      "exec_start": "openclaw agent --agent felix-doc-auditor --message 'Cron tick…' --timeout 1500",
       "timeout_seconds": 1800,
+      "timeout_seconds_note": "TimeoutStartSec=30min systemd outer failsafe; agent --timeout 1500 (25 min) catches stuck runs first",
       "session_mode": "isolated",
       "deployed_by": "#105",
       "deployed_on": "2026-05-10",
-      "updated_by": "#215",
+      "updated_by": "#223 (systemd timer registration)",
       "status": "active",
       "purpose": "Documentation audit — processes Doc Audit and Weekly Doc Audit issues; classifies docs as high-confidence edit (commits directly) or judgment gap (files docs-debt issue); detects missing artifacts",
       "model": "anthropic/claude-sonnet-4-6",
@@ -442,7 +445,7 @@
       "autonomy_level": "Assisted (Level 1)",
       "risk_tier": 3,
       "dependencies": [
-        {"target": "openclaw-gateway:18789", "type": "requires", "description": "Dispatched by OpenClaw cron scheduler"},
+        {"target": "openclaw-gateway:18789", "type": "requires", "description": "Service ExecStart invokes the openclaw CLI which dispatches the agent through the gateway"},
         {"target": "doc-audit", "type": "requires", "description": "Reads ~/.openclaw/skills/doc-audit/SKILL.md at start of every audit"},
         {"target": "doc-domain-map.json", "type": "requires", "description": "Scope contract"},
         {"target": "gh-cli", "type": "requires", "description": "All GitHub interactions (issues, comments, labels)"}
@@ -454,6 +457,8 @@
         "timeout_seconds": 60
       },
       "config_files": [
+        {"path": "~/.config/systemd/user/felix-doc-auditor.timer", "format": "systemd-unit", "source_in_repo": "scripts/office2/felix-doc-auditor.timer"},
+        {"path": "~/.config/systemd/user/felix-doc-auditor.service", "format": "systemd-unit", "source_in_repo": "scripts/office2/felix-doc-auditor.service"},
         {"path": "/data/services/openclaw/felix-doc-auditor/AGENTS.md", "format": "markdown", "source_in_repo": "scripts/openclaw/agents/felix-doc-auditor/AGENTS.md"},
         {"path": "~/.openclaw/skills/doc-audit/SKILL.md", "format": "markdown", "source_in_repo": "scripts/openclaw/skills/doc-audit/SKILL.md"}
       ]

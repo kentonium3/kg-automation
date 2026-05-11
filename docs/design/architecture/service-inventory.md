@@ -34,7 +34,7 @@ All services run on office2 unless otherwise noted.
 | Habit Report (weekly) | Sunday 6PM ET | OpenClaw cron → felix-admin-habits | claude | Weekly habit pattern report via WhatsApp |
 | Incomplete Task Detection | Every 4 hours (`0 */4 * * *`) | OpenClaw cron → felix-admin-tasker | claude | Poll Inbox for flat tasks |
 | Escalation Check (daily) | 8:00 AM ET daily | OpenClaw cron → felix-admin-escalation | claude | Overdue task escalation via WhatsApp |
-| Doc Audit Poll | Every 60 minutes (top of hour UTC) | OpenClaw cron → felix-doc-auditor | claude | Process Doc Audit / Weekly Doc Audit issues |
+| Doc Audit Poll | Every 60 minutes (top of hour UTC) | `felix-doc-auditor.timer` (systemd) → openclaw agent felix-doc-auditor | claude | Process Doc Audit / Weekly Doc Audit issues |
 | Second Brain Sync | Every 15 min | `second-brain-sync.timer` (systemd) | kgale | Bidirectional git sync for non-vault content |
 | Felix Core Digest | Every 15 min | `felix-core-digest.timer` (systemd) | claude | Agent activity log summarization → Obsidian digests |
 
@@ -205,13 +205,14 @@ openclaw cron add \
 
 ### Felix Doc Auditor (#105, 2026-05-10)
 - **Deployed by**: #105 / mission `felix-doc-auditor-agent-01KR7JK9`
-- **Type**: OpenClaw cron agent (sub-agent of the gateway)
+- **Type**: OpenClaw agent triggered by systemd user timer (registered in #223)
 - **Agent name**: `felix-doc-auditor`
 - **Workspace**: `/data/services/openclaw/felix-doc-auditor/` (deployed from `scripts/openclaw/agents/felix-doc-auditor/`)
 - **Skill**: `~/.openclaw/skills/doc-audit/` (deployed from `scripts/openclaw/skills/doc-audit/`)
 - **Model**: `anthropic/claude-sonnet-4-6` (pinned — judgment-heavy work)
 - **Autonomy level**: Assisted (Level 1) — planned promotion to Supervised (Level 2) after ~1 week clean operation
-- **Schedule**: every 60 minutes (top of hour, UTC) via OpenClaw cron (`0 * * * *`)
+- **Schedule**: hourly via `felix-doc-auditor.timer` (systemd user timer at `~/.config/systemd/user/`, `OnCalendar=hourly`, `Persistent=true`)
+- **Per-tick invocation**: `felix-doc-auditor.service` (systemd user oneshot) runs `openclaw agent --agent felix-doc-auditor --message 'Cron tick…' --timeout 1500`
 - **Purpose**: processes Doc Audit and Weekly Doc Audit issues automatically; commits high-confidence edits directly, files docs-debt issues for judgment items, detects missing artifacts
 - **Approval mechanism (Level 1)**: WhatsApp summary message + reply parsing (`approve`/`reject`/`skip`); 2-hour timeout = default deny
 - **Concurrency lock**: GitHub label `status:in-progress` on the in-flight audit issue
