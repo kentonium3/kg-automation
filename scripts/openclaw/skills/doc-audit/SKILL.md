@@ -12,7 +12,7 @@ description: >-
   create the audit issues in the first place. Approval at Level 1 is
   via GitHub issue labels (v1.2.0+); the previous WhatsApp flow was
   replaced — see #207.
-version: 1.4.0
+version: 1.4.1
 ---
 
 # Doc-Audit Skill
@@ -401,23 +401,24 @@ For each result, examine its labels:
 
 #### 🛡 Actor-verification check (defense in depth)
 
-Before applying any decision label, the agent MUST verify the label
-was applied by a human, not by the agent's own GitHub identity:
+Before applying any decision label, the agent MUST verify that the
+**most recent** decision-label event was applied by a human, not by
+the agent's own GitHub identity:
 
 ```bash
 # 1. Resolve the agent's own GitHub identity (the bot account)
 SELF_LOGIN=$(gh api user --jq .login)
 
-# 2. Query the issue timeline for the labeled event
-gh api repos/kentonium3/kg-automation/issues/<N>/timeline \
-  --jq '.[] | select(.event == "labeled" and (.label.name == "audit-approve" or .label.name == "audit-reject" or .label.name == "audit-skip")) | {label: .label.name, actor: .actor.login, at: .created_at}'
+# 2. Query the issue timeline; select the MOST RECENT decision-label event
+LATEST_DECISION=$(gh api repos/kentonium3/kg-automation/issues/<N>/timeline \
+  --jq '[.[] | select(.event == "labeled" and (.label.name == "audit-approve" or .label.name == "audit-reject" or .label.name == "audit-skip"))] | last | {label: .label.name, actor: .actor.login, at: .created_at}')
 
-# 3. Inspect the actor of the decision label
+# 3. Inspect the actor of the most recent decision-label event
 ```
 
-**If `actor.login == SELF_LOGIN`** for the decision-labeled event:
-this is a **GATE VIOLATION** — the agent applied the decision to its
-own issue. The agent MUST:
+**If the most recent event's `actor.login == SELF_LOGIN`**: this is a
+**GATE VIOLATION** — the agent applied the decision to its own issue
+and no subsequent human event supersedes it. The agent MUST:
 
 - NOT process the decision (no commit, no demotion, no close)
 - Post a comment on the pending-approval issue explaining the
@@ -429,11 +430,32 @@ own issue. The agent MUST:
 - Exit the cron tick. Do NOT proceed to new-audit scanning. The next
   tick may proceed normally after the human investigates.
 
-**If `actor.login != SELF_LOGIN`**: proceed with applying the decision
-per Section 8.5.
+**If the most recent event's `actor.login != SELF_LOGIN`** (a human
+applied the latest decision): proceed with applying the decision per
+Section 8.5.
+
+**Historical self-applies** — if any *earlier* decision-label event in
+the timeline has `actor.login == SELF_LOGIN` but a later legitimate
+human event supersedes it, the human's intent stands and processing
+proceeds. The historical self-apply MUST still be logged as a
+violation and surfaced via a comment on the pending-approval issue
+(citing this section) so the anomaly is not hidden from the audit
+trail.
 
 Apply each decision in order (oldest pending-approval first), then
 proceed to the new-audit scan.
+
+**Why "most recent" matters**: the human may correct an erroneous
+self-apply by re-applying the same decision label from their own
+account. The timeline then contains both events — the self-apply at
+t1 and the human re-apply at t2. The human's intent at t2 is the
+operative decision. Selecting the most recent event resolves this
+case without discarding the legitimate decision, while the
+historical-violation logging ensures the earlier self-apply remains
+visible. This codifies the dual-apply handling first exercised during
+the v1.3.0 canary on 2026-05-11 (pending-approval #219 / audit #218,
+both processed correctly under v1.3.0 but per agent judgment rather
+than spec'd behavior — issue #222).
 
 **Why this check exists**: the agent and Kent may share infrastructure
 identity in some configurations (e.g., shared `gh` auth tokens). The
