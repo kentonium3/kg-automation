@@ -15,7 +15,7 @@ subtasks:
 - T014
 - T015
 agent: "claude"
-shell_pid: "22433"
+shell_pid: "22743"
 history:
 - event: created
   at: '2026-05-11T21:43:38Z'
@@ -279,3 +279,4 @@ spec-kitty agent action implement WP03 --agent <name>
 
 - 2026-05-11T22:01:49Z – claude – shell_pid=22433 – Started implementation via action command
 - 2026-05-11T22:03:32Z – claude – shell_pid=22433 – 59/59 tests pass; signal readers handle all failure modes per contract.
+- 2026-05-11T22:03:36Z – claude – shell_pid=22743 – Started review via action command
