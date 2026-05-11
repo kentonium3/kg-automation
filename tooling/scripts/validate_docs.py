@@ -77,8 +77,8 @@ EXCLUDE_SECRET_SCAN = load_secret_allowlist() or {'tooling/scripts/validate_docs
 # ---------- Helpers ----------
 SKIP_DIRS = {'.git', 'node_modules', '.venv', '_templates', '.obsidian',
              '.obsidian-shared', '_templater-scripts', 'archive', '.kittify',
-             'kitty-specs', '.agents', '.claude', '.codex', '.gemini',
-             '.github', 'scripts', 'research', 'diagnostics',
+             'kitty-specs', '.agents', '.claude', '.codex', '.codex-tmp-home',
+             '.gemini', '.github', 'scripts', 'research', 'diagnostics',
              '.pytest_cache', 'temp'}
 
 def is_blocker(check_type):
