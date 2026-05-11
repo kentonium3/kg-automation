@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
-  "last_updated": "2026-05-08",
-  "updated_by": "ops-gpu-install",
+  "last_updated": "2026-05-11",
+  "updated_by": "ops-gpu-install + #191 + #212",
   "hosts": [
     {
       "hostname": "office2",
@@ -20,6 +20,18 @@
         "cuda_version": "12.2",
         "compute_capability": "6.1",
         "installed": "2026-05-08"
+      },
+      "bios": {
+        "version": "A13",
+        "date": "2018-06-13",
+        "note": "Final firmware Dell shipped for the XPS 8700; no further updates expected",
+        "ac_power_restoration": "power-on",
+        "ac_power_restoration_set": "2026-05-08",
+        "ac_power_restoration_reason": "Auto-recovery after power outages — important for always-on hub role. Set after a Detroit outage took the server offline for two days.",
+        "primary_display": "PCIe (GTX 1060)",
+        "secure_boot": true,
+        "console_resolution": "800x600",
+        "console_resolution_note": "UEFI firmware ceiling — kernel cannot override the POST framebuffer in OS. See issue #191."
       },
       "disks": [
         {"mount": "/", "device": "/dev/mapper/ubuntu--vg-ubuntu--lv", "size_gb": 98, "purpose": "OS and home directories"},
