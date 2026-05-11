@@ -1,7 +1,7 @@
 {
-  "event_count": 22,
-  "last_event_id": "01KRCGYMR51A5NS3GK0WKE0FRQ",
-  "materialized_at": "2026-05-11T22:01:35.237152+00:00",
+  "event_count": 24,
+  "last_event_id": "01KRCGZ2XXSC6C836AJ9J7CC0B",
+  "materialized_at": "2026-05-11T22:01:49.757538+00:00",
   "mission_number": "",
   "mission_slug": "credential-expiry-health-check-01KRCF92",
   "mission_type": "software-dev",
@@ -12,9 +12,9 @@
     "claimed": 0,
     "done": 0,
     "for_review": 0,
-    "in_progress": 0,
+    "in_progress": 1,
     "in_review": 0,
-    "planned": 6
+    "planned": 5
   },
   "work_packages": {
     "WP01": {
@@ -32,11 +32,11 @@
       "last_transition_at": "2026-05-11T22:01:35.237152+00:00"
     },
     "WP03": {
-      "actor": "finalize-tasks",
+      "actor": "claude",
       "force_count": 1,
-      "lane": "planned",
-      "last_event_id": "01KRCGDZACZRQWNNFXT1GHZJW2",
-      "last_transition_at": "2026-05-11T21:52:29.004029+00:00"
+      "lane": "in_progress",
+      "last_event_id": "01KRCGZ2XXSC6C836AJ9J7CC0B",
+      "last_transition_at": "2026-05-11T22:01:49.757538+00:00"
     },
     "WP04": {
       "actor": "finalize-tasks",

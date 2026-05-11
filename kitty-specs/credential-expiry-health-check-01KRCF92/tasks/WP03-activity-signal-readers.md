@@ -14,6 +14,8 @@ subtasks:
 - T013
 - T014
 - T015
+agent: "claude"
+shell_pid: "22433"
 history:
 - event: created
   at: '2026-05-11T21:43:38Z'
@@ -272,3 +274,7 @@ Implement the two `monitor-activity` signal readers per the A-004 resolution: `t
 ```bash
 spec-kitty agent action implement WP03 --agent <name>
 ```
+
+## Activity Log
+
+- 2026-05-11T22:01:49Z – claude – shell_pid=22433 – Started implementation via action command
