@@ -20,6 +20,8 @@ subtasks:
 - T008
 - T009
 - T010
+agent: "claude"
+shell_pid: "21341"
 history:
 - event: created
   at: '2026-05-11T21:43:38Z'
@@ -271,3 +273,7 @@ The original `research.md` §R-004 chose a single-file Python script. Spec-kitty
 ```bash
 spec-kitty agent action implement WP02 --agent <name>
 ```
+
+## Activity Log
+
+- 2026-05-11T21:57:47Z – claude – shell_pid=21341 – Started implementation via action command
