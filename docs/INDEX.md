@@ -74,6 +74,7 @@ Authoritative operational state. **Exempt from moves (F015 constraint C-001)**.
 - [OpenClaw Operations](<./runbooks/openclaw-ops.md>)
 - [Obsidian Sync Operations](<./runbooks/obsidian-sync-ops.md>)
 - [Transcribe Operations](<./runbooks/transcribe-ops.md>)
+- [Ollama Operations](<./runbooks/ollama-ops.md>) — local LLM inference runtime (GPU-accelerated)
 - [Inbox Processing](<./runbooks/inbox-ops.md>)
 - [Goals Operations](<./runbooks/goals-ops.md>)
 - [Habits Operations](<./runbooks/habits-ops.md>)
