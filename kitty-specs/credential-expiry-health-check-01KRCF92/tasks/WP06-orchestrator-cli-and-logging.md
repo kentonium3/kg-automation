@@ -27,6 +27,8 @@ subtasks:
 - T027
 - T028
 - T029
+agent: "claude"
+shell_pid: "24213"
 history:
 - event: created
   at: '2026-05-11T21:43:38Z'
@@ -260,3 +262,7 @@ Stitch the components together into a runnable Python entry point with determini
 ```bash
 spec-kitty agent action implement WP06 --agent <name>
 ```
+
+## Activity Log
+
+- 2026-05-11T22:07:44Z – claude – shell_pid=24213 – Started implementation via action command
