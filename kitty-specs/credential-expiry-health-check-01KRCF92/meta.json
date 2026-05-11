@@ -1,10 +1,12 @@
 {
   "created_at": "2026-05-11T21:32:22.499819+00:00",
-  "friendly_name": "credential expiry health check",
+  "friendly_name": "Credential Expiry Health Check",
   "mission_id": "01KRCF92Z12FNBQGY09A51J23M",
   "mission_number": null,
   "mission_slug": "credential-expiry-health-check-01KRCF92",
   "mission_type": "software-dev",
   "slug": "credential-expiry-health-check-01KRCF92",
-  "target_branch": "main"
+  "source_description": "GitHub issue kentonium3/kg-automation#115 (Infra: Automated credential expiry health check, R-003). Discovery confirmed alert path = GitHub issue (primary, audit trail) + Vikunja task with due_date = boundary - 7 days (action driver via existing escalation engine). Daily cadence, 30-day warning window. Threshold encoded as script constants; per-credential variation via review_cadence. Run-as: claude user on office2. In scope: add missing kentonium3 PAT to manifest. Out of scope: discovering credentials missing from the manifest (post-deploy Kent audit) and the monitor-activity activity-signal check (deferred if it requires new instrumentation).",
+  "target_branch": "main",
+  "vcs": "git"
 }
