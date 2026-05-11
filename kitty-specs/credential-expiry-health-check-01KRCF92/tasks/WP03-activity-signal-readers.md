@@ -278,3 +278,4 @@ spec-kitty agent action implement WP03 --agent <name>
 ## Activity Log
 
 - 2026-05-11T22:01:49Z – claude – shell_pid=22433 – Started implementation via action command
+- 2026-05-11T22:03:32Z – claude – shell_pid=22433 – 59/59 tests pass; signal readers handle all failure modes per contract.
