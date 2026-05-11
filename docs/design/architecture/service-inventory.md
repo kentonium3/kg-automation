@@ -15,7 +15,7 @@ All services run on office2 unless otherwise noted.
 | Service | Type | Version/Image | Port | Bind IP | systemd Unit | Data Path |
 |---------|------|---------------|------|---------|-------------|-----------|
 | Vikunja | Docker | `vikunja/vikunja:0.24.6` | 3456 | 0.0.0.0 | `vikunja.service` (system) | `/data/services/vikunja/data` |
-| Obsidian Sync | Native | `ob` v0.0.8, `ob sync --continuous` | — | — | `obsidian-sync.service` (user) | `/home/kgale/second-brain/notes` |
+| Obsidian Sync | Native | `ob` v0.0.8, `ob sync --continuous` | — | — | `obsidian-sync.service` (system, runs as `kgale`) | `/home/kgale/second-brain/notes` |
 | Transcribe API | Docker (GPU) | `transcribe-transcribe` | 8787 | 100.92.197.90 | `transcribe.service` | `/data/services/transcribe` |
 | OpenClaw Gateway | npm-global | `v2026.3.24` | 18789 | 127.0.0.1 | `openclaw-gateway.service` (user) | `/data/services/openclaw/data` |
 | Ollama | Host binary | `ollama` (latest, 0.23.2) | 11434 | 127.0.0.1 (localhost) | `ollama.service` (system, user `ollama`) | `/usr/share/ollama/.ollama` |
@@ -26,6 +26,7 @@ All services run on office2 unless otherwise noted.
 |-----|----------|-------------|------|---------|
 | Restic Backup | 4AM daily | `/data/services/backup/scripts/backup.sh` | claude | GFS backup to `/mnt/backups/restic-repo` |
 | Security Audit | 3AM daily | `/data/services/security-monitor/scripts/audit.sh` | claude | Baseline drift detection |
+| Obsidian Sync Heartbeat | Every 30 min (`*/30 * * * *`) | `scripts/obsidian/sync-heartbeat.py` (#158) | claude | Probe vault sync propagation; WhatsApp alert on N consecutive failures |
 | Inbox Processing (morning) | 7 AM ET daily | OpenClaw cron → felix-admin-capture | claude | Obsidian inbox processing |
 | Inbox Processing (midday) | 12 PM ET daily | OpenClaw cron → felix-admin-capture | claude | Obsidian inbox processing |
 | Inbox Processing (afternoon) | 5 PM ET daily | OpenClaw cron → felix-admin-capture | claude | Obsidian inbox processing |
@@ -52,12 +53,12 @@ All services run on office2 unless otherwise noted.
 - **Runbook**: `docs/runbooks/vikunja-ops.md`
 - **F006 additions**: Goals project (top-level, id=11) for structured goal declarations, `metalcasework` label (#ff9800), Goals saved filter. Setup script: `scripts/vikunja/setup_goals.py`. Goals runbook: `docs/runbooks/goals-ops.md`
 
-### Obsidian Sync (pre-F001, updated F011)
+### Obsidian Sync (pre-F001, updated F011, system-level confirmed #202)
 - **Deployed by**: Manual setup, updated by F011
 - **Binary**: `/usr/bin/ob` (v0.0.8)
 - **Command**: `ob sync --path /home/kgale/second-brain/notes --continuous`
-- **Runs as**: kgale user (user-level systemd unit)
-- **systemd unit**: `obsidian-sync.service` (user unit under kgale)
+- **Runs as**: `kgale` user (via `User=kgale` in the unit file)
+- **systemd unit**: `obsidian-sync.service` — **system-level** at `/etc/systemd/system/obsidian-sync.service` (not a user unit; verify with `systemctl status obsidian-sync.service`, not `systemctl --user …`)
 - **Vault ID** (ob CLI): `3dca727577026343c5dc34b17e05692e`
 - **Auth**: `ob login` (interactive, credentials stored locally by ob)
 - **Sync direction**: Bidirectional (Mac, iPhone, and office2 via Obsidian Sync cloud)

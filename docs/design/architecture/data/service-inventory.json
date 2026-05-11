@@ -1,7 +1,7 @@
 {
   "schema_version": "1.1",
   "last_updated": "2026-05-11",
-  "updated_by": "issue-105-doc-auditor + #223-systemd-timer + #208-restic-healthcheck",
+  "updated_by": "issue-105-doc-auditor + #223-systemd-timer + #208-restic-healthcheck + #202-obsidian-sync-system-level + #203-sync-heartbeat",
   "services": [
     {
       "name": "vikunja",
@@ -47,8 +47,9 @@
       "command": "ob sync --path /home/kgale/second-brain/notes --continuous",
       "host": "office2",
       "user": "kgale",
-      "systemd_unit": "obsidian-sync.service (user unit)",
-      "systemd_user": "kgale",
+      "systemd_unit": "obsidian-sync.service",
+      "systemd_level": "system",
+      "systemd_run_as": "kgale",
       "data_path": "/home/kgale/second-brain/notes",
       "vault_id": "3dca727577026343c5dc34b17e05692e",
       "auth_method": "ob login (interactive, credentials stored locally by ob)",
@@ -60,7 +61,7 @@
       "deployed_by": "manual",
       "status": "active",
       "purpose": "Continuous Obsidian vault sync to office2",
-      "updated_by": "F011",
+      "updated_by": "F011 + #202",
       "risk_tier": 3,
       "dependencies": [
         {"target": "second-brain-sync", "type": "optional", "description": "Git sync handles non-vault content; obsidian-sync handles vault notes. Independent but complementary."},
@@ -68,12 +69,42 @@
       ],
       "health_check": {
         "method": "systemd-status",
-        "endpoint": "systemctl --user status obsidian-sync.service",
+        "endpoint": "systemctl status obsidian-sync.service",
         "expected": "active",
         "timeout_seconds": 5
       },
       "config_files": [
-        {"path": "/home/kgale/.config/systemd/user/obsidian-sync.service", "format": "systemd-unit"}
+        {"path": "/etc/systemd/system/obsidian-sync.service", "format": "systemd-unit"}
+      ]
+    },
+    {
+      "name": "obsidian-sync-heartbeat",
+      "type": "cron",
+      "schedule": "*/30 * * * *",
+      "schedule_note": "Every 30 minutes",
+      "script": "/home/claude/kg-automation/scripts/obsidian/sync-heartbeat.py",
+      "exec_start": "cd /home/claude/kg-automation && python3 scripts/obsidian/sync-heartbeat.py >> /tmp/sync-heartbeat.log 2>&1",
+      "host": "office2",
+      "cron_user": "claude",
+      "log_path": "/tmp/sync-heartbeat.log",
+      "deployed_by": "#158",
+      "deployed_on": "2026-04-13",
+      "updated_by": "#203",
+      "status": "active",
+      "purpose": "Heartbeat monitor for the Obsidian sync pipeline; writes a probe file to the vault every 30 minutes and verifies propagation. Sends a WhatsApp alert after N consecutive propagation failures.",
+      "risk_tier": 3,
+      "dependencies": [
+        {"target": "obsidian-sync", "type": "monitors", "description": "Detects when obsidian-sync has stopped propagating vault changes"},
+        {"target": "openclaw-gateway:18789", "type": "optional", "description": "WhatsApp alert path on consecutive heartbeat failures (alert is best-effort)"}
+      ],
+      "health_check": {
+        "method": "log-tail",
+        "endpoint": "tail -5 /tmp/sync-heartbeat.log",
+        "expected": "recent heartbeat write/check entries within the last 30 minutes",
+        "timeout_seconds": 5
+      },
+      "config_files": [
+        {"path": "/home/claude/kg-automation/scripts/obsidian/sync-heartbeat.py", "format": "python", "source_in_repo": "scripts/obsidian/sync-heartbeat.py"}
       ]
     },
     {
