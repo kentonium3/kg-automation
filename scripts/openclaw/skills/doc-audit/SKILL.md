@@ -12,7 +12,7 @@ description: >-
   create the audit issues in the first place. Approval at Level 1 is
   via GitHub issue labels (v1.2.0+); the previous WhatsApp flow was
   replaced — see #207.
-version: 1.3.0
+version: 1.4.0
 ---
 
 # Doc-Audit Skill
@@ -461,6 +461,57 @@ versions gated debt-only audits behind a WhatsApp reply; v1.2.0 drops
 this gate because debt issues are tracked-work artifacts, not
 mutations, and are individually reviewable / closeable post-hoc.
 
+## 8.7 Lock Lifecycle
+
+Every audit is protected by a `status:in-progress` GitHub label on the
+audit issue. This is the concurrency control (R-009) — multiple cron
+ticks must not double-process the same audit.
+
+### Acquire
+
+At the start of every audit run, after § 3 issue selection:
+
+```bash
+gh issue edit <#> --repo kentonium3/kg-automation \
+  --add-label "status:in-progress"
+```
+
+Failure modes: see § 9 (rate-limit retry, etc.).
+
+### Persist
+
+At Level 1, when an audit produces edit proposals, the lock spans
+multiple cron ticks: acquired on the audit-run tick, persists across
+the wait for Kent's decision label, and is released alongside issue
+closure on the post-decision tick (per § 8.6).
+
+For empty audits and debt-only audits the lock is acquired and
+released in the same tick.
+
+### Release
+
+On any exit path — success, failure, or skip:
+
+```bash
+gh issue edit <#> --repo kentonium3/kg-automation \
+  --remove-label "status:in-progress"
+```
+
+Use a try/finally pattern. If release fails (transient API error):
+retry with exponential backoff (30s, 60s, 120s). Still failing → log
+and exit. Next tick sees the stale lock per the rule below.
+
+### Stale-lock detection
+
+If § 3 selection encounters an audit issue with `status:in-progress`:
+
+- **Has a referenced pending-approval issue with no decision label** →
+  not stale; this is the expected Level 1 wait state. Skip this audit
+  and continue to the next selection candidate.
+- **No referenced pending-approval issue** → prior tick crashed
+  mid-processing. Do NOT silently resume. Skip the audit; manual
+  cleanup is documented in `docs/runbooks/doc-auditor-ops.md`.
+
 ## 9. Error Handling
 
 | Failure mode | Response |
@@ -469,9 +520,11 @@ mutations, and are individually reviewable / closeable post-hoc.
 | `git push` fails (rebase needed) | `git pull --rebase origin main`. If clean, retry push. If the rebase produces conflicts, abort the commit (`git rebase --abort`), demote ALL proposals from this audit to debt issues, record the conflict in the summary's "Items requiring human review". Never resolve conflicts manually — that is judgment work. |
 | GitHub API rate limit (HTTP 403 with rate-limit headers) | Exponential backoff: 30s, 60s, 120s. After 3 failed retries, leave the audit at `status:in-progress` and exit; the next cron tick (60 min) retries. |
 | `gh issue create` fails (Level 1 pending-approval filing) | Do NOT commit. Leave the audit at `status:in-progress`. Log the failure to the activity log including the proposed-edits block. Next cron tick retries. Recovery is via the runbook. |
+| `gh` decision-label query/apply fails (§ 8.6) | Log; skip that pending-approval issue this tick; continue to § 3 selection. Next tick retries. Originating audit lock is unaffected. |
 | Domain map missing / unreadable | **Critical.** Post a comment on the audit issue stating the map could not be read, and that the map is the scope contract (C-005). Do not mutate anything else. Release the lock. |
 | Skill missing / unreadable | Same handling as domain map missing. Post a comment, do not proceed, release the lock. |
 | Stale lock detected (own label from prior crashed tick) | Do NOT silently resume. Skip this audit; the runbook documents manual cleanup. |
+| Any unexpected exception | Catch broadly, log class + message, release the lock, exit cleanly. Next tick is the retry. Do NOT attempt creative recovery. |
 
 ## 10. Output Contracts
 

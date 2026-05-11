@@ -408,97 +408,42 @@ may read but not modify.
 
 ---
 
-## 10. Lock release
+## 10. Runtime procedures
 
-After closure (or on any error termination path):
-
-```bash
-gh issue edit <#> --repo kentonium3/kg-automation \
-  --remove-label "status:in-progress"
-```
-
-Use a try/finally pattern. At Level 1 with edit-bearing audits, the
-lock spans cron ticks: acquired in § 5, persists across § 7.10 and
-however many ticks pass before Kent decides, released in § 7.11
-alongside issue closure.
-
-If release fails (transient API error): retry with exponential backoff
-up to 3 times. Still failing → log and exit. Next tick sees the stale
-lock per § 12; runbook documents manual cleanup.
+Lock lifecycle (acquire / persist / release / stale-lock detection)
+and all per-failure-mode error responses are specified in
+`~/.openclaw/skills/doc-audit/SKILL.md` § 8.7 and § 9. The skill is
+loaded once per audit per § 6 — those sections are the authoritative
+reference.
 
 ---
 
-## 11. Error handling
+## 11. Promotion behavior
 
-| Failure mode | Response |
-|---|---|
-| Doc unreadable / locked / missing | Log to summary's "Items requiring human review"; skip this doc; continue. **Never abort** (NFR-003). |
-| `git push` fails (rebase needed) | `git pull --rebase origin main`. Clean: retry push. Conflicts: `git rebase --abort`, demote ALL proposals to debt issues, record in summary. Never resolve conflicts manually. |
-| GitHub API rate limit (403 + rate-limit headers) | Backoff 30s, 60s, 120s. After 3 retries, leave at `status:in-progress` and exit. Next 60-min tick retries. Do NOT release lock. |
-| `gh issue create` fails (pending-approval filing) | Do NOT commit. Leave at `status:in-progress`. Log the failure with the proposed-edits block. Next tick retries. |
-| `gh` decision-label query/apply fails (§ 3) | Log; skip that pending-approval issue this tick; continue to § 4. Next tick retries. Originating audit lock unaffected. |
-| Domain map missing / unreadable | **Critical (C-005).** Post a comment stating the map is the scope contract and could not be read. Do not mutate. Release lock. |
-| Skill missing / unreadable | Same as domain map missing — comment, halt, release lock. |
-| Stale lock detected (own label from prior crash) | Do NOT silently resume. Skip; runbook documents manual cleanup. |
-| Conflicting human edit between approve and push | Rebase catches it — see "git push fails" above. |
-| Any unexpected exception | Catch broadly, log class + message, release lock, exit cleanly. Next tick is the retry. Do NOT attempt creative recovery. |
+This agent deploys at **Assisted (Level 1)**. Promotion to **Supervised
+(Level 2)** is Kent's decision per C-001, after governance review.
 
----
-
-## 12. Stale-lock detection
-
-If a cron tick's § 4 selection encounters an issue with `status:in-progress`
-applied AND no pending-approval issue references it, the prior tick
-crashed mid-processing. Skip the audit; the runbook
-(`docs/runbooks/doc-auditor-ops.md`) documents the manual cleanup
-procedure.
-
-If the issue has `status:in-progress` AND a referenced pending-approval
-issue exists with no decision label, this is **not stale** — it is the
-expected Level 1 wait state. Skip it (Kent hasn't decided yet) and
-continue to the next selection candidate.
-
----
-
-## 13. Promotion behavior
-
-This agent deploys at **Assisted (Level 1)**. After ~1 week of clean
-operation, governance review may promote to **Supervised (Level 2)**.
-Promotion is Kent's decision, not the agent's (C-001).
-
-### 13.1 How to detect current level
-
-Read `docs/constitution/agent-registry.json` once per audit run; cache
-for the audit's duration only.
+Read `docs/constitution/agent-registry.json` once per audit run to
+determine the current level:
 
 ```bash
 jq '.agents[] | select(.name == "felix-doc-auditor") | .autonomy_level' \
   docs/constitution/agent-registry.json
 ```
 
-### 13.2 Behavior at Level 2 (Supervised)
+**At Level 2**: skip § 7.10 (no pending-approval issue, no wait); commit
+edits directly per § 7.12 in the same tick. § 7.8 debt filing, § 8
+summary, § 9 logging, and SKILL.md § 8.7 / § 9 are unchanged.
 
-- Skip § 7.10 — no pending-approval issue, no wait. Commit directly
-  per § 7.12 in the same tick.
-- No new `audit-pending-approval` issues are filed. (Pre-existing ones
-  from the Level 1 era are still processed via § 3 / § 7.11 if a
-  decision label is applied.)
-- Omit "Decision applied" / "Pending-approval issue filed" from the
-  activity log.
-- § 7.8 debt filing, § 8 summary/closure, § 9 logging, § 10 release,
-  § 11 errors — unchanged.
-
-### 13.3 Promotion mid-audit
-
-If governance promotes Level 1 → Level 2 while an audit is in flight,
-finish the in-flight audit at the level it started with. The next
-audit picks up the new level (the registry is re-read each audit).
+**Promotion mid-audit**: finish the in-flight audit at the level it
+started with. The next audit picks up the new level (the registry is
+re-read each audit).
 
 ---
 
-## 14. Cross-references
+## 12. Cross-references
 
-- TOOLS.md, SOUL.md, USER.md (sibling workspace files)
-- `~/.openclaw/skills/doc-audit/SKILL.md` (the audit logic source-of-truth)
-- `kitty-specs/felix-doc-auditor-agent-01KR7JK9/contracts/` — `audit-pending-approval-issue.template.md`, `audit-summary-comment.template.md`, `commit-message.template.md`
-- `docs/runbooks/doc-auditor-ops.md` (operator runbook)
+- Sibling workspace files: TOOLS.md, SOUL.md, USER.md, IDENTITY.md
+- Audit logic source-of-truth: `~/.openclaw/skills/doc-audit/SKILL.md`
+- Issue / commit contracts: `kitty-specs/felix-doc-auditor-agent-01KR7JK9/contracts/`
+- Operator runbook: `docs/runbooks/doc-auditor-ops.md`
