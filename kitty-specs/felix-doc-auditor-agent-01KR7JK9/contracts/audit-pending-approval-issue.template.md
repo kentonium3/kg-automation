@@ -26,6 +26,24 @@ Examples:
 - (Do NOT apply `P2-debt` to this issue; this is not a tracked-work
   artifact, it's an active gate.)
 
+### 🛑 Labels the agent NEVER applies (absolute rule)
+
+The agent **never** applies any of these labels — not at creation,
+not later, not "to be helpful":
+
+- `audit-approve`
+- `audit-reject`
+- `audit-skip`
+
+These three labels are reserved for Kent (or any other authorized
+human reviewer). They represent the human's gating decision. An
+agent that applies them to its own pending-approval issue has
+bypassed the Level-1 autonomy boundary — a critical gate violation.
+SKILL.md § 8.5 enforces this rule absolutely; SKILL.md § 8.6
+provides a runtime actor-verification check that aborts processing
+if a decision label was self-applied. See issue #215 for the
+2026-05-10 incident that surfaced this constraint.
+
 ## Body template
 
 ```markdown

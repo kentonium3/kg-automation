@@ -153,18 +153,13 @@ The first action after lock acquisition is to load the doc-audit skill:
 cat ~/.openclaw/skills/doc-audit/SKILL.md
 ```
 
-The skill is the source of truth for:
+The skill is the source of truth for: confidence threshold (§ 4),
+comparison rules (§ 5), missing-artifact detection (§ 6), commit
+format (§ 7), approval-gate semantics (§ 8.5), cron-tick decision
+processing (§ 8.6), and error handling (§ 9).
 
-- High-confidence vs judgment threshold (Section 4)
-- Comparison rules (Section 5)
-- Missing-artifact detection (Section 6)
-- Commit message format (Section 7)
-- Approval-gate semantics (Section 8.5) and cron-tick decision processing
-  (Section 8.6)
-- Per-failure-mode error handling (Section 9)
-
-If the skill is missing or unreadable: halt, post a comment on the audit
-issue, release the lock per § 10. Do not proceed from memory.
+If the skill is missing or unreadable: halt, post a comment on the
+audit issue, release the lock per § 10. Do not proceed from memory.
 
 ---
 
@@ -290,6 +285,13 @@ the originating audit and the issues filed in § 7.8, and includes the
 decision-label instructions. Do NOT apply `P2-debt` — this is an
 active gate, not tracked work.
 
+**🛑 ABSOLUTE RULE (SKILL.md § 8.5):** Never apply `audit-approve`,
+`audit-reject`, or `audit-skip`. Ever. Not at creation, not later.
+These three labels are Kent's — the Level-1 gate's whole purpose is
+that the agent doesn't self-authorize. Self-applying any of them is
+a gate violation; § 7.11 has a runtime check that aborts the run
+when detected (see #215 for the 2026-05-10 incident).
+
 Then comment on the originating audit:
 
 ```bash
@@ -305,8 +307,17 @@ approval at #<new>", then return.
 
 ### 7.11 Cron-tick decision application (invoked from § 3)
 
-When § 3 finds a pending-approval issue with a decision label, apply
-per this table (also SKILL.md § 8.5):
+When § 3 finds a pending-approval issue with a decision label:
+
+**FIRST run the actor-verification check per SKILL.md § 8.6** (resolve
+`SELF_LOGIN` via `gh api user --jq .login`, then check the actor of
+the decision-labeled event in the issue's timeline). If the actor is
+your own bot identity, that's a GATE VIOLATION — do NOT apply the
+decision; remove the offending label; log an `error` entry; exit the
+cron tick for human investigation. Full procedure in SKILL.md § 8.6.
+
+**Only after the actor check passes** (actor is a human, not the bot),
+apply per this table (also SKILL.md § 8.5):
 
 | Label | Action |
 |---|---|
@@ -314,38 +325,16 @@ per this table (also SKILL.md § 8.5):
 | `audit-reject` | Do NOT commit. Demote each proposed edit to its own `docs-debt` issue (preserve before/after as evidence). Post summary noting rejection; close BOTH issues; release lock. |
 | `audit-skip` | Close BOTH issues with a skip note. No commit, no demotion. Release lock. |
 
-**No timeout.** Pending-approval issues stay open until Kent decides.
-If multiple decision labels are applied, post a clarifying comment and
-do nothing else this tick (§ 3.2).
+Iteration over multiple pending-approvals is handled in § 3; the
+multiple-labels and no-decision-label cases are also handled there.
 
 ### 7.12 Commit (on `audit-approve` or at Level 2+)
 
-1. Make the file changes locally on the worktree's main branch.
-2. Stage:
-   ```bash
-   git add <doc-path-1> <doc-path-2> ...
-   ```
-3. Commit using `contracts/commit-message.template.md`:
-   ```
-   chore(doc-audit): <one-line summary> (audit: #<N>)
-
-   - <doc-relative-path>: <one-line change description>
-
-   Refs #<audit-issue-number>.
-
-   Co-Authored-By: felix-doc-auditor <noreply@kg-automation.local>
-   ```
-4. Rebase against latest main:
-   ```bash
-   git pull --rebase origin main
-   ```
-   On conflict: per § 11, abort, demote ALL proposals to debt issues,
-   record in summary.
-5. Push:
-   ```bash
-   git push origin main
-   ```
-6. Capture commit short SHA (7 chars) for the summary.
+1. Make the file changes locally on main.
+2. `git add <doc-paths>` — stage exactly the audit's edits.
+3. Commit with the format in `contracts/commit-message.template.md` (subject `chore(doc-audit): <summary> (audit: #<N>)`, body bullets per edit, footer `Refs #<N>.` + `Co-Authored-By:`).
+4. `git pull --rebase origin main` — on conflict, per § 11, abort and demote ALL proposals to debt issues.
+5. `git push origin main`. Capture the 7-char SHA for the audit summary.
 
 **Atomicity**: ONE commit per audit issue (FR-002). Multiple approved
 edits go in a single commit.
@@ -393,8 +382,8 @@ Per NFR-008, append one section per audit run to:
 /home/kgale/second-brain/agents/logs/doc-auditor-YYYY-MM-DD.md
 ```
 
-Use ET for the date in the filename (`TZ=America/New_York date +%F`).
-Section format:
+Use ET for the filename date (`TZ=America/New_York date +%F`). Section
+format:
 
 ```markdown
 ## Audit run — <ISO timestamp with ET offset>
@@ -414,9 +403,8 @@ Section format:
 
 Use `TZ=America/New_York date +%FT%T%z` for the timestamp.
 
-**Privacy**: this log path is under `agents/logs/` — outside the C-003
-privacy boundary (which excludes only `notes/04-Growth/_private/`).
-Other agents may read but not modify.
+**Privacy**: log path is outside the C-003 boundary. Other agents
+may read but not modify.
 
 ---
 
@@ -510,15 +498,7 @@ audit picks up the new level (the registry is re-read each audit).
 
 ## 14. Cross-references
 
-- TOOLS.md — GitHub label concurrency, system-state sources, disallowed paths
-- SOUL.md — privacy boundaries, voice for summaries and pending-approval body
-- USER.md — Level 1 vs Level 2 from Kent's perspective
-- `~/.openclaw/skills/doc-audit/SKILL.md` — confidence thresholds (§ 4),
-  comparison rules (§ 5), approval gate (§ 8.5), cron-tick decision
-  processing (§ 8.6), error handling (§ 9), output contracts (§ 10)
-- `kitty-specs/felix-doc-auditor-agent-01KR7JK9/contracts/audit-pending-approval-issue.template.md`
-  — pending-approval issue body
-- `contracts/audit-summary-comment.template.md` — summary comment format
-- `contracts/commit-message.template.md` — commit message format
-- `docs/runbooks/doc-auditor-ops.md` — operator runbook (manual triggers,
-  stale-lock cleanup, troubleshooting)
+- TOOLS.md, SOUL.md, USER.md (sibling workspace files)
+- `~/.openclaw/skills/doc-audit/SKILL.md` (the audit logic source-of-truth)
+- `kitty-specs/felix-doc-auditor-agent-01KR7JK9/contracts/` — `audit-pending-approval-issue.template.md`, `audit-summary-comment.template.md`, `commit-message.template.md`
+- `docs/runbooks/doc-auditor-ops.md` (operator runbook)

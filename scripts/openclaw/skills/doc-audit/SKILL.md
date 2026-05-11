@@ -12,7 +12,7 @@ description: >-
   create the audit issues in the first place. Approval at Level 1 is
   via GitHub issue labels (v1.2.0+); the previous WhatsApp flow was
   replaced — see #207.
-version: 1.2.0
+version: 1.3.0
 ---
 
 # Doc-Audit Skill
@@ -329,6 +329,32 @@ before/after diff blocks. **Only file mutations are gated** — debt
 issues and missing-artifact issues are filed autonomously in workflow
 step 7, regardless of approval state.
 
+#### 🛑 ABSOLUTE RULE — labels the agent NEVER applies
+
+When filing a pending-approval issue, the agent applies **only**:
+
+- `audit-pending-approval` (the discoverability marker)
+- The matching `area/*` label(s), copied from the originating audit
+
+The agent **NEVER, under any circumstance**, applies any of the
+following labels:
+
+- `audit-approve`
+- `audit-reject`
+- `audit-skip`
+
+These three labels are **reserved for Kent** (or any other authorized
+human reviewer). They represent the human's gating decision. An agent
+that applies them to its own pending-approval issue has bypassed the
+Level-1 autonomy boundary — a critical gate violation. Refuse to
+apply any of these three labels in ANY of the agent's GitHub
+operations, including (and especially) at issue-creation time and
+during the cron-tick decision processing (Section 8.6).
+
+If the agent encounters a pending-approval issue it filed that lacks a
+decision label, it MUST exit its turn and wait for the next cron tick.
+The agent does NOT self-approve to "be helpful."
+
 Kent decides asynchronously by applying ONE of three labels to the
 pending-approval issue. The agent picks up the decision on its next
 cron tick (Section 8.6).
@@ -367,13 +393,56 @@ gh issue list --repo kentonium3/kg-automation \
 For each result, examine its labels:
 
 - If a decision label (`audit-approve`, `audit-reject`, `audit-skip`)
-  is present → apply that decision per the table in Section 8.5
+  is present → **perform the actor-verification check below**, then
+  apply that decision per the table in Section 8.5
 - If no decision label → leave alone; Kent hasn't decided yet
 - If multiple decision labels → treat as ambiguous, post a clarifying
   comment, do nothing else
 
+#### 🛡 Actor-verification check (defense in depth)
+
+Before applying any decision label, the agent MUST verify the label
+was applied by a human, not by the agent's own GitHub identity:
+
+```bash
+# 1. Resolve the agent's own GitHub identity (the bot account)
+SELF_LOGIN=$(gh api user --jq .login)
+
+# 2. Query the issue timeline for the labeled event
+gh api repos/kentonium3/kg-automation/issues/<N>/timeline \
+  --jq '.[] | select(.event == "labeled" and (.label.name == "audit-approve" or .label.name == "audit-reject" or .label.name == "audit-skip")) | {label: .label.name, actor: .actor.login, at: .created_at}'
+
+# 3. Inspect the actor of the decision label
+```
+
+**If `actor.login == SELF_LOGIN`** for the decision-labeled event:
+this is a **GATE VIOLATION** — the agent applied the decision to its
+own issue. The agent MUST:
+
+- NOT process the decision (no commit, no demotion, no close)
+- Post a comment on the pending-approval issue explaining the
+  detected gate violation (cite this section)
+- Remove the offending decision label (`gh issue edit <N> --remove-label <decision-label>`)
+- Log the violation to the activity log as an `error`-severity entry
+  with full context (pending-approval issue #, originating audit #,
+  decision label that was self-applied, timestamps)
+- Exit the cron tick. Do NOT proceed to new-audit scanning. The next
+  tick may proceed normally after the human investigates.
+
+**If `actor.login != SELF_LOGIN`**: proceed with applying the decision
+per Section 8.5.
+
 Apply each decision in order (oldest pending-approval first), then
 proceed to the new-audit scan.
+
+**Why this check exists**: the agent and Kent may share infrastructure
+identity in some configurations (e.g., shared `gh` auth tokens). The
+actor check on the labeled event is a code-level verification that
+the gate was crossed by a human, not by the agent acting on itself.
+Combined with the absolute rule in Section 8.5 (agent never applies
+decision labels), this is two-layer defense against the
+self-approval class of bug exposed by audit #169 / pending-approval
+#213 on 2026-05-10 (see issue #215).
 
 **Race condition note**: if Kent applies a decision label while the
 agent is mid-tick processing a different audit, the next tick picks it
