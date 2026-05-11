@@ -20,6 +20,8 @@ subtasks:
 - T018
 - T019
 - T020
+agent: "claude"
+shell_pid: "23039"
 history:
 - event: created
   at: '2026-05-11T21:43:38Z'
@@ -237,3 +239,7 @@ Implement title generation, body templating, dedup-via-search, and issue creatio
 ```bash
 spec-kitty agent action implement WP04 --agent <name>
 ```
+
+## Activity Log
+
+- 2026-05-11T22:03:51Z – claude – shell_pid=23039 – Started implementation via action command
