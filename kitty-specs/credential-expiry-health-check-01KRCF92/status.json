@@ -1,0 +1,77 @@
+{
+  "event_count": 8,
+  "last_event_id": "01KRCGDZBCNNEPSG83VFBSKQR1",
+  "materialized_at": "2026-05-11T21:52:29.036616+00:00",
+  "mission_number": "",
+  "mission_slug": "credential-expiry-health-check-01KRCF92",
+  "mission_type": "software-dev",
+  "summary": {
+    "approved": 0,
+    "blocked": 0,
+    "canceled": 0,
+    "claimed": 0,
+    "done": 0,
+    "for_review": 0,
+    "in_progress": 0,
+    "in_review": 0,
+    "planned": 8
+  },
+  "work_packages": {
+    "WP01": {
+      "actor": "finalize-tasks",
+      "force_count": 1,
+      "lane": "planned",
+      "last_event_id": "01KRCGDZ2MGEXR5RHKVPGC5X5K",
+      "last_transition_at": "2026-05-11T21:52:28.756461+00:00"
+    },
+    "WP02": {
+      "actor": "finalize-tasks",
+      "force_count": 1,
+      "lane": "planned",
+      "last_event_id": "01KRCGDZA7EJEKV282ET596P44",
+      "last_transition_at": "2026-05-11T21:52:28.999222+00:00"
+    },
+    "WP03": {
+      "actor": "finalize-tasks",
+      "force_count": 1,
+      "lane": "planned",
+      "last_event_id": "01KRCGDZACZRQWNNFXT1GHZJW2",
+      "last_transition_at": "2026-05-11T21:52:29.004029+00:00"
+    },
+    "WP04": {
+      "actor": "finalize-tasks",
+      "force_count": 1,
+      "lane": "planned",
+      "last_event_id": "01KRCGDZAM5ZZ31RA2Q8FS2JKY",
+      "last_transition_at": "2026-05-11T21:52:29.012196+00:00"
+    },
+    "WP05": {
+      "actor": "finalize-tasks",
+      "force_count": 1,
+      "lane": "planned",
+      "last_event_id": "01KRCGDZAVYCX8YB0ZNTVXHPPG",
+      "last_transition_at": "2026-05-11T21:52:29.019333+00:00"
+    },
+    "WP06": {
+      "actor": "finalize-tasks",
+      "force_count": 1,
+      "lane": "planned",
+      "last_event_id": "01KRCGDZB19V4KG7DDMNNY7ET4",
+      "last_transition_at": "2026-05-11T21:52:29.025743+00:00"
+    },
+    "WP07": {
+      "actor": "finalize-tasks",
+      "force_count": 1,
+      "lane": "planned",
+      "last_event_id": "01KRCGDZB78X51K1XEC4N7A227",
+      "last_transition_at": "2026-05-11T21:52:29.031078+00:00"
+    },
+    "WP08": {
+      "actor": "finalize-tasks",
+      "force_count": 1,
+      "lane": "planned",
+      "last_event_id": "01KRCGDZBCNNEPSG83VFBSKQR1",
+      "last_transition_at": "2026-05-11T21:52:29.036616+00:00"
+    }
+  }
+}

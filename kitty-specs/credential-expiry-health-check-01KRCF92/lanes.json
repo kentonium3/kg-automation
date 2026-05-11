@@ -1,0 +1,110 @@
+{
+  "version": 1,
+  "mission_slug": "credential-expiry-health-check-01KRCF92",
+  "mission_id": "01KRCF92Z12FNBQGY09A51J23M",
+  "mission_branch": "kitty/mission-credential-expiry-health-check-01KRCF92",
+  "target_branch": "main",
+  "lanes": [
+    {
+      "lane_id": "lane-a",
+      "wp_ids": [
+        "WP01",
+        "WP02",
+        "WP03",
+        "WP04",
+        "WP05",
+        "WP06",
+        "WP07",
+        "WP08"
+      ],
+      "write_scope": [
+        "docs/design/architecture/credentials-and-secrets.md",
+        "docs/design/architecture/data/credential-manifest.json",
+        "docs/design/architecture/data/service-inventory.json",
+        "docs/design/architecture/service-inventory.md",
+        "kitty-specs/credential-expiry-health-check-01KRCF92/research.md",
+        "scripts/office2/credential-health-check.service",
+        "scripts/office2/credential-health-check.timer",
+        "scripts/office2/deploy/credential-health-check.sh",
+        "scripts/security/credential_health_check/__init__.py",
+        "scripts/security/credential_health_check/__main__.py",
+        "scripts/security/credential_health_check/cadence.py",
+        "scripts/security/credential_health_check/github_writer.py",
+        "scripts/security/credential_health_check/manifest.py",
+        "scripts/security/credential_health_check/orchestrator.py",
+        "scripts/security/credential_health_check/signals.py",
+        "scripts/security/credential_health_check/vikunja_writer.py",
+        "tests/security/fixtures/**",
+        "tests/security/test_cadence.py",
+        "tests/security/test_github_writer.py",
+        "tests/security/test_manifest.py",
+        "tests/security/test_orchestrator.py",
+        "tests/security/test_tailscale_signal.py",
+        "tests/security/test_vikunja_writer.py",
+        "tests/security/test_whatsapp_signal.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "app-shell",
+        "artifact-rendering",
+        "tracker-integration"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    }
+  ],
+  "computed_at": "2026-05-11T21:52:29.048318+00:00",
+  "computed_from": "dependency_graph+ownership",
+  "planning_artifact_wps": [],
+  "collapse_report": {
+    "events": [
+      {
+        "wp_a": "WP02",
+        "wp_b": "WP01",
+        "rule": "dependency",
+        "evidence": "WP02 depends on WP01"
+      },
+      {
+        "wp_a": "WP03",
+        "wp_b": "WP01",
+        "rule": "dependency",
+        "evidence": "WP03 depends on WP01"
+      },
+      {
+        "wp_a": "WP04",
+        "wp_b": "WP02",
+        "rule": "dependency",
+        "evidence": "WP04 depends on WP02"
+      },
+      {
+        "wp_a": "WP05",
+        "wp_b": "WP02",
+        "rule": "dependency",
+        "evidence": "WP05 depends on WP02"
+      },
+      {
+        "wp_a": "WP06",
+        "wp_b": "WP02",
+        "rule": "dependency",
+        "evidence": "WP06 depends on WP02"
+      },
+      {
+        "wp_a": "WP07",
+        "wp_b": "WP06",
+        "rule": "dependency",
+        "evidence": "WP07 depends on WP06"
+      },
+      {
+        "wp_a": "WP08",
+        "wp_b": "WP07",
+        "rule": "dependency",
+        "evidence": "WP08 depends on WP07"
+      }
+    ],
+    "total_merges": 7,
+    "independent_wps_collapsed": 0,
+    "by_rule": {
+      "dependency": 7
+    }
+  }
+}
