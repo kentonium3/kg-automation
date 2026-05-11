@@ -16,7 +16,8 @@ subtasks:
 - T003
 - T004
 - T005
-shell_pid: '20255'
+shell_pid: "20255"
+agent: "claude"
 history:
 - event: created
   at: '2026-05-11T21:43:38Z'
@@ -215,3 +216,7 @@ Each fixture should include a top-level `_fixture_note` (where syntactically val
 ```bash
 spec-kitty agent action implement WP01 --agent <name>
 ```
+
+## Activity Log
+
+- 2026-05-11T21:53:31Z – claude – shell_pid=20255 – Assigned agent via action command
