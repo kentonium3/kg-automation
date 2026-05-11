@@ -21,7 +21,7 @@ subtasks:
 - T019
 - T020
 agent: "claude"
-shell_pid: "23039"
+shell_pid: "23320"
 history:
 - event: created
   at: '2026-05-11T21:43:38Z'
@@ -244,3 +244,4 @@ spec-kitty agent action implement WP04 --agent <name>
 
 - 2026-05-11T22:03:51Z – claude – shell_pid=23039 – Started implementation via action command
 - 2026-05-11T22:05:20Z – claude – shell_pid=23039 – 21/21 WP04 tests pass; 80/80 cumulative. Dedup filter for fuzzy in:title search covered.
+- 2026-05-11T22:05:24Z – claude – shell_pid=23320 – Started review via action command
