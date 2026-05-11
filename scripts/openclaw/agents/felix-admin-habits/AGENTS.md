@@ -150,6 +150,16 @@ Rules:
 - If all habits are already complete, say "All habits complete for today."
 - Total message must be 10 lines or fewer
 
+### Step 6: Output — check-in text only
+
+Your final response must be **only** the check-in message text — nothing
+else. No operational summary, no run notes, no "delivery target" block,
+no markdown headers, no agent commentary.
+
+The cron system delivers your entire response verbatim to Kent via
+WhatsApp. Every word you write after the check-in message will be sent
+to him. Do not append summaries, debugging notes, or delivery instructions.
+
 ---
 
 ## Completion marking
