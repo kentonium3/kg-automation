@@ -3,7 +3,8 @@ title: Doc Auditor Operations Runbook
 doc_type: runbook
 audience: agents_and_humans
 status: draft
-last_updated: '2026-05-09'
+last_updated: '2026-05-11'
+updated_by: '#226'
 ---
 
 # Doc Auditor Operations Runbook
@@ -38,9 +39,21 @@ files structured `docs-debt` issues, and closes the originating audit issue.
 
 - Agent workspace: [`scripts/openclaw/agents/felix-doc-auditor/`](../../scripts/openclaw/agents/felix-doc-auditor/)
 - Skill: [`scripts/openclaw/skills/doc-audit/`](../../scripts/openclaw/skills/doc-audit/)
-- Governance entry: [`docs/constitution/AGENT-REGISTRY.md`](../constitution/AGENT-REGISTRY.md), [`docs/constitution/agent-registry.json`](../constitution/agent-registry.json)
-- Service-inventory entry: [`docs/design/architecture/data/service-inventory.json`](../design/architecture/data/service-inventory.json), [`docs/design/architecture/service-inventory.md`](../design/architecture/service-inventory.md)
-- Domain map (scope contract): [`docs/design/architecture/data/doc-domain-map.json`](../design/architecture/data/doc-domain-map.json)
+- Governance entry: [`docs/constitution/AGENT-REGISTRY.md`](<../constitution/AGENT-REGISTRY.md>), [`docs/constitution/agent-registry.json`](<../constitution/agent-registry.json>)
+- Service-inventory entry: [`docs/design/architecture/data/service-inventory.json`](<../design/architecture/data/service-inventory.json>), [`docs/design/architecture/service-inventory.md`](<../design/architecture/service-inventory.md>)
+- Domain map (scope contract): [`docs/design/architecture/data/doc-domain-map.json`](<../design/architecture/data/doc-domain-map.json>)
+
+### GitHub Operating Identity
+
+The agent acts on GitHub as `kg-felix-bot` — a dedicated service-account collaborator, distinct from Kent's personal `kentonium3` account. This separation is load-bearing: the §8.6 actor-verification check in [AGENTS.md](<../../scripts/openclaw/agents/felix-doc-auditor/AGENTS.md>) confirms that an `audit-approve` / `audit-reject` / `audit-skip` label was applied by a human, not by the agent itself.
+
+| Surface | Appears as |
+|---|---|
+| Git commit author | `kg-felix-bot <283481604+kg-felix-bot@users.noreply.github.com>` |
+| `gh` CLI actions (labels, comments, issue creation) | `kg-felix-bot` in GitHub timeline events |
+| Credential | classic PAT at `/home/claude/.config/gh/hosts.yml` on office2 — see [`kg-felix-bot-pat`](<../design/architecture/data/credential-manifest.json>) in credential-manifest.json |
+
+Canonical identity record: [`AGENT-REGISTRY.md` §Service Accounts](<../constitution/AGENT-REGISTRY.md#service-accounts>). PAT rotation procedure: see `kg-felix-bot-pat.expiry_notes` in credential-manifest.json.
 
 ## How It Operates
 
@@ -56,7 +69,7 @@ listener. Each cron tick is a complete audit attempt against one issue.
      --search "Doc audit OR Weekly doc audit" --json number,labels,title
    ```
    Filter out any issue carrying the `status:in-progress` label (active or
-   stale lock — see [Stale-Lock Recovery](#stale-lock-recovery)).
+   stale lock — see [Stale-Lock Recovery](<#stale-lock-recovery>)).
 3. **Pick oldest unprocessed issue** (FIFO by creation date).
 4. **Claim it** by applying `status:in-progress` label. This is the
    concurrency control — survives crashes, visible in the GitHub UI, no
@@ -132,7 +145,7 @@ rather than duplicating the steps here.
 ## Adding a Document to the Audit Scope
 
 Audit scope is determined by the domain map at
-[`docs/design/architecture/data/doc-domain-map.json`](../design/architecture/data/doc-domain-map.json).
+[`docs/design/architecture/data/doc-domain-map.json`](<../design/architecture/data/doc-domain-map.json>).
 The map keys are `area/*` label names; the values are arrays of doc paths
 (repo-relative). To bring a new document under audit:
 
@@ -242,7 +255,7 @@ Other OpenClaw agents continue to run.
      `felix-admin-*` agents when paused).
 3. Restart the OpenClaw cron service to pick up the change. The exact
    command depends on whether OpenClaw runs as a system service or a user
-   service — check the [OpenClaw Operations runbook](openclaw-ops.md):
+   service — check the [OpenClaw Operations runbook](<./openclaw-ops.md>):
    ```
    # System service (requires sudo via kgale):
    sudo systemctl restart openclaw-cron
@@ -269,7 +282,7 @@ resolved.
 
 Any audit issue currently carrying `status:in-progress` when the kill
 switch is hit will become a stale lock — clear it per
-[Stale-Lock Recovery](#stale-lock-recovery) before re-enabling.
+[Stale-Lock Recovery](<#stale-lock-recovery>) before re-enabling.
 
 ## Promotion to Supervised (Level 2)
 
@@ -277,7 +290,7 @@ Promotion from Assisted (Level 1) to Supervised (Level 2) is a **separate
 governance decision** Kent makes — the agent never self-promotes
 (constraint C-001). Promotion is expected ~1 week post-deploy after
 evidence review per the
-[Felix Constitution](../constitution/FELIX-CONSTITUTION.md) autonomy
+[Felix Constitution](<../constitution/FELIX-CONSTITUTION.md>) autonomy
 process.
 
 ### Evidence required
@@ -303,11 +316,11 @@ Before promotion, confirm:
 
 Promotion is a metadata flip:
 
-1. Update [`docs/constitution/AGENT-REGISTRY.md`](../constitution/AGENT-REGISTRY.md):
+1. Update [`docs/constitution/AGENT-REGISTRY.md`](<../constitution/AGENT-REGISTRY.md>):
    - Bump the agent's `Current Autonomy Level` to `Supervised (Level 2)`.
    - Append a new row to its `Transition History` table with date,
      direction (`Promotion`), reason, and decided-by.
-2. Update [`docs/constitution/agent-registry.json`](../constitution/agent-registry.json):
+2. Update [`docs/constitution/agent-registry.json`](<../constitution/agent-registry.json>):
    - Set `autonomy_level` to `2`.
    - Append a `transition_history` entry with the same fields.
 3. Commit + push.
@@ -326,21 +339,22 @@ Demotion follows the same flip in reverse.
 | Symptom | Likely cause | Fix |
 |---|---|---|
 | Agent never processes audit issues | Cron entry disabled or OpenClaw cron service stopped | Check `cat /home/claude/.openclaw/openclaw.json | jq '.crons[] | select(.agent == "felix-doc-auditor")'`; restart `openclaw-cron` |
-| Issue stuck at `status:in-progress` for >30 min | Agent crashed mid-run, WhatsApp delivery failed at Level 1, or network blip | [Stale-Lock Recovery](#stale-lock-recovery) — remove the label; next tick will retry |
-| Agent files debt issues for what should be high-confidence types | Skill threshold misconfigured | Review confidence rules in `scripts/openclaw/skills/doc-audit/SKILL.md`; demote/promote categories per [Adjusting the Confidence Threshold](#adjusting-the-confidence-threshold) |
+| Issue stuck at `status:in-progress` for >30 min | Agent crashed mid-run, WhatsApp delivery failed at Level 1, or network blip | [Stale-Lock Recovery](<#stale-lock-recovery>) — remove the label; next tick will retry |
+| Agent files debt issues for what should be high-confidence types | Skill threshold misconfigured | Review confidence rules in `scripts/openclaw/skills/doc-audit/SKILL.md`; demote/promote categories per [Adjusting the Confidence Threshold](<#adjusting-the-confidence-threshold>) |
 | Agent commits an incorrect doc edit | Comparison rules wrong, or system-state source out of date | Revert the commit (`git revert <sha>`); reopen the audit issue (`gh issue reopen <#>`); inspect skill comparison rules; consider lowering autonomy until the rule is fixed |
-| WhatsApp delivery fails | Existing WhatsApp service issue | Per [`docs/runbooks/whatsapp-ops.md`](whatsapp-ops.md). At Level 1 the agent halts (no commits without approval); the audit issue stays open with `status:in-progress` until the lock is manually cleared. |
+| WhatsApp delivery fails | Existing WhatsApp service issue | Per [`docs/runbooks/whatsapp-ops.md`](<./whatsapp-ops.md>). At Level 1 the agent halts (no commits without approval); the audit issue stays open with `status:in-progress` until the lock is manually cleared. |
 | GitHub API rate-limit hit (5000/hr authenticated) | Many audits stacked + many commits/issues per audit | Lower polling cadence in `openclaw.json` (e.g., to every 2 hours); investigate why backlog accumulated |
 | Agent reads a file outside the domain map's scope | Skill or AGENTS.md mistake | Inspect activity log at `/home/kgale/second-brain/agents/logs/doc-auditor-*.md`; tighten `TOOLS.md` disallowed-paths list; redeploy workspace |
 | Doc unreadable mid-audit | File missing, permissions issue, encoding error | Per spec NFR-003 the agent logs the failure, skips the doc, includes it in the audit summary as "could not read", and continues. Manual follow-up via the summary's flagged item. |
 | Weekly audit not created on Sunday | Stale weekly issue blocks creation (pre-FR-008 fix) | Confirm the FR-008 fix is in `.github/workflows/doc-audit-weekly.yml` (search query must include `in:title` and current `${DATE}`). Manually trigger: `gh workflow run doc-audit-weekly.yml`. |
 | Agent makes zero edits over an entire week | Confidence threshold too conservative, or no audit issues with high-confidence findings | Review weekly debt-issue volume — if all gaps are judgment, that's expected. If high-confidence findings are being demoted, see threshold adjustment above. |
+| Commits or issue actions attributed to `kentonium3` instead of `kg-felix-bot` | `gh` auth on office2 fell back to the wrong account, or git committer config drifted | On office2 as the claude user, run `gh api user --jq .login` — it must return `kg-felix-bot`. If not: `gh auth logout --hostname github.com` then `gh auth login --hostname github.com --git-protocol https` with the `kg-felix-bot-pat`. Also verify `git config --get user.email` returns the bot's `noreply` address (see [GitHub Operating Identity](<#github-operating-identity>)). |
 
 ## Security Baseline Reset
 
 After deploying or upgrading `felix-doc-auditor`, the security monitoring
 baselines on office2 should be updated to reflect the new expected state
-(same pattern as the [transcribe-ops Security Baseline Reset](transcribe-ops.md#security-baseline-reset)).
+(same pattern as the [transcribe-ops Security Baseline Reset](<./transcribe-ops.md#security-baseline-reset>)).
 
 ### What changes
 
