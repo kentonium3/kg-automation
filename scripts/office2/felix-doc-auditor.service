@@ -1,0 +1,11 @@
+[Unit]
+Description=felix-doc-auditor — process pending decisions and new audit issues
+After=network-online.target openclaw-gateway.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+TimeoutStartSec=30min
+ExecStart=/usr/bin/openclaw agent --agent felix-doc-auditor --message 'Cron tick. Follow AGENTS.md §3 (cron-tick decision processing) then §4 (new-audit selection). Use the doc-audit skill end-to-end.' --timeout 1500
+Environment=HOME=/home/claude
+WorkingDirectory=/home/claude

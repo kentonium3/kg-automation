@@ -1,0 +1,9 @@
+[Unit]
+Description=felix-doc-auditor — hourly doc-audit processing tick
+
+[Timer]
+OnCalendar=hourly
+Persistent=true
+
+[Install]
+WantedBy=timers.target

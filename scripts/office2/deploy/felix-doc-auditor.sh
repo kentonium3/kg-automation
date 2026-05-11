@@ -51,6 +51,25 @@ else
   exit 1
 fi
 
-echo ">>> Done. Next: register cron entry in openclaw.json (see WP05 / T019),"
-echo "    create the GitHub label (see WP05 / T020),"
-echo "    then run the canary (WP06 / T022)."
+echo ">>> Installing systemd user timer + service"
+SYSTEMD_USER_DIR="${HOME}/.config/systemd/user"
+SYSTEMD_REPO_DIR="${REPO_ROOT}/scripts/office2"
+mkdir -p "${SYSTEMD_USER_DIR}"
+cp "${SYSTEMD_REPO_DIR}/${AGENT_NAME}.timer" "${SYSTEMD_USER_DIR}/${AGENT_NAME}.timer"
+cp "${SYSTEMD_REPO_DIR}/${AGENT_NAME}.service" "${SYSTEMD_USER_DIR}/${AGENT_NAME}.service"
+systemctl --user daemon-reload
+systemctl --user enable --now "${AGENT_NAME}.timer"
+
+echo ">>> Verifying timer is active"
+if systemctl --user is-active --quiet "${AGENT_NAME}.timer"; then
+  NEXT_FIRE=$(systemctl --user list-timers "${AGENT_NAME}.timer" --no-pager 2>/dev/null | awk 'NR==2 {print $1, $2, $3, $4}')
+  echo "    OK: ${AGENT_NAME}.timer active. Next fire: ${NEXT_FIRE}"
+else
+  echo "    ERROR: ${AGENT_NAME}.timer is not active after enable" >&2
+  exit 1
+fi
+
+echo ">>> Done."
+echo "    Manual on first deploy: create the GitHub label (see WP05 / T020)."
+echo "    Tail logs:    journalctl --user -u ${AGENT_NAME} -f"
+echo "    Force a tick: systemctl --user start ${AGENT_NAME}.service"
