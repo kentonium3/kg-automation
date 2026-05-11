@@ -21,7 +21,7 @@ subtasks:
 - T009
 - T010
 agent: "claude"
-shell_pid: "21341"
+shell_pid: "22213"
 history:
 - event: created
   at: '2026-05-11T21:43:38Z'
@@ -278,3 +278,4 @@ spec-kitty agent action implement WP02 --agent <name>
 
 - 2026-05-11T21:57:47Z – claude – shell_pid=21341 – Started implementation via action command
 - 2026-05-11T22:01:11Z – claude – shell_pid=21341 – All 28 tests pass. R-004 research.md revision deferred to a follow-up commit on main per spec-kitty boundaries.
+- 2026-05-11T22:01:21Z – claude – shell_pid=22213 – Started review via action command
