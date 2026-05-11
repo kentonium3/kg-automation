@@ -2,6 +2,8 @@
 title: Identity Model
 doc_type: reference
 status: approved
+last_updated: '2026-05-11'
+updated_by: '#227'
 ---
 
 # Identity Model
@@ -43,3 +45,18 @@ Metal Casework                      (Area)
 ```
 
 Areas are organizational parent projects — convention is to place tasks in subprojects, not directly in Area projects.
+
+## Agent Service Accounts
+
+Felix agents act in GitHub under a dedicated service-account identity (`kg-felix-bot`), distinct from Kent's personal `kentonium3` account. Splitting human and agent identities keeps the GitHub event timeline unambiguously attributable: any commit, issue comment, label change, or PR action performed by an agent is visible as `kg-felix-bot` and cannot be confused with a Kent-driven action. This separation is also load-bearing for the `felix-doc-auditor` Level-1 gate (see [AGENTS.md §8.6](<../../../scripts/openclaw/agents/felix-doc-auditor/AGENTS.md>)), where the agent must verify that an approval label was applied by a human and not by itself.
+
+| Field | Value |
+|---|---|
+| GitHub username | `kg-felix-bot` |
+| Repo role | Collaborator on `kentonium3/kg-automation` |
+| Currently used by | `felix-doc-auditor` |
+| Credential | `kg-felix-bot-pat` — see [`credential-manifest.json`](<./data/credential-manifest.json>) |
+
+Canonical registry: [`AGENT-REGISTRY.md` §Service Accounts](<../../constitution/AGENT-REGISTRY.md#service-accounts>).
+
+Future Felix agents may share `kg-felix-bot` or get their own dedicated service accounts, depending on whether per-agent audit-trail separation becomes useful.

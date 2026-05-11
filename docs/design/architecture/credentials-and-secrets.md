@@ -2,8 +2,8 @@
 title: Credentials and Secrets
 doc_type: reference
 status: approved
-last_updated: '2026-04-06'
-updated_by: maintenance-2026-04-06
+last_updated: '2026-05-11'
+updated_by: '#227'
 ---
 
 # Credentials and Secrets
@@ -60,6 +60,17 @@ These credentials are owned and managed by their respective tools (Restic,
 Tailscale daemon, Vikunja's login endpoint). Neither OpenClaw nor agents
 interact with them directly.
 
+### 5. gh CLI auth store
+
+Used by: `kg-felix-bot-pat`
+
+The GitHub CLI (`gh`) stores authentication tokens in
+`~/.config/gh/hosts.yml` under the `claude` user on office2. Felix agents
+shell out to `gh` and `git push` — both transparently use this token when
+operating as the `kg-felix-bot` service-account identity. See
+[`identity-model.md` §Agent Service Accounts](<./identity-model.md#agent-service-accounts>)
+for the identity model.
+
 ---
 
 ## Storage Mechanism Summary
@@ -85,12 +96,17 @@ graph TD
         VA[vikunja-admin<br/>runtime JWT only]
     end
 
+    subgraph "gh CLI auth store"
+        GH[kg-felix-bot-pat<br/>classic PAT]
+    end
+
     subgraph "Consumers"
         OC[openclaw-gateway]
         SK[OpenClaw skills<br/>vikunja-api, google-calendar]
         BK[backup.sh]
         TS[tailscaled]
         UI[Vikunja web UI<br/>setup_vikunja.py]
+        FA[Felix agents<br/>felix-doc-auditor]
     end
 
     G -->|gog CLI| SK
@@ -100,6 +116,7 @@ graph TD
     R -->|password-file flag| BK
     T -->|daemon-managed| TS
     VA -->|runtime JWT| UI
+    GH -->|gh CLI / git push| FA
 ```
 
 ---
@@ -115,6 +132,7 @@ graph TD
 | `vikunja-api` | API token | Scoped plaintext — `/data/services/openclaw/secrets/vikunja-api` | OpenClaw skills |
 | `whatsapp-session` | session | OpenClaw native (Baileys) | `openclaw-gateway` |
 | `personal-google` | OAuth2 | gog auth store | `gog` CLI via google-calendar skill |
+| `kg-felix-bot-pat` | classic PAT | gh CLI auth store — `/home/claude/.config/gh/hosts.yml` | `felix-doc-auditor` and future Felix agents (git push, `gh` CLI) |
 
 ---
 
