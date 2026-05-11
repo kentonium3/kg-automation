@@ -18,6 +18,8 @@ subtasks:
 - T022
 - T023
 - T024
+agent: "claude"
+shell_pid: "23611"
 history:
 - event: created
   at: '2026-05-11T21:43:38Z'
@@ -230,3 +232,7 @@ Implement the Vikunja-side of the dual-alert path: task creation with `due_date 
 ```bash
 spec-kitty agent action implement WP05 --agent <name>
 ```
+
+## Activity Log
+
+- 2026-05-11T22:05:39Z – claude – shell_pid=23611 – Started implementation via action command
