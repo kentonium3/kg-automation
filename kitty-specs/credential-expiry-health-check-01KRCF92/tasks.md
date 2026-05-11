@@ -17,11 +17,11 @@
 
 | ID | Description | WP | Parallel |
 |---|---|---|---|
-| T001 | Audit `kentonium3` PAT, add `kentonium3-pat` entry to `credential-manifest.json` (FR-013) | WP01 | — |
-| T002 | Capture live manifest snapshot to `tests/security/fixtures/manifest-valid.json` (post-T001) | WP01 | — |
-| T003 | Create `tests/security/fixtures/manifest-near-expiry.json` (one credential inside warning window) | WP01 | [P] |
-| T004 | Create manifest-quality fixtures (missing field, bad cadence, invalid JSON, not-a-dict) | WP01 | [P] |
-| T005 | Capture/synthesize activity signal fixtures (tailscale + openclaw) | WP01 | [P] |
+| T001 | Audit `kentonium3` PAT, add `kentonium3-pat` entry to `credential-manifest.json` (FR-013) | WP01 | — | [D] |
+| T002 | Capture live manifest snapshot to `tests/security/fixtures/manifest-valid.json` (post-T001) | WP01 | — | [D] |
+| T003 | Create `tests/security/fixtures/manifest-near-expiry.json` (one credential inside warning window) | WP01 | [D] |
+| T004 | Create manifest-quality fixtures (missing field, bad cadence, invalid JSON, not-a-dict) | WP01 | [D] |
+| T005 | Capture/synthesize activity signal fixtures (tailscale + openclaw) | WP01 | [D] |
 | T006 | Create package skeleton `scripts/security/credential_health_check/__init__.py` | WP02 | — |
 | T007 | Implement `manifest.py` (Credential, ManifestQualityIssue, read_manifest, ManifestUnreadableError) per `contracts/manifest-reader.md` | WP02 | — |
 | T008 | Implement `cadence.py` (compute_boundary, is_within_warning_window) per `data-model.md` | WP02 | [P] with T007 |
@@ -94,11 +94,11 @@ WP01 (foundation)
 
 **Subtasks**:
 
-- [ ] T001 Audit `kentonium3` PAT, add `kentonium3-pat` entry to `credential-manifest.json` (FR-013) (WP01)
-- [ ] T002 Capture live manifest snapshot to `tests/security/fixtures/manifest-valid.json` (post-T001) (WP01)
-- [ ] T003 Create `tests/security/fixtures/manifest-near-expiry.json` (one credential inside warning window) (WP01)
-- [ ] T004 Create manifest-quality fixtures (missing field, bad cadence, invalid JSON, not-a-dict) (WP01)
-- [ ] T005 Capture/synthesize activity signal fixtures (tailscale + openclaw) (WP01)
+- [x] T001 Audit `kentonium3` PAT, add `kentonium3-pat` entry to `credential-manifest.json` (FR-013) (WP01)
+- [x] T002 Capture live manifest snapshot to `tests/security/fixtures/manifest-valid.json` (post-T001) (WP01)
+- [x] T003 Create `tests/security/fixtures/manifest-near-expiry.json` (one credential inside warning window) (WP01)
+- [x] T004 Create manifest-quality fixtures (missing field, bad cadence, invalid JSON, not-a-dict) (WP01)
+- [x] T005 Capture/synthesize activity signal fixtures (tailscale + openclaw) (WP01)
 
 **Implementation sketch**: T001 first (manifest mutation requires Kent's input on the PAT's `created_date`, `scope`, etc.); then T002 snapshots the resulting state. T003–T005 can run in parallel after T002.
 
