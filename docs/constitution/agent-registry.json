@@ -1,7 +1,7 @@
 {
-  "version": "1.3",
-  "updated": "2026-05-10",
-  "updated_by": "issue-105-doc-auditor",
+  "version": "1.4",
+  "updated": "2026-05-11",
+  "updated_by": "issue-224",
   "agents": {
     "felix-admin-capture": {
       "team": "SuperAdmin (B)",
@@ -93,6 +93,7 @@
       "log_verbosity": "standard",
       "deployed_feature": "#105",
       "mission_id": "01KR7JK9QTHM5F4PD3YC43KDQW",
+      "operating_identity": "kg-felix-bot",
       "registered": "2026-05-10",
       "transition_history": [
         {

@@ -103,6 +103,7 @@ results, update this registry and `agent-registry.json`.
 **Scope**: Documentation audit — processes Doc Audit and Weekly Doc Audit issues; classifies each in-scope doc as high-confidence edit (commits directly) or judgment gap (files docs-debt issue); detects missing artifacts
 **Current Autonomy Level**: Assisted (Level 1)
 **Model**: Sonnet (pinned — judgment-heavy work; promotion to Haiku requires validation per Model Assignment Policy)
+**Operating Identity**: `kg-felix-bot` (see Service Accounts section below)
 **Deployed**: 2026-05-10 (#105 / mission `felix-doc-auditor-agent-01KR7JK9`)
 **Registered**: 2026-05-10 (#105 / mission `felix-doc-auditor-agent-01KR7JK9`)
 
@@ -111,3 +112,22 @@ results, update this registry and `agent-registry.json`.
 | Date | Level | Direction | Reason | Decided By |
 |------|-------|-----------|--------|------------|
 | 2026-05-10 | Assisted | Registration | Initial deployment per #105 / mission `felix-doc-auditor-agent-01KR7JK9`. Planned promotion to Supervised after ~1 week of clean operation per Felix Constitution autonomy promotion process. | Kent Gale |
+
+---
+
+## Service Accounts
+
+Service accounts are GitHub identities Felix agents use for git push and `gh` CLI actions. They provide a separate audit-trail identity from Kent's personal `kentonium3` account, so commits and issue actions performed by agents are unambiguously attributable.
+
+### kg-felix-bot
+
+- **Type**: GitHub bot identity (collaborator on `kentonium3/kg-automation`)
+- **GitHub username**: `kg-felix-bot`
+- **Email alias**: `kentgale+felix-bot@gmail.com` (routes to `kentgale@gmail.com`)
+- **2FA**: enabled
+- **Authentication**: classic personal access token with `repo`, `read:org`, `workflow` scopes; configured on office2 under the `claude` user's `gh` auth (`/home/claude/.config/gh/hosts.yml`)
+- **Credential record**: see `kg-felix-bot-pat` in [`credential-manifest.json`](<../design/architecture/data/credential-manifest.json>)
+- **Currently used by**: `felix-doc-auditor`
+- **Established**: 2026-05-11 (#215, after the canary surfaced a gate-violation pattern when bot and human shared an identity)
+- **Required PAT type**: classic (not fine-grained — fine-grained PATs restrict access to resources owned by the token's account, and `kg-felix-bot` is a collaborator on the repo, not an owner)
+- **Rotation**: annual review, or sooner on suspected compromise. Procedure documented in `kg-felix-bot-pat.expiry_notes` in the credential manifest.
