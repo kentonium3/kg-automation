@@ -15,7 +15,8 @@ subtasks:
 - T001
 - T002
 - T003
-shell_pid: '3182'
+shell_pid: "3182"
+agent: "claude"
 history:
 - event: created
   at: '2026-05-12T20:55:30Z'
@@ -269,3 +270,7 @@ Build `scripts/inbox/routing_log.py` (the load-bearing dedup substrate per #185)
 ```bash
 spec-kitty agent action implement WP01 --agent <name>
 ```
+
+## Activity Log
+
+- 2026-05-12T21:15:05Z – claude – shell_pid=3182 – Assigned agent via action command
