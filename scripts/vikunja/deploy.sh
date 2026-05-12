@@ -159,8 +159,9 @@ ssh office2-claude '
   echo "=== Verification ==="
   systemctl is-active vikunja && echo "[OK] systemd unit active"
   docker ps --filter name=vikunja --format "  {{.Names}} | {{.Image}} | {{.Status}}"
+  # Use GET (not HEAD) — Vikunja /api/v1/info returns 401 on HEAD but 200 on GET.
   curl -sf http://${BIND_IP}:${BIND_PORT}/api/v1/info >/dev/null && echo "[OK] API responds on ${BIND_IP}:${BIND_PORT}"
-  curl -sIf https://office2.tail0f5f56.ts.net/api/v1/info >/dev/null && echo "[OK] HTTPS proxy responds"
+  curl -sf https://office2.tail0f5f56.ts.net/api/v1/info >/dev/null && echo "[OK] HTTPS proxy responds"
 '
 VERIFY
 echo ""
