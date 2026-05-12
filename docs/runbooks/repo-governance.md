@@ -168,9 +168,30 @@ See `docs/runbooks/ci-handbook.md` for details.
 
 - Never commit credentials. Use references or the office2 credential
   store (`/data/services/openclaw/secrets/`).
-- CI runs a pattern scan; violations block the commit.
+- A **local pre-commit hook** (`tooling/hooks/pre-commit`, installed via
+  `scripts/install-hooks.sh`) runs the staged-content secret scanner
+  before every commit. Patterns: `AIzaSy...` (Google), `ghp_` /
+  `gho_` / `github_pat_` (GitHub), `sk-` / `sk-ant-` (OpenAI /
+  Anthropic), `AKIA` / `ASIA` (AWS), Slack tokens, PEM private keys.
+  A blocked commit prints the offending file:line.
+- The scanner also runs in full-tree mode as part of
+  `python3 tooling/scripts/validate_docs.py` (no `--staged` flag).
 - See `docs/design/architecture/data/credential-manifest.json` for the
   full credential inventory.
+
+### New-clone setup
+
+After cloning kg-automation on a new machine:
+
+```bash
+cd kg-automation
+scripts/install-hooks.sh
+```
+
+The hook lives at `.git/hooks/pre-commit` (per-clone, not tracked by
+git). The source-of-truth is `tooling/hooks/pre-commit` (tracked).
+Re-run `scripts/install-hooks.sh` after pulling any update to the hook
+source.
 
 ## AI agent rules
 

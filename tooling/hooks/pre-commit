@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+# pre-commit — secret-scan staged content before allowing a commit.
+#
+# This is the SOURCE-OF-TRUTH copy, tracked in the repo at
+# tooling/hooks/pre-commit. It is copied into .git/hooks/pre-commit by
+# scripts/install-hooks.sh.
+#
+# Behaviour: runs tooling/scripts/validate_docs.py --staged, which scans
+# only the lines being added in the current `git diff --cached` against
+# SECRET_PATTERNS. Exits non-zero on any match, which aborts the commit.
+#
+# Bypass (use sparingly, e.g. when committing the scanner self-tests):
+#   git commit --no-verify
+set -euo pipefail
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+SCANNER="$REPO_ROOT/tooling/scripts/validate_docs.py"
+
+if [ ! -f "$SCANNER" ]; then
+    echo "WARNING: secret scanner not found at $SCANNER — allowing commit." >&2
+    echo "         Run scripts/install-hooks.sh to reinstall after pulling." >&2
+    exit 0
+fi
+
+if ! command -v python3 >/dev/null 2>&1; then
+    echo "WARNING: python3 not on PATH — allowing commit." >&2
+    echo "         Install Python 3 to enable pre-commit secret scanning." >&2
+    exit 0
+fi
+
+python3 "$SCANNER" --staged

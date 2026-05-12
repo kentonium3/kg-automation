@@ -3,8 +3,18 @@
 Canon v3 Documentation Validator
 Validates frontmatter against allowed values and policy.
 Lightweight: only checks frontmatter and secrets.
+
+Modes:
+  (default)   Full repo scan: frontmatter validation + secret scan over
+              the working tree.
+  --staged    Pre-commit hook mode: scan ONLY the added lines in the
+              current staged diff for SECRET_PATTERNS. Fast (~under
+              1 second on typical diffs). Skips frontmatter validation.
+              Exits 1 if any pattern matches, 0 otherwise. Used by
+              tooling/hooks/pre-commit (installed via
+              scripts/install-hooks.sh).
 """
-import os, re, sys, json
+import os, re, sys, json, subprocess
 from pathlib import Path
 
 try:
@@ -16,6 +26,7 @@ except Exception:
 ROOT = Path('.')
 ERRORS = []
 WARNINGS = []
+STAGED_MODE = '--staged' in sys.argv
 
 # ---------- Load policy ----------
 DEFAULT_POLICY = {
@@ -121,6 +132,74 @@ def front_matter(p):
     except Exception as e:
         err(f"Front-matter parse error: {e}", p)
         return None
+
+# ---------- Staged-mode: pre-commit hook secret scan ----------
+# When invoked with --staged, scan only the added lines in the current
+# staged diff against SECRET_PATTERNS, then exit. Skips frontmatter
+# validation entirely. Designed for use by tooling/hooks/pre-commit.
+def secret_scan_staged():
+    try:
+        result = subprocess.run(
+            ['git', 'diff', '--cached', '--no-color', '-U0', '--diff-filter=ACM'],
+            capture_output=True, text=True, check=True,
+        )
+    except FileNotFoundError:
+        print('ERROR: git not found on PATH', file=sys.stderr)
+        sys.exit(2)
+    except subprocess.CalledProcessError as e:
+        print(f'ERROR: git diff --cached failed: {e.stderr.strip()}', file=sys.stderr)
+        sys.exit(2)
+
+    findings = []
+    current_file = None
+    line_in_file = 0
+    hunk_re = re.compile(r'^@@ -\d+(?:,\d+)? \+(\d+)(?:,\d+)? @@')
+
+    for raw in result.stdout.splitlines():
+        if raw.startswith('+++ '):
+            # File header: '+++ b/<path>' or '+++ /dev/null' (deletion — won't appear under ACM)
+            path = raw[4:].strip()
+            current_file = path[2:] if path.startswith('b/') else path
+            line_in_file = 0
+            continue
+        if raw.startswith('--- '):
+            continue
+        if raw.startswith('@@'):
+            m = hunk_re.match(raw)
+            if m:
+                # Set to one less than the new-side start; we'll increment
+                # on the first '+' line.
+                line_in_file = int(m.group(1)) - 1
+            continue
+        if raw.startswith('+') and not raw.startswith('+++'):
+            line_in_file += 1
+            content = raw[1:]
+            # Don't self-flag this scanner's pattern definitions.
+            if 're.compile' in content or 'SECRET_PATTERNS' in content:
+                continue
+            for pat in SECRET_PATTERNS:
+                if pat.search(content):
+                    findings.append((current_file, line_in_file, content[:120]))
+                    break
+
+    if findings:
+        print('Pre-commit blocked: potential secret patterns in staged content.', file=sys.stderr)
+        print('', file=sys.stderr)
+        for path, lineno, snippet in findings:
+            print(f'  {path}:{lineno}: {snippet.strip()}', file=sys.stderr)
+        print('', file=sys.stderr)
+        print(f'{len(findings)} match(es). Inspect the staged diff and either:', file=sys.stderr)
+        print('  (a) Remove the secret and re-stage, OR', file=sys.stderr)
+        print('  (b) If it is a false positive, add the path to tooling/ci-secret-scan-allowlist.txt', file=sys.stderr)
+        print('      (only for non-secret literal patterns — e.g., scanner self-tests).', file=sys.stderr)
+        sys.exit(1)
+    sys.exit(0)
+
+
+if STAGED_MODE:
+    secret_scan_staged()
+    # secret_scan_staged() always exits; this is unreachable.
+
 
 # ---------- 1) Frontmatter validation ----------
 REQUIRED = ['title', 'doc_type', 'status']
