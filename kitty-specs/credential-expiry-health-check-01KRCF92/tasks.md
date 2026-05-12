@@ -46,9 +46,9 @@
 | T027 | Cycle ID generation + structured log lines per `data-model.md` §CycleLog | WP06 | [P] with T026 | [D] |
 | T028 | FR-012 wire-up: batched manifest-quality issue per cycle when malformed entries exist | WP06 | — | [D] |
 | T029 | Write `tests/security/test_orchestrator.py` covering end-to-end orchestration with mocked surfaces | WP06 | — | [D] |
-| T030 | Author `scripts/office2/credential-health-check.timer` (`OnCalendar=*-*-* 13:00:00`, `Persistent=true`) | WP07 | — |
-| T031 | Author `scripts/office2/credential-health-check.service` (Type=oneshot, ExecStart=python3 -m credential_health_check, TimeoutStartSec=10min) | WP07 | — |
-| T032 | Author `scripts/office2/deploy/credential-health-check.sh` (modeled on `felix-doc-auditor.sh`) | WP07 | [P] with T030/T031 |
+| T030 | Author `scripts/office2/credential-health-check.timer` (`OnCalendar=*-*-* 13:00:00`, `Persistent=true`) | WP07 | — | [D] |
+| T031 | Author `scripts/office2/credential-health-check.service` (Type=oneshot, ExecStart=python3 -m credential_health_check, TimeoutStartSec=10min) | WP07 | — | [D] |
+| T032 | Author `scripts/office2/deploy/credential-health-check.sh` (modeled on `felix-doc-auditor.sh`) | WP07 | [P] with T030/T031 | [D] |
 | T033 | Add `credential-health-check` entry to `service-inventory.json` with dependencies + health_check | WP08 | — |
 | T034 | Update `service-inventory.md`: Scheduled Jobs row + detail section | WP08 | [P] with T033 |
 | T035 | Update `credentials-and-secrets.md` §Security Posture: cross-reference the auditor; note R-003 resolved | WP08 | [P] |
@@ -251,9 +251,9 @@ WP01 (foundation)
 
 **Subtasks**:
 
-- [ ] T030 Author `scripts/office2/credential-health-check.timer` (`OnCalendar=*-*-* 13:00:00`, `Persistent=true`) (WP07)
-- [ ] T031 Author `scripts/office2/credential-health-check.service` (Type=oneshot, ExecStart=python3 -m credential_health_check, TimeoutStartSec=10min) (WP07)
-- [ ] T032 Author `scripts/office2/deploy/credential-health-check.sh` (modeled on `felix-doc-auditor.sh`) (WP07)
+- [x] T030 Author `scripts/office2/credential-health-check.timer` (`OnCalendar=*-*-* 13:00:00`, `Persistent=true`) (WP07)
+- [x] T031 Author `scripts/office2/credential-health-check.service` (Type=oneshot, ExecStart=python3 -m credential_health_check, TimeoutStartSec=10min) (WP07)
+- [x] T032 Author `scripts/office2/deploy/credential-health-check.sh` (modeled on `felix-doc-auditor.sh`) (WP07)
 
 **Implementation sketch**: T030 and T031 are unit files modeled exactly on `felix-doc-auditor.{timer,service}`. T032 follows the deploy-script pattern: copy units, daemon-reload, enable --now.
 
