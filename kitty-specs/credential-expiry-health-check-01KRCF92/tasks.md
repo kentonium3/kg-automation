@@ -41,11 +41,11 @@
 | T022 | Implement `lookup_inbox_project_id()` via Vikunja API | WP05 | — | [D] |
 | T023 | Implement `create_task(credential, boundary, github_issue_number)` with `due_date = boundary − 7 days` | WP05 | — | [D] |
 | T024 | Write `tests/security/test_vikunja_writer.py` (templating, due-date math, stubbed API) | WP05 | — | [D] |
-| T025 | Implement `orchestrator.py`: per-cycle loop tying readers + writers + dedup together | WP06 | — |
-| T026 | Implement `__main__.py`: argparse, structured logging, `--dry-run` and `--manifest` flags | WP06 | — |
-| T027 | Cycle ID generation + structured log lines per `data-model.md` §CycleLog | WP06 | [P] with T026 |
-| T028 | FR-012 wire-up: batched manifest-quality issue per cycle when malformed entries exist | WP06 | — |
-| T029 | Write `tests/security/test_orchestrator.py` covering end-to-end orchestration with mocked surfaces | WP06 | — |
+| T025 | Implement `orchestrator.py`: per-cycle loop tying readers + writers + dedup together | WP06 | — | [D] |
+| T026 | Implement `__main__.py`: argparse, structured logging, `--dry-run` and `--manifest` flags | WP06 | — | [D] |
+| T027 | Cycle ID generation + structured log lines per `data-model.md` §CycleLog | WP06 | [P] with T026 | [D] |
+| T028 | FR-012 wire-up: batched manifest-quality issue per cycle when malformed entries exist | WP06 | — | [D] |
+| T029 | Write `tests/security/test_orchestrator.py` covering end-to-end orchestration with mocked surfaces | WP06 | — | [D] |
 | T030 | Author `scripts/office2/credential-health-check.timer` (`OnCalendar=*-*-* 13:00:00`, `Persistent=true`) | WP07 | — |
 | T031 | Author `scripts/office2/credential-health-check.service` (Type=oneshot, ExecStart=python3 -m credential_health_check, TimeoutStartSec=10min) | WP07 | — |
 | T032 | Author `scripts/office2/deploy/credential-health-check.sh` (modeled on `felix-doc-auditor.sh`) | WP07 | [P] with T030/T031 |
@@ -225,11 +225,11 @@ WP01 (foundation)
 
 **Subtasks**:
 
-- [ ] T025 Implement `orchestrator.py`: per-cycle loop tying readers + writers + dedup together (WP06)
-- [ ] T026 Implement `__main__.py`: argparse, structured logging, `--dry-run` and `--manifest` flags (WP06)
-- [ ] T027 Cycle ID generation + structured log lines per `data-model.md` §CycleLog (WP06)
-- [ ] T028 FR-012 wire-up: batched manifest-quality issue per cycle when malformed entries exist (WP06)
-- [ ] T029 Write `tests/security/test_orchestrator.py` covering end-to-end orchestration with mocked surfaces (WP06)
+- [x] T025 Implement `orchestrator.py`: per-cycle loop tying readers + writers + dedup together (WP06)
+- [x] T026 Implement `__main__.py`: argparse, structured logging, `--dry-run` and `--manifest` flags (WP06)
+- [x] T027 Cycle ID generation + structured log lines per `data-model.md` §CycleLog (WP06)
+- [x] T028 FR-012 wire-up: batched manifest-quality issue per cycle when malformed entries exist (WP06)
+- [x] T029 Write `tests/security/test_orchestrator.py` covering end-to-end orchestration with mocked surfaces (WP06)
 
 **Implementation sketch**: T025 is the loop body; T026 handles CLI surface; T027 makes logs grep-able from `journalctl`; T028 is the cycle-level FR-012 branch (file one batched issue if any malformed entries). T029 is the integration test with all four external surfaces mocked.
 
