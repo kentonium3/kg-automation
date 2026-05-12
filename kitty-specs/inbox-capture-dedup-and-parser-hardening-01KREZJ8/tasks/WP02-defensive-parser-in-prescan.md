@@ -20,7 +20,7 @@ subtasks:
 - T006
 - T007
 agent: "claude"
-shell_pid: "4346"
+shell_pid: "5229"
 history:
 - event: created
   at: '2026-05-12T20:55:30Z'
@@ -206,3 +206,4 @@ spec-kitty agent action implement WP02 --agent <name>
 
 - 2026-05-12T21:20:05Z – claude – shell_pid=4346 – Started implementation via action command
 - 2026-05-12T21:25:10Z – claude – shell_pid=4346 – 37/37 tests pass. Parse-failure + dedup wired. Mission-027 regression preserved.
+- 2026-05-12T21:25:14Z – claude – shell_pid=5229 – Started review via action command
