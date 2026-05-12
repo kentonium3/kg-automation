@@ -12,6 +12,8 @@ subtasks:
 - T033
 - T034
 - T035
+agent: "claude"
+shell_pid: "50220"
 history:
 - event: created
   at: '2026-05-11T21:43:38Z'
@@ -174,3 +176,7 @@ Update the live architecture documents to reflect the deployed credential-health
 ```bash
 spec-kitty agent action implement WP08 --agent <name>
 ```
+
+## Activity Log
+
+- 2026-05-12T01:36:24Z – claude – shell_pid=50220 – Started implementation via action command
