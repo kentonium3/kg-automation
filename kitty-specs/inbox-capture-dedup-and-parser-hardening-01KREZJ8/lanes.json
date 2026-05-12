@@ -1,0 +1,88 @@
+{
+  "version": 1,
+  "mission_slug": "inbox-capture-dedup-and-parser-hardening-01KREZJ8",
+  "mission_id": "01KREZJ8VE320Z8C78Q9VMAP0C",
+  "mission_branch": "kitty/mission-inbox-capture-dedup-and-parser-hardening-01KREZJ8",
+  "target_branch": "main",
+  "lanes": [
+    {
+      "lane_id": "lane-a",
+      "wp_ids": [
+        "WP01",
+        "WP02",
+        "WP03",
+        "WP04",
+        "WP05",
+        "WP06"
+      ],
+      "write_scope": [
+        "docs/design/architecture/data/service-inventory.json",
+        "docs/design/architecture/service-inventory.md",
+        "docs/runbooks/inbox-ops.md",
+        "scripts/inbox/append_routing_entry.py",
+        "scripts/inbox/file_inbox_quality_issue.py",
+        "scripts/inbox/inject_parse_error_marker.py",
+        "scripts/inbox/prescan.py",
+        "scripts/inbox/routing_log.py",
+        "scripts/inbox/strip_parse_error_marker.py",
+        "scripts/openclaw/agents/felix-admin-capture/AGENTS.md",
+        "tests/inbox/conftest.py",
+        "tests/inbox/fixtures/**",
+        "tests/inbox/test_callout_marker.py",
+        "tests/inbox/test_inbox_quality_issue_writer.py",
+        "tests/inbox/test_prescan_parse_failure.py",
+        "tests/inbox/test_routing_log.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "artifact-rendering",
+        "legacy-cleanup",
+        "workspace"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    }
+  ],
+  "computed_at": "2026-05-12T21:14:44.016565+00:00",
+  "computed_from": "dependency_graph+ownership",
+  "planning_artifact_wps": [],
+  "collapse_report": {
+    "events": [
+      {
+        "wp_a": "WP02",
+        "wp_b": "WP01",
+        "rule": "dependency",
+        "evidence": "WP02 depends on WP01"
+      },
+      {
+        "wp_a": "WP03",
+        "wp_b": "WP01",
+        "rule": "dependency",
+        "evidence": "WP03 depends on WP01"
+      },
+      {
+        "wp_a": "WP04",
+        "wp_b": "WP01",
+        "rule": "dependency",
+        "evidence": "WP04 depends on WP01"
+      },
+      {
+        "wp_a": "WP05",
+        "wp_b": "WP01",
+        "rule": "dependency",
+        "evidence": "WP05 depends on WP01"
+      },
+      {
+        "wp_a": "WP06",
+        "wp_b": "WP05",
+        "rule": "dependency",
+        "evidence": "WP06 depends on WP05"
+      }
+    ],
+    "total_merges": 5,
+    "independent_wps_collapsed": 0,
+    "by_rule": {
+      "dependency": 5
+    }
+  }
+}
