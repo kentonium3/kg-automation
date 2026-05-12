@@ -10,6 +10,7 @@ import logging
 import sys
 from datetime import date, datetime, timezone
 
+from .listing import list_credentials
 from .manifest import ManifestUnreadableError
 from .orchestrator import run_cycle
 
@@ -35,11 +36,35 @@ def main(argv: list[str] | None = None) -> int:
         help="Evaluate and log but do not file GitHub issues or Vikunja tasks.",
     )
     parser.add_argument(
+        "--list",
+        action="store_true",
+        dest="list_only",
+        help=(
+            "Print the current credential state as a terminal table and exit. "
+            "Read-only: no GitHub or Vikunja calls; orchestrator is not invoked."
+        ),
+    )
+    parser.add_argument(
         "--today",
         default=None,
         help="Override 'today' for testing (ISO-8601 date). Production runs always use UTC today.",
     )
     args = parser.parse_args(argv)
+
+    today = (
+        date.fromisoformat(args.today)
+        if args.today
+        else datetime.now(timezone.utc).date()
+    )
+
+    if args.list_only:
+        # --list is read-only and prints directly to stdout. No structured logging
+        # noise; suitable for ad-hoc terminal use and copy-paste.
+        try:
+            return list_credentials(args.manifest, today, stream=sys.stdout)
+        except ManifestUnreadableError as e:
+            print(f"ERROR: manifest unreadable at {args.manifest}: {e}", file=sys.stderr)
+            return 1
 
     logging.basicConfig(
         level=logging.INFO,
@@ -47,12 +72,6 @@ def main(argv: list[str] | None = None) -> int:
         stream=sys.stdout,
     )
     logger = logging.getLogger("credential_health_check")
-
-    today = (
-        date.fromisoformat(args.today)
-        if args.today
-        else datetime.now(timezone.utc).date()
-    )
 
     try:
         result = run_cycle(args.manifest, today, dry_run=args.dry_run, logger=logger)
