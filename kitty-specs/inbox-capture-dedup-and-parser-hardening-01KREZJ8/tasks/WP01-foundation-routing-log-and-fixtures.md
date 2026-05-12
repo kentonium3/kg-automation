@@ -8,10 +8,14 @@ requirement_refs:
 planning_base_branch: main
 merge_target_branch: main
 branch_strategy: Planning artifacts for this feature were generated on main. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into main unless the human explicitly redirects the landing branch.
+base_branch: kitty/mission-inbox-capture-dedup-and-parser-hardening-01KREZJ8
+base_commit: 74b2f8cda825868fb5d789b5a59eb721aff481c4
+created_at: '2026-05-12T21:15:03.196211+00:00'
 subtasks:
 - T001
 - T002
 - T003
+shell_pid: '3182'
 history:
 - event: created
   at: '2026-05-12T20:55:30Z'
