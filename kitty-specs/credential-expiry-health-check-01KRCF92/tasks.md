@@ -49,9 +49,9 @@
 | T030 | Author `scripts/office2/credential-health-check.timer` (`OnCalendar=*-*-* 13:00:00`, `Persistent=true`) | WP07 | — | [D] |
 | T031 | Author `scripts/office2/credential-health-check.service` (Type=oneshot, ExecStart=python3 -m credential_health_check, TimeoutStartSec=10min) | WP07 | — | [D] |
 | T032 | Author `scripts/office2/deploy/credential-health-check.sh` (modeled on `felix-doc-auditor.sh`) | WP07 | [P] with T030/T031 | [D] |
-| T033 | Add `credential-health-check` entry to `service-inventory.json` with dependencies + health_check | WP08 | — |
-| T034 | Update `service-inventory.md`: Scheduled Jobs row + detail section | WP08 | [P] with T033 |
-| T035 | Update `credentials-and-secrets.md` §Security Posture: cross-reference the auditor; note R-003 resolved | WP08 | [P] |
+| T033 | Add `credential-health-check` entry to `service-inventory.json` with dependencies + health_check | WP08 | — | [D] |
+| T034 | Update `service-inventory.md`: Scheduled Jobs row + detail section | WP08 | [P] with T033 | [D] |
+| T035 | Update `credentials-and-secrets.md` §Security Posture: cross-reference the auditor; note R-003 resolved | WP08 | [D] |
 
 Total: **35 subtasks** across **8 WPs**, average ~4.4 subtasks per WP.
 
@@ -275,9 +275,9 @@ WP01 (foundation)
 
 **Subtasks**:
 
-- [ ] T033 Add `credential-health-check` entry to `service-inventory.json` with dependencies + health_check (WP08)
-- [ ] T034 Update `service-inventory.md`: Scheduled Jobs row + detail section (WP08)
-- [ ] T035 Update `credentials-and-secrets.md` §Security Posture: cross-reference the auditor; note R-003 resolved (WP08)
+- [x] T033 Add `credential-health-check` entry to `service-inventory.json` with dependencies + health_check (WP08)
+- [x] T034 Update `service-inventory.md`: Scheduled Jobs row + detail section (WP08)
+- [x] T035 Update `credentials-and-secrets.md` §Security Posture: cross-reference the auditor; note R-003 resolved (WP08)
 
 **Implementation sketch**: All three subtasks operate on different files; can be done in parallel within the WP. The JSON entry follows the existing `felix-doc-auditor` shape (type=systemd-timer, schedule, exec_start, dependencies, health_check, config_files).
 
