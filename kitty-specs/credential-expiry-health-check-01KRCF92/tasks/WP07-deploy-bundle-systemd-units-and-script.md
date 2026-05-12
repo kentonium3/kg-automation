@@ -16,7 +16,7 @@ subtasks:
 - T031
 - T032
 agent: "claude"
-shell_pid: "49784"
+shell_pid: "49962"
 history:
 - event: created
   at: '2026-05-11T21:43:38Z'
@@ -188,3 +188,4 @@ spec-kitty agent action implement WP07 --agent <name>
 
 - 2026-05-12T01:35:11Z – claude – shell_pid=49784 – Started implementation via action command
 - 2026-05-12T01:36:07Z – claude – shell_pid=49784 – Deploy bundle present; mirrors felix-doc-auditor pattern; deploy script idempotent + dry-run smoke.
+- 2026-05-12T01:36:11Z – claude – shell_pid=49962 – Started review via action command
