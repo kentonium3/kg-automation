@@ -2,8 +2,8 @@
 title: Credentials and Secrets
 doc_type: reference
 status: approved
-last_updated: '2026-05-11'
-updated_by: '#227 + #115 + #115-narrative-sync'
+last_updated: '2026-05-12'
+updated_by: '#227 + #115 + #115-narrative-sync + rename-kentonium3-pat-to-gh-oauth'
 ---
 
 # Credentials and Secrets
@@ -62,7 +62,7 @@ interact with them directly.
 
 ### 5. gh CLI auth store
 
-Used by: `kg-felix-bot-pat`, `kentonium3-pat`
+Used by: `kg-felix-bot-pat`, `kentonium3-gh-oauth`
 
 The GitHub CLI (`gh`) stores authentication tokens in two locations
 depending on host:
@@ -73,11 +73,11 @@ depending on host:
   [`identity-model.md` §Agent Service Accounts](<./identity-model.md#agent-service-accounts>)
   for the identity model.
 - **Mac** (Kent's user) — macOS Keychain (managed by `gh` CLI) holds the
-  `kentonium3-pat` OAuth app token (issued by GitHub CLI's web-flow
+  `kentonium3-gh-oauth` OAuth app token (issued by GitHub CLI's web-flow
   login). Used for Kent's manual git operations and `gh` CLI invocations.
 
 The two tokens are distinct identities; office2 never holds a copy of
-`kentonium3-pat` and Mac never holds `kg-felix-bot-pat`.
+`kentonium3-gh-oauth` and Mac never holds `kg-felix-bot-pat`.
 
 ---
 
@@ -106,7 +106,7 @@ graph TD
 
     subgraph "gh CLI auth store"
         GH[kg-felix-bot-pat<br/>classic PAT — office2]
-        GHK[kentonium3-pat<br/>OAuth app token — Mac Keychain]
+        GHK[kentonium3-gh-oauth<br/>OAuth app token — Mac Keychain]
     end
 
     subgraph "Consumers"
@@ -144,7 +144,7 @@ graph TD
 | `whatsapp-session` | session | OpenClaw native (Baileys) | `openclaw-gateway` |
 | `personal-google` | OAuth2 | gog auth store | `gog` CLI via google-calendar skill |
 | `kg-felix-bot-pat` | classic PAT | gh CLI auth store — `/home/claude/.config/gh/hosts.yml` | `felix-doc-auditor` and future Felix agents (git push, `gh` CLI) |
-| `kentonium3-pat` | OAuth app token | gh CLI auth store — macOS Keychain (managed by `gh` CLI on Mac) | Kent's manual git + `gh` CLI from Mac |
+| `kentonium3-gh-oauth` | OAuth app token | gh CLI auth store — macOS Keychain (managed by `gh` CLI on Mac) | Kent's manual git + `gh` CLI from Mac |
 
 ---
 

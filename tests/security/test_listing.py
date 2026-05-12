@@ -198,7 +198,7 @@ def test_list_credentials_writes_table_to_stream():
     )
     assert rc == 0
     output = buf.getvalue()
-    assert "kentonium3-pat" in output
+    assert "kentonium3-gh-oauth" in output
     assert "kg-felix-bot-pat" in output
     assert "Status" in output
 

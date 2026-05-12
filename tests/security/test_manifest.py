@@ -24,7 +24,7 @@ def test_read_valid_manifest_returns_only_well_formed():
 def test_kentonium3_pat_present_in_valid_manifest():
     well_formed, _ = read_manifest(str(FIXTURES / "manifest-valid.json"))
     names = [c.name for c in well_formed]
-    assert "kentonium3-pat" in names
+    assert "kentonium3-gh-oauth" in names
 
 
 def test_near_expiry_fixture_well_formed_count_matches_valid():

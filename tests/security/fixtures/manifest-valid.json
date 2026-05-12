@@ -117,7 +117,7 @@
       "last_reviewed": "2026-05-11"
     },
     {
-      "name": "kentonium3-pat",
+      "name": "kentonium3-gh-oauth",
       "type": "oauth-app-token",
       "scope": "GitHub auth credential for Kent's personal kentonium3 identity. Used for manual git operations and gh CLI from Mac. Distinct from kg-felix-bot-pat which is the agent identity on office2.",
       "storage": "macOS Keychain (managed by gh CLI; profile recorded in ~/.config/gh/hosts.yml)",
