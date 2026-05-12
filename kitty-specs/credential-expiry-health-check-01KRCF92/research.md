@@ -72,6 +72,8 @@ This document records plan-phase decisions and the evidence behind them. Each de
 
 - *Package layout (`scripts/security/credential_health_check/{__init__,manifest,alerts,activity}.py`).* Rejected: over-structured for the scope; would create a precedent that none of the other Felix runners follow.
 
+**2026-05-11 revision (WP02)**: Implementation uses a package layout (`scripts/security/credential_health_check/` with `__init__.py`, `manifest.py`, `cadence.py`, `signals.py`, `github_writer.py`, `vikunja_writer.py`, `orchestrator.py`, `__main__.py`) rather than the single-file form originally chosen. Rationale: spec-kitty's `owned_files` model assigns one WP per file; package-per-concern provides clean WP boundaries without materially increasing total LOC or operational complexity. The original rejection of a package layout ("over-structured for the scope") still applies in spirit — each module is small and self-contained, and the package layout is the minimum necessary to give each WP a non-overlapping ownership surface.
+
 ---
 
 ## R-005 — Alert dedup mechanism
