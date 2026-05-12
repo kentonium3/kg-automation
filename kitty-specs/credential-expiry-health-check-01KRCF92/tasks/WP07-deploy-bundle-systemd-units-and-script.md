@@ -15,6 +15,8 @@ subtasks:
 - T030
 - T031
 - T032
+agent: "claude"
+shell_pid: "49784"
 history:
 - event: created
   at: '2026-05-11T21:43:38Z'
@@ -181,3 +183,7 @@ Package the runtime: systemd user timer + oneshot service + a deploy script that
 ```bash
 spec-kitty agent action implement WP07 --agent <name>
 ```
+
+## Activity Log
+
+- 2026-05-12T01:35:11Z – claude – shell_pid=49784 – Started implementation via action command
