@@ -15,10 +15,10 @@
 | T001 | Create `tests/inbox/conftest.py` + fixture corpus (well-formed, leading-ws, BOM, missing-close, invalid-yaml) | WP01 | — | [D] |
 | T002 | Implement `scripts/inbox/routing_log.py` (Reader + Writer) per `contracts/routing-log.md` | WP01 | — | [D] |
 | T003 | Write `tests/inbox/test_routing_log.py` covering read / append / dedup / malformed-line handling | WP01 | [P] with T002 | [D] |
-| T004 | Extend `scripts/inbox/prescan.py` classifier: add 4 parse-failure cases per `contracts/prescan-classifier.md` | WP02 | — |
-| T005 | Extend prescan output JSON: add `parse_failures`, `dedup_skipped`, `marker_cleanup_needed` fields | WP02 | — |
-| T006 | Wire routing-log dedup filter into prescan classifier (`unprocessed_paths` filtered post-classification) | WP02 | — |
-| T007 | Write `tests/inbox/test_prescan_parse_failure.py` covering each parse-failure case + dedup + regression | WP02 | — |
+| T004 | Extend `scripts/inbox/prescan.py` classifier: add 4 parse-failure cases per `contracts/prescan-classifier.md` | WP02 | — | [D] |
+| T005 | Extend prescan output JSON: add `parse_failures`, `dedup_skipped`, `marker_cleanup_needed` fields | WP02 | — | [D] |
+| T006 | Wire routing-log dedup filter into prescan classifier (`unprocessed_paths` filtered post-classification) | WP02 | — | [D] |
+| T007 | Write `tests/inbox/test_prescan_parse_failure.py` covering each parse-failure case + dedup + regression | WP02 | — | [D] |
 | T008 | Implement `scripts/inbox/inject_parse_error_marker.py` per `contracts/callout-marker.md` | WP03 | — |
 | T009 | Implement `scripts/inbox/strip_parse_error_marker.py` per same contract | WP03 | [P] with T008 |
 | T010 | Implement `scripts/inbox/append_routing_entry.py` CLI wrapper per `contracts/routing-log.md` | WP03 | [P] |
@@ -94,10 +94,10 @@ WP01 (foundation: routing-log module + fixtures)
 
 **Subtasks**:
 
-- [ ] T004 Extend prescan classifier: add 4 parse-failure cases per contracts/prescan-classifier.md (WP02)
-- [ ] T005 Extend prescan output JSON: add `parse_failures`, `dedup_skipped`, `marker_cleanup_needed` fields (WP02)
-- [ ] T006 Wire routing-log dedup filter into prescan classifier (`unprocessed_paths` filtered post-classification) (WP02)
-- [ ] T007 Write `tests/inbox/test_prescan_parse_failure.py` covering each parse-failure case + dedup + regression (WP02)
+- [x] T004 Extend prescan classifier: add 4 parse-failure cases per contracts/prescan-classifier.md (WP02)
+- [x] T005 Extend prescan output JSON: add `parse_failures`, `dedup_skipped`, `marker_cleanup_needed` fields (WP02)
+- [x] T006 Wire routing-log dedup filter into prescan classifier (`unprocessed_paths` filtered post-classification) (WP02)
+- [x] T007 Write `tests/inbox/test_prescan_parse_failure.py` covering each parse-failure case + dedup + regression (WP02)
 
 **Implementation sketch**: T004 adds 4 new detection branches before the existing well-formed path. T005 mutates prescan's `main` JSON output shape additively. T006 wires `RoutingLogReader` in (imported from routing_log.py landed in WP01). T007 covers both happy-path regression (existing mission-027 behavior preserved) and the new failure paths.
 
