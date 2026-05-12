@@ -14,7 +14,7 @@ All services run on office2 unless otherwise noted.
 
 | Service | Type | Version/Image | Port | Bind IP | systemd Unit | Data Path |
 |---------|------|---------------|------|---------|-------------|-----------|
-| Vikunja | Docker | `vikunja/vikunja:0.24.6` | 3456 | 0.0.0.0 | `vikunja.service` (system) | `/data/services/vikunja/data` |
+| Vikunja | Docker (compose) | `vikunja/vikunja:0.24.6` | 3456 | 100.92.197.90 | `vikunja.service` (system, oneshot → `docker compose up -d`) | `/data/services/vikunja/data` |
 | Obsidian Sync | Native | `ob` v0.0.8, `ob sync --continuous` | — | — | `obsidian-sync.service` (system, runs as `kgale`) | `/home/kgale/second-brain/notes` |
 | Transcribe API | Docker (GPU) | `transcribe-transcribe` | 8787 | 100.92.197.90 | `transcribe.service` | `/data/services/transcribe` |
 | OpenClaw Gateway | npm-global | `v2026.3.24` | 18789 | 127.0.0.1 | `openclaw-gateway.service` (user) | `/data/services/openclaw/data` |
@@ -42,13 +42,17 @@ All services run on office2 unless otherwise noted.
 
 ## Deployment Details
 
-### Vikunja (F001)
-- **Deployed by**: F001
+### Vikunja (F001; compose pattern via #189)
+- **Deployed by**: F001; migrated to docker-compose pattern via #189 (2026-05-12)
 - **Public URL**: `https://office2.tail0f5f56.ts.net`
 - **TLS**: Tailscale Serve (auto-provisioned Let's Encrypt certs, auto-renewed)
-- **systemd unit**: `vikunja.service` (system-level, runs as claude user, `Restart=always`)
-- **Config in repo**: `scripts/vikunja/deploy.sh`, `scripts/vikunja/vikunja.service`
+- **systemd unit**: `vikunja.service` (system-level, runs as claude user, `Type=oneshot` + `RemainAfterExit=yes`)
+- **ExecStart**: `/usr/bin/docker compose -f /home/claude/kg-automation/services/vikunja/docker-compose.yml up -d`
+- **Restart policy**: `restart: unless-stopped` declared in the compose file (Docker handles container restarts, including across daemon restarts — survives the `StartLimitBurst=5` failure mode that bit the legacy pattern during the docker.io→docker-ce migration in #80)
+- **Compose source**: `services/vikunja/docker-compose.yml` (in-repo source-of-truth; deployed via `git pull` on office2)
+- **Config in repo**: `scripts/vikunja/deploy.sh` (idempotent deploy with legacy-unit backup at `/data/services/vikunja/.deploy-backups/`), `scripts/vikunja/vikunja.service`
 - **Setup script**: `scripts/vikunja/setup_vikunja.py` (projects, labels, filters)
+- **Bind IP**: `100.92.197.90` (Tailscale IP only — corrected from the stale `0.0.0.0` listing prior to #189; the actual binding has been Tailscale-only since the early port-binding fix)
 - **Data owner**: uid 1000:gid 0 (matches container runtime user)
 - **Backup**: Automatically included (under `/data/services/`)
 - **Runbook**: `docs/runbooks/vikunja-ops.md`

@@ -1,131 +1,179 @@
 #!/usr/bin/env bash
-# deploy.sh — Deploy Vikunja Docker container on office2
-# Run as claude user. Sudo commands are printed for Kent to execute manually.
+# deploy.sh — Deploy or migrate Vikunja to the docker-compose pattern (#189).
+#
+# Replaces the legacy `docker run --rm` deploy. Idempotent: safe to re-run.
+# Handles both first-install (no existing unit) and migration (legacy unit
+# present — backed up to .deploy-backups/ before replacement).
+#
+# Run on office2 as the claude user. The script does all the non-sudo
+# prep + validation, then prints the exact sudo recipe for Kent to run
+# via `ssh office2-kgale`.
 set -euo pipefail
 
-VIKUNJA_IMAGE="vikunja/vikunja:0.24.6"
+REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+COMPOSE_FILE="$REPO_ROOT/services/vikunja/docker-compose.yml"
+SERVICE_FILE_SRC="$REPO_ROOT/scripts/vikunja/vikunja.service"
+SERVICE_FILE_DST="/etc/systemd/system/vikunja.service"
 BIND_IP="100.92.197.90"
 BIND_PORT="3456"
 DATA_DIR="/data/services/vikunja/data"
-SERVICE_FILE="$(cd "$(dirname "$0")" && pwd)/vikunja.service"
+BACKUP_DIR="/data/services/vikunja/.deploy-backups"
 
-echo "=== Vikunja Deploy ==="
+echo "=== Vikunja deploy (docker-compose pattern, #189) ==="
 echo ""
 
-# Check Docker
-if ! command -v docker &>/dev/null; then
-    echo "ERROR: Docker is not installed on this system." >&2
+# ---- Environment checks ----
+
+if ! command -v docker >/dev/null 2>&1; then
+    echo "ERROR: Docker not installed." >&2
     exit 1
 fi
-echo "[OK] Docker installed: $(docker --version)"
+echo "[OK] Docker: $(docker --version)"
 
-# Check Tailscale
-if ! command -v tailscale &>/dev/null; then
-    echo "ERROR: Tailscale is not installed on this system." >&2
+if ! docker compose version >/dev/null 2>&1; then
+    echo "ERROR: 'docker compose' subcommand not available. Need Docker 20.10+ with compose plugin." >&2
     exit 1
 fi
+echo "[OK] Docker Compose: $(docker compose version --short)"
 
+if ! command -v tailscale >/dev/null 2>&1; then
+    echo "ERROR: Tailscale not installed." >&2
+    exit 1
+fi
 ACTUAL_IP=$(tailscale ip -4 2>/dev/null || echo "unknown")
 if [ "$ACTUAL_IP" != "$BIND_IP" ]; then
-    echo "WARNING: Expected Tailscale IP $BIND_IP but found $ACTUAL_IP" >&2
-    echo "Update BIND_IP in this script if the IP has changed." >&2
+    echo "WARNING: Expected Tailscale IP $BIND_IP but found $ACTUAL_IP." >&2
 fi
-echo "[OK] Tailscale active: $ACTUAL_IP"
+echo "[OK] Tailscale: $ACTUAL_IP"
 
-# Check port
-if ss -tlnp | grep -q ":${BIND_PORT}" 2>/dev/null; then
-    EXISTING=$(ss -tlnp | grep ":${BIND_PORT}")
-    echo "WARNING: Port $BIND_PORT is already in use:" >&2
-    echo "  $EXISTING" >&2
-    echo "If this is an existing Vikunja container, stop it first." >&2
-    read -p "Continue anyway? (y/N) " -r
-    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+# ---- File checks ----
+
+for f in "$COMPOSE_FILE" "$SERVICE_FILE_SRC"; do
+    if [ ! -f "$f" ]; then
+        echo "ERROR: required file missing: $f" >&2
         exit 1
     fi
-fi
-echo "[OK] Port $BIND_PORT is available"
+done
+echo "[OK] Compose file: $COMPOSE_FILE"
+echo "[OK] Unit source: $SERVICE_FILE_SRC"
 
-# Check data directory
+# ---- Compose validation ----
+
+echo ""
+echo "Validating compose file..."
+if ! docker compose -f "$COMPOSE_FILE" config >/dev/null 2>&1; then
+    echo "ERROR: docker compose config failed — invalid YAML or unresolved references" >&2
+    docker compose -f "$COMPOSE_FILE" config 2>&1 | tail -20 >&2
+    exit 1
+fi
+echo "[OK] Compose file valid"
+
+# ---- Data dir ----
+
 if [ ! -d "$DATA_DIR" ]; then
     echo "Creating data directory: $DATA_DIR"
     mkdir -p "$DATA_DIR"
 fi
-echo "[OK] Data directory: $DATA_DIR"
+echo "[OK] Data dir: $DATA_DIR"
 
-# Pull image
+# ---- Image pull ----
+
 echo ""
-echo "Pulling Docker image: $VIKUNJA_IMAGE"
-docker pull "$VIKUNJA_IMAGE"
+echo "Pulling Vikunja image..."
+docker compose -f "$COMPOSE_FILE" pull >/dev/null
 echo "[OK] Image pulled"
 
-# Test run (quick start/stop to verify image works)
+# ---- Unit file: detect legacy install + back up ----
+
 echo ""
-echo "Testing container startup..."
-docker run --rm -d --name vikunja-test \
-    -p "${BIND_IP}:${BIND_PORT}:3456" \
-    -v "${DATA_DIR}:/app/vikunja/files" \
-    -e VIKUNJA_SERVICE_PUBLICURL="http://office2:${BIND_PORT}" \
-    -e VIKUNJA_SERVICE_INTERFACE=":3456" \
-    -e VIKUNJA_DATABASE_TYPE=sqlite \
-    -e VIKUNJA_DATABASE_PATH=/app/vikunja/files/vikunja.db \
-    "$VIKUNJA_IMAGE" >/dev/null 2>&1
+mkdir -p "$BACKUP_DIR"
 
-sleep 3
-
-if docker ps | grep -q vikunja-test; then
-    echo "[OK] Container starts successfully"
-    docker stop vikunja-test >/dev/null 2>&1 || true
+BACKUP_PATH=""
+if [ -f "$SERVICE_FILE_DST" ]; then
+    if diff -q "$SERVICE_FILE_DST" "$SERVICE_FILE_SRC" >/dev/null 2>&1; then
+        UNIT_STATUS="already_current"
+        echo "[OK] Deployed unit already matches in-repo source — no swap needed."
+    else
+        UNIT_STATUS="needs_update"
+        BACKUP_NAME="vikunja.service.pre-189.$(date +%Y%m%d-%H%M%S)"
+        BACKUP_PATH="$BACKUP_DIR/$BACKUP_NAME"
+        cp "$SERVICE_FILE_DST" "$BACKUP_PATH"
+        echo "[OK] Existing unit backed up: $BACKUP_PATH"
+    fi
 else
-    echo "ERROR: Container failed to start. Check: docker logs vikunja-test" >&2
-    docker rm -f vikunja-test >/dev/null 2>&1 || true
-    exit 1
+    UNIT_STATUS="fresh_install"
+    echo "[OK] No existing unit file — fresh install."
 fi
 
-# Verify port binding
-echo ""
-echo "Verifying port binding..."
-docker run --rm -d --name vikunja-verify \
-    -p "${BIND_IP}:${BIND_PORT}:3456" \
-    -v "${DATA_DIR}:/app/vikunja/files" \
-    -e VIKUNJA_SERVICE_PUBLICURL="http://office2:${BIND_PORT}" \
-    -e VIKUNJA_SERVICE_INTERFACE=":3456" \
-    -e VIKUNJA_DATABASE_TYPE=sqlite \
-    -e VIKUNJA_DATABASE_PATH=/app/vikunja/files/vikunja.db \
-    "$VIKUNJA_IMAGE" >/dev/null 2>&1
+# ---- Sudo recipe ----
 
-sleep 2
-# Check the local address column (field 4 in ss output) for the bind IP
-LOCAL_ADDR=$(ss -tlnp | grep ":${BIND_PORT}" | awk '{print $4}' || true)
-if [ -z "$LOCAL_ADDR" ]; then
-    echo "ERROR: Port $BIND_PORT not found in ss output" >&2
-    docker stop vikunja-verify >/dev/null 2>&1 || true
-    exit 1
+if [ "$UNIT_STATUS" = "already_current" ]; then
+    echo ""
+    echo "============================================================"
+    echo "Nothing to deploy at the systemd level."
+    echo "============================================================"
+    echo ""
+    echo "If the running container still looks legacy (e.g. you see"
+    echo "'docker run --rm --name vikunja' in 'ps -ef'), the unit was"
+    echo "updated since the running container was started. To pick up"
+    echo "the compose pattern, restart the service:"
+    echo ""
+    echo "  ssh office2-kgale 'sudo systemctl restart vikunja'"
+    echo ""
+    exit 0
 fi
-if echo "$LOCAL_ADDR" | grep -q "0.0.0.0:${BIND_PORT}"; then
-    echo "SECURITY ERROR: Port bound to 0.0.0.0 — aborting!" >&2
-    docker stop vikunja-verify >/dev/null 2>&1 || true
-    exit 1
-fi
-if ! echo "$LOCAL_ADDR" | grep -q "${BIND_IP}:${BIND_PORT}"; then
-    echo "WARNING: Port bound to $LOCAL_ADDR (expected ${BIND_IP}:${BIND_PORT})" >&2
-fi
-echo "[OK] Port binding: $LOCAL_ADDR"
-docker stop vikunja-verify >/dev/null 2>&1 || true
 
-# Print sudo commands for Kent
 echo ""
 echo "============================================================"
-echo "MANUAL STEP: Kent must run the following sudo commands:"
+echo "MANUAL SUDO RECIPE — run via ssh office2-kgale"
 echo "============================================================"
 echo ""
-echo "  sudo cp $SERVICE_FILE /etc/systemd/system/vikunja.service"
-echo "  sudo systemctl daemon-reload"
-echo "  sudo systemctl enable vikunja"
-echo "  sudo systemctl start vikunja"
+cat <<RECIPE
+ssh office2-kgale '
+  set -euo pipefail
+  echo "=== Vikunja unit swap (#189) ==="
+
+  # 1. Stop the old service (this stops the docker run --rm container too).
+  sudo systemctl stop vikunja
+
+  # 2. Replace the unit file.
+  sudo cp $SERVICE_FILE_SRC /etc/systemd/system/vikunja.service
+
+  # 3. Reload systemd to pick up the new unit.
+  sudo systemctl daemon-reload
+
+  # 4. Start the service. ExecStart runs docker compose up -d, which
+  #    re-creates the vikunja container against the same data volume.
+  sudo systemctl start vikunja
+
+  # 5. Status check.
+  sudo systemctl status vikunja --no-pager | head -10
+'
+RECIPE
 echo ""
-echo "After running, verify with:"
-echo "  systemctl status vikunja"
-echo "  ss -tlnp | grep $BIND_PORT"
-echo "  curl -s http://${BIND_IP}:${BIND_PORT}"
+echo "After the recipe completes, run the verification block:"
+echo ""
+cat <<VERIFY
+ssh office2-claude '
+  set -e
+  echo "=== Verification ==="
+  systemctl is-active vikunja && echo "[OK] systemd unit active"
+  docker ps --filter name=vikunja --format "  {{.Names}} | {{.Image}} | {{.Status}}"
+  curl -sf http://${BIND_IP}:${BIND_PORT}/api/v1/info >/dev/null && echo "[OK] API responds on ${BIND_IP}:${BIND_PORT}"
+  curl -sIf https://office2.tail0f5f56.ts.net/api/v1/info >/dev/null && echo "[OK] HTTPS proxy responds"
+'
+VERIFY
+echo ""
+echo "Auto-recovery acceptance test (the actual reason for this change):"
+echo "  ssh office2-kgale 'sudo systemctl restart docker.service'"
+echo "  # wait ~30s"
+echo "  ssh office2-claude 'curl -sf http://${BIND_IP}:${BIND_PORT}/api/v1/info >/dev/null && echo Vikunja-auto-recovered'"
 echo ""
 echo "=== Deploy script complete ==="
+echo ""
+echo "Rollback (if something goes wrong):"
+if [ "$UNIT_STATUS" = "needs_update" ] && [ -n "$BACKUP_PATH" ]; then
+    echo "  ssh office2-kgale 'sudo cp $BACKUP_PATH /etc/systemd/system/vikunja.service && sudo systemctl daemon-reload && sudo systemctl restart vikunja'"
+else
+    echo "  (No previous unit to roll back to — fresh install.)"
+fi

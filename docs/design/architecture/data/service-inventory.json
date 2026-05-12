@@ -1,15 +1,15 @@
 {
   "schema_version": "1.1",
   "last_updated": "2026-05-11",
-  "updated_by": "issue-105-doc-auditor + #223-systemd-timer + #208-restic-healthcheck + #202-obsidian-sync-system-level + #203-sync-heartbeat + #199-inbox-schedules + #115-credential-health-check",
+  "updated_by": "issue-105-doc-auditor + #223-systemd-timer + #208-restic-healthcheck + #202-obsidian-sync-system-level + #203-sync-heartbeat + #199-inbox-schedules + #115-credential-health-check + #189-vikunja-compose",
   "services": [
     {
       "name": "vikunja",
-      "type": "docker",
+      "type": "docker-compose",
       "image": "vikunja/vikunja:0.24.6",
       "host": "office2",
       "port": 3456,
-      "bind_ip": "0.0.0.0",
+      "bind_ip": "100.92.197.90",
       "systemd_unit": "vikunja.service",
       "systemd_level": "system",
       "systemd_user": "claude",
@@ -17,14 +17,15 @@
       "data_owner": "1000:0",
       "backup_included": true,
       "deployed_by": "F001",
+      "updated_by": "#189",
       "public_url": "https://office2.tail0f5f56.ts.net",
       "tls_termination": "tailscale-serve",
       "status": "running",
       "purpose": "Task store and web UI",
-      "notes": "F006 added Goals project. HTTPS via Tailscale Serve with auto-provisioned certs. Systemd unit runs container with --rm; restart handled by systemd (Restart=always), not Docker restart policy.",
+      "notes": "F006 added Goals project. HTTPS via Tailscale Serve with auto-provisioned certs. Type=oneshot + RemainAfterExit=yes systemd unit invokes `docker compose up -d`; compose declares `restart: unless-stopped` so Docker handles container restarts including across daemon restarts (#189, replacing the legacy `Type=simple` + `docker run --rm` pattern that died on the docker.io→docker-ce migration in #80).",
       "risk_tier": 2,
       "dependencies": [
-        {"target": "docker", "type": "requires", "description": "Runs as Docker container via systemd"},
+        {"target": "docker", "type": "requires", "description": "Runs as Docker container orchestrated via docker compose"},
         {"target": "tailscale-serve:443", "type": "requires", "description": "HTTPS ingress — origin incident 2026-04-03 traced to this dependency chain"}
       ],
       "health_check": {
@@ -34,8 +35,8 @@
         "timeout_seconds": 5
       },
       "config_files": [
-        {"path": "/etc/systemd/system/vikunja.service", "format": "systemd-unit"},
-        {"path": "/data/services/vikunja/docker-compose.yml", "format": "yaml"}
+        {"path": "/etc/systemd/system/vikunja.service", "format": "systemd-unit", "source_in_repo": "scripts/vikunja/vikunja.service"},
+        {"path": "/home/claude/kg-automation/services/vikunja/docker-compose.yml", "format": "yaml", "source_in_repo": "services/vikunja/docker-compose.yml"}
       ]
     },
     {
