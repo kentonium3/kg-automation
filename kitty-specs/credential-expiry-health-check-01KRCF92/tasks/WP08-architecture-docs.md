@@ -180,3 +180,4 @@ spec-kitty agent action implement WP08 --agent <name>
 ## Activity Log
 
 - 2026-05-12T01:36:24Z – claude – shell_pid=50220 – Started implementation via action command
+- 2026-05-12T10:22:46Z – claude – shell_pid=50220 – Arch docs updated; JSON + narrative + credentials-and-secrets.md cross-reference all consistent. validate_docs.py passes.
