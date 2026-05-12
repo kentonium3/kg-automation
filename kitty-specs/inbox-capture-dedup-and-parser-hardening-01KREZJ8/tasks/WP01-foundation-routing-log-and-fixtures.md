@@ -274,3 +274,4 @@ spec-kitty agent action implement WP01 --agent <name>
 ## Activity Log
 
 - 2026-05-12T21:15:05Z – claude – shell_pid=3182 – Assigned agent via action command
+- 2026-05-12T21:19:43Z – claude – shell_pid=3182 – 15/15 routing-log tests pass; fixture corpus in place; hermetic.
