@@ -187,3 +187,4 @@ spec-kitty agent action implement WP07 --agent <name>
 ## Activity Log
 
 - 2026-05-12T01:35:11Z – claude – shell_pid=49784 – Started implementation via action command
+- 2026-05-12T01:36:07Z – claude – shell_pid=49784 – Deploy bundle present; mirrors felix-doc-auditor pattern; deploy script idempotent + dry-run smoke.
