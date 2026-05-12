@@ -12,9 +12,9 @@
 
 | ID | Description | WP | Parallel |
 |---|---|---|---|
-| T001 | Create `tests/inbox/conftest.py` + fixture corpus (well-formed, leading-ws, BOM, missing-close, invalid-yaml) | WP01 | — |
-| T002 | Implement `scripts/inbox/routing_log.py` (Reader + Writer) per `contracts/routing-log.md` | WP01 | — |
-| T003 | Write `tests/inbox/test_routing_log.py` covering read / append / dedup / malformed-line handling | WP01 | [P] with T002 |
+| T001 | Create `tests/inbox/conftest.py` + fixture corpus (well-formed, leading-ws, BOM, missing-close, invalid-yaml) | WP01 | — | [D] |
+| T002 | Implement `scripts/inbox/routing_log.py` (Reader + Writer) per `contracts/routing-log.md` | WP01 | — | [D] |
+| T003 | Write `tests/inbox/test_routing_log.py` covering read / append / dedup / malformed-line handling | WP01 | [P] with T002 | [D] |
 | T004 | Extend `scripts/inbox/prescan.py` classifier: add 4 parse-failure cases per `contracts/prescan-classifier.md` | WP02 | — |
 | T005 | Extend prescan output JSON: add `parse_failures`, `dedup_skipped`, `marker_cleanup_needed` fields | WP02 | — |
 | T006 | Wire routing-log dedup filter into prescan classifier (`unprocessed_paths` filtered post-classification) | WP02 | — |
@@ -72,9 +72,9 @@ WP01 (foundation: routing-log module + fixtures)
 
 **Subtasks**:
 
-- [ ] T001 Create `tests/inbox/conftest.py` + fixture corpus (well-formed, leading-ws, BOM, missing-close, invalid-yaml) (WP01)
-- [ ] T002 Implement `scripts/inbox/routing_log.py` (Reader + Writer) per contracts/routing-log.md (WP01)
-- [ ] T003 Write `tests/inbox/test_routing_log.py` covering read / append / dedup / malformed-line handling (WP01)
+- [x] T001 Create `tests/inbox/conftest.py` + fixture corpus (well-formed, leading-ws, BOM, missing-close, invalid-yaml) (WP01)
+- [x] T002 Implement `scripts/inbox/routing_log.py` (Reader + Writer) per contracts/routing-log.md (WP01)
+- [x] T003 Write `tests/inbox/test_routing_log.py` covering read / append / dedup / malformed-line handling (WP01)
 
 **Implementation sketch**: T001 lays fixtures the rest of the mission references. T002 implements the public API: `RoutingLogReader.routed_filenames()`, `RoutingLogReader.has(filename)`, `RoutingLogWriter.append(...)`. Atomic append via simple `open(path, "a")`. T003 wraps it with focused tests using `tmp_path` so the real `~/second-brain/agents/state/` path isn't touched.
 
