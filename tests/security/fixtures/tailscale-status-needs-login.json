@@ -1,0 +1,194 @@
+{
+  "Version": "1.96.4-t8cf541dfd-g62bc84ce7",
+  "TUN": true,
+  "BackendState": "NeedsLogin",
+  "HaveNodeKey": true,
+  "AuthURL": "",
+  "TailscaleIPs": [
+    "100.92.197.90",
+    "fd7a:115c:a1e0::fd01:c5b3"
+  ],
+  "Self": {
+    "ID": "ncewU2eRAh11CNTRL",
+    "PublicKey": "nodekey:08056d96b23ed6adb698278104632b023a6c29a2c1f9f9a38afcce1cfd5cc559",
+    "HostName": "office2",
+    "DNSName": "office2.tail0f5f56.ts.net.",
+    "OS": "linux",
+    "UserID": 2249012329677207,
+    "TailscaleIPs": [
+      "100.92.197.90",
+      "fd7a:115c:a1e0::fd01:c5b3"
+    ],
+    "AllowedIPs": [
+      "100.92.197.90/32",
+      "fd7a:115c:a1e0::fd01:c5b3/128"
+    ],
+    "Addrs": [
+      "100.17.19.3:43089",
+      "100.17.19.3:41641",
+      "100.17.19.3:1109",
+      "172.17.0.1:41641",
+      "172.18.0.1:41641",
+      "192.168.1.157:41641",
+      "192.168.1.158:41641"
+    ],
+    "CurAddr": "",
+    "Relay": "nyc",
+    "PeerRelay": "",
+    "RxBytes": 0,
+    "TxBytes": 0,
+    "Created": "2026-03-20T22:20:38.606770058Z",
+    "LastWrite": "0001-01-01T00:00:00Z",
+    "LastSeen": "0001-01-01T00:00:00Z",
+    "LastHandshake": "0001-01-01T00:00:00Z",
+    "Online": true,
+    "ExitNode": false,
+    "ExitNodeOption": false,
+    "Active": false,
+    "PeerAPIURL": [
+      "http://100.92.197.90:38183",
+      "http://[fd7a:115c:a1e0::fd01:c5b3]:61976"
+    ],
+    "TaildropTarget": 0,
+    "NoFileSharingReason": "",
+    "Capabilities": [
+      "HTTPS://TAILSCALE.COM/s/DEPRECATED-NODE-CAPS#see-https://github.com/tailscale/tailscale/issues/11508",
+      "default-auto-update",
+      "https",
+      "https://tailscale.com/cap/file-sharing",
+      "https://tailscale.com/cap/is-admin",
+      "https://tailscale.com/cap/is-owner",
+      "https://tailscale.com/cap/ssh",
+      "https://tailscale.com/cap/tailnet-lock",
+      "probe-udp-lifetime",
+      "ssh-behavior-v1",
+      "ssh-env-vars",
+      "store-appc-routes",
+      "tailnet-display-name"
+    ],
+    "CapMap": {
+      "default-auto-update": [
+        true
+      ],
+      "https": null,
+      "https://tailscale.com/cap/file-sharing": null,
+      "https://tailscale.com/cap/is-admin": null,
+      "https://tailscale.com/cap/is-owner": null,
+      "https://tailscale.com/cap/ssh": null,
+      "https://tailscale.com/cap/tailnet-lock": null,
+      "probe-udp-lifetime": null,
+      "ssh-behavior-v1": null,
+      "ssh-env-vars": null,
+      "store-appc-routes": null,
+      "tailnet-display-name": [
+        "kentgale@gmail.com"
+      ]
+    },
+    "InNetworkMap": true,
+    "InMagicSock": false,
+    "InEngine": false,
+    "KeyExpiry": "2026-09-16T22:20:38Z"
+  },
+  "Health": [],
+  "MagicDNSSuffix": "tail0f5f56.ts.net",
+  "CurrentTailnet": {
+    "Name": "kentgale@gmail.com",
+    "MagicDNSSuffix": "tail0f5f56.ts.net",
+    "MagicDNSEnabled": true
+  },
+  "CertDomains": [
+    "office2.tail0f5f56.ts.net"
+  ],
+  "Peer": {
+    "nodekey:29bfef5c2d701da0599fc4089a85c2cedd2feb11da601dcd011195df84871341": {
+      "ID": "ncsTHSTwp121CNTRL",
+      "PublicKey": "nodekey:29bfef5c2d701da0599fc4089a85c2cedd2feb11da601dcd011195df84871341",
+      "HostName": "Kent\u2019s MacBook Pro",
+      "DNSName": "kents-macbook-pro.tail0f5f56.ts.net.",
+      "OS": "macOS",
+      "UserID": 2249012329677207,
+      "TailscaleIPs": [
+        "100.71.19.66",
+        "fd7a:115c:a1e0::8401:13a4"
+      ],
+      "AllowedIPs": [
+        "100.71.19.66/32",
+        "fd7a:115c:a1e0::8401:13a4/128"
+      ],
+      "Addrs": null,
+      "CurAddr": "192.168.1.66:41641",
+      "Relay": "nyc",
+      "PeerRelay": "",
+      "RxBytes": 98792,
+      "TxBytes": 424624,
+      "Created": "2026-03-20T22:26:42.203003409Z",
+      "LastWrite": "2026-05-11T21:55:30.920454589Z",
+      "LastSeen": "0001-01-01T00:00:00Z",
+      "LastHandshake": "2026-05-11T21:54:11.535121531Z",
+      "Online": true,
+      "ExitNode": false,
+      "ExitNodeOption": false,
+      "Active": true,
+      "PeerAPIURL": [
+        "http://100.71.19.66:41849",
+        "http://[fd7a:115c:a1e0::8401:13a4]:38214"
+      ],
+      "TaildropTarget": 1,
+      "NoFileSharingReason": "",
+      "InNetworkMap": true,
+      "InMagicSock": true,
+      "InEngine": true,
+      "KeyExpiry": "2026-09-16T22:26:42Z"
+    },
+    "nodekey:dbf88351eb9276d72396e43aa8b109c3323795488bf6291fada48196496dd005": {
+      "ID": "nRGiu3tfrV11CNTRL",
+      "PublicKey": "nodekey:dbf88351eb9276d72396e43aa8b109c3323795488bf6291fada48196496dd005",
+      "HostName": "localhost",
+      "DNSName": "iphone-14-pro-max.tail0f5f56.ts.net.",
+      "OS": "iOS",
+      "UserID": 2249012329677207,
+      "TailscaleIPs": [
+        "100.109.208.6",
+        "fd7a:115c:a1e0::4935:d006"
+      ],
+      "AllowedIPs": [
+        "100.109.208.6/32",
+        "fd7a:115c:a1e0::4935:d006/128"
+      ],
+      "Addrs": null,
+      "CurAddr": "",
+      "Relay": "nyc",
+      "PeerRelay": "",
+      "RxBytes": 0,
+      "TxBytes": 0,
+      "Created": "2026-03-23T01:22:36.193616606Z",
+      "LastWrite": "0001-01-01T00:00:00Z",
+      "LastSeen": "0001-01-01T00:00:00Z",
+      "LastHandshake": "0001-01-01T00:00:00Z",
+      "Online": true,
+      "ExitNode": false,
+      "ExitNodeOption": false,
+      "Active": false,
+      "PeerAPIURL": [
+        "http://100.109.208.6:57675",
+        "http://[fd7a:115c:a1e0::4935:d006]:40515"
+      ],
+      "TaildropTarget": 1,
+      "NoFileSharingReason": "",
+      "InNetworkMap": true,
+      "InMagicSock": true,
+      "InEngine": false,
+      "KeyExpiry": "2026-09-19T01:22:36Z"
+    }
+  },
+  "User": {
+    "2249012329677207": {
+      "ID": 2249012329677207,
+      "LoginName": "kentgale@gmail.com",
+      "DisplayName": "Kent Gale",
+      "ProfilePicURL": "https://lh3.googleusercontent.com/a/ACg8ocK9AfA2wNVYTVOMc4lHZrEQCMsLhvUAJPmg7wU7glHLAq6CHA=s96-c"
+    }
+  },
+  "ClientVersion": null,
+  "_fixture_note": "Synthetic: BackendState changed to NeedsLogin to exercise the alert path."
+}

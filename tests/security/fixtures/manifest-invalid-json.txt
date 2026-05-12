@@ -1,0 +1,2 @@
+{"credentials": [{"name": "broken", 
+Note: this fixture has trailing unparseable content and is missing closing braces.

@@ -9,12 +9,14 @@
       "scope": "Vikunja web UI and API authentication",
       "storage": "set interactively during first-run setup",
       "persisted": false,
-      "used_by": ["setup_vikunja.py (interactive prompt)"],
+      "used_by": [
+        "setup_vikunja.py (interactive prompt)"
+      ],
       "deployed_by": "F001",
       "notes": "JWT obtained at runtime via /api/v1/login, not stored",
       "expiry_policy": "session",
       "review_cadence": "n/a",
-      "expiry_notes": "JWTs expire after a session. No persistent credential stored — no expiry risk.",
+      "expiry_notes": "JWTs expire after a session. No persistent credential stored \u2014 no expiry risk.",
       "last_reviewed": "2026-04-06"
     },
     {
@@ -23,7 +25,9 @@
       "scope": "Restic backup repository encryption",
       "storage": "/home/claude/.config/restic/password",
       "host": "office2",
-      "used_by": ["backup.sh"],
+      "used_by": [
+        "backup.sh"
+      ],
       "deployed_by": "manual",
       "expiry_policy": "none",
       "review_cadence": "annual",
@@ -36,7 +40,9 @@
       "scope": "Tailscale device authentication",
       "storage": "managed by tailscaled",
       "host": "office2",
-      "used_by": ["tailscale daemon"],
+      "used_by": [
+        "tailscale daemon"
+      ],
       "deployed_by": "manual",
       "expiry_policy": "system-managed",
       "review_cadence": "monitor-activity",
@@ -49,7 +55,9 @@
       "scope": "Claude API direct access for OpenClaw",
       "storage": "/home/claude/.openclaw/agents/main/agent/auth-profiles.json (native), /data/services/openclaw/secrets/anthropic (backup)",
       "host": "office2",
-      "used_by": ["openclaw-gateway"],
+      "used_by": [
+        "openclaw-gateway"
+      ],
       "deployed_by": "F002",
       "notes": "Stored via OpenClaw native auth mechanism. Backup copy in credential store.",
       "expiry_policy": "none",
@@ -64,9 +72,11 @@
       "scope": "OpenClaw agent access to Vikunja REST API",
       "storage": "/data/services/openclaw/secrets/vikunja-api",
       "host": "office2",
-      "used_by": ["openclaw-gateway"],
+      "used_by": [
+        "openclaw-gateway"
+      ],
       "deployed_by": "F002",
-      "notes": "Persistent token named openclaw-agent, generated in Vikunja UI. Token endpoints require JWT auth — API token metadata not queryable via API.",
+      "notes": "Persistent token named openclaw-agent, generated in Vikunja UI. Token endpoints require JWT auth \u2014 API token metadata not queryable via API.",
       "expiry_policy": "none",
       "review_cadence": "annual",
       "expiry_notes": "Vikunja API tokens are persistent and do not expire until manually deleted via the Vikunja web UI. No automated expiry. Created during F002 deployment (2026-03-26).",
@@ -78,9 +88,11 @@
       "scope": "WhatsApp linked-device session via Baileys",
       "storage": "~/.openclaw/credentials/whatsapp/ (managed by OpenClaw/Baileys)",
       "host": "office2",
-      "used_by": ["openclaw-gateway"],
+      "used_by": [
+        "openclaw-gateway"
+      ],
       "deployed_by": "F004",
-      "notes": "QR code linked-device pairing. Session managed internally by OpenClaw — not in external credential store. Re-pair via openclaw channels login if session drops.",
+      "notes": "QR code linked-device pairing. Session managed internally by OpenClaw \u2014 not in external credential store. Re-pair via openclaw channels login if session drops.",
       "expiry_policy": "rolling",
       "review_cadence": "monitor-activity",
       "expiry_notes": "WhatsApp linked-device sessions expire after ~14 days of inactivity or if the primary device revokes the link. Current state (2026-04-06): linked, running, connected, last activity 2h ago. Monitor via 'openclaw channels status'.",
@@ -92,7 +104,9 @@
       "scope": "Personal Google Calendar access (kent@intentional.biz + shared kentgale@gmail.com)",
       "storage": "/data/services/openclaw/secrets/google-calendar-client-id, google-calendar-client-secret, google-calendar-refresh-token",
       "host": "office2",
-      "used_by": ["google-calendar skill (F020)"],
+      "used_by": [
+        "google-calendar skill (F020)"
+      ],
       "deployed_by": "F020",
       "notes": "OAuth2 client credentials (Desktop app type) + refresh token. Access tokens obtained at runtime (3600s TTL), never stored. Refresh token authorized 2026-04-06. Calendars accessible: kent@intentional.biz (owner), kentgale@gmail.com (writer, shared).",
       "expiry_policy": "rolling",
@@ -107,14 +121,18 @@
       "scope": "GitHub classic PAT for kg-felix-bot service-account identity. Used by Felix agents (currently felix-doc-auditor) for git push and gh CLI actions, providing a separate audit-trail identity from kentonium3.",
       "storage": "/home/claude/.config/gh/hosts.yml",
       "host": "office2",
-      "used_by": ["felix-doc-auditor", "future Felix agents operating as kg-felix-bot"],
+      "used_by": [
+        "felix-doc-auditor",
+        "future Felix agents operating as kg-felix-bot"
+      ],
       "deployed_by": "#215",
       "notes": "Classic PAT with scopes: repo, read:org, workflow. Bot account at github.com/kg-felix-bot has 2FA enabled; email alias kentgale+felix-bot@gmail.com routes to kentgale@gmail.com. Required classic (not fine-grained) because fine-grained PATs limit access to resources the bot owns; bot is a collaborator on kentonium3/kg-automation, not an owner.",
       "expiry_policy": "manual-rotation",
       "review_cadence": "annual",
       "expiry_notes": "Classic GitHub PATs may be set to expire after N days or never. Created 2026-05-11 with no expiry for stable bot operation. Rotate annually or sooner if compromise is suspected. Rotation procedure: generate new PAT in github.com settings for kg-felix-bot account, then on office2: gh auth logout && gh auth login --hostname github.com --git-protocol https with the new token.",
       "created_date": "2026-05-11",
-      "last_reviewed": "2026-05-11"
+      "last_reviewed": "2025-06-05",
+      "_fixture_note": "last_reviewed backdated to 2025-06-05 (340 days before today=2026-05-11) so annual cadence boundary falls inside 30-day warning window."
     },
     {
       "name": "kentonium3-pat",
@@ -122,9 +140,11 @@
       "scope": "GitHub auth credential for Kent's personal kentonium3 identity. Used for manual git operations and gh CLI from Mac. Distinct from kg-felix-bot-pat which is the agent identity on office2.",
       "storage": "macOS Keychain (managed by gh CLI; profile recorded in ~/.config/gh/hosts.yml)",
       "host": "kents-macbook-pro",
-      "used_by": ["Kent (manual git + gh CLI from Mac)"],
+      "used_by": [
+        "Kent (manual git + gh CLI from Mac)"
+      ],
       "deployed_by": "manual (predates manifest tracking)",
-      "notes": "OAuth user-to-server token issued by GitHub CLI's OAuth app (token prefix gho_). Scopes as of 2026-05-11: gist, project, read:org, repo, workflow. This is NOT a manually-created classic or fine-grained PAT — rotation is via `gh auth login --hostname github.com`, not via the 'Generate new PAT' flow in GitHub settings. office2 does not hold a copy of this credential; kgale and claude users on office2 use the kg-felix-bot identity instead.",
+      "notes": "OAuth user-to-server token issued by GitHub CLI's OAuth app (token prefix gho_). Scopes as of 2026-05-11: gist, project, read:org, repo, workflow. This is NOT a manually-created classic or fine-grained PAT \u2014 rotation is via `gh auth login --hostname github.com`, not via the 'Generate new PAT' flow in GitHub settings. office2 does not hold a copy of this credential; kgale and claude users on office2 use the kg-felix-bot identity instead.",
       "expiry_policy": "manual-rotation",
       "review_cadence": "annual",
       "expiry_notes": "OAuth user-to-server tokens issued by gh CLI do not carry a fixed expiry but can be revoked by: rotating via `gh auth logout --hostname github.com && gh auth login --hostname github.com --git-protocol https`; revoking GitHub CLI's OAuth app at https://github.com/settings/applications; account password change; or extended inactivity. macOS Keychain stores the new token automatically after re-auth. Cross-check scopes match expectations after each rotation: `gh auth status` should show `repo`, `read:org`, `workflow` at minimum.",
@@ -142,9 +162,10 @@
     }
   ],
   "rules": [
-    "No credentials in committed files — ever",
+    "No credentials in committed files \u2014 ever",
     "Interactive auth for manual scripts (setup_vikunja.py pattern)",
     "Stored tokens for agent/automated use in office2 scoped secrets store",
     "Credential names are stable identifiers used across documentation and code"
-  ]
+  ],
+  "_fixture_note": "manifest-near-expiry: one credential (kg-felix-bot-pat) has last_reviewed backdated to put it inside the 30-day warning window. Other credentials unchanged. Anchor date: 2026-05-11."
 }

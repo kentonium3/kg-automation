@@ -1,7 +1,7 @@
 {
   "schema_version": "1.1",
   "last_updated": "2026-05-11",
-  "updated_by": "issue-105-doc-auditor + #223-systemd-timer + #208-restic-healthcheck + #202-obsidian-sync-system-level + #203-sync-heartbeat + #199-inbox-schedules",
+  "updated_by": "issue-105-doc-auditor + #223-systemd-timer + #208-restic-healthcheck + #202-obsidian-sync-system-level + #203-sync-heartbeat + #199-inbox-schedules + #115-credential-health-check",
   "services": [
     {
       "name": "vikunja",
@@ -569,6 +569,42 @@
       },
       "config_files": [
         {"path": "/etc/systemd/system/ollama.service", "format": "systemd-unit"}
+      ]
+    },
+    {
+      "name": "credential-health-check",
+      "type": "systemd-timer",
+      "host": "office2",
+      "user": "claude",
+      "systemd_unit": "credential-health-check.timer (user unit) + credential-health-check.service (user oneshot)",
+      "systemd_user": "claude",
+      "schedule": "daily 13:00 UTC (OnCalendar=*-*-* 13:00:00, Persistent=true)",
+      "exec_start": "/usr/bin/python3 -m credential_health_check --manifest /home/claude/kg-automation/docs/design/architecture/data/credential-manifest.json",
+      "timeout_seconds": 600,
+      "timeout_seconds_note": "TimeoutStartSec=10min systemd outer failsafe; expected cycle <10 seconds (NFR-001).",
+      "deployed_by": "#115",
+      "deployed_on": "2026-05-11",
+      "updated_by": "#115",
+      "status": "active",
+      "purpose": "Daily credential expiry health check. Reads credential-manifest.json; for fixed-cadence credentials, alerts via paired GitHub issue + Vikunja task (due_date = boundary - 7 days) when last_reviewed + cadence is within 30 days. For monitor-activity credentials, alerts via GitHub issue only when activity signal drifts. Closes R-003.",
+      "risk_tier": 3,
+      "dependencies": [
+        {"target": "credential-manifest.json", "type": "requires", "description": "Source of truth for tracked credentials"},
+        {"target": "gh-cli", "type": "requires", "description": "GitHub issue filing as kg-felix-bot"},
+        {"target": "vikunja-api", "type": "requires", "description": "Vikunja task filing via API token"},
+        {"target": "tailscale", "type": "requires", "description": "tailscale status --json for tailscale-auth activity signal"},
+        {"target": "openclaw-gateway:18789", "type": "requires", "description": "openclaw channels status for whatsapp-session activity signal"}
+      ],
+      "health_check": {
+        "method": "journal",
+        "endpoint": "journalctl --user -u credential-health-check --since today",
+        "expected": "cycle_end event present from the most recent 13:00 UTC tick",
+        "timeout_seconds": 5
+      },
+      "config_files": [
+        {"path": "~/.config/systemd/user/credential-health-check.timer", "format": "systemd-unit", "source_in_repo": "scripts/office2/credential-health-check.timer"},
+        {"path": "~/.config/systemd/user/credential-health-check.service", "format": "systemd-unit", "source_in_repo": "scripts/office2/credential-health-check.service"},
+        {"path": "/home/claude/kg-automation/scripts/security/credential_health_check/", "format": "python-package", "source_in_repo": "scripts/security/credential_health_check/"}
       ]
     }
   ]

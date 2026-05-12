@@ -2,7 +2,7 @@
   "created_at": "2026-05-11T21:32:22.499819+00:00",
   "friendly_name": "Credential Expiry Health Check",
   "mission_id": "01KRCF92Z12FNBQGY09A51J23M",
-  "mission_number": null,
+  "mission_number": 31,
   "mission_slug": "credential-expiry-health-check-01KRCF92",
   "mission_type": "software-dev",
   "slug": "credential-expiry-health-check-01KRCF92",

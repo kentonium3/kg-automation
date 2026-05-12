@@ -1,0 +1,29 @@
+{
+  "_fixture_note": "Minimal manifest with one well-formed entry and one entry missing required field 'last_reviewed'. Tests the validator's malformed-list path.",
+  "schema_version": "1.1",
+  "last_updated": "2026-05-11",
+  "updated_by": "fixture-WP01",
+  "credentials": [
+    {
+      "name": "good-cred",
+      "type": "api-token",
+      "scope": "Fixture: well-formed for contrast.",
+      "storage": "fixture-path",
+      "host": "fixture",
+      "expiry_policy": "manual-rotation",
+      "review_cadence": "annual",
+      "expiry_notes": "fixture",
+      "last_reviewed": "2026-01-01"
+    },
+    {
+      "name": "missing-last-reviewed-cred",
+      "type": "api-token",
+      "scope": "Fixture: deliberately omits last_reviewed.",
+      "storage": "fixture-path",
+      "host": "fixture",
+      "expiry_policy": "manual-rotation",
+      "review_cadence": "annual",
+      "expiry_notes": "fixture"
+    }
+  ]
+}

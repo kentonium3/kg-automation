@@ -3,7 +3,7 @@ title: Credentials and Secrets
 doc_type: reference
 status: approved
 last_updated: '2026-05-11'
-updated_by: '#227'
+updated_by: '#227 + #115'
 ---
 
 # Credentials and Secrets
@@ -160,6 +160,8 @@ graph TD
 All credentials are protected by the Tailscale-only network posture — office2
 is not publicly reachable. Additional mitigations: UFW, fail2ban, SSH hardening,
 and the ClawHub install approval requirement in the Felix Constitution.
+
+**Credential expiry health check (R-003 closure, #115)**: As of 2026-05-11, an automated daily check (`credential-health-check.service` on office2, fires at 13:00 UTC) reads this manifest, evaluates each credential's `review_cadence` and `last_reviewed`, and files a paired GitHub issue + Vikunja task when a credential is within 30 days of its cadence boundary. The Vikunja task's `due_date = boundary − 7 days` so the existing escalation engine carries the WhatsApp pressure before the actual deadline. `monitor-activity` credentials (`tailscale-auth`, `whatsapp-session`) are evaluated against live activity signals (`tailscale status --json`, `openclaw channels status`) and alerted on drift via a GitHub issue only. See `kitty-specs/credential-expiry-health-check-01KRCF92/` for the design and `scripts/security/credential_health_check/` for the implementation.
 
 **Known risk**: Credentials stored as plaintext files are vulnerable to
 exfiltration if the `claude` account is compromised (e.g., via a malicious

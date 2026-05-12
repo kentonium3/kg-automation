@@ -27,6 +27,7 @@ All services run on office2 unless otherwise noted.
 | Restic Backup | 4AM daily | `/data/services/backup/scripts/backup.sh` | claude | GFS backup to `/mnt/backups/restic-repo` |
 | Security Audit | 3AM daily | `/data/services/security-monitor/scripts/audit.sh` | claude | Baseline drift detection |
 | Obsidian Sync Heartbeat | Every 30 min (`*/30 * * * *`) | `scripts/obsidian/sync-heartbeat.py` (#158) | claude | Probe vault sync propagation; WhatsApp alert on N consecutive failures |
+| Credential Health Check | Daily 13:00 UTC | `credential-health-check.timer` (systemd) → `python3 -m credential_health_check` | claude | Daily credential expiry + activity-signal audit; R-003 |
 | Inbox Processing (morning) | 7 AM ET daily | OpenClaw cron → felix-admin-capture | claude | Obsidian inbox processing |
 | Inbox Processing (midday) | 12 PM ET daily | OpenClaw cron → felix-admin-capture | claude | Obsidian inbox processing |
 | Inbox Processing (afternoon) | 5 PM ET daily | OpenClaw cron → felix-admin-capture | claude | Obsidian inbox processing |
@@ -233,6 +234,16 @@ openclaw cron add \
 - **Source in repo**: `scripts/openclaw/observation/summarize.py`
 - **Log writer**: `scripts/openclaw/observation/log_action.py` (utility, not a service)
 - **Runbook**: `docs/runbooks/observation-ops.md`
+
+### Credential Health Check (#115, 2026-05-11)
+- **Deployed by**: #115
+- **Type**: systemd user timer + oneshot service (no LLM — pure deterministic Python script)
+- **Schedule**: daily 13:00 UTC via `credential-health-check.timer` (`OnCalendar=*-*-* 13:00:00`, `Persistent=true`)
+- **Per-tick invocation**: `credential-health-check.service` runs `/usr/bin/python3 -m credential_health_check --manifest /home/claude/kg-automation/docs/design/architecture/data/credential-manifest.json`
+- **Source in repo**: `scripts/security/credential_health_check/` (package: `__init__.py`, `manifest.py`, `cadence.py`, `signals.py`, `github_writer.py`, `vikunja_writer.py`, `orchestrator.py`, `__main__.py`)
+- **Purpose**: closes R-003 — automated credential expiry/cadence tracking. For fixed-cadence credentials, alerts 30 days before the review boundary. For `monitor-activity` credentials (`tailscale-auth`, `whatsapp-session`), alerts on activity-signal drift.
+- **Alert path**: paired GitHub issue + Vikunja task. The issue is the audit trail; the task's `due_date = boundary − 7 days` drives the existing escalation engine's WhatsApp pressure window. Activity-staleness alerts are GitHub-only (no Vikunja task — drift is "look at it now," not "rotate by date").
+- **Quickstart / runbook**: `kitty-specs/credential-expiry-health-check-01KRCF92/quickstart.md` (mission-local; promote to `docs/runbooks/credential-health-check-ops.md` in a follow-up if operational learnings accumulate).
 
 ## Schema v1.1 Fields
 
