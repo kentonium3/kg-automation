@@ -1,10 +1,12 @@
 {
   "created_at": "2026-05-12T20:55:27.732794+00:00",
-  "friendly_name": "inbox capture dedup and parser hardening",
+  "friendly_name": "Inbox Capture Dedup and Parser Hardening",
   "mission_id": "01KREZJ8VE320Z8C78Q9VMAP0C",
   "mission_number": null,
   "mission_slug": "inbox-capture-dedup-and-parser-hardening-01KREZJ8",
   "mission_type": "software-dev",
   "slug": "inbox-capture-dedup-and-parser-hardening-01KREZJ8",
-  "target_branch": "main"
+  "source_description": "GitHub issue kentonium3/kg-automation#185 (P1-bug: inbox processing creates duplicate GitHub issues for already-routed notes). Originated 2026-04-17 when felix-admin-capture filed 9 duplicate issues (#177-#184) for one inbox note over 2 days because (a) no duplicate-detection step before issue creation and (b) malformed frontmatter (leading newline before ---) silently treated as 'unprocessed' instead of as a parse error. Discovery picks: (1) dedup mechanism = local routing log at ~/second-brain/agents/state/inbox-routing.jsonl, keyed by inbox-note filename, source-of-truth for 'have I routed this'; (2) parse-failure halts routing AND surfaces a batched 'Inbox quality' GitHub issue per cron run (matches doc-auditor manifest-quality pattern); (3) atomic mark-as-processed stays in scope for new routes (belt-and-suspenders with routing log); (4) added scope: note-level Obsidian callout error marker at top of malformed notes for visual ID, with auto-cleanup on subsequent successful parse. First-run safety: accept-the-risk (R) — inbox has 5 notes, 1 unprocessed and fresh-from-today (not a bug residual); no backfill of existing notes; routing log starts empty.",
+  "target_branch": "main",
+  "vcs": "git"
 }
