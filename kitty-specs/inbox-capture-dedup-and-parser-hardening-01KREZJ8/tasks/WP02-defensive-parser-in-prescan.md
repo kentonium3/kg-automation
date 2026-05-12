@@ -19,6 +19,8 @@ subtasks:
 - T005
 - T006
 - T007
+agent: "claude"
+shell_pid: "4346"
 history:
 - event: created
   at: '2026-05-12T20:55:30Z'
@@ -199,3 +201,7 @@ Extend `scripts/inbox/prescan.py` to (a) classify malformed-frontmatter notes as
 ```bash
 spec-kitty agent action implement WP02 --agent <name>
 ```
+
+## Activity Log
+
+- 2026-05-12T21:20:05Z – claude – shell_pid=4346 – Started implementation via action command
