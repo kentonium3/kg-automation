@@ -425,15 +425,25 @@ via `openclaw agent --agent <name>` commands in its AGENTS.md.
 ### Security note
 
 9. **Gateway auth token visible in openclaw.json** — the token
-   `c3cb8a442c6cf639fe6d5eeeb25ea6eb8ed48d0d6892e653` is in the config file.
-   This is the gateway's local auth token. Since the gateway binds to loopback
-   only, exposure risk is minimal, but it should not be committed to the repo.
-   (It is not — the config file lives only on office2.)
+   `<REDACTED: gateway auth token — see SECURITY NOTE below>` is in the config
+   file. This is the gateway's local auth token. Since the gateway binds to
+   loopback only, exposure risk is minimal, but it should not be committed to
+   the repo. (It is not — the config file lives only on office2.)
 
 10. **Google web search API key in openclaw.json** — the Gemini API key
-    `AIzaSyBHdJXsGxpH5r2_xJowMNgEcPAogKZfk5c` is in the plugins config. Same
-    exposure considerations as the gateway token — lives on office2 only, not
-    in the repo.
+    `<REDACTED: Gemini API key — see SECURITY NOTE below>` is in the plugins
+    config. Same exposure considerations as the gateway token — lives on
+    office2 only, not in the repo.
+
+> **SECURITY NOTE (2026-05-12, post-hoc redaction):** This archive doc was
+> committed on 2026-04-08 with the literal credential values inline,
+> contradicting its own statement that they "live on office2 only, not in
+> the repo." Google's secret-scanning notified Kent on 2026-05-12. The
+> values have been redacted in the current state but **remain in git
+> history** at commit `69446f5` (creation) and `9b942ae` (archive move).
+> Both credentials must be rotated regardless of whether the history is
+> rewritten: the Gemini API key at https://aistudio.google.com/app/apikey,
+> the gateway auth token via OpenClaw's auth-rotation procedure on office2.
 
 ---
 

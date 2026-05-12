@@ -56,8 +56,13 @@ SECRET_PATTERNS = [
     re.compile(r'AKIA[0-9A-Z]{16}'),
     re.compile(r'ASIA[0-9A-Z]{16}'),
     re.compile(r'ghp_[0-9A-Za-z]{36,}'),
+    re.compile(r'gho_[0-9A-Za-z]{36,}'),
+    re.compile(r'github_pat_[0-9A-Za-z_]{20,}'),
     re.compile(r'xox[abp]-[0-9A-Za-z-]{20,}'),
     re.compile(r'-----BEGIN PRIVATE KEY-----'),
+    re.compile(r'AIzaSy[0-9A-Za-z_-]{33}'),
+    re.compile(r'sk-[a-zA-Z0-9]{20,}'),
+    re.compile(r'sk-ant-[a-zA-Z0-9_-]{20,}'),
 ]
 
 ALLOWLIST_FILE = ROOT / 'tooling' / 'ci-secret-scan-allowlist.txt'
@@ -80,6 +85,14 @@ SKIP_DIRS = {'.git', 'node_modules', '.venv', '_templates', '.obsidian',
              'kitty-specs', '.agents', '.claude', '.codex', '.codex-tmp-home',
              '.gemini', '.github', 'scripts', 'research', 'diagnostics',
              '.pytest_cache', 'temp'}
+
+# Directories the SECRET scanner skips. NOTE: 'archive' is intentionally
+# NOT in this set — archived docs are still committed to the public repo
+# and must be scanned. A 2026-04-08 leak of a Google API key into
+# docs/archive/openclaw-runtime-state-audit.md remained undetected for a
+# month because the secret scanner reused SKIP_DIRS.
+SECRET_SCAN_SKIP_DIRS = {'.git', 'node_modules', '.venv', '.kittify',
+                         '.codex-tmp-home', '.pytest_cache', 'temp'}
 
 def is_blocker(check_type):
     return check_type in POLICY.get('blockers', [])
@@ -145,10 +158,13 @@ for md in ROOT.rglob('*.md'):
                 is_blocker=is_blocker('formats'))
 
 # ---------- 2) Secret scan ----------
+# Uses SECRET_SCAN_SKIP_DIRS (narrower than SKIP_DIRS) — scans archive/,
+# kitty-specs/, .github/, scripts/, and similar that frontmatter validation
+# skips. Anything committed to the public repo must be scanned.
 for p in ROOT.rglob('*'):
     if p.is_dir():
         continue
-    if any(seg in p.parts for seg in SKIP_DIRS):
+    if any(seg in p.parts for seg in SECRET_SCAN_SKIP_DIRS):
         continue
     rel = str(p).replace('\\', '/').lstrip('./')
     if rel in EXCLUDE_SECRET_SCAN:
