@@ -3,7 +3,7 @@ title: Credentials and Secrets
 doc_type: reference
 status: approved
 last_updated: '2026-05-11'
-updated_by: '#227 + #115'
+updated_by: '#227 + #115 + #115-narrative-sync'
 ---
 
 # Credentials and Secrets
@@ -62,14 +62,22 @@ interact with them directly.
 
 ### 5. gh CLI auth store
 
-Used by: `kg-felix-bot-pat`
+Used by: `kg-felix-bot-pat`, `kentonium3-pat`
 
-The GitHub CLI (`gh`) stores authentication tokens in
-`~/.config/gh/hosts.yml` under the `claude` user on office2. Felix agents
-shell out to `gh` and `git push` — both transparently use this token when
-operating as the `kg-felix-bot` service-account identity. See
-[`identity-model.md` §Agent Service Accounts](<./identity-model.md#agent-service-accounts>)
-for the identity model.
+The GitHub CLI (`gh`) stores authentication tokens in two locations
+depending on host:
+
+- **office2** (claude user) — `/home/claude/.config/gh/hosts.yml` holds the
+  `kg-felix-bot-pat` classic PAT. Felix agents shell out to `gh` and
+  `git push` and transparently use this token. See
+  [`identity-model.md` §Agent Service Accounts](<./identity-model.md#agent-service-accounts>)
+  for the identity model.
+- **Mac** (Kent's user) — macOS Keychain (managed by `gh` CLI) holds the
+  `kentonium3-pat` OAuth app token (issued by GitHub CLI's web-flow
+  login). Used for Kent's manual git operations and `gh` CLI invocations.
+
+The two tokens are distinct identities; office2 never holds a copy of
+`kentonium3-pat` and Mac never holds `kg-felix-bot-pat`.
 
 ---
 
@@ -97,7 +105,8 @@ graph TD
     end
 
     subgraph "gh CLI auth store"
-        GH[kg-felix-bot-pat<br/>classic PAT]
+        GH[kg-felix-bot-pat<br/>classic PAT — office2]
+        GHK[kentonium3-pat<br/>OAuth app token — Mac Keychain]
     end
 
     subgraph "Consumers"
@@ -107,6 +116,7 @@ graph TD
         TS[tailscaled]
         UI[Vikunja web UI<br/>setup_vikunja.py]
         FA[Felix agents<br/>felix-doc-auditor]
+        KM[Kent on Mac<br/>manual git + gh CLI]
     end
 
     G -->|gog CLI| SK
@@ -117,6 +127,7 @@ graph TD
     T -->|daemon-managed| TS
     VA -->|runtime JWT| UI
     GH -->|gh CLI / git push| FA
+    GHK -->|gh CLI / git push| KM
 ```
 
 ---
@@ -133,6 +144,7 @@ graph TD
 | `whatsapp-session` | session | OpenClaw native (Baileys) | `openclaw-gateway` |
 | `personal-google` | OAuth2 | gog auth store | `gog` CLI via google-calendar skill |
 | `kg-felix-bot-pat` | classic PAT | gh CLI auth store — `/home/claude/.config/gh/hosts.yml` | `felix-doc-auditor` and future Felix agents (git push, `gh` CLI) |
+| `kentonium3-pat` | OAuth app token | gh CLI auth store — macOS Keychain (managed by `gh` CLI on Mac) | Kent's manual git + `gh` CLI from Mac |
 
 ---
 
