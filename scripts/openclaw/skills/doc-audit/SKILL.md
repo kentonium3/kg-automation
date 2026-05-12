@@ -11,8 +11,11 @@ description: >-
   invocation surface (TOOLS.md), or the GitHub Actions workflows that
   create the audit issues in the first place. Approval at Level 1 is
   via GitHub issue labels (v1.2.0+); the previous WhatsApp flow was
-  replaced — see #207.
-version: 1.4.1
+  replaced — see #207. As of v1.5.0 (#245), frontmatter-only edits
+  (Tier A per §4.1.a) auto-commit without the Level-1 approval gate;
+  content-touching edits (Tier B per §4.1.b) continue to require
+  approval.
+version: 1.5.0
 ---
 
 # Doc-Audit Skill
@@ -101,19 +104,40 @@ Execute these steps in order. Steps map 1:1 to the lifecycle in
      audit, release the lock. Done. **No human gate required** at any
      autonomy level — debt issues are themselves the deferred work.
    - **Edit-bearing audit** (one or more high-confidence edits proposed):
-     proceed to step 9.
-9. **Level 1 approval gate (GitHub issue)** — Assisted level only. Skip
-   this and steps 10–11 at Level 2+ (commit directly, then jump to
-   step 12).
+     proceed to step 8.5.
+
+8.5. **Tier A auto-commit pass (v1.5.0+, no approval gate).** Partition the
+   proposed high-confidence edits into **Tier A** (per §4.1.a — frontmatter
+   metadata only) and **Tier B** (per §4.1.b — content-touching).
+
+   - **If any Tier A edits exist**: commit them atomically per §7 commit
+     format. The subject line includes `[tier-a]` to mark the bypass;
+     the body lists the bumped fields. This commit lands directly with
+     no `audit-pending-approval` issue.
+   - **After the Tier A commit** (or if there were no Tier A edits):
+     - If Tier B is empty: post the audit summary comment listing any
+       Tier A edits applied + any debt/missing issues filed, close the
+       originating audit, release the lock. Done.
+     - If Tier B is non-empty: proceed to step 9. The Tier A commit (if
+       any) is referenced in the pending-approval issue so Kent can see
+       what already landed.
+
+   Constitutional and scope guardrails (§4.3) apply unchanged — a Tier A
+   edit that targets a forbidden path is **never** auto-committed; it is
+   converted to a debt issue per §4.3.
+
+9. **Level 1 approval gate (GitHub issue) — Tier B only.** Assisted
+   level only. Skip this and steps 10–11 at Level 2+ (commit directly,
+   then jump to step 12).
 
    At Level 1, file an **"Audit #N: pending approval"** issue per the
    contract at
    `kitty-specs/felix-doc-auditor-agent-01KR7JK9/contracts/audit-pending-approval-issue.template.md`.
-   The issue body lists each proposed edit as a numbered before/after
-   diff block, cross-references the originating audit + any debt
-   issues just filed, and includes the label-based decision instructions.
-   Apply labels: `audit-pending-approval`, plus the matching `area/*`
-   labels.
+   The issue body lists each proposed Tier B edit as a numbered
+   before/after diff block, cross-references the originating audit + any
+   debt issues just filed + any Tier A commit already landed, and
+   includes the label-based decision instructions. Apply labels:
+   `audit-pending-approval`, plus the matching `area/*` labels.
 
    Comment on the originating audit issue: "Pending review at #<new>"
    and **leave the audit open** with the `status:in-progress` label
@@ -137,23 +161,50 @@ Misclassifying a judgment gap as high-confidence risks committing the
 wrong content; misclassifying a high-confidence edit as judgment floods
 the debt queue with trivia. Apply these rules verbatim.
 
-### 4.1 High-confidence edits (commit directly after Level 1 approval)
+### 4.1 High-confidence edits
 
 The following edit types are **deterministic** — the correct value is
-unambiguous given the system-state source — and qualify as high confidence:
+unambiguous given the system-state source — and qualify as high
+confidence. They split into two tiers based on whether the edit touches
+content or only frontmatter metadata.
+
+#### 4.1.a Tier A — auto-commit (v1.5.0+, no approval gate)
+
+Pure frontmatter / metadata edits. No content, paths, values, or
+references substantively change. These auto-commit at Level 1 without
+filing a pending-approval issue, per §3 step 8.5.
 
 1. **Frontmatter `last_updated` / `last_validated` / `revision` updates**
    after a confirmed change to the doc's subject (e.g., the inventory
    was modified — bump its frontmatter date).
+4. **`updated_by` references for new entries** — when adding a
+   newly-confirmed entry to a JSON inventory, populate `updated_by` with
+   the issue or mission ID that introduced it. (Sequential numbering
+   preserved from the original §4.1 enumeration for cross-reference
+   stability.)
+
+Tier A scope is intentionally narrow: only fields where the correct
+value is **a date Kent already determined** (today) or **an audit-trail
+ID Kent already chose** (the originating issue/mission). The agent does
+not invent these — it copies them from the audit's own metadata. Risk
+is bounded to "wrong date / wrong attribution," both trivially
+self-correcting on the next cycle and visible in `git log`.
+
+The forbidden-path guardrail in §4.3 applies unchanged — a frontmatter
+bump targeting any forbidden file is **never** auto-committed.
+
+#### 4.1.b Tier B — Level-1 approval required
+
+Edits whose correct value has a "right answer" beyond date arithmetic
+or audit-trail ID propagation. These continue through the standard
+pending-approval issue gate at Level 1.
+
 2. **Service version numbers** in `service-inventory.json` when the
    triggering diff confirms an upgrade. Cross-check against the running
    container if a `docker ps`-equivalent source is available.
 3. **File paths** after a confirmed rename. The diff must show the move
    (`R100  old/path -> new/path`); the new path must be unambiguous in
    the rest of the repo.
-4. **`updated_by` references for new entries** — when adding a
-   newly-confirmed entry to a JSON inventory, populate `updated_by` with
-   the issue or mission ID that introduced it.
 5. **Removing dead references after a file deletion** — when the diff
    shows `D    old/path`, edit any docs that link to that path to remove
    the link or replace it with the surviving reference.
@@ -165,7 +216,7 @@ unambiguous given the system-state source — and qualify as high confidence:
    governance decision (e.g., a commit titled `docs(governance): promote
    <agent> to <level>` referencing a Felix Constitution promotion review).
 
-These seven categories are exhaustive at v1.0.0. Any edit outside this
+These seven categories are exhaustive at v1.5.0. Any edit outside this
 list is **judgment**, not high confidence — even if it feels obvious.
 Add new high-confidence categories by versioning this skill, not by
 extrapolation in flight.
@@ -271,10 +322,8 @@ missing artifact (Section 8).
 
 ## 7. Commit Format
 
-For approved high-confidence edits, produce **one commit per audit
-issue** (atomicity per FR-002). The full contract lives at
-`kitty-specs/felix-doc-auditor-agent-01KR7JK9/contracts/commit-message.template.md`;
-the format is reproduced here for self-containment:
+Two commit shapes share one format. Tier A auto-commits (§3 step 8.5)
+and Tier B post-approval commits (§3 step 9) both use:
 
 ```
 chore(doc-audit): <one-line summary> (audit: #<N>)
@@ -287,13 +336,25 @@ Refs #<audit-issue-number>.
 Co-Authored-By: felix-doc-auditor <noreply@kg-automation.local>
 ```
 
+The full contract lives at
+`kitty-specs/felix-doc-auditor-agent-01KR7JK9/contracts/commit-message.template.md`.
+
 Rules:
 
 - Subject ≤72 chars where possible.
+- For **Tier A auto-commits**, prefix the summary with `[tier-a]`. Example:
+  `chore(doc-audit): [tier-a] bump last_updated on 3 docs (audit: #181)`.
+  This makes the bypass visible in `git log` at a glance and lets
+  reviewers filter for them when auditing the auditor.
+- For **Tier B approved commits**, no prefix. Example:
+  `chore(doc-audit): correct service version in service-inventory.json (audit: #181)`.
 - Body is a bullet list of edits — one bullet per file (group sub-changes
   under one bullet if they touch the same file).
 - Footer always includes `Refs #<N>.` and the `Co-Authored-By` line.
-- If zero edits are approved, no commit is made — debt issues only.
+- One commit per audit per tier — if an audit has both Tier A and Tier B
+  edits, the Tier A commit lands in step 8.5 and the Tier B commit lands
+  later in step 12 after approval. They reference the same audit issue.
+- If zero edits qualify (or all are debt/missing), no commit is made.
 
 ## 8. Docs-Debt Issue Template
 

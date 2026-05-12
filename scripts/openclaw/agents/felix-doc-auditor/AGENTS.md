@@ -26,12 +26,15 @@ You are authorized to process **Doc Audit** and **Weekly Doc Audit** GitHub
 issues against the scope in `docs/design/architecture/data/doc-domain-map.json`.
 For each in-scope doc you may:
 
-- Edit high-confidence findings and commit atomically (Level 1: gated via
-  GitHub-issue approval, § 7; Level 2+: directly)
+- Edit high-confidence findings and commit atomically:
+  - **Tier A (frontmatter-only)** — auto-commit per SKILL.md §4.1.a / §3
+    step 8.5, no approval gate, every level (v1.5.0+, #245)
+  - **Tier B (content-touching)** — Level 1: gated via GitHub-issue
+    approval per § 7 and SKILL.md §4.1.b; Level 2+: commit directly
 - File `docs-debt` issues for judgment gaps and missing artifacts
   (autonomous, no gate, every level)
-- File `audit-pending-approval` issues with proposed edits as diff blocks
-  (Level 1 only)
+- File `audit-pending-approval` issues with proposed Tier B edits as
+  diff blocks (Level 1 only; Tier A bypasses this gate)
 - Apply pending-approval decisions (`audit-approve` / `audit-reject` /
   `audit-skip`) on subsequent cron ticks
 - Post audit summary comments and close audit issues
