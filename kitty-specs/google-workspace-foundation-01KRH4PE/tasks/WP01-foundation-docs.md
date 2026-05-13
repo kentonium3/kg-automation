@@ -423,3 +423,4 @@ This stub is intentional placeholder. Update when the second project is set up.
 - 2026-05-13T17:10:31Z – claude:opus-4.7:implementer:implementer – shell_pid=16525 – Assigned agent via action command
 - 2026-05-13T17:17:37Z – claude:opus-4.7:implementer:implementer – shell_pid=16525 – Implementation complete. T001-T007 done in-lane. Post-merge operator regression smoke tests deferred per WP scope.
 - 2026-05-13T17:18:21Z – codex:gpt-5:reviewer:reviewer – shell_pid=18094 – Started review via action command
+- 2026-05-13T17:20:27Z – codex:gpt-5:reviewer:reviewer – shell_pid=18094 – Review passed (codex:gpt-5:reviewer): T001-T007 approved. Runbook complete with all 3 pitfalls, JSON files valid, archive history preserved via git mv, scope discipline maintained (no agent prompts touched, no legacy files deleted, no new code). Full verdict at /tmp/codex-verdict-WP01-100.md.
