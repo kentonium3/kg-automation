@@ -25,10 +25,10 @@
 | T011 | Write `tests/inbox/test_callout_marker.py` covering inject (insert / replace-in-place / preserve-content), strip (present / absent / preserve), atomic-write | WP03 | — | [D] |
 | T012 | Implement `scripts/inbox/file_inbox_quality_issue.py` per `contracts/inbox-quality-issue-writer.md` | WP04 | — | [D] |
 | T013 | Write `tests/inbox/test_inbox_quality_issue_writer.py` covering dedup (existing / fuzzy / empty) + new-issue path + title/body templating + failure paths | WP04 | — | [D] |
-| T014 | Update `scripts/openclaw/agents/felix-admin-capture/AGENTS.md` §Step 1 to consume `parse_failures` + `dedup_skipped` from prescan output | WP05 | — |
-| T015 | Update AGENTS.md §Step 5 (and new sub-steps) to invoke `append_routing_entry.py` after route + invoke `inject_parse_error_marker.py` at end-of-turn | WP05 | — |
-| T016 | Update AGENTS.md to invoke `file_inbox_quality_issue.py` at end-of-turn when parse_failures non-empty | WP05 | — |
-| T017 | Update AGENTS.md to handle `marker_cleanup_needed` (invoke `strip_parse_error_marker.py` during Step 5 frontmatter write) | WP05 | — |
+| T014 | Update `scripts/openclaw/agents/felix-admin-capture/AGENTS.md` §Step 1 to consume `parse_failures` + `dedup_skipped` from prescan output | WP05 | — | [D] |
+| T015 | Update AGENTS.md §Step 5 (and new sub-steps) to invoke `append_routing_entry.py` after route + invoke `inject_parse_error_marker.py` at end-of-turn | WP05 | — | [D] |
+| T016 | Update AGENTS.md to invoke `file_inbox_quality_issue.py` at end-of-turn when parse_failures non-empty | WP05 | — | [D] |
+| T017 | Update AGENTS.md to handle `marker_cleanup_needed` (invoke `strip_parse_error_marker.py` during Step 5 frontmatter write) | WP05 | — | [D] |
 | T018 | Add `service-inventory.json` notes to `felix-admin-capture` agent entry mentioning the new routing log state file at `~/second-brain/agents/state/inbox-routing.jsonl` | WP06 | — |
 | T019 | Update `service-inventory.md` narrative to reflect the new state file + behavioral summary | WP06 | [P] with T018 |
 | T020 | Update `docs/runbooks/inbox-ops.md` with the new operator workflow ("when an Inbox quality issue appears, ...") | WP06 | [P] |
@@ -161,10 +161,10 @@ WP01 (foundation: routing-log module + fixtures)
 
 **Subtasks**:
 
-- [ ] T014 Update §Step 1 to consume `parse_failures` + `dedup_skipped` from prescan output (WP05)
-- [ ] T015 Update §Step 5 (and new sub-steps) to invoke `append_routing_entry.py` after route + invoke `inject_parse_error_marker.py` at end-of-turn (WP05)
-- [ ] T016 Add new step: invoke `file_inbox_quality_issue.py` at end-of-turn when parse_failures non-empty (WP05)
-- [ ] T017 Update AGENTS.md to handle `marker_cleanup_needed` (invoke `strip_parse_error_marker.py` during Step 5 frontmatter write) (WP05)
+- [x] T014 Update §Step 1 to consume `parse_failures` + `dedup_skipped` from prescan output (WP05)
+- [x] T015 Update §Step 5 (and new sub-steps) to invoke `append_routing_entry.py` after route + invoke `inject_parse_error_marker.py` at end-of-turn (WP05)
+- [x] T016 Add new step: invoke `file_inbox_quality_issue.py` at end-of-turn when parse_failures non-empty (WP05)
+- [x] T017 Update AGENTS.md to handle `marker_cleanup_needed` (invoke `strip_parse_error_marker.py` during Step 5 frontmatter write) (WP05)
 
 **Implementation sketch**: AGENTS.md is the LLM agent's prompt. Edits are mostly natural-language with embedded bash commands. Be explicit about ordering: read prescan → process unprocessed_paths → for each, write Step 5 (which now includes strip-marker if needed + append-routing-log + atomic status:processed) → at end-of-turn, file Inbox-quality issue if any parse_failures + inject markers.
 
