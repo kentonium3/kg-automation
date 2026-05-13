@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
-  "last_updated": "2026-05-11",
-  "updated_by": "#105 + #198",
+  "last_updated": "2026-05-13",
+  "updated_by": "#253-step-5a-6-consolidation + #254-atomic-write-perm-preservation + #256-scope-discipline-guardrails + #105 + #198",
   "description": "Maps area labels to documentation files requiring verification when that domain changes. Used by doc-audit-trigger.yml and the future felix-doc-auditor agent (#105).",
   "domains": {
     "area/infrastructure": [
@@ -40,6 +40,8 @@
       "docs/design/felix-capability-roadmap.md",
       "docs/design/architecture/data/capabilities-schema.json",
       "docs/design/architecture/data/catalog-schema.json",
+      "docs/design/architecture/service-inventory.md",
+      "docs/design/architecture/data/service-inventory.json",
       "docs/runbooks/openclaw-ops.md",
       "docs/runbooks/openclaw-agent-setup.md"
     ],
