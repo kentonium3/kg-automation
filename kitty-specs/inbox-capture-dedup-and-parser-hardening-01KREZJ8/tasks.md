@@ -23,8 +23,8 @@
 | T009 | Implement `scripts/inbox/strip_parse_error_marker.py` per same contract | WP03 | [P] with T008 | [D] |
 | T010 | Implement `scripts/inbox/append_routing_entry.py` CLI wrapper per `contracts/routing-log.md` | WP03 | [D] |
 | T011 | Write `tests/inbox/test_callout_marker.py` covering inject (insert / replace-in-place / preserve-content), strip (present / absent / preserve), atomic-write | WP03 | — | [D] |
-| T012 | Implement `scripts/inbox/file_inbox_quality_issue.py` per `contracts/inbox-quality-issue-writer.md` | WP04 | — |
-| T013 | Write `tests/inbox/test_inbox_quality_issue_writer.py` covering dedup (existing / fuzzy / empty) + new-issue path + title/body templating + failure paths | WP04 | — |
+| T012 | Implement `scripts/inbox/file_inbox_quality_issue.py` per `contracts/inbox-quality-issue-writer.md` | WP04 | — | [D] |
+| T013 | Write `tests/inbox/test_inbox_quality_issue_writer.py` covering dedup (existing / fuzzy / empty) + new-issue path + title/body templating + failure paths | WP04 | — | [D] |
 | T014 | Update `scripts/openclaw/agents/felix-admin-capture/AGENTS.md` §Step 1 to consume `parse_failures` + `dedup_skipped` from prescan output | WP05 | — |
 | T015 | Update AGENTS.md §Step 5 (and new sub-steps) to invoke `append_routing_entry.py` after route + invoke `inject_parse_error_marker.py` at end-of-turn | WP05 | — |
 | T016 | Update AGENTS.md to invoke `file_inbox_quality_issue.py` at end-of-turn when parse_failures non-empty | WP05 | — |
@@ -140,8 +140,8 @@ WP01 (foundation: routing-log module + fixtures)
 
 **Subtasks**:
 
-- [ ] T012 Implement `scripts/inbox/file_inbox_quality_issue.py` per contracts/inbox-quality-issue-writer.md (WP04)
-- [ ] T013 Write `tests/inbox/test_inbox_quality_issue_writer.py` covering dedup (existing / fuzzy / empty) + new-issue path + title/body templating + failure paths (WP04)
+- [x] T012 Implement `scripts/inbox/file_inbox_quality_issue.py` per contracts/inbox-quality-issue-writer.md (WP04)
+- [x] T013 Write `tests/inbox/test_inbox_quality_issue_writer.py` covering dedup (existing / fuzzy / empty) + new-issue path + title/body templating + failure paths (WP04)
 
 **Implementation sketch**: T012 mirrors the credential-health-check `github_writer.py` shape — shell out to `gh issue list` + `gh issue create`, post-filter for stable prefix, render markdown table body. T013 stubs `subprocess.run`.
 
