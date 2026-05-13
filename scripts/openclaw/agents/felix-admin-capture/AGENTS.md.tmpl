@@ -202,23 +202,22 @@ perform Steps 5a → 5b → 5c in order:
 
 #### Step 5a: Strip stale parse-error markers (if any)
 
-If the file's absolute path appears in prescan's `marker_cleanup_needed`
-list — i.e., it parses cleanly now but still has an old
-`> [!error] felix-capture:` marker from a previous turn — invoke:
+If prescan's `marker_cleanup_needed` list is empty: skip this step.
+
+If `marker_cleanup_needed` is non-empty, invoke the orchestrator helper:
 
 ```bash
-python3 /home/claude/kg-automation/scripts/inbox/strip_parse_error_marker.py \
-  "<absolute path>"
+python3 /home/claude/kg-automation/scripts/inbox/handle_marker_cleanup.py @/tmp/inbox-prescan-latest.json
 ```
 
-Then proceed to Step 5b. The strip and the atomic write are separate
-operations; if strip fails, log it with action type `marker_cleanup_failed`
-and continue — the worst case is a stale marker sitting at the top of a
-routed note, which is cosmetic, not correctness-breaking.
+The helper iterates the list, strips the marker from each note, logs
+one `marker_stripped` action per success, logs `marker_cleanup_error`
+on per-entry failures, and exits non-zero if any strip failed.
 
 Note: §Step 5a also runs in the `unprocessed_count == 0 AND marker_cleanup_needed
-non-empty` branch from Step 1 — call the helper for each path in that
-list even when no routing is happening.
+non-empty` branch from Step 1 — the helper still does the right thing
+when no routing is happening, because it iterates the prescan list
+itself rather than per-note state.
 
 #### Step 5b: Append to the routing log
 
@@ -282,52 +281,19 @@ cron ticks and now appears only in `parse_failures`.
 
 If prescan's `parse_failures` list is empty: skip this step.
 
-If `parse_failures` is non-empty:
+If `parse_failures` is non-empty, invoke the orchestrator helper:
 
-1. Write the `parse_failures` list to a temp file, then pass `@<path>`
-   to the helper. This avoids fragile shell quoting — parse-failure
-   reasons can contain quotes, backticks, and other shell-sensitive
-   characters that would break a direct `--parse-failures '<json>'`
-   invocation.
+```bash
+python3 /home/claude/kg-automation/scripts/inbox/handle_parse_failures.py @/tmp/inbox-prescan-latest.json
+```
 
-   §Step 1 persisted prescan's full JSON output to
-   `/tmp/inbox-prescan-latest.json`. Extract its `parse_failures` field
-   via `jq` and write it to the temp file the helper will read:
-
-   ```bash
-   TMPF=$(mktemp -t inbox-parse-failures.XXXXXX.json)
-   jq -c '.parse_failures' /tmp/inbox-prescan-latest.json > "$TMPF"
-   ISSUE_N=$(python3 /home/claude/kg-automation/scripts/inbox/file_inbox_quality_issue.py \
-     --parse-failures "@$TMPF")
-   rm -f "$TMPF"
-   ```
-
-   The helper prints a single integer to stdout: either an existing open
-   "Inbox quality" issue number (dedup hit) or a newly-filed issue number.
-   `$ISSUE_N` now holds that integer — pass it to the marker injects in
-   step 6.2.
-
-   Log this action with `log_action.py`:
-   - action: `inbox_quality_issue_filed` (new issue) or `inbox_quality_issue_deduped` (existing)
-   - context: `{"issue_number": <N>, "parse_failure_count": <len>}`
-
-2. For each entry in `parse_failures`, inject the marker:
-
-   ```bash
-   python3 /home/claude/kg-automation/scripts/inbox/inject_parse_error_marker.py \
-     "<absolute path>" <issue_number>
-   ```
-
-   The marker write is idempotent — if a marker already exists on the
-   note, it is refreshed in place rather than duplicated.
-
-   Log each injection with `log_action.py`:
-   - action: `parse_error_marker_injected`
-   - context: `{"source_file": "<path>", "issue_number": <N>, "reason": "<prescan reason>"}`
-
-3. If the issue-filing helper or any marker-inject helper exits non-zero,
-   log the failure with action type `parse_failure_handling_error` and
-   continue. The next cron tick will retry the failed leg.
+The helper files (or dedups) the inbox-quality GitHub issue, then
+injects a parse-error marker referencing that issue number into each
+note in the `parse_failures` list, logging one
+`inbox_quality_issue_filed`/`_deduped` action and one
+`parse_error_marker_injected` action per entry. Per-entry failures are
+logged as `parse_failure_handling_error` and do not abort the rest;
+the helper exits non-zero if any leg failed.
 
 ### Step 7: Write the processing log
 
