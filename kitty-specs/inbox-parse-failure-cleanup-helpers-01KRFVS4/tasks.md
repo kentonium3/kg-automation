@@ -8,13 +8,13 @@
 
 | ID | Description | WP | Parallel |
 |---|---|---|---|
-| T001 | Create `scripts/inbox/handle_parse_failures.py` (orchestrates Step 6 — issue file/dedup + marker injection per entry) | WP01 |  |
-| T002 | Create `scripts/inbox/handle_marker_cleanup.py` (orchestrates Step 5a — strip markers per entry) | WP01 | [P] |
-| T003 | Create `tests/inbox/test_handle_parse_failures.py` (5 cases — empty / full-success / dedup-hit / partial-failure / stdout-issue-number) | WP01 | [P] |
-| T004 | Create `tests/inbox/test_handle_marker_cleanup.py` (3 cases — empty / all-succeed / partial-failure) | WP01 | [P] |
-| T005 | Update `scripts/openclaw/agents/felix-admin-capture/AGENTS.md` Step 5a + Step 6 to single-command invocations of the new helpers | WP01 |  |
-| T006 | Mirror T005 edits to `scripts/openclaw/agents/felix-admin-capture/AGENTS.md.tmpl` (keep template + runtime in sync) | WP01 | [P with T005] |
-| T007 | Run local pytest suite — verify 99 existing + 8+ new tests pass | WP01 |  |
+| T001 | Create `scripts/inbox/handle_parse_failures.py` (orchestrates Step 6 — issue file/dedup + marker injection per entry) | WP01 |  | [D] |
+| T002 | Create `scripts/inbox/handle_marker_cleanup.py` (orchestrates Step 5a — strip markers per entry) | WP01 | [D] |
+| T003 | Create `tests/inbox/test_handle_parse_failures.py` (5 cases — empty / full-success / dedup-hit / partial-failure / stdout-issue-number) | WP01 | [D] |
+| T004 | Create `tests/inbox/test_handle_marker_cleanup.py` (3 cases — empty / all-succeed / partial-failure) | WP01 | [D] |
+| T005 | Update `scripts/openclaw/agents/felix-admin-capture/AGENTS.md` Step 5a + Step 6 to single-command invocations of the new helpers | WP01 |  | [D] |
+| T006 | Mirror T005 edits to `scripts/openclaw/agents/felix-admin-capture/AGENTS.md.tmpl` (keep template + runtime in sync) | WP01 | [P with T005] | [D] |
+| T007 | Run local pytest suite — verify 99 existing + 8+ new tests pass | WP01 |  | [D] |
 
 ## Work Package WP01 — Implement Step 5a + Step 6 consolidation helpers
 
@@ -26,13 +26,13 @@
 
 **Included subtasks (review scope — T001–T007)**:
 
-- [ ] T001 Create `scripts/inbox/handle_parse_failures.py` (WP01)
-- [ ] T002 Create `scripts/inbox/handle_marker_cleanup.py` (WP01) [P]
-- [ ] T003 Create `tests/inbox/test_handle_parse_failures.py` (WP01) [P]
-- [ ] T004 Create `tests/inbox/test_handle_marker_cleanup.py` (WP01) [P]
-- [ ] T005 Update AGENTS.md (WP01)
-- [ ] T006 Update AGENTS.md.tmpl (WP01) [P with T005]
-- [ ] T007 Run local pytest suite (WP01)
+- [x] T001 Create `scripts/inbox/handle_parse_failures.py` (WP01)
+- [x] T002 Create `scripts/inbox/handle_marker_cleanup.py` (WP01) [P]
+- [x] T003 Create `tests/inbox/test_handle_parse_failures.py` (WP01) [P]
+- [x] T004 Create `tests/inbox/test_handle_marker_cleanup.py` (WP01) [P]
+- [x] T005 Update AGENTS.md (WP01)
+- [x] T006 Update AGENTS.md.tmpl (WP01) [P with T005]
+- [x] T007 Run local pytest suite (WP01)
 
 **Post-merge operator verification (out of WP01 review scope)**:
 
