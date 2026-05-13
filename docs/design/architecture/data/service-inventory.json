@@ -1,7 +1,7 @@
 {
   "schema_version": "1.1",
-  "last_updated": "2026-05-12",
-  "updated_by": "issue-105-doc-auditor + #223-systemd-timer + #208-restic-healthcheck + #202-obsidian-sync-system-level + #203-sync-heartbeat + #199-inbox-schedules + #115-credential-health-check + #189-vikunja-compose + #185-inbox-capture-dedup",
+  "last_updated": "2026-05-13",
+  "updated_by": "#256-scope-discipline-guardrails + #253-step-5a-6-consolidation + #254-atomic-write-perm-preservation + issue-105-doc-auditor + #223-systemd-timer + #208-restic-healthcheck + #202-obsidian-sync-system-level + #203-sync-heartbeat + #199-inbox-schedules + #115-credential-health-check + #189-vikunja-compose + #185-inbox-capture-dedup",
   "services": [
     {
       "name": "vikunja",
@@ -425,7 +425,8 @@
       "timeout_seconds": 300,
       "session_mode": "isolated",
       "deployed_by": "F008",
-      "updated_by": "#199",
+      "updated_by": "#256-scope-discipline-guardrails + #253-step-5a-6-consolidation + #254-atomic-write-perm-preservation + #185-inbox-capture-dedup + #199-inbox-schedules",
+      "last_updated": "2026-05-13",
       "status": "active",
       "purpose": "4x daily Obsidian inbox processing",
       "runbook": "docs/runbooks/inbox-ops.md",
