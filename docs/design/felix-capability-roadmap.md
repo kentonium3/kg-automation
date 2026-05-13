@@ -197,6 +197,12 @@ EA is ready to expand to additional capability areas when all of the following a
 |---|---|---|---|---|
 | Vault path registry | ✅ Full | #150 (mission 024 — MVP), #152 (mission 026 — extension) | Knowledge Foundation | Mission 024 (#150) shipped the registry MVP for the inbox alone. Mission 026 (#152) extended it to every top-level vault folder, renumbered the folders to a clean 00–09 ordinal sequence, and created the `02-Inbox-Processed/` destination folder. The registry is the single source of truth for vault folder names; consumers reference logical names (`{{VAULT_INBOX}}`, `{{VAULT_INBOX_PROCESSED}}`, etc.) and the deploy script resolves them at build time. The `02-Inbox-Processed/` folder unblocks the `#149` inbox pre-scan helper mission. |
 
+### Infrastructure Core hardening — Inbox parse-failure pipeline
+
+| Capability | Status | Issues | Cluster | Notes |
+|---|---|---|---|---|
+| Inbox parse-failure pipeline | ✅ Verified end-to-end (2026-05-13) | #185 (mission 32 — initial), #254 (mission 33 — perm preservation), #253 (mission 34 — Step 5a/6 consolidation), #256 (scope-discipline guardrails — direct doc patch) | Infrastructure Core | Mission #32 (#185) introduced routing-log dedup, parse-failure classification, and the family of inbox marker helpers (`inject_parse_error_marker.py`, `strip_parse_error_marker.py`, `file_inbox_quality_issue.py`, `append_routing_entry.py`). Canary verification exposed two structural follow-ups. Mission #33 (#254) fixed `_atomic_write` in both marker scripts to preserve target file mode so cross-user access by ob (Obsidian Sync daemon, runs as kgale) is not broken by claude-orphaned `0o600` files. Mission #34 (#253) added two orchestrator helpers — `handle_parse_failures.py` and `handle_marker_cleanup.py` — that collapse the previously multi-step AGENTS.md Step 5a and Step 6 bash recipes into single CLI invocations, applying the principle "deterministic work goes into scripts; LLMs do classification/judgment." #256 added explicit "no unsanctioned reads/edits" scope-discipline prose to AGENTS.md after T011 SC-003 verification surfaced haiku making out-of-prompt `edit` attempts that polluted cron-run status with false errors. End-to-end SC-003 canary verified clean post-#256: cron run `status: ok`, marker correctly injected, dedup against existing inbox-quality issue, ~9s duration (was 31s pre-#256 due to recovery prose). |
+
 **Planned (tracked in GitHub issues, sequenced by dependency)**
 
 | Feature | Type | Cluster | Depends On | Issue |
