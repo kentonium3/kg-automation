@@ -29,7 +29,6 @@ owned_files:
 - scripts/openclaw/agents/felix-doc-auditor/handle_audit_routing.py
 - tests/openclaw/agents/felix-doc-auditor/test_handle_audit_routing.py
 - scripts/openclaw/agents/felix-doc-auditor/AGENTS.md
-- scripts/openclaw/agents/felix-doc-auditor/AGENTS.md.tmpl
 tags: []
 ---
 
@@ -37,7 +36,9 @@ tags: []
 
 ## Objective
 
-Add the felix-doc-auditor orchestrator helper that handles all forward-path audit decision logic (partition by change_type, auto-apply known classes via atomic mode-preserving writes, file pending-approval for any gated subset, post audit summary on originating issue). Update AGENTS.md (and AGENTS.md.tmpl) so the auditor's prompt reads "if any edit proposals, run helper, done" — collapsing three prose sections into a single CLI invocation.
+Add the felix-doc-auditor orchestrator helper that handles all forward-path audit decision logic (partition by change_type, auto-apply known classes via atomic mode-preserving writes, file pending-approval for any gated subset, post audit summary on originating issue). Update AGENTS.md so the auditor's prompt reads "if any edit proposals, run helper, done" — collapsing three prose sections into a single CLI invocation.
+
+**Note on AGENTS.md.tmpl**: felix-doc-auditor does NOT have an AGENTS.md.tmpl (unlike felix-admin-capture). T005 in the subtask list is a no-op verification subtask — it exists to preserve the frontmatter `subtasks` contract; the implementer's task is simply to confirm via `ls scripts/openclaw/agents/felix-doc-auditor/` that no .tmpl mirror is needed.
 
 **Review scope (WP01)**: T001–T005 — new helper + tests + AGENTS.md edits + local pytest pass. Deploy and end-to-end verification (next cron tick, SC-001 + SC-004) are post-merge operator scope (same discipline as missions #33 and #34).
 
@@ -303,21 +304,7 @@ python3 handle_audit_routing.py @/path/to/audit-state.json
 
 ---
 
-### T004 — Mirror T003 edits to `AGENTS.md.tmpl` [P with T003]
-
-**Purpose**: Keep AGENTS.md and AGENTS.md.tmpl in sync (C-002).
-
-**Steps**: Apply the identical edits to AGENTS.md.tmpl. After editing, diff the two files to confirm only pre-existing template-variable differences remain.
-
-**Files**:
-- `scripts/openclaw/agents/felix-doc-auditor/AGENTS.md.tmpl`
-
-**Validation**:
-- [ ] `diff` between AGENTS.md and AGENTS.md.tmpl shows no relevant differences (only pre-existing template variable substitutions).
-
----
-
-### T005 — Run local pytest suite
+### T004 — Run local pytest suite
 
 **Purpose**: Confirm new tests pass and the existing test suite remains green.
 
@@ -334,13 +321,30 @@ python3 handle_audit_routing.py @/path/to/audit-state.json
 
 ---
 
+### T005 — Verify no AGENTS.md.tmpl mirror is needed (no-op verification)
+
+**Purpose**: Preserve the frontmatter `subtasks` contract (planning artifact). felix-doc-auditor does NOT have an AGENTS.md.tmpl — only felix-admin-capture does. No file edit happens here.
+
+**Steps**:
+
+1. Run `ls scripts/openclaw/agents/felix-doc-auditor/` and confirm there is no `AGENTS.md.tmpl` entry.
+2. Mark this subtask done.
+
+**Validation**:
+- [ ] `ls` output lists only `AGENTS.md`, `IDENTITY.md`, `SOUL.md`, `TOOLS.md`, `USER.md` (and the new `handle_audit_routing.py`).
+- [ ] No `AGENTS.md.tmpl` was created.
+
+**Why this subtask exists**: spec-kitty's `finalize-tasks` records the frontmatter `subtasks` array at finalize time. Removing a subtask post-finalize would require re-running finalize-tasks (which can re-trigger validation gates). Keeping the ID as a no-op verification preserves the contract without that cost. The implementer should NOT create AGENTS.md.tmpl just to satisfy a phantom requirement — felix-doc-auditor genuinely doesn't have one.
+
+---
+
 ## Definition of Done (review scope — T001–T005)
 
 - [ ] T001–T005 all marked complete.
 - [ ] `handle_audit_routing.py` exists at `scripts/openclaw/agents/felix-doc-auditor/`.
 - [ ] `test_handle_audit_routing.py` exists at `tests/openclaw/agents/felix-doc-auditor/`.
 - [ ] AGENTS.md § 7.5 has the Invariant statement; § 7.9 invokes the helper; § 7.10 and § 7.11 are stub cross-references.
-- [ ] AGENTS.md.tmpl has identical edits.
+- [ ] No AGENTS.md.tmpl was created (felix-doc-auditor doesn't have one; see T005).
 - [ ] Local pytest: 8+ new tests pass, full suite green.
 - [ ] Commits land on `main` via the standard spec-kitty merge.
 - [ ] Issue #259 closed post-merge with a comment referencing the merge commit hash.

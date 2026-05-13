@@ -11,8 +11,8 @@
 | T001 | Create `scripts/openclaw/agents/felix-doc-auditor/handle_audit_routing.py` (partition + auto-apply + gate-file + audit-summary, with in-script allowlist and #254-pattern atomic writes) | WP01 |  |
 | T002 | Create `tests/openclaw/agents/felix-doc-auditor/test_handle_audit_routing.py` (7+ cases per plan.md test plan) | WP01 | [P with T001] |
 | T003 | Update `scripts/openclaw/agents/felix-doc-auditor/AGENTS.md` — add Invariant statement to § 7.5; replace § 7.9 with single helper invocation; reduce § 7.10 and § 7.11 to cross-references | WP01 |  |
-| T004 | Mirror T003 edits to `scripts/openclaw/agents/felix-doc-auditor/AGENTS.md.tmpl` | WP01 | [P with T003] |
-| T005 | Run local pytest — confirm new tests pass and full suite remains green | WP01 |  |
+| T004 | Run local pytest — confirm new tests pass and full suite remains green | WP01 |  |
+| T005 | (Removed during planning — felix-doc-auditor has no AGENTS.md.tmpl, unlike felix-admin-capture. Subtask ID retained to preserve frontmatter contract; the implementer's task here is to verify the absence via `ls scripts/openclaw/agents/felix-doc-auditor/` and confirm no .tmpl mirror is needed.) | WP01 |  |
 
 ## Work Package WP01 — Implement handle_audit_routing.py and collapse § 7.9/§ 7.10/§ 7.11
 
@@ -27,8 +27,8 @@
 - [ ] T001 Create `scripts/openclaw/agents/felix-doc-auditor/handle_audit_routing.py` (WP01)
 - [ ] T002 Create `tests/openclaw/agents/felix-doc-auditor/test_handle_audit_routing.py` (WP01) [P with T001]
 - [ ] T003 Update felix-doc-auditor AGENTS.md (WP01)
-- [ ] T004 Mirror to AGENTS.md.tmpl (WP01) [P with T003]
-- [ ] T005 Run local pytest suite (WP01)
+- [ ] T004 Run local pytest suite (WP01)
+- [ ] T005 Verify no AGENTS.md.tmpl exists for felix-doc-auditor (no-op subtask — planning artifact; see T005 note in Subtask Index) (WP01)
 
 **Post-merge operator verification (out of WP01 review scope)**:
 
