@@ -215,3 +215,4 @@ spec-kitty agent action implement WP05 --agent <name>
 ## Activity Log
 
 - 2026-05-13T02:12:36Z – claude – shell_pid=45413 – Started implementation via action command
+- 2026-05-13T02:16:53Z – claude – shell_pid=45413 – Ready for review: AGENTS.md + AGENTS.md.tmpl updated for new prescan fields, 5-way Step 1 branch, Step 5a/5b/5c restructure, new Step 6 parse-failure handling, 7 new action-log types.
