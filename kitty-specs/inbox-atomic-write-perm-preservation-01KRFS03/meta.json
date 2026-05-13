@@ -1,10 +1,12 @@
 {
   "created_at": "2026-05-13T04:19:57.022556+00:00",
-  "friendly_name": "inbox atomic write perm preservation",
+  "friendly_name": "Inbox atomic-write permission preservation",
   "mission_id": "01KRFS03WMK5YYH0V6A1V2S4XR",
   "mission_number": null,
   "mission_slug": "inbox-atomic-write-perm-preservation-01KRFS03",
   "mission_type": "software-dev",
   "slug": "inbox-atomic-write-perm-preservation-01KRFS03",
-  "target_branch": "main"
+  "target_branch": "main",
+  "vcs": "git",
+  "source_description": "Fix GitHub issue #254 — `_atomic_write` in scripts/inbox/inject_parse_error_marker.py and scripts/inbox/strip_parse_error_marker.py orphans target file permissions to the writer's uid+umask (0600 owned by claude), making the file unreadable to the ob (Obsidian Sync) daemon running as kgale. Discovered during #185 canary verification on 2026-05-13."
 }
