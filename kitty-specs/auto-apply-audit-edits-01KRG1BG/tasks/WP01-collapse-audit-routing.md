@@ -423,3 +423,4 @@ Compare `total_tokens` on a `frontmatter_date`-only audit pre-merge vs. post-mer
 - 2026-05-13T07:05:45Z – codex:gpt-5:reviewer:reviewer – shell_pid=35398 – Started review via action command
 - 2026-05-13T07:08:37Z – codex:gpt-5:reviewer:reviewer – shell_pid=35398 – Moved to planned
 - 2026-05-13T07:08:45Z – claude:opus-4.7:implementer:implementer – shell_pid=36121 – Started implementation via action command
+- 2026-05-13T07:11:55Z – claude:opus-4.7:implementer:implementer – shell_pid=36121 – Cycle 1 fix: pending-approval body now preserves canonical template contract per kitty-specs/felix-doc-auditor-agent-01KR7JK9/contracts/audit-pending-approval-issue.template.md. Added regression test test_gated_body_preserves_template_contract.
