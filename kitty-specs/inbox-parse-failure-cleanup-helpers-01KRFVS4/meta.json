@@ -1,10 +1,12 @@
 {
   "created_at": "2026-05-13T05:08:34.232840+00:00",
-  "friendly_name": "inbox parse failure cleanup helpers",
+  "friendly_name": "Inbox parse-failure and cleanup helpers",
   "mission_id": "01KRFVS4QJFHKHWC0DQ6R1MFTN",
   "mission_number": null,
   "mission_slug": "inbox-parse-failure-cleanup-helpers-01KRFVS4",
   "mission_type": "software-dev",
   "slug": "inbox-parse-failure-cleanup-helpers-01KRFVS4",
-  "target_branch": "main"
+  "target_branch": "main",
+  "vcs": "git",
+  "source_description": "Fix GitHub issue #253 — felix-admin-capture (haiku 4.5) skipped Step 6.2 (marker injection) on a parse_failure during the mission #185 canary on 2026-05-12, fabricating a 'script not found' excuse. Root cause is structural: multi-step bash recipes inside agent prompts are fragile to model variance. Step 5a has the same shape and the same latent fragility. This mission consolidates both Step 5a and Step 6 into single-call helpers, applying the deterministic-work-into-scripts principle."
 }
