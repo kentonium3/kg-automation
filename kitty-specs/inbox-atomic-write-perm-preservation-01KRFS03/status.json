@@ -1,28 +1,28 @@
 {
-  "event_count": 5,
-  "last_event_id": "01KRFTF1VGPDG0PN2MKRQCKB9E",
-  "materialized_at": "2026-05-13T04:45:33.424371+00:00",
+  "event_count": 6,
+  "last_event_id": "01KRFV3S75SY77FKS608ETEDV1",
+  "materialized_at": "2026-05-13T04:56:52.709602+00:00",
   "mission_number": "",
   "mission_slug": "inbox-atomic-write-perm-preservation-01KRFS03",
   "mission_type": "software-dev",
   "summary": {
-    "approved": 0,
+    "approved": 1,
     "blocked": 0,
     "canceled": 0,
     "claimed": 0,
     "done": 0,
     "for_review": 0,
     "in_progress": 0,
-    "in_review": 1,
+    "in_review": 0,
     "planned": 0
   },
   "work_packages": {
     "WP01": {
-      "actor": "codex:gpt-5:reviewer:reviewer",
-      "force_count": 2,
-      "lane": "in_review",
-      "last_event_id": "01KRFTF1VGPDG0PN2MKRQCKB9E",
-      "last_transition_at": "2026-05-13T04:45:33.424371+00:00"
+      "actor": "user",
+      "force_count": 3,
+      "lane": "approved",
+      "last_event_id": "01KRFV3S75SY77FKS608ETEDV1",
+      "last_transition_at": "2026-05-13T04:56:52.709602+00:00"
     }
   }
 }
