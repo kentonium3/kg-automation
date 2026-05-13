@@ -273,3 +273,4 @@ spec-kitty agent action implement WP03 --agent <name>
 ## Activity Log
 
 - 2026-05-13T01:53:41Z – claude – shell_pid=40557 – Started implementation via action command
+- 2026-05-13T01:55:46Z – claude – shell_pid=40557 – Ready for review: 3 marker/routing helper scripts + 16 tests. Atomic writes via os.replace. Idempotent inject. Strip-no-op when absent. CLI translates dash task_id to null.
