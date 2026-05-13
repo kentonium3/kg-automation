@@ -1,0 +1,10 @@
+{
+  "created_at": "2026-05-13T17:03:37.782417+00:00",
+  "friendly_name": "google workspace foundation",
+  "mission_id": "01KRH4PEKQVMVWCJ0XPKZWHNWG",
+  "mission_number": null,
+  "mission_slug": "google-workspace-foundation-01KRH4PE",
+  "mission_type": "software-dev",
+  "slug": "google-workspace-foundation-01KRH4PE",
+  "target_branch": "main"
+}
