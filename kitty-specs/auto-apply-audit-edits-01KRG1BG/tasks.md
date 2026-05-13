@@ -8,7 +8,7 @@
 
 | ID | Description | WP | Parallel |
 |---|---|---|---|
-| T001 | Create `scripts/openclaw/agents/felix-doc-auditor/handle_audit_routing.py` (partition + auto-apply + gate-file + audit-summary, with in-script allowlist and #254-pattern atomic writes) | WP01 |  | [D] |
+| T001 | Create `scripts/openclaw/agents/felix-doc-auditor/handle_audit_routing.py` (partition + auto-apply + gate-file + audit-summary, with in-script allowlist and #254-pattern atomic writes) | WP01 |  | [D] | [D] |
 | T002 | Create `tests/openclaw/agents/felix-doc-auditor/test_handle_audit_routing.py` (7+ cases per plan.md test plan) | WP01 | [P with T001] | [D] |
 | T003 | Update `scripts/openclaw/agents/felix-doc-auditor/AGENTS.md` — add Invariant statement to § 7.5; replace § 7.9 with single helper invocation; reduce § 7.10 and § 7.11 to cross-references | WP01 |  | [D] |
 | T004 | Run local pytest — confirm new tests pass and full suite remains green | WP01 |  | [D] |
