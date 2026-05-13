@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "mission_slug": "inbox-parse-failure-cleanup-helpers-01KRFVS4",
+  "mission_id": "01KRFVS4QJFHKHWC0DQ6R1MFTN",
+  "mission_branch": "kitty/mission-inbox-parse-failure-cleanup-helpers-01KRFVS4",
+  "target_branch": "main",
+  "lanes": [
+    {
+      "lane_id": "lane-a",
+      "wp_ids": [
+        "WP01"
+      ],
+      "write_scope": [
+        "scripts/inbox/handle_marker_cleanup.py",
+        "scripts/inbox/handle_parse_failures.py",
+        "scripts/openclaw/agents/felix-admin-capture/AGENTS.md",
+        "scripts/openclaw/agents/felix-admin-capture/AGENTS.md.tmpl",
+        "tests/inbox/test_handle_marker_cleanup.py",
+        "tests/inbox/test_handle_parse_failures.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "artifact-rendering",
+        "legacy-cleanup",
+        "tests",
+        "tracker-integration"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    }
+  ],
+  "computed_at": "2026-05-13T05:21:04.217889+00:00",
+  "computed_from": "dependency_graph+ownership",
+  "planning_artifact_wps": []
+}
