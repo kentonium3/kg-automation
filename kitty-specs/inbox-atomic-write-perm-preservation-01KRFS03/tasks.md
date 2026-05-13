@@ -8,10 +8,10 @@
 
 | ID | Description | WP | Parallel |
 |---|---|---|---|
-| T001 | Modify `_atomic_write` in `scripts/inbox/inject_parse_error_marker.py` to preserve mode + add stderr log | WP01 | [P] |
-| T002 | Modify `_atomic_write` in `scripts/inbox/strip_parse_error_marker.py` to preserve mode + add stderr log | WP01 | [P] |
-| T003 | Create `tests/inbox/test_atomic_write_perms.py` with parameterized cases for both helpers | WP01 |  |
-| T004 | Run local pytest suite, verify 85 existing + new tests pass | WP01 |  |
+| T001 | Modify `_atomic_write` in `scripts/inbox/inject_parse_error_marker.py` to preserve mode + add stderr log | WP01 | [P] | [D] |
+| T002 | Modify `_atomic_write` in `scripts/inbox/strip_parse_error_marker.py` to preserve mode + add stderr log | WP01 | [D] |
+| T003 | Create `tests/inbox/test_atomic_write_perms.py` with parameterized cases for both helpers | WP01 |  | [D] |
+| T004 | Run local pytest suite, verify 85 existing + new tests pass | WP01 |  | [D] |
 | T005 | Deploy to office2 via `scripts/deploy/deploy-149.sh --apply --backup-confirmed` | WP01 |  |
 | T006 | Smoke test on office2 — verify mode preservation + stderr log via `/tmp` file | WP01 |  |
 | T007 | End-to-end canary verification (SC-002 — fresh canary, sync round-trip within 5 min) | WP01 |  |
@@ -26,10 +26,10 @@
 
 **Included subtasks**:
 
-- [ ] T001 Modify `_atomic_write` in `scripts/inbox/inject_parse_error_marker.py` (WP01) [P]
-- [ ] T002 Modify `_atomic_write` in `scripts/inbox/strip_parse_error_marker.py` (WP01) [P]
-- [ ] T003 Create `tests/inbox/test_atomic_write_perms.py` (WP01)
-- [ ] T004 Run local pytest suite (WP01)
+- [x] T001 Modify `_atomic_write` in `scripts/inbox/inject_parse_error_marker.py` (WP01) [P]
+- [x] T002 Modify `_atomic_write` in `scripts/inbox/strip_parse_error_marker.py` (WP01) [P]
+- [x] T003 Create `tests/inbox/test_atomic_write_perms.py` (WP01)
+- [x] T004 Run local pytest suite (WP01)
 - [ ] T005 Deploy to office2 (WP01)
 - [ ] T006 Smoke test on office2 (WP01)
 - [ ] T007 End-to-end canary verification (WP01)
