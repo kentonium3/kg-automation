@@ -1,0 +1,31 @@
+{
+  "version": 1,
+  "mission_slug": "inbox-atomic-write-perm-preservation-01KRFS03",
+  "mission_id": "01KRFS03WMK5YYH0V6A1V2S4XR",
+  "mission_branch": "kitty/mission-inbox-atomic-write-perm-preservation-01KRFS03",
+  "target_branch": "main",
+  "lanes": [
+    {
+      "lane_id": "lane-a",
+      "wp_ids": [
+        "WP01"
+      ],
+      "write_scope": [
+        "scripts/inbox/inject_parse_error_marker.py",
+        "scripts/inbox/strip_parse_error_marker.py",
+        "tests/inbox/test_atomic_write_perms.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "legacy-cleanup",
+        "tests",
+        "tracker-integration"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    }
+  ],
+  "computed_at": "2026-05-13T04:37:43.983389+00:00",
+  "computed_from": "dependency_graph+ownership",
+  "planning_artifact_wps": []
+}
