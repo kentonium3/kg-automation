@@ -19,10 +19,10 @@
 | T005 | Extend prescan output JSON: add `parse_failures`, `dedup_skipped`, `marker_cleanup_needed` fields | WP02 | — | [D] |
 | T006 | Wire routing-log dedup filter into prescan classifier (`unprocessed_paths` filtered post-classification) | WP02 | — | [D] |
 | T007 | Write `tests/inbox/test_prescan_parse_failure.py` covering each parse-failure case + dedup + regression | WP02 | — | [D] |
-| T008 | Implement `scripts/inbox/inject_parse_error_marker.py` per `contracts/callout-marker.md` | WP03 | — |
-| T009 | Implement `scripts/inbox/strip_parse_error_marker.py` per same contract | WP03 | [P] with T008 |
-| T010 | Implement `scripts/inbox/append_routing_entry.py` CLI wrapper per `contracts/routing-log.md` | WP03 | [P] |
-| T011 | Write `tests/inbox/test_callout_marker.py` covering inject (insert / replace-in-place / preserve-content), strip (present / absent / preserve), atomic-write | WP03 | — |
+| T008 | Implement `scripts/inbox/inject_parse_error_marker.py` per `contracts/callout-marker.md` | WP03 | — | [D] |
+| T009 | Implement `scripts/inbox/strip_parse_error_marker.py` per same contract | WP03 | [P] with T008 | [D] |
+| T010 | Implement `scripts/inbox/append_routing_entry.py` CLI wrapper per `contracts/routing-log.md` | WP03 | [D] |
+| T011 | Write `tests/inbox/test_callout_marker.py` covering inject (insert / replace-in-place / preserve-content), strip (present / absent / preserve), atomic-write | WP03 | — | [D] |
 | T012 | Implement `scripts/inbox/file_inbox_quality_issue.py` per `contracts/inbox-quality-issue-writer.md` | WP04 | — |
 | T013 | Write `tests/inbox/test_inbox_quality_issue_writer.py` covering dedup (existing / fuzzy / empty) + new-issue path + title/body templating + failure paths | WP04 | — |
 | T014 | Update `scripts/openclaw/agents/felix-admin-capture/AGENTS.md` §Step 1 to consume `parse_failures` + `dedup_skipped` from prescan output | WP05 | — |
@@ -117,10 +117,10 @@ WP01 (foundation: routing-log module + fixtures)
 
 **Subtasks**:
 
-- [ ] T008 Implement `scripts/inbox/inject_parse_error_marker.py` per contracts/callout-marker.md (WP03)
-- [ ] T009 Implement `scripts/inbox/strip_parse_error_marker.py` per same contract (WP03)
-- [ ] T010 Implement `scripts/inbox/append_routing_entry.py` CLI wrapper per contracts/routing-log.md (WP03)
-- [ ] T011 Write `tests/inbox/test_callout_marker.py` covering inject (insert / replace-in-place / preserve-content), strip (present / absent / preserve), atomic-write (WP03)
+- [x] T008 Implement `scripts/inbox/inject_parse_error_marker.py` per contracts/callout-marker.md (WP03)
+- [x] T009 Implement `scripts/inbox/strip_parse_error_marker.py` per same contract (WP03)
+- [x] T010 Implement `scripts/inbox/append_routing_entry.py` CLI wrapper per contracts/routing-log.md (WP03)
+- [x] T011 Write `tests/inbox/test_callout_marker.py` covering inject (insert / replace-in-place / preserve-content), strip (present / absent / preserve), atomic-write (WP03)
 
 **Implementation sketch**: T008/T009 use `tempfile.NamedTemporaryFile` + `os.replace` for atomic writes. T010 is a thin wrapper around `routing_log.RoutingLogWriter.append`. T011 uses tmp_path notes with realistic body content.
 
