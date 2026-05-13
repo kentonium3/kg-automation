@@ -421,3 +421,4 @@ This stub is intentional placeholder. Update when the second project is set up.
 ## Activity Log
 
 - 2026-05-13T17:10:31Z – claude:opus-4.7:implementer:implementer – shell_pid=16525 – Assigned agent via action command
+- 2026-05-13T17:17:37Z – claude:opus-4.7:implementer:implementer – shell_pid=16525 – Implementation complete. T001-T007 done in-lane. Post-merge operator regression smoke tests deferred per WP scope.
