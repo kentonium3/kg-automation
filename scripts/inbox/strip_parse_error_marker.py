@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import argparse
 import os
+import stat
 import sys
 import tempfile
 from pathlib import Path
@@ -77,6 +78,12 @@ def strip_marker(path: Path) -> bool:
 
 
 def _atomic_write(path: Path, content: str) -> None:
+    """Write to a tempfile in the same directory, then os.replace.
+
+    Preserves the original target file's mode (or applies 0o664 for new
+    files) so that cross-user access (e.g. ob sync running as a different
+    user) is not broken by the temp file's umask-derived 0o600.
+    """
     parent = path.parent
     fd, tmp_name = tempfile.mkstemp(
         prefix=path.name + ".",
@@ -86,7 +93,18 @@ def _atomic_write(path: Path, content: str) -> None:
     try:
         with os.fdopen(fd, "w", encoding="utf-8") as fh:
             fh.write(content)
+        try:
+            mode = stat.S_IMODE(os.stat(path).st_mode)
+            kind = "preserved"
+        except FileNotFoundError:
+            mode = 0o664
+            kind = "new"
+        os.chmod(tmp_name, mode)
         os.replace(tmp_name, path)
+        print(
+            f"INFO: atomic_write {path} mode={oct(mode)} ({kind})",
+            file=sys.stderr,
+        )
     except Exception:
         try:
             os.unlink(tmp_name)
