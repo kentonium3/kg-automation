@@ -43,7 +43,9 @@ tags: []
 
 ## Objective
 
-Fix the `_atomic_write` helper in `scripts/inbox/inject_parse_error_marker.py` and `scripts/inbox/strip_parse_error_marker.py` so that, after a write, the target file's mode matches the pre-existing mode (or `0o664` if no prior file existed). Add a single stderr log line per successful write to surface future perm regressions. Cover both helpers with unit tests, then deploy and verify end-to-end via the SC-002 canary.
+Fix the `_atomic_write` helper in `scripts/inbox/inject_parse_error_marker.py` and `scripts/inbox/strip_parse_error_marker.py` so that, after a write, the target file's mode matches the pre-existing mode (or `0o664` if no prior file existed). Add a single stderr log line per successful write to surface future perm regressions. Cover both helpers with unit tests.
+
+**Review scope (WP01)**: T001–T004 — code change + unit tests + local pytest pass. Deploy and end-to-end canary verification are deliberately split out as **Post-Merge Operator Verification (T005–T007)** below, because they require office2 SSH against deployed code and must run on `main` after merge, not from an unmerged lane branch.
 
 ## Context
 
@@ -57,7 +59,7 @@ See [spec.md](../spec.md), [plan.md](../plan.md), [research.md](../research.md),
 - **Final merge target**: `main`
 - **Execution worktree**: allocated per lane by `finalize-tasks`; check `lanes.json` for the actual path/branch when entering the worktree.
 
-## Subtasks
+## Subtasks (review scope)
 
 ### T001 — Modify `_atomic_write` in `scripts/inbox/inject_parse_error_marker.py` [P]
 
@@ -192,25 +194,50 @@ See [spec.md](../spec.md), [plan.md](../plan.md), [research.md](../research.md),
 
 ---
 
-### T005 — Deploy to office2
+## Definition of Done (review scope — T001–T004)
+
+- [ ] T001–T004 all marked complete.
+- [ ] Local pytest: all 85 existing + 10+ new tests pass.
+- [ ] `_atomic_write` byte-identical across both helper modules.
+- [ ] Single stderr log line per successful write, format `INFO: atomic_write <path> mode=0o<mode> (preserved|new)`.
+- [ ] Commits land on `main` via the standard spec-kitty merge.
+- [ ] Issue #254 closed post-merge with a comment referencing the merge commit hash and the post-merge operator verification outcome.
+
+**T005–T007 are explicitly OUT of the WP01 review DoD.** They require office2 SSH access against deployed code; per `docs/design/architecture/change-control.md` (Tier 3 — Standard scope, no service/credential/topology impact, but deploy still happens post-merge) and the project's deploy-pipeline scoping, deploys must run against merged code on `main`, not from an unmerged lane branch. T005–T007 are recorded below as the post-merge operator verification procedure.
+
+## Risks and Reviewer Guidance
+
+**Risks (recap from tasks.md)**:
+- `stat` race: target unlinked between `os.stat` and `os.replace`. Mitigated by falling through to the 0o664 default.
+- Obsidian Sync unrelated breakage in the operator-run T007 canary: heartbeat comparison disambiguates.
+
+**For the reviewer**:
+- Scope is T001–T004 only. T005–T007 are post-merge operator-owned and outside this review.
+- Verify both `_atomic_write` functions are byte-identical (or near enough that the divergence is intentional and called out in commit message).
+- Verify the new test file uses `tmp_path` and doesn't touch any real inbox path.
+- Verify the stderr log message format matches the agreed shape: `INFO: atomic_write <path> mode=0o<mode> (preserved|new)`.
+- Confirm the deploy script reference (`scripts/deploy/deploy-149.sh`) is unchanged.
+- Confirm `oct(mode)` produces `0o664` (and similar) format — Python 3 default. Test output should reflect this.
+
+## Post-Merge Operator Verification (Out of WP01 Review Scope)
+
+These steps run on `main` after the spec-kitty mission merge. They are the operator's responsibility, not the implementing/reviewing agent's. They are documented here for traceability against the spec's SC-002 success criterion.
+
+### T005 — Deploy to office2 (post-merge operator)
 
 **Purpose**: Ship the updated scripts to `/home/claude/kg-automation/scripts/inbox/` on office2.
 
 **Steps**:
 
-1. From repo root: `bash scripts/deploy/deploy-149.sh --apply --backup-confirmed`.
+1. From repo root on `main`: `bash scripts/deploy/deploy-149.sh --apply --backup-confirmed`.
 2. Watch for non-zero exit; the deploy script rsyncs and sets perms.
 
 **Validation**:
-- [ ] Deploy completes with exit 0.
-- [ ] On office2: `ssh office2-claude 'ls -la /home/claude/kg-automation/scripts/inbox/inject_parse_error_marker.py /home/claude/kg-automation/scripts/inbox/strip_parse_error_marker.py'` shows the files present with executable bits.
-- [ ] On office2: `ssh office2-claude 'grep -c "stat.S_IMODE" /home/claude/kg-automation/scripts/inbox/*.py'` returns `2` (one occurrence per script).
+- Deploy completes with exit 0.
+- On office2: `ssh office2-claude 'ls -la /home/claude/kg-automation/scripts/inbox/inject_parse_error_marker.py /home/claude/kg-automation/scripts/inbox/strip_parse_error_marker.py'` shows the files present with executable bits.
+- On office2: `ssh office2-claude 'grep -c "stat.S_IMODE" /home/claude/kg-automation/scripts/inbox/*.py'` returns `2` (one occurrence per script).
 
-**On failure**: stop and report. Do not improvise file moves or chmods.
-
----
-
-### T006 — Smoke test on office2
+### T006 — Smoke test on office2 (post-merge operator)
 
 **Purpose**: Verify the fix works in the live office2 environment without touching the real inbox.
 
@@ -224,27 +251,23 @@ See [spec.md](../spec.md), [plan.md](../plan.md), [research.md](../research.md),
    ```bash
    ssh office2-claude 'python3 /home/claude/kg-automation/scripts/inbox/inject_parse_error_marker.py /tmp/smoke.md 999 --date 2026-05-13 2>&1'
    ```
-3. As kgale (since claude won't own it after the prior write — but wait, claude owns it after this run too because mkstemp+replace still doesn't preserve uid; verify by stat as either user), check the mode:
+3. Check the mode:
    ```bash
    ssh office2-claude 'stat -c "%U:%G %a %n" /tmp/smoke.md'
    ```
 
 **Validation**:
-- [ ] stderr from step 2 contains exactly one line of the form `INFO: atomic_write /tmp/smoke.md mode=0o664 (preserved)`.
-- [ ] Step 3 shows `claude:... 664` (mode preserved at `0o664`, not `0o600`).
-- [ ] Now run strip helper:
+- stderr from step 2 contains exactly one line: `INFO: atomic_write /tmp/smoke.md mode=0o664 (preserved)`.
+- Step 3 shows `claude:... 664` (mode preserved at `0o664`, not `0o600`).
+- Then run the strip helper:
    ```bash
    ssh office2-claude 'python3 /home/claude/kg-automation/scripts/inbox/strip_parse_error_marker.py /tmp/smoke.md 2>&1; stat -c "%U:%G %a %n" /tmp/smoke.md'
    ```
-   And verify: stderr contains `mode=0o664 (preserved)`, file still mode `664`.
+   Verify: stderr contains `mode=0o664 (preserved)`, file still mode `664`.
 
-**Cleanup**: `ssh office2-claude 'rm /tmp/smoke.md'` (claude owns it after step 2).
+**Cleanup**: `ssh office2-claude 'rm /tmp/smoke.md'`.
 
-**On failure**: stop and report. Do not proceed to the SC-002 canary if the smoke test reveals the helper still produces 0o600.
-
----
-
-### T007 — End-to-end canary verification (SC-002)
+### T007 — End-to-end canary verification, SC-002 (post-merge operator)
 
 **Purpose**: Confirm Obsidian Sync continues to round-trip a marker-injected file between Mac and office2 within 5 minutes, with no manual intervention.
 
@@ -266,57 +289,29 @@ See [spec.md](../spec.md), [plan.md](../plan.md), [research.md](../research.md),
    ```bash
    ssh office2-claude 'head -5 "/home/kgale/second-brain/notes/01-Inbox/Inbox 2026-05-13 canary.md"'
    ```
-   Expect the canary's frontmatter to appear.
 3. **Inject marker as claude on office2**:
    ```bash
    ssh office2-claude 'python3 /home/claude/kg-automation/scripts/inbox/inject_parse_error_marker.py "/home/kgale/second-brain/notes/01-Inbox/Inbox 2026-05-13 canary.md" 999 --date 2026-05-13 2>&1'
    ```
-4. **Verify mode preserved on office2 side**:
+4. **Verify mode preserved on office2**:
    ```bash
    ssh office2-claude 'stat -c "%U:%G %a %n" "/home/kgale/second-brain/notes/01-Inbox/Inbox 2026-05-13 canary.md"'
    ```
-   Expect mode `664` (NOT `600`).
-5. **Edit canary on Mac side**: open `Inbox 2026-05-13 canary.md` in Obsidian and change `status: "unterminated string` to `status: unprocessed`. Save.
+   Expect mode `664`.
+5. **Edit canary on Mac**: open in Obsidian, change `status: "unterminated string` to `status: unprocessed`, save.
 6. **Wait up to 5 min, then verify office2 received the cloud update**:
    ```bash
    ssh office2-claude 'head -5 "/home/kgale/second-brain/notes/01-Inbox/Inbox 2026-05-13 canary.md"'
    ```
-   Expect `status: unprocessed` (and no manual chmod or rm was required).
-7. **Cleanup**: delete the canary from Mac inbox via Obsidian (or `rm` on Mac).
+   Expect `status: unprocessed`.
+7. **Cleanup**: delete the canary from Mac inbox.
 
 **Validation**:
-- [ ] Mode `664` after marker injection on office2 (step 4).
-- [ ] Mac→office2 sync round-trip completes within 5 minutes of step 5 (step 6).
-- [ ] No `chmod`, `rm`, or daemon restart required.
+- Mode `664` after marker injection on office2 (step 4).
+- Mac→office2 sync round-trip completes within 5 minutes of step 5.
+- No `chmod`, `rm`, or daemon restart required.
 
-**On failure**: capture which step failed and report. The most likely failure modes:
-- Step 4 mode is `0o600` → fix didn't deploy correctly; re-run T005.
-- Step 6 doesn't propagate within 5 min → may be Obsidian Sync unrelated issue. Check heartbeat file: `ssh office2-claude 'stat -c "%Y %n" /home/kgale/second-brain/notes/00-System/sync-heartbeat.md'` vs. Mac side `stat -f "%m %N" /Users/kentgale/second-brain/notes/00-System/sync-heartbeat.md`. Same epoch = sync healthy elsewhere; problem is canary-specific.
-
----
-
-## Definition of Done
-
-- [ ] T001–T007 all marked complete.
-- [ ] Local pytest: all 85 existing + 10+ new tests pass.
-- [ ] Office2 smoke test: helpers preserve mode on `/tmp` file.
-- [ ] SC-002 canary: marker-injected note round-trips Mac↔office2 within 5 min.
-- [ ] Commits land on `main` via the standard spec-kitty merge.
-- [ ] Issue #254 closed with a comment referencing the merge commit hash.
-
-## Risks and Reviewer Guidance
-
-**Risks (recap from tasks.md)**:
-- `stat` race: target unlinked between `os.stat` and `os.replace`. Mitigated by falling through to the 0o664 default.
-- Office2 access: T005–T007 require working SSH to `office2-claude` and `office2-kgale`. If SSH is broken, stop.
-- Obsidian Sync unrelated breakage: heartbeat comparison disambiguates.
-
-**For the reviewer**:
-- Verify both `_atomic_write` functions are byte-identical (or near enough that the divergence is intentional and called out in commit message).
-- Verify the new test file uses `tmp_path` and doesn't touch any real inbox path.
-- Verify the stderr log message format matches the agreed shape: `INFO: atomic_write <path> mode=0o<mode> (preserved|new)`.
-- Confirm the deploy script reference (`scripts/deploy/deploy-149.sh`) is unchanged.
-- Confirm `oct(mode)` produces `0o664` (and similar) format — Python 3 default. Test output should reflect this.
+**Failure-mode disambiguation**: if step 6 doesn't propagate, compare heartbeat: `ssh office2-claude 'stat -c "%Y %n" /home/kgale/second-brain/notes/00-System/sync-heartbeat.md'` vs. Mac side `stat -f "%m %N" /Users/kentgale/second-brain/notes/00-System/sync-heartbeat.md`. Same epoch = sync healthy elsewhere; problem is canary-specific (cf. perm-orphan recovery procedure in `reference_mission_185.md`).
 
 ## Activity Log
 
