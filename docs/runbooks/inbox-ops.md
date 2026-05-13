@@ -145,6 +145,73 @@ simultaneously on the same inbox files. This will cause duplicate processing.
 | Agent not responding | `ssh office2-claude "openclaw agents list"` | Restart gateway: `ssh office2-claude "systemctl --user restart openclaw-gateway"` |
 | Session lock error | Check for stale `.lock` files | `ssh office2-claude "rm -f ~/.openclaw/agents/felix-admin-capture/sessions/*.lock"` |
 | Timeout on large inbox | Processing log shows partial results | Increase `--timeout-seconds` on cron jobs or process manually |
+| Note mistakenly skipped (#185 dedup) | `ssh office2-claude "cat ~/second-brain/agents/state/inbox-routing.jsonl \| jq -c 'select(.filename==\"<filename>\")'"` | Edit the routing log to remove the offending entry (or move the note to a new filename). Next tick will re-route normally. |
+| "Inbox quality" issue filed | See §"When you see an 'Inbox quality' issue" below | Fix frontmatter in each affected note per the issue body |
+
+## When you see an "Inbox quality" issue (#185)
+
+The `felix-admin-capture` agent files a batched GitHub issue with title
+prefix `Inbox quality:` when one or more inbox notes have unparseable
+frontmatter. The agent halts routing for those notes (rather than misfiling
+them as generic content issues) and surfaces the problem through the
+issue + an Obsidian callout marker on each affected note.
+
+To resolve:
+
+1. **Open the GitHub issue.** Each row in the body's table identifies an
+   affected note by filename and the specific malformation reason.
+2. **Open each affected note in Obsidian.** The agent has injected a
+   `> [!error] felix-capture:` callout at the top of the note's body
+   showing the same error and the issue number.
+3. **Fix the malformation.** Common cases:
+   - **Leading whitespace before `---`** — delete blank lines / spaces /
+     BOM before the opening `---` fence.
+   - **UTF-8 BOM** — re-save the file in UTF-8 without BOM. (Obsidian
+     uses no-BOM UTF-8 by default; this usually comes from
+     paste-from-Word or a misconfigured editor.)
+   - **Missing closing `---`** — add the closing fence.
+   - **Invalid YAML** — fix the syntax (mismatched quotes, unescaped
+     colons in values, tab indentation).
+4. **Save.** The next cron tick will:
+   - Re-classify the note as well-formed
+   - Auto-strip the callout marker as part of routing
+   - Route the note normally and append to the routing log
+5. **Close the GitHub issue manually** once all listed notes are fixed
+   (or moved out of `01-Inbox/`).
+
+   **Important — how dedup interacts with new failures**: while an
+   "Inbox quality:" issue is OPEN, subsequent ticks that encounter new
+   parse failures do NOT file a new issue and do NOT update the open
+   issue's body. Newly-failing notes still get a callout marker
+   injected pointing at the existing open issue, so they ARE
+   discoverable by opening the inbox in Obsidian — but they will not
+   appear in the issue's table.
+
+   This means: keep the issue closed promptly. A new "Inbox quality:"
+   issue is only filed by the next tick AFTER the previous one is
+   closed. If you suspect new parse failures while an issue is open,
+   check the inbox directly for notes with the felix-capture callout
+   marker rather than relying on the issue body to enumerate them.
+
+### Routing log
+
+The agent uses an append-only JSONL file at
+`~/second-brain/agents/state/inbox-routing.jsonl` (on office2, owned by
+the `claude` user) as the load-bearing dedup substrate. Each line records
+one successful route: `{filename, issue_number, vikunja_task_id, routed_at,
+note_excerpt}`. The classifier reads this file on every cron tick and
+filters already-routed filenames out of the agent's input.
+
+If a note is mistakenly skipped, inspect this file:
+
+```bash
+ssh office2-claude "cat ~/second-brain/agents/state/inbox-routing.jsonl | jq -c"
+```
+
+To force re-routing of one filename, edit out the offending entry (or
+just delete the whole file to reset state — the routing log is recreated
+on the next route). The file is backed up by the nightly Restic job; it
+is NOT git-tracked.
 
 ## Privacy boundary
 

@@ -31,11 +31,27 @@ This header must be the first line of every message you send to Kent.
 
 ### Step 1: Run the pre-scan helper
 
-Your first action on every turn is to run the inbox pre-scan helper:
+Your first action on every turn is to run the inbox pre-scan helper.
+Each bash invocation runs in its own subshell, so shell variables do
+NOT survive between commands. Persist the helper's JSON output to a
+fixed file path that later steps can re-read, and enable `pipefail` so
+a prescan failure is not masked by the `tee`:
 
 ```bash
-python3 /home/claude/kg-automation/scripts/inbox/prescan.py
+set -o pipefail
+python3 /home/claude/kg-automation/scripts/inbox/prescan.py \
+  | tee /tmp/inbox-prescan-latest.json
 ```
+
+`tee` writes the JSON to BOTH stdout (so you can see and parse it for
+branching) AND `/tmp/inbox-prescan-latest.json` (so §Step 6 can read
+the `parse_failures` field without re-invoking the helper). The file
+is overwritten each turn; clean state is the default.
+
+With `pipefail`, the pipeline's exit code reflects prescan's exit code
+even though `tee` is downstream. If the pipeline exits non-zero, take
+the "Helper exit code is non-zero" branch below; the file may be empty
+or partial in that case.
 
 The helper returns a JSON object on stdout with this shape:
 
@@ -45,9 +61,26 @@ The helper returns a JSON object on stdout with this shape:
   "unprocessed_paths": [<absolute path>, ...],
   "archived_count": <int>,
   "archived": [{"src": "...", "dst": "...", "age_days": <int>}, ...],
-  "warnings": [...]
+  "warnings": [...],
+  "parse_failures": [{"path": <abs>, "reason": <str>}, ...],
+  "dedup_skipped": [{"path": <abs>, "filename": <str>, "existing_issue": <int or null>}, ...],
+  "marker_cleanup_needed": [<absolute path>, ...]
 }
 ```
+
+`parse_failures`, `dedup_skipped`, and `marker_cleanup_needed` are
+introduced by mission #185 (inbox capture dedup + parser hardening):
+
+- `parse_failures` — notes whose frontmatter could not be parsed.
+  These are NOT in `unprocessed_paths`. Halt-before-route protects
+  them from being filed as duplicate normal issues.
+- `dedup_skipped` — notes already in the routing log
+  (`~/second-brain/agents/state/inbox-routing.jsonl`). The classifier
+  filters these out invisibly. You will never see them in
+  `unprocessed_paths` — this list is informational only.
+- `marker_cleanup_needed` — notes that parse cleanly now but still
+  carry a stale `> [!error] felix-capture:` marker from a prior turn.
+  Strip the marker as part of Step 5 (see §Step 5a below).
 
 Branch on the result:
 
@@ -55,16 +88,35 @@ Branch on the result:
   stderr. Report the stderr content as your turn output and stop. Do
   NOT attempt to process any files. The next cron run retries.
 
-- **Helper exit code is 0 AND `unprocessed_count == 0`** — reply with
-  the single token `IDLE` and nothing else. Your turn ends. Do NOT
-  write to the vault, do NOT create Vikunja tasks, do NOT send
-  WhatsApp messages. The helper has already handled any stale-file
-  archiving; there is nothing for you to do.
+- **Helper exit code is 0 AND `unprocessed_count == 0` AND `parse_failures`
+  is empty AND `marker_cleanup_needed` is empty** — reply with the single
+  token `IDLE` and nothing else. Your turn ends. Do NOT write to the
+  vault, do NOT create Vikunja tasks, do NOT send WhatsApp messages. The
+  helper has already handled any stale-file archiving; there is nothing
+  for you to do.
+
+- **Helper exit code is 0 AND `unprocessed_count == 0` AND `parse_failures`
+  is non-empty** — skip the routing loop. If `marker_cleanup_needed` is
+  also non-empty, run §Step 5a for each path in that list first. Then run
+  §Step 6 to file the batched "Inbox quality" issue and inject markers.
+  Do NOT reply IDLE; you have work to do.
+
+- **Helper exit code is 0 AND `unprocessed_count == 0` AND `parse_failures`
+  is empty AND `marker_cleanup_needed` is non-empty** — invoke
+  `strip_parse_error_marker.py` (see §Step 5a) for each path in
+  `marker_cleanup_needed`. Activity-log the cleanup events. Then reply IDLE.
 
 - **Helper exit code is 0 AND `unprocessed_count > 0`** — process each
   file in `unprocessed_paths` in order, following the routing rules in
   Step 2 and beyond. Do NOT scan `{{VAULT_INBOX}}/` yourself — the
   helper's list is authoritative.
+
+  After the routing loop completes:
+  1. Run §Step 5a for any `marker_cleanup_needed` path NOT already
+     handled inside the routing loop (i.e., paths that are not in
+     `unprocessed_paths`). This makes stale-marker cleanup robust across
+     parse-failure cycles.
+  2. If `parse_failures` is non-empty, run §Step 6.
 
 ### Step 2: Parse each file
 
@@ -145,7 +197,71 @@ For each routed content block:
 
 ### Step 5: Mark as processed
 
-After successfully processing all content blocks from an inbox file:
+After successfully processing all content blocks from an inbox file,
+perform Steps 5a → 5b → 5c in order:
+
+#### Step 5a: Strip stale parse-error markers (if any)
+
+If the file's absolute path appears in prescan's `marker_cleanup_needed`
+list — i.e., it parses cleanly now but still has an old
+`> [!error] felix-capture:` marker from a previous turn — invoke:
+
+```bash
+python3 /home/claude/kg-automation/scripts/inbox/strip_parse_error_marker.py \
+  "<absolute path>"
+```
+
+Then proceed to Step 5b. The strip and the atomic write are separate
+operations; if strip fails, log it with action type `marker_cleanup_failed`
+and continue — the worst case is a stale marker sitting at the top of a
+routed note, which is cosmetic, not correctness-breaking.
+
+Note: §Step 5a also runs in the `unprocessed_count == 0 AND marker_cleanup_needed
+non-empty` branch from Step 1 — call the helper for each path in that
+list even when no routing is happening.
+
+#### Step 5b: Append to the routing log
+
+After **all** content blocks for this note have been successfully routed
+(every GitHub issue / Vikunja task / destination file write succeeded),
+append exactly ONE routing-log entry for the note:
+
+```bash
+python3 /home/claude/kg-automation/scripts/inbox/append_routing_entry.py \
+  "<basename of note>" <issue_number_or_zero> <task_id_or_dash> "<short excerpt, ≤120 chars>"
+```
+
+- `<basename>` is just the filename (no directory).
+- `<issue_number_or_zero>` is the most relevant GitHub issue number filed
+  for this note's content. If the note produced multiple issues, pass the
+  primary one. If no GitHub issue was filed (e.g., the note routed only
+  to a constitution file or Vikunja), pass `0`.
+- `<task_id_or_dash>` is the Vikunja task ID if you created one, or `-`
+  otherwise.
+- `<excerpt>` is a short text snippet from the note body (helps debugging).
+
+**Critical ordering for multi-topic notes**: do NOT append the routing
+entry after the first block routes. The classifier dedups by filename;
+if you append early and a subsequent block fails or the cron tick is
+interrupted, the next tick will skip the whole note and silently drop
+the remaining blocks. Append exactly once, AFTER every block has been
+fully routed.
+
+The routing log is the load-bearing dedup substrate. The classifier
+consults it on every cron tick and filters already-routed filenames out
+of `unprocessed_paths` invisibly. Order is deliberately: route all
+blocks → routing log → atomic mark. With this ordering, even if Step 5c
+(the atomic `status: processed` write) fails, the next cron tick will
+NOT re-route this note and double-file — the routing log is the
+authoritative dedup record.
+
+If `append_routing_entry.py` exits non-zero, log it with action type
+`routing_log_append_failed` and continue to Step 5c anyway. The worst
+case is one duplicate on the next tick if Step 5c also fails — extremely
+rare and visible in the activity log.
+
+#### Step 5c: Atomic frontmatter write
+
 - Update frontmatter: `status: processed`
 - Do NOT delete the original file — preserve it as a record
 
@@ -153,7 +269,64 @@ If any content block could not be classified:
 - Set `status: needs-review` instead
 - Add a note in the processing log explaining what was unclear
 
-### Step 6: Write the processing log
+### Step 6: End-of-turn parse-failure handling
+
+This step runs ONCE per turn, after the routing loop (or in the
+`unprocessed_count == 0 AND parse_failures non-empty` branch from Step 1).
+Even if `unprocessed_paths` was empty, this step may still run — a note
+that was previously well-formed may have been edited badly between
+cron ticks and now appears only in `parse_failures`.
+
+If prescan's `parse_failures` list is empty: skip this step.
+
+If `parse_failures` is non-empty:
+
+1. Write the `parse_failures` list to a temp file, then pass `@<path>`
+   to the helper. This avoids fragile shell quoting — parse-failure
+   reasons can contain quotes, backticks, and other shell-sensitive
+   characters that would break a direct `--parse-failures '<json>'`
+   invocation.
+
+   §Step 1 persisted prescan's full JSON output to
+   `/tmp/inbox-prescan-latest.json`. Extract its `parse_failures` field
+   via `jq` and write it to the temp file the helper will read:
+
+   ```bash
+   TMPF=$(mktemp -t inbox-parse-failures.XXXXXX.json)
+   jq -c '.parse_failures' /tmp/inbox-prescan-latest.json > "$TMPF"
+   ISSUE_N=$(python3 /home/claude/kg-automation/scripts/inbox/file_inbox_quality_issue.py \
+     --parse-failures "@$TMPF")
+   rm -f "$TMPF"
+   ```
+
+   The helper prints a single integer to stdout: either an existing open
+   "Inbox quality" issue number (dedup hit) or a newly-filed issue number.
+   `$ISSUE_N` now holds that integer — pass it to the marker injects in
+   step 6.2.
+
+   Log this action with `log_action.py`:
+   - action: `inbox_quality_issue_filed` (new issue) or `inbox_quality_issue_deduped` (existing)
+   - context: `{"issue_number": <N>, "parse_failure_count": <len>}`
+
+2. For each entry in `parse_failures`, inject the marker:
+
+   ```bash
+   python3 /home/claude/kg-automation/scripts/inbox/inject_parse_error_marker.py \
+     "<absolute path>" <issue_number>
+   ```
+
+   The marker write is idempotent — if a marker already exists on the
+   note, it is refreshed in place rather than duplicated.
+
+   Log each injection with `log_action.py`:
+   - action: `parse_error_marker_injected`
+   - context: `{"source_file": "<path>", "issue_number": <N>, "reason": "<prescan reason>"}`
+
+3. If the issue-filing helper or any marker-inject helper exits non-zero,
+   log the failure with action type `parse_failure_handling_error` and
+   continue. The next cron tick will retry the failed leg.
+
+### Step 7: Write the processing log
 
 After processing all inbox files, write a log following the format in the
 processing log section below.
@@ -351,6 +524,13 @@ python ~/repos/kg-automation/scripts/openclaw/observation/log_action.py \
 | `github_issue_out_of_scope` | Issue request was out of scope | flagged |
 | `file_locked` | File operation blocked by lock | error |
 | `privacy_boundary` | Content references private path — halted | security |
+| `inbox_quality_issue_filed` | A new "Inbox quality" issue was filed for parse_failures | routine |
+| `inbox_quality_issue_deduped` | An existing open "Inbox quality" issue was reused | routine |
+| `parse_error_marker_injected` | A `> [!error] felix-capture:` callout was inserted/refreshed | routine |
+| `marker_cleanup` | A stale parse-error marker was stripped from a now-clean note | routine |
+| `marker_cleanup_failed` | strip_parse_error_marker.py exit non-zero | error |
+| `routing_log_append_failed` | append_routing_entry.py exit non-zero | error |
+| `parse_failure_handling_error` | file_inbox_quality_issue.py or inject helper exit non-zero | error |
 
 ### Context Fields
 

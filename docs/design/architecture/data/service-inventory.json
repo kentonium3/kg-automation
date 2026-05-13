@@ -1,7 +1,7 @@
 {
   "schema_version": "1.1",
-  "last_updated": "2026-05-11",
-  "updated_by": "issue-105-doc-auditor + #223-systemd-timer + #208-restic-healthcheck + #202-obsidian-sync-system-level + #203-sync-heartbeat + #199-inbox-schedules + #115-credential-health-check + #189-vikunja-compose",
+  "last_updated": "2026-05-12",
+  "updated_by": "issue-105-doc-auditor + #223-systemd-timer + #208-restic-healthcheck + #202-obsidian-sync-system-level + #203-sync-heartbeat + #199-inbox-schedules + #115-credential-health-check + #189-vikunja-compose + #185-inbox-capture-dedup",
   "services": [
     {
       "name": "vikunja",
@@ -284,8 +284,17 @@
           "source_in_repo": "scripts/openclaw/agents/felix-admin-capture/",
           "deployed_by": "F008",
           "autonomy_level": "assisted",
-          "updated_by": "027-inbox-pre-scan-helper",
-          "updated_at": "2026-04-11",
+          "updated_by": "#185-inbox-capture-dedup",
+          "updated_at": "2026-05-12",
+          "notes": "As of #185 (2026-05-12): routes are deduped via a filename-keyed routing log (see state_files). Notes with malformed frontmatter halt routing and surface via a batched 'Inbox quality:' GitHub issue + an Obsidian `> [!error] felix-capture:` callout marker injected at the top of the affected note. Markers auto-strip when the note next parses cleanly.",
+          "state_files": [
+            {
+              "path": "~/second-brain/agents/state/inbox-routing.jsonl",
+              "format": "jsonl",
+              "purpose": "Routing log — load-bearing dedup substrate. Each line: {filename, issue_number, vikunja_task_id, routed_at, note_excerpt}. Append-only. NOT git-tracked; backed up by nightly Restic.",
+              "introduced_by": "#185"
+            }
+          ],
           "components": [
             {
               "id": "inbox-prescan-helper",
@@ -294,9 +303,61 @@
               "source": "scripts/inbox/prescan.py",
               "deploy_path": "/home/claude/kg-automation/scripts/inbox/prescan.py",
               "log_path": "/home/claude/second-brain/agents/logs/inbox-prescan-*.md",
-              "dependencies": ["scripts/vault/paths.json"],
+              "dependencies": ["scripts/vault/paths.json", "scripts/inbox/routing_log.py"],
               "invoked_by": "felix-admin-capture step 1",
-              "introduced_by": "027-inbox-pre-scan-helper"
+              "introduced_by": "027-inbox-pre-scan-helper",
+              "updated_by": "#185 (parse-failure classification + routing-log dedup filter)",
+              "updated_at": "2026-05-12"
+            },
+            {
+              "id": "routing-log-module",
+              "type": "module",
+              "language": "python",
+              "source": "scripts/inbox/routing_log.py",
+              "deploy_path": "/home/claude/kg-automation/scripts/inbox/routing_log.py",
+              "purpose": "RoutingLogReader + RoutingLogWriter for the dedup substrate at ~/second-brain/agents/state/inbox-routing.jsonl",
+              "invoked_by": "prescan.py (read), append_routing_entry.py (write)",
+              "introduced_by": "#185"
+            },
+            {
+              "id": "inject-parse-error-marker",
+              "type": "script",
+              "language": "python",
+              "source": "scripts/inbox/inject_parse_error_marker.py",
+              "deploy_path": "/home/claude/kg-automation/scripts/inbox/inject_parse_error_marker.py",
+              "purpose": "Inserts/refreshes a `> [!error] felix-capture:` callout at the top of a malformed note's body. Idempotent + atomic.",
+              "invoked_by": "felix-admin-capture §Step 6.2 (per parse-failure entry)",
+              "introduced_by": "#185"
+            },
+            {
+              "id": "strip-parse-error-marker",
+              "type": "script",
+              "language": "python",
+              "source": "scripts/inbox/strip_parse_error_marker.py",
+              "deploy_path": "/home/claude/kg-automation/scripts/inbox/strip_parse_error_marker.py",
+              "purpose": "Removes the felix-capture marker when a note now parses cleanly. No-op if absent.",
+              "invoked_by": "felix-admin-capture §Step 5a (per marker_cleanup_needed path)",
+              "introduced_by": "#185"
+            },
+            {
+              "id": "append-routing-entry",
+              "type": "script",
+              "language": "python",
+              "source": "scripts/inbox/append_routing_entry.py",
+              "deploy_path": "/home/claude/kg-automation/scripts/inbox/append_routing_entry.py",
+              "purpose": "CLI wrapper around RoutingLogWriter. Appends one entry to the routing log after every successful note route.",
+              "invoked_by": "felix-admin-capture §Step 5b (once per fully-routed note)",
+              "introduced_by": "#185"
+            },
+            {
+              "id": "file-inbox-quality-issue",
+              "type": "script",
+              "language": "python",
+              "source": "scripts/inbox/file_inbox_quality_issue.py",
+              "deploy_path": "/home/claude/kg-automation/scripts/inbox/file_inbox_quality_issue.py",
+              "purpose": "Title-prefix-deduped GitHub issue writer for batched 'Inbox quality:' issues filed when prescan reports parse_failures.",
+              "invoked_by": "felix-admin-capture §Step 6.1 (once per turn when parse_failures non-empty)",
+              "introduced_by": "#185"
             }
           ]
         },

@@ -2,7 +2,7 @@
   "created_at": "2026-05-12T20:55:27.732794+00:00",
   "friendly_name": "Inbox Capture Dedup and Parser Hardening",
   "mission_id": "01KREZJ8VE320Z8C78Q9VMAP0C",
-  "mission_number": null,
+  "mission_number": 32,
   "mission_slug": "inbox-capture-dedup-and-parser-hardening-01KREZJ8",
   "mission_type": "software-dev",
   "slug": "inbox-capture-dedup-and-parser-hardening-01KREZJ8",

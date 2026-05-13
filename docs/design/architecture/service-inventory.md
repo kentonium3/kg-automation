@@ -131,22 +131,50 @@ All services run on office2 unless otherwise noted.
 - **Vikunja projects used**: Inbox (tasks), Research (research requests), Goals (goal declarations)
 - **Privacy boundary**: `04-Growth/_private/` is never accessed
 - **Runbook**: `docs/runbooks/inbox-ops.md`
-- **Updated by**: `027-inbox-pre-scan-helper` (2026-04-11)
+- **Updated by**: `#185-inbox-capture-dedup` (2026-05-12) — adds routing-log dedup + parse-failure halt-and-surface. Previously: `027-inbox-pre-scan-helper` (2026-04-11).
+
+#### State files
+
+- **Routing log** (`~/second-brain/agents/state/inbox-routing.jsonl`, introduced by #185) — Append-only JSONL. Each line records one successful route: `{filename, issue_number, vikunja_task_id, routed_at, note_excerpt}`. The classifier in prescan.py consults this log on every cron tick and filters already-routed filenames out of `unprocessed_paths` invisibly to the agent. This is the load-bearing dedup substrate; it decouples dedup from frontmatter parseability (which was the failure mode in the original #185 bug where a malformed note got filed nine times). NOT git-tracked; backed up by the nightly Restic job.
+
+#### Parse-failure surface (#185)
+
+Notes with malformed frontmatter (BOM, leading-content-before-fence, missing closing fence, invalid YAML) are now classified as `parse_failure` rather than silently routed as `unprocessed`. The agent's response:
+
+- Halts routing for the affected note (so it is not mis-routed as a generic content issue).
+- Files (or dedupes against) a batched GitHub issue with title prefix `Inbox quality:`. Existing open issues are reused; bodies are not rewritten.
+- Injects an Obsidian `> [!error] felix-capture:` callout marker at the top of each affected note pointing at the issue. The marker is idempotent — re-runs refresh the existing marker rather than stacking duplicates.
+- When the user fixes the malformation, the next cron tick auto-strips the marker as part of normal routing.
+
+Operator workflow: see `docs/runbooks/inbox-ops.md` §"When you see an 'Inbox quality' issue".
 
 #### Components
 
-- **inbox-prescan-helper** (Python script, `scripts/inbox/prescan.py`) — Introduced by mission `027-inbox-pre-scan-helper` (issue #149). Deployed to `/home/claude/kg-automation/scripts/inbox/prescan.py` on office2. The agent's Step 1 runs this helper before any cognitive work, implementing a pre-scan-then-act pattern. The helper:
+- **inbox-prescan-helper** (Python script, `scripts/inbox/prescan.py`) — Introduced by mission `027-inbox-pre-scan-helper` (issue #149); extended by #185 to add parse-failure classification and routing-log dedup filtering. Deployed to `/home/claude/kg-automation/scripts/inbox/prescan.py` on office2. The agent's Step 1 runs this helper before any cognitive work, implementing a pre-scan-then-act pattern. The helper:
   1. Resolves `{{VAULT_INBOX}}` and `{{VAULT_INBOX_PROCESSED}}` via the vault path registry (`scripts/vault/paths.json`)
   2. Lists files in the inbox with `status: unprocessed`
-  3. Archives stale (>7 day) processed files to `{{VAULT_INBOX_PROCESSED}}`
-  4. Returns a JSON result with unprocessed paths, archived entries, and warnings
+  3. Detects malformed frontmatter (BOM, leading content, missing close fence, invalid YAML) and emits them as `parse_failures` (NOT in `unprocessed_paths`)
+  4. Consults the routing log (`scripts/inbox/routing_log.py` → `~/second-brain/agents/state/inbox-routing.jsonl`) and filters already-routed filenames out of `unprocessed_paths`; surfaces those in `dedup_skipped`
+  5. Flags any cleanly-parseable note that still carries a stale `> [!error] felix-capture:` marker in `marker_cleanup_needed`
+  6. Archives stale (>7 day) processed files to `{{VAULT_INBOX_PROCESSED}}`
+  7. Returns a JSON result with unprocessed paths, parse_failures, dedup_skipped, marker_cleanup_needed, archived entries, and warnings
 
-  When the helper reports zero unprocessed files, the agent replies with the single token `IDLE` and takes no further action. This bounds empty-run cost to ≤500 tokens and eliminates agent-side inbox scanning.
+  When the helper reports zero unprocessed files, zero parse failures, and zero markers to clean up, the agent replies with the single token `IDLE` and takes no further action.
 
   - **Language**: Python
-  - **Dependencies**: `scripts/vault/paths.json`
+  - **Dependencies**: `scripts/vault/paths.json`, `scripts/inbox/routing_log.py`
   - **Invoked by**: `felix-admin-capture` step 1
   - **Helper log**: `/home/claude/second-brain/agents/logs/inbox-prescan-YYYY-MM-DD.md` (daily rotation, append-only)
+
+- **routing-log module** (`scripts/inbox/routing_log.py`, introduced by #185) — Stdlib-only Python module exposing `RoutingLogReader` and `RoutingLogWriter`. Read path is used by prescan.py; write path is wrapped by `append_routing_entry.py`. Atomic appends; reader caches per-tick.
+
+- **inject_parse_error_marker.py** (script, #185) — CLI helper invoked by AGENTS.md §Step 6.2 once per parse-failure entry. Inserts/refreshes the marker after the frontmatter close fence (or at line 0 for no-frontmatter notes). Idempotent + atomic.
+
+- **strip_parse_error_marker.py** (script, #185) — CLI helper invoked by AGENTS.md §Step 5a for any path in `marker_cleanup_needed`. Removes the marker (and its trailing blank line) when the note now parses cleanly. No-op if no marker present.
+
+- **append_routing_entry.py** (script, #185) — CLI wrapper around `RoutingLogWriter.append`. Invoked by AGENTS.md §Step 5b exactly once per fully-routed note (after all blocks have been routed, before the atomic `status: processed` write).
+
+- **file_inbox_quality_issue.py** (script, #185) — Title-prefix-deduped GitHub issue writer. Invoked by AGENTS.md §Step 6.1 when `parse_failures` is non-empty. Uses `gh issue list --search 'in:title "Inbox quality:"'` + a `startswith()` post-filter to find an existing open issue; if found, prints the existing number and exits without filing. If not, files a new issue against `kentonium3/kg-automation` with title `Inbox quality: <N> notes with parse errors — YYYY-MM-DD`. Body is truncated with an overflow footer if it would exceed the 60K-char safety budget.
 
 ### Felix Admin Habits Agent (F009)
 - **Deployed by**: F009

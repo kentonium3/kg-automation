@@ -95,7 +95,7 @@ SKIP_DIRS = {'.git', 'node_modules', '.venv', '_templates', '.obsidian',
              '.obsidian-shared', '_templater-scripts', 'archive', '.kittify',
              'kitty-specs', '.agents', '.claude', '.codex', '.codex-tmp-home',
              '.gemini', '.github', 'scripts', 'research', 'diagnostics',
-             '.pytest_cache', 'temp'}
+             '.pytest_cache', 'temp', 'tests'}
 
 # Directories the SECRET scanner skips. NOTE: 'archive' is intentionally
 # NOT in this set — archived docs are still committed to the public repo

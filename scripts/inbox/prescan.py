@@ -77,6 +77,8 @@ class InboxFile:
     status_raw: Optional[str]
     classification: str
     warning: Optional[str] = None
+    parse_failure_reason: Optional[str] = None  # set when classification == "parse-failure" (#185)
+    has_stale_error_marker: bool = False  # True when the body has a felix-capture marker but parses cleanly (#185)
 
     @property
     def age_days(self) -> float:
@@ -105,6 +107,11 @@ class PrescanResult:
     archived_count: int
     archived: list
     warnings: list = field(default_factory=list)
+    # #185 — new fields. Additive; existing consumers that only read
+    # unprocessed_paths / archived continue to work.
+    parse_failures: list = field(default_factory=list)  # [{"path": ..., "reason": ...}]
+    dedup_skipped: list = field(default_factory=list)  # [{"path": ..., "filename": ..., "existing_issue": int|None}]
+    marker_cleanup_needed: list = field(default_factory=list)  # [<abs path>]
 
 
 # ---------------------------------------------------------------------------
@@ -231,6 +238,94 @@ def _parse_processed_at_age(
     return (now_utc - ts).total_seconds() / 86400.0
 
 
+def _detect_malformation(text: str) -> Optional[str]:
+    """Detect FR-005 frontmatter malformations. Returns reason or None.
+
+    The 4 malformation classes (in detection order, first match wins):
+
+      1. UTF-8 BOM at start of file
+      2. Leading non-blank whitespace before the opening `---` (distinct
+         from mission-027's leading-blank-line case, which is intentionally
+         classified as `unprocessed` for backward compatibility)
+      3. Missing closing `---` (the opening fence is present but no
+         closing fence is found)
+
+    YAML-parse-error detection happens later in `classify_file` because we
+    need the extracted block to feed `yaml.safe_load`.
+
+    See contracts/prescan-classifier.md for the authoritative spec.
+    """
+    # 1. UTF-8 BOM (Python text-mode read translates the BOM bytes to U+FEFF).
+    if text.startswith("﻿"):
+        return "UTF-8 BOM at start of file"
+
+    # Find the first non-blank line and its position.
+    lines = text.splitlines()
+    first_non_blank_idx = next(
+        (i for i, line in enumerate(lines) if line.strip()), None
+    )
+    if first_non_blank_idx is None:
+        return None  # entirely blank file — no frontmatter at all, not a malformation
+
+    first_non_blank = lines[first_non_blank_idx].rstrip()
+
+    # 2. If the first non-blank line is not exactly `---` but a standalone
+    #    `---` line appears within the first ~10 lines, treat as malformed
+    #    leading content. Cases without any standalone `---` fall through
+    #    to the "no frontmatter" path and are routed normally — the
+    #    routing-log dedup (FR-003) provides the safety net for any
+    #    duplicate-issue risk arising from those cases.
+    if first_non_blank != "---":
+        head_text = "\n".join(lines[: min(10, len(lines))])
+        if "\n---\n" in head_text or head_text.endswith("\n---"):
+            return "leading whitespace or content before opening --- fence"
+        return None  # genuinely no frontmatter
+
+    # 3. Opening `---` found; check for closing `---`.
+    for j in range(first_non_blank_idx + 1, len(lines)):
+        if lines[j].strip() == "---":
+            return None  # frontmatter delimiters complete
+    return "missing closing --- (unterminated frontmatter block)"
+
+
+# Stable prefix for the felix-capture parse-error callout marker.
+# Defined here for the cleanup-detection path; the marker WRITER lives in
+# scripts/inbox/inject_parse_error_marker.py (WP03).
+_FELIX_CAPTURE_MARKER_PREFIX = "> [!error] felix-capture:"
+
+
+def _has_parse_error_marker(text: str) -> bool:
+    """Return True if the note body has a felix-capture parse-error marker
+    near the top.
+
+    Used to flag files for `marker_cleanup_needed` when the file now parses
+    cleanly but a stale marker from a previous run is still in place
+    (FR-010 auto-cleanup).
+    """
+    # Skip leading whitespace, then frontmatter (if present), then look at
+    # the next few body lines.
+    lines = text.splitlines()
+    # Walk past leading blanks.
+    i = 0
+    while i < len(lines) and not lines[i].strip():
+        i += 1
+    # Walk past frontmatter (opening fence + body + closing fence) if present.
+    if i < len(lines) and lines[i].strip() == "---":
+        j = i + 1
+        while j < len(lines) and lines[j].strip() != "---":
+            j += 1
+        if j < len(lines):
+            i = j + 1  # skip past closing fence
+    # Skip blank lines after frontmatter close.
+    while i < len(lines) and not lines[i].strip():
+        i += 1
+    # Look at the next ~3 body lines.
+    for k in range(i, min(i + 3, len(lines))):
+        if lines[k].startswith(_FELIX_CAPTURE_MARKER_PREFIX):
+            return True
+    return False
+
+
 def classify_file(path: Path, now_utc: datetime) -> InboxFile:
     """Classify a single ``.md`` file per the data-model rules."""
     mtime_raw = os.path.getmtime(path)
@@ -253,6 +348,18 @@ def classify_file(path: Path, now_utc: datetime) -> InboxFile:
             warning=warning,
         )
 
+    # FR-005: detect non-YAML malformations before the existing parse path.
+    malformation = _detect_malformation(text)
+    if malformation is not None:
+        return InboxFile(
+            path=path,
+            mtime_utc=mtime_utc,
+            status_raw=None,
+            classification="parse-failure",
+            warning=malformation,
+            parse_failure_reason=malformation,
+        )
+
     block = _extract_frontmatter_block(text)
     if block is None:
         warning = "no frontmatter block; treated as unprocessed"
@@ -266,14 +373,16 @@ def classify_file(path: Path, now_utc: datetime) -> InboxFile:
 
     try:
         parsed = yaml.safe_load(block)
-    except yaml.YAMLError:
-        warning = "malformed YAML frontmatter; treated as unprocessed"
+    except yaml.YAMLError as exc:
+        # FR-005 (d): invalid YAML inside frontmatter block.
+        reason = f"invalid YAML inside frontmatter block: {str(exc)[:200]}"
         return InboxFile(
             path=path,
             mtime_utc=mtime_utc,
             status_raw=None,
-            classification="unknown-treated-as-unprocessed",
-            warning=warning,
+            classification="parse-failure",
+            warning=reason,
+            parse_failure_reason=reason,
         )
 
     if not isinstance(parsed, dict):
@@ -313,12 +422,18 @@ def classify_file(path: Path, now_utc: datetime) -> InboxFile:
         )
         classification = "unknown-treated-as-unprocessed"
 
+    # FR-010 marker cleanup detection: if the file parses cleanly but has a
+    # stale felix-capture parse-error marker in its body, flag it so the
+    # downstream consumer can strip the marker.
+    has_stale_error_marker = _has_parse_error_marker(text)
+
     return InboxFile(
         path=path,
         mtime_utc=mtime_utc,
         status_raw=status_raw,
         classification=classification,
         warning=warning,
+        has_stale_error_marker=has_stale_error_marker,
     )
 
 
@@ -502,6 +617,7 @@ def run_prescan() -> int:
         for f in classified
         if f.classification in ("unprocessed", "unknown-treated-as-unprocessed")
     ]
+    parse_failed = [f for f in classified if f.classification == "parse-failure"]
 
     _emit_stderr(f"prescan: archiving {len(stale)} stale files")
     archived = archive_stale(stale, inbox_processed)
@@ -513,6 +629,57 @@ def run_prescan() -> int:
     for a in archived:
         if not a.success and a.warning:
             warnings.append({"path": a.src, "reason": a.warning})
+
+    # #185 — FR-003 routing-log dedup. Filter already-routed filenames out of
+    # unprocessed. Fail-safe: degraded mode when the module or log file is
+    # unavailable preserves existing behavior.
+    dedup_skipped: list[dict] = []
+    try:
+        # Local import keeps prescan importable when routing_log is missing
+        # (e.g., during partial deploys).
+        from routing_log import RoutingLogReader  # type: ignore[import-not-found]
+        reader = RoutingLogReader()
+        routed_names = reader.routed_filenames()
+    except ImportError:
+        warnings.append({
+            "path": "scripts/inbox/routing_log.py",
+            "reason": "routing_log module not importable; running in dedup-disabled mode",
+        })
+        routed_names = set()
+    except Exception as exc:  # pragma: no cover — defensive
+        warnings.append({
+            "path": "routing-log",
+            "reason": f"routing log read failed: {exc}; dedup disabled this run",
+        })
+        routed_names = set()
+
+    unprocessed_filtered: list[InboxFile] = []
+    for f in unprocessed:
+        if f.path.name in routed_names:
+            dedup_skipped.append({
+                "path": str(f.path),
+                "filename": f.path.name,
+                "existing_issue": None,  # reserved; v1 doesn't surface this
+            })
+        else:
+            unprocessed_filtered.append(f)
+
+    # #185 — FR-005 parse_failures list.
+    parse_failures_json = [
+        {"path": str(f.path), "reason": f.parse_failure_reason or (f.warning or "")}
+        for f in parse_failed
+    ]
+
+    # #185 — FR-010 marker_cleanup_needed list. Files that parse cleanly now
+    # but still have a stale felix-capture marker in their body.
+    # Exclude successfully-archived files: their inbox path no longer exists
+    # for the strip helper, and once archived they are not user-facing.
+    archived_src_paths = {a.src for a in archived if a.success}
+    marker_cleanup_needed = [
+        str(f.path)
+        for f in classified
+        if f.has_stale_error_marker and str(f.path) not in archived_src_paths
+    ]
 
     finished = datetime.now(timezone.utc)
     duration_ms = int((time.monotonic() - t0) * 1000)
@@ -529,11 +696,14 @@ def run_prescan() -> int:
         finished_at_utc=_iso(finished),
         inbox_path=str(inbox),
         inbox_processed_path=str(inbox_processed),
-        unprocessed_count=len(unprocessed),
-        unprocessed_paths=sorted(str(f.path) for f in unprocessed),
+        unprocessed_count=len(unprocessed_filtered),
+        unprocessed_paths=sorted(str(f.path) for f in unprocessed_filtered),
         archived_count=len(archived_json),
         archived=archived_json,
         warnings=warnings,
+        parse_failures=parse_failures_json,
+        dedup_skipped=dedup_skipped,
+        marker_cleanup_needed=marker_cleanup_needed,
     )
 
     _emit_stderr("prescan: writing daily log")
@@ -541,7 +711,7 @@ def run_prescan() -> int:
     if fallback_warning:
         _emit_stderr(f"prescan: WARN {fallback_warning}")
     try:
-        _append_daily_log(log_dir, result, duration_ms, archived, unprocessed)
+        _append_daily_log(log_dir, result, duration_ms, archived, unprocessed_filtered)
     except OSError as e:
         _emit_stderr(f"prescan: WARN daily log write failed: {e}")
 
