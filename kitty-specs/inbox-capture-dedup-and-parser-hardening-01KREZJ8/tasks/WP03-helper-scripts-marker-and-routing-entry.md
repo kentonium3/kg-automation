@@ -274,3 +274,4 @@ spec-kitty agent action implement WP03 --agent <name>
 
 - 2026-05-13T01:53:41Z – claude – shell_pid=40557 – Started implementation via action command
 - 2026-05-13T01:55:46Z – claude – shell_pid=40557 – Ready for review: 3 marker/routing helper scripts + 16 tests. Atomic writes via os.replace. Idempotent inject. Strip-no-op when absent. CLI translates dash task_id to null.
+- 2026-05-13T02:05:38Z – claude – shell_pid=40557 – Codex review passed: 40bb861 initial → a70d0d4 BOM+multi-blank fix → f161173 scan window rebound. Final = inject/strip both handle BOM-prefixed frontmatter and skip all post-fence blanks before applying bounded ~3-line marker-search window. Deep-marker safety preserved by regression tests.
