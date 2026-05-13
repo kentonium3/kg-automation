@@ -30,6 +30,17 @@ temp/
 .kittify/missions/
 .kittify/scripts/
 
+# Spec-kitty local-runtime state (flagged by `spec-kitty doctor state-roots`
+# as "Risk: accidental commit"). Authority is local_runtime or derived — these
+# should never be committed.
+.kittify/workspaces/
+.kittify/.dashboard
+.kittify/charter/context-state.json
+.kittify/charter/references.yaml
+.kittify/charter/governance.yaml
+.kittify/charter/directives.yaml
+.kittify/charter/metadata.yaml
+
 # Agent sandbox residue (Codex, etc.)
 .codex-tmp-home/
 .tmp-home/
