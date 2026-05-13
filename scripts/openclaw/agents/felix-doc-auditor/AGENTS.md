@@ -221,6 +221,14 @@ E-004) with `audit_issue_number`, `doc_path`, `change_type`,
 If a doc is unreadable: log to "Items requiring human review", skip,
 continue. **Never abort the whole audit** (NFR-003).
 
+**Invariant on Edit Proposals**: Only emit an Edit Proposal when the
+correct value is deterministically known from a system-state source
+(commit history, filesystem, registry source, etc.). Cases requiring
+content judgment — prose drift, missing context, ambiguous remediation
+— go to § 7.8 as `docs-debt` issues instead. This invariant is the
+contract that authorizes § 7.9 to invoke the routing helper without a
+human gate for known change_types.
+
 ### 7.6 Missing artifact detection (FR-004)
 
 Per SKILL.md § 6. Independent of scope. A deployed agent without a
@@ -260,76 +268,27 @@ tracked-work artifacts, reversible by closing (SKILL.md § 8.6).
 
 ### 7.9 Branch on remaining outcome
 
-- **Empty audit** (zero high-confidence edits, zero debt, zero missing):
-  go to § 8 (post empty summary, close, release lock). Done.
-- **Debt-only audit** (zero high-confidence edits; debt and/or missing
-  filed in § 7.8): go to § 8. **No human gate required.**
-- **Edit-bearing audit** (one or more high-confidence edits proposed):
-  - Level 1 → file the pending-approval issue per § 7.10. Exit turn.
-  - Level 2+ → commit per § 7.11 directly, then go to § 8.
+- **Empty audit** (zero edits, zero debt, zero missing): go to § 8 (post empty summary, close, release lock). Done.
+- **Debt-only audit** (zero edits; debt and/or missing filed in § 7.8): go to § 8. **No human gate required.**
+- **Edit-bearing audit** (one or more proposed edits): serialize the proposals + audit state to a tempfile (see the JSON shape documented at the top of `handle_audit_routing.py`) and invoke:
 
-### 7.10 Level 1 approval gate (file pending-approval issue, then exit)
+  ```bash
+  python3 /home/claude/kg-automation/scripts/openclaw/agents/felix-doc-auditor/handle_audit_routing.py @<path>
+  ```
 
-Per SKILL.md § 8.5 and the contract at
-`kitty-specs/felix-doc-auditor-agent-01KR7JK9/contracts/audit-pending-approval-issue.template.md`.
+  The helper partitions by change_type, auto-applies known classes (committing them atomically with mode preservation), files a pending-approval issue for any gated subset (unknown change_types — fail-safe), and posts the audit summary on the originating audit issue. It exits non-zero on any leg failure; treat exit codes per the helper's documented contract.
 
-File one `Audit #<N>: pending approval — <K> proposed edit(s)` issue:
+### 7.10 (Reserved — handled by § 7.9 helper)
 
-```bash
-gh issue create --repo kentonium3/kg-automation \
-  --title "Audit #<N>: pending approval — <K> proposed edit(s)" \
-  --label "audit-pending-approval,area/<each-from-originating>" \
-  --body "<populated template>"
-```
+The pending-approval-issue filing logic previously documented here is
+now performed by `handle_audit_routing.py` (see § 7.9). Section header
+retained for backward-compat with documentation cross-references.
 
-The body lists each proposed edit as a numbered before/after `diff`
-block, cites evidence (system-state source + commit SHA), cross-refs
-the originating audit and the issues filed in § 7.8, and includes the
-decision-label instructions. Do NOT apply `P2-debt` — this is an
-active gate, not tracked work.
+### 7.11 (Reserved — handled by § 7.9 helper)
 
-**🛑 ABSOLUTE RULE (SKILL.md § 8.5):** Never apply `audit-approve`,
-`audit-reject`, or `audit-skip`. Ever. Not at creation, not later.
-These three labels are Kent's — the Level-1 gate's whole purpose is
-that the agent doesn't self-authorize. Self-applying any of them is
-a gate violation; § 7.11 has a runtime check that aborts the run
-when detected (see #215 for the 2026-05-10 incident).
-
-Then comment on the originating audit:
-
-```bash
-gh issue comment <originating-#> --repo kentonium3/kg-automation \
-  --body "Pending review at #<new>"
-```
-
-**Leave the originating audit OPEN with `status:in-progress` intact.**
-The audit remains locked until the decision lands.
-
-**Exit your turn here.** No polling. Log per § 9 noting "pending
-approval at #<new>", then return.
-
-### 7.11 Cron-tick decision application (invoked from § 3)
-
-When § 3 finds a pending-approval issue with a decision label:
-
-**FIRST run the actor-verification check per SKILL.md § 8.6** (resolve
-`SELF_LOGIN` via `gh api user --jq .login`, then check the actor of
-the decision-labeled event in the issue's timeline). If the actor is
-your own bot identity, that's a GATE VIOLATION — do NOT apply the
-decision; remove the offending label; log an `error` entry; exit the
-cron tick for human investigation. Full procedure in SKILL.md § 8.6.
-
-**Only after the actor check passes** (actor is a human, not the bot),
-apply per this table (also SKILL.md § 8.5):
-
-| Label | Action |
-|---|---|
-| `audit-approve` | Apply all proposed edits (parse diffs from the issue body); commit atomically per § 7.12; post summary on the originating audit; close BOTH issues; release lock. |
-| `audit-reject` | Do NOT commit. Demote each proposed edit to its own `docs-debt` issue (preserve before/after as evidence). Post summary noting rejection; close BOTH issues; release lock. |
-| `audit-skip` | Close BOTH issues with a skip note. No commit, no demotion. Release lock. |
-
-Iteration over multiple pending-approvals is handled in § 3; the
-multiple-labels and no-decision-label cases are also handled there.
+The cron-tick decision-application logic previously documented here is
+now performed by `handle_audit_routing.py` (see § 7.9). Section header
+retained for backward-compat with documentation cross-references.
 
 ### 7.12 Commit (on `audit-approve` or at Level 2+)
 
