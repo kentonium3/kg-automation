@@ -1,4 +1,9 @@
 #!/usr/bin/env python3
+# DEPRECATED 2026-05-13 — superseded by `gog auth credentials` + `gog auth add`
+# See docs/runbooks/google-workspace-ops.md and ADR-0001 for context.
+#
+# This file is preserved as a historical record of the pre-gog Calendar OAuth
+# flow. It is no longer executed and should not be referenced as a working tool.
 """
 One-time Google Calendar OAuth2 authorization script.
 Reads client credentials from office2 credential store,

@@ -2,8 +2,8 @@
 title: Credentials and Secrets
 doc_type: reference
 status: approved
-last_updated: '2026-05-12'
-updated_by: '#227 + #115 + #115-narrative-sync + rename-kentonium3-pat-to-gh-oauth'
+last_updated: '2026-05-13'
+updated_by: '#100-google-workspace-foundation + #227 + #115 + #115-narrative-sync + rename-kentonium3-pat-to-gh-oauth'
 ---
 
 # Credentials and Secrets
@@ -25,13 +25,37 @@ simplicity on a Tailscale-gated personal server.
 
 ### 1. Tool-native auth store (gog)
 
-Used by: `personal-google`
+Used by: `google-workspace-client`, `gog-keyring-password`,
+`gog-credentials-keyring` (active). `personal-google` (deprecated; see
+"Deprecated credentials" below).
 
-`gog` (the Google Workspace CLI) manages its own OAuth2 token store via
-`gog auth credentials` and `gog auth add`. Credentials are stored in
-gog's internal directory on office2. This is the correct home for any
-credential that `gog` consumes — agents interact via the `gog` CLI rather
-than directly with credential files.
+`gog` (the Google Workspace CLI, installed via Linuxbrew tap
+`steipete/tap/gogcli`) manages its own OAuth2 token store via
+`gog auth credentials` and `gog auth add`. Felix's Google Workspace
+integration (Gmail, Calendar, Drive, Contacts, Sheets, Docs) consolidates
+on this CLI as of 2026-05-13 (ADR-0001).
+
+Three files participate:
+
+1. `google-workspace-client` — OAuth Desktop `client_secret.json`
+   downloaded from the Google Cloud Console. Read once by
+   `gog auth credentials` at setup time. Stored at
+   `/data/services/openclaw/secrets/google-workspace-client.json` (mode 600,
+   claude:felix).
+2. `gog-keyring-password` — random passphrase used by gog's encrypted file
+   keyring backend. Required because office2 is headless (no D-Bus
+   SecretService). Exported as `GOG_KEYRING_PASSWORD` in claude's
+   `~/.bashrc`. Stored at `/data/services/openclaw/secrets/gog-keyring-password`
+   (mode 600, claude:felix).
+3. `gog-credentials-keyring` — gog-managed encrypted bucket holding the
+   OAuth refresh tokens. Located at
+   `/home/claude/.config/gogcli/credentials.json` (mode 600, claude:claude).
+   **Not read or written directly** — only via `gog auth *` commands.
+
+Felix agents do not handle any of these files directly. They shell out to
+`gog` and the CLI handles token refresh, scope checks, and encryption
+internally. See [`docs/runbooks/google-workspace-ops.md`](<../../runbooks/google-workspace-ops.md>)
+for the full setup and operator procedure.
 
 ### 2. OpenClaw native auth
 
@@ -86,7 +110,9 @@ The two tokens are distinct identities; office2 never holds a copy of
 ```mermaid
 graph TD
     subgraph "gog auth store"
-        G[personal-google<br/>OAuth2 refresh token]
+        GC[google-workspace-client<br/>OAuth client_secret]
+        GP[gog-keyring-password<br/>file-backend passphrase]
+        GK[gog-credentials-keyring<br/>encrypted refresh tokens]
     end
 
     subgraph "OpenClaw native"
@@ -111,7 +137,8 @@ graph TD
 
     subgraph "Consumers"
         OC[openclaw-gateway]
-        SK[OpenClaw skills<br/>vikunja-api, google-calendar]
+        SK[OpenClaw skills<br/>vikunja-api]
+        GOG[gog CLI<br/>Gmail/Calendar/Drive/Contacts/Sheets/Docs]
         BK[backup.sh]
         TS[tailscaled]
         UI[Vikunja web UI<br/>setup_vikunja.py]
@@ -119,7 +146,9 @@ graph TD
         KM[Kent on Mac<br/>manual git + gh CLI]
     end
 
-    G -->|gog CLI| SK
+    GC -->|gog auth credentials| GOG
+    GP -->|GOG_KEYRING_PASSWORD env| GOG
+    GK -->|gog-managed read/write| GOG
     A -->|native auth| OC
     W -->|Baileys| OC
     V -->|cat secrets file| SK
@@ -142,7 +171,9 @@ graph TD
 | `anthropic` | API key | OpenClaw native auth store | `openclaw-gateway` |
 | `vikunja-api` | API token | Scoped plaintext — `/data/services/openclaw/secrets/vikunja-api` | OpenClaw skills |
 | `whatsapp-session` | session | OpenClaw native (Baileys) | `openclaw-gateway` |
-| `personal-google` | OAuth2 | gog auth store | `gog` CLI via google-calendar skill |
+| `google-workspace-client` | OAuth Desktop `client_secret` | Scoped plaintext — `/data/services/openclaw/secrets/google-workspace-client.json` | `gog auth credentials` (one-time ingest) |
+| `gog-keyring-password` | passphrase | Scoped plaintext — `/data/services/openclaw/secrets/gog-keyring-password` | `gog` (via `GOG_KEYRING_PASSWORD` env var in claude's `~/.bashrc`) |
+| `gog-credentials-keyring` | gog-managed encrypted bucket | `/home/claude/.config/gogcli/credentials.json` (managed by `gog`, encrypted by `gog-keyring-password`) | `gog` (all subcommands — Gmail, Calendar, Drive, Contacts, Sheets, Docs) |
 | `kg-felix-bot-pat` | classic PAT | gh CLI auth store — `/home/claude/.config/gh/hosts.yml` | `felix-doc-auditor` and future Felix agents (git push, `gh` CLI) |
 | `kentonium3-gh-oauth` | OAuth app token | gh CLI auth store — macOS Keychain (managed by `gh` CLI on Mac) | Kent's manual git + `gh` CLI from Mac |
 
@@ -152,7 +183,22 @@ graph TD
 
 | Name | Type | Planned By | Purpose |
 |------|------|------------|---------|
-| `intentional-google` | OAuth2 | F012 (phase 3) | Intentional LLC Google Workspace — separate credential from personal-google |
+| `intentional-google` | OAuth2 (gog client alias `intentional`) | F012 (phase 3) | Intentional LLC Google Workspace — separate OAuth client + refresh-token bucket from `google-workspace-client`. Setup procedure documented in [`google-workspace-ops.md` §5](<../../runbooks/google-workspace-ops.md>). |
+
+---
+
+## Deprecated Credentials
+
+| Name | Deprecated At | Replaced By | Disposition |
+|------|---------------|-------------|-------------|
+| `personal-google` | 2026-05-13 (#100) | `google-workspace-client` + `gog-credentials-keyring` | Files (`google-calendar-client-id`, `google-calendar-client-secret`, `google-calendar-refresh-token` under `/data/services/openclaw/secrets/`) remain on disk pending operator confirmation that no consumer references them. Deletion deferred to operator discretion post-merge. The legacy script `scripts/google/authorize-calendar.py` has been archived to `docs/archive/scripts/authorize-calendar.py` (history preserved via `git mv`). |
+
+The deprecation reflects the consolidation of all Google Workspace API
+access onto the `gog` CLI per ADR-0001. The `personal-google` credential
+group was scoped to Calendar only and was managed by the pre-gog OAuth
+flow (the now-archived `authorize-calendar.py`). The new credential set
+covers all six Google Workspace surfaces (Gmail, Calendar, Drive,
+Contacts, Sheets, Docs) under one refresh token.
 
 ---
 

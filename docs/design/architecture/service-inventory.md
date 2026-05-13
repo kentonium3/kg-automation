@@ -19,6 +19,7 @@ All services run on office2 unless otherwise noted.
 | Transcribe API | Docker (GPU) | `transcribe-transcribe` | 8787 | 100.92.197.90 | `transcribe.service` | `/data/services/transcribe` |
 | OpenClaw Gateway | npm-global | `v2026.3.24` | 18789 | 127.0.0.1 | `openclaw-gateway.service` (user) | `/data/services/openclaw/data` |
 | Ollama | Host binary | `ollama` (latest, 0.23.2) | 11434 | 127.0.0.1 (localhost) | `ollama.service` (system, user `ollama`) | `/usr/share/ollama/.ollama` |
+| Google Workspace (`gog` CLI) | CLI integration | `gog` (Linuxbrew, `steipete/tap/gogcli`) | — | — | n/a (on-demand CLI) | `/home/claude/.config/gogcli/credentials.json` |
 
 ## Scheduled Jobs
 
@@ -117,6 +118,20 @@ All services run on office2 unless otherwise noted.
 - **Data**: models at `/usr/share/ollama/.ollama/models/` (re-pullable from ollama.com — backup excluded by design)
 - **Purpose**: Local LLM inference runtime for future agent / RAG workflows. No active workload yet — installed as part of the GPU compute capability rollout.
 - **Verification**: `curl -s http://127.0.0.1:11434/api/version` from office2 should return JSON with the version field.
+
+### Google Workspace via `gog` CLI (#100, 2026-05-13)
+- **Deployed by**: #100 / mission `google-workspace-foundation-01KRH4PE` (ADR-0001)
+- **Type**: CLI integration — on-demand binary shelled out to by Felix agents; not a long-running service.
+- **Binary**: `/home/linuxbrew/.linuxbrew/bin/gog` (Linuxbrew tap `steipete/tap/gogcli`)
+- **OAuth model**: `gog auth credentials` + `gog auth add <email> --remote` two-step flow. Refresh tokens stored in gog's encrypted keyring at `/home/claude/.config/gogcli/credentials.json` (file backend, encrypted via `GOG_KEYRING_PASSWORD`).
+- **APIs covered**: Gmail, Calendar, Drive, Contacts (People API), Sheets, Docs — all six validated end-to-end on 2026-05-13.
+- **Active accounts**: `kentgale@gmail.com` (personal). `kent@intentional.biz` planned (separate OAuth client; see `identity-model.md`).
+- **Skill**: bundled `gog` skill at `/usr/lib/node_modules/openclaw/skills/gog/SKILL.md` (OpenClaw-discoverable).
+- **Secrets**: `/data/services/openclaw/secrets/google-workspace-client.json` (OAuth client_secret, mode 600), `/data/services/openclaw/secrets/gog-keyring-password` (keyring passphrase, mode 600). See `credentials-and-secrets.md`.
+- **Risk tier**: 3 (logic/workflow — no long-running service or fabric component).
+- **Consumers**: any Felix agent. Centralized integration; agents do not embed OAuth clients of their own.
+- **Runbook**: [`docs/runbooks/google-workspace-ops.md`](<../../runbooks/google-workspace-ops.md>) — full setup procedure, pitfalls, common commands, troubleshooting, and second-account expansion.
+- **Supersedes**: the legacy direct-OAuth path under `scripts/google/authorize-calendar.py` (now archived at `docs/archive/scripts/authorize-calendar.py`) and the `personal-google` credential entry (now deprecated; superseded by the gog-managed credential set).
 
 ### Felix Admin Capture Agent (F008)
 - **Deployed by**: F008

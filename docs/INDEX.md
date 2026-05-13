@@ -88,6 +88,7 @@ Authoritative operational state. **Exempt from moves (F015 constraint C-001)**.
 - [Task Intelligence Operations](<./runbooks/task-intelligence-ops.md>)
 - [Escalation Engine Operations](<./runbooks/escalation-ops.md>)
 - [OpenClaw Agent Setup](<./runbooks/openclaw-agent-setup.md>)
+- [Google Workspace Operations](<./runbooks/google-workspace-ops.md>) — `gog` CLI setup, OAuth flow, pitfalls, common commands, second-account expansion (#100, ADR-0001)
 
 ### Human and mixed-audience runbooks
 

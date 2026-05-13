@@ -1,7 +1,7 @@
 {
   "schema_version": "1.1",
   "last_updated": "2026-05-13",
-  "updated_by": "#256-scope-discipline-guardrails + #253-step-5a-6-consolidation + #254-atomic-write-perm-preservation + issue-105-doc-auditor + #223-systemd-timer + #208-restic-healthcheck + #202-obsidian-sync-system-level + #203-sync-heartbeat + #199-inbox-schedules + #115-credential-health-check + #189-vikunja-compose + #185-inbox-capture-dedup",
+  "updated_by": "#100-google-workspace-foundation + #256-scope-discipline-guardrails + #253-step-5a-6-consolidation + #254-atomic-write-perm-preservation + issue-105-doc-auditor + #223-systemd-timer + #208-restic-healthcheck + #202-obsidian-sync-system-level + #203-sync-heartbeat + #199-inbox-schedules + #115-credential-health-check + #189-vikunja-compose + #185-inbox-capture-dedup",
   "services": [
     {
       "name": "vikunja",
@@ -668,6 +668,46 @@
         {"path": "~/.config/systemd/user/credential-health-check.timer", "format": "systemd-unit", "source_in_repo": "scripts/office2/credential-health-check.timer"},
         {"path": "~/.config/systemd/user/credential-health-check.service", "format": "systemd-unit", "source_in_repo": "scripts/office2/credential-health-check.service"},
         {"path": "/home/claude/kg-automation/scripts/security/credential_health_check/", "format": "python-package", "source_in_repo": "scripts/security/credential_health_check/"}
+      ]
+    },
+    {
+      "name": "google-workspace",
+      "type": "cli-integration",
+      "host": "office2",
+      "agent": null,
+      "deployed_by": "#100",
+      "updated_by": "#100-google-workspace-foundation",
+      "last_updated": "2026-05-13",
+      "status": "active",
+      "purpose": "Google Workspace API access (Gmail, Calendar, Drive, Contacts, Sheets, Docs) via the gog CLI for consumption by any Felix agent",
+      "runbook": "docs/runbooks/google-workspace-ops.md",
+      "risk_tier": 3,
+      "binary": "/home/linuxbrew/.linuxbrew/bin/gog",
+      "binary_source": "homebrew tap steipete/tap/gogcli",
+      "skill_path": "/usr/lib/node_modules/openclaw/skills/gog/SKILL.md",
+      "config_files": [
+        {
+          "path": "/data/services/openclaw/secrets/google-workspace-client.json",
+          "format": "json",
+          "purpose": "OAuth 2.0 Desktop client_secret"
+        },
+        {
+          "path": "/data/services/openclaw/secrets/gog-keyring-password",
+          "format": "text",
+          "purpose": "gog keyring encryption passphrase (file backend)"
+        },
+        {
+          "path": "/home/claude/.config/gogcli/credentials.json",
+          "format": "json",
+          "purpose": "gog-managed credentials + encrypted refresh-token bucket"
+        }
+      ],
+      "dependencies": [
+        {
+          "target": "google-apis",
+          "type": "requires",
+          "description": "Google REST APIs for Gmail, Calendar, Drive, People, Sheets, Docs"
+        }
       ]
     }
   ]

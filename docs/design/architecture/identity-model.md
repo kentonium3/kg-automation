@@ -2,8 +2,8 @@
 title: Identity Model
 doc_type: reference
 status: approved
-last_updated: '2026-05-11'
-updated_by: '#227'
+last_updated: '2026-05-13'
+updated_by: '#100-google-workspace-foundation + #227'
 ---
 
 # Identity Model
@@ -60,3 +60,21 @@ Felix agents act in GitHub under a dedicated service-account identity (`kg-felix
 Canonical registry: [`AGENT-REGISTRY.md` §Service Accounts](<../../constitution/AGENT-REGISTRY.md#service-accounts>).
 
 Future Felix agents may share `kg-felix-bot` or get their own dedicated service accounts, depending on whether per-agent audit-trail separation becomes useful.
+
+## Google Workspace Accounts
+
+Felix integrates with Google Workspace via the `gog` CLI (see [ADR-0001](<./adr/0001-google-workspace-via-gog.md>) and [`docs/runbooks/google-workspace-ops.md`](<../../runbooks/google-workspace-ops.md>)). Each Google account is a distinct OAuth identity registered with gog. Refresh tokens are stored in gog's encrypted keyring at `/home/claude/.config/gogcli/credentials.json` on office2.
+
+### Personal account — kentgale@gmail.com (active 2026-05-13)
+
+- **gog client alias**: `default`
+- **Scopes granted**: Gmail, Calendar, Drive, Contacts (People API), Sheets, Docs
+- **Google Cloud project**: `felix-openclaw-gog` (project ID 44082398134)
+- **OAuth Client ID**: Desktop application type, named `felix-openclaw-gog` in Cloud Console
+- **Authorized via**: `gog auth add kentgale@gmail.com --services gmail,calendar,drive,contacts,docs,sheets --remote` (see runbook for full procedure)
+
+### Intentional business account — TBD (stub)
+
+A future Google Cloud project for the Intentional consulting business will have its own OAuth Client and refresh-token bucket. Procedure: identical Cloud Console setup steps against the Intentional account, then `gog auth credentials --client intentional <path>` + `gog auth add intentional@example.com --client intentional --services ... --remote`. After registration, `gog auth list` will show both accounts. Per-command account selection via `-a <email>` or `--client <alias>` flags.
+
+This stub is intentional placeholder. Update when the second project is set up.

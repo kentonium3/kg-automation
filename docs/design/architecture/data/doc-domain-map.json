@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
   "last_updated": "2026-05-13",
-  "updated_by": "#100-google-workspace-adr + #253-step-5a-6-consolidation + #254-atomic-write-perm-preservation + #256-scope-discipline-guardrails + #105 + #198",
+  "updated_by": "#100-google-workspace-foundation + #100-google-workspace-adr + #253-step-5a-6-consolidation + #254-atomic-write-perm-preservation + #256-scope-discipline-guardrails + #105 + #198",
   "description": "Maps area labels to documentation files requiring verification when that domain changes. Used by doc-audit-trigger.yml and the future felix-doc-auditor agent (#105).",
   "domains": {
     "area/infrastructure": [
@@ -48,7 +48,8 @@
     ],
     "area/ea": [
       "docs/runbooks/escalation-ops.md",
-      "docs/runbooks/observation-ops.md"
+      "docs/runbooks/observation-ops.md",
+      "docs/runbooks/google-workspace-ops.md"
     ],
     "area/task-intel": [
       "docs/runbooks/task-intelligence-ops.md",
