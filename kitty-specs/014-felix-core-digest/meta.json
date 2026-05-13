@@ -1,11 +1,12 @@
 {
   "created_at": "2026-04-04T05:24:57.329875+00:00",
-  "feature_number": "014",
-  "feature_slug": "014-felix-core-digest",
   "friendly_name": "Felix Core Digest",
-  "mission": "software-dev",
+  "mission_id": "01KRG3V5EP2ZNQT3V3SH8MWMKH",
+  "mission_number": 14,
+  "mission_slug": "014-felix-core-digest",
+  "mission_type": "software-dev",
   "slug": "felix-core-digest",
-  "target_branch": "main",
   "source_description": "Agent log format standard (JSONL) and observation intelligence layer replacing Markdown-regex parsing",
+  "target_branch": "main",
   "vcs": "git"
 }

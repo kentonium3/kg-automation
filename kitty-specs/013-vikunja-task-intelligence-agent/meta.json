@@ -1,11 +1,12 @@
 {
-  "feature_number": "013",
-  "slug": "vikunja-task-intelligence-agent",
-  "feature_slug": "013-vikunja-task-intelligence-agent",
+  "created_at": "2026-04-02T11:44:39.532660+00:00",
   "friendly_name": "Vikunja Task Intelligence Agent",
-  "mission": "software-dev",
-  "target_branch": "main",
-  "vcs": "git",
+  "mission_id": "01KRG3V5ENAGJM72RSME25EX7F",
+  "mission_number": 13,
+  "mission_slug": "013-vikunja-task-intelligence-agent",
+  "mission_type": "software-dev",
+  "slug": "vikunja-task-intelligence-agent",
   "source_description": "docs/func-spec/F013_vikunja_task_intelligence_agent.md",
-  "created_at": "2026-04-02T11:44:39.532660+00:00"
+  "target_branch": "main",
+  "vcs": "git"
 }

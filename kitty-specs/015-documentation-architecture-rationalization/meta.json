@@ -14,10 +14,11 @@
       }
     ]
   },
-  "feature_number": "015",
-  "feature_slug": "015-documentation-architecture-rationalization",
   "friendly_name": "Documentation Architecture Rationalization",
-  "mission": "documentation",
+  "mission_id": "01KRG3V5ER7MN5MV4JDKBF7BNK",
+  "mission_number": 15,
+  "mission_slug": "015-documentation-architecture-rationalization",
+  "mission_type": "documentation",
   "slug": "documentation-architecture-rationalization",
   "source_description": "Classify all active docs by Divio type, create docs/INDEX.md as the master map referenced from CLAUDE.md, enforce runbook vs. reference distinction, document the canonical machine-readable artifact home, and resolve F016 path dependencies.",
   "target_branch": "main",

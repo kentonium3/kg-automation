@@ -1,11 +1,12 @@
 {
   "created_at": "2026-04-09T17:05:15.541011+00:00",
   "friendly_name": "OpenClaw Agent Model Tiering",
-  "source_description": "GitHub issue #135 (parent: #137 AI Token Cost Optimization)",
-  "vcs": "git",
-  "mission_number": "021",
+  "mission_id": "01KRG3V5EMA8FE8EG0DHA0HVV3",
+  "mission_number": 21,
   "mission_slug": "021-openclaw-agent-model-tiering",
   "mission_type": "software-dev",
   "slug": "021-openclaw-agent-model-tiering",
-  "target_branch": "main"
+  "source_description": "GitHub issue #135 (parent: #137 AI Token Cost Optimization)",
+  "target_branch": "main",
+  "vcs": "git"
 }

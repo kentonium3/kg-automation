@@ -1,7 +1,8 @@
 {
   "created_at": "2026-04-06T19:20:33.304108+00:00",
   "friendly_name": "Escalation Engine",
-  "mission_number": "019",
+  "mission_id": "01KRG3V5EHX5TWP9GDFVJTTF34",
+  "mission_number": 19,
   "mission_slug": "019-escalation-engine",
   "mission_type": "software-dev",
   "slug": "019-escalation-engine",
