@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "mission_slug": "auto-apply-audit-edits-01KRG1BG",
+  "mission_id": "01KRG1BGWEYN76ECNMSCFXRM11",
+  "mission_branch": "kitty/mission-auto-apply-audit-edits-01KRG1BG",
+  "target_branch": "main",
+  "lanes": [
+    {
+      "lane_id": "lane-a",
+      "wp_ids": [
+        "WP01"
+      ],
+      "write_scope": [
+        "scripts/openclaw/agents/felix-doc-auditor/AGENTS.md",
+        "scripts/openclaw/agents/felix-doc-auditor/AGENTS.md.tmpl",
+        "scripts/openclaw/agents/felix-doc-auditor/handle_audit_routing.py",
+        "tests/openclaw/agents/felix-doc-auditor/test_handle_audit_routing.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "artifact-rendering",
+        "legacy-cleanup",
+        "tests",
+        "tracker-integration"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    }
+  ],
+  "computed_at": "2026-05-13T06:55:43.536300+00:00",
+  "computed_from": "dependency_graph+ownership",
+  "planning_artifact_wps": []
+}
