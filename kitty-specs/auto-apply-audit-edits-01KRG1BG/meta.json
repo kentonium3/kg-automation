@@ -1,10 +1,12 @@
 {
   "created_at": "2026-05-13T06:45:59.345355+00:00",
-  "friendly_name": "auto apply audit edits",
+  "friendly_name": "Auto-apply audit edits; gate reserved for future judgment classes",
   "mission_id": "01KRG1BGWEYN76ECNMSCFXRM11",
   "mission_number": null,
   "mission_slug": "auto-apply-audit-edits-01KRG1BG",
   "mission_type": "software-dev",
   "slug": "auto-apply-audit-edits-01KRG1BG",
-  "target_branch": "main"
+  "target_branch": "main",
+  "vcs": "git",
+  "source_description": "Fix GitHub issue #259 — felix-doc-auditor over-gates mechanical edits. The current auditor routes every edit-bearing audit through the Level-1 approval gate regardless of change_type, but all currently-defined change_types are deterministic-known-fix surfaces by definition (if the auditor detected the drift, it knows the correct value from a system-state source). Mission adds a route_audit_decisions.py helper that partitions edit proposals into auto-apply (known change_types) and gate (unknown — fail-safe), updates AGENTS.md to invoke it and act on the partition, and codifies the invariant in § 7.5 that judgment-required cases go to docs-debt issues, not edit proposals."
 }
