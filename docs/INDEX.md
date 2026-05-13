@@ -49,6 +49,13 @@ Master map for all active documentation under `docs/`. Referenced from
 - [Service Dependencies Diagram](<./design/architecture/service-dependencies.view.md>)
 - [Glossary](<./design/architecture/glossary.md>)
 
+### docs/design/architecture/adr/ — Architecture Decision Records
+
+Immutable, dated records of *why* particular options were chosen over alternatives. See the README for when to write one.
+
+- [ADR Index](<./design/architecture/adr/README.md>)
+- [ADR-0001 — Google Workspace integration via `gog`](<./design/architecture/adr/0001-google-workspace-via-gog.md>) (approved 2026-05-13)
+
 ### docs/design/architecture/data/ — Machine-readable state (JSON)
 
 Authoritative operational state. **Exempt from moves (F015 constraint C-001)**.
