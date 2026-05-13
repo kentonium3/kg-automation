@@ -4,7 +4,7 @@ doc_type: runbook
 status: approved
 owners: [kent@intentional.biz]
 last_validated: 2026-04-07
-last_updated: '2026-04-08'
+last_updated: '2026-05-12'
 revision: v2.1
 audience: agents_and_humans
 ---

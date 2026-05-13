@@ -3,7 +3,7 @@ title: "Felix — Capability Roadmap & Strategy"
 doc_type: reference
 status: approved
 owners: ["@kentonium3"]
-last_updated: '2026-04-06'
+last_updated: '2026-05-13'
 revision: v0.3
 audience: agents_and_humans
 ---

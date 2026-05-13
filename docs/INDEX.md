@@ -4,7 +4,7 @@ doc_type: reference
 status: approved
 owners: [kgale]
 version: "2.0"
-last_validated: 2026-05-10
+last_validated: 2026-05-11
 ---
 
 # kg-automation Documentation Index
