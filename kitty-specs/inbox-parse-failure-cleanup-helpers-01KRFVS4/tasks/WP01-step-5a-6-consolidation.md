@@ -389,3 +389,4 @@ Success of T011 confirms that haiku 4.5 reliably executes the single-call Step 6
 ## Activity Log
 
 - 2026-05-13T05:21:28Z – claude:opus-4.7:implementer:implementer – shell_pid=17407 – Assigned agent via action command
+- 2026-05-13T05:28:22Z – claude:opus-4.7:implementer:implementer – shell_pid=17407 – Implementation complete. T001-T007 done in-lane; T008-T011 (deploy + smoke + SC-003 canary) deferred to post-merge operator verification per the WP scope.
