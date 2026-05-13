@@ -419,3 +419,4 @@ Compare `total_tokens` on a `frontmatter_date`-only audit pre-merge vs. post-mer
 ## Activity Log
 
 - 2026-05-13T06:57:43Z – claude:opus-4.7:implementer:implementer – shell_pid=33565 – Assigned agent via action command
+- 2026-05-13T07:05:07Z – claude:opus-4.7:implementer:implementer – shell_pid=33565 – Implementation complete. T001-T005 done in-lane; T006-T009 (deploy + SC verification + drain existing pending-approvals) are post-merge operator scope per the WP file's Post-Merge Operator Verification section.
