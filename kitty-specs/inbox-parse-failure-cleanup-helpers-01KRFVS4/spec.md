@@ -72,7 +72,7 @@ This mission collapses each multi-step recipe into a single CLI invocation by in
 |---|---|---|
 | C-001 | Helper interfaces use a JSON tempfile (`@<path>` style) for input, matching the existing `file_inbox_quality_issue.py --parse-failures @<path>` convention. Avoids fragile shell quoting on parse-error reasons. | accepted |
 | C-002 | The agent prompt (AGENTS.md and .tmpl) is the contract surface. Both files must be updated together to stay in sync; a deploy of one without the other would produce drift. | accepted |
-| C-003 | Existing helpers (`file_inbox_quality_issue.py`, `inject_parse_error_marker.py`, `strip_parse_error_marker.py`) keep their current CLI surface and tests. The new helpers wrap them; the old helpers remain callable standalone for debugging and one-off operator use. | accepted |
+| C-003 | Existing helpers (`file_inbox_quality_issue.py`, `inject_parse_error_marker.py`, `strip_parse_error_marker.py`) are not rewritten — their business logic (the library functions `inject_marker`, `strip_marker`, `find_existing_open_issue`, `file_new_issue`, etc.) is reused as-is. The new orchestrator helpers may invoke that logic via direct function import (the standard Python pattern, since each existing module already exposes a clean library API alongside its thin `main()` CLI wrapper). The existing CLI surfaces are preserved so the old helpers remain callable standalone for debugging and one-off operator use. | accepted |
 | C-004 | No model swap. felix-admin-capture continues running haiku 4.5. The structural fix is sufficient; switching models is a separate decision documented in `feedback_scripts_vs_llm.md`. | accepted |
 
 ## Success Criteria
