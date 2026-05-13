@@ -1,7 +1,7 @@
 {
-  "event_count": 1,
-  "last_event_id": "01KRH52M2KY9ZAYZCAW3S196Z1",
-  "materialized_at": "2026-05-13T17:10:14.867909+00:00",
+  "event_count": 3,
+  "last_event_id": "01KRH53237DDPVMYDJSYJ4X83A",
+  "materialized_at": "2026-05-13T17:10:29.223332+00:00",
   "mission_number": "",
   "mission_slug": "google-workspace-foundation-01KRH4PE",
   "mission_type": "software-dev",
@@ -12,17 +12,17 @@
     "claimed": 0,
     "done": 0,
     "for_review": 0,
-    "in_progress": 0,
+    "in_progress": 1,
     "in_review": 0,
-    "planned": 1
+    "planned": 0
   },
   "work_packages": {
     "WP01": {
-      "actor": "finalize-tasks",
+      "actor": "implement-command",
       "force_count": 1,
-      "lane": "planned",
-      "last_event_id": "01KRH52M2KY9ZAYZCAW3S196Z1",
-      "last_transition_at": "2026-05-13T17:10:14.867909+00:00"
+      "lane": "in_progress",
+      "last_event_id": "01KRH53237DDPVMYDJSYJ4X83A",
+      "last_transition_at": "2026-05-13T17:10:29.223332+00:00"
     }
   }
 }
