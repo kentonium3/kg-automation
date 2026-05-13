@@ -13,6 +13,8 @@ subtasks:
 - T018
 - T019
 - T020
+agent: "claude"
+shell_pid: "49569"
 history:
 - event: created
   at: '2026-05-12T20:55:30Z'
@@ -150,3 +152,7 @@ Update the live architecture documents to reflect the new routing-log state file
 ```bash
 spec-kitty agent action implement WP06 --agent <name>
 ```
+
+## Activity Log
+
+- 2026-05-13T02:27:33Z – claude – shell_pid=49569 – Started implementation via action command
