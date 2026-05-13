@@ -22,6 +22,8 @@ subtasks:
 - T009
 - T010
 - T011
+agent: "claude"
+shell_pid: "40557"
 history:
 - event: created
   at: '2026-05-12T20:55:30Z'
@@ -267,3 +269,7 @@ Each is a thin Python script with idempotent behavior, atomic file writes, and c
 ```bash
 spec-kitty agent action implement WP03 --agent <name>
 ```
+
+## Activity Log
+
+- 2026-05-13T01:53:41Z – claude – shell_pid=40557 – Started implementation via action command
