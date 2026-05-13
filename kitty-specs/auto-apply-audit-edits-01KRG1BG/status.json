@@ -1,7 +1,7 @@
 {
-  "event_count": 1,
-  "last_event_id": "01KRG1XCP7HEJV1BFQEE317ZR9",
-  "materialized_at": "2026-05-13T06:55:43.303937+00:00",
+  "event_count": 3,
+  "last_event_id": "01KRG210CVN780XMJ5FCC33H2B",
+  "materialized_at": "2026-05-13T06:57:41.787164+00:00",
   "mission_number": "",
   "mission_slug": "auto-apply-audit-edits-01KRG1BG",
   "mission_type": "software-dev",
@@ -12,17 +12,17 @@
     "claimed": 0,
     "done": 0,
     "for_review": 0,
-    "in_progress": 0,
+    "in_progress": 1,
     "in_review": 0,
-    "planned": 1
+    "planned": 0
   },
   "work_packages": {
     "WP01": {
-      "actor": "finalize-tasks",
+      "actor": "implement-command",
       "force_count": 1,
-      "lane": "planned",
-      "last_event_id": "01KRG1XCP7HEJV1BFQEE317ZR9",
-      "last_transition_at": "2026-05-13T06:55:43.303937+00:00"
+      "lane": "in_progress",
+      "last_event_id": "01KRG210CVN780XMJ5FCC33H2B",
+      "last_transition_at": "2026-05-13T06:57:41.787164+00:00"
     }
   }
 }
