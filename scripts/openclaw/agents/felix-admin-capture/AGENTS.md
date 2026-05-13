@@ -214,6 +214,13 @@ The helper iterates the list, strips the marker from each note, logs
 one `marker_stripped` action per success, logs `marker_cleanup_error`
 on per-entry failures, and exits non-zero if any strip failed.
 
+**Scope discipline (mandatory)**: Do NOT use `read`, `edit`, or any other
+file-system tool against the notes listed in `marker_cleanup_needed`.
+The helper is the single, complete handler — it strips the marker via
+an atomic write that the agent does not need to verify or augment.
+Touching these notes yourself produces false-error cron-run statuses
+that obscure real failures.
+
 Note: §Step 5a also runs in the `unprocessed_count == 0 AND marker_cleanup_needed
 non-empty` branch from Step 1 — the helper still does the right thing
 when no routing is happening, because it iterates the prescan list
@@ -294,6 +301,14 @@ note in the `parse_failures` list, logging one
 `parse_error_marker_injected` action per entry. Per-entry failures are
 logged as `parse_failure_handling_error` and do not abort the rest;
 the helper exits non-zero if any leg failed.
+
+**Scope discipline (mandatory)**: Do NOT use `read`, `edit`, or any
+other file-system tool against the notes listed in `parse_failures`.
+The helper is the single, complete handler — you do not need to
+inspect or "fix" the notes. The operator repairs broken frontmatter
+after seeing the marker in Obsidian; that is not yours to do.
+Attempted edits will fail on file permissions and pollute the
+cron-run status with false errors.
 
 ### Step 7: Write the processing log
 
