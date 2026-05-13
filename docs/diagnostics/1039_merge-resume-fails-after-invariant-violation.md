@@ -9,7 +9,7 @@ status: active
 **Spec-Kitty Version**: 3.1.8
 **Reporter**: Kent Gale (via Claude Code)
 **Priority**: Medium — work content reaches `main` cleanly, but mission bookkeeping (mission_number assignment, lane branch deletion, worktree removal, downstream issue auto-close hook) is left stranded and `spec-kitty merge` cannot complete on retry. Manual git intervention is required for cleanup.
-**Status**: READY TO FILE
+**Status**: FILED - https://github.com/Priivacy-ai/spec-kitty/issues/1039
 
 ## Summary
 
