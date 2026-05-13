@@ -1,0 +1,37 @@
+{
+  "version": 1,
+  "mission_slug": "google-workspace-foundation-01KRH4PE",
+  "mission_id": "01KRH4PEKQVMVWCJ0XPKZWHNWG",
+  "mission_branch": "kitty/mission-google-workspace-foundation-01KRH4PE",
+  "target_branch": "main",
+  "lanes": [
+    {
+      "lane_id": "lane-a",
+      "wp_ids": [
+        "WP01"
+      ],
+      "write_scope": [
+        "docs/INDEX.md",
+        "docs/archive/scripts/authorize-calendar.py",
+        "docs/design/architecture/credentials-and-secrets.md",
+        "docs/design/architecture/data/credential-manifest.json",
+        "docs/design/architecture/data/doc-domain-map.json",
+        "docs/design/architecture/data/service-inventory.json",
+        "docs/design/architecture/identity-model.md",
+        "docs/design/architecture/service-inventory.md",
+        "docs/runbooks/google-workspace-ops.md",
+        "scripts/google/authorize-calendar.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "legacy-cleanup",
+        "workspace"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    }
+  ],
+  "computed_at": "2026-05-13T17:10:15.086942+00:00",
+  "computed_from": "dependency_graph+ownership",
+  "planning_artifact_wps": []
+}
