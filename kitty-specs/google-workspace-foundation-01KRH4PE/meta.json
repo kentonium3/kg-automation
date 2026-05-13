@@ -1,10 +1,12 @@
 {
   "created_at": "2026-05-13T17:03:37.782417+00:00",
-  "friendly_name": "google workspace foundation",
+  "friendly_name": "Google Workspace foundation — runbook, inventory, legacy cleanup",
   "mission_id": "01KRH4PEKQVMVWCJ0XPKZWHNWG",
   "mission_number": null,
   "mission_slug": "google-workspace-foundation-01KRH4PE",
   "mission_type": "software-dev",
   "slug": "google-workspace-foundation-01KRH4PE",
-  "target_branch": "main"
+  "target_branch": "main",
+  "vcs": "git",
+  "source_description": "Phase 2 implementation of GitHub issue #100. ADR-0001 (committed in a0a7660) selected option A (gog CLI) via Linuxbrew. This mission delivers the documentation and architecture artifacts that complete the integration: operator runbook, service-inventory entries, credential-manifest update, identity-model note, legacy script deprecation, and post-merge verification recipe. Closes #100 and #120 on merge. Built on the live setup work completed 2026-05-13 (Linuxbrew install, gog brew install, OAuth client creation, OAuth scopes for 6 services granted, refresh token minted, end-to-end auth verified for Calendar, Gmail, Drive, Contacts)."
 }
