@@ -321,3 +321,4 @@ See [spec.md](../spec.md), [plan.md](../plan.md), [research.md](../research.md),
 ## Activity Log
 
 - 2026-05-13T04:39:50Z – claude:opus-4.7:implementer:implementer – shell_pid=9801 – Assigned agent via action command
+- 2026-05-13T04:45:25Z – claude:opus-4.7:implementer:implementer – shell_pid=9801 – Implementation complete (T001-T004). T005 (deploy to office2), T006 (smoke test), T007 (SC-002 canary) explicitly deferred to post-merge operator verification — they require office2 SSH against deployed code, which per change-control.md should not happen from an unmerged branch. Forcing the lane move with this rationale recorded.
