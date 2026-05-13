@@ -8,13 +8,13 @@
 
 | ID | Description | WP | Parallel |
 |---|---|---|---|
-| T001 | Add `docs/runbooks/google-workspace-ops.md` (full setup procedure + pitfalls + commands + future-account expansion + troubleshooting) | WP01 |  |
-| T002 | Update `docs/design/architecture/service-inventory.md` + `data/service-inventory.json` with `google-workspace` entry | WP01 | [P with T001] |
-| T003 | Update `docs/design/architecture/credentials-and-secrets.md` + `data/credential-manifest.json` (new creds + deprecate legacy) | WP01 | [P with T001] |
-| T004 | Update `docs/design/architecture/identity-model.md` with Google Workspace accounts section | WP01 | [P with T001] |
-| T005 | Move `scripts/google/authorize-calendar.py` to `docs/archive/scripts/authorize-calendar.py` via `git mv` with one-line deprecation header | WP01 |  |
-| T006 | Update `docs/INDEX.md` (runbook + archive registration) and `data/doc-domain-map.json` (route runbook to area/ea; bump timestamps) | WP01 |  |
-| T007 | Run `python3 tooling/scripts/validate_docs.py` — confirm OK | WP01 |  |
+| T001 | Add `docs/runbooks/google-workspace-ops.md` (full setup procedure + pitfalls + commands + future-account expansion + troubleshooting) | WP01 |  | [D] |
+| T002 | Update `docs/design/architecture/service-inventory.md` + `data/service-inventory.json` with `google-workspace` entry | WP01 | [P with T001] | [D] |
+| T003 | Update `docs/design/architecture/credentials-and-secrets.md` + `data/credential-manifest.json` (new creds + deprecate legacy) | WP01 | [P with T001] | [D] |
+| T004 | Update `docs/design/architecture/identity-model.md` with Google Workspace accounts section | WP01 | [P with T001] | [D] |
+| T005 | Move `scripts/google/authorize-calendar.py` to `docs/archive/scripts/authorize-calendar.py` via `git mv` with one-line deprecation header | WP01 |  | [D] |
+| T006 | Update `docs/INDEX.md` (runbook + archive registration) and `data/doc-domain-map.json` (route runbook to area/ea; bump timestamps) | WP01 |  | [D] |
+| T007 | Run `python3 tooling/scripts/validate_docs.py` — confirm OK | WP01 |  | [D] |
 
 ## Work Package WP01 — Google Workspace foundation docs and architecture state
 
@@ -26,13 +26,13 @@
 
 **Included subtasks (review scope — T001–T007)**:
 
-- [ ] T001 Add `docs/runbooks/google-workspace-ops.md` (WP01)
-- [ ] T002 Update service-inventory (WP01) [P with T001]
-- [ ] T003 Update credentials-and-secrets + credential-manifest (WP01) [P with T001]
-- [ ] T004 Update identity-model (WP01) [P with T001]
-- [ ] T005 Archive legacy authorize-calendar.py (WP01)
-- [ ] T006 Update INDEX.md + doc-domain-map.json (WP01)
-- [ ] T007 Validate docs (WP01)
+- [x] T001 Add `docs/runbooks/google-workspace-ops.md` (WP01)
+- [x] T002 Update service-inventory (WP01) [P with T001]
+- [x] T003 Update credentials-and-secrets + credential-manifest (WP01) [P with T001]
+- [x] T004 Update identity-model (WP01) [P with T001]
+- [x] T005 Archive legacy authorize-calendar.py (WP01)
+- [x] T006 Update INDEX.md + doc-domain-map.json (WP01)
+- [x] T007 Validate docs (WP01)
 
 **Post-merge operator verification (out of WP01 review scope)**:
 
