@@ -29,9 +29,9 @@
 | T015 | Update AGENTS.md §Step 5 (and new sub-steps) to invoke `append_routing_entry.py` after route + invoke `inject_parse_error_marker.py` at end-of-turn | WP05 | — | [D] |
 | T016 | Update AGENTS.md to invoke `file_inbox_quality_issue.py` at end-of-turn when parse_failures non-empty | WP05 | — | [D] |
 | T017 | Update AGENTS.md to handle `marker_cleanup_needed` (invoke `strip_parse_error_marker.py` during Step 5 frontmatter write) | WP05 | — | [D] |
-| T018 | Add `service-inventory.json` notes to `felix-admin-capture` agent entry mentioning the new routing log state file at `~/second-brain/agents/state/inbox-routing.jsonl` | WP06 | — |
-| T019 | Update `service-inventory.md` narrative to reflect the new state file + behavioral summary | WP06 | [P] with T018 |
-| T020 | Update `docs/runbooks/inbox-ops.md` with the new operator workflow ("when an Inbox quality issue appears, ...") | WP06 | [P] |
+| T018 | Add `service-inventory.json` notes to `felix-admin-capture` agent entry mentioning the new routing log state file at `~/second-brain/agents/state/inbox-routing.jsonl` | WP06 | — | [D] |
+| T019 | Update `service-inventory.md` narrative to reflect the new state file + behavioral summary | WP06 | [P] with T018 | [D] |
+| T020 | Update `docs/runbooks/inbox-ops.md` with the new operator workflow ("when an Inbox quality issue appears, ...") | WP06 | [D] |
 
 Total: **20 subtasks** across **6 WPs**, average ~3.3 per WP.
 
@@ -184,9 +184,9 @@ WP01 (foundation: routing-log module + fixtures)
 
 **Subtasks**:
 
-- [ ] T018 Add service-inventory.json notes to felix-admin-capture entry mentioning the new routing log state file at ~/second-brain/agents/state/inbox-routing.jsonl (WP06)
-- [ ] T019 Update service-inventory.md narrative to reflect the new state file + behavioral summary (WP06)
-- [ ] T020 Update docs/runbooks/inbox-ops.md with the new operator workflow ("when an Inbox quality issue appears, ...") (WP06)
+- [x] T018 Add service-inventory.json notes to felix-admin-capture entry mentioning the new routing log state file at ~/second-brain/agents/state/inbox-routing.jsonl (WP06)
+- [x] T019 Update service-inventory.md narrative to reflect the new state file + behavioral summary (WP06)
+- [x] T020 Update docs/runbooks/inbox-ops.md with the new operator workflow ("when an Inbox quality issue appears, ...") (WP06)
 
 **Implementation sketch**: Three doc edits operating on different files; can run in parallel within the WP. JSON entry follows existing service-inventory patterns (notes field, no schema changes). Markdown updates describe the new behavior in operator-friendly terms.
 
