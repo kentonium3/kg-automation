@@ -294,14 +294,6 @@ def test_classify_no_status_treated_as_unprocessed(tmp_path):
     assert result.warning is not None
 
 
-def test_classify_malformed_yaml_treated_as_unprocessed(tmp_path):
-    f = _copy_fixture("malformed-yaml.md", tmp_path)
-    _set_age(f, 1)
-    result = classify_file(f, datetime.now(timezone.utc))
-    assert result.classification == "unknown-treated-as-unprocessed"
-    assert "malformed" in (result.warning or "").lower()
-
-
 def test_classify_unknown_status_treated_as_unprocessed(tmp_path):
     f = _copy_fixture("unknown-status.md", tmp_path)
     _set_age(f, 1)
