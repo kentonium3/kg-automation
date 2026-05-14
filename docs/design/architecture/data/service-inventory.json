@@ -422,10 +422,10 @@
         {"name": "inbox-5pm", "cron": "0 17 * * *", "local_time": "5:00 PM ET"},
         {"name": "inbox-10pm", "cron": "0 22 * * *", "local_time": "10:00 PM ET"}
       ],
-      "timeout_seconds": 300,
+      "timeout_seconds": 600,
       "session_mode": "isolated",
       "deployed_by": "F008",
-      "updated_by": "#263-cron-delivery-mode-round2 + #256-scope-discipline-guardrails + #253-step-5a-6-consolidation + #254-atomic-write-perm-preservation + #185-inbox-capture-dedup + #199-inbox-schedules",
+      "updated_by": "#273-felix-tier2-self-repair-incident-audit + #263-cron-delivery-mode-round2 + #256-scope-discipline-guardrails + #253-step-5a-6-consolidation + #254-atomic-write-perm-preservation + #185-inbox-capture-dedup + #199-inbox-schedules",
       "last_updated": "2026-05-14",
       "status": "active",
       "purpose": "4x daily Obsidian inbox processing",
@@ -448,13 +448,14 @@
       "host": "office2",
       "agent": "felix-admin-habits",
       "schedules": [
-        {"name": "habits-morning-checkin", "cron": "5 11 * * *", "local_time": "7:05 AM ET"},
-        {"name": "habits-weekly-report", "cron": "0 22 * * 0", "local_time": "Sunday 6:00 PM ET"}
+        {"name": "habits-morning-checkin", "cron": "5 11 * * *", "local_time": "7:05 AM ET", "timeout_seconds": 240},
+        {"name": "habits-weekly-report", "cron": "0 22 * * 0", "local_time": "Sunday 6:00 PM ET", "timeout_seconds": 120}
       ],
-      "timeout_seconds": 120,
+      "timeout_seconds": 240,
+      "timeout_seconds_note": "Per-schedule timeouts diverge — see schedules array.",
       "session_mode": "isolated",
       "deployed_by": "F009",
-      "updated_by": "#263-cron-delivery-mode-round2",
+      "updated_by": "#273-felix-tier2-self-repair-incident-audit + #263-cron-delivery-mode-round2",
       "last_updated": "2026-05-14",
       "status": "active",
       "purpose": "Daily habit check-in and weekly pattern report",
@@ -505,13 +506,13 @@
       "schedules": [
         {"name": "escalation-daily", "cron": "0 12 * * *", "local_time": "8:00 AM ET daily"}
       ],
-      "timeout_seconds": 120,
+      "timeout_seconds": 240,
       "session_mode": "isolated",
       "delivery": {"to": "+16179300916", "channel": "whatsapp"},
       "deployed_by": "F019",
       "status": "active",
       "purpose": "Daily overdue task escalation check and WhatsApp alert delivery",
-      "updated_by": "#263-cron-delivery-mode-round2 + F019",
+      "updated_by": "#273-felix-tier2-self-repair-incident-audit + #263-cron-delivery-mode-round2 + F019",
       "last_updated": "2026-05-14",
       "risk_tier": 3,
       "dependencies": [
