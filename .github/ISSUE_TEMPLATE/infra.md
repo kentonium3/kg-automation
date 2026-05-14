@@ -122,3 +122,26 @@ Reference: docs/runbooks/governance/post-change-verification.md
 - [ ] All post-change verification steps pass
 - [ ] Architecture docs updated
 - [ ] Postmortem filed if any unplanned outage occurred during change
+
+---
+
+## Spec-ready criteria
+
+<!--
+Self-check before applying `spec: ready`. Until all items below are true,
+leave at `spec: brief`. Phone-filed and capture-first issues are not
+expected to meet this bar at file time — spec-readiness work happens at
+the laptop when the issue is prioritized for /spec-kitty.specify.
+-->
+
+This issue qualifies for the `spec: ready` label when:
+
+- [ ] **Summary** clearly states what is changing and why
+- [ ] **Risk tier** is selected (exactly one box checked)
+- [ ] **Services affected** lists dependents from `service-inventory.json` (or affirms "none")
+- [ ] **Pre-flight checklist** items appropriate to the tier are addressed
+- [ ] **Change description** is specific enough that an operator could execute it
+- [ ] **Rollback plan** is concrete enough to execute under pressure
+- [ ] **Post-change verification** includes named health checks for affected services
+- [ ] **Architecture documentation updates** lists JSON files to update (or affirms none)
+- [ ] HTML comment guidance blocks have been removed

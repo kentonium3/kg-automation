@@ -176,3 +176,23 @@ Help the gathering phase start efficiently.
 
 -
 -
+
+---
+
+## Spec-ready criteria
+
+<!--
+Self-check before this research issue is ready for /spec-kitty.specify.
+Phone-filed issues are not expected to meet this bar at capture time.
+-->
+
+This issue is ready for spec-kitty when:
+
+- [ ] **Research Purpose** names the decision gate this research unblocks
+- [ ] **Research Questions** lists 3–6 specific, answerable questions
+- [ ] Each RQ has an **Acceptable answer form** specified
+- [ ] **Known Sources** lists at least one starting point per RQ (internal or external)
+- [ ] **Scope** has both In-scope and Out-of-scope items filled
+- [ ] **Expected Outputs** maps outputs to RQs with a clear downstream consumer
+- [ ] **Success Criteria** checkboxes are intact (template defaults are usually right)
+- [ ] HTML comment guidance blocks have been removed

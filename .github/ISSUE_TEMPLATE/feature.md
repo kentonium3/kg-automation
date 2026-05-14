@@ -193,3 +193,25 @@ No commands, no file paths inside third-party tools, no code snippets.
 
 - Study `[path]` → apply pattern to [new component]
 - Study `[path]` → understand [requirement]
+
+---
+
+## Spec-ready criteria
+
+<!--
+Self-check before applying `spec: ready`. Until all items below are true,
+leave at `spec: brief`. Phone-filed and capture-first issues are not
+expected to meet this bar at file time — spec-readiness work happens at
+the laptop when the issue is prioritized for /spec-kitty.specify.
+-->
+
+This issue qualifies for the `spec: ready` label when:
+
+- [ ] **Executive Summary** states what the feature delivers and what it fixes in 2–3 sentences
+- [ ] **Problem Statement** captures current vs target state concretely (not just "we should do X")
+- [ ] **Study These Files First** lists at least one internal pointer for the planning phase
+- [ ] **Functional Requirements** has at least one FR with testable Success criteria checkboxes
+- [ ] **Out of Scope** lists explicit exclusions
+- [ ] **Architecture Impact** identifies affected JSON files OR the section is removed because no architecture changes are involved
+- [ ] **Constitutional Compliance** addresses autonomy level, scope, and failure behavior
+- [ ] HTML comment guidance blocks have been removed
