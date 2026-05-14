@@ -350,6 +350,91 @@ suffices. The bashrc append is for future sessions.
 
 ---
 
+### Pitfall 4: OpenClaw gateway (and child agent sessions) don't inherit interactive shell env
+
+**Symptom**: gog works correctly when invoked from an interactive ssh
+session as `claude`, but Felix agents spawned by the OpenClaw gateway
+(e.g., the `main:sonnet` agent answering WhatsApp messages, or any
+`felix-admin-*` agent the gateway dispatches) cannot invoke `gog`. Two
+distinct failure modes have been observed:
+
+- *Agent reports "`gog` isn't installed"* — actually means `gog` is not
+  found on the gateway's `PATH`. The gateway is a systemd-user service
+  with a hardcoded `Environment=PATH=` in its unit file; that PATH does
+  not include `/home/linuxbrew/.linuxbrew/bin`.
+- *Agent reports "needs a keyring password to decrypt the stored OAuth
+  token in non-interactive shells"* — actually means
+  `GOG_KEYRING_PASSWORD` is not set in the gateway's environment. The
+  bashrc exports from Pitfall 2's fix only affect interactive shells;
+  systemd-launched processes do not source `~/.bashrc`.
+
+Both have the same root cause and the same fix shape: the OpenClaw
+gateway's systemd-user service needs the same `PATH` extension and the
+same `GOG_KEYRING_*` env vars that an interactive `claude` session has,
+applied in a way that systemd will honor at service-start time.
+
+**Root cause**: systemd-launched user services inherit a deliberately
+minimal `PATH` and do not source `~/.bashrc` or any user shell rc files.
+The bashrc-append fix from §2.3 and the bashrc-export fix from §2.6
+are interactive-shell-only.
+
+**Fix**: register the env vars + extended `PATH` as a **systemd
+drop-in override** rather than editing the parent unit. Drop-ins
+survive future OpenClaw installer regenerations of the parent unit.
+
+```bash
+# 1. Create an env-file with the GOG_* secrets (claude-only readable)
+PW=$(cat /data/services/openclaw/secrets/gog-keyring-password)
+cat > /data/services/openclaw/secrets/openclaw-gateway.env <<EOF
+GOG_KEYRING_BACKEND=file
+GOG_KEYRING_PASSWORD=$PW
+EOF
+chmod 600 /data/services/openclaw/secrets/openclaw-gateway.env
+```
+
+```bash
+# 2. Create the systemd drop-in
+mkdir -p ~/.config/systemd/user/openclaw-gateway.service.d
+cat > ~/.config/systemd/user/openclaw-gateway.service.d/env.conf <<'EOF'
+[Service]
+EnvironmentFile=/data/services/openclaw/secrets/openclaw-gateway.env
+Environment=PATH=/usr/bin:/home/linuxbrew/.linuxbrew/bin:/home/claude/.local/bin:/home/claude/.npm-global/bin:/home/claude/bin:/home/claude/.volta/bin:/home/claude/.asdf/shims:/home/claude/.bun/bin:/home/claude/.nvm/current/bin:/home/claude/.fnm/current/bin:/home/claude/.local/share/pnpm:/usr/local/bin:/bin
+EOF
+```
+
+```bash
+# 3. Reload + restart
+systemctl --user daemon-reload && systemctl --user restart openclaw-gateway
+```
+
+**Verify**: inspect the live gateway process's environment to confirm
+all three vars are set (the `Environment=` show command only reports
+directly-declared vars, not `EnvironmentFile` contents — go straight
+to `/proc`):
+
+```bash
+PID=$(systemctl --user show openclaw-gateway -p MainPID --value)
+tr '\0' '\n' < /proc/$PID/environ | grep -E '^GOG_|^PATH=' | \
+  sed 's|^GOG_KEYRING_PASSWORD=.*|GOG_KEYRING_PASSWORD=<redacted>|'
+```
+
+Expect three lines: `PATH=...`, `GOG_KEYRING_BACKEND=file`,
+`GOG_KEYRING_PASSWORD=<redacted>`.
+
+**End-to-end test**: send a fresh WhatsApp message to the `main` agent
+asking it to run `gog auth list` and `gog calendar colors`. Successful
+output (account row + 11 event colors + 24 calendar colors, no
+"command not found" or keyring complaints) confirms the gateway is
+fully wired and child agent sessions inherit the env correctly.
+
+**Why drop-in rather than edit the parent unit**: the parent unit at
+`~/.config/systemd/user/openclaw-gateway.service` is written by the
+OpenClaw installer and may be regenerated on upgrade or reinstall, which
+would silently drop any in-place edits. The drop-in lives at a separate
+path the installer doesn't touch, so the fix survives upgrades.
+
+---
+
 ## 4. Common Commands
 
 These are copied from the bundled `gog` SKILL.md at
