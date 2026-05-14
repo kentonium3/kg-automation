@@ -26,6 +26,8 @@ LOG_DIR="$BASE_DIR/logs"
 DATE=$(date +%Y-%m-%d)
 LOGFILE="$LOG_DIR/audit-$DATE.log"
 ALERT_FILE="$LOG_DIR/alerts-$DATE.log"
+# Signal-driven doc-audit event stream (#278) — append-only JSONL
+DRIFT_EVENTS_FILE="$LOG_DIR/drift-events.jsonl"
 ALERT=0
 
 # ntfy topic — keep this private
@@ -35,6 +37,18 @@ NTFY_TOPIC="felix-office2-k9x4m2"
 log()   { echo "[$(date '+%H:%M:%S')] $1" >> "$LOGFILE"; }
 alert() { echo "[ALERT] $1" | tee -a "$ALERT_FILE" >> "$LOGFILE"; ALERT=1; }
 
+# Emit a structured drift event for felix-doc-auditor to consume.
+# Diff is base64-encoded to avoid JSON-escaping multi-line content.
+emit_drift_event() {
+    local name="$1" diff_text="$2" event_type="${3:-baseline_drift}"
+    local ts
+    ts=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+    local diff_b64
+    diff_b64=$(printf '%s' "$diff_text" | base64 -w0)
+    printf '{"timestamp":"%s","source":"audit.sh","event_type":"%s","baseline_name":"%s","diff_b64":"%s"}\n' \
+        "$ts" "$event_type" "$name" "$diff_b64" >> "$DRIFT_EVENTS_FILE"
+}
+
 check_baseline() {
     local name="$1" current="$2"
     if [ -f "$BASELINE_DIR/$name" ]; then
@@ -42,6 +56,7 @@ check_baseline() {
         d=$(diff "$BASELINE_DIR/$name" "$current" 2>/dev/null || true)
         if [ -n "$d" ]; then
             alert "$name changed since baseline: $d"
+            emit_drift_event "$name" "$d"
         else
             log "$name: no changes"
         fi
@@ -174,6 +189,7 @@ if [ -f "$BASELINE_DIR/hosts-hash.txt" ]; then
     bh=$(cat "$BASELINE_DIR/hosts-hash.txt")
     if [ "$hh" != "$bh" ]; then
         alert "/etc/hosts modified since baseline"
+        emit_drift_event "hosts-hash.txt" "old:$bh new:$hh"
     else
         log "/etc/hosts: no changes"
     fi

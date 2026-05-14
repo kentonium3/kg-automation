@@ -65,11 +65,85 @@ For each in-scope doc you may:
 ## Trigger and queue management
 
 You are triggered by an OpenClaw cron tick every **60 minutes** (NFR-001).
-On each tick, run **§ 3 (decision processing) BEFORE § 4 (new-audit scan).**
+On each tick, run in this order:
+
+1. **§ 2 (drift event processing)** — deterministic; drains the signal queue from audit.sh
+2. **§ 3 (decision processing)** — process pending-approval issues Kent has decided on
+3. **§ 4 (new-audit scan)** — proactive audits per existing logic
 
 ---
 
-## 3. Cron-tick decision processing (FIRST on every tick)
+## 2. Signal-driven drift event processing (FIRST on every tick)
+
+Per the signal-driven doc-audit architecture (#278), `audit.sh` writes a JSONL
+event stream of baseline drifts. A helper script consumes the stream, maps
+events to documentation surfaces via `signal-to-doc-map.json`, and either
+files `[doc-audit]` issues automatically (for mapped events) or routes unknown
+events to a review queue (for AI interpretation).
+
+### 2.1 Invoke the drift event handler
+
+Run this command **first thing on every tick**:
+
+```bash
+python3 /home/claude/kg-automation/scripts/openclaw/agents/felix-doc-auditor/handle_drift_events.py \
+  --events /data/services/security-monitor/logs/drift-events.jsonl \
+  --cursor /data/services/security-monitor/.drift-events.cursor \
+  --mapping /home/claude/kg-automation/docs/design/architecture/data/signal-to-doc-map.json \
+  --unmapped /data/services/security-monitor/logs/unmapped-events.jsonl \
+  --repo kentonium3/kg-automation
+```
+
+The helper:
+- Reads new events since the last cursor position
+- For each event matching a mapping in `signal-to-doc-map.json` → files a `[doc-audit]` issue automatically
+- For each event with no mapping → appends to `unmapped-events.jsonl` for your review (see § 2.2)
+- Updates the cursor atomically; idempotent if no new events
+
+Capture the helper's stdout — it summarizes what was processed.
+
+### 2.2 Review unmapped events (AI interpretation)
+
+If `unmapped-events.jsonl` contains events the helper couldn't route, you must
+interpret them and decide whether they need doc updates.
+
+```bash
+# Read the unmapped queue
+cat /data/services/security-monitor/logs/unmapped-events.jsonl 2>/dev/null || echo "empty"
+```
+
+For each unmapped event:
+
+1. Decode the diff (the `diff_b64` field is base64-encoded for transport):
+   ```bash
+   echo "<diff_b64 value>" | base64 -d
+   ```
+2. Read the drift content and assess: does this drift imply a documentation update is needed?
+3. If yes → file a `[doc-audit]` `spec: brief` issue describing:
+   - What changed (the drift)
+   - Why it likely matters (your interpretation)
+   - Which doc surfaces should be reviewed (your judgment)
+4. If no → leave the event as a record but no action needed
+5. **Propose a mapping addition** for the signal-to-doc-map.json so this class of event auto-routes next time. File a separate `[doc-audit]` issue titled "Propose mapping: <event-class>" with the proposed mapping entry.
+
+After processing, archive the unmapped queue:
+
+```bash
+# Truncate the file after review (events are already preserved in audit-trail issues)
+: > /data/services/security-monitor/logs/unmapped-events.jsonl
+```
+
+### 2.3 Failure handling
+
+If the helper exits non-zero:
+- Read its stderr from the OpenClaw session output
+- Common cases: `gh` auth issue, malformed event line, mapping JSON parse error
+- File a `[doc-audit]` issue titled "felix-doc-auditor: drift handler failed" with the error output
+- Continue to § 3 — don't block the rest of the tick on this
+
+---
+
+## 3. Cron-tick decision processing (after § 2)
 
 Per SKILL.md Section 8.6, before scanning for new audits, process any
 pending-approval issues that Kent has decided on.

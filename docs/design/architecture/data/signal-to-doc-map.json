@@ -1,0 +1,166 @@
+{
+  "schema_version": "1.0",
+  "last_updated": "2026-05-14",
+  "updated_by": "#278-signal-driven-doc-audit",
+  "description": "Maps deterministic change signals (from audit.sh and future producers) to the documentation surfaces that likely need review when the signal fires. Used by felix-doc-auditor/handle_drift_events.py.",
+  "mappings": [
+    {
+      "id": "openclaw-cron-drift",
+      "match": {
+        "source": "audit.sh",
+        "baseline_name": "openclaw-cron.txt"
+      },
+      "doc_targets": [
+        "docs/design/architecture/data/service-inventory.json"
+      ],
+      "rationale": "OpenClaw cron config drift implies service-inventory.json fields (timeout_seconds, delivery, schedule) may need updating. Class includes Felix self-modifications (see #273).",
+      "issue_title_prefix": "[doc-audit] openclaw-cron drift",
+      "issue_labels": ["P3-candidate", "spec: brief", "area/felix-core"]
+    },
+    {
+      "id": "openclaw-config-drift",
+      "match": {
+        "source": "audit.sh",
+        "baseline_name": "openclaw-config.txt"
+      },
+      "doc_targets": [
+        "docs/design/architecture/data/service-inventory.json",
+        "docs/design/architecture/data/credential-manifest.json"
+      ],
+      "rationale": "openclaw.json content hash changed. May reflect agent additions/removals, model assignments, channel routing, or credential changes. Manual review needed to determine which docs require updates.",
+      "issue_title_prefix": "[doc-audit] openclaw.json hash drift",
+      "issue_labels": ["P3-candidate", "spec: brief", "area/felix-core"]
+    },
+    {
+      "id": "systemd-user-units-drift",
+      "match": {
+        "source": "audit.sh",
+        "baseline_name": "systemd-user-units.txt"
+      },
+      "doc_targets": [
+        "docs/design/architecture/data/service-inventory.json"
+      ],
+      "rationale": "Systemd user-scope enabled units changed (add/remove). Service inventory should record any new or removed user-scope services.",
+      "issue_title_prefix": "[doc-audit] systemd-user-units drift",
+      "issue_labels": ["P3-candidate", "spec: brief", "area/felix-core"]
+    },
+    {
+      "id": "systemd-user-dropins-drift",
+      "match": {
+        "source": "audit.sh",
+        "baseline_name": "systemd-user-dropins.txt"
+      },
+      "doc_targets": [
+        "docs/design/architecture/data/service-inventory.json"
+      ],
+      "rationale": "Systemd user-scope unit files or drop-ins changed. May reflect new services, new env-var injections (EnvironmentFile drop-ins), or PATH/identity overrides — all of which can be load-bearing for runtime behavior and warrant doc updates.",
+      "issue_title_prefix": "[doc-audit] systemd-user-dropins drift",
+      "issue_labels": ["P3-candidate", "spec: brief", "area/felix-core"]
+    },
+    {
+      "id": "brew-packages-drift",
+      "match": {
+        "source": "audit.sh",
+        "baseline_name": "brew-packages.txt"
+      },
+      "doc_targets": [
+        "docs/design/architecture/data/service-inventory.json"
+      ],
+      "rationale": "Homebrew packages on office2 changed. New packages may indicate a new tool or capability requiring inventory documentation; removed packages may indicate dependencies that should be deprecated.",
+      "issue_title_prefix": "[doc-audit] brew-packages drift",
+      "issue_labels": ["P3-candidate", "spec: brief", "area/felix-core"]
+    },
+    {
+      "id": "brew-taps-drift",
+      "match": {
+        "source": "audit.sh",
+        "baseline_name": "brew-taps.txt"
+      },
+      "doc_targets": [
+        "docs/design/architecture/data/service-inventory.json"
+      ],
+      "rationale": "Homebrew taps (non-default recipe repos) changed. Supply-chain surface change; should be reflected in service inventory or a dependency catalog.",
+      "issue_title_prefix": "[doc-audit] brew-taps drift",
+      "issue_labels": ["P3-candidate", "spec: brief", "area/security", "area/felix-core"]
+    },
+    {
+      "id": "listening-ports-drift",
+      "match": {
+        "source": "audit.sh",
+        "baseline_name": "listening-ports.txt"
+      },
+      "doc_targets": [
+        "docs/design/architecture/data/service-inventory.json",
+        "docs/design/architecture/data/network-topology.json"
+      ],
+      "rationale": "Listening ports changed. New ports likely correspond to new services and need inventory + topology entries; removed ports indicate deprecations.",
+      "issue_title_prefix": "[doc-audit] listening-ports drift",
+      "issue_labels": ["P3-candidate", "spec: brief", "area/felix-core"]
+    },
+    {
+      "id": "enabled-services-drift",
+      "match": {
+        "source": "audit.sh",
+        "baseline_name": "enabled-services.txt"
+      },
+      "doc_targets": [
+        "docs/design/architecture/data/service-inventory.json"
+      ],
+      "rationale": "Systemd system-scope enabled services changed. Inventory should reflect any new or removed services.",
+      "issue_title_prefix": "[doc-audit] enabled-services drift",
+      "issue_labels": ["P3-candidate", "spec: brief", "area/felix-core"]
+    },
+    {
+      "id": "pip-packages-drift",
+      "match": {
+        "source": "audit.sh",
+        "baseline_name": "pip-packages.txt"
+      },
+      "doc_targets": [
+        "docs/design/architecture/data/service-inventory.json"
+      ],
+      "rationale": "System Python packages changed. May affect documented runtime dependencies for any Python-based service.",
+      "issue_title_prefix": "[doc-audit] pip-packages drift",
+      "issue_labels": ["P3-candidate", "spec: brief", "area/felix-core"]
+    },
+    {
+      "id": "docker-images-drift",
+      "match": {
+        "source": "audit.sh",
+        "baseline_name": "docker-images.txt"
+      },
+      "doc_targets": [
+        "docs/design/architecture/data/service-inventory.json"
+      ],
+      "rationale": "Docker images on office2 changed. Service inventory entries for containerized services (vikunja, etc.) should reflect current image tags.",
+      "issue_title_prefix": "[doc-audit] docker-images drift",
+      "issue_labels": ["P3-candidate", "spec: brief", "area/felix-core"]
+    },
+    {
+      "id": "crontabs-drift",
+      "match": {
+        "source": "audit.sh",
+        "baseline_name": "crontabs.txt"
+      },
+      "doc_targets": [
+        "docs/design/architecture/data/service-inventory.json"
+      ],
+      "rationale": "System crontabs or /etc/cron.d contents changed. Scheduled work surfaces should be reflected in service inventory under the appropriate service entry.",
+      "issue_title_prefix": "[doc-audit] crontabs drift",
+      "issue_labels": ["P3-candidate", "spec: brief", "area/felix-core"]
+    },
+    {
+      "id": "ssh-keys-drift",
+      "match": {
+        "source": "audit.sh",
+        "baseline_name": "ssh-keys.txt"
+      },
+      "doc_targets": [
+        "docs/design/architecture/data/credential-manifest.json"
+      ],
+      "rationale": "SSH authorized_keys changed on office2. High-impact access surface; credential-manifest should reflect any new access grants or revocations.",
+      "issue_title_prefix": "[doc-audit] ssh-keys drift",
+      "issue_labels": ["P2-bug", "area/security", "spec: brief"]
+    }
+  ]
+}
