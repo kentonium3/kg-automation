@@ -3,6 +3,13 @@
 # Runs daily via cron at 3AM, alerts on changes from baseline
 # Sends push notification via ntfy.sh when alerts are detected
 #
+# Coverage:
+#   System: .pth files, pip packages, Docker images, brew packages + taps,
+#           known IOCs, listening ports, system systemd enabled services,
+#           SSH authorized_keys, /etc/hosts hash, system crontabs
+#   User:   systemd user-scope enabled units + unit-file/drop-in inventory
+#   Felix:  OpenClaw cron-job normalized config, openclaw.json content hash
+#
 # Setup:
 #   1. NTFY_TOPIC is set below
 #   2. Install the ntfy app on your phone: https://ntfy.sh
@@ -81,6 +88,17 @@ fi
 check_baseline "brew-packages.txt" "$tmp"
 rm -f "$tmp"
 
+# 3c. Homebrew taps (supply-chain surface — non-default recipe repos)
+log "Scanning brew taps..."
+tmp=$(mktemp)
+if [ -x "$BREW_BIN" ]; then
+    "$BREW_BIN" tap 2>/dev/null | LC_ALL=C sort > "$tmp" || echo "brew-tap-failed" > "$tmp"
+else
+    echo "no-brew" > "$tmp"
+fi
+check_baseline "brew-taps.txt" "$tmp"
+rm -f "$tmp"
+
 # 4. Known IOCs (litellm supply chain attack indicators)
 log "Checking known IOCs..."
 [ -f "/tmp/pglog" ] && alert "IOC: /tmp/pglog exists (litellm indicator)"
@@ -105,7 +123,7 @@ ss -tlnp 2>/dev/null | tail -n +2 | awk '{print $4}' \
 check_baseline "listening-ports.txt" "$tmp"
 rm -f "$tmp"
 
-# 6. Systemd enabled services
+# 6. Systemd enabled services (system scope)
 log "Scanning systemd services..."
 tmp=$(mktemp)
 # LC_ALL=C forces byte-collation so case-mixed names (ModemManager vs systemd-*)
@@ -113,6 +131,26 @@ tmp=$(mktemp)
 systemctl list-unit-files --type=service --state=enabled --no-pager 2>/dev/null \
     | grep enabled | awk '{print $1}' | LC_ALL=C sort > "$tmp"
 check_baseline "enabled-services.txt" "$tmp"
+rm -f "$tmp"
+
+# 6b. Systemd enabled units (user scope — claude)
+# Uses explicit XDG_RUNTIME_DIR so it works under cron without a login session.
+log "Scanning systemd user units (enabled)..."
+tmp=$(mktemp)
+XDG_RUNTIME_DIR="/run/user/$(id -u)" \
+    systemctl --user list-unit-files --state=enabled --no-pager 2>/dev/null \
+    | awk '$2 == "enabled" {print $1}' | LC_ALL=C sort > "$tmp" \
+    || echo "no-user-systemd" > "$tmp"
+check_baseline "systemd-user-units.txt" "$tmp"
+rm -f "$tmp"
+
+# 6c. Systemd user-scope unit files + drop-ins
+# Captures unit files, *.conf drop-ins, and .wants/ symlinks (enabled state).
+log "Scanning systemd user unit files..."
+tmp=$(mktemp)
+find "$HOME/.config/systemd/user" \( -type f -o -type l \) -printf '%P %y\n' 2>/dev/null \
+    | LC_ALL=C sort > "$tmp"
+check_baseline "systemd-user-dropins.txt" "$tmp"
 rm -f "$tmp"
 
 # 7. SSH authorized_keys
@@ -159,6 +197,26 @@ done
 echo "--- /etc/cron.d ---" >> "$tmp"
 find /etc/cron.d -mindepth 1 -type f -printf '%f %s\n' 2>/dev/null | LC_ALL=C sort >> "$tmp" || true
 check_baseline "crontabs.txt" "$tmp"
+rm -f "$tmp"
+
+# 10. OpenClaw cron jobs (normalized — captures Felix self-modifications like #273)
+# Sorted by name and limited to stable security-relevant fields so cosmetic
+# diffs (lastDelivered, nextRunAtMs, etc.) don't trigger false positives.
+log "Scanning OpenClaw cron config..."
+tmp=$(mktemp)
+openclaw cron list --json 2>/dev/null \
+    | jq -S '[.jobs[] | {name, enabled, agentId, schedule, timeoutSeconds: .payload.timeoutSeconds, deliveryMode: .delivery.mode, failureAlert: (.failureAlert // null)}] | sort_by(.name)' \
+        > "$tmp" 2>/dev/null \
+    || echo "no-openclaw" > "$tmp"
+check_baseline "openclaw-cron.txt" "$tmp"
+rm -f "$tmp"
+
+# 11. OpenClaw main config (content-hash drift only — file may contain secrets)
+log "Hashing OpenClaw config..."
+tmp=$(mktemp)
+sha256sum "$HOME/.openclaw/openclaw.json" 2>/dev/null | awk '{print $1}' > "$tmp" \
+    || echo "no-openclaw-config" > "$tmp"
+check_baseline "openclaw-config.txt" "$tmp"
 rm -f "$tmp"
 
 # --- Summary and notification ---
