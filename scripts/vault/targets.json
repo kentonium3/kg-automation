@@ -22,10 +22,6 @@
       "office2_path": "/data/services/openclaw/tasker-agent/AGENTS.md"
     },
     {
-      "template": "scripts/openclaw/agents/main-patches/inbox-delegation.md.tmpl",
-      "output": "scripts/openclaw/agents/main-patches/inbox-delegation.md"
-    },
-    {
       "template": "ai-agents/claude-instructions.md.tmpl",
       "output": "ai-agents/claude-instructions.md"
     },
