@@ -69,6 +69,18 @@ docker images --format "{{.Repository}}:{{.Tag}} {{.ID}}" 2>/dev/null | sort > "
 check_baseline "docker-images.txt" "$tmp"
 rm -f "$tmp"
 
+# 3b. Homebrew packages (gog CLI + transitive deps; Linuxbrew install path)
+log "Scanning brew packages..."
+tmp=$(mktemp)
+BREW_BIN="/home/linuxbrew/.linuxbrew/bin/brew"
+if [ -x "$BREW_BIN" ]; then
+    "$BREW_BIN" list --versions 2>/dev/null | sort > "$tmp" || echo "brew-list-failed" > "$tmp"
+else
+    echo "no-brew" > "$tmp"
+fi
+check_baseline "brew-packages.txt" "$tmp"
+rm -f "$tmp"
+
 # 4. Known IOCs (litellm supply chain attack indicators)
 log "Checking known IOCs..."
 [ -f "/tmp/pglog" ] && alert "IOC: /tmp/pglog exists (litellm indicator)"

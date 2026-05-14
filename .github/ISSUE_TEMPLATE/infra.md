@@ -144,4 +144,5 @@ This issue qualifies for the `spec: ready` label when:
 - [ ] **Rollback plan** is concrete enough to execute under pressure
 - [ ] **Post-change verification** includes named health checks for affected services
 - [ ] **Architecture documentation updates** lists JSON files to update (or affirms none)
+- [ ] **Supply-chain review** — if this change adds a new package source (brew tap, pip index, npm registry, MCP plugin / AI extension with system access), the body documents the dependency-tree review and pinning posture
 - [ ] HTML comment guidance blocks have been removed
