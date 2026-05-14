@@ -94,20 +94,24 @@ log "IOC checks: done"
 # and are internal-only, not a security concern.
 log "Scanning listening ports..."
 tmp=$(mktemp)
+# LC_ALL=C forces byte-collation so locale changes don't reorder lines
+# (otherwise '[' vs digit ordering can drift and trip false-positive alerts).
 ss -tlnp 2>/dev/null | tail -n +2 | awk '{print $4}' \
     | grep -vE '^127\.0\.0\.1:[3-9][0-9]{4}$' \
     | grep -vE '^127\.0\.0\.1:[0-9]{6}$' \
     | grep -vE '^\[::1\]:[3-9][0-9]{4}$' \
     | grep -vE '^\[::1\]:[0-9]{6}$' \
-    | sort > "$tmp"
+    | LC_ALL=C sort > "$tmp"
 check_baseline "listening-ports.txt" "$tmp"
 rm -f "$tmp"
 
 # 6. Systemd enabled services
 log "Scanning systemd services..."
 tmp=$(mktemp)
+# LC_ALL=C forces byte-collation so case-mixed names (ModemManager vs systemd-*)
+# sort in stable order across runs and locale changes.
 systemctl list-unit-files --type=service --state=enabled --no-pager 2>/dev/null \
-    | grep enabled | awk '{print $1}' | sort > "$tmp"
+    | grep enabled | awk '{print $1}' | LC_ALL=C sort > "$tmp"
 check_baseline "enabled-services.txt" "$tmp"
 rm -f "$tmp"
 
@@ -150,7 +154,10 @@ for u in claude kgale root; do
         echo "$t" >> "$tmp"
     fi
 done
-ls -la /etc/cron.d/ >> "$tmp" 2>/dev/null || true
+# /etc/cron.d/ — record filename + size (detects add/remove and content change),
+# not `ls -la` output (parent-dir mtime drift produced false positives).
+echo "--- /etc/cron.d ---" >> "$tmp"
+find /etc/cron.d -mindepth 1 -type f -printf '%f %s\n' 2>/dev/null | LC_ALL=C sort >> "$tmp" || true
 check_baseline "crontabs.txt" "$tmp"
 rm -f "$tmp"
 
