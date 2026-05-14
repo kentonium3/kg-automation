@@ -214,4 +214,5 @@ This issue qualifies for the `spec: ready` label when:
 - [ ] **Out of Scope** lists explicit exclusions
 - [ ] **Architecture Impact** identifies affected JSON files OR the section is removed because no architecture changes are involved
 - [ ] **Constitutional Compliance** addresses autonomy level, scope, and failure behavior
+- [ ] **Design-time discipline** — deterministic-vs-stochastic split has been considered; helper-script extraction is identified where appropriate (per Felix Constitution Directive 6)
 - [ ] HTML comment guidance blocks have been removed

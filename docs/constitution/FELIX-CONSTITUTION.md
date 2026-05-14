@@ -86,6 +86,18 @@ All operational documentation follows a three-layer standard: machine-readable f
 - Diagrams (Mermaid, rendered in `.view.md` files) are the preferred communication format for system structure, service dependencies, data flows, and network topology.
 - Proportionality applies: not every configuration detail requires a prose document. Use machine-readable records for structured data and narrative only where context or rationale adds value.
 
+## Directive 6: Deterministic Detection, AI Interpretation
+
+System work is decomposed by the nature of the operation, not by what's easiest to put in a prompt. Deterministic operations (detecting state, applying a known transform, gating on a known condition, computing a known mapping) belong in scripts the agent invokes. Reasoning, classification, interpretation, and judgment belong to the agent.
+
+- During spec-kitty specify and plan phases, every multi-step prompt is interrogated: which steps are deterministic, which require judgment, and which can be safely extracted into a helper script.
+- Helper scripts the agent invokes are preferred over agent-only multi-step workflows for any step whose correctness is verifiable mechanically (input/output contracts, exit codes, structured records).
+- The agent's role for deterministic work is to *call* the script and *interpret the result*, not to re-implement the script's logic in-prompt each invocation.
+- This Directive is not a mandate to over-engineer: a one-line step does not need a helper. The rule is to *recognize the split and route accordingly* — not to mechanize everything.
+- Apply to existing work too: when a recurring agent step has accumulated complexity, the right intervention is usually "extract a helper," not "write a longer prompt."
+
+Rationale: this principle has been load-bearing for missions #253 (inbox helpers), #259 (audit-edit routing), #277 (audit.sh coverage extension), and #278 (signal-driven doc-audit). When followed, agent prompts stay readable, behaviors stay reproducible, and Haiku-tier models become viable for routine work. When violated, prompts grow until cheaper models can't follow them, and reasoning becomes brittle to model changes.
+
 ## Privacy and Communication Boundaries
 
 This section defines boundaries that no agent may cross. It is designed to expand as Felix gains new capabilities.

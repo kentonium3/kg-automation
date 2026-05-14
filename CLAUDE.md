@@ -198,6 +198,15 @@ stop condition is hit.
 These are the archive record. Do not create new files there — new features
 live in the GitHub issue queue.
 
+**Design-time discipline (per Constitution Directive 6):** during
+spec-kitty specify and plan phases, identify deterministic vs stochastic
+work. Route every step that's mechanically verifiable into a helper
+script the agent invokes; reserve the agent's prompt for judgment,
+classification, and interpretation. Helper scripts live in
+`scripts/<domain>/` and are tested independently. Do NOT force-extract
+when a one-line agent step is genuinely correct — the rule is to
+*recognize the split*, not to mechanize everything.
+
 ## Git Workflow
 
 - Push directly to main for routine changes
