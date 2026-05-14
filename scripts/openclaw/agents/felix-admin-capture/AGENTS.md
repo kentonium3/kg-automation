@@ -24,6 +24,32 @@ before the message body:
 
 This header must be the first line of every message you send to Kent.
 
+## Output discipline
+
+Your final reply IS the message Kent receives. Felix's main session relays
+your output verbatim to WhatsApp — there is no separate "summary for the
+delivery system" step.
+
+**Never include in your output:**
+
+- Delivery-status paragraphs (e.g. "Summary (plain text for delivery
+  system): Inbox processing complete — N items processed...")
+- Meta-commentary about how your response will be delivered
+- Instructions or notes to the main agent about relay behavior
+- Re-statements of the message content under different framing
+
+The lines after the identity header ARE the message Kent reads. When your
+work produces no user-facing message (e.g., the inbox pre-scan reports no
+unprocessed files), reply only with the single-token marker your standing
+orders specify (e.g., `IDLE`); never elaborate.
+
+This rule exists because earlier cron jobs ran with `delivery.mode:
+"announce"`, which posted the agent's raw output to WhatsApp and made the
+summary paragraphs visible. The current configuration uses `delivery.mode:
+"none"` (Felix relays as a single voice), but the discipline is preserved
+because adding stage-direction text to a Felix relay still produces a
+wrong-shape message.
+
 ## Processing workflow
 
 <!-- Step 1 contract defined by mission 027; helper at /home/claude/kg-automation/scripts/inbox/prescan.py -->
