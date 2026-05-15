@@ -1,7 +1,7 @@
 {
   "schema_version": "1.1",
   "last_updated": "2026-05-15",
-  "updated_by": "#282-habits-d6-extract + #263-cron-delivery-mode-round2 + #100-google-workspace-foundation + #256-scope-discipline-guardrails + #253-step-5a-6-consolidation + #254-atomic-write-perm-preservation + issue-105-doc-auditor + #223-systemd-timer + #208-restic-healthcheck + #202-obsidian-sync-system-level + #203-sync-heartbeat + #199-inbox-schedules + #115-credential-health-check + #189-vikunja-compose + #185-inbox-capture-dedup",
+  "updated_by": "#285-cron-delivery-restore-path-c + #282-habits-d6-extract + #263-cron-delivery-mode-round2 + #100-google-workspace-foundation + #256-scope-discipline-guardrails + #253-step-5a-6-consolidation + #254-atomic-write-perm-preservation + issue-105-doc-auditor + #223-systemd-timer + #208-restic-healthcheck + #202-obsidian-sync-system-level + #203-sync-heartbeat + #199-inbox-schedules + #115-credential-health-check + #189-vikunja-compose + #185-inbox-capture-dedup",
   "services": [
     {
       "name": "vikunja",
@@ -425,7 +425,7 @@
       "timeout_seconds": 600,
       "session_mode": "isolated",
       "deployed_by": "F008",
-      "updated_by": "#273-felix-tier2-self-repair-incident-audit + #263-cron-delivery-mode-round2 + #256-scope-discipline-guardrails + #253-step-5a-6-consolidation + #254-atomic-write-perm-preservation + #185-inbox-capture-dedup + #199-inbox-schedules",
+      "updated_by": "#285-cron-delivery-restore-path-c + #273-felix-tier2-self-repair-incident-audit + #263-cron-delivery-mode-round2 + #256-scope-discipline-guardrails + #253-step-5a-6-consolidation + #254-atomic-write-perm-preservation + #185-inbox-capture-dedup + #199-inbox-schedules",
       "last_updated": "2026-05-14",
       "status": "active",
       "purpose": "4x daily Obsidian inbox processing",
@@ -455,7 +455,7 @@
       "timeout_seconds_note": "Per-schedule timeouts diverge — see schedules array.",
       "session_mode": "isolated",
       "deployed_by": "F009",
-      "updated_by": "#282-habits-d6-extract + #273-felix-tier2-self-repair-incident-audit + #263-cron-delivery-mode-round2",
+      "updated_by": "#285-cron-delivery-restore-path-c + #282-habits-d6-extract + #273-felix-tier2-self-repair-incident-audit + #263-cron-delivery-mode-round2",
       "last_updated": "2026-05-15",
       "status": "active",
       "purpose": "Daily habit check-in and weekly pattern report",
@@ -516,7 +516,7 @@
       "deployed_by": "F019",
       "status": "active",
       "purpose": "Daily overdue task escalation check and WhatsApp alert delivery",
-      "updated_by": "#273-felix-tier2-self-repair-incident-audit + #263-cron-delivery-mode-round2 + F019",
+      "updated_by": "#285-cron-delivery-restore-path-c + #273-felix-tier2-self-repair-incident-audit + #263-cron-delivery-mode-round2 + F019",
       "last_updated": "2026-05-14",
       "risk_tier": 3,
       "dependencies": [

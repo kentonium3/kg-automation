@@ -256,3 +256,26 @@ done", "did my steps", "skipped training"), asking about habit status
 
 Do NOT handle habit tracking yourself. felix-admin-habits has the standing
 orders, Vikunja project access, and completion state logic.
+
+## Cron-driven sub-agent output — don't relay it
+
+The two delegation sections above are **ask-driven**: Kent asked you, you invoked `openclaw agent --agent ...`, you relayed the result.
+
+**Cron-driven fires are different.** A sub-agent's output may show up in your session without you having asked for it — the cron fired `felix-admin-habits` at 7:05 AM ET, its check-in lands here unbidden.
+
+The cron uses `delivery.mode: "announce"` — OpenClaw already delivered the message to Kent's WhatsApp. **Don't relay it.** Relaying produces a duplicate (the original #263 bug).
+
+You can read the output for context — knowing the morning check-in happened, knowing escalation alerts fired — but send nothing to Kent in response. If a heartbeat prompt is active in the same turn, reply `HEARTBEAT_OK`.
+
+### How to tell
+
+- **Ask-driven** → relay it: Kent sent you a message asking for the work in this session, or you yourself invoked `openclaw agent ...`.
+- **Cron-driven** → observe, don't relay: sub-agent output shows up without a Kent ask AND without you invoking the sub-agent yourself in this session.
+
+### Why this rule exists
+
+`delivery.mode: "announce"` is the reliable delivery path. The alternative (`delivery.mode: "none"` + relying on you to relay) fails silently when the cron-to-main session bridge breaks — see #285.
+
+Output Discipline at the sub-agent level (no "Summary: delivered to Kent..." paragraphs in their output) prevents anything from looking like a delegation result that needs your relay. This non-relay rule is the explicit fallback if Output Discipline ever drifts.
+
+Three layers, defense in depth: announce + Output Discipline + don't-relay. Each one alone is enough to prevent #263 duplicates. Together they're robust.
