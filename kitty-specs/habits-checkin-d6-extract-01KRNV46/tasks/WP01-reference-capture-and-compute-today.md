@@ -16,7 +16,8 @@ subtasks:
 - T003
 - T004
 - T005
-shell_pid: '96693'
+shell_pid: "96693"
+agent: "claude:opus-4-7:implementer:implementer"
 history:
 - event: created
   at: '2026-05-15T17:15:12Z'
@@ -263,3 +264,7 @@ Approve if Definition of Done is satisfied. Reject if any of:
 - Tests use direct import instead of subprocess (drifts from CLI contract)
 - Reference capture is missing or malformed
 - DST/EST transition tests are missing
+
+## Activity Log
+
+- 2026-05-15T17:32:32Z – claude:opus-4-7:implementer:implementer – shell_pid=96693 – Assigned agent via action command
