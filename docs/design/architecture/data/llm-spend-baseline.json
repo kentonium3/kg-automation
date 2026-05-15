@@ -1,0 +1,68 @@
+{
+  "schema_version": "1.0",
+  "last_updated": "2026-05-15",
+  "updated_by": "#276 (manual dashboard sweep)",
+  "review_cadence": "monthly",
+  "source_data": "docs/llm_cost.md (Kent's raw dashboard sweep)",
+  "services": [
+    {
+      "name": "Anthropic API (token-metered)",
+      "billing_type": "metered",
+      "monthly_spend_usd": 903.00,
+      "trend": "growing",
+      "dashboard": "https://console.anthropic.com/settings/billing",
+      "notes": "Extrapolated from 6 days of paid invoices May 10-15 ($180.64 = $30.11/day). Auto-replenish triggered 2-3x/day on May 12-14. ~7.5x step-change from ~$115/mo baseline pre-2026-04-09 credit exhaustion. 78% of total LLM spend; primary target for attribution work in #296. Includes both Mac Claude Code and office2 OpenClaw traffic — not yet segmented (the dev-vs-felix split is what #296 unblocks)."
+    },
+    {
+      "name": "Anthropic Claude Monthly (Max plan)",
+      "billing_type": "subscription",
+      "monthly_spend_usd": 212.50,
+      "trend": "stable",
+      "dashboard": "https://claude.ai/settings/billing",
+      "notes": "Plateaued at Max since Feb 2026. Was $21.25 Pro Aug-Nov 2025, ramped through Nov 2025-Jan 2026. Unknown how much Mac Claude Code usage is absorbed by this envelope vs spilling to the metered API line — open question to confirm during #296 execution."
+    },
+    {
+      "name": "ChatGPT Plus (includes Codex CLI)",
+      "billing_type": "subscription",
+      "monthly_spend_usd": 21.25,
+      "trend": "stable",
+      "dashboard": "https://platform.openai.com/account/billing",
+      "notes": "Flat for 9 consecutive months. Confirmed 2026-05-15: no separate Codex CLI charges beyond the ChatGPT Plus subscription. Spec-kitty review cycles (which run Codex) are absorbed in this envelope. Marginal cost of Codex per spec-kitty review is effectively $0."
+    },
+    {
+      "name": "Gemini API (intentional.biz GCP project)",
+      "billing_type": "metered",
+      "monthly_spend_usd": 20.19,
+      "trend": "stable",
+      "dashboard": "https://console.cloud.google.com/billing",
+      "notes": "3 months at this rate. Specifically Gemini API consumption under the intentional.biz GCP project; not other GCP services."
+    },
+    {
+      "name": "Gemini API (kentgale@gmail.com GCP project)",
+      "billing_type": "free_tier",
+      "monthly_spend_usd": 0.00,
+      "trend": "growing",
+      "dashboard": "https://console.cloud.google.com/billing",
+      "notes": "Currently on free tier; will move to paid at end of free-tier window (~mid-June 2026). Will likely match intentional.biz line at ~$20.19/mo."
+    },
+    {
+      "name": "Whispr Flow",
+      "billing_type": "free_tier",
+      "monthly_spend_usd": 0.00,
+      "trend": "stable",
+      "dashboard": "—",
+      "notes": "Free plan."
+    }
+  ],
+  "totals": {
+    "monthly_usd_today": 1156.94,
+    "monthly_usd_30d_forward": 1177.13,
+    "annualized_usd_today": 13883,
+    "annualized_usd_30d_forward": 14126
+  },
+  "cost_concentration": {
+    "anthropic_api_pct_of_total": 78,
+    "top_3_services_pct_of_total": 98,
+    "implication": "Optimization effort on services 4-6 (Gemini lines, ChatGPT Plus, Whispr) is low-ROI; effort on services 1-2 (Anthropic API + Claude Max) is high-ROI."
+  }
+}

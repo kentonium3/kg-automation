@@ -48,6 +48,7 @@ Master map for all active documentation under `docs/`. Referenced from
 - [Change Control Protocol](<./design/architecture/change-control.md>)
 - [Service Dependencies Diagram](<./design/architecture/service-dependencies.view.md>)
 - [Glossary](<./design/architecture/glossary.md>)
+- [LLM Spend Baseline](<./design/architecture/llm-spend-baseline.md>) — monthly cost snapshot per service, trend commentary (narrative companion to `data/llm-spend-baseline.json`)
 
 ### docs/design/architecture/adr/ — Architecture Decision Records
 
@@ -69,6 +70,7 @@ Authoritative operational state. **Exempt from moves (F015 constraint C-001)**.
 - [Catalog Schema](<./design/architecture/data/catalog-schema.json>)
 - [Change Risk Taxonomy](<./design/architecture/data/change-risk-taxonomy.json>)
 - [Doc Domain Map](<./design/architecture/data/doc-domain-map.json>)
+- [LLM Spend Baseline](<./design/architecture/data/llm-spend-baseline.json>) — monthly LLM cost across all services (authoritative; see narrative companion in parent dir)
 
 ---
 
