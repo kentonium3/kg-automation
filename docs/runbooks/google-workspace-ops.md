@@ -3,7 +3,7 @@ title: Google Workspace Operations
 doc_type: runbook
 status: approved
 owners: ["@kentonium3"]
-last_updated: '2026-05-13'
+last_updated: '2026-05-14'
 updated_by: '#100-google-workspace-foundation'
 audience: agents_and_humans
 ---
