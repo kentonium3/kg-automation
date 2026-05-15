@@ -1,0 +1,78 @@
+{
+  "version": 1,
+  "mission_slug": "habits-checkin-d6-extract-01KRNV46",
+  "mission_id": "01KRNV46XYGDDM4F66PX5KXB4P",
+  "mission_branch": "kitty/mission-habits-checkin-d6-extract-01KRNV46",
+  "target_branch": "main",
+  "lanes": [
+    {
+      "lane_id": "lane-a",
+      "wp_ids": [
+        "WP01",
+        "WP02",
+        "WP03",
+        "WP04",
+        "WP05"
+      ],
+      "write_scope": [
+        "docs/design/architecture/data/service-inventory.json",
+        "kitty-specs/habits-checkin-d6-extract-01KRNV46/artifacts/reference-checkin-output.txt",
+        "scripts/habits/compute_today.py",
+        "scripts/habits/exclude_completed.py",
+        "scripts/habits/query_active_habits.py",
+        "scripts/habits/set_due_dates.py",
+        "scripts/openclaw/agents/felix-admin-habits/AGENTS.md",
+        "tests/habits/__init__.py",
+        "tests/habits/test_compute_today.py",
+        "tests/habits/test_exclude_completed.py",
+        "tests/habits/test_query_active_habits.py",
+        "tests/habits/test_set_due_dates.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "artifact-rendering",
+        "legacy-cleanup",
+        "tests",
+        "workspace"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    }
+  ],
+  "computed_at": "2026-05-15T17:23:25.027483+00:00",
+  "computed_from": "dependency_graph+ownership",
+  "planning_artifact_wps": [],
+  "collapse_report": {
+    "events": [
+      {
+        "wp_a": "WP02",
+        "wp_b": "WP01",
+        "rule": "dependency",
+        "evidence": "WP02 depends on WP01"
+      },
+      {
+        "wp_a": "WP03",
+        "wp_b": "WP01",
+        "rule": "dependency",
+        "evidence": "WP03 depends on WP01"
+      },
+      {
+        "wp_a": "WP04",
+        "wp_b": "WP01",
+        "rule": "dependency",
+        "evidence": "WP04 depends on WP01"
+      },
+      {
+        "wp_a": "WP05",
+        "wp_b": "WP01",
+        "rule": "dependency",
+        "evidence": "WP05 depends on WP01"
+      }
+    ],
+    "total_merges": 4,
+    "independent_wps_collapsed": 0,
+    "by_rule": {
+      "dependency": 4
+    }
+  }
+}
