@@ -16,8 +16,8 @@ subtasks:
 - T003
 - T004
 - T005
-shell_pid: "96693"
-agent: "claude:opus-4-7:implementer:implementer"
+shell_pid: "1712"
+agent: "codex:gpt-5:code-reviewer:reviewer"
 history:
 - event: created
   at: '2026-05-15T17:15:12Z'
@@ -269,3 +269,4 @@ Approve if Definition of Done is satisfied. Reject if any of:
 
 - 2026-05-15T17:32:32Z – claude:opus-4-7:implementer:implementer – shell_pid=96693 – Assigned agent via action command
 - 2026-05-15T18:01:19Z – claude:opus-4-7:implementer:implementer – shell_pid=96693 – Ready for review — T001 reference captured (from production session log e05c7c2e on 2026-05-15 11:05 UTC; no extra cron triggered), T002-T005 compute_today.py + 6 tests passing locally (1.05s); --force used because the artifacts/ files are legitimate WP01 deliverables (committed to lane, planning docs explicitly specify this path)
+- 2026-05-15T18:01:39Z – codex:gpt-5:code-reviewer:reviewer – shell_pid=1712 – Started review via action command

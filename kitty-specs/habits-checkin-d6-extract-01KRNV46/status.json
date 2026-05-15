@@ -1,7 +1,7 @@
 {
-  "event_count": 8,
-  "last_event_id": "01KRPCSJNA0FZ6PP1MFV2TKPFQ",
-  "materialized_at": "2026-05-15T18:01:19.275335+00:00",
+  "event_count": 9,
+  "last_event_id": "01KRPCT6482JF4P11R3FZBRY3Y",
+  "materialized_at": "2026-05-15T18:01:39.208272+00:00",
   "mission_number": "",
   "mission_slug": "habits-checkin-d6-extract-01KRNV46",
   "mission_type": "software-dev",
@@ -11,18 +11,18 @@
     "canceled": 0,
     "claimed": 0,
     "done": 0,
-    "for_review": 1,
+    "for_review": 0,
     "in_progress": 0,
-    "in_review": 0,
+    "in_review": 1,
     "planned": 4
   },
   "work_packages": {
     "WP01": {
-      "actor": "user",
+      "actor": "codex:gpt-5:code-reviewer:reviewer",
       "force_count": 2,
-      "lane": "for_review",
-      "last_event_id": "01KRPCSJNA0FZ6PP1MFV2TKPFQ",
-      "last_transition_at": "2026-05-15T18:01:19.275335+00:00"
+      "lane": "in_review",
+      "last_event_id": "01KRPCT6482JF4P11R3FZBRY3Y",
+      "last_transition_at": "2026-05-15T18:01:39.208272+00:00"
     },
     "WP02": {
       "actor": "finalize-tasks",
