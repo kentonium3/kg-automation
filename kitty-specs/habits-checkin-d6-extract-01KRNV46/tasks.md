@@ -22,9 +22,9 @@ Reference table only — for tracking, use the per-WP checkbox rows below each W
 | T006 | Implement `scripts/habits/query_active_habits.py` per contract | WP02 |  | [D] |
 | T007 | Write `tests/habits/test_query_active_habits.py` covering 9 scenarios | WP02 |  | [D] |
 | T008 | Local validation: run helper against office2 Vikunja + pytest | WP02 |  | [D] |
-| T009 | Implement `scripts/habits/set_due_dates.py` per contract (Z-suffix rejection mandatory) | WP03 |  |
-| T010 | Write `tests/habits/test_set_due_dates.py` covering 8 scenarios | WP03 |  |
-| T011 | Local validation: `--dry-run` helper + pytest | WP03 |  |
+| T009 | Implement `scripts/habits/set_due_dates.py` per contract (Z-suffix rejection mandatory) | WP03 |  | [D] |
+| T010 | Write `tests/habits/test_set_due_dates.py` covering 8 scenarios | WP03 |  | [D] |
+| T011 | Local validation: `--dry-run` helper + pytest | WP03 |  | [D] |
 | T012 | Implement `scripts/habits/exclude_completed.py` per contract | WP04 |  |
 | T013 | Write `tests/habits/test_exclude_completed.py` covering 10 scenarios | WP04 |  |
 | T014 | Local validation: helper + pytest | WP04 |  |
@@ -124,9 +124,9 @@ Reference table only — for tracking, use the per-WP checkbox rows below each W
 
 **Subtasks**:
 
-- [ ] T009 Implement `scripts/habits/set_due_dates.py` per contract (Z-suffix rejection mandatory) (WP03)
-- [ ] T010 Write `tests/habits/test_set_due_dates.py` covering 8 scenarios (WP03)
-- [ ] T011 Local validation: `--dry-run` helper + pytest (WP03)
+- [x] T009 Implement `scripts/habits/set_due_dates.py` per contract (Z-suffix rejection mandatory) (WP03)
+- [x] T010 Write `tests/habits/test_set_due_dates.py` covering 8 scenarios (WP03)
+- [x] T011 Local validation: `--dry-run` helper + pytest (WP03)
 
 **Implementation sketch**:
 1. Implement helper per `contracts/set_due_dates.md`. Critical: validate `--iso-eod-et` rejects `Z` suffix (regex check at startup; exit 2 on violation).
