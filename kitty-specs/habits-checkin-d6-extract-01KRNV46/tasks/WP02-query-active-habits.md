@@ -12,6 +12,8 @@ subtasks:
 - T006
 - T007
 - T008
+agent: "claude:opus-4-7:implementer:implementer"
+shell_pid: "3211"
 history:
 - event: created
   at: '2026-05-15T17:15:12Z'
@@ -228,3 +230,7 @@ Reject if:
 - Frequency lexicon adds cases not in the data-model table (scope creep)
 - Project ID hardcoded
 - Tests don't cover the en-dash `Mon–Sat` variant
+
+## Activity Log
+
+- 2026-05-15T18:08:12Z – claude:opus-4-7:implementer:implementer – shell_pid=3211 – Started implementation via action command
