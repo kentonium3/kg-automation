@@ -28,11 +28,11 @@ Reference table only — for tracking, use the per-WP checkbox rows below each W
 | T012 | Implement `scripts/habits/exclude_completed.py` per contract | WP04 |  | [D] |
 | T013 | Write `tests/habits/test_exclude_completed.py` covering 10 scenarios | WP04 |  | [D] |
 | T014 | Local validation: helper + pytest | WP04 |  | [D] |
-| T015 | Refactor `felix-admin-habits/AGENTS.md` Steps 1-4 → helper invocations | WP05 |  |
-| T016 | Add "Failure handling" subsection to AGENTS.md per conventions § 6 | WP05 |  |
-| T017 | Update `service-inventory.json` habit-checkin entry | WP05 |  |
-| T018 | Deploy 4 helpers + AGENTS.md to office2 via scp | WP05 |  |
-| T019 | Smoke test: manual cron run on office2; diff WhatsApp output vs reference | WP05 |  |
+| T015 | Refactor `felix-admin-habits/AGENTS.md` Steps 1-4 → helper invocations | WP05 |  | [D] |
+| T016 | Add "Failure handling" subsection to AGENTS.md per conventions § 6 | WP05 |  | [D] |
+| T017 | Update `service-inventory.json` habit-checkin entry | WP05 |  | [D] |
+| T018 | Deploy 4 helpers + AGENTS.md to office2 via scp | WP05 |  | [D] |
+| T019 | Smoke test: manual cron run on office2; diff WhatsApp output vs reference | WP05 |  | [D] |
 
 ---
 
@@ -196,11 +196,11 @@ Reference table only — for tracking, use the per-WP checkbox rows below each W
 
 **Subtasks**:
 
-- [ ] T015 Refactor `felix-admin-habits/AGENTS.md` Steps 1-4 → helper invocations (WP05)
-- [ ] T016 Add "Failure handling" subsection to AGENTS.md per conventions § 6 (WP05)
-- [ ] T017 Update `service-inventory.json` habit-checkin entry (WP05)
-- [ ] T018 Deploy 4 helpers + AGENTS.md to office2 via scp (WP05)
-- [ ] T019 Smoke test: manual cron run on office2; diff WhatsApp output vs reference (WP05)
+- [x] T015 Refactor `felix-admin-habits/AGENTS.md` Steps 1-4 → helper invocations (WP05)
+- [x] T016 Add "Failure handling" subsection to AGENTS.md per conventions § 6 (WP05)
+- [x] T017 Update `service-inventory.json` habit-checkin entry (WP05)
+- [x] T018 Deploy 4 helpers + AGENTS.md to office2 via scp (WP05)
+- [x] T019 Smoke test: manual cron run on office2; diff WhatsApp output vs reference (WP05)
 
 **Implementation sketch**:
 1. Edit `scripts/openclaw/agents/felix-admin-habits/AGENTS.md`:
