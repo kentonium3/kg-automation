@@ -19,8 +19,8 @@ subtasks:
 - T017
 - T018
 - T019
-agent: "claude:opus-4-7:implementer:implementer"
-shell_pid: "8915"
+agent: "codex:gpt-5:code-reviewer:reviewer"
+shell_pid: "10897"
 history:
 - event: created
   at: '2026-05-15T17:15:12Z'
@@ -329,3 +329,4 @@ Reject if:
 
 - 2026-05-15T18:34:37Z – claude:opus-4-7:implementer:implementer – shell_pid=8915 – Started implementation via action command
 - 2026-05-15T18:44:39Z – claude:opus-4-7:implementer:implementer – shell_pid=8915 – Ready for review — T015-T017 in commit f44ce6b (AGENTS.md refactored + service-inventory updated; NFR-003 size target documented as out-of-scope-gap). T018 deployed all 4 helpers + AGENTS.md to office2 successfully. T019 smoke test PASSED: manual cron fire produced correct check-in to Kent (4 ready habits vs 8 morning ones — legitimate state change since Kent completed 4 between captures; ALL 4 helpers invoked in correct order; #112 Z-suffix-prevention intact in the live invocation). --force per #589
+- 2026-05-15T18:45:09Z – codex:gpt-5:code-reviewer:reviewer – shell_pid=10897 – Started review via action command
