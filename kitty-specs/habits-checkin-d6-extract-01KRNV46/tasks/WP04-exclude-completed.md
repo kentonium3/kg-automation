@@ -12,6 +12,8 @@ subtasks:
 - T012
 - T013
 - T014
+agent: "claude:opus-4-7:implementer:implementer"
+shell_pid: "7340"
 history:
 - event: created
   at: '2026-05-15T17:15:12Z'
@@ -197,3 +199,7 @@ Reject if:
 - Comment ordering relies on Vikunja's return order rather than `comment_id` comparison
 - Token contents logged anywhere
 - Stale-comment (yesterday) is treated as addressed
+
+## Activity Log
+
+- 2026-05-15T18:27:36Z – claude:opus-4-7:implementer:implementer – shell_pid=7340 – Started implementation via action command
