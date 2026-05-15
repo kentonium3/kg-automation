@@ -14,11 +14,11 @@ Reference table only — for tracking, use the per-WP checkbox rows below each W
 
 | ID | Description | WP | Parallel |
 |---|---|---|---|
-| T001 | Capture pre-refactor reference check-in message from production cron | WP01 |  |
-| T002 | Create `scripts/habits/` directory + tests/habits/__init__.py | WP01 |  |
-| T003 | Implement `scripts/habits/compute_today.py` per contract | WP01 |  |
-| T004 | Write `tests/habits/test_compute_today.py` covering 6 scenarios | WP01 |  |
-| T005 | Local validation: run helper + pytest, confirm green | WP01 |  |
+| T001 | Capture pre-refactor reference check-in message from production cron | WP01 |  | [D] |
+| T002 | Create `scripts/habits/` directory + tests/habits/__init__.py | WP01 |  | [D] |
+| T003 | Implement `scripts/habits/compute_today.py` per contract | WP01 |  | [D] |
+| T004 | Write `tests/habits/test_compute_today.py` covering 6 scenarios | WP01 |  | [D] |
+| T005 | Local validation: run helper + pytest, confirm green | WP01 |  | [D] |
 | T006 | Implement `scripts/habits/query_active_habits.py` per contract | WP02 |  |
 | T007 | Write `tests/habits/test_query_active_habits.py` covering 9 scenarios | WP02 |  |
 | T008 | Local validation: run helper against office2 Vikunja + pytest | WP02 |  |
@@ -50,11 +50,11 @@ Reference table only — for tracking, use the per-WP checkbox rows below each W
 
 **Subtasks** (tracking — `mark-status` reads these checkboxes):
 
-- [ ] T001 Capture pre-refactor reference check-in message from production cron (WP01)
-- [ ] T002 Create `scripts/habits/` directory + `tests/habits/__init__.py` (WP01)
-- [ ] T003 Implement `scripts/habits/compute_today.py` per contract (WP01)
-- [ ] T004 Write `tests/habits/test_compute_today.py` covering 6 scenarios (WP01)
-- [ ] T005 Local validation: run helper + pytest, confirm green (WP01)
+- [x] T001 Capture pre-refactor reference check-in message from production cron (WP01)
+- [x] T002 Create `scripts/habits/` directory + `tests/habits/__init__.py` (WP01)
+- [x] T003 Implement `scripts/habits/compute_today.py` per contract (WP01)
+- [x] T004 Write `tests/habits/test_compute_today.py` covering 6 scenarios (WP01)
+- [x] T005 Local validation: run helper + pytest, confirm green (WP01)
 
 **Implementation sketch**:
 1. T001 first — operator step on office2 (manual cron trigger, capture WhatsApp output to artifacts/). MUST happen before any code change.
