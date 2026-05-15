@@ -1,8 +1,8 @@
 ---
 title: "Felix-wide Directive 6 Survey — Phase 1 of #281"
-doc_type: design
+doc_type: note
 status: draft
-audience: kgale_and_agents
+audience: agents_and_humans
 owners: [kgale]
 last_validated: 2026-05-15
 ---
