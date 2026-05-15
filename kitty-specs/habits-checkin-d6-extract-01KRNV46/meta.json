@@ -1,0 +1,10 @@
+{
+  "created_at": "2026-05-15T12:52:35.118213+00:00",
+  "friendly_name": "habits checkin d6 extract",
+  "mission_id": "01KRNV46XYGDDM4F66PX5KXB4P",
+  "mission_number": null,
+  "mission_slug": "habits-checkin-d6-extract-01KRNV46",
+  "mission_type": "software-dev",
+  "slug": "habits-checkin-d6-extract-01KRNV46",
+  "target_branch": "main"
+}
