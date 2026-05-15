@@ -1,0 +1,380 @@
+{
+  "schema_version": "1.0",
+  "last_updated": "2026-05-15",
+  "updated_by": "#289-mutation-surfaces-enumeration",
+  "description": "Catalog of mutation surfaces accessible to actors that can change office2 (and Kent-owned external service) state, classified by tier per docs/design/architecture/data/change-risk-taxonomy.json. Layer 1.5 of epic #270. Consumed by Layer 2 (felix-change.py wrapper) to know which surfaces need gating, and by Layer 3 (drift auditor) to know what mutation paths exist. MVP scope: surfaces with documented incident history or clear governance classification. Catalog grows as Layer 2 implementation and ongoing operations discover new surfaces.",
+  "actors": {
+    "claude-code": {
+      "description": "Claude Code session on Kent's Mac (the laptop-side development environment). Real-time supervised by Kent.",
+      "governance": "CLAUDE.md + Kent's real-time presence in this session. Not gated by felix-change.py."
+    },
+    "kent-manual": {
+      "description": "Kent running commands directly via terminal or ssh office2-kgale. Includes sudo operations on office2.",
+      "governance": "Kent's discretion; no AI gating."
+    },
+    "main": {
+      "description": "Felix main agent on office2 (claude-sonnet-4-6 via OpenClaw default workspace). The primary autonomous agent.",
+      "governance": "GOVERNANCE.md + main/AGENTS.md pointer (Layer 1). Layer 2 wrapper (felix-change.py) will gate this actor's mutations."
+    },
+    "felix-admin-capture": {
+      "description": "Inbox processing sub-agent (claude-haiku-4-5). Mutates Vikunja state when classifying inbox notes.",
+      "governance": "Per-agent AGENTS.md + sub-agent inheritance from main; eventually felix-change.py via wrapper."
+    },
+    "felix-admin-habits": {
+      "description": "Habits tracking sub-agent (claude-sonnet-4-6). Mutates Vikunja state for habit completion and check-in scheduling.",
+      "governance": "Same as felix-admin-capture."
+    },
+    "felix-admin-escalation": {
+      "description": "Daily escalation sub-agent (claude-sonnet-4-6). Mutates Vikunja state for overdue task escalation.",
+      "governance": "Same as felix-admin-capture."
+    },
+    "felix-admin-tasker": {
+      "description": "Task structuring sub-agent (claude-sonnet-4-6). Mutates Vikunja state for task enrichment.",
+      "governance": "Same as felix-admin-capture."
+    },
+    "felix-doc-auditor": {
+      "description": "Documentation auditor sub-agent (claude-sonnet-4-6). Files [doc-audit] GitHub issues; auto-applies Tier 4 doc edits via audit-edit routing (mission #259).",
+      "governance": "Same as felix-admin-capture; additionally files issues via kg-felix-bot identity."
+    }
+  },
+  "felix_actors": [
+    "main",
+    "felix-admin-capture",
+    "felix-admin-habits",
+    "felix-admin-escalation",
+    "felix-admin-tasker",
+    "felix-doc-auditor"
+  ],
+  "scope_notes": {
+    "covered": [
+      "OpenClaw native CLI mutation commands (cron, config, channels, skills, agent)",
+      "Shell command mutation paths (gh, git, systemctl --user, brew, pip, restic, docker, scp)",
+      "Vikunja API mutations (POST/PUT/DELETE via curl or urllib)",
+      "Filesystem write paths grouped by tier on office2",
+      "Git pushes to deploy-hooked repos (intentional.biz / Railway is the current case)"
+    ],
+    "not_covered_in_mvp": [
+      "Every conceivable shell command — only surfaces with documented incident history or clear classification are enumerated",
+      "Read-only commands (GET requests, status checks, file reads) — those are not mutations",
+      "Multi-tenant or third-party-API surfaces beyond Vikunja and Railway — add as Kent's automation grows (Stripe, Gmail send, calendar invite, etc.)"
+    ]
+  },
+  "gating_treatments": {
+    "prune": "Remove the surface from the actor's tool catalog or PATH. The actor cannot invoke it at all.",
+    "wrap": "Replace direct invocation with a wrapper (felix-change.py) that enforces the tier protocol before letting the operation through.",
+    "prompt_forbid": "Surface remains available; prompts (GOVERNANCE.md + main/AGENTS.md pointer) forbid direct use and require routing through the proper channel. Weakest enforcement; depends on LLM compliance.",
+    "allow": "No gating. Surface is Tier 3 or below; standard care applies but no special wrapper needed."
+  },
+  "surfaces": [
+    {
+      "id": "openclaw-cron-edit",
+      "category": "openclaw_native",
+      "command_pattern": "openclaw cron edit <id> [--timeout-seconds N | --announce | --no-deliver | --failure-alert | ...]",
+      "tier": 2,
+      "scope": "Cron job configuration: timeout, delivery.mode, failureAlert, schedule, payload, agent assignment",
+      "available_to": ["main", "claude-code"],
+      "gating_treatment": "wrap",
+      "notes": "Canonical Tier 2 mutation surface. Used in self-applied incidents #263 round 1 (delivery.mode), #273 (timeoutSeconds), #285 (delivery.mode again). Layer 2 wrapper MUST gate this for Felix actors — every recent governance failure went through it. Claude Code uses this regularly during applied governance fixes; that's real-time supervised."
+    },
+    {
+      "id": "openclaw-cron-add",
+      "category": "openclaw_native",
+      "command_pattern": "openclaw cron add ...",
+      "tier": 2,
+      "scope": "Create new cron jobs — adds scheduled mutations",
+      "available_to": ["main", "claude-code"],
+      "gating_treatment": "wrap",
+      "notes": "New crons are state additions; same tier as edit."
+    },
+    {
+      "id": "openclaw-cron-rm",
+      "category": "openclaw_native",
+      "command_pattern": "openclaw cron rm <id>",
+      "tier": 2,
+      "scope": "Delete cron jobs — irreversible state removal",
+      "available_to": ["main", "claude-code"],
+      "gating_treatment": "wrap",
+      "notes": "Deletion is destructive Tier 2. Snapshot before applying."
+    },
+    {
+      "id": "openclaw-cron-disable",
+      "category": "openclaw_native",
+      "command_pattern": "openclaw cron disable <id> | openclaw cron enable <id>",
+      "tier": 2,
+      "scope": "Suspend/resume cron job execution without deleting config",
+      "available_to": ["main", "claude-code"],
+      "gating_treatment": "wrap",
+      "notes": "Less destructive than rm but still Tier 2. Same protocol."
+    },
+    {
+      "id": "openclaw-cron-run",
+      "category": "openclaw_native",
+      "command_pattern": "openclaw cron run <id>",
+      "tier": 3,
+      "scope": "Manual one-shot fire of a cron job (does NOT mutate cron config)",
+      "available_to": ["main", "claude-code"],
+      "gating_treatment": "allow",
+      "notes": "Invocation only; the cron job ITSELF may produce mutations, but those are covered by the sub-agent's own surfaces. Tier 3 standard care."
+    },
+    {
+      "id": "openclaw-config-set",
+      "category": "openclaw_native",
+      "command_pattern": "openclaw config set <path> <value>",
+      "tier": 2,
+      "scope": "Top-level OpenClaw configuration (gateway, agents list, plugins, etc.)",
+      "available_to": ["main", "claude-code"],
+      "gating_treatment": "wrap",
+      "notes": "Mutates openclaw.json — agent registration, model assignments, channel routing. High-value state."
+    },
+    {
+      "id": "openclaw-config-unset",
+      "category": "openclaw_native",
+      "command_pattern": "openclaw config unset <path>",
+      "tier": 2,
+      "scope": "Remove configuration values from openclaw.json",
+      "available_to": ["main", "claude-code"],
+      "gating_treatment": "wrap",
+      "notes": "Same tier as config set."
+    },
+    {
+      "id": "openclaw-channels-config",
+      "category": "openclaw_native",
+      "command_pattern": "openclaw channels [add|remove|edit] ...",
+      "tier": 2,
+      "scope": "Channel configuration (WhatsApp pairing, Discord/Telegram setup, dmPolicy)",
+      "available_to": ["main", "claude-code", "kent-manual"],
+      "gating_treatment": "wrap",
+      "notes": "WhatsApp dmPolicy changes have produced pairing-code incidents (see memory project_whatsapp_dmpolicy.md). Tier 2."
+    },
+    {
+      "id": "openclaw-skills-install",
+      "category": "openclaw_native",
+      "command_pattern": "openclaw skills install <skill>",
+      "tier": 1,
+      "scope": "Install community skill from ClawHub (introduces external code into actor's tool catalog)",
+      "available_to": ["main", "claude-code", "kent-manual"],
+      "gating_treatment": "prompt_forbid",
+      "notes": "Per Constitution: community skills require Kent's explicit approval. Tier 1 because supply-chain risk + connectivity to ClawHub. Until Layer 2 has a wrapper, GOVERNANCE.md must explicitly forbid autonomous use."
+    },
+    {
+      "id": "openclaw-agent-invoke",
+      "category": "openclaw_native",
+      "command_pattern": "openclaw agent --agent <id> --message '...' [--json --timeout N]",
+      "tier": 3,
+      "scope": "Delegate to a sub-agent; the sub-agent's tools may produce mutations, which fall under that sub-agent's own surfaces",
+      "available_to": ["main", "claude-code"],
+      "gating_treatment": "allow",
+      "notes": "Invocation itself is Tier 3 (workflow). Cascaded mutations through sub-agents are governed by the sub-agent's surfaces, not this one."
+    },
+    {
+      "id": "vikunja-api-mutate",
+      "category": "api",
+      "command_pattern": "curl -X (POST|PUT|DELETE) <vikunja-base>/api/v1/<path> ... (or urllib via Python helpers)",
+      "tier": 2,
+      "scope": "Vikunja write operations (task create/update/delete, comments, project changes, labels)",
+      "available_to": ["main", "felix-admin-capture", "felix-admin-habits", "felix-admin-escalation", "felix-admin-tasker", "claude-code"],
+      "gating_treatment": "allow",
+      "notes": "Tier 2 application state, but most invocations are legitimate domain work (habits agent marking habits complete, capture agent creating tasks). Layer 2 wrapper may eventually intercept; for now, per-agent Output Discipline + GOVERNANCE.md awareness is the discipline. Watch for Vikunja schema-affecting writes (label creation, project creation) which warrant Tier 2 protocol."
+    },
+    {
+      "id": "vikunja-token-rotation",
+      "category": "filesystem",
+      "command_pattern": "file write to /data/services/openclaw/secrets/vikunja-api",
+      "tier": 2,
+      "scope": "Vikunja API token rotation",
+      "available_to": ["kent-manual", "claude-code"],
+      "gating_treatment": "prompt_forbid",
+      "notes": "Credential rotation = Tier 2 per taxonomy. Tracked in credential-manifest.json. Felix should not rotate its own credentials autonomously."
+    },
+    {
+      "id": "systemctl-user-mutate",
+      "category": "shell",
+      "command_pattern": "systemctl --user [enable|disable|start|stop|restart] <unit>",
+      "tier": 1,
+      "scope": "User-scope systemd unit lifecycle (felix-doc-auditor.timer, openclaw-gateway.service, credential-health-check.timer, etc.)",
+      "available_to": ["main", "claude-code"],
+      "gating_treatment": "wrap",
+      "notes": "User services are the runtime fabric for Felix. Disabling openclaw-gateway breaks WhatsApp delivery. Tier 1 verification protocol."
+    },
+    {
+      "id": "systemctl-system-mutate",
+      "category": "shell",
+      "command_pattern": "sudo systemctl [enable|disable|start|stop|restart|edit] <unit>",
+      "tier": 0,
+      "scope": "System-scope systemd units (vikunja.service, obsidian-sync.service, transcribe.service, etc.)",
+      "available_to": ["kent-manual"],
+      "gating_treatment": "prune",
+      "notes": "Requires sudo; claude user does not have sudo. Felix and Claude Code cannot execute. Generate command and present to Kent for ssh office2-kgale execution."
+    },
+    {
+      "id": "crontab-claude",
+      "category": "shell",
+      "command_pattern": "crontab -u claude -e | crontab -e (as claude)",
+      "tier": 2,
+      "scope": "claude user's system crontab (runs audit.sh, observation/summarize.py, drift_check.py, sync-heartbeat.py)",
+      "available_to": ["claude-code", "kent-manual"],
+      "gating_treatment": "wrap",
+      "notes": "Different surface from OpenClaw cron (which is in-app cron scheduler). System crontab edits are Tier 2 state changes. main could edit too but rarely does in practice."
+    },
+    {
+      "id": "crontab-root",
+      "category": "shell",
+      "command_pattern": "sudo crontab -u root -e",
+      "tier": 0,
+      "scope": "Root crontab (e.g., security-monitor audit.sh runs from root crontab)",
+      "available_to": ["kent-manual"],
+      "gating_treatment": "prune",
+      "notes": "Requires sudo. Hard-lock per Tier 0 protocol."
+    },
+    {
+      "id": "brew-install",
+      "category": "shell",
+      "command_pattern": "brew install <package> | brew tap <repo>",
+      "tier": 1,
+      "scope": "Linuxbrew package installs and tap additions (gog, gogcli, transitive deps)",
+      "available_to": ["kent-manual", "claude-code"],
+      "gating_treatment": "wrap",
+      "notes": "New brew installs introduce supply-chain surfaces. audit.sh baseline tracks brew packages + taps (commits 5ab9141 + 7c97c01) so drift is detectable, but the install itself should be gated. main could in principle but doesn't in practice — install ops are typically Kent or Claude Code."
+    },
+    {
+      "id": "pip-install",
+      "category": "shell",
+      "command_pattern": "python3 -m pip install <package> | pip install <package>",
+      "tier": 2,
+      "scope": "System Python package install (introduces dependencies into runtime environment)",
+      "available_to": ["kent-manual", "claude-code"],
+      "gating_treatment": "wrap",
+      "notes": "Per #71 / LiteLLM-attack lessons. audit.sh tracks pip-packages baseline; install requires Tier 2 protocol."
+    },
+    {
+      "id": "restic-mutate",
+      "category": "shell",
+      "command_pattern": "restic [forget | prune | check --remove-checked] | restic backup ...",
+      "tier": 2,
+      "scope": "Backup repository mutation (forget snapshots, run new backup, prune)",
+      "available_to": ["kent-manual"],
+      "gating_treatment": "prune",
+      "notes": "Restic operations require sudo on office2. Effective gating_treatment = prune for Felix and Claude Code. Generate command + Kent runs via ssh office2-kgale."
+    },
+    {
+      "id": "docker-mutate",
+      "category": "shell",
+      "command_pattern": "docker [compose up|down|restart|exec|stop|rm] | docker pull <image>",
+      "tier": 2,
+      "scope": "Container lifecycle and image management (vikunja, transcribe-api)",
+      "available_to": ["main", "claude-code"],
+      "gating_treatment": "wrap",
+      "notes": "Container restart/recreate affects application state. Tier 2."
+    },
+    {
+      "id": "git-commit-push-kg-automation",
+      "category": "shell",
+      "command_pattern": "git commit ... && git push origin main (in kg-automation repo)",
+      "tier": 3,
+      "scope": "Standard commit + push to main of the kg-automation repo (no CI/CD deploy hook — push updates source but doesn't auto-deploy to office2)",
+      "available_to": ["claude-code", "kent-manual"],
+      "gating_treatment": "allow",
+      "notes": "Tier 3 logic/workflow. Standard care: structured commit message, appropriate co-authors. Claude Code routinely does this during spec-kitty workflow. Deploys to office2 happen via subsequent scp."
+    },
+    {
+      "id": "git-push-deploy-hooked-repo",
+      "category": "shell",
+      "command_pattern": "git push origin <branch> (in a repo whose remote triggers automatic deployment, e.g., Railway/Netlify/Vercel/Cloudflare Pages)",
+      "tier": 2,
+      "scope": "Push to a repo that triggers production deploy on push (intentional.biz is the current case — Railway deploys on push to main or review branches)",
+      "available_to": ["claude-code", "kent-manual"],
+      "gating_treatment": "wrap",
+      "notes": "Tier 2 because the push directly mutates production application state (a customer-facing website redeploys). main is not currently authorized to push to intentional.biz (no auth setup) but this could change as Felix grows toward client work. The wrapper for this surface would verify a corresponding issue and human approval before push."
+    },
+    {
+      "id": "git-force-push-main",
+      "category": "shell",
+      "command_pattern": "git push --force origin main (in any Kent-owned repo)",
+      "tier": 1,
+      "scope": "Rewriting main branch history — affects all downstream consumers, including auto-deploy hooks",
+      "available_to": ["claude-code", "kent-manual"],
+      "gating_treatment": "prompt_forbid",
+      "notes": "Per CLAUDE.md: never force push to main. GOVERNANCE.md should reinforce. Even if access exists, this command must NOT be invoked."
+    },
+    {
+      "id": "gh-issue-mutate",
+      "category": "shell",
+      "command_pattern": "gh issue [create | edit | close | comment] ...",
+      "tier": 4,
+      "scope": "GitHub issue lifecycle and content",
+      "available_to": ["main", "felix-doc-auditor", "claude-code"],
+      "gating_treatment": "allow",
+      "notes": "Issue management is Tier 4 metadata. Routinely used: Claude Code files issues during spec-kitty; main + felix-doc-auditor file [doc-audit] and audit-routing issues via kg-felix-bot identity. Per CLAUDE.md, use kg-felix-bot identity on office2."
+    },
+    {
+      "id": "gh-pr-mutate",
+      "category": "shell",
+      "command_pattern": "gh pr [create | merge | close | edit] ...",
+      "tier": 3,
+      "scope": "Pull request lifecycle",
+      "available_to": ["claude-code"],
+      "gating_treatment": "allow",
+      "notes": "PRs are Tier 3 workflow. spec-kitty uses direct-to-main merges so this surface is rarely invoked."
+    },
+    {
+      "id": "filesystem-write-data-services",
+      "category": "filesystem",
+      "command_pattern": "any write to /data/services/<service>/ (config, secrets, data) — including via scp",
+      "tier": 2,
+      "scope": "Service configuration and state on office2 (openclaw config, Vikunja data, transcribe models, security-monitor baselines)",
+      "available_to": ["main", "claude-code"],
+      "gating_treatment": "wrap",
+      "notes": "Tier 2 application/state. Snapshot before write. Includes scp uploads to this path from Claude Code deploys."
+    },
+    {
+      "id": "filesystem-write-openclaw-home",
+      "category": "filesystem",
+      "command_pattern": "any write to ~/.openclaw/ (config, cron state, sessions, credentials, agents)",
+      "tier": 2,
+      "scope": "Felix's own configuration and runtime state",
+      "available_to": ["main"],
+      "gating_treatment": "wrap",
+      "notes": "OpenClaw's working directory. Writes here change Felix's own behavior — high consequence. Claude Code typically doesn't touch this directly; deploys to /data/services/openclaw/data/ which is then read by OpenClaw."
+    },
+    {
+      "id": "filesystem-write-etc",
+      "category": "filesystem",
+      "command_pattern": "any write to /etc/ (host-level config)",
+      "tier": 0,
+      "scope": "Host system configuration",
+      "available_to": ["kent-manual"],
+      "gating_treatment": "prune",
+      "notes": "Requires sudo / root. Hard-lock for Felix and Claude Code."
+    },
+    {
+      "id": "filesystem-write-home-claude-kg-automation",
+      "category": "filesystem",
+      "command_pattern": "any write to /home/claude/kg-automation/ on office2 (source tree mirror)",
+      "tier": 3,
+      "scope": "Source code mirror on office2 — affects what Python helpers / scripts run on the next cron tick",
+      "available_to": ["claude-code", "main"],
+      "gating_treatment": "allow",
+      "notes": "Effectively the deploy target for Python helpers (e.g., scripts/habits/*). Updates flow from the Mac repo via Claude Code's scp. Tier 3 standard care — but verify the change is on main first (don't deploy uncommitted experimental code). main writing here is rare; Claude Code via scp is the typical path."
+    },
+    {
+      "id": "scp-from-mac-to-office2",
+      "category": "shell",
+      "command_pattern": "scp <local-file> office2-claude:<remote-path>",
+      "tier": "varies_by_destination",
+      "scope": "File upload from Kent's Mac to office2 — effective tier depends on the remote path (cross-reference filesystem-write-* entries by destination)",
+      "available_to": ["claude-code", "kent-manual"],
+      "gating_treatment": "depends_on_destination",
+      "notes": "scp itself isn't a tier; its effect depends on where it writes on office2. For most deploys today (helper scripts to scripts/habits/, AGENTS.md to /data/services/openclaw/data/), the effective tier is set by the filesystem-write-* entry for the destination path. Layer 2 wrapper for scp would need to inspect the target path to classify the operation."
+    },
+    {
+      "id": "scp-from-office2-outbound",
+      "category": "shell",
+      "command_pattern": "scp <office2-file> <remote-host>:<path>",
+      "tier": "varies_by_destination",
+      "scope": "File upload FROM office2 TO another host. Reserved for future Felix capabilities (offsite backup, customer artifact delivery, multi-host workflows).",
+      "available_to": [],
+      "gating_treatment": "wrap",
+      "notes": "Currently no remote hosts in Felix's reach. As Kent's automation expands to multi-host workflows (e.g., uploading customer-facing artifacts to a VPS, archiving to an offsite backup target, syncing transcripts to a portal), Felix could initiate scp from office2. Layer 2 should pre-register this surface so when usage emerges, the wrapper is ready. Tier depends on destination and content."
+    }
+  ]
+}

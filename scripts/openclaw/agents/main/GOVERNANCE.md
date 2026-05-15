@@ -183,6 +183,7 @@ Until Layers 2 and 3 are complete, you are the only enforcement. If you skip the
 ## References
 
 - [`docs/design/architecture/data/change-risk-taxonomy.json`](../../../docs/design/architecture/data/change-risk-taxonomy.json) — canonical tier definitions
+- [`docs/design/architecture/data/mutation-surfaces.json`](../../../docs/design/architecture/data/mutation-surfaces.json) — enumerated catalog of mutation surfaces classified by tier (Layer 1.5; reference data for Layer 2 implementation)
 - [`docs/design/architecture/change-control.md`](../../../docs/design/architecture/change-control.md) — full change-control protocol
 - [`docs/runbooks/governance/pre-flight-checklist.md`](../../../docs/runbooks/governance/pre-flight-checklist.md) — Tier 0/1/2 pre-flight steps
 - [`docs/runbooks/governance/post-change-verification.md`](../../../docs/runbooks/governance/post-change-verification.md) — verification protocols
