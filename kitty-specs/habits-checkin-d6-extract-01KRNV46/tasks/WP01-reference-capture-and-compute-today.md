@@ -268,3 +268,4 @@ Approve if Definition of Done is satisfied. Reject if any of:
 ## Activity Log
 
 - 2026-05-15T17:32:32Z – claude:opus-4-7:implementer:implementer – shell_pid=96693 – Assigned agent via action command
+- 2026-05-15T18:01:19Z – claude:opus-4-7:implementer:implementer – shell_pid=96693 – Ready for review — T001 reference captured (from production session log e05c7c2e on 2026-05-15 11:05 UTC; no extra cron triggered), T002-T005 compute_today.py + 6 tests passing locally (1.05s); --force used because the artifacts/ files are legitimate WP01 deliverables (committed to lane, planning docs explicitly specify this path)
