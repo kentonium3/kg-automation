@@ -25,9 +25,9 @@ Reference table only — for tracking, use the per-WP checkbox rows below each W
 | T009 | Implement `scripts/habits/set_due_dates.py` per contract (Z-suffix rejection mandatory) | WP03 |  | [D] |
 | T010 | Write `tests/habits/test_set_due_dates.py` covering 8 scenarios | WP03 |  | [D] |
 | T011 | Local validation: `--dry-run` helper + pytest | WP03 |  | [D] |
-| T012 | Implement `scripts/habits/exclude_completed.py` per contract | WP04 |  |
-| T013 | Write `tests/habits/test_exclude_completed.py` covering 10 scenarios | WP04 |  |
-| T014 | Local validation: helper + pytest | WP04 |  |
+| T012 | Implement `scripts/habits/exclude_completed.py` per contract | WP04 |  | [D] |
+| T013 | Write `tests/habits/test_exclude_completed.py` covering 10 scenarios | WP04 |  | [D] |
+| T014 | Local validation: helper + pytest | WP04 |  | [D] |
 | T015 | Refactor `felix-admin-habits/AGENTS.md` Steps 1-4 → helper invocations | WP05 |  |
 | T016 | Add "Failure handling" subsection to AGENTS.md per conventions § 6 | WP05 |  |
 | T017 | Update `service-inventory.json` habit-checkin entry | WP05 |  |
@@ -160,9 +160,9 @@ Reference table only — for tracking, use the per-WP checkbox rows below each W
 
 **Subtasks**:
 
-- [ ] T012 Implement `scripts/habits/exclude_completed.py` per contract (WP04)
-- [ ] T013 Write `tests/habits/test_exclude_completed.py` covering 10 scenarios (WP04)
-- [ ] T014 Local validation: helper + pytest (WP04)
+- [x] T012 Implement `scripts/habits/exclude_completed.py` per contract (WP04)
+- [x] T013 Write `tests/habits/test_exclude_completed.py` covering 10 scenarios (WP04)
+- [x] T014 Local validation: helper + pytest (WP04)
 
 **Implementation sketch**:
 1. Implement helper per `contracts/exclude_completed.md`. For each habit ID, GET comments, parse `[Felix]` format, match against `--today` date + lexicon (complete/rescheduled/will-not-do).
