@@ -19,9 +19,9 @@ Reference table only — for tracking, use the per-WP checkbox rows below each W
 | T003 | Implement `scripts/habits/compute_today.py` per contract | WP01 |  | [D] |
 | T004 | Write `tests/habits/test_compute_today.py` covering 6 scenarios | WP01 |  | [D] |
 | T005 | Local validation: run helper + pytest, confirm green | WP01 |  | [D] |
-| T006 | Implement `scripts/habits/query_active_habits.py` per contract | WP02 |  |
-| T007 | Write `tests/habits/test_query_active_habits.py` covering 9 scenarios | WP02 |  |
-| T008 | Local validation: run helper against office2 Vikunja + pytest | WP02 |  |
+| T006 | Implement `scripts/habits/query_active_habits.py` per contract | WP02 |  | [D] |
+| T007 | Write `tests/habits/test_query_active_habits.py` covering 9 scenarios | WP02 |  | [D] |
+| T008 | Local validation: run helper against office2 Vikunja + pytest | WP02 |  | [D] |
 | T009 | Implement `scripts/habits/set_due_dates.py` per contract (Z-suffix rejection mandatory) | WP03 |  |
 | T010 | Write `tests/habits/test_set_due_dates.py` covering 8 scenarios | WP03 |  |
 | T011 | Local validation: `--dry-run` helper + pytest | WP03 |  |
@@ -89,9 +89,9 @@ Reference table only — for tracking, use the per-WP checkbox rows below each W
 
 **Subtasks**:
 
-- [ ] T006 Implement `scripts/habits/query_active_habits.py` per contract (WP02)
-- [ ] T007 Write `tests/habits/test_query_active_habits.py` covering 9 scenarios (WP02)
-- [ ] T008 Local validation: run helper against office2 Vikunja + pytest (WP02)
+- [x] T006 Implement `scripts/habits/query_active_habits.py` per contract (WP02)
+- [x] T007 Write `tests/habits/test_query_active_habits.py` covering 9 scenarios (WP02)
+- [x] T008 Local validation: run helper against office2 Vikunja + pytest (WP02)
 
 **Implementation sketch**:
 1. Implement helper per `contracts/query_active_habits.md` — Vikunja GET `/projects/{habits_id}/tasks`, parse frequency-descriptor lexicon (Daily, Daily (evening), Mon-Sat, Mon/Wed/Fri), exclude PAUSED/done, filter by `--day`.
