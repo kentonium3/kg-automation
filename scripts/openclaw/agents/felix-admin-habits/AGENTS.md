@@ -69,90 +69,86 @@ or daily briefings. Those belong to other agents.
 
 When triggered by the morning cron job, generate today's check-in.
 
-### Step 1: Determine today's day
+Steps 1-4 are deterministic and delegated to helper scripts in
+`scripts/habits/` (mission #282, per Constitution Directive 6). The
+helpers handle TZ math, the `[Felix]` comment-format parser, the
+issue #112 end-of-day-ET due_date rule, and per-habit failure resilience.
+Do NOT re-implement any of this logic in-prompt; invoke the helpers.
 
-Get the current day of the week (Mon, Tue, Wed, Thu, Fri, Sat, Sun) and
-today's date in YYYY-MM-DD format. **Use Eastern time, not UTC:**
+### Step 1: Compute today's context (helper)
 
 ```bash
-TZ=America/New_York date +%a    # day of week
-TZ=America/New_York date +%F    # YYYY-MM-DD
+python3 /home/claude/kg-automation/scripts/habits/compute_today.py
 ```
 
-office2 runs in UTC. Without the `TZ` prefix, dates after 8 PM ET will
-resolve to the wrong calendar day.
+Output is single-line JSON. Parse it; the fields you'll use:
+- `day` — three-letter day-of-week → pass to Step 2 as `--day`
+- `date` — `YYYY-MM-DD` Eastern time → pass to Step 4 as `--today`
+- `iso_eod_et` — end-of-day-ET ISO timestamp → pass to Step 3 as `--iso-eod-et`
 
-### Step 2: Query active habits
+### Step 2: Query habits scheduled for today (helper)
 
-Read the vikunja_api skill: `cat ~/.openclaw/skills/vikunja-api/SKILL.md`
-
-Resolve the "Habits" project by name. Fetch all tasks in the project.
-For each task, read the description field for frequency:
-
-| Frequency text | Scheduled days |
-|----------------|----------------|
-| Daily | Mon–Sun |
-| Daily (evening) | Mon–Sun |
-| Mon–Sat | Mon, Tue, Wed, Thu, Fri, Sat |
-| Mon/Wed/Fri | Mon, Wed, Fri |
-
-Skip any task with `(PAUSED)` in the description or `done: true`.
-Filter remaining habits to those scheduled for today only.
-
-### Step 3: Set due_date for Today filter visibility
-
-For each habit that passed the schedule filter in Step 2, set its
-`due_date` to today so it appears in the Vikunja Today filter:
-
-```
-PUT /api/v1/tasks/{habit_id}
-Content-Type: application/json
-
-{"due_date": "<YYYY-MM-DD>T23:59:59<ET_OFFSET>"}
+```bash
+python3 /home/claude/kg-automation/scripts/habits/query_active_habits.py --day <day-from-step-1>
 ```
 
-**Why end-of-day (23:59:59) instead of midnight (00:00:00)?**
+Output: `{"habits": [{"id", "title", ...}], "scheduled_today": N}`. Parse the
+`habits` list. The helper handles the frequency lexicon (Daily / Mon-Sat /
+Mon/Wed/Fri / empty-description-is-daily), PAUSED exclusion, and `done`
+exclusion. Collect the habit IDs (comma-separated) for Step 3.
 
-A midnight anchor makes the task appear overdue from the moment the
-morning cron fires at 7:05 AM ET, because the deadline is already in
-the past. End-of-day anchoring means the task stays "on time"
-throughout the day and only flips to overdue after midnight ET.
+### Step 3: Set due_date end-of-day-ET (helper — #112 regression-prevention)
 
-This is the correct convention for daily tasks that should be
-completed "sometime today." Do NOT change this back to 00:00:00
-without understanding issue #112 and the research in mission 025.
+```bash
+python3 /home/claude/kg-automation/scripts/habits/set_due_dates.py \
+    --habit-ids <ids-from-step-2> \
+    --iso-eod-et <iso_eod_et-from-step-1>
+```
 
-Where:
-- `<YYYY-MM-DD>` is today's date from Step 1 (in Eastern time)
-- `<ET_OFFSET>` is the current Eastern time UTC offset:
-  - `-04:00` during EDT (March–November)
-  - `-05:00` during EST (November–March)
-- Determine the offset by running: `TZ=America/New_York date +%:z`
-- **Never use `Z` (UTC) suffix** — it causes off-by-one errors for
-  dates set in the evening ET.
+Output: `{"succeeded": [...], "failed": [...]}`. The helper rejects any
+`--iso-eod-et` ending with `Z` (UTC) at exit 2 — this is the #112
+regression-prevention. **Never** auto-convert UTC to ET in-prompt; if you
+get exit 2 from this helper, your Step 1 produced wrong output.
 
-Rules:
-- Skip any habit with `(PAUSED)` in the description or `done: true`
-  (these were already excluded in Step 2)
-- If the API call fails for one habit, log the error and continue
-  with the remaining habits — do NOT stop the check-in workflow
-- This step is a visibility aid only — the `due_date` field is NOT
-  used for completion tracking (comments are the authority)
-- Habits not scheduled today retain their previous `due_date` — do
-  not modify them
+If exit code is 1 (partial failure): the `succeeded` array still lists IDs
+that were successfully updated — use ONLY those IDs in Step 4. See § Step
+4.5 Helper failure handling below.
 
----
+### Step 4: Exclude habits already addressed today (helper)
 
-### Step 4: Exclude already-completed habits
+```bash
+python3 /home/claude/kg-automation/scripts/habits/exclude_completed.py \
+    --habit-ids <succeeded-from-step-3> \
+    --today <date-from-step-1>
+```
 
-For each scheduled habit, check if a completion comment exists for today:
-`GET /tasks/{habit_id}/comments`
+Output: `{"ready_for_checkin": [...], "already_addressed": [...]}`. The
+helper parses `[Felix] YYYY-MM-DD | state` comments and identifies habits
+with state `complete`, `rescheduled`, or `will-not-do` for today. Use the
+`ready_for_checkin` list (habit IDs) as input to Step 5.
 
-Search the returned comments for one containing today's date (YYYY-MM-DD)
-and a state of `complete`. If found, exclude that habit from the check-in.
+### Step 4.5: Helper failure handling
 
-Habits marked `rescheduled` or `will-not-do` are also excluded — they
-have already been addressed today.
+If any of the helpers in Steps 1-4 exits non-zero, follow this protocol:
+
+1. Read the helper's stderr to identify which helper failed and why.
+2. **DO NOT** send a partial or fabricated check-in to Kent — a broken
+   check-in is worse than no check-in.
+3. File a `[doc-audit]` issue titled `felix-admin-habits: <helper> failed
+   at step N` with the helper name, exit code, stderr output, and inputs.
+   Use the `area/felix-core` label plus a priority label
+   (`P2-bug` for `set_due_dates.py` failures since they may regress #112;
+   `P3-candidate` for other failures).
+4. **For `set_due_dates.py` partial failure** (exit code 1 with non-empty
+   `succeeded`): the some-set-some-not state is benign for the check-in.
+   Continue to Step 4 using ONLY the IDs from the `succeeded` array. The
+   failed habits will retry on the next cron tick.
+5. **For total failure** (e.g., Vikunja unreachable in Step 2 or 4): file
+   the issue, reply with `IDLE` only (do NOT send any partial check-in),
+   let the next cron tick retry.
+
+This subsection implements the agent-side failure-handling template from
+[helper-script-conventions § 6](../../../docs/design/helper-script-conventions.md).
 
 ### Step 5: Format the check-in message
 

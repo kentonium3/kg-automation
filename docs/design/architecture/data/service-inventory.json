@@ -1,7 +1,7 @@
 {
   "schema_version": "1.1",
-  "last_updated": "2026-05-14",
-  "updated_by": "#263-cron-delivery-mode-round2 + #100-google-workspace-foundation + #256-scope-discipline-guardrails + #253-step-5a-6-consolidation + #254-atomic-write-perm-preservation + issue-105-doc-auditor + #223-systemd-timer + #208-restic-healthcheck + #202-obsidian-sync-system-level + #203-sync-heartbeat + #199-inbox-schedules + #115-credential-health-check + #189-vikunja-compose + #185-inbox-capture-dedup",
+  "last_updated": "2026-05-15",
+  "updated_by": "#282-habits-d6-extract + #263-cron-delivery-mode-round2 + #100-google-workspace-foundation + #256-scope-discipline-guardrails + #253-step-5a-6-consolidation + #254-atomic-write-perm-preservation + issue-105-doc-auditor + #223-systemd-timer + #208-restic-healthcheck + #202-obsidian-sync-system-level + #203-sync-heartbeat + #199-inbox-schedules + #115-credential-health-check + #189-vikunja-compose + #185-inbox-capture-dedup",
   "services": [
     {
       "name": "vikunja",
@@ -455,8 +455,8 @@
       "timeout_seconds_note": "Per-schedule timeouts diverge — see schedules array.",
       "session_mode": "isolated",
       "deployed_by": "F009",
-      "updated_by": "#273-felix-tier2-self-repair-incident-audit + #263-cron-delivery-mode-round2",
-      "last_updated": "2026-05-14",
+      "updated_by": "#282-habits-d6-extract + #273-felix-tier2-self-repair-incident-audit + #263-cron-delivery-mode-round2",
+      "last_updated": "2026-05-15",
       "status": "active",
       "purpose": "Daily habit check-in and weekly pattern report",
       "runbook": "docs/runbooks/habits-ops.md",
@@ -469,7 +469,11 @@
         "note": "Scheduled job — health inferred from agent activity logs"
       },
       "config_files": [
-        {"path": "/data/services/openclaw/habits-agent/AGENTS.md", "format": "markdown", "source_in_repo": "scripts/openclaw/agents/felix-admin-habits/AGENTS.md"}
+        {"path": "/data/services/openclaw/habits-agent/AGENTS.md", "format": "markdown", "source_in_repo": "scripts/openclaw/agents/felix-admin-habits/AGENTS.md"},
+        {"path": "/home/claude/kg-automation/scripts/habits/compute_today.py", "format": "python", "source_in_repo": "scripts/habits/compute_today.py", "purpose": "FR-001: TZ-aware day/date/ET-offset/iso_eod_et computation (Step 1 helper, #282)"},
+        {"path": "/home/claude/kg-automation/scripts/habits/query_active_habits.py", "format": "python", "source_in_repo": "scripts/habits/query_active_habits.py", "purpose": "FR-002: Vikunja Habits query + frequency filter (Step 2 helper, #282)"},
+        {"path": "/home/claude/kg-automation/scripts/habits/set_due_dates.py", "format": "python", "source_in_repo": "scripts/habits/set_due_dates.py", "purpose": "FR-003: due_date end-of-day-ET setter with #112 regression-prevention (Step 3 helper, #282)"},
+        {"path": "/home/claude/kg-automation/scripts/habits/exclude_completed.py", "format": "python", "source_in_repo": "scripts/habits/exclude_completed.py", "purpose": "FR-004: Felix-comment-format parser for completion-state filtering (Step 4 helper, #282)"}
       ]
     },
     {

@@ -1,0 +1,38 @@
+Reference check-in capture metadata
+====================================
+
+Captured by: Claude Opus 4.7 (implementer for WP01) — session 2026-05-15
+Source: /home/claude/.openclaw/agents/felix-admin-habits/sessions/e05c7c2e-684b-45ee-af0c-3b8f4c79cc7a.jsonl
+  (this is the OpenClaw session log of the production cron run at 11:05 UTC = 7:05 AM ET on 2026-05-15)
+
+Capture date (Eastern time): 2026-05-15
+Day of week: Friday
+Time of cron fire: 11:05 UTC (7:05 AM ET)
+
+Habits scheduled this day: 8 (all daily frequency)
+  1. Wake at 5:00 AM
+  2. Meditate 45 min
+  3. Morning shoulder PT
+  4. Morning hip PT
+  5. Functional strength training 45 min
+  6. Get steps in today
+  7. Read 30 min minimum
+  8. Evening shoulder PT
+
+Notable state at capture time:
+- No completions yet for today (session log notes "No completions yet, no PAUSED flags, all habits daily")
+- All habits had due_date set successfully (session log notes "All due dates set")
+
+Reference selection rationale:
+- Today is Friday — choosing a representative weekday with full habit set
+- All 8 habits delivered cleanly without PAUSED-state or completion-state exclusions
+- Captured directly from the production cron run via the agent's session log
+  (no separate manual cron trigger needed; would have produced a different message if Kent had marked habits between captures)
+
+Smoke test guidance (for WP05):
+- Run the post-refactor smoke test on a Friday for the most faithful diff baseline
+- If smoke test runs on a different weekday, the SET of habits delivered will differ
+  (e.g., Sunday: zero Mon-Sat habits) — expected, not a regression
+- The 8 habits above are all "Daily" frequency, so they should appear every day
+- Smoke-test diff acceptance: any difference is investigated; legitimate Vikunja state changes
+  (habit added/paused between capture and smoke test) are documented as expected
