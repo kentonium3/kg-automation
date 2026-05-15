@@ -12,6 +12,8 @@ subtasks:
 - T009
 - T010
 - T011
+agent: "claude:opus-4-7:implementer:implementer"
+shell_pid: "5611"
 history:
 - event: created
   at: '2026-05-15T17:15:12Z'
@@ -205,3 +207,7 @@ Reject if:
 - Helper auto-converts UTC to ET (this defeats the regression-prevention)
 - Partial-failure case exits 0 (loses the signal to the agent)
 - `--dry-run` makes any HTTP calls
+
+## Activity Log
+
+- 2026-05-15T18:19:21Z – claude:opus-4-7:implementer:implementer – shell_pid=5611 – Started implementation via action command
