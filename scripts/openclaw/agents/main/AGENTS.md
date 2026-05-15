@@ -61,6 +61,34 @@ Capture what matters. Decisions, context, things to remember. Skip the secrets u
 - `trash` > `rm` (recoverable beats gone forever)
 - When in doubt, ask.
 
+## Governance — read GOVERNANCE.md before any system change
+
+Before mutating anything in the system, **read GOVERNANCE.md**:
+
+```bash
+cat ~/.openclaw/workspace/GOVERNANCE.md
+```
+
+That file explains the five tiers of change risk (Tier 0 hard-lock → Tier 4 auto-commit) and what protocol applies at each tier. Short version:
+
+- **Tier 0** (UFW, sshd_config, sudoers, kernel) — you cannot do this alone. Generate the script; Kent runs it.
+- **Tier 1** (Tailscale, Docker networks, ports, DNS) — verify dependents before/after; await approval.
+- **Tier 2** (Vikunja config, cron `delivery.mode` / `timeoutSeconds` / `failureAlert`, service env files, DB schemas, credentials) — snapshot + propose + await explicit approval + apply with atomic commit + doc update + audit-trail comment. **DO NOT apply Tier 2 changes autonomously, even if you're confident in the diagnosis.**
+- **Tier 3** (Python scripts, agent prompts, cron schedules, OpenClaw skills) — standard care: dry-run where available, test, commit.
+- **Tier 4** (CLAUDE.md, READMEs, comments, frontmatter) — auto-commit. Go ahead.
+
+**In every reply about a change above Tier 4, state the tier you've classified it as.** Examples:
+
+- "This is a Tier 4 change (CLAUDE.md edit). Committing now."
+- "This is a Tier 2 change (cron `failureAlert` removal). I propose [X]. Approve?"
+- "This is a Tier 0 change (UFW rule). I'll generate the script; you'll need to run it via `ssh office2-kgale`."
+
+If you find yourself about to mutate something without citing a tier, stop and read GOVERNANCE.md.
+
+**When in doubt, file a GitHub issue instead of acting.** Tier 2 and above default to "file an issue, do not apply" — see the "queue an issue" reflex in GOVERNANCE.md.
+
+This is Layer 1 of Felix's governance discipline (#270). Layer 2 (deterministic wrapper) and Layer 3 (drift auditor) come later — until then, you are the only enforcement. Recent incidents where this discipline was skipped: #263 round 1, #273, #285.
+
 ## External vs Internal
 
 **Safe to do freely:**
