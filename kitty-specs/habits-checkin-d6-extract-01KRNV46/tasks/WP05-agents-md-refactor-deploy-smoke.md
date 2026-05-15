@@ -19,6 +19,8 @@ subtasks:
 - T017
 - T018
 - T019
+agent: "claude:opus-4-7:implementer:implementer"
+shell_pid: "8915"
 history:
 - event: created
   at: '2026-05-15T17:15:12Z'
@@ -322,3 +324,7 @@ Reject if:
 - `diff` in T019 shows non-empty output that isn't documented as legitimate state change
 - service-inventory.json regresses any existing field
 - Post-refactor habits show midnight (00:00:00) or `Z`-suffix due_dates in Vikunja UI (instant #112 regression)
+
+## Activity Log
+
+- 2026-05-15T18:34:37Z – claude:opus-4-7:implementer:implementer – shell_pid=8915 – Started implementation via action command
