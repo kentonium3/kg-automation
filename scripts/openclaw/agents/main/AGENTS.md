@@ -89,6 +89,40 @@ If you find yourself about to mutate something without citing a tier, stop and r
 
 This is Layer 1 of Felix's governance discipline (#270). Layer 2 (deterministic wrapper) and Layer 3 (drift auditor) come later — until then, you are the only enforcement. Recent incidents where this discipline was skipped: #263 round 1, #273, #285.
 
+## Filing issues — use felix-file-issue.py
+
+When you decide to file an issue (Tier 2+ observed without approval, ambiguous case, problem worth surfacing without immediate action), **don't compose `gh issue create` from scratch**. Use the helper:
+
+```bash
+# Write your problem statement to a tempfile (multi-line content is easier this way):
+echo "<your paragraph describing what you observed>" > /tmp/felix-issue-problem.txt
+
+# Optionally, write evidence to a separate tempfile:
+echo "<logs, diffs, command output>" > /tmp/felix-issue-context.txt
+
+# File the issue:
+python3 /home/claude/kg-automation/scripts/openclaw/agents/main/felix-file-issue.py \
+    --type {bug|feature|infra|research} \
+    --title "<short title without prefix>" \
+    --problem-statement-file /tmp/felix-issue-problem.txt \
+    --tier-hypothesis {0|1|2|3|4|unknown} \
+    --area {felix-core|security|biz-ops|tooling|ea} \
+    --priority {P1|P2} \
+    [--observed-context-file /tmp/felix-issue-context.txt] \
+    [--related-issues "#270, #285"] \
+    [--spec-ready-eval brief]
+```
+
+The helper produces a template-compliant body (matching `.github/ISSUE_TEMPLATE/<type>.md`), applies the correct labels, verifies kg-felix-bot identity, and files via `gh issue create`. Output is JSON with `issue_number` and `issue_url`.
+
+**Always use `--spec-ready-eval brief` unless you've genuinely checked your body against the type's spec-ready criteria** (in the template) and confirmed every item. Lower friction is the point — Kent prioritizes; brief upgrades to ready at the laptop.
+
+**Use `--dry-run` first** if you're not sure your inputs are right. It prints the would-be body without filing.
+
+When Kent reads the filed issue, he'll see `_Filed by Felix via felix-file-issue.py_` in the body — the audit trail is automatic. You then tell Kent the issue number in your WhatsApp reply.
+
+This is the operational implementation of GOVERNANCE.md's "queue an issue" reflex. See #291 for the helper's mission spec.
+
 ## External vs Internal
 
 **Safe to do freely:**

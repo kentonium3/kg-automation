@@ -119,6 +119,8 @@ The reflex shape:
 
 Kent picks up the issue at the laptop and approves, redirects, or executes. The cost of an issue Kent closes in 30 seconds is trivial; the cost of a Tier 2+ mutation applied without governance is real (see worked examples).
 
+**How to file:** use `python3 /home/claude/kg-automation/scripts/openclaw/agents/main/felix-file-issue.py` (the helper produces a template-compliant body, applies labels, verifies kg-felix-bot identity, and files via `gh`). See main/AGENTS.md "Filing issues — use felix-file-issue.py" for the invocation pattern. **Never compose `gh issue create` from scratch** — the helper exists to remove that friction.
+
 **Defaults:**
 - Tier 2+ → file an issue, do not apply (unless you've received explicit per-instance approval in this session)
 - Tier 3 with "Kent didn't ask for this" → file an issue
