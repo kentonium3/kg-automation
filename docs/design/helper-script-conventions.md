@@ -9,28 +9,31 @@ last_validated: 2026-05-15
 
 # Helper script conventions
 
-Operational conventions for the helper scripts that implement [Constitution Directive 6](../constitution/FELIX-CONSTITUTION.md) (deterministic detection, AI interpretation). This document is the **Phase 3 deliverable** of [#281](https://github.com/kentonium3/kg-automation/issues/281) and is referenced from Directive 6 as the source of truth for how helpers are built, tested, and deployed.
+Operational conventions for the helper scripts that implement [Constitution Directive 6](<../constitution/FELIX-CONSTITUTION.md>) (deterministic detection, AI interpretation). This document is the **Phase 3 deliverable** of [#281](https://github.com/kentonium3/kg-automation/issues/281) and is referenced from Directive 6 as the source of truth for how helpers are built, tested, and deployed.
 
 These conventions are grounded in patterns established across missions [#253](https://github.com/kentonium3/kg-automation/issues/253), [#259](https://github.com/kentonium3/kg-automation/issues/259), [#277](https://github.com/kentonium3/kg-automation/issues/277), and [#278](https://github.com/kentonium3/kg-automation/issues/278). They formalize what worked; they don't impose new structure for its own sake.
 
 > **Status**: DRAFT — awaiting Kent's review before being referenced from Directive 6. Once approved, this document becomes the convention; deviations from it should be deliberate and documented.
+>
+> **Revision 2026-05-15** (Day-2): §§ 1 and 9 restructured to introduce the **three-tier model — helper / library / skill** — after Kent flagged that the prior two-tier rule (helper vs skill) would prohibit shared primitive code reused across agents at the implementation level. The fix: a "library / primitive" tier (`scripts/lib/<module>.py`) for code imported by helpers but not invoked by agents. Tiers are distinguished by **invocation surface**, not by promotion stage.
 
 ---
 
 ## 1. Storage location
 
-The helper's caller and reach determines its home.
+The artifact's **invocation surface** determines its home (see § 9 for the full three-tier model: helper / library / skill).
 
 | Pattern | Location | When to use |
 |---|---|---|
-| **Agent-co-located** | `scripts/openclaw/agents/<agent>/<helper>.py` | The helper is called by exactly one agent and is tightly coupled to that agent's standing orders. Examples: `handle_audit_routing.py`, `handle_drift_events.py`. |
-| **Domain-co-located** | `scripts/<domain>/<helper>.py` | The helper is called by one agent but is part of a logical domain that may grow over time. Examples: `scripts/inbox/prescan.py`, `scripts/inbox/handle_parse_failures.py`. |
-| **Skill (project-specific)** | `~/.openclaw/skills/<skill>/SKILL.md` + helper files | The helper is called by **≥2 agents** OR encodes cross-agent reusable capability. See § 9 for promotion criteria. |
-| **System pipeline** | `scripts/office2/<script>` or `scripts/<domain>/<pipeline>` | The script runs as a background job (cron / systemd timer) without an agent invoker. Examples: `audit.sh`, `sync-heartbeat.py`. |
+| **Agent-co-located helper** | `scripts/openclaw/agents/<agent>/<helper>.py` | Standalone executable invoked via CLI by exactly one agent and tightly coupled to that agent's standing orders. Examples: `handle_audit_routing.py`, `handle_drift_events.py`. |
+| **Domain-co-located helper** | `scripts/<domain>/<helper>.py` | Standalone executable invoked via CLI by one agent but part of a logical domain that may grow. Examples: `scripts/inbox/prescan.py`, `scripts/inbox/handle_parse_failures.py`. |
+| **Shared primitive library** | `scripts/lib/<module>.py` | Importable Python module used by **other helpers/pipelines via `from scripts.lib.<module> import ...`**. NOT directly invoked from any AGENTS.md. Examples (future): `scripts/lib/vikunja.py` (CRUD primitives), `scripts/lib/vault_io.py` (safe vault reads/writes), `scripts/lib/gh.py` (issue/comment helpers). See § 9 for when to extract a library vs keep code inline in a helper. |
+| **Skill (project-specific)** | `~/.openclaw/skills/<skill>/SKILL.md` + reference content | Agent-facing capability documentation. Agent reads SKILL.md to learn the contract, then either invokes a helper or writes calls per the documented API. Used when ≥2 agents share a **capability** at the agent level (not just code at the implementation level). See § 9. |
+| **System pipeline** | `scripts/office2/<script>` or `scripts/<domain>/<pipeline>` | Background job (cron / systemd timer) without an agent invoker. Examples: `audit.sh`, `sync-heartbeat.py`. May also import from `scripts/lib/` like any other code. |
 
-**Default decision**: start at domain-co-located unless the helper is so agent-specific it would never be called by another caller. Domain placement makes later promotion to skill (§ 9) frictionless.
+**Default decision**: start at domain-co-located helper unless the helper is so agent-specific it would never be called by another caller. When a helper grows logic that's mechanically reusable by other helpers, extract that logic to `scripts/lib/` rather than copy-pasting.
 
-**Don't mix**: a helper should never sit in an agent's directory if any other agent could conceivably need it. That's the friction point that prevented `scripts/openclaw/agents/felix-admin-capture/` helpers from being shared with `felix-admin-tasker` even though both create Vikunja tasks.
+**Don't mix**: a helper should never sit in an agent's directory if any other agent could conceivably need it. That's the friction point that prevented `scripts/openclaw/agents/felix-admin-capture/` helpers from being shared with `felix-admin-tasker` even though both create Vikunja tasks. The right resolution for that case is a `scripts/lib/vikunja.py` library imported by helpers in both agents — not a skill (the capability is "create a task," but the implementation is shared at the API level below the capability).
 
 ---
 
@@ -275,37 +278,69 @@ The inbox helpers (`scripts/inbox/`) have test coverage; recent additions (handl
 
 ---
 
-## 9. Helper vs skill — promotion criteria
+## 9. Three-tier model — helper / library / skill
 
-A helper is a script invoked by an agent. A skill is an OpenClaw construct that wraps capability with a `SKILL.md` description, auto-discoverable by agents.
+Three distinct kinds of artifact, separated by **invocation surface**. Each has a different shape, a different home, and a different test for when to use it.
 
-### When to keep as helper
+### The invocation-surface test
 
-- Used by exactly one agent
-- Tight coupling to a specific agent's standing orders
-- Project-specific in a way that doesn't generalize
+| Question | If yes → |
+|---|---|
+| Does an agent's AGENTS.md call this directly (CLI invocation)? | **Helper** |
+| Do helpers or pipelines call this via `from ... import ...` (Python import), NOT an agent? | **Library / primitive** |
+| Does an agent read a SKILL.md file to learn HOW to do something (then either invoke a helper or write calls per the docs)? | **Skill** |
 
-### When to promote to skill
+The three are not promotion stages on a single ladder — they're different roles. A skill can co-exist with a helper AND a library all serving the same domain (see "Coexistence example" below).
 
-A helper qualifies for promotion to skill when ANY of these are true:
+### Helper
 
-1. **Called by ≥2 agents.** Currently the strongest signal — by definition cross-agent.
-2. **Has a clear capability name** that future agents could reasonably want. Example: "create a Vikunja task with full enrichment" is skill-shape; "extract today's habit list from this specific Vikunja project structure" is helper-shape.
-3. **Has stabilized over multiple revisions** without changing its interface. Stability is a precondition; an unstable interface as a skill creates breakage across agents.
+- **Shape**: standalone executable with CLI (argparse + exit codes + structured stdout per §§ 2-3)
+- **Where**: `scripts/openclaw/agents/<agent>/<helper>.py` (agent-co-located) or `scripts/<domain>/<helper>.py` (domain-co-located) per § 1
+- **Test**: an agent invokes it directly from AGENTS.md, typically via `python3 .../helper.py <args>`
+- **Examples**: `prescan.py`, `handle_drift_events.py`, `handle_audit_routing.py`, `handle_parse_failures.py`
 
-### Skill structure (project-specific)
+### Library / primitive
 
-A project-specific skill lives at `~/.openclaw/skills/<skill-name>/` and contains:
+- **Shape**: Python module with importable functions (no required CLI entry point, though `if __name__ == "__main__"` blocks for debug are fine). Functions have clear docstrings, return values, and exception semantics.
+- **Where**: `scripts/lib/<module>.py`
+- **Test**: it's imported by ≥2 helpers / pipelines AND no agent invokes it directly. It exists to prevent copy-pasting implementation code across helpers.
+- **Examples** (future, none exist yet):
+  - `scripts/lib/vikunja.py` — Vikunja CRUD primitives with auth, retry, error formatting (used by both `felix-admin-capture` helpers and `felix-admin-tasker` helpers)
+  - `scripts/lib/vault_io.py` — atomic-write + mode-preservation patterns for vault writes (used by `inject_parse_error_marker.py` and any future vault-writing helper)
+  - `scripts/lib/gh.py` — issue/comment filing primitives with body templating and label handling (used by `handle_drift_events.py`, `handle_audit_routing.py`, and future drift consumers)
+- **When to extract**: when the same code appears in ≥2 helpers, OR when a single helper has a chunk of mechanically-reusable logic that future helpers will plausibly want. Don't pre-extract speculatively; let the second copy be the signal.
 
-- `SKILL.md` — the agent-facing description: what the skill does, when to use it, input/output contract, examples
-- One or more helper scripts that implement the skill
-- Optional: a small README for human reference
+### Skill
 
-Project-specific skills are NOT installed via ClawHub. They're maintained in this repo and deployed to office2 alongside agent workspaces.
+- **Shape**: agent-facing reference content. Primary artifact is `SKILL.md` describing the capability — what it does, when to use it, contract, examples. May include supporting reference docs but is NOT primarily executable code.
+- **Where**: `~/.openclaw/skills/<skill-name>/` (project-specific) or installed via ClawHub (community)
+- **Test**: an agent's AGENTS.md says something like `Read the X skill: cat ~/.openclaw/skills/X/SKILL.md`. The skill informs the agent's behavior at the capability level; the agent then either invokes a helper or applies the documented API directly.
+- **Examples** (existing): `vikunja-api/SKILL.md`, `task-intelligence/SKILL.md`, `escalation/SKILL.md`, `doc-audit/SKILL.md`
+- **Promotion to skill** is warranted when:
+  1. A **capability** (not just code) is shared across ≥2 agents at the agent level
+  2. The capability has a clear name future agents could ask for ("create an enriched Vikunja task" is skill-shape; "PUT to Vikunja with retry" is library-shape)
+  3. The contract has stabilized — promoting an unstable interface as a skill creates cross-agent breakage risk
 
-### Pilot candidate (per #281 survey)
+### Coexistence example — Vikunja task creation
 
-`scripts/vikunja/create_task.py` — used by both `felix-admin-capture` (fallback path) and `felix-admin-tasker` (primary path). First likely promotion to skill once Phase 4 refactor work begins.
+This case (surfaced by the Phase 1 survey: `felix-admin-capture` and `felix-admin-tasker` both create Vikunja tasks) demonstrates all three tiers working together:
+
+| Tier | Artifact | Role |
+|---|---|---|
+| **Skill** | `~/.openclaw/skills/vikunja-api/SKILL.md` (exists) | Agent-facing reference: "here's how Vikunja works conceptually" |
+| **Library** | `scripts/lib/vikunja.py` (future) | Implementation: `create_task()`, `add_comment()`, `add_label()`, auth + retry handling. Imported by helpers; not invoked from AGENTS.md. |
+| **Helper** | `scripts/tasker/create_enriched_task.py` (future, Phase 4) | Agent-invoked CLI: takes enrichment-resolved attrs, calls library functions in the right sequence (Step 6's 9-step flow), returns task ID. Invoked by `felix-admin-tasker` AGENTS.md. |
+| **Helper** | `scripts/inbox/create_fallback_task.py` (future, Phase 4) | Agent-invoked CLI: minimal task creation used when delegation to tasker fails. Imports the same `scripts/lib/vikunja.py` library. Invoked by `felix-admin-capture` AGENTS.md. |
+
+Both helpers share implementation (library) without sharing CLI surface (they're invoked by different agents with different concerns). The skill provides the agent-level understanding both helpers' callers need. Three tiers, three different jobs, zero duplication.
+
+### When NOT to create a library
+
+Don't pre-extract. The right time is the SECOND time you find yourself writing similar logic. The first instance proves the pattern works; the second instance reveals what the reusable shape actually is. Pre-extracting before the second instance produces speculative abstractions that don't match the eventual second use case.
+
+### When NOT to create a skill
+
+A skill describes a capability the agent uses at the **agent level** — typically multi-step orchestration the agent reasons through. If a "capability" is really just an API call (no agent-level reasoning needed), it's a library function, not a skill. Skills are for behavior the agent participates in; libraries are for code that runs deterministically below the agent's reasoning.
 
 ---
 
@@ -377,9 +412,9 @@ When existing prompt-heavy logic gets refactored to a helper, the change must be
 
 ## Cross-references
 
-- [Felix Constitution Directive 6](../constitution/FELIX-CONSTITUTION.md) — The principle this document operationalizes
+- [Felix Constitution Directive 6](<../constitution/FELIX-CONSTITUTION.md>) — The principle this document operationalizes
 - [#281](https://github.com/kentonium3/kg-automation/issues/281) — Parent epic
-- [`felix-d6-survey.md`](./architecture/felix-d6-survey.md) — Phase 1 survey informing the conventions
+- [`felix-d6-survey.md`](<./architecture/felix-d6-survey.md>) — Phase 1 survey informing the conventions
 - [`feedback_scripts_vs_llm.md`](../../../.claude/projects/-Users-kentgale-repos-kg-automation/memory/feedback_scripts_vs_llm.md) — Memory note grounding the principle
 - Reference helpers cited throughout:
   - `scripts/inbox/prescan.py`, `handle_parse_failures.py`, `handle_marker_cleanup.py`, `inject_parse_error_marker.py`
