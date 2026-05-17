@@ -18,7 +18,8 @@ subtasks:
 - T008
 - T009
 - T010
-shell_pid: '64199'
+shell_pid: "64199"
+agent: "claude:opus-4-7:python-implementer:implementer"
 history:
 - action: drafted
   agent: claude
@@ -226,3 +227,7 @@ spec-kitty agent action implement WP02 --mission felix-bot-vikunja-provisioning-
 ```bash
 spec-kitty agent action review WP02 --mission felix-bot-vikunja-provisioning-01KRT3N4 --agent codex:gpt-4o:python-reviewer:reviewer
 ```
+
+## Activity Log
+
+- 2026-05-17T05:18:15Z – claude:opus-4-7:python-implementer:implementer – shell_pid=64199 – Assigned agent via action command
