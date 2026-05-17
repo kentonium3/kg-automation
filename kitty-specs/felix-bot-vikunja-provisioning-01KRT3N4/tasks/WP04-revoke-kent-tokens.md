@@ -212,3 +212,4 @@ spec-kitty agent action review WP04 --mission felix-bot-vikunja-provisioning-01K
 - 2026-05-17T05:18:30Z – claude:opus-4-7:python-implementer:implementer – shell_pid=64199 – Assigned agent via action command
 - 2026-05-17T05:24:13Z – claude:opus-4-7:python-implementer:implementer – shell_pid=64199 – Ready for review — revoke_kent_tokens.py + test_revoke_kent_tokens.py
 - 2026-05-17T05:25:03Z – codex:gpt-4o:python-reviewer:reviewer – shell_pid=66639 – Started review via action command
+- 2026-05-17T05:32:45Z – codex:gpt-4o:python-reviewer:reviewer – shell_pid=66639 – Moved to planned
