@@ -33,11 +33,11 @@ MVP scope: WP01–WP03 deliver the cutover capability (provision + validate + sw
 | T003 | provision_felix_bot.py — enumerate 12 real projects + share each at R/W | WP01 | | [D] |
 | T004 | provision_felix_bot.py — post-share verification + capture operator-supplied API token | WP01 | | [D] |
 | T005 | tests/vikunja/test_provision_felix_bot.py — pytest with mocked HTTP | WP01 | [D] |
-| T006 | validate_felix_bot.py — argparse + token file reading + identity gate | WP02 | |
-| T007 | validate_felix_bot.py — project access verification (read all 12 with felix-bot token) | WP02 | |
-| T008 | validate_felix_bot.py — throwaway task creation + sample comment + readback + cleanup | WP02 | |
-| T009 | validate_felix_bot.py — rollback smoke test mode (FR-015) | WP02 | |
-| T010 | tests/vikunja/test_validate_felix_bot.py — pytest with mocked HTTP | WP02 | [P] |
+| T006 | validate_felix_bot.py — argparse + token file reading + identity gate | WP02 | | [D] |
+| T007 | validate_felix_bot.py — project access verification (read all 12 with felix-bot token) | WP02 | | [D] |
+| T008 | validate_felix_bot.py — throwaway task creation + sample comment + readback + cleanup | WP02 | | [D] |
+| T009 | validate_felix_bot.py — rollback smoke test mode (FR-015) | WP02 | | [D] |
+| T010 | tests/vikunja/test_validate_felix_bot.py — pytest with mocked HTTP | WP02 | [D] |
 | T011 | swap_vikunja_secrets.py — argparse + secrets path validation + atomic-file utility | WP03 | |
 | T012 | swap_vikunja_secrets.py — atomic backup of existing secrets to .kent-pre-felix-bot.bak | WP03 | |
 | T013 | swap_vikunja_secrets.py — atomic write of new token + chmod/chown + systemctl restart | WP03 | |
@@ -118,11 +118,11 @@ MVP scope: WP01–WP03 deliver the cutover capability (provision + validate + sw
 
 **Included subtasks**:
 
-- [ ] T006 validate_felix_bot.py — argparse + token file reading + identity gate (WP02)
-- [ ] T007 validate_felix_bot.py — project access verification (read all 12 with felix-bot token) (WP02)
-- [ ] T008 validate_felix_bot.py — throwaway task creation + sample comment + readback + cleanup (WP02)
-- [ ] T009 validate_felix_bot.py — rollback smoke test mode (FR-015) (WP02)
-- [ ] T010 tests/vikunja/test_validate_felix_bot.py — pytest with mocked HTTP (WP02)
+- [x] T006 validate_felix_bot.py — argparse + token file reading + identity gate (WP02)
+- [x] T007 validate_felix_bot.py — project access verification (read all 12 with felix-bot token) (WP02)
+- [x] T008 validate_felix_bot.py — throwaway task creation + sample comment + readback + cleanup (WP02)
+- [x] T009 validate_felix_bot.py — rollback smoke test mode (FR-015) (WP02)
+- [x] T010 tests/vikunja/test_validate_felix_bot.py — pytest with mocked HTTP (WP02)
 
 **Implementation sketch**:
 
