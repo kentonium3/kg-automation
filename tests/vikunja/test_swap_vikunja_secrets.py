@@ -425,8 +425,8 @@ def test_verify_attribution_write_readback_happy(mod):
     assert info["cleanup_ok"] is True
 
     # Assert a NEW write was issued (not just a read of an existing task).
-    assert len(calls) == 3, f"Expected POST+GET+DELETE; got {len(calls)} calls"
-    assert calls[0]["method"] == "POST"
+    assert len(calls) == 3, f"Expected PUT+GET+DELETE; got {len(calls)} calls"
+    assert calls[0]["method"] == "PUT"
     assert calls[0]["url"].endswith("/tasks/1/comments")
     assert isinstance(calls[0]["body"], dict)
     assert "comment" in calls[0]["body"]
@@ -479,7 +479,7 @@ def test_verify_attribution_readback_wrong_user_raises(mod):
             )
 
     # The write+readback was issued — proving the probe wasn't read-only.
-    assert calls[0]["method"] == "POST"
+    assert calls[0]["method"] == "PUT"
     assert calls[1]["method"] == "GET"
     # Cleanup DELETE was attempted even though verification failed.
     assert any(c["method"] == "DELETE" for c in calls)

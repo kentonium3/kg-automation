@@ -17,7 +17,7 @@ Atomic semantics (FR-005..FR-008, NFR-002..NFR-004):
     4. `systemctl --user restart openclaw-gateway` + poll `is-active`
        up to `--gateway-health-timeout` seconds.
     5. Post-swap attribution probe (FR-008 / C-11) — issue a NEW write
-       with the rotated token (POST a probe comment to a low-impact
+       with the rotated token (PUT a probe comment to a low-impact
        task), read it back, assert the new comment's
        `created_by.username == 'felix-bot'`, then best-effort DELETE
        the probe comment. Reading an existing task's `created_by` is
@@ -431,7 +431,7 @@ def verify_attribution(
     new Felix writes to attribute correctly, we issue a NEW write and
     read it back:
 
-        1. POST a probe comment to `task_id` using `token`.
+        1. PUT a probe comment to `task_id` using `token`.
         2. GET the comment we just created.
         3. Assert the comment's `created_by.username == expected_user`.
         4. Best-effort DELETE the probe comment (cleanup; never fails
@@ -458,26 +458,29 @@ def verify_attribution(
         f"felix-bot-attribution-probe-{int(time.time() * 1000)}"
     )
 
-    # Step 1: WRITE — POST a new comment with the live token.
+    # Step 1: WRITE — create a new comment with the live token. Vikunja
+    # v0.24.6 expects PUT (not POST) on /tasks/{id}/comments — verified by
+    # live probe 2026-05-17 (POST returns 404). Same method that
+    # validate_felix_bot.py uses successfully.
     post_status, post_body = _http_request_json(
-        post_url, token, method="POST", body={"comment": probe_text}
+        post_url, token, method="PUT", body={"comment": probe_text}
     )
     if post_status not in (200, 201):
         raise VerificationFailed(
-            f"Probe comment POST to {post_url} returned HTTP {post_status} "
+            f"Probe comment PUT to {post_url} returned HTTP {post_status} "
             f"(token rejected, task {task_id} missing, or API rejected the "
             f"write). Cannot confirm attribution."
         )
     if not isinstance(post_body, dict):
         raise VerificationFailed(
-            f"Probe comment POST returned unexpected body type "
+            f"Probe comment PUT returned unexpected body type "
             f"{type(post_body).__name__}; cannot extract comment id."
         )
 
     comment_id = post_body.get("id")
     if not isinstance(comment_id, int):
         raise VerificationFailed(
-            f"Probe comment POST response missing integer 'id': got {comment_id!r}."
+            f"Probe comment PUT response missing integer 'id': got {comment_id!r}."
         )
 
     # Step 2+3: READBACK — GET the comment we just created and check who
