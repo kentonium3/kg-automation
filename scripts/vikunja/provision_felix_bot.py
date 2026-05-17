@@ -551,9 +551,10 @@ def verify_shares_applied(
 
     if missing:
         print(
-            f"ERROR: post-share verification failed. felix-bot (uid="
-            f"{felix_bot_user_id}) is missing from the following project "
-            f"share lists: {missing}. Investigate before capturing the token.",
+            f"ERROR: post-share verification failed. felix-bot "
+            f"(username={felix_bot_username!r}) is missing from the following "
+            f"project share lists: {missing}. Investigate before capturing "
+            f"the token.",
             file=sys.stderr,
         )
         sys.exit(1)
