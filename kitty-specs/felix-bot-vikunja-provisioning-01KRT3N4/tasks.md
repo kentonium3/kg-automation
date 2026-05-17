@@ -47,11 +47,11 @@ MVP scope: WP01–WP03 deliver the cutover capability (provision + validate + sw
 | T017 | revoke_kent_tokens.py — argparse + kent auth handling | WP04 | | [D] |
 | T018 | revoke_kent_tokens.py — enumerate kent's API tokens + delete each (with UI fallback) | WP04 | | [D] |
 | T019 | tests/vikunja/test_revoke_kent_tokens.py — pytest with mocked HTTP | WP04 | [D] |
-| T020 | Write docs/runbooks/felix-bot-vikunja-provisioning.md (6-phase runbook with GO/NO-GO) | WP05 | |
-| T021 | Update credential-manifest.json vikunja-api entry | WP05 | [P] |
-| T022 | Update credentials-and-secrets.md narrative | WP05 | [P] |
-| T023 | Update identity-model.md Agent Service Accounts | WP05 | [P] |
-| T024 | Update service-inventory.json if vikunja entry tracks users | WP05 | [P] |
+| T020 | Write docs/runbooks/felix-bot-vikunja-provisioning.md (6-phase runbook with GO/NO-GO) | WP05 | | [D] |
+| T021 | Update credential-manifest.json vikunja-api entry | WP05 | [D] |
+| T022 | Update credentials-and-secrets.md narrative | WP05 | [D] |
+| T023 | Update identity-model.md Agent Service Accounts | WP05 | [D] |
+| T024 | Update service-inventory.json if vikunja entry tracks users | WP05 | [D] |
 
 `[P]` indicates parallel-safe within the WP (different files). Cross-WP parallelism is full — all 5 WPs touch disjoint files.
 
@@ -252,11 +252,11 @@ MVP scope: WP01–WP03 deliver the cutover capability (provision + validate + sw
 
 **Included subtasks**:
 
-- [ ] T020 Write docs/runbooks/felix-bot-vikunja-provisioning.md (6-phase runbook with GO/NO-GO) (WP05)
-- [ ] T021 Update credential-manifest.json vikunja-api entry (WP05)
-- [ ] T022 Update credentials-and-secrets.md narrative (WP05)
-- [ ] T023 Update identity-model.md Agent Service Accounts (WP05)
-- [ ] T024 Update service-inventory.json if vikunja entry tracks users (WP05)
+- [x] T020 Write docs/runbooks/felix-bot-vikunja-provisioning.md (6-phase runbook with GO/NO-GO) (WP05)
+- [x] T021 Update credential-manifest.json vikunja-api entry (WP05)
+- [x] T022 Update credentials-and-secrets.md narrative (WP05)
+- [x] T023 Update identity-model.md Agent Service Accounts (WP05)
+- [x] T024 Update service-inventory.json if vikunja entry tracks users (WP05)
 
 **Implementation sketch**:
 
