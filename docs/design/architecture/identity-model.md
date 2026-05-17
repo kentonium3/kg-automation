@@ -2,8 +2,8 @@
 title: Identity Model
 doc_type: reference
 status: approved
-last_updated: '2026-05-13'
-updated_by: '#100-google-workspace-foundation + #227'
+last_updated: '<rotation-date>'
+updated_by: '#304-felix-bot-rotation + #100-google-workspace-foundation + #227'
 ---
 
 # Identity Model
@@ -48,18 +48,44 @@ Areas are organizational parent projects — convention is to place tasks in sub
 
 ## Agent Service Accounts
 
-Felix agents act in GitHub under a dedicated service-account identity (`kg-felix-bot`), distinct from Kent's personal `kentonium3` account. Splitting human and agent identities keeps the GitHub event timeline unambiguously attributable: any commit, issue comment, label change, or PR action performed by an agent is visible as `kg-felix-bot` and cannot be confused with a Kent-driven action. This separation is also load-bearing for the `felix-doc-auditor` Level-1 gate (see [AGENTS.md §8.6](<../../../scripts/openclaw/agents/felix-doc-auditor/AGENTS.md>)), where the agent must verify that an approval label was applied by a human and not by itself.
+Felix agents act under dedicated service-account identities, distinct from Kent's personal accounts on each surface. Splitting human and agent identities keeps every audit timeline unambiguously attributable: a commit, issue comment, label change, PR action, Vikunja task creation, or task comment performed by an agent is visible under the agent's service account and cannot be confused with a Kent-driven action. Today Felix has two service accounts — one for GitHub, one for Vikunja — paired with the corresponding surface.
+
+### `kg-felix-bot` — GitHub
+
+The shared GitHub service account for all Felix agents (currently `felix-doc-auditor`). This separation is load-bearing for `felix-doc-auditor`'s Level-1 gate (see [AGENTS.md §8.6](<../../../scripts/openclaw/agents/felix-doc-auditor/AGENTS.md>)), where the agent must verify that an approval label was applied by a human and not by itself.
 
 | Field | Value |
 |---|---|
-| GitHub username | `kg-felix-bot` |
+| Surface | GitHub (`github.com/kentonium3/kg-automation`) |
+| Username | `kg-felix-bot` |
 | Repo role | Collaborator on `kentonium3/kg-automation` |
 | Currently used by | `felix-doc-auditor` |
+| Email | `kentgale+felix-bot@gmail.com` (routes to `kentgale@gmail.com`) |
+| TOTP / 2FA | Enabled |
 | Credential | `kg-felix-bot-pat` — see [`credential-manifest.json`](<./data/credential-manifest.json>) |
+| Created by | #215 |
+
+### `felix-bot` — Vikunja
+
+The shared Vikunja service account for all Felix sub-agents performing API writes (`felix-admin-habits`, `felix-admin-escalation`, `felix-admin-capture`, `felix-admin-tasker`). Provisioned during ADR-0002 Phase 1 (issue #304); see [`docs/runbooks/felix-bot-vikunja-provisioning.md`](<../../runbooks/felix-bot-vikunja-provisioning.md>) for the rotation procedure.
+
+| Field | Value |
+|---|---|
+| Surface | Vikunja v0.24.6 on office2 (`https://office2.tail0f5f56.ts.net/`) |
+| Username | `felix-bot` |
+| Scope | All Felix sub-agent API writes; read/write on the 12 real Vikunja projects (IDs 1, 2, 4-13). Not admin (per ADR-0002 Q3 / spec C-004). |
+| Currently used by | `felix-admin-habits`, `felix-admin-escalation`, `felix-admin-capture`, `felix-admin-tasker` (via the shared `vikunja-api` OpenClaw skill) |
+| Email | `kentgale+felix-bot@gmail.com` (routes to `kentgale@gmail.com`) |
+| Password storage | 1Password (entry `felix-bot (Vikunja)`) — no on-disk copy on office2 |
+| TOTP / 2FA | Not enabled (per ADR-0002 Q5c / spec C-010 — API-only identity, Tailscale gate constrains attack surface) |
+| Credential | `vikunja-api` — see [`credential-manifest.json`](<./data/credential-manifest.json>) |
+| Created by | #304 / ADR-0002 Phase 1 |
+
+Note: `kg-felix-bot` (GitHub) and `felix-bot` (Vikunja) are two distinct accounts on two distinct surfaces. They share an email alias (`kentgale+felix-bot@gmail.com`) for routing convenience, but the credentials, password stores, and audit timelines are independent. `felix-doc-auditor` uses `kg-felix-bot` and does NOT use the Vikunja API.
 
 Canonical registry: [`AGENT-REGISTRY.md` §Service Accounts](<../../constitution/AGENT-REGISTRY.md#service-accounts>).
 
-Future Felix agents may share `kg-felix-bot` or get their own dedicated service accounts, depending on whether per-agent audit-trail separation becomes useful.
+Future Felix agents may share these accounts or get their own dedicated service accounts per surface, depending on whether per-agent audit-trail separation becomes useful (per C-009: deliberately not split per sub-agent today).
 
 ## Google Workspace Accounts
 

@@ -2,8 +2,8 @@
 title: Credentials and Secrets
 doc_type: reference
 status: approved
-last_updated: '2026-05-17'
-updated_by: '#267-openclaw-gateway-env-narrative + #100-google-workspace-foundation + #227 + #115 + #115-narrative-sync + rename-kentonium3-pat-to-gh-oauth'
+last_updated: '<rotation-date>'
+updated_by: '#304-felix-bot-rotation + #267-openclaw-gateway-env-narrative + #100-google-workspace-foundation + #227 + #115 + #115-narrative-sync + rename-kentonium3-pat-to-gh-oauth'
 ---
 
 # Credentials and Secrets
@@ -75,6 +75,14 @@ OpenClaw skills read credentials at runtime via `cat /data/services/openclaw/sec
 Files are owned by the `claude` user, mode 600. This pattern is appropriate
 for API tokens consumed by skills via `exec` calls. It is not used for
 credentials that have their own native management mechanism.
+
+As of #304 (ADR-0002 Phase 1), the `vikunja-api` token in this slot is owned
+by the `felix-bot` Vikunja user, not `kent`. Every Felix sub-agent API write
+therefore attributes to felix-bot at the Vikunja API layer, providing a clean
+audit-trail separation between agent-driven writes (felix-bot) and Kent's UI
+interactions (kent). See [`identity-model.md` §Agent Service Accounts](<./identity-model.md#agent-service-accounts>)
+for the identity model and [`docs/runbooks/felix-bot-vikunja-provisioning.md`](<../../runbooks/felix-bot-vikunja-provisioning.md>)
+for the rotation procedure.
 
 ### 4. System-managed or standalone tool
 
@@ -198,7 +206,7 @@ graph TD
 | `restic-password` | password file | Standalone — `/home/claude/.config/restic/password` | `backup.sh` |
 | `tailscale-auth` | system-managed | Managed by `tailscaled` | Tailscale daemon |
 | `anthropic` | API key | OpenClaw native auth store | `openclaw-gateway` |
-| `vikunja-api` | API token | Scoped plaintext — `/data/services/openclaw/secrets/vikunja-api` | OpenClaw skills |
+| `vikunja-api` | API token (owner: `felix-bot` Vikunja user, #304) | Scoped plaintext — `/data/services/openclaw/secrets/vikunja-api` | OpenClaw skills (all Felix sub-agents — habits, escalation, capture, tasker) |
 | `whatsapp-session` | session | OpenClaw native (Baileys) | `openclaw-gateway` |
 | `google-workspace-client` | OAuth Desktop `client_secret` | Scoped plaintext — `/data/services/openclaw/secrets/google-workspace-client.json` | `gog auth credentials` (one-time ingest) |
 | `gog-keyring-password` | passphrase | Scoped plaintext — `/data/services/openclaw/secrets/gog-keyring-password` | `gog` (via `GOG_KEYRING_PASSWORD` env var in claude's `~/.bashrc`) |
