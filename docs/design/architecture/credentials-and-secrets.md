@@ -2,7 +2,7 @@
 title: Credentials and Secrets
 doc_type: reference
 status: approved
-last_updated: '<rotation-date>'
+last_updated: '2026-05-17'
 updated_by: '#304-felix-bot-rotation + #267-openclaw-gateway-env-narrative + #100-google-workspace-foundation + #227 + #115 + #115-narrative-sync + rename-kentonium3-pat-to-gh-oauth'
 ---
 

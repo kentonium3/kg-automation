@@ -2,7 +2,7 @@
 title: Identity Model
 doc_type: reference
 status: approved
-last_updated: '<rotation-date>'
+last_updated: '2026-05-17'
 updated_by: '#304-felix-bot-rotation + #100-google-workspace-foundation + #227'
 ---
 
