@@ -1,7 +1,7 @@
 {
-  "event_count": 53,
-  "last_event_id": "01KRT8TBACJ8C5DHAPK165WPTC",
-  "materialized_at": "2026-05-17T06:08:47.948859+00:00",
+  "event_count": 54,
+  "last_event_id": "01KRT8TXRPHMK9ZK9WZ8XMK81A",
+  "materialized_at": "2026-05-17T06:09:06.838253+00:00",
   "mission_number": "",
   "mission_slug": "felix-bot-vikunja-provisioning-01KRT3N4",
   "mission_type": "software-dev",
@@ -11,9 +11,9 @@
     "canceled": 0,
     "claimed": 0,
     "done": 0,
-    "for_review": 1,
+    "for_review": 0,
     "in_progress": 0,
-    "in_review": 0,
+    "in_review": 1,
     "planned": 0
   },
   "work_packages": {
@@ -46,11 +46,11 @@
       "last_transition_at": "2026-05-17T05:40:36.854928+00:00"
     },
     "WP05": {
-      "actor": "user",
+      "actor": "codex:gpt-4o:python-reviewer:reviewer",
       "force_count": 3,
-      "lane": "for_review",
-      "last_event_id": "01KRT8TBACJ8C5DHAPK165WPTC",
-      "last_transition_at": "2026-05-17T06:08:47.948859+00:00"
+      "lane": "in_review",
+      "last_event_id": "01KRT8TXRPHMK9ZK9WZ8XMK81A",
+      "last_transition_at": "2026-05-17T06:09:06.838253+00:00"
     }
   }
 }
