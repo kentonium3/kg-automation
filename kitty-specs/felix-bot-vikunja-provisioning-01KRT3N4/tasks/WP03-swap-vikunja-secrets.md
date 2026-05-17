@@ -13,6 +13,9 @@ requirement_refs:
 planning_base_branch: main
 merge_target_branch: main
 branch_strategy: Planning artifacts for this feature were generated on main. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into main unless the human explicitly redirects the landing branch.
+base_branch: kitty/mission-felix-bot-vikunja-provisioning-01KRT3N4
+base_commit: b89c2c9c9e8ab0642aad7e7a2155e48b52884920
+created_at: '2026-05-17T05:18:20.536007+00:00'
 subtasks:
 - T011
 - T012
@@ -20,6 +23,7 @@ subtasks:
 - T014
 - T015
 - T016
+shell_pid: '64199'
 history:
 - action: drafted
   agent: claude
