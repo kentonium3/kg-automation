@@ -19,8 +19,8 @@ subtasks:
 - T022
 - T023
 - T024
-agent: "codex:gpt-4o:python-reviewer:reviewer"
-shell_pid: "78397"
+agent: "claude:opus-4-7:python-implementer:implementer"
+shell_pid: "79373"
 history:
 - action: drafted
   agent: claude
@@ -264,3 +264,4 @@ spec-kitty agent action review WP05 --mission felix-bot-vikunja-provisioning-01K
 - 2026-05-17T06:01:57Z – claude:opus-4-7:python-implementer:implementer – shell_pid=77115 – Cycle 2 — addressed all 4 Codex findings: Phase 2 invocation includes --token-file; Phase 2 + Phase 3 SUMMARY expectations match actual helper output; SC-002 wording corrected to single-target write probe.
 - 2026-05-17T06:02:30Z – codex:gpt-4o:python-reviewer:reviewer – shell_pid=78397 – Started review via action command
 - 2026-05-17T06:06:44Z – codex:gpt-4o:python-reviewer:reviewer – shell_pid=78397 – Moved to planned
+- 2026-05-17T06:06:48Z – claude:opus-4-7:python-implementer:implementer – shell_pid=79373 – Started implementation via action command
