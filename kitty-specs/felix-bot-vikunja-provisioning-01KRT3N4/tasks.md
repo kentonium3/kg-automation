@@ -44,9 +44,9 @@ MVP scope: WP01–WP03 deliver the cutover capability (provision + validate + sw
 | T014 | swap_vikunja_secrets.py — post-swap attribution verification | WP03 | |
 | T015 | swap_vikunja_secrets.py — --rollback-from-bak mode + auto-rollback on verify failure | WP03 | |
 | T016 | tests/vikunja/test_swap_vikunja_secrets.py — pytest with mocked subprocess + HTTP | WP03 | [P] |
-| T017 | revoke_kent_tokens.py — argparse + kent auth handling | WP04 | |
-| T018 | revoke_kent_tokens.py — enumerate kent's API tokens + delete each (with UI fallback) | WP04 | |
-| T019 | tests/vikunja/test_revoke_kent_tokens.py — pytest with mocked HTTP | WP04 | [P] |
+| T017 | revoke_kent_tokens.py — argparse + kent auth handling | WP04 | | [D] |
+| T018 | revoke_kent_tokens.py — enumerate kent's API tokens + delete each (with UI fallback) | WP04 | | [D] |
+| T019 | tests/vikunja/test_revoke_kent_tokens.py — pytest with mocked HTTP | WP04 | [D] |
 | T020 | Write docs/runbooks/felix-bot-vikunja-provisioning.md (6-phase runbook with GO/NO-GO) | WP05 | |
 | T021 | Update credential-manifest.json vikunja-api entry | WP05 | [P] |
 | T022 | Update credentials-and-secrets.md narrative | WP05 | [P] |
@@ -212,9 +212,9 @@ MVP scope: WP01–WP03 deliver the cutover capability (provision + validate + sw
 
 **Included subtasks**:
 
-- [ ] T017 revoke_kent_tokens.py — argparse + kent auth handling (WP04)
-- [ ] T018 revoke_kent_tokens.py — enumerate kent's API tokens + delete each (with UI fallback) (WP04)
-- [ ] T019 tests/vikunja/test_revoke_kent_tokens.py — pytest with mocked HTTP (WP04)
+- [x] T017 revoke_kent_tokens.py — argparse + kent auth handling (WP04)
+- [x] T018 revoke_kent_tokens.py — enumerate kent's API tokens + delete each (with UI fallback) (WP04)
+- [x] T019 tests/vikunja/test_revoke_kent_tokens.py — pytest with mocked HTTP (WP04)
 
 **Implementation sketch**:
 
