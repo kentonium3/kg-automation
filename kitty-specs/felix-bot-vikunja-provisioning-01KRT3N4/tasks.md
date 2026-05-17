@@ -38,12 +38,12 @@ MVP scope: WP01–WP03 deliver the cutover capability (provision + validate + sw
 | T008 | validate_felix_bot.py — throwaway task creation + sample comment + readback + cleanup | WP02 | | [D] |
 | T009 | validate_felix_bot.py — rollback smoke test mode (FR-015) | WP02 | | [D] |
 | T010 | tests/vikunja/test_validate_felix_bot.py — pytest with mocked HTTP | WP02 | [D] |
-| T011 | swap_vikunja_secrets.py — argparse + secrets path validation + atomic-file utility | WP03 | |
-| T012 | swap_vikunja_secrets.py — atomic backup of existing secrets to .kent-pre-felix-bot.bak | WP03 | |
-| T013 | swap_vikunja_secrets.py — atomic write of new token + chmod/chown + systemctl restart | WP03 | |
-| T014 | swap_vikunja_secrets.py — post-swap attribution verification | WP03 | |
-| T015 | swap_vikunja_secrets.py — --rollback-from-bak mode + auto-rollback on verify failure | WP03 | |
-| T016 | tests/vikunja/test_swap_vikunja_secrets.py — pytest with mocked subprocess + HTTP | WP03 | [P] |
+| T011 | swap_vikunja_secrets.py — argparse + secrets path validation + atomic-file utility | WP03 | | [D] |
+| T012 | swap_vikunja_secrets.py — atomic backup of existing secrets to .kent-pre-felix-bot.bak | WP03 | | [D] |
+| T013 | swap_vikunja_secrets.py — atomic write of new token + chmod/chown + systemctl restart | WP03 | | [D] |
+| T014 | swap_vikunja_secrets.py — post-swap attribution verification | WP03 | | [D] |
+| T015 | swap_vikunja_secrets.py — --rollback-from-bak mode + auto-rollback on verify failure | WP03 | | [D] |
+| T016 | tests/vikunja/test_swap_vikunja_secrets.py — pytest with mocked subprocess + HTTP | WP03 | [D] |
 | T017 | revoke_kent_tokens.py — argparse + kent auth handling | WP04 | | [D] |
 | T018 | revoke_kent_tokens.py — enumerate kent's API tokens + delete each (with UI fallback) | WP04 | | [D] |
 | T019 | tests/vikunja/test_revoke_kent_tokens.py — pytest with mocked HTTP | WP04 | [D] |
@@ -163,12 +163,12 @@ MVP scope: WP01–WP03 deliver the cutover capability (provision + validate + sw
 
 **Included subtasks**:
 
-- [ ] T011 swap_vikunja_secrets.py — argparse + secrets path validation + atomic-file utility (WP03)
-- [ ] T012 swap_vikunja_secrets.py — atomic backup of existing secrets to .kent-pre-felix-bot.bak (WP03)
-- [ ] T013 swap_vikunja_secrets.py — atomic write of new token + chmod/chown + systemctl restart (WP03)
-- [ ] T014 swap_vikunja_secrets.py — post-swap attribution verification (WP03)
-- [ ] T015 swap_vikunja_secrets.py — --rollback-from-bak mode + auto-rollback on verify failure (WP03)
-- [ ] T016 tests/vikunja/test_swap_vikunja_secrets.py — pytest with mocked subprocess + HTTP (WP03)
+- [x] T011 swap_vikunja_secrets.py — argparse + secrets path validation + atomic-file utility (WP03)
+- [x] T012 swap_vikunja_secrets.py — atomic backup of existing secrets to .kent-pre-felix-bot.bak (WP03)
+- [x] T013 swap_vikunja_secrets.py — atomic write of new token + chmod/chown + systemctl restart (WP03)
+- [x] T014 swap_vikunja_secrets.py — post-swap attribution verification (WP03)
+- [x] T015 swap_vikunja_secrets.py — --rollback-from-bak mode + auto-rollback on verify failure (WP03)
+- [x] T016 tests/vikunja/test_swap_vikunja_secrets.py — pytest with mocked subprocess + HTTP (WP03)
 
 **Implementation sketch**:
 
