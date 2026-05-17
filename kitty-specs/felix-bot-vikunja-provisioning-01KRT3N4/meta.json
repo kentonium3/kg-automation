@@ -1,10 +1,12 @@
 {
   "created_at": "2026-05-17T04:38:35.801873+00:00",
-  "friendly_name": "felix bot vikunja provisioning",
+  "friendly_name": "Provision felix-bot Vikunja identity",
   "mission_id": "01KRT3N4AHYVZF9XGD457AQC1J",
   "mission_number": null,
   "mission_slug": "felix-bot-vikunja-provisioning-01KRT3N4",
   "mission_type": "software-dev",
   "slug": "felix-bot-vikunja-provisioning-01KRT3N4",
-  "target_branch": "main"
+  "target_branch": "main",
+  "vcs": "git",
+  "source_description": "Phase 1 of ADR-0002 implementation. Input from issue #304. Sibling phases tracked under umbrella #311."
 }
