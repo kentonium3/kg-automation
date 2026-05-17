@@ -19,8 +19,8 @@ subtasks:
 - T022
 - T023
 - T024
-agent: "codex:gpt-4o:python-reviewer:reviewer"
-shell_pid: "75323"
+agent: "claude:opus-4-7:python-implementer:implementer"
+shell_pid: "77115"
 history:
 - action: drafted
   agent: claude
@@ -260,3 +260,4 @@ spec-kitty agent action review WP05 --mission felix-bot-vikunja-provisioning-01K
 - 2026-05-17T05:49:04Z – claude:opus-4-7:python-implementer:implementer – shell_pid=73776 – Ready for review — operator runbook + 4 architecture doc updates
 - 2026-05-17T05:49:38Z – codex:gpt-4o:python-reviewer:reviewer – shell_pid=75323 – Started review via action command
 - 2026-05-17T05:57:03Z – codex:gpt-4o:python-reviewer:reviewer – shell_pid=75323 – Moved to planned
+- 2026-05-17T05:57:19Z – claude:opus-4-7:python-implementer:implementer – shell_pid=77115 – Started implementation via action command
