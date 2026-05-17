@@ -56,6 +56,7 @@ Immutable, dated records of *why* particular options were chosen over alternativ
 
 - [ADR Index](<./design/architecture/adr/README.md>)
 - [ADR-0001 — Google Workspace integration via `gog`](<./design/architecture/adr/0001-google-workspace-via-gog.md>) (approved 2026-05-13)
+- [ADR-0002 — Felix ↔ Vikunja task model](<./design/architecture/adr/0002-felix-vikunja-task-model.md>) (approved 2026-05-17)
 
 ### docs/design/architecture/data/ — Machine-readable state (JSON)
 

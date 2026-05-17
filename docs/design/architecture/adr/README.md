@@ -43,4 +43,4 @@ ADRs are numbered sequentially (`0001-`, `0002-`, ...). Once approved, the body 
 
 | # | Title | Status | Date |
 |---|---|---|---|
-| [0001](./0001-google-workspace-via-gog.md) | Google Workspace integration via `gog` CLI | approved | 2026-05-13 |
+| [0001](<./0001-google-workspace-via-gog.md>) | Google Workspace integration via `gog` CLI | approved | 2026-05-13 |
