@@ -407,13 +407,16 @@ def enumerate_real_projects(
 def share_project_with_user(
     project_id: int,
     project_title: str,
-    user_id: int,
+    username: str,
     base_url: str,
     kent_token: str,
     *,
     dry_run: bool,
 ) -> bool:
-    """PUT /projects/{id}/users with {"user_id":..., "right":1}.
+    """PUT /projects/{id}/users with {"user_id": <username>, "right": 1}.
+
+    The `user_id` field in the request body takes the target user's USERNAME
+    string, not the numeric user id (see body comment below).
 
     Returns True on success or treats 409 (already shared) as success.
     Exits 1 on 403 (kent lacks admin) or 5xx/network error.
@@ -421,17 +424,23 @@ def share_project_with_user(
     if dry_run:
         print(
             f"DRY-RUN: would PUT {_join_url(base_url, f'projects/{project_id}/users')} "
-            f"body={{user_id:{user_id}, right:{SHARE_RIGHT_READ_WRITE}}} "
+            f"body={{user_id:{username!r}, right:{SHARE_RIGHT_READ_WRITE}}} "
             f"(project #{project_id} '{project_title}')",
             file=sys.stderr,
         )
         return True
 
     url = _join_url(base_url, f"projects/{project_id}/users")
-    # Vikunja v0.24.6 expects user_id as a string in the share payload — passing
-    # int returns HTTP 400 "Unmarshal type error: expected=string, got=number,
-    # field=user_id" (observed 2026-05-17 during first live run). Cast to str.
-    body = {"user_id": str(user_id), "right": SHARE_RIGHT_READ_WRITE}
+    # Vikunja v0.24.6 PUT /projects/{id}/users semantics (observed 2026-05-17
+    # against the live office2 instance):
+    # - The `user_id` field name is a misnomer — it expects the target user's
+    #   USERNAME string, not the numeric user id.
+    # - Passing the numeric id (even as a string like "2") returns
+    #   {"code":1005,"message":"The user does not exist."} because no user is
+    #   named "2".
+    # - Passing the username ("felix-bot") succeeds and the create-response
+    #   echoes user_id back as the username.
+    body = {"user_id": username, "right": SHARE_RIGHT_READ_WRITE}
     try:
         status, parsed, raw = _http_request(
             "PUT", url, body=body, bearer_token=kent_token
@@ -484,14 +493,18 @@ def share_project_with_user(
 
 def verify_shares_applied(
     projects: list[dict],
-    felix_bot_user_id: int,
+    felix_bot_username: str,
     base_url: str,
     kent_token: str,
     *,
     dry_run: bool,
 ) -> dict:
     """For each project, GET /projects/{id}/users and confirm felix-bot is
-    present with right=1. Returns {"verified": [...], "missing": [...]}.
+    present with right=1. Matches each share entry by `username` field — in
+    Vikunja v0.24.6 the GET response returns USER objects with `id`, `name`,
+    `username`, ..., plus `right`. There is NO `user_id` field in this
+    response (the LIST shape differs from the share-CREATE response).
+    Returns {"verified": [...], "missing": [...]}.
     Exits 1 if any project is missing the felix-bot grant.
     """
     if dry_run:
@@ -528,7 +541,7 @@ def verify_shares_applied(
         for share in parsed:
             if not isinstance(share, dict):
                 continue
-            if share.get("user_id") == felix_bot_user_id and share.get("right") == SHARE_RIGHT_READ_WRITE:
+            if share.get("username") == felix_bot_username and share.get("right") == SHARE_RIGHT_READ_WRITE:
                 present = True
                 break
         if present:
@@ -757,7 +770,7 @@ def main(argv: list[str] | None = None) -> int:
         ok = share_project_with_user(
             project_id=proj["id"],
             project_title=proj["title"],
-            user_id=felix_bot_uid,
+            username=args.username,
             base_url=args.vikunja_base_url,
             kent_token=kent_token,
             dry_run=args.dry_run,
@@ -773,7 +786,7 @@ def main(argv: list[str] | None = None) -> int:
     # --- Verify shares applied ---
     verify = verify_shares_applied(
         projects=projects,
-        felix_bot_user_id=felix_bot_uid,
+        felix_bot_username=args.username,
         base_url=args.vikunja_base_url,
         kent_token=kent_token,
         dry_run=args.dry_run,

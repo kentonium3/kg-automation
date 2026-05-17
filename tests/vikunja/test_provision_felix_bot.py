@@ -410,7 +410,7 @@ def test_share_project_409_treated_as_success():
         ok = module.share_project_with_user(
             project_id=1,
             project_title="Inbox",
-            user_id=42,
+            username="felix-bot",
             base_url="https://example/api/v1/",
             kent_token="kent-token",
             dry_run=False,
@@ -426,7 +426,7 @@ def test_share_project_403_exits_1():
             module.share_project_with_user(
                 project_id=7,
                 project_title="CT-90day",
-                user_id=42,
+                username="felix-bot",
                 base_url="https://example/api/v1/",
                 kent_token="kent-token",
                 dry_run=False,
@@ -443,7 +443,7 @@ def test_share_project_happy_path():
         ok = module.share_project_with_user(
             project_id=1,
             project_title="Inbox",
-            user_id=42,
+            username="felix-bot",
             base_url="https://example/api/v1/",
             kent_token="kent-token",
             dry_run=False,
@@ -454,13 +454,15 @@ def test_share_project_happy_path():
 def test_verify_shares_applied_all_present():
     module = _load_helper_module()
     projects = [{"id": pid, "title": f"P{pid}"} for pid in [1, 2, 4]]
-    fake_shares = [{"user_id": 42, "right": 1, "created": "now"}]
+    # Vikunja v0.24.6 GET /projects/{id}/users returns user objects with a
+    # `username` field, not `user_id`. Verify matches on username.
+    fake_shares = [{"id": 2, "username": "felix-bot", "right": 1, "created": "now"}]
 
     with patch.object(module.urllib.request, "urlopen") as mock_urlopen:
         mock_urlopen.return_value = _ok_json_response(fake_shares, status=200)
         result = module.verify_shares_applied(
             projects=projects,
-            felix_bot_user_id=42,
+            felix_bot_username="felix-bot",
             base_url="https://example/api/v1/",
             kent_token="kent-token",
             dry_run=False,
@@ -474,17 +476,18 @@ def test_verify_shares_applied_one_missing_exits_1():
     projects = [{"id": pid, "title": f"P{pid}"} for pid in [1, 2, 4]]
 
     # First two project share lists include felix-bot, third does not.
+    # Vikunja v0.24.6 GET response uses `username` field, not `user_id`.
     responses = [
-        _ok_json_response([{"user_id": 42, "right": 1}], status=200),
-        _ok_json_response([{"user_id": 42, "right": 1}], status=200),
-        _ok_json_response([{"user_id": 99, "right": 1}], status=200),
+        _ok_json_response([{"id": 2, "username": "felix-bot", "right": 1}], status=200),
+        _ok_json_response([{"id": 2, "username": "felix-bot", "right": 1}], status=200),
+        _ok_json_response([{"id": 99, "username": "other-user", "right": 1}], status=200),
     ]
     with patch.object(module.urllib.request, "urlopen") as mock_urlopen:
         mock_urlopen.side_effect = responses
         with pytest.raises(SystemExit) as ei:
             module.verify_shares_applied(
                 projects=projects,
-                felix_bot_user_id=42,
+                felix_bot_username="felix-bot",
                 base_url="https://example/api/v1/",
                 kent_token="kent-token",
                 dry_run=False,
