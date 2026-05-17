@@ -28,11 +28,11 @@ MVP scope: WP01–WP03 deliver the cutover capability (provision + validate + sw
 
 | ID | Description | WP | Parallel |
 |---|---|---|---|
-| T001 | Create scripts/vikunja/ + tests/vikunja/ scaffolding; provision_felix_bot.py argparse + identity gate | WP01 | |
-| T002 | provision_felix_bot.py — user registration via POST /api/v1/register | WP01 | |
-| T003 | provision_felix_bot.py — enumerate 12 real projects + share each at R/W | WP01 | |
-| T004 | provision_felix_bot.py — post-share verification + capture operator-supplied API token | WP01 | |
-| T005 | tests/vikunja/test_provision_felix_bot.py — pytest with mocked HTTP | WP01 | [P] |
+| T001 | Create scripts/vikunja/ + tests/vikunja/ scaffolding; provision_felix_bot.py argparse + identity gate | WP01 | | [D] |
+| T002 | provision_felix_bot.py — user registration via POST /api/v1/register | WP01 | | [D] |
+| T003 | provision_felix_bot.py — enumerate 12 real projects + share each at R/W | WP01 | | [D] |
+| T004 | provision_felix_bot.py — post-share verification + capture operator-supplied API token | WP01 | | [D] |
+| T005 | tests/vikunja/test_provision_felix_bot.py — pytest with mocked HTTP | WP01 | [D] |
 | T006 | validate_felix_bot.py — argparse + token file reading + identity gate | WP02 | |
 | T007 | validate_felix_bot.py — project access verification (read all 12 with felix-bot token) | WP02 | |
 | T008 | validate_felix_bot.py — throwaway task creation + sample comment + readback + cleanup | WP02 | |
@@ -71,11 +71,11 @@ MVP scope: WP01–WP03 deliver the cutover capability (provision + validate + sw
 
 **Included subtasks**:
 
-- [ ] T001 Create scripts/vikunja/ + tests/vikunja/ scaffolding; provision_felix_bot.py argparse + identity gate (WP01)
-- [ ] T002 provision_felix_bot.py — user registration via POST /api/v1/register (WP01)
-- [ ] T003 provision_felix_bot.py — enumerate 12 real projects + share each at R/W (WP01)
-- [ ] T004 provision_felix_bot.py — post-share verification + capture operator-supplied API token (WP01)
-- [ ] T005 tests/vikunja/test_provision_felix_bot.py — pytest with mocked HTTP (WP01)
+- [x] T001 Create scripts/vikunja/ + tests/vikunja/ scaffolding; provision_felix_bot.py argparse + identity gate (WP01)
+- [x] T002 provision_felix_bot.py — user registration via POST /api/v1/register (WP01)
+- [x] T003 provision_felix_bot.py — enumerate 12 real projects + share each at R/W (WP01)
+- [x] T004 provision_felix_bot.py — post-share verification + capture operator-supplied API token (WP01)
+- [x] T005 tests/vikunja/test_provision_felix_bot.py — pytest with mocked HTTP (WP01)
 
 **Implementation sketch**:
 
