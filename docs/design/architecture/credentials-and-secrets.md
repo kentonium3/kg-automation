@@ -2,8 +2,8 @@
 title: Credentials and Secrets
 doc_type: reference
 status: approved
-last_updated: '2026-05-13'
-updated_by: '#100-google-workspace-foundation + #227 + #115 + #115-narrative-sync + rename-kentonium3-pat-to-gh-oauth'
+last_updated: '2026-05-17'
+updated_by: '#267-openclaw-gateway-env-narrative + #100-google-workspace-foundation + #227 + #115 + #115-narrative-sync + rename-kentonium3-pat-to-gh-oauth'
 ---
 
 # Credentials and Secrets
@@ -18,7 +18,7 @@ them. For expiry policies and review cadences, see the manifest.
 
 ## Storage Mechanisms
 
-kg-automation uses four distinct secret storage mechanisms. Each credential
+kg-automation uses six distinct secret storage mechanisms. Each credential
 uses the mechanism appropriate to the tool that owns or consumes it. There is
 no single unified secret store — that is a deliberate trade-off favoring
 simplicity on a Tailscale-gated personal server.
@@ -103,6 +103,30 @@ depending on host:
 The two tokens are distinct identities; office2 never holds a copy of
 `kentonium3-gh-oauth` and Mac never holds `kg-felix-bot-pat`.
 
+### 6. systemd `EnvironmentFile` injection
+
+Used by: `openclaw-gateway-env`
+
+Plain `KEY=VALUE` env-files consumed by systemd `EnvironmentFile=` directives
+in drop-in configs under `~/.config/systemd/user/<service>.service.d/`. The
+file lives at `/data/services/openclaw/secrets/openclaw-gateway.env` (mode
+0600, claude:claude) and injects `GOG_KEYRING_BACKEND` and
+`GOG_KEYRING_PASSWORD` into the `openclaw-gateway.service` process and all
+child agent sessions it spawns.
+
+This mechanism exists because systemd-launched services do not source
+`~/.bashrc`, so the interactive-shell `export GOG_KEYRING_PASSWORD=…` in
+claude's bashrc never reaches the gateway or its child agent sessions. The
+env-file is a duplicate of `gog-keyring-password`'s contents in a format
+systemd can consume directly. If `gog-keyring-password` rotates, this file
+must be regenerated to match — see
+[`google-workspace-ops.md` §Pitfall 4](<../../runbooks/google-workspace-ops.md>)
+for the full operational context and the regeneration command.
+
+The mechanism is distinct from §3 (scoped plaintext files read by skills via
+`cat`) and from §1 (gog's own auth store) — it specifically bridges the
+systemd-services-don't-see-bashrc gap.
+
 ---
 
 ## Storage Mechanism Summary
@@ -135,6 +159,10 @@ graph TD
         GHK[kentonium3-gh-oauth<br/>OAuth app token — Mac Keychain]
     end
 
+    subgraph "systemd EnvironmentFile"
+        OGE[openclaw-gateway-env<br/>GOG_* env injection]
+    end
+
     subgraph "Consumers"
         OC[openclaw-gateway]
         SK[OpenClaw skills<br/>vikunja-api]
@@ -157,6 +185,7 @@ graph TD
     VA -->|runtime JWT| UI
     GH -->|gh CLI / git push| FA
     GHK -->|gh CLI / git push| KM
+    OGE -->|systemd EnvironmentFile=| OC
 ```
 
 ---
@@ -174,6 +203,7 @@ graph TD
 | `google-workspace-client` | OAuth Desktop `client_secret` | Scoped plaintext — `/data/services/openclaw/secrets/google-workspace-client.json` | `gog auth credentials` (one-time ingest) |
 | `gog-keyring-password` | passphrase | Scoped plaintext — `/data/services/openclaw/secrets/gog-keyring-password` | `gog` (via `GOG_KEYRING_PASSWORD` env var in claude's `~/.bashrc`) |
 | `gog-credentials-keyring` | gog-managed encrypted bucket | `/home/claude/.config/gogcli/credentials.json` (managed by `gog`, encrypted by `gog-keyring-password`) | `gog` (all subcommands — Gmail, Calendar, Drive, Contacts, Sheets, Docs) |
+| `openclaw-gateway-env` | env-file | systemd `EnvironmentFile` — `/data/services/openclaw/secrets/openclaw-gateway.env` (mode 0600, claude:claude) | `openclaw-gateway.service` (via drop-in `EnvironmentFile=`) and all child agent sessions |
 | `kg-felix-bot-pat` | classic PAT | gh CLI auth store — `/home/claude/.config/gh/hosts.yml` | `felix-doc-auditor` and future Felix agents (git push, `gh` CLI) |
 | `kentonium3-gh-oauth` | OAuth app token | gh CLI auth store — macOS Keychain (managed by `gh` CLI on Mac) | Kent's manual git + `gh` CLI from Mac |
 
