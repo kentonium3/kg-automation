@@ -225,15 +225,32 @@ def verify_project_access(
         title = p.get("title", "")
         print(f"OK project_id={p['id']} title={title!r}")
 
-    if len(real_projects) != expected_count:
+    # Vikunja v0.24.6 auto-creates a default "Inbox" project for every newly-
+    # registered user (observed 2026-05-17 during the first live Phase 1 run).
+    # So felix-bot ends up with `expected_count` shared projects PLUS its own
+    # auto-created Inbox. Treat expected_count as the MINIMUM (felix-bot must
+    # be able to see at least all the kent-shared projects); any extras are
+    # acceptable. A SHORTAGE remains fatal — that indicates a share grant
+    # didn't apply.
+    if len(real_projects) < expected_count:
         accessible_ids = sorted(p["id"] for p in real_projects)
         print(
-            f"ERROR: expected {expected_count} accessible projects, "
+            f"ERROR: expected at least {expected_count} accessible projects, "
             f"got {len(real_projects)}. Accessible ids: {accessible_ids}. "
             f"Investigate which share grant did not apply.",
             file=sys.stderr,
         )
         sys.exit(1)
+    elif len(real_projects) > expected_count:
+        accessible_ids = sorted(p["id"] for p in real_projects)
+        extras = len(real_projects) - expected_count
+        print(
+            f"NOTE: felix-bot sees {len(real_projects)} projects "
+            f"({accessible_ids}) — {extras} more than the kent-shared "
+            f"{expected_count}. This is expected when Vikunja auto-creates "
+            f"a default Inbox for the new user. Proceeding.",
+            file=sys.stderr,
+        )
 
     return {
         "accessible_project_ids": sorted(p["id"] for p in real_projects),

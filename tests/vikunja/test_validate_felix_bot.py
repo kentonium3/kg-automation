@@ -184,7 +184,7 @@ def test_verify_project_access_eleven_exits_1(monkeypatch, capsys):
         )
     assert exc.value.code == 1
     captured = capsys.readouterr()
-    assert "expected 12 accessible projects, got 11" in captured.err
+    assert "expected at least 12 accessible projects, got 11" in captured.err
     # The accessible ids should be in the error message so the operator
     # can deduce which grant is missing.
     assert "[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]" in captured.err
