@@ -1,0 +1,102 @@
+{
+  "version": 1,
+  "mission_slug": "felix-bot-vikunja-provisioning-01KRT3N4",
+  "mission_id": "01KRT3N4AHYVZF9XGD457AQC1J",
+  "mission_branch": "kitty/mission-felix-bot-vikunja-provisioning-01KRT3N4",
+  "target_branch": "main",
+  "lanes": [
+    {
+      "lane_id": "lane-a",
+      "wp_ids": [
+        "WP01"
+      ],
+      "write_scope": [
+        "scripts/vikunja/provision_felix_bot.py",
+        "tests/vikunja/__init__.py",
+        "tests/vikunja/test_provision_felix_bot.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "tests",
+        "workspace"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    },
+    {
+      "lane_id": "lane-b",
+      "wp_ids": [
+        "WP02"
+      ],
+      "write_scope": [
+        "scripts/vikunja/validate_felix_bot.py",
+        "tests/vikunja/test_validate_felix_bot.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "legacy-cleanup",
+        "tests"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    },
+    {
+      "lane_id": "lane-c",
+      "wp_ids": [
+        "WP03",
+        "WP05"
+      ],
+      "write_scope": [
+        "docs/design/architecture/credentials-and-secrets.md",
+        "docs/design/architecture/data/credential-manifest.json",
+        "docs/design/architecture/data/service-inventory.json",
+        "docs/design/architecture/identity-model.md",
+        "docs/runbooks/felix-bot-vikunja-provisioning.md",
+        "scripts/vikunja/swap_vikunja_secrets.py",
+        "tests/vikunja/test_swap_vikunja_secrets.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "legacy-cleanup",
+        "tests"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    },
+    {
+      "lane_id": "lane-d",
+      "wp_ids": [
+        "WP04"
+      ],
+      "write_scope": [
+        "scripts/vikunja/revoke_kent_tokens.py",
+        "tests/vikunja/test_revoke_kent_tokens.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "legacy-cleanup",
+        "tests"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    }
+  ],
+  "computed_at": "2026-05-17T05:13:08.500564+00:00",
+  "computed_from": "dependency_graph+ownership",
+  "planning_artifact_wps": [],
+  "collapse_report": {
+    "events": [
+      {
+        "wp_a": "WP05",
+        "wp_b": "WP03",
+        "rule": "dependency",
+        "evidence": "WP05 depends on WP03"
+      }
+    ],
+    "total_merges": 1,
+    "independent_wps_collapsed": 0,
+    "by_rule": {
+      "dependency": 1
+    }
+  }
+}
