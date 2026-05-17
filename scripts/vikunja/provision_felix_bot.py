@@ -140,6 +140,17 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Perform no network calls and no token writes; print plan only.",
     )
+    parser.add_argument(
+        "--felix-bot-user-id",
+        type=int,
+        default=None,
+        help=(
+            "Skip registration and proceed directly to project sharing using "
+            "the supplied existing felix-bot user_id. Used to recover from a "
+            "partial Phase 1 run where registration succeeded but a later "
+            "step failed."
+        ),
+    )
     return parser
 
 
@@ -417,7 +428,10 @@ def share_project_with_user(
         return True
 
     url = _join_url(base_url, f"projects/{project_id}/users")
-    body = {"user_id": user_id, "right": SHARE_RIGHT_READ_WRITE}
+    # Vikunja v0.24.6 expects user_id as a string in the share payload — passing
+    # int returns HTTP 400 "Unmarshal type error: expected=string, got=number,
+    # field=user_id" (observed 2026-05-17 during first live run). Cast to str.
+    body = {"user_id": str(user_id), "right": SHARE_RIGHT_READ_WRITE}
     try:
         status, parsed, raw = _http_request(
             "PUT", url, body=body, bearer_token=kent_token
@@ -678,45 +692,53 @@ def main(argv: list[str] | None = None) -> int:
     kent_token = identity_gate(args.kent_token_file)
 
     # --- Read password from stdin (if requested) ---
-    password: str
-    if args.password_from_stdin:
+    # --- Register felix-bot (or skip if --felix-bot-user-id provided) ---
+    if args.felix_bot_user_id is not None:
+        felix_bot_uid = args.felix_bot_user_id
         print(
-            "\nPaste the felix-bot password (from 1Password) and press Enter:",
+            f"SUMMARY: skipping registration; using existing felix-bot "
+            f"uid={felix_bot_uid} (per --felix-bot-user-id)",
             file=sys.stderr,
         )
-        first_line = sys.stdin.readline()
-        password = first_line.rstrip("\r\n")
-        if not password:
-            print(
-                "ERROR: empty password on stdin — operator did not provide a password.",
-                file=sys.stderr,
-            )
-            return 2
     else:
-        # In dry-run we do not need a real password; supply a placeholder
-        # so registration's body construction has a value to log.
-        if not args.dry_run:
+        password: str
+        if args.password_from_stdin:
             print(
-                "ERROR: --password-from-stdin is required when not in --dry-run.",
+                "\nPaste the felix-bot password (from 1Password) and press Enter:",
                 file=sys.stderr,
             )
-            return 2
-        password = "<DRY-RUN-PLACEHOLDER>"
+            first_line = sys.stdin.readline()
+            password = first_line.rstrip("\r\n")
+            if not password:
+                print(
+                    "ERROR: empty password on stdin — operator did not provide a password.",
+                    file=sys.stderr,
+                )
+                return 2
+        else:
+            # In dry-run we do not need a real password; supply a placeholder
+            # so registration's body construction has a value to log.
+            if not args.dry_run:
+                print(
+                    "ERROR: --password-from-stdin is required when not in --dry-run.",
+                    file=sys.stderr,
+                )
+                return 2
+            password = "<DRY-RUN-PLACEHOLDER>"
 
-    # --- Register felix-bot ---
-    reg = register_felix_bot(
-        username=args.username,
-        email=args.email,
-        password=password,
-        base_url=args.vikunja_base_url,
-        dry_run=args.dry_run,
-    )
-    felix_bot_uid = reg["user_id"]
-    print(
-        f"SUMMARY: registered felix-bot uid={felix_bot_uid} "
-        f"username={args.username!r}",
-        file=sys.stderr,
-    )
+        reg = register_felix_bot(
+            username=args.username,
+            email=args.email,
+            password=password,
+            base_url=args.vikunja_base_url,
+            dry_run=args.dry_run,
+        )
+        felix_bot_uid = reg["user_id"]
+        print(
+            f"SUMMARY: registered felix-bot uid={felix_bot_uid} "
+            f"username={args.username!r}",
+            file=sys.stderr,
+        )
 
     # --- Enumerate real projects ---
     projects = enumerate_real_projects(
