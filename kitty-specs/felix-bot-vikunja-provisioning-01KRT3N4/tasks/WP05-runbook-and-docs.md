@@ -265,3 +265,4 @@ spec-kitty agent action review WP05 --mission felix-bot-vikunja-provisioning-01K
 - 2026-05-17T06:02:30Z – codex:gpt-4o:python-reviewer:reviewer – shell_pid=78397 – Started review via action command
 - 2026-05-17T06:06:44Z – codex:gpt-4o:python-reviewer:reviewer – shell_pid=78397 – Moved to planned
 - 2026-05-17T06:06:48Z – claude:opus-4-7:python-implementer:implementer – shell_pid=79373 – Started implementation via action command
+- 2026-05-17T06:08:48Z – claude:opus-4-7:python-implementer:implementer – shell_pid=79373 – Cycle 3 — Phase 6 SUMMARY block added per ground-truth from grep -nE 'SUMMARY:' scripts/vikunja/revoke_kent_tokens.py; 4 variants documented (ui_fallback, dry-run, zero-tokens, revoked-N).
