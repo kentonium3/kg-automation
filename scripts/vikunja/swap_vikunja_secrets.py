@@ -496,17 +496,21 @@ def verify_attribution(
         if not isinstance(get_body, dict):
             raise VerificationFailed(
                 f"Probe comment readback returned unexpected body type "
-                f"{type(get_body).__name__}; cannot read created_by."
+                f"{type(get_body).__name__}; cannot read author."
             )
 
-        created_by = get_body.get("created_by") or {}
+        # Vikunja v0.24.6 comment responses use `author` (not `created_by`)
+        # to identify the writer — verified by live probe 2026-05-17. Earlier
+        # versions of this code checked `created_by` and silently failed in
+        # production. Tasks use `created_by`; comments use `author`.
+        author = get_body.get("author") or {}
         actual_user = (
-            created_by.get("username") if isinstance(created_by, dict) else None
+            author.get("username") if isinstance(author, dict) else None
         )
         if actual_user != expected_user:
             raise VerificationFailed(
                 f"Attribution mismatch on NEW comment {comment_id} (task "
-                f"{task_id}): expected created_by.username={expected_user!r}, "
+                f"{task_id}): expected author.username={expected_user!r}, "
                 f"got {actual_user!r}. The rotated token does NOT cause new "
                 f"writes to attribute to {expected_user!r}."
             )

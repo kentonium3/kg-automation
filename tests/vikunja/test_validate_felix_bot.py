@@ -233,10 +233,11 @@ def test_verify_project_access_filters_archived_and_pseudo(monkeypatch):
 def _make_happy_attribution_responses(task_id: int = 4242, comment_id: int = 999):
     """Build a deterministic response stream for the happy-path probe.
 
-    The write-response includes BOTH `author` and `created_by` to mirror
-    real Vikunja PUT-comment payloads. Strict attribution semantics (Codex
-    review cycle 1) require `created_by.username == 'felix-bot'`; `author`
-    is no longer consulted on the write path.
+    Live-probe finding (2026-05-17): Vikunja v0.24.6 attributes:
+    - tasks via `created_by.username` (PUT /projects/{id}/tasks response)
+    - comments via `author.username` (PUT /tasks/{id}/comments response +
+      GET /tasks/{id}/comments readback). `created_by` is NOT populated
+      on comment objects.
     """
     task_obj = {
         "id": task_id,
@@ -247,12 +248,11 @@ def _make_happy_attribution_responses(task_id: int = 4242, comment_id: int = 999
         "id": comment_id,
         "comment": "[Felix-Validation] x",
         "author": {"username": "felix-bot"},
-        "created_by": {"username": "felix-bot"},
     }
     readback_obj = {
         "id": comment_id,
         "comment": "[Felix-Validation] x",
-        "created_by": {"username": "felix-bot"},
+        "author": {"username": "felix-bot"},
     }
     return task_obj, comment_obj, readback_obj
 
@@ -322,7 +322,9 @@ def test_validate_attribution_task_creation_wrong_username_exits_1(monkeypatch, 
 
 def test_validate_attribution_comment_write_wrong_username_exits_1(monkeypatch, capsys):
     task_obj = {"id": 1, "created_by": {"username": "felix-bot"}}
-    bad_comment = {"id": 7, "created_by": {"username": "kent"}}
+    # Vikunja v0.24.6 comment write responses use author.username for
+    # attribution. A response with author.username != 'felix-bot' must exit 1.
+    bad_comment = {"id": 7, "author": {"username": "kent"}}
     fake, _ = _make_request_dispatcher([(200, task_obj), (200, bad_comment)])
     monkeypatch.setattr(helper, "_request", fake)
 
@@ -334,7 +336,7 @@ def test_validate_attribution_comment_write_wrong_username_exits_1(monkeypatch, 
         )
     assert exc.value.code == 1
     captured = capsys.readouterr()
-    assert "comment created_by.username" in captured.err
+    assert "comment author.username" in captured.err
 
 
 def test_validate_attribution_cleanup_soft_fails(monkeypatch, capsys):
@@ -389,35 +391,33 @@ def test_validate_attribution_readback_missing_comment_exits_1(monkeypatch, caps
 
 
 # ---------------------------------------------------------------------------
-# Regression: strict created_by — no fallback to author (Codex review cycle 1)
+# Regression: strict author.username for comments — no fallback
 # ---------------------------------------------------------------------------
 #
-# Codex's blocking finding on cycle 1: the comment-write and readback
-# checkpoints previously consulted `author.username` as a fallback when
-# `created_by.username` was absent. A Vikunja response with
-# `author.username='felix-bot'` and `created_by.username='kent'` was
-# silently accepted, masking the exact failure class the validator is
-# supposed to detect. The two regression tests below pin the strict
-# behavior: helper must exit 1 in BOTH cases.
+# Live probe against Vikunja v0.24.6 on 2026-05-17 confirmed: comment
+# responses carry `author.username` (not `created_by`). The two tests
+# below pin the strict-author behavior: the helper must reject any
+# comment whose `author.username != 'felix-bot'`, with no fallback to
+# any other field. Tasks remain attributed by `created_by.username`
+# (verified separately above) — this distinction is enforced.
 
 
-def test_validate_attribution_comment_write_author_only_exits_1(
+def test_validate_attribution_comment_write_wrong_author_exits_1(
     monkeypatch, capsys
 ):
-    """Write response with author=felix-bot but created_by=kent must FAIL.
+    """Write response with author.username != felix-bot must FAIL.
 
-    Regression for Codex review cycle 1: the prior implementation fell
-    back to `author.username` when checking the write response, which
-    accepted a payload where author claims felix-bot but the canonical
-    `created_by` attribution belongs to kent. Strict semantics require
-    created_by.username == 'felix-bot' on the write response.
+    Even if a created_by field were present and named felix-bot, the
+    helper must NOT consult it for comment attribution — `author` is
+    the canonical field for comment objects.
     """
     task_obj = {"id": 1, "created_by": {"username": "felix-bot"}}
-    # author masquerades as felix-bot; created_by reveals the real writer.
     bad_comment = {
         "id": 7,
-        "author": {"username": "felix-bot"},
-        "created_by": {"username": "kent"},
+        "author": {"username": "kent"},
+        # If a created_by snuck into the payload claiming felix-bot, the
+        # helper must still reject — author is canonical, no fallback.
+        "created_by": {"username": "felix-bot"},
     }
     fake, _ = _make_request_dispatcher([(200, task_obj), (200, bad_comment)])
     monkeypatch.setattr(helper, "_request", fake)
@@ -430,27 +430,17 @@ def test_validate_attribution_comment_write_author_only_exits_1(
         )
     assert exc.value.code == 1
     captured = capsys.readouterr()
-    assert "comment created_by.username" in captured.err
+    assert "comment author.username" in captured.err
     assert "'kent'" in captured.err
 
 
-def test_validate_attribution_readback_author_only_exits_1(monkeypatch, capsys):
-    """Readback with author=felix-bot but no/wrong created_by must FAIL.
-
-    Regression for Codex review cycle 1: the prior implementation fell
-    back to `author.username` when checking the readback response. A
-    readback that only carries `author` (missing created_by) — or that
-    carries `created_by` belonging to someone else — must be rejected.
-    """
+def test_validate_attribution_readback_wrong_author_exits_1(monkeypatch, capsys):
+    """Readback comment with author.username != felix-bot must FAIL."""
     task_obj, comment_obj, _ = _make_happy_attribution_responses()
-    # Readback payload: author claims felix-bot but created_by is missing
-    # entirely. Under the strict rule the helper must NOT fall back to
-    # author.username and must exit 1.
     bad_readback = {
         "id": comment_obj["id"],
         "comment": "[Felix-Validation] x",
-        "author": {"username": "felix-bot"},
-        # no created_by at all
+        "author": {"username": "kent"},
     }
     responses = [
         (200, task_obj),
@@ -468,7 +458,7 @@ def test_validate_attribution_readback_author_only_exits_1(monkeypatch, capsys):
         )
     assert exc.value.code == 1
     captured = capsys.readouterr()
-    assert "readback comment created_by.username" in captured.err
+    assert "readback comment author.username" in captured.err
 
 
 # ---------------------------------------------------------------------------

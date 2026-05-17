@@ -347,19 +347,24 @@ def validate_attribution(
         sys.exit(1)
     comment_id = comment_obj["id"]
 
-    # Strict: ONLY created_by.username — no fallback to author. A response
-    # with author.username='felix-bot' but created_by.username='kent' must
-    # be rejected (Codex review cycle 1 caught the fallback masking exactly
-    # that class of attribution failure).
-    comment_uname = _extract_username(comment_obj, "created_by")
+    # Strict: ONLY author.username — no fallback to created_by. Live probe
+    # against Vikunja v0.24.6 on 2026-05-17 confirmed comment responses use
+    # the `author` field (with sub-keys id, username, name, ...) and do NOT
+    # populate `created_by`. Earlier strict-`created_by` enforcement (WP02
+    # cycle 2) was wrong-fielded — Codex's cycle-1 concern about
+    # author-fallback masking `author=X, created_by=Y` is moot here because
+    # Vikunja doesn't emit `created_by` on comments at all. The right
+    # invariant is: comments are attributed via `author.username`, tasks via
+    # `created_by.username`.
+    comment_uname = _extract_username(comment_obj, "author")
     if comment_uname != EXPECTED_USERNAME:
         print(
-            f"ERROR: comment created_by.username={comment_uname!r}, "
+            f"ERROR: comment author.username={comment_uname!r}, "
             f"expected {EXPECTED_USERNAME!r}. Halting before cleanup.",
             file=sys.stderr,
         )
         sys.exit(1)
-    print(f"OK comment_id={comment_id} created_by={comment_uname!r}")
+    print(f"OK comment_id={comment_id} author={comment_uname!r}")
 
     # --- Read back comments (C-8) ---
     list_comments_url = f"{base}/tasks/{task_id}/comments"
@@ -385,17 +390,18 @@ def validate_attribution(
         )
         sys.exit(1)
 
-    # Strict: ONLY created_by.username — no fallback to author. Same
-    # rationale as the write checkpoint above (Codex review cycle 1).
-    readback_uname = _extract_username(found, "created_by")
+    # Strict: ONLY author.username — same rationale as the write checkpoint
+    # above. Vikunja v0.24.6 emits `author` (not `created_by`) on comment
+    # objects for both writes and readback.
+    readback_uname = _extract_username(found, "author")
     if readback_uname != EXPECTED_USERNAME:
         print(
-            f"ERROR: readback comment created_by.username={readback_uname!r}, "
+            f"ERROR: readback comment author.username={readback_uname!r}, "
             f"expected {EXPECTED_USERNAME!r}.",
             file=sys.stderr,
         )
         sys.exit(1)
-    print(f"OK comment_readback created_by={readback_uname!r}")
+    print(f"OK comment_readback author={readback_uname!r}")
 
     # --- Cleanup (C-9 + C-10), best-effort ---
     cleanup = {"comment_deleted": False, "task_deleted": False}

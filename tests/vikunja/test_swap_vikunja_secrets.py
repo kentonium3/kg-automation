@@ -400,8 +400,8 @@ def _capture_request_calls(responses):
 def test_verify_attribution_write_readback_happy(mod):
     """Happy path performs POST (write) -> GET (readback) -> DELETE (cleanup)
     and asserts the readback's created_by.username == expected_user."""
-    post_body = {"id": 999, "comment": "probe", "created_by": {"username": "felix-bot"}}
-    get_body = {"id": 999, "comment": "probe", "created_by": {"username": "felix-bot"}}
+    post_body = {"id": 999, "comment": "probe", "author": {"username": "felix-bot"}}
+    get_body = {"id": 999, "comment": "probe", "author": {"username": "felix-bot"}}
     delete_body: dict | None = {"message": "deleted"}
 
     responses = [
@@ -457,8 +457,8 @@ def test_verify_attribution_readback_wrong_user_raises(mod):
     is attributed to the WRONG user — raise VerificationFailed so the
     auto-rollback handler fires. This is the very thing Codex flagged
     that a plain GET on an existing task could NOT catch."""
-    post_body = {"id": 999, "comment": "probe", "created_by": {"username": "kent"}}
-    get_body = {"id": 999, "comment": "probe", "created_by": {"username": "kent"}}
+    post_body = {"id": 999, "comment": "probe", "author": {"username": "kent"}}
+    get_body = {"id": 999, "comment": "probe", "author": {"username": "kent"}}
     # We still issue DELETE for cleanup even on failure (finally clause).
     delete_body: dict | None = {"message": "deleted"}
 
@@ -487,8 +487,8 @@ def test_verify_attribution_readback_wrong_user_raises(mod):
 
 def test_verify_attribution_cleanup_failure_does_not_fail_verification(mod):
     """DELETE cleanup is best-effort. A URLError on DELETE must NOT raise."""
-    post_body = {"id": 999, "comment": "probe", "created_by": {"username": "felix-bot"}}
-    get_body = {"id": 999, "comment": "probe", "created_by": {"username": "felix-bot"}}
+    post_body = {"id": 999, "comment": "probe", "author": {"username": "felix-bot"}}
+    get_body = {"id": 999, "comment": "probe", "author": {"username": "felix-bot"}}
     delete_err = urllib.error.URLError("network down at cleanup time")
 
     responses = [
@@ -617,7 +617,7 @@ def _verify_responses(username: str):
     """Build the 3-call response sequence verify_attribution issues per
     invocation: POST comment -> GET comment -> DELETE comment, all
     attributed to `username`."""
-    body = {"id": 999, "comment": "probe", "created_by": {"username": username}}
+    body = {"id": 999, "comment": "probe", "author": {"username": username}}
     return [
         _mk_urlopen_response(201, body),                  # POST
         _mk_urlopen_response(200, body),                  # GET (readback)
