@@ -1,6 +1,13 @@
+---
+title: LLM Spend Baseline
+doc_type: reference
+status: approved
+audience: humans
+---
+
 # LLM Spend Baseline
 
-> Machine-readable record: [`data/llm-spend-baseline.json`](data/llm-spend-baseline.json) (authoritative)
+> Machine-readable record: [`data/llm-spend-baseline.json`](<./data/llm-spend-baseline.json>) (authoritative)
 >
 > Source: Kent's manual dashboard sweep in `docs/llm_cost.md`
 

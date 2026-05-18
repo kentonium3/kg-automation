@@ -2,7 +2,7 @@
 title: felix-bot Vikunja Provisioning
 doc_type: runbook
 status: approved
-audience: operator
+audience: humans
 last_updated: '2026-05-17'
 ---
 
@@ -78,8 +78,8 @@ Expected: `600 claude:claude /data/services/openclaw/secrets/vikunja-api`.
 ### GO criteria
 
 - [ ] Restic snapshot within last 24 hours confirmed (per
-  [`change-risk-taxonomy.json`](../design/architecture/data/change-risk-taxonomy.json)
-  Tier 2 protocol and [pre-flight-checklist.md](governance/pre-flight-checklist.md))
+  [`change-risk-taxonomy.json`](<../design/architecture/data/change-risk-taxonomy.json>)
+  Tier 2 protocol and [pre-flight-checklist.md](<./governance/pre-flight-checklist.md>))
 - [ ] `systemctl --user is-active openclaw-gateway.service` returns `active`
 - [ ] Vikunja `/api/v1/info` returns HTTP 200
 - [ ] kent's secrets file present at canonical path with mode 600
@@ -698,7 +698,7 @@ After Phase 6 completes:
 - **Spec**: `kitty-specs/felix-bot-vikunja-provisioning-01KRT3N4/spec.md`
 - **Plan**: `kitty-specs/felix-bot-vikunja-provisioning-01KRT3N4/plan.md`
 - **Quickstart**: `kitty-specs/felix-bot-vikunja-provisioning-01KRT3N4/quickstart.md`
-- **ADR**: [`docs/design/architecture/adr/0002-felix-vikunja-task-model.md`](../design/architecture/adr/0002-felix-vikunja-task-model.md)
-- **Tier 2 protocol**: [`docs/runbooks/governance/pre-flight-checklist.md`](governance/pre-flight-checklist.md), [`post-change-verification.md`](governance/post-change-verification.md)
-- **Architecture index**: [`docs/INDEX.md`](../INDEX.md)
+- **ADR**: [`docs/design/architecture/adr/0002-felix-vikunja-task-model.md`](<../design/architecture/adr/0002-felix-vikunja-task-model.md>)
+- **Tier 2 protocol**: [`docs/runbooks/governance/pre-flight-checklist.md`](<./governance/pre-flight-checklist.md>), [`post-change-verification.md`](<./governance/post-change-verification.md>)
+- **Architecture index**: [`docs/INDEX.md`](<../INDEX.md>)
 - **GitHub issue**: [#304](https://github.com/kentonium3/kg-automation/issues/304) (Phase 1), [#311](https://github.com/kentonium3/kg-automation/issues/311) (umbrella)
