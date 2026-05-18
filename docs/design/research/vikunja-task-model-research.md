@@ -5,8 +5,8 @@ title: Vikunja task model — capabilities, current usage, and completion-record
 status: draft
 level: 1
 owners: [kent]
-last_validated: 2026-05-16
-version: 0.1
+last_validated: 2026-05-18
+version: 0.2
 ---
 
 # Vikunja task model research
@@ -449,6 +449,116 @@ These are the choices the data forces. They are not answered here.
     failure direction for all three conventions, or should some lean
     the other way (e.g., a malformed `[Felix-Escalation]` comment
     should NOT silently downgrade to Level 1)?
+
+---
+
+## Appendix: Verified API gotchas (Vikunja v0.24.6)
+
+Five defects in the felix-bot provisioning helpers slipped past 89
+passing pytest tests and three rounds of Codex review and were caught
+only during the live Phase 1 run of mission
+`felix-bot-vikunja-provisioning-01KRT3N4` on 2026-05-17 (filed as
+issue [#317](https://github.com/kentonium3/kg-automation/issues/317)).
+Four are genuine Vikunja API contract quirks; the fifth is a
+helper-defaults defect surfaced by the same live run and recorded here
+because it shares an origin and a lesson.
+
+Future ADR-0002 work (issues
+[#305](https://github.com/kentonium3/kg-automation/issues/305) and
+[#311](https://github.com/kentonium3/kg-automation/issues/311)) — any
+new helper that calls Vikunja v0.24.6 — should treat these as known
+shape until confirmed otherwise on a newer Vikunja release.
+
+### G1 — Share payload `user_id` field expects a username string
+
+`PUT /api/v1/projects/{id}/users` accepts a body of shape
+`{"user_id": "<username>", "right": 1}`. The field is named `user_id`
+but its value is the target user's USERNAME (string), not the numeric
+user id (not as int, not as the int cast to string).
+
+- Passing `int` returns HTTP 400 `Unmarshal type error: expected=string,
+  got=number, field=user_id`.
+- Passing the numeric id as a string (`"2"`) returns API error `1005`
+  (`user does not exist`).
+- Passing the username string (`"felix-bot"`) succeeds; the
+  create-response echoes the value back under `user_id`.
+
+Fixed in `01fabcf` (int → str cast) and `eb9cc80` (str id → username
+string). See `scripts/vikunja/provision_felix_bot.py:share_project_with_user`.
+
+### G2 — Share-list response uses `username`, not `user_id`
+
+`GET /api/v1/projects/{id}/users` returns a list of user objects with
+shape `{id, name, username, right, ...}`. There is **no `user_id`
+field**. Helpers that verify "is felix-bot shared on this project?"
+must match on the `username` field.
+
+Fixed in `eb9cc80` (`verify_shares_applied` now matches on
+`username`). See `scripts/vikunja/provision_felix_bot.py:verify_shares_applied`.
+
+### G3 — Comment attribution lives on `author`, not `created_by`
+
+Comment objects on `/api/v1/tasks/{id}/comments` (both PUT-create
+response and GET-readback) carry attribution under
+`author.username`. Vikunja v0.24.6 **does not populate `created_by`
+on comment objects at all** — so any helper enforcing a strict
+`created_by.username == X` invariant on a comment object will fail
+unconditionally, regardless of who actually wrote the comment.
+
+Note the asymmetry with TASK objects, which DO use
+`created_by.username` for the creator (validator's task-creation
+checkpoint relies on this and is correct).
+
+Fixed in `baa96ee` (validator + swap-secrets probe switched to
+`author.username`, no fallback). See
+`scripts/vikunja/validate_felix_bot.py` and
+`scripts/vikunja/swap_vikunja_secrets.py`.
+
+### G4 — Comment-create is `PUT`, not `POST`
+
+`PUT /api/v1/tasks/{id}/comments` creates a comment. The same path
+with `POST` returns HTTP 404. Helpers that probe the comment-write
+path post-secret-swap (or anywhere else) must use PUT.
+
+Fixed in `e31ae54` (swap-secrets verify-probe switched from POST to
+PUT, matching the working PUT in `validate_felix_bot.py`).
+
+Severity note: this defect first surfaced as a misleading
+"DEEPLY DEGRADED" warning during auto-rollback — the rollback itself
+succeeded, but the verify probe could never get HTTP 2xx on either
+the forward or reverse path. False alarm, real production scare.
+
+### G5 — Production secret-file paths are under `/data/`, not `/etc/`
+
+The default values for `--secrets-path` and `--bak-path` in
+`validate_felix_bot.py` initially pointed at `/etc/openclaw/secrets/...`
+with an obsolete `vikunja-api.kent` filename. The canonical production
+paths are `/data/services/openclaw/secrets/vikunja-api` and
+`/data/services/openclaw/secrets/vikunja-api.kent-pre-felix-bot.bak`
+(matches `swap_vikunja_secrets.py:DEFAULT_SECRETS_PATH +
+DEFAULT_BAK_SUFFIX`).
+
+Not a Vikunja API quirk — a helper-defaults defect. Listed here
+because it shares the same root cause (mock-only tests never exercised
+the path defaults end-to-end) and the same lesson (defaults that
+encode environment assumptions need at least one live invocation).
+
+Fixed in `6753184` (closes
+[#316](https://github.com/kentonium3/kg-automation/issues/316)).
+
+### Why these slipped past pytest
+
+All five defects are invisible to the pytest-mock-only pattern used in
+`tests/vikunja/`: mocks accept whatever HTTP method, field names, and
+payload types the helper sends, so the tests validate the helper
+against itself rather than against the Vikunja server. The pattern is
+right for helper logic (idempotency, atomicity, exit codes) but
+provides no signal on API contract correctness.
+
+Per [#317](https://github.com/kentonium3/kg-automation/issues/317),
+this gap is acknowledged and accepted: future Vikunja helpers should
+treat live integration as the contract test of record, and this
+appendix should be checked first whenever a v0.24.6 helper is touched.
 
 ---
 
