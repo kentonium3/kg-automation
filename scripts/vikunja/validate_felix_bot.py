@@ -565,18 +565,20 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--secrets-path",
         type=Path,
-        default=Path("/etc/openclaw/secrets/vikunja-api.kent"),
+        default=Path("/data/services/openclaw/secrets/vikunja-api"),
         help=(
-            "Path to the production secrets file (used by --rollback-smoke-test)."
+            "Path to the production secrets file (used by --rollback-smoke-test). "
+            "Matches swap_vikunja_secrets.py's DEFAULT_SECRETS_PATH."
         ),
     )
     parser.add_argument(
         "--bak-path",
         type=Path,
-        default=Path("/etc/openclaw/secrets/vikunja-api.kent-pre-felix-bot.bak"),
+        default=Path("/data/services/openclaw/secrets/vikunja-api.kent-pre-felix-bot.bak"),
         help=(
             "Path to the .bak file produced at cutover "
-            "(used by --rollback-smoke-test)."
+            "(used by --rollback-smoke-test). Matches swap_vikunja_secrets.py's "
+            "DEFAULT_SECRETS_PATH + DEFAULT_BAK_SUFFIX."
         ),
     )
     parser.add_argument(
