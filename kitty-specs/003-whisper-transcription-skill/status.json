@@ -2,7 +2,7 @@
   "event_count": 17,
   "last_event_id": "01KMTNTF7V0E4AQ8J47J9AS0XK",
   "materialized_at": "2026-03-28T16:53:16.156015+00:00",
-  "mission_number": "003",
+  "mission_number": "3",
   "mission_slug": "003-whisper-transcription-skill",
   "mission_type": "software-dev",
   "summary": {

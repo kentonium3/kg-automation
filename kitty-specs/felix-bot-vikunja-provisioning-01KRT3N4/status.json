@@ -2,7 +2,7 @@
   "event_count": 55,
   "last_event_id": "01KRT94GY90DGTCPVM2BESWBG3",
   "materialized_at": "2026-05-17T06:14:21.385883+00:00",
-  "mission_number": "",
+  "mission_number": "38",
   "mission_slug": "felix-bot-vikunja-provisioning-01KRT3N4",
   "mission_type": "software-dev",
   "summary": {

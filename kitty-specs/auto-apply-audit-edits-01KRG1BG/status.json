@@ -2,7 +2,7 @@
   "event_count": 11,
   "last_event_id": "01KRG30328691PQSRYE7EZT7F4",
   "materialized_at": "2026-05-13T07:14:40.328199+00:00",
-  "mission_number": "",
+  "mission_number": "35",
   "mission_slug": "auto-apply-audit-edits-01KRG1BG",
   "mission_type": "software-dev",
   "summary": {

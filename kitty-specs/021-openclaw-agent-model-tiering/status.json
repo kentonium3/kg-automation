@@ -2,7 +2,7 @@
   "event_count": 30,
   "last_event_id": "01KNSPBDRA8C3R16B2VGYNTBKB",
   "materialized_at": "2026-04-09T17:58:59.082626+00:00",
-  "mission_number": "021",
+  "mission_number": "21",
   "mission_slug": "021-openclaw-agent-model-tiering",
   "mission_type": "software-dev",
   "summary": {

@@ -2,7 +2,7 @@
   "event_count": 23,
   "last_event_id": "01KNWAQPSV61VFXAQJ65DY9CHA",
   "materialized_at": "2026-04-10T18:33:41.947167+00:00",
-  "mission_number": "025",
+  "mission_number": "25",
   "mission_slug": "025-vikunja-date-timezone-bug",
   "mission_type": "software-dev",
   "summary": {

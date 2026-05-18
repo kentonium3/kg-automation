@@ -2,7 +2,7 @@
   "event_count": 6,
   "last_event_id": "01KRFV3S75SY77FKS608ETEDV1",
   "materialized_at": "2026-05-13T04:56:52.709602+00:00",
-  "mission_number": "",
+  "mission_number": "33",
   "mission_slug": "inbox-atomic-write-perm-preservation-01KRFS03",
   "mission_type": "software-dev",
   "summary": {

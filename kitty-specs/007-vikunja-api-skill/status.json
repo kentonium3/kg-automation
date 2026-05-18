@@ -2,7 +2,7 @@
   "event_count": 24,
   "last_event_id": "01KN0NDQFT45FSTP0CPMC7RW9Z",
   "materialized_at": "2026-03-31T00:41:45.210772+00:00",
-  "mission_number": "007",
+  "mission_number": "7",
   "mission_slug": "007-vikunja-api-skill",
   "mission_type": "software-dev",
   "summary": {

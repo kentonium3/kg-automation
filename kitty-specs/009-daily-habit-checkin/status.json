@@ -2,7 +2,7 @@
   "event_count": 31,
   "last_event_id": "01KN3KKSVG7B4A0SBNGWSV16XT",
   "materialized_at": "2026-04-01T04:07:50.384237+00:00",
-  "mission_number": "009",
+  "mission_number": "9",
   "mission_slug": "009-daily-habit-checkin",
   "mission_type": "software-dev",
   "summary": {

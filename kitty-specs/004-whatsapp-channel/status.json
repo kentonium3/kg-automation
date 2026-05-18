@@ -2,7 +2,7 @@
   "event_count": 12,
   "last_event_id": "01KMTZWDS0WJ8FBEHAATGPS3GG",
   "materialized_at": "2026-03-28T19:49:05.952140+00:00",
-  "mission_number": "004",
+  "mission_number": "4",
   "mission_slug": "004-whatsapp-channel",
   "mission_type": "software-dev",
   "summary": {

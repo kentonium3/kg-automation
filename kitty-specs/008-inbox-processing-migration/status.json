@@ -2,7 +2,7 @@
   "event_count": 30,
   "last_event_id": "01KN10ZZ0V7Z41MJDQP84H3WV5",
   "materialized_at": "2026-03-31T04:03:57.083822+00:00",
-  "mission_number": "008",
+  "mission_number": "8",
   "mission_slug": "008-inbox-processing-migration",
   "mission_type": "software-dev",
   "summary": {

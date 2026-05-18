@@ -2,7 +2,7 @@
   "event_count": 15,
   "last_event_id": "01KN4VVAY7FBN7MRM92MEDXFJY",
   "materialized_at": "2026-04-01T15:51:00.295927+00:00",
-  "mission_number": "010",
+  "mission_number": "10",
   "mission_slug": "010-obsidian-sync-office2",
   "mission_type": "software-dev",
   "summary": {

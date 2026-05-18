@@ -2,7 +2,7 @@
   "event_count": 94,
   "last_event_id": "01KP45FWNNE3FSZ5ZD4NP71CZG",
   "materialized_at": "2026-04-13T19:35:58.389423+00:00",
-  "mission_number": "028",
+  "mission_number": "28",
   "mission_slug": "028-agent-workspace-reconciliation",
   "mission_type": "software-dev",
   "summary": {

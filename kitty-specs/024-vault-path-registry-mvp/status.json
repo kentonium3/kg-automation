@@ -2,7 +2,7 @@
   "event_count": 18,
   "last_event_id": "01KNW1RBF87VJVK7WQWA65HAF8",
   "materialized_at": "2026-04-10T15:56:45.928255+00:00",
-  "mission_number": "024",
+  "mission_number": "24",
   "mission_slug": "024-vault-path-registry-mvp",
   "mission_type": "software-dev",
   "summary": {

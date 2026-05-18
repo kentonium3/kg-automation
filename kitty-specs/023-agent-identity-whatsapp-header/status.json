@@ -2,7 +2,7 @@
   "event_count": 7,
   "last_event_id": "01KNTMF8Z9EE306XJXW4G0JVNH",
   "materialized_at": "2026-04-10T02:45:22.537303+00:00",
-  "mission_number": "023",
+  "mission_number": "23",
   "mission_slug": "023-agent-identity-whatsapp-header",
   "mission_type": "software-dev",
   "summary": {

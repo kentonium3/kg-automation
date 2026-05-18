@@ -2,7 +2,7 @@
   "event_count": 7,
   "last_event_id": "01KN74M0R181Q0KA7CZCSBW753",
   "materialized_at": "2026-04-02T13:02:46.529814+00:00",
-  "mission_number": "013",
+  "mission_number": "13",
   "mission_slug": "013-vikunja-task-intelligence-agent",
   "mission_type": "software-dev",
   "summary": {

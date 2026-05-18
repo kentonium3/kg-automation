@@ -2,7 +2,7 @@
   "event_count": 64,
   "last_event_id": "01KRDVC209TZ98DCX057XYNX7B",
   "materialized_at": "2026-05-12T10:22:54.985979+00:00",
-  "mission_number": "",
+  "mission_number": "31",
   "mission_slug": "credential-expiry-health-check-01KRCF92",
   "mission_type": "software-dev",
   "summary": {

@@ -2,7 +2,7 @@
   "event_count": 34,
   "last_event_id": "01KNZA6RRZVRGK88YQSJBWTXSR",
   "materialized_at": "2026-04-11T22:22:10.207850+00:00",
-  "mission_number": "027",
+  "mission_number": "27",
   "mission_slug": "027-inbox-pre-scan-helper",
   "mission_type": "software-dev",
   "summary": {

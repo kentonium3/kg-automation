@@ -2,7 +2,7 @@
   "event_count": 12,
   "last_event_id": "01KMZP1YT7QND9AAMKH7YB5Y1F",
   "materialized_at": "2026-03-30T15:33:33.639756+00:00",
-  "mission_number": "006",
+  "mission_number": "6",
   "mission_slug": "006-goal-and-outcome-structure",
   "mission_type": "software-dev",
   "summary": {

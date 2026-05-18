@@ -2,7 +2,7 @@
   "event_count": 21,
   "last_event_id": "01KNT115SCJTH6SKT109K2MH4Z",
   "materialized_at": "2026-04-09T21:05:37.580537+00:00",
-  "mission_number": "022",
+  "mission_number": "22",
   "mission_slug": "022-inbox-github-issue-routing",
   "mission_type": "software-dev",
   "summary": {

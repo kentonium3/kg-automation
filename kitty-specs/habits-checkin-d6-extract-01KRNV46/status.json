@@ -2,7 +2,7 @@
   "event_count": 30,
   "last_event_id": "01KRPFJPGZB6VMP69QHD2APBF1",
   "materialized_at": "2026-05-15T18:49:59.583961+00:00",
-  "mission_number": "",
+  "mission_number": "37",
   "mission_slug": "habits-checkin-d6-extract-01KRNV46",
   "mission_type": "software-dev",
   "summary": {

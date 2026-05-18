@@ -2,7 +2,7 @@
   "event_count": 34,
   "last_event_id": "manual-recovery-WP06-done",
   "materialized_at": "2026-04-01T20:41:53.237379+00:00",
-  "mission_number": "011",
+  "mission_number": "11",
   "mission_slug": "011-second-brain-vault-cleanup",
   "mission_type": "software-dev",
   "summary": {
