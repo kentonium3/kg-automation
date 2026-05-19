@@ -225,3 +225,4 @@ spec-kitty agent action implement WP01 --mission habits-native-repeat-jsonl-stat
 ## Activity Log
 
 - 2026-05-19T18:00:37Z – claude:opus:python-implementer:implementer – shell_pid=45180 – Assigned agent via action command
+- 2026-05-19T18:10:30Z – claude:opus:python-implementer:implementer – shell_pid=45180 – Ready for review — 3 subtasks T001-T003 complete; lookup helper + test scaffolding
