@@ -38,7 +38,8 @@ subtasks:
 - T002
 - T003
 - T004
-shell_pid: '72034'
+shell_pid: "72034"
+agent: "claude:opus:python-implementer:implementer"
 history:
 - at: '2026-05-19T20:35:00Z'
   actor: spec-kitty.tasks
@@ -383,3 +384,7 @@ Build the one-shot operator-driven backfill helper at `scripts/habits/backfill_j
 ```bash
 spec-kitty agent action implement WP01 --mission backfill-habits-jsonl-from-comments-01KS0Y4F --agent <agent-name>
 ```
+
+## Activity Log
+
+- 2026-05-19T20:32:40Z – claude:opus:python-implementer:implementer – shell_pid=72034 – Assigned agent via action command
