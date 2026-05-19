@@ -339,3 +339,4 @@ WP03 depends on WP01; can run in parallel with WP02 and WP04 after WP01 approval
 - 2026-05-19T19:19:55Z – claude:opus:python-implementer:implementer – shell_pid=58292 – Started implementation via action command
 - 2026-05-19T19:27:34Z – claude:opus:python-implementer:implementer – shell_pid=58292 – Ready for review — 4 subtasks T009-T012 complete; record_completion + reconcile_completions + tests
 - 2026-05-19T19:28:07Z – codex:gpt-5:python-reviewer:reviewer – shell_pid=59946 – Started review via action command
+- 2026-05-19T19:35:05Z – codex:gpt-5:python-reviewer:reviewer – shell_pid=59946 – Moved to planned
