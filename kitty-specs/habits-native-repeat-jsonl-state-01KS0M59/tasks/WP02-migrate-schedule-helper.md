@@ -26,8 +26,8 @@ subtasks:
 - T006
 - T007
 - T008
-agent: "claude:opus:python-implementer:implementer"
-shell_pid: "51968"
+agent: "codex:gpt-5:python-reviewer:reviewer"
+shell_pid: "56262"
 history:
 - at: '2026-05-19T17:30:00Z'
   actor: spec-kitty.tasks
@@ -366,3 +366,4 @@ Note: WP02 depends on WP01. Ensure WP01 is `approved` before claiming WP02 — `
 
 - 2026-05-19T18:44:53Z – claude:opus:python-implementer:implementer – shell_pid=51968 – Started implementation via action command
 - 2026-05-19T19:10:21Z – claude:opus:python-implementer:implementer – shell_pid=51968 – Ready for review — 5 subtasks T004-T008 complete. Note: T008's habits-schedule.yaml was moved to scripts/habits/migrations/phase3-schedule.yaml after the lane-branch guard rejected the kitty-specs/ path. See WP02 review prompt for details.
+- 2026-05-19T19:10:31Z – codex:gpt-5:python-reviewer:reviewer – shell_pid=56262 – Started review via action command
