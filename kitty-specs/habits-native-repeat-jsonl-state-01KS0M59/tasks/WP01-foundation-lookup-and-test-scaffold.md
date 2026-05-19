@@ -8,10 +8,14 @@ requirement_refs:
 planning_base_branch: main
 merge_target_branch: main
 branch_strategy: Planning artifacts for this feature were generated on main. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into main unless the human explicitly redirects the landing branch.
+base_branch: kitty/mission-habits-native-repeat-jsonl-state-01KS0M59
+base_commit: 8eed40a3980c9aab93a6a28d4fe0670bd67f4b5f
+created_at: '2026-05-19T18:00:35.554614+00:00'
 subtasks:
 - T001
 - T002
 - T003
+shell_pid: '45180'
 history:
 - at: '2026-05-19T17:30:00Z'
   actor: spec-kitty.tasks
