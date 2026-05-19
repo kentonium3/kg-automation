@@ -98,7 +98,8 @@ def _responses(*, projects=None, tasks=None, comments_by_task=None):
 
     Order:
       1. GET /projects
-      2. GET /projects/<id>/tasks?filter=is_archived=false
+      2. GET /projects/<id>/tasks  (no server-side filter per Verified API
+         Gotcha G5; ``is_archived`` is filtered client-side)
       3. GET /tasks/<task_id>/comments  (one per task, in the order tasks
          appear in ``tasks``)
 
@@ -463,6 +464,56 @@ class TestBackfillDryRun:
         assert result["records_skipped_malformed"] == 1
         assert len(result["malformed_comments"]) == 1
         assert len(result["malformed_comments"][0]["snippet"]) == 80
+
+
+# ===========================================================================
+# Group 3b — _enumerate_habit_tasks() client-side archived filter (G5 fix)
+# ===========================================================================
+
+
+class TestEnumerateArchivedFilter:
+    """Regression coverage for issue #333 (Verified API Gotcha G5).
+
+    Vikunja v0.24.6 rejects ``is_archived`` in the filter expression
+    with HTTP 400, so the helper enumerates without a server-side
+    filter and excludes archived tasks client-side.
+    """
+
+    def test_url_has_no_server_side_filter(
+        self, mock_urlopen, mock_state_log_dir
+    ):
+        mock_urlopen.side_effect = _responses(tasks=[], comments_by_task={})
+        bf.backfill(api_base_url="http://test/api/v1/", token="t", dry_run=True)
+        # Two HTTP calls: GET /projects, then GET /projects/<id>/tasks.
+        assert len(mock_urlopen.call_args_list) == 2
+        tasks_req = mock_urlopen.call_args_list[1][0][0]
+        assert "filter=" not in tasks_req.full_url
+        assert "is_archived" not in tasks_req.full_url
+
+    def test_archived_task_excluded_from_enumeration(
+        self,
+        mock_urlopen,
+        mock_state_log_dir,
+        sample_habit_task_response,
+    ):
+        active = sample_habit_task_response(
+            task_id=14, title="Wake at 5:00 AM", is_archived=False
+        )
+        archived = sample_habit_task_response(
+            task_id=999, title="Old habit", is_archived=True
+        )
+        mock_urlopen.side_effect = _responses(
+            tasks=[active, archived], comments_by_task={14: [], 999: []}
+        )
+        result = bf.backfill(
+            api_base_url="http://test/api/v1/", token="t", dry_run=True
+        )
+        # Only the active task makes it through enumeration; the archived
+        # one's comments are never fetched (note: _responses still queues
+        # one comments-fetch per provided task, but the helper skips it
+        # because the task was filtered out). by_task should only mention
+        # the active task or be empty.
+        assert 999 not in result.get("by_task", {})
 
 
 # ===========================================================================

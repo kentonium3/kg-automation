@@ -546,9 +546,40 @@ encode environment assumptions need at least one live invocation).
 Fixed in `6753184` (closes
 [#316](https://github.com/kentonium3/kg-automation/issues/316)).
 
+### G6 — Filter expression does not support `is_archived`
+
+Vikunja v0.24.6's `GET /api/v1/projects/<id>/tasks?filter=<expr>`
+endpoint rejects `is_archived` as a filter field. All variants tested
+return HTTP 400 with API error code `4019`:
+
+- `filter=is_archived = false`
+- `filter=is_archived = 0`
+- `filter=!is_archived`
+
+Example error response body:
+
+```json
+{"code":4019,"message":"The task filter value 'false' for field 'is_archived' is invalid."}
+```
+
+Workaround: drop the server-side `is_archived` filter and apply the
+filter client-side on the response (`if not task.get("is_archived",
+False)` per task dict). The bare `GET /projects/<id>/tasks` returns
+HTTP 200 with all tasks — including archived ones — and the client
+filters them out.
+
+Caught live during the Phase 4 (#307) backfill dry-run on 2026-05-19.
+The bug had landed in `reconcile_completions.py` (Phase 3 #306) and
+`backfill_jsonl_from_comments.py` (Phase 4 #307) — both helpers
+copy-and-adapted the same incorrect filter pattern. Mocks accepted
+the URL shape without ever exercising the live API, so the quirk
+hid through both implement-review cycles.
+
+Fixed via issue [#333](https://github.com/kentonium3/kg-automation/issues/333).
+
 ### Why these slipped past pytest
 
-All five defects are invisible to the pytest-mock-only pattern used in
+All six defects are invisible to the pytest-mock-only pattern used in
 `tests/vikunja/`: mocks accept whatever HTTP method, field names, and
 payload types the helper sends, so the tests validate the helper
 against itself rather than against the Vikunja server. The pattern is

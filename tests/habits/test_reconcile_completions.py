@@ -638,9 +638,14 @@ class TestMisc:
         assert result["backfilled"] == []
         assert result["drift"] == []
 
-    def test_enumerate_uses_get_with_archived_filter(
+    def test_enumerate_uses_get_without_server_side_archived_filter(
         self, mock_urlopen, mock_state_log_dir
     ):
+        """Per Verified API Gotcha G5 (#333), Vikunja v0.24.6 rejects the
+        ``is_archived`` filter expression with HTTP 400. The helper must
+        NOT include that filter in the URL — it filters client-side
+        instead.
+        """
         mock_urlopen.side_effect = _responses(tasks=[])
         rec.reconcile(
             api_base_url="http://test/api/v1/",
@@ -651,9 +656,33 @@ class TestMisc:
         assert len(mock_urlopen.call_args_list) == 2
         tasks_req = mock_urlopen.call_args_list[1][0][0]
         assert tasks_req.get_method() == "GET"
-        # is_archived filter is part of the tasks-URL (form may vary, but the
-        # substring must appear).
-        assert "is_archived" in tasks_req.full_url
+        # NO server-side filter — neither "filter=" nor "is_archived" appears
+        # in the URL (the URL is bare /projects/<id>/tasks).
+        assert "filter=" not in tasks_req.full_url
+        assert "is_archived" not in tasks_req.full_url
+
+    def test_enumerate_filters_archived_tasks_client_side(
+        self, mock_urlopen, mock_state_log_dir, sample_habit_task_response
+    ):
+        """Archived tasks returned by Vikunja must be filtered out
+        client-side so reconcile never operates on them. Regression for
+        the G5 fix.
+        """
+        active_task = sample_habit_task_response(
+            task_id=14, title="Wake at 5:00 AM", is_archived=False
+        )
+        archived_task = sample_habit_task_response(
+            task_id=999, title="Old habit (archived)", is_archived=True
+        )
+        mock_urlopen.side_effect = _responses(tasks=[active_task, archived_task])
+        result = rec.reconcile(
+            api_base_url="http://test/api/v1/",
+            token="t",
+            today="2026-05-20",
+        )
+        # Only the active task counts toward tasks_examined; the archived
+        # one is excluded before any processing.
+        assert result["tasks_examined"] == 1
 
 
 # ===========================================================================

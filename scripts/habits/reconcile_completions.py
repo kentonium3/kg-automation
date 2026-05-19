@@ -185,19 +185,23 @@ def _enumerate_active_habits(api_base_url: str, token: str) -> list[dict]:
     The helper:
       1. Resolves the Habits project id by title (no hardcoded id) --
          mirrors ``scripts/habits/query_active_habits.py``.
-      2. Calls ``GET /projects/<id>/tasks?filter=is_archived=false`` so the
-         result is bounded to active habits.
+      2. Calls ``GET /projects/<id>/tasks`` and client-side filters
+         on ``is_archived``. Per Verified API Gotcha G5
+         (``docs/design/research/vikunja-task-model-research.md``),
+         Vikunja v0.24.6's filter syntax does not accept
+         ``is_archived`` as a filterable field — server-side filtering
+         returns HTTP 400. Client-side filter is the workaround.
 
     Returns:
-        List of task dicts. Empty list if the project has no active tasks.
+        List of task dicts (excluding archived ones). Empty list if
+        the project has no active tasks.
 
     Raises:
         OSError: On network/HTTP failure, or if the Habits project cannot
             be resolved.
     """
     project_id = _resolve_habits_project_id(api_base_url, token)
-    query = urllib.parse.urlencode({"filter": "is_archived = false"})
-    url = _join_url(api_base_url, f"projects/{project_id}/tasks?{query}")
+    url = _join_url(api_base_url, f"projects/{project_id}/tasks")
     _status, payload = _http_request("GET", url, token)
     if payload is None:
         return []
@@ -208,7 +212,7 @@ def _enumerate_active_habits(api_base_url: str, token: str) -> list[dict]:
         )
     out: list[dict] = []
     for item in payload:
-        if isinstance(item, dict):
+        if isinstance(item, dict) and not item.get("is_archived", False):
             out.append(item)
     return out
 

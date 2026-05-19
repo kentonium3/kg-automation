@@ -190,11 +190,15 @@ def _enumerate_habit_tasks(
     cross-project rows). Mirrors the pattern in
     ``reconcile_completions._enumerate_active_habits``.
 
+    Per Verified API Gotcha G5 (``docs/design/research/vikunja-task-model-research.md``),
+    Vikunja v0.24.6 rejects ``is_archived`` in the filter expression
+    with HTTP 400. The workaround: drop the server-side filter and
+    apply ``is_archived`` filtering client-side on the response.
+
     Raises:
         OSError: On HTTP/network failure or non-list payload.
     """
-    query = urllib.parse.urlencode({"filter": "is_archived = false"})
-    url = _join_url(api_base_url, f"projects/{project_id}/tasks?{query}")
+    url = _join_url(api_base_url, f"projects/{project_id}/tasks")
     payload = _http_get(url, token)
     if payload is None:
         return []
@@ -203,7 +207,11 @@ def _enumerate_habit_tasks(
             f"GET {url} returned non-list payload "
             f"(got {type(payload).__name__})"
         )
-    return [item for item in payload if isinstance(item, dict)]
+    return [
+        item
+        for item in payload
+        if isinstance(item, dict) and not item.get("is_archived", False)
+    ]
 
 
 def _fetch_comments(
