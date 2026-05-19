@@ -62,6 +62,7 @@ Immutable, dated records of *why* particular options were chosen over alternativ
 
 Authoritative operational state. **Exempt from moves (F015 constraint C-001)**.
 
+- [Agent State Log Schema](<./design/architecture/data/agent-state-log-schema.md>) (reference) — canonical JSONL schema for the shared agent state log
 - [Service Inventory](<./design/architecture/data/service-inventory.json>)
 - [Hardware Inventory](<./design/architecture/data/hardware-inventory.json>)
 - [Network Topology](<./design/architecture/data/network-topology.json>)
