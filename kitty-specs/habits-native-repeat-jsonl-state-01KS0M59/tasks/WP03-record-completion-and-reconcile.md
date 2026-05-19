@@ -341,3 +341,4 @@ WP03 depends on WP01; can run in parallel with WP02 and WP04 after WP01 approval
 - 2026-05-19T19:28:07Z – codex:gpt-5:python-reviewer:reviewer – shell_pid=59946 – Started review via action command
 - 2026-05-19T19:35:05Z – codex:gpt-5:python-reviewer:reviewer – shell_pid=59946 – Moved to planned
 - 2026-05-19T19:35:14Z – claude:opus:python-implementer:implementer – shell_pid=61365 – Started implementation via action command
+- 2026-05-19T19:42:28Z – claude:opus:python-implementer:implementer – shell_pid=61365 – Cycle 2: reconcile enumeration now project-scoped to Habits; regression test added
