@@ -11,12 +11,12 @@
 
 | ID | Description | WP | Parallel |
 |---|---|---|---|
-| T001 | Create `scripts/common/__init__.py` (empty marker) | WP01 | [P] |
-| T002 | Create `scripts/common/state_log_schema.py` (DOMAIN_STATES, REQUIRED_FIELDS, dataclass, validators) | WP01 | |
-| T003 | Create `scripts/common/state_log.py` core (`append`, `read`, fcntl locking, idempotency scan, bootstrap) | WP01 | |
-| T004 | Add `__main__` CLI to `state_log.py` (argparse subcommands `append` and `read`) | WP01 | |
-| T005 | Create `docs/design/architecture/data/agent-state-log-schema.md` (FR-012 schema doc) | WP01 | [P] |
-| T006 | Update `docs/INDEX.md` to reference the new schema doc | WP01 | [P] |
+| T001 | Create `scripts/common/__init__.py` (empty marker) | WP01 | [P] | [D] |
+| T002 | Create `scripts/common/state_log_schema.py` (DOMAIN_STATES, REQUIRED_FIELDS, dataclass, validators) | WP01 | | [D] |
+| T003 | Create `scripts/common/state_log.py` core (`append`, `read`, fcntl locking, idempotency scan, bootstrap) | WP01 | | [D] |
+| T004 | Add `__main__` CLI to `state_log.py` (argparse subcommands `append` and `read`) | WP01 | | [D] |
+| T005 | Create `docs/design/architecture/data/agent-state-log-schema.md` (FR-012 schema doc) | WP01 | [D] |
+| T006 | Update `docs/INDEX.md` to reference the new schema doc | WP01 | [D] |
 | T007 | Create `tests/common/__init__.py` | WP02 | [P] |
 | T008 | Create `tests/common/test_state_log_append.py` (happy path, validation rejections, idempotency, bootstrap) | WP02 | |
 | T009 | Create `tests/common/test_state_log_read.py` (filter combinations, empty file, TypeError on unknown kwarg) | WP02 | [P] |
@@ -39,12 +39,12 @@
 
 #### Included subtasks
 
-- [ ] T001 Create `scripts/common/__init__.py` (empty marker)
-- [ ] T002 Create `scripts/common/state_log_schema.py` (DOMAIN_STATES, REQUIRED_FIELDS, dataclass, validators)
-- [ ] T003 Create `scripts/common/state_log.py` core (`append`, `read`, fcntl locking, idempotency scan, bootstrap)
-- [ ] T004 Add `__main__` CLI to `state_log.py`
-- [ ] T005 Create `docs/design/architecture/data/agent-state-log-schema.md`
-- [ ] T006 Update `docs/INDEX.md` to reference the new schema doc
+- [x] T001 Create `scripts/common/__init__.py` (empty marker)
+- [x] T002 Create `scripts/common/state_log_schema.py` (DOMAIN_STATES, REQUIRED_FIELDS, dataclass, validators)
+- [x] T003 Create `scripts/common/state_log.py` core (`append`, `read`, fcntl locking, idempotency scan, bootstrap)
+- [x] T004 Add `__main__` CLI to `state_log.py`
+- [x] T005 Create `docs/design/architecture/data/agent-state-log-schema.md`
+- [x] T006 Update `docs/INDEX.md` to reference the new schema doc
 
 #### Implementation sketch
 
