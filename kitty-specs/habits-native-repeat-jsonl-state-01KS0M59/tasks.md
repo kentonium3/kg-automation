@@ -19,10 +19,10 @@
 | T006 | Implement `scripts/habits/migrate_schedule.py` — `rollback()` + `__main__` CLI surface | WP02 | | [D] |
 | T007 | Create `tests/habits/test_migrate_schedule.py` (covers T004-T006 with mocked Vikunja API) | WP02 | | [D] |
 | T008 | Create `kitty-specs/habits-native-repeat-jsonl-state-01KS0M59/habits-schedule.yaml` with the 11 operations (workout task ID as TBD placeholder) | WP02 | [D] |
-| T009 | Implement `scripts/habits/record_completion.py` — `record()` three-write atomic helper + `__main__` CLI | WP03 | |
-| T010 | Implement `scripts/habits/reconcile_completions.py` — `reconcile()` backfill + drift detection + `__main__` CLI | WP03 | |
-| T011 | Create `tests/habits/test_record_completion.py` (idempotency, ordering, exit codes) | WP03 | [P] |
-| T012 | Create `tests/habits/test_reconcile_completions.py` (backfill + drift) | WP03 | [P] |
+| T009 | Implement `scripts/habits/record_completion.py` — `record()` three-write atomic helper + `__main__` CLI | WP03 | | [D] |
+| T010 | Implement `scripts/habits/reconcile_completions.py` — `reconcile()` backfill + drift detection + `__main__` CLI | WP03 | | [D] |
+| T011 | Create `tests/habits/test_record_completion.py` (idempotency, ordering, exit codes) | WP03 | [D] |
+| T012 | Create `tests/habits/test_reconcile_completions.py` (backfill + drift) | WP03 | [D] |
 | T013 | Implement `scripts/habits/query_active_habits_v2.py` (Vikunja-native filter) + CLI | WP04 | |
 | T014 | Implement `scripts/habits/exclude_completed_v2.py` (state_log read) + CLI | WP04 | |
 | T015 | Create `tests/habits/test_query_active_habits_v2.py` | WP04 | [P] |
@@ -129,10 +129,10 @@ Mapped to:
 
 #### Included subtasks
 
-- [ ] T009 Implement `scripts/habits/record_completion.py` — `record()` three-write atomic helper + `__main__` CLI
-- [ ] T010 Implement `scripts/habits/reconcile_completions.py` — `reconcile()` backfill + drift detection + `__main__` CLI
-- [ ] T011 Create `tests/habits/test_record_completion.py`
-- [ ] T012 Create `tests/habits/test_reconcile_completions.py`
+- [x] T009 Implement `scripts/habits/record_completion.py` — `record()` three-write atomic helper + `__main__` CLI
+- [x] T010 Implement `scripts/habits/reconcile_completions.py` — `reconcile()` backfill + drift detection + `__main__` CLI
+- [x] T011 Create `tests/habits/test_record_completion.py`
+- [x] T012 Create `tests/habits/test_reconcile_completions.py`
 
 #### Implementation sketch
 
