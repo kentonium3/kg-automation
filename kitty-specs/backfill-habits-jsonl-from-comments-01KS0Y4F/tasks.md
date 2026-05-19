@@ -11,10 +11,10 @@
 
 | ID | Description | WP | Parallel |
 |---|---|---|---|
-| T001 | Implement `scripts/habits/backfill_jsonl_from_comments.py` — HISTORICAL_STATE_MAP, project-scoped enumeration (mirroring Phase 3 reconcile), backfill() with idempotency + .bak snapshot + summary report, `__main__` CLI | WP01 | |
-| T002 | Create `tests/habits/test_backfill_jsonl_from_comments.py` — dry-run, live, idempotency, unmapped state, malformed comment, project resolution failures | WP01 | |
-| T003 | Update `docs/design/architecture/data/data-flows.json` — add the one-shot backfill flow (source="historical-backfill") | WP01 | [P] |
-| T004 | Update `docs/design/architecture/data/service-inventory.json` — register the new script under `habit-checkin` | WP01 | [P] |
+| T001 | Implement `scripts/habits/backfill_jsonl_from_comments.py` — HISTORICAL_STATE_MAP, project-scoped enumeration (mirroring Phase 3 reconcile), backfill() with idempotency + .bak snapshot + summary report, `__main__` CLI | WP01 | | [D] |
+| T002 | Create `tests/habits/test_backfill_jsonl_from_comments.py` — dry-run, live, idempotency, unmapped state, malformed comment, project resolution failures | WP01 | | [D] |
+| T003 | Update `docs/design/architecture/data/data-flows.json` — add the one-shot backfill flow (source="historical-backfill") | WP01 | [D] |
+| T004 | Update `docs/design/architecture/data/service-inventory.json` — register the new script under `habit-checkin` | WP01 | [D] |
 
 `[P]` = parallel-safe (different file/concern; no inter-subtask dependency)
 
@@ -32,10 +32,10 @@
 
 #### Included subtasks
 
-- [ ] T001 Implement `scripts/habits/backfill_jsonl_from_comments.py`
-- [ ] T002 Create `tests/habits/test_backfill_jsonl_from_comments.py`
-- [ ] T003 Update `docs/design/architecture/data/data-flows.json`
-- [ ] T004 Update `docs/design/architecture/data/service-inventory.json`
+- [x] T001 Implement `scripts/habits/backfill_jsonl_from_comments.py`
+- [x] T002 Create `tests/habits/test_backfill_jsonl_from_comments.py`
+- [x] T003 Update `docs/design/architecture/data/data-flows.json`
+- [x] T004 Update `docs/design/architecture/data/service-inventory.json`
 
 #### Implementation sketch
 
