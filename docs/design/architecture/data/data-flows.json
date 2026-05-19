@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
   "last_updated": "2026-05-19",
-  "updated_by": "#306-habits-native-repeat-jsonl-state + #152",
+  "updated_by": "#307-backfill-habits-jsonl-from-comments + #306-habits-native-repeat-jsonl-state + #152",
   "flows": [
     {
       "name": "vikunja-web-ui",
@@ -125,6 +125,19 @@
         {"from": "scripts/habits/reconcile_completions.py", "to": "Vikunja /projects/<id>/tasks?filter=is_archived=false", "protocol": "HTTPS via Tailscale Serve", "port": 443, "backend_port": 3456, "description": "Project-scoped enumeration of active habit tasks"},
         {"from": "scripts/habits/reconcile_completions.py", "to": "scripts/common/state_log.py", "protocol": "python-import", "description": "Reads existing records to detect drift; appends backfill records with source=vikunja-ui"},
         {"from": "scripts/common/state_log.py", "to": "habits-history.jsonl", "path": "/data/services/openclaw/state/habits-history.jsonl", "description": "Backfill write path (source=vikunja-ui)"}
+      ]
+    },
+    {
+      "name": "habits-historical-backfill",
+      "status": "active",
+      "deployed_by": "#307",
+      "introduced_by": "#307",
+      "description": "Phase 4 (ADR-0002) one-shot historical backfill. Operator-driven helper that reads existing [Felix] completion comments from Vikunja habit tasks and replays them into the habits JSONL log via state_log.append with source=historical-backfill. Read-only on Vikunja (GET only). Idempotent on re-run via the Phase 2 (task_id, date, state) dedup. Not part of cron — invoked manually once before Phase 5 cutover (#308).",
+      "path": [
+        {"from": "Operator (Kent)", "to": "scripts/habits/backfill_jsonl_from_comments.py", "protocol": "CLI (python3 -m)", "description": "One-shot invocation: dry-run first, then live"},
+        {"from": "scripts/habits/backfill_jsonl_from_comments.py", "to": "Vikunja /projects, /projects/<id>/tasks, /tasks/<id>/comments", "protocol": "HTTPS via Tailscale Serve", "port": 443, "backend_port": 3456, "description": "Project-scoped enumeration + per-task comment GET. No writes to Vikunja."},
+        {"from": "scripts/habits/backfill_jsonl_from_comments.py", "to": "scripts/common/state_log.py", "protocol": "python-import", "description": "Pre-flight read for dedup + append with source=historical-backfill, timestamp=comment.created"},
+        {"from": "scripts/common/state_log.py", "to": "habits-history.jsonl", "path": "/data/services/openclaw/state/habits-history.jsonl", "description": "Historical backfill write path (source=historical-backfill). Pre-backfill snapshot at habits-history.jsonl.pre-phase4-backfill.bak"}
       ]
     }
   ],

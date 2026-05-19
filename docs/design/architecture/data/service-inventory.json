@@ -1,7 +1,7 @@
 {
   "schema_version": "1.1",
   "last_updated": "2026-05-19",
-  "updated_by": "#306-habits-native-repeat-jsonl-state + #304-felix-bot-rotation + #291-felix-file-issue + #289-mutation-surfaces-enumeration + #285-cron-delivery-restore-path-c + #282-habits-d6-extract + #263-cron-delivery-mode-round2 + #100-google-workspace-foundation + #256-scope-discipline-guardrails + #253-step-5a-6-consolidation + #254-atomic-write-perm-preservation + issue-105-doc-auditor + #223-systemd-timer + #208-restic-healthcheck + #202-obsidian-sync-system-level + #203-sync-heartbeat + #199-inbox-schedules + #115-credential-health-check + #189-vikunja-compose + #185-inbox-capture-dedup",
+  "updated_by": "#307-backfill-habits-jsonl-from-comments + #306-habits-native-repeat-jsonl-state + #304-felix-bot-rotation + #291-felix-file-issue + #289-mutation-surfaces-enumeration + #285-cron-delivery-restore-path-c + #282-habits-d6-extract + #263-cron-delivery-mode-round2 + #100-google-workspace-foundation + #256-scope-discipline-guardrails + #253-step-5a-6-consolidation + #254-atomic-write-perm-preservation + issue-105-doc-auditor + #223-systemd-timer + #208-restic-healthcheck + #202-obsidian-sync-system-level + #203-sync-heartbeat + #199-inbox-schedules + #115-credential-health-check + #189-vikunja-compose + #185-inbox-capture-dedup",
   "services": [
     {
       "name": "vikunja",
@@ -455,7 +455,7 @@
       "timeout_seconds_note": "Per-schedule timeouts diverge — see schedules array.",
       "session_mode": "isolated",
       "deployed_by": "F009",
-      "updated_by": "#306-habits-native-repeat-jsonl-state + #285-cron-delivery-restore-path-c + #282-habits-d6-extract + #273-felix-tier2-self-repair-incident-audit + #263-cron-delivery-mode-round2",
+      "updated_by": "#307-backfill-habits-jsonl-from-comments + #306-habits-native-repeat-jsonl-state + #285-cron-delivery-restore-path-c + #282-habits-d6-extract + #273-felix-tier2-self-repair-incident-audit + #263-cron-delivery-mode-round2",
       "last_updated": "2026-05-19",
       "status": "active",
       "purpose": "Daily habit check-in and weekly pattern report",
@@ -479,7 +479,8 @@
         {"path": "/home/claude/kg-automation/scripts/habits/record_completion.py", "format": "python", "source_in_repo": "scripts/habits/record_completion.py", "purpose": "Phase 3 (#306): three-write atomic completion helper per ADR-0002 Q3-D (POST done=true, PUT [Felix] comment, state_log.append). Invoked by felix-admin-habits agent after Phase 5 cutover (FR-006, FR-007)", "host": "office2", "introduced_by": "#306"},
         {"path": "/home/claude/kg-automation/scripts/habits/reconcile_completions.py", "format": "python", "source_in_repo": "scripts/habits/reconcile_completions.py", "purpose": "Phase 3 (#306): backfill + drift-detection helper. Enumerates active habit tasks (project-scoped) and backfills Vikunja-UI completions to the JSONL log; reports JSONL-vs-Vikunja drift without auto-resolving (FR-008, FR-009)", "host": "office2", "introduced_by": "#306"},
         {"path": "/home/claude/kg-automation/scripts/habits/query_active_habits_v2.py", "format": "python", "source_in_repo": "scripts/habits/query_active_habits_v2.py", "purpose": "Phase 3 (#306) v2 (cutover target #308): Vikunja-native filter `due_date <= now/d AND done = false` replaces the v1 frequency-descriptor parser (FR-010). Project-scoped to Habits.", "host": "office2", "introduced_by": "#306"},
-        {"path": "/home/claude/kg-automation/scripts/habits/exclude_completed_v2.py", "format": "python", "source_in_repo": "scripts/habits/exclude_completed_v2.py", "purpose": "Phase 3 (#306) v2 (cutover target #308): reads state_log instead of LLM-parsing [Felix] comments to filter today's completed habits (FR-011)", "host": "office2", "introduced_by": "#306"}
+        {"path": "/home/claude/kg-automation/scripts/habits/exclude_completed_v2.py", "format": "python", "source_in_repo": "scripts/habits/exclude_completed_v2.py", "purpose": "Phase 3 (#306) v2 (cutover target #308): reads state_log instead of LLM-parsing [Felix] comments to filter today's completed habits (FR-011)", "host": "office2", "introduced_by": "#306"},
+        {"path": "/home/claude/kg-automation/scripts/habits/backfill_jsonl_from_comments.py", "format": "python", "source_in_repo": "scripts/habits/backfill_jsonl_from_comments.py", "purpose": "Phase 4 (#307) one-shot historical backfill: reads existing [Felix] completion comments from Vikunja habit tasks and replays them into habits-history.jsonl with source=historical-backfill. Operator-driven (not cron). Idempotent on re-run; pre-backfill snapshot at habits-history.jsonl.pre-phase4-backfill.bak. Imports FELIX_COMMENT_PATTERN from exclude_completed.py (read-only).", "host": "office2", "introduced_by": "#307"}
       ]
     },
     {
