@@ -1,0 +1,10 @@
+{
+  "created_at": "2026-05-19T20:16:48.027298+00:00",
+  "friendly_name": "backfill habits jsonl from comments",
+  "mission_id": "01KS0Y4F60A30H8CT28Z3VMVT6",
+  "mission_number": null,
+  "mission_slug": "backfill-habits-jsonl-from-comments-01KS0Y4F",
+  "mission_type": "software-dev",
+  "slug": "backfill-habits-jsonl-from-comments-01KS0Y4F",
+  "target_branch": "main"
+}
