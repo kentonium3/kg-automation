@@ -35,7 +35,8 @@ subtasks:
 - T004
 - T005
 - T006
-shell_pid: '24926'
+shell_pid: "24926"
+agent: "claude:opus:implementer:implementer"
 history:
 - at: '2026-05-19T15:51:00Z'
   actor: spec-kitty.tasks
@@ -336,3 +337,7 @@ spec-kitty agent action implement WP01 --agent <agent-name>
 ```
 
 This will check out the WP01 worktree (per `lanes.json`), apply this prompt, and surface for review on completion.
+
+## Activity Log
+
+- 2026-05-19T16:00:59Z – claude:opus:implementer:implementer – shell_pid=24926 – Assigned agent via action command
