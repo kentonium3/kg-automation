@@ -11,9 +11,9 @@
 
 | ID | Description | WP | Parallel |
 |---|---|---|---|
-| T001 | Create `scripts/habits/identify_workout_task.py` (Vikunja lookup helper) | WP01 | [P] |
-| T002 | Create `tests/habits/__init__.py` + `tests/habits/conftest.py` (shared fixtures: mocked vikunja client, sample tasks, common test helpers) | WP01 | |
-| T003 | Create `tests/habits/test_identify_workout_task.py` | WP01 | |
+| T001 | Create `scripts/habits/identify_workout_task.py` (Vikunja lookup helper) | WP01 | [P] | [D] |
+| T002 | Create `tests/habits/__init__.py` + `tests/habits/conftest.py` (shared fixtures: mocked vikunja client, sample tasks, common test helpers) | WP01 | | [D] |
+| T003 | Create `tests/habits/test_identify_workout_task.py` | WP01 | | [D] |
 | T004 | Implement `scripts/habits/migrate_schedule.py` — `load_schedule()` + YAML schema validation | WP02 | |
 | T005 | Implement `scripts/habits/migrate_schedule.py` — `capture_snapshot()` + `apply_schedule()` (patch / retire / create) | WP02 | |
 | T006 | Implement `scripts/habits/migrate_schedule.py` — `rollback()` + `__main__` CLI surface | WP02 | |
@@ -46,9 +46,9 @@
 
 #### Included subtasks
 
-- [ ] T001 Create `scripts/habits/identify_workout_task.py`
-- [ ] T002 Create `tests/habits/__init__.py` + `tests/habits/conftest.py`
-- [ ] T003 Create `tests/habits/test_identify_workout_task.py`
+- [x] T001 Create `scripts/habits/identify_workout_task.py`
+- [x] T002 Create `tests/habits/__init__.py` + `tests/habits/conftest.py`
+- [x] T003 Create `tests/habits/test_identify_workout_task.py`
 
 #### Implementation sketch
 
