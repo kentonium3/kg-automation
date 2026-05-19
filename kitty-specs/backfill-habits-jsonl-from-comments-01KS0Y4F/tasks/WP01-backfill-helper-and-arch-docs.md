@@ -38,8 +38,8 @@ subtasks:
 - T002
 - T003
 - T004
-shell_pid: "75614"
-agent: "codex:gpt-5:python-reviewer:reviewer"
+shell_pid: "76713"
+agent: "claude:opus:python-implementer:implementer"
 history:
 - at: '2026-05-19T20:35:00Z'
   actor: spec-kitty.tasks
@@ -391,3 +391,4 @@ spec-kitty agent action implement WP01 --mission backfill-habits-jsonl-from-comm
 - 2026-05-19T20:53:10Z – claude:opus:python-implementer:implementer – shell_pid=72034 – Ready for review — 4 subtasks complete; backfill helper + tests + arch docs
 - 2026-05-19T20:54:30Z – codex:gpt-5:python-reviewer:reviewer – shell_pid=75614 – Started review via action command
 - 2026-05-19T20:58:54Z – codex:gpt-5:python-reviewer:reviewer – shell_pid=75614 – Moved to planned
+- 2026-05-19T20:59:03Z – claude:opus:python-implementer:implementer – shell_pid=76713 – Started implementation via action command
