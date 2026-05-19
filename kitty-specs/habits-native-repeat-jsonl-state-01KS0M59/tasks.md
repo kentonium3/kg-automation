@@ -14,11 +14,11 @@
 | T001 | Create `scripts/habits/identify_workout_task.py` (Vikunja lookup helper) | WP01 | [P] | [D] |
 | T002 | Create `tests/habits/__init__.py` + `tests/habits/conftest.py` (shared fixtures: mocked vikunja client, sample tasks, common test helpers) | WP01 | | [D] |
 | T003 | Create `tests/habits/test_identify_workout_task.py` | WP01 | | [D] |
-| T004 | Implement `scripts/habits/migrate_schedule.py` — `load_schedule()` + YAML schema validation | WP02 | |
-| T005 | Implement `scripts/habits/migrate_schedule.py` — `capture_snapshot()` + `apply_schedule()` (patch / retire / create) | WP02 | |
-| T006 | Implement `scripts/habits/migrate_schedule.py` — `rollback()` + `__main__` CLI surface | WP02 | |
-| T007 | Create `tests/habits/test_migrate_schedule.py` (covers T004-T006 with mocked Vikunja API) | WP02 | |
-| T008 | Create `kitty-specs/habits-native-repeat-jsonl-state-01KS0M59/habits-schedule.yaml` with the 11 operations (workout task ID as TBD placeholder) | WP02 | [P] |
+| T004 | Implement `scripts/habits/migrate_schedule.py` — `load_schedule()` + YAML schema validation | WP02 | | [D] |
+| T005 | Implement `scripts/habits/migrate_schedule.py` — `capture_snapshot()` + `apply_schedule()` (patch / retire / create) | WP02 | | [D] |
+| T006 | Implement `scripts/habits/migrate_schedule.py` — `rollback()` + `__main__` CLI surface | WP02 | | [D] |
+| T007 | Create `tests/habits/test_migrate_schedule.py` (covers T004-T006 with mocked Vikunja API) | WP02 | | [D] |
+| T008 | Create `kitty-specs/habits-native-repeat-jsonl-state-01KS0M59/habits-schedule.yaml` with the 11 operations (workout task ID as TBD placeholder) | WP02 | [D] |
 | T009 | Implement `scripts/habits/record_completion.py` — `record()` three-write atomic helper + `__main__` CLI | WP03 | |
 | T010 | Implement `scripts/habits/reconcile_completions.py` — `reconcile()` backfill + drift detection + `__main__` CLI | WP03 | |
 | T011 | Create `tests/habits/test_record_completion.py` (idempotency, ordering, exit codes) | WP03 | [P] |
@@ -83,11 +83,11 @@ Verified by code structure + WP01 tests:
 
 #### Included subtasks
 
-- [ ] T004 Implement `scripts/habits/migrate_schedule.py` — `load_schedule()` + YAML schema validation
-- [ ] T005 Implement `scripts/habits/migrate_schedule.py` — `capture_snapshot()` + `apply_schedule()`
-- [ ] T006 Implement `scripts/habits/migrate_schedule.py` — `rollback()` + `__main__` CLI
-- [ ] T007 Create `tests/habits/test_migrate_schedule.py`
-- [ ] T008 Create `kitty-specs/habits-native-repeat-jsonl-state-01KS0M59/habits-schedule.yaml`
+- [x] T004 Implement `scripts/habits/migrate_schedule.py` — `load_schedule()` + YAML schema validation
+- [x] T005 Implement `scripts/habits/migrate_schedule.py` — `capture_snapshot()` + `apply_schedule()`
+- [x] T006 Implement `scripts/habits/migrate_schedule.py` — `rollback()` + `__main__` CLI
+- [x] T007 Create `tests/habits/test_migrate_schedule.py`
+- [x] T008 Create `kitty-specs/habits-native-repeat-jsonl-state-01KS0M59/habits-schedule.yaml`
 
 #### Implementation sketch
 
