@@ -35,8 +35,8 @@ subtasks:
 - T004
 - T005
 - T006
-shell_pid: "24926"
-agent: "claude:opus:implementer:implementer"
+shell_pid: "26952"
+agent: "codex:gpt-5:python-reviewer:reviewer"
 history:
 - at: '2026-05-19T15:51:00Z'
   actor: spec-kitty.tasks
@@ -342,3 +342,4 @@ This will check out the WP01 worktree (per `lanes.json`), apply this prompt, and
 
 - 2026-05-19T16:00:59Z – claude:opus:implementer:implementer – shell_pid=24926 – Assigned agent via action command
 - 2026-05-19T16:11:26Z – claude:opus:implementer:implementer – shell_pid=24926 – Ready for review — 6 subtasks T001-T006 complete; library + CLI + schema docs
+- 2026-05-19T16:11:57Z – codex:gpt-5:python-reviewer:reviewer – shell_pid=26952 – Started review via action command
