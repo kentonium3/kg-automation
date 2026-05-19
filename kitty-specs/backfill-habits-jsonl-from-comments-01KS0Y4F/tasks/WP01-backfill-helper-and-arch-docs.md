@@ -30,11 +30,15 @@ requirement_refs:
 planning_base_branch: main
 merge_target_branch: main
 branch_strategy: Planning artifacts for this feature were generated on main. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into main unless the human explicitly redirects the landing branch.
+base_branch: kitty/mission-backfill-habits-jsonl-from-comments-01KS0Y4F
+base_commit: 359644f1c48b8c53953c0c67509554157f0179e7
+created_at: '2026-05-19T20:32:38.387332+00:00'
 subtasks:
 - T001
 - T002
 - T003
 - T004
+shell_pid: '72034'
 history:
 - at: '2026-05-19T20:35:00Z'
   actor: spec-kitty.tasks
