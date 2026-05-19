@@ -19,8 +19,8 @@ subtasks:
 - T016
 - T017
 - T018
-agent: "claude:opus:python-implementer:implementer"
-shell_pid: "63429"
+agent: "codex:gpt-5:python-reviewer:reviewer"
+shell_pid: "65943"
 history:
 - at: '2026-05-19T17:30:00Z'
   actor: spec-kitty.tasks
@@ -332,3 +332,4 @@ WP04 depends on WP01; can run in parallel with WP02 and WP03 after WP01 approval
 
 - 2026-05-19T19:44:34Z – claude:opus:python-implementer:implementer – shell_pid=63429 – Started implementation via action command
 - 2026-05-19T19:57:38Z – claude:opus:python-implementer:implementer – shell_pid=63429 – Ready for review — 6 subtasks T013-T018 complete; v2 variants + arch docs; v1 siblings untouched (C-001 verified)
+- 2026-05-19T19:58:41Z – codex:gpt-5:python-reviewer:reviewer – shell_pid=65943 – Started review via action command
