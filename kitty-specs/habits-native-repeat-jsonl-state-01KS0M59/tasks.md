@@ -23,12 +23,12 @@
 | T010 | Implement `scripts/habits/reconcile_completions.py` — `reconcile()` backfill + drift detection + `__main__` CLI | WP03 | | [D] |
 | T011 | Create `tests/habits/test_record_completion.py` (idempotency, ordering, exit codes) | WP03 | [D] |
 | T012 | Create `tests/habits/test_reconcile_completions.py` (backfill + drift) | WP03 | [D] |
-| T013 | Implement `scripts/habits/query_active_habits_v2.py` (Vikunja-native filter) + CLI | WP04 | |
-| T014 | Implement `scripts/habits/exclude_completed_v2.py` (state_log read) + CLI | WP04 | |
-| T015 | Create `tests/habits/test_query_active_habits_v2.py` | WP04 | [P] |
-| T016 | Create `tests/habits/test_exclude_completed_v2.py` | WP04 | [P] |
-| T017 | Update `docs/design/architecture/data/data-flows.json` — add new write path (habits agent → state_log) + new read path (exclude_completed_v2 → state_log.read) | WP04 | [P] |
-| T018 | Update `docs/design/architecture/data/service-inventory.json` — register the 6 new scripts under `scripts/habits/` | WP04 | [P] |
+| T013 | Implement `scripts/habits/query_active_habits_v2.py` (Vikunja-native filter) + CLI | WP04 | | [D] |
+| T014 | Implement `scripts/habits/exclude_completed_v2.py` (state_log read) + CLI | WP04 | | [D] |
+| T015 | Create `tests/habits/test_query_active_habits_v2.py` | WP04 | [D] |
+| T016 | Create `tests/habits/test_exclude_completed_v2.py` | WP04 | [D] |
+| T017 | Update `docs/design/architecture/data/data-flows.json` — add new write path (habits agent → state_log) + new read path (exclude_completed_v2 → state_log.read) | WP04 | [D] |
+| T018 | Update `docs/design/architecture/data/service-inventory.json` — register the 6 new scripts under `scripts/habits/` | WP04 | [D] |
 
 `[P]` = parallel-safe (different file/concern; no inter-subtask dependency within the WP)
 
@@ -170,12 +170,12 @@ Mapped to:
 
 #### Included subtasks
 
-- [ ] T013 Implement `scripts/habits/query_active_habits_v2.py` — `query_active_today()` + `__main__` CLI
-- [ ] T014 Implement `scripts/habits/exclude_completed_v2.py` — `exclude_completed_for_today()` + `__main__` CLI
-- [ ] T015 Create `tests/habits/test_query_active_habits_v2.py`
-- [ ] T016 Create `tests/habits/test_exclude_completed_v2.py`
-- [ ] T017 Update `docs/design/architecture/data/data-flows.json` — add new write/read paths
-- [ ] T018 Update `docs/design/architecture/data/service-inventory.json` — register the 6 new `scripts/habits/` files
+- [x] T013 Implement `scripts/habits/query_active_habits_v2.py` — `query_active_today()` + `__main__` CLI
+- [x] T014 Implement `scripts/habits/exclude_completed_v2.py` — `exclude_completed_for_today()` + `__main__` CLI
+- [x] T015 Create `tests/habits/test_query_active_habits_v2.py`
+- [x] T016 Create `tests/habits/test_exclude_completed_v2.py`
+- [x] T017 Update `docs/design/architecture/data/data-flows.json` — add new write/read paths
+- [x] T018 Update `docs/design/architecture/data/service-inventory.json` — register the 6 new `scripts/habits/` files
 
 #### Implementation sketch
 
