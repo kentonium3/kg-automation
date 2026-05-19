@@ -18,6 +18,8 @@ subtasks:
 - T009
 - T010
 - T011
+agent: "claude:opus:python-implementer:implementer"
+shell_pid: "27847"
 history:
 - at: '2026-05-19T15:51:00Z'
   actor: spec-kitty.tasks
@@ -351,3 +353,7 @@ spec-kitty agent action implement WP02 --agent <agent-name>
 ```
 
 Note: WP02 depends on WP01. Ensure WP01 is in the `approved` or `done` lane before claiming WP02 — `spec-kitty next` enforces this.
+
+## Activity Log
+
+- 2026-05-19T16:15:21Z – claude:opus:python-implementer:implementer – shell_pid=27847 – Started implementation via action command
