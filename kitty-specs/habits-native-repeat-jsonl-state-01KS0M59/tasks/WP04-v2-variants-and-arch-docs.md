@@ -19,6 +19,8 @@ subtasks:
 - T016
 - T017
 - T018
+agent: "claude:opus:python-implementer:implementer"
+shell_pid: "63429"
 history:
 - at: '2026-05-19T17:30:00Z'
   actor: spec-kitty.tasks
@@ -325,3 +327,7 @@ spec-kitty agent action implement WP04 --mission habits-native-repeat-jsonl-stat
 ```
 
 WP04 depends on WP01; can run in parallel with WP02 and WP03 after WP01 approval.
+
+## Activity Log
+
+- 2026-05-19T19:44:34Z – claude:opus:python-implementer:implementer – shell_pid=63429 – Started implementation via action command
