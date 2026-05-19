@@ -331,3 +331,4 @@ WP04 depends on WP01; can run in parallel with WP02 and WP03 after WP01 approval
 ## Activity Log
 
 - 2026-05-19T19:44:34Z – claude:opus:python-implementer:implementer – shell_pid=63429 – Started implementation via action command
+- 2026-05-19T19:57:38Z – claude:opus:python-implementer:implementer – shell_pid=63429 – Ready for review — 6 subtasks T013-T018 complete; v2 variants + arch docs; v1 siblings untouched (C-001 verified)
