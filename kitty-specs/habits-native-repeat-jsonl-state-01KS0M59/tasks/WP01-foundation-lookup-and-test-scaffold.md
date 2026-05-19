@@ -15,7 +15,8 @@ subtasks:
 - T001
 - T002
 - T003
-shell_pid: '45180'
+shell_pid: "45180"
+agent: "claude:opus:python-implementer:implementer"
 history:
 - at: '2026-05-19T17:30:00Z'
   actor: spec-kitty.tasks
@@ -220,3 +221,7 @@ Establish the `tests/habits/` package with shared fixtures, and deliver the `ide
 ```bash
 spec-kitty agent action implement WP01 --mission habits-native-repeat-jsonl-state-01KS0M59 --agent <agent-name>
 ```
+
+## Activity Log
+
+- 2026-05-19T18:00:37Z – claude:opus:python-implementer:implementer – shell_pid=45180 – Assigned agent via action command
