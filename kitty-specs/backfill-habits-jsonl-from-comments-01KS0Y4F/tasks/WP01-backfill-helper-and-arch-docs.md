@@ -388,3 +388,4 @@ spec-kitty agent action implement WP01 --mission backfill-habits-jsonl-from-comm
 ## Activity Log
 
 - 2026-05-19T20:32:40Z – claude:opus:python-implementer:implementer – shell_pid=72034 – Assigned agent via action command
+- 2026-05-19T20:53:10Z – claude:opus:python-implementer:implementer – shell_pid=72034 – Ready for review — 4 subtasks complete; backfill helper + tests + arch docs
