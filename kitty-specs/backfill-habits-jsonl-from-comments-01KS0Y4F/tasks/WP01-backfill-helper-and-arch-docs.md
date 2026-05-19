@@ -390,3 +390,4 @@ spec-kitty agent action implement WP01 --mission backfill-habits-jsonl-from-comm
 - 2026-05-19T20:32:40Z – claude:opus:python-implementer:implementer – shell_pid=72034 – Assigned agent via action command
 - 2026-05-19T20:53:10Z – claude:opus:python-implementer:implementer – shell_pid=72034 – Ready for review — 4 subtasks complete; backfill helper + tests + arch docs
 - 2026-05-19T20:54:30Z – codex:gpt-5:python-reviewer:reviewer – shell_pid=75614 – Started review via action command
+- 2026-05-19T20:58:54Z – codex:gpt-5:python-reviewer:reviewer – shell_pid=75614 – Moved to planned
