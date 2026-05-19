@@ -15,8 +15,8 @@ subtasks:
 - T001
 - T002
 - T003
-shell_pid: "45180"
-agent: "claude:opus:python-implementer:implementer"
+shell_pid: "47190"
+agent: "codex:gpt-5:python-reviewer:reviewer"
 history:
 - at: '2026-05-19T17:30:00Z'
   actor: spec-kitty.tasks
@@ -226,3 +226,4 @@ spec-kitty agent action implement WP01 --mission habits-native-repeat-jsonl-stat
 
 - 2026-05-19T18:00:37Z – claude:opus:python-implementer:implementer – shell_pid=45180 – Assigned agent via action command
 - 2026-05-19T18:10:30Z – claude:opus:python-implementer:implementer – shell_pid=45180 – Ready for review — 3 subtasks T001-T003 complete; lookup helper + test scaffolding
+- 2026-05-19T18:11:07Z – codex:gpt-5:python-reviewer:reviewer – shell_pid=47190 – Started review via action command
