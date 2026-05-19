@@ -1,10 +1,12 @@
 {
   "created_at": "2026-05-19T17:22:28.601096+00:00",
-  "friendly_name": "habits native repeat jsonl state",
+  "friendly_name": "Habits native repeat + JSONL state",
   "mission_id": "01KS0M59313RF0WVJZTXYDJC6C",
   "mission_number": null,
   "mission_slug": "habits-native-repeat-jsonl-state-01KS0M59",
   "mission_type": "software-dev",
   "slug": "habits-native-repeat-jsonl-state-01KS0M59",
-  "target_branch": "main"
+  "target_branch": "main",
+  "vcs": "git",
+  "source_description": "GitHub issue #306 (Phase 3 of ADR-0002). Migrates habits subsystem from comment-parsing to Vikunja-native repeat + JSONL state log. Builds new code path alongside the old; cron continues using the old flow until Phase 5 cutover (#308). Depends on #304 (felix-bot identity, done) + #305 (state_log library, done)."
 }
