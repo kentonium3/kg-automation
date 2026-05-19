@@ -1,0 +1,75 @@
+{
+  "version": 1,
+  "mission_slug": "habits-native-repeat-jsonl-state-01KS0M59",
+  "mission_id": "01KS0M59313RF0WVJZTXYDJC6C",
+  "mission_branch": "kitty/mission-habits-native-repeat-jsonl-state-01KS0M59",
+  "target_branch": "main",
+  "lanes": [
+    {
+      "lane_id": "lane-a",
+      "wp_ids": [
+        "WP01",
+        "WP02",
+        "WP03",
+        "WP04"
+      ],
+      "write_scope": [
+        "docs/design/architecture/data/data-flows.json",
+        "docs/design/architecture/data/service-inventory.json",
+        "kitty-specs/habits-native-repeat-jsonl-state-01KS0M59/habits-schedule.yaml",
+        "scripts/habits/exclude_completed_v2.py",
+        "scripts/habits/identify_workout_task.py",
+        "scripts/habits/migrate_schedule.py",
+        "scripts/habits/query_active_habits_v2.py",
+        "scripts/habits/reconcile_completions.py",
+        "scripts/habits/record_completion.py",
+        "tests/habits/__init__.py",
+        "tests/habits/conftest.py",
+        "tests/habits/test_exclude_completed_v2.py",
+        "tests/habits/test_identify_workout_task.py",
+        "tests/habits/test_migrate_schedule.py",
+        "tests/habits/test_query_active_habits_v2.py",
+        "tests/habits/test_reconcile_completions.py",
+        "tests/habits/test_record_completion.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "artifact-rendering",
+        "legacy-cleanup",
+        "tracker-integration"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    }
+  ],
+  "computed_at": "2026-05-19T17:46:17.704337+00:00",
+  "computed_from": "dependency_graph+ownership",
+  "planning_artifact_wps": [],
+  "collapse_report": {
+    "events": [
+      {
+        "wp_a": "WP02",
+        "wp_b": "WP01",
+        "rule": "dependency",
+        "evidence": "WP02 depends on WP01"
+      },
+      {
+        "wp_a": "WP03",
+        "wp_b": "WP01",
+        "rule": "dependency",
+        "evidence": "WP03 depends on WP01"
+      },
+      {
+        "wp_a": "WP04",
+        "wp_b": "WP01",
+        "rule": "dependency",
+        "evidence": "WP04 depends on WP01"
+      }
+    ],
+    "total_merges": 3,
+    "independent_wps_collapsed": 0,
+    "by_rule": {
+      "dependency": 3
+    }
+  }
+}
