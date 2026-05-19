@@ -1,0 +1,10 @@
+{
+  "created_at": "2026-05-19T15:39:49.546925+00:00",
+  "friendly_name": "shared jsonl state log library",
+  "mission_id": "01KS0E9A6TZBA9AWT97DR1XMQB",
+  "mission_number": null,
+  "mission_slug": "shared-jsonl-state-log-library-01KS0E9A",
+  "mission_type": "software-dev",
+  "slug": "shared-jsonl-state-log-library-01KS0E9A",
+  "target_branch": "main"
+}
