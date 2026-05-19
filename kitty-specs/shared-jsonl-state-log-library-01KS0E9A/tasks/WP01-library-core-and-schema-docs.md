@@ -341,3 +341,4 @@ This will check out the WP01 worktree (per `lanes.json`), apply this prompt, and
 ## Activity Log
 
 - 2026-05-19T16:00:59Z – claude:opus:implementer:implementer – shell_pid=24926 – Assigned agent via action command
+- 2026-05-19T16:11:26Z – claude:opus:implementer:implementer – shell_pid=24926 – Ready for review — 6 subtasks T001-T006 complete; library + CLI + schema docs
