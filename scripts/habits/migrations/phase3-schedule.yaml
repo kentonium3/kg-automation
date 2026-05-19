@@ -1,0 +1,129 @@
+# habits-schedule.yaml — ADR-0002 Phase 3 schedule migration
+#
+# This file is the canonical input to scripts/habits/migrate_schedule.py.
+# It describes the one-shot schedule change applied during this mission:
+#   - 7 daily PATCHes: set repeat_after=86400 on the surviving habit tasks.
+#   - 1 retire: mark the workout task done=true (it stays in the project
+#     with repeat_after=0 so Vikunja's auto-advance does NOT un-retire it).
+#   - 3 creates: weekly Mon/Wed/Fri strength-training tasks, inheriting
+#     the retired workout task's project_id and labels.
+#
+# IMPORTANT — workout task ID is a placeholder:
+#   The retire op below uses task_id: 17 as a TBD placeholder. Operator MUST
+#   confirm the actual workout task ID first by running:
+#       python3 -m scripts.habits.identify_workout_task
+#   then edit the retire op's task_id (and possibly remove one of the
+#   PATCH ops if the lookup returns a different ID from the daily set).
+#
+# Apply protocol (Tier 2):
+#   1. ssh office2-kgale + verify a recent Restic snapshot exists for /data.
+#   2. Dry-run first:
+#       python3 -m scripts.habits.migrate_schedule \
+#           --schedule kitty-specs/habits-native-repeat-jsonl-state-01KS0M59/habits-schedule.yaml \
+#           --snapshot-out /data/services/openclaw/state/habits-pre-phase3-snapshot.json \
+#           --dry-run
+#   3. After reviewing the dry-run plan, set the env-var gate and apply:
+#       FELIX_TIER2_PREFLIGHT_OK=yes python3 -m scripts.habits.migrate_schedule \
+#           --schedule kitty-specs/habits-native-repeat-jsonl-state-01KS0M59/habits-schedule.yaml \
+#           --snapshot-out /data/services/openclaw/state/habits-pre-phase3-snapshot.json
+#   4. If anything goes wrong:
+#       python3 -m scripts.habits.migrate_schedule \
+#           --rollback \
+#           --snapshot-file /data/services/openclaw/state/habits-pre-phase3-snapshot.json
+#
+# See kitty-specs/habits-native-repeat-jsonl-state-01KS0M59/quickstart.md
+# for the full walkthrough.
+
+mission_id: "01KS0M59313RF0WVJZTXYDJC6C"
+
+operations:
+  # ── 7 daily PATCHes ──────────────────────────────────────────────────
+  # Set repeat_after=86400 (daily) and repeat_mode=0 (interval mode).
+  # IDs are the 8 known production habit task IDs minus the workout task.
+
+  - op: patch
+    task_id: 14
+    target:
+      repeat_after: 86400
+      repeat_mode: 0
+    notes: "Daily habit (task 14)"
+
+  - op: patch
+    task_id: 15
+    target:
+      repeat_after: 86400
+      repeat_mode: 0
+    notes: "Daily habit (task 15)"
+
+  - op: patch
+    task_id: 16
+    target:
+      repeat_after: 86400
+      repeat_mode: 0
+    notes: "Daily habit (task 16)"
+
+  - op: patch
+    task_id: 18
+    target:
+      repeat_after: 86400
+      repeat_mode: 0
+    notes: "Daily habit (task 18)"
+
+  - op: patch
+    task_id: 19
+    target:
+      repeat_after: 86400
+      repeat_mode: 0
+    notes: "Daily habit (task 19)"
+
+  - op: patch
+    task_id: 20
+    target:
+      repeat_after: 86400
+      repeat_mode: 0
+    notes: "Daily habit (task 20)"
+
+  - op: patch
+    task_id: 65
+    target:
+      repeat_after: 86400
+      repeat_mode: 0
+    notes: "Daily habit (task 65)"
+
+  # ── 1 retire (workout task) ──────────────────────────────────────────
+  # Replaced by the 3 weekly MWF tasks below.
+  # task_id is a PLACEHOLDER — confirm via:
+  #     python3 -m scripts.habits.identify_workout_task
+
+  - op: retire
+    task_id: 17  # placeholder — operator runs identify_workout_task.py to confirm
+    notes: "Retire single workout task; replaced by 3 weekly MWF tasks below"
+
+  # ── 3 creates (Mon/Wed/Fri strength training) ───────────────────────
+  # project_id and labels are inherited from the retired workout task above.
+  # due_date is computed by migrate_schedule.py to the next occurrence of
+  # the named weekday at 08:00 UTC.
+
+  - op: create
+    schedule:
+      repeat_after: 604800
+      repeat_mode: 0
+    attributes:
+      title: "Strength training — Monday"
+    notes: "Weekly MWF replacement #1"
+
+  - op: create
+    schedule:
+      repeat_after: 604800
+      repeat_mode: 0
+    attributes:
+      title: "Strength training — Wednesday"
+    notes: "Weekly MWF replacement #2"
+
+  - op: create
+    schedule:
+      repeat_after: 604800
+      repeat_mode: 0
+    attributes:
+      title: "Strength training — Friday"
+    notes: "Weekly MWF replacement #3"

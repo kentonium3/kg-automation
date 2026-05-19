@@ -1,7 +1,7 @@
 {
   "schema_version": "1.1",
-  "last_updated": "2026-05-17",
-  "updated_by": "#304-felix-bot-rotation + #291-felix-file-issue + #289-mutation-surfaces-enumeration + #285-cron-delivery-restore-path-c + #282-habits-d6-extract + #263-cron-delivery-mode-round2 + #100-google-workspace-foundation + #256-scope-discipline-guardrails + #253-step-5a-6-consolidation + #254-atomic-write-perm-preservation + issue-105-doc-auditor + #223-systemd-timer + #208-restic-healthcheck + #202-obsidian-sync-system-level + #203-sync-heartbeat + #199-inbox-schedules + #115-credential-health-check + #189-vikunja-compose + #185-inbox-capture-dedup",
+  "last_updated": "2026-05-19",
+  "updated_by": "#306-habits-native-repeat-jsonl-state + #304-felix-bot-rotation + #291-felix-file-issue + #289-mutation-surfaces-enumeration + #285-cron-delivery-restore-path-c + #282-habits-d6-extract + #263-cron-delivery-mode-round2 + #100-google-workspace-foundation + #256-scope-discipline-guardrails + #253-step-5a-6-consolidation + #254-atomic-write-perm-preservation + issue-105-doc-auditor + #223-systemd-timer + #208-restic-healthcheck + #202-obsidian-sync-system-level + #203-sync-heartbeat + #199-inbox-schedules + #115-credential-health-check + #189-vikunja-compose + #185-inbox-capture-dedup",
   "services": [
     {
       "name": "vikunja",
@@ -455,8 +455,8 @@
       "timeout_seconds_note": "Per-schedule timeouts diverge — see schedules array.",
       "session_mode": "isolated",
       "deployed_by": "F009",
-      "updated_by": "#285-cron-delivery-restore-path-c + #282-habits-d6-extract + #273-felix-tier2-self-repair-incident-audit + #263-cron-delivery-mode-round2",
-      "last_updated": "2026-05-15",
+      "updated_by": "#306-habits-native-repeat-jsonl-state + #285-cron-delivery-restore-path-c + #282-habits-d6-extract + #273-felix-tier2-self-repair-incident-audit + #263-cron-delivery-mode-round2",
+      "last_updated": "2026-05-19",
       "status": "active",
       "purpose": "Daily habit check-in and weekly pattern report",
       "runbook": "docs/runbooks/habits-ops.md",
@@ -471,9 +471,15 @@
       "config_files": [
         {"path": "/data/services/openclaw/habits-agent/AGENTS.md", "format": "markdown", "source_in_repo": "scripts/openclaw/agents/felix-admin-habits/AGENTS.md"},
         {"path": "/home/claude/kg-automation/scripts/habits/compute_today.py", "format": "python", "source_in_repo": "scripts/habits/compute_today.py", "purpose": "FR-001: TZ-aware day/date/ET-offset/iso_eod_et computation (Step 1 helper, #282)"},
-        {"path": "/home/claude/kg-automation/scripts/habits/query_active_habits.py", "format": "python", "source_in_repo": "scripts/habits/query_active_habits.py", "purpose": "FR-002: Vikunja Habits query + frequency filter (Step 2 helper, #282)"},
+        {"path": "/home/claude/kg-automation/scripts/habits/query_active_habits.py", "format": "python", "source_in_repo": "scripts/habits/query_active_habits.py", "purpose": "FR-002 v1 (legacy, live until Phase 5 cutover #308): Vikunja Habits query + frequency-descriptor filter (Step 2 helper, #282)"},
         {"path": "/home/claude/kg-automation/scripts/habits/set_due_dates.py", "format": "python", "source_in_repo": "scripts/habits/set_due_dates.py", "purpose": "FR-003: due_date end-of-day-ET setter with #112 regression-prevention (Step 3 helper, #282)"},
-        {"path": "/home/claude/kg-automation/scripts/habits/exclude_completed.py", "format": "python", "source_in_repo": "scripts/habits/exclude_completed.py", "purpose": "FR-004: Felix-comment-format parser for completion-state filtering (Step 4 helper, #282)"}
+        {"path": "/home/claude/kg-automation/scripts/habits/exclude_completed.py", "format": "python", "source_in_repo": "scripts/habits/exclude_completed.py", "purpose": "FR-004 v1 (legacy, live until Phase 5 cutover #308): [Felix] comment-format parser for completion-state filtering (Step 4 helper, #282)"},
+        {"path": "/home/claude/kg-automation/scripts/habits/identify_workout_task.py", "format": "python", "source_in_repo": "scripts/habits/identify_workout_task.py", "purpose": "Phase 3 (#306): lookup helper that identifies the current workout habit task among known candidate IDs (read-only)", "host": "office2", "introduced_by": "#306"},
+        {"path": "/home/claude/kg-automation/scripts/habits/migrate_schedule.py", "format": "python", "source_in_repo": "scripts/habits/migrate_schedule.py", "purpose": "Phase 3 (#306): operator-run schedule-migration helper that applies habits-schedule.yaml to production Vikunja habit tasks with snapshot + rollback substrate (FR-001 through FR-005)", "host": "office2", "introduced_by": "#306"},
+        {"path": "/home/claude/kg-automation/scripts/habits/record_completion.py", "format": "python", "source_in_repo": "scripts/habits/record_completion.py", "purpose": "Phase 3 (#306): three-write atomic completion helper per ADR-0002 Q3-D (POST done=true, PUT [Felix] comment, state_log.append). Invoked by felix-admin-habits agent after Phase 5 cutover (FR-006, FR-007)", "host": "office2", "introduced_by": "#306"},
+        {"path": "/home/claude/kg-automation/scripts/habits/reconcile_completions.py", "format": "python", "source_in_repo": "scripts/habits/reconcile_completions.py", "purpose": "Phase 3 (#306): backfill + drift-detection helper. Enumerates active habit tasks (project-scoped) and backfills Vikunja-UI completions to the JSONL log; reports JSONL-vs-Vikunja drift without auto-resolving (FR-008, FR-009)", "host": "office2", "introduced_by": "#306"},
+        {"path": "/home/claude/kg-automation/scripts/habits/query_active_habits_v2.py", "format": "python", "source_in_repo": "scripts/habits/query_active_habits_v2.py", "purpose": "Phase 3 (#306) v2 (cutover target #308): Vikunja-native filter `due_date <= now/d AND done = false` replaces the v1 frequency-descriptor parser (FR-010). Project-scoped to Habits.", "host": "office2", "introduced_by": "#306"},
+        {"path": "/home/claude/kg-automation/scripts/habits/exclude_completed_v2.py", "format": "python", "source_in_repo": "scripts/habits/exclude_completed_v2.py", "purpose": "Phase 3 (#306) v2 (cutover target #308): reads state_log instead of LLM-parsing [Felix] comments to filter today's completed habits (FR-011)", "host": "office2", "introduced_by": "#306"}
       ]
     },
     {

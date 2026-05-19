@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
-  "last_updated": "2026-04-10",
-  "updated_by": "#152",
+  "last_updated": "2026-05-19",
+  "updated_by": "#306-habits-native-repeat-jsonl-state + #152",
   "flows": [
     {
       "name": "vikunja-web-ui",
@@ -79,6 +79,52 @@
         {"from": "summarize.py (15-min timer)", "to": "JSONL log files", "description": "Reads per-agent JSONL, generates digests"},
         {"from": "summarize.py", "to": "Markdown digests", "path": "/home/claude/second-brain/notes/Agent-Logs/"},
         {"from": "Markdown digests", "to": "Obsidian (via Obsidian Sync)", "description": "Digests appear on Kent's devices via existing sync"}
+      ]
+    },
+    {
+      "name": "habits-completion-write-v1",
+      "status": "active",
+      "deployed_by": "#282",
+      "description": "Phase 2 (legacy, live until Phase 5 cutover #308): felix-admin-habits agent writes habit completions as `[Felix] YYYY-MM-DD | state | note` comments on Vikunja tasks. The cron continues to use this path until AGENTS.md is updated in Phase 5.",
+      "path": [
+        {"from": "felix-admin-habits agent", "to": "scripts/habits/exclude_completed.py", "protocol": "subprocess", "description": "Step 4 helper parses [Felix] comments to determine already-addressed habits"},
+        {"from": "felix-admin-habits agent", "to": "Vikunja /tasks/<id>/comments", "protocol": "HTTPS via Tailscale Serve", "port": 443, "backend_port": 3456, "description": "Agent writes [Felix] YYYY-MM-DD | state comment to record completion"}
+      ]
+    },
+    {
+      "name": "habits-completion-write-v2",
+      "status": "active",
+      "deployed_by": "#306",
+      "introduced_by": "#306",
+      "description": "Phase 3 (ADR-0002 Q3-D) canonical habit completion history. The new write path is built in #306; the felix-admin-habits agent begins calling it after Phase 5 cutover (#308). Both the v1 comment-write and this v2 JSONL-append remain documented until v1 is retired.",
+      "path": [
+        {"from": "felix-admin-habits agent", "to": "scripts/habits/record_completion.py", "protocol": "subprocess", "description": "Three-write helper per ADR Q3-D: POST done=true, PUT [Felix] comment (mirror), state_log.append (canonical)"},
+        {"from": "scripts/habits/record_completion.py", "to": "scripts/common/state_log.py", "protocol": "python-import", "description": "Calls state_log.append(\"habits\", record) for the canonical JSONL write"},
+        {"from": "scripts/common/state_log.py", "to": "habits-history.jsonl", "path": "/data/services/openclaw/state/habits-history.jsonl", "description": "Canonical per-domain JSONL history (Phase 2 substrate from mission shared-jsonl-state-log-library-01KS0E9A)"}
+      ]
+    },
+    {
+      "name": "habits-completion-read-v2",
+      "status": "active",
+      "deployed_by": "#306",
+      "introduced_by": "#306",
+      "description": "Phase 3 (ADR-0002 Q3-D) canonical read path. `exclude_completed_v2.py` queries the JSONL state log to determine which habits are already complete for today, replacing the v1 LLM-driven comment parser. The agent begins using this read path after Phase 5 cutover (#308).",
+      "path": [
+        {"from": "scripts/habits/query_active_habits_v2.py", "to": "Vikunja /projects/<id>/tasks?filter=due_date<=now/d AND done=false", "protocol": "HTTPS via Tailscale Serve", "port": 443, "backend_port": 3456, "description": "Vikunja-native filter expression for active-today habits, project-scoped to Habits"},
+        {"from": "scripts/habits/exclude_completed_v2.py", "to": "scripts/common/state_log.py", "protocol": "python-import", "description": "Calls state_log.read(\"habits\", task_id, date, state=\"complete\") per active task"},
+        {"from": "scripts/common/state_log.py", "to": "habits-history.jsonl", "path": "/data/services/openclaw/state/habits-history.jsonl", "description": "Read-only scan of the canonical per-domain JSONL history"}
+      ]
+    },
+    {
+      "name": "habits-reconcile",
+      "status": "active",
+      "deployed_by": "#306",
+      "introduced_by": "#306",
+      "description": "Phase 3 reconcile loop (FR-008, FR-009). Enumerates active habit tasks (project-scoped) and bridges Vikunja-UI completions to the JSONL log; reports drift in the opposite direction without auto-resolving.",
+      "path": [
+        {"from": "scripts/habits/reconcile_completions.py", "to": "Vikunja /projects/<id>/tasks?filter=is_archived=false", "protocol": "HTTPS via Tailscale Serve", "port": 443, "backend_port": 3456, "description": "Project-scoped enumeration of active habit tasks"},
+        {"from": "scripts/habits/reconcile_completions.py", "to": "scripts/common/state_log.py", "protocol": "python-import", "description": "Reads existing records to detect drift; appends backfill records with source=vikunja-ui"},
+        {"from": "scripts/common/state_log.py", "to": "habits-history.jsonl", "path": "/data/services/openclaw/state/habits-history.jsonl", "description": "Backfill write path (source=vikunja-ui)"}
       ]
     }
   ],
