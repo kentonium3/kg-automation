@@ -17,11 +17,11 @@
 | T004 | Add `__main__` CLI to `state_log.py` (argparse subcommands `append` and `read`) | WP01 | | [D] |
 | T005 | Create `docs/design/architecture/data/agent-state-log-schema.md` (FR-012 schema doc) | WP01 | [D] |
 | T006 | Update `docs/INDEX.md` to reference the new schema doc | WP01 | [D] |
-| T007 | Create `tests/common/__init__.py` | WP02 | [P] |
-| T008 | Create `tests/common/test_state_log_append.py` (happy path, validation rejections, idempotency, bootstrap) | WP02 | |
-| T009 | Create `tests/common/test_state_log_read.py` (filter combinations, empty file, TypeError on unknown kwarg) | WP02 | [P] |
-| T010 | Create `tests/common/test_state_log_concurrent.py` (multiprocessing concurrent-append, NFR-003) | WP02 | [P] |
-| T011 | Create `tests/common/test_state_log_cli.py` (subprocess CLI tests, exit codes) | WP02 | [P] |
+| T007 | Create `tests/common/__init__.py` | WP02 | [D] |
+| T008 | Create `tests/common/test_state_log_append.py` (happy path, validation rejections, idempotency, bootstrap) | WP02 | | [D] |
+| T009 | Create `tests/common/test_state_log_read.py` (filter combinations, empty file, TypeError on unknown kwarg) | WP02 | [D] |
+| T010 | Create `tests/common/test_state_log_concurrent.py` (multiprocessing concurrent-append, NFR-003) | WP02 | [D] |
+| T011 | Create `tests/common/test_state_log_cli.py` (subprocess CLI tests, exit codes) | WP02 | [D] |
 
 `[P]` = parallel-safe (different file/concern; no inter-subtask dependency)
 
@@ -82,11 +82,11 @@ Verified by code structure + the WP02 test suite:
 
 #### Included subtasks
 
-- [ ] T007 Create `tests/common/__init__.py`
-- [ ] T008 Create `tests/common/test_state_log_append.py`
-- [ ] T009 Create `tests/common/test_state_log_read.py`
-- [ ] T010 Create `tests/common/test_state_log_concurrent.py`
-- [ ] T011 Create `tests/common/test_state_log_cli.py`
+- [x] T007 Create `tests/common/__init__.py`
+- [x] T008 Create `tests/common/test_state_log_append.py`
+- [x] T009 Create `tests/common/test_state_log_read.py`
+- [x] T010 Create `tests/common/test_state_log_concurrent.py`
+- [x] T011 Create `tests/common/test_state_log_cli.py`
 
 #### Implementation sketch
 
