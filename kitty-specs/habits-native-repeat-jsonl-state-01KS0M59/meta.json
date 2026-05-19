@@ -1,0 +1,10 @@
+{
+  "created_at": "2026-05-19T17:22:28.601096+00:00",
+  "friendly_name": "habits native repeat jsonl state",
+  "mission_id": "01KS0M59313RF0WVJZTXYDJC6C",
+  "mission_number": null,
+  "mission_slug": "habits-native-repeat-jsonl-state-01KS0M59",
+  "mission_type": "software-dev",
+  "slug": "habits-native-repeat-jsonl-state-01KS0M59",
+  "target_branch": "main"
+}
