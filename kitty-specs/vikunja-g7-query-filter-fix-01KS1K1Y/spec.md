@@ -56,7 +56,7 @@ A reader of `docs/design/research/vikunja-task-model-research.md` sees G7 in the
 |---|---|---|
 | FR-001 | `scripts/habits/query_active_habits_v2.py` no longer sends a `filter=...` query parameter to `GET /projects/<id>/tasks`. The HTTP URL is `GET /api/v1/projects/13/tasks` (with default pagination params if applicable). | Active |
 | FR-002 | The helper applies the equivalent filter logic in Python: tasks are kept iff `task["done"] == False` AND `task["due_date"] <= <today>T23:59:59Z` (ISO-8601 lex compare against the UTC normalized today). | Active |
-| FR-003 | The helper preserves the existing PAUSED-label exclusion. Any task with the `paused` label (case-insensitive) is excluded. | Active |
+| FR-003 | The helper preserves ALL existing client-side filtering behavior unchanged (none of which currently exists in v2 — see note). The mission does NOT add new filtering semantics. **Note**: v2 has no PAUSED-label exclusion today (v1 had `(PAUSED)` description-string detection); this is an existing gap and is explicitly out of scope per C-001. If parity with v1 PAUSED handling is desired, that's a separate follow-up. | Active |
 | FR-004 | The helper's stdout format is unchanged: newline-delimited JSON, one object per surviving task, fields: `id`, `title`, `description`, `due_date`, `done`, `repeat_after`, `project_id`, `labels` (whichever subset is currently emitted). | Active |
 | FR-005 | Exit codes are unchanged: 0 success (empty result OK), 1 Vikunja API failure, 2 usage error. | Active |
 | FR-006 | `scripts/habits/reconcile_completions.py` is audited for similar filter-expression usage. If similar bugs are found, they are fixed in the same mission. Audit outcome documented in the mission's research.md. (Expectation: no change needed; reconcile already uses client-side filtering.) | Active |
@@ -87,9 +87,9 @@ A reader of `docs/design/research/vikunja-task-model-research.md` sees G7 in the
 
 ### `scripts/habits/query_active_habits_v2.py` (the deliverable)
 
-Current state: builds a Vikunja-native filter expression in `_build_filter_expression(today)`, then sends it as a `filter` query param. Vikunja v0.24.6 rejects with HTTP 400.
+Current state: builds a Vikunja-native filter expression in `_build_filter_expression(today)`, then sends it as a `filter` query param to `GET /projects/13/tasks?filter=<expr>`. Vikunja v0.24.6 rejects with HTTP 400.
 
-Post-mission state: no filter expression in the HTTP request; full project task list fetched; filter applied in Python. PAUSED-label exclusion preserved (already client-side today).
+Post-mission state: no filter expression in the HTTP request; full project task list fetched via `GET /projects/13/tasks`; the equivalent `done == false AND due_date <= today` filter is applied in Python over the returned list.
 
 ### `scripts/habits/reconcile_completions.py` (audited, expected unchanged)
 
