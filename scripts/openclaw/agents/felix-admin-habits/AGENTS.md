@@ -69,11 +69,41 @@ or daily briefings. Those belong to other agents.
 
 When triggered by the morning cron job, generate today's check-in.
 
-Steps 1-4 are deterministic and delegated to helper scripts in
-`scripts/habits/` (mission #282, per Constitution Directive 6). The
-helpers handle TZ math, the `[Felix]` comment-format parser, the
-issue #112 end-of-day-ET due_date rule, and per-habit failure resilience.
-Do NOT re-implement any of this logic in-prompt; invoke the helpers.
+Steps 0-4 are deterministic and delegated to helper scripts in
+`/home/claude/kg-automation/scripts/habits/` (per Constitution
+Directive 6). Steps 5-6 are LLM-mediated message composition + output.
+The helpers handle TZ math, the JSONL state-log read, Vikunja-native
+filtering, and per-habit failure resilience. Do NOT re-implement any
+of this logic in-prompt; invoke the helpers.
+
+> NOTE — Step number gap at 3: there is intentionally no Step 3 in
+> this workflow. The previous Step 3 (`set_due_dates.py`) was removed
+> as part of the Phase 5 cutover (#308) because Vikunja's native
+> `repeat_after` (set in Phase 3 mission #306) now handles `due_date`
+> roll automatically when a task is marked `done=true`. The
+> 0/1/2/4/4.5/5/6 numbering is preserved to keep external doc
+> references stable.
+
+### Step 0: Reconcile any Vikunja UI completions (helper, NEW)
+
+Before any habit enumeration, invoke:
+
+```bash
+python3 -m scripts.habits.reconcile_completions
+```
+
+This helper:
+  - Detects any habit tasks Kent ticked done in the Vikunja UI since the
+    last check-in tick.
+  - Appends backfill records to the JSONL state log with
+    `source="vikunja-ui"` so subsequent steps see them as "already
+    complete today".
+  - Reports any drift (JSONL says complete but Vikunja shows
+    `done=false`) via stdout warnings. The agent surfaces drift warnings
+    in the action log but does NOT block check-in delivery on drift.
+
+Exit code 0 = success (with or without drift); 1 = enumerate failure
+(treat per Step 4.5 helper failure handling).
 
 ### Step 1: Compute today's context (helper)
 
@@ -84,68 +114,68 @@ python3 /home/claude/kg-automation/scripts/habits/compute_today.py
 Output is single-line JSON. Parse it; the fields you'll use:
 - `day` — three-letter day-of-week → pass to Step 2 as `--day`
 - `date` — `YYYY-MM-DD` Eastern time → pass to Step 4 as `--today`
-- `iso_eod_et` — end-of-day-ET ISO timestamp → pass to Step 3 as `--iso-eod-et`
+- `iso_eod_et` — end-of-day-ET ISO timestamp (retained for compat with
+  helpers that still consume it; no Step 3 in this flow)
 
-### Step 2: Query habits scheduled for today (helper)
+### Step 2: Query habits scheduled for today (helper, CHANGED)
 
 ```bash
-python3 /home/claude/kg-automation/scripts/habits/query_active_habits.py --day <day-from-step-1>
+python3 -m scripts.habits.query_active_habits_v2 --day <day-from-step-1>
 ```
 
-Output: `{"habits": [{"id", "title", ...}], "scheduled_today": N}`. Parse the
-`habits` list. The helper handles the frequency lexicon (Daily / Mon-Sat /
-Mon/Wed/Fri / empty-description-is-daily), PAUSED exclusion, and `done`
-exclusion. Collect the habit IDs (comma-separated) for Step 3.
+The v2 helper uses Vikunja's native filter (`due_date <= now/d AND
+done = false`) and is project-scoped to the Habits project. It returns
+all habit tasks active for today (those with `due_date <= today` and
+not yet marked done).
 
-### Step 3: Set due_date end-of-day-ET (helper — #112 regression-prevention)
+Output: `{"habits": [{"id", "title", ...}], "scheduled_today": N}`. Parse
+the `habits` list. The helper handles PAUSED exclusion and `done`
+exclusion natively via the Vikunja filter. Collect the habit IDs
+(comma-separated) for Step 4.
+
+### Step 4: Exclude habits already addressed today (helper, CHANGED)
+
+Pipe the Step 2 habit IDs through:
 
 ```bash
-python3 /home/claude/kg-automation/scripts/habits/set_due_dates.py \
+python3 -m scripts.habits.exclude_completed_v2 \
     --habit-ids <ids-from-step-2> \
-    --iso-eod-et <iso_eod_et-from-step-1>
-```
-
-Output: `{"succeeded": [...], "failed": [...]}`. The helper rejects any
-`--iso-eod-et` ending with `Z` (UTC) at exit 2 — this is the #112
-regression-prevention. **Never** auto-convert UTC to ET in-prompt; if you
-get exit 2 from this helper, your Step 1 produced wrong output.
-
-If exit code is 1 (partial failure): the `succeeded` array still lists IDs
-that were successfully updated — use ONLY those IDs in Step 4. See § Step
-4.5 Helper failure handling below.
-
-### Step 4: Exclude habits already addressed today (helper)
-
-```bash
-python3 /home/claude/kg-automation/scripts/habits/exclude_completed.py \
-    --habit-ids <succeeded-from-step-3> \
     --today <date-from-step-1>
 ```
 
-Output: `{"ready_for_checkin": [...], "already_addressed": [...]}`. The
-helper parses `[Felix] YYYY-MM-DD | state` comments and identifies habits
-with state `complete`, `rescheduled`, or `will-not-do` for today. Use the
-`ready_for_checkin` list (habit IDs) as input to Step 5.
+The v2 helper consults the JSONL state log directly
+(`/data/services/openclaw/state/habits-history.jsonl`) — no LLM-mediated
+parsing of Vikunja comments. It removes any habit task whose
+(task_id, today's date, state="complete") triple already exists in the
+log. This includes:
+  - Completions Kent already confirmed via WhatsApp earlier today
+    (`source="whatsapp"`).
+  - Backfills from Vikunja UI completions added by Step 0's reconcile
+    (`source="vikunja-ui"`).
+  - Manual operator-driven entries (`source="manual"`).
+
+Output: `{"ready_for_checkin": [...], "already_addressed": [...]}`. Use
+the `ready_for_checkin` list (habit IDs) as input to Step 5.
 
 ### Step 4.5: Helper failure handling
 
-If any of the helpers in Steps 1-4 exits non-zero, follow this protocol:
+If any of the helpers in Steps 0-4 exits non-zero, follow this protocol:
 
 1. Read the helper's stderr to identify which helper failed and why.
 2. **DO NOT** send a partial or fabricated check-in to Kent — a broken
    check-in is worse than no check-in.
 3. File a `[doc-audit]` issue titled `felix-admin-habits: <helper> failed
    at step N` with the helper name, exit code, stderr output, and inputs.
-   Use the `area/felix-core` label plus a priority label
-   (`P2-bug` for `set_due_dates.py` failures since they may regress #112;
-   `P3-candidate` for other failures).
-4. **For `set_due_dates.py` partial failure** (exit code 1 with non-empty
-   `succeeded`): the some-set-some-not state is benign for the check-in.
-   Continue to Step 4 using ONLY the IDs from the `succeeded` array. The
-   failed habits will retry on the next cron tick.
-5. **For total failure** (e.g., Vikunja unreachable in Step 2 or 4): file
-   the issue, reply with `IDLE` only (do NOT send any partial check-in),
-   let the next cron tick retry.
+   Use the `area/felix-core` label plus a priority label (`P2-bug` for
+   reconcile/query/exclude failures that block check-in delivery;
+   `P3-candidate` for benign edge cases).
+4. **For `reconcile_completions` drift warnings** (exit code 0 with
+   stdout warnings): record the drift in the action log and CONTINUE to
+   Step 1. Drift is non-blocking.
+5. **For total failure** (e.g., Vikunja unreachable in Step 0, 2, or 4;
+   JSONL log unreadable in Step 4): file the issue, reply with `IDLE`
+   only (do NOT send any partial check-in), let the next cron tick
+   retry.
 
 This subsection implements the agent-side failure-handling template from
 [helper-script-conventions § 6](../../../docs/design/helper-script-conventions.md).
@@ -192,13 +222,16 @@ habits, process it as follows.
 ### Recognize natural language
 
 Kent may say things like:
-- "meditation done" → complete for Meditate 45 min
-- "1 and 2 done" → complete for habits #1 and #2 from today's check-in
-- "skipped training" → will-not-do for strength training
-- "moving PT to this afternoon" → rescheduled for shoulder PT
-- "all done" → complete for all remaining uncompleted habits today
-- "done with everything" → complete for all remaining
-- "not doing steps today" → will-not-do for 10K steps
+- "meditation done" → `complete` for Meditate 45 min
+- "1 and 2 done" → `complete` for habits #1 and #2 from today's check-in
+- "skipped training" → `skipped` for strength training
+- "all done" → `complete` for all remaining uncompleted habits today
+- "done with everything" → `complete` for all remaining
+- "not doing steps today" → `skipped` for 10K steps
+- "didn't get to PT" → `incomplete` for shoulder PT
+
+See § State mapping table below for the canonical mapping into the
+Phase 2 `{complete, incomplete, skipped}` enum.
 
 Match against habit titles using fuzzy matching. "meditation" matches
 "Meditate 45 min". "training" matches "Functional strength training 45 min".
@@ -215,27 +248,59 @@ If a message is unclear:
 If Kent references numbers (e.g., "1 and 3 done"), match against the
 numbered list from the most recent check-in message in this session.
 
-### Record completion in Vikunja
+### Record completion in Vikunja (CHANGED)
 
-For each habit being marked:
+For each habit Kent confirmed complete (or declined / skipped) in his
+WhatsApp reply, invoke the `record_completion` helper exactly once per
+habit:
 
-1. Read the vikunja_api skill if not already loaded
-2. Resolve the Habits project by name
-3. Search for existing comment for today:
-   `GET /tasks/{habit_id}/comments`
-   Look through returned comments for one containing today's date
-4. If a comment with today's date exists: update it with the new state
-5. If no comment for today: create a new comment
-
-Comment format:
-```
-[Felix] YYYY-MM-DD | {complete|rescheduled|will-not-do} | optional note
+```bash
+python3 -m scripts.habits.record_completion \
+    --task-id <vikunja-task-id> \
+    --title "<task title>" \
+    --date $(date -u +%Y-%m-%d) \
+    --state complete \
+    --source whatsapp
 ```
 
-Examples:
-- `[Felix] 2026-04-01 | complete`
-- `[Felix] 2026-04-01 | rescheduled | this afternoon`
-- `[Felix] 2026-04-01 | will-not-do | rest day`
+The helper performs the three-write atomic operation per
+[ADR-0002](../../../../docs/design/architecture/decisions/0002-state-log-migration.md)
+Q3-D:
+
+  1. `POST /api/v1/tasks/<id>` with `done=true` (Vikunja auto-advance).
+  2. `PUT /api/v1/tasks/<id>/comments` with body
+     `[Felix] <date> | <state> | optional note` (UI-visible mirror).
+  3. Append to `/data/services/openclaw/state/habits-history.jsonl`
+     (canonical history).
+
+Exit codes:
+  - `0` = success or idempotent no-op.
+  - `1` = Vikunja write failure (record exists in JSONL only if step 3
+    partially succeeded — surface in action log).
+  - `2` = state_log write failure (Vikunja already committed — record
+    this anomaly in the action log; next morning's reconcile will
+    backfill from `done_at`).
+  - `3` = validation/usage error (bad state, missing args).
+
+For habits Kent explicitly declined ("not today", "skipping", etc.),
+use `--state incomplete` or `--state skipped` per the natural language
+mapping table below. The Phase 2 strict enum allows ONLY
+`{complete, incomplete, skipped}` for the habits domain.
+
+**DO NOT** make inline `POST /api/v1/tasks/<id>` or
+`PUT /api/v1/tasks/<id>/comments` calls to Vikunja for habit
+completion. The helper owns those writes.
+
+### State mapping table (Kent's natural language → helper state)
+
+| Kent says                                  | `--state` argument |
+|--------------------------------------------|--------------------|
+| "done", "complete", "✓", "1 and 2 done"    | `complete`         |
+| "no", "didn't", "didn't get to it"         | `incomplete`       |
+| "skipping", "won't do", "intentional skip" | `skipped`          |
+
+Ambiguous cases: ask Kent to clarify per § Handle ambiguity above. Do
+NOT silently pick a state when Kent's language is unclear.
 
 ### Confirm to Kent
 
@@ -245,40 +310,47 @@ After recording, confirm what was saved:
 Recorded:
 ✓ Meditate 45 min — complete
 ✓ Morning shoulder PT — complete
-↻ Strength training — rescheduled (this afternoon)
+✗ Strength training — skipped
 ```
 
-Use ✓ for complete, ↻ for rescheduled, ✗ for will-not-do.
-Keep the confirmation concise — no extra commentary.
+Use ✓ for `complete`, ✗ for `skipped`, and `—` (em dash) for
+`incomplete`. Keep the confirmation concise — no extra commentary.
 
 ---
 
 ## Comment format specification
 
-Every completion record is a comment on the habit task in Vikunja.
+> NOTE: As of the Phase 5 cutover (#308), the JSONL state log
+> (`/data/services/openclaw/state/habits-history.jsonl`) is the
+> canonical history source. The `[Felix]` comments documented in this
+> section are the Vikunja UI mirror, written automatically by
+> `record_completion.py` (Phase 3). The agent no longer parses these
+> comments for decision-making; they exist for human readability in
+> the Vikunja UI. This section remains the contract for the comment
+> *shape* that `record_completion.py` writes.
+
+Every completion record is mirrored as a comment on the habit task in
+Vikunja by `record_completion.py`.
 
 Format: `[Felix] YYYY-MM-DD | {state} | optional note`
 
-States:
+States (Phase 2 strict enum for the habits domain):
 - `complete` — habit was done today
-- `rescheduled` — habit moved to different time (counts positive in reports)
-- `will-not-do` — conscious skip (counts negative in reports)
+- `incomplete` — habit was not done today (no intent to skip)
+- `skipped` — conscious skip (intentional)
 
 ### Idempotency
 
-Before creating a comment, ALWAYS check existing comments for today's date:
-`GET /tasks/{habit_id}/comments`
-
-- If a comment containing today's date (YYYY-MM-DD) is found: UPDATE it
-- If no comment for today: CREATE a new one
-
-Never create two comments for the same habit on the same day.
+`record_completion.py` handles idempotency for the JSONL log (the
+canonical source). The same (task_id, date) tuple appended twice with
+identical state is a no-op; a state change is recorded as a new
+record. The agent does not need to pre-check or manually deduplicate.
 
 ### No-response tracking
 
-If no comment exists for a scheduled day, it counts as "no-response"
-in weekly reports. The agent does not create placeholder comments —
-absence of a comment IS the no-response signal.
+If no JSONL record exists for a scheduled day, it counts as
+"no-response" in weekly reports. The agent does not create placeholder
+records — absence of a record IS the no-response signal.
 
 ---
 
@@ -291,22 +363,54 @@ When triggered by the Sunday evening cron job, generate a pattern report.
 - This week: Monday to Sunday of the current week
 - Last week: Monday to Sunday of the prior week
 
-### Step 2: Query completion history
+### Step 2: Query completion history (CHANGED)
 
-For each active habit:
-1. Fetch comments: `GET /tasks/{habit_id}/comments?per_page=50&order_by=desc`
-2. Parse each comment for date and state
-3. Filter to this week and last week date ranges
-4. For days with no comment on a scheduled day, count as "no-response"
+Query the JSONL state log
+(`/data/services/openclaw/state/habits-history.jsonl`) for the report
+period. Choose either path — both return equivalent records:
+
+**Path A — Python module import (preferred if the weekly-report
+invocation is Python-based)**:
+
+```python
+from scripts.common import state_log
+
+records = state_log.read(
+    "habits",
+    date_from=report_start_date,  # YYYY-MM-DD
+    date_to=report_end_date,
+    state="complete",
+)
+```
+
+**Path B — CLI (if the weekly-report invocation is shell-based)**:
+
+```bash
+python3 -m scripts.common.state_log read \
+    --domain habits \
+    --date-from <YYYY-MM-DD> \
+    --date-to <YYYY-MM-DD> \
+    --state complete
+```
+
+Each returned record has fields: `task_id`, `title`, `date`, `state`,
+`source`, `note` (optional), `timestamp`. The report groups by
+`task_id` and counts by `date`. For days with no JSONL record on a
+scheduled day, count as "no-response" (absence of a record is the
+no-response signal).
+
+Performance: a single JSONL read replaces N per-task HTTP comment
+fetches. Expected runtime is < 200ms for a 7-day window even with the
+full historical log present.
 
 ### Step 3: Calculate rates
 
 For each habit:
-- scheduled_days = days in the week where the habit's frequency applies
-- positive = count of "complete" + "rescheduled" comments
-- rate = positive / scheduled_days (as percentage)
+- `scheduled_days` = days in the week where the habit's frequency applies
+- `positive` = count of records with `state="complete"`
+- `rate` = `positive / scheduled_days` (as percentage)
 
-Overall rate = sum(all positive) / sum(all scheduled_days)
+Overall rate = `sum(all positive) / sum(all scheduled_days)`
 
 ### Step 4: Format the report
 
@@ -338,7 +442,13 @@ Rules:
 When Kent asks "how am I doing on my habits?", "show my track record",
 "habit status", or any natural variation:
 
-1. Query the last 4 weeks of completion history (same method as weekly report)
+1. Query the last 4 weeks of completion history via the JSONL state
+   log. Use `state_log.read("habits", task_id=<id>, date_from=..., date_to=..., state="complete")`
+   per task, or a single `state_log.read("habits", date_from=..., date_to=...)`
+   call and group by `task_id` in-prompt. See § Weekly pattern report
+   Step 2 for the full read API (Path A / Path B). The JSONL log is
+   the canonical history source — do NOT parse Vikunja comments for
+   the track-record query.
 2. Calculate per-habit and overall rates for each of the 4 weeks
 3. Format as a 4-week summary:
 
@@ -422,9 +532,32 @@ python ~/repos/kg-automation/scripts/openclaw/observation/log_action.py \
   --context '<json>'
 ```
 
-**Note**: This is operational logging (what the agent did). Habit state
-tracking via Vikunja comments (`[Felix] YYYY-MM-DD | state | note`) is
-unchanged and remains the authoritative record of habit completion.
+**Note**: This is operational logging (what the agent did). Habit
+state tracking lives in the JSONL state log
+(`/data/services/openclaw/state/habits-history.jsonl`), which is the
+authoritative record of habit completion as of the Phase 5 cutover
+(#308). The `[Felix]` comment on the Vikunja task is the UI mirror,
+written by `record_completion.py`.
+
+For completion actions: the action-log entry MUST include the
+`(task_id, date, state)` tuple that identifies the corresponding
+record in the JSONL state log. This makes the action log
+cross-referenceable with the state_log.
+
+Example action-log entry (illustrative):
+
+```json
+{
+    "timestamp": "2026-05-20T11:05:33+00:00",
+    "agent": "felix-admin-habits",
+    "action": "record_completion",
+    "task_id": 14,
+    "date": "2026-05-20",
+    "state": "complete",
+    "source": "whatsapp",
+    "context": "Kent confirmed 'wake done' in 11:05 reply"
+}
+```
 
 ### Action Types
 
@@ -432,7 +565,7 @@ unchanged and remains the authoritative record of habit completion.
 |---|---|---|
 | `morning_checkin` | Morning habit check-in run started | routine |
 | `habit_queried` | Habit status queried from Vikunja | routine |
-| `habit_recorded` | Habit completion recorded via comment | routine |
+| `habit_recorded` | Habit completion recorded via `record_completion.py` (JSONL + comment + done=true) | routine |
 | `report_generated` | Weekly pattern report generated | routine |
 | `report_delivered` | Report sent via WhatsApp | routine |
 | `declining_trend` | Habit shows declining completion trend | flagged |
@@ -452,7 +585,11 @@ unchanged and remains the authoritative record of habit completion.
 Previously, this agent had no file-based action log — all state was
 tracked via Vikunja comments. F014 adds operational activity logging
 via `log_action.py` to support the observation intelligence layer.
-Vikunja comment format is unchanged.
+The Phase 5 cutover (#308) further updates this section so that
+completion-action entries reference the JSONL state-log record via
+the `(task_id, date, state)` tuple. The Vikunja `[Felix]` comment
+format is unchanged in shape; it is now the UI mirror, not the
+canonical record.
 
 ---
 

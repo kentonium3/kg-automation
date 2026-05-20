@@ -11,10 +11,65 @@ status: draft
 
 The felix-admin-habits agent manages Kent's daily habit check-ins and
 accountability tracking. It runs on office2 via OpenClaw, delivering a
-morning check-in via WhatsApp and recording completion state in Vikunja.
-A weekly pattern report runs Sunday evenings. The agent also sets
-`due_date = today` on each scheduled habit so they appear in the
-Vikunja Today filter.
+morning check-in via WhatsApp and recording completion state in the
+JSONL state log (canonical) plus Vikunja (UI mirror, written by
+`record_completion.py`). A weekly pattern report runs Sunday evenings.
+Vikunja's native `repeat_after` (set in Phase 3 #306) handles
+`due_date` rolling automatically when a habit task is marked
+`done=true`.
+
+## Phase 5 cutover (2026-05-20)
+
+**Date**: 2026-05-20 (UTC). Operator deploys via the [Update workspace
+files](#update-workspace-files) command after the cutover commit lands
+on `main`.
+
+**Issue reference**: [GitHub #308](https://github.com/kentonium3/kg-automation/issues/308)
+— Phase 5 of ADR-0002 (state-log migration).
+
+**Workflow shape change** — `scripts/openclaw/agents/felix-admin-habits/AGENTS.md`
+moves from the v1 comment-parsing flow to the v2 JSONL-based flow:
+
+- **Step 0 (NEW)** — `reconcile_completions.py` runs before any habit
+  enumeration. Backfills any Vikunja-UI completions into the JSONL log
+  with `source="vikunja-ui"`.
+- **Step 1 (CHANGED)** — `query_active_habits_v2.py` replaces the v1
+  helper. Uses Vikunja's native filter
+  (`due_date <= now/d AND done = false`), project-scoped to Habits.
+- **Step 2 (CHANGED)** — `exclude_completed_v2.py` replaces the v1
+  helper. Reads the JSONL state log directly; no LLM-mediated comment
+  parsing.
+- **Step 3 (REMOVED)** — the previous `set_due_dates.py` invocation
+  is dropped; Vikunja's native `repeat_after` now handles due_date
+  rolling. Step numbering keeps a gap at 3 (0/1/2/4/4.5/5/6) to
+  preserve external doc references.
+- **Completion marking (CHANGED)** — `record_completion.py` performs
+  the atomic three-write (Vikunja `done=true` + `[Felix]` comment +
+  JSONL append). The agent no longer makes inline POST/PUT calls for
+  habit completion.
+- **Weekly pattern report (CHANGED)** — Step 2 reads from the JSONL
+  state log (`state_log.read("habits", date_from=..., date_to=...,
+  state="complete")`) instead of fetching per-task Vikunja comments.
+
+**v1 files preserved**: per spec constraints C-001/C-002, the v1
+helpers (`query_active_habits.py`, `exclude_completed.py`,
+`set_due_dates.py`) remain on disk and on office2 untouched during the
+2-3 day soak. A follow-up post-soak mission will remove them and
+rename the `_v2.py` files to canonical names.
+
+**Operator deploy walkthrough**: see the mission
+[quickstart.md](../../kitty-specs/habits-cutover-to-jsonl-v2-flow-01KS1FKE/quickstart.md)
+for the full Steps 1-6 procedure (pull → deploy → sha256 verify →
+wait for next cron → smoke-test → verify the Tuesday structural fix).
+The deploy itself uses the existing [Update workspace files](#update-workspace-files)
+command unchanged.
+
+**Soak posture**: 2-3 day fail-forward observation window (per spec
+C-007). Non-catastrophic anomalies become forward-fix follow-up
+commits, NOT triggers to revert. Only catastrophic failures (cron
+silent for 24+ hours, agent crashes on every invocation, JSONL data
+corruption) trigger the rollback procedure documented in the
+quickstart.
 
 ## Agent management
 
@@ -98,10 +153,14 @@ ssh office2-claude "openclaw agent --agent felix-admin-habits \
 ### View habits
 
 All habits are tasks in the Habits project. Each has a title, frequency
-in the description field, and a personal identity label. The agent sets
-`due_date` to today on each scheduled habit during the morning check-in
-(F018). This is a visibility mechanism for the Vikunja Today filter —
-the comment model remains the authoritative source of completion state.
+in the description field, and a personal identity label. As of the
+Phase 5 cutover (2026-05-20, #308), Vikunja's native `repeat_after`
+handles `due_date` roll automatically when a habit task is marked
+`done=true` — the agent no longer manually sets `due_date` during the
+morning check-in. The JSONL state log
+(`/data/services/openclaw/state/habits-history.jsonl`) is the
+authoritative source of completion state; the `[Felix]` comment on
+each task is the Vikunja UI mirror written by `record_completion.py`.
 
 ### Current habits
 
@@ -117,15 +176,35 @@ the comment model remains the authoritative source of completion state.
 
 ### Check completion history
 
-Completion records are stored as comments on each habit task:
+Canonical completion records live in the JSONL state log
+(`/data/services/openclaw/state/habits-history.jsonl`). Inspect via:
 
 ```bash
-# Via Vikunja API
+ssh office2-claude 'tail -20 /data/services/openclaw/state/habits-history.jsonl'
+```
+
+Or via the state_log CLI for filtered reads:
+
+```bash
+ssh office2-claude 'python3 -m scripts.common.state_log read \
+    --domain habits \
+    --date-from 2026-05-01 \
+    --date-to 2026-05-31 \
+    --state complete'
+```
+
+Each habit task also has `[Felix]` comments as a UI-visible mirror,
+written by `record_completion.py`. These are convenient to view in the
+Vikunja web UI but are NOT the canonical source. The comment-API path
+remains for historical inspection only:
+
+```bash
+# Via Vikunja API (UI mirror — JSONL is canonical)
 curl -s -H "Authorization: Bearer $(cat /data/services/openclaw/secrets/vikunja-api)" \
   "https://office2.tail0f5f56.ts.net/api/v1/tasks/15/comments" | python3 -m json.tool
 ```
 
-Comment format: `[Felix] YYYY-MM-DD | {complete|rescheduled|will-not-do} | optional note`
+Comment format: `[Felix] YYYY-MM-DD | {complete|incomplete|skipped} | optional note`
 
 ### Add/remove habits directly in Vikunja
 
@@ -143,11 +222,11 @@ the task as done (history is preserved).
 The morning cron delivers a numbered list of today's habits. Reply with
 completions using natural language:
 
-- "1 and 2 done" — marks habits #1 and #2 as complete
+- "1 and 2 done" — marks habits #1 and #2 as `complete`
 - "meditation done" — fuzzy matches to Meditate 45 min
-- "all done" — marks all remaining habits as complete
-- "skipping training" — marks as will-not-do
-- "moving PT to this afternoon" — marks as rescheduled
+- "all done" — marks all remaining habits as `complete`
+- "skipping training" — marks as `skipped`
+- "didn't get to PT" — marks as `incomplete`
 
 ### On-demand queries
 
@@ -169,12 +248,12 @@ Send any of these via WhatsApp (routed through the main agent):
 | Symptom | Check | Fix |
 |---------|-------|-----|
 | No check-in delivered | `ssh office2-claude "openclaw cron list"` | Verify cron exists, is enabled, and has `--to` set |
-| Completion not recorded | Check Vikunja task comments via API | Verify vikunja_api skill: `ssh office2-claude "openclaw skills info vikunja_api"` |
+| Completion not recorded | Check JSONL state log: `ssh office2-claude 'tail -20 /data/services/openclaw/state/habits-history.jsonl'` | Verify `record_completion.py` exit code in session log; check vikunja_api skill: `ssh office2-claude "openclaw skills info vikunja_api"` |
 | Agent not responding | `ssh office2-claude "openclaw agents list"` | Restart gateway: `ssh office2-claude "systemctl --user restart openclaw-gateway"` |
 | Delivery error | `ssh office2-claude "openclaw cron runs --id <uuid>"` | Check `--to` flag is set on the cron job |
 | Session cache stale | Agent uses old AGENTS.md | Restart gateway or wait for isolated session |
 | Main agent not delegating | Send habit message, check response | Verify habits delegation in `/data/services/openclaw/data/AGENTS.md` |
-| Habits not in Today filter | Verify morning cron ran: `ssh office2-claude "openclaw cron runs --id <uuid>"` | If cron succeeded, check task due_dates via API. If cron failed, investigate cron error. |
+| Habits not in Today filter | Verify morning cron ran: `ssh office2-claude "openclaw cron runs --id <uuid>"` | If cron succeeded, confirm Vikunja's native `repeat_after` is set on the habit task (Phase 3 #306). If cron failed, investigate cron error. |
 
 ## Privacy boundary
 
