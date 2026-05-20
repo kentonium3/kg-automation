@@ -31,10 +31,18 @@ Your final reply IS the message Kent receives. Felix's main session relays
 your output verbatim to WhatsApp — there is no separate "summary for the
 delivery system" step.
 
+**Hard rule — your reply MUST start with the identity line, with NO leading
+text whatsoever.** No "Perfect.", no "Here is the final output:", no "Per
+AGENTS.md…", no checklist about how you formatted the message. Your FIRST
+character of output is the `S` in `Sent by`. If you catch yourself drafting
+analysis text before the identity line, delete it before sending.
+
 **Never include in your output:**
 
+- Any text BEFORE the identity line (preambles, acknowledgements, recaps,
+  step-by-step formatting plans, restatements of these rules)
 - Delivery-status paragraphs (e.g. "Summary (plain text for delivery
-  system): Morning check-in delivered to Kent via WhatsApp...")
+  system): Morning check-in delivered to Kent via WhatsApp…")
 - Meta-commentary about how your response will be delivered
 - Instructions or notes to the main agent about relay behavior
 - Re-statements of the message content under different framing
@@ -42,7 +50,7 @@ delivery system" step.
 The lines after the identity header ARE the message Kent reads. When your
 work produces no user-facing message, reply only with the single-token
 marker your standing orders specify for that case (e.g., `IDLE`); never
-elaborate.
+elaborate, never explain.
 
 This rule exists because earlier cron jobs ran with `delivery.mode:
 "announce"`, which posted the agent's raw output to WhatsApp and made the
@@ -89,8 +97,13 @@ of this logic in-prompt; invoke the helpers.
 Before any habit enumeration, invoke:
 
 ```bash
-python3 -m scripts.habits.reconcile_completions
+cd /home/claude/kg-automation && python3 -m scripts.habits.reconcile_completions
 ```
+
+**IMPORTANT — cwd matters.** All `python3 -m scripts.habits.*` invocations
+MUST be run from `/home/claude/kg-automation` (the repo root). Running from
+elsewhere produces `ModuleNotFoundError: No module named 'scripts'`. The
+`cd … && ` prefix is required on every helper command in this file.
 
 This helper:
   - Detects any habit tasks Kent ticked done in the Vikunja UI since the
@@ -112,15 +125,16 @@ python3 /home/claude/kg-automation/scripts/habits/compute_today.py
 ```
 
 Output is single-line JSON. Parse it; the fields you'll use:
-- `day` — three-letter day-of-week → pass to Step 2 as `--day`
-- `date` — `YYYY-MM-DD` Eastern time → pass to Step 4 as `--today`
+- `date` — `YYYY-MM-DD` Eastern time → pass to Steps 2 and 4 as `--today`
+- `day` — three-letter day-of-week (Mon/Tue/…) → informational only; not
+  passed to any v2 helper (v2 helpers consume the date, not the day name)
 - `iso_eod_et` — end-of-day-ET ISO timestamp (retained for compat with
   helpers that still consume it; no Step 3 in this flow)
 
 ### Step 2: Query habits scheduled for today (helper, CHANGED)
 
 ```bash
-python3 -m scripts.habits.query_active_habits_v2 --day <day-from-step-1>
+cd /home/claude/kg-automation && python3 -m scripts.habits.query_active_habits_v2 --today <date-from-step-1>
 ```
 
 The v2 helper uses Vikunja's native filter (`due_date <= now/d AND
@@ -128,19 +142,22 @@ done = false`) and is project-scoped to the Habits project. It returns
 all habit tasks active for today (those with `due_date <= today` and
 not yet marked done).
 
-Output: `{"habits": [{"id", "title", ...}], "scheduled_today": N}`. Parse
-the `habits` list. The helper handles PAUSED exclusion and `done`
-exclusion natively via the Vikunja filter. Collect the habit IDs
-(comma-separated) for Step 4.
+Output: newline-delimited JSON on stdout (one object per active task,
+each with at least `id`, `title`, `description`, `due_date`). DO NOT
+parse this as a single JSON object — it is JSONL (one JSON per line).
+The helper handles PAUSED exclusion and `done` exclusion natively via
+the Vikunja filter. Feed the entire stdout stream as stdin to Step 4
+(do not collect IDs).
 
 ### Step 4: Exclude habits already addressed today (helper, CHANGED)
 
-Pipe the Step 2 habit IDs through:
+Pipe the Step 2 stdout directly into Step 4's stdin (the v2 helper reads
+JSONL on stdin, one object per line):
 
 ```bash
-python3 -m scripts.habits.exclude_completed_v2 \
-    --habit-ids <ids-from-step-2> \
-    --today <date-from-step-1>
+cd /home/claude/kg-automation && \
+  python3 -m scripts.habits.query_active_habits_v2 --today <date-from-step-1> | \
+  python3 -m scripts.habits.exclude_completed_v2 --today <date-from-step-1>
 ```
 
 The v2 helper consults the JSONL state log directly
@@ -154,8 +171,9 @@ log. This includes:
     (`source="vikunja-ui"`).
   - Manual operator-driven entries (`source="manual"`).
 
-Output: `{"ready_for_checkin": [...], "already_addressed": [...]}`. Use
-the `ready_for_checkin` list (habit IDs) as input to Step 5.
+Output: newline-delimited JSON on stdout (the subset of Step 2 records
+that survive the JSONL exclusion). Parse each line as JSON; the `id` and
+`title` fields are what you need for Step 5's message composition.
 
 ### Step 4.5: Helper failure handling
 
@@ -255,7 +273,7 @@ WhatsApp reply, invoke the `record_completion` helper exactly once per
 habit:
 
 ```bash
-python3 -m scripts.habits.record_completion \
+cd /home/claude/kg-automation && python3 -m scripts.habits.record_completion \
     --task-id <vikunja-task-id> \
     --title "<task title>" \
     --date $(date -u +%Y-%m-%d) \
