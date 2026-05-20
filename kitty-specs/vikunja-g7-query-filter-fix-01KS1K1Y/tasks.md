@@ -20,12 +20,12 @@ Bug fix #336 / Vikunja G7 — single helper change. Drop server-side filter from
 
 | ID | Description | WP | Parallel |
 |----|-------------|----|----------|
-| T001 | Refactor `query_active_today()` — drop server-side filter, fetch full project list, apply client-side filter (`done == false AND due_date <= today`) | WP01 | |
-| T002 | Remove `_build_filter_expression()` function + audit `urllib.parse` import for removability | WP01 | |
-| T003 | Add new test file `tests/habits/test_query_active_habits_v2_filter.py` with 5 test cases per research D4 | WP01 | |
-| T004 | Audit `reconcile_completions.py` for similar filter usage; document outcome in research.md (expected: pass, no change) | WP01 | |
-| T005 | Append G7 entry to `docs/design/research/vikunja-task-model-research.md` Verified API Gotchas appendix | WP01 | |
-| T006 | Validation — run `pytest tests/habits/` (expect 319 passing); commit | WP01 | |
+| T001 | Refactor `query_active_today()` — drop server-side filter, fetch full project list, apply client-side filter (`done == false AND due_date <= today`) | WP01 | | [D] |
+| T002 | Remove `_build_filter_expression()` function + audit `urllib.parse` import for removability | WP01 | | [D] |
+| T003 | Add new test file `tests/habits/test_query_active_habits_v2_filter.py` with 5 test cases per research D4 | WP01 | | [D] |
+| T004 | Audit `reconcile_completions.py` for similar filter usage; document outcome in research.md (expected: pass, no change) | WP01 | | [D] |
+| T005 | Append G7 entry to `docs/design/research/vikunja-task-model-research.md` Verified API Gotchas appendix | WP01 | | [D] |
+| T006 | Validation — run `pytest tests/habits/` (expect 319 passing); commit | WP01 | | [D] |
 
 ---
 
@@ -37,12 +37,12 @@ Bug fix #336 / Vikunja G7 — single helper change. Drop server-side filter from
 - **Estimated prompt size**: ~400 lines
 - **Independent test**: After merge + operator deploy: `python3 -m scripts.habits.query_active_habits_v2 --today $(date -u +%Y-%m-%d)` on office2 exits 0 and emits JSONL. No HTTP 400.
 - **Includes**:
-  - [ ] T001 Refactor `query_active_today()` (WP01)
-  - [ ] T002 Remove `_build_filter_expression()` + audit import (WP01)
-  - [ ] T003 Add client-side filter tests (WP01)
-  - [ ] T004 Audit reconcile + document outcome (WP01)
-  - [ ] T005 G7 entry in Verified API Gotchas (WP01)
-  - [ ] T006 Validation — run pytest + commit (WP01)
+  - [x] T001 Refactor `query_active_today()` (WP01)
+  - [x] T002 Remove `_build_filter_expression()` + audit import (WP01)
+  - [x] T003 Add client-side filter tests (WP01)
+  - [x] T004 Audit reconcile + document outcome (WP01)
+  - [x] T005 G7 entry in Verified API Gotchas (WP01)
+  - [x] T006 Validation — run pytest + commit (WP01)
 - **Dependencies**: None.
 - **Owned files**:
   - `scripts/habits/query_active_habits_v2.py`
