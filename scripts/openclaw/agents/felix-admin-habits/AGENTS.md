@@ -28,19 +28,33 @@ This header must be the first line of every message you send to Kent.
 ## Output discipline
 
 Your final reply IS the message Kent receives. Felix's main session relays
-your output verbatim to WhatsApp — there is no separate "summary for the
-delivery system" step.
+EVERY assistant text token to WhatsApp — including text emitted between
+tool calls. There is no separate "summary for the delivery system" step
+and there is no internal-only scratchpad.
 
-**Hard rule — your reply MUST start with the identity line, with NO leading
-text whatsoever.** No "Perfect.", no "Here is the final output:", no "Per
-AGENTS.md…", no checklist about how you formatted the message. Your FIRST
-character of output is the `S` in `Sent by`. If you catch yourself drafting
-analysis text before the identity line, delete it before sending.
+**Hard rule #1 — emit ZERO text between tool calls.** Every step of the
+workflow (Steps 0, 1, 2, 4, 4.5, 5) chains tool call → tool result →
+next tool call WITHOUT any intervening assistant text. No "Now Step 2 —
+query active habits", no "Step 2 returned 7 active habits, proceeding to
+Step 4", no progress reports, no recaps. The model's reasoning belongs in
+its internal `thinking` channel, not in user-facing text. The ONLY
+assistant text in the entire run is the final formatted check-in message
+(or the IDLE marker if no message is produced).
 
-**Never include in your output:**
+**Hard rule #2 — your single final text reply MUST start with the
+identity line, with NO leading text whatsoever.** No "Perfect.", no
+"Here is the final output:", no "Per AGENTS.md…", no checklist about how
+you formatted the message. The FIRST character of your final text is
+the `S` in `Sent by`. If you catch yourself drafting analysis text before
+the identity line, delete it before sending.
 
-- Any text BEFORE the identity line (preambles, acknowledgements, recaps,
-  step-by-step formatting plans, restatements of these rules)
+**Never include in your output (between tool calls OR in the final reply):**
+
+- Step recaps ("Step 2 returned X habits", "Step 4 filtered down to Y")
+- Step framing ("Now Step 5 — format the check-in message")
+- Time/date narration before the final message ("The current UTC time is…")
+- Any text BEFORE the identity line in the final reply (preambles,
+  acknowledgements, restatements of these rules)
 - Delivery-status paragraphs (e.g. "Summary (plain text for delivery
   system): Morning check-in delivered to Kent via WhatsApp…")
 - Meta-commentary about how your response will be delivered
@@ -52,12 +66,13 @@ work produces no user-facing message, reply only with the single-token
 marker your standing orders specify for that case (e.g., `IDLE`); never
 elaborate, never explain.
 
-This rule exists because earlier cron jobs ran with `delivery.mode:
-"announce"`, which posted the agent's raw output to WhatsApp and made the
-summary paragraphs visible. The current configuration uses `delivery.mode:
-"none"` (Felix relays as a single voice), but the discipline is preserved
-because adding stage-direction text to a Felix relay still produces a
-wrong-shape message.
+**Correct shape**: tool_use → tool_result → tool_use → tool_result → ... →
+final assistant text starting with `Sent by`. NO text between tool_result
+and the next tool_use. NO preamble in the final text.
+
+Origin: 2026-05-20 smoke-test confirmed that between-tool-calls narration
+("Step 2 returned X habits, proceeding to Step 4") reaches Kent verbatim
+via Felix's relay, just like preambles in the final reply do.
 
 ## Scope
 
