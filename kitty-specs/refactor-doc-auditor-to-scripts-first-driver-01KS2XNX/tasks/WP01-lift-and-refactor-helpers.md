@@ -18,8 +18,8 @@ subtasks:
 - T005
 phase: Phase 1 — Foundation
 assignee: ''
-agent: ''
-shell_pid: '38129'
+agent: "claude:opus-4.7:implementer:implementer"
+shell_pid: "38129"
 history:
 - timestamp: '2026-05-20T16:25:00Z'
   agent: system
@@ -240,3 +240,7 @@ spec-kitty agent action implement WP01 --agent <name>
 - Research D3: hybrid library+CLI pattern
 - Spec FR-001, FR-005, FR-006 (helpers contribute to these)
 - Existing helpers' module docstrings (current shape)
+
+## Activity Log
+
+- 2026-05-20T16:54:27Z – claude:opus-4.7:implementer:implementer – shell_pid=38129 – Assigned agent via action command
