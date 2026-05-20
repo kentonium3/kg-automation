@@ -2,7 +2,7 @@
   "event_count": 12,
   "last_event_id": "01KS0HAYMK97P3P7E6EEHN10NN",
   "materialized_at": "2026-05-19T16:33:07.219208+00:00",
-  "mission_number": "",
+  "mission_number": "39",
   "mission_slug": "shared-jsonl-state-log-library-01KS0E9A",
   "mission_type": "software-dev",
   "summary": {

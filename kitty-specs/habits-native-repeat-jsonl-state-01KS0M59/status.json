@@ -2,7 +2,7 @@
   "event_count": 29,
   "last_event_id": "01KS0X7HGBHYDM0MWAX24GE674",
   "materialized_at": "2026-05-19T20:00:58.379227+00:00",
-  "mission_number": "",
+  "mission_number": "40",
   "mission_slug": "habits-native-repeat-jsonl-state-01KS0M59",
   "mission_type": "software-dev",
   "summary": {

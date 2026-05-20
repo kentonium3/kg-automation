@@ -2,7 +2,7 @@
   "event_count": 11,
   "last_event_id": "01KS1140WEP0MK530GYQ5TRNC5",
   "materialized_at": "2026-05-19T21:08:57.358336+00:00",
-  "mission_number": "",
+  "mission_number": "41",
   "mission_slug": "backfill-habits-jsonl-from-comments-01KS0Y4F",
   "mission_type": "software-dev",
   "summary": {

@@ -2,7 +2,7 @@
   "event_count": 5,
   "last_event_id": "01KS1H43NXDWFTNRJBS8AP6N9C",
   "materialized_at": "2026-05-20T01:48:37.437983+00:00",
-  "mission_number": "",
+  "mission_number": "42",
   "mission_slug": "habits-cutover-to-jsonl-v2-flow-01KS1FKE",
   "mission_type": "software-dev",
   "summary": {
