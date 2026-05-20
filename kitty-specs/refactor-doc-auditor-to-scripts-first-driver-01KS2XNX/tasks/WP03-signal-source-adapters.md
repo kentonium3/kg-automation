@@ -17,8 +17,8 @@ subtasks:
 - T015
 phase: Phase 2 — Components
 assignee: ''
-agent: "claude:opus-4.7:implementer:implementer"
-shell_pid: "61918"
+agent: "codex:gpt-5:spec-kitty-review:reviewer"
+shell_pid: "63336"
 history:
 - timestamp: '2026-05-20T16:25:00Z'
   agent: system
@@ -351,3 +351,4 @@ spec-kitty agent action implement WP03 --agent <name>
 - 2026-05-20T18:29:03Z – codex:gpt-5:spec-kitty-review:reviewer – shell_pid=58135 – Moved to planned
 - 2026-05-20T18:47:33Z – claude:opus-4.7:implementer:implementer – shell_pid=61918 – Started implementation via action command
 - 2026-05-20T18:54:19Z – claude:opus-4.7:implementer:implementer – shell_pid=61918 – Cycle 3: monotonic cursor — out-of-order commits no longer skip earlier events
+- 2026-05-20T18:55:06Z – codex:gpt-5:spec-kitty-review:reviewer – shell_pid=63336 – Started review via action command
