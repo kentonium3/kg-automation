@@ -429,3 +429,4 @@ spec-kitty agent action implement WP05 --agent <name>
 - 2026-05-20T19:36:48Z – claude:opus-4.7:implementer:implementer – shell_pid=72937 – Started implementation via action command
 - 2026-05-20T19:47:27Z – claude:opus-4.7:implementer:implementer – shell_pid=72937 – Ready for review: routing wrapper + tick-signal writer + activity-log appender. 54 new tests, all green. routing/ 100% cov, output/ avg 96% cov. Full suite 261 passed.
 - 2026-05-20T19:48:21Z – codex:gpt-5:spec-kitty-review:reviewer – shell_pid=74843 – Started review via action command
+- 2026-05-20T19:51:58Z – codex:gpt-5:spec-kitty-review:reviewer – shell_pid=74843 – Moved to planned
