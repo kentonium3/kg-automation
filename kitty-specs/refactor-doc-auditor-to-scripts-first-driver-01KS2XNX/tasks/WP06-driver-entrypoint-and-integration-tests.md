@@ -23,8 +23,8 @@ subtasks:
 - T031
 phase: Phase 3 — Integration
 assignee: ''
-agent: "claude:opus-4.7:implementer:implementer"
-shell_pid: "88162"
+agent: "codex:gpt-5:spec-kitty-review:reviewer"
+shell_pid: "91784"
 history:
 - timestamp: '2026-05-20T16:25:00Z'
   agent: system
@@ -461,3 +461,4 @@ spec-kitty agent action implement WP06 --agent <name>
 - 2026-05-20T21:09:31Z – codex:gpt-5:spec-kitty-review:reviewer – shell_pid=85836 – Moved to planned
 - 2026-05-20T21:10:17Z – claude:opus-4.7:implementer:implementer – shell_pid=88162 – Started implementation via action command
 - 2026-05-20T21:30:01Z – claude:opus-4.7:implementer:implementer – shell_pid=88162 – Cycle 2: audit workflow wired end-to-end; tests use mock_anthropic to exercise full pipeline
+- 2026-05-20T21:31:00Z – codex:gpt-5:spec-kitty-review:reviewer – shell_pid=91784 – Started review via action command
