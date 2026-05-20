@@ -13,11 +13,11 @@ This index is for reference only. Per-WP tracking happens via checkboxes in the 
 
 | ID | Description | WP | Parallel |
 |---|---|---|---|
-| T001 | Move `handle_drift_events.py` to `scripts/doc_audit/helpers/` | WP01 | |
-| T002 | Move `handle_audit_routing.py` to `scripts/doc_audit/helpers/` | WP01 | |
-| T003 | Refactor each helper: separate `main()` from internal functions; verify CLI still works | WP01 | |
-| T004 | Update references in `docs/design/helper-script-conventions.md`, `docs/design/architecture/felix-d6-survey.md`, `docs/design/architecture/data/signal-to-doc-map.json` | WP01 | [P] |
-| T005 | Unit tests for the new importable surfaces in `tests/doc_audit/helpers/` | WP01 | [P] |
+| T001 | Move `handle_drift_events.py` to `scripts/doc_audit/helpers/` | WP01 | | [D] |
+| T002 | Move `handle_audit_routing.py` to `scripts/doc_audit/helpers/` | WP01 | | [D] |
+| T003 | Refactor each helper: separate `main()` from internal functions; verify CLI still works | WP01 | | [D] |
+| T004 | Update references in `docs/design/helper-script-conventions.md`, `docs/design/architecture/felix-d6-survey.md`, `docs/design/architecture/data/signal-to-doc-map.json` | WP01 | [D] |
+| T005 | Unit tests for the new importable surfaces in `tests/doc_audit/helpers/` | WP01 | [D] |
 | T006 | Create `scripts/doc_audit/` package scaffold (`__init__.py`, `README.md`) | WP02 | |
 | T007 | Implement `data_model.py` with all 10 entities (E-001..E-010) | WP02 | |
 | T008 | Implement `config.py` + `config.toml` (default config) | WP02 | |
@@ -102,11 +102,11 @@ WP02 ──┤          ├─→ WP06 ──┐
 **Estimated prompt size**: ~350 lines
 
 **Included subtasks**:
-- [ ] T001 Move `handle_drift_events.py` to `scripts/doc_audit/helpers/`
-- [ ] T002 Move `handle_audit_routing.py` to `scripts/doc_audit/helpers/`
-- [ ] T003 Refactor each helper: separate `main()` from internal functions; verify CLI still works
-- [ ] T004 [P] Update doc references (`helper-script-conventions.md`, `felix-d6-survey.md`, `signal-to-doc-map.json`)
-- [ ] T005 [P] Unit tests for the new importable surfaces in `tests/doc_audit/helpers/`
+- [x] T001 Move `handle_drift_events.py` to `scripts/doc_audit/helpers/`
+- [x] T002 Move `handle_audit_routing.py` to `scripts/doc_audit/helpers/`
+- [x] T003 Refactor each helper: separate `main()` from internal functions; verify CLI still works
+- [x] T004 [P] Update doc references (`helper-script-conventions.md`, `felix-d6-survey.md`, `signal-to-doc-map.json`)
+- [x] T005 [P] Unit tests for the new importable surfaces in `tests/doc_audit/helpers/`
 
 **Dependencies**: None
 **Risks**: Breaking the existing AGENTS.md §2 bash invocation by mis-moving the file; mitigation = retain CLI entry; ensure absolute paths in the move don't leave dangling refs.
