@@ -1,0 +1,10 @@
+{
+  "created_at": "2026-05-20T02:22:25.445503+00:00",
+  "friendly_name": "vikunja g7 query filter fix",
+  "mission_id": "01KS1K1YE6H1CTY29A6MRWW836",
+  "mission_number": null,
+  "mission_slug": "vikunja-g7-query-filter-fix-01KS1K1Y",
+  "mission_type": "software-dev",
+  "slug": "vikunja-g7-query-filter-fix-01KS1K1Y",
+  "target_branch": "main"
+}
