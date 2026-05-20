@@ -1,0 +1,31 @@
+{
+  "version": 1,
+  "mission_slug": "vikunja-g7-query-filter-fix-01KS1K1Y",
+  "mission_id": "01KS1K1YE6H1CTY29A6MRWW836",
+  "mission_branch": "kitty/mission-vikunja-g7-query-filter-fix-01KS1K1Y",
+  "target_branch": "main",
+  "lanes": [
+    {
+      "lane_id": "lane-a",
+      "wp_ids": [
+        "WP01"
+      ],
+      "write_scope": [
+        "docs/design/research/vikunja-task-model-research.md",
+        "kitty-specs/vikunja-g7-query-filter-fix-01KS1K1Y/research.md",
+        "scripts/habits/query_active_habits_v2.py",
+        "tests/habits/test_query_active_habits_v2_filter.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "legacy-cleanup",
+        "tests"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    }
+  ],
+  "computed_at": "2026-05-20T02:30:24.708164+00:00",
+  "computed_from": "dependency_graph+ownership",
+  "planning_artifact_wps": []
+}
