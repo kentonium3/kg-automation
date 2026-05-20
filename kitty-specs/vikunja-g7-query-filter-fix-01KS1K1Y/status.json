@@ -1,7 +1,7 @@
 {
-  "event_count": 1,
-  "last_event_id": "01KS1KGM1JPZ6EW3PF944DGR06",
-  "materialized_at": "2026-05-20T02:30:24.562269+00:00",
+  "event_count": 3,
+  "last_event_id": "01KS1KH0N7KP5R32W0RRFZ9ZZP",
+  "materialized_at": "2026-05-20T02:30:37.479691+00:00",
   "mission_number": "",
   "mission_slug": "vikunja-g7-query-filter-fix-01KS1K1Y",
   "mission_type": "software-dev",
@@ -12,17 +12,17 @@
     "claimed": 0,
     "done": 0,
     "for_review": 0,
-    "in_progress": 0,
+    "in_progress": 1,
     "in_review": 0,
-    "planned": 1
+    "planned": 0
   },
   "work_packages": {
     "WP01": {
-      "actor": "finalize-tasks",
+      "actor": "implement-command",
       "force_count": 1,
-      "lane": "planned",
-      "last_event_id": "01KS1KGM1JPZ6EW3PF944DGR06",
-      "last_transition_at": "2026-05-20T02:30:24.562269+00:00"
+      "lane": "in_progress",
+      "last_event_id": "01KS1KH0N7KP5R32W0RRFZ9ZZP",
+      "last_transition_at": "2026-05-20T02:30:37.479691+00:00"
     }
   }
 }

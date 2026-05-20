@@ -14,6 +14,9 @@ requirement_refs:
 planning_base_branch: main
 merge_target_branch: main
 branch_strategy: Planning artifacts for this feature were generated on main. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into main unless the human explicitly redirects the landing branch.
+base_branch: kitty/mission-vikunja-g7-query-filter-fix-01KS1K1Y
+base_commit: 82932f7d11365fcbef8a51a69b833c77924ceb37
+created_at: '2026-05-20T02:30:37.289490+00:00'
 subtasks:
 - T001
 - T002
@@ -21,6 +24,7 @@ subtasks:
 - T004
 - T005
 - T006
+shell_pid: '23869'
 history:
 - date: '2026-05-20T02:30:00Z'
   event: created
