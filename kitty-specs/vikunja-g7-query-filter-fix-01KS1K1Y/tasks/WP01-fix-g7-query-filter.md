@@ -24,7 +24,8 @@ subtasks:
 - T004
 - T005
 - T006
-shell_pid: '23869'
+shell_pid: "23869"
+agent: "claude:sonnet:implementer:implementer"
 history:
 - date: '2026-05-20T02:30:00Z'
   event: created
@@ -329,3 +330,7 @@ A reviewer should verify:
 6. **Reconcile audit documented** in research.md (whether or not reconcile changed).
 7. **No scope creep**: only the four owned files are modified. PAUSED-label handling is NOT added (out of scope per spec C-001).
 8. **`git diff --stat` clean**: only the owned files appear.
+
+## Activity Log
+
+- 2026-05-20T02:30:40Z – claude:sonnet:implementer:implementer – shell_pid=23869 – Assigned agent via action command
