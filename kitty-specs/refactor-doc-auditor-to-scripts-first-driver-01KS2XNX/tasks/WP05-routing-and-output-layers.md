@@ -19,8 +19,8 @@ subtasks:
 - T025
 phase: Phase 2 — Components
 assignee: ''
-agent: "codex:gpt-5:spec-kitty-review:reviewer"
-shell_pid: "74843"
+agent: "claude:opus-4.7:implementer:implementer"
+shell_pid: "75833"
 history:
 - timestamp: '2026-05-20T16:25:00Z'
   agent: system
@@ -430,3 +430,4 @@ spec-kitty agent action implement WP05 --agent <name>
 - 2026-05-20T19:47:27Z – claude:opus-4.7:implementer:implementer – shell_pid=72937 – Ready for review: routing wrapper + tick-signal writer + activity-log appender. 54 new tests, all green. routing/ 100% cov, output/ avg 96% cov. Full suite 261 passed.
 - 2026-05-20T19:48:21Z – codex:gpt-5:spec-kitty-review:reviewer – shell_pid=74843 – Started review via action command
 - 2026-05-20T19:51:58Z – codex:gpt-5:spec-kitty-review:reviewer – shell_pid=74843 – Moved to planned
+- 2026-05-20T19:52:03Z – claude:opus-4.7:implementer:implementer – shell_pid=75833 – Started implementation via action command
