@@ -18,8 +18,8 @@ subtasks:
 - T021
 phase: Phase 2 — Components
 assignee: ''
-agent: "codex:gpt-5:spec-kitty-review:reviewer"
-shell_pid: "67057"
+agent: "claude:opus-4.7:implementer:implementer"
+shell_pid: "68508"
 history:
 - timestamp: '2026-05-20T16:25:00Z'
   agent: system
@@ -436,3 +436,4 @@ spec-kitty agent action implement WP04 --agent <name>
 - 2026-05-20T19:11:53Z – claude:opus-4.7:implementer:implementer – shell_pid=64832 – Ready for review: Anthropic SDK wrapper + 3 prompt artifacts + 3 judgment modules. 32 unit tests pass, coverage 86%-100% per module. Guardrail short-circuit verified.
 - 2026-05-20T19:12:43Z – codex:gpt-5:spec-kitty-review:reviewer – shell_pid=67057 – Started review via action command
 - 2026-05-20T19:16:00Z – codex:gpt-5:spec-kitty-review:reviewer – shell_pid=67057 – Moved to planned
+- 2026-05-20T19:17:33Z – claude:opus-4.7:implementer:implementer – shell_pid=68508 – Started implementation via action command
