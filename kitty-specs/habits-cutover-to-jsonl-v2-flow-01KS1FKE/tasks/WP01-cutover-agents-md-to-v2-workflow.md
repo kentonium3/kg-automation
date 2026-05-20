@@ -16,6 +16,9 @@ requirement_refs:
 planning_base_branch: main
 merge_target_branch: main
 branch_strategy: Planning artifacts for this feature were generated on main. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into main unless the human explicitly redirects the landing branch.
+base_branch: kitty/mission-habits-cutover-to-jsonl-v2-flow-01KS1FKE
+base_commit: 79da069acb7077f24355a17a150a562c11c0e0ee
+created_at: '2026-05-20T01:41:08.250536+00:00'
 subtasks:
 - T001
 - T002
@@ -23,6 +26,7 @@ subtasks:
 - T004
 - T005
 - T006
+shell_pid: '15280'
 history:
 - date: '2026-05-20T01:35:51Z'
   event: created

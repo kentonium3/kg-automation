@@ -1,7 +1,7 @@
 {
-  "event_count": 1,
-  "last_event_id": "01KS1GJMN2AYHWJTQ7P482BDN5",
-  "materialized_at": "2026-05-20T01:39:04.994187+00:00",
+  "event_count": 3,
+  "last_event_id": "01KS1GPD7AF0MRSAKNY9VG0BHG",
+  "materialized_at": "2026-05-20T01:41:08.458598+00:00",
   "mission_number": "",
   "mission_slug": "habits-cutover-to-jsonl-v2-flow-01KS1FKE",
   "mission_type": "software-dev",
@@ -12,17 +12,17 @@
     "claimed": 0,
     "done": 0,
     "for_review": 0,
-    "in_progress": 0,
+    "in_progress": 1,
     "in_review": 0,
-    "planned": 1
+    "planned": 0
   },
   "work_packages": {
     "WP01": {
-      "actor": "finalize-tasks",
+      "actor": "implement-command",
       "force_count": 1,
-      "lane": "planned",
-      "last_event_id": "01KS1GJMN2AYHWJTQ7P482BDN5",
-      "last_transition_at": "2026-05-20T01:39:04.994187+00:00"
+      "lane": "in_progress",
+      "last_event_id": "01KS1GPD7AF0MRSAKNY9VG0BHG",
+      "last_transition_at": "2026-05-20T01:41:08.458598+00:00"
     }
   }
 }
