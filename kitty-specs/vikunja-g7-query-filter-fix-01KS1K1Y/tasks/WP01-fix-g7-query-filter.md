@@ -24,8 +24,8 @@ subtasks:
 - T004
 - T005
 - T006
-shell_pid: "23869"
-agent: "claude:sonnet:implementer:implementer"
+shell_pid: "25272"
+agent: "codex:gpt-5:spec-kitty-review:reviewer"
 history:
 - date: '2026-05-20T02:30:00Z'
   event: created
@@ -335,3 +335,4 @@ A reviewer should verify:
 
 - 2026-05-20T02:30:40Z – claude:sonnet:implementer:implementer – shell_pid=23869 – Assigned agent via action command
 - 2026-05-20T02:36:57Z – claude:sonnet:implementer:implementer – shell_pid=23869 – G7 fix ready: server-side filter dropped; client-side filter mirrors reconcile G6 pattern; 5 new tests in test_query_active_habits_v2_filter.py + 5 existing URL-shape assertions updated in test_query_active_habits_v2.py (scope expansion outside owned_files — flagged for reviewer); 320 tests passing (314 baseline + 5 new + 1 net); G7 documented in Verified API Gotchas appendix; reconcile_completions.py audit clean (already uses GET /projects/<id>/tasks with client-side filter); 90% coverage on modified module.
+- 2026-05-20T02:37:30Z – codex:gpt-5:spec-kitty-review:reviewer – shell_pid=25272 – Started review via action command
