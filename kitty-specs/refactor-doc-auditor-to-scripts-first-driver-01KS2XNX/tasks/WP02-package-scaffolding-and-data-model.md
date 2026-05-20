@@ -301,3 +301,4 @@ spec-kitty agent action implement WP02 --agent <name>
 - 2026-05-20T17:43:08Z – claude:opus-4.7:implementer:implementer – shell_pid=47069 – Started implementation via action command
 - 2026-05-20T17:50:15Z – claude:opus-4.7:implementer:implementer – shell_pid=47069 – Ready for review: doc_audit package scaffold + 10 entities (E-001..E-010) + config layer + extended conftest + 15 canned fixtures + 39 unit tests at 100% coverage on data_model.py and config.py
 - 2026-05-20T17:50:51Z – codex:gpt-5:spec-kitty-review:reviewer – shell_pid=50036 – Started review via action command
+- 2026-05-20T17:53:57Z – codex:gpt-5:spec-kitty-review:reviewer – shell_pid=50036 – Moved to planned
