@@ -1,0 +1,163 @@
+---
+title: "Bug Report: Recurring markdown link mutation on habits-ops.md"
+doc_type: diagnostic
+status: active
+---
+# Bug Report: Recurring markdown link mutation on habits-ops.md
+
+**Date**: 2026-05-20
+**Spec-Kitty Version**: 3.1.8 (pre-commit hook installed 2026-05-20T02:30:37+00:00)
+**Reporter**: Claude (via interactive Claude Code session during feature cycle for #343)
+**Priority**: Low — cosmetic markdown reformatting; commits succeed; no data loss
+**Status**: PENDING INVESTIGATION — root cause not confirmed; reproduction recipe unverified
+
+## Summary
+
+During the 2026-05-19/20 interactive session, `docs/runbooks/habits-ops.md` appeared in `git status` as modified at session start and was observed to *re-appear* as modified at least twice after `git checkout HEAD -- docs/runbooks/habits-ops.md` discards. The modification is a benign markdown-link reformatting that adds angle brackets around the anchor URL portion of two relative anchor links. The most natural-looking suspect — spec-kitty's `pre-commit` hook (which invokes `specify_cli.policy.commit_guard_hook`) — is **NOT** the source; that hook is read-only validation (see Root Cause section). The actual writer is unknown.
+
+## Reproduction
+
+### Prerequisites
+
+- spec-kitty-cli 3.1.8 installed (the version that introduced the policy hook installer)
+- A repo where `spec-kitty init` or similar has installed the `pre-commit` hook at `.git/hooks/pre-commit`
+- A markdown file containing relative anchor links of the form `[text](#anchor)` (specifically `docs/runbooks/habits-ops.md` lines 24 and 64 in the kg-automation repo as of 2026-05-19)
+
+### Steps (UNVERIFIED — needs replay in a mock feature cycle)
+
+```bash
+# Verify file is clean against HEAD
+git status docs/runbooks/habits-ops.md
+git diff docs/runbooks/habits-ops.md
+
+# Discard any working-tree changes
+git checkout HEAD -- docs/runbooks/habits-ops.md
+
+# Perform some unrelated workflow action (e.g., commit anything else, run
+# spec-kitty mission create, open an IDE editor, etc.)
+git commit -m "unrelated" --allow-empty
+
+# Observe — does habits-ops.md become "modified" again?
+git status docs/runbooks/habits-ops.md
+git diff docs/runbooks/habits-ops.md
+```
+
+### Expected Behavior
+
+After `git checkout HEAD -- <file>`, the file should remain at HEAD's content until *deliberately* modified by the user or a known process. An unrelated commit should NOT cause the file to re-modify.
+
+### Actual Behavior
+
+Within the session, after at least two independent `git checkout HEAD --` discards, `docs/runbooks/habits-ops.md` re-appeared as modified before the next user-driven action. The diff was identical each time:
+
+```text
+diff --git a/docs/runbooks/habits-ops.md b/docs/runbooks/habits-ops.md
+@@ -21,7 +21,7 @@ Vikunja's native `repeat_after` (set in Phase 3 #306) handles
+ ## Phase 5 cutover (2026-05-20)
+
+ **Date**: 2026-05-20 (UTC). Operator deploys via the [Update workspace
+-files](#update-workspace-files) command after the cutover commit lands
++files](<#update-workspace-files>) command after the cutover commit lands
+ on `main`.
+
+@@ -61,7 +61,7 @@ rename the `_v2.py` files to canonical names.
+ [quickstart.md](../../kitty-specs/habits-cutover-to-jsonl-v2-flow-01KS1FKE/quickstart.md)
+ for the full Steps 1-6 procedure (pull → deploy → sha256 verify →
+ wait for next cron → smoke-test → verify the Tuesday structural fix).
+-The deploy itself uses the existing [Update workspace files](#update-workspace-files)
++The deploy itself uses the existing [Update workspace files](<#update-workspace-files>)
+ command unchanged.
+```
+
+### Root Cause
+
+**Unconfirmed.** Initial hypothesis was the spec-kitty `pre-commit` hook, since it was newly installed at 2026-05-20T02:30:37+00:00 and the modification first surfaced on 2026-05-19/20. **Ruled out by inspection**:
+
+- `.git/hooks/pre-commit` invokes `specify_cli.policy.commit_guard_hook`
+- Source file: `/Users/kentgale/.local/pipx/venvs/spec-kitty-cli/lib/python3.13/site-packages/specify_cli/policy/commit_guard_hook.py`
+- The hook reads staged files, looks up WP `owned_files` from frontmatter, validates ownership via `validate_staged_files()` in `commit_guard.py`, and returns exit code 0 (allow) or 1 (block). **It does not write to any file.**
+- The hook only acts on `kitty/mission-*-lane-*` branches (per `is_implementation_branch` in `commit_guard.py` line 30). The session was on `main` — the hook would short-circuit at `validate_staged_files` before doing anything substantive.
+
+Remaining suspects to investigate (none verified):
+
+1. **IDE auto-formatter** — the user had files open in their IDE (system reminder mentioned `meta.json` was opened during the session). If the IDE runs `prettier` or a markdownlint extension on save or focus-change, that extension would apply the `(#anchor)` → `(<#anchor>)` transform. Prettier's default behavior for markdown anchor links matches the observed change. **This is the leading candidate.**
+2. **Markdownlint daemon** — some markdownlint configurations enforce angle-bracket wrapping per CommonMark recommendations.
+3. **Filesystem watcher / sync** — Obsidian Sync or a similar watcher could in theory touch the file, but `docs/runbooks/` lives in the kg-automation repo, not the second-brain vault, so this is unlikely.
+4. **Repo upgrade pass** — if spec-kitty's 3.1.8 install ran a one-time repo-wide doc reformatting that wrote to disk without staging, the modification would persist as an unstaged change. However, this would not explain *recurrence after `git checkout HEAD --` discards*.
+
+## Workaround Applied (Feature #343)
+
+After two failed `git checkout HEAD --` cycles within the session, the modification was committed as-is to escape the loop:
+
+```bash
+git checkout HEAD -- docs/runbooks/habits-ops.md  # discard (failed to stick)
+# ... commit other workflow files ...
+git status                                        # observe habits-ops.md modified again
+git add docs/runbooks/habits-ops.md
+git commit -m "style(docs): apply spec-kitty commit_guard markdown-link formatting to habits-ops.md"
+# Commit landed as cf0e0b94 → rebased onto fa50fc61 (origin) and pushed
+```
+
+The commit message blamed `commit_guard` based on the initial (incorrect) hypothesis. This is misleading and should be corrected if the doc is ever touched again — see Open Questions.
+
+## Suggested Fix
+
+**Cannot propose** — root cause is unknown. Once identified:
+
+- If IDE auto-formatter: add `// prettier-ignore` or repo-level `.prettierrc`/`.markdownlintrc` to suppress the angle-bracket transform on these specific anchors, OR accept the transform and stop fighting it
+- If spec-kitty has an undocumented format pass: file upstream issue
+- If markdownlint configuration: tune the rule
+
+## Impact
+
+- **Frequency**: at minimum 2 reappearances observed within one ~6-hour session
+- **Severity**: cosmetic — no data loss, no commit blockage, no workflow corruption
+- **Consequence**: misattributed commit message in `cf0e0b94` blaming spec-kitty's `commit_guard`; future readers may inherit the wrong mental model
+
+## Environment
+
+- OS: macOS Darwin 25.5.0
+- Python: 3.13.13 (spec-kitty-cli venv)
+- spec-kitty-cli: 3.1.8 (installed via pipx)
+- Feature: refactor-doc-auditor-to-scripts-first-driver-01KS2XNX (issue #343)
+- Repo: kentonium3/kg-automation
+- Affected file: `docs/runbooks/habits-ops.md`
+
+## Open Questions
+
+1. **What process actually applies the angle-bracket transform?** The natural-looking suspect (`commit_guard_hook`) is read-only; need to identify the real writer before filing anything upstream.
+
+2. **Is `docs/runbooks/habits-ops.md` the only affected file, or is the same transform being applied broadly across the repo's markdown without being noticed?** A repo-wide `git diff` snapshot at a moment when the file is dirty would answer this.
+
+3. **Does the modification recur on a fresh repo clone with no IDE attached?** Critical for distinguishing IDE-side vs spec-kitty-side cause.
+
+4. **Was the commit message in `cf0e0b94` misleading?** Yes — it blamed spec-kitty's `commit_guard`. If we end up filing upstream, the misattribution should be corrected.
+
+## Next Steps
+
+- **In a mock feature cycle on a clone of this repo** (no IDE open, no Obsidian, no other watchers): perform the reproduction steps above and observe. If modification recurs, the root cause is environmental/spec-kitty-related. If it does NOT recur, the IDE/extension is the cause.
+- **Inspect every markdown file with relative anchor links** in the repo and check whether they have the angle-bracket form or not. A pattern (e.g., "only files Kent has opened in his IDE") would point to the IDE.
+- **Capture the file's contents and mtime at multiple points** during a future feature cycle to pin down WHEN the modification happens — at commit time, on IDE save, on directory change, etc.
+- **Check `~/Library/Application Support/{IDE}/User/settings.json`** for Prettier or markdownlint extensions and their format-on-save configuration.
+- **If reproduction confirms a spec-kitty cause**: rewrite this report as a `xx_*` ready-to-file bug and submit upstream.
+
+## State Preserved for Reproduction
+
+The following state details may disappear after the current feature cycle closes; recording them here:
+
+- **Pre-commit hook content** (at `.git/hooks/pre-commit`):
+  ```
+  #!/bin/sh
+  # Generated by spec-kitty. Do not edit by hand.
+  # Installed: 2026-05-20T02:30:37+00:00
+  # Interpreter: /Users/kentgale/.local/pipx/venvs/spec-kitty-cli/bin/python
+  set -e
+  exec "/Users/kentgale/.local/pipx/venvs/spec-kitty-cli/bin/python" -m specify_cli.policy.commit_guard_hook "$@"
+  ```
+- **Commit_guard_hook source verified read-only**: see `/Users/kentgale/.local/pipx/venvs/spec-kitty-cli/lib/python3.13/site-packages/specify_cli/policy/commit_guard_hook.py` and `commit_guard.py` at the time of investigation
+- **Commit that captured the modification**: `cf0e0b94` (later rebased; on origin as the same SHA)
+- **Affected lines in habits-ops.md**: 24 and 64 — relative anchor link `[Update workspace files](#update-workspace-files)`
+
+## Discovered
+
+2026-05-20 by Claude during specify-phase of mission `refactor-doc-auditor-to-scripts-first-driver-01KS2XNX` (#343), while attempting to commit spec content to `main`.
