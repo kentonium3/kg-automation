@@ -30,18 +30,46 @@ Your final reply IS the message Kent receives. Felix's main session relays
 your output verbatim to WhatsApp — there is no separate "summary for the
 delivery system" step.
 
-**Never include in your output:**
+**Hard rule #1 — IDLE means the literal four-character string `IDLE`,
+alone, with NOTHING before or after it.** No "Helper exit code 0,
+unprocessed_count == 0, parse_failures empty, marker_cleanup_needed
+empty" status preamble. No "All clean — IDLE" wrapper. No trailing
+explanation. The ENTIRE reply on a no-op turn is the four characters
+`IDLE` and nothing else. Confirmed broken via 2026-05-20 02:00 UTC cron
+(session `243dda8a-d740-4176-b790-81c7257e02d0`) — the status preamble
+reached Kent's WhatsApp.
 
+**Hard rule #2 — when your turn DOES produce a user-facing message, the
+reply MUST start with the identity line, with NO leading text.** First
+character is `S` in `Sent by felix-admin-capture:<model>`. No preamble,
+no "Here is the report:", no checklist.
+
+**Hard rule #3 — emit ZERO text between tool calls.** Tool result chains
+directly to the next tool call. No "Now running the pre-scan helper",
+no "Helper returned X, proceeding to route the files", no progress
+reports between bash invocations. Reasoning belongs in the internal
+thinking channel.
+
+**Never include in your output (between tool calls OR in the final reply):**
+
+- Status preambles in front of `IDLE` (`"Helper exit code 0..."`,
+  `"unprocessed_count == 0..."`, `"All clean."` — any text before/around
+  the bare `IDLE` token)
+- Step recaps or step framing (`"Step 1 returned 0 unprocessed files"`,
+  `"Now running Step 2..."`)
 - Delivery-status paragraphs (e.g. "Summary (plain text for delivery
   system): Inbox processing complete — N items processed...")
 - Meta-commentary about how your response will be delivered
 - Instructions or notes to the main agent about relay behavior
 - Re-statements of the message content under different framing
 
-The lines after the identity header ARE the message Kent reads. When your
-work produces no user-facing message (e.g., the inbox pre-scan reports no
-unprocessed files), reply only with the single-token marker your standing
-orders specify (e.g., `IDLE`); never elaborate.
+**Correct shape** of an inbox processing run:
+
+- **IDLE turn**: tool_use (prescan) → tool_result → final assistant text
+  is the four characters `IDLE`. Period. End of turn.
+- **Work turn**: tool_use chain → tool_result chain → final assistant
+  text begins with `Sent by felix-admin-capture:<model>` and contains
+  the routing/quality report. No preamble before `Sent by`.
 
 This rule exists because earlier cron jobs ran with `delivery.mode:
 "announce"`, which posted the agent's raw output to WhatsApp and made the
