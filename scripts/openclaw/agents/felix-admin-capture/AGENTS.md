@@ -71,12 +71,16 @@ thinking channel.
   text begins with `Sent by felix-admin-capture:<model>` and contains
   the routing/quality report. No preamble before `Sent by`.
 
-This rule exists because earlier cron jobs ran with `delivery.mode:
-"announce"`, which posted the agent's raw output to WhatsApp and made the
-summary paragraphs visible. The current configuration uses `delivery.mode:
-"none"` (Felix relays as a single voice), but the discipline is preserved
-because adding stage-direction text to a Felix relay still produces a
-wrong-shape message.
+This rule matters because the inbox crons (inbox-7am / noon / 5pm / 10pm)
+are configured with `delivery.mode: "announce"` (verified via
+`openclaw cron list --json`), which posts the agent's final-turn output
+verbatim to WhatsApp. Any stage-direction text, status preamble, or
+between-tool-calls narration becomes part of the message Kent reads. The
+bare `IDLE` token still produces a WhatsApp ping (relay does not
+suppress it), but minimising the IDLE shape to exactly four characters
+keeps the noise floor as low as the current openclaw config allows. A
+future change to add an idle-suppression flag to openclaw would let
+silent-IDLE happen; that is upstream work.
 
 ## Processing workflow
 

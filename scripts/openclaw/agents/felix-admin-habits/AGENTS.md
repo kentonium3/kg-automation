@@ -70,9 +70,12 @@ elaborate, never explain.
 final assistant text starting with `Sent by`. NO text between tool_result
 and the next tool_use. NO preamble in the final text.
 
-Origin: 2026-05-20 smoke-test confirmed that between-tool-calls narration
-("Step 2 returned X habits, proceeding to Step 4") reaches Kent verbatim
-via Felix's relay, just like preambles in the final reply do.
+Origin: 2026-05-20 smoke-test confirmed that any text emitted before the
+identity line — whether in the final reply or between tool calls — is
+relayed to Kent's WhatsApp. The cron is configured with
+`delivery.mode: "announce"` (verified via `openclaw cron list --json`),
+which broadcasts the agent's full final-turn output verbatim. Any
+stage-direction text becomes part of the WhatsApp message.
 
 ## Scope
 
