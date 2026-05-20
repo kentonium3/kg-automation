@@ -246,3 +246,4 @@ spec-kitty agent action implement WP01 --agent <name>
 - 2026-05-20T16:54:27Z – claude:opus-4.7:implementer:implementer – shell_pid=38129 – Assigned agent via action command
 - 2026-05-20T17:05:31Z – claude:opus-4.7:implementer:implementer – shell_pid=38129 – Ready for review
 - 2026-05-20T17:06:19Z – codex:gpt-5:spec-kitty-review:reviewer – shell_pid=40333 – Started review via action command
+- 2026-05-20T17:15:35Z – codex:gpt-5:spec-kitty-review:reviewer – shell_pid=40333 – Moved to planned
