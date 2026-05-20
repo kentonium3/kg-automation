@@ -22,12 +22,12 @@ Phase 5 of ADR-0002. Markdown content cutover — switch the deployed habits age
 
 | ID | Description | WP | Parallel |
 |----|-------------|----|----------|
-| T001 | AGENTS.md — restructure Morning check-in section (add Step 0; v2 helper names; drop Step 3) | WP01 | |
-| T002 | AGENTS.md — restructure Completion marking section (helper invocation; state mapping table) | WP01 | |
-| T003 | AGENTS.md — switch Weekly pattern report data source from comments to JSONL state_log | WP01 | |
-| T004 | AGENTS.md — light annotations on 3 sections (Comment format pointer + Track record query + Action Logging) | WP01 | |
-| T005 | docs/runbooks/habits-ops.md — document cutover date + new workflow shape | WP01 | |
-| T006 | Validation — run grep contract + size-budget check; commit | WP01 | |
+| T001 | AGENTS.md — restructure Morning check-in section (add Step 0; v2 helper names; drop Step 3) | WP01 | | [D] |
+| T002 | AGENTS.md — restructure Completion marking section (helper invocation; state mapping table) | WP01 | | [D] |
+| T003 | AGENTS.md — switch Weekly pattern report data source from comments to JSONL state_log | WP01 | | [D] |
+| T004 | AGENTS.md — light annotations on 3 sections (Comment format pointer + Track record query + Action Logging) | WP01 | | [D] |
+| T005 | docs/runbooks/habits-ops.md — document cutover date + new workflow shape | WP01 | | [D] |
+| T006 | Validation — run grep contract + size-budget check; commit | WP01 | | [D] |
 
 ---
 
@@ -39,12 +39,12 @@ Phase 5 of ADR-0002. Markdown content cutover — switch the deployed habits age
 - **Estimated prompt size**: ~450 lines
 - **Independent test**: After merge, operator runs the documented deploy command. Next morning cron tick produces a WhatsApp check-in. Tuesday cron tick omits any workout task.
 - **Includes**:
-  - [ ] T001 AGENTS.md — restructure Morning check-in section (WP01)
-  - [ ] T002 AGENTS.md — restructure Completion marking section (WP01)
-  - [ ] T003 AGENTS.md — Weekly pattern report data source switch (WP01)
-  - [ ] T004 AGENTS.md — light annotations (Comment format + Track record query + Action Logging) (WP01)
-  - [ ] T005 docs/runbooks/habits-ops.md — cutover documentation update (WP01)
-  - [ ] T006 Validation — grep contract + size budget + commit (WP01)
+  - [x] T001 AGENTS.md — restructure Morning check-in section (WP01)
+  - [x] T002 AGENTS.md — restructure Completion marking section (WP01)
+  - [x] T003 AGENTS.md — Weekly pattern report data source switch (WP01)
+  - [x] T004 AGENTS.md — light annotations (Comment format + Track record query + Action Logging) (WP01)
+  - [x] T005 docs/runbooks/habits-ops.md — cutover documentation update (WP01)
+  - [x] T006 Validation — grep contract + size budget + commit (WP01)
 - **Dependencies**: None (foundation work from Phases 1-4 already on main)
 - **Owned files**:
   - `scripts/openclaw/agents/felix-admin-habits/AGENTS.md`
