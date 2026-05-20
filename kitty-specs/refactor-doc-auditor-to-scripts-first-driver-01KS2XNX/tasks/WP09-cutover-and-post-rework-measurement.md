@@ -67,10 +67,11 @@ This is operationally consequential. The deploy is fail-forward per spec C-007. 
      --label "Doc audit:,status:in-progress" --state open \
      --json number,title
    ```
-   Expected: empty list. If non-empty:
-   - Investigate via the auditor's log / journal — was this orphaned by a prior tick?
-   - If orphan, manually clear the `status:in-progress` label and let the next pre-cutover tick re-pick up
-   - Wait for the queue to clear
+   Per spec C-004: "queue-drained **or near-drained**" — fully empty is NOT required. Acceptable states:
+   - **Fully drained** (0 in-progress) — ideal
+   - **Near-drained** (1-2 in-progress that each have valid corresponding `audit-pending-approval` issues) — acceptable; these are expected Level-1 wait states, not stuck locks
+   - **Stuck-lock orphans** (in-progress with NO matching pending-approval, see T028 of WP06 for the cross-reference detection pattern) — NOT acceptable; clear the orphan label first, let the next tick re-pick up the audit
+   - Document the pre-cutover count + justification in cutover-log.md (e.g., "Pre-cutover: 1 in-progress audit #350 with matching pending-approval #351 — known wait state, proceeding")
 
 2. Check open `audit-pending-approval` issues:
    ```bash
@@ -261,9 +262,17 @@ This is operationally consequential. The deploy is fail-forward per spec C-007. 
 
 2. Compute the per-outcome reduction percentage:
    ```
-   reduction_pct = ((pre_input_tokens - (post_input_tokens - post_cache_hit_tokens * 0.9)) / pre_input_tokens) * 100
+   effective_post_input = post_input_tokens - (post_cache_hit_tokens * 0.9)
+   reduction_pct = ((pre_input_tokens - effective_post_input) / pre_input_tokens) * 100
    ```
    (Cache hits are billed at ~10% of standard rate; the effective input cost is `input - cache_hit*0.9`.)
+
+   **Pre-rework has NO cache** (openclaw-agent path doesn't use prompt caching), so `pre_cache_hit_tokens` is always 0 in the comparison — only `post_cache_hit_tokens` contributes to the discount.
+
+   **Sanity check the cache behavior** before declaring victory:
+   - If `post_cache_hit_input_tokens = 0` across all measured ticks: caching is BROKEN (likely a misplaced cache marker in the prompt template, or the SDK version doesn't support `cache_control: ephemeral`). The 80% reduction may still appear to be met from prompt-size shrinkage alone, but the cache contribution is supposed to be load-bearing. Record this in `open_caveats` and investigate before closing the mission.
+   - **Expected** post-rework cache hit ratio: `cache_hit_input_tokens / input_tokens` ≥ 50% within a single non-empty tick (the cached boilerplate is invariant; second call within the 5-min TTL hits the cache). Across all ticks (including empty), the global ratio will be lower.
+   - If cache works but the reduction is still <80%: investigate per-outcome — likely the per-tick variable input is larger than expected (prompts contain too much context) or the output is larger (LLM responses verbose). Document in `open_caveats` and patch forward.
 
 3. Document the weighted-average methodology if outcomes are weighted differently (e.g., empty ticks happen 90% of the time, others 10%).
 

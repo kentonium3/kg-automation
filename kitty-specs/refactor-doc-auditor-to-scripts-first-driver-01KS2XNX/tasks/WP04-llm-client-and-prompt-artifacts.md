@@ -129,7 +129,9 @@ Implement the Anthropic SDK wrapper (`judgment/client.py`) with prompt-cache sup
 
 4. Error handling:
    - On `anthropic.APIError`: re-raise (driver decides retry vs surface)
-   - On malformed template (missing cache markers): raise ValueError with clear message
+   - On malformed template (missing cache markers): wrap `_split_cache_markers`'s `ValueError` (from `.index()` lookup) and re-raise with the message `"Prompt template missing or misordered [CACHE_PREFIX_START]/[CACHE_PREFIX_END] markers: {template_path}"`. The default `.index()` error is too vague — caller needs the template path.
+
+5. **Guardrail awareness — NOT in the client**: `JudgmentClient.call()` does NOT check guardrail status. The guardrail short-circuit lives in the `tier_classification` module (T020 step 5), invoked BEFORE `client.call()`. The client is a pure prompt-template-driven LLM caller — it has no awareness of doc-audit business rules. This is by design: keeps the client reusable for any future judgment moment.
 
 **Files**:
 - New: `scripts/doc_audit/judgment/__init__.py`
@@ -161,10 +163,11 @@ Implement the Anthropic SDK wrapper (`judgment/client.py`) with prompt-cache sup
    ---
    ```
 
-3. Boilerplate section content (between `[CACHE_PREFIX_START]` and `[CACHE_PREFIX_END]`):
-   - Verbatim copy of SKILL.md §4.1.a (Tier A categories 1 and 4)
-   - Verbatim copy of SKILL.md §4.1.b (Tier B categories 2, 3, 5, 6, 7)
-   - Verbatim copy of SKILL.md §4.2 (judgment categories)
+3. Boilerplate section content (between `[CACHE_PREFIX_START]` and `[CACHE_PREFIX_END]`) — **exact section list**:
+   - SKILL.md §4.1.a — paste **only categories #1 (frontmatter `last_updated`/`last_validated`/`revision` updates) and #4 (`updated_by` references for new entries)**. Skip §4.1.a's intro prose if it adds tokens without classification value.
+   - SKILL.md §4.1.b — paste **all of categories #2 (service version numbers), #3 (file paths after rename), #5 (removing dead references), #6 (agent registry entry add), #7 (autonomy level update)**. That's all 5 Tier-B categories.
+   - SKILL.md §4.2 — paste all 5 judgment categories verbatim.
+   - **DO NOT** include SKILL.md §4.3 (constitutional guardrails). Guardrails are enforced by the driver's deterministic path check BEFORE the LLM is called (T020 step 5). Putting them in the prompt wastes tokens AND risks the LLM mis-applying them.
    - Concrete output schema:
      ```
      Return a single JSON object on one line:

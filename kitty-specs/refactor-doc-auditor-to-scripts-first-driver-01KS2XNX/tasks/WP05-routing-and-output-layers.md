@@ -105,7 +105,11 @@ Implement the routing layer (wrapping `helpers/handle_audit_routing.py`) and the
        ...
    ```
 
-3. The `_build_audit_state()` function maps WP05's data-model entities (`AuditIssue`, `ProposedEdit`, `DebtIssue`) into the JSON shape `handle_audit_routing.py` expects. Read the existing helper's docstring + the mission-#259 data-model for the exact shape.
+3. The `_build_audit_state()` function maps **THIS mission's data-model entities** (E-002 `AuditIssue`, E-004 `ProposedEdit`, E-006 `DebtIssue` — see `kitty-specs/refactor-doc-auditor-to-scripts-first-driver-01KS2XNX/data-model.md`) into the JSON shape `handle_audit_routing.py` consumes. **Do NOT** assume the legacy mission #259's entity shapes match this mission's — they may differ. Determine the helper's required input shape by:
+   - Reading the docstring at the top of `scripts/doc_audit/helpers/handle_audit_routing.py` (especially the "Input JSON shape" section)
+   - Reading `route_audit_decision`'s actual implementation (which fields it reads from the loaded state)
+   - Cross-referencing this mission's data-model entities to map field-by-field
+   - If a helper-expected field has no entity counterpart, raise this in a code comment AND propose a follow-up — DO NOT silently invent the mapping.
 
 4. Module docstring cross-references the routing contract.
 
@@ -233,75 +237,108 @@ Implement the routing layer (wrapping `helpers/handle_audit_routing.py`) and the
 
 **Steps**:
 
-1. Inspect the existing activity log format on office2:
-   ```bash
-   ssh office2-claude 'head -50 /home/kgale/second-brain/agents/logs/doc-auditor-2026-05-19.md 2>/dev/null || head -50 /home/kgale/second-brain/agents/logs/doc-auditor-2026-05-20.md'
+1. **The existing format — captured 2026-05-20 from office2 — match this EXACTLY**:
+
+   Each audit run produces one entry. Format:
+
    ```
-   The format is markdown with YAML frontmatter + per-tick entries. Match it exactly.
+   ## Audit run — 2026-05-20T15:15:33-0400
+   - Audit issue: #347
+   - Title: Doc audit: cf0e0b9 (area/biz-ops)
+   - In-scope docs: 3
+   - Docs reviewed: 3
+   - High-confidence edits proposed: 0
+   - Pending-approval issue filed: none
+   - Edits committed: 0
+   - Debt issues created: 0
+   - Missing artifacts flagged: 0
+   - Items requiring human review: 0
+   - Decision applied this tick: none
+   - Errors: 0
+   ```
+
+   Key shape details:
+   - `## Audit run — <local-tz ISO-8601>` header (note: timestamp is **local-tz with offset** like `-0400`, NOT UTC `Z`)
+   - Bulleted key-value pairs (`- <Field>: <value>`)
+   - One entry per audited issue per tick (NOT one entry per tick — if a tick processes 3 audits, write 3 entries)
+   - File has NO YAML frontmatter at the top (just the entries directly — keep it simple, this is the existing convention)
+
+   **Snapshot this format as a test fixture** at `tests/doc_audit/output/fixtures/activity_log_sample.txt` so the writer can be unit-tested against the canonical shape.
+
+   The new driver also writes a per-TICK summary entry; place it directly above the per-audit entries OR omit it (the per-audit entries carry all relevant data). Discuss with the reviewer if a per-tick summary is needed.
 
 2. Create `scripts/doc_audit/output/activity_log.py`:
 
    ```python
-   from doc_audit.data_model import TickResult, ActivityLogEntry
+   from doc_audit.data_model import TickResult, AuditIssue
    from doc_audit.config import Config
-   from datetime import datetime, timezone
+   from datetime import datetime
    from pathlib import Path
+   from zoneinfo import ZoneInfo
 
-   def append_entry(config: Config, result: TickResult) -> Path:
-       """Append one log entry to the day's activity log file. Creates the file if absent."""
-       today_utc = datetime.now(timezone.utc).date().isoformat()
-       log_path = Path(config.paths.activity_log_dir) / f"doc-auditor-{today_utc}.md"
+   # Default to America/New_York since the existing entries use -0400/-0500 offsets.
+   # Make this configurable if a different TZ is required.
+   LOCAL_TZ = ZoneInfo("America/New_York")
+
+   def append_audit_entry(config: Config, result: TickResult, audit: AuditIssue, audit_outcome: dict) -> Path:
+       """Append one ## Audit run entry to today's activity log. audit_outcome is the per-audit result counts."""
+       # Use local-tz date for the filename (matches existing convention)
+       today_local = datetime.now(LOCAL_TZ).date().isoformat()
+       log_path = Path(config.paths.activity_log_dir) / f"doc-auditor-{today_local}.md"
 
        if not log_path.exists():
-           _init_log_file(log_path, today_utc)
+           _init_log_file(log_path)
 
-       entry_text = _format_entry(result)
+       entry_text = _format_audit_entry(audit, audit_outcome)
        with open(log_path, "a", encoding="utf-8") as f:
            f.write(entry_text)
        return log_path
 
-   def _init_log_file(path: Path, date: str) -> None:
-       """Create new daily log with frontmatter + h1 header."""
+   def _init_log_file(path: Path) -> None:
+       """Create new daily log file. NO frontmatter — existing convention is plain markdown."""
        path.parent.mkdir(parents=True, exist_ok=True)
-       content = (
-           f"---\n"
-           f"title: Doc Auditor Activity Log — {date}\n"
-           f"doc_type: activity-log\n"
-           f"date: {date}\n"
-           f"---\n\n"
-           f"# Doc Auditor — {date}\n\n"
-       )
-       path.write_text(content)
+       path.write_text("")  # empty file; entries appended below
 
-   def _format_entry(result: TickResult) -> str:
-       """Format one tick as a markdown section. Preserve existing format."""
-       ts = result.ended_utc
+   def _format_audit_entry(audit: AuditIssue, outcome: dict) -> str:
+       """Format one ## Audit run entry matching the captured fixture format."""
+       ts = datetime.now(LOCAL_TZ).strftime("%Y-%m-%dT%H:%M:%S%z")
+       # Insert colon in timezone offset (e.g., -0400 → -04:00) ONLY if the existing
+       # fixture uses that form. The captured sample uses -0400 (no colon) — match it.
        lines = [
            f"## {ts}\n",
            f"**Status**: {result.status}",
-           f"**Audits processed**: {result.audits_processed or '(none)'}",
-           f"**Tier-A commits**: {result.tier_a_commits or '(none)'}",
-           f"**Debt filed**: {result.debt_filed or '(none)'}",
+           f"## Audit run — {ts}",
+           f"- Audit issue: #{audit.issue_number}",
+           f"- Title: {audit.title}",
+           f"- In-scope docs: {outcome.get('in_scope_docs', 0)}",
+           f"- Docs reviewed: {outcome.get('docs_reviewed', 0)}",
+           f"- High-confidence edits proposed: {outcome.get('hc_edits_proposed', 0)}",
+           f"- Pending-approval issue filed: {outcome.get('pending_approval_issue', 'none')}",
+           f"- Edits committed: {outcome.get('edits_committed', 0)}",
+           f"- Debt issues created: {outcome.get('debt_issues_created', 0)} {outcome.get('debt_issue_refs', '')}".rstrip(),
+           f"- Missing artifacts flagged: {outcome.get('missing_artifacts', 0)}",
+           f"- Items requiring human review: {outcome.get('human_review_items', 0)}",
+           f"- Decision applied this tick: {outcome.get('decision_applied', 'none')}",
+           f"- Errors: {outcome.get('error_count', 0)}",
+           "",  # blank line between entries
        ]
-       if result.errors:
-           lines.append(f"**Errors**: {result.errors}")
-       lines.append(f"**Driver version**: {DRIVER_VERSION}")
-       lines.append("")  # trailing newline
        return "\n".join(lines) + "\n"
    ```
 
-3. If the existing format is materially different from above, match it exactly. The format is mission-internal — what matters is preservation.
+3. The `outcome` dict is populated by the driver's audit-processing loop and passed to `append_audit_entry()` per audit. Fields are documented in the contract docstring.
 
-4. Module docstring notes this preserves the format from the previous openclaw-agent invocation (spec C-005).
+4. Module docstring notes this preserves the format from the previous openclaw-agent invocation (spec C-005), and references the fixture file at `tests/doc_audit/output/fixtures/activity_log_sample.txt`.
 
 **Files**:
 - New: `scripts/doc_audit/output/activity_log.py` (~120 lines)
+- New: `tests/doc_audit/output/fixtures/activity_log_sample.txt` (canonical-format fixture from the 2026-05-20 capture above)
 
 **Validation**:
-- [ ] `append_entry()` writes to today's file
-- [ ] File created with frontmatter on first call of the day
-- [ ] Subsequent calls append without re-writing frontmatter
-- [ ] Output matches existing format (operator reading both legacy + new entries cannot tell the difference)
+- [ ] `append_audit_entry()` writes to today's file (using local-tz date for filename)
+- [ ] File created empty on first call of the day; NO frontmatter prepended
+- [ ] Subsequent calls append entries with one blank line between
+- [ ] Output byte-for-byte matches the fixture file format (use a fixture-comparison test)
+- [ ] Local-tz offset format matches the captured sample (`-0400`, no colon)
 
 ---
 

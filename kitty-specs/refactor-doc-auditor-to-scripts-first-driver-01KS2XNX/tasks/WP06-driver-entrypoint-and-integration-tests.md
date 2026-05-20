@@ -169,6 +169,10 @@ This is the WP where everything comes together. WP03/WP04/WP05 are independent c
 
 **Steps**:
 
+**Critical ordering note** (per research D9 + FR-004): drift events are processed FIRST so that any GH issues they file (via `handle_drift_events.file_doc_audit_issue`) are picked up in the SAME tick's GH-issue scan. This is by design — drift detection at 03:00 UTC fires before the next hourly tick, so within one tick we want: process drift events → file resulting GH issues → enumerate the now-fresh GH queue → process pending-approvals (priority 10) BEFORE new audits (priority 20+) per FR-004 + signal-source contract.
+
+The "drift-events first" ordering does NOT contradict FR-004's "pending-approvals first" — FR-004 governs ordering WITHIN the GH-issue scan, drift processing happens upstream of that scan.
+
 1. Inside `_run_tick(config, args, result)`:
 
    ```python
@@ -177,7 +181,8 @@ This is the WP where everything comes together. WP03/WP04/WP05 are independent c
        sources = _build_sources(config, args)
 
        # Step 2: Drift-event processing first (before GH-issue scan)
-       # per research D9 ordering
+       # per research D9 ordering. Files GH issues for mapped drift events;
+       # those issues are picked up in step 4 below within the same tick.
        drift_source = next((s for s in sources if s.name == "drift_event"), None)
        if drift_source:
            _process_drift_events(drift_source, config, result)
@@ -188,18 +193,32 @@ This is the WP where everything comes together. WP03/WP04/WP05 are independent c
            return
 
        # Step 4: Process the FULL queue in priority order per FR-004 + Q3=B
+       # Sort key: (priority, created_utc) — pending-approval (10) before doc_audit (20)
+       # before weekly_doc_audit (30). Drift events (priority 40) are NOT in this queue;
+       # they were handled in step 2.
        signals = gh_source.pending()
        signals.sort(key=lambda s: (s.priority, s.created_utc))
        result.signals_seen = len(signals)
 
        judgment_client = JudgmentClient(config)
+       rate_limited = False
 
        for signal in signals:
+           if rate_limited:
+               # Stop processing remaining signals once we hit rate-limit (T029).
+               # Unprocessed signals remain in the queue for the next tick.
+               break
            try:
                outcome = _process_signal(signal, gh_source, judgment_client, config, args, result)
                gh_source.commit(signal, outcome)
                result.signals_processed += 1
+           except RateLimitError as e:
+               # GitHub or Anthropic rate-limit: short-circuit the rest of the tick.
+               result.errors.append(f"Rate-limited on {signal.id}: {e}")
+               result.status = "failure"
+               rate_limited = True
            except Exception as e:
+               # Any other per-signal failure: log + continue with the next signal.
                result.errors.append(f"Signal {signal.id} failed: {type(e).__name__}: {e}")
                result.status = "partial"
 
@@ -207,6 +226,8 @@ This is the WP where everything comes together. WP03/WP04/WP05 are independent c
        if result.errors and result.signals_processed == 0:
            result.status = "failure"
    ```
+
+   Define `RateLimitError` near the top of `run.py` as a thin wrapper exception that `signals/gh_issue.py` and `routing/apply_decisions.py` raise when they detect 403 + rate-limit headers in the underlying `subprocess.CompletedProcess`.
 
 2. `_process_signal(signal, source, judgment_client, config, args, result)` dispatches based on `signal.kind`:
    - `pending_approval` → apply decision via routing layer
@@ -245,8 +266,12 @@ This is the WP where everything comes together. WP03/WP04/WP05 are independent c
 **Steps**:
 
 1. In `GHIssueSignalSource._fetch_doc_audits()` (from WP03), modify the "skip in-progress" behavior:
-   - If the in-progress audit has a referenced `audit-pending-approval` issue with NO decision label → it's the expected Level-1 wait state. Skip (NOT stuck).
-   - If the in-progress audit has NO referenced pending-approval issue → it's a stuck lock from a prior crashed tick. INCLUDE in the result with a `payload.stale_lock = True` flag.
+   - **What's a "referenced pending-approval"?** Per SKILL.md §3 step 9, when an audit produces Tier-B proposals, the agent files an `audit-pending-approval` issue and posts a comment on the originating audit: `"Pending review at #<new>"`. The cross-reference pattern is:
+     - **Forward link**: the pending-approval issue's body contains `"Refs #<audit-issue-number>"` AND/OR its title is formatted as `"Audit #<N>: pending approval — ..."`.
+     - **Back link**: the audit issue has a comment from `kg-felix-bot` containing `"Pending review at #<new>"`.
+     - **Use both checks**: query `gh issue list --label "audit-pending-approval" --state open --json number,title,body`, then for each result, parse the title for `Audit #N` regex and the body for `Refs #N` to build the audit-number → pending-approval-number map.
+   - If the in-progress audit has a matching `audit-pending-approval` issue (open, with OR without a decision label) → it's the expected Level-1 wait state (or post-decision processing pending). **Skip — NOT stuck.**
+   - If the in-progress audit has NO matching pending-approval issue → it's a stuck lock from a prior crashed tick. INCLUDE in the result with a `payload.stale_lock = True` flag.
 
 2. In `_process_signal` for stale-lock audits:
    - Log the recovery attempt
@@ -281,7 +306,10 @@ This is the WP where everything comes together. WP03/WP04/WP05 are independent c
 
 2. **GitHub rate limit** (gh CLI returns 403 with rate-limit headers):
    - Catch in `signals/gh_issue.py` and `routing/apply_decisions.py` at the `subprocess.run` boundary
-   - Set `result.status = "failure"`, log to errors, exit current tick gracefully (the next tick retries)
+   - Raise the `RateLimitError` exception (defined in `run.py`, see T027) so the orchestration loop knows this is a tick-aborting condition (not a per-signal failure)
+   - The orchestration loop catches `RateLimitError`, sets `result.status = "failure"`, logs the error, and **BREAKs the signal-processing loop** (does NOT `continue` to the next signal — any further API call will hit the same rate limit)
+   - Unprocessed signals remain in the GH queue; the next tick retries them
+   - Detection: 403 status from `gh` subprocess + `X-RateLimit-Remaining: 0` header in stderr OR body containing `"API rate limit exceeded"`. If the headers aren't captured by `gh` CLI, the body-substring check is the fallback.
 
 3. **Audit references missing file**:
    - Catch `FileNotFoundError` when reading in-scope docs
