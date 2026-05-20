@@ -17,8 +17,8 @@ subtasks:
 - T015
 phase: Phase 2 — Components
 assignee: ''
-agent: "claude:opus-4.7:implementer:implementer"
-shell_pid: "56738"
+agent: "codex:gpt-5:spec-kitty-review:reviewer"
+shell_pid: "58135"
 history:
 - timestamp: '2026-05-20T16:25:00Z'
   agent: system
@@ -347,3 +347,4 @@ spec-kitty agent action implement WP03 --agent <name>
 - 2026-05-20T18:17:22Z – codex:gpt-5:spec-kitty-review:reviewer – shell_pid=55164 – Moved to planned
 - 2026-05-20T18:19:07Z – claude:opus-4.7:implementer:implementer – shell_pid=56738 – Started implementation via action command
 - 2026-05-20T18:24:44Z – claude:opus-4.7:implementer:implementer – shell_pid=56738 – Cycle 2: DriftEventSignalSource now uses helper primitives (find_mapping, file_doc_audit_issue, append_unmapped, write_cursor_atomic)
+- 2026-05-20T18:25:30Z – codex:gpt-5:spec-kitty-review:reviewer – shell_pid=58135 – Started review via action command
