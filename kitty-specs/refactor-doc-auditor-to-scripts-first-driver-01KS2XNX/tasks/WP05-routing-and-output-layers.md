@@ -19,7 +19,8 @@ subtasks:
 - T025
 phase: Phase 2 — Components
 assignee: ''
-agent: ''
+agent: "claude:opus-4.7:implementer:implementer"
+shell_pid: "72937"
 history:
 - timestamp: '2026-05-20T16:25:00Z'
   agent: system
@@ -422,3 +423,7 @@ spec-kitty agent action implement WP05 --agent <name>
 - **Helper docstring**: `scripts/doc_audit/helpers/handle_audit_routing.py` (audit-state JSON shape)
 - **Research**: D7 (Structured tick signal format)
 - **Spec**: FR-005, FR-006, FR-007, FR-008, FR-009; NFR-003, NFR-004; C-005
+
+## Activity Log
+
+- 2026-05-20T19:36:48Z – claude:opus-4.7:implementer:implementer – shell_pid=72937 – Started implementation via action command
