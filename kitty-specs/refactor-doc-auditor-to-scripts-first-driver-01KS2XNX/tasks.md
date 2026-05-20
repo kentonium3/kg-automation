@@ -23,11 +23,11 @@ This index is for reference only. Per-WP tracking happens via checkboxes in the 
 | T008 | Implement `config.py` + `config.toml` (default config) | WP02 | | [D] |
 | T009 | Conftest + fixtures for the test package | WP02 | | [D] |
 | T010 | Unit tests for data-model entities (serialization, parsing, invariants) | WP02 | [D] |
-| T011 | Define `SignalSource` Protocol + `Signal` dataclass in `signals/base.py` | WP03 | |
-| T012 | Implement `GHIssueSignalSource` (`signals/gh_issue.py`) — consume Doc audit / Weekly / pending-approval | WP03 | |
-| T013 | Implement `DriftEventSignalSource` (`signals/drift_event.py`) — wrap `helpers/handle_drift_events.py` imports | WP03 | |
-| T014 | Unit tests for `GHIssueSignalSource` with mocked `gh` subprocess | WP03 | [P] |
-| T015 | Unit tests for `DriftEventSignalSource` with mocked drift-events.jsonl fixture | WP03 | [P] |
+| T011 | Define `SignalSource` Protocol + `Signal` dataclass in `signals/base.py` | WP03 | | [D] |
+| T012 | Implement `GHIssueSignalSource` (`signals/gh_issue.py`) — consume Doc audit / Weekly / pending-approval | WP03 | | [D] |
+| T013 | Implement `DriftEventSignalSource` (`signals/drift_event.py`) — wrap `helpers/handle_drift_events.py` imports | WP03 | | [D] |
+| T014 | Unit tests for `GHIssueSignalSource` with mocked `gh` subprocess | WP03 | [D] |
+| T015 | Unit tests for `DriftEventSignalSource` with mocked drift-events.jsonl fixture | WP03 | [D] |
 | T016 | Implement `judgment/client.py` — Anthropic SDK wrapper + prompt-cache helpers | WP04 | |
 | T017 | Write `prompts/tier_classification.prompt.md` (cache-aware template) | WP04 | |
 | T018 | Write `prompts/debt_body_generation.prompt.md` (cache-aware template) | WP04 | |
@@ -146,11 +146,11 @@ WP02 ──┤          ├─→ WP06 ──┐
 **Estimated prompt size**: ~450 lines
 
 **Included subtasks**:
-- [ ] T011 Define `SignalSource` Protocol + `Signal` dataclass
-- [ ] T012 Implement `GHIssueSignalSource`
-- [ ] T013 Implement `DriftEventSignalSource` (wraps helpers)
-- [ ] T014 [P] Unit tests for `GHIssueSignalSource`
-- [ ] T015 [P] Unit tests for `DriftEventSignalSource`
+- [x] T011 Define `SignalSource` Protocol + `Signal` dataclass
+- [x] T012 Implement `GHIssueSignalSource`
+- [x] T013 Implement `DriftEventSignalSource` (wraps helpers)
+- [x] T014 [P] Unit tests for `GHIssueSignalSource`
+- [x] T015 [P] Unit tests for `DriftEventSignalSource`
 
 **Dependencies**: WP01, WP02
 **Risks**: Adapter behavior diverges from existing AGENTS.md §2 semantics; mitigation = explicit fixture tests against expected I/O.
