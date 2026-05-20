@@ -38,12 +38,12 @@ This index is for reference only. Per-WP tracking happens via checkboxes in the 
 | T023 | Implement `output/tick_signal.py` — atomic write of `last-tick.json` (E-009, NFR-003/004) | WP05 | | [D] |
 | T024 | Implement `output/activity_log.py` — preserved-format append to `/home/kgale/second-brain/agents/logs/` (C-005, FR-009) | WP05 | | [D] |
 | T025 | Unit tests for routing + output layers | WP05 | [D] |
-| T026 | Implement `scripts/doc_audit/run.py` — CLI entry point (D6, driver-invocation contract) | WP06 | |
-| T027 | Implement top-level orchestration loop: pending-approvals → new audits → drift events (FR-004) | WP06 | |
-| T028 | Implement stuck-lock recovery logic (FR-014) | WP06 | |
-| T029 | Wire error-handling per spec edge cases (LLM outage, rate-limit, missing-file, stuck-lock) | WP06 | |
-| T030 | Integration tests covering 5 tick outcomes (empty, debt-only, Tier-A, pending-approval-apply, pending-approval-reject) | WP06 | [P] |
-| T031 | Integration tests covering 4 edge cases | WP06 | [P] |
+| T026 | Implement `scripts/doc_audit/run.py` — CLI entry point (D6, driver-invocation contract) | WP06 | | [D] |
+| T027 | Implement top-level orchestration loop: pending-approvals → new audits → drift events (FR-004) | WP06 | | [D] |
+| T028 | Implement stuck-lock recovery logic (FR-014) | WP06 | | [D] |
+| T029 | Wire error-handling per spec edge cases (LLM outage, rate-limit, missing-file, stuck-lock) | WP06 | | [D] |
+| T030 | Integration tests covering 5 tick outcomes (empty, debt-only, Tier-A, pending-approval-apply, pending-approval-reject) | WP06 | [D] |
+| T031 | Integration tests covering 4 edge cases | WP06 | [D] |
 | T032 | Write `tests/doc_audit/test_smoke_live.py` (gated by `pytest -m live_smoke`) | WP07 | |
 | T033 | Run pre-rework baseline measurement against current openclaw-agent (3+ representative ticks) | WP07 | |
 | T034 | Write `docs/design/architecture/baselines/felix-doc-auditor-pre-rework.json` | WP07 | |
@@ -212,12 +212,12 @@ WP02 ──┤          ├─→ WP06 ──┐
 **Estimated prompt size**: ~600 lines
 
 **Included subtasks**:
-- [ ] T026 Implement `run.py` CLI entry point
-- [ ] T027 Implement orchestration loop
-- [ ] T028 Implement stuck-lock recovery (FR-014)
-- [ ] T029 Wire error-handling per spec edge cases
-- [ ] T030 [P] Integration tests for 5 tick outcomes
-- [ ] T031 [P] Integration tests for 4 edge cases
+- [x] T026 Implement `run.py` CLI entry point
+- [x] T027 Implement orchestration loop
+- [x] T028 Implement stuck-lock recovery (FR-014)
+- [x] T029 Wire error-handling per spec edge cases
+- [x] T030 [P] Integration tests for 5 tick outcomes
+- [x] T031 [P] Integration tests for 4 edge cases
 
 **Dependencies**: WP03, WP04, WP05
 **Risks**: Subtle dispatch bugs (wrong priority order, off-by-one on cursor advance, etc.); mitigation = explicit dispatch-table tests + fixture-driven integration.
