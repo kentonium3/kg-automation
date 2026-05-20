@@ -28,12 +28,12 @@ This index is for reference only. Per-WP tracking happens via checkboxes in the 
 | T013 | Implement `DriftEventSignalSource` (`signals/drift_event.py`) — wrap `helpers/handle_drift_events.py` imports | WP03 | | [D] |
 | T014 | Unit tests for `GHIssueSignalSource` with mocked `gh` subprocess | WP03 | [D] |
 | T015 | Unit tests for `DriftEventSignalSource` with mocked drift-events.jsonl fixture | WP03 | [D] |
-| T016 | Implement `judgment/client.py` — Anthropic SDK wrapper + prompt-cache helpers | WP04 | |
-| T017 | Write `prompts/tier_classification.prompt.md` (cache-aware template) | WP04 | |
-| T018 | Write `prompts/debt_body_generation.prompt.md` (cache-aware template) | WP04 | |
-| T019 | Write `prompts/cross_file_implication.prompt.md` (cache-aware template) | WP04 | |
-| T020 | Implement `judgment/tier_classification.py` + `judgment/debt_body_generation.py` + `judgment/cross_file_implication.py` | WP04 | |
-| T021 | Unit tests for each judgment moment (mocked `anthropic.Anthropic` client) | WP04 | [P] |
+| T016 | Implement `judgment/client.py` — Anthropic SDK wrapper + prompt-cache helpers | WP04 | | [D] |
+| T017 | Write `prompts/tier_classification.prompt.md` (cache-aware template) | WP04 | | [D] |
+| T018 | Write `prompts/debt_body_generation.prompt.md` (cache-aware template) | WP04 | | [D] |
+| T019 | Write `prompts/cross_file_implication.prompt.md` (cache-aware template) | WP04 | | [D] |
+| T020 | Implement `judgment/tier_classification.py` + `judgment/debt_body_generation.py` + `judgment/cross_file_implication.py` | WP04 | | [D] |
+| T021 | Unit tests for each judgment moment (mocked `anthropic.Anthropic` client) | WP04 | [D] |
 | T022 | Implement `routing/apply_decisions.py` — wraps `helpers/handle_audit_routing.py` imports | WP05 | |
 | T023 | Implement `output/tick_signal.py` — atomic write of `last-tick.json` (E-009, NFR-003/004) | WP05 | |
 | T024 | Implement `output/activity_log.py` — preserved-format append to `/home/kgale/second-brain/agents/logs/` (C-005, FR-009) | WP05 | |
@@ -168,12 +168,12 @@ WP02 ──┤          ├─→ WP06 ──┐
 **Estimated prompt size**: ~500 lines
 
 **Included subtasks**:
-- [ ] T016 Implement `judgment/client.py` — SDK wrapper + cache helpers
-- [ ] T017 Write `prompts/tier_classification.prompt.md`
-- [ ] T018 Write `prompts/debt_body_generation.prompt.md`
-- [ ] T019 Write `prompts/cross_file_implication.prompt.md`
-- [ ] T020 Implement three judgment modules
-- [ ] T021 [P] Unit tests with mocked Anthropic SDK
+- [x] T016 Implement `judgment/client.py` — SDK wrapper + cache helpers
+- [x] T017 Write `prompts/tier_classification.prompt.md`
+- [x] T018 Write `prompts/debt_body_generation.prompt.md`
+- [x] T019 Write `prompts/cross_file_implication.prompt.md`
+- [x] T020 Implement three judgment modules
+- [x] T021 [P] Unit tests with mocked Anthropic SDK
 
 **Dependencies**: WP02
 **Risks**: Prompts under-specified → LLM hallucination; mitigation = response-schema validation in the driver per `contracts/judgment-prompts.contract.md`.
