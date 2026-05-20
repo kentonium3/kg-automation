@@ -21,7 +21,7 @@ Vikunja's native `repeat_after` (set in Phase 3 #306) handles
 ## Phase 5 cutover (2026-05-20)
 
 **Date**: 2026-05-20 (UTC). Operator deploys via the [Update workspace
-files](#update-workspace-files) command after the cutover commit lands
+files](<#update-workspace-files>) command after the cutover commit lands
 on `main`.
 
 **Issue reference**: [GitHub #308](https://github.com/kentonium3/kg-automation/issues/308)
@@ -61,7 +61,7 @@ rename the `_v2.py` files to canonical names.
 [quickstart.md](../../kitty-specs/habits-cutover-to-jsonl-v2-flow-01KS1FKE/quickstart.md)
 for the full Steps 1-6 procedure (pull → deploy → sha256 verify →
 wait for next cron → smoke-test → verify the Tuesday structural fix).
-The deploy itself uses the existing [Update workspace files](#update-workspace-files)
+The deploy itself uses the existing [Update workspace files](<#update-workspace-files>)
 command unchanged.
 
 **Soak posture**: 2-3 day fail-forward observation window (per spec
