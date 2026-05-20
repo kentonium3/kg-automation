@@ -23,8 +23,8 @@ subtasks:
 - T031
 phase: Phase 3 — Integration
 assignee: ''
-agent: "codex:gpt-5:spec-kitty-review:reviewer"
-shell_pid: "85836"
+agent: "claude:opus-4.7:implementer:implementer"
+shell_pid: "88162"
 history:
 - timestamp: '2026-05-20T16:25:00Z'
   agent: system
@@ -459,3 +459,4 @@ spec-kitty agent action implement WP06 --agent <name>
 - 2026-05-20T20:54:18Z – claude:opus-4.7:implementer:implementer – shell_pid=82709 – Ready for review: driver CLI + orchestration loop (drift-first ordering, FR-004 queue priority); RateLimitError BREAKs the loop; FR-014 stuck-lock recovery with cross-reference index; 5 tick-outcome + 4 edge-case integration tests + 35 run-unit tests; coverage 82% on run.py; 311 tests total
 - 2026-05-20T20:56:52Z – codex:gpt-5:spec-kitty-review:reviewer – shell_pid=85836 – Started review via action command
 - 2026-05-20T21:09:31Z – codex:gpt-5:spec-kitty-review:reviewer – shell_pid=85836 – Moved to planned
+- 2026-05-20T21:10:17Z – claude:opus-4.7:implementer:implementer – shell_pid=88162 – Started implementation via action command
