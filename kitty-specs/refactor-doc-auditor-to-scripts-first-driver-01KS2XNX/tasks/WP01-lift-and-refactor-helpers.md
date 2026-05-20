@@ -18,8 +18,8 @@ subtasks:
 - T005
 phase: Phase 1 — Foundation
 assignee: ''
-agent: "claude:opus-4.7:implementer:implementer"
-shell_pid: "44672"
+agent: "codex:gpt-5:spec-kitty-review:reviewer"
+shell_pid: "46024"
 history:
 - timestamp: '2026-05-20T16:25:00Z'
   agent: system
@@ -253,3 +253,4 @@ spec-kitty agent action implement WP01 --agent <name>
 - 2026-05-20T17:30:54Z – codex:gpt-5:spec-kitty-review:reviewer – shell_pid=42990 – Moved to planned
 - 2026-05-20T17:31:05Z – claude:opus-4.7:implementer:implementer – shell_pid=44672 – Started implementation via action command
 - 2026-05-20T17:36:45Z – claude:opus-4.7:implementer:implementer – shell_pid=44672 – Cycle 3: coverage at >=80% per file
+- 2026-05-20T17:38:32Z – codex:gpt-5:spec-kitty-review:reviewer – shell_pid=46024 – Started review via action command
