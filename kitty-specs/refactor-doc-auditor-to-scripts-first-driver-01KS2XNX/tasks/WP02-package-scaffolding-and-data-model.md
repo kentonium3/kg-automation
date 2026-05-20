@@ -15,7 +15,8 @@ subtasks:
 - T010
 phase: Phase 1 — Foundation
 assignee: ''
-agent: ''
+agent: "claude:opus-4.7:implementer:implementer"
+shell_pid: "47069"
 history:
 - timestamp: '2026-05-20T16:25:00Z'
   agent: system
@@ -294,3 +295,7 @@ spec-kitty agent action implement WP02 --agent <name>
 - **Data model**: `kitty-specs/.../data-model.md` E-001..E-010
 - **Research**: D14 (Python package layout), D1 (API key path)
 - **Spec**: FR-003 (stateless between ticks — data model is in-memory only)
+
+## Activity Log
+
+- 2026-05-20T17:43:08Z – claude:opus-4.7:implementer:implementer – shell_pid=47069 – Started implementation via action command
