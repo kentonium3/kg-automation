@@ -6,7 +6,7 @@ requirement_refs:
 - FR-005
 planning_base_branch: main
 merge_target_branch: main
-branch_strategy: Planning artifacts were generated on main; completed changes must merge back into main.
+branch_strategy: Planning artifacts for this feature were generated on main. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into main unless the human explicitly redirects the landing branch.
 subtasks:
 - T001
 - T002
@@ -27,7 +27,6 @@ owned_files:
 - scripts/openclaw/agents/felix-doc-auditor/handle_drift_events.py
 - scripts/openclaw/agents/felix-doc-auditor/handle_audit_routing.py
 - docs/design/helper-script-conventions.md
-- docs/design/architecture/felix-d6-survey.md
 - docs/design/architecture/data/signal-to-doc-map.json
 - tests/doc_audit/helpers/**
 tags: []
@@ -145,9 +144,7 @@ This is foundational. WP03 (signal source adapter `DriftEventSignalSource`) and 
    - Add a note: "These helpers were lifted from felix-doc-auditor's agent workspace in #343 to a more durable location."
 
 2. **`docs/design/architecture/felix-d6-survey.md`**:
-   - Search for `handle_drift_events.py` / `handle_audit_routing.py` path references
-   - Update to new paths
-   - Do NOT change the verdict prose — WP10 (T049) appends the broader context-note acknowledging #343 obsoletes the prior verdict; T004 is just path-cleanup.
+   - **Out of scope for this WP** — WP10 (T049) owns this file and will perform BOTH the path update AND the verdict-context note in one place. T004 hands off the path update to T049.
 
 3. **`docs/design/architecture/data/signal-to-doc-map.json`**:
    - The `description` field references `felix-doc-auditor/handle_drift_events.py` — update to new path

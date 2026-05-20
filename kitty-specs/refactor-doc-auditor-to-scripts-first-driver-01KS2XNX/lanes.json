@@ -1,0 +1,143 @@
+{
+  "version": 1,
+  "mission_slug": "refactor-doc-auditor-to-scripts-first-driver-01KS2XNX",
+  "mission_id": "01KS2XNXGQVC18MEF7801JKCYR",
+  "mission_branch": "kitty/mission-refactor-doc-auditor-to-scripts-first-driver-01KS2XNX",
+  "target_branch": "main",
+  "lanes": [
+    {
+      "lane_id": "lane-a",
+      "wp_ids": [
+        "WP01",
+        "WP02",
+        "WP03",
+        "WP04",
+        "WP05",
+        "WP06",
+        "WP07",
+        "WP08",
+        "WP09",
+        "WP10"
+      ],
+      "write_scope": [
+        "docs/design/architecture/baselines/README.md",
+        "docs/design/architecture/baselines/cutover-log.md",
+        "docs/design/architecture/baselines/felix-doc-auditor-post-rework.json",
+        "docs/design/architecture/baselines/felix-doc-auditor-pre-rework.json",
+        "docs/design/architecture/data/credential-manifest.json",
+        "docs/design/architecture/data/data-flows.json",
+        "docs/design/architecture/data/service-inventory.json",
+        "docs/design/architecture/data/signal-to-doc-map.json",
+        "docs/design/architecture/felix-d6-survey.md",
+        "docs/design/helper-script-conventions.md",
+        "docs/runbooks/doc-auditor-driver-ops.md",
+        "scripts/doc_audit/README.md",
+        "scripts/doc_audit/__init__.py",
+        "scripts/doc_audit/baselines/**",
+        "scripts/doc_audit/config.py",
+        "scripts/doc_audit/config.toml",
+        "scripts/doc_audit/data_model.py",
+        "scripts/doc_audit/helpers/**",
+        "scripts/doc_audit/judgment/**",
+        "scripts/doc_audit/output/**",
+        "scripts/doc_audit/prompts/**",
+        "scripts/doc_audit/routing/**",
+        "scripts/doc_audit/run.py",
+        "scripts/doc_audit/signals/**",
+        "scripts/office2/deploy/felix-doc-auditor-driver.sh",
+        "scripts/office2/felix-doc-auditor.service",
+        "scripts/office2/felix-doc-auditor.timer",
+        "scripts/openclaw/agents/felix-doc-auditor/handle_audit_routing.py",
+        "scripts/openclaw/agents/felix-doc-auditor/handle_drift_events.py",
+        "tests/doc_audit/conftest.py",
+        "tests/doc_audit/helpers/**",
+        "tests/doc_audit/judgment/**",
+        "tests/doc_audit/output/**",
+        "tests/doc_audit/routing/**",
+        "tests/doc_audit/signals/**",
+        "tests/doc_audit/test_config.py",
+        "tests/doc_audit/test_data_model.py",
+        "tests/doc_audit/test_integration_edge_cases.py",
+        "tests/doc_audit/test_integration_tick_outcomes.py",
+        "tests/doc_audit/test_smoke_live.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "app-shell",
+        "artifact-rendering",
+        "legacy-cleanup",
+        "tests",
+        "tracker-integration",
+        "workspace"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    }
+  ],
+  "computed_at": "2026-05-20T16:40:31.040972+00:00",
+  "computed_from": "dependency_graph+ownership",
+  "planning_artifact_wps": [],
+  "collapse_report": {
+    "events": [
+      {
+        "wp_a": "WP03",
+        "wp_b": "WP01",
+        "rule": "dependency",
+        "evidence": "WP03 depends on WP01"
+      },
+      {
+        "wp_a": "WP03",
+        "wp_b": "WP02",
+        "rule": "dependency",
+        "evidence": "WP03 depends on WP02"
+      },
+      {
+        "wp_a": "WP04",
+        "wp_b": "WP02",
+        "rule": "dependency",
+        "evidence": "WP04 depends on WP02"
+      },
+      {
+        "wp_a": "WP05",
+        "wp_b": "WP01",
+        "rule": "dependency",
+        "evidence": "WP05 depends on WP01"
+      },
+      {
+        "wp_a": "WP06",
+        "wp_b": "WP03",
+        "rule": "dependency",
+        "evidence": "WP06 depends on WP03"
+      },
+      {
+        "wp_a": "WP07",
+        "wp_b": "WP06",
+        "rule": "dependency",
+        "evidence": "WP07 depends on WP06"
+      },
+      {
+        "wp_a": "WP08",
+        "wp_b": "WP06",
+        "rule": "dependency",
+        "evidence": "WP08 depends on WP06"
+      },
+      {
+        "wp_a": "WP09",
+        "wp_b": "WP06",
+        "rule": "dependency",
+        "evidence": "WP09 depends on WP06"
+      },
+      {
+        "wp_a": "WP10",
+        "wp_b": "WP09",
+        "rule": "dependency",
+        "evidence": "WP10 depends on WP09"
+      }
+    ],
+    "total_merges": 9,
+    "independent_wps_collapsed": 0,
+    "by_rule": {
+      "dependency": 9
+    }
+  }
+}
