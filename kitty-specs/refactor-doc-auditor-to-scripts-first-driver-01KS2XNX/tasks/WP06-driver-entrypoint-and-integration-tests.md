@@ -23,7 +23,8 @@ subtasks:
 - T031
 phase: Phase 3 — Integration
 assignee: ''
-agent: ''
+agent: "claude:opus-4.7:implementer:implementer"
+shell_pid: "82709"
 history:
 - timestamp: '2026-05-20T16:25:00Z'
   agent: system
@@ -451,3 +452,7 @@ spec-kitty agent action implement WP06 --agent <name>
 - **Research**: D6 (Driver Invocation Contract), D9 (Drift-event cadence)
 - **Spec**: FR-001, FR-003, FR-004, FR-007, FR-008, FR-014; NFR-002, NFR-006
 - **SKILL.md §8.6** (actor-verification), §8.7 (lock lifecycle / stale-lock detection)
+
+## Activity Log
+
+- 2026-05-20T20:39:10Z – claude:opus-4.7:implementer:implementer – shell_pid=82709 – Started implementation via action command
