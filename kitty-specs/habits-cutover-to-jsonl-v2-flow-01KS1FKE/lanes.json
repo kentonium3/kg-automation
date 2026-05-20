@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "mission_slug": "habits-cutover-to-jsonl-v2-flow-01KS1FKE",
+  "mission_id": "01KS1FKE0QHYEHZW684YEJNEPW",
+  "mission_branch": "kitty/mission-habits-cutover-to-jsonl-v2-flow-01KS1FKE",
+  "target_branch": "main",
+  "lanes": [
+    {
+      "lane_id": "lane-a",
+      "wp_ids": [
+        "WP01"
+      ],
+      "write_scope": [
+        "docs/runbooks/habits-ops.md",
+        "scripts/openclaw/agents/felix-admin-habits/AGENTS.md"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "artifact-rendering",
+        "legacy-cleanup",
+        "workspace"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    }
+  ],
+  "computed_at": "2026-05-20T01:39:05.179673+00:00",
+  "computed_from": "dependency_graph+ownership",
+  "planning_artifact_wps": []
+}
