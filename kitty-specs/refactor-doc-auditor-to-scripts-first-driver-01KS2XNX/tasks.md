@@ -34,10 +34,10 @@ This index is for reference only. Per-WP tracking happens via checkboxes in the 
 | T019 | Write `prompts/cross_file_implication.prompt.md` (cache-aware template) | WP04 | | [D] |
 | T020 | Implement `judgment/tier_classification.py` + `judgment/debt_body_generation.py` + `judgment/cross_file_implication.py` | WP04 | | [D] |
 | T021 | Unit tests for each judgment moment (mocked `anthropic.Anthropic` client) | WP04 | [D] |
-| T022 | Implement `routing/apply_decisions.py` — wraps `helpers/handle_audit_routing.py` imports | WP05 | |
-| T023 | Implement `output/tick_signal.py` — atomic write of `last-tick.json` (E-009, NFR-003/004) | WP05 | |
-| T024 | Implement `output/activity_log.py` — preserved-format append to `/home/kgale/second-brain/agents/logs/` (C-005, FR-009) | WP05 | |
-| T025 | Unit tests for routing + output layers | WP05 | [P] |
+| T022 | Implement `routing/apply_decisions.py` — wraps `helpers/handle_audit_routing.py` imports | WP05 | | [D] |
+| T023 | Implement `output/tick_signal.py` — atomic write of `last-tick.json` (E-009, NFR-003/004) | WP05 | | [D] |
+| T024 | Implement `output/activity_log.py` — preserved-format append to `/home/kgale/second-brain/agents/logs/` (C-005, FR-009) | WP05 | | [D] |
+| T025 | Unit tests for routing + output layers | WP05 | [D] |
 | T026 | Implement `scripts/doc_audit/run.py` — CLI entry point (D6, driver-invocation contract) | WP06 | |
 | T027 | Implement top-level orchestration loop: pending-approvals → new audits → drift events (FR-004) | WP06 | |
 | T028 | Implement stuck-lock recovery logic (FR-014) | WP06 | |
@@ -191,10 +191,10 @@ WP02 ──┤          ├─→ WP06 ──┐
 **Estimated prompt size**: ~350 lines
 
 **Included subtasks**:
-- [ ] T022 Implement `routing/apply_decisions.py`
-- [ ] T023 Implement `output/tick_signal.py`
-- [ ] T024 Implement `output/activity_log.py`
-- [ ] T025 [P] Unit tests for routing + output
+- [x] T022 Implement `routing/apply_decisions.py`
+- [x] T023 Implement `output/tick_signal.py`
+- [x] T024 Implement `output/activity_log.py`
+- [x] T025 [P] Unit tests for routing + output
 
 **Dependencies**: WP01, WP02
 **Risks**: Tick-signal JSON schema drift; mitigation = round-trip parser test against the contract's example.
