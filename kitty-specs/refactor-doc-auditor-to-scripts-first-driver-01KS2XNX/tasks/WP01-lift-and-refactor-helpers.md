@@ -7,6 +7,9 @@ requirement_refs:
 planning_base_branch: main
 merge_target_branch: main
 branch_strategy: Planning artifacts for this feature were generated on main. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into main unless the human explicitly redirects the landing branch.
+base_branch: kitty/mission-refactor-doc-auditor-to-scripts-first-driver-01KS2XNX
+base_commit: 588121de726428f153214eb20372046a50772c0f
+created_at: '2026-05-20T16:54:25.115654+00:00'
 subtasks:
 - T001
 - T002
@@ -16,6 +19,7 @@ subtasks:
 phase: Phase 1 — Foundation
 assignee: ''
 agent: ''
+shell_pid: '38129'
 history:
 - timestamp: '2026-05-20T16:25:00Z'
   agent: system
