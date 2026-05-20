@@ -1,10 +1,10 @@
 ---
 affected_files: []
-cycle_number: 5
+cycle_number: 4
 mission_slug: refactor-doc-auditor-to-scripts-first-driver-01KS2XNX
 reproduction_command:
-reviewed_at: '2026-05-20T19:26:08Z'
-reviewer_agent: codex:gpt-5:spec-kitty-review:reviewer
+reviewed_at: '2026-05-20T19:24:27Z'
+reviewer_agent: unknown
 verdict: rejected
 wp_id: WP04
 ---
@@ -17,5 +17,3 @@ Fix:
 - Validate the originating audit reference as an exact issue reference, not a substring. A simple regex boundary check for `Refs #<originating_audit_number>` is enough.
 - Keep the existing injection behavior when the exact originating audit ref is absent.
 - Add a regression test where the LLM output includes `#3200` but `originating_audit_number=320`; expected body must still contain `Refs #320`.
-
-Downstream impact: WP06 depends on WP04 and should rebase after this fix lands.
