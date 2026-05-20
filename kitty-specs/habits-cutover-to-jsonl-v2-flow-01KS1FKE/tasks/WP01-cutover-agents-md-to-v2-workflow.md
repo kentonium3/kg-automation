@@ -319,3 +319,4 @@ A reviewer should verify:
 ## Activity Log
 
 - 2026-05-20T01:41:10Z – claude:sonnet:implementer:implementer – shell_pid=15280 – Assigned agent via action command
+- 2026-05-20T01:48:01Z – claude:sonnet:implementer:implementer – shell_pid=15280 – Phase 5 cutover ready: AGENTS.md edited per contract (Morning check-in v2 helpers + Step 0 reconcile; Completion marking → record_completion.py; Weekly report → JSONL state_log; light annotations on Comment format spec + Track record query + Action Logging); habits-ops.md updated with Phase 5 cutover section; grep contract satisfied; size budget OK (21858 bytes < 24500)
