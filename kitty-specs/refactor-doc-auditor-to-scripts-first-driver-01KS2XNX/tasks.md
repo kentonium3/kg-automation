@@ -18,11 +18,11 @@ This index is for reference only. Per-WP tracking happens via checkboxes in the 
 | T003 | Refactor each helper: separate `main()` from internal functions; verify CLI still works | WP01 | | [D] |
 | T004 | Update references in `docs/design/helper-script-conventions.md`, `docs/design/architecture/felix-d6-survey.md`, `docs/design/architecture/data/signal-to-doc-map.json` | WP01 | [D] |
 | T005 | Unit tests for the new importable surfaces in `tests/doc_audit/helpers/` | WP01 | [D] |
-| T006 | Create `scripts/doc_audit/` package scaffold (`__init__.py`, `README.md`) | WP02 | |
-| T007 | Implement `data_model.py` with all 10 entities (E-001..E-010) | WP02 | |
-| T008 | Implement `config.py` + `config.toml` (default config) | WP02 | |
-| T009 | Conftest + fixtures for the test package | WP02 | |
-| T010 | Unit tests for data-model entities (serialization, parsing, invariants) | WP02 | [P] |
+| T006 | Create `scripts/doc_audit/` package scaffold (`__init__.py`, `README.md`) | WP02 | | [D] |
+| T007 | Implement `data_model.py` with all 10 entities (E-001..E-010) | WP02 | | [D] |
+| T008 | Implement `config.py` + `config.toml` (default config) | WP02 | | [D] |
+| T009 | Conftest + fixtures for the test package | WP02 | | [D] |
+| T010 | Unit tests for data-model entities (serialization, parsing, invariants) | WP02 | [D] |
 | T011 | Define `SignalSource` Protocol + `Signal` dataclass in `signals/base.py` | WP03 | |
 | T012 | Implement `GHIssueSignalSource` (`signals/gh_issue.py`) — consume Doc audit / Weekly / pending-approval | WP03 | |
 | T013 | Implement `DriftEventSignalSource` (`signals/drift_event.py`) — wrap `helpers/handle_drift_events.py` imports | WP03 | |
@@ -124,11 +124,11 @@ WP02 ──┤          ├─→ WP06 ──┐
 **Estimated prompt size**: ~400 lines
 
 **Included subtasks**:
-- [ ] T006 Create `scripts/doc_audit/` package scaffold (`__init__.py`, `README.md`)
-- [ ] T007 Implement `data_model.py` with all 10 entities (E-001..E-010)
-- [ ] T008 Implement `config.py` + `config.toml` (default config)
-- [ ] T009 Conftest + fixtures for the test package
-- [ ] T010 [P] Unit tests for data-model entities
+- [x] T006 Create `scripts/doc_audit/` package scaffold (`__init__.py`, `README.md`)
+- [x] T007 Implement `data_model.py` with all 10 entities (E-001..E-010)
+- [x] T008 Implement `config.py` + `config.toml` (default config)
+- [x] T009 Conftest + fixtures for the test package
+- [x] T010 [P] Unit tests for data-model entities
 
 **Dependencies**: None
 **Risks**: Misaligning entity shapes with what consumers expect; mitigation = explicit reference to `data-model.md` E-001..E-010 in each dataclass docstring.
