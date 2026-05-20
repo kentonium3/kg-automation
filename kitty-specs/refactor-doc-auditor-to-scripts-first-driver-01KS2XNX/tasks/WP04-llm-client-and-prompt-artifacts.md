@@ -18,7 +18,8 @@ subtasks:
 - T021
 phase: Phase 2 — Components
 assignee: ''
-agent: ''
+agent: "claude:opus-4.7:implementer:implementer"
+shell_pid: "64832"
 history:
 - timestamp: '2026-05-20T16:25:00Z'
   agent: system
@@ -428,3 +429,7 @@ spec-kitty agent action implement WP04 --agent <name>
 - **Data model**: E-004 ProposedEdit, E-005 EditTier, E-006 DebtIssue
 - **Research**: D1 (model + SDK), D2 (prompt caching), D12 (prompt template inventory)
 - **Spec**: FR-002, FR-011, NFR-005
+
+## Activity Log
+
+- 2026-05-20T19:00:12Z – claude:opus-4.7:implementer:implementer – shell_pid=64832 – Started implementation via action command
