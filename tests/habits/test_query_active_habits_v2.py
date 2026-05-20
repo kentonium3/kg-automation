@@ -1,4 +1,12 @@
-"""Tests for scripts/habits/query_active_habits_v2.py (WP04 / T015).
+"""Tests for scripts/habits/query_active_habits_v2.py.
+
+Originally written for WP04 / T015 against a server-side filter
+implementation. Updated for G7 (#336): the helper now drops the
+server-side ``?filter=`` query param (Vikunja v0.24.6 rejects the
+compound expression — see G7 in
+``docs/design/research/vikunja-task-model-research.md``) and applies the
+equivalent ``done == False AND due_date <= <today>T23:59:59Z`` filter
+in Python.
 
 Covers the ``query_active_today()`` Python API and the ``__main__`` CLI
 surface. All Vikunja HTTP traffic is mocked via ``urllib.request.urlopen``
@@ -9,28 +17,31 @@ Enumeration is project-scoped to the Habits project — same pattern as
 order:
 
   1. ``GET /projects`` -- resolve the Habits project id by title
-  2. ``GET /projects/<id>/tasks?filter=<encoded>`` -- list tasks matching
-     ``due_date <= <today>T23:59:59Z AND done = false``
+  2. ``GET /projects/<id>/tasks`` -- enumerate the Habits project (no
+     server-side filter; the helper filters client-side)
 
 Tests use ``_responses(tasks=...)`` to script both responses in order via
 ``mock_urlopen.side_effect``.
 
-Test groups (per WP04 plan):
+Test groups:
 
 1. Happy path — three active tasks returned in order.
 2. Empty result.
-3. ``today`` override appears in the URL.
-4. Filter expression literally contains ``done = false``.
+3. ``today`` override / default UTC today.
+4. URL shape — project-scoped, no server-side ``?filter=`` query param.
 5. HTTPError -> CLI exit 1.
 6. CLI stdout format -- JSONL, one task per line, each parses.
-7. Extra coverage for usage errors, project resolution, etc.
+7. Project scoping (regression for the WP03 lesson).
+8. Misc.
+
+See also ``test_query_active_habits_v2_filter.py`` for the G7 (#336)
+client-side filter test cases.
 """
 from __future__ import annotations
 
 import io
 import json
 import urllib.error
-import urllib.parse
 from unittest.mock import MagicMock
 
 import pytest
@@ -178,29 +189,32 @@ class TestEmptyResult:
 
 
 class TestTodayOverride:
-    def test_today_kwarg_appears_in_url(self, mock_urlopen):
-        """The explicit today override is embedded in the filter expression."""
-        mock_urlopen.side_effect = _responses(tasks=[])
-        qv2.query_active_today(
+    def test_today_kwarg_drives_client_side_boundary(self, mock_urlopen):
+        """The explicit today override is applied as the client-side filter boundary.
+
+        Post-G7 (#336): the URL no longer carries a ``filter=`` query
+        param. The boundary lives in Python. We verify it by feeding a
+        boundary-spanning task list and asserting the filter behavior.
+        """
+        # boundary = 2026-05-15T23:59:59Z
+        payload = [
+            {"id": 1, "title": "Before", "done": False, "due_date": "2026-05-15T08:00:00Z"},
+            {"id": 2, "title": "After", "done": False, "due_date": "2026-05-16T00:00:00Z"},
+        ]
+        mock_urlopen.side_effect = _responses(tasks=payload)
+        result = qv2.query_active_today(
             api_base_url="http://test/api/v1/",
             token="t",
             today="2026-05-15",
         )
-        # Second call is the project-scoped tasks GET.
-        tasks_req = mock_urlopen.call_args_list[1][0][0]
-        url = tasks_req.full_url
-        # ``urlencode`` uses ``+`` for spaces — use unquote_plus to recover
-        # the original filter expression with literal spaces.
-        decoded = urllib.parse.unquote_plus(url)
-        assert "2026-05-15" in decoded
-        assert "T23:59:59Z" in decoded
+        assert [t["id"] for t in result] == [1]
 
     def test_today_default_uses_utc_today(self, mock_urlopen):
         """When `today` is None, the helper uses the system UTC date.
 
         We don't assert the exact value (test would race the calendar);
-        instead we confirm two HTTP calls happen and the URL contains the
-        filter scaffold.
+        instead we confirm two HTTP calls happen and the second call hits
+        the project-scoped tasks endpoint.
         """
         mock_urlopen.side_effect = _responses(tasks=[])
         qv2.query_active_today(
@@ -209,8 +223,8 @@ class TestTodayOverride:
         )
         assert len(mock_urlopen.call_args_list) == 2
         tasks_req = mock_urlopen.call_args_list[1][0][0]
-        url = urllib.parse.unquote_plus(tasks_req.full_url)
-        assert "due_date" in url
+        url = tasks_req.full_url
+        assert f"/projects/{HABITS_PROJECT_ID}/tasks" in url
 
     def test_today_bad_format_raises_value_error(self, mock_urlopen):
         mock_urlopen.side_effect = AssertionError("must not be called")
@@ -223,37 +237,21 @@ class TestTodayOverride:
 
 
 # ===========================================================================
-# Group 4 — Filter expression must contain `done = false`
+# Group 4 — URL shape (post-G7 #336): no server-side ?filter= query param
 # ===========================================================================
 
 
-class TestFilterExpression:
-    def test_filter_contains_done_false_literal(self, mock_urlopen):
-        """The native Vikunja filter expression must include ``done = false``."""
-        mock_urlopen.side_effect = _responses(tasks=[])
-        qv2.query_active_today(
-            api_base_url="http://test/api/v1/",
-            token="t",
-            today="2026-05-20",
-        )
-        tasks_req = mock_urlopen.call_args_list[1][0][0]
-        # urlencode uses ``+`` for spaces; unquote_plus restores literal spaces.
-        decoded = urllib.parse.unquote_plus(tasks_req.full_url)
-        assert "done = false" in decoded
+class TestUrlShape:
+    """Verify the helper no longer sends a server-side ``?filter=`` query.
 
-    def test_filter_contains_due_date_predicate(self, mock_urlopen):
-        mock_urlopen.side_effect = _responses(tasks=[])
-        qv2.query_active_today(
-            api_base_url="http://test/api/v1/",
-            token="t",
-            today="2026-05-20",
-        )
-        tasks_req = mock_urlopen.call_args_list[1][0][0]
-        decoded = urllib.parse.unquote_plus(tasks_req.full_url)
-        assert "due_date <= 2026-05-20T23:59:59Z" in decoded
+    Post-G7 (#336), Vikunja v0.24.6's compound filter expression
+    ``due_date <= <iso> AND done = false`` is rejected with HTTP 400.
+    The helper now drops the filter and applies the equivalent logic in
+    Python. These tests pin the new URL shape.
+    """
 
-    def test_filter_is_url_encoded(self, mock_urlopen):
-        """Spaces and special characters in the filter must be URL-encoded."""
+    def test_tasks_url_has_no_filter_query_param(self, mock_urlopen):
+        """The tasks GET request must not include any ``?filter=`` query."""
         mock_urlopen.side_effect = _responses(tasks=[])
         qv2.query_active_today(
             api_base_url="http://test/api/v1/",
@@ -261,13 +259,48 @@ class TestFilterExpression:
             today="2026-05-20",
         )
         tasks_req = mock_urlopen.call_args_list[1][0][0]
-        # The raw URL should not contain literal spaces (spaces encode to %20 or +).
-        raw_url = tasks_req.full_url
-        # Confirm the filter query parameter is present
-        assert "filter=" in raw_url
-        # And the raw URL after `filter=` has no literal space chars
-        query = raw_url.split("filter=", 1)[1]
-        assert " " not in query
+        assert "filter=" not in tasks_req.full_url
+        # And no query string at all on the tasks endpoint.
+        assert "?" not in tasks_req.full_url
+
+    def test_tasks_url_is_project_scoped_bare_endpoint(self, mock_urlopen):
+        """The tasks GET must hit ``/projects/<id>/tasks`` with no extras."""
+        mock_urlopen.side_effect = _responses(tasks=[])
+        qv2.query_active_today(
+            api_base_url="http://test/api/v1/",
+            token="t",
+            today="2026-05-20",
+        )
+        tasks_req = mock_urlopen.call_args_list[1][0][0]
+        assert tasks_req.full_url.endswith(f"/projects/{HABITS_PROJECT_ID}/tasks")
+
+    def test_client_side_filter_applies_done_false_semantics(self, mock_urlopen):
+        """Tasks with ``done=True`` are excluded by the client-side filter."""
+        payload = [
+            _task(14, title="Active", done=False, due_date="2026-05-20T08:00:00Z"),
+            _task(15, title="Done", done=True, due_date="2026-05-20T08:00:00Z"),
+        ]
+        mock_urlopen.side_effect = _responses(tasks=payload)
+        result = qv2.query_active_today(
+            api_base_url="http://test/api/v1/",
+            token="t",
+            today="2026-05-20",
+        )
+        assert [t["id"] for t in result] == [14]
+
+    def test_client_side_filter_applies_due_date_predicate(self, mock_urlopen):
+        """Tasks with ``due_date > <today>T23:59:59Z`` are excluded."""
+        payload = [
+            _task(14, title="Today", done=False, due_date="2026-05-20T08:00:00Z"),
+            _task(15, title="Tomorrow", done=False, due_date="2026-05-21T00:00:00Z"),
+        ]
+        mock_urlopen.side_effect = _responses(tasks=payload)
+        result = qv2.query_active_today(
+            api_base_url="http://test/api/v1/",
+            token="t",
+            today="2026-05-20",
+        )
+        assert [t["id"] for t in result] == [14]
 
 
 # ===========================================================================

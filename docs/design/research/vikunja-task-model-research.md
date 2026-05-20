@@ -577,9 +577,45 @@ hid through both implement-review cycles.
 
 Fixed via issue [#333](https://github.com/kentonium3/kg-automation/issues/333).
 
+### G7 — Compound server-side filter `due_date <= <iso> AND done = false` rejected
+
+**Status**: Verified 2026-05-20
+
+**Symptom**: `GET /api/v1/projects/<id>/tasks?filter=due_date <= <iso> AND done = false`
+returns HTTP 400. The compound expression combining a date comparison
+and a boolean equality is not accepted by Vikunja v0.24.6's filter
+syntax. Same class of bug as G6 (server-side filter field rejection),
+but here the rejection is the AND-composition / `done = false` clause
+rather than the field name.
+
+**Example failing URL** (URL-decoded):
+
+```
+GET /api/v1/projects/13/tasks?filter=due_date <= 2026-05-19T23:59:59Z AND done = false
+```
+
+**Surfacing context**:
+
+- Surfaced during Phase 5 cutover smoke-test (#308) on 2026-05-20.
+- Session log: `/home/claude/.openclaw/agents/felix-admin-habits/sessions/fb54e5d2-6179-4507-8350-99bc32867ff2.jsonl`
+  on office2.
+- Cron run: `openclaw cron runs --id 3082343c-bc7f-47ee-916b-ee070b1e50dc`,
+  ts 1779242530389.
+
+**Workaround**: drop the `filter` query parameter, enumerate
+`GET /projects/<id>/tasks`, and apply the filter in Python. Mirrors the
+G6 (#333) pattern in `reconcile_completions.py`.
+
+**Affected helpers**: `scripts/habits/query_active_habits_v2.py` (fixed
+in [#336](https://github.com/kentonium3/kg-automation/issues/336)).
+
+**Related**: G6 (`is_archived` field rejection — same class of bug).
+
+Fixed via issue [#336](https://github.com/kentonium3/kg-automation/issues/336).
+
 ### Why these slipped past pytest
 
-All six defects are invisible to the pytest-mock-only pattern used in
+All seven defects are invisible to the pytest-mock-only pattern used in
 `tests/vikunja/`: mocks accept whatever HTTP method, field names, and
 payload types the helper sends, so the tests validate the helper
 against itself rather than against the Vikunja server. The pattern is

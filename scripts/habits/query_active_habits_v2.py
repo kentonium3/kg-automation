@@ -1,24 +1,30 @@
 #!/usr/bin/env python3
-"""Phase 5 cutover variant of query_active_habits using Vikunja-native filter.
+"""Phase 5 cutover variant of query_active_habits with a client-side filter.
 
 Replaces the comment-parsing / day-of-week descriptor approach of the v1
-sibling (``scripts/habits/query_active_habits.py``) with a single Vikunja
-filter expression: ``due_date <= now/d AND done = false`` (FR-010). The
-v1 sibling continues to drive the felix-admin-habits cron until Phase 5
-cutover (#308); both files coexist until then.
+sibling (``scripts/habits/query_active_habits.py``) with a project-scoped
+task enumeration + a Python-side filter equivalent to
+``due_date <= <today>T23:59:59Z AND done == false``. The v1 sibling
+continues to drive the felix-admin-habits cron until Phase 5 cutover
+(#308); both files coexist until then.
 
 The helper:
   1. Reads the Vikunja API token from a mode-600 file
   2. Resolves the "Habits" project by title (mirroring the v1 sibling +
      ``reconcile_completions.py`` — no hardcoded project ID)
-  3. Calls ``GET /projects/<id>/tasks?filter=<expr>`` with the native
-     filter expression
+  3. Calls ``GET /projects/<id>/tasks`` (no server-side filter) and
+     applies the equivalent filter in Python over the returned task list
   4. Returns the list of matching task dicts on stdout as JSONL
 
+Why client-side filter: Vikunja v0.24.6 rejects the compound server-side
+expression ``due_date <= <iso> AND done = false`` with HTTP 400 — see G7
+in ``docs/design/research/vikunja-task-model-research.md``. The
+client-side workaround mirrors the G6 (#333) fix in
+``reconcile_completions.py``.
+
 Scoping the enumeration to the Habits project is essential: a
-cross-project filter via ``/tasks/all`` would let non-habit tasks (Inbox,
-Goals, recurring meetings) match the filter expression and leak into the
-Phase 5 check-in flow.
+cross-project enumeration via ``/tasks/all`` would let non-habit tasks
+(Inbox, Goals, recurring meetings) leak into the Phase 5 check-in flow.
 
 See contracts/api.md + contracts/cli.md for the contract.
 
@@ -43,7 +49,6 @@ import json
 import re
 import sys
 import urllib.error
-import urllib.parse
 import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
@@ -169,28 +174,6 @@ def _today_utc() -> str:
     return datetime.now(timezone.utc).date().isoformat()
 
 
-def _build_filter_expression(today: str) -> str:
-    """Build the Vikunja native filter expression for active-today habits.
-
-    Per FR-010 / contracts/cli.md the filter is::
-
-        due_date <= now/d AND done = false
-
-    The ``now/d`` token is Vikunja's "today" shorthand — equivalent to
-    ``today + 23:59:59Z`` in literal form. We pass ``now/d`` directly so
-    Vikunja interprets it relative to its own clock (callers can override
-    by passing ``today`` explicitly, which encodes a literal date instead).
-
-    When ``today`` is an explicit ISO-8601 date, we emit a literal end-of-day
-    timestamp so the comparison is unambiguous regardless of server timezone.
-    """
-    # Use literal end-of-day timestamp so tests + canary deploys see a
-    # deterministic filter. ``now/d`` shorthand is documented in cli.md as
-    # the equivalent form; we encode the literal expansion so callers with
-    # an explicit ``today`` override get an exact date boundary.
-    return f"due_date <= {today}T23:59:59Z AND done = false"
-
-
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
@@ -201,7 +184,16 @@ def query_active_today(
     token: str,
     today: str | None = None,
 ) -> list[dict]:
-    """Return habit tasks active for today via Vikunja's native filter.
+    """Return habit tasks active for today via a project-scoped client-side filter.
+
+    Fetches all habit tasks in the Habits project (no server-side filter)
+    and filters client-side for ``done == False`` AND
+    ``due_date <= <today>T23:59:59Z``. The native server-side filter
+    pattern (``due_date <= <iso> AND done = false``) is rejected by
+    Vikunja v0.24.6 with HTTP 400 — see G7 in
+    ``docs/design/research/vikunja-task-model-research.md``. The
+    client-side workaround mirrors the G6 (#333) fix in
+    ``reconcile_completions.py``.
 
     See ``contracts/api.md`` for the full contract.
 
@@ -225,9 +217,7 @@ def query_active_today(
         raise ValueError(f"today {today_date!r} must match YYYY-MM-DD")
 
     project_id = _resolve_habits_project_id(api_base_url, token)
-    filter_expr = _build_filter_expression(today_date)
-    query = urllib.parse.urlencode({"filter": filter_expr})
-    url = _join_url(api_base_url, f"projects/{project_id}/tasks?{query}")
+    url = _join_url(api_base_url, f"projects/{project_id}/tasks")
     _status, payload = _http_get(url, token)
     if payload is None:
         return []
@@ -236,10 +226,28 @@ def query_active_today(
             f"GET {url} returned non-list payload "
             f"(got {type(payload).__name__})"
         )
+
+    # Client-side filter — mirror reconcile_completions.py G6 (#333) pattern.
+    # Semantics match the rejected server-side filter
+    # ``due_date <= <today>T23:59:59Z AND done = false``:
+    #   - exclude tasks with ``done == True``
+    #   - include tasks where ``due_date`` (string lex compare) is
+    #     non-empty AND ``<= boundary``. Vikunja's unset-due-date
+    #     sentinel ``"0001-01-01T00:00:00Z"`` lex-compares less than the
+    #     boundary, so unset-due-date tasks are INCLUDED (same behavior
+    #     the server-side filter would have produced). An empty-string
+    #     ``due_date`` (truly absent field) is excluded.
+    boundary = f"{today_date}T23:59:59Z"
     out: list[dict] = []
     for item in payload:
-        if isinstance(item, dict):
-            out.append(item)
+        if not isinstance(item, dict):
+            continue
+        if item.get("done", False):
+            continue
+        due = item.get("due_date") or ""
+        if not due or due > boundary:
+            continue
+        out.append(item)
     return out
 
 
@@ -274,11 +282,13 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="query_active_habits_v2",
         description=(
-            "Phase 5 cutover variant of query_active_habits using Vikunja's "
-            "native filter expression `due_date <= now/d AND done = false`. "
-            "Scoped to the Habits project. Emits one JSON object per active "
-            "task on stdout (newline-delimited). Exits 0 on success (empty "
-            "result OK), 1 on Vikunja API failure, 2 on usage error."
+            "Phase 5 cutover variant of query_active_habits. Enumerates the "
+            "Habits project and applies a client-side filter equivalent to "
+            "`due_date <= <today>T23:59:59Z AND done == false` (Vikunja "
+            "v0.24.6 rejects the server-side form — see G7 in "
+            "vikunja-task-model-research.md). Emits one JSON object per "
+            "active task on stdout (newline-delimited). Exits 0 on success "
+            "(empty result OK), 1 on Vikunja API failure, 2 on usage error."
         ),
     )
     parser.add_argument(
