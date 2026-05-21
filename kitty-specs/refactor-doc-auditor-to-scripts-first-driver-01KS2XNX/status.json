@@ -2,7 +2,7 @@
   "event_count": 155,
   "last_event_id": "01KS5K38ZS35EJRHCQECMHHR3V",
   "materialized_at": "2026-05-21T15:40:04.985419+00:00",
-  "mission_number": "",
+  "mission_number": "44",
   "mission_slug": "refactor-doc-auditor-to-scripts-first-driver-01KS2XNX",
   "mission_type": "software-dev",
   "summary": {

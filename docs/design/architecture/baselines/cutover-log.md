@@ -33,14 +33,14 @@ rollback; recovery is the manual restore at the end of this doc.
 
 ## Table of contents
 
-1. [Pre-flight checklist (T040)](#1-pre-flight-checklist-t040)
-2. [Cutover execution sequence (T041)](#2-cutover-execution-sequence-t041)
-3. [First-tick verification (T042)](#3-first-tick-verification-t042)
-4. [Post-rework measurement procedure (T043)](#4-post-rework-measurement-procedure-t043)
-5. [Post-rework baseline JSON population (T044)](#5-post-rework-baseline-json-population-t044)
-6. [NFR-001 acceptance gate (T045)](#6-nfr-001-acceptance-gate-t045)
-7. [Known hazard: spec-kitty merge `git mv` invariant violation (#1039)](#7-known-hazard-spec-kitty-merge-git-mv-invariant-violation-1039)
-8. [Rollback note (C-007: fail-forward; manual restore last-resort)](#8-rollback-note-c-007-fail-forward-manual-restore-last-resort)
+1. [Pre-flight checklist (T040)](<#1-pre-flight-checklist-t040>)
+2. [Cutover execution sequence (T041)](<#2-cutover-execution-sequence-t041>)
+3. [First-tick verification (T042)](<#3-first-tick-verification-t042>)
+4. [Post-rework measurement procedure (T043)](<#4-post-rework-measurement-procedure-t043>)
+5. [Post-rework baseline JSON population (T044)](<#5-post-rework-baseline-json-population-t044>)
+6. [NFR-001 acceptance gate (T045)](<#6-nfr-001-acceptance-gate-t045>)
+7. [Known hazard: spec-kitty merge `git mv` invariant violation (#1039)](<#7-known-hazard-spec-kitty-merge-git-mv-invariant-violation-1039>)
+8. [Rollback note (C-007: fail-forward; manual restore last-resort)](<#8-rollback-note-c-007-fail-forward-manual-restore-last-resort>)
 
 ## Provenance
 
