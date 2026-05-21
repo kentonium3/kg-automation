@@ -15,7 +15,8 @@ subtasks:
 - T035
 phase: Phase 4 — Verification
 assignee: ''
-agent: ''
+agent: "claude:opus-4.7:implementer:implementer"
+shell_pid: "16281"
 history:
 - timestamp: '2026-05-20T16:25:00Z'
   agent: system
@@ -302,3 +303,7 @@ spec-kitty agent action implement WP07 --agent <name>
 - **Research**: D13 (Cost baseline methodology)
 - **Spec**: NFR-001 (≥80% token reduction)
 - **Future consumer**: WP09 uses this baseline + measure-tokens.py to verify the reduction post-cutover
+
+## Activity Log
+
+- 2026-05-21T13:21:22Z – claude:opus-4.7:implementer:implementer – shell_pid=16281 – Started implementation via action command
