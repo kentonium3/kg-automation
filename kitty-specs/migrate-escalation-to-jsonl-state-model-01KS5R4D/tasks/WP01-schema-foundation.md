@@ -303,3 +303,4 @@ spec-kitty agent action implement WP01 --mission migrate-escalation-to-jsonl-sta
 - 2026-05-21T19:39:56Z – codex:gpt-5:spec-kitty-review:reviewer – shell_pid=83009 – Started review via action command
 - 2026-05-21T19:43:17Z – codex:gpt-5:spec-kitty-review:reviewer – shell_pid=83009 – Moved to planned
 - 2026-05-21T19:43:25Z – claude:opus:python-implementer:implementer – shell_pid=85436 – Started implementation via action command
+- 2026-05-21T19:46:12Z – claude:opus:python-implementer:implementer – shell_pid=85436 – Fix applied: reason field now type-checked. Cycle 1 fix.
