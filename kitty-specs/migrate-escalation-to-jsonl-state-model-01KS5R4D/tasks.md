@@ -36,9 +36,9 @@ Breakdown of the implementation plan into independently-deliverable work package
 | T021 | Update SKILL.md to invoke helpers via CLI + remove comment-parsing algorithm | WP07 | |
 | T022 | Update AGENTS.md to call helpers + remove parsing logic | WP07 | |
 | T023 | Audit both files for residual comment-parsing language + add v1→v2 transition note | WP07 | |
-| T024 | Update docs/design/architecture/data/service-inventory.json (register scripts/escalation/*) | WP08 | [P] |
-| T025 | Update docs/design/architecture/data/data-flows.json (new read/write paths) | WP08 | |
-| T026 | Update markdown architecture views to match JSON sources | WP08 | |
+| T024 | Update docs/design/architecture/data/service-inventory.json (register scripts/escalation/*) | WP08 | [D] |
+| T025 | Update docs/design/architecture/data/data-flows.json (new read/write paths) | WP08 | | [D] |
+| T026 | Update markdown architecture views to match JSON sources | WP08 | | [D] |
 | T027 | Rewrite docs/runbooks/escalation-ops.md with the new JSONL-based ops procedure | WP09 | |
 | T028 | Verify quickstart.md matches deployed reality; pin commands/paths | WP09 | [P] |
 | T029 | Add SOAK.md template + soak-monitoring checklist | WP09 | [P] |
@@ -241,9 +241,9 @@ Risks:
 
 Included subtasks:
 
-- [ ] T024 Update docs/design/architecture/data/service-inventory.json — register scripts/escalation/* helpers (WP08)
-- [ ] T025 Update docs/design/architecture/data/data-flows.json — new write paths (record→Vikunja+JSONL), read paths (derive_state←JSONL) (WP08)
-- [ ] T026 Update markdown architecture views (services.view.md, data-flows.view.md) to match JSON sources (WP08)
+- [x] T024 Update docs/design/architecture/data/service-inventory.json — register scripts/escalation/* helpers (WP08)
+- [x] T025 Update docs/design/architecture/data/data-flows.json — new write paths (record→Vikunja+JSONL), read paths (derive_state←JSONL) (WP08)
+- [x] T026 Update markdown architecture views (services.view.md, data-flows.view.md) to match JSON sources (WP08)
 
 Risks:
 - Sub-doctrine: `updated_by` field on touched entries should read `#309`.
