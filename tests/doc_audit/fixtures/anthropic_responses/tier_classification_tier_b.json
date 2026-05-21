@@ -1,0 +1,10 @@
+{
+  "id": "msg_fake_tier_b",
+  "model": "claude-haiku-4-5",
+  "text": "{\"tier\": \"tier_b\", \"confidence\": \"high\", \"rationale\": \"Touches narrative paragraph (not just frontmatter). Inherits SKILL.md §4.1.b gating.\"}",
+  "usage": {
+    "input_tokens": 530,
+    "cache_read_input_tokens": 320,
+    "output_tokens": 72
+  }
+}

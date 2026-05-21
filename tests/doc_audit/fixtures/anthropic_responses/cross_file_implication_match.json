@@ -1,0 +1,10 @@
+{
+  "id": "msg_fake_cross_file",
+  "model": "claude-haiku-4-5",
+  "text": "{\"implicated_docs\": [\"docs/runbooks/openclaw-agent-setup.md\", \"docs/design/architecture/data/service-inventory.json\"], \"rationale\": \"Cron schedule baseline drift implicates the agent registration runbook and the service inventory entry for the doc-auditor timer.\"}",
+  "usage": {
+    "input_tokens": 880,
+    "cache_read_input_tokens": 500,
+    "output_tokens": 110
+  }
+}

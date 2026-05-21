@@ -6,8 +6,8 @@ level: reference
 status: approved
 owners:
   - "@kentonium3"
-last_updated: '2026-03-26'
-revision: v1.0
+last_updated: '2026-05-21'
+revision: v1.1
 audience: agents_and_humans
 
 ---
@@ -29,6 +29,21 @@ graph LR
         backup_repo[("Backup Repo<br/>/mnt/backups")]
         audit["Security Audit<br/>3AM daily"]
         baselines[("Baselines<br/>/data/services/security-monitor")]
+
+        subgraph doc_audit["Doc-Auditor (#343 scripts-first)"]
+            timer["felix-doc-auditor.timer<br/>OnCalendar=hourly"]
+            service["felix-doc-auditor.service<br/>(oneshot)"]
+            driver["scripts/doc_audit/run.py<br/>(Python driver)"]
+            tick_signal[("last-tick.json<br/>/data/services/openclaw/<br/>felix-doc-auditor-driver/")]
+            anthropic_key[("anthropic API key<br/>/data/services/openclaw/<br/>secrets/anthropic (0600)")]
+            drift_events[("drift-events.jsonl<br/>/data/services/security-monitor/logs/")]
+            activity_log[("doc-auditor-YYYY-MM-DD.md<br/>/home/kgale/second-brain/<br/>agents/logs/")]
+        end
+    end
+
+    subgraph external["External"]
+        anthropic_api["Anthropic API<br/>api.anthropic.com"]
+        gh_api["GitHub<br/>(via gh CLI)"]
     end
 
     browser -->|"HTTPS via Tailscale Serve"| vikunja_ui
@@ -39,4 +54,14 @@ graph LR
     vault -->|"included in"| restic
     restic --> backup_repo
     audit --> baselines
+
+    timer -->|"systemd"| service
+    service -->|"exec"| driver
+    driver -->|"read (0600)"| anthropic_key
+    driver -->|"read"| drift_events
+    driver -->|"HTTPS (anthropic-python SDK)"| anthropic_api
+    driver -->|"subprocess (kg-felix-bot PAT)"| gh_api
+    driver -->|"append"| activity_log
+    driver -->|"write (atomic rename)"| tick_signal
+    audit -->|"writes drift events"| drift_events
 ```

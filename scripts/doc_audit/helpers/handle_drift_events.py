@@ -7,13 +7,31 @@ to documentation surfaces (via signal-to-doc-map.json) → either an
 auto-filed [doc-audit] issue (matched signals) or routing to
 unmapped-events.jsonl for AI review (unmatched signals).
 
-Invocation:
+Invocation (CLI):
     python3 handle_drift_events.py \\
         --events /data/services/security-monitor/logs/drift-events.jsonl \\
         --cursor /data/services/security-monitor/.drift-events.cursor \\
         --mapping /home/claude/kg-automation/docs/design/architecture/data/signal-to-doc-map.json \\
         --unmapped /data/services/security-monitor/logs/unmapped-events.jsonl \\
         --repo kentonium3/kg-automation
+
+Importable surface (per mission #343 WP01 lift):
+    from doc_audit.helpers.handle_drift_events import (
+        process_events,         # library entry point — see ProcessResult
+        ProcessResult,
+        Mapping,
+        load_mappings,
+        read_cursor,
+        write_cursor_atomic,
+        find_mapping,
+        decode_diff,
+        file_doc_audit_issue,
+        append_unmapped,
+    )
+
+    Set ``PYTHONPATH=scripts/`` so the ``doc_audit`` package is on the
+    import path. The CLI ``main()`` is now a thin argparse wrapper that
+    delegates to ``process_events`` — both surfaces share the same code.
 
 Exit codes:
     0 — success (events processed, cursor advanced)
@@ -52,6 +70,23 @@ class Mapping:
     rationale: str
     issue_title_prefix: str
     issue_labels: list[str]
+
+
+@dataclass
+class ProcessResult:
+    """Structured result from :func:`process_events`.
+
+    Mirrors the values reported in the CLI ``SUMMARY:`` line so library
+    callers receive the same outcome counts the CLI prints without
+    having to re-parse stdout.
+    """
+
+    processed: int
+    matched_filed: int
+    unmapped: int
+    errors: int
+    new_cursor: int
+    exit_code: int = 0
 
 
 def load_mappings(path: Path) -> list[Mapping]:
@@ -201,7 +236,156 @@ def append_unmapped(unmapped_path: Path, event: dict[str, Any]) -> None:
         fh.write(json.dumps(event) + "\n")
 
 
-def main() -> int:
+def process_events(
+    events_path: Path,
+    cursor_path: Path,
+    mapping_path: Path,
+    unmapped_path: Path,
+    repo: str = "kentonium3/kg-automation",
+    limit: int = 20,
+    dry_run: bool = False,
+) -> ProcessResult:
+    """Library entry point for the drift-events pipeline.
+
+    Pure-Python orchestration of the CLI behavior. Reads the cursor +
+    mapping + events files, classifies each event against the mapping
+    table, files a ``[doc-audit]`` issue (matched) or appends to the
+    unmapped log (unmatched), and advances the cursor atomically.
+
+    The :class:`ProcessResult` returned mirrors the values reported in
+    the CLI ``SUMMARY:`` line so library callers receive the same
+    outcome counts the CLI prints without having to re-parse stdout.
+
+    Args:
+        events_path: Path to ``drift-events.jsonl``.
+        cursor_path: Path to the cursor file (one integer line number).
+        mapping_path: Path to ``signal-to-doc-map.json``.
+        unmapped_path: Path to ``unmapped-events.jsonl`` for unmatched
+            events.
+        repo: GitHub repo slug used by ``gh issue create``.
+        limit: Maximum events to process per invocation.
+        dry_run: If True, don't actually file issues and don't advance
+            the on-disk cursor.
+
+    Returns:
+        :class:`ProcessResult` carrying the per-invocation counters and
+        the suggested CLI ``exit_code`` (0 on success, 1 on error, 2 on
+        invalid config).
+    """
+    if not mapping_path.exists():
+        print(f"ERROR: mapping file not found: {mapping_path}", file=sys.stderr)
+        return ProcessResult(
+            processed=0,
+            matched_filed=0,
+            unmapped=0,
+            errors=0,
+            new_cursor=read_cursor(cursor_path),
+            exit_code=2,
+        )
+
+    mappings = load_mappings(mapping_path)
+    cursor = read_cursor(cursor_path)
+
+    if not events_path.exists():
+        # No events file yet — nothing to do; not an error
+        print(f"INFO: no events file at {events_path}; nothing to process")
+        return ProcessResult(
+            processed=0,
+            matched_filed=0,
+            unmapped=0,
+            errors=0,
+            new_cursor=cursor,
+            exit_code=0,
+        )
+
+    with open(events_path, encoding="utf-8") as fh:
+        lines = fh.readlines()
+
+    new_lines = lines[cursor:]
+    if not new_lines:
+        print(f"INFO: no new events since cursor={cursor}")
+        return ProcessResult(
+            processed=0,
+            matched_filed=0,
+            unmapped=0,
+            errors=0,
+            new_cursor=cursor,
+            exit_code=0,
+        )
+
+    if len(new_lines) > limit:
+        print(
+            f"WARN: {len(new_lines)} new events exceeds --limit={limit}; "
+            f"processing first {limit}, cursor will advance only that far",
+            file=sys.stderr,
+        )
+        new_lines = new_lines[:limit]
+
+    matched = 0
+    unmapped = 0
+    errors = 0
+    processed = 0
+
+    for line in new_lines:
+        line = line.strip()
+        if not line:
+            processed += 1
+            continue
+
+        try:
+            event = json.loads(line)
+        except json.JSONDecodeError as e:
+            print(f"WARN: skipping malformed event line: {e}", file=sys.stderr)
+            processed += 1
+            continue
+
+        mapping = find_mapping(event, mappings)
+        if mapping is None:
+            append_unmapped(unmapped_path, event)
+            unmapped += 1
+            print(
+                f"INFO: no mapping for event source={event.get('source')} "
+                f"baseline={event.get('baseline_name')}; routed to unmapped log"
+            )
+        else:
+            ok, output = file_doc_audit_issue(event, mapping, repo, dry_run=dry_run)
+            if ok:
+                matched += 1
+                print(f"INFO: mapping={mapping.id} → {output}")
+            else:
+                errors += 1
+                print(f"ERROR: mapping={mapping.id} → {output}", file=sys.stderr)
+                # Don't advance cursor past failed events so they retry next run
+                break
+
+        processed += 1
+
+    new_cursor = cursor + processed
+    if dry_run:
+        print(
+            f"SUMMARY: processed={processed} matched_filed={matched} "
+            f"unmapped={unmapped} errors={errors} "
+            f"cursor={cursor}→{new_cursor} (DRY-RUN — cursor NOT written)"
+        )
+    else:
+        write_cursor_atomic(cursor_path, new_cursor)
+        print(
+            f"SUMMARY: processed={processed} matched_filed={matched} "
+            f"unmapped={unmapped} errors={errors} cursor={cursor}→{new_cursor}"
+        )
+
+    return ProcessResult(
+        processed=processed,
+        matched_filed=matched,
+        unmapped=unmapped,
+        errors=errors,
+        new_cursor=new_cursor,
+        exit_code=1 if errors > 0 else 0,
+    )
+
+
+def main(argv: list[str] | None = None) -> int:
+    """Thin CLI wrapper around :func:`process_events`."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--events", required=True, type=Path, help="Path to drift-events.jsonl")
     parser.add_argument("--cursor", required=True, type=Path, help="Path to cursor file")
@@ -233,90 +417,18 @@ def main() -> int:
         default=20,
         help="Maximum events to process per invocation (safety against runaway)",
     )
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
-    if not args.mapping.exists():
-        print(f"ERROR: mapping file not found: {args.mapping}", file=sys.stderr)
-        return 2
-
-    mappings = load_mappings(args.mapping)
-    cursor = read_cursor(args.cursor)
-
-    if not args.events.exists():
-        # No events file yet — nothing to do; not an error
-        print(f"INFO: no events file at {args.events}; nothing to process")
-        return 0
-
-    with open(args.events, encoding="utf-8") as fh:
-        lines = fh.readlines()
-
-    new_lines = lines[cursor:]
-    if not new_lines:
-        print(f"INFO: no new events since cursor={cursor}")
-        return 0
-
-    if len(new_lines) > args.limit:
-        print(
-            f"WARN: {len(new_lines)} new events exceeds --limit={args.limit}; "
-            f"processing first {args.limit}, cursor will advance only that far",
-            file=sys.stderr,
-        )
-        new_lines = new_lines[: args.limit]
-
-    matched = 0
-    unmapped = 0
-    errors = 0
-    processed = 0
-
-    for line in new_lines:
-        line = line.strip()
-        if not line:
-            processed += 1
-            continue
-
-        try:
-            event = json.loads(line)
-        except json.JSONDecodeError as e:
-            print(f"WARN: skipping malformed event line: {e}", file=sys.stderr)
-            processed += 1
-            continue
-
-        mapping = find_mapping(event, mappings)
-        if mapping is None:
-            append_unmapped(args.unmapped, event)
-            unmapped += 1
-            print(
-                f"INFO: no mapping for event source={event.get('source')} "
-                f"baseline={event.get('baseline_name')}; routed to unmapped log"
-            )
-        else:
-            ok, output = file_doc_audit_issue(event, mapping, args.repo, dry_run=args.dry_run)
-            if ok:
-                matched += 1
-                print(f"INFO: mapping={mapping.id} → {output}")
-            else:
-                errors += 1
-                print(f"ERROR: mapping={mapping.id} → {output}", file=sys.stderr)
-                # Don't advance cursor past failed events so they retry next run
-                break
-
-        processed += 1
-
-    new_cursor = cursor + processed
-    if args.dry_run:
-        print(
-            f"SUMMARY: processed={processed} matched_filed={matched} "
-            f"unmapped={unmapped} errors={errors} "
-            f"cursor={cursor}→{new_cursor} (DRY-RUN — cursor NOT written)"
-        )
-    else:
-        write_cursor_atomic(args.cursor, new_cursor)
-        print(
-            f"SUMMARY: processed={processed} matched_filed={matched} "
-            f"unmapped={unmapped} errors={errors} cursor={cursor}→{new_cursor}"
-        )
-
-    return 1 if errors > 0 else 0
+    result = process_events(
+        events_path=args.events,
+        cursor_path=args.cursor,
+        mapping_path=args.mapping,
+        unmapped_path=args.unmapped,
+        repo=args.repo,
+        limit=args.limit,
+        dry_run=args.dry_run,
+    )
+    return result.exit_code
 
 
 if __name__ == "__main__":

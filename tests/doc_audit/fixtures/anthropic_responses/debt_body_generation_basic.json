@@ -1,0 +1,10 @@
+{
+  "id": "msg_fake_debt_body",
+  "model": "claude-haiku-4-5",
+  "text": "## Background\nThe inbox-pipeline activity log lacks a documented retention policy.\n\n## Success criteria\n- Add retention policy section to docs/runbooks/inbox-pipeline.md\n- Cross-reference Felix Constitution Directive 5\n- Update doc-domain-map.json mapping",
+  "usage": {
+    "input_tokens": 720,
+    "cache_read_input_tokens": 400,
+    "output_tokens": 180
+  }
+}

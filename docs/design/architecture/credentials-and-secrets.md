@@ -205,7 +205,7 @@ graph TD
 | `vikunja-admin` | username/password | Runtime JWT, not stored | Vikunja web UI, `setup_vikunja.py` |
 | `restic-password` | password file | Standalone — `/home/claude/.config/restic/password` | `backup.sh` |
 | `tailscale-auth` | system-managed | Managed by `tailscaled` | Tailscale daemon |
-| `anthropic` | API key | OpenClaw native auth store | `openclaw-gateway` |
+| `anthropic` | API key | OpenClaw native auth store (`/home/claude/.openclaw/agents/main/agent/auth-profiles.json`) + scoped plaintext (`/data/services/openclaw/secrets/anthropic`, 0600) | `openclaw-gateway` (proxies API calls for all openclaw-launched agents), `felix-doc-auditor-driver` (reads the plaintext file directly each systemd tick and calls `api.anthropic.com` via the `anthropic` Python SDK — bypasses openclaw-gateway; #343) |
 | `vikunja-api` | API token (owner: `felix-bot` Vikunja user, #304) | Scoped plaintext — `/data/services/openclaw/secrets/vikunja-api` | OpenClaw skills (all Felix sub-agents — habits, escalation, capture, tasker) |
 | `whatsapp-session` | session | OpenClaw native (Baileys) | `openclaw-gateway` |
 | `google-workspace-client` | OAuth Desktop `client_secret` | Scoped plaintext — `/data/services/openclaw/secrets/google-workspace-client.json` | `gog auth credentials` (one-time ingest) |

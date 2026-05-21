@@ -86,7 +86,7 @@ events to a review queue (for AI interpretation).
 Run this command **first thing on every tick**:
 
 ```bash
-python3 /home/claude/kg-automation/scripts/openclaw/agents/felix-doc-auditor/handle_drift_events.py \
+python3 /home/claude/kg-automation/scripts/doc_audit/helpers/handle_drift_events.py \
   --events /data/services/security-monitor/logs/drift-events.jsonl \
   --cursor /data/services/security-monitor/.drift-events.cursor \
   --mapping /home/claude/kg-automation/docs/design/architecture/data/signal-to-doc-map.json \
@@ -347,7 +347,7 @@ tracked-work artifacts, reversible by closing (SKILL.md § 8.6).
 - **Edit-bearing audit** (one or more proposed edits): serialize the proposals + audit state to a tempfile (see the JSON shape documented at the top of `handle_audit_routing.py`) and invoke:
 
   ```bash
-  python3 /home/claude/kg-automation/scripts/openclaw/agents/felix-doc-auditor/handle_audit_routing.py @<path>
+  python3 /home/claude/kg-automation/scripts/doc_audit/helpers/handle_audit_routing.py @<path>
   ```
 
   The helper partitions by change_type, auto-applies known classes (committing them atomically with mode preservation), files a pending-approval issue for any gated subset (unknown change_types — fail-safe), and posts the audit summary on the originating audit issue. It exits non-zero on any leg failure; treat exit codes per the helper's documented contract.

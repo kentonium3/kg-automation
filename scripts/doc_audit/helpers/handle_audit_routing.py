@@ -1,6 +1,20 @@
 #!/usr/bin/env python3
 """Forward-path audit decision orchestrator for felix-doc-auditor.
 
+Importable surface (per mission #343 WP01 lift):
+    from doc_audit.helpers.handle_audit_routing import (
+        route_audit_decision,   # library entry point — see RoutingResult
+        RoutingResult,
+        InputValidationError,
+        RouteApplyError,
+        AUTO_APPLY_CHANGE_TYPES,
+    )
+
+    Set ``PYTHONPATH=scripts/`` so the ``doc_audit`` package is on the
+    import path. The CLI ``main()`` is now a thin argparse wrapper that
+    delegates to ``route_audit_decision`` — both surfaces share the
+    same code.
+
 Reads a serialized audit-state JSON file, partitions the included
 proposals by `change_type` against an in-script allowlist of known
 auto-applyable change types, and then:
@@ -86,6 +100,7 @@ import stat
 import subprocess
 import sys
 import tempfile
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
@@ -137,6 +152,31 @@ class RouteApplyError(Exception):
 
 class InputValidationError(Exception):
     """Raised when the input JSON does not satisfy the contract."""
+
+
+# ---------------------------------------------------------------------------
+# Library result type
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class RoutingResult:
+    """Structured result from :func:`route_audit_decision`.
+
+    Mirrors the side-effects the CLI orchestration produces so library
+    callers can act on the outcome without re-parsing stderr. The
+    ``exit_code`` field carries the same exit-code semantics the CLI
+    documents (0=success, 1=input-validation, 2=apply, 3=commit,
+    4=gate-file, 5=summary-post).
+    """
+
+    applied_count: int = 0
+    gated: bool = False
+    pending_approval_issue: int | None = None
+    debt_issues: list[int] = field(default_factory=list)
+    missing_issues: list[int] = field(default_factory=list)
+    errors: list[str] = field(default_factory=list)
+    exit_code: int = 0
 
 
 # ---------------------------------------------------------------------------
@@ -731,7 +771,241 @@ def _run_gh_issue_close(
 # ---------------------------------------------------------------------------
 
 
+def route_audit_decision(
+    state_path: Path,
+    git_bin: str = "git",
+    gh_bin: str = "gh",
+    repo_root: Path | None = None,
+) -> RoutingResult:
+    """Library entry point for the audit-decision routing pipeline.
+
+    Pure-Python orchestration of the CLI behavior. Reads the audit-state
+    JSON file, partitions proposals into auto-apply vs gated, applies
+    + commits the auto-apply set, files an ``audit-pending-approval``
+    issue for the gated set (if any), and posts an audit summary on the
+    originating audit issue.
+
+    The :class:`RoutingResult` returned mirrors the side-effects the
+    CLI orchestration produces so library callers can act on the
+    outcome without re-parsing stderr. The ``exit_code`` field carries
+    the same exit-code semantics the CLI documents (0=success,
+    1=input-validation, 2=apply, 3=commit, 4=gate-file,
+    5=summary-post).
+
+    Args:
+        state_path: Path to the audit-state JSON file. The optional
+            leading ``@`` accepted on the CLI must be stripped by the
+            caller before invoking this function.
+        git_bin: ``git`` binary to use (override for tests).
+        gh_bin: ``gh`` binary to use (override for tests).
+        repo_root: Repository root (override for tests). When ``None``,
+            resolved via ``git rev-parse --show-toplevel``.
+
+    Returns:
+        :class:`RoutingResult` carrying applied/gated/issue counts and
+        the suggested CLI ``exit_code``.
+    """
+    result = RoutingResult()
+
+    # ---------------- 1. Load + validate JSON --------------------------
+    try:
+        state = _load_state(state_path)
+    except InputValidationError as exc:
+        print(f"ERROR: input validation: {exc}", file=sys.stderr)
+        result.errors.append(f"input validation: {exc}")
+        result.exit_code = 1
+        return result
+
+    audit_issue = state["audit_issue_number"]
+    commit_sha = state["commit_sha"]
+    areas = list(state["areas"])
+    proposals = list(state["proposals"])
+    debt_issues = [int(n) for n in state["debt_issues_filed"]]
+    missing_issues = [int(n) for n in state["missing_artifact_issues_filed"]]
+    result.debt_issues = list(debt_issues)
+    result.missing_issues = list(missing_issues)
+
+    # ---------------- 2. Empty short-circuit ---------------------------
+    if not proposals:
+        print("INFO: no proposals; exiting cleanly.", file=sys.stderr)
+        return result
+
+    # ---------------- 3. Resolve repo root -----------------------------
+    if repo_root is not None:
+        repo_root_resolved = Path(repo_root).resolve()
+    else:
+        try:
+            res = subprocess.run(
+                [git_bin, "rev-parse", "--show-toplevel"],
+                capture_output=True,
+                text=True,
+                check=True,
+            )
+            repo_root_resolved = Path(res.stdout.strip()).resolve()
+        except (OSError, subprocess.CalledProcessError) as exc:
+            print(f"ERROR: could not resolve repo root: {exc}", file=sys.stderr)
+            result.errors.append(f"could not resolve repo root: {exc}")
+            result.exit_code = 1
+            return result
+
+    # ---------------- 4. Partition -------------------------------------
+    auto_apply, gated = _partition(proposals)
+    result.gated = bool(gated)
+    print(
+        f"INFO: partition: {len(auto_apply)} auto_apply, {len(gated)} gated",
+        file=sys.stderr,
+    )
+
+    # ---------------- 5. Apply auto_apply edits ------------------------
+    written: list[Path] = []
+    apply_failed_proposal: dict[str, Any] | None = None
+    apply_failure_reason: str | None = None
+    for proposal in auto_apply:
+        try:
+            path = _apply_one(repo_root_resolved, proposal)
+            written.append(path)
+        except RouteApplyError as exc:
+            apply_failed_proposal = exc.proposal
+            apply_failure_reason = exc.reason
+            break
+
+    if apply_failed_proposal is not None:
+        # Rollback any partial writes; do NOT commit; do NOT gate.
+        _rollback(repo_root_resolved, written, git_bin)
+        print(
+            "ERROR: apply failure: "
+            f"doc={apply_failed_proposal.get('doc_path')!r} "
+            f"change_type={apply_failed_proposal.get('change_type')!r} "
+            f"reason={apply_failure_reason!r}",
+            file=sys.stderr,
+        )
+        result.errors.append(
+            f"apply failure: doc={apply_failed_proposal.get('doc_path')!r} "
+            f"change_type={apply_failed_proposal.get('change_type')!r} "
+            f"reason={apply_failure_reason!r}"
+        )
+        result.exit_code = 2
+        return result
+
+    result.applied_count = len(auto_apply)
+
+    # ---------------- 6. Commit (only if anything applied) -------------
+    if auto_apply:
+        commit_result = _run_git_commit(
+            repo_root_resolved,
+            git_bin,
+            auto_apply,
+            audit_issue,
+            commit_sha,
+        )
+        if commit_result.returncode != 0:
+            # Subprocess sequencing invariant: gate-file MUST NOT run
+            # after a commit failure. Don't half-do.
+            msg = (
+                f"git commit failed (rc={commit_result.returncode}); "
+                f"stdout={commit_result.stdout.strip()!r} "
+                f"stderr={commit_result.stderr.strip()!r}"
+            )
+            print(f"ERROR: {msg}", file=sys.stderr)
+            result.errors.append(msg)
+            result.exit_code = 3
+            return result
+
+    # ---------------- 7. Gate-file pending-approval (if gated) ---------
+    pending_approval_issue: int | None = None
+    if gated:
+        gate_labels = ["audit-pending-approval"]
+        gate_labels.extend(a for a in areas if a.startswith("area/"))
+        gate_title = (
+            f"Audit #{audit_issue}: pending approval — "
+            f"{len(gated)} proposed edit(s)"
+        )
+        gate_body = _build_pending_approval_body(
+            audit_issue=audit_issue,
+            commit_sha=commit_sha,
+            areas=areas,
+            gated=gated,
+            debt_issues=debt_issues,
+            missing_issues=missing_issues,
+        )
+        gate_result = _run_gh_issue_create(
+            gh_bin,
+            gate_title,
+            gate_labels,
+            gate_body,
+        )
+        if gate_result.returncode != 0:
+            msg = (
+                f"gate-file (gh issue create) failed (rc={gate_result.returncode}); "
+                f"stdout={gate_result.stdout.strip()!r} "
+                f"stderr={gate_result.stderr.strip()!r}"
+            )
+            print(f"ERROR: {msg}", file=sys.stderr)
+            result.errors.append(msg)
+            # Best-effort summary so the system isn't completely silent.
+            summary_body = _build_summary_body(
+                applied=auto_apply,
+                gated=gated,
+                pending_approval_issue=None,
+                debt_issues=debt_issues,
+                missing_issues=missing_issues,
+            )
+            _run_gh_issue_comment(gh_bin, audit_issue, summary_body)
+            result.exit_code = 4
+            return result
+        pending_approval_issue = _parse_issue_number(gate_result.stdout)
+        if pending_approval_issue is None:
+            print(
+                "WARN: could not parse new issue number from gh output: "
+                f"{gate_result.stdout.strip()!r}",
+                file=sys.stderr,
+            )
+        result.pending_approval_issue = pending_approval_issue
+
+    # ---------------- 8. Post audit summary on originating issue -------
+    summary_body = _build_summary_body(
+        applied=auto_apply,
+        gated=gated,
+        pending_approval_issue=pending_approval_issue,
+        debt_issues=debt_issues,
+        missing_issues=missing_issues,
+    )
+    summary_result = _run_gh_issue_comment(
+        gh_bin,
+        audit_issue,
+        summary_body,
+    )
+    if summary_result.returncode != 0:
+        msg = (
+            f"summary-post (gh issue comment) failed (rc={summary_result.returncode}); "
+            f"stdout={summary_result.stdout.strip()!r} "
+            f"stderr={summary_result.stderr.strip()!r}"
+        )
+        print(f"ERROR: {msg}", file=sys.stderr)
+        result.errors.append(msg)
+        result.exit_code = 5
+        return result
+
+    # ---------------- 9. Close originating audit (only if no gate) ----
+    if not gated:
+        close_result = _run_gh_issue_close(gh_bin, audit_issue)
+        if close_result.returncode != 0:
+            # Closing the audit is best-effort; the gate-file path is
+            # the load-bearing state-transition. Treat close failures
+            # as a summary-post-style non-fatal but report.
+            print(
+                "WARN: closing the audit issue failed (rc="
+                f"{close_result.returncode}); "
+                f"stdout={close_result.stdout.strip()!r} "
+                f"stderr={close_result.stderr.strip()!r}",
+                file=sys.stderr,
+            )
+
+    return result
+
+
 def main(argv: list[str] | None = None) -> int:
+    """Thin CLI wrapper around :func:`route_audit_decision`."""
     parser = argparse.ArgumentParser(
         description="Route felix-doc-auditor proposals: auto-apply known change_types, gate the rest.",
     )
@@ -756,183 +1030,16 @@ def main(argv: list[str] | None = None) -> int:
     )
     args = parser.parse_args(argv)
 
-    # ---------------- 1. Load + validate JSON --------------------------
     state_path = _resolve_state_path(args.state)
-    try:
-        state = _load_state(state_path)
-    except InputValidationError as exc:
-        print(f"ERROR: input validation: {exc}", file=sys.stderr)
-        return 1
+    repo_root = Path(args.repo_root) if args.repo_root else None
 
-    audit_issue = state["audit_issue_number"]
-    commit_sha = state["commit_sha"]
-    areas = list(state["areas"])
-    proposals = list(state["proposals"])
-    debt_issues = [int(n) for n in state["debt_issues_filed"]]
-    missing_issues = [int(n) for n in state["missing_artifact_issues_filed"]]
-
-    # ---------------- 2. Empty short-circuit ---------------------------
-    if not proposals:
-        print("INFO: no proposals; exiting cleanly.", file=sys.stderr)
-        return 0
-
-    # ---------------- 3. Resolve repo root -----------------------------
-    if args.repo_root:
-        repo_root = Path(args.repo_root).resolve()
-    else:
-        try:
-            res = subprocess.run(
-                [args.git_bin, "rev-parse", "--show-toplevel"],
-                capture_output=True,
-                text=True,
-                check=True,
-            )
-            repo_root = Path(res.stdout.strip()).resolve()
-        except (OSError, subprocess.CalledProcessError) as exc:
-            print(f"ERROR: could not resolve repo root: {exc}", file=sys.stderr)
-            return 1
-
-    # ---------------- 4. Partition -------------------------------------
-    auto_apply, gated = _partition(proposals)
-    print(
-        f"INFO: partition: {len(auto_apply)} auto_apply, {len(gated)} gated",
-        file=sys.stderr,
+    result = route_audit_decision(
+        state_path=state_path,
+        git_bin=args.git_bin,
+        gh_bin=args.gh_bin,
+        repo_root=repo_root,
     )
-
-    # ---------------- 5. Apply auto_apply edits ------------------------
-    written: list[Path] = []
-    apply_failed_proposal: dict[str, Any] | None = None
-    apply_failure_reason: str | None = None
-    for proposal in auto_apply:
-        try:
-            path = _apply_one(repo_root, proposal)
-            written.append(path)
-        except RouteApplyError as exc:
-            apply_failed_proposal = exc.proposal
-            apply_failure_reason = exc.reason
-            break
-
-    if apply_failed_proposal is not None:
-        # Rollback any partial writes; do NOT commit; do NOT gate.
-        _rollback(repo_root, written, args.git_bin)
-        print(
-            "ERROR: apply failure: "
-            f"doc={apply_failed_proposal.get('doc_path')!r} "
-            f"change_type={apply_failed_proposal.get('change_type')!r} "
-            f"reason={apply_failure_reason!r}",
-            file=sys.stderr,
-        )
-        return 2
-
-    # ---------------- 6. Commit (only if anything applied) -------------
-    if auto_apply:
-        commit_result = _run_git_commit(
-            repo_root,
-            args.git_bin,
-            auto_apply,
-            audit_issue,
-            commit_sha,
-        )
-        if commit_result.returncode != 0:
-            # Subprocess sequencing invariant: gate-file MUST NOT run
-            # after a commit failure. Don't half-do.
-            print(
-                "ERROR: git commit failed (rc="
-                f"{commit_result.returncode}); "
-                f"stdout={commit_result.stdout.strip()!r} "
-                f"stderr={commit_result.stderr.strip()!r}",
-                file=sys.stderr,
-            )
-            return 3
-
-    # ---------------- 7. Gate-file pending-approval (if gated) ---------
-    pending_approval_issue: int | None = None
-    if gated:
-        gate_labels = ["audit-pending-approval"]
-        gate_labels.extend(a for a in areas if a.startswith("area/"))
-        gate_title = (
-            f"Audit #{audit_issue}: pending approval — "
-            f"{len(gated)} proposed edit(s)"
-        )
-        gate_body = _build_pending_approval_body(
-            audit_issue=audit_issue,
-            commit_sha=commit_sha,
-            areas=areas,
-            gated=gated,
-            debt_issues=debt_issues,
-            missing_issues=missing_issues,
-        )
-        gate_result = _run_gh_issue_create(
-            args.gh_bin,
-            gate_title,
-            gate_labels,
-            gate_body,
-        )
-        if gate_result.returncode != 0:
-            print(
-                "ERROR: gate-file (gh issue create) failed (rc="
-                f"{gate_result.returncode}); "
-                f"stdout={gate_result.stdout.strip()!r} "
-                f"stderr={gate_result.stderr.strip()!r}",
-                file=sys.stderr,
-            )
-            # Best-effort summary so the system isn't completely silent.
-            summary_body = _build_summary_body(
-                applied=auto_apply,
-                gated=gated,
-                pending_approval_issue=None,
-                debt_issues=debt_issues,
-                missing_issues=missing_issues,
-            )
-            _run_gh_issue_comment(args.gh_bin, audit_issue, summary_body)
-            return 4
-        pending_approval_issue = _parse_issue_number(gate_result.stdout)
-        if pending_approval_issue is None:
-            print(
-                "WARN: could not parse new issue number from gh output: "
-                f"{gate_result.stdout.strip()!r}",
-                file=sys.stderr,
-            )
-
-    # ---------------- 8. Post audit summary on originating issue -------
-    summary_body = _build_summary_body(
-        applied=auto_apply,
-        gated=gated,
-        pending_approval_issue=pending_approval_issue,
-        debt_issues=debt_issues,
-        missing_issues=missing_issues,
-    )
-    summary_result = _run_gh_issue_comment(
-        args.gh_bin,
-        audit_issue,
-        summary_body,
-    )
-    if summary_result.returncode != 0:
-        print(
-            "ERROR: summary-post (gh issue comment) failed (rc="
-            f"{summary_result.returncode}); "
-            f"stdout={summary_result.stdout.strip()!r} "
-            f"stderr={summary_result.stderr.strip()!r}",
-            file=sys.stderr,
-        )
-        return 5
-
-    # ---------------- 9. Close originating audit (only if no gate) ----
-    if not gated:
-        close_result = _run_gh_issue_close(args.gh_bin, audit_issue)
-        if close_result.returncode != 0:
-            # Closing the audit is best-effort; the gate-file path is
-            # the load-bearing state-transition. Treat close failures
-            # as a summary-post-style non-fatal but report.
-            print(
-                "WARN: closing the audit issue failed (rc="
-                f"{close_result.returncode}); "
-                f"stdout={close_result.stdout.strip()!r} "
-                f"stderr={close_result.stderr.strip()!r}",
-                file=sys.stderr,
-            )
-
-    return 0
+    return result.exit_code
 
 
 if __name__ == "__main__":  # pragma: no cover

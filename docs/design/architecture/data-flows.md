@@ -78,6 +78,47 @@ Agent activity logging and digest generation pipeline:
 
 Raw JSONL logs are gitignored in the second-brain repo. Digest Markdown flows through Obsidian Sync (not git).
 
+### Doc-Auditor Direct Anthropic API (#343)
+
+```
+felix-doc-auditor.timer → felix-doc-auditor.service → scripts/doc_audit/run.py
+  → Anthropic API (HTTPS, anthropic-python SDK)
+  → gh CLI (subprocess; kg-felix-bot PAT)
+  → /home/kgale/second-brain/agents/logs/doc-auditor-YYYY-MM-DD.md (file append)
+```
+
+Post-#343 doc-audit tick flow. The systemd user timer (`felix-doc-auditor.timer`, `OnCalendar=hourly`, `Persistent=true`) launches the oneshot service which execs the Python driver. The driver:
+
+1. Loads the Anthropic API key from `/data/services/openclaw/secrets/anthropic` (0600 file read) — see **Doc-Auditor Credential Read** below.
+2. Calls Anthropic directly at three judgment moments — tier classification, debt-body generation, and cross-file implication. Prompt caching is enabled via the SDK to amortize the cached boilerplate across calls within a tick.
+3. Mutates GitHub state exclusively via `gh` subprocess (issue list/edit/create/close, label add/remove, comment create) under the `kg-felix-bot` PAT.
+4. Appends a per-tick prose entry to the operator-readable activity log under `/home/kgale/second-brain/agents/logs/`.
+
+This replaces the pre-#343 path that routed through openclaw-gateway and an LLM-interpreted `SKILL.md` procedure. **No openclaw-gateway proxy is in the path** — the driver talks to Anthropic, GitHub, and the filesystem directly.
+
+**Signal sources consumed (read-only)**:
+- `/data/services/security-monitor/logs/drift-events.jsonl` — drift adapter signal source
+- `/home/claude/kg-automation/docs/design/architecture/data/doc-domain-map.json` — changed-file → owning-doc scope contract
+- `/home/claude/kg-automation/docs/design/architecture/data/signal-to-doc-map.json` — signal-class → candidate-doc map
+
+### Doc-Auditor Tick Signal Write (#343)
+
+```
+scripts/doc_audit/run.py → /data/services/openclaw/felix-doc-auditor-driver/last-tick.json (file write, atomic rename)
+```
+
+At the end of each tick, the driver writes a structured JSON tick signal capturing `status`, `exit_code`, `timestamp_utc`, `signals_processed`, judgment-call counts, token usage, and any errors. This is the canonical health-check and tick-observation surface (replaces the pre-#343 reliance on parsing the prose activity log). The file is overwritten each tick — latest-wins. See `contracts/tick-signal.contract.md` for the full schema.
+
+### Doc-Auditor Credential Read (#343)
+
+```
+scripts/doc_audit/run.py → /data/services/openclaw/secrets/anthropic (file read, mode 0600)
+```
+
+Sensitive credential read path. The scripts-first driver loads the Anthropic API key directly from disk at tick start. Replaces pre-#343 indirect access through openclaw-gateway's auth-profiles indirection. The credential itself is unchanged (same key, same storage); the driver process is now the second consumer of the same secret. Sibling consumer is `openclaw-gateway` (unchanged), which holds it via its native `auth-profiles.json` mechanism.
+
+**Sensitivity discipline**: the key is loaded once per tick into process memory only. It is never logged, never emitted in the tick signal, and never echoed to the activity log.
+
 ## Planned Flows (Not Yet Implemented)
 
 | Flow | Features | Description |
@@ -100,3 +141,6 @@ Raw JSONL logs are gitignored in the second-brain repo. Digest Markdown flows th
 | Backup logs | `/data/services/backup/logs` | Yes |
 | Agent JSONL logs | `/home/claude/second-brain/agents/logs/` | No (gitignored, ephemeral) |
 | Agent digest files | `/home/claude/second-brain/notes/Agent-Logs/` | Via Obsidian Sync |
+| Doc-auditor tick signal | `/data/services/openclaw/felix-doc-auditor-driver/last-tick.json` | No (overwritten each tick) |
+| Doc-auditor activity log | `/home/kgale/second-brain/agents/logs/doc-auditor-YYYY-MM-DD.md` | Via Obsidian Sync |
+| Anthropic API key (sensitive) | `/data/services/openclaw/secrets/anthropic` | Yes (mode 0600) |

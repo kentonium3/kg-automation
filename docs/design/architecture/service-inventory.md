@@ -37,7 +37,7 @@ All services run on office2 unless otherwise noted.
 | Habit Report (weekly) | Sunday 6PM ET | OpenClaw cron → felix-admin-habits | claude | Weekly habit pattern report via WhatsApp |
 | Incomplete Task Detection | Every 4 hours (`0 */4 * * *`) | OpenClaw cron → felix-admin-tasker | claude | Poll Inbox for flat tasks |
 | Escalation Check (daily) | 8:00 AM ET daily | OpenClaw cron → felix-admin-escalation | claude | Overdue task escalation via WhatsApp |
-| Doc Audit Poll | Every 60 minutes (top of hour UTC) | `felix-doc-auditor.timer` (systemd) → openclaw agent felix-doc-auditor | claude | Process Doc Audit / Weekly Doc Audit issues |
+| Doc Audit Poll | Every 60 minutes (top of hour UTC) | `felix-doc-auditor.timer` (systemd) → `/usr/bin/python3 /home/claude/kg-automation/scripts/doc_audit/run.py` (#343 scripts-first driver) | claude | Process Doc Audit / Weekly Doc Audit issues |
 | Second Brain Sync | Every 15 min | `second-brain-sync.timer` (systemd) | kgale | Bidirectional git sync for non-vault content |
 | Felix Core Digest | Every 15 min | `felix-core-digest.timer` (systemd) | claude | Agent activity log summarization → Obsidian digests |
 
@@ -256,20 +256,26 @@ openclaw cron add \
 - **Delivery**: WhatsApp to +16179300916
 - **Privacy boundary**: `04-Growth/_private/` is never accessed
 
-### Felix Doc Auditor (#105, 2026-05-10)
+### Felix Doc Auditor (#105 deployed 2026-05-10; refactored to scripts-first driver in #343, 2026-05-21)
 - **Deployed by**: #105 / mission `felix-doc-auditor-agent-01KR7JK9`
-- **Type**: OpenClaw agent triggered by systemd user timer (registered in #223)
-- **Agent name**: `felix-doc-auditor`
-- **Workspace**: `/data/services/openclaw/felix-doc-auditor/` (deployed from `scripts/openclaw/agents/felix-doc-auditor/`)
-- **Skill**: `~/.openclaw/skills/doc-audit/` (deployed from `scripts/openclaw/skills/doc-audit/`)
-- **Model**: `anthropic/claude-sonnet-4-6` (pinned — judgment-heavy work)
+- **Refactored by**: #343 / mission `refactor-doc-auditor-to-scripts-first-driver-01KS2XNX`
+- **Type**: Python driver process triggered by systemd user timer (no openclaw session in the runtime path post-#343)
+- **Service name**: `felix-doc-auditor` (the SERVICE identity is unchanged; only the implementation changed)
+- **Driver entry**: `/usr/bin/python3 /home/claude/kg-automation/scripts/doc_audit/run.py`
+- **Source in repo**: `scripts/doc_audit/` (driver + adapters + helpers + judgment prompts)
+- **Model**: `anthropic/claude-haiku-4-5` (pinned; downshifted from Sonnet by #343 — judgment calls are now narrow and prompt-scoped)
 - **Autonomy level**: Assisted (Level 1) — planned promotion to Supervised (Level 2) after ~1 week clean operation
 - **Schedule**: hourly via `felix-doc-auditor.timer` (systemd user timer at `~/.config/systemd/user/`, `OnCalendar=hourly`, `Persistent=true`)
-- **Per-tick invocation**: `felix-doc-auditor.service` (systemd user oneshot) runs `openclaw agent --agent felix-doc-auditor --message 'Cron tick…' --timeout 1500`
+- **Per-tick invocation**: `felix-doc-auditor.service` (systemd user oneshot) invokes the driver entry above directly — no `openclaw agent` shell-out, no SKILL.md procedure loaded at runtime. Each tick is a fresh Python process; state is stateless per tick (carried only via GitHub labels/issues and `last-tick.json`).
+- **Judgment prompts**: checked-in markdown artifacts at `scripts/doc_audit/prompts/*.prompt.md` (tier classification, debt body generation, cross-file implication) — replaces the historical runtime `~/.openclaw/skills/doc-audit/SKILL.md` (no longer loaded at runtime; retained only as historical reference).
+- **API path**: driver reads `/data/services/openclaw/secrets/anthropic` (0600, claude:claude) at tick start and calls `api.anthropic.com` directly via the `anthropic` Python SDK; the openclaw-gateway is NOT in the runtime path.
+- **Health check**: structured `last-tick.json` at `/data/services/openclaw/felix-doc-auditor-driver/last-tick.json` (expected `status: "success"` within last 2 hours); see `kitty-specs/refactor-doc-auditor-to-scripts-first-driver-01KS2XNX/contracts/tick-signal.contract.md`. The per-tick prose activity log at `/home/kgale/second-brain/agents/logs/doc-auditor-YYYY-MM-DD.md` remains as a human-readable summary.
 - **Purpose**: processes Doc Audit and Weekly Doc Audit issues automatically; commits high-confidence edits directly, files docs-debt issues for judgment items, detects missing artifacts
 - **Approval mechanism (Level 1)**: WhatsApp summary message + reply parsing (`approve`/`reject`/`skip`); 2-hour timeout = default deny
-- **Concurrency lock**: GitHub label `status:in-progress` on the in-flight audit issue
-- **Runbook**: `docs/runbooks/doc-auditor-ops.md`
+- **Concurrency lock**: GitHub label `status:in-progress` on the in-flight audit issue (unchanged across #343)
+- **Identity**: `kg-felix-bot` (classic PAT via gh CLI auth store) — unchanged across #343
+- **Authoritative JSON**: see `felix-doc-auditor` entry in `data/service-inventory.json`
+- **Runbook**: `docs/runbooks/doc-auditor-driver-ops.md` (operator quick-reference + troubleshooting; supersedes the prior `doc-auditor-ops.md` for the post-#343 driver implementation)
 
 ### Felix Core Digest (F014)
 - **Deployed by**: F014

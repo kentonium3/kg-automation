@@ -60,9 +60,9 @@ Every helper presents a stable, testable interface.
 
 ### Reference implementations
 
-- [`scripts/openclaw/agents/felix-doc-auditor/handle_drift_events.py`](../../scripts/openclaw/agents/felix-doc-auditor/handle_drift_events.py) — argparse, `--dry-run`, `--limit`, structured input via `@file` syntax
+- [`scripts/doc_audit/helpers/handle_drift_events.py`](../../scripts/doc_audit/helpers/handle_drift_events.py) — argparse, `--dry-run`, `--limit`, structured input via `@file` syntax. These helpers were lifted from felix-doc-auditor's agent workspace in [#343](https://github.com/kentonium3/kg-automation/issues/343) to a more durable location.
 - [`scripts/inbox/prescan.py`](../../scripts/inbox/prescan.py) — argparse, JSON output to stdout for agent consumption
-- [`scripts/openclaw/agents/felix-doc-auditor/handle_audit_routing.py`](../../scripts/openclaw/agents/felix-doc-auditor/handle_audit_routing.py) — file-based structured input, multi-leg execution, exit-code semantics
+- [`scripts/doc_audit/helpers/handle_audit_routing.py`](../../scripts/doc_audit/helpers/handle_audit_routing.py) — file-based structured input, multi-leg execution, exit-code semantics. Lifted from felix-doc-auditor in [#343](https://github.com/kentonium3/kg-automation/issues/343).
 
 ---
 
@@ -138,7 +138,7 @@ write_atomic() {
 ### Reference implementations
 
 - [`scripts/inbox/inject_parse_error_marker.py`](../../scripts/inbox/inject_parse_error_marker.py) `_atomic_write()` — preserves file mode (mission #33/#254 — the perm-orphaning bug that motivated this convention)
-- [`scripts/openclaw/agents/felix-doc-auditor/handle_drift_events.py`](../../scripts/openclaw/agents/felix-doc-auditor/handle_drift_events.py) `write_cursor_atomic()`
+- [`scripts/doc_audit/helpers/handle_drift_events.py`](../../scripts/doc_audit/helpers/handle_drift_events.py) `write_cursor_atomic()`
 
 ### Why this matters
 
@@ -418,7 +418,7 @@ When existing prompt-heavy logic gets refactored to a helper, the change must be
 - [`feedback_scripts_vs_llm.md`](../../../.claude/projects/-Users-kentgale-repos-kg-automation/memory/feedback_scripts_vs_llm.md) — Memory note grounding the principle
 - Reference helpers cited throughout:
   - `scripts/inbox/prescan.py`, `handle_parse_failures.py`, `handle_marker_cleanup.py`, `inject_parse_error_marker.py`
-  - `scripts/openclaw/agents/felix-doc-auditor/handle_audit_routing.py`, `handle_drift_events.py`
+  - `scripts/doc_audit/helpers/handle_audit_routing.py`, `scripts/doc_audit/helpers/handle_drift_events.py`
   - `scripts/office2/security-monitor/audit.sh`
 
 ---

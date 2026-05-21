@@ -1,0 +1,10 @@
+{
+  "id": "msg_fake_judgment",
+  "model": "claude-haiku-4-5",
+  "text": "{\"tier\": \"judgment\", \"confidence\": \"judgment\", \"rationale\": \"Author intent unclear from commit diff alone. File as docs-debt per SKILL.md §4.2.\"}",
+  "usage": {
+    "input_tokens": 510,
+    "cache_read_input_tokens": 320,
+    "output_tokens": 60
+  }
+}

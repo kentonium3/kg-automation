@@ -1,0 +1,14 @@
+[
+  {
+    "number": 4243,
+    "title": "Pending approval: Tier-B edits for #4242",
+    "body": "Originating audit: #4242\n\n## Proposed edits\n\n- docs/runbooks/openclaw-agent-setup.md: change_type=service_version, current=1.2.0, proposed=1.3.0",
+    "labels": [
+      {"name": "pending-approval"},
+      {"name": "audit-approve"},
+      {"name": "area/felix-core"}
+    ],
+    "createdAt": "2026-05-19T18:00:00Z",
+    "state": "OPEN"
+  }
+]

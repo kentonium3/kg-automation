@@ -1,7 +1,7 @@
 {
   "schema_version": "1.1",
-  "last_updated": "2026-05-19",
-  "updated_by": "#307-backfill-habits-jsonl-from-comments + #306-habits-native-repeat-jsonl-state + #304-felix-bot-rotation + #291-felix-file-issue + #289-mutation-surfaces-enumeration + #285-cron-delivery-restore-path-c + #282-habits-d6-extract + #263-cron-delivery-mode-round2 + #100-google-workspace-foundation + #256-scope-discipline-guardrails + #253-step-5a-6-consolidation + #254-atomic-write-perm-preservation + issue-105-doc-auditor + #223-systemd-timer + #208-restic-healthcheck + #202-obsidian-sync-system-level + #203-sync-heartbeat + #199-inbox-schedules + #115-credential-health-check + #189-vikunja-compose + #185-inbox-capture-dedup",
+  "last_updated": "2026-05-21",
+  "updated_by": "#343-refactor-doc-auditor-to-scripts-first-driver + #307-backfill-habits-jsonl-from-comments + #306-habits-native-repeat-jsonl-state + #304-felix-bot-rotation + #291-felix-file-issue + #289-mutation-surfaces-enumeration + #285-cron-delivery-restore-path-c + #282-habits-d6-extract + #263-cron-delivery-mode-round2 + #100-google-workspace-foundation + #256-scope-discipline-guardrails + #253-step-5a-6-consolidation + #254-atomic-write-perm-preservation + issue-105-doc-auditor + #223-systemd-timer + #208-restic-healthcheck + #202-obsidian-sync-system-level + #203-sync-heartbeat + #199-inbox-schedules + #115-credential-health-check + #189-vikunja-compose + #185-inbox-capture-dedup",
   "services": [
     {
       "name": "vikunja",
@@ -546,36 +546,44 @@
       "systemd_unit": "felix-doc-auditor.timer (user unit) + felix-doc-auditor.service (user oneshot)",
       "systemd_user": "claude",
       "schedule": "hourly (OnCalendar=hourly, Persistent=true)",
-      "exec_start": "openclaw agent --agent felix-doc-auditor --message 'Cron tick…' --timeout 1500",
+      "exec_start": "/usr/bin/python3 /home/claude/kg-automation/scripts/doc_audit/run.py",
+      "exec_start_note": "Direct Python driver invocation. Post-#343 replaces the prior `openclaw agent --agent felix-doc-auditor --message 'Cron tick…' --timeout 1500` entrypoint. The driver is stateless per tick — no persistent openclaw session.",
       "timeout_seconds": 1800,
-      "timeout_seconds_note": "TimeoutStartSec=30min systemd outer failsafe; agent --timeout 1500 (25 min) catches stuck runs first",
-      "session_mode": "isolated",
+      "timeout_seconds_note": "TimeoutStartSec=30min systemd outer failsafe; the driver self-times its judgment calls and exits cleanly on Anthropic SDK errors well before the systemd ceiling.",
+      "session_mode": "stateless",
+      "session_mode_note": "Post-#343: each tick is a fresh Python process with no carried-over LLM session. Persistent state lives entirely on GitHub (labels, issues) and in `last-tick.json` + activity log; the driver carries nothing in memory between ticks.",
       "deployed_by": "#105",
       "deployed_on": "2026-05-10",
-      "updated_by": "#223 (systemd timer registration)",
+      "updated_by": "#343-refactor-doc-auditor-to-scripts-first-driver",
+      "last_updated": "2026-05-21",
       "status": "active",
-      "purpose": "Documentation audit — processes Doc Audit and Weekly Doc Audit issues; classifies docs as high-confidence edit (commits directly) or judgment gap (files docs-debt issue); detects missing artifacts",
-      "model": "anthropic/claude-sonnet-4-6",
+      "purpose": "Documentation audit — processes Doc Audit and Weekly Doc Audit issues; classifies docs as high-confidence edit (commits directly) or judgment gap (files docs-debt issue); detects missing artifacts. Post-#343 implemented as a scripts-first Python driver that calls the Anthropic SDK directly at narrow judgment moments (tier classification, debt body generation, cross-file implication).",
+      "model": "anthropic/claude-haiku-4-5",
       "model_policy": "pinned",
       "autonomy_level": "Assisted (Level 1)",
       "risk_tier": 3,
       "dependencies": [
-        {"target": "openclaw-gateway:18789", "type": "requires", "description": "Service ExecStart invokes the openclaw CLI which dispatches the agent through the gateway"},
-        {"target": "doc-audit", "type": "requires", "description": "Reads ~/.openclaw/skills/doc-audit/SKILL.md at start of every audit"},
-        {"target": "doc-domain-map.json", "type": "requires", "description": "Scope contract"},
-        {"target": "gh-cli", "type": "requires", "description": "All GitHub interactions (issues, comments, labels)"}
+        {"target": "anthropic-api-key", "type": "requires", "description": "API key read at tick start from /data/services/openclaw/secrets/anthropic; sent directly to Anthropic via the Python SDK (no openclaw gateway in path)"},
+        {"target": "gh-cli", "type": "requires", "description": "All GitHub interactions (issues, comments, labels) — driver invokes gh CLI as a subprocess, same identity as before (kg-felix-bot)"},
+        {"target": "doc-domain-map.json", "type": "requires", "description": "Scope contract — still the canonical mapping from changed-file path to owning doc"},
+        {"target": "signal-to-doc-map.json", "type": "requires", "description": "Maps signal classes (commit-marker, drift-event, weekly-cron) to candidate docs for audit"},
+        {"target": "drift-events.jsonl", "type": "requires", "description": "Read-only consumer of /data/services/security-monitor/logs/drift-events.jsonl as one signal source"},
+        {"target": "scripts/doc_audit/prompts/", "type": "requires", "description": "Checked-in judgment prompts (tier_classification, debt_body_generation, cross_file_implication) replace the runtime SKILL.md procedure"}
       ],
       "health_check": {
-        "method": "logs",
-        "endpoint": "/home/kgale/second-brain/agents/logs/doc-auditor-YYYY-MM-DD.md",
-        "expected": "regular activity entries during audit-issue presence",
-        "timeout_seconds": 60
+        "method": "tick-signal-file",
+        "endpoint": "/data/services/openclaw/felix-doc-auditor-driver/last-tick.json",
+        "expected": "status=success within the last 2 hours; exit_code=0; errors=[] (see contracts/tick-signal.contract.md)",
+        "timeout_seconds": 5,
+        "note": "Post-#343 health is determined by parsing last-tick.json (structured), not by tailing the prose activity log. Activity log at /home/kgale/second-brain/agents/logs/doc-auditor-YYYY-MM-DD.md remains as a per-tick prose summary."
       },
       "config_files": [
         {"path": "~/.config/systemd/user/felix-doc-auditor.timer", "format": "systemd-unit", "source_in_repo": "scripts/office2/felix-doc-auditor.timer"},
         {"path": "~/.config/systemd/user/felix-doc-auditor.service", "format": "systemd-unit", "source_in_repo": "scripts/office2/felix-doc-auditor.service"},
-        {"path": "/data/services/openclaw/felix-doc-auditor/AGENTS.md", "format": "markdown", "source_in_repo": "scripts/openclaw/agents/felix-doc-auditor/AGENTS.md"},
-        {"path": "~/.openclaw/skills/doc-audit/SKILL.md", "format": "markdown", "source_in_repo": "scripts/openclaw/skills/doc-audit/SKILL.md"}
+        {"path": "/home/claude/kg-automation/scripts/doc_audit/config.toml", "format": "toml", "source_in_repo": "scripts/doc_audit/config.toml", "purpose": "Driver runtime config — adapter list, model, API key path, cursor paths, last-tick.json location"},
+        {"path": "/home/claude/kg-automation/scripts/doc_audit/prompts/tier_classification.prompt.md", "format": "markdown", "source_in_repo": "scripts/doc_audit/prompts/tier_classification.prompt.md", "purpose": "Judgment prompt for Tier-A vs Tier-B classification"},
+        {"path": "/home/claude/kg-automation/scripts/doc_audit/prompts/debt_body_generation.prompt.md", "format": "markdown", "source_in_repo": "scripts/doc_audit/prompts/debt_body_generation.prompt.md", "purpose": "Judgment prompt for docs-debt issue body generation"},
+        {"path": "/home/claude/kg-automation/scripts/doc_audit/prompts/cross_file_implication.prompt.md", "format": "markdown", "source_in_repo": "scripts/doc_audit/prompts/cross_file_implication.prompt.md", "purpose": "Judgment prompt for cross-file implication detection"}
       ]
     },
     {

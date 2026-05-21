@@ -1,0 +1,13 @@
+## Audit run — 2026-05-20T15:15:33-0400
+- Audit issue: #347
+- Title: Doc audit: cf0e0b9 (area/biz-ops)
+- In-scope docs: 3
+- Docs reviewed: 3
+- High-confidence edits proposed: 0
+- Pending-approval issue filed: none
+- Edits committed: 0
+- Debt issues created: 0
+- Missing artifacts flagged: 0
+- Items requiring human review: 0
+- Decision applied this tick: none
+- Errors: 0

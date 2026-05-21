@@ -1,0 +1,24 @@
+[
+  {
+    "number": 4242,
+    "title": "Doc audit: abc1234 (felix-core)",
+    "body": "Triggered by commit abc1234 on main.\n\nDomain: felix-core",
+    "labels": [
+      {"name": "doc-audit"},
+      {"name": "area/felix-core"}
+    ],
+    "createdAt": "2026-05-20T16:00:00Z",
+    "state": "OPEN"
+  },
+  {
+    "number": 4250,
+    "title": "Doc audit: def5678 (vikunja)",
+    "body": "Triggered by commit def5678 on main.\n\nDomain: vikunja",
+    "labels": [
+      {"name": "doc-audit"},
+      {"name": "area/vikunja"}
+    ],
+    "createdAt": "2026-05-20T16:30:00Z",
+    "state": "OPEN"
+  }
+]

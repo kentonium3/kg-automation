@@ -1,0 +1,13 @@
+[
+  {
+    "number": 4300,
+    "title": "Weekly doc audit — 2026-05-19",
+    "body": "Weekly audit triggered by cron. Full-scope sweep.",
+    "labels": [
+      {"name": "doc-audit"},
+      {"name": "weekly"}
+    ],
+    "createdAt": "2026-05-19T07:00:00Z",
+    "state": "OPEN"
+  }
+]

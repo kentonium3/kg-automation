@@ -1,0 +1,10 @@
+{
+  "id": "msg_fake_tier_a",
+  "model": "claude-haiku-4-5",
+  "text": "{\"tier\": \"tier_a\", \"confidence\": \"high\", \"rationale\": \"Frontmatter-only field bump (last_validated). Inherits SKILL.md §4.1.a.\"}",
+  "usage": {
+    "input_tokens": 480,
+    "cache_read_input_tokens": 320,
+    "output_tokens": 64
+  }
+}

@@ -1,0 +1,25 @@
+# Driver default configuration
+# Override with: python3 scripts/doc_audit/run.py --config <path>
+
+[llm]
+model = "claude-haiku-4-5"
+api_key_path = "/data/services/openclaw/secrets/anthropic"
+max_tokens = 2048
+
+[paths]
+prompts_dir = "/data/services/openclaw/felix-doc-auditor-driver/prompts"
+drift_events = "/data/services/security-monitor/logs/drift-events.jsonl"
+drift_cursor = "/data/services/security-monitor/.drift-events.cursor"
+drift_unmapped = "/data/services/security-monitor/logs/unmapped-events.jsonl"
+signal_to_doc_map = "/data/services/openclaw/felix-doc-auditor-driver/signal-to-doc-map.json"
+doc_domain_map = "/data/services/openclaw/felix-doc-auditor-driver/doc-domain-map.json"
+activity_log_dir = "/home/kgale/second-brain/agents/logs"
+tick_signal_path = "/data/services/openclaw/felix-doc-auditor-driver/last-tick.json"
+
+[signals]
+# Adapter names; order = priority tiebreaker within priority group.
+sources = ["gh_issue", "drift_event"]
+
+[github]
+repo = "kentonium3/kg-automation"
+bot_identity = "kg-felix-bot"

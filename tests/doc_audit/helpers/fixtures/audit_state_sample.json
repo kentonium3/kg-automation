@@ -1,0 +1,25 @@
+{
+  "audit_issue_number": 9999,
+  "commit_sha": "abc1234",
+  "areas": ["area/felix-core"],
+  "proposals": [
+    {
+      "doc_path": "docs/INDEX.md",
+      "change_type": "frontmatter_date",
+      "current_value": "2026-05-10",
+      "proposed_value": "2026-05-20",
+      "evidence_source": "commit abc1234 (2026-05-20)",
+      "confidence": "high"
+    },
+    {
+      "doc_path": "docs/design/architecture/data/service-inventory.json",
+      "change_type": "needs_human_judgment",
+      "current_value": "old service description",
+      "proposed_value": "new service description",
+      "evidence_source": "commit abc1234",
+      "confidence": "low"
+    }
+  ],
+  "debt_issues_filed": [],
+  "missing_artifact_issues_filed": []
+}

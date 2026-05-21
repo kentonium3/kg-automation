@@ -1,0 +1,210 @@
+{
+  "schema_version": "1.0",
+  "name": "felix-doc-auditor-pre-rework",
+  "captured_at": "2026-05-21T13:30:00Z",
+  "captured_by": "#343-WP07",
+  "captured_via": "scripts/doc_audit/baselines/measure-tokens.py against /home/claude/.openclaw/agents/felix-doc-auditor/sessions/e5f39688-f18d-4245-861b-1645149fba78.jsonl on office2",
+  "subject": {
+    "service": "felix-doc-auditor",
+    "implementation": "OpenClaw-mediated agent (current production path; to be retired in WP09)",
+    "host": "office2",
+    "model": "anthropic/claude-haiku-4-5",
+    "invocation": "openclaw cron tick -> agent execution per scripts/openclaw/agents/felix-doc-auditor/AGENTS.md",
+    "session_uuid": "e5f39688-f18d-4245-861b-1645149fba78",
+    "git_sha": "59efa16c4fb7e2c50ecb146193fdeef41a9799e1",
+    "git_branch": "kitty/mission-refactor-doc-auditor-to-scripts-first-driver-01KS2XNX-lane-a"
+  },
+  "measurement_window": {
+    "tick_count": 34,
+    "earliest_tick_utc": "2026-05-20T04:07:38Z",
+    "latest_tick_utc": "2026-05-21T13:00:57Z",
+    "spans_hours": 33
+  },
+  "measurements": [
+    {
+      "outcome": "empty",
+      "description": "Tick exits cleanly with no audits to process (queue blocked on pending decisions, or no new audits).",
+      "sample_count": 28,
+      "average_input_tokens": 17.2,
+      "average_output_tokens": 704.7,
+      "average_cache_read_input_tokens": 262567.2,
+      "average_cache_write_input_tokens": 260547.0,
+      "average_total_input_tokens_billable": 523131.4,
+      "average_duration_seconds": 20.864,
+      "average_llm_calls": 4.14,
+      "representative_samples": [
+        {
+          "tick_id": "tick-0013",
+          "started_utc": "2026-05-20T16:00:56.748Z",
+          "ended_utc": "2026-05-20T16:01:08.659Z",
+          "input_tokens": 21,
+          "output_tokens": 464,
+          "cache_read_input_tokens": 152968,
+          "cache_write_input_tokens": 249023,
+          "total_input_tokens_billable": 402012,
+          "llm_calls": 3,
+          "duration_seconds": 11.911,
+          "note": "Median empty tick — short clean exit, 3 LLM calls."
+        },
+        {
+          "tick_id": "tick-0009",
+          "started_utc": "2026-05-20T12:00:56.728Z",
+          "ended_utc": "2026-05-20T12:01:10.840Z",
+          "input_tokens": 10,
+          "output_tokens": 705,
+          "cache_read_input_tokens": 143823,
+          "cache_write_input_tokens": 229435,
+          "total_input_tokens_billable": 373268,
+          "llm_calls": 3,
+          "duration_seconds": 14.112,
+          "note": "Lowest-cost empty tick (post-session-warmup steady state)."
+        },
+        {
+          "tick_id": "tick-0012",
+          "started_utc": "2026-05-20T15:00:11.569Z",
+          "ended_utc": "2026-05-20T15:01:06.215Z",
+          "input_tokens": 34,
+          "output_tokens": 1963,
+          "cache_read_input_tokens": 1220954,
+          "cache_write_input_tokens": 355915,
+          "total_input_tokens_billable": 1576903,
+          "llm_calls": 12,
+          "duration_seconds": 54.646,
+          "note": "High-cost empty tick — agent re-read context across multiple files this hour."
+        }
+      ]
+    },
+    {
+      "outcome": "debt_only",
+      "description": "Tick processed an audit and produced one or more docs-debt issues without applying a code edit.",
+      "sample_count": 4,
+      "average_input_tokens": 24.8,
+      "average_output_tokens": 4832.2,
+      "average_cache_read_input_tokens": 1299963.0,
+      "average_cache_write_input_tokens": 156886.5,
+      "average_total_input_tokens_billable": 1456874.2,
+      "average_duration_seconds": 85.108,
+      "average_llm_calls": 18.5,
+      "samples": [
+        {
+          "tick_id": "tick-0001",
+          "started_utc": "2026-05-20T04:07:38.556Z",
+          "ended_utc": "2026-05-20T04:09:37.324Z",
+          "input_tokens": 60,
+          "output_tokens": 8696,
+          "cache_read_input_tokens": 1326389,
+          "cache_write_input_tokens": 169188,
+          "total_input_tokens_billable": 1495637,
+          "llm_calls": 24,
+          "duration_seconds": 118.768
+        },
+        {
+          "tick_id": "tick-0004",
+          "started_utc": "2026-05-20T07:00:56.844Z",
+          "ended_utc": "2026-05-20T07:02:16.003Z",
+          "input_tokens": 22,
+          "output_tokens": 3723,
+          "cache_read_input_tokens": 1130404,
+          "cache_write_input_tokens": 146094,
+          "total_input_tokens_billable": 1276520,
+          "llm_calls": 16,
+          "duration_seconds": 79.159
+        },
+        {
+          "tick_id": "tick-0007",
+          "started_utc": "2026-05-20T10:00:56.720Z",
+          "ended_utc": "2026-05-20T10:02:19.358Z",
+          "input_tokens": 7,
+          "output_tokens": 4143,
+          "cache_read_input_tokens": 1470404,
+          "cache_write_input_tokens": 161366,
+          "total_input_tokens_billable": 1631777,
+          "llm_calls": 17,
+          "duration_seconds": 82.638
+        },
+        {
+          "tick_id": "tick-0008",
+          "started_utc": "2026-05-20T11:00:16.478Z",
+          "ended_utc": "2026-05-20T11:01:16.343Z",
+          "input_tokens": 10,
+          "output_tokens": 2767,
+          "cache_read_input_tokens": 1272655,
+          "cache_write_input_tokens": 150898,
+          "total_input_tokens_billable": 1423563,
+          "llm_calls": 17,
+          "duration_seconds": 59.865
+        }
+      ]
+    },
+    {
+      "outcome": "tier_a_apply",
+      "description": "Tick processed an audit that produced a Tier-A auto-commit (typically a frontmatter `last_validated` bump) plus follow-up actions.",
+      "sample_count": 2,
+      "average_input_tokens": 10.0,
+      "average_output_tokens": 3272.0,
+      "average_cache_read_input_tokens": 1043343.0,
+      "average_cache_write_input_tokens": 127564.0,
+      "average_total_input_tokens_billable": 1170917.0,
+      "average_duration_seconds": 58.724,
+      "average_llm_calls": 16.0,
+      "samples": [
+        {
+          "tick_id": "tick-0002",
+          "started_utc": "2026-05-20T05:00:56.798Z",
+          "ended_utc": "2026-05-20T05:02:06.938Z",
+          "input_tokens": 10,
+          "output_tokens": 4257,
+          "cache_read_input_tokens": 1331022,
+          "cache_write_input_tokens": 144363,
+          "total_input_tokens_billable": 1475395,
+          "llm_calls": 20,
+          "duration_seconds": 70.140,
+          "verified_tier_a_commit": "fa50fc61 chore(doc-audit): [tier-a] bump last_validated on docs/INDEX.md (audit: #329)"
+        },
+        {
+          "tick_id": "tick-0003",
+          "started_utc": "2026-05-20T06:00:56.763Z",
+          "ended_utc": "2026-05-20T06:01:44.070Z",
+          "input_tokens": 10,
+          "output_tokens": 2287,
+          "cache_read_input_tokens": 755663,
+          "cache_write_input_tokens": 110765,
+          "total_input_tokens_billable": 866438,
+          "llm_calls": 12,
+          "duration_seconds": 47.307,
+          "note": "Heuristic classifier placed this tick in tier_a_apply; manual inspection shows it was actually a post-validation 'empty audit' for the audit auto-filed by tick-0002's commit. Cost shape (heavy read, light apply) is intermediate between empty and true tier_a — retained here for now; see open_caveats."
+        }
+      ]
+    }
+  ],
+  "summary_for_nfr_001": {
+    "weighted_average_total_input_tokens_billable": 666738,
+    "weighted_average_output_tokens": 1318,
+    "comment": "Weighted by observed mix (28 empty / 4 debt_only / 2 tier_a_apply). Mix bias toward 'empty' reflects a stretch of blocked-queue ticks during the measurement window. For NFR-001 we hold the per-outcome averages as the comparator (post-rework values must each be <=20% of these to satisfy >=80% reduction)."
+  },
+  "methodology": {
+    "summary": "OpenClaw writes a per-agent session JSONL containing every cron-tick user message and the assistant responses with token usage in a `usage` field on each assistant record. We tokenize the JSONL into per-tick groups (boundary: user message matching the cron-tick preamble), sum the per-call usage fields, and aggregate by tick outcome.",
+    "input_path_on_office2": "/home/claude/.openclaw/agents/felix-doc-auditor/sessions/<session-uuid>.jsonl",
+    "boundary_regex": "[.*UTC] Cron tick.",
+    "usage_field_shape": "Each assistant message has a `message.usage` object with integer fields `input`, `output`, `cacheRead`, `cacheWrite` and a `totalTokens` denormalization. We treat `total_input_tokens_billable = input + cacheRead + cacheWrite` to mirror Anthropic's billing model (cache-read and cache-write tokens are charged at different per-token rates but all consume the input-side quota).",
+    "outcome_classification": "Heuristic regex match against the closing assistant text of each tick. Patterns (in priority order): tier_a_apply (Tier-A keyword OR `committed` OR short SHA reference); debt_only (debt-issue keyword); empty (NO_REPLY / no work / clean exit). Outcome label may need manual correction for edge cases — see open_caveats.",
+    "reproduction_steps": [
+      "1. SSH to office2 (`ssh office2-claude`).",
+      "2. Identify the active agent session: `ls -la /home/claude/.openclaw/agents/felix-doc-auditor/sessions/`. Pick the largest active jsonl (excluding .bak files).",
+      "3. SCP `scripts/doc_audit/baselines/measure-tokens.py` to office2 (or run from the deployed `/data/services/openclaw/...` copy).",
+      "4. Run: `python3 measure-tokens.py --session <path> --out /tmp/per-outcome.json`.",
+      "5. Inspect classifications: `python3 -c \"import json; [print(o['outcome'], o['sample_count']) for o in json.load(open('/tmp/per-outcome.json'))['by_outcome']]\"`.",
+      "6. Spot-check at least one sample per outcome by reading the closing assistant text via `--per-tick --from-tick N --to-tick N`. Correct outcome labels in the emitted JSON if heuristic misfired.",
+      "7. Promote into baseline JSON: copy per-outcome averages + representative samples into `docs/design/architecture/baselines/felix-doc-auditor-pre-rework.json` (or `<service>-post-rework.json` for WP09)."
+    ],
+    "sample_size_guidance": "Target >=3 samples per outcome over a 3-day natural-traffic window. If a Tier-A outcome doesn't appear naturally, an operator-driven synthetic audit (file a low-stakes Doc audit issue against a doc whose `last_validated` is stale by >=30 days) is acceptable; document the synthetic origin in the sample note.",
+    "future_use": "WP09 (post-rework cutover) reuses this same script + methodology against the new driver's session log (or its activity log / tick-signal records) to produce `felix-doc-auditor-post-rework.json`. NFR-001 acceptance is per-outcome: post-rework `average_total_input_tokens_billable` must be <=20% of the pre-rework value for at least the `empty` outcome (the high-volume case), and operator-acceptable for `debt_only` and `tier_a_apply`."
+  },
+  "open_caveats": [
+    "Mix bias: 28 of 34 ticks observed were `empty` because the audit queue was blocked on two pending-approval issues (#302, #318) throughout the measurement window. Re-baselining during a more active period would shift the mix; per-outcome averages are robust to this but the `weighted_average_*` numbers are not.",
+    "Heuristic outcome classifier is approximate. Tick-0003 was tagged `tier_a_apply` by the heuristic but manual inspection shows it was actually a post-validation 'empty audit' of the prior tick's Tier-A commit. Token cost is intermediate; we left the auto-classification in place and noted it in the sample for transparency. For WP09 (post-rework) re-measurement, an operator should spot-check classifications.",
+    "OpenClaw's session JSONL accumulates context across ticks (cache_read grows over time as more turns accumulate). The first few ticks of a fresh session pay a large `cache_write` cost that subsequent ticks recoup; longer-running sessions show a more stable `cache_read`-dominated profile. The 33-hour window here covers both phases.",
+    "No per-LLM-call attribution. The session JSONL emits one `usage` record per assistant turn, not per logical operation (tier_classification, debt_body_generation, cross_file_implication). The new driver in WP05 emits separate counts (`judgment.tier_classification_calls` etc.) in `last-tick.json`, which is what the post-rework measurement will consume.",
+    "Excluded: any LLM traffic NOT routed through OpenClaw (e.g., manual `gh` debugging by the operator). The session JSONL is OpenClaw-only, so this measurement reflects only the agent's autonomous work."
+  ]
+}

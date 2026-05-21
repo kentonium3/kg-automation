@@ -1,0 +1,15 @@
+[
+  {
+    "number": 4244,
+    "title": "Pending approval: Tier-B edits for #4220",
+    "body": "Originating audit: #4220\n\n## Proposed edits\n\n- docs/runbooks/inbox-pipeline.md: change_type=frontmatter_field_bump, current=2026-05-10, proposed=2026-05-20",
+    "labels": [
+      {"name": "pending-approval"},
+      {"name": "audit-approve"},
+      {"name": "area/felix-core"}
+    ],
+    "labeledBy": "kg-felix-bot",
+    "createdAt": "2026-05-19T18:30:00Z",
+    "state": "OPEN"
+  }
+]

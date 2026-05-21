@@ -1,8 +1,8 @@
 {
   "schema_version": "1.0",
-  "last_updated": "2026-05-14",
-  "updated_by": "#278-signal-driven-doc-audit",
-  "description": "Maps deterministic change signals (from audit.sh and future producers) to the documentation surfaces that likely need review when the signal fires. Used by felix-doc-auditor/handle_drift_events.py.",
+  "last_updated": "2026-05-20",
+  "updated_by": "#343-wp01",
+  "description": "Maps deterministic change signals (from audit.sh and future producers) to the documentation surfaces that likely need review when the signal fires. Used by scripts/doc_audit/helpers/handle_drift_events.py.",
   "mappings": [
     {
       "id": "openclaw-cron-drift",

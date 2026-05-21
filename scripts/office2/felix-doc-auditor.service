@@ -1,11 +1,13 @@
 [Unit]
-Description=felix-doc-auditor — process pending decisions and new audit issues
+Description=felix-doc-auditor driver — scripts-first audit processing
 After=network-online.target openclaw-gateway.service
-Wants=network-online.target
 
 [Service]
 Type=oneshot
 TimeoutStartSec=30min
-ExecStart=/usr/bin/openclaw agent --agent felix-doc-auditor --message 'Cron tick. Follow AGENTS.md §3 (cron-tick decision processing) then §4 (new-audit selection). Use the doc-audit skill end-to-end.' --timeout 1500
+ExecStart=/usr/bin/python3 /home/claude/kg-automation/scripts/doc_audit/run.py
+WorkingDirectory=/home/claude/kg-automation
 Environment=HOME=/home/claude
-WorkingDirectory=/home/claude
+
+[Install]
+WantedBy=default.target

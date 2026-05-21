@@ -1,0 +1,34 @@
+{
+  "schema_version": "1.0",
+  "last_updated": "2026-05-20",
+  "updated_by": "wp01-test-fixture",
+  "description": "Minimal mapping fixture for tests/doc_audit/helpers/.",
+  "mappings": [
+    {
+      "id": "openclaw-cron-drift",
+      "match": {
+        "source": "audit.sh",
+        "baseline_name": "openclaw-cron.txt"
+      },
+      "doc_targets": [
+        "docs/design/architecture/data/service-inventory.json"
+      ],
+      "rationale": "OpenClaw cron config drift implies service-inventory.json may need updating.",
+      "issue_title_prefix": "[doc-audit] openclaw-cron drift",
+      "issue_labels": ["P3-candidate", "spec: brief", "area/felix-core"]
+    },
+    {
+      "id": "listening-ports-drift",
+      "match": {
+        "source": "audit.sh",
+        "baseline_name": "listening-ports.txt"
+      },
+      "doc_targets": [
+        "docs/design/architecture/data/service-inventory.json"
+      ],
+      "rationale": "Listening ports changed.",
+      "issue_title_prefix": "[doc-audit] listening-ports drift",
+      "issue_labels": ["P3-candidate", "spec: brief"]
+    }
+  ]
+}

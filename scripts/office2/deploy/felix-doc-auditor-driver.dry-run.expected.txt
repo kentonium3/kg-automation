@@ -1,0 +1,75 @@
+# Expected dry-run output for felix-doc-auditor-driver.sh
+#
+# Captured against office2 on 2026-05-21 (pre-cutover state):
+#   - openclaw agent 'felix-doc-auditor' still registered
+#   - workspace /data/services/openclaw/felix-doc-auditor/ still present
+#   - deployed systemd unit still references the old ExecStart
+#
+# Comment lines (#) are documentation, not part of the actual output.
+# The text after `---OUTPUT-START---` is the exact, ungrouped output the
+# script emits when invoked via:
+#
+#     bash scripts/office2/deploy/felix-doc-auditor-driver.sh --dry-run
+#
+# Test path used during capture: /tmp/wp08-test-felix-doc-auditor-driver.sh
+# (the trailing line referencing the test path has been normalised below).
+#
+# Future regression check (post-cutover) will see different step bodies:
+#   - Step 4: lines will be `$ cp ...` (delivered unit differs from deployed)
+#   - Step 5: "already deregistered (not in 'openclaw agents list' output); skipping"
+#   - Step 6: "already deleted, skipping"
+# That is the post-deploy steady state.
+#
+# Step 5 now implements an explicit 3-state machine on `openclaw agents list`:
+#   (a) list succeeds AND agent present     → deregister + verify gone
+#   (b) list succeeds AND agent absent      → skip (already deregistered)
+#   (c) list FAILS (non-zero exit)          → ABORT the deploy (UNKNOWN state)
+# State (c) prevents step 6 (workspace deletion) from running when registration
+# state cannot be verified. To exercise state (c) manually for verification,
+# temporarily rename the openclaw binary on $PATH so `openclaw agents list`
+# exits non-zero; the script should print
+#   STEP FAILED: 'openclaw agents list' exited <rc> — agent registration state is UNKNOWN.
+# and exit 1 before reaching step 6. (Do NOT actually run this against the
+# live host while the timer is enabled.)
+#
+---OUTPUT-START---
+
+==> Step 1/8: Pre-flight checks
+    [DRY-RUN] Mode: dry-run
+    [DRY-RUN] Hostname OK: office2
+    [DRY-RUN] openclaw-gateway.service: active
+    [DRY-RUN] Anthropic secret readable at /data/services/openclaw/secrets/anthropic
+    [DRY-RUN] gh authenticated as kg-felix-bot
+    [DRY-RUN] Repo present at /home/claude/kg-automation
+
+==> Step 2/8: Pull driver code (git pull --rebase) at /home/claude/kg-automation
+    [DRY-RUN] $ cd /home/claude/kg-automation
+    [DRY-RUN] $ git -C /home/claude/kg-automation pull --rebase
+    [DRY-RUN] Driver entry point: /home/claude/kg-automation/scripts/doc_audit/run.py
+
+==> Step 3/8: Create driver state directory /data/services/openclaw/felix-doc-auditor-driver
+    [DRY-RUN] $ mkdir -p /data/services/openclaw/felix-doc-auditor-driver
+    [DRY-RUN] $ chmod 755 /data/services/openclaw/felix-doc-auditor-driver
+    [DRY-RUN] $ chown claude:claude /data/services/openclaw/felix-doc-auditor-driver
+
+==> Step 4/8: Install systemd unit + timer to /home/claude/.config/systemd/user
+    [DRY-RUN] $ mkdir -p /home/claude/.config/systemd/user
+    [DRY-RUN] no change needed: /home/claude/.config/systemd/user/felix-doc-auditor.service
+    [DRY-RUN] no change needed: /home/claude/.config/systemd/user/felix-doc-auditor.timer
+    [DRY-RUN] $ systemctl --user daemon-reload
+
+==> Step 5/8: Retire openclaw agent registration: felix-doc-auditor
+    [DRY-RUN] agent felix-doc-auditor present in openclaw — deregistering
+    [DRY-RUN] $ openclaw agents delete felix-doc-auditor --force
+
+==> Step 6/8: Delete legacy openclaw workspace at /data/services/openclaw/felix-doc-auditor
+    [DRY-RUN] workspace exists at /data/services/openclaw/felix-doc-auditor — removing
+    [DRY-RUN] $ rm -rf -- /data/services/openclaw/felix-doc-auditor
+
+==> Step 7/8: Verify felix-doc-auditor.timer is enabled
+    [DRY-RUN] felix-doc-auditor.timer already enabled
+
+==> Step 8/8: Done
+
+Dry-run complete. No changes were made.
+When ready, re-run with: scripts/office2/deploy/felix-doc-auditor-driver.sh --apply --backup-confirmed

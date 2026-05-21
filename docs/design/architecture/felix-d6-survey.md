@@ -4,7 +4,7 @@ doc_type: note
 status: draft
 audience: agents_and_humans
 owners: [kgale]
-last_validated: 2026-05-15
+last_validated: 2026-05-21
 ---
 
 # Felix-wide Directive 6 Survey
@@ -377,3 +377,30 @@ Deferred to Phase 2 / Phase 3 work:
 ---
 
 *Survey prepared overnight 2026-05-14 → 2026-05-15. Pure analysis; no system changes were made. Awaiting Kent's review and Phase 2 prioritization.*
+
+---
+
+## Update — 2026-05-21 — issue #343
+
+The "LOW PRIORITY" verdict for `felix-doc-auditor` above assessed
+further **helper-extraction** opportunities (extracting more of the prose
+procedure into Python helpers like `handle_audit_routing.py` and
+`handle_drift_events.py`). That verdict remains correct for that
+question — the high-value extractions have already happened.
+
+**#343 changed a different dimension**: the orchestration layer
+**above** the helpers. The agent's role of interpreting a 38 KB
+SKILL.md procedure as runtime LLM prose was its own cost-and-reliability
+problem, separate from helper extraction. Mission #343 replaces the
+agent-as-orchestrator with a Python driver that calls the existing
+helpers + makes narrow LLM judgment calls at three checked-in prompts
+(`tier_classification`, `debt_body_generation`, `cross_file_implication`).
+
+Net effect: this survey's "low priority" verdict no longer applies as
+an overall judgment of felix-doc-auditor's optimization opportunity.
+The helper-extraction surface IS low priority; the orchestrator surface
+was high priority and was addressed by #343.
+
+See: `kitty-specs/refactor-doc-auditor-to-scripts-first-driver-01KS2XNX/`
+(mission spec, plan, contracts, baselines) and
+`docs/runbooks/doc-auditor-driver-ops.md` (post-#343 operator runbook).

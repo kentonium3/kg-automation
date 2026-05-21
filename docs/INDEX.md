@@ -74,13 +74,20 @@ Authoritative operational state. **Exempt from moves (F015 constraint C-001)**.
 - [Doc Domain Map](<./design/architecture/data/doc-domain-map.json>)
 - [LLM Spend Baseline](<./design/architecture/data/llm-spend-baseline.json>) — monthly LLM cost across all services (authoritative; see narrative companion in parent dir)
 
+### docs/design/architecture/baselines/ — Pre/post-change measurement baselines
+
+Numerators/denominators captured before and after material architectural changes; referenced by spec-level NFR acceptance gates.
+
+- [Baselines Index & Methodology](<./design/architecture/baselines/README.md>) — how baselines are captured, retained, and compared (includes the felix-doc-auditor pre-rework snapshot)
+
 ---
 
 ## Operational Runbooks (docs/runbooks/)
 
 ### Agent-executable runbooks
 
-- [Doc Auditor Operations](<./runbooks/doc-auditor-ops.md>) — felix-doc-auditor agent operations: how it runs, manual triggers, scope management, stale-lock recovery, kill switch
+- [Doc Auditor Driver Operations](<./runbooks/doc-auditor-driver-ops.md>) — felix-doc-auditor **scripts-first driver** operations (post-#343): hourly systemd tick, `last-tick.json` health signal, prompt artifacts, backlog/lock recovery, pending-approval workflow, troubleshooting, baselines
+- [Doc Auditor Operations (pre-#343 — historical)](<./runbooks/doc-auditor-ops.md>) — original openclaw-agent runbook; retained for reference until the pre-#343 implementation is fully retired
 - [Vikunja Operations](<./runbooks/vikunja-ops.md>)
 - [OpenClaw Operations](<./runbooks/openclaw-ops.md>)
 - [Obsidian Sync Operations](<./runbooks/obsidian-sync-ops.md>)

@@ -1,0 +1,111 @@
+{
+  "schema_version": "1.0",
+  "name": "felix-doc-auditor-post-rework",
+  "status": "not_yet_executed",
+  "captured_at": null,
+  "captured_by": "#343-WP09",
+  "captured_via": "scripts/doc_audit/baselines/measure-tokens.py against new driver tick signals (last-tick.json archives) — TO BE EXECUTED post-merge per cutover-log.md",
+  "subject": {
+    "service": "felix-doc-auditor-driver",
+    "implementation": "Scripts-first driver (replaces OpenClaw-mediated agent retired in WP09)",
+    "host": "office2",
+    "model": "anthropic/claude-haiku-4-5",
+    "invocation": "/usr/bin/python3 /home/claude/kg-automation/scripts/doc_audit/run.py (systemd user unit felix-doc-auditor.service triggered by .timer OnCalendar=hourly)",
+    "tick_signal_path": "/data/services/openclaw/felix-doc-auditor-driver/last-tick.json",
+    "git_sha": null,
+    "git_branch": "main"
+  },
+  "measurement_window": {
+    "tick_count": null,
+    "earliest_tick_utc": null,
+    "latest_tick_utc": null,
+    "spans_hours": null
+  },
+  "measurements": [
+    {
+      "outcome": "empty",
+      "description": "Tick exits cleanly with no signals to process (queue blocked on pending decisions, no new audits, no drift events past cursor).",
+      "sample_count": null,
+      "average_input_tokens": null,
+      "average_cache_hit_input_tokens": null,
+      "average_output_tokens": null,
+      "average_duration_seconds": null,
+      "average_llm_calls": null,
+      "samples": []
+    },
+    {
+      "outcome": "debt_only",
+      "description": "Tick processed an audit and produced one or more docs-debt issues without applying a code edit.",
+      "sample_count": null,
+      "average_input_tokens": null,
+      "average_cache_hit_input_tokens": null,
+      "average_output_tokens": null,
+      "average_duration_seconds": null,
+      "average_llm_calls": null,
+      "samples": []
+    },
+    {
+      "outcome": "tier_a_apply",
+      "description": "Tick processed an audit that produced a Tier-A auto-commit (typically a frontmatter last_validated bump) plus follow-up actions.",
+      "sample_count": null,
+      "average_input_tokens": null,
+      "average_cache_hit_input_tokens": null,
+      "average_output_tokens": null,
+      "average_duration_seconds": null,
+      "average_llm_calls": null,
+      "samples": []
+    }
+  ],
+  "comparison_with_pre_rework": {
+    "pre_rework_ref": "docs/design/architecture/baselines/felix-doc-auditor-pre-rework.json",
+    "per_outcome": [
+      {
+        "outcome": "empty",
+        "pre_input_tokens_billable": 523131.4,
+        "post_input_tokens": null,
+        "post_cache_hit_input_tokens": null,
+        "effective_post_input_tokens": null,
+        "reduction_pct": null
+      },
+      {
+        "outcome": "debt_only",
+        "pre_input_tokens_billable": 1456874.2,
+        "post_input_tokens": null,
+        "post_cache_hit_input_tokens": null,
+        "effective_post_input_tokens": null,
+        "reduction_pct": null
+      },
+      {
+        "outcome": "tier_a_apply",
+        "pre_input_tokens_billable": 1170917.0,
+        "post_input_tokens": null,
+        "post_cache_hit_input_tokens": null,
+        "effective_post_input_tokens": null,
+        "reduction_pct": null
+      }
+    ],
+    "weighted_average_reduction_pct": null,
+    "weighting_basis": "Pre-rework observed mix was 28 empty / 4 debt_only / 2 tier_a_apply (mix-biased empty due to blocked queue). For NFR-001 acceptance, hold per-outcome reductions as the primary comparator; weighted average is supplementary."
+  },
+  "methodology": {
+    "summary": "The scripts-first driver writes a per-tick `last-tick.json` artifact (overwritten each tick) plus a deterministic SUMMARY stdout line captured by systemd journal. Token counts live under `judgment.input_tokens`, `judgment.cache_hit_input_tokens`, and `judgment.output_tokens` (see contracts/tick-signal.contract.md). The post-rework measurement either (a) walks an archive of `last-tick.json` snapshots (operator must collect — `last-tick.json` is current-state-only, so the collection happens by snapshotting after each natural tick), or (b) parses SUMMARY lines from the journal via `journalctl --user -u felix-doc-auditor --since <date>`. Outcome classification is derived from the artifact's tick fields (audits_processed empty + tier_a_commits empty + debt_filed empty → empty; debt_filed non-empty + tier_a_commits empty → debt_only; tier_a_commits non-empty → tier_a_apply).",
+    "input_path_on_office2": "/data/services/openclaw/felix-doc-auditor-driver/last-tick.json (snapshot per tick) OR systemd journal SUMMARY lines",
+    "journal_command": "ssh office2-claude 'journalctl --user -u felix-doc-auditor --since \"<ISO date>\" --no-pager | grep ^SUMMARY:'",
+    "snapshot_command": "ssh office2-claude 'cp /data/services/openclaw/felix-doc-auditor-driver/last-tick.json /tmp/post-rework-ticks/tick-$(date -u +%Y%m%dT%H%M%SZ).json'",
+    "reduction_formula": "effective_post_input = post_input_tokens - (post_cache_hit_input_tokens * 0.9); reduction_pct = ((pre_input_tokens - effective_post_input) / pre_input_tokens) * 100. Pre-rework path did NOT use prompt caching, so the discount only applies to the post-rework side. The 0.9 factor reflects Anthropic's ~10% billing rate for cache hits vs cache writes/standard input.",
+    "outcome_classification": "Deterministic from `tick.tier_a_commits`, `tick.debt_filed`, `tick.audits_processed` fields in last-tick.json (no heuristic regex needed, unlike pre-rework which had to regex the closing assistant text).",
+    "sample_size_guidance": "Target ≥3 samples per outcome over a 72-hour natural-traffic window. If `tier_a_apply` doesn't appear naturally, an operator-driven synthetic audit (file a low-stakes Doc audit issue against a doc whose `last_validated` is stale by ≥30 days) is acceptable; document the synthetic origin in the sample note.",
+    "pre_rework_reference": "Pre-rework baseline (felix-doc-auditor-pre-rework.json) was measured against OpenClaw session JSONL via per-tick boundary regex. Post-rework path replaces that surface with the driver's deterministic tick-signal artifact — strictly more accurate (per-judgment counts, no heuristic outcome classifier)."
+  },
+  "open_caveats": [],
+  "execution_notes": [
+    "DATA POPULATION HAPPENS POST-MERGE. This file is a schema skeleton committed alongside the cutover playbook (cutover-log.md). The operator running the post-merge cutover will:",
+    "1. Execute the deploy (per cutover-log.md section 2).",
+    "2. Capture ≥3 ticks per cutover-log.md section 4.",
+    "3. Replace every `null` measurement value here with the measured number.",
+    "4. Replace `status: \"not_yet_executed\"` with `status: \"measured\"` (or `\"failed_nfr_001\"` if the gate doesn't pass and patch-forward is pending).",
+    "5. Update `captured_at`, `subject.git_sha`, `measurement_window`, and `comparison_with_pre_rework` per-outcome values.",
+    "6. Append `open_caveats` for any anomalies (cache_hit ratio 0, undersampled outcome, etc.).",
+    "Schema shape mirrors felix-doc-auditor-pre-rework.json for compatibility with measure-tokens.py output and downstream diff tooling."
+  ]
+}
