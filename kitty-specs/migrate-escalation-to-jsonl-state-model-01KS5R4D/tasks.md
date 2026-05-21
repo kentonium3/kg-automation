@@ -13,11 +13,11 @@ Breakdown of the implementation plan into independently-deliverable work package
 
 | ID | Description | WP | Parallel |
 |---|---|---|---|
-| T001 | Extend DOMAIN_STATES["escalation"] in state_log_schema.py | WP01 | |
-| T002 | Create scripts/escalation/ package skeleton (__init__.py) | WP01 | [P] |
-| T003 | Implement scripts/escalation/schema.py (EVENT_TYPE_PARAMETERS + validators) | WP01 | |
-| T004 | Create tests/escalation/__init__.py + conftest.py with shared fixtures | WP01 | [P] |
-| T005 | Tests for schema.py — every event_type validation path | WP01 | |
+| T001 | Extend DOMAIN_STATES["escalation"] in state_log_schema.py | WP01 | | [D] |
+| T002 | Create scripts/escalation/ package skeleton (__init__.py) | WP01 | [D] |
+| T003 | Implement scripts/escalation/schema.py (EVENT_TYPE_PARAMETERS + validators) | WP01 | | [D] |
+| T004 | Create tests/escalation/__init__.py + conftest.py with shared fixtures | WP01 | [D] |
+| T005 | Tests for schema.py — every event_type validation path | WP01 | | [D] |
 | T006 | Implement scripts/escalation/derive_state.py (pure function + dataclasses) | WP02 | |
 | T007 | Debug CLI for derive_state.py (--task-id + --project-id) | WP02 | [P] |
 | T008 | Tests for derive_state — every event_type path, terminal states, snooze expiry | WP02 | |
@@ -88,11 +88,11 @@ MVP scope: WP01 + WP02 + WP03 deliver record_completion + derive_state. That's t
 
 Included subtasks:
 
-- [ ] T001 Extend DOMAIN_STATES["escalation"] in state_log_schema.py (WP01)
-- [ ] T002 Create scripts/escalation/ package skeleton (WP01)
-- [ ] T003 Implement scripts/escalation/schema.py with EVENT_TYPE_PARAMETERS + validate_event_params + EscalationSchemaError (WP01)
-- [ ] T004 Create tests/escalation/__init__.py + conftest.py with shared fixtures (WP01)
-- [ ] T005 Tests for schema.py — every event_type validation path (WP01)
+- [x] T001 Extend DOMAIN_STATES["escalation"] in state_log_schema.py (WP01)
+- [x] T002 Create scripts/escalation/ package skeleton (WP01)
+- [x] T003 Implement scripts/escalation/schema.py with EVENT_TYPE_PARAMETERS + validate_event_params + EscalationSchemaError (WP01)
+- [x] T004 Create tests/escalation/__init__.py + conftest.py with shared fixtures (WP01)
+- [x] T005 Tests for schema.py — every event_type validation path (WP01)
 
 Risks:
 - Touching `scripts/common/state_log_schema.py` per amended C-003. Reviewer must verify diff scope is ONLY the DOMAIN_STATES["escalation"] frozenset — no other library code changed.
