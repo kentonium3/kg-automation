@@ -17,6 +17,8 @@ subtasks:
 - T009
 - T010
 - T011
+agent: "claude:opus:python-implementer:implementer"
+shell_pid: "94862"
 history:
 - at: '2026-05-21T17:45:30+00:00'
   actor: spec-kitty.tasks
@@ -230,3 +232,7 @@ pytest. All HTTP mocked via `mock_urlopen` fixture (no live Vikunja calls in CI)
 ```bash
 spec-kitty agent action implement WP03 --mission migrate-escalation-to-jsonl-state-model-01KS5R4D --agent claude:opus:python-implementer:implementer
 ```
+
+## Activity Log
+
+- 2026-05-21T20:14:43Z – claude:opus:python-implementer:implementer – shell_pid=94862 – Started implementation via action command
