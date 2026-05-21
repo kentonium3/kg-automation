@@ -1,7 +1,7 @@
 {
-  "event_count": 15,
-  "last_event_id": "01KS60803W4CPCNP69TSHNRQ2Y",
-  "materialized_at": "2026-05-21T19:29:51.228725+00:00",
+  "event_count": 16,
+  "last_event_id": "01KS60TEZQMC4KF7VPY9727DPZ",
+  "materialized_at": "2026-05-21T19:39:56.279157+00:00",
   "mission_number": "",
   "mission_slug": "migrate-escalation-to-jsonl-state-model-01KS5R4D",
   "mission_type": "software-dev",
@@ -11,18 +11,18 @@
     "canceled": 0,
     "claimed": 0,
     "done": 0,
-    "for_review": 2,
+    "for_review": 1,
     "in_progress": 0,
-    "in_review": 0,
+    "in_review": 1,
     "planned": 7
   },
   "work_packages": {
     "WP01": {
-      "actor": "user",
+      "actor": "codex:gpt-5:spec-kitty-review:reviewer",
       "force_count": 1,
-      "lane": "for_review",
-      "last_event_id": "01KS6022R2NNREP22VH2JXMH2P",
-      "last_transition_at": "2026-05-21T19:26:37.314511+00:00"
+      "lane": "in_review",
+      "last_event_id": "01KS60TEZQMC4KF7VPY9727DPZ",
+      "last_transition_at": "2026-05-21T19:39:56.279157+00:00"
     },
     "WP02": {
       "actor": "finalize-tasks",
