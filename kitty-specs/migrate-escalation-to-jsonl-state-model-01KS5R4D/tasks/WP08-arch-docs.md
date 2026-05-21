@@ -14,8 +14,8 @@ subtasks:
 - T024
 - T025
 - T026
-shell_pid: "83122"
-agent: "codex:gpt-5:spec-kitty-review:reviewer"
+shell_pid: "86567"
+agent: "claude:opus:python-implementer:implementer"
 history:
 - at: '2026-05-21T17:45:30+00:00'
   actor: spec-kitty.tasks
@@ -192,3 +192,4 @@ spec-kitty agent action implement WP08 --mission migrate-escalation-to-jsonl-sta
 - 2026-05-21T19:29:51Z – claude:opus:python-implementer:implementer – shell_pid=79560 – Ready for review — JSON arch docs + markdown views updated for new escalation helpers
 - 2026-05-21T19:40:18Z – codex:gpt-5:spec-kitty-review:reviewer – shell_pid=83122 – Started review via action command
 - 2026-05-21T19:44:41Z – codex:gpt-5:spec-kitty-review:reviewer – shell_pid=83122 – Moved to planned
+- 2026-05-21T19:44:49Z – claude:opus:python-implementer:implementer – shell_pid=86567 – Started implementation via action command
