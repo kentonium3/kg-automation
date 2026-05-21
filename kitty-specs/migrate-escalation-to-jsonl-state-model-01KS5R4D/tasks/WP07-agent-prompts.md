@@ -16,6 +16,8 @@ subtasks:
 - T021
 - T022
 - T023
+agent: "claude:opus:python-implementer:implementer"
+shell_pid: "19210"
 history:
 - at: '2026-05-21T17:45:30+00:00'
   actor: spec-kitty.tasks
@@ -275,3 +277,7 @@ No unit tests for prose docs. Validation is via grep audits + a reviewer reading
 ```bash
 spec-kitty agent action implement WP07 --mission migrate-escalation-to-jsonl-state-model-01KS5R4D --agent claude:opus:python-implementer:implementer
 ```
+
+## Activity Log
+
+- 2026-05-21T21:59:07Z – claude:opus:python-implementer:implementer – shell_pid=19210 – Started implementation via action command
