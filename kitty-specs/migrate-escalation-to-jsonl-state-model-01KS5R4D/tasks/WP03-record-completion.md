@@ -17,8 +17,8 @@ subtasks:
 - T009
 - T010
 - T011
-agent: "codex:gpt-5:spec-kitty-review:reviewer"
-shell_pid: "97777"
+agent: "claude:opus:python-implementer:implementer"
+shell_pid: "99546"
 history:
 - at: '2026-05-21T17:45:30+00:00'
   actor: spec-kitty.tasks
@@ -239,3 +239,4 @@ spec-kitty agent action implement WP03 --mission migrate-escalation-to-jsonl-sta
 - 2026-05-21T20:25:33Z – claude:opus:python-implementer:implementer – shell_pid=94862 – Ready for review — three-write contract verified via mock call sequence, 88% coverage. WP04 review-cycle artifacts in kitty-specs/ are unrelated to WP03 (owned files: scripts/escalation/record_completion.py + tests/escalation/test_record_completion.py committed at 6cc7ec81)
 - 2026-05-21T20:26:17Z – codex:gpt-5:spec-kitty-review:reviewer – shell_pid=97777 – Started review via action command
 - 2026-05-21T20:29:56Z – codex:gpt-5:spec-kitty-review:reviewer – shell_pid=97777 – Review requested changes
+- 2026-05-21T20:31:00Z – claude:opus:python-implementer:implementer – shell_pid=99546 – Started implementation via action command
