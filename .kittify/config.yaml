@@ -6,6 +6,7 @@ agents:
   - claude
   - gemini
   - codex
+  - antigravity
   selection:
     preferred_implementer: claude
     preferred_reviewer: codex

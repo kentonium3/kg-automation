@@ -2,10 +2,26 @@
 id: agy-migration-audit
 doc_type: diagnostic
 title: agy (Antigravity) migration audit
-status: open
+status: resolved-locally
 last_updated: '2026-05-21'
 updated_by: 'post-#309 cycle'
-version: '1.0.0'
+version: '1.1.0'
+---
+
+## Resolution applied (2026-05-21 post-#309)
+
+**Outcome**: A single `spec-kitty agent config add antigravity` activated Antigravity locally. No skill/command file edits were needed — spec-kitty 3.1.8 already recognizes `antigravity` as a Tier-1 shared-root-capable agent with wrapper root `~/.agent/workflows/` (populated since April 2026).
+
+Local change:
+- `.kittify/config.yaml`: `antigravity` added under `agents.available` (one-line diff)
+- `~/.agent/workflows/` already had all 18 spec-kitty workflow files — no install needed
+
+**spec-kitty bug discovered during this resolution**: `spec-kitty agent config add <agent>` strips the `agents.selection` block (preferred_implementer / preferred_reviewer). Worked around by restoring the block manually. Worth filing upstream alongside the implement-review SKILL.md template gap noted below.
+
+**Smoke-test**: `agy -p "..." --log-file /tmp/agy-smoke.log --dangerously-skip-permissions` returns the prompted response. Working dispatch syntax preserved in §2 of this doc and in memory `project_gemini_cli_paid_tier_misconfig.md`.
+
+**Remaining upstream-only gap**: implement-review SKILL.md's dispatch matrix lists antigravity with CLI template "Google agent framework | Varies | 1". The concrete `agy -p ...` syntax should land in spec-kitty's bundled SKILL.md for future orchestrator sessions that don't have the memory note loaded. Kent will file upstream.
+
 ---
 
 # agy (Antigravity) migration audit
