@@ -19,7 +19,8 @@ subtasks:
 - T045
 phase: Phase 5 — Cutover
 assignee: ''
-agent: ''
+agent: "claude:opus-4.7:implementer:implementer"
+shell_pid: "31752"
 history:
 - timestamp: '2026-05-20T16:25:00Z'
   agent: system
@@ -368,3 +369,7 @@ spec-kitty agent action implement WP09 --agent <name>
 - **Spec**: NFR-001 (≥80% reduction), NFR-002 (95% successful ticks — start of soak), C-004 (queue-drained), C-007 (fail-forward), FR-010 (retire old agent)
 - **Pre-rework baseline**: `docs/design/architecture/baselines/felix-doc-auditor-pre-rework.json`
 - **Deploy script**: `scripts/office2/deploy/felix-doc-auditor-driver.sh`
+
+## Activity Log
+
+- 2026-05-21T14:31:55Z – claude:opus-4.7:implementer:implementer – shell_pid=31752 – Started implementation via action command
