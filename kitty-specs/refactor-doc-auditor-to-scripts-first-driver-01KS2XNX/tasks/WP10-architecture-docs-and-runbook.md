@@ -18,8 +18,8 @@ subtasks:
 - T051
 phase: Phase 6 — Final docs
 assignee: ''
-agent: "codex:gpt-5:spec-kitty-review:reviewer"
-shell_pid: "36057"
+agent: "claude:opus-4.7:implementer:implementer"
+shell_pid: "37078"
 history:
 - timestamp: '2026-05-20T16:25:00Z'
   agent: system
@@ -388,3 +388,4 @@ spec-kitty agent action implement WP10 --agent <name>
 - 2026-05-21T14:51:18Z – claude:opus-4.7:implementer:implementer – shell_pid=34158 – Final WP — docs ready: 3 architecture JSONs (service-inventory, data-flows, credential-manifest) updated with updated_by: #343; felix-d6-survey.md appended with #343 context note (original verdict preserved); new docs/runbooks/doc-auditor-driver-ops.md (492 lines, 13 sections); INDEX.md updated; memory file rewritten for post-#343 ops model.
 - 2026-05-21T14:52:24Z – codex:gpt-5:spec-kitty-review:reviewer – shell_pid=36057 – Started review via action command
 - 2026-05-21T14:55:42Z – codex:gpt-5:spec-kitty-review:reviewer – shell_pid=36057 – Moved to planned
+- 2026-05-21T14:55:47Z – claude:opus-4.7:implementer:implementer – shell_pid=37078 – Started implementation via action command
