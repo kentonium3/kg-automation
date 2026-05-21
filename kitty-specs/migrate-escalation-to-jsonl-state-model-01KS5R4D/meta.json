@@ -1,10 +1,12 @@
 {
   "created_at": "2026-05-21T17:08:06.546792+00:00",
-  "friendly_name": "migrate escalation to jsonl state model",
+  "friendly_name": "Migrate escalation to JSONL state model",
   "mission_id": "01KS5R4D79WQQWY2MCHZVCT85G",
   "mission_number": null,
   "mission_slug": "migrate-escalation-to-jsonl-state-model-01KS5R4D",
   "mission_type": "software-dev",
   "slug": "migrate-escalation-to-jsonl-state-model-01KS5R4D",
-  "target_branch": "main"
+  "source_description": "GitHub issue #309 — ADR-0002 Phase 6. Migrate escalation subsystem from [Felix-Escalation] comment-as-state to JSONL-canonical state. Discovery answers (2026-05-21): (Q1=A) flat-enum schema with structured parameter fields; (Q2=B) snooze_until persisted at write-time; (Q3=B) title-prefix dedup keyed on immutable Vikunja id. Soak: 3 days post-cutover (adjusted from 7 per Kent — no quality info gained from longer window).",
+  "target_branch": "main",
+  "vcs": "git"
 }
