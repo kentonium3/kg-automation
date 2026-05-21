@@ -16,8 +16,8 @@ subtasks:
 - T012
 - T013
 - T014
-agent: "claude:opus:python-implementer:implementer"
-shell_pid: "2781"
+agent: "codex:gpt-5:spec-kitty-review:reviewer"
+shell_pid: "3861"
 history:
 - at: '2026-05-21T17:45:30+00:00'
   actor: spec-kitty.tasks
@@ -223,3 +223,4 @@ spec-kitty agent action implement WP04 --mission migrate-escalation-to-jsonl-sta
 - 2026-05-21T20:36:53Z – codex:gpt-5:spec-kitty-review:reviewer – shell_pid=729 – Moved to planned
 - 2026-05-21T20:38:21Z – claude:opus:python-implementer:implementer – shell_pid=2781 – Started implementation via action command
 - 2026-05-21T20:42:01Z – claude:opus:python-implementer:implementer – shell_pid=2781 – Cycle 2 fix: vikunja_url + detected_at now sanitized. Audited every interpolated field.
+- 2026-05-21T20:42:29Z – codex:gpt-5:spec-kitty-review:reviewer – shell_pid=3861 – Started review via action command
