@@ -14,6 +14,8 @@ subtasks:
 - T027
 - T028
 - T029
+agent: "claude:opus:python-implementer:implementer"
+shell_pid: "20835"
 history:
 - at: '2026-05-21T17:45:30+00:00'
   actor: spec-kitty.tasks
@@ -252,3 +254,7 @@ Doc-only WP. Validation via manual review + a "fresh reader" walkthrough — can
 ```bash
 spec-kitty agent action implement WP09 --mission migrate-escalation-to-jsonl-state-model-01KS5R4D --agent claude:opus:python-implementer:implementer
 ```
+
+## Activity Log
+
+- 2026-05-21T22:06:14Z – claude:opus:python-implementer:implementer – shell_pid=20835 – Started implementation via action command
