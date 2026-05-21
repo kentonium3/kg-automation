@@ -21,9 +21,9 @@ Breakdown of the implementation plan into independently-deliverable work package
 | T006 | Implement scripts/escalation/derive_state.py (pure function + dataclasses) | WP02 | | [D] |
 | T007 | Debug CLI for derive_state.py (--task-id + --project-id) | WP02 | [D] |
 | T008 | Tests for derive_state — every event_type path, terminal states, snooze expiry | WP02 | | [D] |
-| T009 | Implement scripts/escalation/record_completion.py with three-write ordering | WP03 | |
-| T010 | CLI surface for record_completion (argparse + exit codes 0/1/2/3) | WP03 | |
-| T011 | Tests for record_completion — happy paths + failure modes + idempotency | WP03 | |
+| T009 | Implement scripts/escalation/record_completion.py with three-write ordering | WP03 | | [D] |
+| T010 | CLI surface for record_completion (argparse + exit codes 0/1/2/3) | WP03 | | [D] |
+| T011 | Tests for record_completion — happy paths + failure modes + idempotency | WP03 | | [D] |
 | T012 | Implement scripts/escalation/hard_fail.py — bug body + dedup query | WP04 | | [D] |
 | T013 | Integration with scripts/openclaw/agents/main/felix-file-issue.py | WP04 | | [D] |
 | T014 | Tests for hard_fail — dedup hit/miss, double-fire prevention, re-fire on close | WP04 | | [D] |
@@ -133,9 +133,9 @@ Risks:
 
 Included subtasks:
 
-- [ ] T009 Implement scripts/escalation/record_completion.py — record_event + idempotent_record_event with Vikunja-first ordering (WP03)
-- [ ] T010 CLI surface for record_completion (argparse, flags per contracts/cli.md, exit codes 0/1/2/3) (WP03)
-- [ ] T011 Tests for record_completion — happy paths, three-write ordering verified, Vikunja-failure path, JSONL-failure path, idempotency (WP03)
+- [x] T009 Implement scripts/escalation/record_completion.py — record_event + idempotent_record_event with Vikunja-first ordering (WP03)
+- [x] T010 CLI surface for record_completion (argparse, flags per contracts/cli.md, exit codes 0/1/2/3) (WP03)
+- [x] T011 Tests for record_completion — happy paths, three-write ordering verified, Vikunja-failure path, JSONL-failure path, idempotency (WP03)
 
 Risks:
 - Three-write ordering is the safety invariant. If a reviewer-caught bug reorders writes (JSONL first, then Vikunja), the spec FR-002 / research D6 guarantees break. Test must verify the ordering explicitly via mock call sequence assertions.
