@@ -91,7 +91,7 @@ def test_append_writes_each_domain_to_its_own_file(state_dir):
         "task_id": 2,
         "title": "e",
         "date": "2026-05-19",
-        "state": "triggered",
+        "state": "dismissed",
         "source": "test",
         "timestamp": "2026-05-19T00:00:00+00:00",
     })

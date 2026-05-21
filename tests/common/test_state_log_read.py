@@ -307,7 +307,7 @@ def test_read_per_domain_isolation(state_dir):
         "task_id": 99,
         "title": "esc",
         "date": "2026-05-19",
-        "state": "triggered",
+        "state": "dismissed",
         "source": "test",
         "note": None,
         "timestamp": "2026-05-19T11:00:00+00:00",
