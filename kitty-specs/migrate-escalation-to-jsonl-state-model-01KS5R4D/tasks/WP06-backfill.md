@@ -16,8 +16,8 @@ subtasks:
 - T018
 - T019
 - T020
-agent: "claude:opus:python-implementer:implementer"
-shell_pid: "11184"
+agent: "codex:gpt-5:spec-kitty-review:reviewer"
+shell_pid: "13874"
 history:
 - at: '2026-05-21T17:45:30+00:00'
   actor: spec-kitty.tasks
@@ -244,3 +244,4 @@ spec-kitty agent action implement WP06 --mission migrate-escalation-to-jsonl-sta
 - 2026-05-21T21:11:27Z – codex:gpt-5:spec-kitty-review:reviewer – shell_pid=7488 – Moved to planned
 - 2026-05-21T21:12:50Z – claude:opus:python-implementer:implementer – shell_pid=11184 – Started implementation via action command
 - 2026-05-21T21:27:09Z – claude:opus:python-implementer:implementer – shell_pid=11184 – Cycle 1 fix: comments_replayed counts only appends; comments_deduped added; rerun asserts 0.
+- 2026-05-21T21:27:29Z – codex:gpt-5:spec-kitty-review:reviewer – shell_pid=13874 – Started review via action command
