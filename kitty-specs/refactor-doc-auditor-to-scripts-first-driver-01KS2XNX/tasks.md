@@ -52,12 +52,12 @@ This index is for reference only. Per-WP tracking happens via checkboxes in the 
 | T037 | Write `scripts/office2/deploy/felix-doc-auditor-driver.sh` (rsync code + create dirs + install systemd + retire openclaw agent) | WP08 | | [D] |
 | T038 | Test deploy script in `--dry-run` mode against office2 | WP08 | | [D] |
 | T039 | Document deploy operation in deploy script comment header | WP08 | | [D] |
-| T040 | Pre-cutover: drain queue, confirm zero open `status:in-progress` audits and zero pending-approvals without decision labels | WP09 | |
-| T041 | Execute cutover: merge to main, run `felix-doc-auditor-driver.sh --apply` on office2 | WP09 | |
-| T042 | Verify first tick: `systemctl --user start --wait felix-doc-auditor.service`; inspect `last-tick.json` and journal | WP09 | |
-| T043 | Run post-rework measurement: 3+ representative ticks under new driver | WP09 | |
-| T044 | Write `docs/design/architecture/baselines/felix-doc-auditor-post-rework.json` | WP09 | |
-| T045 | Verify ≥80% reduction; record per-outcome breakdown (NFR-001) | WP09 | |
+| T040 | Pre-cutover: drain queue, confirm zero open `status:in-progress` audits and zero pending-approvals without decision labels | WP09 | | [D] |
+| T041 | Execute cutover: merge to main, run `felix-doc-auditor-driver.sh --apply` on office2 | WP09 | | [D] |
+| T042 | Verify first tick: `systemctl --user start --wait felix-doc-auditor.service`; inspect `last-tick.json` and journal | WP09 | | [D] |
+| T043 | Run post-rework measurement: 3+ representative ticks under new driver | WP09 | | [D] |
+| T044 | Write `docs/design/architecture/baselines/felix-doc-auditor-post-rework.json` | WP09 | | [D] |
+| T045 | Verify ≥80% reduction; record per-outcome breakdown (NFR-001) | WP09 | | [D] |
 | T046 | Update `docs/design/architecture/data/service-inventory.json` — felix-doc-auditor entry: new invocation, deps, no openclaw session storage | WP10 | |
 | T047 | Update `docs/design/architecture/data/data-flows.json` — remove openclaw-session edges; add direct-API edges | WP10 | |
 | T048 | Update `docs/design/architecture/data/credential-manifest.json` — note Anthropic key used by driver process | WP10 | |
@@ -277,12 +277,12 @@ WP02 ──┤          ├─→ WP06 ──┐
 **Estimated prompt size**: ~400 lines
 
 **Included subtasks**:
-- [ ] T040 Pre-cutover: drain queue, confirm no in-flight pending-approvals
-- [ ] T041 Execute cutover: merge to main + run deploy script
-- [ ] T042 Verify first tick
-- [ ] T043 Run post-rework measurement (3+ representative ticks)
-- [ ] T044 Write `baselines/felix-doc-auditor-post-rework.json`
-- [ ] T045 Verify ≥80% reduction; record per-outcome breakdown
+- [x] T040 Pre-cutover: drain queue, confirm no in-flight pending-approvals
+- [x] T041 Execute cutover: merge to main + run deploy script
+- [x] T042 Verify first tick
+- [x] T043 Run post-rework measurement (3+ representative ticks)
+- [x] T044 Write `baselines/felix-doc-auditor-post-rework.json`
+- [x] T045 Verify ≥80% reduction; record per-outcome breakdown
 
 **Dependencies**: WP06, WP07, WP08
 **Risks**: Cutover failure with no rollback (per C-007 fail-forward); mitigation = pre-flight checks + verification tick before next cron fire.
