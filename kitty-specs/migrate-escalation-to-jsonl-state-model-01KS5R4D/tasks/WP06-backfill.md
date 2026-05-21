@@ -16,8 +16,8 @@ subtasks:
 - T018
 - T019
 - T020
-agent: "codex:gpt-5:spec-kitty-review:reviewer"
-shell_pid: "7488"
+agent: "claude:opus:python-implementer:implementer"
+shell_pid: "11184"
 history:
 - at: '2026-05-21T17:45:30+00:00'
   actor: spec-kitty.tasks
@@ -242,3 +242,4 @@ spec-kitty agent action implement WP06 --mission migrate-escalation-to-jsonl-sta
 - 2026-05-21T20:56:37Z – claude:opus:python-implementer:implementer – shell_pid=5187 – Ready for review — all 6 vocabulary rows tested + snapshot ordering + idempotency. Untracked .coverage + WP05 files belong to concurrent WP05 implementer (not WP06).
 - 2026-05-21T20:57:36Z – codex:gpt-5:spec-kitty-review:reviewer – shell_pid=7488 – Started review via action command
 - 2026-05-21T21:11:27Z – codex:gpt-5:spec-kitty-review:reviewer – shell_pid=7488 – Moved to planned
+- 2026-05-21T21:12:50Z – claude:opus:python-implementer:implementer – shell_pid=11184 – Started implementation via action command
