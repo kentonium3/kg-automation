@@ -30,9 +30,9 @@ Breakdown of the implementation plan into independently-deliverable work package
 | T015 | Implement scripts/escalation/reconcile_completions.py + ReconcileReport/HardFailEvent | WP05 | |
 | T016 | CLI surface for reconcile (--project-id, --all, --dry-run, --max-tasks, --quiet) | WP05 | |
 | T017 | Tests for reconcile — synthetic done, synthetic rescheduled, hard-fail integration | WP05 | |
-| T018 | Implement scripts/escalation/backfill_jsonl_from_comments.py + snapshot writer | WP06 | |
-| T019 | CLI surface for backfill (--project-id, --all, --dry-run, --include-resolved) | WP06 | |
-| T020 | Tests for backfill — vocabulary mapping, malformed reporting, snapshot, dry-run | WP06 | |
+| T018 | Implement scripts/escalation/backfill_jsonl_from_comments.py + snapshot writer | WP06 | | [D] |
+| T019 | CLI surface for backfill (--project-id, --all, --dry-run, --include-resolved) | WP06 | | [D] |
+| T020 | Tests for backfill — vocabulary mapping, malformed reporting, snapshot, dry-run | WP06 | | [D] |
 | T021 | Update SKILL.md to invoke helpers via CLI + remove comment-parsing algorithm | WP07 | |
 | T022 | Update AGENTS.md to call helpers + remove parsing logic | WP07 | |
 | T023 | Audit both files for residual comment-parsing language + add v1→v2 transition note | WP07 | |
@@ -197,9 +197,9 @@ Risks:
 
 Included subtasks:
 
-- [ ] T018 Implement scripts/escalation/backfill_jsonl_from_comments.py — backfill_project, snapshot writer, vocabulary mapping (WP06)
-- [ ] T019 CLI surface (--project-id, --all, --dry-run, --include-resolved) (WP06)
-- [ ] T020 Tests — vocabulary mapping per comment shape, malformed-comment reporting, snapshot writer, idempotency, dry-run (WP06)
+- [x] T018 Implement scripts/escalation/backfill_jsonl_from_comments.py — backfill_project, snapshot writer, vocabulary mapping (WP06)
+- [x] T019 CLI surface (--project-id, --all, --dry-run, --include-resolved) (WP06)
+- [x] T020 Tests — vocabulary mapping per comment shape, malformed-comment reporting, snapshot writer, idempotency, dry-run (WP06)
 
 Risks:
 - The locked vocabulary mapping (data-model Entity 3) must be exact. Reviewer must verify every comment shape from SKILL.md is mapped.
