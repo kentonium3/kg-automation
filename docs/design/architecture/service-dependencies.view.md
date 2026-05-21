@@ -4,16 +4,21 @@ doc_type: guide
 level: reference
 status: approved
 owners: [kgale]
-last_validated: 2026-04-05
-revision: v1.0
+last_validated: 2026-05-21
+revision: v1.1
 audience: agents_and_humans
+updated_by: '#309'
 ---
 
 # Service Dependencies
 
-Visual dependency map of all 11 office2 services, grouped by tier.
+Visual dependency map of office2 services, grouped by tier.
 Arrows show runtime dependencies. The critical external path
 (port 443 through tailscale-serve into vikunja) is highlighted.
+Updated 2026-05-21 (#309) to include `escalation-daily`, which migrates
+to a JSONL state model parallel to the post-#306 habits pattern; see
+[`data-flows.view.md`](data-flows.view.md) for the escalation subgraph
+(record/reconcile/derive_state/backfill/hard-fail) detail.
 
 ```mermaid
 graph LR
@@ -32,6 +37,7 @@ graph LR
         inbox["inbox-processing<br/>Tier 3"]
         habits["habit-checkin<br/>Tier 3"]
         taskdet["task-detection<br/>Tier 3"]
+        escalation["escalation-daily<br/>Tier 3<br/>(JSONL state #309)"]
         digest["felix-core-digest<br/>Tier 3"]
     end
 
@@ -58,6 +64,7 @@ graph LR
     inbox -->|"requires"| openclaw
     habits -->|"requires"| openclaw
     taskdet -->|"requires"| openclaw
+    escalation -->|"requires"| openclaw
     digest -->|"requires"| openclaw
 ```
 

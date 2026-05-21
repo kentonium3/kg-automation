@@ -119,6 +119,76 @@ Sensitive credential read path. The scripts-first driver loads the Anthropic API
 
 **Sensitivity discipline**: the key is loaded once per tick into process memory only. It is never logged, never emitted in the tick signal, and never echoed to the activity log.
 
+### Escalation Event Writes (#309 — JSONL state migration, Phase 6 of ADR-0002)
+
+Three-write ordering per research D6 (Vikunja side-effect FIRST, JSONL append LAST — failing the unreliable remote ops first surfaces network issues before any state_log line is written):
+
+```
+felix-admin-escalation agent → scripts/escalation/record_completion.py
+  → Vikunja /tasks/<id>/comments + /tasks/<id>   (PUT [Felix-Escalation] comment, PATCH done/due_date)
+  → scripts/common/state_log.py → /data/services/openclaw/state/escalation/<project-slug>-escalation-history.jsonl
+```
+
+Side-effects per event_type:
+- `level_sent` — WhatsApp send + `[Felix-Escalation]` comment write (during the C-001 soak)
+- `snoozed` / `dismissed` — `[Felix-Escalation]` comment write
+- `done` — `PATCH done=true` + `[Felix-Escalation]` comment write
+- `rescheduled` (kent_reply source) — `PATCH due_date` + `[Felix-Escalation]` comment write
+
+JSONL state log files are per-project (NFR-003, research D2): filename-based partition keyed on project slug. Schema (data-model Entity 1): `domain=escalation`, `state ∈ {level_sent, snoozed, dismissed, done, rescheduled}`, `source ∈ {agent, reconcile, backfill, kent_reply, operator_repair}`.
+
+### Escalation State Read (#309)
+
+```
+felix-admin-escalation agent → scripts/escalation/derive_state.py
+  → scripts/common/state_log.py → <project-slug>-escalation-history.jsonl   (read-only)
+```
+
+`derive_state(records)` is a pure function. Input: list of JSONL records for one task (newest-first). Output: `EscalationState` dataclass with `current_state`, `snooze_active_until`, `next_eligible_level`, `last_event_recorded_at`. All escalation policy lives here; the agent no longer parses `[Felix-Escalation]` comments post-#309 cutover.
+
+### Escalation Reconcile Sweep (#309)
+
+```
+felix-admin-escalation agent → scripts/escalation/reconcile_completions.py
+  → Vikunja /projects/<id>/tasks + /tasks/<id>   (GET only)
+  → scripts/escalation/record_completion.py --no-vikunja   (synthetic record emit, source=reconcile)
+  → scripts/common/state_log.py → <project-slug>-escalation-history.jsonl
+```
+
+Runs at tick start (FR-005). Enumerates escalation-subscribed tasks (those with at least one prior `level_sent` JSONL record AND no terminal record since); GETs current Vikunja state per task; emits synthetic records when:
+- `vikunja.done=true` but JSONL has no `done` → synthetic `{state: "done", source: "reconcile"}`
+- `vikunja.due_date != last_rescheduled_to` (and no terminal record) → synthetic `{state: "rescheduled", source: "reconcile", reschedule_to: <new>}`
+
+### Escalation Historical Backfill (#309)
+
+```
+Operator (Kent) → scripts/escalation/backfill_jsonl_from_comments.py
+  → Vikunja /projects, /projects/<id>/tasks, /tasks/<id>/comments   (GET only)
+  → /data/services/openclaw/state/escalation/pre-phase6-snapshot.json   (snapshot — written BEFORE any JSONL writes)
+  → scripts/common/state_log.py → <project-slug>-escalation-history.jsonl   (source=backfill)
+```
+
+One-shot operator-driven replay of existing `[Felix-Escalation]` comments to JSONL records (FR-006). Read-only on Vikunja (GET only). The pre-backfill snapshot at `pre-phase6-snapshot.json` is the rollback substrate (data-model Entity 4) — written exactly once per backfill invocation. Idempotent on re-run via the Phase 2 (task_id, date, state) dedup; malformed comments are NOT replayed (they surface in the backfill report).
+
+### Escalation Q10 Hard-Fail (#309)
+
+```
+scripts/escalation/reconcile_completions.py (or record_completion.py during validate)
+  → scripts/escalation/hard_fail.py
+       ├─ dedup_existing_open(): gh issue list --state open --search '...' (research D9)
+       └─ file_hard_fail_bug(): scripts/openclaw/agents/main/felix-file-issue.py (subprocess)
+            → gh CLI → GitHub API (gh issue create)
+```
+
+Hard-fail trigger conditions (FR-008, research D8):
+1. `malformed_jsonl_record` — schema validation (via `schema.py`'s `validate_event_params`) fails on a JSONL line.
+2. `phantom_subscription` — Vikunja shows `[Felix-Escalation]` comments but JSONL has no anchor records.
+3. `derive_state_inconsistency` — `derive_state()` raises `EscalationStateError`.
+
+**Surface separation**: `scripts/escalation/schema.py` is the event-parameter validator only (exposes `EVENT_TYPE_PARAMETERS`, `validate_event_params`, `EscalationSchemaError`). It does NOT file bug reports. The Q10 hard-fail bug-filing + dedup helper lives at `scripts/escalation/hard_fail.py`, owned by WP04 in this same mission (forward-referenced from WP08 per C-004).
+
+Filing path: `hard_fail.py` runs the dedup pre-check (`gh issue list --state open --search 'in:title "(task #<id>)" "Escalation hard-fail"'` per research D9). If an open issue exists, it returns `{filed: False, deduped: True}` and does NOT call `felix-file-issue.py`. Otherwise it invokes `scripts/openclaw/agents/main/felix-file-issue.py` as a subprocess; that helper calls `gh issue create`. Identity: `kg-felix-bot` (classic PAT). Labels: `P2-bug, area/escalation`. Body template per data-model Entity 5.
+
 ## Planned Flows (Not Yet Implemented)
 
 | Flow | Features | Description |
@@ -144,3 +214,5 @@ Sensitive credential read path. The scripts-first driver loads the Anthropic API
 | Doc-auditor tick signal | `/data/services/openclaw/felix-doc-auditor-driver/last-tick.json` | No (overwritten each tick) |
 | Doc-auditor activity log | `/home/kgale/second-brain/agents/logs/doc-auditor-YYYY-MM-DD.md` | Via Obsidian Sync |
 | Anthropic API key (sensitive) | `/data/services/openclaw/secrets/anthropic` | Yes (mode 0600) |
+| Escalation JSONL state log (#309) | `/data/services/openclaw/state/escalation/<project-slug>-escalation-history.jsonl` | Yes |
+| Escalation pre-backfill snapshot (#309) | `/data/services/openclaw/state/escalation/pre-phase6-snapshot.json` | Yes |

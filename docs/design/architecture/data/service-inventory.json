@@ -1,7 +1,7 @@
 {
   "schema_version": "1.1",
   "last_updated": "2026-05-21",
-  "updated_by": "#343-refactor-doc-auditor-to-scripts-first-driver + #307-backfill-habits-jsonl-from-comments + #306-habits-native-repeat-jsonl-state + #304-felix-bot-rotation + #291-felix-file-issue + #289-mutation-surfaces-enumeration + #285-cron-delivery-restore-path-c + #282-habits-d6-extract + #263-cron-delivery-mode-round2 + #100-google-workspace-foundation + #256-scope-discipline-guardrails + #253-step-5a-6-consolidation + #254-atomic-write-perm-preservation + issue-105-doc-auditor + #223-systemd-timer + #208-restic-healthcheck + #202-obsidian-sync-system-level + #203-sync-heartbeat + #199-inbox-schedules + #115-credential-health-check + #189-vikunja-compose + #185-inbox-capture-dedup",
+  "updated_by": "#309-migrate-escalation-to-jsonl-state-model + #343-refactor-doc-auditor-to-scripts-first-driver + #307-backfill-habits-jsonl-from-comments + #306-habits-native-repeat-jsonl-state + #304-felix-bot-rotation + #291-felix-file-issue + #289-mutation-surfaces-enumeration + #285-cron-delivery-restore-path-c + #282-habits-d6-extract + #263-cron-delivery-mode-round2 + #100-google-workspace-foundation + #256-scope-discipline-guardrails + #253-step-5a-6-consolidation + #254-atomic-write-perm-preservation + issue-105-doc-auditor + #223-systemd-timer + #208-restic-healthcheck + #202-obsidian-sync-system-level + #203-sync-heartbeat + #199-inbox-schedules + #115-credential-health-check + #189-vikunja-compose + #185-inbox-capture-dedup",
   "services": [
     {
       "name": "vikunja",
@@ -383,13 +383,23 @@
         "felix-admin-escalation": {
           "workspace": "/data/services/openclaw/escalation-agent",
           "model": "anthropic/claude-sonnet-4-6",
-          "purpose": "Overdue task escalation — detects overdue tasks, delivers WhatsApp alerts, tracks escalation state via comments",
+          "purpose": "Overdue task escalation — detects overdue tasks, delivers WhatsApp alerts, tracks escalation state. Post-#309 (Phase 6 of ADR-0002): JSONL state log at /data/services/openclaw/state/escalation/<project-slug>-escalation-history.jsonl is the canonical state source; [Felix-Escalation] comments are still written during the soak (C-001) but are no longer parsed by the agent.",
           "source_in_repo": "scripts/openclaw/agents/felix-admin-escalation/",
           "skills": ["escalation", "vikunja-api"],
           "triggers": ["cron", "manual"],
           "deployed_by": "F019",
           "autonomy_level": "assisted",
-          "updated_by": "F019"
+          "updated_by": "#309-migrate-escalation-to-jsonl-state-model + F019",
+          "updated_at": "2026-05-21",
+          "depends_on": [
+            "scripts/escalation/record_completion.py",
+            "scripts/escalation/reconcile_completions.py",
+            "scripts/escalation/derive_state.py",
+            "scripts/escalation/backfill_jsonl_from_comments.py",
+            "scripts/escalation/schema.py",
+            "scripts/escalation/hard_fail.py",
+            "scripts/common/state_log.py"
+          ]
         }
       },
       "risk_tier": 2,
@@ -523,8 +533,8 @@
       "deployed_by": "F019",
       "status": "active",
       "purpose": "Daily overdue task escalation check and WhatsApp alert delivery",
-      "updated_by": "#285-cron-delivery-restore-path-c + #273-felix-tier2-self-repair-incident-audit + #263-cron-delivery-mode-round2 + F019",
-      "last_updated": "2026-05-14",
+      "updated_by": "#309-migrate-escalation-to-jsonl-state-model + #285-cron-delivery-restore-path-c + #273-felix-tier2-self-repair-incident-audit + #263-cron-delivery-mode-round2 + F019",
+      "last_updated": "2026-05-21",
       "risk_tier": 3,
       "dependencies": [
         {"target": "openclaw-gateway:18789", "type": "requires", "description": "Dispatched by OpenClaw cron scheduler"}
@@ -534,7 +544,13 @@
         "note": "Scheduled job — health inferred from agent activity logs"
       },
       "config_files": [
-        {"path": "/data/services/openclaw/escalation-agent/AGENTS.md", "format": "markdown", "source_in_repo": "scripts/openclaw/agents/felix-admin-escalation/AGENTS.md"}
+        {"path": "/data/services/openclaw/escalation-agent/AGENTS.md", "format": "markdown", "source_in_repo": "scripts/openclaw/agents/felix-admin-escalation/AGENTS.md"},
+        {"path": "/home/claude/kg-automation/scripts/escalation/record_completion.py", "format": "python", "source_in_repo": "scripts/escalation/record_completion.py", "purpose": "Phase 6 (#309) atomic three-write helper per ADR-0002: Vikunja side-effect first (WhatsApp send + [Felix-Escalation] comment write during the soak C-001), then state_log.append('escalation', record) for the canonical JSONL write. Invoked by felix-admin-escalation agent (FR-002, FR-009). Library + CLI; runs on office2; reads/writes Vikunja API + JSONL state files.", "host": "office2", "introduced_by": "#309", "updated_by": "#309", "kind": "script", "runs_on": ["office2"], "invoked_by": ["felix-admin-escalation", "scripts/escalation/reconcile_completions.py"], "writes_to": ["Vikunja API (PUT /tasks/<id>/comments, PATCH /tasks/<id>)", "/data/services/openclaw/state/escalation/<project-slug>-escalation-history.jsonl (via scripts/common/state_log.py)"], "reads_from": ["Vikunja API (GET /tasks/<id>)", "/data/services/openclaw/state/escalation/<project-slug>-escalation-history.jsonl (idempotent dedup pre-check via scripts/common/state_log.py)"], "credentials": ["vikunja-api"]},
+        {"path": "/home/claude/kg-automation/scripts/escalation/reconcile_completions.py", "format": "python", "source_in_repo": "scripts/escalation/reconcile_completions.py", "purpose": "Phase 6 (#309) drift detection helper (FR-005). Invoked at tick start by felix-admin-escalation. Enumerates escalation-subscribed tasks per project, compares Vikunja state vs derive_state output; emits synthetic 'done' / 'rescheduled' records via record_completion.py --no-vikunja; surfaces hard-fails per Q10 via scripts/escalation/hard_fail.py.", "host": "office2", "introduced_by": "#309", "updated_by": "#309", "kind": "script", "runs_on": ["office2"], "invoked_by": ["felix-admin-escalation"], "writes_to": ["/data/services/openclaw/state/escalation/<project-slug>-escalation-history.jsonl (synthetic records via scripts/escalation/record_completion.py --no-vikunja)", "GitHub Issues (P2-bug, area/escalation via scripts/escalation/hard_fail.py)"], "reads_from": ["Vikunja API (GET /projects/<id>/tasks, GET /tasks/<id>)", "/data/services/openclaw/state/escalation/<project-slug>-escalation-history.jsonl (via scripts/escalation/derive_state.py)"], "credentials": ["vikunja-api"]},
+        {"path": "/home/claude/kg-automation/scripts/escalation/derive_state.py", "format": "python", "source_in_repo": "scripts/escalation/derive_state.py", "purpose": "Phase 6 (#309) pure-function library + debug CLI (FR-001). Input: list of JSONL records for one task (newest-first). Output: EscalationState dataclass with current_state, snooze_active_until, next_eligible_level, last_event_recorded_at. All escalation policy lives here; consumed by record_completion + reconcile_completions; debuggable via `python3 -m scripts.escalation.derive_state --task-id <id> --project-id <id>`.", "host": "office2", "introduced_by": "#309", "updated_by": "#309", "kind": "library", "runs_on": ["office2"], "invoked_by": ["felix-admin-escalation", "scripts/escalation/record_completion.py", "scripts/escalation/reconcile_completions.py", "kent_via_cli (debug)"], "writes_to": [], "reads_from": ["/data/services/openclaw/state/escalation/<project-slug>-escalation-history.jsonl (via scripts/common/state_log.py)"], "credentials": []},
+        {"path": "/home/claude/kg-automation/scripts/escalation/backfill_jsonl_from_comments.py", "format": "python", "source_in_repo": "scripts/escalation/backfill_jsonl_from_comments.py", "purpose": "Phase 6 (#309) one-time historical backfill (FR-006). Operator-driven (not cron). Reads existing [Felix-Escalation] comments from Vikunja escalation-subscribed tasks; writes pre-backfill snapshot at /data/services/openclaw/state/escalation/pre-phase6-snapshot.json BEFORE any JSONL writes; replays parseable comments to state_log.append with source=backfill. Idempotent on re-run via the Phase 2 (task_id, date, state) dedup. Read-only on Vikunja (GET only).", "host": "office2", "introduced_by": "#309", "updated_by": "#309", "kind": "script", "runs_on": ["office2"], "invoked_by": ["kent_via_cli"], "writes_to": ["/data/services/openclaw/state/escalation/pre-phase6-snapshot.json (one-shot, written before any JSONL writes)", "/data/services/openclaw/state/escalation/<project-slug>-escalation-history.jsonl (source=backfill, via scripts/common/state_log.py)"], "reads_from": ["Vikunja API (GET /projects, GET /projects/<id>/tasks, GET /tasks/<id>/comments)"], "credentials": ["vikunja-api"]},
+        {"path": "/home/claude/kg-automation/scripts/escalation/schema.py", "format": "python", "source_in_repo": "scripts/escalation/schema.py", "purpose": "Phase 6 (#309) event-parameter validator surface (FR-003). Exposes EVENT_TYPE_PARAMETERS, validate_event_params, EscalationSchemaError. Consumed by record_completion.py to enforce required parameter fields per event_type (level_sent → level; snoozed → snooze_days + snooze_until; rescheduled → reschedule_to; dismissed/done → no required params). Does NOT file bug reports — Q10 hard-fail filing is owned by scripts/escalation/hard_fail.py.", "host": "office2", "introduced_by": "#309", "updated_by": "#309", "kind": "library", "runs_on": ["office2"], "invoked_by": ["scripts/escalation/record_completion.py"], "writes_to": [], "reads_from": [], "credentials": []},
+        {"path": "/home/claude/kg-automation/scripts/escalation/hard_fail.py", "format": "python", "source_in_repo": "scripts/escalation/hard_fail.py", "purpose": "Phase 6 (#309, owned by WP04 — forward-referenced) Q10 hard-fail bug-filing + dedup helper (FR-008, FR-009). Pure library helpers: render_bug_body(...) returns the Markdown body per data-model Entity 5; dedup_existing_open(task_id) queries `gh issue list --state open --search 'in:title \"(task #<id>)\" \"Escalation hard-fail\"'` per research D9; file_hard_fail_bug(...) invokes scripts/openclaw/agents/main/felix-file-issue.py as a subprocess with labels P2-bug, area/escalation. Consumed by reconcile_completions.py and record_completion.py (during validate). Module not yet implemented — landed by WP04.", "host": "office2", "introduced_by": "#309 (WP04)", "updated_by": "#309", "kind": "library", "runs_on": ["office2"], "invoked_by": ["scripts/escalation/reconcile_completions.py", "scripts/escalation/record_completion.py"], "writes_to": ["GitHub Issues (P2-bug, area/escalation via scripts/openclaw/agents/main/felix-file-issue.py subprocess)"], "reads_from": ["GitHub Issues (`gh issue list --state open --search` dedup query)"], "credentials": ["github-pat-kg-felix-bot"]}
       ]
     },
     {

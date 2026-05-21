@@ -1,8 +1,14 @@
 ---
 name: escalation
-description: Detect overdue and at-risk tasks in Vikunja and deliver level-appropriate escalation alerts via WhatsApp. Tracks escalation state via structured task comments. Handles Kent's responses (done, snooze, dismiss, reschedule, acknowledge).
-version: 1.0.0
+description: Detect overdue and at-risk tasks in Vikunja and deliver level-appropriate escalation alerts via WhatsApp. Tracks escalation state via per-project JSONL state-log files. Handles Kent's responses (done, snooze, dismiss, reschedule, acknowledge).
+version: 2.0.0
 ---
+
+> **v1 → v2 transition note**: SKILL.md v1.0.0 (pre-#309) derived state by
+> scanning `[Felix-Escalation]` Vikunja comments in-prompt. v2.0.0 (#309)
+> derives state from per-project JSONL files via `scripts/escalation/`
+> helpers. The v1 comment writes continue during the 3-day soak post-cutover
+> for rollback safety; after soak, a follow-on mission removes them.
 
 # Escalation Skill
 
@@ -12,6 +18,20 @@ this skill alone.
 
 **API Base URL**: `https://office2.tail0f5f56.ts.net/api/v1`
 **API Token**: `cat /data/services/openclaw/secrets/vikunja-api`
+
+---
+
+## 0. State Source
+
+The canonical state for escalation is per-project JSONL state-log files,
+NOT Vikunja `[Felix-Escalation]` comments. The agent reads state via
+`scripts/escalation/derive_state.py` and writes events via
+`scripts/escalation/record_completion.py`. During the 3-day post-cutover
+soak (until Phase 6 is declared complete), record_completion writes BOTH
+the v1 `[Felix-Escalation]` comment AND a JSONL record for compatibility.
+After soak, a follow-on mission removes the v1 comment write.
+
+Migration reference: mission #309 (ADR-0002 Phase 6).
 
 ---
 
@@ -47,88 +67,103 @@ A task qualifies if ALL of the following are true:
 
 ---
 
-## 2. Escalation Level Model
+## 2. Level Determination via JSONL State
+
+The skill no longer parses `[Felix-Escalation]` comments in-prompt. For each
+candidate task, invoke the `derive_state` CLI helper to get current state:
+
+    python3 -m scripts.escalation.derive_state \
+      --task-id <id> --project-id <pid>
+
+Parse stdout JSON. The `next_eligible_level` field tells you which level (if
+any) to send this tick.
+
+### Policy rules (encoded in derive_state)
+
+| `current_state` | `next_eligible_level` | Agent action |
+|-----------------|----------------------|--------------|
+| `new` | 1 or 2 (per §1) | Send the indicated level if task qualifies |
+| `level_1_sent` | `null` | Skip — Level 1 active, not yet stale |
+| `level_1_sent` | `2` | Send Level 2 (Level 1 was sent 2+ days ago, no response) |
+| `level_2_sent` | `2` | Send Level 2 again (daily dedup at §7 applies) |
+| `snoozed` | `null` | Skip — snooze window active |
+| `snoozed_expired` | `1` | Re-enter at Level 1 |
+| `rescheduled` | per §1 | Re-evaluate via §1 against the new due_date |
+| `done` | `null` | Skip — terminal |
+| `dismissed` | `null` | Skip — terminal (unless due_date updated after dismiss) |
+
+### Level model (mapped to current_state transitions)
 
 | Level | Name | Trigger |
 |-------|------|---------|
 | 1 | Nudge | Task overdue 1–3 days with no prior escalation, OR due today with priority >= 3 |
 | 2 | Insistence | Task overdue >3 days, OR Level 1 sent 2+ days ago with no response |
 
-### Level determination algorithm
+### Error handling
 
-For each qualifying task, read its `[Felix-Escalation]` comments (most recent
-first) and apply these rules in order:
-
-1. **No escalation comment exists**:
-   - Overdue 1–3 days → Level 1
-   - Overdue >3 days → Level 2
-   - Due today (priority >= 3) → Level 1
-
-2. **Most recent comment is `level-1 | sent`**:
-   - Sent 2+ days ago AND no subsequent `acknowledged` comment → Level 2
-   - Sent <2 days ago → skip (Level 1 already active, not yet stale)
-
-3. **Most recent comment is `level-2 | sent`**:
-   - Sent today → skip (daily deduplication — max one Level 2 per day)
-   - Sent before today → Level 2 (repeat the insistence)
-
-4. **Most recent comment is `snoozed:Nd | acknowledged`**:
-   - Parse the snooze: comment date + N days = expiry date
-   - If expiry date <= today → snooze expired, re-enter at Level 1
-   - If expiry date > today → skip (snooze active)
-
-5. **Most recent comment is `dismissed | acknowledged`**:
-   - Check if task's `due_date` is later than the comment date
-   - If yes → due date was updated (rescheduled), reset: treat as Level 1
-   - If no → permanently suppressed, skip
-
-6. **Most recent comment is `done | acknowledged`**:
-   - Skip (task was marked done via escalation)
-
-7. **Most recent comment is `rescheduled:YYYY-MM-DD | acknowledged`**:
-   - Escalation history reset — if the new due date has passed, treat as
-     newly overdue (no prior escalation)
+On `EscalationStateError` (exit code 3): `derive_state` has filed a P2-bug
+automatically. Skip this task; continue with others. Do NOT attempt to retry
+or to fall back to comment parsing.
 
 ---
 
-## 3. Escalation Comment Format
+## 3. Escalation State Format
 
-**Prefix**: `[Felix-Escalation]`
-**Delimiter**: ` | ` (space-pipe-space)
-**Fields**: `date | state | disposition`
+**Canonical state**: per-project JSONL at
+`/data/services/openclaw/state/escalation/project-<id>-escalation-history.jsonl`.
 
-### Escalation sent (written after alert delivery)
+See `kitty-specs/migrate-escalation-to-jsonl-state-model-01KS5R4D/data-model.md`
+for the record schema. Do NOT parse the `[Felix-Escalation]` Vikunja comments
+to derive state. The v1 comment writes (preserved during the 3-day soak
+post-cutover) are a compatibility mirror, not authoritative.
 
-```
-[Felix-Escalation] 2026-04-06 | level-1 | sent
-[Felix-Escalation] 2026-04-06 | level-2 | sent
-```
+### Writes — invoke `record_completion`
 
-### Response recorded (written after Kent responds)
+All escalation events (level sent, snooze, dismiss, done, reschedule) flow
+through the `record_completion` CLI. It handles the Vikunja side-effect
+(comment write during soak) FIRST and the JSONL append SECOND, per
+research D6.
 
-```
-[Felix-Escalation] 2026-04-06 | snoozed:3d | acknowledged
-[Felix-Escalation] 2026-04-06 | dismissed | acknowledged
-[Felix-Escalation] 2026-04-06 | done | acknowledged
-[Felix-Escalation] 2026-04-06 | rescheduled:2026-04-10 | acknowledged
-```
+    python3 -m scripts.escalation.record_completion \
+      --task-id <id> --project-id <pid> --title "<task title>" \
+      --date <YYYY-MM-DD> --state <event_type> --source <agent|kent_reply> \
+      [--level N | --snooze-days N | --reschedule-to YYYY-MM-DD] \
+      [--reason "..."] [--note "..."] [--idempotent]
 
-### Parsing rules
+### Valid `--state` values
 
-- Split on ` | ` to get `[date, state, disposition]`
-- Date is always `YYYY-MM-DD`
-- State tokens: `level-1`, `level-2`, `snoozed:Nd`, `dismissed`, `done`,
-  `rescheduled:YYYY-MM-DD`
-- Disposition: `sent` (agent initiated) or `acknowledged` (Kent responded)
-- `snoozed:Nd` — N is an integer, d is literal (e.g., `snoozed:3d`)
-- `rescheduled:YYYY-MM-DD` — the new due date
+`level_sent`, `snoozed`, `dismissed`, `done`, `rescheduled`.
 
-### Rules
+### Valid `--source` values
 
-- Comments are **append-only** — never modify or delete existing comments
-- Only the **most recent** `[Felix-Escalation]` comment determines state
-- Use `GET /api/v1/tasks/{id}/comments` to read; scan for prefix `[Felix-Escalation]`
-- Use `PUT /api/v1/tasks/{id}/comments` with `{"comment": "..."}` to write
+`agent` (agent-initiated, e.g. level_sent), `kent_reply` (response handling
+in §5), `reconcile` (synthetic from reconcile_completions — agents do not
+emit this directly), `backfill` and `operator_repair` (operator use).
+
+### Per-state flag pairing
+
+| `--state` | Required additional flag |
+|-----------|--------------------------|
+| `level_sent` | `--level N` (1 or 2) |
+| `snoozed` | `--snooze-days N` |
+| `rescheduled` | `--reschedule-to YYYY-MM-DD` |
+| `dismissed` | (optional `--reason "..."`) |
+| `done` | (optional `--reason "..."`) |
+
+### Exit codes
+
+| Code | Meaning |
+|------|---------|
+| 0 | Success (Vikunja + JSONL write OK) |
+| 1 | Validation error (bad flags / state transition rejected) |
+| 2 | Vikunja side-effect failed (no JSONL write performed) |
+| 3 | Hard-fail; P2-bug filed; agent should skip this task |
+
+### Idempotency
+
+Pass `--idempotent` whenever a retry could re-deliver the same
+(task_id, date, state) triple — the helper pre-checks for a duplicate
+JSONL record and no-ops on hit.
 
 ---
 
@@ -171,18 +206,21 @@ each task. Cache project names within a single run to avoid redundant calls.
 
 ## 5. Response Parsing
 
-When Kent replies to an escalation message, parse the response:
+When Kent replies to an escalation message, parse his WhatsApp reply text
+and route each task event through `record_completion`. The skill still
+parses Kent's reply (his patterns are unchanged); it no longer writes
+state into Vikunja comments directly.
 
 | Pattern | Action |
 |---------|--------|
-| `N done` | Mark task #N complete: `POST /api/v1/tasks/{id}` with `{"done": true}`. Write `done \| acknowledged` comment. |
-| `N snooze` | Snooze task #N for 1 day (default). Write `snoozed:1d \| acknowledged` comment. |
-| `N snooze Nd` | Snooze task #N for N days. Write `snoozed:Nd \| acknowledged` comment. |
-| `N dismiss` | Write `dismissed \| acknowledged` comment. Leave task open. |
-| `move N to <date>` or `N move to <date>` | Parse the date. Confirm with Kent. Update `due_date` via `POST /api/v1/tasks/{id}`. Write `rescheduled:YYYY-MM-DD \| acknowledged` comment. |
-| `N and M done` | Mark multiple tasks complete. Process each independently. |
-| `all snooze Nd` | Apply snooze to every task in the message. |
-| `got it` or vague acknowledgment | Write acknowledgment: no specific comment per task. If a Level 2 task exists, it stays at Level 2 but won't re-alert today (deduplication). |
+| `N done` | Mark task #N complete: `POST /api/v1/tasks/{id}` with `{"done": true}`. Then `record_completion --state done --source kent_reply`. |
+| `N snooze` | `record_completion --state snoozed --snooze-days 1 --source kent_reply` (default N=1). |
+| `N snooze Nd` | `record_completion --state snoozed --snooze-days N --source kent_reply`. |
+| `N dismiss` | `record_completion --state dismissed --source kent_reply`. Leave task open. |
+| `move N to <date>` or `N move to <date>` | Parse the date. Confirm with Kent. Update `due_date` via `POST /api/v1/tasks/{id}`. Then `record_completion --state rescheduled --reschedule-to YYYY-MM-DD --source kent_reply`. |
+| `N and M done` | Mark multiple tasks complete. Process each independently — one `record_completion` invocation per task. |
+| `all snooze Nd` | Apply snooze to every task in the message — one `record_completion` invocation per task. |
+| `got it` or vague acknowledgment | No task mutation. No per-task `record_completion`. If a Level 2 task exists, it stays at Level 2 but won't re-alert today (daily dedup per §7). |
 | Ambiguous or unrecognized | Ask ONE clarifying question. Do not guess. |
 
 ### Date parsing for reschedule
@@ -197,6 +235,12 @@ When Kent replies to an escalation message, parse the response:
 Numbers map to positions in the message **as sent**. The agent must
 remember the task-to-number mapping from the most recent escalation
 message in this session.
+
+### Idempotency on retries
+
+When a `record_completion` invocation could be retried (e.g. transient
+Vikunja error), pass `--idempotent` so the helper skips duplicate
+(task_id, date, state) writes.
 
 ---
 

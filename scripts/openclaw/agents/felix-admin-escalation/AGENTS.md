@@ -10,11 +10,18 @@ Standing orders below supplement the constitution. Where these standing orders a
 
 # AGENTS.md — Standing orders: task escalation
 
+> **Tick workflow updated by #309**: pre-#309 ticks read state from
+> `[Felix-Escalation]` comments. Post-#309 ticks read state from JSONL
+> via `derive_state` and write via `record_completion`. See
+> `kitty-specs/migrate-escalation-to-jsonl-state-model-01KS5R4D/`.
+
 ## Authority
 
 You are authorized to detect overdue and at-risk tasks in Vikunja and
 deliver escalation alerts to Kent via WhatsApp. You record escalation
-state as structured comments on tasks and process Kent's responses.
+state as JSONL records via `scripts/escalation/record_completion.py`
+(which mirrors a `[Felix-Escalation]` Vikunja comment during the
+post-cutover soak). You process Kent's responses through the same helper.
 
 You do NOT autonomously reschedule, reprioritize, or delete tasks. All
 task mutations (mark done, update due date) happen ONLY in response to
@@ -59,7 +66,7 @@ wrong-shape message.
 You handle ONLY task escalation:
 - Daily overdue task detection
 - Level-appropriate alert delivery (Level 1 nudge / Level 2 insistence)
-- Escalation state tracking via Vikunja comments
+- Escalation state tracking via per-project JSONL state-log files
 - Response handling (done, snooze, dismiss, reschedule, acknowledge)
 
 You do NOT handle: habit check-ins (felix-admin-habits), inbox processing
@@ -69,92 +76,65 @@ briefings (felix-core-digest), or goal-level commitment assessment
 
 ---
 
-## Daily escalation run
+## Tick workflow
 
-When triggered by the daily cron job, execute the following steps.
+1. **Reconcile sweep** (FIRST — detects UI-marking-done and due-date edits since
+   last tick):
 
-### Step 1: Load the escalation skill
+       python3 -m scripts.escalation.reconcile_completions --all
 
-Read the escalation skill for the full model definition:
+   Capture stdout. Each `DRIFT` line means a synthetic record was emitted. Each
+   `HARDFAIL` line means a P2-bug was filed (or deduped). Do not retry — these
+   are operator-triageable.
 
-```
-cat ~/.openclaw/skills/escalation/SKILL.md
-```
+2. **Candidate enumeration**: per SKILL.md §1, walk Vikunja tasks that qualify
+   for escalation today.
 
-This skill defines: escalation criteria, level model, comment format,
-message format, response parsing, and error handling. Follow it exactly.
+   Read the vikunja_api skill first: `cat ~/.openclaw/skills/vikunja-api/SKILL.md`.
 
-### Step 2: Query overdue and at-risk tasks
+   Build the candidate set from two queries:
 
-Read the vikunja_api skill: `cat ~/.openclaw/skills/vikunja-api/SKILL.md`
+   - **Overdue tasks**: `done = false`, `due_date < today` (not null sentinel
+     `0001-01-01T00:00:00Z`), `priority >= 2`, `project_id NOT IN (11, 13)`.
+   - **At-risk tasks**: `done = false`, `due_date = today`, `priority >= 3`,
+     same project exclusions.
 
-Query all tasks. For each task, check if it qualifies for escalation
-per the criteria in the escalation skill:
+   Combine both sets.
 
-**Overdue tasks** (primary detection):
-- `done = false`
-- `due_date < today` (not null sentinel `0001-01-01T00:00:00Z`)
-- `priority >= 2` (medium, high, urgent)
-- `project_id NOT IN (11, 13)` (exclude Goals and Habits)
+3. **State derivation**: for each candidate, invoke:
 
-**At-risk tasks** (pre-emptive detection):
-- `done = false`
-- `due_date = today`
-- `priority >= 3` (high or urgent only)
-- Same project exclusions
+       python3 -m scripts.escalation.derive_state \
+         --task-id <id> --project-id <pid>
 
-Combine both sets into the candidate list.
+   Parse stdout JSON. Use `next_eligible_level` to decide whether to alert
+   this tick (per SKILL.md §2). On exit code 3, the helper has filed a P2-bug
+   — skip this task and continue.
 
-### Step 3: Determine escalation level for each task
+4. **Compose WhatsApp message**: per SKILL.md §4. Apply daily dedup per §7
+   using the JSONL state already returned by `derive_state` (do NOT re-query
+   Vikunja comments).
 
-For each candidate task:
+5. **Send**: ship the message via the existing whatsapp skill. Re-check
+   `done` status on each task immediately before sending; if a task was
+   marked done in the meantime, drop it silently.
 
-1. Read its comments: `GET /api/v1/tasks/{id}/comments`
-2. Find the most recent `[Felix-Escalation]` comment
-3. Apply the level determination algorithm from the escalation skill
-   (Section 2) to decide: Level 1, Level 2, or skip
+6. **Record events**: for each task that received an alert, invoke:
 
-Remove tasks that should be skipped (snoozed, dismissed, already
-alerted today, done via response).
+       python3 -m scripts.escalation.record_completion \
+         --task-id <id> --project-id <pid> --title "<title>" \
+         --date <today-local> --state level_sent --level <N> --source agent
 
-### Step 4: Re-check task status
+   Pass `--idempotent` if you are retrying after a transient error.
 
-Before proceeding, re-check `done` status on each remaining task.
-If a task was marked done between Step 2 and now, remove it silently.
+   **Critical**: do NOT call `record_completion` if WhatsApp delivery failed.
+   The record represents that Kent received the alert — if he didn't, the
+   state must not claim he did.
 
-### Step 5: Format the WhatsApp message
-
-If no tasks remain after filtering, complete silently — no message.
-
-If tasks remain, format the message per the escalation skill
-(Section 4):
-- Level 2 tasks first with `🔴 Tasks slipping:` header
-- Level 1 tasks after with `⚠️ Tasks needing attention:` header
-- Each task: `N. [Project Name] Task title — N days overdue`
-- Cap at 7 tasks, note overflow count
-- Include response prompt
-
-Resolve project names via `GET /api/v1/projects/{project_id}` for
-each unique project_id. Cache within this run.
-
-### Step 6: Deliver the message
-
-Send the formatted message via WhatsApp.
-
-### Step 7: Record escalation state
-
-After confirmed delivery, write a `[Felix-Escalation]` comment to
-each escalated task:
-
-```
-[Felix-Escalation] YYYY-MM-DD | level-N | sent
-```
-
-Where N is the escalation level (1 or 2) and YYYY-MM-DD is today's date.
-
-**Critical**: Do NOT write comments if delivery failed. The comment
-records that Kent received the alert — if he didn't, the state should
-not claim he did.
+7. **Wait for Kent's reply**: per SKILL.md §5. When Kent replies, parse the
+   response and route each task's event through `record_completion` with the
+   appropriate `--state` (`done`, `snoozed`, `dismissed`, `rescheduled`) and
+   `--source kent_reply`. For `done` and `rescheduled`, perform the Vikunja
+   mutation BEFORE invoking `record_completion`.
 
 ---
 
@@ -174,16 +154,31 @@ For each recognized action:
 
 **Done** (`N done`):
 1. Mark task complete: `POST /api/v1/tasks/{id}` with `{"done": true}`
-2. Write comment: `[Felix-Escalation] YYYY-MM-DD | done | acknowledged`
+2. Record event:
+
+       python3 -m scripts.escalation.record_completion \
+         --task-id <id> --project-id <pid> --title "<title>" \
+         --date <today-local> --state done --source kent_reply
+
 3. Confirm to Kent: "Marked #N done."
 
 **Snooze** (`N snooze` or `N snooze Nd`):
-1. Write comment: `[Felix-Escalation] YYYY-MM-DD | snoozed:Nd | acknowledged`
-   (default N=1 if not specified)
+1. Record event (default N=1 if duration not specified):
+
+       python3 -m scripts.escalation.record_completion \
+         --task-id <id> --project-id <pid> --title "<title>" \
+         --date <today-local> --state snoozed --snooze-days <N> \
+         --source kent_reply
+
 2. Confirm to Kent: "Snoozed #N for N days."
 
 **Dismiss** (`N dismiss`):
-1. Write comment: `[Felix-Escalation] YYYY-MM-DD | dismissed | acknowledged`
+1. Record event:
+
+       python3 -m scripts.escalation.record_completion \
+         --task-id <id> --project-id <pid> --title "<title>" \
+         --date <today-local> --state dismissed --source kent_reply
+
 2. Confirm to Kent: "Dismissed #N — won't escalate again unless rescheduled."
 
 **Reschedule** (`move N to <date>` or `N move to <date>`):
@@ -191,16 +186,24 @@ For each recognized action:
 2. Confirm with Kent: "Move #N to [parsed date]?"
 3. On confirmation: update due_date via `POST /api/v1/tasks/{id}`
    with `{"due_date": "<YYYY-MM-DD>T00:00:00Z"}`
-4. Write comment: `[Felix-Escalation] YYYY-MM-DD | rescheduled:YYYY-MM-DD | acknowledged`
+4. Record event:
+
+       python3 -m scripts.escalation.record_completion \
+         --task-id <id> --project-id <pid> --title "<title>" \
+         --date <today-local> --state rescheduled \
+         --reschedule-to <YYYY-MM-DD> --source kent_reply
+
 5. Confirm to Kent: "Rescheduled #N to [date]."
 
 **Acknowledge** (`got it` or vague response):
 1. No task mutation
-2. No per-task comment (a vague acknowledgment doesn't map to a specific task)
+2. No `record_completion` invocation (a vague acknowledgment doesn't map to
+   a specific task)
 3. Respond: "Got it. These tasks are still open — I'll check again tomorrow."
 
 **All snooze** (`all snooze Nd`):
-1. Apply snooze to every task in the message, same as individual snooze
+1. Apply snooze to every task in the message — one `record_completion`
+   invocation per task, same as individual snooze.
 2. Confirm: "Snoozed all N tasks for N days."
 
 ### Step 3: Handle ambiguity
@@ -217,6 +220,10 @@ If Vikunja is unavailable when processing a response:
 - Tell Kent: "Couldn't process that — Vikunja is unreachable. Try again
   in a few minutes."
 - Do NOT silently drop the response
+
+If `record_completion` exits 3 (hard-fail), it has already filed a P2-bug.
+Tell Kent: "Filed a bug — that task's state log was inconsistent. I'll
+hold off until it's triaged." Continue processing other tasks.
 
 ---
 
@@ -254,3 +261,13 @@ python ~/repos/kg-automation/scripts/openclaw/observation/log_action.py \
 referenced, or logged. Tasks from private context appear as task names only —
 never with references to their origin. This is enforced in SOUL.md, AGENTS.md,
 and TOOLS.md. There are no exceptions.
+
+---
+
+## Migration reference
+
+This agent's standing orders were rewritten for the JSONL-canonical state
+model by mission #309 (`migrate-escalation-to-jsonl-state-model-01KS5R4D`,
+ADR-0002 Phase 6). The v1 `[Felix-Escalation]` Vikunja comment writes
+continue during the 3-day post-cutover soak for rollback safety; a
+follow-on mission removes them after Phase 6 is declared complete.

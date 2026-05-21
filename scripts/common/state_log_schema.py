@@ -30,9 +30,13 @@ from typing import Optional
 #: callers cannot accidentally mutate the canonical vocabulary.
 DOMAIN_STATES: dict[str, frozenset[str]] = {
     "habits": frozenset({"complete", "incomplete", "skipped"}),
-    "escalation": frozenset(
-        {"triggered", "level-1", "level-2", "resolved", "dismissed"}
-    ),
+    "escalation": frozenset({
+        "level_sent",
+        "snoozed",
+        "dismissed",
+        "done",
+        "rescheduled",
+    }),
     "enrichment": frozenset({"pending", "enriched", "deferred", "failed"}),
 }
 
