@@ -997,3 +997,106 @@ so the post-merge operator has the full operational recipe with no need
 to context-switch to other docs (except the inline-referenced #1039
 diagnostic — which is referenced in section 7 rather than copy-pasted to
 avoid duplication).
+
+---
+
+## Cutover Execution Log — 2026-05-21
+
+**Executed by**: Kent + Claude orchestrator
+**Start**: 2026-05-21T15:38 ET
+**Complete**: 2026-05-21T12:18 EDT (16:18 UTC, verification tick succeeded)
+
+### Pre-flight (T040)
+
+- ✅ Merge commit `f6558765` confirmed on `origin/main`
+- ✅ 0 open `Doc audit:` issues (queue fully drained)
+- ⚠️ 2 stale pending-approvals (#302, #318) from 2026-05-19 — closed with `audit-skip` before deploy per recommendation
+- ✅ openclaw-gateway active
+- ✅ gh auth as kg-felix-bot
+- ✅ Anthropic secret readable (`/data/services/openclaw/secrets/anthropic`, 109 bytes, 0640)
+- ✅ Restic backup completed today (65M repo)
+- ⚠️ Drift events backlog: 10 events from 2026-05-16 to 2026-05-21, cursor=0 (old auditor never advanced) — proceeded; new driver processed all 10 in one tick
+
+### Deploy execution (T041)
+
+`bash /home/claude/kg-automation/scripts/office2/deploy/felix-doc-auditor-driver.sh --apply --backup-confirmed`
+
+- ✅ Step 1: Pre-flight checks
+- ✅ Step 2: Driver code pulled (git pull --rebase)
+- ✅ Step 3: State dir created at `/data/services/openclaw/felix-doc-auditor-driver/`
+- ✅ Step 4: systemd unit + timer installed; `daemon-reload`
+- ✅ Step 5: openclaw agent `felix-doc-auditor` deregistered via `openclaw agents delete --force`
+- ✅ Step 6: Legacy workspace at `/data/services/openclaw/felix-doc-auditor/` removed
+- ✅ Step 7: Timer verified enabled (next fire 17:00 UTC)
+- ✅ Step 8: Deploy complete
+
+### Fix-forward operations applied during cutover (NOT in deploy script — filed as follow-ups)
+
+1. **`anthropic` SDK install** — `python3 -m pip` not available on office2 (Debian externally-managed). Created venv at `/data/services/openclaw/felix-doc-auditor-driver/venv/` via `uv venv` + `uv pip install anthropic`. Updated systemd ExecStart to point at venv python. **Follow-up: see deploy-script enhancement issue.**
+2. **Config path mismatch** — `config.toml` defaults expected `signal-to-doc-map.json`, `doc-domain-map.json`, `prompts/` at state-dir paths; deploy didn't copy them. Symlinked from repo. **Follow-up: see #361.**
+
+### First-tick verification (T042)
+
+Three tick attempts (cutover artifacts):
+
+| Attempt | Time (UTC) | Status | Error | Notes |
+|---|---|---|---|---|
+| 1 | 16:14:57 | exit 1 | `ModuleNotFoundError: No module named 'anthropic'` | Fixed via venv install |
+| 2 | 16:16:43 | partial (exit 2) | `FileNotFoundError: signal-to-doc-map.json at state dir` | Fixed via symlinks; meanwhile processed #302 #318 PAs cleanly |
+| 3 | 16:18:00 | **success (exit 0)** | none | Verification tick — drained all 10 drift events |
+
+Final tick signal (16:18:00 UTC) at `/data/services/openclaw/felix-doc-auditor-driver/last-tick.json`:
+
+```json
+{
+  "schema_version": "1.0",
+  "status": "success",
+  "exit_code": 0,
+  "duration_seconds": 15.0,
+  "tick": {
+    "signals_seen": 0,
+    "drift_events_consumed": 10,
+    "pending_approvals_applied": [302, 318]
+  },
+  "errors": []
+}
+```
+
+### Drift event outcomes (T043 partial)
+
+10 drift events from cursor=0 to cursor=10 processed:
+- 10 `[doc-audit]` issues filed (#351 through #360) — `P3-candidate` + `area/felix-core` labels per signal-to-doc-map.json
+- Cursor advanced 0 → 10
+- 0 unmapped events (all matched mappings in signal-to-doc-map.json)
+
+These 10 issues await operator triage. Per the current architecture, they are NOT auto-processed by the driver because they don't carry the `Doc audit:` label (that's applied by the GH Actions workflow on commit). This gap is filed as a follow-on (#362).
+
+### Pending-approval outcomes (T041 side-effect)
+
+- #302 (audit #298) — closed with audit-skip
+- #318 (audit #303) — closed with audit-skip
+- Originating audits #298 and #303 — both closed
+
+### NFR-001 post-rework measurement (T043-T045) — DEFERRED
+
+Cannot run the full per-outcome measurement at this moment because:
+- Empty tick: will measure naturally at 17:00 UTC (next scheduled fire)
+- debt_only tick: requires Kent to label some [doc-audit] issues with `Doc audit:` OR for a fresh commit-triggered audit issue to land
+- tier_a_apply tick: same
+
+Post-rework JSON skeleton at `docs/design/architecture/baselines/felix-doc-auditor-post-rework.json` remains with `status: not_yet_executed` and `measurements: []`. To be populated as natural ticks accumulate over the 7-day soak window.
+
+### Follow-on issues filed
+
+- **#361** (P2-bug) — config defaults / deploy-time file population (the symlink band-aid)
+- **#362** (P1-feature) — drift-event processing should auto-resolve where possible (the triage-burden gap)
+- **#348** (P2-bug) — missing-file half-handling (from WP06 cycle 5 deferral, filed during WP06 arbiter)
+- **#349** (P2-debt) — residual stale architecture view files (from WP10 arbiter)
+
+### NFR-001 acceptance gate status
+
+**Pending — to be evaluated during 7-day soak**. Post-rework measurement will be populated from natural ticks. Preliminary signal from this cutover: 3rd tick consumed 10 drift events in 15s wall-clock with 0 LLM tokens used (deterministic processing per spec). The pre-rework baseline showed 523K+ input tokens per EMPTY tick. Once a typical empty-queue tick is measured, the reduction is expected to massively exceed the 80% threshold.
+
+### Rollback status
+
+Not exercised. Fail-forward posture maintained. Two fix-forward operations applied (venv install, config symlinks). All work content from squash commit `f6558765` is preserved on main.
