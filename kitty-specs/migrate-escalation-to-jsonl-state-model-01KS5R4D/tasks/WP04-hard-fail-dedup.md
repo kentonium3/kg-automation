@@ -216,3 +216,4 @@ spec-kitty agent action implement WP04 --mission migrate-escalation-to-jsonl-sta
 - 2026-05-21T20:14:47Z – claude:opus:python-implementer:implementer – shell_pid=94862 – Started implementation via action command
 - 2026-05-21T20:22:33Z – claude:opus:python-implementer:implementer – shell_pid=94862 – Ready for review — dedup verified, double-fire prevention tested, 87% coverage. Untracked files in worktree belong to concurrent WP03 (record_completion.py, test_record_completion.py) and a .coverage artifact; not WP04 scope.
 - 2026-05-21T20:23:12Z – codex:gpt-5:spec-kitty-review:reviewer – shell_pid=96577 – Started review via action command
+- 2026-05-21T20:26:02Z – codex:gpt-5:spec-kitty-review:reviewer – shell_pid=96577 – Moved to planned
