@@ -243,3 +243,4 @@ spec-kitty agent action implement WP06 --mission migrate-escalation-to-jsonl-sta
 - 2026-05-21T20:57:36Z – codex:gpt-5:spec-kitty-review:reviewer – shell_pid=7488 – Started review via action command
 - 2026-05-21T21:11:27Z – codex:gpt-5:spec-kitty-review:reviewer – shell_pid=7488 – Moved to planned
 - 2026-05-21T21:12:50Z – claude:opus:python-implementer:implementer – shell_pid=11184 – Started implementation via action command
+- 2026-05-21T21:27:09Z – claude:opus:python-implementer:implementer – shell_pid=11184 – Cycle 1 fix: comments_replayed counts only appends; comments_deduped added; rerun asserts 0.
