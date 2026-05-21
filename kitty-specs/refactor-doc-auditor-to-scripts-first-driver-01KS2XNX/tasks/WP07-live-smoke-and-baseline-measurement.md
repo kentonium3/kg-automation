@@ -15,8 +15,8 @@ subtasks:
 - T035
 phase: Phase 4 — Verification
 assignee: ''
-agent: "codex:gpt-5:spec-kitty-review:reviewer"
-shell_pid: "18779"
+agent: "claude:opus-4.7:implementer:implementer"
+shell_pid: "19823"
 history:
 - timestamp: '2026-05-20T16:25:00Z'
   agent: system
@@ -310,3 +310,4 @@ spec-kitty agent action implement WP07 --agent <name>
 - 2026-05-21T13:32:50Z – claude:opus-4.7:implementer:implementer – shell_pid=16281 – Ready for review: live_smoke pytest marker registered + 2 smoke tests (skip-by-default); pre-rework baseline JSON with 3 outcomes (28 empty / 4 debt_only / 2 tier_a_apply) from 33h natural-traffic window; measure-tokens.py helper for repeatable measurement; README explains directory purpose and reproduction steps.
 - 2026-05-21T13:34:11Z – codex:gpt-5:spec-kitty-review:reviewer – shell_pid=18779 – Started review via action command
 - 2026-05-21T13:38:28Z – codex:gpt-5:spec-kitty-review:reviewer – shell_pid=18779 – Moved to planned
+- 2026-05-21T13:38:34Z – claude:opus-4.7:implementer:implementer – shell_pid=19823 – Started implementation via action command
