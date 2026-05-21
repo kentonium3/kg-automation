@@ -1,7 +1,7 @@
 {
-  "event_count": 139,
-  "last_event_id": "01KS5GBZNRTPKQMV97YNEZEWQ9",
-  "materialized_at": "2026-05-21T14:52:24.632869+00:00",
+  "event_count": 140,
+  "last_event_id": "01KS5GJ05Z3QBWM7N1SJZHX7RA",
+  "materialized_at": "2026-05-21T14:55:41.759883+00:00",
   "mission_number": "",
   "mission_slug": "refactor-doc-auditor-to-scripts-first-driver-01KS2XNX",
   "mission_type": "software-dev",
@@ -13,8 +13,8 @@
     "done": 0,
     "for_review": 0,
     "in_progress": 0,
-    "in_review": 1,
-    "planned": 0
+    "in_review": 0,
+    "planned": 1
   },
   "work_packages": {
     "WP01": {
@@ -81,11 +81,11 @@
       "last_transition_at": "2026-05-21T14:43:21.634703+00:00"
     },
     "WP10": {
-      "actor": "codex:gpt-5:spec-kitty-review:reviewer",
-      "force_count": 1,
-      "lane": "in_review",
-      "last_event_id": "01KS5GBZNRTPKQMV97YNEZEWQ9",
-      "last_transition_at": "2026-05-21T14:52:24.632869+00:00"
+      "actor": "user",
+      "force_count": 2,
+      "lane": "planned",
+      "last_event_id": "01KS5GJ05Z3QBWM7N1SJZHX7RA",
+      "last_transition_at": "2026-05-21T14:55:41.759883+00:00"
     }
   }
 }
