@@ -239,3 +239,4 @@ spec-kitty agent action implement WP06 --mission migrate-escalation-to-jsonl-sta
 ## Activity Log
 
 - 2026-05-21T20:46:45Z – claude:opus:python-implementer:implementer – shell_pid=5187 – Started implementation via action command
+- 2026-05-21T20:56:37Z – claude:opus:python-implementer:implementer – shell_pid=5187 – Ready for review — all 6 vocabulary rows tested + snapshot ordering + idempotency. Untracked .coverage + WP05 files belong to concurrent WP05 implementer (not WP06).
