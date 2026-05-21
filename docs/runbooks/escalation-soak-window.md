@@ -12,8 +12,8 @@ version: '1.0.0'
 
 # Phase 6 Soak Window
 
-**Cutover date**: __YYYY-MM-DD__
-**Soak end date**: __YYYY-MM-DD__ (cutover + 3 calendar days)
+**Cutover date**: 2026-05-21 (artifacts deployed; first v2 tick fires 2026-05-22 12:00 ET via cron `5f734842-ca17-44f7-8040-f8e6a15355c4`)
+**Soak end date**: 2026-05-24 (cutover + 3 calendar days)
 **Mission**: [#309](https://github.com/kentonium3/kg-automation/issues/309) — ADR-0002 Phase 6
 **Spec gates**: FR-011 (3-day soak observed), NFR-002 (≥95% tick success), SC-006 (soak completion gate)
 
@@ -23,7 +23,7 @@ This file is populated during the 3-day post-cutover soak. One check-in per day.
 
 ## Daily check-in
 
-Run the [useful queries](#useful-queries) once per day during soak. Record values below.
+Run the [useful queries](<#useful-queries>) once per day during soak. Record values below.
 
 ### Day 1
 
@@ -33,7 +33,7 @@ Run the [useful queries](#useful-queries) once per day during soak. Record value
 - **Tick success rate**: __%__ (target: ≥95%)
 - **New JSONL records appended** (last 24h, across all `project-*-escalation-history.jsonl`): __N__
 - **Open hard-fail bugs** (`gh issue list --label P2-bug --search "Escalation hard-fail" --state open`): __N__ (zero is ideal; non-zero requires triage but does NOT block soak)
-- **Spurious re-alert reports from Kent**: __0__ (any other value = STOP and rollback per [escalation-ops.md § Rollback](escalation-ops.md))
+- **Spurious re-alert reports from Kent**: __0__ (any other value = STOP and rollback per [escalation-ops.md § Rollback](<./escalation-ops.md>))
 - **Reconcile drift detected** (synthetic `done` / `rescheduled` emitted): __N__
 - **Notes**: __free-form — anomalies, observations, follow-ons to file__
 
@@ -72,7 +72,7 @@ Run the [useful queries](#useful-queries) once per day during soak. Record value
 
 If all four are checked: declare Phase 6 complete. Close [#309](https://github.com/kentonium3/kg-automation/issues/309) with a comment summarizing the soak metrics, then file the follow-on issue to remove the v1 comment-write path from `record_completion.py` (per spec C-001, SC-007).
 
-If any box is unchecked: do NOT declare complete. Either extend the soak (operator judgment) or roll back per [escalation-ops.md § Rollback](escalation-ops.md).
+If any box is unchecked: do NOT declare complete. Either extend the soak (operator judgment) or roll back per [escalation-ops.md § Rollback](<./escalation-ops.md>).
 
 ---
 
