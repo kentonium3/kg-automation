@@ -313,3 +313,4 @@ spec-kitty agent action implement WP07 --agent <name>
 - 2026-05-21T13:38:34Z – claude:opus-4.7:implementer:implementer – shell_pid=19823 – Started implementation via action command
 - 2026-05-21T13:43:50Z – claude:opus-4.7:implementer:implementer – shell_pid=19823 – Cycle 2: smoke skip-by-default exits 0; baselines linked from INDEX
 - 2026-05-21T13:44:27Z – codex:gpt-5:spec-kitty-review:reviewer – shell_pid=20967 – Started review via action command
+- 2026-05-21T13:48:24Z – codex:gpt-5:spec-kitty-review:reviewer – shell_pid=20967 – Review passed: live smoke is opt-in and default-skipped; baseline JSON parses with empty/debt_only/tier_a_apply samples; measure-tokens helper runs on a fixture; baselines are linked from docs/INDEX.md
