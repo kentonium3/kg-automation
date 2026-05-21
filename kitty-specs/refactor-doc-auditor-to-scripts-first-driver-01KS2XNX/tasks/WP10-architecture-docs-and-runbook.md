@@ -18,7 +18,8 @@ subtasks:
 - T051
 phase: Phase 6 — Final docs
 assignee: ''
-agent: ''
+agent: "claude:opus-4.7:implementer:implementer"
+shell_pid: "34158"
 history:
 - timestamp: '2026-05-20T16:25:00Z'
   agent: system
@@ -380,3 +381,7 @@ spec-kitty agent action implement WP10 --agent <name>
 - **Research**: D11 (operator quick-reference scope)
 - **Quickstart**: `quickstart.md` (source material for the runbook)
 - **Predecessors**: WP07 (baselines/), WP09 (cutover-log.md) — runbook references both
+
+## Activity Log
+
+- 2026-05-21T14:43:34Z – claude:opus-4.7:implementer:implementer – shell_pid=34158 – Started implementation via action command
