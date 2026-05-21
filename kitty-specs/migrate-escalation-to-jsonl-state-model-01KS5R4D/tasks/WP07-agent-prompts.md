@@ -16,8 +16,8 @@ subtasks:
 - T021
 - T022
 - T023
-agent: "claude:opus:python-implementer:implementer"
-shell_pid: "19210"
+agent: "codex:gpt-5:spec-kitty-review:reviewer"
+shell_pid: "20142"
 history:
 - at: '2026-05-21T17:45:30+00:00'
   actor: spec-kitty.tasks
@@ -282,3 +282,4 @@ spec-kitty agent action implement WP07 --mission migrate-escalation-to-jsonl-sta
 
 - 2026-05-21T21:59:07Z – claude:opus:python-implementer:implementer – shell_pid=19210 – Started implementation via action command
 - 2026-05-21T22:03:07Z – claude:opus:python-implementer:implementer – shell_pid=19210 – Ready for review — SKILL.md v2 + AGENTS.md tick workflow rewritten + audit grep clean
+- 2026-05-21T22:03:39Z – codex:gpt-5:spec-kitty-review:reviewer – shell_pid=20142 – Started review via action command
