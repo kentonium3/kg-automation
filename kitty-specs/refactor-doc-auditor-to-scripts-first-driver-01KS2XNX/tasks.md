@@ -58,12 +58,12 @@ This index is for reference only. Per-WP tracking happens via checkboxes in the 
 | T043 | Run post-rework measurement: 3+ representative ticks under new driver | WP09 | | [D] |
 | T044 | Write `docs/design/architecture/baselines/felix-doc-auditor-post-rework.json` | WP09 | | [D] |
 | T045 | Verify ≥80% reduction; record per-outcome breakdown (NFR-001) | WP09 | | [D] |
-| T046 | Update `docs/design/architecture/data/service-inventory.json` — felix-doc-auditor entry: new invocation, deps, no openclaw session storage | WP10 | |
-| T047 | Update `docs/design/architecture/data/data-flows.json` — remove openclaw-session edges; add direct-API edges | WP10 | |
-| T048 | Update `docs/design/architecture/data/credential-manifest.json` — note Anthropic key used by driver process | WP10 | |
-| T049 | Append a note to `docs/design/architecture/felix-d6-survey.md` acknowledging that #343 obsoletes the prior "low priority" verdict for felix-doc-auditor | WP10 | |
-| T050 | Write `docs/runbooks/doc-auditor-driver-ops.md` (FR-013) | WP10 | |
-| T051 | Update memory file `~/.claude/projects/-Users-kentgale-repos-kg-automation/memory/reference_felix_doc_auditor_ops.md` | WP10 | [P] |
+| T046 | Update `docs/design/architecture/data/service-inventory.json` — felix-doc-auditor entry: new invocation, deps, no openclaw session storage | WP10 | | [D] |
+| T047 | Update `docs/design/architecture/data/data-flows.json` — remove openclaw-session edges; add direct-API edges | WP10 | | [D] |
+| T048 | Update `docs/design/architecture/data/credential-manifest.json` — note Anthropic key used by driver process | WP10 | | [D] |
+| T049 | Append a note to `docs/design/architecture/felix-d6-survey.md` acknowledging that #343 obsoletes the prior "low priority" verdict for felix-doc-auditor | WP10 | | [D] |
+| T050 | Write `docs/runbooks/doc-auditor-driver-ops.md` (FR-013) | WP10 | | [D] |
+| T051 | Update memory file `~/.claude/projects/-Users-kentgale-repos-kg-automation/memory/reference_felix_doc_auditor_ops.md` | WP10 | [D] |
 
 **Total**: 51 subtasks across 10 work packages. Average 5.1 subtasks/WP — within ideal range.
 
@@ -300,12 +300,12 @@ WP02 ──┤          ├─→ WP06 ──┐
 **Estimated prompt size**: ~300 lines
 
 **Included subtasks**:
-- [ ] T046 Update `service-inventory.json` — felix-doc-auditor entry
-- [ ] T047 Update `data-flows.json` — remove openclaw-session edges; add direct-API edges
-- [ ] T048 Update `credential-manifest.json` — note Anthropic key used by driver process
-- [ ] T049 Append note to `felix-d6-survey.md` acknowledging #343 obsoletes the prior verdict
-- [ ] T050 Write `docs/runbooks/doc-auditor-driver-ops.md`
-- [ ] T051 [P] Update memory file `reference_felix_doc_auditor_ops.md`
+- [x] T046 Update `service-inventory.json` — felix-doc-auditor entry
+- [x] T047 Update `data-flows.json` — remove openclaw-session edges; add direct-API edges
+- [x] T048 Update `credential-manifest.json` — note Anthropic key used by driver process
+- [x] T049 Append note to `felix-d6-survey.md` acknowledging #343 obsoletes the prior verdict
+- [x] T050 Write `docs/runbooks/doc-auditor-driver-ops.md`
+- [x] T051 [P] Update memory file `reference_felix_doc_auditor_ops.md`
 
 **Dependencies**: WP09 (needs the final-state to be live and verified)
 **Risks**: Doc drift if any architecture JSON has unrelated outstanding edits; mitigation = `updated_by` discipline + cross-check against markdown views.
