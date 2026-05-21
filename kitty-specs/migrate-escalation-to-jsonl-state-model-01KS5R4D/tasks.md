@@ -27,9 +27,9 @@ Breakdown of the implementation plan into independently-deliverable work package
 | T012 | Implement scripts/escalation/hard_fail.py — bug body + dedup query | WP04 | | [D] |
 | T013 | Integration with scripts/openclaw/agents/main/felix-file-issue.py | WP04 | | [D] |
 | T014 | Tests for hard_fail — dedup hit/miss, double-fire prevention, re-fire on close | WP04 | | [D] |
-| T015 | Implement scripts/escalation/reconcile_completions.py + ReconcileReport/HardFailEvent | WP05 | |
-| T016 | CLI surface for reconcile (--project-id, --all, --dry-run, --max-tasks, --quiet) | WP05 | |
-| T017 | Tests for reconcile — synthetic done, synthetic rescheduled, hard-fail integration | WP05 | |
+| T015 | Implement scripts/escalation/reconcile_completions.py + ReconcileReport/HardFailEvent | WP05 | | [D] |
+| T016 | CLI surface for reconcile (--project-id, --all, --dry-run, --max-tasks, --quiet) | WP05 | | [D] |
+| T017 | Tests for reconcile — synthetic done, synthetic rescheduled, hard-fail integration | WP05 | | [D] |
 | T018 | Implement scripts/escalation/backfill_jsonl_from_comments.py + snapshot writer | WP06 | | [D] |
 | T019 | CLI surface for backfill (--project-id, --all, --dry-run, --include-resolved) | WP06 | | [D] |
 | T020 | Tests for backfill — vocabulary mapping, malformed reporting, snapshot, dry-run | WP06 | | [D] |
@@ -177,9 +177,9 @@ Risks:
 
 Included subtasks:
 
-- [ ] T015 Implement scripts/escalation/reconcile_completions.py — reconcile_project + ReconcileReport + HardFailEvent (WP05)
-- [ ] T016 CLI surface (--project-id, --all, --dry-run, --max-tasks, --quiet) (WP05)
-- [ ] T017 Tests — synthetic done emission, synthetic rescheduled emission, hard-fail integration via WP04, multi-project sweep (WP05)
+- [x] T015 Implement scripts/escalation/reconcile_completions.py — reconcile_project + ReconcileReport + HardFailEvent (WP05)
+- [x] T016 CLI surface (--project-id, --all, --dry-run, --max-tasks, --quiet) (WP05)
+- [x] T017 Tests — synthetic done emission, synthetic rescheduled emission, hard-fail integration via WP04, multi-project sweep (WP05)
 
 Risks:
 - The "rescheduled then UI-edited" handling (research D3) is subtle. Tests must cover: (a) due_date changes after the last `rescheduled` record, (b) due_date changes with no prior `rescheduled`, (c) due_date matches a `dismissed` record (terminal — no emit).
