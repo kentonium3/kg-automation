@@ -189,3 +189,4 @@ spec-kitty agent action implement WP08 --mission migrate-escalation-to-jsonl-sta
 ## Activity Log
 
 - 2026-05-21T19:22:06Z – claude:opus:python-implementer:implementer – shell_pid=79560 – Assigned agent via action command
+- 2026-05-21T19:29:51Z – claude:opus:python-implementer:implementer – shell_pid=79560 – Ready for review — JSON arch docs + markdown views updated for new escalation helpers
