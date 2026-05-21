@@ -16,6 +16,8 @@ subtasks:
 - T012
 - T013
 - T014
+agent: "claude:opus:python-implementer:implementer"
+shell_pid: "94862"
 history:
 - at: '2026-05-21T17:45:30+00:00'
   actor: spec-kitty.tasks
@@ -208,3 +210,7 @@ All subprocess calls (`gh`, `felix-file-issue.py`) mocked via monkeypatched `sub
 ```bash
 spec-kitty agent action implement WP04 --mission migrate-escalation-to-jsonl-state-model-01KS5R4D --agent claude:opus:python-implementer:implementer
 ```
+
+## Activity Log
+
+- 2026-05-21T20:14:47Z – claude:opus:python-implementer:implementer – shell_pid=94862 – Started implementation via action command
