@@ -1,14 +1,3 @@
----
-affected_files: []
-cycle_number: 11
-mission_slug: refactor-doc-auditor-to-scripts-first-driver-01KS2XNX
-reproduction_command:
-reviewed_at: '2026-05-21T13:19:22Z'
-reviewer_agent: unknown
-verdict: rejected
-wp_id: WP06
----
-
 **Issue 1**: The missing-file edge case does not satisfy T029. The WP requires that when an audit references a missing file, the driver logs the error, files a debt issue noting the discrepancy, closes the audit with a summary, and continues processing. The current `FileNotFoundError` handler in `scripts/doc_audit/run.py` only appends `0` to `result.debt_filed` as a placeholder and marks the tick partial; it does not create a GitHub debt issue or close the originating audit. The integration test at `tests/doc_audit/test_integration_edge_cases.py` also encodes the weaker placeholder behavior, so it passes without verifying the required operator-visible GitHub side effects.
 
 How to fix: replace the placeholder path with real missing-file handling. On `FileNotFoundError`, create a `docs-debt` issue describing the missing referenced artifact and linking back to the audit, record the real created issue number in `result.debt_filed`, post/close the originating audit with a summary that names the missing file and debt issue, then continue to later signals. Update the integration test to assert the `gh issue create` and audit `gh issue close` calls and to reject placeholder issue number `0`.
