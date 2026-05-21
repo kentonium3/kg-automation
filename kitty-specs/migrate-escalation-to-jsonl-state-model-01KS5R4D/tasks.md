@@ -33,9 +33,9 @@ Breakdown of the implementation plan into independently-deliverable work package
 | T018 | Implement scripts/escalation/backfill_jsonl_from_comments.py + snapshot writer | WP06 | | [D] |
 | T019 | CLI surface for backfill (--project-id, --all, --dry-run, --include-resolved) | WP06 | | [D] |
 | T020 | Tests for backfill — vocabulary mapping, malformed reporting, snapshot, dry-run | WP06 | | [D] |
-| T021 | Update SKILL.md to invoke helpers via CLI + remove comment-parsing algorithm | WP07 | |
-| T022 | Update AGENTS.md to call helpers + remove parsing logic | WP07 | |
-| T023 | Audit both files for residual comment-parsing language + add v1→v2 transition note | WP07 | |
+| T021 | Update SKILL.md to invoke helpers via CLI + remove comment-parsing algorithm | WP07 | | [D] |
+| T022 | Update AGENTS.md to call helpers + remove parsing logic | WP07 | | [D] |
+| T023 | Audit both files for residual comment-parsing language + add v1→v2 transition note | WP07 | | [D] |
 | T024 | Update docs/design/architecture/data/service-inventory.json (register scripts/escalation/*) | WP08 | [D] |
 | T025 | Update docs/design/architecture/data/data-flows.json (new read/write paths) | WP08 | | [D] |
 | T026 | Update markdown architecture views to match JSON sources | WP08 | | [D] |
@@ -220,9 +220,9 @@ Risks:
 
 Included subtasks:
 
-- [ ] T021 Update scripts/openclaw/skills/escalation/SKILL.md — replace level-determination algorithm with helper invocation, remove comment-parsing (WP07)
-- [ ] T022 Update scripts/openclaw/agents/felix-admin-escalation/AGENTS.md — call helpers via CLI, remove parsing logic (WP07)
-- [ ] T023 Audit both files for residual comment-parsing language + add v1→v2 transition note (WP07)
+- [x] T021 Update scripts/openclaw/skills/escalation/SKILL.md — replace level-determination algorithm with helper invocation, remove comment-parsing (WP07)
+- [x] T022 Update scripts/openclaw/agents/felix-admin-escalation/AGENTS.md — call helpers via CLI, remove parsing logic (WP07)
+- [x] T023 Audit both files for residual comment-parsing language + add v1→v2 transition note (WP07)
 
 Risks:
 - The agent must still compose WhatsApp messages from JSONL state. The skill must explain HOW to render WhatsApp messages from `derive_state` output without re-introducing comment parsing.
