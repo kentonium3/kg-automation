@@ -7,12 +7,17 @@ api_key_path = "/data/services/openclaw/secrets/anthropic"
 max_tokens = 2048
 
 [paths]
-prompts_dir = "/data/services/openclaw/felix-doc-auditor-driver/prompts"
+# Version-controlled artifacts — read from repo at canonical paths (#361).
+# These files live in git, are deployed via `git pull`, and never need to be
+# copied into the state dir. Symlinking from state-dir is unnecessary band-aid.
+prompts_dir = "/home/claude/kg-automation/scripts/doc_audit/prompts"
+signal_to_doc_map = "/home/claude/kg-automation/docs/design/architecture/data/signal-to-doc-map.json"
+doc_domain_map = "/home/claude/kg-automation/docs/design/architecture/data/doc-domain-map.json"
+
+# Mutable runtime artifacts — live in state dir or shared logs.
 drift_events = "/data/services/security-monitor/logs/drift-events.jsonl"
 drift_cursor = "/data/services/security-monitor/.drift-events.cursor"
 drift_unmapped = "/data/services/security-monitor/logs/unmapped-events.jsonl"
-signal_to_doc_map = "/data/services/openclaw/felix-doc-auditor-driver/signal-to-doc-map.json"
-doc_domain_map = "/data/services/openclaw/felix-doc-auditor-driver/doc-domain-map.json"
 activity_log_dir = "/home/kgale/second-brain/agents/logs"
 tick_signal_path = "/data/services/openclaw/felix-doc-auditor-driver/last-tick.json"
 
