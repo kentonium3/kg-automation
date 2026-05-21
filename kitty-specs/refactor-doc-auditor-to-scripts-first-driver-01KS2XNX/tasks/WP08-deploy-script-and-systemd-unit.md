@@ -15,7 +15,8 @@ subtasks:
 - T039
 phase: Phase 4 — Verification
 assignee: ''
-agent: ''
+agent: "claude:opus-4.7:implementer:implementer"
+shell_pid: "22287"
 history:
 - timestamp: '2026-05-20T16:25:00Z'
   agent: system
@@ -335,3 +336,7 @@ spec-kitty agent action implement WP08 --agent <name>
 - **Research**: D10 (cutover sequence)
 - **Spec**: FR-010 (retire old agent), C-007 (fail-forward), C-004 (queue-drained at deploy)
 - **Existing deploy patterns**: `scripts/office2/deploy/felix-doc-auditor.sh` (the old agent's deploy script — reference for style)
+
+## Activity Log
+
+- 2026-05-21T13:49:02Z – claude:opus-4.7:implementer:implementer – shell_pid=22287 – Started implementation via action command
