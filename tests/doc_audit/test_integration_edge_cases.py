@@ -212,7 +212,13 @@ def test_audit_references_missing_file(
     monkeypatch: pytest.MonkeyPatch,
     mock_anthropic: Any,
 ) -> None:
-    """Audit's routing surfaces FileNotFoundError → debt marker + continue."""
+    """Audit's routing surfaces FileNotFoundError → REAL debt issue filed
+    + originating audit closed + real issue number in debt_filed.
+
+    Post-#348 behavior: the driver no longer records a placeholder ``0``.
+    It files a real ``docs-debt`` issue, comments on the originating
+    audit with the cross-reference, and closes the audit.
+    """
     audits = [
         {
             "number": 8500,
@@ -222,30 +228,101 @@ def test_audit_references_missing_file(
             "createdAt": "2026-05-20T11:30:00Z",
         }
     ]
-    _make_gh_router(monkeypatch, list_by_label={"doc-audit": audits})
+
+    # Custom router that handles BOTH list/view queries AND the missing-
+    # file debt-filing ops (create/comment/close). Returns a fake issue
+    # #9999 URL on `gh issue create`.
+    gh_calls: list[list[str]] = []
+
+    def fake_run(cmd, *args, **kwargs):
+        if not (isinstance(cmd, (list, tuple)) and cmd and cmd[0] == "gh"):
+            raise RuntimeError(f"unexpected non-gh subprocess: {cmd!r}")
+        cmd = list(cmd)
+        gh_calls.append(cmd)
+        # gh issue list --label doc-audit → audits fixture
+        if (
+            len(cmd) >= 3 and cmd[1] == "issue" and cmd[2] == "list"
+            and "--label" in cmd
+        ):
+            label_idx = cmd.index("--label")
+            if label_idx + 1 < len(cmd) and cmd[label_idx + 1] == "doc-audit":
+                return subprocess.CompletedProcess(
+                    cmd, 0, stdout=json.dumps(audits), stderr="",
+                )
+            return subprocess.CompletedProcess(
+                cmd, 0, stdout="[]", stderr="",
+            )
+        # gh issue view <N> → empty (no in-progress recovery context)
+        if cmd[1] == "issue" and cmd[2] == "view":
+            return subprocess.CompletedProcess(
+                cmd, 0, stdout="{}", stderr="",
+            )
+        # gh issue create → fake URL with issue #9999
+        if cmd[1] == "issue" and cmd[2] == "create":
+            return subprocess.CompletedProcess(
+                cmd, 0,
+                stdout=(
+                    "https://github.com/kentonium3/kg-automation/"
+                    "issues/9999\n"
+                ),
+                stderr="",
+            )
+        # gh issue comment, close, edit, etc. → succeed silently
+        return subprocess.CompletedProcess(cmd, 0, stdout="", stderr="")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
 
     def fake_apply(*args, **kwargs):
+        # Raise with a real filename so the helper has a path to file
+        # the debt issue against.
         raise FileNotFoundError(
-            "doc not found: docs/missing-doc.md"
+            2, "No such file or directory",
+            "docs/design/architecture/missing-doc.md",
         )
 
     monkeypatch.setattr(run, "apply_routing", fake_apply)
 
     exit_code = run.main(["--config", str(_config_path(tmp_config))])
 
-    # Single-signal failure → partial
-    assert exit_code in (1, 2)
+    assert exit_code in (1, 2)  # partial / failure status
     signal = _read_tick_signal(tmp_config)
     assert signal["status"] in ("partial", "failure")
-    # A debt placeholder is recorded.
-    assert signal["tick"]["debt_filed"], (
-        f"expected debt placeholder for missing file; got "
+
+    # Post-#348: a REAL issue number is recorded, NOT a placeholder 0.
+    assert signal["tick"]["debt_filed"] == [9999], (
+        f"expected real debt issue [9999] for missing file; got "
         f"{signal['tick']['debt_filed']}"
     )
+
+    # Error message still recorded for operator visibility.
     assert any(
-        "missing file" in err.lower() or "doc not found" in err.lower()
+        "missing file" in err.lower() or "missing-doc.md" in err.lower()
         for err in signal["errors"]
     ), f"expected missing-file marker; got {signal['errors']}"
+
+    # Verify the 3 gh operations happened.
+    has_create = any(
+        "create" in c and "docs-debt" in c and "missing-doc.md" in " ".join(c)
+        for c in gh_calls
+    )
+    has_comment = any(
+        "comment" in c and "8500" in c for c in gh_calls
+    )
+    has_close = any(
+        "close" in c and "8500" in c for c in gh_calls
+    )
+    assert has_create, (
+        f"expected gh issue create with docs-debt + filename; "
+        f"got {[' '.join(c) for c in gh_calls]}"
+    )
+    assert has_comment, (
+        f"expected gh issue comment 8500 (audit cross-reference); "
+        f"got {[' '.join(c) for c in gh_calls]}"
+    )
+    assert has_close, (
+        f"expected gh issue close 8500 (audit closed); "
+        f"got {[' '.join(c) for c in gh_calls]}"
+    )
 
 
 # ---------------------------------------------------------------------------

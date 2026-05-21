@@ -1817,6 +1817,162 @@ def _fetch_originating_audit(
     )
 
 
+def _handle_missing_file_signal(
+    config: Config,
+    signal: Any,
+    exc: FileNotFoundError,
+    result: TickResult,
+) -> Optional[int]:
+    """Fix #348 (post-cutover follow-on).
+
+    Handle a ``FileNotFoundError`` raised mid-audit because the referenced
+    doc no longer exists. Per spec FR-005 + WP06 T029 step 3, the driver
+    must:
+
+    1. File a real ``docs-debt`` issue noting the missing path
+    2. Close the originating audit with a summary comment
+    3. Record the real issue number (NOT a placeholder ``0``)
+
+    Returns the new debt issue number on success, or ``None`` if filing
+    or closure failed. Failures append messages to ``result.errors`` but
+    do NOT raise — the tick continues.
+
+    Only applies to ``doc_audit`` / ``weekly_doc_audit`` signals.
+    Pending-approval and drift-event signals bubble the exception up as
+    a non-specific failure (signal.id appears in ``result.errors``).
+    """
+    if signal.kind not in ("doc_audit", "weekly_doc_audit"):
+        return None
+
+    payload = signal.payload or {}
+    audit_number = int(payload.get("issue_number", 0))
+    if audit_number <= 0:
+        logger.warning(
+            "_handle_missing_file_signal: no issue_number in payload"
+        )
+        return None
+
+    missing_path = exc.filename or "(unknown)"
+    area_labels = [
+        lab for lab in payload.get("labels", [])
+        if isinstance(lab, str) and lab.startswith("area/")
+    ]
+    title = (
+        f"Docs: audit #{audit_number} references missing file "
+        f"`{missing_path.split('/')[-1] or missing_path}`"
+    )
+    body = "\n".join([
+        "## Origin",
+        "",
+        (
+            f"Filed automatically by `felix-doc-auditor-driver` while "
+            f"processing audit #{audit_number}. The audit's referenced "
+            f"doc was not found at audit time:"
+        ),
+        "",
+        f"```\n{missing_path}\n```",
+        "",
+        f"Refs #{audit_number}",
+        "",
+        "## What happened",
+        "",
+        (
+            "The driver attempted to read this path as part of an "
+            "in-scope audit, but the file does not exist (or is not "
+            "reachable from the audit's working tree)."
+        ),
+        "",
+        "## Suggested follow-up",
+        "",
+        (
+            "Determine whether the path was deleted intentionally, "
+            "renamed, or moved. If deleted: update the audit's "
+            "originating doc to remove the stale reference. If "
+            "renamed/moved: update the reference (or this driver's "
+            "domain-map entry) to the new path."
+        ),
+        "",
+        "## Success criteria",
+        "",
+        "- [ ] Determine why the path is missing (deleted/renamed/moved)",
+        "- [ ] Update the referring doc OR file a follow-up to migrate",
+        "- [ ] Close this debt issue once resolved",
+    ]) + "\n"
+
+    cmd = [
+        "gh", "issue", "create",
+        "--repo", config.github.repo,
+        "--title", title,
+        "--body", body,
+        "--label", "docs-debt",
+        "--label", "P2-debt",
+    ]
+    for lab in area_labels:
+        cmd.extend(["--label", lab])
+
+    try:
+        completed = subprocess.run(
+            cmd, capture_output=True, text=True, check=True
+        )
+    except subprocess.CalledProcessError as e:
+        if _is_rate_limited(e):
+            raise RateLimitError(
+                f"GH rate-limit filing missing-file debt for "
+                f"audit #{audit_number}"
+            ) from e
+        msg = (
+            f"missing-file debt filing failed for audit "
+            f"#{audit_number}: rc={e.returncode} "
+            f"stderr={(e.stderr or '').strip()!r}"
+        )
+        logger.warning(msg)
+        result.errors.append(msg)
+        return None
+
+    issue_num = _parse_pa_issue_number_from_url(completed.stdout)
+    if issue_num is None:
+        logger.warning(
+            "missing-file debt filed but could not parse issue URL"
+        )
+        return None
+
+    # Close the originating audit with a summary comment referencing the
+    # new debt issue. Best-effort; failures here are non-fatal.
+    summary = (
+        f"Auto-closed by felix-doc-auditor-driver: this audit's referenced "
+        f"file `{missing_path}` was not found at audit time. Tracked as "
+        f"debt issue #{issue_num}. Resolve there."
+    )
+    try:
+        subprocess.run(
+            [
+                "gh", "issue", "comment", str(audit_number),
+                "--repo", config.github.repo,
+                "--body", summary,
+            ],
+            capture_output=True, text=True, check=True,
+        )
+        subprocess.run(
+            [
+                "gh", "issue", "close", str(audit_number),
+                "--repo", config.github.repo,
+                "--reason", "completed",
+            ],
+            capture_output=True, text=True, check=True,
+        )
+    except subprocess.CalledProcessError as e:
+        # Closing the audit is best-effort; the debt issue carries the
+        # follow-up state.
+        msg = (
+            f"missing-file: audit close failed for #{audit_number}: "
+            f"rc={e.returncode} stderr={(e.stderr or '').strip()!r}"
+        )
+        logger.warning(msg)
+        result.errors.append(msg)
+
+    return issue_num
+
+
 def _file_debt_for_rejected_edit(
     config: Config,
     edit: ProposedEdit,
@@ -2438,14 +2594,18 @@ def _run_tick(
                 if result.status == "success":
                     result.status = "partial"
         except FileNotFoundError as exc:
-            # Audit references a missing file — file a debt issue
-            # marker and continue.
+            # Audit references a missing file — file a real debt issue +
+            # close the audit. Fixes #348 (cycle-5 deferred half-handling).
             msg = (
                 f"signal {signal.id} references missing file: {exc}"
             )
             logger.error(msg)
             result.errors.append(msg)
-            result.debt_filed.append(0)  # placeholder count
+            issue_num = _handle_missing_file_signal(
+                config, signal, exc, result,
+            )
+            if issue_num is not None:
+                result.debt_filed.append(issue_num)
             if result.status == "success":
                 result.status = "partial"
         except Exception as exc:
