@@ -1,14 +1,3 @@
----
-affected_files: []
-cycle_number: 5
-mission_slug: refactor-doc-auditor-to-scripts-first-driver-01KS2XNX
-reproduction_command:
-reviewed_at: '2026-05-21T14:06:55Z'
-reviewer_agent: unknown
-verdict: rejected
-wp_id: WP08
----
-
 **Issue 1**: `scripts/office2/deploy/felix-doc-auditor-driver.sh` step 5 silently treats `openclaw agents list` failures as "already deregistered." Both the presence check and the apply-mode post-condition pipe `openclaw agents list 2>/dev/null` into `grep`; if the `openclaw` CLI is missing, the gateway/API is unreachable, or the list command syntax changes, the pipeline simply evaluates false and the script proceeds. In `--apply --backup-confirmed`, that means step 6 can delete `/data/services/openclaw/felix-doc-auditor/` without verifying that the old OpenClaw registration was actually retired, violating FR-010 and the WP requirement that command failures print `STEP FAILED` and exit non-zero.
 
 Fix by capturing the agent list output with an explicit error check before grepping, for example:
