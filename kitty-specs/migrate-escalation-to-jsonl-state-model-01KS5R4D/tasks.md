@@ -18,9 +18,9 @@ Breakdown of the implementation plan into independently-deliverable work package
 | T003 | Implement scripts/escalation/schema.py (EVENT_TYPE_PARAMETERS + validators) | WP01 | | [D] |
 | T004 | Create tests/escalation/__init__.py + conftest.py with shared fixtures | WP01 | [D] |
 | T005 | Tests for schema.py — every event_type validation path | WP01 | | [D] |
-| T006 | Implement scripts/escalation/derive_state.py (pure function + dataclasses) | WP02 | |
-| T007 | Debug CLI for derive_state.py (--task-id + --project-id) | WP02 | [P] |
-| T008 | Tests for derive_state — every event_type path, terminal states, snooze expiry | WP02 | |
+| T006 | Implement scripts/escalation/derive_state.py (pure function + dataclasses) | WP02 | | [D] |
+| T007 | Debug CLI for derive_state.py (--task-id + --project-id) | WP02 | [D] |
+| T008 | Tests for derive_state — every event_type path, terminal states, snooze expiry | WP02 | | [D] |
 | T009 | Implement scripts/escalation/record_completion.py with three-write ordering | WP03 | |
 | T010 | CLI surface for record_completion (argparse + exit codes 0/1/2/3) | WP03 | |
 | T011 | Tests for record_completion — happy paths + failure modes + idempotency | WP03 | |
@@ -111,9 +111,9 @@ Risks:
 
 Included subtasks:
 
-- [ ] T006 Implement scripts/escalation/derive_state.py with EscalationState dataclass + EscalationStateError (WP02)
-- [ ] T007 Debug CLI for derive_state.py (WP02)
-- [ ] T008 Tests for derive_state — every event_type path, terminal states, snooze expiry, error surface (WP02)
+- [x] T006 Implement scripts/escalation/derive_state.py with EscalationState dataclass + EscalationStateError (WP02)
+- [x] T007 Debug CLI for derive_state.py (WP02)
+- [x] T008 Tests for derive_state — every event_type path, terminal states, snooze expiry, error surface (WP02)
 
 Risks:
 - The policy walk has subtle ordering: terminal → snoozed-active → rescheduled-future → most-recent-level. Reviewer must verify each branch is reachable from at least one test fixture.
