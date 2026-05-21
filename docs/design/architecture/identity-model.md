@@ -52,14 +52,14 @@ Felix agents act under dedicated service-account identities, distinct from Kent'
 
 ### `kg-felix-bot` — GitHub
 
-The shared GitHub service account for all Felix agents (currently `felix-doc-auditor`). This separation is load-bearing for `felix-doc-auditor`'s Level-1 gate (see [AGENTS.md §8.6](<../../../scripts/openclaw/agents/felix-doc-auditor/AGENTS.md>)), where the agent must verify that an approval label was applied by a human and not by itself.
+The shared GitHub service account for all Felix agents (currently `felix-doc-auditor-driver`). This separation is load-bearing for the driver's Level-1 gate (the `_get_decision_actor` helper in [`scripts/doc_audit/run.py`](<../../../scripts/doc_audit/run.py>), implementing the actor-verification check from [`scripts/openclaw/skills/doc-audit/SKILL.md` §8.6](<../../../scripts/openclaw/skills/doc-audit/SKILL.md>)), where the driver must verify that an approval label was applied by a human and not by itself. The agent-AGENTS.md path referenced in pre-#343 docs no longer exists; the SKILL.md remains as the canonical specification of the actor-verification rule.
 
 | Field | Value |
 |---|---|
 | Surface | GitHub (`github.com/kentonium3/kg-automation`) |
 | Username | `kg-felix-bot` |
 | Repo role | Collaborator on `kentonium3/kg-automation` |
-| Currently used by | `felix-doc-auditor` |
+| Currently used by | `felix-doc-auditor-driver` (post-#343) |
 | Email | `kentgale+felix-bot@gmail.com` (routes to `kentgale@gmail.com`) |
 | TOTP / 2FA | Enabled |
 | Credential | `kg-felix-bot-pat` — see [`credential-manifest.json`](<./data/credential-manifest.json>) |

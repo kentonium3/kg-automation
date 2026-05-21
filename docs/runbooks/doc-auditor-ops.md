@@ -9,6 +9,16 @@ updated_by: '#226 + doc-audit followup'
 
 # Doc Auditor Operations Runbook
 
+> ⚠ **HISTORICAL — superseded 2026-05-21 by [`doc-auditor-driver-ops.md`](<./doc-auditor-driver-ops.md>)** (mission #343).
+> The openclaw-agent-based auditor described below was retired during the
+> [#343 cutover](<../design/architecture/baselines/cutover-log.md>) and
+> replaced with a scripts-first Python driver. The architecture, invocation,
+> health-check, and recovery procedures here no longer apply to the running
+> system. Use the new runbook for operational procedures.
+> Retained here for reference (pre-#343 implementation history) — broken
+> internal links to deleted agent workspace files are intentional artifacts
+> of that retirement.
+
 This runbook covers day-to-day operations for the `felix-doc-auditor` agent —
 the autonomous OpenClaw agent that processes documentation audit issues
 created by `doc-audit-trigger.yml` (per-merge) and `doc-audit-weekly.yml`
