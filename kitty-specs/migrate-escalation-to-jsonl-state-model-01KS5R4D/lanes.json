@@ -1,0 +1,125 @@
+{
+  "version": 1,
+  "mission_slug": "migrate-escalation-to-jsonl-state-model-01KS5R4D",
+  "mission_id": "01KS5R4D79WQQWY2MCHZVCT85G",
+  "mission_branch": "kitty/mission-migrate-escalation-to-jsonl-state-model-01KS5R4D",
+  "target_branch": "main",
+  "lanes": [
+    {
+      "lane_id": "lane-a",
+      "wp_ids": [
+        "WP01",
+        "WP02",
+        "WP03",
+        "WP04",
+        "WP05",
+        "WP06",
+        "WP07",
+        "WP09"
+      ],
+      "write_scope": [
+        "docs/runbooks/escalation-ops.md",
+        "kitty-specs/migrate-escalation-to-jsonl-state-model-01KS5R4D/SOAK.md",
+        "kitty-specs/migrate-escalation-to-jsonl-state-model-01KS5R4D/quickstart.md",
+        "scripts/common/state_log_schema.py",
+        "scripts/escalation/__init__.py",
+        "scripts/escalation/backfill_jsonl_from_comments.py",
+        "scripts/escalation/derive_state.py",
+        "scripts/escalation/hard_fail.py",
+        "scripts/escalation/reconcile_completions.py",
+        "scripts/escalation/record_completion.py",
+        "scripts/escalation/schema.py",
+        "scripts/openclaw/agents/felix-admin-escalation/AGENTS.md",
+        "scripts/openclaw/skills/escalation/SKILL.md",
+        "tests/escalation/__init__.py",
+        "tests/escalation/conftest.py",
+        "tests/escalation/test_backfill.py",
+        "tests/escalation/test_derive_state.py",
+        "tests/escalation/test_hard_fail.py",
+        "tests/escalation/test_reconcile_completions.py",
+        "tests/escalation/test_record_completion.py",
+        "tests/escalation/test_schema.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "artifact-rendering",
+        "legacy-cleanup",
+        "tracker-integration"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    },
+    {
+      "lane_id": "lane-b",
+      "wp_ids": [
+        "WP08"
+      ],
+      "write_scope": [
+        "docs/design/architecture/data-flows.view.md",
+        "docs/design/architecture/data/data-flows.json",
+        "docs/design/architecture/data/service-inventory.json",
+        "docs/design/architecture/services.view.md"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "tracker-integration"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    }
+  ],
+  "computed_at": "2026-05-21T17:59:17.282961+00:00",
+  "computed_from": "dependency_graph+ownership",
+  "planning_artifact_wps": [],
+  "collapse_report": {
+    "events": [
+      {
+        "wp_a": "WP02",
+        "wp_b": "WP01",
+        "rule": "dependency",
+        "evidence": "WP02 depends on WP01"
+      },
+      {
+        "wp_a": "WP03",
+        "wp_b": "WP02",
+        "rule": "dependency",
+        "evidence": "WP03 depends on WP02"
+      },
+      {
+        "wp_a": "WP04",
+        "wp_b": "WP02",
+        "rule": "dependency",
+        "evidence": "WP04 depends on WP02"
+      },
+      {
+        "wp_a": "WP05",
+        "wp_b": "WP03",
+        "rule": "dependency",
+        "evidence": "WP05 depends on WP03"
+      },
+      {
+        "wp_a": "WP06",
+        "wp_b": "WP03",
+        "rule": "dependency",
+        "evidence": "WP06 depends on WP03"
+      },
+      {
+        "wp_a": "WP07",
+        "wp_b": "WP03",
+        "rule": "dependency",
+        "evidence": "WP07 depends on WP03"
+      },
+      {
+        "wp_a": "WP09",
+        "wp_b": "WP07",
+        "rule": "dependency",
+        "evidence": "WP09 depends on WP07"
+      }
+    ],
+    "total_merges": 7,
+    "independent_wps_collapsed": 0,
+    "by_rule": {
+      "dependency": 7
+    }
+  }
+}
