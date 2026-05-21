@@ -8,5 +8,6 @@
   "slug": "migrate-escalation-to-jsonl-state-model-01KS5R4D",
   "source_description": "GitHub issue #309 — ADR-0002 Phase 6. Migrate escalation subsystem from [Felix-Escalation] comment-as-state to JSONL-canonical state. Discovery answers (2026-05-21): (Q1=A) flat-enum schema with structured parameter fields; (Q2=B) snooze_until persisted at write-time; (Q3=B) title-prefix dedup keyed on immutable Vikunja id. Soak: 3 days post-cutover (adjusted from 7 per Kent — no quality info gained from longer window).",
   "target_branch": "main",
-  "vcs": "git"
+  "vcs": "git",
+  "change_mode": "regular"
 }
