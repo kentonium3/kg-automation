@@ -1,28 +1,28 @@
 {
-  "event_count": 27,
-  "last_event_id": "01KS61Z37V3TGM0DD6WSWXP344",
-  "materialized_at": "2026-05-21T19:59:56.667848+00:00",
+  "event_count": 29,
+  "last_event_id": "01KS6257Q6T91JEGVJR7707YJT",
+  "materialized_at": "2026-05-21T20:03:17.862640+00:00",
   "mission_number": "",
   "mission_slug": "migrate-escalation-to-jsonl-state-model-01KS5R4D",
   "mission_type": "software-dev",
   "summary": {
-    "approved": 0,
+    "approved": 2,
     "blocked": 0,
     "canceled": 0,
     "claimed": 0,
     "done": 0,
     "for_review": 0,
     "in_progress": 0,
-    "in_review": 2,
+    "in_review": 0,
     "planned": 7
   },
   "work_packages": {
     "WP01": {
-      "actor": "codex:gpt-5:spec-kitty-review:reviewer",
-      "force_count": 2,
-      "lane": "in_review",
-      "last_event_id": "01KS61YSD8ZBX00E4SGJJMR55Z",
-      "last_transition_at": "2026-05-21T19:59:46.600518+00:00"
+      "actor": "user",
+      "force_count": 3,
+      "lane": "approved",
+      "last_event_id": "01KS6257Q6T91JEGVJR7707YJT",
+      "last_transition_at": "2026-05-21T20:03:17.862640+00:00"
     },
     "WP02": {
       "actor": "finalize-tasks",
@@ -67,11 +67,11 @@
       "last_transition_at": "2026-05-21T17:59:17.262708+00:00"
     },
     "WP08": {
-      "actor": "codex:gpt-5:spec-kitty-review:reviewer",
+      "actor": "user",
       "force_count": 2,
-      "lane": "in_review",
-      "last_event_id": "01KS61Z37V3TGM0DD6WSWXP344",
-      "last_transition_at": "2026-05-21T19:59:56.667848+00:00"
+      "lane": "approved",
+      "last_event_id": "01KS624WNYH1PVJRXHQ04HREM4",
+      "last_transition_at": "2026-05-21T20:03:06.558146+00:00"
     },
     "WP09": {
       "actor": "finalize-tasks",

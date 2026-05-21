@@ -195,3 +195,4 @@ spec-kitty agent action implement WP08 --mission migrate-escalation-to-jsonl-sta
 - 2026-05-21T19:44:49Z – claude:opus:python-implementer:implementer – shell_pid=86567 – Started implementation via action command
 - 2026-05-21T19:51:03Z – claude:opus:python-implementer:implementer – shell_pid=86567 – Fix applied: hard_fail separated from schema; per-helper metadata added per T024.
 - 2026-05-21T19:59:56Z – codex:gpt-5:spec-kitty-review:reviewer – shell_pid=89971 – Started review via action command
+- 2026-05-21T20:03:06Z – codex:gpt-5:spec-kitty-review:reviewer – shell_pid=89971 – Review passed: hard_fail.py is separated from schema.py across JSON and markdown views; all six escalation helpers have required per-helper metadata. JSON parse checks passed. validate_docs.py is still blocked by pre-existing docs/design/architecture/baselines/cutover-log.md frontmatter outside the WP08 diff.
