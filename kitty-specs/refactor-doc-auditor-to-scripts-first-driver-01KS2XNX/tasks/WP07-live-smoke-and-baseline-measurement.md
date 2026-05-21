@@ -307,3 +307,4 @@ spec-kitty agent action implement WP07 --agent <name>
 ## Activity Log
 
 - 2026-05-21T13:21:22Z – claude:opus-4.7:implementer:implementer – shell_pid=16281 – Started implementation via action command
+- 2026-05-21T13:32:50Z – claude:opus-4.7:implementer:implementer – shell_pid=16281 – Ready for review: live_smoke pytest marker registered + 2 smoke tests (skip-by-default); pre-rework baseline JSON with 3 outcomes (28 empty / 4 debt_only / 2 tier_a_apply) from 33h natural-traffic window; measure-tokens.py helper for repeatable measurement; README explains directory purpose and reproduction steps.
