@@ -23,8 +23,8 @@ subtasks:
 - T031
 phase: Phase 3 — Integration
 assignee: ''
-agent: "claude:opus-4.7:implementer:implementer"
-shell_pid: "12761"
+agent: "codex:gpt-5:spec-kitty-review:reviewer"
+shell_pid: "15196"
 history:
 - timestamp: '2026-05-20T16:25:00Z'
   agent: system
@@ -473,3 +473,4 @@ spec-kitty agent action implement WP06 --agent <name>
 - 2026-05-20T22:33:58Z – codex:gpt-5:spec-kitty-review:reviewer – shell_pid=3291 – Moved to planned
 - 2026-05-21T13:03:50Z – claude:opus-4.7:implementer:implementer – shell_pid=12761 – Started implementation via action command
 - 2026-05-21T13:16:43Z – claude:opus-4.7:implementer:implementer – shell_pid=12761 – Cycle 5: pending-approval routing wired; all-signals-fail bumps to failure; F3 still deferred
+- 2026-05-21T13:17:34Z – codex:gpt-5:spec-kitty-review:reviewer – shell_pid=15196 – Started review via action command
