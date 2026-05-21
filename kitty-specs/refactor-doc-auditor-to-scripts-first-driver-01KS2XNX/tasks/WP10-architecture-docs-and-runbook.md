@@ -18,8 +18,8 @@ subtasks:
 - T051
 phase: Phase 6 — Final docs
 assignee: ''
-agent: "claude:opus-4.7:implementer:implementer"
-shell_pid: "43493"
+agent: "codex:gpt-5:spec-kitty-review:reviewer"
+shell_pid: "44410"
 history:
 - timestamp: '2026-05-20T16:25:00Z'
   agent: system
@@ -398,3 +398,4 @@ spec-kitty agent action implement WP10 --agent <name>
 - 2026-05-21T15:18:29Z – codex:gpt-5:spec-kitty-review:reviewer – shell_pid=40983 – Moved to planned
 - 2026-05-21T15:21:03Z – claude:opus-4.7:implementer:implementer – shell_pid=43493 – Started implementation via action command
 - 2026-05-21T15:25:10Z – claude:opus-4.7:implementer:implementer – shell_pid=43493 – Cycle 4: data-flows views (md, view.md, mmd) updated to match JSON
+- 2026-05-21T15:25:48Z – codex:gpt-5:spec-kitty-review:reviewer – shell_pid=44410 – Started review via action command
