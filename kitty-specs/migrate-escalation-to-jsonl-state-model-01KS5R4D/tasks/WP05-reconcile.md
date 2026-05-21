@@ -223,3 +223,4 @@ spec-kitty agent action implement WP05 --mission migrate-escalation-to-jsonl-sta
 - 2026-05-21T20:46:42Z – claude:opus:python-implementer:implementer – shell_pid=5187 – Started implementation via action command
 - 2026-05-21T20:57:51Z – claude:opus:python-implementer:implementer – shell_pid=5187 – Ready for review — all 3 detection paths tested + hard-fail integration
 - 2026-05-21T21:07:28Z – codex:gpt-5:spec-kitty-review:reviewer – shell_pid=9013 – Started review via action command
+- 2026-05-21T21:11:44Z – codex:gpt-5:spec-kitty-review:reviewer – shell_pid=9013 – Moved to planned
