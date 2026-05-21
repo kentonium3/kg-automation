@@ -18,8 +18,8 @@ subtasks:
 - T051
 phase: Phase 6 — Final docs
 assignee: ''
-agent: "claude:opus-4.7:implementer:implementer"
-shell_pid: "37078"
+agent: "codex:gpt-5:spec-kitty-review:reviewer"
+shell_pid: "38260"
 history:
 - timestamp: '2026-05-20T16:25:00Z'
   agent: system
@@ -390,3 +390,4 @@ spec-kitty agent action implement WP10 --agent <name>
 - 2026-05-21T14:55:42Z – codex:gpt-5:spec-kitty-review:reviewer – shell_pid=36057 – Moved to planned
 - 2026-05-21T14:55:47Z – claude:opus-4.7:implementer:implementer – shell_pid=37078 – Started implementation via action command
 - 2026-05-21T15:00:31Z – claude:opus-4.7:implementer:implementer – shell_pid=37078 – Cycle 2: 3 findings fixed
+- 2026-05-21T15:01:08Z – codex:gpt-5:spec-kitty-review:reviewer – shell_pid=38260 – Started review via action command
