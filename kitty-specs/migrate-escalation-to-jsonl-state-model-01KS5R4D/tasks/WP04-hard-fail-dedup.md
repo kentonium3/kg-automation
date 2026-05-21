@@ -16,8 +16,8 @@ subtasks:
 - T012
 - T013
 - T014
-agent: "claude:opus:python-implementer:implementer"
-shell_pid: "98523"
+agent: "codex:gpt-5:spec-kitty-review:reviewer"
+shell_pid: "729"
 history:
 - at: '2026-05-21T17:45:30+00:00'
   actor: spec-kitty.tasks
@@ -219,3 +219,4 @@ spec-kitty agent action implement WP04 --mission migrate-escalation-to-jsonl-sta
 - 2026-05-21T20:26:02Z – codex:gpt-5:spec-kitty-review:reviewer – shell_pid=96577 – Moved to planned
 - 2026-05-21T20:27:59Z – claude:opus:python-implementer:implementer – shell_pid=98523 – Started implementation via action command
 - 2026-05-21T20:34:03Z – claude:opus:python-implementer:implementer – shell_pid=98523 – Fix applied: em dash + C-006 render-level redaction. Cycle 1 fix.
+- 2026-05-21T20:34:29Z – codex:gpt-5:spec-kitty-review:reviewer – shell_pid=729 – Started review via action command
