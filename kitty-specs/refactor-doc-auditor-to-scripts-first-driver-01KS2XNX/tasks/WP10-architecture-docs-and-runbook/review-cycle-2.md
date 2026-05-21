@@ -1,0 +1,16 @@
+---
+affected_files: []
+cycle_number: 2
+mission_slug: refactor-doc-auditor-to-scripts-first-driver-01KS2XNX
+reproduction_command:
+reviewed_at: '2026-05-21T14:54:27Z'
+reviewer_agent: unknown
+verdict: rejected
+wp_id: WP10
+---
+
+**Issue 1**: `docs/design/architecture/data/data-flows.json` does not set `updated_by` on the touched doc-audit flow entries, even though WP10's Definition of Done requires `updated_by: #343` on every modified JSON entry. The new `doc-audit-driver-tick` and `doc-audit-credential-read` entries currently have `deployed_by` / `introduced_by` but no entry-level `updated_by`. Add `updated_by: "#343-refactor-doc-auditor-to-scripts-first-driver"` (or the repo's accepted `#343` form) to each touched flow entry.
+
+**Issue 2**: `docs/design/architecture/data/data-flows.json` does not preserve the requested flow names for the two required new edges. T047 explicitly calls for `direct-claude-api` for the driver-to-Anthropic edge and `tick-signal-write` for the driver-to-`last-tick.json` edge. The implementation documents those edges only as path items inside `doc-audit-driver-tick`, so downstream readers cannot discover the requested authoritative flow names. Add or split entries so those flow names are present while keeping the existing direct-API and tick-signal details.
+
+**Issue 3**: `docs/runbooks/doc-auditor-driver-ops.md` includes stale or non-existent paths in operator-facing material, which violates T050's "All command examples are tested" / "Cross-references are correct" validation. Specifically: the source tree lists `scripts/doc_audit/adapters/`, but the implemented package has `scripts/doc_audit/signals/`; the pending-approval section points to `scripts/doc_audit/actor_verification.py`, which does not exist; and the re-baselining command uses `/home/claude/kg-automation/scripts/doc_audit/measure_tokens.py`, while the checked-in helper is `scripts/doc_audit/baselines/measure-tokens.py`. Update those references/commands to the actual paths and rerun the relevant local path checks.
