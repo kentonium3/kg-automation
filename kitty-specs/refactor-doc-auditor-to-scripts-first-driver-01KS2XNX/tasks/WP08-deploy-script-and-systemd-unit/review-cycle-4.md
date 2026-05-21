@@ -1,14 +1,3 @@
----
-affected_files: []
-cycle_number: 5
-mission_slug: refactor-doc-auditor-to-scripts-first-driver-01KS2XNX
-reproduction_command:
-reviewed_at: '2026-05-21T14:18:16Z'
-reviewer_agent: unknown
-verdict: rejected
-wp_id: WP08
----
-
 **Issue 1**: `scripts/office2/deploy/felix-doc-auditor-driver.sh` does not wrap mutating commands with the required `STEP FAILED` failure reporting. Commands executed through `run_cmd` rely on `set -e`:
 
 ```bash
