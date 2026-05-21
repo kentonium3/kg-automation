@@ -311,3 +311,4 @@ spec-kitty agent action implement WP07 --agent <name>
 - 2026-05-21T13:34:11Z – codex:gpt-5:spec-kitty-review:reviewer – shell_pid=18779 – Started review via action command
 - 2026-05-21T13:38:28Z – codex:gpt-5:spec-kitty-review:reviewer – shell_pid=18779 – Moved to planned
 - 2026-05-21T13:38:34Z – claude:opus-4.7:implementer:implementer – shell_pid=19823 – Started implementation via action command
+- 2026-05-21T13:43:50Z – claude:opus-4.7:implementer:implementer – shell_pid=19823 – Cycle 2: smoke skip-by-default exits 0; baselines linked from INDEX
