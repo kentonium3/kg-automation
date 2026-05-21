@@ -348,3 +348,4 @@ spec-kitty agent action implement WP08 --agent <name>
 - 2026-05-21T14:03:29Z – codex:gpt-5:spec-kitty-review:reviewer – shell_pid=25577 – Started review via action command
 - 2026-05-21T14:06:55Z – codex:gpt-5:spec-kitty-review:reviewer – shell_pid=25577 – Moved to planned
 - 2026-05-21T14:09:48Z – claude:opus-4.7:implementer:implementer – shell_pid=27025 – Started implementation via action command
+- 2026-05-21T14:14:32Z – claude:opus-4.7:implementer:implementer – shell_pid=27025 – Cycle 3: step 5 properly handles all 3 list states (registered/not-registered/unknown)
