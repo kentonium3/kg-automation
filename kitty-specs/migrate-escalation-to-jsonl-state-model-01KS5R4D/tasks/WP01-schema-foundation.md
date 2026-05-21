@@ -20,7 +20,8 @@ subtasks:
 - T003
 - T004
 - T005
-shell_pid: '78836'
+shell_pid: "78836"
+agent: "claude:opus:python-implementer:implementer"
 history:
 - at: '2026-05-21T17:45:30+00:00'
   actor: spec-kitty.tasks
@@ -294,3 +295,7 @@ pytest-based unit tests under `tests/escalation/test_schema.py`. NFR-004 require
 ```bash
 spec-kitty agent action implement WP01 --mission migrate-escalation-to-jsonl-state-model-01KS5R4D --agent claude:opus:python-implementer:implementer
 ```
+
+## Activity Log
+
+- 2026-05-21T19:18:27Z – claude:opus:python-implementer:implementer – shell_pid=78836 – Assigned agent via action command
