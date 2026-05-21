@@ -44,10 +44,10 @@ This index is for reference only. Per-WP tracking happens via checkboxes in the 
 | T029 | Wire error-handling per spec edge cases (LLM outage, rate-limit, missing-file, stuck-lock) | WP06 | | [D] |
 | T030 | Integration tests covering 5 tick outcomes (empty, debt-only, Tier-A, pending-approval-apply, pending-approval-reject) | WP06 | [D] |
 | T031 | Integration tests covering 4 edge cases | WP06 | [D] |
-| T032 | Write `tests/doc_audit/test_smoke_live.py` (gated by `pytest -m live_smoke`) | WP07 | |
-| T033 | Run pre-rework baseline measurement against current openclaw-agent (3+ representative ticks) | WP07 | |
-| T034 | Write `docs/design/architecture/baselines/felix-doc-auditor-pre-rework.json` | WP07 | |
-| T035 | Document measurement methodology in baseline file's `methodology` field | WP07 | |
+| T032 | Write `tests/doc_audit/test_smoke_live.py` (gated by `pytest -m live_smoke`) | WP07 | | [D] |
+| T033 | Run pre-rework baseline measurement against current openclaw-agent (3+ representative ticks) | WP07 | | [D] |
+| T034 | Write `docs/design/architecture/baselines/felix-doc-auditor-pre-rework.json` | WP07 | | [D] |
+| T035 | Document measurement methodology in baseline file's `methodology` field | WP07 | | [D] |
 | T036 | Update `scripts/office2/felix-doc-auditor.service` ExecStart from `openclaw agent ...` to `python3 scripts/doc_audit/run.py` | WP08 | |
 | T037 | Write `scripts/office2/deploy/felix-doc-auditor-driver.sh` (rsync code + create dirs + install systemd + retire openclaw agent) | WP08 | |
 | T038 | Test deploy script in `--dry-run` mode against office2 | WP08 | |
@@ -235,10 +235,10 @@ WP02 ──┤          ├─→ WP06 ──┐
 **Estimated prompt size**: ~250 lines
 
 **Included subtasks**:
-- [ ] T032 Write `tests/doc_audit/test_smoke_live.py`
-- [ ] T033 Run pre-rework baseline measurement
-- [ ] T034 Write `baselines/felix-doc-auditor-pre-rework.json`
-- [ ] T035 Document methodology in the baseline file
+- [x] T032 Write `tests/doc_audit/test_smoke_live.py`
+- [x] T033 Run pre-rework baseline measurement
+- [x] T034 Write `baselines/felix-doc-auditor-pre-rework.json`
+- [x] T035 Document methodology in the baseline file
 
 **Dependencies**: WP06
 **Risks**: Baseline measurement on a live system perturbs the system; mitigation = run in `--dry-run`-equivalent mode against a known-empty queue.
