@@ -395,3 +395,4 @@ spec-kitty agent action implement WP10 --agent <name>
 - 2026-05-21T15:07:25Z – claude:opus-4.7:implementer:implementer – shell_pid=40104 – Started implementation via action command
 - 2026-05-21T15:10:58Z – claude:opus-4.7:implementer:implementer – shell_pid=40104 – Cycle 3: markdown views consistent with JSON sources
 - 2026-05-21T15:11:44Z – codex:gpt-5:spec-kitty-review:reviewer – shell_pid=40983 – Started review via action command
+- 2026-05-21T15:18:29Z – codex:gpt-5:spec-kitty-review:reviewer – shell_pid=40983 – Moved to planned
