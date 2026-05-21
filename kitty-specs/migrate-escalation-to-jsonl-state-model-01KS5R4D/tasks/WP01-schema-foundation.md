@@ -11,13 +11,16 @@ requirement_refs:
 planning_base_branch: main
 merge_target_branch: main
 branch_strategy: Planning artifacts for this feature were generated on main. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into main unless the human explicitly redirects the landing branch.
-created_at: '2026-05-21T17:45:30+00:00'
+base_branch: kitty/mission-migrate-escalation-to-jsonl-state-model-01KS5R4D
+base_commit: 7e73197665540941ac21b6fc6073d05b20e659f6
+created_at: '2026-05-21T19:18:25.300159+00:00'
 subtasks:
 - T001
 - T002
 - T003
 - T004
 - T005
+shell_pid: '78836'
 history:
 - at: '2026-05-21T17:45:30+00:00'
   actor: spec-kitty.tasks
