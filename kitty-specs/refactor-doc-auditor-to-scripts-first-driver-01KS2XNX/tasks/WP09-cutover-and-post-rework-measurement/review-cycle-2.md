@@ -1,0 +1,16 @@
+---
+affected_files: []
+cycle_number: 2
+mission_slug: refactor-doc-auditor-to-scripts-first-driver-01KS2XNX
+reproduction_command:
+reviewed_at: '2026-05-21T14:41:59Z'
+reviewer_agent: unknown
+verdict: rejected
+wp_id: WP09
+---
+
+**Issue 1**: WP09 did not execute the required cutover or capture the operational record. `docs/design/architecture/baselines/cutover-log.md` states that WP09 "produced this playbook in lieu of executing the deploy" and that live deploy, verification, and post-rework measurement are deferred. The WP objective and Definition of Done require the queue-drain confirmation, apply-mode deploy, first-tick verification, and cutover log evidence to be completed in this WP. Fix by performing T040-T042 against office2 after the mission is in the required merged state, then replace the placeholder execution-record fields with the actual queue state, deploy timestamps/output, exit code, first tick signal/journal/activity-log evidence, and any fail-forward remediation notes.
+
+**Issue 2**: `docs/design/architecture/baselines/felix-doc-auditor-post-rework.json` is only a schema skeleton, not the committed post-rework baseline required by T043-T045. It has `status: "not_yet_executed"`, null `captured_at`, null measurement-window fields, null sample/token averages, empty samples, null per-outcome reductions, and null `weighted_average_reduction_pct`. The WP requires at least 3 measured ticks across at least 1 outcome, computed effective post input tokens, computed per-outcome reductions, and an NFR-001 acceptance decision. Fix by running `scripts/doc_audit/baselines/measure-tokens.py` against the new driver tick signals or journal SUMMARY lines, populating the JSON with real measurements and comparison values, verifying cache-hit behavior, and recording PASS/FAIL plus the per-outcome breakdown in `cutover-log.md`.
+
+**Downstream impact**: WP10 depends on WP09. If WP10 has started from this lane, it should rebase after WP09 is corrected because the required baseline and cutover-log contents will change.
