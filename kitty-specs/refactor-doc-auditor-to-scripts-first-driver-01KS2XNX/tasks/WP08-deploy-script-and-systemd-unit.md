@@ -340,3 +340,4 @@ spec-kitty agent action implement WP08 --agent <name>
 ## Activity Log
 
 - 2026-05-21T13:49:02Z – claude:opus-4.7:implementer:implementer – shell_pid=22287 – Started implementation via action command
+- 2026-05-21T13:54:07Z – claude:opus-4.7:implementer:implementer – shell_pid=22287 – Ready for review: systemd unit ExecStart updated to driver entry; deploy script implements 8-step cutover with --dry-run default, --backup-confirmed Tier-2 gate, paranoid path check, and idempotent steps 3-7. Verified on office2: systemd-analyze verify passes; dry-run runs cleanly with all preflight checks green; --apply refuses without --backup-confirmed.
