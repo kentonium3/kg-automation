@@ -470,3 +470,4 @@ spec-kitty agent action implement WP06 --agent <name>
 - 2026-05-20T22:20:40Z – claude:opus-4.7:implementer:implementer – shell_pid=1398 – Started implementation via action command
 - 2026-05-20T22:29:00Z – claude:opus-4.7:implementer:implementer – shell_pid=1398 – Cycle 4 (Kent-authorized): F1/F3/F4 fixed; F2 deferred to post-merge P2-bug
 - 2026-05-20T22:29:53Z – codex:gpt-5:spec-kitty-review:reviewer – shell_pid=3291 – Started review via action command
+- 2026-05-20T22:33:58Z – codex:gpt-5:spec-kitty-review:reviewer – shell_pid=3291 – Moved to planned

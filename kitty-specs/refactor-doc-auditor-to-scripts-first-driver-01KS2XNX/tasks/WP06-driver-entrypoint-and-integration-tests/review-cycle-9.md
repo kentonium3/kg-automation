@@ -1,14 +1,3 @@
----
-affected_files: []
-cycle_number: 11
-mission_slug: refactor-doc-auditor-to-scripts-first-driver-01KS2XNX
-reproduction_command:
-reviewed_at: '2026-05-20T22:33:58Z'
-reviewer_agent: codex:gpt-5:spec-kitty-review:reviewer
-verdict: rejected
-wp_id: WP06
----
-
 **Issue 1**: Pending-approval decisions do not apply or reject the proposed edits. In `scripts/doc_audit/run.py`, `_process_pending_approval()` resolves the decision actor and then calls `_apply_pending_decision()`, but `_apply_pending_decision()` only closes the pending-approval issue and the originating audit (`run.py` around lines 1567-1707). It never parses the pending-approval body/state, never invokes the routing layer, never applies gated edits on `audit-approve`, and never demotes proposals to debt issues on `audit-reject`. This violates the WP06 prompt ("pending_approval → apply decision via routing layer"), the spec secondary scenario ("audit-approve → applies proposed change(s) safely"; "audit-reject → records no-op/debt path"), and the data model state transition ("audit-approve → commit + close audit + close pending-approval"; "audit-reject → demote to debt + close both"). Fix by implementing the decision path as real decision application: reconstruct/parse the pending approval's proposed edits and originating audit state, invoke the appropriate routing/apply layer or equivalent deterministic kernel, record resulting commits/debt, and only close the pending-approval/audit after the mutation succeeds. Add integration assertions that an approve path actually performs the edit/commit route and a reject path actually files/demotes debt, not just closes issues.
 
 **Issue 2**: All-signals-failed ticks can incorrectly exit as `partial` instead of `failure`. `_run_tick()` increments `result.signals_processed` only after `_process_signal()` succeeds, but per-signal non-rate-limit failures set `result.status = "partial"` and there is no final correction when every signal failed (`run.py` around lines 1995-2065). The WP06 validation explicitly requires "All signals fail → result.status='failure'", and T029 says LLM outage should be failure if no signals processed at all. Fix by adding the final status rule after the loop (for example, if errors exist, `signals_seen > 0`, and `signals_processed == 0`, set failure) without overriding rate-limit failure semantics. Tighten the LLM outage and generic all-fail tests so a single failing signal returns exit code 1, not either 1 or 2.
