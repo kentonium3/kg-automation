@@ -17,8 +17,8 @@ subtasks:
 - T009
 - T010
 - T011
-agent: "claude:opus:python-implementer:implementer"
-shell_pid: "99546"
+agent: "codex:gpt-5:spec-kitty-review:reviewer"
+shell_pid: "1454"
 history:
 - at: '2026-05-21T17:45:30+00:00'
   actor: spec-kitty.tasks
@@ -241,3 +241,4 @@ spec-kitty agent action implement WP03 --mission migrate-escalation-to-jsonl-sta
 - 2026-05-21T20:29:56Z – codex:gpt-5:spec-kitty-review:reviewer – shell_pid=97777 – Review requested changes
 - 2026-05-21T20:31:00Z – claude:opus:python-implementer:implementer – shell_pid=99546 – Started implementation via action command
 - 2026-05-21T20:35:26Z – claude:opus:python-implementer:implementer – shell_pid=99546 – Fix applied: argparse -> exit 3, empty token -> exit 3. Cycle 1 fix.
+- 2026-05-21T20:35:52Z – codex:gpt-5:spec-kitty-review:reviewer – shell_pid=1454 – Started review via action command
