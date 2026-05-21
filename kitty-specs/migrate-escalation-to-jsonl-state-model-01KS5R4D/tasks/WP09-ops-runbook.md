@@ -260,3 +260,4 @@ spec-kitty agent action implement WP09 --mission migrate-escalation-to-jsonl-sta
 - 2026-05-21T22:06:14Z – claude:opus:python-implementer:implementer – shell_pid=20835 – Started implementation via action command
 - 2026-05-21T22:16:48Z – claude:opus:python-implementer:implementer – shell_pid=20835 – Re-scoped per Kent: lane keeps docs/runbooks/ only; kitty-specs SOAK.md moved to docs/runbooks/escalation-soak-window.md; quickstart.md edits deferred to chore commit on main
 - 2026-05-21T22:16:55Z – codex:gpt-5:spec-kitty-review:reviewer – shell_pid=22804 – Started review via action command
+- 2026-05-21T22:18:52Z – codex:gpt-5:spec-kitty-review:reviewer – shell_pid=22804 – Review passed: docs/runbooks/escalation-ops.md and docs/runbooks/escalation-soak-window.md are thoroughly written, fully aligned with v2 JSONL flow, and contain accurate copy-pastable CLI commands matching --help specifications.
