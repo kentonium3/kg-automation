@@ -15,8 +15,8 @@ subtasks:
 - T035
 phase: Phase 4 — Verification
 assignee: ''
-agent: "claude:opus-4.7:implementer:implementer"
-shell_pid: "19823"
+agent: "codex:gpt-5:spec-kitty-review:reviewer"
+shell_pid: "20967"
 history:
 - timestamp: '2026-05-20T16:25:00Z'
   agent: system
@@ -312,3 +312,4 @@ spec-kitty agent action implement WP07 --agent <name>
 - 2026-05-21T13:38:28Z – codex:gpt-5:spec-kitty-review:reviewer – shell_pid=18779 – Moved to planned
 - 2026-05-21T13:38:34Z – claude:opus-4.7:implementer:implementer – shell_pid=19823 – Started implementation via action command
 - 2026-05-21T13:43:50Z – claude:opus-4.7:implementer:implementer – shell_pid=19823 – Cycle 2: smoke skip-by-default exits 0; baselines linked from INDEX
+- 2026-05-21T13:44:27Z – codex:gpt-5:spec-kitty-review:reviewer – shell_pid=20967 – Started review via action command
