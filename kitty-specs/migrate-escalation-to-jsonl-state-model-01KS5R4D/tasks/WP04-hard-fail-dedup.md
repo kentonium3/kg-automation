@@ -218,3 +218,4 @@ spec-kitty agent action implement WP04 --mission migrate-escalation-to-jsonl-sta
 - 2026-05-21T20:23:12Z – codex:gpt-5:spec-kitty-review:reviewer – shell_pid=96577 – Started review via action command
 - 2026-05-21T20:26:02Z – codex:gpt-5:spec-kitty-review:reviewer – shell_pid=96577 – Moved to planned
 - 2026-05-21T20:27:59Z – claude:opus:python-implementer:implementer – shell_pid=98523 – Started implementation via action command
+- 2026-05-21T20:34:03Z – claude:opus:python-implementer:implementer – shell_pid=98523 – Fix applied: em dash + C-006 render-level redaction. Cycle 1 fix.
