@@ -17,8 +17,8 @@ subtasks:
 - T015
 - T016
 - T017
-agent: "claude:opus:python-implementer:implementer"
-shell_pid: "11184"
+agent: "codex:gpt-5:spec-kitty-review:reviewer"
+shell_pid: "13874"
 history:
 - at: '2026-05-21T17:45:30+00:00'
   actor: spec-kitty.tasks
@@ -226,3 +226,4 @@ spec-kitty agent action implement WP05 --mission migrate-escalation-to-jsonl-sta
 - 2026-05-21T21:11:44Z – codex:gpt-5:spec-kitty-review:reviewer – shell_pid=9013 – Moved to planned
 - 2026-05-21T21:12:47Z – claude:opus:python-implementer:implementer – shell_pid=11184 – Started implementation via action command
 - 2026-05-21T21:20:35Z – claude:opus:python-implementer:implementer – shell_pid=11184 – Cycle 1 fix: malformed JSONL -> hard-fail with within-tick dedup. Tests added.
+- 2026-05-21T21:27:24Z – codex:gpt-5:spec-kitty-review:reviewer – shell_pid=13874 – Started review via action command
