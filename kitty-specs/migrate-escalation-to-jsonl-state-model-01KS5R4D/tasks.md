@@ -39,9 +39,9 @@ Breakdown of the implementation plan into independently-deliverable work package
 | T024 | Update docs/design/architecture/data/service-inventory.json (register scripts/escalation/*) | WP08 | [D] |
 | T025 | Update docs/design/architecture/data/data-flows.json (new read/write paths) | WP08 | | [D] |
 | T026 | Update markdown architecture views to match JSON sources | WP08 | | [D] |
-| T027 | Rewrite docs/runbooks/escalation-ops.md with the new JSONL-based ops procedure | WP09 | |
-| T028 | Verify quickstart.md matches deployed reality; pin commands/paths | WP09 | [P] |
-| T029 | Add SOAK.md template + soak-monitoring checklist | WP09 | [P] |
+| T027 | Rewrite docs/runbooks/escalation-ops.md with the new JSONL-based ops procedure | WP09 | | [D] |
+| T028 | Verify quickstart.md matches deployed reality; pin commands/paths | WP09 | [D] |
+| T029 | Add SOAK.md template + soak-monitoring checklist | WP09 | [D] |
 
 ---
 
@@ -262,9 +262,9 @@ Risks:
 
 Included subtasks:
 
-- [ ] T027 Rewrite docs/runbooks/escalation-ops.md with the new JSONL-based ops procedure (WP09)
-- [ ] T028 Verify quickstart.md matches deployed reality; pin commands/paths (WP09)
-- [ ] T029 Add SOAK.md template + soak-monitoring checklist (WP09)
+- [x] T027 Rewrite docs/runbooks/escalation-ops.md with the new JSONL-based ops procedure (WP09)
+- [x] T028 Verify quickstart.md matches deployed reality; pin commands/paths (WP09)
+- [x] T029 Add SOAK.md template + soak-monitoring checklist (WP09)
 
 Risks:
 - Ops doc drift. Anyone touching ops procedures during the soak must update both this runbook AND quickstart.md — they are intentionally redundant.
