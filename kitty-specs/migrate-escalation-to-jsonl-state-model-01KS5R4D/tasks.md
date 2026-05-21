@@ -24,9 +24,9 @@ Breakdown of the implementation plan into independently-deliverable work package
 | T009 | Implement scripts/escalation/record_completion.py with three-write ordering | WP03 | |
 | T010 | CLI surface for record_completion (argparse + exit codes 0/1/2/3) | WP03 | |
 | T011 | Tests for record_completion — happy paths + failure modes + idempotency | WP03 | |
-| T012 | Implement scripts/escalation/hard_fail.py — bug body + dedup query | WP04 | |
-| T013 | Integration with scripts/openclaw/agents/main/felix-file-issue.py | WP04 | |
-| T014 | Tests for hard_fail — dedup hit/miss, double-fire prevention, re-fire on close | WP04 | |
+| T012 | Implement scripts/escalation/hard_fail.py — bug body + dedup query | WP04 | | [D] |
+| T013 | Integration with scripts/openclaw/agents/main/felix-file-issue.py | WP04 | | [D] |
+| T014 | Tests for hard_fail — dedup hit/miss, double-fire prevention, re-fire on close | WP04 | | [D] |
 | T015 | Implement scripts/escalation/reconcile_completions.py + ReconcileReport/HardFailEvent | WP05 | |
 | T016 | CLI surface for reconcile (--project-id, --all, --dry-run, --max-tasks, --quiet) | WP05 | |
 | T017 | Tests for reconcile — synthetic done, synthetic rescheduled, hard-fail integration | WP05 | |
@@ -154,9 +154,9 @@ Risks:
 
 Included subtasks:
 
-- [ ] T012 Implement scripts/escalation/hard_fail.py — render bug body + dedup query via gh CLI (WP04)
-- [ ] T013 Integration with scripts/openclaw/agents/main/felix-file-issue.py invocation (WP04)
-- [ ] T014 Tests — dedup hit, dedup miss, double-fire prevention across two ticks, re-fire after issue closed (WP04)
+- [x] T012 Implement scripts/escalation/hard_fail.py — render bug body + dedup query via gh CLI (WP04)
+- [x] T013 Integration with scripts/openclaw/agents/main/felix-file-issue.py invocation (WP04)
+- [x] T014 Tests — dedup hit, dedup miss, double-fire prevention across two ticks, re-fire after issue closed (WP04)
 
 Risks:
 - The `gh` query template must use `--state open` to allow re-fire on premature issue close. Reviewer must verify against research D9.
