@@ -19,8 +19,8 @@ subtasks:
 - T002
 - T003
 - T004
-shell_pid: "62638"
-agent: "codex:gpt-5:spec-kitty-review:reviewer"
+shell_pid: "65168"
+agent: "claude:opus:python-implementer:implementer"
 history:
 - at: '2026-05-22T16:30:00+00:00'
   actor: spec-kitty.tasks
@@ -216,3 +216,4 @@ spec-kitty agent action implement WP01 --mission habits-checkin-reply-scripts-fi
 - 2026-05-22T16:31:38Z – claude:opus:python-implementer:implementer – shell_pid=60663 – Ready for review — atomic write verified, sort stability verified, ≥85% coverage
 - 2026-05-22T16:32:14Z – codex:gpt-5:spec-kitty-review:reviewer – shell_pid=62638 – Started review via action command
 - 2026-05-22T16:36:14Z – codex:gpt-5:spec-kitty-review:reviewer – shell_pid=62638 – Moved to planned
+- 2026-05-22T16:38:06Z – claude:opus:python-implementer:implementer – shell_pid=65168 – Started implementation via action command
