@@ -217,3 +217,4 @@ spec-kitty agent action implement WP01 --mission habits-checkin-reply-scripts-fi
 - 2026-05-22T16:32:14Z – codex:gpt-5:spec-kitty-review:reviewer – shell_pid=62638 – Started review via action command
 - 2026-05-22T16:36:14Z – codex:gpt-5:spec-kitty-review:reviewer – shell_pid=62638 – Moved to planned
 - 2026-05-22T16:38:06Z – claude:opus:python-implementer:implementer – shell_pid=65168 – Started implementation via action command
+- 2026-05-22T16:40:37Z – claude:opus:python-implementer:implementer – shell_pid=65168 – Cycle 1 fix: argparse → exit 3
