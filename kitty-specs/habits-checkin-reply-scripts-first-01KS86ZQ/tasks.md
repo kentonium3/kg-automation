@@ -13,10 +13,10 @@
 
 | ID | Description | WP | Parallel |
 |---|---|---|---|
-| T001 | morning_checkin_list.py module skeleton + MorningList/MorningListHabit dataclasses + module constants | WP01 | |
-| T002 | build_morning_list + persist_morning_list + render_morning_message functions | WP01 | |
-| T003 | CLI surface for morning_checkin_list (argparse + exit codes 0/1/2/3) | WP01 | |
-| T004 | Tests for morning_checkin_list — happy paths, atomic write, empty-habits, time-zone correctness | WP01 | |
+| T001 | morning_checkin_list.py module skeleton + MorningList/MorningListHabit dataclasses + module constants | WP01 | | [D] |
+| T002 | build_morning_list + persist_morning_list + render_morning_message functions | WP01 | | [D] |
+| T003 | CLI surface for morning_checkin_list (argparse + exit codes 0/1/2/3) | WP01 | | [D] |
+| T004 | Tests for morning_checkin_list — happy paths, atomic write, empty-habits, time-zone correctness | WP01 | | [D] |
 | T005 | parse_morning_reply.py module skeleton + ParseResult/ParseTuple/JudgmentItem/ParseError dataclasses | WP02 | |
 | T006 | parse_reply core logic — special tokens + tokenization + 3-tier matching (position → exact → substring) | WP02 | |
 | T007 | load_morning_list + CLI surface for parse_morning_reply (exit codes 0/1/3/4/5) | WP02 | |
@@ -66,10 +66,10 @@ MVP scope: WP01 + WP02 + WP04 delivers a working scripts-first flow. WP03 (disam
 **Prompt**: [WP01-morning-checkin-list.md](tasks/WP01-morning-checkin-list.md)
 
 Included subtasks:
-- [ ] T001 Module skeleton + dataclasses + module constants (WP01)
-- [ ] T002 build_morning_list + persist_morning_list + render_morning_message (WP01)
-- [ ] T003 CLI surface (WP01)
-- [ ] T004 Tests (WP01)
+- [x] T001 Module skeleton + dataclasses + module constants (WP01)
+- [x] T002 build_morning_list + persist_morning_list + render_morning_message (WP01)
+- [x] T003 CLI surface (WP01)
+- [x] T004 Tests (WP01)
 
 Risks:
 - Determinism of ordering — must use stable Vikunja task_id sort, not creation-time or any other potentially-shifting attribute.
