@@ -26,6 +26,8 @@ owned_files:
 - scripts/doc_audit/output/drift_ledger.py
 - tests/doc_audit/output/test_drift_ledger.py
 tags: []
+agent: "claude:opus:python-implementer:implementer"
+shell_pid: "5108"
 ---
 
 # WP02 — drift_ledger module
@@ -246,3 +248,7 @@ pytest with tmp_path-based ledger files. No external dependencies. ≥85% covera
 ```bash
 spec-kitty agent action implement WP02 --mission drift-event-auto-resolution-01KS8J32 --agent claude:opus:python-implementer:implementer
 ```
+
+## Activity Log
+
+- 2026-05-22T20:13:58Z – claude:opus:python-implementer:implementer – shell_pid=5108 – Started implementation via action command

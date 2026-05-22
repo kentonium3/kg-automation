@@ -1,7 +1,7 @@
 {
-  "event_count": 16,
-  "last_event_id": "01KS8N4GD87CS3X1KR4V8FNX11",
-  "materialized_at": "2026-05-22T20:13:25.800533+00:00",
+  "event_count": 18,
+  "last_event_id": "01KS8N5GB1WZ56Z7GK9VSNV8WA",
+  "materialized_at": "2026-05-22T20:13:58.497567+00:00",
   "mission_number": "",
   "mission_slug": "drift-event-auto-resolution-01KS8J32",
   "mission_type": "software-dev",
@@ -12,9 +12,9 @@
     "claimed": 0,
     "done": 0,
     "for_review": 0,
-    "in_progress": 0,
+    "in_progress": 1,
     "in_review": 0,
-    "planned": 4
+    "planned": 3
   },
   "work_packages": {
     "WP01": {
@@ -25,11 +25,11 @@
       "last_transition_at": "2026-05-22T20:13:25.800533+00:00"
     },
     "WP02": {
-      "actor": "finalize-tasks",
+      "actor": "claude:opus:python-implementer:implementer",
       "force_count": 1,
-      "lane": "planned",
-      "last_event_id": "01KS8KR1B84JWX8RTC815QE5MP",
-      "last_transition_at": "2026-05-22T19:49:08.584257+00:00"
+      "lane": "in_progress",
+      "last_event_id": "01KS8N5GB1WZ56Z7GK9VSNV8WA",
+      "last_transition_at": "2026-05-22T20:13:58.497567+00:00"
     },
     "WP03": {
       "actor": "finalize-tasks",
