@@ -186,11 +186,11 @@ Included subtasks:
 **Prompt**: [WP05-cutover-script.md](tasks/WP05-cutover-script.md)
 
 Included subtasks:
-- [ ] T024 Module skeleton + CutoverResult (WP05)
-- [ ] T025 GitHub close-with-comment (WP05)
-- [ ] T026 Cursor reset + marker write (WP05)
-- [ ] T027 CLI flags + main() (WP05)
-- [ ] T028 Tests (WP05)
+- [x] T024 Module skeleton + CutoverResult (WP05)
+- [x] T025 GitHub close-with-comment (WP05)
+- [x] T026 Cursor reset + marker write (WP05)
+- [x] T027 CLI flags + main() (WP05)
+- [x] T028 Tests (WP05)
 
 **Risks**:
 - GitHub rate-limit — closing 13 issues with comments is ~26 API calls. Stay under the 5000/hr authenticated limit easily, but space calls slightly (~0.5s apart) to be polite.
