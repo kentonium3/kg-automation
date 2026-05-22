@@ -17,10 +17,10 @@
 | T002 | build_morning_list + persist_morning_list + render_morning_message functions | WP01 | | [D] |
 | T003 | CLI surface for morning_checkin_list (argparse + exit codes 0/1/2/3) | WP01 | | [D] |
 | T004 | Tests for morning_checkin_list — happy paths, atomic write, empty-habits, time-zone correctness | WP01 | | [D] |
-| T005 | parse_morning_reply.py module skeleton + ParseResult/ParseTuple/JudgmentItem/ParseError dataclasses | WP02 | |
-| T006 | parse_reply core logic — special tokens + tokenization + 3-tier matching (position → exact → substring) | WP02 | |
-| T007 | load_morning_list + CLI surface for parse_morning_reply (exit codes 0/1/3/4/5) | WP02 | |
-| T008 | Tests for parse_morning_reply — including the SC-002 fixture for 2026-05-22 ("Skipped 3,7,8 done") | WP02 | |
+| T005 | parse_morning_reply.py module skeleton + ParseResult/ParseTuple/JudgmentItem/ParseError dataclasses | WP02 | | [D] |
+| T006 | parse_reply core logic — special tokens + tokenization + 3-tier matching (position → exact → substring) | WP02 | | [D] |
+| T007 | load_morning_list + CLI surface for parse_morning_reply (exit codes 0/1/3/4/5) | WP02 | | [D] |
+| T008 | Tests for parse_morning_reply — including the SC-002 fixture for 2026-05-22 ("Skipped 3,7,8 done") | WP02 | | [D] |
 | T009 | Disambiguator module skeleton + DisambiguationResult dataclass + cache-aware prompt template | WP03 | |
 | T010 | disambiguate() function — Anthropic HTTP call, response parse + validation | WP03 | |
 | T011 | CLI surface for disambiguator (exit codes 0/1/3/5) | WP03 | |
@@ -88,10 +88,10 @@ Risks:
 **Prompt**: [WP02-parse-morning-reply.md](tasks/WP02-parse-morning-reply.md)
 
 Included subtasks:
-- [ ] T005 Module skeleton + dataclasses (WP02)
-- [ ] T006 parse_reply core logic (WP02)
-- [ ] T007 load_morning_list + CLI (WP02)
-- [ ] T008 Tests including SC-002 fixture (WP02)
+- [x] T005 Module skeleton + dataclasses (WP02)
+- [x] T006 parse_reply core logic (WP02)
+- [x] T007 load_morning_list + CLI (WP02)
+- [x] T008 Tests including SC-002 fixture (WP02)
 
 Risks:
 - Tokenization edge cases — what counts as a "token boundary" in `"Skipped 3,7,8 done"` vs `"skipping 3, 7, and 8"` vs `"skipping 3 7 8"`? Tests must cover.
