@@ -140,3 +140,7 @@ Validation:
 ```bash
 spec-kitty agent action implement WP01 --mission moment0-integration-fix-01KS8XRM --agent claude:opus:python-implementer:implementer
 ```
+
+## Activity Log
+
+- 2026-05-22T23:08:10Z – unknown – shell_pid=32428 – Ready for review: Moment 0 routing extracted to routing/drift_moment0.py; tests green (29 new + 41 existing); 89% coverage on drift_moment0.py; full doc_audit suite 561 passed / 2 skipped
