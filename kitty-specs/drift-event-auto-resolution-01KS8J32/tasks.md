@@ -13,7 +13,7 @@
 
 | ID | Description | WP | Parallel |
 |---|---|---|---|
-| T001 | drift_interpretation.py module skeleton + DriftVerdict/DriftInterpretationContext/DocTarget dataclasses + module constants | WP01 | [D] |
+| T001 | drift_interpretation.py module skeleton + DriftVerdict/DriftInterpretationContext/DocTarget dataclasses + module constants | WP01 | [D] | [D] |
 | T002 | drift_interpretation.prompt.md — cache-aware system prompt with rules, examples, output schema | WP01 | [D] |
 | T003 | Doc-state truncation helper (D2 tiered strategy by file size) | WP01 | [D] |
 | T004 | interpret() function — LLM call, response parsing, schema validation, confidence demotion | WP01 | [D] |
@@ -82,13 +82,13 @@ MVP scope: WP01 + WP02 + WP03 + WP04 delivers a working pipeline. WP05 (cutover)
 **Prompt**: [WP01-drift-interpretation.md](tasks/WP01-drift-interpretation.md)
 
 Included subtasks:
-- [ ] T001 Module skeleton + dataclasses + module constants (WP01)
-- [ ] T002 Cache-aware prompt (WP01)
-- [ ] T003 Doc-state truncation helper (WP01)
-- [ ] T004 interpret() core function (WP01)
-- [ ] T005 Retry policy wrapper (WP01)
-- [ ] T006 CLI surface (WP01)
-- [ ] T007 Tests (WP01)
+- [x] T001 Module skeleton + dataclasses + module constants (WP01)
+- [x] T002 Cache-aware prompt (WP01)
+- [x] T003 Doc-state truncation helper (WP01)
+- [x] T004 interpret() core function (WP01)
+- [x] T005 Retry policy wrapper (WP01)
+- [x] T006 CLI surface (WP01)
+- [x] T007 Tests (WP01)
 
 **Risks**:
 - Prompt drift — system prompt must produce strict JSON; small changes can break parsing. Tests must cover all 3 verdict shapes + malformed responses.
