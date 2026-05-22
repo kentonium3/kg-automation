@@ -20,6 +20,8 @@ subtasks:
 - T006
 - T007
 - T008
+agent: "claude:opus:python-implementer:implementer"
+shell_pid: "67556"
 history:
 - at: '2026-05-22T16:30:00+00:00'
   actor: spec-kitty.tasks
@@ -230,3 +232,7 @@ pytest. No I/O except the fixture file load (in tmp_path or via the conftest fix
 ```bash
 spec-kitty agent action implement WP02 --mission habits-checkin-reply-scripts-first-01KS86ZQ --agent claude:opus:python-implementer:implementer
 ```
+
+## Activity Log
+
+- 2026-05-22T16:44:11Z – claude:opus:python-implementer:implementer – shell_pid=67556 – Started implementation via action command
