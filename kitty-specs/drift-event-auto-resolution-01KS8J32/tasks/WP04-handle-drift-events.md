@@ -45,8 +45,8 @@ owned_files:
 - scripts/doc_audit/config.toml
 - tests/doc_audit/helpers/test_handle_drift_events.py
 tags: []
-agent: "claude:opus:python-implementer:implementer"
-shell_pid: "11195"
+agent: "agy:gemini-2.5-pro:spec-kitty-review:reviewer"
+shell_pid: "15159"
 ---
 
 # WP04 — handle_drift_events integration
@@ -298,3 +298,4 @@ spec-kitty agent action implement WP04 --mission drift-event-auto-resolution-01K
 
 - 2026-05-22T20:47:37Z – claude:opus:python-implementer:implementer – shell_pid=11195 – Started implementation via action command
 - 2026-05-22T21:05:58Z – claude:opus:python-implementer:implementer – shell_pid=11195 – Ready for review: Moment 0 wired into pipeline; 41 tests total (17 new for #362); pre-#362 path preserved byte-identically when flag=false; cursor advances on every path including RETRY_EXHAUSTED; --reset-cursor CLI flag added; tests blocked from running by sandbox — orchestrator must verify before approving
+- 2026-05-22T21:08:59Z – agy:gemini-2.5-pro:spec-kitty-review:reviewer – shell_pid=15159 – Started review via action command
