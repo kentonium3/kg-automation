@@ -1,28 +1,28 @@
 {
-  "event_count": 19,
-  "last_event_id": "01KS88ZGM796RMYWVQ1GAXY03H",
-  "materialized_at": "2026-05-22T16:40:59.271342+00:00",
+  "event_count": 20,
+  "last_event_id": "01KS89590KRPY5F9F8CM6AM011",
+  "materialized_at": "2026-05-22T16:44:08.083872+00:00",
   "mission_number": "",
   "mission_slug": "habits-checkin-reply-scripts-first-01KS86ZQ",
   "mission_type": "software-dev",
   "summary": {
-    "approved": 1,
+    "approved": 2,
     "blocked": 0,
     "canceled": 0,
     "claimed": 0,
     "done": 0,
     "for_review": 0,
     "in_progress": 0,
-    "in_review": 1,
+    "in_review": 0,
     "planned": 3
   },
   "work_packages": {
     "WP01": {
-      "actor": "codex:gpt-5:spec-kitty-review:reviewer",
+      "actor": "user",
       "force_count": 2,
-      "lane": "in_review",
-      "last_event_id": "01KS88ZGM796RMYWVQ1GAXY03H",
-      "last_transition_at": "2026-05-22T16:40:59.271342+00:00"
+      "lane": "approved",
+      "last_event_id": "01KS89590KRPY5F9F8CM6AM011",
+      "last_transition_at": "2026-05-22T16:44:08.083872+00:00"
     },
     "WP02": {
       "actor": "finalize-tasks",
