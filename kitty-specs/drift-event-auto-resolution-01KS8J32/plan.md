@@ -1,108 +1,147 @@
-# Implementation Plan: [FEATURE]
-*Path: [templates/plan-template.md](templates/plan-template.md)*
+# Implementation Plan: Drift event auto-resolution via LLM judgment
 
-
-**Branch**: `[###-feature-name]` | **Date**: [DATE] | **Spec**: [link]
-**Input**: Feature specification from `/kitty-specs/[###-feature-name]/spec.md`
-
-**Note**: This template is filled in by the `/spec-kitty.plan` command. See `src/specify_cli/missions/software-dev/command-templates/plan.md` for the execution workflow.
-
-The planner will not begin until all planning questions have been answered—capture those answers in this document before progressing to later phases.
+**Branch**: `main` | **Date**: 2026-05-22 | **Spec**: [spec.md](spec.md)
+**Input**: Feature specification from `kitty-specs/drift-event-auto-resolution-01KS8J32/spec.md`
+**Mission ID**: `01KS8J321F8KE7369R3DA02329`
 
 ## Summary
 
-[Extract from feature spec: primary requirement + technical approach from research]
+Extend the post-#343 doc-audit driver with a new "drift interpretation" LLM judgment moment (Moment 0) that runs before issue filing for every mapped drift event. The judgment classifies each drift event as `PROPOSED_EDIT`, `JUDGMENT_REQUIRED`, or `NO_CHANGE_NEEDED` with explicit confidence. PROPOSED_EDIT verdicts at confidence ≥0.80 are translated into the existing `ProposedEdit` dataclass and routed through the existing `tier_classification` (Moment 1) — preserving all SKILL.md §4.3 safety guardrails.
+
+The architecture mirrors the existing `tier_classification` surface: cache-aware prompt, `JudgmentClient` reuse, defense-in-depth schema validation. Two LLM calls per PROPOSED_EDIT path (Moment 0 + Moment 1); negligible cost at Haiku 4.5 rates given current drift volume (~3-10 events/day).
 
 ## Technical Context
 
-<!--
-  ACTION REQUIRED: Replace the content in this section with the technical details
-  for the project. The structure here is presented in advisory capacity to guide
-  the iteration process.
--->
-
-**Language/Version**: [e.g., Python 3.11, Swift 5.9, Rust 1.75 or NEEDS CLARIFICATION]  
-**Primary Dependencies**: [e.g., FastAPI, UIKit, LLVM or NEEDS CLARIFICATION]  
-**Storage**: [if applicable, e.g., PostgreSQL, CoreData, files or N/A]  
-**Testing**: [Project-specific test approach or NEEDS CLARIFICATION]
-**Target Platform**: [e.g., Linux server, iOS 15+, WASM or NEEDS CLARIFICATION]
-**Project Type**: [single/web/mobile - determines source structure]  
-**Performance Goals**: [domain-specific, e.g., 1000 req/s, 10k lines/sec, 60 fps or NEEDS CLARIFICATION]  
-**Constraints**: [domain-specific, e.g., <200ms p95, <100MB memory, offline-capable or NEEDS CLARIFICATION]  
-**Scale/Scope**: [domain-specific, e.g., 10k users, 1M LOC, 50 screens or NEEDS CLARIFICATION]
+**Language/Version**: Python 3.13
+**Primary Dependencies**: existing `anthropic` SDK (already in use by `scripts/doc_audit/judgment/client.py`); stdlib `json`, `dataclasses`, `pathlib`, `logging`
+**Storage**: append-only JSONL ledger at `/data/services/security-monitor/logs/drift-events-ledger.jsonl`; existing markdown activity log at `~/second-brain/agents/logs/doc-auditor-YYYY-MM-DD.md` preserved unchanged
+**Testing**: pytest, mocked `JudgmentClient`, fixture-driven (synthetic drift events derived from real piling-up baselines)
+**Target Platform**: office2 (Ubuntu 24.04 LTS Linux) via systemd user timer; CLI also runnable on Mac for dev
+**Project Type**: single project (scripts/ module addition)
+**Performance Goals**: LLM call P95 ≤15s single-attempt; end-to-end P95 ≤90s with retries; ≥98% successful event processing rate
+**Constraints**: ≤30% operator-triage rate (success criterion); no new third-party deps; tier_classification surface unchanged (C-003)
+**Scale/Scope**: ~3-10 drift events/day across 3 baselines today; pipeline must handle bursts during cron sweeps
 
 ## Charter Check
 
-*GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
+**Status**: Skipped (no `.kittify/charter/charter.md` present at planning time; `spec-kitty charter context --action plan --json` returned compact mode with unresolved governance per pre-existing tool-registry issue — not a blocker per memory `project_charter_tool_registry_mismatch.md`).
 
-[Gates determined based on charter file]
+When the charter governance is re-resolved (separate work), this plan section should be revisited.
 
 ## Project Structure
 
 ### Documentation (this feature)
 
 ```
-kitty-specs/[###-feature]/
-├── plan.md              # This file (/spec-kitty.plan command output)
-├── research.md          # Phase 0 output (/spec-kitty.plan command)
-├── data-model.md        # Phase 1 output (/spec-kitty.plan command)
-├── quickstart.md        # Phase 1 output (/spec-kitty.plan command)
-├── contracts/           # Phase 1 output (/spec-kitty.plan command)
-└── tasks.md             # Phase 2 output (/spec-kitty.tasks command - NOT created by /spec-kitty.plan)
+kitty-specs/drift-event-auto-resolution-01KS8J32/
+├── plan.md              # This file
+├── research.md          # Phase 0 — D1..D10 decisions
+├── data-model.md        # Phase 1 — entities E1..E6
+├── quickstart.md        # Phase 1 — operator cutover guide
+├── contracts/
+│   ├── cli.md           # CLI surface contract
+│   ├── api.md           # Python API surface contract
+│   ├── llm-json.md      # Strict LLM output JSON schema
+│   └── ledger-schema.md # JSONL ledger schema contract
+└── spec.md              # (already exists)
 ```
 
 ### Source Code (repository root)
-<!--
-  ACTION REQUIRED: Replace the placeholder tree below with the concrete layout
-  for this feature. Delete unused options and expand the chosen structure with
-  real paths (e.g., apps/admin, packages/something). The delivered plan must
-  not include Option labels.
--->
 
 ```
-# [REMOVE IF UNUSED] Option 1: Single project (DEFAULT)
-src/
-├── models/
-├── services/
-├── cli/
-└── lib/
+scripts/doc_audit/
+├── judgment/
+│   ├── drift_interpretation.py        # NEW — Moment 0 LLM judgment
+│   └── (existing modules unchanged)
+├── prompts/
+│   ├── drift_interpretation.prompt.md # NEW — cache-aware prompt
+│   └── (existing prompts unchanged)
+├── helpers/
+│   ├── handle_drift_events.py         # MODIFIED — invokes Moment 0
+│   ├── cutover_362.py                 # NEW — one-shot backlog cutover
+│   └── (existing helpers unchanged)
+├── output/
+│   ├── drift_ledger.py                # NEW — JSONL append writer
+│   └── activity_log.py                # (unchanged)
+├── routing/
+│   └── drift_to_proposed_edit.py      # NEW — verdict → ProposedEdit translator
+├── data_model.py                      # MODIFIED — extend change_type set
+└── config.toml                        # MODIFIED — drift_interpretation block
 
-tests/
-├── contract/
-├── integration/
-└── unit/
-
-# [REMOVE IF UNUSED] Option 2: Web application (when "frontend" + "backend" detected)
-backend/
-├── src/
-│   ├── models/
-│   ├── services/
-│   └── api/
-└── tests/
-
-frontend/
-├── src/
-│   ├── components/
-│   ├── pages/
-│   └── services/
-└── tests/
-
-# [REMOVE IF UNUSED] Option 3: Mobile + API (when "iOS/Android" detected)
-api/
-└── [same as backend above]
-
-ios/ or android/
-└── [platform-specific structure: feature modules, UI flows, platform tests]
+tests/doc_audit/
+├── judgment/
+│   └── test_drift_interpretation.py   # NEW
+├── helpers/
+│   ├── test_handle_drift_events.py    # MODIFIED — new test cases
+│   └── test_cutover_362.py            # NEW
+├── output/
+│   └── test_drift_ledger.py           # NEW
+├── routing/
+│   └── test_drift_to_proposed_edit.py # NEW
+└── fixtures/
+    ├── drift_event_openclaw_cron.json   # NEW
+    ├── drift_event_openclaw_json.json   # NEW
+    └── drift_event_systemd_dropins.json # NEW
 ```
 
-**Structure Decision**: [Document the selected structure and reference the real
-directories captured above]
+**Structure Decision**: Single-project layout extension. New code lives under `scripts/doc_audit/` mirroring the existing post-#343 package structure. Tests parallel under `tests/doc_audit/`. No new top-level directories.
+
+## Phase 0 — Outline & Research
+
+Detailed in [research.md](research.md). Ten decisions resolved:
+
+- **D1**: Drift interpretation prompt structure (cache-aware split, examples, output schema)
+- **D2**: Doc state truncation strategy for large files (>8KB)
+- **D3**: `change_type` enum extension — add `drift_derived` value
+- **D4**: Audit ledger schema (JSONL alongside existing markdown log)
+- **D5**: Backlog cutover script design (idempotent, marker-guarded)
+- **D6**: Retry/backoff implementation (30s/60s/120s, mirrors tasker pattern)
+- **D7**: Cost budget per drift event (~1.5K tokens avg at Haiku 4.5; $0.01/day worst case)
+- **D8**: Test fixture strategy (synthetic from real baselines + mocked SDK)
+- **D9**: config.toml flag mechanism (read per-tick; no watcher)
+- **D10**: CLI surface for drift_interpretation (mirrors existing tier_classification CLI)
+
+## Phase 1 — Design & Contracts
+
+Detailed in [data-model.md](data-model.md) and [contracts/](contracts/).
+
+### Entities (6)
+
+- **E1 — DriftVerdict** (LLM output): `{verdict, confidence, proposed_edit?, question?, rationale}`
+- **E2 — DriftInterpretationContext** (LLM input): drift event metadata + diff + mapping + target doc states
+- **E3 — AuditLedgerEntry** (JSONL row): event_id, timestamp, baseline, mapping_id, verdict, confidence, outcome, doc_paths, retry_count, latency_ms
+- **E4 — ProposedEdit** (existing E-004, extended): adds `drift_derived` to `change_type` set
+- **E5 — DriftInterpretationError** (exception): carries diagnostic context for escalation issue bodies
+- **E6 — CutoverState** (one-shot marker): `~/.config/doc-audit/cutover-362.done` sentinel file
+
+### Contracts
+
+- **[cli.md](contracts/cli.md)**: standalone CLI surface for `drift_interpretation.py` — flags, exit codes, stdin/stdout JSON
+- **[api.md](contracts/api.md)**: Python API surface — `interpret(client, context) -> DriftVerdict` + helpers
+- **[llm-json.md](contracts/llm-json.md)**: strict LLM output JSON schema for the three verdict shapes
+- **[ledger-schema.md](contracts/ledger-schema.md)**: JSONL ledger row schema + append semantics
+
+### Quickstart
+
+[quickstart.md](quickstart.md) provides operator-facing cutover steps: pre-flight checks, deploy sequence, cutover-362 script invocation, post-deploy smoke tests, 7-day observation, and rollback procedure.
+
+## Charter Re-Check (post-Phase 1)
+
+Same status as initial: charter is absent or governance-unresolved. No new gate violations introduced by Phase 0/Phase 1 design.
+
+## Branch Strategy
+
+- **Planning base branch**: `main`
+- **Merge target branch**: `main`
+- **branch_matches_target**: true
+- Execution worktrees are allocated per lane at task-finalization time; not relevant during plan phase.
 
 ## Complexity Tracking
 
-*Fill ONLY if Charter Check has violations that must be justified*
+No charter violations to track (charter absent).
 
-| Violation | Why Needed | Simpler Alternative Rejected Because |
-|-----------|------------|-------------------------------------|
-| [e.g., 4th project] | [current need] | [why 3 projects insufficient] |
-| [e.g., Repository pattern] | [specific problem] | [why direct DB access insufficient] |
+## Open Decisions
+
+All planning questions resolved during the alignment step (Q1: ProposedEdit bridge via translator; defaults confirmed for audit ledger shape, prompt context, CLI surface, test strategy, cutover mechanism, config.toml flag).
+
+No `[NEEDS CLARIFICATION: …]` markers remain.
