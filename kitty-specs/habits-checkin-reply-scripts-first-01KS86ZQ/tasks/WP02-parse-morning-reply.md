@@ -240,3 +240,4 @@ spec-kitty agent action implement WP02 --mission habits-checkin-reply-scripts-fi
 - 2026-05-22T17:00:40Z – codex:gpt-5:spec-kitty-review:reviewer – shell_pid=70677 – Started review via action command
 - 2026-05-22T17:04:19Z – codex:gpt-5:spec-kitty-review:reviewer – shell_pid=70677 – Moved to planned
 - 2026-05-22T17:05:22Z – claude:opus:python-implementer:implementer – shell_pid=72115 – Started implementation via action command
+- 2026-05-22T17:12:19Z – claude:opus:python-implementer:implementer – shell_pid=72115 – Cycle 1 fix: multi-word title parsing via whole-phrase match
