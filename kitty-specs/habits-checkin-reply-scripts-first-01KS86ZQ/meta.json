@@ -1,10 +1,13 @@
 {
   "created_at": "2026-05-22T16:06:10.815430+00:00",
-  "friendly_name": "habits checkin reply scripts first",
+  "friendly_name": "Habits check-in + reply scripts-first port",
   "mission_id": "01KS86ZQE8GSZ77ZSGSSQMN08K",
   "mission_number": null,
   "mission_slug": "habits-checkin-reply-scripts-first-01KS86ZQ",
   "mission_type": "software-dev",
   "slug": "habits-checkin-reply-scripts-first-01KS86ZQ",
-  "target_branch": "main"
+  "source_description": "GitHub issue #371 (P1-bug). Port the felix-admin-habits morning check-in + reply parsing to a scripts-first pattern, mirroring mission #309's escalation port. Eliminates the cross-session ordering divergence that corrupted Kent's habit records on 2026-05-22. Discovery answers (2026-05-22): (Q1) helper script with strict matching + narrow LLM judgment for ambiguous cases; (Q2) thin OpenClaw orchestrator (mirror #309); (Q3) today's miscoded records out of scope (Kent edits JSONL manually if needed). Target: in production tonight so the 7:05 AM ET 2026-05-23 cron can be re-enabled.",
+  "target_branch": "main",
+  "vcs": "git",
+  "change_mode": "regular"
 }
