@@ -109,12 +109,12 @@ Included subtasks:
 **Prompt**: [WP02-drift-ledger.md](tasks/WP02-drift-ledger.md)
 
 Included subtasks:
-- [ ] T008 Module skeleton + AuditLedgerEntry dataclass (WP02)
-- [ ] T009 append() — atomic write (WP02)
-- [ ] T010 read_window() — efficient tail (WP02)
-- [ ] T011 compute_triage_rate() + helpers (WP02)
-- [ ] T012 CLI surface (WP02)
-- [ ] T013 Tests (WP02)
+- [x] T008 Module skeleton + AuditLedgerEntry dataclass (WP02)
+- [x] T009 append() — atomic write (WP02)
+- [x] T010 read_window() — efficient tail (WP02)
+- [x] T011 compute_triage_rate() + helpers (WP02)
+- [x] T012 CLI surface (WP02)
+- [x] T013 Tests (WP02)
 
 **Risks**:
 - Atomic write semantics — naive `open("a")` works under single-writer; ensure flush+fsync. Tests must cover partial-write scenarios (kill mid-write).
