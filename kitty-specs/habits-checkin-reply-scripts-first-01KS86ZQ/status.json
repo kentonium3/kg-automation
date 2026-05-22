@@ -1,7 +1,7 @@
 {
-  "event_count": 35,
-  "last_event_id": "01KS8BPXSYF7JAXP0V2J0FQMVF",
-  "materialized_at": "2026-05-22T17:28:43.582559+00:00",
+  "event_count": 37,
+  "last_event_id": "01KS8BR5Y30S0JMZ1N1H7571YE",
+  "materialized_at": "2026-05-22T17:29:24.675714+00:00",
   "mission_number": "",
   "mission_slug": "habits-checkin-reply-scripts-first-01KS86ZQ",
   "mission_type": "software-dev",
@@ -12,9 +12,9 @@
     "claimed": 0,
     "done": 0,
     "for_review": 0,
-    "in_progress": 0,
+    "in_progress": 1,
     "in_review": 0,
-    "planned": 1
+    "planned": 0
   },
   "work_packages": {
     "WP01": {
@@ -39,11 +39,11 @@
       "last_transition_at": "2026-05-22T17:28:43.582559+00:00"
     },
     "WP04": {
-      "actor": "finalize-tasks",
+      "actor": "claude:opus:python-implementer:implementer",
       "force_count": 1,
-      "lane": "planned",
-      "last_event_id": "01KS87Z0RREBWMDT9QPWQ66D6T",
-      "last_transition_at": "2026-05-22T16:23:14.456528+00:00"
+      "lane": "in_progress",
+      "last_event_id": "01KS8BR5Y30S0JMZ1N1H7571YE",
+      "last_transition_at": "2026-05-22T17:29:24.675714+00:00"
     },
     "WP05": {
       "actor": "user",

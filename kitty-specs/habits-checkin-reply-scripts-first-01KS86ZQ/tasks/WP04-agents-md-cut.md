@@ -17,6 +17,8 @@ subtasks:
 - T013
 - T014
 - T015
+agent: "claude:opus:python-implementer:implementer"
+shell_pid: "77918"
 history:
 - at: '2026-05-22T16:30:00+00:00'
   actor: spec-kitty.tasks
@@ -183,3 +185,7 @@ No automated test suite; the cutover (post-merge, in quickstart.md) is the integ
 ```bash
 spec-kitty agent action implement WP04 --mission habits-checkin-reply-scripts-first-01KS86ZQ --agent claude:opus:python-implementer:implementer
 ```
+
+## Activity Log
+
+- 2026-05-22T17:29:24Z – claude:opus:python-implementer:implementer – shell_pid=77918 – Started implementation via action command
