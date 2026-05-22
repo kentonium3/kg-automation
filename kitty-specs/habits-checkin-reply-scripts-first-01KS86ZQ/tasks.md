@@ -21,10 +21,10 @@
 | T006 | parse_reply core logic — special tokens + tokenization + 3-tier matching (position → exact → substring) | WP02 | | [D] |
 | T007 | load_morning_list + CLI surface for parse_morning_reply (exit codes 0/1/3/4/5) | WP02 | | [D] |
 | T008 | Tests for parse_morning_reply — including the SC-002 fixture for 2026-05-22 ("Skipped 3,7,8 done") | WP02 | | [D] |
-| T009 | Disambiguator module skeleton + DisambiguationResult dataclass + cache-aware prompt template | WP03 | |
-| T010 | disambiguate() function — Anthropic HTTP call, response parse + validation | WP03 | |
-| T011 | CLI surface for disambiguator (exit codes 0/1/3/5) | WP03 | |
-| T012 | Tests for disambiguator — mocked Anthropic SDK; chosen + clarify + out-of-set rejection | WP03 | |
+| T009 | Disambiguator module skeleton + DisambiguationResult dataclass + cache-aware prompt template | WP03 | | [D] |
+| T010 | disambiguate() function — Anthropic HTTP call, response parse + validation | WP03 | | [D] |
+| T011 | CLI surface for disambiguator (exit codes 0/1/3/5) | WP03 | | [D] |
+| T012 | Tests for disambiguator — mocked Anthropic SDK; chosen + clarify + out-of-set rejection | WP03 | | [D] |
 | T013 | Build new AGENTS.md following D10 cuts + Entity 5 skeleton (≤14K source chars) | WP04 | |
 | T014 | Audit AGENTS.md for residual fuzzy-match prose; verify char count + grep clean | WP04 | |
 | T015 | Update scripts/openclaw/agents/felix-admin-habits/AGENTS.md in repo | WP04 | |
@@ -110,10 +110,10 @@ Risks:
 **Prompt**: [WP03-disambiguator.md](tasks/WP03-disambiguator.md)
 
 Included subtasks:
-- [ ] T009 Module skeleton + dataclass + prompt template (WP03)
-- [ ] T010 disambiguate() function — Anthropic call + validation (WP03)
-- [ ] T011 CLI surface (WP03)
-- [ ] T012 Tests (WP03)
+- [x] T009 Module skeleton + dataclass + prompt template (WP03)
+- [x] T010 disambiguate() function — Anthropic call + validation (WP03)
+- [x] T011 CLI surface (WP03)
+- [x] T012 Tests (WP03)
 
 Risks:
 - Prompt drift — system prompt must produce strict JSON; small changes can break parsing. Tests must verify across edge cases.
