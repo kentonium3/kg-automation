@@ -28,10 +28,10 @@
 | T013 | Build new AGENTS.md following D10 cuts + Entity 5 skeleton (≤14K source chars) | WP04 | |
 | T014 | Audit AGENTS.md for residual fuzzy-match prose; verify char count + grep clean | WP04 | |
 | T015 | Update scripts/openclaw/agents/felix-admin-habits/AGENTS.md in repo | WP04 | |
-| T016 | Update docs/design/architecture/data/service-inventory.json (3 new helpers + felix-admin-habits update) | WP05 | [P] |
-| T017 | Update docs/design/architecture/data/data-flows.json (new write/read paths) | WP05 | |
-| T018 | Update markdown architecture views to match JSON sources | WP05 | |
-| T019 | Rewrite docs/runbooks/habits-ops.md for the v2 scripts-first flow | WP05 | [P] |
+| T016 | Update docs/design/architecture/data/service-inventory.json (3 new helpers + felix-admin-habits update) | WP05 | [D] |
+| T017 | Update docs/design/architecture/data/data-flows.json (new write/read paths) | WP05 | | [D] |
+| T018 | Update markdown architecture views to match JSON sources | WP05 | | [D] |
+| T019 | Rewrite docs/runbooks/habits-ops.md for the v2 scripts-first flow | WP05 | [D] |
 
 ---
 
@@ -157,10 +157,10 @@ Risks:
 **Prompt**: [WP05-docs.md](tasks/WP05-docs.md)
 
 Included subtasks:
-- [ ] T016 service-inventory.json — register 3 new helpers + update felix-admin-habits entry (WP05)
-- [ ] T017 data-flows.json — new write/read paths (WP05)
-- [ ] T018 Markdown views match JSON (WP05)
-- [ ] T019 docs/runbooks/habits-ops.md — rewrite for v2 flow (WP05)
+- [x] T016 service-inventory.json — register 3 new helpers + update felix-admin-habits entry (WP05)
+- [x] T017 data-flows.json — new write/read paths (WP05)
+- [x] T018 Markdown views match JSON (WP05)
+- [x] T019 docs/runbooks/habits-ops.md — rewrite for v2 flow (WP05)
 
 Risks:
 - JSON ↔ markdown drift — every JSON entry needs a markdown counterpart.
