@@ -160,12 +160,12 @@ Included subtasks:
 **Prompt**: [WP04-handle-drift-events.md](tasks/WP04-handle-drift-events.md)
 
 Included subtasks:
-- [ ] T018 Config.toml loading (WP04)
-- [ ] T019 Moment 0 invocation behind flag (WP04)
-- [ ] T020 Verdict routing (WP04)
-- [ ] T021 Ledger entry append for every event (WP04)
-- [ ] T022 `--reset-cursor` flag (WP04)
-- [ ] T023 Extended tests (WP04)
+- [x] T018 Config.toml loading (WP04)
+- [x] T019 Moment 0 invocation behind flag (WP04)
+- [x] T020 Verdict routing (WP04)
+- [x] T021 Ledger entry append for every event (WP04)
+- [x] T022 `--reset-cursor` flag (WP04)
+- [x] T023 Extended tests (WP04)
 
 **Risks**:
 - Backward compatibility — the existing CLI surface (per C-002) must NOT change. New flags are additive; existing flags + JSON outputs unchanged.
