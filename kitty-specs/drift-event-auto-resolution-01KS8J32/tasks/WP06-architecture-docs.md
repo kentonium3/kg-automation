@@ -15,7 +15,7 @@ subtasks:
 - T030
 - T031
 - T032
-shell_pid: '729'
+shell_pid: "729"
 history: []
 authoritative_surface: docs/
 execution_mode: code_change
@@ -29,6 +29,7 @@ owned_files:
 - docs/design/architecture/data-flows.view.md
 - docs/runbooks/doc-auditor-driver-ops.md
 tags: []
+agent: "claude:opus:python-implementer:implementer"
 ---
 
 # WP06 — Architecture docs + ops runbook
@@ -203,3 +204,7 @@ Doc-only WP. Validation via:
 ```bash
 spec-kitty agent action implement WP06 --mission drift-event-auto-resolution-01KS8J32 --agent claude:opus:python-implementer:implementer
 ```
+
+## Activity Log
+
+- 2026-05-22T19:52:52Z – claude:opus:python-implementer:implementer – shell_pid=729 – Assigned agent via action command
