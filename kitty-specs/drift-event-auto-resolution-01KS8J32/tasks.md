@@ -135,10 +135,10 @@ Included subtasks:
 **Prompt**: [WP03-translator.md](tasks/WP03-translator.md)
 
 Included subtasks:
-- [ ] T014 data_model.py docstring update (WP03)
-- [ ] T015 drift_to_proposed_edit.py — build() (WP03)
-- [ ] T016 Routing package init (WP03)
-- [ ] T017 Tests (WP03)
+- [x] T014 data_model.py docstring update (WP03)
+- [x] T015 drift_to_proposed_edit.py — build() (WP03)
+- [x] T016 Routing package init (WP03)
+- [x] T017 Tests (WP03)
 
 **Risks**:
 - Coupling to data_model.py — only docstring change, but the change_type set is documented in multiple places (SKILL.md §4.1). Don't update SKILL.md from this WP (out of scope; the change is additive and tier_classification handles unknown values via JUDGMENT fallback).
