@@ -15,7 +15,7 @@ subtasks:
 - T030
 - T031
 - T032
-shell_pid: "729"
+shell_pid: "3065"
 history: []
 authoritative_surface: docs/
 execution_mode: code_change
@@ -29,7 +29,7 @@ owned_files:
 - docs/design/architecture/data-flows.view.md
 - docs/runbooks/doc-auditor-driver-ops.md
 tags: []
-agent: "claude:opus:python-implementer:implementer"
+agent: "agy:gemini-2.5-pro:spec-kitty-review:reviewer"
 ---
 
 # WP06 — Architecture docs + ops runbook
@@ -209,3 +209,4 @@ spec-kitty agent action implement WP06 --mission drift-event-auto-resolution-01K
 
 - 2026-05-22T19:52:52Z – claude:opus:python-implementer:implementer – shell_pid=729 – Assigned agent via action command
 - 2026-05-22T20:02:51Z – claude:opus:python-implementer:implementer – shell_pid=729 – Ready for review: architecture docs + ops runbook updated
+- 2026-05-22T20:03:43Z – agy:gemini-2.5-pro:spec-kitty-review:reviewer – shell_pid=3065 – Started review via action command
