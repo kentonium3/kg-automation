@@ -1,7 +1,7 @@
 {
-  "event_count": 24,
-  "last_event_id": "01KS8PVRE63ZCM6JQPBW1HNAXJ",
-  "materialized_at": "2026-05-22T20:43:36.262840+00:00",
+  "event_count": 25,
+  "last_event_id": "01KS8PVZE8QX1603QPAW2R0EGR",
+  "materialized_at": "2026-05-22T20:43:43.433018+00:00",
   "mission_number": "",
   "mission_slug": "drift-event-auto-resolution-01KS8J32",
   "mission_type": "software-dev",
@@ -11,9 +11,9 @@
     "canceled": 0,
     "claimed": 0,
     "done": 0,
-    "for_review": 1,
+    "for_review": 0,
     "in_progress": 0,
-    "in_review": 0,
+    "in_review": 1,
     "planned": 2
   },
   "work_packages": {
@@ -32,11 +32,11 @@
       "last_transition_at": "2026-05-22T20:23:05.082870+00:00"
     },
     "WP03": {
-      "actor": "user",
+      "actor": "agy:gemini-2.5-pro:spec-kitty-review:reviewer",
       "force_count": 1,
-      "lane": "for_review",
-      "last_event_id": "01KS8PVRE63ZCM6JQPBW1HNAXJ",
-      "last_transition_at": "2026-05-22T20:43:36.262840+00:00"
+      "lane": "in_review",
+      "last_event_id": "01KS8PVZE8QX1603QPAW2R0EGR",
+      "last_transition_at": "2026-05-22T20:43:43.433018+00:00"
     },
     "WP04": {
       "actor": "finalize-tasks",
