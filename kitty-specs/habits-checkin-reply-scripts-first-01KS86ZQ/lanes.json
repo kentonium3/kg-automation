@@ -1,0 +1,90 @@
+{
+  "version": 1,
+  "mission_slug": "habits-checkin-reply-scripts-first-01KS86ZQ",
+  "mission_id": "01KS86ZQE8GSZ77ZSGSSQMN08K",
+  "mission_branch": "kitty/mission-habits-checkin-reply-scripts-first-01KS86ZQ",
+  "target_branch": "main",
+  "lanes": [
+    {
+      "lane_id": "lane-a",
+      "wp_ids": [
+        "WP01",
+        "WP02",
+        "WP03",
+        "WP04"
+      ],
+      "write_scope": [
+        "scripts/habits/judgment/__init__.py",
+        "scripts/habits/judgment/disambiguate_reply.py",
+        "scripts/habits/judgment/prompts/disambiguate_reply.prompt.md",
+        "scripts/habits/morning_checkin_list.py",
+        "scripts/habits/parse_morning_reply.py",
+        "scripts/openclaw/agents/felix-admin-habits/AGENTS.md",
+        "tests/habits/fixtures/morning-checkin-2026-05-22.json",
+        "tests/habits/test_disambiguate_reply.py",
+        "tests/habits/test_morning_checkin_list.py",
+        "tests/habits/test_parse_morning_reply.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "artifact-rendering",
+        "legacy-cleanup",
+        "tests",
+        "tracker-integration"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    },
+    {
+      "lane_id": "lane-b",
+      "wp_ids": [
+        "WP05"
+      ],
+      "write_scope": [
+        "docs/design/architecture/data-flows.md",
+        "docs/design/architecture/data-flows.view.md",
+        "docs/design/architecture/data/data-flows.json",
+        "docs/design/architecture/data/service-inventory.json",
+        "docs/design/architecture/service-dependencies.view.md",
+        "docs/design/architecture/service-inventory.md",
+        "docs/runbooks/habits-ops.md"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "legacy-cleanup"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    }
+  ],
+  "computed_at": "2026-05-22T16:23:14.472754+00:00",
+  "computed_from": "dependency_graph+ownership",
+  "planning_artifact_wps": [],
+  "collapse_report": {
+    "events": [
+      {
+        "wp_a": "WP02",
+        "wp_b": "WP01",
+        "rule": "dependency",
+        "evidence": "WP02 depends on WP01"
+      },
+      {
+        "wp_a": "WP03",
+        "wp_b": "WP02",
+        "rule": "dependency",
+        "evidence": "WP03 depends on WP02"
+      },
+      {
+        "wp_a": "WP04",
+        "wp_b": "WP01",
+        "rule": "dependency",
+        "evidence": "WP04 depends on WP01"
+      }
+    ],
+    "total_merges": 3,
+    "independent_wps_collapsed": 0,
+    "by_rule": {
+      "dependency": 3
+    }
+  }
+}

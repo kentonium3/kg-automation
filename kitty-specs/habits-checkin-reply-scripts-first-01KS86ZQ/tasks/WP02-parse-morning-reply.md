@@ -1,7 +1,8 @@
 ---
 work_package_id: WP02
 title: parse_morning_reply helper
-dependencies: []
+dependencies:
+- WP01
 requirement_refs:
 - FR-003
 - FR-004

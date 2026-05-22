@@ -1,0 +1,56 @@
+{
+  "event_count": 5,
+  "last_event_id": "01KS87Z0RY4Y63Q0ANX7HGQXF3",
+  "materialized_at": "2026-05-22T16:23:14.462629+00:00",
+  "mission_number": "",
+  "mission_slug": "habits-checkin-reply-scripts-first-01KS86ZQ",
+  "mission_type": "software-dev",
+  "summary": {
+    "approved": 0,
+    "blocked": 0,
+    "canceled": 0,
+    "claimed": 0,
+    "done": 0,
+    "for_review": 0,
+    "in_progress": 0,
+    "in_review": 0,
+    "planned": 5
+  },
+  "work_packages": {
+    "WP01": {
+      "actor": "finalize-tasks",
+      "force_count": 1,
+      "lane": "planned",
+      "last_event_id": "01KS87Z0GDPNZ2S0F5N82P2B1R",
+      "last_transition_at": "2026-05-22T16:23:14.189349+00:00"
+    },
+    "WP02": {
+      "actor": "finalize-tasks",
+      "force_count": 1,
+      "lane": "planned",
+      "last_event_id": "01KS87Z0RCDS0YHR85XYJMDJJ9",
+      "last_transition_at": "2026-05-22T16:23:14.445003+00:00"
+    },
+    "WP03": {
+      "actor": "finalize-tasks",
+      "force_count": 1,
+      "lane": "planned",
+      "last_event_id": "01KS87Z0RK03Q1XYV9KFRT7T9Y",
+      "last_transition_at": "2026-05-22T16:23:14.451065+00:00"
+    },
+    "WP04": {
+      "actor": "finalize-tasks",
+      "force_count": 1,
+      "lane": "planned",
+      "last_event_id": "01KS87Z0RREBWMDT9QPWQ66D6T",
+      "last_transition_at": "2026-05-22T16:23:14.456528+00:00"
+    },
+    "WP05": {
+      "actor": "finalize-tasks",
+      "force_count": 1,
+      "lane": "planned",
+      "last_event_id": "01KS87Z0RY4Y63Q0ANX7HGQXF3",
+      "last_transition_at": "2026-05-22T16:23:14.462629+00:00"
+    }
+  }
+}
