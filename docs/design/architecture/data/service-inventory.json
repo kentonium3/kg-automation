@@ -1,7 +1,7 @@
 {
   "schema_version": "1.1",
-  "last_updated": "2026-05-21",
-  "updated_by": "#309-migrate-escalation-to-jsonl-state-model + #343-refactor-doc-auditor-to-scripts-first-driver + #307-backfill-habits-jsonl-from-comments + #306-habits-native-repeat-jsonl-state + #304-felix-bot-rotation + #291-felix-file-issue + #289-mutation-surfaces-enumeration + #285-cron-delivery-restore-path-c + #282-habits-d6-extract + #263-cron-delivery-mode-round2 + #100-google-workspace-foundation + #256-scope-discipline-guardrails + #253-step-5a-6-consolidation + #254-atomic-write-perm-preservation + issue-105-doc-auditor + #223-systemd-timer + #208-restic-healthcheck + #202-obsidian-sync-system-level + #203-sync-heartbeat + #199-inbox-schedules + #115-credential-health-check + #189-vikunja-compose + #185-inbox-capture-dedup",
+  "last_updated": "2026-05-22",
+  "updated_by": "#362-drift-event-auto-resolution + #309-migrate-escalation-to-jsonl-state-model + #343-refactor-doc-auditor-to-scripts-first-driver + #307-backfill-habits-jsonl-from-comments + #306-habits-native-repeat-jsonl-state + #304-felix-bot-rotation + #291-felix-file-issue + #289-mutation-surfaces-enumeration + #285-cron-delivery-restore-path-c + #282-habits-d6-extract + #263-cron-delivery-mode-round2 + #100-google-workspace-foundation + #256-scope-discipline-guardrails + #253-step-5a-6-consolidation + #254-atomic-write-perm-preservation + issue-105-doc-auditor + #223-systemd-timer + #208-restic-healthcheck + #202-obsidian-sync-system-level + #203-sync-heartbeat + #199-inbox-schedules + #115-credential-health-check + #189-vikunja-compose + #185-inbox-capture-dedup",
   "services": [
     {
       "name": "vikunja",
@@ -586,10 +586,16 @@
       "session_mode_note": "Post-#343: each tick is a fresh Python process with no carried-over LLM session. Persistent state lives entirely on GitHub (labels, issues) and in `last-tick.json` + activity log; the driver carries nothing in memory between ticks.",
       "deployed_by": "#105",
       "deployed_on": "2026-05-10",
-      "updated_by": "#343-refactor-doc-auditor-to-scripts-first-driver",
-      "last_updated": "2026-05-21",
+      "updated_by": "#362",
+      "last_updated": "2026-05-22",
       "status": "active",
-      "purpose": "Documentation audit — processes Doc Audit and Weekly Doc Audit issues; classifies docs as high-confidence edit (commits directly) or judgment gap (files docs-debt issue); detects missing artifacts. Post-#343 implemented as a scripts-first Python driver that calls the Anthropic SDK directly at narrow judgment moments (tier classification, debt body generation, cross-file implication).",
+      "purpose": "Documentation audit — processes Doc Audit and Weekly Doc Audit issues; classifies docs as high-confidence edit (commits directly) or judgment gap (files docs-debt issue); detects missing artifacts. Post-#343 implemented as a scripts-first Python driver that calls the Anthropic SDK directly at narrow judgment moments. Post-#362 adds Moment 0 (drift_interpretation) for drift-event auto-resolution: every mapped drift event is classified PROPOSED_EDIT / JUDGMENT_REQUIRED / NO_CHANGE_NEEDED before issue filing, with PROPOSED_EDIT verdicts (confidence ≥0.80) routed through the existing tier_classification surface to preserve SKILL.md §4.3 guardrails.",
+      "judgment_moments": [
+        {"name": "drift_interpretation", "introduced_by": "#362", "purpose": "Moment 0 — classify a drift event as PROPOSED_EDIT / JUDGMENT_REQUIRED / NO_CHANGE_NEEDED with explicit confidence before any GitHub issue is filed", "module": "scripts/doc_audit/judgment/drift_interpretation.py"},
+        {"name": "tier_classification", "introduced_by": "#343", "purpose": "Moment 1 — classify a proposed edit as Tier A (auto-commit) / Tier B (PR) / judgment (debt-issue)", "module": "scripts/doc_audit/judgment/tier_classification.py"},
+        {"name": "cross_file_implication", "introduced_by": "#343", "purpose": "Detect whether an audit signal implies edits across multiple docs (cross-file fan-out)", "module": "scripts/doc_audit/judgment/cross_file_implication.py"},
+        {"name": "debt_body_generation", "introduced_by": "#343", "purpose": "Generate the body for docs-debt GitHub issues when an audit can't be auto-resolved", "module": "scripts/doc_audit/judgment/debt_body_generation.py"}
+      ],
       "model": "anthropic/claude-haiku-4-5",
       "model_policy": "pinned",
       "autonomy_level": "Assisted (Level 1)",
@@ -600,7 +606,8 @@
         {"target": "doc-domain-map.json", "type": "requires", "description": "Scope contract — still the canonical mapping from changed-file path to owning doc"},
         {"target": "signal-to-doc-map.json", "type": "requires", "description": "Maps signal classes (commit-marker, drift-event, weekly-cron) to candidate docs for audit"},
         {"target": "drift-events.jsonl", "type": "requires", "description": "Read-only consumer of /data/services/security-monitor/logs/drift-events.jsonl as one signal source"},
-        {"target": "scripts/doc_audit/prompts/", "type": "requires", "description": "Checked-in judgment prompts (tier_classification, debt_body_generation, cross_file_implication) replace the runtime SKILL.md procedure"}
+        {"target": "scripts/doc_audit/prompts/", "type": "requires", "description": "Checked-in judgment prompts (drift_interpretation [#362], tier_classification, debt_body_generation, cross_file_implication) replace the runtime SKILL.md procedure"},
+        {"target": "drift-events-ledger.jsonl", "type": "writes_to", "description": "Append-only audit ledger at /data/services/security-monitor/logs/drift-events-ledger.jsonl capturing per-event verdict, confidence, outcome, latency. Introduced by #362.", "introduced_by": "#362"}
       ],
       "health_check": {
         "method": "tick-signal-file",
@@ -612,10 +619,130 @@
       "config_files": [
         {"path": "~/.config/systemd/user/felix-doc-auditor.timer", "format": "systemd-unit", "source_in_repo": "scripts/office2/felix-doc-auditor.timer"},
         {"path": "~/.config/systemd/user/felix-doc-auditor.service", "format": "systemd-unit", "source_in_repo": "scripts/office2/felix-doc-auditor.service"},
-        {"path": "/home/claude/kg-automation/scripts/doc_audit/config.toml", "format": "toml", "source_in_repo": "scripts/doc_audit/config.toml", "purpose": "Driver runtime config — adapter list, model, API key path, cursor paths, last-tick.json location"},
+        {"path": "/home/claude/kg-automation/scripts/doc_audit/config.toml", "format": "toml", "source_in_repo": "scripts/doc_audit/config.toml", "purpose": "Driver runtime config — adapter list, model, API key path, cursor paths, last-tick.json location. Post-#362 adds the [drift_interpretation] block (enabled, ledger_path, model, api_key_path, timeout_seconds, confidence_threshold) gating the Moment 0 judgment.", "updated_by": "#362"},
         {"path": "/home/claude/kg-automation/scripts/doc_audit/prompts/tier_classification.prompt.md", "format": "markdown", "source_in_repo": "scripts/doc_audit/prompts/tier_classification.prompt.md", "purpose": "Judgment prompt for Tier-A vs Tier-B classification"},
         {"path": "/home/claude/kg-automation/scripts/doc_audit/prompts/debt_body_generation.prompt.md", "format": "markdown", "source_in_repo": "scripts/doc_audit/prompts/debt_body_generation.prompt.md", "purpose": "Judgment prompt for docs-debt issue body generation"},
-        {"path": "/home/claude/kg-automation/scripts/doc_audit/prompts/cross_file_implication.prompt.md", "format": "markdown", "source_in_repo": "scripts/doc_audit/prompts/cross_file_implication.prompt.md", "purpose": "Judgment prompt for cross-file implication detection"}
+        {"path": "/home/claude/kg-automation/scripts/doc_audit/prompts/cross_file_implication.prompt.md", "format": "markdown", "source_in_repo": "scripts/doc_audit/prompts/cross_file_implication.prompt.md", "purpose": "Judgment prompt for cross-file implication detection"},
+        {"path": "/home/claude/kg-automation/scripts/doc_audit/prompts/drift_interpretation.prompt.md", "format": "markdown", "source_in_repo": "scripts/doc_audit/prompts/drift_interpretation.prompt.md", "purpose": "Judgment prompt for Moment 0 drift interpretation (PROPOSED_EDIT / JUDGMENT_REQUIRED / NO_CHANGE_NEEDED). Cache-aware: stable system prompt + dynamic user content per the existing tier_classification.prompt.md pattern. Introduced by #362.", "introduced_by": "#362"}
+      ]
+    },
+    {
+      "name": "drift_interpretation",
+      "kind": "judgment_module",
+      "type": "python-module",
+      "host": "office2",
+      "user": "claude",
+      "path": "scripts/doc_audit/judgment/drift_interpretation.py",
+      "deployed_path": "/home/claude/kg-automation/scripts/doc_audit/judgment/drift_interpretation.py",
+      "invoked_by": "felix-doc-auditor (Moment 0 — once per mapped drift event before issue filing)",
+      "calls": "api.anthropic.com",
+      "model": "claude-haiku-4-5-20251001",
+      "credentials": ["anthropic-api"],
+      "purpose": "Moment 0 LLM judgment for drift events. Returns a DriftVerdict (PROPOSED_EDIT / JUDGMENT_REQUIRED / NO_CHANGE_NEEDED) with explicit confidence. PROPOSED_EDIT verdicts at confidence ≥0.80 are translated to ProposedEdit and routed through the existing tier_classification surface; lower confidence demotes to JUDGMENT_REQUIRED. Retry policy 30s/60s/120s; on exhaustion falls back to the pre-#362 issue-filing path.",
+      "introduced_by": "#362",
+      "deployed_by": "#362",
+      "last_updated": "2026-05-22",
+      "updated_by": "#362",
+      "status": "active",
+      "risk_tier": 3,
+      "dependencies": [
+        {"target": "anthropic-api-key", "type": "requires", "description": "Loaded at invocation from /data/services/openclaw/secrets/anthropic via the shared JudgmentClient"},
+        {"target": "scripts/doc_audit/prompts/drift_interpretation.prompt.md", "type": "requires", "description": "Cache-aware prompt (system prompt + dynamic user content)"},
+        {"target": "scripts/doc_audit/judgment/client.py", "type": "requires", "description": "Shared JudgmentClient (no new SDK creation per C-004)"},
+        {"target": "signal-to-doc-map.json", "type": "requires", "description": "Mapping rationale + doc_targets list assembled into DriftInterpretationContext"}
+      ],
+      "config_files": [
+        {"path": "/home/claude/kg-automation/scripts/doc_audit/config.toml", "format": "toml", "source_in_repo": "scripts/doc_audit/config.toml", "purpose": "Drift interpretation enable flag, confidence threshold, model override, timeout, ledger path — read per tick (no watcher)"}
+      ]
+    },
+    {
+      "name": "drift_ledger",
+      "kind": "storage",
+      "type": "python-module",
+      "host": "office2",
+      "user": "claude",
+      "path": "scripts/doc_audit/output/drift_ledger.py",
+      "deployed_path": "/home/claude/kg-automation/scripts/doc_audit/output/drift_ledger.py",
+      "invoked_by": "felix-doc-auditor (per processed drift event); operator (read-only CLI subcommands: summary, tail, triage-rate)",
+      "writes_to": "/data/services/security-monitor/logs/drift-events-ledger.jsonl",
+      "purpose": "Append-only JSONL audit ledger writer + read-only query CLI. One row per processed drift event capturing event_id, verdict, confidence, outcome, doc_paths, retry_count, latency_ms, tier_classification_outcome, github_issue_number. Atomic appends (tempfile + rename). CLI subcommands `triage-rate`, `summary`, `tail` back the NFR-001 operator-triage-rate metric.",
+      "introduced_by": "#362",
+      "deployed_by": "#362",
+      "last_updated": "2026-05-22",
+      "updated_by": "#362",
+      "status": "active",
+      "risk_tier": 3,
+      "dependencies": [
+        {"target": "/data/services/security-monitor/logs/drift-events-ledger.jsonl", "type": "writes_to", "description": "Authoritative append-only ledger. No rotation in v1; ~3-10 entries/day given current drift volume. Backed up by the nightly Restic job."}
+      ]
+    },
+    {
+      "name": "drift_to_proposed_edit",
+      "kind": "translator",
+      "type": "python-module",
+      "host": "office2",
+      "user": "claude",
+      "path": "scripts/doc_audit/routing/drift_to_proposed_edit.py",
+      "deployed_path": "/home/claude/kg-automation/scripts/doc_audit/routing/drift_to_proposed_edit.py",
+      "invoked_by": "handle_drift_events (when DriftVerdict.verdict == PROPOSED_EDIT and confidence ≥0.80)",
+      "purpose": "Pure-function translator. Builds a ProposedEdit (change_type='drift_derived', tier='tier_b' placeholder, confidence='high') from a high-confidence PROPOSED_EDIT DriftVerdict + its DriftInterpretationContext. Validates that proposed doc_path is within the mapping's doc_targets list (out-of-set → ValueError → caller demotes to JUDGMENT_REQUIRED). The resulting ProposedEdit feeds the existing tier_classification surface; its conservative rules ultimately decide Tier A / Tier B / judgment.",
+      "introduced_by": "#362",
+      "deployed_by": "#362",
+      "last_updated": "2026-05-22",
+      "updated_by": "#362",
+      "status": "active",
+      "risk_tier": 3,
+      "dependencies": [
+        {"target": "scripts/doc_audit/data_model.py", "type": "requires", "description": "Uses the existing ProposedEdit dataclass; extends the documented change_type set with 'drift_derived' (8th value)"}
+      ]
+    },
+    {
+      "name": "cutover_362",
+      "kind": "one_shot_script",
+      "type": "python-module",
+      "host": "office2",
+      "user": "claude",
+      "path": "scripts/doc_audit/helpers/cutover_362.py",
+      "deployed_path": "/home/claude/kg-automation/scripts/doc_audit/helpers/cutover_362.py",
+      "invoked_by": "operator (Kent) — manual, one-shot post-deploy",
+      "purpose": "Idempotent one-shot backlog cutover script. Closes the 13 known pre-#362 [doc-audit] P3 issues (#351-#360, #368-#370) with a comment noting the new pipeline will reprocess them, resets the drift-events cursor to 0 so existing piled-up drift events get reprocessed via Moment 0, and writes a marker at ~/.config/doc-audit/cutover-362.done. Re-runs are no-ops unless --force is passed. Supports --dry-run.",
+      "introduced_by": "#362",
+      "deployed_by": "#362",
+      "last_updated": "2026-05-22",
+      "updated_by": "#362",
+      "status": "active",
+      "risk_tier": 3,
+      "dependencies": [
+        {"target": "gh-cli", "type": "requires", "description": "Issue list + comment + close operations via gh CLI (kg-felix-bot PAT)"},
+        {"target": "/data/services/security-monitor/.drift-events.cursor", "type": "writes_to", "description": "Cursor reset to 0 on success — enables reprocessing of piled-up drift events"},
+        {"target": "~/.config/doc-audit/cutover-362.done", "type": "writes_to", "description": "Sentinel marker preventing re-run; contains run_at_utc, closed_issues, cursor_reset_to"}
+      ]
+    },
+    {
+      "name": "handle_drift_events",
+      "kind": "orchestrator",
+      "type": "python-module",
+      "host": "office2",
+      "user": "claude",
+      "path": "scripts/doc_audit/helpers/handle_drift_events.py",
+      "deployed_path": "/home/claude/kg-automation/scripts/doc_audit/helpers/handle_drift_events.py",
+      "invoked_by": "felix-doc-auditor (driver run.py) per tick — once per pending drift event",
+      "purpose": "Drift-event orchestrator. Reads /data/services/security-monitor/logs/drift-events.jsonl from cursor; per event consults signal-to-doc-map.json and assembles a DriftInterpretationContext; when config.toml [drift_interpretation].enabled = true invokes drift_interpretation.interpret() for Moment 0 and routes the verdict (PROPOSED_EDIT → drift_to_proposed_edit → tier_classification; JUDGMENT_REQUIRED → [doc-audit] issue with LLM's question; NO_CHANGE_NEEDED → auto-close + ledger only); on retry exhaustion falls back to pre-#362 issue-filing path (FR-009). All paths write one AuditLedgerEntry via drift_ledger.append().",
+      "introduced_by": "#343",
+      "deployed_by": "#343",
+      "last_updated": "2026-05-22",
+      "updated_by": "#362",
+      "status": "active",
+      "risk_tier": 3,
+      "dependencies": [
+        {"target": "drift_interpretation", "type": "requires", "description": "Moment 0 LLM judgment module — invoked per mapped drift event when [drift_interpretation].enabled = true. Introduced by #362.", "introduced_by": "#362"},
+        {"target": "drift_to_proposed_edit", "type": "requires", "description": "Translator for PROPOSED_EDIT verdicts at confidence ≥0.80. Introduced by #362.", "introduced_by": "#362"},
+        {"target": "drift_ledger", "type": "writes_to", "description": "Append one AuditLedgerEntry per processed drift event regardless of path. Introduced by #362.", "introduced_by": "#362"},
+        {"target": "signal-to-doc-map.json", "type": "requires", "description": "Mapping rationale + doc_targets for the drift event"},
+        {"target": "/data/services/security-monitor/logs/drift-events.jsonl", "type": "requires", "description": "Read-only drift-event source; cursor at /data/services/security-monitor/.drift-events.cursor"}
+      ],
+      "config_files": [
+        {"path": "/home/claude/kg-automation/scripts/doc_audit/config.toml", "format": "toml", "source_in_repo": "scripts/doc_audit/config.toml", "purpose": "Reads [drift_interpretation] block — enabled flag (gates whether Moment 0 runs at all), confidence_threshold, model, api_key_path, timeout_seconds, ledger_path. Introduced by #362.", "introduced_by": "#362"}
       ]
     },
     {

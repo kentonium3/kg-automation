@@ -7,9 +7,9 @@ status: approved
 owners:
   - "@kentonium3"
 last_updated: '2026-05-22'
-revision: v1.3
+revision: v1.4
 audience: agents_and_humans
-updated_by: '#371'
+updated_by: '#362'
 
 ---
 
@@ -31,7 +31,7 @@ graph LR
         audit["Security Audit<br/>3AM daily"]
         baselines[("Baselines<br/>/data/services/security-monitor")]
 
-        subgraph doc_audit["Doc-Auditor (#343 scripts-first)"]
+        subgraph doc_audit["Doc-Auditor (#343 scripts-first; Moment 0 + ledger added #362)"]
             timer["felix-doc-auditor.timer<br/>OnCalendar=hourly"]
             service["felix-doc-auditor.service<br/>(oneshot)"]
             driver["scripts/doc_audit/run.py<br/>(Python driver)"]
@@ -39,6 +39,15 @@ graph LR
             anthropic_key[("anthropic API key<br/>/data/services/openclaw/<br/>secrets/anthropic (0600)")]
             drift_events[("drift-events.jsonl<br/>/data/services/security-monitor/logs/")]
             activity_log[("doc-auditor-YYYY-MM-DD.md<br/>/home/kgale/second-brain/<br/>agents/logs/")]
+            da_handle_drift["scripts/doc_audit/helpers/<br/>handle_drift_events.py<br/>(orchestrator; updated_by #362)"]
+            da_drift_interp["scripts/doc_audit/judgment/<br/>drift_interpretation.py<br/>(Moment 0 — #362)"]
+            da_tier_class["scripts/doc_audit/judgment/<br/>tier_classification.py<br/>(Moment 1 — #343)"]
+            da_translator["scripts/doc_audit/routing/<br/>drift_to_proposed_edit.py<br/>(translator — #362)"]
+            da_ledger["scripts/doc_audit/output/<br/>drift_ledger.py<br/>(append + read-only CLI — #362)"]
+            da_ledger_file[("drift-events-ledger.jsonl<br/>/data/services/security-monitor/logs/<br/>(append-only — #362)")]
+            da_cutover["scripts/doc_audit/helpers/<br/>cutover_362.py<br/>(one-shot — #362)"]
+            da_cutover_marker[("cutover-362.done<br/>~/.config/doc-audit/<br/>(sentinel — #362)")]
+            da_cursor[("drift-events.cursor<br/>/data/services/security-monitor/<br/>(reset to 0 by cutover_362)")]
         end
 
         subgraph escalation["Escalation (#309 JSONL state)"]
@@ -92,6 +101,21 @@ graph LR
     driver -->|"append"| activity_log
     driver -->|"write (atomic rename)"| tick_signal
     audit -->|"writes drift events"| drift_events
+
+    driver -->|"per drift event:<br/>invoke orchestrator"| da_handle_drift
+    da_handle_drift -->|"read (from cursor)"| drift_events
+    da_handle_drift -->|"Moment 0: invoke<br/>(when [drift_interpretation].enabled=true)"| da_drift_interp
+    da_drift_interp -->|"read (0600,<br/>via shared JudgmentClient)"| anthropic_key
+    da_drift_interp -->|"HTTPS (anthropic-python SDK,<br/>claude-haiku-4-5-20251001)"| anthropic_api
+    da_handle_drift -.->|"on PROPOSED_EDIT, conf >=0.80"| da_translator
+    da_translator -.->|"ProposedEdit<br/>(change_type=drift_derived)"| da_tier_class
+    da_handle_drift -->|"all branches:<br/>append AuditLedgerEntry"| da_ledger
+    da_ledger -->|"file append<br/>(atomic rename)"| da_ledger_file
+    da_handle_drift -.->|"JUDGMENT_REQUIRED /<br/>RETRY_EXHAUSTED:<br/>file [doc-audit] issue"| gh_api
+
+    da_cutover -->|"list+comment+close<br/>13 pre-#362 P3 issues"| gh_api
+    da_cutover -->|"reset to 0"| da_cursor
+    da_cutover -->|"write sentinel"| da_cutover_marker
 
     esc_agent -->|"event: invoke"| esc_record
     esc_agent -->|"tick start: invoke"| esc_reconcile

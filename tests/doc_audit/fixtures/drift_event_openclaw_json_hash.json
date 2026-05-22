@@ -1,0 +1,16 @@
+{
+  "event_id": "48:2026-05-22T03:15:07Z",
+  "timestamp_utc": "2026-05-22T03:15:07Z",
+  "baseline": "openclaw-json",
+  "mapping_id": "openclaw-json-hash-drift",
+  "mapping_rationale": "openclaw.json hash drift can imply service-inventory.json changes; the LLM should review the diff against the inventory's openclaw section.",
+  "diff": "--- openclaw.json.baseline\n+++ openclaw.json.current\n@@ -10,7 +10,7 @@\n   \"agents\": {\n     \"felix-doc-auditor\": {\n       \"workspace\": \"/data/services/openclaw/agents/felix-doc-auditor\",\n-      \"claude_session_ttl_seconds\": 1800\n+      \"claude_session_ttl_seconds\": 3600\n     }\n   }\n }\n",
+  "doc_targets": [
+    {
+      "path": "docs/design/architecture/data/service-inventory.json",
+      "contents": "{\n  \"openclaw\": {\n    \"agents\": [\n      {\"name\": \"felix-doc-auditor\", \"workspace\": \"/data/services/openclaw/agents/felix-doc-auditor\"}\n    ]\n  }\n}",
+      "truncated": false,
+      "truncation_strategy": "full"
+    }
+  ]
+}

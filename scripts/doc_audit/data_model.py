@@ -81,11 +81,22 @@ class ProposedEdit:
     Embedded in ``PendingApproval.proposed_edits`` and (during fresh
     audit processing) in ``AuditIssue``-derived state.
 
-    ``change_type`` is one of (per SKILL.md §4.1 #1-7):
+    ``change_type`` is one of (per SKILL.md §4.1 #1-7 plus #8 added in
+    mission drift-event-auto-resolution-01KS8J32):
     ``frontmatter_field_bump``, ``frontmatter_updated_by``,
     ``service_version``, ``file_path_rename``,
     ``dead_reference_removal``, ``agent_registry_add``,
-    ``autonomy_level_update``.
+    ``autonomy_level_update``, ``drift_derived``.
+
+    The ``drift_derived`` value indicates the edit was synthesized by
+    the Moment 0 ``drift_interpretation`` LLM judgment and routed
+    through ``doc_audit.routing.drift_to_proposed_edit.build``. The
+    field is ``str`` (not an ``Enum``) so no validator is added here;
+    ``tier_classification`` handles unknown ``change_type`` values by
+    falling through to ``JUDGMENT`` — the safe default per the
+    defense-in-depth contract described in this mission's
+    ``data-model.md`` (E4 — "Tier classification behavior on
+    drift_derived").
 
     ``tier`` is one of ``tier_a`` / ``tier_b``. ``confidence`` is
     always ``high`` for a ``ProposedEdit`` — judgment edits become

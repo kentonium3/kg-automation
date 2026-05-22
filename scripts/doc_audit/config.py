@@ -16,7 +16,7 @@ relative path unless ``allow_relative_paths=True`` (used by tests).
 from __future__ import annotations
 
 import tomllib
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional
 
@@ -68,13 +68,44 @@ class GitHubConfig:
 
 
 @dataclass(frozen=True)
+class DriftInterpretationConfig:
+    """``[drift_interpretation]`` section — Moment 0 feature flag + knobs.
+
+    Introduced by mission ``drift-event-auto-resolution-01KS8J32`` (#362).
+    Per FR-012/FR-013, the entire Moment 0 path is gated by ``enabled``;
+    when ``False`` the pipeline runs in pre-#362 mode (file ``[doc-audit]``
+    issue per matched mapping) for a clean rollback (NFR-007).
+
+    Missing-block default: ``DriftInterpretationConfig(enabled=False, ...)``
+    so a config that hasn't yet been updated keeps the pre-#362 behavior.
+    """
+
+    enabled: bool = False
+    ledger_path: str = (
+        "/data/services/security-monitor/logs/drift-events-ledger.jsonl"
+    )
+    model: str = "claude-haiku-4-5-20251001"
+    api_key_path: str = "/data/services/openclaw/secrets/anthropic"
+    timeout_seconds: int = 30
+    confidence_threshold: float = 0.80
+
+
+@dataclass(frozen=True)
 class Config:
-    """Top-level driver configuration. Composes the section dataclasses."""
+    """Top-level driver configuration. Composes the section dataclasses.
+
+    ``drift_interpretation`` defaults to an ``enabled=False`` block so
+    legacy callers that constructed :class:`Config` without the new
+    section keep working unchanged (pre-#362 pipeline behavior).
+    """
 
     llm: LLMConfig
     paths: PathsConfig
     signals: SignalsConfig
     github: GitHubConfig
+    drift_interpretation: DriftInterpretationConfig = field(
+        default_factory=DriftInterpretationConfig
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -152,6 +183,39 @@ def load_config(
             f"Driver config {config_path} is missing required key: {exc}"
         ) from exc
 
+    # ``[drift_interpretation]`` is optional. A config that has not yet
+    # been updated to include the block defaults to ``enabled=False`` so
+    # the pipeline behaves exactly like the pre-#362 path (FR-013, NFR-007).
+    drift_raw = raw.get("drift_interpretation", {})
+    try:
+        drift_interpretation = DriftInterpretationConfig(
+            enabled=bool(drift_raw.get("enabled", False)),
+            ledger_path=str(
+                drift_raw.get(
+                    "ledger_path",
+                    "/data/services/security-monitor/logs/drift-events-ledger.jsonl",
+                )
+            ),
+            model=str(
+                drift_raw.get("model", "claude-haiku-4-5-20251001")
+            ),
+            api_key_path=str(
+                drift_raw.get(
+                    "api_key_path",
+                    raw["llm"]["api_key_path"],
+                )
+            ),
+            timeout_seconds=int(drift_raw.get("timeout_seconds", 30)),
+            confidence_threshold=float(
+                drift_raw.get("confidence_threshold", 0.80)
+            ),
+        )
+    except (TypeError, ValueError) as exc:
+        raise ValueError(
+            f"Driver config {config_path} has invalid "
+            f"[drift_interpretation] block: {exc}"
+        ) from exc
+
     if not allow_relative_paths:
         _require_absolute("llm.api_key_path", llm.api_key_path)
         for field_name in (
@@ -167,8 +231,26 @@ def load_config(
             _require_absolute(
                 f"paths.{field_name}", getattr(paths, field_name)
             )
+        # Only enforce absolute-path policy on the drift_interpretation
+        # block when the feature is enabled. A disabled block with default
+        # placeholder paths should not block test or sandbox configs.
+        if drift_interpretation.enabled:
+            _require_absolute(
+                "drift_interpretation.ledger_path",
+                drift_interpretation.ledger_path,
+            )
+            _require_absolute(
+                "drift_interpretation.api_key_path",
+                drift_interpretation.api_key_path,
+            )
 
-    return Config(llm=llm, paths=paths, signals=signals, github=github)
+    return Config(
+        llm=llm,
+        paths=paths,
+        signals=signals,
+        github=github,
+        drift_interpretation=drift_interpretation,
+    )
 
 
 # ---------------------------------------------------------------------------

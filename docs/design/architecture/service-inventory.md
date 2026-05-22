@@ -333,9 +333,10 @@ Per-helper metadata mirrors `docs/design/architecture/data/service-inventory.jso
   - **reads_from**: GitHub Issues (`gh issue list --state open --search` dedup query)
   - **credentials**: `github-pat-kg-felix-bot`
 
-### Felix Doc Auditor (#105 deployed 2026-05-10; refactored to scripts-first driver in #343, 2026-05-21)
+### Felix Doc Auditor (#105 deployed 2026-05-10; refactored to scripts-first driver in #343, 2026-05-21; Moment 0 drift interpretation added in #362, 2026-05-22)
 - **Deployed by**: #105 / mission `felix-doc-auditor-agent-01KR7JK9`
 - **Refactored by**: #343 / mission `refactor-doc-auditor-to-scripts-first-driver-01KS2XNX`
+- **Extended by**: #362 / mission `drift-event-auto-resolution-01KS8J32` (v2 since #362 — adds Moment 0 drift interpretation; PROPOSED_EDIT verdicts route through the existing tier_classification surface, preserving SKILL.md §4.3 guardrails)
 - **Type**: Python driver process triggered by systemd user timer (no openclaw session in the runtime path post-#343)
 - **Service name**: `felix-doc-auditor` (the SERVICE identity is unchanged; only the implementation changed)
 - **Driver entry**: `/usr/bin/python3 /home/claude/kg-automation/scripts/doc_audit/run.py`
@@ -344,7 +345,8 @@ Per-helper metadata mirrors `docs/design/architecture/data/service-inventory.jso
 - **Autonomy level**: Assisted (Level 1) — planned promotion to Supervised (Level 2) after ~1 week clean operation
 - **Schedule**: hourly via `felix-doc-auditor.timer` (systemd user timer at `~/.config/systemd/user/`, `OnCalendar=hourly`, `Persistent=true`)
 - **Per-tick invocation**: `felix-doc-auditor.service` (systemd user oneshot) invokes the driver entry above directly — no `openclaw agent` shell-out, no SKILL.md procedure loaded at runtime. Each tick is a fresh Python process; state is stateless per tick (carried only via GitHub labels/issues and `last-tick.json`).
-- **Judgment prompts**: checked-in markdown artifacts at `scripts/doc_audit/prompts/*.prompt.md` (tier classification, debt body generation, cross-file implication) — replaces the historical runtime `~/.openclaw/skills/doc-audit/SKILL.md` (no longer loaded at runtime; retained only as historical reference).
+- **Judgment moments (post-#362, four moments)**: Moment 0 — **drift_interpretation** (`scripts/doc_audit/judgment/drift_interpretation.py`, introduced by #362) classifies each mapped drift event as PROPOSED_EDIT / JUDGMENT_REQUIRED / NO_CHANGE_NEEDED before any GitHub issue is filed. Moment 1 — **tier_classification** (Tier-A vs Tier-B vs judgment). Moments 2 and 3 — **debt_body_generation** and **cross_file_implication** (unchanged from #343).
+- **Judgment prompts**: checked-in markdown artifacts at `scripts/doc_audit/prompts/*.prompt.md` (drift_interpretation [#362], tier_classification, debt_body_generation, cross_file_implication) — replaces the historical runtime `~/.openclaw/skills/doc-audit/SKILL.md` (no longer loaded at runtime; retained only as historical reference).
 - **API path**: driver reads `/data/services/openclaw/secrets/anthropic` (0600, claude:claude) at tick start and calls `api.anthropic.com` directly via the `anthropic` Python SDK; the openclaw-gateway is NOT in the runtime path.
 - **Health check**: structured `last-tick.json` at `/data/services/openclaw/felix-doc-auditor-driver/last-tick.json` (expected `status: "success"` within last 2 hours); see `kitty-specs/refactor-doc-auditor-to-scripts-first-driver-01KS2XNX/contracts/tick-signal.contract.md`. The per-tick prose activity log at `/home/kgale/second-brain/agents/logs/doc-auditor-YYYY-MM-DD.md` remains as a human-readable summary.
 - **Purpose**: processes Doc Audit and Weekly Doc Audit issues automatically; commits high-confidence edits directly, files docs-debt issues for judgment items, detects missing artifacts
@@ -352,7 +354,42 @@ Per-helper metadata mirrors `docs/design/architecture/data/service-inventory.jso
 - **Concurrency lock**: GitHub label `status:in-progress` on the in-flight audit issue (unchanged across #343)
 - **Identity**: `kg-felix-bot` (classic PAT via gh CLI auth store) — unchanged across #343
 - **Authoritative JSON**: see `felix-doc-auditor` entry in `data/service-inventory.json`
-- **Runbook**: `docs/runbooks/doc-auditor-driver-ops.md` (operator quick-reference + troubleshooting; supersedes the prior `doc-auditor-ops.md` for the post-#343 driver implementation)
+- **Runbook**: `docs/runbooks/doc-auditor-driver-ops.md` (operator quick-reference + troubleshooting; supersedes the prior `doc-auditor-ops.md` for the post-#343 driver implementation; post-#362 includes a "Moment 0 — drift interpretation" section, ledger CLI examples, and rollback procedure)
+
+#### Moment 0 modules and supporting helpers (post-#362)
+
+Per-module metadata mirrors `docs/design/architecture/data/service-inventory.json` (the authoritative record). See the corresponding top-level entries there for full dependencies and `config_files[*]` details.
+
+- **scripts/doc_audit/judgment/drift_interpretation.py** (judgment module, introduced_by #362, updated_by #362) — Moment 0 LLM judgment. Builds a cache-aware prompt + dynamic `DriftInterpretationContext` (drift event metadata + diff + mapping rationale + current contents of each target doc), calls Anthropic via the shared `JudgmentClient` (model `claude-haiku-4-5-20251001`), parses + validates the response against the E1 invariants, and returns a `DriftVerdict` (PROPOSED_EDIT / JUDGMENT_REQUIRED / NO_CHANGE_NEEDED, with explicit confidence ∈ [0.0, 1.0]). Confidence < 0.80 demotes to JUDGMENT_REQUIRED at the helper boundary. Retry policy 30s/60s/120s; on exhaustion raises `DriftInterpretationError` which `handle_drift_events.py` catches and converts to a pre-#362 fallback `[doc-audit]` issue with the diagnostic block.
+  - **runs_on**: `office2`
+  - **invoked_by**: `felix-doc-auditor` driver (`scripts/doc_audit/run.py`) via `handle_drift_events.py` per mapped drift event when `[drift_interpretation].enabled = true`
+  - **writes_to**: (none — caller writes the ledger)
+  - **reads_from**: `/data/services/openclaw/secrets/anthropic` (via shared JudgmentClient); `api.anthropic.com` (HTTPS)
+  - **credentials**: `anthropic-api`
+- **scripts/doc_audit/output/drift_ledger.py** (storage + read-only query CLI, introduced_by #362, updated_by #362) — Append-only JSONL audit ledger writer at `/data/services/security-monitor/logs/drift-events-ledger.jsonl`. One row per processed drift event capturing `event_id`, `timestamp_utc`, `baseline`, `mapping_id`, `verdict`, `confidence`, `outcome ∈ {auto_committed, pr_filed, issue_filed, auto_closed, retry_exhausted}`, `doc_paths`, `retry_count`, `latency_ms`, `tier_classification_outcome`, `github_issue_number`. Atomic appends (tempfile + rename). Read-only CLI subcommands `summary`, `tail`, `triage-rate` back the NFR-001 operator-triage-rate metric over a configurable trailing window (default 7 days).
+  - **runs_on**: `office2`
+  - **invoked_by**: `felix-doc-auditor` driver (via `handle_drift_events.py`) on the write side; operator (Kent) for read-only subcommands
+  - **writes_to**: `/data/services/security-monitor/logs/drift-events-ledger.jsonl` (append-only; no rotation in v1)
+  - **reads_from**: same ledger file for query subcommands
+  - **credentials**: (none — file-only)
+- **scripts/doc_audit/routing/drift_to_proposed_edit.py** (translator, introduced_by #362, updated_by #362) — Pure-function translator. Builds a `ProposedEdit` (`change_type='drift_derived'` — the 8th `change_type` value documented in `data_model.py`; `tier='tier_b'` placeholder; `confidence='high'`; `evidence_source=f"drift-event:{baseline}:{event_id}"`) from a high-confidence (≥0.80) PROPOSED_EDIT `DriftVerdict` + its `DriftInterpretationContext`. Validates the proposed `doc_path` is within the mapping's `doc_targets` list — out-of-set proposals raise `ValueError` (the caller demotes to JUDGMENT_REQUIRED). The resulting `ProposedEdit` feeds the existing `tier_classification` surface; its conservative rules ultimately decide Tier A / Tier B / judgment (defense-in-depth — drift-derived edits the classifier can't confidently tier go to judgment).
+  - **runs_on**: `office2`
+  - **invoked_by**: `handle_drift_events.py` only on PROPOSED_EDIT verdicts at confidence ≥0.80
+  - **writes_to**: (none — pure function)
+  - **reads_from**: (none — operates on in-memory dataclasses)
+  - **credentials**: (none)
+- **scripts/doc_audit/helpers/cutover_362.py** (one-shot script, introduced_by #362, updated_by #362) — Idempotent operator-driven backlog cutover. Bridges from the pre-#362 deterministic-only pipeline into the new Moment 0 pipeline by closing the 13 known pre-#362 `[doc-audit]` P3 issues (#351-#360, #368-#370) with a comment noting the new pipeline will reprocess them, resetting the drift-events cursor at `/data/services/security-monitor/.drift-events.cursor` to 0 so existing piled-up drift events are reprocessed via Moment 0, and writing a sentinel marker at `~/.config/doc-audit/cutover-362.done`. Marker presence short-circuits re-runs unless `--force` is passed. `--dry-run` prints intent without mutations.
+  - **runs_on**: `office2`
+  - **invoked_by**: operator (Kent) — manual one-shot post-deploy
+  - **writes_to**: GitHub Issues (comment + close via gh CLI subprocess, identity kg-felix-bot); `/data/services/security-monitor/.drift-events.cursor`; `~/.config/doc-audit/cutover-362.done`
+  - **reads_from**: GitHub Issues via `gh issue list --search`
+  - **credentials**: `github-pat-kg-felix-bot`
+- **scripts/doc_audit/helpers/handle_drift_events.py** (orchestrator, introduced_by #343, updated_by #362) — Drift-event orchestrator. Reads `/data/services/security-monitor/logs/drift-events.jsonl` from the cursor; per event consults `signal-to-doc-map.json` and assembles a `DriftInterpretationContext`. When `[drift_interpretation].enabled = true` invokes `drift_interpretation.interpret()` for Moment 0 and routes the verdict (PROPOSED_EDIT at confidence ≥0.80 → `drift_to_proposed_edit` → existing `tier_classification`; PROPOSED_EDIT or NO_CHANGE_NEEDED at confidence <0.80 demoted to JUDGMENT_REQUIRED → `[doc-audit]` issue with the LLM's question + proposed-edit context; NO_CHANGE_NEEDED at confidence ≥0.80 → auto-close + ledger only; RETRY_EXHAUSTED after 3 retries → pre-#362 fallback issue with diagnostic block per FR-009). All paths converge to one `drift_ledger.append()` call. When `[drift_interpretation].enabled = false`, behaves identically to the pre-#362 deterministic-only pipeline (FR-013).
+  - **runs_on**: `office2`
+  - **invoked_by**: `scripts/doc_audit/run.py` per tick for each pending drift event
+  - **writes_to**: GitHub Issues (via gh CLI subprocess); `/data/services/security-monitor/logs/drift-events-ledger.jsonl` (via `drift_ledger.append`); cursor file
+  - **reads_from**: `/data/services/security-monitor/logs/drift-events.jsonl`; `signal-to-doc-map.json`
+  - **credentials**: `anthropic-api` (via JudgmentClient); `github-pat-kg-felix-bot` (via gh CLI)
 
 ### Felix Core Digest (F014)
 - **Deployed by**: F014

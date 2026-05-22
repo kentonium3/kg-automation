@@ -1,0 +1,16 @@
+{
+  "event_id": "49:2026-05-22T03:30:07Z",
+  "timestamp_utc": "2026-05-22T03:30:07Z",
+  "baseline": "systemd-user-dropins",
+  "mapping_id": "systemd-dropins-drift",
+  "mapping_rationale": "New systemd user-dropin files imply service-inventory.json enumeration of openclaw-gateway dropins should be updated.",
+  "diff": "--- systemd-user-dropins.txt.baseline\n+++ systemd-user-dropins.txt.current\n@@ -1,3 +1,4 @@\n openclaw-gateway.service.d/override.conf\n openclaw-gateway.service.d/restart-policy.conf\n+openclaw-gateway.service.d/claude-cron-watch.conf\n openclaw-inbox.service.d/override.conf\n",
+  "doc_targets": [
+    {
+      "path": "docs/design/architecture/data/service-inventory.json",
+      "contents": "{\n  \"openclaw\": {\n    \"openclaw-gateway\": {\n      \"systemd_dropins\": [\n        \"override.conf\",\n        \"restart-policy.conf\"\n      ]\n    }\n  }\n}",
+      "truncated": false,
+      "truncation_strategy": "full"
+    }
+  ]
+}

@@ -4,9 +4,10 @@ doc_type: runbook
 audience: agents_and_humans
 status: draft
 created: 2026-05-21
-last_validated: 2026-05-21
-last_updated: '2026-05-21'
-updated_by: '#343-refactor-doc-auditor-to-scripts-first-driver'
+last_validated: 2026-05-22
+last_updated: '2026-05-22'
+updated_by: '#362'
+version: v1.1
 owners: [kgale]
 ---
 
@@ -38,12 +39,19 @@ process that:
    `scripts/doc_audit/signals/` (commit-marker, drift-event, weekly-cron,
    decision-label) and the GitHub queue.
 2. Calls the Anthropic API directly via the `anthropic-python` SDK at
-   exactly three judgment moments — **tier classification**,
-   **debt-body generation**, and **cross-file implication detection**.
+   judgment moments. **Post-#362 the surface is four moments**:
+   **Moment 0 — drift interpretation** (per mapped drift event;
+   classifies PROPOSED_EDIT / JUDGMENT_REQUIRED / NO_CHANGE_NEEDED
+   before any GitHub issue is filed); **Moment 1 — tier classification**;
+   Moments 2 and 3 — **debt-body generation** and
+   **cross-file implication detection** (unchanged from #343).
 3. Mutates GitHub state via the `gh` CLI (issues, labels, comments,
    commits as `kg-felix-bot`).
 4. Writes a structured tick signal to `last-tick.json` and a prose entry
-   to the daily activity log.
+   to the daily activity log. Per-drift-event outcomes additionally
+   land in the append-only audit ledger at
+   `/data/services/security-monitor/logs/drift-events-ledger.jsonl`
+   (one row per event; backs the NFR-001 operator-triage-rate metric).
 5. Exits.
 
 Persistent state lives on GitHub (labels, issues) and in two files on
@@ -242,6 +250,125 @@ ssh office2-claude 'less /home/claude/kg-automation/scripts/doc_audit/judgment/t
 Editing prompts: change in-repo, re-deploy, force a tick, watch
 `last-tick.json` + `SUMMARY:` for token-usage shifts. Boilerplate
 changes invalidate the prompt cache for the first post-deploy tick.
+
+---
+
+## Moment 0 — drift interpretation (#362)
+
+Introduced by mission [#362 — drift-event-auto-resolution](https://github.com/kentonium3/kg-automation/issues/362).
+Cutover playbook lives in the mission quickstart:
+[`kitty-specs/drift-event-auto-resolution-01KS8J32/quickstart.md`](<../../kitty-specs/drift-event-auto-resolution-01KS8J32/quickstart.md>).
+
+**Trigger**: every mapped drift event when `[drift_interpretation].enabled = true`
+in `scripts/doc_audit/config.toml`. When `enabled = false`, the pipeline
+behaves identically to the pre-#362 deterministic-only driver
+(FR-013) — drift events file `[doc-audit]` issues unconditionally for
+operator triage.
+
+**LLM call**: Haiku 4.5 (`claude-haiku-4-5-20251001`) via the shared
+`JudgmentClient`. Cache-aware prompt — stable system portion (≥80% of
+tokens) marked `cache_control: ephemeral`, dynamic
+`DriftInterpretationContext` (event metadata + diff + mapping rationale
++ current contents of each `doc_target`) in the user portion. Matches
+the existing `tier_classification.py` pattern (C-005).
+
+**Three verdicts**:
+
+| Verdict | Behavior |
+|---|---|
+| `PROPOSED_EDIT` | A specific edit to a specific doc path with `current_value` + `proposed_value` |
+| `JUDGMENT_REQUIRED` | The LLM cannot determine the edit; surfaces a specific question for the operator |
+| `NO_CHANGE_NEEDED` | The drift doesn't imply a doc change (e.g., field not tracked in any target doc) |
+
+**Confidence threshold**: `0.80` (configurable via
+`[drift_interpretation].confidence_threshold`). PROPOSED_EDIT or
+NO_CHANGE_NEEDED returned at confidence < 0.80 are demoted at the
+helper boundary to JUDGMENT_REQUIRED, with the proposed edit / rationale
+folded into the issue body. PROPOSED_EDIT at confidence ≥ 0.80 is
+translated to a `ProposedEdit` (`change_type='drift_derived'`) and
+routed through the existing `tier_classification` surface (Moment 1);
+that classifier's conservative rules ultimately decide Tier A / Tier B /
+judgment.
+
+**Retry policy**: 30s / 60s / 120s exponential backoff on Anthropic API
+errors, malformed JSON, or schema violations (FR-008). On exhaustion,
+the system falls back to the pre-#362 `[doc-audit]` issue-filing path
+with retry diagnostics in the issue body (FR-009).
+
+**Defense-in-depth**: even if the LLM returns a valid PROPOSED_EDIT on
+a guardrailed doc path (per SKILL.md §4.3), `tier_classification` will
+short-circuit to `judgment`. The Moment 0 verdict is never a direct
+auto-commit authority — it only feeds the existing Moment 1 surface.
+
+### Ledger queries
+
+Every processed drift event lands one row in
+`/data/services/security-monitor/logs/drift-events-ledger.jsonl` (data-model
+E3 — `event_id`, `verdict`, `confidence`, `outcome ∈ {auto_committed,
+pr_filed, issue_filed, auto_closed, retry_exhausted}`, `doc_paths`,
+`retry_count`, `latency_ms`, etc.). Read-only CLI subcommands:
+
+```bash
+# Triage rate (NFR-001 metric)
+python3 -m scripts.doc_audit.output.drift_ledger triage-rate --days 7
+```
+
+```bash
+# Outcome breakdown
+python3 -m scripts.doc_audit.output.drift_ledger summary --days 7
+```
+
+```bash
+# Recent entries
+python3 -m scripts.doc_audit.output.drift_ledger tail
+```
+
+`triage-rate` computes `count(verdict=JUDGMENT_REQUIRED) / count(*)`
+over the trailing N-day window — the success criterion is ≤30%
+sustained over 7 days post-deploy. `summary` prints verdict counts +
+outcome breakdown. `tail` shows the last 10 ledger entries as
+pretty-printed JSON. Flags: `--ledger-path` (override the default
+path), `--days N` (window for summary/triage-rate, default 7).
+
+All three subcommands tail from end-of-file forward, so the cost is
+bounded by window size, not by ledger growth.
+
+### Rollback
+
+The Moment 0 layer is gated by a single config flag — flipping it
+reverts to pre-#362 deterministic-only behavior on the next tick
+(≤60 seconds per NFR-007). No code revert required for the common
+case:
+
+```bash
+# Disable Moment 0 (cuts back to pre-#362 behavior)
+ssh office2-claude 'sed -i "s/^enabled = true$/enabled = false/" ~/kg-automation/scripts/doc_audit/config.toml'
+```
+
+Verify:
+
+```bash
+ssh office2-claude 'grep -A1 "\[drift_interpretation\]" ~/kg-automation/scripts/doc_audit/config.toml'
+```
+
+Force a tick to confirm the new pipeline is skipped:
+
+```bash
+ssh office2-claude 'systemctl --user start --wait felix-doc-auditor.service'
+```
+
+```bash
+ssh office2-claude 'journalctl --user -u felix-doc-auditor.service --since "1 minute ago" --no-pager | grep -i "drift_interpretation"'
+```
+
+Expected log entries indicate the pipeline skipped Moment 0 and used
+the pre-#362 deterministic-only path. The ledger file is preserved —
+events already auto-resolved (Tier A commits, Tier B PRs, auto-closed
+events) remain in their final state. Re-enabling later is just
+flipping the flag back to `true` and waiting for the next tick.
+
+For a code-level revert (rare; the config flag is the primary lever),
+see the mission quickstart §7 Rollback procedure.
 
 ---
 
@@ -496,3 +623,9 @@ for the full methodology and retention policy.
 - **Inherited SKILL.md (informative, not loaded at runtime)**: [`scripts/openclaw/skills/doc-audit/SKILL.md`](<../../scripts/openclaw/skills/doc-audit/SKILL.md>)
 - **Future alerting consumer**: [#327](https://github.com/kentonium3/kg-automation/issues/327)
 - **Identity**: [`docs/constitution/AGENT-REGISTRY.md#service-accounts`](<../constitution/AGENT-REGISTRY.md#service-accounts>); [`kg-felix-bot-pat`](<../design/architecture/data/credential-manifest.json>) in credential-manifest.json
+- **Moment 0 mission spec (#362)**: [`kitty-specs/drift-event-auto-resolution-01KS8J32/spec.md`](<../../kitty-specs/drift-event-auto-resolution-01KS8J32/spec.md>)
+- **Moment 0 mission plan (#362)**: [`kitty-specs/drift-event-auto-resolution-01KS8J32/plan.md`](<../../kitty-specs/drift-event-auto-resolution-01KS8J32/plan.md>)
+- **Moment 0 data model (#362)**: [`kitty-specs/drift-event-auto-resolution-01KS8J32/data-model.md`](<../../kitty-specs/drift-event-auto-resolution-01KS8J32/data-model.md>)
+- **Moment 0 CLI contract (#362)**: [`kitty-specs/drift-event-auto-resolution-01KS8J32/contracts/cli.md`](<../../kitty-specs/drift-event-auto-resolution-01KS8J32/contracts/cli.md>)
+- **Moment 0 ledger schema (#362)**: [`kitty-specs/drift-event-auto-resolution-01KS8J32/contracts/ledger-schema.md`](<../../kitty-specs/drift-event-auto-resolution-01KS8J32/contracts/ledger-schema.md>)
+- **Moment 0 cutover quickstart (#362)**: [`kitty-specs/drift-event-auto-resolution-01KS8J32/quickstart.md`](<../../kitty-specs/drift-event-auto-resolution-01KS8J32/quickstart.md>)

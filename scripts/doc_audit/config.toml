@@ -28,3 +28,14 @@ sources = ["gh_issue", "drift_event"]
 [github]
 repo = "kentonium3/kg-automation"
 bot_identity = "kg-felix-bot"
+
+# Mission `drift-event-auto-resolution-01KS8J32` (#362) — Moment 0 LLM
+# judgment for drift events. When `enabled = false`, the pipeline files
+# pre-#362 `[doc-audit]` issues per matched mapping (FR-013, NFR-007).
+[drift_interpretation]
+enabled = true
+ledger_path = "/data/services/security-monitor/logs/drift-events-ledger.jsonl"
+model = "claude-haiku-4-5-20251001"
+api_key_path = "/data/services/openclaw/secrets/anthropic"
+timeout_seconds = 30
+confidence_threshold = 0.80

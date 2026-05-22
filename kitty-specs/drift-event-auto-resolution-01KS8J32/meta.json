@@ -3,7 +3,7 @@
   "created_at": "2026-05-22T19:20:14.304000+00:00",
   "friendly_name": "Drift event auto-resolution via LLM judgment",
   "mission_id": "01KS8J321F8KE7369R3DA02329",
-  "mission_number": null,
+  "mission_number": 47,
   "mission_slug": "drift-event-auto-resolution-01KS8J32",
   "mission_type": "software-dev",
   "slug": "drift-event-auto-resolution-01KS8J32",

@@ -1,0 +1,16 @@
+{
+  "event_id": "47:2026-05-22T03:00:07Z",
+  "timestamp_utc": "2026-05-22T03:00:07Z",
+  "baseline": "openclaw-cron",
+  "mapping_id": "openclaw-cron-drift",
+  "mapping_rationale": "OpenClaw cron config drift implies service-inventory.json fields under the openclaw section should be reviewed for stale entries.",
+  "diff": "--- openclaw-cron.txt.baseline\n+++ openclaw-cron.txt.current\n@@ -1,7 +1,7 @@\n inbox-cron name=inbox-collect schedule=* * * * * deliveryMode=none\n-felix-doc-auditor name=audit schedule=*/15 * * * * deliveryMode=none\n+felix-doc-auditor name=audit schedule=*/15 * * * * deliveryMode=announce\n felix-state-auditor name=audit schedule=0 */6 * * * deliveryMode=none\n",
+  "doc_targets": [
+    {
+      "path": "docs/design/architecture/data/service-inventory.json",
+      "contents": "{\n  \"openclaw\": {\n    \"cron_entries\": [\n      {\"name\": \"inbox-collect\", \"schedule\": \"* * * * *\"},\n      {\"name\": \"audit\", \"schedule\": \"*/15 * * * *\"}\n    ]\n  }\n}",
+      "truncated": false,
+      "truncation_strategy": "full"
+    }
+  ]
+}

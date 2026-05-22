@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
   "last_updated": "2026-05-22",
-  "updated_by": "#371-habits-checkin-reply-scripts-first + #309-migrate-escalation-to-jsonl-state-model + #343-refactor-doc-auditor-to-scripts-first-driver + #307-backfill-habits-jsonl-from-comments + #306-habits-native-repeat-jsonl-state + #152",
+  "updated_by": "#362-drift-event-auto-resolution + #371-habits-checkin-reply-scripts-first + #309-migrate-escalation-to-jsonl-state-model + #343-refactor-doc-auditor-to-scripts-first-driver + #307-backfill-habits-jsonl-from-comments + #306-habits-native-repeat-jsonl-state + #152",
   "flows": [
     {
       "name": "vikunja-web-ui",
@@ -201,13 +201,14 @@
       "status": "active",
       "deployed_by": "#343",
       "introduced_by": "#343",
-      "updated_by": "#343",
-      "description": "Post-#343 doc-audit tick flow — the Anthropic API call path. The systemd-timer-launched Python driver pulls signals, calls Anthropic directly at three judgment moments (tier_classification, debt_body_generation, cross_file_implication), and mutates GitHub state via gh CLI. Replaces the pre-#343 path that routed through openclaw-gateway and an LLM-interpreted SKILL.md procedure. No openclaw-gateway proxy in path.",
+      "updated_by": "#362",
+      "since": "v2 since #362",
+      "description": "Post-#343 doc-audit tick flow — the Anthropic API call path. The systemd-timer-launched Python driver pulls signals, calls Anthropic directly at judgment moments, and mutates GitHub state via gh CLI. Post-#362 (v2): adds Moment 0 (drift_interpretation) for every mapped drift event before issue filing — so the judgment surface is now four moments (drift_interpretation, tier_classification, debt_body_generation, cross_file_implication). The Moment 0 LLM call leg is registered separately as flow `doc-audit-drift-interpretation-llm`. Replaces the pre-#343 path that routed through openclaw-gateway and an LLM-interpreted SKILL.md procedure. No openclaw-gateway proxy in path.",
       "path": [
         {"from": "felix-doc-auditor.timer (systemd user unit)", "to": "felix-doc-auditor.service (oneshot)", "protocol": "systemd OnCalendar=hourly", "description": "Hourly trigger; Persistent=true catches missed ticks across reboots"},
         {"from": "felix-doc-auditor.service", "to": "/usr/bin/python3 /home/claude/kg-automation/scripts/doc_audit/run.py", "protocol": "exec", "description": "Direct Python driver invocation — no openclaw gateway in path"},
         {"from": "scripts/doc_audit/run.py", "to": "/data/services/openclaw/secrets/anthropic", "protocol": "file read (0600)", "description": "API key load at tick start. Sensitive: contents never logged, never re-emitted to disk. See also flow: doc-audit-credential-read."},
-        {"from": "scripts/doc_audit/run.py", "to": "Anthropic API", "protocol": "HTTPS (anthropic-python SDK)", "endpoint": "api.anthropic.com", "description": "Direct API calls at 3 judgment moments (tier_classification, debt_body_generation, cross_file_implication). No openclaw-gateway proxy. Prompt caching enabled via SDK to amortize the cached boilerplate across calls within a tick."},
+        {"from": "scripts/doc_audit/run.py", "to": "Anthropic API", "protocol": "HTTPS (anthropic-python SDK)", "endpoint": "api.anthropic.com", "description": "Direct API calls at judgment moments — drift_interpretation (Moment 0, #362), tier_classification, debt_body_generation, cross_file_implication. Drift events go through Moment 0 first via handle_drift_events; PROPOSED_EDIT verdicts at confidence ≥0.80 are then routed through tier_classification. No openclaw-gateway proxy. Prompt caching enabled via SDK to amortize cached boilerplate across calls within a tick."},
         {"from": "scripts/doc_audit/run.py", "to": "gh CLI (subprocess)", "protocol": "subprocess", "description": "All GitHub state mutations: issue list/edit/create/close, label add/remove, comment create. Identity: kg-felix-bot (PAT at /home/claude/.config/gh/hosts.yml)."},
         {"from": "scripts/doc_audit/run.py", "to": "/home/kgale/second-brain/agents/logs/doc-auditor-YYYY-MM-DD.md", "protocol": "file append", "description": "Per-tick prose activity log (unchanged from pre-#343). Operator-readable; mirrors the structured tick signal at lower fidelity."}
       ],
@@ -349,6 +350,53 @@
         {"from": "scripts/escalation/hard_fail.py", "to": "scripts/openclaw/agents/main/felix-file-issue.py", "protocol": "subprocess", "description": "Hard-fail bug filing per data-model Entity 5 template. Labels: P2-bug, area/escalation. Title format: `Escalation hard-fail: <task title> (task #<vikunja_id>) — <short reason>`."},
         {"from": "scripts/openclaw/agents/main/felix-file-issue.py", "to": "gh CLI (subprocess)", "protocol": "subprocess", "description": "`gh issue create` for the formatted body. Identity: kg-felix-bot (classic PAT)."},
         {"from": "gh CLI (subprocess)", "to": "GitHub API", "protocol": "HTTPS (api.github.com)", "description": "Issue search + create. Labels: P2-bug, area/escalation."}
+      ]
+    },
+    {
+      "name": "doc-audit-drift-interpretation-llm",
+      "status": "active",
+      "deployed_by": "#362",
+      "introduced_by": "#362",
+      "updated_by": "#362",
+      "description": "#362 (Moment 0 drift interpretation — narrow LLM judgment surface). Per mapped drift event, handle_drift_events.py invokes drift_interpretation.interpret() which builds a cache-aware prompt and calls api.anthropic.com directly via the shared JudgmentClient (claude-haiku-4-5-20251001). The verdict (PROPOSED_EDIT / JUDGMENT_REQUIRED / NO_CHANGE_NEEDED) plus confidence ∈ [0.0, 1.0] is parsed + validated against the E1 schema. PROPOSED_EDIT verdicts at confidence ≥0.80 feed drift_to_proposed_edit and onward through the existing tier_classification surface; lower confidence demotes to JUDGMENT_REQUIRED. Retry policy 30s/60s/120s; on exhaustion falls back to the pre-#362 issue path. Gated by [drift_interpretation].enabled in config.toml — flipping to false reverts to deterministic-only behavior in ≤60s (NFR-007).",
+      "trigger": "per drift event when [drift_interpretation].enabled = true in scripts/doc_audit/config.toml",
+      "path": [
+        {"from": "scripts/doc_audit/helpers/handle_drift_events.py", "to": "scripts/doc_audit/judgment/drift_interpretation.py", "protocol": "python-import", "description": "Per drift event, assembles DriftInterpretationContext (event metadata + diff + mapping rationale + current doc state for each doc_target) and calls interpret(client, context)."},
+        {"from": "scripts/doc_audit/judgment/drift_interpretation.py", "to": "/data/services/openclaw/secrets/anthropic", "protocol": "file read (0600)", "description": "API key load via the shared JudgmentClient — not re-read per call; reused across the tick. Sensitive: never logged."},
+        {"from": "scripts/doc_audit/judgment/drift_interpretation.py", "to": "Anthropic API", "protocol": "HTTPS (anthropic-python SDK)", "endpoint": "api.anthropic.com", "description": "Single narrow judgment call per drift event. Cache-aware: system prompt (≥80% of tokens by char count) is marked cache_control=ephemeral per the existing tier_classification.py pattern (C-005). Returns strict JSON; defense-in-depth schema validation demotes malformed responses to JUDGMENT_REQUIRED (C-006)."},
+        {"from": "scripts/doc_audit/judgment/drift_interpretation.py", "to": "scripts/doc_audit/helpers/handle_drift_events.py", "protocol": "return value", "description": "Returns a DriftVerdict (E1). On retry exhaustion raises DriftInterpretationError which the caller catches → writes RETRY_EXHAUSTED ledger entry → files pre-#362 fallback [doc-audit] issue with diagnostic block (FR-008, FR-009)."}
+      ]
+    },
+    {
+      "name": "doc-audit-drift-ledger-write",
+      "status": "active",
+      "deployed_by": "#362",
+      "introduced_by": "#362",
+      "updated_by": "#362",
+      "description": "#362 (Moment 0 audit ledger — terminal write for every processed drift event). After the verdict is routed (PROPOSED_EDIT through tier_classification, JUDGMENT_REQUIRED via [doc-audit] issue, NO_CHANGE_NEEDED auto-closed, or RETRY_EXHAUSTED escalated), handle_drift_events.py calls drift_ledger.append() with one AuditLedgerEntry (E3) capturing event_id, timestamp_utc, baseline, mapping_id, verdict, confidence, outcome ∈ {auto_committed, pr_filed, issue_filed, auto_closed, retry_exhausted}, doc_paths, retry_count, latency_ms, tier_classification_outcome, github_issue_number. Atomic append (tempfile + rename). The ledger backs the NFR-001 operator-triage-rate metric.",
+      "trigger": "per processed drift event (all verdict branches converge to one ledger row)",
+      "path": [
+        {"from": "scripts/doc_audit/helpers/handle_drift_events.py", "to": "scripts/doc_audit/output/drift_ledger.py", "protocol": "python-import", "description": "Calls drift_ledger.append(entry) with the final outcome-tagged AuditLedgerEntry"},
+        {"from": "scripts/doc_audit/output/drift_ledger.py", "to": "/data/services/security-monitor/logs/drift-events-ledger.jsonl", "protocol": "file append (atomic rename)", "description": "Append-only JSONL — one row per event. No rotation in v1. ~3-10 entries/day at current drift volume. Read-only CLI subcommands (summary, tail, triage-rate) tail from end-of-file forward for the window in question."}
+      ],
+      "consumers": [
+        {"agent": "operator (Kent)", "reads_from": "/data/services/security-monitor/logs/drift-events-ledger.jsonl", "description": "Via `python3 -m scripts.doc_audit.output.drift_ledger {summary|tail|triage-rate}` — NFR-001 metric and daily observation in the 7-day post-deploy window"}
+      ]
+    },
+    {
+      "name": "doc-audit-cutover-gh-close",
+      "status": "active",
+      "deployed_by": "#362",
+      "introduced_by": "#362",
+      "updated_by": "#362",
+      "description": "#362 (one-shot backlog cutover — bridges from pre-#362 deterministic-only behavior into the new Moment 0 pipeline). Operator-driven manual invocation (post-deploy, once). The 13 known pre-#362 [doc-audit] P3 issues (#351-#360, #368-#370) are closed with a comment noting the new pipeline will reprocess them; the drift-events cursor is reset to 0 to enable reprocessing of piled-up drift events via Moment 0; a sentinel marker at ~/.config/doc-audit/cutover-362.done prevents re-run. Idempotent on re-run; `--force` overrides the marker check; `--dry-run` prints intent without mutations.",
+      "trigger": "one-shot operator invocation post-deploy",
+      "path": [
+        {"from": "Operator (Kent)", "to": "scripts/doc_audit/helpers/cutover_362.py", "protocol": "CLI (python3 -m or direct)", "description": "Invocation pattern: --dry-run first, then live. Marker check short-circuits subsequent runs unless --force."},
+        {"from": "scripts/doc_audit/helpers/cutover_362.py", "to": "gh CLI (subprocess)", "protocol": "subprocess", "description": "gh issue list --search 'is:issue is:open label:P3-candidate \"[doc-audit]\" in:title' → per result: gh issue comment + gh issue close. Identity: kg-felix-bot (classic PAT)."},
+        {"from": "gh CLI (subprocess)", "to": "GitHub API", "protocol": "HTTPS (api.github.com)", "endpoint": "api.github.com", "description": "Issue list + comment + close for the 13 known pre-#362 P3 issues."},
+        {"from": "scripts/doc_audit/helpers/cutover_362.py", "to": "/data/services/security-monitor/.drift-events.cursor", "protocol": "file write (atomic rename)", "description": "Reset cursor to 0 (calls handle_drift_events --reset-cursor or writes 0 directly) so existing piled-up drift events are reprocessed via Moment 0 on the next tick."},
+        {"from": "scripts/doc_audit/helpers/cutover_362.py", "to": "~/.config/doc-audit/cutover-362.done", "protocol": "file write (atomic rename)", "description": "Sentinel marker. Contains mission slug/id, run_at_utc, closed_issues list, cursor_reset_to. Operator can delete to force re-run; --force flag skips the check."}
       ]
     }
   ],
