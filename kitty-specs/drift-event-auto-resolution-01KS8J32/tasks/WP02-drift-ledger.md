@@ -252,3 +252,4 @@ spec-kitty agent action implement WP02 --mission drift-event-auto-resolution-01K
 ## Activity Log
 
 - 2026-05-22T20:13:58Z – claude:opus:python-implementer:implementer – shell_pid=5108 – Started implementation via action command
+- 2026-05-22T20:20:17Z – claude:opus:python-implementer:implementer – shell_pid=5108 – Ready for review: drift_ledger module + CLI; 50 tests green; coverage 94%
