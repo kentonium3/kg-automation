@@ -29,7 +29,7 @@ subtasks:
 - T005
 - T006
 - T007
-shell_pid: "263"
+shell_pid: "4370"
 history: []
 authoritative_surface: scripts/doc_audit/judgment/
 execution_mode: code_change
@@ -43,7 +43,7 @@ owned_files:
 - tests/doc_audit/fixtures/drift_event_openclaw_json_hash.json
 - tests/doc_audit/fixtures/drift_event_systemd_dropins.json
 tags: []
-agent: "claude:opus:python-implementer:implementer"
+agent: "agy:gemini-2.5-pro:spec-kitty-review:reviewer"
 ---
 
 # WP01 — drift_interpretation module + prompt
@@ -329,3 +329,4 @@ spec-kitty agent action implement WP01 --mission drift-event-auto-resolution-01K
 
 - 2026-05-22T19:52:35Z – claude:opus:python-implementer:implementer – shell_pid=263 – Assigned agent via action command
 - 2026-05-22T20:09:38Z – claude:opus:python-implementer:implementer – shell_pid=263 – Ready for review: drift_interpretation module + prompt; 51 tests green; coverage 94%
+- 2026-05-22T20:10:05Z – agy:gemini-2.5-pro:spec-kitty-review:reviewer – shell_pid=4370 – Started review via action command
