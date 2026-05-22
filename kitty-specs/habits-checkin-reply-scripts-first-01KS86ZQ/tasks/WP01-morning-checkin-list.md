@@ -19,7 +19,8 @@ subtasks:
 - T002
 - T003
 - T004
-shell_pid: '60663'
+shell_pid: "60663"
+agent: "claude:opus:python-implementer:implementer"
 history:
 - at: '2026-05-22T16:30:00+00:00'
   actor: spec-kitty.tasks
@@ -208,3 +209,7 @@ pytest with mocked `urllib` (via fixture). Per-test atomic write verification us
 ```bash
 spec-kitty agent action implement WP01 --mission habits-checkin-reply-scripts-first-01KS86ZQ --agent claude:opus:python-implementer:implementer
 ```
+
+## Activity Log
+
+- 2026-05-22T16:24:22Z – claude:opus:python-implementer:implementer – shell_pid=60663 – Assigned agent via action command
