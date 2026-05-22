@@ -25,9 +25,9 @@
 | T010 | disambiguate() function — Anthropic HTTP call, response parse + validation | WP03 | | [D] |
 | T011 | CLI surface for disambiguator (exit codes 0/1/3/5) | WP03 | | [D] |
 | T012 | Tests for disambiguator — mocked Anthropic SDK; chosen + clarify + out-of-set rejection | WP03 | | [D] |
-| T013 | Build new AGENTS.md following D10 cuts + Entity 5 skeleton (≤14K source chars) | WP04 | |
-| T014 | Audit AGENTS.md for residual fuzzy-match prose; verify char count + grep clean | WP04 | |
-| T015 | Update scripts/openclaw/agents/felix-admin-habits/AGENTS.md in repo | WP04 | |
+| T013 | Build new AGENTS.md following D10 cuts + Entity 5 skeleton (≤14K source chars) | WP04 | | [D] |
+| T014 | Audit AGENTS.md for residual fuzzy-match prose; verify char count + grep clean | WP04 | | [D] |
+| T015 | Update scripts/openclaw/agents/felix-admin-habits/AGENTS.md in repo | WP04 | | [D] |
 | T016 | Update docs/design/architecture/data/service-inventory.json (3 new helpers + felix-admin-habits update) | WP05 | [D] |
 | T017 | Update docs/design/architecture/data/data-flows.json (new write/read paths) | WP05 | | [D] |
 | T018 | Update markdown architecture views to match JSON sources | WP05 | | [D] |
@@ -134,9 +134,9 @@ Risks:
 **Prompt**: [WP04-agents-md-cut.md](tasks/WP04-agents-md-cut.md)
 
 Included subtasks:
-- [ ] T013 Build new AGENTS.md following data-model.md Entity 5 (WP04)
-- [ ] T014 Audit grep + char-count verification (WP04)
-- [ ] T015 Update repo file at scripts/openclaw/agents/felix-admin-habits/AGENTS.md (WP04)
+- [x] T013 Build new AGENTS.md following data-model.md Entity 5 (WP04)
+- [x] T014 Audit grep + char-count verification (WP04)
+- [x] T015 Update repo file at scripts/openclaw/agents/felix-admin-habits/AGENTS.md (WP04)
 
 Risks:
 - Over-cut — removing the wrong section breaks tick flow. Keep: identity, output discipline, tick skeleton, fallback behavior. The data-model Entity 5 skeleton is the floor.
