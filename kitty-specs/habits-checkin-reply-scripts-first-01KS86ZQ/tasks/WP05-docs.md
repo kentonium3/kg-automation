@@ -16,7 +16,8 @@ subtasks:
 - T017
 - T018
 - T019
-shell_pid: '60663'
+shell_pid: "60663"
+agent: "claude:opus:python-implementer:implementer"
 history:
 - at: '2026-05-22T16:30:00+00:00'
   actor: spec-kitty.tasks
@@ -201,3 +202,7 @@ Doc-only WP. Validation via:
 ```bash
 spec-kitty agent action implement WP05 --mission habits-checkin-reply-scripts-first-01KS86ZQ --agent claude:opus:python-implementer:implementer
 ```
+
+## Activity Log
+
+- 2026-05-22T16:24:32Z – claude:opus:python-implementer:implementer – shell_pid=60663 – Assigned agent via action command
