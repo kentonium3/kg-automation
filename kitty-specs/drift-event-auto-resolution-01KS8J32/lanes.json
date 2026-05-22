@@ -1,0 +1,101 @@
+{
+  "version": 1,
+  "mission_slug": "drift-event-auto-resolution-01KS8J32",
+  "mission_id": "01KS8J321F8KE7369R3DA02329",
+  "mission_branch": "kitty/mission-drift-event-auto-resolution-01KS8J32",
+  "target_branch": "main",
+  "lanes": [
+    {
+      "lane_id": "lane-a",
+      "wp_ids": [
+        "WP01",
+        "WP02",
+        "WP03",
+        "WP04",
+        "WP05"
+      ],
+      "write_scope": [
+        "scripts/doc_audit/config.toml",
+        "scripts/doc_audit/data_model.py",
+        "scripts/doc_audit/helpers/cutover_362.py",
+        "scripts/doc_audit/helpers/handle_drift_events.py",
+        "scripts/doc_audit/judgment/drift_interpretation.py",
+        "scripts/doc_audit/output/drift_ledger.py",
+        "scripts/doc_audit/prompts/drift_interpretation.prompt.md",
+        "scripts/doc_audit/routing/__init__.py",
+        "scripts/doc_audit/routing/drift_to_proposed_edit.py",
+        "tests/doc_audit/fixtures/drift_event_openclaw_cron.json",
+        "tests/doc_audit/fixtures/drift_event_openclaw_json_hash.json",
+        "tests/doc_audit/fixtures/drift_event_systemd_dropins.json",
+        "tests/doc_audit/helpers/test_cutover_362.py",
+        "tests/doc_audit/helpers/test_handle_drift_events.py",
+        "tests/doc_audit/judgment/test_drift_interpretation.py",
+        "tests/doc_audit/output/test_drift_ledger.py",
+        "tests/doc_audit/routing/test_drift_to_proposed_edit.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "artifact-rendering",
+        "legacy-cleanup",
+        "tracker-integration"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    },
+    {
+      "lane_id": "lane-b",
+      "wp_ids": [
+        "WP06"
+      ],
+      "write_scope": [
+        "docs/design/architecture/data-flows.md",
+        "docs/design/architecture/data-flows.view.md",
+        "docs/design/architecture/data/data-flows.json",
+        "docs/design/architecture/data/service-inventory.json",
+        "docs/design/architecture/service-inventory.md",
+        "docs/runbooks/doc-auditor-driver-ops.md"
+      ],
+      "predicted_surfaces": [
+        "api"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    }
+  ],
+  "computed_at": "2026-05-22T19:49:08.622910+00:00",
+  "computed_from": "dependency_graph+ownership",
+  "planning_artifact_wps": [],
+  "collapse_report": {
+    "events": [
+      {
+        "wp_a": "WP03",
+        "wp_b": "WP01",
+        "rule": "dependency",
+        "evidence": "WP03 depends on WP01"
+      },
+      {
+        "wp_a": "WP04",
+        "wp_b": "WP01",
+        "rule": "dependency",
+        "evidence": "WP04 depends on WP01"
+      },
+      {
+        "wp_a": "WP04",
+        "wp_b": "WP02",
+        "rule": "dependency",
+        "evidence": "WP04 depends on WP02"
+      },
+      {
+        "wp_a": "WP05",
+        "wp_b": "WP04",
+        "rule": "dependency",
+        "evidence": "WP05 depends on WP04"
+      }
+    ],
+    "total_merges": 4,
+    "independent_wps_collapsed": 0,
+    "by_rule": {
+      "dependency": 4
+    }
+  }
+}

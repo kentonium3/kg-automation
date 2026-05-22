@@ -1,13 +1,14 @@
 ---
 work_package_id: WP03
 title: Translator + ProposedEdit extension
-dependencies: []
+dependencies:
+- WP01
 requirement_refs:
 - C-003
 - FR-004
 planning_base_branch: main
 merge_target_branch: main
-branch_strategy: Planning artifacts for this mission were generated on main. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into main unless the human explicitly redirects the landing branch.
+branch_strategy: Planning artifacts for this feature were generated on main. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into main unless the human explicitly redirects the landing branch.
 created_at: '2026-05-22T19:45:00+00:00'
 subtasks:
 - T014
