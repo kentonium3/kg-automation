@@ -212,10 +212,10 @@ Included subtasks:
 **Prompt**: [WP06-architecture-docs.md](tasks/WP06-architecture-docs.md)
 
 Included subtasks:
-- [ ] T029 service-inventory.json update (WP06)
-- [ ] T030 data-flows.json update (WP06)
-- [ ] T031 Markdown views match JSON (WP06)
-- [ ] T032 doc-auditor-driver-ops.md update (WP06)
+- [x] T029 service-inventory.json update (WP06)
+- [x] T030 data-flows.json update (WP06)
+- [x] T031 Markdown views match JSON (WP06)
+- [x] T032 doc-auditor-driver-ops.md update (WP06)
 
 **Risks**:
 - JSON ↔ markdown drift — every JSON entry needs a markdown counterpart.
