@@ -20,8 +20,8 @@ subtasks:
 - T006
 - T007
 - T008
-agent: "claude:opus:python-implementer:implementer"
-shell_pid: "67556"
+agent: "codex:gpt-5:spec-kitty-review:reviewer"
+shell_pid: "70677"
 history:
 - at: '2026-05-22T16:30:00+00:00'
   actor: spec-kitty.tasks
@@ -237,3 +237,4 @@ spec-kitty agent action implement WP02 --mission habits-checkin-reply-scripts-fi
 
 - 2026-05-22T16:44:11Z – claude:opus:python-implementer:implementer – shell_pid=67556 – Started implementation via action command
 - 2026-05-22T17:00:02Z – claude:opus:python-implementer:implementer – shell_pid=67556 – Ready for review — SC-002 + determinism + ambiguity-routing all tested
+- 2026-05-22T17:00:40Z – codex:gpt-5:spec-kitty-review:reviewer – shell_pid=70677 – Started review via action command
