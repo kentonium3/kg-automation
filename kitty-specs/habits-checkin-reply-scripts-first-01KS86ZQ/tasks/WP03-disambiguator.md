@@ -14,6 +14,8 @@ subtasks:
 - T010
 - T011
 - T012
+agent: "claude:opus:python-implementer:implementer"
+shell_pid: "74956"
 history:
 - at: '2026-05-22T16:30:00+00:00'
   actor: spec-kitty.tasks
@@ -206,3 +208,7 @@ pytest with mocked `anthropic.Anthropic`. No live LLM calls. ≥85% coverage inc
 ```bash
 spec-kitty agent action implement WP03 --mission habits-checkin-reply-scripts-first-01KS86ZQ --agent claude:opus:python-implementer:implementer
 ```
+
+## Activity Log
+
+- 2026-05-22T17:16:56Z – claude:opus:python-implementer:implementer – shell_pid=74956 – Started implementation via action command
