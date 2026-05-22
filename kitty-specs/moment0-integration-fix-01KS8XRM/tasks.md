@@ -11,11 +11,11 @@
 
 | ID | Description | WP |
 |---|---|---|
-| T001 | Create `routing/drift_moment0.py` with `route_drift_event()` + `RoutingOutcome` dataclass; promote helpers from `handle_drift_events.py` | WP01 |
-| T002 | Refactor `handle_drift_events.py::process_events()` to call `route_drift_event()`; remove inlined Moment 0 helpers; preserve ledger append + RETRY_EXHAUSTED fallback semantics | WP01 |
-| T003 | Update `routing/__init__.py` to export `route_drift_event` + `RoutingOutcome` | WP01 |
-| T004 | Tests for new shared helper — all 6 verdict paths + retry exhaustion + ledger append + RoutingOutcome shape; ≥85% coverage | WP01 |
-| T005 | Update existing `test_handle_drift_events.py` — assert calls to shared helper; remove now-orphaned mocks of inlined helpers; preserve all current behavioral tests | WP01 |
+| T001 | Create `routing/drift_moment0.py` with `route_drift_event()` + `RoutingOutcome` dataclass; promote helpers from `handle_drift_events.py` | WP01 | [D] |
+| T002 | Refactor `handle_drift_events.py::process_events()` to call `route_drift_event()`; remove inlined Moment 0 helpers; preserve ledger append + RETRY_EXHAUSTED fallback semantics | WP01 | [D] |
+| T003 | Update `routing/__init__.py` to export `route_drift_event` + `RoutingOutcome` | WP01 | [D] |
+| T004 | Tests for new shared helper — all 6 verdict paths + retry exhaustion + ledger append + RoutingOutcome shape; ≥85% coverage | WP01 | [D] |
+| T005 | Update existing `test_handle_drift_events.py` — assert calls to shared helper; remove now-orphaned mocks of inlined helpers; preserve all current behavioral tests | WP01 | [D] |
 | T006 | Add `_judgment_client` lazy field + `_get_judgment_client()` to `DriftEventSignalSource.__init__` (per D2 lifecycle) | WP02 |
 | T007 | Modify `DriftEventSignalSource.commit()` — when `config.drift_interpretation.enabled and mapping is not None`, call `route_drift_event()`; on `DriftInterpretationError` fall back to `file_doc_audit_issue()` + write RETRY_EXHAUSTED ledger row | WP02 |
 | T008 | Preserve cursor/drain idempotency (existing behavior fully intact when flag disabled OR when mapping is None) | WP02 |
@@ -49,11 +49,11 @@ All sequential — lane-a.
 **Prompt**: [WP01-shared-helper.md](tasks/WP01-shared-helper.md)
 
 Included:
-- [ ] T001 Create `routing/drift_moment0.py` (WP01)
-- [ ] T002 Refactor `handle_drift_events.py` (WP01)
-- [ ] T003 Update `routing/__init__.py` (WP01)
-- [ ] T004 Tests for shared helper (WP01)
-- [ ] T005 Update existing handle_drift_events tests (WP01)
+- [x] T001 Create `routing/drift_moment0.py` (WP01)
+- [x] T002 Refactor `handle_drift_events.py` (WP01)
+- [x] T003 Update `routing/__init__.py` (WP01)
+- [x] T004 Tests for shared helper (WP01)
+- [x] T005 Update existing handle_drift_events tests (WP01)
 
 **Risks**: Refactoring inline helpers into a new module — ensure observable behavior is preserved (test before, test after). Function-level call equivalence (mock route_drift_event in process_events tests).
 
