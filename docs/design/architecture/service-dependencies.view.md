@@ -17,7 +17,7 @@ Arrows show runtime dependencies. The critical external path
 (port 443 through tailscale-serve into vikunja) is highlighted.
 Updated 2026-05-21 (#309) to include `escalation-daily`, which migrates
 to a JSONL state model parallel to the post-#306 habits pattern; see
-[`data-flows.view.md`](data-flows.view.md) for the escalation subgraph
+[`data-flows.view.md`](<./data-flows.view.md>) for the escalation subgraph
 (record/reconcile/derive_state/backfill/hard-fail) detail.
 
 ```mermaid

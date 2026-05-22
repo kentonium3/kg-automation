@@ -2,7 +2,7 @@
   "event_count": 89,
   "last_event_id": "01KS69XFGVMECX83T9CTVZMA8K",
   "materialized_at": "2026-05-21T22:18:52.315925+00:00",
-  "mission_number": "",
+  "mission_number": "45",
   "mission_slug": "migrate-escalation-to-jsonl-state-model-01KS5R4D",
   "mission_type": "software-dev",
   "summary": {

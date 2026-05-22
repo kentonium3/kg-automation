@@ -1,6 +1,9 @@
 # Claude Code local settings
 .claude/settings.local.json
 
+# Antigravity (agy) CLI machine-local project marker
+.antigravitycli/
+
 # Obsidian (shared config allowed, volatile state ignored)
 docs/.obsidian/*
 !docs/.obsidian/plugins/

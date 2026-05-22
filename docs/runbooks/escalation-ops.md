@@ -144,7 +144,7 @@ Hard-fail bugs are filed by the agent when a task's JSONL state is
 malformed or missing while Vikunja shows the task as escalation-subscribed.
 The task is skipped that tick (no level sent, no synthetic correction).
 Title-prefix dedup keyed on the Vikunja `id` ensures only one open bug
-per task at a time. See [Maintenance § hard-fail triage](#hard-fail-triage)
+per task at a time. See [Maintenance § hard-fail triage](<#hard-fail-triage>)
 for the repair workflow.
 
 ### Spurious re-alert check
@@ -332,7 +332,7 @@ ssh office2-claude 'grep -c "Felix-Escalation.*parse\|comment-parsing" /data/ser
 | Response not processed | Send response, check agent reply | Verify escalation skill deployed; restart gateway if needed |
 | Snoozed task re-escalated early | `python3 -m scripts.escalation.derive_state --task-id <id> --project-id <pid>` and inspect `snooze_active_until` | If `snooze_active_until` is in the past, snooze expired correctly. If it disagrees with the most recent JSONL record, file hard-fail |
 | Agent not responding | `ssh office2-claude 'openclaw agents list'` | Restart gateway: `ssh office2-claude 'systemctl --user restart openclaw-gateway'` |
-| `derive_state` exit code 3 | Read the structured error JSON on stderr | Triage per [Hard-fail triage](#hard-fail-triage) |
+| `derive_state` exit code 3 | Read the structured error JSON on stderr | Triage per [Hard-fail triage](<#hard-fail-triage>) |
 | `derive_state` exit code 4 | Task has no JSONL records | Either (a) task is new (expected) or (b) phantom subscription — see hard-fail triage |
 
 ## Privacy boundary
@@ -349,11 +349,11 @@ filing). No exceptions.
 
 - **Mission**: [#309](https://github.com/kentonium3/kg-automation/issues/309) — ADR-0002 Phase 6 (this migration)
 - **Cutover playbook**: [`quickstart.md`](../../kitty-specs/migrate-escalation-to-jsonl-state-model-01KS5R4D/quickstart.md)
-- **Soak monitoring template**: [`escalation-soak-window.md`](escalation-soak-window.md)
+- **Soak monitoring template**: [`escalation-soak-window.md`](<./escalation-soak-window.md>)
 - **Spec**: [`spec.md`](../../kitty-specs/migrate-escalation-to-jsonl-state-model-01KS5R4D/spec.md)
 - **Agent surface**: [`scripts/openclaw/agents/felix-admin-escalation/AGENTS.md`](../../scripts/openclaw/agents/felix-admin-escalation/AGENTS.md)
 - **Skill**: [`scripts/openclaw/skills/escalation/SKILL.md`](../../scripts/openclaw/skills/escalation/SKILL.md)
 - **JSONL state library**: `scripts/common/state_log.py` (Phase 2, #305)
-- **Pre-flight checklist**: [`docs/runbooks/governance/pre-flight-checklist.md`](governance/pre-flight-checklist.md)
-- **Habits ops (sibling Phase 5 precedent)**: [`docs/runbooks/habits-ops.md`](habits-ops.md)
+- **Pre-flight checklist**: [`docs/runbooks/governance/pre-flight-checklist.md`](<./governance/pre-flight-checklist.md>)
+- **Habits ops (sibling Phase 5 precedent)**: [`docs/runbooks/habits-ops.md`](<./habits-ops.md>)
 - **ADR**: `docs/design/architecture/adr/0002-felix-vikunja-task-model.md`
