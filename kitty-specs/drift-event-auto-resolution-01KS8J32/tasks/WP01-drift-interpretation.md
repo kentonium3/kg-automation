@@ -29,7 +29,7 @@ subtasks:
 - T005
 - T006
 - T007
-shell_pid: '263'
+shell_pid: "263"
 history: []
 authoritative_surface: scripts/doc_audit/judgment/
 execution_mode: code_change
@@ -43,6 +43,7 @@ owned_files:
 - tests/doc_audit/fixtures/drift_event_openclaw_json_hash.json
 - tests/doc_audit/fixtures/drift_event_systemd_dropins.json
 tags: []
+agent: "claude:opus:python-implementer:implementer"
 ---
 
 # WP01 — drift_interpretation module + prompt
@@ -323,3 +324,7 @@ pytest with mocked `JudgmentClient`. No live LLM calls. ≥85% coverage includin
 ```bash
 spec-kitty agent action implement WP01 --mission drift-event-auto-resolution-01KS8J32 --agent claude:opus:python-implementer:implementer
 ```
+
+## Activity Log
+
+- 2026-05-22T19:52:35Z – claude:opus:python-implementer:implementer – shell_pid=263 – Assigned agent via action command
