@@ -78,6 +78,50 @@ Agent activity logging and digest generation pipeline:
 
 Raw JSONL logs are gitignored in the second-brain repo. Digest Markdown flows through Obsidian Sync (not git).
 
+### Habits Scripts-First Morning + Reply (#371)
+
+Mirror of the #309 escalation port — same architecture (canonical per-Kent-day state file + deterministic parser + narrow LLM judgment helper) replicated for the habits morning + reply flow. The original bug (#371): the morning cron tick and the reply tick are two separate openclaw sessions; the reply session had no access to the morning session's numbered list and regenerated it independently — orderings diverged, replies got applied to the wrong habits. The fix moves the ordered list and the reply mapping into helper scripts; the agent becomes a thin orchestrator.
+
+**Morning tick (write path)**:
+
+```
+felix-admin-habits agent (cron habits-morning-checkin, 7:05 AM ET)
+  → scripts/habits/morning_checkin_list.py
+       ├─ scripts/habits/query_active_habits_v2.py  (Vikunja GET /projects/13/tasks, filter due_date<=now/d AND done=false)
+       └─ scripts/habits/exclude_completed_v2.py    (reads /data/services/openclaw/state/habits-history.jsonl)
+  → /data/services/openclaw/state/habits/morning-checkin-<YYYY-MM-DD>.json   (atomic write — canonical ordering)
+  → stdout (formatted WhatsApp message, relayed verbatim by the agent)
+```
+
+The artifact ordering is byte-identical to the formatted WhatsApp message (FR-002). The agent relays the helper's stdout verbatim with NO commentary or re-ordering (FR-007). One file per Kent-day; ~1 KB at N=8-12 habits (NFR-005); no rotation (~365 files/year).
+
+**Reply tick (read path)**:
+
+```
+felix-admin-habits agent (reply tick)
+  → scripts/habits/parse_morning_reply.py
+       └─ /data/services/openclaw/state/habits/morning-checkin-<YYYY-MM-DD>.json   (read-only)
+  → stdout: {tuples, judgment_required, errors} JSON (data-model Entity 2)
+
+For each tuple in deterministic tuples:
+  → scripts/habits/record_completion.py --task-id <id> --state <state> --date <date> --source kent_reply --idempotent
+       (Phase 3 helper unchanged per C-001/FR-010; three-write to Vikunja + JSONL state log)
+```
+
+The parser NEVER re-queries Vikunja (FR-008) — the morning-list artifact is the authoritative source of position->task_id mapping for the date. If the artifact is missing (exit code 4), the agent files a P2-bug via `felix-file-issue.py` rather than falling back to live Vikunja state (FR-009).
+
+**Narrow LLM judgment surface** (only when parser emits `judgment_required`):
+
+```
+scripts/habits/parse_morning_reply.py emitted judgment_required (e.g., "PT done" matches multiple PT habits)
+  → scripts/habits/judgment/disambiguate_reply.py
+       ├─ /data/services/openclaw/secrets/anthropic   (file read 0600)
+       └─ api.anthropic.com   (HTTPS via anthropic-python SDK, claude-haiku-4-5)
+  → stdout: {result: chosen, chosen_task_id} OR {result: clarify, suggested_question}
+```
+
+The LLM is NEVER in the path for the bulk of replies — only for ambiguous reply tokens (FR-006). Mirrors the #343 doc-audit judgment pattern. Validates `chosen_task_id` is within the input's candidate set; out-of-set responses are a hard-fail (exit code 5). On `clarify`, the agent asks Kent ONE clarifying question per ambiguity cluster — never silently guesses.
+
 ### Doc-Auditor Direct Anthropic API (#343)
 
 ```
@@ -216,3 +260,4 @@ Filing path: `hard_fail.py` runs the dedup pre-check (`gh issue list --state ope
 | Anthropic API key (sensitive) | `/data/services/openclaw/secrets/anthropic` | Yes (mode 0600) |
 | Escalation JSONL state log (#309) | `/data/services/openclaw/state/escalation/<project-slug>-escalation-history.jsonl` | Yes |
 | Escalation pre-backfill snapshot (#309) | `/data/services/openclaw/state/escalation/pre-phase6-snapshot.json` | Yes |
+| Habits morning-list artifact (#371) | `/data/services/openclaw/state/habits/morning-checkin-<YYYY-MM-DD>.json` | Yes |

@@ -195,20 +195,50 @@ Operator workflow: see `docs/runbooks/inbox-ops.md` §"When you see an 'Inbox qu
 
 - **file_inbox_quality_issue.py** (script, #185 → #253) — Title-prefix-deduped GitHub issue writer. Exposes library functions `find_existing_open_issue()`, `file_new_issue(parse_failures, date_str)`, `build_title()`, `build_body()` alongside its thin `main()` CLI wrapper. As of #253, invoked indirectly via `handle_parse_failures.py`'s direct function imports rather than via the AGENTS.md prompt's bash. Uses `gh issue list --search 'in:title "Inbox quality:"'` + a `startswith()` post-filter to find an existing open issue; if found, returns the existing number without filing. If not, files a new issue against `kentonium3/kg-automation` with title `Inbox quality: <N> notes with parse errors — YYYY-MM-DD`. Body is truncated with an overflow footer if it would exceed the 60K-char safety budget.
 
-### Felix Admin Habits Agent (F009)
+### Felix Admin Habits Agent (F009; scripts-first morning + reply flow #371)
 - **Deployed by**: F009
+- **Refactored by**: `#371` / mission `habits-checkin-reply-scripts-first-01KS86ZQ` (morning + reply ports to scripts-first; mirrors #309 escalation pattern)
 - **Type**: OpenClaw agent (sub-agent of the gateway)
 - **Agent name**: `felix-admin-habits`
 - **Workspace**: `/data/services/openclaw/habits-agent/`
 - **Source in repo**: `scripts/openclaw/agents/felix-admin-habits/`
 - **Model**: `anthropic/claude-sonnet-4-6`
-- **Purpose**: Daily habit check-in delivery, completion tracking via Vikunja comments, weekly pattern reports, on-demand track record queries, habit management (add/pause/remove)
+- **Purpose**: Daily habit check-in delivery, completion tracking, weekly pattern reports, on-demand track record queries, habit management (add/pause/remove). **Post-#371**: thin orchestrator. The morning tick invokes `scripts/habits/morning_checkin_list.py` (script writes the canonical morning-list artifact + emits the formatted WhatsApp message verbatim); the reply tick invokes `scripts/habits/parse_morning_reply.py` (deterministic mapping of Kent's reply against the persisted morning list) and routes the resulting `(task_id, state)` tuples to the existing `scripts/habits/record_completion.py`. The narrow LLM judgment surface `scripts/habits/judgment/disambiguate_reply.py` is invoked ONLY for ambiguous reply tokens (mirrors the #343 doc-audit judgment pattern).
 - **Schedule**: Morning check-in at 7:05 AM ET daily, weekly report Sunday 6 PM ET
 - **Vikunja project**: Habits (id=13) with 7 habit tasks (ids 14-20)
-- **Completion storage**: Comments on habit tasks in format `[Felix] YYYY-MM-DD | {state} | note`
+- **Canonical completion storage**: JSONL state log at `/data/services/openclaw/state/habits-history.jsonl` (Phase 3 #306, cutover #308). `[Felix]` comments on each habit task are written by `record_completion.py` as a Vikunja UI mirror only.
+- **Morning-list artifact (post-#371)**: `/data/services/openclaw/state/habits/morning-checkin-<YYYY-MM-DD>.json` — per-Kent-day canonical ordering used by the reply parser (data-model Entity 1)
 - **WhatsApp delivery**: Cron jobs use `--to` for direct delivery; completion marking via main agent delegation
 - **Privacy boundary**: `04-Growth/_private/` is never accessed
 - **Runbook**: `docs/runbooks/habits-ops.md`
+
+#### State files (post-#371)
+
+- **Per-date morning-list artifact** (`/data/services/openclaw/state/habits/morning-checkin-<YYYY-MM-DD>.json`, introduced by #371) — One file per Kent-day. Schema per data-model Entity 1: `{schema_version, date, generated_at, habits:[{position, vikunja_task_id, title}]}`. Written by `morning_checkin_list.py` at the morning cron tick; read by `parse_morning_reply.py` at reply time. Authoritative ordering for the reply tick — the parser NEVER re-queries Vikunja, so positions in Kent's reply align with what he actually saw. ~1 KB per file at N=8-12 habits (NFR-005); no rotation (~365 files/year). Backed up by the nightly Restic job.
+- **Habits history JSONL** (`/data/services/openclaw/state/habits-history.jsonl`) — Unchanged from #306/#307/#308. Canonical per-domain completion log; the new helpers consume it via the existing Phase 3 `exclude_completed_v2.py` filter.
+
+#### Helpers (post-#371)
+
+Per-helper metadata mirrors `docs/design/architecture/data/service-inventory.json` (the authoritative record) — see the corresponding `config_files[*]` entries on the `habit-checkin` cron for `runs_on`, `invoked_by`, `writes_to`, `reads_from`, `credentials`, and `updated_by` fields.
+
+- **scripts/habits/morning_checkin_list.py** (script, introduced_by #371, updated_by #371) — Sole source of the ordered habit list. Reads active habits from Vikunja (project-scoped via `query_active_habits_v2.py`), excludes habits already addressed today (via `exclude_completed_v2.py` reading the JSONL state log), and writes `/data/services/openclaw/state/habits/morning-checkin-<YYYY-MM-DD>.json` atomically (tmp+fsync+rename). Emits the formatted WhatsApp check-in message to stdout — the agent relays this verbatim with NO commentary or re-ordering. Implements FR-001, FR-002, FR-007.
+  - **runs_on**: `office2`
+  - **invoked_by**: `felix-admin-habits` agent (cron `habits-morning-checkin`)
+  - **writes_to**: `/data/services/openclaw/state/habits/morning-checkin-<YYYY-MM-DD>.json`
+  - **reads_from**: Vikunja API (`GET /projects/<id>/tasks` via `query_active_habits_v2.py`); habits JSONL state log (via `exclude_completed_v2.py`)
+  - **credentials**: `vikunja-api`
+- **scripts/habits/parse_morning_reply.py** (script, introduced_by #371, updated_by #371) — Deterministic reply parser. Loads the persisted morning-list artifact for the date, tokenizes Kent's reply, and emits canonical `{tuples, judgment_required, errors}` JSON per data-model Entity 2. Supports number references (single + comma-separated), exact title matches (case-insensitive), simple substring matches that uniquely identify one habit, and special `"all done"` family tokens. Ambiguous substring matches emit `judgment_required` records (NOT silently picked). Implements FR-003, FR-004, FR-005, FR-008. Exit code 4 when no morning-list artifact exists for the date — agent files a P2-bug via `felix-file-issue.py` rather than falling back to live Vikunja state (FR-009).
+  - **runs_on**: `office2`
+  - **invoked_by**: `felix-admin-habits` agent (reply tick)
+  - **writes_to**: (none — caller routes the tuples to `record_completion.py`)
+  - **reads_from**: `/data/services/openclaw/state/habits/morning-checkin-<YYYY-MM-DD>.json`
+  - **credentials**: (none — does not call Vikunja)
+- **scripts/habits/judgment/disambiguate_reply.py** (script + library, introduced_by #371, updated_by #371) — Narrow LLM judgment surface. Invoked ONLY when the deterministic parser emits `judgment_required` (FR-006). Mirrors the #343 doc-audit judgment pattern: the LLM is never in the path for the bulk of replies, only for ambiguous reply tokens (e.g., `"PT done"` when the morning list has multiple PT habits). Reads `/data/services/openclaw/secrets/anthropic` at invocation, calls `api.anthropic.com` directly via the anthropic-python SDK with `claude-haiku-4-5`, and returns either `{result: chosen, chosen_task_id}` from the candidate set or `{result: clarify, suggested_question}` for the agent to ask Kent. Validates chosen_task_id is within the input's candidate set (out-of-set responses are a hard-fail, exit code 5).
+  - **runs_on**: `office2`
+  - **invoked_by**: `felix-admin-habits` agent (reply tick, only when parser emits `judgment_required`)
+  - **writes_to**: (none)
+  - **reads_from**: `/data/services/openclaw/secrets/anthropic`; `api.anthropic.com` (HTTPS)
+  - **credentials**: `anthropic-api`
 
 ### Felix Admin Tasker Agent (F013)
 - **Deployed by**: F013

@@ -364,10 +364,23 @@
         "felix-admin-habits": {
           "workspace": "/data/services/openclaw/habits-agent",
           "model": "anthropic/claude-sonnet-4-6",
-          "purpose": "Daily habit check-in, completion tracking, weekly pattern reports",
+          "purpose": "Daily habit check-in, completion tracking, weekly pattern reports. Post-#371 (scripts-first morning + reply flow): the agent is a thin orchestrator that invokes scripts/habits/morning_checkin_list.py for the morning tick (script writes the canonical morning-list artifact + emits the formatted WhatsApp message), scripts/habits/parse_morning_reply.py for reply handling (deterministic mapping of Kent's reply against the persisted morning list), and scripts/habits/judgment/disambiguate_reply.py only for ambiguous reply tokens. AGENTS.md is cut to <=14,000 source chars to stay within the openclaw effective budget per memory reference_openclaw_gotchas.md.",
           "source_in_repo": "scripts/openclaw/agents/felix-admin-habits/",
           "deployed_by": "F009",
-          "autonomy_level": "assisted"
+          "autonomy_level": "assisted",
+          "updated_by": "#371",
+          "last_updated": "2026-05-22",
+          "depends_on": [
+            "scripts/habits/morning_checkin_list.py",
+            "scripts/habits/parse_morning_reply.py",
+            "scripts/habits/judgment/disambiguate_reply.py",
+            "scripts/habits/query_active_habits_v2.py",
+            "scripts/habits/exclude_completed_v2.py",
+            "scripts/habits/record_completion.py",
+            "scripts/habits/reconcile_completions.py",
+            "scripts/common/state_log.py",
+            "scripts/openclaw/agents/main/felix-file-issue.py"
+          ]
         },
         "felix-admin-tasker": {
           "workspace": "/data/services/openclaw/tasker-agent",
@@ -465,8 +478,8 @@
       "timeout_seconds_note": "Per-schedule timeouts diverge — see schedules array.",
       "session_mode": "isolated",
       "deployed_by": "F009",
-      "updated_by": "#307-backfill-habits-jsonl-from-comments + #306-habits-native-repeat-jsonl-state + #285-cron-delivery-restore-path-c + #282-habits-d6-extract + #273-felix-tier2-self-repair-incident-audit + #263-cron-delivery-mode-round2",
-      "last_updated": "2026-05-19",
+      "updated_by": "#371-habits-checkin-reply-scripts-first + #307-backfill-habits-jsonl-from-comments + #306-habits-native-repeat-jsonl-state + #285-cron-delivery-restore-path-c + #282-habits-d6-extract + #273-felix-tier2-self-repair-incident-audit + #263-cron-delivery-mode-round2",
+      "last_updated": "2026-05-22",
       "status": "active",
       "purpose": "Daily habit check-in and weekly pattern report",
       "runbook": "docs/runbooks/habits-ops.md",
@@ -490,7 +503,10 @@
         {"path": "/home/claude/kg-automation/scripts/habits/reconcile_completions.py", "format": "python", "source_in_repo": "scripts/habits/reconcile_completions.py", "purpose": "Phase 3 (#306): backfill + drift-detection helper. Enumerates active habit tasks (project-scoped) and backfills Vikunja-UI completions to the JSONL log; reports JSONL-vs-Vikunja drift without auto-resolving (FR-008, FR-009)", "host": "office2", "introduced_by": "#306"},
         {"path": "/home/claude/kg-automation/scripts/habits/query_active_habits_v2.py", "format": "python", "source_in_repo": "scripts/habits/query_active_habits_v2.py", "purpose": "Phase 3 (#306) v2 (cutover target #308): Vikunja-native filter `due_date <= now/d AND done = false` replaces the v1 frequency-descriptor parser (FR-010). Project-scoped to Habits.", "host": "office2", "introduced_by": "#306"},
         {"path": "/home/claude/kg-automation/scripts/habits/exclude_completed_v2.py", "format": "python", "source_in_repo": "scripts/habits/exclude_completed_v2.py", "purpose": "Phase 3 (#306) v2 (cutover target #308): reads state_log instead of LLM-parsing [Felix] comments to filter today's completed habits (FR-011)", "host": "office2", "introduced_by": "#306"},
-        {"path": "/home/claude/kg-automation/scripts/habits/backfill_jsonl_from_comments.py", "format": "python", "source_in_repo": "scripts/habits/backfill_jsonl_from_comments.py", "purpose": "Phase 4 (#307) one-shot historical backfill: reads existing [Felix] completion comments from Vikunja habit tasks and replays them into habits-history.jsonl with source=historical-backfill. Operator-driven (not cron). Idempotent on re-run; pre-backfill snapshot at habits-history.jsonl.pre-phase4-backfill.bak. Imports FELIX_COMMENT_PATTERN from exclude_completed.py (read-only).", "host": "office2", "introduced_by": "#307"}
+        {"path": "/home/claude/kg-automation/scripts/habits/backfill_jsonl_from_comments.py", "format": "python", "source_in_repo": "scripts/habits/backfill_jsonl_from_comments.py", "purpose": "Phase 4 (#307) one-shot historical backfill: reads existing [Felix] completion comments from Vikunja habit tasks and replays them into habits-history.jsonl with source=historical-backfill. Operator-driven (not cron). Idempotent on re-run; pre-backfill snapshot at habits-history.jsonl.pre-phase4-backfill.bak. Imports FELIX_COMMENT_PATTERN from exclude_completed.py (read-only).", "host": "office2", "introduced_by": "#307"},
+        {"path": "/home/claude/kg-automation/scripts/habits/morning_checkin_list.py", "format": "python", "source_in_repo": "scripts/habits/morning_checkin_list.py", "purpose": "#371 (scripts-first morning tick): builds today's ordered habit list deterministically. Reads active habits from Vikunja via query_active_habits_v2.py + exclude_completed_v2.py, persists the canonical ordering to /data/services/openclaw/state/habits/morning-checkin-<YYYY-MM-DD>.json (data-model Entity 1), and emits the formatted WhatsApp check-in message to stdout (FR-001, FR-002, FR-007). Atomic write via tmp+fsync+rename. Sole source of the ordered list — replaces the prior AGENTS.md prose that re-derived the list per session.", "host": "office2", "introduced_by": "#371", "updated_by": "#371", "kind": "script", "runs_on": ["office2"], "invoked_by": ["felix-admin-habits (cron habits-morning-checkin)"], "writes_to": ["/data/services/openclaw/state/habits/morning-checkin-<YYYY-MM-DD>.json"], "reads_from": ["Vikunja API (GET /projects/<id>/tasks via query_active_habits_v2.py)", "/data/services/openclaw/state/habits-history.jsonl (via exclude_completed_v2.py)"], "credentials": ["vikunja-api"]},
+        {"path": "/home/claude/kg-automation/scripts/habits/parse_morning_reply.py", "format": "python", "source_in_repo": "scripts/habits/parse_morning_reply.py", "purpose": "#371 (scripts-first reply tick): deterministic reply parser. Loads the persisted morning-list artifact for the date, tokenizes Kent's reply (number references, exact titles, simple substrings, special 'all done' tokens), and emits canonical {tuples, judgment_required, errors} JSON to stdout (FR-003, FR-004, FR-005, FR-008). Ambiguous substring matches surface as judgment_required (NOT silently picked). Exit code 4 when no morning-list artifact exists for the date — agent files a P2-bug via felix-file-issue.py rather than falling back to live Vikunja state (FR-009).", "host": "office2", "introduced_by": "#371", "updated_by": "#371", "kind": "script", "runs_on": ["office2"], "invoked_by": ["felix-admin-habits (reply tick)"], "writes_to": [], "reads_from": ["/data/services/openclaw/state/habits/morning-checkin-<YYYY-MM-DD>.json"], "credentials": []},
+        {"path": "/home/claude/kg-automation/scripts/habits/judgment/disambiguate_reply.py", "format": "python", "source_in_repo": "scripts/habits/judgment/disambiguate_reply.py", "purpose": "#371 (narrow LLM judgment surface): disambiguates a single judgment_required cluster from parse_morning_reply.py output. Mirrors the #343 doc-audit judgment pattern — invoked ONLY when the deterministic parser emits judgment_required, never for the bulk of replies (FR-006). Returns {result: chosen, chosen_task_id} from the candidate set, OR {result: clarify, suggested_question} for the agent to ask Kent. Default model: claude-haiku-4-5. Validates chosen_task_id is within the input's candidate set (out-of-set responses are a hard-fail).", "host": "office2", "introduced_by": "#371", "updated_by": "#371", "kind": "script+library", "runs_on": ["office2"], "invoked_by": ["felix-admin-habits (reply tick, only on parser judgment_required)"], "writes_to": [], "reads_from": ["/data/services/openclaw/secrets/anthropic"], "calls": ["api.anthropic.com"], "credentials": ["anthropic-api"]}
       ]
     },
     {

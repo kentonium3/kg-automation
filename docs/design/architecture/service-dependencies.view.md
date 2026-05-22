@@ -4,10 +4,10 @@ doc_type: guide
 level: reference
 status: approved
 owners: [kgale]
-last_validated: 2026-05-21
-revision: v1.1
+last_validated: 2026-05-22
+revision: v1.2
 audience: agents_and_humans
-updated_by: '#309'
+updated_by: '#371'
 ---
 
 # Service Dependencies
@@ -15,10 +15,18 @@ updated_by: '#309'
 Visual dependency map of office2 services, grouped by tier.
 Arrows show runtime dependencies. The critical external path
 (port 443 through tailscale-serve into vikunja) is highlighted.
-Updated 2026-05-21 (#309) to include `escalation-daily`, which migrates
+Updated 2026-05-22 (#371) — `habit-checkin` cron is now scripts-first
+for both the morning tick and reply handling (mirrors the #309
+escalation port); the agent dependency edge is unchanged but the
+agent now depends on the `anthropic-api` for narrow LLM judgment on
+ambiguous replies (via `scripts/habits/judgment/disambiguate_reply.py`),
+the same direct path used by `felix-doc-auditor` (#343). Updated
+2026-05-21 (#309) to include `escalation-daily`, which migrates
 to a JSONL state model parallel to the post-#306 habits pattern; see
-[`data-flows.view.md`](<./data-flows.view.md>) for the escalation subgraph
-(record/reconcile/derive_state/backfill/hard-fail) detail.
+[`data-flows.view.md`](<./data-flows.view.md>) for the escalation
+subgraph (record/reconcile/derive_state/backfill/hard-fail) and the
+habits subgraph (morning_checkin_list/parse_morning_reply/disambiguate_reply)
+detail.
 
 ```mermaid
 graph LR
@@ -35,7 +43,7 @@ graph LR
 
     subgraph Agents["Agent Services (Tier 3)"]
         inbox["inbox-processing<br/>Tier 3"]
-        habits["habit-checkin<br/>Tier 3"]
+        habits["habit-checkin<br/>Tier 3<br/>(scripts-first #371)"]
         taskdet["task-detection<br/>Tier 3"]
         escalation["escalation-daily<br/>Tier 3<br/>(JSONL state #309)"]
         digest["felix-core-digest<br/>Tier 3"]
@@ -63,6 +71,7 @@ graph LR
 
     inbox -->|"requires"| openclaw
     habits -->|"requires"| openclaw
+    habits -->|"requires<br/>(disambiguator only, #371)"| anthropic
     taskdet -->|"requires"| openclaw
     escalation -->|"requires"| openclaw
     digest -->|"requires"| openclaw

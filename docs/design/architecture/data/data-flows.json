@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
-  "last_updated": "2026-05-21",
-  "updated_by": "#309-migrate-escalation-to-jsonl-state-model + #343-refactor-doc-auditor-to-scripts-first-driver + #307-backfill-habits-jsonl-from-comments + #306-habits-native-repeat-jsonl-state + #152",
+  "last_updated": "2026-05-22",
+  "updated_by": "#371-habits-checkin-reply-scripts-first + #309-migrate-escalation-to-jsonl-state-model + #343-refactor-doc-auditor-to-scripts-first-driver + #307-backfill-habits-jsonl-from-comments + #306-habits-native-repeat-jsonl-state + #152",
   "flows": [
     {
       "name": "vikunja-web-ui",
@@ -138,6 +138,62 @@
         {"from": "scripts/habits/backfill_jsonl_from_comments.py", "to": "Vikunja /projects, /projects/<id>/tasks, /tasks/<id>/comments", "protocol": "HTTPS via Tailscale Serve", "port": 443, "backend_port": 3456, "description": "Project-scoped enumeration + per-task comment GET. No writes to Vikunja."},
         {"from": "scripts/habits/backfill_jsonl_from_comments.py", "to": "scripts/common/state_log.py", "protocol": "python-import", "description": "Pre-flight read for dedup + append with source=historical-backfill, timestamp=comment.created"},
         {"from": "scripts/common/state_log.py", "to": "habits-history.jsonl", "path": "/data/services/openclaw/state/habits-history.jsonl", "description": "Historical backfill write path (source=historical-backfill). Pre-backfill snapshot at habits-history.jsonl.pre-phase4-backfill.bak"}
+      ]
+    },
+    {
+      "name": "habits-morning-list-write",
+      "status": "active",
+      "deployed_by": "#371",
+      "introduced_by": "#371",
+      "updated_by": "#371",
+      "since": "#371",
+      "description": "#371 (habits scripts-first morning tick) canonical write path. At cron tick (7:05 AM ET), scripts/habits/morning_checkin_list.py reads today's active habits from Vikunja (via query_active_habits_v2.py — project-scoped to Habits, filter due_date<=now/d AND done=false), excludes habits already addressed today (via exclude_completed_v2.py reading habits-history.jsonl), and persists the ordered list to a per-date JSON artifact. Atomic write (tmp+fsync+rename). The artifact ordering is byte-identical to the formatted WhatsApp message also emitted to stdout (FR-001, FR-002, FR-007). One file per Kent-day; no rotation (~365 files/year, ~1 KB each per NFR-005).",
+      "path": [
+        {"from": "felix-admin-habits agent (cron habits-morning-checkin)", "to": "scripts/habits/morning_checkin_list.py", "protocol": "subprocess (python3 -m)", "description": "Step 1 of the morning tick — the agent invokes the helper and relays its stdout verbatim as the WhatsApp message"},
+        {"from": "scripts/habits/morning_checkin_list.py", "to": "scripts/habits/query_active_habits_v2.py", "protocol": "python-import", "description": "Vikunja-native filter for active-today habits, project-scoped (existing Phase 3 helper, unchanged)"},
+        {"from": "scripts/habits/morning_checkin_list.py", "to": "scripts/habits/exclude_completed_v2.py", "protocol": "python-import", "description": "JSONL state-log filter to drop habits already addressed today (existing Phase 3 helper, unchanged)"},
+        {"from": "scripts/habits/morning_checkin_list.py", "to": "/data/services/openclaw/state/habits/morning-checkin-<YYYY-MM-DD>.json", "protocol": "file write (atomic rename)", "description": "Canonical morning-list artifact per data-model Entity 1: {schema_version, date, generated_at, habits:[{position, vikunja_task_id, title}]}. Authoritative ordering for the reply tick — the parser reads this, never re-queries Vikunja."}
+      ]
+    },
+    {
+      "name": "habits-morning-list-read",
+      "status": "active",
+      "deployed_by": "#371",
+      "introduced_by": "#371",
+      "updated_by": "#371",
+      "since": "#371",
+      "description": "#371 (habits scripts-first reply tick) canonical read path. When Kent replies to the morning check-in (via WhatsApp), scripts/habits/parse_morning_reply.py loads the persisted morning-list artifact for the relevant date and produces deterministic (task_id, state) tuples by tokenizing the reply against the artifact's positions + titles (FR-003, FR-004, FR-008). Reply parser NEVER re-queries Vikunja — the artifact is the sole source of ordering, so positions referenced in Kent's reply align with the habits he actually saw. If the artifact is missing (exit code 4), the agent files a P2-bug via felix-file-issue.py rather than falling back to live Vikunja state (FR-009).",
+      "path": [
+        {"from": "felix-admin-habits agent (reply tick)", "to": "scripts/habits/parse_morning_reply.py", "protocol": "subprocess (python3 -m)", "description": "Step 1 of the reply tick — agent passes Kent's reply text + the today-local date"},
+        {"from": "scripts/habits/parse_morning_reply.py", "to": "/data/services/openclaw/state/habits/morning-checkin-<YYYY-MM-DD>.json", "protocol": "file read", "description": "Read-only load of the canonical morning-list artifact. Authoritative source of position->task_id mapping for the date."},
+        {"from": "scripts/habits/parse_morning_reply.py", "to": "scripts/habits/record_completion.py", "protocol": "subprocess (--idempotent)", "description": "Per deterministic tuple in parser output, the agent invokes record_completion once with --source kent_reply --idempotent. Phase 3 helper unchanged per C-001/FR-010 (mission #371 does NOT modify record_completion)."}
+      ]
+    },
+    {
+      "name": "habits-disambiguator-llm",
+      "status": "active",
+      "deployed_by": "#371",
+      "introduced_by": "#371",
+      "updated_by": "#371",
+      "since": "#371",
+      "description": "#371 (narrow LLM judgment surface, mirrors #343 doc-audit pattern). When parse_morning_reply.py emits a judgment_required cluster (e.g., Kent's reply contains 'PT done' but the morning list has multiple PT habits), the agent invokes scripts/habits/judgment/disambiguate_reply.py for that cluster ONLY (FR-006). The helper reads the Anthropic API key from disk, calls api.anthropic.com directly via the anthropic-python SDK, and returns either {result: chosen, chosen_task_id} from the candidate set OR {result: clarify, suggested_question} for the agent to ask Kent. Default model: claude-haiku-4-5. The LLM is NEVER in the path for the bulk of replies — only ambiguous tokens.",
+      "path": [
+        {"from": "felix-admin-habits agent (reply tick, parser emitted judgment_required)", "to": "scripts/habits/judgment/disambiguate_reply.py", "protocol": "subprocess (stdin JSON or --input-file)", "description": "Per ambiguity cluster from parser output. Input shape: data-model Entity 3 ({schema_version, reply_text, ambiguity:{token, candidate_task_ids, candidate_titles, inferred_state}})."},
+        {"from": "scripts/habits/judgment/disambiguate_reply.py", "to": "/data/services/openclaw/secrets/anthropic", "protocol": "file read (0600)", "description": "API key load at invocation. Sensitive: contents never logged, never echoed. Sibling consumer: openclaw-gateway and scripts/doc_audit/run.py (also direct readers of the same secret)."},
+        {"from": "scripts/habits/judgment/disambiguate_reply.py", "to": "Anthropic API", "protocol": "HTTPS (anthropic-python SDK)", "endpoint": "api.anthropic.com", "description": "Single narrow judgment call per ambiguity cluster. Validates chosen_task_id is within the input's candidate_task_ids list — out-of-set responses are a hard-fail (exit code 5)."}
+      ]
+    },
+    {
+      "name": "habits-vikunja-query",
+      "status": "active",
+      "deployed_by": "#371",
+      "introduced_by": "#371",
+      "updated_by": "#371",
+      "since": "#371",
+      "description": "#371 (morning tick Vikunja read leg). Logical wrapping of the Vikunja read that backs morning_checkin_list.py. The actual API call still lives in the existing Phase 3 query_active_habits_v2.py (unchanged); this entry registers the agent->Vikunja edge so the data-flow graph reflects that the v2 morning helper reads Vikunja on every cron tick. Project-scoped to the Habits project (id=13).",
+      "path": [
+        {"from": "scripts/habits/morning_checkin_list.py", "to": "scripts/habits/query_active_habits_v2.py", "protocol": "python-import", "description": "Project-scoped Vikunja query helper invoked once per morning tick"},
+        {"from": "scripts/habits/query_active_habits_v2.py", "to": "Vikunja /projects/13/tasks?filter=due_date<=now/d AND done=false", "protocol": "HTTPS via Tailscale Serve", "port": 443, "backend_port": 3456, "description": "Vikunja-native filter expression for active-today habits, project-scoped to Habits. Read-only."}
       ]
     },
     {

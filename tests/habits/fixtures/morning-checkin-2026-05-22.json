@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "date": "2026-05-22",
+  "generated_at": "2026-05-22T11:05:00Z",
+  "habits": [
+    {"position": 1, "vikunja_task_id": 14, "title": "Wake at 5:00 AM"},
+    {"position": 2, "vikunja_task_id": 18, "title": "Meditate"},
+    {"position": 3, "vikunja_task_id": 19, "title": "Morning shoulder PT"},
+    {"position": 4, "vikunja_task_id": 20, "title": "Get steps in today"},
+    {"position": 5, "vikunja_task_id": 65, "title": "Read 30 min minimum"},
+    {"position": 6, "vikunja_task_id": 16, "title": "Evening shoulder PT"},
+    {"position": 7, "vikunja_task_id": 17, "title": "Morning hip PT"},
+    {"position": 8, "vikunja_task_id": 15, "title": "Strength training — Friday"}
+  ]
+}

@@ -6,10 +6,10 @@ level: reference
 status: approved
 owners:
   - "@kentonium3"
-last_updated: '2026-05-21'
-revision: v1.2
+last_updated: '2026-05-22'
+revision: v1.3
 audience: agents_and_humans
-updated_by: '#309'
+updated_by: '#371'
 
 ---
 
@@ -54,6 +54,19 @@ graph LR
             vikunja_api["Vikunja REST API<br/>:3456 (via Tailscale)"]
             felix_file_issue["scripts/openclaw/agents/main/<br/>felix-file-issue.py"]
         end
+
+        subgraph habits["Habits (#371 scripts-first morning + reply)"]
+            hab_agent["felix-admin-habits<br/>(OpenClaw agent)"]
+            hab_morning["scripts/habits/<br/>morning_checkin_list.py"]
+            hab_query["scripts/habits/<br/>query_active_habits_v2.py<br/>(Phase 3 #306)"]
+            hab_exclude["scripts/habits/<br/>exclude_completed_v2.py<br/>(Phase 3 #306)"]
+            hab_parse["scripts/habits/<br/>parse_morning_reply.py"]
+            hab_disambig["scripts/habits/judgment/<br/>disambiguate_reply.py<br/>(narrow LLM judgment)"]
+            hab_record["scripts/habits/<br/>record_completion.py<br/>(Phase 3 #306, unchanged)"]
+            hab_artifact[("morning-checkin-&lt;date&gt;.json<br/>/data/services/openclaw/state/<br/>habits/")]
+            hab_history[("habits-history.jsonl<br/>/data/services/openclaw/state/")]
+            anthropic_key_habits[("anthropic API key<br/>/data/services/openclaw/<br/>secrets/anthropic (0600)<br/>shared with doc-audit")]
+        end
     end
 
     subgraph external["External"]
@@ -96,4 +109,19 @@ graph LR
     esc_hard_fail -->|"dedup_existing_open<br/>(gh issue list --search)"| gh_api
     esc_hard_fail -->|"file_hard_fail_bug<br/>(subprocess)"| felix_file_issue
     felix_file_issue -->|"gh issue create<br/>(P2-bug, area/escalation)"| gh_api
+
+    hab_agent -->|"morning tick: invoke"| hab_morning
+    hab_agent -->|"reply tick: invoke"| hab_parse
+    hab_morning -->|"python-import"| hab_query
+    hab_morning -->|"python-import"| hab_exclude
+    hab_query -->|"GET /projects/13/tasks<br/>(due_date<=now/d AND done=false)"| vikunja_api
+    hab_exclude -->|"state_log.read (habits)"| hab_history
+    hab_morning -->|"atomic write<br/>(canonical ordering)"| hab_artifact
+    hab_parse -->|"read (per-date)"| hab_artifact
+    hab_parse -->|"per tuple: subprocess<br/>(--source kent_reply --idempotent)"| hab_record
+    hab_parse -.->|"on judgment_required only"| hab_disambig
+    hab_disambig -->|"read (0600)"| anthropic_key_habits
+    hab_disambig -->|"HTTPS (anthropic-python SDK,<br/>claude-haiku-4-5)"| anthropic_api
+    hab_record -->|"three-write (Phase 3 #306)<br/>POST done=true + PUT comment"| vikunja_api
+    hab_record -->|"state_log.append (habits)"| hab_history
 ```
