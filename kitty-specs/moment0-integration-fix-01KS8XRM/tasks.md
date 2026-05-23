@@ -16,10 +16,10 @@
 | T003 | Update `routing/__init__.py` to export `route_drift_event` + `RoutingOutcome` | WP01 | [D] |
 | T004 | Tests for new shared helper — all 6 verdict paths + retry exhaustion + ledger append + RoutingOutcome shape; ≥85% coverage | WP01 | [D] |
 | T005 | Update existing `test_handle_drift_events.py` — assert calls to shared helper; remove now-orphaned mocks of inlined helpers; preserve all current behavioral tests | WP01 | [D] |
-| T006 | Add `_judgment_client` lazy field + `_get_judgment_client()` to `DriftEventSignalSource.__init__` (per D2 lifecycle) | WP02 |
-| T007 | Modify `DriftEventSignalSource.commit()` — when `config.drift_interpretation.enabled and mapping is not None`, call `route_drift_event()`; on `DriftInterpretationError` fall back to `file_doc_audit_issue()` + write RETRY_EXHAUSTED ledger row | WP02 |
-| T008 | Preserve cursor/drain idempotency (existing behavior fully intact when flag disabled OR when mapping is None) | WP02 |
-| T009 | Tests for `signals/drift_event.py` — Moment 0 path enabled (calls helper); disabled (falls through to file_doc_audit_issue); JudgmentClient NOT instantiated when disabled (FR-010); retry-exhausted fallback; cursor advance preserved | WP02 |
+| T006 | Add `_judgment_client` lazy field + `_get_judgment_client()` to `DriftEventSignalSource.__init__` (per D2 lifecycle) | WP02 | [D] |
+| T007 | Modify `DriftEventSignalSource.commit()` — when `config.drift_interpretation.enabled and mapping is not None`, call `route_drift_event()`; on `DriftInterpretationError` fall back to `file_doc_audit_issue()` + write RETRY_EXHAUSTED ledger row | WP02 | [D] |
+| T008 | Preserve cursor/drain idempotency (existing behavior fully intact when flag disabled OR when mapping is None) | WP02 | [D] |
+| T009 | Tests for `signals/drift_event.py` — Moment 0 path enabled (calls helper); disabled (falls through to file_doc_audit_issue); JudgmentClient NOT instantiated when disabled (FR-010); retry-exhausted fallback; cursor advance preserved | WP02 | [D] |
 | T010 | Create `scripts/doc_audit/helpers/cleanup_391.py` — closes #378-#390 with comment; marker at `~/.config/doc-audit/cleanup-391.done`; `--dry-run` and `--force` flags (mirrors `cutover_362.py` structure) | WP03 |
 | T011 | Tests for `cleanup_391.py` — happy path, dry-run, idempotent, partial failure tolerance; ≥85% coverage | WP03 |
 | T012 | Architecture docs update — service-inventory.json + data-flows.json correct the Moment 0 integration site (signals/drift_event.py, not handle_drift_events.py); add routing/drift_moment0.py entry | WP03 |
@@ -73,10 +73,10 @@ Included:
 **Prompt**: [WP02-signals-integration.md](tasks/WP02-signals-integration.md)
 
 Included:
-- [ ] T006 JudgmentClient lazy lifecycle in adapter (WP02)
-- [ ] T007 `commit()` Moment 0 invocation (WP02)
-- [ ] T008 Preserve cursor/drain semantics (WP02)
-- [ ] T009 Tests for signals integration (WP02)
+- [x] T006 JudgmentClient lazy lifecycle in adapter (WP02)
+- [x] T007 `commit()` Moment 0 invocation (WP02)
+- [x] T008 Preserve cursor/drain semantics (WP02)
+- [x] T009 Tests for signals integration (WP02)
 
 **Risks**: The `commit()` method has subtle idempotency + drain logic. Must NOT change cursor/drain behavior — only ADD the Moment 0 side-effect branch. Tests must lock down both the existing-path and the new-path behaviors.
 
