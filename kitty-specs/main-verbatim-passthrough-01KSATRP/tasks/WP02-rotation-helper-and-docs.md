@@ -158,3 +158,4 @@ spec-kitty agent action implement WP02 --mission main-verbatim-passthrough-01KSA
 ## Activity Log
 
 - 2026-05-23T18:04:17Z – claude:opus:python-implementer:implementer – shell_pid=87974 – Started implementation via action command
+- 2026-05-23T19:30:55Z – claude:opus:python-implementer:implementer – shell_pid=87974 – Ready for review: rotate_main_session.py + tests + runbook + arch docs; 20 tests / 97% coverage
