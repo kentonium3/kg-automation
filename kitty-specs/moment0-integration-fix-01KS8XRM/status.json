@@ -1,19 +1,19 @@
 {
-  "event_count": 27,
-  "last_event_id": "01KSAM74F77N6PNCGX134QMP71",
-  "materialized_at": "2026-05-23T14:35:52.167468+00:00",
+  "event_count": 28,
+  "last_event_id": "01KSAMD7F77Q95277VJ3N3K3TJ",
+  "materialized_at": "2026-05-23T14:39:11.848051+00:00",
   "mission_number": "",
   "mission_slug": "moment0-integration-fix-01KS8XRM",
   "mission_type": "software-dev",
   "summary": {
-    "approved": 2,
+    "approved": 3,
     "blocked": 0,
     "canceled": 0,
     "claimed": 0,
     "done": 0,
     "for_review": 0,
     "in_progress": 0,
-    "in_review": 1,
+    "in_review": 0,
     "planned": 0
   },
   "work_packages": {
@@ -32,11 +32,11 @@
       "last_transition_at": "2026-05-23T04:37:36.742140+00:00"
     },
     "WP03": {
-      "actor": "codex:gpt-5:spec-kitty-review:reviewer",
+      "actor": "user",
       "force_count": 2,
-      "lane": "in_review",
-      "last_event_id": "01KSAM74F77N6PNCGX134QMP71",
-      "last_transition_at": "2026-05-23T14:35:52.167468+00:00"
+      "lane": "approved",
+      "last_event_id": "01KSAMD7F77Q95277VJ3N3K3TJ",
+      "last_transition_at": "2026-05-23T14:39:11.848051+00:00"
     }
   }
 }
