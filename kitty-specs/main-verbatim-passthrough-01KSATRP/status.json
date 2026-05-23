@@ -1,7 +1,7 @@
 {
-  "event_count": 12,
-  "last_event_id": "01KSB04MR7YE02Z67MMBSRYBYE",
-  "materialized_at": "2026-05-23T18:04:13.447819+00:00",
+  "event_count": 14,
+  "last_event_id": "01KSB04R7PD0GTAK62P3SK2EX4",
+  "materialized_at": "2026-05-23T18:04:17.014916+00:00",
   "mission_number": "",
   "mission_slug": "main-verbatim-passthrough-01KSATRP",
   "mission_type": "software-dev",
@@ -12,9 +12,9 @@
     "claimed": 0,
     "done": 0,
     "for_review": 0,
-    "in_progress": 0,
+    "in_progress": 1,
     "in_review": 0,
-    "planned": 1
+    "planned": 0
   },
   "work_packages": {
     "WP01": {
@@ -25,11 +25,11 @@
       "last_transition_at": "2026-05-23T18:04:13.447819+00:00"
     },
     "WP02": {
-      "actor": "finalize-tasks",
+      "actor": "claude:opus:python-implementer:implementer",
       "force_count": 1,
-      "lane": "planned",
-      "last_event_id": "01KSAV2SW2JD9DEKX4KGWWGMX5",
-      "last_transition_at": "2026-05-23T16:35:50.274686+00:00"
+      "lane": "in_progress",
+      "last_event_id": "01KSB04R7PD0GTAK62P3SK2EX4",
+      "last_transition_at": "2026-05-23T18:04:17.014916+00:00"
     }
   }
 }
