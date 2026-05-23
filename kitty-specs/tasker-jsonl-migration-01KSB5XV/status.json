@@ -2,7 +2,7 @@
   "event_count": 28,
   "last_event_id": "01KSBD0W3H5ME3MTS5WSZVTYGK",
   "materialized_at": "2026-05-23T21:49:21.393327+00:00",
-  "mission_number": "",
+  "mission_number": "50",
   "mission_slug": "tasker-jsonl-migration-01KSB5XV",
   "mission_type": "software-dev",
   "summary": {

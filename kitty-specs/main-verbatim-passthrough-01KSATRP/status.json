@@ -2,7 +2,7 @@
   "event_count": 17,
   "last_event_id": "01KSB5FVAGQG77NVMBC8TFEW9G",
   "materialized_at": "2026-05-23T19:37:43.504540+00:00",
-  "mission_number": "",
+  "mission_number": "49",
   "mission_slug": "main-verbatim-passthrough-01KSATRP",
   "mission_type": "software-dev",
   "summary": {
