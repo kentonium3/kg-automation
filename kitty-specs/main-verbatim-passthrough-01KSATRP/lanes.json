@@ -1,0 +1,50 @@
+{
+  "version": 1,
+  "mission_slug": "main-verbatim-passthrough-01KSATRP",
+  "mission_id": "01KSATRP0S0TDA5HV995Y558JK",
+  "mission_branch": "kitty/mission-main-verbatim-passthrough-01KSATRP",
+  "target_branch": "main",
+  "lanes": [
+    {
+      "lane_id": "lane-a",
+      "wp_ids": [
+        "WP01",
+        "WP02"
+      ],
+      "write_scope": [
+        "docs/design/architecture/data-flows.md",
+        "docs/design/architecture/data/data-flows.json",
+        "docs/design/architecture/data/service-inventory.json",
+        "docs/design/architecture/service-inventory.md",
+        "docs/runbooks/openclaw-agent-setup.md",
+        "scripts/openclaw/agents/main/AGENTS.md",
+        "scripts/openclaw/helpers/rotate_main_session.py",
+        "tests/openclaw/helpers/test_rotate_main_session.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "legacy-cleanup"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    }
+  ],
+  "computed_at": "2026-05-23T16:35:50.284038+00:00",
+  "computed_from": "dependency_graph+ownership",
+  "planning_artifact_wps": [],
+  "collapse_report": {
+    "events": [
+      {
+        "wp_a": "WP02",
+        "wp_b": "WP01",
+        "rule": "dependency",
+        "evidence": "WP02 depends on WP01"
+      }
+    ],
+    "total_merges": 1,
+    "independent_wps_collapsed": 0,
+    "by_rule": {
+      "dependency": 1
+    }
+  }
+}
