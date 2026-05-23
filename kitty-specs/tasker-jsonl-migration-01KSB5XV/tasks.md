@@ -16,10 +16,10 @@
 | T004 | reconcile_completions.py — backfill from Vikunja comments with disambiguation (mirror escalation/reconcile_completions.py) | WP02 | [D] |
 | T005 | derive_state.py — compute current state from JSONL (mirror escalation/derive_state.py) | WP02 | [D] |
 | T006 | Tests for reconcile + derive_state (≥85%; including disambiguation edge cases) | WP02 | [D] |
-| T007 | tasker AGENTS.md cut: 19,391 → ≤14,000 chars per research D3; replace direct comment writes with record_completion invocation | WP03 |
-| T008 | cutover_tasker.py — one-shot deploy script (mirror cutover_362.py); deploy SKILL.md + AGENTS.md, run reconcile, write marker | WP03 |
-| T009 | Tests for cutover_tasker (≥85%; mock subprocess + filesystem) | WP03 |
-| T010 | Architecture docs + runbook: service-inventory.json, data-flows.json, markdown views, docs/runbooks/tasker-ops.md (create or update) | WP03 |
+| T007 | tasker AGENTS.md cut: 19,391 → ≤14,000 chars per research D3; replace direct comment writes with record_completion invocation | WP03 | [D] |
+| T008 | cutover_tasker.py — one-shot deploy script (mirror cutover_362.py); deploy SKILL.md + AGENTS.md, run reconcile, write marker | WP03 | [D] |
+| T009 | Tests for cutover_tasker (≥85%; mock subprocess + filesystem) | WP03 | [D] |
+| T010 | Architecture docs + runbook: service-inventory.json, data-flows.json, markdown views, docs/runbooks/tasker-ops.md (create or update) | WP03 | [D] |
 
 ## Dependency Graph
 
