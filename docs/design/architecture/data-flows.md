@@ -214,6 +214,53 @@ Operator (Kent) → scripts/escalation/backfill_jsonl_from_comments.py
 
 One-shot operator-driven replay of existing `[Felix-Escalation]` comments to JSONL records (FR-006). Read-only on Vikunja (GET only). The pre-backfill snapshot at `pre-phase6-snapshot.json` is the rollback substrate (data-model Entity 4) — written exactly once per backfill invocation. Idempotent on re-run via the Phase 2 (task_id, date, state) dedup; malformed comments are NOT replayed (they surface in the backfill report).
 
+### Enrichment Record Writes (#310 — JSONL state migration, Phase 7 of ADR-0002 / final)
+
+Three-write ordering per the ADR-0002 contract (Vikunja side-effect FIRST, JSONL append SECOND, ack log THIRD — failing the unreliable remote ops first surfaces network issues before any state_log line is written):
+
+```
+felix-admin-tasker agent → scripts/enrichment/record_completion.py
+  → Vikunja /tasks/<id>/comments                                  (PUT [Felix] enrichment | <state> | <ISO timestamp>)
+  → /data/services/openclaw/state/enrichment/enrichment-history.jsonl   (fcntl-locked append)
+  → ~/second-brain/agents/logs/<date>.md                          (ack log, best-effort — never blocks)
+```
+
+Triggers: `enrich_task` delegation from felix-admin-capture, `retroactive_enrichment` batch, `detect_incomplete` single-task proposal. Per FR-013 (Q10 soft-fail): if the JSONL step fails AFTER the Vikunja comment lands, `record_completion.py` logs a warning and exits 0 — the Vikunja state is consistent and the next enrichment cycle re-proposes (annoying but harmless; reconcile recovers the JSONL row). Pre-Vikunja failures (idempotency-check I/O error) surface as exit 2 cleanly because no side-effect has landed.
+
+JSONL state log is a **single file** (NOT per-project — enrichment is system-wide; ~10 events/month natural traffic). Schema (data-model E1): `EnrichmentCompletion(task_id, state, timestamp_utc, source[, note], schema_version=1)`. `VALID_STATES = {proposed, confirmed, skipped, declined}`. `VALID_SOURCES = {agent, reconcile, backfill, operator_repair}`.
+
+### Enrichment Reconcile / Backfill (#310)
+
+```
+Operator (Kent) via cutover_tasker.py → scripts/enrichment/reconcile_completions.py
+  → Vikunja /projects, /projects/<id>/tasks, /tasks/<id>/comments   (GET only)
+  → scripts/enrichment/record_completion.py --no-vikunja --source backfill
+  → /data/services/openclaw/state/enrichment/enrichment-history.jsonl
+```
+
+One-shot operator-driven backfill at cutover time (FR-006..FR-009). Read-only on Vikunja (`--no-vikunja` on the replay path skips the comment-write step). Window: 2026-04-11 onward (post-#308 pattern formalization, per FR-008). Disambiguates habit comments (`[Felix] YYYY-MM-DD | <state>`) from enrichment comments (`[Felix] enrichment | <state> | <timestamp>`) by inspecting the second pipe-separated field — only the literal `enrichment` second-field shape is replayed. Idempotent — re-running on the same comment set produces no duplicates (FR-009).
+
+### Enrichment State Read (#310)
+
+```
+felix-admin-tasker agent → scripts/enrichment/derive_state.py
+  → /data/services/openclaw/state/enrichment/enrichment-history.jsonl   (read-only scan)
+```
+
+`derive_state(records)` is a pure function. Input: list of JSONL records for one task (newest-first). Output: `EnrichmentState` with `current_state`, `last_event_recorded_at`. Single-offer policy (skipped/declined are terminal) lives here. Consumed by the tasker agent at every check-before-propose, by `record_completion.py` for idempotency, and by `reconcile_completions.py` for dedup. The agent NO LONGER parses `[Felix] enrichment` Vikunja comments post-cutover.
+
+### Tasker Cutover (#310)
+
+```
+Operator (Kent) → scripts/openclaw/helpers/cutover_tasker.py
+  → cp scripts/openclaw/skills/task-intelligence/SKILL.md → /home/claude/.openclaw/skills/task-intelligence/SKILL.md
+  → cp scripts/openclaw/agents/felix-admin-tasker/AGENTS.md → /data/services/openclaw/tasker-agent/AGENTS.md
+  → python3 -m scripts.enrichment.reconcile_completions       (JSONL backfill)
+  → ~/.config/openclaw/cutover-310.done                       (idempotency marker)
+```
+
+One-shot operator cutover (FR-010, FR-011). Closes the pre-existing skill deployment gap (`task-intelligence` SKILL.md referenced in the deployed AGENTS.md but never deployed — surfaced during #310 spec-readiness probe), deploys the cut AGENTS.md (≤14K chars per NFR-002), runs the JSONL backfill, and writes the marker. Idempotent — re-runs are no-ops unless `--force` is supplied. Pattern source: `scripts/doc_audit/helpers/cutover_362.py`. Exit codes: 0 success/no-op / 1 filesystem / 2 reconcile failed / 3 invalid args.
+
 ### Escalation Q10 Hard-Fail (#309)
 
 ```
@@ -379,6 +426,8 @@ Naturally idempotent — each call produces a uniquely-timestamped marker and re
 | Anthropic API key (sensitive) | `/data/services/openclaw/secrets/anthropic` | Yes (mode 0600) |
 | Escalation JSONL state log (#309) | `/data/services/openclaw/state/escalation/<project-slug>-escalation-history.jsonl` | Yes |
 | Escalation pre-backfill snapshot (#309) | `/data/services/openclaw/state/escalation/pre-phase6-snapshot.json` | Yes |
+| Enrichment JSONL state log (#310) | `/data/services/openclaw/state/enrichment/enrichment-history.jsonl` | Yes |
+| Cutover-310 marker (#310) | `~/.config/openclaw/cutover-310.done` | No (sentinel; ~/.config not in Restic scope) |
 | Habits morning-list artifact (#371) | `/data/services/openclaw/state/habits/morning-checkin-<YYYY-MM-DD>.json` | Yes |
 | Drift-events ledger (#362) | `/data/services/security-monitor/logs/drift-events-ledger.jsonl` | Yes |
 | Cutover-362 marker (#362) | `~/.config/doc-audit/cutover-362.done` | No (sentinel; ~/.config not in Restic scope) |

@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
   "last_updated": "2026-05-23",
-  "updated_by": "#374-main-verbatim-passthrough + #362-drift-event-auto-resolution + #371-habits-checkin-reply-scripts-first + #309-migrate-escalation-to-jsonl-state-model + #343-refactor-doc-auditor-to-scripts-first-driver + #307-backfill-habits-jsonl-from-comments + #306-habits-native-repeat-jsonl-state + #152",
+  "updated_by": "#310-tasker-jsonl-migration + #374-main-verbatim-passthrough + #362-drift-event-auto-resolution + #371-habits-checkin-reply-scripts-first + #309-migrate-escalation-to-jsonl-state-model + #343-refactor-doc-auditor-to-scripts-first-driver + #307-backfill-habits-jsonl-from-comments + #306-habits-native-repeat-jsonl-state + #152",
   "flows": [
     {
       "name": "vikunja-web-ui",
@@ -749,6 +749,76 @@
           "to": "GitHub API",
           "protocol": "HTTPS (api.github.com)",
           "description": "Issue search + create. Labels: P2-bug, area/escalation."
+        }
+      ]
+    },
+    {
+      "name": "enrichment-record-vikunja-comment",
+      "status": "active",
+      "deployed_by": "#310",
+      "introduced_by": "#310",
+      "updated_by": "#310",
+      "description": "Phase 7 (ADR-0002) Vikunja side-effect of an enrichment event — the FIRST of the three writes (Vikunja FIRST so unreliable remote ops surface before any state_log line lands). felix-admin-tasker invokes scripts/enrichment/record_completion.py per state transition; the helper PUTs a `[Felix] enrichment | <state> | <ISO timestamp>` comment to /tasks/<id>/comments. Triggers: enrich_task action (delegation from felix-admin-capture), retroactive_enrichment batch, detect_incomplete proposal. During the post-cutover soak (C-002), this comment is the rollback substrate; post-soak the comment-write path can be removed in a v2 follow-on while keeping the JSONL canonical.",
+      "path": [
+        {
+          "from": "felix-admin-tasker agent",
+          "to": "scripts/enrichment/record_completion.py",
+          "protocol": "subprocess (python3 -m scripts.enrichment.record_completion)",
+          "description": "Three-write helper per ADR-0002 Q3-D pattern adapted to enrichment states (proposed/confirmed/skipped/declined)"
+        },
+        {
+          "from": "scripts/enrichment/record_completion.py",
+          "to": "Vikunja /tasks/<id>/comments",
+          "protocol": "HTTPS via Tailscale Serve",
+          "port": 443,
+          "backend_port": 3456,
+          "description": "PUT `[Felix] enrichment | <state> | <ISO timestamp>` comment. Preserved during the C-002 soak; v2 follow-on removes the comment-write path."
+        }
+      ]
+    },
+    {
+      "name": "enrichment-record-jsonl-append",
+      "status": "active",
+      "deployed_by": "#310",
+      "introduced_by": "#310",
+      "updated_by": "#310",
+      "description": "Phase 7 (ADR-0002) canonical enrichment state write — the SECOND of the three writes (after the Vikunja comment lands). record_completion.py appends an EnrichmentCompletion row to the single-file JSONL ledger via an fcntl-locked append-then-flush-then-fsync sequence. Per FR-013 (Q10 soft-fail), JSONL failures post-Vikunja log a warning and exit 0 — the Vikunja state is consistent and reconcile_completions can recover the JSONL row later. Replaces `[Felix] enrichment` comments as the authoritative state source post-cutover.",
+      "path": [
+        {
+          "from": "scripts/enrichment/record_completion.py",
+          "to": "/data/services/openclaw/state/enrichment/enrichment-history.jsonl",
+          "protocol": "fcntl-locked file append + flush + fsync",
+          "description": "Single-file ledger (not per-project — enrichment is system-wide). Schema (data-model E1): EnrichmentCompletion(task_id, state, timestamp_utc, source[, note], schema_version=1). VALID_STATES = {proposed, confirmed, skipped, declined}. VALID_SOURCES = {agent, reconcile, backfill, operator_repair}."
+        }
+      ]
+    },
+    {
+      "name": "enrichment-reconcile-backfill",
+      "status": "active",
+      "deployed_by": "#310",
+      "introduced_by": "#310",
+      "updated_by": "#310",
+      "description": "Phase 7 (ADR-0002) one-shot historical backfill (FR-006..FR-009). Operator-driven via cutover_tasker.py at cutover time; optionally re-run during triage. reconcile_completions.py enumerates Vikunja tasks with historic `[Felix] enrichment` comments (since the 2026-04-11 window per FR-008), disambiguates them from habit comments (`[Felix] YYYY-MM-DD` second-field shape vs literal `enrichment`), and replays each parseable comment as a synthetic JSONL row via record_completion.py --no-vikunja (source=backfill). Idempotent: re-running on the same comment set is a no-op (FR-009).",
+      "path": [
+        {
+          "from": "Operator (Kent) via cutover_tasker.py",
+          "to": "scripts/enrichment/reconcile_completions.py",
+          "protocol": "subprocess (python3 -m scripts.enrichment.reconcile_completions)",
+          "description": "Cutover step 3. One-shot enumeration + replay."
+        },
+        {
+          "from": "scripts/enrichment/reconcile_completions.py",
+          "to": "Vikunja /projects/<id>/tasks + /tasks/<id>/comments",
+          "protocol": "HTTPS via Tailscale Serve",
+          "port": 443,
+          "backend_port": 3456,
+          "description": "Read-only enumeration + comment GET. No writes to Vikunja during backfill (--no-vikunja flag on record_completion suppresses Step 1)."
+        },
+        {
+          "from": "scripts/enrichment/reconcile_completions.py",
+          "to": "/data/services/openclaw/state/enrichment/enrichment-history.jsonl",
+          "protocol": "subprocess (record_completion.py --no-vikunja --source backfill)",
+          "description": "Synthetic JSONL rows with source=backfill, timestamp=comment.created. Dedup by (task_id, state, timestamp) keeps re-runs idempotent."
         }
       ]
     },

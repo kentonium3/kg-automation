@@ -1,7 +1,7 @@
 {
   "schema_version": "1.1",
   "last_updated": "2026-05-23",
-  "updated_by": "#374-main-verbatim-passthrough + #362-drift-event-auto-resolution + #309-migrate-escalation-to-jsonl-state-model + #343-refactor-doc-auditor-to-scripts-first-driver + #307-backfill-habits-jsonl-from-comments + #306-habits-native-repeat-jsonl-state + #304-felix-bot-rotation + #291-felix-file-issue + #289-mutation-surfaces-enumeration + #285-cron-delivery-restore-path-c + #282-habits-d6-extract + #263-cron-delivery-mode-round2 + #100-google-workspace-foundation + #256-scope-discipline-guardrails + #253-step-5a-6-consolidation + #254-atomic-write-perm-preservation + issue-105-doc-auditor + #223-systemd-timer + #208-restic-healthcheck + #202-obsidian-sync-system-level + #203-sync-heartbeat + #199-inbox-schedules + #115-credential-health-check + #189-vikunja-compose + #185-inbox-capture-dedup",
+  "updated_by": "#310-tasker-jsonl-migration + #374-main-verbatim-passthrough + #362-drift-event-auto-resolution + #309-migrate-escalation-to-jsonl-state-model + #343-refactor-doc-auditor-to-scripts-first-driver + #307-backfill-habits-jsonl-from-comments + #306-habits-native-repeat-jsonl-state + #304-felix-bot-rotation + #291-felix-file-issue + #289-mutation-surfaces-enumeration + #285-cron-delivery-restore-path-c + #282-habits-d6-extract + #263-cron-delivery-mode-round2 + #100-google-workspace-foundation + #256-scope-discipline-guardrails + #253-step-5a-6-consolidation + #254-atomic-write-perm-preservation + issue-105-doc-auditor + #223-systemd-timer + #208-restic-healthcheck + #202-obsidian-sync-system-level + #203-sync-heartbeat + #199-inbox-schedules + #115-credential-health-check + #189-vikunja-compose + #185-inbox-capture-dedup",
   "services": [
     {
       "name": "vikunja",
@@ -488,7 +488,7 @@
         "felix-admin-tasker": {
           "workspace": "/data/services/openclaw/tasker-agent",
           "model": "anthropic/claude-sonnet-4-6",
-          "purpose": "Task intelligence \u2014 transforms raw tasks into structured Vikunja entries",
+          "purpose": "Task intelligence \u2014 transforms raw tasks into structured Vikunja entries. Post-#310 (ADR-0002 Phase 7): enrichment state migration complete. AGENTS.md cut from 19,391 to ~13,800 chars; canonical state lives in JSONL ledger at /data/services/openclaw/state/enrichment/enrichment-history.jsonl; `[Felix] enrichment` Vikunja comments are written through during the post-cutover soak (C-002) but are no longer the source of truth. The agent delegates state transitions to scripts/enrichment/record_completion.py rather than writing comments directly.",
           "source_in_repo": "scripts/openclaw/agents/felix-admin-tasker/",
           "skills": [
             "task-intelligence",
@@ -496,12 +496,18 @@
           ],
           "triggers": [
             "delegation",
-            "cron",
             "manual"
           ],
           "deployed_by": "F013",
           "autonomy_level": "assisted",
-          "updated_by": "F013"
+          "updated_by": "#310-tasker-jsonl-migration + F013",
+          "updated_at": "2026-05-23",
+          "depends_on": [
+            "scripts/enrichment/record_completion.py",
+            "scripts/enrichment/reconcile_completions.py",
+            "scripts/enrichment/derive_state.py",
+            "scripts/enrichment/schema.py"
+          ]
         },
         "felix-admin-escalation": {
           "workspace": "/data/services/openclaw/escalation-agent",
@@ -833,40 +839,137 @@
       ]
     },
     {
-      "name": "task-detection",
-      "type": "openclaw-cron",
+      "name": "enrichment-helpers",
+      "type": "library",
       "host": "office2",
       "agent": "felix-admin-tasker",
-      "schedules": [
-        {
-          "name": "task-detection",
-          "cron": "0 */4 * * *",
-          "local_time": "Every 4 hours UTC"
-        }
-      ],
-      "timeout_seconds": 300,
-      "session_mode": "isolated",
-      "deployed_by": "F013",
+      "deployed_by": "#310-tasker-jsonl-migration",
+      "introduced_by": "#310",
+      "updated_by": "#310",
+      "last_updated": "2026-05-23",
       "status": "active",
-      "purpose": "Detect and enrich incomplete tasks in Vikunja Inbox",
-      "updated_by": "F013",
-      "risk_tier": 3,
-      "dependencies": [
-        {
-          "target": "openclaw-gateway:18789",
-          "type": "requires",
-          "description": "Dispatched by OpenClaw cron scheduler"
-        }
-      ],
+      "purpose": "ADR-0002 Phase 7 enrichment subsystem (#310). Mirrors the scripts/escalation/ module pattern: record_completion (atomic three-write helper), reconcile_completions (Vikunja-comment backfill), derive_state (compute current state from JSONL), schema (EnrichmentCompletion dataclass + validators). State vocabulary: proposed/confirmed/skipped/declined. Invoked by felix-admin-tasker agent via `python3 -m scripts.enrichment.*`. Tasker is delegation-driven (not cron-driven): no OpenClaw cron entry \u2014 see C-006 in the mission spec. The pre-existing `task-detection` cron entry that previously appeared in this inventory was unverified drift (no matching `openclaw cron list` entry on office2) \u2014 removed by #310.",
+      "risk_tier": 2,
       "health_check": {
         "method": "none",
-        "note": "Scheduled job \u2014 health inferred from agent activity logs"
+        "note": "Library + CLI \u2014 health inferred from per-call exit codes + JSONL ledger growth"
       },
       "config_files": [
         {
           "path": "/data/services/openclaw/tasker-agent/AGENTS.md",
           "format": "markdown",
-          "source_in_repo": "scripts/openclaw/agents/felix-admin-tasker/AGENTS.md"
+          "source_in_repo": "scripts/openclaw/agents/felix-admin-tasker/AGENTS.md",
+          "purpose": "Tasker agent standing orders. Post-#310: cut from 19,391 to ~13,800 chars; references scripts/enrichment/record_completion.py as the canonical state-write helper (no direct Vikunja-comment writes).",
+          "updated_by": "#310"
+        },
+        {
+          "path": "/home/claude/kg-automation/scripts/enrichment/record_completion.py",
+          "format": "python",
+          "source_in_repo": "scripts/enrichment/record_completion.py",
+          "purpose": "Phase 7 (#310) atomic three-write helper per ADR-0002: Vikunja side-effect FIRST (`[Felix] enrichment` comment write during the C-002 soak), then JSONL append SECOND, then ack log THIRD. Soft-fails per FR-013 (Q10) when the JSONL step fails post-Vikunja. CLI + importable library; runs on office2; reads/writes Vikunja API + enrichment-history.jsonl.",
+          "host": "office2",
+          "runs_on": "office2",
+          "invoked_by": [
+            "felix-admin-tasker (agent)",
+            "scripts/enrichment/reconcile_completions.py"
+          ],
+          "writes_to": [
+            "Vikunja API (PUT /tasks/<id>/comments)",
+            "/data/services/openclaw/state/enrichment/enrichment-history.jsonl"
+          ],
+          "reads_from": [
+            "/data/services/openclaw/secrets/vikunja",
+            "Vikunja API (GET /tasks/<id> idempotency check)"
+          ],
+          "credentials": [
+            "vikunja-api"
+          ],
+          "introduced_by": "#310",
+          "updated_by": "#310"
+        },
+        {
+          "path": "/home/claude/kg-automation/scripts/enrichment/reconcile_completions.py",
+          "format": "python",
+          "source_in_repo": "scripts/enrichment/reconcile_completions.py",
+          "purpose": "Phase 7 (#310) historical backfill helper (FR-006..FR-009). Reads existing `[Felix] enrichment` Vikunja comments since the 2026-04-11 window, parses them into synthetic JSONL rows via record_completion.py --no-vikunja. Disambiguates habit comments (`[Felix] YYYY-MM-DD`) from enrichment comments (`[Felix] enrichment | state | timestamp`) by second-field shape. Idempotent (re-run is a no-op). Invoked once at cutover; optional re-run during triage.",
+          "host": "office2",
+          "runs_on": "office2",
+          "invoked_by": [
+            "Operator (Kent) via cutover_tasker.py",
+            "Operator (Kent) via manual triage"
+          ],
+          "writes_to": [
+            "/data/services/openclaw/state/enrichment/enrichment-history.jsonl"
+          ],
+          "reads_from": [
+            "Vikunja API (GET /projects, /projects/<id>/tasks, /tasks/<id>/comments)"
+          ],
+          "credentials": [
+            "vikunja-api"
+          ],
+          "introduced_by": "#310",
+          "updated_by": "#310"
+        },
+        {
+          "path": "/home/claude/kg-automation/scripts/enrichment/derive_state.py",
+          "format": "python",
+          "source_in_repo": "scripts/enrichment/derive_state.py",
+          "purpose": "Phase 7 (#310) pure-function state derivation (FR-014). Input: list of JSONL records for one task (newest-first). Output: EnrichmentState dataclass with current_state, last_event_recorded_at. Consumed by record_completion.py (idempotency pre-check) + the tasker agent (check-before-propose) + reconcile_completions.py (dedup). Single-offer policy enforcement lives here: skipped/declined are terminal.",
+          "host": "office2",
+          "runs_on": "office2",
+          "invoked_by": [
+            "felix-admin-tasker (agent)",
+            "scripts/enrichment/record_completion.py",
+            "scripts/enrichment/reconcile_completions.py"
+          ],
+          "writes_to": [],
+          "reads_from": [
+            "/data/services/openclaw/state/enrichment/enrichment-history.jsonl"
+          ],
+          "credentials": [],
+          "introduced_by": "#310",
+          "updated_by": "#310"
+        },
+        {
+          "path": "/home/claude/kg-automation/scripts/enrichment/schema.py",
+          "format": "python",
+          "source_in_repo": "scripts/enrichment/schema.py",
+          "purpose": "Phase 7 (#310) EnrichmentCompletion dataclass + validators (per data-model E1). Frozen dataclass: (task_id, state, timestamp_utc, source[, note], schema_version=1). VALID_STATES = {proposed, confirmed, skipped, declined}. VALID_SOURCES = {agent, reconcile, backfill, operator_repair}. DEFAULT_LEDGER_PATH = /data/services/openclaw/state/enrichment/enrichment-history.jsonl. Pure validator surface; does not file bugs.",
+          "host": "office2",
+          "runs_on": "office2",
+          "invoked_by": [
+            "scripts/enrichment/record_completion.py",
+            "scripts/enrichment/reconcile_completions.py",
+            "scripts/enrichment/derive_state.py"
+          ],
+          "writes_to": [],
+          "reads_from": [],
+          "credentials": [],
+          "introduced_by": "#310",
+          "updated_by": "#310"
+        },
+        {
+          "path": "/home/claude/kg-automation/scripts/openclaw/helpers/cutover_tasker.py",
+          "format": "python",
+          "source_in_repo": "scripts/openclaw/helpers/cutover_tasker.py",
+          "purpose": "Phase 7 (#310) one-shot operator cutover script. Deploys task-intelligence SKILL.md (closes pre-existing skill deployment gap) + deploys the cut tasker AGENTS.md + invokes reconcile_completions to backfill the JSONL ledger + writes idempotency marker at ~/.config/openclaw/cutover-310.done. Mirrors scripts/doc_audit/helpers/cutover_362.py shape. Exit codes: 0 success/no-op / 1 filesystem / 2 reconcile failed / 3 invalid args.",
+          "host": "office2",
+          "runs_on": "office2",
+          "invoked_by": [
+            "Operator (Kent) via ssh office2-claude"
+          ],
+          "writes_to": [
+            "/home/claude/.openclaw/skills/task-intelligence/SKILL.md",
+            "/data/services/openclaw/tasker-agent/AGENTS.md",
+            "~/.config/openclaw/cutover-310.done"
+          ],
+          "reads_from": [
+            "scripts/openclaw/skills/task-intelligence/SKILL.md (repo)",
+            "scripts/openclaw/agents/felix-admin-tasker/AGENTS.md (repo)"
+          ],
+          "credentials": [],
+          "introduced_by": "#310",
+          "updated_by": "#310"
         }
       ]
     },

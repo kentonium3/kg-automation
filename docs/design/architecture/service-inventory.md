@@ -35,7 +35,6 @@ All services run on office2 unless otherwise noted.
 | Inbox Processing (evening) | 10 PM ET daily | OpenClaw cron → felix-admin-capture | claude | Obsidian inbox processing |
 | Habit Check-in (morning) | 7:05 AM ET daily | OpenClaw cron → felix-admin-habits | claude | Daily habit check-in via WhatsApp |
 | Habit Report (weekly) | Sunday 6PM ET | OpenClaw cron → felix-admin-habits | claude | Weekly habit pattern report via WhatsApp |
-| Incomplete Task Detection | Every 4 hours (`0 */4 * * *`) | OpenClaw cron → felix-admin-tasker | claude | Poll Inbox for flat tasks |
 | Escalation Check (daily) | 8:00 AM ET daily | OpenClaw cron → felix-admin-escalation | claude | Overdue task escalation via WhatsApp |
 | Doc Audit Poll | Every 60 minutes (top of hour UTC) | `felix-doc-auditor.timer` (systemd) → `/usr/bin/python3 /home/claude/kg-automation/scripts/doc_audit/run.py` (#343 scripts-first driver) | claude | Process Doc Audit / Weekly Doc Audit issues |
 | Second Brain Sync | Every 15 min | `second-brain-sync.timer` (systemd) | kgale | Bidirectional git sync for non-vault content |
@@ -241,36 +240,59 @@ Per-helper metadata mirrors `docs/design/architecture/data/service-inventory.jso
   - **reads_from**: `/data/services/openclaw/secrets/anthropic`; `api.anthropic.com` (HTTPS)
   - **credentials**: `anthropic-api`
 
-### Felix Admin Tasker Agent (F013)
+### Felix Admin Tasker Agent (F013; JSONL state migration #310)
 - **Deployed by**: F013
+- **Refactored by**: `#310` / mission `tasker-jsonl-migration-01KSB5XV` (Phase 7 of ADR-0002 — final phase)
 - **Type**: OpenClaw agent (sub-agent of the gateway)
 - **Agent name**: `felix-admin-tasker`
 - **Workspace**: `/data/services/openclaw/tasker-agent/`
 - **Source in repo**: `scripts/openclaw/agents/felix-admin-tasker/`
 - **Model**: `anthropic/claude-sonnet-4-6`
-- **Purpose**: Task intelligence — transforms raw tasks into structured Vikunja entries
+- **Purpose**: Task intelligence — transforms raw tasks into structured Vikunja entries. **Post-#310**: enrichment state migration complete. AGENTS.md cut from 19,391 to ~13,800 chars; canonical state lives in the JSONL ledger at `/data/services/openclaw/state/enrichment/enrichment-history.jsonl`; `[Felix] enrichment` Vikunja comments are written through during the post-cutover soak (C-002) for rollback safety but are NO LONGER the source of truth — `derive_state` reads ONLY the JSONL. The agent delegates state transitions to `scripts/enrichment/record_completion.py` rather than writing comments directly.
 - **Skills**: task-intelligence, vikunja-api
 - **Autonomy**: Assisted (Level 1)
-- **Trigger**: Delegation from felix-admin-capture, cron (incomplete detection), manual
-- **Schedule**: Every 4 hours via OpenClaw cron (`0 */4 * * *`)
-- **Privacy boundary**: `04-Growth/_private/` is never accessed
+- **Trigger**: Delegation (from felix-admin-capture for `enrich_task`), manual (`retroactive_enrichment`, `detect_incomplete`). **Not cron-driven** — the previously-listed `task-detection` cron (every 4h UTC) was unverified drift (no matching `openclaw cron list` entry on office2) — removed by #310. C-006 in the mission spec confirms tasker is delegation-driven only.
+- **Privacy boundary**: `02-Growth/_private/` is never accessed
 
-**Cron setup command** (run on office2):
-```bash
-openclaw cron add \
-  --name "task-detection" \
-  --cron "0 */4 * * *" \
-  --agent felix-admin-tasker \
-  --session isolated \
-  --message '{"action": "detect_incomplete"}' \
-  --no-deliver
-```
+#### State files (post-#310)
 
-**Cron timing rationale**:
-- Every 4 hours = 6 runs per day
-- Balances detection speed vs. polling overhead
-- Not too frequent (avoids redundant checks) but catches tasks within half a workday
-- Configurable: adjust via `openclaw cron update` if 4 hours is too frequent/infrequent
+- **Enrichment history JSONL** (`/data/services/openclaw/state/enrichment/enrichment-history.jsonl`, introduced by #310) — Append-only JSONL. One record per enrichment state event. Schema (data-model E1): `EnrichmentCompletion(task_id, state, timestamp_utc, source[, note], schema_version=1)`. `VALID_STATES = {proposed, confirmed, skipped, declined}`. `VALID_SOURCES = {agent, reconcile, backfill, operator_repair}`. Single-file partition (NOT per-project — enrichment is a system-wide vertical). Backed up by the nightly Restic job.
+- **Cutover marker** (`~/.config/openclaw/cutover-310.done`, introduced by #310) — Written by `scripts/openclaw/helpers/cutover_tasker.py` on successful one-shot cutover. Sentinel only; not in Restic scope.
+
+#### Helpers (post-#310)
+
+Per-helper metadata mirrors `docs/design/architecture/data/service-inventory.json` (the authoritative record — see the `enrichment-helpers` service entry).
+
+- **scripts/enrichment/record_completion.py** (script + library, introduced_by #310, updated_by #310) — Atomic three-write helper per ADR-0002. Performs the Vikunja side-effect FIRST (`[Felix] enrichment | <state> | <ISO timestamp>` comment write during the C-002 soak), then JSONL append SECOND (fcntl-locked + flush + fsync), then ack log THIRD (best-effort). Soft-fails per FR-013 (Q10) when the JSONL step fails post-Vikunja — exits 0 with a warning so the next cycle re-proposes (annoying but harmless; reconcile can recover the row).
+  - **runs_on**: `office2`
+  - **invoked_by**: `felix-admin-tasker` agent; `scripts/enrichment/reconcile_completions.py`
+  - **writes_to**: Vikunja API (`PUT /tasks/<id>/comments`); `/data/services/openclaw/state/enrichment/enrichment-history.jsonl`
+  - **reads_from**: Vikunja API (idempotency pre-check); `/data/services/openclaw/secrets/vikunja`
+  - **credentials**: `vikunja-api`
+- **scripts/enrichment/reconcile_completions.py** (one-shot helper, introduced_by #310, updated_by #310) — Operator-driven historical backfill (FR-006..FR-009). Enumerates Vikunja tasks with historic `[Felix] enrichment` comments since the 2026-04-11 window, disambiguates them from habit comments (`[Felix] YYYY-MM-DD` vs literal `enrichment` in the second field), and replays each parseable comment as a synthetic JSONL row via `record_completion.py --no-vikunja --source backfill`. Idempotent — re-runs on the same comment set are no-ops.
+  - **runs_on**: `office2`
+  - **invoked_by**: Operator via `cutover_tasker.py`; Operator via manual triage
+  - **writes_to**: `/data/services/openclaw/state/enrichment/enrichment-history.jsonl` (source=backfill)
+  - **reads_from**: Vikunja API (`GET /projects`, `GET /projects/<id>/tasks`, `GET /tasks/<id>/comments`)
+  - **credentials**: `vikunja-api`
+- **scripts/enrichment/derive_state.py** (library + debug CLI, introduced_by #310, updated_by #310) — Pure function (FR-014). Input: list of JSONL records for one task (newest-first). Output: `EnrichmentState` dataclass with `current_state`, `last_event_recorded_at`. Single-offer policy enforcement lives here (skipped/declined are terminal). Consumed by `record_completion.py` (idempotency pre-check) + the tasker agent (check-before-propose) + `reconcile_completions.py` (dedup).
+  - **runs_on**: `office2`
+  - **invoked_by**: `felix-admin-tasker` agent; `scripts/enrichment/record_completion.py`; `scripts/enrichment/reconcile_completions.py`
+  - **writes_to**: (none — pure function)
+  - **reads_from**: `/data/services/openclaw/state/enrichment/enrichment-history.jsonl`
+  - **credentials**: (none)
+- **scripts/enrichment/schema.py** (library, introduced_by #310, updated_by #310) — `EnrichmentCompletion` dataclass + validators per data-model E1. Frozen dataclass; `VALID_STATES`/`VALID_SOURCES` frozensets; `DEFAULT_LEDGER_PATH`. Pure validator surface; does not file bugs.
+  - **runs_on**: `office2`
+  - **invoked_by**: `scripts/enrichment/record_completion.py`; `scripts/enrichment/reconcile_completions.py`; `scripts/enrichment/derive_state.py`
+  - **writes_to**: (none — pure validator)
+  - **reads_from**: (none — operates on in-memory records)
+  - **credentials**: (none)
+- **scripts/openclaw/helpers/cutover_tasker.py** (one-shot operator script, introduced_by #310, updated_by #310) — Phase 7 (#310) one-shot operator cutover. Deploys task-intelligence SKILL.md (closes pre-existing skill deployment gap surfaced during spec-readiness) + deploys the cut tasker AGENTS.md to `/data/services/openclaw/tasker-agent/` + invokes `reconcile_completions` to backfill the JSONL ledger + writes idempotency marker at `~/.config/openclaw/cutover-310.done`. Mirrors `scripts/doc_audit/helpers/cutover_362.py` shape. Exit codes: 0 success/no-op / 1 filesystem / 2 reconcile failed / 3 invalid args.
+  - **runs_on**: `office2`
+  - **invoked_by**: Operator (Kent) via `ssh office2-claude`
+  - **writes_to**: `/home/claude/.openclaw/skills/task-intelligence/SKILL.md`; `/data/services/openclaw/tasker-agent/AGENTS.md`; `~/.config/openclaw/cutover-310.done`
+  - **reads_from**: `scripts/openclaw/skills/task-intelligence/SKILL.md` (repo); `scripts/openclaw/agents/felix-admin-tasker/AGENTS.md` (repo)
+  - **credentials**: (none)
 
 ### Felix Admin Escalation Agent (F019; JSONL state migration #309)
 - **Deployed by**: F019
