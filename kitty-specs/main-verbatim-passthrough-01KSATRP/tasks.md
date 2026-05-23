@@ -14,10 +14,10 @@
 | T002 | Add §"Verbatim pass-through (ABSOLUTE)" near top of repo AGENTS.md with the locked content from research.md D3 | WP01 | [D] |
 | T003 | Apply D2 trim cuts; verify file is ≤14,000 source chars | WP01 | [D] |
 | T004 | Cross-reference the new section from each delegation section (habits, escalation, tasker stub) | WP01 | [D] |
-| T005 | Create scripts/openclaw/helpers/rotate_main_session.py per contracts/rotation-helper.md; use _StructuredArgumentParser pattern (mirror cutover_362) | WP02 |
-| T006 | Tests for rotate_main_session — happy path, dry-run, idempotent re-run, empty sessions dir, marker write failure; ≥85% coverage | WP02 |
-| T007 | Update docs/runbooks/openclaw-agent-setup.md with the cutover sequence (deploy AGENTS.md + rotate session + smoke test); bump frontmatter | WP02 |
-| T008 | Add architecture doc entries: scripts/openclaw/helpers/rotate_main_session.py in service-inventory.json; "main session rotation" in data-flows.json | WP02 |
+| T005 | Create scripts/openclaw/helpers/rotate_main_session.py per contracts/rotation-helper.md; use _StructuredArgumentParser pattern (mirror cutover_362) | WP02 | [D] |
+| T006 | Tests for rotate_main_session — happy path, dry-run, idempotent re-run, empty sessions dir, marker write failure; ≥85% coverage | WP02 | [D] |
+| T007 | Update docs/runbooks/openclaw-agent-setup.md with the cutover sequence (deploy AGENTS.md + rotate session + smoke test); bump frontmatter | WP02 | [D] |
+| T008 | Add architecture doc entries: scripts/openclaw/helpers/rotate_main_session.py in service-inventory.json; "main session rotation" in data-flows.json | WP02 | [D] |
 
 ## Dependency Graph
 
@@ -55,10 +55,10 @@ Included:
 **Prompt**: [WP02-rotation-helper-and-docs.md](tasks/WP02-rotation-helper-and-docs.md)
 
 Included:
-- [ ] T005 rotate_main_session.py (WP02)
-- [ ] T006 Tests (WP02)
-- [ ] T007 Runbook update (WP02)
-- [ ] T008 Arch docs (WP02)
+- [x] T005 rotate_main_session.py (WP02)
+- [x] T006 Tests (WP02)
+- [x] T007 Runbook update (WP02)
+- [x] T008 Arch docs (WP02)
 
 ## Estimated size
 
