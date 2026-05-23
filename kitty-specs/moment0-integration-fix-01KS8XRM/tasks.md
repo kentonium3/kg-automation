@@ -20,10 +20,10 @@
 | T007 | Modify `DriftEventSignalSource.commit()` — when `config.drift_interpretation.enabled and mapping is not None`, call `route_drift_event()`; on `DriftInterpretationError` fall back to `file_doc_audit_issue()` + write RETRY_EXHAUSTED ledger row | WP02 | [D] |
 | T008 | Preserve cursor/drain idempotency (existing behavior fully intact when flag disabled OR when mapping is None) | WP02 | [D] |
 | T009 | Tests for `signals/drift_event.py` — Moment 0 path enabled (calls helper); disabled (falls through to file_doc_audit_issue); JudgmentClient NOT instantiated when disabled (FR-010); retry-exhausted fallback; cursor advance preserved | WP02 | [D] |
-| T010 | Create `scripts/doc_audit/helpers/cleanup_391.py` — closes #378-#390 with comment; marker at `~/.config/doc-audit/cleanup-391.done`; `--dry-run` and `--force` flags (mirrors `cutover_362.py` structure) | WP03 |
-| T011 | Tests for `cleanup_391.py` — happy path, dry-run, idempotent, partial failure tolerance; ≥85% coverage | WP03 |
-| T012 | Architecture docs update — service-inventory.json + data-flows.json correct the Moment 0 integration site (signals/drift_event.py, not handle_drift_events.py); add routing/drift_moment0.py entry | WP03 |
-| T013 | Runbook update — `docs/runbooks/doc-auditor-driver-ops.md` Moment 0 section: name `signals/drift_event.py::commit()` as the cron-path invocation site; reference the shared helper | WP03 |
+| T010 | Create `scripts/doc_audit/helpers/cleanup_391.py` — closes #378-#390 with comment; marker at `~/.config/doc-audit/cleanup-391.done`; `--dry-run` and `--force` flags (mirrors `cutover_362.py` structure) | WP03 | [D] |
+| T011 | Tests for `cleanup_391.py` — happy path, dry-run, idempotent, partial failure tolerance; ≥85% coverage | WP03 | [D] |
+| T012 | Architecture docs update — service-inventory.json + data-flows.json correct the Moment 0 integration site (signals/drift_event.py, not handle_drift_events.py); add routing/drift_moment0.py entry | WP03 | [D] |
+| T013 | Runbook update — `docs/runbooks/doc-auditor-driver-ops.md` Moment 0 section: name `signals/drift_event.py::commit()` as the cron-path invocation site; reference the shared helper | WP03 | [D] |
 
 ## Dependency Graph
 
@@ -96,10 +96,10 @@ Included:
 **Prompt**: [WP03-cleanup-and-docs.md](tasks/WP03-cleanup-and-docs.md)
 
 Included:
-- [ ] T010 cleanup_391.py module (WP03)
-- [ ] T011 Tests for cleanup script (WP03)
-- [ ] T012 Architecture docs correction (WP03)
-- [ ] T013 Runbook correction (WP03)
+- [x] T010 cleanup_391.py module (WP03)
+- [x] T011 Tests for cleanup script (WP03)
+- [x] T012 Architecture docs correction (WP03)
+- [x] T013 Runbook correction (WP03)
 
 **Risks**: Static issue list — confirm #378-#390 are all the affected issues + still open at deploy time. Architecture docs: avoid renaming the "drift_interpretation" module entry; only correct the invocation site reference.
 
