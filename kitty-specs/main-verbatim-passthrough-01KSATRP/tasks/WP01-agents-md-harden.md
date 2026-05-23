@@ -132,3 +132,4 @@ spec-kitty agent action implement WP01 --mission main-verbatim-passthrough-01KSA
 - 2026-05-23T17:25:59Z – codex:gpt-5:spec-kitty-review:reviewer – shell_pid=80457 – Started review via action command
 - 2026-05-23T17:29:55Z – codex:gpt-5:spec-kitty-review:reviewer – shell_pid=80457 – Moved to planned
 - 2026-05-23T17:56:02Z – claude:opus:python-implementer:implementer – shell_pid=86119 – Started implementation via action command
+- 2026-05-23T17:56:10Z – claude:opus:python-implementer:implementer – shell_pid=86119 – Cycle 2: restored heartbeat anti-staleness + heartbeat-state.json tracking per codex feedback; 13841 chars (under 14K)
