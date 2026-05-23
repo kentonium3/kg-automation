@@ -13,7 +13,9 @@ requirement_refs:
 planning_base_branch: main
 merge_target_branch: main
 branch_strategy: Planning artifacts for this feature were generated on main. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into main unless the human explicitly redirects the landing branch.
-created_at: '2026-05-23T16:30:00+00:00'
+base_branch: kitty/mission-main-verbatim-passthrough-01KSATRP
+base_commit: 4cdfb5154ae552cb3a3a529ffd068f00e49d5e1f
+created_at: '2026-05-23T16:36:05.221578+00:00'
 subtasks:
 - T001
 - T002
@@ -121,3 +123,7 @@ Validation:
 ```bash
 spec-kitty agent action implement WP01 --mission main-verbatim-passthrough-01KSATRP --agent claude:opus:python-implementer:implementer
 ```
+
+## Activity Log
+
+- 2026-05-23T17:24:29Z – unknown – Ready for review: verbatim section added, trim brings file to 13528 chars (under 14K), validation greps all pass
