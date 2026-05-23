@@ -1,0 +1,10 @@
+{
+  "created_at": "2026-05-23T19:45:24.124558+00:00",
+  "friendly_name": "tasker jsonl migration",
+  "mission_id": "01KSB5XVGW5WRDQFR17JSA52M5",
+  "mission_number": null,
+  "mission_slug": "tasker-jsonl-migration-01KSB5XV",
+  "mission_type": "software-dev",
+  "slug": "tasker-jsonl-migration-01KSB5XV",
+  "target_branch": "main"
+}
