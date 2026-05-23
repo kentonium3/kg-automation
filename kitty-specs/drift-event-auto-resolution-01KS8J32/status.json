@@ -2,7 +2,7 @@
   "event_count": 41,
   "last_event_id": "01KS8W3HC0DTX1MD60TZ9TS03C",
   "materialized_at": "2026-05-22T22:15:14.048268+00:00",
-  "mission_number": "",
+  "mission_number": "47",
   "mission_slug": "drift-event-auto-resolution-01KS8J32",
   "mission_type": "software-dev",
   "summary": {
