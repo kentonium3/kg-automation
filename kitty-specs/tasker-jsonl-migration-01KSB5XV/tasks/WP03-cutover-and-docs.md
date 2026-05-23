@@ -35,8 +35,8 @@ owned_files:
 - docs/design/architecture/data-flows.md
 - docs/runbooks/tasker-ops.md
 tags: []
-agent: "codex:gpt-5:spec-kitty-review:reviewer"
-shell_pid: "21045"
+agent: "claude:opus:python-implementer:implementer"
+shell_pid: "22572"
 ---
 
 # WP03 — tasker AGENTS.md cut + cutover script + arch docs + runbook
@@ -173,3 +173,4 @@ spec-kitty agent action implement WP03 --mission tasker-jsonl-migration-01KSB5XV
 - 2026-05-23T21:22:12Z – claude:opus:python-implementer:implementer – shell_pid=16160 – Ready for review: AGENTS.md cut to 13,759 chars (≤14K); cutover_tasker.py at 98% coverage with 24 tests; arch docs + tasker-ops runbook; full regression suite (2015 tests) passes
 - 2026-05-23T21:24:53Z – codex:gpt-5:spec-kitty-review:reviewer – shell_pid=21045 – Started review via action command
 - 2026-05-23T21:28:49Z – codex:gpt-5:spec-kitty-review:reviewer – shell_pid=21045 – Moved to planned
+- 2026-05-23T21:30:34Z – claude:opus:python-implementer:implementer – shell_pid=22572 – Started implementation via action command
