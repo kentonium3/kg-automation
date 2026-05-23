@@ -1,14 +1,3 @@
----
-affected_files: []
-cycle_number: 5
-mission_slug: tasker-jsonl-migration-01KSB5XV
-reproduction_command:
-reviewed_at: '2026-05-23T21:39:31Z'
-reviewer_agent: unknown
-verdict: rejected
-wp_id: WP03
----
-
 **Issue 1**: `scripts/openclaw/agents/felix-admin-tasker/AGENTS.md` still documents the wrong `record_completion` exit code for the post-Vikunja JSONL soft-fail path.
 
 At lines 119-122 in the reviewed worktree, the "Recording Enrichment State" section says:
