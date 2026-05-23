@@ -3,8 +3,10 @@ title: OpenClaw Agent Setup
 doc_type: runbook
 status: approved
 audience: agents_and_humans
-last_updated: '2026-04-09'
-revision: v1.0
+last_updated: '2026-05-23'
+last_validated: '2026-05-23'
+updated_by: '#374'
+revision: v1.1
 ---
 
 # OpenClaw agent setup
@@ -216,3 +218,67 @@ workspace path, and model.
 - [ ] Restart: `systemctl --user restart openclaw-gateway.service`
 - [ ] Verify: `openclaw agents` shows the new agent with identity
 - [ ] Architecture: update `docs/design/architecture/data/service-inventory.json` if needed
+
+## Cutover sequence for main-agent AGENTS.md changes (post-#374)
+
+When changing `/data/services/openclaw/data/AGENTS.md` (the **main**
+agent's standing orders — the file that governs verbatim pass-through
+routing, etc.), active main-agent sessions keep their cached system
+prompt and never see the new content. The new instructions only load on
+the **next** session that starts. Use this five-step sequence to force
+the new instructions live without restarting the OpenClaw gateway:
+
+1. **Pull repo on office2** (refresh the canonical source):
+
+   ```bash
+   ssh office2-claude 'cd ~/kg-automation && git pull origin main'
+   ```
+
+2. **Deploy AGENTS.md** (overwrite the live workspace copy):
+
+   ```bash
+   ssh office2-claude 'cp ~/kg-automation/scripts/openclaw/agents/main/AGENTS.md /data/services/openclaw/data/AGENTS.md'
+   ```
+
+3. **Verify size budget** (effective budget ≤14000 raw source bytes —
+   AGENTS.md inflates ~26% in the LLM's view per the rawChars
+   measurement; budget exceeded means later instructions may be
+   truncated):
+
+   ```bash
+   ssh office2-claude 'wc -c /data/services/openclaw/data/AGENTS.md'
+   ```
+
+   Output must be ≤14000.
+
+4. **Rotate sessions** (force every active main-agent session to reset
+   so the next invocation re-loads the freshly-deployed AGENTS.md):
+
+   ```bash
+   ssh office2-claude 'python3 ~/kg-automation/scripts/openclaw/helpers/rotate_main_session.py'
+   ```
+
+   Outputs a `SUMMARY:` line + the marker path under
+   `~/.config/openclaw/main-rotation-<timestamp>.done`. Re-runs are
+   naturally idempotent — each invocation produces a fresh timestamped
+   marker and rotates only the sessions that have re-appeared since the
+   last run. Add `--dry-run` first if you want to preview the impact.
+
+5. **Smoke test** (send a known WhatsApp message; verify the verbatim
+   text appears in the relevant sub-agent's session jsonl — replace
+   `felix-admin-habits` with the actual delegated-to sub-agent and
+   `<your verbatim phrase>` with a short unique substring of the test
+   message):
+
+   ```bash
+   ssh office2-claude 'ls -t /home/claude/.openclaw/agents/felix-admin-habits/sessions/*.jsonl | head -1 | xargs grep "<your verbatim phrase>"'
+   ```
+
+   A non-empty grep match confirms the new pass-through behavior reached
+   the downstream sub-agent.
+
+**Cross-reference**: see
+`kitty-specs/main-verbatim-passthrough-01KSATRP/spec.md` for the design
+rationale (FR-005..FR-009, NFR-001, NFR-002, NFR-004) and
+`kitty-specs/main-verbatim-passthrough-01KSATRP/contracts/rotation-helper.md`
+for the rotation helper's CLI/API contract.

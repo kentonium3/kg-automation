@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
-  "last_updated": "2026-05-22",
-  "updated_by": "#362-drift-event-auto-resolution + #371-habits-checkin-reply-scripts-first + #309-migrate-escalation-to-jsonl-state-model + #343-refactor-doc-auditor-to-scripts-first-driver + #307-backfill-habits-jsonl-from-comments + #306-habits-native-repeat-jsonl-state + #152",
+  "last_updated": "2026-05-23",
+  "updated_by": "#374-main-verbatim-passthrough + #362-drift-event-auto-resolution + #371-habits-checkin-reply-scripts-first + #309-migrate-escalation-to-jsonl-state-model + #343-refactor-doc-auditor-to-scripts-first-driver + #307-backfill-habits-jsonl-from-comments + #306-habits-native-repeat-jsonl-state + #152",
   "flows": [
     {
       "name": "vikunja-web-ui",
@@ -9,8 +9,18 @@
       "deployed_by": "F001",
       "description": "Direct task management via browser",
       "path": [
-        {"from": "Kent (Mac/iPhone)", "to": "Vikunja web UI", "protocol": "HTTPS via Tailscale Serve", "port": 443, "backend_port": 3456},
-        {"from": "Vikunja web UI", "to": "SQLite", "path": "/data/services/vikunja/data/vikunja.db"}
+        {
+          "from": "Kent (Mac/iPhone)",
+          "to": "Vikunja web UI",
+          "protocol": "HTTPS via Tailscale Serve",
+          "port": 443,
+          "backend_port": 3456
+        },
+        {
+          "from": "Vikunja web UI",
+          "to": "SQLite",
+          "path": "/data/services/vikunja/data/vikunja.db"
+        }
       ]
     },
     {
@@ -18,25 +28,57 @@
       "status": "active",
       "deployed_by": "manual",
       "updated_by": "F011",
-      "description": "Live bidirectional vault sync: Mac ↔ Obsidian Cloud ↔ office2 ↔ iPhone",
+      "description": "Live bidirectional vault sync: Mac \u2194 Obsidian Cloud \u2194 office2 \u2194 iPhone",
       "path": [
-        {"from": "Mac (Obsidian)", "to": "Obsidian Sync cloud", "protocol": "Obsidian Sync", "direction": "bidirectional"},
-        {"from": "Obsidian Sync cloud", "to": "office2 (ob sync --continuous)", "path": "/home/kgale/second-brain/notes", "direction": "bidirectional"},
-        {"from": "iPhone (Obsidian)", "to": "Obsidian Sync cloud", "protocol": "Obsidian Sync", "direction": "bidirectional"}
+        {
+          "from": "Mac (Obsidian)",
+          "to": "Obsidian Sync cloud",
+          "protocol": "Obsidian Sync",
+          "direction": "bidirectional"
+        },
+        {
+          "from": "Obsidian Sync cloud",
+          "to": "office2 (ob sync --continuous)",
+          "path": "/home/kgale/second-brain/notes",
+          "direction": "bidirectional"
+        },
+        {
+          "from": "iPhone (Obsidian)",
+          "to": "Obsidian Sync cloud",
+          "protocol": "Obsidian Sync",
+          "direction": "bidirectional"
+        }
       ],
       "consumers": [
-        {"agent": "felix-admin-capture", "reads_from": "/home/kgale/second-brain/notes/01-Inbox/"},
-        {"agent": "felix-admin-capture", "writes_to": "/home/kgale/second-brain/notes/02-Inbox-Processed/", "note": "Destination created in mission 026 (#152); consumed by the inbox pre-scan helper planned in #149."}
+        {
+          "agent": "felix-admin-capture",
+          "reads_from": "/home/kgale/second-brain/notes/01-Inbox/"
+        },
+        {
+          "agent": "felix-admin-capture",
+          "writes_to": "/home/kgale/second-brain/notes/02-Inbox-Processed/",
+          "note": "Destination created in mission 026 (#152); consumed by the inbox pre-scan helper planned in #149."
+        }
       ]
     },
     {
       "name": "second-brain-sync",
       "status": "active",
       "deployed_by": "F011",
-      "description": "Bidirectional git sync for non-vault second-brain content: office2 ↔ GitHub (every 15 min)",
+      "description": "Bidirectional git sync for non-vault second-brain content: office2 \u2194 GitHub (every 15 min)",
       "path": [
-        {"from": "office2 (/home/kgale/second-brain)", "to": "git (local)", "path": "/home/kgale/second-brain", "direction": "bidirectional"},
-        {"from": "git (local)", "to": "GitHub", "protocol": "git pull --rebase + push", "direction": "bidirectional"}
+        {
+          "from": "office2 (/home/kgale/second-brain)",
+          "to": "git (local)",
+          "path": "/home/kgale/second-brain",
+          "direction": "bidirectional"
+        },
+        {
+          "from": "git (local)",
+          "to": "GitHub",
+          "protocol": "git pull --rebase + push",
+          "direction": "bidirectional"
+        }
       ]
     },
     {
@@ -45,7 +87,11 @@
       "deployed_by": "manual",
       "description": "Daily Restic backup at 4AM",
       "path": [
-        {"from": "office2 (/data/services, /data/transcripts, /home/*)", "to": "Restic repo", "path": "/mnt/backups/restic-repo"}
+        {
+          "from": "office2 (/data/services, /data/transcripts, /home/*)",
+          "to": "Restic repo",
+          "path": "/mnt/backups/restic-repo"
+        }
       ]
     },
     {
@@ -54,8 +100,16 @@
       "deployed_by": "manual",
       "description": "Daily security baseline comparison at 3AM",
       "path": [
-        {"from": "audit.sh", "to": "baseline comparison", "path": "/data/services/security-monitor/baselines/"},
-        {"from": "audit results", "to": "log files", "path": "/data/services/security-monitor/logs/"}
+        {
+          "from": "audit.sh",
+          "to": "baseline comparison",
+          "path": "/data/services/security-monitor/baselines/"
+        },
+        {
+          "from": "audit results",
+          "to": "log files",
+          "path": "/data/services/security-monitor/logs/"
+        }
       ]
     },
     {
@@ -64,21 +118,52 @@
       "deployed_by": "F007",
       "description": "OpenClaw agent task operations via Vikunja REST API",
       "path": [
-        {"from": "OpenClaw agent", "to": "Vikunja REST API", "protocol": "HTTPS via Tailscale Serve", "port": 443, "backend_port": 3456},
-        {"from": "Vikunja REST API", "to": "SQLite", "path": "/data/services/vikunja/data/vikunja.db"}
+        {
+          "from": "OpenClaw agent",
+          "to": "Vikunja REST API",
+          "protocol": "HTTPS via Tailscale Serve",
+          "port": 443,
+          "backend_port": 3456
+        },
+        {
+          "from": "Vikunja REST API",
+          "to": "SQLite",
+          "path": "/data/services/vikunja/data/vikunja.db"
+        }
       ]
     },
     {
       "name": "observation-digest",
       "status": "active",
       "deployed_by": "F014",
-      "description": "Agent activity logging and digest generation: agents → log_action.py → JSONL → summarize.py → Markdown digests → Obsidian",
+      "description": "Agent activity logging and digest generation: agents \u2192 log_action.py \u2192 JSONL \u2192 summarize.py \u2192 Markdown digests \u2192 Obsidian",
       "path": [
-        {"from": "Felix agent (via exec tool)", "to": "log_action.py", "protocol": "subprocess", "description": "Agent calls log_action.py with structured arguments"},
-        {"from": "log_action.py", "to": "JSONL log file", "path": "/home/claude/second-brain/agents/logs/{agent}/YYYY-MM-DD.jsonl"},
-        {"from": "summarize.py (15-min timer)", "to": "JSONL log files", "description": "Reads per-agent JSONL, generates digests"},
-        {"from": "summarize.py", "to": "Markdown digests", "path": "/home/claude/second-brain/notes/Agent-Logs/"},
-        {"from": "Markdown digests", "to": "Obsidian (via Obsidian Sync)", "description": "Digests appear on Kent's devices via existing sync"}
+        {
+          "from": "Felix agent (via exec tool)",
+          "to": "log_action.py",
+          "protocol": "subprocess",
+          "description": "Agent calls log_action.py with structured arguments"
+        },
+        {
+          "from": "log_action.py",
+          "to": "JSONL log file",
+          "path": "/home/claude/second-brain/agents/logs/{agent}/YYYY-MM-DD.jsonl"
+        },
+        {
+          "from": "summarize.py (15-min timer)",
+          "to": "JSONL log files",
+          "description": "Reads per-agent JSONL, generates digests"
+        },
+        {
+          "from": "summarize.py",
+          "to": "Markdown digests",
+          "path": "/home/claude/second-brain/notes/Agent-Logs/"
+        },
+        {
+          "from": "Markdown digests",
+          "to": "Obsidian (via Obsidian Sync)",
+          "description": "Digests appear on Kent's devices via existing sync"
+        }
       ]
     },
     {
@@ -87,8 +172,20 @@
       "deployed_by": "#282",
       "description": "Phase 2 (legacy, live until Phase 5 cutover #308): felix-admin-habits agent writes habit completions as `[Felix] YYYY-MM-DD | state | note` comments on Vikunja tasks. The cron continues to use this path until AGENTS.md is updated in Phase 5.",
       "path": [
-        {"from": "felix-admin-habits agent", "to": "scripts/habits/exclude_completed.py", "protocol": "subprocess", "description": "Step 4 helper parses [Felix] comments to determine already-addressed habits"},
-        {"from": "felix-admin-habits agent", "to": "Vikunja /tasks/<id>/comments", "protocol": "HTTPS via Tailscale Serve", "port": 443, "backend_port": 3456, "description": "Agent writes [Felix] YYYY-MM-DD | state comment to record completion"}
+        {
+          "from": "felix-admin-habits agent",
+          "to": "scripts/habits/exclude_completed.py",
+          "protocol": "subprocess",
+          "description": "Step 4 helper parses [Felix] comments to determine already-addressed habits"
+        },
+        {
+          "from": "felix-admin-habits agent",
+          "to": "Vikunja /tasks/<id>/comments",
+          "protocol": "HTTPS via Tailscale Serve",
+          "port": 443,
+          "backend_port": 3456,
+          "description": "Agent writes [Felix] YYYY-MM-DD | state comment to record completion"
+        }
       ]
     },
     {
@@ -98,9 +195,24 @@
       "introduced_by": "#306",
       "description": "Phase 3 (ADR-0002 Q3-D) canonical habit completion history. The new write path is built in #306; the felix-admin-habits agent begins calling it after Phase 5 cutover (#308). Both the v1 comment-write and this v2 JSONL-append remain documented until v1 is retired.",
       "path": [
-        {"from": "felix-admin-habits agent", "to": "scripts/habits/record_completion.py", "protocol": "subprocess", "description": "Three-write helper per ADR Q3-D: POST done=true, PUT [Felix] comment (mirror), state_log.append (canonical)"},
-        {"from": "scripts/habits/record_completion.py", "to": "scripts/common/state_log.py", "protocol": "python-import", "description": "Calls state_log.append(\"habits\", record) for the canonical JSONL write"},
-        {"from": "scripts/common/state_log.py", "to": "habits-history.jsonl", "path": "/data/services/openclaw/state/habits-history.jsonl", "description": "Canonical per-domain JSONL history (Phase 2 substrate from mission shared-jsonl-state-log-library-01KS0E9A)"}
+        {
+          "from": "felix-admin-habits agent",
+          "to": "scripts/habits/record_completion.py",
+          "protocol": "subprocess",
+          "description": "Three-write helper per ADR Q3-D: POST done=true, PUT [Felix] comment (mirror), state_log.append (canonical)"
+        },
+        {
+          "from": "scripts/habits/record_completion.py",
+          "to": "scripts/common/state_log.py",
+          "protocol": "python-import",
+          "description": "Calls state_log.append(\"habits\", record) for the canonical JSONL write"
+        },
+        {
+          "from": "scripts/common/state_log.py",
+          "to": "habits-history.jsonl",
+          "path": "/data/services/openclaw/state/habits-history.jsonl",
+          "description": "Canonical per-domain JSONL history (Phase 2 substrate from mission shared-jsonl-state-log-library-01KS0E9A)"
+        }
       ]
     },
     {
@@ -110,9 +222,26 @@
       "introduced_by": "#306",
       "description": "Phase 3 (ADR-0002 Q3-D) canonical read path. `exclude_completed_v2.py` queries the JSONL state log to determine which habits are already complete for today, replacing the v1 LLM-driven comment parser. The agent begins using this read path after Phase 5 cutover (#308).",
       "path": [
-        {"from": "scripts/habits/query_active_habits_v2.py", "to": "Vikunja /projects/<id>/tasks?filter=due_date<=now/d AND done=false", "protocol": "HTTPS via Tailscale Serve", "port": 443, "backend_port": 3456, "description": "Vikunja-native filter expression for active-today habits, project-scoped to Habits"},
-        {"from": "scripts/habits/exclude_completed_v2.py", "to": "scripts/common/state_log.py", "protocol": "python-import", "description": "Calls state_log.read(\"habits\", task_id, date, state=\"complete\") per active task"},
-        {"from": "scripts/common/state_log.py", "to": "habits-history.jsonl", "path": "/data/services/openclaw/state/habits-history.jsonl", "description": "Read-only scan of the canonical per-domain JSONL history"}
+        {
+          "from": "scripts/habits/query_active_habits_v2.py",
+          "to": "Vikunja /projects/<id>/tasks?filter=due_date<=now/d AND done=false",
+          "protocol": "HTTPS via Tailscale Serve",
+          "port": 443,
+          "backend_port": 3456,
+          "description": "Vikunja-native filter expression for active-today habits, project-scoped to Habits"
+        },
+        {
+          "from": "scripts/habits/exclude_completed_v2.py",
+          "to": "scripts/common/state_log.py",
+          "protocol": "python-import",
+          "description": "Calls state_log.read(\"habits\", task_id, date, state=\"complete\") per active task"
+        },
+        {
+          "from": "scripts/common/state_log.py",
+          "to": "habits-history.jsonl",
+          "path": "/data/services/openclaw/state/habits-history.jsonl",
+          "description": "Read-only scan of the canonical per-domain JSONL history"
+        }
       ]
     },
     {
@@ -122,9 +251,26 @@
       "introduced_by": "#306",
       "description": "Phase 3 reconcile loop (FR-008, FR-009). Enumerates active habit tasks (project-scoped) and bridges Vikunja-UI completions to the JSONL log; reports drift in the opposite direction without auto-resolving.",
       "path": [
-        {"from": "scripts/habits/reconcile_completions.py", "to": "Vikunja /projects/<id>/tasks?filter=is_archived=false", "protocol": "HTTPS via Tailscale Serve", "port": 443, "backend_port": 3456, "description": "Project-scoped enumeration of active habit tasks"},
-        {"from": "scripts/habits/reconcile_completions.py", "to": "scripts/common/state_log.py", "protocol": "python-import", "description": "Reads existing records to detect drift; appends backfill records with source=vikunja-ui"},
-        {"from": "scripts/common/state_log.py", "to": "habits-history.jsonl", "path": "/data/services/openclaw/state/habits-history.jsonl", "description": "Backfill write path (source=vikunja-ui)"}
+        {
+          "from": "scripts/habits/reconcile_completions.py",
+          "to": "Vikunja /projects/<id>/tasks?filter=is_archived=false",
+          "protocol": "HTTPS via Tailscale Serve",
+          "port": 443,
+          "backend_port": 3456,
+          "description": "Project-scoped enumeration of active habit tasks"
+        },
+        {
+          "from": "scripts/habits/reconcile_completions.py",
+          "to": "scripts/common/state_log.py",
+          "protocol": "python-import",
+          "description": "Reads existing records to detect drift; appends backfill records with source=vikunja-ui"
+        },
+        {
+          "from": "scripts/common/state_log.py",
+          "to": "habits-history.jsonl",
+          "path": "/data/services/openclaw/state/habits-history.jsonl",
+          "description": "Backfill write path (source=vikunja-ui)"
+        }
       ]
     },
     {
@@ -132,12 +278,34 @@
       "status": "active",
       "deployed_by": "#307",
       "introduced_by": "#307",
-      "description": "Phase 4 (ADR-0002) one-shot historical backfill. Operator-driven helper that reads existing [Felix] completion comments from Vikunja habit tasks and replays them into the habits JSONL log via state_log.append with source=historical-backfill. Read-only on Vikunja (GET only). Idempotent on re-run via the Phase 2 (task_id, date, state) dedup. Not part of cron — invoked manually once before Phase 5 cutover (#308).",
+      "description": "Phase 4 (ADR-0002) one-shot historical backfill. Operator-driven helper that reads existing [Felix] completion comments from Vikunja habit tasks and replays them into the habits JSONL log via state_log.append with source=historical-backfill. Read-only on Vikunja (GET only). Idempotent on re-run via the Phase 2 (task_id, date, state) dedup. Not part of cron \u2014 invoked manually once before Phase 5 cutover (#308).",
       "path": [
-        {"from": "Operator (Kent)", "to": "scripts/habits/backfill_jsonl_from_comments.py", "protocol": "CLI (python3 -m)", "description": "One-shot invocation: dry-run first, then live"},
-        {"from": "scripts/habits/backfill_jsonl_from_comments.py", "to": "Vikunja /projects, /projects/<id>/tasks, /tasks/<id>/comments", "protocol": "HTTPS via Tailscale Serve", "port": 443, "backend_port": 3456, "description": "Project-scoped enumeration + per-task comment GET. No writes to Vikunja."},
-        {"from": "scripts/habits/backfill_jsonl_from_comments.py", "to": "scripts/common/state_log.py", "protocol": "python-import", "description": "Pre-flight read for dedup + append with source=historical-backfill, timestamp=comment.created"},
-        {"from": "scripts/common/state_log.py", "to": "habits-history.jsonl", "path": "/data/services/openclaw/state/habits-history.jsonl", "description": "Historical backfill write path (source=historical-backfill). Pre-backfill snapshot at habits-history.jsonl.pre-phase4-backfill.bak"}
+        {
+          "from": "Operator (Kent)",
+          "to": "scripts/habits/backfill_jsonl_from_comments.py",
+          "protocol": "CLI (python3 -m)",
+          "description": "One-shot invocation: dry-run first, then live"
+        },
+        {
+          "from": "scripts/habits/backfill_jsonl_from_comments.py",
+          "to": "Vikunja /projects, /projects/<id>/tasks, /tasks/<id>/comments",
+          "protocol": "HTTPS via Tailscale Serve",
+          "port": 443,
+          "backend_port": 3456,
+          "description": "Project-scoped enumeration + per-task comment GET. No writes to Vikunja."
+        },
+        {
+          "from": "scripts/habits/backfill_jsonl_from_comments.py",
+          "to": "scripts/common/state_log.py",
+          "protocol": "python-import",
+          "description": "Pre-flight read for dedup + append with source=historical-backfill, timestamp=comment.created"
+        },
+        {
+          "from": "scripts/common/state_log.py",
+          "to": "habits-history.jsonl",
+          "path": "/data/services/openclaw/state/habits-history.jsonl",
+          "description": "Historical backfill write path (source=historical-backfill). Pre-backfill snapshot at habits-history.jsonl.pre-phase4-backfill.bak"
+        }
       ]
     },
     {
@@ -147,12 +315,32 @@
       "introduced_by": "#371",
       "updated_by": "#371",
       "since": "#371",
-      "description": "#371 (habits scripts-first morning tick) canonical write path. At cron tick (7:05 AM ET), scripts/habits/morning_checkin_list.py reads today's active habits from Vikunja (via query_active_habits_v2.py — project-scoped to Habits, filter due_date<=now/d AND done=false), excludes habits already addressed today (via exclude_completed_v2.py reading habits-history.jsonl), and persists the ordered list to a per-date JSON artifact. Atomic write (tmp+fsync+rename). The artifact ordering is byte-identical to the formatted WhatsApp message also emitted to stdout (FR-001, FR-002, FR-007). One file per Kent-day; no rotation (~365 files/year, ~1 KB each per NFR-005).",
+      "description": "#371 (habits scripts-first morning tick) canonical write path. At cron tick (7:05 AM ET), scripts/habits/morning_checkin_list.py reads today's active habits from Vikunja (via query_active_habits_v2.py \u2014 project-scoped to Habits, filter due_date<=now/d AND done=false), excludes habits already addressed today (via exclude_completed_v2.py reading habits-history.jsonl), and persists the ordered list to a per-date JSON artifact. Atomic write (tmp+fsync+rename). The artifact ordering is byte-identical to the formatted WhatsApp message also emitted to stdout (FR-001, FR-002, FR-007). One file per Kent-day; no rotation (~365 files/year, ~1 KB each per NFR-005).",
       "path": [
-        {"from": "felix-admin-habits agent (cron habits-morning-checkin)", "to": "scripts/habits/morning_checkin_list.py", "protocol": "subprocess (python3 -m)", "description": "Step 1 of the morning tick — the agent invokes the helper and relays its stdout verbatim as the WhatsApp message"},
-        {"from": "scripts/habits/morning_checkin_list.py", "to": "scripts/habits/query_active_habits_v2.py", "protocol": "python-import", "description": "Vikunja-native filter for active-today habits, project-scoped (existing Phase 3 helper, unchanged)"},
-        {"from": "scripts/habits/morning_checkin_list.py", "to": "scripts/habits/exclude_completed_v2.py", "protocol": "python-import", "description": "JSONL state-log filter to drop habits already addressed today (existing Phase 3 helper, unchanged)"},
-        {"from": "scripts/habits/morning_checkin_list.py", "to": "/data/services/openclaw/state/habits/morning-checkin-<YYYY-MM-DD>.json", "protocol": "file write (atomic rename)", "description": "Canonical morning-list artifact per data-model Entity 1: {schema_version, date, generated_at, habits:[{position, vikunja_task_id, title}]}. Authoritative ordering for the reply tick — the parser reads this, never re-queries Vikunja."}
+        {
+          "from": "felix-admin-habits agent (cron habits-morning-checkin)",
+          "to": "scripts/habits/morning_checkin_list.py",
+          "protocol": "subprocess (python3 -m)",
+          "description": "Step 1 of the morning tick \u2014 the agent invokes the helper and relays its stdout verbatim as the WhatsApp message"
+        },
+        {
+          "from": "scripts/habits/morning_checkin_list.py",
+          "to": "scripts/habits/query_active_habits_v2.py",
+          "protocol": "python-import",
+          "description": "Vikunja-native filter for active-today habits, project-scoped (existing Phase 3 helper, unchanged)"
+        },
+        {
+          "from": "scripts/habits/morning_checkin_list.py",
+          "to": "scripts/habits/exclude_completed_v2.py",
+          "protocol": "python-import",
+          "description": "JSONL state-log filter to drop habits already addressed today (existing Phase 3 helper, unchanged)"
+        },
+        {
+          "from": "scripts/habits/morning_checkin_list.py",
+          "to": "/data/services/openclaw/state/habits/morning-checkin-<YYYY-MM-DD>.json",
+          "protocol": "file write (atomic rename)",
+          "description": "Canonical morning-list artifact per data-model Entity 1: {schema_version, date, generated_at, habits:[{position, vikunja_task_id, title}]}. Authoritative ordering for the reply tick \u2014 the parser reads this, never re-queries Vikunja."
+        }
       ]
     },
     {
@@ -162,11 +350,26 @@
       "introduced_by": "#371",
       "updated_by": "#371",
       "since": "#371",
-      "description": "#371 (habits scripts-first reply tick) canonical read path. When Kent replies to the morning check-in (via WhatsApp), scripts/habits/parse_morning_reply.py loads the persisted morning-list artifact for the relevant date and produces deterministic (task_id, state) tuples by tokenizing the reply against the artifact's positions + titles (FR-003, FR-004, FR-008). Reply parser NEVER re-queries Vikunja — the artifact is the sole source of ordering, so positions referenced in Kent's reply align with the habits he actually saw. If the artifact is missing (exit code 4), the agent files a P2-bug via felix-file-issue.py rather than falling back to live Vikunja state (FR-009).",
+      "description": "#371 (habits scripts-first reply tick) canonical read path. When Kent replies to the morning check-in (via WhatsApp), scripts/habits/parse_morning_reply.py loads the persisted morning-list artifact for the relevant date and produces deterministic (task_id, state) tuples by tokenizing the reply against the artifact's positions + titles (FR-003, FR-004, FR-008). Reply parser NEVER re-queries Vikunja \u2014 the artifact is the sole source of ordering, so positions referenced in Kent's reply align with the habits he actually saw. If the artifact is missing (exit code 4), the agent files a P2-bug via felix-file-issue.py rather than falling back to live Vikunja state (FR-009).",
       "path": [
-        {"from": "felix-admin-habits agent (reply tick)", "to": "scripts/habits/parse_morning_reply.py", "protocol": "subprocess (python3 -m)", "description": "Step 1 of the reply tick — agent passes Kent's reply text + the today-local date"},
-        {"from": "scripts/habits/parse_morning_reply.py", "to": "/data/services/openclaw/state/habits/morning-checkin-<YYYY-MM-DD>.json", "protocol": "file read", "description": "Read-only load of the canonical morning-list artifact. Authoritative source of position->task_id mapping for the date."},
-        {"from": "scripts/habits/parse_morning_reply.py", "to": "scripts/habits/record_completion.py", "protocol": "subprocess (--idempotent)", "description": "Per deterministic tuple in parser output, the agent invokes record_completion once with --source kent_reply --idempotent. Phase 3 helper unchanged per C-001/FR-010 (mission #371 does NOT modify record_completion)."}
+        {
+          "from": "felix-admin-habits agent (reply tick)",
+          "to": "scripts/habits/parse_morning_reply.py",
+          "protocol": "subprocess (python3 -m)",
+          "description": "Step 1 of the reply tick \u2014 agent passes Kent's reply text + the today-local date"
+        },
+        {
+          "from": "scripts/habits/parse_morning_reply.py",
+          "to": "/data/services/openclaw/state/habits/morning-checkin-<YYYY-MM-DD>.json",
+          "protocol": "file read",
+          "description": "Read-only load of the canonical morning-list artifact. Authoritative source of position->task_id mapping for the date."
+        },
+        {
+          "from": "scripts/habits/parse_morning_reply.py",
+          "to": "scripts/habits/record_completion.py",
+          "protocol": "subprocess (--idempotent)",
+          "description": "Per deterministic tuple in parser output, the agent invokes record_completion once with --source kent_reply --idempotent. Phase 3 helper unchanged per C-001/FR-010 (mission #371 does NOT modify record_completion)."
+        }
       ]
     },
     {
@@ -176,11 +379,27 @@
       "introduced_by": "#371",
       "updated_by": "#371",
       "since": "#371",
-      "description": "#371 (narrow LLM judgment surface, mirrors #343 doc-audit pattern). When parse_morning_reply.py emits a judgment_required cluster (e.g., Kent's reply contains 'PT done' but the morning list has multiple PT habits), the agent invokes scripts/habits/judgment/disambiguate_reply.py for that cluster ONLY (FR-006). The helper reads the Anthropic API key from disk, calls api.anthropic.com directly via the anthropic-python SDK, and returns either {result: chosen, chosen_task_id} from the candidate set OR {result: clarify, suggested_question} for the agent to ask Kent. Default model: claude-haiku-4-5. The LLM is NEVER in the path for the bulk of replies — only ambiguous tokens.",
+      "description": "#371 (narrow LLM judgment surface, mirrors #343 doc-audit pattern). When parse_morning_reply.py emits a judgment_required cluster (e.g., Kent's reply contains 'PT done' but the morning list has multiple PT habits), the agent invokes scripts/habits/judgment/disambiguate_reply.py for that cluster ONLY (FR-006). The helper reads the Anthropic API key from disk, calls api.anthropic.com directly via the anthropic-python SDK, and returns either {result: chosen, chosen_task_id} from the candidate set OR {result: clarify, suggested_question} for the agent to ask Kent. Default model: claude-haiku-4-5. The LLM is NEVER in the path for the bulk of replies \u2014 only ambiguous tokens.",
       "path": [
-        {"from": "felix-admin-habits agent (reply tick, parser emitted judgment_required)", "to": "scripts/habits/judgment/disambiguate_reply.py", "protocol": "subprocess (stdin JSON or --input-file)", "description": "Per ambiguity cluster from parser output. Input shape: data-model Entity 3 ({schema_version, reply_text, ambiguity:{token, candidate_task_ids, candidate_titles, inferred_state}})."},
-        {"from": "scripts/habits/judgment/disambiguate_reply.py", "to": "/data/services/openclaw/secrets/anthropic", "protocol": "file read (0600)", "description": "API key load at invocation. Sensitive: contents never logged, never echoed. Sibling consumer: openclaw-gateway and scripts/doc_audit/run.py (also direct readers of the same secret)."},
-        {"from": "scripts/habits/judgment/disambiguate_reply.py", "to": "Anthropic API", "protocol": "HTTPS (anthropic-python SDK)", "endpoint": "api.anthropic.com", "description": "Single narrow judgment call per ambiguity cluster. Validates chosen_task_id is within the input's candidate_task_ids list — out-of-set responses are a hard-fail (exit code 5)."}
+        {
+          "from": "felix-admin-habits agent (reply tick, parser emitted judgment_required)",
+          "to": "scripts/habits/judgment/disambiguate_reply.py",
+          "protocol": "subprocess (stdin JSON or --input-file)",
+          "description": "Per ambiguity cluster from parser output. Input shape: data-model Entity 3 ({schema_version, reply_text, ambiguity:{token, candidate_task_ids, candidate_titles, inferred_state}})."
+        },
+        {
+          "from": "scripts/habits/judgment/disambiguate_reply.py",
+          "to": "/data/services/openclaw/secrets/anthropic",
+          "protocol": "file read (0600)",
+          "description": "API key load at invocation. Sensitive: contents never logged, never echoed. Sibling consumer: openclaw-gateway and scripts/doc_audit/run.py (also direct readers of the same secret)."
+        },
+        {
+          "from": "scripts/habits/judgment/disambiguate_reply.py",
+          "to": "Anthropic API",
+          "protocol": "HTTPS (anthropic-python SDK)",
+          "endpoint": "api.anthropic.com",
+          "description": "Single narrow judgment call per ambiguity cluster. Validates chosen_task_id is within the input's candidate_task_ids list \u2014 out-of-set responses are a hard-fail (exit code 5)."
+        }
       ]
     },
     {
@@ -192,8 +411,20 @@
       "since": "#371",
       "description": "#371 (morning tick Vikunja read leg). Logical wrapping of the Vikunja read that backs morning_checkin_list.py. The actual API call still lives in the existing Phase 3 query_active_habits_v2.py (unchanged); this entry registers the agent->Vikunja edge so the data-flow graph reflects that the v2 morning helper reads Vikunja on every cron tick. Project-scoped to the Habits project (id=13).",
       "path": [
-        {"from": "scripts/habits/morning_checkin_list.py", "to": "scripts/habits/query_active_habits_v2.py", "protocol": "python-import", "description": "Project-scoped Vikunja query helper invoked once per morning tick"},
-        {"from": "scripts/habits/query_active_habits_v2.py", "to": "Vikunja /projects/13/tasks?filter=due_date<=now/d AND done=false", "protocol": "HTTPS via Tailscale Serve", "port": 443, "backend_port": 3456, "description": "Vikunja-native filter expression for active-today habits, project-scoped to Habits. Read-only."}
+        {
+          "from": "scripts/habits/morning_checkin_list.py",
+          "to": "scripts/habits/query_active_habits_v2.py",
+          "protocol": "python-import",
+          "description": "Project-scoped Vikunja query helper invoked once per morning tick"
+        },
+        {
+          "from": "scripts/habits/query_active_habits_v2.py",
+          "to": "Vikunja /projects/13/tasks?filter=due_date<=now/d AND done=false",
+          "protocol": "HTTPS via Tailscale Serve",
+          "port": 443,
+          "backend_port": 3456,
+          "description": "Vikunja-native filter expression for active-today habits, project-scoped to Habits. Read-only."
+        }
       ]
     },
     {
@@ -203,19 +434,62 @@
       "introduced_by": "#343",
       "updated_by": "#362",
       "since": "v2 since #362",
-      "description": "Post-#343 doc-audit tick flow — the Anthropic API call path. The systemd-timer-launched Python driver pulls signals, calls Anthropic directly at judgment moments, and mutates GitHub state via gh CLI. Post-#362 (v2): adds Moment 0 (drift_interpretation) for every mapped drift event before issue filing — so the judgment surface is now four moments (drift_interpretation, tier_classification, debt_body_generation, cross_file_implication). The Moment 0 LLM call leg is registered separately as flow `doc-audit-drift-interpretation-llm`. Post-#391 (v3): the Moment 0 invocation site on the cron path is `signals/drift_event.py::DriftEventSignalSource.commit()` delegating to the shared helper `routing/drift_moment0.py::route_drift_event()`. The library/CLI surface `helpers/handle_drift_events.py` delegates to the same helper for operator replay only. Replaces the pre-#343 path that routed through openclaw-gateway and an LLM-interpreted SKILL.md procedure. No openclaw-gateway proxy in path.",
+      "description": "Post-#343 doc-audit tick flow \u2014 the Anthropic API call path. The systemd-timer-launched Python driver pulls signals, calls Anthropic directly at judgment moments, and mutates GitHub state via gh CLI. Post-#362 (v2): adds Moment 0 (drift_interpretation) for every mapped drift event before issue filing \u2014 so the judgment surface is now four moments (drift_interpretation, tier_classification, debt_body_generation, cross_file_implication). The Moment 0 LLM call leg is registered separately as flow `doc-audit-drift-interpretation-llm`. Post-#391 (v3): the Moment 0 invocation site on the cron path is `signals/drift_event.py::DriftEventSignalSource.commit()` delegating to the shared helper `routing/drift_moment0.py::route_drift_event()`. The library/CLI surface `helpers/handle_drift_events.py` delegates to the same helper for operator replay only. Replaces the pre-#343 path that routed through openclaw-gateway and an LLM-interpreted SKILL.md procedure. No openclaw-gateway proxy in path.",
       "path": [
-        {"from": "felix-doc-auditor.timer (systemd user unit)", "to": "felix-doc-auditor.service (oneshot)", "protocol": "systemd OnCalendar=hourly", "description": "Hourly trigger; Persistent=true catches missed ticks across reboots"},
-        {"from": "felix-doc-auditor.service", "to": "/usr/bin/python3 /home/claude/kg-automation/scripts/doc_audit/run.py", "protocol": "exec", "description": "Direct Python driver invocation — no openclaw gateway in path"},
-        {"from": "scripts/doc_audit/run.py", "to": "/data/services/openclaw/secrets/anthropic", "protocol": "file read (0600)", "description": "API key load at tick start. Sensitive: contents never logged, never re-emitted to disk. See also flow: doc-audit-credential-read."},
-        {"from": "scripts/doc_audit/run.py", "to": "Anthropic API", "protocol": "HTTPS (anthropic-python SDK)", "endpoint": "api.anthropic.com", "description": "Direct API calls at judgment moments — drift_interpretation (Moment 0, #362; invocation corrected to signals/drift_event.py + routing/drift_moment0.py by #391), tier_classification, debt_body_generation, cross_file_implication. Drift events go through Moment 0 first via the cron entry point signals/drift_event.py::commit() → routing/drift_moment0.py::route_drift_event(); PROPOSED_EDIT verdicts at confidence ≥0.80 are then routed through tier_classification. No openclaw-gateway proxy. Prompt caching enabled via SDK to amortize cached boilerplate across calls within a tick."},
-        {"from": "scripts/doc_audit/run.py", "to": "gh CLI (subprocess)", "protocol": "subprocess", "description": "All GitHub state mutations: issue list/edit/create/close, label add/remove, comment create. Identity: kg-felix-bot (PAT at /home/claude/.config/gh/hosts.yml)."},
-        {"from": "scripts/doc_audit/run.py", "to": "/home/kgale/second-brain/agents/logs/doc-auditor-YYYY-MM-DD.md", "protocol": "file append", "description": "Per-tick prose activity log (unchanged from pre-#343). Operator-readable; mirrors the structured tick signal at lower fidelity."}
+        {
+          "from": "felix-doc-auditor.timer (systemd user unit)",
+          "to": "felix-doc-auditor.service (oneshot)",
+          "protocol": "systemd OnCalendar=hourly",
+          "description": "Hourly trigger; Persistent=true catches missed ticks across reboots"
+        },
+        {
+          "from": "felix-doc-auditor.service",
+          "to": "/usr/bin/python3 /home/claude/kg-automation/scripts/doc_audit/run.py",
+          "protocol": "exec",
+          "description": "Direct Python driver invocation \u2014 no openclaw gateway in path"
+        },
+        {
+          "from": "scripts/doc_audit/run.py",
+          "to": "/data/services/openclaw/secrets/anthropic",
+          "protocol": "file read (0600)",
+          "description": "API key load at tick start. Sensitive: contents never logged, never re-emitted to disk. See also flow: doc-audit-credential-read."
+        },
+        {
+          "from": "scripts/doc_audit/run.py",
+          "to": "Anthropic API",
+          "protocol": "HTTPS (anthropic-python SDK)",
+          "endpoint": "api.anthropic.com",
+          "description": "Direct API calls at judgment moments \u2014 drift_interpretation (Moment 0, #362; invocation corrected to signals/drift_event.py + routing/drift_moment0.py by #391), tier_classification, debt_body_generation, cross_file_implication. Drift events go through Moment 0 first via the cron entry point signals/drift_event.py::commit() \u2192 routing/drift_moment0.py::route_drift_event(); PROPOSED_EDIT verdicts at confidence \u22650.80 are then routed through tier_classification. No openclaw-gateway proxy. Prompt caching enabled via SDK to amortize cached boilerplate across calls within a tick."
+        },
+        {
+          "from": "scripts/doc_audit/run.py",
+          "to": "gh CLI (subprocess)",
+          "protocol": "subprocess",
+          "description": "All GitHub state mutations: issue list/edit/create/close, label add/remove, comment create. Identity: kg-felix-bot (PAT at /home/claude/.config/gh/hosts.yml)."
+        },
+        {
+          "from": "scripts/doc_audit/run.py",
+          "to": "/home/kgale/second-brain/agents/logs/doc-auditor-YYYY-MM-DD.md",
+          "protocol": "file append",
+          "description": "Per-tick prose activity log (unchanged from pre-#343). Operator-readable; mirrors the structured tick signal at lower fidelity."
+        }
       ],
       "consumers": [
-        {"agent": "scripts/doc_audit/run.py", "reads_from": "/data/services/security-monitor/logs/drift-events.jsonl", "description": "Drift adapter consumes drift events as one signal source. Read-only."},
-        {"agent": "scripts/doc_audit/run.py", "reads_from": "/home/claude/kg-automation/docs/design/architecture/data/doc-domain-map.json", "description": "Scope contract — changed-file path → owning doc"},
-        {"agent": "scripts/doc_audit/run.py", "reads_from": "/home/claude/kg-automation/docs/design/architecture/data/signal-to-doc-map.json", "description": "Signal class → candidate-doc map"}
+        {
+          "agent": "scripts/doc_audit/run.py",
+          "reads_from": "/data/services/security-monitor/logs/drift-events.jsonl",
+          "description": "Drift adapter consumes drift events as one signal source. Read-only."
+        },
+        {
+          "agent": "scripts/doc_audit/run.py",
+          "reads_from": "/home/claude/kg-automation/docs/design/architecture/data/doc-domain-map.json",
+          "description": "Scope contract \u2014 changed-file path \u2192 owning doc"
+        },
+        {
+          "agent": "scripts/doc_audit/run.py",
+          "reads_from": "/home/claude/kg-automation/docs/design/architecture/data/signal-to-doc-map.json",
+          "description": "Signal class \u2192 candidate-doc map"
+        }
       ]
     },
     {
@@ -226,7 +500,12 @@
       "updated_by": "#343",
       "description": "Post-#343 tick observation surface. At the end of each tick, the driver writes a structured JSON tick signal to a well-known path. This is the canonical health-check + tick observation surface (replaces the pre-#343 reliance on parsing the prose activity log). Overwritten each tick (latest-wins). See contracts/tick-signal.contract.md for schema.",
       "path": [
-        {"from": "scripts/doc_audit/run.py", "to": "/data/services/openclaw/felix-doc-auditor-driver/last-tick.json", "protocol": "file write (atomic rename)", "description": "Tick signal — structured JSON capturing status, exit_code, timestamp_utc, signals_processed, judgment-call counts, token usage, errors. See contracts/tick-signal.contract.md. Overwritten each tick."}
+        {
+          "from": "scripts/doc_audit/run.py",
+          "to": "/data/services/openclaw/felix-doc-auditor-driver/last-tick.json",
+          "protocol": "file write (atomic rename)",
+          "description": "Tick signal \u2014 structured JSON capturing status, exit_code, timestamp_utc, signals_processed, judgment-call counts, token usage, errors. See contracts/tick-signal.contract.md. Overwritten each tick."
+        }
       ]
     },
     {
@@ -237,7 +516,12 @@
       "updated_by": "#343",
       "description": "Sensitive credential read path: the scripts-first driver loads the Anthropic API key directly from disk at tick start. Replaces pre-#343 indirect access through openclaw-gateway's auth-profiles. The credential itself is unchanged (same key, same storage). The driver process is now the second consumer of the same secret.",
       "path": [
-        {"from": "scripts/doc_audit/run.py", "to": "/data/services/openclaw/secrets/anthropic", "protocol": "file read (0600)", "description": "Loaded once per tick into process memory only. Not logged, not emitted in tick signal, not echoed to the activity log. Sibling consumer: openclaw-gateway (unchanged), which holds it via its native auth-profiles.json mechanism."}
+        {
+          "from": "scripts/doc_audit/run.py",
+          "to": "/data/services/openclaw/secrets/anthropic",
+          "protocol": "file read (0600)",
+          "description": "Loaded once per tick into process memory only. Not logged, not emitted in tick signal, not echoed to the activity log. Sibling consumer: openclaw-gateway (unchanged), which holds it via its native auth-profiles.json mechanism."
+        }
       ]
     },
     {
@@ -246,10 +530,22 @@
       "deployed_by": "#309",
       "introduced_by": "#309",
       "updated_by": "#309",
-      "description": "Phase 6 (ADR-0002) Vikunja side-effect of an escalation event. Per research D6 (three-write ordering), record_completion.py performs the Vikunja side-effect FIRST so unreliable remote ops surface before any state_log line is written. Side-effects per event_type: level_sent → WhatsApp send + [Felix-Escalation] comment write (during the C-001 soak); snoozed/dismissed → [Felix-Escalation] comment write; done → PATCH task done=true + [Felix-Escalation] comment; rescheduled (kent_reply source) → PATCH task due_date + [Felix-Escalation] comment. Triggers: agent tick, kent_reply via OpenClaw.",
+      "description": "Phase 6 (ADR-0002) Vikunja side-effect of an escalation event. Per research D6 (three-write ordering), record_completion.py performs the Vikunja side-effect FIRST so unreliable remote ops surface before any state_log line is written. Side-effects per event_type: level_sent \u2192 WhatsApp send + [Felix-Escalation] comment write (during the C-001 soak); snoozed/dismissed \u2192 [Felix-Escalation] comment write; done \u2192 PATCH task done=true + [Felix-Escalation] comment; rescheduled (kent_reply source) \u2192 PATCH task due_date + [Felix-Escalation] comment. Triggers: agent tick, kent_reply via OpenClaw.",
       "path": [
-        {"from": "felix-admin-escalation agent", "to": "scripts/escalation/record_completion.py", "protocol": "subprocess (or python -m)", "description": "Three-write helper per ADR-0002 Q3-D pattern adapted to escalation event types"},
-        {"from": "scripts/escalation/record_completion.py", "to": "Vikunja /tasks/<id>/comments and /tasks/<id>", "protocol": "HTTPS via Tailscale Serve", "port": 443, "backend_port": 3456, "description": "PUT [Felix-Escalation] comment (preserved during the C-001 soak); PATCH done=true for done events; PATCH due_date for kent_reply-sourced rescheduled events"}
+        {
+          "from": "felix-admin-escalation agent",
+          "to": "scripts/escalation/record_completion.py",
+          "protocol": "subprocess (or python -m)",
+          "description": "Three-write helper per ADR-0002 Q3-D pattern adapted to escalation event types"
+        },
+        {
+          "from": "scripts/escalation/record_completion.py",
+          "to": "Vikunja /tasks/<id>/comments and /tasks/<id>",
+          "protocol": "HTTPS via Tailscale Serve",
+          "port": 443,
+          "backend_port": 3456,
+          "description": "PUT [Felix-Escalation] comment (preserved during the C-001 soak); PATCH done=true for done events; PATCH due_date for kent_reply-sourced rescheduled events"
+        }
       ]
     },
     {
@@ -258,10 +554,20 @@
       "deployed_by": "#309",
       "introduced_by": "#309",
       "updated_by": "#309",
-      "description": "Phase 6 (ADR-0002) canonical escalation state write. Per research D6, the JSONL append is the LAST of the three writes — Vikunja remote ops complete first. The JSONL state log replaces [Felix-Escalation] comments as the authoritative state source post-cutover (FR-007). Triggers: same as escalation-event-write-vikunja (agent tick, kent_reply).",
+      "description": "Phase 6 (ADR-0002) canonical escalation state write. Per research D6, the JSONL append is the LAST of the three writes \u2014 Vikunja remote ops complete first. The JSONL state log replaces [Felix-Escalation] comments as the authoritative state source post-cutover (FR-007). Triggers: same as escalation-event-write-vikunja (agent tick, kent_reply).",
       "path": [
-        {"from": "scripts/escalation/record_completion.py", "to": "scripts/common/state_log.py", "protocol": "python-import", "description": "Calls state_log.append('escalation', record) for the canonical JSONL write (NFR-003: per-project partition)"},
-        {"from": "scripts/common/state_log.py", "to": "<project-slug>-escalation-history.jsonl", "path": "/data/services/openclaw/state/escalation/<project-slug>-escalation-history.jsonl", "description": "Per-project JSONL state log. Filename-based partition keyed on project slug (research D2). Schema: domain=escalation, state in {level_sent, snoozed, dismissed, done, rescheduled}, source in {agent, reconcile, backfill, kent_reply, operator_repair}."}
+        {
+          "from": "scripts/escalation/record_completion.py",
+          "to": "scripts/common/state_log.py",
+          "protocol": "python-import",
+          "description": "Calls state_log.append('escalation', record) for the canonical JSONL write (NFR-003: per-project partition)"
+        },
+        {
+          "from": "scripts/common/state_log.py",
+          "to": "<project-slug>-escalation-history.jsonl",
+          "path": "/data/services/openclaw/state/escalation/<project-slug>-escalation-history.jsonl",
+          "description": "Per-project JSONL state log. Filename-based partition keyed on project slug (research D2). Schema: domain=escalation, state in {level_sent, snoozed, dismissed, done, rescheduled}, source in {agent, reconcile, backfill, kent_reply, operator_repair}."
+        }
       ]
     },
     {
@@ -272,9 +578,24 @@
       "updated_by": "#309",
       "description": "Phase 6 (ADR-0002) canonical read path (FR-001, FR-007). derive_state.py is a pure function: input = list of JSONL records for one task (newest-first), output = EscalationState dataclass with current_state, snooze_active_until, next_eligible_level, last_event_recorded_at. All escalation policy lives here; the agent no longer parses [Felix-Escalation] comments. Triggers: every escalation tick (per escalation-subscribed task).",
       "path": [
-        {"from": "felix-admin-escalation agent", "to": "scripts/escalation/derive_state.py", "protocol": "subprocess (or python -m)", "description": "Per-task state derivation invoked at tick time"},
-        {"from": "scripts/escalation/derive_state.py", "to": "scripts/common/state_log.py", "protocol": "python-import", "description": "Calls state_log.read('escalation', task_id) to load all records for the task (newest-first)"},
-        {"from": "scripts/common/state_log.py", "to": "<project-slug>-escalation-history.jsonl", "path": "/data/services/openclaw/state/escalation/<project-slug>-escalation-history.jsonl", "description": "Read-only scan of the canonical per-project JSONL state log"}
+        {
+          "from": "felix-admin-escalation agent",
+          "to": "scripts/escalation/derive_state.py",
+          "protocol": "subprocess (or python -m)",
+          "description": "Per-task state derivation invoked at tick time"
+        },
+        {
+          "from": "scripts/escalation/derive_state.py",
+          "to": "scripts/common/state_log.py",
+          "protocol": "python-import",
+          "description": "Calls state_log.read('escalation', task_id) to load all records for the task (newest-first)"
+        },
+        {
+          "from": "scripts/common/state_log.py",
+          "to": "<project-slug>-escalation-history.jsonl",
+          "path": "/data/services/openclaw/state/escalation/<project-slug>-escalation-history.jsonl",
+          "description": "Read-only scan of the canonical per-project JSONL state log"
+        }
       ]
     },
     {
@@ -283,10 +604,22 @@
       "deployed_by": "#309",
       "introduced_by": "#309",
       "updated_by": "#309",
-      "description": "Phase 6 (ADR-0002) drift detection — Vikunja read leg (FR-005). reconcile_completions.py enumerates escalation-subscribed tasks (those with at least one prior level_sent JSONL record AND no terminal record since) per project, then GETs current Vikunja state per task to detect drift (vikunja.done=true with no JSONL done; vikunja.due_date changed without a JSONL rescheduled record). Triggers: every escalation tick (before per-task event processing).",
+      "description": "Phase 6 (ADR-0002) drift detection \u2014 Vikunja read leg (FR-005). reconcile_completions.py enumerates escalation-subscribed tasks (those with at least one prior level_sent JSONL record AND no terminal record since) per project, then GETs current Vikunja state per task to detect drift (vikunja.done=true with no JSONL done; vikunja.due_date changed without a JSONL rescheduled record). Triggers: every escalation tick (before per-task event processing).",
       "path": [
-        {"from": "felix-admin-escalation agent", "to": "scripts/escalation/reconcile_completions.py", "protocol": "subprocess (or python -m)", "description": "Tick-start reconcile sweep, scoped per project"},
-        {"from": "scripts/escalation/reconcile_completions.py", "to": "Vikunja /projects/<id>/tasks and /tasks/<id>", "protocol": "HTTPS via Tailscale Serve", "port": 443, "backend_port": 3456, "description": "Project-scoped enumeration + per-task GET for drift comparison. Read-only."}
+        {
+          "from": "felix-admin-escalation agent",
+          "to": "scripts/escalation/reconcile_completions.py",
+          "protocol": "subprocess (or python -m)",
+          "description": "Tick-start reconcile sweep, scoped per project"
+        },
+        {
+          "from": "scripts/escalation/reconcile_completions.py",
+          "to": "Vikunja /projects/<id>/tasks and /tasks/<id>",
+          "protocol": "HTTPS via Tailscale Serve",
+          "port": 443,
+          "backend_port": 3456,
+          "description": "Project-scoped enumeration + per-task GET for drift comparison. Read-only."
+        }
       ]
     },
     {
@@ -295,11 +628,26 @@
       "deployed_by": "#309",
       "introduced_by": "#309",
       "updated_by": "#309",
-      "description": "Phase 6 (ADR-0002) drift detection — synthetic record write leg (FR-005). When reconcile detects drift, it emits synthetic JSONL records via record_completion.py with --no-vikunja (avoiding re-send of alerts already actioned out-of-band). source=reconcile distinguishes these from agent-originated records. Triggers: drift detection during reconcile sweep.",
+      "description": "Phase 6 (ADR-0002) drift detection \u2014 synthetic record write leg (FR-005). When reconcile detects drift, it emits synthetic JSONL records via record_completion.py with --no-vikunja (avoiding re-send of alerts already actioned out-of-band). source=reconcile distinguishes these from agent-originated records. Triggers: drift detection during reconcile sweep.",
       "path": [
-        {"from": "scripts/escalation/reconcile_completions.py", "to": "scripts/escalation/record_completion.py", "protocol": "subprocess (--no-vikunja)", "description": "Synthetic record emission; skips the Vikunja side-effect step (source=reconcile)"},
-        {"from": "scripts/escalation/record_completion.py", "to": "scripts/common/state_log.py", "protocol": "python-import", "description": "state_log.append('escalation', synthetic_record)"},
-        {"from": "scripts/common/state_log.py", "to": "<project-slug>-escalation-history.jsonl", "path": "/data/services/openclaw/state/escalation/<project-slug>-escalation-history.jsonl", "description": "Synthetic backfill write path (source=reconcile)"}
+        {
+          "from": "scripts/escalation/reconcile_completions.py",
+          "to": "scripts/escalation/record_completion.py",
+          "protocol": "subprocess (--no-vikunja)",
+          "description": "Synthetic record emission; skips the Vikunja side-effect step (source=reconcile)"
+        },
+        {
+          "from": "scripts/escalation/record_completion.py",
+          "to": "scripts/common/state_log.py",
+          "protocol": "python-import",
+          "description": "state_log.append('escalation', synthetic_record)"
+        },
+        {
+          "from": "scripts/common/state_log.py",
+          "to": "<project-slug>-escalation-history.jsonl",
+          "path": "/data/services/openclaw/state/escalation/<project-slug>-escalation-history.jsonl",
+          "description": "Synthetic backfill write path (source=reconcile)"
+        }
       ]
     },
     {
@@ -308,10 +656,22 @@
       "deployed_by": "#309",
       "introduced_by": "#309",
       "updated_by": "#309",
-      "description": "Phase 6 (ADR-0002) one-shot historical backfill — Vikunja read leg (FR-006). Operator-driven, not cron. backfill_jsonl_from_comments.py enumerates every task in escalation-subscribed projects with at least one [Felix-Escalation] comment and reads all comments per task for replay. Read-only on Vikunja (GET only). Pre-backfill snapshot written BEFORE any JSONL writes.",
+      "description": "Phase 6 (ADR-0002) one-shot historical backfill \u2014 Vikunja read leg (FR-006). Operator-driven, not cron. backfill_jsonl_from_comments.py enumerates every task in escalation-subscribed projects with at least one [Felix-Escalation] comment and reads all comments per task for replay. Read-only on Vikunja (GET only). Pre-backfill snapshot written BEFORE any JSONL writes.",
       "path": [
-        {"from": "Operator (Kent)", "to": "scripts/escalation/backfill_jsonl_from_comments.py", "protocol": "CLI (python3 -m)", "description": "One-shot invocation: --dry-run first, then live. --project-id or --all."},
-        {"from": "scripts/escalation/backfill_jsonl_from_comments.py", "to": "Vikunja /projects, /projects/<id>/tasks, /tasks/<id>/comments", "protocol": "HTTPS via Tailscale Serve", "port": 443, "backend_port": 3456, "description": "Project-scoped enumeration + per-task comment GET. No writes to Vikunja."}
+        {
+          "from": "Operator (Kent)",
+          "to": "scripts/escalation/backfill_jsonl_from_comments.py",
+          "protocol": "CLI (python3 -m)",
+          "description": "One-shot invocation: --dry-run first, then live. --project-id or --all."
+        },
+        {
+          "from": "scripts/escalation/backfill_jsonl_from_comments.py",
+          "to": "Vikunja /projects, /projects/<id>/tasks, /tasks/<id>/comments",
+          "protocol": "HTTPS via Tailscale Serve",
+          "port": 443,
+          "backend_port": 3456,
+          "description": "Project-scoped enumeration + per-task comment GET. No writes to Vikunja."
+        }
       ]
     },
     {
@@ -320,10 +680,20 @@
       "deployed_by": "#309",
       "introduced_by": "#309",
       "updated_by": "#309",
-      "description": "Phase 6 (ADR-0002) one-shot historical backfill — JSONL write leg (FR-006). For each parseable [Felix-Escalation] comment, backfill replays it as a JSONL record via state_log.append with source=backfill, date=comment.date, timestamp=comment.created (or comment_date+12:00:00Z best-effort). Idempotent on re-run via the Phase 2 (task_id, date, state) dedup. Malformed comments are NOT replayed; they surface in the backfill report.",
+      "description": "Phase 6 (ADR-0002) one-shot historical backfill \u2014 JSONL write leg (FR-006). For each parseable [Felix-Escalation] comment, backfill replays it as a JSONL record via state_log.append with source=backfill, date=comment.date, timestamp=comment.created (or comment_date+12:00:00Z best-effort). Idempotent on re-run via the Phase 2 (task_id, date, state) dedup. Malformed comments are NOT replayed; they surface in the backfill report.",
       "path": [
-        {"from": "scripts/escalation/backfill_jsonl_from_comments.py", "to": "scripts/common/state_log.py", "protocol": "python-import", "description": "Pre-flight read for dedup + append with source=backfill, timestamp=comment.created"},
-        {"from": "scripts/common/state_log.py", "to": "<project-slug>-escalation-history.jsonl", "path": "/data/services/openclaw/state/escalation/<project-slug>-escalation-history.jsonl", "description": "Historical backfill write path (source=backfill)"}
+        {
+          "from": "scripts/escalation/backfill_jsonl_from_comments.py",
+          "to": "scripts/common/state_log.py",
+          "protocol": "python-import",
+          "description": "Pre-flight read for dedup + append with source=backfill, timestamp=comment.created"
+        },
+        {
+          "from": "scripts/common/state_log.py",
+          "to": "<project-slug>-escalation-history.jsonl",
+          "path": "/data/services/openclaw/state/escalation/<project-slug>-escalation-history.jsonl",
+          "description": "Historical backfill write path (source=backfill)"
+        }
       ]
     },
     {
@@ -332,9 +702,14 @@
       "deployed_by": "#309",
       "introduced_by": "#309",
       "updated_by": "#309",
-      "description": "Phase 6 (ADR-0002) rollback substrate (data-model Entity 4). Before any JSONL writes, backfill captures pre-migration [Felix-Escalation] comment text per task to a snapshot file. Allows operator to verify no Felix-driven Vikunja comments were lost during backfill; supports rollback per quickstart.md § Rollback.",
+      "description": "Phase 6 (ADR-0002) rollback substrate (data-model Entity 4). Before any JSONL writes, backfill captures pre-migration [Felix-Escalation] comment text per task to a snapshot file. Allows operator to verify no Felix-driven Vikunja comments were lost during backfill; supports rollback per quickstart.md \u00a7 Rollback.",
       "path": [
-        {"from": "scripts/escalation/backfill_jsonl_from_comments.py", "to": "/data/services/openclaw/state/escalation/pre-phase6-snapshot.json", "protocol": "file write (atomic rename)", "description": "snapshot_version=1, tool_version=<commit-sha>, tasks=[{task_id, project_id, title, vikunja_url, felix_comments=[{comment_id, created, comment}]}]. Written exactly once per backfill invocation before any state_log.append calls."}
+        {
+          "from": "scripts/escalation/backfill_jsonl_from_comments.py",
+          "to": "/data/services/openclaw/state/escalation/pre-phase6-snapshot.json",
+          "protocol": "file write (atomic rename)",
+          "description": "snapshot_version=1, tool_version=<commit-sha>, tasks=[{task_id, project_id, title, vikunja_url, felix_comments=[{comment_id, created, comment}]}]. Written exactly once per backfill invocation before any state_log.append calls."
+        }
       ]
     },
     {
@@ -345,11 +720,36 @@
       "updated_by": "#309",
       "description": "Phase 6 (ADR-0002) Q10 hard-fail surface (FR-008, FR-009). When derive_state raises EscalationStateError, or reconcile detects a malformed JSONL record or phantom subscription (Vikunja shows [Felix-Escalation] comments but JSONL has no anchor records), scripts/escalation/hard_fail.py (owned by WP04, forward-referenced) files a P2-bug via scripts/openclaw/agents/main/felix-file-issue.py. hard_fail.py owns dedup via gh issue list --search against the locked title template (research D9); schema.py is the event-parameter validator only and does NOT file bugs. Trigger conditions: malformed_jsonl_record, phantom_subscription, derive_state_inconsistency.",
       "path": [
-        {"from": "scripts/escalation/reconcile_completions.py (or record_completion.py during validate)", "to": "scripts/escalation/hard_fail.py", "protocol": "python-import", "description": "Calls hard_fail.file_hard_fail_bug(...) — pure library helper (no daemon). Module owned by WP04 in this mission; forward-referenced here per C-004."},
-        {"from": "scripts/escalation/hard_fail.py", "to": "gh CLI (subprocess)", "protocol": "subprocess", "description": "Dedup pre-check: `gh issue list --state open --search 'in:title \"(task #<id>)\" \"Escalation hard-fail\"' --json number,title,url --limit 5` per research D9. If a match exists, hard_fail.py returns {filed: False, deduped: True} and does NOT invoke felix-file-issue.py."},
-        {"from": "scripts/escalation/hard_fail.py", "to": "scripts/openclaw/agents/main/felix-file-issue.py", "protocol": "subprocess", "description": "Hard-fail bug filing per data-model Entity 5 template. Labels: P2-bug, area/escalation. Title format: `Escalation hard-fail: <task title> (task #<vikunja_id>) — <short reason>`."},
-        {"from": "scripts/openclaw/agents/main/felix-file-issue.py", "to": "gh CLI (subprocess)", "protocol": "subprocess", "description": "`gh issue create` for the formatted body. Identity: kg-felix-bot (classic PAT)."},
-        {"from": "gh CLI (subprocess)", "to": "GitHub API", "protocol": "HTTPS (api.github.com)", "description": "Issue search + create. Labels: P2-bug, area/escalation."}
+        {
+          "from": "scripts/escalation/reconcile_completions.py (or record_completion.py during validate)",
+          "to": "scripts/escalation/hard_fail.py",
+          "protocol": "python-import",
+          "description": "Calls hard_fail.file_hard_fail_bug(...) \u2014 pure library helper (no daemon). Module owned by WP04 in this mission; forward-referenced here per C-004."
+        },
+        {
+          "from": "scripts/escalation/hard_fail.py",
+          "to": "gh CLI (subprocess)",
+          "protocol": "subprocess",
+          "description": "Dedup pre-check: `gh issue list --state open --search 'in:title \"(task #<id>)\" \"Escalation hard-fail\"' --json number,title,url --limit 5` per research D9. If a match exists, hard_fail.py returns {filed: False, deduped: True} and does NOT invoke felix-file-issue.py."
+        },
+        {
+          "from": "scripts/escalation/hard_fail.py",
+          "to": "scripts/openclaw/agents/main/felix-file-issue.py",
+          "protocol": "subprocess",
+          "description": "Hard-fail bug filing per data-model Entity 5 template. Labels: P2-bug, area/escalation. Title format: `Escalation hard-fail: <task title> (task #<vikunja_id>) \u2014 <short reason>`."
+        },
+        {
+          "from": "scripts/openclaw/agents/main/felix-file-issue.py",
+          "to": "gh CLI (subprocess)",
+          "protocol": "subprocess",
+          "description": "`gh issue create` for the formatted body. Identity: kg-felix-bot (classic PAT)."
+        },
+        {
+          "from": "gh CLI (subprocess)",
+          "to": "GitHub API",
+          "protocol": "HTTPS (api.github.com)",
+          "description": "Issue search + create. Labels: P2-bug, area/escalation."
+        }
       ]
     },
     {
@@ -358,15 +758,46 @@
       "deployed_by": "#362",
       "introduced_by": "#362",
       "updated_by": "#391",
-      "description": "#362 (Moment 0 drift interpretation — narrow LLM judgment surface); cron-path invocation site corrected by #391. Per mapped drift event, the cron entry point `signals/drift_event.py::DriftEventSignalSource.commit()` delegates to the shared helper `routing/drift_moment0.py::route_drift_event()`, which invokes `drift_interpretation.interpret()` and routes the verdict. The library/CLI surface `helpers/handle_drift_events.py::process_events()` delegates to the same routing helper for operator replay (no longer the cron entry point). `interpret()` builds a cache-aware prompt and calls api.anthropic.com directly via the shared JudgmentClient (claude-haiku-4-5-20251001). The verdict (PROPOSED_EDIT / JUDGMENT_REQUIRED / NO_CHANGE_NEEDED) plus confidence ∈ [0.0, 1.0] is parsed + validated against the E1 schema. PROPOSED_EDIT verdicts at confidence ≥0.80 feed drift_to_proposed_edit and onward through the existing tier_classification surface; lower confidence demotes to JUDGMENT_REQUIRED. Retry policy 30s/60s/120s; on exhaustion falls back to the pre-#362 issue path. Gated by [drift_interpretation].enabled in config.toml — flipping to false reverts to deterministic-only behavior in ≤60s (NFR-007).",
+      "description": "#362 (Moment 0 drift interpretation \u2014 narrow LLM judgment surface); cron-path invocation site corrected by #391. Per mapped drift event, the cron entry point `signals/drift_event.py::DriftEventSignalSource.commit()` delegates to the shared helper `routing/drift_moment0.py::route_drift_event()`, which invokes `drift_interpretation.interpret()` and routes the verdict. The library/CLI surface `helpers/handle_drift_events.py::process_events()` delegates to the same routing helper for operator replay (no longer the cron entry point). `interpret()` builds a cache-aware prompt and calls api.anthropic.com directly via the shared JudgmentClient (claude-haiku-4-5-20251001). The verdict (PROPOSED_EDIT / JUDGMENT_REQUIRED / NO_CHANGE_NEEDED) plus confidence \u2208 [0.0, 1.0] is parsed + validated against the E1 schema. PROPOSED_EDIT verdicts at confidence \u22650.80 feed drift_to_proposed_edit and onward through the existing tier_classification surface; lower confidence demotes to JUDGMENT_REQUIRED. Retry policy 30s/60s/120s; on exhaustion falls back to the pre-#362 issue path. Gated by [drift_interpretation].enabled in config.toml \u2014 flipping to false reverts to deterministic-only behavior in \u226460s (NFR-007).",
       "trigger": "per drift event when [drift_interpretation].enabled = true in scripts/doc_audit/config.toml",
       "path": [
-        {"from": "scripts/doc_audit/signals/drift_event.py", "to": "scripts/doc_audit/routing/drift_moment0.py", "protocol": "python-import", "description": "Cron path (corrected by #391): DriftEventSignalSource.commit() delegates per-event Moment 0 + routing to route_drift_event(). Was previously routed via handle_drift_events.py inline."},
-        {"from": "scripts/doc_audit/helpers/handle_drift_events.py", "to": "scripts/doc_audit/routing/drift_moment0.py", "protocol": "python-import", "description": "Library/CLI replay path (post-#391): process_events() delegates to the same route_drift_event() helper so behavior matches the cron path bit-for-bit."},
-        {"from": "scripts/doc_audit/routing/drift_moment0.py", "to": "scripts/doc_audit/judgment/drift_interpretation.py", "protocol": "python-import", "description": "Per drift event, assembles DriftInterpretationContext (event metadata + diff + mapping rationale + current doc state for each doc_target) and calls interpret(client, context)."},
-        {"from": "scripts/doc_audit/judgment/drift_interpretation.py", "to": "/data/services/openclaw/secrets/anthropic", "protocol": "file read (0600)", "description": "API key load via the shared JudgmentClient — not re-read per call; reused across the tick. Sensitive: never logged."},
-        {"from": "scripts/doc_audit/judgment/drift_interpretation.py", "to": "Anthropic API", "protocol": "HTTPS (anthropic-python SDK)", "endpoint": "api.anthropic.com", "description": "Single narrow judgment call per drift event. Cache-aware: system prompt (≥80% of tokens by char count) is marked cache_control=ephemeral per the existing tier_classification.py pattern (C-005). Returns strict JSON; defense-in-depth schema validation demotes malformed responses to JUDGMENT_REQUIRED (C-006)."},
-        {"from": "scripts/doc_audit/judgment/drift_interpretation.py", "to": "scripts/doc_audit/routing/drift_moment0.py", "protocol": "return value", "description": "Returns a DriftVerdict (E1). On retry exhaustion raises DriftInterpretationError which the caller (signals/drift_event.py on the cron path, or handle_drift_events.py on the replay path) catches → writes RETRY_EXHAUSTED ledger entry → files pre-#362 fallback [doc-audit] issue with diagnostic block (FR-008, FR-009)."}
+        {
+          "from": "scripts/doc_audit/signals/drift_event.py",
+          "to": "scripts/doc_audit/routing/drift_moment0.py",
+          "protocol": "python-import",
+          "description": "Cron path (corrected by #391): DriftEventSignalSource.commit() delegates per-event Moment 0 + routing to route_drift_event(). Was previously routed via handle_drift_events.py inline."
+        },
+        {
+          "from": "scripts/doc_audit/helpers/handle_drift_events.py",
+          "to": "scripts/doc_audit/routing/drift_moment0.py",
+          "protocol": "python-import",
+          "description": "Library/CLI replay path (post-#391): process_events() delegates to the same route_drift_event() helper so behavior matches the cron path bit-for-bit."
+        },
+        {
+          "from": "scripts/doc_audit/routing/drift_moment0.py",
+          "to": "scripts/doc_audit/judgment/drift_interpretation.py",
+          "protocol": "python-import",
+          "description": "Per drift event, assembles DriftInterpretationContext (event metadata + diff + mapping rationale + current doc state for each doc_target) and calls interpret(client, context)."
+        },
+        {
+          "from": "scripts/doc_audit/judgment/drift_interpretation.py",
+          "to": "/data/services/openclaw/secrets/anthropic",
+          "protocol": "file read (0600)",
+          "description": "API key load via the shared JudgmentClient \u2014 not re-read per call; reused across the tick. Sensitive: never logged."
+        },
+        {
+          "from": "scripts/doc_audit/judgment/drift_interpretation.py",
+          "to": "Anthropic API",
+          "protocol": "HTTPS (anthropic-python SDK)",
+          "endpoint": "api.anthropic.com",
+          "description": "Single narrow judgment call per drift event. Cache-aware: system prompt (\u226580% of tokens by char count) is marked cache_control=ephemeral per the existing tier_classification.py pattern (C-005). Returns strict JSON; defense-in-depth schema validation demotes malformed responses to JUDGMENT_REQUIRED (C-006)."
+        },
+        {
+          "from": "scripts/doc_audit/judgment/drift_interpretation.py",
+          "to": "scripts/doc_audit/routing/drift_moment0.py",
+          "protocol": "return value",
+          "description": "Returns a DriftVerdict (E1). On retry exhaustion raises DriftInterpretationError which the caller (signals/drift_event.py on the cron path, or handle_drift_events.py on the replay path) catches \u2192 writes RETRY_EXHAUSTED ledger entry \u2192 files pre-#362 fallback [doc-audit] issue with diagnostic block (FR-008, FR-009)."
+        }
       ]
     },
     {
@@ -375,16 +806,40 @@
       "deployed_by": "#362",
       "introduced_by": "#362",
       "updated_by": "#391",
-      "description": "#362 (Moment 0 audit ledger — terminal write for every processed drift event); cron-path source corrected by #391. After the verdict is routed (PROPOSED_EDIT through tier_classification, JUDGMENT_REQUIRED via [doc-audit] issue, NO_CHANGE_NEEDED auto-closed, or RETRY_EXHAUSTED escalated), routing/drift_moment0.py calls drift_ledger.append() with one AuditLedgerEntry (E3) capturing event_id, timestamp_utc, baseline, mapping_id, verdict, confidence, outcome ∈ {auto_committed, pr_filed, issue_filed, auto_closed, retry_exhausted}, doc_paths, retry_count, latency_ms, tier_classification_outcome, github_issue_number. Atomic append (tempfile + rename). The ledger backs the NFR-001 operator-triage-rate metric. Both the cron entry point (signals/drift_event.py) and the replay path (helpers/handle_drift_events.py) reach this write via the same routing helper.",
+      "description": "#362 (Moment 0 audit ledger \u2014 terminal write for every processed drift event); cron-path source corrected by #391. After the verdict is routed (PROPOSED_EDIT through tier_classification, JUDGMENT_REQUIRED via [doc-audit] issue, NO_CHANGE_NEEDED auto-closed, or RETRY_EXHAUSTED escalated), routing/drift_moment0.py calls drift_ledger.append() with one AuditLedgerEntry (E3) capturing event_id, timestamp_utc, baseline, mapping_id, verdict, confidence, outcome \u2208 {auto_committed, pr_filed, issue_filed, auto_closed, retry_exhausted}, doc_paths, retry_count, latency_ms, tier_classification_outcome, github_issue_number. Atomic append (tempfile + rename). The ledger backs the NFR-001 operator-triage-rate metric. Both the cron entry point (signals/drift_event.py) and the replay path (helpers/handle_drift_events.py) reach this write via the same routing helper.",
       "trigger": "per processed drift event (all verdict branches converge to one ledger row)",
       "path": [
-        {"from": "scripts/doc_audit/signals/drift_event.py", "to": "scripts/doc_audit/routing/drift_moment0.py", "protocol": "python-import", "description": "Cron entry point — calls route_drift_event() which appends the ledger as its terminal side-effect."},
-        {"from": "scripts/doc_audit/helpers/handle_drift_events.py", "to": "scripts/doc_audit/routing/drift_moment0.py", "protocol": "python-import", "description": "Library/CLI replay — calls the same route_drift_event() helper."},
-        {"from": "scripts/doc_audit/routing/drift_moment0.py", "to": "scripts/doc_audit/output/drift_ledger.py", "protocol": "python-import", "description": "Calls drift_ledger.append(entry) with the final outcome-tagged AuditLedgerEntry as the terminal step of route_drift_event."},
-        {"from": "scripts/doc_audit/output/drift_ledger.py", "to": "/data/services/security-monitor/logs/drift-events-ledger.jsonl", "protocol": "file append (atomic rename)", "description": "Append-only JSONL — one row per event. No rotation in v1. ~3-10 entries/day at current drift volume. Read-only CLI subcommands (summary, tail, triage-rate) tail from end-of-file forward for the window in question."}
+        {
+          "from": "scripts/doc_audit/signals/drift_event.py",
+          "to": "scripts/doc_audit/routing/drift_moment0.py",
+          "protocol": "python-import",
+          "description": "Cron entry point \u2014 calls route_drift_event() which appends the ledger as its terminal side-effect."
+        },
+        {
+          "from": "scripts/doc_audit/helpers/handle_drift_events.py",
+          "to": "scripts/doc_audit/routing/drift_moment0.py",
+          "protocol": "python-import",
+          "description": "Library/CLI replay \u2014 calls the same route_drift_event() helper."
+        },
+        {
+          "from": "scripts/doc_audit/routing/drift_moment0.py",
+          "to": "scripts/doc_audit/output/drift_ledger.py",
+          "protocol": "python-import",
+          "description": "Calls drift_ledger.append(entry) with the final outcome-tagged AuditLedgerEntry as the terminal step of route_drift_event."
+        },
+        {
+          "from": "scripts/doc_audit/output/drift_ledger.py",
+          "to": "/data/services/security-monitor/logs/drift-events-ledger.jsonl",
+          "protocol": "file append (atomic rename)",
+          "description": "Append-only JSONL \u2014 one row per event. No rotation in v1. ~3-10 entries/day at current drift volume. Read-only CLI subcommands (summary, tail, triage-rate) tail from end-of-file forward for the window in question."
+        }
       ],
       "consumers": [
-        {"agent": "operator (Kent)", "reads_from": "/data/services/security-monitor/logs/drift-events-ledger.jsonl", "description": "Via `python3 -m scripts.doc_audit.output.drift_ledger {summary|tail|triage-rate}` — NFR-001 metric and daily observation in the 7-day post-deploy window"}
+        {
+          "agent": "operator (Kent)",
+          "reads_from": "/data/services/security-monitor/logs/drift-events-ledger.jsonl",
+          "description": "Via `python3 -m scripts.doc_audit.output.drift_ledger {summary|tail|triage-rate}` \u2014 NFR-001 metric and daily observation in the 7-day post-deploy window"
+        }
       ]
     },
     {
@@ -393,14 +848,40 @@
       "deployed_by": "#362",
       "introduced_by": "#362",
       "updated_by": "#362",
-      "description": "#362 (one-shot backlog cutover — bridges from pre-#362 deterministic-only behavior into the new Moment 0 pipeline). Operator-driven manual invocation (post-deploy, once). The 13 known pre-#362 [doc-audit] P3 issues (#351-#360, #368-#370) are closed with a comment noting the new pipeline will reprocess them; the drift-events cursor is reset to 0 to enable reprocessing of piled-up drift events via Moment 0; a sentinel marker at ~/.config/doc-audit/cutover-362.done prevents re-run. Idempotent on re-run; `--force` overrides the marker check; `--dry-run` prints intent without mutations.",
+      "description": "#362 (one-shot backlog cutover \u2014 bridges from pre-#362 deterministic-only behavior into the new Moment 0 pipeline). Operator-driven manual invocation (post-deploy, once). The 13 known pre-#362 [doc-audit] P3 issues (#351-#360, #368-#370) are closed with a comment noting the new pipeline will reprocess them; the drift-events cursor is reset to 0 to enable reprocessing of piled-up drift events via Moment 0; a sentinel marker at ~/.config/doc-audit/cutover-362.done prevents re-run. Idempotent on re-run; `--force` overrides the marker check; `--dry-run` prints intent without mutations.",
       "trigger": "one-shot operator invocation post-deploy",
       "path": [
-        {"from": "Operator (Kent)", "to": "scripts/doc_audit/helpers/cutover_362.py", "protocol": "CLI (python3 -m or direct)", "description": "Invocation pattern: --dry-run first, then live. Marker check short-circuits subsequent runs unless --force."},
-        {"from": "scripts/doc_audit/helpers/cutover_362.py", "to": "gh CLI (subprocess)", "protocol": "subprocess", "description": "gh issue list --search 'is:issue is:open label:P3-candidate \"[doc-audit]\" in:title' → per result: gh issue comment + gh issue close. Identity: kg-felix-bot (classic PAT)."},
-        {"from": "gh CLI (subprocess)", "to": "GitHub API", "protocol": "HTTPS (api.github.com)", "endpoint": "api.github.com", "description": "Issue list + comment + close for the 13 known pre-#362 P3 issues."},
-        {"from": "scripts/doc_audit/helpers/cutover_362.py", "to": "/data/services/security-monitor/.drift-events.cursor", "protocol": "file write (atomic rename)", "description": "Reset cursor to 0 (calls handle_drift_events --reset-cursor or writes 0 directly) so existing piled-up drift events are reprocessed via Moment 0 on the next tick."},
-        {"from": "scripts/doc_audit/helpers/cutover_362.py", "to": "~/.config/doc-audit/cutover-362.done", "protocol": "file write (atomic rename)", "description": "Sentinel marker. Contains mission slug/id, run_at_utc, closed_issues list, cursor_reset_to. Operator can delete to force re-run; --force flag skips the check."}
+        {
+          "from": "Operator (Kent)",
+          "to": "scripts/doc_audit/helpers/cutover_362.py",
+          "protocol": "CLI (python3 -m or direct)",
+          "description": "Invocation pattern: --dry-run first, then live. Marker check short-circuits subsequent runs unless --force."
+        },
+        {
+          "from": "scripts/doc_audit/helpers/cutover_362.py",
+          "to": "gh CLI (subprocess)",
+          "protocol": "subprocess",
+          "description": "gh issue list --search 'is:issue is:open label:P3-candidate \"[doc-audit]\" in:title' \u2192 per result: gh issue comment + gh issue close. Identity: kg-felix-bot (classic PAT)."
+        },
+        {
+          "from": "gh CLI (subprocess)",
+          "to": "GitHub API",
+          "protocol": "HTTPS (api.github.com)",
+          "endpoint": "api.github.com",
+          "description": "Issue list + comment + close for the 13 known pre-#362 P3 issues."
+        },
+        {
+          "from": "scripts/doc_audit/helpers/cutover_362.py",
+          "to": "/data/services/security-monitor/.drift-events.cursor",
+          "protocol": "file write (atomic rename)",
+          "description": "Reset cursor to 0 (calls handle_drift_events --reset-cursor or writes 0 directly) so existing piled-up drift events are reprocessed via Moment 0 on the next tick."
+        },
+        {
+          "from": "scripts/doc_audit/helpers/cutover_362.py",
+          "to": "~/.config/doc-audit/cutover-362.done",
+          "protocol": "file write (atomic rename)",
+          "description": "Sentinel marker. Contains mission slug/id, run_at_utc, closed_issues list, cursor_reset_to. Operator can delete to force re-run; --force flag skips the check."
+        }
       ]
     },
     {
@@ -409,13 +890,63 @@
       "deployed_by": "#391",
       "introduced_by": "#391",
       "updated_by": "#391",
-      "description": "#391 (one-shot artifact cleanup — closes the 13 broken-pipeline [doc-audit] issues #378-#390 filed by the broken pre-#391 pipeline replay on 2026-05-22T22:28 UTC). Structurally identical to doc-audit-cutover-gh-close (#362) with two deliberate omissions: (a) static issue list, no `gh issue list` query; (b) no cursor reset — the fixed pipeline at signals/drift_event.py processes subsequent drift events via Moment 0 naturally. Operator-driven manual invocation (post-deploy, once). Idempotent on re-run; `--force` overrides the marker check; `--dry-run` prints intent without mutations.",
+      "description": "#391 (one-shot artifact cleanup \u2014 closes the 13 broken-pipeline [doc-audit] issues #378-#390 filed by the broken pre-#391 pipeline replay on 2026-05-22T22:28 UTC). Structurally identical to doc-audit-cutover-gh-close (#362) with two deliberate omissions: (a) static issue list, no `gh issue list` query; (b) no cursor reset \u2014 the fixed pipeline at signals/drift_event.py processes subsequent drift events via Moment 0 naturally. Operator-driven manual invocation (post-deploy, once). Idempotent on re-run; `--force` overrides the marker check; `--dry-run` prints intent without mutations.",
       "trigger": "one-shot operator invocation post-deploy",
       "path": [
-        {"from": "Operator (Kent)", "to": "scripts/doc_audit/helpers/cleanup_391.py", "protocol": "CLI (python3 -m or direct)", "description": "Invocation pattern: --dry-run first, then live. Marker check short-circuits subsequent runs unless --force."},
-        {"from": "scripts/doc_audit/helpers/cleanup_391.py", "to": "gh CLI (subprocess)", "protocol": "subprocess", "description": "Per the static issue list (#378-#390): gh issue comment + gh issue close. Identity: kg-felix-bot (classic PAT)."},
-        {"from": "gh CLI (subprocess)", "to": "api.github.com", "protocol": "HTTPS (api.github.com)", "endpoint": "api.github.com", "description": "Issue comment + close for the 13 known broken-pipeline artifact issues."},
-        {"from": "scripts/doc_audit/helpers/cleanup_391.py", "to": "~/.config/doc-audit/cleanup-391.done", "protocol": "file write (atomic rename)", "description": "Sentinel marker. Contains mission slug/id, run_at_utc, closed_issues list. Operator can delete to force re-run; --force flag skips the check."}
+        {
+          "from": "Operator (Kent)",
+          "to": "scripts/doc_audit/helpers/cleanup_391.py",
+          "protocol": "CLI (python3 -m or direct)",
+          "description": "Invocation pattern: --dry-run first, then live. Marker check short-circuits subsequent runs unless --force."
+        },
+        {
+          "from": "scripts/doc_audit/helpers/cleanup_391.py",
+          "to": "gh CLI (subprocess)",
+          "protocol": "subprocess",
+          "description": "Per the static issue list (#378-#390): gh issue comment + gh issue close. Identity: kg-felix-bot (classic PAT)."
+        },
+        {
+          "from": "gh CLI (subprocess)",
+          "to": "api.github.com",
+          "protocol": "HTTPS (api.github.com)",
+          "endpoint": "api.github.com",
+          "description": "Issue comment + close for the 13 known broken-pipeline artifact issues."
+        },
+        {
+          "from": "scripts/doc_audit/helpers/cleanup_391.py",
+          "to": "~/.config/doc-audit/cleanup-391.done",
+          "protocol": "file write (atomic rename)",
+          "description": "Sentinel marker. Contains mission slug/id, run_at_utc, closed_issues list. Operator can delete to force re-run; --force flag skips the check."
+        }
+      ]
+    },
+    {
+      "name": "main-session-rotation-rename",
+      "status": "active",
+      "deployed_by": "#374",
+      "introduced_by": "#374",
+      "updated_by": "#374",
+      "description": "#374 (main-verbatim-passthrough-01KSATRP) \u2014 operator-driven session rotation to force the main agent to re-load /data/services/openclaw/data/AGENTS.md. OpenClaw caches the system prompt for the lifetime of a session; AGENTS.md edits otherwise stay invisible until the next-started session. The cutover runbook (docs/runbooks/openclaw-agent-setup.md \u00a7'Cutover sequence for main-agent AGENTS.md changes (post-#374)') wraps this helper as step 4 of the 5-step deploy sequence. Idempotent: each call produces a uniquely-timestamped reset suffix and marker. --dry-run prints intent without mutations.",
+      "trigger": "operator (Kent) post-AGENTS.md-deploy",
+      "path": [
+        {
+          "from": "Operator (Kent)",
+          "to": "scripts/openclaw/helpers/rotate_main_session.py",
+          "protocol": "CLI (python3 direct or python3 -m)",
+          "description": "Invocation pattern: --dry-run first (preview), then live. SSH wrapper: ssh office2-claude 'python3 ~/kg-automation/scripts/openclaw/helpers/rotate_main_session.py'."
+        },
+        {
+          "from": "scripts/openclaw/helpers/rotate_main_session.py",
+          "to": "/home/claude/.openclaw/agents/main/sessions/",
+          "protocol": "filesystem rename (Path.rename)",
+          "description": "For each active *.jsonl file: rename to <uuid>.jsonl.reset.<timestamp> using a millisecond-precision UTC timestamp (hyphens not colons; matches the existing OpenClaw auto-rotation pattern). Already-rotated .reset.* files are skipped."
+        },
+        {
+          "from": "scripts/openclaw/helpers/rotate_main_session.py",
+          "to": "~/.config/openclaw/main-rotation-<timestamp>.done",
+          "protocol": "file write",
+          "description": "Marker recording mission slug, run_at_utc, and rotated session basenames. Marker dir is created on first run. Permanent audit trail \u2014 operator can leave it in place."
+        }
       ]
     }
   ],
@@ -423,17 +954,17 @@
     {
       "name": "whatsapp-command-channel",
       "planned_by": "F003-F006",
-      "description": "WhatsApp voice/text → OpenClaw webhook → Whisper → Intent Parser → Vikunja"
+      "description": "WhatsApp voice/text \u2192 OpenClaw webhook \u2192 Whisper \u2192 Intent Parser \u2192 Vikunja"
     },
     {
       "name": "obsidian-inbox-processing",
       "planned_by": "F007-F010",
-      "description": "Obsidian 01-Inbox → hourly processor → vault routing + Vikunja API"
+      "description": "Obsidian 01-Inbox \u2192 hourly processor \u2192 vault routing + Vikunja API"
     },
     {
       "name": "daily-briefing",
       "planned_by": "F014",
-      "description": "Heartbeat → task summary → WhatsApp message to Kent"
+      "description": "Heartbeat \u2192 task summary \u2192 WhatsApp message to Kent"
     }
   ]
 }

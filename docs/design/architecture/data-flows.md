@@ -333,6 +333,25 @@ Behavior:
 
 Identity for the GitHub mutations: `kg-felix-bot` (classic PAT, via `gh` CLI subprocess). `--dry-run` prints intent without mutations. The marker file is permanent — leave it in place as historical record.
 
+### Main-Session Rotation #374 (post-AGENTS.md deploy)
+
+```
+Operator (Kent) → ssh office2-claude
+  → python3 ~/kg-automation/scripts/openclaw/helpers/rotate_main_session.py
+  → /home/claude/.openclaw/agents/main/sessions/   (rename *.jsonl → *.jsonl.reset.<timestamp>)
+  → ~/.config/openclaw/main-rotation-<timestamp>.done   (marker)
+```
+
+One-shot operator-driven session rotation that forces the OpenClaw **main** agent to re-load `/data/services/openclaw/data/AGENTS.md`. The cached system prompt in any already-running session would otherwise mask the new content; only the next-started session sees changes. This helper renames every active `<uuid>.jsonl` under the main agent's sessions directory to `<uuid>.jsonl.reset.<timestamp>` (the existing OpenClaw rotation convention), guaranteeing the next `openclaw agent --agent main` invocation starts fresh.
+
+Wraps as step 4 of the 5-step cutover in [`openclaw-agent-setup.md`](<../../runbooks/openclaw-agent-setup.md>) §"Cutover sequence for main-agent AGENTS.md changes (post-#374)" (pull → deploy → verify size → rotate → smoke-test). Behavior:
+
+1. List active `*.jsonl` files in `/home/claude/.openclaw/agents/main/sessions/` (skip already-rotated `.reset.*` artifacts).
+2. For each active session: rename to `<uuid>.jsonl.reset.<timestamp>` where the timestamp is `YYYY-MM-DDTHH-MM-SS.mmmZ` (hyphens, not colons; matches the existing auto-rotation pattern on office2; millisecond precision).
+3. Write the marker at `~/.config/openclaw/main-rotation-<timestamp>.done` recording `mission`, `run_at_utc`, and the list of rotated session basenames.
+
+Naturally idempotent — each call produces a uniquely-timestamped marker and reset suffix, so re-runs simply rotate whatever sessions have started since the last run (typically zero if no traffic). `--dry-run` prints intent without mutations. `--force` is reserved for future use.
+
 ## Planned Flows (Not Yet Implemented)
 
 | Flow | Features | Description |
@@ -364,3 +383,4 @@ Identity for the GitHub mutations: `kg-felix-bot` (classic PAT, via `gh` CLI sub
 | Drift-events ledger (#362) | `/data/services/security-monitor/logs/drift-events-ledger.jsonl` | Yes |
 | Cutover-362 marker (#362) | `~/.config/doc-audit/cutover-362.done` | No (sentinel; ~/.config not in Restic scope) |
 | Cleanup-391 marker (#391) | `~/.config/doc-audit/cleanup-391.done` | No (sentinel; ~/.config not in Restic scope) |
+| Main-session rotation marker (#374) | `~/.config/openclaw/main-rotation-<timestamp>.done` | No (audit trail; ~/.config not in Restic scope) |
