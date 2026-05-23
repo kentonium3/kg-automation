@@ -2,8 +2,8 @@
 id: cutover-log-felix-doc-auditor-driver
 doc_type: runbook
 title: "Cutover Playbook: felix-doc-auditor → felix-doc-auditor-driver (Scripts-First)"
-status: active
-level: 1
+status: approved
+level: howto
 owners: [kent, felix-doc-auditor]
 last_validated: 2026-05-21
 version: 0.1

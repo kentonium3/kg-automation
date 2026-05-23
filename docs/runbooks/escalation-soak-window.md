@@ -3,7 +3,7 @@ id: escalation-soak-window
 doc_type: runbook
 title: Escalation Phase 6 Soak Window
 status: approved
-level: 2
+level: howto
 owners: [kent]
 last_validated: '2026-05-21'
 updated_by: '#309'

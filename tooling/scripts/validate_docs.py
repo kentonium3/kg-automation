@@ -95,7 +95,7 @@ SKIP_DIRS = {'.git', 'node_modules', '.venv', '_templates', '.obsidian',
              '.obsidian-shared', '_templater-scripts', 'archive', '.kittify',
              'kitty-specs', '.agents', '.claude', '.codex', '.codex-tmp-home',
              '.gemini', '.github', 'scripts', 'research', 'diagnostics',
-             '.pytest_cache', 'temp', 'tests'}
+             '.pytest_cache', 'temp', 'tests', '.worktrees'}
 
 # Directories the SECRET scanner skips. NOTE: 'archive' is intentionally
 # NOT in this set — archived docs are still committed to the public repo
@@ -103,7 +103,7 @@ SKIP_DIRS = {'.git', 'node_modules', '.venv', '_templates', '.obsidian',
 # docs/archive/openclaw-runtime-state-audit.md remained undetected for a
 # month because the secret scanner reused SKIP_DIRS.
 SECRET_SCAN_SKIP_DIRS = {'.git', 'node_modules', '.venv', '.kittify',
-                         '.codex-tmp-home', '.pytest_cache', 'temp'}
+                         '.codex-tmp-home', '.pytest_cache', 'temp', '.worktrees'}
 
 def is_blocker(check_type):
     return check_type in POLICY.get('blockers', [])
