@@ -122,3 +122,4 @@ spec-kitty agent action implement WP01 --mission tasker-jsonl-migration-01KSB5XV
 ## Activity Log
 
 - 2026-05-23T20:24:08Z – unknown – WP01 implementation start
+- 2026-05-23T20:26:15Z – unknown – Ready for review: enrichment foundation; 91 tests / 98% coverage on scripts/enrichment/ (100% schema); full regression 1919 passed / 2 skipped; mirrors escalation per C-003 with single-file JSONL ledger + FR-013 soft-fail.
