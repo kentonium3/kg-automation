@@ -71,4 +71,5 @@ jobs:
           gh issue create \
             --title "Weekly doc audit — ${DATE}" \
             --label "P2-debt" \
+            --label "doc-audit" \
             --body "$BODY"
