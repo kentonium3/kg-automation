@@ -29,8 +29,8 @@ owned_files:
 - docs/design/architecture/data-flows.md
 - docs/runbooks/doc-auditor-driver-ops.md
 tags: []
-agent: "claude:opus:python-implementer:implementer"
-shell_pid: "55905"
+agent: "codex:gpt-5:spec-kitty-review:reviewer"
+shell_pid: "57000"
 ---
 
 # WP03 — cleanup_391 + architecture docs correction
@@ -148,3 +148,4 @@ spec-kitty agent action implement WP03 --mission moment0-integration-fix-01KS8XR
 - 2026-05-23T14:28:35Z – codex:gpt-5:spec-kitty-review:reviewer – shell_pid=54686 – Moved to planned
 - 2026-05-23T14:28:48Z – claude:opus:python-implementer:implementer – shell_pid=55905 – Started implementation via action command
 - 2026-05-23T14:35:49Z – claude:opus:python-implementer:implementer – shell_pid=55905 – Cycle 2: runbook frontmatter date corrected (2026-05-22); service-inventory.md drift_to_proposed_edit metadata restored
+- 2026-05-23T14:35:52Z – codex:gpt-5:spec-kitty-review:reviewer – shell_pid=57000 – Started review via action command
