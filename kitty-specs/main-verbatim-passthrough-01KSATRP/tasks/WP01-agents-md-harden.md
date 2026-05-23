@@ -130,3 +130,4 @@ spec-kitty agent action implement WP01 --mission main-verbatim-passthrough-01KSA
 
 - 2026-05-23T17:24:29Z – unknown – Ready for review: verbatim section added, trim brings file to 13528 chars (under 14K), validation greps all pass
 - 2026-05-23T17:25:59Z – codex:gpt-5:spec-kitty-review:reviewer – shell_pid=80457 – Started review via action command
+- 2026-05-23T17:29:55Z – codex:gpt-5:spec-kitty-review:reviewer – shell_pid=80457 – Moved to planned
