@@ -16,7 +16,9 @@ requirement_refs:
 planning_base_branch: main
 merge_target_branch: main
 branch_strategy: Planning artifacts for this feature were generated on main. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into main unless the human explicitly redirects the landing branch.
-created_at: '2026-05-23T19:50:00+00:00'
+base_branch: kitty/mission-tasker-jsonl-migration-01KSB5XV
+base_commit: 6f060a9b5a30898e27c8742bd431d82182da8e07
+created_at: '2026-05-23T19:59:34.194480+00:00'
 subtasks:
 - T001
 - T002
@@ -34,6 +36,7 @@ owned_files:
 - tests/enrichment/test_schema.py
 - tests/enrichment/test_record_completion.py
 tags: []
+assignee: "claude"
 ---
 
 # WP01 — enrichment schema + record_completion
@@ -115,3 +118,7 @@ Validation:
 ```bash
 spec-kitty agent action implement WP01 --mission tasker-jsonl-migration-01KSB5XV --agent claude:opus:python-implementer:implementer
 ```
+
+## Activity Log
+
+- 2026-05-23T20:24:08Z – unknown – WP01 implementation start
