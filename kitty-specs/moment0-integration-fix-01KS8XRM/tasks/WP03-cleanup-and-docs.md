@@ -147,3 +147,4 @@ spec-kitty agent action implement WP03 --mission moment0-integration-fix-01KS8XR
 - 2026-05-23T14:24:39Z – codex:gpt-5:spec-kitty-review:reviewer – shell_pid=54686 – Started review via action command
 - 2026-05-23T14:28:35Z – codex:gpt-5:spec-kitty-review:reviewer – shell_pid=54686 – Moved to planned
 - 2026-05-23T14:28:48Z – claude:opus:python-implementer:implementer – shell_pid=55905 – Started implementation via action command
+- 2026-05-23T14:35:49Z – claude:opus:python-implementer:implementer – shell_pid=55905 – Cycle 2: runbook frontmatter date corrected (2026-05-22); service-inventory.md drift_to_proposed_edit metadata restored
