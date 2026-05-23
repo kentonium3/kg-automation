@@ -38,8 +38,8 @@ owned_files:
 - docs/design/architecture/service-inventory.md
 - docs/design/architecture/data-flows.md
 tags: []
-agent: "claude:opus:python-implementer:implementer"
-shell_pid: "87974"
+agent: "codex:gpt-5:spec-kitty-review:reviewer"
+shell_pid: "291"
 ---
 
 # WP02 — Session rotation helper + runbook + arch docs
@@ -159,3 +159,4 @@ spec-kitty agent action implement WP02 --mission main-verbatim-passthrough-01KSA
 
 - 2026-05-23T18:04:17Z – claude:opus:python-implementer:implementer – shell_pid=87974 – Started implementation via action command
 - 2026-05-23T19:30:55Z – claude:opus:python-implementer:implementer – shell_pid=87974 – Ready for review: rotate_main_session.py + tests + runbook + arch docs; 20 tests / 97% coverage
+- 2026-05-23T19:33:28Z – codex:gpt-5:spec-kitty-review:reviewer – shell_pid=291 – Started review via action command
