@@ -13,9 +13,9 @@
 | T001 | schema.py — EnrichmentCompletion dataclass + constants (mirror escalation/schema.py) | WP01 | [D] |
 | T002 | record_completion.py — atomic three-write contract + CLI (mirror escalation/record_completion.py) | WP01 | [D] |
 | T003 | Tests for schema + record_completion (≥85% coverage; mock subprocess for Vikunja, tmp_path for JSONL) | WP01 | [D] |
-| T004 | reconcile_completions.py — backfill from Vikunja comments with disambiguation (mirror escalation/reconcile_completions.py) | WP02 |
-| T005 | derive_state.py — compute current state from JSONL (mirror escalation/derive_state.py) | WP02 |
-| T006 | Tests for reconcile + derive_state (≥85%; including disambiguation edge cases) | WP02 |
+| T004 | reconcile_completions.py — backfill from Vikunja comments with disambiguation (mirror escalation/reconcile_completions.py) | WP02 | [D] |
+| T005 | derive_state.py — compute current state from JSONL (mirror escalation/derive_state.py) | WP02 | [D] |
+| T006 | Tests for reconcile + derive_state (≥85%; including disambiguation edge cases) | WP02 | [D] |
 | T007 | tasker AGENTS.md cut: 19,391 → ≤14,000 chars per research D3; replace direct comment writes with record_completion invocation | WP03 |
 | T008 | cutover_tasker.py — one-shot deploy script (mirror cutover_362.py); deploy SKILL.md + AGENTS.md, run reconcile, write marker | WP03 |
 | T009 | Tests for cutover_tasker (≥85%; mock subprocess + filesystem) | WP03 |
