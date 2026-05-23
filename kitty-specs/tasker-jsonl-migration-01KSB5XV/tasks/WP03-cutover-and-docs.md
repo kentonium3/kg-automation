@@ -178,3 +178,4 @@ spec-kitty agent action implement WP03 --mission tasker-jsonl-migration-01KSB5XV
 - 2026-05-23T21:37:11Z – codex:gpt-5:spec-kitty-review:reviewer – shell_pid=23781 – Started review via action command
 - 2026-05-23T21:39:31Z – codex:gpt-5:spec-kitty-review:reviewer – shell_pid=23781 – Moved to planned
 - 2026-05-23T21:42:15Z – claude:opus:python-implementer:implementer – shell_pid=25148 – Started implementation via action command
+- 2026-05-23T21:42:20Z – claude:opus:python-implementer:implementer – shell_pid=25148 – Cycle 3: fixed the residual exit-2 reference at AGENTS.md:121 (codex cycle 2 finding)
