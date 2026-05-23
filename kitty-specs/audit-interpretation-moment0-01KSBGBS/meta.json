@@ -1,0 +1,10 @@
+{
+  "created_at": "2026-05-23T22:47:46.548152+00:00",
+  "friendly_name": "audit interpretation moment0",
+  "mission_id": "01KSBGBS9BBDWV2Z28FESVJ9KQ",
+  "mission_number": null,
+  "mission_slug": "audit-interpretation-moment0-01KSBGBS",
+  "mission_type": "software-dev",
+  "slug": "audit-interpretation-moment0-01KSBGBS",
+  "target_branch": "main"
+}
