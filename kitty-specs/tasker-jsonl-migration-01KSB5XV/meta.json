@@ -1,10 +1,13 @@
 {
+  "change_mode": "regular",
   "created_at": "2026-05-23T19:45:24.124558+00:00",
-  "friendly_name": "tasker jsonl migration",
+  "friendly_name": "Tasker enrichment JSONL state migration (ADR-0002 Phase 7)",
   "mission_id": "01KSB5XVGW5WRDQFR17JSA52M5",
   "mission_number": null,
   "mission_slug": "tasker-jsonl-migration-01KSB5XV",
   "mission_type": "software-dev",
   "slug": "tasker-jsonl-migration-01KSB5XV",
-  "target_branch": "main"
+  "source_description": "GitHub issue #310 (P2-infra). Final ADR-0002 phase — port felix-admin-tasker enrichment state from Vikunja-comments to JSONL substrate, mirroring #308 (habits Phase 3) + #309 (escalation) + #371 (habits scripts-first). Build scripts/enrichment/record_completion.py + reconcile_completions.py with atomic three-write contract (Vikunja comment + JSONL append + ack log). Deploy missing task-intelligence SKILL.md to office2. Cut tasker AGENTS.md from 19,391 to ≤14K chars. Backfill historic enrichment comments (post-#308 window, 2026-04-11+). Cutover + 3-day soak. Prerequisite gate #374 (main agent paraphrase bypass) cleared by mission_number=49 (commit d1268ad1).",
+  "target_branch": "main",
+  "vcs": "git"
 }
