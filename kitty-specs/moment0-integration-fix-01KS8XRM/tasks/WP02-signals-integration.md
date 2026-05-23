@@ -32,6 +32,8 @@ owned_files:
 - scripts/doc_audit/signals/drift_event.py
 - tests/doc_audit/signals/test_drift_event.py
 tags: []
+agent: "claude:opus:python-implementer:implementer"
+shell_pid: "75889"
 ---
 
 # WP02 — Wire shared helper into signals/drift_event.py
@@ -184,3 +186,7 @@ Validation:
 ```bash
 spec-kitty agent action implement WP02 --mission moment0-integration-fix-01KS8XRM --agent claude:opus:python-implementer:implementer
 ```
+
+## Activity Log
+
+- 2026-05-23T04:12:04Z – claude:opus:python-implementer:implementer – shell_pid=75889 – Started implementation via action command
