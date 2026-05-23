@@ -8,15 +8,19 @@ auto-filed [doc-audit] issue (matched signals) or routing to
 unmapped-events.jsonl for AI review (unmatched signals).
 
 Extended by mission ``drift-event-auto-resolution-01KS8J32`` (#362) to
-wire Moment 0 (LLM drift interpretation) into the loop. When
-``[drift_interpretation].enabled = true`` in config.toml, each mapped
-event is passed through ``drift_interpretation.interpret`` and routed
-per verdict (PROPOSED_EDIT → tier_classification dispatch,
-JUDGMENT_REQUIRED → file issue with LLM's question, NO_CHANGE_NEEDED →
-no GitHub artifact). Every event produces exactly one ledger row (FR-010).
-Retry exhaustion falls back to the pre-#362 issue path (FR-009).
+wire Moment 0 (LLM drift interpretation) into the loop, and refactored
+by mission ``moment0-integration-fix-01KS8XRM`` to extract the Moment 0
+routing into the shared ``doc_audit.routing.drift_moment0`` helper.
+When ``[drift_interpretation].enabled = true`` in config.toml, each
+mapped event is passed through ``route_drift_event(...)`` which drives
+``drift_interpretation.interpret`` and dispatches per verdict
+(PROPOSED_EDIT → tier_classification dispatch, JUDGMENT_REQUIRED →
+file issue with LLM's question, NO_CHANGE_NEEDED → ledger only).
+Every event produces exactly one ledger row (FR-010). Retry exhaustion
+falls back to the pre-#362 issue path (FR-009).
 
-The pre-#362 CLI surface is preserved verbatim (per C-002). New flags:
+The pre-#362 CLI surface is preserved verbatim (per C-002). Per-#362
+additions:
 - ``--reset-cursor`` writes the cursor to 0 and exits (FR-014, used by
   the cutover script in WP05).
 - ``--config-path`` accepts an override path for the driver config.toml.
@@ -47,6 +51,11 @@ Importable surface (per mission #343 WP01 lift):
     import path. The CLI ``main()`` is now a thin argparse wrapper that
     delegates to ``process_events`` — both surfaces share the same code.
 
+The Moment 0 ``RoutingOutcome`` type is re-exported from
+``doc_audit.routing.drift_moment0`` for back-compat with any existing
+imports (``from doc_audit.helpers.handle_drift_events import
+RoutingOutcome`` still works).
+
 Exit codes:
     0 — success (events processed, cursor advanced)
     1 — operational error (file unreadable, gh failure, etc.)
@@ -68,15 +77,22 @@ import base64
 import json
 import logging
 import os
-import re
 import subprocess
 import sys
 import tempfile
 import time
 from dataclasses import dataclass
-from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
+
+from doc_audit.judgment.drift_interpretation import DriftInterpretationError
+from doc_audit.routing.drift_moment0 import (
+    RoutingOutcome,
+    _append_ledger_entry,
+    _parse_issue_number,
+    _resolve_repo_root,
+    route_drift_event,
+)
 
 
 logger = logging.getLogger(__name__)
@@ -117,22 +133,6 @@ class ProcessResult:
     judgment_required_filed: int = 0
     no_change_needed_closed: int = 0
     retry_exhausted: int = 0
-
-
-@dataclass
-class RoutingOutcome:
-    """Internal — captures the side-effect outcome of one verdict's routing.
-
-    Used by ``_route_verdict`` to feed the ledger writer (E3
-    ``AuditLedgerEntry``). ``outcome`` is the canonical ledger enum
-    value (per ``contracts/ledger-schema.md``).
-    """
-
-    outcome: str  # one of VALID_OUTCOMES in drift_ledger
-    tier_classification_outcome: Optional[str] = None
-    github_issue_number: Optional[int] = None
-    success: bool = True
-    error: Optional[str] = None
 
 
 def load_mappings(path: Path) -> list[Mapping]:
@@ -294,804 +294,6 @@ def append_unmapped(unmapped_path: Path, event: dict[str, Any]) -> None:
         fh.write(json.dumps(event) + "\n")
 
 
-# ---------------------------------------------------------------------------
-# Moment 0 helpers (mission #362)
-# ---------------------------------------------------------------------------
-
-
-def _now_utc_iso() -> str:
-    """Return the current UTC time as an ISO 8601 `Z`-suffixed string."""
-    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-
-
-# Truncation logic (D2 tiered strategy) lives in
-# doc_audit.judgment.drift_interpretation as the single source of truth.
-# We import it lazily inside _build_context_from_event to avoid a top-level
-# circular-import risk (drift_interpretation may eventually import helpers).
-
-
-def _build_context_from_event(
-    event: dict[str, Any],
-    mapping: Mapping,
-    cursor_line: int,
-    repo_root: Path,
-) -> "Any":
-    """Assemble a :class:`DriftInterpretationContext` (E2) from one event.
-
-    Loads each ``mapping.doc_targets`` file from the repo checkout,
-    truncates per D2, and packages the event into the input shape
-    Moment 0 (``drift_interpretation.interpret``) consumes.
-
-    The return type is ``Any`` so this module does not require the
-    judgment package to be importable at module-load time (the
-    ``[drift_interpretation].enabled=false`` path must never need the
-    LLM SDK to be installed — FR-013 / NFR-007).
-    """
-    from doc_audit.judgment.drift_interpretation import (
-        DocTarget,
-        DriftInterpretationContext,
-    )
-
-    timestamp = str(event.get("timestamp", _now_utc_iso()))
-    if not timestamp.endswith("Z"):
-        timestamp = timestamp + "Z" if "T" in timestamp else _now_utc_iso()
-
-    diff_text = decode_diff(event)
-
-    targets: list[DocTarget] = []
-    for rel_path in mapping.doc_targets:
-        doc_path = repo_root / rel_path
-        try:
-            raw = doc_path.read_text(encoding="utf-8")
-        except FileNotFoundError:
-            # Missing doc target — pass an empty body marked truncated so
-            # the LLM can still produce a JUDGMENT_REQUIRED if needed.
-            raw = ""
-            truncated, strategy = True, "missing_file"
-            targets.append(
-                DocTarget(
-                    path=rel_path,
-                    contents=raw,
-                    truncated=truncated,
-                    truncation_strategy=strategy,
-                )
-            )
-            continue
-        except OSError as exc:
-            logger.warning(
-                "could not read doc_target %s for event: %s", rel_path, exc
-            )
-            raw = ""
-            targets.append(
-                DocTarget(
-                    path=rel_path,
-                    contents=raw,
-                    truncated=True,
-                    truncation_strategy="read_error",
-                )
-            )
-            continue
-
-        from doc_audit.judgment.drift_interpretation import (
-            _truncate_doc_state as _drift_truncate_doc_state,
-        )
-
-        truncated_contents, was_truncated, strategy = _drift_truncate_doc_state(
-            raw, diff_text
-        )
-        targets.append(
-            DocTarget(
-                path=rel_path,
-                contents=truncated_contents,
-                truncated=was_truncated,
-                truncation_strategy=strategy,
-            )
-        )
-
-    baseline = str(event.get("baseline_name", event.get("baseline", "unknown")))
-
-    return DriftInterpretationContext(
-        event_id=f"{cursor_line}:{timestamp}",
-        timestamp_utc=timestamp,
-        baseline=baseline,
-        mapping_id=mapping.id,
-        mapping_rationale=mapping.rationale,
-        diff=diff_text,
-        doc_targets=targets,
-    )
-
-
-def _file_judgment_issue(
-    event: dict[str, Any],
-    mapping: Mapping,
-    question: str,
-    rationale: str,
-    repo: str,
-    dry_run: bool = False,
-) -> tuple[bool, str, Optional[int]]:
-    """File a `[doc-audit]` issue carrying the LLM's specific question.
-
-    Per FR-006, JUDGMENT_REQUIRED verdicts produce an operator-readable
-    issue with the LLM's `question` prominently in the body (rather
-    than the generic "review the diff" prompt of the pre-#362 path).
-
-    Returns ``(success, gh_output_or_url, issue_number_or_None)``.
-    """
-    timestamp = event.get("timestamp", "unknown")
-    baseline = event.get("baseline_name", "unknown")
-    diff_text = decode_diff(event)
-    diff_excerpt = (
-        diff_text if len(diff_text) <= 4000 else diff_text[:4000] + "\n...(truncated)"
-    )
-
-    title = f"{mapping.issue_title_prefix} — judgment required — {timestamp}"
-    doc_target_lines = "\n".join(f"- `{t}`" for t in mapping.doc_targets)
-    label_arg = ",".join(mapping.issue_labels)
-
-    body = f"""## Drift event needs judgment (#362 Moment 0)
-
-The Moment 0 LLM judgment classified this drift event as **JUDGMENT_REQUIRED**. The
-question below is the specific operator decision the LLM could not make
-autonomously.
-
-### Question
-
-{question}
-
-### LLM rationale
-
-{rationale}
-
----
-
-**Signal source**: `{event.get('source', 'unknown')}`
-**Baseline**: `{baseline}`
-**Event timestamp**: `{timestamp}`
-**Mapping id**: `{mapping.id}`
-
-## Likely doc targets
-
-{doc_target_lines}
-
-## Drift diff
-
-```
-{diff_excerpt}
-```
-
-## Auto-generated
-
-Filed by `handle_drift_events.py` (mission #362). See `docs/design/architecture/data/signal-to-doc-map.json` for the mapping.
-"""
-
-    if dry_run:
-        return True, f"[dry-run] would file judgment issue: {title}", None
-
-    try:
-        result = subprocess.run(
-            [
-                "gh",
-                "issue",
-                "create",
-                "--repo",
-                repo,
-                "--title",
-                title,
-                "--label",
-                label_arg,
-                "--body",
-                body,
-            ],
-            capture_output=True,
-            text=True,
-            check=True,
-            timeout=60,
-        )
-        stdout = result.stdout.strip()
-        return True, stdout, _parse_issue_number(stdout)
-    except subprocess.CalledProcessError as e:
-        return False, f"gh issue create failed: {e.stderr.strip()}", None
-    except subprocess.TimeoutExpired:
-        return False, "gh issue create timed out after 60s", None
-
-
-_ISSUE_NUMBER_RE = re.compile(r"/issues/(\d+)")
-
-
-def _parse_issue_number(stdout: str) -> Optional[int]:
-    """Extract an issue number from `gh issue create` stdout."""
-    match = _ISSUE_NUMBER_RE.search(stdout or "")
-    if not match:
-        return None
-    try:
-        return int(match.group(1))
-    except ValueError:
-        return None
-
-
-def _resolve_repo_root() -> Path:
-    """Return the git repo root for the current working directory."""
-    try:
-        res = subprocess.run(
-            ["git", "rev-parse", "--show-toplevel"],
-            capture_output=True,
-            text=True,
-            check=True,
-        )
-        return Path(res.stdout.strip()).resolve()
-    except (OSError, subprocess.CalledProcessError):
-        return Path.cwd().resolve()
-
-
-def _route_verdict(
-    verdict: "Any",
-    context: "Any",
-    event: dict[str, Any],
-    mapping: Mapping,
-    repo: str,
-    repo_root: Path,
-    judgment_client: "Any",
-    dry_run: bool = False,
-) -> RoutingOutcome:
-    """Dispatch a :class:`DriftVerdict` to the correct side-effect.
-
-    Verdict → side-effect → ledger ``outcome`` mapping (per
-    ``contracts/ledger-schema.md``):
-
-    - PROPOSED_EDIT  → translator + tier_classification:
-        - TIER_A    → auto-commit       → ``outcome="auto_committed"``
-        - TIER_B    → file PR/pending   → ``outcome="pr_filed"``
-        - JUDGMENT  → file DebtIssue    → ``outcome="issue_filed"``
-    - JUDGMENT_REQUIRED → file [doc-audit] issue → ``outcome="issue_filed"``
-    - NO_CHANGE_NEEDED → no GitHub action       → ``outcome="auto_closed"``
-
-    Reuses the per-change_type appliers and gh helpers from
-    :mod:`doc_audit.helpers.handle_audit_routing` so we don't
-    re-implement that surface here.
-    """
-    verdict_value = getattr(verdict, "verdict", None)
-
-    if verdict_value == "NO_CHANGE_NEEDED":
-        # No GitHub action; ledger entry only (FR-007).
-        return RoutingOutcome(
-            outcome="auto_closed",
-            tier_classification_outcome=None,
-            github_issue_number=None,
-            success=True,
-        )
-
-    if verdict_value == "JUDGMENT_REQUIRED":
-        # FR-006: file an issue carrying the LLM's question.
-        question = getattr(verdict, "question", "") or ""
-        rationale = getattr(verdict, "rationale", "") or ""
-        ok, output, issue_number = _file_judgment_issue(
-            event=event,
-            mapping=mapping,
-            question=question,
-            rationale=rationale,
-            repo=repo,
-            dry_run=dry_run,
-        )
-        return RoutingOutcome(
-            outcome="issue_filed",
-            tier_classification_outcome=None,
-            github_issue_number=issue_number,
-            success=ok,
-            error=None if ok else output,
-        )
-
-    if verdict_value != "PROPOSED_EDIT":
-        # Defense-in-depth: drift_interpretation guarantees one of the
-        # three verdicts. Anything else demotes to JUDGMENT_REQUIRED-like
-        # behavior so the operator sees something.
-        ok, output, issue_number = _file_judgment_issue(
-            event=event,
-            mapping=mapping,
-            question=f"Unexpected verdict value: {verdict_value!r}",
-            rationale=getattr(verdict, "rationale", "") or "",
-            repo=repo,
-            dry_run=dry_run,
-        )
-        return RoutingOutcome(
-            outcome="issue_filed",
-            tier_classification_outcome=None,
-            github_issue_number=issue_number,
-            success=ok,
-        )
-
-    # ------------------- PROPOSED_EDIT path -------------------------------
-    from doc_audit.judgment import tier_classification
-    from doc_audit.routing import build as build_proposed_edit
-
-    try:
-        proposed_edit = build_proposed_edit(verdict, context)
-    except ValueError as exc:
-        # Translator rejected — defense-in-depth. Demote to JUDGMENT_REQUIRED.
-        logger.warning(
-            "drift_to_proposed_edit.build rejected verdict: %s; demoting", exc
-        )
-        ok, output, issue_number = _file_judgment_issue(
-            event=event,
-            mapping=mapping,
-            question=(
-                "drift_to_proposed_edit.build rejected the LLM verdict; "
-                "the proposed edit was out-of-set or malformed."
-            ),
-            rationale=str(exc),
-            repo=repo,
-            dry_run=dry_run,
-        )
-        return RoutingOutcome(
-            outcome="issue_filed",
-            tier_classification_outcome="judgment",
-            github_issue_number=issue_number,
-            success=ok,
-        )
-
-    # ----- Moment 1 tier_classification -----
-    # Pass an empty frontmatter excerpt + the mapping's labels (the most
-    # specific scope we have at this layer). guardrail_check_result is
-    # left as "not_guardrailed"; tier_classification's own SKILL.md
-    # short-circuit catches guardrailed paths regardless.
-    try:
-        tier, tier_rationale, _resp = tier_classification.classify(
-            judgment_client,
-            proposed_edit,
-            audit_area_labels=list(mapping.issue_labels),
-            doc_frontmatter_excerpt="",
-            guardrail_check_result="not_guardrailed",
-        )
-    except Exception as exc:  # pragma: no cover - defensive
-        # Any tier_classification failure → file an issue rather than
-        # auto-applying. Operator surface preserved.
-        logger.warning(
-            "tier_classification raised %s; demoting to JUDGMENT", exc
-        )
-        ok, output, issue_number = _file_judgment_issue(
-            event=event,
-            mapping=mapping,
-            question=(
-                "Moment 1 tier_classification failed; the proposed edit "
-                "needs operator review."
-            ),
-            rationale=f"tier_classification error: {exc}",
-            repo=repo,
-            dry_run=dry_run,
-        )
-        return RoutingOutcome(
-            outcome="issue_filed",
-            tier_classification_outcome="judgment",
-            github_issue_number=issue_number,
-            success=ok,
-        )
-
-    tier_value = getattr(tier, "value", None) or str(tier)
-
-    if tier_value == "tier_a":
-        ok, output, applied_path = _apply_tier_a_edit(
-            proposed_edit=proposed_edit,
-            repo_root=repo_root,
-            event=event,
-            mapping=mapping,
-            dry_run=dry_run,
-        )
-        if ok:
-            return RoutingOutcome(
-                outcome="auto_committed",
-                tier_classification_outcome="tier_a",
-                github_issue_number=None,
-                success=True,
-            )
-        # Tier A apply failed — fall back to filing a judgment issue.
-        logger.warning("Tier A auto-commit failed: %s; demoting to judgment", output)
-        ok, output, issue_number = _file_judgment_issue(
-            event=event,
-            mapping=mapping,
-            question=(
-                "Tier A auto-commit failed; the proposed edit needs "
-                "operator review (likely current_value mismatch)."
-            ),
-            rationale=f"{tier_rationale}\n\nApply error: {output}",
-            repo=repo,
-            dry_run=dry_run,
-        )
-        return RoutingOutcome(
-            outcome="issue_filed",
-            tier_classification_outcome="tier_a",
-            github_issue_number=issue_number,
-            success=ok,
-        )
-
-    if tier_value == "tier_b":
-        ok, output, issue_number = _file_tier_b_pending_approval(
-            proposed_edit=proposed_edit,
-            event=event,
-            mapping=mapping,
-            rationale=tier_rationale,
-            repo=repo,
-            dry_run=dry_run,
-        )
-        return RoutingOutcome(
-            outcome="pr_filed",
-            tier_classification_outcome="tier_b",
-            github_issue_number=issue_number,
-            success=ok,
-            error=None if ok else output,
-        )
-
-    # tier_value == "judgment" — file a DebtIssue-style issue.
-    ok, output, issue_number = _file_judgment_issue(
-        event=event,
-        mapping=mapping,
-        question=(
-            "Moment 1 tier_classification routed this proposed edit to "
-            "JUDGMENT; please review the diff and decide."
-        ),
-        rationale=tier_rationale,
-        repo=repo,
-        dry_run=dry_run,
-    )
-    return RoutingOutcome(
-        outcome="issue_filed",
-        tier_classification_outcome="judgment",
-        github_issue_number=issue_number,
-        success=ok,
-        error=None if ok else output,
-    )
-
-
-def _apply_tier_a_edit(
-    proposed_edit: "Any",
-    repo_root: Path,
-    event: dict[str, Any],
-    mapping: Mapping,
-    dry_run: bool = False,
-) -> tuple[bool, str, Optional[Path]]:
-    """Apply a Tier A proposed edit and commit it.
-
-    Reuses :func:`doc_audit.helpers.handle_audit_routing._apply_one` for
-    the substitution + atomic write so we don't reimplement the
-    per-change_type applier table. The commit is constructed inline
-    because the audit-decision routing's commit message references an
-    audit issue we don't have for drift-derived edits.
-    """
-    from doc_audit.helpers.handle_audit_routing import (
-        APPLIERS,
-        RouteApplyError,
-        _atomic_write,
-    )
-
-    # `proposed_edit` has change_type="drift_derived" — translate to an
-    # applier key by inspecting the edit shape. We try the common
-    # appliers in order; whichever performs a successful substitution
-    # wins. If none of them match, fall back to judgment.
-    proposal_dict = {
-        "doc_path": proposed_edit.doc_path,
-        "change_type": proposed_edit.change_type,
-        "current_value": proposed_edit.current_value,
-        "proposed_value": proposed_edit.proposed_value,
-        "evidence_source": proposed_edit.evidence_source,
-        "confidence": proposed_edit.confidence,
-    }
-
-    doc_path = repo_root / proposed_edit.doc_path
-    if not doc_path.exists():
-        return False, f"doc not found: {doc_path}", None
-
-    try:
-        content = doc_path.read_text(encoding="utf-8")
-    except OSError as exc:
-        return False, f"doc unreadable: {exc}", None
-
-    # Try a sequence of safe appliers. ``version_bump`` is the most
-    # permissive single-occurrence substitution and is the right default
-    # for drift_derived edits whose change_type doesn't match a more
-    # specific applier.
-    last_error: Optional[str] = None
-    new_content: Optional[str] = None
-    for applier_name in ("version_bump", "frontmatter_date", "path_rename"):
-        applier = APPLIERS.get(applier_name)
-        if applier is None:  # pragma: no cover
-            continue
-        try:
-            new_content = applier(content, proposal_dict)
-            break
-        except RouteApplyError as exc:
-            last_error = exc.reason
-            continue
-
-    if new_content is None or new_content == content:
-        return (
-            False,
-            f"no applier produced a change: {last_error or 'unknown'}",
-            None,
-        )
-
-    if dry_run:
-        return True, f"[dry-run] would apply Tier A edit to {proposed_edit.doc_path}", doc_path
-
-    try:
-        _atomic_write(doc_path, new_content)
-    except OSError as exc:
-        return False, f"atomic write failed: {exc}", None
-
-    # Build a commit referencing the drift event so the operator can
-    # trace it back to the originating signal.
-    timestamp = event.get("timestamp", "unknown")
-    subject = (
-        f"docs(drift): auto-apply drift_derived edit for {mapping.id}"
-    )
-    body_lines = [
-        "",
-        f"Triggered by drift event timestamp={timestamp} mapping={mapping.id}.",
-        f"Auto-applied via Moment 0 (drift_interpretation) Tier A.",
-        "",
-        f"- {proposed_edit.doc_path}: "
-        f"{proposed_edit.current_value!r} -> {proposed_edit.proposed_value!r}",
-        "",
-        f"Evidence: {proposed_edit.evidence_source}",
-    ]
-    commit_message = subject + "\n" + "\n".join(body_lines) + "\n"
-
-    try:
-        add_res = subprocess.run(
-            ["git", "add", "--", proposed_edit.doc_path],
-            cwd=str(repo_root),
-            capture_output=True,
-            text=True,
-        )
-        if add_res.returncode != 0:
-            return False, f"git add failed: {add_res.stderr.strip()}", None
-        commit_res = subprocess.run(
-            ["git", "commit", "-m", commit_message],
-            cwd=str(repo_root),
-            capture_output=True,
-            text=True,
-        )
-        if commit_res.returncode != 0:
-            return False, f"git commit failed: {commit_res.stderr.strip()}", None
-    except OSError as exc:
-        return False, f"git invocation failed: {exc}", None
-
-    return True, "applied + committed", doc_path
-
-
-def _file_tier_b_pending_approval(
-    proposed_edit: "Any",
-    event: dict[str, Any],
-    mapping: Mapping,
-    rationale: str,
-    repo: str,
-    dry_run: bool = False,
-) -> tuple[bool, str, Optional[int]]:
-    """File a Tier B pending-approval issue for the proposed edit."""
-    timestamp = event.get("timestamp", "unknown")
-    title = (
-        f"{mapping.issue_title_prefix} — pending approval — {timestamp}"
-    )
-    label_arg = ",".join(["audit-pending-approval"] + list(mapping.issue_labels))
-
-    body = f"""## Tier B pending approval (#362 Moment 0)
-
-A drift-derived proposed edit reached Tier B and needs operator approval before
-landing.
-
-**Doc target**: `{proposed_edit.doc_path}`
-**Change type**: `{proposed_edit.change_type}`
-**Evidence**: {proposed_edit.evidence_source}
-
-### Diff
-
-```diff
-- {proposed_edit.current_value}
-+ {proposed_edit.proposed_value}
-```
-
-### LLM rationale (Moment 1)
-
-{rationale}
-
-### Drift event
-
-- baseline: `{event.get('baseline_name', 'unknown')}`
-- mapping: `{mapping.id}`
-- timestamp: `{timestamp}`
-
-## Auto-generated
-
-Filed by `handle_drift_events.py` (mission #362).
-"""
-
-    if dry_run:
-        return True, f"[dry-run] would file Tier B issue: {title}", None
-
-    try:
-        result = subprocess.run(
-            [
-                "gh",
-                "issue",
-                "create",
-                "--repo",
-                repo,
-                "--title",
-                title,
-                "--label",
-                label_arg,
-                "--body",
-                body,
-            ],
-            capture_output=True,
-            text=True,
-            check=True,
-            timeout=60,
-        )
-        stdout = result.stdout.strip()
-        return True, stdout, _parse_issue_number(stdout)
-    except subprocess.CalledProcessError as e:
-        return False, f"gh issue create failed: {e.stderr.strip()}", None
-    except subprocess.TimeoutExpired:
-        return False, "gh issue create timed out after 60s", None
-
-
-def _append_ledger_entry(
-    *,
-    ledger_path: Path,
-    event_id: str,
-    baseline: str,
-    mapping_id: str,
-    verdict_value: str,
-    confidence: Optional[float],
-    outcome: str,
-    doc_paths: list[str],
-    retry_count: int,
-    latency_ms: int,
-    tier_classification_outcome: Optional[str],
-    github_issue_number: Optional[int],
-) -> None:
-    """Append one row to the drift-events ledger (E3).
-
-    Wraps :func:`doc_audit.output.drift_ledger.append` so all the
-    schema-required field plumbing lives in one place. Errors are
-    logged but never raised — a ledger-write failure must NOT undo a
-    completed side-effect (FR-010 says exactly one row per processed
-    event, but if the ledger write fails the side-effect already
-    happened; we surface the failure to the operator via logs).
-    """
-    from doc_audit.output.drift_ledger import AuditLedgerEntry, append as ledger_append
-
-    entry = AuditLedgerEntry(
-        event_id=event_id,
-        timestamp_utc=_now_utc_iso(),
-        baseline=baseline or "unknown",
-        mapping_id=mapping_id,
-        verdict=verdict_value,
-        confidence=confidence,
-        outcome=outcome,
-        doc_paths=list(doc_paths),
-        retry_count=retry_count,
-        latency_ms=max(0, int(latency_ms)),
-        tier_classification_outcome=tier_classification_outcome,
-        github_issue_number=github_issue_number,
-    )
-    try:
-        ledger_append(entry, ledger_path=ledger_path)
-    except (OSError, ValueError) as exc:
-        logger.error(
-            "ledger append failed for event_id=%s: %s; side-effect already "
-            "completed, continuing",
-            event_id,
-            exc,
-        )
-
-
-def _handle_moment0_event(
-    *,
-    event: dict[str, Any],
-    mapping: Mapping,
-    cursor_line: int,
-    config: "Any",
-    judgment_client: "Any",
-    repo: str,
-    repo_root: Path,
-    ledger_path: Path,
-    dry_run: bool,
-) -> RoutingOutcome:
-    """Drive Moment 0 for a single mapped event end-to-end.
-
-    Returns the :class:`RoutingOutcome` produced by ``_route_verdict``
-    (or a synthetic ``retry_exhausted`` outcome if Moment 0 raises
-    after retries exhausted).
-    """
-    from doc_audit.judgment.drift_interpretation import (
-        DriftInterpretationError,
-        interpret,
-    )
-
-    event_start = time.monotonic()
-    context = _build_context_from_event(event, mapping, cursor_line, repo_root)
-    event_id = context.event_id
-    baseline = context.baseline
-    doc_paths = [t.path for t in context.doc_targets]
-
-    try:
-        verdict = interpret(
-            judgment_client,
-            context,
-            model=config.drift_interpretation.model,
-            timeout=config.drift_interpretation.timeout_seconds,
-            confidence_threshold=config.drift_interpretation.confidence_threshold,
-        )
-    except DriftInterpretationError as exc:
-        # FR-009: retry exhausted — fall back to the pre-#362 issue path.
-        logger.error(
-            "Moment 0 retry exhausted for event %s: %s", event_id, exc
-        )
-        if not dry_run:
-            ok, output = file_doc_audit_issue(
-                event=event,
-                mapping=mapping,
-                repo=repo,
-                dry_run=False,
-                extra_body=exc.to_diagnostic_block(),
-            )
-            issue_number = _parse_issue_number(output) if ok else None
-        else:
-            ok = True
-            issue_number = None
-        latency_ms = int((time.monotonic() - event_start) * 1000)
-        if not dry_run:
-            _append_ledger_entry(
-                ledger_path=ledger_path,
-                event_id=event_id,
-                baseline=baseline,
-                mapping_id=mapping.id,
-                verdict_value="RETRY_EXHAUSTED",
-                confidence=None,
-                outcome="retry_exhausted",
-                doc_paths=doc_paths,
-                retry_count=getattr(exc, "attempts", 3),
-                latency_ms=latency_ms,
-                tier_classification_outcome=None,
-                github_issue_number=issue_number,
-            )
-        return RoutingOutcome(
-            outcome="retry_exhausted",
-            tier_classification_outcome=None,
-            github_issue_number=issue_number,
-            success=True,
-        )
-
-    # Normal verdict routing
-    outcome = _route_verdict(
-        verdict=verdict,
-        context=context,
-        event=event,
-        mapping=mapping,
-        repo=repo,
-        repo_root=repo_root,
-        judgment_client=judgment_client,
-        dry_run=dry_run,
-    )
-
-    latency_ms = int((time.monotonic() - event_start) * 1000)
-    if not dry_run:
-        _append_ledger_entry(
-            ledger_path=ledger_path,
-            event_id=event_id,
-            baseline=baseline,
-            mapping_id=mapping.id,
-            verdict_value=verdict.verdict,
-            confidence=float(verdict.confidence),
-            outcome=outcome.outcome,
-            doc_paths=doc_paths,
-            retry_count=0,
-            latency_ms=latency_ms,
-            tier_classification_outcome=outcome.tier_classification_outcome,
-            github_issue_number=outcome.github_issue_number,
-        )
-    return outcome
-
-
 def _build_judgment_client(config: "Any") -> "Any":
     """Construct one :class:`JudgmentClient` per tick (cache stays warm).
 
@@ -1134,6 +336,14 @@ def process_events(
     verdict. Every processed event produces exactly one ledger row
     (FR-010). The pre-#362 CLI shape (positional + keyword args
     ``events_path`` through ``dry_run``) is preserved verbatim (C-002).
+
+    Mission ``moment0-integration-fix-01KS8XRM`` refactor: the Moment 0
+    routing logic is now invoked via the shared
+    :func:`doc_audit.routing.drift_moment0.route_drift_event` helper.
+    The :class:`DriftInterpretationError` (retry exhausted) fallback is
+    handled HERE (caller of the helper) so the pre-#362 ``[doc-audit]``
+    issue path remains the recovery surface and the helper stays free of
+    that concern.
 
     The :class:`ProcessResult` returned mirrors the values reported in
     the CLI ``SUMMARY:`` line so library callers receive the same
@@ -1286,7 +496,7 @@ def process_events(
             continue
 
         if moment0_on:
-            outcome = _handle_moment0_event(
+            outcome = _handle_moment0_event_via_helper(
                 event=event,
                 mapping=mapping,
                 cursor_line=cursor_line,
@@ -1361,6 +571,104 @@ def process_events(
         no_change_needed_closed=no_change_needed_closed,
         retry_exhausted=retry_exhausted_count,
     )
+
+
+def _handle_moment0_event_via_helper(
+    *,
+    event: dict[str, Any],
+    mapping: Mapping,
+    cursor_line: int,
+    config: "Any",
+    judgment_client: "Any",
+    repo: str,
+    repo_root: Path,
+    ledger_path: Path,
+    dry_run: bool,
+) -> RoutingOutcome:
+    """Invoke the shared :func:`route_drift_event` helper and handle its
+    documented failure mode.
+
+    Per ``contracts/routing-helper.md`` (mission
+    ``moment0-integration-fix-01KS8XRM``), the helper raises
+    :class:`DriftInterpretationError` on retry exhaustion (and on
+    semantic violations like an out-of-set ``doc_path``). The caller is
+    responsible for the RETRY_EXHAUSTED fallback path:
+
+    1. File the pre-#362 ``[doc-audit]`` issue with the
+       ``DriftInterpretationError.to_diagnostic_block`` payload.
+    2. Append a ``RETRY_EXHAUSTED`` ledger row.
+    3. Return a synthetic ``RoutingOutcome`` so the loop's cursor
+       advance + counter increments behave identically to before the
+       refactor.
+
+    Returns the same :class:`RoutingOutcome` shape ``route_drift_event``
+    returns; on the fallback path we manufacture one so the caller's
+    counter logic stays uniform.
+    """
+    event_start = time.perf_counter()
+    timestamp_utc = str(event.get("timestamp", ""))
+    event_id = f"{cursor_line}:{timestamp_utc}"
+
+    try:
+        return route_drift_event(
+            event=event,
+            mapping=mapping,
+            config=config,
+            client=judgment_client,
+            ledger_path=ledger_path,
+            repo=repo,
+            event_id=event_id,
+            timestamp_utc=timestamp_utc,
+            cursor_line=cursor_line,
+            repo_root=repo_root,
+            dry_run=dry_run,
+        )
+    except DriftInterpretationError as exc:
+        # FR-009: retry exhausted — fall back to the pre-#362 issue path.
+        logger.error(
+            "Moment 0 retry exhausted for event %s: %s", event_id, exc
+        )
+        if not dry_run:
+            ok, output = file_doc_audit_issue(
+                event=event,
+                mapping=mapping,
+                repo=repo,
+                dry_run=False,
+                extra_body=exc.to_diagnostic_block(),
+            )
+            issue_number = _parse_issue_number(output) if ok else None
+        else:
+            issue_number = None
+        latency_ms = int((time.perf_counter() - event_start) * 1000)
+        attempts = getattr(exc, "attempts", 3) or 3
+        # Clamp retry_count to the ledger schema's [0, 3] bound.
+        retry_count = min(3, max(0, int(attempts)))
+        baseline = str(
+            event.get("baseline_name", event.get("baseline", "unknown"))
+        )
+        if not dry_run:
+            _append_ledger_entry(
+                ledger_path=ledger_path,
+                event_id=event_id,
+                baseline=baseline,
+                mapping_id=mapping.id,
+                verdict_value="RETRY_EXHAUSTED",
+                confidence=None,
+                outcome="retry_exhausted",
+                doc_paths=list(mapping.doc_targets),
+                retry_count=retry_count,
+                latency_ms=latency_ms,
+                tier_classification_outcome=None,
+                github_issue_number=issue_number,
+            )
+        return RoutingOutcome(
+            outcome="retry_exhausted",
+            tier_classification_outcome=None,
+            github_issue_number=issue_number,
+            success=True,
+            retry_count=retry_count,
+            latency_ms=latency_ms,
+        )
 
 
 def main(argv: list[str] | None = None) -> int:

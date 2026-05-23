@@ -134,7 +134,7 @@ felix-doc-auditor.timer → felix-doc-auditor.service → scripts/doc_audit/run.
 Post-#343 doc-audit tick flow. The systemd user timer (`felix-doc-auditor.timer`, `OnCalendar=hourly`, `Persistent=true`) launches the oneshot service which execs the Python driver. The driver:
 
 1. Loads the Anthropic API key from `/data/services/openclaw/secrets/anthropic` (0600 file read) — see **Doc-Auditor Credential Read** below.
-2. Calls Anthropic directly at judgment moments. **Post-#362 the surface is four moments**: Moment 0 — **drift_interpretation** (per mapped drift event; classifies PROPOSED_EDIT / JUDGMENT_REQUIRED / NO_CHANGE_NEEDED); Moment 1 — **tier_classification**; Moments 2 and 3 — **debt_body_generation** and **cross_file_implication** (unchanged from #343). Drift events flow into Moment 0 first via `handle_drift_events.py`; PROPOSED_EDIT verdicts at confidence ≥0.80 are then routed through `tier_classification` (preserving SKILL.md §4.3 guardrails). Prompt caching is enabled via the SDK to amortize the cached boilerplate across calls within a tick.
+2. Calls Anthropic directly at judgment moments. **Post-#362 the surface is four moments**: Moment 0 — **drift_interpretation** (per mapped drift event; classifies PROPOSED_EDIT / JUDGMENT_REQUIRED / NO_CHANGE_NEEDED); Moment 1 — **tier_classification**; Moments 2 and 3 — **debt_body_generation** and **cross_file_implication** (unchanged from #343). Post-#391 the cron-path Moment 0 invocation flows through `signals/drift_event.py::DriftEventSignalSource.commit()` → `routing/drift_moment0.py::route_drift_event()`; the library/CLI surface `helpers/handle_drift_events.py` delegates to the same routing helper for operator replay only. PROPOSED_EDIT verdicts at confidence ≥0.80 are then routed through `tier_classification` (preserving SKILL.md §4.3 guardrails). Prompt caching is enabled via the SDK to amortize the cached boilerplate across calls within a tick.
 3. Mutates GitHub state exclusively via `gh` subprocess (issue list/edit/create/close, label add/remove, comment create) under the `kg-felix-bot` PAT.
 4. Appends a per-tick prose entry to the operator-readable activity log under `/home/kgale/second-brain/agents/logs/`.
 
@@ -233,38 +233,45 @@ Hard-fail trigger conditions (FR-008, research D8):
 
 Filing path: `hard_fail.py` runs the dedup pre-check (`gh issue list --state open --search 'in:title "(task #<id>)" "Escalation hard-fail"'` per research D9). If an open issue exists, it returns `{filed: False, deduped: True}` and does NOT call `felix-file-issue.py`. Otherwise it invokes `scripts/openclaw/agents/main/felix-file-issue.py` as a subprocess; that helper calls `gh issue create`. Identity: `kg-felix-bot` (classic PAT). Labels: `P2-bug, area/escalation`. Body template per data-model Entity 5.
 
-### Doc-Audit Drift Interpretation LLM (#362)
+### Doc-Audit Drift Interpretation LLM (#362, cron-path corrected by #391)
 
 ```
-scripts/doc_audit/helpers/handle_drift_events.py (per mapped drift event when [drift_interpretation].enabled=true)
+scripts/doc_audit/signals/drift_event.py::DriftEventSignalSource.commit() (cron entry point)
+  ├─ delegates to →
+scripts/doc_audit/helpers/handle_drift_events.py::process_events()  (operator-replay entry point only — NOT used by cron post-#391)
+  └─ delegates to →
+scripts/doc_audit/routing/drift_moment0.py::route_drift_event()   (shared Moment 0 routing helper, #391)
   → scripts/doc_audit/judgment/drift_interpretation.py
        ├─ /data/services/openclaw/secrets/anthropic   (file read 0600, via shared JudgmentClient)
        └─ api.anthropic.com   (HTTPS via anthropic-python SDK, model claude-haiku-4-5-20251001)
   → DriftVerdict (PROPOSED_EDIT / JUDGMENT_REQUIRED / NO_CHANGE_NEEDED, confidence ∈ [0.0, 1.0])
 ```
 
-Moment 0 of the doc-audit judgment surface, introduced by #362. Per mapped drift event, `handle_drift_events.py` assembles a `DriftInterpretationContext` (event metadata + diff + mapping rationale + current contents of each `doc_target`) and calls `drift_interpretation.interpret(client, context)`. The helper builds a cache-aware prompt (system portion ≥80% of tokens, marked `cache_control: ephemeral` per the existing `tier_classification.py` pattern — C-005), calls Anthropic via the shared `JudgmentClient` (no new SDK creation — C-004), and parses + validates the response against the E1 invariants (`verdict ∈ {PROPOSED_EDIT, JUDGMENT_REQUIRED, NO_CHANGE_NEEDED}`, `confidence ∈ [0.0, 1.0]`, `proposed_edit` present iff verdict is PROPOSED_EDIT, etc.).
+Moment 0 of the doc-audit judgment surface, introduced by #362. **Cron-path invocation site corrected by #391**: the cron entry point is `signals/drift_event.py::DriftEventSignalSource.commit()`, which delegates to the shared helper `routing/drift_moment0.py::route_drift_event()`. The library/CLI surface `helpers/handle_drift_events.py::process_events()` delegates to the *same* routing helper but is invoked only by operator replay (`python3 -m doc_audit.helpers.handle_drift_events`) — not by the cron service.
 
-Verdict routing (caller-side, in `handle_drift_events.py`):
+Per mapped drift event, the routing helper assembles a `DriftInterpretationContext` (event metadata + diff + mapping rationale + current contents of each `doc_target`) and calls `drift_interpretation.interpret(client, context)`. The helper builds a cache-aware prompt (system portion ≥80% of tokens, marked `cache_control: ephemeral` per the existing `tier_classification.py` pattern — C-005), calls Anthropic via the shared `JudgmentClient` (no new SDK creation — C-004), and parses + validates the response against the E1 invariants (`verdict ∈ {PROPOSED_EDIT, JUDGMENT_REQUIRED, NO_CHANGE_NEEDED}`, `confidence ∈ [0.0, 1.0]`, `proposed_edit` present iff verdict is PROPOSED_EDIT, etc.).
+
+Verdict routing (inside `routing/drift_moment0.py::route_drift_event()`):
 
 - **PROPOSED_EDIT at confidence ≥0.80** → translate via `drift_to_proposed_edit.build()` to a `ProposedEdit` (`change_type='drift_derived'`, `tier='tier_b'` placeholder) and route through the existing `tier_classification` surface (Moment 1). Tier A → auto-commit; Tier B → PR; judgment → docs-debt issue. Defense-in-depth: drift-derived edits the classifier can't confidently tier go to judgment.
 - **PROPOSED_EDIT or NO_CHANGE_NEEDED at confidence <0.80** → demoted to JUDGMENT_REQUIRED at the helper boundary; rationale + proposed-edit context folded into the issue body.
 - **JUDGMENT_REQUIRED** → file a `[doc-audit]` issue with the LLM's specific question (not "review the diff"), per FR-006.
 - **NO_CHANGE_NEEDED at confidence ≥0.80** → auto-close the drift event with a one-line summary; no GitHub issue is filed (FR-007).
 
-Retry policy: 30s / 60s / 120s exponential backoff (FR-008). On retry exhaustion, `interpret()` raises `DriftInterpretationError`; `handle_drift_events.py` catches it, writes a `RETRY_EXHAUSTED` ledger row, and escalates via the pre-#362 `[doc-audit]` issue path with the diagnostic block embedded in the body (FR-009). Schema violations (malformed JSON, out-of-set `verdict`, out-of-bound `confidence`, out-of-set proposed `doc_path`) demote to JUDGMENT_REQUIRED rather than triggering retry exhaustion (C-006).
+Retry policy: 30s / 60s / 120s exponential backoff (FR-008). On retry exhaustion, `interpret()` raises `DriftInterpretationError`; the caller (the cron entry point `signals/drift_event.py` or the replay entry point `helpers/handle_drift_events.py`) catches it, writes a `RETRY_EXHAUSTED` ledger row, and escalates via the pre-#362 `[doc-audit]` issue path with the diagnostic block embedded in the body (FR-009). The routing helper itself never catches this exception — letting it propagate keeps fallback semantics in one place at each caller. Schema violations (malformed JSON, out-of-set `verdict`, out-of-bound `confidence`, out-of-set proposed `doc_path`) demote to JUDGMENT_REQUIRED rather than triggering retry exhaustion (C-006).
 
 Gated by `[drift_interpretation].enabled` in `scripts/doc_audit/config.toml`. Flipping to `false` reverts to deterministic-only behavior in ≤60s (NFR-007 / FR-013) — the next tick reads the updated config and skips Moment 0 entirely.
 
-### Doc-Audit Drift Ledger Write (#362)
+### Doc-Audit Drift Ledger Write (#362, cron-path corrected by #391)
 
 ```
-scripts/doc_audit/helpers/handle_drift_events.py (per processed drift event — all verdict branches converge)
+scripts/doc_audit/signals/drift_event.py (cron entry point)   →   scripts/doc_audit/routing/drift_moment0.py::route_drift_event()
+scripts/doc_audit/helpers/handle_drift_events.py (replay)     →   scripts/doc_audit/routing/drift_moment0.py::route_drift_event()
   → scripts/doc_audit/output/drift_ledger.py
   → /data/services/security-monitor/logs/drift-events-ledger.jsonl   (append-only JSONL, atomic tempfile + rename)
 ```
 
-Terminal write for every processed drift event. After the verdict is routed (PROPOSED_EDIT through `tier_classification`, JUDGMENT_REQUIRED via `[doc-audit]` issue, NO_CHANGE_NEEDED auto-closed, or RETRY_EXHAUSTED escalated), `handle_drift_events.py` calls `drift_ledger.append()` with one `AuditLedgerEntry` (data-model E3):
+Terminal write for every processed drift event. After the verdict is routed (PROPOSED_EDIT through `tier_classification`, JUDGMENT_REQUIRED via `[doc-audit]` issue, NO_CHANGE_NEEDED auto-closed, or RETRY_EXHAUSTED escalated), `routing/drift_moment0.py::route_drift_event()` calls `drift_ledger.append()` with one `AuditLedgerEntry` (data-model E3). Both the cron entry point (`signals/drift_event.py`) and the replay entry point (`helpers/handle_drift_events.py`) reach this write via the same routing helper, guaranteeing identical behavior across the two surfaces:
 
 ```
 {
@@ -305,6 +312,27 @@ One-shot operator-driven backlog cutover that bridges from the pre-#362 determin
 
 Identity for the GitHub mutations: `kg-felix-bot` (classic PAT, via `gh` CLI subprocess). `--dry-run` prints intent without mutations. The marker file is permanent — leave it in place as historical record per Quickstart §8.
 
+### Doc-Audit Cleanup #391 Issue Close (#391)
+
+```
+Operator (Kent) → scripts/doc_audit/helpers/cleanup_391.py
+  → per static issue (#378-#390): gh issue comment + gh issue close → api.github.com
+  → ~/.config/doc-audit/cleanup-391.done   (sentinel marker)
+```
+
+One-shot operator-driven cleanup that closes the 13 broken-pipeline `[doc-audit]` artifact issues (#378-#390) filed by the broken pre-#391 pipeline replay on 2026-05-22T22:28 UTC. Structurally identical to the #362 cutover script with two deliberate omissions:
+
+1. **Static issue list** — no `gh issue list` query; the 13 issue numbers are baked into the module at code-write time.
+2. **No cursor reset** — the fixed pipeline at `signals/drift_event.py` processes subsequent drift events via Moment 0 naturally; we do not re-replay.
+
+Behavior:
+
+1. Check marker `~/.config/doc-audit/cleanup-391.done` — if present and `--force` not set, exit 0 (idempotent no-op).
+2. For each of the 13 known artifact issues (#378-#390): post a closing comment noting the fix site (`signals/drift_event.py` via `routing/drift_moment0.py`), then close. Per-issue failures are tolerated; the script continues with the remaining issues.
+3. Write the sentinel marker file with `mission`, `mission_id`, `run_at_utc`, `closed_issues`.
+
+Identity for the GitHub mutations: `kg-felix-bot` (classic PAT, via `gh` CLI subprocess). `--dry-run` prints intent without mutations. The marker file is permanent — leave it in place as historical record.
+
 ## Planned Flows (Not Yet Implemented)
 
 | Flow | Features | Description |
@@ -335,3 +363,4 @@ Identity for the GitHub mutations: `kg-felix-bot` (classic PAT, via `gh` CLI sub
 | Habits morning-list artifact (#371) | `/data/services/openclaw/state/habits/morning-checkin-<YYYY-MM-DD>.json` | Yes |
 | Drift-events ledger (#362) | `/data/services/security-monitor/logs/drift-events-ledger.jsonl` | Yes |
 | Cutover-362 marker (#362) | `~/.config/doc-audit/cutover-362.done` | No (sentinel; ~/.config not in Restic scope) |
+| Cleanup-391 marker (#391) | `~/.config/doc-audit/cleanup-391.done` | No (sentinel; ~/.config not in Restic scope) |

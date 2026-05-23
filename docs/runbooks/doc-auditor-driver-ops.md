@@ -6,8 +6,8 @@ status: draft
 created: 2026-05-21
 last_validated: 2026-05-22
 last_updated: '2026-05-22'
-updated_by: '#362'
-version: v1.1
+updated_by: '#391'
+version: v1.2
 owners: [kgale]
 ---
 
@@ -253,11 +253,26 @@ changes invalidate the prompt cache for the first post-deploy tick.
 
 ---
 
-## Moment 0 — drift interpretation (#362)
+## Moment 0 — drift interpretation (#362, cron-path corrected by #391)
 
 Introduced by mission [#362 — drift-event-auto-resolution](https://github.com/kentonium3/kg-automation/issues/362).
 Cutover playbook lives in the mission quickstart:
 [`kitty-specs/drift-event-auto-resolution-01KS8J32/quickstart.md`](<../../kitty-specs/drift-event-auto-resolution-01KS8J32/quickstart.md>).
+
+**Mission #391 correction**: the cron-path Moment 0 invocation site is
+**`scripts/doc_audit/signals/drift_event.py::DriftEventSignalSource.commit()`**,
+which delegates to the shared helper
+**`scripts/doc_audit/routing/drift_moment0.py::route_drift_event()`**.
+Earlier drafts of this runbook (v1.1) misnamed
+`scripts/doc_audit/helpers/handle_drift_events.py::process_events()` as
+the cron entry point. That module is the **library/CLI surface for
+operator replay only** — `python3 -m doc_audit.helpers.handle_drift_events`
+is for manual re-runs and one-off invocations. The cron service does NOT
+use this entry point. Both surfaces delegate to the same
+`routing/drift_moment0.py::route_drift_event()` helper so behavior is
+identical bit-for-bit, regardless of how a drift event entered the
+pipeline. Mission spec:
+[`kitty-specs/moment0-integration-fix-01KS8XRM/spec.md`](<../../kitty-specs/moment0-integration-fix-01KS8XRM/spec.md>).
 
 **Trigger**: every mapped drift event when `[drift_interpretation].enabled = true`
 in `scripts/doc_audit/config.toml`. When `enabled = false`, the pipeline
@@ -629,3 +644,4 @@ for the full methodology and retention policy.
 - **Moment 0 CLI contract (#362)**: [`kitty-specs/drift-event-auto-resolution-01KS8J32/contracts/cli.md`](<../../kitty-specs/drift-event-auto-resolution-01KS8J32/contracts/cli.md>)
 - **Moment 0 ledger schema (#362)**: [`kitty-specs/drift-event-auto-resolution-01KS8J32/contracts/ledger-schema.md`](<../../kitty-specs/drift-event-auto-resolution-01KS8J32/contracts/ledger-schema.md>)
 - **Moment 0 cutover quickstart (#362)**: [`kitty-specs/drift-event-auto-resolution-01KS8J32/quickstart.md`](<../../kitty-specs/drift-event-auto-resolution-01KS8J32/quickstart.md>)
+- **Moment 0 integration-fix mission spec (#391)**: [`kitty-specs/moment0-integration-fix-01KS8XRM/spec.md`](<../../kitty-specs/moment0-integration-fix-01KS8XRM/spec.md>) — corrects the cron-path invocation site to `signals/drift_event.py` + `routing/drift_moment0.py`; adds `cleanup_391.py` for the 13 broken-pipeline artifact issues (#378-#390)

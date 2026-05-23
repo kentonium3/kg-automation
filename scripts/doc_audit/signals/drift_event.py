@@ -88,7 +88,27 @@ from doc_audit.helpers.handle_drift_events import (
     read_cursor,
     write_cursor_atomic,
 )
+from doc_audit.judgment.client import JudgmentClient
+from doc_audit.judgment.drift_interpretation import DriftInterpretationError
+from doc_audit.output.drift_ledger import AuditLedgerEntry
+from doc_audit.output.drift_ledger import append as ledger_append
+from doc_audit.routing.drift_moment0 import (
+    _build_judgment_client,
+    _resolve_repo_root,
+    route_drift_event,
+)
 from doc_audit.signals.base import Outcome
+
+import logging
+import time
+from datetime import datetime, timezone
+
+_logger = logging.getLogger(__name__)
+
+
+def _now_utc_iso() -> str:
+    """Return the current UTC time as an ISO 8601 ``Z``-suffixed string."""
+    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 class DriftEventSignalSource:
@@ -143,6 +163,28 @@ class DriftEventSignalSource:
         # ``_signal_lines`` (non-signal lines are always safe to drain
         # past once a neighboring signal has committed).
         self._committed_lines: set[int] = set()
+        # Lazily-constructed Moment 0 JudgmentClient. Stays None when
+        # ``[drift_interpretation].enabled = False`` (FR-010 — no API
+        # key file is read, no Anthropic SDK construction). One client
+        # per adapter lifetime when enabled (D2).
+        self._judgment_client: Optional[JudgmentClient] = None
+
+    def _get_judgment_client(self) -> JudgmentClient:
+        """Lazily construct and cache a JudgmentClient for this tick.
+
+        Per D2 + FR-009: one client per adapter instance (tick lifetime).
+        Per FR-010: callers MUST gate on
+        ``self.config.drift_interpretation.enabled`` before invoking
+        this method — when disabled, no client is ever constructed.
+
+        Delegates to ``routing.drift_moment0._build_judgment_client``
+        so the construction path is identical to the library/CLI
+        surface (``handle_drift_events.process_events``) and tests can
+        monkeypatch the single helper for both.
+        """
+        if self._judgment_client is None:
+            self._judgment_client = _build_judgment_client(self.config)
+        return self._judgment_client
 
     # ------------------------------------------------------------------
     # Internal helpers
@@ -323,7 +365,16 @@ class DriftEventSignalSource:
                 # No mapping → append to unmapped log for AI review
                 # (same bookkeeping as process_events does).
                 append_unmapped(self._unmapped_path, event)
+            elif self.config.drift_interpretation.enabled:
+                # Moment 0 path (#391): route the event through the
+                # shared helper which invokes drift_interpretation +
+                # tier_classification + ledger append. On retry
+                # exhaustion, falls back to the pre-#362 path with a
+                # RETRY_EXHAUSTED ledger row.
+                self._invoke_moment0(event, mapping, line_number)
             else:
+                # Pre-#362 fallback path (FR-002 / FR-010 — flag
+                # disabled means no JudgmentClient construction either).
                 ok, output = file_doc_audit_issue(
                     event, mapping, self._repo, dry_run=False
                 )
@@ -347,6 +398,107 @@ class DriftEventSignalSource:
         self._committed_lines.add(line_number)
         self._drain(current)
         return None
+
+    def _invoke_moment0(
+        self, event: dict, mapping: Mapping, line_number: int
+    ) -> None:
+        """Run the Moment 0 pipeline for one mapped drift event.
+
+        Calls the shared helper ``route_drift_event`` which performs
+        Moment 0 LLM judgment, tier-classification routing, and ledger
+        append. On ``DriftInterpretationError`` (retry exhausted),
+        writes a ``RETRY_EXHAUSTED`` ledger row and falls back to the
+        pre-#362 ``file_doc_audit_issue`` path with the diagnostic
+        block in the body (FR-006 / FR-009).
+
+        Cursor advance happens in the caller (``commit``); this method
+        does NOT touch cursor or ``_committed_lines``. It raises on
+        unrecoverable filing failure so caller leaves the line
+        uncommitted for retry next tick — same semantics as the
+        pre-#362 path.
+        """
+        timestamp = str(event.get("timestamp", _now_utc_iso()))
+        if not timestamp.endswith("Z") and "T" not in timestamp:
+            timestamp = _now_utc_iso()
+        event_id = f"{line_number}:{timestamp}"
+        ledger_path = Path(self.config.drift_interpretation.ledger_path)
+        repo_root = _resolve_repo_root()
+
+        try:
+            route_drift_event(
+                event=event,
+                mapping=mapping,
+                config=self.config,
+                client=self._get_judgment_client(),
+                ledger_path=ledger_path,
+                repo=self._repo,
+                event_id=event_id,
+                timestamp_utc=timestamp,
+                cursor_line=line_number,
+                repo_root=repo_root,
+            )
+        except DriftInterpretationError as exc:
+            # Retry exhausted — record RETRY_EXHAUSTED in the ledger
+            # and fall back to the pre-#362 issue-filing path with the
+            # diagnostic block included in the issue body (FR-006).
+            _logger.error(
+                "Moment 0 retry exhausted for event %s (mapping=%s): %s",
+                event_id,
+                mapping.id,
+                exc,
+            )
+
+            try:
+                ledger_append(
+                    AuditLedgerEntry(
+                        event_id=event_id,
+                        timestamp_utc=_now_utc_iso(),
+                        baseline=str(
+                            event.get("baseline_name", event.get("baseline", "unknown"))
+                        ),
+                        mapping_id=mapping.id,
+                        verdict="RETRY_EXHAUSTED",
+                        confidence=None,
+                        outcome="retry_exhausted",
+                        doc_paths=list(mapping.doc_targets),
+                        retry_count=getattr(exc, "attempts", 3),
+                        latency_ms=0,
+                        tier_classification_outcome=None,
+                        github_issue_number=None,
+                        schema_version=1,
+                    ),
+                    ledger_path=ledger_path,
+                )
+            except OSError as ledger_exc:
+                # Ledger append failure is not fatal — the side effect
+                # (GitHub issue) still needs to happen for operator
+                # visibility. Log and continue.
+                _logger.warning(
+                    "Ledger append failed during RETRY_EXHAUSTED fallback (event %s): %s",
+                    event_id,
+                    ledger_exc,
+                )
+
+            # File the pre-#362 fallback issue with the diagnostic block.
+            extra_body = ""
+            try:
+                extra_body = exc.to_diagnostic_block()
+            except (AttributeError, TypeError):
+                extra_body = f"## Moment 0 diagnostic\n\n```\n{exc}\n```\n"
+
+            ok, output = file_doc_audit_issue(
+                event,
+                mapping,
+                self._repo,
+                dry_run=False,
+                extra_body=extra_body,
+            )
+            if not ok:
+                raise RuntimeError(
+                    f"file_doc_audit_issue failed during RETRY_EXHAUSTED "
+                    f"fallback for mapping={mapping.id} "
+                    f"line={line_number}: {output}"
+                )
 
     def _drain(self, current_cursor: int) -> None:
         """Advance the on-disk cursor through committed/non-signal lines.

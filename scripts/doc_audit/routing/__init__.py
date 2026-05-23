@@ -18,9 +18,21 @@ Public entry points
   drift-event-auto-resolution-01KS8J32): translates a Moment 0
   ``DriftVerdict (PROPOSED_EDIT, conf ≥0.80)`` into a ``ProposedEdit``
   that ``tier_classification`` (Moment 1) consumes unchanged (C-003).
+- :func:`route_drift_event` (re-exported via
+  :mod:`doc_audit.routing.drift_moment0`, added in mission
+  moment0-integration-fix-01KS8XRM): the shared Moment 0 helper invoked
+  from both the signals adapter (cron path) and ``process_events``
+  (library/CLI path). Returns a :class:`RoutingOutcome`.
 """
 
 from doc_audit.routing.apply_decisions import RoutingResult, apply
+from doc_audit.routing.drift_moment0 import RoutingOutcome, route_drift_event
 from doc_audit.routing.drift_to_proposed_edit import build
 
-__all__ = ["RoutingResult", "apply", "build"]
+__all__ = [
+    "RoutingResult",
+    "RoutingOutcome",
+    "apply",
+    "build",
+    "route_drift_event",
+]

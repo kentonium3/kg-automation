@@ -657,6 +657,11 @@ def test_process_events_flag_disabled_runs_pre_362_path(
             stderr="",
         )
     )
+    # Pre-#362 path: subprocess is called from handle_drift_events
+    # (file_doc_audit_issue lives there). After the
+    # moment0-integration-fix refactor, drift_moment0 has its own
+    # subprocess import for Moment 0 paths; the flag-disabled branch
+    # never reaches it but we patch defensively.
     monkeypatch.setattr(
         "doc_audit.helpers.handle_drift_events.subprocess.run", fake_gh
     )
@@ -701,11 +706,16 @@ def test_process_events_no_change_needed_writes_ledger_only(
         lambda *args, **kwargs: _stub_verdict("NO_CHANGE_NEEDED"),
     )
     # subprocess.run is the gh chokepoint — it must NOT be invoked.
+    # Patch both modules because gh/git calls now route through
+    # drift_moment0 (post moment0-integration-fix refactor).
     forbidden_gh = mock.MagicMock(
         side_effect=AssertionError("NO_CHANGE_NEEDED must not invoke gh")
     )
     monkeypatch.setattr(
         "doc_audit.helpers.handle_drift_events.subprocess.run", forbidden_gh
+    )
+    monkeypatch.setattr(
+        "doc_audit.routing.drift_moment0.subprocess.run", forbidden_gh
     )
 
     config = _flag_enabled_config(tmp_path)
@@ -757,8 +767,13 @@ def test_process_events_judgment_required_files_issue(
             stderr="",
         )
 
+    # gh calls now route through drift_moment0; patch both for safety.
     monkeypatch.setattr(
         "doc_audit.helpers.handle_drift_events.subprocess.run",
+        fake_subprocess_run,
+    )
+    monkeypatch.setattr(
+        "doc_audit.routing.drift_moment0.subprocess.run",
         fake_subprocess_run,
     )
 
@@ -830,12 +845,17 @@ def test_process_events_proposed_edit_tier_a_auto_commits(
     )
 
     # Mock git invocations (add / commit) — return success without
-    # touching git state for real.
+    # touching git state for real. Post-refactor, the git calls happen
+    # from drift_moment0; patch both modules so we catch any path.
     def fake_subprocess_run(cmd, *args, **kwargs):
         return mock.MagicMock(returncode=0, stdout="", stderr="")
 
     monkeypatch.setattr(
         "doc_audit.helpers.handle_drift_events.subprocess.run",
+        fake_subprocess_run,
+    )
+    monkeypatch.setattr(
+        "doc_audit.routing.drift_moment0.subprocess.run",
         fake_subprocess_run,
     )
 
@@ -899,8 +919,13 @@ def test_process_events_proposed_edit_tier_b_files_pr(
             stderr="",
         )
 
+    # Post-refactor: gh calls route through drift_moment0.
     monkeypatch.setattr(
         "doc_audit.helpers.handle_drift_events.subprocess.run",
+        fake_subprocess_run,
+    )
+    monkeypatch.setattr(
+        "doc_audit.routing.drift_moment0.subprocess.run",
         fake_subprocess_run,
     )
 
@@ -955,13 +980,16 @@ def test_process_events_proposed_edit_judgment_fallback_files_debt_issue(
         lambda *args, **kwargs: (EditTier.JUDGMENT, "judgment rationale", None),
     )
 
+    _fake_gh_888 = lambda *args, **kwargs: mock.MagicMock(
+        returncode=0,
+        stdout="https://github.com/kentonium3/kg-automation/issues/888\n",
+        stderr="",
+    )
     monkeypatch.setattr(
-        "doc_audit.helpers.handle_drift_events.subprocess.run",
-        lambda *args, **kwargs: mock.MagicMock(
-            returncode=0,
-            stdout="https://github.com/kentonium3/kg-automation/issues/888\n",
-            stderr="",
-        ),
+        "doc_audit.helpers.handle_drift_events.subprocess.run", _fake_gh_888,
+    )
+    monkeypatch.setattr(
+        "doc_audit.routing.drift_moment0.subprocess.run", _fake_gh_888,
     )
 
     config = _flag_enabled_config(tmp_path)
@@ -1095,13 +1123,16 @@ def test_process_events_cursor_advances_on_every_verdict_path(
         lambda *args, **kwargs: next(verdicts),
     )
 
+    _fake_gh_123 = lambda *args, **kwargs: mock.MagicMock(
+        returncode=0,
+        stdout="https://github.com/kentonium3/kg-automation/issues/123\n",
+        stderr="",
+    )
     monkeypatch.setattr(
-        "doc_audit.helpers.handle_drift_events.subprocess.run",
-        lambda *args, **kwargs: mock.MagicMock(
-            returncode=0,
-            stdout="https://github.com/kentonium3/kg-automation/issues/123\n",
-            stderr="",
-        ),
+        "doc_audit.helpers.handle_drift_events.subprocess.run", _fake_gh_123,
+    )
+    monkeypatch.setattr(
+        "doc_audit.routing.drift_moment0.subprocess.run", _fake_gh_123,
     )
 
     config = _flag_enabled_config(tmp_path)

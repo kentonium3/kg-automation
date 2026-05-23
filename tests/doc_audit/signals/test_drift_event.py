@@ -812,3 +812,246 @@ def test_commit_fills_gap_when_earlier_arrives_later(
     # Fresh adapter sees no pending signals — confirms zero events lost.
     fresh = DriftEventSignalSource(tmp_config)
     assert fresh.pending() == []
+
+
+# ---------------------------------------------------------------------------
+# Moment 0 wiring tests (#391 / WP02)
+# ---------------------------------------------------------------------------
+
+import dataclasses
+
+from doc_audit.config import DriftInterpretationConfig
+from doc_audit.judgment.drift_interpretation import DriftInterpretationError
+
+
+def _config_with_moment0_enabled(base_config: Any) -> Any:
+    """Return a copy of ``base_config`` with drift_interpretation.enabled=True."""
+    enabled_block = dataclasses.replace(base_config.drift_interpretation, enabled=True)
+    return dataclasses.replace(base_config, drift_interpretation=enabled_block)
+
+
+def test_moment0_disabled_falls_through_to_file_doc_audit_issue(
+    tmp_config: Any,
+) -> None:
+    """FR-010: flag disabled → JudgmentClient NEVER instantiated, file_doc_audit_issue invoked."""
+    _write_events(Path(tmp_config.paths.drift_events), [_event(0)])
+    _write_mapping(Path(tmp_config.paths.signal_to_doc_map))
+
+    source = DriftEventSignalSource(tmp_config)
+    signals = source.pending()
+
+    # Patch JudgmentClient at the module level — if it gets constructed
+    # the assertion below catches it.
+    with mock.patch(
+        "doc_audit.signals.drift_event._build_judgment_client"
+    ) as mock_client_cls, mock.patch(
+        "doc_audit.signals.drift_event.route_drift_event"
+    ) as mock_route, mock.patch(
+        "doc_audit.signals.drift_event.file_doc_audit_issue",
+        return_value=(True, "https://example/issues/1"),
+    ) as mock_file:
+        source.commit(signals[0], "success")
+
+    mock_client_cls.assert_not_called()  # FR-010 — no JudgmentClient construction
+    mock_route.assert_not_called()  # pre-#362 path taken
+    mock_file.assert_called_once()
+
+
+def test_moment0_enabled_calls_route_drift_event(tmp_config: Any) -> None:
+    """Flag enabled + mapping matches → route_drift_event invoked with correct kwargs."""
+    cfg = _config_with_moment0_enabled(tmp_config)
+    _write_events(Path(cfg.paths.drift_events), [_event(0)])
+    _write_mapping(Path(cfg.paths.signal_to_doc_map))
+
+    source = DriftEventSignalSource(cfg)
+    signals = source.pending()
+
+    with mock.patch(
+        "doc_audit.signals.drift_event._build_judgment_client"
+    ) as mock_client_cls, mock.patch(
+        "doc_audit.signals.drift_event.route_drift_event"
+    ) as mock_route, mock.patch(
+        "doc_audit.signals.drift_event.file_doc_audit_issue"
+    ) as mock_file:
+        source.commit(signals[0], "success")
+
+    mock_client_cls.assert_called_once()  # JudgmentClient was constructed
+    mock_route.assert_called_once()  # Moment 0 path taken
+    mock_file.assert_not_called()  # pre-#362 path NOT taken
+
+    # Verify kwargs passed to route_drift_event
+    kwargs = mock_route.call_args.kwargs
+    assert kwargs["mapping"].id == "test-map-01"
+    assert kwargs["config"] is cfg
+    assert kwargs["repo"] == cfg.github.repo
+    assert kwargs["cursor_line"] == 0
+    assert "event_id" in kwargs
+    assert kwargs["event_id"].startswith("0:")
+
+
+def test_moment0_retry_exhausted_writes_ledger_and_falls_back(
+    tmp_config: Any,
+) -> None:
+    """DriftInterpretationError raised → RETRY_EXHAUSTED ledger row + fallback file_doc_audit_issue."""
+    cfg = _config_with_moment0_enabled(tmp_config)
+    _write_events(Path(cfg.paths.drift_events), [_event(0)])
+    _write_mapping(Path(cfg.paths.signal_to_doc_map))
+
+    source = DriftEventSignalSource(cfg)
+    signals = source.pending()
+
+    err = DriftInterpretationError("retry exhausted")
+    err.attempts = 3
+
+    with mock.patch(
+        "doc_audit.signals.drift_event._build_judgment_client"
+    ), mock.patch(
+        "doc_audit.signals.drift_event.route_drift_event",
+        side_effect=err,
+    ), mock.patch(
+        "doc_audit.signals.drift_event.ledger_append"
+    ) as mock_ledger, mock.patch(
+        "doc_audit.signals.drift_event.file_doc_audit_issue",
+        return_value=(True, "https://example/issues/2"),
+    ) as mock_file:
+        source.commit(signals[0], "success")
+
+    # Ledger row written with verdict=RETRY_EXHAUSTED
+    mock_ledger.assert_called_once()
+    entry = mock_ledger.call_args.args[0] if mock_ledger.call_args.args else mock_ledger.call_args.kwargs.get("entry")
+    assert entry.verdict == "RETRY_EXHAUSTED"
+    assert entry.confidence is None
+    assert entry.outcome == "retry_exhausted"
+    assert entry.retry_count == 3
+
+    # Fallback file_doc_audit_issue called with extra_body
+    mock_file.assert_called_once()
+    assert "extra_body" in mock_file.call_args.kwargs
+    assert mock_file.call_args.kwargs["extra_body"]  # non-empty diagnostic block
+
+
+def test_moment0_judgment_client_memoized_per_tick(tmp_config: Any) -> None:
+    """JudgmentClient constructed once per adapter even across multiple commits."""
+    cfg = _config_with_moment0_enabled(tmp_config)
+    _write_events(Path(cfg.paths.drift_events), [_event(0), _event(1)])
+    _write_mapping(Path(cfg.paths.signal_to_doc_map))
+
+    source = DriftEventSignalSource(cfg)
+    signals = source.pending()
+    by_line = {s.payload["line_number"]: s for s in signals}
+
+    with mock.patch(
+        "doc_audit.signals.drift_event._build_judgment_client"
+    ) as mock_client_cls, mock.patch(
+        "doc_audit.signals.drift_event.route_drift_event"
+    ):
+        source.commit(by_line[0], "success")
+        source.commit(by_line[1], "success")
+
+    # Constructed exactly once across both commits.
+    assert mock_client_cls.call_count == 1
+
+
+def test_moment0_disabled_advances_cursor_normally(tmp_config: Any) -> None:
+    """Flag disabled → cursor advances exactly as in pre-#362 behavior."""
+    _write_events(Path(tmp_config.paths.drift_events), [_event(0), _event(1)])
+    _write_mapping(Path(tmp_config.paths.signal_to_doc_map))
+
+    source = DriftEventSignalSource(tmp_config)
+    signals = source.pending()
+
+    with mock.patch(
+        "doc_audit.signals.drift_event.file_doc_audit_issue",
+        return_value=(True, "https://example/issues/3"),
+    ):
+        source.commit(signals[0], "success")
+        source.commit(signals[1], "success")
+
+    cursor = int(Path(tmp_config.paths.drift_cursor).read_text(encoding="utf-8").strip())
+    assert cursor == 2
+
+
+def test_moment0_enabled_advances_cursor_on_success(tmp_config: Any) -> None:
+    """Flag enabled + Moment 0 success → cursor advances same as pre-#362."""
+    cfg = _config_with_moment0_enabled(tmp_config)
+    _write_events(Path(cfg.paths.drift_events), [_event(0)])
+    _write_mapping(Path(cfg.paths.signal_to_doc_map))
+
+    source = DriftEventSignalSource(cfg)
+    signals = source.pending()
+
+    with mock.patch(
+        "doc_audit.signals.drift_event._build_judgment_client"
+    ), mock.patch(
+        "doc_audit.signals.drift_event.route_drift_event"
+    ):
+        source.commit(signals[0], "success")
+
+    cursor = int(Path(cfg.paths.drift_cursor).read_text(encoding="utf-8").strip())
+    assert cursor == 1
+
+
+def test_moment0_enabled_advances_cursor_on_retry_exhausted_fallback(
+    tmp_config: Any,
+) -> None:
+    """Cursor advances after RETRY_EXHAUSTED fallback succeeds (FR-006)."""
+    cfg = _config_with_moment0_enabled(tmp_config)
+    _write_events(Path(cfg.paths.drift_events), [_event(0)])
+    _write_mapping(Path(cfg.paths.signal_to_doc_map))
+
+    source = DriftEventSignalSource(cfg)
+    signals = source.pending()
+
+    err = DriftInterpretationError("retry exhausted")
+    err.attempts = 3
+
+    with mock.patch(
+        "doc_audit.signals.drift_event._build_judgment_client"
+    ), mock.patch(
+        "doc_audit.signals.drift_event.route_drift_event",
+        side_effect=err,
+    ), mock.patch(
+        "doc_audit.signals.drift_event.ledger_append"
+    ), mock.patch(
+        "doc_audit.signals.drift_event.file_doc_audit_issue",
+        return_value=(True, "https://example/issues/4"),
+    ):
+        source.commit(signals[0], "success")
+
+    cursor = int(Path(cfg.paths.drift_cursor).read_text(encoding="utf-8").strip())
+    assert cursor == 1
+
+
+def test_moment0_idempotent_recommit_does_not_invoke_route(
+    tmp_config: Any,
+) -> None:
+    """Re-committing a line already past cursor must NOT call route_drift_event."""
+    cfg = _config_with_moment0_enabled(tmp_config)
+    _write_events(Path(cfg.paths.drift_events), [_event(0)])
+    _write_mapping(Path(cfg.paths.signal_to_doc_map))
+    _write_cursor(Path(cfg.paths.drift_cursor), 5)  # already past line 0
+
+    source = DriftEventSignalSource(cfg)
+    signals = source.pending()
+    assert signals == []  # cursor=5, file has 1 line → no pending
+
+    # Forge a stale signal payload to exercise the re-commit path.
+    from doc_audit.data_model import Signal
+    stale = Signal(
+        id="drift_event::stale",
+        source="drift_event",
+        kind="drift_event",
+        priority=40,
+        payload={"line_number": 0, "raw_event": _event(0)},
+        created_utc="2026-05-20T10:00:00Z",
+    )
+
+    with mock.patch(
+        "doc_audit.signals.drift_event._build_judgment_client"
+    ) as mock_client_cls, mock.patch(
+        "doc_audit.signals.drift_event.route_drift_event"
+    ) as mock_route:
+        source.commit(stale, "success")
+
+    mock_client_cls.assert_not_called()
+    mock_route.assert_not_called()
