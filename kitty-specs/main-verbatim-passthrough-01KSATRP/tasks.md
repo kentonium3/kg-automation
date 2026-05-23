@@ -10,10 +10,10 @@
 
 | ID | Description | WP |
 |---|---|---|
-| T001 | Read deployed AGENTS.md from office2; compare against repo copy at scripts/openclaw/agents/main/AGENTS.md; reconcile any drift | WP01 |
-| T002 | Add §"Verbatim pass-through (ABSOLUTE)" near top of repo AGENTS.md with the locked content from research.md D3 | WP01 |
-| T003 | Apply D2 trim cuts; verify file is ≤14,000 source chars | WP01 |
-| T004 | Cross-reference the new section from each delegation section (habits, escalation, tasker stub) | WP01 |
+| T001 | Read deployed AGENTS.md from office2; compare against repo copy at scripts/openclaw/agents/main/AGENTS.md; reconcile any drift | WP01 | [D] |
+| T002 | Add §"Verbatim pass-through (ABSOLUTE)" near top of repo AGENTS.md with the locked content from research.md D3 | WP01 | [D] |
+| T003 | Apply D2 trim cuts; verify file is ≤14,000 source chars | WP01 | [D] |
+| T004 | Cross-reference the new section from each delegation section (habits, escalation, tasker stub) | WP01 | [D] |
 | T005 | Create scripts/openclaw/helpers/rotate_main_session.py per contracts/rotation-helper.md; use _StructuredArgumentParser pattern (mirror cutover_362) | WP02 |
 | T006 | Tests for rotate_main_session — happy path, dry-run, idempotent re-run, empty sessions dir, marker write failure; ≥85% coverage | WP02 |
 | T007 | Update docs/runbooks/openclaw-agent-setup.md with the cutover sequence (deploy AGENTS.md + rotate session + smoke test); bump frontmatter | WP02 |
@@ -39,10 +39,10 @@ Both lanes can run in parallel.
 **Prompt**: [WP01-agents-md-harden.md](tasks/WP01-agents-md-harden.md)
 
 Included:
-- [ ] T001 Read deployed + reconcile drift (WP01)
-- [ ] T002 Add verbatim section (WP01)
-- [ ] T003 Apply trim cuts (WP01)
-- [ ] T004 Cross-references from delegation sections (WP01)
+- [x] T001 Read deployed + reconcile drift (WP01)
+- [x] T002 Add verbatim section (WP01)
+- [x] T003 Apply trim cuts (WP01)
+- [x] T004 Cross-references from delegation sections (WP01)
 
 ## Phase 2 — Rotation helper + docs
 
