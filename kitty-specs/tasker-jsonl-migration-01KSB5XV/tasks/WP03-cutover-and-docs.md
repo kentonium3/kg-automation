@@ -35,6 +35,8 @@ owned_files:
 - docs/design/architecture/data-flows.md
 - docs/runbooks/tasker-ops.md
 tags: []
+agent: "claude:opus:python-implementer:implementer"
+shell_pid: "16160"
 ---
 
 # WP03 — tasker AGENTS.md cut + cutover script + arch docs + runbook
@@ -164,3 +166,7 @@ Validation:
 ```bash
 spec-kitty agent action implement WP03 --mission tasker-jsonl-migration-01KSB5XV --agent claude:opus:python-implementer:implementer
 ```
+
+## Activity Log
+
+- 2026-05-23T20:55:17Z – claude:opus:python-implementer:implementer – shell_pid=16160 – Started implementation via action command
