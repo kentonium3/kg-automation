@@ -766,6 +766,36 @@ def _run_gh_issue_close(
     return subprocess.run(cmd, capture_output=True, text=True)
 
 
+def _run_gh_issue_remove_label(
+    gh_bin: str,
+    issue_number: int,
+    label: str,
+) -> subprocess.CompletedProcess[str]:
+    cmd = [
+        gh_bin,
+        "issue",
+        "edit",
+        str(issue_number),
+        "--repo",
+        "kentonium3/kg-automation",
+        "--remove-label",
+        label,
+    ]
+    return subprocess.run(cmd, capture_output=True, text=True)
+
+
+_NO_PROPOSALS_COMMENT = (
+    "**Driver: no automatable edits found.**\n\n"
+    "The post-#343 doc-audit driver scanned this commit's diff and found "
+    "no deterministically-classifiable edits (frontmatter date bumps, "
+    "service version bumps, file path renames, etc.). The `status:in-progress` "
+    "lock has been released.\n\n"
+    "This audit's checklist items in the issue body still require "
+    "**manual operator review**. Close this issue once the checklist is "
+    "verified (or apply `audit-skip` to acknowledge no docs need updates).\n"
+)
+
+
 # ---------------------------------------------------------------------------
 # Main flow
 # ---------------------------------------------------------------------------
@@ -827,6 +857,30 @@ def route_audit_decision(
 
     # ---------------- 2. Empty short-circuit ---------------------------
     if not proposals:
+        # Release the status:in-progress lock + post an operator-visible
+        # comment so the audit doesn't sit locked forever (the signal
+        # source skips status:in-progress issues on subsequent ticks).
+        # Both operations are best-effort: failures are logged but don't
+        # change the exit code — the no-proposals path is fundamentally
+        # a no-op for the driver.
+        comment_proc = _run_gh_issue_comment(
+            gh_bin, audit_issue, _NO_PROPOSALS_COMMENT,
+        )
+        if comment_proc.returncode != 0:
+            print(
+                f"WARN: no-proposals comment post failed for #{audit_issue}: "
+                f"rc={comment_proc.returncode} stderr={(comment_proc.stderr or '').strip()!r}",
+                file=sys.stderr,
+            )
+        remove_proc = _run_gh_issue_remove_label(
+            gh_bin, audit_issue, "status:in-progress",
+        )
+        if remove_proc.returncode != 0:
+            print(
+                f"WARN: no-proposals label removal failed for #{audit_issue}: "
+                f"rc={remove_proc.returncode} stderr={(remove_proc.stderr or '').strip()!r}",
+                file=sys.stderr,
+            )
         print("INFO: no proposals; exiting cleanly.", file=sys.stderr)
         return result
 
