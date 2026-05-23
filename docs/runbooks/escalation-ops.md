@@ -3,7 +3,7 @@ id: escalation-ops
 doc_type: runbook
 title: Escalation Operations
 status: approved
-level: howto
+level: 2
 owners: [kent]
 last_validated: '2026-05-21'
 updated_by: '#309'

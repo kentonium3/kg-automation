@@ -3,7 +3,7 @@ id: habits-ops
 doc_type: runbook
 title: Habit Check-in Operations
 status: approved
-level: howto
+level: 2
 owners: [kent]
 last_validated: '2026-05-22'
 updated_by: '#371'
