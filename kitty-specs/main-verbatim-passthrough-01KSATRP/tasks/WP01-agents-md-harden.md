@@ -29,6 +29,8 @@ mission_slug: main-verbatim-passthrough-01KSATRP
 owned_files:
 - scripts/openclaw/agents/main/AGENTS.md
 tags: []
+agent: "codex:gpt-5:spec-kitty-review:reviewer"
+shell_pid: "80457"
 ---
 
 # WP01 — Harden main agent's AGENTS.md
@@ -127,3 +129,4 @@ spec-kitty agent action implement WP01 --mission main-verbatim-passthrough-01KSA
 ## Activity Log
 
 - 2026-05-23T17:24:29Z – unknown – Ready for review: verbatim section added, trim brings file to 13528 chars (under 14K), validation greps all pass
+- 2026-05-23T17:25:59Z – codex:gpt-5:spec-kitty-review:reviewer – shell_pid=80457 – Started review via action command

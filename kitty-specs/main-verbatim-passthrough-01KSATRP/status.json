@@ -1,7 +1,7 @@
 {
-  "event_count": 5,
-  "last_event_id": "01KSAXVWRDSN0198JZA5JSC1QS",
-  "materialized_at": "2026-05-23T17:24:29.581774+00:00",
+  "event_count": 6,
+  "last_event_id": "01KSAXYMEDATEAYEEXCGS1PK4G",
+  "materialized_at": "2026-05-23T17:25:59.373463+00:00",
   "mission_number": "",
   "mission_slug": "main-verbatim-passthrough-01KSATRP",
   "mission_type": "software-dev",
@@ -11,18 +11,18 @@
     "canceled": 0,
     "claimed": 0,
     "done": 0,
-    "for_review": 1,
+    "for_review": 0,
     "in_progress": 0,
-    "in_review": 0,
+    "in_review": 1,
     "planned": 1
   },
   "work_packages": {
     "WP01": {
-      "actor": "user",
+      "actor": "codex:gpt-5:spec-kitty-review:reviewer",
       "force_count": 1,
-      "lane": "for_review",
-      "last_event_id": "01KSAXVWRDSN0198JZA5JSC1QS",
-      "last_transition_at": "2026-05-23T17:24:29.581774+00:00"
+      "lane": "in_review",
+      "last_event_id": "01KSAXYMEDATEAYEEXCGS1PK4G",
+      "last_transition_at": "2026-05-23T17:25:59.373463+00:00"
     },
     "WP02": {
       "actor": "finalize-tasks",
