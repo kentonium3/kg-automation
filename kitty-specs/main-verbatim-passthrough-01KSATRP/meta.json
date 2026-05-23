@@ -1,10 +1,13 @@
 {
+  "change_mode": "regular",
   "created_at": "2026-05-23T16:30:20.360698+00:00",
-  "friendly_name": "main verbatim passthrough",
+  "friendly_name": "Enforce verbatim pass-through for main-agent delegations",
   "mission_id": "01KSATRP0S0TDA5HV995Y558JK",
   "mission_number": null,
   "mission_slug": "main-verbatim-passthrough-01KSATRP",
   "mission_type": "software-dev",
   "slug": "main-verbatim-passthrough-01KSATRP",
-  "target_branch": "main"
+  "source_description": "GitHub issue #374 (P1-bug). Main agent (Sonnet 4.6, default WhatsApp recipient) paraphrases Kent's habit/tasker/escalation replies before delegating to specialist agents, bypassing the deterministic parsers built by #371 (habits) and #309 (escalation). Vikunja comments still write but JSONL state-log substrate is silently empty for any day Kent replies via WhatsApp. Same architectural risk gates #310 (Phase 7 tasker). Fix: harden /data/services/openclaw/data/AGENTS.md §'Habit tracking delegation' (and analogous sections for escalation and the future tasker delegation) with a HARD verbatim rule and FORBIDDEN-paraphrase examples. Also address long-lived session caching: AGENTS.md changes won't take effect until sessions reset; need a kill-session helper or rotation mechanism + cutover doc.",
+  "target_branch": "main",
+  "vcs": "git"
 }
