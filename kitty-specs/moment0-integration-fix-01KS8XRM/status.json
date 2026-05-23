@@ -2,7 +2,7 @@
   "event_count": 28,
   "last_event_id": "01KSAMD7F77Q95277VJ3N3K3TJ",
   "materialized_at": "2026-05-23T14:39:11.848051+00:00",
-  "mission_number": "",
+  "mission_number": "48",
   "mission_slug": "moment0-integration-fix-01KS8XRM",
   "mission_type": "software-dev",
   "summary": {
