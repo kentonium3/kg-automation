@@ -1,0 +1,67 @@
+{
+  "version": 1,
+  "mission_slug": "tasker-jsonl-migration-01KSB5XV",
+  "mission_id": "01KSB5XVGW5WRDQFR17JSA52M5",
+  "mission_branch": "kitty/mission-tasker-jsonl-migration-01KSB5XV",
+  "target_branch": "main",
+  "lanes": [
+    {
+      "lane_id": "lane-a",
+      "wp_ids": [
+        "WP01",
+        "WP02",
+        "WP03"
+      ],
+      "write_scope": [
+        "docs/design/architecture/data-flows.md",
+        "docs/design/architecture/data/data-flows.json",
+        "docs/design/architecture/data/service-inventory.json",
+        "docs/design/architecture/service-inventory.md",
+        "docs/runbooks/tasker-ops.md",
+        "scripts/enrichment/__init__.py",
+        "scripts/enrichment/derive_state.py",
+        "scripts/enrichment/reconcile_completions.py",
+        "scripts/enrichment/record_completion.py",
+        "scripts/enrichment/schema.py",
+        "scripts/openclaw/agents/felix-admin-tasker/AGENTS.md",
+        "scripts/openclaw/helpers/cutover_tasker.py",
+        "tests/enrichment/__init__.py",
+        "tests/enrichment/test_derive_state.py",
+        "tests/enrichment/test_reconcile_completions.py",
+        "tests/enrichment/test_record_completion.py",
+        "tests/enrichment/test_schema.py",
+        "tests/openclaw/helpers/test_cutover_tasker.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "legacy-cleanup"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    }
+  ],
+  "computed_at": "2026-05-23T19:59:20.679652+00:00",
+  "computed_from": "dependency_graph+ownership",
+  "planning_artifact_wps": [],
+  "collapse_report": {
+    "events": [
+      {
+        "wp_a": "WP02",
+        "wp_b": "WP01",
+        "rule": "dependency",
+        "evidence": "WP02 depends on WP01"
+      },
+      {
+        "wp_a": "WP03",
+        "wp_b": "WP02",
+        "rule": "dependency",
+        "evidence": "WP03 depends on WP02"
+      }
+    ],
+    "total_merges": 2,
+    "independent_wps_collapsed": 0,
+    "by_rule": {
+      "dependency": 2
+    }
+  }
+}
