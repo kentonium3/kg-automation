@@ -29,6 +29,8 @@ owned_files:
 - docs/design/architecture/data-flows.md
 - docs/runbooks/doc-auditor-driver-ops.md
 tags: []
+agent: "claude:opus:python-implementer:implementer"
+shell_pid: "81509"
 ---
 
 # WP03 — cleanup_391 + architecture docs correction
@@ -137,3 +139,7 @@ Validation:
 ```bash
 spec-kitty agent action implement WP03 --mission moment0-integration-fix-01KS8XRM --agent claude:opus:python-implementer:implementer
 ```
+
+## Activity Log
+
+- 2026-05-23T04:38:12Z – claude:opus:python-implementer:implementer – shell_pid=81509 – Started implementation via action command

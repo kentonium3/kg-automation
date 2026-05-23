@@ -1,7 +1,7 @@
 {
-  "event_count": 18,
-  "last_event_id": "01KS9HZPB6BJVXH640TCR7REKW",
-  "materialized_at": "2026-05-23T04:37:36.742140+00:00",
+  "event_count": 20,
+  "last_event_id": "01KS9J0SDC8N6ZXTV66K0JFJCG",
+  "materialized_at": "2026-05-23T04:38:12.652821+00:00",
   "mission_number": "",
   "mission_slug": "moment0-integration-fix-01KS8XRM",
   "mission_type": "software-dev",
@@ -12,9 +12,9 @@
     "claimed": 0,
     "done": 0,
     "for_review": 0,
-    "in_progress": 0,
+    "in_progress": 1,
     "in_review": 0,
-    "planned": 1
+    "planned": 0
   },
   "work_packages": {
     "WP01": {
@@ -32,11 +32,11 @@
       "last_transition_at": "2026-05-23T04:37:36.742140+00:00"
     },
     "WP03": {
-      "actor": "finalize-tasks",
+      "actor": "claude:opus:python-implementer:implementer",
       "force_count": 1,
-      "lane": "planned",
-      "last_event_id": "01KS8Y92580BFRA188S8PDK6JM",
-      "last_transition_at": "2026-05-22T22:53:12.232932+00:00"
+      "lane": "in_progress",
+      "last_event_id": "01KS9J0SDC8N6ZXTV66K0JFJCG",
+      "last_transition_at": "2026-05-23T04:38:12.652821+00:00"
     }
   }
 }
