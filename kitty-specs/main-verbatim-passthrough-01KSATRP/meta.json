@@ -1,0 +1,10 @@
+{
+  "created_at": "2026-05-23T16:30:20.360698+00:00",
+  "friendly_name": "main verbatim passthrough",
+  "mission_id": "01KSATRP0S0TDA5HV995Y558JK",
+  "mission_number": null,
+  "mission_slug": "main-verbatim-passthrough-01KSATRP",
+  "mission_type": "software-dev",
+  "slug": "main-verbatim-passthrough-01KSATRP",
+  "target_branch": "main"
+}
