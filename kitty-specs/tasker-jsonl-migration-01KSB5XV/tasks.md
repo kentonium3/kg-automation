@@ -10,9 +10,9 @@
 
 | ID | Description | WP |
 |---|---|---|
-| T001 | schema.py — EnrichmentCompletion dataclass + constants (mirror escalation/schema.py) | WP01 |
-| T002 | record_completion.py — atomic three-write contract + CLI (mirror escalation/record_completion.py) | WP01 |
-| T003 | Tests for schema + record_completion (≥85% coverage; mock subprocess for Vikunja, tmp_path for JSONL) | WP01 |
+| T001 | schema.py — EnrichmentCompletion dataclass + constants (mirror escalation/schema.py) | WP01 | [D] |
+| T002 | record_completion.py — atomic three-write contract + CLI (mirror escalation/record_completion.py) | WP01 | [D] |
+| T003 | Tests for schema + record_completion (≥85% coverage; mock subprocess for Vikunja, tmp_path for JSONL) | WP01 | [D] |
 | T004 | reconcile_completions.py — backfill from Vikunja comments with disambiguation (mirror escalation/reconcile_completions.py) | WP02 |
 | T005 | derive_state.py — compute current state from JSONL (mirror escalation/derive_state.py) | WP02 |
 | T006 | Tests for reconcile + derive_state (≥85%; including disambiguation edge cases) | WP02 |
