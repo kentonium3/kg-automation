@@ -1,7 +1,7 @@
 {
-  "event_count": 20,
-  "last_event_id": "01KSBBYFEH5X6GMC2RB4N8BG81",
-  "materialized_at": "2026-05-23T21:30:34.321101+00:00",
+  "event_count": 21,
+  "last_event_id": "01KSBC8FYF68MGDD5TFYPXMFA0",
+  "materialized_at": "2026-05-23T21:36:02.511959+00:00",
   "mission_number": "",
   "mission_slug": "tasker-jsonl-migration-01KSB5XV",
   "mission_type": "software-dev",
@@ -11,8 +11,8 @@
     "canceled": 0,
     "claimed": 0,
     "done": 0,
-    "for_review": 0,
-    "in_progress": 1,
+    "for_review": 1,
+    "in_progress": 0,
     "in_review": 0,
     "planned": 0
   },
@@ -32,11 +32,11 @@
       "last_transition_at": "2026-05-23T20:55:14.211994+00:00"
     },
     "WP03": {
-      "actor": "claude:opus:python-implementer:implementer",
+      "actor": "user",
       "force_count": 2,
-      "lane": "in_progress",
-      "last_event_id": "01KSBBYFEH5X6GMC2RB4N8BG81",
-      "last_transition_at": "2026-05-23T21:30:34.321101+00:00"
+      "lane": "for_review",
+      "last_event_id": "01KSBC8FYF68MGDD5TFYPXMFA0",
+      "last_transition_at": "2026-05-23T21:36:02.511959+00:00"
     }
   }
 }
