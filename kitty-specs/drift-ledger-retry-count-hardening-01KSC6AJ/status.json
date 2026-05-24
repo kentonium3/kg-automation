@@ -1,19 +1,19 @@
 {
-  "event_count": 16,
-  "last_event_id": "01KSCAAHVQM661ZJPVVTBAKBYF",
-  "materialized_at": "2026-05-24T06:21:27.287156+00:00",
+  "event_count": 17,
+  "last_event_id": "01KSCAJG0JY4S1FXBHQ07RNHGQ",
+  "materialized_at": "2026-05-24T06:25:47.538619+00:00",
   "mission_number": "",
   "mission_slug": "drift-ledger-retry-count-hardening-01KSC6AJ",
   "mission_type": "software-dev",
   "summary": {
-    "approved": 1,
+    "approved": 2,
     "blocked": 0,
     "canceled": 0,
     "claimed": 0,
     "done": 0,
     "for_review": 0,
     "in_progress": 0,
-    "in_review": 1,
+    "in_review": 0,
     "planned": 0
   },
   "work_packages": {
@@ -25,11 +25,11 @@
       "last_transition_at": "2026-05-24T06:05:08.976427+00:00"
     },
     "WP02": {
-      "actor": "codex:gpt-5:spec-kitty-review:reviewer",
+      "actor": "user",
       "force_count": 1,
-      "lane": "in_review",
-      "last_event_id": "01KSCAAHVQM661ZJPVVTBAKBYF",
-      "last_transition_at": "2026-05-24T06:21:27.287156+00:00"
+      "lane": "approved",
+      "last_event_id": "01KSCAJG0JY4S1FXBHQ07RNHGQ",
+      "last_transition_at": "2026-05-24T06:25:47.538619+00:00"
     }
   }
 }
