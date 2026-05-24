@@ -6,5 +6,7 @@
   "mission_slug": "drift-ledger-retry-count-hardening-01KSC6AJ",
   "mission_type": "software-dev",
   "slug": "drift-ledger-retry-count-hardening-01KSC6AJ",
-  "target_branch": "main"
+  "target_branch": "main",
+  "vcs": "git",
+  "vcs_locked_at": "2026-05-24T05:48:15.520078+00:00"
 }
