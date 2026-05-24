@@ -11,8 +11,8 @@
 | T003 | Tests for audit_interpretation + audit_ledger (≥85% coverage; mock JudgmentClient + JSONL) | WP01 | [D] |
 | T004 | Wire audit_interpretation into handle_audit_routing.py no-proposals branch | WP02 | [D] |
 | T005 | Extend handle_audit_routing tests for new branch | WP02 | [D] |
-| T006 | Add [audit_interpretation] config block; update arch docs + runbook | WP03 |
-| T007 | Cutover step: trigger manual tick to re-process the 11 currently-stuck audits | WP03 |
+| T006 | Add [audit_interpretation] config block; update arch docs + runbook | WP03 | [D] |
+| T007 | Cutover step: trigger manual tick to re-process the 11 currently-stuck audits | WP03 | [D] |
 
 ## Dependency Graph
 
@@ -43,8 +43,8 @@ WP01 → WP02 → WP03 (sequential, lane-a)
 **Dependencies**: WP02
 **Prompt**: [WP03-arch-docs-and-cutover.md](tasks/WP03-arch-docs-and-cutover.md)
 
-- [ ] T006 Config + arch docs + runbook (WP03)
-- [ ] T007 Cutover replay for stuck audits (WP03)
+- [x] T006 Config + arch docs + runbook (WP03)
+- [x] T007 Cutover replay for stuck audits (WP03)
 
 ## Estimated size
 
