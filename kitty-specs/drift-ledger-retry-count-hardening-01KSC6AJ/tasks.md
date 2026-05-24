@@ -20,9 +20,9 @@ This mission decomposes into **2 work packages** (9 subtasks total). WP01 is the
 | T004 | Update three existing test assertions that pin `retry_count` to old bound | WP01 | [D] |
 | T005 | Add parametrized regression test in `tests/doc_audit/signals/test_drift_event.py` | WP01 | | [D] |
 | T006 | Run full `pytest tests/doc_audit/` and confirm green | WP01 | | [D] |
-| T007 | Create `docs/design/architecture/contracts/` dir + add `drift-ledger-schema.md` (lifted from kitty-specs archive with widened bound) | WP02 | [P] |
-| T008 | Update `docs/design/architecture/README.md` to add contracts/ subdirectory to the index | WP02 | |
-| T009 | Verify cross-link from `drift_ledger.py` docstring resolves to new contract doc | WP02 | |
+| T007 | Create `docs/design/architecture/contracts/` dir + add `drift-ledger-schema.md` (lifted from kitty-specs archive with widened bound) | WP02 | [D] |
+| T008 | Update `docs/design/architecture/README.md` to add contracts/ subdirectory to the index | WP02 | | [D] |
+| T009 | Verify cross-link from `drift_ledger.py` docstring resolves to new contract doc | WP02 | | [D] |
 
 **Note:** The `[P]` column flags subtasks that can run in parallel *within their WP*. The top-level cross-WP parallelism is already captured by WP01 and WP02 having disjoint owned files.
 
@@ -84,9 +84,9 @@ T003 and T004 are independent of T001/T002 and can run in parallel within the sa
 
 ### Included subtasks
 
-- [ ] T007 Create docs/design/architecture/contracts/ dir + add drift-ledger-schema.md (lifted from kitty-specs archive with widened bound) (WP02)
-- [ ] T008 Update docs/design/architecture/README.md to add contracts/ subdirectory to the index (WP02)
-- [ ] T009 Verify cross-link from drift_ledger.py docstring resolves to new contract doc (WP02)
+- [x] T007 Create docs/design/architecture/contracts/ dir + add drift-ledger-schema.md (lifted from kitty-specs archive with widened bound) (WP02)
+- [x] T008 Update docs/design/architecture/README.md to add contracts/ subdirectory to the index (WP02)
+- [x] T009 Verify cross-link from drift_ledger.py docstring resolves to new contract doc (WP02)
 
 ### Implementation sketch
 
