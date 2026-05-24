@@ -142,3 +142,4 @@ spec-kitty agent action implement WP02 --mission drift-ledger-retry-count-harden
 ## Activity Log
 
 - 2026-05-24T06:06:26Z – claude:opus:python-implementer:implementer – shell_pid=3515 – Started implementation via action command
+- 2026-05-24T06:10:44Z – claude:opus:python-implementer:implementer – shell_pid=3515 – Ready for review: docs/design/architecture/contracts/drift-ledger-schema.md created (lifted from planning preview verbatim); README updated with discoverable entry; cross-link from drift_ledger.py docstring verified to resolve
