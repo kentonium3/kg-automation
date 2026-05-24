@@ -149,16 +149,16 @@ Numerators/denominators captured before and after material architectural changes
 
 ---
 
-## Feature Specifications (docs/func-spec/)
+## Feature Specifications (docs/archive/func-spec/)
 
-**Historical archive.** Features F001-F020 are documented here as the
+Historical archive. Features F001-F020 are documented here as the
 historical record. New features are tracked as GitHub Issues — see
 [GitHub Issues Workflow](<./runbooks/github-issues-workflow.md>).
 
-**Templates**:
+Templates:
 
-- [Feature Specification Template](<./func-spec/_TEMPLATE_spec_kitty_input.md>)
-- [Research Mission Template](<./func-spec/_TEMPLATE_spec_kitty_research_input.md>)
+- [Feature Specification Template](<./archive/func-spec/_TEMPLATE_spec_kitty_input.md>)
+- [Research Mission Template](<./archive/func-spec/_TEMPLATE_spec_kitty_research_input.md>)
 - [Docs Debt Issue Template](<../.github/ISSUE_TEMPLATE/docs-debt.md>)
 - [Research Issue Template](<../.github/ISSUE_TEMPLATE/research.md>)
 

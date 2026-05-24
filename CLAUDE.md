@@ -98,11 +98,10 @@ config are updated.
 ```
 ai-agents/          ← agent instruction files (this file's siblings)
 docs/
-  archive/          ← frozen historical artifacts
+  archive/          ← frozen historical artifacts (contains legacy func-spec/ archive)
   constitution/     ← governance — Felix constitution, agent registry
   design/           ← architecture specs, standards, research
   diagnostics/      ← active troubleshooting (spec-kitty workflow journal)
-  func-spec/        ← historical feature specs (F001–F020 archive)
   runbooks/         ← operational runbooks (how-to guides)
 scripts/            ← automation scripts
 kitty-specs/        ← spec-kitty managed (DO NOT EDIT — see below)
@@ -194,7 +193,7 @@ stop condition is hit.
 - `P1-infra` / `P2-infra` → check risk tier in issue body first; Tier 0 = generate only
 - `P1-rfc` → discussion and decision recording; no implementation until converted to feature/infra issue
 
-**Legacy specs:** `docs/func-spec/` contains historical specs F001–F020.
+**Legacy specs:** `docs/archive/func-spec/` contains historical specs F001–F020.
 These are the archive record. Do not create new files there — new features
 live in the GitHub issue queue.
 

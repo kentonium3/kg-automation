@@ -34,7 +34,7 @@ Seven canonical `doc_type` values cover every active document. Three are Divio p
 |---|---|---|---|
 | `runbook` | how-to | Prescriptive step-by-step procedure; executable by human or agent | `docs/runbooks/vikunja-ops.md`, `docs/runbooks/deployment.md`, `docs/runbooks/felix-governance.md` |
 | `reference` | reference | Describes system machinery — architecture, services, schemas, inventories, context | `docs/design/architecture/service-inventory.md`, `docs/constitution/AGENT-REGISTRY.md`, `CLAUDE.md` |
-| `spec` | reference (sub) | Feature specification produced via spec-kitty | `docs/func-spec/F013_vikunja_task_intelligence_agent.md`, `docs/func-spec/F015_documentation_architecture_rationalization.md` |
+| `spec` | reference (sub) | Feature specification produced via spec-kitty | `docs/archive/func-spec/F013_vikunja_task_intelligence_agent.md`, `docs/archive/func-spec/F015_documentation_architecture_rationalization.md` |
 | `explanation` | explanation | Rationale — WHY decisions were made, design principles, context behind the architecture | `docs/design/adversarial-analysis.md`, `docs/design/office2-backup-and-security.md` |
 | `standard` | explanation (sub) | Cross-cutting authoring or operational standards with rationale | `docs/design/standards/doc-standards.md`, `docs/design/standards/divio-classification.md` (this file), `docs/runbooks/repo-governance.md` |
 | `postmortem` | explanation (sub) | Post-incident analysis — what happened, why, what changes | GitHub issues or `docs/archive/YYYY-MM-DD_*.md` |
@@ -52,7 +52,7 @@ Each `doc_type` lives in a single canonical directory. This enforces discoverabi
 |---|---|---|
 | `runbook` | `docs/runbooks/` | Governance runbooks live in `docs/runbooks/governance/` |
 | `reference` | Contextual | Architecture in `docs/design/architecture/`, governance registries in `docs/constitution/`, system-wide specs/vision in `docs/design/` top-level |
-| `spec` | `docs/func-spec/` | Always |
+| `spec` | `docs/archive/func-spec/` | Legacy (specs F001-F020) |
 | `explanation` | `docs/design/` top-level | Design rationale. Service-specific rationale may live alongside its runbook with `doc_type: explanation` flagged |
 | `standard` | `docs/design/standards/` | Cross-cutting standards consolidated here |
 | `postmortem` | GitHub issues or `docs/archive/` | Filename format: `YYYY-MM-DD_incident-slug.md` |
