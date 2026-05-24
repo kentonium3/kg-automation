@@ -14,12 +14,12 @@ This mission decomposes into **2 work packages** (9 subtasks total). WP01 is the
 
 | ID | Description | WP | Parallel |
 |---|---|---|---|
-| T001 | Widen drift_ledger validator bound + update AuditLedgerEntry dataclass docstring (inline schema + reference to new live doc location) | WP01 | |
-| T002 | Add defensive clamp at `signals/drift_event.py:464` | WP01 | |
-| T003 | Update existing clamp at `helpers/handle_drift_events.py:643-645` to use new bound | WP01 | [P] |
-| T004 | Update three existing test assertions that pin `retry_count` to old bound | WP01 | [P] |
-| T005 | Add parametrized regression test in `tests/doc_audit/signals/test_drift_event.py` | WP01 | |
-| T006 | Run full `pytest tests/doc_audit/` and confirm green | WP01 | |
+| T001 | Widen drift_ledger validator bound + update AuditLedgerEntry dataclass docstring (inline schema + reference to new live doc location) | WP01 | | [D] |
+| T002 | Add defensive clamp at `signals/drift_event.py:464` | WP01 | | [D] |
+| T003 | Update existing clamp at `helpers/handle_drift_events.py:643-645` to use new bound | WP01 | [D] |
+| T004 | Update three existing test assertions that pin `retry_count` to old bound | WP01 | [D] |
+| T005 | Add parametrized regression test in `tests/doc_audit/signals/test_drift_event.py` | WP01 | | [D] |
+| T006 | Run full `pytest tests/doc_audit/` and confirm green | WP01 | | [D] |
 | T007 | Create `docs/design/architecture/contracts/` dir + add `drift-ledger-schema.md` (lifted from kitty-specs archive with widened bound) | WP02 | [P] |
 | T008 | Update `docs/design/architecture/README.md` to add contracts/ subdirectory to the index | WP02 | |
 | T009 | Verify cross-link from `drift_ledger.py` docstring resolves to new contract doc | WP02 | |
@@ -49,12 +49,12 @@ This mission decomposes into **2 work packages** (9 subtasks total). WP01 is the
 
 ### Included subtasks
 
-- [ ] T001 Widen drift_ledger validator bound + update AuditLedgerEntry dataclass docstring (WP01)
-- [ ] T002 Add defensive clamp at signals/drift_event.py:464 (WP01)
-- [ ] T003 Update existing clamp at helpers/handle_drift_events.py:643-645 to use new bound (WP01)
-- [ ] T004 Update three existing test assertions that pin retry_count to old bound (WP01)
-- [ ] T005 Add parametrized regression test in tests/doc_audit/signals/test_drift_event.py (WP01)
-- [ ] T006 Run full pytest tests/doc_audit/ and confirm green (WP01)
+- [x] T001 Widen drift_ledger validator bound + update AuditLedgerEntry dataclass docstring (WP01)
+- [x] T002 Add defensive clamp at signals/drift_event.py:464 (WP01)
+- [x] T003 Update existing clamp at helpers/handle_drift_events.py:643-645 to use new bound (WP01)
+- [x] T004 Update three existing test assertions that pin retry_count to old bound (WP01)
+- [x] T005 Add parametrized regression test in tests/doc_audit/signals/test_drift_event.py (WP01)
+- [x] T006 Run full pytest tests/doc_audit/ and confirm green (WP01)
 
 ### Implementation sketch
 
