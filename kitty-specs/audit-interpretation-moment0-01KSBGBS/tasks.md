@@ -9,8 +9,8 @@
 | T001 | audit_interpretation.py + prompt + AuditVerdict/AuditInterpretationContext dataclasses (mirror drift_interpretation) | WP01 | [D] |
 | T002 | audit_ledger.py (mirror drift_ledger but with audit_issue field + judgment_required_posted outcome) | WP01 | [D] |
 | T003 | Tests for audit_interpretation + audit_ledger (≥85% coverage; mock JudgmentClient + JSONL) | WP01 | [D] |
-| T004 | Wire audit_interpretation into handle_audit_routing.py no-proposals branch | WP02 |
-| T005 | Extend handle_audit_routing tests for new branch | WP02 |
+| T004 | Wire audit_interpretation into handle_audit_routing.py no-proposals branch | WP02 | [D] |
+| T005 | Extend handle_audit_routing tests for new branch | WP02 | [D] |
 | T006 | Add [audit_interpretation] config block; update arch docs + runbook | WP03 |
 | T007 | Cutover step: trigger manual tick to re-process the 11 currently-stuck audits | WP03 |
 
@@ -34,8 +34,8 @@ WP01 → WP02 → WP03 (sequential, lane-a)
 **Dependencies**: WP01
 **Prompt**: [WP02-handle-audit-routing-integration.md](tasks/WP02-handle-audit-routing-integration.md)
 
-- [ ] T004 Wire interpret_audit + verdict routing (WP02)
-- [ ] T005 Tests for new branch (WP02)
+- [x] T004 Wire interpret_audit + verdict routing (WP02)
+- [x] T005 Tests for new branch (WP02)
 
 ## WP03 — Config + arch docs + cutover
 
