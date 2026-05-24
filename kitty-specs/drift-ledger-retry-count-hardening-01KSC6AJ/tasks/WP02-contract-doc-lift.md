@@ -1,7 +1,8 @@
 ---
 work_package_id: WP02
 title: Lift drift-ledger contract to live arch docs
-dependencies: []
+dependencies:
+- WP01
 requirement_refs:
 - C-001
 - C-002

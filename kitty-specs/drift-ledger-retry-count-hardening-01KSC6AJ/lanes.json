@@ -1,0 +1,51 @@
+{
+  "version": 1,
+  "mission_slug": "drift-ledger-retry-count-hardening-01KSC6AJ",
+  "mission_id": "01KSC6AJ2JK8N2NJT4QB6AB36Z",
+  "mission_branch": "kitty/mission-drift-ledger-retry-count-hardening-01KSC6AJ",
+  "target_branch": "main",
+  "lanes": [
+    {
+      "lane_id": "lane-a",
+      "wp_ids": [
+        "WP01",
+        "WP02"
+      ],
+      "write_scope": [
+        "docs/design/architecture/README.md",
+        "docs/design/architecture/contracts/drift-ledger-schema.md",
+        "scripts/doc_audit/helpers/handle_drift_events.py",
+        "scripts/doc_audit/output/drift_ledger.py",
+        "scripts/doc_audit/signals/drift_event.py",
+        "tests/doc_audit/helpers/test_handle_drift_events.py",
+        "tests/doc_audit/output/test_drift_ledger.py",
+        "tests/doc_audit/signals/test_drift_event.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "artifact-rendering",
+        "legacy-cleanup"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    }
+  ],
+  "computed_at": "2026-05-24T05:40:08.447753+00:00",
+  "computed_from": "dependency_graph+ownership",
+  "planning_artifact_wps": [],
+  "collapse_report": {
+    "events": [
+      {
+        "wp_a": "WP02",
+        "wp_b": "WP01",
+        "rule": "dependency",
+        "evidence": "WP02 depends on WP01"
+      }
+    ],
+    "total_merges": 1,
+    "independent_wps_collapsed": 0,
+    "by_rule": {
+      "dependency": 1
+    }
+  }
+}
