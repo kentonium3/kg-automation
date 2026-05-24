@@ -6,9 +6,9 @@
 
 | ID | Description | WP |
 |---|---|---|
-| T001 | audit_interpretation.py + prompt + AuditVerdict/AuditInterpretationContext dataclasses (mirror drift_interpretation) | WP01 |
-| T002 | audit_ledger.py (mirror drift_ledger but with audit_issue field + judgment_required_posted outcome) | WP01 |
-| T003 | Tests for audit_interpretation + audit_ledger (≥85% coverage; mock JudgmentClient + JSONL) | WP01 |
+| T001 | audit_interpretation.py + prompt + AuditVerdict/AuditInterpretationContext dataclasses (mirror drift_interpretation) | WP01 | [D] |
+| T002 | audit_ledger.py (mirror drift_ledger but with audit_issue field + judgment_required_posted outcome) | WP01 | [D] |
+| T003 | Tests for audit_interpretation + audit_ledger (≥85% coverage; mock JudgmentClient + JSONL) | WP01 | [D] |
 | T004 | Wire audit_interpretation into handle_audit_routing.py no-proposals branch | WP02 |
 | T005 | Extend handle_audit_routing tests for new branch | WP02 |
 | T006 | Add [audit_interpretation] config block; update arch docs + runbook | WP03 |
@@ -24,9 +24,9 @@ WP01 → WP02 → WP03 (sequential, lane-a)
 **Dependencies**: none
 **Prompt**: [WP01-judgment-module.md](tasks/WP01-judgment-module.md)
 
-- [ ] T001 audit_interpretation.py + prompt (WP01)
-- [ ] T002 audit_ledger.py (WP01)
-- [ ] T003 Tests (WP01)
+- [x] T001 audit_interpretation.py + prompt (WP01)
+- [x] T002 audit_ledger.py (WP01)
+- [x] T003 Tests (WP01)
 
 ## WP02 — handle_audit_routing integration
 
