@@ -25,6 +25,8 @@ owned_files:
 - docs/design/architecture/contracts/drift-ledger-schema.md
 - docs/design/architecture/README.md
 tags: []
+agent: "claude:opus:python-implementer:implementer"
+shell_pid: "3515"
 ---
 
 # WP02 — Lift Drift Ledger Contract to Live Arch Docs
@@ -136,3 +138,7 @@ If the link is broken or points elsewhere, this is a failure mode — flag it fo
 ```bash
 spec-kitty agent action implement WP02 --mission drift-ledger-retry-count-hardening-01KSC6AJ --agent claude:opus:python-implementer:implementer
 ```
+
+## Activity Log
+
+- 2026-05-24T06:06:26Z – claude:opus:python-implementer:implementer – shell_pid=3515 – Started implementation via action command

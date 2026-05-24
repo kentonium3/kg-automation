@@ -1,7 +1,7 @@
 {
-  "event_count": 7,
-  "last_event_id": "01KSC9CPFGDYWVXVHCH8WXWY72",
-  "materialized_at": "2026-05-24T06:05:08.976427+00:00",
+  "event_count": 9,
+  "last_event_id": "01KSC9F2JQFFSE74WJBTKKEJS4",
+  "materialized_at": "2026-05-24T06:06:26.903236+00:00",
   "mission_number": "",
   "mission_slug": "drift-ledger-retry-count-hardening-01KSC6AJ",
   "mission_type": "software-dev",
@@ -12,9 +12,9 @@
     "claimed": 0,
     "done": 0,
     "for_review": 0,
-    "in_progress": 0,
+    "in_progress": 1,
     "in_review": 0,
-    "planned": 1
+    "planned": 0
   },
   "work_packages": {
     "WP01": {
@@ -25,11 +25,11 @@
       "last_transition_at": "2026-05-24T06:05:08.976427+00:00"
     },
     "WP02": {
-      "actor": "finalize-tasks",
+      "actor": "claude:opus:python-implementer:implementer",
       "force_count": 1,
-      "lane": "planned",
-      "last_event_id": "01KSC7YX3R1C6JY7Z5BZYQHH4D",
-      "last_transition_at": "2026-05-24T05:40:08.440029+00:00"
+      "lane": "in_progress",
+      "last_event_id": "01KSC9F2JQFFSE74WJBTKKEJS4",
+      "last_transition_at": "2026-05-24T06:06:26.903236+00:00"
     }
   }
 }
