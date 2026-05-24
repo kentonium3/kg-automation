@@ -76,3 +76,4 @@ spec-kitty agent action implement WP03 --mission audit-interpretation-moment0-01
 ## Activity Log
 
 - 2026-05-24T03:47:25Z – claude:opus:python-implementer:implementer – shell_pid=75937 – Started implementation via action command
+- 2026-05-24T04:06:18Z – claude:opus:python-implementer:implementer – shell_pid=75937 – Ready for review: config block + arch docs + runbook + cutover-replay section
