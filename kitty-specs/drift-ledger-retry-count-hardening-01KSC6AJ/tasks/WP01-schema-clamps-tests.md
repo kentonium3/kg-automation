@@ -30,7 +30,7 @@ subtasks:
 - T004
 - T005
 - T006
-shell_pid: '98779'
+shell_pid: "98779"
 history: []
 authoritative_surface: scripts/doc_audit/output/
 execution_mode: code_change
@@ -44,6 +44,7 @@ owned_files:
 - tests/doc_audit/signals/test_drift_event.py
 - tests/doc_audit/helpers/test_handle_drift_events.py
 tags: []
+agent: "claude:opus:python-implementer:implementer"
 ---
 
 # WP01 — Schema + Clamps + Tests
@@ -284,3 +285,7 @@ spec-kitty agent action implement WP01 --mission drift-ledger-retry-count-harden
 ```
 
 (Or use whichever agent profile is appropriate. Codex with `-p spec-kitty-review` for review, per [[codex_speckitty_profile]] memory note.)
+
+## Activity Log
+
+- 2026-05-24T05:48:18Z – claude:opus:python-implementer:implementer – shell_pid=98779 – Assigned agent via action command
