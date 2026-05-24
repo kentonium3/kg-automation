@@ -901,7 +901,7 @@ def test_moment0_retry_exhausted_writes_ledger_and_falls_back(
     signals = source.pending()
 
     err = DriftInterpretationError("retry exhausted")
-    err.attempts = 3
+    err.attempts = 4
 
     with mock.patch(
         "doc_audit.signals.drift_event._build_judgment_client"
@@ -922,12 +922,74 @@ def test_moment0_retry_exhausted_writes_ledger_and_falls_back(
     assert entry.verdict == "RETRY_EXHAUSTED"
     assert entry.confidence is None
     assert entry.outcome == "retry_exhausted"
-    assert entry.retry_count == 3
+    assert entry.retry_count == 4
 
     # Fallback file_doc_audit_issue called with extra_body
     mock_file.assert_called_once()
     assert "extra_body" in mock_file.call_args.kwargs
     assert mock_file.call_args.kwargs["extra_body"]  # non-empty diagnostic block
+
+
+from doc_audit.output.drift_ledger import RETRY_MAX_ATTEMPTS
+
+
+@pytest.mark.parametrize(
+    "attempts",
+    [0, 1, RETRY_MAX_ATTEMPTS - 1, RETRY_MAX_ATTEMPTS],
+)
+def test_drift_event_commit_records_actual_attempts(
+    tmp_path: Path,
+    tmp_config: Any,
+    attempts: int,
+) -> None:
+    """Regression for #403: ledger-write path must accept attempts in [0, RETRY_MAX_ATTEMPTS].
+
+    The full ``drift_event.commit`` ledger-write path must complete
+    without raising for any attempts count in ``[0, RETRY_MAX_ATTEMPTS]``,
+    and the persisted ``retry_count`` must equal the input.
+
+    This test deliberately does NOT mock ``ledger_append`` or
+    ``_validate_entry`` — it exercises the real validator so any future
+    bound/policy drift gets caught.
+    """
+    cfg = _config_with_moment0_enabled(tmp_config)
+    # Re-target the ledger path to a tmp file we can read back.
+    ledger_file = tmp_path / "drift-events-ledger.jsonl"
+    drift_block = dataclasses.replace(
+        cfg.drift_interpretation, ledger_path=str(ledger_file)
+    )
+    cfg = dataclasses.replace(cfg, drift_interpretation=drift_block)
+
+    _write_events(Path(cfg.paths.drift_events), [_event(0)])
+    _write_mapping(Path(cfg.paths.signal_to_doc_map))
+
+    source = DriftEventSignalSource(cfg)
+    signals = source.pending()
+
+    err = DriftInterpretationError("retry exhausted")
+    err.attempts = attempts
+
+    with mock.patch(
+        "doc_audit.signals.drift_event._build_judgment_client"
+    ), mock.patch(
+        "doc_audit.signals.drift_event.route_drift_event",
+        side_effect=err,
+    ), mock.patch(
+        "doc_audit.signals.drift_event.file_doc_audit_issue",
+        return_value=(True, "https://example/issues/99"),
+    ):
+        # Must NOT raise — pre-fix the RETRY_MAX_ATTEMPTS case raised
+        # ``ValueError: retry_count must be in [0, 3]; got 4`` from the
+        # real validator.
+        source.commit(signals[0], "success")
+
+    # Read the ledger row back and confirm retry_count was preserved
+    # (exercises the actual on-disk JSON shape via the real append path).
+    lines = ledger_file.read_text(encoding="utf-8").strip().splitlines()
+    assert len(lines) == 1
+    row = json.loads(lines[0])
+    assert row["verdict"] == "RETRY_EXHAUSTED"
+    assert row["retry_count"] == attempts
 
 
 def test_moment0_judgment_client_memoized_per_tick(tmp_config: Any) -> None:

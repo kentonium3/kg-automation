@@ -90,7 +90,7 @@ from doc_audit.helpers.handle_drift_events import (
 )
 from doc_audit.judgment.client import JudgmentClient
 from doc_audit.judgment.drift_interpretation import DriftInterpretationError
-from doc_audit.output.drift_ledger import AuditLedgerEntry
+from doc_audit.output.drift_ledger import AuditLedgerEntry, RETRY_MAX_ATTEMPTS
 from doc_audit.output.drift_ledger import append as ledger_append
 from doc_audit.routing.drift_moment0 import (
     _build_judgment_client,
@@ -461,7 +461,7 @@ class DriftEventSignalSource:
                         confidence=None,
                         outcome="retry_exhausted",
                         doc_paths=list(mapping.doc_targets),
-                        retry_count=getattr(exc, "attempts", 3),
+                        retry_count=max(0, min(RETRY_MAX_ATTEMPTS, int(getattr(exc, "attempts", 0)))),
                         latency_ms=0,
                         tier_classification_outcome=None,
                         github_issue_number=None,

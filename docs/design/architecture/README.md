@@ -50,6 +50,14 @@ See [`docs/INDEX.md`](<../../INDEX.md>) for the complete listing of machine-read
 | [change-risk-taxonomy.json](<./data/change-risk-taxonomy.json>) | Five-tier risk taxonomy with guardrail protocols |
 | [doc-domain-map.json](<./data/doc-domain-map.json>) | Area label → doc file mapping for audit scope |
 
+## Schema Contracts
+
+`docs/design/architecture/contracts/` holds the canonical schemas for the system's internal contracts — ledger row schemas, event formats, signal contracts, and similar. Each file is the authoritative source for the contract it documents; code modules that implement the contract reference these files from their docstrings. When a contract doc and an implementing module disagree, the contract doc wins.
+
+| Contract | Used by |
+|----------|---------|
+| [Drift Ledger Schema](<./contracts/drift-ledger-schema.md>) | `scripts/doc_audit/output/drift_ledger.py` |
+
 ## Update Protocol
 
 Every feature that changes deployed services, credentials, data flows, or network topology must update the relevant files here. See [Change Control](<./change-control.md>) for the full protocol.

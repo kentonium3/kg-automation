@@ -2,7 +2,7 @@
   "created_at": "2026-05-24T05:11:35.106964+00:00",
   "friendly_name": "drift ledger retry count hardening",
   "mission_id": "01KSC6AJ2JK8N2NJT4QB6AB36Z",
-  "mission_number": null,
+  "mission_number": 52,
   "mission_slug": "drift-ledger-retry-count-hardening-01KSC6AJ",
   "mission_type": "software-dev",
   "slug": "drift-ledger-retry-count-hardening-01KSC6AJ",

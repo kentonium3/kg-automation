@@ -86,6 +86,7 @@ from pathlib import Path
 from typing import Any, Optional
 
 from doc_audit.judgment.drift_interpretation import DriftInterpretationError
+from doc_audit.output.drift_ledger import RETRY_MAX_ATTEMPTS
 from doc_audit.routing.drift_moment0 import (
     RoutingOutcome,
     _append_ledger_entry,
@@ -640,9 +641,9 @@ def _handle_moment0_event_via_helper(
         else:
             issue_number = None
         latency_ms = int((time.perf_counter() - event_start) * 1000)
-        attempts = getattr(exc, "attempts", 3) or 3
-        # Clamp retry_count to the ledger schema's [0, 3] bound.
-        retry_count = min(3, max(0, int(attempts)))
+        attempts = getattr(exc, "attempts", 0)
+        # Clamp retry_count to the ledger schema's [0, RETRY_MAX_ATTEMPTS] bound.
+        retry_count = min(RETRY_MAX_ATTEMPTS, max(0, int(attempts)))
         baseline = str(
             event.get("baseline_name", event.get("baseline", "unknown"))
         )

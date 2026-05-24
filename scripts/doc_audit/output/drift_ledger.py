@@ -41,10 +41,13 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Iterable, Optional
 
+from doc_audit.judgment.drift_interpretation import RETRY_DELAYS_SECONDS
+
 
 __all__ = [
     "AuditLedgerEntry",
     "DEFAULT_LEDGER_PATH",
+    "RETRY_MAX_ATTEMPTS",
     "SCHEMA_VERSION",
     "VALID_VERDICTS",
     "VALID_OUTCOMES",
@@ -75,6 +78,16 @@ by ``audit.sh`` (the upstream signal source). Operators can ``tail
 
 SCHEMA_VERSION = 1
 """Current schema version. Bump on incompatible field changes."""
+
+RETRY_MAX_ATTEMPTS = 1 + len(RETRY_DELAYS_SECONDS)
+"""Upper bound on ``retry_count`` for a ledger row.
+
+Derived from the retry policy in
+:mod:`doc_audit.judgment.drift_interpretation` so the validator stays in
+lockstep with the actual retry budget. The ``+1`` accounts for the
+initial (zero-delay) call. With the current ``RETRY_DELAYS_SECONDS =
+(30, 60, 120)`` policy this evaluates to ``4``.
+"""
 
 VALID_VERDICTS = frozenset(
     {
@@ -143,7 +156,28 @@ class AuditLedgerEntry:
     Append-only. Serialized as a single line of compact JSON with the
     field order in :data:`FIELD_ORDER` for deterministic diffing.
 
-    See ``contracts/ledger-schema.md`` for the canonical schema.
+    Schema summary (one row per processed drift event, FR-010):
+
+    - ``schema_version`` — current is :data:`SCHEMA_VERSION` (``1``).
+    - ``event_id`` — non-empty string identifying the source event.
+    - ``timestamp_utc`` — ISO 8601 ``Z``-suffixed write time.
+    - ``baseline`` — non-empty baseline name from the upstream event.
+    - ``mapping_id`` — non-empty id from ``signal-to-doc-map.json``.
+    - ``verdict`` — one of :data:`VALID_VERDICTS`.
+    - ``confidence`` — float in ``[0.0, 1.0]`` for all verdicts except
+      ``RETRY_EXHAUSTED``; ``None`` for ``RETRY_EXHAUSTED``.
+    - ``outcome`` — one of :data:`VALID_OUTCOMES`.
+    - ``doc_paths`` — list of doc-target path strings.
+    - ``retry_count`` — integer in ``[0, RETRY_MAX_ATTEMPTS]``. The
+      bound is derived from the live retry policy in
+      :mod:`doc_audit.judgment.drift_interpretation` (currently ``4``).
+    - ``latency_ms`` — non-negative integer wall-clock latency.
+    - ``tier_classification_outcome`` — ``None`` or one of
+      :data:`VALID_TIER_OUTCOMES`.
+    - ``github_issue_number`` — optional GitHub issue number.
+
+    See ``docs/design/architecture/contracts/drift-ledger-schema.md``
+    for the canonical schema.
     """
 
     event_id: str
@@ -219,9 +253,10 @@ def _validate_entry(entry: AuditLedgerEntry) -> None:
             f"{sorted(VALID_TIER_OUTCOMES)} or None"
         )
 
-    if entry.retry_count < 0 or entry.retry_count > 3:
+    if entry.retry_count < 0 or entry.retry_count > RETRY_MAX_ATTEMPTS:
         raise ValueError(
-            f"retry_count must be in [0, 3]; got {entry.retry_count!r}"
+            f"retry_count must be in [0, {RETRY_MAX_ATTEMPTS}]; "
+            f"got {entry.retry_count!r}"
         )
 
     if entry.latency_ms < 0:

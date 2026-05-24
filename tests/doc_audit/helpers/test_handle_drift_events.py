@@ -1033,7 +1033,7 @@ def test_process_events_retry_exhausted_falls_back_and_advances_cursor(
 
     def _raise(*args, **kwargs):
         raise DriftInterpretationError(
-            "retry exhausted", attempts=3
+            "retry exhausted", attempts=4
         )
 
     monkeypatch.setattr(
@@ -1073,7 +1073,7 @@ def test_process_events_retry_exhausted_falls_back_and_advances_cursor(
     assert row["verdict"] == "RETRY_EXHAUSTED"
     assert row["outcome"] == "retry_exhausted"
     assert row["confidence"] is None
-    assert row["retry_count"] == 3
+    assert row["retry_count"] == 4
 
 
 def test_process_events_cursor_advances_on_every_verdict_path(

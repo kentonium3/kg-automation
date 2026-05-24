@@ -303,8 +303,11 @@ def test_append_rejects_invalid_tier_outcome(tmp_path: Path) -> None:
 
 
 def test_append_rejects_out_of_range_retry_count(tmp_path: Path) -> None:
+    """retry_count outside [0, RETRY_MAX_ATTEMPTS] is rejected by validator."""
+    from doc_audit.output.drift_ledger import RETRY_MAX_ATTEMPTS
+
     ledger = tmp_path / "ledger.jsonl"
-    bad = _make_entry(retry_count=4)
+    bad = _make_entry(retry_count=RETRY_MAX_ATTEMPTS + 1)
     with pytest.raises(ValueError, match="retry_count must be in"):
         append(bad, ledger_path=ledger)
 
