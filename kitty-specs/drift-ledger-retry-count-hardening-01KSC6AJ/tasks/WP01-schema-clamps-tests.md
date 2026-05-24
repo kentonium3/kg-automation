@@ -30,7 +30,7 @@ subtasks:
 - T004
 - T005
 - T006
-shell_pid: "98779"
+shell_pid: "1829"
 history: []
 authoritative_surface: scripts/doc_audit/output/
 execution_mode: code_change
@@ -44,7 +44,7 @@ owned_files:
 - tests/doc_audit/signals/test_drift_event.py
 - tests/doc_audit/helpers/test_handle_drift_events.py
 tags: []
-agent: "claude:opus:python-implementer:implementer"
+agent: "codex:gpt-5:spec-kitty-review:reviewer"
 ---
 
 # WP01 — Schema + Clamps + Tests
@@ -290,3 +290,4 @@ spec-kitty agent action implement WP01 --mission drift-ledger-retry-count-harden
 
 - 2026-05-24T05:48:18Z – claude:opus:python-implementer:implementer – shell_pid=98779 – Assigned agent via action command
 - 2026-05-24T06:00:43Z – claude:opus:python-implementer:implementer – shell_pid=98779 – Ready for review: validator widened to [0, RETRY_MAX_ATTEMPTS]; both clamps updated; 3 existing test fixtures updated; new parametrized regression test added; pytest tests/doc_audit/ green
+- 2026-05-24T06:01:16Z – codex:gpt-5:spec-kitty-review:reviewer – shell_pid=1829 – Started review via action command
