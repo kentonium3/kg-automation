@@ -1,7 +1,7 @@
 {
-  "event_count": 16,
-  "last_event_id": "01KSC2K31N3GZ73GYKAG2B673D",
-  "materialized_at": "2026-05-24T04:06:18.421239+00:00",
+  "event_count": 17,
+  "last_event_id": "01KSC2W2H8H7C7XX6EM8TGCWJD",
+  "materialized_at": "2026-05-24T04:11:12.808583+00:00",
   "mission_number": "",
   "mission_slug": "audit-interpretation-moment0-01KSBGBS",
   "mission_type": "software-dev",
@@ -11,9 +11,9 @@
     "canceled": 0,
     "claimed": 0,
     "done": 0,
-    "for_review": 1,
+    "for_review": 0,
     "in_progress": 0,
-    "in_review": 0,
+    "in_review": 1,
     "planned": 0
   },
   "work_packages": {
@@ -32,11 +32,11 @@
       "last_transition_at": "2026-05-24T03:45:46.466016+00:00"
     },
     "WP03": {
-      "actor": "user",
+      "actor": "codex:gpt-5:spec-kitty-review:reviewer",
       "force_count": 1,
-      "lane": "for_review",
-      "last_event_id": "01KSC2K31N3GZ73GYKAG2B673D",
-      "last_transition_at": "2026-05-24T04:06:18.421239+00:00"
+      "lane": "in_review",
+      "last_event_id": "01KSC2W2H8H7C7XX6EM8TGCWJD",
+      "last_transition_at": "2026-05-24T04:11:12.808583+00:00"
     }
   }
 }
