@@ -25,8 +25,8 @@ owned_files:
 - docs/design/architecture/contracts/drift-ledger-schema.md
 - docs/design/architecture/README.md
 tags: []
-agent: "codex:gpt-5:spec-kitty-review:reviewer"
-shell_pid: "4449"
+agent: "claude:opus:python-implementer:implementer"
+shell_pid: "6493"
 ---
 
 # WP02 — Lift Drift Ledger Contract to Live Arch Docs
@@ -145,3 +145,4 @@ spec-kitty agent action implement WP02 --mission drift-ledger-retry-count-harden
 - 2026-05-24T06:10:44Z – claude:opus:python-implementer:implementer – shell_pid=3515 – Ready for review: docs/design/architecture/contracts/drift-ledger-schema.md created (lifted from planning preview verbatim); README updated with discoverable entry; cross-link from drift_ledger.py docstring verified to resolve
 - 2026-05-24T06:11:14Z – codex:gpt-5:spec-kitty-review:reviewer – shell_pid=4449 – Started review via action command
 - 2026-05-24T06:15:44Z – codex:gpt-5:spec-kitty-review:reviewer – shell_pid=4449 – Moved to planned
+- 2026-05-24T06:17:06Z – claude:opus:python-implementer:implementer – shell_pid=6493 – Started implementation via action command
