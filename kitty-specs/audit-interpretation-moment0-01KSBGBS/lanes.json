@@ -1,0 +1,65 @@
+{
+  "version": 1,
+  "mission_slug": "audit-interpretation-moment0-01KSBGBS",
+  "mission_id": "01KSBGBS9BBDWV2Z28FESVJ9KQ",
+  "mission_branch": "kitty/mission-audit-interpretation-moment0-01KSBGBS",
+  "target_branch": "main",
+  "lanes": [
+    {
+      "lane_id": "lane-a",
+      "wp_ids": [
+        "WP01",
+        "WP02",
+        "WP03"
+      ],
+      "write_scope": [
+        "docs/design/architecture/data-flows.md",
+        "docs/design/architecture/data/data-flows.json",
+        "docs/design/architecture/data/service-inventory.json",
+        "docs/design/architecture/service-inventory.md",
+        "docs/runbooks/doc-auditor-driver-ops.md",
+        "scripts/doc_audit/config.py",
+        "scripts/doc_audit/config.toml",
+        "scripts/doc_audit/helpers/handle_audit_routing.py",
+        "scripts/doc_audit/judgment/audit_interpretation.py",
+        "scripts/doc_audit/output/audit_ledger.py",
+        "scripts/doc_audit/prompts/audit_interpretation.prompt.md",
+        "tests/doc_audit/helpers/test_handle_audit_routing.py",
+        "tests/doc_audit/judgment/test_audit_interpretation.py",
+        "tests/doc_audit/output/test_audit_ledger.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "artifact-rendering",
+        "legacy-cleanup",
+        "tracker-integration"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    }
+  ],
+  "computed_at": "2026-05-24T02:53:38.514115+00:00",
+  "computed_from": "dependency_graph+ownership",
+  "planning_artifact_wps": [],
+  "collapse_report": {
+    "events": [
+      {
+        "wp_a": "WP02",
+        "wp_b": "WP01",
+        "rule": "dependency",
+        "evidence": "WP02 depends on WP01"
+      },
+      {
+        "wp_a": "WP03",
+        "wp_b": "WP02",
+        "rule": "dependency",
+        "evidence": "WP03 depends on WP02"
+      }
+    ],
+    "total_merges": 2,
+    "independent_wps_collapsed": 0,
+    "by_rule": {
+      "dependency": 2
+    }
+  }
+}
