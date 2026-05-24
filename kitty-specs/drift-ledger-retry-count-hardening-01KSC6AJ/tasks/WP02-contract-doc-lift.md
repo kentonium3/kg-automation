@@ -25,8 +25,8 @@ owned_files:
 - docs/design/architecture/contracts/drift-ledger-schema.md
 - docs/design/architecture/README.md
 tags: []
-agent: "claude:opus:python-implementer:implementer"
-shell_pid: "6493"
+agent: "codex:gpt-5:spec-kitty-review:reviewer"
+shell_pid: "7310"
 ---
 
 # WP02 — Lift Drift Ledger Contract to Live Arch Docs
@@ -147,3 +147,4 @@ spec-kitty agent action implement WP02 --mission drift-ledger-retry-count-harden
 - 2026-05-24T06:15:44Z – codex:gpt-5:spec-kitty-review:reviewer – shell_pid=4449 – Moved to planned
 - 2026-05-24T06:17:06Z – claude:opus:python-implementer:implementer – shell_pid=6493 – Started implementation via action command
 - 2026-05-24T06:21:01Z – claude:opus:python-implementer:implementer – shell_pid=6493 – Cycle 1 fix: replaced planning-time Status header with live-doc wording per review-cycle-6 feedback. All other content unchanged.
+- 2026-05-24T06:21:27Z – codex:gpt-5:spec-kitty-review:reviewer – shell_pid=7310 – Started review via action command
