@@ -4,10 +4,10 @@ doc_type: runbook
 audience: agents_and_humans
 status: draft
 created: 2026-05-21
-last_validated: 2026-05-22
-last_updated: '2026-05-22'
-updated_by: '#391'
-version: v1.2
+last_validated: 2026-05-23
+last_updated: '2026-05-23'
+updated_by: '#400'
+version: v1.3
 owners: [kgale]
 ---
 
@@ -39,19 +39,28 @@ process that:
    `scripts/doc_audit/signals/` (commit-marker, drift-event, weekly-cron,
    decision-label) and the GitHub queue.
 2. Calls the Anthropic API directly via the `anthropic-python` SDK at
-   judgment moments. **Post-#362 the surface is four moments**:
-   **Moment 0 — drift interpretation** (per mapped drift event;
-   classifies PROPOSED_EDIT / JUDGMENT_REQUIRED / NO_CHANGE_NEEDED
-   before any GitHub issue is filed); **Moment 1 — tier classification**;
-   Moments 2 and 3 — **debt-body generation** and
-   **cross-file implication detection** (unchanged from #343).
+   judgment moments. **Post-#400 the surface is five moments**:
+   **Moment 0 has TWO surfaces** — **drift interpretation** (per mapped
+   drift event; classifies PROPOSED_EDIT / JUDGMENT_REQUIRED /
+   NO_CHANGE_NEEDED before any GitHub issue is filed; #362) and
+   **audit interpretation** (per in-scope doc within a commit-derived
+   `Doc audit:` issue; same three-verdict vocabulary; #400). Both run
+   only when their respective `[*_interpretation].enabled` flag is
+   true. **Moment 1 — tier classification** consumes PROPOSED_EDIT
+   verdicts from either Moment 0 surface. Moments 2 and 3 —
+   **debt-body generation** and **cross-file implication detection**
+   (unchanged from #343).
 3. Mutates GitHub state via the `gh` CLI (issues, labels, comments,
    commits as `kg-felix-bot`).
 4. Writes a structured tick signal to `last-tick.json` and a prose entry
    to the daily activity log. Per-drift-event outcomes additionally
    land in the append-only audit ledger at
    `/data/services/security-monitor/logs/drift-events-ledger.jsonl`
-   (one row per event; backs the NFR-001 operator-triage-rate metric).
+   (one row per event). Post-#400, per-doc commit-audit outcomes land
+   in a separate ledger at
+   `/data/services/openclaw/state/doc_audit/audit-events-ledger.jsonl`
+   (one row per (audit_issue, doc_path)). Both ledgers back the NFR-001
+   operator-triage-rate metric for their respective signal class.
 5. Exits.
 
 Persistent state lives on GitHub (labels, issues) and in two files on
@@ -387,6 +396,230 @@ see the mission quickstart §7 Rollback procedure.
 
 ---
 
+## Moment 0 — commit-derived audit interpretation (#400)
+
+Introduced by mission [#400 — audit-interpretation-moment0](https://github.com/kentonium3/issues/400).
+Mission spec at
+[`kitty-specs/audit-interpretation-moment0-01KSBGBS/spec.md`](<../../kitty-specs/audit-interpretation-moment0-01KSBGBS/spec.md>).
+Applies the #362/#391 Moment 0 architecture to commit-derived
+`Doc audit:` issues. Structural twin of the drift Moment 0 section
+above — same JudgmentClient, same cache-aware prompt pattern, same
+defense-in-depth schema validation, same ≥0.80 confidence threshold.
+
+**Trigger**: every `Doc audit:` issue's no-proposals path when
+`[audit_interpretation].enabled = true` in
+`scripts/doc_audit/config.toml`. Specifically: `handle_audit_routing.py`
+first runs the existing deterministic pattern-matching path; if it
+returns zero auto-applyable proposals, the no-proposals branch invokes
+`audit_interpretation.interpret_audit(client, context)`. When
+`[audit_interpretation].enabled = false`, the no-proposals branch
+falls back to the pre-#400 behavior (release the `status:in-progress`
+lock + post a "no automatable edits detected" comment for operator
+triage). The deterministic-proposals path (when proposals IS non-empty)
+is unaffected.
+
+**LLM call**: Haiku 4.5 (`claude-haiku-4-5-20251001`) via the shared
+`JudgmentClient`. Cache-aware prompt — stable system portion (≥80% of
+tokens) marked `cache_control: ephemeral`, dynamic
+`AuditInterpretationContext` (audit metadata + commit SHA + diff +
+in-scope doc paths + per-doc current contents) in the user portion.
+**One LLM call PER in-scope doc** (per spec D2 — per-doc verdicts
+preserve granularity: an audit can be "partially clean").
+
+**Three verdicts**:
+
+| Verdict | Behavior |
+|---|---|
+| `PROPOSED_EDIT` | A specific edit to a specific in-scope doc path with `current_value` + `proposed_value` |
+| `JUDGMENT_REQUIRED` | The LLM cannot determine the edit; surfaces a specific question for the operator |
+| `NO_CHANGE_NEEDED` | The commit doesn't imply a change to this doc |
+
+**Confidence threshold**: `0.80` (configurable via
+`[audit_interpretation].confidence_threshold`). PROPOSED_EDIT or
+NO_CHANGE_NEEDED returned at confidence < 0.80 are demoted at the
+helper boundary to JUDGMENT_REQUIRED, with the proposed edit /
+rationale folded into the consolidated comment. PROPOSED_EDIT at
+confidence ≥ 0.80 is translated to a `ProposedEdit` and routed through
+the existing `tier_classification` surface (Moment 1) — that
+classifier's conservative rules ultimately decide Tier A / Tier B /
+judgment. PROPOSED_EDIT proposing an edit to a path NOT in the audit's
+in-scope list is a semantic violation → demoted to JUDGMENT_REQUIRED.
+
+**Per-doc isolation + retry policy**: 30s / 60s / 120s exponential
+backoff per doc on Anthropic API errors, malformed JSON, or schema
+violations. **Retry exhaustion on doc N does NOT prevent docs N±1
+from being evaluated** — the helper emits a synthetic JUDGMENT_REQUIRED
+verdict (`confidence=0.0`, `rationale="LLM retry exhausted"`) for the
+failed doc and continues. Catastrophic per-audit failures (e.g., the
+audit body's in-scope doc list is malformed) fall back to the pre-#400
+no-proposals path (lock release + "no automatable edits" comment).
+
+**Consolidated comment for JUDGMENT_REQUIRED**: per spec research D3,
+all JUDGMENT_REQUIRED verdicts for a single audit are folded into ONE
+comment listing each doc + its specific question (avoids comment
+noise; operator reads one comment to see all questions).
+
+**Auto-close rule (FR-008)**: when ALL in-scope docs return
+NO_CHANGE_NEEDED at confidence ≥0.80, the audit issue is auto-closed
+with a summary comment listing the docs as "clean per LLM check". If
+ANY doc is JUDGMENT_REQUIRED (after demotion), the audit stays open
+(FR-009).
+
+**Weekly audits**: skip Moment 0 entirely (no triggering SHA → empty
+diff). Existing weekly behavior preserved (spec C-006).
+
+**Defense-in-depth**: even if the LLM returns a valid PROPOSED_EDIT on
+a guardrailed doc path, `tier_classification` will short-circuit to
+`judgment`. The audit Moment 0 verdict is never a direct auto-commit
+authority — it only feeds the existing Moment 1 surface.
+
+### Ledger queries
+
+Every processed in-scope doc lands one row in
+`/data/services/openclaw/state/doc_audit/audit-events-ledger.jsonl`
+(schema mirrors `drift_ledger` with two adaptations per spec D1/E3:
+`audit_issue:int` replaces `event_id`/`baseline`/`mapping_id`, and
+`judgment_required_posted` replaces drift's `issue_filed` since audit
+appends a comment to the EXISTING audit issue rather than creating a
+new one). Read-only CLI subcommands:
+
+```bash
+# Triage rate (NFR-001 metric)
+python3 -m scripts.doc_audit.output.audit_ledger triage-rate --days 7
+```
+
+```bash
+# Outcome breakdown
+python3 -m scripts.doc_audit.output.audit_ledger summary --days 7
+```
+
+```bash
+# Recent entries
+python3 -m scripts.doc_audit.output.audit_ledger tail
+```
+
+Flags: `--ledger-path` (override the default path), `--days N`
+(window for summary/triage-rate, default 7). All three subcommands
+tail from end-of-file forward, so the cost is bounded by window size,
+not by ledger growth.
+
+### Rollback
+
+Same lever pattern as drift Moment 0: a single config flag flip
+reverts to the pre-#400 no-proposals path (lock release + "no
+automatable edits" comment) on the next tick (≤60 seconds). No code
+revert required:
+
+```bash
+ssh office2-claude 'sed -i "s/^enabled = true$/enabled = false/" ~/kg-automation/scripts/doc_audit/config.toml'
+```
+
+Note: this also flips the drift `[drift_interpretation]` block if both
+are `enabled = true` (the `sed` matches both). To rollback ONLY the
+audit Moment 0 path, edit the file directly to flip only the
+`[audit_interpretation]` block's `enabled` flag.
+
+Verify:
+
+```bash
+ssh office2-claude 'grep -A6 "\[audit_interpretation\]" ~/kg-automation/scripts/doc_audit/config.toml'
+```
+
+Force a tick to confirm the new pipeline is skipped:
+
+```bash
+ssh office2-claude 'systemctl --user start --wait felix-doc-auditor.service'
+```
+
+```bash
+ssh office2-claude 'gh issue view <recent-doc-audit-issue> --comments'
+```
+
+Expected: the audit issue receives the pre-#400 "no automatable edits
+detected" comment from `handle_audit_routing.py` (today-merged
+behavior) and the `status:in-progress` lock is released. The ledger
+file is preserved — entries already written (Tier A commits, Tier B
+pending-approval issues, auto-closed audits) remain in their final
+state.
+
+For a code-level revert (rare; the config flag is the primary lever),
+see the mission spec at
+[`kitty-specs/audit-interpretation-moment0-01KSBGBS/spec.md`](<../../kitty-specs/audit-interpretation-moment0-01KSBGBS/spec.md>).
+
+### Cutover replay for stuck audits (one-time, post-#400 deploy)
+
+After #400 deploys, the 11 currently-stuck audits filed before WP02
+landed are eligible for re-processing through the new Moment 0 path.
+At WP02 merge time these were: #350, #363, #364, #365, #373, #377,
+#395, #396, #397, #398, #399. Each one currently sits with a generic
+14-item triage checklist and no actionable LLM analysis — once #400
+ships, the next driver tick will re-evaluate each one's in-scope docs
+through `audit_interpretation`.
+
+To trigger:
+
+1. Pull on office2:
+
+   ```bash
+   ssh office2-claude 'cd ~/kg-automation && git pull origin main'
+   ```
+
+2. Verify config:
+
+   ```bash
+   ssh office2-claude 'grep -A6 audit_interpretation ~/kg-automation/scripts/doc_audit/config.toml'
+   ```
+
+   Expected: `enabled = true` and the
+   `/data/services/openclaw/state/doc_audit/audit-events-ledger.jsonl`
+   ledger path is present.
+
+3. Trigger a manual tick:
+
+   ```bash
+   ssh office2-claude 'systemctl --user start felix-doc-auditor.service'
+   ```
+
+4. The driver picks up each `doc-audit`-labeled audit, runs the
+   deterministic-pattern path (no proposals expected for these
+   already-triaged audits), then falls through to the NEW
+   `audit_interpretation` path. Each in-scope doc receives one LLM
+   call.
+
+5. Verify outcomes by querying the audit ledger:
+
+   ```bash
+   ssh office2-claude 'cat /data/services/openclaw/state/doc_audit/audit-events-ledger.jsonl | jq -c "{audit_issue, doc_path, verdict, outcome}"'
+   ```
+
+6. Expected mix:
+
+   - Some audits auto-close (all in-scope docs return NO_CHANGE_NEEDED
+     at confidence ≥0.80)
+   - Some get JUDGMENT_REQUIRED consolidated comments (one comment per
+     audit listing all per-doc questions)
+   - Some get Tier A auto-commits or Tier B pending-approval issues
+     (PROPOSED_EDIT at confidence ≥0.80 routed through
+     `tier_classification`)
+
+7. (Optional) Query the triage-rate after the tick completes:
+
+   ```bash
+   ssh office2-claude 'python3 -m scripts.doc_audit.output.audit_ledger triage-rate --days 1'
+   ```
+
+   Per NFR-001 the 7-day rolling target is ≤30%. The cutover replay is
+   a one-time event with a non-representative mix; use the 7-day
+   rolling window for the steady-state metric.
+
+This is a one-time post-deploy operation. After the cutover tick
+completes, subsequent commit-derived audits flow through the Moment 0
+path naturally per the trigger described above. No sentinel marker or
+helper script is needed — the existing audits are processed by the
+same code path as new audits.
+
+---
+
 ## Backlog recovery
 
 When the GitHub queue is unexpectedly deep (e.g., post-outage, post-cron-gap):
@@ -645,3 +878,6 @@ for the full methodology and retention policy.
 - **Moment 0 ledger schema (#362)**: [`kitty-specs/drift-event-auto-resolution-01KS8J32/contracts/ledger-schema.md`](<../../kitty-specs/drift-event-auto-resolution-01KS8J32/contracts/ledger-schema.md>)
 - **Moment 0 cutover quickstart (#362)**: [`kitty-specs/drift-event-auto-resolution-01KS8J32/quickstart.md`](<../../kitty-specs/drift-event-auto-resolution-01KS8J32/quickstart.md>)
 - **Moment 0 integration-fix mission spec (#391)**: [`kitty-specs/moment0-integration-fix-01KS8XRM/spec.md`](<../../kitty-specs/moment0-integration-fix-01KS8XRM/spec.md>) — corrects the cron-path invocation site to `signals/drift_event.py` + `routing/drift_moment0.py`; adds `cleanup_391.py` for the 13 broken-pipeline artifact issues (#378-#390)
+- **Audit Moment 0 mission spec (#400)**: [`kitty-specs/audit-interpretation-moment0-01KSBGBS/spec.md`](<../../kitty-specs/audit-interpretation-moment0-01KSBGBS/spec.md>) — applies the #362/#391 Moment 0 architecture to commit-derived `Doc audit:` issues; structural twin of `drift_interpretation` adapted for per-doc verdicts within a single audit
+- **Audit Moment 0 mission plan (#400)**: [`kitty-specs/audit-interpretation-moment0-01KSBGBS/plan.md`](<../../kitty-specs/audit-interpretation-moment0-01KSBGBS/plan.md>)
+- **Audit Moment 0 data model (#400)**: [`kitty-specs/audit-interpretation-moment0-01KSBGBS/data-model.md`](<../../kitty-specs/audit-interpretation-moment0-01KSBGBS/data-model.md>)

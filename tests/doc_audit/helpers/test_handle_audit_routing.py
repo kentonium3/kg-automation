@@ -1037,3 +1037,829 @@ def test_main_returns_exit_code_for_empty_proposals(tmp_path: Path):
 def test_main_returns_exit_code_1_on_missing_state_file(tmp_path: Path):
     rc = main([str(tmp_path / "missing.json"), "--repo-root", str(tmp_path)])
     assert rc == 1
+
+
+# ---------------------------------------------------------------------------
+# audit_interpretation Moment 0 wiring (mission #400)
+# ---------------------------------------------------------------------------
+#
+# These tests exercise the new no-proposals branch added by WP02.
+# ``interpret_audit`` and ``tier_classification.classify`` are mocked at
+# the dependency-injection seam exposed by ``_run_audit_interpretation_flow``
+# (the ``interpret_audit_fn`` / ``tier_classify_fn`` / ``client_factory``
+# kwargs) so we never spin up the real anthropic SDK.
+
+
+from types import SimpleNamespace as _SNS  # noqa: E402
+
+from doc_audit.helpers import handle_audit_routing as _har_module  # noqa: E402
+
+
+def _make_audit_verdict(
+    *,
+    doc_path: str,
+    verdict: str,
+    confidence: float = 0.95,
+    rationale: str = "test",
+    proposed_edit: dict | None = None,
+    question: str | None = None,
+):
+    """Build a real :class:`AuditVerdict` (the dataclass exists in WP01)."""
+    from doc_audit.judgment.audit_interpretation import AuditVerdict
+
+    return AuditVerdict(
+        doc_path=doc_path,
+        verdict=verdict,
+        confidence=confidence,
+        rationale=rationale,
+        proposed_edit=proposed_edit,
+        question=question,
+    )
+
+
+def _make_ai_config(
+    tmp_path: Path,
+    *,
+    enabled: bool = True,
+    domain_map_payload: dict | None = None,
+) -> _SNS:
+    """Build a minimal duck-typed Config the new flow can consume.
+
+    The real :class:`Config` carries many fields; the flow only reads
+    ``config.audit_interpretation.enabled`` and
+    ``config.paths.doc_domain_map``. Using ``SimpleNamespace`` keeps
+    the tests focused on the behavior under test.
+    """
+    domain_map_path = tmp_path / "doc-domain-map.json"
+    if domain_map_payload is None:
+        domain_map_payload = {
+            "domains": {
+                "area/felix-core": ["docs/INDEX.md"],
+            }
+        }
+    domain_map_path.write_text(json.dumps(domain_map_payload))
+
+    ledger_path = tmp_path / "audit-events-ledger.jsonl"
+
+    return _SNS(
+        audit_interpretation=_SNS(
+            enabled=enabled,
+            ledger_path=str(ledger_path),
+        ),
+        paths=_SNS(
+            doc_domain_map=str(domain_map_path),
+        ),
+    )
+
+
+def _populate_in_scope_doc(repo_root: Path, rel_path: str, body: str) -> Path:
+    """Create an in-scope doc file under ``repo_root`` and return its path."""
+    abs_path = repo_root / rel_path
+    abs_path.parent.mkdir(parents=True, exist_ok=True)
+    abs_path.write_text(body, encoding="utf-8")
+    return abs_path
+
+
+def _patch_flow_internals(
+    monkeypatch,
+    *,
+    interpret_return: list | Exception,
+    tier_classify_return: tuple | None = None,
+    diff_text: str = "diff --git a/docs/INDEX.md b/docs/INDEX.md\n@@ -1 +1 @@\n-old\n+new\n",
+):
+    """Patch ``_fetch_diff_for_commit`` and the dependency-injected fns.
+
+    Returns a SimpleNamespace exposing the mocks for assertion.
+    """
+    fake_fetch = mock.MagicMock(return_value=diff_text)
+    monkeypatch.setattr(_har_module, "_fetch_diff_for_commit", fake_fetch)
+
+    fake_client_factory = mock.MagicMock(return_value=object())
+    fake_interpret = mock.MagicMock()
+    if isinstance(interpret_return, Exception):
+        fake_interpret.side_effect = interpret_return
+    else:
+        fake_interpret.return_value = interpret_return
+
+    fake_tier_classify = mock.MagicMock()
+    if tier_classify_return is not None:
+        fake_tier_classify.return_value = tier_classify_return
+
+    # Re-wire _run_audit_interpretation_flow's signature by injecting via
+    # module-level patches the flow consumes. The flow accepts these as
+    # kwargs, so we wrap the real function and provide the test mocks.
+    real_flow = _har_module._run_audit_interpretation_flow
+
+    def patched_flow(**kwargs):
+        kwargs.setdefault("client_factory", fake_client_factory)
+        kwargs.setdefault("interpret_audit_fn", fake_interpret)
+        kwargs.setdefault("tier_classify_fn", fake_tier_classify)
+        return real_flow(**kwargs)
+
+    monkeypatch.setattr(
+        _har_module, "_run_audit_interpretation_flow", patched_flow
+    )
+
+    return _SNS(
+        fetch=fake_fetch,
+        client_factory=fake_client_factory,
+        interpret=fake_interpret,
+        tier_classify=fake_tier_classify,
+    )
+
+
+# --- Scenario C: gate disabled → fallback path ----------------------
+
+
+def test_no_proposals_with_audit_interpretation_disabled_runs_fallback(
+    tmp_path: Path, monkeypatch
+):
+    """Config disabled → today's lock-release + comment fallback runs."""
+    state_path = _make_state_file(tmp_path, proposals=[])
+    config = _make_ai_config(tmp_path, enabled=False)
+
+    fake_run = mock.MagicMock(return_value=_make_zero_rc_response())
+    monkeypatch.setattr(_har_module.subprocess, "run", fake_run)
+
+    result = route_audit_decision(
+        state_path=state_path,
+        repo_root=tmp_path,
+        config=config,
+    )
+
+    assert result.exit_code == 0
+    # Two best-effort gh calls: comment + remove-label.
+    assert fake_run.call_count == 2
+    # First call is the no-proposals comment.
+    first_args = fake_run.call_args_list[0].args[0]
+    assert "issue" in first_args and "comment" in first_args
+
+
+# --- Scenario A: all NO_CHANGE_NEEDED → auto-close ------------------
+
+
+def test_no_proposals_all_no_change_needed_auto_closes_audit(
+    tmp_path: Path, monkeypatch
+):
+    repo_root = tmp_path
+    _populate_in_scope_doc(repo_root, "docs/INDEX.md", "---\nx: 1\n---\nbody\n")
+    state_path = _make_state_file(repo_root, proposals=[])
+    config = _make_ai_config(tmp_path, enabled=True)
+
+    verdicts = [
+        _make_audit_verdict(
+            doc_path="docs/INDEX.md",
+            verdict="NO_CHANGE_NEEDED",
+            confidence=0.92,
+            rationale="doc unrelated to diff",
+        ),
+    ]
+    patches = _patch_flow_internals(
+        monkeypatch, interpret_return=verdicts
+    )
+
+    # gh issue comment (auto-close summary) + gh issue close + gh issue
+    # edit --remove-label.
+    fake_run = mock.MagicMock(return_value=_make_zero_rc_response())
+    monkeypatch.setattr(_har_module.subprocess, "run", fake_run)
+
+    result = route_audit_decision(
+        state_path=state_path,
+        repo_root=repo_root,
+        config=config,
+    )
+
+    assert result.exit_code == 0
+    # interpret_audit was called.
+    assert patches.interpret.call_count == 1
+    # tier_classification NOT called (no PROPOSED_EDIT verdicts).
+    assert patches.tier_classify.call_count == 0
+    # GH side-effects: summary comment + close + lock release = 3 calls.
+    assert fake_run.call_count == 3
+    # Ensure the summary comment mentioned the clean doc.
+    summary_args = fake_run.call_args_list[0].args[0]
+    assert any("docs/INDEX.md" in str(a) for a in summary_args)
+    assert "close" in fake_run.call_args_list[1].args[0]
+
+
+# --- Scenario B: mixed verdicts → consolidated comment, audit stays open ---
+
+
+def test_no_proposals_mixed_no_change_and_judgment_required_posts_consolidated_comment(
+    tmp_path: Path, monkeypatch
+):
+    repo_root = tmp_path
+    _populate_in_scope_doc(repo_root, "docs/INDEX.md", "---\nx: 1\n---\nbody\n")
+    _populate_in_scope_doc(
+        repo_root, "docs/runbooks/foo.md", "---\nfoo: bar\n---\nbody\n"
+    )
+    state_path = _make_state_file(repo_root, proposals=[])
+    config = _make_ai_config(
+        tmp_path,
+        enabled=True,
+        domain_map_payload={
+            "domains": {
+                "area/felix-core": [
+                    "docs/INDEX.md",
+                    "docs/runbooks/foo.md",
+                ],
+            }
+        },
+    )
+
+    verdicts = [
+        _make_audit_verdict(
+            doc_path="docs/INDEX.md",
+            verdict="NO_CHANGE_NEEDED",
+            confidence=0.91,
+            rationale="ok",
+        ),
+        _make_audit_verdict(
+            doc_path="docs/runbooks/foo.md",
+            verdict="JUDGMENT_REQUIRED",
+            confidence=0.65,
+            rationale="needs op judgment",
+            question="Does this section need updating for the new behavior?",
+        ),
+    ]
+    _patch_flow_internals(monkeypatch, interpret_return=verdicts)
+
+    fake_run = mock.MagicMock(return_value=_make_zero_rc_response())
+    monkeypatch.setattr(_har_module.subprocess, "run", fake_run)
+
+    result = route_audit_decision(
+        state_path=state_path,
+        repo_root=repo_root,
+        config=config,
+    )
+
+    assert result.exit_code == 0
+    # Side effects: consolidated comment (1) + lock release (1). Audit
+    # NOT closed (it stays open because of the JUDGMENT_REQUIRED).
+    assert fake_run.call_count == 2
+    # First call is the consolidated comment.
+    comment_args = fake_run.call_args_list[0].args[0]
+    assert "comment" in comment_args
+    body_str = " ".join(str(a) for a in comment_args)
+    assert "docs/runbooks/foo.md" in body_str
+    assert "need your judgment" in body_str
+    assert "docs/INDEX.md" in body_str  # listed as clean
+    # No `gh issue close` call.
+    for call in fake_run.call_args_list:
+        assert "close" not in call.args[0]
+
+
+# --- Scenario B': PROPOSED_EDIT @ Tier A → auto-commit -------------
+
+
+def test_no_proposals_proposed_edit_tier_a_auto_commit(tmp_path: Path, monkeypatch):
+    repo_root = tmp_path
+    _populate_in_scope_doc(
+        repo_root, "docs/INDEX.md", "Title v1.2.0\nrest\n"
+    )
+    state_path = _make_state_file(repo_root, proposals=[])
+    config = _make_ai_config(tmp_path, enabled=True)
+
+    verdicts = [
+        _make_audit_verdict(
+            doc_path="docs/INDEX.md",
+            verdict="PROPOSED_EDIT",
+            confidence=0.90,
+            rationale="version drift detected",
+            proposed_edit={
+                "doc_path": "docs/INDEX.md",
+                "current_value": "1.2.0",
+                "proposed_value": "1.3.0",
+            },
+        ),
+    ]
+    # tier_classification returns Tier A.
+    from doc_audit.data_model import EditTier
+
+    _patch_flow_internals(
+        monkeypatch,
+        interpret_return=verdicts,
+        tier_classify_return=(EditTier.TIER_A, "frontmatter-only", None),
+    )
+
+    fake_run = mock.MagicMock(return_value=_make_zero_rc_response())
+    monkeypatch.setattr(_har_module.subprocess, "run", fake_run)
+
+    result = route_audit_decision(
+        state_path=state_path,
+        repo_root=repo_root,
+        config=config,
+    )
+
+    assert result.exit_code == 0
+    # File was actually rewritten on disk (version_bump applier matched).
+    assert "v1.3.0" in (repo_root / "docs/INDEX.md").read_text()
+    # Subprocess: git add + git commit + lock-release (no consolidated
+    # comment, no auto-close — there was a PROPOSED_EDIT side effect).
+    cmds = [tuple(c.args[0][:2]) for c in fake_run.call_args_list]
+    assert ("git", "add") in cmds
+    assert ("git", "commit") in cmds
+
+
+# --- Scenario B'': PROPOSED_EDIT @ Tier B → file pending-approval ---
+
+
+def test_no_proposals_proposed_edit_tier_b_files_pending_approval(
+    tmp_path: Path, monkeypatch
+):
+    repo_root = tmp_path
+    _populate_in_scope_doc(
+        repo_root, "docs/INDEX.md", "Title v1.2.0\nrest\n"
+    )
+    state_path = _make_state_file(repo_root, proposals=[])
+    config = _make_ai_config(tmp_path, enabled=True)
+
+    verdicts = [
+        _make_audit_verdict(
+            doc_path="docs/INDEX.md",
+            verdict="PROPOSED_EDIT",
+            confidence=0.85,
+            rationale="content change suggested",
+            proposed_edit={
+                "doc_path": "docs/INDEX.md",
+                "current_value": "1.2.0",
+                "proposed_value": "1.3.0",
+            },
+        ),
+    ]
+    from doc_audit.data_model import EditTier
+
+    _patch_flow_internals(
+        monkeypatch,
+        interpret_return=verdicts,
+        tier_classify_return=(EditTier.TIER_B, "content-touching", None),
+    )
+
+    # gh issue create (pending approval) returns a parseable URL.
+    fake_run = mock.MagicMock(
+        side_effect=[
+            _make_gh_create_response(issue_number=4242),
+            _make_zero_rc_response(),  # lock release
+        ]
+    )
+    monkeypatch.setattr(_har_module.subprocess, "run", fake_run)
+
+    result = route_audit_decision(
+        state_path=state_path,
+        repo_root=repo_root,
+        config=config,
+    )
+
+    assert result.exit_code == 0
+    # Two subprocess calls: gh issue create + lock release.
+    assert fake_run.call_count == 2
+    first_cmd = fake_run.call_args_list[0].args[0]
+    assert "create" in first_cmd
+    assert any("audit-pending-approval" in str(a) for a in first_cmd)
+
+
+# --- Scenario D: DriftInterpretationError → fallback path + RETRY_EXHAUSTED rows ---
+
+
+def test_no_proposals_retry_exhausted_falls_back_and_writes_ledger(
+    tmp_path: Path, monkeypatch
+):
+    repo_root = tmp_path
+    _populate_in_scope_doc(repo_root, "docs/INDEX.md", "---\nx: 1\n---\nbody\n")
+    state_path = _make_state_file(repo_root, proposals=[])
+    config = _make_ai_config(tmp_path, enabled=True)
+
+    from doc_audit.judgment.drift_interpretation import (
+        DriftInterpretationError,
+    )
+
+    err = DriftInterpretationError("simulated retry exhausted")
+    _patch_flow_internals(monkeypatch, interpret_return=err)
+
+    fake_run = mock.MagicMock(return_value=_make_zero_rc_response())
+    monkeypatch.setattr(_har_module.subprocess, "run", fake_run)
+
+    result = route_audit_decision(
+        state_path=state_path,
+        repo_root=repo_root,
+        config=config,
+    )
+
+    assert result.exit_code == 0
+    # Fallback ran: 2 calls (no-proposals comment + lock release).
+    assert fake_run.call_count == 2
+    # Ledger has one RETRY_EXHAUSTED row per in-scope doc.
+    ledger_path = Path(config.audit_interpretation.ledger_path)
+    assert ledger_path.exists()
+    rows = [
+        json.loads(line)
+        for line in ledger_path.read_text().splitlines()
+        if line.strip()
+    ]
+    assert len(rows) == 1
+    assert rows[0]["verdict"] == "RETRY_EXHAUSTED"
+    assert rows[0]["outcome"] == "retry_exhausted"
+    assert rows[0]["doc_path"] == "docs/INDEX.md"
+
+
+# --- Scenario C-006: weekly audit (no commit_sha) → fallback path ---
+
+
+def test_no_proposals_weekly_audit_skips_audit_interpretation(tmp_path: Path, monkeypatch):
+    """Weekly audits carry commit_sha="" — Moment 0 must NOT fire."""
+    state = {
+        "audit_issue_number": 555,
+        "commit_sha": "",  # weekly audit
+        "areas": [],
+        "proposals": [],
+        "debt_issues_filed": [],
+        "missing_artifact_issues_filed": [],
+    }
+    state_path = tmp_path / "weekly.json"
+    state_path.write_text(json.dumps(state))
+    config = _make_ai_config(tmp_path, enabled=True)
+
+    # interpret_audit MUST NOT be called for a weekly audit.
+    fake_interpret = mock.MagicMock()
+    monkeypatch.setattr(
+        "doc_audit.judgment.audit_interpretation.interpret_audit",
+        fake_interpret,
+    )
+
+    fake_run = mock.MagicMock(return_value=_make_zero_rc_response())
+    monkeypatch.setattr(_har_module.subprocess, "run", fake_run)
+
+    result = route_audit_decision(
+        state_path=state_path,
+        repo_root=tmp_path,
+        config=config,
+    )
+
+    assert result.exit_code == 0
+    assert fake_interpret.call_count == 0  # C-006: weekly skips Moment 0
+    # Today-merged fallback ran (no-proposals comment + lock release).
+    assert fake_run.call_count == 2
+
+
+# --- Empty diff → fallback path ------------------------------------
+
+
+def test_no_proposals_empty_diff_falls_back(tmp_path: Path, monkeypatch):
+    """When git show yields no diff, the flow returns False → fallback."""
+    repo_root = tmp_path
+    _populate_in_scope_doc(repo_root, "docs/INDEX.md", "---\nx: 1\n---\nbody\n")
+    state_path = _make_state_file(repo_root, proposals=[])
+    config = _make_ai_config(tmp_path, enabled=True)
+
+    fake_fetch = mock.MagicMock(return_value="")  # empty diff
+    monkeypatch.setattr(_har_module, "_fetch_diff_for_commit", fake_fetch)
+    fake_interpret = mock.MagicMock()
+    monkeypatch.setattr(
+        "doc_audit.judgment.audit_interpretation.interpret_audit",
+        fake_interpret,
+    )
+
+    fake_run = mock.MagicMock(return_value=_make_zero_rc_response())
+    monkeypatch.setattr(_har_module.subprocess, "run", fake_run)
+
+    result = route_audit_decision(
+        state_path=state_path,
+        repo_root=repo_root,
+        config=config,
+    )
+
+    assert result.exit_code == 0
+    fake_interpret.assert_not_called()
+    # Fallback ran.
+    assert fake_run.call_count == 2
+
+
+# --- No in-scope docs after domain_map resolution → fallback path ---
+
+
+def test_no_proposals_no_in_scope_docs_falls_back(tmp_path: Path, monkeypatch):
+    state = {
+        "audit_issue_number": 777,
+        "commit_sha": "abc1234",
+        "areas": ["area/no-such-area"],  # no map entry → no in-scope docs
+        "proposals": [],
+        "debt_issues_filed": [],
+        "missing_artifact_issues_filed": [],
+    }
+    state_path = tmp_path / "s.json"
+    state_path.write_text(json.dumps(state))
+    config = _make_ai_config(tmp_path, enabled=True)
+
+    fake_fetch = mock.MagicMock(
+        return_value="diff --git a/x b/x\n@@ -1 +1 @@\n-a\n+b\n"
+    )
+    monkeypatch.setattr(_har_module, "_fetch_diff_for_commit", fake_fetch)
+    fake_interpret = mock.MagicMock()
+    monkeypatch.setattr(
+        "doc_audit.judgment.audit_interpretation.interpret_audit",
+        fake_interpret,
+    )
+
+    fake_run = mock.MagicMock(return_value=_make_zero_rc_response())
+    monkeypatch.setattr(_har_module.subprocess, "run", fake_run)
+
+    result = route_audit_decision(
+        state_path=state_path,
+        repo_root=tmp_path,
+        config=config,
+    )
+
+    assert result.exit_code == 0
+    fake_interpret.assert_not_called()
+    # Fallback ran.
+    assert fake_run.call_count == 2
+
+
+# --- PROPOSED_EDIT routed via tier_classification → judgment → DebtIssue ---
+
+
+def test_no_proposals_proposed_edit_judgment_files_debt_issue(
+    tmp_path: Path, monkeypatch
+):
+    repo_root = tmp_path
+    _populate_in_scope_doc(repo_root, "docs/INDEX.md", "Title v1.2.0\nrest\n")
+    state_path = _make_state_file(repo_root, proposals=[])
+    config = _make_ai_config(tmp_path, enabled=True)
+
+    verdicts = [
+        _make_audit_verdict(
+            doc_path="docs/INDEX.md",
+            verdict="PROPOSED_EDIT",
+            confidence=0.82,
+            rationale="ambiguous edit",
+            proposed_edit={
+                "doc_path": "docs/INDEX.md",
+                "current_value": "1.2.0",
+                "proposed_value": "1.3.0",
+            },
+        ),
+    ]
+    from doc_audit.data_model import EditTier
+
+    _patch_flow_internals(
+        monkeypatch,
+        interpret_return=verdicts,
+        tier_classify_return=(
+            EditTier.JUDGMENT,
+            "guardrailed or ambiguous",
+            None,
+        ),
+    )
+
+    fake_run = mock.MagicMock(
+        side_effect=[
+            _make_gh_create_response(issue_number=9999),  # debt issue
+            _make_zero_rc_response(),  # lock release
+        ]
+    )
+    monkeypatch.setattr(_har_module.subprocess, "run", fake_run)
+
+    result = route_audit_decision(
+        state_path=state_path,
+        repo_root=repo_root,
+        config=config,
+    )
+
+    assert result.exit_code == 0
+    assert fake_run.call_count == 2
+    first_cmd = fake_run.call_args_list[0].args[0]
+    assert "create" in first_cmd
+    assert any("docs-debt" in str(a) for a in first_cmd)
+
+
+# --- Backward-compat: route_audit_decision callable without config kwarg ---
+
+
+def test_no_proposals_no_config_kwarg_runs_lazy_load_then_fallback(
+    tmp_path: Path, monkeypatch
+):
+    """When config kwarg is omitted, lazy-load is best-effort; failure
+    is silent and the today-merged fallback runs.
+    """
+    state_path = _make_state_file(tmp_path, proposals=[])
+
+    # Force the lazy loader to return None (no config available).
+    monkeypatch.setattr(_har_module, "_load_config_lazy", lambda: None)
+
+    fake_run = mock.MagicMock(return_value=_make_zero_rc_response())
+    monkeypatch.setattr(_har_module.subprocess, "run", fake_run)
+
+    result = route_audit_decision(state_path=state_path, repo_root=tmp_path)
+    assert result.exit_code == 0
+    # Fallback ran (comment + lock release).
+    assert fake_run.call_count == 2
+
+
+# --- Helper-level coverage: small but load-bearing functions --------
+
+
+def test_audit_interpretation_enabled_handles_missing_attribute():
+    assert _har_module._audit_interpretation_enabled(None) is False
+    assert _har_module._audit_interpretation_enabled(_SNS()) is False
+    assert _har_module._audit_interpretation_enabled(
+        _SNS(audit_interpretation=_SNS())
+    ) is False
+    assert _har_module._audit_interpretation_enabled(
+        _SNS(audit_interpretation=_SNS(enabled=True))
+    ) is True
+
+
+def test_build_consolidated_judgment_comment_lists_questions_and_clean_docs():
+    body = _har_module._build_consolidated_judgment_comment(
+        [
+            ("docs/runbooks/foo.md", "Does foo need an update?"),
+            ("docs/runbooks/bar.md", "Is bar still accurate?"),
+        ],
+        clean_docs=["docs/INDEX.md"],
+    )
+    assert "2 of 3 doc(s)" in body
+    assert "docs/runbooks/foo.md" in body
+    assert "docs/runbooks/bar.md" in body
+    assert "docs/INDEX.md" in body
+    assert "Does foo need an update?" in body
+
+
+def test_build_audit_auto_close_comment_lists_clean_docs():
+    body = _har_module._build_audit_auto_close_comment(
+        ["docs/INDEX.md", "docs/runbooks/foo.md"]
+    )
+    assert "auto-closed" in body
+    assert "docs/INDEX.md" in body
+    assert "docs/runbooks/foo.md" in body
+
+
+def test_load_doc_domain_map_path_handles_missing_file(tmp_path: Path):
+    out = _har_module._load_doc_domain_map_path(tmp_path / "missing.json")
+    assert out == {}
+
+
+def test_load_doc_domain_map_path_handles_malformed_json(tmp_path: Path):
+    bad = tmp_path / "m.json"
+    bad.write_text("not json")
+    assert _har_module._load_doc_domain_map_path(bad) == {}
+
+
+def test_resolve_in_scope_docs_full_scope_when_areas_empty():
+    domain_map = {
+        "area/a": ["docs/a.md", "docs/shared.md"],
+        "area/b": ["docs/b.md", "docs/shared.md"],
+    }
+    out = _har_module._resolve_in_scope_docs_from_areas([], domain_map)
+    # Order-preserving union, no duplicates.
+    assert set(out) == {"docs/a.md", "docs/shared.md", "docs/b.md"}
+    assert len(out) == 3
+
+
+def test_resolve_in_scope_docs_intersects_with_areas():
+    domain_map = {
+        "area/a": ["docs/a.md"],
+        "area/b": ["docs/b.md"],
+    }
+    out = _har_module._resolve_in_scope_docs_from_areas(["area/a"], domain_map)
+    assert out == ["docs/a.md"]
+
+
+def test_build_doc_targets_skips_missing_files(tmp_path: Path):
+    # Two docs requested; only one exists.
+    (tmp_path / "docs").mkdir()
+    (tmp_path / "docs" / "exists.md").write_text("body\n")
+    out = _har_module._build_doc_targets(
+        ["docs/exists.md", "docs/missing.md"],
+        diff="",
+        repo_root=tmp_path,
+    )
+    assert len(out) == 1
+    assert out[0].path == "docs/exists.md"
+
+
+def test_no_proposals_tier_classification_raises_falls_back_to_debt_issue(
+    tmp_path: Path, monkeypatch
+):
+    """tier_classification raises → debt issue filed, ledger row=issue_filed."""
+    repo_root = tmp_path
+    _populate_in_scope_doc(repo_root, "docs/INDEX.md", "Title v1.2.0\nrest\n")
+    state_path = _make_state_file(repo_root, proposals=[])
+    config = _make_ai_config(tmp_path, enabled=True)
+
+    verdicts = [
+        _make_audit_verdict(
+            doc_path="docs/INDEX.md",
+            verdict="PROPOSED_EDIT",
+            confidence=0.85,
+            proposed_edit={
+                "doc_path": "docs/INDEX.md",
+                "current_value": "1.2.0",
+                "proposed_value": "1.3.0",
+            },
+        ),
+    ]
+
+    fake_fetch = mock.MagicMock(
+        return_value="diff --git a/docs/INDEX.md b/docs/INDEX.md\n@@ -1 +1 @@\n-x\n+y\n"
+    )
+    monkeypatch.setattr(_har_module, "_fetch_diff_for_commit", fake_fetch)
+
+    fake_run = mock.MagicMock(
+        side_effect=[
+            _make_gh_create_response(issue_number=8888),  # debt issue
+            _make_zero_rc_response(),  # lock release
+        ]
+    )
+    monkeypatch.setattr(_har_module.subprocess, "run", fake_run)
+
+    real_flow = _har_module._run_audit_interpretation_flow
+
+    def patched_flow(**kwargs):
+        kwargs.setdefault("client_factory", lambda: object())
+        kwargs.setdefault(
+            "interpret_audit_fn", mock.MagicMock(return_value=verdicts)
+        )
+        kwargs.setdefault(
+            "tier_classify_fn",
+            mock.MagicMock(side_effect=RuntimeError("boom")),
+        )
+        return real_flow(**kwargs)
+
+    monkeypatch.setattr(_har_module, "_run_audit_interpretation_flow", patched_flow)
+
+    result = route_audit_decision(
+        state_path=state_path, repo_root=repo_root, config=config
+    )
+    assert result.exit_code == 0
+    # docs-debt issue + lock release.
+    assert fake_run.call_count == 2
+    first_cmd = fake_run.call_args_list[0].args[0]
+    assert any("docs-debt" in str(a) for a in first_cmd)
+
+
+def test_no_proposals_tier_a_apply_failure_demotes_to_debt_issue(
+    tmp_path: Path, monkeypatch
+):
+    """Tier A apply fails (no applier matches) → debt issue filed."""
+    repo_root = tmp_path
+    # Content does NOT match any applier — no version, no frontmatter date,
+    # no path to rename. Tier A apply will fail.
+    _populate_in_scope_doc(repo_root, "docs/INDEX.md", "plain content\n")
+    state_path = _make_state_file(repo_root, proposals=[])
+    config = _make_ai_config(tmp_path, enabled=True)
+
+    verdicts = [
+        _make_audit_verdict(
+            doc_path="docs/INDEX.md",
+            verdict="PROPOSED_EDIT",
+            confidence=0.90,
+            proposed_edit={
+                "doc_path": "docs/INDEX.md",
+                "current_value": "DOES_NOT_EXIST",
+                "proposed_value": "REPLACEMENT",
+            },
+        ),
+    ]
+    from doc_audit.data_model import EditTier
+
+    _patch_flow_internals(
+        monkeypatch,
+        interpret_return=verdicts,
+        tier_classify_return=(EditTier.TIER_A, "tier-a rationale", None),
+    )
+
+    fake_run = mock.MagicMock(
+        side_effect=[
+            _make_gh_create_response(issue_number=7777),  # debt issue
+            _make_zero_rc_response(),  # lock release
+        ]
+    )
+    monkeypatch.setattr(_har_module.subprocess, "run", fake_run)
+
+    result = route_audit_decision(
+        state_path=state_path, repo_root=repo_root, config=config
+    )
+    assert result.exit_code == 0
+    # Apply failed → no git add/commit; just debt issue + lock release.
+    assert fake_run.call_count == 2
+    first_cmd = fake_run.call_args_list[0].args[0]
+    assert "create" in first_cmd
+    assert any("docs-debt" in str(a) for a in first_cmd)
+
+
+def test_build_audit_derived_proposed_edit_carries_audit_evidence():
+    verdict = _make_audit_verdict(
+        doc_path="docs/INDEX.md",
+        verdict="PROPOSED_EDIT",
+        proposed_edit={
+            "doc_path": "docs/INDEX.md",
+            "current_value": "1.0.0",
+            "proposed_value": "2.0.0",
+        },
+    )
+    pe = _har_module._build_audit_derived_proposed_edit(verdict, "abc123")
+    assert pe.change_type == "audit_derived"
+    assert pe.evidence_source == "audit-commit:abc123"
+    assert pe.current_value == "1.0.0"
+    assert pe.proposed_value == "2.0.0"
+    assert pe.confidence == "high"

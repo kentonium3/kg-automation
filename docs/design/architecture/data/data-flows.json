@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
   "last_updated": "2026-05-23",
-  "updated_by": "#310-tasker-jsonl-migration + #374-main-verbatim-passthrough + #362-drift-event-auto-resolution + #371-habits-checkin-reply-scripts-first + #309-migrate-escalation-to-jsonl-state-model + #343-refactor-doc-auditor-to-scripts-first-driver + #307-backfill-habits-jsonl-from-comments + #306-habits-native-repeat-jsonl-state + #152",
+  "updated_by": "#400-audit-interpretation-moment0 + #310-tasker-jsonl-migration + #374-main-verbatim-passthrough + #362-drift-event-auto-resolution + #371-habits-checkin-reply-scripts-first + #309-migrate-escalation-to-jsonl-state-model + #343-refactor-doc-auditor-to-scripts-first-driver + #307-backfill-habits-jsonl-from-comments + #306-habits-native-repeat-jsonl-state + #152",
   "flows": [
     {
       "name": "vikunja-web-ui",
@@ -909,6 +909,72 @@
           "agent": "operator (Kent)",
           "reads_from": "/data/services/security-monitor/logs/drift-events-ledger.jsonl",
           "description": "Via `python3 -m scripts.doc_audit.output.drift_ledger {summary|tail|triage-rate}` \u2014 NFR-001 metric and daily observation in the 7-day post-deploy window"
+        }
+      ]
+    },
+    {
+      "name": "doc-audit-audit-interpretation-llm",
+      "status": "active",
+      "deployed_by": "#400",
+      "introduced_by": "#400",
+      "updated_by": "#400",
+      "description": "#400 (Moment 0 commit-audit interpretation \u2014 narrow per-doc LLM judgment surface mirroring drift_interpretation but adapted for commit-derived `Doc audit:` issues). When `handle_audit_routing.py` finds no deterministic-pattern proposals AND `[audit_interpretation].enabled = true`, the no-proposals branch invokes `audit_interpretation.interpret_audit(client, context)`. The helper assembles an AuditInterpretationContext (audit issue + commit SHA + diff + in-scope doc paths + per-doc current contents from disk) and calls api.anthropic.com once per in-scope doc via the shared JudgmentClient (claude-haiku-4-5-20251001). Each call returns an AuditVerdict (PROPOSED_EDIT / JUDGMENT_REQUIRED / NO_CHANGE_NEEDED) with confidence \u2208 [0.0, 1.0]. PROPOSED_EDIT at confidence \u22650.80 feeds the existing tier_classification surface (may yield Tier A auto-commit, Tier B pending-approval issue, or judgment debt-issue); PROPOSED_EDIT or NO_CHANGE_NEEDED at confidence <0.80 demotes to JUDGMENT_REQUIRED at the helper boundary. JUDGMENT_REQUIRED verdicts accumulate into a single consolidated comment posted to the audit issue (per research D3). When ALL in-scope docs return NO_CHANGE_NEEDED at confidence \u22650.80, the audit issue is auto-closed with a summary comment. Per-doc isolation: retry exhaustion on doc N does NOT prevent docs N\u00b11 from being evaluated (synthetic JUDGMENT_REQUIRED verdict is emitted for the failed doc). Gated by [audit_interpretation].enabled in config.toml \u2014 flipping to false reverts to the pre-#400 no-proposals path (lock release + 'no automatable edits' comment) in \u226460s (FR-013).",
+      "trigger": "per commit-derived audit when handle_audit_routing.py finds no deterministic-pattern proposals AND [audit_interpretation].enabled = true in scripts/doc_audit/config.toml",
+      "path": [
+        {
+          "from": "scripts/doc_audit/helpers/handle_audit_routing.py",
+          "to": "scripts/doc_audit/judgment/audit_interpretation.py",
+          "protocol": "python-import",
+          "description": "No-proposals branch: assembles AuditInterpretationContext (audit_issue + commit_sha + diff + in_scope_doc_paths + per-doc current contents from disk) and calls interpret_audit(client, context). Returns list[AuditVerdict] (one per in-scope doc)."
+        },
+        {
+          "from": "scripts/doc_audit/judgment/audit_interpretation.py",
+          "to": "/data/services/openclaw/secrets/anthropic",
+          "protocol": "file read (0600)",
+          "description": "API key load via the shared JudgmentClient \u2014 not re-read per call; reused across the per-doc call sequence within a single audit. Sensitive: never logged."
+        },
+        {
+          "from": "scripts/doc_audit/judgment/audit_interpretation.py",
+          "to": "Anthropic API",
+          "protocol": "HTTPS (anthropic-python SDK)",
+          "endpoint": "api.anthropic.com",
+          "description": "ONE narrow judgment call PER in-scope doc. Cache-aware: system prompt (\u226580% of tokens by char count) is marked cache_control=ephemeral per the existing tier_classification.py / drift_interpretation.py pattern. Returns strict JSON; defense-in-depth schema validation demotes malformed responses to JUDGMENT_REQUIRED (proposed edits to paths outside the in-scope list also demote \u2014 semantic violation)."
+        },
+        {
+          "from": "scripts/doc_audit/judgment/audit_interpretation.py",
+          "to": "scripts/doc_audit/helpers/handle_audit_routing.py",
+          "protocol": "return value",
+          "description": "Returns list[AuditVerdict]. PROPOSED_EDIT at confidence \u22650.80 routes through tier_classification; JUDGMENT_REQUIRED accumulates into a consolidated comment on the audit issue; NO_CHANGE_NEEDED \u2265threshold across all docs auto-closes the audit. Per-doc retry exhaustion emits a synthetic JUDGMENT_REQUIRED verdict; catastrophic failures fall back to the pre-#400 lock-release + 'no automatable edits' comment path."
+        }
+      ]
+    },
+    {
+      "name": "doc-audit-audit-ledger-write",
+      "status": "active",
+      "deployed_by": "#400",
+      "introduced_by": "#400",
+      "updated_by": "#400",
+      "description": "#400 (Moment 0 commit-audit ledger \u2014 one row per (audit_issue, doc_path) pair). After the per-doc verdict is routed (PROPOSED_EDIT through tier_classification, JUDGMENT_REQUIRED accumulated into a consolidated comment, NO_CHANGE_NEEDED auto-closed when all docs clean, or RETRY_EXHAUSTED escalated), handle_audit_routing.py calls audit_ledger.append() with one entry per in-scope doc. Schema mirrors drift_ledger with two adaptations per spec D1/E3: (a) audit_issue:int replaces event_id/baseline/mapping_id (the audit issue number is the cursor for the commit-audit path); (b) judgment_required_posted is a distinct outcome value (drift uses issue_filed for JUDGMENT_REQUIRED because drift creates a NEW issue per event; audit appends a comment to the EXISTING audit issue). Atomic append (tempfile + rename). Backs the NFR-001 operator-triage-rate metric via the audit_ledger CLI subcommands.",
+      "trigger": "per in-scope doc evaluated by audit_interpretation (one ledger row per doc, all verdict branches converge)",
+      "path": [
+        {
+          "from": "scripts/doc_audit/helpers/handle_audit_routing.py",
+          "to": "scripts/doc_audit/output/audit_ledger.py",
+          "protocol": "python-import",
+          "description": "Calls audit_ledger.append(entry) once per in-scope doc, after the verdict-specific side-effect (tier_classification routing, consolidated-comment post, auto-close, or retry-exhausted fallback) has been applied."
+        },
+        {
+          "from": "scripts/doc_audit/output/audit_ledger.py",
+          "to": "/data/services/openclaw/state/doc_audit/audit-events-ledger.jsonl",
+          "protocol": "file append (atomic rename)",
+          "description": "Append-only JSONL \u2014 one row per (audit_issue, doc_path). No rotation in v1. Read-only CLI subcommands (summary, tail, triage-rate) tail from end-of-file forward for the window in question."
+        }
+      ],
+      "consumers": [
+        {
+          "agent": "operator (Kent)",
+          "reads_from": "/data/services/openclaw/state/doc_audit/audit-events-ledger.jsonl",
+          "description": "Via `python3 -m scripts.doc_audit.output.audit_ledger {summary|tail|triage-rate}` \u2014 NFR-001 metric and daily observation in the 7-day post-deploy window"
         }
       ]
     },

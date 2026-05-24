@@ -39,3 +39,15 @@ model = "claude-haiku-4-5-20251001"
 api_key_path = "/data/services/openclaw/secrets/anthropic"
 timeout_seconds = 30
 confidence_threshold = 0.80
+
+# Mission `audit-interpretation-moment0-01KSBGBS` (#400) — Moment 0 LLM
+# judgment for commit-derived `Doc audit:` issues. When `enabled = false`,
+# the pipeline behaves identically to the pre-#400 no-proposals path
+# (lock release + "no automatable edits" comment) per FR-013.
+[audit_interpretation]
+enabled = true
+ledger_path = "/data/services/openclaw/state/doc_audit/audit-events-ledger.jsonl"
+model = "claude-haiku-4-5-20251001"
+api_key_path = "/data/services/openclaw/secrets/anthropic"
+timeout_seconds = 30
+confidence_threshold = 0.80

@@ -91,12 +91,41 @@ class DriftInterpretationConfig:
 
 
 @dataclass(frozen=True)
+class AuditInterpretationConfig:
+    """``[audit_interpretation]`` section — Moment 0 feature flag + knobs.
+
+    Introduced by mission ``audit-interpretation-moment0-01KSBGBS`` (#400).
+    Mirrors :class:`DriftInterpretationConfig` 1:1 in field shape — the
+    commit-audit Moment 0 path is the structural twin of drift Moment 0
+    (per spec C-004). Per FR-013, the entire commit-audit Moment 0 path
+    is gated by ``enabled``; when ``False`` the pipeline behaves
+    identically to the pre-#400 no-proposals path (lock release +
+    "no automatable edits" comment from ``handle_audit_routing.py``)
+    for a clean rollback.
+
+    Missing-block default: ``AuditInterpretationConfig(enabled=False, ...)``
+    so a config that hasn't yet been updated keeps the pre-#400 behavior.
+    """
+
+    enabled: bool = False
+    ledger_path: str = (
+        "/data/services/openclaw/state/doc_audit/audit-events-ledger.jsonl"
+    )
+    model: str = "claude-haiku-4-5-20251001"
+    api_key_path: str = "/data/services/openclaw/secrets/anthropic"
+    timeout_seconds: int = 30
+    confidence_threshold: float = 0.80
+
+
+@dataclass(frozen=True)
 class Config:
     """Top-level driver configuration. Composes the section dataclasses.
 
     ``drift_interpretation`` defaults to an ``enabled=False`` block so
     legacy callers that constructed :class:`Config` without the new
     section keep working unchanged (pre-#362 pipeline behavior).
+    ``audit_interpretation`` follows the same default-disabled pattern
+    so pre-#400 callers and tests keep working without code changes.
     """
 
     llm: LLMConfig
@@ -105,6 +134,9 @@ class Config:
     github: GitHubConfig
     drift_interpretation: DriftInterpretationConfig = field(
         default_factory=DriftInterpretationConfig
+    )
+    audit_interpretation: AuditInterpretationConfig = field(
+        default_factory=AuditInterpretationConfig
     )
 
 
@@ -216,6 +248,40 @@ def load_config(
             f"[drift_interpretation] block: {exc}"
         ) from exc
 
+    # ``[audit_interpretation]`` is optional. Mirrors the
+    # ``[drift_interpretation]`` default-disabled pattern so a config
+    # without the block keeps the pre-#400 no-proposals behavior
+    # (FR-013).
+    audit_raw = raw.get("audit_interpretation", {})
+    try:
+        audit_interpretation = AuditInterpretationConfig(
+            enabled=bool(audit_raw.get("enabled", False)),
+            ledger_path=str(
+                audit_raw.get(
+                    "ledger_path",
+                    "/data/services/openclaw/state/doc_audit/audit-events-ledger.jsonl",
+                )
+            ),
+            model=str(
+                audit_raw.get("model", "claude-haiku-4-5-20251001")
+            ),
+            api_key_path=str(
+                audit_raw.get(
+                    "api_key_path",
+                    raw["llm"]["api_key_path"],
+                )
+            ),
+            timeout_seconds=int(audit_raw.get("timeout_seconds", 30)),
+            confidence_threshold=float(
+                audit_raw.get("confidence_threshold", 0.80)
+            ),
+        )
+    except (TypeError, ValueError) as exc:
+        raise ValueError(
+            f"Driver config {config_path} has invalid "
+            f"[audit_interpretation] block: {exc}"
+        ) from exc
+
     if not allow_relative_paths:
         _require_absolute("llm.api_key_path", llm.api_key_path)
         for field_name in (
@@ -243,6 +309,16 @@ def load_config(
                 "drift_interpretation.api_key_path",
                 drift_interpretation.api_key_path,
             )
+        # Same gating for the audit_interpretation block (#400).
+        if audit_interpretation.enabled:
+            _require_absolute(
+                "audit_interpretation.ledger_path",
+                audit_interpretation.ledger_path,
+            )
+            _require_absolute(
+                "audit_interpretation.api_key_path",
+                audit_interpretation.api_key_path,
+            )
 
     return Config(
         llm=llm,
@@ -250,6 +326,7 @@ def load_config(
         signals=signals,
         github=github,
         drift_interpretation=drift_interpretation,
+        audit_interpretation=audit_interpretation,
     )
 
 

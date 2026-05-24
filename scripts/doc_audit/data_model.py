@@ -82,21 +82,27 @@ class ProposedEdit:
     audit processing) in ``AuditIssue``-derived state.
 
     ``change_type`` is one of (per SKILL.md §4.1 #1-7 plus #8 added in
-    mission drift-event-auto-resolution-01KS8J32):
+    mission drift-event-auto-resolution-01KS8J32 plus #9 added in
+    mission audit-interpretation-moment0-01KSBGBS):
     ``frontmatter_field_bump``, ``frontmatter_updated_by``,
     ``service_version``, ``file_path_rename``,
     ``dead_reference_removal``, ``agent_registry_add``,
-    ``autonomy_level_update``, ``drift_derived``.
+    ``autonomy_level_update``, ``drift_derived``, ``audit_derived``.
 
     The ``drift_derived`` value indicates the edit was synthesized by
     the Moment 0 ``drift_interpretation`` LLM judgment and routed
     through ``doc_audit.routing.drift_to_proposed_edit.build``. The
-    field is ``str`` (not an ``Enum``) so no validator is added here;
-    ``tier_classification`` handles unknown ``change_type`` values by
-    falling through to ``JUDGMENT`` — the safe default per the
-    defense-in-depth contract described in this mission's
-    ``data-model.md`` (E4 — "Tier classification behavior on
-    drift_derived").
+    ``audit_derived`` value indicates the edit was synthesized by the
+    Moment 0 ``audit_interpretation`` LLM judgment (commit-audit path,
+    mission #400) and routed through
+    ``doc_audit.helpers.handle_audit_routing`` after the no-proposals
+    branch invoked ``interpret_audit``. Both values reach
+    ``tier_classification`` unchanged. The field is ``str`` (not an
+    ``Enum``) so no validator is added here; ``tier_classification``
+    handles unknown ``change_type`` values by falling through to
+    ``JUDGMENT`` — the safe default per the defense-in-depth contract
+    described in mission drift-event-auto-resolution's ``data-model.md``
+    (E4 — "Tier classification behavior on drift_derived").
 
     ``tier`` is one of ``tier_a`` / ``tier_b``. ``confidence`` is
     always ``high`` for a ``ProposedEdit`` — judgment edits become

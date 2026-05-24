@@ -134,11 +134,11 @@ felix-doc-auditor.timer → felix-doc-auditor.service → scripts/doc_audit/run.
 Post-#343 doc-audit tick flow. The systemd user timer (`felix-doc-auditor.timer`, `OnCalendar=hourly`, `Persistent=true`) launches the oneshot service which execs the Python driver. The driver:
 
 1. Loads the Anthropic API key from `/data/services/openclaw/secrets/anthropic` (0600 file read) — see **Doc-Auditor Credential Read** below.
-2. Calls Anthropic directly at judgment moments. **Post-#362 the surface is four moments**: Moment 0 — **drift_interpretation** (per mapped drift event; classifies PROPOSED_EDIT / JUDGMENT_REQUIRED / NO_CHANGE_NEEDED); Moment 1 — **tier_classification**; Moments 2 and 3 — **debt_body_generation** and **cross_file_implication** (unchanged from #343). Post-#391 the cron-path Moment 0 invocation flows through `signals/drift_event.py::DriftEventSignalSource.commit()` → `routing/drift_moment0.py::route_drift_event()`; the library/CLI surface `helpers/handle_drift_events.py` delegates to the same routing helper for operator replay only. PROPOSED_EDIT verdicts at confidence ≥0.80 are then routed through `tier_classification` (preserving SKILL.md §4.3 guardrails). Prompt caching is enabled via the SDK to amortize the cached boilerplate across calls within a tick.
+2. Calls Anthropic directly at judgment moments. **Post-#400 the surface is five moments**: Moment 0 has TWO surfaces, one per signal class — **drift_interpretation** (per mapped drift event, introduced by #362, cron-path corrected by #391) and **audit_interpretation** (per in-scope doc within a commit-derived audit, introduced by #400). Both classify PROPOSED_EDIT / JUDGMENT_REQUIRED / NO_CHANGE_NEEDED with explicit confidence using a structural-twin module pattern. Moment 1 — **tier_classification** (consumes PROPOSED_EDIT verdicts from either Moment 0 surface). Moments 2 and 3 — **debt_body_generation** and **cross_file_implication** (unchanged from #343). The drift Moment 0 cron-path invocation flows through `signals/drift_event.py::DriftEventSignalSource.commit()` → `routing/drift_moment0.py::route_drift_event()` (post-#391); the audit Moment 0 invocation flows through `helpers/handle_audit_routing.py`'s no-proposals branch (post-#400, gated by `[audit_interpretation].enabled`). PROPOSED_EDIT verdicts at confidence ≥0.80 from EITHER Moment 0 surface are routed through `tier_classification` (preserving SKILL.md §4.3 guardrails). Prompt caching is enabled via the SDK to amortize the cached boilerplate across calls within a tick.
 3. Mutates GitHub state exclusively via `gh` subprocess (issue list/edit/create/close, label add/remove, comment create) under the `kg-felix-bot` PAT.
 4. Appends a per-tick prose entry to the operator-readable activity log under `/home/kgale/second-brain/agents/logs/`.
 
-This replaces the pre-#343 path that routed through openclaw-gateway and an LLM-interpreted `SKILL.md` procedure. **No openclaw-gateway proxy is in the path** — the driver talks to Anthropic, GitHub, and the filesystem directly. The Moment 0 LLM call leg is registered as its own flow (`doc-audit-drift-interpretation-llm`) below for graph clarity.
+This replaces the pre-#343 path that routed through openclaw-gateway and an LLM-interpreted `SKILL.md` procedure. **No openclaw-gateway proxy is in the path** — the driver talks to Anthropic, GitHub, and the filesystem directly. The two Moment 0 LLM call legs are registered as their own flows (`doc-audit-drift-interpretation-llm` and `doc-audit-audit-interpretation-llm`) below for graph clarity. Both Moment 0 surfaces additionally write to their respective ledgers (`doc-audit-drift-ledger-write` and `doc-audit-audit-ledger-write`).
 
 **Signal sources consumed (read-only)**:
 - `/data/services/security-monitor/logs/drift-events.jsonl` — drift adapter signal source
@@ -340,6 +340,60 @@ Terminal write for every processed drift event. After the verdict is routed (PRO
 
 `outcome ∈ {auto_committed, pr_filed, issue_filed, auto_closed, retry_exhausted}`. Append is atomic (tempfile + rename). The ledger is read-only consumed by the `drift_ledger` CLI subcommands (`summary`, `tail`, `triage-rate`) which back the NFR-001 operator-triage-rate metric over a configurable trailing window (default 7 days). No rotation in v1 (~3-10 entries/day at current drift volume; ~1.1k entries/year).
 
+### Doc-Audit Audit Interpretation LLM (#400)
+
+```
+scripts/doc_audit/helpers/handle_audit_routing.py (no-proposals branch)
+  → scripts/doc_audit/judgment/audit_interpretation.py
+       ├─ /data/services/openclaw/secrets/anthropic   (file read 0600, via shared JudgmentClient)
+       └─ api.anthropic.com   (HTTPS via anthropic-python SDK, model claude-haiku-4-5-20251001)
+  → list[AuditVerdict]   (one per in-scope doc; PROPOSED_EDIT / JUDGMENT_REQUIRED / NO_CHANGE_NEEDED, confidence ∈ [0.0, 1.0])
+```
+
+Moment 0 (commit-audit surface), introduced by #400. Structural twin of `doc-audit-drift-interpretation-llm` adapted for commit-derived `Doc audit:` issues. The invocation site is `handle_audit_routing.py`'s no-proposals branch — i.e., when the deterministic pattern-matching path finds zero auto-applyable proposals AND `[audit_interpretation].enabled = true` in `scripts/doc_audit/config.toml`. The routing helper assembles an `AuditInterpretationContext` (audit issue metadata + commit SHA + commit diff + in-scope doc paths from the audit body + per-doc current contents from disk) and invokes `interpret_audit(client, context)`, which calls Anthropic ONCE PER in-scope doc via the shared `JudgmentClient` (cache-aware prompt: system portion ≥80% of tokens marked `cache_control: ephemeral` per the existing `tier_classification.py` / `drift_interpretation.py` pattern).
+
+Per-doc verdict routing (inside `handle_audit_routing.py`):
+
+- **PROPOSED_EDIT at confidence ≥0.80** → translate to a `ProposedEdit` and route through the existing `tier_classification` surface (Moment 1). Tier A → auto-commit; Tier B → pending-approval issue; judgment → docs-debt issue.
+- **PROPOSED_EDIT or NO_CHANGE_NEEDED at confidence <0.80** → demoted to JUDGMENT_REQUIRED at the helper boundary; rationale + proposed-edit context folded into the consolidated comment.
+- **PROPOSED_EDIT proposing an edit to a path NOT in the audit's in-scope list** → semantic violation → demoted to JUDGMENT_REQUIRED.
+- **JUDGMENT_REQUIRED** → accumulated into a SINGLE consolidated comment posted to the audit issue (per research D3 — avoids comment noise; operator reads one comment to see all questions).
+- **NO_CHANGE_NEEDED at confidence ≥0.80 across ALL in-scope docs** → auto-close the audit issue with a summary comment listing the docs as "clean per LLM check" (FR-008).
+- **NO_CHANGE_NEEDED at confidence ≥0.80 for SOME docs but ANY doc is JUDGMENT_REQUIRED** → audit stays open with the consolidated comment (FR-009).
+
+Per-doc isolation: retry exhaustion on doc N does NOT prevent docs N±1 from being evaluated. The helper emits a synthetic JUDGMENT_REQUIRED verdict (`confidence=0.0`, `rationale="LLM retry exhausted"`) for the failed doc and continues. Catastrophic per-audit failures fall back to the pre-#400 no-proposals path (lock release + "no automatable edits" comment from the today-merged `handle_audit_routing` fix).
+
+Gated by `[audit_interpretation].enabled` in `scripts/doc_audit/config.toml`. Flipping to `false` reverts to the pre-#400 no-proposals path in ≤60s (FR-013) — the next tick reads the updated config and skips Moment 0 entirely. The deterministic pattern-matching path (when proposals IS non-empty) is unaffected per spec C-002.
+
+Weekly audits (no triggering SHA, empty diff) skip Moment 0 entirely (C-006) — existing weekly behavior preserved.
+
+### Doc-Audit Audit Ledger Write (#400)
+
+```
+scripts/doc_audit/helpers/handle_audit_routing.py
+  → scripts/doc_audit/output/audit_ledger.py
+  → /data/services/openclaw/state/doc_audit/audit-events-ledger.jsonl   (append-only JSONL, atomic tempfile + rename)
+```
+
+Terminal write for every in-scope doc evaluated by `audit_interpretation`. One row per (audit_issue, doc_path) pair — i.e., a single audit with 5 in-scope docs produces 5 ledger rows. After the verdict is routed (PROPOSED_EDIT through `tier_classification`, JUDGMENT_REQUIRED accumulated into the consolidated comment, NO_CHANGE_NEEDED auto-closed when all docs clean, or RETRY_EXHAUSTED escalated), `handle_audit_routing.py` calls `audit_ledger.append(entry)`:
+
+```
+{
+  "audit_issue": 412,
+  "doc_path": "docs/design/architecture/data/service-inventory.json",
+  "verdict": "PROPOSED_EDIT",
+  "confidence": 0.90,
+  "outcome": "auto_committed",
+  "retry_count": 0,
+  "latency_ms": 5840,
+  "tier_classification_outcome": "tier_a",
+  "timestamp_utc": "2026-05-23T17:42:00Z",
+  "schema_version": 1
+}
+```
+
+`outcome ∈ {auto_committed, pr_filed, judgment_required_posted, auto_closed, retry_exhausted}`. Note `judgment_required_posted` replaces drift's `issue_filed` because audit appends a comment to the EXISTING audit issue rather than creating a new one (per spec D1). The ledger is consumed by the `audit_ledger` CLI subcommands (`summary`, `tail`, `triage-rate`) which back the NFR-001 operator-triage-rate metric (target ≤30%). No rotation in v1.
+
 ### Doc-Audit Cutover #362 Issue Close (#362)
 
 ```
@@ -430,6 +484,7 @@ Naturally idempotent — each call produces a uniquely-timestamped marker and re
 | Cutover-310 marker (#310) | `~/.config/openclaw/cutover-310.done` | No (sentinel; ~/.config not in Restic scope) |
 | Habits morning-list artifact (#371) | `/data/services/openclaw/state/habits/morning-checkin-<YYYY-MM-DD>.json` | Yes |
 | Drift-events ledger (#362) | `/data/services/security-monitor/logs/drift-events-ledger.jsonl` | Yes |
+| Audit-events ledger (#400) | `/data/services/openclaw/state/doc_audit/audit-events-ledger.jsonl` | Yes |
 | Cutover-362 marker (#362) | `~/.config/doc-audit/cutover-362.done` | No (sentinel; ~/.config not in Restic scope) |
 | Cleanup-391 marker (#391) | `~/.config/doc-audit/cleanup-391.done` | No (sentinel; ~/.config not in Restic scope) |
 | Main-session rotation marker (#374) | `~/.config/openclaw/main-rotation-<timestamp>.done` | No (audit trail; ~/.config not in Restic scope) |
