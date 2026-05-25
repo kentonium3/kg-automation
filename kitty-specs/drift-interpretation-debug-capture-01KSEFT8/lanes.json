@@ -1,0 +1,47 @@
+{
+  "version": 1,
+  "mission_slug": "drift-interpretation-debug-capture-01KSEFT8",
+  "mission_id": "01KSEFT815TS0VD4Y4ZNV8P3GB",
+  "mission_branch": "kitty/mission-drift-interpretation-debug-capture-01KSEFT8",
+  "target_branch": "main",
+  "lanes": [
+    {
+      "lane_id": "lane-a",
+      "wp_ids": [
+        "WP01"
+      ],
+      "write_scope": [
+        "scripts/doc_audit/judgment/drift_interpretation.py",
+        "tests/doc_audit/judgment/test_drift_interpretation.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "tests",
+        "workspace"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    },
+    {
+      "lane_id": "lane-b",
+      "wp_ids": [
+        "WP02"
+      ],
+      "write_scope": [
+        "docs/diagnostics/drift-interpretation-payload-shape.md",
+        "docs/runbooks/doc-auditor-driver-ops.md"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "artifact-rendering",
+        "legacy-cleanup",
+        "tracker-integration"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    }
+  ],
+  "computed_at": "2026-05-25T02:47:48.665525+00:00",
+  "computed_from": "dependency_graph+ownership",
+  "planning_artifact_wps": []
+}
