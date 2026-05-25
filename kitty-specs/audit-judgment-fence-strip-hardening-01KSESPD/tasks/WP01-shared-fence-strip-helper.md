@@ -21,7 +21,7 @@ subtasks:
 - T002
 - T003
 - T004
-shell_pid: "19419"
+shell_pid: "22374"
 agent: "codex:gpt-5:spec-kitty-review:reviewer"
 history:
 - event: created
@@ -219,3 +219,4 @@ After WP01 lands, WP02 imports the same shared helper into the three remaining v
 - 2026-05-25T06:39:43Z – codex:gpt-5:spec-kitty-review:reviewer – shell_pid=19419 – Started review via action command
 - 2026-05-25T06:44:54Z – codex:gpt-5:spec-kitty-review:reviewer – shell_pid=19419 – Moved to planned
 - 2026-05-25T06:48:51Z – codex:gpt-5:spec-kitty-review:reviewer – shell_pid=19419 – Fix cycle 3 (final allowed): added 2 regression tests covering trailing-fence-False and lone-opening-fence paths; marked structurally-unreachable line-34-True branch with pragma. Branch coverage 100% on _strip_code_fence (was 88%); satisfies NFR-003.
+- 2026-05-25T06:48:59Z – codex:gpt-5:spec-kitty-review:reviewer – shell_pid=22374 – Started review via action command
