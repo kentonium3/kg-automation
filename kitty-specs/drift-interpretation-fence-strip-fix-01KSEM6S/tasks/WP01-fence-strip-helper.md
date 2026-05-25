@@ -271,3 +271,4 @@ spec-kitty agent action review WP01 --agent codex:gpt-5:spec-kitty-review:review
 ## Activity Log
 
 - 2026-05-25T03:56:53Z – claude:opus:python-implementer:implementer – shell_pid=77428 – Assigned agent via action command
+- 2026-05-25T04:00:22Z – claude:opus:python-implementer:implementer – shell_pid=77428 – Helper + wire-in + tests landed; ready for review
