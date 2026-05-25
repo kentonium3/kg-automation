@@ -424,3 +424,4 @@ spec-kitty agent action review WP02 --agent codex:gpt-5:spec-kitty-review:review
 ## Activity Log
 
 - 2026-05-25T03:12:34Z – claude:opus:python-implementer:implementer – shell_pid=65499 – Started implementation via action command
+- 2026-05-25T03:17:51Z – claude:opus:python-implementer:implementer – shell_pid=65499 – Mission design oversight: WP02 requires WP01 merged to main (office2 deploy pulls main), but spec-kitty merges at end-of-mission only. Splitting into a follow-up mission. Code change ships via this mission's WP01; operational capture + #404 closure ships via the next mission.
