@@ -1,0 +1,28 @@
+{
+  "version": 1,
+  "mission_slug": "drift-interpretation-fence-strip-fix-01KSEM6S",
+  "mission_id": "01KSEM6S2AY2A1ZPC2GS0RDSM5",
+  "mission_branch": "kitty/mission-drift-interpretation-fence-strip-fix-01KSEM6S",
+  "target_branch": "main",
+  "lanes": [
+    {
+      "lane_id": "lane-a",
+      "wp_ids": [
+        "WP01"
+      ],
+      "write_scope": [
+        "scripts/doc_audit/judgment/drift_interpretation.py",
+        "tests/doc_audit/judgment/test_drift_interpretation.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "tests"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    }
+  ],
+  "computed_at": "2026-05-25T03:56:37.642877+00:00",
+  "computed_from": "dependency_graph+ownership",
+  "planning_artifact_wps": []
+}
