@@ -1,7 +1,7 @@
 {
-  "event_count": 16,
-  "last_event_id": "01KSEXRQJ7QFZ5Y6Y3K3RH1R4S",
-  "materialized_at": "2026-05-25T06:39:43.687942+00:00",
+  "event_count": 20,
+  "last_event_id": "01KSEY9E9YFRW91P5B5JHBG3SG",
+  "materialized_at": "2026-05-25T06:48:51.262374+00:00",
   "mission_number": "",
   "mission_slug": "audit-judgment-fence-strip-hardening-01KSESPD",
   "mission_type": "software-dev",
@@ -11,18 +11,18 @@
     "canceled": 0,
     "claimed": 0,
     "done": 0,
-    "for_review": 0,
+    "for_review": 1,
     "in_progress": 0,
-    "in_review": 1,
+    "in_review": 0,
     "planned": 1
   },
   "work_packages": {
     "WP01": {
-      "actor": "codex:gpt-5:spec-kitty-review:reviewer",
+      "actor": "user",
       "force_count": 3,
-      "lane": "in_review",
-      "last_event_id": "01KSEXRQJ7QFZ5Y6Y3K3RH1R4S",
-      "last_transition_at": "2026-05-25T06:39:43.687942+00:00"
+      "lane": "for_review",
+      "last_event_id": "01KSEY9E9YFRW91P5B5JHBG3SG",
+      "last_transition_at": "2026-05-25T06:48:51.262374+00:00"
     },
     "WP02": {
       "actor": "finalize-tasks",
