@@ -21,8 +21,8 @@ subtasks:
 - T009
 - T010
 - T011
-agent: "claude:opus-4-7:python-implementer:implementer"
-shell_pid: "23944"
+agent: "codex:gpt-5:spec-kitty-review:reviewer"
+shell_pid: "25553"
 history:
 - event: created
   by: spec-kitty.tasks orchestrator
@@ -251,3 +251,4 @@ After WP02 lands, `/spec-kitty.merge` consolidates both WPs to `main`. Post-merg
 
 - 2026-05-25T06:53:05Z – claude:opus-4-7:python-implementer:implementer – shell_pid=23944 – Started implementation via action command
 - 2026-05-25T06:58:57Z – claude:opus-4-7:python-implementer:implementer – shell_pid=23944 – Ready for review: shared _strip_code_fence helper applied at audit_interpretation:289, cross_file_implication:151, tier_classification:157; fenced + unfenced regression tests added to each test file; all 179 judgment tests pass (173 existing + 6 new).
+- 2026-05-25T06:59:31Z – codex:gpt-5:spec-kitty-review:reviewer – shell_pid=25553 – Started review via action command
