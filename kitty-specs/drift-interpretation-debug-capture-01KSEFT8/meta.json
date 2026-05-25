@@ -1,4 +1,5 @@
 {
+  "change_mode": "regular",
   "created_at": "2026-05-25T02:35:54.963872+00:00",
   "friendly_name": "drift interpretation debug capture",
   "mission_id": "01KSEFT815TS0VD4Y4ZNV8P3GB",
@@ -6,5 +7,7 @@
   "mission_slug": "drift-interpretation-debug-capture-01KSEFT8",
   "mission_type": "software-dev",
   "slug": "drift-interpretation-debug-capture-01KSEFT8",
-  "target_branch": "main"
+  "source_description": "GitHub issue #404 — Investigate why drift_interpretation schema validation fails 100% of the time. Diagnostic-only mission: add env-var-gated raw-payload capture, run one tick on office2, document findings. Fix lands in a follow-up mission.",
+  "target_branch": "main",
+  "vcs": "git"
 }
