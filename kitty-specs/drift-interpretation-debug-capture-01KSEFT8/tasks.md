@@ -104,7 +104,7 @@ T010 (author diagnostic) and T011 (one-line runbook note) could be done in paral
 
 #### Dependencies
 
-`WP01` (must be merged to `main` before T007 can pull a tree that includes the helper).
+Depends on WP01 (must be merged to `main` before T007 can pull a tree that includes the helper).
 
 #### Risks
 

@@ -8,40 +8,43 @@
     {
       "lane_id": "lane-a",
       "wp_ids": [
-        "WP01"
+        "WP01",
+        "WP02"
       ],
       "write_scope": [
+        "docs/diagnostics/drift-interpretation-payload-shape.md",
+        "docs/runbooks/doc-auditor-driver-ops.md",
         "scripts/doc_audit/judgment/drift_interpretation.py",
         "tests/doc_audit/judgment/test_drift_interpretation.py"
       ],
       "predicted_surfaces": [
         "api",
-        "tests",
-        "workspace"
-      ],
-      "depends_on_lanes": [],
-      "parallel_group": 0
-    },
-    {
-      "lane_id": "lane-b",
-      "wp_ids": [
-        "WP02"
-      ],
-      "write_scope": [
-        "docs/diagnostics/drift-interpretation-payload-shape.md",
-        "docs/runbooks/doc-auditor-driver-ops.md"
-      ],
-      "predicted_surfaces": [
-        "api",
         "artifact-rendering",
         "legacy-cleanup",
-        "tracker-integration"
+        "tests",
+        "tracker-integration",
+        "workspace"
       ],
       "depends_on_lanes": [],
       "parallel_group": 0
     }
   ],
-  "computed_at": "2026-05-25T02:47:48.665525+00:00",
+  "computed_at": "2026-05-25T02:48:23.007984+00:00",
   "computed_from": "dependency_graph+ownership",
-  "planning_artifact_wps": []
+  "planning_artifact_wps": [],
+  "collapse_report": {
+    "events": [
+      {
+        "wp_a": "WP02",
+        "wp_b": "WP01",
+        "rule": "dependency",
+        "evidence": "WP02 depends on WP01"
+      }
+    ],
+    "total_merges": 1,
+    "independent_wps_collapsed": 0,
+    "by_rule": {
+      "dependency": 1
+    }
+  }
 }
