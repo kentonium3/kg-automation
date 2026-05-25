@@ -71,6 +71,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable, Optional
 
+from doc_audit.judgment._llm_response import _strip_code_fence
 from doc_audit.judgment.client import JudgmentClient
 from doc_audit.judgment.drift_interpretation import (
     DocTarget,
@@ -286,7 +287,7 @@ def _parse_verdict(
         raise _RetrySchemaError("empty LLM response")
 
     try:
-        parsed = json.loads(text)
+        parsed = json.loads(_strip_code_fence(text))
     except json.JSONDecodeError as exc:
         raise _RetrySchemaError(f"invalid JSON: {exc}") from exc
 

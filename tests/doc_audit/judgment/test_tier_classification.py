@@ -282,6 +282,80 @@ def test_classify_blank_rationale_falls_back(
 # ---------------------------------------------------------------------------
 
 
+# ---------------------------------------------------------------------------
+# WP02 — Markdown code-fence stripping at tier_classification:157
+#
+# Haiku 4.5 wraps every JSON response in ``` ```json ... ``` ``` despite the
+# prompt explicitly forbidding code fences. The shared helper
+# ``_strip_code_fence`` (from ``doc_audit.judgment._llm_response``) is applied
+# inside ``_parse_response`` immediately before ``json.loads()`` so the
+# bug class cannot regress.
+# ---------------------------------------------------------------------------
+
+
+def test_classify_strips_json_fenced_response(
+    tmp_config, mock_anthropic, stub_anthropic_response
+) -> None:
+    """Fenced ```json wrapper around a valid payload is parsed correctly (WP02)."""
+
+    inner = '{"tier": "tier_a", "rationale": "Frontmatter-only edit"}'
+    fenced_input = "```json\n" + inner + "\n```"
+    stub_anthropic_response(
+        {
+            "text": fenced_input,
+            "usage": {
+                "input_tokens": 480,
+                "cache_read_input_tokens": 380,
+                "output_tokens": 25,
+            },
+        }
+    )
+    client = JudgmentClient(tmp_config)
+
+    tier, rationale, response = classify(
+        client,
+        proposed_edit=SAMPLE_EDIT,
+        audit_area_labels=["area/felix-core"],
+        doc_frontmatter_excerpt="last_updated: 2026-05-15",
+        guardrail_check_result="not_guardrailed",
+    )
+
+    assert tier == EditTier.TIER_A
+    assert rationale == "Frontmatter-only edit"
+    assert response is not None
+
+
+def test_classify_handles_unfenced_response(
+    tmp_config, mock_anthropic, stub_anthropic_response
+) -> None:
+    """Unfenced response (historical happy path) still parses (WP02)."""
+
+    inner = '{"tier": "tier_a", "rationale": "Frontmatter-only edit"}'
+    stub_anthropic_response(
+        {
+            "text": inner,
+            "usage": {
+                "input_tokens": 480,
+                "cache_read_input_tokens": 380,
+                "output_tokens": 25,
+            },
+        }
+    )
+    client = JudgmentClient(tmp_config)
+
+    tier, rationale, response = classify(
+        client,
+        proposed_edit=SAMPLE_EDIT,
+        audit_area_labels=["area/felix-core"],
+        doc_frontmatter_excerpt="last_updated: 2026-05-15",
+        guardrail_check_result="not_guardrailed",
+    )
+
+    assert tier == EditTier.TIER_A
+    assert rationale == "Frontmatter-only edit"
+    assert response is not None
+
+
 def test_classify_guardrailed_shortcircuits(tmp_config, mock_anthropic) -> None:
     """When guardrailed, NO LLM call is made and JUDGMENT is returned.
 

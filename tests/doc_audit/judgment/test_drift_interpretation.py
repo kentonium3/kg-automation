@@ -52,12 +52,12 @@ from doc_audit.judgment.drift_interpretation import (
     _call_with_retry,
     _demote_low_confidence,
     _parse_verdict,
-    _strip_code_fence,
     _truncate_doc_state,
     _verdict_to_dict,
     interpret,
     main,
 )
+from doc_audit.judgment._llm_response import _strip_code_fence
 
 
 FIXTURES_DIR = Path(__file__).resolve().parent.parent / "fixtures"

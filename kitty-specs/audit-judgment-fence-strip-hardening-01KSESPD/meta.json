@@ -2,11 +2,11 @@
   "created_at": "2026-05-25T05:28:34.992059+00:00",
   "friendly_name": "Audit Judgment Fence-Strip Hardening",
   "mission_id": "01KSESPDA4FEEGKQX9GTTM7T52",
-  "mission_number": null,
+  "mission_number": 57,
   "mission_slug": "audit-judgment-fence-strip-hardening-01KSESPD",
   "mission_type": "software-dev",
   "slug": "audit-judgment-fence-strip-hardening-01KSESPD",
+  "source_description": "GitHub issue #416 — fix the Haiku-4.5 fence-wrap bug class in audit_interpretation (and discovered siblings cross_file_implication + tier_classification); extract _strip_code_fence to a shared module rather than duplicate.",
   "target_branch": "main",
-  "vcs": "git",
-  "source_description": "GitHub issue #416 — fix the Haiku-4.5 fence-wrap bug class in audit_interpretation (and discovered siblings cross_file_implication + tier_classification); extract _strip_code_fence to a shared module rather than duplicate."
+  "vcs": "git"
 }

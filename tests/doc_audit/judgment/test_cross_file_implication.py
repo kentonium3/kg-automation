@@ -297,3 +297,77 @@ def test_detect_handles_top_level_array_response(
     )
 
     assert implications == []
+
+
+# ---------------------------------------------------------------------------
+# WP02 — Markdown code-fence stripping at cross_file_implication:151
+#
+# Haiku 4.5 wraps every JSON response in ``` ```json ... ``` ``` despite the
+# prompt explicitly forbidding code fences. The shared helper
+# ``_strip_code_fence`` (from ``doc_audit.judgment._llm_response``) is applied
+# inside ``_parse_response`` immediately before ``json.loads()`` so the
+# bug class cannot regress.
+# ---------------------------------------------------------------------------
+
+
+def test_detect_strips_json_fenced_response(
+    tmp_config, mock_anthropic, stub_anthropic_response
+) -> None:
+    """Fenced ```json wrapper around a valid payload is parsed correctly (WP02)."""
+
+    inner = (
+        '{"implications": [{'
+        '"untouched_file": "docs/INDEX.md",'
+        '"implication": "INDEX entry should reference the new runbook.",'
+        '"evidence": "commit added a runbook",'
+        '"suggested_action": "judgment"'
+        "}]}"
+    )
+    fenced_input = "```json\n" + inner + "\n```"
+    stub_anthropic_response({"text": fenced_input, "usage": _USAGE})
+    client = JudgmentClient(tmp_config)
+
+    implications, _ = detect(
+        client,
+        triggering_event_kind="commit",
+        triggering_event_summary="feat: add new runbook",
+        diff_excerpt="...",
+        touched_files=["docs/runbooks/new-runbook.md"],
+        in_scope_files=["docs/INDEX.md", "docs/runbooks/new-runbook.md"],
+        domain_labels=["area/felix-core"],
+    )
+
+    assert len(implications) == 1
+    assert implications[0]["untouched_file"] == "docs/INDEX.md"
+    assert implications[0]["suggested_action"] == "judgment"
+
+
+def test_detect_handles_unfenced_response(
+    tmp_config, mock_anthropic, stub_anthropic_response
+) -> None:
+    """Unfenced response (historical happy path) still parses (WP02)."""
+
+    inner = (
+        '{"implications": [{'
+        '"untouched_file": "docs/INDEX.md",'
+        '"implication": "INDEX entry should reference the new runbook.",'
+        '"evidence": "commit added a runbook",'
+        '"suggested_action": "judgment"'
+        "}]}"
+    )
+    stub_anthropic_response({"text": inner, "usage": _USAGE})
+    client = JudgmentClient(tmp_config)
+
+    implications, _ = detect(
+        client,
+        triggering_event_kind="commit",
+        triggering_event_summary="feat: add new runbook",
+        diff_excerpt="...",
+        touched_files=["docs/runbooks/new-runbook.md"],
+        in_scope_files=["docs/INDEX.md", "docs/runbooks/new-runbook.md"],
+        domain_labels=["area/felix-core"],
+    )
+
+    assert len(implications) == 1
+    assert implications[0]["untouched_file"] == "docs/INDEX.md"
+    assert implications[0]["suggested_action"] == "judgment"

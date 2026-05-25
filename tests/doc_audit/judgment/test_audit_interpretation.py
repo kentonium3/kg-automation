@@ -818,6 +818,48 @@ def test_parse_rejects_invalid_json() -> None:
 
 
 # ---------------------------------------------------------------------------
+# WP02 — Markdown code-fence stripping at audit_interpretation:289
+#
+# Haiku 4.5 wraps every JSON response in ``` ```json ... ``` ``` despite the
+# prompt explicitly forbidding code fences. The shared helper
+# ``_strip_code_fence`` (from ``doc_audit.judgment._llm_response``) is applied
+# inside ``_parse_verdict`` immediately before ``json.loads()`` to restore
+# end-to-end parsing.
+# ---------------------------------------------------------------------------
+
+
+def test_parse_verdict_strips_json_fenced_response() -> None:
+    """Fenced ```json wrapper does not defeat parsing (WP02 regression)."""
+    inner = json.dumps(
+        {
+            "verdict": "NO_CHANGE_NEEDED",
+            "confidence": 0.9,
+            "rationale": "ok",
+        }
+    )
+    fenced_input = "```json\n" + inner + "\n```"
+    verdict = _parse_verdict(fenced_input, _make_doc())
+    assert verdict.verdict == "NO_CHANGE_NEEDED"
+    assert verdict.confidence == 0.9
+    assert verdict.rationale == "ok"
+
+
+def test_parse_verdict_handles_unfenced_response() -> None:
+    """Unfenced response (historical happy path) still parses (WP02 regression)."""
+    inner = json.dumps(
+        {
+            "verdict": "NO_CHANGE_NEEDED",
+            "confidence": 0.9,
+            "rationale": "ok",
+        }
+    )
+    verdict = _parse_verdict(inner, _make_doc())
+    assert verdict.verdict == "NO_CHANGE_NEEDED"
+    assert verdict.confidence == 0.9
+    assert verdict.rationale == "ok"
+
+
+# ---------------------------------------------------------------------------
 # verdict_to_dict helper
 # ---------------------------------------------------------------------------
 

@@ -40,6 +40,7 @@ import logging
 from pathlib import Path
 
 from doc_audit.data_model import EditTier, ProposedEdit
+from doc_audit.judgment._llm_response import _strip_code_fence
 from doc_audit.judgment.client import JudgmentClient, JudgmentResponse
 
 
@@ -154,7 +155,7 @@ def _parse_response(content: str, *, doc_path: str) -> tuple[EditTier, str]:
         return EditTier.JUDGMENT, "empty LLM response — demoted to judgment"
 
     try:
-        parsed = json.loads(text)
+        parsed = json.loads(_strip_code_fence(text))
     except json.JSONDecodeError as exc:
         logger.warning(
             "tier_classification non-JSON response for %s: %s",
