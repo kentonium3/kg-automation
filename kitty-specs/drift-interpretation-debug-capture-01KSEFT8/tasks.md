@@ -10,12 +10,12 @@
 
 | ID    | Description                                                                                | WP   | Parallel |
 |-------|--------------------------------------------------------------------------------------------|------|----------|
-| T001  | Add module-level logger setup if not already present                                       | WP01 |          |
-| T002  | Add `_log_raw_response_if_debug` helper function                                            | WP01 |          |
-| T003  | Wire helper into every `_RetrySchemaError` raise site in `_parse_verdict`                  | WP01 |          |
-| T004  | Unit tests for AS1 + AS2 + AS3 (env-var on/off + valid response behaviors)                  | WP01 |          |
-| T005  | Parametrized unit test for AS4 (each raise site captures correctly)                         | WP01 |          |
-| T006  | Confirm full test suite passes; commit; transition WP01 → for_review                        | WP01 |          |
+| T001  | Add module-level logger setup if not already present                                       | WP01 |          | [D] |
+| T002  | Add `_log_raw_response_if_debug` helper function                                            | WP01 |          | [D] |
+| T003  | Wire helper into every `_RetrySchemaError` raise site in `_parse_verdict`                  | WP01 |          | [D] |
+| T004  | Unit tests for AS1 + AS2 + AS3 (env-var on/off + valid response behaviors)                  | WP01 |          | [D] |
+| T005  | Parametrized unit test for AS4 (each raise site captures correctly)                         | WP01 |          | [D] |
+| T006  | Confirm full test suite passes; commit; transition WP01 → for_review                        | WP01 |          | [D] |
 | T007  | Pull `main` to office2; verify new helper symbol present                                   | WP02 |          |
 | T008  | Add `DOC_AUDIT_DEBUG_DRIFT_PAYLOADS=1` env var on office2 via systemctl --user edit drop-in | WP02 |          |
 | T009  | Trigger one tick; extract captured raw payload from journalctl                             | WP02 |          |
@@ -40,12 +40,12 @@ Total: 13 subtasks across 2 work packages. No parallelizable subtasks within eit
 
 #### Included subtasks
 
-- [ ] T001 Add module-level logger setup if not already present (WP01)
-- [ ] T002 Add `_log_raw_response_if_debug` helper function (WP01)
-- [ ] T003 Wire helper into every `_RetrySchemaError` raise site in `_parse_verdict` (WP01)
-- [ ] T004 Unit tests for AS1 + AS2 + AS3 (env-var on/off + valid response behaviors) (WP01)
-- [ ] T005 Parametrized unit test for AS4 (each raise site captures correctly) (WP01)
-- [ ] T006 Confirm full test suite passes; commit; transition WP01 → for_review (WP01)
+- [x] T001 Add module-level logger setup if not already present (WP01)
+- [x] T002 Add `_log_raw_response_if_debug` helper function (WP01)
+- [x] T003 Wire helper into every `_RetrySchemaError` raise site in `_parse_verdict` (WP01)
+- [x] T004 Unit tests for AS1 + AS2 + AS3 (env-var on/off + valid response behaviors) (WP01)
+- [x] T005 Parametrized unit test for AS4 (each raise site captures correctly) (WP01)
+- [x] T006 Confirm full test suite passes; commit; transition WP01 → for_review (WP01)
 
 #### Implementation sketch
 
