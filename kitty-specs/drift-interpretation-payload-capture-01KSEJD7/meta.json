@@ -1,4 +1,5 @@
 {
+  "change_mode": "regular",
   "created_at": "2026-05-25T03:21:14.490436+00:00",
   "friendly_name": "drift interpretation payload capture",
   "mission_id": "01KSEJD7Q10QWXWGWRW9DXQ8Z6",
@@ -6,5 +7,7 @@
   "mission_slug": "drift-interpretation-payload-capture-01KSEJD7",
   "mission_type": "software-dev",
   "slug": "drift-interpretation-payload-capture-01KSEJD7",
-  "target_branch": "main"
+  "source_description": "Follow-up to mission #53 (drift-interpretation-debug-capture, merged at fbfe2a0f). The code change (env-var-gated debug capture) shipped via #53 WP01; that mission's WP02 was canceled because it required WP01 merged-to-main — a precondition spec-kitty's end-of-mission merge model cannot satisfy within a single mission. This mission ships the operational work: deploy main to office2, enable env var for one tick, capture payload, write diagnostic doc, update runbook, close GitHub issue #404 with findings. References original input: kentonium3/kg-automation#404.",
+  "target_branch": "main",
+  "vcs": "git"
 }
