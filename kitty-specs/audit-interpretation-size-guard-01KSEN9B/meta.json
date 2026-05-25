@@ -1,0 +1,10 @@
+{
+  "created_at": "2026-05-25T04:11:32.919312+00:00",
+  "friendly_name": "audit interpretation size guard",
+  "mission_id": "01KSEN9B98A7N9908X1RR4HYKM",
+  "mission_number": null,
+  "mission_slug": "audit-interpretation-size-guard-01KSEN9B",
+  "mission_type": "software-dev",
+  "slug": "audit-interpretation-size-guard-01KSEN9B",
+  "target_branch": "main"
+}
