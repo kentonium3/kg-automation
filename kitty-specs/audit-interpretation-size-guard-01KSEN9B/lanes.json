@@ -1,0 +1,28 @@
+{
+  "version": 1,
+  "mission_slug": "audit-interpretation-size-guard-01KSEN9B",
+  "mission_id": "01KSEN9B98A7N9908X1RR4HYKM",
+  "mission_branch": "kitty/mission-audit-interpretation-size-guard-01KSEN9B",
+  "target_branch": "main",
+  "lanes": [
+    {
+      "lane_id": "lane-a",
+      "wp_ids": [
+        "WP01"
+      ],
+      "write_scope": [
+        "scripts/doc_audit/judgment/audit_interpretation.py",
+        "tests/doc_audit/judgment/test_audit_interpretation.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "legacy-cleanup"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    }
+  ],
+  "computed_at": "2026-05-25T04:15:51.646815+00:00",
+  "computed_from": "dependency_graph+ownership",
+  "planning_artifact_wps": []
+}
