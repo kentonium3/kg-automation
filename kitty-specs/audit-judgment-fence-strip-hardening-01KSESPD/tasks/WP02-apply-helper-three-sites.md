@@ -21,6 +21,8 @@ subtasks:
 - T009
 - T010
 - T011
+agent: "claude:opus-4-7:python-implementer:implementer"
+shell_pid: "23944"
 history:
 - event: created
   by: spec-kitty.tasks orchestrator
@@ -244,3 +246,7 @@ When reviewing this WP, focus on:
 ## Next: merge
 
 After WP02 lands, `/spec-kitty.merge` consolidates both WPs to `main`. Post-merge, the operator runs the verification per the spec's Primary Scenario and unparks issue #350 / re-enables the timer.
+
+## Activity Log
+
+- 2026-05-25T06:53:05Z – claude:opus-4-7:python-implementer:implementer – shell_pid=23944 – Started implementation via action command
