@@ -10,11 +10,11 @@
 
 | ID    | Description                                                                                | WP   | Parallel |
 |-------|--------------------------------------------------------------------------------------------|------|----------|
-| T001  | Add `_strip_code_fence(text: str) -> str` helper                                            | WP01 |          |
-| T002  | Wire helper into `_parse_verdict` immediately before `json.loads()`                         | WP01 |          |
-| T003  | Add unit tests for AS1 + AS2 + AS3 (fenced w/ hint, fenced w/o hint, unfenced)              | WP01 |          |
-| T004  | Add unit tests for AS4 + edge cases (EC1 empty-after-strip, EC2 multi-fence, EC4 trailing)  | WP01 |          |
-| T005  | Run full `pytest tests/doc_audit/ -v`; commit; transition WP01 → for_review                 | WP01 |          |
+| T001  | Add `_strip_code_fence(text: str) -> str` helper                                            | WP01 |          | [D] |
+| T002  | Wire helper into `_parse_verdict` immediately before `json.loads()`                         | WP01 |          | [D] |
+| T003  | Add unit tests for AS1 + AS2 + AS3 (fenced w/ hint, fenced w/o hint, unfenced)              | WP01 |          | [D] |
+| T004  | Add unit tests for AS4 + edge cases (EC1 empty-after-strip, EC2 multi-fence, EC4 trailing)  | WP01 |          | [D] |
+| T005  | Run full `pytest tests/doc_audit/ -v`; commit; transition WP01 → for_review                 | WP01 |          | [D] |
 
 Total: 5 subtasks in 1 work package.
 
@@ -30,11 +30,11 @@ Total: 5 subtasks in 1 work package.
 
 #### Included subtasks
 
-- [ ] T001 Add `_strip_code_fence(text: str) -> str` helper (WP01)
-- [ ] T002 Wire helper into `_parse_verdict` immediately before `json.loads()` (WP01)
-- [ ] T003 Add unit tests for AS1 + AS2 + AS3 (WP01)
-- [ ] T004 Add unit tests for AS4 + edge cases (WP01)
-- [ ] T005 Run full pytest; commit; transition WP01 → for_review (WP01)
+- [x] T001 Add `_strip_code_fence(text: str) -> str` helper (WP01)
+- [x] T002 Wire helper into `_parse_verdict` immediately before `json.loads()` (WP01)
+- [x] T003 Add unit tests for AS1 + AS2 + AS3 (WP01)
+- [x] T004 Add unit tests for AS4 + edge cases (WP01)
+- [x] T005 Run full pytest; commit; transition WP01 → for_review (WP01)
 
 #### Dependencies
 
