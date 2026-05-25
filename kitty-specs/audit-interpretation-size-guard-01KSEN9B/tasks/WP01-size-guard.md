@@ -23,8 +23,8 @@ subtasks:
 - T003
 - T004
 - T005
-shell_pid: "82972"
-agent: "claude:opus:python-implementer:implementer"
+shell_pid: "84183"
+agent: "codex:gpt-5:spec-kitty-review:reviewer"
 history:
 - event: planned
   timestamp: '2026-05-25T04:13:30Z'
@@ -344,3 +344,4 @@ spec-kitty agent action review WP01 --agent codex:gpt-5:spec-kitty-review:review
 
 - 2026-05-25T04:16:05Z – claude:opus:python-implementer:implementer – shell_pid=82972 – Assigned agent via action command
 - 2026-05-25T04:19:50Z – claude:opus:python-implementer:implementer – shell_pid=82972 – Constant + estimator + guard + tests landed; ready for review
+- 2026-05-25T04:20:15Z – codex:gpt-5:spec-kitty-review:reviewer – shell_pid=84183 – Started review via action command
