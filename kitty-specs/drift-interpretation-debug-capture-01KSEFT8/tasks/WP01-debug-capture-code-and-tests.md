@@ -12,6 +12,9 @@ requirement_refs:
 planning_base_branch: main
 merge_target_branch: main
 branch_strategy: Planning artifacts for this feature were generated on main. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into main unless the human explicitly redirects the landing branch.
+base_branch: kitty/mission-drift-interpretation-debug-capture-01KSEFT8
+base_commit: a5e730ce0c6e582abe433e46f6d25580ac39f77d
+created_at: '2026-05-25T02:51:48.764448+00:00'
 subtasks:
 - T001
 - T002
@@ -19,6 +22,7 @@ subtasks:
 - T004
 - T005
 - T006
+shell_pid: '59443'
 history:
 - event: planned
   timestamp: '2026-05-25T02:42:46Z'
