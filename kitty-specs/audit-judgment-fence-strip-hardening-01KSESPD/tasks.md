@@ -20,13 +20,13 @@ Two work packages. WP01 introduces the shared `_strip_code_fence` helper and re-
 | T002 | Create `tests/doc_audit/judgment/test_llm_response.py` covering FR-006/007 + edge cases | WP01 | [P after T001] | [D] |
 | T003 | Re-point `drift_interpretation.py` to import shared helper; remove local def | WP01 | | [D] |
 | T004 | Verify `test_drift_interpretation.py` still passes after re-point | WP01 | | [D] |
-| T005 | Patch `audit_interpretation.py` line 289 — import + apply helper | WP02 | [P] |
-| T006 | Add fenced + unfenced regression cases to `test_audit_interpretation.py` | WP02 | [P after T005] |
-| T007 | Patch `cross_file_implication.py` line 151 — import + apply helper | WP02 | [P] |
-| T008 | Add fenced + unfenced regression cases to `test_cross_file_implication.py` | WP02 | [P after T007] |
-| T009 | Patch `tier_classification.py` line 157 — import + apply helper | WP02 | [P] |
-| T010 | Add fenced + unfenced regression cases to `test_tier_classification.py` | WP02 | [P after T009] |
-| T011 | Run full `pytest tests/doc_audit/judgment/ -v`; confirm all pass | WP02 | |
+| T005 | Patch `audit_interpretation.py` line 289 — import + apply helper | WP02 | [D] |
+| T006 | Add fenced + unfenced regression cases to `test_audit_interpretation.py` | WP02 | [P after T005] | [D] |
+| T007 | Patch `cross_file_implication.py` line 151 — import + apply helper | WP02 | [D] |
+| T008 | Add fenced + unfenced regression cases to `test_cross_file_implication.py` | WP02 | [P after T007] | [D] |
+| T009 | Patch `tier_classification.py` line 157 — import + apply helper | WP02 | [D] |
+| T010 | Add fenced + unfenced regression cases to `test_tier_classification.py` | WP02 | [P after T009] | [D] |
+| T011 | Run full `pytest tests/doc_audit/judgment/ -v`; confirm all pass | WP02 | | [D] |
 
 The `[P]` markers indicate parallel-safe items in WP02 — the three script patches touch different files and can be done in any order or simultaneously by an agent.
 
@@ -75,13 +75,13 @@ The `[P]` markers indicate parallel-safe items in WP02 — the three script patc
 
 **Included subtasks**:
 
-- [ ] T005 Patch `audit_interpretation.py` line 289 — import + apply helper (WP02)
-- [ ] T006 Add fenced + unfenced regression cases to `test_audit_interpretation.py` (WP02)
-- [ ] T007 Patch `cross_file_implication.py` line 151 — import + apply helper (WP02)
-- [ ] T008 Add fenced + unfenced regression cases to `test_cross_file_implication.py` (WP02)
-- [ ] T009 Patch `tier_classification.py` line 157 — import + apply helper (WP02)
-- [ ] T010 Add fenced + unfenced regression cases to `test_tier_classification.py` (WP02)
-- [ ] T011 Run full `pytest tests/doc_audit/judgment/ -v`; confirm all pass (WP02)
+- [x] T005 Patch `audit_interpretation.py` line 289 — import + apply helper (WP02)
+- [x] T006 Add fenced + unfenced regression cases to `test_audit_interpretation.py` (WP02)
+- [x] T007 Patch `cross_file_implication.py` line 151 — import + apply helper (WP02)
+- [x] T008 Add fenced + unfenced regression cases to `test_cross_file_implication.py` (WP02)
+- [x] T009 Patch `tier_classification.py` line 157 — import + apply helper (WP02)
+- [x] T010 Add fenced + unfenced regression cases to `test_tier_classification.py` (WP02)
+- [x] T011 Run full `pytest tests/doc_audit/judgment/ -v`; confirm all pass (WP02)
 
 **Implementation sketch**:
 1. For each of the three scripts (`audit_interpretation.py`, `cross_file_implication.py`, `tier_classification.py`):
