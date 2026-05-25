@@ -1,0 +1,28 @@
+{
+  "version": 1,
+  "mission_slug": "drift-interpretation-payload-capture-01KSEJD7",
+  "mission_id": "01KSEJD7Q10QWXWGWRW9DXQ8Z6",
+  "mission_branch": "kitty/mission-drift-interpretation-payload-capture-01KSEJD7",
+  "target_branch": "main",
+  "lanes": [
+    {
+      "lane_id": "lane-a",
+      "wp_ids": [
+        "WP01"
+      ],
+      "write_scope": [
+        "docs/diagnostics/drift-interpretation-payload-shape.md",
+        "docs/runbooks/doc-auditor-driver-ops.md"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "workspace"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    }
+  ],
+  "computed_at": "2026-05-25T03:27:32.230240+00:00",
+  "computed_from": "dependency_graph+ownership",
+  "planning_artifact_wps": []
+}
