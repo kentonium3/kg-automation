@@ -16,10 +16,10 @@ Two work packages. WP01 introduces the shared `_strip_code_fence` helper and re-
 
 | ID | Description | WP | Parallel |
 |---|---|---|---|
-| T001 | Create `scripts/doc_audit/judgment/_llm_response.py` with `_strip_code_fence` extracted verbatim | WP01 | |
-| T002 | Create `tests/doc_audit/judgment/test_llm_response.py` covering FR-006/007 + edge cases | WP01 | [P after T001] |
-| T003 | Re-point `drift_interpretation.py` to import shared helper; remove local def | WP01 | |
-| T004 | Verify `test_drift_interpretation.py` still passes after re-point | WP01 | |
+| T001 | Create `scripts/doc_audit/judgment/_llm_response.py` with `_strip_code_fence` extracted verbatim | WP01 | | [D] |
+| T002 | Create `tests/doc_audit/judgment/test_llm_response.py` covering FR-006/007 + edge cases | WP01 | [P after T001] | [D] |
+| T003 | Re-point `drift_interpretation.py` to import shared helper; remove local def | WP01 | | [D] |
+| T004 | Verify `test_drift_interpretation.py` still passes after re-point | WP01 | | [D] |
 | T005 | Patch `audit_interpretation.py` line 289 — import + apply helper | WP02 | [P] |
 | T006 | Add fenced + unfenced regression cases to `test_audit_interpretation.py` | WP02 | [P after T005] |
 | T007 | Patch `cross_file_implication.py` line 151 — import + apply helper | WP02 | [P] |
@@ -44,10 +44,10 @@ The `[P]` markers indicate parallel-safe items in WP02 — the three script patc
 
 **Included subtasks**:
 
-- [ ] T001 Create `scripts/doc_audit/judgment/_llm_response.py` with `_strip_code_fence` extracted verbatim (WP01)
-- [ ] T002 Create `tests/doc_audit/judgment/test_llm_response.py` covering FR-006/007 + edge cases (WP01)
-- [ ] T003 Re-point `drift_interpretation.py` to import shared helper; remove local def (WP01)
-- [ ] T004 Verify `test_drift_interpretation.py` still passes after re-point (WP01)
+- [x] T001 Create `scripts/doc_audit/judgment/_llm_response.py` with `_strip_code_fence` extracted verbatim (WP01)
+- [x] T002 Create `tests/doc_audit/judgment/test_llm_response.py` covering FR-006/007 + edge cases (WP01)
+- [x] T003 Re-point `drift_interpretation.py` to import shared helper; remove local def (WP01)
+- [x] T004 Verify `test_drift_interpretation.py` still passes after re-point (WP01)
 
 **Implementation sketch**:
 1. Copy lines 436-458 of `drift_interpretation.py` into a new `_llm_response.py` (preserve the docstring; add a module-level docstring explaining the helper is private to `scripts/doc_audit/judgment/`).
