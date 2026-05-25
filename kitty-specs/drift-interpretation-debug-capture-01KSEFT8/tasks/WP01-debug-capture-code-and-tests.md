@@ -22,7 +22,8 @@ subtasks:
 - T004
 - T005
 - T006
-shell_pid: '59443'
+shell_pid: "59443"
+agent: "claude:opus:python-implementer:implementer"
 history:
 - event: planned
   timestamp: '2026-05-25T02:42:46Z'
@@ -364,3 +365,7 @@ spec-kitty agent tasks move-task WP01 --to for_review --note "Code + tests lande
 # Review (claimed by codex with the spec-kitty-review profile)
 spec-kitty agent action review WP01 --agent codex:gpt-5:spec-kitty-review:reviewer --mission drift-interpretation-debug-capture-01KSEFT8
 ```
+
+## Activity Log
+
+- 2026-05-25T02:51:51Z – claude:opus:python-implementer:implementer – shell_pid=59443 – Assigned agent via action command
