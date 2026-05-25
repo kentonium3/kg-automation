@@ -21,7 +21,8 @@ subtasks:
 - T002
 - T003
 - T004
-shell_pid: '4249'
+shell_pid: "4249"
+agent: "claude:opus-4-7:python-implementer:implementer"
 history:
 - event: created
   by: spec-kitty.tasks orchestrator
@@ -202,3 +203,7 @@ When reviewing this WP, focus on:
 ## Next: WP02
 
 After WP01 lands, WP02 imports the same shared helper into the three remaining vulnerable scripts. Implementation command: `spec-kitty agent action implement WP02 --agent <name>`.
+
+## Activity Log
+
+- 2026-05-25T05:41:08Z – claude:opus-4-7:python-implementer:implementer – shell_pid=4249 – Assigned agent via action command
