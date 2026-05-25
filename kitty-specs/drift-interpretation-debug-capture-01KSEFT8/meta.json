@@ -3,7 +3,7 @@
   "created_at": "2026-05-25T02:35:54.963872+00:00",
   "friendly_name": "drift interpretation debug capture",
   "mission_id": "01KSEFT815TS0VD4Y4ZNV8P3GB",
-  "mission_number": null,
+  "mission_number": 53,
   "mission_slug": "drift-interpretation-debug-capture-01KSEFT8",
   "mission_type": "software-dev",
   "slug": "drift-interpretation-debug-capture-01KSEFT8",

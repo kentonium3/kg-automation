@@ -115,6 +115,14 @@ _TRUNCATE_MARKER = "\n...truncated...\n"
 _CACHE_PREFIX_START = "[CACHE_PREFIX_START]"
 _CACHE_PREFIX_END = "[CACHE_PREFIX_END]"
 
+#: Env var that gates raw-response debug capture at every
+#: ``_RetrySchemaError`` raise site in ``_parse_verdict`` (per FR-001/FR-003).
+#: Exact string match ``"1"`` only — any other value disables capture.
+_DEBUG_CAPTURE_ENV_VAR = "DOC_AUDIT_DEBUG_DRIFT_PAYLOADS"
+
+#: Truncation cap for the captured response body, in bytes (R4).
+_DEBUG_CAPTURE_MAX_BYTES = 4096
+
 
 # ---------------------------------------------------------------------------
 # Dataclasses (per data-model E1, E2)
@@ -389,6 +397,42 @@ def _build_prompt(
 # ---------------------------------------------------------------------------
 
 
+def _log_raw_response_if_debug(response_text: str, error_message: str) -> None:
+    """Emit the raw LLM response body to the log when debug capture is enabled.
+
+    Gated by the env var :data:`_DEBUG_CAPTURE_ENV_VAR` set to the exact
+    string ``"1"`` (per R2). Truncates oversized bodies to
+    :data:`_DEBUG_CAPTURE_MAX_BYTES` with a ``[truncated]`` suffix (per R4).
+    Emits at WARNING level so the line surfaces in default journalctl
+    output (per R1).
+
+    Observation-only — does not raise, return values, or otherwise
+    affect control flow (FR-006). Callers invoke this immediately
+    before re-raising ``_RetrySchemaError`` to preserve the existing
+    retry semantics unchanged.
+    """
+    import os  # local import: module-level imports are otherwise untouched.
+
+    if os.environ.get(_DEBUG_CAPTURE_ENV_VAR) != "1":
+        return
+    if response_text is None:
+        body = "<none>"
+    else:
+        raw = response_text.encode("utf-8", errors="replace")
+        if len(raw) > _DEBUG_CAPTURE_MAX_BYTES:
+            body = (
+                raw[:_DEBUG_CAPTURE_MAX_BYTES].decode("utf-8", errors="replace")
+                + "[truncated]"
+            )
+        else:
+            body = response_text
+    logger.warning(
+        "drift_interpretation.schema_fail | %s | %s",
+        error_message,
+        body,
+    )
+
+
 def _parse_verdict(
     response_text: str,
     context: DriftInterpretationContext,
@@ -401,20 +445,31 @@ def _parse_verdict(
     """
     text = (response_text or "").strip()
     if not text:
+        _log_raw_response_if_debug(response_text, "empty LLM response")
         raise _RetrySchemaError("empty LLM response")
 
     try:
         parsed = json.loads(text)
     except json.JSONDecodeError as exc:
+        _log_raw_response_if_debug(response_text, f"invalid JSON: {exc}")
         raise _RetrySchemaError(f"invalid JSON: {exc}") from exc
 
     if not isinstance(parsed, dict):
+        _log_raw_response_if_debug(
+            response_text,
+            f"response must be a JSON object (got {type(parsed).__name__})",
+        )
         raise _RetrySchemaError(
             f"response must be a JSON object (got {type(parsed).__name__})"
         )
 
     verdict_value = parsed.get("verdict")
     if verdict_value not in VALID_VERDICTS:
+        _log_raw_response_if_debug(
+            response_text,
+            f"invalid verdict value {verdict_value!r}; "
+            f"expected one of {sorted(VALID_VERDICTS)}",
+        )
         raise _RetrySchemaError(
             f"invalid verdict value {verdict_value!r}; "
             f"expected one of {sorted(VALID_VERDICTS)}"
@@ -425,23 +480,36 @@ def _parse_verdict(
     if isinstance(confidence_raw, bool) or not isinstance(
         confidence_raw, (int, float)
     ):
+        _log_raw_response_if_debug(
+            response_text,
+            f"confidence must be a JSON number (got {type(confidence_raw).__name__})",
+        )
         raise _RetrySchemaError(
             f"confidence must be a JSON number (got {type(confidence_raw).__name__})"
         )
     confidence = float(confidence_raw)
     if not (0.0 <= confidence <= 1.0):
+        _log_raw_response_if_debug(
+            response_text,
+            f"confidence out of range: {confidence!r} (expected [0.0, 1.0])",
+        )
         raise _RetrySchemaError(
             f"confidence out of range: {confidence!r} (expected [0.0, 1.0])"
         )
 
     rationale = parsed.get("rationale")
     if not isinstance(rationale, str) or not rationale.strip():
+        _log_raw_response_if_debug(response_text, "rationale missing or empty")
         raise _RetrySchemaError("rationale missing or empty")
 
     if verdict_value == "PROPOSED_EDIT":
-        return _parse_proposed_edit(parsed, confidence, rationale, context)
+        return _parse_proposed_edit(
+            parsed, confidence, rationale, context, response_text
+        )
     if verdict_value == "JUDGMENT_REQUIRED":
-        return _parse_judgment_required(parsed, confidence, rationale)
+        return _parse_judgment_required(
+            parsed, confidence, rationale, response_text
+        )
     # verdict_value == "NO_CHANGE_NEEDED"
     return DriftVerdict(
         verdict="NO_CHANGE_NEEDED",
@@ -455,6 +523,7 @@ def _parse_proposed_edit(
     confidence: float,
     rationale: str,
     context: DriftInterpretationContext,
+    response_text: str,
 ) -> DriftVerdict:
     """Validate a PROPOSED_EDIT shape.
 
@@ -463,6 +532,9 @@ def _parse_proposed_edit(
     """
     proposed_edit = parsed.get("proposed_edit")
     if not isinstance(proposed_edit, dict):
+        _log_raw_response_if_debug(
+            response_text, "PROPOSED_EDIT requires a proposed_edit object"
+        )
         raise _RetrySchemaError(
             "PROPOSED_EDIT requires a proposed_edit object"
         )
@@ -470,6 +542,10 @@ def _parse_proposed_edit(
     for key in ("doc_path", "current_value", "proposed_value"):
         value = proposed_edit.get(key)
         if not isinstance(value, str) or not value.strip():
+            _log_raw_response_if_debug(
+                response_text,
+                f"proposed_edit.{key} missing or not a non-empty string",
+            )
             raise _RetrySchemaError(
                 f"proposed_edit.{key} missing or not a non-empty string"
             )
@@ -493,14 +569,22 @@ def _parse_judgment_required(
     parsed: dict,
     confidence: float,
     rationale: str,
+    response_text: str,
 ) -> DriftVerdict:
     """Validate a JUDGMENT_REQUIRED shape."""
     question = parsed.get("question")
     if not isinstance(question, str) or not question.strip():
+        _log_raw_response_if_debug(
+            response_text, "JUDGMENT_REQUIRED requires a non-empty question"
+        )
         raise _RetrySchemaError(
             "JUDGMENT_REQUIRED requires a non-empty question"
         )
     if len(question) > QUESTION_MAX_CHARS:
+        _log_raw_response_if_debug(
+            response_text,
+            f"question exceeds {QUESTION_MAX_CHARS} chars (got {len(question)})",
+        )
         raise _RetrySchemaError(
             f"question exceeds {QUESTION_MAX_CHARS} chars (got {len(question)})"
         )

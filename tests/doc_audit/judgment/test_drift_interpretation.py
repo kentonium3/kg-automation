@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import io
 import json
+import logging
 from pathlib import Path
 from typing import Any
 
@@ -984,3 +985,227 @@ def test_verdict_to_dict_carries_proposed_edit() -> None:
     out = _verdict_to_dict(v)
     assert out["proposed_edit"] == {"doc_path": "x", "current_value": "a", "proposed_value": "b"}
     assert "question" not in out
+
+
+# ---------------------------------------------------------------------------
+# Debug capture path (FR-001..FR-006)
+#
+# Gated by env var DOC_AUDIT_DEBUG_DRIFT_PAYLOADS=1. When enabled, every
+# ``_RetrySchemaError`` raise site in ``_parse_verdict`` logs the raw
+# response body at WARNING level with prefix ``drift_interpretation.schema_fail``
+# immediately before re-raising. Observation-only — exception type and
+# message are unchanged.
+# ---------------------------------------------------------------------------
+
+
+_DEBUG_ENV_VAR = "DOC_AUDIT_DEBUG_DRIFT_PAYLOADS"
+_DEBUG_LOG_PREFIX = "drift_interpretation.schema_fail"
+_DRIFT_LOGGER_NAME = "doc_audit.judgment.drift_interpretation"
+
+
+@pytest.fixture
+def clean_debug_env(monkeypatch):
+    """Ensure the debug env var is unset for the test (no leakage)."""
+    monkeypatch.delenv(_DEBUG_ENV_VAR, raising=False)
+
+
+def test_debug_capture_emits_log_when_env_var_set(monkeypatch, caplog) -> None:
+    """AS1: env var on + invalid response → schema_fail log captured."""
+    from doc_audit.judgment.drift_interpretation import _RetrySchemaError, _parse_verdict
+
+    monkeypatch.setenv(_DEBUG_ENV_VAR, "1")
+
+    bad_response = "not-valid-json-{"
+    with caplog.at_level(logging.WARNING, logger=_DRIFT_LOGGER_NAME):
+        with pytest.raises(_RetrySchemaError):
+            _parse_verdict(bad_response, _make_context())
+
+    schema_fail_records = [
+        rec
+        for rec in caplog.records
+        if _DEBUG_LOG_PREFIX in rec.getMessage()
+    ]
+    assert schema_fail_records, "expected a schema_fail log line"
+    # Body must be present in the formatted message.
+    assert any(bad_response in rec.getMessage() for rec in schema_fail_records)
+    # WARNING level (per R1).
+    assert all(rec.levelno == logging.WARNING for rec in schema_fail_records)
+
+
+def test_debug_capture_silent_when_env_var_unset(clean_debug_env, caplog) -> None:
+    """AS2: env var unset + invalid response → no schema_fail log."""
+    from doc_audit.judgment.drift_interpretation import _RetrySchemaError, _parse_verdict
+
+    with caplog.at_level(logging.WARNING, logger=_DRIFT_LOGGER_NAME):
+        with pytest.raises(_RetrySchemaError):
+            _parse_verdict("not-valid-json-{", _make_context())
+
+    assert not any(
+        _DEBUG_LOG_PREFIX in rec.getMessage() for rec in caplog.records
+    ), "no schema_fail log should be emitted when env var is unset"
+
+
+def test_debug_capture_silent_on_valid_response(monkeypatch, caplog) -> None:
+    """AS3: env var on + valid response → no schema_fail log (only failures log)."""
+    from doc_audit.judgment.drift_interpretation import _parse_verdict
+
+    monkeypatch.setenv(_DEBUG_ENV_VAR, "1")
+
+    valid_response = json.dumps({
+        "verdict": "NO_CHANGE_NEEDED",
+        "confidence": 0.92,
+        "rationale": "Valid path; nothing to log.",
+    })
+
+    with caplog.at_level(logging.WARNING, logger=_DRIFT_LOGGER_NAME):
+        result = _parse_verdict(valid_response, _make_context())
+
+    assert result.verdict == "NO_CHANGE_NEEDED"
+    assert not any(
+        _DEBUG_LOG_PREFIX in rec.getMessage() for rec in caplog.records
+    )
+
+
+def test_debug_capture_non_truthy_values_still_disable(monkeypatch, caplog) -> None:
+    """Env var must match exact string '1' (R2). 'true' / 'yes' / '0' disable capture."""
+    from doc_audit.judgment.drift_interpretation import _RetrySchemaError, _parse_verdict
+
+    for non_match in ("true", "yes", "0", "", "TRUE", " 1 "):
+        monkeypatch.setenv(_DEBUG_ENV_VAR, non_match)
+        caplog.clear()
+        with caplog.at_level(logging.WARNING, logger=_DRIFT_LOGGER_NAME):
+            with pytest.raises(_RetrySchemaError):
+                _parse_verdict("not-valid-json-{", _make_context())
+        assert not any(
+            _DEBUG_LOG_PREFIX in rec.getMessage() for rec in caplog.records
+        ), f"capture must be disabled for env var value {non_match!r}"
+
+
+def test_debug_capture_truncates_oversized_body(monkeypatch, caplog) -> None:
+    """Payloads >4096 bytes are truncated with a '[truncated]' suffix (R4)."""
+    from doc_audit.judgment.drift_interpretation import (
+        _DEBUG_CAPTURE_MAX_BYTES,
+        _RetrySchemaError,
+        _parse_verdict,
+    )
+
+    monkeypatch.setenv(_DEBUG_ENV_VAR, "1")
+    # Build an oversized body that's still un-parseable JSON.
+    oversized = "X" * (_DEBUG_CAPTURE_MAX_BYTES + 500)
+    bad_payload = "{not-json " + oversized
+
+    with caplog.at_level(logging.WARNING, logger=_DRIFT_LOGGER_NAME):
+        with pytest.raises(_RetrySchemaError):
+            _parse_verdict(bad_payload, _make_context())
+
+    schema_fail = [
+        rec.getMessage()
+        for rec in caplog.records
+        if _DEBUG_LOG_PREFIX in rec.getMessage()
+    ]
+    assert schema_fail, "expected a schema_fail log for oversized body"
+    msg = schema_fail[0]
+    assert "[truncated]" in msg
+    # The full oversized body MUST NOT appear (since it exceeded the cap).
+    assert oversized not in msg
+
+
+# AS4: every _RetrySchemaError raise site in _parse_verdict emits a capture
+# line. The parametrize entries below cover each distinct raise site
+# reachable via _parse_verdict's public surface.
+_RAISE_SITE_CASES = [
+    pytest.param("", "empty LLM response", id="empty-response"),
+    pytest.param("not-valid-json-{", "invalid JSON", id="invalid-json"),
+    pytest.param("[1, 2, 3]", "response must be a JSON object", id="non-object-json"),
+    pytest.param(
+        json.dumps({"verdict": "MAYBE", "confidence": 0.9, "rationale": "x"}),
+        "invalid verdict value",
+        id="invalid-verdict-value",
+    ),
+    pytest.param(
+        json.dumps({"verdict": "NO_CHANGE_NEEDED", "confidence": "high", "rationale": "x"}),
+        "confidence must be a JSON number",
+        id="confidence-wrong-type",
+    ),
+    pytest.param(
+        json.dumps({"verdict": "NO_CHANGE_NEEDED", "confidence": 2.5, "rationale": "x"}),
+        "confidence out of range",
+        id="confidence-out-of-range",
+    ),
+    pytest.param(
+        json.dumps({"verdict": "NO_CHANGE_NEEDED", "confidence": 0.9, "rationale": "  "}),
+        "rationale missing or empty",
+        id="rationale-missing",
+    ),
+    pytest.param(
+        json.dumps({"verdict": "PROPOSED_EDIT", "confidence": 0.9, "rationale": "x"}),
+        "PROPOSED_EDIT requires a proposed_edit object",
+        id="proposed-edit-missing-object",
+    ),
+    pytest.param(
+        json.dumps({
+            "verdict": "PROPOSED_EDIT",
+            "confidence": 0.9,
+            "rationale": "x",
+            "proposed_edit": {
+                "doc_path": "docs/design/architecture/data/service-inventory.json",
+                "current_value": "a",
+                # proposed_value missing
+            },
+        }),
+        "proposed_edit.proposed_value missing or not a non-empty string",
+        id="proposed-edit-missing-subfield",
+    ),
+    pytest.param(
+        json.dumps({"verdict": "JUDGMENT_REQUIRED", "confidence": 0.5, "rationale": "x"}),
+        "JUDGMENT_REQUIRED requires a non-empty question",
+        id="judgment-required-missing-question",
+    ),
+    pytest.param(
+        json.dumps({
+            "verdict": "JUDGMENT_REQUIRED",
+            "confidence": 0.5,
+            "rationale": "x",
+            "question": "?" * 600,
+        }),
+        f"question exceeds {500} chars",
+        id="judgment-required-overlong-question",
+    ),
+]
+
+
+@pytest.mark.parametrize("mock_response,expected_message_substring", _RAISE_SITE_CASES)
+def test_debug_capture_for_each_raise_site(
+    monkeypatch,
+    caplog,
+    mock_response: str,
+    expected_message_substring: str,
+) -> None:
+    """AS4: each ``_RetrySchemaError`` raise site emits a capture line.
+
+    Verifies:
+      - WARNING-level schema_fail log present
+      - capture references the same identifier (message substring) as
+        the exception
+      - exception message unchanged (FR-006: messages/types preserved)
+    """
+    from doc_audit.judgment.drift_interpretation import _RetrySchemaError, _parse_verdict
+
+    monkeypatch.setenv(_DEBUG_ENV_VAR, "1")
+
+    with caplog.at_level(logging.WARNING, logger=_DRIFT_LOGGER_NAME):
+        with pytest.raises(_RetrySchemaError) as exc_info:
+            _parse_verdict(mock_response, _make_context())
+
+    captures = [
+        rec.getMessage()
+        for rec in caplog.records
+        if _DEBUG_LOG_PREFIX in rec.getMessage()
+    ]
+    assert captures, f"no capture line for response: {mock_response!r}"
+    # The capture references the raise-site identifier (same string as the exception).
+    assert any(expected_message_substring in cap for cap in captures), (
+        f"expected {expected_message_substring!r} in capture; got {captures!r}"
+    )
+    # FR-006: exception message must contain the same identifier (unchanged).
+    assert expected_message_substring in str(exc_info.value)
