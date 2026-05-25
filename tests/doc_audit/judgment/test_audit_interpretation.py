@@ -35,6 +35,7 @@ from doc_audit.judgment.audit_interpretation import (
     DEFAULT_MAX_TOKENS,
     DEFAULT_MODEL,
     DEFAULT_TIMEOUT_SECONDS,
+    INPUT_TOKEN_GUARD_THRESHOLD,
     PROMPT_PATH,
     RETRY_DELAYS_SECONDS,
     VALID_VERDICTS,
@@ -44,6 +45,8 @@ from doc_audit.judgment.audit_interpretation import (
     DriftInterpretationError,
     _build_prompt,
     _demote_low_confidence,
+    _estimate_input_tokens,
+    _interpret_one_doc,
     _parse_verdict,
     _verdict_to_dict,
     interpret_audit,
@@ -1203,3 +1206,159 @@ def test_cli_input_doc_not_object(tmp_path, monkeypatch, capsys) -> None:
     )
     rc = main(["--input-file", str(input_path)])
     assert rc == 3
+
+
+# ---------------------------------------------------------------------------
+# Input-token size guard (#402, WP01)
+# ---------------------------------------------------------------------------
+
+
+class _AssertNoCallClient:
+    """Stub JudgmentClient that fails the test if ``call`` is invoked."""
+
+    def __init__(self) -> None:
+        self.call_count = 0
+
+    def call(self, *args: Any, **kwargs: Any):  # noqa: D401
+        self.call_count += 1
+        raise AssertionError(
+            "client.call must not be invoked when size guard short-circuits"
+        )
+
+
+class _CountingClient:
+    """Stub JudgmentClient that records calls and returns a canned verdict."""
+
+    def __init__(self, response_text: str) -> None:
+        self.call_count = 0
+        self._response_text = response_text
+
+    def call(self, prompt_path: Path, user_section: str):  # noqa: D401
+        self.call_count += 1
+        return type("Resp", (), {"content": self._response_text})()
+
+
+def test_interpret_one_doc_short_circuits_on_oversized_prompt() -> None:
+    """AS1: when estimated tokens >= threshold, no LLM call is made."""
+    # Build a doc body large enough that _build_prompt's output exceeds the
+    # token threshold (chars-to-tokens approximation is ~4:1).
+    huge_contents = "x" * (INPUT_TOKEN_GUARD_THRESHOLD * 4 + 5000)
+    huge_doc = _make_doc(path="docs/big.md", contents=huge_contents)
+    context = _make_context(in_scope_docs=[huge_doc])
+
+    client = _AssertNoCallClient()
+    verdict = _interpret_one_doc(
+        client,
+        huge_doc,
+        context,
+        confidence_threshold=DEFAULT_CONFIDENCE_THRESHOLD,
+        no_retry=True,
+    )
+
+    assert client.call_count == 0  # zero API calls
+    assert verdict.verdict == "JUDGMENT_REQUIRED"
+    assert verdict.confidence == 0.0
+    assert verdict.doc_path == "docs/big.md"
+    assert "size-guard short-circuit" in verdict.rationale
+    assert "oversized prompt" in verdict.rationale
+    assert verdict.question is not None
+    assert "docs/big.md" in verdict.question
+    assert verdict.proposed_edit is None
+
+
+def test_interpret_one_doc_proceeds_on_normal_prompt() -> None:
+    """AS2: under-threshold prompts proceed to LLM call as before."""
+    small_doc = _make_doc(path="docs/small.md", contents="hello world")
+    context = _make_context(in_scope_docs=[small_doc])
+
+    response_text = json.dumps(
+        {
+            "verdict": "NO_CHANGE_NEEDED",
+            "confidence": 0.93,
+            "rationale": "small doc looks fine",
+        }
+    )
+    client = _CountingClient(response_text=response_text)
+    verdict = _interpret_one_doc(
+        client,
+        small_doc,
+        context,
+        confidence_threshold=DEFAULT_CONFIDENCE_THRESHOLD,
+        no_retry=True,
+    )
+
+    assert client.call_count == 1  # exactly one API call
+    assert verdict.verdict == "NO_CHANGE_NEEDED"
+    assert verdict.doc_path == "docs/small.md"
+
+
+def test_estimate_input_tokens_is_conservative() -> None:
+    """AS3: estimator over-counts rather than under-counts (ceiling-divide by 4)."""
+    # Empty / None-ish input
+    assert _estimate_input_tokens("") == 1
+    # 1-3 char inputs all round up to 1
+    assert _estimate_input_tokens("a") == 1
+    assert _estimate_input_tokens("ab") == 1
+    assert _estimate_input_tokens("abc") == 1
+    # 4-char input → exactly 1 token
+    assert _estimate_input_tokens("abcd") == 1
+    # 5-char input → 2 tokens (over-counts vs floor-by-4)
+    assert _estimate_input_tokens("abcde") == 2
+    # 1000-char input → 250 tokens (1000 / 4 exact)
+    assert _estimate_input_tokens("x" * 1000) == 250
+    # 1001-char input → 251 tokens (ceiling)
+    assert _estimate_input_tokens("x" * 1001) == 251
+
+
+def test_size_guard_synthetic_verdict_matches_existing_judgment_required_shape() -> None:
+    """AS4: size-guard synthetic verdict is structurally identical to the
+    existing retry-exhausted synthetic verdict (FR-008); only rationale differs.
+
+    The retry-exhausted shape is constructed in ``interpret_audit`` at the
+    per-doc DriftInterpretationError catch site:
+
+        AuditVerdict(
+            doc_path=doc.path,
+            verdict="JUDGMENT_REQUIRED",
+            confidence=0.0,
+            rationale="LLM retry exhausted",
+            question=<operator review prompt>,
+        )
+
+    The size-guard verdict must share every field shape except rationale.
+    """
+    huge_contents = "y" * (INPUT_TOKEN_GUARD_THRESHOLD * 4 + 5000)
+    huge_doc = _make_doc(path="docs/big.md", contents=huge_contents)
+    context = _make_context(in_scope_docs=[huge_doc])
+
+    client = _AssertNoCallClient()
+    verdict = _interpret_one_doc(
+        client,
+        huge_doc,
+        context,
+        confidence_threshold=DEFAULT_CONFIDENCE_THRESHOLD,
+        no_retry=True,
+    )
+
+    # Same shape as the existing retry-exhausted synthetic verdict
+    assert verdict.verdict == "JUDGMENT_REQUIRED"
+    assert verdict.confidence == 0.0
+    assert verdict.doc_path == "docs/big.md"
+    assert isinstance(verdict.question, str) and verdict.question.strip()
+    assert verdict.proposed_edit is None
+    # Only the rationale distinguishes the size-guard case
+    assert verdict.rationale != "LLM retry exhausted"
+    assert "size-guard short-circuit" in verdict.rationale
+
+
+def test_input_token_guard_threshold_constant_is_tunable() -> None:
+    """AS5: INPUT_TOKEN_GUARD_THRESHOLD is module-level, int, and named for easy tuning."""
+    from doc_audit.judgment import audit_interpretation
+
+    assert hasattr(audit_interpretation, "INPUT_TOKEN_GUARD_THRESHOLD")
+    assert isinstance(audit_interpretation.INPUT_TOKEN_GUARD_THRESHOLD, int)
+    # Sanity: at least 10% margin under Haiku 4.5's 200K context window
+    assert audit_interpretation.INPUT_TOKEN_GUARD_THRESHOLD <= 180_000
+    assert audit_interpretation.INPUT_TOKEN_GUARD_THRESHOLD > 0
+    # Exported via __all__
+    assert "INPUT_TOKEN_GUARD_THRESHOLD" in audit_interpretation.__all__

@@ -119,6 +119,33 @@ VALID_VERDICTS = frozenset({"PROPOSED_EDIT", "JUDGMENT_REQUIRED", "NO_CHANGE_NEE
 #: Max length of a ``JUDGMENT_REQUIRED.question``.
 QUESTION_MAX_CHARS = 500
 
+#: Conservative input-token guard threshold for audit_interpretation prompts.
+#:
+#: Haiku 4.5's context window is 200,000 input tokens. We reserve ~10% margin
+#: (20,000 tokens) for system prompt, output (DEFAULT_MAX_TOKENS=512), and
+#: estimation conservatism. If the estimated input exceeds this threshold,
+#: :func:`_interpret_one_doc` short-circuits to a synthetic
+#: ``JUDGMENT_REQUIRED`` rather than burning 4 × ~50s retries on a
+#: 400-guaranteed API call. See issue #402 for diagnostic + rationale.
+INPUT_TOKEN_GUARD_THRESHOLD: int = 180_000
+
+
+def _estimate_input_tokens(text: str) -> int:
+    """Estimate input token count for an LLM prompt.
+
+    Uses a conservative char-based heuristic: ceiling-divide character
+    count by 4 (Anthropic's English-text approximation). Conservative
+    on purpose — for prompts near or over the guard threshold we want
+    to over-estimate (triggers the guard earlier, safer behavior).
+
+    Returns at least 1 to avoid degenerate empty-prompt edge cases.
+
+    See issue #402.
+    """
+    if not text:
+        return 1
+    return max(1, (len(text) + 3) // 4)
+
 
 # ---------------------------------------------------------------------------
 # Dataclasses (per data-model E1, E2)
@@ -529,6 +556,34 @@ def _interpret_one_doc(
     """
     user_section = _build_prompt(doc, context)
 
+    estimated_tokens = _estimate_input_tokens(user_section)
+    if estimated_tokens >= INPUT_TOKEN_GUARD_THRESHOLD:
+        logger.warning(
+            "audit_interpretation size-guard short-circuit: doc %s "
+            "estimated %d tokens >= threshold %d; skipping LLM call",
+            doc.path,
+            estimated_tokens,
+            INPUT_TOKEN_GUARD_THRESHOLD,
+        )
+        synthetic = AuditVerdict(
+            doc_path=doc.path,
+            verdict="JUDGMENT_REQUIRED",
+            confidence=0.0,
+            rationale=(
+                f"oversized prompt: ~{estimated_tokens} tokens "
+                f">= threshold {INPUT_TOKEN_GUARD_THRESHOLD}; "
+                "operator review required (size-guard short-circuit)"
+            ),
+            question=(
+                f"Automated audit interpretation skipped {doc.path!r} because "
+                f"the assembled prompt (~{estimated_tokens} tokens) exceeds "
+                f"the input-token guard threshold ({INPUT_TOKEN_GUARD_THRESHOLD}). "
+                f"Please review this doc against commit {context.commit_sha} "
+                "manually. See issue #402."
+            ),
+        )
+        return _demote_low_confidence(synthetic, confidence_threshold)
+
     def _attempt() -> AuditVerdict:
         response = client.call(PROMPT_PATH, user_section)
         return _parse_verdict(response.content, doc)
@@ -883,6 +938,7 @@ __all__ = [
     "RETRY_DELAYS_SECONDS",
     "PROMPT_PATH",
     "VALID_VERDICTS",
+    "INPUT_TOKEN_GUARD_THRESHOLD",
     "main",
 ]
 
