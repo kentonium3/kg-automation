@@ -14,12 +14,16 @@ requirement_refs:
 planning_base_branch: main
 merge_target_branch: main
 branch_strategy: Planning artifacts for this feature were generated on main. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into main unless the human explicitly redirects the landing branch.
+base_branch: kitty/mission-audit-interpretation-size-guard-01KSEN9B
+base_commit: f29768388f90aba1507a5456151d190b93b1f36a
+created_at: '2026-05-25T04:16:02.935011+00:00'
 subtasks:
 - T001
 - T002
 - T003
 - T004
 - T005
+shell_pid: '82972'
 history:
 - event: planned
   timestamp: '2026-05-25T04:13:30Z'
