@@ -96,7 +96,7 @@ def _strip_code_fence(text: str) -> str:
 1. Create a new file `scripts/doc_audit/judgment/_llm_response.py`.
 2. Add a module-level docstring at the top describing the module's purpose: "Private helpers for parsing raw LLM responses in the doc-audit judgment pipeline. Imported by sibling modules under `scripts/doc_audit/judgment/`; not part of the package's public API (single-underscore prefix)."
 3. Copy the `_strip_code_fence` function definition (including its docstring) verbatim from `scripts/doc_audit/judgment/drift_interpretation.py` lines 436-458 into the new module. Do not modify the implementation.
-4. Confirm the file is syntactically valid Python: `python -c "import scripts.doc_audit.judgment._llm_response as m; print(m._strip_code_fence)"`.
+4. Confirm the file is syntactically valid Python. The doc-audit codebase puts `scripts/` on `sys.path` via the test conftest at `tests/doc_audit/conftest.py`, so the canonical package root is `doc_audit.X`, not `scripts.doc_audit.X`. Smoke-test: `python -c "import sys; sys.path.insert(0, 'scripts'); import doc_audit.judgment._llm_response as m; print(m._strip_code_fence)"`.
 
 **Files**:
 - `scripts/doc_audit/judgment/_llm_response.py` (new, ~25 LoC including docstring)
@@ -114,7 +114,7 @@ def _strip_code_fence(text: str) -> str:
 **Steps**:
 1. Create a new file `tests/doc_audit/judgment/test_llm_response.py`.
 2. Add a module docstring referencing the source module under test.
-3. Import the helper: `from scripts.doc_audit.judgment._llm_response import _strip_code_fence`.
+3. Import the helper using the codebase convention (conftest puts `scripts/` on `sys.path`, so `doc_audit.X` is the package root used throughout `scripts/doc_audit/`): `from doc_audit.judgment._llm_response import _strip_code_fence`.
 4. Write one test function per case below. Test names should be descriptive (e.g., `test_fenced_with_json_tag_strips_cleanly`).
 
 **Required test cases** (one assertion each):
@@ -139,7 +139,7 @@ def _strip_code_fence(text: str) -> str:
 
 **Validation**:
 - [ ] `pytest tests/doc_audit/judgment/test_llm_response.py -v` runs and all tests pass.
-- [ ] Branch coverage on `_strip_code_fence` is ≥ 95% (verify with `pytest --cov=scripts.doc_audit.judgment._llm_response tests/doc_audit/judgment/test_llm_response.py`).
+- [ ] Branch coverage on `_strip_code_fence` is ≥ 95% (verify with `pytest --cov=doc_audit.judgment._llm_response tests/doc_audit/judgment/test_llm_response.py`).
 
 ### T003 — Re-point `drift_interpretation` to the shared helper
 
@@ -147,9 +147,9 @@ def _strip_code_fence(text: str) -> str:
 
 **Steps**:
 1. Open `scripts/doc_audit/judgment/drift_interpretation.py`.
-2. Locate the existing absolute imports near the top of the file. Add a new line: `from scripts.doc_audit.judgment._llm_response import _strip_code_fence`. Place it alphabetically with the other intra-package imports if such an ordering exists; otherwise group it logically with adjacent imports.
+2. Locate the existing absolute imports near the top of the file. The codebase uses the `doc_audit.X` form for intra-package imports (see `from doc_audit.judgment.client import JudgmentClient` in this same file pre-edit). Match that convention. Add a new line: `from doc_audit.judgment._llm_response import _strip_code_fence`. Place it alphabetically with the other intra-package imports if such an ordering exists; otherwise group it logically with adjacent imports.
 3. Delete the local `_strip_code_fence` function definition (lines 436-458, inclusive of the trailing blank line if it serves as a separator before the next definition). Verify the call site at the previous line 477 still references the symbol — it will now resolve to the shared import.
-4. Run `python -c "from scripts.doc_audit.judgment.drift_interpretation import _parse_verdict; print(_parse_verdict)"` to confirm the module imports cleanly post-edit.
+4. Confirm the module imports cleanly post-edit. The canonical verification is `pytest tests/doc_audit/judgment/test_drift_interpretation.py -v` (uses the conftest sys.path bootstrap). For a standalone one-liner smoke test, set the path first: `python -c "import sys; sys.path.insert(0, 'scripts'); from doc_audit.judgment.drift_interpretation import _parse_verdict; print(_parse_verdict)"`.
 
 **Files**:
 - `scripts/doc_audit/judgment/drift_interpretation.py` (modified — 1 added import line, ~23 deleted lines)
@@ -166,7 +166,7 @@ def _strip_code_fence(text: str) -> str:
 
 **Steps**:
 1. Run `pytest tests/doc_audit/judgment/test_drift_interpretation.py -v`.
-2. If the test file imports `_strip_code_fence` directly from `drift_interpretation` (e.g., for white-box testing), update the import to use the new shared module path: `from scripts.doc_audit.judgment._llm_response import _strip_code_fence`. No other test changes should be required.
+2. If the test file imports `_strip_code_fence` directly from `drift_interpretation` (e.g., for white-box testing), update the import to use the new shared module path: `from doc_audit.judgment._llm_response import _strip_code_fence` (codebase convention; conftest at `tests/doc_audit/conftest.py` puts `scripts/` on sys.path). No other test changes should be required.
 3. Confirm all tests pass.
 
 **Files**:

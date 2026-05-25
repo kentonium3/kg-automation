@@ -75,7 +75,7 @@ WP01 has already established the shared helper. WP02 patches the call sites. Wit
 
 **Steps**:
 1. Open `scripts/doc_audit/judgment/audit_interpretation.py`.
-2. Add an import near the top of the file (with other absolute imports): `from scripts.doc_audit.judgment._llm_response import _strip_code_fence`.
+2. Add an import near the top of the file (with other absolute imports): `from doc_audit.judgment._llm_response import _strip_code_fence`.
 3. Locate the call site. As of pre-mission verification it is at line 289:
    ```python
    parsed = json.loads(text)
@@ -92,7 +92,7 @@ WP01 has already established the shared helper. WP02 patches the call sites. Wit
 
 **Validation**:
 - [ ] `grep -n "_strip_code_fence" scripts/doc_audit/judgment/audit_interpretation.py` shows the import and the call site.
-- [ ] The module imports cleanly: `python -c "from scripts.doc_audit.judgment.audit_interpretation import _parse_verdict"`.
+- [ ] The module imports cleanly via pytest: `pytest tests/doc_audit/judgment/test_audit_interpretation.py -v` (the conftest at `tests/doc_audit/conftest.py` puts `scripts/` on sys.path; the codebase uses the `doc_audit.X` form, not `scripts.doc_audit.X`).
 - [ ] No accidental change to the size-guard logic — diff this file before commit and confirm only the import and the one `json.loads` line changed.
 
 ### T006 — Regression tests in `test_audit_interpretation.py`
@@ -124,7 +124,7 @@ WP01 has already established the shared helper. WP02 patches the call sites. Wit
 
 **Steps**:
 1. Open `scripts/doc_audit/judgment/cross_file_implication.py`.
-2. Add an import: `from scripts.doc_audit.judgment._llm_response import _strip_code_fence`.
+2. Add an import: `from doc_audit.judgment._llm_response import _strip_code_fence`.
 3. Locate the call site (line 151, inside a parse helper, `parsed = json.loads(text)`); change to `parsed = json.loads(_strip_code_fence(text))`.
 4. No other changes to this file.
 
@@ -158,7 +158,7 @@ WP01 has already established the shared helper. WP02 patches the call sites. Wit
 
 **Steps**:
 1. Open `scripts/doc_audit/judgment/tier_classification.py`.
-2. Add an import: `from scripts.doc_audit.judgment._llm_response import _strip_code_fence`.
+2. Add an import: `from doc_audit.judgment._llm_response import _strip_code_fence`.
 3. Locate the call site (line 157, inside a parse helper, `parsed = json.loads(text)`); change to `parsed = json.loads(_strip_code_fence(text))`.
 4. No other changes to this file.
 

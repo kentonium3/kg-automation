@@ -28,7 +28,7 @@ Any time a judgment-pipeline script calls `json.loads()` on a raw LLM response. 
 
 1. Import the helper at the top of the new module:
    ```python
-   from scripts.doc_audit.judgment._llm_response import _strip_code_fence
+   from doc_audit.judgment._llm_response import _strip_code_fence
    ```
 2. At the `json.loads()` site:
    ```python

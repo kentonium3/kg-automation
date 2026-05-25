@@ -32,8 +32,8 @@ None. The specification's Assumptions, Dependencies, and Risks sections capture 
 
 ### D-004 — Import style: explicit relative from package
 
-- **Decision**: Each modified script imports the helper via `from scripts.doc_audit.judgment._llm_response import _strip_code_fence`.
-- **Rationale**: Matches the absolute-import style used elsewhere in `scripts/doc_audit/`. Keeps the import line visible at the top of each file so future readers can find the helper.
+- **Decision**: Each modified script imports the helper via `from doc_audit.judgment._llm_response import _strip_code_fence`.
+- **Rationale**: Matches the absolute-import style used elsewhere in `scripts/doc_audit/` (the conftest at `tests/doc_audit/conftest.py` puts `scripts/` on `sys.path`, so `doc_audit.X` is the canonical package root — every existing import in the package uses this form, e.g., `from doc_audit.judgment.client import JudgmentClient`). Keeps the import line visible at the top of each file so future readers can find the helper.
 - **Alternatives considered**: Re-exporting from `scripts/doc_audit/judgment/__init__.py`: rejected because it would expand the package's public API for a private helper (violates C-002).
 
 ### D-005 — Test the helper's edge cases independently

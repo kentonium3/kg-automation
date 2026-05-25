@@ -85,7 +85,7 @@ The `[P]` markers indicate parallel-safe items in WP02 — the three script patc
 
 **Implementation sketch**:
 1. For each of the three scripts (`audit_interpretation.py`, `cross_file_implication.py`, `tier_classification.py`):
-   a. Add an import: `from scripts.doc_audit.judgment._llm_response import _strip_code_fence` (placed alongside other absolute imports).
+   a. Add an import: `from doc_audit.judgment._llm_response import _strip_code_fence` (placed alongside other absolute imports; the codebase uses `doc_audit.X` form thanks to the conftest sys.path bootstrap).
    b. Change the `json.loads(text)` (or equivalent variable name) call to `json.loads(_strip_code_fence(text))` at the documented line.
 2. For each script's test file, add at least one fenced-input regression case (input wrapped in ` ```json\n…\n``` `) and at least one unfenced-input regression case (input is bare JSON). Each case asserts that the relevant parser function produces the expected verdict/data structure.
 3. Run the full judgment-package test suite to confirm no regressions.
