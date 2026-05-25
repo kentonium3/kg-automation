@@ -1,7 +1,7 @@
 {
-  "event_count": 4,
-  "last_event_id": "01KSETDC65W0M3YXYQMN9NG2K7",
-  "materialized_at": "2026-05-25T05:41:05.861649+00:00",
+  "event_count": 5,
+  "last_event_id": "01KSEVGRSVTRPTQ6MPV2FSTJVD",
+  "materialized_at": "2026-05-25T06:00:25.659736+00:00",
   "mission_number": "",
   "mission_slug": "audit-judgment-fence-strip-hardening-01KSESPD",
   "mission_type": "software-dev",
@@ -11,18 +11,18 @@
     "canceled": 0,
     "claimed": 0,
     "done": 0,
-    "for_review": 0,
-    "in_progress": 1,
+    "for_review": 1,
+    "in_progress": 0,
     "in_review": 0,
     "planned": 1
   },
   "work_packages": {
     "WP01": {
-      "actor": "implement-command",
+      "actor": "user",
       "force_count": 1,
-      "lane": "in_progress",
-      "last_event_id": "01KSETDC65W0M3YXYQMN9NG2K7",
-      "last_transition_at": "2026-05-25T05:41:05.861649+00:00"
+      "lane": "for_review",
+      "last_event_id": "01KSEVGRSVTRPTQ6MPV2FSTJVD",
+      "last_transition_at": "2026-05-25T06:00:25.659736+00:00"
     },
     "WP02": {
       "actor": "finalize-tasks",
