@@ -433,6 +433,31 @@ def _log_raw_response_if_debug(response_text: str, error_message: str) -> None:
     )
 
 
+def _strip_code_fence(text: str) -> str:
+    """Strip markdown code fences from an LLM response.
+
+    Returns the input unchanged if no fence is present. Otherwise drops the
+    opening fence line (e.g. ``` ```json ``` or just ``` ``` ```) and the
+    trailing fence line, then re-strips whitespace.
+
+    Observed Haiku 4.5 behavior: every JSON response is wrapped in
+    ``` ```json ... ``` ``` despite the prompt explicitly instructing the
+    model to emit no code fences. See diagnostic doc
+    ``docs/diagnostics/drift-interpretation-payload-shape.md``.
+    """
+    stripped = text.strip()
+    if not stripped.startswith("```"):
+        return text
+    lines = stripped.splitlines()
+    # Drop opening fence (e.g., ```json or just ```)
+    if lines and lines[0].startswith("```"):
+        lines = lines[1:]
+    # Drop trailing fence
+    if lines and lines[-1].startswith("```"):
+        lines = lines[:-1]
+    return "\n".join(lines).strip()
+
+
 def _parse_verdict(
     response_text: str,
     context: DriftInterpretationContext,
@@ -449,7 +474,7 @@ def _parse_verdict(
         raise _RetrySchemaError("empty LLM response")
 
     try:
-        parsed = json.loads(text)
+        parsed = json.loads(_strip_code_fence(text))
     except json.JSONDecodeError as exc:
         _log_raw_response_if_debug(response_text, f"invalid JSON: {exc}")
         raise _RetrySchemaError(f"invalid JSON: {exc}") from exc

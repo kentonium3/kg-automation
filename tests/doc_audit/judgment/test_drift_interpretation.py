@@ -52,6 +52,7 @@ from doc_audit.judgment.drift_interpretation import (
     _call_with_retry,
     _demote_low_confidence,
     _parse_verdict,
+    _strip_code_fence,
     _truncate_doc_state,
     _verdict_to_dict,
     interpret,
@@ -1209,3 +1210,97 @@ def test_debug_capture_for_each_raise_site(
     )
     # FR-006: exception message must contain the same identifier (unchanged).
     assert expected_message_substring in str(exc_info.value)
+
+
+# ---------------------------------------------------------------------------
+# WP01 — Markdown code-fence stripping (#411 root cause)
+#
+# Haiku 4.5 wraps every JSON response in ``` ```json ... ``` ``` despite the
+# prompt explicitly forbidding code fences. ``_strip_code_fence`` is applied
+# inside ``_parse_verdict`` immediately before ``json.loads()`` to restore
+# end-to-end parsing. Capture path (``_log_raw_response_if_debug``) is
+# unaffected — it still sees the raw response.
+# ---------------------------------------------------------------------------
+
+
+def test_parse_verdict_strips_json_fence() -> None:
+    """AS1: ```json wrapper does not defeat parsing."""
+    body = (
+        '```json\n'
+        '{"verdict": "NO_CHANGE_NEEDED", "confidence": 0.9, "rationale": "ok"}\n'
+        '```'
+    )
+    result = _parse_verdict(body, _make_context())
+    assert result.verdict == "NO_CHANGE_NEEDED"
+    assert result.confidence == 0.9
+    assert result.rationale == "ok"
+
+
+def test_parse_verdict_strips_bare_fence() -> None:
+    """AS2: ``` wrapper without language hint also works."""
+    body = (
+        '```\n'
+        '{"verdict": "NO_CHANGE_NEEDED", "confidence": 0.9, "rationale": "ok"}\n'
+        '```'
+    )
+    result = _parse_verdict(body, _make_context())
+    assert result.verdict == "NO_CHANGE_NEEDED"
+    assert result.confidence == 0.9
+    assert result.rationale == "ok"
+
+
+def test_parse_verdict_unfenced_still_works() -> None:
+    """AS3: unfenced response (the historical happy path) still parses."""
+    body = '{"verdict": "NO_CHANGE_NEEDED", "confidence": 0.9, "rationale": "ok"}'
+    result = _parse_verdict(body, _make_context())
+    assert result.verdict == "NO_CHANGE_NEEDED"
+    assert result.confidence == 0.9
+    assert result.rationale == "ok"
+
+
+def test_parse_verdict_malformed_inner_json_still_raises(monkeypatch) -> None:
+    """AS4: ```json with malformed inner JSON still raises _RetrySchemaError."""
+    from doc_audit.judgment.drift_interpretation import _RetrySchemaError
+
+    monkeypatch.delenv("DOC_AUDIT_DEBUG_DRIFT_PAYLOADS", raising=False)
+    body = '```json\n{not valid json\n```'
+    with pytest.raises(_RetrySchemaError, match="invalid JSON"):
+        _parse_verdict(body, _make_context())
+
+
+def test_parse_verdict_empty_after_strip_raises(monkeypatch) -> None:
+    """EC1: ```json fence with no content still raises _RetrySchemaError.
+
+    Whether the helper drops through to the "empty LLM response" branch or
+    the "invalid JSON" branch is an implementation detail — either is fine
+    as long as the schema error fires (and remains retry-eligible).
+    """
+    from doc_audit.judgment.drift_interpretation import _RetrySchemaError
+
+    monkeypatch.delenv("DOC_AUDIT_DEBUG_DRIFT_PAYLOADS", raising=False)
+    body = '```json\n\n```'
+    with pytest.raises(_RetrySchemaError, match="empty LLM response|invalid JSON"):
+        _parse_verdict(body, _make_context())
+
+
+def test_parse_verdict_leading_whitespace_before_fence() -> None:
+    """EC5: leading whitespace before the opening fence is handled."""
+    body = (
+        '  \n```json\n'
+        '{"verdict": "NO_CHANGE_NEEDED", "confidence": 0.9, "rationale": "ok"}\n'
+        '```'
+    )
+    result = _parse_verdict(body, _make_context())
+    assert result.verdict == "NO_CHANGE_NEEDED"
+
+
+def test_strip_code_fence_returns_unchanged_on_non_fenced() -> None:
+    """The helper itself should return unmodified input when no fence is present."""
+    text = '{"verdict": "NO_CHANGE_NEEDED"}'
+    assert _strip_code_fence(text) == text
+
+
+def test_strip_code_fence_handles_json_hint() -> None:
+    """The helper strips ```json hint correctly."""
+    body = '```json\n{"a": 1}\n```'
+    assert _strip_code_fence(body) == '{"a": 1}'
