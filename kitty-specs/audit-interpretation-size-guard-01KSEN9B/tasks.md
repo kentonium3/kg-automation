@@ -10,11 +10,11 @@
 
 | ID    | Description                                                                          | WP   | Parallel |
 |-------|--------------------------------------------------------------------------------------|------|----------|
-| T001  | Add `INPUT_TOKEN_GUARD_THRESHOLD` constant + `_estimate_input_tokens(text)` helper    | WP01 |          |
-| T002  | Insert size-guard check in `_interpret_one_doc()` between `_build_prompt` and call     | WP01 |          |
-| T003  | Unit tests for AS1 + AS2 (over-threshold short-circuit; under-threshold proceeds)     | WP01 |          |
-| T004  | Unit tests for AS3 + AS4 + AS5 (estimator conservatism; verdict shape parity; constant) | WP01 |          |
-| T005  | Run `pytest tests/doc_audit/ -v`; commit; transition WP01 → for_review                | WP01 |          |
+| T001  | Add `INPUT_TOKEN_GUARD_THRESHOLD` constant + `_estimate_input_tokens(text)` helper    | WP01 |          | [D] |
+| T002  | Insert size-guard check in `_interpret_one_doc()` between `_build_prompt` and call     | WP01 |          | [D] |
+| T003  | Unit tests for AS1 + AS2 (over-threshold short-circuit; under-threshold proceeds)     | WP01 |          | [D] |
+| T004  | Unit tests for AS3 + AS4 + AS5 (estimator conservatism; verdict shape parity; constant) | WP01 |          | [D] |
+| T005  | Run `pytest tests/doc_audit/ -v`; commit; transition WP01 → for_review                | WP01 |          | [D] |
 
 Total: 5 subtasks in 1 work package.
 
@@ -30,11 +30,11 @@ Total: 5 subtasks in 1 work package.
 
 #### Included subtasks
 
-- [ ] T001 Add `INPUT_TOKEN_GUARD_THRESHOLD` constant + `_estimate_input_tokens` helper (WP01)
-- [ ] T002 Insert size-guard check in `_interpret_one_doc()` (WP01)
-- [ ] T003 Unit tests for AS1 + AS2 (WP01)
-- [ ] T004 Unit tests for AS3 + AS4 + AS5 (WP01)
-- [ ] T005 Pytest + commit + transition WP01 (WP01)
+- [x] T001 Add `INPUT_TOKEN_GUARD_THRESHOLD` constant + `_estimate_input_tokens` helper (WP01)
+- [x] T002 Insert size-guard check in `_interpret_one_doc()` (WP01)
+- [x] T003 Unit tests for AS1 + AS2 (WP01)
+- [x] T004 Unit tests for AS3 + AS4 + AS5 (WP01)
+- [x] T005 Pytest + commit + transition WP01 (WP01)
 
 #### Dependencies
 
