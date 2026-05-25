@@ -1,28 +1,28 @@
 {
-  "event_count": 5,
-  "last_event_id": "01KSEMNKAVXCF5ZMTBKK4ECJYH",
-  "materialized_at": "2026-05-25T04:00:43.867435+00:00",
+  "event_count": 6,
+  "last_event_id": "01KSEMVEX2PWSY3BWCWKTDDHSK",
+  "materialized_at": "2026-05-25T04:03:55.938717+00:00",
   "mission_number": "",
   "mission_slug": "drift-interpretation-fence-strip-fix-01KSEM6S",
   "mission_type": "software-dev",
   "summary": {
-    "approved": 0,
+    "approved": 1,
     "blocked": 0,
     "canceled": 0,
     "claimed": 0,
     "done": 0,
     "for_review": 0,
     "in_progress": 0,
-    "in_review": 1,
+    "in_review": 0,
     "planned": 0
   },
   "work_packages": {
     "WP01": {
-      "actor": "codex:gpt-5:spec-kitty-review:reviewer",
+      "actor": "user",
       "force_count": 1,
-      "lane": "in_review",
-      "last_event_id": "01KSEMNKAVXCF5ZMTBKK4ECJYH",
-      "last_transition_at": "2026-05-25T04:00:43.867435+00:00"
+      "lane": "approved",
+      "last_event_id": "01KSEMVEX2PWSY3BWCWKTDDHSK",
+      "last_transition_at": "2026-05-25T04:03:55.938717+00:00"
     }
   }
 }
