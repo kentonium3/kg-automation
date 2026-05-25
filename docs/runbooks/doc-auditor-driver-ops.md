@@ -808,6 +808,14 @@ automatically next tick. If the outage persists multiple hours, the
 the #327 alerting consumer is the long-term route to operator
 attention. Until #327 lands, manual journal grep is the safety net.
 
+### Debug capture for drift_interpretation
+
+`DOC_AUDIT_DEBUG_DRIFT_PAYLOADS=1` (exact match) enables raw-response logging
+at each `_RetrySchemaError` raise site in `scripts/doc_audit/judgment/drift_interpretation.py`.
+Off by default — enable only for diagnostic capture, never in steady-state production.
+See [`../diagnostics/drift-interpretation-payload-shape.md`](<../diagnostics/drift-interpretation-payload-shape.md>)
+for the captured-payload analysis (mission #404 follow-up).
+
 ---
 
 ## Re-baselining cadence
