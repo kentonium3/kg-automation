@@ -21,8 +21,8 @@ subtasks:
 - T002
 - T003
 - T004
-shell_pid: "4249"
-agent: "claude:opus-4-7:python-implementer:implementer"
+shell_pid: "9123"
+agent: "codex:gpt-5:spec-kitty-review:reviewer"
 history:
 - event: created
   by: spec-kitty.tasks orchestrator
@@ -208,3 +208,4 @@ After WP01 lands, WP02 imports the same shared helper into the three remaining v
 
 - 2026-05-25T05:41:08Z – claude:opus-4-7:python-implementer:implementer – shell_pid=4249 – Assigned agent via action command
 - 2026-05-25T06:00:25Z – claude:opus-4-7:python-implementer:implementer – shell_pid=4249 – Ready for review: shared _strip_code_fence helper extracted; drift_interpretation re-pointed; all tests pass.
+- 2026-05-25T06:00:48Z – codex:gpt-5:spec-kitty-review:reviewer – shell_pid=9123 – Started review via action command
