@@ -10,13 +10,13 @@
 
 | ID    | Description                                                                                | WP   | Parallel |
 |-------|--------------------------------------------------------------------------------------------|------|----------|
-| T001  | Pull main to office2; verify `_log_raw_response_if_debug` present in deployed module        | WP01 |          |
-| T002  | Add `DOC_AUDIT_DEBUG_DRIFT_PAYLOADS=1` via systemd drop-in (non-interactive)                | WP01 |          |
-| T003  | Trigger one tick; extract captured payload from journalctl                                  | WP01 |          |
-| T004  | Author `docs/diagnostics/drift-interpretation-payload-shape.md` with sanitized analysis     | WP01 |          |
-| T005  | Add short env-var note to `docs/runbooks/doc-auditor-driver-ops.md`                          | WP01 |          |
-| T006  | Remove drop-in; verify clean state; confirm timer still disabled                             | WP01 |          |
-| T007  | Close #404 with diagnostic doc link; file follow-up fix issue if needed                      | WP01 |          |
+| T001  | Pull main to office2; verify `_log_raw_response_if_debug` present in deployed module        | WP01 |          | [D] |
+| T002  | Add `DOC_AUDIT_DEBUG_DRIFT_PAYLOADS=1` via systemd drop-in (non-interactive)                | WP01 |          | [D] |
+| T003  | Trigger one tick; extract captured payload from journalctl                                  | WP01 |          | [D] |
+| T004  | Author `docs/diagnostics/drift-interpretation-payload-shape.md` with sanitized analysis     | WP01 |          | [D] |
+| T005  | Add short env-var note to `docs/runbooks/doc-auditor-driver-ops.md`                          | WP01 |          | [D] |
+| T006  | Remove drop-in; verify clean state; confirm timer still disabled                             | WP01 |          | [D] |
+| T007  | Close #404 with diagnostic doc link; file follow-up fix issue if needed                      | WP01 |          | [D] |
 
 Total: 7 subtasks in 1 work package.
 
@@ -34,13 +34,13 @@ Total: 7 subtasks in 1 work package.
 
 #### Included subtasks
 
-- [ ] T001 Pull main to office2; verify `_log_raw_response_if_debug` present in deployed module (WP01)
-- [ ] T002 Add `DOC_AUDIT_DEBUG_DRIFT_PAYLOADS=1` via systemd drop-in (non-interactive) (WP01)
-- [ ] T003 Trigger one tick; extract captured payload from journalctl (WP01)
-- [ ] T004 Author `docs/diagnostics/drift-interpretation-payload-shape.md` with sanitized analysis (WP01)
-- [ ] T005 Add short env-var note to `docs/runbooks/doc-auditor-driver-ops.md` (WP01)
-- [ ] T006 Remove drop-in; verify clean state; confirm timer still disabled (WP01)
-- [ ] T007 Close #404 with diagnostic doc link; file follow-up fix issue if needed (WP01)
+- [x] T001 Pull main to office2; verify `_log_raw_response_if_debug` present in deployed module (WP01)
+- [x] T002 Add `DOC_AUDIT_DEBUG_DRIFT_PAYLOADS=1` via systemd drop-in (non-interactive) (WP01)
+- [x] T003 Trigger one tick; extract captured payload from journalctl (WP01)
+- [x] T004 Author `docs/diagnostics/drift-interpretation-payload-shape.md` with sanitized analysis (WP01)
+- [x] T005 Add short env-var note to `docs/runbooks/doc-auditor-driver-ops.md` (WP01)
+- [x] T006 Remove drop-in; verify clean state; confirm timer still disabled (WP01)
+- [x] T007 Close #404 with diagnostic doc link; file follow-up fix issue if needed (WP01)
 
 #### Dependencies
 
