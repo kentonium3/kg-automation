@@ -1,0 +1,53 @@
+{
+  "version": 1,
+  "mission_slug": "audit-judgment-fence-strip-hardening-01KSESPD",
+  "mission_id": "01KSESPDA4FEEGKQX9GTTM7T52",
+  "mission_branch": "kitty/mission-audit-judgment-fence-strip-hardening-01KSESPD",
+  "target_branch": "main",
+  "lanes": [
+    {
+      "lane_id": "lane-a",
+      "wp_ids": [
+        "WP01",
+        "WP02"
+      ],
+      "write_scope": [
+        "scripts/doc_audit/judgment/_llm_response.py",
+        "scripts/doc_audit/judgment/audit_interpretation.py",
+        "scripts/doc_audit/judgment/cross_file_implication.py",
+        "scripts/doc_audit/judgment/drift_interpretation.py",
+        "scripts/doc_audit/judgment/tier_classification.py",
+        "tests/doc_audit/judgment/test_audit_interpretation.py",
+        "tests/doc_audit/judgment/test_cross_file_implication.py",
+        "tests/doc_audit/judgment/test_drift_interpretation.py",
+        "tests/doc_audit/judgment/test_llm_response.py",
+        "tests/doc_audit/judgment/test_tier_classification.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "artifact-rendering",
+        "tests"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    }
+  ],
+  "computed_at": "2026-05-25T05:40:04.259094+00:00",
+  "computed_from": "dependency_graph+ownership",
+  "planning_artifact_wps": [],
+  "collapse_report": {
+    "events": [
+      {
+        "wp_a": "WP02",
+        "wp_b": "WP01",
+        "rule": "dependency",
+        "evidence": "WP02 depends on WP01"
+      }
+    ],
+    "total_merges": 1,
+    "independent_wps_collapsed": 0,
+    "by_rule": {
+      "dependency": 1
+    }
+  }
+}
