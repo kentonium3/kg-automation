@@ -21,8 +21,8 @@ subtasks:
 - T002
 - T003
 - T004
-shell_pid: "17163"
-agent: "claude:opus-4-7:python-implementer:implementer"
+shell_pid: "19419"
+agent: "codex:gpt-5:spec-kitty-review:reviewer"
 history:
 - event: created
   by: spec-kitty.tasks orchestrator
@@ -216,3 +216,4 @@ After WP01 lands, WP02 imports the same shared helper into the three remaining v
 - 2026-05-25T06:22:55Z – codex:gpt-5:spec-kitty-review:reviewer – shell_pid=13106 – Review reject (cycle 2/3) — codex sandbox failed move-task; orchestrator executing on reviewer's behalf. Root cause: WP01 prompt specified scripts.doc_audit.X imports, but codebase convention is from doc_audit.X (conftest adds scripts/ to sys.path). Fix path: align planning artifacts + tests to codebase convention.
 - 2026-05-25T06:30:07Z – claude:opus-4-7:python-implementer:implementer – shell_pid=17163 – Started implementation via action command
 - 2026-05-25T06:39:36Z – claude:opus-4-7:python-implementer:implementer – shell_pid=17163 – Fix cycle 2: aligned test imports to 'from doc_audit.judgment._llm_response import _strip_code_fence' (codebase convention; conftest puts scripts/ on sys.path). WP01 prompt + planning docs already updated in main (commit 4ec7a02a) to reflect this. All 171 tests pass; coverage now reports 100% on _llm_response.py with --cov=doc_audit.judgment._llm_response.
+- 2026-05-25T06:39:43Z – codex:gpt-5:spec-kitty-review:reviewer – shell_pid=19419 – Started review via action command
