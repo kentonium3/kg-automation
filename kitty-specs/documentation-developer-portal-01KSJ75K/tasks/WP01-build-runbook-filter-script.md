@@ -19,8 +19,8 @@ subtasks:
 - T006
 - T007
 - T008
-shell_pid: "11903"
-agent: "claude:opus-4-7:implementer:implementer"
+shell_pid: "13310"
+agent: "codex:gpt-5:spec-kitty-review:reviewer"
 history:
 - date: '2026-05-26'
   note: WP authored by spec-kitty.tasks (mission documentation-developer-portal-01KSJ75K)
@@ -265,3 +265,4 @@ spec-kitty agent action implement WP01 --agent <name>
 - 2026-05-26T13:48:25Z – codex:gpt-5:spec-kitty-review:reviewer – shell_pid=9517 – Moved to planned
 - 2026-05-26T13:48:45Z – claude:opus-4-7:implementer:implementer – shell_pid=11903 – Started implementation via action command
 - 2026-05-26T13:53:58Z – claude:opus-4-7:implementer:implementer – shell_pid=11903 – Cycle 1 fix: byte preservation outside markers + regression test.
+- 2026-05-26T13:54:25Z – codex:gpt-5:spec-kitty-review:reviewer – shell_pid=13310 – Started review via action command
