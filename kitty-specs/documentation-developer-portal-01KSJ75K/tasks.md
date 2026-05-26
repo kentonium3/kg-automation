@@ -20,10 +20,10 @@
 | T006 | Happy-path tests (clean / drift / `--write` regen) | WP01 | [D] |
 | T007 | Bucket / sort / empty-bucket tests | WP01 | [D] |
 | T008 | Error-case tests (missing portal / markers / fields / invalid enum) | WP01 | [D] |
-| T009 | Author `docs/DEVELOPER_PORTAL.md` body (4 sections + marker pair) | WP02 | |
-| T010 | Run `build_runbook_filter.py --write` to populate filter section | WP02 | |
-| T011 | Extend `validate_docs.py` with portal drift check (gated on portal existing) | WP02 | |
-| T012 | Add smoke test: validate_docs flags a tampered portal block | WP02 | |
+| T009 | Author `docs/DEVELOPER_PORTAL.md` body (4 sections + marker pair) | WP02 | | [D] |
+| T010 | Run `build_runbook_filter.py --write` to populate filter section | WP02 | | [D] |
+| T011 | Extend `validate_docs.py` with portal drift check (gated on portal existing) | WP02 | | [D] |
+| T012 | Add smoke test: validate_docs flags a tampered portal block | WP02 | | [D] |
 | T013 | Add portal entry to `docs/INDEX.md` | WP03 | [P] |
 | T014 | Add single additive pointer line to `CLAUDE.md` under "Architecture Documentation" | WP03 | [P] |
 | T015 | Run full local verification (`pytest`, `validate_docs.py`, `git diff CLAUDE.md`) | WP03 | |
@@ -79,10 +79,10 @@
 
 **Subtasks** (4):
 
-- [ ] T009 Author `docs/DEVELOPER_PORTAL.md` body (4 sections + marker pair) (WP02)
-- [ ] T010 Run `build_runbook_filter.py --write` to populate filter section (WP02)
-- [ ] T011 Extend `validate_docs.py` with portal drift check (gated on portal existing) (WP02)
-- [ ] T012 Add smoke test: validate_docs flags a tampered portal block (WP02)
+- [x] T009 Author `docs/DEVELOPER_PORTAL.md` body (4 sections + marker pair) (WP02)
+- [x] T010 Run `build_runbook_filter.py --write` to populate filter section (WP02)
+- [x] T011 Extend `validate_docs.py` with portal drift check (gated on portal existing) (WP02)
+- [x] T012 Add smoke test: validate_docs flags a tampered portal block (WP02)
 
 **Prompt**: [tasks/WP02-portal-and-validation-drift.md](tasks/WP02-portal-and-validation-drift.md) (estimated ~380 lines)
 
