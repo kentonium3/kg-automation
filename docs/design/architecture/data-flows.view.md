@@ -6,10 +6,10 @@ level: reference
 status: approved
 owners:
   - "@kentonium3"
-last_updated: '2026-05-22'
-revision: v1.4
+last_updated: '2026-05-26'
+revision: v1.5
 audience: agents_and_humans
-updated_by: '#362'
+updated_by: '#346'
 
 ---
 
@@ -78,6 +78,8 @@ graph LR
             hab_record["scripts/habits/<br/>record_completion.py<br/>(Phase 3 #306, unchanged)"]
             hab_artifact[("morning-checkin-&lt;date&gt;.json<br/>/data/services/openclaw/state/<br/>habits/")]
             hab_history[("habits-history.jsonl<br/>/data/services/openclaw/state/")]
+            hab_backfill["scripts/habits/<br/>backfill_jsonl_from_comments.py<br/>(Phase 4 #307, one-shot)"]
+            hab_backfill_snapshot[("habits-history.jsonl.<br/>pre-phase4-backfill.bak<br/>/data/services/openclaw/state/")]
             anthropic_key_habits[("anthropic API key<br/>/data/services/openclaw/<br/>secrets/anthropic (0600)<br/>shared with doc-audit")]
         end
     end
@@ -157,4 +159,8 @@ graph LR
     hab_disambig -->|"HTTPS (anthropic-python SDK,<br/>claude-haiku-4-5)"| anthropic_api
     hab_record -->|"three-write (Phase 3 #306)<br/>POST done=true + PUT comment"| vikunja_api
     hab_record -->|"state_log.append (habits)"| hab_history
+
+    hab_backfill -->|"GET comments (read-only)"| vikunja_api
+    hab_backfill -->|"snapshot BEFORE writes"| hab_backfill_snapshot
+    hab_backfill -->|"state_log.append<br/>(source=historical-backfill)"| hab_history
 ```
