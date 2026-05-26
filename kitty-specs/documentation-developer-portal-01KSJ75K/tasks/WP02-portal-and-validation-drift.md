@@ -18,8 +18,8 @@ subtasks:
 - T010
 - T011
 - T012
-agent: "claude:opus-4-7:implementer:implementer"
-shell_pid: "15027"
+agent: "codex:gpt-5:spec-kitty-review:reviewer"
+shell_pid: "16456"
 history:
 - date: '2026-05-26'
   note: WP authored by spec-kitty.tasks (mission documentation-developer-portal-01KSJ75K)
@@ -245,3 +245,4 @@ spec-kitty agent action implement WP02 --agent <name>
 
 - 2026-05-26T13:58:56Z – claude:opus-4-7:implementer:implementer – shell_pid=15027 – Started implementation via action command
 - 2026-05-26T14:03:32Z – claude:opus-4-7:implementer:implementer – shell_pid=15027 – Portal authored, filter populated, drift check wired into validate_docs, smoke tests pass.
+- 2026-05-26T14:04:05Z – codex:gpt-5:spec-kitty-review:reviewer – shell_pid=16456 – Started review via action command
