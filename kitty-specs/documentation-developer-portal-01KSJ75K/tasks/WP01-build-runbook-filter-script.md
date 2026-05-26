@@ -7,6 +7,9 @@ requirement_refs:
 planning_base_branch: main
 merge_target_branch: main
 branch_strategy: Planning artifacts for this feature were generated on main. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into main unless the human explicitly redirects the landing branch.
+base_branch: kitty/mission-documentation-developer-portal-01KSJ75K
+base_commit: 84dabc8724dfe6f2d151e50144717abbe5a2bc38
+created_at: '2026-05-26T13:35:23.312258+00:00'
 subtasks:
 - T001
 - T002
@@ -16,6 +19,7 @@ subtasks:
 - T006
 - T007
 - T008
+shell_pid: '8164'
 history:
 - date: '2026-05-26'
   note: WP authored by spec-kitty.tasks (mission documentation-developer-portal-01KSJ75K)
