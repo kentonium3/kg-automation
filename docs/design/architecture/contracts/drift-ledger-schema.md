@@ -1,3 +1,9 @@
+---
+title: Drift-Ledger JSONL Schema
+doc_type: reference
+status: approved
+---
+
 # Contract: Drift-Ledger JSONL Schema (post-#403)
 
 **Status**: Canonical live contract for the drift-events ledger row schema at `docs/design/architecture/contracts/drift-ledger-schema.md`. Code modules that implement this contract (notably `scripts/doc_audit/output/drift_ledger.py`) reference this file from their dataclass docstring. Schema changes must update this file in the same PR.
