@@ -18,6 +18,8 @@ subtasks:
 - T010
 - T011
 - T012
+agent: "claude:opus-4-7:implementer:implementer"
+shell_pid: "15027"
 history:
 - date: '2026-05-26'
   note: WP authored by spec-kitty.tasks (mission documentation-developer-portal-01KSJ75K)
@@ -238,3 +240,7 @@ block go stale.
 ```
 spec-kitty agent action implement WP02 --agent <name>
 ```
+
+## Activity Log
+
+- 2026-05-26T13:58:56Z – claude:opus-4-7:implementer:implementer – shell_pid=15027 – Started implementation via action command
