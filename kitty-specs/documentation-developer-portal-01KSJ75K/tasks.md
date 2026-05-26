@@ -24,9 +24,9 @@
 | T010 | Run `build_runbook_filter.py --write` to populate filter section | WP02 | | [D] |
 | T011 | Extend `validate_docs.py` with portal drift check (gated on portal existing) | WP02 | | [D] |
 | T012 | Add smoke test: validate_docs flags a tampered portal block | WP02 | | [D] |
-| T013 | Add portal entry to `docs/INDEX.md` | WP03 | [P] |
-| T014 | Add single additive pointer line to `CLAUDE.md` under "Architecture Documentation" | WP03 | [P] |
-| T015 | Run full local verification (`pytest`, `validate_docs.py`, `git diff CLAUDE.md`) | WP03 | |
+| T013 | Add portal entry to `docs/INDEX.md` | WP03 | [D] |
+| T014 | Add single additive pointer line to `CLAUDE.md` under "Architecture Documentation" | WP03 | [D] |
+| T015 | Run full local verification (`pytest`, `validate_docs.py`, `git diff CLAUDE.md`) | WP03 | | [D] |
 
 15 subtasks across 3 work packages. Dependencies: WP01 → WP02 → WP03 (sequential).
 
@@ -110,9 +110,9 @@
 
 **Subtasks** (3):
 
-- [ ] T013 Add portal entry to `docs/INDEX.md` (WP03)
-- [ ] T014 Add single additive pointer line to `CLAUDE.md` under "Architecture Documentation" (WP03)
-- [ ] T015 Run full local verification (`pytest`, `validate_docs.py`, `git diff CLAUDE.md`) (WP03)
+- [x] T013 Add portal entry to `docs/INDEX.md` (WP03)
+- [x] T014 Add single additive pointer line to `CLAUDE.md` under "Architecture Documentation" (WP03)
+- [x] T015 Run full local verification (`pytest`, `validate_docs.py`, `git diff CLAUDE.md`) (WP03)
 
 **Prompt**: [tasks/WP03-register-and-pointer.md](tasks/WP03-register-and-pointer.md) (estimated ~250 lines)
 
