@@ -14,8 +14,8 @@ subtasks:
 - T013
 - T014
 - T015
-agent: "codex:gpt-5:spec-kitty-review:reviewer"
-shell_pid: "19734"
+agent: "claude:opus-4-7:implementer:implementer"
+shell_pid: "22366"
 history:
 - date: '2026-05-26'
   note: WP authored by spec-kitty.tasks (mission documentation-developer-portal-01KSJ75K)
@@ -196,3 +196,4 @@ spec-kitty agent action implement WP03 --agent <name>
 - 2026-05-26T14:14:11Z – claude:opus-4-7:implementer:implementer – shell_pid=18750 – INDEX entry added, CLAUDE.md pointer added (purely additive diff), full verification suite passed.
 - 2026-05-26T14:14:50Z – codex:gpt-5:spec-kitty-review:reviewer – shell_pid=19734 – Started review via action command
 - 2026-05-26T14:20:21Z – codex:gpt-5:spec-kitty-review:reviewer – shell_pid=19734 – Moved to planned
+- 2026-05-26T14:23:42Z – claude:opus-4-7:implementer:implementer – shell_pid=22366 – Started implementation via action command
