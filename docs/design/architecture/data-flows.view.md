@@ -7,9 +7,9 @@ status: approved
 owners:
   - "@kentonium3"
 last_updated: '2026-05-26'
-revision: v1.5
+revision: v1.6
 audience: agents_and_humans
-updated_by: '#346'
+updated_by: '#346 (sweep: +#310 enrichment, +#374 main-rotation)'
 
 ---
 
@@ -81,6 +81,19 @@ graph LR
             hab_backfill["scripts/habits/<br/>backfill_jsonl_from_comments.py<br/>(Phase 4 #307, one-shot)"]
             hab_backfill_snapshot[("habits-history.jsonl.<br/>pre-phase4-backfill.bak<br/>/data/services/openclaw/state/")]
             anthropic_key_habits[("anthropic API key<br/>/data/services/openclaw/<br/>secrets/anthropic (0600)<br/>shared with doc-audit")]
+        end
+
+        subgraph enrichment["Enrichment (#310 Phase 7 JSONL state)"]
+            tasker_agent["felix-admin-tasker<br/>(OpenClaw agent)"]
+            tasker_record["scripts/enrichment/<br/>record_completion.py"]
+            tasker_reconcile["scripts/enrichment/<br/>reconcile_completions.py"]
+            tasker_jsonl[("enrichment-history.jsonl<br/>/data/services/openclaw/state/<br/>enrichment/")]
+        end
+
+        subgraph main_ops["Main Agent Ops (#374 session rotation)"]
+            main_rotate["scripts/openclaw/helpers/<br/>rotate_main_session.py<br/>(#374 one-shot)"]
+            main_sessions[("OpenClaw sessions<br/>/home/claude/.openclaw/<br/>agents/main/sessions/")]
+            main_rotation_marker[("main-rotation-&lt;timestamp&gt;.done<br/>~/.config/openclaw/")]
         end
     end
 
@@ -163,4 +176,13 @@ graph LR
     hab_backfill -->|"GET comments (read-only)"| vikunja_api
     hab_backfill -->|"snapshot BEFORE writes"| hab_backfill_snapshot
     hab_backfill -->|"state_log.append<br/>(source=historical-backfill)"| hab_history
+
+    tasker_agent -->|"per state transition: invoke"| tasker_record
+    tasker_record -->|"Vikunja side-effect FIRST<br/>(PUT [Felix] enrichment comment)"| vikunja_api
+    tasker_record -->|"state_log.append SECOND<br/>(fcntl-locked; FR-013 soft-fail)"| tasker_jsonl
+    tasker_reconcile -->|"GET tasks + comments (read-only)"| vikunja_api
+    tasker_reconcile -->|"subprocess (--no-vikunja<br/>--source backfill)"| tasker_record
+
+    main_rotate -->|"rename *.jsonl → *.reset.&lt;ts&gt;<br/>(operator post-AGENTS.md deploy)"| main_sessions
+    main_rotate -->|"write marker"| main_rotation_marker
 ```
