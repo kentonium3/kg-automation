@@ -65,6 +65,7 @@ stop and present the command to Kent to run manually via `ssh office2-kgale`.**
 **ChatGPT handoff JSON protocols are deprecated. Do not use them.**
 
 ## Architecture Documentation
+**Developer Portal**: [`docs/DEVELOPER_PORTAL.md`](docs/DEVELOPER_PORTAL.md) — guided onboarding sitemap (start here for orientation; complements [`docs/INDEX.md`](docs/INDEX.md)).
 
 **Documentation map**: [`docs/INDEX.md`](docs/INDEX.md) — master index of all active documentation, grouped by directory with Divio type annotations. Start here to discover docs by topic or type.
 

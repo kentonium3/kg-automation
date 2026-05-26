@@ -260,6 +260,35 @@ for p in ROOT.rglob('*'):
                 err(f"Potential secret pattern in {p}:{lineno}")
                 break
 
+# ---------- 3) Developer-portal runbook-filter drift check ----------
+# Gated on docs/DEVELOPER_PORTAL.md existing so older branches and CI runs on
+# unrelated refs still pass. Implementation note: invoked via subprocess
+# (rather than direct import) to avoid coupling validate_docs to
+# build_runbook_filter's module-level state and to keep this hook a thin
+# shell that can be swapped or removed without refactoring imports.
+PORTAL_PATH = ROOT / 'docs' / 'DEVELOPER_PORTAL.md'
+FILTER_SCRIPT = ROOT / 'tooling' / 'scripts' / 'build_runbook_filter.py'
+if PORTAL_PATH.exists() and FILTER_SCRIPT.exists():
+    try:
+        result = subprocess.run(
+            [sys.executable, str(FILTER_SCRIPT)],
+            capture_output=True, text=True, cwd=str(ROOT),
+        )
+    except Exception as e:
+        err(f"Portal drift check could not run: {e}",
+            is_blocker=is_blocker('required_keys'))
+    else:
+        if result.returncode != 0:
+            # build_runbook_filter prints a unified diff on stdout and the
+            # run-hint as its final stdout line; mirror that to validate_docs
+            # so contributors can copy-paste the fix.
+            err(
+                "Developer portal runbook-filter block is stale. "
+                "run: python tooling/scripts/build_runbook_filter.py --write",
+                path=str(PORTAL_PATH),
+                is_blocker=is_blocker('required_keys'),
+            )
+
 # ---------- Report ----------
 if WARNINGS:
     print("Warnings (non-blocking):")

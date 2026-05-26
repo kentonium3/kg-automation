@@ -4,7 +4,7 @@ doc_type: reference
 status: approved
 owners: [kgale]
 version: "2.0"
-last_validated: 2026-05-19
+last_validated: 2026-05-26
 ---
 
 # kg-automation Documentation Index
@@ -14,6 +14,12 @@ Master map for all active documentation under `docs/`. Referenced from
 
 **Scope**: `docs/**` excluding `docs/archive/`
 (both exempt from restructuring).
+
+---
+
+## Onboarding & Navigation
+
+- [Developer Portal](<./DEVELOPER_PORTAL.md>) — guided onboarding sitemap (start here for new agents and contributors)
 
 ---
 
