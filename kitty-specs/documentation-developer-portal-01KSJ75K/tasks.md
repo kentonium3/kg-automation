@@ -12,14 +12,14 @@
 
 | ID | Description | WP | Parallel |
 |---|---|---|---|
-| T001 | Frontmatter reader + audience bucket assignment | WP01 | |
-| T002 | Block emitter (sort, format, marker semantics) | WP01 | |
-| T003 | Default mode (drift check, exit 0/1 with diff) | WP01 | |
-| T004 | `--write` mode (rewrite block in place) | WP01 | |
-| T005 | Error paths (exit 2/3/4 with clear messages) | WP01 | |
-| T006 | Happy-path tests (clean / drift / `--write` regen) | WP01 | [P] |
-| T007 | Bucket / sort / empty-bucket tests | WP01 | [P] |
-| T008 | Error-case tests (missing portal / markers / fields / invalid enum) | WP01 | [P] |
+| T001 | Frontmatter reader + audience bucket assignment | WP01 | | [D] |
+| T002 | Block emitter (sort, format, marker semantics) | WP01 | | [D] |
+| T003 | Default mode (drift check, exit 0/1 with diff) | WP01 | | [D] |
+| T004 | `--write` mode (rewrite block in place) | WP01 | | [D] |
+| T005 | Error paths (exit 2/3/4 with clear messages) | WP01 | | [D] |
+| T006 | Happy-path tests (clean / drift / `--write` regen) | WP01 | [D] |
+| T007 | Bucket / sort / empty-bucket tests | WP01 | [D] |
+| T008 | Error-case tests (missing portal / markers / fields / invalid enum) | WP01 | [D] |
 | T009 | Author `docs/DEVELOPER_PORTAL.md` body (4 sections + marker pair) | WP02 | |
 | T010 | Run `build_runbook_filter.py --write` to populate filter section | WP02 | |
 | T011 | Extend `validate_docs.py` with portal drift check (gated on portal existing) | WP02 | |
@@ -44,14 +44,14 @@
 
 **Subtasks** (8):
 
-- [ ] T001 Frontmatter reader + audience bucket assignment (WP01)
-- [ ] T002 Block emitter (sort, format, marker semantics) (WP01)
-- [ ] T003 Default mode (drift check, exit 0/1 with diff) (WP01)
-- [ ] T004 `--write` mode (rewrite block in place) (WP01)
-- [ ] T005 Error paths (exit 2/3/4 with clear messages) (WP01)
-- [ ] T006 Happy-path tests (clean / drift / `--write` regen) (WP01)
-- [ ] T007 Bucket / sort / empty-bucket tests (WP01)
-- [ ] T008 Error-case tests (missing portal / markers / fields / invalid enum) (WP01)
+- [x] T001 Frontmatter reader + audience bucket assignment (WP01)
+- [x] T002 Block emitter (sort, format, marker semantics) (WP01)
+- [x] T003 Default mode (drift check, exit 0/1 with diff) (WP01)
+- [x] T004 `--write` mode (rewrite block in place) (WP01)
+- [x] T005 Error paths (exit 2/3/4 with clear messages) (WP01)
+- [x] T006 Happy-path tests (clean / drift / `--write` regen) (WP01)
+- [x] T007 Bucket / sort / empty-bucket tests (WP01)
+- [x] T008 Error-case tests (missing portal / markers / fields / invalid enum) (WP01)
 
 **Prompt**: [tasks/WP01-build-runbook-filter-script.md](tasks/WP01-build-runbook-filter-script.md) (estimated ~430 lines)
 
