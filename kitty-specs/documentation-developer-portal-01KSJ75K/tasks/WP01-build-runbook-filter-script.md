@@ -262,3 +262,4 @@ spec-kitty agent action implement WP01 --agent <name>
 - 2026-05-26T13:35:25Z – claude:opus-4-7:implementer:implementer – shell_pid=8164 – Assigned agent via action command
 - 2026-05-26T13:39:44Z – claude:opus-4-7:implementer:implementer – shell_pid=8164 – Implementation complete; all 13 tests passing; smoke check confirms exit-2 error path.
 - 2026-05-26T13:40:18Z – codex:gpt-5:spec-kitty-review:reviewer – shell_pid=9517 – Started review via action command
+- 2026-05-26T13:48:25Z – codex:gpt-5:spec-kitty-review:reviewer – shell_pid=9517 – Moved to planned
