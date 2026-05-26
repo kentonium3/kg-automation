@@ -5,6 +5,7 @@ title: Tasker Operations (Enrichment JSONL Migration)
 status: approved
 level: 2
 owners: [kent]
+audience: agents_and_humans
 last_validated: '2026-05-23'
 updated_by: '#310'
 version: '1.0.0'
@@ -50,7 +51,7 @@ Run once per deploy after the #310 mission merges to main.
 ### Pre-flight (Tier 2 — required)
 
 Tasker is a Tier 2 change (application/state — schema added, state log touched).
-Per the [pre-flight checklist](governance/pre-flight-checklist.md):
+Per the [pre-flight checklist](<./governance/pre-flight-checklist.md>):
 
 1. Confirm a Restic backup completed within the last 24 hours:
 
@@ -330,8 +331,8 @@ processor that delegates to tasker. No exceptions.
 ## Cross-references
 
 - **Mission**: [#310](https://github.com/kentonium3/kg-automation/issues/310) — ADR-0002 Phase 7 (this migration; final phase)
-- **Pattern source — escalation (Phase 6)**: [#309](https://github.com/kentonium3/kg-automation/issues/309); [`escalation-ops.md`](escalation-ops.md)
-- **AGENTS.md cut precedent — habits scripts-first port**: [#371](https://github.com/kentonium3/kg-automation/issues/371); [`habits-ops.md`](habits-ops.md)
+- **Pattern source — escalation (Phase 6)**: [#309](https://github.com/kentonium3/kg-automation/issues/309); [`escalation-ops.md`](<./escalation-ops.md>)
+- **AGENTS.md cut precedent — habits scripts-first port**: [#371](https://github.com/kentonium3/kg-automation/issues/371); [`habits-ops.md`](<./habits-ops.md>)
 - **Spec**: [`spec.md`](../../kitty-specs/tasker-jsonl-migration-01KSB5XV/spec.md)
 - **Plan + research**: [`plan.md`](../../kitty-specs/tasker-jsonl-migration-01KSB5XV/plan.md), [`research.md`](../../kitty-specs/tasker-jsonl-migration-01KSB5XV/research.md)
 - **Contracts**: [`contracts/cli.md`](../../kitty-specs/tasker-jsonl-migration-01KSB5XV/contracts/cli.md)
@@ -339,6 +340,6 @@ processor that delegates to tasker. No exceptions.
 - **Skill**: [`scripts/openclaw/skills/task-intelligence/SKILL.md`](../../scripts/openclaw/skills/task-intelligence/SKILL.md)
 - **Cutover script**: [`scripts/openclaw/helpers/cutover_tasker.py`](../../scripts/openclaw/helpers/cutover_tasker.py)
 - **Enrichment module**: `scripts/enrichment/` (record_completion, reconcile_completions, derive_state, schema)
-- **Pre-flight checklist**: [`governance/pre-flight-checklist.md`](governance/pre-flight-checklist.md)
-- **Task-intelligence skill ops**: [`task-intelligence-ops.md`](task-intelligence-ops.md)
+- **Pre-flight checklist**: [`governance/pre-flight-checklist.md`](<./governance/pre-flight-checklist.md>)
+- **Task-intelligence skill ops**: [`task-intelligence-ops.md`](<./task-intelligence-ops.md>)
 - **ADR**: [`docs/design/architecture/decisions/0002-state-log-migration.md`](../design/architecture/decisions/0002-state-log-migration.md)

@@ -188,7 +188,7 @@ def test_missing_audience_lands_in_unclassified_with_suffix(tmp_path):
     block = brf._load_expected_block(repo)
     # Unclassified entry should appear with the suffix.
     assert (
-        '- [Lost Runbook](runbooks/lost.md) — missing `audience:` frontmatter'
+        '- [Lost Runbook](<./runbooks/lost.md>) — missing `audience:` frontmatter'
         in block
     )
 
@@ -225,7 +225,7 @@ def test_relative_paths_handle_nested_runbooks(tmp_path):
         audience='humans',
     )
     block = brf._load_expected_block(repo)
-    assert '(runbooks/governance/pre-flight-checklist.md)' in block
+    assert '(<./runbooks/governance/pre-flight-checklist.md>)' in block
 
 
 # ---------------------------------------------------------------------------

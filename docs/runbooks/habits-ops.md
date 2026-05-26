@@ -5,6 +5,7 @@ title: Habit Check-in Operations
 status: approved
 level: 2
 owners: [kent]
+audience: agents_and_humans
 last_validated: '2026-05-22'
 updated_by: '#371'
 version: '2.0.0'

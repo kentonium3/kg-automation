@@ -5,6 +5,7 @@ title: Escalation Phase 6 Soak Window
 status: approved
 level: 2
 owners: [kent]
+audience: humans
 last_validated: '2026-05-21'
 updated_by: '#309'
 version: '1.0.0'

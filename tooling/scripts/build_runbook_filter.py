@@ -225,12 +225,18 @@ def build_block(buckets: Dict[str, List[Tuple[str, str]]]) -> str:
             lines.append('- _(none)_')
         else:
             for title, rel_path in entries:
+                # Repo convention (matches docs/INDEX.md and the markdownlint
+                # auto-format applied across docs/**): wrap relative URLs as
+                # `<./path>`. Plain `path` form gets rewritten by the linter
+                # post-write, which previously caused the script's output to
+                # disagree with the on-disk portal and tripped the drift check.
+                link = f'<./{rel_path}>'
                 if bucket == UNCLASSIFIED_BUCKET:
                     lines.append(
-                        f'- [{title}]({rel_path}) — missing `audience:` frontmatter'
+                        f'- [{title}]({link}) — missing `audience:` frontmatter'
                     )
                 else:
-                    lines.append(f'- [{title}]({rel_path})')
+                    lines.append(f'- [{title}]({link})')
         if idx < len(BUCKET_ORDER) - 1:
             lines.append('')
     lines.append('')

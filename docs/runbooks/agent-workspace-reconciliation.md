@@ -5,6 +5,7 @@ title: Agent Workspace Reconciliation
 status: approved
 level: howto
 owners: [kent]
+audience: agents_and_humans
 last_validated: 2026-04-13
 version: "1.0"
 ---
