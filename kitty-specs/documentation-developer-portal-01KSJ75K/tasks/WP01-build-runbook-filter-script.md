@@ -19,8 +19,8 @@ subtasks:
 - T006
 - T007
 - T008
-shell_pid: "8164"
-agent: "claude:opus-4-7:implementer:implementer"
+shell_pid: "9517"
+agent: "codex:gpt-5:spec-kitty-review:reviewer"
 history:
 - date: '2026-05-26'
   note: WP authored by spec-kitty.tasks (mission documentation-developer-portal-01KSJ75K)
@@ -261,3 +261,4 @@ spec-kitty agent action implement WP01 --agent <name>
 
 - 2026-05-26T13:35:25Z – claude:opus-4-7:implementer:implementer – shell_pid=8164 – Assigned agent via action command
 - 2026-05-26T13:39:44Z – claude:opus-4-7:implementer:implementer – shell_pid=8164 – Implementation complete; all 13 tests passing; smoke check confirms exit-2 error path.
+- 2026-05-26T13:40:18Z – codex:gpt-5:spec-kitty-review:reviewer – shell_pid=9517 – Started review via action command
