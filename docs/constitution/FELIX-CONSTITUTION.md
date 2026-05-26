@@ -86,6 +86,8 @@ All operational documentation follows a three-layer standard: machine-readable f
 - Diagrams (Mermaid, rendered in `.view.md` files) are the preferred communication format for system structure, service dependencies, data flows, and network topology.
 - Proportionality applies: not every configuration detail requires a prose document. Use machine-readable records for structured data and narrative only where context or rationale adds value.
 
+Operational companion: [`docs/runbooks/doc-maintenance.md`](<../runbooks/doc-maintenance.md>) covers link convention, runbook frontmatter, the developer portal's auto-generated filter, and validator behavior.
+
 ## Directive 6: Deterministic Detection, AI Interpretation
 
 System work is decomposed by the nature of the operation, not by what's easiest to put in a prompt. Deterministic operations (detecting state, applying a known transform, gating on a known condition, computing a known mapping) belong in scripts the agent invokes. Reasoning, classification, interpretation, and judgment belong to the agent.

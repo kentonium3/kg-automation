@@ -141,6 +141,7 @@ local validation and CI.
 - [Agent Workspace Reconciliation](<./runbooks/agent-workspace-reconciliation.md>)
 - [Deployment Runbook](<./runbooks/deployment.md>)
 - [Doc Auditor Operations Runbook](<./runbooks/doc-auditor-ops.md>)
+- [Doc Maintenance](<./runbooks/doc-maintenance.md>)
 - [Escalation Operations](<./runbooks/escalation-ops.md>)
 - [felix-doc-auditor driver operations](<./runbooks/doc-auditor-driver-ops.md>)
 - [GitHub Issues Workflow](<./runbooks/github-issues-workflow.md>)

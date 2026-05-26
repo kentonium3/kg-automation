@@ -20,6 +20,7 @@ Master map for all active documentation under `docs/`. Referenced from
 ## Onboarding & Navigation
 
 - [Developer Portal](<./DEVELOPER_PORTAL.md>) — guided onboarding sitemap (start here for new agents and contributors)
+- [Doc Maintenance](<./runbooks/doc-maintenance.md>) — link conventions, runbook frontmatter, portal filter, and validator behavior
 
 ---
 
