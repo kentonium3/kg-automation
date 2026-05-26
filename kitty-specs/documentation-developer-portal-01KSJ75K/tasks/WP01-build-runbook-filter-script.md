@@ -19,7 +19,8 @@ subtasks:
 - T006
 - T007
 - T008
-shell_pid: '8164'
+shell_pid: "8164"
+agent: "claude:opus-4-7:implementer:implementer"
 history:
 - date: '2026-05-26'
   note: WP authored by spec-kitty.tasks (mission documentation-developer-portal-01KSJ75K)
@@ -255,3 +256,7 @@ Run from repo root: `python -m pytest tests/tooling/test_build_runbook_filter.py
 ```
 spec-kitty agent action implement WP01 --agent <name>
 ```
+
+## Activity Log
+
+- 2026-05-26T13:35:25Z – claude:opus-4-7:implementer:implementer – shell_pid=8164 – Assigned agent via action command
