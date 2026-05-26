@@ -14,6 +14,8 @@ subtasks:
 - T013
 - T014
 - T015
+agent: "claude:opus-4-7:implementer:implementer"
+shell_pid: "18750"
 history:
 - date: '2026-05-26'
   note: WP authored by spec-kitty.tasks (mission documentation-developer-portal-01KSJ75K)
@@ -187,3 +189,7 @@ outputs.
 ```
 spec-kitty agent action implement WP03 --agent <name>
 ```
+
+## Activity Log
+
+- 2026-05-26T14:11:34Z – claude:opus-4-7:implementer:implementer – shell_pid=18750 – Started implementation via action command

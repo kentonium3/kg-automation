@@ -1,7 +1,7 @@
 {
-  "event_count": 18,
-  "last_event_id": "01KSJ9YYGY0AT18HTG618HC0BM",
-  "materialized_at": "2026-05-26T14:10:33.630765+00:00",
+  "event_count": 20,
+  "last_event_id": "01KSJA0T9578ECHY0PHCW7SXGH",
+  "materialized_at": "2026-05-26T14:11:34.821404+00:00",
   "mission_number": "",
   "mission_slug": "documentation-developer-portal-01KSJ75K",
   "mission_type": "software-dev",
@@ -12,9 +12,9 @@
     "claimed": 0,
     "done": 0,
     "for_review": 0,
-    "in_progress": 0,
+    "in_progress": 1,
     "in_review": 0,
-    "planned": 1
+    "planned": 0
   },
   "work_packages": {
     "WP01": {
@@ -32,11 +32,11 @@
       "last_transition_at": "2026-05-26T14:10:33.630765+00:00"
     },
     "WP03": {
-      "actor": "finalize-tasks",
+      "actor": "claude:opus-4-7:implementer:implementer",
       "force_count": 1,
-      "lane": "planned",
-      "last_event_id": "01KSJ7VJP1BFBDZZH8FPVXYK0K",
-      "last_transition_at": "2026-05-26T13:33:46.049518+00:00"
+      "lane": "in_progress",
+      "last_event_id": "01KSJA0T9578ECHY0PHCW7SXGH",
+      "last_transition_at": "2026-05-26T14:11:34.821404+00:00"
     }
   }
 }
