@@ -1,0 +1,61 @@
+{
+  "version": 1,
+  "mission_slug": "documentation-developer-portal-01KSJ75K",
+  "mission_id": "01KSJ75K165FF1FYH8XWX4GNQG",
+  "mission_branch": "kitty/mission-documentation-developer-portal-01KSJ75K",
+  "target_branch": "main",
+  "lanes": [
+    {
+      "lane_id": "lane-a",
+      "wp_ids": [
+        "WP01",
+        "WP02",
+        "WP03"
+      ],
+      "write_scope": [
+        "CLAUDE.md",
+        "docs/DEVELOPER_PORTAL.md",
+        "docs/INDEX.md",
+        "tests/tooling/test_build_runbook_filter.py",
+        "tests/tooling/test_validate_docs_portal_drift.py",
+        "tooling/scripts/build_runbook_filter.py",
+        "tooling/scripts/validate_docs.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "app-shell",
+        "artifact-rendering",
+        "legacy-cleanup",
+        "tests",
+        "tracker-integration",
+        "workspace"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    }
+  ],
+  "computed_at": "2026-05-26T13:33:46.058228+00:00",
+  "computed_from": "dependency_graph+ownership",
+  "planning_artifact_wps": [],
+  "collapse_report": {
+    "events": [
+      {
+        "wp_a": "WP02",
+        "wp_b": "WP01",
+        "rule": "dependency",
+        "evidence": "WP02 depends on WP01"
+      },
+      {
+        "wp_a": "WP03",
+        "wp_b": "WP02",
+        "rule": "dependency",
+        "evidence": "WP03 depends on WP02"
+      }
+    ],
+    "total_merges": 2,
+    "independent_wps_collapsed": 0,
+    "by_rule": {
+      "dependency": 2
+    }
+  }
+}
