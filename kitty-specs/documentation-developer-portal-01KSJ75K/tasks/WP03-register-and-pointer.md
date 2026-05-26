@@ -195,3 +195,4 @@ spec-kitty agent action implement WP03 --agent <name>
 - 2026-05-26T14:11:34Z – claude:opus-4-7:implementer:implementer – shell_pid=18750 – Started implementation via action command
 - 2026-05-26T14:14:11Z – claude:opus-4-7:implementer:implementer – shell_pid=18750 – INDEX entry added, CLAUDE.md pointer added (purely additive diff), full verification suite passed.
 - 2026-05-26T14:14:50Z – codex:gpt-5:spec-kitty-review:reviewer – shell_pid=19734 – Started review via action command
+- 2026-05-26T14:20:21Z – codex:gpt-5:spec-kitty-review:reviewer – shell_pid=19734 – Moved to planned
