@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
   "last_updated": "2026-05-27",
-  "updated_by": "#301-index-llm-spend-baseline + #319-index-felix-bot-runbook + #100-google-workspace-foundation + #100-google-workspace-adr + #253-step-5a-6-consolidation + #254-atomic-write-perm-preservation + #256-scope-discipline-guardrails + #105 + #198",
+  "updated_by": "#295-index-mutation-surfaces + #301-index-llm-spend-baseline + #319-index-felix-bot-runbook + #100-google-workspace-foundation + #100-google-workspace-adr + #253-step-5a-6-consolidation + #254-atomic-write-perm-preservation + #256-scope-discipline-guardrails + #105 + #198",
   "description": "Maps area labels to documentation files requiring verification when that domain changes. Used by doc-audit-trigger.yml and the future felix-doc-auditor agent (#105).",
   "domains": {
     "area/infrastructure": [
@@ -45,6 +45,7 @@
       "docs/design/felix-capability-roadmap.md",
       "docs/design/architecture/data/capabilities-schema.json",
       "docs/design/architecture/data/catalog-schema.json",
+      "docs/design/architecture/data/mutation-surfaces.json",
       "docs/design/architecture/service-inventory.md",
       "docs/design/architecture/data/service-inventory.json",
       "docs/runbooks/openclaw-ops.md",

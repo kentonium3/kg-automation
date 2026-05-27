@@ -79,6 +79,7 @@ Authoritative operational state. **Exempt from moves (F015 constraint C-001)**.
 - [Data Flows](<./design/architecture/data/data-flows.json>)
 - [Capabilities Schema](<./design/architecture/data/capabilities-schema.json>)
 - [Catalog Schema](<./design/architecture/data/catalog-schema.json>)
+- [Mutation Surfaces](<./design/architecture/data/mutation-surfaces.json>) — Layer 1.5 governance: enumeration of all mutation surfaces (file edits, GitHub API, git push, shell exec, etc.) available to Felix agents, with per-surface risk tier and approval requirements
 - [Change Risk Taxonomy](<./design/architecture/data/change-risk-taxonomy.json>)
 - [Doc Domain Map](<./design/architecture/data/doc-domain-map.json>)
 - [LLM Spend Baseline](<./design/architecture/data/llm-spend-baseline.json>) — monthly LLM cost across all services (authoritative; see narrative companion in parent dir)
