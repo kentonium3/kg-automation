@@ -3,7 +3,7 @@
   "last_updated": "2026-05-15",
   "updated_by": "#276 (manual dashboard sweep)",
   "review_cadence": "monthly",
-  "source_data": "docs/llm_cost.md (Kent's raw dashboard sweep)",
+  "source_data": "docs/design/architecture/llm-cost.md (Kent's raw dashboard sweep)",
   "services": [
     {
       "name": "Anthropic API (token-metered)",

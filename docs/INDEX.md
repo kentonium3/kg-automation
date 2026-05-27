@@ -57,6 +57,7 @@ Master map for all active documentation under `docs/`. Referenced from
 - [Service Dependencies Diagram](<./design/architecture/service-dependencies.view.md>)
 - [Glossary](<./design/architecture/glossary.md>)
 - [LLM Spend Baseline](<./design/architecture/llm-spend-baseline.md>) — monthly cost snapshot per service, trend commentary (narrative companion to `data/llm-spend-baseline.json`)
+- [LLM Cost Source Ledger](<./design/architecture/llm-cost.md>) — Kent's raw invoice/dashboard sweep (Anthropic, Gemini, etc.); source data feeding the spend baseline
 
 ### docs/design/architecture/adr/ — Architecture Decision Records
 

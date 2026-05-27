@@ -9,7 +9,7 @@ audience: humans
 
 > Machine-readable record: [`data/llm-spend-baseline.json`](<./data/llm-spend-baseline.json>) (authoritative)
 >
-> Source: Kent's manual dashboard sweep in `docs/llm_cost.md`
+> Source: Kent's manual dashboard sweep in [`llm-cost.md`](<./llm-cost.md>) (co-located invoice ledger)
 
 ## Summary (as of 2026-05-15)
 

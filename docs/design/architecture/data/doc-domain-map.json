@@ -23,7 +23,8 @@
       "docs/runbooks/governance/incident-postmortem-template.md",
       "docs/design/office2-backup-and-security.md",
       "docs/design/architecture/data/llm-spend-baseline.json",
-      "docs/design/architecture/llm-spend-baseline.md"
+      "docs/design/architecture/llm-spend-baseline.md",
+      "docs/design/architecture/llm-cost.md"
     ],
     "area/security": [
       "docs/design/architecture/security-posture.md",
