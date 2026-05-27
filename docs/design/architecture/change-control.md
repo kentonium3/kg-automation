@@ -26,6 +26,16 @@ Every feature that changes the deployed system must update the relevant architec
 | Doc added, moved, archived, or deprecated under `docs/` | — | `docs/INDEX.md` |
 | New directory created under `docs/` | — | `docs/INDEX.md` |
 
+### Removal pattern
+
+For credentials, services, data flows, hardware, etc. that are fully removed (not just deprecated): delete the entry from the JSON manifest in the same commit that retires the resource. The narrative markdown should reflect *current* state only — do not carry a permanent "Removed Credentials / Services / Flows" section. The audit trail for what was removed, when, and why lives in:
+
+- Git history of the JSON file (`git log --all -S "<entry-name>" <manifest.json>`)
+- The originating issue / mission that drove the removal
+- The commit message of the deletion commit
+
+Deprecated-but-still-on-disk resources are a different state and remain documented in the narrative under their respective "Deprecated" section until physical removal completes (see the `personal-google` entry in `credentials-and-secrets.md` for the canonical example).
+
 ### How to Update
 
 1. Edit the relevant JSON file in `docs/design/architecture/data/`
