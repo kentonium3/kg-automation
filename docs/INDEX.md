@@ -115,6 +115,7 @@ Numerators/denominators captured before and after material architectural changes
 - [Agent Workspace Reconciliation](<./runbooks/agent-workspace-reconciliation.md>) — drift enforcement, factory-default lifecycle, last-author-wins strategy
 - [Deployment Runbook](<./runbooks/deployment.md>) — how features are deployed to office2
 - [Felix Governance](<./runbooks/felix-governance.md>) — agent registration, promotion, demotion, violation handling
+- [felix-bot Vikunja Provisioning](<./runbooks/felix-bot-vikunja-provisioning.md>) — operator runbook for provisioning, rotating, and revoking the kg-felix-bot Vikunja API credential
 - [Vault Path Registry Migration](<./runbooks/vault-path-registry-migration.md>) — reusable playbook for migrating vault folder names through the registry (how-to guide; first executed by mission 026 / #152)
 - [Repository Governance](<./runbooks/repo-governance.md>) — git workflow, labels, milestones, issue management
 - [GitHub Issues Workflow](<./runbooks/github-issues-workflow.md>) — issue lifecycle, templates, triage, project board
