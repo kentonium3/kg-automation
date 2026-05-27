@@ -2,8 +2,8 @@
 title: Identity Model
 doc_type: reference
 status: approved
-last_updated: '2026-05-17'
-updated_by: '#304-felix-bot-rotation + #100-google-workspace-foundation + #227'
+last_updated: '2026-05-27'
+updated_by: '#341-felix-bot-expiry-context + #304-felix-bot-rotation + #100-google-workspace-foundation + #227'
 ---
 
 # Identity Model
@@ -79,6 +79,8 @@ The shared Vikunja service account for all Felix sub-agents performing API write
 | Password storage | 1Password (entry `felix-bot (Vikunja)`) — no on-disk copy on office2 |
 | TOTP / 2FA | Not enabled (per ADR-0002 Q5c / spec C-010 — API-only identity, Tailscale gate constrains attack surface) |
 | Credential | `vikunja-api` — see [`credential-manifest.json`](<./data/credential-manifest.json>) |
+| Token created | 2026-05-17 (#304 Phase 1) |
+| Token expires | 2029-05-17 — `expiry_policy: rotate-before-expiry`. Vikunja v0.24.6 UI requires an explicit expiry at token creation (no non-expiring option); 3 years was chosen at operator discretion. `credential-health-check.service` is configured to alert ~30 days before expiry (~2029-04-17). Plan rotation per [felix-bot-vikunja-provisioning.md](<../../runbooks/felix-bot-vikunja-provisioning.md>). |
 | Created by | #304 / ADR-0002 Phase 1 |
 
 Note: `kg-felix-bot` (GitHub) and `felix-bot` (Vikunja) are two distinct accounts on two distinct surfaces. They share an email alias (`kentgale+felix-bot@gmail.com`) for routing convenience, but the credentials, password stores, and audit timelines are independent. `felix-doc-auditor` uses `kg-felix-bot` and does NOT use the Vikunja API.
