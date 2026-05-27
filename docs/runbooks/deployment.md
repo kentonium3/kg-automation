@@ -232,16 +232,9 @@ Architecture Documentation Updates section — not a separate step.
 ### Security baseline reset
 
 After deploying new services or modifying existing ones, reset the
-security audit baselines on office2:
-
-```bash
-ssh office2-claude \
-  "sg docker -c /data/services/security-monitor/scripts/audit.sh"
-```
-
-If the audit flags unexpected changes from the new deployment, update
-the baselines. See `docs/design/office2-backup-and-security.md` for
-the baseline reset procedure.
+security audit baselines on office2. See
+[Security Baseline Operations](<./security-baseline-ops.md>) for the
+canonical procedure.
 
 ### Verify in Obsidian (for agent/digest changes)
 

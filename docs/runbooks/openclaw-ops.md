@@ -162,20 +162,17 @@ clawhub sync --all
 - **Config**: `/home/claude/.openclaw/` (in Restic backup scope via `/home/claude/`)
 - **Sessions**: `/home/claude/.openclaw/agents/main/sessions/`
 
-## Security Baseline Reset
+## Security baseline trigger
 
-After deploying or upgrading OpenClaw, reset the security audit baselines:
+OpenClaw changes that touch any of the audited surfaces (cron entries,
+gateway service state, the contents of `~/.openclaw/`) require a
+baseline reset afterwards. Triggers include:
 
-```bash
-# Check current baselines:
-ls /data/services/security-monitor/baselines/
+- Initial OpenClaw install or version upgrade
+- Adding or removing an OpenClaw agent or cron job
+- Bulk agent-config sweeps that change `openclaw-config.txt` content
 
-# Run the audit to see if alerts fire:
-sg docker -c /data/services/security-monitor/scripts/audit.sh
-
-# If baseline reset is needed (may require sudo):
-cd /data/services/security-monitor && ./scripts/generate-baselines.sh
-```
+For the procedure, see [Security Baseline Operations](<./security-baseline-ops.md>).
 
 ## Gateway Access
 

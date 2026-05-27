@@ -73,4 +73,4 @@ Change control is governed by a five-tier risk taxonomy (`docs/design/architectu
 | Hosts file | 3AM daily | `audit.sh` | `hosts-hash.txt` |
 | Python pth files | 3AM daily | `audit.sh` | `pth-files.txt` |
 
-After deploying a new service, baselines must be reset. See [Vikunja Ops Runbook](../../handbooks/vikunja-ops.md#security-baseline-reset) for the procedure.
+After deploying a new service, baselines must be reset. See [Security Baseline Operations](<../../runbooks/security-baseline-ops.md>) for the canonical procedure.

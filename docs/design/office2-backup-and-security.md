@@ -154,13 +154,7 @@ A daily audit script scans for indicators of compromise and configuration drift.
 
 ### Baselines
 
-Baselines are established on first run and stored as plain text files. Any subsequent change triggers an alert. After intentional system changes (e.g., adding a new service), re-run the audit to update baselines:
-
-```bash
-# Reset all baselines
-rm /data/services/security-monitor/baselines/*
-sg docker -c /data/services/security-monitor/scripts/audit.sh
-```
+Baselines are established on first run and stored as plain text files. Any subsequent change triggers an alert. After intentional system changes (e.g., adding a new service), the baselines need to be regenerated. See the canonical [Security Baseline Operations](<../runbooks/security-baseline-ops.md>) runbook for the procedure and verification steps.
 
 ### Blocked Domains
 

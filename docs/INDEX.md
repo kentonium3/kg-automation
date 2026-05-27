@@ -5,6 +5,7 @@ status: approved
 owners: [kgale]
 version: "2.0"
 last_validated: 2026-05-26
+tags: [152, 126, 119, 103, 114, 115, 116]
 ---
 
 # kg-automation Documentation Index
@@ -95,6 +96,7 @@ Numerators/denominators captured before and after material architectural changes
 
 - [Doc Auditor Driver Operations](<./runbooks/doc-auditor-driver-ops.md>) — felix-doc-auditor **scripts-first driver** operations (post-#343): hourly systemd tick, `last-tick.json` health signal, prompt artifacts, backlog/lock recovery, pending-approval workflow, troubleshooting, baselines
 - [Doc Auditor Operations (pre-#343 — historical)](<./runbooks/doc-auditor-ops.md>) — original openclaw-agent runbook; retained for reference until the pre-#343 implementation is fully retired
+- [Security Baseline Operations](<./runbooks/security-baseline-ops.md>) — canonical baseline-reset procedure for the daily 3 AM audit; linked from service runbooks for the "how"
 - [Vikunja Operations](<./runbooks/vikunja-ops.md>)
 - [OpenClaw Operations](<./runbooks/openclaw-ops.md>)
 - [Obsidian Sync Operations](<./runbooks/obsidian-sync-ops.md>)

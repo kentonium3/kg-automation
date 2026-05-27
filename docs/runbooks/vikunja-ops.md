@@ -269,45 +269,19 @@ ssh office2-claude "openclaw skills info vikunja_api"
 | Connection errors | Vikunja running? `systemctl status vikunja` | Start service |
 | Wrong API URL | Check SKILL.md base URL | Should be `https://office2.tail0f5f56.ts.net/api/v1` |
 
-## Security Baseline Reset
+## Security baseline trigger
 
-After deploying or upgrading Vikunja, the security monitoring baselines on office2 need to be updated to reflect the new expected state.
+A Vikunja change updates surfaces the audit watches, so the security
+baselines on office2 need to be regenerated afterwards. What changes:
 
-### Why
-
-The security monitor at `/data/services/security-monitor/` uses baselines to detect unexpected changes. A new or updated Docker container, systemd service, and port binding will trigger alerts unless baselines are refreshed.
-
-### What changes
-
-After a Vikunja deployment or upgrade, the following are new expected state:
-
-- Docker container `vikunja` running
+- Docker container `vikunja` running (or its image SHA after upgrade)
 - systemd service `vikunja.service` enabled and active
 - Port 3456 listening on `100.92.197.90`
 
-### Baselines location
-
-`/data/services/security-monitor/baselines/`
-
-### Reset procedure
-
-This step may require sudo. Run as kgale if needed:
-
-```bash
-# Check current baseline status:
-ls -la /data/services/security-monitor/baselines/
-
-# Regenerate baselines (exact command depends on the security monitor setup):
-# If using the standard baseline script:
-cd /data/services/security-monitor
-./scripts/generate-baselines.sh
-
-# Or if manual reset is needed, update the relevant baseline files
-# to include the vikunja container, service, and port.
-```
-
-### When to reset
+Run the reset:
 
 - After initial Vikunja deployment (F001)
 - After any version update that changes the container image
 - After any change to the systemd service file or port binding
+
+For the procedure, see [Security Baseline Operations](<./security-baseline-ops.md>).
