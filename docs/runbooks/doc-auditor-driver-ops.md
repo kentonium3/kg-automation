@@ -155,7 +155,7 @@ Expected shape (see [`tick-signal.contract.md`](<../../kitty-specs/refactor-doc-
 ```
 
 If `timestamp_utc` is older than 2 hours OR `status != "success"`, jump
-to [Troubleshooting](#troubleshooting).
+to [Troubleshooting](<#troubleshooting>).
 
 ### Force a manual tick
 
@@ -642,7 +642,7 @@ Partial success is expected when one item in the queue fails (e.g., a
 malformed audit issue). `last-tick.json` records the failure, the
 healthy items still drain, and the next hourly tick retries the failed
 item. If the queue still doesn't drain after two ticks, see
-[Troubleshooting → Stuck audit](#troubleshooting).
+[Troubleshooting → Stuck audit](<#troubleshooting>).
 
 ---
 
@@ -798,7 +798,7 @@ Likely causes:
    `judgment.tier_classification_calls` against the queue size and
    `last-tick.json` activity log — if calls ≫ queue size, file a P2-bug.
 
-Re-baseline annually (see [Re-baselining cadence](#re-baselining-cadence)).
+Re-baseline annually (see [Re-baselining cadence](<#re-baselining-cadence>)).
 
 ### API outage
 

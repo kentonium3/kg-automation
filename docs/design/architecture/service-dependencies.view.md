@@ -8,6 +8,7 @@ last_validated: 2026-05-22
 revision: v1.2
 audience: agents_and_humans
 updated_by: '#371'
+tags: [309]
 ---
 
 # Service Dependencies
