@@ -128,6 +128,7 @@ Numerators/denominators captured before and after material architectural changes
 
 ### Deprecated runbooks (retained in place)
 
+- [Spec-Kitty Bug Reporting](<./runbooks/spec-kitty-bug-reporting.md>) — dual-track workflow for filing tooling bugs: internal kg-automation issue tracks status, slim external paste doc goes upstream
 - [Spec-Kitty Install Guide](<./runbooks/spec-kitty-init-in-existing-repo.md>) — historical, setup already complete
 
 ### Non-runbook content in runbooks/
@@ -180,8 +181,9 @@ Templates:
 
 Active troubleshooting and upstream bug reporting.
 
-- [Spec-Kitty Workflow Journal](<./diagnostics/spec-kitty-workflow-journal.md>)
-- [Spec-Kitty Bug Report Template](<./diagnostics/spec-kitty-bug-report-template.md>)
+- [Spec-Kitty Workflow Journal](<./diagnostics/spec-kitty-workflow-journal.md>) — running observations log; promote stabilized entries to internal kg-automation issues per the bug-reporting runbook
+- [Spec-Kitty External Bug Report Template](<./diagnostics/spec-kitty-bug-report-external-template.md>) — slim template for upstream submission; source for transient paste docs at `{slug}-external.md`
+- [Spec-Kitty Bug Report Template (deprecated)](<./diagnostics/spec-kitty-bug-report-template.md>) — original combined internal+external template; superseded 2026-05-28 by the dual-track workflow (internal issue template at `.github/ISSUE_TEMPLATE/spec-kitty-bug.md` + external template above); retained as reference during the migration window
 
 ---
 
