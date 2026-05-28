@@ -220,7 +220,7 @@ The epic spans multiple missions and patches across areas — typically a doc-in
 |---------|------|---------|------------|-------|
 | Google Calendar skill — OAuth (F020) | I | Calendar Integration | F013 | #100 |
 | Task ↔ calendar event linking (F021) | U | Calendar Integration | F020 | #117 |
-| Daily briefing heartbeat (F022) | U | Briefing & Reporting | F013, F020 | #118 |
+| Calendar-aware briefing (formerly F022 daily heartbeat) | U | Briefing & Reporting | F013, F020 | #164 (subsumed #118; epic includes morning briefing as US-01 + US-02) |
 | Level 1–2 escalation heartbeat (F023) | U | Accountability Engine | F019, F020 | #119 |
 | Gmail integration skill (F024) | I | Email Integration | F020 OAuth creds | #120 |
 | Email triage + digest agent (F025) | U | Email Integration | F024 | #121 |
