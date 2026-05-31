@@ -33,7 +33,7 @@ bot_identity = "kg-felix-bot"
 # judgment for drift events. When `enabled = false`, the pipeline files
 # pre-#362 `[doc-audit]` issues per matched mapping (FR-013, NFR-007).
 [drift_interpretation]
-enabled = true
+enabled = false
 ledger_path = "/data/services/security-monitor/logs/drift-events-ledger.jsonl"
 model = "claude-haiku-4-5-20251001"
 api_key_path = "/data/services/openclaw/secrets/anthropic"
@@ -45,7 +45,7 @@ confidence_threshold = 0.80
 # the pipeline behaves identically to the pre-#400 no-proposals path
 # (lock release + "no automatable edits" comment) per FR-013.
 [audit_interpretation]
-enabled = true
+enabled = false
 ledger_path = "/data/services/openclaw/state/doc_audit/audit-events-ledger.jsonl"
 model = "claude-haiku-4-5-20251001"
 api_key_path = "/data/services/openclaw/secrets/anthropic"
