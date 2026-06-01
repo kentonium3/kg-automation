@@ -24,7 +24,8 @@ subtasks:
 - T020
 - T021
 - T022
-shell_pid: '71861'
+shell_pid: "71861"
+agent: "claude:opus-4-7:implementer:implementer"
 history:
 - actor: spec-kitty.tasks
   at: '2026-06-01T17:35:00Z'
@@ -322,3 +323,7 @@ spec-kitty agent action implement WP03 --agent <your-agent-name>
 ## Adjustments to WP-04 if T022's baseline path differs
 
 If the baseline measurement on office2 reveals that historical token data isn't available (`--mode historical` finds nothing), T022 will switch to `--mode sample` and instrument the current heartbeat for a window of days. In that case, WP-04's deployment timeline shifts — the actual heartbeat-disable + new-timer-enable steps wait until the sample window closes. Coordinate with WP-04's authoring if this surfaces.
+
+## Activity Log
+
+- 2026-06-01T19:58:49Z – claude:opus-4-7:implementer:implementer – shell_pid=71861 – Assigned agent via action command
