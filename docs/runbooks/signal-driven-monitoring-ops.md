@@ -68,8 +68,8 @@ preserves novel-signal escalation as the safety net.
 | Run-as user | `claude` | `claude` |
 | Schedule | `OnUnitActiveSec=15min`, `OnBootSec=3min`, `Persistent=true` | `OnUnitActiveSec=30min`, `OnBootSec=5min`, `Persistent=true` |
 | Trigger | `felix-core-digest.timer` (user unit) → `felix-core-digest.service` (oneshot, two chained ExecStart) | `felix-heartbeat-gate.timer` (user unit) → `felix-heartbeat-gate.service` (oneshot) |
-| Entrypoint 1 | `/usr/bin/python3 /home/claude/repos/kg-automation/scripts/openclaw/observation/summarize.py` (existing) | `/usr/bin/python3 /home/claude/repos/kg-automation/scripts/openclaw/heartbeat_gate/run.py` |
-| Entrypoint 2 | `/usr/bin/python3 /home/claude/repos/kg-automation/scripts/openclaw/observation/tick.py` (new) | — |
+| Entrypoint 1 | `/usr/bin/python3 /home/claude/kg-automation/scripts/openclaw/observation/summarize.py` (existing) | `/usr/bin/python3 /home/claude/kg-automation/scripts/openclaw/heartbeat_gate/run.py` |
+| Entrypoint 2 | `/usr/bin/python3 /home/claude/kg-automation/scripts/openclaw/observation/tick.py` (new) | — |
 | Model | none (deterministic) | `claude-haiku-4-5` (anthropic SDK, direct) |
 | Session mode | stateless per tick | stateless per tick |
 | GitHub identity | `kg-felix-bot` (via `gh` CLI, for `tick.py` filings) | n/a — no GitHub writes from the gate |
@@ -131,7 +131,7 @@ Verify all five conditions before proceeding to the cutover steps.
 1. **WP code is on `main`**. The mission has merged via `/spec-kitty.merge`. On office2:
 
    ```bash
-   ssh office2-claude 'cd ~/repos/kg-automation && git log -1 --oneline'
+   ssh office2-claude 'cd ~/kg-automation && git log -1 --oneline'
    ```
 
    Expected: latest commit on `main` referencing #490 / mission `signal-driven-monitoring-haiku-gate-01KT22PC`.
@@ -183,7 +183,7 @@ Run each command in order. One command per code block — copy-paste each into a
 1. **Pull the latest code on office2** (if the spec-kitty merge hasn't already been pulled).
 
    ```bash
-   ssh office2-claude 'cd ~/repos/kg-automation && git pull --ff-only'
+   ssh office2-claude 'cd ~/kg-automation && git pull --ff-only'
    ```
 
 2. **Create the state directories** (Tier 2 — Restic confirmed in pre-cutover step 2).
@@ -195,15 +195,15 @@ Run each command in order. One command per code block — copy-paste each into a
 3. **Install/refresh the systemd unit files**. The in-repo source-of-truth lives under `scripts/office2/`. Deploy by copying into `~/.config/systemd/user/`.
 
    ```bash
-   ssh office2-claude 'install -m 0644 ~/repos/kg-automation/scripts/office2/felix-core-digest.service ~/.config/systemd/user/felix-core-digest.service'
+   ssh office2-claude 'install -m 0644 ~/kg-automation/scripts/office2/felix-core-digest.service ~/.config/systemd/user/felix-core-digest.service'
    ```
 
    ```bash
-   ssh office2-claude 'install -m 0644 ~/repos/kg-automation/scripts/office2/felix-heartbeat-gate.service ~/.config/systemd/user/felix-heartbeat-gate.service'
+   ssh office2-claude 'install -m 0644 ~/kg-automation/scripts/office2/felix-heartbeat-gate.service ~/.config/systemd/user/felix-heartbeat-gate.service'
    ```
 
    ```bash
-   ssh office2-claude 'install -m 0644 ~/repos/kg-automation/scripts/office2/felix-heartbeat-gate.timer ~/.config/systemd/user/felix-heartbeat-gate.timer'
+   ssh office2-claude 'install -m 0644 ~/kg-automation/scripts/office2/felix-heartbeat-gate.timer ~/.config/systemd/user/felix-heartbeat-gate.timer'
    ```
 
 4. **Reload systemd to pick up the new + modified units**.
@@ -449,7 +449,7 @@ If missing, run cutover step 2 again. If present but `tick.py` still fails to wr
 **Action**:
 
 ```bash
-ssh office2-claude 'cd ~/repos/kg-automation && git log -1 --oneline scripts/openclaw/observation/signals/config.toml'
+ssh office2-claude 'cd ~/kg-automation && git log -1 --oneline scripts/openclaw/observation/signals/config.toml'
 ```
 
 Expected: most-recent commit matches the change you pushed. If not, the deploy didn't propagate; re-run the deploy.
@@ -485,7 +485,7 @@ corresponding cutover step.
 4. *(Optional)* **Revert the modified `felix-core-digest.service`** if the chained `tick.py` ExecStart is causing collateral failures and `summarize.py`-only operation is preferred. The in-repo source-of-truth is the file under `scripts/office2/`; on office2:
 
    ```bash
-   ssh office2-claude 'git -C ~/repos/kg-automation show HEAD~1:scripts/office2/felix-core-digest.service > ~/.config/systemd/user/felix-core-digest.service'
+   ssh office2-claude 'git -C ~/kg-automation show HEAD~1:scripts/office2/felix-core-digest.service > ~/.config/systemd/user/felix-core-digest.service'
    ```
 
    (Adjust `HEAD~1` to the pre-#490 commit on `main` if more recent merges have landed.)

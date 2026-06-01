@@ -5,7 +5,7 @@ Wants=network-online.target
 
 [Service]
 Type=oneshot
-ExecStart=/usr/bin/python3 /home/claude/repos/kg-automation/scripts/openclaw/observation/summarize.py
-ExecStart=/usr/bin/python3 /home/claude/repos/kg-automation/scripts/openclaw/observation/tick.py
+ExecStart=/usr/bin/python3 /home/claude/kg-automation/scripts/openclaw/observation/summarize.py
+ExecStart=/usr/bin/python3 /home/claude/kg-automation/scripts/openclaw/observation/tick.py
 Environment=HOME=/home/claude
-WorkingDirectory=/home/claude/repos/kg-automation
+WorkingDirectory=/home/claude/kg-automation
