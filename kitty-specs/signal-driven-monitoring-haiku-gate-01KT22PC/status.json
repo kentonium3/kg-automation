@@ -1,7 +1,7 @@
 {
-  "event_count": 9,
-  "last_event_id": "01KT26PNTQCMREJBJN3XTW5DZV",
-  "materialized_at": "2026-06-01T18:21:27.767464+00:00",
+  "event_count": 11,
+  "last_event_id": "01KT26Q2QEJ7SQ4P6TTAPWJZSK",
+  "materialized_at": "2026-06-01T18:21:40.974859+00:00",
   "mission_number": "",
   "mission_slug": "signal-driven-monitoring-haiku-gate-01KT22PC",
   "mission_type": "software-dev",
@@ -12,17 +12,17 @@
     "claimed": 0,
     "done": 0,
     "for_review": 0,
-    "in_progress": 0,
+    "in_progress": 1,
     "in_review": 0,
-    "planned": 4
+    "planned": 3
   },
   "work_packages": {
     "WP01": {
-      "actor": "user",
+      "actor": "claude:opus-4-7:implementer:implementer",
       "force_count": 2,
-      "lane": "planned",
-      "last_event_id": "01KT26PNTQCMREJBJN3XTW5DZV",
-      "last_transition_at": "2026-06-01T18:21:27.767464+00:00"
+      "lane": "in_progress",
+      "last_event_id": "01KT26Q2QEJ7SQ4P6TTAPWJZSK",
+      "last_transition_at": "2026-06-01T18:21:40.974859+00:00"
     },
     "WP02": {
       "actor": "finalize-tasks",
