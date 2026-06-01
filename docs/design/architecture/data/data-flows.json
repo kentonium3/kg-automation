@@ -522,7 +522,13 @@
           "protocol": "file read (0600)",
           "description": "Loaded once per tick into process memory only. Not logged, not emitted in tick signal, not echoed to the activity log. Sibling consumer: openclaw-gateway (unchanged), which holds it via its native auth-profiles.json mechanism."
         }
-      ]
+      ],
+      "operational_status": "suspended",
+      "suspension_metadata": {
+        "since": "2026-05-26",
+        "reason": "API cap exhaustion (May 2026); see felix-doc-auditor service entry",
+        "unblock_signal": "#137"
+      }
     },
     {
       "name": "escalation-event-write-vikunja",
@@ -758,7 +764,7 @@
       "deployed_by": "#310",
       "introduced_by": "#310",
       "updated_by": "#310",
-      "description": "Phase 7 (ADR-0002) Vikunja side-effect of an enrichment event — the FIRST of the three writes (Vikunja FIRST so unreliable remote ops surface before any state_log line lands). felix-admin-tasker invokes scripts/enrichment/record_completion.py per state transition; the helper PUTs a `[Felix] enrichment | <state> | <ISO timestamp>` comment to /tasks/<id>/comments. Triggers: enrich_task action (delegation from felix-admin-capture), retroactive_enrichment batch, detect_incomplete proposal. During the post-cutover soak (C-002), this comment is the rollback substrate; post-soak the comment-write path can be removed in a v2 follow-on while keeping the JSONL canonical.",
+      "description": "Phase 7 (ADR-0002) Vikunja side-effect of an enrichment event \u2014 the FIRST of the three writes (Vikunja FIRST so unreliable remote ops surface before any state_log line lands). felix-admin-tasker invokes scripts/enrichment/record_completion.py per state transition; the helper PUTs a `[Felix] enrichment | <state> | <ISO timestamp>` comment to /tasks/<id>/comments. Triggers: enrich_task action (delegation from felix-admin-capture), retroactive_enrichment batch, detect_incomplete proposal. During the post-cutover soak (C-002), this comment is the rollback substrate; post-soak the comment-write path can be removed in a v2 follow-on while keeping the JSONL canonical.",
       "path": [
         {
           "from": "felix-admin-tasker agent",
@@ -782,13 +788,13 @@
       "deployed_by": "#310",
       "introduced_by": "#310",
       "updated_by": "#310",
-      "description": "Phase 7 (ADR-0002) canonical enrichment state write — the SECOND of the three writes (after the Vikunja comment lands). record_completion.py appends an EnrichmentCompletion row to the single-file JSONL ledger via an fcntl-locked append-then-flush-then-fsync sequence. Per FR-013 (Q10 soft-fail), JSONL failures post-Vikunja log a warning and exit 0 — the Vikunja state is consistent and reconcile_completions can recover the JSONL row later. Replaces `[Felix] enrichment` comments as the authoritative state source post-cutover.",
+      "description": "Phase 7 (ADR-0002) canonical enrichment state write \u2014 the SECOND of the three writes (after the Vikunja comment lands). record_completion.py appends an EnrichmentCompletion row to the single-file JSONL ledger via an fcntl-locked append-then-flush-then-fsync sequence. Per FR-013 (Q10 soft-fail), JSONL failures post-Vikunja log a warning and exit 0 \u2014 the Vikunja state is consistent and reconcile_completions can recover the JSONL row later. Replaces `[Felix] enrichment` comments as the authoritative state source post-cutover.",
       "path": [
         {
           "from": "scripts/enrichment/record_completion.py",
           "to": "/data/services/openclaw/state/enrichment/enrichment-history.jsonl",
           "protocol": "fcntl-locked file append + flush + fsync",
-          "description": "Single-file ledger (not per-project — enrichment is system-wide). Schema (data-model E1): EnrichmentCompletion(task_id, state, timestamp_utc, source[, note], schema_version=1). VALID_STATES = {proposed, confirmed, skipped, declined}. VALID_SOURCES = {agent, reconcile, backfill, operator_repair}."
+          "description": "Single-file ledger (not per-project \u2014 enrichment is system-wide). Schema (data-model E1): EnrichmentCompletion(task_id, state, timestamp_utc, source[, note], schema_version=1). VALID_STATES = {proposed, confirmed, skipped, declined}. VALID_SOURCES = {agent, reconcile, backfill, operator_repair}."
         }
       ]
     },
@@ -868,7 +874,13 @@
           "protocol": "return value",
           "description": "Returns a DriftVerdict (E1). On retry exhaustion raises DriftInterpretationError which the caller (signals/drift_event.py on the cron path, or handle_drift_events.py on the replay path) catches \u2192 writes RETRY_EXHAUSTED ledger entry \u2192 files pre-#362 fallback [doc-audit] issue with diagnostic block (FR-008, FR-009)."
         }
-      ]
+      ],
+      "operational_status": "suspended",
+      "suspension_metadata": {
+        "since": "2026-05-26",
+        "reason": "API cap exhaustion (May 2026); see felix-doc-auditor service entry",
+        "unblock_signal": "#137"
+      }
     },
     {
       "name": "doc-audit-drift-ledger-write",
@@ -910,7 +922,13 @@
           "reads_from": "/data/services/security-monitor/logs/drift-events-ledger.jsonl",
           "description": "Via `python3 -m scripts.doc_audit.output.drift_ledger {summary|tail|triage-rate}` \u2014 NFR-001 metric and daily observation in the 7-day post-deploy window"
         }
-      ]
+      ],
+      "operational_status": "suspended",
+      "suspension_metadata": {
+        "since": "2026-05-26",
+        "reason": "API cap exhaustion (May 2026); see felix-doc-auditor service entry",
+        "unblock_signal": "#137"
+      }
     },
     {
       "name": "doc-audit-audit-interpretation-llm",
@@ -946,7 +964,13 @@
           "protocol": "return value",
           "description": "Returns list[AuditVerdict]. PROPOSED_EDIT at confidence \u22650.80 routes through tier_classification; JUDGMENT_REQUIRED accumulates into a consolidated comment on the audit issue; NO_CHANGE_NEEDED \u2265threshold across all docs auto-closes the audit. Per-doc retry exhaustion emits a synthetic JUDGMENT_REQUIRED verdict; catastrophic failures fall back to the pre-#400 lock-release + 'no automatable edits' comment path."
         }
-      ]
+      ],
+      "operational_status": "suspended",
+      "suspension_metadata": {
+        "since": "2026-05-26",
+        "reason": "API cap exhaustion (May 2026); see felix-doc-auditor service entry",
+        "unblock_signal": "#137"
+      }
     },
     {
       "name": "doc-audit-audit-ledger-write",
@@ -976,7 +1000,13 @@
           "reads_from": "/data/services/openclaw/state/doc_audit/audit-events-ledger.jsonl",
           "description": "Via `python3 -m scripts.doc_audit.output.audit_ledger {summary|tail|triage-rate}` \u2014 NFR-001 metric and daily observation in the 7-day post-deploy window"
         }
-      ]
+      ],
+      "operational_status": "suspended",
+      "suspension_metadata": {
+        "since": "2026-05-26",
+        "reason": "API cap exhaustion (May 2026); see felix-doc-auditor service entry",
+        "unblock_signal": "#137"
+      }
     },
     {
       "name": "doc-audit-cutover-gh-close",

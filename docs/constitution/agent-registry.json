@@ -1,15 +1,15 @@
 {
   "version": "1.4",
-  "updated": "2026-05-11",
-  "updated_by": "issue-224",
+  "updated": "2026-05-31",
+  "updated_by": "suspension reflected; model drift reconciled (was sonnet-4-6, corrected to haiku-4-5 per #343)",
   "agents": {
     "felix-admin-capture": {
       "team": "SuperAdmin (B)",
-      "scope": "Obsidian inbox processing — classifies notes, routes to vault, creates Vikunja tasks",
+      "scope": "Obsidian inbox processing \u2014 classifies notes, routes to vault, creates Vikunja tasks",
       "autonomy_level": "assisted",
       "model": "anthropic/claude-haiku-4-5",
       "model_policy": "optimizable",
-      "model_rationale": "Routine classification — validated on Haiku 2026-04-09, equivalent routing accuracy",
+      "model_rationale": "Routine classification \u2014 validated on Haiku 2026-04-09, equivalent routing accuracy",
       "log_verbosity": "standard",
       "deployed_feature": "F008",
       "registered": "2026-04-01",
@@ -29,7 +29,7 @@
       "autonomy_level": "assisted",
       "model": "anthropic/claude-sonnet-4-6",
       "model_policy": "pinned",
-      "model_rationale": "Haiku failed workflow execution — couldn't complete multi-step Vikunja check-in procedure (validated 2026-04-09). Pending #141 agent split.",
+      "model_rationale": "Haiku failed workflow execution \u2014 couldn't complete multi-step Vikunja check-in procedure (validated 2026-04-09). Pending #141 agent split.",
       "log_verbosity": "standard",
       "deployed_feature": "F009",
       "registered": "2026-04-01",
@@ -45,11 +45,11 @@
     },
     "felix-admin-tasker": {
       "team": "SuperAdmin (B)",
-      "scope": "Task intelligence — enrichment proposals, retroactive enrichment, incomplete task detection",
+      "scope": "Task intelligence \u2014 enrichment proposals, retroactive enrichment, incomplete task detection",
       "autonomy_level": "assisted",
       "model": "anthropic/claude-sonnet-4-6",
       "model_policy": "pinned",
-      "model_rationale": "Complex multi-step reasoning — pre-classified, no downgrade validation attempted",
+      "model_rationale": "Complex multi-step reasoning \u2014 pre-classified, no downgrade validation attempted",
       "log_verbosity": "standard",
       "deployed_feature": "F013",
       "registered": "2026-04-04",
@@ -65,11 +65,11 @@
     },
     "felix-admin-escalation": {
       "team": "SuperAdmin (B)",
-      "scope": "Overdue and at-risk task escalation — detects tasks past due date, delivers level-appropriate WhatsApp alerts, tracks escalation state via Vikunja comments, handles responses",
+      "scope": "Overdue and at-risk task escalation \u2014 detects tasks past due date, delivers level-appropriate WhatsApp alerts, tracks escalation state via Vikunja comments, handles responses",
       "autonomy_level": "assisted",
       "model": "anthropic/claude-sonnet-4-6",
       "model_policy": "pinned",
-      "model_rationale": "Haiku produced false positive — applied wrong priority threshold (validated 2026-04-09). High consequence agent.",
+      "model_rationale": "Haiku produced false positive \u2014 applied wrong priority threshold (validated 2026-04-09). High consequence agent.",
       "log_verbosity": "standard",
       "deployed_feature": "F019",
       "registered": "2026-04-06",
@@ -85,11 +85,11 @@
     },
     "felix-doc-auditor": {
       "team": "SuperAdmin (B)",
-      "scope": "Documentation audit — processes Doc Audit and Weekly Doc Audit issues; classifies each in-scope doc as high-confidence edit (commits directly) or judgment gap (files docs-debt issue); detects missing artifacts",
+      "scope": "Documentation audit \u2014 processes Doc Audit and Weekly Doc Audit issues; classifies each in-scope doc as high-confidence edit (commits directly) or judgment gap (files docs-debt issue); detects missing artifacts",
       "autonomy_level": "assisted",
-      "model": "anthropic/claude-sonnet-4-6",
+      "model": "anthropic/claude-haiku-4-5",
       "model_policy": "pinned",
-      "model_rationale": "Judgment-heavy work — edit-vs-debt threshold and debt-issue outline drafting",
+      "model_rationale": "Judgment calls are narrow and prompt-scoped post-#343; downshifted from Sonnet by #343 (mission `refactor-doc-auditor-to-scripts-first-driver-01KS2XNX`).",
       "log_verbosity": "standard",
       "deployed_feature": "#105",
       "mission_id": "01KR7JK9QTHM5F4PD3YC43KDQW",
@@ -103,7 +103,19 @@
           "reason": "Initial deployment per #105 / mission 01KR7JK9. Planned promotion to Supervised after ~1 week of clean operation per Felix Constitution autonomy promotion process.",
           "decided_by": "Kent Gale"
         }
-      ]
+      ],
+      "operational_status": "suspended",
+      "suspension_metadata": {
+        "since": "2026-05-26",
+        "reason": "API cap exhaustion (May 2026)",
+        "unblock_signal": "#137 cost-control epic",
+        "layers": [
+          "systemd timer disabled (felix-doc-auditor.timer)",
+          "config flags enabled=false in scripts/doc_audit/config.toml (drift_interpretation, audit_interpretation)",
+          "GitHub Actions workflows disabled_manually (Doc Audit Trigger, Doc Audit Weekly)"
+        ],
+        "suspension_commit": "d46a9ead"
+      }
     }
   }
 }

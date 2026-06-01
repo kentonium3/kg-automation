@@ -1183,8 +1183,8 @@
       "session_mode_note": "Post-#343: each tick is a fresh Python process with no carried-over LLM session. Persistent state lives entirely on GitHub (labels, issues) and in `last-tick.json` + activity log; the driver carries nothing in memory between ticks.",
       "deployed_by": "#105",
       "deployed_on": "2026-05-10",
-      "updated_by": "#400",
-      "last_updated": "2026-05-23",
+      "updated_by": "#400 + 2026-05-31 suspension reflected",
+      "last_updated": "2026-05-31",
       "status": "active",
       "purpose": "Documentation audit \u2014 processes Doc Audit and Weekly Doc Audit issues; classifies docs as high-confidence edit (commits directly) or judgment gap (files docs-debt issue); detects missing artifacts. Post-#343 implemented as a scripts-first Python driver that calls the Anthropic SDK directly at narrow judgment moments. Post-#362 adds Moment 0 drift interpretation (drift-event-derived audits). Post-#391 the drift Moment 0 invocation site is `signals/drift_event.py::DriftEventSignalSource.commit()` delegating to `routing/drift_moment0.py::route_drift_event()`. Post-#400 adds a SECOND Moment 0 surface for commit-derived `Doc audit:` issues (`scripts/doc_audit/judgment/audit_interpretation.py`): when `handle_audit_routing.py` finds no deterministic-pattern proposals AND `[audit_interpretation].enabled = true`, the no-proposals branch invokes per-doc LLM evaluation (PROPOSED_EDIT routed through tier_classification, JUDGMENT_REQUIRED appended to a consolidated comment on the audit issue, NO_CHANGE_NEEDED auto-closes when all in-scope docs return that verdict). Per-doc verdicts land in `/data/services/openclaw/state/doc_audit/audit-events-ledger.jsonl`. When `[audit_interpretation].enabled = false` the no-proposals branch falls back to the pre-#400 lock-release + 'no automatable edits' comment.",
       "judgment_moments": [
@@ -1325,10 +1325,22 @@
           "path": "/home/claude/kg-automation/scripts/doc_audit/prompts/audit_interpretation.prompt.md",
           "format": "markdown",
           "source_in_repo": "scripts/doc_audit/prompts/audit_interpretation.prompt.md",
-          "purpose": "Judgment prompt for the commit-derived Moment 0 (audit_interpretation) — one LLM call per in-scope doc, returning PROPOSED_EDIT / JUDGMENT_REQUIRED / NO_CHANGE_NEEDED with explicit confidence. Cache-aware (stable system prompt + dynamic per-doc user content) mirroring drift_interpretation.prompt.md. Introduced by #400.",
+          "purpose": "Judgment prompt for the commit-derived Moment 0 (audit_interpretation) \u2014 one LLM call per in-scope doc, returning PROPOSED_EDIT / JUDGMENT_REQUIRED / NO_CHANGE_NEEDED with explicit confidence. Cache-aware (stable system prompt + dynamic per-doc user content) mirroring drift_interpretation.prompt.md. Introduced by #400.",
           "introduced_by": "#400"
         }
-      ]
+      ],
+      "operational_status": "suspended",
+      "suspension_metadata": {
+        "since": "2026-05-26",
+        "reason": "API cap exhaustion (May 2026)",
+        "unblock_signal": "#137 cost-control epic",
+        "layers": [
+          "systemd timer disabled (felix-doc-auditor.timer)",
+          "config flags enabled=false in scripts/doc_audit/config.toml (drift_interpretation, audit_interpretation)",
+          "GitHub Actions workflows disabled_manually (Doc Audit Trigger, Doc Audit Weekly)"
+        ],
+        "suspension_commit": "d46a9ead"
+      }
     },
     {
       "name": "drift_interpretation",
@@ -1421,7 +1433,7 @@
       "credentials": [
         "anthropic-api"
       ],
-      "purpose": "Moment 0 LLM judgment for commit-derived `Doc audit:` issues. Returns one AuditVerdict per in-scope doc (PROPOSED_EDIT / JUDGMENT_REQUIRED / NO_CHANGE_NEEDED with confidence ∈ [0.0, 1.0]). PROPOSED_EDIT at confidence ≥0.80 is routed through the existing tier_classification surface (Moment 1); lower confidence demotes to JUDGMENT_REQUIRED. JUDGMENT_REQUIRED accumulates into a single consolidated comment on the audit issue (research D3). NO_CHANGE_NEEDED across ALL in-scope docs auto-closes the audit. Retry policy 30s/60s/120s per doc; failures on doc N do NOT prevent docs N-1 and N+1 from being evaluated (per-doc isolation). On retry exhaustion, emits a synthetic JUDGMENT_REQUIRED verdict for the failed doc; the audit-level fallback to the pre-#400 no-proposals lock-release path is reserved for catastrophic failures.",
+      "purpose": "Moment 0 LLM judgment for commit-derived `Doc audit:` issues. Returns one AuditVerdict per in-scope doc (PROPOSED_EDIT / JUDGMENT_REQUIRED / NO_CHANGE_NEEDED with confidence \u2208 [0.0, 1.0]). PROPOSED_EDIT at confidence \u22650.80 is routed through the existing tier_classification surface (Moment 1); lower confidence demotes to JUDGMENT_REQUIRED. JUDGMENT_REQUIRED accumulates into a single consolidated comment on the audit issue (research D3). NO_CHANGE_NEEDED across ALL in-scope docs auto-closes the audit. Retry policy 30s/60s/120s per doc; failures on doc N do NOT prevent docs N-1 and N+1 from being evaluated (per-doc isolation). On retry exhaustion, emits a synthetic JUDGMENT_REQUIRED verdict for the failed doc; the audit-level fallback to the pre-#400 no-proposals lock-release path is reserved for catastrophic failures.",
       "introduced_by": "#400",
       "deployed_by": "#400",
       "last_updated": "2026-05-23",
@@ -1437,7 +1449,7 @@
         {
           "target": "scripts/doc_audit/prompts/audit_interpretation.prompt.md",
           "type": "requires",
-          "description": "Cache-aware prompt (system prompt ≥80% of tokens marked cache_control=ephemeral + dynamic per-doc user content) mirroring drift_interpretation.prompt.md"
+          "description": "Cache-aware prompt (system prompt \u226580% of tokens marked cache_control=ephemeral + dynamic per-doc user content) mirroring drift_interpretation.prompt.md"
         },
         {
           "target": "scripts/doc_audit/judgment/client.py",
@@ -1450,7 +1462,7 @@
           "path": "/home/claude/kg-automation/scripts/doc_audit/config.toml",
           "format": "toml",
           "source_in_repo": "scripts/doc_audit/config.toml",
-          "purpose": "Reads [audit_interpretation] block — enabled flag, confidence_threshold, model, api_key_path, timeout_seconds, ledger_path. Introduced by #400."
+          "purpose": "Reads [audit_interpretation] block \u2014 enabled flag, confidence_threshold, model, api_key_path, timeout_seconds, ledger_path. Introduced by #400."
         }
       ]
     },
@@ -1464,7 +1476,7 @@
       "deployed_path": "/home/claude/kg-automation/scripts/doc_audit/output/audit_ledger.py",
       "invoked_by": "scripts/doc_audit/helpers/handle_audit_routing.py (one append per in-scope doc evaluated by audit_interpretation); operator (read-only CLI subcommands: summary, tail, triage-rate)",
       "writes_to": "/data/services/openclaw/state/doc_audit/audit-events-ledger.jsonl",
-      "purpose": "Append-only JSONL ledger writer for the commit-audit Moment 0 path. One row per (audit_issue, doc_path) capturing audit_issue, doc_path, verdict, confidence, outcome ∈ {auto_committed, pr_filed, judgment_required_posted, auto_closed, retry_exhausted}, retry_count, latency_ms, tier_classification_outcome. Atomic appends (tempfile + rename). Schema mirrors drift_ledger with two adaptations per spec D1/E3: (a) audit_issue:int replaces event_id/baseline/mapping_id (audit issue number is the cursor for the commit-audit path); (b) judgment_required_posted is a distinct outcome (drift uses issue_filed for JUDGMENT_REQUIRED because drift creates a NEW issue per event; audit appends a comment to the EXISTING audit issue, so a separate outcome lets operators query the two pipelines independently). Read-only CLI subcommands back the NFR-001 operator-triage-rate metric (target ≤30%).",
+      "purpose": "Append-only JSONL ledger writer for the commit-audit Moment 0 path. One row per (audit_issue, doc_path) capturing audit_issue, doc_path, verdict, confidence, outcome \u2208 {auto_committed, pr_filed, judgment_required_posted, auto_closed, retry_exhausted}, retry_count, latency_ms, tier_classification_outcome. Atomic appends (tempfile + rename). Schema mirrors drift_ledger with two adaptations per spec D1/E3: (a) audit_issue:int replaces event_id/baseline/mapping_id (audit issue number is the cursor for the commit-audit path); (b) judgment_required_posted is a distinct outcome (drift uses issue_filed for JUDGMENT_REQUIRED because drift creates a NEW issue per event; audit appends a comment to the EXISTING audit issue, so a separate outcome lets operators query the two pipelines independently). Read-only CLI subcommands back the NFR-001 operator-triage-rate metric (target \u226430%).",
       "introduced_by": "#400",
       "deployed_by": "#400",
       "last_updated": "2026-05-23",

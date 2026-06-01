@@ -36,7 +36,7 @@ All services run on office2 unless otherwise noted.
 | Habit Check-in (morning) | 7:05 AM ET daily | OpenClaw cron → felix-admin-habits | claude | Daily habit check-in via WhatsApp |
 | Habit Report (weekly) | Sunday 6PM ET | OpenClaw cron → felix-admin-habits | claude | Weekly habit pattern report via WhatsApp |
 | Escalation Check (daily) | 8:00 AM ET daily | OpenClaw cron → felix-admin-escalation | claude | Overdue task escalation via WhatsApp |
-| Doc Audit Poll | Every 60 minutes (top of hour UTC) | `felix-doc-auditor.timer` (systemd) → `/usr/bin/python3 /home/claude/kg-automation/scripts/doc_audit/run.py` (#343 scripts-first driver) | claude | Process Doc Audit / Weekly Doc Audit issues |
+| Doc Audit Poll | ⏸ Suspended 2026-05-26 (was: every 60 min top of hour UTC) | `felix-doc-auditor.timer` (systemd, currently **disabled**) → `/usr/bin/python3 /home/claude/kg-automation/scripts/doc_audit/run.py` (#343 scripts-first driver) | claude | Process Doc Audit / Weekly Doc Audit issues — **paused indefinitely** pending #137 cost-control work |
 | Second Brain Sync | Every 15 min | `second-brain-sync.timer` (systemd) | kgale | Bidirectional git sync for non-vault content |
 | Felix Core Digest | Every 15 min | `felix-core-digest.timer` (systemd) | claude | Agent activity log summarization → Obsidian digests |
 
@@ -357,6 +357,7 @@ Per-helper metadata mirrors `docs/design/architecture/data/service-inventory.jso
   - **credentials**: `github-pat-kg-felix-bot`
 
 ### Felix Doc Auditor (#105 deployed 2026-05-10; refactored to scripts-first driver in #343, 2026-05-21; Moment 0 drift interpretation added in #362, 2026-05-22)
+- **Operational status**: ⏸ **Suspended indefinitely 2026-05-26**. Implementation complete (post-#343 / #362 / #391 / #400). Two-layer suspension in place: `felix-doc-auditor.timer` `disabled` + `[drift_interpretation].enabled = false` + `[audit_interpretation].enabled = false` in `scripts/doc_audit/config.toml` (commit `d46a9ead`). GH Actions workflows `Doc Audit Trigger` + `Doc Audit Weekly` also `disabled_manually`. Reactivation gated on [#137](https://github.com/kentonium3/kg-automation/issues/137) cost-control epic landing plus explicit operator decision. The entries below describe the design and intended runtime behavior, unchanged by suspension.
 - **Deployed by**: #105 / mission `felix-doc-auditor-agent-01KR7JK9`
 - **Refactored by**: #343 / mission `refactor-doc-auditor-to-scripts-first-driver-01KS2XNX`
 - **Extended by**: #362 / mission `drift-event-auto-resolution-01KS8J32` (v2 since #362 — adds Moment 0 drift interpretation; PROPOSED_EDIT verdicts route through the existing tier_classification surface, preserving SKILL.md §4.3 guardrails)

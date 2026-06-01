@@ -2,16 +2,29 @@
 title: felix-doc-auditor driver operations
 doc_type: runbook
 audience: agents_and_humans
-status: draft
+status: approved
 created: 2026-05-21
-last_validated: 2026-05-23
-last_updated: '2026-05-23'
-updated_by: '#400'
-version: v1.3
+last_validated: 2026-05-31
+last_updated: '2026-05-31'
+updated_by: '#400 (initial); 2026-05-31 suspension reflected'
+version: v1.4
 owners: [kgale]
 ---
 
 # felix-doc-auditor driver — operations runbook
+
+> ⏸ **SUSPENDED INDEFINITELY — 2026-05-26**. The post-#343 driver is implemented
+> and tested. Two-layer suspension is in place: `felix-doc-auditor.timer` is
+> `disabled`, AND `[drift_interpretation].enabled = false` +
+> `[audit_interpretation].enabled = false` in
+> `scripts/doc_audit/config.toml` (commit `d46a9ead`). The GitHub Actions
+> workflows `Doc Audit Trigger` and `Doc Audit Weekly` are also
+> `disabled_manually`. The cutover playbook HAS executed; the production
+> service IS the post-#343 driver — just not currently scheduled.
+> Re-enablement requires the cost-control work tracked under
+> [#137](https://github.com/kentonium3/kg-automation/issues/137) to land
+> plus an explicit operator decision. This runbook is retained as the
+> authoritative reference for when re-enablement occurs.
 
 Authoritative operator reference for the scripts-first `felix-doc-auditor`
 driver introduced by mission [#343 — refactor-doc-auditor-to-scripts-first-driver](https://github.com/kentonium3/kg-automation/issues/343).
@@ -20,12 +33,6 @@ runtime `SKILL.md`. The pre-#343 runbook
 [`doc-auditor-ops.md`](<./doc-auditor-ops.md>) remains in place for the
 historical openclaw-agent architecture but is no longer the operational
 surface.
-
-> **Status note**: this runbook describes the **post-cutover state**. The
-> cutover playbook lives at
-> [`docs/design/architecture/baselines/cutover-log.md`](<../design/architecture/baselines/cutover-log.md>);
-> until that playbook is executed on office2 the production service is still
-> the pre-#343 openclaw-agent. Plan accordingly.
 
 ---
 

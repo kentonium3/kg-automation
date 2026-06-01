@@ -1,25 +1,25 @@
 {
   "schema_version": "1.0",
-  "last_updated": "2026-05-15",
-  "updated_by": "#276 (manual dashboard sweep)",
+  "last_updated": "2026-05-31",
+  "updated_by": "#400 follow-up: reflect doc-audit suspension after May 2026 cap exhaustion",
   "review_cadence": "monthly",
   "source_data": "docs/design/architecture/llm-cost.md (Kent's raw dashboard sweep)",
   "services": [
     {
       "name": "Anthropic API (token-metered)",
       "billing_type": "metered",
-      "monthly_spend_usd": 903.00,
+      "monthly_spend_usd": 903.0,
       "trend": "growing",
       "dashboard": "https://console.anthropic.com/settings/billing",
-      "notes": "Extrapolated from 6 days of paid invoices May 10-15 ($180.64 = $30.11/day). Auto-replenish triggered 2-3x/day on May 12-14. ~7.5x step-change from ~$115/mo baseline pre-2026-04-09 credit exhaustion. 78% of total LLM spend; primary target for attribution work in #296. Includes both Mac Claude Code and office2 OpenClaw traffic — not yet segmented (the dev-vs-felix split is what #296 unblocks)."
+      "notes": "Extrapolated from 6 days of paid invoices May 10-15 ($180.64 = $30.11/day). Auto-replenish triggered 2-3x/day on May 12-14. ~7.5x step-change from ~$115/mo baseline pre-2026-04-09 credit exhaustion. 78% of total LLM spend; primary target for attribution work in #296. Includes both Mac Claude Code and office2 OpenClaw traffic \u2014 not yet segmented (the dev-vs-felix split is what #296 unblocks). 2026-05-31 update: A second credit exhaustion occurred 2026-05-26 after the cap was raised $250 \u2192 $500 in May 2026. felix-doc-auditor identified as the dominant cost driver and suspended indefinitely (timer disabled + interpretation flags `enabled=false` + GH Actions workflows `disabled_manually`); reactivation gated on #137 cost-control work landing. The $30.11/day figure above is stale; June 2026 spend will drop substantially as a result of the suspension. Re-baseline once a stable post-suspension cost profile is established."
     },
     {
       "name": "Anthropic Claude Monthly (Max plan)",
       "billing_type": "subscription",
-      "monthly_spend_usd": 212.50,
+      "monthly_spend_usd": 212.5,
       "trend": "stable",
       "dashboard": "https://claude.ai/settings/billing",
-      "notes": "Plateaued at Max since Feb 2026. Was $21.25 Pro Aug-Nov 2025, ramped through Nov 2025-Jan 2026. Unknown how much Mac Claude Code usage is absorbed by this envelope vs spilling to the metered API line — open question to confirm during #296 execution."
+      "notes": "Plateaued at Max since Feb 2026. Was $21.25 Pro Aug-Nov 2025, ramped through Nov 2025-Jan 2026. Unknown how much Mac Claude Code usage is absorbed by this envelope vs spilling to the metered API line \u2014 open question to confirm during #296 execution."
     },
     {
       "name": "ChatGPT Plus (includes Codex CLI)",
@@ -40,7 +40,7 @@
     {
       "name": "Gemini API (kentgale@gmail.com GCP project)",
       "billing_type": "free_tier",
-      "monthly_spend_usd": 0.00,
+      "monthly_spend_usd": 0.0,
       "trend": "growing",
       "dashboard": "https://console.cloud.google.com/billing",
       "notes": "Currently on free tier; will move to paid at end of free-tier window (~mid-June 2026). Will likely match intentional.biz line at ~$20.19/mo."
@@ -48,9 +48,9 @@
     {
       "name": "Whispr Flow",
       "billing_type": "free_tier",
-      "monthly_spend_usd": 0.00,
+      "monthly_spend_usd": 0.0,
       "trend": "stable",
-      "dashboard": "—",
+      "dashboard": "\u2014",
       "notes": "Free plan."
     }
   ],

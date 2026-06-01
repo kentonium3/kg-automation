@@ -124,6 +124,13 @@ The LLM is NEVER in the path for the bulk of replies — only for ambiguous repl
 
 ### Doc-Auditor Direct Anthropic API (#343, v2 since #362)
 
+> ⏸ **Operational status**: this flow is **suspended indefinitely** since
+> 2026-05-26 (timer `disabled` + interpretation flags `false` + GH Actions
+> `disabled_manually`). The architecture below describes the intended runtime
+> behavior; the system does not currently execute it. See the
+> [doc-auditor driver runbook](<../../runbooks/doc-auditor-driver-ops.md>)
+> for the full suspension context and reactivation gate ([#137](https://github.com/kentonium3/kg-automation/issues/137)).
+
 ```
 felix-doc-auditor.timer → felix-doc-auditor.service → scripts/doc_audit/run.py
   → Anthropic API (HTTPS, anthropic-python SDK)

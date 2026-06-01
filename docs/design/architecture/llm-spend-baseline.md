@@ -11,17 +11,18 @@ audience: humans
 >
 > Source: Kent's manual dashboard sweep in [`llm-cost.md`](<./llm-cost.md>) (co-located invoice ledger)
 
-## Summary (as of 2026-05-15)
+## Summary (as of 2026-05-15; suspension addendum 2026-05-31)
 
 - **Monthly burn**: ~$1,157 today → ~$1,177 in ~30 days (Gemini kentgale@gmail.com leaves free tier)
 - **Annualized**: ~$14,100/year at current run rate
 - **Concentration**: Anthropic API metered is 78% of spend; top 3 services are 98%
+- **⏸ Post-2026-05-26 suspension**: felix-doc-auditor was identified as the primary cost driver and suspended indefinitely after a second credit exhaustion (May 2026, with cap raised $250 → $500). The figures above predate the suspension. June 2026 spend will drop substantially as a result. A fresh baseline should be captured once the post-suspension cost profile stabilizes — but only after #296 (workspace separation) so the new measurement is properly attributed.
 
 ## Trend insights
 
-### Anthropic API is the dominant cost and the fastest-growing line
+### Anthropic API is the dominant cost and the fastest-growing line (pre-suspension)
 
-May 10-15 paid invoices averaged $30.11/day — a ~7.5x step-change from the pre-2026-04-09 baseline (~$115/mo trend, which was the original trigger for #137). Auto-replenish triggered 2-3x/day on May 12-14. Per Kent (2026-05-15): this pattern is the new normal, not a project-week spike.
+May 10-15 paid invoices averaged $30.11/day — a ~7.5x step-change from the pre-2026-04-09 baseline (~$115/mo trend, which was the original trigger for #137). Auto-replenish triggered 2-3x/day on May 12-14. Per Kent (2026-05-15): this pattern is the new normal, not a project-week spike. **Update 2026-05-31**: a second cap exhaustion on 2026-05-26 (after the $250 → $500 raise) confirmed the trend and triggered the doc-audit suspension. The $30.11/day figure is now stale; expect a substantial June 2026 drop driven by the suspension.
 
 ### Codex is absorbed by ChatGPT Plus
 

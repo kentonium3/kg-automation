@@ -22,7 +22,7 @@ later, without needing to re-derive the procedure.
 
 | File | Subject | Captured | Mission | Re-measure trigger |
 |---|---|---|---|---|
-| [`felix-doc-auditor-pre-rework.json`](felix-doc-auditor-pre-rework.json) | felix-doc-auditor under the OpenClaw-mediated agent path (pre-rework) | 2026-05-21 | [`#343` / mission `refactor-doc-auditor-to-scripts-first-driver-01KS2XNX`](../../../../kitty-specs/refactor-doc-auditor-to-scripts-first-driver-01KS2XNX/) — WP07 | WP09 cutover writes `felix-doc-auditor-post-rework.json` and compares per-outcome averages to satisfy spec NFR-001. |
+| [`felix-doc-auditor-pre-rework.json`](<./felix-doc-auditor-pre-rework.json>) | felix-doc-auditor under the OpenClaw-mediated agent path (pre-rework) | 2026-05-21 | [`#343` / mission `refactor-doc-auditor-to-scripts-first-driver-01KS2XNX`](../../../../kitty-specs/refactor-doc-auditor-to-scripts-first-driver-01KS2XNX/) — WP07 | WP09 cutover writes `felix-doc-auditor-post-rework.json` and compares per-outcome averages to satisfy spec NFR-001. **Note (2026-05-31)**: the post-rework baseline reflects measured-while-active state; the service has been ⏸ suspended indefinitely since 2026-05-26 (see service entry in `service-inventory.md`). Both baselines remain historically valid; no new measurement is planned until #137 cost-control work re-enables the service. |
 
 When a baseline is superseded (e.g. the scripts-first driver cuts over
 and a `-post-rework` file is captured), retain BOTH files: the historic

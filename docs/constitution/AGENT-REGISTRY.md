@@ -102,10 +102,11 @@ results, update this registry and `agent-registry.json`.
 **Team**: SuperAdmin (B)
 **Scope**: Documentation audit — processes Doc Audit and Weekly Doc Audit issues; classifies each in-scope doc as high-confidence edit (commits directly) or judgment gap (files docs-debt issue); detects missing artifacts
 **Current Autonomy Level**: Assisted (Level 1)
-**Model**: Sonnet (pinned — judgment-heavy work; promotion to Haiku requires validation per Model Assignment Policy)
+**Model**: Haiku 4.5 (pinned — downshifted from Sonnet by #343 because judgment calls are now narrow and prompt-scoped post-scripts-first refactor; promotion back to Sonnet would require validation per Model Assignment Policy)
 **Operating Identity**: `kg-felix-bot` (see Service Accounts section below)
 **Deployed**: 2026-05-10 (#105 / mission `felix-doc-auditor-agent-01KR7JK9`)
 **Registered**: 2026-05-10 (#105 / mission `felix-doc-auditor-agent-01KR7JK9`)
+**Operational Status**: ⏸ **Suspended indefinitely 2026-05-26** (timer disabled + interpretation flags `enabled=false` + GH Actions `disabled_manually`; reactivation gated on [#137](https://github.com/kentonium3/kg-automation/issues/137) cost-control epic)
 
 ### Transition History
 

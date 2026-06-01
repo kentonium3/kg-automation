@@ -56,7 +56,7 @@ Master map for all active documentation under `docs/`. Referenced from
 - [Change Control Protocol](<./design/architecture/change-control.md>)
 - [Service Dependencies Diagram](<./design/architecture/service-dependencies.view.md>)
 - [Glossary](<./design/architecture/glossary.md>)
-- [LLM Spend Baseline](<./design/architecture/llm-spend-baseline.md>) — monthly cost snapshot per service, trend commentary (narrative companion to `data/llm-spend-baseline.json`)
+- [LLM Spend Baseline](<./design/architecture/llm-spend-baseline.md>) — monthly cost snapshot per service, trend commentary (narrative companion to `data/llm-spend-baseline.json`) *(pre-2026-05-26 doc-audit suspension; expect substantial June 2026 drop)*
 - [LLM Cost Source Ledger](<./design/architecture/llm-cost.md>) — Kent's raw invoice/dashboard sweep (Anthropic, Gemini, etc.); source data feeding the spend baseline
 
 ### docs/design/architecture/adr/ — Architecture Decision Records
@@ -96,7 +96,7 @@ Numerators/denominators captured before and after material architectural changes
 
 ### Agent-executable runbooks
 
-- [Doc Auditor Driver Operations](<./runbooks/doc-auditor-driver-ops.md>) — felix-doc-auditor **scripts-first driver** operations (post-#343): hourly systemd tick, `last-tick.json` health signal, prompt artifacts, backlog/lock recovery, pending-approval workflow, troubleshooting, baselines
+- [Doc Auditor Driver Operations](<./runbooks/doc-auditor-driver-ops.md>) — felix-doc-auditor **scripts-first driver** operations (post-#343): hourly systemd tick, `last-tick.json` health signal, prompt artifacts, backlog/lock recovery, pending-approval workflow, troubleshooting, baselines *(⏸ currently suspended; see runbook banner)*
 - [Doc Auditor Operations (pre-#343 — historical)](<./runbooks/doc-auditor-ops.md>) — original openclaw-agent runbook; retained for reference until the pre-#343 implementation is fully retired
 - [Security Baseline Operations](<./runbooks/security-baseline-ops.md>) — canonical baseline-reset procedure for the daily 3 AM audit; linked from service runbooks for the "how"
 - [Vikunja Operations](<./runbooks/vikunja-ops.md>)
