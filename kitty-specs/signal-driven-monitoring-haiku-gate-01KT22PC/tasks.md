@@ -42,12 +42,12 @@ The work-package boundaries are designed around file ownership: no two WPs touch
 | T020 | Fallback path — on gate failure, invoke escalator with "gate fallback" reason | WP03 |  | [D] |
 | T021 | Gate unit + behavioral tests (mocked Anthropic SDK, mocked subprocess) | WP03 |  | [D] |
 | T022 | Pre-rollout token baseline capture and helper script | WP03 |  | [D] |
-| T023 | Modify `felix-core-digest.service` to chain into tick orchestrator | WP04 |  |
-| T024 | New `felix-heartbeat-gate.service` and `.timer` units | WP04 | [P] |
-| T025 | Update `service-inventory.json` with new entries + felix-core-digest changes | WP04 | [P] |
-| T026 | Update `credential-manifest.json` confirming kg-felix-bot scope | WP04 | [P] |
-| T027 | Update `data-flows.json` with new flows + regenerate markdown views | WP04 |  |
-| T028 | Deployment runbook + cutover-procedure documentation | WP04 |  |
+| T023 | Modify `felix-core-digest.service` to chain into tick orchestrator | WP04 |  | [D] |
+| T024 | New `felix-heartbeat-gate.service` and `.timer` units | WP04 | [D] |
+| T025 | Update `service-inventory.json` with new entries + felix-core-digest changes | WP04 | [D] |
+| T026 | Update `credential-manifest.json` confirming kg-felix-bot scope | WP04 | [D] |
+| T027 | Update `data-flows.json` with new flows + regenerate markdown views | WP04 |  | [D] |
+| T028 | Deployment runbook + cutover-procedure documentation | WP04 |  | [D] |
 
 `[P]` indicates a subtask that can execute in parallel with siblings inside its WP (touches different files / no in-WP dependency on the prior subtask).
 
@@ -157,12 +157,12 @@ The work-package boundaries are designed around file ownership: no two WPs touch
 **Independent test**: post-deploy smoke check passes (`systemctl --user status felix-core-digest.timer felix-heartbeat-gate.timer` shows both active; `last-tick.json` and `last-gate-decision.json` both fresh within their respective cadences).
 
 **Included subtasks**:
-- [ ] T023 Modify `felix-core-digest.service` to chain into tick orchestrator (WP04)
-- [ ] T024 New `felix-heartbeat-gate.service` and `.timer` units (WP04) [P]
-- [ ] T025 Update `service-inventory.json` with new entries + felix-core-digest changes (WP04) [P]
-- [ ] T026 Update `credential-manifest.json` confirming kg-felix-bot scope (WP04) [P]
-- [ ] T027 Update `data-flows.json` with new flows + regenerate markdown views (WP04)
-- [ ] T028 Deployment runbook + cutover-procedure documentation (WP04)
+- [x] T023 Modify `felix-core-digest.service` to chain into tick orchestrator (WP04)
+- [x] T024 New `felix-heartbeat-gate.service` and `.timer` units (WP04) [P]
+- [x] T025 Update `service-inventory.json` with new entries + felix-core-digest changes (WP04) [P]
+- [x] T026 Update `credential-manifest.json` confirming kg-felix-bot scope (WP04) [P]
+- [x] T027 Update `data-flows.json` with new flows + regenerate markdown views (WP04)
+- [x] T028 Deployment runbook + cutover-procedure documentation (WP04)
 
 **Implementation sketch**:
 1. T023 + T024 are systemd unit changes (parallel-safe; different files).
