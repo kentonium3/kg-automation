@@ -145,7 +145,7 @@ These assumptions are inherited from #490 and validated through the spec-kitty p
 - **A2**: OpenClaw's heartbeat surface supports either (a) per-invocation model switching or (b) a wrapper that intercepts the heartbeat trigger before invoking OpenClaw. Plan phase live-probes to determine which mechanism is supported and selects accordingly.
 - **A3**: The `kg-felix-bot` PAT's scope already covers issue creation; no new credential needed for the deterministic filer.
 - **A4**: The heartbeat contract file convention (current path `/data/services/openclaw/data/HEARTBEAT.md`, "empty = skip" rule) remains stable through the lifetime of this mission.
-- **A5**: FR-1's digest format will be defined within this mission and FR-2's gate will read it. The two FRs ship in the same mission; FR-2's gate is designed against FR-1's actual digest output (per the single-mission scope decision).
+- **A5**: The signal-extraction digest format (FR-001..FR-006) will be defined within this mission and the heartbeat gate (FR-007..FR-011) will read it. Both layers ship in the same mission; the gate is designed against the actual digest output (per the single-mission scope decision).
 - **A6**: Spec-kitty merges create merge commits directly to `main`, not PRs. Any GitHub Actions added in this mission trigger on `push` to `main`.
 
 ---
