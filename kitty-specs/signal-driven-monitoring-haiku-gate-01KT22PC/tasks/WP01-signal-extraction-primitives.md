@@ -20,7 +20,8 @@ subtasks:
 - T005
 - T006
 - T007
-shell_pid: '39501'
+shell_pid: "39501"
+agent: "claude:opus-4-7:implementer:implementer"
 history:
 - actor: spec-kitty.tasks
   at: '2026-06-01T17:35:00Z'
@@ -282,3 +283,7 @@ spec-kitty agent action implement WP01 --agent <your-agent-name>
 - [ ] Atomic-write pattern used for state files (`.tmp` + `os.rename`).
 - [ ] Fixtures are minimal but representative.
 - [ ] Coverage report attached or verifiable via `pytest --cov`.
+
+## Activity Log
+
+- 2026-06-01T17:55:18Z – claude:opus-4-7:implementer:implementer – shell_pid=39501 – Assigned agent via action command
