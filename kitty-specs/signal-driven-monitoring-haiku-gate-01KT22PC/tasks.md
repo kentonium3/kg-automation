@@ -34,14 +34,14 @@ The work-package boundaries are designed around file ownership: no two WPs touch
 | T012 | `--replay-log` CLI flag on tick orchestrator | WP02 |  | [D] |
 | T013 | Filer + orchestrator unit tests (mocked subprocess, mocked gh CLI) | WP02 |  | [D] |
 | T014 | Replay integration test against captured 2026-06-01 log (NFR-004, NFR-006) | WP02 |  | [D] |
-| T015 | Gate context assembler — reads `last-tick.json` + HEARTBEAT.md + novelty markers | WP03 |  |
-| T016 | Cache-aware Haiku routing prompt | WP03 |  |
-| T017 | Anthropic SDK wrapper — invokes Haiku, parses 3-way response | WP03 |  |
-| T018 | Escalator — invokes `openclaw system event --mode now` | WP03 | [P] |
-| T019 | Gate ledger writer + atomic `last-gate-decision.json` writer | WP03 | [P] |
-| T020 | Fallback path — on gate failure, invoke escalator with "gate fallback" reason | WP03 |  |
-| T021 | Gate unit + behavioral tests (mocked Anthropic SDK, mocked subprocess) | WP03 |  |
-| T022 | Pre-rollout token baseline capture and helper script | WP03 |  |
+| T015 | Gate context assembler — reads `last-tick.json` + HEARTBEAT.md + novelty markers | WP03 |  | [D] |
+| T016 | Cache-aware Haiku routing prompt | WP03 |  | [D] |
+| T017 | Anthropic SDK wrapper — invokes Haiku, parses 3-way response | WP03 |  | [D] |
+| T018 | Escalator — invokes `openclaw system event --mode now` | WP03 | [D] |
+| T019 | Gate ledger writer + atomic `last-gate-decision.json` writer | WP03 | [D] |
+| T020 | Fallback path — on gate failure, invoke escalator with "gate fallback" reason | WP03 |  | [D] |
+| T021 | Gate unit + behavioral tests (mocked Anthropic SDK, mocked subprocess) | WP03 |  | [D] |
+| T022 | Pre-rollout token baseline capture and helper script | WP03 |  | [D] |
 | T023 | Modify `felix-core-digest.service` to chain into tick orchestrator | WP04 |  |
 | T024 | New `felix-heartbeat-gate.service` and `.timer` units | WP04 | [P] |
 | T025 | Update `service-inventory.json` with new entries + felix-core-digest changes | WP04 | [P] |
@@ -121,14 +121,14 @@ The work-package boundaries are designed around file ownership: no two WPs touch
 **Independent test**: `pytest scripts/openclaw/heartbeat_gate/tests/` passes; gate makes correct 3-way routing decision for each test scenario.
 
 **Included subtasks**:
-- [ ] T015 Gate context assembler — reads `last-tick.json` + HEARTBEAT.md + novelty markers (WP03)
-- [ ] T016 Cache-aware Haiku routing prompt (WP03)
-- [ ] T017 Anthropic SDK wrapper — invokes Haiku, parses 3-way response (WP03)
-- [ ] T018 Escalator — invokes `openclaw system event --mode now` (WP03) [P]
-- [ ] T019 Gate ledger writer + atomic `last-gate-decision.json` writer (WP03) [P]
-- [ ] T020 Fallback path — on gate failure, invoke escalator with "gate fallback" reason (WP03)
-- [ ] T021 Gate unit + behavioral tests (mocked Anthropic SDK, mocked subprocess) (WP03)
-- [ ] T022 Pre-rollout token baseline capture and helper script (WP03)
+- [x] T015 Gate context assembler — reads `last-tick.json` + HEARTBEAT.md + novelty markers (WP03)
+- [x] T016 Cache-aware Haiku routing prompt (WP03)
+- [x] T017 Anthropic SDK wrapper — invokes Haiku, parses 3-way response (WP03)
+- [x] T018 Escalator — invokes `openclaw system event --mode now` (WP03) [P]
+- [x] T019 Gate ledger writer + atomic `last-gate-decision.json` writer (WP03) [P]
+- [x] T020 Fallback path — on gate failure, invoke escalator with "gate fallback" reason (WP03)
+- [x] T021 Gate unit + behavioral tests (mocked Anthropic SDK, mocked subprocess) (WP03)
+- [x] T022 Pre-rollout token baseline capture and helper script (WP03)
 
 **Implementation sketch**:
 1. T015 + T016 are independent (assembler reads files; prompt is a markdown asset).
