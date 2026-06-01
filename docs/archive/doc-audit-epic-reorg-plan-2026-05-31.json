@@ -1,0 +1,193 @@
+{
+  "version": "1.0",
+  "generated_at": "2026-05-31",
+  "generated_by": "doc-audit epic reorganization pilot — dry-run scope sweep",
+  "intent": "Establish epic + phase + child hierarchy for the doc-audit dev issue queue using existing closed issues (no new issues created). Pilot for the broader pattern across other Felix features.",
+  "constraints_satisfied": [
+    "No new issues created",
+    "All proposed parents and children already exist",
+    "Auto-filed audit output (~70 issues with titles 'Doc audit: <sha>', 'Weekly doc audit', 'Audit #X: pending approval') excluded per Kent's instruction"
+  ],
+  "epic": {
+    "issue": 104,
+    "current_title": "Feature: Documentation Domain Map and Audit Infrastructure",
+    "current_state": "closed",
+    "proposed_title": "Epic: Doc Audit System — Documentation Domain Map and Audit Infrastructure",
+    "rename_reason": "Closest existing epic-shaped issue; body opens with infrastructure scope spanning multiple downstream missions. Title prefix change makes the role explicit without altering content.",
+    "rename_alternative": "Leave title as-is; rely on GitHub's native sub-issue display to communicate hierarchy. Less discoverable in title searches but zero edits."
+  },
+  "phases": [
+    {
+      "phase_number": 1,
+      "parent_issue": 105,
+      "title": "Feature: felix-doc-auditor — Documentation Gap Analysis Agent",
+      "rationale": "Original implementation per mission `felix-doc-auditor-agent-01KR7JK9` (closed 2026-05-10). Defines the initial agent surface, governance integration, and operational shape.",
+      "children": [
+        {"issue": 111, "title": "Bug: doc-audit trigger matches too broadly — directory prefix instead of exact file paths"},
+        {"issue": 195, "title": "Infra: Deploy and canary felix-doc-auditor agent (post-merge ops for #105)"},
+        {"issue": 201, "title": "Infra: Refine doc-audit skill missing-artifact heuristic to exclude SKILL.md files"},
+        {"issue": 207, "title": "Infra: Pivot felix-doc-auditor Level-1 approval from WhatsApp to GitHub issues"},
+        {"issue": 215, "title": "Infra: felix-doc-auditor self-approved Level-1 pending-approval issue (gate violation)"},
+        {"issue": 223, "title": "Infra: register felix-doc-auditor cron in openclaw.json to enable autonomous operation"},
+        {"issue": 224, "title": "Infra: register kg-felix-bot identity in governance docs (AGENT-REGISTRY + credential-manifest)", "uncertain": "Identity work coupled to felix-doc-auditor's initial deployment; could alternatively be standalone identity-infra issue."},
+        {"issue": 226, "title": "Docs: doc-auditor-ops.md missing kg-felix-bot operating identity documentation"},
+        {"issue": 227, "title": "Docs: identity-model.md and credentials-and-secrets.md missing kg-felix-bot service account", "uncertain": "Same coupling note as #224 — borderline standalone identity-infra."},
+        {"issue": 245, "title": "feat(felix-doc-auditor): auto-apply frontmatter-only edits without Level-1 approval"},
+        {"issue": 259, "title": "felix-doc-auditor: route edits by change_type (Tier 4 auto-applies; Tier ≤3 keeps Level-1 gate)"},
+        {"issue": 299, "title": "Infra: Add systemd restart step to felix-doc-auditor skill-upgrade procedure"},
+        {"issue": 342, "title": "bug: felix-doc-auditor session never rolls — accumulates until context overflow + silently fails"}
+      ],
+      "child_count": 13
+    },
+    {
+      "phase_number": 2,
+      "parent_issue": 278,
+      "title": "Feature: signal-driven doc-audit — route deterministic change signals into felix-doc-auditor",
+      "rationale": "Architectural pivot — replaced ad-hoc audit issue filing with explicit signal sources (commit-marker, drift-event, weekly-cron, decision-label). Prerequisite for the scripts-first refactor.",
+      "children": [],
+      "child_count": 0,
+      "note": "Phase 2 has no children — #278 itself was the whole work."
+    },
+    {
+      "phase_number": 3,
+      "parent_issue": 343,
+      "title": "Feature: refactor felix-doc-auditor to scripts-first driver with narrow LLM judgment calls",
+      "rationale": "Mission `refactor-doc-auditor-to-scripts-first-driver-01KS2XNX`. Eliminates the openclaw-agent runtime; replaces it with a Python driver calling Anthropic directly at narrow judgment moments. Foundation for Phases 4 and 5.",
+      "children": [
+        {"issue": 348, "title": "bug: felix-doc-auditor driver missing-file edge case files only placeholder debt"},
+        {"issue": 349, "title": "docs: stale architecture view files reference pre-#343 doc-auditor model"},
+        {"issue": 361, "title": "bug: felix-doc-auditor-driver config.toml defaults assume files copied to state dir (deploy doesn't copy them)"}
+      ],
+      "child_count": 3
+    },
+    {
+      "phase_number": 4,
+      "parent_issue": 362,
+      "title": "Feature: drift-event processing should auto-resolve doc updates where possible (escalate only judgment cases)",
+      "rationale": "Introduces Moment 0 drift_interpretation — per-event LLM judgment classifying PROPOSED_EDIT / JUDGMENT_REQUIRED / NO_CHANGE_NEEDED. Mission `drift-event-auto-resolution-01KS8J32`.",
+      "children": [
+        {"issue": 391, "title": "Bug: #362 Moment 0 LLM integration is dead code — wired to wrong entry point"},
+        {"issue": 403, "title": "drift_interpretation crashes every tick — schema validation always fails + retry_count exceeds ledger bound"},
+        {"issue": 404, "title": "Investigate why drift_interpretation schema validation fails 100% of the time"},
+        {"issue": 411, "title": "Fix drift_interpretation schema validation root cause (from #404 diagnostic)"}
+      ],
+      "child_count": 4
+    },
+    {
+      "phase_number": 5,
+      "parent_issue": 400,
+      "title": "Feature: commit-derived audit Moment 0 — LLM evaluation per in-scope doc",
+      "rationale": "Structural twin of Phase 4 for commit-derived `Doc audit:` issues. Mission `audit-judgment-fence-strip-hardening-01KSESPD` (Phase 5 + its fence-wrapping fix landed in the same mission slug).",
+      "children": [
+        {"issue": 402, "title": "audit_interpretation diff truncation missing — oversized commits 400 the API"},
+        {"issue": 416, "title": "Fix audit_interpretation fence-wrapping (same root cause as #411, surfaced post-#402)"}
+      ],
+      "child_count": 2
+    },
+    {
+      "phase_number": 6,
+      "parent_issue": 485,
+      "title": "Decision Record: Doc-Audit System Suspended — Intent, Failure, Paths Forward",
+      "rationale": "Operational lifecycle marker — captures the May 2026 cap exhaustion, the suspension decision, and the paths-forward analysis. Not dev work; included as a phase to give the epic a clear current-state anchor.",
+      "children": [],
+      "child_count": 0
+    }
+  ],
+  "totals": {
+    "epic_count": 1,
+    "phase_count": 6,
+    "child_count": 22,
+    "title_rename": 1,
+    "addSubIssue_mutations": 28,
+    "total_operations": 29,
+    "new_issues_created": 0
+  },
+  "mutations": [
+    {"seq": 1, "op": "rename_title", "issue": 104, "from": "Feature: Documentation Domain Map and Audit Infrastructure", "to": "Epic: Doc Audit System — Documentation Domain Map and Audit Infrastructure"},
+    {"seq": 2, "op": "add_sub_issue", "parent": 104, "child": 105, "level": "phase"},
+    {"seq": 3, "op": "add_sub_issue", "parent": 104, "child": 278, "level": "phase"},
+    {"seq": 4, "op": "add_sub_issue", "parent": 104, "child": 343, "level": "phase"},
+    {"seq": 5, "op": "add_sub_issue", "parent": 104, "child": 362, "level": "phase"},
+    {"seq": 6, "op": "add_sub_issue", "parent": 104, "child": 400, "level": "phase"},
+    {"seq": 7, "op": "add_sub_issue", "parent": 104, "child": 485, "level": "phase"},
+    {"seq": 8, "op": "add_sub_issue", "parent": 105, "child": 111, "level": "child"},
+    {"seq": 9, "op": "add_sub_issue", "parent": 105, "child": 195, "level": "child"},
+    {"seq": 10, "op": "add_sub_issue", "parent": 105, "child": 201, "level": "child"},
+    {"seq": 11, "op": "add_sub_issue", "parent": 105, "child": 207, "level": "child"},
+    {"seq": 12, "op": "add_sub_issue", "parent": 105, "child": 215, "level": "child"},
+    {"seq": 13, "op": "add_sub_issue", "parent": 105, "child": 223, "level": "child"},
+    {"seq": 14, "op": "add_sub_issue", "parent": 105, "child": 224, "level": "child", "uncertain": true},
+    {"seq": 15, "op": "add_sub_issue", "parent": 105, "child": 226, "level": "child"},
+    {"seq": 16, "op": "add_sub_issue", "parent": 105, "child": 227, "level": "child", "uncertain": true},
+    {"seq": 17, "op": "add_sub_issue", "parent": 105, "child": 245, "level": "child"},
+    {"seq": 18, "op": "add_sub_issue", "parent": 105, "child": 259, "level": "child"},
+    {"seq": 19, "op": "add_sub_issue", "parent": 105, "child": 299, "level": "child"},
+    {"seq": 20, "op": "add_sub_issue", "parent": 105, "child": 342, "level": "child"},
+    {"seq": 21, "op": "add_sub_issue", "parent": 343, "child": 348, "level": "child"},
+    {"seq": 22, "op": "add_sub_issue", "parent": 343, "child": 349, "level": "child"},
+    {"seq": 23, "op": "add_sub_issue", "parent": 343, "child": 361, "level": "child"},
+    {"seq": 24, "op": "add_sub_issue", "parent": 362, "child": 391, "level": "child"},
+    {"seq": 25, "op": "add_sub_issue", "parent": 362, "child": 403, "level": "child"},
+    {"seq": 26, "op": "add_sub_issue", "parent": 362, "child": 404, "level": "child"},
+    {"seq": 27, "op": "add_sub_issue", "parent": 362, "child": 411, "level": "child"},
+    {"seq": 28, "op": "add_sub_issue", "parent": 400, "child": 402, "level": "child"},
+    {"seq": 29, "op": "add_sub_issue", "parent": 400, "child": 416, "level": "child"}
+  ],
+  "excluded_intentionally": {
+    "auto_filed_audit_output": {
+      "count_estimate": 70,
+      "patterns": [
+        "Doc audit: <sha> (...)",
+        "Weekly doc audit — <date>",
+        "Audit #<n>: pending approval — ...",
+        "[doc-audit] ..."
+      ],
+      "rationale": "These are the doc-audit's OUTPUT, not dev work. Should not appear under the dev epic. Per Kent's instruction. Could be archived under a separate 'Doc Audit Output Archive' container later if desired."
+    },
+    "adjacent_epics": [
+      {"issue": 418, "title": "Epic: Documentation System Overhaul & Semantic Navigation Web", "rationale": "Distinct subject — docs infrastructure (navigation portal, semantic linking). NOT doc-audit. Leave alone."}
+    ],
+    "cross_cutting_infra_with_doc_audit_mentions": [
+      {"issue": 166, "title": "Infra: reconcile all OpenClaw agent workspace files", "rationale": "Cross-cutting OpenClaw workspace work, affects all agents not just doc-audit."},
+      {"issue": 221, "title": "Infra: AGENTS.md truncated by OpenClaw per-file budget", "rationale": "Cross-cutting OpenClaw budget constraint, affects all agents."},
+      {"issue": 289, "title": "Feature: Felix governance Layer 1.5 — mutation-surfaces.json enumeration", "rationale": "Governance-layer work, references doc-audit only as an example surface."},
+      {"issue": 291, "title": "Feature: Felix issue-queueing capability — felix-file-issue.py helper", "rationale": "General issue-filing capability, not doc-audit-specific."},
+      {"issue": 295, "title": "Docs: mutation-surfaces.json not indexed in INDEX.md or domain map", "rationale": "Index-maintenance, not doc-audit dev."},
+      {"issue": 319, "title": "Docs: felix-bot-vikunja-provisioning.md not indexed", "rationale": "Same — index-maintenance."}
+    ]
+  },
+  "uncertainties_flagged_for_review": [
+    {
+      "issues": [224, 227],
+      "question": "Should kg-felix-bot identity-infra issues be Phase 1 children, or stand alone?",
+      "current_proposal": "Include as Phase 1 children — kg-felix-bot was created FOR the doc-auditor's operating identity.",
+      "alternative": "Standalone — identity work is broader than doc-audit and might be reused by other felix-bots.",
+      "tiebreaker": "Pragmatic: include as Phase 1 since they're tightly coupled in time and motivation."
+    },
+    {
+      "issue": "epic_title_rename",
+      "question": "Rename #104 to 'Epic: ...' or leave as 'Feature: ...'?",
+      "current_proposal": "Rename — makes the role explicit in title searches.",
+      "alternative": "Leave as-is — GitHub's native sub-issue display communicates hierarchy without title changes.",
+      "tiebreaker": "Rename is cheap and increases discoverability. But not load-bearing."
+    }
+  ],
+  "verification_pre_execution": [
+    "Confirm all 23 sub-issue parent-child pairs are issues that exist and are closed (no surprises)",
+    "Confirm GraphQL addSubIssue mutation is supported on this repo (GitHub native sub-issue feature)",
+    "Confirm closed-issue sub-issue attachment behaves as expected on the issue page render"
+  ],
+  "verification_post_execution": [
+    "Visit #104 — confirm 6 phase sub-issues appear",
+    "Visit #105 — confirm 13 (or 11 if #224/#227 deferred) children appear",
+    "Visit #343, #362, #400 — confirm 3, 4, 2 children respectively",
+    "Spot-check one of the child issues — confirm a parent link appears on the issue page",
+    "Run `gh api graphql -f query='...' -F number=104` to confirm child relationships from the API side"
+  ],
+  "rollback_plan": "GitHub native sub-issue relationships can be removed via the removeSubIssue GraphQL mutation. The title rename is reversible with another gh issue edit. All operations are individually reversible.",
+  "next_steps_after_pilot": [
+    "If pilot succeeds: write `scripts/issue_queue/reorganize_doc_audit.py` helper to apply this plan + similar plans for other features (habits, escalation, inbox).",
+    "Establish per-feature pattern: identify candidate epic → enumerate phases → map children → apply.",
+    "Standardize epic title prefix (e.g., 'Epic: <feature> — <subject>') as a convention going forward."
+  ]
+}
