@@ -21,7 +21,8 @@ subtasks:
 - T012
 - T013
 - T014
-shell_pid: '56192'
+shell_pid: "56192"
+agent: "claude:opus-4-7:implementer:implementer"
 history:
 - actor: spec-kitty.tasks
   at: '2026-06-01T17:35:00Z'
@@ -283,3 +284,7 @@ spec-kitty agent action implement WP02 --agent <your-agent-name>
 - [ ] Replay test uses real fixture (not synthetic), asserts ground-truth-based numbers.
 - [ ] SUMMARY journal line matches `scripts/doc_audit/run.py` style.
 - [ ] No file from WP-01's owned_files is modified.
+
+## Activity Log
+
+- 2026-06-01T18:58:40Z – claude:opus-4-7:implementer:implementer – shell_pid=56192 – Assigned agent via action command
