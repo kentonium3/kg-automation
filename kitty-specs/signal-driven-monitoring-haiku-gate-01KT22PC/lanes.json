@@ -1,0 +1,98 @@
+{
+  "version": 1,
+  "mission_slug": "signal-driven-monitoring-haiku-gate-01KT22PC",
+  "mission_id": "01KT22PCH03MTFYX1Q55KQVXRG",
+  "mission_branch": "kitty/mission-signal-driven-monitoring-haiku-gate-01KT22PC",
+  "target_branch": "main",
+  "lanes": [
+    {
+      "lane_id": "lane-a",
+      "wp_ids": [
+        "WP01"
+      ],
+      "write_scope": [
+        "scripts/openclaw/observation/signals/**",
+        "scripts/openclaw/observation/state.py",
+        "scripts/openclaw/observation/tests/fixtures/captured/openclaw-2026-06-01.log",
+        "scripts/openclaw/observation/tests/fixtures/creds_restore.jsonl",
+        "scripts/openclaw/observation/tests/fixtures/unhandled_error.jsonl",
+        "scripts/openclaw/observation/tests/fixtures/watchdog_reconnect.jsonl",
+        "scripts/openclaw/observation/tests/test_config_loader.py",
+        "scripts/openclaw/observation/tests/test_openclaw_log.py",
+        "scripts/openclaw/observation/tests/test_signals_creds_restore.py",
+        "scripts/openclaw/observation/tests/test_signals_unhandled_error.py",
+        "scripts/openclaw/observation/tests/test_signals_watchdog_reconnect.py",
+        "scripts/openclaw/observation/tests/test_state_persistence.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "app-shell",
+        "artifact-rendering",
+        "legacy-cleanup",
+        "tests"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    },
+    {
+      "lane_id": "lane-b",
+      "wp_ids": [
+        "WP02"
+      ],
+      "write_scope": [
+        "scripts/openclaw/observation/filer.py",
+        "scripts/openclaw/observation/tests/test_filer.py",
+        "scripts/openclaw/observation/tests/test_replay_20260601.py",
+        "scripts/openclaw/observation/tests/test_tick_orchestrator.py",
+        "scripts/openclaw/observation/tick.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "artifact-rendering",
+        "legacy-cleanup",
+        "tests"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    },
+    {
+      "lane_id": "lane-c",
+      "wp_ids": [
+        "WP03"
+      ],
+      "write_scope": [
+        "scripts/openclaw/heartbeat_gate/**"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "artifact-rendering"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    },
+    {
+      "lane_id": "lane-d",
+      "wp_ids": [
+        "WP04"
+      ],
+      "write_scope": [
+        "docs/design/architecture/data/credential-manifest.json",
+        "docs/design/architecture/data/data-flows.json",
+        "docs/design/architecture/data/service-inventory.json",
+        "docs/runbooks/signal-driven-monitoring-ops.md",
+        "scripts/office2/felix-core-digest.service",
+        "scripts/office2/felix-heartbeat-gate.service",
+        "scripts/office2/felix-heartbeat-gate.timer"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "artifact-rendering"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    }
+  ],
+  "computed_at": "2026-06-01T17:43:50.504652+00:00",
+  "computed_from": "dependency_graph+ownership",
+  "planning_artifact_wps": []
+}
