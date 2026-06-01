@@ -87,6 +87,21 @@ stop and present the command to Kent to run manually via `ssh office2-kgale`.**
 data flows, or network topology must update the relevant files in
 `docs/design/architecture/` and `docs/design/architecture/data/`.
 
+**Discovery aid for spec/plan agents**: When authoring or updating a spec's
+Architecture Impact section (during `/spec-kitty.specify` and `/spec-kitty.plan`),
+consult `docs/design/architecture/data/signal-to-doc-map.json` for the canonical
+list of affected docs per change class. Filter entries by
+`match.source == "mission-architecture-impact"` and pick the `change_class`
+values that fit the mission (e.g., `service-added-or-modified`,
+`credential-added-or-modified`, `data-flow-added-or-modified`,
+`network-topology-changed`, `runbook-added`, `runbook-modified`,
+`architecture-doc-added`, `systemd-unit-added-or-modified`). Each entry's
+`doc_targets` array enumerates the docs that must be reviewed and updated in
+the mission's merge. Without this lookup, navigation docs like `docs/INDEX.md`
+and `docs/DEVELOPER_PORTAL.md` are routinely missed — see #492 for the
+precedent that motivated formalizing this. The map is the source of truth;
+keep it current as new doc surfaces are added.
+
 **Standing requirement**: Any work that deploys, modifies, or registers an
 OpenClaw agent must read `docs/runbooks/openclaw-agent-setup.md` first.
 That runbook defines the required workspace files (IDENTITY.md, SOUL.md,

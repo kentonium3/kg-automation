@@ -147,7 +147,18 @@ GitHub tracks checkbox completion percentage automatically.
 <!--
 Remove this section if the feature makes no changes to deployed services,
 credentials, ports, or data flows.
-If it does, list what needs updating.
+
+If it does, identify the change classes (service-added-or-modified,
+credential-added-or-modified, data-flow-added-or-modified,
+network-topology-changed, runbook-added, runbook-modified,
+architecture-doc-added, systemd-unit-added-or-modified) and consult
+`docs/design/architecture/data/signal-to-doc-map.json` — filter entries by
+`match.source == "mission-architecture-impact"` and union the `doc_targets`
+arrays for each applicable change class. Add any docs that don't fit a
+pre-defined target list manually.
+
+Use the unioned list below; spec-kitty plan/tasks phase will use this to
+brief the implementer about what to update in the merge.
 -->
 
 | File | Change |
@@ -158,6 +169,7 @@ If it does, list what needs updating.
 
 - [ ] All modified JSON files updated with `updated_by` set to this issue number
 - [ ] Markdown views match JSON sources
+- [ ] If a new runbook or architecture doc is added, INDEX.md and (if onboarding-relevant) DEVELOPER_PORTAL.md updated (per `signal-to-doc-map.json` mission-runbook-added / architecture-doc-added entries)
 
 ---
 

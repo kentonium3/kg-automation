@@ -1,8 +1,8 @@
 {
-  "schema_version": "1.0",
-  "last_updated": "2026-05-20",
-  "updated_by": "#343-wp01",
-  "description": "Maps deterministic change signals (from audit.sh and future producers) to the documentation surfaces that likely need review when the signal fires. Used by scripts/doc_audit/helpers/handle_drift_events.py.",
+  "schema_version": "1.1",
+  "last_updated": "2026-06-01",
+  "updated_by": "#343-wp01 + #492-mission-end-classes",
+  "description": "Maps deterministic change signals to the documentation surfaces that likely need review when the signal fires. Two consumer classes: (1) drift-event entries (match.source='audit.sh') consumed by scripts/doc_audit/helpers/handle_drift_events.py to auto-file [doc-audit] issues; (2) mission-end entries (match.source='mission-architecture-impact') consumed by /spec-kitty.specify and /spec-kitty.plan agents per CLAUDE.md to populate a mission's Architecture Impact section with the full set of likely-affected docs. v1.1 adds match.change_class and consumer_hint fields; existing v1.0 entries unchanged.",
   "mappings": [
     {
       "id": "openclaw-cron-drift",
@@ -161,6 +161,114 @@
       "rationale": "SSH authorized_keys changed on office2. High-impact access surface; credential-manifest should reflect any new access grants or revocations.",
       "issue_title_prefix": "[doc-audit] ssh-keys drift",
       "issue_labels": ["P2-bug", "area/security", "spec: brief"]
+    },
+    {
+      "id": "mission-service-added-or-modified",
+      "match": {
+        "source": "mission-architecture-impact",
+        "change_class": "service-added-or-modified"
+      },
+      "doc_targets": [
+        "docs/design/architecture/data/service-inventory.json",
+        "docs/design/architecture/service-inventory.md",
+        "docs/design/architecture/service-dependencies.view.md",
+        "docs/design/felix-capability-roadmap.md"
+      ],
+      "rationale": "A mission adds a new service or modifies an existing service entry. Update the JSON source first (authoritative per CLAUDE.md), then the narrative markdown and any dependency view diagrams. If the service represents a capability transition (e.g., new agent surface, new automation), bump felix-capability-roadmap.md status. INDEX.md is NOT listed here because service-inventory.md is already listed in INDEX.md; the lookup is transitive.",
+      "consumer_hint": "spec-author"
+    },
+    {
+      "id": "mission-credential-added-or-modified",
+      "match": {
+        "source": "mission-architecture-impact",
+        "change_class": "credential-added-or-modified"
+      },
+      "doc_targets": [
+        "docs/design/architecture/data/credential-manifest.json",
+        "docs/design/architecture/credentials-and-secrets.md",
+        "docs/design/architecture/identity-model.md"
+      ],
+      "rationale": "A mission introduces a new credential, adds a consumer to an existing credential, or changes a credential's scope. Update the JSON source (consumers list, scope, expiry). credentials-and-secrets.md narrative view and identity-model.md (if the credential reflects an identity boundary) need matching edits.",
+      "consumer_hint": "spec-author"
+    },
+    {
+      "id": "mission-data-flow-added-or-modified",
+      "match": {
+        "source": "mission-architecture-impact",
+        "change_class": "data-flow-added-or-modified"
+      },
+      "doc_targets": [
+        "docs/design/architecture/data/data-flows.json",
+        "docs/design/architecture/data-flows.md",
+        "docs/design/architecture/data-flows.view.md"
+      ],
+      "rationale": "A mission adds a new data flow (producer→transport→consumer chain) or modifies an existing one. Update the JSON entry, the narrative .md, and the Mermaid .view.md so the diagrams reflect the new edge. If a new storage surface is introduced, also add an entry under the data-flows.md storage-locations table.",
+      "consumer_hint": "spec-author"
+    },
+    {
+      "id": "mission-network-topology-changed",
+      "match": {
+        "source": "mission-architecture-impact",
+        "change_class": "network-topology-changed"
+      },
+      "doc_targets": [
+        "docs/design/architecture/data/network-topology.json",
+        "docs/design/architecture/physical-topology.md"
+      ],
+      "rationale": "A mission opens or closes a network port, adds a host, changes connectivity (Tailscale ACL, DNS, proxy), or modifies a service binding. Update the JSON first, then the physical-topology narrative. Tier 1 change per CLAUDE.md change-control taxonomy — verification required.",
+      "consumer_hint": "spec-author"
+    },
+    {
+      "id": "mission-runbook-added",
+      "match": {
+        "source": "mission-architecture-impact",
+        "change_class": "runbook-added"
+      },
+      "doc_targets": [
+        "docs/INDEX.md",
+        "docs/DEVELOPER_PORTAL.md"
+      ],
+      "rationale": "A mission adds a new operational runbook under docs/runbooks/. The runbook itself is authored as a deliverable; this entry exists to remind the spec author that the new file MUST also be listed in docs/INDEX.md under the appropriate section AND that docs/DEVELOPER_PORTAL.md may need a navigation pointer if the runbook covers a new agent or capability that an onboarding agent would need to discover. Without this update the runbook is undiscoverable through canonical navigation.",
+      "consumer_hint": "spec-author"
+    },
+    {
+      "id": "mission-runbook-modified",
+      "match": {
+        "source": "mission-architecture-impact",
+        "change_class": "runbook-modified"
+      },
+      "doc_targets": [
+        "docs/INDEX.md"
+      ],
+      "rationale": "A mission modifies an existing runbook in a way that changes its title, scope, or status (e.g., active→suspended). INDEX.md's entry for that runbook may need a title or annotation update. If only frontmatter (last_updated, last_validated) changed, no INDEX.md edit needed.",
+      "consumer_hint": "spec-author"
+    },
+    {
+      "id": "mission-architecture-doc-added",
+      "match": {
+        "source": "mission-architecture-impact",
+        "change_class": "architecture-doc-added"
+      },
+      "doc_targets": [
+        "docs/INDEX.md",
+        "docs/DEVELOPER_PORTAL.md",
+        "docs/design/architecture/README.md"
+      ],
+      "rationale": "A mission introduces a new architecture document (design doc, ADR, spec under docs/design/architecture/). It must be listed in INDEX.md, possibly DEVELOPER_PORTAL.md (if it's foundational), and referenced from the architecture README.md if it describes a new subsystem.",
+      "consumer_hint": "spec-author"
+    },
+    {
+      "id": "mission-systemd-unit-added-or-modified",
+      "match": {
+        "source": "mission-architecture-impact",
+        "change_class": "systemd-unit-added-or-modified"
+      },
+      "doc_targets": [
+        "docs/design/architecture/data/service-inventory.json",
+        "docs/design/architecture/service-inventory.md"
+      ],
+      "rationale": "A mission adds or modifies a systemd unit under scripts/office2/. The deployed unit is the artifact; service-inventory's `config_files`, `schedule`, and `dependencies` fields must reflect the new/changed unit. Pairs with mission-service-added-or-modified when the unit represents a new service.",
+      "consumer_hint": "spec-author"
     }
   ]
 }
