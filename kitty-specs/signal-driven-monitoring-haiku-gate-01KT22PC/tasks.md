@@ -27,13 +27,13 @@ The work-package boundaries are designed around file ownership: no two WPs touch
 | T005 | Seed `signals/config.toml` with FR-006 signals at calibrated thresholds | WP01 |  | [D] |
 | T006 | Capture `openclaw-2026-06-01.log` as a checked-in test fixture | WP01 | [D] |
 | T007 | Unit tests for config loader, state, log helper, signal extractors | WP01 |  | [D] |
-| T008 | Filer module — subprocess invocation of `felix-file-issue.py` per contract | WP02 |  |
-| T009 | Dedup-on-open-issue check (`gh issue view --json state` at filing time) | WP02 |  |
-| T010 | Tick orchestrator — composes signals + state + filer, writes `last-tick.json` + ledger | WP02 |  |
-| T011 | `--dry-run` CLI flag on tick orchestrator | WP02 |  |
-| T012 | `--replay-log` CLI flag on tick orchestrator | WP02 |  |
-| T013 | Filer + orchestrator unit tests (mocked subprocess, mocked gh CLI) | WP02 |  |
-| T014 | Replay integration test against captured 2026-06-01 log (NFR-004, NFR-006) | WP02 |  |
+| T008 | Filer module — subprocess invocation of `felix-file-issue.py` per contract | WP02 |  | [D] |
+| T009 | Dedup-on-open-issue check (`gh issue view --json state` at filing time) | WP02 |  | [D] |
+| T010 | Tick orchestrator — composes signals + state + filer, writes `last-tick.json` + ledger | WP02 |  | [D] |
+| T011 | `--dry-run` CLI flag on tick orchestrator | WP02 |  | [D] |
+| T012 | `--replay-log` CLI flag on tick orchestrator | WP02 |  | [D] |
+| T013 | Filer + orchestrator unit tests (mocked subprocess, mocked gh CLI) | WP02 |  | [D] |
+| T014 | Replay integration test against captured 2026-06-01 log (NFR-004, NFR-006) | WP02 |  | [D] |
 | T015 | Gate context assembler — reads `last-tick.json` + HEARTBEAT.md + novelty markers | WP03 |  |
 | T016 | Cache-aware Haiku routing prompt | WP03 |  |
 | T017 | Anthropic SDK wrapper — invokes Haiku, parses 3-way response | WP03 |  |
@@ -91,13 +91,13 @@ The work-package boundaries are designed around file ownership: no two WPs touch
 **Independent test**: `pytest scripts/openclaw/observation/tests/test_tick_orchestrator.py test_filer.py test_replay_20260601.py` passes; replay test confirms expected filings match ground truth within tolerance.
 
 **Included subtasks**:
-- [ ] T008 Filer module — subprocess invocation of `felix-file-issue.py` per contract (WP02)
-- [ ] T009 Dedup-on-open-issue check (`gh issue view --json state` at filing time) (WP02)
-- [ ] T010 Tick orchestrator — composes signals + state + filer, writes `last-tick.json` + ledger (WP02)
-- [ ] T011 `--dry-run` CLI flag on tick orchestrator (WP02)
-- [ ] T012 `--replay-log` CLI flag on tick orchestrator (WP02)
-- [ ] T013 Filer + orchestrator unit tests (mocked subprocess, mocked gh CLI) (WP02)
-- [ ] T014 Replay integration test against captured 2026-06-01 log (NFR-004, NFR-006) (WP02)
+- [x] T008 Filer module — subprocess invocation of `felix-file-issue.py` per contract (WP02)
+- [x] T009 Dedup-on-open-issue check (`gh issue view --json state` at filing time) (WP02)
+- [x] T010 Tick orchestrator — composes signals + state + filer, writes `last-tick.json` + ledger (WP02)
+- [x] T011 `--dry-run` CLI flag on tick orchestrator (WP02)
+- [x] T012 `--replay-log` CLI flag on tick orchestrator (WP02)
+- [x] T013 Filer + orchestrator unit tests (mocked subprocess, mocked gh CLI) (WP02)
+- [x] T014 Replay integration test against captured 2026-06-01 log (NFR-004, NFR-006) (WP02)
 
 **Implementation sketch**:
 1. T008 (filer) + T009 (dedup) can be developed in parallel — they're independent surfaces.
