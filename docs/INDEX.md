@@ -97,6 +97,7 @@ Numerators/denominators captured before and after material architectural changes
 ### Agent-executable runbooks
 
 - [Doc Auditor Driver Operations](<./runbooks/doc-auditor-driver-ops.md>) — felix-doc-auditor **scripts-first driver** operations (post-#343): hourly systemd tick, `last-tick.json` health signal, prompt artifacts, backlog/lock recovery, pending-approval workflow, troubleshooting, baselines *(⏸ currently suspended; see runbook banner)*
+- [Signal-Driven Monitoring Operations](<./runbooks/signal-driven-monitoring-ops.md>) — `felix-core-digest` signal extraction + `felix-heartbeat-gate` (Haiku-tier routing) operations: pre-cutover checklist (Restic Tier 2 precondition + identity/credential checks), 12-step cutover procedure, post-cutover verification, troubleshooting, rollback, post-rollout tuning. Mission #490.
 - [Doc Auditor Operations (pre-#343 — historical)](<./runbooks/doc-auditor-ops.md>) — original openclaw-agent runbook; retained for reference until the pre-#343 implementation is fully retired
 - [Security Baseline Operations](<./runbooks/security-baseline-ops.md>) — canonical baseline-reset procedure for the daily 3 AM audit; linked from service runbooks for the "how"
 - [Vikunja Operations](<./runbooks/vikunja-ops.md>)

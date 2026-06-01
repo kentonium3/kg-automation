@@ -158,6 +158,7 @@ local validation and CI.
 - [Pre-Flight Change Checklist](<./runbooks/governance/pre-flight-checklist.md>)
 - [Repository Governance](<./runbooks/repo-governance.md>)
 - [Security Baseline Operations](<./runbooks/security-baseline-ops.md>)
+- [Signal-driven monitoring operations (felix-core-digest signal extraction + felix-heartbeat-gate)](<./runbooks/signal-driven-monitoring-ops.md>)
 - [Spec-Kitty Bug Reporting](<./runbooks/spec-kitty-bug-reporting.md>)
 - [Tasker Operations (Enrichment JSONL Migration)](<./runbooks/tasker-ops.md>)
 - [Templater Commands (Canon v2)](<./runbooks/templater-commands.md>)
