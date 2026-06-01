@@ -1,3 +1,13 @@
+---
+title: kg-automation — Agent Operating Guidance
+doc_type: guide
+status: approved
+audience: agents_and_humans
+owners: [kgale]
+last_validated: '2026-05-31'
+last_updated: '2026-05-31'
+---
+
 ## Agent Analyzer Token Hygiene
 
 - Before rereading a file, state the missing fact and use the narrowest search or line range that can answer it.
