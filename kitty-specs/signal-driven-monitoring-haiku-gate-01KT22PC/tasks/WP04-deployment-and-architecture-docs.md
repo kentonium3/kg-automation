@@ -20,8 +20,8 @@ subtasks:
 - T026
 - T027
 - T028
-shell_pid: "84104"
-agent: "claude:opus-4-7:implementer:implementer"
+shell_pid: "90922"
+agent: "codex:gpt-5:reviewer:reviewer"
 history:
 - actor: spec-kitty.tasks
   at: '2026-06-01T17:35:00Z'
@@ -368,3 +368,4 @@ After `/spec-kitty.merge`:
 
 - 2026-06-01T20:41:32Z – claude:opus-4-7:implementer:implementer – shell_pid=84104 – Assigned agent via action command
 - 2026-06-01T21:05:26Z – claude:opus-4-7:implementer:implementer – shell_pid=84104 – Ready for review — 6 subtasks complete, runbook authored, arch docs updated
+- 2026-06-01T21:06:17Z – codex:gpt-5:reviewer:reviewer – shell_pid=90922 – Started review via action command
