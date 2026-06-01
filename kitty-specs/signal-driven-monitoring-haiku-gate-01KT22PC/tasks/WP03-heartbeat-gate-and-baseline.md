@@ -24,8 +24,8 @@ subtasks:
 - T020
 - T021
 - T022
-shell_pid: "78452"
-agent: "claude:opus-4-7:implementer:implementer"
+shell_pid: "82621"
+agent: "codex:gpt-5:reviewer:reviewer"
 history:
 - actor: spec-kitty.tasks
   at: '2026-06-01T17:35:00Z'
@@ -332,3 +332,4 @@ If the baseline measurement on office2 reveals that historical token data isn't 
 - 2026-06-01T20:22:11Z – codex:gpt-5:reviewer:reviewer – shell_pid=77315 – Codex WP03 cycle 1: T022 baseline is zero-valued placeholder, doesn't satisfy NFR-001 denominator. Implementer needs to ssh office2 and extract real data. Move-task by orchestrator (#330).
 - 2026-06-01T20:22:14Z – claude:opus-4-7:implementer:implementer – shell_pid=78452 – Started implementation via action command
 - 2026-06-01T20:36:08Z – claude:opus-4-7:implementer:implementer – shell_pid=78452 – Cycle 1 fix: real baseline measured from office2 OpenClaw data; methodology documented; NFR-001 denominator now usable
+- 2026-06-01T20:37:07Z – codex:gpt-5:reviewer:reviewer – shell_pid=82621 – Started review via action command
