@@ -1,7 +1,7 @@
 ---
 title: Felix — System Overview
 doc_type: explanation
-status: draft
+status: approved
 audience: agents_and_humans
 owners: [kgale]
 last_validated: '2026-06-01'

@@ -27,14 +27,16 @@ few hops as possible.
 
 ### Feature Development
 
-1. [CLAUDE.md](../CLAUDE.md) § "Feature Development Workflow" — issue-first
+1. [Felix System Overview](<./design/README.md>) — **start here if you're new.**
+   What Felix is, what it does for Kent, how the pieces fit. Day-1 orientation.
+2. [CLAUDE.md](../CLAUDE.md) § "Feature Development Workflow" — issue-first
    habit, the `spec: ready` gate, and the spec-kitty arc
-2. [Felix Constitution](<./constitution/FELIX-CONSTITUTION.md>) — governance,
+3. [Felix Constitution](<./constitution/FELIX-CONSTITUTION.md>) — governance,
    autonomy levels, design principles
-3. [Felix Capability Roadmap](<./design/felix-capability-roadmap.md>) — current
+4. [Felix Capability Roadmap](<./design/felix-capability-roadmap.md>) — current
    capability status and where new work fits
-4. [Architecture README](<./design/architecture/README.md>) — current-state
-   system overview before touching any deployed service
+5. [Architecture README](<./design/architecture/README.md>) — current-state
+   system reference (detailed; use after the overview above)
 5. [GitHub Issues Workflow](<./runbooks/github-issues-workflow.md>) — labels,
    milestones, project board, and the spec lifecycle
 
@@ -107,7 +109,6 @@ repository root.
 |---|---|---|
 | `python -m pytest` | Repo-wide test suite | repo root |
 | `python tooling/scripts/validate_docs.py` | Markdown frontmatter schema, secret scan, portal drift | repo root |
-| `python tooling/scripts/sync_mermaid_views.py` | `.view.md` files match their source diagrams | repo root |
 | `python tooling/scripts/build_runbook_filter.py` | Portal runbook-filter block is current (drift check) | repo root |
 | `python tooling/scripts/build_runbook_filter.py --write` | Refresh the portal runbook-filter block in place | repo root |
 

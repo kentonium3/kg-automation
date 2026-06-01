@@ -14,7 +14,6 @@ updated_by: '#346 (sweep: +#310 enrichment, +#374 main-rotation)'
 ---
 
 ```mermaid
-%% source: docs/design/architecture/data-flows.mmd
 graph LR
     subgraph inputs["Input Sources"]
         browser["Browser<br/>(Mac/iPhone)"]

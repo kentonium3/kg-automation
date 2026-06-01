@@ -141,6 +141,7 @@ Numerators/denominators captured before and after material architectural changes
 
 ### docs/design/ — Vision and rationale
 
+- [Felix System Overview](<./design/README.md>) — **start here for new contributors.** Day-1 orientation: what Felix is, what it does for Kent, how he interacts with it, key flows, components, and architectural principles. 5 high-level mermaid diagrams.
 - [Felix Capability Roadmap](<./design/felix-capability-roadmap.md>) — living capability status, feature sequence, and design principles
 - [Vision & Architecture](<./archive/vision-framework.md>) *(archived — superseded by capability roadmap)*
 - [Personal AI System Spec v1.0](<./archive/personal-ai-system-spec-v1.0.md>) *(archived — design intent consolidated into roadmap; work items in GitHub issues)*

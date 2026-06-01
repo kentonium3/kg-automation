@@ -13,7 +13,6 @@ audience: agents_and_humans
 ---
 
 ```mermaid
-%% source: docs/design/architecture/physical-topology.mmd
 graph TB
     subgraph tailnet["Tailscale Network"]
         office2["office2<br/>Ubuntu 24.04 LTS<br/>Dell XPS 8700<br/>i7-4790 / 32GB RAM<br/>100.92.197.90"]
