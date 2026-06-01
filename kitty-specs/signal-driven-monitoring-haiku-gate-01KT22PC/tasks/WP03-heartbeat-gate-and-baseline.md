@@ -24,8 +24,8 @@ subtasks:
 - T020
 - T021
 - T022
-shell_pid: "71861"
-agent: "claude:opus-4-7:implementer:implementer"
+shell_pid: "77315"
+agent: "codex:gpt-5:reviewer:reviewer"
 history:
 - actor: spec-kitty.tasks
   at: '2026-06-01T17:35:00Z'
@@ -328,3 +328,4 @@ If the baseline measurement on office2 reveals that historical token data isn't 
 
 - 2026-06-01T19:58:49Z – claude:opus-4-7:implementer:implementer – shell_pid=71861 – Assigned agent via action command
 - 2026-06-01T20:18:01Z – claude:opus-4-7:implementer:implementer – shell_pid=71861 – Ready for review — 8 subtasks complete, gate behavioral tests green (79 tests, 96.53% line / 88% branch coverage, >=85%/>=80% thresholds met), baseline captured as placeholder pending office2 sample
+- 2026-06-01T20:19:01Z – codex:gpt-5:reviewer:reviewer – shell_pid=77315 – Started review via action command
