@@ -7,8 +7,21 @@
 # Mission: signal-driven-monitoring-haiku-gate-01KT22PC (#490).
 # FR-006 — initial signal set: WhatsApp credential-restore events,
 # web-channel watchdog reconnect events, agent unhandled error events.
-# Thresholds calibrated against /tmp/openclaw/openclaw-2026-06-01.log
-# per research.md §OD-2.
+# Thresholds: initial calibration (research.md §OD-2) was against
+# /tmp/openclaw/openclaw-2026-06-01.log assuming the signals tracked
+# novel events. Cutover-time discovery (#490 post-merge) revealed that
+# all three FR-006 signals actually track a CHRONIC upstream OpenClaw
+# watchdog condition: the WhatsApp web-channel watchdog forces
+# reconnect every 60s when idle 30+ min, causing creds.json corruption
+# (auto-recovered from .bak), reconnect storms, and DNS resolution
+# errors. The condition is generic OpenClaw behavior, unfixable from
+# our side, and has near-zero functional impact (gateway self-heals).
+#
+# Thresholds therefore tuned to catch DEPARTURE FROM BASELINE, not
+# baseline itself. Worst observed per-15min-cycle was ~14 events
+# (creds_restore peak); these thresholds fire at ~4x worst-observed
+# per cycle and ~7x worst-observed rolling, so an open issue means the
+# condition is meaningfully worse than the known chronic baseline.
 
 [meta]
 schema_version = 1
@@ -18,9 +31,9 @@ source_kind             = "openclaw_log"
 source_path_pattern     = "/tmp/openclaw/openclaw-*.log"
 match_pattern           = "restored corrupted WhatsApp creds.json from backup"
 match_kind              = "substring"
-cycle_threshold         = 6
+cycle_threshold         = 60
 rolling_window_minutes  = 60
-rolling_threshold       = 18
+rolling_threshold       = 200
 dedup_strategy          = "open_issue_present"
 priority                = "P2"
 area_label              = "felix-core"
@@ -33,9 +46,9 @@ source_kind             = "openclaw_log"
 source_path_pattern     = "/tmp/openclaw/openclaw-*.log"
 match_pattern           = "web reconnect: connection closed"
 match_kind              = "substring"
-cycle_threshold         = 10
+cycle_threshold         = 60
 rolling_window_minutes  = 60
-rolling_threshold       = 25
+rolling_threshold       = 200
 dedup_strategy          = "open_issue_present"
 priority                = "P2"
 area_label              = "felix-core"
@@ -48,9 +61,9 @@ source_kind             = "openclaw_log"
 source_path_pattern     = "/tmp/openclaw/openclaw-*.log"
 match_pattern           = '"logLevelName":"ERROR"'
 match_kind              = "substring"
-cycle_threshold         = 3
+cycle_threshold         = 30
 rolling_window_minutes  = 60
-rolling_threshold       = 5
+rolling_threshold       = 100
 dedup_strategy          = "open_issue_present"
 priority                = "P2"
 area_label              = "felix-core"
