@@ -6,6 +6,7 @@ owners: ["@kentonium3"]
 last_updated: '2026-05-17'
 version: v1.0
 audience: agents_and_humans
+tags: [2032]
 ---
 
 # ADR-0002 — Felix ↔ Vikunja task model

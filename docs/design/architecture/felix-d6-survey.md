@@ -5,6 +5,7 @@ status: draft
 audience: agents_and_humans
 owners: [kgale]
 last_validated: 2026-05-21
+tags: [281, 112, 278, 276, 1, 2, 3, 4, 343]
 ---
 
 # Felix-wide Directive 6 Survey

@@ -6,6 +6,7 @@ owners: ["@kentonium3"]
 last_updated: '2026-05-13'
 version: v1.0
 audience: agents_and_humans
+tags: [120, 100, 164, 165]
 ---
 
 # ADR-0001 — Google Workspace integration via `gog` CLI
