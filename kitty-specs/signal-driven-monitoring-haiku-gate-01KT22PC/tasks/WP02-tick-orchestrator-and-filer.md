@@ -292,3 +292,4 @@ spec-kitty agent action implement WP02 --agent <your-agent-name>
 - 2026-06-01T19:28:19Z – codex:gpt-5:reviewer:reviewer – shell_pid=63726 – Started review via action command
 - 2026-06-01T19:32:02Z – codex:gpt-5:reviewer:reviewer – shell_pid=63726 – Codex WP02 cycle 1 reject: run_cycle(replay_log=...) defaults dry_run=False, allowing live filing on function-call replay. CLI already forces dry-run; lift the same default into the function. Move-task by orchestrator per #330.
 - 2026-06-01T19:32:05Z – claude:opus-4-7:implementer:implementer – shell_pid=64862 – Started implementation via action command
+- 2026-06-01T19:35:45Z – claude:opus-4-7:implementer:implementer – shell_pid=64862 – Cycle 1 fix: replay-safe default lifted into run_cycle(); explicit opt-in via force_replay_filing; 2 regression tests added
