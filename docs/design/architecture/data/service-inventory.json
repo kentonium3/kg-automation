@@ -1717,49 +1717,154 @@
     {
       "name": "felix-core-digest",
       "type": "scheduled",
-      "description": "Agent activity log summarization \u2014 reads JSONL, generates Markdown digests",
+      "description": "Felix Core Digest \u2014 agent activity digest + OpenClaw signal extraction. Each 15-minute tick runs summarize.py (existing agent-log digest) and tick.py (new deterministic signal extraction + threshold-driven issue filing) as chained ExecStart steps under a single Type=oneshot service.",
       "host": "office2",
       "user": "claude",
-      "systemd_unit": "felix-core-digest.timer (user unit)",
+      "systemd_unit": "felix-core-digest.timer (user unit) + felix-core-digest.service (user oneshot, two chained ExecStart)",
       "systemd_user": "claude",
       "schedule": "every 15 minutes",
-      "exec_start": "/usr/bin/python3 /home/claude/repos/kg-automation/scripts/openclaw/observation/summarize.py",
-      "source_in_repo": "scripts/openclaw/observation/summarize.py",
-      "input_path": "/home/claude/second-brain/agents/logs/",
-      "output_path": "/home/claude/second-brain/notes/Agent-Logs/",
-      "retention": "5 days (digest files only, by filename date)",
+      "exec_start": "/usr/bin/python3 /home/claude/repos/kg-automation/scripts/openclaw/observation/summarize.py && /usr/bin/python3 /home/claude/repos/kg-automation/scripts/openclaw/observation/tick.py",
+      "exec_start_note": "systemd Type=oneshot permits multiple ExecStart= directives executed in order. summarize.py runs first; on success tick.py runs second. If summarize.py exits non-zero, tick.py does NOT run (systemd semantics). See docs/runbooks/signal-driven-monitoring-ops.md Troubleshooting for distinguishing the two failure modes.",
+      "source_in_repo": "scripts/openclaw/observation/summarize.py, scripts/openclaw/observation/tick.py",
+      "input_path": "/home/claude/second-brain/agents/logs/ (summarize.py) + /tmp/openclaw/openclaw-*.log (tick.py)",
+      "output_path": "/home/claude/second-brain/notes/Agent-Logs/ (summarize.py) + /data/services/openclaw/felix-core-digest-signals/ (tick.py state, ledger, last-tick.json)",
+      "state_path": "/data/services/openclaw/felix-core-digest-signals/",
+      "retention": "5 days (digest files only, by filename date); signal state + last-tick.json overwritten each cycle; signals-ledger.jsonl append-only",
       "deployed_by": "F014",
+      "deployed_on": "2026-04-28",
       "status": "active",
-      "purpose": "Observation intelligence layer \u2014 reads agent JSONL logs, generates per-agent Markdown digests for Obsidian",
-      "runbook": "docs/runbooks/observation-ops.md",
-      "updated_by": "F014",
+      "purpose": "Observation intelligence layer \u2014 reads agent JSONL logs and OpenClaw logs, generates per-agent Markdown digests for Obsidian (summarize.py), AND extracts defined signals from OpenClaw logs to file threshold-triggered GitHub issues deterministically via kg-felix-bot (tick.py; introduced by #490).",
+      "runbook": "docs/runbooks/observation-ops.md (summary digest), docs/runbooks/signal-driven-monitoring-ops.md (signal extraction + cutover)",
+      "updated_by": "#490",
+      "last_updated": "2026-06-01",
       "risk_tier": 3,
+      "capabilities": {
+        "agent_log_digest": true,
+        "files_issues": true,
+        "files_issues_note": "Introduced by #490 \u2014 tick.py extracts named signals from /tmp/openclaw/openclaw-*.log and files issues via felix-file-issue.py when a signal crosses its threshold. Deterministic (no LLM); identity is kg-felix-bot."
+      },
       "dependencies": [
         {
           "target": "/home/claude/second-brain/agents/logs/",
           "type": "requires",
-          "description": "Input JSONL agent activity logs"
+          "description": "Input JSONL agent activity logs (summarize.py)"
+        },
+        {
+          "target": "/tmp/openclaw/",
+          "type": "requires",
+          "description": "OpenClaw daily logs (openclaw-YYYY-MM-DD.log) consumed by tick.py for signal extraction. Introduced by #490."
         },
         {
           "target": "python3",
           "type": "requires",
-          "description": "Python runtime for summarize.py script"
+          "description": "Python runtime for summarize.py + tick.py"
+        },
+        {
+          "target": "gh-cli",
+          "type": "requires",
+          "description": "tick.py invokes scripts/openclaw/agents/main/felix-file-issue.py which shells out to gh under the kg-felix-bot identity. Introduced by #490."
+        },
+        {
+          "target": "kg-felix-bot-pat",
+          "type": "requires",
+          "description": "GitHub PAT used by tick.py-driven issue filings. Introduced by #490."
         }
       ],
       "health_check": {
-        "method": "systemd-status",
-        "endpoint": "systemctl --user status felix-core-digest.timer",
-        "expected": "active",
+        "method": "tick-signal-file",
+        "endpoint": "/data/services/openclaw/felix-core-digest-signals/last-tick.json",
+        "expected": "exit_status=success within the last 30 minutes; errors=[] (see kitty-specs/signal-driven-monitoring-haiku-gate-01KT22PC/contracts/tick-signal.contract.md). Operators may additionally check `systemctl --user status felix-core-digest.timer` for liveness.",
         "timeout_seconds": 5
       },
       "config_files": [
         {
           "path": "/home/claude/.config/systemd/user/felix-core-digest.service",
-          "format": "systemd-unit"
+          "format": "systemd-unit",
+          "source_in_repo": "scripts/office2/felix-core-digest.service"
         },
         {
           "path": "/home/claude/.config/systemd/user/felix-core-digest.timer",
-          "format": "systemd-unit"
+          "format": "systemd-unit",
+          "source_in_repo": "scripts/office2/felix-core-digest.timer"
+        },
+        {
+          "path": "/home/claude/repos/kg-automation/scripts/openclaw/observation/signals/config.toml",
+          "format": "toml",
+          "source_in_repo": "scripts/openclaw/observation/signals/config.toml",
+          "purpose": "Signal definitions (thresholds, dedup windows, source-data selectors, log-excerpt extractors) consumed by tick.py. Edit-without-code-changes per FR-005. Introduced by #490.",
+          "introduced_by": "#490"
+        }
+      ]
+    },
+    {
+      "name": "felix-heartbeat-gate",
+      "type": "systemd-timer",
+      "description": "Heartbeat routing gate \u2014 Haiku-tier decision over OpenClaw heartbeat invocations. Each 30-minute tick reads the latest signal-extraction snapshot (last-tick.json) and HEARTBEAT.md, asks claude-haiku-4-5 to classify the situation, and emits one of HEARTBEAT_OK / LOG_AND_SKIP / ESCALATE_TO_SONNET. On ESCALATE_TO_SONNET the gate invokes `openclaw system event --mode now` exactly once to wake the existing Sonnet main-agent path. On API/timeout failure the gate falls back to the same escalation path so observation is never silently dropped (FR-011).",
+      "host": "office2",
+      "user": "claude",
+      "systemd_unit": "felix-heartbeat-gate.timer (user unit) + felix-heartbeat-gate.service (user oneshot)",
+      "systemd_user": "claude",
+      "schedule": "OnUnitActiveSec=30min, OnBootSec=5min, Persistent=true",
+      "exec_start": "/usr/bin/python3 /home/claude/repos/kg-automation/scripts/openclaw/heartbeat_gate/run.py",
+      "exec_start_note": "Direct Python driver invocation. Stateless per tick \u2014 each run is a fresh Python process; persistent state lives in /data/services/openclaw/felix-heartbeat-gate/ (last-gate-decision.json + gate-ledger.jsonl) and the heartbeat contract file at /data/services/openclaw/data/HEARTBEAT.md.",
+      "source_in_repo": "scripts/openclaw/heartbeat_gate/run.py",
+      "state_path": "/data/services/openclaw/felix-heartbeat-gate/",
+      "deployed_by": "#490",
+      "deployed_on": "2026-06-01",
+      "status": "active",
+      "session_mode": "stateless",
+      "purpose": "Replaces OpenClaw's general-purpose Sonnet heartbeat with a cheap-tier router. Mission: signal-driven-monitoring-haiku-gate-01KT22PC. Cuts expensive-tier invocation cost by >=80% (NFR-001) while preserving novel-signal escalation (FR-008) and HEARTBEAT.md scheduled-task semantics (FR-010).",
+      "runbook": "docs/runbooks/signal-driven-monitoring-ops.md",
+      "updated_by": "#490",
+      "last_updated": "2026-06-01",
+      "model": "anthropic/claude-haiku-4-5",
+      "model_policy": "pinned",
+      "autonomy_level": "Observed (Level 2)",
+      "risk_tier": 3,
+      "dependencies": [
+        {
+          "target": "felix-core-digest",
+          "type": "requires",
+          "description": "Reads /data/services/openclaw/felix-core-digest-signals/last-tick.json (signal-extraction snapshot). Without this input the gate falls back to ESCALATE_TO_SONNET."
+        },
+        {
+          "target": "openclaw-gateway",
+          "type": "requires",
+          "description": "On ESCALATE_TO_SONNET the gate shells out `openclaw system event --mode now` to wake the existing main-agent (Sonnet 4.6) path. Internal openclaw heartbeat must be disabled to avoid double-fire \u2014 see runbook cutover step."
+        },
+        {
+          "target": "anthropic",
+          "type": "requires",
+          "description": "API key read at tick start from /data/services/openclaw/secrets/anthropic; sent directly to Anthropic via the anthropic-python SDK (no openclaw-gateway proxy in path). Same key as felix-doc-auditor-driver."
+        },
+        {
+          "target": "/data/services/openclaw/data/HEARTBEAT.md",
+          "type": "requires",
+          "description": "Heartbeat contract file \u2014 read each tick to honor scheduled-task semantics (FR-010). Empty/template content = skip (per existing convention)."
+        }
+      ],
+      "health_check": {
+        "method": "tick-signal-file",
+        "endpoint": "/data/services/openclaw/felix-heartbeat-gate/last-gate-decision.json",
+        "expected": "outcome in {HEARTBEAT_OK, LOG_AND_SKIP, ESCALATE_TO_SONNET} within the last 35 minutes; errors=[]; fallback_invoked=false on the steady state. See kitty-specs/signal-driven-monitoring-haiku-gate-01KT22PC/contracts/gate-decision.contract.md for the schema.",
+        "timeout_seconds": 5
+      },
+      "config_files": [
+        {
+          "path": "/home/claude/.config/systemd/user/felix-heartbeat-gate.service",
+          "format": "systemd-unit",
+          "source_in_repo": "scripts/office2/felix-heartbeat-gate.service"
+        },
+        {
+          "path": "/home/claude/.config/systemd/user/felix-heartbeat-gate.timer",
+          "format": "systemd-unit",
+          "source_in_repo": "scripts/office2/felix-heartbeat-gate.timer"
+        },
+        {
+          "path": "/home/claude/repos/kg-automation/scripts/openclaw/heartbeat_gate/prompts/routing.prompt.md",
+          "format": "markdown",
+          "source_in_repo": "scripts/openclaw/heartbeat_gate/prompts/routing.prompt.md",
+          "purpose": "Cache-aware routing prompt (stable system prompt + dynamic per-tick context). Introduced by #490."
         }
       ]
     },

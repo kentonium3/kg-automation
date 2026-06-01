@@ -6,10 +6,10 @@ level: reference
 status: approved
 owners:
   - "@kentonium3"
-last_updated: '2026-05-26'
-revision: v1.6
+last_updated: '2026-06-01'
+revision: v1.7
 audience: agents_and_humans
-updated_by: '#346 (sweep: +#310 enrichment, +#374 main-rotation)'
+updated_by: '#490 (signal-driven-monitoring-haiku-gate: +signal-extraction subgraph, +heartbeat-gate subgraph)'
 
 ---
 
@@ -93,6 +93,30 @@ graph LR
             main_rotate["scripts/openclaw/helpers/<br/>rotate_main_session.py<br/>(#374 one-shot)"]
             main_sessions[("OpenClaw sessions<br/>/home/claude/.openclaw/<br/>agents/main/sessions/")]
             main_rotation_marker[("main-rotation-&lt;timestamp&gt;.done<br/>~/.config/openclaw/")]
+        end
+
+        subgraph sdm["Signal-Driven Monitoring (#490 — felix-core-digest signal extraction + felix-heartbeat-gate)"]
+            fcd_timer["felix-core-digest.timer<br/>OnUnitActiveSec=15min<br/>OnBootSec=3min"]
+            fcd_service["felix-core-digest.service<br/>(oneshot, two chained ExecStart)"]
+            sdm_summarize["scripts/openclaw/observation/<br/>summarize.py<br/>(existing — agent-log digest)"]
+            sdm_tick["scripts/openclaw/observation/<br/>tick.py<br/>(NEW #490 — signal extraction)"]
+            sdm_signals_cfg[("signals/config.toml<br/>scripts/openclaw/observation/<br/>(declarative signal defs — FR-005)")]
+            openclaw_logs[("/tmp/openclaw/<br/>openclaw-YYYY-MM-DD.log<br/>(read-only)")]
+            sdm_state[("per-signal state<br/>/data/services/openclaw/<br/>felix-core-digest-signals/state/<br/>(atomic write)")]
+            sdm_tick_signal[("last-tick.json<br/>/data/services/openclaw/<br/>felix-core-digest-signals/<br/>(overwritten each cycle)")]
+            sdm_ledger[("signals-ledger.jsonl<br/>/data/services/openclaw/<br/>felix-core-digest-signals/<br/>(append-only)")]
+            felix_file_issue_sdm["scripts/openclaw/agents/main/<br/>felix-file-issue.py<br/>(shared subprocess)"]
+
+            gate_timer["felix-heartbeat-gate.timer<br/>OnUnitActiveSec=30min<br/>OnBootSec=5min"]
+            gate_service["felix-heartbeat-gate.service<br/>(oneshot)"]
+            gate_run["scripts/openclaw/heartbeat_gate/<br/>run.py<br/>(NEW #490)"]
+            gate_prompt[("prompts/routing.prompt.md<br/>scripts/openclaw/heartbeat_gate/<br/>(cache-aware system prompt)")]
+            heartbeat_contract[("HEARTBEAT.md<br/>/data/services/openclaw/data/<br/>(read; FR-010 contract)")]
+            anthropic_key_sdm[("anthropic API key<br/>/data/services/openclaw/<br/>secrets/anthropic (0600)<br/>shared with doc-audit + habits")]
+            gate_decision[("last-gate-decision.json<br/>/data/services/openclaw/<br/>felix-heartbeat-gate/<br/>(overwritten each tick)")]
+            gate_ledger[("gate-ledger.jsonl<br/>/data/services/openclaw/<br/>felix-heartbeat-gate/<br/>(append-only)")]
+            openclaw_event["openclaw system event --mode now<br/>(subprocess, ONLY on ESCALATE<br/>or fallback)"]
+            main_agent_sonnet["OpenClaw main agent<br/>(Sonnet 4.6)<br/>existing expensive-tier path"]
         end
     end
 
@@ -184,4 +208,27 @@ graph LR
 
     main_rotate -->|"rename *.jsonl → *.reset.&lt;ts&gt;<br/>(operator post-AGENTS.md deploy)"| main_sessions
     main_rotate -->|"write marker"| main_rotation_marker
+
+    fcd_timer -->|"systemd activation"| fcd_service
+    fcd_service -->|"ExecStart 1 (must exit 0)"| sdm_summarize
+    fcd_service -->|"ExecStart 2 (only if summarize 0)"| sdm_tick
+    sdm_tick -->|"read (FR-005 declarative)"| sdm_signals_cfg
+    sdm_tick -->|"read (rolling window)"| openclaw_logs
+    sdm_tick -->|"per-signal: atomic write<br/>(FR-004 persistent counters)"| sdm_state
+    sdm_tick -.->|"threshold cross + no open dedup match:<br/>subprocess (FR-002/FR-003)"| felix_file_issue_sdm
+    felix_file_issue_sdm -->|"gh issue create<br/>(kg-felix-bot PAT; C-001/C-005)"| gh_api
+    sdm_tick -->|"atomic write<br/>(canonical health signal)"| sdm_tick_signal
+    sdm_tick -->|"append per filing<br/>(NFR-004 audit trail)"| sdm_ledger
+
+    gate_timer -->|"systemd activation"| gate_service
+    gate_service -->|"ExecStart"| gate_run
+    gate_run -->|"read (PRIMARY INPUT)"| sdm_tick_signal
+    gate_run -->|"read (FR-010 contract)"| heartbeat_contract
+    gate_run -->|"read 0600<br/>(never logged)"| anthropic_key_sdm
+    gate_run -->|"system prompt<br/>(cache-aware)"| gate_prompt
+    gate_run -->|"HTTPS (anthropic-python SDK,<br/>claude-haiku-4-5)"| anthropic_api
+    gate_run -.->|"ONLY on ESCALATE_TO_SONNET<br/>OR fallback (FR-008/FR-011)"| openclaw_event
+    openclaw_event -->|"wake existing main-agent path"| main_agent_sonnet
+    gate_run -->|"atomic write per tick<br/>(FR-009 audit surface)"| gate_decision
+    gate_run -->|"append per tick<br/>(NFR-001 cost telemetry)"| gate_ledger
 ```

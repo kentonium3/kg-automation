@@ -460,6 +460,63 @@ Wraps as step 4 of the 5-step cutover in [`openclaw-agent-setup.md`](<../../runb
 
 Naturally idempotent — each call produces a uniquely-timestamped marker and reset suffix, so re-runs simply rotate whatever sessions have started since the last run (typically zero if no traffic). `--dry-run` prints intent without mutations. `--force` is reserved for future use.
 
+### Signal Extraction → GitHub (#490, signal-driven-monitoring-haiku-gate)
+
+```
+felix-core-digest.timer (15-min)
+  → felix-core-digest.service (oneshot, two chained ExecStart)
+      → summarize.py        (existing — agent-log digest)
+      → tick.py             (NEW — deterministic signal extraction)
+           → /tmp/openclaw/openclaw-*.log                                (read)
+           → /data/services/openclaw/felix-core-digest-signals/state/    (per-signal counters, atomic write)
+           → scripts/openclaw/agents/main/felix-file-issue.py            (subprocess on threshold cross)
+                → gh issue create (kg-felix-bot PAT)
+           → /data/services/openclaw/felix-core-digest-signals/last-tick.json   (atomic write)
+           → /data/services/openclaw/felix-core-digest-signals/signals-ledger.jsonl   (append)
+```
+
+Deterministic OpenClaw-log signal extraction with threshold-driven GitHub issue filing. **No LLM is in this path** (NFR-003). Replaces the prior heartbeat-driven LLM-judged filing path for the named signal classes defined in `scripts/openclaw/observation/signals/config.toml` (initial set: `whatsapp_creds_restore`, `web_watchdog_reconnect`, `agent_unhandled_error` — FR-006). Novel patterns continue to route through the heartbeat gate (next section).
+
+Behavior per tick:
+1. `summarize.py` runs first (existing agent-log digest pass). If it exits non-zero, `tick.py` does **not** run (systemd `Type=oneshot` semantics).
+2. `tick.py` reads `/tmp/openclaw/openclaw-*.log` covering the rolling window per signal source.
+3. Per signal: increment counters, compare against `cycle_threshold` / `rolling_threshold`.
+4. On threshold cross AND no matching open issue in the dedup window (FR-002): invoke `felix-file-issue.py` to file a new issue with template-compliant body (FR-003) under the `kg-felix-bot` identity. Log excerpts are credential-redacted per C-005.
+5. Persist per-signal counters atomically (FR-004); cold-start logic re-reads recent log windows before trusting state.
+6. Write `last-tick.json` (structured health signal — primary input to the heartbeat gate) and append one row per filing to `signals-ledger.jsonl` (audit trail backing NFR-004).
+
+Signal definitions are edit-without-code-changes (FR-005) — operator edits `signals/config.toml`, commits, deploys; next cycle picks them up.
+
+### Heartbeat Gate → Main Agent (#490, signal-driven-monitoring-haiku-gate)
+
+```
+felix-heartbeat-gate.timer (30-min, +5-min boot offset)
+  → felix-heartbeat-gate.service (oneshot)
+      → scripts/openclaw/heartbeat_gate/run.py
+           → /data/services/openclaw/felix-core-digest-signals/last-tick.json   (read — primary input)
+           → /data/services/openclaw/data/HEARTBEAT.md                          (read — contract file, FR-010)
+           → /data/services/openclaw/secrets/anthropic                          (read 0600 — never logged)
+           → api.anthropic.com (HTTPS, anthropic-python SDK, claude-haiku-4-5)
+           → openclaw system event --mode now   (subprocess, ON ESCALATE_TO_SONNET or fallback only)
+           → /data/services/openclaw/felix-heartbeat-gate/last-gate-decision.json   (atomic write)
+           → /data/services/openclaw/felix-heartbeat-gate/gate-ledger.jsonl    (append)
+```
+
+Haiku-tier routing gate that fronts OpenClaw's heartbeat. The gate decides whether each 30-minute tick needs to wake the expensive Sonnet main-agent path; on the steady state it does not.
+
+Per tick, the gate returns one of:
+- **HEARTBEAT_OK** — nothing to do (silent tick, no escalation, no contract task).
+- **LOG_AND_SKIP** — observable but doesn't require action this tick.
+- **ESCALATE_TO_SONNET** — novel/ambiguous signal OR contract task requires judgment. Gate invokes `openclaw system event --mode now` exactly once (FR-008), wakes the existing Sonnet 4.6 main-agent path with the gate's structured reason as context.
+
+**Failure handling (FR-011)**: API error, timeout, or malformed-response triggers the fallback path — same `openclaw system event --mode now` invocation, with `fallback_invoked: true` recorded in `last-gate-decision.json`. Observation is **never silently dropped**.
+
+**Contract semantics (FR-010)**: the gate honors the existing `HEARTBEAT.md` "empty = skip" rule. Scheduled tasks in the contract file are executed (cheap-tier where feasible, escalated when judgment is required) — behavior indistinguishable from the pre-#490 path from the contract author's perspective.
+
+**Cutover dependency (Tier 2)**: when this gate goes live, OpenClaw's internal heartbeat must be disabled (`openclaw system heartbeat disable`) to avoid double-fire. Rollback re-enables it. See [`docs/runbooks/signal-driven-monitoring-ops.md`](<../../runbooks/signal-driven-monitoring-ops.md>) for the full cutover procedure including the Restic-backup precondition.
+
+The 5-minute `OnBootSec` offset (vs felix-core-digest's `OnBootSec=3min`) avoids lockstep contention on boot.
+
 ## Planned Flows (Not Yet Implemented)
 
 | Flow | Features | Description |
@@ -495,3 +552,8 @@ Naturally idempotent — each call produces a uniquely-timestamped marker and re
 | Cutover-362 marker (#362) | `~/.config/doc-audit/cutover-362.done` | No (sentinel; ~/.config not in Restic scope) |
 | Cleanup-391 marker (#391) | `~/.config/doc-audit/cleanup-391.done` | No (sentinel; ~/.config not in Restic scope) |
 | Main-session rotation marker (#374) | `~/.config/openclaw/main-rotation-<timestamp>.done` | No (audit trail; ~/.config not in Restic scope) |
+| Signal-extraction tick signal (#490) | `/data/services/openclaw/felix-core-digest-signals/last-tick.json` | No (overwritten each cycle) |
+| Signal-extraction per-signal state (#490) | `/data/services/openclaw/felix-core-digest-signals/state/` | Yes |
+| Signal-extraction ledger (#490) | `/data/services/openclaw/felix-core-digest-signals/signals-ledger.jsonl` | Yes |
+| Heartbeat-gate decision (#490) | `/data/services/openclaw/felix-heartbeat-gate/last-gate-decision.json` | No (overwritten each tick) |
+| Heartbeat-gate ledger (#490) | `/data/services/openclaw/felix-heartbeat-gate/gate-ledger.jsonl` | Yes |

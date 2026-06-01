@@ -1,0 +1,10 @@
+{"0":"{\"module\":\"web-session\"}","1":{"credsPath":"/home/claude/.openclaw/credentials/whatsapp/default/creds.json"},"2":"restored corrupted WhatsApp creds.json from backup","_meta":{"logLevelName":"WARN"},"time":"2026-06-01T00:00:58.289+00:00"}
+{"0":"{\"module\":\"web-session\"}","1":{"credsPath":"/home/claude/.openclaw/credentials/whatsapp/default/creds.json"},"2":"restored corrupted WhatsApp creds.json from backup","_meta":{"logLevelName":"WARN"},"time":"2026-06-01T00:02:02.786+00:00"}
+{"0":"{\"module\":\"web-session\"}","1":{},"2":"heartbeat tick","_meta":{"logLevelName":"INFO"},"time":"2026-06-01T00:05:00.000+00:00"}
+{"0":"{\"module\":\"web-session\"}","1":{"credsPath":"/home/claude/.openclaw/credentials/whatsapp/default/creds.json"},"2":"restored corrupted WhatsApp creds.json from backup","_meta":{"logLevelName":"WARN"},"time":"2026-06-01T00:07:10.111+00:00"}
+{"0":"{\"module\":\"web-session\"}","1":{"credsPath":"/home/claude/.openclaw/credentials/whatsapp/default/creds.json"},"2":"restored corrupted WhatsApp creds.json from backup","_meta":{"logLevelName":"WARN"},"time":"2026-06-01T00:08:20.222+00:00"}
+{"0":"{\"module\":\"web-session\"}","1":{},"2":"queue drain","_meta":{"logLevelName":"INFO"},"time":"2026-06-01T00:09:00.000+00:00"}
+{"0":"{\"module\":\"web-session\"}","1":{"credsPath":"/home/claude/.openclaw/credentials/whatsapp/default/creds.json"},"2":"restored corrupted WhatsApp creds.json from backup","_meta":{"logLevelName":"WARN"},"time":"2026-06-01T00:11:30.333+00:00"}
+{"0":"{\"module\":\"web-session\"}","1":{"credsPath":"/home/claude/.openclaw/credentials/whatsapp/default/creds.json"},"2":"restored corrupted WhatsApp creds.json from backup","_meta":{"logLevelName":"WARN"},"time":"2026-06-01T00:13:40.444+00:00"}
+{"0":"{\"module\":\"web-session\"}","1":{"credsPath":"/home/claude/.openclaw/credentials/whatsapp/default/creds.json"},"2":"restored corrupted WhatsApp creds.json from backup","_meta":{"logLevelName":"WARN"},"time":"2026-06-01T00:14:50.555+00:00"}
+{"0":"{\"module\":\"web-session\"}","1":{},"2":"queue settle","_meta":{"logLevelName":"INFO"},"time":"2026-06-01T00:15:00.000+00:00"}

@@ -1,0 +1,10 @@
+[Unit]
+Description=Felix Heartbeat Gate — Haiku-tier routing for OpenClaw heartbeat
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 /home/claude/repos/kg-automation/scripts/openclaw/heartbeat_gate/run.py
+Environment=HOME=/home/claude
+WorkingDirectory=/home/claude/repos/kg-automation

@@ -1,0 +1,59 @@
+# Signal definitions for the felix-core-digest signal-extraction loop.
+#
+# Authoritative schema lives in
+# kitty-specs/signal-driven-monitoring-haiku-gate-01KT22PC/
+#     contracts/signal-config.contract.md
+#
+# Mission: signal-driven-monitoring-haiku-gate-01KT22PC (#490).
+# FR-006 — initial signal set: WhatsApp credential-restore events,
+# web-channel watchdog reconnect events, agent unhandled error events.
+# Thresholds calibrated against /tmp/openclaw/openclaw-2026-06-01.log
+# per research.md §OD-2.
+
+[meta]
+schema_version = 1
+
+[signals.whatsapp_creds_restore]
+source_kind             = "openclaw_log"
+source_path_pattern     = "/tmp/openclaw/openclaw-*.log"
+match_pattern           = "restored corrupted WhatsApp creds.json from backup"
+match_kind              = "substring"
+cycle_threshold         = 6
+rolling_window_minutes  = 60
+rolling_threshold       = 18
+dedup_strategy          = "open_issue_present"
+priority                = "P2"
+area_label              = "felix-core"
+tier_hypothesis         = "3"
+excerpt_lines           = 5
+enabled                 = true
+
+[signals.web_watchdog_reconnect]
+source_kind             = "openclaw_log"
+source_path_pattern     = "/tmp/openclaw/openclaw-*.log"
+match_pattern           = "web reconnect: connection closed"
+match_kind              = "substring"
+cycle_threshold         = 10
+rolling_window_minutes  = 60
+rolling_threshold       = 25
+dedup_strategy          = "open_issue_present"
+priority                = "P2"
+area_label              = "felix-core"
+tier_hypothesis         = "3"
+excerpt_lines           = 5
+enabled                 = true
+
+[signals.openclaw_unhandled_error]
+source_kind             = "openclaw_log"
+source_path_pattern     = "/tmp/openclaw/openclaw-*.log"
+match_pattern           = '"logLevelName":"ERROR"'
+match_kind              = "substring"
+cycle_threshold         = 3
+rolling_window_minutes  = 60
+rolling_threshold       = 5
+dedup_strategy          = "open_issue_present"
+priority                = "P2"
+area_label              = "felix-core"
+tier_hypothesis         = "3"
+excerpt_lines           = 8
+enabled                 = true

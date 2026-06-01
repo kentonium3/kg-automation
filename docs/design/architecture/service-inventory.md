@@ -39,7 +39,8 @@ All services run on office2 unless otherwise noted.
 | Escalation Check (daily) | 8:00 AM ET daily | OpenClaw cron → felix-admin-escalation | claude | Overdue task escalation via WhatsApp |
 | Doc Audit Poll | ⏸ Suspended 2026-05-26 (was: every 60 min top of hour UTC) | `felix-doc-auditor.timer` (systemd, currently **disabled**) → `/usr/bin/python3 /home/claude/kg-automation/scripts/doc_audit/run.py` (#343 scripts-first driver) | claude | Process Doc Audit / Weekly Doc Audit issues — **paused indefinitely** pending #137 cost-control work |
 | Second Brain Sync | Every 15 min | `second-brain-sync.timer` (systemd) | kgale | Bidirectional git sync for non-vault content |
-| Felix Core Digest | Every 15 min | `felix-core-digest.timer` (systemd) | claude | Agent activity log summarization → Obsidian digests |
+| Felix Core Digest | Every 15 min | `felix-core-digest.timer` (systemd, two chained ExecStart post-#490) | claude | Agent activity log summarization → Obsidian digests + deterministic OpenClaw-log signal extraction → GitHub issues via kg-felix-bot (#490) |
+| Felix Heartbeat Gate | Every 30 min (OnUnitActiveSec=30min, OnBootSec=5min) | `felix-heartbeat-gate.timer` (systemd, #490) → `/usr/bin/python3 /home/claude/repos/kg-automation/scripts/openclaw/heartbeat_gate/run.py` | claude | Routes each OpenClaw heartbeat tick via claude-haiku-4-5; only escalates to Sonnet 4.6 on novel signal / contract task / fallback. Replaces OpenClaw's internal heartbeat. (#490) |
 
 ## Deployment Details
 
@@ -446,20 +447,42 @@ Per-module metadata mirrors `docs/design/architecture/data/service-inventory.jso
   - **reads_from**: `/data/services/security-monitor/logs/drift-events.jsonl`; `signal-to-doc-map.json`
   - **credentials**: `anthropic-api` (via JudgmentClient); `github-pat-kg-felix-bot` (via gh CLI)
 
-### Felix Core Digest (F014)
-- **Deployed by**: F014
-- **Type**: Scheduled service (systemd user timer)
+### Felix Core Digest (F014, signal extraction added #490)
+- **Deployed by**: F014; signal-extraction pass added by #490 (mission `signal-driven-monitoring-haiku-gate-01KT22PC`)
+- **Type**: Scheduled service (systemd user timer; `Type=oneshot` with two chained `ExecStart=` lines post-#490)
 - **systemd unit**: `felix-core-digest.timer` + `felix-core-digest.service` (user unit under claude)
 - **Schedule**: Every 15 minutes (OnUnitActiveSec=15min, OnBootSec=3min, Persistent=true)
 - **Runs as**: claude user
-- **ExecStart**: `/usr/bin/python3 /home/claude/repos/kg-automation/scripts/openclaw/observation/summarize.py`
-- **Input**: JSONL log files at `~/second-brain/agents/logs/{agent}/YYYY-MM-DD.jsonl`
-- **Output**: Markdown digests at `~/second-brain/notes/Agent-Logs/`
-- **Retention**: 5 days (digest files deleted by filename date)
-- **Idempotency**: Skips writes when no new JSONL content since last run
-- **Source in repo**: `scripts/openclaw/observation/summarize.py`
+- **ExecStart 1**: `/usr/bin/python3 /home/claude/repos/kg-automation/scripts/openclaw/observation/summarize.py` (existing — agent-log digest)
+- **ExecStart 2** (post-#490): `/usr/bin/python3 /home/claude/repos/kg-automation/scripts/openclaw/observation/tick.py` (NEW — deterministic OpenClaw-log signal extraction). Runs **only if** ExecStart 1 exits 0 (systemd `Type=oneshot` semantics).
+- **Input (summarize)**: JSONL log files at `~/second-brain/agents/logs/{agent}/YYYY-MM-DD.jsonl`
+- **Input (tick)**: OpenClaw daily logs at `/tmp/openclaw/openclaw-YYYY-MM-DD.log`
+- **Output (summarize)**: Markdown digests at `~/second-brain/notes/Agent-Logs/`
+- **Output (tick)**: Per-signal state + `last-tick.json` + `signals-ledger.jsonl` under `/data/services/openclaw/felix-core-digest-signals/`; GitHub issue filings via `scripts/openclaw/agents/main/felix-file-issue.py` (subprocess, kg-felix-bot identity)
+- **Retention**: 5 days (digest files deleted by filename date); signal state + `last-tick.json` overwritten each cycle; `signals-ledger.jsonl` append-only
+- **Idempotency**: Skips digest writes when no new JSONL content; signal filer deduplicates against open issues within the configured dedup window (FR-002)
+- **Source in repo**: `scripts/openclaw/observation/summarize.py`, `scripts/openclaw/observation/tick.py`, `scripts/openclaw/observation/signals/` (signal sources + `config.toml`)
 - **Log writer**: `scripts/openclaw/observation/log_action.py` (utility, not a service)
-- **Runbook**: `docs/runbooks/observation-ops.md`
+- **Health check (post-#490)**: `/data/services/openclaw/felix-core-digest-signals/last-tick.json` — `exit_status=success` within last 30 minutes, `errors=[]` (see `kitty-specs/signal-driven-monitoring-haiku-gate-01KT22PC/contracts/tick-signal.contract.md`)
+- **Runbook**: `docs/runbooks/observation-ops.md` (summary digest); `docs/runbooks/signal-driven-monitoring-ops.md` (signal extraction + cutover, #490)
+
+### Felix Heartbeat Gate (#490, signal-driven-monitoring-haiku-gate)
+- **Deployed by**: #490 / mission `signal-driven-monitoring-haiku-gate-01KT22PC`
+- **Type**: systemd user timer + oneshot service (Haiku-tier routing gate for OpenClaw's heartbeat)
+- **systemd unit**: `felix-heartbeat-gate.timer` + `felix-heartbeat-gate.service` (user unit under claude)
+- **Schedule**: `OnUnitActiveSec=30min`, `OnBootSec=5min`, `Persistent=true`. The 5-min boot offset (vs `felix-core-digest.timer`'s 3-min) avoids lockstep contention.
+- **Runs as**: claude user
+- **ExecStart**: `/usr/bin/python3 /home/claude/repos/kg-automation/scripts/openclaw/heartbeat_gate/run.py`
+- **Session mode**: stateless per tick — each invocation is a fresh Python process; nothing carried between ticks except via filesystem (`last-gate-decision.json`, `gate-ledger.jsonl`, `HEARTBEAT.md`).
+- **Model**: `claude-haiku-4-5` (anthropic SDK, direct — no openclaw-gateway proxy in path). Pinned.
+- **Inputs**: `/data/services/openclaw/felix-core-digest-signals/last-tick.json` (primary), `/data/services/openclaw/data/HEARTBEAT.md` (contract file, FR-010), `/data/services/openclaw/secrets/anthropic` (API key, 0600 — never logged).
+- **Outputs**: `last-gate-decision.json` (canonical health surface, overwritten each tick), `gate-ledger.jsonl` (append-only per-tick ledger backing NFR-001 cost telemetry).
+- **Escalation surface**: on `ESCALATE_TO_SONNET` or fallback (FR-011), invokes `openclaw system event --mode now` exactly once per tick to wake the existing Sonnet 4.6 main-agent path.
+- **Cutover note (Tier 2)**: this gate replaces OpenClaw's internal heartbeat. The cutover step `openclaw system heartbeat disable` is Tier 2 — requires Restic backup currency check. See the runbook.
+- **Source in repo**: `scripts/openclaw/heartbeat_gate/` (run.py, gate.py, context.py, escalator.py, ledger.py, prompts/routing.prompt.md)
+- **Health check**: `/data/services/openclaw/felix-heartbeat-gate/last-gate-decision.json` — `outcome ∈ {HEARTBEAT_OK, LOG_AND_SKIP, ESCALATE_TO_SONNET}` within last 35 min, `errors=[]`, `fallback_invoked=false` on the steady state.
+- **Runbook**: `docs/runbooks/signal-driven-monitoring-ops.md`
+- **Mission context**: `kitty-specs/signal-driven-monitoring-haiku-gate-01KT22PC/spec.md`
 
 ### Credential Health Check (#115, 2026-05-11)
 - **Deployed by**: #115

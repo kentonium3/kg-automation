@@ -1,0 +1,66 @@
+{
+  "schema_version": "1.0",
+  "name": "felix-heartbeat-gate-pre-rollout",
+  "captured_at_utc": "2026-06-01T20:31:16Z",
+  "captured_at": "2026-06-01T20:31:16Z",
+  "captured_by": "#490-WP03",
+  "captured_via": "scripts/openclaw/heartbeat_gate/baselines/measure-tokens.py --mode historical --session-dir /home/claude/.openclaw/agents/main/sessions --window-start 2026-05-05T00:00:00Z --window-end 2026-05-19T00:00:00Z --window-days 14 on office2",
+  "subject": {
+    "service": "openclaw-main-heartbeat",
+    "implementation": "Pre-rollout: OpenClaw heartbeat invokes main agent (Sonnet 4.6) directly every ~30 minutes when HEARTBEAT.md has tasks; otherwise emits a silent ok-token without an LLM call.",
+    "host": "office2",
+    "model": "anthropic/claude-sonnet-4-6",
+    "git_sha": "6ea49ec8a0465d472b3f70633b40faad12da1254",
+    "git_branch": "kitty/mission-signal-driven-monitoring-haiku-gate-01KT22PC-lane-c",
+    "source_kind": "session-dir",
+    "source_path": "/home/claude/.openclaw/agents/main/sessions",
+    "files_walked": 100
+  },
+  "window_days": 14,
+  "measurement_window": {
+    "tick_count": 71,
+    "earliest_tick_utc": "2026-05-06T15:40:49.046Z",
+    "latest_tick_utc": "2026-05-18T04:06:21.001Z",
+    "window_start_filter_utc": "2026-05-05T00:00:00Z",
+    "window_end_filter_utc": "2026-05-19T00:00:00Z",
+    "spans_hours": 336
+  },
+  "total_heartbeats": 71,
+  "total_input_tokens": 84,
+  "total_cache_hit_tokens": 101132,
+  "total_cache_write_tokens": 422274,
+  "total_output_tokens": 5261,
+  "ticks_per_day": 5.071428571428571,
+  "observed_total_cost_usd": 1.693033,
+  "estimated_total_cost_usd_from_list_pricing": 1.649385,
+  "estimated_monthly_cost_usd": 3.63,
+  "cost_source": "observed-from-session-log",
+  "methodology": {
+    "summary": "Walk the OpenClaw main-agent session JSONL(s) on office2, identify each heartbeat tick by the literal preamble OpenClaw injects ('Read HEARTBEAT.md if it exists (workspace context)...'), then sum the per-turn `usage` records WITHIN each tick. OpenClaw records the Anthropic-priced cost per turn in `usage.cost.total`; the baseline prefers that observed value over re-applying list-price math. Sonnet 4.6 list price is retained for fallback and for the post-rollout Haiku comparison. The measurement reflects only main-agent heartbeats — WhatsApp-triage turns and ESCALATE events from other paths are excluded by the preamble filter.",
+    "tick_marker_regex": "Read HEARTBEAT\\.md if it exists",
+    "window_start_filter_utc": "2026-05-05T00:00:00Z",
+    "window_end_filter_utc": "2026-05-19T00:00:00Z",
+    "pricing": {
+      "sonnet_input_usd_per_mtok": 3.0,
+      "sonnet_output_usd_per_mtok": 15.0,
+      "haiku_input_usd_per_mtok": 0.8,
+      "haiku_output_usd_per_mtok": 4.0
+    },
+    "billing_model_note": "We treat total_input_tokens_billable = input + cache_read + cache_write (cache-read and cache-write are charged at different per-token rates but all consume the input-side quota). When OpenClaw's `usage.cost.total` field is present on the assistant turn, that priced value is summed directly and `cost_source = observed-from-session-log`.",
+    "reproduction_steps": [
+      "1. SSH to office2 (`ssh office2-claude`).",
+      "2. Locate the main-agent session directory: `/home/claude/.openclaw/agents/main/sessions/`.",
+      "3. Run: `python3 scripts/openclaw/heartbeat_gate/baselines/measure-tokens.py --mode historical --session-dir /home/claude/.openclaw/agents/main/sessions --window-start <ISO> --window-end <ISO> --window-days <N> --out /tmp/baseline.json`.",
+      "4. Spot-check the tick_count against the OpenClaw heartbeat cadence and HEARTBEAT.md fill rate (only ticks with non-template HEARTBEAT.md content produce an LLM call; the empty-skip rule short-circuits most ticks to silent ok-token).",
+      "5. Promote into the baselines directory: `cp /tmp/baseline.json docs/design/architecture/baselines/felix-heartbeat-gate-pre-rollout.json` and commit."
+    ],
+    "sample_size_guidance": "Target ≥7 days of natural traffic to absorb day-of-week variation in HEARTBEAT.md fill state. The captured 14-day window deliberately ends at 2026-05-19, two days before the Anthropic API spend cap began returning 400 errors on 2026-05-22 — including post-cap days would dilute the per-tick cost with zero-token error turns and bias the daily-rate denominator. For re-measurement after 2026-06-01 (cap reset), bound `--window-end` at a pre-cap or post-reset boundary."
+  },
+  "open_caveats": [
+    "Heartbeat cadence is ~30 min (48 ticks/day at full rate), but the observed rate is 5.07 ticks/day across the 14-day window. This is because the current heartbeat short-circuits to a silent `ok-token` when HEARTBEAT.md is empty/template-only (the existing 'empty = skip' rule per spec.md line 64), so only ticks where Kent placed a scheduled task in `/data/services/openclaw/data/HEARTBEAT.md` produce an LLM call and show up in the session JSONL. The 5/day figure therefore represents the operational LLM-touching rate, not the underlying tick cadence. Post-rollout NFR-001 comparison must use the SAME definition (gate-touching ticks) to be apples-to-apples.",
+    "OpenClaw's `usage.cost.total` field is the observed-priced cost at session-write time. It matches Anthropic's pricing for Sonnet 4.6 and aligns within 2.6% of the re-derived list-price math (observed $1.69 vs list-price $1.65 on the same tokens), so the observed value is the authoritative cost source. The small delta is from Anthropic's cache-write pricing currently differing slightly from list-price input rate.",
+    "The post-rollout WP-04 measurement reads `gate-ledger.jsonl` (Haiku gate decisions) plus any escalation cost from the OpenClaw session log. The acceptance threshold is `post-rollout daily cost / pre-rollout daily cost ≤ 0.20`. Pre-rollout daily cost = $1.69 / 14d ≈ $0.121/day → post-rollout daily cost must be ≤ $0.024/day to satisfy NFR-001.",
+    "Excluded from this measurement: WhatsApp-triage turns on the main agent (NO_REPLY / HEARTBEAT_OK responses to inbound messages), ESCALATE-event turns from `openclaw system event`, and any LLM traffic not routed through OpenClaw. The preamble filter ('Read HEARTBEAT.md if it exists') matches only the cron-driven heartbeat injection.",
+    "100 session JSONL files were walked (including `.reset.*` and `.deleted.*` rotation artifacts); OpenClaw rolls the active session at 04:00 UTC daily, so a single day's heartbeats may straddle multiple files. The aggregation handles this transparently."
+  ]
+}
