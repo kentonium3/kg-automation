@@ -293,3 +293,4 @@ spec-kitty agent action implement WP01 --agent <your-agent-name>
 - 2026-06-01T18:21:40Z – claude:opus-4-7:implementer:implementer – shell_pid=46844 – Started implementation via action command
 - 2026-06-01T18:28:35Z – claude:opus-4-7:implementer:implementer – shell_pid=46844 – Cycle 3 fix: multi-file cursor scope corrected, universal length-based redaction in place, two regression tests added
 - 2026-06-01T18:29:07Z – codex:gpt-5:reviewer:reviewer – shell_pid=48836 – Started review via action command
+- 2026-06-01T18:48:01Z – codex:gpt-5:reviewer:reviewer – shell_pid=48836 – Codex cycle 3 reject: multi-file fix introduced double-counting of older logs. Orchestrator override of cycle-limit per operator decision (Kent A). Move-task run by orchestrator due to codex sandbox denial (spec-kitty #330).
