@@ -5,6 +5,6 @@ Wants=network-online.target
 
 [Service]
 Type=oneshot
-ExecStart=/usr/bin/python3 /home/claude/kg-automation/scripts/openclaw/heartbeat_gate/run.py
+ExecStart=/data/services/openclaw/felix-doc-auditor-driver/venv/bin/python /home/claude/kg-automation/scripts/openclaw/heartbeat_gate/run.py
 Environment=HOME=/home/claude
 WorkingDirectory=/home/claude/kg-automation

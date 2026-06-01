@@ -178,7 +178,30 @@ def test_escalate_malformed_json_stdout(
     )
     result = escalate("reason")
     assert result.escalated_event_id is None
-    assert result.error and "missing event id" in result.error
+    assert result.error and "no event id and no ok ack" in result.error
+
+
+def test_escalate_ok_ack_without_event_id_treated_as_success(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """openclaw CLI 2026.3.24 ack shape: {"ok": true} without event id.
+
+    Discovered during mission #490 cutover — the CLI returns an
+    acknowledgment-only response on successful event injection.
+    Escalator must treat this as success (escalated_event_id=None,
+    error=None) per the FR-008 / FR-011 contract: the goal is to wake
+    the main agent, not to surface a tracking id.
+    """
+    _patch_which(monkeypatch, present=True)
+    _patch_run(
+        monkeypatch,
+        side_effect=lambda cmd, **kw: subprocess.CompletedProcess(
+            args=cmd, returncode=0, stdout='{"ok": true}', stderr=""
+        ),
+    )
+    result = escalate("reason")
+    assert result.escalated_event_id is None
+    assert result.error is None
 
 
 def test_escalate_stdout_missing_id_field(

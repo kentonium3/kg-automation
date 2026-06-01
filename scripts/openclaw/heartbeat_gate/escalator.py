@@ -144,13 +144,37 @@ def escalate(
             )
         )
 
+    # Contract observed during #490 cutover (openclaw CLI 2026.3.24):
+    # `openclaw system event --mode now --text "..." --json` returns
+    # `{"ok": true}` on success — no event id field. Older or future
+    # versions may return `{"event": {"id": "..."}}` or similar shapes.
+    # Treat exit-0 as success regardless; populate event_id when present.
     event_id = _parse_event_id(completed.stdout)
     if event_id is None:
+        ack = _parse_ok_ack(completed.stdout)
+        if ack:
+            return EscalationResult(escalated_event_id=None)
         return EscalationResult(
-            error="openclaw system event stdout missing event id"
+            error="openclaw system event returned no event id and no ok ack"
         )
 
     return EscalationResult(escalated_event_id=event_id)
+
+
+def _parse_ok_ack(stdout: str) -> bool:
+    """Detect ``{"ok": true}`` ack from openclaw system event --json.
+
+    Used when ``_parse_event_id`` returns None — recent openclaw CLI
+    versions ack-only on system events without surfacing an event id.
+    """
+    text = (stdout or "").strip()
+    if not text:
+        return False
+    try:
+        payload = json.loads(text)
+    except json.JSONDecodeError:
+        return False
+    return isinstance(payload, dict) and payload.get("ok") is True
 
 
 def _parse_event_id(stdout: str) -> Optional[str]:
