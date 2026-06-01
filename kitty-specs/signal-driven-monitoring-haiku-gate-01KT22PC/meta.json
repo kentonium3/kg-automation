@@ -1,0 +1,10 @@
+{
+  "created_at": "2026-06-01T17:11:25.579870+00:00",
+  "friendly_name": "signal driven monitoring haiku gate",
+  "mission_id": "01KT22PCH03MTFYX1Q55KQVXRG",
+  "mission_number": null,
+  "mission_slug": "signal-driven-monitoring-haiku-gate-01KT22PC",
+  "mission_type": "software-dev",
+  "slug": "signal-driven-monitoring-haiku-gate-01KT22PC",
+  "target_branch": "main"
+}
