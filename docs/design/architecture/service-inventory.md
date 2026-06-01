@@ -2,6 +2,7 @@
 title: Service Inventory
 doc_type: reference
 status: approved
+tags: [137, 189, 80, 202, 149, 190, 374, 100, 253, 185, 254, 371, 309, 343, 306, 308, 306/, 310, 362, 391, 400, 105, 368-, 115]
 ---
 
 # Service Inventory
