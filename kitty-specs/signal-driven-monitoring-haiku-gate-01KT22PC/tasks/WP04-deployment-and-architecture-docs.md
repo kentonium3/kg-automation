@@ -367,3 +367,4 @@ After `/spec-kitty.merge`:
 ## Activity Log
 
 - 2026-06-01T20:41:32Z – claude:opus-4-7:implementer:implementer – shell_pid=84104 – Assigned agent via action command
+- 2026-06-01T21:05:26Z – claude:opus-4-7:implementer:implementer – shell_pid=84104 – Ready for review — 6 subtasks complete, runbook authored, arch docs updated
