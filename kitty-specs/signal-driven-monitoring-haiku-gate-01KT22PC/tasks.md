@@ -20,13 +20,13 @@ The work-package boundaries are designed around file ownership: no two WPs touch
 
 | ID | Description | WP | Parallel |
 |---|---|---|---|
-| T001 | Signal config TOML schema + loader with validation | WP01 |  |
-| T002 | Per-signal state persistence with atomic writes and cold-start recovery | WP01 | [P] |
-| T003 | OpenClaw log tail/grep helper with cursor-based incremental reading | WP01 | [P] |
-| T004 | Three signal extractor modules (creds_restore, watchdog_reconnect, unhandled_error) | WP01 |  |
-| T005 | Seed `signals/config.toml` with FR-006 signals at calibrated thresholds | WP01 |  |
-| T006 | Capture `openclaw-2026-06-01.log` as a checked-in test fixture | WP01 | [P] |
-| T007 | Unit tests for config loader, state, log helper, signal extractors | WP01 |  |
+| T001 | Signal config TOML schema + loader with validation | WP01 |  | [D] |
+| T002 | Per-signal state persistence with atomic writes and cold-start recovery | WP01 | [D] |
+| T003 | OpenClaw log tail/grep helper with cursor-based incremental reading | WP01 | [D] |
+| T004 | Three signal extractor modules (creds_restore, watchdog_reconnect, unhandled_error) | WP01 |  | [D] |
+| T005 | Seed `signals/config.toml` with FR-006 signals at calibrated thresholds | WP01 |  | [D] |
+| T006 | Capture `openclaw-2026-06-01.log` as a checked-in test fixture | WP01 | [D] |
+| T007 | Unit tests for config loader, state, log helper, signal extractors | WP01 |  | [D] |
 | T008 | Filer module — subprocess invocation of `felix-file-issue.py` per contract | WP02 |  |
 | T009 | Dedup-on-open-issue check (`gh issue view --json state` at filing time) | WP02 |  |
 | T010 | Tick orchestrator — composes signals + state + filer, writes `last-tick.json` + ledger | WP02 |  |
@@ -61,13 +61,13 @@ The work-package boundaries are designed around file ownership: no two WPs touch
 **Independent test**: `pytest scripts/openclaw/observation/tests/test_signals_*.py test_state_persistence.py test_config_loader.py` passes with ≥85% line / ≥80% branch coverage.
 
 **Included subtasks**:
-- [ ] T001 Signal config TOML schema + loader with validation (WP01)
-- [ ] T002 Per-signal state persistence with atomic writes and cold-start recovery (WP01) [P]
-- [ ] T003 OpenClaw log tail/grep helper with cursor-based incremental reading (WP01) [P]
-- [ ] T004 Three signal extractor modules (creds_restore, watchdog_reconnect, unhandled_error) (WP01)
-- [ ] T005 Seed `signals/config.toml` with FR-006 signals at calibrated thresholds (WP01)
-- [ ] T006 Capture `openclaw-2026-06-01.log` as a checked-in test fixture (WP01) [P]
-- [ ] T007 Unit tests for config loader, state, log helper, signal extractors (WP01)
+- [x] T001 Signal config TOML schema + loader with validation (WP01)
+- [x] T002 Per-signal state persistence with atomic writes and cold-start recovery (WP01) [P]
+- [x] T003 OpenClaw log tail/grep helper with cursor-based incremental reading (WP01) [P]
+- [x] T004 Three signal extractor modules (creds_restore, watchdog_reconnect, unhandled_error) (WP01)
+- [x] T005 Seed `signals/config.toml` with FR-006 signals at calibrated thresholds (WP01)
+- [x] T006 Capture `openclaw-2026-06-01.log` as a checked-in test fixture (WP01) [P]
+- [x] T007 Unit tests for config loader, state, log helper, signal extractors (WP01)
 
 **Implementation sketch**:
 1. T001 + T002 + T003 + T006 are all independent file creations (parallel-safe within the WP).
