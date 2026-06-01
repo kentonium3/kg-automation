@@ -12,6 +12,9 @@ requirement_refs:
 planning_base_branch: main
 merge_target_branch: main
 branch_strategy: Planning artifacts for this feature were generated on main. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into main unless the human explicitly redirects the landing branch.
+base_branch: kitty/mission-signal-driven-monitoring-haiku-gate-01KT22PC
+base_commit: 078f20c958cb5eeabcfa7242f02714c718d92be5
+created_at: '2026-06-01T19:58:46.793173+00:00'
 subtasks:
 - T015
 - T016
@@ -21,6 +24,7 @@ subtasks:
 - T020
 - T021
 - T022
+shell_pid: '71861'
 history:
 - actor: spec-kitty.tasks
   at: '2026-06-01T17:35:00Z'
