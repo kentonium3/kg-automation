@@ -1,10 +1,14 @@
 {
   "created_at": "2026-06-01T17:11:25.579870+00:00",
-  "friendly_name": "signal driven monitoring haiku gate",
+  "friendly_name": "Signal-Driven Monitoring with Haiku Gate",
   "mission_id": "01KT22PCH03MTFYX1Q55KQVXRG",
   "mission_number": null,
   "mission_slug": "signal-driven-monitoring-haiku-gate-01KT22PC",
   "mission_type": "software-dev",
   "slug": "signal-driven-monitoring-haiku-gate-01KT22PC",
-  "target_branch": "main"
+  "target_branch": "main",
+  "vcs": "git",
+  "source_description": "Replaces Felix's general-purpose Sonnet heartbeat with a two-layer observation pipeline. felix-core-digest gains deterministic signal extraction + threshold-driven issue filing. A Haiku gate fronts the OpenClaw heartbeat and only escalates to Sonnet on novel/ambiguous signal. Prompted by GitHub issue #490, where the current heartbeat mis-stated the scope of a WhatsApp creds.json corruption incident (reported 'two episodes', actual scope 151 events over 16+ hours).",
+  "source_issue": "https://github.com/kentonium3/kg-automation/issues/490",
+  "change_mode": "regular"
 }
