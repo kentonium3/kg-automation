@@ -289,3 +289,4 @@ spec-kitty agent action implement WP01 --agent <your-agent-name>
 - 2026-06-01T17:55:18Z – claude:opus-4-7:implementer:implementer – shell_pid=39501 – Assigned agent via action command
 - 2026-06-01T18:14:22Z – claude:opus-4-7:implementer:implementer – shell_pid=39501 – Ready for review — 7 subtasks complete, coverage targets met
 - 2026-06-01T18:15:03Z – codex:gpt-5:reviewer:reviewer – shell_pid=44538 – Started review via action command
+- 2026-06-01T18:21:27Z – codex:gpt-5:reviewer:reviewer – shell_pid=44538 – Codex review (cycle 1/3): rejected. 2 findings — multi-file cursor scope + redaction-by-key-allowlist gap. Move-task run by orchestrator due to codex sandbox denial on ~/.spec-kitty (per spec-kitty #330 workaround pattern).
