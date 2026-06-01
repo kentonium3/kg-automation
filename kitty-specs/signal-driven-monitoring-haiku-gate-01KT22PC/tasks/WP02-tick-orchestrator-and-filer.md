@@ -294,3 +294,4 @@ spec-kitty agent action implement WP02 --agent <your-agent-name>
 - 2026-06-01T19:32:05Z – claude:opus-4-7:implementer:implementer – shell_pid=64862 – Started implementation via action command
 - 2026-06-01T19:35:45Z – claude:opus-4-7:implementer:implementer – shell_pid=64862 – Cycle 1 fix: replay-safe default lifted into run_cycle(); explicit opt-in via force_replay_filing; 2 regression tests added
 - 2026-06-01T19:36:14Z – codex:gpt-5:reviewer:reviewer – shell_pid=66003 – Started review via action command
+- 2026-06-01T19:52:02Z – codex:gpt-5:reviewer:reviewer – shell_pid=66003 – Codex WP02 cycle 2: filing_enabled=True is a third bypass route during replay. Need to force filing_enabled=False alongside dry_run=True when replay_log set without force_replay_filing. Move-task by orchestrator (#330).
