@@ -20,7 +20,8 @@ subtasks:
 - T026
 - T027
 - T028
-shell_pid: '84104'
+shell_pid: "84104"
+agent: "claude:opus-4-7:implementer:implementer"
 history:
 - actor: spec-kitty.tasks
   at: '2026-06-01T17:35:00Z'
@@ -362,3 +363,7 @@ After `/spec-kitty.merge`:
 - Operator monitors `last-tick.json` and `last-gate-decision.json` daily for the first week.
 - Operator tunes thresholds in `signals/config.toml` based on false-positive rate (config edits are Tier 3; redeploy via existing deploy script).
 - After 7 days: capture post-rollout token baseline using `felix-doc-auditor`'s baseline procedure as the template; compute the NFR-001 reduction percentage; file follow-up issue if reduction is <80%.
+
+## Activity Log
+
+- 2026-06-01T20:41:32Z – claude:opus-4-7:implementer:implementer – shell_pid=84104 – Assigned agent via action command
