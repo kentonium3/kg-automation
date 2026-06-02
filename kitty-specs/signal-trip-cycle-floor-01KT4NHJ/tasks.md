@@ -8,9 +8,9 @@
 
 | ID | Description | WP | Parallel |
 |---|---|---|---|
-| T001 | Implement cycle-floor gate in `_threshold_status` | WP01 |  |
-| T002 | Extend pytest coverage for the four trip outcomes (new boundary cases) | WP01 |  |
-| T003 | Update mission #490's `tick-signal.contract.md` with a "Trip predicate" section | WP01 | [P] |
+| T001 | Implement cycle-floor gate in `_threshold_status` | WP01 |  | [D] |
+| T002 | Extend pytest coverage for the four trip outcomes (new boundary cases) | WP01 |  | [D] |
+| T003 | Update mission #490's `tick-signal.contract.md` with a "Trip predicate" section | WP01 | [D] |
 
 Three subtasks roll into a single work package. T003 is parallel-safe relative to T001/T002 (different file, no code dependency), but the WP is small enough that a single agent can sequence them efficiently.
 
@@ -26,9 +26,9 @@ Three subtasks roll into a single work package. T003 is parallel-safe relative t
 
 ### Included subtasks
 
-- [ ] T001 Implement cycle-floor gate in `_threshold_status` (WP01)
-- [ ] T002 Extend pytest coverage for the four trip outcomes (WP01)
-- [ ] T003 Update mission #490's `tick-signal.contract.md` with a "Trip predicate" section (WP01)
+- [x] T001 Implement cycle-floor gate in `_threshold_status` (WP01)
+- [x] T002 Extend pytest coverage for the four trip outcomes (WP01)
+- [x] T003 Update mission #490's `tick-signal.contract.md` with a "Trip predicate" section (WP01)
 
 ### Implementation sketch
 
