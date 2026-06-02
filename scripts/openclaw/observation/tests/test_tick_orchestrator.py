@@ -55,6 +55,7 @@ from scripts.openclaw.observation.state import (  # noqa: E402
 from scripts.openclaw.observation.tick import (  # noqa: E402
     CycleRecord,
     _atomic_write_json,
+    _threshold_status,
     new_cycle_id,
     run_cycle,
 )
@@ -899,3 +900,84 @@ def test_main_implies_dry_run_with_replay(
     assert rc == 0
     payload = _read_last_tick(tmp_path / "last-tick.json")
     assert payload["dry_run"] is True
+
+
+# ---------------------------------------------------------------------------
+# _threshold_status — quiet-cycle gate (mission signal-trip-cycle-floor-01KT4NHJ)
+# ---------------------------------------------------------------------------
+
+
+def _threshold_def(
+    *, cycle_threshold: int, rolling_threshold: int
+) -> SignalDefinition:
+    """Minimal SignalDefinition for predicate testing.
+
+    Only ``cycle_threshold`` and ``rolling_threshold`` are exercised by
+    ``_threshold_status``; remaining fields use realistic defaults.
+    """
+    return SignalDefinition(
+        signal_id="whatsapp_creds_restore",
+        source_kind="openclaw_log",
+        source_path_pattern="/tmp/openclaw/openclaw-*.log",
+        match_pattern="restored corrupted WhatsApp creds.json from backup",
+        match_kind="substring",
+        cycle_threshold=cycle_threshold,
+        rolling_window_minutes=60,
+        rolling_threshold=rolling_threshold,
+        dedup_strategy="open_issue_present",
+        dedup_window_hours=24,
+        priority="P2",
+        area_label="felix-core",
+        tier_hypothesis="3",
+        excerpt_lines=5,
+        enabled=True,
+    )
+
+
+def _threshold_extraction(
+    *, count_cycle: int, count_rolling: int
+) -> SignalExtraction:
+    """Minimal SignalExtraction for predicate testing."""
+    return SignalExtraction(
+        signal_id="whatsapp_creds_restore",
+        count_cycle=count_cycle,
+        count_rolling=count_rolling,
+        excerpts=[],
+        last_event_at_utc=None,
+        new_cursor=None,
+    )
+
+
+@pytest.mark.parametrize(
+    "name,count_cycle,count_rolling,cycle_threshold,rolling_threshold,expected",
+    [
+        ("quiet_below",           0,    0, 5, 15, "below"),
+        # Regression guard against #502/#503/#504: pre-fix this case
+        # returned "tripped_rolling" and re-filed the noise of a resolved
+        # transient burst once the prior anchor was closed.
+        ("quiet_hot_rolling",     0,  999, 5, 15, "below"),
+        ("one_event_below",       1,    0, 5, 15, "below"),
+        ("one_event_rolling_hit", 1,   15, 5, 15, "tripped_rolling"),
+        ("cycle_only",            5,    0, 5, 15, "tripped_cycle"),
+        ("cycle_just_above",      6,   14, 5, 15, "tripped_cycle"),
+        ("both",                  5,   15, 5, 15, "tripped_both"),
+        ("huge_both",           100, 1000, 5, 15, "tripped_both"),
+    ],
+)
+def test_threshold_status_named_cases(
+    name: str,
+    count_cycle: int,
+    count_rolling: int,
+    cycle_threshold: int,
+    rolling_threshold: int,
+    expected: str,
+) -> None:
+    """Cover every named case from trip-predicate.contract.md § Test obligations."""
+    extraction = _threshold_extraction(
+        count_cycle=count_cycle, count_rolling=count_rolling
+    )
+    signal_def = _threshold_def(
+        cycle_threshold=cycle_threshold,
+        rolling_threshold=rolling_threshold,
+    )
+    assert _threshold_status(extraction, signal_def) == expected, name

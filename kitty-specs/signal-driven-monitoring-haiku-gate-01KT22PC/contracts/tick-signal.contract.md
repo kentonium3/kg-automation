@@ -68,6 +68,33 @@
 | `errors[].error_type` | str | Short stable identifier (e.g., `"source_missing"`, `"gh_cli_failed"`, `"state_corrupt"`). |
 | `errors[].error_message` | str | Free-form detail. |
 
+## Trip predicate
+
+For each enabled signal, the orchestrator computes
+`threshold_status` from `count_cycle` and `count_rolling` using
+this predicate (amended by mission
+`signal-trip-cycle-floor-01KT4NHJ`):
+
+```text
+cycle_hit   = count_cycle   >= cycle_threshold
+rolling_hit = count_rolling >= rolling_threshold
+if cycle_hit and rolling_hit:
+    return "tripped_both"
+if cycle_hit:
+    return "tripped_cycle"
+if rolling_hit and count_cycle >= 1:
+    return "tripped_rolling"
+return "below"
+```
+
+**Quiet-cycle gate**: `count_cycle == 0` always yields `below`,
+regardless of the rolling-window value. This prevents the rolling tail
+of a resolved transient burst from re-filing an issue once the prior
+dedup-anchor is closed within the decay window.
+
+The predicate is a pure function of the four integer inputs. It has
+no side effects.
+
 ## Health-check contract
 
 A healthy tick has:

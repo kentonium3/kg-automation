@@ -263,6 +263,11 @@ def _threshold_status(
 
     Returns one of ``"below"``, ``"tripped_cycle"``, ``"tripped_rolling"``,
     ``"tripped_both"`` per ``contracts/tick-signal.contract.md``.
+
+    Quiet-cycle gate (mission ``signal-trip-cycle-floor-01KT4NHJ``):
+    a cycle with ``count_cycle == 0`` never returns ``"tripped_rolling"``,
+    so the rolling tail of a resolved transient burst cannot re-file an
+    issue once the prior dedup-anchor is closed within the decay window.
     """
     cycle_hit = extraction.count_cycle >= signal_def.cycle_threshold
     rolling_hit = extraction.count_rolling >= signal_def.rolling_threshold
@@ -270,7 +275,7 @@ def _threshold_status(
         return "tripped_both"
     if cycle_hit:
         return "tripped_cycle"
-    if rolling_hit:
+    if rolling_hit and extraction.count_cycle >= 1:
         return "tripped_rolling"
     return "below"
 
