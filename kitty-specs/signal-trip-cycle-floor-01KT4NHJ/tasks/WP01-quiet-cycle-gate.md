@@ -304,3 +304,4 @@ A reviewer should verify, in order:
 ## Activity Log
 
 - 2026-06-02T17:27:29Z – claude – shell_pid=54748 – Assigned agent via action command
+- 2026-06-02T17:35:49Z – claude – shell_pid=54748 – Code change + boundary tests landed at commit 33039117. T003 (cross-mission #490 contract update) deferred to post-merge [doc-audit] commit on main to respect the implementation-lane guard that blocks edits to other missions' kitty-specs/. This mission's own contracts/trip-predicate.contract.md remains the authoritative predicate spec.
