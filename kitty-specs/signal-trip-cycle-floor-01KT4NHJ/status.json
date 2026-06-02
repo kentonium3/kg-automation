@@ -1,7 +1,7 @@
 {
-  "event_count": 6,
-  "last_event_id": "01KT4Q5EZPDCR5TFYHWFSGGDES",
-  "materialized_at": "2026-06-02T17:47:38.358837+00:00",
+  "event_count": 8,
+  "last_event_id": "01KT4QDBFQ0ZJ7KMSJM8PKAK2S",
+  "materialized_at": "2026-06-02T17:51:56.919933+00:00",
   "mission_number": "",
   "mission_slug": "signal-trip-cycle-floor-01KT4NHJ",
   "mission_type": "software-dev",
@@ -12,17 +12,17 @@
     "claimed": 0,
     "done": 0,
     "for_review": 0,
-    "in_progress": 0,
+    "in_progress": 1,
     "in_review": 0,
-    "planned": 1
+    "planned": 0
   },
   "work_packages": {
     "WP01": {
-      "actor": "codex",
+      "actor": "claude",
       "force_count": 2,
-      "lane": "planned",
-      "last_event_id": "01KT4Q5EZPDCR5TFYHWFSGGDES",
-      "last_transition_at": "2026-06-02T17:47:38.358837+00:00"
+      "lane": "in_progress",
+      "last_event_id": "01KT4QDBFQ0ZJ7KMSJM8PKAK2S",
+      "last_transition_at": "2026-06-02T17:51:56.919933+00:00"
     }
   }
 }
