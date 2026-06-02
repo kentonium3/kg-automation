@@ -8,12 +8,12 @@
 
 | ID | Description | WP | Parallel |
 |---|---|---|---|
-| T001 | Remove v1 comment-write path + helpers + docstrings from `record_completion.py` | WP01 | |
-| T002 | Remove phantom-subscription detector + helpers + docstrings from `reconcile_completions.py` | WP01 | [P] |
-| T003 | Remove `phantom_subscription` reason code + comment-count template from `hard_fail.py` | WP01 | [P] |
-| T004 | Delete `backfill_jsonl_from_comments.py` and `test_backfill.py` | WP01 | [P] |
-| T005 | Update test suites: `test_record_completion.py`, `test_reconcile_completions.py`, `test_hard_fail.py` | WP01 | |
-| T006 | Run full `pytest tests/escalation tests/enrichment` and confirm green | WP01 | |
+| T001 | Remove v1 comment-write path + helpers + docstrings from `record_completion.py` | WP01 | | [D] |
+| T002 | Remove phantom-subscription detector + helpers + docstrings from `reconcile_completions.py` | WP01 | [D] |
+| T003 | Remove `phantom_subscription` reason code + comment-count template from `hard_fail.py` | WP01 | [D] |
+| T004 | Delete `backfill_jsonl_from_comments.py` and `test_backfill.py` | WP01 | [D] |
+| T005 | Update test suites: `test_record_completion.py`, `test_reconcile_completions.py`, `test_hard_fail.py` | WP01 | | [D] |
+| T006 | Run full `pytest tests/escalation tests/enrichment` and confirm green | WP01 | | [D] |
 | T007 | Strip v1 parity + phantom language from `SKILL.md`, `AGENTS.md`, `TOOLS.md` (felix-admin-escalation) | WP02 | [P] |
 | T008 | Strip parity verification queries + phantom guidance from `escalation-ops.md` runbook | WP02 | [P] |
 | T009 | Remove `escalation-event-write-vikunja` from `data-flows.json` + regen `data-flows.md` | WP02 | [P] |
@@ -34,12 +34,12 @@
 
 ### Included subtasks
 
-- [ ] T001 Remove v1 comment-write path + helpers + docstrings from `record_completion.py` (WP01)
-- [ ] T002 Remove phantom-subscription detector + helpers + docstrings from `reconcile_completions.py` (WP01)
-- [ ] T003 Remove `phantom_subscription` reason code + comment-count template from `hard_fail.py` (WP01)
-- [ ] T004 Delete `backfill_jsonl_from_comments.py` and `test_backfill.py` (WP01)
-- [ ] T005 Update test suites: `test_record_completion.py`, `test_reconcile_completions.py`, `test_hard_fail.py` (WP01)
-- [ ] T006 Run full `pytest tests/escalation tests/enrichment` and confirm green (WP01)
+- [x] T001 Remove v1 comment-write path + helpers + docstrings from `record_completion.py` (WP01)
+- [x] T002 Remove phantom-subscription detector + helpers + docstrings from `reconcile_completions.py` (WP01)
+- [x] T003 Remove `phantom_subscription` reason code + comment-count template from `hard_fail.py` (WP01)
+- [x] T004 Delete `backfill_jsonl_from_comments.py` and `test_backfill.py` (WP01)
+- [x] T005 Update test suites: `test_record_completion.py`, `test_reconcile_completions.py`, `test_hard_fail.py` (WP01)
+- [x] T006 Run full `pytest tests/escalation tests/enrichment` and confirm green (WP01)
 
 ### Dependencies
 
