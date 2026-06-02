@@ -1,0 +1,61 @@
+{
+  "version": 1,
+  "mission_slug": "remove-escalation-v1-parity-01KT4VTD",
+  "mission_id": "01KT4VTDQXDCABZ6DXSW32HW6N",
+  "mission_branch": "kitty/mission-remove-escalation-v1-parity-01KT4VTD",
+  "target_branch": "main",
+  "lanes": [
+    {
+      "lane_id": "lane-a",
+      "wp_ids": [
+        "WP01"
+      ],
+      "write_scope": [
+        "scripts/escalation/backfill_jsonl_from_comments.py",
+        "scripts/escalation/hard_fail.py",
+        "scripts/escalation/reconcile_completions.py",
+        "scripts/escalation/record_completion.py",
+        "tests/escalation/test_backfill.py",
+        "tests/escalation/test_hard_fail.py",
+        "tests/escalation/test_reconcile_completions.py",
+        "tests/escalation/test_record_completion.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "artifact-rendering",
+        "legacy-cleanup",
+        "tests",
+        "tracker-integration"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    },
+    {
+      "lane_id": "lane-b",
+      "wp_ids": [
+        "WP02"
+      ],
+      "write_scope": [
+        "docs/design/architecture/data-flows.md",
+        "docs/design/architecture/data/data-flows.json",
+        "docs/design/architecture/data/service-inventory.json",
+        "docs/design/architecture/service-inventory.md",
+        "docs/runbooks/escalation-ops.md",
+        "scripts/openclaw/agents/felix-admin-escalation/AGENTS.md",
+        "scripts/openclaw/agents/felix-admin-escalation/TOOLS.md",
+        "scripts/openclaw/skills/escalation/SKILL.md"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "artifact-rendering",
+        "legacy-cleanup",
+        "tracker-integration"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    }
+  ],
+  "computed_at": "2026-06-02T19:38:22.824038+00:00",
+  "computed_from": "dependency_graph+ownership",
+  "planning_artifact_wps": []
+}
