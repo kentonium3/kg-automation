@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "mission_slug": "signal-trip-cycle-floor-01KT4NHJ",
+  "mission_id": "01KT4NHJMKQM6AP28JF0RWRQ1E",
+  "mission_branch": "kitty/mission-signal-trip-cycle-floor-01KT4NHJ",
+  "target_branch": "main",
+  "lanes": [
+    {
+      "lane_id": "lane-a",
+      "wp_ids": [
+        "WP01"
+      ],
+      "write_scope": [
+        "kitty-specs/signal-driven-monitoring-haiku-gate-01KT22PC/contracts/tick-signal.contract.md",
+        "scripts/openclaw/observation/tests/test_tick_orchestrator.py",
+        "scripts/openclaw/observation/tick.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "tests"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    }
+  ],
+  "computed_at": "2026-06-02T17:26:58.618548+00:00",
+  "computed_from": "dependency_graph+ownership",
+  "planning_artifact_wps": []
+}
