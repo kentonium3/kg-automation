@@ -1,14 +1,14 @@
 {
+  "change_mode": "regular",
   "created_at": "2026-06-02T13:39:01.840523+00:00",
   "friendly_name": "Day-specific habit scheduling with auto-skip on miss",
   "mission_id": "01KT48Y6F2BMXDQY3YDCS5GZ61",
-  "mission_number": null,
+  "mission_number": 60,
   "mission_slug": "habit-day-specific-scheduling-01KT48Y6",
   "mission_type": "software-dev",
   "slug": "habit-day-specific-scheduling-01KT48Y6",
-  "target_branch": "main",
-  "vcs": "git",
   "source_description": "Day-specific habit tasks (e.g., 'Strength training — Wednesday', 'Strength training — Friday') currently appear in the felix-admin-habits morning check-in on every day of the week, not just on their designated weekday. Root cause: when a day-specific habit's due_date falls in the past (because Kent missed it), it satisfies the `due_date <= today AND done=false` filter every day thereafter. This mission constrains day-specific habits to only appear on their designated weekday, and auto-marks them as missed (with history log + advance to next designated weekday) at end-of-ET-day if not completed.",
   "source_issue": "https://github.com/kentonium3/kg-automation/issues/408",
-  "change_mode": "regular"
+  "target_branch": "main",
+  "vcs": "git"
 }

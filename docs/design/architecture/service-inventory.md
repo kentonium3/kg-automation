@@ -41,6 +41,7 @@ All services run on office2 unless otherwise noted.
 | Second Brain Sync | Every 15 min | `second-brain-sync.timer` (systemd) | kgale | Bidirectional git sync for non-vault content |
 | Felix Core Digest | Every 15 min | `felix-core-digest.timer` (systemd, two chained ExecStart post-#490) | claude | Agent activity log summarization → Obsidian digests + deterministic OpenClaw-log signal extraction → GitHub issues via kg-felix-bot (#490) |
 | Felix Heartbeat Gate | Every 30 min (OnUnitActiveSec=30min, OnBootSec=5min) | `felix-heartbeat-gate.timer` (systemd, #490) → `/usr/bin/python3 /home/claude/repos/kg-automation/scripts/openclaw/heartbeat_gate/run.py` | claude | Routes each OpenClaw heartbeat tick via claude-haiku-4-5; only escalates to Sonnet 4.6 on novel signal / contract task / fallback. Replaces OpenClaw's internal heartbeat. (#490) |
+| Felix Habit Sweeper | 7:30 AM ET daily (`OnCalendar=*-*-* 07:30 America/New_York`) | `felix-habit-sweeper.timer` (systemd, #408) → `/usr/bin/python3 /home/claude/kg-automation/scripts/habits/sweeper.py` | claude | Daily 48hr auto-skip pass for habit check-ins — marks unresolved habits as `auto_skipped` and advances day-specific habit `due_date` to the next designated weekday EOD-ET. Deterministic, zero LLM calls. (#408) |
 
 ## Deployment Details
 
@@ -483,6 +484,25 @@ Per-module metadata mirrors `docs/design/architecture/data/service-inventory.jso
 - **Health check**: `/data/services/openclaw/felix-heartbeat-gate/last-gate-decision.json` — `outcome ∈ {HEARTBEAT_OK, LOG_AND_SKIP, ESCALATE_TO_SONNET}` within last 35 min, `errors=[]`, `fallback_invoked=false` on the steady state.
 - **Runbook**: `docs/runbooks/signal-driven-monitoring-ops.md`
 - **Mission context**: `kitty-specs/signal-driven-monitoring-haiku-gate-01KT22PC/spec.md`
+
+### Felix Habit Sweeper (#408, 2026-06-02)
+- **Deployed by**: #408 / mission `habit-day-specific-scheduling-01KT48Y6`
+- **Type**: systemd user timer + oneshot service (deterministic Python — no LLM calls per Directive 6)
+- **systemd unit**: `felix-habit-sweeper.timer` + `felix-habit-sweeper.service` (user unit under claude)
+- **Schedule**: `OnCalendar=*-*-* 07:30 America/New_York`, `Persistent=true`. Fires 25 minutes after the 7:05 AM ET morning check-in cron so today's check-in is delivered before the sweep evaluates yesterday's.
+- **Runs as**: claude user
+- **ExecStart**: `/usr/bin/python3 /home/claude/kg-automation/scripts/habits/sweeper.py`. Path uses `/home/claude/kg-automation/` per the post-#59 cutover convention (NOT `/repos/`).
+- **Session mode**: stateless per tick — each invocation is a fresh Python process; persistent state lives in `/data/services/openclaw/state/habits/` (per-tick artifacts + ledger) and the canonical `/data/services/openclaw/state/habits-history.jsonl`.
+- **Determinism**: zero LLM calls. The sweep is a pure data operation against the schedule YAML, morning-checkin artifacts, and habits-history. Vikunja `due_date` advancement re-uses the WP-01 `compute_next_eod_et_for_weekdays` helper (which is unit-tested for the #112 explicit-ET-offset guard).
+- **Inputs**: `/data/services/openclaw/state/habits/morning-checkin-<date>.json` (artifacts older than 48hr are eligible) + `/data/services/openclaw/state/habits-history.jsonl` (resolution state) + `/home/claude/kg-automation/scripts/habits/migrations/phase3-schedule.yaml` (day-of-week metadata).
+- **Outputs**: `sweeper-tick-<date>.json` (overwrite per-day at `/data/services/openclaw/state/habits/`) + `sweeper-ledger.jsonl` (append-only) + `auto_skipped` events appended to `habits-history.jsonl` + Vikunja `POST /tasks/<id>` for day-specific habits (advances `due_date` to next designated weekday EOD-ET).
+- **Idempotency (FR-005)**: re-running the sweeper for the same `(task_id, original_checkin_date_et)` is a no-op. The sweeper scans history for an existing `auto_skipped` event matching the pair before appending.
+- **Issue #112 regression-prevention**: any Vikunja `due_date` PUT MUST end with explicit ET offset (`-04:00`/`-05:00`), NOT `Z`. The sweeper re-uses `set_due_dates.ISO_EOD_PATTERN` for validation before any HTTP call.
+- **Failure resilience**: per-habit Vikunja failures DO NOT abort the tick. The tick continues with remaining habits, records the failure in `errors[]`, and exits status `partial` (exit code 1). Sweeper-fatal errors (schedule load failure, etc.) produce `exit_status: failure` with exit code 2.
+- **Health check**: `/data/services/openclaw/state/habits/sweeper-tick-<today-ET>.json` — `exit_status=success` with `started_at_utc` within the last ~24 hours; `errors=[]`. See `kitty-specs/habit-day-specific-scheduling-01KT48Y6/contracts/sweeper-tick.contract.md`.
+- **Source in repo**: `scripts/habits/sweeper.py` (~700 lines) + `scripts/office2/felix-habit-sweeper.{service,timer}`
+- **Runbook**: `docs/runbooks/habits-ops.md`
+- **Mission context**: `kitty-specs/habit-day-specific-scheduling-01KT48Y6/spec.md`
 
 ### Credential Health Check (#115, 2026-05-11)
 - **Deployed by**: #115

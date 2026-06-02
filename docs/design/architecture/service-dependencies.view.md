@@ -7,8 +7,8 @@ owners: [kgale]
 last_validated: 2026-05-22
 revision: v1.2
 audience: agents_and_humans
-updated_by: '#371'
-tags: [309]
+updated_by: '#408'
+tags: [309, 408]
 ---
 
 # Service Dependencies
@@ -45,6 +45,7 @@ graph LR
     subgraph Agents["Agent Services (Tier 3)"]
         inbox["inbox-processing<br/>Tier 3"]
         habits["habit-checkin<br/>Tier 3<br/>(scripts-first #371)"]
+        habitsweeper["felix-habit-sweeper<br/>Tier 3<br/>(48hr auto-skip #408)"]
         taskdet["task-detection<br/>Tier 3"]
         escalation["escalation-daily<br/>Tier 3<br/>(JSONL state #309)"]
         digest["felix-core-digest<br/>Tier 3"]
@@ -73,6 +74,7 @@ graph LR
     inbox -->|"requires"| openclaw
     habits -->|"requires"| openclaw
     habits -->|"requires<br/>(disambiguator only, #371)"| anthropic
+    habitsweeper -->|"requires<br/>(POST due_date for<br/>day-specific habits)"| vikunja
     taskdet -->|"requires"| openclaw
     escalation -->|"requires"| openclaw
     digest -->|"requires"| openclaw

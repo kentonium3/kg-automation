@@ -2018,6 +2018,89 @@
           "description": "Google REST APIs for Gmail, Calendar, Drive, People, Sheets, Docs"
         }
       ]
+    },
+    {
+      "name": "felix-habit-sweeper",
+      "type": "systemd-timer",
+      "description": "Daily 48hr auto-skip pass for habit check-ins — scans morning-checkin-<date>.json artifacts older than 48hr, appends auto_skipped events to habits-history.jsonl for unresolved habits, and (for day-specific habits) advances Vikunja due_date to the next designated weekday at EOD-ET. Stateless Python oneshot; no LLM calls (mission #408 / Directive 6).",
+      "host": "office2",
+      "user": "claude",
+      "systemd_unit": "felix-habit-sweeper.timer (user unit) + felix-habit-sweeper.service (user oneshot)",
+      "systemd_user": "claude",
+      "schedule": "OnCalendar=*-*-* 07:30 America/New_York, Persistent=true",
+      "exec_start": "/usr/bin/python3 /home/claude/kg-automation/scripts/habits/sweeper.py",
+      "exec_start_note": "Direct Python driver invocation. Stateless per tick — each run is a fresh process; persistent state is the morning-checkin-*.json artifacts + habits-history.jsonl + the per-tick sweeper-tick-<date>.json + sweeper-ledger.jsonl. Path uses /home/claude/kg-automation/ per the post-#59 cutover convention (not /repos/).",
+      "source_in_repo": "scripts/habits/sweeper.py",
+      "input_path": "/data/services/openclaw/state/habits/morning-checkin-*.json + /data/services/openclaw/state/habits-history.jsonl",
+      "output_path": "/data/services/openclaw/state/habits/sweeper-tick-<date>.json (overwrite per-day) + /data/services/openclaw/state/habits/sweeper-ledger.jsonl (append-only) + /data/services/openclaw/state/habits-history.jsonl (append auto_skipped events) + Vikunja /tasks/<id> POST (advance due_date for day-specific habits)",
+      "state_path": "/data/services/openclaw/state/habits/",
+      "retention": "tick artifacts: latest per-date (overwrite); ledger: append-only; history: append-only (mission-wide retention policy)",
+      "deployed_by": "#408",
+      "deployed_on": "2026-06-02",
+      "status": "active",
+      "purpose": "Close Kent's 48hr response window on yesterday's (and older) morning check-ins. Records auto_skipped events in habits-history.jsonl (preserving accountability) and, for day-specific habits, advances their Vikunja due_date to the next designated weekday so the habit appears in the right next morning's check-in.",
+      "runbook": "docs/runbooks/habits-ops.md",
+      "updated_by": "#408",
+      "last_updated": "2026-06-02",
+      "risk_tier": 3,
+      "capabilities": {
+        "files_issues": false,
+        "calls_vikunja": true,
+        "calls_vikunja_note": "Per-habit POST to /tasks/<id> with {due_date: <next-designated-weekday-EOD-ET>} for day-specific habits only. Daily habits inherit their next instance from Vikunja's native repeat_after cadence — no PUT issued.",
+        "llm_calls": false,
+        "llm_calls_note": "Zero LLM calls. Fully deterministic per Directive 6."
+      },
+      "dependencies": [
+        {
+          "target": "vikunja",
+          "type": "requires",
+          "description": "POST /tasks/<id> partial-update for day-specific habit due_date advancement (verbatim of the set_due_dates.py /reconcile-schedule pattern)."
+        },
+        {
+          "target": "python3",
+          "type": "requires",
+          "description": "Python 3.11+ runtime"
+        },
+        {
+          "target": "pyyaml",
+          "type": "requires",
+          "description": "PyYAML to parse phase3-schedule.yaml via scripts/habits/schedule_loader.py"
+        },
+        {
+          "target": "scripts/habits/schedule_loader.py",
+          "type": "requires",
+          "description": "WP-01 deliverable — single parse surface for the runtime schedule YAML; identifies day-specific vs daily habits."
+        },
+        {
+          "target": "scripts/habits/set_due_dates.py",
+          "type": "requires",
+          "description": "Re-uses compute_next_eod_et_for_weekdays + ISO_EOD_PATTERN for issue-#112-guarded due_date math."
+        }
+      ],
+      "health_check": {
+        "method": "tick-signal-file",
+        "endpoint": "/data/services/openclaw/state/habits/sweeper-tick-<today-ET>.json",
+        "expected": "exit_status=success with started_at_utc within the last ~24hr; errors=[] (see kitty-specs/habit-day-specific-scheduling-01KT48Y6/contracts/sweeper-tick.contract.md). Operators may additionally check `systemctl --user status felix-habit-sweeper.timer` for liveness.",
+        "timeout_seconds": 5
+      },
+      "config_files": [
+        {
+          "path": "/home/claude/.config/systemd/user/felix-habit-sweeper.service",
+          "format": "systemd-unit",
+          "source_in_repo": "scripts/office2/felix-habit-sweeper.service"
+        },
+        {
+          "path": "/home/claude/.config/systemd/user/felix-habit-sweeper.timer",
+          "format": "systemd-unit",
+          "source_in_repo": "scripts/office2/felix-habit-sweeper.timer"
+        },
+        {
+          "path": "/home/claude/kg-automation/scripts/habits/migrations/phase3-schedule.yaml",
+          "format": "yaml",
+          "source_in_repo": "scripts/habits/migrations/phase3-schedule.yaml",
+          "purpose": "Runtime schedule YAML (the `habits:` section). Day-of-week metadata for the sweeper's day-specific-vs-daily classification and the next-due-date math."
+        }
+      ]
     }
   ]
 }

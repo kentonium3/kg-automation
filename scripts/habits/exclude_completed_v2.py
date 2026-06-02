@@ -13,7 +13,17 @@ The helper:
      ``query_active_habits_v2.py``)
   2. For each task, queries the habits JSONL state log for a
      ``state="complete"`` record for today's date
-  3. Emits the subset of tasks WITHOUT such a record to stdout
+  3. **Mission #408 / WP-02 extension**: additionally scans
+     ``habits-history.jsonl`` directly for ``event_type="auto_skipped"``
+     records targeting the task at today's date and excludes those too
+     (per ``contracts/history-event-auto-skipped.contract.md`` reader-
+     behavior: ``auto_skipped`` is exclusion-eligible).
+  4. Emits the subset of tasks WITHOUT such a record to stdout
+
+The auto_skipped scan uses a permit-list approach (only known schema
+extensions trigger exclusion), keeping the function forward-compatible:
+genuinely unknown event_types are treated as no-op rather than
+accidentally hiding tasks from Kent.
 
 See contracts/api.md + contracts/cli.md for the contract.
 
@@ -35,6 +45,7 @@ import json
 import re
 import sys
 from datetime import datetime, timezone
+from pathlib import Path
 
 from scripts.common import state_log
 
@@ -57,6 +68,59 @@ def _today_utc() -> str:
     return datetime.now(timezone.utc).date().isoformat()
 
 
+def _has_auto_skipped_event(history_path: Path, task_id: int, today: str) -> bool:
+    """Return True iff an ``auto_skipped`` event exists for the pair today.
+
+    Mission #408 / WP-02. The sweeper writes ``auto_skipped`` events with
+    shape ``{"event_type": "auto_skipped", "task_id": ..., "original_checkin_date_et": ...}``
+    directly to ``habits-history.jsonl`` (bypassing the state_log API
+    because the canonical state enum only permits ``complete`` /
+    ``incomplete`` / ``skipped``). This helper does the targeted scan so
+    the exclude filter recognizes auto-skipped instances as
+    exclusion-eligible per the reader-behavior contract.
+
+    Tolerates missing file and malformed lines silently — never raises.
+    A genuinely unreadable file is the caller's problem to surface;
+    this helper biases toward "include the task" (no exclusion) so
+    Kent never misses a habit because of a parse glitch.
+    """
+    if not history_path.exists():
+        return False
+    try:
+        with history_path.open("r", encoding="utf-8") as fh:
+            for line in fh:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    obj = json.loads(line)
+                except (ValueError, TypeError):
+                    continue
+                if not isinstance(obj, dict):
+                    continue
+                if obj.get("event_type") != "auto_skipped":
+                    continue
+                if obj.get("task_id") != task_id:
+                    continue
+                if obj.get("original_checkin_date_et") != today:
+                    continue
+                return True
+    except OSError:
+        return False
+    return False
+
+
+def _default_history_path() -> Path:
+    """Return the canonical ``habits-history.jsonl`` path.
+
+    Mirrors ``state_log._state_file("habits")`` resolution so the same
+    ``FELIX_STATE_LOG_DIR`` env override applies — tests using
+    ``mock_state_log_dir`` continue to work because the env var routes
+    both this scan and the state_log calls to the same sandbox directory.
+    """
+    return state_log.STATE_DIR / "habits-history.jsonl"
+
+
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
@@ -65,20 +129,31 @@ def _today_utc() -> str:
 def exclude_completed_for_today(
     active_tasks: list[dict],
     today: str | None = None,
+    history_path: Path | None = None,
 ) -> list[dict]:
-    """Filter the input list to tasks without a ``complete`` JSONL entry for today.
+    """Filter the input list to tasks already addressed in today's window.
 
-    See ``contracts/api.md`` for the full contract.
+    See ``contracts/api.md`` for the original (mission #371) contract.
+    **Mission #408 / WP-02 extension**: also excludes tasks with an
+    ``auto_skipped`` event in ``habits-history.jsonl`` whose
+    ``original_checkin_date_et`` equals ``today`` (per
+    ``contracts/history-event-auto-skipped.contract.md`` — auto-skipped
+    is exclusion-eligible analogously to ``state=complete``).
 
     Args:
         active_tasks: Iterable of task dicts. Only the ``id`` field is
             consulted; other fields are passed through unchanged.
         today: ISO-8601 date for the JSONL filter. Defaults to UTC today.
+        history_path: Override for the habits-history.jsonl path. Defaults
+            to ``state_log.STATE_DIR / "habits-history.jsonl"`` so the
+            mock_state_log_dir test fixture routes both scans to the same
+            sandbox.
 
     Returns:
-        Subset of ``active_tasks`` where
+        Subset of ``active_tasks`` where neither
         ``state_log.read("habits", task_id=X, date=today, state="complete")``
-        is empty. Order is preserved from the input.
+        nor a matching ``auto_skipped`` event is present. Order is
+        preserved from the input.
 
     Raises:
         ValueError: If ``today`` is set but not YYYY-MM-DD.
@@ -87,6 +162,8 @@ def exclude_completed_for_today(
     today_date = today or _today_utc()
     if not _DATE_RE.match(today_date):
         raise ValueError(f"today {today_date!r} must match YYYY-MM-DD")
+
+    effective_history_path = history_path or _default_history_path()
 
     result: list[dict] = []
     for task in active_tasks:
@@ -107,8 +184,14 @@ def exclude_completed_for_today(
             date=today_date,
             state="complete",
         )
-        if not existing:
-            result.append(task)
+        if existing:
+            continue
+        # Mission #408 / WP-02: also exclude auto_skipped instances.
+        if _has_auto_skipped_event(
+            effective_history_path, task_id, today_date
+        ):
+            continue
+        result.append(task)
     return result
 
 

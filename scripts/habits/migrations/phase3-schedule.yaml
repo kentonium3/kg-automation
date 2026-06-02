@@ -127,3 +127,69 @@ operations:
     attributes:
       title: "Strength training — Friday"
     notes: "Weekly MWF replacement #3"
+
+# ── habits: runtime schedule (mission #408 — habit-day-specific-scheduling) ──
+#
+# This section is the runtime authoring surface for day-of-week filtering and
+# the auto-skip sweeper. It is independent of the `operations:` migration list
+# above (which is a frozen one-shot record consumed by migrate_schedule.py).
+#
+# Schema:   see kitty-specs/habit-day-specific-scheduling-01KT48Y6/
+#                 contracts/schedule-config.contract.md
+# Consumer: scripts/habits/schedule_loader.py (centralizes all reads of this
+#           section so other modules never re-parse the YAML).
+#
+# `designated_weekdays`: optional list of 3-letter ISO weekday abbreviations
+# (Mon..Sun). If absent or empty, the habit is daily (every day). If present,
+# the habit only appears in the morning check-in on the listed weekdays.
+#
+# CANONICAL SOURCE OF TRUTH for habit task_ids/titles: LIVE Vikunja project 13
+# ("Habits"). Always verify task_id ↔ title bindings against live Vikunja
+# (e.g. `GET /api/v1/projects/13/tasks`) before editing this section. Do NOT
+# rely on docs/runbooks/habits-ops.md "Current habits" table — that table is
+# stale (last regenerated 2026-05-22, pre-#371 inventory) and will mis-bind
+# task_ids to the wrong titles. The "stale runbook" follow-up is tracked
+# separately (regenerate from live Vikunja when doc-auditor is re-enabled).
+#
+# When a new strength-training task is created, add an entry here with the
+# assigned Vikunja task_id and the corresponding designated_weekdays list,
+# then run `set_due_dates.py --reconcile-schedule` to advance due_date.
+
+habits:
+  # ── Daily habits (no designated_weekdays — appear every day) ────────
+  - task_id: 14
+    title: "Wake at 5:00 AM"
+    repeat_after_seconds: 86400
+  - task_id: 15
+    title: "Meditate"
+    repeat_after_seconds: 86400
+  - task_id: 16
+    title: "Morning shoulder PT"
+    repeat_after_seconds: 86400
+  - task_id: 18
+    title: "Get steps in today"
+    repeat_after_seconds: 86400
+  - task_id: 19
+    title: "Read 30 min minimum"
+    repeat_after_seconds: 86400
+  - task_id: 20
+    title: "Evening shoulder PT"
+    repeat_after_seconds: 86400
+  - task_id: 65
+    title: "Morning hip PT"
+    repeat_after_seconds: 86400
+
+  # ── Day-specific habits (Mon/Wed/Fri strength training, weekly cadence) ──
+  # Bound to live Vikunja task_ids 75/76/77 (verified against project 13).
+  - task_id: 75
+    title: "Strength training — Monday"
+    designated_weekdays: ["Mon"]
+    repeat_after_seconds: 604800
+  - task_id: 76
+    title: "Strength training — Wednesday"
+    designated_weekdays: ["Wed"]
+    repeat_after_seconds: 604800
+  - task_id: 77
+    title: "Strength training — Friday"
+    designated_weekdays: ["Fri"]
+    repeat_after_seconds: 604800

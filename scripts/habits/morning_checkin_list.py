@@ -52,6 +52,31 @@ from typing import Any
 from scripts.habits.exclude_completed_v2 import exclude_completed_for_today
 from scripts.habits.query_active_habits_v2 import query_active_today
 
+# NOTE: ``morning_checkin_list.py`` is invoked exclusively via the module form
+# (``python3 -m scripts.habits.morning_checkin_list``) — the helper composes
+# downstream modules under ``scripts.common`` and ``scripts.habits`` whose own
+# imports use the absolute-package form. Direct-script invocation
+# (``python3 scripts/habits/morning_checkin_list.py``) was never supported on
+# main and is out of scope for this WP. Only the WP-introduced
+# ``schedule_loader`` import gets the try/except fallback so unit tests that
+# import ``scripts.habits.schedule_loader`` symbols from this module continue
+# to behave identically under either resolution path.
+try:
+    from scripts.habits.schedule_loader import (
+        ScheduleConfigError,
+        ScheduleEntry,
+        is_active_today,
+        load_schedule,
+    )
+except ImportError:
+    # Precedent: scripts/openclaw/observation/summarize.py:36-38.
+    from schedule_loader import (  # type: ignore[no-redef]
+        ScheduleConfigError,
+        ScheduleEntry,
+        is_active_today,
+        load_schedule,
+    )
+
 
 # ---------------------------------------------------------------------------
 # Module constants (per contracts/api.md)
@@ -66,6 +91,22 @@ DEFAULT_TOKEN_PATH = Path("/data/services/openclaw/secrets/vikunja-api")
 
 #: Default per-date morning-list artifact directory on office2.
 DEFAULT_STATE_DIR = Path("/data/services/openclaw/state/habits")
+
+#: Default path to the habits runtime schedule YAML (mission #408 / WP-01).
+DEFAULT_SCHEDULE_PATH = (
+    Path(__file__).resolve().parent / "migrations" / "phase3-schedule.yaml"
+)
+
+#: Map Python ``datetime.weekday()`` ints (Mon=0..Sun=6) to 3-letter names.
+_WEEKDAY_BY_INDEX: tuple[str, ...] = (
+    "Mon",
+    "Tue",
+    "Wed",
+    "Thu",
+    "Fri",
+    "Sat",
+    "Sun",
+)
 
 #: HTTP socket timeout for any direct Vikunja calls (the downstream helpers
 #: use their own constants; this is kept for symmetry with the contract).
@@ -88,11 +129,18 @@ _DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
 @dataclass(frozen=True, slots=True)
 class MorningListHabit:
-    """A single habit row in the morning list. Position is 1-indexed."""
+    """A single habit row in the morning list. Position is 1-indexed.
+
+    ``designated_weekdays`` (mission #408 / E2 extension): tuple of 3-letter
+    ISO weekday names (``"Mon"`` .. ``"Sun"``) for day-specific habits, or
+    an empty tuple for daily habits. Persisted in the per-date artifact so
+    the WP-02 sweeper can recall what was day-specific when it auto-skips.
+    """
 
     position: int
     vikunja_task_id: int
     title: str
+    designated_weekdays: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
@@ -118,6 +166,16 @@ def _today_local() -> str:
     check-in" -- UTC midnight is not a meaningful day boundary for him.
     """
     return datetime.now(LOCAL_TZ).date().isoformat()
+
+
+def _weekday_name_for_date(date_str: str) -> str:
+    """Return the 3-letter ISO weekday name for a ``YYYY-MM-DD`` string.
+
+    Mirrors the ``day`` field emitted by ``scripts.habits.compute_today`` so
+    morning_checkin_list and the schedule loader agree on weekday naming.
+    """
+    parsed = datetime.fromisoformat(date_str).date()
+    return _WEEKDAY_BY_INDEX[parsed.weekday()]
 
 
 def _now_utc_iso() -> str:
@@ -157,14 +215,29 @@ def _read_token(token_path: Path) -> str:
     return content
 
 
-def _query_habits(base_url: str, token: str, date: str) -> list[dict]:
+def _query_habits(
+    base_url: str,
+    token: str,
+    date: str,
+    schedule_path: Path | None = None,
+) -> list[dict]:
     """Fetch active habits for the given date via the Phase 5 helper.
 
     Thin wrapper -- exists so tests can monkeypatch this single name to
     bypass the live HTTP path without re-wiring ``urllib.request.urlopen``
     (though that path is also exercised in the integration-style cases).
+
+    When ``schedule_path`` is supplied (mission #408 / WP-01), the
+    day-of-week filter is applied at the query layer so day-specific
+    habits not designated for today are excluded before
+    ``exclude_completed_for_today`` runs.
     """
-    return query_active_today(api_base_url=base_url, token=token, today=date)
+    return query_active_today(
+        api_base_url=base_url,
+        token=token,
+        today=date,
+        schedule_path=schedule_path,
+    )
 
 
 def _exclude_already_addressed(
@@ -185,37 +258,70 @@ def _exclude_already_addressed(
 # ---------------------------------------------------------------------------
 
 
+class ScheduleInvariantError(Exception):
+    """Raised when a day-specific habit not designated for today somehow
+    survives the day-of-week filter.
+
+    Production safety net: if this fires, the day-of-week filter wiring is
+    broken (e.g., a habit's schedule entry was mutated between the query
+    layer and the morning-list build) and Kent's check-in would otherwise
+    contain a habit he cannot do today. The CLI maps this to ``exit 4`` with
+    structured stderr (``error_type: schedule_invariant_violation``).
+    """
+
+
 def build_morning_list(
     *,
     date: str | None = None,
     base_url: str = DEFAULT_BASE_URL,
     token_path: Path = DEFAULT_TOKEN_PATH,
+    schedule_path: Path | None = None,
 ) -> MorningList:
     """Build the ordered ``MorningList`` for a Kent-day.
 
     Behavior:
       1. Resolve ``date`` (default: today in America/New_York).
       2. Read the Vikunja API token from ``token_path``.
-      3. Query active habits for ``date`` via the Phase 5 helper.
+      3. Query active habits for ``date`` via the Phase 5 helper (the day-of-
+         week filter from mission #408 is applied here when
+         ``schedule_path`` is set — default is the in-repo phase3 schedule).
       4. Exclude habits already addressed today via the JSONL state log.
       5. Sort surviving habits by ``vikunja_task_id`` ASC (immutable
          per ``reference_vikunja_id_vs_identifier.md`` -- the only sort key
          that does not reintroduce the #371 instability).
-      6. Assign 1-indexed positions and return a frozen ``MorningList``.
+      6. Resolve each habit's ``designated_weekdays`` from the schedule (for
+         persistence in the artifact — needed by the WP-02 sweeper).
+      7. Verify the day-of-week invariant: every entry in the produced list
+         must satisfy ``is_active_today`` OR be a daily habit. Violations
+         raise ``ScheduleInvariantError`` (mapped to CLI exit 4).
+      8. Assign 1-indexed positions and return a frozen ``MorningList``.
 
     Args:
         date: ISO-8601 ``YYYY-MM-DD``. ``None`` => today local.
         base_url: Vikunja API base URL.
         token_path: Path to the Vikunja API token file.
+        schedule_path: Path to the habits schedule YAML. Pass an explicit
+            path to enable the mission-#408 day-of-week filter; pass
+            ``None`` (the default) to disable it. The CLI entry point
+            defaults to ``DEFAULT_SCHEDULE_PATH`` so production runs always
+            apply the filter — keeping the function default at ``None``
+            preserves existing test fixtures that do not configure a
+            schedule.
 
     Returns:
-        A frozen ``MorningList`` with ``habits`` ordered by task_id ASC.
+        A frozen ``MorningList`` with ``habits`` ordered by task_id ASC. The
+        ``designated_weekdays`` field on each ``MorningListHabit`` reflects
+        the schedule entry's value, or an empty tuple if the habit is daily
+        or not in the schedule.
 
     Raises:
         ValueError: ``date`` does not match ``YYYY-MM-DD``.
         FileNotFoundError: ``token_path`` does not exist.
         OSError: token unreadable, or Vikunja API failure.
         urllib.error.URLError: Vikunja unreachable (subclass of OSError).
+        ScheduleConfigError: ``schedule_path`` is supplied but YAML invalid.
+        ScheduleInvariantError: A day-specific habit not designated for
+            today survived the filter (production safety net).
     """
     resolved_date = date if date is not None else _today_local()
     if not _DATE_RE.match(resolved_date):
@@ -224,8 +330,17 @@ def build_morning_list(
         )
 
     token = _read_token(token_path)
-    raw_habits = _query_habits(base_url, token, resolved_date)
+    raw_habits = _query_habits(base_url, token, resolved_date, schedule_path)
     surviving = _exclude_already_addressed(raw_habits, resolved_date)
+
+    # Resolve the schedule once so we can both stamp designated_weekdays on
+    # each emitted habit AND verify the day-of-week invariant.
+    schedule_by_task_id: dict[int, ScheduleEntry] = {}
+    today_weekday: str | None = None
+    if schedule_path is not None:
+        for entry in load_schedule(schedule_path):
+            schedule_by_task_id[entry.task_id] = entry
+        today_weekday = _weekday_name_for_date(resolved_date)
 
     # Sort by Vikunja task_id ASC -- the immutable per-task identifier.
     # Any other key (title, due_date, project order) would reintroduce
@@ -240,14 +355,34 @@ def build_morning_list(
 
     ordered = sorted(surviving, key=_id_key)
 
-    habits = [
-        MorningListHabit(
-            position=index + 1,
-            vikunja_task_id=_id_key(task),
-            title=str(task.get("title", "")).strip(),
+    habits: list[MorningListHabit] = []
+    for index, task in enumerate(ordered):
+        tid = _id_key(task)
+        entry = schedule_by_task_id.get(tid)
+        designated: tuple[str, ...] = entry.designated_weekdays if entry else ()
+
+        # Day-of-week invariant safety net. The query layer should have
+        # already excluded mis-scheduled habits; if one slipped through, fail
+        # loudly rather than ship a wrong check-in to Kent.
+        if (
+            entry is not None
+            and today_weekday is not None
+            and not is_active_today(entry, today_weekday)
+        ):
+            raise ScheduleInvariantError(
+                f"task_id={tid} title={task.get('title')!r} is day-specific "
+                f"({list(entry.designated_weekdays)}) but today is "
+                f"{today_weekday!r} — day-of-week filter is broken"
+            )
+
+        habits.append(
+            MorningListHabit(
+                position=index + 1,
+                vikunja_task_id=tid,
+                title=str(task.get("title", "")).strip(),
+                designated_weekdays=designated,
+            )
         )
-        for index, task in enumerate(ordered)
-    ]
 
     return MorningList(
         schema_version=SCHEMA_VERSION,
@@ -363,11 +498,31 @@ def render_morning_message(morning_list: MorningList) -> str:
 def _morning_list_to_dict(morning_list: MorningList) -> dict[str, Any]:
     """Convert a ``MorningList`` to a JSON-serializable dict.
 
-    ``dataclasses.asdict`` recurses into nested dataclasses (it doesn't
-    require a custom encoder), but we route through it explicitly so the
-    final shape is auditable in one place.
+    Mission #408 / E2 extension: ``designated_weekdays`` is included on each
+    habit row ONLY when the habit is day-specific (non-empty tuple). Daily
+    habits omit the field entirely — preserving the pre-#408 persisted
+    artifact shape so the existing reader contract (and existing tests)
+    continue to hold without modification. The WP-02 sweeper interprets
+    absence-of-field as "daily habit" per the contract.
     """
-    return dataclasses.asdict(morning_list)
+    return {
+        "schema_version": morning_list.schema_version,
+        "date": morning_list.date,
+        "generated_at": morning_list.generated_at,
+        "habits": [_habit_to_dict(h) for h in morning_list.habits],
+    }
+
+
+def _habit_to_dict(habit: MorningListHabit) -> dict[str, Any]:
+    """Serialize one habit row, omitting empty ``designated_weekdays``."""
+    out: dict[str, Any] = {
+        "position": habit.position,
+        "vikunja_task_id": habit.vikunja_task_id,
+        "title": habit.title,
+    }
+    if habit.designated_weekdays:
+        out["designated_weekdays"] = list(habit.designated_weekdays)
+    return out
 
 
 # ---------------------------------------------------------------------------
@@ -445,6 +600,24 @@ def _build_parser() -> argparse.ArgumentParser:
             f"(default: {DEFAULT_TOKEN_PATH})."
         ),
     )
+    parser.add_argument(
+        "--schedule-path",
+        type=Path,
+        default=DEFAULT_SCHEDULE_PATH,
+        help=(
+            "Path to the habits runtime schedule YAML (mission #408 / "
+            "WP-01). Drives the day-of-week filter. Default: in-repo "
+            f"{DEFAULT_SCHEDULE_PATH}."
+        ),
+    )
+    parser.add_argument(
+        "--no-schedule",
+        action="store_true",
+        help=(
+            "Disable the day-of-week filter (preserves pre-#408 behavior). "
+            "Use for diagnostics; production runs always apply the filter."
+        ),
+    )
     return parser
 
 
@@ -457,12 +630,15 @@ def _emit_stderr_error(step: str, error: str) -> None:
 def main(argv: list[str] | None = None) -> int:
     """CLI entry point.
 
-    Exit codes per contracts/cli.md::
+    Exit codes per contracts/cli.md (extended by mission #408)::
 
         0 -- success (message emitted; artifact written unless --dry-run)
         1 -- Vikunja unreachable / API failure
         2 -- Filesystem write failure (Vikunja succeeded; persist failed)
-        3 -- Validation / usage error (bad date format, bad flags)
+        3 -- Validation / usage error (bad date format, bad flags, or
+             schedule.yaml validation failure — ScheduleConfigError)
+        4 -- Schedule invariant violation (day-specific habit not designated
+             for today survived the filter). Production safety net.
     """
     parser = _build_parser()
     try:
@@ -493,11 +669,14 @@ def main(argv: list[str] | None = None) -> int:
             )
             return 3
 
+    schedule_path: Path | None = None if args.no_schedule else args.schedule_path
+
     try:
         morning_list = build_morning_list(
             date=args.date,
             base_url=args.base_url,
             token_path=args.token_path,
+            schedule_path=schedule_path,
         )
     except ValueError as exc:
         _emit_stderr_error(step="argparse", error=str(exc))
@@ -505,6 +684,15 @@ def main(argv: list[str] | None = None) -> int:
     except FileNotFoundError as exc:
         _emit_stderr_error(step="token_read", error=str(exc))
         return 1
+    except ScheduleConfigError as exc:
+        _emit_stderr_error(step="schedule_load", error=str(exc))
+        return 3
+    except ScheduleInvariantError as exc:
+        _emit_stderr_error(
+            step="schedule_invariant_violation",
+            error=str(exc),
+        )
+        return 4
     except urllib.error.URLError as exc:
         _emit_stderr_error(step="vikunja_fetch", error=str(exc))
         return 1

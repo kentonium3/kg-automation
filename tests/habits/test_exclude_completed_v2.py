@@ -151,6 +151,108 @@ class TestNoCompletions:
 # ===========================================================================
 
 
+class TestAutoSkippedExclusion:
+    """Mission #408 / WP-02: exclude tasks with auto_skipped events for today.
+
+    The new scan reads habits-history.jsonl directly (bypassing state_log's
+    closed state enum) to find ``event_type=="auto_skipped"`` records whose
+    ``original_checkin_date_et`` equals today. Those tasks are excluded
+    analogously to ``state=complete`` records.
+    """
+
+    def _write_history(self, history_path, records):
+        history_path.parent.mkdir(parents=True, exist_ok=True)
+        with history_path.open("w", encoding="utf-8") as fh:
+            for rec in records:
+                fh.write(json.dumps(rec, ensure_ascii=False) + "\n")
+
+    def test_auto_skipped_event_excludes_task(self, tmp_path):
+        history_path = tmp_path / "habits-history.jsonl"
+        self._write_history(
+            history_path,
+            [
+                {
+                    "event_type": "auto_skipped",
+                    "task_id": 14,
+                    "original_checkin_date_et": "2026-05-30",
+                    "original_designated_weekday": None,
+                    "tick_id": "01TEST",
+                    "recorded_at_utc": "2026-06-01T11:30:00Z",
+                }
+            ],
+        )
+        active = [_task(14), _task(15)]
+        result = ev2.exclude_completed_for_today(
+            active, today="2026-05-30", history_path=history_path
+        )
+        assert [t["id"] for t in result] == [15]
+
+    def test_auto_skipped_for_other_date_does_not_exclude(self, tmp_path):
+        history_path = tmp_path / "habits-history.jsonl"
+        self._write_history(
+            history_path,
+            [
+                {
+                    "event_type": "auto_skipped",
+                    "task_id": 14,
+                    "original_checkin_date_et": "2026-05-28",  # different date
+                    "original_designated_weekday": None,
+                    "tick_id": "01TEST",
+                    "recorded_at_utc": "2026-06-01T11:30:00Z",
+                }
+            ],
+        )
+        active = [_task(14)]
+        result = ev2.exclude_completed_for_today(
+            active, today="2026-05-30", history_path=history_path
+        )
+        assert [t["id"] for t in result] == [14]
+
+    def test_missing_history_file_treated_as_no_records(self, tmp_path):
+        active = [_task(14)]
+        result = ev2.exclude_completed_for_today(
+            active,
+            today="2026-05-30",
+            history_path=tmp_path / "nonexistent.jsonl",
+        )
+        assert [t["id"] for t in result] == [14]
+
+    def test_malformed_history_lines_tolerated(self, tmp_path):
+        history_path = tmp_path / "habits-history.jsonl"
+        history_path.parent.mkdir(parents=True, exist_ok=True)
+        history_path.write_text(
+            'not json\n'
+            '{"event_type":"auto_skipped","task_id":14,'
+            '"original_checkin_date_et":"2026-05-30"}\n',
+            encoding="utf-8",
+        )
+        active = [_task(14), _task(15)]
+        result = ev2.exclude_completed_for_today(
+            active, today="2026-05-30", history_path=history_path
+        )
+        assert [t["id"] for t in result] == [15]
+
+    def test_unknown_event_type_does_not_exclude(self, tmp_path):
+        """Permit-list approach: only known event_type values trigger
+        exclusion. Unknown future event types are no-op."""
+        history_path = tmp_path / "habits-history.jsonl"
+        self._write_history(
+            history_path,
+            [
+                {
+                    "event_type": "future_feature",
+                    "task_id": 14,
+                    "original_checkin_date_et": "2026-05-30",
+                }
+            ],
+        )
+        active = [_task(14)]
+        result = ev2.exclude_completed_for_today(
+            active, today="2026-05-30", history_path=history_path
+        )
+        assert [t["id"] for t in result] == [14]
+
+
 class TestTodayOverride:
     def test_today_override_changes_filter_date(self, mock_state_log_dir):
         """State_log has a complete on 2026-05-19. Different today values give different results."""

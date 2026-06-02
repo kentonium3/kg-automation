@@ -1,0 +1,13 @@
+[Unit]
+Description=Felix Habit Sweeper — 48hr auto-skip pass (mission #408)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 /home/claude/kg-automation/scripts/habits/sweeper.py
+Environment=HOME=/home/claude
+WorkingDirectory=/home/claude/kg-automation
+
+[Install]
+WantedBy=default.target

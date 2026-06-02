@@ -66,7 +66,7 @@ import re
 import sys
 import zoneinfo
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Literal, Optional
 
@@ -180,7 +180,20 @@ class ParseError:
 
 @dataclass(frozen=True, slots=True)
 class ParseResult:
-    """The parser's output. Emitted verbatim (as JSON) by the CLI."""
+    """The parser's output. Emitted verbatim (as JSON) by the CLI.
+
+    ``correlated_checkin_date_et`` (mission #408 / WP-02) records which
+    check-in artifact the parser correlated the reply to. For replies
+    that correlate to today's morning list (the default and most common
+    case), this matches ``--date`` (or today's ET date). For 48hr-window
+    late replies (Kent answering Wednesday's check-in on Thursday morning),
+    this is the OLDER date — the consumer uses it when appending events
+    to habits-history so the correct check-in's habits are resolved.
+
+    Defaults to the empty string when correlation is bypassed (CLI's
+    legacy ``--date`` mode or the no-morning-list error path), preserving
+    backwards compatibility with all pre-#408 callers (NFR-003).
+    """
 
     schema_version: int
     reply_text: str
@@ -188,6 +201,7 @@ class ParseResult:
     tuples: list[ParseTuple]
     judgment_required: list[JudgmentItem]
     errors: list[ParseError]
+    correlated_checkin_date_et: str = ""
 
 
 # ---------------------------------------------------------------------------
@@ -426,6 +440,334 @@ def _loose_prefix_overlap_match(
             continue
         matches.append(habit)
     return matches
+
+
+# ---------------------------------------------------------------------------
+# Mission #408 / WP-02 — 48hr window correlation helpers
+#
+# OD-4 finding (T007 research): the existing parser correlates a reply only
+# to TODAY's morning-checkin artifact (via ``load_morning_list(date=date)``
+# where date defaults to today in ET). The inbound CLI surface accepts the
+# reply as plain text only — there is NO WhatsApp quote-reply metadata
+# available at this layer. If quote-reply metadata is ever forwarded by
+# the inbound channel, it would arrive as additional CLI flags or as
+# structured fields in a future ``--reply-file`` JSON shape; this WP does
+# not plumb that path, leaving it as a future extension hook.
+#
+# What this WP adds: 48hr-window correlation. The parser now scans
+# morning-checkin-*.json artifacts whose ``delivered_at_utc`` (or
+# ``generated_at`` fallback) is within the last 48hr, and chooses among
+# them using the priority chain from contracts/reply-correlation.contract.md:
+#
+#   1. Explicit date hint in the reply text ("yesterday", "Tue", "2026-05-31").
+#   2. Most-recent-unresolved: the most recent check-in whose unresolved
+#      habits the reply tokens map to.
+#   3. Default to today's check-in (current behavior — zero regression).
+#
+# Quote-reply metadata (priority 1 in the contract) is documented but not
+# implemented because the CLI doesn't receive it. If a future mission adds
+# it, the hook point is ``correlate_reply_to_checkin``'s ``quote_reply_id``
+# kwarg (reserved-but-unused below).
+#
+# Zero-regression promise: callers that don't pass ``state_dir`` /
+# ``now_utc`` exercise the original today-only path and the new
+# ``correlated_checkin_date_et`` field equals the date used to load the
+# morning list (preserves NFR-003).
+# ---------------------------------------------------------------------------
+
+#: ISO weekday short names in Mon=0..Sun=6 order. Mirrors WP-01's
+#: ``schedule_loader.WEEKDAY_NAMES`` (kept local so this module's only
+#: cross-module dependency stays ``morning_checkin_list``).
+_WEEKDAY_SHORT: tuple[str, ...] = (
+    "mon", "tue", "wed", "thu", "fri", "sat", "sun"
+)
+
+#: Explicit date-hint regex for ISO-8601 ``YYYY-MM-DD`` substrings.
+_DATE_HINT_ISO_RE = re.compile(r"\b(\d{4}-\d{2}-\d{2})\b")
+
+#: Filename pattern for ``morning-checkin-YYYY-MM-DD.json`` discovery.
+_CHECKIN_FILENAME_RE = re.compile(
+    r"^morning-checkin-(\d{4}-\d{2}-\d{2})\.json$"
+)
+
+#: 48hr correlation window (seconds).
+_CORRELATION_WINDOW_SECONDS = 48 * 60 * 60
+
+
+@dataclass(frozen=True, slots=True)
+class CheckinCandidate:
+    """A morning-checkin artifact in the 48hr correlation window.
+
+    Sorted by ``delivered_at_utc`` DESC (most-recent first) when returned
+    by :func:`find_checkin_within_48hr_window`.
+    """
+
+    path: Path
+    checkin_date_et: str  # YYYY-MM-DD
+    delivered_at_utc: str  # ISO-8601 source text
+
+
+def _parse_correlation_timestamp(value: str) -> datetime:
+    """Parse a delivered_at_utc value (accepts ``Z`` or ``+00:00`` style).
+
+    Returns a tz-aware UTC datetime. Raises ``ValueError`` on malformed
+    input — the caller filters those out.
+    """
+    if value.endswith("Z"):
+        value = value[:-1] + "+00:00"
+    parsed = datetime.fromisoformat(value)
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=zoneinfo.ZoneInfo("UTC"))
+    return parsed.astimezone(zoneinfo.ZoneInfo("UTC"))
+
+
+def find_checkin_within_48hr_window(
+    state_dir: Path,
+    now_utc: datetime,
+) -> list[CheckinCandidate]:
+    """Return morning-checkin artifacts delivered within the last 48hr.
+
+    Sorted by ``delivered_at_utc`` DESC so callers can apply the
+    most-recent-unresolved tiebreak by walking the list left-to-right.
+
+    Tolerant to:
+      * missing state_dir (returns ``[]``)
+      * malformed artifacts (skipped silently)
+      * artifacts missing ``delivered_at_utc`` (falls back to
+        ``generated_at`` for mission-#371-era artifacts)
+    """
+    if not state_dir.exists():
+        return []
+    cutoff = now_utc - timedelta(seconds=_CORRELATION_WINDOW_SECONDS)
+    candidates: list[CheckinCandidate] = []
+    for entry in sorted(state_dir.iterdir()):
+        if not entry.is_file():
+            continue
+        match = _CHECKIN_FILENAME_RE.match(entry.name)
+        if not match:
+            continue
+        try:
+            data = json.loads(entry.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            continue
+        if not isinstance(data, dict):
+            continue
+        delivered_raw = data.get("delivered_at_utc")
+        if not isinstance(delivered_raw, str):
+            delivered_raw = data.get("generated_at")
+        if not isinstance(delivered_raw, str):
+            continue
+        try:
+            delivered = _parse_correlation_timestamp(delivered_raw)
+        except ValueError:
+            continue
+        if delivered < cutoff:
+            continue
+        candidates.append(
+            CheckinCandidate(
+                path=entry,
+                checkin_date_et=match.group(1),
+                delivered_at_utc=delivered_raw,
+            )
+        )
+    candidates.sort(key=lambda c: c.delivered_at_utc, reverse=True)
+    return candidates
+
+
+def _explicit_date_hint(reply_text: str, candidates: list[CheckinCandidate]) -> str | None:
+    """Return the candidate checkin_date matching an explicit hint, else None.
+
+    Priority order within hints:
+      1. ISO date substring (``2026-05-31``) — unambiguous.
+      2. ``"yesterday"`` — maps to most-recent candidate whose date is
+         exactly today-1 in ET (per the candidate set's dates).
+      3. Three-letter ISO weekday name in reply (case-insensitive) —
+         maps to the most-recent candidate whose ET date falls on that
+         weekday. Bare-word boundary required to avoid false matches
+         inside habit titles ("Wed" inside "Wednesday strength" would
+         match but that's the operator's prerogative — bare weekday
+         names rarely appear inside habit nouns).
+    """
+    if not candidates:
+        return None
+    text_lower = reply_text.lower()
+
+    # 1. ISO date substring.
+    iso_match = _DATE_HINT_ISO_RE.search(reply_text)
+    if iso_match is not None:
+        iso_date = iso_match.group(1)
+        for cand in candidates:
+            if cand.checkin_date_et == iso_date:
+                return cand.checkin_date_et
+
+    # 2. "yesterday" / "today" hints.
+    candidate_dates = [
+        datetime.fromisoformat(c.checkin_date_et).date() for c in candidates
+    ]
+    # Derive "today" from the most-recent candidate's date (avoids needing
+    # a clock injection point — candidates are already filtered to the
+    # 48hr window so the most-recent is "the current end of the window").
+    today_date = max(candidate_dates) if candidate_dates else None
+    if today_date is not None:
+        if re.search(r"\byesterday\b", text_lower):
+            target = today_date - timedelta(days=1)
+            for cand in candidates:
+                if datetime.fromisoformat(cand.checkin_date_et).date() == target:
+                    return cand.checkin_date_et
+        if re.search(r"\btoday\b", text_lower):
+            for cand in candidates:
+                if datetime.fromisoformat(cand.checkin_date_et).date() == today_date:
+                    return cand.checkin_date_et
+
+    # 3. Three-letter ISO weekday.
+    for weekday_idx, weekday_name in enumerate(_WEEKDAY_SHORT):
+        if not re.search(rf"\b{weekday_name}\b", text_lower):
+            continue
+        for cand in candidates:
+            cand_date = datetime.fromisoformat(cand.checkin_date_et).date()
+            if cand_date.weekday() == weekday_idx:
+                return cand.checkin_date_et
+    return None
+
+
+def _load_candidate_morning_list(cand: CheckinCandidate) -> Optional["MorningList"]:
+    """Load and return the MorningList for a candidate (or None on error)."""
+    try:
+        return load_morning_list(
+            date=cand.checkin_date_et,
+            state_dir=cand.path.parent,
+        )
+    except (FileNotFoundError, ValueError):
+        return None
+
+
+def _reply_has_unresolved_match(
+    reply_text: str,
+    morning_list: "MorningList",
+    history: list[dict],
+) -> bool:
+    """Return True iff parsing reply against this list resolves to at least one
+    habit currently unresolved (no ``complete`` / ``skipped`` / ``auto_skipped``
+    record on that checkin date).
+
+    Used by the most-recent-unresolved tiebreak. We re-use the parser
+    pipeline at zero risk: build a ParseResult against the candidate's
+    morning list, then check if any produced tuple targets a habit that
+    has no resolution record yet on the candidate's date.
+    """
+    result = parse_reply(
+        reply_text=reply_text,
+        morning_list=morning_list,
+        morning_list_path="",
+    )
+    if not result.tuples:
+        return False
+    checkin_date = morning_list.date
+    for tup in result.tuples:
+        if _habit_unresolved_on_date(history, tup.task_id, checkin_date):
+            return True
+    return False
+
+
+def _habit_unresolved_on_date(
+    history: list[dict], task_id: int, date_et: str
+) -> bool:
+    """True iff no resolution record exists for ``(task_id, date_et)``."""
+    for rec in history:
+        # State-log style record (complete / skipped / incomplete).
+        if (
+            rec.get("domain") == "habits"
+            and rec.get("task_id") == task_id
+            and rec.get("date") == date_et
+            and rec.get("state") in ("complete", "skipped", "incomplete")
+        ):
+            return False
+        # Mission #408 auto_skipped event.
+        if (
+            rec.get("event_type") == "auto_skipped"
+            and rec.get("task_id") == task_id
+            and rec.get("original_checkin_date_et") == date_et
+        ):
+            return False
+    return True
+
+
+def _read_history(history_path: Path) -> list[dict]:
+    """Read ``habits-history.jsonl`` records; tolerate missing/malformed."""
+    if not history_path.exists():
+        return []
+    records: list[dict] = []
+    try:
+        with history_path.open("r", encoding="utf-8") as fh:
+            for line in fh:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    obj = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                if isinstance(obj, dict):
+                    records.append(obj)
+    except OSError:
+        return []
+    return records
+
+
+def correlate_reply_to_checkin(
+    *,
+    reply_text: str,
+    candidates: list[CheckinCandidate],
+    default_date_et: str,
+    history_path: Path | None = None,
+    quote_reply_id: str | None = None,  # reserved for future channel-layer extension
+) -> str:
+    """Pick the check-in date the reply should be attributed to.
+
+    Implements the priority chain from
+    ``contracts/reply-correlation.contract.md``:
+
+      1. Quote-reply metadata (reserved — not yet plumbed; no-op here).
+      2. Explicit date hint in the reply text.
+      3. Most-recent-unresolved scan across the 48hr window.
+      4. Default to ``default_date_et`` (today).
+
+    Args:
+        reply_text: Kent's WhatsApp reply text.
+        candidates: 48hr-window candidates sorted most-recent-first.
+        default_date_et: Fallback date (typically today in ET).
+        history_path: Path to habits-history.jsonl for the unresolved
+            tiebreak. None disables that tier and falls straight to
+            default.
+        quote_reply_id: Reserved-but-unused hook for a future channel-
+            layer extension. Currently always None.
+
+    Returns:
+        The ET date string (``YYYY-MM-DD``) the reply correlates to.
+    """
+    # Tier 1: quote-reply (not yet plumbed at this layer).
+    if quote_reply_id is not None:  # pragma: no cover -- reserved hook
+        # If a future extension delivers a quote-reply identifier that maps
+        # to a stored check-in delivery, this would look it up here.
+        pass
+
+    # Tier 2: explicit date hint.
+    hinted = _explicit_date_hint(reply_text, candidates)
+    if hinted is not None:
+        return hinted
+
+    # Tier 3: most-recent-unresolved across the 48hr window.
+    if candidates and history_path is not None:
+        history = _read_history(history_path)
+        for cand in candidates:
+            morning_list = _load_candidate_morning_list(cand)
+            if morning_list is None:
+                continue
+            if _reply_has_unresolved_match(reply_text, morning_list, history):
+                return cand.checkin_date_et
+
+    # Tier 4: default to today's date.
+    return default_date_et
 
 
 # ---------------------------------------------------------------------------
@@ -1147,6 +1489,26 @@ def _build_parser() -> argparse.ArgumentParser:
             f"(default: {DEFAULT_STATE_DIR})."
         ),
     )
+    parser.add_argument(
+        "--no-correlate-48hr",
+        action="store_true",
+        help=(
+            "Disable mission #408 / WP-02 48hr-window correlation. "
+            "Forces today-only behavior (legacy mode). Default: correlation "
+            "enabled, falling back gracefully to today's check-in when no "
+            "older candidate matches."
+        ),
+    )
+    parser.add_argument(
+        "--history-path",
+        type=Path,
+        default=None,
+        help=(
+            "Path to habits-history.jsonl for the most-recent-unresolved "
+            "tiebreak. Default: <--state-dir>/../habits-history.jsonl. "
+            "Set to /dev/null to disable the unresolved tier explicitly."
+        ),
+    )
     return parser
 
 
@@ -1210,10 +1572,42 @@ def main(argv: list[str] | None = None) -> int:
             _emit_stderr_error(step="reply_file_read", error=str(exc))
             return 1
 
-    # Load the morning list.
-    morning_list_path = Path(args.state_dir) / f"morning-checkin-{date}.json"
+    # Mission #408 / WP-02: 48hr-window correlation. We scan recent
+    # check-in artifacts and may swap ``date`` for a more appropriate
+    # older date BEFORE loading the morning list. Default-on; opt-out
+    # via --no-correlate-48hr. Errors during correlation (missing
+    # state_dir, malformed artifacts) silently fall back to today's
+    # date — zero regression for the common case.
+    correlated_date = date
+    if not args.no_correlate_48hr:
+        try:
+            candidates = find_checkin_within_48hr_window(
+                Path(args.state_dir), datetime.now(zoneinfo.ZoneInfo("UTC"))
+            )
+        except OSError:  # pragma: no cover -- defensive
+            candidates = []
+        if candidates:
+            # Default history path: sibling of state_dir's parent. Production
+            # layout has state at /data/services/openclaw/state/habits and
+            # history at /data/services/openclaw/state/habits-history.jsonl.
+            history_path = args.history_path or (
+                Path(args.state_dir).parent / "habits-history.jsonl"
+            )
+            correlated_date = correlate_reply_to_checkin(
+                reply_text=reply_text,
+                candidates=candidates,
+                default_date_et=date,
+                history_path=history_path,
+            )
+
+    # Load the morning list for the correlated date.
+    morning_list_path = (
+        Path(args.state_dir) / f"morning-checkin-{correlated_date}.json"
+    )
     try:
-        morning_list = load_morning_list(date=date, state_dir=args.state_dir)
+        morning_list = load_morning_list(
+            date=correlated_date, state_dir=args.state_dir
+        )
     except FileNotFoundError as exc:
         _emit_stderr_error(step="load_morning_list", error=str(exc))
         # Still emit a partial ParseResult on stdout so the agent can echo
@@ -1258,11 +1652,16 @@ def main(argv: list[str] | None = None) -> int:
         sys.stdout.write("\n")
         return 5
 
-    # Parse the reply.
+    # Parse the reply against the correlated morning list.
     result = parse_reply(
         reply_text=reply_text,
         morning_list=morning_list,
         morning_list_path=str(morning_list_path),
+    )
+    # Mission #408 / WP-02: stamp the correlated date so downstream consumers
+    # (record_completion's date arg) know which check-in's habits to resolve.
+    result = dataclasses.replace(
+        result, correlated_checkin_date_et=correlated_date
     )
 
     # Emit the result as JSON on stdout.

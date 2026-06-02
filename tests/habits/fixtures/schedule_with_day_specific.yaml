@@ -1,0 +1,25 @@
+# Fixture schedule for mission #408 / WP-01 tests.
+#
+# Mixes daily and day-specific habits to exercise the day-of-week filter,
+# the schedule_loader validation paths, and the reconciliation flag's
+# advancement logic. Independent of the production phase3-schedule.yaml.
+
+mission_id: "test-mission-fixture"
+
+operations: []
+
+habits:
+  - task_id: 100
+    title: "Daily wake habit (fixture)"
+    repeat_after_seconds: 86400
+  - task_id: 200
+    title: "Wednesday-only strength (fixture)"
+    designated_weekdays: ["Wed"]
+    repeat_after_seconds: 604800
+  - task_id: 201
+    title: "Multi-day Mon+Thu (fixture)"
+    designated_weekdays: ["Mon", "Thu"]
+    repeat_after_seconds: 302400
+  - task_id: 300
+    title: "Daily meditate (fixture)"
+    repeat_after_seconds: 86400

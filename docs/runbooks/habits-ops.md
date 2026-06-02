@@ -6,9 +6,9 @@ status: approved
 level: 2
 owners: [kent]
 audience: agents_and_humans
-last_validated: '2026-05-22'
-updated_by: '#371'
-version: '2.0.0'
+last_validated: '2026-06-02'
+updated_by: '#408'
+version: '2.1.0'
 ---
 
 # Habit Check-in Operations
@@ -417,6 +417,209 @@ the task done (history is preserved).
 | Disambiguator over-asks for clarification | Inspect the disambiguator prompt at `scripts/habits/judgment/` | Forward-fix the prompt; not a rollback trigger |
 | Agent not responding | `ssh office2-claude 'openclaw agents list'` | Restart gateway: `ssh office2-claude 'systemctl --user restart openclaw-gateway'` |
 | Session cache stale | Agent uses old AGENTS.md | Restart gateway or wait for isolated session |
+
+## 48hr response window (mission #408)
+
+As of mission [#408](https://github.com/kentonium3/kg-automation/issues/408)
+all habits — daily AND day-specific — stay **open in
+`habits-history.jsonl` for 48 hours after their check-in delivery**.
+Kent can reply to yesterday's WhatsApp check-in message on Wednesday
+morning and the parser correctly attributes the reply to yesterday's
+habits. The reply parser scans recent `morning-checkin-<date>.json`
+artifacts within the 48hr window and chooses the best candidate via:
+
+1. **Explicit date hint** in the reply (`"yesterday"`, `"Tue"`,
+   `"2026-05-31"`).
+2. **Most-recent-unresolved**: the most recent check-in whose habits
+   the reply tokens map to (and that aren't already resolved).
+3. **Default to today's check-in** — preserves existing behavior for
+   prompt replies.
+
+If 48 hours pass without a reply, the **felix-habit-sweeper** appends
+an `auto_skipped` event to `habits-history.jsonl` and (for
+day-specific habits) advances the Vikunja `due_date` to the next
+designated weekday. The miss is recorded in history; the accountability
+trail is preserved.
+
+WhatsApp quote-reply metadata (priority 1 in the
+[reply-correlation contract](<../../kitty-specs/habit-day-specific-scheduling-01KT48Y6/contracts/reply-correlation.contract.md>))
+is NOT currently plumbed to the parser — the channel layer does not
+forward it. If a future mission adds it, the hook point is
+`parse_morning_reply.correlate_reply_to_checkin`'s reserved
+`quote_reply_id` kwarg.
+
+## Sweeper operations (felix-habit-sweeper, mission #408)
+
+### Architecture at a glance
+
+| Item | Value |
+|---|---|
+| Host | office2 (Ubuntu 24.04 LTS) |
+| Timer cadence | `OnCalendar=*-*-* 07:30 America/New_York`, `Persistent=true` |
+| ExecStart | `/usr/bin/python3 /home/claude/kg-automation/scripts/habits/sweeper.py` |
+| State dir | `/data/services/openclaw/state/habits/` |
+| Tick artifact | `sweeper-tick-<date>.json` (overwrite per ET date) |
+| Ledger | `sweeper-ledger.jsonl` (append-only) |
+| History writes | `auto_skipped` events appended to `habits-history.jsonl` |
+| Vikunja writes | `POST /tasks/<id>` for day-specific habits only |
+| Health signal | latest tick artifact's `exit_status` field |
+| LLM calls | zero (deterministic per Directive 6) |
+| Runs as | `claude` user |
+
+### 30-second health check
+
+```bash
+ssh office2-claude 'jq -r "[.exit_status,.started_at_utc,.errors|length] | @tsv" /data/services/openclaw/state/habits/sweeper-tick-$(date -u +%Y-%m-%d).json'
+```
+
+A healthy tick prints `success   2026-MM-DDTHH:MM:SSZ   0`.
+
+### Pre-cutover checklist
+
+1. Code merged to `main` (`git pull` on office2 brings in `scripts/habits/sweeper.py` + the systemd units).
+2. Restic backup for `/data/services/openclaw/state/` is current within the last 24h (Tier 2 — the sweeper appends to the existing JSONL history).
+3. Vikunja API token exists and is readable by the `claude` user: `ssh office2-claude 'ls -l /data/services/openclaw/secrets/vikunja-api'` (expect `-rw------- claude claude`).
+4. Schedule YAML has the day-specific entries: `ssh office2-claude 'grep designated_weekdays /home/claude/kg-automation/scripts/habits/migrations/phase3-schedule.yaml'` returns at least one match (the Mon/Wed/Fri strength-training entries).
+5. System python has PyYAML available: `ssh office2-claude 'python3 -c "import yaml; print(yaml.__version__)"'` returns a version (NOT `ModuleNotFoundError`). If missing, install via `apt-get install python3-yaml` — present Kent the sudo command per CLAUDE.md Tier 0 protocol.
+
+### Cutover procedure
+
+Run each command one at a time, verifying each before proceeding.
+
+Pull code on office2:
+
+```bash
+ssh office2-claude 'cd /home/claude/kg-automation && git pull --ff-only'
+```
+
+Verify schedule.yaml has the day-specific entries:
+
+```bash
+ssh office2-claude 'grep -c designated_weekdays /home/claude/kg-automation/scripts/habits/migrations/phase3-schedule.yaml'
+```
+
+Run a `--dry-run` sweep to preview without mutating state:
+
+```bash
+ssh office2-claude '/usr/bin/python3 /home/claude/kg-automation/scripts/habits/sweeper.py --dry-run'
+```
+
+Install the systemd units (idempotent — overwrite-symlink):
+
+```bash
+ssh office2-claude 'install -m 0644 /home/claude/kg-automation/scripts/office2/felix-habit-sweeper.service /home/claude/.config/systemd/user/felix-habit-sweeper.service'
+```
+
+```bash
+ssh office2-claude 'install -m 0644 /home/claude/kg-automation/scripts/office2/felix-habit-sweeper.timer /home/claude/.config/systemd/user/felix-habit-sweeper.timer'
+```
+
+Reload systemd user units:
+
+```bash
+ssh office2-claude 'systemctl --user daemon-reload'
+```
+
+Verify both units parse:
+
+```bash
+ssh office2-claude 'systemd-analyze --user verify felix-habit-sweeper.service felix-habit-sweeper.timer'
+```
+
+Enable + start the timer:
+
+```bash
+ssh office2-claude 'systemctl --user enable --now felix-habit-sweeper.timer'
+```
+
+Force a `--dry-run` sweep to populate the first tick artifact (without mutating state):
+
+```bash
+ssh office2-claude '/usr/bin/python3 /home/claude/kg-automation/scripts/habits/sweeper.py --dry-run'
+```
+
+Inspect the tick artifact:
+
+```bash
+ssh office2-claude 'cat /data/services/openclaw/state/habits/sweeper-tick-$(TZ=America/New_York date +%Y-%m-%d).json'
+```
+
+### Post-cutover verification
+
+1. Timer is active: `ssh office2-claude 'systemctl --user is-active felix-habit-sweeper.timer'` returns `active`.
+2. Tick artifact is fresh: `ssh office2-claude 'ls -lt /data/services/openclaw/state/habits/sweeper-tick-*.json | head -1'` shows today's date.
+3. No errors: `ssh office2-claude 'jq ".errors | length" /data/services/openclaw/state/habits/sweeper-tick-$(date +%Y-%m-%d).json'` returns `0`.
+
+### Sweeper troubleshooting
+
+| Symptom | Check | Fix |
+|---------|-------|-----|
+| Sweeper exited non-zero | `journalctl --user -u felix-habit-sweeper.service -n 50` | Read the `SUMMARY:` line + tick artifact's `errors[]`. Per-habit Vikunja PUT failures yield `exit_status: partial` (exit 1); schedule load failures yield `failure` (exit 2). |
+| Unresolved habit not auto-skipped | `jq '.habits_evaluated[] | select(.task_id==N)' /data/services/openclaw/state/habits/sweeper-tick-*.json` | Confirm the relevant `morning-checkin-<date>.json` is actually >48hr old. The sweeper deliberately defers anything inside the 48hr window. |
+| Kent's late reply didn't correlate | Read `parse_morning_reply` stderr + the produced JSON's `correlated_checkin_date_et` field | The 48hr correlation only fires when state_dir contains recent artifacts. If Kent replied >48hr after the relevant check-in, the sweeper has already marked the habits `auto_skipped` — the parser will not retroactively mark them done. |
+| Vikunja PUT failed | tick `errors[*].error_type=="vikunja_put"` entries | Per-habit failures don't abort the tick; rerun the sweeper after Vikunja recovers. The idempotency check ensures already-skipped habits aren't double-emitted. |
+| Tick artifact missing today's run | `systemctl --user list-timers felix-habit-sweeper.timer` | Verify next-fire timestamp is in the next 24hr. `Persistent=true` guarantees a missed tick fires on next start. |
+| `auto_skipped` event in history but habit still appearing in next check-in | Verify the day-specific habit's Vikunja `due_date` was actually advanced (`jq '.habits_auto_skipped' /data/.../sweeper-tick-*.json` should show the advanced timestamp) | Vikunja PUT may have failed silently — rerun with `--dry-run` first to confirm the computed new_due_date, then rerun without `--dry-run`. |
+
+### Sweeper rollback (mission #408)
+
+Reverses each cutover step, in reverse order.
+
+Stop + disable the timer:
+
+```bash
+ssh office2-claude 'systemctl --user disable --now felix-habit-sweeper.timer'
+```
+
+Optionally remove the systemd unit symlinks:
+
+```bash
+ssh office2-claude 'rm /home/claude/.config/systemd/user/felix-habit-sweeper.service /home/claude/.config/systemd/user/felix-habit-sweeper.timer'
+```
+
+Reload systemd:
+
+```bash
+ssh office2-claude 'systemctl --user daemon-reload'
+```
+
+State files (`sweeper-tick-*.json`, `sweeper-ledger.jsonl`,
+`auto_skipped` events in `habits-history.jsonl`) are left in place —
+they document what the sweeper did and don't affect the morning
+check-in pipeline. The morning check-in resumes pre-#408 behavior
+immediately on the next tick.
+
+To revert the `exclude_completed_v2` extension (only if a regression
+forces it), `git revert` the WP02 commit on the lane and redeploy.
+
+## Reconciliation command (mission #408)
+
+When Kent changes a habit's `designated_weekdays` (e.g., moves the Wed
+strength training to Tue), run the reconciliation flag on
+`set_due_dates.py` to advance the Vikunja `due_date` to the next
+occurrence of the NEW designated weekday.
+
+Edit the YAML (locally or on office2):
+
+```bash
+vim scripts/habits/migrations/phase3-schedule.yaml
+```
+
+Preview the changes against live Vikunja state (no PUTs issued):
+
+```bash
+ssh office2-claude 'cd /home/claude/kg-automation && /usr/bin/python3 -m scripts.habits.set_due_dates --reconcile-schedule --dry-run'
+```
+
+Apply (issues Vikunja POSTs to advance any due_dates that drifted):
+
+```bash
+ssh office2-claude 'cd /home/claude/kg-automation && /usr/bin/python3 -m scripts.habits.set_due_dates --reconcile-schedule'
+```
+
+The command writes an E5 reconciliation record at
+`/data/services/openclaw/state/habits/reconcile-<datetime>.json`
+documenting which task_ids changed and the old/new due_dates.
 
 ## Privacy boundary
 

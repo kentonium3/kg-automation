@@ -54,6 +54,25 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+try:
+    from scripts.habits.schedule_loader import (
+        ScheduleConfigError,
+        ScheduleEntry,
+        is_active_today,
+        load_schedule,
+    )
+except ImportError:
+    # Fallback for direct-script invocation (`python3 scripts/habits/query_active_habits_v2.py`).
+    # The absolute-package import above resolves only under `python3 -m scripts.habits.query_active_habits_v2`;
+    # both invocation forms exist in production callers.
+    # Precedent: scripts/openclaw/observation/summarize.py:36-38.
+    from schedule_loader import (  # type: ignore[no-redef]
+        ScheduleConfigError,
+        ScheduleEntry,
+        is_active_today,
+        load_schedule,
+    )
+
 
 # ---------------------------------------------------------------------------
 # Module constants
@@ -76,6 +95,17 @@ HABITS_PROJECT_TITLE = "Habits"
 
 #: Regex for the --today flag (ISO-8601 date).
 _DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+
+#: Map Python ``datetime.weekday()`` ints (Mon=0..Sun=6) to 3-letter names.
+_WEEKDAY_BY_INDEX: tuple[str, ...] = (
+    "Mon",
+    "Tue",
+    "Wed",
+    "Thu",
+    "Fri",
+    "Sat",
+    "Sun",
+)
 
 
 # ---------------------------------------------------------------------------
@@ -179,10 +209,27 @@ def _today_utc() -> str:
 # ---------------------------------------------------------------------------
 
 
+def _weekday_name_for_date(date_str: str) -> str:
+    """Return the 3-letter ISO weekday name for a ``YYYY-MM-DD`` string.
+
+    Used by the day-of-week filter in :func:`query_active_today` so callers
+    only need to pass ``today`` once. Mirrors the ``day`` field emitted by
+    ``scripts.habits.compute_today``.
+
+    Raises:
+        ValueError: ``date_str`` is not parseable as ISO-8601.
+    """
+    parsed = datetime.fromisoformat(date_str).date()
+    return _WEEKDAY_BY_INDEX[parsed.weekday()]
+
+
 def query_active_today(
     api_base_url: str,
     token: str,
     today: str | None = None,
+    *,
+    schedule_path: Path | str | None = None,
+    today_weekday: str | None = None,
 ) -> list[dict]:
     """Return habit tasks active for today via a project-scoped client-side filter.
 
@@ -195,12 +242,27 @@ def query_active_today(
     client-side workaround mirrors the G6 (#333) fix in
     ``reconcile_completions.py``.
 
+    **Day-of-week filter (mission #408)**: when ``schedule_path`` is
+    supplied, the function loads the habit schedule via
+    :func:`scripts.habits.schedule_loader.load_schedule` and excludes any
+    candidate whose ``ScheduleEntry`` has ``designated_weekdays`` set AND
+    today's weekday is NOT in that list. Habits in Vikunja that are not in
+    the schedule are passed through unchanged (daily-default fallback) with
+    a single stderr warning per missing task — this preserves existing
+    behavior for tests that do not configure a schedule.
+
     See ``contracts/api.md`` for the full contract.
 
     Args:
         api_base_url: Vikunja API base URL.
         token: Vikunja bearer token (felix-bot per Phase 1).
         today: ISO-8601 date for the filter boundary. Defaults to UTC today.
+        schedule_path: Optional path to the habits schedule YAML. When None
+            (the default), no day-of-week filter is applied — preserves
+            pre-#408 behavior for tests that do not exercise the filter.
+        today_weekday: Optional 3-letter ISO weekday name (e.g. ``"Wed"``).
+            Used in conjunction with ``schedule_path`` for the day-of-week
+            filter. If None, derived from ``today``.
 
     Returns:
         List of task dicts. Each dict contains at least ``id``, ``title``,
@@ -208,9 +270,12 @@ def query_active_today(
         Empty list if no habits are active.
 
     Raises:
-        ValueError: If ``today`` is set but not YYYY-MM-DD.
+        ValueError: If ``today`` is set but not YYYY-MM-DD, or ``today_weekday``
+            is provided but invalid.
         OSError: On Vikunja API failure (network, non-2xx HTTP, bad body,
             or Habits project not found).
+        ScheduleConfigError: If ``schedule_path`` is supplied but the schedule
+            YAML fails validation.
     """
     today_date = today or _today_utc()
     if not _DATE_RE.match(today_date):
@@ -238,7 +303,7 @@ def query_active_today(
     #     the server-side filter would have produced). An empty-string
     #     ``due_date`` (truly absent field) is excluded.
     boundary = f"{today_date}T23:59:59Z"
-    out: list[dict] = []
+    candidates: list[dict] = []
     for item in payload:
         if not isinstance(item, dict):
             continue
@@ -247,8 +312,40 @@ def query_active_today(
         due = item.get("due_date") or ""
         if not due or due > boundary:
             continue
-        out.append(item)
-    return out
+        candidates.append(item)
+
+    # Day-of-week filter (mission #408 / FR-002) — opt-in via schedule_path.
+    if schedule_path is None:
+        return candidates
+
+    entries = load_schedule(schedule_path)
+    by_task_id: dict[int, ScheduleEntry] = {e.task_id: e for e in entries}
+    resolved_weekday = today_weekday or _weekday_name_for_date(today_date)
+
+    filtered: list[dict] = []
+    for item in candidates:
+        tid = item.get("id")
+        if not isinstance(tid, int):
+            # Unexpected — pass through; the morning-checkin helper will
+            # surface a structured error if any item lacks an integer id.
+            filtered.append(item)
+            continue
+        entry = by_task_id.get(tid)
+        if entry is None:
+            # Habit in Vikunja but not in schedule.yaml: include by default
+            # (daily fallback). Log a single stderr warning so the operator
+            # notices the drift on the next morning's journal scrape.
+            print(
+                f"WARN: habit task_id={tid} title={item.get('title')!r} not "
+                f"in schedule.yaml — treating as daily (passthrough)",
+                file=sys.stderr,
+            )
+            filtered.append(item)
+            continue
+        if is_active_today(entry, resolved_weekday):
+            filtered.append(item)
+        # else: day-specific habit not designated for today — exclude.
+    return filtered
 
 
 # ---------------------------------------------------------------------------
@@ -313,6 +410,18 @@ def build_parser() -> argparse.ArgumentParser:
         default=DEFAULT_BASE_URL,
         help=f"Vikunja API base URL (default: {DEFAULT_BASE_URL}).",
     )
+    parser.add_argument(
+        "--schedule-path",
+        type=Path,
+        default=None,
+        help=(
+            "Optional path to the habits schedule YAML. When supplied, the "
+            "day-of-week filter from mission #408 is applied: day-specific "
+            "habits whose designated weekdays do not include today's ET "
+            "weekday are excluded. Default: filter disabled (preserves "
+            "pre-#408 behavior)."
+        ),
+    )
     return parser
 
 
@@ -335,9 +444,17 @@ def main(argv: list[str] | None = None) -> int:
         return 1
 
     try:
-        tasks = query_active_today(args.base_url, token, today=args.today)
+        tasks = query_active_today(
+            args.base_url,
+            token,
+            today=args.today,
+            schedule_path=args.schedule_path,
+        )
     except ValueError as e:
         print(f"ERROR: {e}", file=sys.stderr)
+        return 2
+    except ScheduleConfigError as e:
+        print(f"ERROR: schedule config: {e}", file=sys.stderr)
         return 2
     except OSError as e:
         print(f"ERROR: query failed: {e}", file=sys.stderr)
