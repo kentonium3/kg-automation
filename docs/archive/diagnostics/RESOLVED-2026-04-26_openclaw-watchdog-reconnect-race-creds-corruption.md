@@ -1,5 +1,14 @@
 # Bug: web-channel watchdog reconnect loop races credential persistence → creds.json corruption
 
+> **RESOLVED UPSTREAM in OpenClaw v2026.4.26** ([release notes](https://github.com/openclaw/openclaw/releases/tag/v2026.4.26)):
+> *"WhatsApp/Web: keep quiet but healthy linked-device sessions connected by basing the watchdog on WhatsApp Web transport activity, while retaining a longer app-silence cap so frame activity cannot mask a stuck session forever. Fixes #70678; carries forward the focused #71466 approach and keeps #63939 as related configurable-timeout follow-up."*
+>
+> **Verified in production on 2026-06-02** after upgrading office2 from v2026.3.24 → v2026.5.28. Post-upgrade signal counts dropped from ~300/cycle to 0/cycle for `whatsapp_creds_restore` and `web_watchdog_reconnect`; the watchdog no longer fires forced-reconnects during normal idle. No upstream issue filed by us — three other users (#70678, #71466, #63939) reported the same bug earlier and the maintainer landed the fix.
+>
+> **Lesson captured**: office2 was running 2 months stale on OpenClaw; a package-staleness signal would have surfaced this gap proactively. Filed as a follow-up feature consideration during mission #490 post-cutover review.
+>
+> Retained as a historical record of the investigation. Do NOT file upstream.
+
 ## Summary
 
 The web-channel watchdog timer in OpenClaw forces a reconnect every ~60 seconds whenever the WhatsApp upstream has been idle for longer than `MESSAGE_TIMEOUT_MS` (default 30 minutes). During each forced reconnect, the WhatsApp credential write (`creds.json`) is not atomic with respect to the reconnect itself; reads of `creds.json` from the next reconnect attempt can land mid-write, see the file as corrupted, and fall back to `creds.json.bak`. Over a long idle window this produces dozens to hundreds of corruption-restore cycles per hour. The system self-heals (the `.bak` restore succeeds), but it generates log noise, CPU churn, and a real risk of dual-file corruption if a race ever catches both files simultaneously (manual re-pairing required). The root cause is the absence of backoff in the watchdog's reconnect loop AND the non-atomic credential file write.

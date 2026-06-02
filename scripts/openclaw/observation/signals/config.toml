@@ -7,21 +7,21 @@
 # Mission: signal-driven-monitoring-haiku-gate-01KT22PC (#490).
 # FR-006 — initial signal set: WhatsApp credential-restore events,
 # web-channel watchdog reconnect events, agent unhandled error events.
-# Thresholds: initial calibration (research.md §OD-2) was against
-# /tmp/openclaw/openclaw-2026-06-01.log assuming the signals tracked
-# novel events. Cutover-time discovery (#490 post-merge) revealed that
-# all three FR-006 signals actually track a CHRONIC upstream OpenClaw
-# watchdog condition: the WhatsApp web-channel watchdog forces
-# reconnect every 60s when idle 30+ min, causing creds.json corruption
-# (auto-recovered from .bak), reconnect storms, and DNS resolution
-# errors. The condition is generic OpenClaw behavior, unfixable from
-# our side, and has near-zero functional impact (gateway self-heals).
+# Thresholds: initial calibration (research.md §OD-2) targeted the
+# chronic upstream OpenClaw watchdog noise (#490 mission). Post-cutover
+# we upgraded OpenClaw v2026.3.24 → v2026.5.28 which includes the
+# upstream watchdog fix (#70678 / #71466 — keep quiet but healthy
+# linked-device sessions connected by basing the watchdog on WhatsApp
+# Web transport activity). Chronic baseline observed in production
+# on 2026-06-02 = 0 events/cycle for creds_restore and
+# watchdog_reconnect; near-zero for unhandled_error.
 #
-# Thresholds therefore tuned to catch DEPARTURE FROM BASELINE, not
-# baseline itself. Worst observed per-15min-cycle was ~14 events
-# (creds_restore peak); these thresholds fire at ~4x worst-observed
-# per cycle and ~7x worst-observed rolling, so an open issue means the
-# condition is meaningfully worse than the known chronic baseline.
+# Thresholds now tuned to catch *any meaningful deviation* from the
+# upstream-fixed quiet baseline — small enough to detect a regression
+# in the upstream fix or a new failure pattern, large enough to absorb
+# any residual reconnect churn from genuine network blips. If the
+# upstream fix regresses or office2 falls behind on OpenClaw upgrades,
+# we'll get a fresh issue filed quickly.
 
 [meta]
 schema_version = 1
@@ -31,9 +31,9 @@ source_kind             = "openclaw_log"
 source_path_pattern     = "/tmp/openclaw/openclaw-*.log"
 match_pattern           = "restored corrupted WhatsApp creds.json from backup"
 match_kind              = "substring"
-cycle_threshold         = 60
+cycle_threshold         = 15
 rolling_window_minutes  = 60
-rolling_threshold       = 200
+rolling_threshold       = 45
 dedup_strategy          = "open_issue_present"
 priority                = "P2"
 area_label              = "felix-core"
@@ -46,9 +46,9 @@ source_kind             = "openclaw_log"
 source_path_pattern     = "/tmp/openclaw/openclaw-*.log"
 match_pattern           = "web reconnect: connection closed"
 match_kind              = "substring"
-cycle_threshold         = 60
+cycle_threshold         = 20
 rolling_window_minutes  = 60
-rolling_threshold       = 200
+rolling_threshold       = 60
 dedup_strategy          = "open_issue_present"
 priority                = "P2"
 area_label              = "felix-core"
@@ -61,9 +61,9 @@ source_kind             = "openclaw_log"
 source_path_pattern     = "/tmp/openclaw/openclaw-*.log"
 match_pattern           = '"logLevelName":"ERROR"'
 match_kind              = "substring"
-cycle_threshold         = 30
+cycle_threshold         = 5
 rolling_window_minutes  = 60
-rolling_threshold       = 100
+rolling_threshold       = 15
 dedup_strategy          = "open_issue_present"
 priority                = "P2"
 area_label              = "felix-core"
