@@ -21,7 +21,8 @@ subtasks:
 - T004
 - T005
 - T006
-shell_pid: '7436'
+shell_pid: "7436"
+agent: "claude:opus-4-7:implementer:implementer"
 history:
 - actor: spec-kitty.tasks
   at: '2026-06-02T14:00:00Z'
@@ -276,3 +277,7 @@ spec-kitty agent action implement WP01 --agent <your-agent-name>
 - [ ] `set_due_dates.py` `--iso-eod-et` mode unchanged
 - [ ] Reconciliation record JSON shape matches E5 schema
 - [ ] `migrate_schedule.py` (not in owned_files) still parses the extended YAML
+
+## Activity Log
+
+- 2026-06-02T14:20:02Z – claude:opus-4-7:implementer:implementer – shell_pid=7436 – Assigned agent via action command
