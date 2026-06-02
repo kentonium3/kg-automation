@@ -374,23 +374,41 @@ ssh office2-claude 'openclaw cron enable 3082343c-bc7f-47ee-916b-ee070b1e50dc'
 
 ### Current habits
 
-Per the 2026-05-22 inventory (post-#371 cutover):
+Per the 2026-06-02 inventory (post-#408 / mission #60 cutover). Regenerated
+from live Vikunja project 13 query, cross-validated against
+`scripts/habits/migrations/phase3-schedule.yaml`:
 
-| Position | Task ID | Title |
-|---|---|---|
-| 1 | 14 | Wake at 5:00 AM |
-| 2 | 18 | Meditate |
-| 3 | 19 | Morning shoulder PT |
-| 4 | 20 | Get steps in today |
-| 5 | 65 | Read 30 min minimum |
-| 6 | 16 | Evening shoulder PT |
-| 7 | 17 | Morning hip PT |
-| 8 | 15 | Strength training — Friday |
+| Task ID | Title | Cadence | `designated_weekdays` |
+|---|---|---|---|
+| 14 | Wake at 5:00 AM | daily | — |
+| 15 | Meditate | daily | — |
+| 16 | Morning shoulder PT | daily | — |
+| 18 | Get steps in today | daily | — |
+| 19 | Read 30 min minimum | daily | — |
+| 20 | Evening shoulder PT | daily | — |
+| 65 | Morning hip PT | daily | — |
+| 75 | Strength training — Monday | day-specific | `["Mon"]` |
+| 76 | Strength training — Wednesday | day-specific | `["Wed"]` |
+| 77 | Strength training — Friday | day-specific | `["Fri"]` |
 
-Note: positions are computed dynamically by `morning_checkin_list.py`
-at each tick — the table above reflects the current Habits project
-inventory, but the authoritative day-by-day ordering is whatever the
-helper wrote to `morning-checkin-<date>.json` for that date.
+Note: task_id 17 ("Workout 45 min") exists in Vikunja project 13 but
+is NOT in the active habits schedule — it is the pre-mission workout
+task that was retired and replaced by 75/76/77 in the #408 cutover.
+
+Daily-habit ordering is computed dynamically by `morning_checkin_list.py`
+at each tick — the table above lists the inventory, not the daily list
+order. The authoritative day-by-day ordering is whatever the helper
+wrote to `morning-checkin-<date>.json` for that date.
+
+**Regeneration procedure** (run this whenever the active habits change):
+
+```bash
+ssh office2-claude 'curl -s -H "Authorization: Bearer $(cat /data/services/openclaw/secrets/vikunja-api)" "https://office2.tail0f5f56.ts.net/api/v1/projects/13/tasks?per_page=100" | python3 -c "import sys, json; tasks = json.load(sys.stdin); [print(f\"{t[\"id\"]:>4}  {t[\"title\"]}\") for t in sorted(tasks, key=lambda x: x[\"id\"])]"'
+```
+
+Cross-check the output against the `habits:` section of
+`scripts/habits/migrations/phase3-schedule.yaml` — only task_ids present
+in the schedule YAML are active.
 
 ### Add/remove habits directly in Vikunja
 
