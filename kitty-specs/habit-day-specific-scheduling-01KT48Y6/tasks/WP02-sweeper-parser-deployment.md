@@ -21,8 +21,8 @@ subtasks:
 - T012
 - T013
 - T014
-agent: "claude:opus-4-7:implementer:implementer"
-shell_pid: "23538"
+agent: "codex:gpt-5:reviewer:reviewer"
+shell_pid: "30000"
 history:
 - actor: spec-kitty.tasks
   at: '2026-06-02T14:00:00Z'
@@ -390,3 +390,4 @@ If T007 finds that `parse_morning_reply.py` cannot be extended for 48hr correlat
 
 - 2026-06-02T15:17:46Z – claude:opus-4-7:implementer:implementer – shell_pid=23538 – Started implementation via action command
 - 2026-06-02T15:41:44Z – claude:opus-4-7:implementer:implementer – shell_pid=23538 – Ready for review — 8 subtasks complete, sweeper tested, parser 48hr correlation extended
+- 2026-06-02T15:42:53Z – codex:gpt-5:reviewer:reviewer – shell_pid=30000 – Started review via action command
