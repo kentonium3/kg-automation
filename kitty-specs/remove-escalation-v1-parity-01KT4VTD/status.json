@@ -1,7 +1,7 @@
 {
-  "event_count": 5,
-  "last_event_id": "01KT4ZCDRYRKRZZR9SRBTTXMKM",
-  "materialized_at": "2026-06-02T20:11:15.102240+00:00",
+  "event_count": 6,
+  "last_event_id": "01KT4ZD00RT27VX9GDZJGPASWW",
+  "materialized_at": "2026-06-02T20:11:33.784312+00:00",
   "mission_number": "",
   "mission_slug": "remove-escalation-v1-parity-01KT4VTD",
   "mission_type": "software-dev",
@@ -11,18 +11,18 @@
     "canceled": 0,
     "claimed": 0,
     "done": 0,
-    "for_review": 1,
+    "for_review": 0,
     "in_progress": 0,
-    "in_review": 0,
+    "in_review": 1,
     "planned": 1
   },
   "work_packages": {
     "WP01": {
-      "actor": "user",
+      "actor": "codex",
       "force_count": 2,
-      "lane": "for_review",
-      "last_event_id": "01KT4ZCDRYRKRZZR9SRBTTXMKM",
-      "last_transition_at": "2026-06-02T20:11:15.102240+00:00"
+      "lane": "in_review",
+      "last_event_id": "01KT4ZD00RT27VX9GDZJGPASWW",
+      "last_transition_at": "2026-06-02T20:11:33.784312+00:00"
     },
     "WP02": {
       "actor": "finalize-tasks",

@@ -29,8 +29,8 @@ subtasks:
 - T004
 - T005
 - T006
-shell_pid: "87130"
-agent: "claude"
+shell_pid: "94479"
+agent: "codex"
 history:
 - timestamp: '2026-06-02T19:30:00Z'
   actor: claude:opus-4-7:planner
@@ -271,3 +271,4 @@ A reviewer should verify, in order:
 
 - 2026-06-02T19:38:47Z – claude – shell_pid=87130 – Assigned agent via action command
 - 2026-06-02T20:11:15Z – claude – shell_pid=87130 – Code+tests cleanup done; 322 tests green; guard warned on a minor cross-ref docstring fix in scripts/enrichment/
+- 2026-06-02T20:11:33Z – codex – shell_pid=94479 – Started review via action command
