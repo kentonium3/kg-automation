@@ -1,0 +1,67 @@
+{
+  "version": 1,
+  "mission_slug": "habit-day-specific-scheduling-01KT48Y6",
+  "mission_id": "01KT48Y6F2BMXDQY3YDCS5GZ61",
+  "mission_branch": "kitty/mission-habit-day-specific-scheduling-01KT48Y6",
+  "target_branch": "main",
+  "lanes": [
+    {
+      "lane_id": "lane-a",
+      "wp_ids": [
+        "WP01",
+        "WP02"
+      ],
+      "write_scope": [
+        "docs/design/architecture/data/service-dependencies.view.md",
+        "docs/design/architecture/data/service-inventory.json",
+        "docs/design/architecture/service-inventory.md",
+        "docs/runbooks/habits-ops.md",
+        "scripts/habits/exclude_completed_v2.py",
+        "scripts/habits/migrations/phase3-schedule.yaml",
+        "scripts/habits/morning_checkin_list.py",
+        "scripts/habits/parse_morning_reply.py",
+        "scripts/habits/query_active_habits_v2.py",
+        "scripts/habits/schedule_loader.py",
+        "scripts/habits/set_due_dates.py",
+        "scripts/habits/sweeper.py",
+        "scripts/habits/tests/fixtures/habits_history_pre_sweep.jsonl",
+        "scripts/habits/tests/fixtures/morning_checkin_2026_05_25_with_dayspec.json",
+        "scripts/habits/tests/fixtures/schedule_with_day_specific.yaml",
+        "scripts/habits/tests/test_morning_checkin_list_day_of_week.py",
+        "scripts/habits/tests/test_parse_morning_reply_48hr_correlation.py",
+        "scripts/habits/tests/test_query_active_habits_v2_day_of_week.py",
+        "scripts/habits/tests/test_schedule_loader.py",
+        "scripts/habits/tests/test_set_due_dates_reconcile.py",
+        "scripts/habits/tests/test_sweeper_idempotent.py",
+        "scripts/habits/tests/test_sweeper_unit.py",
+        "scripts/office2/felix-habit-sweeper.service",
+        "scripts/office2/felix-habit-sweeper.timer"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "artifact-rendering",
+        "tracker-integration"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    }
+  ],
+  "computed_at": "2026-06-02T14:15:21.798873+00:00",
+  "computed_from": "dependency_graph+ownership",
+  "planning_artifact_wps": [],
+  "collapse_report": {
+    "events": [
+      {
+        "wp_a": "WP02",
+        "wp_b": "WP01",
+        "rule": "dependency",
+        "evidence": "WP02 depends on WP01"
+      }
+    ],
+    "total_merges": 1,
+    "independent_wps_collapsed": 0,
+    "by_rule": {
+      "dependency": 1
+    }
+  }
+}
