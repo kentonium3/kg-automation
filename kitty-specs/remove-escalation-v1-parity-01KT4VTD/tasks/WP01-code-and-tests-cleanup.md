@@ -270,3 +270,4 @@ A reviewer should verify, in order:
 ## Activity Log
 
 - 2026-06-02T19:38:47Z – claude – shell_pid=87130 – Assigned agent via action command
+- 2026-06-02T20:11:15Z – claude – shell_pid=87130 – Code+tests cleanup done; 322 tests green; guard warned on a minor cross-ref docstring fix in scripts/enrichment/
