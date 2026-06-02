@@ -6,5 +6,8 @@
   "mission_slug": "signal-trip-cycle-floor-01KT4NHJ",
   "mission_type": "software-dev",
   "slug": "signal-trip-cycle-floor-01KT4NHJ",
-  "target_branch": "main"
+  "target_branch": "main",
+  "vcs": "git",
+  "source_description": "Implements GitHub issue #512 — signal-extraction trips on rolling-only counts after a transient burst, re-files closed issues for up to 60 min. Fix shape: cycle-floor on rolling trip (tripped_rolling fires only if count_cycle >= 1).",
+  "change_mode": "regular"
 }

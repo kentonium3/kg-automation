@@ -1,108 +1,107 @@
-# Implementation Plan: [FEATURE]
-*Path: [templates/plan-template.md](templates/plan-template.md)*
+# Implementation Plan: Signal trip cycle floor
 
+**Mission**: `signal-trip-cycle-floor-01KT4NHJ`
+**Branch**: `main` (planning + merge target) | **Date**: 2026-06-02
+**Spec**: [spec.md](spec.md) | **Source issue**: [#512](https://github.com/kentonium3/kg-automation/issues/512)
 
-**Branch**: `[###-feature-name]` | **Date**: [DATE] | **Spec**: [link]
-**Input**: Feature specification from `/kitty-specs/[###-feature-name]/spec.md`
+## Branch Strategy
 
-**Note**: This template is filled in by the `/spec-kitty.plan` command. See `src/specify_cli/missions/software-dev/command-templates/plan.md` for the execution workflow.
-
-The planner will not begin until all planning questions have been answered—capture those answers in this document before progressing to later phases.
+- Current branch at plan start: `main`
+- Planning/base branch: `main`
+- Final merge target: `main`
+- `branch_matches_target`: true
 
 ## Summary
 
-[Extract from feature spec: primary requirement + technical approach from research]
+Add a "quiet-cycle gate" to the signal-extraction trip evaluator: the rolling-window branch must require at least one event in the current 15-minute cycle before it can return `tripped_rolling`. The cycle-threshold branch is unchanged. Implementation is a single-predicate edit in `scripts/openclaw/observation/tick.py::_threshold_status`, plus the matching update to the trip-signal contract document and pytest coverage for all four trip outcomes under the new semantics.
 
 ## Technical Context
 
-<!--
-  ACTION REQUIRED: Replace the content in this section with the technical details
-  for the project. The structure here is presented in advisory capacity to guide
-  the iteration process.
--->
-
-**Language/Version**: [e.g., Python 3.11, Swift 5.9, Rust 1.75 or NEEDS CLARIFICATION]  
-**Primary Dependencies**: [e.g., FastAPI, UIKit, LLVM or NEEDS CLARIFICATION]  
-**Storage**: [if applicable, e.g., PostgreSQL, CoreData, files or N/A]  
-**Testing**: [Project-specific test approach or NEEDS CLARIFICATION]
-**Target Platform**: [e.g., Linux server, iOS 15+, WASM or NEEDS CLARIFICATION]
-**Project Type**: [single/web/mobile - determines source structure]  
-**Performance Goals**: [domain-specific, e.g., 1000 req/s, 10k lines/sec, 60 fps or NEEDS CLARIFICATION]  
-**Constraints**: [domain-specific, e.g., <200ms p95, <100MB memory, offline-capable or NEEDS CLARIFICATION]  
-**Scale/Scope**: [domain-specific, e.g., 10k users, 1M LOC, 50 screens or NEEDS CLARIFICATION]
+**Language/Version**: Python 3.11 (matches mission #490 substrate)
+**Primary Dependencies**: stdlib only — no new imports introduced by this fix
+**Storage**: no schema or state-file changes; persisted `SignalState` and rolling-bucket eviction logic untouched
+**Testing**: pytest, existing tick-orchestrator test suite at `scripts/openclaw/observation/tests/test_tick_orchestrator.py`; existing fixtures and conftest patterns reused
+**Target Platform**: office2 (Ubuntu 24.04 LTS), systemd-timer-driven `felix-core-digest-signals` service
+**Project Type**: single — scripts/ subtree of kg-automation
+**Performance Goals**: nominal — the predicate adds one boolean comparison; cycle duration target stays well under 1 second
+**Constraints**: backwards-compatible with persisted state; no field changes in `last-tick.json`; module size delta ≈ +1 line in source, +N lines in tests/contract
+**Scale/Scope**: three currently-enabled signals (`whatsapp_creds_restore`, `web_watchdog_reconnect`, `openclaw_unhandled_error`); pipeline runs every 15 min on a single host
 
 ## Charter Check
 
-*GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
+- **Tool registry mismatch (known, deferred)**: charter resolution reports `pytest`/`python` unavailable per `project_charter_tool_registry_mismatch` memory. The tools are present and in active use; this is a registration gap in the charter, not a real constraint. Mission proceeds; this issue is tracked separately and out of scope here.
+- **Tier classification**: change-risk taxonomy Tier 3 (Logic/Workflow). No pre-flight checklist, no architecture-data updates, no service-inventory edits.
+- **Directive 6 (deterministic vs stochastic split)**: the fix is entirely deterministic — a one-line predicate plus tests. No LLM step. Already aligned.
+- **Documentation standards (Directive 5)**: contract doc update is the authoritative human description; spec.md + plan.md sit alongside.
 
-[Gates determined based on charter file]
+No charter violations. Charter Check passes.
 
 ## Project Structure
 
-### Documentation (this feature)
+### Documentation (this mission)
 
 ```
-kitty-specs/[###-feature]/
-├── plan.md              # This file (/spec-kitty.plan command output)
-├── research.md          # Phase 0 output (/spec-kitty.plan command)
-├── data-model.md        # Phase 1 output (/spec-kitty.plan command)
-├── quickstart.md        # Phase 1 output (/spec-kitty.plan command)
-├── contracts/           # Phase 1 output (/spec-kitty.plan command)
-└── tasks.md             # Phase 2 output (/spec-kitty.tasks command - NOT created by /spec-kitty.plan)
+kitty-specs/signal-trip-cycle-floor-01KT4NHJ/
+├── plan.md                  # This file
+├── research.md              # Phase 0 — Open Decisions and resolutions
+├── data-model.md            # Phase 1 — Trip predicate state-table
+├── quickstart.md            # Phase 1 — How to verify the fix locally + on office2
+├── contracts/
+│   └── trip-predicate.contract.md   # Updated trip semantics
+├── spec.md                  # /spec-kitty.specify output
+└── tasks/                   # /spec-kitty.tasks output (created later)
 ```
 
 ### Source Code (repository root)
-<!--
-  ACTION REQUIRED: Replace the placeholder tree below with the concrete layout
-  for this feature. Delete unused options and expand the chosen structure with
-  real paths (e.g., apps/admin, packages/something). The delivered plan must
-  not include Option labels.
--->
 
 ```
-# [REMOVE IF UNUSED] Option 1: Single project (DEFAULT)
-src/
-├── models/
-├── services/
-├── cli/
-└── lib/
-
-tests/
-├── contract/
-├── integration/
-└── unit/
-
-# [REMOVE IF UNUSED] Option 2: Web application (when "frontend" + "backend" detected)
-backend/
-├── src/
-│   ├── models/
-│   ├── services/
-│   └── api/
+scripts/openclaw/observation/
+├── tick.py                                # EDIT: _threshold_status predicate
 └── tests/
+    └── test_tick_orchestrator.py          # EDIT: extend coverage for new semantics
 
-frontend/
-├── src/
-│   ├── components/
-│   ├── pages/
-│   └── services/
-└── tests/
-
-# [REMOVE IF UNUSED] Option 3: Mobile + API (when "iOS/Android" detected)
-api/
-└── [same as backend above]
-
-ios/ or android/
-└── [platform-specific structure: feature modules, UI flows, platform tests]
+kitty-specs/signal-driven-monitoring-haiku-gate-01KT22PC/
+└── contracts/
+    └── tick-signal.contract.md            # EDIT: reflect new trip semantics
 ```
 
-**Structure Decision**: [Document the selected structure and reference the real
-directories captured above]
+**Structure Decision**: Single Python project (kg-automation). No new modules; surgical edit inside the existing `scripts/openclaw/observation/` package.
 
 ## Complexity Tracking
 
-*Fill ONLY if Charter Check has violations that must be justified*
+No charter violations to justify. Section intentionally empty.
 
-| Violation | Why Needed | Simpler Alternative Rejected Because |
-|-----------|------------|-------------------------------------|
-| [e.g., 4th project] | [current need] | [why 3 projects insufficient] |
-| [e.g., Repository pattern] | [specific problem] | [why direct DB access insufficient] |
+## Phase 0 Deliverable
+
+See [research.md](research.md). The single Open Decision (OD-1: cycle-floor predicate exact shape) was resolved during `/spec-kitty.specify` discovery.
+
+## Phase 1 Deliverables
+
+- [data-model.md](data-model.md) — trip-predicate state table covering all four outcomes under the new semantics.
+- [contracts/trip-predicate.contract.md](contracts/trip-predicate.contract.md) — authoritative description of the new trip predicate; the matching update in mission #490's `tick-signal.contract.md` is a code-level edit tracked in tasks.
+- [quickstart.md](quickstart.md) — local + office2 verification recipe.
+
+## Risk & Mitigation
+
+| Risk | Likelihood | Impact | Mitigation |
+|---|---|---|---|
+| Predicate regression — a future edit re-introduces OR-trip semantics | Low | Medium | Boundary-test coverage for all four outcomes (`below`, `tripped_cycle`, `tripped_rolling`, `tripped_both`) including the `count_cycle=0, count_rolling=high` case explicitly. Contract doc names the gate. |
+| Suppressed real condition — a slow-burn condition trips rolling only when it first hits ≥1 event in a single cycle | Low | Low | This is intentional behavior per spec (FR-002 + spec Edge Cases). A truly silent condition is unobservable by definition; one event per 15-min cycle is a vanishingly low bar. |
+| Coupling to mission #490 contract doc | Medium (text drift) | Low | Treat as paired edit in the same WP. Contract update + code change land together; reviewer compares text to predicate. |
+
+## Phase Plan
+
+- **Phase 0 (research)**: complete — single Open Decision resolved at /specify time. See research.md.
+- **Phase 1 (design)**: artifacts authored as part of /plan. See data-model.md, contracts/, quickstart.md.
+- **Phase 2 (tasks)**: produced by `/spec-kitty.tasks` next — expect a single work package.
+
+## Branch Strategy (reiteration)
+
+- Current branch: `main`
+- Planning/base branch: `main`
+- Merge target: `main`
+- Branch matches target: true
+
+## Next step
+
+Run `/spec-kitty.tasks` to materialize the work package.
