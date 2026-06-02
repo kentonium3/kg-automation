@@ -20,12 +20,12 @@ The WP boundaries follow ownership lines: no two WPs touch the same file. WP-02 
 
 | ID | Description | WP | Parallel |
 |---|---|---|---|
-| T001 | Extend `phase3-schedule.yaml` with `designated_weekdays` field; seed Wed/Fri strength training entries | WP01 |  |
-| T002 | New `schedule_loader.py` — central loader returning typed entries with day-of-week metadata | WP01 | [P] |
-| T003 | Extend `query_active_habits_v2.py` with day-of-week filtering (consumes schedule_loader) | WP01 |  |
-| T004 | Wire day-of-week filter into `morning_checkin_list.py` integration | WP01 |  |
-| T005 | Add `--reconcile-schedule` flag to `set_due_dates.py` + reconciliation record writer | WP01 | [P] |
-| T006 | Unit + fixture tests for schedule_loader, day-of-week filter, reconciliation flag | WP01 |  |
+| T001 | Extend `phase3-schedule.yaml` with `designated_weekdays` field; seed Wed/Fri strength training entries | WP01 |  | [D] |
+| T002 | New `schedule_loader.py` — central loader returning typed entries with day-of-week metadata | WP01 | [D] |
+| T003 | Extend `query_active_habits_v2.py` with day-of-week filtering (consumes schedule_loader) | WP01 |  | [D] |
+| T004 | Wire day-of-week filter into `morning_checkin_list.py` integration | WP01 |  | [D] |
+| T005 | Add `--reconcile-schedule` flag to `set_due_dates.py` + reconciliation record writer | WP01 | [D] |
+| T006 | Unit + fixture tests for schedule_loader, day-of-week filter, reconciliation flag | WP01 |  | [D] |
 | T007 | Read existing `parse_morning_reply.py`; resolve OD-4; extend for 48hr window correlation | WP02 |  |
 | T008 | New `sweeper.py` — entrypoint, dry-run, idempotency, Vikunja due_date advancement | WP02 |  |
 | T009 | Extend `exclude_completed_v2.py` to tolerate `auto_skipped` event_type (if needed per T007 research) | WP02 | [P] |
@@ -47,12 +47,12 @@ The WP boundaries follow ownership lines: no two WPs touch the same file. WP-02 
 **Independent test**: `pytest scripts/habits/tests/test_schedule_loader.py test_query_active_habits_v2_day_of_week.py test_morning_checkin_list_day_of_week.py test_set_due_dates_reconcile.py` passes with ≥85% line / ≥80% branch coverage on new modules.
 
 **Included subtasks**:
-- [ ] T001 Extend `phase3-schedule.yaml` with `designated_weekdays` field; seed Wed/Fri strength training entries (WP01)
-- [ ] T002 New `schedule_loader.py` — central loader (WP01) [P]
-- [ ] T003 Extend `query_active_habits_v2.py` with day-of-week filtering (WP01)
-- [ ] T004 Wire day-of-week filter into `morning_checkin_list.py` (WP01)
-- [ ] T005 Add `--reconcile-schedule` flag to `set_due_dates.py` + reconciliation record writer (WP01) [P]
-- [ ] T006 Unit + fixture tests (WP01)
+- [x] T001 Extend `phase3-schedule.yaml` with `designated_weekdays` field; seed Wed/Fri strength training entries (WP01)
+- [x] T002 New `schedule_loader.py` — central loader (WP01) [P]
+- [x] T003 Extend `query_active_habits_v2.py` with day-of-week filtering (WP01)
+- [x] T004 Wire day-of-week filter into `morning_checkin_list.py` (WP01)
+- [x] T005 Add `--reconcile-schedule` flag to `set_due_dates.py` + reconciliation record writer (WP01) [P]
+- [x] T006 Unit + fixture tests (WP01)
 
 **Implementation sketch**:
 1. T001 + T002 + T005 can execute in parallel (different files, no in-WP dependency).
