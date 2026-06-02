@@ -289,3 +289,4 @@ spec-kitty agent action implement WP01 --agent <your-agent-name>
 - 2026-06-02T14:57:25Z – codex:gpt-5:reviewer:reviewer – shell_pid=17780 – Started review via action command
 - 2026-06-02T15:06:21Z – codex:gpt-5:reviewer:reviewer – shell_pid=17780 – Codex WP01 cycle 2 reject (escalated by orchestrator's live-Vikunja check): task_id 15 ≠ strength training. Production has 75/76/77 for Mon/Wed/Fri. Stale runbook misled implementer. Move-task by orchestrator (#330).
 - 2026-06-02T15:06:26Z – claude:opus-4-7:implementer:implementer – shell_pid=20248 – Started implementation via action command
+- 2026-06-02T15:14:13Z – claude:opus-4-7:implementer:implementer – shell_pid=20248 – Cycle 2 fix: replaced incorrect task_id:15 binding with correct task_ids 75 (Mon), 76 (Wed), 77 (Fri); live Vikunja project 13 query used as source of truth
