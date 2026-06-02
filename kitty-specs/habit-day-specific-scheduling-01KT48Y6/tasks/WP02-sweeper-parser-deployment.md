@@ -21,6 +21,8 @@ subtasks:
 - T012
 - T013
 - T014
+agent: "claude:opus-4-7:implementer:implementer"
+shell_pid: "23538"
 history:
 - actor: spec-kitty.tasks
   at: '2026-06-02T14:00:00Z'
@@ -383,3 +385,7 @@ spec-kitty agent action implement WP02 --agent <your-agent-name>
 ## Adjustments if T007's research surprises
 
 If T007 finds that `parse_morning_reply.py` cannot be extended for 48hr correlation in this WP's scope (e.g., requires changes to the inbound WhatsApp channel that lives elsewhere), the WP scope SPLITS — sweeper + arch docs + runbook ship in WP-02 (FR-004..FR-006); parser correlation deferred to a follow-up mission. Report the scope adjustment in the implementation summary.
+
+## Activity Log
+
+- 2026-06-02T15:17:46Z – claude:opus-4-7:implementer:implementer – shell_pid=23538 – Started implementation via action command
