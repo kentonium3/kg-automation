@@ -21,8 +21,8 @@ subtasks:
 - T004
 - T005
 - T006
-shell_pid: "7436"
-agent: "claude:opus-4-7:implementer:implementer"
+shell_pid: "14134"
+agent: "codex:gpt-5:reviewer:reviewer"
 history:
 - actor: spec-kitty.tasks
   at: '2026-06-02T14:00:00Z'
@@ -282,3 +282,4 @@ spec-kitty agent action implement WP01 --agent <your-agent-name>
 
 - 2026-06-02T14:20:02Z – claude:opus-4-7:implementer:implementer – shell_pid=7436 – Assigned agent via action command
 - 2026-06-02T14:43:33Z – claude:opus-4-7:implementer:implementer – shell_pid=7436 – Ready for review — 6 subtasks complete, coverage targets met
+- 2026-06-02T14:45:07Z – codex:gpt-5:reviewer:reviewer – shell_pid=14134 – Started review via action command
