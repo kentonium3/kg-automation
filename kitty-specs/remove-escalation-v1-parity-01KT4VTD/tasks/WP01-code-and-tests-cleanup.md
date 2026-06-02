@@ -29,7 +29,8 @@ subtasks:
 - T004
 - T005
 - T006
-shell_pid: '87130'
+shell_pid: "87130"
+agent: "claude"
 history:
 - timestamp: '2026-06-02T19:30:00Z'
   actor: claude:opus-4-7:planner
@@ -265,3 +266,7 @@ A reviewer should verify, in order:
 - **Test-suite fragility**: many existing tests pin the v1 parity behavior. The edits in T005 must be surgical — only the assertions that reference parity behavior change, the test scaffolding stays.
 - **Reconcile docstring drift**: long docstrings reference phantom detection at multiple levels (module, function, inline comments). Grep-driven validation in T006 catches the survivors.
 - **Cross-mission contract drift**: mission #309's `contracts/api.md` describes the old three-write contract; this WP does NOT edit #309's contract (cross-mission edits trigger the implementation-lane guard — per #512's lesson). The current mission's `contracts/escalation-side-effects.contract.md` is the new authoritative spec; a future `[doc-audit]` commit on main can sync the #309 contract if needed.
+
+## Activity Log
+
+- 2026-06-02T19:38:47Z – claude – shell_pid=87130 – Assigned agent via action command
