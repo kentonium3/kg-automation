@@ -18,10 +18,14 @@ requirement_refs:
 planning_base_branch: main
 merge_target_branch: main
 branch_strategy: Planning artifacts for this feature were generated on main. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into main unless the human explicitly redirects the landing branch.
+base_branch: kitty/mission-signal-trip-cycle-floor-01KT4NHJ
+base_commit: 1f43282d1bc4b33431b560ba3b70bd85312cf283
+created_at: '2026-06-02T17:27:27.081664+00:00'
 subtasks:
 - T001
 - T002
 - T003
+shell_pid: '54748'
 history:
 - timestamp: '2026-06-02T17:25:00Z'
   actor: claude:opus-4-7:planner
