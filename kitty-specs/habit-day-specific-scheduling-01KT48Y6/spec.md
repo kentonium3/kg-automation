@@ -14,11 +14,15 @@ The felix-admin-habits morning check-in (delivered via WhatsApp every day at 7:0
 
 **Root cause** (per `scripts/habits/AGENTS.md` and `query_active_habits_v2.py`): the daily list is built from a Vikunja query `due_date <= today AND done = false`. When a day-specific habit's `due_date` is set to a past Wednesday (Kent missed last Wednesday), the filter returns it every day until completed. There is no logic that recognizes "this habit is Wednesday-only — if it wasn't done by end-of-day Wednesday, mark it missed and advance to next Wednesday."
 
-**Design call** (load-bearing, operator-confirmed during /spec-kitty.specify):
-- Day-specific habits appear in the daily check-in **only on their designated weekday**, NOT on the day-before as a reminder
-- If a day-specific habit is not completed by end-of-ET-day on its designated day, the system **auto-marks it as missed**, **logs the miss to habit history**, and **advances its `due_date` to the next occurrence of the designated weekday** — without surfacing it in subsequent daily check-ins
+**Design call** (load-bearing, operator-confirmed during /spec-kitty.specify and /spec-kitty.plan):
 
-This preserves accountability (the miss is recorded in history) without polluting future check-ins.
+1. **Day-of-week visibility.** Day-specific habits appear in the daily check-in **only on their designated weekday**, NOT on the day-before as a reminder. Daily habits appear every day as today.
+
+2. **48-hour response window** (clarified during plan-phase discovery; carried forward from the system's original requirements). All habits — daily AND day-specific — remain **open in `habits-history.jsonl` for 48 hours after their check-in delivery**. Kent can reply to yesterday's WhatsApp check-in message and have today's parser correctly attribute the reply to yesterday's habits. After 48 hours, unresolved items are auto-marked as **skipped** (event_type: `auto_skipped`) with history log. The visibility rule from (1) is independent: Wednesday's strength training appears only in Wednesday's check-in, but stays open for 48 hours so Kent can reply on Thursday morning to mark it complete (or skipped).
+
+3. **Sweeper trigger** changes from "end-of-ET-day" to "48hr-after-check-in" to honor the response window.
+
+These two rules combined: clean daily check-ins with only today's relevant items, but a forgiving 48hr response window so Kent's late replies still land correctly without polluting future check-ins. The miss is recorded in history; accountability preserved.
 
 ---
 
@@ -37,26 +41,39 @@ This preserves accountability (the miss is recorded in history) without pollutin
 4. System marks the habit done, advances its `due_date` to next Wednesday's end-of-ET-day per existing Vikunja-native repeat semantics.
 5. Thursday 7:05 AM ET: daily check-in does NOT include strength training.
 
-**Flow B — Day-specific habit missed:**
+**Flow B — Day-specific habit, late completion via late reply (within 48hr window):**
 1. Wednesday 7:05 AM ET: daily check-in includes *"Strength training — Wednesday"*.
-2. Kent does not complete the workout. End of ET day Wednesday (23:59:59 ET) passes.
-3. End-of-day sweeper runs (shortly after 00:00 ET Thursday). For each day-specific habit with `due_date == Wednesday's-EOD-ET AND done == false`:
-   - Append a `missed` entry to `habits-history.jsonl` with `task_id`, `designated_weekday`, `missed_on_date_et`, `tick_id`
-   - Advance `due_date` to next Wednesday's end-of-ET-day
-4. Thursday 7:05 AM ET: daily check-in does NOT include strength training (its `due_date` is now next Wednesday).
-5. The next Wednesday: daily check-in includes strength training again.
+2. Kent doesn't reply Wednesday.
+3. Thursday 7:05 AM ET: Thursday's check-in is delivered — does NOT include strength training (not Thursday's day).
+4. Thursday 10:00 AM ET: Kent realizes he forgot. Replies to **Wednesday's** WhatsApp message: *"workout done"*. (Whether he uses WhatsApp's quote-reply feature or plain text is a plan-phase research item.)
+5. Reply parser correlates the reply to Wednesday's `morning-checkin-2026-MM-DD.json` artifact (within 48hr window). Marks strength training done; Vikunja-native repeat advances `due_date` to next Wednesday.
 
-**Flow C — Day-specific habit completed via reply on its designated day, after end-of-day:**
-1. Wednesday 11:50 PM ET: Kent replies "workout done" via WhatsApp.
-2. Existing completion path marks done; Vikunja-native repeat advances `due_date` to next Wednesday.
-3. End-of-day sweeper at 00:01 ET Thursday: this habit is already `done == true`; no auto-skip.
-4. (No regression — existing completion flow continues to win when it fires before the sweeper.)
+**Flow C — Day-specific habit truly missed (no reply within 48hr window):**
+1. Wednesday 7:05 AM ET: check-in includes strength training. Kent doesn't reply Wed or Thu.
+2. Friday 7:05 AM ET: Friday's check-in is delivered. The sweeper runs after check-in delivery and identifies that Wednesday's `morning-checkin-2026-MM-DD.json` is now >48hr old and contains unresolved strength training.
+3. Sweeper appends an `auto_skipped` entry to `habits-history.jsonl` with `task_id`, `designated_weekday`, `original_checkin_date_et`, `tick_id`.
+4. Sweeper advances strength training's `due_date` to next Wednesday's end-of-ET-day.
+5. Subsequent Wednesdays: strength training appears in check-in normally.
 
-**Flow D — Daily habit (not day-specific) unaffected:**
-1. Wednesday: daily check-in includes "Wake at 5:00 AM" (daily habit) plus day-specific habits scheduled for Wednesday.
-2. Kent does not complete the wake habit.
-3. End-of-day sweeper: daily habits are NOT in scope. The sweeper only affects habits flagged as day-specific.
-4. Thursday: daily check-in still includes the missed daily habit (existing overdue behavior preserved).
+**Flow D — Daily habit, late reply within 48hr window:**
+1. Tuesday 7:05 AM ET: check-in includes "Wake at 5:00 AM" (daily habit). Kent doesn't reply Tuesday.
+2. Wednesday 7:05 AM ET: Wednesday's check-in delivered — also includes "Wake at 5:00 AM" (today's instance).
+3. Wednesday 8:00 AM ET: Kent replies to Tuesday's WhatsApp message: *"wake done"*. Parser correlates to Tuesday's `morning-checkin-2026-MM-DD.json`, marks Tuesday's wake done.
+4. Wednesday 8:01 AM ET: Kent replies to Wednesday's WhatsApp message: *"wake done"*. Parser correlates to Wednesday's check-in.
+5. Both updates land cleanly; no overlap.
+
+**Flow E — Daily habit auto-skip after 48hr window:**
+1. Monday 7:05 AM ET: check-in includes "Meditate" (daily habit). Kent doesn't reply Mon or Tue.
+2. Wednesday 7:05 AM ET: sweeper runs after check-in delivery, identifies Monday's `morning-checkin` >48hr old with unresolved meditate.
+3. Sweeper appends `auto_skipped` entry to `habits-history.jsonl` for Monday's meditate.
+4. Tuesday's check-in's meditate (its own entry, ≤48hr old) remains open.
+5. Wednesday's check-in's meditate is fresh.
+
+**Flow F — Schedule change mid-week (operator action):**
+1. Tuesday: Kent decides Wed strength training should become Mon strength training.
+2. Kent edits the schedule config, then runs a manual reconciliation command (per OD-1's plan-phase decision) that updates the habit's `designated_weekdays` field AND advances its `due_date` to the next NEW designated weekday (next Monday's EOD-ET).
+3. Wednesday's check-in: strength training does NOT appear (no longer designated for Wed).
+4. Following Monday's check-in: strength training appears.
 
 ### 2.3 Edge cases
 
@@ -75,12 +92,14 @@ This preserves accountability (the miss is recorded in history) without pollutin
 |---|---|---|
 | FR-001 | The system MUST distinguish day-specific habits (assigned to one or more weekdays) from daily habits (every day) via persistent metadata stored alongside the habit schedule. | Proposed |
 | FR-002 | The morning check-in helper MUST exclude day-specific habits whose designated weekday is not today (ET) from the daily check-in list, even when their `due_date` is in the past. | Proposed |
-| FR-003 | An end-of-ET-day sweeper MUST run shortly after 00:00 ET each day and, for each day-specific habit whose designated weekday was the day that just ended AND whose `done == false`: append a `missed` entry to `habits-history.jsonl` and advance the habit's Vikunja `due_date` to the next occurrence of its designated weekday at end-of-ET-day. | Proposed |
-| FR-004 | The sweeper MUST be idempotent: re-running it for the same `(task_id, missed_on_date_et)` pair MUST NOT append a duplicate `missed` entry or double-advance the `due_date`. | Proposed |
-| FR-005 | The sweeper MUST produce a structured per-tick artifact at `/data/services/openclaw/state/habits/sweeper-tick-<date>.json` (modeled on `morning-checkin-<date>.json`) with: `tick_id`, `started_at_utc`, `target_date_et`, `habits_evaluated[]`, `habits_marked_missed[]`, `errors[]`, `exit_status`. | Proposed |
-| FR-006 | The daily completion-marking flow MUST continue to work for day-specific habits when Kent replies on the designated day (no regression in existing `parse_morning_reply` / `set_due_dates` behavior). | Proposed |
-| FR-007 | Day-of-week metadata MUST be authored declaratively in a config file under `scripts/habits/` (extending the existing `migrations/phase3-schedule.yaml` shape or a sibling) and consumed by both the morning-checkin helper and the sweeper. | Proposed |
-| FR-008 | Day-of-week metadata MUST support multi-day assignment (e.g., a habit scheduled for both Monday and Thursday) without code change — i.e., the field is a list of designated weekdays. | Proposed |
+| FR-003 | All habits (daily AND day-specific) MUST remain open for response in `habits-history.jsonl` for **48 hours after their check-in's delivery time**. The reply parser MUST correlate Kent's WhatsApp reply to the appropriate `morning-checkin-<date>.json` artifact (today's, yesterday's, or older, within the 48hr window). | Proposed |
+| FR-004 | A sweeper MUST run daily after the morning check-in delivery and, for each habit whose containing `morning-checkin-<date>.json` is >48 hours old AND whose status remains unresolved (not done, not skipped): append an `auto_skipped` entry to `habits-history.jsonl` with `task_id`, `original_checkin_date_et`, `original_designated_weekday` (if day-specific), `tick_id`. For day-specific habits, also advance the Vikunja `due_date` to the next occurrence of its designated weekday. | Proposed |
+| FR-005 | The sweeper MUST be idempotent: re-running it for the same `(task_id, original_checkin_date_et)` pair MUST NOT append a duplicate `auto_skipped` entry or double-advance the `due_date`. | Proposed |
+| FR-006 | The sweeper MUST produce a structured per-tick artifact at `/data/services/openclaw/state/habits/sweeper-tick-<date>.json` with: `tick_id`, `started_at_utc`, `expired_checkin_dates_evaluated[]`, `habits_evaluated[]`, `habits_auto_skipped[]`, `errors[]`, `exit_status`. | Proposed |
+| FR-007 | The daily completion-marking flow MUST continue to work for both daily and day-specific habits when Kent replies within the 48hr window (no regression in existing `parse_morning_reply` / `set_due_dates` behavior). | Proposed |
+| FR-008 | Day-of-week metadata MUST be authored declaratively in a config file under `scripts/habits/` (extending the existing `migrations/phase3-schedule.yaml` shape or a sibling) and consumed by both the morning-checkin helper and the sweeper. | Proposed |
+| FR-009 | Day-of-week metadata MUST support multi-day assignment (e.g., a habit scheduled for both Monday and Thursday) without code change — i.e., the field is a list of designated weekdays. | Proposed |
+| FR-010 | When a habit's `designated_weekdays` is changed mid-week, the operator MUST run a manual reconciliation command that updates the habit's metadata AND advances its `due_date` to the next new designated weekday. The sweeper does NOT special-case schedule changes. | Proposed |
 
 ---
 
@@ -206,5 +225,7 @@ No Tier 0 changes expected.
 These are deferred to plan-phase live-probe research, not unresolved spec ambiguity:
 
 - **OD-1**: Exact storage location for `designated_weekdays` metadata — extending `phase3-schedule.yaml` vs a sibling `day-of-week.yaml` vs a Vikunja label convention. Plan phase reviews the existing schedule.yaml schema and decides.
-- **OD-2**: Sweeper invocation cadence — single nightly tick (e.g., `OnCalendar=*-*-* 00:05 EST5EDT`) vs more conservative (e.g., 00:30) to absorb DST shifts and clock skew. Plan phase decides based on the existing `felix-doc-auditor.timer` precedent.
+- **OD-2**: Sweeper invocation cadence — single morning tick shortly after the 7:05 AM ET check-in delivery vs a separate scheduled time. Plan phase decides based on the existing `felix-doc-auditor.timer` precedent.
 - **OD-3**: Whether to add a `--dry-run` flag to the sweeper for operator-side testing pre-deploy. Plan phase decides; recommended default: yes (matches `set_due_dates.py` precedent).
+- **OD-4**: Reply-correlation mechanism — does the existing `parse_morning_reply.py` already detect WhatsApp's quote-reply feature for correlating to a specific check-in date, or does the parser default to most-recent check-in? Plan phase inspects `parse_morning_reply.py` and the morning-checkin helper to decide whether 48hr support is a parser extension or already implicit.
+- **OD-5**: Manual reconciliation command (per FR-010) — extend an existing script (e.g., `set_due_dates.py`) with a `--reconcile-schedule` flag vs a new dedicated helper. Plan phase decides.
