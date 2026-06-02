@@ -309,3 +309,4 @@ A reviewer should verify, in order:
 - 2026-06-02T17:35:49Z – claude – shell_pid=54748 – Code change + boundary tests landed at commit 33039117. T003 (cross-mission #490 contract update) deferred to post-merge [doc-audit] commit on main to respect the implementation-lane guard that blocks edits to other missions' kitty-specs/. This mission's own contracts/trip-predicate.contract.md remains the authoritative predicate spec.
 - 2026-06-02T17:36:12Z – codex – shell_pid=57158 – Started review via action command
 - 2026-06-02T17:51:56Z – claude – shell_pid=61329 – Started implementation via action command
+- 2026-06-02T18:00:31Z – claude – shell_pid=61329 – T003 #490 contract update committed in lane (85516efd) — Option 2 path
