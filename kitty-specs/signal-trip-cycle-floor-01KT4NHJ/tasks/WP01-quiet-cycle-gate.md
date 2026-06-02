@@ -25,8 +25,8 @@ subtasks:
 - T001
 - T002
 - T003
-shell_pid: "61329"
-agent: "claude"
+shell_pid: "63470"
+agent: "codex"
 history:
 - timestamp: '2026-06-02T17:25:00Z'
   actor: claude:opus-4-7:planner
@@ -310,3 +310,4 @@ A reviewer should verify, in order:
 - 2026-06-02T17:36:12Z – codex – shell_pid=57158 – Started review via action command
 - 2026-06-02T17:51:56Z – claude – shell_pid=61329 – Started implementation via action command
 - 2026-06-02T18:00:31Z – claude – shell_pid=61329 – T003 #490 contract update committed in lane (85516efd) — Option 2 path
+- 2026-06-02T18:00:38Z – codex – shell_pid=63470 – Started review via action command
