@@ -25,7 +25,8 @@ subtasks:
 - T001
 - T002
 - T003
-shell_pid: '54748'
+shell_pid: "54748"
+agent: "claude"
 history:
 - timestamp: '2026-06-02T17:25:00Z'
   actor: claude:opus-4-7:planner
@@ -299,3 +300,7 @@ A reviewer should verify, in order:
 
 - **Test framework friction**: if the existing `test_tick_orchestrator.py` lacks an idiomatic way to construct `SignalDefinition` / `SignalExtraction` instances, the agent will need to read the dataclass definitions (`scripts/openclaw/observation/signals/config_loader.py`, `scripts/openclaw/observation/signals/types.py`) and assemble minimal valid instances. The new test helpers should be small and reused only inside the new test block.
 - **Drift between mission #490 contract and this mission's contract**: T003 mitigates this by putting the authoritative predicate prose in the mission #490 file, with this mission's contract pointing at the change.
+
+## Activity Log
+
+- 2026-06-02T17:27:29Z – claude – shell_pid=54748 – Assigned agent via action command
