@@ -287,3 +287,4 @@ spec-kitty agent action implement WP01 --agent <your-agent-name>
 - 2026-06-02T14:48:09Z – claude:opus-4-7:implementer:implementer – shell_pid=15159 – Started implementation via action command
 - 2026-06-02T14:56:43Z – claude:opus-4-7:implementer:implementer – shell_pid=15159 – Cycle 1 fix: import fallback preserves both -m and direct-script invocation forms
 - 2026-06-02T14:57:25Z – codex:gpt-5:reviewer:reviewer – shell_pid=17780 – Started review via action command
+- 2026-06-02T15:06:21Z – codex:gpt-5:reviewer:reviewer – shell_pid=17780 – Codex WP01 cycle 2 reject (escalated by orchestrator's live-Vikunja check): task_id 15 ≠ strength training. Production has 75/76/77 for Mon/Wed/Fri. Stale runbook misled implementer. Move-task by orchestrator (#330).
