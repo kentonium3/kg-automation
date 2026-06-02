@@ -6,5 +6,8 @@
   "mission_slug": "remove-escalation-v1-parity-01KT4VTD",
   "mission_type": "software-dev",
   "slug": "remove-escalation-v1-parity-01KT4VTD",
-  "target_branch": "main"
+  "target_branch": "main",
+  "vcs": "git",
+  "source_description": "Implements GitHub issue #376 — remove the v1 [Felix-Escalation] comment-write path that was left over from the #309 escalation→JSONL migration's soak-window parity scaffolding. Scope expanded during /specify (2026-06-02) to also delete the now-orphaned backfill_jsonl_from_comments.py migration tool, per Kent's no-vestiges principle being codified at #514. Mission also updates the agent prompt artifacts, runbook, and architecture data flow entries.",
+  "change_mode": "regular"
 }
