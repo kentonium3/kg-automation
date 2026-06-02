@@ -26,14 +26,14 @@ The WP boundaries follow ownership lines: no two WPs touch the same file. WP-02 
 | T004 | Wire day-of-week filter into `morning_checkin_list.py` integration | WP01 |  | [D] |
 | T005 | Add `--reconcile-schedule` flag to `set_due_dates.py` + reconciliation record writer | WP01 | [D] |
 | T006 | Unit + fixture tests for schedule_loader, day-of-week filter, reconciliation flag | WP01 |  | [D] |
-| T007 | Read existing `parse_morning_reply.py`; resolve OD-4; extend for 48hr window correlation | WP02 |  |
-| T008 | New `sweeper.py` — entrypoint, dry-run, idempotency, Vikunja due_date advancement | WP02 |  |
-| T009 | Extend `exclude_completed_v2.py` to tolerate `auto_skipped` event_type (if needed per T007 research) | WP02 | [P] |
-| T010 | New systemd `felix-habit-sweeper.service` + `.timer` units (OnCalendar 07:30 America/New_York) | WP02 | [P] |
-| T011 | Update architecture data: `service-inventory.json` + `.md` + `service-dependencies.view.md` | WP02 | [P] |
-| T012 | Extend `docs/runbooks/habits-ops.md` with sweeper section + 48hr semantics + cutover procedure | WP02 | [P] |
-| T013 | Sweeper unit + idempotency tests (mocked Vikunja, fixture-driven) | WP02 |  |
-| T014 | Parser tests for 48hr cross-day correlation | WP02 |  |
+| T007 | Read existing `parse_morning_reply.py`; resolve OD-4; extend for 48hr window correlation | WP02 |  | [D] |
+| T008 | New `sweeper.py` — entrypoint, dry-run, idempotency, Vikunja due_date advancement | WP02 |  | [D] |
+| T009 | Extend `exclude_completed_v2.py` to tolerate `auto_skipped` event_type (if needed per T007 research) | WP02 | [D] |
+| T010 | New systemd `felix-habit-sweeper.service` + `.timer` units (OnCalendar 07:30 America/New_York) | WP02 | [D] |
+| T011 | Update architecture data: `service-inventory.json` + `.md` + `service-dependencies.view.md` | WP02 | [D] |
+| T012 | Extend `docs/runbooks/habits-ops.md` with sweeper section + 48hr semantics + cutover procedure | WP02 | [D] |
+| T013 | Sweeper unit + idempotency tests (mocked Vikunja, fixture-driven) | WP02 |  | [D] |
+| T014 | Parser tests for 48hr cross-day correlation | WP02 |  | [D] |
 
 `[P]` indicates a subtask that can execute in parallel with siblings inside its WP (touches different files / no in-WP ordering dependency).
 
@@ -76,14 +76,14 @@ The WP boundaries follow ownership lines: no two WPs touch the same file. WP-02 
 **Independent test**: `pytest scripts/habits/tests/test_sweeper_*.py test_parse_morning_reply_48hr_correlation.py` passes; sweeper integration test confirms idempotent auto-skip behavior against fixture set.
 
 **Included subtasks**:
-- [ ] T007 Read `parse_morning_reply.py`; resolve OD-4; extend for 48hr window correlation (WP02)
-- [ ] T008 New `sweeper.py` — entrypoint, dry-run, idempotency, Vikunja due_date advancement (WP02)
-- [ ] T009 Extend `exclude_completed_v2.py` to tolerate `auto_skipped` (if needed per T007 research) (WP02) [P]
-- [ ] T010 New systemd `felix-habit-sweeper.service` + `.timer` units (WP02) [P]
-- [ ] T011 Update architecture data (service-inventory.json + .md + service-dependencies.view.md) (WP02) [P]
-- [ ] T012 Extend `docs/runbooks/habits-ops.md` (WP02) [P]
-- [ ] T013 Sweeper unit + idempotency tests (WP02)
-- [ ] T014 Parser 48hr correlation tests (WP02)
+- [x] T007 Read `parse_morning_reply.py`; resolve OD-4; extend for 48hr window correlation (WP02)
+- [x] T008 New `sweeper.py` — entrypoint, dry-run, idempotency, Vikunja due_date advancement (WP02)
+- [x] T009 Extend `exclude_completed_v2.py` to tolerate `auto_skipped` (if needed per T007 research) (WP02) [P]
+- [x] T010 New systemd `felix-habit-sweeper.service` + `.timer` units (WP02) [P]
+- [x] T011 Update architecture data (service-inventory.json + .md + service-dependencies.view.md) (WP02) [P]
+- [x] T012 Extend `docs/runbooks/habits-ops.md` (WP02) [P]
+- [x] T013 Sweeper unit + idempotency tests (WP02)
+- [x] T014 Parser 48hr correlation tests (WP02)
 
 **Implementation sketch**:
 1. T007 is research-heavy: implementer reads `parse_morning_reply.py` first, then decides whether 48hr support is a parser extension (most likely) or needs more involved changes. Determines whether T009 is needed.
