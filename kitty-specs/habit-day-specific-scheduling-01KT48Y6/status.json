@@ -1,7 +1,7 @@
 {
-  "event_count": 7,
-  "last_event_id": "01KT4CWQBPD0AB3NMK75YQSHJJ",
-  "materialized_at": "2026-06-02T14:48:06.262295+00:00",
+  "event_count": 9,
+  "last_event_id": "01KT4CWTS6S2WE10PQV7VZ0CFX",
+  "materialized_at": "2026-06-02T14:48:09.766091+00:00",
   "mission_number": "",
   "mission_slug": "habit-day-specific-scheduling-01KT48Y6",
   "mission_type": "software-dev",
@@ -12,17 +12,17 @@
     "claimed": 0,
     "done": 0,
     "for_review": 0,
-    "in_progress": 0,
+    "in_progress": 1,
     "in_review": 0,
-    "planned": 2
+    "planned": 1
   },
   "work_packages": {
     "WP01": {
-      "actor": "user",
+      "actor": "claude:opus-4-7:implementer:implementer",
       "force_count": 2,
-      "lane": "planned",
-      "last_event_id": "01KT4CWQBPD0AB3NMK75YQSHJJ",
-      "last_transition_at": "2026-06-02T14:48:06.262295+00:00"
+      "lane": "in_progress",
+      "last_event_id": "01KT4CWTS6S2WE10PQV7VZ0CFX",
+      "last_transition_at": "2026-06-02T14:48:09.766091+00:00"
     },
     "WP02": {
       "actor": "finalize-tasks",
