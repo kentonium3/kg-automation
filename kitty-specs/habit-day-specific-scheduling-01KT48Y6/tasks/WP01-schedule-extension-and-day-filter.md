@@ -285,3 +285,4 @@ spec-kitty agent action implement WP01 --agent <your-agent-name>
 - 2026-06-02T14:45:07Z – codex:gpt-5:reviewer:reviewer – shell_pid=14134 – Started review via action command
 - 2026-06-02T14:48:06Z – codex:gpt-5:reviewer:reviewer – shell_pid=14134 – Codex WP01 cycle 1 reject: top-level absolute import of schedule_loader breaks direct-script invocation. Move-task by orchestrator (#330 workaround).
 - 2026-06-02T14:48:09Z – claude:opus-4-7:implementer:implementer – shell_pid=15159 – Started implementation via action command
+- 2026-06-02T14:56:43Z – claude:opus-4-7:implementer:implementer – shell_pid=15159 – Cycle 1 fix: import fallback preserves both -m and direct-script invocation forms
