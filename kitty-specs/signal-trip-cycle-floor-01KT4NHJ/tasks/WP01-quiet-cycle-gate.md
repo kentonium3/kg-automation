@@ -227,55 +227,51 @@ Authoritative behavioral truth-table for this WP: see [data-model.md](../data-mo
 
 ---
 
-## Subtask T003 — Update mission #490 contract with a "Trip predicate" section
+## Subtask T003 — Authoritative predicate documentation (in-mission)
 
-**Purpose**: The authoritative pipeline contract at `kitty-specs/signal-driven-monitoring-haiku-gate-01KT22PC/contracts/tick-signal.contract.md` currently documents the `threshold_status` enum without specifying the predicate that produces it. Add an explicit "Trip predicate" section that codifies the new semantics so an operator can predict pipeline behavior from the contract alone.
+**Scope rescoped (2026-06-02)**: an earlier draft of this subtask asked
+the implementer to edit mission #490's
+`kitty-specs/signal-driven-monitoring-haiku-gate-01KT22PC/contracts/tick-signal.contract.md`
+in-place from this implementation lane. Spec-kitty's
+implementation-lane guard correctly blocks cross-mission edits to
+`kitty-specs/`, so the predicate documentation lands inside **this**
+mission's own contract artifact instead. A small follow-up
+`[doc-audit]` commit on `main`, made after this mission merges, will
+mirror the new "Trip predicate" section into mission #490's contract
+without crossing the guard.
+
+**Purpose**: ensure the authoritative description of the new trip
+predicate is committed alongside the code change, so a reader can
+predict pipeline behavior from documentation without inspecting source.
 
 **Steps**:
 
-1. Open `kitty-specs/signal-driven-monitoring-haiku-gate-01KT22PC/contracts/tick-signal.contract.md`.
-2. Locate the boundary between the "## Field definitions" section (which ends with the `errors[].error_message` row) and the "## Health-check contract" section.
-3. Insert a new section between them with this content (verbatim; copies the normative pseudocode from this mission's `contracts/trip-predicate.contract.md` for the authoritative-doc consolidation):
+1. Confirm that `kitty-specs/signal-trip-cycle-floor-01KT4NHJ/contracts/trip-predicate.contract.md` (created during `/spec-kitty.plan`) describes the new predicate normatively:
+   - Has a "Predicate" section with the four return values.
+   - Has an "Invariants" section including I-1 (quiet-cycle gate).
+   - Has the normative pseudocode block.
+   - Has a "Test obligations" table matching the cases exercised in T002.
+2. Confirm that `kitty-specs/signal-trip-cycle-floor-01KT4NHJ/data-model.md` (also created during `/spec-kitty.plan`) shows the truth table for all four outcomes, with row #2 explicitly called out as the changed row.
+3. No code change is required in this subtask — the artifacts already exist on disk from `/spec-kitty.plan`. T003 is "done" once the implementer verifies they are present and consistent with what T001 implemented and what T002 tests.
 
-   ```markdown
-   ## Trip predicate
+**Files** (read-only verification, no edits in this WP):
+- `kitty-specs/signal-trip-cycle-floor-01KT4NHJ/contracts/trip-predicate.contract.md` (verify)
+- `kitty-specs/signal-trip-cycle-floor-01KT4NHJ/data-model.md` (verify)
 
-   For each enabled signal, the orchestrator computes
-   ``threshold_status`` from ``count_cycle`` and ``count_rolling`` using
-   this predicate (amended by mission
-   ``signal-trip-cycle-floor-01KT4NHJ``):
-
-   ```text
-   cycle_hit   = count_cycle   >= cycle_threshold
-   rolling_hit = count_rolling >= rolling_threshold
-   if cycle_hit and rolling_hit:
-       return "tripped_both"
-   if cycle_hit:
-       return "tripped_cycle"
-   if rolling_hit and count_cycle >= 1:
-       return "tripped_rolling"
-   return "below"
-   ```
-
-   **Quiet-cycle gate**: ``count_cycle == 0`` always yields ``below``,
-   regardless of the rolling-window value. This prevents the rolling tail
-   of a resolved transient burst from re-filing an issue once the prior
-   dedup-anchor is closed within the decay window.
-
-   The predicate is a pure function of the four integer inputs. It has
-   no side effects.
-   ```
-
-4. Save the file.
-
-**Files**:
-- `kitty-specs/signal-driven-monitoring-haiku-gate-01KT22PC/contracts/tick-signal.contract.md` (edit; new section ≈ 25 lines).
+**Cross-mission follow-up (not part of this WP)**:
+After this mission merges, a one-paragraph `[doc-audit]` commit on
+`main` will add the same "## Trip predicate" section between
+`## Field definitions` and `## Health-check contract` in mission #490's
+`tick-signal.contract.md`. The text to use is the normative pseudocode
+block from this mission's `contracts/trip-predicate.contract.md`. That
+commit does not require spec-kitty workflow involvement — it's a
+documentation paper-edit on main, exactly the kind of mechanical sync
+the project's `[doc-audit]` convention is designed for.
 
 **Validation**:
-- [ ] The new section is in place between Field definitions and Health-check contract.
-- [ ] The pseudocode matches the predicate implemented in T001 exactly.
-- [ ] The mission slug `signal-trip-cycle-floor-01KT4NHJ` is named in the prose.
-- [ ] No other section is altered.
+- [ ] `contracts/trip-predicate.contract.md` exists and matches the predicate implemented in T001 token-for-token.
+- [ ] `data-model.md` exists and identifies row #2 as the changed row.
+- [ ] The cross-mission #490 contract update is acknowledged as a deferred follow-up (not blocking this WP).
 
 ---
 
@@ -291,10 +287,10 @@ Authoritative behavioral truth-table for this WP: see [data-model.md](../data-mo
 A reviewer should verify, in order:
 
 1. **The diff to `tick.py` is exactly one new boolean check** (`and extraction.count_cycle >= 1`) plus a docstring update naming this mission. Anything else in the function is a red flag.
-2. **The contract section's pseudocode matches the implemented predicate token-for-token** (allowing only for formatting differences). Drift here will cause future operators to make wrong inferences.
+2. **The in-mission contract's pseudocode matches the implemented predicate token-for-token**. Check `kitty-specs/signal-trip-cycle-floor-01KT4NHJ/contracts/trip-predicate.contract.md` against the predicate edit in `tick.py`. The #490 contract is **explicitly out of scope** for this WP — it is updated by a post-merge `[doc-audit]` commit on `main` (see T003 rescope note above).
 3. **The `quiet_hot_rolling` test case exists and asserts `below`**. This is the primary regression guard against the #502/#503/#504 failure mode.
 4. **No persisted-state or output-schema changes are introduced**. The test for this is a grep for `last-tick.json`, `SignalState`, `schema_version`, `rolling_buckets` in the diff — all hits should be benign references in docstrings/comments, never field definitions.
-5. **Existing mission #490 tests still pass**. If any test was adjusted, the change should be a minimal `tripped_rolling → below` flip with an inline comment naming this mission. Anything broader is out of scope.
+5. **Existing mission #490 tests still pass**. The mission #490 source tree should NOT appear in the diff at all under the rescoped T003 — neither code nor contract files. If it does, the WP has overreached.
 
 ## Risks
 
