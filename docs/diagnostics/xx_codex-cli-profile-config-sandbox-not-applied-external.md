@@ -116,6 +116,334 @@ Suggested mitigation, in priority order:
 - Terminal: VS Code 1.114.0 (also reproduces in standalone terminals)
 - Auth mode: ChatGPT (auth.json file storage)
 
+## `codex doctor --json`
+
+<details>
+<summary>Full output (codex 0.136.0, macOS)</summary>
+
+```json
+{
+  "schemaVersion": 1,
+  "generatedAt": "1780505583s since unix epoch",
+  "overallStatus": "ok",
+  "codexVersion": "0.136.0",
+  "checks": {
+    "app_server.status": {
+      "id": "app_server.status",
+      "category": "app-server",
+      "status": "ok",
+      "summary": "background server is not running",
+      "details": {
+        "control socket": "~/.codex/app-server-control/app-server-control.sock",
+        "daemon state dir": "~/.codex/app-server-daemon",
+        "mode": "ephemeral",
+        "pid file": "~/.codex/app-server-daemon/app-server.pid (missing)",
+        "settings": "~/.codex/app-server-daemon/settings.json (missing)",
+        "status": "not running",
+        "update-loop pid file": "~/.codex/app-server-daemon/app-server-updater.pid (missing)"
+      },
+      "remediation": null,
+      "durationMs": 0
+    },
+    "auth.credentials": {
+      "id": "auth.credentials",
+      "category": "auth",
+      "status": "ok",
+      "summary": "auth is configured",
+      "details": {
+        "auth file": "~/.codex/auth.json",
+        "auth storage mode": "File",
+        "stored API key": "false",
+        "stored ChatGPT tokens": "true",
+        "stored agent identity": "false",
+        "stored auth mode": "chatgpt"
+      },
+      "remediation": null,
+      "durationMs": 0
+    },
+    "config.load": {
+      "id": "config.load",
+      "category": "config",
+      "status": "ok",
+      "summary": "config loaded",
+      "details": {
+        "CODEX_HOME": "~/.codex",
+        "config.toml": "~/.codex/config.toml",
+        "config.toml parse": "ok",
+        "cwd": "~/repos/<project>",
+        "enabled feature flags": "shell_tool, unified_exec, shell_snapshot, terminal_resize_reflow, sqlite, hooks, enable_request_compression, multi_agent, apps, tool_suggest, plugins, in_app_browser, browser_use, browser_use_external, computer_use, plugin_sharing, image_generation, skill_mcp_dependency_install, steer, guardian_approval, goals, collaboration_modes, tool_call_mcp_elicitation, personality, fast_mode, tui_app_server, workspace_dependencies",
+        "feature flag overrides": "none",
+        "feature flags enabled": "27",
+        "log dir": "~/.codex/log",
+        "mcp servers": "0",
+        "model": "<default>",
+        "model provider": "openai",
+        "sqlite home": "~/.codex"
+      },
+      "remediation": null,
+      "durationMs": 0
+    },
+    "git.environment": {
+      "id": "git.environment",
+      "category": "git",
+      "status": "ok",
+      "summary": "git version 2.54.0",
+      "details": {
+        ".git entry": "directory",
+        "PATH git #1": "/usr/local/bin/git",
+        "PATH git #2": "/usr/bin/git",
+        "PATH git entries": "2",
+        "git branch": "main",
+        "git build options": "git version 2.54.0; cpu: x86_64; no commit associated with this build; sizeof-long: 8; sizeof-size_t: 8; shell-path: /bin/sh; rust: disabled; feature: fsmonitor--daemon; gettext: enabled; libcurl: 8.6.0; zlib: 1.2.12; SHA-1: SHA1_DC; SHA-256: SHA256_BLK; default-ref-format: files; default-hash: sha1",
+        "git exec path": "/usr/local/opt/git/libexec/git-core",
+        "git version": "git version 2.54.0",
+        "repo detected": "true",
+        "repo root": "~/repos/<project>",
+        "selected git": "/usr/local/bin/git"
+      },
+      "remediation": null,
+      "durationMs": 19
+    },
+    "installation": {
+      "id": "installation",
+      "category": "install",
+      "status": "ok",
+      "summary": "installation looks consistent",
+      "details": {
+        "PATH codex #1": "/usr/local/bin/codex",
+        "current executable": "/usr/local/bin/codex",
+        "install context": "brew",
+        "managed by bun": "false",
+        "managed by npm": "false",
+        "managed package root": "not set"
+      },
+      "remediation": null,
+      "durationMs": 4
+    },
+    "mcp.config": {
+      "id": "mcp.config",
+      "category": "mcp",
+      "status": "ok",
+      "summary": "no MCP servers configured",
+      "details": {},
+      "remediation": null,
+      "durationMs": 0
+    },
+    "network.env": {
+      "id": "network.env",
+      "category": "network",
+      "status": "ok",
+      "summary": "network-related environment looks readable",
+      "details": {
+        "proxy env vars": "none"
+      },
+      "remediation": null,
+      "durationMs": 0
+    },
+    "network.provider_reachability": {
+      "id": "network.provider_reachability",
+      "category": "reachability",
+      "status": "ok",
+      "summary": "active provider endpoints are reachable over HTTP",
+      "details": {
+        "ChatGPT base URL": "https://chatgpt.com/backend-api/ reachable (HTTP 403)",
+        "reachability mode": "ChatGPT auth"
+      },
+      "remediation": null,
+      "durationMs": 429
+    },
+    "network.websocket_reachability": {
+      "id": "network.websocket_reachability",
+      "category": "websocket",
+      "status": "ok",
+      "summary": "Responses WebSocket handshake succeeded",
+      "details": {
+        "DNS": "2 IPv4, 2 IPv6, first IPv4",
+        "auth mode": "chatgpt",
+        "connect timeout": "15000 ms",
+        "endpoint": "wss://chatgpt.com/backend-api/<redacted>",
+        "handshake result": "HTTP 101 Switching Protocols",
+        "model provider": "openai",
+        "models etag present": "true",
+        "provider name": "OpenAI",
+        "proxy env vars": "none",
+        "reasoning header": "false",
+        "server model present": "false",
+        "supports websockets": "true",
+        "wire API": "responses"
+      },
+      "remediation": null,
+      "durationMs": 945
+    },
+    "runtime.provenance": {
+      "id": "runtime.provenance",
+      "category": "runtime",
+      "status": "ok",
+      "summary": "running brew on macos-x86_64",
+      "details": {
+        "commit": "unknown",
+        "current executable": "/usr/local/bin/codex",
+        "install method": "brew",
+        "platform": "macos-x86_64",
+        "version": "0.136.0"
+      },
+      "remediation": null,
+      "durationMs": 0
+    },
+    "runtime.search": {
+      "id": "runtime.search",
+      "category": "search",
+      "status": "ok",
+      "summary": "search is OK (system)",
+      "details": {
+        "search command": "rg",
+        "search command readiness": "ripgrep 15.1.0",
+        "search provider": "system"
+      },
+      "remediation": null,
+      "durationMs": 23
+    },
+    "sandbox.helpers": {
+      "id": "sandbox.helpers",
+      "category": "sandbox",
+      "status": "ok",
+      "summary": "sandbox configuration is readable",
+      "details": {
+        "approval policy": "OnRequest",
+        "codex-linux-sandbox helper": "none",
+        "execve wrapper helper": "~/.codex/tmp/arg0/codex-arg07KTqwj/codex-execve-wrapper",
+        "filesystem sandbox": "restricted",
+        "network sandbox": "restricted"
+      },
+      "remediation": null,
+      "durationMs": 0
+    },
+    "state.paths": {
+      "id": "state.paths",
+      "category": "state",
+      "status": "ok",
+      "summary": "state paths and databases are inspectable",
+      "details": {
+        "CODEX_HOME": "~/.codex (dir)",
+        "active rollout files": "209 files, 66525841 total bytes, 318305 average bytes",
+        "archived rollout files": "0 files, 0 total bytes, 0 average bytes",
+        "goals DB": "~/.codex/goals_1.sqlite (file)",
+        "goals DB integrity": "ok",
+        "log DB": "~/.codex/logs_2.sqlite (file)",
+        "log DB integrity": "ok",
+        "log dir": "~/.codex/log (dir)",
+        "memories DB": "~/.codex/memories_1.sqlite (file)",
+        "memories DB integrity": "ok",
+        "sqlite home": "~/.codex (dir)",
+        "state DB": "~/.codex/state_5.sqlite (file)",
+        "state DB integrity": "ok"
+      },
+      "remediation": null,
+      "durationMs": 445
+    },
+    "state.rollout_db_parity": {
+      "id": "state.rollout_db_parity",
+      "category": "threads",
+      "status": "ok",
+      "summary": "rollout files and state DB thread inventory agree",
+      "details": {
+        "default model provider": "openai",
+        "rollout DB active files": "209",
+        "rollout DB active rows": "209",
+        "rollout DB archive mismatches": "0",
+        "rollout DB archived files": "0",
+        "rollout DB archived rows": "0",
+        "rollout DB duplicate DB paths": "0",
+        "rollout DB duplicate rollout thread ids": "0",
+        "rollout DB malformed file names": "0",
+        "rollout DB missing active rows": "0",
+        "rollout DB missing archived rows": "0",
+        "rollout DB model providers": "openai=209",
+        "rollout DB rows": "209",
+        "rollout DB scan cap reached": "false",
+        "rollout DB scan errors": "0",
+        "rollout DB sources": "exec=184, subagent:review=16, cli=9",
+        "rollout DB stale rows": "0"
+      },
+      "remediation": null,
+      "durationMs": 1157
+    },
+    "system.environment": {
+      "id": "system.environment",
+      "category": "system",
+      "status": "ok",
+      "summary": "OS language en-US",
+      "details": {
+        "LANG": "C.UTF-8",
+        "os": "Mac OS 26.5.0 [64-bit]",
+        "os language": "en-US",
+        "os type": "Mac OS",
+        "os version": "26.5.0"
+      },
+      "remediation": null,
+      "durationMs": 6
+    },
+    "terminal.env": {
+      "id": "terminal.env",
+      "category": "terminal",
+      "status": "ok",
+      "summary": "terminal metadata was detected",
+      "details": {
+        "COLORTERM": "truecolor",
+        "TERM_PROGRAM": "vscode",
+        "VSCODE_INJECTION": "present",
+        "color output": "disabled (stdout is not a terminal)",
+        "effective locale": "C.UTF-8",
+        "stderr is terminal": "false",
+        "stdin is terminal": "false",
+        "stdout is terminal": "false",
+        "terminal": "VS Code",
+        "terminal size": "80x24",
+        "terminal version": "1.114.0"
+      },
+      "remediation": null,
+      "durationMs": 10
+    },
+    "terminal.title": {
+      "id": "terminal.title",
+      "category": "title",
+      "status": "ok",
+      "summary": "terminal title default",
+      "details": {
+        "terminal title activity": "true",
+        "terminal title items": "activity, project-name",
+        "terminal title project source": "git repo root",
+        "terminal title project value": "<project>",
+        "terminal title source": "default"
+      },
+      "remediation": null,
+      "durationMs": 0
+    },
+    "updates.status": {
+      "id": "updates.status",
+      "category": "updates",
+      "status": "ok",
+      "summary": "update configuration is locally consistent",
+      "details": {
+        "cached latest version": "0.130.0",
+        "check for update on startup": "true",
+        "last checked at": "2026-05-15T17:17:23.289526Z",
+        "latest version": "0.136.0",
+        "latest version status": "current version is not older",
+        "update action": "brew upgrade --cask codex",
+        "version cache": "/Users/kentgale/.codex/version.json"
+      },
+      "remediation": null,
+      "durationMs": 61
+    }
+  }
+}
+```
+
+</details>
+
+Note: home-directory paths (`/Users/<user>/...`) were replaced with `~/` and the project name was redacted to `<project>` for the upstream paste. All other values are verbatim from the run.
+
 ## Related (not duplicates)
 
 I searched open + closed issues and PRs in this repo for terms covering "profile sandbox", "config_profile_v2", "danger-full-access ignored", "<name>.config.toml", and adjacent variants. Nothing matches the exact gap (`codex exec -p <name>` silently drops the profile file's `sandbox` field while honoring other fields like `model`), but several items are in the same neighborhood:
