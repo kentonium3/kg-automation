@@ -30,7 +30,7 @@ subtasks:
 - T005
 - T006
 shell_pid: "69299"
-agent: "claude"
+agent: "codex"
 history:
 - timestamp: '2026-06-02T19:30:00Z'
   actor: claude:opus-4-7:planner
@@ -277,3 +277,4 @@ A reviewer should verify, in order:
 - 2026-06-03T01:52:57Z – codex – shell_pid=65420 – Started review via action command
 - 2026-06-03T02:07:01Z – claude – shell_pid=69299 – Started implementation via action command
 - 2026-06-03T02:07:06Z – claude – shell_pid=69299 – review-cycle-2 fix; stale framing scrubbed; 320 tests pass
+- 2026-06-03T02:07:09Z – codex – shell_pid=69299 – Started review via action command
