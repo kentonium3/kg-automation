@@ -1,0 +1,10 @@
+{
+  "created_at": "2026-06-03T02:46:01.829435+00:00",
+  "friendly_name": "felix constitution migration completeness",
+  "mission_id": "01KT5NZ7QVY0WNCRHHW9AQ6BJ8",
+  "mission_number": null,
+  "mission_slug": "felix-constitution-migration-completeness-01KT5NZ7",
+  "mission_type": "software-dev",
+  "slug": "felix-constitution-migration-completeness-01KT5NZ7",
+  "target_branch": "main"
+}
