@@ -470,3 +470,4 @@ A reviewer should verify, in order:
 - 2026-06-03T11:58:07Z – codex – shell_pid=99009 – Started review via action command
 - 2026-06-03T14:49:25Z – codex – shell_pid=99009 – Moved to planned
 - 2026-06-03T15:33:52Z – claude – shell_pid=50360 – Started implementation via action command
+- 2026-06-03T15:35:06Z – claude – shell_pid=50360 – Moved to for_review
