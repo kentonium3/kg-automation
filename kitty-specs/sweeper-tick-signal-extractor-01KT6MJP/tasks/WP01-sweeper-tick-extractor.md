@@ -467,3 +467,4 @@ A reviewer should verify, in order:
 - 2026-06-03T11:49:01Z – claude – shell_pid=96494 – Assigned agent via action command
 - 2026-06-03T11:57:57Z – claude – shell_pid=96494 – Moved to for_review
 - 2026-06-03T11:58:07Z – codex – shell_pid=99009 – Started review via action command
+- 2026-06-03T14:49:25Z – codex – shell_pid=99009 – Moved to planned

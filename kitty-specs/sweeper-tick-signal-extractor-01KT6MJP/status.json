@@ -1,7 +1,7 @@
 {
-  "event_count": 5,
-  "last_event_id": "01KT6NJ6JE76E7MAQ60ECNN7HJ",
-  "materialized_at": "2026-06-03T11:58:07.438091+00:00",
+  "event_count": 6,
+  "last_event_id": "01KT6ZBVZJXPFM19DJFNS7QZTT",
+  "materialized_at": "2026-06-03T14:49:25.746197+00:00",
   "mission_number": "",
   "mission_slug": "sweeper-tick-signal-extractor-01KT6MJP",
   "mission_type": "software-dev",
@@ -13,16 +13,16 @@
     "done": 0,
     "for_review": 0,
     "in_progress": 0,
-    "in_review": 1,
-    "planned": 0
+    "in_review": 0,
+    "planned": 1
   },
   "work_packages": {
     "WP01": {
-      "actor": "codex",
-      "force_count": 1,
-      "lane": "in_review",
-      "last_event_id": "01KT6NJ6JE76E7MAQ60ECNN7HJ",
-      "last_transition_at": "2026-06-03T11:58:07.438091+00:00"
+      "actor": "user",
+      "force_count": 2,
+      "lane": "planned",
+      "last_event_id": "01KT6ZBVZJXPFM19DJFNS7QZTT",
+      "last_transition_at": "2026-06-03T14:49:25.746197+00:00"
     }
   }
 }
