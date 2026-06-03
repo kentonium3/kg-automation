@@ -180,3 +180,4 @@ A reviewer should verify, in order:
 ## Activity Log
 
 - 2026-06-03T02:51:56Z – claude – shell_pid=83790 – Assigned agent via action command
+- 2026-06-03T02:53:05Z – claude – shell_pid=83790 – Directive 7 inserted at correct position; greps green; T003 audit found two passing refs only
