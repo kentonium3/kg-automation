@@ -1,7 +1,7 @@
 {
-  "event_count": 1,
-  "last_event_id": "01KT5P9PCD0BBA6XP2CX1A9QZ5",
-  "materialized_at": "2026-06-03T02:51:42.861697+00:00",
+  "event_count": 3,
+  "last_event_id": "01KT5PA1HZ2WB5CE6BMG52DACF",
+  "materialized_at": "2026-06-03T02:51:54.303880+00:00",
   "mission_number": "",
   "mission_slug": "felix-constitution-migration-completeness-01KT5NZ7",
   "mission_type": "software-dev",
@@ -12,17 +12,17 @@
     "claimed": 0,
     "done": 0,
     "for_review": 0,
-    "in_progress": 0,
+    "in_progress": 1,
     "in_review": 0,
-    "planned": 1
+    "planned": 0
   },
   "work_packages": {
     "WP01": {
-      "actor": "finalize-tasks",
+      "actor": "implement-command",
       "force_count": 1,
-      "lane": "planned",
-      "last_event_id": "01KT5P9PCD0BBA6XP2CX1A9QZ5",
-      "last_transition_at": "2026-06-03T02:51:42.861697+00:00"
+      "lane": "in_progress",
+      "last_event_id": "01KT5PA1HZ2WB5CE6BMG52DACF",
+      "last_transition_at": "2026-06-03T02:51:54.303880+00:00"
     }
   }
 }

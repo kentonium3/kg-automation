@@ -19,10 +19,14 @@ requirement_refs:
 planning_base_branch: main
 merge_target_branch: main
 branch_strategy: Planning artifacts for this feature were generated on main. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into main unless the human explicitly redirects the landing branch.
+base_branch: kitty/mission-felix-constitution-migration-completeness-01KT5NZ7
+base_commit: 94535080b587efa6c1608f063ae4c44b1bbc4f16
+created_at: '2026-06-03T02:51:54.104191+00:00'
 subtasks:
 - T001
 - T002
 - T003
+shell_pid: '83790'
 history:
 - timestamp: '2026-06-03T03:00:00Z'
   actor: claude:opus-4-7:planner
