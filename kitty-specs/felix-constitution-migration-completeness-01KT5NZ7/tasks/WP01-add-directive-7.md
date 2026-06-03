@@ -26,8 +26,8 @@ subtasks:
 - T001
 - T002
 - T003
-shell_pid: "83790"
-agent: "claude"
+shell_pid: "84243"
+agent: "codex"
 history:
 - timestamp: '2026-06-03T03:00:00Z'
   actor: claude:opus-4-7:planner
@@ -181,3 +181,4 @@ A reviewer should verify, in order:
 
 - 2026-06-03T02:51:56Z – claude – shell_pid=83790 – Assigned agent via action command
 - 2026-06-03T02:53:05Z – claude – shell_pid=83790 – Directive 7 inserted at correct position; greps green; T003 audit found two passing refs only
+- 2026-06-03T02:53:09Z – codex – shell_pid=84243 – Started review via action command
