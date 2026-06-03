@@ -49,6 +49,7 @@ owned_files:
 - scripts/openclaw/observation/signals/config.toml
 - scripts/openclaw/observation/tick.py
 - scripts/openclaw/observation/tests/test_signals_sweeper_tick.py
+- scripts/openclaw/observation/tests/test_config_loader.py
 - docs/design/architecture/data/signal-to-doc-map.json
 tags: []
 ---
