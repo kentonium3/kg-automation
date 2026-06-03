@@ -283,7 +283,7 @@
         ".cache"
       ],
       "deployed_by": "manual",
-      "updated_by": "#159 + #208",
+      "updated_by": "#511 + #159 + #208",
       "status": "active",
       "purpose": "Nightly GFS backup to local drive",
       "risk_tier": 2,
@@ -301,15 +301,17 @@
       ],
       "health_check": {
         "method": "shell",
-        "endpoint": "tail -5 /data/services/backup/logs/backup-$(date -u +%Y-%m-%d).log",
-        "expected": "=== Backup complete === marker in output with snapshot count",
+        "endpoint": "jq -er '\nif .snapshot_timestamp_utc == null then \"FAIL: no snapshot recorded\" else\n  (now - (.snapshot_timestamp_utc | fromdateiso8601)) as $age_sec |\n  if ($age_sec > 100800) then \"FAIL: stale (\\($age_sec / 3600 | floor) hours old)\"\n  elif (.restic_exit_code != 0 and .restic_exit_code != 3) then \"FAIL: restic exit \\(.restic_exit_code)\"\n  else \"OK (\\($age_sec / 3600 | floor) hours since snapshot)\"\n  end\nend' /data/services/backup/state/last-backup.json",
+        "expected": "exit 0 with an 'OK \u2026' line; the pointer is freshness-checked (snapshot_timestamp_utc must be non-null, within the last 28 hours, and restic_exit_code in {0, 3}). A pointer that exists but is stale or carries a failed exit code MUST fail.",
         "timeout_seconds": 5,
-        "note": "Backup runs at 04:00 UTC daily; log files are world-readable (mode 644, owned root:root) so the claude user can tail them. Snapshot files themselves are root:root mode 400 \u2014 claude cannot run `restic snapshots` directly. Full verification (requires sudo via kgale): `sudo RESTIC_REPOSITORY=/mnt/backups/restic-repo RESTIC_PASSWORD_FILE=/home/claude/.config/restic/password restic snapshots --latest 1`. See backup-and-recovery.md \u00a7Verification."
+        "state_path": "/data/services/backup/state/last-backup.json",
+        "note": "Pointer file is written by /data/services/backup/scripts/backup.sh on every run (#511). Schema v1 fields: snapshot_timestamp_utc (authoritative \u2014 derived from `restic snapshots --latest 1 --json` after the run), snapshot_id, restic_exit_code (the backup step's actual exit, not the script's overall exit), script_finished_at_utc (separate witness), repo_size_bytes, snapshot_count, integrity_check_run, integrity_check_passed. Atomic write via .tmp + mv so concurrent readers never see a partial file. See docs/runbooks/restic-backup-ops.md."
       },
       "config_files": [
         {
           "path": "/data/services/backup/scripts/backup.sh",
-          "format": "bash"
+          "format": "bash",
+          "source_in_repo": "scripts/office2/restic-backup.sh"
         },
         {
           "path": "/home/claude/.config/restic/password",

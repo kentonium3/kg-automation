@@ -157,6 +157,7 @@ local validation and CI.
 - [Post-Change Verification Protocol](<./runbooks/governance/post-change-verification.md>)
 - [Pre-Flight Change Checklist](<./runbooks/governance/pre-flight-checklist.md>)
 - [Repository Governance](<./runbooks/repo-governance.md>)
+- [Restic Backup Operations](<./runbooks/restic-backup-ops.md>)
 - [Security Baseline Operations](<./runbooks/security-baseline-ops.md>)
 - [Signal-driven monitoring operations (felix-core-digest signal extraction + felix-heartbeat-gate)](<./runbooks/signal-driven-monitoring-ops.md>)
 - [Spec-Kitty Bug Reporting](<./runbooks/spec-kitty-bug-reporting.md>)

@@ -33,10 +33,22 @@ Complete ALL steps before executing the change:
 
 ## Tier 2 Checklist (Lighter — Mandatory for Application/State changes)
 
-- [ ] **1. Confirm recent backup exists** — verify a Restic backup ran within the last 24 hours. The `claude` user cannot run `restic snapshots` directly (snapshot files are `root:root` mode 400). Use one of these methods instead:
-  - **Backup log** (preferred): `ssh office2-claude 'tail -5 /data/services/backup/logs/backup-$(date +%Y-%m-%d).log'` — look for "Backup complete" and a snapshot count.
-  - **Directory mtime**: `ssh office2-claude 'ls -laht /mnt/backups/restic-repo/snapshots/ | head -3'` — most recent file's mtime confirms when the last backup ran.
-  - Deploy scripts accept `--backup-confirmed` as an operator attestation flag after manual verification.
+- [ ] **1. Confirm recent backup exists** — single command, freshness-checked against the health pointer at `/data/services/backup/state/last-backup.json` (introduced in #511). Pass = exit 0 with an `OK …` line:
+
+  ```bash
+  ssh office2-claude 'jq -er '"'"'
+    if .snapshot_timestamp_utc == null then "FAIL: no snapshot recorded" else
+      (now - (.snapshot_timestamp_utc | fromdateiso8601)) as $age_sec |
+      if ($age_sec > 100800) then "FAIL: stale (\($age_sec / 3600 | floor) hours old)"
+      elif (.restic_exit_code != 0 and .restic_exit_code != 3) then "FAIL: restic exit \(.restic_exit_code)"
+      else "OK (\($age_sec / 3600 | floor) hours since snapshot)"
+      end
+    end'"'"' /data/services/backup/state/last-backup.json'
+  ```
+
+  Freshness budget is 28 hours (24 h cadence + 4 h slack). A pointer that exists but is stale or carries a failed exit code MUST fail. If the check fails, do NOT use `--backup-confirmed` to attest around it — investigate per [`docs/runbooks/restic-backup-ops.md`](<../restic-backup-ops.md>).
+
+  Deploy scripts continue to accept `--backup-confirmed` as an operator attestation flag, but the attestation should be made on the basis of the check above, not log-scraping.
 
 - [ ] **2. Note affected service's health-check endpoint** — from `service-inventory.json`, record the service's `health_check.endpoint` and `health_check.expected`.
 
