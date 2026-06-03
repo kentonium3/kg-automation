@@ -14,11 +14,11 @@
 | T004 | Delete `backfill_jsonl_from_comments.py` and `test_backfill.py` | WP01 | [D] |
 | T005 | Update test suites: `test_record_completion.py`, `test_reconcile_completions.py`, `test_hard_fail.py` | WP01 | | [D] |
 | T006 | Run full `pytest tests/escalation tests/enrichment` and confirm green | WP01 | | [D] |
-| T007 | Strip v1 parity + phantom language from `SKILL.md`, `AGENTS.md`, `TOOLS.md` (felix-admin-escalation) | WP02 | [P] |
-| T008 | Strip parity verification queries + phantom guidance from `escalation-ops.md` runbook | WP02 | [P] |
-| T009 | Remove `escalation-event-write-vikunja` from `data-flows.json` + regen `data-flows.md` | WP02 | [P] |
-| T010 | Strip v1 parity reference from `service-inventory.json` `felix-admin-escalation` entry + regen `service-inventory.md` | WP02 | [P] |
-| T011 | Run `tooling/scripts/validate_docs.py` + final grep sweep across the codebase | WP02 | |
+| T007 | Strip v1 parity + phantom language from `SKILL.md`, `AGENTS.md`, `TOOLS.md` (felix-admin-escalation) | WP02 | [D] |
+| T008 | Strip parity verification queries + phantom guidance from `escalation-ops.md` runbook | WP02 | [D] |
+| T009 | Remove `escalation-event-write-vikunja` from `data-flows.json` + regen `data-flows.md` | WP02 | [D] |
+| T010 | Strip v1 parity reference from `service-inventory.json` `felix-admin-escalation` entry + regen `service-inventory.md` | WP02 | [D] |
+| T011 | Run `tooling/scripts/validate_docs.py` + final grep sweep across the codebase | WP02 | | [D] |
 
 11 subtasks across 2 WPs. WP01 (code + tests) lands first to settle behavior; WP02 (prompts + runbook + arch-data) lands second so doc edits align with the behavior just shipped.
 
@@ -57,11 +57,11 @@ None.
 
 ### Included subtasks
 
-- [ ] T007 Strip v1 parity + phantom language from `SKILL.md`, `AGENTS.md`, `TOOLS.md` (felix-admin-escalation) (WP02)
-- [ ] T008 Strip parity verification queries + phantom guidance from `escalation-ops.md` runbook (WP02)
-- [ ] T009 Remove `escalation-event-write-vikunja` from `data-flows.json` + regen `data-flows.md` (WP02)
-- [ ] T010 Strip v1 parity reference from `service-inventory.json` `felix-admin-escalation` entry + regen `service-inventory.md` (WP02)
-- [ ] T011 Run `tooling/scripts/validate_docs.py` + final grep sweep across the codebase (WP02)
+- [x] T007 Strip v1 parity + phantom language from `SKILL.md`, `AGENTS.md`, `TOOLS.md` (felix-admin-escalation) (WP02)
+- [x] T008 Strip parity verification queries + phantom guidance from `escalation-ops.md` runbook (WP02)
+- [x] T009 Remove `escalation-event-write-vikunja` from `data-flows.json` + regen `data-flows.md` (WP02)
+- [x] T010 Strip v1 parity reference from `service-inventory.json` `felix-admin-escalation` entry + regen `service-inventory.md` (WP02)
+- [x] T011 Run `tooling/scripts/validate_docs.py` + final grep sweep across the codebase (WP02)
 
 ### Dependencies
 
