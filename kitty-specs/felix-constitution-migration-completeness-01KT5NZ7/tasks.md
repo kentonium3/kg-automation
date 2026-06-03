@@ -8,9 +8,9 @@
 
 | ID | Description | WP | Parallel |
 |---|---|---|---|
-| T001 | Insert Directive 7 into `docs/constitution/FELIX-CONSTITUTION.md` between Directive 6 and the Privacy section | WP01 | |
-| T002 | Run SC verification greps (existence + positioning + incident citations) | WP01 | |
-| T003 | Audit the rest of the repo for any directive-index that needs an update (none expected per spec C-004) | WP01 | |
+| T001 | Insert Directive 7 into `docs/constitution/FELIX-CONSTITUTION.md` between Directive 6 and the Privacy section | WP01 | | [D] |
+| T002 | Run SC verification greps (existence + positioning + incident citations) | WP01 | | [D] |
+| T003 | Audit the rest of the repo for any directive-index that needs an update (none expected per spec C-004) | WP01 | | [D] |
 
 3 subtasks, single WP. Trivial documentation edit.
 
@@ -26,9 +26,9 @@
 
 ### Included subtasks
 
-- [ ] T001 Insert Directive 7 into `docs/constitution/FELIX-CONSTITUTION.md` (WP01)
-- [ ] T002 Run SC verification greps (WP01)
-- [ ] T003 Repo-wide audit for directive-index references (WP01)
+- [x] T001 Insert Directive 7 into `docs/constitution/FELIX-CONSTITUTION.md` (WP01)
+- [x] T002 Run SC verification greps (WP01)
+- [x] T003 Repo-wide audit for directive-index references (WP01)
 
 ### Dependencies
 
