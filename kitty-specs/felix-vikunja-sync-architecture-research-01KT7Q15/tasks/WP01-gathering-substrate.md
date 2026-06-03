@@ -21,7 +21,8 @@ subtasks:
 - T005
 phase: Phase 1 — Gathering substrate
 assignee: ''
-agent: ''
+agent: "claude:sonnet:implementer:implementer"
+shell_pid: "65155"
 history:
 - timestamp: '2026-06-03T22:59:10Z'
   agent: system
@@ -267,3 +268,7 @@ A reviewer of WP01 should verify:
 ## Output Discipline
 
 Findings follow the Felix output-discipline pattern (memory `reference_felix_output_discipline_pattern`): state the claim, cite the evidence-log row, move on. No boilerplate, no editorializing. Per-RQ files are reference documents; readers scan them.
+
+## Activity Log
+
+- 2026-06-03T23:49:01Z – claude:sonnet:implementer:implementer – shell_pid=65155 – Started implementation via action command
