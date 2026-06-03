@@ -1,5 +1,7 @@
 # Bug: codex CLI `-p <profile>` reads the profile file but silently drops the `sandbox` setting
 
+**Filed upstream**: [openai/codex#26207](https://github.com/openai/codex/issues/26207) (2026-06-03).
+
 ## Summary
 
 When codex CLI 0.135.0+ is invoked with `-p <name>`, the dedicated profile file at `$CODEX_HOME/<name>.config.toml` is loaded — `model`, for example, is applied correctly — but the `sandbox` setting in that same file is silently filtered out of the effective config. The session header reports `sandbox: workspace-write` (the codex default) even though the profile file declares `sandbox = "danger-full-access"`. Adding `-s danger-full-access` to the same invocation applies the override correctly, confirming the regression is specific to how the profile-file merge handles the `sandbox` field. The CLI help for `-p, --profile` describes it as `Layer $CODEX_HOME/<name>.config.toml on top of the base user config`, so users reasonably expect every top-level key — including `sandbox` — to participate in that layer.
