@@ -220,3 +220,4 @@ A reviewer should verify, in order:
 - 2026-06-03T02:29:21Z – claude – shell_pid=76445 – cycle-1 fix; deprecated entries deleted; phantom wording out of runbook
 - 2026-06-03T02:29:24Z – codex – shell_pid=76445 – Started review via action command
 - 2026-06-03T02:36:18Z – claude – shell_pid=78915 – Started implementation via action command
+- 2026-06-03T02:36:22Z – claude – shell_pid=78915 – cycle-2 fix; current-state prose; grep clean
