@@ -70,3 +70,27 @@ area_label              = "felix-core"
 tier_hypothesis         = "3"
 excerpt_lines           = 8
 enabled                 = true
+
+# Mission: sweeper-tick-signal-extractor-01KT6MJP (#510).
+# Binary signal — count_cycle is 0 (latest production tick passed) or
+# 1 (latest production tick failed, or no production tick within the
+# 26-hour staleness threshold). cycle_threshold=1 trips whenever the
+# extractor says "bad". The quiet-cycle gate from #512 (count_cycle>=1
+# required for tripped_rolling) means a passing cycle never re-files.
+# match_pattern + match_kind are present for schema-shape parity with
+# the log-substring signals above; the sweeper_tick extractor does NOT
+# consume them.
+[signals.sweeper_tick]
+source_kind             = "sweeper_ledger_jsonl"
+source_path_pattern     = "/data/services/openclaw/state/habits/sweeper-ledger.jsonl"
+match_pattern           = ""
+match_kind              = "substring"
+cycle_threshold         = 1
+rolling_window_minutes  = 60
+rolling_threshold       = 1
+dedup_strategy          = "open_issue_present"
+priority                = "P2"
+area_label              = "felix-core"
+tier_hypothesis         = "3"
+excerpt_lines           = 1
+enabled                 = true

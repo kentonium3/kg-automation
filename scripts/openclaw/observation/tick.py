@@ -69,6 +69,9 @@ from scripts.openclaw.observation.signals import (  # noqa: E402
 from scripts.openclaw.observation.signals import (  # noqa: E402
     watchdog_reconnect as _watchdog_reconnect,
 )
+from scripts.openclaw.observation.signals import (  # noqa: E402
+    sweeper_tick as _sweeper_tick,
+)
 from scripts.openclaw.observation.signals.config_loader import (  # noqa: E402
     SignalDefinition,
     load_config,
@@ -304,6 +307,7 @@ def build_extractor_dispatch() -> dict[str, ExtractorFn]:
         "whatsapp_creds_restore": _creds_restore.extract,
         "web_watchdog_reconnect": _watchdog_reconnect.extract,
         "openclaw_unhandled_error": _unhandled_error.extract,
+        "sweeper_tick": _sweeper_tick.extract,
     }
 
 

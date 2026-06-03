@@ -60,11 +60,12 @@ def test_loads_real_seed_config():
         / "config.toml"
     )
     defs = load_config(seed)
-    assert len(defs) == 3
+    assert len(defs) == 4
     assert {d.signal_id for d in defs} == {
         "whatsapp_creds_restore",
         "web_watchdog_reconnect",
         "openclaw_unhandled_error",
+        "sweeper_tick",
     }
     assert all(isinstance(d, SignalDefinition) for d in defs)
     assert all(d.enabled for d in defs)

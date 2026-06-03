@@ -43,7 +43,7 @@ __all__ = [
 SCHEMA_VERSION = 1
 
 VALID_SOURCE_KINDS = frozenset(
-    {"openclaw_log", "agent_jsonl", "systemd_journal"}
+    {"openclaw_log", "agent_jsonl", "systemd_journal", "sweeper_ledger_jsonl"}
 )
 VALID_MATCH_KINDS = frozenset({"regex", "substring"})
 VALID_DEDUP_STRATEGIES = frozenset(
@@ -150,10 +150,16 @@ def _build_signal(signal_id: str, raw: dict) -> SignalDefinition:
         f"[signals.{signal_id}] tier_hypothesis={tier_hypothesis!r} "
         f"not in {sorted(VALID_TIER_HYPOTHESES)}",
     )
-    _require(
-        bool(match_pattern),
-        f"[signals.{signal_id}] match_pattern is empty",
-    )
+    # ``match_pattern`` is only meaningful for source kinds that match
+    # log lines by substring or regex. Signals whose source is a
+    # structured artifact (e.g., ``sweeper_ledger_jsonl``) don't consume
+    # it and may leave it empty in config.toml. The schema-shape parity
+    # is preserved (the field is still present on the dataclass).
+    if source_kind == "openclaw_log":
+        _require(
+            bool(match_pattern),
+            f"[signals.{signal_id}] match_pattern is empty",
+        )
     _require(
         Path(source_path_pattern).is_absolute(),
         f"[signals.{signal_id}] source_path_pattern must be absolute, "

@@ -1,7 +1,7 @@
 {
   "schema_version": "1.1",
-  "last_updated": "2026-06-01",
-  "updated_by": "#343-wp01 + #492-mission-end-classes",
+  "last_updated": "2026-06-03",
+  "updated_by": "#510-sweeper-tick + #343-wp01 + #492-mission-end-classes",
   "description": "Maps deterministic change signals to the documentation surfaces that likely need review when the signal fires. Two consumer classes: (1) drift-event entries (match.source='audit.sh') consumed by scripts/doc_audit/helpers/handle_drift_events.py to auto-file [doc-audit] issues; (2) mission-end entries (match.source='mission-architecture-impact') consumed by /spec-kitty.specify and /spec-kitty.plan agents per CLAUDE.md to populate a mission's Architecture Impact section with the full set of likely-affected docs. v1.1 adds match.change_class and consumer_hint fields; existing v1.0 entries unchanged.",
   "mappings": [
     {
@@ -269,6 +269,24 @@
       ],
       "rationale": "A mission adds or modifies a systemd unit under scripts/office2/. The deployed unit is the artifact; service-inventory's `config_files`, `schedule`, and `dependencies` fields must reflect the new/changed unit. Pairs with mission-service-added-or-modified when the unit represents a new service.",
       "consumer_hint": "spec-author"
+    },
+    {
+      "id": "sweeper-tick-stale-or-failed",
+      "match": {
+        "source": "sweeper-ledger",
+        "signal_id": "sweeper_tick"
+      },
+      "doc_targets": [
+        "docs/runbooks/habits-ops.md",
+        "scripts/openclaw/agents/felix-admin-habits/AGENTS.md"
+      ],
+      "rationale": "The felix-core-digest signal-extraction loop tripped the sweeper_tick signal — felix-habit-sweeper either failed, raised per-habit errors, or hasn't fired within 26 hours. When the operator diagnoses the cause, the habits ops runbook and the felix-admin-habits agent prompt may need updating to capture the new failure pattern (added in #510 alongside the extractor itself).",
+      "issue_title_prefix": "[doc-audit] sweeper-tick stale or failed",
+      "issue_labels": [
+        "P3-candidate",
+        "spec: brief",
+        "area/felix-core"
+      ]
     }
   ]
 }
