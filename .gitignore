@@ -50,3 +50,8 @@ temp/
 
 # Spec-kitty worktree state
 .claude/worktrees/
+
+# pytest coverage artifacts
+.coverage
+.coverage.*
+htmlcov/
