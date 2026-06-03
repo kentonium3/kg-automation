@@ -15,12 +15,16 @@ requirement_refs:
 planning_base_branch: main
 merge_target_branch: main
 branch_strategy: Planning artifacts for this feature were generated on main. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into main unless the human explicitly redirects the landing branch.
+base_branch: kitty/mission-remove-escalation-v1-parity-01KT4VTD
+base_commit: f4f07bee9f7dc80de77f8ef6aab2a371223a59be
+created_at: '2026-06-03T02:11:14.257135+00:00'
 subtasks:
 - T007
 - T008
 - T009
 - T010
 - T011
+shell_pid: '71001'
 history:
 - timestamp: '2026-06-02T19:30:00Z'
   actor: claude:opus-4-7:planner
