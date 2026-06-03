@@ -276,3 +276,4 @@ A reviewer should verify, in order:
 - 2026-06-03T01:52:53Z – claude – shell_pid=65272 – review-cycle-1 fix applied; phantom_subscription literal removed; 320 tests pass
 - 2026-06-03T01:52:57Z – codex – shell_pid=65420 – Started review via action command
 - 2026-06-03T02:07:01Z – claude – shell_pid=69299 – Started implementation via action command
+- 2026-06-03T02:07:06Z – claude – shell_pid=69299 – review-cycle-2 fix; stale framing scrubbed; 320 tests pass
