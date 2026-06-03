@@ -273,3 +273,4 @@ A reviewer should verify, in order:
 - 2026-06-02T20:11:15Z – claude – shell_pid=87130 – Code+tests cleanup done; 322 tests green; guard warned on a minor cross-ref docstring fix in scripts/enrichment/
 - 2026-06-02T20:11:33Z – codex – shell_pid=94479 – Started review via action command
 - 2026-06-03T01:52:43Z – claude – shell_pid=65272 – Started implementation via action command
+- 2026-06-03T01:52:53Z – claude – shell_pid=65272 – review-cycle-1 fix applied; phantom_subscription literal removed; 320 tests pass
