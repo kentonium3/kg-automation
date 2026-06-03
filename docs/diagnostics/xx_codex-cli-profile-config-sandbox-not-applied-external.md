@@ -115,3 +115,14 @@ Suggested mitigation, in priority order:
 - `CODEX_HOME`: unset (defaults to `~/.codex`)
 - Terminal: VS Code 1.114.0 (also reproduces in standalone terminals)
 - Auth mode: ChatGPT (auth.json file storage)
+
+## Related (not duplicates)
+
+I searched open + closed issues and PRs in this repo for terms covering "profile sandbox", "config_profile_v2", "danger-full-access ignored", "<name>.config.toml", and adjacent variants. Nothing matches the exact gap (`codex exec -p <name>` silently drops the profile file's `sandbox` field while honoring other fields like `model`), but several items are in the same neighborhood:
+
+- #14515 (closed 2026-03-12) — same pattern, different field: `model_instructions_file` silently dropped via `codex exec --profile`. Was fixed; the current report looks like the same class re-emerging for `sandbox` after the profile-v2 migration.
+- #25440 (open 2026-05-31) — adjacent migration friction: legacy `[profiles.<name>]` config startup breakage after upgrade. Different failure mode but same profile-v1 → profile-v2 migration window.
+- #25526 (open 2026-06-01) — `codex-config` loader README is stale relative to the implementation comments. Same area of churn; arguably evidence that the layered-config behavior has shifted recently without docs catching up.
+- PR #25943 (merged 2026-06-02) — "config: remove dead profile sandbox fallback." Removed `profile_sandbox_mode` from `ConfigToml::derive_permission_profile` on the theory that "production now always derives permissions without that value, and legacy profile contents are ignored." That assumption appears to be the inverse of what users invoking `codex exec -p <name>` actually need from the profile file — the gap this report describes.
+- PR #24110 (merged 2026-05-22) — added `--profile` support to the `codex sandbox` *subcommand* specifically. The bug here is in the `codex exec -p <name>` path, which is separate.
+- PR #23886 (merged 2026-05-21) — removed legacy profile-v1 plumbing. Likely when the gap was introduced; the `<name>.config.toml` form may have replaced the v1 path without threading `sandbox` through.
