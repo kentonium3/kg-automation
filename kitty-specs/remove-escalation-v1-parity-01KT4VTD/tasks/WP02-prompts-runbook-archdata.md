@@ -25,7 +25,7 @@ subtasks:
 - T010
 - T011
 shell_pid: "78915"
-agent: "claude"
+agent: "codex"
 history:
 - timestamp: '2026-06-02T19:30:00Z'
   actor: claude:opus-4-7:planner
@@ -221,3 +221,4 @@ A reviewer should verify, in order:
 - 2026-06-03T02:29:24Z – codex – shell_pid=76445 – Started review via action command
 - 2026-06-03T02:36:18Z – claude – shell_pid=78915 – Started implementation via action command
 - 2026-06-03T02:36:22Z – claude – shell_pid=78915 – cycle-2 fix; current-state prose; grep clean
+- 2026-06-03T02:36:25Z – codex – shell_pid=78915 – Started review via action command
