@@ -1,0 +1,32 @@
+{
+  "version": 1,
+  "mission_slug": "sweeper-tick-signal-extractor-01KT6MJP",
+  "mission_id": "01KT6MJPD025D5Z9KQAY7PWMZJ",
+  "mission_branch": "kitty/mission-sweeper-tick-signal-extractor-01KT6MJP",
+  "target_branch": "main",
+  "lanes": [
+    {
+      "lane_id": "lane-a",
+      "wp_ids": [
+        "WP01"
+      ],
+      "write_scope": [
+        "docs/design/architecture/data/signal-to-doc-map.json",
+        "scripts/openclaw/observation/signals/config.toml",
+        "scripts/openclaw/observation/signals/config_loader.py",
+        "scripts/openclaw/observation/signals/sweeper_tick.py",
+        "scripts/openclaw/observation/tests/test_signals_sweeper_tick.py",
+        "scripts/openclaw/observation/tick.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "tests"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    }
+  ],
+  "computed_at": "2026-06-03T11:48:38.037881+00:00",
+  "computed_from": "dependency_graph+ownership",
+  "planning_artifact_wps": []
+}
