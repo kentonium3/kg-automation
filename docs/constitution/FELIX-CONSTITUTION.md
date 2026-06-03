@@ -101,6 +101,30 @@ System work is decomposed by the nature of the operation, not by what's easiest 
 
 Rationale: this principle has been load-bearing for missions #253 (inbox helpers), #259 (audit-edit routing), #277 (audit.sh coverage extension), and #278 (signal-driven doc-audit). When followed, agent prompts stay readable, behaviors stay reproducible, and Haiku-tier models become viable for routine work. When violated, prompts grow until cheaper models can't follow them, and reasoning becomes brittle to model changes.
 
+## Directive 7: Migration Completeness — No Orphaned Transitional Artifacts
+
+A migration is not done when the new substrate ships. It is done when (1) the new substrate is in production AND (2) all transitional artifacts have been removed.
+
+Transitional artifacts to enumerate during `/spec-kitty.specify` and `/spec-kitty.plan` for any migration include:
+
+- Parity writes (dual-write code paths kept alive for rollback safety)
+- V1 readers that consume the soon-to-be-deprecated substrate
+- Schema fields kept only for the old shape
+- Feature flags that gate the swap
+- Dead callers in scripts and agents
+- Docstrings and comments that describe the old shape or the soak phase
+- Runbook sections, agent prompts, and architecture data entries that frame the substrate as transitional
+
+The spec MUST decide, for each enumerated artifact, between two options: (a) sequence its removal as a late work package within the same mission, gated on the soak window or another explicit criterion; or (b) explicitly accept the artifact as permanent infrastructure and rename it from its transitional framing to its long-term role.
+
+Soak windows and parity periods are temporary safety mechanisms. They MUST have an explicit owner and a calendar-bound forcing function (e.g., a deadline that flips a label, a follow-on issue that auto-promotes to current cycle on the soak end date). A soak-checklist mechanism without a forcing function is itself a planning defect — half-finished migrations are the worst state.
+
+Deferring cleanup to a separate follow-on issue is permitted only when (a) the cleanup work has its own explicit owner and forcing function, AND (b) the original mission's spec acknowledges this as a known weak link in the plan. Without both conditions, the cleanup MUST land within the same mission.
+
+Operator-memory linkage: see `feedback_migration_no_vestiges` for the operator-stated rationale and `reference_openclaw_upgrade_gotchas` for the OpenClaw incident catalog the directive draws on.
+
+Rationale: load-bearing failures in #309 → #376 (escalation JSONL parity dual-write that ran 12+ days past the planned soak end with no runtime consumer; cleared by mission #62 on 2026-06-02) and the OpenClaw v2026.3.24 → v2026.5.28 plugin migration (WhatsApp moved from built-in to external plugin, undocumented, 19-hour silent gap during which `habits-morning-checkin`, `inbox-7am`, `escalation-daily`, and other crons all failed with `Unsupported channel: whatsapp`) demonstrate that without an explicit forcing function, cleanup work drifts indefinitely and the system accumulates half-completed migrations as permanent debt.
+
 ## Privacy and Communication Boundaries
 
 This section defines boundaries that no agent may cross. It is designed to expand as Felix gains new capabilities.
