@@ -115,6 +115,8 @@ Suggested mitigation, in priority order:
 - `CODEX_HOME`: unset (defaults to `~/.codex`)
 - Terminal: VS Code 1.114.0 (also reproduces in standalone terminals)
 - Auth mode: ChatGPT (auth.json file storage)
+- Subscription: ChatGPT Plus
+- Model: `gpt-5.5` (codex session default; no `model` pin in base config.toml or in the failing profile file)
 
 ## `codex doctor --json`
 
