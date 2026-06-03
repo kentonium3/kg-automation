@@ -35,7 +35,8 @@ subtasks:
 - T005
 - T006
 - T007
-shell_pid: '96494'
+shell_pid: "96494"
+agent: "claude"
 history:
 - timestamp: '2026-06-03T11:50:00Z'
   actor: claude:opus-4-7:planner
@@ -460,3 +461,7 @@ A reviewer should verify, in order:
 - **JSONL ledger size growth**: at current scale (<100 records) the read-and-parse-all approach is trivially fast. If the ledger grows to 100K+ records this becomes a concern; defer until observed.
 - **Off-by-one on stale threshold**: 26 h vs 25 h vs 27 h. The constant is named in the module and clearly documented; tune in a follow-on if production shows it's wrong.
 - **Test fixture drift if the sweeper contract changes**: tests pin the field set the extractor depends on. A contract change requires both the producer (sweeper) and consumer (this extractor) to update; the tests will fail loudly, which is the desired behavior.
+
+## Activity Log
+
+- 2026-06-03T11:49:01Z – claude – shell_pid=96494 – Assigned agent via action command
