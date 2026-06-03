@@ -24,6 +24,9 @@ requirement_refs:
 planning_base_branch: main
 merge_target_branch: main
 branch_strategy: Planning artifacts for this feature were generated on main. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into main unless the human explicitly redirects the landing branch.
+base_branch: kitty/mission-sweeper-tick-signal-extractor-01KT6MJP
+base_commit: d2cff0d98c988a65d4edd6c8b95f9e7f25f03f2a
+created_at: '2026-06-03T11:48:59.128600+00:00'
 subtasks:
 - T001
 - T002
@@ -32,6 +35,7 @@ subtasks:
 - T005
 - T006
 - T007
+shell_pid: '96494'
 history:
 - timestamp: '2026-06-03T11:50:00Z'
   actor: claude:opus-4-7:planner
