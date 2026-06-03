@@ -477,3 +477,6 @@ A reviewer should verify, in order:
 - 2026-06-03T16:17:54Z – claude – shell_pid=51028 – Moved to in_progress
 - 2026-06-03T16:18:00Z – claude – shell_pid=51028 – Moved to for_review
 - 2026-06-03T16:19:50Z – claude – shell_pid=61874 – Started review via action command
+- 2026-06-03T16:22:48Z – claude – shell_pid=61874 – Claude self-review (codex paused). PASS.
+DoD: 7/7 subtasks done; 221 tests green; all source surfaces present; lane diff matches owned_files exactly; no SignalState/last-tick.json edits; no _threshold_status changes.
+Reviewer guidance: extract() signature matches siblings (Union[Path, str], defaults on prior_cursor/prior_rolling_count); extractor is pure (no datetime.now, no fs writes, no env reads); dry_run-only ledger covered by test_dry_run_only; stale check uses now_utc from cycle; 11 tests covering all 8 contract cases + edge cases (rolling, signal_id, naive-datetime); signal-to-doc-map entry follows d43b7387 pattern.
