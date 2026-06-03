@@ -1,5 +1,7 @@
 # Bug: lane base ignores WP-level dependencies; sibling-lane work not propagated to dependent lanes
 
+**Filed upstream**: [Priivacy-ai/spec-kitty#1684](https://github.com/Priivacy-ai/spec-kitty/issues/1684) (2026-06-03). Internal tracking: [kentonium3/kg-automation#492](https://github.com/kentonium3/kg-automation/issues/492).
+
 ## Summary
 
 Spec-kitty does not propagate work between dependent lanes. When a work package declares `dependencies: [WP##]` in its frontmatter and the dependency has been approved on a sibling lane, the dependent WP's worktree is created from the bare mission branch instead of the approved lane's tip. The dependent WP cannot import from the prior WP's modules and tests cannot run. Spec-kitty's own implement/review skill documentation states *"implementation workspace base is inferred automatically from the approved dependency graph"* — this is not the observed behavior. Workaround requires manual `git reset --hard` per dependent lane, which the spec-kitty git-workflow skill explicitly forbids.
