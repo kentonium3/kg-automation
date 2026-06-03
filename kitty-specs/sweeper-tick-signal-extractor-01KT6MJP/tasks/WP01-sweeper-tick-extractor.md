@@ -465,3 +465,4 @@ A reviewer should verify, in order:
 ## Activity Log
 
 - 2026-06-03T11:49:01Z – claude – shell_pid=96494 – Assigned agent via action command
+- 2026-06-03T11:57:57Z – claude – shell_pid=96494 – Moved to for_review
