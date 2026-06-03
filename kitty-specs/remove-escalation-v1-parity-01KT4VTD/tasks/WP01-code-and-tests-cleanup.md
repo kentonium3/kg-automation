@@ -29,8 +29,8 @@ subtasks:
 - T004
 - T005
 - T006
-shell_pid: "65272"
-agent: "claude"
+shell_pid: "65420"
+agent: "codex"
 history:
 - timestamp: '2026-06-02T19:30:00Z'
   actor: claude:opus-4-7:planner
@@ -274,3 +274,4 @@ A reviewer should verify, in order:
 - 2026-06-02T20:11:33Z – codex – shell_pid=94479 – Started review via action command
 - 2026-06-03T01:52:43Z – claude – shell_pid=65272 – Started implementation via action command
 - 2026-06-03T01:52:53Z – claude – shell_pid=65272 – review-cycle-1 fix applied; phantom_subscription literal removed; 320 tests pass
+- 2026-06-03T01:52:57Z – codex – shell_pid=65420 – Started review via action command
