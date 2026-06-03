@@ -25,7 +25,7 @@ subtasks:
 - T010
 - T011
 shell_pid: "76445"
-agent: "claude"
+agent: "codex"
 history:
 - timestamp: '2026-06-02T19:30:00Z'
   actor: claude:opus-4-7:planner
@@ -218,3 +218,4 @@ A reviewer should verify, in order:
 - 2026-06-03T02:23:54Z – codex – shell_pid=74387 – Started review via action command
 - 2026-06-03T02:29:18Z – claude – shell_pid=76445 – Started implementation via action command
 - 2026-06-03T02:29:21Z – claude – shell_pid=76445 – cycle-1 fix; deprecated entries deleted; phantom wording out of runbook
+- 2026-06-03T02:29:24Z – codex – shell_pid=76445 – Started review via action command
