@@ -8,13 +8,13 @@
 
 | ID | Description | WP | Parallel |
 |---|---|---|---|
-| T001 | Implement extractor module at `scripts/openclaw/observation/signals/sweeper_tick.py` | WP01 | |
-| T002 | Add `"sweeper_ledger_jsonl"` to `_VALID_SOURCE_KINDS` in `config_loader.py` | WP01 | [P] |
-| T003 | Add `[signals.sweeper_tick]` block to `signals/config.toml` | WP01 | [P] |
-| T004 | Wire extractor into `build_extractor_dispatch()` in `tick.py` | WP01 | |
-| T005 | Add `scripts/openclaw/observation/tests/test_signals_sweeper_tick.py` covering the 8 named cases | WP01 | |
-| T006 | Add `sweeper-tick-stale-or-failed` entry to `docs/design/architecture/data/signal-to-doc-map.json` | WP01 | [P] |
-| T007 | Run full `pytest scripts/openclaw/observation/tests/ -v` and confirm green | WP01 | |
+| T001 | Implement extractor module at `scripts/openclaw/observation/signals/sweeper_tick.py` | WP01 | | [D] |
+| T002 | Add `"sweeper_ledger_jsonl"` to `_VALID_SOURCE_KINDS` in `config_loader.py` | WP01 | [D] |
+| T003 | Add `[signals.sweeper_tick]` block to `signals/config.toml` | WP01 | [D] |
+| T004 | Wire extractor into `build_extractor_dispatch()` in `tick.py` | WP01 | | [D] |
+| T005 | Add `scripts/openclaw/observation/tests/test_signals_sweeper_tick.py` covering the 8 named cases | WP01 | | [D] |
+| T006 | Add `sweeper-tick-stale-or-failed` entry to `docs/design/architecture/data/signal-to-doc-map.json` | WP01 | [D] |
+| T007 | Run full `pytest scripts/openclaw/observation/tests/ -v` and confirm green | WP01 | | [D] |
 
 7 subtasks in a single WP. Mirrors the structure of mission #61 (one cohesive change touching code + tests + contract + arch-data).
 
@@ -30,13 +30,13 @@
 
 ### Included subtasks
 
-- [ ] T001 Implement extractor module at `scripts/openclaw/observation/signals/sweeper_tick.py` (WP01)
-- [ ] T002 Add `"sweeper_ledger_jsonl"` to `_VALID_SOURCE_KINDS` in `config_loader.py` (WP01)
-- [ ] T003 Add `[signals.sweeper_tick]` block to `signals/config.toml` (WP01)
-- [ ] T004 Wire extractor into `build_extractor_dispatch()` in `tick.py` (WP01)
-- [ ] T005 Add `scripts/openclaw/observation/tests/test_signals_sweeper_tick.py` covering the 8 named cases (WP01)
-- [ ] T006 Add `sweeper-tick-stale-or-failed` entry to `docs/design/architecture/data/signal-to-doc-map.json` (WP01)
-- [ ] T007 Run full `pytest scripts/openclaw/observation/tests/ -v` and confirm green (WP01)
+- [x] T001 Implement extractor module at `scripts/openclaw/observation/signals/sweeper_tick.py` (WP01)
+- [x] T002 Add `"sweeper_ledger_jsonl"` to `_VALID_SOURCE_KINDS` in `config_loader.py` (WP01)
+- [x] T003 Add `[signals.sweeper_tick]` block to `signals/config.toml` (WP01)
+- [x] T004 Wire extractor into `build_extractor_dispatch()` in `tick.py` (WP01)
+- [x] T005 Add `scripts/openclaw/observation/tests/test_signals_sweeper_tick.py` covering the 8 named cases (WP01)
+- [x] T006 Add `sweeper-tick-stale-or-failed` entry to `docs/design/architecture/data/signal-to-doc-map.json` (WP01)
+- [x] T007 Run full `pytest scripts/openclaw/observation/tests/ -v` and confirm green (WP01)
 
 ### Dependencies
 
