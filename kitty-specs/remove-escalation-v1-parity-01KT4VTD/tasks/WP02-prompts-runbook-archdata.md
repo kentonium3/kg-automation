@@ -24,8 +24,8 @@ subtasks:
 - T009
 - T010
 - T011
-shell_pid: "71001"
-agent: "claude"
+shell_pid: "74387"
+agent: "codex"
 history:
 - timestamp: '2026-06-02T19:30:00Z'
   actor: claude:opus-4-7:planner
@@ -215,3 +215,4 @@ A reviewer should verify, in order:
 
 - 2026-06-03T02:11:16Z – claude – shell_pid=71001 – Assigned agent via action command
 - 2026-06-03T02:23:51Z – claude – shell_pid=71001 – WP02 implementation done; grep clean; validate_docs OK; 320 tests pass
+- 2026-06-03T02:23:54Z – codex – shell_pid=74387 – Started review via action command
