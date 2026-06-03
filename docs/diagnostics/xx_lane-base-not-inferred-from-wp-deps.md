@@ -93,5 +93,18 @@ Alternative workaround: split sequential-dependency missions into separate missi
 
 - OS: macOS Darwin 26.5
 - Python: 3.13.13
-- spec-kitty-cli: 3.1.1
-- codex-cli (used for reviews in the discovery context): 0.135.0
+- spec-kitty-cli: 3.1.8 (CLI binary; behavior originally observed against 3.1.1, persists through 3.1.8 with no changelog entry indicating a fix)
+- Confirmed not addressed in: 3.2.0rc36 (latest pre-release, 2026-06-03) — see Related Upstream
+
+## Related Upstream
+
+Searched open + closed issues and PRs under `Priivacy-ai/spec-kitty` for terms covering "lane dependency", "depends_on_lanes", "lane base", "dependency chain", "WP01 WP02 base", "lane sequencing", "finalize-tasks dependencies", "sequential WP", and "WP propagation". No issue or PR found that matches this exact symptom (WP-level `dependencies: [WP##]` not translated into lane-level `depends_on_lanes` or worktree base resolution). Adjacent items:
+
+- `#1236` (closed 2026-05-21): "Lane-collapse algorithm ignores owned_files disjointness; downstream-only WP collapses every upstream into one lane" — opposite-direction bug (collapses too aggressively rather than not at all). Confirms the lane resolver does some dependency reasoning but only via collapse, never via dependent-base inference.
+- `#1619` (open Epic, 2026-06-02): "Unify mission execution context across coord/main/lane topology" — names "dependency checks reading stale state" as one of the broader failure class symptoms, and references `src/specify_cli/cli/commands/implement.py:747-753` reading dependency lanes from a main-checkout `feature_dir`. The lane-base-from-WP-dependency case is plausibly downstream of this Epic but not enumerated as a sub-issue.
+- `#1666` (open, blocks #1619): "Execution-state & context domain-boundary redesign" — the parent architectural redesign for the broader area; design notes merged via #1671 but implementation has not landed.
+- `#1672` (open, 2026-06-03): "Strangler step 1: e2e parity ratchet — next→implement→move-task→review→status from main and lane CWD" — gating test for the Strangler arc, but its acceptance criteria cover CWD-parity only, not dep-graph correctness.
+
+CHANGELOG search for 3.2.0rc1..rc36 returns dependency-related fixes scoped to different surfaces (cycle detection #1589, dependency-parser trailing-prose bleed, finalize-tasks dependency-prose false positives, dependency-source precedence tweaks). None describe translating WP-level dependencies into lane-base resolution.
+
+Net read: the broader execution-state area is under active redesign but this specific symptom is not enumerated and not fixed in 3.2.0rc36.
