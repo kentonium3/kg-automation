@@ -1,0 +1,42 @@
+{
+  "version": 1,
+  "mission_slug": "felix-vikunja-sync-architecture-research-01KT7Q15",
+  "mission_id": "01KT7Q15NKQFW1J276F4KN2JFG",
+  "mission_branch": "kitty/mission-felix-vikunja-sync-architecture-research-01KT7Q15",
+  "target_branch": "main",
+  "lanes": [
+    {
+      "lane_id": "lane-planning",
+      "wp_ids": [
+        "WP01",
+        "WP02",
+        "WP03"
+      ],
+      "write_scope": [
+        "docs/design/architecture/adr/0003-felix-vikunja-sync-architecture.md",
+        "docs/research/felix-vikunja-sync-architecture/findings.md",
+        "docs/research/felix-vikunja-sync-architecture/findings/conflict-event-log.sketch.md",
+        "docs/research/felix-vikunja-sync-architecture/findings/probe-transcripts.md",
+        "docs/research/felix-vikunja-sync-architecture/findings/rq-1-vikunja-api.md",
+        "docs/research/felix-vikunja-sync-architecture/findings/rq-2-touchpoints.md",
+        "docs/research/felix-vikunja-sync-architecture/findings/rq-3-conflict-policy.md",
+        "docs/research/felix-vikunja-sync-architecture/findings/rq-4-use-case-mapping.md",
+        "docs/research/felix-vikunja-sync-architecture/findings/rq-5-pattern-fit.md",
+        "docs/research/felix-vikunja-sync-architecture/findings/rq-6-adr-scope.md",
+        "docs/research/felix-vikunja-sync-architecture/recommendation.md"
+      ],
+      "predicted_surfaces": [
+        "planning"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    }
+  ],
+  "computed_at": "2026-06-03T23:40:42.741315+00:00",
+  "computed_from": "dependency_graph+ownership",
+  "planning_artifact_wps": [
+    "WP01",
+    "WP02",
+    "WP03"
+  ]
+}
