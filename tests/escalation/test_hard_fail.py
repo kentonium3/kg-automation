@@ -49,8 +49,6 @@ def _default_vikunja_state() -> dict:
     return {
         "done": False,
         "due_date": "2026-05-15T00:00:00Z",
-        "comment_count": 2,
-        "last_comment": "[Felix-Escalation] 2026-05-19 | level-1 | sent",
     }
 
 
@@ -89,7 +87,6 @@ def test_render_title_format():
     "reason,short",
     [
         ("malformed_jsonl_record", "malformed JSONL"),
-        ("phantom_subscription", "phantom subscription"),
         ("derive_state_inconsistency", "derive_state error"),
     ],
 )
@@ -120,7 +117,7 @@ def test_render_title_uses_em_dash_not_ascii_hyphens():
         task_id=99,
         project_id=4,
         task_title="Pin separator",
-        reason="phantom_subscription",
+        reason="derive_state_inconsistency",
         jsonl_path="/data/x.jsonl",
         detection_snippet="no records found",
         vikunja_state=_default_vikunja_state(),

@@ -20,24 +20,6 @@ Then filter in-agent: `done = false`, `due_date < today`,
 
 Alternatively, query per-project for each in-scope project.
 
-### Read task comments (escalation state)
-
-```
-GET /api/v1/tasks/{id}/comments
-```
-
-Scan for comments starting with `[Felix-Escalation]`. The most recent
-one determines current escalation state.
-
-### Write escalation comment
-
-```
-PUT /api/v1/tasks/{id}/comments
-Content-Type: application/json
-
-{"comment": "[Felix-Escalation] 2026-04-06 | level-1 | sent"}
-```
-
 ### Mark task done
 
 ```

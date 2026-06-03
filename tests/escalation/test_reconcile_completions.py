@@ -14,9 +14,11 @@ Coverage matrix per the WP05 prompt § T017:
 - **Hard-fail (derive_state)** — malformed JSONL → ``derive_state``
   raises → ``file_hard_fail_bug`` called with
   ``reason="derive_state_inconsistency"``.
-- **Hard-fail (phantom subscription)** — Vikunja task with
-  ``[Felix-Escalation]`` comments + empty JSONL records → hard-fail with
-  ``reason="phantom_subscription"``.
+- **No v1-substrate reader path** — post-parity-cleanup (mission
+  ``remove-escalation-v1-parity-01KT4VTD``), reconcile must NOT enumerate
+  Vikunja project tasks for the removed v1-comment-substrate drift check
+  and must NOT file hard-fails derived from that substrate. Regression
+  guard against re-introducing the historical-substrate reader.
 - **Hard-fail dedup within tick** — once filed for a (task_id, reason),
   subsequent triggers in the same tick short-circuit.
 - **Multi-project sweep** — ``reconcile_all`` iterates every per-project
@@ -217,9 +219,7 @@ def test_vikunja_done_emits_synthetic_done(
         ],
     )
 
-    # Two GETs: GET /tasks/{id} for the subscribed sweep, GET
-    # /projects/{id}/tasks for phantom detection (empty result so the
-    # phantom path is a no-op).
+    # One GET: GET /tasks/{id} for the subscribed sweep.
     mock_urlopen.side_effect = [
         _resp({
             "id": task_id,
@@ -229,7 +229,6 @@ def test_vikunja_done_emits_synthetic_done(
             "due_date": "2026-05-15T00:00:00Z",
             "comments": [],
         }),
-        _resp([]),  # phantom-scan: no other tasks
     ]
 
     report = reconcile_project(project_id, jsonl_dir=jsonl_sandbox)
@@ -278,8 +277,7 @@ def test_vikunja_done_with_existing_done_record_no_emit(
         ],
     )
 
-    # Only the phantom-scan call; subscribed gate excludes terminal task.
-    mock_urlopen.side_effect = [_resp([])]
+    mock_urlopen.side_effect = AssertionError("no Vikunja call expected post-parity-cleanup")
 
     report = reconcile_project(project_id, jsonl_dir=jsonl_sandbox)
 
@@ -335,7 +333,6 @@ def test_due_date_change_emits_synthetic_rescheduled(
             "due_date": "2026-05-25T00:00:00Z",
             "comments": [],
         }),
-        _resp([]),
     ]
 
     report = reconcile_project(project_id, jsonl_dir=jsonl_sandbox)
@@ -392,7 +389,6 @@ def test_due_date_unchanged_no_emit(
             "due_date": "2026-05-25T00:00:00Z",
             "comments": [],
         }),
-        _resp([]),
     ]
 
     report = reconcile_project(project_id, jsonl_dir=jsonl_sandbox)
@@ -432,8 +428,7 @@ def test_due_date_change_with_terminal_record_no_emit(
         ],
     )
 
-    # Only phantom-scan call (subscription gate skips the task).
-    mock_urlopen.side_effect = [_resp([])]
+    mock_urlopen.side_effect = AssertionError("no Vikunja call expected post-parity-cleanup")
 
     report = reconcile_project(project_id, jsonl_dir=jsonl_sandbox)
 
@@ -472,7 +467,6 @@ def test_no_prior_reschedule_emits_when_vikunja_due_diverges(
             "due_date": "2026-05-25T00:00:00Z",
             "comments": [],
         }),
-        _resp([]),
     ]
 
     report = reconcile_project(project_id, jsonl_dir=jsonl_sandbox)
@@ -511,9 +505,8 @@ def test_invalid_event_params_files_hard_fail(
     bad.pop("level", None)
     _write_jsonl(jsonl_path, [bad])
 
-    # Only the phantom-scan GET fires; the broken line is not subscribed
     # so no per-task GET /tasks/{id} happens.
-    mock_urlopen.side_effect = [_resp([])]
+    mock_urlopen.side_effect = AssertionError("no Vikunja call expected post-parity-cleanup")
 
     report = reconcile_project(project_id, jsonl_dir=jsonl_sandbox)
 
@@ -529,16 +522,22 @@ def test_invalid_event_params_files_hard_fail(
     assert all(r.get("source") != "reconcile" for r in records)
 
 
-def test_phantom_subscription_files_hard_fail(
+def test_no_v1_substrate_reader_path(
     jsonl_sandbox: Path,
     tmp_token_file: Path,
     mock_urlopen,
     recorded_hard_fails: _HardFailRecorder,
 ) -> None:
-    """Vikunja task has [Felix-Escalation] comments but JSONL is empty for that task."""
+    """Post-parity-cleanup regression guard.
+
+    Reconcile MUST NOT enumerate Vikunja project tasks for the removed
+    v1-comment-substrate drift check, and MUST NOT call any Vikunja
+    endpoint that existed only to support that check (notably
+    ``GET /projects/{id}/tasks``). Surviving hard-fails come exclusively
+    from the JSONL-native code paths.
+    """
     project_id = 4
-    other_task_id = 1234  # has JSONL records (subscribed)
-    phantom_task_id = 9012  # no JSONL records but Vikunja comments present
+    subscribed_task_id = 1234
     jsonl_path = (
         jsonl_sandbox / f"project-{project_id}-escalation-history.jsonl"
     )
@@ -546,7 +545,7 @@ def test_phantom_subscription_files_hard_fail(
         jsonl_path,
         [
             _make_record(
-                task_id=other_task_id,
+                task_id=subscribed_task_id,
                 project_id=project_id,
                 state="level_sent",
                 date_str="2026-05-18",
@@ -555,46 +554,34 @@ def test_phantom_subscription_files_hard_fail(
         ],
     )
 
-    # GET /tasks/<other> for subscribed sweep, then GET
-    # /projects/<id>/tasks for the phantom scan returning two tasks.
+    # Only one Vikunja call expected: the subscribed-sweep's GET /tasks/<id>.
+    # No subsequent GET /projects/<id>/tasks for v1-substrate enumeration.
     mock_urlopen.side_effect = [
         _resp({
-            "id": other_task_id,
+            "id": subscribed_task_id,
             "title": "Subscribed task",
             "done": False,
             "project_id": project_id,
-            "due_date": "2026-05-15T00:00:00Z",
-            "comments": [],
+            "due_date": "2026-05-18T00:00:00Z",
         }),
-        _resp([
-            {
-                "id": other_task_id,
-                "title": "Subscribed task",
-                "done": False,
-                "project_id": project_id,
-                "comments": [],
-            },
-            {
-                "id": phantom_task_id,
-                "title": "Phantom task",
-                "done": False,
-                "project_id": project_id,
-                "comments": [
-                    {
-                        "comment": "[Felix-Escalation] 2026-05-15 | level-1 | sent",
-                    }
-                ],
-            },
-        ]),
     ]
 
     report = reconcile_project(project_id, jsonl_dir=jsonl_sandbox)
 
-    assert len(report.hard_fails) == 1
-    event = report.hard_fails[0]
-    assert event.reason == "phantom_subscription"
-    assert event.task_id == phantom_task_id
-    assert recorded_hard_fails[0]["kwargs"]["reason"] == "phantom_subscription"
+    # All surviving hard-fails come from JSONL-native code paths.
+    surviving_reasons = {
+        "malformed_jsonl_record",
+        "derive_state_inconsistency",
+    }
+    assert all(ev.reason in surviving_reasons for ev in report.hard_fails)
+    # No project-tasks enumeration call.
+    assert mock_urlopen.call_count == 1
+    urls_called = [
+        call[0][0].full_url for call in mock_urlopen.call_args_list
+    ]
+    assert not any(
+        f"/projects/{project_id}/tasks" in url for url in urls_called
+    )
 
 
 def test_hard_fail_dedup_hit_does_not_double_file(
@@ -621,8 +608,7 @@ def test_hard_fail_dedup_hit_does_not_double_file(
         {"filed": False, "deduped": True, "existing_url": "https://example/dup"}
     )
 
-    # Only phantom-scan fires — broken line isn't subscribed.
-    mock_urlopen.side_effect = [_resp([])]
+    mock_urlopen.side_effect = AssertionError("no Vikunja call expected post-parity-cleanup")
 
     report = reconcile_project(project_id, jsonl_dir=jsonl_sandbox)
 
@@ -665,8 +651,7 @@ def test_within_tick_dedup_prevents_second_file(
     # Two records per task, both broken — without dedup we'd file 4 bugs.
     _write_jsonl(jsonl_path, [_bad(task_a), _bad(task_a), _bad(task_b)])
 
-    # Only phantom-scan fires — broken lines aren't subscribed.
-    mock_urlopen.side_effect = [_resp([])]
+    mock_urlopen.side_effect = AssertionError("no Vikunja call expected post-parity-cleanup")
 
     report = reconcile_project(project_id, jsonl_dir=jsonl_sandbox)
     assert len(report.hard_fails) == 2
@@ -696,21 +681,18 @@ def test_reconcile_all_iterates_projects(
     _write_jsonl(j4, [_make_record(task_id=1, project_id=p4, level=1)])
     _write_jsonl(j7, [_make_record(task_id=10, project_id=p7, level=1)])
 
-    # Order: subscribed sweep p4, phantom scan p4, subscribed sweep p7,
-    # phantom scan p7.
+    # Order: subscribed sweep p4, subscribed sweep p7.
     mock_urlopen.side_effect = [
         _resp({
             "id": 1, "title": "A", "done": False,
             "project_id": p4, "due_date": "2026-05-15T00:00:00Z",
             "comments": [],
         }),
-        _resp([]),
         _resp({
             "id": 10, "title": "B", "done": False,
             "project_id": p7, "due_date": "2026-05-15T00:00:00Z",
             "comments": [],
         }),
-        _resp([]),
     ]
 
     reports = reconcile_all(jsonl_dir=jsonl_sandbox)
@@ -770,7 +752,6 @@ def test_dry_run_reports_no_writes(
             "due_date": "2026-05-15T00:00:00Z",
             "comments": [],
         }),
-        _resp([]),
     ]
 
     before = _read_jsonl(jsonl_path)
@@ -817,10 +798,8 @@ def test_reconcile_50_tasks_under_60s(
         )
     _write_jsonl(jsonl_path, records)
 
-    # 50 subscribed-sweep GETs + 1 phantom-scan GET. Each returns an
-    # already-matching task (done=False, due_date in JSONL form) so no
-    # drift is detected. Use side_effect with a generator to avoid building
-    # all 51 mocks up front.
+    # 50 subscribed-sweep GETs. Each returns an already-matching task
+    # (done=False, due_date in JSONL form) so no drift is detected.
     responses = []
     for i in range(50):
         responses.append(
@@ -833,7 +812,6 @@ def test_reconcile_50_tasks_under_60s(
                 "comments": [],
             })
         )
-    responses.append(_resp([]))
     mock_urlopen.side_effect = responses
 
     started = time.monotonic()
@@ -874,7 +852,7 @@ def test_max_tasks_caps_scan(
         )
     _write_jsonl(jsonl_path, records)
 
-    # Only 2 subscribed-sweep GETs expected + 1 phantom scan.
+    # 2 subscribed-sweep GETs expected (max_tasks=2 cap).
     mock_urlopen.side_effect = [
         _resp({
             "id": 3000, "title": "A", "done": False,
@@ -886,7 +864,6 @@ def test_max_tasks_caps_scan(
             "project_id": project_id, "due_date": "2026-05-15T00:00:00Z",
             "comments": [],
         }),
-        _resp([]),
     ]
 
     report = reconcile_project(
@@ -901,10 +878,9 @@ def test_missing_jsonl_file_yields_empty_report(
     mock_urlopen,
     recorded_hard_fails: _HardFailRecorder,
 ) -> None:
-    """No JSONL file for the project → tasks_scanned=0, no phantom scan."""
-    # No mock_urlopen calls expected because subscribed enumeration short-
-    # circuits on missing file AND the phantom scan only runs when the
-    # JSONL file exists.
+    """No JSONL file for the project → tasks_scanned=0; no Vikunja call at all."""
+    # No mock_urlopen calls expected because subscribed enumeration
+    # short-circuits when the JSONL file is missing.
     report = reconcile_project(7, jsonl_dir=jsonl_sandbox)
     assert report.tasks_scanned == 0
     assert report.hard_fails == []
@@ -976,7 +952,6 @@ def test_cli_emits_summary_line_for_project(
             "project_id": project_id, "due_date": "2026-05-15T00:00:00Z",
             "comments": [],
         }),
-        _resp([]),
     ]
 
     exit_code = main(
@@ -1030,7 +1005,6 @@ def test_cli_non_quiet_emits_drift_and_hardfail_lines(
             "due_date": "2026-05-15T00:00:00Z",
             "comments": [],
         }),
-        _resp([]),
     ]
     exit_code = main(
         [
@@ -1068,13 +1042,11 @@ def test_cli_all_flag_calls_reconcile_all(
             "project_id": p4, "due_date": "2026-05-15T00:00:00Z",
             "comments": [],
         }),
-        _resp([]),
         _resp({
             "id": 10, "title": "B", "done": False,
             "project_id": p7, "due_date": "2026-05-15T00:00:00Z",
             "comments": [],
         }),
-        _resp([]),
     ]
     exit_code = main(
         [
@@ -1129,43 +1101,12 @@ def test_vikunja_non_object_payload_files_hard_fail(
         jsonl_path,
         [_make_record(task_id=task_id, project_id=project_id, level=1)],
     )
-    # GET /tasks/<id> returns a list (malformed shape), phantom scan returns [].
-    mock_urlopen.side_effect = [_resp(["unexpected", "list"]), _resp([])]
+    # GET /tasks/<id> returns a list (malformed shape).
+    mock_urlopen.side_effect = [_resp(["unexpected", "list"])]
     report = reconcile_project(project_id, jsonl_dir=jsonl_sandbox)
     assert len(report.hard_fails) == 1
     assert report.hard_fails[0].reason == "derive_state_inconsistency"
     assert "non-object" in report.hard_fails[0].detail
-
-
-def test_phantom_scan_failure_does_not_abort_sweep(
-    jsonl_sandbox: Path,
-    tmp_token_file: Path,
-    mock_urlopen,
-    recorded_hard_fails: _HardFailRecorder,
-) -> None:
-    """Phantom-scan HTTP failure is tolerated; subscribed sweep already ran."""
-    project_id = 4
-    task_id = 1234
-    jsonl_path = jsonl_sandbox / f"project-{project_id}-escalation-history.jsonl"
-    _write_jsonl(
-        jsonl_path,
-        [_make_record(task_id=task_id, project_id=project_id, level=1)],
-    )
-    mock_urlopen.side_effect = [
-        _resp({
-            "id": task_id, "title": "Task", "done": False,
-            "project_id": project_id, "due_date": "2026-05-15T00:00:00Z",
-            "comments": [],
-        }),
-        urllib.error.URLError("phantom scan failed"),
-    ]
-    # Should NOT raise — phantom-scan failure is swallowed.
-    report = reconcile_project(project_id, jsonl_dir=jsonl_sandbox)
-    assert report.tasks_scanned == 1
-    # No phantoms detected because the scan was aborted.
-    assert all(
-        ev.reason != "phantom_subscription" for ev in report.hard_fails
-    )
 
 
 def test_zero_sentinel_due_date_treated_as_none(
@@ -1199,7 +1140,6 @@ def test_zero_sentinel_due_date_treated_as_none(
             "due_date": "0001-01-01T00:00:00Z",
             "comments": [],
         }),
-        _resp([]),
     ]
     report = reconcile_project(project_id, jsonl_dir=jsonl_sandbox)
     # Vikunja due is "none" → no rescheduled-drift.
@@ -1236,7 +1176,6 @@ def test_malformed_jsonl_line_does_not_crash_enumeration(
             "project_id": project_id, "due_date": "2026-05-15T00:00:00Z",
             "comments": [],
         }),
-        _resp([]),
     ]
     report = reconcile_project(project_id, jsonl_dir=jsonl_sandbox)
     # Valid subscribed task still gets scanned.
@@ -1249,60 +1188,6 @@ def test_malformed_jsonl_line_does_not_crash_enumeration(
     ]
     assert len(malformed_events) == 1
     assert malformed_events[0].task_id == 0
-
-
-def test_phantom_scan_skips_already_subscribed_and_terminal(
-    jsonl_sandbox: Path,
-    tmp_token_file: Path,
-    mock_urlopen,
-    recorded_hard_fails: _HardFailRecorder,
-) -> None:
-    """Phantom scan ignores tasks that are subscribed OR have records."""
-    project_id = 4
-    subscribed_id = 1234
-    terminal_id = 5678
-    jsonl_path = jsonl_sandbox / f"project-{project_id}-escalation-history.jsonl"
-    _write_jsonl(
-        jsonl_path,
-        [
-            _make_record(task_id=subscribed_id, project_id=project_id, level=1),
-            # Terminal record - not subscribed, but has records.
-            _make_record(
-                task_id=terminal_id,
-                project_id=project_id,
-                state="done",
-                date_str="2026-05-20",
-                timestamp="2026-05-20T12:00:00+00:00",
-            ),
-        ],
-    )
-    # Subscribed sweep: GET /tasks/<subscribed>.
-    # Phantom scan: returns both tasks. The terminal task has comments but
-    # NOT a phantom because it has JSONL records.
-    mock_urlopen.side_effect = [
-        _resp({
-            "id": subscribed_id, "title": "Subscribed", "done": False,
-            "project_id": project_id, "due_date": "2026-05-15T00:00:00Z",
-            "comments": [],
-        }),
-        _resp([
-            {
-                "id": subscribed_id, "title": "Subscribed", "done": False,
-                "project_id": project_id,
-                "comments": [{"comment": "[Felix-Escalation] foo"}],
-            },
-            {
-                "id": terminal_id, "title": "Terminal", "done": True,
-                "project_id": project_id,
-                "comments": [{"comment": "[Felix-Escalation] bar"}],
-            },
-        ]),
-    ]
-    report = reconcile_project(project_id, jsonl_dir=jsonl_sandbox)
-    # Neither should hard-fail as phantom.
-    assert all(
-        ev.reason != "phantom_subscription" for ev in report.hard_fails
-    )
 
 
 def test_synthetic_done_failure_routes_to_hard_fail(
@@ -1332,7 +1217,6 @@ def test_synthetic_done_failure_routes_to_hard_fail(
             "project_id": project_id, "due_date": "2026-05-15T00:00:00Z",
             "comments": [],
         }),
-        _resp([]),
     ]
     report = reconcile_project(project_id, jsonl_dir=jsonl_sandbox)
     assert len(report.hard_fails) == 1
@@ -1391,9 +1275,8 @@ def test_malformed_raw_jsonl_line_fires_hard_fail(
 
     Per research D8, "malformed JSONL line" includes JSON-parse failures
     and non-dict payloads. Lines without a parseable ``task_id`` collapse
-    to a single file-level sentinel hard-fail (``task_id=0``). The
-    sweep does NOT emit synthetic records for the malformed unit and
-    continues to the phantom scan.
+    to a single file-level sentinel hard-fail (``task_id=0``). The sweep
+    does NOT emit synthetic records for the malformed unit.
     """
     project_id = 4
     jsonl_path = (
@@ -1403,8 +1286,7 @@ def test_malformed_raw_jsonl_line_fires_hard_fail(
     with jsonl_path.open("w", encoding="utf-8") as fh:
         fh.write("{not even close to json\n")
 
-    # Only the phantom-scan GET fires; no subscribed tasks.
-    mock_urlopen.side_effect = [_resp([])]
+    mock_urlopen.side_effect = AssertionError("no Vikunja call expected post-parity-cleanup")
 
     report = reconcile_project(project_id, jsonl_dir=jsonl_sandbox)
 
@@ -1455,8 +1337,8 @@ def test_malformed_with_invalid_event_params_fires_hard_fail(
     bad.pop("level", None)
     _write_jsonl(jsonl_path, [bad])
 
-    # No subscribed sweep; only phantom-scan call.
-    mock_urlopen.side_effect = [_resp([])]
+    # Malformed JSONL → no subscribed task → no Vikunja call.
+    mock_urlopen.side_effect = AssertionError("no Vikunja call expected post-parity-cleanup")
 
     report = reconcile_project(project_id, jsonl_dir=jsonl_sandbox)
 
@@ -1503,7 +1385,7 @@ def test_malformed_within_tick_dedup(
     # two bugs.
     _write_jsonl(jsonl_path, [_bad(), _bad()])
 
-    mock_urlopen.side_effect = [_resp([])]
+    mock_urlopen.side_effect = AssertionError("no Vikunja call expected post-parity-cleanup")
 
     report = reconcile_project(project_id, jsonl_dir=jsonl_sandbox)
 
@@ -1557,9 +1439,9 @@ def test_malformed_does_not_halt_tick(
     )
     _write_jsonl(jsonl_path, [bad, good_a, good_b])
 
-    # Two subscribed-task GETs (a, b) + one phantom-scan GET. Subscribed
-    # iteration order matches insertion order; both tasks have done=False
-    # so no synthetic emit fires.
+    # Two subscribed-task GETs (a, b). Subscribed iteration order
+    # matches insertion order; both tasks have done=False so no
+    # synthetic emit fires.
     mock_urlopen.side_effect = [
         _resp({
             "id": good_task_a, "title": "Good A", "done": False,
@@ -1573,7 +1455,6 @@ def test_malformed_does_not_halt_tick(
             "due_date": "2026-05-19T00:00:00Z",
             "comments": [],
         }),
-        _resp([]),
     ]
 
     report = reconcile_project(project_id, jsonl_dir=jsonl_sandbox)

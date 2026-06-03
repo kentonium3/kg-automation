@@ -172,21 +172,21 @@ Sensitive credential read path. The scripts-first driver loads the Anthropic API
 
 ### Escalation Event Writes (#309 — JSONL state migration, Phase 6 of ADR-0002)
 
-Three-write ordering per research D6 (Vikunja side-effect FIRST, JSONL append LAST — failing the unreliable remote ops first surfaces network issues before any state_log line is written):
+Per-event side-effect dispatch per research D6 (Vikunja PATCH FIRST when applicable, JSONL append LAST — failing the unreliable remote ops first surfaces network issues before any state_log line is written):
 
 ```
 felix-admin-escalation agent → scripts/escalation/record_completion.py
-  → Vikunja /tasks/<id>/comments + /tasks/<id>   (PUT [Felix-Escalation] comment, PATCH done/due_date)
+  → Vikunja /tasks/<id>   (PATCH done/due_date — only for done/rescheduled events)
   → scripts/common/state_log.py → /data/services/openclaw/state/escalation/<project-slug>-escalation-history.jsonl
 ```
 
 Side-effects per event_type:
-- `level_sent` — WhatsApp send + `[Felix-Escalation]` comment write (during the C-001 soak)
-- `snoozed` / `dismissed` — `[Felix-Escalation]` comment write
-- `done` — `PATCH done=true` + `[Felix-Escalation]` comment write
-- `rescheduled` (kent_reply source) — `PATCH due_date` + `[Felix-Escalation]` comment write
+- `level_sent` — WhatsApp send (upstream of `record_completion`) + JSONL append (sole side-effect of this helper)
+- `snoozed` / `dismissed` — JSONL append only
+- `done` — `PATCH done=true` + JSONL append
+- `rescheduled` (kent_reply source) — `PATCH due_date` + JSONL append
 
-JSONL state log files are per-project (NFR-003, research D2): filename-based partition keyed on project slug. Schema (data-model Entity 1): `domain=escalation`, `state ∈ {level_sent, snoozed, dismissed, done, rescheduled}`, `source ∈ {agent, reconcile, backfill, kent_reply, operator_repair}`.
+JSONL state log files are per-project (NFR-003, research D2): filename-based partition keyed on project slug. Schema (data-model Entity 1): `domain=escalation`, `state ∈ {level_sent, snoozed, dismissed, done, rescheduled}`, `source ∈ {agent, reconcile, kent_reply, operator_repair}`.
 
 ### Escalation State Read (#309)
 
@@ -195,7 +195,7 @@ felix-admin-escalation agent → scripts/escalation/derive_state.py
   → scripts/common/state_log.py → <project-slug>-escalation-history.jsonl   (read-only)
 ```
 
-`derive_state(records)` is a pure function. Input: list of JSONL records for one task (newest-first). Output: `EscalationState` dataclass with `current_state`, `snooze_active_until`, `next_eligible_level`, `last_event_recorded_at`. All escalation policy lives here; the agent no longer parses `[Felix-Escalation]` comments post-#309 cutover.
+`derive_state(records)` is a pure function. Input: list of JSONL records for one task (newest-first). Output: `EscalationState` dataclass with `current_state`, `snooze_active_until`, `next_eligible_level`, `last_event_recorded_at`. All escalation policy lives here; JSONL is the sole substrate.
 
 ### Escalation Reconcile Sweep (#309)
 
@@ -209,17 +209,6 @@ felix-admin-escalation agent → scripts/escalation/reconcile_completions.py
 Runs at tick start (FR-005). Enumerates escalation-subscribed tasks (those with at least one prior `level_sent` JSONL record AND no terminal record since); GETs current Vikunja state per task; emits synthetic records when:
 - `vikunja.done=true` but JSONL has no `done` → synthetic `{state: "done", source: "reconcile"}`
 - `vikunja.due_date != last_rescheduled_to` (and no terminal record) → synthetic `{state: "rescheduled", source: "reconcile", reschedule_to: <new>}`
-
-### Escalation Historical Backfill (#309)
-
-```
-Operator (Kent) → scripts/escalation/backfill_jsonl_from_comments.py
-  → Vikunja /projects, /projects/<id>/tasks, /tasks/<id>/comments   (GET only)
-  → /data/services/openclaw/state/escalation/pre-phase6-snapshot.json   (snapshot — written BEFORE any JSONL writes)
-  → scripts/common/state_log.py → <project-slug>-escalation-history.jsonl   (source=backfill)
-```
-
-One-shot operator-driven replay of existing `[Felix-Escalation]` comments to JSONL records (FR-006). Read-only on Vikunja (GET only). The pre-backfill snapshot at `pre-phase6-snapshot.json` is the rollback substrate (data-model Entity 4) — written exactly once per backfill invocation. Idempotent on re-run via the Phase 2 (task_id, date, state) dedup; malformed comments are NOT replayed (they surface in the backfill report).
 
 ### Enrichment Record Writes (#310 — JSONL state migration, Phase 7 of ADR-0002 / final)
 
@@ -280,8 +269,7 @@ scripts/escalation/reconcile_completions.py (or record_completion.py during vali
 
 Hard-fail trigger conditions (FR-008, research D8):
 1. `malformed_jsonl_record` — schema validation (via `schema.py`'s `validate_event_params`) fails on a JSONL line.
-2. `phantom_subscription` — Vikunja shows `[Felix-Escalation]` comments but JSONL has no anchor records.
-3. `derive_state_inconsistency` — `derive_state()` raises `EscalationStateError`.
+2. `derive_state_inconsistency` — `derive_state()` raises `EscalationStateError`.
 
 **Surface separation**: `scripts/escalation/schema.py` is the event-parameter validator only (exposes `EVENT_TYPE_PARAMETERS`, `validate_event_params`, `EscalationSchemaError`). It does NOT file bug reports. The Q10 hard-fail bug-filing + dedup helper lives at `scripts/escalation/hard_fail.py`, owned by WP04 in this same mission (forward-referenced from WP08 per C-004).
 

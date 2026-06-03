@@ -20,12 +20,11 @@ Vikunja and delivers level-appropriate WhatsApp alerts to Kent. It runs
 daily at 8:00 AM ET via the OpenClaw cron `escalation-daily`, 55 minutes
 after the morning habit check-in.
 
-As of mission #309 (ADR-0002 Phase 6), escalation state is **canonical in
-per-project JSONL files** under `/data/services/openclaw/state/escalation/`.
-The agent reads state via `scripts/escalation/derive_state.py` and writes
-events via `scripts/escalation/record_completion.py`. The legacy
-`[Felix-Escalation]` Vikunja comments are still written during the
-post-cutover 3-day soak for rollback safety, but they are **not** read.
+Escalation state is **canonical in per-project JSONL files** under
+`/data/services/openclaw/state/escalation/` (introduced by mission #309,
+ADR-0002 Phase 6). The agent reads state via
+`scripts/escalation/derive_state.py` and writes events via
+`scripts/escalation/record_completion.py`. JSONL is the sole substrate.
 
 **What it escalates**: tasks where `done=false`, `due_date < today` (or
 due today with high+ priority), and `priority >= 2`. Habits project
@@ -52,9 +51,9 @@ escalations arrive.
 - **Canonical (read + write)**: `/data/services/openclaw/state/escalation/`
 - **Per-project file**: `project-<project_id>-escalation-history.jsonl`
   (e.g., `project-4-escalation-history.jsonl` for the Everyday project)
-- **UI mirror (write only, during soak)**: `[Felix-Escalation]` comments
-  on each Vikunja task — convenient to view in the web UI but **NOT**
-  read by the agent
+- **Historical record (read-only)**: pre-#376 v1 escalation comments
+  remain on Vikunja tasks that received them before the cleanup; no new
+  comments are written and no code path reads them
 - **Pre-cutover snapshot**: `/data/services/openclaw/state/escalation/pre-phase6-snapshot.json`
 
 ### Query current escalation state for a task
@@ -156,10 +155,9 @@ done and Felix re-alerted on the next tick. Verify by inspection:
 1. Read the previous day's escalation WhatsApp summary.
 2. For each alerted task, check Vikunja UI history (Activity tab) for a
    `done=true` mutation BEFORE the alert went out.
-3. Any match = regression. Stop and rollback per the quickstart.
+3. Any match = regression. Stop and investigate the reconcile path.
 
-This is currently a manual audit — no automated alert exists. The
-3-day soak gate (`escalation-soak-window.md`) operationalizes this.
+This is currently a manual audit — no automated alert exists.
 
 ### Reconcile dry-run (drift check, no writes)
 
@@ -172,21 +170,23 @@ and `hard_fails`. Non-zero `synthetic_done` between ticks is expected
 (Kent's UI mutations are the design driver); large counts (>5 per tick)
 warrant investigation.
 
-## Rollback procedure
+## Failure-mode response
 
-The v1 (comment-as-state) code paths remain on disk during the soak.
-Rollback is a single config flip. See the mission quickstart:
+Mission #376 removed the v1 comment-as-state code paths along with the
+single-config-flip rollback option. Failure-mode response is now triage
++ forward-fix, not rollback:
 
-- [`kitty-specs/migrate-escalation-to-jsonl-state-model-01KS5R4D/quickstart.md` § Rollback procedure](../../kitty-specs/migrate-escalation-to-jsonl-state-model-01KS5R4D/quickstart.md#rollback-procedure)
+Trigger conditions for operator attention:
 
-Trigger conditions for rollback:
-
-- Spurious re-alerts after Kent UI-resolves a task (SC-002 regression)
-- Missing alerts on tasks that should escalate (SC-001 regression)
+- Spurious re-alerts after Kent UI-resolves a task (regression of the
+  2026-05-16 incident class) — investigate the reconcile path
+- Missing alerts on tasks that should escalate — inspect derive_state
+  output for the candidate task
 - Hard-fail epidemic (>5 hard-fail bugs filed in a single tick — points
-  to a systemic schema bug, not isolated bad data)
+  to a systemic schema bug, not isolated bad data) — pause the cron and
+  open a P1 bug
 
-Hard-fail counts on isolated tasks do NOT trigger rollback — they trigger
+Hard-fail counts on isolated tasks do NOT trigger pausing — they trigger
 triage of the affected JSONL records.
 
 ## Maintenance
@@ -207,10 +207,10 @@ When a P2-bug with `Escalation hard-fail:` title appears:
    - **Malformed record**: edit the JSONL line in place to fix the
      schema violation, OR add a synthetic `operator_repair` record
      that supersedes it.
-   - **Missing record** (phantom subscription): the task is in Vikunja
-     but has no JSONL anchor. Either remove it from escalation
-     subscription via UI (mark done / dismiss), or add an
-     `operator_repair` record establishing the baseline state.
+   - **No-anchor case** (task is in Vikunja but has no JSONL record):
+     either remove it from escalation subscription via UI (mark
+     done / dismiss), or add an `operator_repair` record establishing
+     the baseline state.
 
 4. Add the synthetic record via `record_completion.py` with
    `--source operator_repair`:
@@ -222,8 +222,8 @@ When a P2-bug with `Escalation hard-fail:` title appears:
      --no-vikunja --note "manual triage <date> per bug #<num>"'
    ```
 
-   The `--no-vikunja` flag skips the side-effect (no comment write —
-   the JSONL record is the only artifact).
+   The `--no-vikunja` flag skips Vikunja side-effects entirely so the
+   JSONL record is the only artifact.
 
 5. Close the GitHub bug. The next escalation tick reprocesses the task
    cleanly. If the issue re-fires, the dedup query returns empty
@@ -318,9 +318,7 @@ ssh office2-claude "cat > /home/claude/.openclaw/skills/escalation/SKILL.md" \
 ```bash
 ssh office2-claude 'openclaw agents list | grep felix-admin-escalation'
 ssh office2-claude 'grep -c "JSONL\|derive_state" /data/services/openclaw/escalation-agent/AGENTS.md'
-# Expect: non-zero (post-#309 references JSONL helpers)
-ssh office2-claude 'grep -c "Felix-Escalation.*parse\|comment-parsing" /data/services/openclaw/escalation-agent/AGENTS.md'
-# Expect: 0 (FR-007 — agent must not parse comments)
+# Expect: non-zero (references JSONL helpers)
 ```
 
 ## Troubleshooting
@@ -334,7 +332,7 @@ ssh office2-claude 'grep -c "Felix-Escalation.*parse\|comment-parsing" /data/ser
 | Snoozed task re-escalated early | `python3 -m scripts.escalation.derive_state --task-id <id> --project-id <pid>` and inspect `snooze_active_until` | If `snooze_active_until` is in the past, snooze expired correctly. If it disagrees with the most recent JSONL record, file hard-fail |
 | Agent not responding | `ssh office2-claude 'openclaw agents list'` | Restart gateway: `ssh office2-claude 'systemctl --user restart openclaw-gateway'` |
 | `derive_state` exit code 3 | Read the structured error JSON on stderr | Triage per [Hard-fail triage](<#hard-fail-triage>) |
-| `derive_state` exit code 4 | Task has no JSONL records | Either (a) task is new (expected) or (b) phantom subscription — see hard-fail triage |
+| `derive_state` exit code 4 | Task has no JSONL records | Task is new (expected) — first escalation event will seed the JSONL file |
 
 ## Privacy boundary
 
@@ -348,9 +346,9 @@ filing). No exceptions.
 
 ## Cross-references
 
-- **Mission**: [#309](https://github.com/kentonium3/kg-automation/issues/309) — ADR-0002 Phase 6 (this migration)
+- **Mission**: [#309](https://github.com/kentonium3/kg-automation/issues/309) — ADR-0002 Phase 6 (JSONL migration introduction)
+- **Mission**: [#376](https://github.com/kentonium3/kg-automation/issues/376) — JSONL-as-sole-substrate cleanup
 - **Cutover playbook**: [`quickstart.md`](../../kitty-specs/migrate-escalation-to-jsonl-state-model-01KS5R4D/quickstart.md)
-- **Soak monitoring template**: [`escalation-soak-window.md`](<./escalation-soak-window.md>)
 - **Spec**: [`spec.md`](../../kitty-specs/migrate-escalation-to-jsonl-state-model-01KS5R4D/spec.md)
 - **Agent surface**: [`scripts/openclaw/agents/felix-admin-escalation/AGENTS.md`](../../scripts/openclaw/agents/felix-admin-escalation/AGENTS.md)
 - **Skill**: [`scripts/openclaw/skills/escalation/SKILL.md`](../../scripts/openclaw/skills/escalation/SKILL.md)

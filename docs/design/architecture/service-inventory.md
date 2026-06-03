@@ -305,7 +305,7 @@ Per-helper metadata mirrors `docs/design/architecture/data/service-inventory.jso
 - **Workspace**: `/data/services/openclaw/escalation-agent/`
 - **Source in repo**: `scripts/openclaw/agents/felix-admin-escalation/`
 - **Model**: `anthropic/claude-sonnet-4-6`
-- **Purpose**: Overdue task escalation — detects tasks past due date, delivers level-appropriate WhatsApp alerts, tracks escalation state. **Post-#309**: per-project JSONL state log at `/data/services/openclaw/state/escalation/<project-slug>-escalation-history.jsonl` is the canonical state source. `[Felix-Escalation]` comments are still written during the soak (C-001) but are no longer parsed by the agent.
+- **Purpose**: Overdue task escalation — detects tasks past due date, delivers level-appropriate WhatsApp alerts, tracks escalation state. Per-project JSONL state log at `/data/services/openclaw/state/escalation/<project-slug>-escalation-history.jsonl` is the sole canonical state source.
 - **Skills**: escalation, vikunja-api
 - **Autonomy**: Assisted (Level 1)
 - **Trigger**: Cron (daily), manual
@@ -316,16 +316,16 @@ Per-helper metadata mirrors `docs/design/architecture/data/service-inventory.jso
 #### State files (post-#309)
 
 - **Per-project escalation history** (`/data/services/openclaw/state/escalation/<project-slug>-escalation-history.jsonl`, introduced by #309) — Append-only JSONL. One record per escalation event. Schema: `domain=escalation`, `state ∈ {level_sent, snoozed, dismissed, done, rescheduled}`, `source ∈ {agent, reconcile, backfill, kent_reply, operator_repair}`. Filename-based per-project partition (NFR-003, research D2). Backed up by the nightly Restic job.
-- **Pre-backfill snapshot** (`/data/services/openclaw/state/escalation/pre-phase6-snapshot.json`, introduced by #309) — Written exactly once before the historical backfill runs. Captures the full `[Felix-Escalation]` comment surface per task so the operator can verify no Felix-driven Vikunja comments were lost during replay. Rollback substrate per quickstart.md § Rollback.
+- **Pre-migration snapshot** (`/data/services/openclaw/state/escalation/pre-phase6-snapshot.json`, introduced by #309) — Written once at #309 cutover. Preserved as a historical artifact.
 
 #### Helpers (post-#309)
 
 Per-helper metadata mirrors `docs/design/architecture/data/service-inventory.json` (the authoritative record) — see the corresponding `config_files[*]` entries there for `runs_on`, `invoked_by`, `writes_to`, `reads_from`, `credentials`, and `updated_by` fields.
 
-- **scripts/escalation/record_completion.py** (script, introduced_by #309, updated_by #309) — Atomic three-write helper per ADR-0002 / research D6. Performs the Vikunja side-effect FIRST (WhatsApp send + `[Felix-Escalation]` comment write during the C-001 soak, `PATCH done=true` for done events, `PATCH due_date` for kent_reply-sourced rescheduled events), then calls `state_log.append("escalation", record)` for the canonical JSONL write LAST. Invoked by the agent at every event; also invoked by `reconcile_completions.py --no-vikunja` for synthetic records. Exposes `record_event()` and `idempotent_record_event()`. FR-002, FR-009.
+- **scripts/escalation/record_completion.py** (script, introduced_by #309, updated_by #376) — Per-event side-effect dispatcher per ADR-0002 / research D6. Performs the Vikunja PATCH FIRST when the event needs one (`PATCH done=true` for `done` events, `PATCH due_date` for `rescheduled` events) and the JSONL append LAST. For `level_sent`/`snoozed`/`dismissed` the JSONL append is the sole side-effect. Invoked by the agent at every event; also invoked by `reconcile_completions.py --no-vikunja` for synthetic records. Exposes `record_event()` and `idempotent_record_event()`. FR-002, FR-009.
   - **runs_on**: `office2`
   - **invoked_by**: `felix-admin-escalation` agent; `scripts/escalation/reconcile_completions.py`
-  - **writes_to**: Vikunja API (`PUT /tasks/<id>/comments`, `PATCH /tasks/<id>`); `/data/services/openclaw/state/escalation/<project-slug>-escalation-history.jsonl`
+  - **writes_to**: Vikunja API (`PATCH /tasks/<id>` for done/rescheduled events only); `/data/services/openclaw/state/escalation/<project-slug>-escalation-history.jsonl`
   - **reads_from**: Vikunja API (`GET /tasks/<id>`); JSONL state log (idempotent dedup pre-check)
   - **credentials**: `vikunja-api`
 - **scripts/escalation/reconcile_completions.py** (script, introduced_by #309, updated_by #309) — Drift detection helper (FR-005). Invoked at tick start. Enumerates escalation-subscribed tasks (those with at least one prior `level_sent` JSONL record AND no terminal record since) per project; GETs current Vikunja state per task; compares against `derive_state()` output. Emits synthetic `done` records when Vikunja shows `done=true` with no JSONL `done`; emits synthetic `rescheduled` records when `due_date` changed without a JSONL `rescheduled` record. Surfaces hard-fails per Q10 (FR-008) by calling `scripts/escalation/hard_fail.py`. Output: `ReconcileReport` dataclass.
@@ -340,12 +340,6 @@ Per-helper metadata mirrors `docs/design/architecture/data/service-inventory.jso
   - **writes_to**: (none — pure function)
   - **reads_from**: JSONL state log (via `scripts/common/state_log.py`)
   - **credentials**: (none)
-- **scripts/escalation/backfill_jsonl_from_comments.py** (one-time helper, introduced_by #309, updated_by #309) — Operator-driven historical backfill (FR-006). Reads existing `[Felix-Escalation]` comments from Vikunja escalation-subscribed tasks. Writes the pre-backfill snapshot BEFORE any JSONL writes. Replays parseable comments to `state_log.append` with `source=backfill`, `timestamp=comment.created` (or `comment_date+12:00:00Z` best-effort). Idempotent on re-run via the Phase 2 (task_id, date, state) dedup. Malformed comments are NOT replayed; they surface in the backfill report. Read-only on Vikunja (GET only).
-  - **runs_on**: `office2`
-  - **invoked_by**: `kent_via_cli`
-  - **writes_to**: `/data/services/openclaw/state/escalation/pre-phase6-snapshot.json` (one-shot, before any JSONL writes); JSONL state log (`source=backfill`)
-  - **reads_from**: Vikunja API (`GET /projects`, `GET /projects/<id>/tasks`, `GET /tasks/<id>/comments`)
-  - **credentials**: `vikunja-api`
 - **scripts/escalation/schema.py** (library, introduced_by #309, updated_by #309) — Event-parameter validator surface (FR-003). Exposes `EVENT_TYPE_PARAMETERS`, `validate_event_params()`, `EscalationSchemaError`. Consumed by `record_completion.py` to enforce required parameter fields per event_type (`level_sent` → `level`; `snoozed` → `snooze_days` + `snooze_until`; `rescheduled` → `reschedule_to`; `dismissed`/`done` → no required params). Does NOT file bug reports — Q10 hard-fail filing is owned by `scripts/escalation/hard_fail.py`.
   - **runs_on**: `office2`
   - **invoked_by**: `scripts/escalation/record_completion.py`

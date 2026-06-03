@@ -13,9 +13,6 @@ fetch the current Vikunja state, compare against the JSONL state log, and:
 * Route any task whose records cannot be reduced by ``derive_state`` to the
   Q10 hard-fail surface (file_hard_fail_bug with reason
   ``derive_state_inconsistency``) — per research D8.
-* Route any task whose JSONL is empty but which carries historical
-  ``[Felix-Escalation]`` comments in Vikunja to Q10 hard-fail with reason
-  ``phantom_subscription`` — also per research D8.
 
 Synthetic records use ``source="reconcile"`` so subsequent ticks can identify
 reconcile-origin records (and so the per-tick dedup window doesn't conflate
@@ -44,9 +41,10 @@ Design references:
     - kitty-specs/migrate-escalation-to-jsonl-state-model-01KS5R4D/contracts/cli.md
         flag set + exit codes + stdout shape.
     - kitty-specs/migrate-escalation-to-jsonl-state-model-01KS5R4D/research.md
-        D3 (rescheduled-drift detection), D6 (three-write ordering — synthetic
-        records skip the Vikunja side-effect because Vikunja state already
-        reflects reality), D8 (Q10 hard-fail trigger conditions).
+        D3 (rescheduled-drift detection), D6 (Vikunja-first ordering —
+        synthetic records skip the Vikunja side-effect because Vikunja
+        state already reflects reality), D8 (Q10 hard-fail trigger
+        conditions).
     - scripts/escalation/derive_state.py
         ``derive_state`` + ``EscalationStateError`` (consumed for the policy
         walk and the ``derive_state_inconsistency`` hard-fail trigger).
@@ -130,10 +128,6 @@ HTTP_TIMEOUT_SECONDS = 30
 #: literal 1AD timestamp the API substitutes for SQL NULL.
 ZERO_DATE_SENTINEL = "0001-01-01T00:00:00Z"
 
-#: Marker used by Felix in escalation comments per SKILL.md § 3. Reconcile
-#: counts these to drive the phantom-subscription detector.
-_COMMENT_MARKER = "[Felix-Escalation]"
-
 #: Regex extracting the integer ``project_id`` from a per-project JSONL
 #: filename. Used by ``reconcile_all`` to discover projects from
 #: ``JSONL_STATE_DIR``.
@@ -184,8 +178,8 @@ class HardFailEvent:
         task_id: Immutable Vikunja ``id`` of the affected task.
         task_title: Snapshot of the Vikunja task title at detection time.
         project_id: Vikunja project ``id`` containing the task.
-        reason: One of the three HardFailReason values (``malformed_jsonl_record``,
-            ``phantom_subscription``, ``derive_state_inconsistency``).
+        reason: One of the HardFailReason values (``malformed_jsonl_record``,
+            ``derive_state_inconsistency``).
         detail: Free-text detail string (typically the ``str()`` of the
             triggering exception or the empty-records placeholder).
         detected_at: UTC tz-aware datetime of the detection.
@@ -241,7 +235,7 @@ class ReconcileReport:
 
 # ---------------------------------------------------------------------------
 # HTTP helper (mirrored from record_completion.py — keeps reconcile importable
-# without pulling the three-write side-effect surface)
+# without pulling the side-effect surface)
 # ---------------------------------------------------------------------------
 
 
@@ -607,28 +601,6 @@ def _vikunja_due_date(task: dict) -> Optional[str]:
     return raw.split("T", 1)[0]
 
 
-def _count_escalation_comments(task: dict) -> int:
-    """Count ``[Felix-Escalation]`` comments on ``task``.
-
-    Looks under both the v1 ``comments`` key and the API-newer ``messages``
-    key (Vikunja renamed the field in a version we haven't fully audited;
-    we tolerate both shapes here for safety). Returns 0 when no comments
-    are attached.
-    """
-    total = 0
-    for key in ("comments", "messages"):
-        items = task.get(key)
-        if not isinstance(items, list):
-            continue
-        for item in items:
-            if not isinstance(item, dict):
-                continue
-            body = item.get("comment") or item.get("body") or ""
-            if isinstance(body, str) and _COMMENT_MARKER in body:
-                total += 1
-    return total
-
-
 def _now_utc() -> datetime:
     """Return the current UTC instant as a tz-aware ``datetime``.
 
@@ -787,8 +759,6 @@ def _file_malformed_hard_fails(
             vikunja_state={
                 "done": "unknown",
                 "due_date": None,
-                "comment_count": "unknown",
-                "last_comment": None,
             },
             derive_state_error_message=None,
             filed_this_tick=filed_this_tick,
@@ -811,8 +781,6 @@ def _file_malformed_hard_fails(
             vikunja_state={
                 "done": "n/a",
                 "due_date": None,
-                "comment_count": "n/a",
-                "last_comment": None,
             },
             derive_state_error_message=None,
             filed_this_tick=filed_this_tick,
@@ -891,9 +859,7 @@ def _reconcile_one_task(
             reason="derive_state_inconsistency",
             detail=f"Vikunja GET {task_url} returned non-object payload",
             jsonl_path=jsonl_path,
-            vikunja_state={"done": "unknown", "due_date": None,
-                           "comment_count": "unknown",
-                           "last_comment": None},
+            vikunja_state={"done": "unknown", "due_date": None},
             derive_state_error_message=None,
             filed_this_tick=filed_this_tick,
             report_hard_fails=report_hard_fails,
@@ -908,12 +874,9 @@ def _reconcile_one_task(
 
     vikunja_done = bool(task.get("done"))
     vikunja_due = _vikunja_due_date(task)
-    comment_count = _count_escalation_comments(task)
     vikunja_state_for_body = {
         "done": vikunja_done,
         "due_date": task.get("due_date"),
-        "comment_count": comment_count,
-        "last_comment": None,
     }
 
     # ---- Step 2: derive_state inconsistency check ------------------------
@@ -1066,15 +1029,6 @@ def reconcile_project(
     state, runs ``derive_state``, and emits synthetic records or files
     Q10 hard-fails as appropriate.
 
-    Phantom-subscription detection: each ``[Felix-Escalation]`` comment on
-    a Vikunja task that has zero JSONL records (i.e., not in the subscribed
-    enumeration) routes through Q10. The implementation walks the project's
-    task tree looking for ``[Felix-Escalation]`` comments on tasks that
-    aren't already in the subscribed set; that walk happens *after* the
-    subscribed sweep so we touch Vikunja at most once per task per tick.
-    Future optimization: a single ``GET /projects/<id>/tasks`` enumeration
-    could combine both walks; deferred per WP05 scope.
-
     Args:
         project_id: Vikunja project id to reconcile.
         base_url: Vikunja API base URL.
@@ -1150,79 +1104,6 @@ def reconcile_project(
             report=report_counters,
             report_hard_fails=report_hard_fails,
         )
-
-    # Phantom-subscription detection: enumerate the project's tasks once
-    # and surface any task that has [Felix-Escalation] comments but no
-    # JSONL records. We do this only when the project file exists at all;
-    # an entirely-missing JSONL file is a pre-cutover project, not a
-    # phantom situation.
-    if jsonl_path.exists():
-        try:
-            project_tasks_url = _join_url(
-                base_url, f"projects/{project_id}/tasks"
-            )
-            project_tasks = _http_get_json(project_tasks_url, token)
-        except OSError:
-            # Don't abort the whole sweep on the phantom-scan enumeration
-            # failure; the per-task path already handled drift. Re-raise
-            # only when the sweep had ZERO subscribed tasks (so the run
-            # produced no useful output without phantom detection).
-            project_tasks = None
-
-        if isinstance(project_tasks, list):
-            subscribed_ids = {tid for tid, _r in subscribed}
-            for task in project_tasks:
-                if not isinstance(task, dict):
-                    continue
-                tid = task.get("id")
-                if not isinstance(tid, int):
-                    continue
-                if tid in subscribed_ids:
-                    continue
-                comment_count = _count_escalation_comments(task)
-                if comment_count <= 0:
-                    continue
-                # The task has historical [Felix-Escalation] comments but
-                # no subscribed JSONL records. Check the file itself for
-                # any record for this task — a subscribed-but-terminal
-                # task is NOT phantom (it just terminated). We ignore the
-                # second tuple element here because the subscribed-sweep
-                # path has already filed malformed_jsonl_record hard-fails
-                # for the file; refiling them in the phantom path would
-                # double-count (and is in any case suppressed by the
-                # within-tick dedup set).
-                records, _malformed = _load_records_for_task(
-                    tid, project_id, jsonl_dir
-                )
-                if records:
-                    continue
-                task_title = (
-                    task.get("title")
-                    if isinstance(task.get("title"), str)
-                    and task.get("title")
-                    else f"task #{tid}"
-                )
-                vikunja_state_for_body = {
-                    "done": bool(task.get("done")),
-                    "due_date": task.get("due_date"),
-                    "comment_count": comment_count,
-                    "last_comment": None,
-                }
-                _emit_hard_fail(
-                    task_id=tid,
-                    task_title=task_title,
-                    project_id=project_id,
-                    reason="phantom_subscription",
-                    detail=(
-                        "no JSONL records found for task with "
-                        f"{comment_count} [Felix-Escalation] comment(s)"
-                    ),
-                    jsonl_path=jsonl_path,
-                    vikunja_state=vikunja_state_for_body,
-                    derive_state_error_message=None,
-                    filed_this_tick=filed_this_tick,
-                    report_hard_fails=report_hard_fails,
-                )
 
     duration = time.monotonic() - started_at
     return ReconcileReport(

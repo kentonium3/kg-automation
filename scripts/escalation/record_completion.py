@@ -1,21 +1,21 @@
 #!/usr/bin/env python3
 """ADR-0002 Phase 6 ``record_completion`` for the escalation domain.
 
-The atomic three-write helper every live escalation event flows through:
+Per-event side-effect dispatcher. Every live escalation event flows
+through the two-step path below (post-parity-cleanup; see
+``kitty-specs/remove-escalation-v1-parity-01KT4VTD``):
 
     Step 0: Validate the candidate record (Phase 2 shared validator + the
             escalation per-event_type validator from ``scripts.escalation.schema``).
             Raises :class:`scripts.escalation.schema.EscalationSchemaError` on
             failure, BEFORE any side-effects.
 
-    Step 1 (Vikunja side-effect, FIRST):
-        - For ``state="done"``: ``PATCH /tasks/{task_id}`` with ``{"done": true}``,
-          then PUT a v1 ``[Felix-Escalation]`` comment per data-model Entity 3.
+    Step 1 (Vikunja side-effect, FIRST — only for two states):
+        - For ``state="done"``: ``PATCH /tasks/{task_id}`` with ``{"done": true}``.
         - For ``state="rescheduled"``: ``PATCH /tasks/{task_id}`` with the new
-          ``due_date``, then PUT a v1 comment.
-        - For ``state="level_sent" | "snoozed" | "dismissed"``: PUT a v1 comment
-          only. (WhatsApp delivery for ``level_sent`` is upstream of this helper;
-          the comment is the visible-in-Vikunja signal during the soak.)
+          ``due_date``.
+        - For ``state="level_sent" | "snoozed" | "dismissed"``: NO Vikunja
+          side-effect. JSONL append (Step 2) is the sole record.
         - All requests authenticate as ``felix-bot`` (FR-010) using the token
           loaded from ``token_path``.
         - On any HTTP/network failure: raise :class:`VikunjaError`. No JSONL
@@ -36,36 +36,29 @@ failing there first surfaces the network problem before any state_log line is
 written. Vikunja state is authoritative for "did Kent get the message"; the
 JSONL is canonical for our derived state walk.
 
-C-001 parity (soak): for every event_type that historically wrote a
-``[Felix-Escalation]`` comment in v1, we continue writing that comment as part
-of Step 1. ``derive_state`` reads ONLY the JSONL — the comment is a write-only
-mirror for rollback safety. After the soak completes, a follow-on mission
-removes the comment write.
-
 CLI surface — see ``contracts/cli.md``. Exit codes:
 
-    0 — success (three writes done OR idempotent no-op)
+    0 — success (writes done OR idempotent no-op)
     1 — Vikunja step failure (no JSONL write)
     2 — JSONL step failure (Vikunja already committed)
     3 — validation / usage error
 
 Design references:
     - kitty-specs/migrate-escalation-to-jsonl-state-model-01KS5R4D/spec.md
-        FR-002, FR-004, FR-010, C-001, NFR-004
+        FR-002, FR-004, FR-010, NFR-004
     - kitty-specs/migrate-escalation-to-jsonl-state-model-01KS5R4D/contracts/api.md
         ``record_event``, ``idempotent_record_event``, exception types,
         module constants.
     - kitty-specs/migrate-escalation-to-jsonl-state-model-01KS5R4D/contracts/cli.md
         flag set + exit codes.
     - kitty-specs/migrate-escalation-to-jsonl-state-model-01KS5R4D/data-model.md
-        Entity 1 (JSONL record shape), Entity 3 (comment vocabulary).
+        Entity 1 (JSONL record shape).
     - kitty-specs/migrate-escalation-to-jsonl-state-model-01KS5R4D/research.md
-        D2 (filename), D4 (snooze_until TZ), D6 (three-write ordering),
-        D11 (comment-write parity during soak).
-    - scripts/openclaw/skills/escalation/SKILL.md § 3
-        Comment format vocabulary (the v1 surface we keep warm).
+        D2 (filename), D4 (snooze_until TZ), D6 (two-write ordering).
+    - kitty-specs/remove-escalation-v1-parity-01KT4VTD/contracts/escalation-side-effects.contract.md
+        Post-parity-cleanup side-effect contract.
     - scripts/habits/record_completion.py
-        Phase 3 precedent (HTTP wrapper + three-write pattern).
+        Phase 3 precedent (HTTP wrapper + per-state side-effect pattern).
 """
 from __future__ import annotations
 
@@ -140,19 +133,19 @@ _STATE_FILE_MODE: int = 0o664
 class VikunjaError(Exception):
     """Raised when the Vikunja side-effect step (HTTP) fails.
 
-    The message names the failed sub-step (``PATCH done`` / ``PATCH due_date``
-    / ``PUT comment``) and includes the HTTP status code / network error so
-    the operator can triage quickly. No JSONL line is written when this is
-    raised; callers should surface exit code 1.
+    The message names the failed sub-step (``PATCH done`` / ``PATCH due_date``)
+    and includes the HTTP status code / network error so the operator can
+    triage quickly. No JSONL line is written when this is raised; callers
+    should surface exit code 1.
     """
 
 
 class StateLogError(Exception):
     """Raised when the JSONL append step fails after Vikunja has succeeded.
 
-    Vikunja already committed the side-effect (comment / done PATCH / due_date
-    PATCH) — operator triage required to either append the missing JSONL
-    record by hand OR reverse the Vikunja state. Callers surface exit code 2.
+    Vikunja already committed the side-effect (done PATCH or due_date PATCH)
+    — operator triage required to either append the missing JSONL record by
+    hand OR reverse the Vikunja state. Callers surface exit code 2.
     """
 
 
@@ -328,71 +321,6 @@ def _compute_snooze_until(snooze_days: int) -> str:
 
 
 # ---------------------------------------------------------------------------
-# v1 [Felix-Escalation] comment formatter (data-model Entity 3 reverse)
-# ---------------------------------------------------------------------------
-
-#: Prefix and delimiter mirror SKILL.md § 3 exactly. Roundtrip-able by the
-#: existing v1 parsers — see SKILL.md "Parsing rules".
-_COMMENT_PREFIX = "[Felix-Escalation]"
-_COMMENT_DELIMITER = " | "
-
-
-def _format_v1_comment(record: dict) -> str:
-    """Build the v1 ``[Felix-Escalation]`` comment body for ``record``.
-
-    Per data-model Entity 3 reverse mapping and SKILL.md § 3 vocabulary:
-
-    | record state       | comment body                                        |
-    |--------------------|-----------------------------------------------------|
-    | ``level_sent``     | ``[Felix-Escalation] YYYY-MM-DD | level-N | sent``  |
-    | ``snoozed``        | ``[Felix-Escalation] YYYY-MM-DD | snoozed:Nd | acknowledged`` |
-    | ``dismissed``      | ``[Felix-Escalation] YYYY-MM-DD | dismissed | acknowledged`` |
-    | ``done``           | ``[Felix-Escalation] YYYY-MM-DD | done | acknowledged`` |
-    | ``rescheduled``    | ``[Felix-Escalation] YYYY-MM-DD | rescheduled:YYYY-MM-DD | acknowledged`` |
-
-    Args:
-        record: Validated escalation JSONL record dict.
-
-    Returns:
-        Comment body string, ready to PUT to ``/tasks/{id}/comments``.
-
-    Raises:
-        EscalationSchemaError: If ``record["state"]`` is unknown (should be
-            unreachable given Step 0 validation, but defended in depth).
-    """
-    state = record["state"]
-    date_str = record["date"]
-
-    if state == "level_sent":
-        level = record["level"]
-        state_token = f"level-{level}"
-        disposition = "sent"
-    elif state == "snoozed":
-        snooze_days = record["snooze_days"]
-        state_token = f"snoozed:{snooze_days}d"
-        disposition = "acknowledged"
-    elif state == "dismissed":
-        state_token = "dismissed"
-        disposition = "acknowledged"
-    elif state == "done":
-        state_token = "done"
-        disposition = "acknowledged"
-    elif state == "rescheduled":
-        state_token = f"rescheduled:{record['reschedule_to']}"
-        disposition = "acknowledged"
-    else:  # pragma: no cover - defended by Step 0 validation
-        raise EscalationSchemaError(
-            f"unknown state '{state}' has no v1 comment mapping"
-        )
-
-    return (
-        f"{_COMMENT_PREFIX} {date_str}"
-        f"{_COMMENT_DELIMITER}{state_token}"
-        f"{_COMMENT_DELIMITER}{disposition}"
-    )
-
-
-# ---------------------------------------------------------------------------
 # JSONL append (per-project, fcntl-locked)
 # ---------------------------------------------------------------------------
 
@@ -495,8 +423,11 @@ def _vikunja_side_effects(
 ) -> list[str]:
     """Perform the Vikunja side-effects required by ``record["state"]``.
 
-    The comment write is always last (so the v1 surface mirrors the JSONL
-    state). For ``done`` / ``rescheduled`` the task PATCH precedes the comment.
+    Only ``done`` and ``rescheduled`` events produce a Vikunja side-effect
+    (a task PATCH). The other states (``level_sent``, ``snoozed``,
+    ``dismissed``) have JSONL append as their sole side-effect — see
+    ``contracts/escalation-side-effects.contract.md`` in mission
+    ``remove-escalation-v1-parity-01KT4VTD``.
 
     Args:
         record: Validated escalation JSONL record dict.
@@ -505,11 +436,11 @@ def _vikunja_side_effects(
 
     Returns:
         List of action names performed, in order. Example:
-        ``["task_PATCH_done", "comment_PUT"]``.
+        ``["task_PATCH_done"]`` for ``done``; ``[]`` for ``level_sent``.
 
     Raises:
-        VikunjaError: On the first HTTP / network failure. Subsequent steps
-            are skipped; the JSONL write does NOT happen.
+        VikunjaError: On HTTP / network failure. The JSONL write does NOT
+            happen if this step raises.
     """
     state = record["state"]
     task_id = record["task_id"]
@@ -530,15 +461,6 @@ def _vikunja_side_effects(
         )
         actions.append("task_PATCH_due_date")
 
-    # Comment write (C-001 parity): every event_type that wrote a comment in
-    # v1 continues writing it during the soak.
-    comment_url = _join_url(base_url, f"tasks/{task_id}/comments")
-    comment_body = _format_v1_comment(record)
-    _http_request(
-        "PUT", comment_url, token, body={"comment": comment_body}
-    )
-    actions.append("comment_PUT")
-
     return actions
 
 
@@ -554,10 +476,12 @@ def record_event(
     token_path: Path = DEFAULT_TOKEN_PATH,
     skip_vikunja: bool = False,
 ) -> dict:
-    """Atomic three-write helper. Vikunja side-effect FIRST, JSONL append SECOND.
+    """Validate, run any Vikunja side-effect FIRST, then JSONL append SECOND.
 
     See module docstring for the full ordering contract and the per-state
-    Vikunja side-effect table.
+    Vikunja side-effect table. For ``done``/``rescheduled`` events the Vikunja
+    PATCH precedes the JSONL append; for ``level_sent``/``snoozed``/
+    ``dismissed`` the JSONL append is the only side-effect.
 
     Args:
         record: Escalation JSONL record dict. Must satisfy both the Phase 2
@@ -707,9 +631,9 @@ def _build_parser() -> argparse.ArgumentParser:
     parser = _StructuredArgumentParser(
         prog="python3 -m scripts.escalation.record_completion",
         description=(
-            "Phase 6 escalation three-write helper. Validate -> Vikunja "
-            "side-effect (FIRST) -> JSONL append (SECOND). Exits 0/1/2/3 "
-            "per contracts/cli.md."
+            "Phase 6 escalation per-event side-effect dispatcher. "
+            "Validate -> Vikunja PATCH (only for done/rescheduled) -> "
+            "JSONL append. Exits 0/1/2/3 per contracts/cli.md."
         ),
     )
     parser.add_argument(

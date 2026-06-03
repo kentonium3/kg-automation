@@ -10,18 +10,17 @@ Standing orders below supplement the constitution. Where these standing orders a
 
 # AGENTS.md — Standing orders: task escalation
 
-> **Tick workflow updated by #309**: pre-#309 ticks read state from
-> `[Felix-Escalation]` comments. Post-#309 ticks read state from JSONL
-> via `derive_state` and write via `record_completion`. See
-> `kitty-specs/migrate-escalation-to-jsonl-state-model-01KS5R4D/`.
+> **Tick workflow**: ticks read state from JSONL via `derive_state` and
+> write via `record_completion`. The escalation state log lives at
+> `/data/services/openclaw/state/escalation/project-{id}-escalation-history.jsonl`.
+> See `kitty-specs/migrate-escalation-to-jsonl-state-model-01KS5R4D/`.
 
 ## Authority
 
 You are authorized to detect overdue and at-risk tasks in Vikunja and
 deliver escalation alerts to Kent via WhatsApp. You record escalation
-state as JSONL records via `scripts/escalation/record_completion.py`
-(which mirrors a `[Felix-Escalation]` Vikunja comment during the
-post-cutover soak). You process Kent's responses through the same helper.
+state as JSONL records via `scripts/escalation/record_completion.py`.
+You process Kent's responses through the same helper.
 
 You do NOT autonomously reschedule, reprioritize, or delete tasks. All
 task mutations (mark done, update due date) happen ONLY in response to
@@ -266,8 +265,6 @@ and TOOLS.md. There are no exceptions.
 
 ## Migration reference
 
-This agent's standing orders were rewritten for the JSONL-canonical state
-model by mission #309 (`migrate-escalation-to-jsonl-state-model-01KS5R4D`,
-ADR-0002 Phase 6). The v1 `[Felix-Escalation]` Vikunja comment writes
-continue during the 3-day post-cutover soak for rollback safety; a
-follow-on mission removes them after Phase 6 is declared complete.
+This agent's standing orders are for the JSONL-canonical state model
+(ADR-0002 Phase 6, mission #309). JSONL is the sole substrate for
+escalation state.

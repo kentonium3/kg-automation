@@ -15,9 +15,10 @@ Coverage targets per WP03 § Validation:
   any side-effect.
 - felix-bot identity (FR-010): Authorization header carries the token from
   the token file.
-- v1 ``[Felix-Escalation]`` comment vocabulary (data-model Entity 3 reverse)
-  roundtrip-able by the SKILL.md regex.
 - CLI exit codes 0/1/2/3 per contracts/cli.md.
+- Post-parity-cleanup (mission ``remove-escalation-v1-parity-01KT4VTD``):
+  ``level_sent``/``snoozed``/``dismissed`` events MUST NOT call Vikunja;
+  ``done``/``rescheduled`` produce ONE Vikunja PATCH, no comment PUT.
 
 All HTTP traffic is mocked via the ``mock_urlopen`` fixture from
 ``tests/escalation/conftest.py``. JSONL writes land under
@@ -28,7 +29,6 @@ from __future__ import annotations
 
 import io
 import json
-import re
 import sys
 import urllib.error
 from datetime import date
@@ -43,7 +43,6 @@ from scripts.escalation.record_completion import (
     StateLogError,
     VikunjaError,
     _compute_snooze_until,
-    _format_v1_comment,
     idempotent_record_event,
     main,
     record_event,
@@ -111,23 +110,23 @@ def _read_jsonl(path: Path) -> list[dict]:
 
 
 # ---------------------------------------------------------------------------
-# Group 1 — Happy path per event_type (with three-write ordering)
+# Group 1 — Happy path per event_type (post-parity side-effect dispatch)
 # ---------------------------------------------------------------------------
 
 
 class TestHappyPathPerEventType:
-    def test_record_level_sent_writes_comment_then_jsonl(
+    def test_record_level_sent_writes_only_jsonl(
         self,
         mock_urlopen,
         jsonl_sandbox,
         tmp_token_file,
         make_jsonl_record,
     ):
-        """Level 1 sent: PUT comment FIRST, then JSONL append.
+        """Level 1 sent (post-parity-cleanup): no Vikunja call, only JSONL append.
 
-        Verifies the three-write ordering invariant (research D6) via the
-        mock call sequence -- urlopen MUST be called before the JSONL file
-        gains a line.
+        Verifies that ``level_sent`` events skip Vikunja entirely; the
+        urlopen mock must not be invoked at all and the JSONL file gains
+        exactly one line.
         """
         record = make_jsonl_record(state="level_sent", level=1)
         jsonl_path = jsonl_sandbox / "project-4-escalation-history.jsonl"
@@ -135,68 +134,54 @@ class TestHappyPathPerEventType:
         # Sanity: JSONL doesn't exist before the call.
         assert not jsonl_path.exists()
 
-        # Use a side_effect spy on urlopen that captures the JSONL state at
-        # the moment Vikunja is contacted: it MUST be absent then.
-        observed_during_vikunja: list[bool] = []
-        canned = [_resp({"id": 999, "comment": "[Felix-Escalation] ..."})]
-
-        def _side_effect(*args, **kwargs):
-            observed_during_vikunja.append(jsonl_path.exists())
-            return canned.pop(0)
-
-        mock_urlopen.side_effect = _side_effect
+        # Post-parity-cleanup: level_sent has NO Vikunja side-effect.
+        # JSONL append is the sole record.
+        mock_urlopen.side_effect = AssertionError(
+            "level_sent must not call Vikunja post-parity-cleanup"
+        )
 
         result = record_event(record, token_path=tmp_token_file)
 
         assert result["ok"] is True
         assert result["deduped"] is False
-        assert result["vikunja_actions"] == ["comment_PUT"]
-        assert observed_during_vikunja == [False], (
-            "JSONL was written BEFORE Vikunja was called; three-write "
-            "ordering violated (research D6)"
-        )
+        assert result["vikunja_actions"] == []
+        assert mock_urlopen.call_count == 0
         records = _read_jsonl(jsonl_path)
         assert len(records) == 1
         assert records[0]["state"] == "level_sent"
         assert records[0]["level"] == 1
 
-    def test_record_done_patches_task_then_comments(
+    def test_record_done_patches_task(
         self,
         mock_urlopen,
         jsonl_sandbox,
         tmp_token_file,
         make_jsonl_record,
     ):
-        """`done` path issues PATCH /tasks/{id} (done=true) BEFORE the comment PUT."""
+        """`done` path issues PATCH /tasks/{id} (done=true); no other Vikunja call."""
         mock_urlopen.side_effect = [
             _resp({"id": 1234, "done": True}),
-            _resp({"id": 5000, "comment": "[Felix-Escalation] ..."}),
         ]
         record = make_jsonl_record(state="done", source="kent_reply")
         record_event(record, token_path=tmp_token_file)
 
-        assert mock_urlopen.call_count == 2
+        assert mock_urlopen.call_count == 1
 
         first_req = mock_urlopen.call_args_list[0][0][0]
         assert first_req.get_method() == "PATCH"
         assert first_req.full_url.endswith("/tasks/1234")
         assert json.loads(first_req.data.decode("utf-8")) == {"done": True}
 
-        second_req = mock_urlopen.call_args_list[1][0][0]
-        assert second_req.get_method() == "PUT"
-        assert second_req.full_url.endswith("/tasks/1234/comments")
-
-    def test_record_rescheduled_patches_due_date_then_comments(
+    def test_record_rescheduled_patches_due_date(
         self,
         mock_urlopen,
         jsonl_sandbox,
         tmp_token_file,
         make_jsonl_record,
     ):
-        """`rescheduled` path PATCHes due_date BEFORE the comment PUT."""
+        """`rescheduled` path PATCHes due_date once; no other Vikunja call."""
         mock_urlopen.side_effect = [
             _resp({"id": 1234, "due_date": "2026-06-15T00:00:00Z"}),
-            _resp({"id": 5001}),
         ]
         record = make_jsonl_record(
             state="rescheduled",
@@ -205,15 +190,12 @@ class TestHappyPathPerEventType:
         )
         record_event(record, token_path=tmp_token_file)
 
+        assert mock_urlopen.call_count == 1
         first_req = mock_urlopen.call_args_list[0][0][0]
         assert first_req.get_method() == "PATCH"
         assert first_req.full_url.endswith("/tasks/1234")
         body = json.loads(first_req.data.decode("utf-8"))
         assert body == {"due_date": "2026-06-15T00:00:00Z"}
-
-        second_req = mock_urlopen.call_args_list[1][0][0]
-        assert second_req.get_method() == "PUT"
-        assert second_req.full_url.endswith("/tasks/1234/comments")
 
     def test_record_snoozed_computes_snooze_until_at_write_time(
         self,
@@ -229,7 +211,10 @@ class TestHappyPathPerEventType:
         and confirm the persisted JSONL carries the deterministic value.
         """
         freeze_today(date(2026, 5, 21))
-        mock_urlopen.side_effect = [_resp({"id": 5002})]
+        # Post-parity-cleanup: snoozed has no Vikunja side-effect.
+        mock_urlopen.side_effect = AssertionError(
+            "snoozed must not call Vikunja post-parity-cleanup"
+        )
 
         # The record arrives without snooze_until (CLI computes it). We
         # invoke the CLI surface via flag-driven path to exercise the
@@ -276,23 +261,22 @@ class TestHappyPathPerEventType:
         assert records[0]["snooze_until"] == "2026-05-24"
         assert records[0]["snooze_days"] == 3
 
-    def test_record_dismissed_writes_comment_only(
+    def test_record_dismissed_no_vikunja_call(
         self,
         mock_urlopen,
         jsonl_sandbox,
         tmp_token_file,
         make_jsonl_record,
     ):
-        """`dismissed` path performs ONE PUT (comment) -- no PATCH."""
-        mock_urlopen.side_effect = [_resp({"id": 5003})]
+        """`dismissed` post-parity-cleanup: NO Vikunja call, JSONL only."""
+        mock_urlopen.side_effect = AssertionError(
+            "dismissed must not call Vikunja post-parity-cleanup"
+        )
         record = make_jsonl_record(state="dismissed", source="kent_reply")
         result = record_event(record, token_path=tmp_token_file)
 
-        assert mock_urlopen.call_count == 1
-        only_req = mock_urlopen.call_args_list[0][0][0]
-        assert only_req.get_method() == "PUT"
-        assert only_req.full_url.endswith("/tasks/1234/comments")
-        assert result["vikunja_actions"] == ["comment_PUT"]
+        assert mock_urlopen.call_count == 0
+        assert result["vikunja_actions"] == []
 
     def test_skip_vikunja_writes_only_jsonl(
         self,
@@ -324,7 +308,7 @@ class TestHappyPathPerEventType:
 # ---------------------------------------------------------------------------
 
 
-class TestThreeWriteOrdering:
+class TestSideEffectOrdering:
     def test_vikunja_failure_no_jsonl_write(
         self,
         mock_urlopen,
@@ -332,9 +316,13 @@ class TestThreeWriteOrdering:
         tmp_token_file,
         make_jsonl_record,
     ):
-        """If Vikunja raises, the JSONL file MUST NOT gain a line."""
+        """If Vikunja raises (done PATCH), the JSONL file MUST NOT gain a line.
+
+        Exercised via ``state=done`` because post-parity-cleanup the
+        non-PATCH states (level_sent/snoozed/dismissed) skip Vikunja entirely.
+        """
         mock_urlopen.side_effect = urllib.error.URLError("network down")
-        record = make_jsonl_record(state="level_sent", level=1)
+        record = make_jsonl_record(state="done", source="kent_reply")
         with pytest.raises(VikunjaError, match="network failure"):
             record_event(record, token_path=tmp_token_file)
         # JSONL is absent.
@@ -351,17 +339,18 @@ class TestThreeWriteOrdering:
     ):
         """Vikunja succeeds, JSONL append raises -> StateLogError (exit 2 in CLI).
 
-        Asserts (a) StateLogError raised, (b) Vikunja PUT was called once
-        (i.e., the side-effect committed before the failure).
+        Exercised via ``state=done`` so Vikunja PATCH does happen (committed
+        before the JSONL append). For level_sent/snoozed/dismissed there's
+        no Vikunja call to commit, so this scenario is by-state-restricted.
         """
-        mock_urlopen.side_effect = [_resp({"id": 6000})]
+        mock_urlopen.side_effect = [_resp({"id": 6000, "done": True})]
 
         def _boom(_record: dict) -> Path:
             raise StateLogError("simulated disk full")
 
         monkeypatch.setattr(rc, "_append_jsonl", _boom)
 
-        record = make_jsonl_record(state="level_sent", level=1)
+        record = make_jsonl_record(state="done", source="kent_reply")
         with pytest.raises(StateLogError, match="simulated disk full"):
             record_event(record, token_path=tmp_token_file)
         assert mock_urlopen.call_count == 1
@@ -373,9 +362,9 @@ class TestThreeWriteOrdering:
         tmp_token_file,
         make_jsonl_record,
     ):
-        """HTTP 5xx from Vikunja -> VikunjaError; no JSONL line written."""
+        """HTTP 5xx from Vikunja (done PATCH) -> VikunjaError; no JSONL line written."""
         mock_urlopen.side_effect = _http_error(503, b'{"message":"down"}')
-        record = make_jsonl_record(state="level_sent", level=1)
+        record = make_jsonl_record(state="done", source="kent_reply")
         with pytest.raises(VikunjaError, match="HTTP 503"):
             record_event(record, token_path=tmp_token_file)
         path = jsonl_sandbox / "project-4-escalation-history.jsonl"
@@ -422,13 +411,19 @@ class TestIdempotency:
         tmp_token_file,
         make_jsonl_record,
     ):
-        """No existing match -> normal three-write flow runs."""
-        mock_urlopen.side_effect = [_resp({"id": 6001})]
+        """No existing match -> normal write flow runs.
+
+        Post-parity-cleanup ``state=level_sent`` has NO Vikunja side-effect,
+        so this test asserts mock_urlopen was not called.
+        """
+        mock_urlopen.side_effect = AssertionError(
+            "level_sent must not call Vikunja post-parity-cleanup"
+        )
         record = make_jsonl_record(state="level_sent", level=1)
         result = idempotent_record_event(record, token_path=tmp_token_file)
 
         assert result["deduped"] is False
-        assert mock_urlopen.call_count == 1
+        assert mock_urlopen.call_count == 0
         records = _read_jsonl(
             jsonl_sandbox / "project-4-escalation-history.jsonl"
         )
@@ -506,9 +501,14 @@ class TestFelixBotIdentity:
         fake_vikunja_token,
         make_jsonl_record,
     ):
-        """Authorization header MUST be ``Bearer <token>`` from the token file."""
-        mock_urlopen.side_effect = [_resp({"id": 7001})]
-        record = make_jsonl_record(state="level_sent", level=1)
+        """Authorization header MUST be ``Bearer <token>`` from the token file.
+
+        Exercised via ``state=done`` since that's a Vikunja-touching state
+        post-parity-cleanup; level_sent/snoozed/dismissed bypass Vikunja
+        entirely so they can't exercise the auth header.
+        """
+        mock_urlopen.side_effect = [_resp({"id": 7001, "done": True})]
+        record = make_jsonl_record(state="done", source="kent_reply")
         record_event(record, token_path=tmp_token_file)
 
         first_req = mock_urlopen.call_args_list[0][0][0]
@@ -519,100 +519,7 @@ class TestFelixBotIdentity:
 
 
 # ---------------------------------------------------------------------------
-# Group 6 — v1 comment vocabulary (data-model Entity 3 reverse)
-# ---------------------------------------------------------------------------
-
-
-# SKILL.md § 3 parsing regex (the v1 surface this comment must roundtrip).
-SKILL_COMMENT_RE = re.compile(
-    r"^\[Felix-Escalation\] (?P<date>\d{4}-\d{2}-\d{2}) "
-    r"\| (?P<state_token>"
-    r"level-[12]|snoozed:\d+d|dismissed|done|rescheduled:\d{4}-\d{2}-\d{2}"
-    r") \| (?P<disposition>sent|acknowledged)$"
-)
-
-
-class TestV1CommentFormat:
-    def test_comment_format_level_1_sent(self, make_jsonl_record):
-        record = make_jsonl_record(state="level_sent", level=1)
-        comment = _format_v1_comment(record)
-        assert comment == (
-            "[Felix-Escalation] 2026-05-21 | level-1 | sent"
-        )
-        assert SKILL_COMMENT_RE.match(comment) is not None
-
-    def test_comment_format_level_2_sent(self, make_jsonl_record):
-        record = make_jsonl_record(state="level_sent", level=2)
-        comment = _format_v1_comment(record)
-        assert comment == (
-            "[Felix-Escalation] 2026-05-21 | level-2 | sent"
-        )
-        assert SKILL_COMMENT_RE.match(comment) is not None
-
-    def test_comment_format_snoozed_3d(self, make_jsonl_record):
-        record = make_jsonl_record(
-            state="snoozed",
-            source="kent_reply",
-            snooze_days=3,
-            snooze_until="2026-05-24",
-        )
-        comment = _format_v1_comment(record)
-        assert comment == (
-            "[Felix-Escalation] 2026-05-21 | snoozed:3d | acknowledged"
-        )
-        assert SKILL_COMMENT_RE.match(comment) is not None
-
-    def test_comment_format_dismissed(self, make_jsonl_record):
-        record = make_jsonl_record(state="dismissed", source="kent_reply")
-        comment = _format_v1_comment(record)
-        assert comment == (
-            "[Felix-Escalation] 2026-05-21 | dismissed | acknowledged"
-        )
-        assert SKILL_COMMENT_RE.match(comment) is not None
-
-    def test_comment_format_done(self, make_jsonl_record):
-        record = make_jsonl_record(state="done", source="kent_reply")
-        comment = _format_v1_comment(record)
-        assert comment == (
-            "[Felix-Escalation] 2026-05-21 | done | acknowledged"
-        )
-        assert SKILL_COMMENT_RE.match(comment) is not None
-
-    def test_comment_format_rescheduled(self, make_jsonl_record):
-        record = make_jsonl_record(
-            state="rescheduled",
-            source="kent_reply",
-            reschedule_to="2026-06-15",
-        )
-        comment = _format_v1_comment(record)
-        assert comment == (
-            "[Felix-Escalation] 2026-05-21 | rescheduled:2026-06-15 "
-            "| acknowledged"
-        )
-        assert SKILL_COMMENT_RE.match(comment) is not None
-
-    def test_comment_body_round_trips_through_actual_put(
-        self,
-        mock_urlopen,
-        jsonl_sandbox,
-        tmp_token_file,
-        make_jsonl_record,
-    ):
-        """The body PUT to /comments matches the SKILL.md vocabulary."""
-        mock_urlopen.side_effect = [_resp({"id": 8001})]
-        record = make_jsonl_record(state="snoozed",
-                                   source="kent_reply",
-                                   snooze_days=2,
-                                   snooze_until="2026-05-23")
-        record_event(record, token_path=tmp_token_file)
-        req = mock_urlopen.call_args_list[0][0][0]
-        body = json.loads(req.data.decode("utf-8"))
-        assert "comment" in body
-        assert SKILL_COMMENT_RE.match(body["comment"]) is not None
-
-
-# ---------------------------------------------------------------------------
-# Group 7 — snooze_until compute helper
+# Group 6 — snooze_until compute helper
 # ---------------------------------------------------------------------------
 
 
@@ -791,16 +698,19 @@ class TestCli:
         monkeypatch,
         capsys,
     ):
-        """Vikunja HTTP failure -> exit 1; stderr names ``vikunja`` step."""
+        """Vikunja HTTP failure (done PATCH) -> exit 1; stderr names ``vikunja`` step.
+
+        Uses ``state=done`` since post-parity-cleanup only done/rescheduled
+        produce a Vikunja call.
+        """
         mock_urlopen.side_effect = _http_error(500, b'{"message":"down"}')
         payload = json.dumps({
             "task_id": 1234,
             "project_id": 4,
             "title": "Task",
             "date": "2026-05-21",
-            "state": "level_sent",
-            "source": "agent",
-            "level": 1,
+            "state": "done",
+            "source": "kent_reply",
         })
         _patch_stdin(monkeypatch, payload)
         rc_code = main([
@@ -1166,9 +1076,13 @@ class TestHttpEdgeCases:
         tmp_token_file,
         make_jsonl_record,
     ):
-        """Status 199 (no HTTPError raised) still raises VikunjaError."""
+        """Status 199 (no HTTPError raised) still raises VikunjaError.
+
+        Uses ``state=done`` since post-parity-cleanup only done/rescheduled
+        produce a Vikunja call.
+        """
         mock_urlopen.side_effect = [_resp(None, status=199)]
-        record = make_jsonl_record(state="level_sent", level=1)
+        record = make_jsonl_record(state="done", source="kent_reply")
         with pytest.raises(VikunjaError, match="HTTP 199"):
             record_event(record, token_path=tmp_token_file)
 

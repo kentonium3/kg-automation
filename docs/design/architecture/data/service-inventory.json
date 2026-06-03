@@ -1,7 +1,7 @@
 {
   "schema_version": "1.1",
   "last_updated": "2026-05-23",
-  "updated_by": "#400-audit-interpretation-moment0 + #310-tasker-jsonl-migration + #374-main-verbatim-passthrough + #362-drift-event-auto-resolution + #309-migrate-escalation-to-jsonl-state-model + #343-refactor-doc-auditor-to-scripts-first-driver + #307-backfill-habits-jsonl-from-comments + #306-habits-native-repeat-jsonl-state + #304-felix-bot-rotation + #291-felix-file-issue + #289-mutation-surfaces-enumeration + #285-cron-delivery-restore-path-c + #282-habits-d6-extract + #263-cron-delivery-mode-round2 + #100-google-workspace-foundation + #256-scope-discipline-guardrails + #253-step-5a-6-consolidation + #254-atomic-write-perm-preservation + issue-105-doc-auditor + #223-systemd-timer + #208-restic-healthcheck + #202-obsidian-sync-system-level + #203-sync-heartbeat + #199-inbox-schedules + #115-credential-health-check + #189-vikunja-compose + #185-inbox-capture-dedup",
+  "updated_by": "#376-remove-escalation-v1-parity + #400-audit-interpretation-moment0 + #310-tasker-jsonl-migration + #374-main-verbatim-passthrough + #362-drift-event-auto-resolution + #309-migrate-escalation-to-jsonl-state-model + #343-refactor-doc-auditor-to-scripts-first-driver + #307-backfill-habits-jsonl-from-comments + #306-habits-native-repeat-jsonl-state + #304-felix-bot-rotation + #291-felix-file-issue + #289-mutation-surfaces-enumeration + #285-cron-delivery-restore-path-c + #282-habits-d6-extract + #263-cron-delivery-mode-round2 + #100-google-workspace-foundation + #256-scope-discipline-guardrails + #253-step-5a-6-consolidation + #254-atomic-write-perm-preservation + issue-105-doc-auditor + #223-systemd-timer + #208-restic-healthcheck + #202-obsidian-sync-system-level + #203-sync-heartbeat + #199-inbox-schedules + #115-credential-health-check + #189-vikunja-compose + #185-inbox-capture-dedup",
   "services": [
     {
       "name": "vikunja",
@@ -512,7 +512,7 @@
         "felix-admin-escalation": {
           "workspace": "/data/services/openclaw/escalation-agent",
           "model": "anthropic/claude-sonnet-4-6",
-          "purpose": "Overdue task escalation \u2014 detects overdue tasks, delivers WhatsApp alerts, tracks escalation state. Post-#309 (Phase 6 of ADR-0002): JSONL state log at /data/services/openclaw/state/escalation/<project-slug>-escalation-history.jsonl is the canonical state source; [Felix-Escalation] comments are still written during the soak (C-001) but are no longer parsed by the agent.",
+          "purpose": "Overdue task escalation \u2014 detects overdue tasks, delivers WhatsApp alerts, tracks escalation state. JSONL state log at /data/services/openclaw/state/escalation/<project-slug>-escalation-history.jsonl is the sole canonical state source.",
           "source_in_repo": "scripts/openclaw/agents/felix-admin-escalation/",
           "skills": [
             "escalation",
@@ -524,13 +524,12 @@
           ],
           "deployed_by": "F019",
           "autonomy_level": "assisted",
-          "updated_by": "#309-migrate-escalation-to-jsonl-state-model + F019",
-          "updated_at": "2026-05-21",
+          "updated_by": "#376-remove-escalation-v1-parity + #309-migrate-escalation-to-jsonl-state-model + F019",
+          "updated_at": "2026-06-02",
           "depends_on": [
             "scripts/escalation/record_completion.py",
             "scripts/escalation/reconcile_completions.py",
             "scripts/escalation/derive_state.py",
-            "scripts/escalation/backfill_jsonl_from_comments.py",
             "scripts/escalation/schema.py",
             "scripts/escalation/hard_fail.py",
             "scripts/common/state_log.py"
@@ -1018,10 +1017,10 @@
           "path": "/home/claude/kg-automation/scripts/escalation/record_completion.py",
           "format": "python",
           "source_in_repo": "scripts/escalation/record_completion.py",
-          "purpose": "Phase 6 (#309) atomic three-write helper per ADR-0002: Vikunja side-effect first (WhatsApp send + [Felix-Escalation] comment write during the soak C-001), then state_log.append('escalation', record) for the canonical JSONL write. Invoked by felix-admin-escalation agent (FR-002, FR-009). Library + CLI; runs on office2; reads/writes Vikunja API + JSONL state files.",
+          "purpose": "Phase 6 (#309) per-event side-effect dispatcher per ADR-0002: optional Vikunja PATCH first for `done` (POST done=true) and `rescheduled` (PATCH due_date), then state_log.append('escalation', record) for the canonical JSONL write. For `level_sent`/`snoozed`/`dismissed` the JSONL append is the sole side-effect. Invoked by felix-admin-escalation agent (FR-002, FR-009). Library + CLI; runs on office2; reads/writes Vikunja API + JSONL state files.",
           "host": "office2",
           "introduced_by": "#309",
-          "updated_by": "#309",
+          "updated_by": "#376-remove-escalation-v1-parity + #309",
           "kind": "script",
           "runs_on": [
             "office2"
@@ -1031,7 +1030,7 @@
             "scripts/escalation/reconcile_completions.py"
           ],
           "writes_to": [
-            "Vikunja API (PUT /tasks/<id>/comments, PATCH /tasks/<id>)",
+            "Vikunja API (PATCH /tasks/<id> for done/rescheduled events only)",
             "/data/services/openclaw/state/escalation/<project-slug>-escalation-history.jsonl (via scripts/common/state_log.py)"
           ],
           "reads_from": [
@@ -1092,32 +1091,6 @@
             "/data/services/openclaw/state/escalation/<project-slug>-escalation-history.jsonl (via scripts/common/state_log.py)"
           ],
           "credentials": []
-        },
-        {
-          "path": "/home/claude/kg-automation/scripts/escalation/backfill_jsonl_from_comments.py",
-          "format": "python",
-          "source_in_repo": "scripts/escalation/backfill_jsonl_from_comments.py",
-          "purpose": "Phase 6 (#309) one-time historical backfill (FR-006). Operator-driven (not cron). Reads existing [Felix-Escalation] comments from Vikunja escalation-subscribed tasks; writes pre-backfill snapshot at /data/services/openclaw/state/escalation/pre-phase6-snapshot.json BEFORE any JSONL writes; replays parseable comments to state_log.append with source=backfill. Idempotent on re-run via the Phase 2 (task_id, date, state) dedup. Read-only on Vikunja (GET only).",
-          "host": "office2",
-          "introduced_by": "#309",
-          "updated_by": "#309",
-          "kind": "script",
-          "runs_on": [
-            "office2"
-          ],
-          "invoked_by": [
-            "kent_via_cli"
-          ],
-          "writes_to": [
-            "/data/services/openclaw/state/escalation/pre-phase6-snapshot.json (one-shot, written before any JSONL writes)",
-            "/data/services/openclaw/state/escalation/<project-slug>-escalation-history.jsonl (source=backfill, via scripts/common/state_log.py)"
-          ],
-          "reads_from": [
-            "Vikunja API (GET /projects, GET /projects/<id>/tasks, GET /tasks/<id>/comments)"
-          ],
-          "credentials": [
-            "vikunja-api"
-          ]
         },
         {
           "path": "/home/claude/kg-automation/scripts/escalation/schema.py",

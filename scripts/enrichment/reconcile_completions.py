@@ -62,8 +62,6 @@ Design references:
         reconcile_completions section (flag set + exit codes)
     - scripts/escalation/reconcile_completions.py
         Pattern source — drift-detection sweep
-    - scripts/escalation/backfill_jsonl_from_comments.py
-        Pattern source — one-shot comment replay
     - scripts/enrichment/record_completion.py
         The atomic three-write helper invoked per parsed comment
     - scripts/enrichment/schema.py

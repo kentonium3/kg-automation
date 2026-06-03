@@ -4,12 +4,6 @@ description: Detect overdue and at-risk tasks in Vikunja and deliver level-appro
 version: 2.0.0
 ---
 
-> **v1 → v2 transition note**: SKILL.md v1.0.0 (pre-#309) derived state by
-> scanning `[Felix-Escalation]` Vikunja comments in-prompt. v2.0.0 (#309)
-> derives state from per-project JSONL files via `scripts/escalation/`
-> helpers. The v1 comment writes continue during the 3-day soak post-cutover
-> for rollback safety; after soak, a follow-on mission removes them.
-
 # Escalation Skill
 
 This skill defines the complete escalation model for the felix-admin-escalation
@@ -23,15 +17,10 @@ this skill alone.
 
 ## 0. State Source
 
-The canonical state for escalation is per-project JSONL state-log files,
-NOT Vikunja `[Felix-Escalation]` comments. The agent reads state via
-`scripts/escalation/derive_state.py` and writes events via
-`scripts/escalation/record_completion.py`. During the 3-day post-cutover
-soak (until Phase 6 is declared complete), record_completion writes BOTH
-the v1 `[Felix-Escalation]` comment AND a JSONL record for compatibility.
-After soak, a follow-on mission removes the v1 comment write.
-
-Migration reference: mission #309 (ADR-0002 Phase 6).
+The canonical state for escalation is per-project JSONL state-log files.
+The agent reads state via `scripts/escalation/derive_state.py` and writes
+events via `scripts/escalation/record_completion.py`. JSONL is the sole
+substrate.
 
 ---
 
@@ -69,8 +58,8 @@ A task qualifies if ALL of the following are true:
 
 ## 2. Level Determination via JSONL State
 
-The skill no longer parses `[Felix-Escalation]` comments in-prompt. For each
-candidate task, invoke the `derive_state` CLI helper to get current state:
+For each candidate task, invoke the `derive_state` CLI helper to get
+current state:
 
     python3 -m scripts.escalation.derive_state \
       --task-id <id> --project-id <pid>
@@ -102,8 +91,7 @@ any) to send this tick.
 ### Error handling
 
 On `EscalationStateError` (exit code 3): `derive_state` has filed a P2-bug
-automatically. Skip this task; continue with others. Do NOT attempt to retry
-or to fall back to comment parsing.
+automatically. Skip this task; continue with others. Do NOT attempt to retry.
 
 ---
 
@@ -113,16 +101,15 @@ or to fall back to comment parsing.
 `/data/services/openclaw/state/escalation/project-<id>-escalation-history.jsonl`.
 
 See `kitty-specs/migrate-escalation-to-jsonl-state-model-01KS5R4D/data-model.md`
-for the record schema. Do NOT parse the `[Felix-Escalation]` Vikunja comments
-to derive state. The v1 comment writes (preserved during the 3-day soak
-post-cutover) are a compatibility mirror, not authoritative.
+for the record schema.
 
 ### Writes — invoke `record_completion`
 
 All escalation events (level sent, snooze, dismiss, done, reschedule) flow
-through the `record_completion` CLI. It handles the Vikunja side-effect
-(comment write during soak) FIRST and the JSONL append SECOND, per
-research D6.
+through the `record_completion` CLI. For `done` and `rescheduled` events
+it performs the Vikunja task PATCH FIRST and the JSONL append SECOND, per
+research D6. For `level_sent`, `snoozed`, and `dismissed` events the
+JSONL append is the sole side-effect.
 
     python3 -m scripts.escalation.record_completion \
       --task-id <id> --project-id <pid> --title "<task title>" \

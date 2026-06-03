@@ -96,7 +96,6 @@ HARD_FAIL_LABELS = ["P2-bug", "area/escalation"]
 #: own three-value taxonomy).
 HardFailReason = Literal[
     "malformed_jsonl_record",
-    "phantom_subscription",
     "derive_state_inconsistency",
 ]
 
@@ -107,7 +106,6 @@ HardFailReason = Literal[
 #: (the separator is U+2014 EM DASH, not two ASCII hyphens).
 _SHORT_REASON: dict[str, str] = {
     "malformed_jsonl_record": "malformed JSONL",
-    "phantom_subscription": "phantom subscription",
     "derive_state_inconsistency": "derive_state error",
 }
 
@@ -263,18 +261,15 @@ def render_bug_body(
         project_id: Vikunja project ``id`` containing the task.
         task_title: Snapshot of the Vikunja task title at detection time.
             Sanitized before interpolation.
-        reason: One of the three ``HardFailReason`` values.
+        reason: One of the ``HardFailReason`` values.
         jsonl_path: Absolute filesystem path to the project-slug JSONL file.
             Sanitized before interpolation -- a tainted path renders as
             the redaction placeholder, not the raw path.
         detection_snippet: Raw text of the record(s) that triggered the
-            hard-fail. For ``phantom_subscription`` callers pass an
-            informative placeholder like ``"no records found"``. Sanitized
-            before interpolation.
-        vikunja_state: Dict with at minimum ``done`` (bool), ``due_date``
-            (str|None), ``comment_count`` (int), ``last_comment`` (str|None).
-            Missing keys render as ``"unknown"``. String values are
-            sanitized before interpolation.
+            hard-fail. Sanitized before interpolation.
+        vikunja_state: Dict with at minimum ``done`` (bool) and ``due_date``
+            (str|None). Missing keys render as ``"unknown"``. String values
+            are sanitized before interpolation.
         derive_state_error_message: The ``str(EscalationStateError)`` text
             when ``reason == "derive_state_inconsistency"``. Pass ``None``
             for the other two reasons; the body emits ``"n/a"`` in that
@@ -337,14 +332,6 @@ def render_bug_body(
         if due_date_value is not None
         else "null"
     )
-    comment_count = vikunja_state.get("comment_count", "unknown")
-    # comment_count is normally an int; sanitize defensively when it isn't.
-    if not isinstance(comment_count, int):
-        comment_count = _sanitize_for_body(str(comment_count))
-    last_comment = vikunja_state.get("last_comment")
-    last_comment_repr = (
-        f"`{_sanitize_for_body(last_comment)}`" if last_comment else '`"none"`'
-    )
 
     # ``vikunja_url`` and ``detected_at`` are caller-provided strings that
     # land in the rendered body, so they MUST flow through
@@ -391,8 +378,6 @@ Escalation tick skipped a task due to inconsistent state.
 
 - `done`: {done_repr}
 - `due_date`: {due_date_repr}
-- `[Felix-Escalation]` comment count: {comment_count}
-- Most recent comment: {last_comment_repr}
 
 ## derive_state output (if applicable)
 
