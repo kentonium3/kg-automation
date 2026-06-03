@@ -125,6 +125,22 @@ Operator-memory linkage: see `feedback_migration_no_vestiges` for the operator-s
 
 Rationale: load-bearing failures in #309 → #376 (escalation JSONL parity dual-write that ran 12+ days past the planned soak end with no runtime consumer; cleared by mission #62 on 2026-06-02) and the OpenClaw v2026.3.24 → v2026.5.28 plugin migration (WhatsApp moved from built-in to external plugin, undocumented, 19-hour silent gap during which `habits-morning-checkin`, `inbox-7am`, `escalation-daily`, and other crons all failed with `Unsupported channel: whatsapp`) demonstrate that without an explicit forcing function, cleanup work drifts indefinitely and the system accumulates half-completed migrations as permanent debt.
 
+## Directive 8: Operational Symptom Required for Bug, Debt, and Infra Issues
+
+An issue is not a place to record hypothetical concerns or contract-vs-code drift. Every bug, debt, or infra issue in the queue must answer three questions before it can be filed or before it can graduate to spec-kitty:
+
+1. **What observable symptom is occurring or has occurred?** A log line, metric anomaly, user-visible event, polluted data point, or other concrete evidence that the problem is real — not "the contract says X but the code does Y" without further consequence.
+2. **Who or what observes it?** Kent, a Felix agent, a CI check, an automated audit. Issues whose observer is "a future hypothetical user" or "a contract reader" do not pass.
+3. **What is the cost of doing nothing?** What gets degraded, polluted, or risked. If the answer is "none observable" or "spec drift," the issue is not an issue.
+
+Issues that fail any of the three are not bugs — they are TODO comments next to the relevant code, ADR footnotes, or risk-register entries. Each has its proper venue; the issue queue is not it.
+
+The rule applies at two checkpoints: (1) at filing time (the filer is responsible for naming symptom/observer/cost) and (2) at triage / spec-kitty readiness review (an issue lacking all three is closed `won't fix` or downgraded to a non-queue form). It does NOT apply to P1/P2 feature work driven by operator intent — those are scoped from forward-looking goals, not symptoms.
+
+Operator-memory linkage: this directive was added after the investigation that closed [#509](https://github.com/kentonium3/kg-automation/issues/509) — a contract-debt issue whose triggers were unobservable (zero recorded mis-correlations across 53 history entries), whose end-to-end implementation cost was 4–5 surfaces of change, and whose blast radius if left unfixed was cosmetic (one habits-history row dated wrong). The investigation itself burned operator and agent attention on a problem that had no symptom — exactly the failure mode this directive prevents.
+
+Rationale: the issue queue's job is to surface what is actually wrong with the running system so it can be fixed before it gets worse. When the queue accepts unfalsifiable debt — "the code doesn't fully match a contract someone wrote in 2026" — every routine triage pass becomes a sub-investigation into whether the abstract gap is operationally meaningful. Costs compound: time-to-decide grows, the queue inflates with items no one would miss if deleted, agents propose missions to close gaps that nobody was experiencing as problems. Forcing every issue to carry a symptom/observer/cost triplet at the door keeps the queue aligned to operational reality and protects operator attention from technical-intrigue rabbit holes.
+
 ## Privacy and Communication Boundaries
 
 This section defines boundaries that no agent may cross. It is designed to expand as Felix gains new capabilities.
