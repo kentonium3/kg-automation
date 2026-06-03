@@ -1,0 +1,9 @@
+**Issue 1: `record_completion.py` still documents the deleted comment/three-write contract.**
+
+The active code path no longer writes comments, but the module still describes itself as a "three-write helper" at `scripts/escalation/record_completion.py:4`, `record_event` repeats "Atomic three-write helper" at line 477, the CLI parser description says "three-write helper" at line 630, and the exception docs still name `PUT comment` / `comment` as committed side-effects at lines 134-145. T001 explicitly required the surviving prose to describe the new validate -> optional Vikunja PATCH for `done`/`rescheduled` -> JSONL append contract and to remove v1/comment-write language. Update these docstrings/descriptions to the post-parity two-step contract.
+
+**Issue 2: escalation tests still carry stale comment/phantom-scan names, docstrings, and permissive mocks.**
+
+`tests/escalation/test_record_completion.py` still labels Group 1 as "three-write ordering" and has test names/docstrings claiming `level_sent` writes a comment and `rescheduled` patches before `comment PUT` at lines 113-128 and 175-182. `tests/escalation/test_reconcile_completions.py` still describes phantom-scan behavior and provides unused `GET /projects/{id}/tasks` responses in multiple tests, for example lines 222-235, 816-819, 1306-1318, and 1471-1488. This leaves the suite documenting the removed path and, in several cases, still allowing the deleted project enumeration to be reintroduced without the individual test failing. Update the names/docstrings/comments and remove unused phantom-scan responses; where a test should protect against reintroduction, assert the exact subscribed-sweep call count or absence of `/projects/{id}/tasks`.
+
+WP02 depends on WP01, so downstream agents should rebase after these fixes land.
