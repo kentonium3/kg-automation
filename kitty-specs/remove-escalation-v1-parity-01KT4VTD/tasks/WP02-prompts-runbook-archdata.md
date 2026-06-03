@@ -24,7 +24,8 @@ subtasks:
 - T009
 - T010
 - T011
-shell_pid: '71001'
+shell_pid: "71001"
+agent: "claude"
 history:
 - timestamp: '2026-06-02T19:30:00Z'
   actor: claude:opus-4-7:planner
@@ -209,3 +210,7 @@ A reviewer should verify, in order:
 - **Markdown view regeneration drift**: if the markdown views are hand-maintained (rather than script-regenerated), there's risk the markdown and JSON drift out of sync. T009 and T010's validation steps catch this.
 - **OpenClaw agent prompt size limits**: per memory `reference_openclaw_gotchas`, AGENTS.md has ~26% rawChars inflation in OpenClaw's accounting. The edits in T007 should reduce file size, but verify the post-edit AGENTS.md stays comfortably under the ~14K-char effective budget.
 - **Runbook fragmentation**: if the runbook references the soak doc (`escalation-soak-window.md`, which we updated retroactively today), confirm the cross-reference still makes sense post-edit.
+
+## Activity Log
+
+- 2026-06-03T02:11:16Z – claude – shell_pid=71001 – Assigned agent via action command
