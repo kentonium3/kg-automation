@@ -26,7 +26,8 @@ subtasks:
 - T001
 - T002
 - T003
-shell_pid: '83790'
+shell_pid: "83790"
+agent: "claude"
 history:
 - timestamp: '2026-06-03T03:00:00Z'
   actor: claude:opus-4-7:planner
@@ -175,3 +176,7 @@ A reviewer should verify, in order:
 
 - **Drift from the established voice**: the constitution's tone is operator-facing and direct. The inserted prose should match that tone.
 - **Hidden directive cross-references**: T003 catches the obvious case. A future audit might surface obscure ones.
+
+## Activity Log
+
+- 2026-06-03T02:51:56Z – claude – shell_pid=83790 – Assigned agent via action command
