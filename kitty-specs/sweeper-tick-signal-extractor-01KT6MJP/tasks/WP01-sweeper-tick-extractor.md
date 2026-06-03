@@ -51,7 +51,7 @@ tags: []
 # WP01 — Sweeper tick extractor
 
 **Mission**: `sweeper-tick-signal-extractor-01KT6MJP` — [spec.md](../spec.md), [plan.md](../plan.md), [data-model.md](../data-model.md), [contracts/sweeper-tick-extractor.contract.md](../contracts/sweeper-tick-extractor.contract.md)
-**Source issue**: [#510](https://github.com/kentonium3/keptonium3/kg-automation/issues/510)
+**Source issue**: [#510](https://github.com/kentonium3/kg-automation/issues/510)
 
 ## Objective
 

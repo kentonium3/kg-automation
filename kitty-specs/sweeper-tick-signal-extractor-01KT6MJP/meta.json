@@ -6,5 +6,8 @@
   "mission_slug": "sweeper-tick-signal-extractor-01KT6MJP",
   "mission_type": "software-dev",
   "slug": "sweeper-tick-signal-extractor-01KT6MJP",
-  "target_branch": "main"
+  "target_branch": "main",
+  "vcs": "git",
+  "source_description": "Implements GitHub issue #510 — add a sweeper_tick signal extractor to the felix-core-digest signal-extraction loop so felix-habit-sweeper failures escalate automatically rather than relying on manual journalctl/jq inspection. New module + config + dispatch wiring + tests + signal-to-doc-map registration. Single mission, all surfaces ship together per Felix Constitution Directive 7.",
+  "change_mode": "regular"
 }
