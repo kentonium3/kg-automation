@@ -36,7 +36,8 @@ subtasks:
 - T006
 - T007
 shell_pid: "51028"
-agent: "codex"
+agent: "claude"
+assignee: "claude"
 history:
 - timestamp: '2026-06-03T11:50:00Z'
   actor: claude:opus-4-7:planner
@@ -473,3 +474,4 @@ A reviewer should verify, in order:
 - 2026-06-03T15:35:06Z – claude – shell_pid=50360 – Moved to for_review
 - 2026-06-03T15:35:14Z – codex – shell_pid=51028 – Started review via action command
 - 2026-06-03T15:39:17Z – codex – shell_pid=51028 – Moved to planned
+- 2026-06-03T16:17:54Z – claude – shell_pid=51028 – Moved to in_progress
