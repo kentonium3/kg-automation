@@ -10,11 +10,15 @@ requirement_refs:
 planning_base_branch: main
 merge_target_branch: main
 branch_strategy: Planning artifacts for this feature were generated on main. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into main unless the human explicitly redirects the landing branch.
+base_branch: kitty/mission-migrate-felix-touchpoints-to-sync-cache-01KTAAGX
+base_commit: cded9f2d0ca9649e0159c6278f6fd7f476b6d9f2
+created_at: '2026-06-04T22:35:24.125840+00:00'
 subtasks:
 - T001
 - T002
 - T003
 - T004
+shell_pid: '15240'
 history:
 - at: '2026-06-04T22:24:02Z'
   by: spec-kitty.tasks
