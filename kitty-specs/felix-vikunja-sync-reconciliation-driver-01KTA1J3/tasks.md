@@ -44,10 +44,10 @@ The WP execution order (and dependency graph) is:
 | T019 | `scripts/sync/driver.py` — argparse CLI surface, env-var resolution, bootstrap mode, exit codes 0/1/2/3 | WP05 | — | [D] |
 | T020 | `tests/sync/test_cycle.py` — end-to-end mocked cycle, per-phase failure injection, bootstrap path, atomicity | WP05 | [D] |
 | T021 | `tests/sync/test_driver.py` — CLI surface, missing-env validation, bootstrap flag, dry-run flag | WP05 | [D] |
-| T022 | `scripts/sync/systemd/felix-vikunja-sync.service` — systemd user service unit | WP06 | — |
-| T023 | `scripts/sync/systemd/felix-vikunja-sync.timer` — 5-min cadence timer | WP06 | [P] |
-| T024 | `docs/runbooks/sync-driver-ops.md` — operator runbook (install / bootstrap / observe / recover) | WP06 | [P] |
-| T025 | `docs/design/architecture/data/{service-inventory,signal-to-doc-map}.json` + `docs/INDEX.md` updates per `change-control.md` | WP06 | [P] |
+| T022 | `scripts/sync/systemd/felix-vikunja-sync.service` — systemd user service unit | WP06 | — | [D] |
+| T023 | `scripts/sync/systemd/felix-vikunja-sync.timer` — 5-min cadence timer | WP06 | [D] |
+| T024 | `docs/runbooks/sync-driver-ops.md` — operator runbook (install / bootstrap / observe / recover) | WP06 | [D] |
+| T025 | `docs/design/architecture/data/{service-inventory,signal-to-doc-map}.json` + `docs/INDEX.md` updates per `change-control.md` | WP06 | [D] |
 
 ---
 
@@ -240,10 +240,10 @@ The WP execution order (and dependency graph) is:
 **Estimated prompt size**: ~390 lines.
 
 **Included subtasks**:
-- [ ] T022 `scripts/sync/systemd/felix-vikunja-sync.service` (WP06)
-- [ ] T023 `scripts/sync/systemd/felix-vikunja-sync.timer` (WP06)
-- [ ] T024 `docs/runbooks/sync-driver-ops.md` (WP06)
-- [ ] T025 Architecture data + INDEX updates per change-control (WP06)
+- [x] T022 `scripts/sync/systemd/felix-vikunja-sync.service` (WP06)
+- [x] T023 `scripts/sync/systemd/felix-vikunja-sync.timer` (WP06)
+- [x] T024 `docs/runbooks/sync-driver-ops.md` (WP06)
+- [x] T025 Architecture data + INDEX updates per change-control (WP06)
 
 **Implementation sketch**:
 1. `felix-vikunja-sync.service`: systemd user unit with `ExecStart=/usr/bin/python3 -m scripts.sync.driver`, `Environment=FELIX_WHATSAPP_RECIPIENT=+16179300916`, `Environment=FELIX_VIKUNJA_API_BASE_URL=https://office2.tail0f5f56.ts.net/api/v1/`, `WorkingDirectory=/home/claude/kg-automation`. Match the existing pattern in any deployed user unit (look at `~/.config/systemd/user/` on office2 during implement-phase live-probe).
