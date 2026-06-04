@@ -19,7 +19,8 @@ subtasks:
 - T010
 phase: Phase 2 — Policy + use-case mapping
 assignee: ''
-agent: ''
+agent: "claude:sonnet:implementer:implementer"
+shell_pid: "84971"
 history:
 - timestamp: '2026-06-03T22:59:10Z'
   agent: system
@@ -220,3 +221,7 @@ Never modify rows added by WP01.
 ## Output Discipline
 
 Per the Felix output-discipline pattern. T010's volume estimate must show its math — hand-waving the noise-floor calibration defeats the purpose.
+
+## Activity Log
+
+- 2026-06-04T01:11:02Z – claude:sonnet:implementer:implementer – shell_pid=84971 – Started implementation via action command
