@@ -3,7 +3,8 @@ title: Spec-Kitty External Bug Report Template
 doc_type: reference
 status: approved
 audience: humans
-last_updated: '2026-05-28'
+last_updated: '2026-06-04'
+version: v1.1
 ---
 
 # Spec-Kitty External Bug Report Template
@@ -37,6 +38,7 @@ closed).
 - Root Cause — only if known; helps maintainer triage
 - Workaround Applied — trimmed of internal refs; signals impact severity
 - Environment — required for reproduction
+- **Attribution + reviewer-approval footer** (added 2026-06-04 / v1.1) — declares the human-in-the-loop production path so maintainers know the report was reviewed before submission
 
 ---
 
@@ -102,3 +104,7 @@ the diagnostic at docs/diagnostics/xxx; tracked in feedback memory entry."
 - Python: {e.g., 3.13.x}
 - {tool}-cli: {version}
 - {Other relevant tool versions: codex, antigravity, gog, etc.}
+
+---
+
+*Authored by Kentonium3 and {agent name — Claude, Codex, Antigravity, etc.}. Reviewed and approved by Kentonium3 for submission.*

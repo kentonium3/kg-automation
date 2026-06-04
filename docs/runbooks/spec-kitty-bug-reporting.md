@@ -4,9 +4,9 @@ doc_type: runbook
 audience: agents_and_humans
 status: approved
 created: 2026-05-28
-last_validated: 2026-05-28
-last_updated: '2026-05-28'
-version: v1.0
+last_validated: 2026-06-04
+last_updated: '2026-06-04'
+version: v1.1
 owners: [kgale]
 ---
 
@@ -47,26 +47,35 @@ fields the maintainer benefits from.
 ## Lifecycle
 
 ```text
-1. OBSERVE          Suspected spec-kitty bug surfaces during work.
-2. FILE INTERNAL    gh issue create in kentonium3/kg-automation with the
-                    internal template; label area/tooling; spec: brief.
-3. INVESTIGATE      Edit the issue body / add comments as evidence and
-                    root-cause analysis accumulate. Internal status tracked
-                    via labels (P1-bug, P2-bug, etc.) and issue state.
-4. GENERATE EXTERNAL  Populate the slim template into a paste doc at
-                    docs/diagnostics/{slug}-external.md. Strip all the
-                    internal-only fields (priority/status/suggested fix/
-                    open questions/next steps/internal refs).
-5. FILE UPSTREAM    Paste the external doc into Priivacy-ai/spec-kitty's
-                    issue UI (or, once trusted, gh issue create --repo
-                    Priivacy-ai/spec-kitty --body-file <path>).
-6. CROSS-LINK       Edit the kg-automation issue body to add
-                    "Upstream: Priivacy-ai/spec-kitty#NNNN" and apply
-                    the upstream-filed label.
-7. CLOSE            When upstream ships the fix AND we've verified it
-                    locally, close the kg-automation issue. Move the paste
-                    doc to docs/archive/spec-kitty-feedback/{NNNN}-external.md
-                    or delete it (paste docs are transient by design).
+1. OBSERVE              Suspected spec-kitty bug surfaces during work.
+2. FILE INTERNAL        gh issue create in kentonium3/kg-automation with
+                        the internal template; label area/tooling; spec: brief.
+3. INVESTIGATE          Edit the issue body / add comments as evidence and
+                        root-cause analysis accumulate. Internal status tracked
+                        via labels (P1-bug, P2-bug, etc.) and issue state.
+4. GENERATE EXTERNAL    Populate the slim template into a paste doc at
+                        docs/diagnostics/{slug}-external.md. Strip all the
+                        internal-only fields (priority/status/suggested fix/
+                        open questions/next steps/internal refs). Add the
+                        attribution + reviewer-approval footer (see template).
+5. PRE-FILING APPROVAL  Surface the proposed upstream title in the internal
+                        tracking issue body (above the embedded draft section).
+                        Operator reviews and approves the title AND the body
+                        BEFORE the upstream filing step. Never file upstream
+                        on the agent's own initiative.
+6. FILE UPSTREAM        Paste the external doc into Priivacy-ai/spec-kitty's
+                        issue UI (or, once trusted, gh issue create --repo
+                        Priivacy-ai/spec-kitty --title "<approved title>"
+                        --body-file <path>).
+7. CROSS-LINK           Edit the kg-automation issue body to add the
+                        "Filed upstream: Priivacy-ai/spec-kitty#NNNN" header
+                        with the approved title, apply the upstream-filed
+                        label, and create the diagnostic snapshot at
+                        docs/diagnostics/{NNNN}_{short-slug}.md.
+8. CLOSE                When upstream ships the fix AND we've verified it
+                        locally, close the kg-automation issue. Move the paste
+                        doc to docs/archive/spec-kitty-feedback/{NNNN}-external.md
+                        or delete it (paste docs are transient by design).
 ```
 
 ## When to file (and not file)
@@ -132,6 +141,28 @@ Slim format used as the source for upstream paste docs. Drops:
 - No internal issue/mission/WP references
 
 Keeps: Summary, Reproduction, Root Cause (only if known), Workaround Applied (trimmed of internal refs), Environment.
+
+**Attribution + reviewer-approval footer (mandatory, added 2026-06-04 / v1.1):**
+
+Every external paste MUST end with a footer block of the form:
+
+```markdown
+---
+*Authored by Kentonium3 and Claude. Reviewed and approved by Kentonium3 for submission.*
+```
+
+Adjust the "Claude" name to whichever agent did the drafting (e.g., "Authored by Kentonium3 and Codex" if codex drafted, "Authored by Kentonium3 and Antigravity" for antigravity). The reviewer-approval line stays constant (`Kentonium3` is always the human-in-the-loop reviewer; the operator-of-record).
+
+Rationale: bug reports filed in upstream trackers carry an implicit author voice. Upstream maintainers benefit from knowing the report had a human-in-the-loop review before submission (it's not unattended-agent output), and the joint authorship line documents the actual production path. The reviewer-approval line is the public-facing equivalent of the internal pre-filing-approval step.
+
+## Pre-filing approval checklist (operator-facing)
+
+Before the agent files upstream, the operator must see and approve, in the internal tracking issue body:
+
+1. **The proposed upstream title** — exact text, in a clearly-labelled "Proposed upstream title" section above the embedded draft body.
+2. **The embedded draft body** — in a code block, ready-to-paste, including the attribution + reviewer-approval footer.
+
+The agent's filing-step prompt to the operator should be of the form: *"Approve title `<title>` and body for upstream filing?"* — explicitly state the title, do not assume the operator will infer it from the embedded body.
 
 ## Cross-references
 
