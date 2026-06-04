@@ -316,3 +316,4 @@ Reject if state-log filenames don't match the actual deployment, if disagreement
 ## Activity Log
 
 - 2026-06-04T23:19:18Z – claude:sonnet:implementer:implementer – shell_pid=28322 – Started implementation via action command
+- 2026-06-04T23:43:37Z – claude:sonnet:implementer:implementer – shell_pid=28322 – Ready for review: TP-02 (habits), TP-10 (escalation), TP-12 (enrichment) reconcilers migrated to sync cache; 1261 tests pass (1 pre-existing failure on main unrelated to WP03)
