@@ -40,10 +40,10 @@ The WP execution order (and dependency graph) is:
 | T015 | `scripts/sync/emit.py` — deterministic `event_id`, guard application order, JSONL append, delivery dispatch | WP04 | — | [D] |
 | T016 | `tests/sync/test_send_whatsapp.py` — exit-code paths, timeout, FileNotFoundError, dry-run, message formatter | WP04 | [D] |
 | T017 | `tests/sync/test_emit.py` — `event_id` idempotency, guard interactions, log append failure path | WP04 | [D] |
-| T018 | `scripts/sync/cycle.py` — 6-phase orchestration; atomic state commit at `complete` | WP05 | — |
-| T019 | `scripts/sync/driver.py` — argparse CLI surface, env-var resolution, bootstrap mode, exit codes 0/1/2/3 | WP05 | — |
-| T020 | `tests/sync/test_cycle.py` — end-to-end mocked cycle, per-phase failure injection, bootstrap path, atomicity | WP05 | [P] |
-| T021 | `tests/sync/test_driver.py` — CLI surface, missing-env validation, bootstrap flag, dry-run flag | WP05 | [P] |
+| T018 | `scripts/sync/cycle.py` — 6-phase orchestration; atomic state commit at `complete` | WP05 | — | [D] |
+| T019 | `scripts/sync/driver.py` — argparse CLI surface, env-var resolution, bootstrap mode, exit codes 0/1/2/3 | WP05 | — | [D] |
+| T020 | `tests/sync/test_cycle.py` — end-to-end mocked cycle, per-phase failure injection, bootstrap path, atomicity | WP05 | [D] |
+| T021 | `tests/sync/test_driver.py` — CLI surface, missing-env validation, bootstrap flag, dry-run flag | WP05 | [D] |
 | T022 | `scripts/sync/systemd/felix-vikunja-sync.service` — systemd user service unit | WP06 | — |
 | T023 | `scripts/sync/systemd/felix-vikunja-sync.timer` — 5-min cadence timer | WP06 | [P] |
 | T024 | `docs/runbooks/sync-driver-ops.md` — operator runbook (install / bootstrap / observe / recover) | WP06 | [P] |
@@ -203,10 +203,10 @@ The WP execution order (and dependency graph) is:
 **Estimated prompt size**: ~430 lines.
 
 **Included subtasks**:
-- [ ] T018 `scripts/sync/cycle.py` — 6-phase orchestration (WP05)
-- [ ] T019 `scripts/sync/driver.py` — CLI + bootstrap + exit codes (WP05)
-- [ ] T020 `tests/sync/test_cycle.py` — end-to-end with mocked I/O + failure injection (WP05)
-- [ ] T021 `tests/sync/test_driver.py` — CLI surface tests (WP05)
+- [x] T018 `scripts/sync/cycle.py` — 6-phase orchestration (WP05)
+- [x] T019 `scripts/sync/driver.py` — CLI + bootstrap + exit codes (WP05)
+- [x] T020 `tests/sync/test_cycle.py` — end-to-end with mocked I/O + failure injection (WP05)
+- [x] T021 `tests/sync/test_driver.py` — CLI surface tests (WP05)
 
 **Implementation sketch**:
 1. `cycle.py`: `run_cycle(config: CycleConfig, dry_run: bool) → CycleResult`. Orchestrates fetch → diff → classify → emit → update → complete. State writes happen only in `complete` (atomic). Failure at any phase exits with the appropriate code (1 for pre-emit phases, 2 for emit-onward where partial commit may have occurred).
