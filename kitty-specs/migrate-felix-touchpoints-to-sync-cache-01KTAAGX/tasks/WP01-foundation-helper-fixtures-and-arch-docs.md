@@ -18,7 +18,8 @@ subtasks:
 - T002
 - T003
 - T004
-shell_pid: '15240'
+shell_pid: "15240"
+agent: "claude:sonnet:implementer:implementer"
 history:
 - at: '2026-06-04T22:24:02Z'
   by: spec-kitty.tasks
@@ -294,3 +295,7 @@ Reject if the helper has I/O at import, if error messages leak field content for
 - #518 state.py (the driver's cache writers/readers): `scripts/sync/state.py`
 - Existing shared helper precedent: `scripts/common/state_log.py`
 - Test pattern precedent (the fixture style): `tests/sync/test_state.py`, `tests/habits/test_record_completion.py`
+
+## Activity Log
+
+- 2026-06-04T22:35:26Z – claude:sonnet:implementer:implementer – shell_pid=15240 – Assigned agent via action command
