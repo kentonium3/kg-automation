@@ -18,8 +18,8 @@ subtasks:
 - T002
 - T003
 - T004
-shell_pid: "15240"
-agent: "claude:sonnet:implementer:implementer"
+shell_pid: "19157"
+agent: "claude:opus:reviewer:reviewer"
 history:
 - at: '2026-06-04T22:24:02Z'
   by: spec-kitty.tasks
@@ -300,3 +300,4 @@ Reject if the helper has I/O at import, if error messages leak field content for
 
 - 2026-06-04T22:35:26Z – claude:sonnet:implementer:implementer – shell_pid=15240 – Assigned agent via action command
 - 2026-06-04T22:47:10Z – claude:sonnet:implementer:implementer – shell_pid=15240 – Ready for review: sync cache helper (5 functions, 4 SLA tiers, privacy boundary), shared fixtures (mock_sync_cache_fixture + mock_state_log_fixture), 48 tests (all passing), arch doc updates (habit-checkin + escalation-daily + enrichment-helpers dependencies + data-flows entry).
+- 2026-06-04T22:47:46Z – claude:opus:reviewer:reviewer – shell_pid=19157 – Started review via action command
