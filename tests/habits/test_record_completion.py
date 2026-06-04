@@ -79,30 +79,45 @@ class TestHappyPath:
     def test_three_writes_in_correct_order(
         self, mock_urlopen, mock_state_log_dir
     ):
-        """Pre-flight state_log.read empty -> POST done -> PUT comment -> append."""
+        """Pre-flight state_log.read empty -> GET task -> POST done -> PUT comment -> append.
+
+        The GET before POST preserves repeat_after/repeat_mode against Vikunja
+        v0.24.6's destructive partial-update semantics (#524).
+        """
         mock_urlopen.side_effect = [
-            _resp({"id": 14, "done": True}),  # step 2: POST done=true
+            _resp({"id": 14, "repeat_after": 86400, "repeat_mode": 0}),  # step 2a: GET pre-done
+            _resp({"id": 14, "done": True}),  # step 2b: POST done=true
             _resp({"id": 999, "comment": "[Felix] ..."}),  # step 3: PUT comment
         ]
 
         rc.record(**VALID_KWARGS)
 
-        # urlopen called twice (step 2 + step 3).
-        assert mock_urlopen.call_count == 2
+        # urlopen called three times (GET + POST + PUT).
+        assert mock_urlopen.call_count == 3
 
-        # First call is POST /tasks/14.
-        first_req = mock_urlopen.call_args_list[0][0][0]
-        assert first_req.get_method() == "POST"
-        assert first_req.full_url == "http://test/api/v1/tasks/14"
-        first_body = json.loads(first_req.data.decode("utf-8"))
-        assert first_body == {"done": True}
+        # First call is GET /tasks/14 (preserve-recurrence read).
+        get_req = mock_urlopen.call_args_list[0][0][0]
+        assert get_req.get_method() == "GET"
+        assert get_req.full_url == "http://test/api/v1/tasks/14"
+        assert get_req.data is None
 
-        # Second call is PUT /tasks/14/comments (G4 verified).
-        second_req = mock_urlopen.call_args_list[1][0][0]
-        assert second_req.get_method() == "PUT"
-        assert second_req.full_url == "http://test/api/v1/tasks/14/comments"
-        second_body = json.loads(second_req.data.decode("utf-8"))
-        assert second_body == {"comment": "[Felix] 2026-05-20 | complete"}
+        # Second call is POST /tasks/14 with recurrence config echoed back.
+        post_req = mock_urlopen.call_args_list[1][0][0]
+        assert post_req.get_method() == "POST"
+        assert post_req.full_url == "http://test/api/v1/tasks/14"
+        post_body = json.loads(post_req.data.decode("utf-8"))
+        assert post_body == {
+            "done": True,
+            "repeat_after": 86400,
+            "repeat_mode": 0,
+        }
+
+        # Third call is PUT /tasks/14/comments (G4 verified).
+        third_req = mock_urlopen.call_args_list[2][0][0]
+        assert third_req.get_method() == "PUT"
+        assert third_req.full_url == "http://test/api/v1/tasks/14/comments"
+        third_body = json.loads(third_req.data.decode("utf-8"))
+        assert third_body == {"comment": "[Felix] 2026-05-20 | complete"}
 
         # state_log.append landed -- read back from the sandbox.
         records = state_log.read("habits", task_id=14, date="2026-05-20")
@@ -119,6 +134,7 @@ class TestHappyPath:
         self, mock_urlopen, mock_state_log_dir
     ):
         mock_urlopen.side_effect = [
+            _resp({"id": 14, "repeat_after": 86400, "repeat_mode": 0}),
             _resp({"id": 14, "done": True}),
             _resp({"id": 999}),
         ]
@@ -214,15 +230,87 @@ class TestStep2Failure:
     def test_done_post_failure_propagates_with_step2_prefix(
         self, mock_urlopen, mock_state_log_dir
     ):
-        mock_urlopen.side_effect = _http_error(503, b'{"message":"down"}')
+        # GET pre-done succeeds; POST done=true fails.
+        mock_urlopen.side_effect = [
+            _resp({"id": 14, "repeat_after": 86400, "repeat_mode": 0}),
+            _http_error(503, b'{"message":"down"}'),
+        ]
 
         with pytest.raises(OSError, match=r"step 2 \(Vikunja done=true\)"):
             rc.record(**VALID_KWARGS)
 
-        # State_log NOT written -- only one urlopen call was attempted.
+        # GET landed, POST attempted. State_log NOT written.
+        assert mock_urlopen.call_count == 2
+        records = state_log.read("habits", task_id=14)
+        assert records == []
+
+    def test_get_pre_done_failure_propagates_with_step2_prefix(
+        self, mock_urlopen, mock_state_log_dir
+    ):
+        # GET pre-done fails before the POST is ever attempted.
+        mock_urlopen.side_effect = _http_error(503, b'{"message":"down"}')
+
+        with pytest.raises(OSError, match=r"step 2 \(Vikunja GET pre-done\)"):
+            rc.record(**VALID_KWARGS)
+
+        # Only the GET was attempted; POST never fires.
         assert mock_urlopen.call_count == 1
         records = state_log.read("habits", task_id=14)
         assert records == []
+
+    def test_get_pre_done_non_dict_body_raises_with_step2_prefix(
+        self, mock_urlopen, mock_state_log_dir
+    ):
+        # Defensive: if Vikunja returns a non-dict body (list / null), bail
+        # before the POST. Without this guard we'd attribute-error on .get().
+        mock_urlopen.side_effect = [
+            _resp([1, 2, 3]),  # list -- not a task dict
+        ]
+
+        with pytest.raises(OSError, match=r"step 2 \(Vikunja GET pre-done\) returned non-dict"):
+            rc.record(**VALID_KWARGS)
+
+        assert mock_urlopen.call_count == 1
+
+    def test_post_done_body_echoes_repeat_after_and_repeat_mode_from_get(
+        self, mock_urlopen, mock_state_log_dir
+    ):
+        # Regression guard for #524: POST body MUST include the recurrence
+        # config returned from GET, so Vikunja's auto-advance trigger keeps
+        # firing on subsequent completions.
+        mock_urlopen.side_effect = [
+            _resp({"id": 14, "repeat_after": 604800, "repeat_mode": 1}),  # weekly
+            _resp({"id": 14, "done": True}),
+            _resp({"id": 999}),
+        ]
+        rc.record(**VALID_KWARGS)
+        post_req = mock_urlopen.call_args_list[1][0][0]
+        post_body = json.loads(post_req.data.decode("utf-8"))
+        assert post_body == {
+            "done": True,
+            "repeat_after": 604800,
+            "repeat_mode": 1,
+        }
+
+    def test_post_done_body_defaults_repeat_fields_when_get_omits_them(
+        self, mock_urlopen, mock_state_log_dir
+    ):
+        # If the GET response omits repeat_after / repeat_mode (e.g. a
+        # non-recurring one-off task), default both to 0 -- matches Vikunja's
+        # own zero value for non-recurring tasks.
+        mock_urlopen.side_effect = [
+            _resp({"id": 14}),  # no repeat_* fields
+            _resp({"id": 14, "done": True}),
+            _resp({"id": 999}),
+        ]
+        rc.record(**VALID_KWARGS)
+        post_req = mock_urlopen.call_args_list[1][0][0]
+        post_body = json.loads(post_req.data.decode("utf-8"))
+        assert post_body == {
+            "done": True,
+            "repeat_after": 0,
+            "repeat_mode": 0,
+        }
 
 
 # ===========================================================================
@@ -235,14 +323,15 @@ class TestStep3Failure:
         self, mock_urlopen, mock_state_log_dir
     ):
         mock_urlopen.side_effect = [
-            _resp({"id": 14, "done": True}),  # step 2 succeeds
+            _resp({"id": 14, "repeat_after": 86400, "repeat_mode": 0}),  # step 2a: GET
+            _resp({"id": 14, "done": True}),  # step 2b: POST succeeds
             _http_error(500, b'{"message":"comment endpoint down"}'),  # step 3
         ]
 
         with pytest.raises(OSError, match=r"step 3 \(Vikunja comment\)"):
             rc.record(**VALID_KWARGS)
 
-        assert mock_urlopen.call_count == 2
+        assert mock_urlopen.call_count == 3
         # state_log NOT written (Vikunja-done landed but the JSONL append
         # is only after step 3 succeeds).
         records = state_log.read("habits", task_id=14)
@@ -259,6 +348,7 @@ class TestStep4Failure:
         self, mock_urlopen, mock_state_log_dir, monkeypatch
     ):
         mock_urlopen.side_effect = [
+            _resp({"id": 14, "repeat_after": 86400, "repeat_mode": 0}),
             _resp({"id": 14, "done": True}),
             _resp({"id": 999}),
         ]
@@ -271,8 +361,8 @@ class TestStep4Failure:
         with pytest.raises(OSError, match=r"step 4 \(state_log append\)"):
             rc.record(**VALID_KWARGS)
 
-        # Both Vikunja writes were attempted (already committed at this point).
-        assert mock_urlopen.call_count == 2
+        # GET + POST + PUT all attempted (already committed at this point).
+        assert mock_urlopen.call_count == 3
 
 
 # ===========================================================================
@@ -290,13 +380,14 @@ class TestG4PutVerification:
         pattern from elsewhere.
         """
         mock_urlopen.side_effect = [
+            _resp({"id": 14, "repeat_after": 86400, "repeat_mode": 0}),
             _resp({"id": 14, "done": True}),
             _resp({"id": 999, "comment": "stub"}),
         ]
 
         rc.record(**VALID_KWARGS)
 
-        comment_req = mock_urlopen.call_args_list[1][0][0]
+        comment_req = mock_urlopen.call_args_list[2][0][0]
         assert comment_req.get_method() == "PUT", (
             f"comment endpoint must use PUT per G4 "
             f"(got {comment_req.get_method()})"
@@ -315,11 +406,12 @@ class TestCommentBodyFormat:
         self, mock_urlopen, mock_state_log_dir
     ):
         mock_urlopen.side_effect = [
+            _resp({"id": 14, "repeat_after": 86400, "repeat_mode": 0}),
             _resp({"id": 14, "done": True}),
             _resp({"id": 999}),
         ]
         rc.record(**VALID_KWARGS)
-        comment_req = mock_urlopen.call_args_list[1][0][0]
+        comment_req = mock_urlopen.call_args_list[2][0][0]
         body = json.loads(comment_req.data.decode("utf-8"))
         assert body == {"comment": "[Felix] 2026-05-20 | complete"}
 
@@ -327,6 +419,7 @@ class TestCommentBodyFormat:
         self, mock_urlopen, mock_state_log_dir
     ):
         mock_urlopen.side_effect = [
+            _resp({"id": 17, "repeat_after": 0, "repeat_mode": 0}),
             _resp({"id": 17, "done": True}),
             _resp({"id": 999}),
         ]
@@ -338,7 +431,7 @@ class TestCommentBodyFormat:
         kwargs["note"] = "travel — no gym access"
 
         rc.record(**kwargs)
-        comment_req = mock_urlopen.call_args_list[1][0][0]
+        comment_req = mock_urlopen.call_args_list[2][0][0]
         body = json.loads(comment_req.data.decode("utf-8"))
         assert body == {
             "comment": "[Felix] 2026-05-19 | skipped | travel — no gym access"
@@ -348,13 +441,14 @@ class TestCommentBodyFormat:
         self, mock_urlopen, mock_state_log_dir
     ):
         mock_urlopen.side_effect = [
+            _resp({"id": 14, "repeat_after": 86400, "repeat_mode": 0}),
             _resp({"id": 14, "done": True}),
             _resp({"id": 999}),
         ]
         kwargs = dict(VALID_KWARGS)
         kwargs["note"] = "   "  # whitespace only
         rc.record(**kwargs)
-        comment_req = mock_urlopen.call_args_list[1][0][0]
+        comment_req = mock_urlopen.call_args_list[2][0][0]
         body = json.loads(comment_req.data.decode("utf-8"))
         assert body == {"comment": "[Felix] 2026-05-20 | complete"}
 
@@ -428,6 +522,7 @@ class TestCli:
         monkeypatch,
     ):
         mock_urlopen.side_effect = [
+            _resp({"id": 14, "repeat_after": 86400, "repeat_mode": 0}),
             _resp({"id": 14, "done": True}),
             _resp({"id": 999}),
         ]
@@ -458,6 +553,7 @@ class TestCli:
         monkeypatch,
     ):
         mock_urlopen.side_effect = [
+            _resp({"id": 14, "repeat_after": 86400, "repeat_mode": 0}),
             _resp({"id": 14, "done": True}),
             _resp({"id": 999}),
         ]
@@ -507,6 +603,7 @@ class TestCli:
         capsys,
     ):
         mock_urlopen.side_effect = [
+            _resp({"id": 14, "repeat_after": 86400, "repeat_mode": 0}),
             _resp({"id": 14, "done": True}),
             _http_error(500, b'{"message":"comment-down"}'),
         ]
@@ -535,6 +632,7 @@ class TestCli:
         capsys,
     ):
         mock_urlopen.side_effect = [
+            _resp({"id": 14, "repeat_after": 86400, "repeat_mode": 0}),
             _resp({"id": 14, "done": True}),
             _resp({"id": 999}),
         ]

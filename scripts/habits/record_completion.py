@@ -263,9 +263,32 @@ def record(
 
     # Step 2: Vikunja done=true. POST per migrate_schedule pattern (Vikunja
     # v0.24.6 uses POST -- not PATCH -- for partial task updates).
+    #
+    # WHY the GET first (read-modify-write): Vikunja v0.24.6 treats POST
+    # /tasks/<id> as a replacement -- fields not in the body are zeroed
+    # server-side. Posting {"done": true} alone clears repeat_after and
+    # repeat_mode, breaking the very auto-advance trigger this step exists
+    # to fire. See #524 for the reproducer (2026-06-04 morning check-in
+    # missed 4 of 7 daily habits because earlier completions had silently
+    # stripped repeat_after=86400 -> 0). We GET the current task and echo
+    # repeat_after/repeat_mode back so the recurrence config survives.
     done_url = _join_url(api_base_url, f"tasks/{task_id}")
     try:
-        _http_request("POST", done_url, token, body={"done": True})
+        _, current = _http_request("GET", done_url, token)
+    except OSError as e:
+        raise OSError(f"step 2 (Vikunja GET pre-done) failed: {e}") from e
+    if not isinstance(current, dict):
+        raise OSError(
+            f"step 2 (Vikunja GET pre-done) returned non-dict body: "
+            f"{type(current).__name__}"
+        )
+    body = {
+        "done": True,
+        "repeat_after": current.get("repeat_after", 0),
+        "repeat_mode": current.get("repeat_mode", 0),
+    }
+    try:
+        _http_request("POST", done_url, token, body=body)
     except OSError as e:
         raise OSError(f"step 2 (Vikunja done=true) failed: {e}") from e
 
