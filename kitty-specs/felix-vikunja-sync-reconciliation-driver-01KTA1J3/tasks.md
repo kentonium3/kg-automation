@@ -28,10 +28,10 @@ The WP execution order (and dependency graph) is:
 | T003 | `scripts/sync/http.py` — `urllib.request` wrapper with timeout, structured errors, JSON parse | WP01 | [D] |
 | T004 | `tests/sync/test_state.py` — atomic-write roundtrip, schema validation, recovery from corrupted file | WP01 | [D] |
 | T005 | `tests/sync/test_http.py` — mocked `urlopen` happy path + timeout + HTTPError + non-2xx + non-JSON body | WP01 | [D] |
-| T006 | `scripts/sync/fetch.py` — `GET /tasks/all?updated_since=<ts>` + just-in-time `GET /projects/{id}` for unknown projects | WP02 | — |
-| T007 | `scripts/sync/diff.py` — value comparison with canonical normalization; first-observation behavior | WP02 | — |
-| T008 | `tests/sync/test_fetch.py` — mocked Vikunja responses, partial-failure on project fetch, error propagation | WP02 | [P] |
-| T009 | `tests/sync/test_diff.py` — comparison matrix, first-observation skip, privacy-boundary redaction | WP02 | [P] |
+| T006 | `scripts/sync/fetch.py` — `GET /tasks/all?updated_since=<ts>` + just-in-time `GET /projects/{id}` for unknown projects | WP02 | — | [D] |
+| T007 | `scripts/sync/diff.py` — value comparison with canonical normalization; first-observation behavior | WP02 | — | [D] |
+| T008 | `tests/sync/test_fetch.py` — mocked Vikunja responses, partial-failure on project fetch, error propagation | WP02 | [D] |
+| T009 | `tests/sync/test_diff.py` — comparison matrix, first-observation skip, privacy-boundary redaction | WP02 | [D] |
 | T010 | `scripts/sync/classify.py` — UC-1/UC-2 collapsed, UC-3 whitelist, UC-4 inverter; deterministic | WP03 | — |
 | T011 | `scripts/sync/guards.py` — G-1 (24h dedup), G-2 (30-min post-write), G-3 (daily cap) | WP03 | — |
 | T012 | `tests/sync/test_classify.py` — full classification matrix; UC-4 inversion; private-task path | WP03 | [P] |
@@ -97,10 +97,10 @@ The WP execution order (and dependency graph) is:
 **Estimated prompt size**: ~360 lines.
 
 **Included subtasks**:
-- [ ] T006 `scripts/sync/fetch.py` — Vikunja delta poll + project fetch (WP02)
-- [ ] T007 `scripts/sync/diff.py` — value comparison (WP02)
-- [ ] T008 `tests/sync/test_fetch.py` — mocked Vikunja paths (WP02)
-- [ ] T009 `tests/sync/test_diff.py` — comparison matrix (WP02)
+- [x] T006 `scripts/sync/fetch.py` — Vikunja delta poll + project fetch (WP02)
+- [x] T007 `scripts/sync/diff.py` — value comparison (WP02)
+- [x] T008 `tests/sync/test_fetch.py` — mocked Vikunja paths (WP02)
+- [x] T009 `tests/sync/test_diff.py` — comparison matrix (WP02)
 
 **Implementation sketch**:
 1. `fetch.py`: one function `fetch_delta(token, base_url, since_utc, known_project_ids) → FetchedDelta` that calls `http.get(...)` for `/tasks/all?updated_since=<ts>` and then iterates per-task to fetch any project_id not in `known_project_ids`. Returns a dataclass with `tasks: list[dict]`, `projects: dict[int, dict]`, `vikunja_version: str`.
