@@ -1,7 +1,7 @@
 {
-  "event_count": 10,
-  "last_event_id": "01KT81QTD3AB3TSMQMA88Z25A4",
-  "materialized_at": "2026-06-04T00:50:08.931449+00:00",
+  "event_count": 11,
+  "last_event_id": "01KT822E383M710GSW6SWE55ZA",
+  "materialized_at": "2026-06-04T00:55:56.776565+00:00",
   "mission_number": "",
   "mission_slug": "felix-vikunja-sync-architecture-research-01KT7Q15",
   "mission_type": "research",
@@ -11,18 +11,18 @@
     "canceled": 0,
     "claimed": 0,
     "done": 0,
-    "for_review": 0,
-    "in_progress": 1,
+    "for_review": 1,
+    "in_progress": 0,
     "in_review": 0,
     "planned": 2
   },
   "work_packages": {
     "WP01": {
-      "actor": "claude:sonnet:implementer:implementer",
+      "actor": "user",
       "force_count": 1,
-      "lane": "in_progress",
-      "last_event_id": "01KT81QTD3AB3TSMQMA88Z25A4",
-      "last_transition_at": "2026-06-04T00:50:08.931449+00:00"
+      "lane": "for_review",
+      "last_event_id": "01KT822E383M710GSW6SWE55ZA",
+      "last_transition_at": "2026-06-04T00:55:56.776565+00:00"
     },
     "WP02": {
       "actor": "finalize-tasks",
