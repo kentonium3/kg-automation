@@ -26,7 +26,8 @@ subtasks:
 - T017
 phase: Phase 3 — Synthesis + handoff
 assignee: ''
-agent: ''
+agent: "claude:sonnet:implementer:implementer"
+shell_pid: "89671"
 history:
 - timestamp: '2026-06-03T22:59:10Z'
   agent: system
@@ -264,3 +265,7 @@ Continue appending to `kitty-specs/.../research/source-register.csv` (e.g., `adr
 ## Output Discipline
 
 Operator-facing artifacts (`recommendation.md`, draft ADR-0003, `findings.md`) follow Felix output-discipline pattern strictly: succinct, structured, no boilerplate. ADR is the canonical record; brevity wins where clarity is preserved. Recommendation can be slightly longer (it's the explainer).
+
+## Activity Log
+
+- 2026-06-04T01:28:58Z – claude:sonnet:implementer:implementer – shell_pid=89671 – Started implementation via action command
