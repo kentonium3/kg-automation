@@ -44,11 +44,11 @@ Two-location split:
 | T003 | Execute RQ-2 touchpoint inventory; populate source-register + evidence-log; write `findings/rq-2-touchpoints.md` | WP01 | [D] |
 | T004 | Execute RQ-5 existing-pattern fit analysis; populate source-register + evidence-log; write `findings/rq-5-pattern-fit.md` | WP01 | [D] |
 | T005 | NFR-001 / NFR-006 enforcement on WP01 outputs; flag deferred-to-implementation sub-questions | WP01 | — | [D] |
-| T006 | Execute RQ-3 conflict-policy analysis; write `findings/rq-3-conflict-policy.md` | WP02 | — |
-| T007 | Draft `findings/conflict-event-log.sketch.md` (FR-equivalent FR-010 log shape) | WP02 | — |
-| T008 | Write #516-framework forward-compatibility analysis (sender-only / router-only / both) per SC-006 | WP02 | — |
-| T009 | Execute RQ-4 use-case → layer mapping; write `findings/rq-4-use-case-mapping.md` | WP02 | [P] |
-| T010 | NFR-002 (≤5-min for all 7 use cases) and NFR-003 (WhatsApp volume guard) enforcement; document volume estimate | WP02 | — |
+| T006 | Execute RQ-3 conflict-policy analysis; write `findings/rq-3-conflict-policy.md` | WP02 | — | [D] |
+| T007 | Draft `findings/conflict-event-log.sketch.md` (FR-equivalent FR-010 log shape) | WP02 | — | [D] |
+| T008 | Write #516-framework forward-compatibility analysis (sender-only / router-only / both) per SC-006 | WP02 | — | [D] |
+| T009 | Execute RQ-4 use-case → layer mapping; write `findings/rq-4-use-case-mapping.md` | WP02 | [D] |
+| T010 | NFR-002 (≤5-min for all 7 use cases) and NFR-003 (WhatsApp volume guard) enforcement; document volume estimate | WP02 | — | [D] |
 | T011 | Execute RQ-6 ADR-0003 scope decision; write `findings/rq-6-adr-scope.md` | WP03 | — |
 | T012 | Write `findings.md` synthesis/index across all per-RQ files | WP03 | — |
 | T013 | Write `recommendation.md` (operator-readable cold per NFR-004) | WP03 | — |
@@ -111,11 +111,11 @@ Two-location split:
 **Independent test**: A reviewer reading the WP02 outputs can answer for each Epic #507 use case: which layer changes, how does Felix detect it, what action does Felix take, what's the worst-case latency? — without referring back to spec.md or Epic #507's body.
 
 **Subtasks**:
-- [ ] T006 Execute RQ-3 conflict-policy analysis; write `findings/rq-3-conflict-policy.md` (WP02)
-- [ ] T007 Draft `findings/conflict-event-log.sketch.md` (FR-010 log shape) (WP02)
-- [ ] T008 Write #516-framework forward-compatibility analysis (sender-only / router-only / both) per SC-006 (WP02)
-- [ ] T009 Execute RQ-4 use-case → layer mapping; write `findings/rq-4-use-case-mapping.md` (WP02)
-- [ ] T010 NFR-002 + NFR-003 enforcement; document volume estimate (WP02)
+- [x] T006 Execute RQ-3 conflict-policy analysis; write `findings/rq-3-conflict-policy.md` (WP02)
+- [x] T007 Draft `findings/conflict-event-log.sketch.md` (FR-010 log shape) (WP02)
+- [x] T008 Write #516-framework forward-compatibility analysis (sender-only / router-only / both) per SC-006 (WP02)
+- [x] T009 Execute RQ-4 use-case → layer mapping; write `findings/rq-4-use-case-mapping.md` (WP02)
+- [x] T010 NFR-002 + NFR-003 enforcement; document volume estimate (WP02)
 
 **Implementation sketch**:
 1. T006 — Read WP01's RQ-1 (Vikunja write semantics) and RQ-2 (touchpoint write-sets). For each write-set, identify what Vikunja state can conflict. Propose unsafe-class criteria; each testable from conflict-event fields alone (per `data-model.md` § Unsafe-Class). Document the detection mechanism + WhatsApp ping format. Cite WP01 rows in evidence-log.
