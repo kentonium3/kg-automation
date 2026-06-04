@@ -2,12 +2,89 @@ name: Spec Lifecycle Labels
 
 on:
   issues:
-    types: [labeled, unlabeled]
+    types: [labeled, unlabeled, opened, reopened]
 
 permissions:
   issues: write
 
 jobs:
+  priority-field-sync:
+    # Mirror the issue's effective priority label (P1-* / P2-* / P3-*) onto the
+    # Felix Roadmap project's Priority single-select field. Uses a dedicated PAT
+    # (PROJECT_SYNC_PAT, scope=project only, held by kg-felix-bot) — the default
+    # GITHUB_TOKEN cannot write to a user-owned project. See #523.
+    if: >-
+      github.event.action == 'opened' ||
+      github.event.action == 'reopened' ||
+      (github.event.action == 'labeled' && startsWith(github.event.label.name, 'P')) ||
+      (github.event.action == 'unlabeled' && startsWith(github.event.label.name, 'P'))
+    runs-on: ubuntu-latest
+    steps:
+      - name: Sync priority to project field
+        uses: actions/github-script@v8
+        env:
+          PROJECT_ID: PVT_kwHOCuNl-84BT-na
+          FIELD_ID: PVTSSF_lAHOCuNl-84BT-nazhUrWLI
+        with:
+          github-token: ${{ secrets.PROJECT_SYNC_PAT }}
+          script: |
+            const OPTIONS = {
+              P1: 'c5a90f0a',
+              P2: 'ca2b4a3f',
+              P3: 'b130af01',
+              none: '530664a5',
+            };
+            const projectId = process.env.PROJECT_ID;
+            const fieldId = process.env.FIELD_ID;
+
+            const labels = context.payload.issue.labels.map(l => l.name);
+            let priority = 'none';
+            if (labels.some(l => l.startsWith('P1-'))) priority = 'P1';
+            else if (labels.some(l => l.startsWith('P2-'))) priority = 'P2';
+            else if (labels.some(l => l.startsWith('P3-'))) priority = 'P3';
+            const optionId = OPTIONS[priority];
+            core.info(`Issue #${context.issue.number} effective priority: ${priority}`);
+
+            const lookup = await github.graphql(
+              `query($number: Int!, $owner: String!, $repo: String!) {
+                repository(owner: $owner, name: $repo) {
+                  issue(number: $number) {
+                    projectItems(first: 20) { nodes { id project { id } } }
+                  }
+                }
+              }`,
+              { owner: context.repo.owner, repo: context.repo.repo, number: context.issue.number }
+            );
+
+            let itemId = lookup.repository.issue.projectItems.nodes
+              .find(n => n.project.id === projectId)?.id;
+
+            if (!itemId) {
+              // Auto-add-to-project may not have fired yet (race on issue creation).
+              // Add the issue ourselves; addProjectV2ItemById is idempotent.
+              const added = await github.graphql(
+                `mutation($projectId: ID!, $contentId: ID!) {
+                  addProjectV2ItemById(input: {projectId: $projectId, contentId: $contentId}) {
+                    item { id }
+                  }
+                }`,
+                { projectId, contentId: context.payload.issue.node_id }
+              );
+              itemId = added.addProjectV2ItemById.item.id;
+              core.info(`Added issue to project as item ${itemId}`);
+            }
+
+            await github.graphql(
+              `mutation($projectId: ID!, $itemId: ID!, $fieldId: ID!, $optionId: String!) {
+                updateProjectV2ItemFieldValue(input: {
+                  projectId: $projectId, itemId: $itemId, fieldId: $fieldId,
+                  value: { singleSelectOptionId: $optionId }
+                }) { projectV2Item { id } }
+              }`,
+              { projectId, itemId, fieldId, optionId }
+            );
+            core.info(`Set Priority=${priority} on item ${itemId}`);
+
   priority-promotion:
     # When P1/P2 priority label is added, add spec: pending and remove spec: brief
     if: >-
