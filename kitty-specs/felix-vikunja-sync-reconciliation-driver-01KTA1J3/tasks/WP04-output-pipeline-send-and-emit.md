@@ -340,3 +340,4 @@ Reject if subprocess args drift from precedent, if `send` raises in any path, if
 ## Activity Log
 
 - 2026-06-04T20:33:38Z – claude – shell_pid=83449 – Started implementation via action command
+- 2026-06-04T20:37:38Z – claude – shell_pid=83449 – All 4 subtasks committed (f66e04cb on lane-a). 42 new tests pass; full sync suite 164/164. send_whatsapp arg-order matches sync-heartbeat byte-for-byte; emit deterministic + idempotent; G-3 increments only on delivered; privacy redaction applied to both event row and message.
