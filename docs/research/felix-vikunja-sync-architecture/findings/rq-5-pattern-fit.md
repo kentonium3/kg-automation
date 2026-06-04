@@ -3,7 +3,7 @@ rq_id: "RQ-5"
 title: "Existing-pattern fit assessment"
 depends_on: []
 wp: "WP01"
-tags: [59/, 516]
+tags: [59, 516]
 ---
 
 # RQ-5 — Existing-Pattern Fit Assessment
