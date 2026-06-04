@@ -39,26 +39,60 @@ This header must be the first line of every message you send to Kent.
 
 Your final reply IS the message Kent receives. Felix's main session relays
 your output verbatim to WhatsApp — there is no separate "summary for the
-delivery system" step.
+delivery system" step. This section mirrors the same three-rule pattern
+that lives in `felix-admin-habits` and `felix-admin-capture` AGENTS.md.
 
-**Never include in your output:**
+**Hard rule #1 — `IDLE` means the literal four-character string `IDLE`,
+alone, with NOTHING before or after it.** When the tick produces no
+user-facing alert (no qualifying tasks, all candidates below threshold,
+silent-run scenario, etc.), the ENTIRE reply on that turn is the four
+characters `IDLE` and nothing else. No "Silent run." preamble, no "No
+qualifying tasks today" explanation, no "below the escalation threshold"
+justification, no "No WhatsApp message sent" status, no trailing `NOOP`
+marker. The agent's reasoning belongs in the internal `thinking` channel.
+Confirmed broken via 2026-05-22 (original #372 filing) and recurred
+2026-06-04 8:01a ET — both deliveries shipped prose decisions that
+contradicted themselves by claiming "No WhatsApp message sent" inside
+the WhatsApp message they were sending.
 
+**Hard rule #2 — when your turn DOES produce a user-facing alert, the
+reply MUST start with the identity line, with NO leading text.** First
+character is `S` in `Sent by felix-admin-escalation:<model>`. No "Here is
+the alert:", no "Per AGENTS.md…", no preamble that re-states the rules.
+If you catch yourself drafting analysis text before the identity line,
+delete it before sending.
+
+**Hard rule #3 — emit ZERO text between tool calls.** Every workflow step
+chains tool_use → tool_result → next tool_use WITHOUT any intervening
+assistant text. No step recaps ("Reconcile sweep complete", "2
+candidates found"), no progress narration ("Now writing state log"), no
+JSONL-entry confirmations. The ONLY assistant text in the entire run is
+either the `IDLE` marker OR the final formatted alert starting with the
+identity line.
+
+**Never include in your output (between tool calls OR in the final reply):**
+
+- Step recaps ("Reconcile sweep complete", "Candidates evaluated", "State recorded")
+- Step framing ("Now invoking the action-log writer")
 - Delivery-status paragraphs (e.g. "Summary (plain text for delivery
   system): Escalation delivered to Kent via WhatsApp...")
-- Meta-commentary about how your response will be delivered
+- Meta-commentary about how your response will be delivered ("No WhatsApp
+  message sent", "Silent run", `NOOP` markers, decision rationale)
 - Instructions or notes to the main agent about relay behavior
-- Re-statements of the message content under different framing
+- Re-statements of the alert content under different framing
+- Any text BEFORE the identity line in a user-facing reply
 
-The lines after the identity header ARE the message Kent reads. When your
-work produces no user-facing message, reply only with the single-token
-marker your standing orders specify for that case; never elaborate.
+**Correct shape**: tool_use → tool_result → tool_use → tool_result → … →
+final assistant text that is EITHER the bare four-character `IDLE`
+marker OR a reply starting with `Sent by`. Nothing else.
 
 This rule exists because earlier cron jobs ran with `delivery.mode:
 "announce"`, which posted the agent's raw output to WhatsApp and made the
 summary paragraphs visible. The current configuration uses `delivery.mode:
 "none"` (Felix relays as a single voice), but the discipline is preserved
 because adding stage-direction text to a Felix relay still produces a
-wrong-shape message.
+wrong-shape message — and the 2026-06-04 recurrence confirmed the agent
+was still emitting decision-narration prose in place of the bare marker.
 
 ## Scope
 
