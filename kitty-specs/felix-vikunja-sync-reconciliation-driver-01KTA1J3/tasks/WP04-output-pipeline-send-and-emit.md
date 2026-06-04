@@ -17,6 +17,8 @@ subtasks:
 - T015
 - T016
 - T017
+agent: "claude"
+shell_pid: "83449"
 history:
 - at: '2026-06-04T19:53:57Z'
   by: spec-kitty.tasks
@@ -334,3 +336,7 @@ Reject if subprocess args drift from precedent, if `send` raises in any path, if
 - Subprocess precedent: `scripts/obsidian/sync-heartbeat.py:114-138`
 - From WP03: `scripts/sync/classify.py` (ClassifiedConflict type), `scripts/sync/guards.py` (apply_guards, event_id_stem)
 - From WP01: `scripts/sync/state.py` (TaskCacheRecord, GuardState)
+
+## Activity Log
+
+- 2026-06-04T20:33:38Z – claude – shell_pid=83449 – Started implementation via action command
