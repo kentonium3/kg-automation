@@ -36,10 +36,10 @@ The WP execution order (and dependency graph) is:
 | T011 | `scripts/sync/guards.py` — G-1 (24h dedup), G-2 (30-min post-write), G-3 (daily cap) | WP03 | — | [D] |
 | T012 | `tests/sync/test_classify.py` — full classification matrix; UC-4 inversion; private-task path | WP03 | [D] |
 | T013 | `tests/sync/test_guards.py` — G-1 lookback, G-2 timing window, G-3 day rollover | WP03 | [D] |
-| T014 | `scripts/sync/send_whatsapp.py` — `SendResult` dataclass, subprocess wrapper, 3-line message formatter | WP04 | — |
-| T015 | `scripts/sync/emit.py` — deterministic `event_id`, guard application order, JSONL append, delivery dispatch | WP04 | — |
-| T016 | `tests/sync/test_send_whatsapp.py` — exit-code paths, timeout, FileNotFoundError, dry-run, message formatter | WP04 | [P] |
-| T017 | `tests/sync/test_emit.py` — `event_id` idempotency, guard interactions, log append failure path | WP04 | [P] |
+| T014 | `scripts/sync/send_whatsapp.py` — `SendResult` dataclass, subprocess wrapper, 3-line message formatter | WP04 | — | [D] |
+| T015 | `scripts/sync/emit.py` — deterministic `event_id`, guard application order, JSONL append, delivery dispatch | WP04 | — | [D] |
+| T016 | `tests/sync/test_send_whatsapp.py` — exit-code paths, timeout, FileNotFoundError, dry-run, message formatter | WP04 | [D] |
+| T017 | `tests/sync/test_emit.py` — `event_id` idempotency, guard interactions, log append failure path | WP04 | [D] |
 | T018 | `scripts/sync/cycle.py` — 6-phase orchestration; atomic state commit at `complete` | WP05 | — |
 | T019 | `scripts/sync/driver.py` — argparse CLI surface, env-var resolution, bootstrap mode, exit codes 0/1/2/3 | WP05 | — |
 | T020 | `tests/sync/test_cycle.py` — end-to-end mocked cycle, per-phase failure injection, bootstrap path, atomicity | WP05 | [P] |
@@ -163,10 +163,10 @@ The WP execution order (and dependency graph) is:
 **Estimated prompt size**: ~380 lines.
 
 **Included subtasks**:
-- [ ] T014 `scripts/sync/send_whatsapp.py` — subprocess wrapper + message formatter (WP04)
-- [ ] T015 `scripts/sync/emit.py` — event_id, JSONL append, guard application, delivery dispatch (WP04)
-- [ ] T016 `tests/sync/test_send_whatsapp.py` — exit-code paths (WP04)
-- [ ] T017 `tests/sync/test_emit.py` — event_id idempotency, guard interactions (WP04)
+- [x] T014 `scripts/sync/send_whatsapp.py` — subprocess wrapper + message formatter (WP04)
+- [x] T015 `scripts/sync/emit.py` — event_id, JSONL append, guard application, delivery dispatch (WP04)
+- [x] T016 `tests/sync/test_send_whatsapp.py` — exit-code paths (WP04)
+- [x] T017 `tests/sync/test_emit.py` — event_id idempotency, guard interactions (WP04)
 
 **Implementation sketch**:
 1. `send_whatsapp.py`: implement `send(*, message, recipient, agent="main", timeout_seconds=60, dry_run=False) → SendResult` per `contracts/whatsapp-send.md`. Subprocess invocation MUST match the documented argument order exactly. Never raises; all failures return a SendResult.
