@@ -26,8 +26,8 @@ subtasks:
 - T017
 phase: Phase 3 — Synthesis + handoff
 assignee: ''
-agent: "claude:sonnet:implementer:implementer"
-shell_pid: "89671"
+agent: "claude:opus:reviewer:reviewer"
+shell_pid: "4219"
 history:
 - timestamp: '2026-06-03T22:59:10Z'
   agent: system
@@ -270,3 +270,4 @@ Operator-facing artifacts (`recommendation.md`, draft ADR-0003, `findings.md`) f
 
 - 2026-06-04T01:28:58Z – claude:sonnet:implementer:implementer – shell_pid=89671 – Started implementation via action command
 - 2026-06-04T02:26:15Z – claude:sonnet:implementer:implementer – shell_pid=89671 – Ready for review: 3 follow-on missions (#518/#519/#520) filed under kg-felix-bot, linked as sub-issues of #507, added to Felix Roadmap. T011-T017 complete. T012 findings.md and post-subagent T015/T017 completed directly in parent session due to subagent permission block (see #517 context for the parallel review-cycle workaround). ADR-0003 extends ADR-0002 (Q3/Q4/Q5/Q7/Q10).
+- 2026-06-04T02:26:25Z – claude:opus:reviewer:reviewer – shell_pid=4219 – Started review via action command
