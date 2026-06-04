@@ -14,6 +14,8 @@ subtasks:
 - T023
 - T024
 - T025
+agent: "claude"
+shell_pid: "90075"
 history:
 - at: '2026-06-04T19:53:57Z'
   by: spec-kitty.tasks
@@ -310,3 +312,7 @@ Reject if the runbook is missing SC coverage, if systemd-analyze fails, if valid
 - Existing runbook precedent: `docs/runbooks/doc-auditor-driver-ops.md`
 - Existing systemd unit precedent: any existing entry under `~/.config/systemd/user/` on office2 (live-probe during implement)
 - From WP05: `scripts/sync/driver.py` (the entry point the systemd unit invokes)
+
+## Activity Log
+
+- 2026-06-04T20:57:58Z – claude – shell_pid=90075 – Started implementation via action command
