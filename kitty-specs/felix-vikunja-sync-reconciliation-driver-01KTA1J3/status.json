@@ -1,7 +1,7 @@
 {
-  "event_count": 36,
-  "last_event_id": "01KTA7FNKNAR09BKQYZ7DTN3AK",
-  "materialized_at": "2026-06-04T21:09:02.197478+00:00",
+  "event_count": 38,
+  "last_event_id": "01KTA7GCFYM0728DCNAEND5YKM",
+  "materialized_at": "2026-06-04T21:09:25.630540+00:00",
   "mission_number": "",
   "mission_slug": "felix-vikunja-sync-reconciliation-driver-01KTA1J3",
   "mission_type": "software-dev",
@@ -12,9 +12,9 @@
     "claimed": 0,
     "done": 0,
     "for_review": 0,
-    "in_progress": 0,
+    "in_progress": 1,
     "in_review": 0,
-    "planned": 1
+    "planned": 0
   },
   "work_packages": {
     "WP01": {
@@ -53,11 +53,11 @@
       "last_transition_at": "2026-06-04T20:56:47.629877+00:00"
     },
     "WP06": {
-      "actor": "user",
+      "actor": "claude",
       "force_count": 2,
-      "lane": "planned",
-      "last_event_id": "01KTA7FNKNAR09BKQYZ7DTN3AK",
-      "last_transition_at": "2026-06-04T21:09:02.197478+00:00"
+      "lane": "in_progress",
+      "last_event_id": "01KTA7GCFYM0728DCNAEND5YKM",
+      "last_transition_at": "2026-06-04T21:09:25.630540+00:00"
     }
   }
 }
