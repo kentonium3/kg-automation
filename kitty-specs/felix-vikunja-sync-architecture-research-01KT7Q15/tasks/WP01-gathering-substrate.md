@@ -21,8 +21,8 @@ subtasks:
 - T005
 phase: Phase 1 — Gathering substrate
 assignee: ''
-agent: "claude:sonnet:implementer:implementer"
-shell_pid: "79945"
+agent: "claude:opus:reviewer:reviewer"
+shell_pid: "81592"
 history:
 - timestamp: '2026-06-03T22:59:10Z'
   agent: system
@@ -277,3 +277,4 @@ Findings follow the Felix output-discipline pattern (memory `reference_felix_out
 - 2026-06-04T00:50:08Z – claude:sonnet:implementer:implementer – shell_pid=79945 – Started implementation via action command
 - 2026-06-04T01:00:00Z – claude:sonnet:implementer:implementer – shell_pid=79945 – Cycle 2: addressed 4 required cycle-1 changes: (1) FR-004 Required-1 — inventoried query_active_habits.py v1 as TP-18; added explicit exclusion for hard_fail.py (comment-only URL mention, no HTTP calls); (2) FR-004 Required-2 — split TP-17 into TP-16A/B/C/D/E per file and callsite; (3) FR-004 Required-3 — replaced representative Grep 3 label with full verbatim output + per-file confirmation framing; (4) NFR-006 Required-4 — re-tagged auth model tk_ claim from observed to documented, removed unsupported 43-char specificity. New source-register rows added for v1 habits query, validate_felix_bot, swap_vikunja_secrets. New evidence-log rows appended for all new findings.
 - 2026-06-04T00:55:56Z – claude:sonnet:implementer:implementer – shell_pid=79945 – Cycle 2: addressed 4 required cycle-1 changes (FR-004 gaps, TP-17 split, NFR-006 auth sourcing)
+- 2026-06-04T00:56:32Z – claude:opus:reviewer:reviewer – shell_pid=81592 – Started review via action command
