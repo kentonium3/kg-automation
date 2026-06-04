@@ -20,6 +20,8 @@ subtasks:
 - T014
 - T015
 - T016
+agent: "claude:sonnet:implementer:implementer"
+shell_pid: "28322"
 history:
 - at: '2026-06-04T22:24:02Z'
   by: spec-kitty.tasks
@@ -310,3 +312,7 @@ Reject if state-log filenames don't match the actual deployment, if disagreement
 - WP01 test fixtures: `tests/common/conftest.py` (post-WP01)
 - RQ-2 per-TP citations: `docs/research/felix-vikunja-sync-architecture/findings/rq-2-touchpoints.md` § TP-02, TP-10, TP-12
 - State log file locations on office2: `ssh office2-claude 'ls /data/services/openclaw/state/'` (live-probe during implementation)
+
+## Activity Log
+
+- 2026-06-04T23:19:18Z – claude:sonnet:implementer:implementer – shell_pid=28322 – Started implementation via action command
