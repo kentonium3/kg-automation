@@ -20,6 +20,8 @@ subtasks:
 - T019
 - T020
 - T021
+agent: "claude"
+shell_pid: "87326"
 history:
 - at: '2026-06-04T19:53:57Z'
   by: spec-kitty.tasks
@@ -343,3 +345,7 @@ Reject if phase 6 write order is wrong, if bootstrap emits events, or if any exi
 - From WP04: `scripts/sync/emit.py`, `scripts/sync/send_whatsapp.py`
 - Existing CLI pattern: `scripts/habits/record_completion.py:_read_token` and the `main()` function
 - Existing driver pattern: `scripts/security/credential_health_check/listing.py` (deterministic-driver CLI shape)
+
+## Activity Log
+
+- 2026-06-04T20:48:00Z – claude – shell_pid=87326 – Started implementation via action command
