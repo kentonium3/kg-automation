@@ -1,0 +1,102 @@
+{
+  "version": 1,
+  "mission_slug": "felix-vikunja-sync-reconciliation-driver-01KTA1J3",
+  "mission_id": "01KTA1J3FH87XJWT7FQPT1EZE7",
+  "mission_branch": "kitty/mission-felix-vikunja-sync-reconciliation-driver-01KTA1J3",
+  "target_branch": "main",
+  "lanes": [
+    {
+      "lane_id": "lane-a",
+      "wp_ids": [
+        "WP01",
+        "WP02",
+        "WP03",
+        "WP04",
+        "WP05",
+        "WP06"
+      ],
+      "write_scope": [
+        "docs/DEVELOPER_PORTAL.md",
+        "docs/INDEX.md",
+        "docs/design/architecture/data/service-inventory.json",
+        "docs/design/architecture/data/signal-to-doc-map.json",
+        "docs/runbooks/sync-driver-ops.md",
+        "scripts/sync/__init__.py",
+        "scripts/sync/classify.py",
+        "scripts/sync/cycle.py",
+        "scripts/sync/diff.py",
+        "scripts/sync/driver.py",
+        "scripts/sync/emit.py",
+        "scripts/sync/fetch.py",
+        "scripts/sync/guards.py",
+        "scripts/sync/http.py",
+        "scripts/sync/send_whatsapp.py",
+        "scripts/sync/state.py",
+        "scripts/sync/systemd/felix-vikunja-sync.service",
+        "scripts/sync/systemd/felix-vikunja-sync.timer",
+        "tests/sync/__init__.py",
+        "tests/sync/test_classify.py",
+        "tests/sync/test_cycle.py",
+        "tests/sync/test_diff.py",
+        "tests/sync/test_driver.py",
+        "tests/sync/test_emit.py",
+        "tests/sync/test_fetch.py",
+        "tests/sync/test_guards.py",
+        "tests/sync/test_http.py",
+        "tests/sync/test_send_whatsapp.py",
+        "tests/sync/test_state.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "app-shell",
+        "artifact-rendering",
+        "tests",
+        "tracker-integration"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    }
+  ],
+  "computed_at": "2026-06-04T20:06:30.522028+00:00",
+  "computed_from": "dependency_graph+ownership",
+  "planning_artifact_wps": [],
+  "collapse_report": {
+    "events": [
+      {
+        "wp_a": "WP02",
+        "wp_b": "WP01",
+        "rule": "dependency",
+        "evidence": "WP02 depends on WP01"
+      },
+      {
+        "wp_a": "WP03",
+        "wp_b": "WP02",
+        "rule": "dependency",
+        "evidence": "WP03 depends on WP02"
+      },
+      {
+        "wp_a": "WP04",
+        "wp_b": "WP03",
+        "rule": "dependency",
+        "evidence": "WP04 depends on WP03"
+      },
+      {
+        "wp_a": "WP05",
+        "wp_b": "WP01",
+        "rule": "dependency",
+        "evidence": "WP05 depends on WP01"
+      },
+      {
+        "wp_a": "WP06",
+        "wp_b": "WP05",
+        "rule": "dependency",
+        "evidence": "WP06 depends on WP05"
+      }
+    ],
+    "total_merges": 5,
+    "independent_wps_collapsed": 0,
+    "by_rule": {
+      "dependency": 5
+    }
+  }
+}
