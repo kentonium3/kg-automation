@@ -2,6 +2,7 @@
 rq_id: "RQ-1"
 title: "Vikunja API probe transcripts"
 wp: "WP01"
+tags: [336]
 ---
 
 # RQ-1 — Probe Transcripts
@@ -14,11 +15,13 @@ Probes executed via SSH to office2-claude on 2026-06-03. Token file: `/data/serv
 ## Probe 1 — GET /info (no auth)
 
 **Request**:
+
 ```
 GET https://office2.tail0f5f56.ts.net/api/v1/info
 ```
 
 **Response**: HTTP 200
+
 ```json
 {
   "version": "v0.24.6",
@@ -53,12 +56,14 @@ GET https://office2.tail0f5f56.ts.net/api/v1/info
 ## Probe 2 — GET /tasks/all?per_page=1 (representative task schema)
 
 **Request**:
+
 ```
 GET https://office2.tail0f5f56.ts.net/api/v1/tasks/all?per_page=1
 Authorization: Bearer <token>
 ```
 
 **Response**: HTTP 200, `x-pagination-result-count: 1`, `x-pagination-total-pages: 21`
+
 ```json
 [{
   "id": 1,
@@ -100,6 +105,7 @@ Authorization: Bearer <token>
 ## Probe 3 — GET /tasks/1 (full task representation)
 
 **Request**:
+
 ```
 GET https://office2.tail0f5f56.ts.net/api/v1/tasks/1
 Authorization: Bearer <token>
@@ -112,12 +118,14 @@ Authorization: Bearer <token>
 ## Probe 4 — GET /projects (project schema)
 
 **Request**:
+
 ```
 GET https://office2.tail0f5f56.ts.net/api/v1/projects
 Authorization: Bearer <token>
 ```
 
 **Response**: HTTP 200 — array of 14 project objects. Sample (project id=1, "Inbox"):
+
 ```json
 {
   "id": 1,
@@ -150,6 +158,7 @@ Authorization: Bearer <token>
 ## Probe 5 — Filter probe 1: done = false
 
 **Request**:
+
 ```
 GET https://office2.tail0f5f56.ts.net/api/v1/tasks/all?filter=done+%3D+false&per_page=1
 Authorization: Bearer <token>
@@ -162,6 +171,7 @@ Authorization: Bearer <token>
 ## Probe 6 — Filter probe 2: done = true
 
 **Request**:
+
 ```
 GET https://office2.tail0f5f56.ts.net/api/v1/tasks/all?filter=done+%3D+true&per_page=1
 Authorization: Bearer <token>
@@ -174,6 +184,7 @@ Authorization: Bearer <token>
 ## Probe 7 — Filter probe 3: due_date < now
 
 **Request**:
+
 ```
 GET https://office2.tail0f5f56.ts.net/api/v1/tasks/all?filter=due_date+%3C+now&per_page=1
 Authorization: Bearer <token>
@@ -186,6 +197,7 @@ Authorization: Bearer <token>
 ## Probe 8 — Filter probe 4: project_id = 13
 
 **Request**:
+
 ```
 GET https://office2.tail0f5f56.ts.net/api/v1/tasks/all?filter=project_id+%3D+13&per_page=1
 Authorization: Bearer <token>
@@ -198,6 +210,7 @@ Authorization: Bearer <token>
 ## Probe 9 — Filter probe 5: done != false (G7 class test)
 
 **Request**:
+
 ```
 GET https://office2.tail0f5f56.ts.net/api/v1/tasks/all?filter=done+%21%3D+false&per_page=1
 Authorization: Bearer <token>
@@ -210,12 +223,14 @@ Authorization: Bearer <token>
 ## Probe 10 — Batch probe: GET /tasks/bulk
 
 **Request**:
+
 ```
 GET https://office2.tail0f5f56.ts.net/api/v1/tasks/bulk
 Authorization: Bearer <token>
 ```
 
 **Response**: HTTP 400
+
 ```json
 {"message": "strconv.ParseInt: parsing \"bulk\": invalid syntax"}
 ```
@@ -227,12 +242,14 @@ Authorization: Bearer <token>
 ## Probe 11 — Webhook probe: GET /projects/1/webhooks
 
 **Request**:
+
 ```
 GET https://office2.tail0f5f56.ts.net/api/v1/projects/1/webhooks
 Authorization: Bearer <token>
 ```
 
 **Response**: HTTP 200
+
 ```json
 []
 ```
@@ -244,6 +261,7 @@ Authorization: Bearer <token>
 ## Probe 12 — updated_since probe
 
 **Request**:
+
 ```
 GET https://office2.tail0f5f56.ts.net/api/v1/tasks/all?updated_since=2026-06-01T00:00:00Z&per_page=3
 Authorization: Bearer <token>

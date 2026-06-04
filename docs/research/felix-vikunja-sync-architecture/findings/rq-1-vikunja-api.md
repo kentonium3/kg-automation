@@ -3,6 +3,7 @@ rq_id: "RQ-1"
 title: "Vikunja API surface"
 depends_on: []
 wp: "WP01"
+tags: [63, 336]
 ---
 
 # RQ-1 — Vikunja API Surface

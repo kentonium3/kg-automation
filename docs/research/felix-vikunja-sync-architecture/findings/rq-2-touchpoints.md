@@ -26,6 +26,7 @@ grep -rn 'vikunja-api\|office2.tail0f5f56.ts.net\|vikunja\.local\|VIKUNJA_BASE\|
 ```
 
 **Output** (2026-06-03, 23 files — re-run verified on 2026-06-03):
+
 ```
 scripts/enrichment/record_completion.py
 scripts/enrichment/reconcile_completions.py
@@ -76,6 +77,7 @@ grep -rn '/tasks/\|/projects/\|/comments\|/labels\|/webhooks' \
 **Note (cycle 2)**: Grep 3 is a per-file confirmation step, not a discovery step. Discovery happened in Grep 1 (broad sweep over 23 files); Grep 3 confirms which endpoint patterns each file uses. Every file from Grep 1 is inventoried or explicitly excluded in the Notes section below — Grep 3 does not introduce additional discovery scope.
 
 **Verbatim output** (2026-06-03, against commit 5ac4543d):
+
 ```
 scripts/enrichment/record_completion.py:482:    url = f"{base_url}/tasks/{task_id}/comments"
 scripts/enrichment/reconcile_completions.py:146:    tasks_url = f"{base_url}/projects/{project_id}/tasks"
