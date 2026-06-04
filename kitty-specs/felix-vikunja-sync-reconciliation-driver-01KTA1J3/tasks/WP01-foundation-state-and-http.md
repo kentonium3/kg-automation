@@ -19,7 +19,8 @@ subtasks:
 - T003
 - T004
 - T005
-shell_pid: '76162'
+shell_pid: "76162"
+agent: "claude"
 history:
 - at: '2026-06-04T19:53:57Z'
   by: spec-kitty.tasks
@@ -289,3 +290,7 @@ Reject if any owned-file boundary is violated, any test uses live I/O, or any st
 - Atomic-write precedent: `scripts/habits/sweeper.py:_atomic_write_json`
 - HTTP wrapper precedent: `scripts/habits/record_completion.py:_http_request` (lines 98-156)
 - Test pattern precedent: `tests/habits/test_record_completion.py`
+
+## Activity Log
+
+- 2026-06-04T20:08:41Z – claude – shell_pid=76162 – Assigned agent via action command
