@@ -49,13 +49,13 @@ Two-location split:
 | T008 | Write #516-framework forward-compatibility analysis (sender-only / router-only / both) per SC-006 | WP02 | — | [D] |
 | T009 | Execute RQ-4 use-case → layer mapping; write `findings/rq-4-use-case-mapping.md` | WP02 | [D] |
 | T010 | NFR-002 (≤5-min for all 7 use cases) and NFR-003 (WhatsApp volume guard) enforcement; document volume estimate | WP02 | — | [D] |
-| T011 | Execute RQ-6 ADR-0003 scope decision; write `findings/rq-6-adr-scope.md` | WP03 | — |
-| T012 | Write `findings.md` synthesis/index across all per-RQ files | WP03 | — |
-| T013 | Write `recommendation.md` (operator-readable cold per NFR-004) | WP03 | — |
-| T014 | Draft `docs/design/architecture/adr/0003-felix-vikunja-sync-architecture.md`; replace polling-only interaction-model diagram | WP03 | — |
-| T015 | Decide on 2–4 follow-on mission scopes + dependencies | WP03 | — |
+| T011 | Execute RQ-6 ADR-0003 scope decision; write `findings/rq-6-adr-scope.md` | WP03 | — | [D] |
+| T012 | Write `findings.md` synthesis/index across all per-RQ files | WP03 | — | [D] |
+| T013 | Write `recommendation.md` (operator-readable cold per NFR-004) | WP03 | — | [D] |
+| T014 | Draft `docs/design/architecture/adr/0003-felix-vikunja-sync-architecture.md`; replace polling-only interaction-model diagram | WP03 | — | [D] |
+| T015 | Decide on 2–4 follow-on mission scopes + dependencies | WP03 | — | [D] |
 | T016 | File 2–4 sub-issues under Epic #507 via `gh api graphql addSubIssue`; back-fill cross-references in findings.md and recommendation.md | WP03 | — |
-| T017 | NFR-004 / NFR-005 / SC-001 / SC-007 readiness check; document operator-review-pending status | WP03 | — |
+| T017 | NFR-004 / NFR-005 / SC-001 / SC-007 readiness check; document operator-review-pending status | WP03 | — | [D] |
 
 **[P]** marks subtasks safely parallelizable within a single WP.
 
@@ -147,13 +147,13 @@ Two-location split:
 **Independent test**: Operator reads `recommendation.md` + draft `adr-0003.md` cold (no working notes) and makes accept/reject decision in one round (NFR-004 verifiable via NFR-equivalent check in T017).
 
 **Subtasks**:
-- [ ] T011 Execute RQ-6 ADR-0003 scope decision; write `findings/rq-6-adr-scope.md` (WP03)
-- [ ] T012 Write `findings.md` synthesis/index across all per-RQ files (WP03)
-- [ ] T013 Write `recommendation.md` (operator-readable cold per NFR-004) (WP03)
-- [ ] T014 Draft `docs/design/architecture/adr/0003-felix-vikunja-sync-architecture.md`; replace polling-only interaction-model diagram (WP03)
-- [ ] T015 Decide on 2–4 follow-on mission scopes + dependencies (WP03)
+- [x] T011 Execute RQ-6 ADR-0003 scope decision; write `findings/rq-6-adr-scope.md` (WP03)
+- [x] T012 Write `findings.md` synthesis/index across all per-RQ files (WP03)
+- [x] T013 Write `recommendation.md` (operator-readable cold per NFR-004) (WP03)
+- [x] T014 Draft `docs/design/architecture/adr/0003-felix-vikunja-sync-architecture.md`; replace polling-only interaction-model diagram (WP03)
+- [x] T015 Decide on 2–4 follow-on mission scopes + dependencies (WP03)
 - [ ] T016 File 2–4 sub-issues under Epic #507 via `gh api graphql addSubIssue`; back-fill cross-references (WP03)
-- [ ] T017 NFR-004 / NFR-005 / SC-001 / SC-007 readiness check; document operator-review-pending status (WP03)
+- [x] T017 NFR-004 / NFR-005 / SC-001 / SC-007 readiness check; document operator-review-pending status (WP03)
 
 **Implementation sketch**:
 1. T011 — Read ADR-0002 in full. Enumerate each architectural decision. For each, classify the proposed sync architecture's stance (override/extend/preserve). Apply tally rule from plan.md RQ-6. Write verdict + rationale into `findings/rq-6-adr-scope.md`.
