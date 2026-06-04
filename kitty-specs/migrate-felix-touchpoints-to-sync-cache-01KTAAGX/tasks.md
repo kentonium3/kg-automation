@@ -26,10 +26,10 @@ WP02 and WP03 can execute in parallel (different files, both depend only on WP01
 
 | ID   | Description | WP | Parallel |
 |------|-------------|----|----------|
-| T001 | `scripts/common/sync_cache.py` — full helper module: SLA tiers, dataclasses, 5 public functions, structured error messages | WP01 | — |
-| T002 | `tests/common/__init__.py` + `tests/common/conftest.py` — `mock_sync_cache_fixture` + `mock_state_log_fixture` | WP01 | [P] |
-| T003 | `tests/common/test_sync_cache.py` — full helper unit test suite | WP01 | [P] |
-| T004 | `docs/design/architecture/data/service-inventory.json` + `data-flows.json` — note that 6 cron services now consume from sync cache | WP01 | [P] |
+| T001 | `scripts/common/sync_cache.py` — full helper module: SLA tiers, dataclasses, 5 public functions, structured error messages | WP01 | — | [D] |
+| T002 | `tests/common/__init__.py` + `tests/common/conftest.py` — `mock_sync_cache_fixture` + `mock_state_log_fixture` | WP01 | [D] |
+| T003 | `tests/common/test_sync_cache.py` — full helper unit test suite | WP01 | [D] |
+| T004 | `docs/design/architecture/data/service-inventory.json` + `data-flows.json` — note that 6 cron services now consume from sync cache | WP01 | [D] |
 | T005 | TP-03 migrate `scripts/habits/query_active_habits_v2.py` — direct GET → `read_cached_tasks` | WP02 | — |
 | T006 | TP-03 update `tests/habits/test_query_active_habits_v2.py` — `mock_sync_cache_fixture` | WP02 | [P] |
 | T007 | TP-04 migrate `scripts/habits/set_due_dates.py` (GET phase only; PUT phase unchanged) | WP02 | — |
@@ -56,10 +56,10 @@ WP02 and WP03 can execute in parallel (different files, both depend only on WP01
 **Estimated prompt size**: ~470 lines.
 
 **Included subtasks**:
-- [ ] T001 `scripts/common/sync_cache.py` — full helper module (WP01)
-- [ ] T002 `tests/common/__init__.py` + `tests/common/conftest.py` — both fixtures (WP01)
-- [ ] T003 `tests/common/test_sync_cache.py` — full helper unit test suite (WP01)
-- [ ] T004 Architecture-doc updates per change-control (WP01)
+- [x] T001 `scripts/common/sync_cache.py` — full helper module (WP01)
+- [x] T002 `tests/common/__init__.py` + `tests/common/conftest.py` — both fixtures (WP01)
+- [x] T003 `tests/common/test_sync_cache.py` — full helper unit test suite (WP01)
+- [x] T004 Architecture-doc updates per change-control (WP01)
 
 **Implementation sketch**:
 1. Build `scripts/common/sync_cache.py` per [`contracts/helper-api.md`](./contracts/helper-api.md). Includes SLA tier constants, 4 dataclasses, 5 public functions (`read_cached_tasks`, `read_cached_task_by_id`, `read_freshness_pointer`, `read_completion_timestamps`, `is_cache_healthy`), structured error message format. Imports from `scripts.sync.state` only.
