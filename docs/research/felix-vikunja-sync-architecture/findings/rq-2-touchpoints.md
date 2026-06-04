@@ -73,16 +73,89 @@ grep -rn '/tasks/\|/projects/\|/comments\|/labels\|/webhooks' \
   | grep -v 'test_\|fixture'
 ```
 
-**Output** (key findings, representative):
-- `scripts/habits/record_completion.py`: `POST /tasks/<id>`, `PUT /tasks/<id>/comments`
-- `scripts/habits/reconcile_completions.py`: `GET /projects`, `GET /projects/<id>/tasks`
-- `scripts/habits/query_active_habits_v2.py`: `GET /projects/<id>/tasks`
-- `scripts/habits/set_due_dates.py`: `GET /projects`, `PUT /tasks/{id}` (due_date update via POST)
-- `scripts/habits/sweeper.py`: `POST /tasks/{id}` (due_date update)
-- `scripts/escalation/record_completion.py`: `PATCH /tasks/{id}` (done + due_date)
-- `scripts/enrichment/record_completion.py`: `PUT /tasks/{id}/comments`
-- `scripts/security/credential_health_check/vikunja_writer.py`: `GET /projects`, `PUT /projects/{id}/tasks`
-- `scripts/vikunja/setup_vikunja.py`: `GET /info`, `GET /projects`, `PUT /projects`, `GET /labels`, `PUT /labels`, `PUT /projects/{id}/filters`
+**Note (cycle 2)**: Grep 3 is a per-file confirmation step, not a discovery step. Discovery happened in Grep 1 (broad sweep over 23 files); Grep 3 confirms which endpoint patterns each file uses. Every file from Grep 1 is inventoried or explicitly excluded in the Notes section below — Grep 3 does not introduce additional discovery scope.
+
+**Verbatim output** (2026-06-03, against commit 5ac4543d):
+```
+scripts/enrichment/record_completion.py:482:    url = f"{base_url}/tasks/{task_id}/comments"
+scripts/enrichment/reconcile_completions.py:146:    tasks_url = f"{base_url}/projects/{project_id}/tasks"
+scripts/enrichment/reconcile_completions.py:160:    comments_url = f"{base_url}/tasks/{task_id}/comments"
+scripts/escalation/hard_fail.py:339:    # ``https://office2.tail0f5f56.ts.net/tasks/1234``) and ISO-8601
+scripts/escalation/reconcile_completions.py:137:    tasks_url = f"{base_url}/projects/{project_id}/tasks"
+scripts/escalation/record_completion.py:451:    url = f"{base_url}/tasks/{task_id}"
+scripts/habits/backfill_jsonl_from_comments.py:159:    url = f"{base_url}/projects"
+scripts/habits/backfill_jsonl_from_comments.py:168:    tasks_url = f"{base_url}/projects/{project_id}/tasks"
+scripts/habits/backfill_jsonl_from_comments.py:177:    url = f"{base_url}/tasks/{task_id}/comments"
+scripts/habits/exclude_completed.py:127:    comments = _http_get(base_url, token, f"/tasks/{habit_id}/comments")
+scripts/habits/identify_workout_task.py:52:    url = f"{base_url}/tasks/{task_id}"
+scripts/habits/migrate_schedule.py:129:    tasks_url = f"{base_url}/projects/{project_id}/tasks"
+scripts/habits/migrate_schedule.py:143:    url = f"{base_url}/tasks/{task_id}"
+scripts/habits/migrate_schedule.py:159:    create_url = f"{base_url}/projects/{project_id}/tasks"
+scripts/habits/morning_checkin_list.py:230:    url = f"{base_url}/projects/{project_id}/tasks"
+scripts/habits/query_active_habits.py:118:    projects = _http_get(base_url, token, "/projects")
+scripts/habits/query_active_habits.py:133:    tasks = _http_get(base_url, token, f"/projects/{project_id}/tasks?per_page=200")
+scripts/habits/query_active_habits_v2.py:132:    projects = _http_get(base_url, token, "/projects")
+scripts/habits/query_active_habits_v2.py:167:    tasks = _http_get(base_url, token, f"/projects/{project_id}/tasks?per_page=200")
+scripts/habits/reconcile_completions.py:140:    url = f"{base_url}/projects"
+scripts/habits/reconcile_completions.py:150:    tasks_url = f"{base_url}/projects/{project_id}/tasks"
+scripts/habits/record_completion.py:268:    task_url = f"{base_url}/tasks/{task_id}"
+scripts/habits/record_completion.py:277:    comments_url = f"{base_url}/tasks/{task_id}/comments"
+scripts/habits/set_due_dates.py:278:    url = f"{base_url}/projects"
+scripts/habits/set_due_dates.py:290:    url = f"{base_url}/projects/{project_id}/tasks"
+scripts/habits/set_due_dates.py:368:    url = f"{base_url}/tasks/{task_id}"
+scripts/habits/sweeper.py:616:    url = f"{base_url}/tasks/{task_id}"
+scripts/security/credential_health_check/vikunja_writer.py:119:    url = f"{base_url}/projects"
+scripts/security/credential_health_check/vikunja_writer.py:134:    url = f"{base_url}/projects/{project_id}/tasks"
+scripts/vikunja/provision_felix_bot.py:355:    url = _join_url(base_url, f"projects/{project_id}/users")
+scripts/vikunja/provision_felix_bot.py:433:    url = _join_url(base_url, f"projects/{project_id}/users")
+scripts/vikunja/provision_felix_bot.py:517:    url = _join_url(base_url, f"projects/{pid}/users")
+scripts/vikunja/provision_felix_bot.py:287:    url = _join_url(base_url, "register")
+scripts/vikunja/provision_felix_bot.py:355:    projects?per_page=50
+scripts/vikunja/revoke_kent_tokens.py:114:    url = f"{_normalize_base_url(base_url)}/tokens"
+scripts/vikunja/revoke_kent_tokens.py:124:    url = f"{_normalize_base_url(base_url)}/tokens/{token_id}"
+scripts/vikunja/setup_goals.py:97:    url = f"{base_url}/projects/{project_id}/tasks"
+scripts/vikunja/setup_goals.py:109:    create_url = f"{base_url}/projects/{project_id}/tasks"
+scripts/vikunja/setup_goals.py:122:    url = f"{base_url}/tasks/{task_id}/labels"
+scripts/vikunja/setup_vikunja.py:97:    url = f"{base_url}/info"
+scripts/vikunja/setup_vikunja.py:107:    url = f"{base_url}/projects"
+scripts/vikunja/setup_vikunja.py:145:    url = f"{base_url}/projects"
+scripts/vikunja/setup_vikunja.py:160:    url = f"{base_url}/labels"
+scripts/vikunja/setup_vikunja.py:175:    url = f"{base_url}/projects/{project_id}/filters"
+scripts/vikunja/swap_vikunja_secrets.py:456:    post_url = f"{base}/tasks/{task_id}/comments"
+scripts/vikunja/swap_vikunja_secrets.py:488:    get_url = f"{base}/tasks/{task_id}/comments/{comment_id}"
+scripts/vikunja/swap_vikunja_secrets.py:525:    _http_request_json(get_url, token, method="DELETE")
+scripts/vikunja/validate_felix_bot.py:198:    url = f"{_normalize_base_url(base_url)}/projects?per_page=50"
+scripts/vikunja/validate_felix_bot.py:315:    create_task_url = f"{base}/projects/{target_project_id}/tasks"
+scripts/vikunja/validate_felix_bot.py:338:    create_comment_url = f"{base}/tasks/{task_id}/comments"
+scripts/vikunja/validate_felix_bot.py:370:    list_comments_url = f"{base}/tasks/{task_id}/comments"
+scripts/vikunja/validate_felix_bot.py:408:    delete_comment_url = f"{base}/tasks/{task_id}/comments/{comment_id}"
+scripts/vikunja/validate_felix_bot.py:422:    delete_task_url = f"{base}/tasks/{task_id}"
+```
+
+**Grep 3 interpretation** (per-file confirmation of endpoints already discovered via Grep 1 and TP-row inventory):
+- `scripts/habits/record_completion.py`: `POST /tasks/<id>` (done), `PUT /tasks/<id>/comments` → TP-01
+- `scripts/habits/reconcile_completions.py`: `GET /projects`, `GET /projects/<id>/tasks` → TP-02
+- `scripts/habits/query_active_habits_v2.py`: `GET /projects`, `GET /projects/<id>/tasks` → TP-03
+- `scripts/habits/query_active_habits.py` (v1): `GET /projects`, `GET /projects/<id>/tasks` → TP-18 (new, cycle 2)
+- `scripts/habits/set_due_dates.py`: `GET /projects`, `GET /projects/<id>/tasks`, `POST /tasks/{id}` → TP-04, TP-05
+- `scripts/habits/sweeper.py`: `POST /tasks/{id}` → TP-06
+- `scripts/habits/morning_checkin_list.py`: `GET /projects/<id>/tasks` → TP-07
+- `scripts/habits/backfill_jsonl_from_comments.py`: `GET /projects`, `GET /projects/<id>/tasks`, `GET /tasks/<id>/comments` → TP-08
+- `scripts/habits/exclude_completed.py`: `GET /tasks/<id>/comments` → TP-15A
+- `scripts/habits/identify_workout_task.py`: `GET /tasks/<id>` → TP-15B
+- `scripts/habits/migrate_schedule.py`: `GET /projects/<id>/tasks`, `GET /tasks/<id>`, `POST /tasks/<id>`, `PUT /projects/<id>/tasks` → TP-15C
+- `scripts/escalation/hard_fail.py`: comment-only URL mention (line 339), no runtime API call → excluded (see Notes)
+- `scripts/escalation/record_completion.py`: `PATCH /tasks/{id}` → TP-09
+- `scripts/escalation/reconcile_completions.py`: `GET /projects/<id>/tasks` → TP-10
+- `scripts/enrichment/record_completion.py`: `PUT /tasks/{id}/comments` → TP-11
+- `scripts/enrichment/reconcile_completions.py`: `GET /projects/<id>/tasks`, `GET /tasks/<id>/comments` → TP-12
+- `scripts/security/credential_health_check/vikunja_writer.py`: `GET /projects`, `PUT /projects/{id}/tasks` → TP-13
+- `scripts/vikunja/setup_vikunja.py`: `GET /info`, `GET /projects`, `PUT /projects`, `GET /labels`, `PUT /labels`, `PUT /projects/{id}/filters` → TP-14
+- `scripts/vikunja/provision_felix_bot.py`: `POST /register`, `GET /projects`, `PUT /projects/{id}/users`, `GET /projects/{id}/users` → TP-16A, TP-16B, TP-16C
+- `scripts/vikunja/validate_felix_bot.py`: `GET /projects`, `PUT /projects/{id}/tasks`, `PUT /tasks/{id}/comments`, `GET /tasks/{id}/comments`, `DELETE /tasks/{id}/comments/{id}`, `DELETE /tasks/{id}` → TP-16D
+- `scripts/vikunja/swap_vikunja_secrets.py`: `PUT /tasks/{id}/comments`, `GET /tasks/{id}/comments/{id}`, `DELETE` (probe comment) → TP-16E
+- `scripts/vikunja/setup_goals.py`: `GET /projects/{id}/tasks`, `PUT /projects/{id}/tasks`, `PUT /tasks/{id}/labels` → TP-15D
+- `scripts/vikunja/revoke_kent_tokens.py`: `POST /login`, `GET /tokens`, `DELETE /tokens/{id}` → TP-15E
 
 ---
 
@@ -433,20 +506,117 @@ observed (`scripts/vikunja/setup_vikunja.py` lines 21, 83–234)
 
 ---
 
-### TP-17 — vikunja/provision_felix_bot.py + validate_felix_bot.py + swap_vikunja_secrets.py
+### TP-16A — vikunja/provision_felix_bot.py: `register_felix_bot()`
 
 | Attribute | Value |
 |---|---|
-| `file_path` | `scripts/vikunja/provision_felix_bot.py`, `validate_felix_bot.py`, `swap_vikunja_secrets.py` |
-| `function_or_callsite` | provisioning, validation, secret rotation |
-| `layer` | project (share) |
-| `http_verb` | GET, PUT, POST (register user, share project) |
-| `vikunja_endpoint` | `GET /projects/{id}/users`, `PUT /projects/{id}/users`, `POST /api/v1/register` |
-| `read_set` | project user list (verification) |
-| `write_set` | user registration, project sharing |
+| `file_path` | `scripts/vikunja/provision_felix_bot.py` |
+| `function_or_callsite` | `register_felix_bot()` |
+| `layer` | auth (user registration) |
+| `http_verb` | POST |
+| `vikunja_endpoint` | `POST /register` (maps to `POST /api/v1/register` at full URL) |
+| `read_set` | — |
+| `write_set` | new user: `username`, `email`, `password` (felix-bot account creation) |
 | `freshness_assumption` | no constraint (one-shot provisioning) |
 | `owner_component` | provisioning tooling |
 | `runtime_trigger` | manual |
+
+observed (`scripts/vikunja/provision_felix_bot.py` lines 266–325; commit 5ac4543d)
+
+---
+
+### TP-16B — vikunja/provision_felix_bot.py: `enumerate_real_projects()`
+
+| Attribute | Value |
+|---|---|
+| `file_path` | `scripts/vikunja/provision_felix_bot.py` |
+| `function_or_callsite` | `enumerate_real_projects()` |
+| `layer` | project |
+| `http_verb` | GET |
+| `vikunja_endpoint` | `GET /projects?per_page=50` |
+| `read_set` | `id`, `title`, `is_archived` (project list for real-project selection) |
+| `write_set` | — |
+| `freshness_assumption` | no constraint (one-shot provisioning) |
+| `owner_component` | provisioning tooling |
+| `runtime_trigger` | manual |
+
+observed (`scripts/vikunja/provision_felix_bot.py` lines 334–368; commit 5ac4543d)
+
+---
+
+### TP-16C — vikunja/provision_felix_bot.py: `share_project_with_user()` + `verify_shares_applied()`
+
+| Attribute | Value |
+|---|---|
+| `file_path` | `scripts/vikunja/provision_felix_bot.py` |
+| `function_or_callsite` | `share_project_with_user()`, `verify_shares_applied()` |
+| `layer` | project (share) |
+| `http_verb` | PUT (share), GET (verify) |
+| `vikunja_endpoint` | `PUT /projects/{id}/users`, `GET /projects/{id}/users` |
+| `read_set` | project user list (verification of felix-bot membership) |
+| `write_set` | project sharing: `user_id`, `right=1` |
+| `freshness_assumption` | no constraint (one-shot provisioning) |
+| `owner_component` | provisioning tooling |
+| `runtime_trigger` | manual |
+
+observed (`scripts/vikunja/provision_felix_bot.py` lines 407–540; commit 5ac4543d)
+
+---
+
+### TP-16D — vikunja/validate_felix_bot.py: `verify_project_access()` + `validate_attribution()`
+
+| Attribute | Value |
+|---|---|
+| `file_path` | `scripts/vikunja/validate_felix_bot.py` |
+| `function_or_callsite` | `verify_project_access()`, `validate_attribution()` |
+| `layer` | project (access check) + task (attribution probe) |
+| `http_verb` | GET (project access), PUT (task create), PUT (comment write), GET (comment readback), DELETE (comment cleanup), DELETE (task cleanup) |
+| `vikunja_endpoint` | `GET /projects?per_page=50`, `PUT /projects/{id}/tasks`, `PUT /tasks/{id}/comments`, `GET /tasks/{id}/comments`, `DELETE /tasks/{id}/comments/{id}`, `DELETE /tasks/{id}` |
+| `read_set` | project list (access check); comment `created_by.username` / `author.username` (attribution verification) |
+| `write_set` | throwaway task creation (probe only; best-effort deleted), throwaway comment (probe only; best-effort deleted) |
+| `freshness_assumption` | no constraint (one-shot validation tooling) |
+| `owner_component` | provisioning/security tooling |
+| `runtime_trigger` | manual |
+
+Note: The DELETE callsites are best-effort cleanup (probe cleanup on validation run). Not on any production sync path. observed (`scripts/vikunja/validate_felix_bot.py` lines 185–424; commit 5ac4543d)
+
+---
+
+### TP-16E — vikunja/swap_vikunja_secrets.py: `verify_attribution()`
+
+| Attribute | Value |
+|---|---|
+| `file_path` | `scripts/vikunja/swap_vikunja_secrets.py` |
+| `function_or_callsite` | `verify_attribution()` |
+| `layer` | task (post-swap attribution probe) |
+| `http_verb` | PUT (probe comment write), GET (comment readback), DELETE (cleanup) |
+| `vikunja_endpoint` | `PUT /tasks/{id}/comments`, `GET /tasks/{id}/comments/{id}`, `DELETE /tasks/{id}/comments/{id}` (cleanup) |
+| `read_set` | comment `author.username` (attribution check post-rotation) |
+| `write_set` | probe comment (best-effort deleted after verification) |
+| `freshness_assumption` | no constraint (secret rotation tooling; run once per rotation event) |
+| `owner_component` | provisioning/security tooling |
+| `runtime_trigger` | manual (atomic secrets cutover script) |
+
+Note: The core function of `swap_vikunja_secrets.py` is file-system secret rotation (backup + atomic write via `rotate_secrets()`). The Vikunja API callsite is only in the post-swap attribution verification step. No project-layer or task-CRUD endpoints used. observed (`scripts/vikunja/swap_vikunja_secrets.py` lines 420–530; commit 5ac4543d)
+
+---
+
+### TP-18 — habits/query_active_habits.py (v1): `find_habits_project_id()`, `fetch_habits_tasks()`
+
+| Attribute | Value |
+|---|---|
+| `file_path` | `scripts/habits/query_active_habits.py` |
+| `function_or_callsite` | `find_habits_project_id()`, `fetch_habits_tasks()` |
+| `layer` | task |
+| `http_verb` | GET |
+| `vikunja_endpoint` | `GET /projects` (project title lookup), `GET /projects/{id}/tasks?per_page=200` |
+| `read_set` | `id`, `title` (project fields); `id`, `title`, `done`, `description`, `due_date` (task fields) |
+| `write_set` | — (read-only) |
+| `freshness_assumption` | same-cron-tick |
+| `owner_component` | habits-agent (v1 helper; v2 counterpart is `query_active_habits_v2.py`) |
+| `runtime_trigger` | openclaw-agent (habits check-in; v1 cron path — active deployment status requires verification against live systemd units on office2) |
+
+Note (cycle 2): Added in response to Required-1 feedback. This is the v1 helper for querying active habits. It uses the same `urllib.request`-based `_http_get()` pattern and `DEFAULT_BASE_URL` constant as the rest of the habits scripts. Whether the agent invokes v1 or v2 at runtime requires checking live OpenClaw agent config on office2 (deferred to implementation). TP-18 numbering preserves the existing TP-01 through TP-17 slot numbering; TP-17 is removed (it bundled three files); TP-16A/B/C/D/E replace it; TP-18 is the new v1 entry. observed (`scripts/habits/query_active_habits.py` lines 56–57, 62, 86–92, 116–136; commit 5ac4543d)
 
 ---
 
@@ -463,6 +633,16 @@ observed (`scripts/vikunja/setup_vikunja.py` lines 21, 83–234)
 
 ---
 
+## Excluded Files from Grep 1
+
+The following files appeared in Grep 1's 23-file output but are **not inventoried as touchpoint rows** because they contain no runtime Vikunja API calls:
+
+| File | Reason for exclusion |
+|---|---|
+| `scripts/escalation/hard_fail.py` | Comment-only URL mention at line 339 (`https://office2.tail0f5f56.ts.net/tasks/1234` appears inside a Python docstring describing expected caller-provided strings). No `urllib`, `requests`, or `httpx` imports; no HTTP calls in the file. The grep hit was on the example URL in the docstring, not an API call. |
+
+---
+
 ## Notes
 
 1. **Two URL bases in use**: `https://office2.tail0f5f56.ts.net/api/v1` (Tailscale HTTPS, used in production scripts like `set_due_dates.py`, `sweeper.py`, `vikunja_writer.py`) and `http://100.92.197.90:3456/api/v1` (Tailscale IP direct HTTP, used in some older helpers like `record_completion.py`, `reconcile_completions.py`, `query_active_habits_v2.py`). This inconsistency is a latent fragility — URL change requires patching multiple files. observed (grep of `DEFAULT_BASE_URL` and `DEFAULT_VIKUNJA_BASE_URL` constants)
@@ -476,6 +656,6 @@ observed (`scripts/vikunja/setup_vikunja.py` lines 21, 83–234)
 ## Deferred to implementation
 
 - **In-prompt agent callsites**: OpenClaw agent prompts (escalation, tasker, capture) issue Vikunja API calls directly in-prompt based on skill instructions. These are not grep-discoverable from the Mac-side codebase. A complete inventory requires reading live AGENTS.md and SKILL.md files on office2. Partially addressed by `vikunja-task-model-research.md` §2.2–2.4 but not formally registered as code touchpoints here.
-- **Legacy vs active helper status**: Some scripts (e.g., `query_active_habits.py` v1, `exclude_completed.py`) may be superseded by their `_v2` counterparts. Whether they remain on the cron path requires checking live systemd units and OpenClaw configurations on office2.
+- **Legacy vs active helper status**: `query_active_habits.py` (v1) is now inventoried as TP-18 (cycle 2). `exclude_completed.py` (v1) is inventoried as TP-15A. Whether either remains on the active cron path (vs superseded by `_v2` counterparts) requires checking live systemd units and OpenClaw configurations on office2. The inventory includes both generations to ensure WP02 counts the full surface area.
 - **URL base consistency**: The two-URL-base pattern (Tailscale HTTPS vs direct IP HTTP) should be normalized as part of a sync architecture implementation. The config point is the correct normalization target.
 - **Comments endpoint touchpoints**: `GET /tasks/{id}/comments` callsites in escalation/tasker agents are in-prompt only. Their endpoint, read_set, and freshness_assumption must be re-verified when those agents are migrated to script-based helpers.

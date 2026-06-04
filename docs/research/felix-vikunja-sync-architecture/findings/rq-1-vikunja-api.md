@@ -153,9 +153,11 @@ Per-project webhook endpoints: `GET/POST/PUT/DELETE /projects/{id}/webhooks`. We
 
 ## 8. Auth Model
 
-Token type: long-lived Bearer token (prefix `tk_`, 43 characters). Stored at `/data/services/openclaw/secrets/vikunja-api`. observed (probe session token length)
+Token type: long-lived Bearer token (prefix `tk_`). Stored at `/data/services/openclaw/secrets/vikunja-api`. documented (`vikunja-task-model-research.md` §1.6)
 
-All authenticated endpoints require `Authorization: Bearer <token>`. The current token is owned by Vikunja user `kent` (user ID 1). `felix-bot` provisioning (ADR-0002 Q6) has completed — the `vikunja-api` secret was rotated to a `felix-bot` token per ADR-0002 Phase 1 (mission `felix-bot-vikunja-provisioning-01KRT3N4`). observed (`vikunja-task-model-research.md` §1.6, ADR-0002 §Q6)
+The `tk_` prefix and long-lived token model are documented in `vikunja-task-model-research.md` §1.6 and confirmed by the felix-bot provisioning mission (`felix-bot-vikunja-provisioning-01KRT3N4`). The specific character count (43 characters) was not captured in a probe transcript; that claim has been removed to preserve NFR-006 tagging discipline — length is not load-bearing for the sync architecture.
+
+All authenticated endpoints require `Authorization: Bearer <token>`. The current token is owned by Vikunja user `felix-bot` (rotated per ADR-0002 Phase 1). `felix-bot` provisioning (ADR-0002 Q6) has completed — the `vikunja-api` secret was rotated per ADR-0002 Phase 1 (mission `felix-bot-vikunja-provisioning-01KRT3N4`). documented (`vikunja-task-model-research.md` §1.6, ADR-0002 §Q6)
 
 ---
 
