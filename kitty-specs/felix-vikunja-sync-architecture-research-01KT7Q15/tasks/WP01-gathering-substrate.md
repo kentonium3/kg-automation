@@ -21,8 +21,8 @@ subtasks:
 - T005
 phase: Phase 1 — Gathering substrate
 assignee: ''
-agent: "claude:opus:reviewer:reviewer"
-shell_pid: "69101"
+agent: "claude:sonnet:implementer:implementer"
+shell_pid: "79945"
 history:
 - timestamp: '2026-06-03T22:59:10Z'
   agent: system
@@ -274,3 +274,4 @@ Findings follow the Felix output-discipline pattern (memory `reference_felix_out
 - 2026-06-03T23:49:01Z – claude:sonnet:implementer:implementer – shell_pid=65155 – Started implementation via action command
 - 2026-06-04T00:02:21Z – claude:sonnet:implementer:implementer – shell_pid=65155 – Ready for review: RQ-1/2/5 findings sourced; CSVs populated; NFR-001/NFR-006/FR-004 enforced in T005
 - 2026-06-04T00:03:11Z – claude:opus:reviewer:reviewer – shell_pid=69101 – Started review via action command
+- 2026-06-04T00:50:08Z – claude:sonnet:implementer:implementer – shell_pid=79945 – Started implementation via action command
