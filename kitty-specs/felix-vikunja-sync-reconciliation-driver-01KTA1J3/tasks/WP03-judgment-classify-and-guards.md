@@ -17,7 +17,7 @@ subtasks:
 - T012
 - T013
 agent: "claude"
-shell_pid: "81662"
+shell_pid: "82789"
 history:
 - at: '2026-06-04T19:53:57Z'
   by: spec-kitty.tasks
@@ -315,3 +315,4 @@ Reject if classify has I/O, if guard order is wrong, if UC-4 is not the inverter
 
 - 2026-06-04T20:27:46Z – claude – shell_pid=81662 – Started implementation via action command
 - 2026-06-04T20:30:48Z – claude – shell_pid=81662 – All 4 subtasks implemented (commit b1d76864 on lane-a). 52 new tests pass; full sync suite is 122/122. classify.py is pure + deterministic; guards.py enforces strict G-3 → G-2 → G-1 order. No unused imports this WP.
+- 2026-06-04T20:31:34Z – claude – shell_pid=82789 – Started review via action command
