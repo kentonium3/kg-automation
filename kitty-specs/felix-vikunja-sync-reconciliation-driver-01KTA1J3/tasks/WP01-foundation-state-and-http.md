@@ -10,12 +10,16 @@ requirement_refs:
 planning_base_branch: main
 merge_target_branch: main
 branch_strategy: Planning artifacts for this feature were generated on main. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into main unless the human explicitly redirects the landing branch.
+base_branch: kitty/mission-felix-vikunja-sync-reconciliation-driver-01KTA1J3
+base_commit: 094ac32f15b5022eb9c005574ac13c8dcb93866b
+created_at: '2026-06-04T20:08:39.170458+00:00'
 subtasks:
 - T001
 - T002
 - T003
 - T004
 - T005
+shell_pid: '76162'
 history:
 - at: '2026-06-04T19:53:57Z'
   by: spec-kitty.tasks
