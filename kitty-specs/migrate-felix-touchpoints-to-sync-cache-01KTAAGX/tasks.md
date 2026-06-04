@@ -36,12 +36,12 @@ WP02 and WP03 can execute in parallel (different files, both depend only on WP01
 | T008 | TP-04 update `tests/habits/test_set_due_dates.py` — `mock_sync_cache_fixture` for GET-phase tests; existing PUT-phase mocks retained | WP02 | [D] |
 | T009 | TP-07 migrate `scripts/habits/morning_checkin_list.py` — direct GET → `read_cached_tasks` | WP02 | — | [D] |
 | T010 | TP-07 update `tests/habits/test_morning_checkin_list.py` — `mock_sync_cache_fixture` | WP02 | [D] |
-| T011 | TP-02 migrate `scripts/habits/reconcile_completions.py` — uses `read_cached_tasks` + `read_completion_timestamps` | WP03 | — |
-| T012 | TP-02 update `tests/habits/test_reconcile_completions.py` — `mock_sync_cache_fixture` + `mock_state_log_fixture` | WP03 | [P] |
-| T013 | TP-10 migrate `scripts/escalation/reconcile_completions.py` — uses `read_cached_tasks` + `read_completion_timestamps` | WP03 | — |
-| T014 | TP-10 update `tests/escalation/test_reconcile_completions.py` — both fixtures | WP03 | [P] |
-| T015 | TP-12 migrate `scripts/enrichment/reconcile_completions.py` — uses `read_cached_tasks` + (optional) `read_completion_timestamps` | WP03 | — |
-| T016 | TP-12 update `tests/enrichment/test_reconcile_completions.py` — fixtures | WP03 | [P] |
+| T011 | TP-02 migrate `scripts/habits/reconcile_completions.py` — uses `read_cached_tasks` + `read_completion_timestamps` | WP03 | — | [D] |
+| T012 | TP-02 update `tests/habits/test_reconcile_completions.py` — `mock_sync_cache_fixture` + `mock_state_log_fixture` | WP03 | [D] |
+| T013 | TP-10 migrate `scripts/escalation/reconcile_completions.py` — uses `read_cached_tasks` + `read_completion_timestamps` | WP03 | — | [D] |
+| T014 | TP-10 update `tests/escalation/test_reconcile_completions.py` — both fixtures | WP03 | [D] |
+| T015 | TP-12 migrate `scripts/enrichment/reconcile_completions.py` — uses `read_cached_tasks` + (optional) `read_completion_timestamps` | WP03 | — | [D] |
+| T016 | TP-12 update `tests/enrichment/test_reconcile_completions.py` — fixtures | WP03 | [D] |
 
 ---
 
@@ -127,12 +127,12 @@ WP02 and WP03 can execute in parallel (different files, both depend only on WP01
 **Estimated prompt size**: ~510 lines (target upper bound).
 
 **Included subtasks**:
-- [ ] T011 TP-02 migrate `scripts/habits/reconcile_completions.py` (WP03)
-- [ ] T012 TP-02 update `tests/habits/test_reconcile_completions.py` (WP03)
-- [ ] T013 TP-10 migrate `scripts/escalation/reconcile_completions.py` (WP03)
-- [ ] T014 TP-10 update `tests/escalation/test_reconcile_completions.py` (WP03)
-- [ ] T015 TP-12 migrate `scripts/enrichment/reconcile_completions.py` (WP03)
-- [ ] T016 TP-12 update `tests/enrichment/test_reconcile_completions.py` (WP03)
+- [x] T011 TP-02 migrate `scripts/habits/reconcile_completions.py` (WP03)
+- [x] T012 TP-02 update `tests/habits/test_reconcile_completions.py` (WP03)
+- [x] T013 TP-10 migrate `scripts/escalation/reconcile_completions.py` (WP03)
+- [x] T014 TP-10 update `tests/escalation/test_reconcile_completions.py` (WP03)
+- [x] T015 TP-12 migrate `scripts/enrichment/reconcile_completions.py` (WP03)
+- [x] T016 TP-12 update `tests/enrichment/test_reconcile_completions.py` (WP03)
 
 **Implementation sketch**:
 1. For each reconciler: same 6-step pattern as WP02 PLUS:
