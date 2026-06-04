@@ -71,3 +71,5 @@ code-scripts-vikunja-revoke-tokens,scripts/vikunja/revoke_kent_tokens.py (commit
 code-scripts-habits-query-active-v1,scripts/habits/query_active_habits.py (commit 5ac4543d) — v1 helper,,2026-06-04,high,reviewed
 code-scripts-vikunja-validate,scripts/vikunja/validate_felix_bot.py (commit 5ac4543d),,2026-06-04,medium,reviewed
 code-scripts-vikunja-swap-secrets,scripts/vikunja/swap_vikunja_secrets.py (commit 5ac4543d),,2026-06-04,medium,reviewed
+doc-data-model,kitty-specs/felix-vikunja-sync-architecture-research-01KT7Q15/data-model.md — Conflict Event / Unsafe-Class / Sync Layer / Reconciliation Cycle dimensions,,2026-06-04,high,reviewed
+mem-reference-felix-output-discipline,reference_felix_output_discipline_pattern — 3 hard rules + 7 anti-patterns for Felix output discipline,,2026-06-04,medium,reviewed
