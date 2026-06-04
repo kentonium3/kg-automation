@@ -30,12 +30,12 @@ WP02 and WP03 can execute in parallel (different files, both depend only on WP01
 | T002 | `tests/common/__init__.py` + `tests/common/conftest.py` — `mock_sync_cache_fixture` + `mock_state_log_fixture` | WP01 | [D] |
 | T003 | `tests/common/test_sync_cache.py` — full helper unit test suite | WP01 | [D] |
 | T004 | `docs/design/architecture/data/service-inventory.json` + `data-flows.json` — note that 6 cron services now consume from sync cache | WP01 | [D] |
-| T005 | TP-03 migrate `scripts/habits/query_active_habits_v2.py` — direct GET → `read_cached_tasks` | WP02 | — |
-| T006 | TP-03 update `tests/habits/test_query_active_habits_v2.py` — `mock_sync_cache_fixture` | WP02 | [P] |
-| T007 | TP-04 migrate `scripts/habits/set_due_dates.py` (GET phase only; PUT phase unchanged) | WP02 | — |
-| T008 | TP-04 update `tests/habits/test_set_due_dates.py` — `mock_sync_cache_fixture` for GET-phase tests; existing PUT-phase mocks retained | WP02 | [P] |
-| T009 | TP-07 migrate `scripts/habits/morning_checkin_list.py` — direct GET → `read_cached_tasks` | WP02 | — |
-| T010 | TP-07 update `tests/habits/test_morning_checkin_list.py` — `mock_sync_cache_fixture` | WP02 | [P] |
+| T005 | TP-03 migrate `scripts/habits/query_active_habits_v2.py` — direct GET → `read_cached_tasks` | WP02 | — | [D] |
+| T006 | TP-03 update `tests/habits/test_query_active_habits_v2.py` — `mock_sync_cache_fixture` | WP02 | [D] |
+| T007 | TP-04 migrate `scripts/habits/set_due_dates.py` (GET phase only; PUT phase unchanged) | WP02 | — | [D] |
+| T008 | TP-04 update `tests/habits/test_set_due_dates.py` — `mock_sync_cache_fixture` for GET-phase tests; existing PUT-phase mocks retained | WP02 | [D] |
+| T009 | TP-07 migrate `scripts/habits/morning_checkin_list.py` — direct GET → `read_cached_tasks` | WP02 | — | [D] |
+| T010 | TP-07 update `tests/habits/test_morning_checkin_list.py` — `mock_sync_cache_fixture` | WP02 | [D] |
 | T011 | TP-02 migrate `scripts/habits/reconcile_completions.py` — uses `read_cached_tasks` + `read_completion_timestamps` | WP03 | — |
 | T012 | TP-02 update `tests/habits/test_reconcile_completions.py` — `mock_sync_cache_fixture` + `mock_state_log_fixture` | WP03 | [P] |
 | T013 | TP-10 migrate `scripts/escalation/reconcile_completions.py` — uses `read_cached_tasks` + `read_completion_timestamps` | WP03 | — |
@@ -91,12 +91,12 @@ WP02 and WP03 can execute in parallel (different files, both depend only on WP01
 **Estimated prompt size**: ~510 lines (target upper bound).
 
 **Included subtasks**:
-- [ ] T005 TP-03 migrate `scripts/habits/query_active_habits_v2.py` (WP02)
-- [ ] T006 TP-03 update `tests/habits/test_query_active_habits_v2.py` (WP02)
-- [ ] T007 TP-04 migrate `scripts/habits/set_due_dates.py` (GET phase only) (WP02)
-- [ ] T008 TP-04 update `tests/habits/test_set_due_dates.py` (WP02)
-- [ ] T009 TP-07 migrate `scripts/habits/morning_checkin_list.py` (WP02)
-- [ ] T010 TP-07 update `tests/habits/test_morning_checkin_list.py` (WP02)
+- [x] T005 TP-03 migrate `scripts/habits/query_active_habits_v2.py` (WP02)
+- [x] T006 TP-03 update `tests/habits/test_query_active_habits_v2.py` (WP02)
+- [x] T007 TP-04 migrate `scripts/habits/set_due_dates.py` (GET phase only) (WP02)
+- [x] T008 TP-04 update `tests/habits/test_set_due_dates.py` (WP02)
+- [x] T009 TP-07 migrate `scripts/habits/morning_checkin_list.py` (WP02)
+- [x] T010 TP-07 update `tests/habits/test_morning_checkin_list.py` (WP02)
 
 **Implementation sketch**:
 1. For each (source, test) pair, follow the migration pattern: identify the direct-GET code, add helper imports, set `TOUCHPOINT_SLA = SLA_NORMAL` + `TOUCHPOINT_NAME = "habits.<filename_stem>"`, replace the read call with the helper invocation, let `OSError` propagate to non-zero exit, delete the old read code.
