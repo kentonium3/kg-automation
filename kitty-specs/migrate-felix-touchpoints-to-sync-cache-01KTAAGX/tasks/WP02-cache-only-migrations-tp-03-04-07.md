@@ -20,6 +20,8 @@ subtasks:
 - T008
 - T009
 - T010
+agent: "claude:sonnet:implementer:implementer"
+shell_pid: "20378"
 history:
 - at: '2026-06-04T22:24:02Z'
   by: spec-kitty.tasks
@@ -326,3 +328,7 @@ Reject if TP-04's PUT phase is broken, if any touchpoint silently widens TRACKED
 - WP01 test fixtures: `tests/common/conftest.py` (post-WP01)
 - #518's #524 fix (read-modify-write pattern): `scripts/habits/record_completion.py` (TP-04 should follow the same pattern in its PUT phase, already established)
 - RQ-2 per-TP citations: `docs/research/felix-vikunja-sync-architecture/findings/rq-2-touchpoints.md` § TP-03, TP-04, TP-07
+
+## Activity Log
+
+- 2026-06-04T22:51:09Z – claude:sonnet:implementer:implementer – shell_pid=20378 – Started implementation via action command
