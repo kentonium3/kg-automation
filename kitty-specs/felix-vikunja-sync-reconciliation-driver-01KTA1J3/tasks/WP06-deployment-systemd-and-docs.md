@@ -320,3 +320,4 @@ Reject if the runbook is missing SC coverage, if systemd-analyze fails, if valid
 - 2026-06-04T21:06:21Z – claude – shell_pid=92317 – Started review via action command
 - 2026-06-04T21:09:02Z – claude – shell_pid=92317 – Moved to planned
 - 2026-06-04T21:09:25Z – claude – shell_pid=93162 – Started implementation via action command
+- 2026-06-04T21:09:46Z – claude – shell_pid=93162 – Cycle 2: rebuilt DEVELOPER_PORTAL.md runbook-filter block per review-cycle-1 feedback. Commit 84a2d99c on lane-a. validate_docs.py now returns 0.
