@@ -349,3 +349,4 @@ Reject if phase 6 write order is wrong, if bootstrap emits events, or if any exi
 ## Activity Log
 
 - 2026-06-04T20:48:00Z – claude – shell_pid=87326 – Started implementation via action command
+- 2026-06-04T20:52:52Z – claude – shell_pid=87326 – All 4 subtasks committed (7e9c9312 on lane-a). 30 new tests pass; full sync suite 194/194. Phase 6 write order verified (freshness before last-tick); bootstrap doesn't emit; dry-run skips writes; CLI exit codes 0/1/2/3 all reachable.
