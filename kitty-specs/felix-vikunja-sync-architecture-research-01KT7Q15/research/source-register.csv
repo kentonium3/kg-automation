@@ -1,0 +1,70 @@
+# Source Register: master list of every source consulted during this research mission.
+#
+# Column Definitions:
+# - source_id: Unique identifier. Conventions for this mission:
+#     * vikunja-api-<endpoint>           e.g., vikunja-api-tasks-all
+#     * code-<repo-relative-path>        e.g., code-scripts-habits-schedule-loader
+#     * adr-<num>                        e.g., adr-0002
+#     * issue-<num>                      e.g., issue-507, issue-516
+#     * mem-<memory-name>                e.g., mem-reference-vikunja-filter-gotchas
+#     * doc-<path-or-name>               e.g., doc-runbook-doc-auditor-driver-ops
+# - citation: Full citation. For code: file:line + function. For API: endpoint + version. For docs: URL or repo path. For memory: full name.
+# - url: Direct link (if applicable). Empty if local-only.
+# - accessed_date: YYYY-MM-DD
+# - relevance: high | medium | low (relevance to the primary research question)
+# - status: pending | reviewed | archived
+#
+# Usage:
+#   - Add a row when a source is first referenced (don't wait until citation in findings).
+#   - Update status as research progresses.
+#   - source_id must be unique.
+#
+# Validation: All evidence-log rows must cite a source_id that exists in this register.
+source_id,citation,url,accessed_date,relevance,status
+vikunja-api-info,GET /info (Vikunja v0.24.6),https://office2.tail0f5f56.ts.net/api/v1/info,2026-06-03,high,reviewed
+vikunja-api-tasks-all,GET /tasks/all?per_page=1 (Vikunja v0.24.6),https://office2.tail0f5f56.ts.net/api/v1/tasks/all,2026-06-03,high,reviewed
+vikunja-api-tasks-id,GET /tasks/1 full task representation (Vikunja v0.24.6),https://office2.tail0f5f56.ts.net/api/v1/tasks/1,2026-06-03,high,reviewed
+vikunja-api-projects,GET /projects project schema (Vikunja v0.24.6),https://office2.tail0f5f56.ts.net/api/v1/projects,2026-06-03,high,reviewed
+vikunja-api-tasks-filter-done-false,"GET /tasks/all?filter=done+%3D+false (Vikunja v0.24.6)",https://office2.tail0f5f56.ts.net/api/v1/tasks/all,2026-06-03,high,reviewed
+vikunja-api-tasks-filter-done-true,"GET /tasks/all?filter=done+%3D+true (Vikunja v0.24.6)",https://office2.tail0f5f56.ts.net/api/v1/tasks/all,2026-06-03,high,reviewed
+vikunja-api-tasks-filter-due-now,GET /tasks/all?filter=due_date+%3C+now (Vikunja v0.24.6),https://office2.tail0f5f56.ts.net/api/v1/tasks/all,2026-06-03,high,reviewed
+vikunja-api-tasks-filter-project-id,GET /tasks/all?filter=project_id+%3D+13 (Vikunja v0.24.6),https://office2.tail0f5f56.ts.net/api/v1/tasks/all,2026-06-03,high,reviewed
+vikunja-api-tasks-filter-done-neq,"GET /tasks/all?filter=done+%21%3D+false (Vikunja v0.24.6 — G7 class test)",https://office2.tail0f5f56.ts.net/api/v1/tasks/all,2026-06-03,high,reviewed
+vikunja-api-tasks-bulk,GET /tasks/bulk (404 probe — no batch-read endpoint),https://office2.tail0f5f56.ts.net/api/v1/tasks/bulk,2026-06-03,high,reviewed
+vikunja-api-projects-webhooks,GET /projects/1/webhooks (Vikunja v0.24.6 — webhook config empty),https://office2.tail0f5f56.ts.net/api/v1/projects/1/webhooks,2026-06-03,high,reviewed
+vikunja-api-tasks-updated-since,GET /tasks/all?updated_since=2026-06-01T00:00:00Z (incremental poll probe),https://office2.tail0f5f56.ts.net/api/v1/tasks/all,2026-06-03,high,reviewed
+mem-reference-vikunja-id-vs-identifier,reference_vikunja_id_vs_identifier — UI shows identifier (#10); API uses id (73),,2026-06-03,high,reviewed
+mem-reference-vikunja-filter-gotchas,reference_vikunja_filter_gotchas — G6/G7 filter rejection class,,2026-06-03,high,reviewed
+mem-reference-felix-doc-auditor-ops,reference_felix_doc_auditor_ops — doc-auditor driver pattern,,2026-06-03,high,reviewed
+mem-feedback-signal-driven-doc-audit,feedback_signal_driven_doc_audit — every change emits deterministic signal,,2026-06-03,high,reviewed
+mem-feedback-vikunja-sync-polling-not-webhooks,feedback_vikunja_sync_polling_not_webhooks — polling not webhooks,,2026-06-03,high,reviewed
+mem-feedback-idle-pings-acceptable,feedback_idle_pings_acceptable_for_now — 4 IDLE WhatsApps/day noise floor,,2026-06-03,medium,reviewed
+adr-0002,docs/design/architecture/adr/0002-felix-vikunja-task-model.md — Felix Vikunja task model ADR,,2026-06-03,high,reviewed
+doc-vikunja-task-model-research,docs/design/research/vikunja-task-model-research.md — v0.24.6 capability survey,,2026-06-03,high,reviewed
+issue-507,kentonium3/kg-automation#507 — Felix↔Vikunja bi-directional sync Epic,https://github.com/kentonium3/kg-automation/issues/507,2026-06-03,high,reviewed
+issue-508,kentonium3/kg-automation#508 — Sync architecture research source issue,https://github.com/kentonium3/kg-automation/issues/508,2026-06-03,high,reviewed
+issue-516,kentonium3/kg-automation#516 — Felix observability/status-emission framework,https://github.com/kentonium3/kg-automation/issues/516,2026-06-03,high,reviewed
+code-scripts-habits-record-completion,scripts/habits/record_completion.py (commit 5ac4543d),,2026-06-03,high,reviewed
+code-scripts-habits-reconcile-completions,scripts/habits/reconcile_completions.py (commit 5ac4543d),,2026-06-03,high,reviewed
+code-scripts-habits-query-active-v2,scripts/habits/query_active_habits_v2.py (commit 5ac4543d),,2026-06-03,high,reviewed
+code-scripts-habits-set-due-dates,scripts/habits/set_due_dates.py (commit 5ac4543d),,2026-06-03,high,reviewed
+code-scripts-habits-sweeper,scripts/habits/sweeper.py (commit 5ac4543d),,2026-06-03,high,reviewed
+code-scripts-habits-morning-checkin,scripts/habits/morning_checkin_list.py (commit 5ac4543d),,2026-06-03,high,reviewed
+code-scripts-habits-backfill,scripts/habits/backfill_jsonl_from_comments.py (commit 5ac4543d),,2026-06-03,medium,reviewed
+code-scripts-escalation-record,scripts/escalation/record_completion.py (commit 5ac4543d),,2026-06-03,high,reviewed
+code-scripts-escalation-reconcile,scripts/escalation/reconcile_completions.py (commit 5ac4543d),,2026-06-03,high,reviewed
+code-scripts-enrichment-record,scripts/enrichment/record_completion.py (commit 5ac4543d),,2026-06-03,high,reviewed
+code-scripts-enrichment-reconcile,scripts/enrichment/reconcile_completions.py (commit 5ac4543d),,2026-06-03,medium,reviewed
+code-scripts-security-vikunja-writer,scripts/security/credential_health_check/vikunja_writer.py (commit 5ac4543d),,2026-06-03,medium,reviewed
+code-scripts-vikunja-setup,scripts/vikunja/setup_vikunja.py (commit 5ac4543d),,2026-06-03,medium,reviewed
+code-scripts-vikunja-provision,scripts/vikunja/provision_felix_bot.py (commit 5ac4543d),,2026-06-03,medium,reviewed
+code-scripts-signals-types,scripts/openclaw/observation/signals/types.py (commit 5ac4543d),,2026-06-03,high,reviewed
+code-scripts-doc-audit-run,scripts/doc_audit/run.py (commit 5ac4543d),,2026-06-03,high,reviewed
+code-scripts-habits-schedule-loader,scripts/habits/schedule_loader.py (commit 5ac4543d),,2026-06-03,high,reviewed
+code-scripts-common-state-log,scripts/common/state_log.py (commit 5ac4543d),,2026-06-03,high,reviewed
+doc-runbook-doc-auditor-driver-ops,docs/runbooks/doc-auditor-driver-ops.md,,2026-06-03,high,reviewed
+code-scripts-habits-exclude-completed,scripts/habits/exclude_completed.py (commit 5ac4543d) — legacy v1,,2026-06-03,medium,reviewed
+code-scripts-habits-identify-workout,scripts/habits/identify_workout_task.py (commit 5ac4543d),,2026-06-03,low,reviewed
+code-scripts-habits-migrate-schedule,scripts/habits/migrate_schedule.py (commit 5ac4543d),,2026-06-03,low,reviewed
+code-scripts-vikunja-setup-goals,scripts/vikunja/setup_goals.py (commit 5ac4543d),,2026-06-03,low,reviewed
+code-scripts-vikunja-revoke-tokens,scripts/vikunja/revoke_kent_tokens.py (commit 5ac4543d),,2026-06-03,low,reviewed
