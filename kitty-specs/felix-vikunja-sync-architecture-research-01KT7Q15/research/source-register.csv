@@ -74,3 +74,6 @@ code-scripts-vikunja-swap-secrets,scripts/vikunja/swap_vikunja_secrets.py (commi
 doc-data-model,kitty-specs/felix-vikunja-sync-architecture-research-01KT7Q15/data-model.md — Conflict Event / Unsafe-Class / Sync Layer / Reconciliation Cycle dimensions,,2026-06-04,high,reviewed
 mem-reference-felix-output-discipline,reference_felix_output_discipline_pattern — 3 hard rules + 7 anti-patterns for Felix output discipline,,2026-06-04,medium,reviewed
 adr-0001,docs/design/architecture/adr/0001-google-workspace-via-gog.md — format/tone reference for ADR-0003 draft,,2026-06-04,medium,reviewed
+issue-518,kentonium3/kg-automation#518 — Feature: Felix-Vikunja sync reconciliation driver foundation (Mission A; spec: brief),https://github.com/kentonium3/kg-automation/issues/518,2026-06-04,high,reviewed
+issue-519,kentonium3/kg-automation#519 — Feature: Migrate Felix touchpoints to sync cache (Mission B; depends on #518),https://github.com/kentonium3/kg-automation/issues/519,2026-06-04,high,reviewed
+issue-520,kentonium3/kg-automation#520 — Feature: Project-layer sync + deletion handling + URL normalization (Mission C; depends on #518),https://github.com/kentonium3/kg-automation/issues/520,2026-06-04,high,reviewed
