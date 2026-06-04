@@ -2,9 +2,9 @@
 title: Credentials and Secrets
 doc_type: reference
 status: approved
-last_updated: '2026-05-27'
-last_validated: '2026-05-27'
-updated_by: '#345-audit-confirms-sync (silent-removal policy per change-control.md) + #304-felix-bot-rotation + #267-openclaw-gateway-env-narrative + #100-google-workspace-foundation + #227 + #115 + #115-narrative-sync + rename-kentonium3-pat-to-gh-oauth'
+last_updated: '2026-06-04'
+last_validated: '2026-06-04'
+updated_by: '#523-kg-felix-bot-project-sync-pat-added + #345-audit-confirms-sync (silent-removal policy per change-control.md) + #304-felix-bot-rotation + #267-openclaw-gateway-env-narrative + #100-google-workspace-foundation + #227 + #115 + #115-narrative-sync + rename-kentonium3-pat-to-gh-oauth'
 ---
 
 # Credentials and Secrets
@@ -19,7 +19,7 @@ them. For expiry policies and review cadences, see the manifest.
 
 ## Storage Mechanisms
 
-kg-automation uses six distinct secret storage mechanisms. Each credential
+kg-automation uses seven distinct secret storage mechanisms. Each credential
 uses the mechanism appropriate to the tool that owns or consumes it. There is
 no single unified secret store — that is a deliberate trade-off favoring
 simplicity on a Tailscale-gated personal server.
@@ -136,6 +136,24 @@ The mechanism is distinct from §3 (scoped plaintext files read by skills via
 `cat`) and from §1 (gog's own auth store) — it specifically bridges the
 systemd-services-don't-see-bashrc gap.
 
+### 7. GitHub Actions secret storage
+
+Used by: `kg-felix-bot-project-sync-pat`
+
+GitHub Actions native secret storage on `kentonium3/kg-automation`. The token
+is exposed to workflow steps via `${{ secrets.PROJECT_SYNC_PAT }}` and never
+appears on office2 or any operator-controlled host. Used exclusively by the
+`priority-field-sync` job in `.github/workflows/spec-lifecycle.yml` (#523) to
+mirror issue priority labels (`P1-*` / `P2-*` / `P3-*`) onto the Felix Roadmap
+user-owned project's `Priority` single-select field. The token is held by the
+`kg-felix-bot` identity, with `scope=project` only — narrower than
+`kg-felix-bot-pat` (`repo, read:org, workflow`) to keep blast radius low if
+either credential leaks.
+
+This mechanism is distinct from §5 (gh CLI auth store, used by operator and
+agent CLI shell-outs) because Actions workflows never invoke `gh` against the
+project; they call the GraphQL API directly with `actions/github-script@v8`.
+
 ---
 
 ## Storage Mechanism Summary
@@ -172,6 +190,10 @@ graph TD
         OGE[openclaw-gateway-env<br/>GOG_* env injection]
     end
 
+    subgraph "GitHub Actions secrets"
+        PS[kg-felix-bot-project-sync-pat<br/>PROJECT_SYNC_PAT]
+    end
+
     subgraph "Consumers"
         OC[openclaw-gateway]
         SK[OpenClaw skills<br/>vikunja-api]
@@ -181,6 +203,7 @@ graph TD
         UI[Vikunja web UI<br/>setup_vikunja.py]
         FA[Felix agents<br/>felix-doc-auditor]
         KM[Kent on Mac<br/>manual git + gh CLI]
+        SL[spec-lifecycle.yml<br/>priority-field-sync job]
     end
 
     GC -->|gog auth credentials| GOG
@@ -195,6 +218,7 @@ graph TD
     GH -->|gh CLI / git push| FA
     GHK -->|gh CLI / git push| KM
     OGE -->|systemd EnvironmentFile=| OC
+    PS -->|GraphQL via secrets context| SL
 ```
 
 ---
@@ -215,6 +239,7 @@ graph TD
 | `openclaw-gateway-env` | env-file | systemd `EnvironmentFile` — `/data/services/openclaw/secrets/openclaw-gateway.env` (mode 0600, claude:claude) | `openclaw-gateway.service` (via drop-in `EnvironmentFile=`) and all child agent sessions |
 | `kg-felix-bot-pat` | classic PAT | gh CLI auth store — `/home/claude/.config/gh/hosts.yml` | `felix-doc-auditor` (git push, `gh` CLI), `felix-core-digest-signals` (deterministic signal filer in `tick.py` → `felix-file-issue.py`; #490), future Felix agents |
 | `kentonium3-gh-oauth` | OAuth app token | gh CLI auth store — macOS Keychain (managed by `gh` CLI on Mac) | Kent's manual git + `gh` CLI from Mac |
+| `kg-felix-bot-project-sync-pat` | classic PAT (scope=project only) | GitHub Actions secret `PROJECT_SYNC_PAT` on `kentonium3/kg-automation` | `spec-lifecycle.yml` `priority-field-sync` job (#523) — mirrors P1-* / P2-* / P3-* labels to the Felix Roadmap project's Priority field via GraphQL |
 
 ---
 

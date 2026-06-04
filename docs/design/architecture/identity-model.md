@@ -2,8 +2,8 @@
 title: Identity Model
 doc_type: reference
 status: approved
-last_updated: '2026-05-27'
-updated_by: '#341-felix-bot-expiry-context + #304-felix-bot-rotation + #100-google-workspace-foundation + #227'
+last_updated: '2026-06-04'
+updated_by: '#523-kg-felix-bot-project-sync-pat-added + #341-felix-bot-expiry-context + #304-felix-bot-rotation + #100-google-workspace-foundation + #227'
 ---
 
 # Identity Model
@@ -59,11 +59,11 @@ The shared GitHub service account for all Felix agents (currently `felix-doc-aud
 | Surface | GitHub (`github.com/kentonium3/kg-automation`) |
 | Username | `kg-felix-bot` |
 | Repo role | Collaborator on `kentonium3/kg-automation` |
-| Currently used by | `felix-doc-auditor-driver` (post-#343) |
+| Currently used by | `felix-doc-auditor-driver` (post-#343), `felix-core-digest-signals` (post-#490 deterministic signal filer in `tick.py` → `felix-file-issue.py`), `spec-lifecycle.yml priority-field-sync` (#523, project-scope PAT only) |
 | Email | `kentgale+felix-bot@gmail.com` (routes to `kentgale@gmail.com`) |
 | TOTP / 2FA | Enabled |
-| Credential | `kg-felix-bot-pat` — see [`credential-manifest.json`](<./data/credential-manifest.json>) |
-| Created by | #215 |
+| Credentials | `kg-felix-bot-pat` (classic PAT, scopes `repo, read:org, workflow`, held in gh CLI auth store on office2) and `kg-felix-bot-project-sync-pat` (classic PAT, scope `project` only, held as `PROJECT_SYNC_PAT` GitHub Actions secret on `kentonium3/kg-automation`) — see [`credential-manifest.json`](<./data/credential-manifest.json>) for full details. Two separate tokens, same identity: the project-sync PAT is intentionally narrower to keep blast radius low for the auto-sync workflow. |
+| Created by | #215 (identity), #523 (project-sync PAT added) |
 
 ### `felix-bot` — Vikunja
 
