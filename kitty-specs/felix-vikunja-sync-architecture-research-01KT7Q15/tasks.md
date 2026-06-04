@@ -54,7 +54,7 @@ Two-location split:
 | T013 | Write `recommendation.md` (operator-readable cold per NFR-004) | WP03 | — | [D] |
 | T014 | Draft `docs/design/architecture/adr/0003-felix-vikunja-sync-architecture.md`; replace polling-only interaction-model diagram | WP03 | — | [D] |
 | T015 | Decide on 2–4 follow-on mission scopes + dependencies | WP03 | — | [D] |
-| T016 | File 2–4 sub-issues under Epic #507 via `gh api graphql addSubIssue`; back-fill cross-references in findings.md and recommendation.md | WP03 | — |
+| T016 | File 2–4 sub-issues under Epic #507 via `gh api graphql addSubIssue`; back-fill cross-references in findings.md and recommendation.md | WP03 | — | [D] |
 | T017 | NFR-004 / NFR-005 / SC-001 / SC-007 readiness check; document operator-review-pending status | WP03 | — | [D] |
 
 **[P]** marks subtasks safely parallelizable within a single WP.
@@ -152,7 +152,7 @@ Two-location split:
 - [x] T013 Write `recommendation.md` (operator-readable cold per NFR-004) (WP03)
 - [x] T014 Draft `docs/design/architecture/adr/0003-felix-vikunja-sync-architecture.md`; replace polling-only interaction-model diagram (WP03)
 - [x] T015 Decide on 2–4 follow-on mission scopes + dependencies (WP03)
-- [ ] T016 File 2–4 sub-issues under Epic #507 via `gh api graphql addSubIssue`; back-fill cross-references (WP03)
+- [x] T016 File 2–4 sub-issues under Epic #507 via `gh api graphql addSubIssue`; back-fill cross-references (WP03)
 - [x] T017 NFR-004 / NFR-005 / SC-001 / SC-007 readiness check; document operator-review-pending status (WP03)
 
 **Implementation sketch**:
