@@ -32,10 +32,10 @@ The WP execution order (and dependency graph) is:
 | T007 | `scripts/sync/diff.py` — value comparison with canonical normalization; first-observation behavior | WP02 | — | [D] |
 | T008 | `tests/sync/test_fetch.py` — mocked Vikunja responses, partial-failure on project fetch, error propagation | WP02 | [D] |
 | T009 | `tests/sync/test_diff.py` — comparison matrix, first-observation skip, privacy-boundary redaction | WP02 | [D] |
-| T010 | `scripts/sync/classify.py` — UC-1/UC-2 collapsed, UC-3 whitelist, UC-4 inverter; deterministic | WP03 | — |
-| T011 | `scripts/sync/guards.py` — G-1 (24h dedup), G-2 (30-min post-write), G-3 (daily cap) | WP03 | — |
-| T012 | `tests/sync/test_classify.py` — full classification matrix; UC-4 inversion; private-task path | WP03 | [P] |
-| T013 | `tests/sync/test_guards.py` — G-1 lookback, G-2 timing window, G-3 day rollover | WP03 | [P] |
+| T010 | `scripts/sync/classify.py` — UC-1/UC-2 collapsed, UC-3 whitelist, UC-4 inverter; deterministic | WP03 | — | [D] |
+| T011 | `scripts/sync/guards.py` — G-1 (24h dedup), G-2 (30-min post-write), G-3 (daily cap) | WP03 | — | [D] |
+| T012 | `tests/sync/test_classify.py` — full classification matrix; UC-4 inversion; private-task path | WP03 | [D] |
+| T013 | `tests/sync/test_guards.py` — G-1 lookback, G-2 timing window, G-3 day rollover | WP03 | [D] |
 | T014 | `scripts/sync/send_whatsapp.py` — `SendResult` dataclass, subprocess wrapper, 3-line message formatter | WP04 | — |
 | T015 | `scripts/sync/emit.py` — deterministic `event_id`, guard application order, JSONL append, delivery dispatch | WP04 | — |
 | T016 | `tests/sync/test_send_whatsapp.py` — exit-code paths, timeout, FileNotFoundError, dry-run, message formatter | WP04 | [P] |
@@ -130,10 +130,10 @@ The WP execution order (and dependency graph) is:
 **Estimated prompt size**: ~370 lines.
 
 **Included subtasks**:
-- [ ] T010 `scripts/sync/classify.py` — UC classification (WP03)
-- [ ] T011 `scripts/sync/guards.py` — G-1, G-2, G-3 (WP03)
-- [ ] T012 `tests/sync/test_classify.py` — classification matrix (WP03)
-- [ ] T013 `tests/sync/test_guards.py` — guard semantics (WP03)
+- [x] T010 `scripts/sync/classify.py` — UC classification (WP03)
+- [x] T011 `scripts/sync/guards.py` — G-1, G-2, G-3 (WP03)
+- [x] T012 `tests/sync/test_classify.py` — classification matrix (WP03)
+- [x] T013 `tests/sync/test_guards.py` — guard semantics (WP03)
 
 **Implementation sketch**:
 1. `classify.py`: `classify(candidate: DivergenceCandidate, downstream_fields: set[str], override_signal_present: Callable[[task], bool]) → ClassifiedConflict`. The UC-1/UC-2 collapse: divergence implies `uc1_uc2_divergence` always present. UC-3 if `candidate.field ∈ downstream_fields`. UC-4 inverts class to `auto_resolved` regardless of other criteria. Pure function.
