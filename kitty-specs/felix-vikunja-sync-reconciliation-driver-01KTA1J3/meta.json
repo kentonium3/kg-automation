@@ -1,0 +1,10 @@
+{
+  "created_at": "2026-06-04T19:25:32.038102+00:00",
+  "friendly_name": "felix vikunja sync reconciliation driver",
+  "mission_id": "01KTA1J3FH87XJWT7FQPT1EZE7",
+  "mission_number": null,
+  "mission_slug": "felix-vikunja-sync-reconciliation-driver-01KTA1J3",
+  "mission_type": "software-dev",
+  "slug": "felix-vikunja-sync-reconciliation-driver-01KTA1J3",
+  "target_branch": "main"
+}
