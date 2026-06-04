@@ -32,6 +32,11 @@ a ``MagicMock``. Tests configure ``mock_urlopen.return_value`` (or
 ``scripts.common.state_log.STATE_DIR`` to a sandbox directory and sets the
 ``FELIX_STATE_LOG_DIR`` env var (so subprocess tests in later WPs see the
 same sandbox). Returns the ``Path``.
+
+``mock_sync_cache_fixture`` — re-exported from ``tests/common/conftest.py``
+(mission #519 / WP01). Builder that synthesizes sync cache state for one
+test invocation. Made available here so habits tests can use it after the
+TP-03/TP-04/TP-07 cache migration (WP02).
 """
 from __future__ import annotations
 
@@ -41,6 +46,12 @@ from pathlib import Path
 from unittest.mock import MagicMock
 
 import pytest
+
+# Re-export sync cache fixture from tests/common/conftest.py so habits tests
+# can use mock_sync_cache_fixture without an explicit import (pytest discovers
+# fixtures from conftest files but only from the current directory upward, not
+# from sibling directories).  Mission #519 / WP02 migration.
+from tests.common.conftest import mock_sync_cache_fixture  # noqa: F401
 
 # ---------------------------------------------------------------------------
 # Legacy sys.path setup (mission 282 — tests use bare ``import <module>``)

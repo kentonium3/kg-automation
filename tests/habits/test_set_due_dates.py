@@ -1,7 +1,12 @@
-"""Tests for scripts/habits/set_due_dates.py (FR-003).
+"""Tests for scripts/habits/set_due_dates.py (FR-003) — PUT phase only.
 
 Verifies the contract in
 kitty-specs/habits-checkin-d6-extract-01KRNV46/contracts/set_due_dates.md.
+
+NOTE: PUT phase tests retained verbatim — TP-05 is write-only and out of
+scope per spec FR-010. The GET phase (--reconcile-schedule mode) has been
+migrated to read from the sync cache (mission #519 WP02 / T007); its tests
+live in test_set_due_dates_reconcile.py and use mock_sync_cache_fixture.
 
 The MOST IMPORTANT test in this module is `test_z_suffix_rejected` — that's
 the #112 regression-prevention backstop. If that test ever fails, the

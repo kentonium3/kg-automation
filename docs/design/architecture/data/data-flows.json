@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
-  "last_updated": "2026-05-23",
-  "updated_by": "#376-remove-escalation-v1-parity + #400-audit-interpretation-moment0 + #310-tasker-jsonl-migration + #374-main-verbatim-passthrough + #362-drift-event-auto-resolution + #371-habits-checkin-reply-scripts-first + #309-migrate-escalation-to-jsonl-state-model + #343-refactor-doc-auditor-to-scripts-first-driver + #307-backfill-habits-jsonl-from-comments + #306-habits-native-repeat-jsonl-state + #152",
+  "last_updated": "2026-06-04",
+  "updated_by": "#519-touchpoint-migration + #376-remove-escalation-v1-parity + #400-audit-interpretation-moment0 + #310-tasker-jsonl-migration + #374-main-verbatim-passthrough + #362-drift-event-auto-resolution + #371-habits-checkin-reply-scripts-first + #309-migrate-escalation-to-jsonl-state-model + #343-refactor-doc-auditor-to-scripts-first-driver + #307-backfill-habits-jsonl-from-comments + #306-habits-native-repeat-jsonl-state + #152",
   "flows": [
     {
       "name": "vikunja-web-ui",
@@ -1200,6 +1200,46 @@
       "name": "daily-briefing",
       "planned_by": "F014",
       "description": "Heartbeat \u2192 task summary \u2192 WhatsApp message to Kent"
+    },
+    {
+      "name": "sync-cache-read-touchpoints",
+      "status": "active",
+      "deployed_by": "#519",
+      "introduced_by": "#519",
+      "description": "Post-#519 canonical read path: 6 migrated touchpoints across 3 domains (habits \u00d74, escalation \u00d71, enrichment \u00d71) read task state from the sync driver cache via scripts/common/sync_cache.py instead of calling Vikunja directly. No fallback \u2014 cache miss or stale-beyond-SLA_NORMAL raises OSError with structured recovery hint.",
+      "path": [
+        {
+          "from": "habits touchpoints (morning_checkin_list.py, query_active_habits_v2.py, set_due_dates.py, reconcile_completions.py)",
+          "to": "scripts/common/sync_cache.py",
+          "protocol": "python-import",
+          "description": "TP-07, TP-03, TP-04, TP-02: read task list via read_cached_tasks(SLA_NORMAL) or read_cached_task_by_id()"
+        },
+        {
+          "from": "escalation touchpoint (escalation/reconcile_completions.py)",
+          "to": "scripts/common/sync_cache.py",
+          "protocol": "python-import",
+          "description": "TP-10: read task list via read_cached_tasks(SLA_NORMAL)"
+        },
+        {
+          "from": "enrichment touchpoint (enrichment/reconcile_completions.py)",
+          "to": "scripts/common/sync_cache.py",
+          "protocol": "python-import",
+          "description": "TP-12: read task list via read_cached_tasks(SLA_NORMAL)"
+        },
+        {
+          "from": "scripts/common/sync_cache.py",
+          "to": "/data/services/openclaw/state/sync/task-cache.json",
+          "protocol": "file-read",
+          "description": "Cache read (read-only). Written exclusively by felix-vikunja-sync-driver on every successful tick."
+        },
+        {
+          "from": "scripts/common/sync_cache.py",
+          "to": "/data/services/openclaw/state/sync/freshness.json",
+          "protocol": "file-read",
+          "description": "Freshness pointer read. Used to enforce SLA_NORMAL (900s) staleness check before serving cache."
+        }
+      ],
+      "pre_migration_note": "Before #519, all 6 touchpoints called Vikunja REST API directly (GET /projects/<id>/tasks or GET /tasks/<id>). Those direct-read code paths are deleted in the same commit that introduces the cache read \u2014 clean cutover, no coexistence period, no fallback path."
     }
   ]
 }

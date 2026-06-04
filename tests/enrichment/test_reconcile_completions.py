@@ -1,6 +1,6 @@
-"""Tests for ``scripts.enrichment.reconcile_completions`` (WP02 / T004, T006).
+"""Tests for ``scripts.enrichment.reconcile_completions`` (WP03 / T015, T016).
 
-Coverage targets per WP02 § Validation:
+Coverage targets per WP03 § Validation:
 
 - Happy path: 5 enrichment comments -> 5 JSONL rows via record_completion
 - FR-007 disambiguation: 3 enrichment + 2 habit comments -> only 3 rows
@@ -10,10 +10,13 @@ Coverage targets per WP02 § Validation:
 - CLI exit codes 0/1/3
 - Malformed comments surfaced in report; never replayed
 - Excluded projects (Goals=11, Habits=13) skipped
+- Private tasks skipped
+- Cache stale (SLA exceeded) -> OSError propagated to CLI exit 1
 - Internal helpers: parse_comment, _is_habit_comment, _record_is_in_window
 
-All Vikunja HTTP traffic is mocked via the ``mock_urlopen`` fixture. JSONL
-writes land under ``tmp_path``.
+Task enumeration is now provided by ``mock_sync_cache_fixture`` (WP03
+cache migration).  Comment fetches still call Vikunja directly via the
+``mock_urlopen`` fixture.  JSONL writes land under ``tmp_path``.
 """
 from __future__ import annotations
 
@@ -41,6 +44,7 @@ from scripts.enrichment.reconcile_completions import (
     parse_comment,
     reconcile,
 )
+from tests.common.conftest import mock_sync_cache_fixture  # noqa: F401
 
 
 # ---------------------------------------------------------------------------
@@ -83,8 +87,30 @@ def activity_log_sandbox(tmp_path: Path, monkeypatch) -> Path:
 
 
 # ---------------------------------------------------------------------------
-# Vikunja-mock helpers (urllib-level mock)
+# Cache + HTTP mock helpers
 # ---------------------------------------------------------------------------
+
+
+def _task_fields(
+    task_id: int,
+    *,
+    project_id: int,
+    title: str = "Task",
+) -> dict:
+    """Build the field dict for a single task in the sync cache.
+
+    Enrichment reconciler only requires ``project_id`` on tasks; the other
+    fields are not consulted for enumeration decisions.
+    """
+    return {
+        "title": title,
+        "done": False,
+        "due_date": None,
+        "project_id": project_id,
+        "repeat_after": 0,
+        "repeat_mode": "default",
+        "labels": [],
+    }
 
 
 def _resp(payload, *, status: int = 200):
@@ -99,36 +125,26 @@ def _resp(payload, *, status: int = 200):
     return cm
 
 
-def _make_vikunja_url_router(*, projects, project_tasks, task_comments):
-    """Return a side_effect callable routing on the Request URL.
+def _make_comments_url_router(task_comments: dict[int, list[dict]]):
+    """Return a side_effect callable routing on ``/tasks/<id>/comments`` URLs.
+
+    Only comment-fetch routes are handled; any other URL raises
+    AssertionError to catch unexpected Vikunja calls (task enumeration
+    must now come from the sync cache, not HTTP).
 
     Args:
-        projects: list[dict] returned by GET /projects
-        project_tasks: dict[int, list[dict]] keyed on project_id
-        task_comments: dict[int, list[dict]] keyed on task_id
-
-    Returns:
-        Callable suitable for ``mock_urlopen.side_effect`` that inspects the
-        Request URL, decodes the path, and returns an appropriate canned
-        response.
+        task_comments: dict mapping integer task_id -> list of comment dicts.
     """
 
     def _side_effect(request, *args, **kwargs):
         url = request.full_url if hasattr(request, "full_url") else str(request)
-        # /projects (exact suffix)
-        if url.endswith("/projects"):
-            return _resp(projects)
-        # /projects/<id>/tasks
-        if "/projects/" in url and url.endswith("/tasks"):
-            pid_str = url.rsplit("/projects/", 1)[1].split("/", 1)[0]
-            pid = int(pid_str)
-            return _resp(project_tasks.get(pid, []))
-        # /tasks/<id>/comments
         if "/tasks/" in url and url.endswith("/comments"):
             tid_str = url.rsplit("/tasks/", 1)[1].split("/", 1)[0]
             tid = int(tid_str)
             return _resp(task_comments.get(tid, []))
-        raise AssertionError(f"unrouted URL: {url}")
+        raise AssertionError(
+            f"unexpected Vikunja URL (task enumeration must use cache): {url}"
+        )
 
     return _side_effect
 
@@ -318,16 +334,19 @@ class TestSinceWindowAndParse:
 class TestReconcileHappyPath:
     def test_5_enrichment_comments_produce_5_jsonl_rows(
         self,
+        mock_sync_cache_fixture,
         mock_urlopen,
         tmp_token_file,
         ledger_path,
         activity_log_sandbox,
     ):
         """Happy path: 5 enrichment comments across 2 tasks -> 5 JSONL rows."""
-        projects = [{"id": 5}]
-        project_tasks = {
-            5: [{"id": 100}, {"id": 200}],
-        }
+        mock_sync_cache_fixture(
+            tasks={
+                100: _task_fields(100, project_id=5, title="Task A"),
+                200: _task_fields(200, project_id=5, title="Task B"),
+            }
+        )
         task_comments = {
             100: [
                 _make_felix_enrichment_comment(
@@ -364,11 +383,7 @@ class TestReconcileHappyPath:
                 ),
             ],
         }
-        mock_urlopen.side_effect = _make_vikunja_url_router(
-            projects=projects,
-            project_tasks=project_tasks,
-            task_comments=task_comments,
-        )
+        mock_urlopen.side_effect = _make_comments_url_router(task_comments)
 
         report = reconcile(
             since=date(2026, 4, 11),
@@ -397,22 +412,20 @@ class TestReconcileHappyPath:
 
     def test_excluded_projects_skipped(
         self,
+        mock_sync_cache_fixture,
         mock_urlopen,
         tmp_token_file,
         ledger_path,
         activity_log_sandbox,
     ):
         """Projects 11 (Goals) and 13 (Habits) are excluded from the sweep."""
-        projects = [
-            {"id": 5},   # included
-            {"id": 11},  # excluded (Goals)
-            {"id": 13},  # excluded (Habits)
-        ]
-        project_tasks = {
-            5: [{"id": 100}],
-            11: [{"id": 1100}],
-            13: [{"id": 1300}],
-        }
+        mock_sync_cache_fixture(
+            tasks={
+                100: _task_fields(100, project_id=5),    # included
+                1100: _task_fields(1100, project_id=11),  # excluded (Goals)
+                1300: _task_fields(1300, project_id=13),  # excluded (Habits)
+            }
+        )
         task_comments = {
             100: [
                 _make_felix_enrichment_comment(
@@ -422,6 +435,7 @@ class TestReconcileHappyPath:
                     timestamp_utc="2026-05-20T10:00:00Z",
                 )
             ],
+            # These would not be fetched because the tasks are excluded.
             1100: [
                 _make_felix_enrichment_comment(
                     comment_id=2,
@@ -439,11 +453,7 @@ class TestReconcileHappyPath:
                 )
             ],
         }
-        mock_urlopen.side_effect = _make_vikunja_url_router(
-            projects=projects,
-            project_tasks=project_tasks,
-            task_comments=task_comments,
-        )
+        mock_urlopen.side_effect = _make_comments_url_router(task_comments)
 
         report = reconcile(
             since=date(2026, 4, 11),
@@ -457,10 +467,88 @@ class TestReconcileHappyPath:
         assert len(rows) == 1
         assert rows[0]["task_id"] == 100
 
+    def test_private_tasks_skipped(
+        self,
+        mock_sync_cache_fixture,
+        mock_urlopen,
+        tmp_token_file,
+        ledger_path,
+        activity_log_sandbox,
+    ):
+        """Tasks in private projects are not enumerated for comment fetch."""
+        mock_sync_cache_fixture(
+            tasks={
+                100: _task_fields(100, project_id=5),
+                200: _task_fields(200, project_id=99),  # private
+            },
+            private_project_ids=frozenset({99}),
+        )
+        task_comments = {
+            100: [
+                _make_felix_enrichment_comment(
+                    comment_id=1,
+                    task_id=100,
+                    state="proposed",
+                    timestamp_utc="2026-05-20T10:00:00Z",
+                )
+            ],
+        }
+        mock_urlopen.side_effect = _make_comments_url_router(task_comments)
+
+        report = reconcile(
+            since=date(2026, 4, 11),
+            token_path=tmp_token_file,
+            ledger_path=ledger_path,
+        )
+
+        # Only task 100 (project 5) is swept; task 200 is private.
+        assert report.comments_replayed == 1
+        rows = _read_jsonl(ledger_path)
+        assert len(rows) == 1
+        assert rows[0]["task_id"] == 100
+
+    def test_no_task_enumeration_via_vikunja(
+        self,
+        mock_sync_cache_fixture,
+        mock_urlopen,
+        tmp_token_file,
+        ledger_path,
+        activity_log_sandbox,
+    ):
+        """Cache migration: urlopen is NEVER called for project or task enumeration.
+
+        All urlopen calls must be comment fetches only.
+        """
+        mock_sync_cache_fixture(
+            tasks={100: _task_fields(100, project_id=5)},
+        )
+        # The router will raise AssertionError for any non-/comments URL.
+        task_comments = {
+            100: [
+                _make_felix_enrichment_comment(
+                    comment_id=1,
+                    task_id=100,
+                    state="proposed",
+                    timestamp_utc="2026-05-20T10:00:00Z",
+                )
+            ],
+        }
+        mock_urlopen.side_effect = _make_comments_url_router(task_comments)
+
+        # If any /projects or /tasks (non-comments) URL were called, the router
+        # would raise AssertionError and the test would fail.
+        report = reconcile(
+            since=date(2026, 4, 11),
+            token_path=tmp_token_file,
+            ledger_path=ledger_path,
+        )
+        assert report.comments_replayed == 1
+
 
 class TestReconcileDisambiguation:
     def test_3_enrichment_plus_2_habit_yields_3_rows(
         self,
+        mock_sync_cache_fixture,
         mock_urlopen,
         tmp_token_file,
         ledger_path,
@@ -471,8 +559,9 @@ class TestReconcileDisambiguation:
         Mixed list of 3 enrichment + 2 habit comments on the same task ->
         only 3 enrichment rows in the JSONL ledger.
         """
-        projects = [{"id": 5}]
-        project_tasks = {5: [{"id": 100}]}
+        mock_sync_cache_fixture(
+            tasks={100: _task_fields(100, project_id=5)},
+        )
         task_comments = {
             100: [
                 _make_felix_enrichment_comment(
@@ -501,11 +590,7 @@ class TestReconcileDisambiguation:
                 ),
             ],
         }
-        mock_urlopen.side_effect = _make_vikunja_url_router(
-            projects=projects,
-            project_tasks=project_tasks,
-            task_comments=task_comments,
-        )
+        mock_urlopen.side_effect = _make_comments_url_router(task_comments)
 
         report = reconcile(
             since=date(2026, 4, 11),
@@ -531,14 +616,16 @@ class TestReconcileDisambiguation:
 class TestReconcileIdempotency:
     def test_rerun_on_same_comments_writes_zero_new_rows(
         self,
+        mock_sync_cache_fixture,
         mock_urlopen,
         tmp_token_file,
         ledger_path,
         activity_log_sandbox,
     ):
         """FR-009: re-running on the same comment set -> 0 new rows."""
-        projects = [{"id": 5}]
-        project_tasks = {5: [{"id": 100}]}
+        mock_sync_cache_fixture(
+            tasks={100: _task_fields(100, project_id=5)},
+        )
         task_comments = {
             100: [
                 _make_felix_enrichment_comment(
@@ -555,13 +642,7 @@ class TestReconcileIdempotency:
                 ),
             ]
         }
-        # MagicMock.side_effect must be reset between runs since
-        # _make_vikunja_url_router returns a fresh closure.
-        side_effect = _make_vikunja_url_router(
-            projects=projects,
-            project_tasks=project_tasks,
-            task_comments=task_comments,
-        )
+        side_effect = _make_comments_url_router(task_comments)
         mock_urlopen.side_effect = side_effect
 
         # Run 1: fresh ledger.
@@ -574,12 +655,8 @@ class TestReconcileIdempotency:
         rows_after_first = _read_jsonl(ledger_path)
         assert len(rows_after_first) == 2
 
-        # Run 2: same comments.
-        mock_urlopen.side_effect = _make_vikunja_url_router(
-            projects=projects,
-            project_tasks=project_tasks,
-            task_comments=task_comments,
-        )
+        # Run 2: same comments, same cache.
+        mock_urlopen.side_effect = _make_comments_url_router(task_comments)
         report2 = reconcile(
             since=date(2026, 4, 11),
             token_path=tmp_token_file,
@@ -594,14 +671,16 @@ class TestReconcileIdempotency:
 class TestReconcileWindowFilter:
     def test_comments_before_since_skipped(
         self,
+        mock_sync_cache_fixture,
         mock_urlopen,
         tmp_token_file,
         ledger_path,
         activity_log_sandbox,
     ):
         """FR-008: comments older than --since are counted but not replayed."""
-        projects = [{"id": 5}]
-        project_tasks = {5: [{"id": 100}]}
+        mock_sync_cache_fixture(
+            tasks={100: _task_fields(100, project_id=5)},
+        )
         task_comments = {
             100: [
                 # Way before cutoff
@@ -627,11 +706,7 @@ class TestReconcileWindowFilter:
                 ),
             ]
         }
-        mock_urlopen.side_effect = _make_vikunja_url_router(
-            projects=projects,
-            project_tasks=project_tasks,
-            task_comments=task_comments,
-        )
+        mock_urlopen.side_effect = _make_comments_url_router(task_comments)
 
         report = reconcile(
             since=date(2026, 4, 11),  # cutoff inclusive
@@ -650,14 +725,16 @@ class TestReconcileWindowFilter:
 
     def test_since_as_string_parses(
         self,
+        mock_sync_cache_fixture,
         mock_urlopen,
         tmp_token_file,
         ledger_path,
         activity_log_sandbox,
     ):
         """``since`` accepted as a YYYY-MM-DD string (CLI compatibility)."""
-        projects = [{"id": 5}]
-        project_tasks = {5: [{"id": 100}]}
+        mock_sync_cache_fixture(
+            tasks={100: _task_fields(100, project_id=5)},
+        )
         task_comments = {
             100: [
                 _make_felix_enrichment_comment(
@@ -668,11 +745,7 @@ class TestReconcileWindowFilter:
                 )
             ]
         }
-        mock_urlopen.side_effect = _make_vikunja_url_router(
-            projects=projects,
-            project_tasks=project_tasks,
-            task_comments=task_comments,
-        )
+        mock_urlopen.side_effect = _make_comments_url_router(task_comments)
         report = reconcile(
             since="2026-04-11",
             token_path=tmp_token_file,
@@ -684,14 +757,16 @@ class TestReconcileWindowFilter:
 class TestReconcileDryRun:
     def test_dry_run_no_writes(
         self,
+        mock_sync_cache_fixture,
         mock_urlopen,
         tmp_token_file,
         ledger_path,
         activity_log_sandbox,
     ):
         """``dry_run=True``: report populated; ledger file is NOT created."""
-        projects = [{"id": 5}]
-        project_tasks = {5: [{"id": 100}]}
+        mock_sync_cache_fixture(
+            tasks={100: _task_fields(100, project_id=5)},
+        )
         task_comments = {
             100: [
                 _make_felix_enrichment_comment(
@@ -708,11 +783,7 @@ class TestReconcileDryRun:
                 ),
             ]
         }
-        mock_urlopen.side_effect = _make_vikunja_url_router(
-            projects=projects,
-            project_tasks=project_tasks,
-            task_comments=task_comments,
-        )
+        mock_urlopen.side_effect = _make_comments_url_router(task_comments)
         report = reconcile(
             since=date(2026, 4, 11),
             token_path=tmp_token_file,
@@ -731,14 +802,16 @@ class TestReconcileDryRun:
 class TestReconcileMalformed:
     def test_malformed_enrichment_comment_surfaced(
         self,
+        mock_sync_cache_fixture,
         mock_urlopen,
         tmp_token_file,
         ledger_path,
         activity_log_sandbox,
     ):
         """Malformed enrichment comments NOT replayed; surfaced in report."""
-        projects = [{"id": 5}]
-        project_tasks = {5: [{"id": 100}]}
+        mock_sync_cache_fixture(
+            tasks={100: _task_fields(100, project_id=5)},
+        )
         task_comments = {
             100: [
                 _make_felix_enrichment_comment(
@@ -761,11 +834,7 @@ class TestReconcileMalformed:
                 },
             ],
         }
-        mock_urlopen.side_effect = _make_vikunja_url_router(
-            projects=projects,
-            project_tasks=project_tasks,
-            task_comments=task_comments,
-        )
+        mock_urlopen.side_effect = _make_comments_url_router(task_comments)
 
         report = reconcile(
             since=date(2026, 4, 11),
@@ -783,6 +852,30 @@ class TestReconcileMalformed:
 
         rows = _read_jsonl(ledger_path)
         assert len(rows) == 1
+
+
+class TestCacheStale:
+    def test_stale_cache_raises_oserror(
+        self,
+        mock_sync_cache_fixture,
+        mock_urlopen,
+        tmp_token_file,
+        ledger_path,
+    ):
+        """A cache that exceeds SLA_NORMAL freshness raises OSError."""
+        # SLA_NORMAL is 900 seconds; use 9999 to guarantee staleness.
+        mock_sync_cache_fixture(
+            tasks={100: _task_fields(100, project_id=5)},
+            freshness_age_seconds=9999,
+        )
+        mock_urlopen.side_effect = _make_comments_url_router({})
+
+        with pytest.raises(OSError, match="stale"):
+            reconcile(
+                since=date(2026, 4, 11),
+                token_path=tmp_token_file,
+                ledger_path=ledger_path,
+            )
 
 
 # ---------------------------------------------------------------------------
@@ -834,6 +927,7 @@ class TestCLI:
 
     def test_cli_success_emits_summary(
         self,
+        mock_sync_cache_fixture,
         mock_urlopen,
         tmp_token_file,
         ledger_path,
@@ -841,8 +935,9 @@ class TestCLI:
         capsys,
     ):
         """Successful run emits the JSON summary on stdout + exit 0."""
-        projects = [{"id": 5}]
-        project_tasks = {5: [{"id": 100}]}
+        mock_sync_cache_fixture(
+            tasks={100: _task_fields(100, project_id=5)},
+        )
         task_comments = {
             100: [
                 _make_felix_enrichment_comment(
@@ -853,11 +948,7 @@ class TestCLI:
                 )
             ]
         }
-        mock_urlopen.side_effect = _make_vikunja_url_router(
-            projects=projects,
-            project_tasks=project_tasks,
-            task_comments=task_comments,
-        )
+        mock_urlopen.side_effect = _make_comments_url_router(task_comments)
         rc = main(
             [
                 "--token-path",
@@ -876,6 +967,7 @@ class TestCLI:
 
     def test_cli_dry_run(
         self,
+        mock_sync_cache_fixture,
         mock_urlopen,
         tmp_token_file,
         ledger_path,
@@ -883,8 +975,9 @@ class TestCLI:
         capsys,
     ):
         """--dry-run path emits summary with dry_run=True and writes nothing."""
-        projects = [{"id": 5}]
-        project_tasks = {5: [{"id": 100}]}
+        mock_sync_cache_fixture(
+            tasks={100: _task_fields(100, project_id=5)},
+        )
         task_comments = {
             100: [
                 _make_felix_enrichment_comment(
@@ -895,11 +988,7 @@ class TestCLI:
                 )
             ]
         }
-        mock_urlopen.side_effect = _make_vikunja_url_router(
-            projects=projects,
-            project_tasks=project_tasks,
-            task_comments=task_comments,
-        )
+        mock_urlopen.side_effect = _make_comments_url_router(task_comments)
         rc = main(
             [
                 "--token-path",
@@ -919,13 +1008,17 @@ class TestCLI:
 
     def test_cli_vikunja_failure_returns_1(
         self,
+        mock_sync_cache_fixture,
         mock_urlopen,
         tmp_token_file,
         ledger_path,
         activity_log_sandbox,
         capsys,
     ):
-        """A Vikunja network error -> exit 1 with structured stderr."""
+        """A comment-fetch network error -> exit 1 with structured stderr."""
+        mock_sync_cache_fixture(
+            tasks={100: _task_fields(100, project_id=5)},
+        )
 
         def _raise(_request, *args, **kwargs):
             raise urllib.error.URLError("connection refused")
@@ -947,6 +1040,7 @@ class TestCLI:
 
     def test_cli_emits_malformed_lines(
         self,
+        mock_sync_cache_fixture,
         mock_urlopen,
         tmp_token_file,
         ledger_path,
@@ -954,8 +1048,9 @@ class TestCLI:
         capsys,
     ):
         """Without --quiet, MALFORMED lines appear in stdout for malformed comments."""
-        projects = [{"id": 5}]
-        project_tasks = {5: [{"id": 100}]}
+        mock_sync_cache_fixture(
+            tasks={100: _task_fields(100, project_id=5)},
+        )
         task_comments = {
             100: [
                 {
@@ -965,11 +1060,7 @@ class TestCLI:
                 }
             ]
         }
-        mock_urlopen.side_effect = _make_vikunja_url_router(
-            projects=projects,
-            project_tasks=project_tasks,
-            task_comments=task_comments,
-        )
+        mock_urlopen.side_effect = _make_comments_url_router(task_comments)
         rc = main(
             [
                 "--token-path",

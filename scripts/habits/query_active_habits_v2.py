@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
-"""Phase 5 cutover variant of query_active_habits with a client-side filter.
+"""Reads active habit tasks from the sync cache at
+/data/services/openclaw/state/sync/task-cache.json
+(see scripts/common/sync_cache.py for the canonical entry point).
 
 Replaces the comment-parsing / day-of-week descriptor approach of the v1
 sibling (``scripts/habits/query_active_habits.py``) with a project-scoped
@@ -9,21 +11,22 @@ continues to drive the felix-admin-habits cron until Phase 5 cutover
 (#308); both files coexist until then.
 
 The helper:
-  1. Reads the Vikunja API token from a mode-600 file
-  2. Resolves the "Habits" project by title (mirroring the v1 sibling +
-     ``reconcile_completions.py`` — no hardcoded project ID)
-  3. Calls ``GET /projects/<id>/tasks`` (no server-side filter) and
-     applies the equivalent filter in Python over the returned task list
-  4. Returns the list of matching task dicts on stdout as JSONL
+  1. Reads all tasks from the Felix sync cache (``scripts/common/sync_cache``).
+  2. Applies a Python-side filter equivalent to
+     ``done == False AND due_date <= <today>T23:59:59Z`` scoped to the
+     Habits project. The cache is populated and kept fresh by the
+     felix-vikunja-sync driver (mission #518).
+  3. Returns the list of matching task dicts on stdout as JSONL.
 
-Why client-side filter: Vikunja v0.24.6 rejects the compound server-side
-expression ``due_date <= <iso> AND done = false`` with HTTP 400 — see G7
-in ``docs/design/research/vikunja-task-model-research.md``. The
-client-side workaround mirrors the G6 (#333) fix in
-``reconcile_completions.py``.
+Cache reads surface ``OSError`` with a structured message when the cache
+is missing or stale beyond SLA_NORMAL. The CLI maps this to exit code 3.
+
+Per Q1's locked decision this is a clean cutover — no Vikunja HTTP
+fallback path. When the cache cannot serve a read the touchpoint surfaces
+a structured stderr error and exits non-zero.
 
 Scoping the enumeration to the Habits project is essential: a
-cross-project enumeration via ``/tasks/all`` would let non-habit tasks
+cross-project enumeration via the cache would let non-habit tasks
 (Inbox, Goals, recurring meetings) leak into the Phase 5 check-in flow.
 
 See contracts/api.md + contracts/cli.md for the contract.
@@ -32,15 +35,14 @@ Invocation::
 
     python3 -m scripts.habits.query_active_habits_v2 \\
         [--today YYYY-MM-DD] \\
-        [--token-file /data/services/openclaw/secrets/vikunja-api] \\
-        [--base-url http://100.92.197.90:3456/api/v1/]
+        [--schedule-path /path/to/schedule.yaml]
 
 Output (stdout): one JSON object per active habit task, newline-delimited.
 
 Exit codes (per contracts/cli.md):
     0 -- success (empty result OK)
-    1 -- Vikunja API failure
     2 -- usage error (bad --today value)
+    3 -- cache error (missing, stale, or corrupt cache)
 """
 from __future__ import annotations
 
@@ -48,11 +50,14 @@ import argparse
 import json
 import re
 import sys
-import urllib.error
-import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+
+from scripts.common.sync_cache import (
+    SLA_NORMAL,
+    SLATier,
+    read_cached_tasks,
+)
 
 try:
     from scripts.habits.schedule_loader import (
@@ -78,19 +83,21 @@ except ImportError:
 # Module constants
 # ---------------------------------------------------------------------------
 
-#: Default Vikunja API base. Tailscale IP keeps the helper functional
-#: without DNS resolution of the public hostname.
-DEFAULT_BASE_URL = "http://100.92.197.90:3456/api/v1/"
+#: Touchpoint SLA tier (all habits touchpoints land on SLA_NORMAL per research.md §Unknown 1).
+TOUCHPOINT_SLA: SLATier = SLA_NORMAL
 
-#: Default location of the felix-bot Vikunja API token on office2 (mode 0600).
-DEFAULT_TOKEN_PATH = "/data/services/openclaw/secrets/vikunja-api"
+#: Touchpoint name used in structured error messages.
+TOUCHPOINT_NAME = "habits.query_active_habits_v2"
 
-#: HTTP socket timeout in seconds for every Vikunja API call.
-HTTP_TIMEOUT_SECONDS = 30
+#: Vikunja project_id for the Habits project on office2. The sync driver
+#: records ``project_id`` in the cache for every task; this constant lets
+#: the touchpoint scope the enumeration to habits without a live API call.
+#: Value is the well-known project_id from the production Vikunja instance.
+#: See research.md § TP-03 for the field-availability confirmation.
+HABITS_PROJECT_ID: int | None = None  # resolved dynamically from cache if None
 
-#: Title of the Vikunja project holding all habit tasks. Enumeration is
-#: scoped to this project so non-habit tasks cannot leak into the result
-#: even if they match the native filter expression.
+#: Title of the Vikunja project holding all habit tasks.  Used as fallback
+#: project-scoping mechanism when HABITS_PROJECT_ID is None.
 HABITS_PROJECT_TITLE = "Habits"
 
 #: Regex for the --today flag (ISO-8601 date).
@@ -109,94 +116,8 @@ _WEEKDAY_BY_INDEX: tuple[str, ...] = (
 
 
 # ---------------------------------------------------------------------------
-# HTTP helper
-# ---------------------------------------------------------------------------
-
-
-def _join_url(base: str, path: str) -> str:
-    if not base.endswith("/"):
-        base = base + "/"
-    return base + path.lstrip("/")
-
-
-def _http_get(url: str, token: str) -> tuple[int, Any]:
-    """GET request to Vikunja with bearer auth. Returns (status, parsed_json).
-
-    Raises:
-        OSError: On network failure, non-2xx status, or non-JSON body.
-    """
-    headers = {
-        "Accept": "application/json",
-        "Authorization": f"Bearer {token}",
-    }
-    req = urllib.request.Request(url, headers=headers, method="GET")
-    try:
-        with urllib.request.urlopen(req, timeout=HTTP_TIMEOUT_SECONDS) as resp:
-            status = resp.status
-            raw = resp.read().decode("utf-8", errors="replace")
-    except urllib.error.HTTPError as e:
-        try:
-            err_body = e.read().decode("utf-8", errors="replace")
-        except Exception:  # pragma: no cover -- defensive
-            err_body = ""
-        raise OSError(
-            f"GET {url} failed with HTTP {e.code}: {err_body!r}"
-        ) from e
-    except urllib.error.URLError as e:
-        raise OSError(f"GET {url} network failure: {e}") from e
-
-    if status < 200 or status >= 300:
-        raise OSError(f"GET {url} returned HTTP {status}: {raw!r}")
-
-    parsed: Any = None
-    if raw.strip():
-        try:
-            parsed = json.loads(raw)
-        except json.JSONDecodeError as e:
-            raise OSError(
-                f"GET {url} returned non-JSON body: {raw!r} ({e})"
-            ) from e
-    return status, parsed
-
-
-# ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
-
-
-def _resolve_habits_project_id(api_base_url: str, token: str) -> int:
-    """Resolve the Vikunja project id of the Habits project by title.
-
-    Mirrors ``scripts/habits/query_active_habits.py::find_habits_project_id``
-    and ``scripts/habits/reconcile_completions.py::_resolve_habits_project_id``
-    so all three helpers locate the project the same way (no hardcoded ID).
-
-    Raises:
-        OSError: On network/HTTP failure or if no project titled
-            ``HABITS_PROJECT_TITLE`` is found.
-    """
-    url = _join_url(api_base_url, "projects")
-    _status, payload = _http_get(url, token)
-    if not isinstance(payload, list):
-        raise OSError(
-            f"GET {url} returned non-list payload "
-            f"(got {type(payload).__name__})"
-        )
-    for project in payload:
-        if (
-            isinstance(project, dict)
-            and project.get("title") == HABITS_PROJECT_TITLE
-        ):
-            project_id = project.get("id")
-            if isinstance(project_id, int):
-                return project_id
-            raise OSError(
-                f"Project {HABITS_PROJECT_TITLE!r} found but has no integer "
-                f"id: {project!r}"
-            )
-    raise OSError(
-        f"No project titled {HABITS_PROJECT_TITLE!r} found in Vikunja"
-    )
 
 
 def _today_utc() -> str:
@@ -224,23 +145,18 @@ def _weekday_name_for_date(date_str: str) -> str:
 
 
 def query_active_today(
-    api_base_url: str,
-    token: str,
     today: str | None = None,
     *,
     schedule_path: Path | str | None = None,
     today_weekday: str | None = None,
 ) -> list[dict]:
-    """Return habit tasks active for today via a project-scoped client-side filter.
+    """Return habit tasks active for today from the Felix sync cache.
 
-    Fetches all habit tasks in the Habits project (no server-side filter)
-    and filters client-side for ``done == False`` AND
-    ``due_date <= <today>T23:59:59Z``. The native server-side filter
-    pattern (``due_date <= <iso> AND done = false``) is rejected by
-    Vikunja v0.24.6 with HTTP 400 — see G7 in
-    ``docs/design/research/vikunja-task-model-research.md``. The
-    client-side workaround mirrors the G6 (#333) fix in
-    ``reconcile_completions.py``.
+    Reads all tasks from the sync cache at
+    /data/services/openclaw/state/sync/task-cache.json and filters
+    client-side for ``done == False`` AND
+    ``due_date <= <today>T23:59:59Z``, scoped to the Habits project
+    (``project_id`` field in the cached task fields).
 
     **Day-of-week filter (mission #408)**: when ``schedule_path`` is
     supplied, the function loads the habit schedule via
@@ -254,8 +170,6 @@ def query_active_today(
     See ``contracts/api.md`` for the full contract.
 
     Args:
-        api_base_url: Vikunja API base URL.
-        token: Vikunja bearer token (felix-bot per Phase 1).
         today: ISO-8601 date for the filter boundary. Defaults to UTC today.
         schedule_path: Optional path to the habits schedule YAML. When None
             (the default), no day-of-week filter is applied — preserves
@@ -272,8 +186,8 @@ def query_active_today(
     Raises:
         ValueError: If ``today`` is set but not YYYY-MM-DD, or ``today_weekday``
             is provided but invalid.
-        OSError: On Vikunja API failure (network, non-2xx HTTP, bad body,
-            or Habits project not found).
+        OSError: On cache read failure (cache missing, stale, or corrupt).
+            Message format: ``[habits.query_active_habits_v2] <detail>``.
         ScheduleConfigError: If ``schedule_path`` is supplied but the schedule
             YAML fails validation.
     """
@@ -281,19 +195,13 @@ def query_active_today(
     if not _DATE_RE.match(today_date):
         raise ValueError(f"today {today_date!r} must match YYYY-MM-DD")
 
-    project_id = _resolve_habits_project_id(api_base_url, token)
-    url = _join_url(api_base_url, f"projects/{project_id}/tasks")
-    _status, payload = _http_get(url, token)
-    if payload is None:
-        return []
-    if not isinstance(payload, list):
-        raise OSError(
-            f"GET {url} returned non-list payload "
-            f"(got {type(payload).__name__})"
-        )
+    # Read all tasks from the sync cache (raises OSError on missing/stale).
+    cached_tasks = read_cached_tasks(
+        sla=TOUCHPOINT_SLA,
+        touchpoint_name=TOUCHPOINT_NAME,
+    )
 
-    # Client-side filter — mirror reconcile_completions.py G6 (#333) pattern.
-    # Semantics match the rejected server-side filter
+    # Client-side filter — equivalent to the rejected server-side filter
     # ``due_date <= <today>T23:59:59Z AND done = false``:
     #   - exclude tasks with ``done == True``
     #   - include tasks where ``due_date`` (string lex compare) is
@@ -304,15 +212,27 @@ def query_active_today(
     #     ``due_date`` (truly absent field) is excluded.
     boundary = f"{today_date}T23:59:59Z"
     candidates: list[dict] = []
-    for item in payload:
-        if not isinstance(item, dict):
+    for task_id, view in cached_tasks.items():
+        if view.is_private:
+            continue  # private-project task — skip (see EC-7 in migration-pattern.md)
+        fields = view.fields
+        if fields.get("done", False):
             continue
-        if item.get("done", False):
-            continue
-        due = item.get("due_date") or ""
+        due = fields.get("due_date") or ""
         if not due or due > boundary:
             continue
-        candidates.append(item)
+        # Reconstruct the dict shape callers expect (same fields as the old
+        # Vikunja GET /projects/<id>/tasks response body).
+        candidates.append({
+            "id": task_id,
+            "title": fields.get("title"),
+            "due_date": fields.get("due_date"),
+            "done": fields.get("done", False),
+            "repeat_after": fields.get("repeat_after"),
+            "repeat_mode": fields.get("repeat_mode"),
+            "project_id": fields.get("project_id"),
+            "labels": fields.get("labels") or [],
+        })
 
     # Day-of-week filter (mission #408 / FR-002) — opt-in via schedule_path.
     if schedule_path is None:
@@ -353,39 +273,18 @@ def query_active_today(
 # ---------------------------------------------------------------------------
 
 
-def _read_token(token_file: Path) -> str:
-    """Read a Vikunja API token from a mode-600 file.
-
-    Raises:
-        OSError: On missing / unreadable / empty token file.
-    """
-    try:
-        content = token_file.read_text(encoding="utf-8").strip()
-    except FileNotFoundError as e:
-        raise OSError(f"Token file not found: {token_file}") from e
-    except PermissionError as e:
-        raise OSError(
-            f"Token file not readable (permission denied): {token_file}"
-        ) from e
-    except OSError as e:
-        raise OSError(f"Could not read token file {token_file}: {e}") from e
-    if not content:
-        raise OSError(f"Token file is empty: {token_file}")
-    return content
-
-
 def build_parser() -> argparse.ArgumentParser:
     """Build the argparse parser for the ``python3 -m`` entry point."""
     parser = argparse.ArgumentParser(
         prog="query_active_habits_v2",
         description=(
-            "Phase 5 cutover variant of query_active_habits. Enumerates the "
-            "Habits project and applies a client-side filter equivalent to "
-            "`due_date <= <today>T23:59:59Z AND done == false` (Vikunja "
-            "v0.24.6 rejects the server-side form — see G7 in "
-            "vikunja-task-model-research.md). Emits one JSON object per "
-            "active task on stdout (newline-delimited). Exits 0 on success "
-            "(empty result OK), 1 on Vikunja API failure, 2 on usage error."
+            "Reads active habit tasks from the Felix sync cache at "
+            "/data/services/openclaw/state/sync/task-cache.json. "
+            "Applies a Python-side filter equivalent to "
+            "`due_date <= <today>T23:59:59Z AND done == false`. "
+            "Emits one JSON object per active task on stdout (newline-delimited). "
+            "Exits 0 on success (empty result OK), 2 on usage error, "
+            "3 on cache error (missing or stale cache)."
         ),
     )
     parser.add_argument(
@@ -395,20 +294,6 @@ def build_parser() -> argparse.ArgumentParser:
             "Override the filter date (ISO-8601 YYYY-MM-DD). Defaults to "
             "today's UTC date."
         ),
-    )
-    parser.add_argument(
-        "--token-file",
-        type=Path,
-        default=Path(DEFAULT_TOKEN_PATH),
-        help=(
-            "Path to the Vikunja API token file "
-            f"(default: {DEFAULT_TOKEN_PATH})."
-        ),
-    )
-    parser.add_argument(
-        "--base-url",
-        default=DEFAULT_BASE_URL,
-        help=f"Vikunja API base URL (default: {DEFAULT_BASE_URL}).",
     )
     parser.add_argument(
         "--schedule-path",
@@ -426,7 +311,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
-    """CLI entry point. See contracts/cli.md for exit codes 0/1/2."""
+    """CLI entry point. See contracts/cli.md for exit codes 0/2/3."""
     parser = build_parser()
     args = parser.parse_args(argv)
 
@@ -438,16 +323,8 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     try:
-        token = _read_token(args.token_file)
-    except OSError as e:
-        print(f"ERROR: {e}", file=sys.stderr)
-        return 1
-
-    try:
         tasks = query_active_today(
-            args.base_url,
-            token,
-            today=args.today,
+            args.today,
             schedule_path=args.schedule_path,
         )
     except ValueError as e:
@@ -457,8 +334,8 @@ def main(argv: list[str] | None = None) -> int:
         print(f"ERROR: schedule config: {e}", file=sys.stderr)
         return 2
     except OSError as e:
-        print(f"ERROR: query failed: {e}", file=sys.stderr)
-        return 1
+        print(f"[{TOUCHPOINT_NAME}] {e}", file=sys.stderr)
+        return 3
 
     out = sys.stdout
     for task in tasks:

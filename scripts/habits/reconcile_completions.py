@@ -1,34 +1,31 @@
 #!/usr/bin/env python3
-"""ADR-0002 Phase 3 reconcile_completions helper.
+"""Reads from the sync cache at /data/services/openclaw/state/sync/task-cache.json
+(see scripts/common/sync_cache.py for the canonical entry point).
 
-Reconciles the local JSONL state log against Vikunja's task state:
+Reconciles the local JSONL state log against the sync cache's task state:
 
-    Backfill direction: for every active habit task whose Vikunja ``done``
-        is True, parse ``done_at`` -> UTC date string. If no JSONL entry
-        exists for ``(task_id, date, state="complete")``, append a backfill
+    Backfill direction: for every active habit task whose cache ``done``
+        is True, derive the completion date from the state log via
+        ``read_completion_timestamps``. If no JSONL entry exists for
+        ``(task_id, date, state="complete")``, append a backfill
         record with ``source="vikunja-ui"`` (Kent ticked the task done in
         the Vikunja UI -- record_completion was never invoked).
 
     Drift direction: for every active habit task, if the JSONL has a
-        ``state="complete"`` entry for ``today`` but Vikunja currently
+        ``state="complete"`` entry for ``today`` but the cache currently
         shows ``done=false``, report the drift on stdout. Drift is NOT
         auto-resolved -- it indicates a conflict between sources of truth.
 
 Exit codes (per contracts/cli.md):
     0 -- reconcile completed (with OR without drift; drift is informational)
-    1 -- unrecoverable Vikunja API failure (could not enumerate tasks)
+    1 -- unrecoverable cache/JSONL failure (could not enumerate tasks)
     2 -- usage error (bad --today value, etc.)
+    3 -- cache validation error (stale or missing cache)
 
-Vikunja behaviors honored:
-    - Zero-sentinel ``done_at``: Vikunja returns ``"0001-01-01T00:00:00Z"``
-      for tasks with no completion timestamp set. Treat as "no date".
+Vikunja behaviors honored (now via cache):
     - Enumeration is **project-scoped** to the Habits project: the helper
-      resolves the project by title (mirroring
-      ``scripts/habits/query_active_habits.py``) and calls
-      ``GET /projects/<id>/tasks?filter=is_archived=false``. This is
-      critical for FR-008 / Phase 2 state_log contract -- a cross-project
-      ``/tasks/all`` enumeration would let non-habit completions (Inbox,
-      Goals, etc.) leak into the habits JSONL during backfill.
+      filters tasks whose ``project_id`` matches ``HABITS_PROJECT_ID``
+      from the cache.
 
 Design references:
     - kitty-specs/habits-native-repeat-jsonl-state-01KS0M59/spec.md
@@ -37,210 +34,49 @@ Design references:
     - kitty-specs/habits-native-repeat-jsonl-state-01KS0M59/research.md
         D7 (drift handling), D6 (idempotency), D10 (gotchas).
     - scripts/common/state_log.py (Phase 2 library used for append/read).
-    - scripts/habits/migrate_schedule.py (urllib HTTP pattern reference).
+    - scripts/common/sync_cache.py (Phase 5 cache helper used for reads).
 """
 from __future__ import annotations
 
 import argparse
-import json
 import re
 import sys
-import urllib.error
-import urllib.parse
-import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
 from scripts.common import state_log
+from scripts.common.sync_cache import (
+    SLA_NORMAL,
+    SLATier,
+    CompletionTimestamps,
+    read_cached_tasks,
+    read_completion_timestamps,
+)
 
 
 # ---------------------------------------------------------------------------
 # Module constants
 # ---------------------------------------------------------------------------
 
-#: Default Vikunja API base. Tailscale IP keeps the helper functional
-#: without DNS resolution of the public hostname.
-DEFAULT_BASE_URL = "http://100.92.197.90:3456/api/v1/"
+TOUCHPOINT_SLA: SLATier = SLA_NORMAL
+TOUCHPOINT_NAME = "habits.reconcile_completions"
 
-#: Default location of the felix-bot Vikunja API token on office2 (mode 0600).
-DEFAULT_TOKEN_PATH = "/data/services/openclaw/secrets/vikunja-api"
+#: Root directory for per-domain JSONL state logs on office2.
+STATE_LOG_DIR = Path("/data/services/openclaw/state")
 
-#: HTTP socket timeout in seconds for every Vikunja API call.
-HTTP_TIMEOUT_SECONDS = 30
-
-#: Vikunja's "unset" sentinel value for ``done_at``. A literal 1AD timestamp.
-ZERO_DATE_SENTINEL = "0001-01-01T00:00:00Z"
-
-#: Title of the Vikunja project that holds all habit tasks. Enumeration is
-#: scoped to this project so non-habit completions (Inbox, Goals, etc.)
-#: cannot leak into the habits JSONL log during backfill (FR-008).
-HABITS_PROJECT_TITLE = "Habits"
+#: Vikunja project id for the Habits project. The sync cache stores
+#: ``project_id`` in task fields; we scope enumeration to this id.
+#: If the project id ever changes, update this constant.
+HABITS_PROJECT_ID = 2
 
 #: Regex for the --today flag (ISO-8601 date).
 _DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
 
 # ---------------------------------------------------------------------------
-# HTTP helper
-# ---------------------------------------------------------------------------
-
-
-def _join_url(base: str, path: str) -> str:
-    if not base.endswith("/"):
-        base = base + "/"
-    return base + path.lstrip("/")
-
-
-def _http_request(
-    method: str,
-    url: str,
-    token: str,
-) -> tuple[int, Any]:
-    """Issue an authenticated HTTP request via urllib (no body)."""
-    headers = {
-        "Accept": "application/json",
-        "Authorization": f"Bearer {token}",
-    }
-    req = urllib.request.Request(url, headers=headers, method=method)
-    try:
-        with urllib.request.urlopen(req, timeout=HTTP_TIMEOUT_SECONDS) as resp:
-            status = resp.status
-            raw = resp.read().decode("utf-8", errors="replace")
-    except urllib.error.HTTPError as e:
-        try:
-            err_body = e.read().decode("utf-8", errors="replace")
-        except Exception:  # pragma: no cover -- defensive
-            err_body = ""
-        raise OSError(
-            f"{method} {url} failed with HTTP {e.code}: {err_body!r}"
-        ) from e
-    except urllib.error.URLError as e:
-        raise OSError(f"{method} {url} network failure: {e}") from e
-
-    if status < 200 or status >= 300:
-        raise OSError(f"{method} {url} returned HTTP {status}: {raw!r}")
-
-    parsed: Any = None
-    if raw.strip():
-        try:
-            parsed = json.loads(raw)
-        except json.JSONDecodeError as e:
-            raise OSError(
-                f"{method} {url} returned non-JSON body: {raw!r} ({e})"
-            ) from e
-    return status, parsed
-
-
-# ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
-
-
-def _resolve_habits_project_id(api_base_url: str, token: str) -> int:
-    """Resolve the Vikunja project id of the Habits project by title.
-
-    Mirrors ``scripts/habits/query_active_habits.py::find_habits_project_id``
-    so both helpers locate the project the same way (no hardcoded ID).
-
-    Returns:
-        The integer project id.
-
-    Raises:
-        OSError: On network/HTTP failure or if no project titled
-            ``HABITS_PROJECT_TITLE`` is found.
-    """
-    url = _join_url(api_base_url, "projects")
-    _status, payload = _http_request("GET", url, token)
-    if not isinstance(payload, list):
-        raise OSError(
-            f"GET {url} returned non-list payload "
-            f"(got {type(payload).__name__})"
-        )
-    for project in payload:
-        if (
-            isinstance(project, dict)
-            and project.get("title") == HABITS_PROJECT_TITLE
-        ):
-            project_id = project.get("id")
-            if isinstance(project_id, int):
-                return project_id
-            raise OSError(
-                f"Project {HABITS_PROJECT_TITLE!r} found but has no integer "
-                f"id: {project!r}"
-            )
-    raise OSError(
-        f"No project titled {HABITS_PROJECT_TITLE!r} found in Vikunja"
-    )
-
-
-def _enumerate_active_habits(api_base_url: str, token: str) -> list[dict]:
-    """Enumerate active tasks **in the Habits project only**.
-
-    Scoping to the Habits project is essential: a cross-project enumeration
-    via ``GET /tasks/all`` would let non-habit completions (Inbox, Goals,
-    Recurring-events, etc.) be backfilled into the habits JSONL, violating
-    FR-008 and the Phase 2 state_log contract (one domain per log).
-
-    The helper:
-      1. Resolves the Habits project id by title (no hardcoded id) --
-         mirrors ``scripts/habits/query_active_habits.py``.
-      2. Calls ``GET /projects/<id>/tasks`` and client-side filters
-         on ``is_archived``. Per Verified API Gotcha G5
-         (``docs/design/research/vikunja-task-model-research.md``),
-         Vikunja v0.24.6's filter syntax does not accept
-         ``is_archived`` as a filterable field — server-side filtering
-         returns HTTP 400. Client-side filter is the workaround.
-
-    Returns:
-        List of task dicts (excluding archived ones). Empty list if
-        the project has no active tasks.
-
-    Raises:
-        OSError: On network/HTTP failure, or if the Habits project cannot
-            be resolved.
-    """
-    project_id = _resolve_habits_project_id(api_base_url, token)
-    url = _join_url(api_base_url, f"projects/{project_id}/tasks")
-    _status, payload = _http_request("GET", url, token)
-    if payload is None:
-        return []
-    if not isinstance(payload, list):
-        raise OSError(
-            f"GET {url} returned non-list payload "
-            f"(got {type(payload).__name__})"
-        )
-    out: list[dict] = []
-    for item in payload:
-        if isinstance(item, dict) and not item.get("is_archived", False):
-            out.append(item)
-    return out
-
-
-def _done_at_date(task: dict) -> str | None:
-    """Extract the UTC date portion of ``task["done_at"]``.
-
-    Vikunja returns ``"0001-01-01T00:00:00Z"`` as a sentinel "unset" value
-    -- treat as None. Empty strings / missing keys also map to None.
-
-    Returns:
-        ISO-8601 ``YYYY-MM-DD`` string, or ``None`` if no usable timestamp.
-    """
-    raw = task.get("done_at")
-    if not raw or not isinstance(raw, str):
-        return None
-    if raw == ZERO_DATE_SENTINEL:
-        return None
-    # Accept the trailing ``Z`` form by normalizing to +00:00 for parsing.
-    normalized = raw.replace("Z", "+00:00") if raw.endswith("Z") else raw
-    try:
-        parsed = datetime.fromisoformat(normalized)
-    except ValueError:
-        return None
-    if parsed.tzinfo is None:
-        # Assume UTC if no tz on a Vikunja timestamp.
-        parsed = parsed.replace(tzinfo=timezone.utc)
-    return parsed.astimezone(timezone.utc).date().isoformat()
 
 
 def _now_iso() -> str:
@@ -259,19 +95,16 @@ def _today_utc() -> str:
 
 
 def reconcile(
-    api_base_url: str,
-    token: str,
     today: str | None = None,
+    state_log_dir: Path | None = None,
 ) -> dict:
-    """Enumerate active habits, backfill missing JSONL entries, report drift.
-
-    See ``contracts/api.md`` for the full contract.
+    """Enumerate active habits from cache, backfill missing JSONL entries, report drift.
 
     Args:
-        api_base_url: Vikunja API base URL.
-        token: Vikunja bearer token (felix-bot per Phase 1).
         today: ISO-8601 date for the drift-detection comparison. Defaults
             to the current UTC date.
+        state_log_dir: Directory containing per-domain JSONL state logs.
+            Defaults to STATE_LOG_DIR.
 
     Returns:
         Summary dict::
@@ -293,7 +126,7 @@ def reconcile(
             }
 
     Raises:
-        OSError: On unrecoverable Vikunja API failure (the helper could not
+        OSError: On unrecoverable cache failure (the helper could not
             enumerate tasks at all).
     """
     today_date = today or _today_utc()
@@ -302,7 +135,12 @@ def reconcile(
             f"today {today_date!r} must match YYYY-MM-DD"
         )
 
-    tasks = _enumerate_active_habits(api_base_url, token)
+    slog_dir = state_log_dir or STATE_LOG_DIR
+
+    cached_tasks = read_cached_tasks(
+        sla=TOUCHPOINT_SLA,
+        touchpoint_name=TOUCHPOINT_NAME,
+    )
 
     result: dict[str, Any] = {
         "tasks_examined": 0,
@@ -311,28 +149,34 @@ def reconcile(
         "errors": [],
     }
 
-    for task in tasks:
-        result["tasks_examined"] += 1
-        task_id = task.get("id")
-        title = task.get("title") or ""
-        if not isinstance(task_id, int) or task_id <= 0:
-            # Defensive: skip malformed tasks rather than abort the run.
-            result["errors"].append({
-                "task_id": task_id,
-                "message": "task missing or invalid 'id' field",
-            })
+    for task_id, view in cached_tasks.items():
+        if view.is_private:
+            continue
+        if view.fields.get("project_id") != HABITS_PROJECT_ID:
             continue
 
-        # Backfill direction: Vikunja says done=true but we may lack JSONL.
-        if task.get("done") is True:
-            done_date = _done_at_date(task)
+        result["tasks_examined"] += 1
+        title = view.fields.get("title") or ""
+
+        # Backfill direction: cache says done=true but we may lack JSONL.
+        if view.fields.get("done") is True:
+            ts: CompletionTimestamps = read_completion_timestamps(
+                domain="habits",
+                task_id=task_id,
+                state_log_dir=slog_dir,
+            )
+            done_date = ts.most_recent_complete_date_et
             if done_date is None:
+                # Cache says done but no completion event in state log —
+                # operator-side completion happened in the Vikunja UI.
+                # We have no date to anchor the backfill record. Surface as
+                # an error so the operator can triage.
                 result["errors"].append({
                     "task_id": task_id,
                     "title": title,
                     "message": (
-                        "task done=true but done_at missing/invalid "
-                        f"({task.get('done_at')!r})"
+                        "task done=true in cache but no completion event "
+                        "in state log; cannot derive completion date"
                     ),
                 })
             else:
@@ -375,7 +219,7 @@ def reconcile(
                             "message": f"backfill append failed: {e}",
                         })
 
-        # Drift direction: JSONL says complete for today but Vikunja says
+        # Drift direction: JSONL says complete for today but cache says
         # done=false. Reported but never auto-resolved.
         try:
             today_records = state_log.read(
@@ -392,7 +236,7 @@ def reconcile(
             })
             today_records = []
 
-        if today_records and task.get("done") is False:
+        if today_records and view.fields.get("done") is False:
             result["drift"].append({
                 "task_id": task_id,
                 "title": title,
@@ -431,11 +275,11 @@ def build_parser() -> argparse.ArgumentParser:
         prog="reconcile_completions",
         description=(
             "ADR-0002 Phase 3 reconciliation helper. Enumerates active "
-            "habit tasks, backfills JSONL entries for Vikunja-UI "
-            "completions, and reports drift (JSONL says complete, "
-            "Vikunja says done=false). Exits 0 regardless of drift "
+            "habit tasks from the sync cache, backfills JSONL entries for "
+            "Vikunja-UI completions, and reports drift (JSONL says complete, "
+            "cache shows done=false). Exits 0 regardless of drift "
             "count (drift is informational). Exits 1 on unrecoverable "
-            "Vikunja API failure."
+            "cache or JSONL failure. Exits 3 on cache validation error."
         ),
     )
     parser.add_argument(
@@ -447,18 +291,13 @@ def build_parser() -> argparse.ArgumentParser:
         ),
     )
     parser.add_argument(
-        "--token-file",
+        "--state-log-dir",
         type=Path,
-        default=Path(DEFAULT_TOKEN_PATH),
+        default=STATE_LOG_DIR,
         help=(
-            "Path to the Vikunja API token file "
-            f"(default: {DEFAULT_TOKEN_PATH})."
+            "Directory containing per-domain JSONL state logs "
+            f"(default: {STATE_LOG_DIR})."
         ),
-    )
-    parser.add_argument(
-        "--base-url",
-        default=DEFAULT_BASE_URL,
-        help=f"Vikunja API base URL (default: {DEFAULT_BASE_URL}).",
     )
     return parser
 
@@ -491,7 +330,7 @@ def _format_summary(result: dict, today: str) -> str:
 
 
 def main(argv: list[str] | None = None) -> int:
-    """CLI entry point. See contracts/cli.md for exit codes 0/1/2."""
+    """CLI entry point. See contracts/cli.md for exit codes 0/1/2/3."""
     parser = build_parser()
     args = parser.parse_args(argv)
 
@@ -503,13 +342,10 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     try:
-        token = _read_token(args.token_file)
-    except OSError as e:
-        print(f"ERROR: {e}", file=sys.stderr)
-        return 1
-
-    try:
-        result = reconcile(args.base_url, token, today=args.today)
+        result = reconcile(
+            today=args.today,
+            state_log_dir=args.state_log_dir,
+        )
     except ValueError as e:
         print(f"ERROR: {e}", file=sys.stderr)
         return 2

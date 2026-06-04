@@ -1,5 +1,11 @@
 """Tests for the mission #408 --reconcile-schedule flag on set_due_dates.py.
 
+Updated for mission #519 WP02: the reconcile_schedule GET phase now reads
+task due_date from the Felix sync cache instead of making a direct Vikunja
+HTTP GET.  All GET-path mock_urlopen fixtures have been replaced with
+mock_sync_cache_fixture from tests/common/conftest.py.  PUT-path HTTP mocks
+(urllib.request.urlopen) are retained verbatim per spec FR-010.
+
 Covers:
   * ``compute_next_eod_et_for_weekdays`` — pure date math (deterministic).
   * ``reconcile_schedule`` — idempotency, per-habit error resilience, the
@@ -48,6 +54,24 @@ def _mock_ok_response(body: bytes = b"{}"):
 
 def _http_error(code: int, reason: str = "Server Error"):
     return urllib.error.HTTPError("url", code, reason, hdrs=None, fp=None)
+
+
+def _task_fields(
+    title: str = "Habit",
+    due_date: str | None = None,
+    done: bool = False,
+    project_id: int = 13,
+) -> dict:
+    """Build a task-fields dict compatible with mock_sync_cache_fixture."""
+    return {
+        "title": title,
+        "done": done,
+        "due_date": due_date,
+        "project_id": project_id,
+        "repeat_after": 604800,
+        "repeat_mode": "default",
+        "labels": [],
+    }
 
 
 SCHEDULE_WITH_FRIDAY = """
@@ -133,8 +157,8 @@ class TestComputeNextEodEt:
 
 
 class TestReconcileSchedule:
-    def test_advances_due_date_when_different(self, tmp_path):
-        """Vikunja's current due_date differs from expected — issue PUT."""
+    def test_advances_due_date_when_different(self, tmp_path, mock_sync_cache_fixture):
+        """Cache's current due_date differs from expected — issue PUT."""
         schedule = _write_schedule(
             tmp_path / "sched.yaml", SCHEDULE_WITH_FRIDAY
         )
@@ -142,13 +166,14 @@ class TestReconcileSchedule:
         expected_new = "2026-05-22T23:59:59-04:00"
         old_due = "2026-05-15T23:59:59-04:00"
 
-        get_resp = _mock_ok_response(
-            json.dumps({"id": 77, "due_date": old_due}).encode("utf-8")
+        # Populate the cache with task 77's current (stale) due_date.
+        mock_sync_cache_fixture(
+            tasks={77: _task_fields(title="Friday strength", due_date=old_due)},
         )
         put_resp = _mock_ok_response(b"{}")
 
         with patch("urllib.request.urlopen") as mock_open:
-            mock_open.side_effect = [get_resp, put_resp]
+            mock_open.return_value = put_resp
             result = sdd.reconcile_schedule(
                 schedule_path=schedule,
                 base_url="http://test/api/v1",
@@ -173,19 +198,23 @@ class TestReconcileSchedule:
         assert len(record["habits_reconciled"]) == 1
         assert record["habits_reconciled"][0]["action"] == "advanced"
 
-    def test_idempotent_no_op_when_already_correct(self, tmp_path):
-        """Current due_date already matches expected — no PUT, no error."""
+    def test_idempotent_no_op_when_already_correct(
+        self, tmp_path, mock_sync_cache_fixture
+    ):
+        """Cache's current due_date already matches expected — no PUT, no error."""
         schedule = _write_schedule(
             tmp_path / "sched.yaml", SCHEDULE_WITH_FRIDAY
         )
         now = datetime(2026, 5, 22, 14, 0, 0, tzinfo=timezone.utc)  # Fri
         expected_new = "2026-05-22T23:59:59-04:00"
-        get_resp = _mock_ok_response(
-            json.dumps({"id": 77, "due_date": expected_new}).encode("utf-8")
+
+        # Cache already has the up-to-date due_date.
+        mock_sync_cache_fixture(
+            tasks={77: _task_fields(title="Friday strength", due_date=expected_new)},
         )
 
         with patch("urllib.request.urlopen") as mock_open:
-            mock_open.side_effect = [get_resp]  # Only GET, no PUT.
+            mock_open.side_effect = AssertionError("idempotent — no PUT expected")
             result = sdd.reconcile_schedule(
                 schedule_path=schedule,
                 base_url="http://test/api/v1",
@@ -198,11 +227,12 @@ class TestReconcileSchedule:
         assert result["reconciled"] == []
         assert result["skipped_no_change"] == [77]
         assert result["errors"] == []
-        # No PUT was issued.
-        assert mock_open.call_count == 1
+        assert mock_open.call_count == 0
 
-    def test_per_habit_failure_continues_with_others(self, tmp_path):
-        """A GET 500 on one habit is recorded but doesn't abort the run."""
+    def test_per_habit_failure_continues_with_others(
+        self, tmp_path, mock_sync_cache_fixture
+    ):
+        """A cache OSError on one habit is recorded but doesn't abort the run."""
         schedule = _write_schedule(
             tmp_path / "sched.yaml",
             """
@@ -219,15 +249,20 @@ habits:
         )
         now = datetime(2026, 5, 20, 14, 0, 0, tzinfo=timezone.utc)  # Wed
 
-        # First: GET fails with HTTP 500. Second: GET ok, PUT ok.
-        get_ok = _mock_ok_response(
-            json.dumps({"id": 200, "due_date": "2026-05-13T23:59:59-04:00"})
-            .encode("utf-8")
+        # Only task 200 is in the cache — task 100's read_cached_task_by_id
+        # raises OSError (task not found), which reconcile_schedule records
+        # as an error and continues.  Task 200 is found, advanced, PUT OK.
+        mock_sync_cache_fixture(
+            tasks={
+                200: _task_fields(
+                    title="Second", due_date="2026-05-13T23:59:59-04:00"
+                )
+            },
         )
         put_ok = _mock_ok_response(b"{}")
 
         with patch("urllib.request.urlopen") as mock_open:
-            mock_open.side_effect = [_http_error(500), get_ok, put_ok]
+            mock_open.return_value = put_ok
             result = sdd.reconcile_schedule(
                 schedule_path=schedule,
                 base_url="http://test/api/v1",
@@ -239,7 +274,7 @@ habits:
 
         assert len(result["errors"]) == 1
         assert result["errors"][0]["task_id"] == 100
-        assert result["errors"][0]["error_type"] == "vikunja_get"
+        assert result["errors"][0]["error_type"] == "cache_read"
         assert len(result["reconciled"]) == 1
         assert result["reconciled"][0]["task_id"] == 200
 
@@ -249,6 +284,8 @@ habits:
         )
         now = datetime(2026, 5, 20, 14, 0, 0, tzinfo=timezone.utc)
 
+        # dry_run skips both cache read and PUT entirely — no urlopen, no
+        # mock_sync_cache_fixture needed.
         with patch("urllib.request.urlopen") as mock_open:
             mock_open.side_effect = AssertionError("dry-run must not call HTTP")
             result = sdd.reconcile_schedule(
@@ -272,6 +309,7 @@ habits:
             tmp_path / "sched.yaml", SCHEDULE_WITH_FRIDAY
         )
         now = datetime(2026, 5, 20, 14, 0, 0, tzinfo=timezone.utc)
+        # dry_run — no HTTP or cache needed.
         with patch("urllib.request.urlopen") as mock_open:
             mock_open.side_effect = AssertionError("no http in dry run")
             result = sdd.reconcile_schedule(
@@ -297,6 +335,7 @@ habits:
     repeat_after_seconds: 86400
 """,
         )
+        # Schedule validation fires before cache read — no fixture needed.
         with pytest.raises(sdd.ScheduleConfigError):
             sdd.reconcile_schedule(
                 schedule_path=schedule,
@@ -307,18 +346,21 @@ habits:
                 dry_run=True,
             )
 
-    def test_put_failure_recorded_as_error(self, tmp_path):
-        """GET succeeds, PUT fails — error recorded, exit-1 signal preserved."""
+    def test_put_failure_recorded_as_error(self, tmp_path, mock_sync_cache_fixture):
+        """Cache GET succeeds, PUT fails — error recorded, exit-1 signal preserved."""
         schedule = _write_schedule(
             tmp_path / "sched.yaml", SCHEDULE_WITH_FRIDAY
         )
         now = datetime(2026, 5, 20, 14, 0, 0, tzinfo=timezone.utc)
-        get_ok = _mock_ok_response(
-            json.dumps({"id": 77, "due_date": "2026-05-15T23:59:59-04:00"})
-            .encode("utf-8")
+
+        mock_sync_cache_fixture(
+            tasks={77: _task_fields(
+                title="Friday strength",
+                due_date="2026-05-15T23:59:59-04:00",
+            )},
         )
         with patch("urllib.request.urlopen") as mock_open:
-            mock_open.side_effect = [get_ok, _http_error(500)]
+            mock_open.side_effect = _http_error(500)
             result = sdd.reconcile_schedule(
                 schedule_path=schedule,
                 base_url="http://test/api/v1",
@@ -330,14 +372,18 @@ habits:
         assert len(result["errors"]) == 1
         assert result["errors"][0]["error_type"] == "vikunja_put"
 
-    def test_get_url_error_recorded(self, tmp_path):
-        """A URLError on GET is captured as a per-habit error."""
+    def test_cache_read_error_recorded(self, tmp_path, mock_sync_cache_fixture):
+        """An OSError on cache read is captured as a per-habit cache_read error."""
         schedule = _write_schedule(
             tmp_path / "sched.yaml", SCHEDULE_WITH_FRIDAY
         )
         now = datetime(2026, 5, 20, 14, 0, 0, tzinfo=timezone.utc)
+
+        # Task 77 is not in the cache — read_cached_task_by_id raises OSError.
+        mock_sync_cache_fixture(tasks={})
+
         with patch("urllib.request.urlopen") as mock_open:
-            mock_open.side_effect = urllib.error.URLError("connection refused")
+            mock_open.side_effect = AssertionError("no HTTP on cache error path")
             result = sdd.reconcile_schedule(
                 schedule_path=schedule,
                 base_url="http://test/api/v1",
@@ -347,46 +393,26 @@ habits:
                 dry_run=False,
             )
         assert len(result["errors"]) == 1
-        assert result["errors"][0]["error_type"] == "vikunja_get"
-        assert "connection refused" in result["errors"][0]["error_message"]
+        assert result["errors"][0]["error_type"] == "cache_read"
 
-    def test_put_url_error_recorded(self, tmp_path):
-        """A URLError on PUT is captured as a per-habit error."""
+    def test_due_date_missing_from_cache_treated_as_no_current(
+        self, tmp_path, mock_sync_cache_fixture
+    ):
+        """Task in cache but due_date field absent — current_due=None, still advances."""
         schedule = _write_schedule(
             tmp_path / "sched.yaml", SCHEDULE_WITH_FRIDAY
         )
         now = datetime(2026, 5, 20, 14, 0, 0, tzinfo=timezone.utc)
-        get_ok = _mock_ok_response(
-            json.dumps({"id": 77, "due_date": "2026-05-15T23:59:59-04:00"})
-            .encode("utf-8")
-        )
-        with patch("urllib.request.urlopen") as mock_open:
-            mock_open.side_effect = [
-                get_ok,
-                urllib.error.URLError("network down"),
-            ]
-            result = sdd.reconcile_schedule(
-                schedule_path=schedule,
-                base_url="http://test/api/v1",
-                token="t",
-                reconcile_dir=tmp_path / "out",
-                now_utc=now,
-                dry_run=False,
-            )
-        assert len(result["errors"]) == 1
-        assert result["errors"][0]["error_type"] == "vikunja_put"
 
-    def test_get_returns_non_dict_treated_as_no_current(self, tmp_path):
-        """If Vikunja returns a list or null, current_due stays None — still advances."""
-        schedule = _write_schedule(
-            tmp_path / "sched.yaml", SCHEDULE_WITH_FRIDAY
+        # due_date=None means the field is present but None — current_due
+        # will be None and therefore != expected_new, so a PUT is issued.
+        mock_sync_cache_fixture(
+            tasks={77: _task_fields(title="Friday strength", due_date=None)},
         )
-        now = datetime(2026, 5, 20, 14, 0, 0, tzinfo=timezone.utc)
-        # GET returns a list (unexpected shape) — _http_get returns it as-is.
-        get_weird = _mock_ok_response(b"[]")
         put_ok = _mock_ok_response(b"{}")
+
         with patch("urllib.request.urlopen") as mock_open:
-            mock_open.side_effect = [get_weird, put_ok]
+            mock_open.return_value = put_ok
             result = sdd.reconcile_schedule(
                 schedule_path=schedule,
                 base_url="http://test/api/v1",
@@ -398,6 +424,32 @@ habits:
         # current is None != expected_new -> advanced.
         assert len(result["reconciled"]) == 1
         assert result["reconciled"][0]["old_due_date"] is None
+
+    def test_put_url_error_recorded(self, tmp_path, mock_sync_cache_fixture):
+        """A URLError on PUT is captured as a per-habit error."""
+        schedule = _write_schedule(
+            tmp_path / "sched.yaml", SCHEDULE_WITH_FRIDAY
+        )
+        now = datetime(2026, 5, 20, 14, 0, 0, tzinfo=timezone.utc)
+
+        mock_sync_cache_fixture(
+            tasks={77: _task_fields(
+                title="Friday strength",
+                due_date="2026-05-15T23:59:59-04:00",
+            )},
+        )
+        with patch("urllib.request.urlopen") as mock_open:
+            mock_open.side_effect = urllib.error.URLError("network down")
+            result = sdd.reconcile_schedule(
+                schedule_path=schedule,
+                base_url="http://test/api/v1",
+                token="t",
+                reconcile_dir=tmp_path / "out",
+                now_utc=now,
+                dry_run=False,
+            )
+        assert len(result["errors"]) == 1
+        assert result["errors"][0]["error_type"] == "vikunja_put"
 
     def test_daily_entries_are_skipped(self, tmp_path):
         """Entries without designated_weekdays are not processed at all."""
@@ -413,6 +465,7 @@ habits:
     repeat_after_seconds: 86400
 """,
         )
+        # No day-specific entries — no cache read, no HTTP call.
         with patch("urllib.request.urlopen") as mock_open:
             mock_open.side_effect = AssertionError("no day-specific entries — no http")
             result = sdd.reconcile_schedule(
@@ -447,17 +500,19 @@ class TestReconcileCli:
         err = capsys.readouterr().err
         assert "mutually exclusive" in err
 
-    def test_reconcile_success_returns_0(self, tmp_path, tmp_token_file):
+    def test_reconcile_success_returns_0(
+        self, tmp_path, tmp_token_file, mock_sync_cache_fixture
+    ):
         schedule = _write_schedule(
             tmp_path / "sched.yaml", SCHEDULE_WITH_FRIDAY
         )
-        get_resp = _mock_ok_response(
-            json.dumps({"id": 77, "due_date": "2026-05-15T23:59:59-04:00"})
-            .encode("utf-8")
+        old_due = "2026-05-15T23:59:59-04:00"
+        mock_sync_cache_fixture(
+            tasks={77: _task_fields(title="Friday strength", due_date=old_due)},
         )
         put_resp = _mock_ok_response(b"{}")
         with patch("urllib.request.urlopen") as mock_open:
-            mock_open.side_effect = [get_resp, put_resp]
+            mock_open.return_value = put_resp
             # Patch datetime.now so the test is deterministic.
             with patch.object(sdd, "datetime") as mock_dt:
                 mock_dt.now.return_value = datetime(
@@ -475,13 +530,15 @@ class TestReconcileCli:
         assert exit_code == 0
 
     def test_reconcile_per_habit_failure_returns_1(
-        self, tmp_path, tmp_token_file
+        self, tmp_path, tmp_token_file, mock_sync_cache_fixture
     ):
         schedule = _write_schedule(
             tmp_path / "sched.yaml", SCHEDULE_WITH_FRIDAY
         )
+        # Task 77 missing from cache → OSError → error recorded → exit 1.
+        mock_sync_cache_fixture(tasks={})
         with patch("urllib.request.urlopen") as mock_open:
-            mock_open.side_effect = [_http_error(500)]
+            mock_open.side_effect = AssertionError("no HTTP on cache error")
             with patch.object(sdd, "datetime") as mock_dt:
                 mock_dt.now.return_value = datetime(
                     2026, 5, 20, 14, 0, 0, tzinfo=timezone.utc
@@ -501,6 +558,7 @@ class TestReconcileCli:
         schedule = _write_schedule(
             tmp_path / "sched.yaml", SCHEDULE_WITH_FRIDAY
         )
+        # dry_run path skips both cache and HTTP — no fixture needed.
         with patch("urllib.request.urlopen") as mock_open:
             mock_open.side_effect = AssertionError("dry-run must not call HTTP")
             with patch.object(sdd, "datetime") as mock_dt:

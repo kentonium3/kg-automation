@@ -1,13 +1,13 @@
 {
+  "change_mode": "regular",
   "created_at": "2026-06-04T22:02:10.150979+00:00",
   "friendly_name": "Migrate Felix Touchpoints to Sync Cache",
   "mission_id": "01KTAAGXA149W5F6GVW5N8N5XW",
-  "mission_number": null,
+  "mission_number": 66,
   "mission_slug": "migrate-felix-touchpoints-to-sync-cache-01KTAAGX",
   "mission_type": "software-dev",
   "slug": "migrate-felix-touchpoints-to-sync-cache-01KTAAGX",
+  "source_description": "Implements GitHub issue #519 (sub-issue of Epic #507). Migrates the 18 Felix Vikunja-touching read callsites enumerated in #518's RQ-2 research from direct Vikunja HTTP reads to reads from the sync driver's TaskCacheRecord cache. Adds shared helper scripts/common/sync_cache.py. Discovery decision Q1 (2026-06-04): clean cutover — old direct-read code is removed in the same change that adds the cache read; no fallback path; no runtime flag. Failure modes (cache missing, stale-beyond-SLA, task not in cache) surface as structured stderr+exit-nonzero errors per #518's no-silent-fallback rule. Out of scope: project-layer touchpoints (#520), changing what touchpoints semantically do, adding new touchpoints, modifying the driver itself, write touchpoints (continue to write directly to Vikunja).",
   "target_branch": "main",
-  "vcs": "git",
-  "change_mode": "regular",
-  "source_description": "Implements GitHub issue #519 (sub-issue of Epic #507). Migrates the 18 Felix Vikunja-touching read callsites enumerated in #518's RQ-2 research from direct Vikunja HTTP reads to reads from the sync driver's TaskCacheRecord cache. Adds shared helper scripts/common/sync_cache.py. Discovery decision Q1 (2026-06-04): clean cutover — old direct-read code is removed in the same change that adds the cache read; no fallback path; no runtime flag. Failure modes (cache missing, stale-beyond-SLA, task not in cache) surface as structured stderr+exit-nonzero errors per #518's no-silent-fallback rule. Out of scope: project-layer touchpoints (#520), changing what touchpoints semantically do, adding new touchpoints, modifying the driver itself, write touchpoints (continue to write directly to Vikunja)."
+  "vcs": "git"
 }

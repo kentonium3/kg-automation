@@ -1,6 +1,13 @@
 #!/usr/bin/env python3
 """Set Vikunja `due_date` to end-of-day Eastern Time on a list of habit IDs.
 
+GET phase reads task state from the Felix sync cache at
+/data/services/openclaw/state/sync/task-cache.json
+(see scripts/common/sync_cache.py for the canonical entry point).
+PUT phase writes new due_date values back to Vikunja via direct HTTP POST
+(per #524's read-modify-write pattern — TP-05 write-only, out of scope for
+cache migration per spec FR-010).
+
 Mission #282 / FR-003. Part of the felix-admin-habits Steps 1-4 refactor
 (per Constitution Directive 6 and `docs/design/helper-script-conventions.md`).
 
@@ -55,6 +62,29 @@ from typing import Any
 from zoneinfo import ZoneInfo
 
 try:
+    from scripts.common.sync_cache import (
+        SLA_NORMAL,
+        SLATier,
+        read_cached_task_by_id,
+    )
+except ImportError:
+    # Fallback for direct-script invocation (`python3 scripts/habits/set_due_dates.py`).
+    # Under that form only scripts/habits/ is on sys.path, so the absolute-package
+    # import above fails. Insert the repo root (two levels up from scripts/habits/)
+    # so that ``scripts.common.sync_cache`` and its own ``scripts.sync.state``
+    # transitive import can both resolve.
+    # Precedent: scripts/openclaw/observation/summarize.py:36-38.
+    import sys as _sys
+    _repo_root = str(Path(__file__).resolve().parent.parent.parent)
+    if _repo_root not in _sys.path:
+        _sys.path.insert(0, _repo_root)
+    from scripts.common.sync_cache import (  # type: ignore[no-redef]
+        SLA_NORMAL,
+        SLATier,
+        read_cached_task_by_id,
+    )
+
+try:
     from scripts.habits.schedule_loader import (
         ScheduleConfigError,
         ScheduleEntry,
@@ -75,6 +105,9 @@ except ImportError:
         load_schedule,
     )
 
+
+TOUCHPOINT_SLA: SLATier = SLA_NORMAL
+TOUCHPOINT_NAME = "habits.set_due_dates"
 
 DEFAULT_TOKEN_PATH = Path("/data/services/openclaw/secrets/vikunja-api")
 DEFAULT_BASE_URL = "https://office2.tail0f5f56.ts.net/api/v1"
@@ -145,25 +178,6 @@ def _http_put(
         headers={
             "Authorization": f"Bearer {token}",
             "Content-Type": "application/json",
-        },
-    )
-    with urllib.request.urlopen(req, timeout=timeout) as resp:
-        return json.loads(resp.read().decode("utf-8"))
-
-
-def _http_get(
-    base_url: str,
-    token: str,
-    path: str,
-    timeout: int = 15,
-) -> Any:
-    """GET request to Vikunja with bearer auth. Returns parsed JSON response."""
-    req = urllib.request.Request(
-        f"{base_url}{path}",
-        method="GET",
-        headers={
-            "Authorization": f"Bearer {token}",
-            "Accept": "application/json",
         },
     )
     with urllib.request.urlopen(req, timeout=timeout) as resp:
@@ -357,31 +371,27 @@ def reconcile_schedule(
             )
             continue
 
-        # Fetch current due_date (skipped in dry_run — emit synthetic record).
+        # Fetch current due_date from the sync cache (GET phase migrated to
+        # cache read per mission #519 WP02 / FR-004).
+        # PUT phase (below) stays on direct Vikunja HTTP per spec FR-010.
         current_due: str | None = None
         if dry_run:
-            current_due = None  # Unknown without HTTP.
+            current_due = None  # Unknown without cache read in dry_run.
         else:
             try:
-                task = _http_get(base_url, token, f"/tasks/{entry.task_id}")
-                if isinstance(task, dict):
-                    raw_due = task.get("due_date")
-                    current_due = raw_due if isinstance(raw_due, str) else None
-            except urllib.error.HTTPError as exc:
-                errors.append(
-                    {
-                        "task_id": entry.task_id,
-                        "error_type": "vikunja_get",
-                        "error_message": f"HTTP {exc.code}: {exc.reason}",
-                    }
+                view = read_cached_task_by_id(
+                    task_id=entry.task_id,
+                    sla=TOUCHPOINT_SLA,
+                    touchpoint_name=TOUCHPOINT_NAME,
                 )
-                continue
-            except urllib.error.URLError as exc:
+                raw_due = view.fields.get("due_date")
+                current_due = raw_due if isinstance(raw_due, str) else None
+            except OSError as exc:
                 errors.append(
                     {
                         "task_id": entry.task_id,
-                        "error_type": "vikunja_get",
-                        "error_message": f"URLError: {exc.reason}",
+                        "error_type": "cache_read",
+                        "error_message": str(exc),
                     }
                 )
                 continue

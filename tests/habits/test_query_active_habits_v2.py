@@ -1,48 +1,23 @@
-"""Tests for scripts/habits/query_active_habits_v2.py.
+"""Tests for scripts/habits/query_active_habits_v2.py (WP02 / T005-T006).
 
-Originally written for WP04 / T015 against a server-side filter
-implementation. Updated for G7 (#336): the helper now drops the
-server-side ``?filter=`` query param (Vikunja v0.24.6 rejects the
-compound expression — see G7 in
-``docs/design/research/vikunja-task-model-research.md``) and applies the
-equivalent ``done == False AND due_date <= <today>T23:59:59Z`` filter
-in Python.
-
-Covers the ``query_active_today()`` Python API and the ``__main__`` CLI
-surface. All Vikunja HTTP traffic is mocked via ``urllib.request.urlopen``
-(the ``mock_urlopen`` fixture from ``conftest.py``).
-
-Enumeration is project-scoped to the Habits project — same pattern as
-``reconcile_completions.py``. Each call makes **two** HTTP requests in
-order:
-
-  1. ``GET /projects`` -- resolve the Habits project id by title
-  2. ``GET /projects/<id>/tasks`` -- enumerate the Habits project (no
-     server-side filter; the helper filters client-side)
-
-Tests use ``_responses(tasks=...)`` to script both responses in order via
-``mock_urlopen.side_effect``.
+TP-03 migration: all GET-side tests now use ``mock_sync_cache_fixture``
+from ``tests/common/conftest.py``. No ``mock_urlopen`` for the read path.
 
 Test groups:
 
-1. Happy path — three active tasks returned in order.
-2. Empty result.
-3. ``today`` override / default UTC today.
-4. URL shape — project-scoped, no server-side ``?filter=`` query param.
-5. HTTPError -> CLI exit 1.
-6. CLI stdout format -- JSONL, one task per line, each parses.
-7. Project scoping (regression for the WP03 lesson).
+1. Happy path — active tasks returned from the cache.
+2. Cache failure modes — missing, stale (each raises OSError → CLI exit 3).
+3. Private-project tasks — skipped (bulk enumeration does NOT raise per EC-7).
+4. Empty cache — returns empty list.
+5. today override / default UTC today.
+6. CLI stdout format — JSONL, one task per line.
+7. Day-of-week filter (schedule_path) — still works after cache migration.
 8. Misc.
-
-See also ``test_query_active_habits_v2_filter.py`` for the G7 (#336)
-client-side filter test cases.
 """
 from __future__ import annotations
 
-import io
 import json
-import urllib.error
-from unittest.mock import MagicMock
+from pathlib import Path
 
 import pytest
 
@@ -50,73 +25,41 @@ from scripts.habits import query_active_habits_v2 as qv2
 
 
 # ---------------------------------------------------------------------------
-# Local mocking helpers
+# Local helpers
 # ---------------------------------------------------------------------------
 
-
-def _resp(payload, *, status: int = 200):
-    """Return a context-manager-compatible mock urlopen response."""
-    body = json.dumps(payload).encode("utf-8") if payload is not None else b""
-    resp = MagicMock(name="response")
-    resp.status = status
-    resp.read = MagicMock(return_value=body)
-    cm = MagicMock(name="cm")
-    cm.__enter__ = MagicMock(return_value=resp)
-    cm.__exit__ = MagicMock(return_value=False)
-    return cm
-
-
-#: Habits project id used across tests.
+#: Habits project_id used across tests.
 HABITS_PROJECT_ID = 42
 
-
-def _projects_payload(project_id: int = HABITS_PROJECT_ID):
-    """Return a Vikunja-shaped ``GET /projects`` payload with a Habits project."""
-    return [
-        {"id": 1, "title": "Inbox"},
-        {"id": project_id, "title": "Habits"},
-        {"id": 99, "title": "Goals"},
-    ]
+#: A non-habits project_id (Inbox, Goals, etc.).
+OTHER_PROJECT_ID = 7
 
 
-def _responses(tasks, *, projects=None):
-    """Build urlopen responses scripting (projects -> tasks).
-
-    Use via ``mock_urlopen.side_effect = _responses(tasks=[...])``.
-    """
-    if projects is None:
-        projects = _projects_payload()
-    return [_resp(projects), _resp(tasks)]
-
-
-def _http_error(code: int = 500, body: bytes = b'{"message":"boom"}'):
-    return urllib.error.HTTPError(
-        url="http://test/",
-        code=code,
-        msg="Server Error",
-        hdrs=None,
-        fp=io.BytesIO(body),
-    )
-
-
-def _task(
-    task_id: int,
+def _task_fields(
     title: str = "Habit",
     due_date: str = "2026-05-20T08:00:00Z",
     done: bool = False,
     repeat_after: int = 86400,
+    repeat_mode: str = "default",
     project_id: int = HABITS_PROJECT_ID,
     labels: list | None = None,
 ) -> dict:
+    """Return a dict of TRACKED_TASK_FIELDS for one task."""
     return {
-        "id": task_id,
         "title": title,
         "due_date": due_date,
         "done": done,
         "repeat_after": repeat_after,
+        "repeat_mode": repeat_mode,
         "project_id": project_id,
         "labels": labels or [],
     }
+
+
+def _write_schedule(tmp_path: Path, body: str) -> Path:
+    p = tmp_path / "schedule.yaml"
+    p.write_text(body, encoding="utf-8")
+    return p
 
 
 # ===========================================================================
@@ -125,264 +68,200 @@ def _task(
 
 
 class TestHappyPath:
-    def test_returns_three_active_tasks_in_order(self, mock_urlopen):
-        """A canned list of 3 tasks is returned by query_active_today in order."""
-        canned = [
-            _task(14, title="Wake at 5:00 AM"),
-            _task(15, title="Drink water"),
-            _task(16, title="Meditate"),
-        ]
-        mock_urlopen.side_effect = _responses(tasks=canned)
-        result = qv2.query_active_today(
-            api_base_url="http://test/api/v1/",
-            token="t",
-            today="2026-05-20",
+    def test_returns_active_tasks_from_cache(self, mock_sync_cache_fixture):
+        """Three active habit tasks are returned from the cache."""
+        mock_sync_cache_fixture(
+            tasks={
+                14: _task_fields(title="Wake at 5:00 AM"),
+                15: _task_fields(title="Drink water"),
+                16: _task_fields(title="Meditate"),
+            },
         )
+        result = qv2.query_active_today(today="2026-05-20")
         assert len(result) == 3
-        assert [t["id"] for t in result] == [14, 15, 16]
-        assert result[0]["title"] == "Wake at 5:00 AM"
+        ids = {t["id"] for t in result}
+        assert ids == {14, 15, 16}
 
-    def test_returns_full_task_dicts_passthrough(self, mock_urlopen):
-        """Task dicts are passed through unmodified."""
-        canned = [_task(14, title="Wake", repeat_after=86400)]
-        mock_urlopen.side_effect = _responses(tasks=canned)
-        result = qv2.query_active_today(
-            api_base_url="http://test/api/v1/",
-            token="t",
-            today="2026-05-20",
+    def test_excludes_done_tasks(self, mock_sync_cache_fixture):
+        """Done tasks are excluded; active ones pass through."""
+        mock_sync_cache_fixture(
+            tasks={
+                14: _task_fields(title="Active", done=False),
+                15: _task_fields(title="Done", done=True),
+            },
         )
-        assert result[0] == canned[0]
+        result = qv2.query_active_today(today="2026-05-20")
+        assert len(result) == 1
+        assert result[0]["id"] == 14
+
+    def test_excludes_future_due_date(self, mock_sync_cache_fixture):
+        """Tasks with due_date > today boundary are excluded."""
+        mock_sync_cache_fixture(
+            tasks={
+                14: _task_fields(title="Today", due_date="2026-05-20T08:00:00Z"),
+                15: _task_fields(title="Tomorrow", due_date="2026-05-21T00:00:00Z"),
+            },
+        )
+        result = qv2.query_active_today(today="2026-05-20")
+        ids = [t["id"] for t in result]
+        assert 14 in ids
+        assert 15 not in ids
+
+    def test_return_shape_has_expected_fields(self, mock_sync_cache_fixture):
+        """Each returned dict has the expected fields."""
+        mock_sync_cache_fixture(
+            tasks={14: _task_fields(title="Wake at 5:00 AM")},
+        )
+        result = qv2.query_active_today(today="2026-05-20")
+        assert len(result) == 1
+        task = result[0]
+        assert task["id"] == 14
+        assert task["title"] == "Wake at 5:00 AM"
+        assert "due_date" in task
+        assert "done" in task
+        assert "repeat_after" in task
+        assert "project_id" in task
+        assert "labels" in task
 
 
 # ===========================================================================
-# Group 2 — Empty result
+# Group 2 — Cache failure modes
 # ===========================================================================
 
 
-class TestEmptyResult:
-    def test_empty_list_returned(self, mock_urlopen):
-        mock_urlopen.side_effect = _responses(tasks=[])
-        result = qv2.query_active_today(
-            api_base_url="http://test/api/v1/",
-            token="t",
-            today="2026-05-20",
+class TestCacheFailureModes:
+    def test_cache_missing_raises_oserror(self, mock_sync_cache_fixture, tmp_path, monkeypatch):
+        """When no cache exists, read_cached_tasks raises OSError."""
+        # Point to an empty directory — no cache files.
+        monkeypatch.setattr("scripts.common.sync_cache.STATE_DIR_DEFAULT", tmp_path / "empty")
+        monkeypatch.setattr("scripts.sync.state.STATE_DIR_DEFAULT", tmp_path / "empty")
+        with pytest.raises(OSError) as exc_info:
+            qv2.query_active_today(today="2026-05-20")
+        assert "freshness pointer missing" in str(exc_info.value)
+
+    def test_cache_missing_cli_exits_3(self, tmp_path, monkeypatch, capsys):
+        """CLI exits 3 with [habits.query_active_habits_v2] prefix when cache missing."""
+        monkeypatch.setattr("scripts.common.sync_cache.STATE_DIR_DEFAULT", tmp_path / "empty")
+        monkeypatch.setattr("scripts.sync.state.STATE_DIR_DEFAULT", tmp_path / "empty")
+        exit_code = qv2.main(["--today", "2026-05-20"])
+        assert exit_code == 3
+        err = capsys.readouterr().err
+        assert "[habits.query_active_habits_v2]" in err
+
+    def test_stale_cache_raises_oserror(self, mock_sync_cache_fixture):
+        """Cache older than SLA_NORMAL (900s) raises OSError with 'stale' message."""
+        mock_sync_cache_fixture(
+            tasks={14: _task_fields()},
+            freshness_age_seconds=1500,  # > 900s SLA_NORMAL
         )
+        with pytest.raises(OSError) as exc_info:
+            qv2.query_active_today(today="2026-05-20")
+        assert "stale beyond SLA_NORMAL" in str(exc_info.value)
+
+    def test_stale_cache_cli_exits_3(self, mock_sync_cache_fixture, capsys):
+        """CLI exits 3 when cache is stale."""
+        mock_sync_cache_fixture(
+            tasks={14: _task_fields()},
+            freshness_age_seconds=1500,
+        )
+        exit_code = qv2.main(["--today", "2026-05-20"])
+        assert exit_code == 3
+        err = capsys.readouterr().err
+        assert "[habits.query_active_habits_v2]" in err
+
+
+# ===========================================================================
+# Group 3 — Private-project tasks skipped (EC-7)
+# ===========================================================================
+
+
+class TestPrivateProjectSkip:
+    def test_private_tasks_skipped_not_raised(self, mock_sync_cache_fixture):
+        """Private-project tasks are skipped in bulk enumeration (EC-7).
+
+        Per migration-pattern EC-7, ``read_cached_tasks`` returns private
+        entries with ``is_private=True`` and the touchpoint skips them
+        rather than raising. This differs from ``read_cached_task_by_id``
+        which DOES raise on private.
+        """
+        PRIVATE_PROJECT_ID = 99
+        mock_sync_cache_fixture(
+            tasks={
+                100: _task_fields(title="Private habit", project_id=PRIVATE_PROJECT_ID),
+                14: _task_fields(title="Normal habit"),
+                15: _task_fields(title="Another normal"),
+            },
+            private_project_ids=frozenset({PRIVATE_PROJECT_ID}),
+        )
+        result = qv2.query_active_today(today="2026-05-20")
+        ids = {t["id"] for t in result}
+        # Private task skipped, normals returned.
+        assert 100 not in ids
+        assert 14 in ids
+        assert 15 in ids
+
+
+# ===========================================================================
+# Group 4 — Empty cache
+# ===========================================================================
+
+
+class TestEmptyCache:
+    def test_empty_cache_returns_empty_list(self, mock_sync_cache_fixture):
+        """An empty cache (no tasks) returns an empty list."""
+        mock_sync_cache_fixture(tasks={})
+        result = qv2.query_active_today(today="2026-05-20")
         assert result == []
 
-    def test_empty_body_treated_as_no_tasks(self, mock_urlopen):
-        """A Vikunja response with an empty body becomes an empty list."""
-        mock_urlopen.side_effect = [
-            _resp(_projects_payload()),
-            _resp(None),  # empty body
-        ]
-        result = qv2.query_active_today(
-            api_base_url="http://test/api/v1/",
-            token="t",
-            today="2026-05-20",
-        )
-        assert result == []
-
 
 # ===========================================================================
-# Group 3 — `today` override flows into the URL
+# Group 5 — today override / default
 # ===========================================================================
 
 
 class TestTodayOverride:
-    def test_today_kwarg_drives_client_side_boundary(self, mock_urlopen):
-        """The explicit today override is applied as the client-side filter boundary.
-
-        Post-G7 (#336): the URL no longer carries a ``filter=`` query
-        param. The boundary lives in Python. We verify it by feeding a
-        boundary-spanning task list and asserting the filter behavior.
-        """
-        # boundary = 2026-05-15T23:59:59Z
-        payload = [
-            {"id": 1, "title": "Before", "done": False, "due_date": "2026-05-15T08:00:00Z"},
-            {"id": 2, "title": "After", "done": False, "due_date": "2026-05-16T00:00:00Z"},
-        ]
-        mock_urlopen.side_effect = _responses(tasks=payload)
-        result = qv2.query_active_today(
-            api_base_url="http://test/api/v1/",
-            token="t",
-            today="2026-05-15",
+    def test_today_kwarg_drives_client_side_boundary(self, mock_sync_cache_fixture):
+        """The explicit today override is applied as the client-side filter boundary."""
+        mock_sync_cache_fixture(
+            tasks={
+                1: _task_fields(title="Before", due_date="2026-05-15T08:00:00Z"),
+                2: _task_fields(title="After", due_date="2026-05-16T00:00:00Z"),
+            },
         )
-        assert [t["id"] for t in result] == [1]
+        result = qv2.query_active_today(today="2026-05-15")
+        ids = [t["id"] for t in result]
+        assert 1 in ids
+        assert 2 not in ids
 
-    def test_today_default_uses_utc_today(self, mock_urlopen):
-        """When `today` is None, the helper uses the system UTC date.
-
-        We don't assert the exact value (test would race the calendar);
-        instead we confirm two HTTP calls happen and the second call hits
-        the project-scoped tasks endpoint.
-        """
-        mock_urlopen.side_effect = _responses(tasks=[])
-        qv2.query_active_today(
-            api_base_url="http://test/api/v1/",
-            token="t",
-        )
-        assert len(mock_urlopen.call_args_list) == 2
-        tasks_req = mock_urlopen.call_args_list[1][0][0]
-        url = tasks_req.full_url
-        assert f"/projects/{HABITS_PROJECT_ID}/tasks" in url
-
-    def test_today_bad_format_raises_value_error(self, mock_urlopen):
-        mock_urlopen.side_effect = AssertionError("must not be called")
+    def test_today_bad_format_raises_value_error(self, mock_sync_cache_fixture):
+        """A bad --today value raises ValueError before touching the cache."""
+        mock_sync_cache_fixture(tasks={})
         with pytest.raises(ValueError, match="YYYY-MM-DD"):
-            qv2.query_active_today(
-                api_base_url="http://test/api/v1/",
-                token="t",
-                today="5/15/2026",
-            )
+            qv2.query_active_today(today="5/15/2026")
+
+    def test_today_none_uses_utc_today(self, mock_sync_cache_fixture):
+        """When today is None, the helper uses the system UTC date (no crash)."""
+        mock_sync_cache_fixture(tasks={})
+        result = qv2.query_active_today()
+        assert isinstance(result, list)
 
 
 # ===========================================================================
-# Group 4 — URL shape (post-G7 #336): no server-side ?filter= query param
-# ===========================================================================
-
-
-class TestUrlShape:
-    """Verify the helper no longer sends a server-side ``?filter=`` query.
-
-    Post-G7 (#336), Vikunja v0.24.6's compound filter expression
-    ``due_date <= <iso> AND done = false`` is rejected with HTTP 400.
-    The helper now drops the filter and applies the equivalent logic in
-    Python. These tests pin the new URL shape.
-    """
-
-    def test_tasks_url_has_no_filter_query_param(self, mock_urlopen):
-        """The tasks GET request must not include any ``?filter=`` query."""
-        mock_urlopen.side_effect = _responses(tasks=[])
-        qv2.query_active_today(
-            api_base_url="http://test/api/v1/",
-            token="t",
-            today="2026-05-20",
-        )
-        tasks_req = mock_urlopen.call_args_list[1][0][0]
-        assert "filter=" not in tasks_req.full_url
-        # And no query string at all on the tasks endpoint.
-        assert "?" not in tasks_req.full_url
-
-    def test_tasks_url_is_project_scoped_bare_endpoint(self, mock_urlopen):
-        """The tasks GET must hit ``/projects/<id>/tasks`` with no extras."""
-        mock_urlopen.side_effect = _responses(tasks=[])
-        qv2.query_active_today(
-            api_base_url="http://test/api/v1/",
-            token="t",
-            today="2026-05-20",
-        )
-        tasks_req = mock_urlopen.call_args_list[1][0][0]
-        assert tasks_req.full_url.endswith(f"/projects/{HABITS_PROJECT_ID}/tasks")
-
-    def test_client_side_filter_applies_done_false_semantics(self, mock_urlopen):
-        """Tasks with ``done=True`` are excluded by the client-side filter."""
-        payload = [
-            _task(14, title="Active", done=False, due_date="2026-05-20T08:00:00Z"),
-            _task(15, title="Done", done=True, due_date="2026-05-20T08:00:00Z"),
-        ]
-        mock_urlopen.side_effect = _responses(tasks=payload)
-        result = qv2.query_active_today(
-            api_base_url="http://test/api/v1/",
-            token="t",
-            today="2026-05-20",
-        )
-        assert [t["id"] for t in result] == [14]
-
-    def test_client_side_filter_applies_due_date_predicate(self, mock_urlopen):
-        """Tasks with ``due_date > <today>T23:59:59Z`` are excluded."""
-        payload = [
-            _task(14, title="Today", done=False, due_date="2026-05-20T08:00:00Z"),
-            _task(15, title="Tomorrow", done=False, due_date="2026-05-21T00:00:00Z"),
-        ]
-        mock_urlopen.side_effect = _responses(tasks=payload)
-        result = qv2.query_active_today(
-            api_base_url="http://test/api/v1/",
-            token="t",
-            today="2026-05-20",
-        )
-        assert [t["id"] for t in result] == [14]
-
-
-# ===========================================================================
-# Group 5 — HTTPError -> CLI exit 1
-# ===========================================================================
-
-
-class TestCliFailures:
-    def test_http_error_via_cli_exits_one(
-        self, mock_urlopen, tmp_token_file, capsys
-    ):
-        """A Vikunja HTTPError surfaces as CLI exit 1 with a helpful stderr."""
-        mock_urlopen.side_effect = _http_error(503, b'{"message":"down"}')
-        exit_code = qv2.main([
-            "--token-file", str(tmp_token_file),
-            "--base-url", "http://test/api/v1/",
-            "--today", "2026-05-20",
-        ])
-        assert exit_code == 1
-        err = capsys.readouterr().err
-        assert "query failed" in err or "ERROR" in err
-
-    def test_url_error_via_cli_exits_one(
-        self, mock_urlopen, tmp_token_file, capsys
-    ):
-        mock_urlopen.side_effect = urllib.error.URLError("connection refused")
-        exit_code = qv2.main([
-            "--token-file", str(tmp_token_file),
-            "--base-url", "http://test/api/v1/",
-            "--today", "2026-05-20",
-        ])
-        assert exit_code == 1
-        err = capsys.readouterr().err
-        assert "ERROR" in err
-
-    def test_missing_token_file_exits_one(
-        self, mock_urlopen, tmp_path, capsys
-    ):
-        mock_urlopen.side_effect = AssertionError("must not be called")
-        missing = tmp_path / "nope" / "token"
-        exit_code = qv2.main([
-            "--token-file", str(missing),
-            "--base-url", "http://test/api/v1/",
-        ])
-        assert exit_code == 1
-        err = capsys.readouterr().err
-        assert "Token file not found" in err
-
-    def test_cli_bad_today_exits_two(
-        self, mock_urlopen, tmp_token_file, capsys
-    ):
-        mock_urlopen.side_effect = AssertionError("must not be called")
-        exit_code = qv2.main([
-            "--token-file", str(tmp_token_file),
-            "--base-url", "http://test/api/v1/",
-            "--today", "5/15/2026",
-        ])
-        assert exit_code == 2
-        err = capsys.readouterr().err
-        assert "YYYY-MM-DD" in err
-
-
-# ===========================================================================
-# Group 6 — CLI stdout format (JSONL, one task per line)
+# Group 6 — CLI stdout format
 # ===========================================================================
 
 
 class TestCliStdoutFormat:
-    def test_three_tasks_emitted_as_jsonl(
-        self, mock_urlopen, tmp_token_file, capsys
-    ):
-        canned = [
-            _task(14, title="Wake at 5:00 AM"),
-            _task(15, title="Drink water"),
-            _task(16, title="Meditate"),
-        ]
-        mock_urlopen.side_effect = _responses(tasks=canned)
-        exit_code = qv2.main([
-            "--token-file", str(tmp_token_file),
-            "--base-url", "http://test/api/v1/",
-            "--today", "2026-05-20",
-        ])
+    def test_three_tasks_emitted_as_jsonl(self, mock_sync_cache_fixture, capsys):
+        """Three active tasks are emitted as JSONL on stdout."""
+        mock_sync_cache_fixture(
+            tasks={
+                14: _task_fields(title="Wake at 5:00 AM"),
+                15: _task_fields(title="Drink water"),
+                16: _task_fields(title="Meditate"),
+            },
+        )
+        exit_code = qv2.main(["--today", "2026-05-20"])
         assert exit_code == 0
         out = capsys.readouterr().out
         lines = [ln for ln in out.splitlines() if ln.strip()]
@@ -391,102 +270,121 @@ class TestCliStdoutFormat:
             obj = json.loads(line)
             assert "id" in obj
             assert "title" in obj
-        ids = [json.loads(ln)["id"] for ln in lines]
-        assert ids == [14, 15, 16]
 
-    def test_empty_result_emits_no_stdout(
-        self, mock_urlopen, tmp_token_file, capsys
-    ):
-        mock_urlopen.side_effect = _responses(tasks=[])
-        exit_code = qv2.main([
-            "--token-file", str(tmp_token_file),
-            "--base-url", "http://test/api/v1/",
-            "--today", "2026-05-20",
-        ])
+    def test_empty_cache_emits_no_stdout(self, mock_sync_cache_fixture, capsys):
+        """Empty cache emits no stdout; exit 0."""
+        mock_sync_cache_fixture(tasks={})
+        exit_code = qv2.main(["--today", "2026-05-20"])
         assert exit_code == 0
         out = capsys.readouterr().out
         assert out == ""
 
+    def test_cli_bad_today_exits_two(self, mock_sync_cache_fixture, capsys):
+        """A malformed --today value exits 2."""
+        mock_sync_cache_fixture(tasks={})
+        exit_code = qv2.main(["--today", "5/15/2026"])
+        assert exit_code == 2
+        err = capsys.readouterr().err
+        assert "YYYY-MM-DD" in err
+
 
 # ===========================================================================
-# Group 7 — Project scoping (regression for the WP03 lesson)
+# Group 7 — Day-of-week filter (schedule_path) works after cache migration
 # ===========================================================================
 
 
-class TestProjectScoping:
-    """Ensure the query is project-scoped to Habits.
+class TestDayOfWeekFilter:
+    SCHEDULE = """
+habits:
+  - task_id: 14
+    title: "Wake"
+    repeat_after_seconds: 86400
+  - task_id: 77
+    title: "Friday strength"
+    designated_weekdays: ["Fri"]
+    repeat_after_seconds: 604800
+  - task_id: 76
+    title: "Wed strength"
+    designated_weekdays: ["Wed"]
+    repeat_after_seconds: 604800
+"""
 
-    Without scoping, ``GET /tasks/all?filter=...`` would let non-habit
-    tasks (Inbox, Goals) match the filter and leak into the Phase 5
-    check-in flow. The helper must mirror the v1 sibling's pattern of
-    resolving the Habits project by title first.
-    """
-
-    def test_two_requests_projects_then_tasks(self, mock_urlopen):
-        mock_urlopen.side_effect = _responses(tasks=[])
-        qv2.query_active_today(
-            api_base_url="http://test/api/v1/",
-            token="t",
-            today="2026-05-20",
+    def test_day_specific_included_on_designated_day(
+        self, tmp_path, mock_sync_cache_fixture
+    ):
+        """Friday-only habit is included on Friday (2026-05-22)."""
+        schedule = _write_schedule(tmp_path, self.SCHEDULE)
+        mock_sync_cache_fixture(
+            tasks={
+                14: _task_fields(title="Wake"),
+                77: _task_fields(title="Friday strength"),
+                76: _task_fields(title="Wed strength"),
+            },
         )
-        assert len(mock_urlopen.call_args_list) == 2
-
-    def test_first_request_is_projects_lookup(self, mock_urlopen):
-        mock_urlopen.side_effect = _responses(tasks=[])
-        qv2.query_active_today(
-            api_base_url="http://test/api/v1/",
-            token="t",
-            today="2026-05-20",
+        result = qv2.query_active_today(
+            today="2026-05-22",  # Fri
+            schedule_path=schedule,
         )
-        first_req = mock_urlopen.call_args_list[0][0][0]
-        assert first_req.get_method() == "GET"
-        assert first_req.full_url.endswith("/projects")
+        ids = sorted(t["id"] for t in result)
+        # Wake (daily) + Fri strength (today is Fri) — Wed strength excluded.
+        assert ids == [14, 77]
 
-    def test_second_request_is_project_scoped_tasks(self, mock_urlopen):
-        mock_urlopen.side_effect = _responses(tasks=[])
-        qv2.query_active_today(
-            api_base_url="http://test/api/v1/",
-            token="t",
-            today="2026-05-20",
+    def test_day_specific_excluded_on_other_day(
+        self, tmp_path, mock_sync_cache_fixture
+    ):
+        """Friday-only habit excluded on Wednesday (2026-05-20)."""
+        schedule = _write_schedule(tmp_path, self.SCHEDULE)
+        mock_sync_cache_fixture(
+            tasks={
+                14: _task_fields(title="Wake"),
+                77: _task_fields(title="Friday strength"),
+                76: _task_fields(title="Wed strength"),
+            },
         )
-        tasks_req = mock_urlopen.call_args_list[1][0][0]
-        assert tasks_req.get_method() == "GET"
-        assert f"/projects/{HABITS_PROJECT_ID}/tasks" in tasks_req.full_url
+        result = qv2.query_active_today(
+            today="2026-05-20",  # Wed
+            schedule_path=schedule,
+        )
+        ids = sorted(t["id"] for t in result)
+        assert ids == [14, 76]
 
-    def test_no_habits_project_raises_os_error(self, mock_urlopen):
-        """If the Habits project cannot be resolved, raise OSError."""
-        projects_without_habits = [
-            {"id": 1, "title": "Inbox"},
-            {"id": 99, "title": "Goals"},
-        ]
-        mock_urlopen.side_effect = [_resp(projects_without_habits)]
-        with pytest.raises(OSError, match="No project titled"):
-            qv2.query_active_today(
-                api_base_url="http://test/api/v1/",
-                token="t",
-                today="2026-05-20",
-            )
+    def test_no_schedule_path_returns_all_candidates(self, mock_sync_cache_fixture):
+        """Without schedule_path, all candidates flow through unchanged."""
+        mock_sync_cache_fixture(
+            tasks={
+                14: _task_fields(title="Wake"),
+                77: _task_fields(title="Fri strength"),
+            },
+        )
+        result = qv2.query_active_today(today="2026-05-20")  # Wed, no schedule
+        ids = {t["id"] for t in result}
+        assert ids == {14, 77}
 
-    def test_non_list_projects_payload_raises_os_error(self, mock_urlopen):
-        mock_urlopen.side_effect = [_resp({"not": "a list"})]
-        with pytest.raises(OSError, match="non-list payload"):
-            qv2.query_active_today(
-                api_base_url="http://test/api/v1/",
-                token="t",
-                today="2026-05-20",
-            )
-
-    def test_non_list_tasks_payload_raises_os_error(self, mock_urlopen):
-        mock_urlopen.side_effect = [
-            _resp(_projects_payload()),
-            _resp({"not": "a list"}),
-        ]
-        with pytest.raises(OSError, match="non-list payload"):
-            qv2.query_active_today(
-                api_base_url="http://test/api/v1/",
-                token="t",
-                today="2026-05-20",
-            )
+    def test_unscheduled_habit_passes_with_warning(
+        self, tmp_path, mock_sync_cache_fixture, capsys
+    ):
+        """A habit not in schedule.yaml is included (daily fallback) with stderr warn."""
+        schedule = _write_schedule(
+            tmp_path,
+            """
+habits:
+  - task_id: 100
+    title: "Known"
+    repeat_after_seconds: 86400
+""",
+        )
+        mock_sync_cache_fixture(
+            tasks={
+                100: _task_fields(title="Known"),
+                999: _task_fields(title="Stranger"),
+            },
+        )
+        result = qv2.query_active_today(today="2026-05-20", schedule_path=schedule)
+        ids = {t["id"] for t in result}
+        assert 999 in ids  # passed through
+        err = capsys.readouterr().err
+        assert "WARN" in err
+        assert "999" in err
 
 
 # ===========================================================================
@@ -500,38 +398,18 @@ class TestMisc:
             qv2.main(["--help"])
         assert exc.value.code == 0
 
-    def test_authorization_header_present(self, mock_urlopen):
-        """Both Vikunja calls must carry a Bearer token header."""
-        mock_urlopen.side_effect = _responses(tasks=[])
-        qv2.query_active_today(
-            api_base_url="http://test/api/v1/",
-            token="abc123",
-            today="2026-05-20",
-        )
-        for call in mock_urlopen.call_args_list:
-            req = call[0][0]
-            assert req.headers.get("Authorization") == "Bearer abc123"
+    def test_touchpoint_constants_set(self):
+        """Module-level TOUCHPOINT_SLA and TOUCHPOINT_NAME are correct."""
+        from scripts.common.sync_cache import SLA_NORMAL
+        assert qv2.TOUCHPOINT_SLA is SLA_NORMAL
+        assert qv2.TOUCHPOINT_NAME == "habits.query_active_habits_v2"
 
-    def test_base_url_normalized_without_trailing_slash(self, mock_urlopen):
-        """A base URL without trailing slash still produces valid request URLs."""
-        mock_urlopen.side_effect = _responses(tasks=[])
-        qv2.query_active_today(
-            api_base_url="http://test/api/v1",
-            token="t",
-            today="2026-05-20",
+    def test_no_urlopen_calls_on_happy_path(self, mock_sync_cache_fixture):
+        """The global HTTP guard from tests/conftest.py must not fire."""
+        # The global _block_live_http fixture raises RuntimeError on urlopen.
+        # If this test passes, no urlopen call was made during the cache read.
+        mock_sync_cache_fixture(
+            tasks={14: _task_fields(title="Wake")},
         )
-        first_req = mock_urlopen.call_args_list[0][0][0]
-        assert first_req.full_url == "http://test/api/v1/projects"
-
-    def test_non_dict_task_entries_skipped(self, mock_urlopen):
-        """Defensive: stray non-dict entries are skipped silently."""
-        mock_urlopen.side_effect = _responses(
-            tasks=[_task(14), "garbage", 42, _task(15)]
-        )
-        result = qv2.query_active_today(
-            api_base_url="http://test/api/v1/",
-            token="t",
-            today="2026-05-20",
-        )
-        ids = [t["id"] for t in result]
-        assert ids == [14, 15]
+        result = qv2.query_active_today(today="2026-05-20")
+        assert len(result) == 1  # cache served correctly

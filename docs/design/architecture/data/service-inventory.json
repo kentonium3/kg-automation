@@ -1,7 +1,7 @@
 {
   "schema_version": "1.1",
   "last_updated": "2026-06-04",
-  "updated_by": "#518-felix-vikunja-sync-driver-added + #376-remove-escalation-v1-parity + #400-audit-interpretation-moment0 + #310-tasker-jsonl-migration + #374-main-verbatim-passthrough + #362-drift-event-auto-resolution + #309-migrate-escalation-to-jsonl-state-model + #343-refactor-doc-auditor-to-scripts-first-driver + #307-backfill-habits-jsonl-from-comments + #306-habits-native-repeat-jsonl-state + #304-felix-bot-rotation + #291-felix-file-issue + #289-mutation-surfaces-enumeration + #285-cron-delivery-restore-path-c + #282-habits-d6-extract + #263-cron-delivery-mode-round2 + #100-google-workspace-foundation + #256-scope-discipline-guardrails + #253-step-5a-6-consolidation + #254-atomic-write-perm-preservation + issue-105-doc-auditor + #223-systemd-timer + #208-restic-healthcheck + #202-obsidian-sync-system-level + #203-sync-heartbeat + #199-inbox-schedules + #115-credential-health-check + #189-vikunja-compose + #185-inbox-capture-dedup",
+  "updated_by": "#519-touchpoint-migration + #518-felix-vikunja-sync-driver-added + #376-remove-escalation-v1-parity + #400-audit-interpretation-moment0 + #310-tasker-jsonl-migration + #374-main-verbatim-passthrough + #362-drift-event-auto-resolution + #309-migrate-escalation-to-jsonl-state-model + #343-refactor-doc-auditor-to-scripts-first-driver + #307-backfill-habits-jsonl-from-comments + #306-habits-native-repeat-jsonl-state + #304-felix-bot-rotation + #291-felix-file-issue + #289-mutation-surfaces-enumeration + #285-cron-delivery-restore-path-c + #282-habits-d6-extract + #263-cron-delivery-mode-round2 + #100-google-workspace-foundation + #256-scope-discipline-guardrails + #253-step-5a-6-consolidation + #254-atomic-write-perm-preservation + issue-105-doc-auditor + #223-systemd-timer + #208-restic-healthcheck + #202-obsidian-sync-system-level + #203-sync-heartbeat + #199-inbox-schedules + #115-credential-health-check + #189-vikunja-compose + #185-inbox-capture-dedup",
   "services": [
     {
       "name": "vikunja",
@@ -661,8 +661,8 @@
       "timeout_seconds_note": "Per-schedule timeouts diverge \u2014 see schedules array.",
       "session_mode": "isolated",
       "deployed_by": "F009",
-      "updated_by": "#371-habits-checkin-reply-scripts-first + #307-backfill-habits-jsonl-from-comments + #306-habits-native-repeat-jsonl-state + #285-cron-delivery-restore-path-c + #282-habits-d6-extract + #273-felix-tier2-self-repair-incident-audit + #263-cron-delivery-mode-round2",
-      "last_updated": "2026-05-22",
+      "updated_by": "#519-touchpoint-migration + #371-habits-checkin-reply-scripts-first + #307-backfill-habits-jsonl-from-comments + #306-habits-native-repeat-jsonl-state + #285-cron-delivery-restore-path-c + #282-habits-d6-extract + #273-felix-tier2-self-repair-incident-audit + #263-cron-delivery-mode-round2",
+      "last_updated": "2026-06-04",
       "status": "active",
       "purpose": "Daily habit check-in and weekly pattern report",
       "runbook": "docs/runbooks/habits-ops.md",
@@ -672,6 +672,11 @@
           "target": "openclaw-gateway:18789",
           "type": "requires",
           "description": "Dispatched by OpenClaw cron scheduler"
+        },
+        {
+          "target": "felix-vikunja-sync-driver",
+          "type": "consumes",
+          "description": "Reads task state from /data/services/openclaw/state/sync/task-cache.json via scripts/common/sync_cache.py (post-#519 migration). Touchpoints: morning_checkin_list.py (TP-07), query_active_habits_v2.py (TP-03), set_due_dates.py (TP-04), reconcile_completions.py (TP-02)."
         }
       ],
       "health_check": {
@@ -846,11 +851,18 @@
       "agent": "felix-admin-tasker",
       "deployed_by": "#310-tasker-jsonl-migration",
       "introduced_by": "#310",
-      "updated_by": "#310",
-      "last_updated": "2026-05-23",
+      "updated_by": "#519-touchpoint-migration + #310",
+      "last_updated": "2026-06-04",
       "status": "active",
       "purpose": "ADR-0002 Phase 7 enrichment subsystem (#310). Mirrors the scripts/escalation/ module pattern: record_completion (atomic three-write helper), reconcile_completions (Vikunja-comment backfill), derive_state (compute current state from JSONL), schema (EnrichmentCompletion dataclass + validators). State vocabulary: proposed/confirmed/skipped/declined. Invoked by felix-admin-tasker agent via `python3 -m scripts.enrichment.*`. Tasker is delegation-driven (not cron-driven): no OpenClaw cron entry \u2014 see C-006 in the mission spec. The pre-existing `task-detection` cron entry that previously appeared in this inventory was unverified drift (no matching `openclaw cron list` entry on office2) \u2014 removed by #310.",
       "risk_tier": 2,
+      "dependencies": [
+        {
+          "target": "felix-vikunja-sync-driver",
+          "type": "consumes",
+          "description": "Reads task state from /data/services/openclaw/state/sync/task-cache.json via scripts/common/sync_cache.py (post-#519 migration). Touchpoint: enrichment/reconcile_completions.py (TP-12)."
+        }
+      ],
       "health_check": {
         "method": "none",
         "note": "Library + CLI \u2014 health inferred from per-call exit codes + JSONL ledger growth"
@@ -995,14 +1007,19 @@
       "deployed_by": "F019",
       "status": "active",
       "purpose": "Daily overdue task escalation check and WhatsApp alert delivery",
-      "updated_by": "#309-migrate-escalation-to-jsonl-state-model + #285-cron-delivery-restore-path-c + #273-felix-tier2-self-repair-incident-audit + #263-cron-delivery-mode-round2 + F019",
-      "last_updated": "2026-05-21",
+      "updated_by": "#519-touchpoint-migration + #309-migrate-escalation-to-jsonl-state-model + #285-cron-delivery-restore-path-c + #273-felix-tier2-self-repair-incident-audit + #263-cron-delivery-mode-round2 + F019",
+      "last_updated": "2026-06-04",
       "risk_tier": 3,
       "dependencies": [
         {
           "target": "openclaw-gateway:18789",
           "type": "requires",
           "description": "Dispatched by OpenClaw cron scheduler"
+        },
+        {
+          "target": "felix-vikunja-sync-driver",
+          "type": "consumes",
+          "description": "Reads task state from /data/services/openclaw/state/sync/task-cache.json via scripts/common/sync_cache.py (post-#519 migration). Touchpoint: escalation/reconcile_completions.py (TP-10)."
         }
       ],
       "health_check": {

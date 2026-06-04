@@ -1,6 +1,11 @@
 #!/usr/bin/env python3
 """Morning check-in list emitter (mission #371 / WP01).
 
+Reads active habits via scripts/habits/query_active_habits_v2, which now
+reads from the sync cache at
+/data/services/openclaw/state/sync/task-cache.json
+(see scripts/common/sync_cache.py for the canonical entry point).
+
 Produces today's ordered habit list as both:
 
   (a) a persisted JSON artifact at
@@ -20,7 +25,7 @@ The helper composes two existing Phase 5 helpers without modifying them
 (C-001):
 
   * ``scripts.habits.query_active_habits_v2.query_active_today`` -- fetch
-    the project-scoped active habit task set.
+    the project-scoped active habit task set (from the sync cache).
   * ``scripts.habits.exclude_completed_v2.exclude_completed_for_today`` --
     filter out habits already addressed today via the JSONL state log.
 
@@ -42,13 +47,16 @@ import json
 import os
 import re
 import sys
-import urllib.error
 import zoneinfo
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from scripts.common.sync_cache import (
+    SLA_NORMAL,
+    SLATier,
+)
 from scripts.habits.exclude_completed_v2 import exclude_completed_for_today
 from scripts.habits.query_active_habits_v2 import query_active_today
 
@@ -79,15 +87,19 @@ except ImportError:
 
 
 # ---------------------------------------------------------------------------
-# Module constants (per contracts/api.md)
+# Touchpoint SLA constants (mission #519 WP02)
 # ---------------------------------------------------------------------------
 
-#: Default Vikunja API base. Tailscale IP keeps the helper functional
-#: without DNS resolution of the public hostname.
-DEFAULT_BASE_URL = "http://100.92.197.90:3456/api/v1/"
+#: Touchpoint SLA tier — inherits SLA_NORMAL from the underlying TP-03 call.
+TOUCHPOINT_SLA: SLATier = SLA_NORMAL
 
-#: Default location of the felix-bot Vikunja API token on office2 (mode 0600).
-DEFAULT_TOKEN_PATH = Path("/data/services/openclaw/secrets/vikunja-api")
+#: Touchpoint name used in structured error messages.
+TOUCHPOINT_NAME = "habits.morning_checkin_list"
+
+
+# ---------------------------------------------------------------------------
+# Module constants (per contracts/api.md)
+# ---------------------------------------------------------------------------
 
 #: Default per-date morning-list artifact directory on office2.
 DEFAULT_STATE_DIR = Path("/data/services/openclaw/state/habits")
@@ -107,10 +119,6 @@ _WEEKDAY_BY_INDEX: tuple[str, ...] = (
     "Sat",
     "Sun",
 )
-
-#: HTTP socket timeout for any direct Vikunja calls (the downstream helpers
-#: use their own constants; this is kept for symmetry with the contract).
-HTTP_TIMEOUT_SECONDS = 30
 
 #: Kent's local timezone. "Today" in this module is Kent's local day, not UTC.
 LOCAL_TZ = zoneinfo.ZoneInfo("America/New_York")
@@ -191,41 +199,16 @@ def _now_utc_iso() -> str:
     )
 
 
-def _read_token(token_path: Path) -> str:
-    """Read a Vikunja API token from a mode-0600 file.
-
-    Raises:
-        FileNotFoundError: token file missing.
-        OSError: token file unreadable or empty.
-    """
-    try:
-        content = Path(token_path).read_text(encoding="utf-8").strip()
-    except FileNotFoundError:
-        raise
-    except PermissionError as exc:
-        raise OSError(
-            f"Token file not readable (permission denied): {token_path}"
-        ) from exc
-    except OSError as exc:
-        raise OSError(
-            f"Could not read token file {token_path}: {exc}"
-        ) from exc
-    if not content:
-        raise OSError(f"Token file is empty: {token_path}")
-    return content
-
-
 def _query_habits(
-    base_url: str,
-    token: str,
     date: str,
     schedule_path: Path | None = None,
 ) -> list[dict]:
     """Fetch active habits for the given date via the Phase 5 helper.
 
     Thin wrapper -- exists so tests can monkeypatch this single name to
-    bypass the live HTTP path without re-wiring ``urllib.request.urlopen``
-    (though that path is also exercised in the integration-style cases).
+    bypass the cache read path without re-wiring the underlying helper
+    (though the end-to-end cache path is also exercised in
+    integration-style test cases).
 
     When ``schedule_path`` is supplied (mission #408 / WP-01), the
     day-of-week filter is applied at the query layer so day-specific
@@ -233,8 +216,6 @@ def _query_habits(
     ``exclude_completed_for_today`` runs.
     """
     return query_active_today(
-        api_base_url=base_url,
-        token=token,
         today=date,
         schedule_path=schedule_path,
     )
@@ -273,33 +254,29 @@ class ScheduleInvariantError(Exception):
 def build_morning_list(
     *,
     date: str | None = None,
-    base_url: str = DEFAULT_BASE_URL,
-    token_path: Path = DEFAULT_TOKEN_PATH,
     schedule_path: Path | None = None,
 ) -> MorningList:
     """Build the ordered ``MorningList`` for a Kent-day.
 
     Behavior:
       1. Resolve ``date`` (default: today in America/New_York).
-      2. Read the Vikunja API token from ``token_path``.
-      3. Query active habits for ``date`` via the Phase 5 helper (the day-of-
-         week filter from mission #408 is applied here when
-         ``schedule_path`` is set — default is the in-repo phase3 schedule).
-      4. Exclude habits already addressed today via the JSONL state log.
-      5. Sort surviving habits by ``vikunja_task_id`` ASC (immutable
+      2. Query active habits for ``date`` via the Phase 5 helper (reads from
+         the sync cache — no direct Vikunja HTTP call). The day-of-week
+         filter from mission #408 is applied here when ``schedule_path`` is
+         set (default is the in-repo phase3 schedule).
+      3. Exclude habits already addressed today via the JSONL state log.
+      4. Sort surviving habits by ``vikunja_task_id`` ASC (immutable
          per ``reference_vikunja_id_vs_identifier.md`` -- the only sort key
          that does not reintroduce the #371 instability).
-      6. Resolve each habit's ``designated_weekdays`` from the schedule (for
+      5. Resolve each habit's ``designated_weekdays`` from the schedule (for
          persistence in the artifact — needed by the WP-02 sweeper).
-      7. Verify the day-of-week invariant: every entry in the produced list
+      6. Verify the day-of-week invariant: every entry in the produced list
          must satisfy ``is_active_today`` OR be a daily habit. Violations
          raise ``ScheduleInvariantError`` (mapped to CLI exit 4).
-      8. Assign 1-indexed positions and return a frozen ``MorningList``.
+      7. Assign 1-indexed positions and return a frozen ``MorningList``.
 
     Args:
         date: ISO-8601 ``YYYY-MM-DD``. ``None`` => today local.
-        base_url: Vikunja API base URL.
-        token_path: Path to the Vikunja API token file.
         schedule_path: Path to the habits schedule YAML. Pass an explicit
             path to enable the mission-#408 day-of-week filter; pass
             ``None`` (the default) to disable it. The CLI entry point
@@ -316,9 +293,7 @@ def build_morning_list(
 
     Raises:
         ValueError: ``date`` does not match ``YYYY-MM-DD``.
-        FileNotFoundError: ``token_path`` does not exist.
-        OSError: token unreadable, or Vikunja API failure.
-        urllib.error.URLError: Vikunja unreachable (subclass of OSError).
+        OSError: cache read failure (cache missing, stale, or corrupt).
         ScheduleConfigError: ``schedule_path`` is supplied but YAML invalid.
         ScheduleInvariantError: A day-specific habit not designated for
             today survived the filter (production safety net).
@@ -329,8 +304,7 @@ def build_morning_list(
             f"date {resolved_date!r} must match YYYY-MM-DD"
         )
 
-    token = _read_token(token_path)
-    raw_habits = _query_habits(base_url, token, resolved_date, schedule_path)
+    raw_habits = _query_habits(resolved_date, schedule_path)
     surviving = _exclude_already_addressed(raw_habits, resolved_date)
 
     # Resolve the schedule once so we can both stamp designated_weekdays on
@@ -559,10 +533,12 @@ def _build_parser() -> argparse.ArgumentParser:
         description=(
             "Emit today's ordered habit list as both (a) a persisted JSON "
             "artifact at <state-dir>/morning-checkin-<date>.json and (b) "
-            "the formatted WhatsApp check-in message on stdout. The "
-            "artifact is the single source of truth for the reply-parse "
-            "path; the message is what Felix relays to Kent. Use --dry-run "
-            "to emit the message without writing the artifact."
+            "the formatted WhatsApp check-in message on stdout. Reads "
+            "active habits from the Felix sync cache (no direct Vikunja "
+            "HTTP calls). The artifact is the single source of truth for "
+            "the reply-parse path; the message is what Felix relays to "
+            "Kent. Use --dry-run to emit the message without writing the "
+            "artifact."
         ),
     )
     parser.add_argument(
@@ -584,20 +560,6 @@ def _build_parser() -> argparse.ArgumentParser:
         help=(
             f"Directory for the persisted artifact "
             f"(default: {DEFAULT_STATE_DIR})."
-        ),
-    )
-    parser.add_argument(
-        "--base-url",
-        default=DEFAULT_BASE_URL,
-        help=f"Vikunja API base URL (default: {DEFAULT_BASE_URL}).",
-    )
-    parser.add_argument(
-        "--token-path",
-        type=Path,
-        default=DEFAULT_TOKEN_PATH,
-        help=(
-            f"Path to the Vikunja API token file "
-            f"(default: {DEFAULT_TOKEN_PATH})."
         ),
     )
     parser.add_argument(
@@ -633,8 +595,8 @@ def main(argv: list[str] | None = None) -> int:
     Exit codes per contracts/cli.md (extended by mission #408)::
 
         0 -- success (message emitted; artifact written unless --dry-run)
-        1 -- Vikunja unreachable / API failure
-        2 -- Filesystem write failure (Vikunja succeeded; persist failed)
+        1 -- cache read failure (missing, stale, or corrupt sync cache)
+        2 -- Filesystem write failure (cache succeeded; persist failed)
         3 -- Validation / usage error (bad date format, bad flags, or
              schedule.yaml validation failure — ScheduleConfigError)
         4 -- Schedule invariant violation (day-specific habit not designated
@@ -674,16 +636,11 @@ def main(argv: list[str] | None = None) -> int:
     try:
         morning_list = build_morning_list(
             date=args.date,
-            base_url=args.base_url,
-            token_path=args.token_path,
             schedule_path=schedule_path,
         )
     except ValueError as exc:
         _emit_stderr_error(step="argparse", error=str(exc))
         return 3
-    except FileNotFoundError as exc:
-        _emit_stderr_error(step="token_read", error=str(exc))
-        return 1
     except ScheduleConfigError as exc:
         _emit_stderr_error(step="schedule_load", error=str(exc))
         return 3
@@ -693,11 +650,8 @@ def main(argv: list[str] | None = None) -> int:
             error=str(exc),
         )
         return 4
-    except urllib.error.URLError as exc:
-        _emit_stderr_error(step="vikunja_fetch", error=str(exc))
-        return 1
     except OSError as exc:
-        _emit_stderr_error(step="vikunja_fetch", error=str(exc))
+        _emit_stderr_error(step="cache_read", error=str(exc))
         return 1
 
     if not args.dry_run:

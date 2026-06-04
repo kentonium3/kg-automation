@@ -1,13 +1,17 @@
 #!/usr/bin/env python3
-"""ADR-0002 Phase 6 ``reconcile_completions`` sweep for the escalation domain.
+"""Reads from the sync cache at /data/services/openclaw/state/sync/task-cache.json
+(see scripts/common/sync_cache.py for the canonical entry point).
+
+ADR-0002 Phase 6 ``reconcile_completions`` sweep for the escalation domain.
 
 The reconciliation tick. For every escalation-subscribed task in a project,
-fetch the current Vikunja state, compare against the JSONL state log, and:
+read the current state from the sync cache, compare against the JSONL state
+log, and:
 
-* Emit a synthetic ``done`` record when Vikunja shows ``done=true`` but the
+* Emit a synthetic ``done`` record when the cache shows ``done=true`` but the
   JSONL has no terminal record (Kent ticked done in the UI between ticks —
   the 2026-05-16 habits incident vulnerability class).
-* Emit a synthetic ``rescheduled`` record when Vikunja's ``due_date`` no
+* Emit a synthetic ``rescheduled`` record when the cache's ``due_date`` no
   longer matches the JSONL's last-known ``reschedule_to`` (or the initial
   due_date if no prior reschedule) — per research D3.
 * Route any task whose records cannot be reduced by ``derive_state`` to the
@@ -27,7 +31,7 @@ CLI surface — see ``contracts/cli.md``. Exit codes::
 
     0 — reconcile completed (drift may have been detected; synthetic records
         emitted unless ``--dry-run``).
-    1 — Vikunja or JSONL fatal error (run aborted; partial report on stderr).
+    1 — cache or JSONL fatal error (run aborted; partial report on stderr).
     3 — validation / usage error.
 
 Design references:
@@ -41,8 +45,8 @@ Design references:
     - kitty-specs/migrate-escalation-to-jsonl-state-model-01KS5R4D/contracts/cli.md
         flag set + exit codes + stdout shape.
     - kitty-specs/migrate-escalation-to-jsonl-state-model-01KS5R4D/research.md
-        D3 (rescheduled-drift detection), D6 (Vikunja-first ordering —
-        synthetic records skip the Vikunja side-effect because Vikunja
+        D3 (rescheduled-drift detection), D6 (cache-first ordering —
+        synthetic records skip the Vikunja side-effect because cache
         state already reflects reality), D8 (Q10 hard-fail trigger
         conditions).
     - scripts/escalation/derive_state.py
@@ -63,13 +67,17 @@ import json
 import re
 import sys
 import time
-import urllib.error
-import urllib.request
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterable, Literal, Optional
 
+from scripts.common.sync_cache import (
+    SLA_NORMAL,
+    SLATier,
+    TaskCacheView,
+    read_cached_task_by_id,
+)
 from scripts.escalation.derive_state import (
     EscalationStateError,
     derive_state,
@@ -95,8 +103,9 @@ _FILE_LEVEL_HARD_FAIL_SENTINEL_TASK_ID = 0
 __all__ = [
     "DEFAULT_BASE_URL",
     "DEFAULT_TOKEN_PATH",
-    "HTTP_TIMEOUT_SECONDS",
     "JSONL_STATE_DIR",
+    "TOUCHPOINT_SLA",
+    "TOUCHPOINT_NAME",
     "HardFailEvent",
     "ReconcileReport",
     "reconcile_project",
@@ -109,11 +118,16 @@ __all__ = [
 # Module constants (per contracts/api.md)
 # ---------------------------------------------------------------------------
 
-#: Default Vikunja API base URL. Tailscale IP keeps the helper functional
-#: without DNS resolution of the public hostname.
+TOUCHPOINT_SLA: SLATier = SLA_NORMAL
+TOUCHPOINT_NAME = "escalation.reconcile_completions"
+
+#: Default Vikunja API base URL. Retained for synthetic-record writes via
+#: ``record_event`` (the write path still targets Vikunja for PATCH calls
+#: when ``skip_vikunja=False``).
 DEFAULT_BASE_URL = "http://100.92.197.90:3456/api/v1/"
 
 #: Default location of the ``felix-bot`` Vikunja API token on office2.
+#: Retained for synthetic-record writes via ``record_event``.
 DEFAULT_TOKEN_PATH = Path("/data/services/openclaw/secrets/vikunja-api")
 
 #: Per-project JSONL state directory. Reconcile reads (and writes synthetic
@@ -121,11 +135,8 @@ DEFAULT_TOKEN_PATH = Path("/data/services/openclaw/secrets/vikunja-api")
 #: ``project-<project_id>-escalation-history.jsonl``.
 JSONL_STATE_DIR = Path("/data/services/openclaw/state/escalation")
 
-#: HTTP socket timeout in seconds for every Vikunja API call.
-HTTP_TIMEOUT_SECONDS = 30
-
-#: Vikunja's "unset" sentinel value for ``due_date`` and ``done_at``. A
-#: literal 1AD timestamp the API substitutes for SQL NULL.
+#: Vikunja's "unset" sentinel value for ``due_date``. The cache inherits
+#: the same serialization format from the sync driver.
 ZERO_DATE_SENTINEL = "0001-01-01T00:00:00Z"
 
 #: Regex extracting the integer ``project_id`` from a per-project JSONL
@@ -234,80 +245,8 @@ class ReconcileReport:
 
 
 # ---------------------------------------------------------------------------
-# HTTP helper (mirrored from record_completion.py — keeps reconcile importable
-# without pulling the side-effect surface)
+# JSONL helpers
 # ---------------------------------------------------------------------------
-
-
-def _join_url(base: str, path: str) -> str:
-    """Join a base URL and a path, tolerating missing/extra slashes."""
-    if not base.endswith("/"):
-        base = base + "/"
-    return base + path.lstrip("/")
-
-
-def _http_get_json(url: str, token: str) -> Any:
-    """GET ``url`` with bearer ``token``. Return the parsed JSON body.
-
-    Raises:
-        OSError: On network failure, HTTP non-2xx, or non-JSON body. The
-            caller wraps this into a process-level non-zero exit; one bad
-            project should not stop the multi-project sweep.
-    """
-    headers = {
-        "Accept": "application/json",
-        "Authorization": f"Bearer {token}",
-    }
-    req = urllib.request.Request(url, headers=headers, method="GET")
-    try:
-        with urllib.request.urlopen(
-            req, timeout=HTTP_TIMEOUT_SECONDS
-        ) as resp:
-            status = resp.status
-            raw = resp.read().decode("utf-8", errors="replace")
-    except urllib.error.HTTPError as exc:
-        try:
-            err_body = exc.read().decode("utf-8", errors="replace")
-        except Exception:  # pragma: no cover - defensive
-            err_body = ""
-        raise OSError(
-            f"GET {url} failed with HTTP {exc.code}: {err_body!r}"
-        ) from exc
-    except urllib.error.URLError as exc:
-        raise OSError(f"GET {url} network failure: {exc}") from exc
-
-    if status < 200 or status >= 300:
-        raise OSError(f"GET {url} returned HTTP {status}: {raw!r}")
-
-    if not raw.strip():
-        return None
-    try:
-        return json.loads(raw)
-    except json.JSONDecodeError as exc:
-        raise OSError(
-            f"GET {url} returned non-JSON body: {raw!r} ({exc})"
-        ) from exc
-
-
-# ---------------------------------------------------------------------------
-# Token + JSONL helpers
-# ---------------------------------------------------------------------------
-
-
-def _read_token(token_path: Path) -> str:
-    """Read and return the felix-bot bearer token from ``token_path``.
-
-    Raises:
-        FileNotFoundError: If the file is missing.
-        ValueError: If the file is empty after strip.
-        OSError: If the file exists but cannot be read.
-    """
-    if not token_path.exists():
-        raise FileNotFoundError(f"Token file not found: {token_path}")
-    content = token_path.read_text(encoding="utf-8").strip()
-    if not content:
-        raise ValueError(f"Token file is empty: {token_path}")
-    return content
 
 
 def _jsonl_path_for_project(project_id: int, jsonl_dir: Path) -> Path:
@@ -584,15 +523,15 @@ def _has_done_record(records: list[dict]) -> bool:
     return False
 
 
-def _vikunja_due_date(task: dict) -> Optional[str]:
-    """Extract the ``YYYY-MM-DD`` form of ``task["due_date"]``, or ``None``.
+def _cache_due_date(fields: dict) -> Optional[str]:
+    """Extract the ``YYYY-MM-DD`` form of ``fields["due_date"]``, or ``None``.
 
-    Vikunja serializes ``due_date`` as ``YYYY-MM-DDTHH:MM:SSZ``. We strip
-    the time portion for comparison against JSONL ``reschedule_to``
-    (which is always a calendar date). The zero-sentinel
-    ``0001-01-01T00:00:00Z`` is treated as ``None`` (no due date).
+    The sync cache inherits Vikunja's serialization format for ``due_date``
+    (``YYYY-MM-DDTHH:MM:SSZ``). We strip the time portion for comparison
+    against JSONL ``reschedule_to`` (which is always a calendar date). The
+    zero-sentinel ``0001-01-01T00:00:00Z`` is treated as ``None`` (no due date).
     """
-    raw = task.get("due_date")
+    raw = fields.get("due_date")
     if not isinstance(raw, str) or not raw:
         return None
     if raw == ZERO_DATE_SENTINEL:
@@ -825,7 +764,6 @@ def _reconcile_one_task(
     project_id: int,
     records: list[dict],
     base_url: str,
-    token: str,
     jsonl_dir: Path,
     dry_run: bool,
     filed_this_tick: set[tuple[int, str]],
@@ -835,29 +773,33 @@ def _reconcile_one_task(
     """Reconcile one subscribed task. Mutates ``report`` + ``report_hard_fails``.
 
     Steps:
-      1. Fetch current Vikunja state (GET /tasks/{task_id}).
+      1. Read current task state from the sync cache (read_cached_task_by_id).
       2. Run ``derive_state(records)``. On ``EscalationStateError`` -> file
          ``derive_state_inconsistency`` hard-fail and return.
-      3. Compute Vikunja-vs-JSONL drift:
+      3. Compute cache-vs-JSONL drift:
            - Done-drift: emit synthetic ``done`` record.
            - Rescheduled-drift: emit synthetic ``rescheduled`` record.
-      4. On any non-recoverable error fetching Vikunja state, propagate
-         ``OSError`` to the caller (one bad task should not abort the
-         whole sweep, but the per-project sweep handles the abort).
+      4. On any non-recoverable cache error, propagate ``OSError`` to the
+         caller (one bad task should not abort the whole sweep, but the
+         per-project sweep handles the abort).
     """
     jsonl_path = _jsonl_path_for_project(project_id, jsonl_dir)
 
-    task_url = _join_url(base_url, f"tasks/{task_id}")
-    task = _http_get_json(task_url, token)
-    if not isinstance(task, dict):
-        # Vikunja returned something other than an object — treat the task
-        # like a derive_state inconsistency so it gets surfaced.
+    try:
+        view: TaskCacheView = read_cached_task_by_id(
+            task_id=task_id,
+            sla=TOUCHPOINT_SLA,
+            touchpoint_name=TOUCHPOINT_NAME,
+        )
+    except OSError as exc:
+        # Cache miss or stale cache — surface as derive_state_inconsistency
+        # so the operator can triage.
         _emit_hard_fail(
             task_id=task_id,
             task_title=f"task #{task_id}",
             project_id=project_id,
             reason="derive_state_inconsistency",
-            detail=f"Vikunja GET {task_url} returned non-object payload",
+            detail=f"cache read failed: {exc}",
             jsonl_path=jsonl_path,
             vikunja_state={"done": "unknown", "due_date": None},
             derive_state_error_message=None,
@@ -866,17 +808,21 @@ def _reconcile_one_task(
         )
         return
 
+    if view.is_private:
+        # Private tasks are out-of-scope for the escalation reconciler.
+        return
+
     task_title = (
-        task.get("title")
-        if isinstance(task.get("title"), str) and task.get("title")
+        view.fields.get("title")
+        if isinstance(view.fields.get("title"), str) and view.fields.get("title")
         else f"task #{task_id}"
     )
 
-    vikunja_done = bool(task.get("done"))
-    vikunja_due = _vikunja_due_date(task)
+    vikunja_done = bool(view.fields.get("done"))
+    vikunja_due = _cache_due_date(view.fields)
     vikunja_state_for_body = {
         "done": vikunja_done,
-        "due_date": task.get("due_date"),
+        "due_date": view.fields.get("due_date"),
     }
 
     # ---- Step 2: derive_state inconsistency check ------------------------
@@ -1022,17 +968,19 @@ def reconcile_project(
     dry_run: bool = False,
     max_tasks: Optional[int] = None,
 ) -> ReconcileReport:
-    """Sweep one Vikunja project for drift vs the JSONL state log.
+    """Sweep one escalation project for drift vs the sync cache.
 
     Per ``contracts/api.md`` and the WP05 prompt. Enumerates every
-    escalation-subscribed task in the project, fetches current Vikunja
-    state, runs ``derive_state``, and emits synthetic records or files
-    Q10 hard-fails as appropriate.
+    escalation-subscribed task in the project, reads current state from
+    the sync cache, runs ``derive_state``, and emits synthetic records or
+    files Q10 hard-fails as appropriate.
 
     Args:
         project_id: Vikunja project id to reconcile.
-        base_url: Vikunja API base URL.
-        token_path: Path to the felix-bot bearer token file.
+        base_url: Vikunja API base URL (used for synthetic-record writes
+            via ``record_event``).
+        token_path: Path to the felix-bot bearer token file (used for
+            synthetic-record writes via ``record_event``).
         jsonl_dir: Directory of per-project escalation JSONL files.
         dry_run: When True, detect drift + log hard-fails but do NOT write
             synthetic records to JSONL. The ``ReconcileReport`` counters
@@ -1043,14 +991,15 @@ def reconcile_project(
         Populated ``ReconcileReport``.
 
     Raises:
-        FileNotFoundError: When ``token_path`` does not exist.
-        OSError: On Vikunja network/HTTP failure during the project sweep.
+        OSError: On cache read failure during the project sweep.
             The caller decides whether to abort the multi-project sweep
             (``reconcile_all`` continues; the CLI exits 1).
     """
     # Resolve module-level defaults at call-time (not at function-definition
     # time) so monkeypatching ``JSONL_STATE_DIR`` / ``DEFAULT_TOKEN_PATH`` /
     # ``DEFAULT_BASE_URL`` in tests is honored by callers that omit the kwargs.
+    # ``DEFAULT_BASE_URL`` and ``DEFAULT_TOKEN_PATH`` are used by the
+    # synthetic-record write path (record_event), not for cache reads.
     if base_url is None:
         base_url = DEFAULT_BASE_URL
     if token_path is None:
@@ -1058,8 +1007,16 @@ def reconcile_project(
     if jsonl_dir is None:
         jsonl_dir = JSONL_STATE_DIR
 
+    # Fail-fast: validate the token file exists before the sweep so any
+    # synthetic-record write can succeed. Raises FileNotFoundError /
+    # ValueError which the CLI maps to exit 3 (usage error per CLI contract).
+    if not token_path.exists():
+        raise FileNotFoundError(f"Token file not found: {token_path}")
+    content = token_path.read_text(encoding="utf-8").strip()
+    if not content:
+        raise ValueError(f"Token file is empty: {token_path}")
+
     started_at = time.monotonic()
-    token = _read_token(token_path)
 
     subscribed, malformed_lines = _enumerate_subscribed_tasks(
         project_id, jsonl_dir
@@ -1097,7 +1054,6 @@ def reconcile_project(
             project_id=project_id,
             records=records,
             base_url=base_url,
-            token=token,
             jsonl_dir=jsonl_dir,
             dry_run=dry_run,
             filed_this_tick=filed_this_tick,
@@ -1204,7 +1160,7 @@ def _build_parser() -> argparse.ArgumentParser:
     parser = _StructuredArgumentParser(
         prog="python3 -m scripts.escalation.reconcile_completions",
         description=(
-            "Phase 6 escalation reconcile sweep. Detects Vikunja-vs-JSONL "
+            "Phase 6 escalation reconcile sweep. Detects cache-vs-JSONL "
             "drift; emits synthetic records; routes inconsistent state "
             "through Q10 hard-fail. Exits 0/1/3 per contracts/cli.md."
         ),

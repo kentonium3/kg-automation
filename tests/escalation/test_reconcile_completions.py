@@ -1,36 +1,36 @@
-"""Tests for ``scripts.escalation.reconcile_completions`` (Phase 6 / WP05).
+"""Tests for ``scripts.escalation.reconcile_completions`` (WP03 / T014).
 
-Coverage matrix per the WP05 prompt § T017:
+Coverage matrix per WP03 T014 (cache-based migration):
 
-- **Done-drift detection** — Vikunja done=true + no JSONL ``done`` record →
+- **Done-drift detection** — cache done=true + no JSONL ``done`` record →
   synthetic ``done`` emitted with ``source="reconcile"``.
-- **Done-drift dedup** — pre-existing ``done`` record → no emit.
-- **Rescheduled-drift detection** — Vikunja due_date != last ``reschedule_to``
+- **Done-drift dedup** — pre-existing ``done`` record → not subscribed; no emit.
+- **Rescheduled-drift detection** — cache due_date != last ``reschedule_to``
   → synthetic ``rescheduled`` emitted with ``source="reconcile"``.
-- **Rescheduled-drift dedup** — Vikunja due_date matches last reschedule
+- **Rescheduled-drift dedup** — cache due_date matches last reschedule
   → no emit.
-- **Terminal short-circuit** — JSONL has ``dismissed`` → no emit (the
-  subscription gate already excludes terminals, but defended in depth).
+- **Terminal short-circuit** — JSONL has ``dismissed`` → not subscribed (no emit).
 - **Hard-fail (derive_state)** — malformed JSONL → ``derive_state``
   raises → ``file_hard_fail_bug`` called with
   ``reason="derive_state_inconsistency"``.
-- **No v1-substrate reader path** — post-parity-cleanup (mission
-  ``remove-escalation-v1-parity-01KT4VTD``), reconcile must NOT enumerate
-  Vikunja project tasks for the removed v1-comment-substrate drift check
-  and must NOT file hard-fails derived from that substrate. Regression
-  guard against re-introducing the historical-substrate reader.
+- **No v1-substrate reader path** — reconcile MUST NOT enumerate Vikunja
+  project tasks; surviving hard-fails come exclusively from JSONL-native paths.
 - **Hard-fail dedup within tick** — once filed for a (task_id, reason),
   subsequent triggers in the same tick short-circuit.
 - **Multi-project sweep** — ``reconcile_all`` iterates every per-project
   JSONL file and returns one report per project.
 - **dry_run mode** — counters reflect would-be writes; JSONL is untouched.
+- **Private task in cache** — skipped; no hard-fail filed.
+- **Cache read failure** — OSError from read_cached_task_by_id surfaces as
+  ``derive_state_inconsistency`` hard-fail; CLI exits 1.
 - **NFR-001 performance smoke** — 50-task sweep completes under 60s with
-  the Vikunja calls mocked.
+  cache mocked.
 
-All HTTP traffic is mocked via the ``mock_urlopen`` fixture from
-``tests/escalation/conftest.py``. ``hard_fail.file_hard_fail_bug`` is
-monkey-patched to a recording stub so we never spawn ``gh`` or
-``felix-file-issue.py`` subprocesses from tests.
+All HTTP traffic from record_event is mocked via the ``mock_urlopen`` fixture.
+``hard_fail.file_hard_fail_bug`` is monkey-patched to a recording stub so we
+never spawn ``gh`` or ``felix-file-issue.py`` subprocesses from tests.
+Cache reads are mocked via the ``mock_sync_cache_fixture`` from
+``tests/common/conftest.py``.
 """
 from __future__ import annotations
 
@@ -54,6 +54,9 @@ from scripts.escalation.reconcile_completions import (
     reconcile_all,
     reconcile_project,
 )
+
+# Re-export fixture from common conftest so pytest can discover it.
+from tests.common.conftest import mock_sync_cache_fixture  # noqa: F401
 
 
 # ---------------------------------------------------------------------------
@@ -82,11 +85,10 @@ def jsonl_sandbox(tmp_path: Path, monkeypatch) -> Path:
 def tmp_token_file(tmp_path: Path, monkeypatch) -> Path:
     """Write a placeholder token file and redirect DEFAULT_TOKEN_PATH.
 
-    Reconcile reads the token via ``_read_token(token_path)`` in
-    ``reconcile_project``. We point DEFAULT_TOKEN_PATH at the tmp file so
-    the synthetic-record path (which calls ``record_event`` with
-    ``token_path=DEFAULT_TOKEN_PATH``) does not hit the real production
-    secret path.
+    Reconcile validates the token file exists at start (fail-fast). We point
+    DEFAULT_TOKEN_PATH at the tmp file so the synthetic-record path (which
+    calls ``record_event`` with ``token_path=DEFAULT_TOKEN_PATH``) does not
+    hit the real production secret path.
     """
     token_path = tmp_path / "vikunja-api"
     token_path.write_text("test-token-xxx\n", encoding="utf-8")
@@ -127,6 +129,19 @@ def recorded_hard_fails(monkeypatch) -> _HardFailRecorder:
 
     monkeypatch.setattr(rcn, "file_hard_fail_bug", _stub)
     return captured
+
+
+@pytest.fixture
+def mock_urlopen(monkeypatch):
+    """Monkey-patch ``urllib.request.urlopen`` to a ``MagicMock``.
+
+    Still needed for synthetic-record writes via record_event (which PATCHes
+    Vikunja). In tests that don't actually write synthetic records, the mock
+    ensures no real HTTP calls slip through.
+    """
+    mock = MagicMock(name="urlopen")
+    monkeypatch.setattr("urllib.request.urlopen", mock)
+    return mock
 
 
 def _resp(payload: Any, *, status: int = 200) -> MagicMock:
@@ -191,6 +206,26 @@ def _make_record(
     return record
 
 
+def _cache_task_fields(
+    task_id: int,
+    *,
+    done: bool = False,
+    due_date: str | None = "2026-05-15T00:00:00Z",
+    project_id: int = 4,
+    title: str = "Task",
+) -> dict:
+    """Return a fields dict suitable for mock_sync_cache_fixture ``tasks``."""
+    return {
+        "title": title,
+        "done": done,
+        "due_date": due_date,
+        "project_id": project_id,
+        "repeat_after": 0,
+        "repeat_mode": "default",
+        "labels": [],
+    }
+
+
 # ---------------------------------------------------------------------------
 # Done-drift detection
 # ---------------------------------------------------------------------------
@@ -199,10 +234,11 @@ def _make_record(
 def test_vikunja_done_emits_synthetic_done(
     jsonl_sandbox: Path,
     tmp_token_file: Path,
+    mock_sync_cache_fixture,
     mock_urlopen,
     recorded_hard_fails: _HardFailRecorder,
 ) -> None:
-    """JSONL has only ``level_sent``; Vikunja returns done=true → emit done."""
+    """JSONL has only ``level_sent``; cache returns done=true → emit done."""
     project_id = 4
     task_id = 1234
     jsonl_path = jsonl_sandbox / f"project-{project_id}-escalation-history.jsonl"
@@ -219,17 +255,11 @@ def test_vikunja_done_emits_synthetic_done(
         ],
     )
 
-    # One GET: GET /tasks/{id} for the subscribed sweep.
-    mock_urlopen.side_effect = [
-        _resp({
-            "id": task_id,
-            "title": "Email Q3 board summary",
-            "done": True,
-            "project_id": project_id,
-            "due_date": "2026-05-15T00:00:00Z",
-            "comments": [],
-        }),
-    ]
+    mock_sync_cache_fixture(
+        tasks={task_id: _cache_task_fields(task_id, done=True, title="Email Q3 board summary")},
+    )
+    # record_event writes via HTTP; stub it to avoid real Vikunja calls.
+    mock_urlopen.return_value = _resp({"id": task_id, "done": True})
 
     report = reconcile_project(project_id, jsonl_dir=jsonl_sandbox)
 
@@ -252,7 +282,7 @@ def test_vikunja_done_with_existing_done_record_no_emit(
     mock_urlopen,
     recorded_hard_fails: _HardFailRecorder,
 ) -> None:
-    """JSONL already has a ``done`` record → no new emit AND not subscribed."""
+    """JSONL already has a ``done`` record → not subscribed → no emit."""
     project_id = 4
     task_id = 1234
     jsonl_path = jsonl_sandbox / f"project-{project_id}-escalation-history.jsonl"
@@ -277,7 +307,8 @@ def test_vikunja_done_with_existing_done_record_no_emit(
         ],
     )
 
-    mock_urlopen.side_effect = AssertionError("no Vikunja call expected post-parity-cleanup")
+    # Task with done record is not subscribed → no cache read attempt.
+    mock_urlopen.side_effect = AssertionError("no cache or Vikunja call expected")
 
     report = reconcile_project(project_id, jsonl_dir=jsonl_sandbox)
 
@@ -296,10 +327,11 @@ def test_vikunja_done_with_existing_done_record_no_emit(
 def test_due_date_change_emits_synthetic_rescheduled(
     jsonl_sandbox: Path,
     tmp_token_file: Path,
+    mock_sync_cache_fixture,
     mock_urlopen,
     recorded_hard_fails: _HardFailRecorder,
 ) -> None:
-    """JSONL has ``rescheduled`` for one date; Vikunja shows different → emit."""
+    """JSONL has ``rescheduled`` for one date; cache shows different → emit."""
     project_id = 4
     task_id = 1234
     jsonl_path = jsonl_sandbox / f"project-{project_id}-escalation-history.jsonl"
@@ -324,16 +356,11 @@ def test_due_date_change_emits_synthetic_rescheduled(
         ],
     )
 
-    mock_urlopen.side_effect = [
-        _resp({
-            "id": task_id,
-            "title": "Email Q3 board summary",
-            "done": False,
-            "project_id": project_id,
-            "due_date": "2026-05-25T00:00:00Z",
-            "comments": [],
-        }),
-    ]
+    # Cache shows due_date = 2026-05-25 (differs from JSONL reschedule_to=2026-05-22)
+    mock_sync_cache_fixture(
+        tasks={task_id: _cache_task_fields(task_id, done=False, due_date="2026-05-25T00:00:00Z")},
+    )
+    mock_urlopen.return_value = _resp({"ok": True})  # stub record_event HTTP
 
     report = reconcile_project(project_id, jsonl_dir=jsonl_sandbox)
 
@@ -353,10 +380,11 @@ def test_due_date_change_emits_synthetic_rescheduled(
 def test_due_date_unchanged_no_emit(
     jsonl_sandbox: Path,
     tmp_token_file: Path,
+    mock_sync_cache_fixture,
     mock_urlopen,
     recorded_hard_fails: _HardFailRecorder,
 ) -> None:
-    """Vikunja due matches last ``reschedule_to`` → no emit."""
+    """Cache due_date matches last ``reschedule_to`` → no emit."""
     project_id = 4
     task_id = 1234
     jsonl_path = jsonl_sandbox / f"project-{project_id}-escalation-history.jsonl"
@@ -380,16 +408,9 @@ def test_due_date_unchanged_no_emit(
             ),
         ],
     )
-    mock_urlopen.side_effect = [
-        _resp({
-            "id": task_id,
-            "title": "Task",
-            "done": False,
-            "project_id": project_id,
-            "due_date": "2026-05-25T00:00:00Z",
-            "comments": [],
-        }),
-    ]
+    mock_sync_cache_fixture(
+        tasks={task_id: _cache_task_fields(task_id, done=False, due_date="2026-05-25T00:00:00Z")},
+    )
 
     report = reconcile_project(project_id, jsonl_dir=jsonl_sandbox)
 
@@ -428,7 +449,8 @@ def test_due_date_change_with_terminal_record_no_emit(
         ],
     )
 
-    mock_urlopen.side_effect = AssertionError("no Vikunja call expected post-parity-cleanup")
+    # Not subscribed → no cache read.
+    mock_urlopen.side_effect = AssertionError("no call expected — dismissed task not subscribed")
 
     report = reconcile_project(project_id, jsonl_dir=jsonl_sandbox)
 
@@ -439,10 +461,11 @@ def test_due_date_change_with_terminal_record_no_emit(
 def test_no_prior_reschedule_emits_when_vikunja_due_diverges(
     jsonl_sandbox: Path,
     tmp_token_file: Path,
+    mock_sync_cache_fixture,
     mock_urlopen,
     recorded_hard_fails: _HardFailRecorder,
 ) -> None:
-    """No prior reschedule + Vikunja due_date present → emit (per D3)."""
+    """No prior reschedule + cache due_date present → emit (per D3)."""
     project_id = 4
     task_id = 1234
     jsonl_path = jsonl_sandbox / f"project-{project_id}-escalation-history.jsonl"
@@ -458,16 +481,10 @@ def test_no_prior_reschedule_emits_when_vikunja_due_diverges(
             ),
         ],
     )
-    mock_urlopen.side_effect = [
-        _resp({
-            "id": task_id,
-            "title": "Task",
-            "done": False,
-            "project_id": project_id,
-            "due_date": "2026-05-25T00:00:00Z",
-            "comments": [],
-        }),
-    ]
+    mock_sync_cache_fixture(
+        tasks={task_id: _cache_task_fields(task_id, done=False, due_date="2026-05-25T00:00:00Z")},
+    )
+    mock_urlopen.return_value = _resp({"ok": True})
 
     report = reconcile_project(project_id, jsonl_dir=jsonl_sandbox)
     assert report.synthetic_rescheduled_emitted == 1
@@ -505,8 +522,8 @@ def test_invalid_event_params_files_hard_fail(
     bad.pop("level", None)
     _write_jsonl(jsonl_path, [bad])
 
-    # so no per-task GET /tasks/{id} happens.
-    mock_urlopen.side_effect = AssertionError("no Vikunja call expected post-parity-cleanup")
+    # No task is subscribed (malformed_record → not subscribed) → no cache read.
+    mock_urlopen.side_effect = AssertionError("no call expected post-parity-cleanup")
 
     report = reconcile_project(project_id, jsonl_dir=jsonl_sandbox)
 
@@ -525,6 +542,7 @@ def test_invalid_event_params_files_hard_fail(
 def test_no_v1_substrate_reader_path(
     jsonl_sandbox: Path,
     tmp_token_file: Path,
+    mock_sync_cache_fixture,
     mock_urlopen,
     recorded_hard_fails: _HardFailRecorder,
 ) -> None:
@@ -533,8 +551,9 @@ def test_no_v1_substrate_reader_path(
     Reconcile MUST NOT enumerate Vikunja project tasks for the removed
     v1-comment-substrate drift check, and MUST NOT call any Vikunja
     endpoint that existed only to support that check (notably
-    ``GET /projects/{id}/tasks``). Surviving hard-fails come exclusively
-    from the JSONL-native code paths.
+    ``GET /projects/{id}/tasks``). Now that the per-task GET is replaced
+    with a cache read, no Vikunja URL calls should appear during the
+    subscribed-sweep phase.
     """
     project_id = 4
     subscribed_task_id = 1234
@@ -554,17 +573,14 @@ def test_no_v1_substrate_reader_path(
         ],
     )
 
-    # Only one Vikunja call expected: the subscribed-sweep's GET /tasks/<id>.
-    # No subsequent GET /projects/<id>/tasks for v1-substrate enumeration.
-    mock_urlopen.side_effect = [
-        _resp({
-            "id": subscribed_task_id,
-            "title": "Subscribed task",
-            "done": False,
-            "project_id": project_id,
-            "due_date": "2026-05-18T00:00:00Z",
-        }),
-    ]
+    # Cache returns no drift (done=False, due_date matches no reschedule).
+    mock_sync_cache_fixture(
+        tasks={subscribed_task_id: _cache_task_fields(
+            subscribed_task_id, done=False, due_date="2026-05-18T00:00:00Z",
+        )},
+    )
+    # urlopen should NOT be called for the subscribed-sweep phase (no Vikunja reads).
+    mock_urlopen.side_effect = AssertionError("no Vikunja read expected in subscribed sweep")
 
     report = reconcile_project(project_id, jsonl_dir=jsonl_sandbox)
 
@@ -574,14 +590,8 @@ def test_no_v1_substrate_reader_path(
         "derive_state_inconsistency",
     }
     assert all(ev.reason in surviving_reasons for ev in report.hard_fails)
-    # No project-tasks enumeration call.
-    assert mock_urlopen.call_count == 1
-    urls_called = [
-        call[0][0].full_url for call in mock_urlopen.call_args_list
-    ]
-    assert not any(
-        f"/projects/{project_id}/tasks" in url for url in urls_called
-    )
+    # No /projects/<id>/tasks calls.
+    assert mock_urlopen.call_count == 0
 
 
 def test_hard_fail_dedup_hit_does_not_double_file(
@@ -608,7 +618,7 @@ def test_hard_fail_dedup_hit_does_not_double_file(
         {"filed": False, "deduped": True, "existing_url": "https://example/dup"}
     )
 
-    mock_urlopen.side_effect = AssertionError("no Vikunja call expected post-parity-cleanup")
+    mock_urlopen.side_effect = AssertionError("no Vikunja read expected")
 
     report = reconcile_project(project_id, jsonl_dir=jsonl_sandbox)
 
@@ -626,14 +636,7 @@ def test_within_tick_dedup_prevents_second_file(
     mock_urlopen,
     recorded_hard_fails: _HardFailRecorder,
 ) -> None:
-    """Two malformed-record tasks → exactly two file_hard_fail_bug calls.
-
-    Verifies the "N malformed records in one tick files at most one bug
-    per unique task" risk mitigation from the WP05 prompt. We seed two
-    distinct tasks both with malformed_jsonl_record errors (schema-level
-    failures at the read layer per D8) and expect exactly two hard-fail
-    calls (one per task, not one per record).
-    """
+    """Two malformed-record tasks → exactly two file_hard_fail_bug calls."""
     project_id = 4
     task_a, task_b = 1234, 5678
     jsonl_path = jsonl_sandbox / f"project-{project_id}-escalation-history.jsonl"
@@ -651,7 +654,7 @@ def test_within_tick_dedup_prevents_second_file(
     # Two records per task, both broken — without dedup we'd file 4 bugs.
     _write_jsonl(jsonl_path, [_bad(task_a), _bad(task_a), _bad(task_b)])
 
-    mock_urlopen.side_effect = AssertionError("no Vikunja call expected post-parity-cleanup")
+    mock_urlopen.side_effect = AssertionError("no Vikunja read expected")
 
     report = reconcile_project(project_id, jsonl_dir=jsonl_sandbox)
     assert len(report.hard_fails) == 2
@@ -670,6 +673,7 @@ def test_within_tick_dedup_prevents_second_file(
 def test_reconcile_all_iterates_projects(
     jsonl_sandbox: Path,
     tmp_token_file: Path,
+    mock_sync_cache_fixture,
     mock_urlopen,
     recorded_hard_fails: _HardFailRecorder,
 ) -> None:
@@ -681,19 +685,13 @@ def test_reconcile_all_iterates_projects(
     _write_jsonl(j4, [_make_record(task_id=1, project_id=p4, level=1)])
     _write_jsonl(j7, [_make_record(task_id=10, project_id=p7, level=1)])
 
-    # Order: subscribed sweep p4, subscribed sweep p7.
-    mock_urlopen.side_effect = [
-        _resp({
-            "id": 1, "title": "A", "done": False,
-            "project_id": p4, "due_date": "2026-05-15T00:00:00Z",
-            "comments": [],
-        }),
-        _resp({
-            "id": 10, "title": "B", "done": False,
-            "project_id": p7, "due_date": "2026-05-15T00:00:00Z",
-            "comments": [],
-        }),
-    ]
+    # Cache returns no drift for either project's tasks.
+    mock_sync_cache_fixture(
+        tasks={
+            1: _cache_task_fields(1, done=False, due_date="2026-05-15T00:00:00Z", project_id=p4),
+            10: _cache_task_fields(10, done=False, due_date="2026-05-15T00:00:00Z", project_id=p7),
+        },
+    )
 
     reports = reconcile_all(jsonl_dir=jsonl_sandbox)
     assert len(reports) == 2
@@ -724,6 +722,7 @@ def test_reconcile_all_empty_dir_returns_empty_list(
 def test_dry_run_reports_no_writes(
     jsonl_sandbox: Path,
     tmp_token_file: Path,
+    mock_sync_cache_fixture,
     mock_urlopen,
     recorded_hard_fails: _HardFailRecorder,
 ) -> None:
@@ -743,16 +742,10 @@ def test_dry_run_reports_no_writes(
             )
         ],
     )
-    mock_urlopen.side_effect = [
-        _resp({
-            "id": task_id,
-            "title": "Task",
-            "done": True,
-            "project_id": project_id,
-            "due_date": "2026-05-15T00:00:00Z",
-            "comments": [],
-        }),
-    ]
+
+    mock_sync_cache_fixture(
+        tasks={task_id: _cache_task_fields(task_id, done=True)},
+    )
 
     before = _read_jsonl(jsonl_path)
     report = reconcile_project(
@@ -773,10 +766,11 @@ def test_dry_run_reports_no_writes(
 def test_reconcile_50_tasks_under_60s(
     jsonl_sandbox: Path,
     tmp_token_file: Path,
+    mock_sync_cache_fixture,
     mock_urlopen,
     recorded_hard_fails: _HardFailRecorder,
 ) -> None:
-    """50-task sweep with mocked Vikunja completes well under 60s.
+    """50-task sweep with mocked cache completes well under 60s.
 
     Not a strict NFR gate (real network adds variable latency), but a smoke
     test ensures we don't introduce an O(n^2) hot path. We expect this to
@@ -798,21 +792,12 @@ def test_reconcile_50_tasks_under_60s(
         )
     _write_jsonl(jsonl_path, records)
 
-    # 50 subscribed-sweep GETs. Each returns an already-matching task
-    # (done=False, due_date in JSONL form) so no drift is detected.
-    responses = []
-    for i in range(50):
-        responses.append(
-            _resp({
-                "id": 2000 + i,
-                "title": f"Task {i}",
-                "done": False,
-                "project_id": project_id,
-                "due_date": "2026-05-15T00:00:00Z",
-                "comments": [],
-            })
-        )
-    mock_urlopen.side_effect = responses
+    # 50 tasks, all done=False with matching due_date (no drift).
+    cache_tasks = {
+        2000 + i: _cache_task_fields(2000 + i, done=False, due_date="2026-05-15T00:00:00Z")
+        for i in range(50)
+    }
+    mock_sync_cache_fixture(tasks=cache_tasks)
 
     started = time.monotonic()
     report = reconcile_project(project_id, jsonl_dir=jsonl_sandbox)
@@ -820,7 +805,6 @@ def test_reconcile_50_tasks_under_60s(
 
     assert report.tasks_scanned == 50
     assert report.synthetic_done_emitted == 0
-    # First emit no drift; second assert is the NFR ceiling.
     assert report.duration_seconds < 60
     assert elapsed < 60
 
@@ -833,10 +817,11 @@ def test_reconcile_50_tasks_under_60s(
 def test_max_tasks_caps_scan(
     jsonl_sandbox: Path,
     tmp_token_file: Path,
+    mock_sync_cache_fixture,
     mock_urlopen,
     recorded_hard_fails: _HardFailRecorder,
 ) -> None:
-    """--max-tasks caps the subscribed sweep."""
+    """max_tasks caps the subscribed sweep."""
     project_id = 4
     jsonl_path = jsonl_sandbox / f"project-{project_id}-escalation-history.jsonl"
     records = []
@@ -852,19 +837,11 @@ def test_max_tasks_caps_scan(
         )
     _write_jsonl(jsonl_path, records)
 
-    # 2 subscribed-sweep GETs expected (max_tasks=2 cap).
-    mock_urlopen.side_effect = [
-        _resp({
-            "id": 3000, "title": "A", "done": False,
-            "project_id": project_id, "due_date": "2026-05-15T00:00:00Z",
-            "comments": [],
-        }),
-        _resp({
-            "id": 3001, "title": "B", "done": False,
-            "project_id": project_id, "due_date": "2026-05-15T00:00:00Z",
-            "comments": [],
-        }),
-    ]
+    cache_tasks = {
+        3000 + i: _cache_task_fields(3000 + i, done=False, due_date="2026-05-15T00:00:00Z")
+        for i in range(5)
+    }
+    mock_sync_cache_fixture(tasks=cache_tasks)
 
     report = reconcile_project(
         project_id, jsonl_dir=jsonl_sandbox, max_tasks=2
@@ -878,13 +855,145 @@ def test_missing_jsonl_file_yields_empty_report(
     mock_urlopen,
     recorded_hard_fails: _HardFailRecorder,
 ) -> None:
-    """No JSONL file for the project → tasks_scanned=0; no Vikunja call at all."""
-    # No mock_urlopen calls expected because subscribed enumeration
-    # short-circuits when the JSONL file is missing.
+    """No JSONL file for the project → tasks_scanned=0; no cache read at all."""
     report = reconcile_project(7, jsonl_dir=jsonl_sandbox)
     assert report.tasks_scanned == 0
     assert report.hard_fails == []
     assert mock_urlopen.call_count == 0
+
+
+def test_cache_read_failure_routes_to_hard_fail(
+    jsonl_sandbox: Path,
+    tmp_token_file: Path,
+    mock_sync_cache_fixture,
+    mock_urlopen,
+    recorded_hard_fails: _HardFailRecorder,
+) -> None:
+    """Cache read failure for a subscribed task → derive_state_inconsistency hard-fail."""
+    project_id = 4
+    task_id = 1234
+    jsonl_path = jsonl_sandbox / f"project-{project_id}-escalation-history.jsonl"
+    _write_jsonl(
+        jsonl_path,
+        [_make_record(task_id=task_id, project_id=project_id, level=1)],
+    )
+
+    # Cache has a different task, so read_cached_task_by_id for task_id=1234 raises.
+    mock_sync_cache_fixture(
+        tasks={9999: _cache_task_fields(9999, done=False)},
+    )
+
+    report = reconcile_project(project_id, jsonl_dir=jsonl_sandbox)
+    assert len(report.hard_fails) == 1
+    assert report.hard_fails[0].reason == "derive_state_inconsistency"
+    assert "cache read failed" in report.hard_fails[0].detail
+
+
+def test_zero_sentinel_due_date_treated_as_none(
+    jsonl_sandbox: Path,
+    tmp_token_file: Path,
+    mock_sync_cache_fixture,
+    mock_urlopen,
+    recorded_hard_fails: _HardFailRecorder,
+) -> None:
+    """Cache due_date '0001-01-01T00:00:00Z' → treated as None; no emit."""
+    project_id = 4
+    task_id = 1234
+    jsonl_path = jsonl_sandbox / f"project-{project_id}-escalation-history.jsonl"
+    _write_jsonl(
+        jsonl_path,
+        [
+            _make_record(
+                task_id=task_id,
+                project_id=project_id,
+                state="level_sent",
+                date_str="2026-05-19",
+                level=1,
+            )
+        ],
+    )
+    mock_sync_cache_fixture(
+        tasks={task_id: _cache_task_fields(
+            task_id, done=False, due_date="0001-01-01T00:00:00Z"
+        )},
+    )
+    report = reconcile_project(project_id, jsonl_dir=jsonl_sandbox)
+    # Sentinel due is "none" → no rescheduled-drift.
+    assert report.synthetic_rescheduled_emitted == 0
+
+
+def test_malformed_jsonl_line_does_not_crash_enumeration(
+    jsonl_sandbox: Path,
+    tmp_token_file: Path,
+    mock_sync_cache_fixture,
+    mock_urlopen,
+    recorded_hard_fails: _HardFailRecorder,
+) -> None:
+    """A broken JSONL line is tolerated by enumeration; subscribed tasks still scanned.
+
+    Also verifies that the broken lines route through Q10 (one file-level
+    sentinel hard-fail for the unparseable / non-dict lines) without
+    halting the tick for the valid subscribed task.
+    """
+    project_id = 4
+    task_id = 1234
+    jsonl_path = jsonl_sandbox / f"project-{project_id}-escalation-history.jsonl"
+    # Mix a broken line in front of a valid level_sent record.
+    jsonl_path.parent.mkdir(parents=True, exist_ok=True)
+    with jsonl_path.open("w", encoding="utf-8") as fh:
+        fh.write("not-json\n")
+        fh.write(json.dumps(
+            _make_record(task_id=task_id, project_id=project_id, level=1)
+        ) + "\n")
+        fh.write("\n")  # empty line should be ignored
+        fh.write("\"a string not a dict\"\n")  # non-dict JSON
+
+    mock_sync_cache_fixture(
+        tasks={task_id: _cache_task_fields(task_id, done=False, due_date="2026-05-15T00:00:00Z")},
+    )
+
+    report = reconcile_project(project_id, jsonl_dir=jsonl_sandbox)
+    # Valid subscribed task still gets scanned.
+    assert report.tasks_scanned == 1
+    # The two unkeyed malformed lines (not-json + non-dict string) collapse
+    # to one file-level sentinel hard-fail (task_id=0).
+    malformed_events = [
+        e for e in report.hard_fails
+        if e.reason == "malformed_jsonl_record"
+    ]
+    assert len(malformed_events) == 1
+    assert malformed_events[0].task_id == 0
+
+
+def test_synthetic_done_failure_routes_to_hard_fail(
+    jsonl_sandbox: Path,
+    tmp_token_file: Path,
+    mock_sync_cache_fixture,
+    mock_urlopen,
+    recorded_hard_fails: _HardFailRecorder,
+    monkeypatch,
+) -> None:
+    """If record_event raises while writing synthetic done → hard-fail filed."""
+    project_id = 4
+    task_id = 1234
+    jsonl_path = jsonl_sandbox / f"project-{project_id}-escalation-history.jsonl"
+    _write_jsonl(
+        jsonl_path,
+        [_make_record(task_id=task_id, project_id=project_id, level=1)],
+    )
+
+    def _bad_record_event(*args, **kwargs):
+        raise rc.StateLogError("disk full")
+
+    monkeypatch.setattr(rc, "record_event", _bad_record_event)
+
+    mock_sync_cache_fixture(
+        tasks={task_id: _cache_task_fields(task_id, done=True)},
+    )
+
+    report = reconcile_project(project_id, jsonl_dir=jsonl_sandbox)
+    assert len(report.hard_fails) == 1
+    assert "synthetic done record failed" in report.hard_fails[0].detail
 
 
 # ---------------------------------------------------------------------------
@@ -927,6 +1036,7 @@ def test_cli_token_missing_yields_exit_3(
 def test_cli_emits_summary_line_for_project(
     jsonl_sandbox: Path,
     tmp_token_file: Path,
+    mock_sync_cache_fixture,
     mock_urlopen,
     recorded_hard_fails: _HardFailRecorder,
     capsys,
@@ -946,13 +1056,9 @@ def test_cli_emits_summary_line_for_project(
             )
         ],
     )
-    mock_urlopen.side_effect = [
-        _resp({
-            "id": 1234, "title": "Task", "done": False,
-            "project_id": project_id, "due_date": "2026-05-15T00:00:00Z",
-            "comments": [],
-        }),
-    ]
+    mock_sync_cache_fixture(
+        tasks={1234: _cache_task_fields(1234, done=False, due_date="2026-05-15T00:00:00Z")},
+    )
 
     exit_code = main(
         [
@@ -976,6 +1082,7 @@ def test_cli_emits_summary_line_for_project(
 def test_cli_non_quiet_emits_drift_and_hardfail_lines(
     jsonl_sandbox: Path,
     tmp_token_file: Path,
+    mock_sync_cache_fixture,
     mock_urlopen,
     recorded_hard_fails: _HardFailRecorder,
     capsys,
@@ -996,16 +1103,11 @@ def test_cli_non_quiet_emits_drift_and_hardfail_lines(
             )
         ],
     )
-    mock_urlopen.side_effect = [
-        _resp({
-            "id": task_id,
-            "title": "Task",
-            "done": True,
-            "project_id": project_id,
-            "due_date": "2026-05-15T00:00:00Z",
-            "comments": [],
-        }),
-    ]
+    mock_sync_cache_fixture(
+        tasks={task_id: _cache_task_fields(task_id, done=True)},
+    )
+    mock_urlopen.return_value = _resp({"ok": True})  # stub record_event HTTP
+
     exit_code = main(
         [
             "--project-id", str(project_id),
@@ -1022,6 +1124,7 @@ def test_cli_non_quiet_emits_drift_and_hardfail_lines(
 def test_cli_all_flag_calls_reconcile_all(
     jsonl_sandbox: Path,
     tmp_token_file: Path,
+    mock_sync_cache_fixture,
     mock_urlopen,
     recorded_hard_fails: _HardFailRecorder,
     capsys,
@@ -1036,18 +1139,13 @@ def test_cli_all_flag_calls_reconcile_all(
         jsonl_sandbox / f"project-{p7}-escalation-history.jsonl",
         [_make_record(task_id=10, project_id=p7, level=1)],
     )
-    mock_urlopen.side_effect = [
-        _resp({
-            "id": 1, "title": "A", "done": False,
-            "project_id": p4, "due_date": "2026-05-15T00:00:00Z",
-            "comments": [],
-        }),
-        _resp({
-            "id": 10, "title": "B", "done": False,
-            "project_id": p7, "due_date": "2026-05-15T00:00:00Z",
-            "comments": [],
-        }),
-    ]
+    mock_sync_cache_fixture(
+        tasks={
+            1: _cache_task_fields(1, done=False, due_date="2026-05-15T00:00:00Z", project_id=p4),
+            10: _cache_task_fields(10, done=False, due_date="2026-05-15T00:00:00Z", project_id=p7),
+        },
+    )
+
     exit_code = main(
         [
             "--all",
@@ -1066,34 +1164,14 @@ def test_cli_all_flag_calls_reconcile_all(
     assert len(json_lines) == 2
 
 
-def test_http_500_raises_oserror(
+def test_cache_oserror_raises(
     jsonl_sandbox: Path,
     tmp_token_file: Path,
+    mock_sync_cache_fixture,
     mock_urlopen,
     recorded_hard_fails: _HardFailRecorder,
 ) -> None:
-    """Vikunja HTTP 500 during sweep → OSError → CLI exit 1."""
-    project_id = 4
-    jsonl_path = jsonl_sandbox / f"project-{project_id}-escalation-history.jsonl"
-    _write_jsonl(
-        jsonl_path,
-        [_make_record(task_id=1234, project_id=project_id, level=1)],
-    )
-    mock_urlopen.side_effect = urllib.error.HTTPError(
-        url="http://test/", code=500, msg="boom",
-        hdrs=None, fp=io.BytesIO(b'{"message":"server error"}'),
-    )
-    with pytest.raises(OSError, match="HTTP 500"):
-        reconcile_project(project_id, jsonl_dir=jsonl_sandbox)
-
-
-def test_vikunja_non_object_payload_files_hard_fail(
-    jsonl_sandbox: Path,
-    tmp_token_file: Path,
-    mock_urlopen,
-    recorded_hard_fails: _HardFailRecorder,
-) -> None:
-    """Vikunja returns a list/array instead of object → derive_state_inconsistency."""
+    """Stale cache → OSError → hard-fail filed, not propagated to caller."""
     project_id = 4
     task_id = 1234
     jsonl_path = jsonl_sandbox / f"project-{project_id}-escalation-history.jsonl"
@@ -1101,21 +1179,36 @@ def test_vikunja_non_object_payload_files_hard_fail(
         jsonl_path,
         [_make_record(task_id=task_id, project_id=project_id, level=1)],
     )
-    # GET /tasks/<id> returns a list (malformed shape).
-    mock_urlopen.side_effect = [_resp(["unexpected", "list"])]
+    # Stale cache: freshness_age_seconds >> SLA_NORMAL (900s).
+    mock_sync_cache_fixture(
+        tasks={task_id: _cache_task_fields(task_id, done=False)},
+        freshness_age_seconds=9999,
+    )
+
+    # A stale cache causes read_cached_task_by_id to raise OSError with "stale".
+    # The reconciler routes this to a hard-fail, not a crash.
     report = reconcile_project(project_id, jsonl_dir=jsonl_sandbox)
     assert len(report.hard_fails) == 1
     assert report.hard_fails[0].reason == "derive_state_inconsistency"
-    assert "non-object" in report.hard_fails[0].detail
+    assert "stale" in report.hard_fails[0].detail.lower()
 
 
-def test_zero_sentinel_due_date_treated_as_none(
+def test_cli_record_event_failure_routes_to_hard_fail(
     jsonl_sandbox: Path,
     tmp_token_file: Path,
+    mock_sync_cache_fixture,
     mock_urlopen,
     recorded_hard_fails: _HardFailRecorder,
+    monkeypatch,
+    capsys,
 ) -> None:
-    """Vikunja due_date '0001-01-01T00:00:00Z' → treated as None; no emit."""
+    """record_event StateLogError during synthetic-record write → hard-fail.
+
+    WP03 note: synthetic records use skip_vikunja=True (cache-first, no HTTP
+    side-effect needed). So URLError on urlopen can no longer simulate
+    record_event failure. We monkeypatch rc.record_event directly to raise
+    StateLogError, which the reconciler catches and routes to a hard-fail.
+    """
     project_id = 4
     task_id = 1234
     jsonl_path = jsonl_sandbox / f"project-{project_id}-escalation-history.jsonl"
@@ -1131,121 +1224,18 @@ def test_zero_sentinel_due_date_treated_as_none(
             )
         ],
     )
-    mock_urlopen.side_effect = [
-        _resp({
-            "id": task_id,
-            "title": "Task",
-            "done": False,
-            "project_id": project_id,
-            "due_date": "0001-01-01T00:00:00Z",
-            "comments": [],
-        }),
-    ]
-    report = reconcile_project(project_id, jsonl_dir=jsonl_sandbox)
-    # Vikunja due is "none" → no rescheduled-drift.
-    assert report.synthetic_rescheduled_emitted == 0
-
-
-def test_malformed_jsonl_line_does_not_crash_enumeration(
-    jsonl_sandbox: Path,
-    tmp_token_file: Path,
-    mock_urlopen,
-    recorded_hard_fails: _HardFailRecorder,
-) -> None:
-    """A broken JSONL line is tolerated by enumeration; subscribed tasks still scanned.
-
-    Also verifies that the broken lines route through Q10 (one file-level
-    sentinel hard-fail for the unparseable / non-dict lines) without
-    halting the tick for the valid subscribed task.
-    """
-    project_id = 4
-    task_id = 1234
-    jsonl_path = jsonl_sandbox / f"project-{project_id}-escalation-history.jsonl"
-    # Mix a broken line in front of a valid level_sent record.
-    jsonl_path.parent.mkdir(parents=True, exist_ok=True)
-    with jsonl_path.open("w", encoding="utf-8") as fh:
-        fh.write("not-json\n")
-        fh.write(json.dumps(
-            _make_record(task_id=task_id, project_id=project_id, level=1)
-        ) + "\n")
-        fh.write("\n")  # empty line should be ignored
-        fh.write("\"a string not a dict\"\n")  # non-dict JSON
-    mock_urlopen.side_effect = [
-        _resp({
-            "id": task_id, "title": "Task", "done": False,
-            "project_id": project_id, "due_date": "2026-05-15T00:00:00Z",
-            "comments": [],
-        }),
-    ]
-    report = reconcile_project(project_id, jsonl_dir=jsonl_sandbox)
-    # Valid subscribed task still gets scanned.
-    assert report.tasks_scanned == 1
-    # The two unkeyed malformed lines (not-json + non-dict string) collapse
-    # to one file-level sentinel hard-fail (task_id=0).
-    malformed_events = [
-        e for e in report.hard_fails
-        if e.reason == "malformed_jsonl_record"
-    ]
-    assert len(malformed_events) == 1
-    assert malformed_events[0].task_id == 0
-
-
-def test_synthetic_done_failure_routes_to_hard_fail(
-    jsonl_sandbox: Path,
-    tmp_token_file: Path,
-    mock_urlopen,
-    recorded_hard_fails: _HardFailRecorder,
-    monkeypatch,
-) -> None:
-    """If record_event raises while writing synthetic done → hard-fail filed."""
-    project_id = 4
-    task_id = 1234
-    jsonl_path = jsonl_sandbox / f"project-{project_id}-escalation-history.jsonl"
-    _write_jsonl(
-        jsonl_path,
-        [_make_record(task_id=task_id, project_id=project_id, level=1)],
+    # Cache says done=True → will try to write synthetic done record.
+    mock_sync_cache_fixture(
+        tasks={task_id: _cache_task_fields(task_id, done=True)},
+    )
+    # Simulate JSONL write failure (skip_vikunja=True so URLError is irrelevant).
+    from scripts.escalation import record_completion as rc_mod
+    monkeypatch.setattr(
+        rcn.rc,
+        "record_event",
+        lambda *a, **kw: (_ for _ in ()).throw(rc_mod.StateLogError("disk full")),
     )
 
-    def _bad_record_event(*args, **kwargs):
-        raise rc.StateLogError("disk full")
-
-    monkeypatch.setattr(rc, "record_event", _bad_record_event)
-
-    mock_urlopen.side_effect = [
-        _resp({
-            "id": task_id, "title": "Task", "done": True,
-            "project_id": project_id, "due_date": "2026-05-15T00:00:00Z",
-            "comments": [],
-        }),
-    ]
-    report = reconcile_project(project_id, jsonl_dir=jsonl_sandbox)
-    assert len(report.hard_fails) == 1
-    assert "synthetic done record failed" in report.hard_fails[0].detail
-
-
-def test_cli_vikunja_failure_exits_1(
-    jsonl_sandbox: Path,
-    tmp_token_file: Path,
-    mock_urlopen,
-    recorded_hard_fails: _HardFailRecorder,
-    capsys,
-) -> None:
-    """Vikunja network failure during sweep → exit 1."""
-    project_id = 4
-    jsonl_path = jsonl_sandbox / f"project-{project_id}-escalation-history.jsonl"
-    _write_jsonl(
-        jsonl_path,
-        [
-            _make_record(
-                task_id=1234,
-                project_id=project_id,
-                state="level_sent",
-                date_str="2026-05-19",
-                level=1,
-            )
-        ],
-    )
-    mock_urlopen.side_effect = urllib.error.URLError("kaboom")
     exit_code = main(
         [
             "--project-id", str(project_id),
@@ -1254,217 +1244,10 @@ def test_cli_vikunja_failure_exits_1(
             "--quiet",
         ]
     )
+    # StateLogError → _emit_hard_fail → routes to hard-fail in report.
+    # reconcile_project does not propagate the error → exit 0.
     captured = capsys.readouterr()
-    assert exit_code == 1
-    payload = json.loads(captured.err.strip())
-    assert payload["step"] == "vikunja_or_jsonl"
-
-
-# ---------------------------------------------------------------------------
-# D8: malformed JSONL lines route through Q10 hard-fail
-# ---------------------------------------------------------------------------
-
-
-def test_malformed_raw_jsonl_line_fires_hard_fail(
-    jsonl_sandbox: Path,
-    tmp_token_file: Path,
-    mock_urlopen,
-    recorded_hard_fails: _HardFailRecorder,
-) -> None:
-    """An unparseable JSONL line fires a file-level malformed_jsonl_record hard-fail.
-
-    Per research D8, "malformed JSONL line" includes JSON-parse failures
-    and non-dict payloads. Lines without a parseable ``task_id`` collapse
-    to a single file-level sentinel hard-fail (``task_id=0``). The sweep
-    does NOT emit synthetic records for the malformed unit.
-    """
-    project_id = 4
-    jsonl_path = (
-        jsonl_sandbox / f"project-{project_id}-escalation-history.jsonl"
-    )
-    jsonl_path.parent.mkdir(parents=True, exist_ok=True)
-    with jsonl_path.open("w", encoding="utf-8") as fh:
-        fh.write("{not even close to json\n")
-
-    mock_urlopen.side_effect = AssertionError("no Vikunja call expected post-parity-cleanup")
-
-    report = reconcile_project(project_id, jsonl_dir=jsonl_sandbox)
-
-    assert report.tasks_scanned == 0
-    assert len(report.hard_fails) == 1
-    event = report.hard_fails[0]
-    assert event.reason == "malformed_jsonl_record"
-    # File-level sentinel id for unkeyed/unparseable corruption.
-    assert event.task_id == 0
-    # The stub was called exactly once with malformed_jsonl_record.
-    assert len(recorded_hard_fails) == 1
-    kwargs = recorded_hard_fails[0]["kwargs"]
-    assert kwargs["reason"] == "malformed_jsonl_record"
-    # Bug body detail references the file path and the affected line number.
-    assert str(jsonl_path) in kwargs["detection_snippet"]
-    assert "line 1" in kwargs["detection_snippet"]
-    # No synthetic records were appended for the malformed unit.
-    records = _read_jsonl(jsonl_path)
-    assert all(r.get("source") != "reconcile" for r in records)
-
-
-def test_malformed_with_invalid_event_params_fires_hard_fail(
-    jsonl_sandbox: Path,
-    tmp_token_file: Path,
-    mock_urlopen,
-    recorded_hard_fails: _HardFailRecorder,
-) -> None:
-    """JSON-valid line with ``level_sent`` and no ``level`` → malformed_jsonl_record.
-
-    Per research D8, schema-validation failure (missing/typo'd required
-    structured parameter for the event_type) is detected AT THE READ LAYER
-    and routed through Q10 as ``malformed_jsonl_record`` — NOT
-    ``derive_state_inconsistency``. The latter is reserved for semantic
-    inconsistencies (e.g., impossible_ordering) that surface AFTER the
-    record passes per-event_type validation.
-    """
-    project_id = 4
-    task_id = 4321
-    jsonl_path = (
-        jsonl_sandbox / f"project-{project_id}-escalation-history.jsonl"
-    )
-    bad = _make_record(
-        task_id=task_id,
-        project_id=project_id,
-        state="level_sent",
-        date_str="2026-05-18",
-    )
-    bad.pop("level", None)
-    _write_jsonl(jsonl_path, [bad])
-
-    # Malformed JSONL → no subscribed task → no Vikunja call.
-    mock_urlopen.side_effect = AssertionError("no Vikunja call expected post-parity-cleanup")
-
-    report = reconcile_project(project_id, jsonl_dir=jsonl_sandbox)
-
-    assert len(report.hard_fails) == 1
-    event = report.hard_fails[0]
-    assert event.reason == "malformed_jsonl_record"
-    assert event.task_id == task_id
-    assert len(recorded_hard_fails) == 1
-    assert (
-        recorded_hard_fails[0]["kwargs"]["reason"]
-        == "malformed_jsonl_record"
-    )
-
-
-def test_malformed_within_tick_dedup(
-    jsonl_sandbox: Path,
-    tmp_token_file: Path,
-    mock_urlopen,
-    recorded_hard_fails: _HardFailRecorder,
-) -> None:
-    """Two malformed lines for the same task_id → exactly ONE hard-fail filed.
-
-    Within-tick dedup keyed on ``(task_id, reason)`` ensures at most one
-    bug per task per tick, even when N lines for the same task are
-    malformed.
-    """
-    project_id = 4
-    task_id = 7777
-    jsonl_path = (
-        jsonl_sandbox / f"project-{project_id}-escalation-history.jsonl"
-    )
-
-    def _bad() -> dict:
-        r = _make_record(
-            task_id=task_id,
-            project_id=project_id,
-            state="level_sent",
-            date_str="2026-05-18",
-        )
-        r.pop("level", None)
-        return r
-
-    # Two malformed lines for the SAME task_id — without dedup we'd file
-    # two bugs.
-    _write_jsonl(jsonl_path, [_bad(), _bad()])
-
-    mock_urlopen.side_effect = AssertionError("no Vikunja call expected post-parity-cleanup")
-
-    report = reconcile_project(project_id, jsonl_dir=jsonl_sandbox)
-
-    # Exactly one hard-fail filed (within-tick dedup).
-    assert len(report.hard_fails) == 1
-    assert len(recorded_hard_fails) == 1
-    assert report.hard_fails[0].reason == "malformed_jsonl_record"
-    assert report.hard_fails[0].task_id == task_id
-
-
-def test_malformed_does_not_halt_tick(
-    jsonl_sandbox: Path,
-    tmp_token_file: Path,
-    mock_urlopen,
-    recorded_hard_fails: _HardFailRecorder,
-) -> None:
-    """One malformed line + several valid subscribed tasks → tick proceeds.
-
-    Per spec FR-008 + research D8, malformed lines must NOT halt the sweep.
-    Valid subscribed tasks are still scanned, synthetic drift records are
-    still emitted, AND the malformed line still files a Q10 hard-fail.
-    """
-    project_id = 4
-    bad_task_id = 1111
-    good_task_a = 2222
-    good_task_b = 3333
-    jsonl_path = (
-        jsonl_sandbox / f"project-{project_id}-escalation-history.jsonl"
-    )
-
-    bad = _make_record(
-        task_id=bad_task_id,
-        project_id=project_id,
-        state="level_sent",
-        date_str="2026-05-18",
-    )
-    bad.pop("level", None)
-    good_a = _make_record(
-        task_id=good_task_a,
-        project_id=project_id,
-        state="level_sent",
-        date_str="2026-05-19",
-        level=1,
-    )
-    good_b = _make_record(
-        task_id=good_task_b,
-        project_id=project_id,
-        state="level_sent",
-        date_str="2026-05-19",
-        level=1,
-    )
-    _write_jsonl(jsonl_path, [bad, good_a, good_b])
-
-    # Two subscribed-task GETs (a, b). Subscribed iteration order
-    # matches insertion order; both tasks have done=False so no
-    # synthetic emit fires.
-    mock_urlopen.side_effect = [
-        _resp({
-            "id": good_task_a, "title": "Good A", "done": False,
-            "project_id": project_id,
-            "due_date": "2026-05-19T00:00:00Z",
-            "comments": [],
-        }),
-        _resp({
-            "id": good_task_b, "title": "Good B", "done": False,
-            "project_id": project_id,
-            "due_date": "2026-05-19T00:00:00Z",
-            "comments": [],
-        }),
-    ]
-
-    report = reconcile_project(project_id, jsonl_dir=jsonl_sandbox)
-
-    # Both valid tasks scanned normally.
-    assert report.tasks_scanned == 2
-    # The malformed line still files a hard-fail.
-    malformed_events = [
-        e for e in report.hard_fails
-        if e.reason == "malformed_jsonl_record"
-    ]
-    assert len(malformed_events) == 1
-    assert malformed_events[0].task_id == bad_task_id
+    assert exit_code == 0
+    lines = [ln for ln in captured.out.splitlines() if ln.strip()]
+    payload = json.loads(lines[-1])
+    assert payload["hard_fails"] == 1

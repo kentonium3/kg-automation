@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-"""ADR-0002 Phase 7 ``reconcile_completions`` backfill for the enrichment domain.
+"""Reads task enumeration from the sync cache at
+/data/services/openclaw/state/sync/task-cache.json (see
+scripts/common/sync_cache.py for the canonical entry point). Comment
+fetches still call Vikunja directly because comments are not cached.
+
+ADR-0002 Phase 7 ``reconcile_completions`` backfill for the enrichment domain.
 
 The one-shot backfill sweep. For every Vikunja task carrying historical
 ``[Felix] enrichment | <state> | <ISO timestamp>[| <note>]`` comments,
@@ -7,10 +12,12 @@ replay each comment as a JSONL row in the enrichment ledger.
 
 Operation model (per spec FR-006..FR-009):
 
-    * Enumerate Vikunja projects + tasks via ``GET`` (read-only — no
-      ``POST`` / ``PUT`` / ``PATCH``).
-    * For every task, fetch its comments and filter to the
-      ``[Felix] enrichment`` prefix.
+    * Enumerate tasks from the sync cache (read-only — no ``POST`` /
+      ``PUT`` / ``PATCH``).
+    * For every task, fetch its comments via Vikunja GET and filter to the
+      ``[Felix] enrichment`` prefix. (Comments are not stored in the sync
+      cache; the comment fetch is retained as the sole remaining Vikunja
+      read.)
     * Per FR-007 disambiguation: a comment is an enrichment comment ONLY
       when the second pipe-delimited field is the literal string
       ``enrichment``. Habit comments — which carry the same ``[Felix]``
@@ -44,7 +51,7 @@ CLI surface — see ``contracts/cli.md`` (reconcile section):
     --since YYYY-MM-DD   default 2026-04-11
     --dry-run            no JSONL writes; report only
     --ledger-path PATH   default scripts/enrichment/schema.DEFAULT_LEDGER_PATH
-    --base-url URL       default Tailscale Vikunja base URL
+    --base-url URL       default Tailscale Vikunja base URL (for comment fetch)
     --token-path PATH    default /data/services/openclaw/secrets/vikunja-api
 
 Exit codes::
@@ -82,6 +89,11 @@ from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any, Iterable, Optional
 
+from scripts.common.sync_cache import (
+    SLA_NORMAL,
+    SLATier,
+    read_cached_tasks,
+)
 from scripts.enrichment import record_completion as rc
 from scripts.enrichment.record_completion import (
     DEFAULT_BASE_URL,
@@ -104,6 +116,8 @@ __all__ = [
     "FELIX_COMMENT_PREFIX",
     "HTTP_TIMEOUT_SECONDS",
     "EXCLUDED_PROJECT_IDS",
+    "TOUCHPOINT_SLA",
+    "TOUCHPOINT_NAME",
     "MalformedComment",
     "ReconcileReport",
     "parse_comment",
@@ -115,6 +129,9 @@ __all__ = [
 # ---------------------------------------------------------------------------
 # Module constants
 # ---------------------------------------------------------------------------
+
+TOUCHPOINT_SLA: SLATier = SLA_NORMAL
+TOUCHPOINT_NAME = "enrichment.reconcile_completions"
 
 #: Default backfill window per FR-008. 2026-04-11 is the post-#308 / habits
 #: pattern formalization date — any enrichment comment from before this is
@@ -307,44 +324,6 @@ def _http_get(url: str, token: str) -> Any:
         raise OSError(
             f"GET {url} returned non-JSON body: {raw!r} ({exc})"
         ) from exc
-
-
-def _list_projects(base_url: str, token: str) -> list[dict]:
-    """List all Vikunja projects visible to the bearer token.
-
-    Raises:
-        OSError: On HTTP/network failure or non-list payload.
-    """
-    url = _join_url(base_url, "projects")
-    payload = _http_get(url, token)
-    if payload is None:
-        return []
-    if not isinstance(payload, list):
-        raise OSError(
-            f"GET {url} returned non-list payload "
-            f"(got {type(payload).__name__})"
-        )
-    return [item for item in payload if isinstance(item, dict)]
-
-
-def _enumerate_project_tasks(
-    base_url: str, token: str, project_id: int
-) -> list[dict]:
-    """Enumerate tasks within ``project_id``.
-
-    Returns a list of Vikunja-API-shaped task dicts. Empty list if the
-    project is empty or absent.
-    """
-    url = _join_url(base_url, f"projects/{project_id}/tasks")
-    payload = _http_get(url, token)
-    if payload is None:
-        return []
-    if not isinstance(payload, list):
-        raise OSError(
-            f"GET {url} returned non-list payload "
-            f"(got {type(payload).__name__})"
-        )
-    return [item for item in payload if isinstance(item, dict)]
 
 
 def _fetch_comments(
@@ -567,7 +546,14 @@ def reconcile(
     excluded_set = frozenset(excluded_project_ids)
 
     token = _read_token(token_path)
-    projects = _list_projects(base_url, token)
+
+    # Read all tasks from the sync cache (replaces Vikunja project + task
+    # enumeration GETs). The cache contains project_id in each task's fields,
+    # so we can filter by excluded_project_ids without a separate projects call.
+    cached_tasks = read_cached_tasks(
+        sla=TOUCHPOINT_SLA,
+        touchpoint_name=TOUCHPOINT_NAME,
+    )
 
     tasks_scanned = 0
     comments_parsed = 0
@@ -578,28 +564,25 @@ def reconcile(
     comments_out_of_window = 0
     malformed: list[MalformedComment] = []
 
-    for project in projects:
-        pid = project.get("id")
+    for task_id, view in cached_tasks.items():
+        if view.is_private:
+            continue
+        pid = view.fields.get("project_id")
         if not isinstance(pid, int) or pid <= 0:
             continue
         if pid in excluded_set:
             continue
 
-        tasks = _enumerate_project_tasks(base_url, token, pid)
+        # Fetch comments via Vikunja — comments are not stored in the sync
+        # cache and must still be read directly.
+        comments = _fetch_comments(base_url, token, task_id)
+        felix = _felix_comments(comments)
+        if not felix:
+            continue
 
-        for task in tasks:
-            task_id = task.get("id")
-            if not isinstance(task_id, int) or task_id <= 0:
-                continue
+        tasks_scanned += 1
 
-            comments = _fetch_comments(base_url, token, task_id)
-            felix = _felix_comments(comments)
-            if not felix:
-                continue
-
-            tasks_scanned += 1
-
-            for c in felix:
+        for c in felix:
                 comments_parsed += 1
                 body = c.get("comment") or c.get("body") or ""
                 comment_id = c.get("id")
