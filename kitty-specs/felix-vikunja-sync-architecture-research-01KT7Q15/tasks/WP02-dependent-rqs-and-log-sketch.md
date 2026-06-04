@@ -225,3 +225,4 @@ Per the Felix output-discipline pattern. T010's volume estimate must show its ma
 ## Activity Log
 
 - 2026-06-04T01:11:02Z – claude:sonnet:implementer:implementer – shell_pid=84971 – Started implementation via action command
+- 2026-06-04T01:19:19Z – claude:sonnet:implementer:implementer – shell_pid=84971 – Ready for review: RQ-3 conflict policy (4 unsafe-class criteria with worked examples) + conflict-event log sketch (event_id derivation + JSONL recommendation + 3-paragraph #516 forward-compat analysis) + RQ-4 use-case mapping (all 7 Epic #507 use cases, deletion gap documented) + NFR-002 passes 6/7 (deletion 15-min gap explicit) + NFR-003 passes (volume math + G-1/G-2/G-3 guards)
