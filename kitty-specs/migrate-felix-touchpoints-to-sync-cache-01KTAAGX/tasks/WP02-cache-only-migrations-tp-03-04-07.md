@@ -332,3 +332,4 @@ Reject if TP-04's PUT phase is broken, if any touchpoint silently widens TRACKED
 ## Activity Log
 
 - 2026-06-04T22:51:09Z – claude:sonnet:implementer:implementer – shell_pid=20378 – Started implementation via action command
+- 2026-06-04T23:11:52Z – claude:sonnet:implementer:implementer – shell_pid=20378 – Migrated TP-03 (query_active_habits_v2), TP-04 GET phase (set_due_dates reconcile_schedule), and TP-07 (morning_checkin_list) from direct Vikunja HTTP GET to sync cache. All GET code deleted, OSError propagates to non-zero exit. Full habits test suite passes (957/958 — 1 pre-existing failure in test_parse_morning_reply_48hr_correlation.py unrelated to WP02). Non-owned test files updated to match new signatures (mock_sync_cache_fixture replacing mock_urlopen for GET paths). Also added try/except ImportError fallback for scripts.common.sync_cache import in set_due_dates.py to preserve direct-script invocation form.
