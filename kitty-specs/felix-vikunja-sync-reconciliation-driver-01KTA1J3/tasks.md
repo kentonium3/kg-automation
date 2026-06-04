@@ -23,11 +23,11 @@ The WP execution order (and dependency graph) is:
 
 | ID   | Description | WP | Parallel |
 |------|-------------|----|----------|
-| T001 | `scripts/sync/__init__.py` package marker | WP01 | — |
-| T002 | `scripts/sync/state.py` — atomic JSON I/O + FreshnessPointer / TaskCacheRecord / ProjectCacheRecord / PerTickHealthRecord / GuardState schemas | WP01 | — |
-| T003 | `scripts/sync/http.py` — `urllib.request` wrapper with timeout, structured errors, JSON parse | WP01 | [P] |
-| T004 | `tests/sync/test_state.py` — atomic-write roundtrip, schema validation, recovery from corrupted file | WP01 | [P] |
-| T005 | `tests/sync/test_http.py` — mocked `urlopen` happy path + timeout + HTTPError + non-2xx + non-JSON body | WP01 | [P] |
+| T001 | `scripts/sync/__init__.py` package marker | WP01 | — | [D] |
+| T002 | `scripts/sync/state.py` — atomic JSON I/O + FreshnessPointer / TaskCacheRecord / ProjectCacheRecord / PerTickHealthRecord / GuardState schemas | WP01 | — | [D] |
+| T003 | `scripts/sync/http.py` — `urllib.request` wrapper with timeout, structured errors, JSON parse | WP01 | [D] |
+| T004 | `tests/sync/test_state.py` — atomic-write roundtrip, schema validation, recovery from corrupted file | WP01 | [D] |
+| T005 | `tests/sync/test_http.py` — mocked `urlopen` happy path + timeout + HTTPError + non-2xx + non-JSON body | WP01 | [D] |
 | T006 | `scripts/sync/fetch.py` — `GET /tasks/all?updated_since=<ts>` + just-in-time `GET /projects/{id}` for unknown projects | WP02 | — |
 | T007 | `scripts/sync/diff.py` — value comparison with canonical normalization; first-observation behavior | WP02 | — |
 | T008 | `tests/sync/test_fetch.py` — mocked Vikunja responses, partial-failure on project fetch, error propagation | WP02 | [P] |
@@ -62,11 +62,11 @@ The WP execution order (and dependency graph) is:
 **Estimated prompt size**: ~320 lines.
 
 **Included subtasks**:
-- [ ] T001 `scripts/sync/__init__.py` package marker (WP01)
-- [ ] T002 `scripts/sync/state.py` — atomic JSON I/O + state schemas (WP01)
-- [ ] T003 `scripts/sync/http.py` — urllib wrapper (WP01)
-- [ ] T004 `tests/sync/test_state.py` — atomic-write tests (WP01)
-- [ ] T005 `tests/sync/test_http.py` — HTTP wrapper tests (WP01)
+- [x] T001 `scripts/sync/__init__.py` package marker (WP01)
+- [x] T002 `scripts/sync/state.py` — atomic JSON I/O + state schemas (WP01)
+- [x] T003 `scripts/sync/http.py` — urllib wrapper (WP01)
+- [x] T004 `tests/sync/test_state.py` — atomic-write tests (WP01)
+- [x] T005 `tests/sync/test_http.py` — HTTP wrapper tests (WP01)
 
 **Implementation sketch**:
 1. Create `scripts/sync/__init__.py` (empty package marker).
