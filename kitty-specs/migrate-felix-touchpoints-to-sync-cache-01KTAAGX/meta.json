@@ -1,0 +1,10 @@
+{
+  "created_at": "2026-06-04T22:02:10.150979+00:00",
+  "friendly_name": "migrate felix touchpoints to sync cache",
+  "mission_id": "01KTAAGXA149W5F6GVW5N8N5XW",
+  "mission_number": null,
+  "mission_slug": "migrate-felix-touchpoints-to-sync-cache-01KTAAGX",
+  "mission_type": "software-dev",
+  "slug": "migrate-felix-touchpoints-to-sync-cache-01KTAAGX",
+  "target_branch": "main"
+}
