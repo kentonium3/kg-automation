@@ -39,11 +39,11 @@ Two-location split:
 
 | ID | Description | WP | Parallel |
 |---|---|---|---|
-| T001 | Scaffold deliverables path; create `findings/` subdir + per-RQ-1/2/5 skeletons + `probe-transcripts.md` | WP01 | — |
-| T002 | Execute RQ-1 Vikunja API probes (read-only); populate source-register + evidence-log; write `findings/rq-1-vikunja-api.md`; append raw transcripts | WP01 | [P] |
-| T003 | Execute RQ-2 touchpoint inventory; populate source-register + evidence-log; write `findings/rq-2-touchpoints.md` | WP01 | [P] |
-| T004 | Execute RQ-5 existing-pattern fit analysis; populate source-register + evidence-log; write `findings/rq-5-pattern-fit.md` | WP01 | [P] |
-| T005 | NFR-001 / NFR-006 enforcement on WP01 outputs; flag deferred-to-implementation sub-questions | WP01 | — |
+| T001 | Scaffold deliverables path; create `findings/` subdir + per-RQ-1/2/5 skeletons + `probe-transcripts.md` | WP01 | — | [D] |
+| T002 | Execute RQ-1 Vikunja API probes (read-only); populate source-register + evidence-log; write `findings/rq-1-vikunja-api.md`; append raw transcripts | WP01 | [D] |
+| T003 | Execute RQ-2 touchpoint inventory; populate source-register + evidence-log; write `findings/rq-2-touchpoints.md` | WP01 | [D] |
+| T004 | Execute RQ-5 existing-pattern fit analysis; populate source-register + evidence-log; write `findings/rq-5-pattern-fit.md` | WP01 | [D] |
+| T005 | NFR-001 / NFR-006 enforcement on WP01 outputs; flag deferred-to-implementation sub-questions | WP01 | — | [D] |
 | T006 | Execute RQ-3 conflict-policy analysis; write `findings/rq-3-conflict-policy.md` | WP02 | — |
 | T007 | Draft `findings/conflict-event-log.sketch.md` (FR-equivalent FR-010 log shape) | WP02 | — |
 | T008 | Write #516-framework forward-compatibility analysis (sender-only / router-only / both) per SC-006 | WP02 | — |
@@ -75,11 +75,11 @@ Two-location split:
 **Independent test**: A reviewer can re-run the documented Vikunja API probes and codebase grep commands and reproduce every claim in the three per-RQ files.
 
 **Subtasks**:
-- [ ] T001 Scaffold deliverables path; create `findings/` subdir + per-RQ skeletons + `probe-transcripts.md` (WP01)
-- [ ] T002 Execute RQ-1 Vikunja API probes; populate source-register + evidence-log; write `findings/rq-1-vikunja-api.md`; append raw transcripts (WP01)
-- [ ] T003 Execute RQ-2 touchpoint inventory; populate source-register + evidence-log; write `findings/rq-2-touchpoints.md` (WP01)
-- [ ] T004 Execute RQ-5 existing-pattern fit analysis; populate source-register + evidence-log; write `findings/rq-5-pattern-fit.md` (WP01)
-- [ ] T005 NFR-001 / NFR-006 enforcement on WP01 outputs; flag deferred-to-implementation sub-questions (WP01)
+- [x] T001 Scaffold deliverables path; create `findings/` subdir + per-RQ skeletons + `probe-transcripts.md` (WP01)
+- [x] T002 Execute RQ-1 Vikunja API probes; populate source-register + evidence-log; write `findings/rq-1-vikunja-api.md`; append raw transcripts (WP01)
+- [x] T003 Execute RQ-2 touchpoint inventory; populate source-register + evidence-log; write `findings/rq-2-touchpoints.md` (WP01)
+- [x] T004 Execute RQ-5 existing-pattern fit analysis; populate source-register + evidence-log; write `findings/rq-5-pattern-fit.md` (WP01)
+- [x] T005 NFR-001 / NFR-006 enforcement on WP01 outputs; flag deferred-to-implementation sub-questions (WP01)
 
 **Implementation sketch**:
 1. T001 — Create `docs/research/felix-vikunja-sync-architecture/findings/` directory and four skeleton files. Each per-RQ file has frontmatter declaring `rq_id`, `title`, `depends_on`, `wp`. `probe-transcripts.md` starts with one heading per RQ-1 probe (filled by T002).
