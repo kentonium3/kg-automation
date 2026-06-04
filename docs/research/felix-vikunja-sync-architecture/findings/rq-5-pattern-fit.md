@@ -3,6 +3,7 @@ rq_id: "RQ-5"
 title: "Existing-pattern fit assessment"
 depends_on: []
 wp: "WP01"
+tags: [59/, 516]
 ---
 
 # RQ-5 — Existing-Pattern Fit Assessment
@@ -132,6 +133,7 @@ observed (`scripts/habits/reconcile_completions.py`, `scripts/habits/schedule_lo
 ### Structural shape
 
 The habits JSONL ledger shape (from live sample):
+
 ```jsonl
 {"domain": "habits", "task_id": 14, "title": "Wake at 5:00 AM", "date": "2026-03-31", "state": "complete", "source": "historical-backfill", "note": "test entry", "timestamp": "2026-04-01T03:17:15Z"}
 ```
