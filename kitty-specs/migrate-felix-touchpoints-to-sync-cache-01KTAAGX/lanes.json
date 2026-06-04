@@ -1,0 +1,70 @@
+{
+  "version": 1,
+  "mission_slug": "migrate-felix-touchpoints-to-sync-cache-01KTAAGX",
+  "mission_id": "01KTAAGXA149W5F6GVW5N8N5XW",
+  "mission_branch": "kitty/mission-migrate-felix-touchpoints-to-sync-cache-01KTAAGX",
+  "target_branch": "main",
+  "lanes": [
+    {
+      "lane_id": "lane-a",
+      "wp_ids": [
+        "WP01",
+        "WP02",
+        "WP03"
+      ],
+      "write_scope": [
+        "docs/design/architecture/data/data-flows.json",
+        "docs/design/architecture/data/service-inventory.json",
+        "scripts/common/sync_cache.py",
+        "scripts/enrichment/reconcile_completions.py",
+        "scripts/escalation/reconcile_completions.py",
+        "scripts/habits/morning_checkin_list.py",
+        "scripts/habits/query_active_habits_v2.py",
+        "scripts/habits/reconcile_completions.py",
+        "scripts/habits/set_due_dates.py",
+        "tests/common/__init__.py",
+        "tests/common/conftest.py",
+        "tests/common/test_sync_cache.py",
+        "tests/enrichment/test_reconcile_completions.py",
+        "tests/escalation/test_reconcile_completions.py",
+        "tests/habits/test_morning_checkin_list.py",
+        "tests/habits/test_query_active_habits_v2.py",
+        "tests/habits/test_reconcile_completions.py",
+        "tests/habits/test_set_due_dates.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "artifact-rendering",
+        "legacy-cleanup",
+        "tests",
+        "tracker-integration"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    }
+  ],
+  "computed_at": "2026-06-04T22:30:10.419218+00:00",
+  "computed_from": "dependency_graph+ownership",
+  "planning_artifact_wps": [],
+  "collapse_report": {
+    "events": [
+      {
+        "wp_a": "WP02",
+        "wp_b": "WP01",
+        "rule": "dependency",
+        "evidence": "WP02 depends on WP01"
+      },
+      {
+        "wp_a": "WP03",
+        "wp_b": "WP01",
+        "rule": "dependency",
+        "evidence": "WP03 depends on WP01"
+      }
+    ],
+    "total_merges": 2,
+    "independent_wps_collapsed": 0,
+    "by_rule": {
+      "dependency": 2
+    }
+  }
+}
