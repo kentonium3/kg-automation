@@ -1,0 +1,36 @@
+# Felix-Vikunja Sync Reconciliation Driver — systemd user timer
+#
+# Fires the sibling service unit at 5-minute cadence.
+#
+# Why OnUnitInactiveSec=300s (not OnCalendar):
+#   "OnUnitInactiveSec" means "300s after the LAST tick exited" — guarantees
+#   no overlapping ticks even if a cycle takes >5min (rare; cycles normally
+#   complete in <5s). With OnCalendar="*/5", a slow tick could overlap with
+#   the next tick — a serialization hazard.
+#
+# Why OnBootSec=120s:
+#   Delay the first tick by 2 minutes after office2 boot so the network
+#   and Vikunja have settled. Without this delay the first post-boot tick
+#   would race the Tailscale connection.
+#
+# Why Persistent=true:
+#   If office2 was off when a tick was supposed to fire, run ONE catch-up
+#   tick on resume. The driver tolerates a stale freshness pointer (the
+#   next cycle covers the gap via the Vikunja /tasks/all?updated_since
+#   delta poll).
+#
+# Operator deploy:
+#   systemctl --user enable --now felix-vikunja-sync.timer
+
+[Unit]
+Description=Felix-Vikunja Sync Reconciliation Driver (5-min cadence)
+Documentation=file:///home/claude/kg-automation/docs/runbooks/sync-driver-ops.md
+
+[Timer]
+OnUnitInactiveSec=300s
+OnBootSec=120s
+Unit=felix-vikunja-sync.service
+Persistent=true
+
+[Install]
+WantedBy=timers.target

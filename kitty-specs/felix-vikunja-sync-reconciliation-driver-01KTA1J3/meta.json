@@ -1,13 +1,13 @@
 {
+  "change_mode": "regular",
   "created_at": "2026-06-04T19:25:32.038102+00:00",
   "friendly_name": "Felix-Vikunja Sync Reconciliation Driver",
   "mission_id": "01KTA1J3FH87XJWT7FQPT1EZE7",
-  "mission_number": null,
+  "mission_number": 65,
   "mission_slug": "felix-vikunja-sync-reconciliation-driver-01KTA1J3",
   "mission_type": "software-dev",
   "slug": "felix-vikunja-sync-reconciliation-driver-01KTA1J3",
+  "source_description": "Implements GitHub issue #518 (sub-issue of Epic #507) per ADR-0003. Build the foundation of the Felix↔Vikunja sync architecture: a centralized deterministic reconciliation driver covering status and task layers, a 15-field conflict-event log, and a direct deterministic WhatsApp send path for unsafe-class conflicts. Discovery decision (2026-06-04): WhatsApp delivery is direct from the driver (Directive 6 alignment); build a reusable send helper if no existing deterministic send path is exposed. Out of scope: touchpoint migration (#519), project-layer + deletion + URL normalization (#520).",
   "target_branch": "main",
-  "vcs": "git",
-  "change_mode": "regular",
-  "source_description": "Implements GitHub issue #518 (sub-issue of Epic #507) per ADR-0003. Build the foundation of the Felix↔Vikunja sync architecture: a centralized deterministic reconciliation driver covering status and task layers, a 15-field conflict-event log, and a direct deterministic WhatsApp send path for unsafe-class conflicts. Discovery decision (2026-06-04): WhatsApp delivery is direct from the driver (Directive 6 alignment); build a reusable send helper if no existing deterministic send path is exposed. Out of scope: touchpoint migration (#519), project-layer + deletion + URL normalization (#520)."
+  "vcs": "git"
 }

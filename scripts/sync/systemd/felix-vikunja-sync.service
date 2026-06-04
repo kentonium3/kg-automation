@@ -1,0 +1,45 @@
+# Felix-Vikunja Sync Reconciliation Driver — systemd user service unit
+#
+# One-shot unit. Each invocation runs ONE reconciliation cycle (or one
+# bootstrap when invoked with --bootstrap). The timer (sibling file
+# felix-vikunja-sync.timer) schedules subsequent ticks.
+#
+# Operator deploy (one-time, post-merge):
+#   ssh office2-claude
+#   cd ~/kg-automation && git pull --ff-only origin main
+#   mkdir -p ~/.config/systemd/user
+#   cp scripts/sync/systemd/felix-vikunja-sync.{service,timer} ~/.config/systemd/user/
+#   systemctl --user daemon-reload
+#   # Bootstrap FIRST (creates the initial state cache):
+#   python3 -m scripts.sync.driver --bootstrap
+#   # Then enable the timer:
+#   systemctl --user enable --now felix-vikunja-sync.timer
+#
+# Configuration is via the Environment= directives below. Recipient is the
+# operator's phone number; not a credential. Vikunja token is read from
+# /data/services/openclaw/secrets/vikunja-api by the driver itself.
+#
+# See: kitty-specs/.../contracts/cycle-pipeline.md § Cycle entry point.
+# See: docs/runbooks/sync-driver-ops.md for the full operator runbook.
+
+[Unit]
+Description=Felix-Vikunja Sync Reconciliation Driver (one-shot tick)
+Documentation=file:///home/claude/kg-automation/docs/runbooks/sync-driver-ops.md
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/home/claude/kg-automation
+ExecStart=/usr/bin/python3 -m scripts.sync.driver
+Environment=FELIX_WHATSAPP_RECIPIENT=+16179300916
+Environment=FELIX_VIKUNJA_API_BASE_URL=https://office2.tail0f5f56.ts.net/api/v1/
+Environment=FELIX_SYNC_CADENCE_SECONDS=300
+StandardOutput=journal
+StandardError=journal
+# Generous timeout — cycles complete in <5s normally; this allows for slow
+# Vikunja responses without prematurely killing the tick.
+TimeoutStartSec=120s
+
+[Install]
+WantedBy=default.target

@@ -1,7 +1,7 @@
 {
   "schema_version": "1.1",
-  "last_updated": "2026-05-23",
-  "updated_by": "#376-remove-escalation-v1-parity + #400-audit-interpretation-moment0 + #310-tasker-jsonl-migration + #374-main-verbatim-passthrough + #362-drift-event-auto-resolution + #309-migrate-escalation-to-jsonl-state-model + #343-refactor-doc-auditor-to-scripts-first-driver + #307-backfill-habits-jsonl-from-comments + #306-habits-native-repeat-jsonl-state + #304-felix-bot-rotation + #291-felix-file-issue + #289-mutation-surfaces-enumeration + #285-cron-delivery-restore-path-c + #282-habits-d6-extract + #263-cron-delivery-mode-round2 + #100-google-workspace-foundation + #256-scope-discipline-guardrails + #253-step-5a-6-consolidation + #254-atomic-write-perm-preservation + issue-105-doc-auditor + #223-systemd-timer + #208-restic-healthcheck + #202-obsidian-sync-system-level + #203-sync-heartbeat + #199-inbox-schedules + #115-credential-health-check + #189-vikunja-compose + #185-inbox-capture-dedup",
+  "last_updated": "2026-06-04",
+  "updated_by": "#518-felix-vikunja-sync-driver-added + #376-remove-escalation-v1-parity + #400-audit-interpretation-moment0 + #310-tasker-jsonl-migration + #374-main-verbatim-passthrough + #362-drift-event-auto-resolution + #309-migrate-escalation-to-jsonl-state-model + #343-refactor-doc-auditor-to-scripts-first-driver + #307-backfill-habits-jsonl-from-comments + #306-habits-native-repeat-jsonl-state + #304-felix-bot-rotation + #291-felix-file-issue + #289-mutation-surfaces-enumeration + #285-cron-delivery-restore-path-c + #282-habits-d6-extract + #263-cron-delivery-mode-round2 + #100-google-workspace-foundation + #256-scope-discipline-guardrails + #253-step-5a-6-consolidation + #254-atomic-write-perm-preservation + issue-105-doc-auditor + #223-systemd-timer + #208-restic-healthcheck + #202-obsidian-sync-system-level + #203-sync-heartbeat + #199-inbox-schedules + #115-credential-health-check + #189-vikunja-compose + #185-inbox-capture-dedup",
   "services": [
     {
       "name": "vikunja",
@@ -1997,14 +1997,14 @@
     {
       "name": "felix-habit-sweeper",
       "type": "systemd-timer",
-      "description": "Daily 48hr auto-skip pass for habit check-ins — scans morning-checkin-<date>.json artifacts older than 48hr, appends auto_skipped events to habits-history.jsonl for unresolved habits, and (for day-specific habits) advances Vikunja due_date to the next designated weekday at EOD-ET. Stateless Python oneshot; no LLM calls (mission #408 / Directive 6).",
+      "description": "Daily 48hr auto-skip pass for habit check-ins \u2014 scans morning-checkin-<date>.json artifacts older than 48hr, appends auto_skipped events to habits-history.jsonl for unresolved habits, and (for day-specific habits) advances Vikunja due_date to the next designated weekday at EOD-ET. Stateless Python oneshot; no LLM calls (mission #408 / Directive 6).",
       "host": "office2",
       "user": "claude",
       "systemd_unit": "felix-habit-sweeper.timer (user unit) + felix-habit-sweeper.service (user oneshot)",
       "systemd_user": "claude",
       "schedule": "OnCalendar=*-*-* 07:30 America/New_York, Persistent=true",
       "exec_start": "/usr/bin/python3 /home/claude/kg-automation/scripts/habits/sweeper.py",
-      "exec_start_note": "Direct Python driver invocation. Stateless per tick — each run is a fresh process; persistent state is the morning-checkin-*.json artifacts + habits-history.jsonl + the per-tick sweeper-tick-<date>.json + sweeper-ledger.jsonl. Path uses /home/claude/kg-automation/ per the post-#59 cutover convention (not /repos/).",
+      "exec_start_note": "Direct Python driver invocation. Stateless per tick \u2014 each run is a fresh process; persistent state is the morning-checkin-*.json artifacts + habits-history.jsonl + the per-tick sweeper-tick-<date>.json + sweeper-ledger.jsonl. Path uses /home/claude/kg-automation/ per the post-#59 cutover convention (not /repos/).",
       "source_in_repo": "scripts/habits/sweeper.py",
       "input_path": "/data/services/openclaw/state/habits/morning-checkin-*.json + /data/services/openclaw/state/habits-history.jsonl",
       "output_path": "/data/services/openclaw/state/habits/sweeper-tick-<date>.json (overwrite per-day) + /data/services/openclaw/state/habits/sweeper-ledger.jsonl (append-only) + /data/services/openclaw/state/habits-history.jsonl (append auto_skipped events) + Vikunja /tasks/<id> POST (advance due_date for day-specific habits)",
@@ -2021,7 +2021,7 @@
       "capabilities": {
         "files_issues": false,
         "calls_vikunja": true,
-        "calls_vikunja_note": "Per-habit POST to /tasks/<id> with {due_date: <next-designated-weekday-EOD-ET>} for day-specific habits only. Daily habits inherit their next instance from Vikunja's native repeat_after cadence — no PUT issued.",
+        "calls_vikunja_note": "Per-habit POST to /tasks/<id> with {due_date: <next-designated-weekday-EOD-ET>} for day-specific habits only. Daily habits inherit their next instance from Vikunja's native repeat_after cadence \u2014 no PUT issued.",
         "llm_calls": false,
         "llm_calls_note": "Zero LLM calls. Fully deterministic per Directive 6."
       },
@@ -2044,7 +2044,7 @@
         {
           "target": "scripts/habits/schedule_loader.py",
           "type": "requires",
-          "description": "WP-01 deliverable — single parse surface for the runtime schedule YAML; identifies day-specific vs daily habits."
+          "description": "WP-01 deliverable \u2014 single parse surface for the runtime schedule YAML; identifies day-specific vs daily habits."
         },
         {
           "target": "scripts/habits/set_due_dates.py",
@@ -2076,6 +2076,62 @@
           "purpose": "Runtime schedule YAML (the `habits:` section). Day-of-week metadata for the sweeper's day-specific-vs-daily classification and the next-due-date math."
         }
       ]
+    },
+    {
+      "name": "felix-vikunja-sync-driver",
+      "type": "systemd_user_timer",
+      "schedule": "OnUnitInactiveSec=300s; OnBootSec=120s; Persistent=true",
+      "schedule_note": "5 minutes after the previous tick exits; first tick 2 minutes after boot; catch-up on resume",
+      "script": "/home/claude/kg-automation/scripts/sync/driver.py",
+      "exec_start": "cd /home/claude/kg-automation && python3 -m scripts.sync.driver",
+      "host": "office2",
+      "user": "claude",
+      "log_path": "journalctl --user -u felix-vikunja-sync.service",
+      "deployed_by": "#518",
+      "deployed_on": "2026-06-04",
+      "status": "active",
+      "purpose": "Centralized deterministic reconciliation driver for the Felix-Vikunja status + task layers per ADR-0003. Polls Vikunja's tasks/all?updated_since delta, detects divergences from the local cache, classifies via UC-1..UC-4 (UC-1/UC-2 collapsed per research.md Unknown 3), appends 15-field rows to conflict-events.jsonl, and delivers unsafe-class events to operator WhatsApp via openclaw CLI. Read-only against Vikunja; existing touchpoints continue writing until #519 migrates them.",
+      "risk_tier": 3,
+      "dependencies": [
+        {
+          "target": "vikunja-api",
+          "type": "consumes",
+          "description": "Polls /tasks/all + per-project + /info via the felix-bot vikunja-api token"
+        },
+        {
+          "target": "openclaw-gateway",
+          "type": "consumes",
+          "description": "Invokes `openclaw agent --agent main --deliver --channel whatsapp` for unsafe-class WhatsApp delivery"
+        }
+      ],
+      "health_check": {
+        "method": "log-tail",
+        "endpoint": "cat /data/services/openclaw/state/sync/last-tick.json | jq '.completed_at_utc, .cycle_error'",
+        "expected": "completed_at_utc within ~6 minutes; cycle_error: null",
+        "timeout_seconds": 5
+      },
+      "config_files": [
+        {
+          "path": "~/.config/systemd/user/felix-vikunja-sync.service",
+          "format": "systemd-unit",
+          "source_in_repo": "scripts/sync/systemd/felix-vikunja-sync.service"
+        },
+        {
+          "path": "~/.config/systemd/user/felix-vikunja-sync.timer",
+          "format": "systemd-unit",
+          "source_in_repo": "scripts/sync/systemd/felix-vikunja-sync.timer"
+        }
+      ],
+      "state_paths": [
+        "/data/services/openclaw/state/sync/freshness.json",
+        "/data/services/openclaw/state/sync/task-cache.json",
+        "/data/services/openclaw/state/sync/project-cache.json",
+        "/data/services/openclaw/state/sync/guard-state.json",
+        "/data/services/openclaw/state/sync/conflict-events.jsonl",
+        "/data/services/openclaw/state/sync/last-tick.json",
+        "/data/services/openclaw/state/sync/last-tick.errors.jsonl"
+      ],
+      "runbook": "docs/runbooks/sync-driver-ops.md"
     }
   ]
 }

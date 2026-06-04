@@ -145,6 +145,7 @@ local validation and CI.
 - [Doc Maintenance](<./runbooks/doc-maintenance.md>)
 - [Escalation Operations](<./runbooks/escalation-ops.md>)
 - [felix-doc-auditor driver operations](<./runbooks/doc-auditor-driver-ops.md>)
+- [Felix-Vikunja sync driver operations](<./runbooks/sync-driver-ops.md>)
 - [GitHub Issues Workflow](<./runbooks/github-issues-workflow.md>)
 - [Google Workspace Operations](<./runbooks/google-workspace-ops.md>)
 - [Habit Check-in Operations](<./runbooks/habits-ops.md>)
