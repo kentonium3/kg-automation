@@ -14,7 +14,7 @@ subtasks:
 - T004
 - T005
 - T006
-shell_pid: "78402"
+shell_pid: "80386"
 history: []
 authoritative_surface: scripts/sync/cleanup.py
 execution_mode: code_change
@@ -22,7 +22,7 @@ owned_files:
 - scripts/sync/cleanup.py
 - tests/sync/test_cleanup.py
 tags: []
-agent: "claude:sonnet:implementer:implementer"
+agent: "claude:opus:reviewer:reviewer"
 ---
 
 # WP02 — Deletion-Cleanup Helpers
@@ -306,3 +306,4 @@ spec-kitty agent action implement WP02 --mission felix-vikunja-sync-project-laye
 
 - 2026-06-05T19:12:52Z – claude:sonnet:implementer:implementer – shell_pid=78402 – Assigned agent via action command
 - 2026-06-05T19:17:20Z – claude:sonnet:implementer:implementer – shell_pid=78402 – Ready for review: 15 unit tests pass (10 scenarios, 6 parametrized cases for invalid task_id); both helpers implemented per FR-003 and cycle-pipeline.md Phase 5b contract; prune_schedule_yaml targets habits: sub-list in top-level mapping (verified against actual phase3-schedule.yaml structure)
+- 2026-06-05T19:17:57Z – claude:opus:reviewer:reviewer – shell_pid=80386 – Started review via action command
