@@ -13,6 +13,25 @@ from scripts.sync import driver as d
 from scripts.sync.cycle import CycleConfig, CycleResult
 
 
+# ---------------------------------------------------------------------------
+# WP05 migration: mock get_vikunja_base_url so tests don't require the
+# vikunja-base-url.txt config file to be deployed on the test runner.
+# Tests that need a specific URL pass --api-base-url explicitly.
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture(autouse=True)
+def mock_vikunja_base_url(monkeypatch):
+    """Prevent get_vikunja_base_url() from reading the config file in tests.
+
+    driver.py imports the name into its own namespace, so we patch there.
+    """
+    monkeypatch.setattr(
+        "scripts.sync.driver.get_vikunja_base_url",
+        lambda: "https://vikunja.test/api/v1/",
+    )
+
+
 def _ok_result(exit_code: int = 0) -> CycleResult:
     return CycleResult(
         success=exit_code == 0,
@@ -20,8 +39,6 @@ def _ok_result(exit_code: int = 0) -> CycleResult:
         tick_id="t",
         cycle_error=None,
         events_emitted={"auto_resolved": 0, "unsafe_to_auto_resolve": 0},
-        layer_pointers_before={},
-        layer_pointers_after={},
         duration_ms=0,
     )
 

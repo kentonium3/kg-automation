@@ -215,8 +215,63 @@ class TestGuardState:
 
 
 # ===========================================================================
-# Group 7 — Per-tick health record (success + error stream)
+# Group 7 — PerLayerSummary + LayerSummary dataclasses
 # ===========================================================================
+
+
+class TestPerLayerSummary:
+    def test_construction_with_defaults(self):
+        layer = st.PerLayerSummary(polled_at_utc="2026-06-05T12:00:00Z")
+        assert layer.polled_at_utc == "2026-06-05T12:00:00Z"
+        assert layer.added == 0
+        assert layer.removed == 0
+        assert layer.updated == 0
+        assert layer.errors == ()
+
+    def test_construction_with_all_fields(self):
+        layer = st.PerLayerSummary(
+            polled_at_utc="2026-06-05T12:00:00Z",
+            added=3,
+            removed=1,
+            updated=5,
+            errors=("vikunja_unreachable",),
+        )
+        assert layer.added == 3
+        assert layer.removed == 1
+        assert layer.updated == 5
+        assert layer.errors == ("vikunja_unreachable",)
+
+    def test_frozen(self):
+        layer = st.PerLayerSummary(polled_at_utc="2026-06-05T12:00:00Z")
+        with pytest.raises((AttributeError, TypeError)):
+            layer.added = 99  # type: ignore[misc]
+
+
+class TestLayerSummary:
+    def test_construction(self):
+        task_layer = st.PerLayerSummary(polled_at_utc="2026-06-05T12:00:00Z", added=2)
+        project_layer = st.PerLayerSummary(polled_at_utc="2026-06-05T12:00:00Z", updated=1)
+        summary = st.LayerSummary(task_layer=task_layer, project_layer=project_layer)
+        assert summary.task_layer.added == 2
+        assert summary.project_layer.updated == 1
+
+    def test_frozen(self):
+        task_layer = st.PerLayerSummary(polled_at_utc="2026-06-05T12:00:00Z")
+        project_layer = st.PerLayerSummary(polled_at_utc="2026-06-05T12:00:00Z")
+        summary = st.LayerSummary(task_layer=task_layer, project_layer=project_layer)
+        with pytest.raises((AttributeError, TypeError)):
+            summary.task_layer = task_layer  # type: ignore[misc]
+
+
+# ===========================================================================
+# Group 8 — Per-tick health record (success + error stream)
+# ===========================================================================
+
+
+def _make_layer_summary(ts: str = "2026-06-04T19:25:30Z") -> st.LayerSummary:
+    """Helper: construct a minimal LayerSummary for tests."""
+    layer = st.PerLayerSummary(polled_at_utc=ts, added=0, removed=0, updated=0)
+    return st.LayerSummary(task_layer=layer, project_layer=layer)
 
 
 class TestPerTickHealthRecord:
@@ -227,12 +282,7 @@ class TestPerTickHealthRecord:
             completed_at_utc="2026-06-04T19:25:30.347Z",
             duration_ms=347,
             cadence_seconds=300,
-            layer_pointers={
-                "status_and_task": st.LayerPointerSnapshot(
-                    before="2026-06-04T19:20:30Z",
-                    after="2026-06-04T19:25:30Z",
-                ),
-            },
+            layer_summary=_make_layer_summary(),
             events_emitted={"auto_resolved": 0, "unsafe_to_auto_resolve": 0},
             cycle_error=None,
             vikunja_version_seen="0.24.6",
@@ -245,6 +295,69 @@ class TestPerTickHealthRecord:
         assert not path.with_suffix(".json.tmp").exists()
         data = json.loads(path.read_text())
         assert data["cycle_error"] is None
+
+    def test_layer_summary_shape_in_json(self, tmp_path):
+        """write_per_tick_health serializes layer_summary as a nested dict."""
+        record = st.PerTickHealthRecord(
+            tick_id="TEST",
+            started_at_utc="2026-06-04T19:25:30Z",
+            completed_at_utc="2026-06-04T19:25:31Z",
+            duration_ms=1000,
+            cadence_seconds=300,
+            layer_summary=st.LayerSummary(
+                task_layer=st.PerLayerSummary(
+                    polled_at_utc="2026-06-04T19:25:30Z",
+                    added=2,
+                    removed=1,
+                    updated=3,
+                    errors=(),
+                ),
+                project_layer=st.PerLayerSummary(
+                    polled_at_utc="2026-06-04T19:25:30Z",
+                    added=0,
+                    removed=0,
+                    updated=1,
+                    errors=("vikunja_unreachable",),
+                ),
+            ),
+            events_emitted={},
+            cycle_error=None,
+            vikunja_version_seen=None,
+        )
+        st.write_per_tick_health(tmp_path, record)
+        data = json.loads((tmp_path / st.LAST_TICK_FILENAME).read_text())
+        # Schema version must be 2 (HEALTH_SCHEMA_VERSION).
+        assert data["schema_version"] == st.HEALTH_SCHEMA_VERSION
+        # layer_summary key present.
+        assert "layer_summary" in data
+        assert "layer_pointers" not in data
+        # Task layer values match.
+        tl = data["layer_summary"]["task_layer"]
+        assert tl["added"] == 2
+        assert tl["removed"] == 1
+        assert tl["updated"] == 3
+        assert tl["errors"] == []
+        # Project layer values match.
+        pl = data["layer_summary"]["project_layer"]
+        assert pl["updated"] == 1
+        assert pl["errors"] == ["vikunja_unreachable"]
+
+    def test_no_layer_pointers_key_in_json(self, tmp_path):
+        """The v1 layer_pointers key must NOT appear in v2 output."""
+        record = st.PerTickHealthRecord(
+            tick_id="T",
+            started_at_utc="2026-06-04T19:25:30Z",
+            completed_at_utc="2026-06-04T19:25:31Z",
+            duration_ms=100,
+            cadence_seconds=300,
+            layer_summary=_make_layer_summary(),
+            events_emitted={},
+            cycle_error=None,
+            vikunja_version_seen=None,
+        )
+        st.write_per_tick_health(tmp_path, record)
+        data = json.loads((tmp_path / st.LAST_TICK_FILENAME).read_text())
+        assert "layer_pointers" not in data
 
     def test_error_path_appends(self, tmp_path):
         e1 = st.PerTickErrorRecord(
@@ -273,13 +386,14 @@ class TestPerTickHealthRecord:
 
 
 # ===========================================================================
-# Group 8 — Module-import sanity
+# Group 9 — Module-import sanity
 # ===========================================================================
 
 
 class TestModuleImport:
     def test_constants_present(self):
         assert st.SCHEMA_VERSION == 1
+        assert st.HEALTH_SCHEMA_VERSION == 2
         assert st.STATE_DIR_DEFAULT.as_posix() == "/data/services/openclaw/state/sync"
         assert st.SECRETS_DIR_DEFAULT.as_posix() == "/data/services/openclaw/secrets"
 
@@ -292,3 +406,12 @@ class TestModuleImport:
         assert st.CONFLICT_EVENTS_FILENAME == "conflict-events.jsonl"
         assert st.LAST_TICK_FILENAME == "last-tick.json"
         assert st.LAST_TICK_ERRORS_FILENAME == "last-tick.errors.jsonl"
+
+    def test_layer_summary_types_present(self):
+        """PerLayerSummary and LayerSummary must be importable from state."""
+        assert hasattr(st, "PerLayerSummary")
+        assert hasattr(st, "LayerSummary")
+
+    def test_layer_pointer_snapshot_removed(self):
+        """LayerPointerSnapshot is the v1 type; must NOT exist in state."""
+        assert not hasattr(st, "LayerPointerSnapshot")

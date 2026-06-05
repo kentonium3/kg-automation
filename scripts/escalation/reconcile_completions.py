@@ -78,6 +78,7 @@ from scripts.common.sync_cache import (
     TaskCacheView,
     read_cached_task_by_id,
 )
+from scripts.common.vikunja_config import get_vikunja_base_url
 from scripts.escalation.derive_state import (
     EscalationStateError,
     derive_state,
@@ -123,8 +124,10 @@ TOUCHPOINT_NAME = "escalation.reconcile_completions"
 
 #: Default Vikunja API base URL. Retained for synthetic-record writes via
 #: ``record_event`` (the write path still targets Vikunja for PATCH calls
-#: when ``skip_vikunja=False``).
-DEFAULT_BASE_URL = "http://100.92.197.90:3456/api/v1/"
+#: when ``skip_vikunja=False``). Resolved lazily via get_vikunja_base_url()
+#: at call-time in reconcile_project / reconcile_all to avoid eager config
+#: reads at module import.
+DEFAULT_BASE_URL: str = ""  # sentinel; resolved lazily — see reconcile_project
 
 #: Default location of the ``felix-bot`` Vikunja API token on office2.
 #: Retained for synthetic-record writes via ``record_event``.
@@ -996,12 +999,12 @@ def reconcile_project(
             (``reconcile_all`` continues; the CLI exits 1).
     """
     # Resolve module-level defaults at call-time (not at function-definition
-    # time) so monkeypatching ``JSONL_STATE_DIR`` / ``DEFAULT_TOKEN_PATH`` /
-    # ``DEFAULT_BASE_URL`` in tests is honored by callers that omit the kwargs.
-    # ``DEFAULT_BASE_URL`` and ``DEFAULT_TOKEN_PATH`` are used by the
-    # synthetic-record write path (record_event), not for cache reads.
+    # time) so monkeypatching ``JSONL_STATE_DIR`` / ``DEFAULT_TOKEN_PATH`` in
+    # tests is honored by callers that omit the kwargs. base_url is resolved
+    # lazily via get_vikunja_base_url() so module import does not require the
+    # config file to be deployed (avoiding eager VikunjaConfigError on import).
     if base_url is None:
-        base_url = DEFAULT_BASE_URL
+        base_url = get_vikunja_base_url()
     if token_path is None:
         token_path = DEFAULT_TOKEN_PATH
     if jsonl_dir is None:
@@ -1105,7 +1108,7 @@ def reconcile_all(
             the CLI surfaces this as exit code 1.
     """
     if base_url is None:
-        base_url = DEFAULT_BASE_URL
+        base_url = get_vikunja_base_url()
     if token_path is None:
         token_path = DEFAULT_TOKEN_PATH
     if jsonl_dir is None:
@@ -1198,8 +1201,8 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--base-url",
-        default=DEFAULT_BASE_URL,
-        help=f"Vikunja API base URL (default: {DEFAULT_BASE_URL}).",
+        default=None,
+        help="Vikunja API base URL (default: from vikunja_config helper).",
     )
     parser.add_argument(
         "--token-path",

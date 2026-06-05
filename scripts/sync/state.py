@@ -30,6 +30,7 @@ from typing import Any
 # ---------------------------------------------------------------------------
 
 SCHEMA_VERSION = 1
+HEALTH_SCHEMA_VERSION = 2
 
 STATE_DIR_DEFAULT = Path("/data/services/openclaw/state/sync")
 SECRETS_DIR_DEFAULT = Path("/data/services/openclaw/secrets")
@@ -119,11 +120,22 @@ class GuardState:
 
 
 @dataclass(frozen=True)
-class LayerPointerSnapshot:
-    """Per-layer pointer values before/after a cycle."""
+class PerLayerSummary:
+    """Per-layer summary of a single cycle's outcomes."""
 
-    before: str
-    after: str
+    polled_at_utc: str
+    added: int = 0
+    removed: int = 0
+    updated: int = 0
+    errors: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
+class LayerSummary:
+    """Aggregate of both layers' summaries for one cycle."""
+
+    task_layer: PerLayerSummary
+    project_layer: PerLayerSummary
 
 
 @dataclass(frozen=True)
@@ -135,11 +147,11 @@ class PerTickHealthRecord:
     completed_at_utc: str
     duration_ms: int
     cadence_seconds: int
-    layer_pointers: dict[str, LayerPointerSnapshot]
+    layer_summary: LayerSummary
     events_emitted: dict[str, int]
     cycle_error: str | None
     vikunja_version_seen: str | None
-    schema_version: int = SCHEMA_VERSION
+    schema_version: int = HEALTH_SCHEMA_VERSION
 
 
 @dataclass(frozen=True)
@@ -418,8 +430,22 @@ def write_guard_state(state_dir: Path, gs: GuardState) -> None:
 
 
 def write_per_tick_health(state_dir: Path, record: PerTickHealthRecord) -> None:
-    """Write the success-path per-tick health record (atomic overwrite)."""
+    """Write the success-path per-tick health record (atomic overwrite).
+
+    Schema version 2: uses ``layer_summary`` (nested per-layer aggregate) instead
+    of the v1 ``layer_pointers`` dict.
+    """
     path = state_dir / LAST_TICK_FILENAME
+
+    def _layer_dict(layer: PerLayerSummary) -> dict:
+        return {
+            "polled_at_utc": layer.polled_at_utc,
+            "added": layer.added,
+            "removed": layer.removed,
+            "updated": layer.updated,
+            "errors": list(layer.errors),
+        }
+
     data = {
         "schema_version": record.schema_version,
         "tick_id": record.tick_id,
@@ -427,9 +453,9 @@ def write_per_tick_health(state_dir: Path, record: PerTickHealthRecord) -> None:
         "completed_at_utc": record.completed_at_utc,
         "duration_ms": record.duration_ms,
         "cadence_seconds": record.cadence_seconds,
-        "layer_pointers": {
-            name: {"before": snap.before, "after": snap.after}
-            for name, snap in record.layer_pointers.items()
+        "layer_summary": {
+            "task_layer": _layer_dict(record.layer_summary.task_layer),
+            "project_layer": _layer_dict(record.layer_summary.project_layer),
         },
         "events_emitted": dict(record.events_emitted),
         "cycle_error": record.cycle_error,

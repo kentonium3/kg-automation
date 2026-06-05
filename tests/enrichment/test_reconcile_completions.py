@@ -48,6 +48,27 @@ from tests.common.conftest import mock_sync_cache_fixture  # noqa: F401
 
 
 # ---------------------------------------------------------------------------
+# WP05 migration: mock get_vikunja_base_url so tests don't require the
+# vikunja-base-url.txt config file to be deployed on the test runner.
+# The URL value is irrelevant here — comment fetches are routed through
+# the mock_urlopen fixture and the URL string is never validated.
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture(autouse=True)
+def mock_vikunja_base_url(monkeypatch):
+    """Prevent get_vikunja_base_url() from reading the config file in tests.
+
+    enrichment/reconcile_completions.py imports the name into its own
+    namespace, so we patch there.
+    """
+    monkeypatch.setattr(
+        "scripts.enrichment.reconcile_completions.get_vikunja_base_url",
+        lambda: "https://vikunja.test/api/v1/",
+    )
+
+
+# ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
 

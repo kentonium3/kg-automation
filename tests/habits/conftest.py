@@ -162,3 +162,30 @@ def mock_state_log_dir(tmp_path: Path, monkeypatch) -> Path:
     monkeypatch.setattr(state_log, "STATE_DIR", sandbox)
     monkeypatch.setenv("FELIX_STATE_LOG_DIR", str(sandbox))
     return sandbox
+
+
+# ---------------------------------------------------------------------------
+# WP05 migration: autouse fixture so habits tests don't require the
+# vikunja-base-url.txt config file deployed on the test runner.
+# Tests that need a specific URL pass --vikunja-base-url explicitly.
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture(autouse=True)
+def mock_vikunja_base_url(monkeypatch):
+    """Prevent get_vikunja_base_url() from reading the config file in tests.
+
+    set_due_dates.py imports the name into its own namespace (via the
+    try/except import block), so we patch both the source module and the
+    scripts.habits.set_due_dates namespace to cover both invocation paths.
+    """
+    monkeypatch.setattr(
+        "scripts.common.vikunja_config.get_vikunja_base_url",
+        lambda: "https://vikunja.test/api/v1/",
+    )
+    # Also patch the scripts.habits.set_due_dates namespace (from-import).
+    try:
+        import scripts.habits.set_due_dates as sdd
+        monkeypatch.setattr(sdd, "get_vikunja_base_url", lambda: "https://vikunja.test/api/v1/")
+    except ImportError:
+        pass

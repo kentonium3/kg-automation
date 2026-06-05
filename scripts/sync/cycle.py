@@ -1,10 +1,11 @@
-"""6-phase reconciliation cycle orchestration (WP05 / T018).
+"""6-phase reconciliation cycle orchestration (#520 / WP04).
 
 Composes the WP01-WP04 modules into one tick: fetch → diff → classify → emit
-→ update → complete. State writes happen ONLY in phase 6 (complete); earlier
-phases work entirely in-memory.
+→ update → 5b-deletion-cleanup → complete. State writes happen ONLY in phase 6
+(complete); earlier phases work entirely in-memory.
 
-Contract: kitty-specs/.../contracts/cycle-pipeline.md.
+Contract: kitty-specs/felix-vikunja-sync-project-layer-and-url-config-01KTCDZ7/
+contracts/cycle-pipeline.md.
 """
 from __future__ import annotations
 
@@ -17,6 +18,7 @@ from pathlib import Path
 from typing import Any
 
 from scripts.sync.classify import CLASS_AUTO_RESOLVED, CLASS_UNSAFE, classify
+from scripts.sync.cleanup import append_task_deleted_event, prune_schedule_yaml
 from scripts.sync.diff import (
     PRIVATE_PROJECT_IDS,
     TRACKED_TASK_FIELDS,
@@ -27,7 +29,7 @@ from scripts.sync.emit import (
     emit_events,
     read_recent_events,
 )
-from scripts.sync.fetch import fetch_delta, vikunja_now_iso
+from scripts.sync.fetch import FetchedSnapshot, fetch_full_poll, vikunja_now_iso
 from scripts.sync.guards import now_et_day, roll_g3_day_if_needed
 from scripts.sync.send_whatsapp import send as default_send
 from scripts.sync.state import (
@@ -35,7 +37,8 @@ from scripts.sync.state import (
     FreshnessLayer,
     FreshnessPointer,
     LAST_TICK_FILENAME,
-    LayerPointerSnapshot,
+    LayerSummary,
+    PerLayerSummary,
     PerTickErrorRecord,
     PerTickHealthRecord,
     ProjectCacheEntry,
@@ -53,9 +56,16 @@ from scripts.sync.state import (
     write_task_cache,
 )
 
+# ---------------------------------------------------------------------------
+# Phase 5b path constants (repo-relative; resolved relative to this file)
+# ---------------------------------------------------------------------------
 
+_REPO_ROOT = Path(__file__).parent.parent.parent
+HABITS_HISTORY_PATH = _REPO_ROOT / "scripts" / "habits" / "state" / "habits-history.jsonl"
+SCHEDULE_YAML_PATH = _REPO_ROOT / "scripts" / "habits" / "migrations" / "phase3-schedule.yaml"
+
+# Kept for tests/callers that reference it by name; no longer drives fetch logic.
 LAYER_STATUS_AND_TASK = "status_and_task"
-EPOCH_ZERO = "0001-01-01T00:00:00Z"
 
 
 # ---------------------------------------------------------------------------
@@ -84,13 +94,28 @@ class CycleResult:
     tick_id: str
     cycle_error: str | None
     events_emitted: dict[str, int] = field(default_factory=dict)
-    layer_pointers_before: dict[str, str] = field(default_factory=dict)
-    layer_pointers_after: dict[str, str] = field(default_factory=dict)
     duration_ms: int = 0
 
 
 # ---------------------------------------------------------------------------
-# run_cycle (the 6-phase pipeline)
+# _make_empty_layer_summary — helper for failure paths
+# ---------------------------------------------------------------------------
+
+
+def _make_empty_layer_summary(ts: str, errors: tuple[str, ...] = ()) -> LayerSummary:
+    """Return a LayerSummary with zero counts and the given errors on both layers."""
+    layer = PerLayerSummary(
+        polled_at_utc=ts,
+        added=0,
+        removed=0,
+        updated=0,
+        errors=errors,
+    )
+    return LayerSummary(task_layer=layer, project_layer=layer)
+
+
+# ---------------------------------------------------------------------------
+# run_cycle (the 6+1-phase pipeline)
 # ---------------------------------------------------------------------------
 
 
@@ -116,7 +141,7 @@ def run_cycle(
     # --- Phase 0: preamble ---
     try:
         token = _read_token(config.secrets_dir / "vikunja-api")
-        freshness_before = _read_or_fail_freshness(config.state_dir)
+        _read_or_fail_freshness(config.state_dir)   # validates bootstrap was run
         task_cache = read_task_cache(config.state_dir)
         project_cache = read_project_cache(config.state_dir)
         guard_state = read_guard_state(config.state_dir)
@@ -131,40 +156,55 @@ def run_cycle(
             duration_ms=_ms_since(start_perf),
         )
 
-    pointer_before = freshness_before.layers.get(LAYER_STATUS_AND_TASK)
-    since_utc = pointer_before.last_polled_utc if pointer_before else EPOCH_ZERO
-    layer_pointers_before = {LAYER_STATUS_AND_TASK: since_utc}
-
-    # --- Phase 1: fetch ---
+    # --- Phase 1: fetch (full-poll) ---
     try:
-        delta = fetch_delta(
+        snapshot = fetch_full_poll(
             token=token,
             base_url=config.api_base_url,
-            since_utc=since_utc,
-            known_project_ids=_project_id_set(project_cache),
+            task_cache_nonempty=bool(task_cache.tasks),
+            project_cache_nonempty=bool(project_cache.projects),
         )
     except OSError as e:
+        error_message = str(e)
+        # Determine which error token applies so we can populate layer_summary.
+        if error_message.startswith("auth_failure:"):
+            err_token = "auth_failure"
+        elif error_message.startswith("vikunja_5xx:"):
+            err_token = "vikunja_5xx"
+        elif error_message.startswith("parse_error:"):
+            err_token = "parse_error"
+        elif error_message.startswith("empty_response_when_cache_nonzero:"):
+            err_token = "empty_response_when_cache_nonzero"
+        else:
+            err_token = "vikunja_unreachable"
         return _record_failure(
             config=config,
             tick_id=tick_id,
             started_at_utc=started_at_utc,
             phase="fetch",
-            cycle_error=f"step 1 (Vikunja fetch) failed: {e}",
+            cycle_error=f"step 1 (Vikunja fetch) failed: {error_message}",
             exit_code=1,
             duration_ms=_ms_since(start_perf),
-            layer_pointers_before=layer_pointers_before,
+            error_tokens=(err_token,),
         )
 
-    # --- Phase 2: diff ---
-    divergences, first_observation_ids = compute_divergences(
-        delta=delta,
+    # --- Phase 2: diff (3-way set-diff) ---
+    (
+        divergences,
+        first_observation_task_ids,
+        deleted_task_ids,
+        project_events,
+        layer_summary,
+    ) = compute_divergences(
+        snapshot=snapshot,
         task_cache=task_cache,
+        project_cache=project_cache,
         ts_observed_utc=started_at_utc,
         private_project_ids=PRIVATE_PROJECT_IDS,
     )
 
     # --- Phase 3: classify ---
-    task_lookup = {t["id"]: t for t in delta.tasks if isinstance(t.get("id"), int)}
+    task_lookup = {t["id"]: t for t in snapshot.tasks if isinstance(t.get("id"), int)}
     classified = []
     for cand in divergences:
         task = task_lookup.get(cand.vikunja_entity_id, {})
@@ -210,21 +250,20 @@ def run_cycle(
             cycle_error=f"step 4 (emit) failed: {e}",
             exit_code=2,
             duration_ms=_ms_since(start_perf),
-            layer_pointers_before=layer_pointers_before,
         )
 
     # --- Phase 5: update (in-memory; persisted in phase 6) ---
     try:
         new_task_cache = _apply_cache_updates(
             task_cache=task_cache,
-            delta=delta,
-            first_observation_ids=first_observation_ids,
+            snapshot=snapshot,
+            first_observation_task_ids=first_observation_task_ids,
+            deleted_task_ids=deleted_task_ids,
             ts_observed_utc=started_at_utc,
             private_project_ids=PRIVATE_PROJECT_IDS,
         )
         new_project_cache = _apply_project_updates(
-            project_cache=project_cache,
-            delta=delta,
+            snapshot=snapshot,
             ts_observed_utc=started_at_utc,
         )
     except Exception as e:  # pragma: no cover -- defensive; pure transforms shouldn't raise
@@ -236,8 +275,65 @@ def run_cycle(
             cycle_error=f"step 5 (update) failed: {e}",
             exit_code=2,
             duration_ms=_ms_since(start_perf),
-            layer_pointers_before=layer_pointers_before,
         )
+
+    # --- Phase 5b: deletion-cleanup (FR-003) ---
+    if not config.dry_run:
+        for task_id in sorted(deleted_task_ids):
+            prior_entry = task_cache.tasks.get(str(task_id))
+            prior_title = prior_entry.fields.get("title", "<unknown>") if prior_entry and prior_entry.fields else "<unknown>"
+            try:
+                append_task_deleted_event(
+                    task_id=task_id,
+                    title=prior_title,
+                    detected_at_utc=started_at_utc,
+                    path=HABITS_HISTORY_PATH,
+                )
+            except OSError as e:
+                # Per FR-003: log the error, skip this task_id, continue with others.
+                sys.stderr.write(
+                    f"[sync cleanup] WARNING: append_task_deleted_event failed for "
+                    f"task_id={task_id}: {e}\n"
+                )
+                try:
+                    append_per_tick_error(
+                        config.state_dir,
+                        PerTickErrorRecord(
+                            tick_id=tick_id,
+                            started_at_utc=started_at_utc,
+                            failed_at_utc=vikunja_now_iso(),
+                            phase="cleanup_history_log",
+                            cycle_error=f"append_task_deleted_event failed for task_id={task_id}: {e}",
+                            layer_pointers_unchanged=False,
+                        ),
+                    )
+                except OSError:
+                    pass  # best-effort
+                # Skip schedule.yaml prune for atomicity (history-log failed)
+                continue
+
+            try:
+                prune_schedule_yaml(task_id, SCHEDULE_YAML_PATH)
+            except (OSError, ValueError) as e:
+                sys.stderr.write(
+                    f"[sync cleanup] WARNING: prune_schedule_yaml failed for "
+                    f"task_id={task_id}: {e}\n"
+                )
+                try:
+                    append_per_tick_error(
+                        config.state_dir,
+                        PerTickErrorRecord(
+                            tick_id=tick_id,
+                            started_at_utc=started_at_utc,
+                            failed_at_utc=vikunja_now_iso(),
+                            phase="cleanup_schedule_yaml",
+                            cycle_error=f"prune_schedule_yaml failed for task_id={task_id}: {e}",
+                            layer_pointers_unchanged=False,
+                        ),
+                    )
+                except OSError:
+                    pass  # best-effort
+                # Continue — cache removal still happens in Phase 6
 
     # --- Phase 6: complete (atomic writes; freshness second-to-last) ---
     if config.dry_run:
@@ -252,8 +348,6 @@ def run_cycle(
             tick_id=tick_id,
             cycle_error=None,
             events_emitted=events_count,
-            layer_pointers_before=layer_pointers_before,
-            layer_pointers_after={LAYER_STATUS_AND_TASK: started_at_utc},
             duration_ms=_ms_since(start_perf),
         )
 
@@ -281,7 +375,6 @@ def run_cycle(
             cycle_error=f"step 6 (complete) failed: {e}",
             exit_code=2,
             duration_ms=_ms_since(start_perf),
-            layer_pointers_before=layer_pointers_before,
         )
 
     completed_at_utc = vikunja_now_iso()
@@ -294,14 +387,10 @@ def run_cycle(
             completed_at_utc=completed_at_utc,
             duration_ms=duration_ms,
             cadence_seconds=config.cadence_seconds,
-            layer_pointers={
-                LAYER_STATUS_AND_TASK: LayerPointerSnapshot(
-                    before=since_utc, after=started_at_utc
-                ),
-            },
+            layer_summary=layer_summary,
             events_emitted=events_count,
             cycle_error=None,
-            vikunja_version_seen=delta.vikunja_version,
+            vikunja_version_seen=snapshot.vikunja_version,
         ),
     )
 
@@ -311,8 +400,6 @@ def run_cycle(
         tick_id=tick_id,
         cycle_error=None,
         events_emitted=events_count,
-        layer_pointers_before=layer_pointers_before,
-        layer_pointers_after={LAYER_STATUS_AND_TASK: started_at_utc},
         duration_ms=duration_ms,
     )
 
@@ -350,11 +437,11 @@ def run_bootstrap(
         )
 
     try:
-        delta = fetch_delta(
+        snapshot = fetch_full_poll(
             token=token,
             base_url=config.api_base_url,
-            since_utc=EPOCH_ZERO,
-            known_project_ids=set(),
+            task_cache_nonempty=False,   # bootstrap: cache is empty
+            project_cache_nonempty=False,
         )
     except OSError as e:
         return _record_failure(
@@ -368,16 +455,18 @@ def run_bootstrap(
         )
 
     # Build the cache from scratch (all tasks are first observations).
+    empty_task_cache = TaskCacheRecord(last_updated_utc=started_at_utc, tasks={})
+    all_task_ids = {t["id"] for t in snapshot.tasks if isinstance(t.get("id"), int)}
     new_task_cache = _apply_cache_updates(
-        task_cache=TaskCacheRecord(last_updated_utc=started_at_utc, tasks={}),
-        delta=delta,
-        first_observation_ids=[t["id"] for t in delta.tasks if isinstance(t.get("id"), int)],
+        task_cache=empty_task_cache,
+        snapshot=snapshot,
+        first_observation_task_ids=all_task_ids,
+        deleted_task_ids=set(),
         ts_observed_utc=started_at_utc,
         private_project_ids=PRIVATE_PROJECT_IDS,
     )
     new_project_cache = _apply_project_updates(
-        project_cache=ProjectCacheRecord(last_refreshed_utc=started_at_utc, projects={}),
-        delta=delta,
+        snapshot=snapshot,
         ts_observed_utc=started_at_utc,
     )
 
@@ -385,6 +474,23 @@ def run_bootstrap(
     fresh_guard_state = roll_g3_day_if_needed(
         read_guard_state(config.state_dir),  # tolerates missing → default state
         et_day,
+    )
+
+    bootstrap_layer_summary = LayerSummary(
+        task_layer=PerLayerSummary(
+            polled_at_utc=snapshot.fetched_at_utc,
+            added=len(new_task_cache.tasks),
+            removed=0,
+            updated=0,
+            errors=(),
+        ),
+        project_layer=PerLayerSummary(
+            polled_at_utc=snapshot.fetched_at_utc,
+            added=len(new_project_cache.projects),
+            removed=0,
+            updated=0,
+            errors=(),
+        ),
     )
 
     if config.dry_run:
@@ -397,8 +503,6 @@ def run_bootstrap(
             tick_id=tick_id,
             cycle_error=None,
             events_emitted={CLASS_AUTO_RESOLVED: 0, CLASS_UNSAFE: 0},
-            layer_pointers_before={LAYER_STATUS_AND_TASK: EPOCH_ZERO},
-            layer_pointers_after={LAYER_STATUS_AND_TASK: started_at_utc},
             duration_ms=_ms_since(start_perf),
         )
 
@@ -437,14 +541,10 @@ def run_bootstrap(
             completed_at_utc=vikunja_now_iso(),
             duration_ms=duration_ms,
             cadence_seconds=config.cadence_seconds,
-            layer_pointers={
-                LAYER_STATUS_AND_TASK: LayerPointerSnapshot(
-                    before=EPOCH_ZERO, after=started_at_utc
-                ),
-            },
+            layer_summary=bootstrap_layer_summary,
             events_emitted={CLASS_AUTO_RESOLVED: 0, CLASS_UNSAFE: 0},
             cycle_error=None,
-            vikunja_version_seen=delta.vikunja_version,
+            vikunja_version_seen=snapshot.vikunja_version,
         ),
     )
 
@@ -454,8 +554,6 @@ def run_bootstrap(
         tick_id=tick_id,
         cycle_error=None,
         events_emitted={CLASS_AUTO_RESOLVED: 0, CLASS_UNSAFE: 0},
-        layer_pointers_before={LAYER_STATUS_AND_TASK: EPOCH_ZERO},
-        layer_pointers_after={LAYER_STATUS_AND_TASK: started_at_utc},
         duration_ms=duration_ms,
     )
 
@@ -485,39 +583,45 @@ def _read_token(path: Path) -> str:
     return content
 
 
-def _read_or_fail_freshness(state_dir: Path) -> FreshnessPointer:
+def _read_or_fail_freshness(state_dir: Path) -> None:
     from scripts.sync.state import read_freshness
-    return read_freshness(state_dir)
-
-
-def _project_id_set(pc: ProjectCacheRecord) -> set[int]:
-    out: set[int] = set()
-    for key in pc.projects.keys():
-        try:
-            out.add(int(key))
-        except (TypeError, ValueError):
-            continue
-    return out
+    read_freshness(state_dir)
 
 
 def _apply_cache_updates(
     *,
     task_cache: TaskCacheRecord,
-    delta,
-    first_observation_ids: list[int],
+    snapshot: FetchedSnapshot,
+    first_observation_task_ids: set[int],
+    deleted_task_ids: set[int],
     ts_observed_utc: str,
     private_project_ids: frozenset[int],
 ) -> TaskCacheRecord:
-    """Replace cached fields with Vikunja values + update felix_last_observed_at."""
-    new_tasks = dict(task_cache.tasks)
-    first_obs_set = set(first_observation_ids)
-    for task in delta.tasks:
+    """Apply set-diff outputs to the task cache.
+
+    New tasks (first_observation_task_ids) get TaskCacheEntry records added.
+    Deleted tasks (deleted_task_ids) get removed.
+    Existing tasks (in_both) get their tracked fields updated from snapshot.
+    Private tasks get tracked with empty fields (privacy boundary).
+    """
+    # Start from existing cache entries; deletions will be excluded at the end.
+    new_tasks: dict[str, TaskCacheEntry] = {}
+
+    # Build a quick lookup from the snapshot.
+    snapshot_by_id: dict[int, dict] = {
+        t["id"]: t for t in snapshot.tasks if isinstance(t.get("id"), int)
+    }
+
+    for task in snapshot.tasks:
         task_id = task.get("id")
         if not isinstance(task_id, int):
             continue
+        # Skip deleted tasks (they won't be in the snapshot anyway, but guard defensively)
+        if task_id in deleted_task_ids:
+            continue
+
         is_private = task.get("project_id") in private_project_ids
         if is_private:
-            # Private boundary: track only the IDs and timestamps. Empty fields.
             new_tasks[str(task_id)] = TaskCacheEntry(
                 vikunja_task_id=task_id,
                 fields={},
@@ -525,15 +629,25 @@ def _apply_cache_updates(
                 felix_last_observed_at=ts_observed_utc,
             )
             continue
+
         fields_subset: dict[str, Any] = {}
         for f_name in TRACKED_TASK_FIELDS:
             fields_subset[f_name] = task.get(f_name)
+
         new_tasks[str(task_id)] = TaskCacheEntry(
             vikunja_task_id=task_id,
             fields=fields_subset,
             vikunja_updated_at=str(task.get("updated") or ""),
             felix_last_observed_at=ts_observed_utc,
         )
+
+    # Preserve cache entries for tasks not in the snapshot AND not deleted.
+    # (These shouldn't exist under full-poll semantics, but guard defensively.)
+    for cache_key, cache_entry in task_cache.tasks.items():
+        task_id = int(cache_key)
+        if task_id not in deleted_task_ids and cache_key not in new_tasks:
+            new_tasks[cache_key] = cache_entry
+
     return TaskCacheRecord(
         last_updated_utc=ts_observed_utc,
         tasks=new_tasks,
@@ -542,17 +656,21 @@ def _apply_cache_updates(
 
 def _apply_project_updates(
     *,
-    project_cache: ProjectCacheRecord,
-    delta,
+    snapshot: FetchedSnapshot,
     ts_observed_utc: str,
 ) -> ProjectCacheRecord:
-    """Merge fetched projects into the project cache."""
-    new_projects = dict(project_cache.projects)
-    for pid, proj in delta.projects.items():
-        new_projects[str(pid)] = ProjectCacheEntry(
+    """Canonical-snapshot replacement of the project cache.
+
+    Per data-model.md, the new project cache is the snapshot's projects
+    directly — not a merge of cache and snapshot.
+    """
+    new_projects = {
+        str(pid): ProjectCacheEntry(
             title=str(proj.get("title", "<unknown>")),
             is_archived=bool(proj.get("is_archived", False)),
         )
+        for pid, proj in snapshot.projects.items()
+    }
     return ProjectCacheRecord(
         last_refreshed_utc=ts_observed_utc,
         projects=new_projects,
@@ -568,7 +686,7 @@ def _record_failure(
     cycle_error: str,
     exit_code: int,
     duration_ms: int,
-    layer_pointers_before: dict[str, str] | None = None,
+    error_tokens: tuple[str, ...] = (),
 ) -> CycleResult:
     """Write the failure to last-tick.errors.jsonl and return a failure CycleResult."""
     pointers_unchanged = exit_code == 1
@@ -599,7 +717,5 @@ def _record_failure(
         tick_id=tick_id,
         cycle_error=cycle_error,
         events_emitted={},
-        layer_pointers_before=layer_pointers_before or {},
-        layer_pointers_after={},
         duration_ms=duration_ms,
     )

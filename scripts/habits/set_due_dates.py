@@ -33,7 +33,7 @@ Invocation:
         --habit-ids 123,124,125 \\
         --iso-eod-et 2026-05-15T23:59:59-04:00 \\
         [--vikunja-token-path /data/services/openclaw/secrets/vikunja-api] \\
-        [--vikunja-base-url https://office2.tail0f5f56.ts.net/api/v1] \\
+        [--vikunja-base-url <url>] \\
         [--dry-run]
 
 Output (stdout):
@@ -67,6 +67,7 @@ try:
         SLATier,
         read_cached_task_by_id,
     )
+    from scripts.common.vikunja_config import get_vikunja_base_url
 except ImportError:
     # Fallback for direct-script invocation (`python3 scripts/habits/set_due_dates.py`).
     # Under that form only scripts/habits/ is on sys.path, so the absolute-package
@@ -82,6 +83,9 @@ except ImportError:
         SLA_NORMAL,
         SLATier,
         read_cached_task_by_id,
+    )
+    from scripts.common.vikunja_config import (  # type: ignore[no-redef]
+        get_vikunja_base_url,
     )
 
 try:
@@ -110,7 +114,6 @@ TOUCHPOINT_SLA: SLATier = SLA_NORMAL
 TOUCHPOINT_NAME = "habits.set_due_dates"
 
 DEFAULT_TOKEN_PATH = Path("/data/services/openclaw/secrets/vikunja-api")
-DEFAULT_BASE_URL = "https://office2.tail0f5f56.ts.net/api/v1"
 
 #: Default in-repo path to the runtime schedule YAML. Mirrors the default
 #: used by ``morning_checkin_list`` so both helpers agree on the source.
@@ -438,7 +441,7 @@ def reconcile_schedule(
             _http_put(
                 base_url,
                 token,
-                f"/tasks/{entry.task_id}",
+                f"tasks/{entry.task_id}",
                 {"due_date": new_due},
             )
         except urllib.error.HTTPError as exc:
@@ -610,8 +613,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--vikunja-base-url",
         type=str,
-        default=DEFAULT_BASE_URL,
-        help="Vikunja API base URL",
+        default=None,
+        help="Vikunja API base URL (default: from vikunja_config helper)",
     )
     parser.add_argument(
         "--dry-run",
@@ -648,6 +651,9 @@ def main(argv: list[str] | None = None) -> int:
         ),
     )
     args = parser.parse_args(argv)
+    # Lazy URL resolution: read from vikunja_config when not explicitly provided.
+    if args.vikunja_base_url is None:
+        args.vikunja_base_url = get_vikunja_base_url()
 
     # Mutually exclusive: --reconcile-schedule vs --iso-eod-et mode.
     if args.reconcile_schedule:
@@ -725,7 +731,7 @@ def main(argv: list[str] | None = None) -> int:
             _http_put(
                 args.vikunja_base_url,
                 token,
-                f"/tasks/{habit_id}",
+                f"tasks/{habit_id}",
                 body,
             )
             succeeded.append(habit_id)

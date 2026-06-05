@@ -20,6 +20,7 @@ import re
 import sys
 from pathlib import Path
 
+from scripts.common.vikunja_config import get_vikunja_base_url
 from scripts.sync.cycle import CycleConfig, run_bootstrap, run_cycle
 from scripts.sync.send_whatsapp import WHATSAPP_RECIPIENT_ENV_VAR, resolve_recipient
 from scripts.sync.state import SECRETS_DIR_DEFAULT, STATE_DIR_DEFAULT
@@ -39,7 +40,8 @@ ENV_STATE_DIR = "FELIX_SYNC_STATE_DIR"
 ENV_SECRETS_DIR = "FELIX_SYNC_SECRETS_DIR"
 ENV_API_BASE_URL = "FELIX_VIKUNJA_API_BASE_URL"
 
-API_BASE_URL_DEFAULT = "https://office2.tail0f5f56.ts.net/api/v1/"
+# API_BASE_URL_DEFAULT is resolved lazily via get_vikunja_base_url() in
+# resolve_config so module import does not require the config file deployed.
 
 _E164_RE = re.compile(r"^\+\d{8,15}$")
 
@@ -82,7 +84,10 @@ def build_parser() -> argparse.ArgumentParser:
         "--api-base-url",
         type=str,
         default=None,
-        help=f"Vikunja API base URL. Default: env {ENV_API_BASE_URL} or {API_BASE_URL_DEFAULT}.",
+        help=(
+            f"Vikunja API base URL. Default: env {ENV_API_BASE_URL} "
+            "or vikunja_config helper."
+        ),
     )
     parser.add_argument(
         "--whatsapp-recipient",
@@ -127,7 +132,7 @@ def resolve_config(args: argparse.Namespace, env: dict[str, str]) -> CycleConfig
     api_base_url = (
         args.api_base_url
         or env.get(ENV_API_BASE_URL)
-        or API_BASE_URL_DEFAULT
+        or get_vikunja_base_url()
     )
 
     try:

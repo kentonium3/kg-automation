@@ -1,14 +1,12 @@
-"""Value-comparison diff phase for the reconciliation driver (WP02 / T007).
+"""3-way set-diff phase for the reconciliation driver (WP03 / T008).
 
-Phase 2 of the 6-phase cycle. Pure function from (FetchedDelta, TaskCacheRecord)
-to a list of DivergenceCandidate tuples for the downstream classify phase.
+Phase 2 of the 7-phase cycle. Pure function from (FetchedSnapshot,
+TaskCacheRecord, ProjectCacheRecord) to five output streams: task content
+changes, first-observation task IDs, deleted task IDs, project diff events,
+and a LayerSummary aggregate.
 
-Contract: kitty-specs/felix-vikunja-sync-reconciliation-driver-01KTA1J3/
-contracts/cycle-pipeline.md § Phase 2.
-
-Research finding (research.md § Unknown 3): Vikunja v0.24.6 returns
-``updated_by: null`` on tasks. UC-1/UC-2 authorship is inferred from cache
-divergence — the cache is the authoritative "what Felix expected" reference.
+Contract: kitty-specs/felix-vikunja-sync-project-layer-and-url-config-01KTCDZ7/
+contracts/set-diff.md + contracts/cycle-pipeline.md § Phase 2.
 """
 from __future__ import annotations
 
@@ -17,8 +15,20 @@ import re
 from dataclasses import dataclass
 from typing import Any
 
-from scripts.sync.fetch import FetchedDelta
-from scripts.sync.state import TaskCacheRecord
+from scripts.sync.fetch import FetchedSnapshot
+from scripts.sync.state import LayerSummary, PerLayerSummary, ProjectCacheRecord, TaskCacheRecord
+
+# Re-export for backward compatibility — any code that imported these
+# from diff.py before WP04 will continue to work.
+__all__ = [
+    "LayerSummary",
+    "PerLayerSummary",
+    "DivergenceCandidate",
+    "ProjectDiffEvent",
+    "compute_divergences",
+    "TRACKED_TASK_FIELDS",
+    "PRIVATE_PROJECT_IDS",
+]
 
 
 # ---------------------------------------------------------------------------
@@ -38,9 +48,10 @@ TRACKED_TASK_FIELDS: frozenset[str] = frozenset({
 
 
 # Operator-configurable set of project_ids treated as "private". Default empty;
-# downstream WPs may override via the driver's config surface. Tasks in these
-# projects produce NO DivergenceCandidate rows from this phase (privacy
-# boundary applied at diff time).
+# downstream WPs may override via the driver's config surface. Tasks in private
+# projects produce NO DivergenceCandidate rows from the in_both diff path
+# (privacy boundary applied at diff time). Structural operations (additions and
+# deletions) are NOT gated by this filter.
 PRIVATE_PROJECT_IDS: frozenset[int] = frozenset()
 
 
@@ -59,6 +70,35 @@ class DivergenceCandidate:
     felix_cached_value: Any
     vikunja_updated_at: str
     ts_observed_utc: str
+
+
+# ---------------------------------------------------------------------------
+# ProjectDiffEvent
+# ---------------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class ProjectDiffEvent:
+    """A single project-layer change observed in a cycle.
+
+    Project layer is audit/discovery only (spec C-005). These events flow to
+    the cycle's log only — no conflict-event emission, no WhatsApp ping.
+
+    Attributes:
+        type: One of "project_added", "project_removed", "project_renamed",
+            "project_archived", "project_unarchived".
+        project_id: Vikunja project identifier.
+        title: For renamed: new title; for added: current title; for removed:
+            last-known title from cache. None if not applicable.
+        is_archived: For archived/unarchived events; None otherwise.
+        detected_at_utc: Cycle's ts_observed_utc value.
+    """
+
+    type: str
+    project_id: int
+    title: str | None
+    is_archived: bool | None
+    detected_at_utc: str
 
 
 # ---------------------------------------------------------------------------
@@ -124,45 +164,79 @@ def _canonicalize(field: str, value: Any) -> Any:
 
 
 def compute_divergences(
-    delta: FetchedDelta,
+    snapshot: FetchedSnapshot,
     task_cache: TaskCacheRecord,
+    project_cache: ProjectCacheRecord,
     ts_observed_utc: str,
     private_project_ids: frozenset[int] = PRIVATE_PROJECT_IDS,
-) -> tuple[list[DivergenceCandidate], list[int]]:
-    """Compute divergences between Vikunja delta and Felix's cache.
+) -> tuple[
+    list[DivergenceCandidate],
+    set[int],
+    set[int],
+    list[ProjectDiffEvent],
+    LayerSummary,
+]:
+    """Compute the full set-diff for one cycle. Pure function.
 
     Args:
-        delta: The FetchedDelta from phase 1.
-        task_cache: Driver's current TaskCacheRecord.
-        ts_observed_utc: Cycle's ``started_at_utc`` (ISO-8601 UTC).
+        snapshot: The FetchedSnapshot from phase 1. Contains the complete
+            current Vikunja task and project state.
+        task_cache: Driver's current TaskCacheRecord (Felix's prior state).
+        project_cache: Driver's current ProjectCacheRecord (Felix's prior state).
+        ts_observed_utc: Cycle's ``started_at_utc`` (ISO-8601 UTC). Used as
+            ``detected_at_utc`` on emitted events.
         private_project_ids: Tasks whose ``project_id`` is in this set produce
-            no DivergenceCandidate rows (privacy boundary).
+            no DivergenceCandidate rows (privacy boundary for content events).
+            Structural operations (additions and deletions) are NOT filtered.
 
     Returns:
-        ``(divergences, first_observation_ids)`` where ``first_observation_ids``
-        is the list of integer task IDs that were NOT in the cache (signalling
-        the update phase to create a fresh cache entry without classify/emit).
+        A 5-tuple:
+          - divergences: list[DivergenceCandidate] — task content changes
+            (in_both tasks with changed TRACKED_TASK_FIELDS), sorted by
+            vikunja_entity_id ascending.
+          - first_observation_task_ids: set[int] — task IDs new in this cycle
+            (in_vikunja_only). Includes private tasks.
+          - deleted_task_ids: set[int] — task IDs removed from Vikunja
+            (in_cache_only). Includes private tasks.
+          - project_events: list[ProjectDiffEvent] — project-layer changes,
+            sorted by (project_id, type).
+          - layer_summary: LayerSummary — per-layer aggregate counts.
 
     Pure function. No I/O.
     """
+    # -----------------------------------------------------------------------
+    # Task layer — 3-way set partition
+    # -----------------------------------------------------------------------
+    snapshot_task_ids: set[int] = {
+        t["id"] for t in snapshot.tasks if isinstance(t.get("id"), int)
+    }
+    cache_task_ids: set[int] = set(int(k) for k in task_cache.tasks.keys())
+
+    in_vikunja_only: set[int] = snapshot_task_ids - cache_task_ids  # additions
+    in_cache_only: set[int] = cache_task_ids - snapshot_task_ids     # deletions
+    in_both: set[int] = snapshot_task_ids & cache_task_ids           # potential updates
+
+    # Build a lookup from the snapshot for the in_both comparison.
+    snapshot_by_id: dict[int, dict] = {
+        t["id"]: t
+        for t in snapshot.tasks
+        if isinstance(t.get("id"), int)
+    }
+
     divergences: list[DivergenceCandidate] = []
-    first_observations: list[int] = []
+    for task_id in in_both:
+        task = snapshot_by_id[task_id]
 
-    for task in delta.tasks:
-        task_id = task.get("id")
-        if not isinstance(task_id, int):
-            # Defensive: skip malformed entries; do not abort the cycle.
-            continue
-
-        # Privacy boundary applied at diff time: private tasks produce no
-        # divergences (their cache entry has empty ``fields`` anyway).
+        # Privacy boundary: content events only. Private tasks in in_both
+        # produce no DivergenceCandidate rows, but they ARE included in
+        # in_vikunja_only / in_cache_only if applicable.
         if task.get("project_id") in private_project_ids:
             continue
 
         cache_key = str(task_id)
         cache_entry = task_cache.tasks.get(cache_key)
         if cache_entry is None:
-            first_observations.append(task_id)
+            # Defensive: key should exist (it's in in_both), but guard anyway.
             continue
 
         cached_fields = cache_entry.fields
@@ -184,4 +258,118 @@ def compute_divergences(
                 )
             )
 
-    return divergences, first_observations
+    # Sort divergences by task ID ascending (deterministic output).
+    divergences.sort(key=lambda c: (c.vikunja_entity_id, c.field))
+
+    first_observation_task_ids: set[int] = in_vikunja_only
+    deleted_task_ids: set[int] = in_cache_only
+
+    # -----------------------------------------------------------------------
+    # Project layer — 3-way set partition
+    # -----------------------------------------------------------------------
+    snapshot_project_ids: set[int] = set(snapshot.projects.keys())
+    cache_project_ids: set[int] = {
+        int(pid) for pid in project_cache.projects.keys()
+    }
+
+    proj_in_vikunja_only: set[int] = snapshot_project_ids - cache_project_ids
+    proj_in_cache_only: set[int] = cache_project_ids - snapshot_project_ids
+    proj_in_both: set[int] = snapshot_project_ids & cache_project_ids
+
+    project_events: list[ProjectDiffEvent] = []
+
+    for pid in proj_in_vikunja_only:
+        proj = snapshot.projects[pid]
+        project_events.append(
+            ProjectDiffEvent(
+                type="project_added",
+                project_id=pid,
+                title=str(proj.get("title", "<unknown>")),
+                is_archived=None,
+                detected_at_utc=ts_observed_utc,
+            )
+        )
+
+    for pid in proj_in_cache_only:
+        cache_entry = project_cache.projects.get(str(pid))
+        last_known_title = cache_entry.title if cache_entry is not None else None
+        project_events.append(
+            ProjectDiffEvent(
+                type="project_removed",
+                project_id=pid,
+                title=last_known_title,
+                is_archived=None,
+                detected_at_utc=ts_observed_utc,
+            )
+        )
+
+    for pid in proj_in_both:
+        snap_proj = snapshot.projects[pid]
+        cache_entry = project_cache.projects.get(str(pid))
+        if cache_entry is None:
+            continue
+
+        snap_title = str(snap_proj.get("title", "<unknown>"))
+        cache_title = cache_entry.title
+        if snap_title != cache_title:
+            project_events.append(
+                ProjectDiffEvent(
+                    type="project_renamed",
+                    project_id=pid,
+                    title=snap_title,
+                    is_archived=None,
+                    detected_at_utc=ts_observed_utc,
+                )
+            )
+
+        snap_archived = bool(snap_proj.get("is_archived", False))
+        cache_archived = cache_entry.is_archived
+        if snap_archived != cache_archived:
+            event_type = "project_archived" if snap_archived else "project_unarchived"
+            project_events.append(
+                ProjectDiffEvent(
+                    type=event_type,
+                    project_id=pid,
+                    title=None,
+                    is_archived=snap_archived,
+                    detected_at_utc=ts_observed_utc,
+                )
+            )
+
+    # Sort project events by (project_id, type) for deterministic output.
+    project_events.sort(key=lambda e: (e.project_id, e.type))
+
+    # -----------------------------------------------------------------------
+    # LayerSummary aggregate counts
+    # -----------------------------------------------------------------------
+    # Count distinct tasks with at least one field divergence (not field-level rows).
+    tasks_with_changes = len({c.vikunja_entity_id for c in divergences})
+    task_layer_summary = PerLayerSummary(
+        polled_at_utc=snapshot.fetched_at_utc,
+        added=len(first_observation_task_ids),
+        removed=len(deleted_task_ids),
+        updated=tasks_with_changes,
+        errors=(),
+    )
+    project_layer_summary = PerLayerSummary(
+        polled_at_utc=snapshot.fetched_at_utc,
+        added=sum(1 for e in project_events if e.type == "project_added"),
+        removed=sum(1 for e in project_events if e.type == "project_removed"),
+        updated=sum(
+            1 for e in project_events
+            if e.type in {"project_renamed", "project_archived", "project_unarchived"}
+        ),
+        errors=(),
+    )
+    layer_summary = LayerSummary(
+        task_layer=task_layer_summary,
+        project_layer=project_layer_summary,
+    )
+
+    return (
+        divergences,
+        first_observation_task_ids,
+        deleted_task_ids,
+        project_events,
+        layer_summary,
+    )

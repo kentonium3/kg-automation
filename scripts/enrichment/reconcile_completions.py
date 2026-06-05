@@ -94,9 +94,9 @@ from scripts.common.sync_cache import (
     SLATier,
     read_cached_tasks,
 )
+from scripts.common.vikunja_config import get_vikunja_base_url
 from scripts.enrichment import record_completion as rc
 from scripts.enrichment.record_completion import (
-    DEFAULT_BASE_URL,
     DEFAULT_TOKEN_PATH,
     EnrichmentSchemaError,
     StateLogError,
@@ -110,7 +110,6 @@ from scripts.enrichment.schema import (
 
 __all__ = [
     "DEFAULT_BACKFILL_SINCE",
-    "DEFAULT_BASE_URL",
     "DEFAULT_LEDGER_PATH",
     "DEFAULT_TOKEN_PATH",
     "FELIX_COMMENT_PREFIX",
@@ -506,7 +505,7 @@ def _parse_since(value: str) -> date:
 def reconcile(
     *,
     since: date | str = DEFAULT_BACKFILL_SINCE,
-    base_url: str = DEFAULT_BASE_URL,
+    base_url: Optional[str] = None,
     token_path: Path = DEFAULT_TOKEN_PATH,
     ledger_path: Path = DEFAULT_LEDGER_PATH,
     dry_run: bool = False,
@@ -538,6 +537,10 @@ def reconcile(
         _DateParseError: When ``since`` is a string that fails ISO parsing.
     """
     started_at = time.monotonic()
+
+    # Lazy URL resolution: read from vikunja_config when not explicitly provided.
+    if base_url is None:
+        base_url = get_vikunja_base_url()
 
     if isinstance(since, str):
         since_date = _parse_since(since)
@@ -739,8 +742,8 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--base-url",
-        default=DEFAULT_BASE_URL,
-        help=f"Vikunja API base URL (default: {DEFAULT_BASE_URL}).",
+        default=None,
+        help="Vikunja API base URL (default: from vikunja_config helper).",
     )
     parser.add_argument(
         "--token-path",
