@@ -1,7 +1,7 @@
 {
-  "event_count": 17,
-  "last_event_id": "01KTCKH46XTRDVHQYCFF661MG7",
-  "materialized_at": "2026-06-05T19:18:01.693335+00:00",
+  "event_count": 19,
+  "last_event_id": "01KTCKJH5F5DT3MV6GE3E27BBR",
+  "materialized_at": "2026-06-05T19:18:47.727566+00:00",
   "mission_number": "",
   "mission_slug": "felix-vikunja-sync-project-layer-and-url-config-01KTCDZ7",
   "mission_type": "software-dev",
@@ -12,9 +12,9 @@
     "claimed": 0,
     "done": 0,
     "for_review": 0,
-    "in_progress": 1,
+    "in_progress": 2,
     "in_review": 1,
-    "planned": 3
+    "planned": 2
   },
   "work_packages": {
     "WP01": {
@@ -46,11 +46,11 @@
       "last_transition_at": "2026-06-05T19:10:38.845903+00:00"
     },
     "WP05": {
-      "actor": "finalize-tasks",
+      "actor": "claude:sonnet:implementer:implementer",
       "force_count": 1,
-      "lane": "planned",
-      "last_event_id": "01KTCK3KR453D34CAFS20QPZMQ",
-      "last_transition_at": "2026-06-05T19:10:38.852649+00:00"
+      "lane": "in_progress",
+      "last_event_id": "01KTCKJH5F5DT3MV6GE3E27BBR",
+      "last_transition_at": "2026-06-05T19:18:47.727566+00:00"
     },
     "WP06": {
       "actor": "finalize-tasks",
