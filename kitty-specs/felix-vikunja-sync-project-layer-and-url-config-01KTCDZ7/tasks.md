@@ -26,14 +26,14 @@
 | T015 | cycle.py Phase 6 — write `PerTickHealthRecord` with `LayerSummary` instead of `layer_pointers` | WP04 | |
 | T016 | tests/sync/test_state.py updates (additions + removals) | WP04 | [P] |
 | T017 | tests/sync/test_cycle_*.py — update fixtures to `FetchedSnapshot`; integration assertions stable | WP04 | [P] |
-| T018 | Migrate `scripts/habits/query_active_habits_v2.py` to `get_vikunja_base_url()` | WP05 | [P] |
-| T019 | Migrate `scripts/habits/morning_checkin_list.py` | WP05 | [P] |
-| T020 | Migrate `scripts/habits/set_due_dates.py` (preserves retained PUT path) | WP05 | [P] |
-| T021 | Migrate `scripts/habits/reconcile_completions.py` | WP05 | [P] |
-| T022 | Migrate `scripts/escalation/reconcile_completions.py` | WP05 | [P] |
-| T023 | Migrate `scripts/enrichment/reconcile_completions.py` (preserves retained `_http_get` for comments) | WP05 | [P] |
-| T024 | Migrate `scripts/sync/driver.py` CLI default to `get_vikunja_base_url()` | WP05 | [P] |
-| T025 | NFR-006 grep verification — zero hardcoded URLs in runtime-path scripts | WP05 | |
+| T018 | Migrate `scripts/habits/query_active_habits_v2.py` to `get_vikunja_base_url()` | WP05 | [D] |
+| T019 | Migrate `scripts/habits/morning_checkin_list.py` | WP05 | [D] |
+| T020 | Migrate `scripts/habits/set_due_dates.py` (preserves retained PUT path) | WP05 | [D] |
+| T021 | Migrate `scripts/habits/reconcile_completions.py` | WP05 | [D] |
+| T022 | Migrate `scripts/escalation/reconcile_completions.py` | WP05 | [D] |
+| T023 | Migrate `scripts/enrichment/reconcile_completions.py` (preserves retained `_http_get` for comments) | WP05 | [D] |
+| T024 | Migrate `scripts/sync/driver.py` CLI default to `get_vikunja_base_url()` | WP05 | [D] |
+| T025 | NFR-006 grep verification — zero hardcoded URLs in runtime-path scripts | WP05 | | [D] |
 | T026 | Update `docs/design/architecture/data/service-inventory.json` — driver config_files adds URL config | WP06 | [P] |
 | T027 | Update `docs/design/architecture/service-inventory.md` narrative | WP06 | [P] |
 | T028 | Update `docs/design/architecture/service-dependencies.view.md` diagram | WP06 | [P] |
@@ -244,14 +244,14 @@ See `contracts/cycle-pipeline.md` for the phase-by-phase contract.
 
 ### Included subtasks
 
-- [ ] T018 Migrate `scripts/habits/query_active_habits_v2.py` to `get_vikunja_base_url()` (WP05)
-- [ ] T019 Migrate `scripts/habits/morning_checkin_list.py` (WP05)
-- [ ] T020 Migrate `scripts/habits/set_due_dates.py` (preserves retained PUT path) (WP05)
-- [ ] T021 Migrate `scripts/habits/reconcile_completions.py` (WP05)
-- [ ] T022 Migrate `scripts/escalation/reconcile_completions.py` (WP05)
-- [ ] T023 Migrate `scripts/enrichment/reconcile_completions.py` (preserves retained `_http_get` for comments) (WP05)
-- [ ] T024 Migrate `scripts/sync/driver.py` CLI default to `get_vikunja_base_url()` (WP05)
-- [ ] T025 NFR-006 grep verification — zero hardcoded URLs in runtime-path scripts (WP05)
+- [x] T018 Migrate `scripts/habits/query_active_habits_v2.py` to `get_vikunja_base_url()` (WP05)
+- [x] T019 Migrate `scripts/habits/morning_checkin_list.py` (WP05)
+- [x] T020 Migrate `scripts/habits/set_due_dates.py` (preserves retained PUT path) (WP05)
+- [x] T021 Migrate `scripts/habits/reconcile_completions.py` (WP05)
+- [x] T022 Migrate `scripts/escalation/reconcile_completions.py` (WP05)
+- [x] T023 Migrate `scripts/enrichment/reconcile_completions.py` (preserves retained `_http_get` for comments) (WP05)
+- [x] T024 Migrate `scripts/sync/driver.py` CLI default to `get_vikunja_base_url()` (WP05)
+- [x] T025 NFR-006 grep verification — zero hardcoded URLs in runtime-path scripts (WP05)
 
 ### Implementation sketch
 
