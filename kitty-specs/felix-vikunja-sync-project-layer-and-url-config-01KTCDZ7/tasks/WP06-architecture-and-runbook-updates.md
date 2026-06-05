@@ -33,6 +33,8 @@ owned_files:
 - docs/INDEX.md
 - docs/design/felix-capability-roadmap.md
 tags: []
+agent: "claude:sonnet:implementer:implementer"
+shell_pid: "93285"
 ---
 
 # WP06 — Architecture + Runbook Updates
@@ -285,3 +287,7 @@ This is the final WP. After approval:
 - File the FR-010 follow-up issue for one-off scripts migration.
 - Run the downstream-leftovers sweep per Kent's 2026-06-05 request.
 - Update the Epic #507 GitHub issue with the merge commit hash and close it.
+
+## Activity Log
+
+- 2026-06-05T19:57:58Z – claude:sonnet:implementer:implementer – shell_pid=93285 – Started implementation via action command
