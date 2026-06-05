@@ -1,19 +1,19 @@
 {
-  "event_count": 35,
-  "last_event_id": "01KTCRE2KYDJWFF2Z3MZG5VM28",
-  "materialized_at": "2026-06-05T20:43:44.638750+00:00",
+  "event_count": 36,
+  "last_event_id": "01KTCRH676TC5Q9B8V0S2070V0",
+  "materialized_at": "2026-06-05T20:45:26.630951+00:00",
   "mission_number": "",
   "mission_slug": "felix-vikunja-sync-project-layer-and-url-config-01KTCDZ7",
   "mission_type": "software-dev",
   "summary": {
-    "approved": 5,
+    "approved": 6,
     "blocked": 0,
     "canceled": 0,
     "claimed": 0,
     "done": 0,
     "for_review": 0,
     "in_progress": 0,
-    "in_review": 1,
+    "in_review": 0,
     "planned": 0
   },
   "work_packages": {
@@ -53,11 +53,11 @@
       "last_transition_at": "2026-06-05T19:32:52.498082+00:00"
     },
     "WP06": {
-      "actor": "claude:opus:reviewer:reviewer",
+      "actor": "user",
       "force_count": 1,
-      "lane": "in_review",
-      "last_event_id": "01KTCRE2KYDJWFF2Z3MZG5VM28",
-      "last_transition_at": "2026-06-05T20:43:44.638750+00:00"
+      "lane": "approved",
+      "last_event_id": "01KTCRH676TC5Q9B8V0S2070V0",
+      "last_transition_at": "2026-06-05T20:45:26.630951+00:00"
     }
   }
 }
