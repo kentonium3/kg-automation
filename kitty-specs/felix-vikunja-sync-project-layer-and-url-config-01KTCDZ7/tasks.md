@@ -19,13 +19,13 @@
 | T008 | Rewrite `compute_divergences` in `diff.py` for 3-way set diff outputs | WP03 | [D] |
 | T009 | Rewrite `tests/sync/test_fetch.py` for full-poll semantics + FR-012 cases | WP03 | [D] |
 | T010 | Rewrite `tests/sync/test_diff.py` for set-diff outputs | WP03 | [D] |
-| T011 | state.py — add `PerLayerSummary`+`LayerSummary`; remove `LayerPointerSnapshot`; update `PerTickHealthRecord` | WP04 | |
-| T012 | cycle.py Phase 1 — call `fetch_full_poll` with FR-012 abort; remove `since_utc` / `known_project_ids` plumbing | WP04 | |
-| T013 | cycle.py Phase 5 — replace `_apply_cache_updates` with set-diff; replace `_apply_project_updates` with canonical-snapshot replacement | WP04 | |
-| T014 | cycle.py Phase 5b — implement deletion-cleanup orchestration using WP02 helpers (ordered) | WP04 | |
-| T015 | cycle.py Phase 6 — write `PerTickHealthRecord` with `LayerSummary` instead of `layer_pointers` | WP04 | |
-| T016 | tests/sync/test_state.py updates (additions + removals) | WP04 | [P] |
-| T017 | tests/sync/test_cycle_*.py — update fixtures to `FetchedSnapshot`; integration assertions stable | WP04 | [P] |
+| T011 | state.py — add `PerLayerSummary`+`LayerSummary`; remove `LayerPointerSnapshot`; update `PerTickHealthRecord` | WP04 | | [D] |
+| T012 | cycle.py Phase 1 — call `fetch_full_poll` with FR-012 abort; remove `since_utc` / `known_project_ids` plumbing | WP04 | | [D] |
+| T013 | cycle.py Phase 5 — replace `_apply_cache_updates` with set-diff; replace `_apply_project_updates` with canonical-snapshot replacement | WP04 | | [D] |
+| T014 | cycle.py Phase 5b — implement deletion-cleanup orchestration using WP02 helpers (ordered) | WP04 | | [D] |
+| T015 | cycle.py Phase 6 — write `PerTickHealthRecord` with `LayerSummary` instead of `layer_pointers` | WP04 | | [D] |
+| T016 | tests/sync/test_state.py updates (additions + removals) | WP04 | [D] |
+| T017 | tests/sync/test_cycle_*.py — update fixtures to `FetchedSnapshot`; integration assertions stable | WP04 | [D] |
 | T018 | Migrate `scripts/habits/query_active_habits_v2.py` to `get_vikunja_base_url()` | WP05 | [D] |
 | T019 | Migrate `scripts/habits/morning_checkin_list.py` | WP05 | [D] |
 | T020 | Migrate `scripts/habits/set_due_dates.py` (preserves retained PUT path) | WP05 | [D] |
@@ -193,13 +193,13 @@ None on other WPs of this mission. Can land in parallel with WP01 and WP02.
 
 ### Included subtasks
 
-- [ ] T011 state.py — add `PerLayerSummary`+`LayerSummary`; remove `LayerPointerSnapshot`; update `PerTickHealthRecord` (WP04)
-- [ ] T012 cycle.py Phase 1 — call `fetch_full_poll` with FR-012 abort; remove `since_utc` / `known_project_ids` plumbing (WP04)
-- [ ] T013 cycle.py Phase 5 — replace `_apply_cache_updates` with set-diff; replace `_apply_project_updates` with canonical-snapshot replacement (WP04)
-- [ ] T014 cycle.py Phase 5b — implement deletion-cleanup orchestration using WP02 helpers (ordered) (WP04)
-- [ ] T015 cycle.py Phase 6 — write `PerTickHealthRecord` with `LayerSummary` instead of `layer_pointers` (WP04)
-- [ ] T016 tests/sync/test_state.py updates (additions + removals) (WP04)
-- [ ] T017 tests/sync/test_cycle_*.py — update fixtures to `FetchedSnapshot`; integration assertions stable (WP04)
+- [x] T011 state.py — add `PerLayerSummary`+`LayerSummary`; remove `LayerPointerSnapshot`; update `PerTickHealthRecord` (WP04)
+- [x] T012 cycle.py Phase 1 — call `fetch_full_poll` with FR-012 abort; remove `since_utc` / `known_project_ids` plumbing (WP04)
+- [x] T013 cycle.py Phase 5 — replace `_apply_cache_updates` with set-diff; replace `_apply_project_updates` with canonical-snapshot replacement (WP04)
+- [x] T014 cycle.py Phase 5b — implement deletion-cleanup orchestration using WP02 helpers (ordered) (WP04)
+- [x] T015 cycle.py Phase 6 — write `PerTickHealthRecord` with `LayerSummary` instead of `layer_pointers` (WP04)
+- [x] T016 tests/sync/test_state.py updates (additions + removals) (WP04)
+- [x] T017 tests/sync/test_cycle_*.py — update fixtures to `FetchedSnapshot`; integration assertions stable (WP04)
 
 ### Implementation sketch
 
