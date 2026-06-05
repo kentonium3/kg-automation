@@ -9,9 +9,9 @@
 
 | ID | Description | WP | Parallel |
 |---|---|---|---|
-| T001 | Create `scripts/common/vikunja_config.py` with `get_vikunja_base_url()` + `VikunjaConfigError` | WP01 | |
-| T002 | Tests in `tests/test_vikunja_config.py` (7 scenarios) | WP01 | [P] |
-| T003 | Verify NFR-006 grep contract in this WP's owned files | WP01 | [P] |
+| T001 | Create `scripts/common/vikunja_config.py` with `get_vikunja_base_url()` + `VikunjaConfigError` | WP01 | | [D] |
+| T002 | Tests in `tests/test_vikunja_config.py` (7 scenarios) | WP01 | [D] |
+| T003 | Verify NFR-006 grep contract in this WP's owned files | WP01 | [D] |
 | T004 | Create `scripts/sync/cleanup.py` with `prune_schedule_yaml()` + `append_task_deleted_event()` | WP02 | |
 | T005 | Tests in `tests/sync/test_cleanup.py` | WP02 | [P] |
 | T006 | Document atomicity + idempotency in module docstring; spec event schema | WP02 | [P] |
@@ -79,9 +79,9 @@ WP03 (no deps) ─┘
 
 ### Included subtasks
 
-- [ ] T001 Create `scripts/common/vikunja_config.py` with `get_vikunja_base_url()` + `VikunjaConfigError` (WP01)
-- [ ] T002 Tests in `tests/test_vikunja_config.py` (7 scenarios) (WP01)
-- [ ] T003 Verify NFR-006 grep contract in this WP's owned files (WP01)
+- [x] T001 Create `scripts/common/vikunja_config.py` with `get_vikunja_base_url()` + `VikunjaConfigError` (WP01)
+- [x] T002 Tests in `tests/test_vikunja_config.py` (7 scenarios) (WP01)
+- [x] T003 Verify NFR-006 grep contract in this WP's owned files (WP01)
 
 ### Implementation sketch
 
