@@ -169,6 +169,7 @@ local validation and CI.
 - [WhatsApp Channel Operations Runbook](<./runbooks/whatsapp-ops.md>)
 
 ### Human-only
+- [Credential Rotation Operations](<./runbooks/credential-rotation-ops.md>)
 - [Escalation Phase 6 Soak Window](<./runbooks/escalation-soak-window.md>)
 - [Felix Governance Runbook](<./runbooks/felix-governance.md>)
 - [felix-bot Vikunja Provisioning](<./runbooks/felix-bot-vikunja-provisioning.md>)

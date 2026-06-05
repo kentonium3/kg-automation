@@ -285,6 +285,8 @@ and the ClawHub install approval requirement in the Felix Constitution.
 
 **Credential expiry health check (R-003 closure, #115)**: As of 2026-05-11, an automated daily check (`credential-health-check.service` on office2, fires at 13:00 UTC) reads this manifest, evaluates each credential's `review_cadence` and `last_reviewed`, and files a paired GitHub issue + Vikunja task when a credential is within 30 days of its cadence boundary. The Vikunja task's `due_date = boundary − 7 days` so the existing escalation engine carries the WhatsApp pressure before the actual deadline. `monitor-activity` credentials (`tailscale-auth`, `whatsapp-session`) are evaluated against live activity signals (`tailscale status --json`, `openclaw channels status`) and alerted on drift via a GitHub issue only. See `kitty-specs/credential-expiry-health-check-01KRCF92/` for the design and `scripts/security/credential_health_check/` for the implementation.
 
+**Rotation procedures (#522)**: The watchdog above tells the operator *when* to rotate. The companion operator runbook [`docs/runbooks/credential-rotation-ops.md`](<../../runbooks/credential-rotation-ops.md>) tells the operator *how* — pre-flight (consumer enumeration, snapshot tier check), per-credential rotation procedure for each manifest entry with a manual rotation path, per-consumer verification, and the manifest-update obligations that keep the watchdog's 30-day boundary math accurate.
+
 **Known risk**: Credentials stored as plaintext files are vulnerable to
 exfiltration if the `claude` account is compromised (e.g., via a malicious
 OpenClaw skill). Precedent exists for this attack vector. Encrypting secrets
