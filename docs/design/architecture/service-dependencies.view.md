@@ -4,11 +4,11 @@ doc_type: guide
 level: reference
 status: approved
 owners: [kgale]
-last_validated: 2026-05-22
-revision: v1.2
+last_validated: 2026-06-05
+revision: v1.3
 audience: agents_and_humans
-updated_by: '#408'
-tags: [309, 408]
+updated_by: '#520'
+tags: [309, 408, 518, 519, 520]
 ---
 
 # Service Dependencies
@@ -16,7 +16,11 @@ tags: [309, 408]
 Visual dependency map of office2 services, grouped by tier.
 Arrows show runtime dependencies. The critical external path
 (port 443 through tailscale-serve into vikunja) is highlighted.
-Updated 2026-05-22 (#371) — `habit-checkin` cron is now scripts-first
+Updated 2026-06-05 (#520) — added `felix-vikunja-sync-driver` node and
+`vikunja-url-config` file node; the sync driver depends on Vikunja API
+and the URL config file, and the URL config file is also consumed by the
+six migrated touchpoints (habits, escalation, enrichment). Updated
+2026-05-22 (#371) — `habit-checkin` cron is now scripts-first
 for both the morning tick and reply handling (mirrors the #309
 escalation port); the agent dependency edge is unchanged but the
 agent now depends on the `anthropic-api` for narrow LLM judgment on
@@ -54,6 +58,11 @@ graph LR
     subgraph Sync["Sync Services (Tier 3)"]
         obsidian["obsidian-sync<br/>Tier 3"]
         secondbrain["second-brain-sync<br/>Tier 3"]
+        vikunja_sync["felix-vikunja-sync-driver<br/>Tier 3<br/>(full-poll #518+#520)"]
+    end
+
+    subgraph Config["Config Files"]
+        url_config["vikunja-base-url.txt<br/>/data/services/openclaw/config/<br/>mode 0644 — #520"]
     end
 
     subgraph External["External Dependencies"]
@@ -78,6 +87,12 @@ graph LR
     taskdet -->|"requires"| openclaw
     escalation -->|"requires"| openclaw
     digest -->|"requires"| openclaw
+
+    vikunja_sync -->|"GET /tasks/all<br/>GET /projects<br/>(full-poll, #518)"| vikunja
+    vikunja_sync -->|"reads base URL<br/>(#520)"| url_config
+    habits -->|"reads base URL<br/>(TP-02/TP-03/TP-04, #519)"| url_config
+    escalation -->|"reads base URL<br/>(TP-10, #519)"| url_config
+    taskdet -->|"reads base URL<br/>(TP-12, #519)"| url_config
 ```
 
 ## Reading the Diagram
@@ -102,3 +117,8 @@ graph LR
 - **Sync independence**: obsidian-sync and second-brain-sync have no
   dependency on the core or agent tiers, so sync continues even during
   service outages.
+- **Sync driver read-only contract**: felix-vikunja-sync-driver reads
+  Vikunja state via the REST API (full-poll, GET only — never writes to
+  Vikunja) and resolves the base URL from the shared config file
+  (`vikunja-base-url.txt`, mode 0644 — not a secret). The same config
+  file is consumed by the six touchpoint scripts migrated by #519.

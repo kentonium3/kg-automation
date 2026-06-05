@@ -6,10 +6,10 @@ level: reference
 status: approved
 owners:
   - "@kentonium3"
-last_updated: '2026-06-01'
-revision: v1.7
+last_updated: '2026-06-05'
+revision: v1.8
 audience: agents_and_humans
-updated_by: '#490 (signal-driven-monitoring-haiku-gate: +signal-extraction subgraph, +heartbeat-gate subgraph)'
+updated_by: '#520 (felix-vikunja-sync-project-layer-and-url-config: +sync_driver subgraph, +url_config node)'
 
 ---
 
@@ -93,6 +93,18 @@ graph LR
             main_rotate["scripts/openclaw/helpers/<br/>rotate_main_session.py<br/>(#374 one-shot)"]
             main_sessions[("OpenClaw sessions<br/>/home/claude/.openclaw/<br/>agents/main/sessions/")]
             main_rotation_marker[("main-rotation-&lt;timestamp&gt;.done<br/>~/.config/openclaw/")]
+        end
+
+        url_config[("/data/services/openclaw/config/<br/>vikunja-base-url.txt<br/>mode 0644 — NOT a secret (#520)")]
+
+        subgraph sync_driver["Felix-Vikunja Sync Driver (#518 full-poll + project layer #520)"]
+            fvs_timer["felix-vikunja-sync.timer<br/>OnUnitActiveSec=5min"]
+            fvs_service["felix-vikunja-sync.service<br/>(oneshot)"]
+            fvs_driver["scripts/sync/driver.py<br/>(7-phase pipeline)"]
+            fvs_task_cache[("task-cache.json<br/>/data/services/openclaw/<br/>state/sync/<br/>(atomic write, Phase 6)")]
+            fvs_project_cache[("project-cache.json<br/>/data/services/openclaw/<br/>state/sync/<br/>(atomic write #520, Phase 6)")]
+            fvs_conflict[("conflict-events.jsonl<br/>/data/services/openclaw/<br/>state/sync/<br/>(append, Phase 4 — task events only)")]
+            fvs_tick[("last-tick.json<br/>/data/services/openclaw/<br/>state/sync/<br/>(atomic write, Phase 6)")]
         end
 
         subgraph sdm["Signal-Driven Monitoring (#490 — felix-core-digest signal extraction + felix-heartbeat-gate)"]
@@ -231,4 +243,18 @@ graph LR
     openclaw_event -->|"wake existing main-agent path"| main_agent_sonnet
     gate_run -->|"atomic write per tick<br/>(FR-009 audit surface)"| gate_decision
     gate_run -->|"append per tick<br/>(NFR-001 cost telemetry)"| gate_ledger
+
+    fvs_timer -->|"systemd activation"| fvs_service
+    fvs_service -->|"exec"| fvs_driver
+    fvs_driver -->|"read base URL<br/>(env var or file fallback)"| url_config
+    fvs_driver -->|"GET /tasks/all + GET /projects<br/>(full-poll, read-only — SC-009)"| vikunja_api
+    fvs_driver -->|"atomic write<br/>(Phase 6)"| fvs_task_cache
+    fvs_driver -->|"atomic write<br/>(Phase 6 — #520)"| fvs_project_cache
+    fvs_driver -->|"append<br/>(Phase 4 — task events only)"| fvs_conflict
+    fvs_driver -->|"atomic write<br/>(Phase 6)"| fvs_tick
+    fvs_driver -.->|"subprocess<br/>(unsafe task events only,<br/>three delivery guards)"| openclaw_event
+
+    hab_query -->|"read base URL<br/>(TP-02/TP-03/TP-04, #519)"| url_config
+    esc_record -->|"read base URL<br/>(TP-10, #519)"| url_config
+    tasker_record -->|"read base URL<br/>(TP-12, #519)"| url_config
 ```

@@ -190,6 +190,7 @@ EA is ready to expand to additional capability areas when all of the following a
 | F017 | Vikunja Habit Tracking Architecture Research | I | Infrastructure Core |
 | F018 | Habit Today Filter Visibility | U | Task Intelligence |
 | F019 | Escalation Engine | I | Accountability Engine |
+| F019a | Felix-Vikunja sync infrastructure (Epic #507: driver #518 + touchpoint migration #519 + project layer/URL config #520) | I | Infrastructure Core |
 
 ### Knowledge Foundation tooling — Vault Path Registry
 
@@ -211,6 +212,7 @@ The epic spans multiple missions and patches across areas — typically a doc-in
 | Doc-domain map | ✅ Shipped (gap-patched this session) | #198, #256 (mapping patch) | Maps area labels to docs needing verification when that domain changes. Gap surfaced by the inbox missions below and patched the same day: `service-inventory.md/json` added to `area/felix-core` because the three felix-core missions touched it but the map didn't route there. |
 | Inbox parse-failure pipeline (Area B proving ground) | ✅ Verified end-to-end (2026-05-13) | #185 (mission 32), #254 (mission 33), #253 (mission 34), #256 (direct doc patch) | First substantial mission chain to exercise the change-control protocol end-to-end. Each follow-up surfaced and closed a real gap. The chain ran through specify → plan → tasks → implement → review → merge for each mission, plus a doc patch, then verified clean on a live SC-003 canary. Detailed component changes captured in `docs/design/architecture/service-inventory.md` per the standing requirement. |
 | State auditor | ⬜ Planned | #106 | Future complement to #105 — cross-checks docs vs. live system state (the reverse direction of the doc-auditor's code-vs-docs check). |
+| Felix-Vikunja sync infrastructure | ✅ Shipped | Epic #507 (#518 + #519 + #520) | Three-mission epic: #518 (driver — 6-phase reconciliation loop, ADR-0003), #519 (touchpoint cache migration — 6 scripts now read from `task-cache.json` via shared `sync_cache.py`), #520 (project-layer audit + URL config — `vikunja-base-url.txt` single source of truth, `project-cache.json`, 7-phase full-poll pipeline). Architecture docs updated per change-control.md. Runbook: `docs/runbooks/sync-driver-ops.md`. |
 
 **Why this is the foundation, not a side project**: every higher-area capability the roadmap eventually delivers — Area C development agents, Area D content workflows, Area E business-operations agents — assumes the system's documented state is accurate enough to act on. Without this substrate, each new capability has to re-derive system reality at runtime from primary sources (filesystems, service inventories, configs), which is brittle and doesn't scale across five capability areas. With it, capabilities consume the docs as a shared substrate and Kent's involvement compresses to *intent and judgment* rather than execution.
 

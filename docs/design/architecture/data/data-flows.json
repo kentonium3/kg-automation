@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
-  "last_updated": "2026-06-04",
-  "updated_by": "#519-touchpoint-migration + #376-remove-escalation-v1-parity + #400-audit-interpretation-moment0 + #310-tasker-jsonl-migration + #374-main-verbatim-passthrough + #362-drift-event-auto-resolution + #371-habits-checkin-reply-scripts-first + #309-migrate-escalation-to-jsonl-state-model + #343-refactor-doc-auditor-to-scripts-first-driver + #307-backfill-habits-jsonl-from-comments + #306-habits-native-repeat-jsonl-state + #152",
+  "last_updated": "2026-06-05",
+  "updated_by": "#520-felix-vikunja-sync-project-layer-and-url-config + #519-touchpoint-migration + #376-remove-escalation-v1-parity + #400-audit-interpretation-moment0 + #310-tasker-jsonl-migration + #374-main-verbatim-passthrough + #362-drift-event-auto-resolution + #371-habits-checkin-reply-scripts-first + #309-migrate-escalation-to-jsonl-state-model + #343-refactor-doc-auditor-to-scripts-first-driver + #307-backfill-habits-jsonl-from-comments + #306-habits-native-repeat-jsonl-state + #152",
   "flows": [
     {
       "name": "vikunja-web-ui",
@@ -1186,6 +1186,52 @@
     }
   ],
   "planned_flows": [
+    {
+      "name": "vikunja-base-url-config",
+      "status": "active",
+      "deployed_by": "#520",
+      "introduced_by": "#520",
+      "updated_by": "#520",
+      "description": "#520 (Mission C) URL config single source of truth. The Vikunja API base URL is written once at install time to /data/services/openclaw/config/vikunja-base-url.txt (mode 0644, world-readable, NOT a secret). scripts/common/vikunja_config.py reads it at module init for the sync driver and all 6 runtime-path touchpoints migrated by #519 (habits: TP-02, TP-03, TP-04, TP-07; escalation: TP-10; enrichment: TP-12). Resolution order: VIKUNJA_BASE_URL env var first (set in ~/.bashrc + openclaw-gateway.env EnvironmentFile), file second. Raises VikunjaConfigError if both are absent.",
+      "path": [
+        {
+          "from": "operator (manual file create at deploy)",
+          "to": "/data/services/openclaw/config/vikunja-base-url.txt",
+          "protocol": "file write",
+          "description": "One-time deploy step: echo 'https://office2.tail0f5f56.ts.net/api/v1/' > /data/services/openclaw/config/vikunja-base-url.txt"
+        },
+        {
+          "from": "/data/services/openclaw/config/vikunja-base-url.txt",
+          "to": "VIKUNJA_BASE_URL env var (~/.bashrc + openclaw-gateway.env)",
+          "protocol": "shell export / systemd EnvironmentFile",
+          "description": "Exported as VIKUNJA_BASE_URL for interactive sessions and openclaw-gateway.service child processes"
+        },
+        {
+          "from": "scripts/common/vikunja_config.py (get_vikunja_base_url())",
+          "to": "felix-vikunja-sync-driver (scripts/sync/cycle.py)",
+          "protocol": "python-import",
+          "description": "Driver reads URL at cycle start (Phase 0 preamble)"
+        },
+        {
+          "from": "scripts/common/vikunja_config.py (get_vikunja_base_url())",
+          "to": "habits touchpoints (morning_checkin_list.py, query_active_habits_v2.py, set_due_dates.py, reconcile_completions.py)",
+          "protocol": "python-import",
+          "description": "TP-07, TP-03, TP-04, TP-02: post-#519 migration; URL read at module init"
+        },
+        {
+          "from": "scripts/common/vikunja_config.py (get_vikunja_base_url())",
+          "to": "escalation touchpoint (escalation/reconcile_completions.py)",
+          "protocol": "python-import",
+          "description": "TP-10: post-#519 migration; URL read at module init"
+        },
+        {
+          "from": "scripts/common/vikunja_config.py (get_vikunja_base_url())",
+          "to": "enrichment touchpoint (enrichment/reconcile_completions.py)",
+          "protocol": "python-import",
+          "description": "TP-12: post-#519 migration; URL read at module init"
+        }
+      ]
+    },
     {
       "name": "whatsapp-command-channel",
       "planned_by": "F003-F006",

@@ -2,6 +2,8 @@
 title: Data Flows
 doc_type: reference
 status: approved
+last_updated: '2026-06-05'
+updated_by: '#520-felix-vikunja-sync-project-layer-and-url-config'
 ---
 
 # Data Flows
@@ -53,6 +55,58 @@ audit.sh → compare running state against baselines → log alerts
 ```
 
 Runs at 3AM daily. Checks: Docker images, enabled services, listening ports, SSH keys, crontabs, pip packages, hosts file, pth files.
+
+### Vikunja Base-URL Config Distribution (#520)
+
+```
+Operator (deploy-time) → /data/services/openclaw/config/vikunja-base-url.txt (mode 0644)
+  → scripts/common/vikunja_config.py get_vikunja_base_url()
+       ├─ VIKUNJA_BASE_URL env var (interactive shell via ~/.bashrc;
+       │   systemd services via /data/services/openclaw/secrets/openclaw-gateway.env EnvironmentFile)
+       └─ /data/services/openclaw/config/vikunja-base-url.txt  (fallback — file read)
+  → felix-vikunja-sync-driver (Phase 0 preamble)
+  → habits touchpoints (TP-02, TP-03, TP-04 — #519)
+  → escalation touchpoint (TP-10 — #519)
+  → enrichment touchpoint (TP-12 — #519)
+```
+
+Single source of truth for the Vikunja API base URL, introduced by #520 (Mission C of Epic #507).
+The file is mode 0644 and is **not** a secret — it contains a URL only
+(`https://office2.tail0f5f56.ts.net/api/v1/`). The env var `VIKUNJA_BASE_URL` takes
+precedence when set; the file is the fallback. The `get_vikunja_base_url()` helper in
+`scripts/common/vikunja_config.py` raises `VikunjaConfigError` if neither is present.
+All six scripts migrated by #519 and the sync driver introduced by #518 consume this helper,
+ensuring the base URL is configured in exactly one place.
+
+### Felix-Vikunja Sync Driver — Full-Poll Pipeline (#518, #519, #520)
+
+```
+felix-vikunja-sync.timer (5-min) → felix-vikunja-sync.service (oneshot)
+  → scripts/sync/driver.py
+       Phase 0: preamble — read token, freshness, caches, base URL (via vikunja_config.py)
+       Phase 1: fetch — GET /tasks/all + GET /projects (full poll every tick)
+       Phase 2: diff — 3-way set-diff (in_vikunja_only / in_both / in_cache_only)
+       Phase 3: classify — UC-1..UC-4 task classification
+       Phase 4: emit — conflict-events.jsonl + WhatsApp for task events;
+                       project events to layer_summary only (no WhatsApp, no JSONL)
+       Phase 5: update — new_task_cache + new_project_cache in memory
+       Phase 5b: deletion-cleanup — history-log → schedule.yaml → cache via Phase 6
+       Phase 6: complete — atomic writes of all state files
+  → /data/services/openclaw/state/sync/task-cache.json   (atomic write)
+  → /data/services/openclaw/state/sync/project-cache.json (atomic write — #520)
+  → /data/services/openclaw/state/sync/conflict-events.jsonl   (append)
+  → /data/services/openclaw/state/sync/last-tick.json   (atomic write)
+  → openclaw send --channel whatsapp   (subprocess, unsafe task events only)
+```
+
+The driver is **read-only against Vikunja** (SC-009). Full-poll means every tick fetches the
+complete task and project sets — there is no `updated_since` delta or incremental cursor.
+The diff phase computes divergences from the in-memory cache, not from a freshness pointer.
+Project events (new/changed/deleted projects) go to `layer_summary` in `last-tick.json` only;
+they do not trigger WhatsApp messages or JSONL conflict-event rows.
+Deletion cleanup (Phase 5b) handles in-cache-only tasks: cross-references
+`habits-history.jsonl` and `schedule.yaml` before removing from cache.
+State is written atomically in Phase 6 — either all files update or none do.
 
 ### OpenClaw → Vikunja API (F007)
 
@@ -545,3 +599,8 @@ The 5-minute `OnBootSec` offset (vs felix-core-digest's `OnBootSec=3min`) avoids
 | Signal-extraction ledger (#490) | `/data/services/openclaw/felix-core-digest-signals/signals-ledger.jsonl` | Yes |
 | Heartbeat-gate decision (#490) | `/data/services/openclaw/felix-heartbeat-gate/last-gate-decision.json` | No (overwritten each tick) |
 | Heartbeat-gate ledger (#490) | `/data/services/openclaw/felix-heartbeat-gate/gate-ledger.jsonl` | Yes |
+| Vikunja base-URL config (#520) | `/data/services/openclaw/config/vikunja-base-url.txt` | Yes (mode 0644 — not a secret) |
+| Sync driver task cache (#518) | `/data/services/openclaw/state/sync/task-cache.json` | Yes |
+| Sync driver project cache (#520) | `/data/services/openclaw/state/sync/project-cache.json` | Yes |
+| Sync driver conflict events (#518) | `/data/services/openclaw/state/sync/conflict-events.jsonl` | Yes |
+| Sync driver last-tick signal (#518) | `/data/services/openclaw/state/sync/last-tick.json` | No (overwritten each tick) |

@@ -2,7 +2,7 @@
 title: Service Inventory
 doc_type: reference
 status: approved
-tags: [137, 189, 80, 202, 149, 190, 374, 100, 253, 185, 254, 371, 309, 343, 306, 308, 306/, 310, 362, 391, 400, 105, 368-, 115]
+tags: [520, 519, 518, 137, 189, 80, 202, 149, 190, 374, 100, 253, 185, 254, 371, 309, 343, 306, 308, 310, 362, 391, 400, 105, 115]
 ---
 
 # Service Inventory
@@ -520,6 +520,33 @@ As of F016, `service-inventory.json` includes additional fields on each service 
 | `config_files` | array of strings | Filesystem paths to configuration files for this service. Referenced during pre-flight to ensure config backups exist before changes. |
 
 These fields are consumed by the governance runbooks — not by runtime automation. The visual dependency graph is rendered in `docs/design/architecture/service-dependencies.view.md`.
+
+### Felix-Vikunja Sync Driver (#518, full-poll + project layer + URL config via #520)
+- **Deployed by**: #518; extended by #519 (touchpoint migration) and #520 (Mission C — full-poll, project layer, URL config)
+- **Type**: systemd user timer + oneshot service (deterministic Python — no LLM calls)
+- **systemd unit**: `felix-vikunja-sync.timer` + `felix-vikunja-sync.service` (user unit under claude)
+- **Schedule**: `OnUnitInactiveSec=300s` (5 minutes after the previous tick exits), `OnBootSec=120s`, `Persistent=true`
+- **Runs as**: claude user
+- **ExecStart**: `cd /home/claude/kg-automation && python3 -m scripts.sync.driver`
+- **Source in repo**: `scripts/sync/`
+- **Vikunja base URL**: read from `scripts/common/vikunja_config.py` at every cycle start. Resolution order: `VIKUNJA_BASE_URL` env var first; `/data/services/openclaw/config/vikunja-base-url.txt` second. Raises `VikunjaConfigError` if both are absent. The file is mode 0644 (world-readable; NOT a secret). Must be created at deploy time before enabling the timer.
+- **Post-#520 pipeline (7 phases)**:
+  1. Phase 0 — preamble: reads token, freshness, task_cache, project_cache, guard_state, and the Vikunja base URL
+  2. Phase 1 — fetch: `GET /tasks/all` + `GET /projects` (full poll every tick; no `updated_since` delta)
+  3. Phase 2 — diff: 3-way set-diff (in_vikunja_only / in_both / in_cache_only) for both task and project layers → produces `divergences`, `first_observation_task_ids`, `deleted_task_ids`, `project_events`, and `LayerSummary`
+  4. Phase 3 — classify: UC-1..UC-4 classification on task divergences (unchanged from #518)
+  5. Phase 4 — emit: conflict-events.jsonl writes + WhatsApp dispatch for unsafe task events; project events written to `last-tick.json` layer_summary only (no WhatsApp, no JSONL)
+  6. Phase 5 — update: compute new_task_cache + new_project_cache in memory
+  7. Phase 5b — deletion-cleanup: for each deleted task_id: append `task_deleted` to habits-history.jsonl, prune phase3-schedule.yaml, cache removal handled in Phase 6
+  8. Phase 6 — complete: atomic writes of task_cache, project_cache, guard_state, freshness, last-tick (PerTickHealthRecord with LayerSummary)
+- **Project layer**: audit/discovery role — new/changed/deleted projects are stored in `project-cache.json` for downstream consumption (future missions may act on project state). Project events do NOT trigger WhatsApp pings.
+- **Read-only against Vikunja**: the driver never writes to Vikunja. All task mutations continue via the existing touchpoints (scripts/habits/, scripts/escalation/, etc.).
+- **State directory**: `/data/services/openclaw/state/sync/` — freshness.json, task-cache.json, project-cache.json, guard-state.json, conflict-events.jsonl, last-tick.json, last-tick.errors.jsonl
+- **Health check**: `cat /data/services/openclaw/state/sync/last-tick.json | jq '.completed_at_utc, .cycle_error'` — expect timestamp within ~6 minutes and `null` cycle_error
+- **Downstream consumers (post-#519 touchpoint migration)**: 6 scripts read task state from task-cache.json via `scripts/common/sync_cache.py` instead of calling Vikunja directly — habits: morning_checkin_list.py (TP-07), query_active_habits_v2.py (TP-03), set_due_dates.py (TP-04), reconcile_completions.py (TP-02); escalation: reconcile_completions.py (TP-10); enrichment: reconcile_completions.py (TP-12). No silent fallback — stale cache beyond SLA_NORMAL (900s) raises OSError.
+- **URL config dependency**: the driver and all 6 touchpoints above read the Vikunja base URL from `scripts/common/vikunja_config.py` (introduced by #520 Mission C), which resolves via the `VIKUNJA_BASE_URL` env var or `/data/services/openclaw/config/vikunja-base-url.txt`.
+- **Authoritative JSON**: see `felix-vikunja-sync-driver` entry in `data/service-inventory.json`
+- **Runbook**: `docs/runbooks/sync-driver-ops.md`
 
 ### WhatsApp Channel (F004)
 - **Deployed by**: F004

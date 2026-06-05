@@ -2,9 +2,10 @@
 title: Credentials and Secrets
 doc_type: reference
 status: approved
-last_updated: '2026-06-04'
-last_validated: '2026-06-04'
-updated_by: '#523-kg-felix-bot-project-sync-pat-added + #345-audit-confirms-sync (silent-removal policy per change-control.md) + #304-felix-bot-rotation + #267-openclaw-gateway-env-narrative + #100-google-workspace-foundation + #227 + #115 + #115-narrative-sync + rename-kentonium3-pat-to-gh-oauth'
+last_updated: '2026-06-05'
+last_validated: '2026-06-05'
+updated_by: '#520-felix-vikunja-sync-project-layer-and-url-config + #523-kg-felix-bot-project-sync-pat-added + #345-audit-confirms-sync (silent-removal policy per change-control.md) + #304-felix-bot-rotation + #267-openclaw-gateway-env-narrative + #100-google-workspace-foundation + #227 + #115 + #115-narrative-sync + rename-kentonium3-pat-to-gh-oauth'
+tags: [304, 343, 490, 115, 520]
 ---
 
 # Credentials and Secrets
@@ -119,9 +120,11 @@ Used by: `openclaw-gateway-env`
 Plain `KEY=VALUE` env-files consumed by systemd `EnvironmentFile=` directives
 in drop-in configs under `~/.config/systemd/user/<service>.service.d/`. The
 file lives at `/data/services/openclaw/secrets/openclaw-gateway.env` (mode
-0600, claude:claude) and injects `GOG_KEYRING_BACKEND` and
-`GOG_KEYRING_PASSWORD` into the `openclaw-gateway.service` process and all
-child agent sessions it spawns.
+0600, claude:claude) and injects `GOG_KEYRING_BACKEND`, `GOG_KEYRING_PASSWORD`,
+and `VIKUNJA_BASE_URL` into the `openclaw-gateway.service` process and all
+child agent sessions it spawns. (`VIKUNJA_BASE_URL` added by #520 — resolves the
+base URL for `vikunja_config.py` consumers in systemd context where `~/.bashrc`
+is not sourced.)
 
 This mechanism exists because systemd-launched services do not source
 `~/.bashrc`, so the interactive-shell `export GOG_KEYRING_PASSWORD=…` in
@@ -153,6 +156,22 @@ either credential leaks.
 This mechanism is distinct from §5 (gh CLI auth store, used by operator and
 agent CLI shell-outs) because Actions workflows never invoke `gh` against the
 project; they call the GraphQL API directly with `actions/github-script@v8`.
+
+### Non-secret config files (not credentials)
+
+Not every runtime-configuration file is a secret. The following file lives
+adjacent to the secrets directory but is **not** a credential and is not
+subject to this document's access-control rules:
+
+- **`/data/services/openclaw/config/vikunja-base-url.txt`** (mode **0644**, owner `claude:claude`) —
+  Contains only the Vikunja API base URL (`https://office2.tail0f5f56.ts.net/api/v1/`).
+  No token, no password. Introduced by #520 (Mission C of Epic #507) as the single source
+  of truth consumed by `scripts/common/vikunja_config.py::get_vikunja_base_url()`.
+  Resolution order: `VIKUNJA_BASE_URL` env var first (exported via `~/.bashrc` for interactive
+  shells and via `openclaw-gateway.env` EnvironmentFile for systemd services), file second.
+  Raises `VikunjaConfigError` if neither is present.
+  Consumers: `felix-vikunja-sync-driver` (Phase 0 preamble) and the six scripts migrated by
+  #519 (TP-02, TP-03, TP-04, TP-07, TP-10, TP-12).
 
 ---
 
