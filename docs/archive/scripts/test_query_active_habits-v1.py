@@ -1,3 +1,4 @@
+# ARCHIVED 2026-06-05 — v1 script and tests superseded by v2 (mission #520 / issue #526).
 """Tests for scripts/habits/query_active_habits.py (FR-002).
 
 Verifies the contract in

@@ -19,9 +19,12 @@ except ImportError:
     print("Error: 'requests' library required. Install with: pip install requests", file=sys.stderr)
     sys.exit(1)
 
+from scripts.common.vikunja_config import get_vikunja_base_url
+
 # --- Configuration ---
 
-DEFAULT_URL = "http://100.92.197.90:3456/api/v1"
+#: Sentinel; resolved at call-time via get_vikunja_base_url().
+DEFAULT_URL: str = ""
 
 GOALS_PROJECT_NAME = "Goals"
 
@@ -88,7 +91,7 @@ def wait_for_api(base_url, timeout=30, interval=2):
     start = time.time()
     while time.time() - start < timeout:
         try:
-            resp = requests.get(f"{base_url}/info", timeout=5)
+            resp = requests.get(f"{base_url}info", timeout=5)
             if resp.status_code == 200:
                 version = resp.json().get("version", "unknown")
                 print(f"[OK] Vikunja API ready ({version})")
@@ -105,7 +108,7 @@ def authenticate(base_url):
     """Prompt for credentials and obtain JWT."""
     username = input("Vikunja username: ")
     password = getpass.getpass("Vikunja password: ")
-    resp = requests.post(f"{base_url}/login", json={
+    resp = requests.post(f"{base_url}login", json={
         "username": username,
         "password": password,
     })
@@ -124,7 +127,7 @@ def authenticate(base_url):
 
 def get_existing_projects(base_url, token):
     """Fetch all existing projects."""
-    resp = requests.get(f"{base_url}/projects", headers=api_headers(token))
+    resp = requests.get(f"{base_url}projects", headers=api_headers(token))
     resp.raise_for_status()
     return resp.json()
 
@@ -153,7 +156,7 @@ def create_goals_project(base_url, token):
         return proj["id"]
 
     resp = requests.put(
-        f"{base_url}/projects",
+        f"{base_url}projects",
         headers=api_headers(token),
         json={"title": GOALS_PROJECT_NAME},
     )
@@ -167,7 +170,7 @@ def create_goals_project(base_url, token):
 
 def get_existing_labels(base_url, token):
     """Fetch all existing labels as a dict keyed by title."""
-    resp = requests.get(f"{base_url}/labels", headers=api_headers(token))
+    resp = requests.get(f"{base_url}labels", headers=api_headers(token))
     resp.raise_for_status()
     return {lb["title"]: lb for lb in (resp.json() or [])}
 
@@ -182,7 +185,7 @@ def create_labels(base_url, token):
             print(f"  Exists: {label['title']} (id={existing[label['title']]['id']})")
         else:
             resp = requests.put(
-                f"{base_url}/labels",
+                f"{base_url}labels",
                 headers=api_headers(token),
                 json=label,
             )
@@ -199,7 +202,7 @@ def create_labels(base_url, token):
 def get_project_tasks(base_url, token, project_id):
     """Fetch all tasks in a project."""
     resp = requests.get(
-        f"{base_url}/projects/{project_id}/tasks",
+        f"{base_url}projects/{project_id}/tasks",
         headers=api_headers(token),
     )
     resp.raise_for_status()
@@ -221,7 +224,7 @@ def create_seed_goals(base_url, token, project_id, labels):
                 label_obj = labels.get(goal["label"])
                 if label_obj:
                     resp = requests.put(
-                        f"{base_url}/tasks/{task['id']}/labels",
+                        f"{base_url}tasks/{task['id']}/labels",
                         headers=api_headers(token),
                         json={"label_id": label_obj["id"]},
                     )
@@ -245,7 +248,7 @@ def create_seed_goals(base_url, token, project_id, labels):
         }
 
         resp = requests.put(
-            f"{base_url}/projects/{project_id}/tasks",
+            f"{base_url}projects/{project_id}/tasks",
             headers=api_headers(token),
             json=task_data,
         )
@@ -255,7 +258,7 @@ def create_seed_goals(base_url, token, project_id, labels):
 
         # Assign label via separate endpoint
         resp = requests.put(
-            f"{base_url}/tasks/{task_id}/labels",
+            f"{base_url}tasks/{task_id}/labels",
             headers=api_headers(token),
             json={"label_id": label_obj["id"]},
         )
@@ -293,7 +296,7 @@ def create_goals_filter(base_url, token, project_id):
     }
 
     resp = requests.put(
-        f"{base_url}/filters",
+        f"{base_url}filters",
         headers=api_headers(token),
         json=filter_data,
     )
@@ -370,8 +373,8 @@ def parse_args():
         description="Configure Vikunja with Goals project, seed declarations, and filter (F006)"
     )
     parser.add_argument(
-        "--url", default=DEFAULT_URL,
-        help=f"Vikunja API base URL (default: {DEFAULT_URL})"
+        "--url", default=None,
+        help="Vikunja API base URL (default: from VIKUNJA_BASE_URL env or config file)."
     )
     parser.add_argument(
         "--dry-run", action="store_true",
@@ -386,6 +389,7 @@ def parse_args():
 
 def main():
     args = parse_args()
+    args.url = args.url or get_vikunja_base_url()
     print(f"Vikunja Goals Setup (F006) — {args.url}\n")
 
     if args.dry_run:

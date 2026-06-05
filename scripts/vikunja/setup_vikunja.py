@@ -16,9 +16,12 @@ except ImportError:
     print("Error: 'requests' library required. Install with: pip install requests", file=sys.stderr)
     sys.exit(1)
 
+from scripts.common.vikunja_config import get_vikunja_base_url
+
 # --- Configuration ---
 
-DEFAULT_URL = "http://100.92.197.90:3456/api/v1"
+#: Sentinel; resolved at call-time via get_vikunja_base_url().
+DEFAULT_URL: str = ""
 
 PROJECTS = [
     {"name": "Everyday", "children": [
@@ -85,7 +88,7 @@ def wait_for_api(base_url, timeout=30, interval=2):
     start = time.time()
     while time.time() - start < timeout:
         try:
-            resp = requests.get(f"{base_url}/info", timeout=5)
+            resp = requests.get(f"{base_url}info", timeout=5)
             if resp.status_code == 200:
                 version = resp.json().get("version", "unknown")
                 print(f"[OK] Vikunja API ready ({version})")
@@ -102,7 +105,7 @@ def authenticate(base_url):
     """Prompt for credentials and obtain JWT."""
     username = input("Vikunja username: ")
     password = getpass.getpass("Vikunja password: ")
-    resp = requests.post(f"{base_url}/login", json={
+    resp = requests.post(f"{base_url}login", json={
         "username": username,
         "password": password,
     })
@@ -121,7 +124,7 @@ def authenticate(base_url):
 
 def get_existing_projects(base_url, token):
     """Fetch all existing projects."""
-    resp = requests.get(f"{base_url}/projects", headers=api_headers(token))
+    resp = requests.get(f"{base_url}projects", headers=api_headers(token))
     resp.raise_for_status()
     return resp.json()
 
@@ -152,7 +155,7 @@ def create_projects(base_url, token):
             parent_id = proj["id"]
         else:
             resp = requests.put(
-                f"{base_url}/projects",
+                f"{base_url}projects",
                 headers=api_headers(token),
                 json={"title": top["name"]},
             )
@@ -168,7 +171,7 @@ def create_projects(base_url, token):
                 print(f"  Exists: {top['name']} / {child['name']}")
             else:
                 resp = requests.put(
-                    f"{base_url}/projects",
+                    f"{base_url}projects",
                     headers=api_headers(token),
                     json={"title": child["name"], "parent_project_id": parent_id},
                 )
@@ -182,7 +185,7 @@ def create_projects(base_url, token):
 def create_labels(base_url, token):
     """Create identity labels, skipping existing."""
     print("\n--- Labels ---")
-    resp = requests.get(f"{base_url}/labels", headers=api_headers(token))
+    resp = requests.get(f"{base_url}labels", headers=api_headers(token))
     resp.raise_for_status()
     existing = {lb["title"]: lb for lb in (resp.json() or [])}
 
@@ -191,7 +194,7 @@ def create_labels(base_url, token):
             print(f"  Exists: {label['title']}")
         else:
             resp = requests.put(
-                f"{base_url}/labels",
+                f"{base_url}labels",
                 headers=api_headers(token),
                 json=label,
             )
@@ -221,7 +224,7 @@ def create_filters(base_url, token):
             print(f"  Exists: {filt['title']}")
         else:
             resp = requests.put(
-                f"{base_url}/filters",
+                f"{base_url}filters",
                 headers=api_headers(token),
                 json=filt,
             )
@@ -236,14 +239,15 @@ def parse_args():
         description="Configure Vikunja project structure, labels, and filters"
     )
     parser.add_argument(
-        "--url", default=DEFAULT_URL,
-        help=f"Vikunja API base URL (default: {DEFAULT_URL})"
+        "--url", default=None,
+        help="Vikunja API base URL (default: from VIKUNJA_BASE_URL env or config file)."
     )
     return parser.parse_args()
 
 
 def main():
     args = parse_args()
+    args.url = args.url or get_vikunja_base_url()
     print(f"Vikunja Setup — {args.url}\n")
 
     wait_for_api(args.url)
