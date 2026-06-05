@@ -3,7 +3,7 @@ title: Deployment Runbook
 doc_type: runbook
 audience: agents_and_humans
 status: approved
-last_updated: '2026-04-08'
+last_updated: '2026-06-05'
 ---
 
 # Deployment Runbook
@@ -49,6 +49,28 @@ deploying. Never deploy from a feature branch.
 git checkout main && git pull
 ```
 
+### Risk tier and backup gate
+
+Before deployment, classify the change using the canonical risk taxonomy in
+`docs/design/architecture/data/change-risk-taxonomy.json`.
+
+| Tier | Deployment gate |
+|------|-----------------|
+| 0 | Human executes manually; agent-authored scripts only |
+| 1 | Connectivity pre-flight and post-change verification required |
+| 2 | Recent backup or snapshot required before mutation |
+| 3 | Standard deploy with dry-run or sandbox test where available |
+| 4 | No deployment gate beyond normal validation |
+
+Tier 0 and Tier 1 deployments must complete the pre-flight checklist in
+`docs/runbooks/governance/pre-flight-checklist.md` before execution. Tier 0,
+Tier 1, and Tier 2 deployments must complete post-change verification using
+`docs/runbooks/governance/post-change-verification.md`.
+
+For Tier 2 changes, confirm a successful backup or snapshot before deployment.
+If no suitable backup exists, trigger the appropriate backup procedure and do
+not deploy until it succeeds.
+
 ---
 
 ## Deploy script pattern
@@ -81,6 +103,7 @@ set -euo pipefail
 # Prerequisites:
 #   - All feature PRs merged to main
 #   - SSH access to office2-claude configured
+#   - Risk tier classified; required backup/pre-flight gate completed
 #   - [Any other prerequisites specific to this feature]
 #
 # Usage: ./scripts/deploy/deploy-f0NN.sh
@@ -272,5 +295,7 @@ the expected sync window after deployment.
 - `docs/runbooks/openclaw-ops.md` — OpenClaw service management
 - `docs/design/office2-backup-and-security.md` — security baseline reset
 - `docs/runbooks/maintenance.md` — branch and CI conventions
-- `docs/design/architecture/change-control.md` — architecture doc update protocol
+- `docs/design/architecture/change-control.md` — architecture doc update protocol and risk-tiered change control
+- `docs/runbooks/governance/pre-flight-checklist.md` — Tier 0/1 deployment pre-flight
+- `docs/runbooks/governance/post-change-verification.md` — Tier 0/1/2 post-change verification
 - `scripts/deploy/deploy-f013.sh` — reference deploy script

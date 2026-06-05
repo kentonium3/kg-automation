@@ -159,6 +159,15 @@ pre-defined target list manually.
 
 Use the unioned list below; spec-kitty plan/tasks phase will use this to
 brief the implementer about what to update in the merge.
+
+If the feature deploys, modifies, or registers code, agents, skills, schedules,
+credentials, service config, network paths, or persistent state on office2,
+classify the deployment/change risk tier using
+`docs/design/architecture/data/change-risk-taxonomy.json`. Use the higher tier
+when uncertain. Tier 0/1/2 work must carry the appropriate pre-flight,
+backup/snapshot, approval, rollback, and post-change verification obligations
+from `docs/runbooks/governance/pre-flight-checklist.md` and
+`docs/runbooks/governance/post-change-verification.md`.
 -->
 
 | File | Change |
@@ -170,6 +179,12 @@ brief the implementer about what to update in the merge.
 - [ ] All modified JSON files updated with `updated_by` set to this issue number
 - [ ] Markdown views match JSON sources
 - [ ] If a new runbook or architecture doc is added, INDEX.md and (if onboarding-relevant) DEVELOPER_PORTAL.md updated (per `signal-to-doc-map.json` mission-runbook-added / architecture-doc-added entries)
+
+**Risk tier for deployed/system change**: Tier 0 / Tier 1 / Tier 2 / Tier 3 / Tier 4 / N/A
+
+**Required gate**:
+- [ ] Pre-flight/backup/approval requirements identified for the selected tier
+- [ ] Rollback and post-change verification expectations identified
 
 ---
 
@@ -225,6 +240,7 @@ This issue qualifies for the `spec: ready` label when:
 - [ ] **Functional Requirements** has at least one FR with testable Success criteria checkboxes
 - [ ] **Out of Scope** lists explicit exclusions
 - [ ] **Architecture Impact** identifies affected JSON files OR the section is removed because no architecture changes are involved
+- [ ] **Risk tier** is selected for any deployed/system change, with required pre-flight/backup/approval gates identified
 - [ ] **Constitutional Compliance** addresses autonomy level, scope, and failure behavior
 - [ ] **Design-time discipline** — deterministic-vs-stochastic split has been considered; helper-script extraction is identified where appropriate (per Felix Constitution Directive 6)
 - [ ] HTML comment guidance blocks have been removed

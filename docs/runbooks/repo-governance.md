@@ -4,7 +4,7 @@ doc_type: runbook
 status: approved
 owners: [kent@intentional.biz]
 last_validated: 2026-04-07
-last_updated: '2026-05-12'
+last_updated: '2026-06-05'
 revision: v2.1
 audience: agents_and_humans
 ---
@@ -197,6 +197,11 @@ source.
 
 - Agents push directly to `main` for routine changes (same as humans).
 - Feature work uses spec-kitty workflows (worktrees, lane branches).
+- Before changing deployed services, service config, schedules,
+  credentials, network paths, persistent state, scripts, agent prompts, or
+  operational docs, agents classify the change using
+  `docs/design/architecture/data/change-risk-taxonomy.json` and follow the
+  Tier 0-4 protocol in `CLAUDE.md` and `docs/design/architecture/change-control.md`.
 - Never edit `.env` files, commit secrets, force push, or `rm -rf`.
 - Never modify `.github/workflows/` without explicit instruction.
 - On spec-kitty workflow failure: stop and report, do not work around.
