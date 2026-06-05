@@ -12,9 +12,9 @@
 | T001 | Create `scripts/common/vikunja_config.py` with `get_vikunja_base_url()` + `VikunjaConfigError` | WP01 | | [D] |
 | T002 | Tests in `tests/test_vikunja_config.py` (7 scenarios) | WP01 | [D] |
 | T003 | Verify NFR-006 grep contract in this WP's owned files | WP01 | [D] |
-| T004 | Create `scripts/sync/cleanup.py` with `prune_schedule_yaml()` + `append_task_deleted_event()` | WP02 | |
-| T005 | Tests in `tests/sync/test_cleanup.py` | WP02 | [P] |
-| T006 | Document atomicity + idempotency in module docstring; spec event schema | WP02 | [P] |
+| T004 | Create `scripts/sync/cleanup.py` with `prune_schedule_yaml()` + `append_task_deleted_event()` | WP02 | | [D] |
+| T005 | Tests in `tests/sync/test_cleanup.py` | WP02 | [D] |
+| T006 | Document atomicity + idempotency in module docstring; spec event schema | WP02 | [D] |
 | T007 | Replace `FetchedDelta` with `FetchedSnapshot`; replace `fetch_delta` with `fetch_full_poll`; include FR-012 abort guards | WP03 | |
 | T008 | Rewrite `compute_divergences` in `diff.py` for 3-way set diff outputs | WP03 | [P] |
 | T009 | Rewrite `tests/sync/test_fetch.py` for full-poll semantics + FR-012 cases | WP03 | [P] |
@@ -116,9 +116,9 @@ None. Can land first.
 
 ### Included subtasks
 
-- [ ] T004 Create `scripts/sync/cleanup.py` with `prune_schedule_yaml()` + `append_task_deleted_event()` (WP02)
-- [ ] T005 Tests in `tests/sync/test_cleanup.py` (WP02)
-- [ ] T006 Document atomicity + idempotency in module docstring; spec event schema (WP02)
+- [x] T004 Create `scripts/sync/cleanup.py` with `prune_schedule_yaml()` + `append_task_deleted_event()` (WP02)
+- [x] T005 Tests in `tests/sync/test_cleanup.py` (WP02)
+- [x] T006 Document atomicity + idempotency in module docstring; spec event schema (WP02)
 
 ### Implementation sketch
 
