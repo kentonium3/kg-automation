@@ -34,14 +34,14 @@
 | T023 | Migrate `scripts/enrichment/reconcile_completions.py` (preserves retained `_http_get` for comments) | WP05 | [D] |
 | T024 | Migrate `scripts/sync/driver.py` CLI default to `get_vikunja_base_url()` | WP05 | [D] |
 | T025 | NFR-006 grep verification — zero hardcoded URLs in runtime-path scripts | WP05 | | [D] |
-| T026 | Update `docs/design/architecture/data/service-inventory.json` — driver config_files adds URL config | WP06 | [P] |
-| T027 | Update `docs/design/architecture/service-inventory.md` narrative | WP06 | [P] |
-| T028 | Update `docs/design/architecture/service-dependencies.view.md` diagram | WP06 | [P] |
-| T029 | Update `docs/design/architecture/data/data-flows.json` — new flow URL config → consumers | WP06 | [P] |
-| T030 | Update `docs/design/architecture/data-flows.md` + `data-flows.view.md` | WP06 | [P] |
-| T031 | Update `docs/design/architecture/credentials-and-secrets.md` storage inventory | WP06 | [P] |
-| T032 | Rewrite `docs/runbooks/sync-driver-ops.md` — full-poll, project-layer audit, deletion-cleanup, URL config | WP06 | |
-| T033 | Update `docs/INDEX.md` (entry) + `docs/design/felix-capability-roadmap.md` (mark #507 complete) | WP06 | [P] |
+| T026 | Update `docs/design/architecture/data/service-inventory.json` — driver config_files adds URL config | WP06 | [D] |
+| T027 | Update `docs/design/architecture/service-inventory.md` narrative | WP06 | [D] |
+| T028 | Update `docs/design/architecture/service-dependencies.view.md` diagram | WP06 | [D] |
+| T029 | Update `docs/design/architecture/data/data-flows.json` — new flow URL config → consumers | WP06 | [D] |
+| T030 | Update `docs/design/architecture/data-flows.md` + `data-flows.view.md` | WP06 | [D] |
+| T031 | Update `docs/design/architecture/credentials-and-secrets.md` storage inventory | WP06 | [D] |
+| T032 | Rewrite `docs/runbooks/sync-driver-ops.md` — full-poll, project-layer audit, deletion-cleanup, URL config | WP06 | | [D] |
+| T033 | Update `docs/INDEX.md` (entry) + `docs/design/felix-capability-roadmap.md` (mark #507 complete) | WP06 | [D] |
 
 **Note**: The `[P]` marker in this index indicates parallelizability (different files, no dependencies). Progress tracking happens via the per-WP checkbox rows below, not this table.
 
@@ -286,14 +286,14 @@ After all 7 migrations: run `grep -rn "office2.tail0f5f56.ts.net\|100.92.197.90:
 
 ### Included subtasks
 
-- [ ] T026 Update `docs/design/architecture/data/service-inventory.json` — driver config_files adds URL config (WP06)
-- [ ] T027 Update `docs/design/architecture/service-inventory.md` narrative (WP06)
-- [ ] T028 Update `docs/design/architecture/service-dependencies.view.md` diagram (WP06)
-- [ ] T029 Update `docs/design/architecture/data/data-flows.json` — new flow URL config → consumers (WP06)
-- [ ] T030 Update `docs/design/architecture/data-flows.md` + `data-flows.view.md` (WP06)
-- [ ] T031 Update `docs/design/architecture/credentials-and-secrets.md` storage inventory (WP06)
-- [ ] T032 Rewrite `docs/runbooks/sync-driver-ops.md` — full-poll, project-layer audit, deletion-cleanup, URL config (WP06)
-- [ ] T033 Update `docs/INDEX.md` (entry) + `docs/design/felix-capability-roadmap.md` (mark #507 complete) (WP06)
+- [x] T026 Update `docs/design/architecture/data/service-inventory.json` — driver config_files adds URL config (WP06)
+- [x] T027 Update `docs/design/architecture/service-inventory.md` narrative (WP06)
+- [x] T028 Update `docs/design/architecture/service-dependencies.view.md` diagram (WP06)
+- [x] T029 Update `docs/design/architecture/data/data-flows.json` — new flow URL config → consumers (WP06)
+- [x] T030 Update `docs/design/architecture/data-flows.md` + `data-flows.view.md` (WP06)
+- [x] T031 Update `docs/design/architecture/credentials-and-secrets.md` storage inventory (WP06)
+- [x] T032 Rewrite `docs/runbooks/sync-driver-ops.md` — full-poll, project-layer audit, deletion-cleanup, URL config (WP06)
+- [x] T033 Update `docs/INDEX.md` (entry) + `docs/design/felix-capability-roadmap.md` (mark #507 complete) (WP06)
 
 ### Implementation sketch
 
