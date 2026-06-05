@@ -16,7 +16,7 @@ subtasks:
 - T001
 - T002
 - T003
-shell_pid: "78214"
+shell_pid: "79874"
 history: []
 authoritative_surface: scripts/common/vikunja_config.py
 execution_mode: code_change
@@ -24,7 +24,7 @@ owned_files:
 - scripts/common/vikunja_config.py
 - tests/test_vikunja_config.py
 tags: []
-agent: "claude:sonnet:implementer:implementer"
+agent: "claude:opus:reviewer:reviewer"
 ---
 
 # WP01 — URL Config Helper
@@ -236,3 +236,4 @@ spec-kitty agent action implement WP01 --mission felix-vikunja-sync-project-laye
 
 - 2026-06-05T19:12:40Z – claude:sonnet:implementer:implementer – shell_pid=78214 – Assigned agent via action command
 - 2026-06-05T19:16:32Z – claude:sonnet:implementer:implementer – shell_pid=78214 – Ready for review: 8 unit tests pass (all 7 contract scenarios + empty-file edge case); vikunja_config.py + test_vikunja_config.py created per url-config.md contract. T003 NFR-006 grep: vikunja_config.py has 1 docstring-only hit (acceptable); test file has 3 fixture hits (acceptable). No hardcoded URLs in production logic.
+- 2026-06-05T19:16:51Z – claude:opus:reviewer:reviewer – shell_pid=79874 – Started review via action command
