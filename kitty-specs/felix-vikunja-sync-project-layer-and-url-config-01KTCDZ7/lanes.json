@@ -1,0 +1,119 @@
+{
+  "version": 1,
+  "mission_slug": "felix-vikunja-sync-project-layer-and-url-config-01KTCDZ7",
+  "mission_id": "01KTCDZ78163ZG65BGKF7F7HMD",
+  "mission_branch": "kitty/mission-felix-vikunja-sync-project-layer-and-url-config-01KTCDZ7",
+  "target_branch": "main",
+  "lanes": [
+    {
+      "lane_id": "lane-a",
+      "wp_ids": [
+        "WP01",
+        "WP05"
+      ],
+      "write_scope": [
+        "scripts/common/vikunja_config.py",
+        "scripts/enrichment/reconcile_completions.py",
+        "scripts/escalation/reconcile_completions.py",
+        "scripts/habits/morning_checkin_list.py",
+        "scripts/habits/query_active_habits_v2.py",
+        "scripts/habits/reconcile_completions.py",
+        "scripts/habits/set_due_dates.py",
+        "scripts/sync/driver.py",
+        "tests/test_vikunja_config.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "legacy-cleanup",
+        "tests",
+        "tracker-integration"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    },
+    {
+      "lane_id": "lane-b",
+      "wp_ids": [
+        "WP02",
+        "WP03",
+        "WP04"
+      ],
+      "write_scope": [
+        "scripts/sync/cleanup.py",
+        "scripts/sync/cycle.py",
+        "scripts/sync/diff.py",
+        "scripts/sync/fetch.py",
+        "scripts/sync/state.py",
+        "tests/sync/test_cleanup.py",
+        "tests/sync/test_cycle*.py",
+        "tests/sync/test_diff.py",
+        "tests/sync/test_fetch.py",
+        "tests/sync/test_state.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "artifact-rendering",
+        "legacy-cleanup",
+        "tests",
+        "tracker-integration"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    },
+    {
+      "lane_id": "lane-planning",
+      "wp_ids": [
+        "WP06"
+      ],
+      "write_scope": [
+        "docs/INDEX.md",
+        "docs/design/architecture/credentials-and-secrets.md",
+        "docs/design/architecture/data-flows.md",
+        "docs/design/architecture/data-flows.view.md",
+        "docs/design/architecture/data/data-flows.json",
+        "docs/design/architecture/data/service-inventory.json",
+        "docs/design/architecture/service-dependencies.view.md",
+        "docs/design/architecture/service-inventory.md",
+        "docs/design/felix-capability-roadmap.md",
+        "docs/runbooks/sync-driver-ops.md"
+      ],
+      "predicted_surfaces": [
+        "planning"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    }
+  ],
+  "computed_at": "2026-06-05T19:10:38.871804+00:00",
+  "computed_from": "dependency_graph+ownership",
+  "planning_artifact_wps": [
+    "WP06"
+  ],
+  "collapse_report": {
+    "events": [
+      {
+        "wp_a": "WP04",
+        "wp_b": "WP02",
+        "rule": "dependency",
+        "evidence": "WP04 depends on WP02"
+      },
+      {
+        "wp_a": "WP04",
+        "wp_b": "WP03",
+        "rule": "dependency",
+        "evidence": "WP04 depends on WP03"
+      },
+      {
+        "wp_a": "WP05",
+        "wp_b": "WP01",
+        "rule": "dependency",
+        "evidence": "WP05 depends on WP01"
+      }
+    ],
+    "total_merges": 3,
+    "independent_wps_collapsed": 0,
+    "by_rule": {
+      "dependency": 3
+    }
+  }
+}
