@@ -4,6 +4,7 @@ doc_type: runbook
 status: approved
 audience: humans
 last_updated: '2026-05-17'
+tags: [304]
 ---
 
 # felix-bot Vikunja Provisioning
