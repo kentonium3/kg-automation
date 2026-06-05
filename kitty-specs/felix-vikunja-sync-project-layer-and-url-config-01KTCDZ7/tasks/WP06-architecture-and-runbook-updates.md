@@ -33,8 +33,8 @@ owned_files:
 - docs/INDEX.md
 - docs/design/felix-capability-roadmap.md
 tags: []
-agent: "claude:sonnet:implementer:implementer"
-shell_pid: "93285"
+agent: "claude:opus:reviewer:reviewer"
+shell_pid: "4483"
 ---
 
 # WP06 — Architecture + Runbook Updates
@@ -292,3 +292,4 @@ This is the final WP. After approval:
 
 - 2026-06-05T19:57:58Z – claude:sonnet:implementer:implementer – shell_pid=93285 – Started implementation via action command
 - 2026-06-05T20:43:37Z – claude:sonnet:implementer:implementer – shell_pid=93285 – Ready for review: T026-T033 complete. 10 doc files updated per signal-to-doc-map. sync-driver-ops.md rewritten to v2.0 (7-phase pipeline, project layer audit, Phase 5b deletion cleanup, URL config). INDEX + capability roadmap updated. Epic #507 marked complete. validate_docs.py OK.
+- 2026-06-05T20:43:44Z – claude:opus:reviewer:reviewer – shell_pid=4483 – Started review via action command
