@@ -15,10 +15,10 @@
 | T004 | Create `scripts/sync/cleanup.py` with `prune_schedule_yaml()` + `append_task_deleted_event()` | WP02 | | [D] |
 | T005 | Tests in `tests/sync/test_cleanup.py` | WP02 | [D] |
 | T006 | Document atomicity + idempotency in module docstring; spec event schema | WP02 | [D] |
-| T007 | Replace `FetchedDelta` with `FetchedSnapshot`; replace `fetch_delta` with `fetch_full_poll`; include FR-012 abort guards | WP03 | |
-| T008 | Rewrite `compute_divergences` in `diff.py` for 3-way set diff outputs | WP03 | [P] |
-| T009 | Rewrite `tests/sync/test_fetch.py` for full-poll semantics + FR-012 cases | WP03 | [P] |
-| T010 | Rewrite `tests/sync/test_diff.py` for set-diff outputs | WP03 | [P] |
+| T007 | Replace `FetchedDelta` with `FetchedSnapshot`; replace `fetch_delta` with `fetch_full_poll`; include FR-012 abort guards | WP03 | | [D] |
+| T008 | Rewrite `compute_divergences` in `diff.py` for 3-way set diff outputs | WP03 | [D] |
+| T009 | Rewrite `tests/sync/test_fetch.py` for full-poll semantics + FR-012 cases | WP03 | [D] |
+| T010 | Rewrite `tests/sync/test_diff.py` for set-diff outputs | WP03 | [D] |
 | T011 | state.py — add `PerLayerSummary`+`LayerSummary`; remove `LayerPointerSnapshot`; update `PerTickHealthRecord` | WP04 | |
 | T012 | cycle.py Phase 1 — call `fetch_full_poll` with FR-012 abort; remove `since_utc` / `known_project_ids` plumbing | WP04 | |
 | T013 | cycle.py Phase 5 — replace `_apply_cache_updates` with set-diff; replace `_apply_project_updates` with canonical-snapshot replacement | WP04 | |
@@ -153,10 +153,10 @@ None. Can land in parallel with WP01 and WP03.
 
 ### Included subtasks
 
-- [ ] T007 Replace `FetchedDelta` with `FetchedSnapshot`; replace `fetch_delta` with `fetch_full_poll`; include FR-012 abort guards (WP03)
-- [ ] T008 Rewrite `compute_divergences` in `diff.py` for 3-way set diff outputs (WP03)
-- [ ] T009 Rewrite `tests/sync/test_fetch.py` for full-poll semantics + FR-012 cases (WP03)
-- [ ] T010 Rewrite `tests/sync/test_diff.py` for set-diff outputs (WP03)
+- [x] T007 Replace `FetchedDelta` with `FetchedSnapshot`; replace `fetch_delta` with `fetch_full_poll`; include FR-012 abort guards (WP03)
+- [x] T008 Rewrite `compute_divergences` in `diff.py` for 3-way set diff outputs (WP03)
+- [x] T009 Rewrite `tests/sync/test_fetch.py` for full-poll semantics + FR-012 cases (WP03)
+- [x] T010 Rewrite `tests/sync/test_diff.py` for set-diff outputs (WP03)
 
 ### Implementation sketch
 
