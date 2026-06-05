@@ -1,10 +1,13 @@
 {
+  "change_mode": "regular",
   "created_at": "2026-06-05T17:40:53.752556+00:00",
-  "friendly_name": "felix vikunja sync project layer and url config",
+  "friendly_name": "Felix-Vikunja Sync — Project Layer and URL Config",
   "mission_id": "01KTCDZ78163ZG65BGKF7F7HMD",
   "mission_number": null,
   "mission_slug": "felix-vikunja-sync-project-layer-and-url-config-01KTCDZ7",
   "mission_type": "software-dev",
   "slug": "felix-vikunja-sync-project-layer-and-url-config-01KTCDZ7",
-  "target_branch": "main"
+  "source_description": "Implements GitHub issue #520 (Mission C of Epic #507, Felix-Vikunja bi-directional sync foundation). Replaces #518's incremental updated_since polling with full-poll + 3-way set diff for the task and project layers, eliminating the documented 15-min deletion gap from RQ-4 (deletion converges in N=1 cycle = 5min). Adds project-layer cache + diff events to the reconciliation driver (audit/discovery only; no downstream consumer changes). Normalizes the two concurrent Vikunja URL bases (https Tailscale + http direct IP) into a single canonical config file (/data/services/openclaw/config/vikunja-base-url.txt) with an env var convenience wrapper (VIKUNJA_BASE_URL). FR-3 scope is narrow: the 6 migrated touchpoints from #519 + the #518 driver + the 2 retained write touchpoints (TP-04 PUT + TP-12 _http_get for comments). One-off setup/utility scripts will be tracked in a separate follow-up issue. Discovery decision 2026-06-05: Kent challenged the incremental-poll model as overly complex for the ~50-task scale; research mission RQ-4 § 4 confirmed full-poll was a considered option (\"acceptable at Felix's scale\") and the 15-min deletion gap was the only NFR-002 miss in the original design. Final mission in the Epic #507 implementation arc.",
+  "target_branch": "main",
+  "vcs": "git"
 }
