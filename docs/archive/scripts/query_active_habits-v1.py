@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# ARCHIVED 2026-06-05 — superseded by scripts/habits/query_active_habits_v2.py
+# (mission #520 / issue #526). Zero callers confirmed before archival. Do not invoke.
 """Query Vikunja Habits project and return tasks scheduled for the input day.
 
 Mission #282 / FR-002. Part of the felix-admin-habits Steps 1-4 refactor
