@@ -7,10 +7,14 @@ requirement_refs:
 planning_base_branch: main
 merge_target_branch: main
 branch_strategy: Planning artifacts for this feature were generated on main. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into main unless the human explicitly redirects the landing branch.
+base_branch: kitty/mission-felix-vikunja-sync-project-layer-and-url-config-01KTCDZ7
+base_commit: 166c9c647fd5ae2d6a58a51555c9b78e05999df6
+created_at: '2026-06-05T19:12:50.168387+00:00'
 subtasks:
 - T004
 - T005
 - T006
+shell_pid: '78402'
 history: []
 authoritative_surface: scripts/sync/cleanup.py
 execution_mode: code_change
