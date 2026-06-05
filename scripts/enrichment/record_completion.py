@@ -77,6 +77,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
 
+from scripts.common.vikunja_config import get_vikunja_base_url
 from scripts.enrichment.schema import (
     DEFAULT_LEDGER_PATH,
     SCHEMA_VERSION,
@@ -107,9 +108,8 @@ __all__ = [
 # Module constants
 # ---------------------------------------------------------------------------
 
-#: Default Vikunja API base URL. Tailscale IP keeps this resolvable without
-#: DNS even when the office2 hostname is unavailable.
-DEFAULT_BASE_URL: str = "http://100.92.197.90:3456/api/v1/"
+#: Sentinel; resolved at call-time via get_vikunja_base_url().
+DEFAULT_BASE_URL: str = ""
 
 #: Default location of the ``felix-bot`` Vikunja API token on office2.
 DEFAULT_TOKEN_PATH: Path = Path("/data/services/openclaw/secrets/vikunja-api")
@@ -519,7 +519,7 @@ def record(
     timestamp_utc: Optional[str] = None,
     idempotent: bool = False,
     skip_vikunja: bool = False,
-    base_url: str = DEFAULT_BASE_URL,
+    base_url: Optional[str] = None,
     token_path: Path = DEFAULT_TOKEN_PATH,
     ledger_path: Path = DEFAULT_LEDGER_PATH,
 ) -> dict:
@@ -575,7 +575,7 @@ def record(
 def record_event(
     record_dict: dict,
     *,
-    base_url: str = DEFAULT_BASE_URL,
+    base_url: Optional[str] = None,
     token_path: Path = DEFAULT_TOKEN_PATH,
     ledger_path: Path = DEFAULT_LEDGER_PATH,
     skip_vikunja: bool = False,
@@ -605,6 +605,8 @@ def record_event(
         StateLogError: On JSONL append failure (Vikunja already committed
             unless ``skip_vikunja=True``).
     """
+    base_url = base_url or get_vikunja_base_url()
+
     # Step 0: validation.
     validate_record(record_dict)
 
@@ -633,7 +635,7 @@ def record_event(
 def idempotent_record_event(
     record_dict: dict,
     *,
-    base_url: str = DEFAULT_BASE_URL,
+    base_url: Optional[str] = None,
     token_path: Path = DEFAULT_TOKEN_PATH,
     ledger_path: Path = DEFAULT_LEDGER_PATH,
     skip_vikunja: bool = False,
@@ -769,8 +771,8 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--base-url",
-        default=DEFAULT_BASE_URL,
-        help=f"Vikunja API base URL (default: {DEFAULT_BASE_URL}).",
+        default=None,
+        help="Vikunja API base URL (default: from VIKUNJA_BASE_URL env or config file).",
     )
     parser.add_argument(
         "--token-path",
@@ -815,6 +817,8 @@ def main(argv: list[str] | None = None) -> int:
             file=sys.stderr,
         )
         return 3
+
+    args.base_url = args.base_url or get_vikunja_base_url()
 
     # Build the record from flags.
     completion = EnrichmentCompletion(

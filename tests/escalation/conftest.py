@@ -195,3 +195,32 @@ def mock_urlopen(monkeypatch):
     mock = MagicMock(name="urlopen")
     monkeypatch.setattr("urllib.request.urlopen", mock)
     return mock
+
+
+# ---------------------------------------------------------------------------
+# Autouse: prevent get_vikunja_base_url() from reading the config file
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture(autouse=True)
+def mock_vikunja_base_url(monkeypatch):
+    """Prevent get_vikunja_base_url() from reading the config file in tests.
+
+    Patches the source module and from-imported namespaces.
+    """
+    import importlib
+
+    _TEST_URL = "https://vikunja.test/api/v1/"
+
+    monkeypatch.setattr(
+        "scripts.common.vikunja_config.get_vikunja_base_url",
+        lambda: _TEST_URL,
+    )
+    for _mod_path in (
+        "scripts.escalation.record_completion",
+    ):
+        try:
+            _mod = importlib.import_module(_mod_path)
+            monkeypatch.setattr(_mod, "get_vikunja_base_url", lambda: _TEST_URL)
+        except (ImportError, AttributeError):
+            pass

@@ -72,8 +72,11 @@ import urllib.request
 from pathlib import Path
 from typing import Any
 
+from scripts.common.vikunja_config import get_vikunja_base_url
 
-DEFAULT_BASE_URL = "https://office2.tail0f5f56.ts.net/api/v1/"
+
+#: Sentinel; resolved at call-time via get_vikunja_base_url().
+DEFAULT_BASE_URL: str = ""
 DEFAULT_USERNAME = "felix-bot"
 DEFAULT_EMAIL = "kentgale+felix-bot@gmail.com"
 SHARE_RIGHT_READ_WRITE = 1  # per ADR-0002 Q3 / spec C-004
@@ -132,8 +135,8 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--vikunja-base-url",
-        default=DEFAULT_BASE_URL,
-        help=f"Vikunja API base URL (default: {DEFAULT_BASE_URL})",
+        default=None,
+        help="Vikunja API base URL (default: from VIKUNJA_BASE_URL env or config file).",
     )
     parser.add_argument(
         "--dry-run",
@@ -701,6 +704,8 @@ def capture_felix_bot_token(
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
+
+    args.vikunja_base_url = args.vikunja_base_url or get_vikunja_base_url()
 
     # --- Identity gate ---
     kent_token = identity_gate(args.kent_token_file)

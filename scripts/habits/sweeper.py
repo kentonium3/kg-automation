@@ -81,6 +81,8 @@ from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
 
+from scripts.common.vikunja_config import get_vikunja_base_url
+
 # --------------------------------------------------------------------------
 # Cross-WP imports
 #
@@ -134,8 +136,8 @@ DEFAULT_STATE_DIR = Path("/data/services/openclaw/state/habits")
 #: Default canonical history log path (sibling of the state dir).
 DEFAULT_HISTORY_PATH = Path("/data/services/openclaw/state/habits-history.jsonl")
 
-#: Default Vikunja API base URL — Tailscale public hostname.
-DEFAULT_VIKUNJA_BASE_URL = "https://office2.tail0f5f56.ts.net/api/v1"
+#: Sentinel; resolved at call-time via get_vikunja_base_url().
+DEFAULT_VIKUNJA_BASE_URL: str = ""
 
 #: Default Vikunja API token file (mode 0600).
 DEFAULT_VIKUNJA_TOKEN_PATH = Path("/data/services/openclaw/secrets/vikunja-api")
@@ -621,7 +623,7 @@ def _vikunja_put_due_date(
     """
     payload = json.dumps({"due_date": new_due_date}).encode("utf-8")
     req = urllib.request.Request(
-        f"{base_url.rstrip('/')}/tasks/{task_id}",
+        f"{base_url}tasks/{task_id}",
         data=payload,
         method="POST",
         headers={
@@ -1064,10 +1066,8 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--vikunja-base-url",
-        default=DEFAULT_VIKUNJA_BASE_URL,
-        help=(
-            f"Vikunja API base URL (default: {DEFAULT_VIKUNJA_BASE_URL})."
-        ),
+        default=None,
+        help="Vikunja API base URL (default: from VIKUNJA_BASE_URL env or config file).",
     )
     parser.add_argument(
         "--now-utc",
@@ -1096,6 +1096,8 @@ def main(argv: list[str] | None = None) -> int:
     """CLI entry point. See module docstring for exit codes."""
     parser = _build_parser()
     args = parser.parse_args(argv)
+
+    args.vikunja_base_url = args.vikunja_base_url or get_vikunja_base_url()
 
     try:
         now_utc = _parse_now_utc(args.now_utc)

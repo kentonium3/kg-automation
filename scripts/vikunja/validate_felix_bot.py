@@ -61,8 +61,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from scripts.common.vikunja_config import get_vikunja_base_url
 
-DEFAULT_BASE_URL = "https://office2.tail0f5f56.ts.net/api/v1/"
+
+#: Sentinel; resolved at call-time via get_vikunja_base_url().
+DEFAULT_BASE_URL: str = ""
 DEFAULT_TARGET_PROJECT_ID = 13  # Habits — low-impact, owned by kent
 DEFAULT_EXPECTED_PROJECT_COUNT = 12
 EXPECTED_USERNAME = "felix-bot"
@@ -542,8 +545,8 @@ def build_arg_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--vikunja-base-url",
-        default=DEFAULT_BASE_URL,
-        help=f"Vikunja base URL (default {DEFAULT_BASE_URL}).",
+        default=None,
+        help="Vikunja base URL (default: from VIKUNJA_BASE_URL env or config file).",
     )
     parser.add_argument(
         "--expected-project-count",
@@ -592,6 +595,8 @@ def build_arg_parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> int:
     parser = build_arg_parser()
     args = parser.parse_args(argv)
+
+    args.vikunja_base_url = args.vikunja_base_url or get_vikunja_base_url()
 
     # Identity gate (always, even in --rollback-smoke-test or --dry-run —
     # we want operators to wire up the token file correctly every time)

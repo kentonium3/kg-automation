@@ -70,12 +70,15 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
+from scripts.common.vikunja_config import get_vikunja_base_url
+
 
 DEFAULT_SECRETS_PATH = "/data/services/openclaw/secrets/vikunja-api"
 DEFAULT_BAK_SUFFIX = ".kent-pre-felix-bot.bak"
 DEFAULT_GATEWAY_UNIT = "openclaw-gateway.service"
 DEFAULT_GATEWAY_HEALTH_TIMEOUT = 30
-DEFAULT_VIKUNJA_BASE_URL = "https://office2.tail0f5f56.ts.net/api/v1"
+#: Sentinel; resolved at call-time via get_vikunja_base_url().
+DEFAULT_VIKUNJA_BASE_URL: str = ""
 DEFAULT_VERIFY_TASK_ID = 1
 
 EXPECTED_FELIX_USER = "felix-bot"
@@ -912,8 +915,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--vikunja-base-url",
         type=str,
-        default=DEFAULT_VIKUNJA_BASE_URL,
-        help=f"Vikunja API base URL (default {DEFAULT_VIKUNJA_BASE_URL}).",
+        default=None,
+        help="Vikunja API base URL (default: from VIKUNJA_BASE_URL env or config file).",
     )
     parser.add_argument(
         "--verify-task-id",
@@ -942,6 +945,8 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
+
+    args.vikunja_base_url = args.vikunja_base_url or get_vikunja_base_url()
 
     if args.rollback_from_bak and args.new_token_file:
         print(

@@ -12,6 +12,7 @@ Pattern mirrors `tests/openclaw/agents/main/test_felix_file_issue.py`.
 from __future__ import annotations
 
 import importlib.util
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -27,6 +28,15 @@ import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 HELPER_PATH = REPO_ROOT / "scripts" / "vikunja" / "validate_felix_bot.py"
+
+
+def _subprocess_env(**extra) -> dict:
+    """Build a subprocess env with PYTHONPATH=REPO_ROOT and a dummy VIKUNJA_BASE_URL."""
+    env = os.environ.copy()
+    env["PYTHONPATH"] = str(REPO_ROOT)
+    env.setdefault("VIKUNJA_BASE_URL", "https://vikunja.test/api/v1/")
+    env.update(extra)
+    return env
 
 
 def _load_helper_module():
@@ -74,6 +84,7 @@ def test_help_exits_zero():
         capture_output=True,
         text=True,
         check=False,
+        env=_subprocess_env(),
     )
     assert result.returncode == 0
     assert "--token-file" in result.stdout
@@ -87,6 +98,7 @@ def test_missing_token_file_arg_exits_2():
         capture_output=True,
         text=True,
         check=False,
+        env=_subprocess_env(),
     )
     assert result.returncode == 2
     assert "--token-file" in result.stderr
@@ -104,6 +116,7 @@ def test_identity_gate_missing_file_exits_2(tmp_path: Path):
         capture_output=True,
         text=True,
         check=False,
+        env=_subprocess_env(),
     )
     assert result.returncode == 2
     assert "does not exist" in result.stderr
@@ -118,6 +131,7 @@ def test_identity_gate_wrong_mode_exits_2(tmp_path: Path):
         capture_output=True,
         text=True,
         check=False,
+        env=_subprocess_env(),
     )
     assert result.returncode == 2
     assert "mode 600" in result.stderr
@@ -132,6 +146,7 @@ def test_identity_gate_empty_token_exits_2(tmp_path: Path):
         capture_output=True,
         text=True,
         check=False,
+        env=_subprocess_env(),
     )
     assert result.returncode == 2
     assert "empty" in result.stderr
@@ -530,6 +545,7 @@ def test_rollback_smoke_test_cli_emits_summary(
         capture_output=True,
         text=True,
         check=False,
+        env=_subprocess_env(),
     )
     assert result.returncode == 0, result.stderr
     assert "SUMMARY: mode=rollback-smoke-test" in result.stdout
@@ -554,6 +570,7 @@ def test_dry_run_no_network(good_token_file: Path):
         capture_output=True,
         text=True,
         check=False,
+        env=_subprocess_env(),
     )
     assert result.returncode == 0, result.stderr
     assert "DRY-RUN" in result.stdout

@@ -39,6 +39,15 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 HELPER_PATH = REPO_ROOT / "scripts" / "vikunja" / "swap_vikunja_secrets.py"
 
 
+def _subprocess_env(**extra) -> dict:
+    """Build a subprocess env with PYTHONPATH=REPO_ROOT and a dummy VIKUNJA_BASE_URL."""
+    env = os.environ.copy()
+    env["PYTHONPATH"] = str(REPO_ROOT)
+    env.setdefault("VIKUNJA_BASE_URL", "https://vikunja.test/api/v1/")
+    env.update(extra)
+    return env
+
+
 def _load_module():
     """Load the helper module directly via importlib (its filename contains
     underscores, so it's importable as `swap_vikunja_secrets`)."""
@@ -516,7 +525,8 @@ def test_verify_attribution_cleanup_failure_does_not_fail_verification(mod):
 def _run_helper(args, env=None):
     """Invoke the helper as a subprocess; return CompletedProcess."""
     cmd = [sys.executable, str(HELPER_PATH), *args]
-    return subprocess.run(cmd, capture_output=True, text=True, env=env)
+    effective_env = _subprocess_env(**(env or {}))
+    return subprocess.run(cmd, capture_output=True, text=True, env=effective_env)
 
 
 def test_help_works():

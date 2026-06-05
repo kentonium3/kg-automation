@@ -61,9 +61,12 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
+from scripts.common.vikunja_config import get_vikunja_base_url
+
 
 DEFAULT_TOKEN_PATH = Path("/data/services/openclaw/secrets/vikunja-api")
-DEFAULT_BASE_URL = "https://office2.tail0f5f56.ts.net/api/v1"
+#: Sentinel; resolved at call-time via get_vikunja_base_url().
+DEFAULT_BASE_URL: str = ""
 
 # Acceptable state values (lowercase). Other states in well-formed Felix
 # comments are flagged as malformed and the habit is treated as ready.
@@ -90,8 +93,9 @@ def _load_token(path: Path) -> str:
 
 def _http_get(base_url: str, token: str, path: str, timeout: int = 15) -> object:
     """GET request to Vikunja with bearer-style auth. Returns parsed JSON."""
+    url = base_url.rstrip("/") + "/" + path.lstrip("/")
     req = urllib.request.Request(
-        f"{base_url}{path}",
+        url,
         headers={"Authorization": f"Bearer {token}"},
     )
     with urllib.request.urlopen(req, timeout=timeout) as resp:
@@ -195,10 +199,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--vikunja-base-url",
         type=str,
-        default=DEFAULT_BASE_URL,
-        help="Vikunja API base URL",
+        default=None,
+        help="Vikunja API base URL (default: from VIKUNJA_BASE_URL env or config file).",
     )
     args = parser.parse_args(argv)
+
+    args.vikunja_base_url = args.vikunja_base_url or get_vikunja_base_url()
 
     if not TODAY_PATTERN.match(args.today):
         print(

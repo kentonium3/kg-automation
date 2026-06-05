@@ -52,14 +52,15 @@ import urllib.request
 from pathlib import Path
 from typing import Any
 
+from scripts.common.vikunja_config import get_vikunja_base_url
+
 
 # ---------------------------------------------------------------------------
 # Module constants
 # ---------------------------------------------------------------------------
 
-#: Default Vikunja API base. The office2 Tailscale IP (loopback over Tailscale)
-#: keeps the helper functional without DNS resolution of the public hostname.
-DEFAULT_BASE_URL = "http://100.92.197.90:3456/api/v1/"
+#: Sentinel; resolved at call-time via get_vikunja_base_url().
+DEFAULT_BASE_URL: str = ""
 
 #: Default location for the felix-bot Vikunja API token on office2 (mode 0600).
 DEFAULT_TOKEN_PATH = "/data/services/openclaw/secrets/vikunja-api"
@@ -243,8 +244,8 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--base-url",
-        default=DEFAULT_BASE_URL,
-        help=f"Vikunja API base URL (default: {DEFAULT_BASE_URL}).",
+        default=None,
+        help="Vikunja API base URL (default: from VIKUNJA_BASE_URL env or config file).",
     )
     parser.add_argument(
         "--candidate-ids",
@@ -277,6 +278,8 @@ def _read_token(token_file: Path) -> str:
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
+
+    args.base_url = args.base_url or get_vikunja_base_url()
 
     # Read token (exit 2 on I/O error per CLI contract).
     try:

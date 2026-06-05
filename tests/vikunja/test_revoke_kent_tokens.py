@@ -181,7 +181,7 @@ def test_login_200_returns_jwt():
         lambda: _FakeResponse(200, {"token": "JWT-AAA"}),
     )
     with mock.patch.object(revoke.urllib.request, "urlopen", router):
-        jwt = revoke.obtain_kent_jwt("kent", "secret", revoke.DEFAULT_BASE_URL)
+        jwt = revoke.obtain_kent_jwt("kent", "secret", "https://vikunja.test/api/v1/")
     assert jwt == "JWT-AAA"
     # Verify the password was sent in the body (helper does post the password
     # to login — that's intentional; we just confirm the helper itself does
@@ -198,7 +198,7 @@ def test_login_401_exits_1(capsys):
     router.register("POST", "/login", lambda: (_ for _ in ()).throw(_http_error(401, {"message": "wrong"})))
     with mock.patch.object(revoke.urllib.request, "urlopen", router):
         with pytest.raises(SystemExit) as excinfo:
-            revoke.obtain_kent_jwt("kent", "wrong", revoke.DEFAULT_BASE_URL)
+            revoke.obtain_kent_jwt("kent", "wrong", "https://vikunja.test/api/v1/")
     assert excinfo.value.code == 1
     err = capsys.readouterr().err
     assert "credentials rejected" in err

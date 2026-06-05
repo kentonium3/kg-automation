@@ -13,10 +13,12 @@ from pathlib import Path
 from typing import Optional
 from zoneinfo import ZoneInfo
 
+from scripts.common.vikunja_config import get_vikunja_base_url
 from .manifest import Credential
 
 
-VIKUNJA_API_BASE = "https://office2.tail0f5f56.ts.net/api/v1"
+#: Sentinel; resolved at call-time via get_vikunja_base_url().
+VIKUNJA_API_BASE: str = ""
 VIKUNJA_TOKEN_PATH = Path("/data/services/openclaw/secrets/vikunja-api")
 INBOX_PROJECT_TITLE = "Inbox"
 DUE_DATE_TIMEZONE = "America/New_York"
@@ -104,7 +106,7 @@ def _request_json(
 
 def lookup_inbox_project_id(token: str) -> int:
     """Find the Inbox project by title. Returns the smallest matching ID if multiple."""
-    projects = _request_json("GET", f"{VIKUNJA_API_BASE}/projects", token, timeout=10)
+    projects = _request_json("GET", f"{get_vikunja_base_url()}projects", token, timeout=10)
     if not isinstance(projects, list):
         raise VikunjaWriteError(
             f"Vikunja /projects did not return a list (got {type(projects).__name__})"
@@ -141,7 +143,7 @@ def create_task(
     }
     body = _request_json(
         "PUT",
-        f"{VIKUNJA_API_BASE}/projects/{inbox_project_id}/tasks",
+        f"{get_vikunja_base_url()}projects/{inbox_project_id}/tasks",
         token,
         payload=payload,
         timeout=15,

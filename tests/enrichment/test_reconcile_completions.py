@@ -59,12 +59,18 @@ from tests.common.conftest import mock_sync_cache_fixture  # noqa: F401
 def mock_vikunja_base_url(monkeypatch):
     """Prevent get_vikunja_base_url() from reading the config file in tests.
 
-    enrichment/reconcile_completions.py imports the name into its own
-    namespace, so we patch there.
+    Patches both reconcile_completions and record_completion local bindings
+    because reconcile_completions delegates to record_completion.record_event()
+    which also calls get_vikunja_base_url() in its own namespace.
     """
+    _test_url = "https://vikunja.test/api/v1/"
     monkeypatch.setattr(
         "scripts.enrichment.reconcile_completions.get_vikunja_base_url",
-        lambda: "https://vikunja.test/api/v1/",
+        lambda: _test_url,
+    )
+    monkeypatch.setattr(
+        "scripts.enrichment.record_completion.get_vikunja_base_url",
+        lambda: _test_url,
     )
 
 

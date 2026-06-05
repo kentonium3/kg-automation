@@ -30,6 +30,20 @@ HELPER_PATH = REPO_ROOT / "scripts" / "vikunja" / "provision_felix_bot.py"
 
 
 # ---------------------------------------------------------------------------
+# Subprocess env helper
+# ---------------------------------------------------------------------------
+
+
+def _subprocess_env(**extra) -> dict:
+    """Build a subprocess env with PYTHONPATH=REPO_ROOT and a dummy VIKUNJA_BASE_URL."""
+    env = os.environ.copy()
+    env["PYTHONPATH"] = str(REPO_ROOT)
+    env.setdefault("VIKUNJA_BASE_URL", "https://vikunja.test/api/v1/")
+    env.update(extra)
+    return env
+
+
+# ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
 
@@ -96,6 +110,7 @@ def test_help_succeeds():
         [sys.executable, str(HELPER_PATH), "--help"],
         capture_output=True,
         text=True,
+        env=_subprocess_env(),
     )
     assert result.returncode == 0
     assert "--kent-token-file" in result.stdout
@@ -110,6 +125,7 @@ def test_missing_required_args_exits_2(tmp_path):
         [sys.executable, str(HELPER_PATH), "--dry-run"],
         capture_output=True,
         text=True,
+        env=_subprocess_env(),
     )
     assert result.returncode == 2
     assert (
@@ -136,6 +152,7 @@ def test_identity_gate_missing_kent_token_file_exits_2(tmp_path):
         ],
         capture_output=True,
         text=True,
+        env=_subprocess_env(),
     )
     assert result.returncode == 2
     assert "kent token file not readable" in result.stderr
@@ -158,6 +175,7 @@ def test_identity_gate_wrong_mode_exits_2(tmp_path):
         ],
         capture_output=True,
         text=True,
+        env=_subprocess_env(),
     )
     assert result.returncode == 2
     assert "unsafe mode" in result.stderr
@@ -180,6 +198,7 @@ def test_identity_gate_empty_token_file_exits_2(tmp_path):
         ],
         capture_output=True,
         text=True,
+        env=_subprocess_env(),
     )
     assert result.returncode == 2
     assert "empty" in result.stderr.lower()
@@ -208,6 +227,7 @@ def test_dry_run_full_path_succeeds_and_writes_summary(tmp_path):
         input=valid_token + "\n",
         capture_output=True,
         text=True,
+        env=_subprocess_env(),
     )
     assert result.returncode == 0, (
         f"stdout={result.stdout!r} stderr={result.stderr!r}"
@@ -239,6 +259,7 @@ def test_dry_run_empty_token_exits_2(tmp_path):
         input="\n",
         capture_output=True,
         text=True,
+        env=_subprocess_env(),
     )
     assert result.returncode == 2
     assert "empty stdin" in result.stderr.lower()
@@ -261,6 +282,7 @@ def test_dry_run_short_token_exits_2(tmp_path):
         input="short\n",
         capture_output=True,
         text=True,
+        env=_subprocess_env(),
     )
     assert result.returncode == 2
     assert "plausible" in result.stderr.lower()
@@ -282,6 +304,7 @@ def test_password_required_outside_dry_run(tmp_path):
         ],
         capture_output=True,
         text=True,
+        env=_subprocess_env(),
     )
     assert result.returncode == 2
     assert "--password-from-stdin" in result.stderr

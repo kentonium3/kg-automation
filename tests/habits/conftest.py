@@ -183,9 +183,20 @@ def mock_vikunja_base_url(monkeypatch):
         "scripts.common.vikunja_config.get_vikunja_base_url",
         lambda: "https://vikunja.test/api/v1/",
     )
-    # Also patch the scripts.habits.set_due_dates namespace (from-import).
-    try:
-        import scripts.habits.set_due_dates as sdd
-        monkeypatch.setattr(sdd, "get_vikunja_base_url", lambda: "https://vikunja.test/api/v1/")
-    except ImportError:
-        pass
+    # Also patch from-imported namespaces for modules that do
+    # ``from scripts.common.vikunja_config import get_vikunja_base_url``.
+    _TEST_URL = "https://vikunja.test/api/v1/"
+    for _mod_path in (
+        "scripts.habits.set_due_dates",
+        "scripts.habits.migrate_schedule",
+        "scripts.habits.sweeper",
+        "scripts.habits.identify_workout_task",
+        "scripts.habits.exclude_completed",
+        "scripts.habits.backfill_jsonl_from_comments",
+    ):
+        try:
+            import importlib
+            _mod = importlib.import_module(_mod_path)
+            monkeypatch.setattr(_mod, "get_vikunja_base_url", lambda: _TEST_URL)
+        except (ImportError, AttributeError):
+            pass

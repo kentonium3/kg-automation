@@ -800,6 +800,9 @@ def _run_cli(*args, env_extra=None) -> subprocess.CompletedProcess:
     env.pop(ms.PREFLIGHT_ENV_VAR, None)
     if env_extra and ms.PREFLIGHT_ENV_VAR in env_extra:
         env[ms.PREFLIGHT_ENV_VAR] = env_extra[ms.PREFLIGHT_ENV_VAR]
+    # Provide a dummy URL so tests that don't pass --base-url can still reach
+    # argument-validation checks without get_vikunja_base_url() failing.
+    env.setdefault("VIKUNJA_BASE_URL", "https://vikunja.test/api/v1/")
     return subprocess.run(
         [sys.executable, "-m", "scripts.habits.migrate_schedule", *args],
         cwd=REPO_ROOT,

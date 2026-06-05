@@ -90,7 +90,7 @@ def test_single_workout_match(mock_urlopen, sample_habit_task_response, fake_vik
     )
     mock_urlopen.side_effect = responses
 
-    result = iwt.find_workout_task(iwt.DEFAULT_BASE_URL, fake_vikunja_token)
+    result = iwt.find_workout_task("https://vikunja.test/api/v1/", fake_vikunja_token)
     assert result is not None
     assert result["task_id"] == 17
     assert result["title"] == "Workout — strength training"
@@ -105,7 +105,7 @@ def test_zero_matches(mock_urlopen, sample_habit_task_response, fake_vikunja_tok
     responses = _build_responses(sample_habit_task_response, {})
     mock_urlopen.side_effect = responses
 
-    result = iwt.find_workout_task(iwt.DEFAULT_BASE_URL, fake_vikunja_token)
+    result = iwt.find_workout_task("https://vikunja.test/api/v1/", fake_vikunja_token)
     assert result is None
 
 
@@ -118,7 +118,7 @@ def test_multiple_matches_raises(mock_urlopen, sample_habit_task_response, fake_
     mock_urlopen.side_effect = responses
 
     with pytest.raises(ValueError) as excinfo:
-        iwt.find_workout_task(iwt.DEFAULT_BASE_URL, fake_vikunja_token)
+        iwt.find_workout_task("https://vikunja.test/api/v1/", fake_vikunja_token)
     msg = str(excinfo.value)
     assert "17" in msg
     assert "65" in msg
@@ -135,7 +135,7 @@ def test_case_insensitive_match(
     responses = _build_responses(sample_habit_task_response, {17: title})
     mock_urlopen.side_effect = responses
 
-    result = iwt.find_workout_task(iwt.DEFAULT_BASE_URL, fake_vikunja_token)
+    result = iwt.find_workout_task("https://vikunja.test/api/v1/", fake_vikunja_token)
     assert result is not None
     assert result["task_id"] == 17
     assert result["title"] == title
@@ -158,7 +158,7 @@ def test_http_error_raises_oserror(
     mock_urlopen.side_effect = side_effects
 
     with pytest.raises(OSError) as excinfo:
-        iwt.find_workout_task(iwt.DEFAULT_BASE_URL, fake_vikunja_token)
+        iwt.find_workout_task("https://vikunja.test/api/v1/", fake_vikunja_token)
     assert "404" in str(excinfo.value)
 
 
@@ -169,7 +169,7 @@ def test_urlerror_raises_oserror(
     mock_urlopen.side_effect = urllib.error.URLError("name resolution failed")
 
     with pytest.raises(OSError) as excinfo:
-        iwt.find_workout_task(iwt.DEFAULT_BASE_URL, fake_vikunja_token)
+        iwt.find_workout_task("https://vikunja.test/api/v1/", fake_vikunja_token)
     assert "Network failure" in str(excinfo.value) or "name resolution" in str(excinfo.value)
 
 
@@ -181,7 +181,7 @@ def test_candidate_ids_argument_is_honored(
         _resp(sample_habit_task_response(task_id=999, title="My Workout")),
     ]
     result = iwt.find_workout_task(
-        iwt.DEFAULT_BASE_URL, fake_vikunja_token, candidate_ids=[999]
+        "https://vikunja.test/api/v1/", fake_vikunja_token, candidate_ids=[999]
     )
     # Only one urlopen call (one custom candidate).
     assert mock_urlopen.call_count == 1
@@ -196,7 +196,7 @@ def test_non_dict_response_raises_oserror(
     mock_urlopen.side_effect = [_resp(["unexpected", "shape"])]
     with pytest.raises(OSError):
         iwt.find_workout_task(
-            iwt.DEFAULT_BASE_URL, fake_vikunja_token, candidate_ids=[14]
+            "https://vikunja.test/api/v1/", fake_vikunja_token, candidate_ids=[14]
         )
 
 
@@ -214,7 +214,7 @@ def test_non_json_response_raises_oserror(
 
     with pytest.raises(OSError):
         iwt.find_workout_task(
-            iwt.DEFAULT_BASE_URL, fake_vikunja_token, candidate_ids=[14]
+            "https://vikunja.test/api/v1/", fake_vikunja_token, candidate_ids=[14]
         )
 
 
@@ -433,7 +433,7 @@ def test_non_string_title_skipped(
     mock_urlopen.side_effect = [cm]
 
     result = iwt.find_workout_task(
-        iwt.DEFAULT_BASE_URL, fake_vikunja_token, candidate_ids=[14]
+        "https://vikunja.test/api/v1/", fake_vikunja_token, candidate_ids=[14]
     )
     assert result is None
 
@@ -455,7 +455,7 @@ def test_http_error_with_unreadable_body_still_raises(
         mock_urlopen.side_effect = err
         with pytest.raises(OSError) as excinfo:
             iwt.find_workout_task(
-                iwt.DEFAULT_BASE_URL, fake_vikunja_token, candidate_ids=[14]
+                "https://vikunja.test/api/v1/", fake_vikunja_token, candidate_ids=[14]
             )
         assert "500" in str(excinfo.value)
     finally:

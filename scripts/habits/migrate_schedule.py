@@ -53,14 +53,15 @@ except ImportError:  # pragma: no cover — handled at runtime only
     )
     sys.exit(2)
 
+from scripts.common.vikunja_config import get_vikunja_base_url
+
 
 # ---------------------------------------------------------------------------
 # Module constants
 # ---------------------------------------------------------------------------
 
-#: Default Vikunja API base. Tailscale IP keeps the helper functional
-#: without DNS resolution of the public hostname.
-DEFAULT_BASE_URL = "http://100.92.197.90:3456/api/v1/"
+#: Sentinel; resolved at call-time via get_vikunja_base_url().
+DEFAULT_BASE_URL: str = ""
 
 #: Default location of the felix-bot Vikunja API token on office2 (mode 0600).
 DEFAULT_TOKEN_PATH = "/data/services/openclaw/secrets/vikunja-api"
@@ -1072,8 +1073,8 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--base-url",
-        default=DEFAULT_BASE_URL,
-        help=f"Vikunja API base URL (default: {DEFAULT_BASE_URL}).",
+        default=None,
+        help="Vikunja API base URL (default: from VIKUNJA_BASE_URL env or config file).",
     )
     return parser
 
@@ -1107,6 +1108,8 @@ def _preflight_message() -> str:
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
+
+    args.base_url = args.base_url or get_vikunja_base_url()
 
     if args.rollback:
         if args.snapshot_file is None:

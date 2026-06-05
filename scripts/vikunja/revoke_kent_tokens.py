@@ -61,7 +61,10 @@ import urllib.error
 import urllib.request
 from typing import Any
 
-DEFAULT_BASE_URL = "https://office2.tail0f5f56.ts.net/api/v1/"
+from scripts.common.vikunja_config import get_vikunja_base_url
+
+#: Sentinel; resolved at call-time via get_vikunja_base_url().
+DEFAULT_BASE_URL: str = ""
 HTTP_TIMEOUT_SECONDS = 30
 
 
@@ -321,8 +324,8 @@ def build_arg_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--vikunja-base-url",
-        default=DEFAULT_BASE_URL,
-        help=f"Vikunja API base URL (default: {DEFAULT_BASE_URL}).",
+        default=None,
+        help="Vikunja API base URL (default: from VIKUNJA_BASE_URL env or config file).",
     )
     parser.add_argument(
         "--dry-run",
@@ -363,6 +366,8 @@ def _read_password_from_stdin() -> str:
 def main(argv: list[str] | None = None) -> int:
     parser = build_arg_parser()
     args = parser.parse_args(argv)
+
+    args.vikunja_base_url = args.vikunja_base_url or get_vikunja_base_url()
 
     # --- UI-fallback-only short-circuit ---
 
