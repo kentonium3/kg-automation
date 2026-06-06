@@ -255,7 +255,7 @@ Per-helper metadata mirrors `docs/design/architecture/data/service-inventory.jso
 - **Skills**: task-intelligence, vikunja-api
 - **Autonomy**: Assisted (Level 1)
 - **Trigger**: Delegation (from felix-admin-capture for `enrich_task`), manual (`retroactive_enrichment`, `detect_incomplete`). **Not cron-driven** — the previously-listed `task-detection` cron (every 4h UTC) was unverified drift (no matching `openclaw cron list` entry on office2) — removed by #310. C-006 in the mission spec confirms tasker is delegation-driven only.
-- **Privacy boundary**: `02-Growth/_private/` is never accessed
+- **Privacy boundary**: `04-Growth/_private/` is never accessed (path renumbered from `02-Growth/_private/` in mission 026 / #152)
 
 #### State files (post-#310)
 

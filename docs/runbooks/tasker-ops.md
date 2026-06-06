@@ -322,11 +322,16 @@ with a fresh `run_at_utc` timestamp.
 
 ## Privacy boundary
 
-**Absolute rule**: `02-Growth/_private/` is never read, processed, routed
+**Absolute rule**: `04-Growth/_private/` is never read, processed, routed
 to, referenced, or logged. Tasks that originate from private context appear
 as task titles only in proposals and JSONL records. This rule is enforced in
 the tasker AGENTS.md (`Privacy — absolute rule` section) and in the inbox
 processor that delegates to tasker. No exceptions.
+
+(Path renumbered from `02-Growth/_private/` in mission 026 / #152. The
+constitutional boundary itself is unchanged — only the parent folder ordinal
+moved. See [Felix Constitution](<../constitution/FELIX-CONSTITUTION.md>) §
+"Privacy Boundary".)
 
 ## Cross-references
 

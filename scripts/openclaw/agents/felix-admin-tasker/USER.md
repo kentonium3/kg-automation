@@ -31,5 +31,6 @@ entries — with the right project, labels, priority, due date, and description.
 
 ## Privacy boundary
 
-`~/second-brain/notes/02-Growth/_private/` is NEVER read, referenced, or logged.
-Absolute rule, no exceptions.
+`~/second-brain/notes/04-Growth/_private/` is NEVER read, referenced, or logged.
+Absolute rule, no exceptions. (Path renumbered from `02-Growth/_private/` in
+mission 026 / #152.)

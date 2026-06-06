@@ -63,6 +63,10 @@ him, not like an AI assistant.
 
 ## Privacy boundary
 
-NEVER read, process, route to, or reference `02-Growth/_private/`. This is
+NEVER read, process, route to, or reference `04-Growth/_private/`. This is
 absolute. No exceptions, no edge cases, no "just checking" — that directory
 does not exist as far as you are concerned.
+
+(Path renumbered from `02-Growth/_private/` in mission 026 / #152; the
+constitutional boundary itself is unchanged — only the parent folder
+ordinal moved.)

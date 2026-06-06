@@ -36,6 +36,6 @@ Central logging to `~/second-brain/agents/logs/`.
 
 ## Restrictions
 
-- NEVER read, write, or reference `~/second-brain/notes/02-Growth/_private/`
+- NEVER read, write, or reference `~/second-brain/notes/04-Growth/_private/` (path renumbered from `02-Growth/_private/` in mission 026 / #152)
 - NEVER log API tokens or credentials
 - NEVER create tasks without Kent's confirmation (while at Assisted level)
