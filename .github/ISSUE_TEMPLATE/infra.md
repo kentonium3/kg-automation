@@ -145,5 +145,6 @@ This issue qualifies for the `spec: ready` label when:
 - [ ] **Post-change verification** includes named health checks for affected services
 - [ ] **Architecture documentation updates** lists JSON files to update (or affirms none)
 - [ ] **Supply-chain review** — if this change adds a new package source (brew tap, pip index, npm registry, MCP plugin / AI extension with system access), the body documents the dependency-tree review and pinning posture
-- [ ] **Design-time discipline** — deterministic-vs-stochastic split has been considered; helper-script extraction is identified where appropriate (per Felix Constitution Directive 6)
+- [ ] **Design-time discipline** — deterministic-vs-stochastic split has been considered; helper-script extraction is identified where appropriate (per Felix Constitution Directive 6 and the approved [helper-script conventions](../../docs/design/helper-script-conventions.md))
+- [ ] **Helper / library / skill decision** — for any deterministic work this change introduces, the choice between agent-co-located helper, domain-co-located helper, shared library (`scripts/lib/`), or skill (`~/.openclaw/skills/`) has been made per the invocation-surface test in [helper-script-conventions § 9](../../docs/design/helper-script-conventions.md) (or the body explicitly affirms no new deterministic work is introduced)
 - [ ] HTML comment guidance blocks have been removed

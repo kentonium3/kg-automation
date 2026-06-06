@@ -242,5 +242,6 @@ This issue qualifies for the `spec: ready` label when:
 - [ ] **Architecture Impact** identifies affected JSON files OR the section is removed because no architecture changes are involved
 - [ ] **Risk tier** is selected for any deployed/system change, with required pre-flight/backup/approval gates identified
 - [ ] **Constitutional Compliance** addresses autonomy level, scope, and failure behavior
-- [ ] **Design-time discipline** — deterministic-vs-stochastic split has been considered; helper-script extraction is identified where appropriate (per Felix Constitution Directive 6)
+- [ ] **Design-time discipline** — deterministic-vs-stochastic split has been considered; helper-script extraction is identified where appropriate (per Felix Constitution Directive 6 and the approved [helper-script conventions](../../docs/design/helper-script-conventions.md))
+- [ ] **Helper / library / skill decision** — for any deterministic work this feature introduces, the choice between agent-co-located helper, domain-co-located helper, shared library (`scripts/lib/`), or skill (`~/.openclaw/skills/`) has been made per the invocation-surface test in [helper-script-conventions § 9](../../docs/design/helper-script-conventions.md) (or the body explicitly affirms no new deterministic work is introduced)
 - [ ] HTML comment guidance blocks have been removed

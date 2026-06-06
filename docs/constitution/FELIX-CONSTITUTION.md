@@ -110,6 +110,8 @@ System work is decomposed by the nature of the operation, not by what's easiest 
 - This Directive is not a mandate to over-engineer: a one-line step does not need a helper. The rule is to *recognize the split and route accordingly* — not to mechanize everything.
 - Apply to existing work too: when a recurring agent step has accumulated complexity, the right intervention is usually "extract a helper," not "write a longer prompt."
 
+Operational source of truth: [`docs/design/helper-script-conventions.md`](<../design/helper-script-conventions.md>) — the approved three-tier model (helper / library / skill), invocation-surface decision test, CLI interface contract, stdout convention, atomic state mutation, idempotency, failure-mode handling, observability, testing discipline, deploy story, and migration discipline. Deviations from the conventions are deliberate and documented per the change-control protocol.
+
 Rationale: this principle has been load-bearing for missions #253 (inbox helpers), #259 (audit-edit routing), #277 (audit.sh coverage extension), and #278 (signal-driven doc-audit). When followed, agent prompts stay readable, behaviors stay reproducible, and Haiku-tier models become viable for routine work. When violated, prompts grow until cheaper models can't follow them, and reasoning becomes brittle to model changes.
 
 ## Directive 7: Migration Completeness — No Orphaned Transitional Artifacts

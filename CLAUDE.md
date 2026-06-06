@@ -289,6 +289,28 @@ machine-readable version wins.
 See [Felix Constitution Directive 5](docs/constitution/FELIX-CONSTITUTION.md)
 for the full documentation standards principle.
 
+## Engineering Principles
+
+Two governing documents sit between the Felix Constitution (broad governance)
+and individual feature specs:
+
+- [`docs/design/engineering-principles.md`](docs/design/engineering-principles.md) — the 10 ratified
+  principles covering runtime state, deterministic work, integration boundaries,
+  JSON validation, test discipline, privacy enforcement, active-surface hygiene,
+  suspension as an operational state, observability per feature, and guardrail
+  preference. Read these before designing new features or scoping new
+  infrastructure work.
+- [`docs/design/helper-script-conventions.md`](docs/design/helper-script-conventions.md) — the
+  approved three-tier model (helper / library / skill), invocation-surface
+  decision test, CLI interface contract, stdout convention, atomic state
+  mutation, idempotency, failure-mode handling, observability, testing
+  discipline, deploy story, and migration discipline. Operational source of
+  truth referenced from Felix Constitution Directive 6.
+
+When a feature, infrastructure change, or bug fix touches deterministic
+verification work, the helper/library/skill decision is part of spec-ready
+criteria (per the issue templates).
+
 ## Architecture Documentation
 
 The system maintains a live architecture documentation store at
