@@ -5,7 +5,7 @@ Wants=network-online.target
 
 [Service]
 Type=oneshot
-ExecStart=/usr/bin/python3 /home/claude/kg-automation/scripts/habits/sweeper.py
+ExecStart=/usr/bin/python3 -m scripts.habits.sweeper
 Environment=HOME=/home/claude
 WorkingDirectory=/home/claude/kg-automation
 
