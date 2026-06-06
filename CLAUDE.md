@@ -180,19 +180,29 @@ To find issues needing formalization, query for `spec: pending`.
 **Auto-driving the workflow:**
 When Kent says to "proceed through the workflow" or equivalent, drive the full
 arc (specify → plan → tasks → implement → review → merge) without waiting for
-him to type each slash command. For EACH workflow step, read the corresponding
-command file from disk before executing:
+him to type each slash command. In spec-kitty 3.2.0rc37+ the command files
+split two ways:
 
+*Prompt-driven runbooks (read fresh each step, follow instructions, honor
+the "Startup Upgrade Check" block at the top):*
 - `~/.claude/commands/spec-kitty.specify.md`
 - `~/.claude/commands/spec-kitty.plan.md`
-- `~/.claude/commands/spec-kitty.tasks.md`
+- `~/.claude/commands/spec-kitty.tasks.md` (plus `tasks-outline.md`,
+  `tasks-packages.md`, `charter.md`, `analyze.md`, `research.md`)
+
+*CLI-driven shims (~9 lines — just run the underlying CLI):*
 - `~/.claude/commands/spec-kitty.implement.md`
 - `~/.claude/commands/spec-kitty.review.md`
+- `~/.claude/commands/spec-kitty.accept.md`
 - `~/.claude/commands/spec-kitty.merge.md`
 
-These files are the canonical runbooks — the same content a slash command
-loads. Read the file fresh each step (spec-kitty upgrades may update them).
-Follow the instructions in the file as if Kent had invoked the slash command.
+For shims, run `spec-kitty <step> <args>` directly. The shim's literal
+instruction is "Run this exact command and treat its output as authoritative.
+Do not rediscover context." Don't improvise pre-work; the CLI owns the state
+machine.
+
+Sanity check after spec-kitty upgrades: `wc -l ~/.claude/commands/spec-kitty.<step>.md`
+— <10 = shim, 100s = runbook.
 
 **Only stop for:**
 1. Mandatory stops marked in the command file (e.g., "MANDATORY STOP POINT")
