@@ -103,3 +103,4 @@ validation pass, not a governance rewrite.
 - 2026-06-06T00:46:13Z – codex:gpt-5:docs-implementer:implementer – shell_pid=73650 – Started implementation via action command
 - 2026-06-06T00:47:46Z – codex:gpt-5:docs-implementer:implementer – shell_pid=73650 – Ready for review
 - 2026-06-06T00:47:56Z – codex:gpt-5:docs-reviewer:reviewer – shell_pid=73650 – Started review via action command
+- 2026-06-06T00:48:33Z – codex:gpt-5:docs-reviewer:reviewer – shell_pid=73650 – Review passed: companion docs checked; change-control summary aligned with canonical Tier 1/Tier 2 gates; docs validation passes.
