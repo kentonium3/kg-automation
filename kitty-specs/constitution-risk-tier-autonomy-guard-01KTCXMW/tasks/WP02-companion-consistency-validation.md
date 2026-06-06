@@ -15,7 +15,7 @@ subtasks:
 - T006
 - T007
 - T008
-agent: "codex:gpt-5:docs-implementer:implementer"
+agent: "codex:gpt-5:docs-reviewer:reviewer"
 shell_pid: "73650"
 history:
 - at: '2026-06-06T00:37:37Z'
@@ -102,3 +102,4 @@ validation pass, not a governance rewrite.
 
 - 2026-06-06T00:46:13Z – codex:gpt-5:docs-implementer:implementer – shell_pid=73650 – Started implementation via action command
 - 2026-06-06T00:47:46Z – codex:gpt-5:docs-implementer:implementer – shell_pid=73650 – Ready for review
+- 2026-06-06T00:47:56Z – codex:gpt-5:docs-reviewer:reviewer – shell_pid=73650 – Started review via action command
