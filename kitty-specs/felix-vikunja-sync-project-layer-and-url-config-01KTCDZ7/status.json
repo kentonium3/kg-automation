@@ -2,7 +2,7 @@
   "event_count": 36,
   "last_event_id": "01KTCRH676TC5Q9B8V0S2070V0",
   "materialized_at": "2026-06-05T20:45:26.630951+00:00",
-  "mission_number": "",
+  "mission_number": "67",
   "mission_slug": "felix-vikunja-sync-project-layer-and-url-config-01KTCDZ7",
   "mission_type": "software-dev",
   "summary": {

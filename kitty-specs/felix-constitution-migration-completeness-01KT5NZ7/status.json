@@ -2,7 +2,7 @@
   "event_count": 6,
   "last_event_id": "01KT5PHF69F082512BMFXY9EBD",
   "materialized_at": "2026-06-03T02:55:57.641644+00:00",
-  "mission_number": "",
+  "mission_number": "63",
   "mission_slug": "felix-constitution-migration-completeness-01KT5NZ7",
   "mission_type": "software-dev",
   "summary": {

@@ -2,7 +2,7 @@
   "event_count": 6,
   "last_event_id": "01KSENZ41RAW5T4GPRDC6EFQ80",
   "materialized_at": "2026-05-25T04:23:24.472458+00:00",
-  "mission_number": "",
+  "mission_number": "56",
   "mission_slug": "audit-interpretation-size-guard-01KSEN9B",
   "mission_type": "software-dev",
   "summary": {

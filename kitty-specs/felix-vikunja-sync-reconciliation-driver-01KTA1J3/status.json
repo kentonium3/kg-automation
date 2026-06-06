@@ -2,7 +2,7 @@
   "event_count": 41,
   "last_event_id": "01KTA7HYQWSZDZY3K0MT7F2MZ1",
   "materialized_at": "2026-06-04T21:10:17.084900+00:00",
-  "mission_number": "",
+  "mission_number": "65",
   "mission_slug": "felix-vikunja-sync-reconciliation-driver-01KTA1J3",
   "mission_type": "software-dev",
   "summary": {

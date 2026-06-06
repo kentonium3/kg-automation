@@ -2,7 +2,7 @@
   "event_count": 6,
   "last_event_id": "01KSEMVEX2PWSY3BWCWKTDDHSK",
   "materialized_at": "2026-05-25T04:03:55.938717+00:00",
-  "mission_number": "",
+  "mission_number": "55",
   "mission_slug": "drift-interpretation-fence-strip-fix-01KSEM6S",
   "mission_type": "software-dev",
   "summary": {

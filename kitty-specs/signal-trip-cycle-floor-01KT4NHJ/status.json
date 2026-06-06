@@ -2,7 +2,7 @@
   "event_count": 11,
   "last_event_id": "01KT4R3ASE2MHPFCYSG42CHRKV",
   "materialized_at": "2026-06-02T18:03:57.103017+00:00",
-  "mission_number": "",
+  "mission_number": "61",
   "mission_slug": "signal-trip-cycle-floor-01KT4NHJ",
   "mission_type": "software-dev",
   "summary": {

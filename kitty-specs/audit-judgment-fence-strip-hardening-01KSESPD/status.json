@@ -1,35 +1,35 @@
 {
-    "event_count": 29,
-    "last_event_id": "01KSEZ5S91FNE1MRQC97KE2102",
-    "materialized_at": "2026-06-01T01:00:01.102430+00:00",
-    "mission_number": "",
-    "mission_slug": "audit-judgment-fence-strip-hardening-01KSESPD",
-    "mission_type": "software-dev",
-    "summary": {
-        "approved": 0,
-        "blocked": 0,
-        "canceled": 0,
-        "claimed": 0,
-        "done": 2,
-        "for_review": 0,
-        "in_progress": 0,
-        "in_review": 0,
-        "planned": 0
+  "event_count": 29,
+  "last_event_id": "01KSEZ5S91FNE1MRQC97KE2102",
+  "materialized_at": "2026-05-25T07:04:20.368000+00:00",
+  "mission_number": "57",
+  "mission_slug": "audit-judgment-fence-strip-hardening-01KSESPD",
+  "mission_type": "software-dev",
+  "summary": {
+    "approved": 0,
+    "blocked": 0,
+    "canceled": 0,
+    "claimed": 0,
+    "done": 2,
+    "for_review": 0,
+    "in_progress": 0,
+    "in_review": 0,
+    "planned": 0
+  },
+  "work_packages": {
+    "WP01": {
+      "actor": "merge",
+      "force_count": 4,
+      "lane": "done",
+      "last_event_id": "01KSEZ5S90X73EYN54F4BAQGPM",
+      "last_transition_at": "2026-05-25T07:04:20.342000+00:00"
     },
-    "work_packages": {
-        "WP01": {
-            "actor": "merge",
-            "force_count": 4,
-            "lane": "done",
-            "last_event_id": "01KSEZ5S90X73EYN54F4BAQGPM",
-            "last_transition_at": "2026-05-25T07:04:20.342000+00:00"
-        },
-        "WP02": {
-            "actor": "merge",
-            "force_count": 2,
-            "lane": "done",
-            "last_event_id": "01KSEZ5S91FNE1MRQC97KE2102",
-            "last_transition_at": "2026-05-25T07:04:20.368000+00:00"
-        }
+    "WP02": {
+      "actor": "merge",
+      "force_count": 2,
+      "lane": "done",
+      "last_event_id": "01KSEZ5S91FNE1MRQC97KE2102",
+      "last_transition_at": "2026-05-25T07:04:20.368000+00:00"
     }
+  }
 }

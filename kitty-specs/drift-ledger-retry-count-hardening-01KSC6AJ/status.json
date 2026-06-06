@@ -2,7 +2,7 @@
   "event_count": 17,
   "last_event_id": "01KSCAJG0JY4S1FXBHQ07RNHGQ",
   "materialized_at": "2026-05-24T06:25:47.538619+00:00",
-  "mission_number": "",
+  "mission_number": "52",
   "mission_slug": "drift-ledger-retry-count-hardening-01KSC6AJ",
   "mission_type": "software-dev",
   "summary": {

@@ -2,7 +2,7 @@
   "event_count": 15,
   "last_event_id": "01KT74PTY9WXE5VSZAAYXQ6K8X",
   "materialized_at": "2026-06-03T16:22:48.009997+00:00",
-  "mission_number": "",
+  "mission_number": "64",
   "mission_slug": "sweeper-tick-signal-extractor-01KT6MJP",
   "mission_type": "software-dev",
   "summary": {

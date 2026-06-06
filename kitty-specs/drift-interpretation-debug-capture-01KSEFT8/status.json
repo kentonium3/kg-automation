@@ -2,7 +2,7 @@
   "event_count": 11,
   "last_event_id": "01KSEJ7WB1TEFGRYJ67ZHMMEQG",
   "materialized_at": "2026-05-25T03:18:17.185849+00:00",
-  "mission_number": "",
+  "mission_number": "53",
   "mission_slug": "drift-interpretation-debug-capture-01KSEFT8",
   "mission_type": "software-dev",
   "summary": {

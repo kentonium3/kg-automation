@@ -2,7 +2,7 @@
   "event_count": 49,
   "last_event_id": "01KT2GA0Q642TF4P6CF2D6K3KC",
   "materialized_at": "2026-06-01T21:09:18.694863+00:00",
-  "mission_number": "",
+  "mission_number": "59",
   "mission_slug": "signal-driven-monitoring-haiku-gate-01KT22PC",
   "mission_type": "software-dev",
   "summary": {

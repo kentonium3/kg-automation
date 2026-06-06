@@ -2,7 +2,7 @@
   "event_count": 6,
   "last_event_id": "01KSEKWDYT9GABPS224CKSMKT0",
   "materialized_at": "2026-05-25T03:46:59.162625+00:00",
-  "mission_number": "",
+  "mission_number": "54",
   "mission_slug": "drift-interpretation-payload-capture-01KSEJD7",
   "mission_type": "software-dev",
   "summary": {

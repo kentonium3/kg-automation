@@ -2,7 +2,7 @@
   "event_count": 32,
   "last_event_id": "01KT5NP50NECCCPBMT8FQC35ED",
   "materialized_at": "2026-06-03T02:41:02.486504+00:00",
-  "mission_number": "",
+  "mission_number": "62",
   "mission_slug": "remove-escalation-v1-parity-01KT4VTD",
   "mission_type": "software-dev",
   "summary": {

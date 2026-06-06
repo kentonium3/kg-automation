@@ -2,7 +2,7 @@
   "event_count": 18,
   "last_event_id": "01KTAGPGRVY379T4CE9K6X3VX5",
   "materialized_at": "2026-06-04T23:50:03.803698+00:00",
-  "mission_number": "",
+  "mission_number": "66",
   "mission_slug": "migrate-felix-touchpoints-to-sync-cache-01KTAAGX",
   "mission_type": "software-dev",
   "summary": {
