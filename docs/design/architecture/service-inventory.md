@@ -16,7 +16,7 @@ All services run on office2 unless otherwise noted.
 | Service | Type | Version/Image | Port | Bind IP | systemd Unit | Data Path |
 |---------|------|---------------|------|---------|-------------|-----------|
 | Vikunja | Docker (compose) | `vikunja/vikunja:0.24.6` | 3456 | 100.92.197.90 | `vikunja.service` (system, oneshot → `docker compose up -d`) | `/data/services/vikunja/data` |
-| Obsidian Sync | Native | `ob` v0.0.8, `ob sync --continuous` | — | — | `obsidian-sync.service` (system, runs as `kgale`) | `/home/kgale/second-brain/notes` |
+| Obsidian Sync | Native | `ob` v0.0.10 (upgraded 2026-06-06), `ob sync --continuous` | — | — | `obsidian-sync.service` (system, runs as `kgale`) | `/home/kgale/second-brain/notes` |
 | Transcribe API | Docker (GPU) | `transcribe-transcribe` | 8787 | 100.92.197.90 | `transcribe.service` | `/data/services/transcribe` |
 | OpenClaw Gateway | npm-global | `v2026.3.24` | 18789 | 127.0.0.1 | `openclaw-gateway.service` (user) | `/data/services/openclaw/data` |
 | Ollama | Host binary | `ollama` (latest, 0.23.2) | 11434 | 127.0.0.1 (localhost) | `ollama.service` (system, user `ollama`) | `/usr/share/ollama/.ollama` |
@@ -63,7 +63,7 @@ All services run on office2 unless otherwise noted.
 
 ### Obsidian Sync (pre-F001, updated F011, system-level confirmed #202)
 - **Deployed by**: Manual setup, updated by F011
-- **Binary**: `/usr/bin/ob` (v0.0.8)
+- **Binary**: `/usr/bin/ob` (v0.0.10 as of 2026-06-06; upgraded from v0.0.8 during #540 recovery for upstream JSON-parse fix)
 - **Command**: `ob sync --path /home/kgale/second-brain/notes --continuous`
 - **Runs as**: `kgale` user (via `User=kgale` in the unit file)
 - **systemd unit**: `obsidian-sync.service` — **system-level** at `/etc/systemd/system/obsidian-sync.service` (not a user unit; verify with `systemctl status obsidian-sync.service`, not `systemctl --user …`)
@@ -74,6 +74,7 @@ All services run on office2 unless otherwise noted.
 - **Excluded folders**: `04-Growth/_private`
 - **Consumer folders**: `01-Inbox` (input to `felix-admin-capture`), `02-Inbox-Processed` (destination after processing; consumed by #149)
 - **Purpose**: Continuous live sync of the Obsidian vault across all three devices
+- **Known failure mode — process-alive-not-syncing** (occurred 2026-04-07 and 2026-06-06): the systemd unit reports `active (running)` and the process is alive, but no notes actually round-trip. Confirmed twice; 2026-06-06 root cause was a JSON parse bug in `ob` 0.0.8 (server returns non-2xx, client crashes silently into broken state, process keeps running). Detection via heartbeat staleness on other devices + empty `01-Inbox/` despite known captures + prescan reporting `unprocessed=0`. **`active (running)` is not a sufficient health signal for this service** — it satisfies Engineering Principle 1 (Runtime Truth Must Have a Machine-Readable State) only at the process level, not at the sync-round-trip level. Recovery + diagnostic procedure documented at [`docs/runbooks/obsidian-sync-ops.md` § Silent Sync Failure](<../../runbooks/obsidian-sync-ops.md>). Candidate consumer of the lifecycle-state contract being designed under [#516](https://github.com/kentonium3/kg-automation/issues/516) (Felix-wide observability framework / Epic C).
 
 ### Second Brain Sync (F011)
 - **Deployed by**: F011

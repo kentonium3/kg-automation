@@ -182,6 +182,84 @@ This unlinks and re-links the vault to Obsidian Sync. Use only when other troubl
    ```
 3. Check network connectivity from office2.
 
+If service, sync-status, login, and network all look healthy but notes are not appearing, see **Silent Sync Failure** below — the failure mode where the process is alive but not actually round-tripping.
+
+### Silent Sync Failure (Process Alive but Not Syncing)
+
+Failure mode confirmed twice (2026-04-07 + 2026-06-06): the `ob sync` continuous-mode process keeps running, `sync-status` shows valid config, `ob login` shows authenticated, the systemd unit reports `active (running)` — but no notes are actually flowing in either direction. The 2026-06-06 occurrence was traced to a JSON parse bug in `ob` 0.0.8 (fixed in 0.0.10).
+
+**Detection signals**:
+- Heartbeat staleness on Mac or phone — `00-System/sync-heartbeat.md` not updating on other devices
+- `01-Inbox/` empty on office2 despite known captures on Mac
+- Prescan log shows `unprocessed=0` repeatedly despite expected captures
+- Most recent file in `02-Inbox-Processed/` is days or weeks old
+- Systemd unit reports a high restart counter (in the thousands)
+
+**Diagnostic chain**:
+
+1. Read the recent journal for the unit. Look for whether sync actually completes round-trips, or whether you only see "Connecting..." → "Connection successful" → "Fully synced" without any `Push:` / `Download:` lines during the working window:
+   ```bash
+   sudo journalctl -u obsidian-sync --since "1 hour ago" --no-pager
+   ```
+2. Check the installed `ob` version and compare to the npm registry:
+   ```bash
+   ob --version
+   npm view obsidian-headless version
+   ```
+3. If the installed version is behind, read the changelog before upgrading:
+   ```bash
+   gh api repos/obsidianmd/obsidian-headless/contents/CHANGELOG.md --jq '.content' | base64 -d
+   ```
+
+**Recovery — upgrade-and-restart**:
+
+If the installed `ob` is behind and the changelog suggests a network or parse fix:
+
+```bash
+sudo npm install -g obsidian-headless@latest
+ob --version            # confirm new version
+sudo systemctl restart obsidian-sync
+```
+
+Watch the journal for a successful re-establishment:
+
+```bash
+sudo journalctl -u obsidian-sync --since "2 minutes ago" --no-pager -f
+```
+
+Expected sequence: `Starting sync` → `Connecting...` → `Connection successful` → `Push: <missing-files>` → `Downloaded` → `Accepted` → `Fully synced`.
+
+**Recovery — restart only** (if already on latest `ob`):
+
+The "process alive but not syncing" state can also clear with just a restart:
+
+```bash
+sudo systemctl restart obsidian-sync
+```
+
+The journal after restart will show whatever was stuck pull down within seconds of `Connection successful`.
+
+**Verification**:
+
+```bash
+ls -la /home/kgale/second-brain/notes/01-Inbox/
+ssh office2-claude 'python3 /home/claude/kg-automation/scripts/inbox/prescan.py'
+```
+
+Expected: missing notes present in `01-Inbox/`; prescan reports `unprocessed=<count>` and lists the paths.
+
+**Editor-open re-download quirk** (not a failure — informational): if you have an inbox file open in Obsidian's editor on Mac, the journal may show the same file being downloaded by office2 every ~10 seconds while the editor session is open. Closing the file stops the re-download. This is editor-state behavior, not a sync bug.
+
+**Stay current with `ob` updates**:
+
+The Obsidian headless CLI is new and still actively patching network and sync bugs. Worth periodic version checks against the npm registry:
+
+```bash
+npm outdated -g obsidian-headless
+```
+
+A `[doc-audit]` follow-up could automate this against a scheduled `npm view` query and surface staleness as a health signal.
+
 ### Sync Conflict Files
 
 Obsidian Sync may create `.sync-conflict-*` files when the same note is edited on multiple devices simultaneously. Check the vault for these files and resolve manually by comparing versions.

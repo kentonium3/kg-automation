@@ -1,6 +1,6 @@
 ---
 title: kg-automation Engineering Principles
-doc_type: design
+doc_type: standard
 status: approved
 last_updated: '2026-06-05'
 last_validated: '2026-06-05'
