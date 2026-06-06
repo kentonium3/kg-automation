@@ -1,10 +1,12 @@
 ---
 title: "Helper script conventions"
 doc_type: standard
-status: draft
+status: approved
 audience: agents_and_humans
 owners: [kgale]
-last_validated: 2026-05-15
+last_updated: '2026-06-06'
+last_validated: '2026-06-06'
+version: '1.0'
 ---
 
 # Helper script conventions
@@ -13,9 +15,11 @@ Operational conventions for the helper scripts that implement [Constitution Dire
 
 These conventions are grounded in patterns established across missions [#253](https://github.com/kentonium3/kg-automation/issues/253), [#259](https://github.com/kentonium3/kg-automation/issues/259), [#277](https://github.com/kentonium3/kg-automation/issues/277), and [#278](https://github.com/kentonium3/kg-automation/issues/278). They formalize what worked; they don't impose new structure for its own sake.
 
-> **Status**: DRAFT — awaiting Kent's review before being referenced from Directive 6. Once approved, this document becomes the convention; deviations from it should be deliberate and documented.
+> **Status**: APPROVED 2026-06-06. Referenced from Constitution Directive 6 as the operational source of truth. Deviations are deliberate and documented per the change-control protocol.
 >
-> **Revision 2026-05-15** (Day-2): §§ 1 and 9 restructured to introduce the **three-tier model — helper / library / skill** — after Kent flagged that the prior two-tier rule (helper vs skill) would prohibit shared primitive code reused across agents at the implementation level. The fix: a "library / primitive" tier (`scripts/lib/<module>.py`) for code imported by helpers but not invoked by agents. Tiers are distinguished by **invocation surface**, not by promotion stage.
+> **Revision history**:
+> - **2026-05-15** (Day-2): §§ 1 and 9 restructured to introduce the **three-tier model — helper / library / skill** — after Kent flagged that the prior two-tier rule (helper vs skill) would prohibit shared primitive code reused across agents at the implementation level. The fix: a "library / primitive" tier (`scripts/lib/<module>.py`) for code imported by helpers but not invoked by agents. Tiers are distinguished by **invocation surface**, not by promotion stage.
+> - **2026-06-06**: §§ 1 and 9 augmented with the *Skill path rationale* explaining why skills live under `~/.openclaw/skills/` (OpenClaw is Felix's runtime today; revisit if Felix gains a second runtime). Document promoted from draft to approved per #546.
 
 ---
 
@@ -28,7 +32,7 @@ The artifact's **invocation surface** determines its home (see § 9 for the full
 | **Agent-co-located helper** | `scripts/openclaw/agents/<agent>/<helper>.py` | Standalone executable invoked via CLI by exactly one agent and tightly coupled to that agent's standing orders. Examples: `handle_audit_routing.py`, `handle_drift_events.py`. |
 | **Domain-co-located helper** | `scripts/<domain>/<helper>.py` | Standalone executable invoked via CLI by one agent but part of a logical domain that may grow. Examples: `scripts/inbox/prescan.py`, `scripts/inbox/handle_parse_failures.py`. |
 | **Shared primitive library** | `scripts/lib/<module>.py` | Importable Python module used by **other helpers/pipelines via `from scripts.lib.<module> import ...`**. NOT directly invoked from any AGENTS.md. Examples (future): `scripts/lib/vikunja.py` (CRUD primitives), `scripts/lib/vault_io.py` (safe vault reads/writes), `scripts/lib/gh.py` (issue/comment helpers). See § 9 for when to extract a library vs keep code inline in a helper. |
-| **Skill (project-specific)** | `~/.openclaw/skills/<skill>/SKILL.md` + reference content | Agent-facing capability documentation. Agent reads SKILL.md to learn the contract, then either invokes a helper or writes calls per the documented API. Used when ≥2 agents share a **capability** at the agent level (not just code at the implementation level). See § 9. |
+| **Skill (project-specific)** | `~/.openclaw/skills/<skill>/SKILL.md` + reference content | Agent-facing capability documentation. Agent reads SKILL.md to learn the contract, then either invokes a helper or writes calls per the documented API. Used when ≥2 agents share a **capability** at the agent level (not just code at the implementation level). See § 9. The `~/.openclaw/` path reflects today's runtime reality — OpenClaw is Felix's runtime, so OpenClaw's skill-discovery path IS Felix's skill path. See § 9 *Skill path rationale* for what would change if Felix ever gains a non-OpenClaw runtime. |
 | **System pipeline** | `scripts/office2/<script>` or `scripts/<domain>/<pipeline>` | Background job (cron / systemd timer) without an agent invoker. Examples: `audit.sh`, `sync-heartbeat.py`. May also import from `scripts/lib/` like any other code. |
 
 **Default decision**: start at domain-co-located helper unless the helper is so agent-specific it would never be called by another caller. When a helper grows logic that's mechanically reusable by other helpers, extract that logic to `scripts/lib/` rather than copy-pasting.
@@ -321,6 +325,12 @@ The three are not promotion stages on a single ladder — they're different role
   2. The capability has a clear name future agents could ask for ("create an enriched Vikunja task" is skill-shape; "PUT to Vikunja with retry" is library-shape)
   3. The contract has stabilized — promoting an unstable interface as a skill creates cross-agent breakage risk
 
+#### Skill path rationale (why `~/.openclaw/skills/`)
+
+Skills live under `~/.openclaw/skills/` because that's where OpenClaw — Felix's runtime today — discovers them. OpenClaw's built-in skill-discovery walks this path automatically; ClawHub installs community skills here. Functionally, OpenClaw IS Felix's runtime in current architecture, so the OpenClaw skill path IS the Felix skill path. There is no "OpenClaw skills" vs "Felix skills" distinction today — every Felix agent runs inside OpenClaw, every Felix capability skill is discovered by OpenClaw.
+
+If Felix ever gains a second runtime — for example, Mac-side automation that reads SKILL.md directly without going through office2, or a future frontend that bypasses OpenClaw for some flows — the convention becomes "skills live where the dominant runtime discovers them, with cross-runtime symlinking or migration as the trigger demands." Until that scenario is real, treat `~/.openclaw/skills/` as Felix's skill home. The path name's OpenClaw-flavored prefix is a minor naming tax in exchange for zero migration cost and zero runtime configuration to maintain.
+
 ### Coexistence example — Vikunja task creation
 
 This case (surfaced by the Phase 1 survey: `felix-admin-capture` and `felix-admin-tasker` both create Vikunja tasks) demonstrates all three tiers working together:
@@ -423,4 +433,4 @@ When existing prompt-heavy logic gets refactored to a helper, the change must be
 
 ---
 
-*Draft prepared overnight 2026-05-15. Awaiting Kent's review. When approved, Directive 6 in the Constitution will be amended to reference this document as the operational source of truth.*
+*Approved 2026-06-06 per [#546](https://github.com/kentonium3/kg-automation/issues/546). Felix Constitution Directive 6 will be amended in a follow-on commit to reference this document as the operational source of truth.*
