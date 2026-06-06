@@ -315,11 +315,16 @@ class TestCliCorrelation:
             "--history-path",
             str(tmp_path / "history.jsonl"),
         ]
-        # Patch clock so find_checkin_within_48hr_window sees both fixtures.
-        # The CLI uses datetime.now() inside main() to filter the 48hr window;
-        # both fixtures are within 48hr of any plausible "now" so we don't
-        # need to patch — the test runs on test-execution clock.
-        rc = pmr.main(argv)
+        # Freeze clock at 2026-06-02T12:00 UTC so the CLI's
+        # find_checkin_within_48hr_window keeps both fixtures in scope
+        # (cutoff = now - 48hr = 2026-05-31 12:00 UTC, both fixtures after).
+        # Prior version relied on wall time, which broke after 2026-06-04.
+        class _FrozenDatetime(datetime):
+            @classmethod
+            def now(cls, tz=None):
+                return datetime(2026, 6, 2, 12, 0, tzinfo=timezone.utc)
+        with patch.object(pmr, "datetime", _FrozenDatetime):
+            rc = pmr.main(argv)
         assert rc == 0
         payload = json.loads(capsys.readouterr().out)
         assert payload["correlated_checkin_date_et"] == "2026-06-01"
