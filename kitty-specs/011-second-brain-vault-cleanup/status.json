@@ -1,6 +1,6 @@
 {
   "event_count": 34,
-  "last_event_id": "manual-recovery-WP06-done",
+  "last_event_id": "4WEARJTBPTT8MBNQ8EVM34DQPW",
   "materialized_at": "2026-04-01T20:41:53.237379+00:00",
   "mission_number": "11",
   "mission_slug": "011-second-brain-vault-cleanup",
@@ -21,42 +21,42 @@
       "actor": "manual-recovery",
       "force_count": 3,
       "lane": "done",
-      "last_event_id": "manual-recovery-WP01-done",
+      "last_event_id": "35E1H69MXTF7F4K9FSPVFMYJHE",
       "last_transition_at": "2026-04-01T20:41:52.987379+00:00"
     },
     "WP02": {
       "actor": "manual-recovery",
       "force_count": 3,
       "lane": "done",
-      "last_event_id": "manual-recovery-WP02-done",
+      "last_event_id": "74Y48GMSA80T6AV6RNGR3SRWGZ",
       "last_transition_at": "2026-04-01T20:41:53.037379+00:00"
     },
     "WP03": {
       "actor": "manual-recovery",
       "force_count": 3,
       "lane": "done",
-      "last_event_id": "manual-recovery-WP03-done",
+      "last_event_id": "4G2WCARQVASX4QN3H2VW7SS33D",
       "last_transition_at": "2026-04-01T20:41:53.087379+00:00"
     },
     "WP04": {
       "actor": "manual-recovery",
       "force_count": 2,
       "lane": "done",
-      "last_event_id": "manual-recovery-WP04-done",
+      "last_event_id": "6NVMMBSTP181DD10KYAJ7KSSH0",
       "last_transition_at": "2026-04-01T20:41:53.137379+00:00"
     },
     "WP05": {
       "actor": "manual-recovery",
       "force_count": 2,
       "lane": "done",
-      "last_event_id": "manual-recovery-WP05-done",
+      "last_event_id": "2NY9CKJH69Q78NQ3RYZA3TCP4F",
       "last_transition_at": "2026-04-01T20:41:53.187379+00:00"
     },
     "WP06": {
       "actor": "manual-recovery",
       "force_count": 2,
       "lane": "done",
-      "last_event_id": "manual-recovery-WP06-done",
+      "last_event_id": "4WEARJTBPTT8MBNQ8EVM34DQPW",
       "last_transition_at": "2026-04-01T20:41:53.237379+00:00"
     },
     "WP07": {

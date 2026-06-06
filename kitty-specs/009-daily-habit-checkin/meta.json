@@ -1,12 +1,12 @@
 {
   "created_at": "2026-03-31T21:44:40.039694+00:00",
-  "feature_number": "009",
-  "feature_slug": "009-daily-habit-checkin",
   "friendly_name": "Daily Habit Check-in",
-  "mission": "software-dev",
+  "mission_id": "01KN5QX3WMQC0B8XXG1QKT3N9E",
+  "mission_number": 9,
+  "mission_slug": "009-daily-habit-checkin",
+  "mission_type": "software-dev",
   "slug": "009-daily-habit-checkin",
-  "target_branch": "main",
-  "vcs": "git",
   "source_description": "Daily habit accountability loop via WhatsApp with Vikunja-backed completion tracking and weekly pattern reporting",
-  "mission_id": "01KN5QX3WMQC0B8XXG1QKT3N9E"
+  "target_branch": "main",
+  "vcs": "git"
 }

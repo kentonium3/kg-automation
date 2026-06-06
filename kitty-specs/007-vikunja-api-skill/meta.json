@@ -1,12 +1,12 @@
 {
   "created_at": "2026-03-30T20:58:01.834532+00:00",
-  "feature_number": "007",
-  "feature_slug": "007-vikunja-api-skill",
   "friendly_name": "Vikunja API Skill",
-  "vcs": "git",
-  "source_description": "OpenClaw skill wrapping Vikunja REST API for task CRUD, project/label queries, filter execution, and comments",
-  "mission": "software-dev",
+  "mission_id": "01KN5QX3WHZRDC03C5G6MQ2Y75",
+  "mission_number": 7,
+  "mission_slug": "007-vikunja-api-skill",
+  "mission_type": "software-dev",
   "slug": "007-vikunja-api-skill",
+  "source_description": "OpenClaw skill wrapping Vikunja REST API for task CRUD, project/label queries, filter execution, and comments",
   "target_branch": "main",
-  "mission_id": "01KN5QX3WHZRDC03C5G6MQ2Y75"
+  "vcs": "git"
 }

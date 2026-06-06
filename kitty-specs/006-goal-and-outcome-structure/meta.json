@@ -1,12 +1,12 @@
 {
   "created_at": "2026-03-29T21:59:14.681994+00:00",
-  "feature_number": "006",
-  "feature_slug": "006-goal-and-outcome-structure",
   "friendly_name": "Goal and Outcome Structure",
-  "mission": "software-dev",
+  "mission_id": "01KN5QX3WGCV3TGJ9CKAPFQ5N7",
+  "mission_number": 6,
+  "mission_slug": "goal-and-outcome-structure",
+  "mission_type": "software-dev",
   "slug": "goal-and-outcome-structure",
   "source_description": "F006 — establish goal declaration format, Vikunja goal structure, and Goals-MOC integration",
-  "vcs": "git",
   "target_branch": "main",
-  "mission_id": "01KN5QX3WGCV3TGJ9CKAPFQ5N7"
+  "vcs": "git"
 }
