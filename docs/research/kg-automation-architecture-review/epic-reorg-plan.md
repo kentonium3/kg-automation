@@ -14,6 +14,12 @@ tags: [architecture, planning, epics, issue-management, 270, 281, 516]
 
 **Status when this is approved**: this plan becomes the spec for the issue-reorg execution. No issues are created, merged, restructured, or closed before operator sign-off on this plan.
 
+**Execution progress** (updated as Day-N completes):
+
+- **Day-0** ✅ Complete (commits `90e4b4f2`, `c7738f08`, `58c54d33`, `75d52719` on 2026-06-05): F-001 ad-hoc fix + office2 deploy; F-002 test stabilization; principles ratified at `docs/design/engineering-principles.md`; report package committed.
+- **Day-1** ✅ Complete (2026-06-05): #137 renamed to "Epic: LLM Cost Visibility & Reporting" + `spec: pending` label. Cross-reference comments added to #270 / #281 / #516. Filed 5 new Epics: A=#529, B=#530, D=#531, E=#532, G=#533. Filed 17 candidate issues: under A (#534 closed retroactive, #535), B (#536 closed retroactive, #537), #516 (#538, #539), D (#541, #542, #543), E (#544, #545), #281 (#546, #547), G (#548, #549), #270 (#550, #551). Re-parented 22 orphans under target Epics.
+- **Day-2+** ⏳ Pending: ratify `helper-script-conventions.md` (gates Epic F / #281 first child); governance updates (CLAUDE.md, Constitution Directive 6, Charter, issue templates); P1 Epic execution begins.
+
 ---
 
 ## Current State Snapshot
