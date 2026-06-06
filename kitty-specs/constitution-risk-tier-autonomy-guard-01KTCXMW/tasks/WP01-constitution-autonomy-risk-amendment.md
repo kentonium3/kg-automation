@@ -11,11 +11,15 @@ requirement_refs:
 planning_base_branch: main
 merge_target_branch: main
 branch_strategy: Planning artifacts for this feature were generated on main. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into main unless the human explicitly redirects the landing branch.
+base_branch: kitty/mission-constitution-risk-tier-autonomy-guard-01KTCXMW
+base_commit: ba54c27612daf41a12253f90102d0d36f6354b90
+created_at: '2026-06-06T00:40:23.302105+00:00'
 subtasks:
 - T001
 - T002
 - T003
 - T004
+shell_pid: '73650'
 history:
 - at: '2026-06-06T00:37:37Z'
   by: spec-kitty.tasks
