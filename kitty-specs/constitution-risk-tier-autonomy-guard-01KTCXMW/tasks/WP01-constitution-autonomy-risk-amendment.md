@@ -121,3 +121,4 @@ edits outside the WP ownership boundary.
 - 2026-06-06T00:40:25Z – codex:gpt-5:docs-implementer:implementer – shell_pid=73650 – Assigned agent via action command
 - 2026-06-06T00:43:32Z – codex:gpt-5:docs-implementer:implementer – shell_pid=73650 – Ready for review
 - 2026-06-06T00:45:26Z – codex:gpt-5:docs-reviewer:reviewer – shell_pid=73650 – Started review via action command
+- 2026-06-06T00:46:02Z – codex:gpt-5:docs-reviewer:reviewer – shell_pid=73650 – Review passed: Directive 2 now binds autonomy to canonical risk-tier gates; docs validation passes.
