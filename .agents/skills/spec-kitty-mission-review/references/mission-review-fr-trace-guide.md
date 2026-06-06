@@ -1,0 +1,1 @@
+/Users/kentgale/.agents/skills/spec-kitty-mission-review/references/mission-review-fr-trace-guide.md

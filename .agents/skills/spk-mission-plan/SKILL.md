@@ -1,0 +1,1 @@
+/Users/kentgale/.agents/skills/spk-mission-plan/SKILL.md

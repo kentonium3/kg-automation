@@ -1,0 +1,1 @@
+/Users/kentgale/.agents/skills/spk-gate-merge/SKILL.md

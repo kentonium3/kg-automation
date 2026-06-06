@@ -3,9 +3,10 @@
 # DO NOT EDIT MANUALLY
 
 spec_kitty:
-  version: 3.1.8
+  version: 3.2.0rc37
   initialized_at: '2026-03-25T23:07:06.539751'
-  last_upgraded_at: '2026-05-12T12:48:19.812193'
+  last_upgraded_at: '2026-06-06T12:35:07.388512'
+  schema_version: 3
 environment:
   python_version: 3.13.12
   platform: darwin
@@ -201,3 +202,200 @@ migrations:
       Removed: .gemini/commands/spec-kitty.status.md; Removed: .gemini/commands/spec-kitty.tasks-finalize.md;
       Removed: .gemini/commands/spec-kitty.tasks-outline.toml; Removed: .gemini/commands/spec-kitty.tasks-packages.toml;
       Removed: .gemini/commands/spec-kitty.tasks.toml; Removed empty directory: .gemini/commands'
+  - id: 3.2.0a4_normalize_mission_lifecycle
+    applied_at: '2026-06-06T12:35:04.732081'
+    result: success
+    notes: '001-vikunja-docker-deploy: Backfilled missing WP identity fields; 001-vikunja-docker-deploy:
+      Rebuilt status.events.jsonl (0 synthetic events, 0 corrected); 001-vikunja-docker-deploy:
+      Regenerated canonical status/progress/lifecycle views; 002-openclaw-install-config:
+      Regenerated canonical status/progress/lifecycle views; 003-whisper-transcription-skill:
+      Regenerated canonical status/progress/lifecycle views; 004-whatsapp-channel:
+      Regenerated canonical status/progress/lifecycle views; 005-system-architecture-development:
+      Regenerated canonical status/progress/lifecycle views; 006-goal-and-outcome-structure:
+      Regenerated canonical status/progress/lifecycle views; 007-vikunja-api-skill:
+      Regenerated canonical status/progress/lifecycle views; 008-inbox-processing-migration:
+      Regenerated canonical status/progress/lifecycle views; 009-daily-habit-checkin:
+      Regenerated canonical status/progress/lifecycle views; 010-obsidian-sync-office2:
+      Regenerated canonical status/progress/lifecycle views; 011-second-brain-vault-cleanup:
+      Regenerated canonical status/progress/lifecycle views; 012-constitution-agent-governance-setup:
+      Regenerated canonical status/progress/lifecycle views; 013-vikunja-task-intelligence-agent:
+      Regenerated canonical status/progress/lifecycle views; 014-felix-core-digest:
+      Regenerated canonical status/progress/lifecycle views; 015-documentation-architecture-rationalization:
+      Regenerated canonical status/progress/lifecycle views; 016-change-control-governance:
+      Regenerated canonical status/progress/lifecycle views; 017-vikunja-habit-tracking-architecture:
+      Regenerated canonical status/progress/lifecycle views; 018-habit-today-filter-visibility:
+      Regenerated canonical status/progress/lifecycle views; 019-escalation-engine:
+      Regenerated canonical status/progress/lifecycle views; 020-doc-audit-infrastructure:
+      Regenerated canonical status/progress/lifecycle views; 021-openclaw-agent-model-tiering:
+      Regenerated canonical status/progress/lifecycle views; 022-inbox-github-issue-routing:
+      Backfilled mission identity metadata; 022-inbox-github-issue-routing: Normalized
+      legacy mission_number type; 022-inbox-github-issue-routing: Regenerated canonical
+      status/progress/lifecycle views; 023-agent-identity-whatsapp-header: Backfilled
+      mission identity metadata; 023-agent-identity-whatsapp-header: Normalized legacy
+      mission_number type; 023-agent-identity-whatsapp-header: Regenerated canonical
+      status/progress/lifecycle views; 024-vault-path-registry-mvp: Backfilled mission
+      identity metadata; 024-vault-path-registry-mvp: Normalized legacy mission_number
+      type; 024-vault-path-registry-mvp: Regenerated canonical status/progress/lifecycle
+      views; 025-vikunja-date-timezone-bug: Backfilled mission identity metadata;
+      025-vikunja-date-timezone-bug: Normalized legacy mission_number type; 025-vikunja-date-timezone-bug:
+      Regenerated canonical status/progress/lifecycle views; 026-vault-path-registry-and-folder-renumber:
+      Backfilled mission identity metadata; 026-vault-path-registry-and-folder-renumber:
+      Normalized legacy mission_number type; 026-vault-path-registry-and-folder-renumber:
+      Regenerated canonical status/progress/lifecycle views; 027-inbox-pre-scan-helper:
+      Backfilled mission identity metadata; 027-inbox-pre-scan-helper: Normalized
+      legacy mission_number type; 027-inbox-pre-scan-helper: Regenerated canonical
+      status/progress/lifecycle views; 028-agent-workspace-reconciliation: Backfilled
+      mission identity metadata; 028-agent-workspace-reconciliation: Normalized legacy
+      mission_number type; 028-agent-workspace-reconciliation: Regenerated canonical
+      status/progress/lifecycle views; audit-interpretation-moment0-01KSBGBS: Regenerated
+      canonical status/progress/lifecycle views; audit-interpretation-size-guard-01KSEN9B:
+      Regenerated canonical status/progress/lifecycle views; audit-judgment-fence-strip-hardening-01KSESPD:
+      Regenerated canonical status/progress/lifecycle views; auto-apply-audit-edits-01KRG1BG:
+      Regenerated canonical status/progress/lifecycle views; backfill-habits-jsonl-from-comments-01KS0Y4F:
+      Regenerated canonical status/progress/lifecycle views; constitution-risk-tier-autonomy-guard-01KTCXMW:
+      Regenerated canonical status/progress/lifecycle views; credential-expiry-health-check-01KRCF92:
+      Regenerated canonical status/progress/lifecycle views; documentation-developer-portal-01KSJ75K:
+      Regenerated canonical status/progress/lifecycle views; drift-event-auto-resolution-01KS8J32:
+      Regenerated canonical status/progress/lifecycle views; drift-interpretation-debug-capture-01KSEFT8:
+      Regenerated canonical status/progress/lifecycle views; drift-interpretation-fence-strip-fix-01KSEM6S:
+      Regenerated canonical status/progress/lifecycle views; drift-interpretation-payload-capture-01KSEJD7:
+      Regenerated canonical status/progress/lifecycle views; drift-ledger-retry-count-hardening-01KSC6AJ:
+      Regenerated canonical status/progress/lifecycle views; felix-bot-vikunja-provisioning-01KRT3N4:
+      Regenerated canonical status/progress/lifecycle views; felix-constitution-migration-completeness-01KT5NZ7:
+      Regenerated canonical status/progress/lifecycle views; felix-doc-auditor-agent-01KR7JK9:
+      Regenerated canonical status/progress/lifecycle views; felix-vikunja-sync-architecture-research-01KT7Q15:
+      Regenerated canonical status/progress/lifecycle views; felix-vikunja-sync-project-layer-and-url-config-01KTCDZ7:
+      Regenerated canonical status/progress/lifecycle views; felix-vikunja-sync-reconciliation-driver-01KTA1J3:
+      Regenerated canonical status/progress/lifecycle views; google-workspace-foundation-01KRH4PE:
+      Regenerated canonical status/progress/lifecycle views; habit-day-specific-scheduling-01KT48Y6:
+      Regenerated canonical status/progress/lifecycle views; habits-checkin-d6-extract-01KRNV46:
+      Regenerated canonical status/progress/lifecycle views; habits-checkin-reply-scripts-first-01KS86ZQ:
+      Regenerated canonical status/progress/lifecycle views; habits-cutover-to-jsonl-v2-flow-01KS1FKE:
+      Regenerated canonical status/progress/lifecycle views; habits-native-repeat-jsonl-state-01KS0M59:
+      Regenerated canonical status/progress/lifecycle views; inbox-atomic-write-perm-preservation-01KRFS03:
+      Regenerated canonical status/progress/lifecycle views; inbox-capture-dedup-and-parser-hardening-01KREZJ8:
+      Regenerated canonical status/progress/lifecycle views; inbox-parse-failure-cleanup-helpers-01KRFVS4:
+      Regenerated canonical status/progress/lifecycle views; inbox-processed-at-timestamp-01KQZ2Y5:
+      Regenerated canonical status/progress/lifecycle views; main-verbatim-passthrough-01KSATRP:
+      Regenerated canonical status/progress/lifecycle views; migrate-escalation-to-jsonl-state-model-01KS5R4D:
+      Regenerated canonical status/progress/lifecycle views; migrate-felix-touchpoints-to-sync-cache-01KTAAGX:
+      Regenerated canonical status/progress/lifecycle views; moment0-integration-fix-01KS8XRM:
+      Regenerated canonical status/progress/lifecycle views; refactor-doc-auditor-to-scripts-first-driver-01KS2XNX:
+      Regenerated canonical status/progress/lifecycle views; remove-escalation-v1-parity-01KT4VTD:
+      Regenerated canonical status/progress/lifecycle views; shared-jsonl-state-log-library-01KS0E9A:
+      Regenerated canonical status/progress/lifecycle views; signal-driven-monitoring-haiku-gate-01KT22PC:
+      Regenerated canonical status/progress/lifecycle views; signal-trip-cycle-floor-01KT4NHJ:
+      Regenerated canonical status/progress/lifecycle views; sweeper-tick-signal-extractor-01KT6MJP:
+      Regenerated canonical status/progress/lifecycle views; tasker-jsonl-migration-01KSB5XV:
+      Regenerated canonical status/progress/lifecycle views; vikunja-g7-query-filter-fix-01KS1K1Y:
+      Regenerated canonical status/progress/lifecycle views'
+  - id: 3.2.0a4_safe_globalize_commands
+    applied_at: '2026-06-06T12:35:04.767371'
+    result: success
+    notes: 'Removed: .codex/prompts/spec-kitty.accept.md; Removed: .codex/prompts/spec-kitty.analyze.md;
+      Removed: .codex/prompts/spec-kitty.charter.md; Removed: .codex/prompts/spec-kitty.checklist.md;
+      Removed: .codex/prompts/spec-kitty.dashboard.md; Removed: .codex/prompts/spec-kitty.implement.md;
+      Removed: .codex/prompts/spec-kitty.merge.md; Removed: .codex/prompts/spec-kitty.plan.md;
+      Removed: .codex/prompts/spec-kitty.research.md; Removed: .codex/prompts/spec-kitty.review.md;
+      Removed: .codex/prompts/spec-kitty.specify.md; Removed: .codex/prompts/spec-kitty.status.md;
+      Preserved: .codex/prompts/spec-kitty.tasks-finalize.md (no global equivalent
+      at ~/.codex/prompts/spec-kitty.tasks-finalize.md); Removed: .codex/prompts/spec-kitty.tasks.md;
+      Removed: .codex/prompts/spec-kitty.tasks_outline.md; Removed: .codex/prompts/spec-kitty.tasks_packages.md'
+  - id: 3.2.0rc28_github_diff_attributes
+    applied_at: '2026-06-06T12:35:04.785473'
+    result: success
+    notes: 'Added .gitattributes entry: kitty-specs/**/status.json linguist-generated=true;
+      Added .gitattributes entry: kitty-specs/**/status.events.jsonl linguist-generated=true;
+      Added .gitattributes entry: kitty-specs/**/lanes.json linguist-generated=true;
+      Added .gitattributes entry: kitty-specs/**/mission-events.jsonl linguist-generated=true;
+      Added .gitattributes entry: kitty-specs/**/snapshot-latest.json linguist-generated=true;
+      Added .gitattributes entry: kitty-specs/**/acceptance-matrix.json linguist-generated=true;
+      Added .gitattributes entry: kitty-specs/**/occurrence_map.yaml linguist-generated=true;
+      Added .gitattributes entry: kitty-specs/**/tasks/** linguist-generated=true;
+      Added .gitattributes entry: kitty-specs/**/research/evidence-log.csv linguist-generated=true;
+      Added .gitattributes entry: kitty-specs/**/research/source-register.csv linguist-generated=true;
+      Added .gitattributes entry: kitty-specs/**/test-transcripts/** linguist-generated=true;
+      Added .gitattributes entry: kitty-specs/**/baseline/** linguist-generated=true;
+      Added .gitattributes entry: kitty-specs/**/canary-evidence/** linguist-generated=true;
+      Added .gitattributes entry: .kittify/workspaces/** linguist-generated=true;
+      Added .gitattributes entry: .kittify/workspaces/** -diff; Added .gitattributes
+      entry: .kittify/migrations/** linguist-generated=true; Added .gitattributes
+      entry: .kittify/migrations/** -diff'
+  - id: 3.2.0rc30_fix_runtime_next_result_default
+    applied_at: '2026-06-06T12:35:04.804411'
+    result: skipped
+    notes: Not applicable
+  - id: 3.2.0rc35_activate_builtin_mission_types
+    applied_at: '2026-06-06T12:35:04.837649'
+    result: success
+    notes: 'Added mission_type_activations: [''software-dev'', ''documentation'',
+      ''research'', ''plan'']'
+  - id: 3.2.0rc35_charter_bundle_v2
+    applied_at: '2026-06-06T12:35:04.888861'
+    result: success
+    notes: /Users/kentgale/repos/kg-automation/.kittify/charter/metadata.yaml
+  - id: 3.2.0rc35_charter_manifest_defaults_repair
+    applied_at: '2026-06-06T12:35:04.931739'
+    result: skipped
+    notes: Not applicable
+  - id: 3.2.0rc35_codex_to_skills
+    applied_at: '2026-06-06T12:35:05.075815'
+    result: success
+    notes: Installed 11 Codex skill packages under .agents/skills/; Moved 1 superseded
+      Codex prompt(s) from .codex/prompts/ to .codex/prompts.superseded/ (new skill
+      packages live in .agents/skills/); Removed empty .codex/prompts/ directory
+  - id: 3.2.0rc35_default_charter_pack
+    applied_at: '2026-06-06T12:35:05.155706'
+    result: success
+    notes: activated_directives; activated_tactics; activated_styleguides; activated_toolguides;
+      activated_paradigms; activated_procedures; activated_agent_profiles; activated_mission_step_contracts;
+      activated_kinds
+  - id: 3.2.0rc35_fix_prompt_file_workaround
+    applied_at: '2026-06-06T12:35:05.182102'
+    result: skipped
+    notes: Not applicable
+  - id: 3.2.0rc35_kittify_profile_handoff
+    applied_at: '2026-06-06T12:35:05.206159'
+    result: success
+    notes: '/Users/kentgale/repos/kg-automation/.kittify/missions/software-dev/command-templates/implement.md:
+      inserted Section 6 ''Prepare for Review Hand-off''; /Users/kentgale/repos/kg-automation/.kittify/missions/software-dev/command-templates/review.md:
+      inserted Section 2a ''Load Agent Profile'''
+  - id: 3.2.0rc35_pi_letta_agent_backfill
+    applied_at: '2026-06-06T12:35:05.243050'
+    result: skipped
+    notes: Not applicable
+  - id: 3.2.0rc35_repository_root_checkout_terminology
+    applied_at: '2026-06-06T12:35:05.281992'
+    result: skipped
+    notes: Not applicable
+  - id: 3.2.0rc35_spk_skill_pack
+    applied_at: '2026-06-06T12:35:06.717574'
+    result: success
+    notes: 'Installed 36 spk skill(s) for 5 agent(s) (357 managed files); Updated
+      .kittify/skills-manifest.json with spk skill entries; Archived customized skill
+      file for manual review: .kittify/.migration-backup/agent-skills/20260606T163505Z/.claude/skills/spec-kitty-bulk-edit-classification/SKILL.md;
+      Archived customized skill file for manual review: .kittify/.migration-backup/agent-skills/20260606T163505Z/.claude/skills/spec-kitty-mission-review/SKILL.md;
+      Archived customized skill file for manual review: .kittify/.migration-backup/agent-skills/20260606T163505Z/.claude/skills/spec-kitty-mission-review/references/mission-review-fr-trace-guide.md'
+  - id: 3.2.0rc35_strip_selection_config
+    applied_at: '2026-06-06T12:35:06.856298'
+    result: success
+    notes: 'Removed: agents.selection'
+  - id: 3.2.0rc35_kittify_runtime_git_hygiene
+    applied_at: '2026-06-06T12:35:07.172841'
+    result: success
+    notes: Added .kittify/sync-state.json to .gitignore
+  - id: 3.2.0rc35_unified_bundle
+    applied_at: '2026-06-06T12:35:07.275027'
+    result: success
+    notes: '{"applied": false, "bundle_validation": {"missing_derived": [], "missing_tracked":
+      [], "passed": true, "unexpected": [".kittify/charter/backups/charter-2026-06-06T12-35-05.md",
+      ".kittify/charter/context-state.json", ".kittify/charter/interview/answers.yaml",
+      ".kittify/charter/library/directive-test-first.md", ".kittify/charter/library/paradigm-test-first.md",
+      ".kittify/charter/library/styleguide-python-implementation.md", ".kittify/charter/library/template-set-software-dev-default.md",
+      ".kittify/charter/library/user-project-profile.md", ".kittify/charter/references.yaml"]},
+      "charter_present": true, "chokepoint_refreshed": false, "duration_ms": 46, "errors":
+      [], "migration_id": "3.2.0rc35_unified_bundle", "target_version": "3.2.0rc35"}'
+  - id: 3.2.0rc35_update_planning_templates
+    applied_at: '2026-06-06T12:35:07.350112'
+    result: skipped
+    notes: Not applicable

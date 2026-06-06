@@ -1,0 +1,1 @@
+/Users/kentgale/.claude/skills/spk-team-auth/SKILL.md

@@ -1,12 +1,12 @@
 {
   "created_at": "2026-04-09T19:57:33.684717+00:00",
   "friendly_name": "Inbox GitHub Issue Routing",
-  "source_description": "GitHub issue #146 — route inbox notes to GitHub issue queue",
-  "vcs": "git",
   "mission_id": "01KNSX4HKM991Z98V5V26WSGPD",
-  "mission_number": "022",
+  "mission_number": 22,
   "mission_slug": "022-inbox-github-issue-routing",
   "mission_type": "software-dev",
   "slug": "022-inbox-github-issue-routing",
-  "target_branch": "main"
+  "source_description": "GitHub issue #146 — route inbox notes to GitHub issue queue",
+  "target_branch": "main",
+  "vcs": "git"
 }

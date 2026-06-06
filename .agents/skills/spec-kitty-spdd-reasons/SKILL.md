@@ -1,0 +1,1 @@
+/Users/kentgale/.agents/skills/spec-kitty-spdd-reasons/SKILL.md

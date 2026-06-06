@@ -1,12 +1,12 @@
 {
   "created_at": "2026-04-10T17:06:38.049144+00:00",
   "friendly_name": "Vikunja Date Timezone Bug Fix",
-  "source_description": "GitHub issue #112 — reopened 2026-04-10; previous fixes did not resolve",
-  "vcs": "git",
   "mission_id": "01KNW5R9B1Q13K8CQ9RYVX7VR2",
-  "mission_number": "025",
+  "mission_number": 25,
   "mission_slug": "025-vikunja-date-timezone-bug",
   "mission_type": "software-dev",
   "slug": "025-vikunja-date-timezone-bug",
-  "target_branch": "main"
+  "source_description": "GitHub issue #112 — reopened 2026-04-10; previous fixes did not resolve",
+  "target_branch": "main",
+  "vcs": "git"
 }

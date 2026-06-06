@@ -1,0 +1,1 @@
+/Users/kentgale/.claude/skills/spk-admin-upgrade/SKILL.md

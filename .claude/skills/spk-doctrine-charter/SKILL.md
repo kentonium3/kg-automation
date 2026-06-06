@@ -1,0 +1,1 @@
+/Users/kentgale/.claude/skills/spk-doctrine-charter/SKILL.md

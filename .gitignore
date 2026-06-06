@@ -55,3 +55,6 @@ temp/
 .coverage
 .coverage.*
 htmlcov/
+
+# Added by Spec Kitty CLI (auto-managed)
+.kittify/sync-state.json
