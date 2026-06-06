@@ -1,0 +1,45 @@
+{
+  "version": 1,
+  "mission_slug": "constitution-risk-tier-autonomy-guard-01KTCXMW",
+  "mission_id": "01KTCXMWWGDBM4Y0HJS25YZ4FP",
+  "mission_branch": "kitty/mission-constitution-risk-tier-autonomy-guard-01KTCXMW",
+  "target_branch": "main",
+  "lanes": [
+    {
+      "lane_id": "lane-a",
+      "wp_ids": [
+        "WP01",
+        "WP02"
+      ],
+      "write_scope": [
+        ".kittify/charter/charter.md",
+        "CLAUDE.md",
+        "docs/constitution/FELIX-CONSTITUTION.md",
+        "docs/design/architecture/change-control.md"
+      ],
+      "predicted_surfaces": [
+        "api"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    }
+  ],
+  "computed_at": "2026-06-06T00:39:33.038214+00:00",
+  "computed_from": "dependency_graph+ownership",
+  "planning_artifact_wps": [],
+  "collapse_report": {
+    "events": [
+      {
+        "wp_a": "WP02",
+        "wp_b": "WP01",
+        "rule": "dependency",
+        "evidence": "WP02 depends on WP01"
+      }
+    ],
+    "total_merges": 1,
+    "independent_wps_collapsed": 0,
+    "by_rule": {
+      "dependency": 1
+    }
+  }
+}
