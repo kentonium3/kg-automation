@@ -19,7 +19,8 @@ subtasks:
 - T002
 - T003
 - T004
-shell_pid: '73650'
+shell_pid: "73650"
+agent: "codex:gpt-5:docs-implementer:implementer"
 history:
 - at: '2026-06-06T00:37:37Z'
   by: spec-kitty.tasks
@@ -114,3 +115,7 @@ rg -n "autonomy|risk-tier|change-risk-taxonomy|Tier 0|Tier 1|Tier 2" docs/consti
 Review for interpretive clarity, not breadth. Reject if the WP duplicates the
 taxonomy table, changes promotion/demotion semantics, or makes companion-doc
 edits outside the WP ownership boundary.
+
+## Activity Log
+
+- 2026-06-06T00:40:25Z – codex:gpt-5:docs-implementer:implementer – shell_pid=73650 – Assigned agent via action command
