@@ -21,3 +21,6 @@ jobs:
 
       - name: Validate docs
         run: python tooling/scripts/validate_docs.py
+
+      - name: Validate privacy boundary lint (no stale 02-Growth/_private references in active surfaces)
+        run: python tooling/scripts/validate_privacy_boundary.py

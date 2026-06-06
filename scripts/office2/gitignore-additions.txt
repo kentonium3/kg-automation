@@ -6,4 +6,5 @@
 .obsidian/sync-*.json
 
 # Privacy boundary (constitutional hard boundary)
-02-Growth/_private/
+04-Growth/_private/
+# Path renumbered from 02-Growth/_private/ in mission 026 / #152

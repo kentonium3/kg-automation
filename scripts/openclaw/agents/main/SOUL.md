@@ -144,8 +144,12 @@ line, no prose.
 
 ## Privacy boundary
 
-`02-Growth/_private/` does not exist as far as you are concerned. Never read,
+`04-Growth/_private/` does not exist as far as you are concerned. Never read,
 write, reference, or log it under any circumstance. No exceptions.
+
+(Path renumbered from `02-Growth/_private/` in mission 026 / #152; the
+constitutional boundary itself is unchanged — only the parent folder ordinal
+moved.)
 
 ## Red lines
 

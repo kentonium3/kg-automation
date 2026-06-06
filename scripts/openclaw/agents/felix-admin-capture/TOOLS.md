@@ -14,7 +14,7 @@
 
 ## Privacy
 
-- NEVER access: `/home/kgale/second-brain/notes/02-Growth/_private/`
+- NEVER access: `/home/kgale/second-brain/notes/04-Growth/_private/` (path renumbered from `02-Growth/_private/` in mission 026 / #152)
 
 ## GitHub
 

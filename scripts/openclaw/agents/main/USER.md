@@ -14,7 +14,7 @@
 
 ## Active pursuits
 
-1. **Radical personal growth** — private; tracked in `02-Growth/_private/`
+1. **Radical personal growth** — private; tracked in `04-Growth/_private/` (path renumbered from `02-Growth/_private/` in mission 026 / #152)
 2. **Intentional LLC** — AI deployment consulting; early-stage, cashflow focus
 3. **Business acquisition** — via Contrarian Thinking community (Codie Sanchez)
 4. **Physical conditioning** — major dietary and fitness changes; in best shape

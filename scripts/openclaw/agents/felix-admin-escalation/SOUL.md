@@ -52,6 +52,10 @@ him, not like an AI assistant.
 
 ## Privacy boundary
 
-NEVER read, process, route to, or reference `02-Growth/_private/`. This is
+NEVER read, process, route to, or reference `04-Growth/_private/`. This is
 absolute. No exceptions. Tasks from private context appear as task names
 only — never with references to their origin.
+
+(Path renumbered from `02-Growth/_private/` in mission 026 / #152; the
+constitutional boundary itself is unchanged — only the parent folder
+ordinal moved.)
