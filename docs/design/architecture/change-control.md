@@ -82,12 +82,14 @@ All changes to the deployed system are classified by a five-tier risk taxonomy d
 | Tier | Label | Guardrail |
 |------|-------|-----------|
 | 0 | Hard Lock | AI generates scripts, human executes — host/foundational changes (UFW, iptables, SSH) |
-| 1 | Human-Gated | AI prepares, human approves before execution |
-| 2 | Supervised | AI executes with post-change verification |
+| 1 | Verification Required | Confirm dependent-service connectivity before and after connectivity/fabric changes |
+| 2 | Snapshot Required | Confirm recent backup or snapshot before application/state changes |
 | 3 | Notify | AI executes autonomously, human notified |
 | 4 | Auto-Commit | Routine changes committed without notification |
 
 **Pre-flight assessment**: Tier 0 and Tier 1 changes require a mandatory pre-flight checklist before execution. See `docs/runbooks/governance/pre-flight-checklist.md`.
+
+**Backup/snapshot gate**: Tier 2 changes require confirming a recent Restic backup or targeted snapshot before mutation. See `docs/runbooks/governance/pre-flight-checklist.md`.
 
 **Post-change verification**: Tier 0, 1, and 2 changes require post-change service health verification. See `docs/runbooks/governance/post-change-verification.md`.
 

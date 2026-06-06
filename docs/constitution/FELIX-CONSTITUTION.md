@@ -41,6 +41,17 @@ The agent executes autonomously. All activity is surfaced to Kent via the daily 
 **Autonomous (Level 3)**
 The agent executes autonomously. Only exceptions (flagged items, errors, security concerns) are surfaced. Promotion to Autonomous requires a minimum of 30 consecutive days at Observed and Kent's explicit decision.
 
+**Autonomy and change-risk gates:**
+Autonomy level determines how an agent's routine activity is surfaced and when
+it may execute within its standing orders. It does not grant permission to
+bypass deployed-change risk-tier protocols. The canonical Tier 0-4 taxonomy is
+`docs/design/architecture/data/change-risk-taxonomy.json`.
+
+Tier 0 changes remain operator-only regardless of autonomy level, urgency
+framing, or user phrasing. Tier 1 and Tier 2 changes remain subject to their
+defined gates, including pre-flight, approval, backup or snapshot, and
+verification obligations where applicable.
+
 **Promotion rules:**
 - Promotion requires Kent's explicit decision. It is never automatic.
 - Minimum time at the current level must be met before promotion is considered.
