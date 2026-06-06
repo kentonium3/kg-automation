@@ -20,7 +20,7 @@ subtasks:
 - T003
 - T004
 shell_pid: "73650"
-agent: "codex:gpt-5:docs-implementer:implementer"
+agent: "codex:gpt-5:docs-reviewer:reviewer"
 history:
 - at: '2026-06-06T00:37:37Z'
   by: spec-kitty.tasks
@@ -120,3 +120,4 @@ edits outside the WP ownership boundary.
 
 - 2026-06-06T00:40:25Z – codex:gpt-5:docs-implementer:implementer – shell_pid=73650 – Assigned agent via action command
 - 2026-06-06T00:43:32Z – codex:gpt-5:docs-implementer:implementer – shell_pid=73650 – Ready for review
+- 2026-06-06T00:45:26Z – codex:gpt-5:docs-reviewer:reviewer – shell_pid=73650 – Started review via action command
