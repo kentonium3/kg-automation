@@ -21,7 +21,7 @@ from scripts.habits import query_active_habits_v2 as qv2
 # Local helpers
 # ---------------------------------------------------------------------------
 
-HABITS_PROJECT_ID = 42
+HABITS_PROJECT_ID = qv2.HABITS_PROJECT_ID  # aligned with source (#556)
 
 
 def _task_fields(

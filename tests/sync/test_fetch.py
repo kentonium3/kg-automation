@@ -107,7 +107,12 @@ class TestHappyPath:
 
 
 class TestNoUpdatedSince:
-    def test_tasks_url_has_no_query_string(self, mock_urlopen):
+    def test_tasks_url_has_no_updated_since(self, mock_urlopen):
+        """tasks/all URL is full-poll only — no updated_since incremental marker.
+
+        Pagination query string (page, per_page) IS expected per Vikunja's
+        50-task page cap on /tasks/all (#556).
+        """
         mock_urlopen.side_effect = [
             _resp(TASKS_PAYLOAD),
             _resp(PROJECTS_PAYLOAD),
@@ -115,9 +120,59 @@ class TestNoUpdatedSince:
         ]
         f.fetch_full_poll(TOKEN, BASE)
         tasks_req = mock_urlopen.call_args_list[0][0][0]
-        assert tasks_req.full_url == BASE + "tasks/all"
+        assert tasks_req.full_url.startswith(BASE + "tasks/all?")
         assert "updated_since" not in tasks_req.full_url
-        assert "?" not in tasks_req.full_url
+        assert "page=1" in tasks_req.full_url
+        assert "per_page=50" in tasks_req.full_url
+
+
+# ===========================================================================
+# Scenario 2.5 — Pagination across the 50-task Vikunja cap (#556)
+# ===========================================================================
+
+
+class TestPagination:
+    def test_full_page_triggers_next_page_fetch(self, mock_urlopen):
+        """A full 50-task response triggers a page=2 fetch; partial page stops."""
+        full_page = [
+            {"id": i, "title": f"Task {i}", "project_id": 10, "done": False, "updated": "2026-06-04T18:00:00Z"}
+            for i in range(1, 51)
+        ]
+        partial_page = [
+            {"id": i, "title": f"Task {i}", "project_id": 10, "done": False, "updated": "2026-06-04T18:00:00Z"}
+            for i in range(51, 70)
+        ]
+        mock_urlopen.side_effect = [
+            _resp(full_page),     # page 1 (50 tasks — full)
+            _resp(partial_page),  # page 2 (19 tasks — partial, stops)
+            _resp(PROJECTS_PAYLOAD),
+            _resp({"version": "0.24.6"}),
+        ]
+        snap = f.fetch_full_poll(TOKEN, BASE)
+
+        assert len(snap.tasks) == 69
+        # 4 total calls: 2 pages of tasks + projects + info
+        assert mock_urlopen.call_count == 4
+        page1_url = mock_urlopen.call_args_list[0][0][0].full_url
+        page2_url = mock_urlopen.call_args_list[1][0][0].full_url
+        assert "page=1" in page1_url
+        assert "page=2" in page2_url
+
+    def test_empty_page_terminates_pagination(self, mock_urlopen):
+        """An exactly-full page followed by an empty page stops cleanly."""
+        full_page = [
+            {"id": i, "title": f"Task {i}", "project_id": 10, "done": False, "updated": "2026-06-04T18:00:00Z"}
+            for i in range(1, 51)
+        ]
+        mock_urlopen.side_effect = [
+            _resp(full_page),    # page 1 (exactly 50)
+            _resp([]),           # page 2 empty → stop
+            _resp(PROJECTS_PAYLOAD),
+            _resp({"version": "0.24.6"}),
+        ]
+        snap = f.fetch_full_poll(TOKEN, BASE)
+        assert len(snap.tasks) == 50
+        assert mock_urlopen.call_count == 4
 
 
 # ===========================================================================

@@ -93,8 +93,10 @@ TOUCHPOINT_NAME = "habits.query_active_habits_v2"
 #: records ``project_id`` in the cache for every task; this constant lets
 #: the touchpoint scope the enumeration to habits without a live API call.
 #: Value is the well-known project_id from the production Vikunja instance.
-#: See research.md § TP-03 for the field-availability confirmation.
-HABITS_PROJECT_ID: int | None = None  # resolved dynamically from cache if None
+#: See research.md § TP-03 for the field-availability confirmation. If
+#: the project_id ever changes, update this constant (dynamic resolution
+#: via HABITS_PROJECT_TITLE was scoped but not implemented).
+HABITS_PROJECT_ID: int = 13
 
 #: Title of the Vikunja project holding all habit tasks.  Used as fallback
 #: project-scoping mechanism when HABITS_PROJECT_ID is None.
@@ -216,6 +218,8 @@ def query_active_today(
         if view.is_private:
             continue  # private-project task — skip (see EC-7 in migration-pattern.md)
         fields = view.fields
+        if fields.get("project_id") != HABITS_PROJECT_ID:
+            continue  # not in the Habits project — skip (#556)
         if fields.get("done", False):
             continue
         due = fields.get("due_date") or ""

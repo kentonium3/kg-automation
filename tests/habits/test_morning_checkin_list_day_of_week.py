@@ -21,6 +21,7 @@ from unittest.mock import patch
 import pytest
 
 from scripts.habits import morning_checkin_list as mcl
+from scripts.habits import query_active_habits_v2 as qv2
 from scripts.habits import schedule_loader as sl
 
 
@@ -29,7 +30,7 @@ from scripts.habits import schedule_loader as sl
 # ---------------------------------------------------------------------------
 
 
-HABITS_PROJECT_ID = 42
+HABITS_PROJECT_ID = qv2.HABITS_PROJECT_ID  # aligned with source (#556)
 
 
 def _task_fields(

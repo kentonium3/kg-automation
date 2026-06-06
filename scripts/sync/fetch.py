@@ -87,25 +87,43 @@ def fetch_full_poll(
     # Record fetch entry time BEFORE any HTTP calls.
     fetched_at_utc = vikunja_now_iso()
 
-    # Phase 1a: fetch all tasks (full poll, no updated_since).
-    tasks_url = f"{base_url}tasks/all"
-    try:
-        tasks_raw = get_json(tasks_url, token)
-    except OSError as exc:
-        raise _classify_oserror(exc) from exc
+    # Phase 1a: fetch all tasks (full poll, paginated). Vikunja's /tasks/all
+    # caps per_page at 50 regardless of the requested value, so we must
+    # iterate pages until we get a partial / empty result. MAX_PAGES is a
+    # runaway-loop safety bound at 10,000 tasks.
+    PAGE_SIZE = 50
+    MAX_PAGES = 200
+    all_tasks: list = []
+    for page in range(1, MAX_PAGES + 1):
+        tasks_url = f"{base_url}tasks/all?page={page}&per_page={PAGE_SIZE}"
+        try:
+            tasks_raw = get_json(tasks_url, token)
+        except OSError as exc:
+            raise _classify_oserror(exc) from exc
 
-    if not isinstance(tasks_raw, list):
+        if not isinstance(tasks_raw, list):
+            raise OSError(
+                f"parse_error: GET {tasks_url} returned non-list body: {type(tasks_raw).__name__!r}"
+            )
+
+        if not tasks_raw:
+            break
+        all_tasks.extend(tasks_raw)
+        if len(tasks_raw) < PAGE_SIZE:
+            break
+    else:
         raise OSError(
-            f"parse_error: GET {tasks_url} returned non-list body: {type(tasks_raw).__name__!r}"
+            f"pagination_exceeded: GET tasks/all hit page cap ({MAX_PAGES}); "
+            "increase MAX_PAGES or investigate runaway"
         )
 
-    if task_cache_nonempty and len(tasks_raw) == 0:
+    if task_cache_nonempty and len(all_tasks) == 0:
         raise OSError(
             "empty_response_when_cache_nonzero: GET tasks/all returned [] "
             "but task cache is non-empty — possible Vikunja data loss; aborting cycle"
         )
 
-    tasks = tuple(tasks_raw)
+    tasks = tuple(all_tasks)
 
     # Phase 1b: fetch all projects (full poll).
     projects_url = f"{base_url}projects"

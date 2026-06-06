@@ -28,11 +28,13 @@ from scripts.habits import query_active_habits_v2 as qv2
 # Local helpers
 # ---------------------------------------------------------------------------
 
-#: Habits project_id used across tests.
-HABITS_PROJECT_ID = 42
+#: Habits project_id used across tests. Imported from source so this stays
+#: aligned with whatever the production constant is set to.
+HABITS_PROJECT_ID = qv2.HABITS_PROJECT_ID
 
-#: A non-habits project_id (Inbox, Goals, etc.).
-OTHER_PROJECT_ID = 7
+#: A non-habits project_id (Inbox, Goals, etc.). Deliberately not equal to
+#: HABITS_PROJECT_ID so private-project / wrong-project tests filter correctly.
+OTHER_PROJECT_ID = HABITS_PROJECT_ID + 100
 
 
 def _task_fields(
