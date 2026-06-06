@@ -12,10 +12,10 @@
 | T002 | Add concise constitution wording binding autonomy to risk-tier gates. | WP01 |  | [D] |
 | T003 | Reference the canonical risk taxonomy JSON from the constitution. | WP01 |  | [D] |
 | T004 | Verify the constitution text covers Tier 0 and Tier 1/2 obligations without duplicating the taxonomy table. | WP01 |  | [D] |
-| T005 | Inspect `CLAUDE.md` for consistency with the new constitution wording. | WP02 |  |
-| T006 | Inspect `.kittify/charter/charter.md` for consistency with the new constitution wording. | WP02 |  |
-| T007 | Inspect `docs/design/architecture/change-control.md` for consistency with the new constitution wording. | WP02 |  |
-| T008 | Run documentation validation and targeted requirement checks. | WP02 |  |
+| T005 | Inspect `CLAUDE.md` for consistency with the new constitution wording. | WP02 |  | [D] |
+| T006 | Inspect `.kittify/charter/charter.md` for consistency with the new constitution wording. | WP02 |  | [D] |
+| T007 | Inspect `docs/design/architecture/change-control.md` for consistency with the new constitution wording. | WP02 |  | [D] |
+| T008 | Run documentation validation and targeted requirement checks. | WP02 |  | [D] |
 
 ## Work Packages
 
@@ -57,10 +57,10 @@
 
 **Included subtasks**
 
-- [ ] T005 Inspect `CLAUDE.md` for consistency with the new constitution wording.
-- [ ] T006 Inspect `.kittify/charter/charter.md` for consistency with the new constitution wording.
-- [ ] T007 Inspect `docs/design/architecture/change-control.md` for consistency with the new constitution wording.
-- [ ] T008 Run documentation validation and targeted requirement checks.
+- [x] T005 Inspect `CLAUDE.md` for consistency with the new constitution wording.
+- [x] T006 Inspect `.kittify/charter/charter.md` for consistency with the new constitution wording.
+- [x] T007 Inspect `docs/design/architecture/change-control.md` for consistency with the new constitution wording.
+- [x] T008 Run documentation validation and targeted requirement checks.
 
 **Implementation sketch**
 
