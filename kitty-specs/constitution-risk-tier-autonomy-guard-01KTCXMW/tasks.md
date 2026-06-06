@@ -8,10 +8,10 @@
 
 | ID | Description | WP | Parallel |
 |---|---|---|---|
-| T001 | Locate the Directive 2 insertion point and preserve existing autonomy semantics. | WP01 |  |
-| T002 | Add concise constitution wording binding autonomy to risk-tier gates. | WP01 |  |
-| T003 | Reference the canonical risk taxonomy JSON from the constitution. | WP01 |  |
-| T004 | Verify the constitution text covers Tier 0 and Tier 1/2 obligations without duplicating the taxonomy table. | WP01 |  |
+| T001 | Locate the Directive 2 insertion point and preserve existing autonomy semantics. | WP01 |  | [D] |
+| T002 | Add concise constitution wording binding autonomy to risk-tier gates. | WP01 |  | [D] |
+| T003 | Reference the canonical risk taxonomy JSON from the constitution. | WP01 |  | [D] |
+| T004 | Verify the constitution text covers Tier 0 and Tier 1/2 obligations without duplicating the taxonomy table. | WP01 |  | [D] |
 | T005 | Inspect `CLAUDE.md` for consistency with the new constitution wording. | WP02 |  |
 | T006 | Inspect `.kittify/charter/charter.md` for consistency with the new constitution wording. | WP02 |  |
 | T007 | Inspect `docs/design/architecture/change-control.md` for consistency with the new constitution wording. | WP02 |  |
@@ -30,10 +30,10 @@
 
 **Included subtasks**
 
-- [ ] T001 Locate the Directive 2 insertion point and preserve existing autonomy semantics.
-- [ ] T002 Add concise constitution wording binding autonomy to risk-tier gates.
-- [ ] T003 Reference the canonical risk taxonomy JSON from the constitution.
-- [ ] T004 Verify the constitution text covers Tier 0 and Tier 1/2 obligations without duplicating the taxonomy table.
+- [x] T001 Locate the Directive 2 insertion point and preserve existing autonomy semantics.
+- [x] T002 Add concise constitution wording binding autonomy to risk-tier gates.
+- [x] T003 Reference the canonical risk taxonomy JSON from the constitution.
+- [x] T004 Verify the constitution text covers Tier 0 and Tier 1/2 obligations without duplicating the taxonomy table.
 
 **Implementation sketch**
 
