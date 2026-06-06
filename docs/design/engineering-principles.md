@@ -1,15 +1,23 @@
 ---
-title: kg-automation Engineering Principles Proposal
-doc_type: project
-status: draft
+title: kg-automation Engineering Principles
+doc_type: design
+status: approved
 last_updated: '2026-06-05'
+last_validated: '2026-06-05'
+owners: [kgale]
+version: '1.0'
 tags: [architecture, principles, governance]
 ---
 
-# kg-automation Engineering Principles Proposal
+# kg-automation Engineering Principles
 
 These principles sit between broad Felix governance and individual feature
 specs. They are intended to guide new work before it creates retrofit debt.
+
+Approved 2026-06-05 from the architecture review report at
+`docs/research/kg-automation-architecture-review/`. Constitution Directive 6
+will reference this document; CLAUDE.md gains an "Engineering Principles"
+section pointing here in a follow-on commit.
 
 ## 1. Runtime Truth Must Have a Machine-Readable State
 
