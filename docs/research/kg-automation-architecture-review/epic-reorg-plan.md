@@ -3,7 +3,7 @@ title: kg-automation Epic Reorganization Plan (from Architecture Review)
 doc_type: project
 status: draft
 last_updated: '2026-06-05'
-tags: [architecture, planning, epics, issue-management, 270, 281, 516]
+tags: [architecture, planning, epics, issue-management, 270, 281, 516, 137, 535, 537, 539, 542, 543, 545, 547, 549, 551, 164, 165, 271, 138, 520, 276, 366, 489, 492, 517, 521, 518, 172, 175, 194, 281/Epic, 133, 164/]
 ---
 
 # Epic Reorganization Plan

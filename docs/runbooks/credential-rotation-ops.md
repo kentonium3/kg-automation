@@ -4,6 +4,7 @@ doc_type: runbook
 status: approved
 audience: humans
 last_updated: '2026-06-05'
+tags: [1]
 ---
 
 # Credential Rotation Operations
@@ -177,7 +178,7 @@ ssh office2-claude 'cat /data/services/felix-core-digest/state/last-tick.json 2>
 - [ ] Old token revoked at github.com
 - [ ] Next `felix-doc-auditor` tick's `last-tick.json` shows `"status": "ok"`
 - [ ] No `401`/`403` in `journalctl --user -u felix-doc-auditor.service --since '1 hour ago'`
-- [ ] Manifest updated per [final section](#manifest-update-obligations)
+- [ ] Manifest updated per [final section](<#manifest-update-obligations>)
 
 ### NO-GO triggers
 
@@ -232,7 +233,7 @@ gh run view <run-id> --repo kentonium3/kg-automation --log | grep -E "priority-f
 - [ ] `PROJECT_SYNC_PAT` Actions secret updated
 - [ ] Old token revoked at github.com
 - [ ] Next `priority-field-sync` job run completes without auth errors
-- [ ] Manifest updated per [final section](#manifest-update-obligations)
+- [ ] Manifest updated per [final section](<#manifest-update-obligations>)
 
 ### NO-GO triggers
 
@@ -327,7 +328,7 @@ ssh office2-claude 'cat /data/services/felix-heartbeat-gate/state/last-gate-deci
 - [ ] Next `felix-heartbeat-gate` tick's `last-gate-decision.json` shows a
   normal decision (not a 401-triggered ESCALATE_TO_SONNET fallback)
 - [ ] Old key revoked at `console.anthropic.com`
-- [ ] Manifest updated per [final section](#manifest-update-obligations)
+- [ ] Manifest updated per [final section](<#manifest-update-obligations>)
 
 ### NO-GO triggers
 
@@ -362,7 +363,7 @@ restart, verify, and auto-rollback in a single command.
 ### Steps
 
 1. **Pre-flight (Tier 2)**: confirm Restic snapshot within last 24 hours
-   per the [Pre-flight section above](#pre-flight-applies-to-every-rotation).
+   per the [Pre-flight section above](<#pre-flight-applies-to-every-rotation>).
 
 2. **Generate new token** in the Vikunja UI:
    - SSH-tunnel or Tailscale to `https://office2.tail0f5f56.ts.net/`
@@ -433,7 +434,7 @@ ssh office2-claude 'journalctl --user -u openclaw-gateway.service --since "5 min
 - [ ] Zero `401`/`403` errors in 5 minutes post-restart
 - [ ] Old token revoked in Vikunja UI
 - [ ] `.bak` removed after 24-hour soak
-- [ ] Manifest updated per [final section](#manifest-update-obligations)
+- [ ] Manifest updated per [final section](<#manifest-update-obligations>)
 
 ### NO-GO triggers
 
@@ -526,7 +527,7 @@ ssh office2-claude 'restic -r <repository-url> snapshots --latest 1'
 - [ ] Password file overwritten with new passphrase, mode 600
 - [ ] `backup.sh` test run succeeds with the new password
 - [ ] Old key removed from repository
-- [ ] Manifest updated per [final section](#manifest-update-obligations)
+- [ ] Manifest updated per [final section](<#manifest-update-obligations>)
 
 ### NO-GO triggers
 
@@ -653,7 +654,7 @@ ssh office2-claude 'journalctl --user -u openclaw-gateway.service --since "5 min
 - [ ] `gog auth list` returns the re-ingested accounts
 - [ ] No keyring/decrypt errors in gateway logs for 5 minutes post-restart
 - [ ] Manifest entries updated for BOTH `gog-keyring-password` AND
-  `openclaw-gateway-env` per [final section](#manifest-update-obligations)
+  `openclaw-gateway-env` per [final section](<#manifest-update-obligations>)
 
 ### NO-GO triggers
 
@@ -749,7 +750,7 @@ ssh office2-claude 'gog auth list'
 - [ ] `gog auth credentials` accepted the new file
 - [ ] All previously-ingested accounts re-added via `gog auth add`
 - [ ] Old client_secret revoked in Cloud Console
-- [ ] Manifest updated per [final section](#manifest-update-obligations)
+- [ ] Manifest updated per [final section](<#manifest-update-obligations>)
 
 ### NO-GO triggers
 
@@ -811,7 +812,7 @@ gh issue edit 525 --repo kentonium3/kg-automation --add-label "P3-debt"
 - [ ] `gh auth status` shows `kentonium3` active
 - [ ] Scopes include `repo`, `read:org`, `workflow` at minimum
 - [ ] Test write operation succeeds
-- [ ] Manifest updated per [final section](#manifest-update-obligations)
+- [ ] Manifest updated per [final section](<#manifest-update-obligations>)
 
 ### NO-GO triggers
 
