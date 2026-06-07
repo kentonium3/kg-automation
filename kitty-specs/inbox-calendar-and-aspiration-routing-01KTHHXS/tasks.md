@@ -63,12 +63,12 @@ WP01 and WP04 can run in parallel. WP02 starts when WP01 completes; WP03 starts 
 
 **Included subtasks**:
 
-- [ ] T001 Scaffold `scripts/calendar/` module (WP01)
-- [ ] T002 Implement `validate_calendar_event.py` (WP01)
-- [ ] T003 [P] Validator unit tests + fixtures (WP01)
-- [ ] T004 [P] Classifier regression fixture set (WP01)
-- [ ] T005 [P] Classifier regression test runner (WP01)
-- [ ] T006 Pytest config + coverage thresholds (WP01)
+- [x] T001 Scaffold `scripts/calendar/` module (WP01)
+- [x] T002 Implement `validate_calendar_event.py` (WP01)
+- [x] T003 [P] Validator unit tests + fixtures (WP01)
+- [x] T004 [P] Classifier regression fixture set (WP01)
+- [x] T005 [P] Classifier regression test runner (WP01)
+- [x] T006 Pytest config + coverage thresholds (WP01)
 
 **Implementation sketch**:
 1. Create the module + `__init__.py`.

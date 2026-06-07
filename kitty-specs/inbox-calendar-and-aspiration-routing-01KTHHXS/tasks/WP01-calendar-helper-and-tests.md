@@ -21,8 +21,8 @@ subtasks:
 - T004
 - T005
 - T006
-agent: "claude:opus-4-7:python-pedro:implementer"
-shell_pid: "85788"
+agent: "claude:opus-4-7:reviewer-renata:reviewer"
+shell_pid: "92285"
 history: []
 agent_profile: python-pedro
 authoritative_surface: scripts/calendar/
@@ -263,3 +263,6 @@ Deliver the deterministic helper script `scripts/calendar/validate_calendar_even
 ## Activity Log
 
 - 2026-06-07T22:50:11Z – claude:opus-4-7:python-pedro:implementer – shell_pid=85788 – Started implementation via action command
+- 2026-06-07T23:10:16Z – claude:opus-4-7:python-pedro:implementer – shell_pid=85788 – Ready for review. 88 tests pass (73 validator + 15 classifier-regression), 43 skipped (live-mode + pre-WP02 pending). Coverage 99.12% (line 99%, branch ~99%) on scripts/calendar/. Lint: python3 -m py_compile (ruff unavailable in env) exit=0 on all changed .py files. Coverage gate NOT wired into pytest.ini (lives outside owned_files); canonical invocation documented in tests/calendar/README.md. Pre-WP02 calendar/aspiration/Someday/multi-domain destinations SKIP via static gate as designed; tripwire test (test_pre_wp02_pending_destinations_not_yet_wired) flips to enforcement when WP02 lands the rows. Rebased onto kitty/mission-inbox-... before move.
+- 2026-06-07T23:11:50Z – claude:opus-4-7:python-pedro:implementer – shell_pid=85788 – Ready for review. 88 tests pass (73 validator + 15 classifier-regression), 43 skipped (live-mode + pre-WP02 pending destinations). Coverage 99.12% combined line+branch on scripts/calendar/ (99% line, ~99% branch). Lint: python3 -m py_compile (ruff unavailable) exit=0 on all owned .py files. Coverage gate documented in tests/calendar/README.md (canonical command); not wired into pytest.ini because pytest.ini lives outside owned_files. Pre-WP02 calendar/aspiration/Someday/multi-domain destinations SKIP via the static gate as designed; tripwire test (test_pre_wp02_pending_destinations_not_yet_wired) flips to enforcement when WP02 lands the rows.
+- 2026-06-07T23:15:59Z – claude:opus-4-7:reviewer-renata:reviewer – shell_pid=92285 – Started review via action command
