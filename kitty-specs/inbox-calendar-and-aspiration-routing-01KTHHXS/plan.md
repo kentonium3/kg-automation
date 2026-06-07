@@ -96,10 +96,10 @@ docs/
 └── design/
     └── architecture/
         ├── data/
-        │   ├── agent-inventory.json       # MODIFIED — capture + Felix main updated capabilities
-        │   ├── data-flows.json            # MODIFIED — three new flows added
-        │   └── service-inventory.json     # MODIFIED — gog now consumed by capture→main flow
-        └── agents.md                      # MODIFIED — narrative for capture routing surface
+        │   ├── service-inventory.json    # MODIFIED — capture+main capability entries; gog used_by extended
+        │   ├── data-flows.json           # MODIFIED — three new flows added
+        │   └── signal-to-doc-map.json    # MODIFIED — extend doc_targets for service-modified + data-flow-added
+        └── data-flows.md                 # MODIFIED — narrative for the new inbox classification flows
 
 ON OFFICE2 (deployed via existing post-merge sync — not modified by this mission):
 - Felix main workspace at /home/claude/.openclaw/workspace/AGENTS.md
@@ -145,7 +145,7 @@ Anticipated WPs (all land in one mission merge per memory `feedback_speckitty_sp
 - **WP01 — Helper + classifier fixtures**: new `scripts/calendar/validate_calendar_event.py`, unit test suite, classifier regression fixture (~25 cases including historical misroutes from #556 and the trivia-night example from #324). Owned files: `scripts/calendar/**`, `tests/calendar/**`, `tests/inbox/test_classifier_regression.py`, `tests/inbox/fixtures/classifier_regression.json`.
 - **WP02 — Capture agent prompt + routing logic**: revise `scripts/openclaw/agents/felix-admin-capture/AGENTS.md` Step 3 table (calendar / aspiration / Someday rows), add calendar completeness branch (invokes WP01's helper), add aspiration-detection rules, add Someday-detection rules, tighten task-rule, add new `log_action` types to allowlist, add clarification-prompt formatting for WhatsApp turn-summary. Owned files: `scripts/openclaw/agents/felix-admin-capture/AGENTS.md`.
 - **WP03 — Felix main calendar reply handler**: revise Felix main workspace `AGENTS.md` to add a Calendar Reply Handler section that, on WhatsApp inbound, reads `pending-calendar-clarifications.jsonl`, matches the reply to the most recent open entry, invokes `gog calendar create` with completed args, removes the resolved entry, and confirms via WhatsApp turn-summary. Owned files: Felix main `AGENTS.md` (path resolved on office2 — for the kg-automation diff, this is committed under the workspace path captured in the deployed structure).
-- **WP04 — Architecture JSON + narrative doc-sync**: update `docs/design/architecture/data/agent-inventory.json`, `data-flows.json`, `service-inventory.json` (gog now has a new consumer: the capture→main calendar flow), and `docs/design/architecture/agents.md` (narrative for the updated capture routing surface). Owned files: `docs/design/architecture/data/agent-inventory.json`, `docs/design/architecture/data/data-flows.json`, `docs/design/architecture/data/service-inventory.json`, `docs/design/architecture/agents.md`.
+- **WP04 — Architecture JSON + narrative doc-sync**: update `docs/design/architecture/data/service-inventory.json` (felix-admin-capture + main capability entries + gog `used_by`), `docs/design/architecture/data/data-flows.json` (three new flow entries), `docs/design/architecture/data-flows.md` (narrative for the new flows), and `docs/design/architecture/data/signal-to-doc-map.json` (extend doc_targets if needed). Owned files: those four. Correction note: spec/plan originally referenced `agent-inventory.json` and `architecture/agents.md`; those files do not exist in this repo — agents are catalogued IN `service-inventory.json` and the canonical narrative is `data-flows.md`. Caught by `finalize-tasks --validate-only` on 2026-06-07.
 
 WP dependency graph: WP01 is independent. WP02 references WP01's helper path. WP03 is independent (reads a state-file shape defined in spec.md / data-model.md, no code dependency on WP01). WP04 is independent. All four are mergeable in one mission merge.
 

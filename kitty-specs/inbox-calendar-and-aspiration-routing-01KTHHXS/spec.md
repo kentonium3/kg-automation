@@ -157,8 +157,9 @@ This resolution was made because spec-kitty 3.2.0rc37 has a bug (kg-automation#5
 
 Per DIR-005 and the kg-automation change-control protocol, this mission's merge MUST include synchronized updates to the following docs in the same PR (deferring to follow-on issues is an anti-pattern per the migration-no-vestiges convention):
 
-- `docs/design/architecture/data/agent-inventory.json` — felix-admin-capture capability summary (revised routing surface) and Felix main capability summary (if a calendar-reply handler is added).
+- `docs/design/architecture/data/service-inventory.json` — felix-admin-capture capability entry (revised routing surface), Felix main capability entry (calendar-reply handler), and gog `used_by` to include capture (via main delegation). Agents are catalogued in service-inventory.json alongside services — there is no separate `agent-inventory.json` in this repo.
 - `docs/design/architecture/data/data-flows.json` — three new flows: (1) inbox → capture → Felix main → gog → Google Calendar; (2) inbox → capture → WhatsApp clarification → Kent reply → calendar create; (3) inbox → capture → 08-Journal/.
+- `docs/design/architecture/data-flows.md` — narrative description of the new flows (the canonical narrative companion to data-flows.json; no separate `architecture/agents.md` exists in this repo).
 - `scripts/openclaw/agents/felix-admin-capture/AGENTS.md` — Step 3 routing table, new completeness logic, WhatsApp clarification turn-summary shape, new action-type allowlist entries.
 - Felix main standing-orders document (exact path confirmed during plan phase) — calendar-reply handler if FR-007's clarification resolves it to require one.
 - `docs/INDEX.md` and `docs/DEVELOPER_PORTAL.md` — only if a new doc surface is added (e.g., a runbook for the clarification loop). Consult `docs/design/architecture/data/signal-to-doc-map.json` with `change_class: service-modified` and `change_class: data-flow-added-or-modified` for the canonical doc-target list.
