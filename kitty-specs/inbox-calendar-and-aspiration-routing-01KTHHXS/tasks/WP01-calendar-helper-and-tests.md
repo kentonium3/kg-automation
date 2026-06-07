@@ -11,6 +11,9 @@ tracker_refs: []
 planning_base_branch: kitty/mission-inbox-calendar-and-aspiration-routing-01KTHHXS
 merge_target_branch: kitty/mission-inbox-calendar-and-aspiration-routing-01KTHHXS
 branch_strategy: Planning artifacts for this mission were generated on kitty/mission-inbox-calendar-and-aspiration-routing-01KTHHXS. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into kitty/mission-inbox-calendar-and-aspiration-routing-01KTHHXS unless the human explicitly redirects the landing branch.
+base_branch: kitty/mission-inbox-calendar-and-aspiration-routing-01KTHHXS
+base_commit: 59b4cf4eac92a404df0d00b4a32a1d1899758551
+created_at: '2026-06-07T22:49:33.512168+00:00'
 subtasks:
 - T001
 - T002
@@ -18,7 +21,10 @@ subtasks:
 - T004
 - T005
 - T006
+agent: "claude:opus-4-7:python-pedro:implementer"
+shell_pid: "85788"
 history: []
+agent_profile: python-pedro
 authoritative_surface: scripts/calendar/
 execution_mode: code_change
 owned_files:
@@ -26,9 +32,7 @@ owned_files:
 - tests/calendar/**
 - tests/inbox/test_classifier_regression.py
 - tests/inbox/fixtures/classifier_regression.json
-agent_profile: python-pedro
 role: implementer
-agent: claude
 tags: []
 ---
 
@@ -255,3 +259,7 @@ Deliver the deterministic helper script `scripts/calendar/validate_calendar_even
 - Reviewer checks: do the 11 validator fixtures cover BOTH parser-success and parser-failure paths? Are RRULE conversions exactly correct for the four recurrence patterns? Does the classifier regression set carry historical misroute cases from #556 verbatim?
 - Reviewer must run the coverage gate command and verify the actual percentage reported. If <90% line or <85% branch, reject.
 - Reviewer verifies no `# noqa` / `# pragma: no cover` markers slipped in for production logic (defensive-check pragmas per `reference_pytest_branch_coverage_pragma` memory are allowed for unreachable branches guarded by earlier short-circuit returns; reviewer scrutinizes that they are genuinely unreachable).
+
+## Activity Log
+
+- 2026-06-07T22:50:11Z – claude:opus-4-7:python-pedro:implementer – shell_pid=85788 – Started implementation via action command
