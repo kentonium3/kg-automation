@@ -1,0 +1,15 @@
+{
+  "complete": false,
+  "missing_fields": ["end_or_duration"],
+  "fields_so_far": {
+    "title": "Therapy session",
+    "start_natural": "June 12, 2026 at 4pm",
+    "end_natural": null,
+    "duration_natural": null,
+    "location": null,
+    "recurrence_natural": null,
+    "attendees": null,
+    "source_inbox_path": "/home/kgale/second-brain/notes/01-Inbox/Inbox 2026-06-07 1000.md",
+    "source_block_index": 7
+  }
+}

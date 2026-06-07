@@ -1,0 +1,15 @@
+{
+  "complete": false,
+  "missing_fields": ["recurrence_pattern"],
+  "fields_so_far": {
+    "title": "Quarterly tax estimate",
+    "start_natural": "June 15, 2026 at 9am",
+    "end_natural": null,
+    "duration_natural": "30 minutes",
+    "location": null,
+    "recurrence_natural": "every other Tuesday in February only",
+    "attendees": null,
+    "source_inbox_path": "/home/kgale/second-brain/notes/01-Inbox/Inbox 2026-06-07 1000.md",
+    "source_block_index": 8
+  }
+}

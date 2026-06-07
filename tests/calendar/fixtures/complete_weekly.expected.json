@@ -1,0 +1,18 @@
+{
+  "complete": true,
+  "missing_fields": [],
+  "calendar_event_payload": {
+    "action": "create_calendar_event",
+    "calendar_id": "primary",
+    "account": "kent@intentional.biz",
+    "summary": "Tuesday trivia at Tru West",
+    "start_rfc3339": "2026-06-09T18:00:00-04:00",
+    "end_rfc3339": "2026-06-09T20:00:00-04:00",
+    "start_timezone": "America/New_York",
+    "location": "Tru West Brewery, 525 Massachusetts Ave, Acton, MA 01720",
+    "description": "Source: Inbox 2026-06-07 1000.md",
+    "rrule": "RRULE:FREQ=WEEKLY;BYDAY=TU",
+    "attendees": null,
+    "source_inbox_path": "/home/kgale/second-brain/notes/01-Inbox/Inbox 2026-06-07 1000.md"
+  }
+}
