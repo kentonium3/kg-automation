@@ -32,6 +32,9 @@ authoritative_surface: scripts/openclaw/agents/felix-admin-capture/
 execution_mode: code_change
 owned_files:
 - scripts/openclaw/agents/felix-admin-capture/AGENTS.md
+agent_profile: generic-agent
+role: implementer
+agent: claude
 tags: []
 ---
 

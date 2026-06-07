@@ -26,6 +26,9 @@ owned_files:
 - tests/calendar/**
 - tests/inbox/test_classifier_regression.py
 - tests/inbox/fixtures/classifier_regression.json
+agent_profile: python-pedro
+role: implementer
+agent: claude
 tags: []
 ---
 

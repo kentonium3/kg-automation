@@ -21,6 +21,9 @@ owned_files:
 - docs/design/architecture/data/data-flows.json
 - docs/design/architecture/data-flows.md
 - docs/design/architecture/data/signal-to-doc-map.json
+agent_profile: curator-carla
+role: curator
+agent: claude
 tags: []
 ---
 

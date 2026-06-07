@@ -23,6 +23,9 @@ authoritative_surface: scripts/openclaw/agents/main/
 execution_mode: code_change
 owned_files:
 - scripts/openclaw/agents/main/AGENTS.md
+agent_profile: generic-agent
+role: implementer
+agent: claude
 tags: []
 ---
 
