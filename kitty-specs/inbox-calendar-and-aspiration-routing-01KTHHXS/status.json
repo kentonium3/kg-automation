@@ -1,7 +1,7 @@
 {
-  "event_count": 2,
-  "last_event_id": "01KTJ2NYFQ8TJG47XZSN76JDKJ",
-  "materialized_at": "2026-06-07T22:19:00.472008+00:00",
+  "event_count": 3,
+  "last_event_id": "01KTJ2P04YDB2SV0S9DB7C85QB",
+  "materialized_at": "2026-06-07T22:19:02.174386+00:00",
   "mission_number": "",
   "mission_slug": "inbox-calendar-and-aspiration-routing-01KTHHXS",
   "mission_type": "software-dev",
@@ -14,7 +14,7 @@
     "for_review": 0,
     "in_progress": 0,
     "in_review": 0,
-    "planned": 2
+    "planned": 3
   },
   "work_packages": {
     "WP01": {
@@ -30,6 +30,13 @@
       "lane": "planned",
       "last_event_id": "01KTJ2NYFQ8TJG47XZSN76JDKJ",
       "last_transition_at": "2026-06-07T22:19:00.472008+00:00"
+    },
+    "WP03": {
+      "actor": "finalize-tasks",
+      "force_count": 1,
+      "lane": "planned",
+      "last_event_id": "01KTJ2P04YDB2SV0S9DB7C85QB",
+      "last_transition_at": "2026-06-07T22:19:02.174386+00:00"
     }
   }
 }
