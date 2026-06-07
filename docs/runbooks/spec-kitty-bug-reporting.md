@@ -4,9 +4,9 @@ doc_type: runbook
 audience: agents_and_humans
 status: approved
 created: 2026-05-28
-last_validated: 2026-06-04
-last_updated: '2026-06-04'
-version: v1.1
+last_validated: 2026-06-07
+last_updated: '2026-06-07'
+version: v1.2
 owners: [kgale]
 ---
 
@@ -142,18 +142,24 @@ Slim format used as the source for upstream paste docs. Drops:
 
 Keeps: Summary, Reproduction, Root Cause (only if known), Workaround Applied (trimmed of internal refs), Environment.
 
-**Attribution + reviewer-approval footer (mandatory, added 2026-06-04 / v1.1):**
+**Attribution + reviewer-approval footer (mandatory, added 2026-06-04 / v1.1; structured form added 2026-06-07 / v1.2):**
 
 Every external paste MUST end with a footer block of the form:
 
 ```markdown
 ---
-*Authored by Kentonium3 and Claude. Reviewed and approved by Kentonium3 for submission.*
+
+**Authored by**: Kent Gale (kentonium3/kg-automation) & Claude Code (Claude Opus 4.7), YYYY-MM-DD.
+**Submission approved by**: Kent Gale (kentonium3/kg-automation), YYYY-MM-DD.
+**Local tracking**: kentonium3/kg-automation#NNN.
 ```
 
-Adjust the "Claude" name to whichever agent did the drafting (e.g., "Authored by Kentonium3 and Codex" if codex drafted, "Authored by Kentonium3 and Antigravity" for antigravity). The reviewer-approval line stays constant (`Kentonium3` is always the human-in-the-loop reviewer; the operator-of-record).
+Field rules:
+- **Authored by** — Kent's real name + GH org/repo identifier `(kentonium3/kg-automation)` so upstream maintainers can resolve the operator without guesswork, joined with `&` to the drafting agent's identity. Agent identity should include the specific model (e.g. `Claude Code (Claude Opus 4.7)`, `Codex (gpt-5.5)`, `Antigravity (gemini-2.5-pro)`). Date is the day the draft was authored.
+- **Submission approved by** — Kent's real name + GH org/repo identifier, repeated. This line is the operator-in-the-loop approval declaration. Date is the day of upstream filing (typically same day or one day after authoring).
+- **Local tracking** — direct link back to the kentonium3/kg-automation tracking issue, so upstream maintainers can navigate to our internal context if useful.
 
-Rationale: bug reports filed in upstream trackers carry an implicit author voice. Upstream maintainers benefit from knowing the report had a human-in-the-loop review before submission (it's not unattended-agent output), and the joint authorship line documents the actual production path. The reviewer-approval line is the public-facing equivalent of the internal pre-filing-approval step.
+Rationale: bug reports filed in upstream trackers carry an implicit author voice. The structured 3-line form (v1.2, 2026-06-07) replaces the prior single-line attribution because Kent wanted the human-in-the-loop approval declaration to be unmistakably explicit — separating authoring (collaborative) from submission approval (Kent-only) makes accountability clear and prevents any reading of the report as unattended-agent output. The local-tracking link gives maintainers a one-click path back to our internal queue without requiring a separate "ours: #NNN" cross-reference in the body proper.
 
 ## Pre-filing approval checklist (operator-facing)
 

@@ -3,8 +3,8 @@ title: Spec-Kitty External Bug Report Template
 doc_type: reference
 status: approved
 audience: humans
-last_updated: '2026-06-04'
-version: v1.1
+last_updated: '2026-06-07'
+version: v1.2
 ---
 
 # Spec-Kitty External Bug Report Template
@@ -107,4 +107,6 @@ the diagnostic at docs/diagnostics/xxx; tracked in feedback memory entry."
 
 ---
 
-*Authored by Kentonium3 and {agent name — Claude, Codex, Antigravity, etc.}. Reviewed and approved by Kentonium3 for submission.*
+**Authored by**: Kent Gale (kentonium3/kg-automation) & {agent name — Claude Code (Claude Opus 4.7), Codex (gpt-5.5), Antigravity (gemini-…), etc.}, {YYYY-MM-DD}.
+**Submission approved by**: Kent Gale (kentonium3/kg-automation), {YYYY-MM-DD}.
+**Local tracking**: kentonium3/kg-automation#{NNN}.
