@@ -1,0 +1,12 @@
+{
+  "title": "Dentist cleaning",
+  "start_natural": "June 10, 2026 at 2pm",
+  "end_natural": "June 10, 2026 at 3pm",
+  "duration_natural": null,
+  "location": "Dr. Smith, 100 Main St",
+  "recurrence_natural": null,
+  "attendees": null,
+  "source_inbox_path": "/home/kgale/second-brain/notes/01-Inbox/Inbox 2026-06-07 1000.md",
+  "source_block_index": 0,
+  "tick_iso": "2026-06-07T10:00:00-04:00"
+}

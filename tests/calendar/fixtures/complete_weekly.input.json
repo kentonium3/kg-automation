@@ -1,0 +1,12 @@
+{
+  "title": "Tuesday trivia at Tru West",
+  "start_natural": "next Tuesday at 6:00 PM",
+  "end_natural": null,
+  "duration_natural": "2 hours",
+  "location": "Tru West Brewery, 525 Massachusetts Ave, Acton, MA 01720",
+  "recurrence_natural": "every Tuesday",
+  "attendees": null,
+  "source_inbox_path": "/home/kgale/second-brain/notes/01-Inbox/Inbox 2026-06-07 1000.md",
+  "source_block_index": 2,
+  "tick_iso": "2026-06-07T10:00:00-04:00"
+}

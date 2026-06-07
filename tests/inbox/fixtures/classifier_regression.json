@@ -1,0 +1,192 @@
+{
+  "schema_version": 1,
+  "description": "Regression fixtures for the felix-admin-capture classifier. Each fixture records a sample inbox block, the canonical destination capture should route it to, and a rationale that explains why. Used by tests/inbox/test_classifier_regression.py in two modes: (a) static — verify the routing table in capture's AGENTS.md still maps the destination string to a Step 4 action; (b) live (opt-in) — drive the actual capture prompt against the LLM.",
+  "destinations": [
+    "calendar_event_complete",
+    "calendar_event_incomplete",
+    "aspiration",
+    "someday",
+    "active_task",
+    "github_issue",
+    "goal_declaration",
+    "reference_resource",
+    "multi_domain"
+  ],
+  "fixtures": [
+    {
+      "id": "calendar-oneoff-dentist",
+      "input_block": "Dentist cleaning Wednesday June 10th at 2pm with Dr. Smith on Main Street. Should take an hour.",
+      "expected_destination": "calendar_event_complete",
+      "rationale": "Concrete one-off appointment with title, date, time, location, duration.",
+      "source": "synthetic"
+    },
+    {
+      "id": "calendar-oneoff-coffee-pat",
+      "input_block": "Coffee with Pat tomorrow at noon for 30 minutes.",
+      "expected_destination": "calendar_event_complete",
+      "rationale": "Concrete event with relative date, time, and duration.",
+      "source": "synthetic"
+    },
+    {
+      "id": "calendar-oneoff-workshop",
+      "input_block": "Saturday June 13 9am to 5pm — woodworking workshop at Maker Space, 42 Industrial Way.",
+      "expected_destination": "calendar_event_complete",
+      "rationale": "All-day-ish event with explicit start, end, and location.",
+      "source": "synthetic"
+    },
+    {
+      "id": "calendar-recurring-trivia",
+      "input_block": "Tuesday trivia nights at Tru West Brewery, 525 Massachusetts Ave, Acton, MA 01720, 6:00 PM, starting May 20.",
+      "expected_destination": "calendar_event_complete",
+      "rationale": "Weekly recurring event with title, weekday, time, location. From issue #324 — the precedent that motivated this whole mission.",
+      "source": "historical-real"
+    },
+    {
+      "id": "calendar-recurring-biweekly-onethanother",
+      "input_block": "Biweekly 1:1 with my manager every other Wednesday at 10am — 1 hour.",
+      "expected_destination": "calendar_event_complete",
+      "rationale": "Biweekly cadence with weekday, time, duration. Recurrence phrase 'every other Wednesday' must convert to FREQ=WEEKLY;INTERVAL=2;BYDAY=WE.",
+      "source": "synthetic"
+    },
+    {
+      "id": "calendar-recurring-monthly-15th",
+      "input_block": "Pay credit card bill — monthly on the 15th at 9am, 15 minutes.",
+      "expected_destination": "calendar_event_complete",
+      "rationale": "Monthly on numeric day-of-month. Tests the FREQ=MONTHLY;BYMONTHDAY=15 path.",
+      "source": "synthetic"
+    },
+    {
+      "id": "calendar-incomplete-no-time",
+      "input_block": "Dinner with the Smiths next Friday. Pick a place.",
+      "expected_destination": "calendar_event_incomplete",
+      "rationale": "Date is present but time is unspecified and end/duration absent → capture should request clarification.",
+      "source": "synthetic"
+    },
+    {
+      "id": "calendar-incomplete-no-date",
+      "input_block": "Set up a recurring 1:1 with Casey — biweekly Tuesdays at 3pm. Need to confirm start date.",
+      "expected_destination": "calendar_event_incomplete",
+      "rationale": "Recurrence and time present but start date is deferred to clarification.",
+      "source": "synthetic"
+    },
+    {
+      "id": "calendar-incomplete-exotic-recurrence",
+      "input_block": "Quarterly review meeting starts June 15 at 9am — runs every other Tuesday in February only. 1 hour.",
+      "expected_destination": "calendar_event_incomplete",
+      "rationale": "Recurrence pattern is outside the supported set (every-other-Tuesday-in-February-only). Helper must report missing recurrence_pattern.",
+      "source": "synthetic"
+    },
+    {
+      "id": "calendar-incomplete-no-end-or-duration",
+      "input_block": "Therapy session June 12 at 4pm.",
+      "expected_destination": "calendar_event_incomplete",
+      "rationale": "Start specified but neither end nor duration → capture clarifies before creating event.",
+      "source": "synthetic"
+    },
+    {
+      "id": "aspiration-get-to-bed",
+      "input_block": "I want to get to bed earlier — it's the single biggest lever on my next-day energy.",
+      "expected_destination": "aspiration",
+      "rationale": "Standing intention without time or commitment. Maps to journal append, not a Vikunja task.",
+      "source": "synthetic"
+    },
+    {
+      "id": "aspiration-small-business-loan",
+      "input_block": "I wonder whether a small-business loan would let us move faster on the Acton property without selling equity.",
+      "expected_destination": "aspiration",
+      "rationale": "Musing / wondering with no concrete next action. Belongs in journal, not as a task.",
+      "source": "synthetic"
+    },
+    {
+      "id": "aspiration-growth-practice",
+      "input_block": "Spend 15 minutes on growth practice today.",
+      "expected_destination": "aspiration",
+      "rationale": "From issue #556 misroute: this phrasing reads like an aspiration / intention, not a concrete actionable task. The pre-#556 classifier routed this to Vikunja by mistake.",
+      "source": "historical-misroute"
+    },
+    {
+      "id": "someday-old-lawn-tractor",
+      "input_block": "Get rid of the old lawn tractor at some point when I get around to it — no rush.",
+      "expected_destination": "someday",
+      "rationale": "Concrete future action explicitly tagged as no-deadline / when-I-get-around-to-it. Routes to Vikunja project Someday (id=4) per FR-009.",
+      "source": "synthetic"
+    },
+    {
+      "id": "someday-clean-garage",
+      "input_block": "Eventually want to clean out the garage and donate the stuff we don't use.",
+      "expected_destination": "someday",
+      "rationale": "Concrete action without time pressure. Belongs in Someday list, not a dated task.",
+      "source": "synthetic"
+    },
+    {
+      "id": "someday-household-spice-rack",
+      "input_block": "Buy a new spice rack for the kitchen at some point.",
+      "expected_destination": "someday",
+      "rationale": "From issue #556: household-items-routed-as-tasks misroute. This is a Someday item, not a dated active task.",
+      "source": "historical-misroute"
+    },
+    {
+      "id": "active-task-call-dentist",
+      "input_block": "Call dentist to reschedule cleaning by Friday.",
+      "expected_destination": "active_task",
+      "rationale": "Concrete near-term action with implied deadline. Belongs in Vikunja active list with due_date.",
+      "source": "synthetic"
+    },
+    {
+      "id": "active-task-tax-doc-deadline",
+      "input_block": "Send last year's tax return PDF to Casey by EOD Wednesday.",
+      "expected_destination": "active_task",
+      "rationale": "Explicit deadline + named recipient. Classic Vikunja active task with due_date.",
+      "source": "synthetic"
+    },
+    {
+      "id": "active-task-prep-presentation",
+      "input_block": "Prep slides for the all-hands on Thursday — outline + 5 slides.",
+      "expected_destination": "active_task",
+      "rationale": "Near-term work tied to a known event date. Active task, not Someday.",
+      "source": "synthetic"
+    },
+    {
+      "id": "github-issue-mcp-feature",
+      "input_block": "GitHub issue: add an --offset flag to scripts/inbox/prescan.py so the cron tick can replay older windows.",
+      "expected_destination": "github_issue",
+      "rationale": "Explicit 'GitHub issue:' trigger phrase. Maps to gh issue create.",
+      "source": "synthetic"
+    },
+    {
+      "id": "github-issue-bug-report",
+      "input_block": "File a github issue: the prescan helper logs warnings even when PRESCAN_LOG_DIR is set to a tmpdir.",
+      "expected_destination": "github_issue",
+      "rationale": "Bug-report phrasing with explicit GitHub trigger. Goes to kentonium3/kg-automation.",
+      "source": "synthetic"
+    },
+    {
+      "id": "goal-declaration",
+      "input_block": "New goal: ship the inbox calendar routing mission to production this quarter.",
+      "expected_destination": "goal_declaration",
+      "rationale": "Felix-format goal declaration ('New goal:' or 'Update goal:'). Routes to 03-Constitution/Goals-MOC.md.",
+      "source": "synthetic"
+    },
+    {
+      "id": "reference-resource-book",
+      "input_block": "Resource: 'Designing Data-Intensive Applications' by Martin Kleppmann — keep on the systems design shelf.",
+      "expected_destination": "reference_resource",
+      "rationale": "Resource note pattern → 09-Resources/.",
+      "source": "synthetic"
+    },
+    {
+      "id": "multi-domain-calendar-plus-task",
+      "input_block": "Trivia at Tru West every Tuesday 6pm — and remind me to bring cash before Tuesday.",
+      "expected_destination": "multi_domain",
+      "rationale": "Block contains a recurring calendar event AND a discrete active task. Capture should split into two routings (calendar event + active task).",
+      "source": "synthetic"
+    },
+    {
+      "id": "multi-domain-aspiration-plus-task",
+      "input_block": "I want to write more this year. Block 30 minutes tomorrow at 7am to outline the next essay.",
+      "expected_destination": "multi_domain",
+      "rationale": "Aspiration ('want to write more this year') + concrete time-boxed calendar event ('30 minutes tomorrow at 7am'). Two routings.",
+      "source": "synthetic"
+    }
+  ]
+}
