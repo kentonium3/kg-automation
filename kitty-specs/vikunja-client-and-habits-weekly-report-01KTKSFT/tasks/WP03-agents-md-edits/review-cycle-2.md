@@ -7,7 +7,7 @@ reviewed_at: '2026-06-08T17:28:38Z'
 reviewer_agent: unknown
 verdict: rejected
 wp_id: WP03
-review_artifact_override_at: "2026-06-08T17:40:07Z"
+review_artifact_override_at: "2026-06-08T17:40:35Z"
 review_artifact_override_actor: "operator"
 review_artifact_override_wp_id: "WP03"
 review_artifact_override_reason: "Arbiter override: review-cycle-2.md contains the prior Tailscale contradiction, resolved by 12ff08c0. Verified weekly now emits contract failure render, morning remains IDLE, reply remains Step 4; 15055-byte size is a reasonable contract-required 55-byte overage."
