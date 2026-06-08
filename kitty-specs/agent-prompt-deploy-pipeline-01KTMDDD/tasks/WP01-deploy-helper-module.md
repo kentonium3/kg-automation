@@ -28,7 +28,8 @@ subtasks:
 - T005
 - T006
 - T007
-agent: claude
+agent: "claude"
+shell_pid: "96199"
 history:
 - timestamp: '2026-06-08T20:25:00Z'
   actor: claude
@@ -330,3 +331,7 @@ This WP delivers a runnable, locally-testable helper. WP02 will add the systemd 
 
 After this WP merges to coordination branch:
 - `spec-kitty agent action implement WP02 --agent claude` (the systemd unit WP)
+
+## Activity Log
+
+- 2026-06-08T21:14:29Z – claude – shell_pid=96199 – Assigned agent via action command
