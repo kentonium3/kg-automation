@@ -1,30 +1,31 @@
 # Implementation Plan: Vikunja client + habits weekly report
 
 **Branch**: `kitty/mission-vikunja-client-and-habits-weekly-report-01KTKSFT` | **Date**: 2026-06-08 | **Spec**: [spec.md](./spec.md)
+**Revision**: 2 (post phase-0 live-probe findings; FR-007 dropped, data source changed, recurrence math revised; 4 WPs not 5)
 
 ## Summary
 
-Three bundled issues (#562 umbrella, #542 foundation, #561 co-shipped) ship in one mission as the canonical Directive-6 fix for felix-admin-habits' weekly-report path. Shared Vikunja client lands first (FR-001/002), then morning-check-in migrates onto it (FR-007 — proves zero regression), then the new deterministic weekly helper builds on top (FR-003/004/005/006), then habits + sibling agents' standing orders gain output-discipline Hard Rules + weekly-procedure documentation (FR-008/009/010), and architecture inventories sync to match (FR-013 + doc-sync requirement). The mission preserves the existing project-13 + daily-habit filter pattern from `363685ea` (#556 fix), extends it to recurring-on-weekday via Vikunja's native `repeat_after` + `repeat_mode` encoding, and replaces LLM improvisation with deterministic data — the agent's job becomes pure rendering.
+Mission ships the bundled #562/#542/#561 slice as a Directive-6 fix for felix-admin-habits' weekly-report path. Phase-0 live probes (recorded in research.md) revealed three load-bearing surprises that re-shaped the spec: (1) `query_active_habits_v2.py` reads a local sync cache (not Vikunja API), so the planned "v2 migration to shared client" is impossible — v2 has nothing to migrate; (2) Vikunja's `done_at` field IS queryable via `?filter=done=true`, so the new weekly helper can query completion history directly via the shared client; (3) Kent's "Strength training — Mon/Wed/Fri" habits are NOT recurring in Vikunja's data model (`repeat_after=0`) — they're per-occurrence tasks with weekday encoded in the title, mirroring the day-of-week filter pattern from mission #408. Net effect: scope tightens to 4 WPs (was 5) — shared Vikunja client, new weekly helper as the first client consumer, AGENTS.md edits + sibling audit, architecture doc-sync.
 
 ## Technical Context
 
 **Language/Version**: Python 3.10+ (matches existing `scripts/inbox/`, `scripts/habits/`, `scripts/common/` helpers; office2 Ubuntu 24.04 ships Python 3.12).
 
-**Primary Dependencies**: Standard library only for new code (`urllib.request`, `urllib.parse`, `urllib.error`, `json`, `os`, `dataclasses`, `datetime`, `zoneinfo`). Existing surfaces consumed (not new dependencies): `scripts/common/vikunja_config.py::get_vikunja_base_url()` (base URL resolution), `scripts/openclaw/observation/log_action.py` (audit trail), token file at `/data/services/openclaw/secrets/vikunja-api` (read directly; no helper exists for token).
+**Primary Dependencies**: Standard library only for new code (`urllib.request`, `urllib.parse`, `urllib.error`, `json`, `os`, `dataclasses`, `datetime`, `zoneinfo`, `re` for weekday-in-title parsing). Existing surfaces consumed (not new dependencies): `scripts/common/vikunja_config.py::get_vikunja_base_url()` (base URL resolution), `scripts/openclaw/observation/log_action.py` (audit trail), token file at `/data/services/openclaw/secrets/vikunja-api` (read directly).
 
-**Storage**: No new state files. Reads Vikunja via API; writes nothing to disk except via `log_action.py` (existing JSONL stream). Token cached in-memory per client instance (FR-002 — no global state).
+**Storage**: No new state files. Reads Vikunja via API (the new weekly helper); writes nothing to disk except via `log_action.py`. Token cached in-memory per client instance.
 
-**Testing**: pytest with branch coverage (`pytest --cov=scripts/common --cov=scripts/habits --cov-branch --cov-fail-under=90`) following the pattern from mission #558's calendar helper. New test directories: `tests/common/` (for vikunja_client) and `tests/habits/` (extend existing for the new weekly helper). Coverage targets: ≥90% line, ≥85% branch on `scripts/common/vikunja_client.py` AND `scripts/habits/query_active_habits_weekly.py`. Tests use `urlopen` mocking via the global guard in `tests/conftest.py` plus per-test response mocks.
+**Testing**: pytest with branch coverage (`pytest --cov=scripts/common --cov=scripts/habits --cov-branch --cov-fail-under=90`) following the pattern from mission #558's calendar helper. New test directories: `tests/common/` (for vikunja_client) and `tests/habits/test_query_active_habits_weekly.py` (for the new helper). The existing `tests/habits/test_query_active_habits_v2.py` is NOT modified — v2 is untouched per C-004. Tests use `urlopen` mocking via the global guard in `tests/conftest.py` plus per-test response mocks.
 
 **Target Platform**: Ubuntu 24.04 LTS on office2 (production); macOS Darwin 25.5.0 for dev/test on Kent's Mac.
 
 **Project Type**: single — additions to existing repo (`scripts/`, `tests/`, agent AGENTS.md files across `scripts/openclaw/agents/felix-admin-{habits,escalation,tasker}/`).
 
-**Performance Goals**: ≤5s wall-clock for the weekly helper at the 95th percentile under normal Vikunja load (NFR-001). Single invocation per weekly cron tick; no parallelism.
+**Performance Goals**: ≤5s wall-clock for the weekly helper at the 95th percentile under normal Vikunja load (NFR-001). Single invocation per weekly cron tick; ≤4 API calls per invocation.
 
-**Constraints**: Tier 3 (logic/workflow). No host configuration, network, credentials, ports, or sudo-protected resources modified (C-006). Privacy boundary at `~/second-brain/notes/04-Growth/_private/` is absolute (C-005). Idempotency required (NFR-004). No third-party HTTP libraries (C-001 — `requests` not used; matches the `validate_calendar_event.py` precedent from #558).
+**Constraints**: Tier 3 (logic/workflow). No host configuration, network, credentials, ports, or sudo-protected resources modified (C-006). Morning check-in path is NOT modified (C-004). Privacy boundary at `~/second-brain/notes/04-Growth/_private/` is absolute (C-005). Idempotency required (NFR-004). No third-party HTTP libraries (C-001).
 
-**Scale/Scope**: New client ~200 LoC + ~50 unit tests. New weekly helper ~250 LoC + ~30 tests + fixtures. AGENTS.md edits ~80 lines across felix-admin-habits, plus smaller edits to escalation + tasker per the audit. Migration of `query_active_habits_v2.py` is a ~10-line import + class instantiation swap. Architecture JSON updates touch ~3 files.
+**Scale/Scope**: New client ~200 LoC + ~50 unit tests. New weekly helper ~250 LoC + ~30 tests + fixtures. AGENTS.md edits ~80 lines across felix-admin-habits + smaller edits for escalation + tasker per the audit. Architecture JSON updates touch ~3 files.
 
 ## Charter Check
 
@@ -33,18 +34,18 @@ Three bundled issues (#562 umbrella, #542 foundation, #561 co-shipped) ship in o
 | Directive | Applies? | How this plan satisfies |
 |---|---|---|
 | DIRECTIVE_001 — Architectural Integrity | Yes | Client is independently testable; helper is pure-function; agent prompt edits are localized to one AGENTS.md per agent; no cross-component leakage. |
-| DIRECTIVE_003 — Decision Documentation | Yes | Spec captures the Directive-6 split decision; this plan documents the recurrence-model choice (Vikunja native `repeat_after`); research.md will record the cron-cadence and sibling-audit outcomes. |
-| DIRECTIVE_010 — Specification Fidelity | Yes | Plan derives strictly from spec FRs/NFRs/Cs; out-of-scope items (second migration, voice/UX changes, etc.) carried verbatim from spec. |
-| DIRECTIVE_024 — Locality of Change | Yes | Client localized to `scripts/common/`; helper localized to `scripts/habits/`; agent edits localized to each agent's AGENTS.md. No cross-cutting refactors. |
-| DIRECTIVE_031 — Context-Aware Design | Yes | Domain language section in spec defines the bounded context. Plan respects those boundaries. |
-| DIRECTIVE_033 — Targeted Staging | Yes | Implementation will stage only the expected deliverables per WP. No blanket `git add .` in WP prompts. |
+| DIRECTIVE_003 — Decision Documentation | Yes | Spec revision 2 documents the data-source decision (Vikunja API via done_at filter, NOT cache); research.md records phase-0 findings that drove the decision. |
+| DIRECTIVE_010 — Specification Fidelity | Yes | Plan derives strictly from spec (revised) FRs; FR-007 explicitly carries the "dropped" audit trail. |
+| DIRECTIVE_024 — Locality of Change | Yes | Client → `scripts/common/`; helper → `scripts/habits/`; agent edits → each agent's AGENTS.md. Morning check-in path explicitly untouched. |
+| DIRECTIVE_031 — Context-Aware Design | Yes | Domain language section in spec defines the bounded context including the daily-vs-weekday-in-title habit kinds. |
+| DIRECTIVE_033 — Targeted Staging | Yes | Implementation will stage only the expected deliverables per WP. |
 | DIRECTIVE_034 — Test-First Development | Yes | Client unit tests authored before client implementation. Helper unit tests authored before helper implementation. Regression tests for FR-012 explicit failure modes added before fix. |
-| DIR-001 — c4-incremental-detail-modeling | Yes | This plan is Layer 2 of the C4 progression; research.md and data-model.md follow. |
-| DIR-002 — Privacy/security boundaries | Yes | C-005 affirms the `04-Growth/_private/` absolute rule. No new privacy surface. |
-| DIR-003 — Docs synchronized | Yes | See Documentation Sync section in spec. |
-| DIR-004 — Documentation standards | Yes | Plan + spec follow YAML-frontmatter and structural conventions. |
-| DIR-005 — Doc-sync requirement in mission | Yes | Spec's "Documentation Synchronization Requirement" section enumerates the JSON + Markdown files that must update in the merge PR. |
-| DIR-006 — Probe real environment | Yes | Live probing of office2 done during this plan phase. Surfaces in research.md: actual habit data shape, weekly cron cadence and configuration, sibling-agent AGENTS.md content for audit outcomes. |
+| DIR-001 — c4-incremental-detail-modeling | Yes | This plan is Layer 2; research.md and data-model.md follow. |
+| DIR-002 — Privacy/security boundaries | Yes | C-005 affirms the absolute rule. |
+| DIR-003 — Docs synchronized | Yes | See spec's Documentation Sync section. |
+| DIR-004 — Documentation standards | Yes | Plan + spec follow YAML-frontmatter conventions. |
+| DIR-005 — Doc-sync requirement | Yes | Spec's "Documentation Synchronization Requirement" enumerates affected docs. |
+| DIR-006 — Probe real environment | Yes | Live probing of office2 done during phase-0; findings recorded in research.md drove the revision-2 scope correction. |
 
 **Gate verdict**: PASS. Proceed to Phase 0.
 
@@ -54,9 +55,9 @@ Three bundled issues (#562 umbrella, #542 foundation, #561 co-shipped) ship in o
 
 ```
 kitty-specs/vikunja-client-and-habits-weekly-report-01KTKSFT/
-├── plan.md              # This file
-├── spec.md              # Feature spec (committed)
-├── research.md          # Phase 0 output (live-probe research per DIR-006)
+├── plan.md              # This file (revision 2)
+├── spec.md              # Feature spec (revision 2; committed)
+├── research.md          # Phase 0 output (live-probe findings drove revision 2)
 ├── data-model.md        # Phase 1 output
 ├── quickstart.md        # Phase 1 output
 └── contracts/           # Phase 1 output
@@ -70,10 +71,11 @@ kitty-specs/vikunja-client-and-habits-weekly-report-01KTKSFT/
 ```
 scripts/
 ├── common/
-│   ├── vikunja_config.py                  # EXISTING (consumed)
+│   ├── vikunja_config.py                  # EXISTING (consumed; UNCHANGED)
+│   ├── sync_cache.py                      # EXISTING (consumed by v2; UNCHANGED in this mission)
 │   └── vikunja_client.py                  # NEW
 ├── habits/
-│   ├── query_active_habits_v2.py          # MODIFIED (migrated to use client)
+│   ├── query_active_habits_v2.py          # EXISTING (UNCHANGED in this mission; C-004)
 │   └── query_active_habits_weekly.py      # NEW
 └── openclaw/
     └── agents/
@@ -88,7 +90,7 @@ tests/
 │   └── fixtures/
 │       └── vikunja_client_responses.json   # NEW
 └── habits/
-    ├── test_query_active_habits_v2.py      # EXISTING (must still pass)
+    ├── test_query_active_habits_v2.py      # EXISTING (UNCHANGED in this mission)
     ├── test_query_active_habits_weekly.py  # NEW (~30 tests)
     └── fixtures/
         └── weekly_report_responses.json    # NEW
@@ -103,55 +105,62 @@ docs/
         └── data-flows.md                  # MODIFIED
 ```
 
-**Structure Decision**: Single-project layout. Mission delivers (a) a new infrastructure module + tests, (b) a new helper script + tests, (c) one migrated helper (zero-regression target), (d) AGENTS.md edits across three agents, (e) architecture JSON + narrative updates.
+**Structure Decision**: Single-project layout. 4-WP roster (revision 2).
 
-## Phase 0: Research
+## Phase 0: Research (substantially complete)
 
-Live-probe research (per DIR-006) is the primary phase-0 work. Findings recorded in [research.md](./research.md). Headlines to verify:
+Live-probe research per DIR-006 was the primary phase-0 work, done before this plan revision. Findings recorded in [research.md](./research.md). Headlines (drove revision 2 of spec.md):
 
-- **Vikunja recurrence model verification**: read at least three of Kent's actual habits via the Vikunja API on office2; confirm `repeat_after`, `repeat_mode`, and `due_date` carry the values the spec assumes. Specifically verify the "Strength training — Wed" habit's `repeat_after == 604800` and its `due_date` is a Wednesday.
-- **Vikunja check-in history queryability**: confirm the API exposes per-task per-day completion records over a 14-day window.
-- **Weekly cron cadence + configuration**: `openclaw cron list --json` on office2; find the felix-admin-habits weekly entry. Document day/time, delivery mode (presumed `announce`), and trigger phrasing.
-- **Sibling-agent AGENTS.md content**: read `scripts/openclaw/agents/felix-admin-{escalation,tasker}/AGENTS.md` end-to-end. Classify each as (a) already has Hard Rules — no edit needed, (b) doesn't have Hard Rules but emits user-facing WhatsApp — add them, (c) doesn't emit user-facing WhatsApp — add explicit annotation.
-- **felix-admin-habits' model identity**: confirm sonnet per the 2026-06-08 leaked message header.
-- **"WP04 T015" citation resolution**: search prior missions for a WP04 T015 referencing weekly habit reports. If real, the prior spec informs design. If confabulated, document as agent-hallucination evidence.
-- **Architecture-docs-first probe** (per memory `feedback_architecture_docs_first.md`): consult arch JSONs FIRST before any office2 SSH for things like the openclaw plugin set or other deployed surfaces.
+- **R-001 — Vikunja recurrence model**: of Kent's 11 habits in project 13, 7 are daily (`repeat_after=86400`) and 3 are weekday-in-title (`repeat_after=0`, title contains weekday name). The "Strength training — Mon/Wed/Fri" pattern is per-occurrence, not Vikunja-recurring. The weekly helper mirrors the day-of-week filter from mission #408 (`query_active_habits_v2.py`'s `_weekday_name_for_date`).
+- **R-002 — Vikunja done_at is queryable**: `GET /projects/13/tasks?filter=done=true` returns historical completed tasks with `done_at` populated. Confirmed via live probe. The exact date-range filter syntax (`&filter=done_at>=<iso>`) is verified during plan-phase contract work.
+- **R-003 — Morning check-in uses sync cache, not Vikunja API**: `query_active_habits_v2.py` reads `/data/services/openclaw/state/sync/task-cache.json` via `scripts.common.sync_cache`. The cache holds current state only, no completion history. v2 has nothing to migrate to the new client; FR-007 is DROPPED.
+- **R-004 — Weekly cron confirmed**: `habits-weekly-report` at `0 22 * * 0` (Sunday 10pm America/New_York), `announce` delivery to WhatsApp. FR-014 verified.
+- **R-005 — Sibling-agent paths different than assumed**: deployed AGENTS.md aren't at `/home/claude/.openclaw/agents/felix-admin-{escalation,tasker}/AGENTS.md` (only felix-admin-capture and Felix main are there). The repo paths `scripts/openclaw/agents/felix-admin-*/AGENTS.md` exist but deployed paths differ per memory `reference_office2_agent_deploy_paths.md`. Plan phase locates the actual deployed paths.
+- **R-006 — escalation-daily cron exists**: `escalation-daily` at `0 12 * * *`, announce → WhatsApp. felix-admin-escalation IS a user-facing-WhatsApp agent; Hard Rules ARE in scope per FR-010.
+
+Items remaining for plan phase:
+- Verify date-range filter syntax for `done_at` (`>=`, `<`, etc.) against Vikunja's actual filter expression language.
+- Locate sibling-agent AGENTS.md deployed paths on office2.
+- Audit all 11 habits' titles against the weekday-in-title regex pattern (`(Mon|Tue|Wed|Thu|Fri|Sat|Sun)(day)?`); confirm no false positives or false negatives.
+- Verify `felix-admin-tasker` has a cron or not.
 
 ## Phase 1: Design & Contracts
 
-Design artifacts:
+Design artifacts (Phase-1 work, produced after this plan commits):
 
-- [data-model.md](./data-model.md) — entities (VikunjaClient, exception hierarchy, WeeklyHabitReport JSON shape, HabitClassification) with field tables, validation rules, and lifecycle.
+- [data-model.md](./data-model.md) — entities (VikunjaClient, exception hierarchy, WeeklyHabitReport JSON shape, HabitClassifier) with field tables, validation rules, and lifecycle.
 - [contracts/vikunja_client.md](./contracts/vikunja_client.md) — public surface of the new client: method signatures, exception classes, redaction policy, timeout behavior, base URL normalization.
-- [contracts/query_active_habits_weekly.md](./contracts/query_active_habits_weekly.md) — stdin/stdout JSON contract for the weekly helper. Mirrors the validate_calendar_event contract pattern from #558.
+- [contracts/query_active_habits_weekly.md](./contracts/query_active_habits_weekly.md) — CLI contract for the weekly helper: args, stdin (none), stdout JSON shape, exit codes.
 - [contracts/weekly_report_payload.md](./contracts/weekly_report_payload.md) — WeeklyHabitReport JSON schema the agent consumes for rendering.
 - [quickstart.md](./quickstart.md) — operator-runnable smoke test for office2 verification.
 
 ## Re-evaluation of Charter Check (post-Phase 1)
 
-All gates remain PASS. If research surfaces a gate violation (e.g., the recurrence model differs from spec assumptions), plan phase records the deviation and either revises the spec or files a separate issue.
+All gates remain PASS.
 
 ## Work-package strategy (advisory for /spec-kitty.tasks)
 
-Anticipated WPs (5 WPs target; finalize-tasks may collapse or split):
+Revised to 4 WPs in revision 2:
 
 - **WP01 — Shared Vikunja client + tests** (no deps): new `scripts/common/vikunja_client.py` (~200 LoC), exception hierarchy, full unit test suite covering FR-001/002. Owned files: `scripts/common/vikunja_client.py`, `tests/common/**`.
-- **WP02 — Migrate query_active_habits_v2.py to client** (depends WP01): zero-regression target (NFR-006). Owned files: `scripts/habits/query_active_habits_v2.py`.
-- **WP03 — New weekly helper + tests** (depends WP01): new `scripts/habits/query_active_habits_weekly.py` (~250 LoC), WeeklyHabitReport JSON contract, full test suite covering FR-003/004/005/006/012. Owned files: `scripts/habits/query_active_habits_weekly.py`, `tests/habits/test_query_active_habits_weekly.py`, `tests/habits/fixtures/weekly_report_responses.json`.
-- **WP04 — AGENTS.md edits (habits + sibling audit)** (depends WP03): rewrite `felix-admin-habits/AGENTS.md` with Hard Rules + weekly-report procedure (FR-008/009); audit + edit `felix-admin-escalation/AGENTS.md` and `felix-admin-tasker/AGENTS.md` per FR-010. Owned files: those three AGENTS.md files.
-- **WP05 — Architecture doc-sync** (no deps): update `docs/design/architecture/data/service-inventory.json`, `data-flows.json`, `data-flows.md`, `signal-to-doc-map.json`. Owned files: those four.
+- **WP02 — New weekly helper + tests** (depends WP01): new `scripts/habits/query_active_habits_weekly.py` (~250 LoC) using the shared client to query `done_at` history, with the weekday-in-title classifier (FR-004) and per-habit percentage math (FR-003/004/005/006/012). Full test suite. Owned files: `scripts/habits/query_active_habits_weekly.py`, `tests/habits/test_query_active_habits_weekly.py`, `tests/habits/fixtures/weekly_report_responses.json`.
+- **WP03 — AGENTS.md edits (habits + sibling audit)** (depends WP02): rewrite `felix-admin-habits/AGENTS.md` with Hard Rules + weekly-report procedure (FR-008/009); audit + edit `felix-admin-escalation/AGENTS.md` and `felix-admin-tasker/AGENTS.md` per FR-010. Owned files: those three AGENTS.md files.
+- **WP04 — Architecture doc-sync** (no deps): update `docs/design/architecture/data/service-inventory.json`, `data-flows.json`, `data-flows.md`, `signal-to-doc-map.json`. Owned files: those four.
 
-## Branch contract (final reaffirmation)
+Dependency graph: WP01 → WP02 → WP03; WP04 independent (parallelizable with WP01).
 
-- **Current branch**: `kitty/mission-vikunja-client-and-habits-weekly-report-01KTKSFT` (the mission coord branch — necessary per the 11-symptom workaround chain in kg-automation#559)
-- **Planning/base branch**: `kitty/mission-vikunja-client-and-habits-weekly-report-01KTKSFT` (legacy mode in effect per `meta.json` `coordination_branch: ""`)
-- **Final merge target**: `main` (per `meta.json` `target_branch: main`)
-- **Branch matches target**: false (expected per the workaround; spec-kitty merge sources target from `meta.json` regardless)
+## Branch contract
+
+- **Current branch**: `kitty/mission-vikunja-client-and-habits-weekly-report-01KTKSFT` (the mission coord branch)
+- **Planning/base branch**: same (legacy mode)
+- **Final merge target**: `main`
+- **Branch matches target**: false (expected per the 11-symptom workaround chain)
 
 ## Workflow-class workaround posture for this mission
 
-Per memory `project_speckitty_upgrade_pending.md` and `kentonium3/kg-automation#559`, this mission runs on spec-kitty 3.2.0rc37 using the documented 11-symptom workaround chain. Subsequent missions should upgrade first. Key postures active for this mission:
+Per memory `project_speckitty_upgrade_pending.md` and `kentonium3/kg-automation#559`, this mission runs on spec-kitty 3.2.0rc37 using the documented 11-symptom workaround chain. Next mission upgrades first.
 
+Key postures active for this mission:
 - `meta.json` has `coordination_branch: ""` (permanent legacy mode)
 - `.kittify/config.yaml` has `auto_commit: false`
 - All operations from the coord branch, NOT main
@@ -163,4 +172,4 @@ Per memory `project_speckitty_upgrade_pending.md` and `kentonium3/kg-automation#
 
 ## Next phase
 
-After plan.md commits, `/spec-kitty.tasks` decomposes into the 5 WPs above. This command STOPS here per the spec-kitty.plan runbook's mandatory stop point.
+After plan.md commits, `/spec-kitty.tasks` decomposes into the 4 WPs above. This command STOPS here per the spec-kitty.plan runbook's mandatory stop point.
