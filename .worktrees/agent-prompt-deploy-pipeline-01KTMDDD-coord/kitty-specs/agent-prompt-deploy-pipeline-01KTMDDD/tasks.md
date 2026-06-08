@@ -90,9 +90,9 @@ None (foundation).
 
 #### Included subtasks
 
-- [ ] T008 Author `agent-prompt-sync.service` (oneshot unit) (WP02) [P]
-- [ ] T009 Author `agent-prompt-sync.timer` (OnUnitInactiveSec=300s) (WP02) [P]
-- [ ] T010 Document unit verification: `systemd-analyze --user verify` in unit header comments (WP02)
+- [x] T008 Author `agent-prompt-sync.service` (oneshot unit) (WP02) [P]
+- [x] T009 Author `agent-prompt-sync.timer` (OnUnitInactiveSec=300s) (WP02) [P]
+- [x] T010 Document unit verification: `systemd-analyze --user verify` in unit header comments (WP02)
 
 #### Implementation sketch
 

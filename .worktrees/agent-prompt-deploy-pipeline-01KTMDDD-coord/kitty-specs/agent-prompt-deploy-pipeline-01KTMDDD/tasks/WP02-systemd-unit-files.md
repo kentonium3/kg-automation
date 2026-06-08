@@ -15,7 +15,8 @@ subtasks:
 - T008
 - T009
 - T010
-agent: claude
+agent: "claude"
+shell_pid: "120"
 history:
 - timestamp: '2026-06-08T20:25:00Z'
   actor: claude
@@ -152,3 +153,10 @@ Both unit files model directly on `scripts/sync/systemd/felix-vikunja-sync.{serv
 
 After this WP merges to coordination branch:
 - `spec-kitty agent action implement WP03 --agent claude` (the architecture-doc-sync WP)
+
+## Activity Log
+
+- 2026-06-08T21:23:18Z – claude – shell_pid=99207 – Assigned agent via action command
+- 2026-06-08T21:24:18Z – claude – shell_pid=99207 – WP02 systemd units authored.
+- 2026-06-08T21:24:29Z – claude – shell_pid=120 – Started review via action command
+- 2026-06-08T21:24:37Z – user – shell_pid=120 – WP02: 2 unit files modeled verbatim on felix-vikunja-sync precedent; -m form per NFR-005; OnUnitInactiveSec=300s per D-008. Approved.
