@@ -127,11 +127,11 @@ WP01 and WP04 can run in parallel. WP02 starts when WP01 completes; WP03 starts 
 
 **Included subtasks**:
 
-- [ ] T015 Add "Calendar event creation (delegated)" section (WP03)
-- [ ] T016 Felix main: parse gog response + log_action (WP03)
-- [ ] T017 Add "Calendar clarification reply handler" section (WP03)
-- [ ] T018 Felix main: match reply, merge fields, re-run validator (WP03)
-- [ ] T019 Felix main: remove resolved record, flip source note, log (WP03)
+- [x] T015 Add "Calendar event creation (delegated)" section (WP03)
+- [x] T016 Felix main: parse gog response + log_action (WP03)
+- [x] T017 Add "Calendar clarification reply handler" section (WP03)
+- [x] T018 Felix main: match reply, merge fields, re-run validator (WP03)
+- [x] T019 Felix main: remove resolved record, flip source note, log (WP03)
 
 **Implementation sketch**:
 1. Add a new top-level section to `scripts/openclaw/agents/main/AGENTS.md` titled "Calendar event creation (delegated from capture)". Document the openclaw-agent inbound payload shape (matches `contracts/capture_to_main_calendar_payload.md`) and the gog command synthesis rules.
