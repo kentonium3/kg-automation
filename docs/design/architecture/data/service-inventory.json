@@ -1,7 +1,7 @@
 {
   "schema_version": "1.1",
-  "last_updated": "2026-06-05",
-  "updated_by": "#520-felix-vikunja-sync-project-layer-and-url-config + #519-touchpoint-migration + #518-felix-vikunja-sync-driver-added + #376-remove-escalation-v1-parity + #400-audit-interpretation-moment0 + #310-tasker-jsonl-migration + #374-main-verbatim-passthrough + #362-drift-event-auto-resolution + #309-migrate-escalation-to-jsonl-state-model + #343-refactor-doc-auditor-to-scripts-first-driver + #307-backfill-habits-jsonl-from-comments + #306-habits-native-repeat-jsonl-state + #304-felix-bot-rotation + #291-felix-file-issue + #289-mutation-surfaces-enumeration + #285-cron-delivery-restore-path-c + #282-habits-d6-extract + #263-cron-delivery-mode-round2 + #100-google-workspace-foundation + #256-scope-discipline-guardrails + #253-step-5a-6-consolidation + #254-atomic-write-perm-preservation + issue-105-doc-auditor + #223-systemd-timer + #208-restic-healthcheck + #202-obsidian-sync-system-level + #203-sync-heartbeat + #199-inbox-schedules + #115-credential-health-check + #189-vikunja-compose + #185-inbox-capture-dedup",
+  "last_updated": "2026-06-08",
+  "updated_by": "inbox-calendar-and-aspiration-routing-01KTHHXS + #520-felix-vikunja-sync-project-layer-and-url-config + #519-touchpoint-migration + #518-felix-vikunja-sync-driver-added + #376-remove-escalation-v1-parity + #400-audit-interpretation-moment0 + #310-tasker-jsonl-migration + #374-main-verbatim-passthrough + #362-drift-event-auto-resolution + #309-migrate-escalation-to-jsonl-state-model + #343-refactor-doc-auditor-to-scripts-first-driver + #307-backfill-habits-jsonl-from-comments + #306-habits-native-repeat-jsonl-state + #304-felix-bot-rotation + #291-felix-file-issue + #289-mutation-surfaces-enumeration + #285-cron-delivery-restore-path-c + #282-habits-d6-extract + #263-cron-delivery-mode-round2 + #100-google-workspace-foundation + #256-scope-discipline-guardrails + #253-step-5a-6-consolidation + #254-atomic-write-perm-preservation + issue-105-doc-auditor + #223-systemd-timer + #208-restic-healthcheck + #202-obsidian-sync-system-level + #203-sync-heartbeat + #199-inbox-schedules + #115-credential-health-check + #189-vikunja-compose + #185-inbox-capture-dedup",
   "services": [
     {
       "name": "vikunja",
@@ -382,13 +382,13 @@
         "felix-admin-capture": {
           "workspace": "/data/services/openclaw/inbox-agent",
           "model": "anthropic/claude-sonnet-4-6",
-          "purpose": "Obsidian inbox processing \u2014 classifies, routes, creates Vikunja tasks",
+          "purpose": "Obsidian inbox processing \u2014 classifies, routes, creates Vikunja tasks. Per mission inbox-calendar-and-aspiration-routing-01KTHHXS, the classifier vocabulary is extended to also (a) classify and route calendar events to Google Calendar via Felix main delegation, (b) classify and route aspirations to dated journal entries (08-Journal/), (c) classify and route Someday items to the Vikunja Someday project (resolved by name), and (d) maintain a pending-calendar-clarifications state file with a 24h timeout sweep.",
           "source_in_repo": "scripts/openclaw/agents/felix-admin-capture/",
           "deployed_by": "F008",
           "autonomy_level": "assisted",
-          "updated_by": "#185-inbox-capture-dedup",
-          "updated_at": "2026-05-12",
-          "notes": "As of #185 (2026-05-12): routes are deduped via a filename-keyed routing log (see state_files). Notes with malformed frontmatter halt routing and surface via a batched 'Inbox quality:' GitHub issue + an Obsidian `> [!error] felix-capture:` callout marker injected at the top of the affected note. Markers auto-strip when the note next parses cleanly.",
+          "updated_by": "inbox-calendar-and-aspiration-routing-01KTHHXS + #185-inbox-capture-dedup",
+          "updated_at": "2026-06-08",
+          "notes": "As of #185 (2026-05-12): routes are deduped via a filename-keyed routing log (see state_files). Notes with malformed frontmatter halt routing and surface via a batched 'Inbox quality:' GitHub issue + an Obsidian `> [!error] felix-capture:` callout marker injected at the top of the affected note. Markers auto-strip when the note next parses cleanly. As of inbox-calendar-and-aspiration-routing-01KTHHXS (2026-06-08): calendar events with all required fields are delegated to Felix main for `gog calendar create`; incomplete calendar events trigger a single WhatsApp clarification prompt and a write to the pending-calendar-clarifications state file (24h timeout sweep); aspirations and musings are appended to the dated `08-Journal/Journal YYYY-MM-DD HHmm.md` entry; Someday items are routed to the Vikunja Someday project resolved by name.",
           "state_files": [
             {
               "path": "~/second-brain/agents/state/inbox-routing.jsonl",
@@ -540,10 +540,11 @@
         "main": {
           "workspace": "/data/services/openclaw/data",
           "model": "anthropic/claude-sonnet-4-6",
-          "purpose": "Top-level OpenClaw orchestrator. Standing orders at /data/services/openclaw/data/AGENTS.md govern routing of inbound channel messages (WhatsApp, etc.) to the felix-admin-* sub-agents.",
+          "purpose": "Top-level OpenClaw orchestrator. Standing orders at /data/services/openclaw/data/AGENTS.md govern routing of inbound channel messages (WhatsApp, etc.) to the felix-admin-* sub-agents. Per mission inbox-calendar-and-aspiration-routing-01KTHHXS, main also (a) receives calendar-create delegation from felix-admin-capture and executes the event via `gog calendar create`, and (b) on inbound WhatsApp, resolves open calendar clarifications by reading the pending-calendar-clarifications state file, merging Kent's reply into the deferred event payload, re-validating, and then issuing the deferred `gog calendar create`.",
           "verbatim_passthrough_rule": "Per #374 (main-verbatim-passthrough-01KSATRP), the main agent must pass downstream messages to sub-agents VERBATIM (no paraphrase, no summary, no editorial). AGENTS.md changes that affect this rule are governed by the cutover sequence in docs/runbooks/openclaw-agent-setup.md \u00a7'Cutover sequence for main-agent AGENTS.md changes (post-#374)'.",
           "deployed_by": "F002",
-          "updated_by": "#374"
+          "updated_by": "inbox-calendar-and-aspiration-routing-01KTHHXS + #374",
+          "updated_at": "2026-06-08"
         }
       },
       "risk_tier": 2,
@@ -1977,10 +1978,11 @@
       "host": "office2",
       "agent": null,
       "deployed_by": "#100",
-      "updated_by": "#100-google-workspace-foundation",
-      "last_updated": "2026-05-13",
+      "updated_by": "inbox-calendar-and-aspiration-routing-01KTHHXS + #100-google-workspace-foundation",
+      "last_updated": "2026-06-08",
       "status": "active",
       "purpose": "Google Workspace API access (Gmail, Calendar, Drive, Contacts, Sheets, Docs) via the gog CLI for consumption by any Felix agent",
+      "notes": "Consumers: felix-admin-capture (via main delegation; calendar events from inbox — added by inbox-calendar-and-aspiration-routing-01KTHHXS on 2026-06-08). Capture classifies inbound inbox notes as calendar events and delegates the `gog calendar create` call to Felix main; main is the gog process owner in the calendar path.",
       "runbook": "docs/runbooks/google-workspace-ops.md",
       "risk_tier": 3,
       "binary": "/home/linuxbrew/.linuxbrew/bin/gog",
