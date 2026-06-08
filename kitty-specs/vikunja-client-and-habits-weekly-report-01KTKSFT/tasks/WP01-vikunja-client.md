@@ -6,7 +6,6 @@ requirement_refs:
 - FR-001
 - FR-002
 - FR-011
-- FR-012
 tracker_refs: []
 planning_base_branch: kitty/mission-vikunja-client-and-habits-weekly-report-01KTKSFT
 merge_target_branch: kitty/mission-vikunja-client-and-habits-weekly-report-01KTKSFT
@@ -21,7 +20,8 @@ subtasks:
 - T004
 - T005
 - T006
-shell_pid: "96400"
+agent: "claude:sonnet:python-pedro:implementer"
+shell_pid: "3202"
 history: []
 authoritative_surface: scripts/common/
 execution_mode: code_change
@@ -29,7 +29,6 @@ owned_files:
 - scripts/common/vikunja_client.py
 - tests/common/**
 tags: []
-agent: "codex:gpt-5:reviewer-renata:reviewer"
 ---
 
 # WP01: Shared Vikunja client + tests
@@ -305,3 +304,5 @@ Per Felix Constitution Directive 6, this is the deterministic infrastructure lay
 - 2026-06-08T15:11:37Z – claude:sonnet:python-pedro:implementer – shell_pid=93140 – Started implementation via action command
 - 2026-06-08T15:21:46Z – claude:sonnet:python-pedro:implementer – shell_pid=93140 – Ready for review: stdlib-only impl, 40 tests, 100% coverage, no callers yet (WP02 first)
 - 2026-06-08T15:22:04Z – codex:gpt-5:reviewer-renata:reviewer – shell_pid=96400 – Started review via action command
+- 2026-06-08T15:28:06Z – user – shell_pid=96400 – Moved to planned
+- 2026-06-08T15:48:02Z – claude:sonnet:python-pedro:implementer – shell_pid=3202 – Started implementation via action command
