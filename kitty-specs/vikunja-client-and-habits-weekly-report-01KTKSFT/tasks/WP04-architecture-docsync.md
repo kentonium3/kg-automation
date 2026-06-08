@@ -18,7 +18,7 @@ subtasks:
 - T019
 - T020
 - T021
-shell_pid: "42808"
+shell_pid: "44073"
 history: []
 authoritative_surface: docs/design/architecture/
 execution_mode: code_change
@@ -173,3 +173,6 @@ This WP is doc-only — no behavioral changes, no risk of production regression.
 - 2026-06-08T17:55:53Z – claude:sonnet:curator-carla:implementer – shell_pid=42258 – Started implementation via action command
 - 2026-06-08T17:56:53Z – claude:sonnet:curator-carla:implementer – shell_pid=42258 – Cycle 2: fixed 6 PM ET → 10 PM ET in 2 places (the table row and the Schedule bullet). cron 0 22 = 22:00 ET = 10 PM. Both inventories now consistent. 0 remaining 6PM hits.
 - 2026-06-08T17:57:02Z – codex:gpt-5:reviewer-renata:reviewer – shell_pid=42808 – Started review via action command
+- 2026-06-08T17:59:00Z – user – shell_pid=42808 – Moved to planned
+- 2026-06-08T17:59:49Z – user – shell_pid=42808 – Cycle 3: JSON local_time also corrected. cycle-2 missed this third occurrence in the JSON (only fixed markdown). All Sunday-6 PM references now Sunday-10 PM. JSON valid.
+- 2026-06-08T17:59:58Z – codex:gpt-5:reviewer-renata:reviewer – shell_pid=44073 – Started review via action command
