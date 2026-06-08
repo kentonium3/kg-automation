@@ -94,14 +94,14 @@ WP01 and WP04 can run in parallel. WP02 starts when WP01 completes; WP03 starts 
 
 **Included subtasks**:
 
-- [ ] T007 Add Calendar event row to Step 3 routing table (WP02)
-- [ ] T008 Add Aspiration/musing row (WP02)
-- [ ] T009 Add Someday item row + project resolution + identity inference (WP02)
-- [ ] T010 Tighten "Task or action item" rule (WP02)
-- [ ] T011 Add completeness validation branch (invoke validate helper) (WP02)
-- [ ] T012 Write PendingClarificationRecord JSONL on incomplete (WP02)
-- [ ] T013 WhatsApp clarification prompt format + 24h timeout sweep (WP02)
-- [ ] T014 Extend log_action allowlist (WP02)
+- [x] T007 Add Calendar event row to Step 3 routing table (WP02)
+- [x] T008 Add Aspiration/musing row (WP02)
+- [x] T009 Add Someday item row + project resolution + identity inference (WP02)
+- [x] T010 Tighten "Task or action item" rule (WP02)
+- [x] T011 Add completeness validation branch (invoke validate helper) (WP02)
+- [x] T012 Write PendingClarificationRecord JSONL on incomplete (WP02)
+- [x] T013 WhatsApp clarification prompt format + 24h timeout sweep (WP02)
+- [x] T014 Extend log_action allowlist (WP02)
 
 **Implementation sketch**:
 1. Edit the Step 3 table (lines ~199–222 of current AGENTS.md): replace the single "Task or action item" row with four rows in order: Calendar event → Aspiration/musing → Someday item → Active task. Add the rejection signals for "attend X" and "be Xer" patterns under the active-task row.
