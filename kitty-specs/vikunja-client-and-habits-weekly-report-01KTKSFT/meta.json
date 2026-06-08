@@ -1,0 +1,13 @@
+{
+  "coordination_branch": "",
+  "created_at": "2026-06-08T14:16:51.941907+00:00",
+  "friendly_name": "Vikunja client + habits weekly report",
+  "mission_id": "01KTKSFTZ3HMJDS73FPREW38NY",
+  "mission_number": null,
+  "mission_slug": "vikunja-client-and-habits-weekly-report-01KTKSFT",
+  "mission_type": "software-dev",
+  "purpose_context": "Mission delivers the bundled #562/#542/#561 slice: (1) a new scripts/common/vikunja_client.py (foundation per #542); (2) a new scripts/habits/query_active_habits_weekly.py deterministic helper plus migration of scripts/habits/query_active_habits_v2.py to the client; (3) output-discipline Hard Rules in felix-admin-habits/AGENTS.md mirroring capture's pattern (per #561), plus audit of felix-admin-escalation and felix-admin-tasker for the same gap; (4) agent prompt rewiring so the weekly cron invokes the helper instead of hallucinating data. Recurrence-aware scheduling uses Vikunja's native repeat_after + repeat_mode encoding per memory reference_vikunja_recurrence_model.md.",
+  "purpose_tldr": "Make the weekly habit report trustworthy by replacing LLM improvisation with a deterministic helper, building it on a shared Vikunja client that future scripts also use, and adding output-discipline Hard Rules so the agent stops leaking internal reasoning to WhatsApp.",
+  "slug": "vikunja-client-and-habits-weekly-report-01KTKSFT",
+  "target_branch": "main"
+}
