@@ -256,7 +256,11 @@ If name resolution is ambiguous, ask ONE clarifying question — same protocol a
 
 ## Tailscale connectivity
 
-Helpers reach Vikunja at `http://100.92.197.90:3456/` (Tailscale IP). On a network blip, helpers exit non-zero. Treat as Step 3 (morning/weekly) or Step 4 (reply) helper failure — file the bug, reply `IDLE`, the next cron tick / Kent reply retries. Do NOT retry the helper in-prompt.
+Vikunja is at `http://100.92.197.90:3456/` (Tailscale); blips surface as helper non-zero exit. File the P2-bug; the retry is the next cron / Kent reply (no in-prompt retry). User-facing reply is lane-specific:
+
+- **Morning** → `IDLE` (Step 3; C-004/NFR-006).
+- **Weekly** → contract failure render `Weekly report unavailable: <error class + stripped path>` (Step 3; NFR-002). NO `IDLE`.
+- **Reply-workflow** → Step 4.
 
 ---
 
