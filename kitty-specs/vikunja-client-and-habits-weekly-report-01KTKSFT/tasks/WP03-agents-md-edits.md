@@ -21,7 +21,7 @@ subtasks:
 - T015
 - T016
 - T017
-shell_pid: "32225"
+shell_pid: "33902"
 history: []
 authoritative_surface: scripts/openclaw/agents/felix-admin-habits/
 execution_mode: code_change
@@ -31,7 +31,7 @@ owned_files:
 - scripts/openclaw/agents/felix-admin-escalation/AGENTS.md
 - scripts/openclaw/agents/felix-admin-tasker/AGENTS.md
 tags: []
-agent: "codex:gpt-5:reviewer-renata:reviewer"
+agent: "claude:sonnet:curator-carla:implementer"
 ---
 
 # WP03: AGENTS.md edits + sibling-agent audit
@@ -178,3 +178,5 @@ This is the stochastic-surface side of the mission. WP02 produced the determinis
 - 2026-06-08T17:10:22Z – claude:sonnet:curator-carla:implementer – shell_pid=28071 – Assigned agent via action command
 - 2026-06-08T17:24:41Z – claude:sonnet:curator-carla:implementer – shell_pid=28071 – 3 files modified (habits AGENTS.md +1360b, SOUL.md +1053b, tasker AGENTS.md +875b). All <15KB. Hard Rules pattern from capture mirrored to habits weekly + tasker. felix-admin-escalation already conforms (per prior #372). Morning check-in path byte-identical.
 - 2026-06-08T17:24:50Z – codex:gpt-5:reviewer-renata:reviewer – shell_pid=32225 – Started review via action command
+- 2026-06-08T17:28:40Z – user – shell_pid=32225 – Moved to planned
+- 2026-06-08T17:29:17Z – claude:sonnet:curator-carla:implementer – shell_pid=33902 – Started implementation via action command
