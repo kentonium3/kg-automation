@@ -6,11 +6,13 @@ requirement_refs:
 - FR-001
 - FR-002
 - FR-011
-- FR-012
 tracker_refs: []
 planning_base_branch: kitty/mission-vikunja-client-and-habits-weekly-report-01KTKSFT
 merge_target_branch: kitty/mission-vikunja-client-and-habits-weekly-report-01KTKSFT
 branch_strategy: Planning artifacts for this mission were generated on kitty/mission-vikunja-client-and-habits-weekly-report-01KTKSFT. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into kitty/mission-vikunja-client-and-habits-weekly-report-01KTKSFT unless the human explicitly redirects the landing branch.
+base_branch: kitty/mission-vikunja-client-and-habits-weekly-report-01KTKSFT
+base_commit: 1e2532b8fb82ff48a1789288c7b8a1da082ef098
+created_at: '2026-06-08T15:11:03.600067+00:00'
 subtasks:
 - T001
 - T002
@@ -18,6 +20,8 @@ subtasks:
 - T004
 - T005
 - T006
+agent: "codex:gpt-5:reviewer-renata:reviewer"
+shell_pid: "8342"
 history: []
 authoritative_surface: scripts/common/
 execution_mode: code_change
@@ -294,3 +298,18 @@ Per Felix Constitution Directive 6, this is the deterministic infrastructure lay
 - Reviewer checks: are exception messages ACTUALLY redaction-safe? Grep the test file for any test that asserts a response body's content survives into `str(exc)` — if so, the redaction is broken.
 - Reviewer verifies the 6 HTTP error classes have distinct exception types (not all the same class).
 - Reviewer scans for any `requests` import or third-party dependency — must be stdlib only.
+
+## Activity Log
+
+- 2026-06-08T15:11:37Z – claude:sonnet:python-pedro:implementer – shell_pid=93140 – Started implementation via action command
+- 2026-06-08T15:21:46Z – claude:sonnet:python-pedro:implementer – shell_pid=93140 – Ready for review: stdlib-only impl, 40 tests, 100% coverage, no callers yet (WP02 first)
+- 2026-06-08T15:22:04Z – codex:gpt-5:reviewer-renata:reviewer – shell_pid=96400 – Started review via action command
+- 2026-06-08T15:28:06Z – user – shell_pid=96400 – Moved to planned
+- 2026-06-08T15:48:02Z – claude:sonnet:python-pedro:implementer – shell_pid=3202 – Started implementation via action command
+- 2026-06-08T15:54:16Z – claude:sonnet:python-pedro:implementer – shell_pid=3202 – Cycle 2: fixed URL merge (#2), Content-Type bodyless POST/PUT (#4), {} empty body (#3), Consumers docstring (#1). FR-012 over-claim (#5) handled by orchestrator via map-requirements --replace. 45 tests, 100% line/branch coverage.
+- 2026-06-08T15:54:25Z – codex:gpt-5:reviewer-renata:reviewer – shell_pid=5251 – Started review via action command
+- 2026-06-08T15:59:56Z – user – shell_pid=5251 – Moved to planned
+- 2026-06-08T16:01:22Z – claude:sonnet:python-pedro:implementer – shell_pid=7578 – Started implementation via action command
+- 2026-06-08T16:03:44Z – claude:sonnet:python-pedro:implementer – shell_pid=7578 – Cycle 3: docstring uses dotted module form (--cov=scripts.common.vikunja_client) so pytest-cov actually collects coverage. Verified path-form fails at 0% and dotted-form succeeds at 100%/100%.
+- 2026-06-08T16:03:56Z – codex:gpt-5:reviewer-renata:reviewer – shell_pid=8342 – Started review via action command
+- 2026-06-08T16:16:16Z – user – shell_pid=8342 – Arbiter override: codex cycle-3 review verdict PASS (all 4 cycle-1 substantive issues fixed). 45 tests, 100% line+branch coverage. Issue-matrix verdicts now have explicit Follow-up handles.

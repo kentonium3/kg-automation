@@ -60,12 +60,12 @@ WP01 and WP04 can run in parallel. WP02 starts when WP01 completes; WP03 starts 
 
 **Included subtasks**:
 
-- [ ] T001 Scaffold module + exception hierarchy (WP01)
-- [ ] T002 Implement `VikunjaClient` class (WP01)
-- [ ] T003 Error mapping + redaction-safe `__str__` (WP01)
-- [ ] T004 [P] Curate test fixtures (WP01)
-- [ ] T005 Write unit tests (WP01)
-- [ ] T006 Pytest coverage gate (WP01)
+- [x] T001 Scaffold module + exception hierarchy (WP01)
+- [x] T002 Implement `VikunjaClient` class (WP01)
+- [x] T003 Error mapping + redaction-safe `__str__` (WP01)
+- [x] T004 [P] Curate test fixtures (WP01)
+- [x] T005 Write unit tests (WP01)
+- [x] T006 Pytest coverage gate (WP01)
 
 **Implementation sketch**:
 1. Create `scripts/common/vikunja_client.py` with exception classes at top + `VikunjaClient` class.
