@@ -11,6 +11,9 @@ tracker_refs: []
 planning_base_branch: kitty/mission-vikunja-client-and-habits-weekly-report-01KTKSFT
 merge_target_branch: kitty/mission-vikunja-client-and-habits-weekly-report-01KTKSFT
 branch_strategy: Planning artifacts for this mission were generated on kitty/mission-vikunja-client-and-habits-weekly-report-01KTKSFT. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into kitty/mission-vikunja-client-and-habits-weekly-report-01KTKSFT unless the human explicitly redirects the landing branch.
+base_branch: kitty/mission-vikunja-client-and-habits-weekly-report-01KTKSFT
+base_commit: 1e2532b8fb82ff48a1789288c7b8a1da082ef098
+created_at: '2026-06-08T15:11:03.600067+00:00'
 subtasks:
 - T001
 - T002
@@ -18,6 +21,7 @@ subtasks:
 - T004
 - T005
 - T006
+shell_pid: "93140"
 history: []
 authoritative_surface: scripts/common/
 execution_mode: code_change
@@ -25,6 +29,7 @@ owned_files:
 - scripts/common/vikunja_client.py
 - tests/common/**
 tags: []
+agent: "claude:sonnet:python-pedro:implementer"
 ---
 
 # WP01: Shared Vikunja client + tests
@@ -294,3 +299,7 @@ Per Felix Constitution Directive 6, this is the deterministic infrastructure lay
 - Reviewer checks: are exception messages ACTUALLY redaction-safe? Grep the test file for any test that asserts a response body's content survives into `str(exc)` — if so, the redaction is broken.
 - Reviewer verifies the 6 HTTP error classes have distinct exception types (not all the same class).
 - Reviewer scans for any `requests` import or third-party dependency — must be stdlib only.
+
+## Activity Log
+
+- 2026-06-08T15:11:37Z – claude:sonnet:python-pedro:implementer – shell_pid=93140 – Started implementation via action command
