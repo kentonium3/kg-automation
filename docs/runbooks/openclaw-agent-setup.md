@@ -3,10 +3,10 @@ title: OpenClaw Agent Setup
 doc_type: runbook
 status: approved
 audience: agents_and_humans
-last_updated: '2026-05-23'
-last_validated: '2026-05-23'
-updated_by: '#374'
-revision: v1.1
+last_updated: '2026-06-08'
+last_validated: '2026-06-08'
+updated_by: '#374 + vikunja-client-and-habits-weekly-report-01KTKSFT (#561)'
+revision: v1.2
 ---
 
 # OpenClaw agent setup
@@ -83,6 +83,34 @@ direct, no filler.
 
 NEVER read, process, route to, or reference `04-Growth/_private/`.
 ```
+
+### Output Discipline (Hard Rules) — standard for user-facing surfaces
+
+Any agent whose AGENTS.md or standing orders surface to user-facing
+WhatsApp (announce-channel cron messages, direct replies, escalation
+pings) MUST carry the canonical Output Discipline Hard Rules block.
+The canonical source is `scripts/openclaw/agents/felix-admin-capture/AGENTS.md`
+(currently lines ~33–84). As of mission
+`vikunja-client-and-habits-weekly-report-01KTKSFT` (#561 co-shipped
+output discipline), the same block is also installed on
+`felix-admin-habits` and audited on `felix-admin-escalation` and
+`felix-admin-tasker`.
+
+The three Hard Rules forbid:
+
+1. Any preamble before the `Sent by <agent-id>:<model>` identity line in
+   a user-facing message.
+2. Between-tool-calls narration (the agent talking to itself in the
+   announce channel).
+3. Any text — internal reasoning, planning, monologue — appearing
+   above the identity line in cron-fired announce messages.
+
+When deploying a new agent that emits user-facing WhatsApp, copy the
+canonical block from felix-admin-capture's AGENTS.md verbatim and adapt
+only the `<agent-id>` placeholder. Agents that do NOT emit user-facing
+WhatsApp must carry an explicit "no user-facing WhatsApp" annotation in
+their standing orders so the audit trail records the deliberate
+non-application of the rules.
 
 ## OpenClaw configuration
 
