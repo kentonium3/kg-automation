@@ -44,13 +44,13 @@
 
 #### Included subtasks
 
-- [ ] T001 Discovery functions: `is_in_scope` + `iter_agents` (tests-first + impl) (WP01)
-- [ ] T002 MD5 + `atomic_copy` (tests-first + impl, preserve mode) (WP01)
-- [ ] T003 `git_pull` subprocess wrapper (tests-first + impl, ff-only + exit codes) (WP01)
-- [ ] T004 Audit log primitives: `SyncAction`, `TickSummary`, `audit_record`, `audit_append`, `audit_tick_summary` (WP01)
-- [ ] T005 CLI surface: `parse_args`, `run_tick`, `main` (tests-first + impl, exit codes 0/1/2/3) (WP01)
-- [ ] T006 Integration test: `run_tick` end-to-end with mocked git_pull + tempdir source/dest/audit (WP01)
-- [ ] T007 Coverage gate verification: pytest --cov ≥90% line / ≥85% branch (WP01)
+- [x] T001 Discovery functions: `is_in_scope` + `iter_agents` (tests-first + impl) (WP01)
+- [x] T002 MD5 + `atomic_copy` (tests-first + impl, preserve mode) (WP01)
+- [x] T003 `git_pull` subprocess wrapper (tests-first + impl, ff-only + exit codes) (WP01)
+- [x] T004 Audit log primitives: `SyncAction`, `TickSummary`, `audit_record`, `audit_append`, `audit_tick_summary` (WP01)
+- [x] T005 CLI surface: `parse_args`, `run_tick`, `main` (tests-first + impl, exit codes 0/1/2/3) (WP01)
+- [x] T006 Integration test: `run_tick` end-to-end with mocked git_pull + tempdir source/dest/audit (WP01)
+- [x] T007 Coverage gate verification: pytest --cov ≥90% line / ≥85% branch (WP01)
 
 #### Implementation sketch
 
