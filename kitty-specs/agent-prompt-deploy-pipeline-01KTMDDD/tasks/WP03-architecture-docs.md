@@ -16,7 +16,8 @@ subtasks:
 - T013
 - T014
 - T015
-agent: claude
+agent: "claude"
+shell_pid: "983"
 history:
 - timestamp: '2026-06-08T20:25:00Z'
   actor: claude
@@ -238,3 +239,7 @@ After this WP merges to coordination branch:
 - `spec-kitty accept --mission agent-prompt-deploy-pipeline-01KTMDDD`
 - `spec-kitty merge --mission agent-prompt-deploy-pipeline-01KTMDDD`
 - Post-merge: operator runs the install procedure from agent-prompt-sync-ops.md
+
+## Activity Log
+
+- 2026-06-08T21:24:58Z – claude – shell_pid=983 – Assigned agent via action command
