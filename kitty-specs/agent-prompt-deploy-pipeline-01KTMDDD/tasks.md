@@ -126,11 +126,11 @@ WP01 (the service unit's ExecStart references the `-m scripts.openclaw.deploy.de
 
 #### Included subtasks
 
-- [ ] T011 Update `service-inventory.json` (new sync service + main.source_in_repo) (WP03) [P]
-- [ ] T012 Update `signal-to-doc-map.json` (agent-prompt-changed change_class) (WP03) [P]
-- [ ] T013 Update `service-inventory.md` narrative (Deploy Pipeline section) (WP03) [P]
-- [ ] T014 Update `openclaw-agent-setup.md` runbook (Deploy pipeline section) (WP03) [P]
-- [ ] T015 Create `agent-prompt-sync-ops.md` runbook (install + verify + troubleshoot + rollback) (WP03) [P]
+- [x] T011 Update `service-inventory.json` (new sync service + main.source_in_repo) (WP03) [P]
+- [x] T012 Update `signal-to-doc-map.json` (agent-prompt-changed change_class) (WP03) [P]
+- [x] T013 Update `service-inventory.md` narrative (Deploy Pipeline section) (WP03) [P]
+- [x] T014 Update `openclaw-agent-setup.md` runbook (Deploy pipeline section) (WP03) [P]
+- [x] T015 Create `agent-prompt-sync-ops.md` runbook (install + verify + troubleshoot + rollback) (WP03) [P]
 
 #### Implementation sketch
 

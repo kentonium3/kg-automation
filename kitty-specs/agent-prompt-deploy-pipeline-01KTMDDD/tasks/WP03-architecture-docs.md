@@ -17,7 +17,7 @@ subtasks:
 - T014
 - T015
 agent: "claude"
-shell_pid: "983"
+shell_pid: "2781"
 history:
 - timestamp: '2026-06-08T20:25:00Z'
   actor: claude
@@ -243,3 +243,5 @@ After this WP merges to coordination branch:
 ## Activity Log
 
 - 2026-06-08T21:24:58Z – claude – shell_pid=983 – Assigned agent via action command
+- 2026-06-08T21:29:34Z – claude – shell_pid=983 – All 5 doc surfaces updated; JSONs validate.
+- 2026-06-08T21:29:38Z – claude – shell_pid=2781 – Started review via action command
