@@ -18,7 +18,7 @@ subtasks:
 - T019
 - T020
 - T021
-shell_pid: "40008"
+shell_pid: "42258"
 history: []
 authoritative_surface: docs/design/architecture/
 execution_mode: code_change
@@ -28,7 +28,7 @@ owned_files:
 - docs/design/architecture/service-inventory.md
 - docs/runbooks/openclaw-agent-setup.md
 tags: []
-agent: "codex:gpt-5:reviewer-renata:reviewer"
+agent: "claude:sonnet:curator-carla:implementer"
 ---
 
 # WP04: Architecture doc sync
@@ -169,3 +169,5 @@ This WP is doc-only — no behavioral changes, no risk of production regression.
 - 2026-06-08T17:41:53Z – claude:sonnet:curator-carla:implementer – shell_pid=37983 – Assigned agent via action command
 - 2026-06-08T17:48:27Z – claude:sonnet:curator-carla:implementer – shell_pid=37983 – WP04 doc sync: service-inventory.json (+16 lines, new config_files for helper + client, habits sub-agent depends_on updated), service-inventory.md (+18 lines, Habit Report row + Weekly-report helpers sub-section), openclaw-agent-setup.md (+28 lines, Output Discipline section). signal-to-doc-map.json deliberately unchanged — shared-library-added is a cross-mission concept, deferred to first follow-on shared-lib addition. validate_docs OK. JSON valid. No scripts/ or tests/ touched.
 - 2026-06-08T17:48:35Z – codex:gpt-5:reviewer-renata:reviewer – shell_pid=40008 – Started review via action command
+- 2026-06-08T17:55:13Z – user – shell_pid=40008 – Moved to planned
+- 2026-06-08T17:55:53Z – claude:sonnet:curator-carla:implementer – shell_pid=42258 – Started implementation via action command
