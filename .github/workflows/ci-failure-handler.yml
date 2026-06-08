@@ -1,0 +1,131 @@
+name: CI Failure Handler
+
+# Closed-loop for CI failures: when any listed workflow finishes with conclusion
+# 'failure', this handler files (or appends to) a rolling GitHub issue so the
+# operator sees the failure in the issue queue rather than via email or by
+# manually checking the Actions tab. See #537 (and the design discussion that
+# followed) for the rationale.
+#
+# Pattern:
+#   - One rolling issue per failing workflow, titled "CI failing: <Workflow Name>"
+#     and tagged with the `ci-failing` label + `area/tooling`.
+#   - On each new failure of a tracked workflow: search for an open rolling issue
+#     by exact title; if found, comment with the new failure details; if not,
+#     create the issue.
+#   - The operator closes the issue manually after fixing + verifying the next
+#     run goes green. This is deliberate — auto-close on next success would
+#     mask flaky-test patterns where green/red alternates.
+#
+# Tracked workflows (edit the `workflows:` list below to add more):
+#   - Test CI       (test-ci.yml)
+#   - Docs CI       (docs-ci.yml)
+#
+# Doc-audit-trigger / doc-audit-weekly / spec-lifecycle are deliberately NOT
+# tracked here today — their failure modes are agent / label-management, not
+# code-regression, and they have their own diagnostic paths. Add them to the
+# list if their failures need queue visibility.
+#
+# Permissions: `issues: write` to file/comment; `actions: read` to inspect the
+# triggering workflow_run. Both granted to the default GITHUB_TOKEN.
+
+on:
+  workflow_run:
+    workflows:
+      - "Test CI"
+      - "Docs CI"
+    types: [completed]
+
+jobs:
+  file-or-update-rolling-issue:
+    if: ${{ github.event.workflow_run.conclusion == 'failure' }}
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      actions: read
+      contents: read
+    steps:
+      - name: Ensure ci-failing label exists
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh label create ci-failing \
+            --repo "${{ github.repository }}" \
+            --color d73a4a \
+            --description "Rolling issue tracking a failing CI workflow" \
+            --force
+
+      - name: File or update the rolling CI-failure issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          WORKFLOW_NAME: ${{ github.event.workflow_run.name }}
+          RUN_URL: ${{ github.event.workflow_run.html_url }}
+          RUN_SHA: ${{ github.event.workflow_run.head_sha }}
+          RUN_TITLE: ${{ github.event.workflow_run.display_title }}
+          RUN_EVENT: ${{ github.event.workflow_run.event }}
+          RUN_ID: ${{ github.event.workflow_run.id }}
+        run: |
+          set -euo pipefail
+
+          ISSUE_TITLE="CI failing: ${WORKFLOW_NAME}"
+
+          # Comment body: enough context to triage without leaving the issue.
+          # Logs are NOT embedded — they're large, fast-rotting, and one click
+          # away via the run link.
+          COMMENT_BODY=$(cat <<EOF
+          Run #${RUN_ID} failed.
+
+          - Run:      ${RUN_URL}
+          - Commit:   \`${RUN_SHA:0:7}\` — ${RUN_TITLE}
+          - Trigger:  ${RUN_EVENT}
+          - Time:     $(date -u +%Y-%m-%dT%H:%M:%SZ)
+
+          Reproduce locally per the workflow's run steps. Close this issue
+          manually after a green run confirms the fix.
+          EOF
+          )
+
+          # Search for an open issue with the exact rolling-title for this workflow.
+          # Using --search to constrain by title and label simultaneously; --jq
+          # extracts the first matching issue number, or empty if none.
+          EXISTING=$(gh issue list \
+            --repo "${{ github.repository }}" \
+            --state open \
+            --label ci-failing \
+            --search "in:title \"${ISSUE_TITLE}\"" \
+            --json number,title \
+            --jq ".[] | select(.title == \"${ISSUE_TITLE}\") | .number" \
+            | head -1)
+
+          if [ -n "$EXISTING" ]; then
+            gh issue comment "$EXISTING" \
+              --repo "${{ github.repository }}" \
+              --body "$COMMENT_BODY"
+            echo "::notice::Appended failure to rolling issue #${EXISTING}"
+          else
+            INITIAL_BODY=$(cat <<EOF
+          The ${WORKFLOW_NAME} workflow has started failing. This is a rolling
+          issue: each subsequent failure of this workflow will be appended as
+          a comment below, so the activity log gives a clean failure timeline.
+
+          ## First failure
+
+          ${COMMENT_BODY}
+
+          ## Lifecycle
+
+          - This issue stays open while ${WORKFLOW_NAME} is red.
+          - When you fix the failure and the next run goes green, close this
+            issue manually. Auto-close-on-success is deliberately NOT done —
+            it would mask flaky patterns (green/red alternation).
+          - If a different failure mode appears later, comments accumulate
+            here rather than spawning a new issue per failure.
+          EOF
+          )
+            gh issue create \
+              --repo "${{ github.repository }}" \
+              --title "$ISSUE_TITLE" \
+              --label ci-failing \
+              --label area/tooling \
+              --body "$INITIAL_BODY"
+            echo "::notice::Created new rolling issue for ${WORKFLOW_NAME}"
+          fi
