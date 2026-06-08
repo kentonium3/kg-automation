@@ -656,7 +656,7 @@
         {
           "name": "habits-weekly-report",
           "cron": "0 22 * * 0",
-          "local_time": "Sunday 6:00 PM ET",
+          "local_time": "Sunday 10:00 PM ET",
           "timeout_seconds": 120
         }
       ],
