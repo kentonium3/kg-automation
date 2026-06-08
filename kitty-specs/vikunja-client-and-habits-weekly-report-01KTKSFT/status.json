@@ -1,7 +1,7 @@
 {
-  "event_count": 49,
-  "last_event_id": "01KTM5ZKMFKGAJY1YYAES64C3D",
-  "materialized_at": "2026-06-08T17:55:11.631785+00:00",
+  "event_count": 51,
+  "last_event_id": "01KTM60VC081WXZ30X9TCJE4XH",
+  "materialized_at": "2026-06-08T17:55:52.319924+00:00",
   "mission_number": "",
   "mission_slug": "vikunja-client-and-habits-weekly-report-01KTKSFT",
   "mission_type": "software-dev",
@@ -12,9 +12,9 @@
     "claimed": 0,
     "done": 0,
     "for_review": 0,
-    "in_progress": 0,
+    "in_progress": 1,
     "in_review": 0,
-    "planned": 1
+    "planned": 0
   },
   "work_packages": {
     "WP01": {
@@ -39,11 +39,11 @@
       "last_transition_at": "2026-06-08T17:40:35.827511+00:00"
     },
     "WP04": {
-      "actor": "user",
+      "actor": "claude:sonnet:curator-carla:implementer",
       "force_count": 3,
-      "lane": "planned",
-      "last_event_id": "01KTM5ZKMFKGAJY1YYAES64C3D",
-      "last_transition_at": "2026-06-08T17:55:11.631785+00:00"
+      "lane": "in_progress",
+      "last_event_id": "01KTM60VC081WXZ30X9TCJE4XH",
+      "last_transition_at": "2026-06-08T17:55:52.319924+00:00"
     }
   }
 }
