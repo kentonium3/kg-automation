@@ -290,7 +290,7 @@ Helper invocation:
 
 ```bash
 echo "<extracted block JSON>" \
-  | python3 /home/claude/kg-automation/scripts/calendar/validate_calendar_event.py
+  | python3 /home/claude/kg-automation/scripts/calendar_routing/validate_calendar_event.py
 ```
 
 Input JSON shape and field semantics: see

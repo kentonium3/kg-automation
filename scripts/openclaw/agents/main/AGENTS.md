@@ -367,7 +367,7 @@ Build a merged candidate block by applying these extracted fields to the open re
 Re-run the validator via stdin:
 
 ```bash
-echo "<merged candidate block JSON>" | python3 /home/claude/kg-automation/scripts/calendar/validate_calendar_event.py
+echo "<merged candidate block JSON>" | python3 /home/claude/kg-automation/scripts/calendar_routing/validate_calendar_event.py
 ```
 
 Set `tick_iso` in the merged candidate block to the **inbound message receipt time** — NOT the original `sent_at` of the prompt. This matters because relative phrases ("next Tuesday") in the reply must resolve against now, not against when the prompt went out.

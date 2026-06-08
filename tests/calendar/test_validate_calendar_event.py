@@ -1,4 +1,4 @@
-"""Tests for `scripts/calendar/validate_calendar_event.py`.
+"""Tests for `scripts/calendar_routing/validate_calendar_event.py`.
 
 Fixture-driven validator tests + explicit edge-case coverage. Tests use
 direct module imports for speed; one subprocess-mode smoke test confirms
@@ -19,7 +19,7 @@ import pytest
 REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT))
 
-from scripts.calendar import validate_calendar_event as vce  # noqa: E402
+from scripts.calendar_routing import validate_calendar_event as vce  # noqa: E402
 
 
 FIXTURES_DIR = Path(__file__).parent / "fixtures"
@@ -336,7 +336,7 @@ def test_unrecognized_recurrence_phrase() -> None:
 # ---------------------------------------------------------------------------
 
 
-HELPER = REPO_ROOT / "scripts" / "calendar" / "validate_calendar_event.py"
+HELPER = REPO_ROOT / "scripts" / "calendar_routing" / "validate_calendar_event.py"
 
 
 def test_cli_complete_event_emits_json_exit_zero() -> None:
@@ -759,7 +759,7 @@ def test_internal_error_path_exit_4(monkeypatch) -> None:
         [sys.executable, "-c",
          "import sys, json; "
          "sys.path.insert(0, %r); "
-         "from scripts.calendar import validate_calendar_event as v; "
+         "from scripts.calendar_routing import validate_calendar_event as v; "
          "v.validate = lambda b: (_ for _ in ()).throw(RuntimeError('boom')); "
          "sys.exit(v.main())" % str(REPO_ROOT)],
         input=json.dumps({"title": "x", "start_natural": "today at 3pm",

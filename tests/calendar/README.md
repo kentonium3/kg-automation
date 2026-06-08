@@ -1,6 +1,6 @@
 # tests/calendar/
 
-Unit tests for `scripts/calendar/`. Currently covers
+Unit tests for `scripts/calendar_routing/`. Currently covers
 `validate_calendar_event.py` — the deterministic helper that converts an
 `ExtractedCalendarBlock` into either a complete `CalendarEventPayload` or
 a `missing_fields` report.
@@ -33,7 +33,7 @@ returns in-bounds offsets, etc.). See memory
 ## Why this gate isn't wired into pyproject.toml / pytest.ini
 
 The kg-automation repo's `pytest.ini` lives outside WP01's `owned_files`
-(`scripts/calendar/**`, `tests/calendar/**`, plus two specific files
+(`scripts/calendar_routing/**`, `tests/calendar/**`, plus two specific files
 under `tests/inbox/`). Adding a permanent `--cov` block would require
 editing `pytest.ini`, which sits outside the WP's authoritative surface.
 
