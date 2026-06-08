@@ -16,8 +16,8 @@ subtasks:
 - T021
 - T022
 - T023
-agent: "claude:opus-4-7:curator-carla:curator"
-shell_pid: "36559"
+agent: "claude:opus-4-7:reviewer-renata:reviewer"
+shell_pid: "39877"
 history: []
 agent_profile: curator-carla
 authoritative_surface: docs/design/architecture/
@@ -215,3 +215,5 @@ Update the canonical architecture inventories in `docs/design/architecture/data/
 - 2026-06-08T10:58:26Z – claude:opus-4-7:reviewer-renata:reviewer – shell_pid=34375 – Started review via action command
 - 2026-06-08T11:04:54Z – user – shell_pid=34375 – Moved to planned
 - 2026-06-08T11:05:42Z – claude:opus-4-7:curator-carla:curator – shell_pid=36559 – Started implementation via action command
+- 2026-06-08T11:18:24Z – claude:opus-4-7:curator-carla:curator – shell_pid=36559 – Cycle 2: relocated 3 flow entries from planned_flows to flows. Counts now: .flows=39, .planned_flows=5, mission entries in flows=3. validate_docs.py exit 0. Commit 89efeb87.
+- 2026-06-08T11:18:57Z – claude:opus-4-7:reviewer-renata:reviewer – shell_pid=39877 – Started review via action command
