@@ -156,10 +156,10 @@ WP01 and WP04 can run in parallel. WP02 starts when WP01 completes; WP03 starts 
 
 **Included subtasks**:
 
-- [ ] T018 [P] service-inventory.json (WP04)
-- [ ] T019 [P] data-flows.json (WP04)
-- [ ] T020 [P] data-flows.md narrative (WP04)
-- [ ] T021 signal-to-doc-map.json + INDEX/portal verification (WP04)
+- [x] T018 [P] service-inventory.json (WP04)
+- [x] T019 [P] data-flows.json (WP04)
+- [x] T020 [P] data-flows.md narrative (WP04)
+- [x] T021 signal-to-doc-map.json + INDEX/portal verification (WP04)
 
 **Implementation sketch**:
 1. T018: read service-inventory.json. Extend felix-admin-habits entry with the new weekly-report capability backed by the new helper. Extend felix-admin-escalation + felix-admin-tasker entries with the output-discipline rules in place (or no-WhatsApp note). Add a new entry for the shared `vikunja_client` infrastructure.

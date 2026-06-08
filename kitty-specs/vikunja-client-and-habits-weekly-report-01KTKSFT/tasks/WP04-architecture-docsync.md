@@ -10,11 +10,15 @@ tracker_refs: []
 planning_base_branch: kitty/mission-vikunja-client-and-habits-weekly-report-01KTKSFT
 merge_target_branch: kitty/mission-vikunja-client-and-habits-weekly-report-01KTKSFT
 branch_strategy: Planning artifacts for this mission were generated on kitty/mission-vikunja-client-and-habits-weekly-report-01KTKSFT. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into kitty/mission-vikunja-client-and-habits-weekly-report-01KTKSFT unless the human explicitly redirects the landing branch.
+base_branch: kitty/mission-vikunja-client-and-habits-weekly-report-01KTKSFT
+base_commit: fa3fefcde43fecc284c2f650876d8f65f1add877
+created_at: '2026-06-08T17:41:50.322433+00:00'
 subtasks:
 - T018
 - T019
 - T020
 - T021
+shell_pid: "44073"
 history: []
 authoritative_surface: docs/design/architecture/
 execution_mode: code_change
@@ -24,6 +28,7 @@ owned_files:
 - docs/design/architecture/service-inventory.md
 - docs/runbooks/openclaw-agent-setup.md
 tags: []
+agent: "codex:gpt-5:reviewer-renata:reviewer"
 ---
 
 # WP04: Architecture doc sync
@@ -158,3 +163,18 @@ This WP is doc-only — no behavioral changes, no risk of production regression.
 - Reviewer cross-checks service-inventory.json + service-inventory.md for narrative consistency.
 - Reviewer checks signal-to-doc-map.json gap notes against the mission's actual changes — were any signal classes silently introduced that the map doesn't cover?
 - Reviewer confirms no `scripts/` or `tests/` files were modified (WP04 is doc-only).
+
+## Activity Log
+
+- 2026-06-08T17:41:53Z – claude:sonnet:curator-carla:implementer – shell_pid=37983 – Assigned agent via action command
+- 2026-06-08T17:48:27Z – claude:sonnet:curator-carla:implementer – shell_pid=37983 – WP04 doc sync: service-inventory.json (+16 lines, new config_files for helper + client, habits sub-agent depends_on updated), service-inventory.md (+18 lines, Habit Report row + Weekly-report helpers sub-section), openclaw-agent-setup.md (+28 lines, Output Discipline section). signal-to-doc-map.json deliberately unchanged — shared-library-added is a cross-mission concept, deferred to first follow-on shared-lib addition. validate_docs OK. JSON valid. No scripts/ or tests/ touched.
+- 2026-06-08T17:48:35Z – codex:gpt-5:reviewer-renata:reviewer – shell_pid=40008 – Started review via action command
+- 2026-06-08T17:55:13Z – user – shell_pid=40008 – Moved to planned
+- 2026-06-08T17:55:53Z – claude:sonnet:curator-carla:implementer – shell_pid=42258 – Started implementation via action command
+- 2026-06-08T17:56:53Z – claude:sonnet:curator-carla:implementer – shell_pid=42258 – Cycle 2: fixed 6 PM ET → 10 PM ET in 2 places (the table row and the Schedule bullet). cron 0 22 = 22:00 ET = 10 PM. Both inventories now consistent. 0 remaining 6PM hits.
+- 2026-06-08T17:57:02Z – codex:gpt-5:reviewer-renata:reviewer – shell_pid=42808 – Started review via action command
+- 2026-06-08T17:59:00Z – user – shell_pid=42808 – Moved to planned
+- 2026-06-08T17:59:49Z – user – shell_pid=42808 – Cycle 3: JSON local_time also corrected. cycle-2 missed this third occurrence in the JSON (only fixed markdown). All Sunday-6 PM references now Sunday-10 PM. JSON valid.
+- 2026-06-08T17:59:58Z – codex:gpt-5:reviewer-renata:reviewer – shell_pid=44073 – Started review via action command
+- 2026-06-08T18:02:24Z – user – shell_pid=44073 – Arbiter override: codex cycle-3 review verdict PASS. JSON valid, docs validator passed, all 4 inventories consistent on Sunday 10 PM ET / cron 0 22 * * 0. Anti-patterns 1-8 all PASS or N/A. Stale review-cycle-4 rejection (cycle-1 time-string bug) resolved by 08d0a6fa+5225e75d.
+- 2026-06-08T18:07:01Z – user – shell_pid=44073 – merge complete (6496b41a) | Done override: Mission merged manually. Code on main at 6496b41a.

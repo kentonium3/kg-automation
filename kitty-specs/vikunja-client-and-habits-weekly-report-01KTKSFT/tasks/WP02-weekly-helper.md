@@ -283,3 +283,15 @@ Per Felix Constitution Directive 6, this is the deterministic surface of the mis
 ## Activity Log
 
 - 2026-06-08T16:17:13Z – claude:sonnet:python-pedro:implementer – shell_pid=12214 – Assigned agent via action command
+- 2026-06-08T16:48:57Z – claude:sonnet:python-pedro:implementer – shell_pid=12214 – 67 tests, 98%/96% coverage. --force used: lane-b was manually rebased onto lane-a (per upstream spec-kitty#1684 / local #492 workaround) so lane-a's coord-tracked planning artifacts appear in lane-b's history. Code itself is clean WP02-only. Mission merge handles dedup via -X theirs (precedent #559).
+- 2026-06-08T16:49:05Z – codex:gpt-5:reviewer-renata:reviewer – shell_pid=20185 – Started review via action command
+- 2026-06-08T16:52:05Z – user – shell_pid=20185 – Moved to planned
+- 2026-06-08T16:52:41Z – claude:sonnet:python-pedro:implementer – shell_pid=21673 – Started implementation via action command
+- 2026-06-08T16:57:09Z – claude:sonnet:python-pedro:implementer – shell_pid=21673 – Cycle 2: emits weekly_report_anomaly log_action on cap (3 new tests). 70 tests, 98% coverage. NOTE: implementer flagged that log_action.py VALID_CATEGORIES rejects 'warning' so anomaly subprocess will fail silently per swallowed-failure design — contract emit happens, but JSONL doesn't receive. Reviewer please weigh in: accept as-is, or require switching category to 'flagged'?
+- 2026-06-08T16:57:18Z – codex:gpt-5:reviewer-renata:reviewer – shell_pid=23035 – Started review via action command
+- 2026-06-08T17:00:31Z – user – shell_pid=23035 – Moved to planned
+- 2026-06-08T17:01:57Z – claude:sonnet:python-pedro:implementer – shell_pid=24941 – Started implementation via action command
+- 2026-06-08T17:04:39Z – claude:sonnet:python-pedro:implementer – shell_pid=24941 – Cycle 3: category=flagged (per codex; warning was rejected by log_action.py). Real subprocess sanity check passed. 70 tests, 98.33% coverage.
+- 2026-06-08T17:04:49Z – codex:gpt-5:reviewer-renata:reviewer – shell_pid=25911 – Started review via action command
+- 2026-06-08T17:09:42Z – user – shell_pid=25911 – Arbiter override: review-cycle-4's sole objection was category=warning being rejected by log_action.py. Cycle 3 changed it to category=flagged; real subprocess exits 0, warning exits 1, and 70 tests pass at 98.33% coverage. Force acknowledges pre-existing coordination artifacts in lane history from the documented dependency rebase workaround. Review passed; anti-pattern checks 1-8 pass.
+- 2026-06-08T18:07:11Z – user – shell_pid=25911 – merge complete (4a6ab0d0) | Done override: Mission merged manually. Code on main at 4a6ab0d0. --force used because lane-b history includes coord planning artifacts pulled in by the manual rebase per upstream #1684 workaround.
