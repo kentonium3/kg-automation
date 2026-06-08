@@ -602,7 +602,7 @@ def test_build_report_emits_anomaly_when_current_count_exceeds_scheduled(
     anomaly_calls = [c for c in calls if c.get("action") == "weekly_report_anomaly"]
     assert len(anomaly_calls) == 1
     call = anomaly_calls[0]
-    assert call["category"] == "warning"
+    assert call["category"] == "flagged"
     assert call["target"] == "/projects/13/tasks"
     assert call["outcome"] == "capped"
     context = call["context"]
@@ -637,7 +637,7 @@ def test_build_report_emits_anomaly_when_prior_count_exceeds_scheduled(
     anomaly_calls = [c for c in calls if c.get("action") == "weekly_report_anomaly"]
     assert len(anomaly_calls) == 1
     call = anomaly_calls[0]
-    assert call["category"] == "warning"
+    assert call["category"] == "flagged"
     assert call["target"] == "/projects/13/tasks"
     assert call["outcome"] == "capped"
     context = call["context"]

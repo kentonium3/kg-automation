@@ -360,7 +360,7 @@ def _emit_anomaly_log_action(
     boundaries, and the raw/capped integers.
     """
     _emit_log_action(
-        category="warning",
+        category="flagged",
         action="weekly_report_anomaly",
         target=f"/projects/{HABITS_PROJECT_ID}/tasks",
         outcome="capped",
