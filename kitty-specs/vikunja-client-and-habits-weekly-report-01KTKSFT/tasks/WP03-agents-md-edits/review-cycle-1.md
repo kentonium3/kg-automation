@@ -1,0 +1,3 @@
+**Issue 1 (blocking)**: `scripts/openclaw/agents/felix-admin-habits/AGENTS.md:259` contradicts the weekly helper failure contract defined at lines 150-164. The weekly workflow requires a `Weekly report unavailable: <reason>` WhatsApp message, but the later Tailscale section groups morning and weekly failures together and instructs the agent to reply `IDLE`. A network failure could therefore silently suppress the required failure render, violating the contract and NFR-002. Split the lane-specific behavior explicitly: morning helper failure replies `IDLE`; weekly helper failure emits the contract's failure render; reply-workflow failures follow Step 4.
+
+WP04 depends on WP03 and must rebase after the corrected WP03 commit is available.
