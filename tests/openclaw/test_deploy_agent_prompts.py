@@ -55,6 +55,9 @@ def test_is_in_scope(filename, expected):
 
 def _write_inventory(path: Path, agents: dict, top_level_extras: dict | None = None):
     """Helper: write a synthetic service-inventory.json with the openclaw entry."""
+    # The production service-inventory.json names this entry "openclaw-gateway".
+    # Fixtures use the production name so the suite reflects what the helper
+    # actually has to parse on office2.
     data = {
         "schema_version": "1.1",
         "last_updated": "2026-06-08",
@@ -64,7 +67,7 @@ def _write_inventory(path: Path, agents: dict, top_level_extras: dict | None = N
                 "type": "docker-compose",
             },
             {
-                "name": "openclaw",
+                "name": "openclaw-gateway",
                 "type": "npm-global",
                 "agents": agents,
             },
@@ -115,14 +118,14 @@ def test_iter_agents_returns_nothing_when_no_openclaw_service(tmp_path):
     assert list(dap.iter_agents(inv)) == []
 
 
-def test_iter_agents_matches_openclaw_gateway_name(tmp_path):
-    """Production inventory entry is named 'openclaw-gateway', not 'openclaw'."""
+def test_iter_agents_matches_legacy_openclaw_name(tmp_path):
+    """Helper also accepts the legacy 'openclaw' service name (pre-rename inventories)."""
     inv = tmp_path / "service-inventory.json"
     data = {
         "services": [
             {"name": "vikunja"},
             {
-                "name": "openclaw-gateway",
+                "name": "openclaw",
                 "agents": {
                     "felix-admin-capture": {
                         "source_in_repo": "scripts/openclaw/agents/felix-admin-capture/",
