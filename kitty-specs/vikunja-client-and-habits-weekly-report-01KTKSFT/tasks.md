@@ -128,10 +128,10 @@ WP01 and WP04 can run in parallel. WP02 starts when WP01 completes; WP03 starts 
 
 **Included subtasks**:
 
-- [ ] T014 felix-admin-habits AGENTS.md — Hard Rules (WP03)
-- [ ] T015 felix-admin-habits AGENTS.md — weekly-report procedure + revise "out of scope" (WP03)
-- [ ] T016 felix-admin-escalation AGENTS.md — Hard Rules added (WP03)
-- [ ] T017 felix-admin-tasker AGENTS.md — Hard Rules OR no-WhatsApp annotation (WP03)
+- [x] T014 felix-admin-habits AGENTS.md — Hard Rules (WP03)
+- [x] T015 felix-admin-habits AGENTS.md — weekly-report procedure + revise "out of scope" (WP03)
+- [x] T016 felix-admin-escalation AGENTS.md — Hard Rules added (WP03)
+- [x] T017 felix-admin-tasker AGENTS.md — Hard Rules OR no-WhatsApp annotation (WP03)
 
 **Implementation sketch**:
 1. Read felix-admin-capture's existing Hard Rules (lines ~33–84 of `scripts/openclaw/agents/felix-admin-capture/AGENTS.md`) as the canonical template.
