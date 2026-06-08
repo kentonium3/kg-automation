@@ -112,25 +112,40 @@ def is_in_scope(filename: str) -> bool:
 # ---------------------------------------------------------------------------
 
 
-def iter_agents(inventory_path: Path) -> Iterator[AgentInventoryEntry]:
-    """Yield each Felix agent under services[openclaw].agents.* in the inventory.
+OPENCLAW_SERVICE_NAMES = frozenset({"openclaw", "openclaw-gateway"})
 
-    Skips agents missing source_in_repo or workspace (caller's audit log can
-    record the skip; this generator does not emit audit records).
+
+def iter_agents(inventory_path: Path) -> Iterator[AgentInventoryEntry]:
+    """Yield each Felix agent under the openclaw service's agents map.
+
+    The openclaw service entry has been named both "openclaw" and
+    "openclaw-gateway" over time. The canonical name in the production
+    inventory is "openclaw-gateway"; the helper accepts either to remain
+    robust across renames. Final fallback: pick the first service that
+    has a non-empty `agents` dict (there is only one such service by Felix
+    convention).
+
+    Skips agents missing source_in_repo or workspace; caller may emit a
+    warning audit record on the skip.
     """
     with open(inventory_path, "r", encoding="utf-8") as fh:
         data = json.load(fh)
     services = data.get("services", [])
     openclaw_entry = None
     for svc in services:
-        if svc.get("name") == "openclaw":
+        if svc.get("name") in OPENCLAW_SERVICE_NAMES:
             openclaw_entry = svc
             break
+    if openclaw_entry is None:
+        for svc in services:
+            agents_candidate = svc.get("agents")
+            if isinstance(agents_candidate, dict) and agents_candidate:
+                openclaw_entry = svc
+                break
     if openclaw_entry is None:
         return
     agents = openclaw_entry.get("agents") or {}
     if not isinstance(agents, dict):
-        # config sometimes nests under 'config.agents'; fallback
         agents = openclaw_entry.get("config", {}).get("agents", {})
     for slug, meta in agents.items():
         if not isinstance(meta, dict):

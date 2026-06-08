@@ -115,6 +115,43 @@ def test_iter_agents_returns_nothing_when_no_openclaw_service(tmp_path):
     assert list(dap.iter_agents(inv)) == []
 
 
+def test_iter_agents_matches_openclaw_gateway_name(tmp_path):
+    """Production inventory entry is named 'openclaw-gateway', not 'openclaw'."""
+    inv = tmp_path / "service-inventory.json"
+    data = {
+        "services": [
+            {"name": "vikunja"},
+            {
+                "name": "openclaw-gateway",
+                "agents": {
+                    "felix-admin-capture": {
+                        "source_in_repo": "scripts/openclaw/agents/felix-admin-capture/",
+                        "workspace": "/data/services/openclaw/inbox-agent",
+                    },
+                },
+            },
+        ]
+    }
+    inv.write_text(json.dumps(data))
+    agents = list(dap.iter_agents(inv))
+    assert [a.slug for a in agents] == ["felix-admin-capture"]
+
+
+def test_iter_agents_fallback_finds_first_service_with_agents(tmp_path):
+    """If no openclaw* named service exists, fall back to first service with agents dict."""
+    inv = tmp_path / "service-inventory.json"
+    data = {
+        "services": [
+            {"name": "unrelated-svc-name", "agents": {
+                "a": {"source_in_repo": "src-a/", "workspace": "/dst-a"},
+            }},
+        ]
+    }
+    inv.write_text(json.dumps(data))
+    agents = list(dap.iter_agents(inv))
+    assert [a.slug for a in agents] == ["a"]
+
+
 def test_iter_agents_handles_non_dict_meta(tmp_path):
     inv = tmp_path / "service-inventory.json"
     _write_inventory(inv, {
