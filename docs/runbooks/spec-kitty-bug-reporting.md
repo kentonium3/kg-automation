@@ -4,9 +4,9 @@ doc_type: runbook
 audience: agents_and_humans
 status: approved
 created: 2026-05-28
-last_validated: 2026-06-07
-last_updated: '2026-06-07'
-version: v1.2
+last_validated: 2026-06-08
+last_updated: '2026-06-08'
+version: v1.3
 owners: [kgale]
 ---
 
@@ -40,11 +40,11 @@ fields the maintainer benefits from.
 | Artifact | Path | Audience |
 |---|---|---|
 | **Internal issue template** | `.github/ISSUE_TEMPLATE/spec-kitty-bug.md` | Used as the body of new kg-automation issues |
-| **External paste template** | `docs/diagnostics/spec-kitty-bug-report-external-template.md` | Source for upstream submission |
-| **Per-report paste buffer** | `docs/diagnostics/{issue#-or-slug}-external.md` | Generated when filing upstream; transient |
+| **External paste template** | `docs/diagnostics/spec-kitty-bug-report-external-template.md` | Reference for the slim upstream-body shape — embed it directly in the internal issue, no separate paste file |
+| ~~Per-report paste buffer~~ | ~~`docs/diagnostics/{issue#-or-slug}-external.md`~~ | **DEPRECATED 2026-06-08 (v1.3)** — embed the upstream draft directly in the internal issue body instead. See v1.3 change note below. |
 | **Historical archive** | `docs/archive/spec-kitty-feedback/` | Reports for fixed/closed upstream issues |
 
-## Lifecycle
+## Lifecycle (v1.3, 2026-06-08)
 
 ```text
 1. OBSERVE              Suspected spec-kitty bug surfaces during work.
@@ -53,30 +53,48 @@ fields the maintainer benefits from.
 3. INVESTIGATE          Edit the issue body / add comments as evidence and
                         root-cause analysis accumulate. Internal status tracked
                         via labels (P1-bug, P2-bug, etc.) and issue state.
-4. GENERATE EXTERNAL    Populate the slim template into a paste doc at
-                        docs/diagnostics/{slug}-external.md. Strip all the
-                        internal-only fields (priority/status/suggested fix/
-                        open questions/next steps/internal refs). Add the
-                        attribution + reviewer-approval footer (see template).
-5. PRE-FILING APPROVAL  Surface the proposed upstream title in the internal
-                        tracking issue body (above the embedded draft section).
-                        Operator reviews and approves the title AND the body
-                        BEFORE the upstream filing step. Never file upstream
-                        on the agent's own initiative.
-6. FILE UPSTREAM        Paste the external doc into Priivacy-ai/spec-kitty's
-                        issue UI (or, once trusted, gh issue create --repo
-                        Priivacy-ai/spec-kitty --title "<approved title>"
-                        --body-file <path>).
-7. CROSS-LINK           Edit the kg-automation issue body to add the
-                        "Filed upstream: Priivacy-ai/spec-kitty#NNNN" header
-                        with the approved title, apply the upstream-filed
-                        label, and create the diagnostic snapshot at
-                        docs/diagnostics/{NNNN}_{short-slug}.md.
-8. CLOSE                When upstream ships the fix AND we've verified it
-                        locally, close the kg-automation issue. Move the paste
-                        doc to docs/archive/spec-kitty-feedback/{NNNN}-external.md
-                        or delete it (paste docs are transient by design).
+4. EMBED UPSTREAM DRAFT Add a "Proposed upstream title" section and an
+                        "Embedded upstream draft (paste-ready)" code block
+                        directly inside the internal issue body. The embedded
+                        draft uses the slim shape from the external template
+                        (Summary / Reproduction / Root Cause if known /
+                        Workaround Applied / Environment / attribution+approval
+                        footer) — Suggested Fix, Open Questions, Next Steps,
+                        internal refs, frontmatter, and dates are all dropped.
+                        No separate paste file.
+5. PRE-FILING APPROVAL  Operator reviews and approves BOTH the proposed
+                        title AND the embedded draft body in the internal
+                        issue, BEFORE the upstream filing step. Never file
+                        upstream on the agent's own initiative.
+6. FILE UPSTREAM        gh issue create --repo Priivacy-ai/spec-kitty
+                        --title "<approved title>" --body-file <(extract the
+                        embedded draft from the internal issue + fill the
+                        Submission approved date with today).
+7. CROSS-LINK           Comment on the kg-automation issue with the
+                        "Filed upstream: Priivacy-ai/spec-kitty#NNNN" line +
+                        filing-date + label transitions. Apply the
+                        upstream-filed label. No separate diagnostic snapshot
+                        file needed (the internal issue is the snapshot).
+8. CLOSE                When upstream ships the fix AND we've upgraded
+                        locally to a release that consumes it, transition
+                        labels upstream-filed → upstream-pending-release →
+                        upstream-released and close the kg-automation issue.
 ```
+
+### v1.3 change note (2026-06-08)
+
+v1.2 (and prior) required generating a transient paste file at
+`docs/diagnostics/{slug}-external.md` as an intermediate artifact. v1.3
+removes that step: the upstream-bound draft is embedded directly in the
+internal kg-automation issue body, in a code block, ready to copy into
+`gh issue create --body-file`. The shape of the embedded draft still
+follows the slim external template — only the file artifact is removed.
+
+Why: the paste file added a maintenance surface (frontmatter staleness,
+status drift, the question of whether to archive vs delete on close) for
+zero net value over a code block inside the GitHub issue. Existing paste
+docs under `docs/diagnostics/*-external.md` may stay as-is for already-filed
+issues; new bug filings should NOT generate one.
 
 ## When to file (and not file)
 
@@ -130,7 +148,7 @@ Rich format used as the body of new kg-automation issues. Includes:
 
 ### External template (`docs/diagnostics/spec-kitty-bug-report-external-template.md`)
 
-Slim format used as the source for upstream paste docs. Drops:
+Slim format that defines the shape of the upstream-bound draft. As of v1.3 (2026-06-08), this template is consulted as a **shape reference** — embed the draft directly into the internal issue body (lifecycle step 4) rather than generating a separate paste file. Drops:
 
 - No frontmatter
 - No date (the upstream issue tracks creation date)
@@ -144,7 +162,7 @@ Keeps: Summary, Reproduction, Root Cause (only if known), Workaround Applied (tr
 
 **Attribution + reviewer-approval footer (mandatory, added 2026-06-04 / v1.1; structured form added 2026-06-07 / v1.2):**
 
-Every external paste MUST end with a footer block of the form:
+Every embedded upstream draft MUST end with a footer block of the form:
 
 ```markdown
 ---
