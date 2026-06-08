@@ -5,7 +5,7 @@ mission_slug: inbox-calendar-and-aspiration-routing-01KTHHXS
 reproduction_command:
 reviewed_at: '2026-06-08T11:04:53Z'
 reviewer_agent: unknown
-verdict: rejected
+verdict: approved
 wp_id: WP04
 review_artifact_override_at: "2026-06-08T11:22:48Z"
 review_artifact_override_actor: "operator"
