@@ -279,3 +279,4 @@ Extend `scripts/openclaw/agents/main/AGENTS.md` (Felix main's tracked standing o
 - 2026-06-08T10:14:39Z – claude:opus-4-7:generic-agent:implementer – shell_pid=23947 – Assigned agent via action command
 - 2026-06-08T10:22:56Z – claude:opus-4-7:generic-agent:implementer – shell_pid=23947 – Ready for review. Felix main AGENTS.md gains calendar-create handler (T015/T016) + clarification reply handler (T017/T018/T019); +183 lines; deploy-artifact log_action paths; conceptual self-dispatch documented for T019.
 - 2026-06-08T10:24:25Z – claude:opus-4-7:reviewer-renata:reviewer – shell_pid=26434 – Started review via action command
+- 2026-06-08T10:31:18Z – user – shell_pid=26434 – Review passed: end-of-file placement preserves cron section back-reference and delegation cluster; T015-T019 all met; lock pattern parity with capture confirmed; no original lines modified
