@@ -43,6 +43,8 @@ temp/
 .kittify/charter/governance.yaml
 .kittify/charter/directives.yaml
 .kittify/charter/metadata.yaml
+.kittify/encoding-provenance/
+.kittify/legacy-warning-shown-*
 
 # Agent sandbox residue (Codex, etc.)
 .codex-tmp-home/
