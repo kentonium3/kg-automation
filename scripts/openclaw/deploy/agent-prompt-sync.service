@@ -1,0 +1,53 @@
+# Agent Prompt Deploy Pipeline — systemd user service unit
+#
+# One-shot unit. Each invocation runs ONE sync tick: git fetch + git pull
+# --ff-only inside /home/claude/kg-automation, then MD5-compare each in-scope
+# agent prompt file under scripts/openclaw/agents/<slug>/ against the deployed
+# file at /data/services/openclaw/<deploy-dir>/<file>, atomically copying any
+# drifted file. Audit log at /data/services/openclaw/deploy/agent-prompt-sync.jsonl.
+#
+# The sibling unit (agent-prompt-sync.timer) schedules invocations every 5
+# minutes after the previous tick exits.
+#
+# Operator deploy (one-time, post-mission-merge):
+#   ssh office2-claude
+#   cd ~/kg-automation
+#   git pull --ff-only origin main
+#   mkdir -p ~/.config/systemd/user
+#   cp scripts/openclaw/deploy/agent-prompt-sync.service ~/.config/systemd/user/
+#   cp scripts/openclaw/deploy/agent-prompt-sync.timer   ~/.config/systemd/user/
+#   systemctl --user daemon-reload
+#   systemctl --user enable --now agent-prompt-sync.timer
+#   systemctl --user list-timers | grep agent-prompt-sync
+#
+# Operator validation (run on office2 from /home/claude/kg-automation):
+#   systemd-analyze --user verify scripts/openclaw/deploy/agent-prompt-sync.service
+#   systemd-analyze --user verify scripts/openclaw/deploy/agent-prompt-sync.timer
+#
+# Full runbook: file:///home/claude/kg-automation/docs/runbooks/agent-prompt-sync-ops.md
+#
+# Note: ExecStart uses the `-m` invocation form (NOT script-path form). The
+# helper imports siblings via scripts.openclaw.deploy.*; script-path
+# invocation would fail with ModuleNotFoundError. See WP01 commit + the
+# repo memory feedback_helper_m_invocation_form for the documented incident
+# class.
+
+[Unit]
+Description=Agent Prompt Deploy Pipeline (one-shot tick)
+Documentation=file:///home/claude/kg-automation/docs/runbooks/agent-prompt-sync-ops.md
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/home/claude/kg-automation
+ExecStart=/usr/bin/python3 -m scripts.openclaw.deploy.deploy_agent_prompts
+StandardOutput=journal
+StandardError=journal
+# Generous timeout: no-drift ticks complete in <2s normally (NFR-001);
+# this ceiling accommodates slow git fetches on flaky network without
+# prematurely killing the process.
+TimeoutStartSec=120s
+
+[Install]
+WantedBy=default.target

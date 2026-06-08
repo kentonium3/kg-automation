@@ -1,0 +1,41 @@
+# Agent Prompt Deploy Pipeline — systemd user timer
+#
+# Fires the sibling service unit at 5-minute cadence.
+#
+# Why OnUnitInactiveSec=300s (not OnCalendar="*/5"):
+#   OnUnitInactiveSec means "300s after the LAST tick exited" — guarantees
+#   non-overlapping ticks even if a cycle takes >5 min (rare; no-drift ticks
+#   normally complete in <2s per NFR-001). With OnCalendar="*/5", a slow tick
+#   could race the next scheduled fire — a serialization hazard.
+#
+# Why OnBootSec=120s:
+#   Delay the first tick by 2 minutes after office2 boot so the network and
+#   git remote have settled. Without this delay the first post-boot tick
+#   would race the Tailscale connection.
+#
+# Why Persistent=true:
+#   If office2 was off (or the timer was disabled) when a tick was supposed
+#   to fire, run ONE catch-up tick on resume. The helper is idempotent
+#   (NFR-006), so a catch-up tick is harmless.
+#
+# Operator enable (one-time, post-deploy):
+#   systemctl --user enable --now agent-prompt-sync.timer
+#
+# Operator validation:
+#   systemd-analyze --user verify scripts/openclaw/deploy/agent-prompt-sync.timer
+#   systemctl --user list-timers | grep agent-prompt-sync
+#
+# Full runbook: file:///home/claude/kg-automation/docs/runbooks/agent-prompt-sync-ops.md
+
+[Unit]
+Description=Agent Prompt Deploy Pipeline (5-min cadence)
+Documentation=file:///home/claude/kg-automation/docs/runbooks/agent-prompt-sync-ops.md
+
+[Timer]
+OnUnitInactiveSec=300s
+OnBootSec=120s
+Unit=agent-prompt-sync.service
+Persistent=true
+
+[Install]
+WantedBy=timers.target
