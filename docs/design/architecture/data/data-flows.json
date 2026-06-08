@@ -1183,109 +1183,6 @@
           "description": "Append-only ledger row per tick \u2014 backs cost telemetry (NFR-001) and post-rollout escalation review."
         }
       ]
-    }
-  ],
-  "planned_flows": [
-    {
-      "name": "vikunja-base-url-config",
-      "status": "active",
-      "deployed_by": "#520",
-      "introduced_by": "#520",
-      "updated_by": "#520",
-      "description": "#520 (Mission C) URL config single source of truth. The Vikunja API base URL is written once at install time to /data/services/openclaw/config/vikunja-base-url.txt (mode 0644, world-readable, NOT a secret). scripts/common/vikunja_config.py reads it at module init for the sync driver and all 6 runtime-path touchpoints migrated by #519 (habits: TP-02, TP-03, TP-04, TP-07; escalation: TP-10; enrichment: TP-12). Resolution order: VIKUNJA_BASE_URL env var first (set in ~/.bashrc + openclaw-gateway.env EnvironmentFile), file second. Raises VikunjaConfigError if both are absent.",
-      "path": [
-        {
-          "from": "operator (manual file create at deploy)",
-          "to": "/data/services/openclaw/config/vikunja-base-url.txt",
-          "protocol": "file write",
-          "description": "One-time deploy step: echo 'https://office2.tail0f5f56.ts.net/api/v1/' > /data/services/openclaw/config/vikunja-base-url.txt"
-        },
-        {
-          "from": "/data/services/openclaw/config/vikunja-base-url.txt",
-          "to": "VIKUNJA_BASE_URL env var (~/.bashrc + openclaw-gateway.env)",
-          "protocol": "shell export / systemd EnvironmentFile",
-          "description": "Exported as VIKUNJA_BASE_URL for interactive sessions and openclaw-gateway.service child processes"
-        },
-        {
-          "from": "scripts/common/vikunja_config.py (get_vikunja_base_url())",
-          "to": "felix-vikunja-sync-driver (scripts/sync/cycle.py)",
-          "protocol": "python-import",
-          "description": "Driver reads URL at cycle start (Phase 0 preamble)"
-        },
-        {
-          "from": "scripts/common/vikunja_config.py (get_vikunja_base_url())",
-          "to": "habits touchpoints (morning_checkin_list.py, query_active_habits_v2.py, set_due_dates.py, reconcile_completions.py)",
-          "protocol": "python-import",
-          "description": "TP-07, TP-03, TP-04, TP-02: post-#519 migration; URL read at module init"
-        },
-        {
-          "from": "scripts/common/vikunja_config.py (get_vikunja_base_url())",
-          "to": "escalation touchpoint (escalation/reconcile_completions.py)",
-          "protocol": "python-import",
-          "description": "TP-10: post-#519 migration; URL read at module init"
-        },
-        {
-          "from": "scripts/common/vikunja_config.py (get_vikunja_base_url())",
-          "to": "enrichment touchpoint (enrichment/reconcile_completions.py)",
-          "protocol": "python-import",
-          "description": "TP-12: post-#519 migration; URL read at module init"
-        }
-      ]
-    },
-    {
-      "name": "whatsapp-command-channel",
-      "planned_by": "F003-F006",
-      "description": "WhatsApp voice/text \u2192 OpenClaw webhook \u2192 Whisper \u2192 Intent Parser \u2192 Vikunja"
-    },
-    {
-      "name": "obsidian-inbox-processing",
-      "planned_by": "F007-F010",
-      "description": "Obsidian 01-Inbox \u2192 hourly processor \u2192 vault routing + Vikunja API"
-    },
-    {
-      "name": "daily-briefing",
-      "planned_by": "F014",
-      "description": "Heartbeat \u2192 task summary \u2192 WhatsApp message to Kent"
-    },
-    {
-      "name": "sync-cache-read-touchpoints",
-      "status": "active",
-      "deployed_by": "#519",
-      "introduced_by": "#519",
-      "description": "Post-#519 canonical read path: 6 migrated touchpoints across 3 domains (habits \u00d74, escalation \u00d71, enrichment \u00d71) read task state from the sync driver cache via scripts/common/sync_cache.py instead of calling Vikunja directly. No fallback \u2014 cache miss or stale-beyond-SLA_NORMAL raises OSError with structured recovery hint.",
-      "path": [
-        {
-          "from": "habits touchpoints (morning_checkin_list.py, query_active_habits_v2.py, set_due_dates.py, reconcile_completions.py)",
-          "to": "scripts/common/sync_cache.py",
-          "protocol": "python-import",
-          "description": "TP-07, TP-03, TP-04, TP-02: read task list via read_cached_tasks(SLA_NORMAL) or read_cached_task_by_id()"
-        },
-        {
-          "from": "escalation touchpoint (escalation/reconcile_completions.py)",
-          "to": "scripts/common/sync_cache.py",
-          "protocol": "python-import",
-          "description": "TP-10: read task list via read_cached_tasks(SLA_NORMAL)"
-        },
-        {
-          "from": "enrichment touchpoint (enrichment/reconcile_completions.py)",
-          "to": "scripts/common/sync_cache.py",
-          "protocol": "python-import",
-          "description": "TP-12: read task list via read_cached_tasks(SLA_NORMAL)"
-        },
-        {
-          "from": "scripts/common/sync_cache.py",
-          "to": "/data/services/openclaw/state/sync/task-cache.json",
-          "protocol": "file-read",
-          "description": "Cache read (read-only). Written exclusively by felix-vikunja-sync-driver on every successful tick."
-        },
-        {
-          "from": "scripts/common/sync_cache.py",
-          "to": "/data/services/openclaw/state/sync/freshness.json",
-          "protocol": "file-read",
-          "description": "Freshness pointer read. Used to enforce SLA_NORMAL (900s) staleness check before serving cache."
-        }
-      ],
-      "pre_migration_note": "Before #519, all 6 touchpoints called Vikunja REST API directly (GET /projects/<id>/tasks or GET /tasks/<id>). Those direct-read code paths are deleted in the same commit that introduces the cache read \u2014 clean cutover, no coexistence period, no fallback path."
     },
     {
       "name": "inbox-calendar-create",
@@ -1397,6 +1294,109 @@
         }
       ],
       "purpose": "Route aspirations and musings to the dated journal instead of Vikunja todos"
+    }
+  ],
+  "planned_flows": [
+    {
+      "name": "vikunja-base-url-config",
+      "status": "active",
+      "deployed_by": "#520",
+      "introduced_by": "#520",
+      "updated_by": "#520",
+      "description": "#520 (Mission C) URL config single source of truth. The Vikunja API base URL is written once at install time to /data/services/openclaw/config/vikunja-base-url.txt (mode 0644, world-readable, NOT a secret). scripts/common/vikunja_config.py reads it at module init for the sync driver and all 6 runtime-path touchpoints migrated by #519 (habits: TP-02, TP-03, TP-04, TP-07; escalation: TP-10; enrichment: TP-12). Resolution order: VIKUNJA_BASE_URL env var first (set in ~/.bashrc + openclaw-gateway.env EnvironmentFile), file second. Raises VikunjaConfigError if both are absent.",
+      "path": [
+        {
+          "from": "operator (manual file create at deploy)",
+          "to": "/data/services/openclaw/config/vikunja-base-url.txt",
+          "protocol": "file write",
+          "description": "One-time deploy step: echo 'https://office2.tail0f5f56.ts.net/api/v1/' > /data/services/openclaw/config/vikunja-base-url.txt"
+        },
+        {
+          "from": "/data/services/openclaw/config/vikunja-base-url.txt",
+          "to": "VIKUNJA_BASE_URL env var (~/.bashrc + openclaw-gateway.env)",
+          "protocol": "shell export / systemd EnvironmentFile",
+          "description": "Exported as VIKUNJA_BASE_URL for interactive sessions and openclaw-gateway.service child processes"
+        },
+        {
+          "from": "scripts/common/vikunja_config.py (get_vikunja_base_url())",
+          "to": "felix-vikunja-sync-driver (scripts/sync/cycle.py)",
+          "protocol": "python-import",
+          "description": "Driver reads URL at cycle start (Phase 0 preamble)"
+        },
+        {
+          "from": "scripts/common/vikunja_config.py (get_vikunja_base_url())",
+          "to": "habits touchpoints (morning_checkin_list.py, query_active_habits_v2.py, set_due_dates.py, reconcile_completions.py)",
+          "protocol": "python-import",
+          "description": "TP-07, TP-03, TP-04, TP-02: post-#519 migration; URL read at module init"
+        },
+        {
+          "from": "scripts/common/vikunja_config.py (get_vikunja_base_url())",
+          "to": "escalation touchpoint (escalation/reconcile_completions.py)",
+          "protocol": "python-import",
+          "description": "TP-10: post-#519 migration; URL read at module init"
+        },
+        {
+          "from": "scripts/common/vikunja_config.py (get_vikunja_base_url())",
+          "to": "enrichment touchpoint (enrichment/reconcile_completions.py)",
+          "protocol": "python-import",
+          "description": "TP-12: post-#519 migration; URL read at module init"
+        }
+      ]
+    },
+    {
+      "name": "whatsapp-command-channel",
+      "planned_by": "F003-F006",
+      "description": "WhatsApp voice/text \u2192 OpenClaw webhook \u2192 Whisper \u2192 Intent Parser \u2192 Vikunja"
+    },
+    {
+      "name": "obsidian-inbox-processing",
+      "planned_by": "F007-F010",
+      "description": "Obsidian 01-Inbox \u2192 hourly processor \u2192 vault routing + Vikunja API"
+    },
+    {
+      "name": "daily-briefing",
+      "planned_by": "F014",
+      "description": "Heartbeat \u2192 task summary \u2192 WhatsApp message to Kent"
+    },
+    {
+      "name": "sync-cache-read-touchpoints",
+      "status": "active",
+      "deployed_by": "#519",
+      "introduced_by": "#519",
+      "description": "Post-#519 canonical read path: 6 migrated touchpoints across 3 domains (habits \u00d74, escalation \u00d71, enrichment \u00d71) read task state from the sync driver cache via scripts/common/sync_cache.py instead of calling Vikunja directly. No fallback \u2014 cache miss or stale-beyond-SLA_NORMAL raises OSError with structured recovery hint.",
+      "path": [
+        {
+          "from": "habits touchpoints (morning_checkin_list.py, query_active_habits_v2.py, set_due_dates.py, reconcile_completions.py)",
+          "to": "scripts/common/sync_cache.py",
+          "protocol": "python-import",
+          "description": "TP-07, TP-03, TP-04, TP-02: read task list via read_cached_tasks(SLA_NORMAL) or read_cached_task_by_id()"
+        },
+        {
+          "from": "escalation touchpoint (escalation/reconcile_completions.py)",
+          "to": "scripts/common/sync_cache.py",
+          "protocol": "python-import",
+          "description": "TP-10: read task list via read_cached_tasks(SLA_NORMAL)"
+        },
+        {
+          "from": "enrichment touchpoint (enrichment/reconcile_completions.py)",
+          "to": "scripts/common/sync_cache.py",
+          "protocol": "python-import",
+          "description": "TP-12: read task list via read_cached_tasks(SLA_NORMAL)"
+        },
+        {
+          "from": "scripts/common/sync_cache.py",
+          "to": "/data/services/openclaw/state/sync/task-cache.json",
+          "protocol": "file-read",
+          "description": "Cache read (read-only). Written exclusively by felix-vikunja-sync-driver on every successful tick."
+        },
+        {
+          "from": "scripts/common/sync_cache.py",
+          "to": "/data/services/openclaw/state/sync/freshness.json",
+          "protocol": "file-read",
+          "description": "Freshness pointer read. Used to enforce SLA_NORMAL (900s) staleness check before serving cache."
+        }
+      ],
+      "pre_migration_note": "Before #519, all 6 touchpoints called Vikunja REST API directly (GET /projects/<id>/tasks or GET /tasks/<id>). Those direct-read code paths are deleted in the same commit that introduces the cache read \u2014 clean cutover, no coexistence period, no fallback path."
     }
   ]
 }
