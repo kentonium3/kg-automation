@@ -176,6 +176,44 @@ Branch on the result:
      parse-failure cycles.
   2. If `parse_failures` is non-empty, run §Step 6.
 
+### Step 1a: 24h calendar-clarifications timeout sweep
+
+Runs on EVERY turn (regardless of whether there is routing work), AFTER
+prescan and BEFORE the Step 2 routing loop. The sweep is idempotent —
+running it N times produces identical state — so it is safe to run on
+IDLE turns and on parse-failure-only turns as well.
+
+State file: `~/second-brain/agents/state/pending-calendar-clarifications.jsonl`
+(JSONL; see contract
+`kitty-specs/inbox-calendar-and-aspiration-routing-01KTHHXS/contracts/pending_clarification_record.md`
+§ Line schema).
+
+Procedure:
+
+1. Read all entries from the state file. If the file does not exist or
+   is empty, skip the sweep.
+2. For each entry where `timed_out_at` is `null` AND `resolved_at` is
+   `null` AND `sent_at` is more than 24 hours (86400 seconds) before
+   `tick_iso`:
+   - Set the entry's `timed_out_at` to `tick_iso`.
+   - Read the source inbox note at `source_inbox_path`; if its
+     frontmatter `status` is anything other than `needs-review`, set
+     `status: needs-review` via the existing atomic-write helper used
+     elsewhere in capture (Step 5c). If the status is already
+     `needs-review` or anything other than `processed`, leave it
+     unchanged.
+   - Log `calendar_event_clarification_timeout` via `log_action` with
+     context `clarification_id`, `sent_at`, `source_file`.
+3. If any entry was modified, atomically rewrite the JSONL file with
+   the updated entries under `fcntl.flock(LOCK_EX)`. The atomic-write
+   protocol is the same shape used by the "Resolve one record" path
+   documented in the pending-clarification contract (§ Operations →
+   Mark timed-out (retain)).
+
+The sweep does NOT remove timed-out records. They are retained in the
+file for audit; the `timed_out_at` field is the durable marker that
+prevents re-sweeping.
+
 ### Step 2: Parse each file
 
 Inbox files come from two primary sources:
@@ -196,7 +234,21 @@ For each unprocessed file:
 
 ### Step 3: Classify and route
 
-For each extracted content block, determine the content type and destination:
+For each extracted content block, determine the content type and destination.
+
+**Classifier signal cues** (apply BEFORE consulting the routing table; resolves the most common misroutes):
+
+- **Calendar event signals**: a date or relative time anchor ("Tuesday 2pm", "next Friday", "every Tuesday"); a duration or end time; optionally a location, attendees, or recurrence phrase. Verb shapes include "attend X", "meet with Y at Z", "lunch with N", "trivia night", or a recurring event name. NEGATIVE signal: an imperative verb without a time anchor ("call dentist") is NOT a calendar event — it is a task.
+- **Aspiration / musing signals**: "I should…", "I wonder if…", "I need to start…", "maybe I should…". Framed as a wish or wondering — NOT a concrete commitment with a completability test. NEGATIVE signal: a valid Felix goal declaration (specific date + present-tense outcome + observable evidence) routes via the existing goal-handling block (see "Goal declaration handling" below). The Aspiration / musing row is the FALLBACK for goal-shaped content that fails declaration validation.
+- **Someday item signals**: concrete actionable item framed as not-now. Cue phrases: "eventually", "someday", "when I get around to it", "no rush", "future". Example: "Get rid of the old lawn tractor when I get around to it." → Someday. NEGATIVE signal: a concrete actionable item WITHOUT a parked-framing cue is an Active task, not Someday.
+- **Tightened task rule**: a block qualifies as an Active task ONLY when it has BOTH (a) a concrete verb (call, schedule, send, reschedule, write, draft, review, prepare, etc.) AND (b) a clear completability test (you can mark it done unambiguously). These shapes are NEVER active tasks:
+  - "Attend X meeting" / "Go to Y event" — that is a Calendar event (route there).
+  - "Be more X" / "Get to bed earlier" / "Become Y" — that is an Aspiration / musing (route there).
+  - "Eventually do X" / "Someday Y" — that is a Someday item (route there).
+  - GOOD: "Call dentist to reschedule cleaning" → Active task. "Draft Q3 marketing brief by Friday" → Active task.
+  - BAD: "Attend trivia night Tuesday" → Calendar event, NOT a task. "Get to bed earlier" → Aspiration, NOT a task.
+
+Routing table:
 
 | Content type | Destination | Action |
 |---|---|---|
@@ -214,13 +266,187 @@ For each extracted content block, determine the content type and destination:
 | Financial goals or planning | `07-Finance/` | Create or update `_Goals.md` |
 | Journal-style personal reflection | `08-Journal/` | Create dated journal entry |
 | Book, resource, tool reference | `09-Resources/` | Create resource note |
-| Task or action item | Vikunja | Delegate to felix-admin-tasker (fallback: create flat Vikunja task) |
+| Calendar event | Google Calendar (via Felix main delegation) | See "Calendar event completeness" sub-section below |
+| Aspiration / musing | `08-Journal/Journal YYYY-MM-DD HHmm.md` | Append to today's dated journal entry (create if absent); see "Aspiration / musing handling" sub-section |
+| Someday item | Vikunja project `Someday` (resolved by name) | Create task; identity inferred; NO `due_date`; see "Someday item handling" sub-section |
+| Active task | Vikunja Inbox project (via felix-admin-tasker delegation; fallback to flat task) | Requires concrete verb + clear completability test |
 | Research request | Vikunja | Delegate to felix-admin-tasker (fallback: create flat Vikunja task) |
 | AI automation capability/idea | `09-Resources/kg-automation/` | Create or update relevant note |
 | GitHub issue request | GitHub (kentonium3/kg-automation) | Create issue via gh CLI, confirm via WhatsApp |
 | Unclassifiable | Leave in `01-Inbox/` | Set `status: needs-review` |
 
 All vault paths are relative to `/home/kgale/second-brain/notes/`.
+
+#### Calendar event completeness
+
+When a block is classified as a Calendar event, invoke the deterministic
+validator helper (mission `inbox-calendar-and-aspiration-routing-01KTHHXS`,
+WP01) to decide complete-vs-incomplete and to produce the Felix-main
+delegation payload. The LLM extracts natural-language fields; the helper
+parses datetimes, normalizes recurrence to RRULE, and assembles the
+payload.
+
+Helper invocation:
+
+```bash
+echo "<extracted block JSON>" \
+  | python3 /home/claude/kg-automation/scripts/calendar/validate_calendar_event.py
+```
+
+Input JSON shape and field semantics: see
+`kitty-specs/inbox-calendar-and-aspiration-routing-01KTHHXS/contracts/validate_calendar_event.md`
+(§ Input schema). You MUST pass `tick_iso` (the cron tick's reference
+time, captured at run start) so relative phrases like "tomorrow" /
+"next Tuesday" resolve against the tick, not the helper's wall clock.
+
+Output JSON shape: see the same contract (§ Output schema). Branch on
+`complete`:
+
+- **`complete: true`** — take the "Complete calendar event delegation"
+  path below.
+- **`complete: false`** — take the "Incomplete calendar event: pending
+  clarification" sub-section below.
+
+##### Complete calendar event delegation
+
+The helper's `calendar_event_payload` object IS the Felix-main delegation
+payload (shape matches
+`contracts/capture_to_main_calendar_payload.md`, `action="create_calendar_event"`).
+Dispatch it:
+
+```bash
+openclaw agent --agent main \
+  --message "$(cat <<EOF
+<calendar_event_payload JSON from helper output>
+EOF
+)" \
+  --json --timeout 120
+```
+
+Wait for Felix main's response (schema in the same contract):
+
+- Response `status: "created"` → log `calendar_event_created` with
+  context `gcal_event_id`, `source_file`. The source inbox note advances
+  through Step 5 like any other routed block.
+- Response `status: "error"` → log `calendar_event_failed` with
+  `error_detail` set to the verbatim error text. Leave the source note
+  at `status: needs-review` (do NOT write `processed_at`). Surface the
+  failure line in the WhatsApp turn-summary.
+- Delegation timeout (120s) or malformed response → log
+  `calendar_event_failed` with `error_detail: "delegation timeout"` or
+  `"malformed response"`. Source note → `status: needs-review`. Surface
+  in turn-summary.
+
+Do NOT invoke `gog` directly. Felix main owns the calendar write path
+(constraint C-002).
+
+#### Incomplete calendar event: pending clarification
+
+When the helper returns `complete: false`, capture writes a
+`PendingClarificationRecord` JSONL line and surfaces the gaps to Kent
+via WhatsApp.
+
+State file path:
+
+```
+~/second-brain/agents/state/pending-calendar-clarifications.jsonl
+```
+
+Line schema and field semantics: see
+`kitty-specs/inbox-calendar-and-aspiration-routing-01KTHHXS/contracts/pending_clarification_record.md`
+(§ Line schema). Do NOT duplicate the schema inline; the contract is the
+source of truth.
+
+Record generation rules:
+
+- Mint a fresh ULID for `clarification_id` (26-character Crockford
+  base32, monotonic).
+- Populate `fields_so_far` from the partial extracted block (echo of
+  ExtractedCalendarBlock; null for fields the LLM could not extract).
+- Populate `missing_fields` from the helper's output `missing_fields`
+  array (verbatim).
+- Set `sent_at` to the cron tick's `tick_iso` (same value passed to the
+  helper).
+- `last_reprompt_at`, `resolved_at`, `timed_out_at` all default to
+  `null` on first write.
+
+Atomic-write protocol (single-writer correctness):
+
+```python
+import fcntl, json, os
+path = os.path.expanduser("~/second-brain/agents/state/pending-calendar-clarifications.jsonl")
+with open(path, "ab") as f:
+    fcntl.flock(f.fileno(), fcntl.LOCK_EX)
+    f.write(json.dumps(record).encode("utf-8"))
+    f.write(b"\n")
+    f.flush()
+    os.fsync(f.fileno())
+    fcntl.flock(f.fileno(), fcntl.LOCK_UN)
+```
+
+Source inbox note frontmatter: set `status: needs-review`. Do NOT write
+`processed_at`. Use the same atomic frontmatter-write helper used in
+Step 5c (lines ~327–333 above) — the convention is identical; only the
+target status string differs.
+
+Log `calendar_event_clarification_sent` via `log_action` with context
+`clarification_id`, `missing_fields` (array as JSON string), `source_file`.
+
+If the JSONL append fails (disk full, permission denied, lock
+contention): log `calendar_event_failed` with
+`error_detail: "pending state write failed: <err>"`, leave source note
+at `status: needs-review`, surface the failure in the WhatsApp
+turn-summary. Do NOT retry within the cron tick — the next tick will
+re-attempt the route via the dedup-skipped path only if the routing log
+was not already appended.
+
+#### Aspiration / musing handling
+
+When a block is classified as Aspiration / musing, append it to today's
+dated journal entry.
+
+- Target path: `08-Journal/Journal YYYY-MM-DD HHmm.md`. `YYYY-MM-DD` is
+  the date portion of `tick_iso`; `HHmm` is the cron tick time (e.g.
+  `0700`, `1200`, `1700`, `2200`).
+- If the file does NOT exist, create it with full frontmatter following
+  the existing journal-entry conventions (see "Frontmatter" and "File
+  naming" sections below; `domain: journal`, `type: journal`).
+- Append the cleaned content under a `## Inbox capture` heading. Apply
+  the WisprFlow voice-cleanup conventions from Step 4 (filler-word
+  removal, preserve meaning, preserve Kent's strong phrasing).
+- Log `journal_entry_appended` via `log_action` with context
+  `source_file` and the target journal path.
+
+This row is the FALLBACK for goal-shaped content that fails the valid
+declaration validation in "Goal declaration handling" below. The
+goal-handling block takes precedence; only content that fails it lands
+here.
+
+Aspiration-classified blocks NEVER produce a Vikunja task (FR-008).
+
+#### Someday item handling
+
+When a block is classified as a Someday item, route to the Vikunja
+"Someday" project.
+
+- Resolve the Vikunja project by name (`"Someday"`) using the
+  vikunja_api skill's project-by-name resolution pattern. Do NOT
+  hardcode `project_id: 4`; the resolution code path owns the
+  fallback if the project is renamed.
+- Infer the identity label per the existing rules under "Identity
+  label inference" below (intentional / metalcasework / personal;
+  default personal when ambiguous).
+- Create the task with:
+  - Title: the actionable item, concise.
+  - Identity label: as inferred.
+  - Description: `Source: Inbox YYYY-MM-DD HHmm.md — Someday item`
+  - NO `due_date` field. Someday tasks must not surface in the daily
+    habit / morning check-in.
+- Log `someday_task_created` via `log_action` with context
+  `vikunja_task_id`, `project: "Someday"`, `source_file`.
+
+Someday-classified blocks NEVER appear in the active Vikunja Inbox
+project (FR-009).
 
 ### Step 4: Execute file operations
 
@@ -372,6 +598,37 @@ cron-run status with false errors.
 
 After processing all inbox files, write a log following the format in the
 processing log section below.
+
+#### Calendar clarifications turn-summary block
+
+At end-of-turn, read all currently-open entries from the
+pending-calendar-clarifications state file (an entry is "open" when
+`resolved_at` and `timed_out_at` are both `null`) and append a
+calendar-clarifications block to the WhatsApp turn-summary AFTER the
+existing routing summary content.
+
+Block format:
+
+```
+📅 Calendar items needing more info:
+- "<title>" — need <missing-field-1>, <missing-field-2>
+- "<title>" — need <missing-field>
+```
+
+One bullet per open entry. Use `fields_so_far.title` as `<title>` (if
+absent, use `(no title)`).
+
+Translate `missing_fields` tokens to human-readable phrases:
+
+| Token | Human-readable phrase |
+|---|---|
+| `start_datetime` | start time |
+| `end_or_duration` | end time or duration |
+| `recurrence_pattern` | recurrence pattern (you said it's recurring — how often?) |
+| `title` | title |
+
+If the open-entry list is empty at end-of-turn, OMIT the block entirely
+(no header line, no empty bullets).
 
 ## Goal declaration handling
 
@@ -573,6 +830,12 @@ python ~/repos/kg-automation/scripts/openclaw/observation/log_action.py \
 | `marker_cleanup_failed` | strip_parse_error_marker.py exit non-zero | error |
 | `routing_log_append_failed` | append_routing_entry.py exit non-zero | error |
 | `parse_failure_handling_error` | file_inbox_quality_issue.py or inject helper exit non-zero | error |
+| `calendar_event_created` | A Google Calendar event was created via Felix main delegation | routine |
+| `calendar_event_failed` | A calendar create attempt failed (capture's view of Felix main's error) | error |
+| `calendar_event_clarification_sent` | A pending-calendar-clarifications record was written | routine |
+| `calendar_event_clarification_timeout` | A pending clarification was timed out at 24h | flagged |
+| `journal_entry_appended` | An aspiration was appended to today's journal | routine |
+| `someday_task_created` | A Someday Vikunja task was created | routine |
 
 ### Context Fields
 
@@ -585,6 +848,8 @@ python ~/repos/kg-automation/scripts/openclaw/observation/log_action.py \
 | `error_detail` | string | When category is "error" |
 | `github_issue_number` | int | When a GitHub issue is created or updated |
 | `github_issue_url` | string | When a GitHub issue is created |
+| `clarification_id` | string | When a calendar clarification is sent or timed out |
+| `gcal_event_id` | string | When a calendar event is created |
 
 ### What Changed (F014)
 

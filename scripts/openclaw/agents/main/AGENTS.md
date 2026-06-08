@@ -255,3 +255,186 @@ You can read the output for context — knowing the morning check-in happened, k
 Output Discipline at the sub-agent level (no "Summary: delivered to Kent..." paragraphs in their output) prevents anything from looking like a delegation result that needs your relay. This non-relay rule is the explicit fallback if Output Discipline ever drifts.
 
 Three layers, defense in depth: announce + Output Discipline + don't-relay. Each one alone is enough to prevent #263 duplicates. Together they're robust.
+
+## Calendar event creation (delegated from capture)
+
+The `felix-admin-capture` agent (inbox processor) delegates Google Calendar event creation to you. When you receive an openclaw-agent message whose JSON body has `action: "create_calendar_event"`, **do not respond in chat**. Instead, perform the calendar-write workflow below. The full payload contract is at `kitty-specs/inbox-calendar-and-aspiration-routing-01KTHHXS/contracts/capture_to_main_calendar_payload.md`.
+
+### Input payload
+
+Parse the message body as JSON. Required fields: `action`, `calendar_id`, `account`, `summary`, `start_rfc3339`, `end_rfc3339`, `source_inbox_path`. Optional fields: `start_timezone`, `location`, `description`, `rrule`, `attendees` (list of emails or null), `clarification_id` (null on first dispatch from capture; set on the self-dispatch from the Calendar clarification reply handler below).
+
+Use payload values verbatim. Default account is `kent@intentional.biz` and default calendar is `primary`, but the payload carries the resolved values — do not second-guess them.
+
+### gog command synthesis
+
+Compose the gog invocation as follows. Bracketed flags are conditional on the corresponding payload field being non-null:
+
+```bash
+gog calendar create <calendar_id> \
+  --account <account> \
+  --summary "<summary>" \
+  --from <start_rfc3339> --to <end_rfc3339> \
+  [--start-timezone <start_timezone>] \
+  [--location "<location>"] \
+  [--description "<description>"] \
+  [--rrule "<rrule>"] \
+  [--attendees "<comma-joined attendees>"] \
+  -j
+```
+
+For `--attendees`, join the email list with commas (e.g. `"jane@example.com,bob@example.com"`). The `-j` flag instructs gog to emit JSON on stdout — parse that for `eventId` and `htmlLink`.
+
+Gog OAuth is wired via the `openclaw-gateway-env` systemd EnvironmentFile and `GOG_KEYRING_PASSWORD`; no per-call credential work is required. Run via the standard exec tool.
+
+### Response envelope
+
+Return the result to the openclaw-agent caller as a single JSON object on stdout:
+
+- **Success** (gog exit 0): `{"status": "created", "gcal_event_id": "<gog eventId>", "html_link": "<gog htmlLink>", "summary": "<summary>", "start_rfc3339": "<start>", "rrule": "<rrule or null>"}`
+- **Failure** (gog non-zero exit, malformed output, or unexpected error): `{"status": "error", "error": "<gog stderr verbatim>", "exit_code": <gog exit code>}`
+
+Do not paraphrase the error text; the caller (capture) surfaces it verbatim to Kent.
+
+### Logging
+
+Every calendar-create attempt — success or failure — emits a structured `log_action` event. Use the deploy-artifact path on office2:
+
+- **On success**:
+
+  ```bash
+  python /home/claude/kg-automation/scripts/openclaw/observation/log_action.py \
+    --agent main \
+    --category routine \
+    --action calendar_event_created \
+    --target "<gcal_event_id>" \
+    --outcome success \
+    --context '{"source_inbox_path": "<from payload>", "account": "<from payload>", "calendar_id": "<from payload>", "rrule": "<from payload or null>", "clarification_id": "<from payload or null>"}'
+  ```
+
+- **On failure**:
+
+  ```bash
+  python /home/claude/kg-automation/scripts/openclaw/observation/log_action.py \
+    --agent main \
+    --category error \
+    --action calendar_event_failed \
+    --target "<source_inbox_path>" \
+    --outcome error \
+    --context '{"error_detail": "<gog stderr>", "exit_code": <gog exit code>, "clarification_id": "<from payload or null>"}'
+  ```
+
+Order: log_action fires before returning the response envelope to the caller. If `log_action.py` itself fails (non-zero exit), write a short note to stderr and continue — do not block the response envelope on observability failure.
+
+### Known caveat
+
+`openclaw doctor` reports that the `message` tool is missing from your allowlist, so channel-action calls (`thread-reply`, `sendAttachment`) may fail. This flow does NOT use channel actions — you read the payload, shell out to gog, and return the response envelope via standard openclaw end-of-turn output. If end-of-turn outbound is broken for you, that's a pre-existing config gap to escalate separately (file an issue per the "Filing issues" section); do not work around it inside this handler.
+
+## Calendar clarification reply handler
+
+When Kent's inbox contained an incomplete calendar event, capture prompts him on WhatsApp for the missing pieces and records the open prompt in a state file. Kent's reply lands as a normal inbound WhatsApp message to you — and on every inbound message, you must check the state file BEFORE doing any other intent classification of the message. The state-file contract lives at `kitty-specs/inbox-calendar-and-aspiration-routing-01KTHHXS/contracts/pending_clarification_record.md`.
+
+### Trigger
+
+On every inbound WhatsApp message: BEFORE any other intent classification (habits, inbox processing, general chat, scheduling, etc.), check `~/second-brain/agents/state/pending-calendar-clarifications.jsonl` — the pending-calendar-clarifications state file.
+
+If the file does not exist or is empty, skip this handler entirely and proceed with normal message handling.
+
+### Match the reply to an open record
+
+Read all lines, deserialize each as JSON, and filter to records where both `timed_out_at` is null AND `resolved_at` is null. These are the **open** records.
+
+- **Zero open records** → skip this handler; proceed with normal message handling.
+- **Exactly one open record** → attempt to match against the inbound message body. The operator's reply naturally aligns to the most recent open prompt; proceed unless the message is obviously unrelated (e.g., "log meditation done" — which would be a habit ping, not a calendar reply).
+- **Multiple open records** → try to identify which by signal extraction: does the reply mention a title fragment, weekday, or date that matches one record's `fields_so_far.title` or `start_natural`? If exactly one record matches unambiguously, proceed with that one. If ambiguous, send a turn-summary asking Kent to specify (e.g. `Got it. Was that for: "lunch with John next Tuesday" or "meeting with Y"?`) and STOP without writing to any state file or calendar.
+
+### Field merge and re-validation
+
+Extract structured fields from the reply text using these natural-language patterns (the LLM job is signal extraction; the helper script does the deterministic validation downstream):
+
+| Field | Patterns to recognize |
+|---|---|
+| Time-of-day | `<n>am`, `<n>pm`, `<n>:<m>am`, `<n>:<m>pm`, `noon`, `midnight`, `<n>:<m>` (24h) |
+| Duration | `for <n> (hour|minute|hr|min)(s)?`, `<n>h<m>m` |
+| End time | `to <n>am|pm`, `until <n>am|pm` |
+| Date | `Tuesday`, `next Tuesday`, `tomorrow`, `<n>/<m>`, `<Month> <day>`, `<Month> <day>, <year>` |
+| Location | `at <words>`, `@<words>` |
+| Recurrence | `every <weekday>`, `weekly`, `biweekly`, `monthly`, `first|second|third|fourth|last <weekday>` |
+| Attendees | `with <name>(, <name>)*` |
+
+Build a merged candidate block by applying these extracted fields to the open record's `fields_so_far`. **Merge rule**: each extracted field replaces or fills the corresponding field in `fields_so_far`. If a field is already non-null in `fields_so_far` AND the reply extracts a different value, **the reply wins** — treat it as Kent's correction.
+
+Re-run the validator via stdin:
+
+```bash
+echo "<merged candidate block JSON>" | python3 /home/claude/kg-automation/scripts/calendar/validate_calendar_event.py
+```
+
+Set `tick_iso` in the merged candidate block to the **inbound message receipt time** — NOT the original `sent_at` of the prompt. This matters because relative phrases ("next Tuesday") in the reply must resolve against now, not against when the prompt went out.
+
+The validator's output is JSON with `complete: true|false`:
+
+- `complete: true` → proceed to Resolve and create (below).
+- `complete: false` AND `missing_fields` is the **same set** as the record's existing `missing_fields` → the reply was insufficient. Send a turn-summary noting what's still needed (e.g. `Still need: <missing>`). The record stays open; do NOT update `last_reprompt_at` (no progress).
+- `complete: false` AND `missing_fields` is a **different (smaller) set** → partial progress. Send a turn-summary asking for what's still missing, update `last_reprompt_at` on the record to the inbound receipt time, atomically rewrite the state file, and keep the record open.
+
+### Resolve and create
+
+When re-validation returns `complete: true`, do the following in order:
+
+1. **Synthesize the CalendarEventPayload** from the validator's `calendar_event_payload` output, and set `clarification_id` to the resolved record's id (so the calendar-create logging carries the correlation).
+
+2. **Self-dispatch into the Calendar event creation handler above**. This is conceptual, not a literal `openclaw agent --agent main` round-trip — apply the gog command from the Calendar event creation section, with the synthesized payload. The Logging sub-section there emits `calendar_event_created` (or `calendar_event_failed`) automatically.
+
+3. **Rewrite the state file** with the resolved record removed:
+
+   ```python
+   import fcntl, json, os, tempfile
+   STATE_FILE = os.path.expanduser("~/second-brain/agents/state/pending-calendar-clarifications.jsonl")
+   with open(STATE_FILE, "r+b") as f:
+       fcntl.flock(f.fileno(), fcntl.LOCK_EX)
+       lines = f.read().decode("utf-8").splitlines()
+       records = [json.loads(line) for line in lines if line.strip()]
+       kept = [r for r in records if r["clarification_id"] != resolved_id]
+       body = ("\n".join(json.dumps(r) for r in kept) + "\n") if kept else ""
+       tmp = STATE_FILE + ".tmp"
+       with open(tmp, "wb") as t:
+           t.write(body.encode("utf-8"))
+           t.flush()
+           os.fsync(t.fileno())
+       os.rename(tmp, STATE_FILE)
+       fcntl.flock(f.fileno(), fcntl.LOCK_UN)
+   ```
+
+   The lock pattern is identical to capture's append-record pattern (LOCK_EX, atomic .tmp+rename) — both writers honor the same protocol.
+
+4. **Flip the source note's frontmatter** at the path stored in the record's `source_inbox_path`. Read the file, locate the YAML frontmatter block, set `status: processed` and `processed_at: "<tick_iso>"` (same `tick_iso` used in re-validation). Atomic write via .tmp + rename, matching capture's source-note write pattern.
+
+5. **Log the resolution**:
+
+   ```bash
+   python /home/claude/kg-automation/scripts/openclaw/observation/log_action.py \
+     --agent main \
+     --category routine \
+     --action calendar_event_clarification_resolved \
+     --target "<clarification_id>" \
+     --outcome success \
+     --context '{"source_file": "<source_inbox_path>", "gcal_event_id": "<from gog response>"}'
+   ```
+
+   The Calendar event creation section's own `calendar_event_created` log_action also fires in step 2 — both events cover the resolution flow.
+
+6. **Send a turn-summary to Kent on WhatsApp** confirming the event was created (with the gcal html_link if available). This is standard openclaw end-of-turn output, not a channel-action call.
+
+### Failure mode (gog fails during resolution)
+
+If the gog calendar create call in step 2 returns `status: "error"`:
+
+- Log `calendar_event_failed` (the calendar-create handler already does this).
+- **Do NOT remove the state-file record** — let it persist so Kent can re-try by sending another reply.
+- **Do NOT flip the source note status** — it stays at `needs-review`.
+- Surface the failure verbatim to Kent in the WhatsApp turn-summary along with the gog error text, so he can decide whether to retry, correct the input, or fall back to creating the event manually.
+
+### Why this handler runs first
+
+Felix main's existing intent-classification logic (general chat, scheduling questions, habit pings, inbox-process requests) must NOT preempt a calendar clarification reply. The pending-clarifications check is cheap (one file read, parse a few JSON lines) and the negative case (file empty or missing) costs nothing. Running it ahead of every other classifier guarantees that a calendar reply is never mis-routed into a default scheduling intent or general-chat path.

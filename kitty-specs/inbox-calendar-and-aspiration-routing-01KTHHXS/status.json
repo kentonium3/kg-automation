@@ -1,12 +1,12 @@
 {
-  "event_count": 4,
-  "last_event_id": "01KTJ2P1R0ZJ4J3Z9Y5RVKRKXG",
-  "materialized_at": "2026-06-07T22:19:03.808624+00:00",
+  "event_count": 29,
+  "last_event_id": "01KTKFH4SGFXB7P40DYCJWRZ6S",
+  "materialized_at": "2026-06-08T11:22:49.008701+00:00",
   "mission_number": "",
   "mission_slug": "inbox-calendar-and-aspiration-routing-01KTHHXS",
   "mission_type": "software-dev",
   "summary": {
-    "approved": 0,
+    "approved": 4,
     "blocked": 0,
     "canceled": 0,
     "claimed": 0,
@@ -14,36 +14,36 @@
     "for_review": 0,
     "in_progress": 0,
     "in_review": 0,
-    "planned": 4
+    "planned": 0
   },
   "work_packages": {
     "WP01": {
-      "actor": "finalize-tasks",
-      "force_count": 1,
-      "lane": "planned",
-      "last_event_id": "01KTJ2NWH140J8MF0AGKY3MGDA",
-      "last_transition_at": "2026-06-07T22:18:58.465940+00:00"
+      "actor": "user",
+      "force_count": 2,
+      "lane": "approved",
+      "last_event_id": "01KTJ6EJD896XK80Q09XTCB2PH",
+      "last_transition_at": "2026-06-07T23:24:53.032266+00:00"
     },
     "WP02": {
-      "actor": "finalize-tasks",
-      "force_count": 1,
-      "lane": "planned",
-      "last_event_id": "01KTJ2NYFQ8TJG47XZSN76JDKJ",
-      "last_transition_at": "2026-06-07T22:19:00.472008+00:00"
+      "actor": "user",
+      "force_count": 2,
+      "lane": "approved",
+      "last_event_id": "01KTKB7W24M79T3PRM5CRBKS93",
+      "last_transition_at": "2026-06-08T10:07:50.853006+00:00"
     },
     "WP03": {
-      "actor": "finalize-tasks",
-      "force_count": 1,
-      "lane": "planned",
-      "last_event_id": "01KTJ2P04YDB2SV0S9DB7C85QB",
-      "last_transition_at": "2026-06-07T22:19:02.174386+00:00"
+      "actor": "user",
+      "force_count": 2,
+      "lane": "approved",
+      "last_event_id": "01KTKCJS2EG7M4ARR2QFXVXEBY",
+      "last_transition_at": "2026-06-08T10:31:16.815079+00:00"
     },
     "WP04": {
-      "actor": "finalize-tasks",
-      "force_count": 1,
-      "lane": "planned",
-      "last_event_id": "01KTJ2P1R0ZJ4J3Z9Y5RVKRKXG",
-      "last_transition_at": "2026-06-07T22:19:03.808624+00:00"
+      "actor": "user",
+      "force_count": 3,
+      "lane": "approved",
+      "last_event_id": "01KTKFH4SGFXB7P40DYCJWRZ6S",
+      "last_transition_at": "2026-06-08T11:22:49.008701+00:00"
     }
   }
 }

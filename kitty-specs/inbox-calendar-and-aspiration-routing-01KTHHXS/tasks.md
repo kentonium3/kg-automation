@@ -63,12 +63,12 @@ WP01 and WP04 can run in parallel. WP02 starts when WP01 completes; WP03 starts 
 
 **Included subtasks**:
 
-- [ ] T001 Scaffold `scripts/calendar/` module (WP01)
-- [ ] T002 Implement `validate_calendar_event.py` (WP01)
-- [ ] T003 [P] Validator unit tests + fixtures (WP01)
-- [ ] T004 [P] Classifier regression fixture set (WP01)
-- [ ] T005 [P] Classifier regression test runner (WP01)
-- [ ] T006 Pytest config + coverage thresholds (WP01)
+- [x] T001 Scaffold `scripts/calendar/` module (WP01)
+- [x] T002 Implement `validate_calendar_event.py` (WP01)
+- [x] T003 [P] Validator unit tests + fixtures (WP01)
+- [x] T004 [P] Classifier regression fixture set (WP01)
+- [x] T005 [P] Classifier regression test runner (WP01)
+- [x] T006 Pytest config + coverage thresholds (WP01)
 
 **Implementation sketch**:
 1. Create the module + `__init__.py`.
@@ -94,14 +94,14 @@ WP01 and WP04 can run in parallel. WP02 starts when WP01 completes; WP03 starts 
 
 **Included subtasks**:
 
-- [ ] T007 Add Calendar event row to Step 3 routing table (WP02)
-- [ ] T008 Add Aspiration/musing row (WP02)
-- [ ] T009 Add Someday item row + project resolution + identity inference (WP02)
-- [ ] T010 Tighten "Task or action item" rule (WP02)
-- [ ] T011 Add completeness validation branch (invoke validate helper) (WP02)
-- [ ] T012 Write PendingClarificationRecord JSONL on incomplete (WP02)
-- [ ] T013 WhatsApp clarification prompt format + 24h timeout sweep (WP02)
-- [ ] T014 Extend log_action allowlist (WP02)
+- [x] T007 Add Calendar event row to Step 3 routing table (WP02)
+- [x] T008 Add Aspiration/musing row (WP02)
+- [x] T009 Add Someday item row + project resolution + identity inference (WP02)
+- [x] T010 Tighten "Task or action item" rule (WP02)
+- [x] T011 Add completeness validation branch (invoke validate helper) (WP02)
+- [x] T012 Write PendingClarificationRecord JSONL on incomplete (WP02)
+- [x] T013 WhatsApp clarification prompt format + 24h timeout sweep (WP02)
+- [x] T014 Extend log_action allowlist (WP02)
 
 **Implementation sketch**:
 1. Edit the Step 3 table (lines ~199–222 of current AGENTS.md): replace the single "Task or action item" row with four rows in order: Calendar event → Aspiration/musing → Someday item → Active task. Add the rejection signals for "attend X" and "be Xer" patterns under the active-task row.
@@ -127,11 +127,11 @@ WP01 and WP04 can run in parallel. WP02 starts when WP01 completes; WP03 starts 
 
 **Included subtasks**:
 
-- [ ] T015 Add "Calendar event creation (delegated)" section (WP03)
-- [ ] T016 Felix main: parse gog response + log_action (WP03)
-- [ ] T017 Add "Calendar clarification reply handler" section (WP03)
-- [ ] T018 Felix main: match reply, merge fields, re-run validator (WP03)
-- [ ] T019 Felix main: remove resolved record, flip source note, log (WP03)
+- [x] T015 Add "Calendar event creation (delegated)" section (WP03)
+- [x] T016 Felix main: parse gog response + log_action (WP03)
+- [x] T017 Add "Calendar clarification reply handler" section (WP03)
+- [x] T018 Felix main: match reply, merge fields, re-run validator (WP03)
+- [x] T019 Felix main: remove resolved record, flip source note, log (WP03)
 
 **Implementation sketch**:
 1. Add a new top-level section to `scripts/openclaw/agents/main/AGENTS.md` titled "Calendar event creation (delegated from capture)". Document the openclaw-agent inbound payload shape (matches `contracts/capture_to_main_calendar_payload.md`) and the gog command synthesis rules.
@@ -155,10 +155,10 @@ WP01 and WP04 can run in parallel. WP02 starts when WP01 completes; WP03 starts 
 
 **Included subtasks**:
 
-- [ ] T020 [P] Update `docs/design/architecture/data/service-inventory.json` (WP04)
-- [ ] T021 [P] Update `docs/design/architecture/data/data-flows.json` (WP04)
-- [ ] T022 [P] Update `docs/design/architecture/data-flows.md` narrative (WP04)
-- [ ] T023 Update `docs/design/architecture/data/signal-to-doc-map.json` + verify INDEX/portal cross-refs (WP04)
+- [x] T020 [P] Update `docs/design/architecture/data/service-inventory.json` (WP04)
+- [x] T021 [P] Update `docs/design/architecture/data/data-flows.json` (WP04)
+- [x] T022 [P] Update `docs/design/architecture/data-flows.md` narrative (WP04)
+- [x] T023 Update `docs/design/architecture/data/signal-to-doc-map.json` + verify INDEX/portal cross-refs (WP04)
 
 **Implementation sketch** (corrected on 2026-06-07 after `finalize-tasks --validate-only` surfaced that `agent-inventory.json` and `agents.md` do not exist — agents are catalogued IN `service-inventory.json` and the canonical narrative is `data-flows.md`):
 1. `service-inventory.json`: extend `felix-admin-capture`'s capabilities entries with the new classification destinations; extend `main`'s capabilities with the calendar-delegation and clarification-reply handlers; update gog's `used_by` to include capture (via main delegation).

@@ -2,8 +2,8 @@
 title: Data Flows
 doc_type: reference
 status: approved
-last_updated: '2026-06-05'
-updated_by: '#520-felix-vikunja-sync-project-layer-and-url-config'
+last_updated: '2026-06-08'
+updated_by: 'inbox-calendar-and-aspiration-routing-01KTHHXS + #520-felix-vikunja-sync-project-layer-and-url-config'
 ---
 
 # Data Flows
@@ -558,6 +558,38 @@ Per tick, the gate returns one of:
 **Cutover dependency (Tier 2)**: when this gate goes live, OpenClaw's internal heartbeat must be disabled (`openclaw system heartbeat disable`) to avoid double-fire. Rollback re-enables it. See [`docs/runbooks/signal-driven-monitoring-ops.md`](<../../runbooks/signal-driven-monitoring-ops.md>) for the full cutover procedure including the Restic-backup precondition.
 
 The 5-minute `OnBootSec` offset (vs felix-core-digest's `OnBootSec=3min`) avoids lockstep contention on boot.
+
+### Inbox classification and calendar routing (inbox-calendar-and-aspiration-routing-01KTHHXS)
+
+Extends the `felix-admin-capture` classifier vocabulary to route calendar
+events, aspirations, and Someday items out of the Vikunja-only path used for
+plain todos. Three JSON flow entries cover the new edges; refer to
+[`data/data-flows.json`](<./data/data-flows.json>) by id for the canonical
+machine-readable form.
+
+- **`inbox-calendar-create` — Flow A**: complete calendar events are
+  delegated from capture to Felix main, which executes `gog calendar create`.
+  Capture is the classifier and validator; main is the gog process owner so
+  the existing gog credential and skill stay in one place. Default calendar
+  is `kent@intentional.biz` primary; payload overrides are honored per
+  event. No Vikunja todo is created.
+- **`inbox-calendar-clarification-loop` — Flow B**: incomplete calendar
+  events trigger a single WhatsApp clarification question. Capture persists
+  the deferred payload to a pending-calendar-clarifications state file (24h
+  timeout sweep cleans up stale entries). When Kent replies, main reads the
+  open clarification, merges the reply into the deferred payload,
+  re-validates, and issues the deferred `gog calendar create`. One question
+  per cluster — capture never silently guesses.
+- **`inbox-aspiration-to-journal` — Flow C**: aspirations and musings are
+  appended to the dated journal entry at
+  `~/second-brain/notes/08-Journal/Journal YYYY-MM-DD HHmm.md`. No Vikunja
+  todo, no gog or main delegation. The dated journal is the canonical
+  destination for non-actionable reflections.
+
+Someday items continue to flow into the existing Vikunja path; the new
+behavior is that capture resolves the target project by name (Someday)
+rather than relying on a hard-coded project id. This keeps the routing
+table tolerant of future project renames.
 
 ## Planned Flows (Not Yet Implemented)
 

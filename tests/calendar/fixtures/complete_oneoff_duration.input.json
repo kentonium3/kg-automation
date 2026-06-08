@@ -1,0 +1,12 @@
+{
+  "title": "Coffee with Pat",
+  "start_natural": "tomorrow at noon",
+  "end_natural": null,
+  "duration_natural": "30 minutes",
+  "location": null,
+  "recurrence_natural": null,
+  "attendees": ["pat@example.com"],
+  "source_inbox_path": "/home/kgale/second-brain/notes/01-Inbox/Inbox 2026-06-07 1000.md",
+  "source_block_index": 1,
+  "tick_iso": "2026-06-07T10:00:00-04:00"
+}

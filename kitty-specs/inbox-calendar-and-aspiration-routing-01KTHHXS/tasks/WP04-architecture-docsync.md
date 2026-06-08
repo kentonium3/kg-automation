@@ -8,12 +8,18 @@ tracker_refs: []
 planning_base_branch: kitty/mission-inbox-calendar-and-aspiration-routing-01KTHHXS
 merge_target_branch: kitty/mission-inbox-calendar-and-aspiration-routing-01KTHHXS
 branch_strategy: Planning artifacts for this mission were generated on kitty/mission-inbox-calendar-and-aspiration-routing-01KTHHXS. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into kitty/mission-inbox-calendar-and-aspiration-routing-01KTHHXS unless the human explicitly redirects the landing branch.
+base_branch: kitty/mission-inbox-calendar-and-aspiration-routing-01KTHHXS
+base_commit: 78f19de6c05bbcf8d39fcd4217d4c018aa7b8327
+created_at: '2026-06-08T10:32:20.877141+00:00'
 subtasks:
 - T020
 - T021
 - T022
 - T023
+agent: "claude:opus-4-7:reviewer-renata:reviewer"
+shell_pid: "39877"
 history: []
+agent_profile: curator-carla
 authoritative_surface: docs/design/architecture/
 execution_mode: code_change
 owned_files:
@@ -21,9 +27,7 @@ owned_files:
 - docs/design/architecture/data/data-flows.json
 - docs/design/architecture/data-flows.md
 - docs/design/architecture/data/signal-to-doc-map.json
-agent_profile: curator-carla
 role: curator
-agent: claude
 tags: []
 ---
 
@@ -203,3 +207,14 @@ Update the canonical architecture inventories in `docs/design/architecture/data/
 - Verify the gog `used_by` (or notes) update on service-inventory.json — this is the doc-sync corollary of "gog now has a new consumer path".
 - Cross-check the three data-flows.json entries against the spec's three flows in § Documentation Synchronization Requirement — they should match conceptually.
 - Confirm `agents.md` narrative reads naturally — no awkward "as added by mission X" phrasings; treat the update as if it were always part of the document.
+
+## Activity Log
+
+- 2026-06-08T10:32:24Z – claude:opus-4-7:curator-carla:curator – shell_pid=28419 – Assigned agent via action command
+- 2026-06-08T10:57:29Z – claude:opus-4-7:curator-carla:curator – shell_pid=28419 – Ready for review. Architecture doc-sync per DIR-005: felix-admin-capture + main agent purpose strings extended for calendar/aspiration/Someday routing + clarification reply loop; google-workspace notes records capture-via-main consumer; 3 new data-flows.json entries (inbox-calendar-create, inbox-calendar-clarification-loop, inbox-aspiration-to-journal); data-flows.md gets a new section referencing the 3 flow ids; signal-to-doc-map.json metadata bumped (existing service-added-or-modified and data-flow-added-or-modified entries already cover the touched docs — no stale agent-inventory.json or agents.md refs found). validate_docs.py exits 0. Commit 5a300103.
+- 2026-06-08T10:58:26Z – claude:opus-4-7:reviewer-renata:reviewer – shell_pid=34375 – Started review via action command
+- 2026-06-08T11:04:54Z – user – shell_pid=34375 – Moved to planned
+- 2026-06-08T11:05:42Z – claude:opus-4-7:curator-carla:curator – shell_pid=36559 – Started implementation via action command
+- 2026-06-08T11:18:24Z – claude:opus-4-7:curator-carla:curator – shell_pid=36559 – Cycle 2: relocated 3 flow entries from planned_flows to flows. Counts now: .flows=39, .planned_flows=5, mission entries in flows=3. validate_docs.py exit 0. Commit 89efeb87.
+- 2026-06-08T11:18:57Z – claude:opus-4-7:reviewer-renata:reviewer – shell_pid=39877 – Started review via action command
+- 2026-06-08T11:22:51Z – user – shell_pid=39877 – Cycle 2 review passed: array placement defect fixed in commit 89efeb87; 3 entries moved from planned_flows to flows; .flows=39, .planned_flows=5; 3 entries with deployed_by matching mission slug now in active flows; validate_docs.py exit 0; scope = data-flows.json only (+103/-103 symmetric). Override required because the on-disk review-cycle-2.md is actually the cycle-1 rejection report (misfiled by cycle-1 reviewer with cycle_number: 2 frontmatter); cycle-2 verdict from this reviewer (claude:opus-4-7:reviewer-renata:reviewer) is APPROVED.

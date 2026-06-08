@@ -7,7 +7,7 @@ agents:
   - gemini
   - codex
   - antigravity
-  auto_commit: true
+  auto_commit: false
 project:
   uuid: 2c011d09-8272-470c-b9e2-e9ccf8ad3fbd
   slug: kg-automation

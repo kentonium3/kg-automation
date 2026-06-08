@@ -1,7 +1,7 @@
 {
   "schema_version": "1.1",
-  "last_updated": "2026-06-03",
-  "updated_by": "#510-sweeper-tick + #343-wp01 + #492-mission-end-classes",
+  "last_updated": "2026-06-08",
+  "updated_by": "inbox-calendar-and-aspiration-routing-01KTHHXS (verified service-added-or-modified and data-flow-added-or-modified targets) + #510-sweeper-tick + #343-wp01 + #492-mission-end-classes",
   "description": "Maps deterministic change signals to the documentation surfaces that likely need review when the signal fires. Two consumer classes: (1) drift-event entries (match.source='audit.sh') consumed by scripts/doc_audit/helpers/handle_drift_events.py to auto-file [doc-audit] issues; (2) mission-end entries (match.source='mission-architecture-impact') consumed by /spec-kitty.specify and /spec-kitty.plan agents per CLAUDE.md to populate a mission's Architecture Impact section with the full set of likely-affected docs. v1.1 adds match.change_class and consumer_hint fields; existing v1.0 entries unchanged.",
   "mappings": [
     {

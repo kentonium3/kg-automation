@@ -1,0 +1,18 @@
+{
+  "complete": true,
+  "missing_fields": [],
+  "calendar_event_payload": {
+    "action": "create_calendar_event",
+    "calendar_id": "primary",
+    "account": "kent@intentional.biz",
+    "summary": "Lunch with Sam",
+    "start_rfc3339": "2026-06-09T12:00:00-04:00",
+    "end_rfc3339": "2026-06-09T13:00:00-04:00",
+    "start_timezone": "America/New_York",
+    "location": null,
+    "description": "Source: Inbox 2026-06-07 1000.md",
+    "rrule": null,
+    "attendees": null,
+    "source_inbox_path": "/home/kgale/second-brain/notes/01-Inbox/Inbox 2026-06-07 1000.md"
+  }
+}

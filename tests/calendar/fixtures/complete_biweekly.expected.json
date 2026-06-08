@@ -1,0 +1,18 @@
+{
+  "complete": true,
+  "missing_fields": [],
+  "calendar_event_payload": {
+    "action": "create_calendar_event",
+    "calendar_id": "primary",
+    "account": "kent@intentional.biz",
+    "summary": "1:1 with manager",
+    "start_rfc3339": "2026-06-10T10:00:00-04:00",
+    "end_rfc3339": "2026-06-10T11:00:00-04:00",
+    "start_timezone": "America/New_York",
+    "location": null,
+    "description": "Source: Inbox 2026-06-07 1000.md",
+    "rrule": "RRULE:FREQ=WEEKLY;INTERVAL=2;BYDAY=WE",
+    "attendees": null,
+    "source_inbox_path": "/home/kgale/second-brain/notes/01-Inbox/Inbox 2026-06-07 1000.md"
+  }
+}
