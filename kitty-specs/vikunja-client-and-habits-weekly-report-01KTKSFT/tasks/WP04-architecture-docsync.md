@@ -177,3 +177,4 @@ This WP is doc-only — no behavioral changes, no risk of production regression.
 - 2026-06-08T17:59:49Z – user – shell_pid=42808 – Cycle 3: JSON local_time also corrected. cycle-2 missed this third occurrence in the JSON (only fixed markdown). All Sunday-6 PM references now Sunday-10 PM. JSON valid.
 - 2026-06-08T17:59:58Z – codex:gpt-5:reviewer-renata:reviewer – shell_pid=44073 – Started review via action command
 - 2026-06-08T18:02:24Z – user – shell_pid=44073 – Arbiter override: codex cycle-3 review verdict PASS. JSON valid, docs validator passed, all 4 inventories consistent on Sunday 10 PM ET / cron 0 22 * * 0. Anti-patterns 1-8 all PASS or N/A. Stale review-cycle-4 rejection (cycle-1 time-string bug) resolved by 08d0a6fa+5225e75d.
+- 2026-06-08T18:07:01Z – user – shell_pid=44073 – merge complete (6496b41a) | Done override: Mission merged manually. Code on main at 6496b41a.

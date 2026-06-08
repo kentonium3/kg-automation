@@ -313,3 +313,4 @@ Per Felix Constitution Directive 6, this is the deterministic infrastructure lay
 - 2026-06-08T16:03:44Z – claude:sonnet:python-pedro:implementer – shell_pid=7578 – Cycle 3: docstring uses dotted module form (--cov=scripts.common.vikunja_client) so pytest-cov actually collects coverage. Verified path-form fails at 0% and dotted-form succeeds at 100%/100%.
 - 2026-06-08T16:03:56Z – codex:gpt-5:reviewer-renata:reviewer – shell_pid=8342 – Started review via action command
 - 2026-06-08T16:16:16Z – user – shell_pid=8342 – Arbiter override: codex cycle-3 review verdict PASS (all 4 cycle-1 substantive issues fixed). 45 tests, 100% line+branch coverage. Issue-matrix verdicts now have explicit Follow-up handles.
+- 2026-06-08T18:06:48Z – user – shell_pid=8342 – merge complete (4a6ab0d0) | Done override: Mission merged manually (spec-kitty merge blocked by ahead-of-origin check; per #559 precedent). Code on main at 4a6ab0d0.

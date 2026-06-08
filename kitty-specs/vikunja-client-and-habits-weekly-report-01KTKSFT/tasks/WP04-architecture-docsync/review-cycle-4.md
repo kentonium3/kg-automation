@@ -7,10 +7,10 @@ reviewed_at: '2026-06-08T17:58:58Z'
 reviewer_agent: unknown
 verdict: rejected
 wp_id: WP04
-review_artifact_override_at: "2026-06-08T18:02:22Z"
+review_artifact_override_at: "2026-06-08T18:06:58Z"
 review_artifact_override_actor: "operator"
 review_artifact_override_wp_id: "WP04"
-review_artifact_override_reason: "Arbiter override: codex cycle-3 review verdict PASS. JSON valid, docs validator passed, all 4 inventories consistent on Sunday 10 PM ET / cron 0 22 * * 0. Anti-patterns 1-8 all PASS or N/A. Stale review-cycle-4 rejection (cycle-1 time-string bug) resolved by 08d0a6fa+5225e75d."
+review_artifact_override_reason: "merge complete (6496b41a)"
 ---
 
 **Issue 1 (blocking): service-inventory JSON still has the old weekly local time**
