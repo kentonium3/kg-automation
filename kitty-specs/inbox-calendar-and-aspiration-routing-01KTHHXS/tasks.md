@@ -155,10 +155,10 @@ WP01 and WP04 can run in parallel. WP02 starts when WP01 completes; WP03 starts 
 
 **Included subtasks**:
 
-- [ ] T020 [P] Update `docs/design/architecture/data/service-inventory.json` (WP04)
-- [ ] T021 [P] Update `docs/design/architecture/data/data-flows.json` (WP04)
-- [ ] T022 [P] Update `docs/design/architecture/data-flows.md` narrative (WP04)
-- [ ] T023 Update `docs/design/architecture/data/signal-to-doc-map.json` + verify INDEX/portal cross-refs (WP04)
+- [x] T020 [P] Update `docs/design/architecture/data/service-inventory.json` (WP04)
+- [x] T021 [P] Update `docs/design/architecture/data/data-flows.json` (WP04)
+- [x] T022 [P] Update `docs/design/architecture/data-flows.md` narrative (WP04)
+- [x] T023 Update `docs/design/architecture/data/signal-to-doc-map.json` + verify INDEX/portal cross-refs (WP04)
 
 **Implementation sketch** (corrected on 2026-06-07 after `finalize-tasks --validate-only` surfaced that `agent-inventory.json` and `agents.md` do not exist — agents are catalogued IN `service-inventory.json` and the canonical narrative is `data-flows.md`):
 1. `service-inventory.json`: extend `felix-admin-capture`'s capabilities entries with the new classification destinations; extend `main`'s capabilities with the calendar-delegation and clarification-reply handlers; update gog's `used_by` to include capture (via main delegation).
