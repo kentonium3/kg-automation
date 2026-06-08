@@ -2,7 +2,7 @@
 
 Per DIRECTIVE_034 the test surface was authored alongside the
 implementation. Coverage targets are enforced by invoking
-``pytest --cov=scripts/common/vikunja_client --cov-branch
+``pytest --cov=scripts.common.vikunja_client --cov-branch
 --cov-fail-under=90`` (see ``tests/common/README.md`` for the canonical
 invocation).
 
