@@ -187,6 +187,38 @@ openclaw agents
 The output should show the new agent with its identity (from IDENTITY.md),
 workspace path, and model.
 
+## Deploy pipeline (post-#567)
+
+As of mission `agent-prompt-deploy-pipeline-01KTMDDD` (#567), the agent
+prompt files (`AGENTS.md`, `IDENTITY.md`, `SOUL.md`, `TOOLS.md`, `USER.md`)
+under `scripts/openclaw/agents/<slug>/` in the repo are **auto-synced** to
+their deployed locations under `/data/services/openclaw/<deploy-dir>/`
+within 5 minutes of any merge to `main`.
+
+The pipeline is operator-owned but agent-readable:
+
+- **Helper**: `scripts/openclaw/deploy/deploy_agent_prompts.py` (stdlib-only Python)
+- **Systemd timer + service**: `scripts/openclaw/deploy/agent-prompt-sync.{timer,service}` (deployed to `~/.config/systemd/user/` on office2 as the `claude` user)
+- **Audit log**: `/data/services/openclaw/deploy/agent-prompt-sync.jsonl` (append-only JSONL)
+- **Operator runbook**: [`agent-prompt-sync-ops.md`](agent-prompt-sync-ops.md)
+
+**Implications for new-agent deployment**:
+
+1. Manual `scp` of agent prompt files to the deploy dir is **no longer
+   required** post-merge. The sync helper picks up the new files on its next
+   tick (≤5 min).
+2. Manual file copies remain as the **fallback** path when the helper is
+   broken, being bootstrapped, or stopped (e.g., during incident response).
+3. Slug → deploy-dir mapping is sourced from `service-inventory.json`
+   `services[openclaw].agents.<slug>.workspace`. New agents must be registered
+   there with both `source_in_repo` AND `workspace` populated before the sync
+   helper will pick them up.
+4. `HEARTBEAT.md`, `*.tmpl`, `*.bak*`, and `GOVERNANCE.md` are explicitly
+   excluded from sync — they live in the deploy dir but are not repo-sourced
+   (or, for `*.tmpl`, are templates not intended for runtime).
+5. The sync helper does NOT restart openclaw. Prompt changes take effect at
+   the agent's next session-init (next cron tick).
+
 ## Current agent layout
 
 ```
