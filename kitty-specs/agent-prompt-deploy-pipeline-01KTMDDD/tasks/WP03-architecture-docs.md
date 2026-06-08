@@ -7,9 +7,9 @@ dependencies:
 requirement_refs:
 - FR-014
 tracker_refs: []
-planning_base_branch: kitty/mission-agent-prompt-deploy-pipeline-01KTMDDD
-merge_target_branch: kitty/mission-agent-prompt-deploy-pipeline-01KTMDDD
-branch_strategy: Planning artifacts for this mission were generated on kitty/mission-agent-prompt-deploy-pipeline-01KTMDDD. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into kitty/mission-agent-prompt-deploy-pipeline-01KTMDDD unless the human explicitly redirects the landing branch.
+planning_base_branch: main
+merge_target_branch: main
+branch_strategy: Planning artifacts for this mission were generated on main. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into main unless the human explicitly redirects the landing branch.
 subtasks:
 - T011
 - T012
