@@ -129,7 +129,7 @@ Contract (rendering rules + JSON schema):
 ### Step 1: Invoke the weekly-report helper
 
 ```bash
-cd /home/claude/kg-automation && python3 scripts/habits/query_active_habits_weekly.py --window 7d
+cd /home/claude/kg-automation && python3 -m scripts.habits.query_active_habits_weekly
 ```
 
 The helper instantiates `scripts.common.vikunja_client.VikunjaClient`, queries
