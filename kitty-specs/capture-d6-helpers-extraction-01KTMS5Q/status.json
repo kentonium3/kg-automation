@@ -1,7 +1,7 @@
 {
-  "event_count": 1,
-  "last_event_id": "01KTMT40VTKBKYC1CRKPRKWFJY",
-  "materialized_at": "2026-06-08T23:47:07.770790+00:00",
+  "event_count": 2,
+  "last_event_id": "01KTMT43TN1JN3ZQ84BDVRS4NA",
+  "materialized_at": "2026-06-08T23:47:10.805285+00:00",
   "mission_number": "",
   "mission_slug": "capture-d6-helpers-extraction-01KTMS5Q",
   "mission_type": "software-dev",
@@ -14,7 +14,7 @@
     "for_review": 0,
     "in_progress": 0,
     "in_review": 0,
-    "planned": 1
+    "planned": 2
   },
   "work_packages": {
     "WP01": {
@@ -23,6 +23,13 @@
       "lane": "planned",
       "last_event_id": "01KTMT40VTKBKYC1CRKPRKWFJY",
       "last_transition_at": "2026-06-08T23:47:07.770790+00:00"
+    },
+    "WP02": {
+      "actor": "finalize-tasks",
+      "force_count": 0,
+      "lane": "planned",
+      "last_event_id": "01KTMT43TN1JN3ZQ84BDVRS4NA",
+      "last_transition_at": "2026-06-08T23:47:10.805285+00:00"
     }
   }
 }
