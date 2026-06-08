@@ -1,0 +1,91 @@
+{
+  "version": 1,
+  "mission_slug": "vikunja-client-and-habits-weekly-report-01KTKSFT",
+  "mission_id": "01KTKSFTZ3HMJDS73FPREW38NY",
+  "mission_branch": "kitty/mission-vikunja-client-and-habits-weekly-report-01KTKSFT",
+  "target_branch": "kitty/mission-vikunja-client-and-habits-weekly-report-01KTKSFT",
+  "lanes": [
+    {
+      "lane_id": "lane-a",
+      "wp_ids": [
+        "WP01"
+      ],
+      "write_scope": [
+        "scripts/common/vikunja_client.py",
+        "tests/common/**"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "app-shell",
+        "legacy-cleanup",
+        "tracker-integration"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    },
+    {
+      "lane_id": "lane-b",
+      "wp_ids": [
+        "WP02"
+      ],
+      "write_scope": [
+        "scripts/habits/query_active_habits_weekly.py",
+        "tests/habits/fixtures/weekly_report_responses.json",
+        "tests/habits/test_query_active_habits_weekly.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "tracker-integration"
+      ],
+      "depends_on_lanes": [
+        "lane-a"
+      ],
+      "parallel_group": 1
+    },
+    {
+      "lane_id": "lane-c",
+      "wp_ids": [
+        "WP03"
+      ],
+      "write_scope": [
+        "scripts/openclaw/agents/felix-admin-escalation/AGENTS.md",
+        "scripts/openclaw/agents/felix-admin-habits/AGENTS.md",
+        "scripts/openclaw/agents/felix-admin-habits/SOUL.md",
+        "scripts/openclaw/agents/felix-admin-tasker/AGENTS.md"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "artifact-rendering",
+        "tracker-integration"
+      ],
+      "depends_on_lanes": [
+        "lane-b"
+      ],
+      "parallel_group": 2
+    },
+    {
+      "lane_id": "lane-d",
+      "wp_ids": [
+        "WP04"
+      ],
+      "write_scope": [
+        "docs/design/architecture/data/service-inventory.json",
+        "docs/design/architecture/data/signal-to-doc-map.json",
+        "docs/design/architecture/service-inventory.md",
+        "docs/runbooks/openclaw-agent-setup.md"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "artifact-rendering",
+        "tracker-integration"
+      ],
+      "depends_on_lanes": [
+        "lane-c"
+      ],
+      "parallel_group": 3
+    }
+  ],
+  "computed_at": "2026-06-08T15:04:02.029361+00:00",
+  "computed_from": "dependency_graph+ownership",
+  "planning_artifact_wps": []
+}
