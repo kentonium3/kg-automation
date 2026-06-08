@@ -7,6 +7,10 @@ reviewed_at: '2026-06-08T11:04:53Z'
 reviewer_agent: unknown
 verdict: rejected
 wp_id: WP04
+review_artifact_override_at: "2026-06-08T11:22:48Z"
+review_artifact_override_actor: "operator"
+review_artifact_override_wp_id: "WP04"
+review_artifact_override_reason: "Cycle 2 review passed: array placement defect fixed in commit 89efeb87; 3 entries moved from planned_flows to flows; .flows=39, .planned_flows=5; 3 entries with deployed_by matching mission slug now in active flows; validate_docs.py exit 0; scope = data-flows.json only (+103/-103 symmetric). Override required because the on-disk review-cycle-2.md is actually the cycle-1 rejection report (misfiled by cycle-1 reviewer with cycle_number: 2 frontmatter); cycle-2 verdict from this reviewer (claude:opus-4-7:reviewer-renata:reviewer) is APPROVED."
 ---
 
 # WP04 Review Feedback — Cycle 1
