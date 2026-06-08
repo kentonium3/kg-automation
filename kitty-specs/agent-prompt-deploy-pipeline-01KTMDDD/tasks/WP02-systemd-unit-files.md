@@ -16,7 +16,7 @@ subtasks:
 - T009
 - T010
 agent: "claude"
-shell_pid: "99207"
+shell_pid: "120"
 history:
 - timestamp: '2026-06-08T20:25:00Z'
   actor: claude
@@ -157,3 +157,5 @@ After this WP merges to coordination branch:
 ## Activity Log
 
 - 2026-06-08T21:23:18Z – claude – shell_pid=99207 – Assigned agent via action command
+- 2026-06-08T21:24:18Z – claude – shell_pid=99207 – WP02 systemd units authored.
+- 2026-06-08T21:24:29Z – claude – shell_pid=120 – Started review via action command
