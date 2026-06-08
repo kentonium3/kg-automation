@@ -1,7 +1,7 @@
 {
-  "event_count": 16,
-  "last_event_id": "01KTKBM78F10NG6T2A9ADFDXTS",
-  "materialized_at": "2026-06-08T10:14:35.534806+00:00",
+  "event_count": 17,
+  "last_event_id": "01KTKC3EX5J74WX5E90DR19A5F",
+  "materialized_at": "2026-06-08T10:22:54.885792+00:00",
   "mission_number": "",
   "mission_slug": "inbox-calendar-and-aspiration-routing-01KTHHXS",
   "mission_type": "software-dev",
@@ -11,8 +11,8 @@
     "canceled": 0,
     "claimed": 0,
     "done": 0,
-    "for_review": 0,
-    "in_progress": 1,
+    "for_review": 1,
+    "in_progress": 0,
     "in_review": 0,
     "planned": 1
   },
@@ -34,9 +34,9 @@
     "WP03": {
       "actor": "claude:opus-4-7:generic-agent:implementer",
       "force_count": 1,
-      "lane": "in_progress",
-      "last_event_id": "01KTKBM78F10NG6T2A9ADFDXTS",
-      "last_transition_at": "2026-06-08T10:14:35.534806+00:00"
+      "lane": "for_review",
+      "last_event_id": "01KTKC3EX5J74WX5E90DR19A5F",
+      "last_transition_at": "2026-06-08T10:22:54.885792+00:00"
     },
     "WP04": {
       "actor": "finalize-tasks",
