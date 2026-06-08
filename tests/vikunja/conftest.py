@@ -16,8 +16,16 @@ _VIKUNJA_SCRIPT_MODULES = [
     "scripts.vikunja.validate_felix_bot",
     "scripts.vikunja.swap_vikunja_secrets",
     "scripts.vikunja.revoke_kent_tokens",
-    "scripts.vikunja.setup_goals",
-    "scripts.vikunja.setup_vikunja",
+    # setup_goals and setup_vikunja are one-time setup utilities. They have a
+    # top-level `try: import requests; except ImportError: sys.exit(1)` block
+    # so that direct invocation (`python setup_goals.py`) emits a friendly
+    # error if the optional `requests` dep isn't installed. They are NOT
+    # exercised by any test — no test file imports them — so they don't need
+    # to be patched here. Including them caused all 89 tests in tests/vikunja/
+    # to fail at fixture setup on CI (which doesn't have `requests`): the
+    # script's `sys.exit(1)` raises SystemExit, which is NOT caught by the
+    # narrow `except (ImportError, AttributeError)` below. Surfaced by #537's
+    # CI workflow on first run.
 ]
 
 # Short alias used by test_revoke_kent_tokens.py when it loads via importlib

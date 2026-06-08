@@ -1,0 +1,44 @@
+name: Test CI
+
+# Runs the non-live pytest suite on push and PR.
+#
+# Rationale: per kg-automation#537 the test suite is the only practical pre-merge
+# gate (the repo pushes directly to main). Without this workflow, date-sensitive
+# regressions land silently — already happened twice during the F-002
+# architecture review window.
+#
+# This workflow is intentionally separate from docs-ci.yml because the two cover
+# different areas of concern: docs-ci validates the documentation-schema invariants;
+# test-ci validates the Python test suite. Folding them would couple unrelated
+# failure modes.
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest
+
+      - name: Run non-live test suite
+        run: make test
+        env:
+          # Belt-and-suspenders: leave LIVE_SMOKE_ENABLED unset so live_smoke
+          # tests skip even if a future change accidentally turns them on
+          # by default.
+          LIVE_SMOKE_ENABLED: ""
