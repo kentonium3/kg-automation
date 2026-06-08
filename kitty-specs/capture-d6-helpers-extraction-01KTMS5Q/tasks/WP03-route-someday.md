@@ -5,9 +5,9 @@ dependencies: []
 requirement_refs:
 - FR-004
 tracker_refs: []
-planning_base_branch: main
-merge_target_branch: main
-branch_strategy: lane-from-coordination
+planning_base_branch: kitty/mission-capture-d6-helpers-extraction-01KTMS5Q
+merge_target_branch: kitty/mission-capture-d6-helpers-extraction-01KTMS5Q
+branch_strategy: Planning artifacts for this mission were generated on kitty/mission-capture-d6-helpers-extraction-01KTMS5Q. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into kitty/mission-capture-d6-helpers-extraction-01KTMS5Q unless the human explicitly redirects the landing branch.
 subtasks:
 - T005
 - T006
