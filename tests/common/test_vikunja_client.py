@@ -147,9 +147,12 @@ def test_get_returns_parsed_json_object(mock_vikunja_urlopen) -> None:
     assert result == {"id": 7, "title": "One task", "done": True}
 
 
-def test_get_returns_none_on_empty_body(mock_vikunja_urlopen) -> None:
+def test_get_returns_empty_dict_on_empty_body(mock_vikunja_urlopen) -> None:
+    # Per contract (data-model.md: DELETE returns "parsed JSON, often empty
+    # dict") empty successful bodies parse to ``{}`` so callers get a uniform
+    # mapping type. Regression for cycle-1 review issue #3.
     mock_vikunja_urlopen("mock_response_204_no_content")
-    assert _client().get("/tasks/1") is None
+    assert _client().get("/tasks/1") == {}
 
 
 def test_request_attaches_authorization_header(mock_vikunja_urlopen) -> None:
@@ -186,15 +189,34 @@ def test_put_serializes_json_body(mock_vikunja_urlopen) -> None:
 def test_delete_makes_delete_request(mock_vikunja_urlopen) -> None:
     calls = mock_vikunja_urlopen("mock_response_204_no_content")
     result = _client().delete("/tasks/7")
-    assert result is None
+    # DELETE returns parsed JSON; empty body -> {} per contract (issue #3).
+    assert result == {}
     assert calls[0].get_method() == "DELETE"
     assert calls[0].data is None
 
 
-def test_post_without_body_omits_content_type(mock_vikunja_urlopen) -> None:
+def test_delete_empty_body_returns_empty_dict(mock_vikunja_urlopen) -> None:
+    # Regression for cycle-1 review issue #3: DELETE on a resource with an
+    # empty body must yield {} (uniform mapping), not None.
+    mock_vikunja_urlopen("mock_response_204_no_content")
+    assert _client().delete("/tasks/9") == {}
+
+
+def test_post_without_body_sets_content_type(mock_vikunja_urlopen) -> None:
+    # Regression for cycle-1 review issue #4: Content-Type: application/json
+    # is method-driven (POST/PUT) per contract, not body-driven.
     calls = mock_vikunja_urlopen("mock_response_200_object")
     _client().post("/tasks/7/bulk")
-    assert calls[0].get_header("Content-type") is None
+    assert calls[0].get_header("Content-type") == "application/json"
+    assert calls[0].data is None
+
+
+def test_put_without_body_sets_content_type(mock_vikunja_urlopen) -> None:
+    # Regression for cycle-1 review issue #4: PUT mirrors POST — bodyless
+    # PUTs still advertise application/json.
+    calls = mock_vikunja_urlopen("mock_response_200_object")
+    _client().put("/tasks/7/bulk")
+    assert calls[0].get_header("Content-type") == "application/json"
     assert calls[0].data is None
 
 
@@ -224,6 +246,42 @@ def test_special_chars_are_url_encoded(mock_vikunja_urlopen) -> None:
     qs = urllib.parse.parse_qs(parsed.query)
     assert qs["filter"] == ["title=Strength training"]
     assert "%20" in parsed.query or "+" in parsed.query
+
+
+def test_get_merges_params_with_path_query_string(mock_vikunja_urlopen) -> None:
+    # Regression for cycle-1 review issue #2: when ``path`` already contains
+    # a ``?`` query string (e.g. ``/projects/13/tasks?filter=done=true``),
+    # adding params must produce a single, well-formed query string —
+    # ``?filter=done=true&per_page=200`` — not ``?filter=done=true?per_page=200``.
+    # Assert structurally via ``parse_qs`` to avoid ordering brittleness.
+    calls = mock_vikunja_urlopen("mock_response_200_json")
+    _client().get("/projects/13/tasks?filter=done=true", params={"per_page": "200"})
+    parsed = urllib.parse.urlparse(calls[0].full_url)
+    qs = urllib.parse.parse_qs(parsed.query)
+    assert qs == {"filter": ["done=true"], "per_page": ["200"]}
+    assert parsed.path == "/api/v1/projects/13/tasks"
+    # Exactly one '?' separator in the URL — no stray ``?`` from naive append.
+    assert calls[0].full_url.count("?") == 1
+
+
+def test_get_params_override_embedded_query_string(mock_vikunja_urlopen) -> None:
+    # When ``params`` and ``path`` share a key, the explicit ``params`` arg
+    # wins — keeps the API single-source-of-truth for caller intent.
+    calls = mock_vikunja_urlopen("mock_response_200_json")
+    _client().get("/tasks?page=1", params={"page": "3"})
+    parsed = urllib.parse.urlparse(calls[0].full_url)
+    qs = urllib.parse.parse_qs(parsed.query)
+    assert qs == {"page": ["3"]}
+
+
+def test_get_preserves_embedded_query_when_no_params(mock_vikunja_urlopen) -> None:
+    # Branch-coverage companion: ``params`` is None/empty, embedded query
+    # string passes through unchanged.
+    calls = mock_vikunja_urlopen("mock_response_200_json")
+    _client().get("/tasks?filter=done=true")
+    parsed = urllib.parse.urlparse(calls[0].full_url)
+    qs = urllib.parse.parse_qs(parsed.query)
+    assert qs == {"filter": ["done=true"]}
 
 
 # ---------------------------------------------------------------------------

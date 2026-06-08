@@ -2,9 +2,7 @@
 
 Stateless, stdlib-only wrapper around Vikunja's REST API. Encapsulates base
 URL composition, token loading, request execution, timeout policy, and
-typed error semantics. First consumer is the new weekly habit-report
-helper (WP02); future migrations of ``scripts/sync/fetch.py`` and
-``scripts/vikunja/*`` are deliberate follow-up issues.
+typed error semantics.
 
 Per Felix Constitution Directive 6 this is the deterministic
 infrastructure layer: no LLM, no global state, no caching. Each method is
@@ -12,6 +10,20 @@ a pure function of inputs to parsed JSON OR typed exception.
 
 Authoritative contract:
 ``kitty-specs/vikunja-client-and-habits-weekly-report-01KTKSFT/contracts/vikunja_client.md``.
+
+Consumers
+---------
+First production caller: ``scripts/habits/query_active_habits_weekly.py``
+(WP02 of mission ``vikunja-client-and-habits-weekly-report-01KTKSFT``,
+addresses kentonium3/kg-automation#542). Existing scripts under
+``scripts/vikunja/`` and ``scripts/inbox/`` may migrate to this client in
+follow-on work.
+
+Mission slice context: this module lands at WP01; WP02 immediately
+follows in the same mission and is the first production import. By
+spec-kitty convention, multi-WP mission slices land as a unit via
+``spec-kitty merge``, so this module is not "dead code" within the
+mission scope — it is the foundation that the next WP consumes.
 
 Public surface
 --------------
@@ -222,14 +234,17 @@ class VikunjaClient:
         json_body: dict | None,
         timeout: float | None,
     ) -> Any:
-        url = f"{self.base_url}{path}"
-        if params:
-            url = f"{url}?{urllib.parse.urlencode(params)}"
+        url = self._compose_url(path, params)
 
         headers = {"Authorization": f"Bearer {self.token}"}
         data: bytes | None = None
         if json_body is not None:
             data = json.dumps(json_body).encode("utf-8")
+        # Per contract: Content-Type: application/json is method-driven.
+        # POST and PUT always advertise a JSON content type, even when the
+        # caller sends no body (e.g. bulk endpoints that take only query
+        # parameters), so the server's content negotiation is unambiguous.
+        if method in ("POST", "PUT"):
             headers["Content-Type"] = "application/json"
 
         effective_timeout = timeout if timeout is not None else self.timeout
@@ -247,12 +262,44 @@ class VikunjaClient:
                 raise VikunjaTimeoutError(path=path, status=None) from None
             raise VikunjaServerError(path=path, status=None) from None
 
+        # Per contract + data-model: empty-body successes (DELETE 204, etc.)
+        # parse to an empty dict, not None. Callers that key into the result
+        # then get a uniform mapping type.
         if not body:
-            return None
+            return {}
         try:
             return json.loads(body)
         except json.JSONDecodeError:
             raise VikunjaServerError(path=path, status=200) from None
+
+    def _compose_url(
+        self, path: str, params: dict[str, str] | None
+    ) -> str:
+        """Compose the request URL, merging ``params`` with any embedded query string in ``path``.
+
+        Callers occasionally pass paths that already contain a query string
+        (e.g. ``"/projects/13/tasks?filter=done=true"``). Naive ``?`` appending
+        would produce ``...?filter=done=true?per_page=200`` — the new param is
+        swallowed into the prior value. Use ``urllib.parse`` to split the
+        existing query, merge the caller's ``params`` dict, and re-encode.
+
+        ``params`` provided to this method override any same-keyed value
+        embedded in ``path``.
+        """
+        url = f"{self.base_url}{path}"
+        if not params:
+            return url
+        parsed = urllib.parse.urlparse(url)
+        existing = urllib.parse.parse_qsl(parsed.query, keep_blank_values=True)
+        merged: list[tuple[str, str]] = []
+        override_keys = set(params.keys())
+        for key, value in existing:
+            if key not in override_keys:
+                merged.append((key, value))
+        for key, value in params.items():
+            merged.append((key, value))
+        new_query = urllib.parse.urlencode(merged)
+        return urllib.parse.urlunparse(parsed._replace(query=new_query))
 
     @staticmethod
     def _map_http_error(path: str, status: int) -> VikunjaHttpError:
