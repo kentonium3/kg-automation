@@ -29,7 +29,7 @@ subtasks:
 - T006
 - T007
 agent: "claude"
-shell_pid: "96199"
+shell_pid: "98290"
 history:
 - timestamp: '2026-06-08T20:25:00Z'
   actor: claude
@@ -335,3 +335,5 @@ After this WP merges to coordination branch:
 ## Activity Log
 
 - 2026-06-08T21:14:29Z – claude – shell_pid=96199 – Assigned agent via action command
+- 2026-06-08T21:20:48Z – claude – shell_pid=96199 – WP01 implemented + 56/56 tests pass + 97.64% coverage. Ready for review.
+- 2026-06-08T21:21:07Z – claude – shell_pid=98290 – Started review via action command
