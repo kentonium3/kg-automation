@@ -1,0 +1,233 @@
+{
+  "_meta": {
+    "description": "Mocked Vikunja API responses for the weekly habit-report helper (WP02 of mission vikunja-client-and-habits-weekly-report-01KTKSFT). Each scenario keys a deterministic input/output pair: `done_responses` and `active_responses` are sequential JSON arrays returned to paginated `client.get` calls (the helper requests filter=done=true first, then filter=done=false). `window_end` anchors `_resolve_windows`. `expected_report` is the JSON the helper must emit on stdout. Window math: current = [2026-06-01T00:00:00Z, 2026-06-08T00:00:00Z), prior = [2026-05-25T00:00:00Z, 2026-06-01T00:00:00Z).",
+    "window_end": "2026-06-08",
+    "window_days": 7
+  },
+  "weekly_normal_data": {
+    "done_responses": [
+      [
+        {"id": 100, "title": "Meditate", "repeat_after": 86400, "done": true, "done_at": "2026-06-02T07:00:00Z"},
+        {"id": 101, "title": "Meditate", "repeat_after": 86400, "done": true, "done_at": "2026-06-03T07:00:00Z"},
+        {"id": 102, "title": "Meditate", "repeat_after": 86400, "done": true, "done_at": "2026-06-04T07:00:00Z"},
+        {"id": 103, "title": "Meditate", "repeat_after": 86400, "done": true, "done_at": "2026-06-05T07:00:00Z"},
+        {"id": 104, "title": "Meditate", "repeat_after": 86400, "done": true, "done_at": "2026-06-06T07:00:00Z"},
+        {"id": 105, "title": "Meditate", "repeat_after": 86400, "done": true, "done_at": "2026-05-26T07:00:00Z"},
+        {"id": 200, "title": "Read 30 min minimum", "repeat_after": 86400, "done": true, "done_at": "2026-06-01T22:00:00Z"},
+        {"id": 201, "title": "Read 30 min minimum", "repeat_after": 86400, "done": true, "done_at": "2026-06-02T22:00:00Z"},
+        {"id": 202, "title": "Read 30 min minimum", "repeat_after": 86400, "done": true, "done_at": "2026-06-03T22:00:00Z"},
+        {"id": 300, "title": "Strength training — Monday", "repeat_after": 0, "done": true, "done_at": "2026-06-01T18:00:00Z"},
+        {"id": 301, "title": "Strength training — Wednesday", "repeat_after": 0, "done": true, "done_at": "2026-06-03T18:00:00Z"},
+        {"id": 302, "title": "Yoga — Saturday", "repeat_after": 0, "done": true, "done_at": "2026-06-06T10:00:00Z"}
+      ]
+    ],
+    "active_responses": [
+      []
+    ],
+    "expected_report": {
+      "window_start_iso": "2026-06-01T00:00:00Z",
+      "window_end_iso": "2026-06-08T00:00:00Z",
+      "prior_window_start_iso": "2026-05-25T00:00:00Z",
+      "prior_window_end_iso": "2026-06-01T00:00:00Z",
+      "habits": [
+        {
+          "habit_title": "Meditate",
+          "habit_kind": "daily",
+          "scheduled_days_current": 7,
+          "completed_events_current": 5,
+          "percent_current": 71.4,
+          "scheduled_days_prior": 7,
+          "completed_events_prior": 1,
+          "percent_prior": 14.3
+        },
+        {
+          "habit_title": "Read 30 min minimum",
+          "habit_kind": "daily",
+          "scheduled_days_current": 7,
+          "completed_events_current": 3,
+          "percent_current": 42.9,
+          "scheduled_days_prior": 7,
+          "completed_events_prior": 0,
+          "percent_prior": 0.0
+        },
+        {
+          "habit_title": "Strength training — Monday",
+          "habit_kind": "weekday-in-title",
+          "scheduled_days_current": 1,
+          "completed_events_current": 1,
+          "percent_current": 100.0,
+          "scheduled_days_prior": 1,
+          "completed_events_prior": 0,
+          "percent_prior": 0.0
+        },
+        {
+          "habit_title": "Strength training — Wednesday",
+          "habit_kind": "weekday-in-title",
+          "scheduled_days_current": 1,
+          "completed_events_current": 1,
+          "percent_current": 100.0,
+          "scheduled_days_prior": 1,
+          "completed_events_prior": 0,
+          "percent_prior": 0.0
+        },
+        {
+          "habit_title": "Yoga — Saturday",
+          "habit_kind": "weekday-in-title",
+          "scheduled_days_current": 1,
+          "completed_events_current": 1,
+          "percent_current": 100.0,
+          "scheduled_days_prior": 1,
+          "completed_events_prior": 0,
+          "percent_prior": 0.0
+        }
+      ],
+      "overall_percent_current": 64.7,
+      "overall_percent_prior": 5.9
+    }
+  },
+  "weekly_cardiac_non_habit_present": {
+    "done_responses": [
+      [
+        {"id": 100, "title": "Meditate", "repeat_after": 86400, "done": true, "done_at": "2026-06-02T07:00:00Z"},
+        {"id": 999, "title": "Upload cardiac lab history", "repeat_after": 0, "done": true, "done_at": "2026-06-03T15:00:00Z"}
+      ]
+    ],
+    "active_responses": [
+      []
+    ],
+    "expected_report": {
+      "window_start_iso": "2026-06-01T00:00:00Z",
+      "window_end_iso": "2026-06-08T00:00:00Z",
+      "prior_window_start_iso": "2026-05-25T00:00:00Z",
+      "prior_window_end_iso": "2026-06-01T00:00:00Z",
+      "habits": [
+        {
+          "habit_title": "Meditate",
+          "habit_kind": "daily",
+          "scheduled_days_current": 7,
+          "completed_events_current": 1,
+          "percent_current": 14.3,
+          "scheduled_days_prior": 7,
+          "completed_events_prior": 0,
+          "percent_prior": 0.0
+        }
+      ],
+      "overall_percent_current": 14.3,
+      "overall_percent_prior": 0.0
+    }
+  },
+  "weekly_baseline_nonzero": {
+    "done_responses": [
+      [
+        {"id": 100, "title": "Meditate", "repeat_after": 86400, "done": true, "done_at": "2026-06-02T07:00:00Z"},
+        {"id": 101, "title": "Meditate", "repeat_after": 86400, "done": true, "done_at": "2026-06-03T07:00:00Z"},
+        {"id": 102, "title": "Meditate", "repeat_after": 86400, "done": true, "done_at": "2026-05-25T07:00:00Z"},
+        {"id": 103, "title": "Meditate", "repeat_after": 86400, "done": true, "done_at": "2026-05-26T07:00:00Z"},
+        {"id": 104, "title": "Meditate", "repeat_after": 86400, "done": true, "done_at": "2026-05-27T07:00:00Z"},
+        {"id": 105, "title": "Meditate", "repeat_after": 86400, "done": true, "done_at": "2026-05-28T07:00:00Z"}
+      ]
+    ],
+    "active_responses": [
+      []
+    ],
+    "expected_report": {
+      "window_start_iso": "2026-06-01T00:00:00Z",
+      "window_end_iso": "2026-06-08T00:00:00Z",
+      "prior_window_start_iso": "2026-05-25T00:00:00Z",
+      "prior_window_end_iso": "2026-06-01T00:00:00Z",
+      "habits": [
+        {
+          "habit_title": "Meditate",
+          "habit_kind": "daily",
+          "scheduled_days_current": 7,
+          "completed_events_current": 2,
+          "percent_current": 28.6,
+          "scheduled_days_prior": 7,
+          "completed_events_prior": 4,
+          "percent_prior": 57.1
+        }
+      ],
+      "overall_percent_current": 28.6,
+      "overall_percent_prior": 57.1
+    }
+  },
+  "weekly_weekday_in_title_completed_on_match": {
+    "done_responses": [
+      [
+        {"id": 300, "title": "Strength training — Wednesday", "repeat_after": 0, "done": true, "done_at": "2026-06-03T18:00:00Z"}
+      ]
+    ],
+    "active_responses": [
+      []
+    ],
+    "expected_report": {
+      "window_start_iso": "2026-06-01T00:00:00Z",
+      "window_end_iso": "2026-06-08T00:00:00Z",
+      "prior_window_start_iso": "2026-05-25T00:00:00Z",
+      "prior_window_end_iso": "2026-06-01T00:00:00Z",
+      "habits": [
+        {
+          "habit_title": "Strength training — Wednesday",
+          "habit_kind": "weekday-in-title",
+          "scheduled_days_current": 1,
+          "completed_events_current": 1,
+          "percent_current": 100.0,
+          "scheduled_days_prior": 1,
+          "completed_events_prior": 0,
+          "percent_prior": 0.0
+        }
+      ],
+      "overall_percent_current": 100.0,
+      "overall_percent_prior": 0.0
+    }
+  },
+  "weekly_weekday_in_title_skipped": {
+    "done_responses": [
+      []
+    ],
+    "active_responses": [
+      [
+        {"id": 300, "title": "Strength training — Wednesday", "repeat_after": 0, "done": false, "due_date": "2026-06-10T18:00:00Z"}
+      ]
+    ],
+    "expected_report": {
+      "window_start_iso": "2026-06-01T00:00:00Z",
+      "window_end_iso": "2026-06-08T00:00:00Z",
+      "prior_window_start_iso": "2026-05-25T00:00:00Z",
+      "prior_window_end_iso": "2026-06-01T00:00:00Z",
+      "habits": [
+        {
+          "habit_title": "Strength training — Wednesday",
+          "habit_kind": "weekday-in-title",
+          "scheduled_days_current": 1,
+          "completed_events_current": 0,
+          "percent_current": 0.0,
+          "scheduled_days_prior": 1,
+          "completed_events_prior": 0,
+          "percent_prior": 0.0
+        }
+      ],
+      "overall_percent_current": 0.0,
+      "overall_percent_prior": 0.0
+    }
+  },
+  "weekly_partial_pagination": {
+    "_meta": "200 daily events page 1 + 5 daily events page 2 — verifies pagination loop stops on partial page.",
+    "expected_report": {
+      "habit_count": 1,
+      "completed_events_current": 7
+    }
+  },
+  "weekly_vikunja_unreachable": {
+    "_meta": "Mocked client raises VikunjaTimeoutError on first call.",
+    "raises": "VikunjaTimeoutError",
+    "path": "/projects/13/tasks",
+    "expected_exit_code": 3
+  },
+  "weekly_bad_filter_syntax": {
+    "_meta": "Mocked client raises VikunjaBadRequestError on first call.",
+    "raises": "VikunjaBadRequestError",
+    "path": "/projects/13/tasks",
+    "expected_exit_code": 3
+  }
+}
