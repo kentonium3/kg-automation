@@ -3,7 +3,7 @@
   "mission_slug": "inbox-calendar-and-aspiration-routing-01KTHHXS",
   "mission_id": "01KTHHXSAP609CQYPJ490JV1NJ",
   "mission_branch": "kitty/mission-inbox-calendar-and-aspiration-routing-01KTHHXS",
-  "target_branch": "kitty/mission-inbox-calendar-and-aspiration-routing-01KTHHXS",
+  "target_branch": "main",
   "lanes": [
     {
       "lane_id": "lane-a",
