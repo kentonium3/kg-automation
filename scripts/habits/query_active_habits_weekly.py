@@ -339,6 +339,44 @@ def _sort_key(habit: dict) -> tuple[int, int, str]:
     return (kind_rank, 0, habit["habit_title"])
 
 
+def _emit_anomaly_log_action(
+    *,
+    habit_title: str,
+    habit_kind: str,
+    window: str,
+    scheduled_days: int,
+    raw_count: int,
+    capped_count: int,
+    window_start: datetime,
+    window_end: datetime,
+) -> None:
+    """Emit a ``weekly_report_anomaly`` log_action for one capped cell.
+
+    Called by :func:`build_report` whenever Vikunja returns more completion
+    events than the scheduled-day count for a habit (validation invariant
+    1 in ``contracts/weekly_report_payload.md``). One emission per
+    (habit, window) cell — no batching. Context payload is redaction-safe:
+    no Vikunja body content, only the habit title, classification, window
+    boundaries, and the raw/capped integers.
+    """
+    _emit_log_action(
+        category="warning",
+        action="weekly_report_anomaly",
+        target=f"/projects/{HABITS_PROJECT_ID}/tasks",
+        outcome="capped",
+        context={
+            "habit_title": habit_title,
+            "habit_kind": habit_kind,
+            "window": window,
+            "scheduled_days": scheduled_days,
+            "raw_count": raw_count,
+            "capped_count": capped_count,
+            "window_start_iso": _iso_utc(window_start),
+            "window_end_iso": _iso_utc(window_end),
+        },
+    )
+
+
 def build_report(
     events_by_title: dict[str, dict],
     *,
@@ -352,7 +390,9 @@ def build_report(
     Caps ``completed_events_current`` / ``completed_events_prior`` at
     their scheduled-day counts so percentages stay in ``[0, 100]`` even
     if Vikunja records duplicate completions (validation invariant 1 in
-    ``contracts/weekly_report_payload.md``).
+    ``contracts/weekly_report_payload.md``). Each capped cell emits a
+    ``weekly_report_anomaly`` log_action (one per (habit, window) cell —
+    no batching) so operators retain the required audit signal.
     """
     include_baseline = (
         prior_window_start is not None and prior_window_end is not None
@@ -364,12 +404,36 @@ def build_report(
         scheduled_current = scheduled_days_for_window(
             kind, title, window_start, window_end
         )
-        completed_current = min(bucket["current_count"], scheduled_current)
+        raw_current = bucket["current_count"]
+        completed_current = min(raw_current, scheduled_current)
+        if raw_current > scheduled_current:
+            _emit_anomaly_log_action(
+                habit_title=title,
+                habit_kind=kind,
+                window="current",
+                scheduled_days=scheduled_current,
+                raw_count=raw_current,
+                capped_count=completed_current,
+                window_start=window_start,
+                window_end=window_end,
+            )
         if include_baseline:
             scheduled_prior = scheduled_days_for_window(
                 kind, title, prior_window_start, prior_window_end
             )
-            completed_prior = min(bucket["prior_count"], scheduled_prior)
+            raw_prior = bucket["prior_count"]
+            completed_prior = min(raw_prior, scheduled_prior)
+            if raw_prior > scheduled_prior:
+                _emit_anomaly_log_action(
+                    habit_title=title,
+                    habit_kind=kind,
+                    window="prior",
+                    scheduled_days=scheduled_prior,
+                    raw_count=raw_prior,
+                    capped_count=completed_prior,
+                    window_start=prior_window_start,
+                    window_end=prior_window_end,
+                )
             percent_prior: Optional[float] = _percent(
                 completed_prior, scheduled_prior
             )

@@ -546,7 +546,10 @@ def test_build_report_two_daily_alphabetical() -> None:
     assert [h["habit_title"] for h in report["habits"]] == ["Meditate", "Read"]
 
 
-def test_build_report_caps_completed_at_scheduled_days() -> None:
+def test_build_report_caps_completed_at_scheduled_days(monkeypatch) -> None:
+    # Silence the anomaly subprocess; the cap behavior is what this test
+    # exercises. Anomaly emission has dedicated tests below.
+    monkeypatch.setattr(helper, "_emit_log_action", lambda **_kwargs: None)
     events = {
         "Meditate": {"kind": "daily", "title": "Meditate",
                      "current_count": 99, "prior_count": 0},
@@ -560,6 +563,112 @@ def test_build_report_caps_completed_at_scheduled_days() -> None:
     )
     assert report["habits"][0]["completed_events_current"] == 7
     assert report["habits"][0]["percent_current"] == 100.0
+
+
+def _capture_emit_log_action(monkeypatch) -> list[dict]:
+    """Patch ``helper._emit_log_action`` to record its kwargs.
+
+    Returns the list mutated on each call; callers inspect it after
+    running ``build_report``. Matches the existing ``_silence_log_action``
+    pattern but keeps the payload for assertions.
+    """
+    calls: list[dict] = []
+
+    def _record(**kwargs):
+        calls.append(kwargs)
+
+    monkeypatch.setattr(helper, "_emit_log_action", _record)
+    return calls
+
+
+def test_build_report_emits_anomaly_when_current_count_exceeds_scheduled(
+    monkeypatch,
+) -> None:
+    calls = _capture_emit_log_action(monkeypatch)
+    events = {
+        "Meditate": {"kind": "daily", "title": "Meditate",
+                     "current_count": 12, "prior_count": 0},
+    }
+    report = helper.build_report(
+        events,
+        window_start=CURRENT_START,
+        window_end=CURRENT_END,
+        prior_window_start=PRIOR_START,
+        prior_window_end=PRIOR_END,
+    )
+    # Cap behavior remains: capped at scheduled (7 for a daily over the week).
+    assert report["habits"][0]["completed_events_current"] == 7
+
+    anomaly_calls = [c for c in calls if c.get("action") == "weekly_report_anomaly"]
+    assert len(anomaly_calls) == 1
+    call = anomaly_calls[0]
+    assert call["category"] == "warning"
+    assert call["target"] == "/projects/13/tasks"
+    assert call["outcome"] == "capped"
+    context = call["context"]
+    assert context["habit_title"] == "Meditate"
+    assert context["habit_kind"] == "daily"
+    assert context["window"] == "current"
+    assert context["scheduled_days"] == 7
+    assert context["raw_count"] == 12
+    assert context["capped_count"] == 7
+    assert context["window_start_iso"] == "2026-06-01T00:00:00Z"
+    assert context["window_end_iso"] == "2026-06-08T00:00:00Z"
+
+
+def test_build_report_emits_anomaly_when_prior_count_exceeds_scheduled(
+    monkeypatch,
+) -> None:
+    calls = _capture_emit_log_action(monkeypatch)
+    events = {
+        "Meditate": {"kind": "daily", "title": "Meditate",
+                     "current_count": 0, "prior_count": 9},
+    }
+    report = helper.build_report(
+        events,
+        window_start=CURRENT_START,
+        window_end=CURRENT_END,
+        prior_window_start=PRIOR_START,
+        prior_window_end=PRIOR_END,
+    )
+    # Prior cap still capped at 7.
+    assert report["habits"][0]["completed_events_prior"] == 7
+
+    anomaly_calls = [c for c in calls if c.get("action") == "weekly_report_anomaly"]
+    assert len(anomaly_calls) == 1
+    call = anomaly_calls[0]
+    assert call["category"] == "warning"
+    assert call["target"] == "/projects/13/tasks"
+    assert call["outcome"] == "capped"
+    context = call["context"]
+    assert context["habit_title"] == "Meditate"
+    assert context["habit_kind"] == "daily"
+    assert context["window"] == "prior"
+    assert context["scheduled_days"] == 7
+    assert context["raw_count"] == 9
+    assert context["capped_count"] == 7
+    assert context["window_start_iso"] == "2026-05-25T00:00:00Z"
+    assert context["window_end_iso"] == "2026-06-01T00:00:00Z"
+
+
+def test_build_report_emits_no_anomaly_on_normal_data(monkeypatch) -> None:
+    calls = _capture_emit_log_action(monkeypatch)
+    events = {
+        "Meditate": {"kind": "daily", "title": "Meditate",
+                     "current_count": 5, "prior_count": 3},
+        "Strength training — Monday": {"kind": "weekday-in-title",
+                                        "title": "Strength training — Monday",
+                                        "current_count": 1, "prior_count": 1},
+    }
+    helper.build_report(
+        events,
+        window_start=CURRENT_START,
+        window_end=CURRENT_END,
+        prior_window_start=PRIOR_START,
+        prior_window_end=PRIOR_END,
+    )
+    anomaly_calls = [c for c in calls if c.get("action") == "weekly_report_anomaly"]
+    assert anomaly_calls == []
 
 
 def test_build_report_baseline_omission_sets_nulls() -> None:
