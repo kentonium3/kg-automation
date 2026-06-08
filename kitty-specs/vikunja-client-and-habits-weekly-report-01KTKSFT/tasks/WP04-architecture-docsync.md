@@ -18,7 +18,7 @@ subtasks:
 - T019
 - T020
 - T021
-shell_pid: "42258"
+shell_pid: "42808"
 history: []
 authoritative_surface: docs/design/architecture/
 execution_mode: code_change
@@ -28,7 +28,7 @@ owned_files:
 - docs/design/architecture/service-inventory.md
 - docs/runbooks/openclaw-agent-setup.md
 tags: []
-agent: "claude:sonnet:curator-carla:implementer"
+agent: "codex:gpt-5:reviewer-renata:reviewer"
 ---
 
 # WP04: Architecture doc sync
@@ -171,3 +171,5 @@ This WP is doc-only — no behavioral changes, no risk of production regression.
 - 2026-06-08T17:48:35Z – codex:gpt-5:reviewer-renata:reviewer – shell_pid=40008 – Started review via action command
 - 2026-06-08T17:55:13Z – user – shell_pid=40008 – Moved to planned
 - 2026-06-08T17:55:53Z – claude:sonnet:curator-carla:implementer – shell_pid=42258 – Started implementation via action command
+- 2026-06-08T17:56:53Z – claude:sonnet:curator-carla:implementer – shell_pid=42258 – Cycle 2: fixed 6 PM ET → 10 PM ET in 2 places (the table row and the Schedule bullet). cron 0 22 = 22:00 ET = 10 PM. Both inventories now consistent. 0 remaining 6PM hits.
+- 2026-06-08T17:57:02Z – codex:gpt-5:reviewer-renata:reviewer – shell_pid=42808 – Started review via action command
