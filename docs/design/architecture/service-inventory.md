@@ -42,6 +42,61 @@ All services run on office2 unless otherwise noted.
 | Felix Core Digest | Every 15 min | `felix-core-digest.timer` (systemd, two chained ExecStart post-#490) | claude | Agent activity log summarization → Obsidian digests + deterministic OpenClaw-log signal extraction → GitHub issues via kg-felix-bot (#490) |
 | Felix Heartbeat Gate | Every 30 min (OnUnitActiveSec=30min, OnBootSec=5min) | `felix-heartbeat-gate.timer` (systemd, #490) → `/usr/bin/python3 /home/claude/repos/kg-automation/scripts/openclaw/heartbeat_gate/run.py` | claude | Routes each OpenClaw heartbeat tick via claude-haiku-4-5; only escalates to Sonnet 4.6 on novel signal / contract task / fallback. Replaces OpenClaw's internal heartbeat. (#490) |
 | Felix Habit Sweeper | 7:30 AM ET daily (`OnCalendar=*-*-* 07:30 America/New_York`) | `felix-habit-sweeper.timer` (systemd, #408) → `/usr/bin/python3 /home/claude/kg-automation/scripts/habits/sweeper.py` | claude | Daily 48hr auto-skip pass for habit check-ins — marks unresolved habits as `auto_skipped` and advances day-specific habit `due_date` to the next designated weekday EOD-ET. Deterministic, zero LLM calls. (#408) |
+| Agent Prompt Sync | Every 5 min after last tick (`OnUnitInactiveSec=300s`) | `agent-prompt-sync.timer` (systemd, #567) → `/usr/bin/python3 -m scripts.openclaw.deploy.deploy_agent_prompts` | claude | Pull-based deploy pipeline. Each tick `git pull --ff-only` then MD5-compare + atomic-copy any drifted agent prompt file from repo into `/data/services/openclaw/<deploy-dir>/`. Slug → deploy-dir mapping is NOT 1:1 (see Agent Prompt Deploy Pipeline section below). Deterministic, zero LLM calls. (#567) |
+
+## Agent Prompt Deploy Pipeline (#567)
+
+**Purpose**: Automate the sync of Felix agent prompt files (`AGENTS.md`,
+`IDENTITY.md`, `SOUL.md`, `TOOLS.md`, `USER.md`) from the
+`kg-automation` repo on office2 (`/home/claude/kg-automation`) into the
+deployed openclaw workspace directories under `/data/services/openclaw/`.
+Closes the deploy gap exposed by #563 (truncated prompts surfacing as silent
+content loss) and unsticks stranded changes from #558 + #561.
+
+**Architecture** (pull-based; see [agent-prompt-sync-ops.md](../runbooks/agent-prompt-sync-ops.md)):
+
+1. User-level systemd timer (`agent-prompt-sync.timer`) fires every 5 minutes
+   after the previous tick exits (`OnUnitInactiveSec=300s`)
+2. The service unit runs `python3 -m scripts.openclaw.deploy.deploy_agent_prompts`
+   inside `/home/claude/kg-automation`
+3. The helper: (a) `git fetch && git pull --ff-only origin main`,
+   (b) reads `service-inventory.json` to discover Felix agents,
+   (c) MD5-compares each in-scope file in `<source_in_repo>` against the file
+   at `<workspace>/<filename>`, (d) atomically copies any drifted file
+   (preserving destination mode), (e) appends structured records to
+   `/data/services/openclaw/deploy/agent-prompt-sync.jsonl`
+
+**Slug → deploy-dir mapping** (NOT 1:1; sourced from `service-inventory.json`
+`services[openclaw].agents.<slug>.workspace`):
+
+| Agent slug | Deploy directory |
+|------------|------------------|
+| `felix-admin-capture` | `/data/services/openclaw/inbox-agent/` |
+| `felix-admin-habits` | `/data/services/openclaw/habits-agent/` |
+| `felix-admin-escalation` | `/data/services/openclaw/escalation-agent/` |
+| `felix-admin-tasker` | `/data/services/openclaw/tasker-agent/` |
+| `main` | `/data/services/openclaw/data/` |
+
+**Files synced** (in-scope filename allowlist):
+
+- `AGENTS.md`, `IDENTITY.md`, `SOUL.md`, `TOOLS.md`, `USER.md`
+
+**Files excluded** (would-be candidates the helper deliberately ignores):
+
+- `HEARTBEAT.md` (deployed-side runtime state owned by openclaw's heartbeat process)
+- `*.tmpl` (templates — used to seed new agents, not deployed)
+- `*.bak*` (backups left by past mission migrations)
+- `GOVERNANCE.md` (manually maintained on the `main` agent only; no repo source)
+
+**Operator surface**: see [`docs/runbooks/agent-prompt-sync-ops.md`](../runbooks/agent-prompt-sync-ops.md)
+for the install procedure, dry-run, single-agent force-sync, troubleshooting,
+and rollback paths.
+
+**Behavior on prompt change**: agents read their workspace files at openclaw
+session-init only (no hot-reload). A new prompt deployed at 09:32 reaches a
+felix-admin-capture cron tick at 12:00 ET (the next scheduled invocation).
+The helper does NOT trigger an openclaw restart — that is intentional per
+spec FR-017.
 
 ## Deployment Details
 

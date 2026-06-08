@@ -1,7 +1,7 @@
 {
   "schema_version": "1.1",
   "last_updated": "2026-06-08",
-  "updated_by": "inbox-calendar-and-aspiration-routing-01KTHHXS (verified service-added-or-modified and data-flow-added-or-modified targets) + #510-sweeper-tick + #343-wp01 + #492-mission-end-classes",
+  "updated_by": "agent-prompt-deploy-pipeline-01KTMDDD (#567) + inbox-calendar-and-aspiration-routing-01KTHHXS (verified service-added-or-modified and data-flow-added-or-modified targets) + #510-sweeper-tick + #343-wp01 + #492-mission-end-classes",
   "description": "Maps deterministic change signals to the documentation surfaces that likely need review when the signal fires. Two consumer classes: (1) drift-event entries (match.source='audit.sh') consumed by scripts/doc_audit/helpers/handle_drift_events.py to auto-file [doc-audit] issues; (2) mission-end entries (match.source='mission-architecture-impact') consumed by /spec-kitty.specify and /spec-kitty.plan agents per CLAUDE.md to populate a mission's Architecture Impact section with the full set of likely-affected docs. v1.1 adds match.change_class and consumer_hint fields; existing v1.0 entries unchanged.",
   "mappings": [
     {
@@ -268,6 +268,21 @@
         "docs/design/architecture/service-inventory.md"
       ],
       "rationale": "A mission adds or modifies a systemd unit under scripts/office2/. The deployed unit is the artifact; service-inventory's `config_files`, `schedule`, and `dependencies` fields must reflect the new/changed unit. Pairs with mission-service-added-or-modified when the unit represents a new service.",
+      "consumer_hint": "spec-author"
+    },
+    {
+      "id": "mission-agent-prompt-changed",
+      "match": {
+        "source": "mission-architecture-impact",
+        "change_class": "agent-prompt-changed"
+      },
+      "doc_targets": [
+        "docs/design/architecture/data/service-inventory.json",
+        "docs/design/architecture/service-inventory.md",
+        "docs/runbooks/openclaw-agent-setup.md",
+        "docs/runbooks/agent-prompt-sync-ops.md"
+      ],
+      "rationale": "A mission modifies an agent prompt file under scripts/openclaw/agents/<slug>/ (AGENTS.md, IDENTITY.md, SOUL.md, TOOLS.md, USER.md). Service inventory's agent entry purpose/notes/depends_on fields may need updating; the openclaw-agent-setup runbook covers per-agent deploy expectations; the agent-prompt-sync-ops runbook covers the auto-deploy pipeline. No need to touch the helper itself; deployment is handled by the agent-prompt-sync service.",
       "consumer_hint": "spec-author"
     },
     {
