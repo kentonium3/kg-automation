@@ -92,13 +92,13 @@ WP01 and WP04 can run in parallel. WP02 starts when WP01 completes; WP03 starts 
 
 **Included subtasks**:
 
-- [ ] T007 Scaffold module (WP02)
-- [ ] T008 Implement HabitClassifier (WP02)
-- [ ] T009 Vikunja query loop + done_at filtering + aggregation (WP02)
-- [ ] T010 WeeklyHabitReport JSON + CLI + exit codes (WP02)
-- [ ] T011 log_action calls (WP02)
-- [ ] T012 [P] Curate test fixtures (WP02)
-- [ ] T013 Unit tests + coverage gate (WP02)
+- [x] T007 Scaffold module (WP02)
+- [x] T008 Implement HabitClassifier (WP02)
+- [x] T009 Vikunja query loop + done_at filtering + aggregation (WP02)
+- [x] T010 WeeklyHabitReport JSON + CLI + exit codes (WP02)
+- [x] T011 log_action calls (WP02)
+- [x] T012 [P] Curate test fixtures (WP02)
+- [x] T013 Unit tests + coverage gate (WP02)
 
 **Implementation sketch**:
 1. Create `scripts/habits/query_active_habits_weekly.py`. Stdlib only beyond the client.
