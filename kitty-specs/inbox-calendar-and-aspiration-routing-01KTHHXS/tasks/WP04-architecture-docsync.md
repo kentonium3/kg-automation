@@ -8,12 +8,18 @@ tracker_refs: []
 planning_base_branch: kitty/mission-inbox-calendar-and-aspiration-routing-01KTHHXS
 merge_target_branch: kitty/mission-inbox-calendar-and-aspiration-routing-01KTHHXS
 branch_strategy: Planning artifacts for this mission were generated on kitty/mission-inbox-calendar-and-aspiration-routing-01KTHHXS. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into kitty/mission-inbox-calendar-and-aspiration-routing-01KTHHXS unless the human explicitly redirects the landing branch.
+base_branch: kitty/mission-inbox-calendar-and-aspiration-routing-01KTHHXS
+base_commit: 78f19de6c05bbcf8d39fcd4217d4c018aa7b8327
+created_at: '2026-06-08T10:32:20.877141+00:00'
 subtasks:
 - T020
 - T021
 - T022
 - T023
+agent: "claude:opus-4-7:curator-carla:curator"
+shell_pid: "28419"
 history: []
+agent_profile: curator-carla
 authoritative_surface: docs/design/architecture/
 execution_mode: code_change
 owned_files:
@@ -21,9 +27,7 @@ owned_files:
 - docs/design/architecture/data/data-flows.json
 - docs/design/architecture/data-flows.md
 - docs/design/architecture/data/signal-to-doc-map.json
-agent_profile: curator-carla
 role: curator
-agent: claude
 tags: []
 ---
 
@@ -203,3 +207,7 @@ Update the canonical architecture inventories in `docs/design/architecture/data/
 - Verify the gog `used_by` (or notes) update on service-inventory.json — this is the doc-sync corollary of "gog now has a new consumer path".
 - Cross-check the three data-flows.json entries against the spec's three flows in § Documentation Synchronization Requirement — they should match conceptually.
 - Confirm `agents.md` narrative reads naturally — no awkward "as added by mission X" phrasings; treat the update as if it were always part of the document.
+
+## Activity Log
+
+- 2026-06-08T10:32:24Z – claude:opus-4-7:curator-carla:curator – shell_pid=28419 – Assigned agent via action command
