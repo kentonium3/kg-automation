@@ -22,5 +22,11 @@ jobs:
       - name: Validate docs
         run: python tooling/scripts/validate_docs.py
 
-      - name: Validate privacy boundary lint (no stale 02-Growth/_private references in active surfaces)
+      # Step name deliberately omits the literal legacy path token to avoid
+      # tripping validate_privacy_boundary.py against this file itself
+      # (the validator scans active surfaces for the legacy path string and
+      # has no allow-listing for meta-references like a step's display name).
+      # Surfaced by #560 — Docs CI had been red for ~2 days due to the
+      # validator catching its own step name.
+      - name: Validate privacy boundary lint (no stale legacy growth-private references in active surfaces)
         run: python tooling/scripts/validate_privacy_boundary.py
