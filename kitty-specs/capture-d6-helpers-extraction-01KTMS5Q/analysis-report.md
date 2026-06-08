@@ -1,3 +1,10 @@
+---
+type: analysis-report
+mission_slug: capture-d6-helpers-extraction-01KTMS5Q
+generated_at: '2026-06-08T22:00:00Z'
+spec_kitty_version: 3.2.0rc41
+---
+
 ## Specification Analysis Report
 
 **Mission**: `capture-d6-helpers-extraction-01KTMS5Q`
