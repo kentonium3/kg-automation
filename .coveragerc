@@ -1,0 +1,25 @@
+# Coverage configuration for kg-automation.
+#
+# Owned-scope policy: each WP that introduces a new helper adds its source
+# module to ``source`` below + sets ``fail_under`` to the gate it commits to.
+# The canonical invocation for this WP is documented in
+# ``tests/common/README.md``:
+#
+#   pytest tests/common/test_vikunja_client.py \\
+#       --cov=scripts.common.vikunja_client --cov-branch --cov-fail-under=90
+#
+# Run from the repo root. Pass ``--cov-fail-under=<N>`` on the CLI to override
+# the floor in this file.
+[run]
+branch = True
+source =
+    scripts.common.vikunja_client
+
+[report]
+show_missing = True
+skip_empty = True
+fail_under = 90
+exclude_lines =
+    pragma: no cover
+    raise NotImplementedError
+    if __name__ == .__main__.:

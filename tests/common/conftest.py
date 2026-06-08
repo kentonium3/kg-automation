@@ -14,6 +14,12 @@ Provides:
   for one test invocation (mission #519).
 - ``mock_state_log_fixture`` — builder that writes synthetic per-domain
   JSONL state log content (mission #519).
+- ``vikunja_client_responses`` fixture — loads the canned scenario
+  payloads from ``fixtures/vikunja_client_responses.json`` (mission
+  vikunja-client-and-habits-weekly-report-01KTKSFT / WP01).
+- ``mock_vikunja_urlopen`` fixture — builder that turns one of those
+  scenarios into a callable suitable for
+  ``monkeypatch.setattr("urllib.request.urlopen", ...)``.
 
 The conftest also inserts the repo root onto ``sys.path`` so test files
 can ``from scripts.common import state_log`` without an installed
@@ -22,11 +28,14 @@ package (mirrors the pattern in ``tests/inbox/conftest.py`` and
 """
 from __future__ import annotations
 
+import io
 import json
+import socket
 import sys
+import urllib.error
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Any, Iterator
+from typing import Any, Callable, Iterator
 
 import pytest
 
@@ -247,3 +256,96 @@ def mock_state_log_fixture(tmp_path: Path) -> Iterator[Any]:
         return log_path
 
     yield build
+
+
+# ---------------------------------------------------------------------------
+# Vikunja client fixtures (mission vikunja-client-and-habits-weekly-report,
+# WP01). Canned ``urlopen`` responses used by
+# ``tests/common/test_vikunja_client.py`` and (later) WP02 tests.
+# ---------------------------------------------------------------------------
+
+_VIKUNJA_FIXTURES_PATH = Path(__file__).parent / "fixtures" / "vikunja_client_responses.json"
+
+
+@pytest.fixture
+def vikunja_client_responses() -> dict[str, dict[str, Any]]:
+    """Return the parsed canned scenarios from the fixtures JSON file."""
+    return json.loads(_VIKUNJA_FIXTURES_PATH.read_text(encoding="utf-8"))
+
+
+def _encode_body(body: Any) -> bytes:
+    if isinstance(body, (bytes, bytearray)):
+        return bytes(body)
+    if isinstance(body, str):
+        return body.encode("utf-8")
+    return json.dumps(body).encode("utf-8")
+
+
+class _FakeResponse:
+    """Minimal stand-in for the ``urlopen`` context-manager return value.
+
+    Exposes ``read()`` returning bytes plus context-manager semantics; that
+    is all the production client uses.
+    """
+
+    def __init__(self, body: bytes) -> None:
+        self._buffer = io.BytesIO(body)
+
+    def read(self) -> bytes:
+        return self._buffer.read()
+
+    def __enter__(self) -> "_FakeResponse":
+        return self
+
+    def __exit__(self, exc_type, exc, tb) -> None:
+        self._buffer.close()
+
+
+@pytest.fixture
+def mock_vikunja_urlopen(
+    monkeypatch, vikunja_client_responses
+) -> Callable[[str], Any]:
+    """Builder that swaps ``urlopen`` for a callable driven by a fixture scenario.
+
+    Usage::
+
+        def test_get_returns_parsed_json(mock_vikunja_urlopen):
+            mock_vikunja_urlopen("mock_response_200_json")
+            client = VikunjaClient(base_url="https://x.test/api/v1", token="t")
+            assert client.get("/tasks") == [{"id": 1, "title": "Sample habit",
+                                              "done": False}]
+
+    Each call returns a list that the test can inspect to see every URL
+    that was hit (one entry per ``urlopen`` invocation).
+    """
+
+    def install(scenario_name: str) -> list[urllib.request.Request]:
+        scenario = vikunja_client_responses[scenario_name]
+        calls: list[urllib.request.Request] = []
+
+        raise_directive = scenario.get("raise_on_request")
+        status = scenario.get("status")
+        body = scenario.get("body", "")
+
+        def fake_urlopen(req, timeout=None):  # noqa: ARG001 — signature mirrors stdlib
+            calls.append(req)
+            if raise_directive == "socket.timeout":
+                raise socket.timeout("simulated timeout")
+            if raise_directive == "urllib.error.URLError(socket.timeout)":
+                raise urllib.error.URLError(reason=socket.timeout("simulated timeout"))
+            if raise_directive == "urllib.error.URLError(connection refused)":
+                raise urllib.error.URLError(reason=ConnectionRefusedError("nope"))
+            if status is not None and status >= 400:
+                raise urllib.error.HTTPError(
+                    url=req.full_url,
+                    code=status,
+                    msg="error",
+                    hdrs=None,  # type: ignore[arg-type]
+                    fp=io.BytesIO(_encode_body(body)),
+                )
+            return _FakeResponse(_encode_body(body))
+
+        monkeypatch.setattr("urllib.request.urlopen", fake_urlopen)
+        return calls
+
+    return install

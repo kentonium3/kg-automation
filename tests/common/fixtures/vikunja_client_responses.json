@@ -1,0 +1,53 @@
+{
+  "mock_response_200_json": {
+    "status": 200,
+    "body": [
+      {"id": 1, "title": "Sample habit", "done": false}
+    ]
+  },
+  "mock_response_200_object": {
+    "status": 200,
+    "body": {"id": 7, "title": "One task", "done": true}
+  },
+  "mock_response_204_no_content": {
+    "status": 204,
+    "body": ""
+  },
+  "mock_response_401": {
+    "status": 401,
+    "body": {"code": 401, "message": "Invalid token"}
+  },
+  "mock_response_404": {
+    "status": 404,
+    "body": {"code": 404, "message": "Not found"}
+  },
+  "mock_response_400": {
+    "status": 400,
+    "body": {"code": 400, "message": "Invalid filter"}
+  },
+  "mock_response_500": {
+    "status": 500,
+    "body": "Internal Server Error"
+  },
+  "mock_response_502": {
+    "status": 502,
+    "body": "Bad Gateway"
+  },
+  "mock_response_418": {
+    "status": 418,
+    "body": "I'm a teapot"
+  },
+  "mock_response_timeout": {
+    "raise_on_request": "socket.timeout"
+  },
+  "mock_response_url_error_timeout": {
+    "raise_on_request": "urllib.error.URLError(socket.timeout)"
+  },
+  "mock_response_url_error_other": {
+    "raise_on_request": "urllib.error.URLError(connection refused)"
+  },
+  "mock_response_non_json": {
+    "status": 200,
+    "body": "<html>not json</html>"
+  }
+}
