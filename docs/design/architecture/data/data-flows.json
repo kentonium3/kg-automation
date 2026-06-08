@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
-  "last_updated": "2026-06-05",
-  "updated_by": "#520-felix-vikunja-sync-project-layer-and-url-config + #519-touchpoint-migration + #376-remove-escalation-v1-parity + #400-audit-interpretation-moment0 + #310-tasker-jsonl-migration + #374-main-verbatim-passthrough + #362-drift-event-auto-resolution + #371-habits-checkin-reply-scripts-first + #309-migrate-escalation-to-jsonl-state-model + #343-refactor-doc-auditor-to-scripts-first-driver + #307-backfill-habits-jsonl-from-comments + #306-habits-native-repeat-jsonl-state + #152",
+  "last_updated": "2026-06-08",
+  "updated_by": "inbox-calendar-and-aspiration-routing-01KTHHXS + #520-felix-vikunja-sync-project-layer-and-url-config + #519-touchpoint-migration + #376-remove-escalation-v1-parity + #400-audit-interpretation-moment0 + #310-tasker-jsonl-migration + #374-main-verbatim-passthrough + #362-drift-event-auto-resolution + #371-habits-checkin-reply-scripts-first + #309-migrate-escalation-to-jsonl-state-model + #343-refactor-doc-auditor-to-scripts-first-driver + #307-backfill-habits-jsonl-from-comments + #306-habits-native-repeat-jsonl-state + #152",
   "flows": [
     {
       "name": "vikunja-web-ui",
@@ -1286,6 +1286,117 @@
         }
       ],
       "pre_migration_note": "Before #519, all 6 touchpoints called Vikunja REST API directly (GET /projects/<id>/tasks or GET /tasks/<id>). Those direct-read code paths are deleted in the same commit that introduces the cache read \u2014 clean cutover, no coexistence period, no fallback path."
+    },
+    {
+      "name": "inbox-calendar-create",
+      "status": "active",
+      "deployed_by": "inbox-calendar-and-aspiration-routing-01KTHHXS",
+      "introduced_by": "inbox-calendar-and-aspiration-routing-01KTHHXS",
+      "description": "Flow A \u2014 Inbox-captured calendar event (one-off or recurring) auto-scheduled on Google Calendar with no Vikunja todo created. felix-admin-capture classifies the inbox note as a calendar event, validates required fields (title + start), and delegates the create payload to Felix main; main executes `gog calendar create` against the configured calendar. Default calendar is kent@intentional.biz primary; payload may override per-event.",
+      "trigger": "felix-admin-capture cron tick (inbox-7am/noon/5pm/10pm) classifies a note whose intent is a complete calendar event",
+      "path": [
+        {
+          "from": "Obsidian inbox note (WisprFlow or typed)",
+          "to": "felix-admin-capture (classification + validator)",
+          "protocol": "file read (cron tick)",
+          "description": "Capture parses frontmatter + body, classifies intent, and validates calendar-event required fields (title, start)"
+        },
+        {
+          "from": "felix-admin-capture",
+          "to": "Felix main",
+          "protocol": "openclaw delegation",
+          "description": "Delegation payload includes the validated event fields (title, start, end/duration, attendees, location, recurrence, calendar override). Capture does not call gog directly."
+        },
+        {
+          "from": "Felix main",
+          "to": "gog calendar create",
+          "protocol": "subprocess",
+          "description": "Main is the gog process owner; executes `gog calendar create` with the delegated payload."
+        },
+        {
+          "from": "gog calendar create",
+          "to": "Google Calendar (kent@intentional.biz primary, or override per payload)",
+          "protocol": "HTTPS (Google Calendar API via gog)",
+          "description": "Auto-schedule the event without creating a Vikunja todo. Recurrence flows through gog's recurrence flags."
+        }
+      ],
+      "purpose": "Auto-schedule events submitted via inbox capture without creating Vikunja todos"
+    },
+    {
+      "name": "inbox-calendar-clarification-loop",
+      "status": "active",
+      "deployed_by": "inbox-calendar-and-aspiration-routing-01KTHHXS",
+      "introduced_by": "inbox-calendar-and-aspiration-routing-01KTHHXS",
+      "description": "Flow B \u2014 Incomplete inbox-captured calendar event resolved through a single WhatsApp clarification round-trip. felix-admin-capture detects missing required fields, writes a deferred-event entry to the pending-calendar-clarifications state file (24h timeout sweep), and asks Kent one clarification question via WhatsApp. When Kent replies, Felix main reads the open clarification, merges the reply into the deferred payload, re-validates, and issues `gog calendar create`. Avoids losing the original capture context between the inbox tick and Kent's reply.",
+      "trigger": "felix-admin-capture classifies an inbox note as a calendar event but validation reports missing required fields",
+      "path": [
+        {
+          "from": "Obsidian inbox note (incomplete calendar event)",
+          "to": "felix-admin-capture (classification + validator)",
+          "protocol": "file read (cron tick)",
+          "description": "Capture detects missing required fields (e.g., missing start time, ambiguous duration)"
+        },
+        {
+          "from": "felix-admin-capture",
+          "to": "pending-calendar-clarifications state file",
+          "protocol": "file write (atomic rename)",
+          "description": "Persists the deferred event payload + the open question for Kent. 24h timeout sweep cleans up stale entries."
+        },
+        {
+          "from": "felix-admin-capture",
+          "to": "Kent (WhatsApp)",
+          "protocol": "openclaw send --channel whatsapp",
+          "description": "Single clarification question sent to Kent. One question per cluster \u2014 never silently guesses."
+        },
+        {
+          "from": "Kent (WhatsApp reply)",
+          "to": "Felix main",
+          "protocol": "openclaw inbound WhatsApp",
+          "description": "Main receives the reply via the WhatsApp channel"
+        },
+        {
+          "from": "Felix main",
+          "to": "pending-calendar-clarifications state file",
+          "protocol": "file read",
+          "description": "Resolves Kent's reply against the open clarification entry; merges the reply into the deferred event payload."
+        },
+        {
+          "from": "Felix main",
+          "to": "gog calendar create",
+          "protocol": "subprocess",
+          "description": "Re-validates the merged payload and executes the deferred `gog calendar create` call."
+        },
+        {
+          "from": "gog calendar create",
+          "to": "Google Calendar",
+          "protocol": "HTTPS (Google Calendar API via gog)",
+          "description": "Deferred event scheduled."
+        }
+      ],
+      "purpose": "Resolve incomplete calendar events through a single WhatsApp reply round-trip without losing context"
+    },
+    {
+      "name": "inbox-aspiration-to-journal",
+      "status": "active",
+      "deployed_by": "inbox-calendar-and-aspiration-routing-01KTHHXS",
+      "introduced_by": "inbox-calendar-and-aspiration-routing-01KTHHXS",
+      "description": "Flow C \u2014 Inbox notes classified as aspirations or musings routed to the dated 08-Journal entry instead of becoming Vikunja todos. felix-admin-capture detects the aspiration/musing intent and appends the note body to `~/second-brain/notes/08-Journal/Journal YYYY-MM-DD HHmm.md`. No Vikunja todo is created; no delegation to gog or main. The dated journal is the canonical destination for non-actionable reflections.",
+      "trigger": "felix-admin-capture cron tick classifies an inbox note as an aspiration or musing (non-actionable reflection)",
+      "path": [
+        {
+          "from": "Obsidian inbox note (aspiration / musing)",
+          "to": "felix-admin-capture (classification + journal write)",
+          "protocol": "file read (cron tick)",
+          "description": "Capture classifies the note as aspiration/musing intent"
+        },
+        {
+          "from": "felix-admin-capture",
+          "to": "~/second-brain/notes/08-Journal/Journal YYYY-MM-DD HHmm.md",
+          "protocol": "file append (atomic)",
+          "description": "Appends the note body to the dated journal entry. No Vikunja todo is created."
+        }
+      ],
+      "purpose": "Route aspirations and musings to the dated journal instead of Vikunja todos"
     }
   ]
 }
