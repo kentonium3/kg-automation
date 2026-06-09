@@ -53,6 +53,14 @@ _PENDING_WP02_DESTINATIONS = {
     "aspiration",
     "someday",
     "multi_domain",
+    # The 2026-06-09 #566 Directive-6 AGENTS.md rewrite consolidated the
+    # routing table to 6 classifier outputs: journal, calendar, someday,
+    # github_issue, vikunja_task, parse_failure. These three destinations
+    # are no longer wired and follow the same pending-row gate pattern
+    # until the live classifier surfaces them or AGENTS.md re-adds them.
+    "active_task",
+    "goal_declaration",
+    "reference_resource",
 }
 
 
@@ -95,6 +103,9 @@ _DESTINATION_TABLE_SIGNALS: dict[str, list[str]] = {
     "github_issue": [
         "GitHub issue request",
         "kentonium3/kg-automation",
+        # Post-#566 Directive-6 rewrite uses the literal classifier output
+        # name in backticks rather than the human-readable label.
+        "`github_issue`",
     ],
     "goal_declaration": [
         "Goals-MOC.md",
@@ -281,11 +292,16 @@ def test_live_classifier_matches_expected(fixture: dict) -> None:
 
 def test_routing_text_contains_step3_section() -> None:
     """Sanity check: if the Step 3 routing table header disappears the
-    parser cannot work. Fail loudly so review catches the doc drift."""
+    parser cannot work. Fail loudly so review catches the doc drift.
+
+    Accepts colon, em-dash, en-dash, or hyphen as the separator — the
+    #566 Directive-6 rewrite changed colon to em-dash and broke this
+    test once already.
+    """
     text = _load_capture_routing_text()
     # Match the actual section heading used in AGENTS.md.
     assert re.search(
-        r"###\s+Step\s+3:\s+Classify\s+and\s+route",
+        r"###\s+Step\s+3\s*[:—–-]\s+Classify\s+and\s+route",
         text,
     ), "Step 3 'Classify and route' section header missing from capture AGENTS.md"
 

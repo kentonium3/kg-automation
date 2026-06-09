@@ -115,6 +115,7 @@ Numerators/denominators captured before and after material architectural changes
 - [OpenClaw Agent Setup](<./runbooks/openclaw-agent-setup.md>)
 - [Google Workspace Operations](<./runbooks/google-workspace-ops.md>) — `gog` CLI setup, OAuth flow, pitfalls, common commands, second-account expansion, credential liveness probe auto-detection (#100, ADR-0001, #572)
 - [Phone Termius Setup & Recovery](<./runbooks/phone-termius-setup.md>) — iPhone Termius SSH setup (kgale + claude hosts), new-phone enrollment, post-key-rotation recovery, Tailscale SSH ACL gotchas (#575, ADR-0004)
+- [Local Test Gate (pre-push hook)](<./runbooks/local-test-gate.md>) — `.githooks/pre-push` runs `make test` before `git push`; one-time `git config core.hooksPath .githooks` setup; bypass policy (#571)
 
 ### Human and mixed-audience runbooks
 
