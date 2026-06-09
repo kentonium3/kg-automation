@@ -176,6 +176,6 @@ local validation and CI.
 - [Spec-Kitty Installation Guide for Existing Repositories](<./runbooks/spec-kitty-init-in-existing-repo.md>)
 
 ### Unclassified
-- _(none)_
+- [Agent prompt sync — operator runbook](<./runbooks/agent-prompt-sync-ops.md>) — missing `audience:` frontmatter
 
 <!-- end:runbook-filter -->

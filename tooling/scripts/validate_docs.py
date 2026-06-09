@@ -221,7 +221,9 @@ for md in ROOT.rglob('*.md'):
     # Enum validation (only check if field is present)
     for field in ['doc_type', 'status', 'level', 'audience']:
         if field in fm and fm[field] not in ALLOWED_VALUES.get(field, set()):
-            allowed = ', '.join(sorted(ALLOWED_VALUES.get(field, set())))
+            # 'level' allows both string and int forms ('1', 1, '2', 2) per
+            # allowed-values.json — sort needs a str key to avoid TypeError on mixed.
+            allowed = ', '.join(sorted((str(v) for v in ALLOWED_VALUES.get(field, set()))))
             err(f"Invalid {field} '{fm[field]}' (allowed: {allowed})", md,
                 is_blocker=is_blocker('enum_membership'))
 

@@ -3,7 +3,7 @@ id: agent-prompt-sync-ops
 doc_type: runbook
 title: Agent prompt sync — operator runbook
 status: active
-level: operator
+level: howto
 owners: ["kgale"]
 last_validated: 2026-06-08
 version: 1.0
