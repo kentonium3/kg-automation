@@ -18,7 +18,7 @@ branch_strategy: Planning artifacts for this mission were generated on main. Dur
 subtasks:
 - T013
 - T014
-agent: "claude"
+agent: claude
 history: []
 agent_profile: curator-carla
 authoritative_surface: docs/
@@ -30,7 +30,6 @@ owned_files:
 - docs/design/architecture/data/service-inventory.json
 role: implementer
 tags: []
-shell_pid: "55883"
 ---
 
 ## ⚡ Do This First: Load Agent Profile
@@ -103,9 +102,3 @@ At the top of `service-inventory.json`:
 
 - Schema is rich; malformed addition fails downstream consumers. Mitigation: copy `inbox-prescan-helper`'s shape verbatim; only modify per-helper fields.
 - Existing entries may have additional fields (e.g., `state_files`) — only include them where applicable to the new helper.
-
-## Activity Log
-
-- 2026-06-09T00:37:56Z – claude – shell_pid=55117 – Assigned agent via action command
-- 2026-06-09T00:38:54Z – claude – shell_pid=55117 – WP07: 6 component entries added; JSON valid
-- 2026-06-09T00:39:04Z – claude – shell_pid=55883 – Started review via action command

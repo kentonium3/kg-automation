@@ -3,7 +3,7 @@
   "created_at": "2026-06-08T23:30:35.168866+00:00",
   "friendly_name": "Capture Directive-6 Helpers Extraction",
   "mission_id": "01KTMS5QGXFJWQYVXB03SPYB48",
-  "mission_number": 70,
+  "mission_number": null,
   "mission_slug": "capture-d6-helpers-extraction-01KTMS5Q",
   "mission_type": "software-dev",
   "purpose_context": "felix-admin-capture AGENTS.md is 52,942 chars in repo (39,843 deployed) — over openclaw's 12,000-char bootstrap budget. The truncation silently masks Step 5 routing/preserve instructions per epic #563. This mission ships the helpers half of #566: six new stdlib Python helpers (mark_processed, route_journal_entry, route_someday, route_calendar_event, handle_clarification_state, classify_content) each invokable via python3 -m scripts.inbox.<module>. Each helper has its own tests; coverage gate >=90% line / >=85% branch per the kg-automation convention. Existing helpers (append_routing_entry.py, file_inbox_quality_issue.py, handle_marker_cleanup.py, etc.) stay untouched. The AGENTS.md rewrite that invokes the new helpers is split into a follow-on mission so #567's 5-minute deploy pipeline can land the helpers on office2 first — avoids the ModuleNotFoundError class documented in [[feedback_helper_m_invocation_form]]. Closes half-1 of #566.",

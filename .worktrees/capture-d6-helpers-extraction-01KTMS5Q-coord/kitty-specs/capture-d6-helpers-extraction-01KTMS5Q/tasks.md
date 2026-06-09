@@ -130,8 +130,8 @@ Subtasks:
 - **Prompt file**: [tasks/WP07-architecture-docs.md](./tasks/WP07-architecture-docs.md)
 
 Subtasks:
-- [x] T013 Extend `service-inventory.json` with 6 new component entries (WP07)
-- [x] T014 Bump `service-inventory.json` last_updated + extend updated_by (WP07)
+- [ ] T013 Extend `service-inventory.json` with 6 new component entries (WP07)
+- [ ] T014 Bump `service-inventory.json` last_updated + extend updated_by (WP07)
 
 ---
 

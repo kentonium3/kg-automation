@@ -1,7 +1,7 @@
 {
   "schema_version": "1.1",
   "last_updated": "2026-06-08",
-  "updated_by": "agent-prompt-deploy-pipeline-01KTMDDD (#567) + vikunja-client-and-habits-weekly-report-01KTKSFT (#542 + #561 + #562) + inbox-calendar-and-aspiration-routing-01KTHHXS + #520-felix-vikunja-sync-project-layer-and-url-config + #519-touchpoint-migration + #518-felix-vikunja-sync-driver-added + #376-remove-escalation-v1-parity + #400-audit-interpretation-moment0 + #310-tasker-jsonl-migration + #374-main-verbatim-passthrough + #362-drift-event-auto-resolution + #309-migrate-escalation-to-jsonl-state-model + #343-refactor-doc-auditor-to-scripts-first-driver + #307-backfill-habits-jsonl-from-comments + #306-habits-native-repeat-jsonl-state + #304-felix-bot-rotation + #291-felix-file-issue + #289-mutation-surfaces-enumeration + #285-cron-delivery-restore-path-c + #282-habits-d6-extract + #263-cron-delivery-mode-round2 + #100-google-workspace-foundation + #256-scope-discipline-guardrails + #253-step-5a-6-consolidation + #254-atomic-write-perm-preservation + issue-105-doc-auditor + #223-systemd-timer + #208-restic-healthcheck + #202-obsidian-sync-system-level + #203-sync-heartbeat + #199-inbox-schedules + #115-credential-health-check + #189-vikunja-compose + #185-inbox-capture-dedup",
+  "updated_by": "capture-d6-helpers-extraction-01KTMS5Q (#566) + agent-prompt-deploy-pipeline-01KTMDDD (#567) + vikunja-client-and-habits-weekly-report-01KTKSFT (#542 + #561 + #562) + inbox-calendar-and-aspiration-routing-01KTHHXS + #520-felix-vikunja-sync-project-layer-and-url-config + #519-touchpoint-migration + #518-felix-vikunja-sync-driver-added + #376-remove-escalation-v1-parity + #400-audit-interpretation-moment0 + #310-tasker-jsonl-migration + #374-main-verbatim-passthrough + #362-drift-event-auto-resolution + #309-migrate-escalation-to-jsonl-state-model + #343-refactor-doc-auditor-to-scripts-first-driver + #307-backfill-habits-jsonl-from-comments + #306-habits-native-repeat-jsonl-state + #304-felix-bot-rotation + #291-felix-file-issue + #289-mutation-surfaces-enumeration + #285-cron-delivery-restore-path-c + #282-habits-d6-extract + #263-cron-delivery-mode-round2 + #100-google-workspace-foundation + #256-scope-discipline-guardrails + #253-step-5a-6-consolidation + #254-atomic-write-perm-preservation + issue-105-doc-auditor + #223-systemd-timer + #208-restic-healthcheck + #202-obsidian-sync-system-level + #203-sync-heartbeat + #199-inbox-schedules + #115-credential-health-check + #189-vikunja-compose + #185-inbox-capture-dedup",
   "services": [
     {
       "name": "vikunja",
@@ -463,13 +463,94 @@
               "purpose": "Title-prefix-deduped GitHub issue writer for batched 'Inbox quality:' issues filed when prescan reports parse_failures.",
               "invoked_by": "felix-admin-capture \u00a7Step 6.1 (once per turn when parse_failures non-empty)",
               "introduced_by": "#185"
+            },
+            {
+              "id": "mark-processed",
+              "type": "script",
+              "language": "python",
+              "source": "scripts/inbox/mark_processed.py",
+              "deploy_path": "/home/claude/kg-automation/scripts/inbox/mark_processed.py",
+              "purpose": "Atomic frontmatter mutation \u2014 sets status:processed + processed_at while preserving file location, other frontmatter, and body verbatim. Idempotent on already-processed notes. Refuses 04-Growth/_private/ paths per C-001.",
+              "invoked_by": "felix-admin-capture (post #566 follow-on AGENTS.md rewrite)",
+              "introduced_by": "#566",
+              "updated_at": "2026-06-08"
+            },
+            {
+              "id": "route-journal-entry",
+              "type": "script",
+              "language": "python",
+              "source": "scripts/inbox/route_journal_entry.py",
+              "deploy_path": "/home/claude/kg-automation/scripts/inbox/route_journal_entry.py",
+              "purpose": "Append routed content to 08-Journal/Journal YYYY-MM-DD HHmm.md (creates file with correct frontmatter if absent). Path resolution via scripts/vault/paths.json.",
+              "invoked_by": "felix-admin-capture (post #566 follow-on AGENTS.md rewrite)",
+              "introduced_by": "#566",
+              "dependencies": [
+                "scripts/vault/paths.json"
+              ],
+              "updated_at": "2026-06-08"
+            },
+            {
+              "id": "route-someday",
+              "type": "script",
+              "language": "python",
+              "source": "scripts/inbox/route_someday.py",
+              "deploy_path": "/home/claude/kg-automation/scripts/inbox/route_someday.py",
+              "purpose": "Create Vikunja task in Someday project (resolved by name via scripts.common.vikunja_client). Uses CREATE endpoint per Vikunja partial-replace gotcha (C-006).",
+              "invoked_by": "felix-admin-capture (post #566 follow-on AGENTS.md rewrite)",
+              "introduced_by": "#566",
+              "dependencies": [
+                "scripts/common/vikunja_client.py",
+                "scripts/common/vikunja_config.py"
+              ],
+              "updated_at": "2026-06-08"
+            },
+            {
+              "id": "route-calendar-event",
+              "type": "script",
+              "language": "python",
+              "source": "scripts/inbox/route_calendar_event.py",
+              "deploy_path": "/home/claude/kg-automation/scripts/inbox/route_calendar_event.py",
+              "purpose": "Validate calendar payload (inline schema gate; existing scripts.calendar_routing.validate_calendar_event.validate signature mismatch documented in module docstring); emit normalized payload JSON on stdout for the agent to delegate to Felix main for `gog calendar create`.",
+              "invoked_by": "felix-admin-capture (post #566 follow-on AGENTS.md rewrite)",
+              "introduced_by": "#566",
+              "updated_at": "2026-06-08"
+            },
+            {
+              "id": "handle-clarification-state",
+              "type": "script",
+              "language": "python",
+              "source": "scripts/inbox/handle_clarification_state.py",
+              "deploy_path": "/home/claude/kg-automation/scripts/inbox/handle_clarification_state.py",
+              "purpose": "Manages ~/second-brain/agents/state/pending-calendar-clarifications.json \u2014 add / sweep (24h aging) / match subcommands. Safe on missing state file. Significant-token match heuristic for incoming WhatsApp replies.",
+              "invoked_by": "felix-admin-capture (post #566 follow-on AGENTS.md rewrite); separate sweep cron tick (TBD)",
+              "introduced_by": "#566",
+              "updated_at": "2026-06-08",
+              "state_files": [
+                {
+                  "path": "~/second-brain/agents/state/pending-calendar-clarifications.json",
+                  "format": "json-array",
+                  "purpose": "Pending calendar clarifications awaiting Kent's WhatsApp reply. 24h aged out by sweep subcommand.",
+                  "introduced_by": "#566"
+                }
+              ]
+            },
+            {
+              "id": "classify-content",
+              "type": "script",
+              "language": "python",
+              "source": "scripts/inbox/classify_content.py",
+              "deploy_path": "/home/claude/kg-automation/scripts/inbox/classify_content.py",
+              "purpose": "Per-block deterministic content classification with LLM-judgment flagging for ambiguous tokens. Mirrors the doc-audit judgment/ pattern. Heuristics (regex patterns + keyword lists per kind) documented inline per FR-014. Refuses 04-Growth/_private/ paths per C-001.",
+              "invoked_by": "felix-admin-capture (post #566 follow-on AGENTS.md rewrite)",
+              "introduced_by": "#566",
+              "updated_at": "2026-06-08"
             }
           ]
         },
         "felix-admin-habits": {
           "workspace": "/data/services/openclaw/habits-agent",
           "model": "anthropic/claude-sonnet-4-6",
-          "purpose": "Daily habit check-in, completion tracking, weekly pattern reports. Post-#371 (scripts-first morning + reply flow): the agent is a thin orchestrator that invokes scripts/habits/morning_checkin_list.py for the morning tick (script writes the canonical morning-list artifact + emits the formatted WhatsApp message), scripts/habits/parse_morning_reply.py for reply handling (deterministic mapping of Kent's reply against the persisted morning list), and scripts/habits/judgment/disambiguate_reply.py only for ambiguous reply tokens. Post-mission vikunja-client-and-habits-weekly-report-01KTKSFT (#542 + #562): the weekly Sunday-22:00 cron tick is also deterministic-helper-backed — the agent invokes scripts/habits/query_active_habits_weekly.py which queries Vikunja directly via the new shared scripts/common/vikunja_client.py for `done_at` history (NOT the sync cache, which holds current state only), rolls up by canonical habit title, and emits a WeeklyHabitReport JSON the agent renders to WhatsApp. Co-shipped output-discipline Hard Rules (#561) mirror the felix-admin-capture pattern — no preamble before the `Sent by felix-admin-habits:<model>` identity line, no between-tool-calls narration. AGENTS.md is cut to <=14,000 source chars to stay within the openclaw effective budget per memory reference_openclaw_gotchas.md.",
+          "purpose": "Daily habit check-in, completion tracking, weekly pattern reports. Post-#371 (scripts-first morning + reply flow): the agent is a thin orchestrator that invokes scripts/habits/morning_checkin_list.py for the morning tick (script writes the canonical morning-list artifact + emits the formatted WhatsApp message), scripts/habits/parse_morning_reply.py for reply handling (deterministic mapping of Kent's reply against the persisted morning list), and scripts/habits/judgment/disambiguate_reply.py only for ambiguous reply tokens. Post-mission vikunja-client-and-habits-weekly-report-01KTKSFT (#542 + #562): the weekly Sunday-22:00 cron tick is also deterministic-helper-backed \u2014 the agent invokes scripts/habits/query_active_habits_weekly.py which queries Vikunja directly via the new shared scripts/common/vikunja_client.py for `done_at` history (NOT the sync cache, which holds current state only), rolls up by canonical habit title, and emits a WeeklyHabitReport JSON the agent renders to WhatsApp. Co-shipped output-discipline Hard Rules (#561) mirror the felix-admin-capture pattern \u2014 no preamble before the `Sent by felix-admin-habits:<model>` identity line, no between-tool-calls narration. AGENTS.md is cut to <=14,000 source chars to stay within the openclaw effective budget per memory reference_openclaw_gotchas.md.",
           "source_in_repo": "scripts/openclaw/agents/felix-admin-habits/",
           "deployed_by": "F009",
           "autonomy_level": "assisted",
@@ -668,7 +749,7 @@
       "updated_by": "vikunja-client-and-habits-weekly-report-01KTKSFT (#542 + #561 + #562) + #519-touchpoint-migration + #371-habits-checkin-reply-scripts-first + #307-backfill-habits-jsonl-from-comments + #306-habits-native-repeat-jsonl-state + #285-cron-delivery-restore-path-c + #282-habits-d6-extract + #273-felix-tier2-self-repair-incident-audit + #263-cron-delivery-mode-round2",
       "last_updated": "2026-06-08",
       "status": "active",
-      "purpose": "Daily habit check-in (morning tick, scripts-first per #371) and weekly habit pattern report (Sunday 22:00 tick, deterministic-helper-backed per vikunja-client-and-habits-weekly-report-01KTKSFT #542 + #562). Pre-mission, the weekly report was LLM-improvised — the agent confabulated per-habit percentages and prior-week baselines. Post-mission, the agent invokes scripts/habits/query_active_habits_weekly.py which uses the new shared scripts/common/vikunja_client.py to query Vikunja for `done_at` history within the current + prior 7-day windows, rolls up by canonical title, and emits a WeeklyHabitReport JSON. The morning tick continues to read the local sync cache via query_active_habits_v2.py (unchanged) — the weekly path goes direct because the sync cache holds current state only, not done_at history. Co-shipped output-discipline Hard Rules (#561) prevent internal-reasoning leakage above the identity line.",
+      "purpose": "Daily habit check-in (morning tick, scripts-first per #371) and weekly habit pattern report (Sunday 22:00 tick, deterministic-helper-backed per vikunja-client-and-habits-weekly-report-01KTKSFT #542 + #562). Pre-mission, the weekly report was LLM-improvised \u2014 the agent confabulated per-habit percentages and prior-week baselines. Post-mission, the agent invokes scripts/habits/query_active_habits_weekly.py which uses the new shared scripts/common/vikunja_client.py to query Vikunja for `done_at` history within the current + prior 7-day windows, rolls up by canonical title, and emits a WeeklyHabitReport JSON. The morning tick continues to read the local sync cache via query_active_habits_v2.py (unchanged) \u2014 the weekly path goes direct because the sync cache holds current state only, not done_at history. Co-shipped output-discipline Hard Rules (#561) prevent internal-reasoning leakage above the identity line.",
       "runbook": "docs/runbooks/habits-ops.md",
       "risk_tier": 3,
       "dependencies": [
@@ -769,7 +850,7 @@
           "path": "/home/claude/kg-automation/scripts/common/vikunja_client.py",
           "format": "python",
           "source_in_repo": "scripts/common/vikunja_client.py",
-          "purpose": "Mission vikunja-client-and-habits-weekly-report-01KTKSFT (#542 foundation): shared stateless Vikunja API client. Centralizes base URL composition (via scripts/common/vikunja_config.get_vikunja_base_url()), token loading from /data/services/openclaw/secrets/vikunja-api, urllib.request-based HTTP execution, 30s default timeout, and typed exception hierarchy (VikunjaError -> VikunjaAuthError, VikunjaNotFoundError, VikunjaBadRequestError, VikunjaServerError, VikunjaTimeoutError, VikunjaHttpError). Errors are redaction-safe by default (include request path, exclude request/response bodies). Standard-library only. Listed here under the habits service because the first consumer ships in this mission; future migrations of scripts/sync/, scripts/habits/, scripts/escalation/, etc. will reference this module from their respective service entries. Architectural NOTE: service-inventory.json has no first-class 'shared library' surface — this entry is registered under the first consuming service per established convention.",
+          "purpose": "Mission vikunja-client-and-habits-weekly-report-01KTKSFT (#542 foundation): shared stateless Vikunja API client. Centralizes base URL composition (via scripts/common/vikunja_config.get_vikunja_base_url()), token loading from /data/services/openclaw/secrets/vikunja-api, urllib.request-based HTTP execution, 30s default timeout, and typed exception hierarchy (VikunjaError -> VikunjaAuthError, VikunjaNotFoundError, VikunjaBadRequestError, VikunjaServerError, VikunjaTimeoutError, VikunjaHttpError). Errors are redaction-safe by default (include request path, exclude request/response bodies). Standard-library only. Listed here under the habits service because the first consumer ships in this mission; future migrations of scripts/sync/, scripts/habits/, scripts/escalation/, etc. will reference this module from their respective service entries. Architectural NOTE: service-inventory.json has no first-class 'shared library' surface \u2014 this entry is registered under the first consuming service per established convention.",
           "host": "office2",
           "introduced_by": "vikunja-client-and-habits-weekly-report-01KTKSFT (#542)"
         },
@@ -1217,7 +1298,13 @@
           "source_in_repo": "scripts/openclaw/deploy/agent-prompt-sync.timer"
         }
       ],
-      "consumers": ["felix-admin-capture", "felix-admin-habits", "felix-admin-escalation", "felix-admin-tasker", "main"]
+      "consumers": [
+        "felix-admin-capture",
+        "felix-admin-habits",
+        "felix-admin-escalation",
+        "felix-admin-tasker",
+        "main"
+      ]
     },
     {
       "name": "felix-doc-auditor",
@@ -2042,7 +2129,7 @@
       "last_updated": "2026-06-08",
       "status": "active",
       "purpose": "Google Workspace API access (Gmail, Calendar, Drive, Contacts, Sheets, Docs) via the gog CLI for consumption by any Felix agent",
-      "notes": "Consumers: felix-admin-capture (via main delegation; calendar events from inbox — added by inbox-calendar-and-aspiration-routing-01KTHHXS on 2026-06-08). Capture classifies inbound inbox notes as calendar events and delegates the `gog calendar create` call to Felix main; main is the gog process owner in the calendar path.",
+      "notes": "Consumers: felix-admin-capture (via main delegation; calendar events from inbox \u2014 added by inbox-calendar-and-aspiration-routing-01KTHHXS on 2026-06-08). Capture classifies inbound inbox notes as calendar events and delegates the `gog calendar create` call to Felix main; main is the gog process owner in the calendar path.",
       "runbook": "docs/runbooks/google-workspace-ops.md",
       "risk_tier": 3,
       "binary": "/home/linuxbrew/.linuxbrew/bin/gog",
@@ -2171,7 +2258,7 @@
       "updated_by": "#520-felix-vikunja-sync-project-layer-and-url-config",
       "last_updated": "2026-06-05",
       "status": "active",
-      "purpose": "Centralized deterministic reconciliation driver for the Felix-Vikunja task + project layers per ADR-0003. Post-#520: full-poll model — fetches GET /tasks/all + GET /projects on every tick (no updated_since delta). 7-phase pipeline (Phase 0 preamble → Phase 1 fetch → Phase 2 set-diff → Phase 3 classify → Phase 4 emit → Phase 5 update → Phase 5b deletion-cleanup → Phase 6 complete). Detects divergences from the local task cache via 3-way set-diff, classifies via UC-1..UC-4, appends conflict rows to conflict-events.jsonl, delivers unsafe-class events via WhatsApp. Also audits the project layer (new/changed/deleted projects stored in project-cache.json for downstream discovery — no WhatsApp delivery for project events). Phase 5b handles task deletions: appends task_deleted to habits-history.jsonl, prunes phase3-schedule.yaml, cache removal in Phase 6. Read-only against Vikunja. Vikunja base URL read from scripts/common/vikunja_config.py at every cycle start (env var VIKUNJA_BASE_URL → /data/services/openclaw/config/vikunja-base-url.txt).",
+      "purpose": "Centralized deterministic reconciliation driver for the Felix-Vikunja task + project layers per ADR-0003. Post-#520: full-poll model \u2014 fetches GET /tasks/all + GET /projects on every tick (no updated_since delta). 7-phase pipeline (Phase 0 preamble \u2192 Phase 1 fetch \u2192 Phase 2 set-diff \u2192 Phase 3 classify \u2192 Phase 4 emit \u2192 Phase 5 update \u2192 Phase 5b deletion-cleanup \u2192 Phase 6 complete). Detects divergences from the local task cache via 3-way set-diff, classifies via UC-1..UC-4, appends conflict rows to conflict-events.jsonl, delivers unsafe-class events via WhatsApp. Also audits the project layer (new/changed/deleted projects stored in project-cache.json for downstream discovery \u2014 no WhatsApp delivery for project events). Phase 5b handles task deletions: appends task_deleted to habits-history.jsonl, prunes phase3-schedule.yaml, cache removal in Phase 6. Read-only against Vikunja. Vikunja base URL read from scripts/common/vikunja_config.py at every cycle start (env var VIKUNJA_BASE_URL \u2192 /data/services/openclaw/config/vikunja-base-url.txt).",
       "risk_tier": 3,
       "dependencies": [
         {
@@ -2205,7 +2292,7 @@
         {
           "path": "/data/services/openclaw/config/vikunja-base-url.txt",
           "format": "text",
-          "purpose": "Vikunja API base URL — single source of truth consumed by scripts/common/vikunja_config.py. Mode 0644 (world-readable on host; NOT a secret). Initial value: https://office2.tail0f5f56.ts.net/api/v1/. Also exported as VIKUNJA_BASE_URL env var via ~/.bashrc (interactive) and /data/services/openclaw/secrets/openclaw-gateway.env (systemd). Introduced by #520 (Mission C).",
+          "purpose": "Vikunja API base URL \u2014 single source of truth consumed by scripts/common/vikunja_config.py. Mode 0644 (world-readable on host; NOT a secret). Initial value: https://office2.tail0f5f56.ts.net/api/v1/. Also exported as VIKUNJA_BASE_URL env var via ~/.bashrc (interactive) and /data/services/openclaw/secrets/openclaw-gateway.env (systemd). Introduced by #520 (Mission C).",
           "mode": "0644",
           "owner": "claude:claude",
           "introduced_by": "#520"
