@@ -24,6 +24,8 @@ if str(REPO_ROOT) not in sys.path:
 
 from scripts.inbox import prescan  # noqa: E402
 from scripts.inbox.prescan import (  # noqa: E402
+    ARCHIVE_SCAN_CAP,
+    ArchiveAnomaly,
     ArchiveResult,
     InboxFile,
     PrescanError,
@@ -34,6 +36,7 @@ from scripts.inbox.prescan import (  # noqa: E402
     resolve_registry,
     run_prescan,
     run_self_check,
+    scan_archive_anomalies,
     scan_directory,
 )
 
@@ -684,3 +687,326 @@ def test_helper_uses_safe_load_only():
     import re
     bare_loads = re.findall(r"yaml\.load\b(?!\w)", source)
     assert bare_loads == []
+
+
+# ---------------------------------------------------------------------------
+# #568 — Archive anomaly scan (defensive safety rail per epic #563)
+# ---------------------------------------------------------------------------
+
+
+def _make_archive_file(archive_dir: Path, name: str, status: str | None) -> Path:
+    """Write a synthetic archive note. status=None → no status field."""
+    body = "Body content.\n"
+    if status is None:
+        frontmatter = "---\ndoc_type: note\ntitle: t\n---\n"
+    else:
+        frontmatter = f"---\ndoc_type: note\ntitle: t\nstatus: {status}\n---\n"
+    p = archive_dir / name
+    p.write_text(frontmatter + body, encoding="utf-8")
+    return p
+
+
+def test_archive_scan_constant_is_5000():
+    """ARCHIVE_SCAN_CAP module constant exposed per FR-013."""
+    assert ARCHIVE_SCAN_CAP == 5000
+
+
+def test_archive_anomaly_unprocessed_status(tmp_path):
+    """FR-004: status:unprocessed in archive → anomaly."""
+    archive = tmp_path / "archive"
+    archive.mkdir()
+    _make_archive_file(archive, "Inbox 2026-06-08 0712.md", "unprocessed")
+    now = datetime.now(timezone.utc)
+    anomalies, warnings = scan_archive_anomalies(archive, now)
+    assert len(anomalies) == 1
+    a = anomalies[0]
+    assert a.status_raw == "unprocessed"
+    assert a.classification == "unprocessed"
+    assert "unprocessed" in a.warning
+    assert warnings == []
+
+
+def test_archive_anomaly_needs_review_status(tmp_path):
+    """FR-004: status:needs-review in archive → anomaly (belongs in 01-Inbox/)."""
+    archive = tmp_path / "archive"
+    archive.mkdir()
+    _make_archive_file(archive, "Inbox 2026-06-08 1925.md", "needs-review")
+    now = datetime.now(timezone.utc)
+    anomalies, _ = scan_archive_anomalies(archive, now)
+    assert len(anomalies) == 1
+    assert anomalies[0].classification == "needs-review"
+    assert "needs-review" in anomalies[0].warning
+
+
+def test_archive_anomaly_no_status(tmp_path):
+    """FR-004: missing status field → unknown-treated-as-unprocessed anomaly."""
+    archive = tmp_path / "archive"
+    archive.mkdir()
+    _make_archive_file(archive, "Inbox 2026-06-09 0830.md", None)
+    now = datetime.now(timezone.utc)
+    anomalies, _ = scan_archive_anomalies(archive, now)
+    assert len(anomalies) == 1
+    assert anomalies[0].classification == "unknown-treated-as-unprocessed"
+    assert anomalies[0].status_raw is None
+
+
+def test_archive_anomaly_unknown_status(tmp_path):
+    """FR-004: unknown status value → unknown-treated-as-unprocessed anomaly."""
+    archive = tmp_path / "archive"
+    archive.mkdir()
+    _make_archive_file(archive, "Inbox 2026-06-09 0945.md", "failed")
+    now = datetime.now(timezone.utc)
+    anomalies, _ = scan_archive_anomalies(archive, now)
+    assert len(anomalies) == 1
+    assert anomalies[0].classification == "unknown-treated-as-unprocessed"
+    assert anomalies[0].status_raw == "failed"
+    assert "failed" in anomalies[0].warning
+
+
+def test_archive_anomaly_parse_failure(tmp_path):
+    """FR-004: malformed frontmatter (UTF-8 BOM) in archive → parse-failure anomaly."""
+    archive = tmp_path / "archive"
+    archive.mkdir()
+    p = archive / "Inbox 2026-06-09 1130.md"
+    # UTF-8 BOM at start of file triggers classify_file's parse-failure path.
+    p.write_bytes(b"\xef\xbb\xbf---\nstatus: processed\n---\nbody\n")
+    now = datetime.now(timezone.utc)
+    anomalies, _ = scan_archive_anomalies(archive, now)
+    assert len(anomalies) == 1
+    assert anomalies[0].classification == "parse-failure"
+    assert "BOM" in anomalies[0].warning or "parse-failure" in anomalies[0].warning.lower()
+
+
+def test_archive_anomaly_skips_daily_logs(tmp_path):
+    """FR-002: inbox-processing-*.md daily logs are NOT flagged."""
+    archive = tmp_path / "archive"
+    archive.mkdir()
+    # A daily log with non-processed status — should still be skipped
+    daily = archive / "inbox-processing-2026-06-08.md"
+    daily.write_text("---\nstatus: unprocessed\n---\nbody\n", encoding="utf-8")
+    now = datetime.now(timezone.utc)
+    anomalies, _ = scan_archive_anomalies(archive, now)
+    assert anomalies == []
+
+
+def test_archive_anomaly_skips_processed_status(tmp_path):
+    """status:processed files are NOT flagged (the healthy case)."""
+    archive = tmp_path / "archive"
+    archive.mkdir()
+    _make_archive_file(archive, "Inbox 2026-06-08 0712.md", "processed")
+    now = datetime.now(timezone.utc)
+    anomalies, _ = scan_archive_anomalies(archive, now)
+    assert anomalies == []
+
+
+def test_archive_anomaly_missing_dir_safe(tmp_path):
+    """FR-012: missing processed_dir returns ([], [warning]) — no crash."""
+    archive = tmp_path / "does-not-exist"
+    now = datetime.now(timezone.utc)
+    anomalies, warnings = scan_archive_anomalies(archive, now)
+    assert anomalies == []
+    assert len(warnings) == 1
+    assert "does not exist" in warnings[0]
+
+
+def test_archive_anomaly_skips_non_md_files(tmp_path):
+    """Only .md files are scanned; other extensions ignored."""
+    archive = tmp_path / "archive"
+    archive.mkdir()
+    (archive / "stray.txt").write_text("not a note", encoding="utf-8")
+    (archive / "config.json").write_text("{}", encoding="utf-8")
+    now = datetime.now(timezone.utc)
+    anomalies, _ = scan_archive_anomalies(archive, now)
+    assert anomalies == []
+
+
+def test_archive_anomaly_cap_applied(tmp_path, monkeypatch):
+    """FR-006: when archive > ARCHIVE_SCAN_CAP, scan caps + warning fires.
+
+    Patches ARCHIVE_SCAN_CAP to 3 (test-time only) to keep the test fast.
+    """
+    monkeypatch.setattr(prescan, "ARCHIVE_SCAN_CAP", 3)
+    archive = tmp_path / "archive"
+    archive.mkdir()
+    # Make 5 files: all with status:unprocessed for anomaly detection
+    paths = []
+    for i in range(5):
+        p = _make_archive_file(archive, f"Inbox 2026-06-08 0{i}00.md", "unprocessed")
+        # Set mtimes deterministically: newer i = newer mtime
+        os.utime(p, (1700000000 + i * 100, 1700000000 + i * 100))
+        paths.append(p)
+
+    now = datetime.now(timezone.utc)
+    anomalies, warnings = scan_archive_anomalies(archive, now)
+
+    # Scanned the 3 most-recent (i=4, 3, 2) → 3 anomalies
+    assert len(anomalies) == 3
+    # Cap warning emitted with skipped count
+    assert len(warnings) == 1
+    assert "cap_applied" in warnings[0]
+    assert "skipped 2" in warnings[0]
+
+
+def test_archive_anomaly_returns_path_as_str(tmp_path):
+    """ArchiveAnomaly.path is a string (JSON-serializable per FR-007)."""
+    archive = tmp_path / "archive"
+    archive.mkdir()
+    _make_archive_file(archive, "Inbox 2026-06-08 0712.md", "unprocessed")
+    now = datetime.now(timezone.utc)
+    anomalies, _ = scan_archive_anomalies(archive, now)
+    assert isinstance(anomalies[0].path, str)
+
+
+def test_archive_anomaly_mixed_files(tmp_path):
+    """Mix of processed + anomalies + daily-log in same archive."""
+    archive = tmp_path / "archive"
+    archive.mkdir()
+    _make_archive_file(archive, "Inbox 2026-06-08 0712.md", "processed")
+    _make_archive_file(archive, "Inbox 2026-06-08 0813.md", "unprocessed")
+    _make_archive_file(archive, "Inbox 2026-06-08 0915.md", "needs-review")
+    _make_archive_file(archive, "Inbox 2026-06-08 1020.md", None)
+    (archive / "inbox-processing-2026-06-08.md").write_text(
+        "---\nstatus: anything\n---\n", encoding="utf-8"
+    )
+    now = datetime.now(timezone.utc)
+    anomalies, _ = scan_archive_anomalies(archive, now)
+    # 3 anomalies: unprocessed + needs-review + no-status. Processed + daily log skipped.
+    assert len(anomalies) == 3
+    classifications = {a.classification for a in anomalies}
+    assert classifications == {
+        "unprocessed",
+        "needs-review",
+        "unknown-treated-as-unprocessed",
+    }
+
+
+def test_prescan_result_has_archive_anomalies_field():
+    """FR-007: PrescanResult.archive_anomalies is an additive list field."""
+    import dataclasses
+    fields = {f.name for f in dataclasses.fields(PrescanResult)}
+    assert "archive_anomalies" in fields
+
+
+def test_prescan_result_archive_anomalies_default_empty():
+    """FR-007: archive_anomalies defaults to empty list."""
+    # Build with required fields only
+    r = PrescanResult(
+        run_id="r",
+        started_at_utc="2026-06-08T00:00:00Z",
+        finished_at_utc="2026-06-08T00:00:01Z",
+        inbox_path="/tmp/i",
+        inbox_processed_path="/tmp/p",
+        unprocessed_count=0,
+        unprocessed_paths=[],
+        archived_count=0,
+        archived=[],
+    )
+    assert r.archive_anomalies == []
+
+
+def test_run_prescan_populates_archive_anomalies_field(monkeypatch, tmp_path, capsys):
+    """FR-008: run_prescan wires scan_archive_anomalies output into PrescanResult.
+
+    Also covers FR-010 (stderr summary includes archive_anomalies=N)
+    and FR-009 inverse (anomaly section emitted when non-empty).
+    """
+    inbox, archive, _, _ = _setup_env(monkeypatch, tmp_path)
+    # Put an unprocessed file in archive: an anomaly
+    _make_archive_file(archive, "Inbox 2026-06-08 0712.md", "unprocessed")
+
+    rc = run_prescan()
+    captured = capsys.readouterr()
+    assert rc == 0
+
+    payload = json.loads(captured.out.strip())
+    assert "archive_anomalies" in payload
+    assert len(payload["archive_anomalies"]) == 1
+    assert payload["archive_anomalies"][0]["classification"] == "unprocessed"
+
+    # FR-010: stderr summary line includes archive_anomalies=N
+    assert "archive_anomalies=1" in captured.err
+
+
+def test_run_prescan_empty_archive_anomalies_when_healthy(monkeypatch, tmp_path, capsys):
+    """FR-009: archive_anomalies section is OMITTED on healthy ticks (no log noise)."""
+    inbox, archive, _, log_dir = _setup_env(monkeypatch, tmp_path)
+    # All archive files are processed (the healthy state)
+    _make_archive_file(archive, "Inbox 2026-06-08 0712.md", "processed")
+
+    rc = run_prescan()
+    captured = capsys.readouterr()
+    assert rc == 0
+
+    payload = json.loads(captured.out.strip())
+    assert payload["archive_anomalies"] == []
+
+    # Verify daily log does NOT contain the archive_anomalies section
+    log_files = list(log_dir.glob("inbox-prescan-*.md"))
+    assert len(log_files) == 1
+    log_text = log_files[0].read_text()
+    assert "archive_anomalies" not in log_text
+
+    # FR-010: stderr summary shows 0
+    assert "archive_anomalies=0" in captured.err
+
+
+def test_run_prescan_log_section_emitted_when_anomalies_present(
+    monkeypatch, tmp_path, capsys
+):
+    """FR-009: daily log gains '### archive_anomalies (count=N)' section when non-empty."""
+    inbox, archive, _, log_dir = _setup_env(monkeypatch, tmp_path)
+    _make_archive_file(archive, "Inbox 2026-06-08 0712.md", "unprocessed")
+    _make_archive_file(archive, "Inbox 2026-06-08 0813.md", "needs-review")
+
+    rc = run_prescan()
+    captured = capsys.readouterr()
+    assert rc == 0
+
+    log_files = list(log_dir.glob("inbox-prescan-*.md"))
+    assert len(log_files) == 1
+    log_text = log_files[0].read_text()
+    assert "### archive_anomalies (count=2)" in log_text
+    # Each anomaly has a bullet line with the warning
+    assert log_text.count("- /") >= 2  # at least 2 bullets (path starts with /)
+
+
+def test_run_prescan_appends_cap_warning_to_warnings_list(
+    monkeypatch, tmp_path, capsys
+):
+    """FR-006 wired through run_prescan: cap-applied warning ends up in
+    PrescanResult.warnings via the archive-scan integration."""
+    monkeypatch.setattr(prescan, "ARCHIVE_SCAN_CAP", 2)
+    inbox, archive, _, _ = _setup_env(monkeypatch, tmp_path)
+    # 4 anomalous files; cap=2 should drop 2.
+    for i in range(4):
+        p = _make_archive_file(archive, f"Inbox 2026-06-08 0{i}00.md", "unprocessed")
+        os.utime(p, (1700000000 + i * 100, 1700000000 + i * 100))
+
+    rc = run_prescan()
+    captured = capsys.readouterr()
+    assert rc == 0
+    payload = json.loads(captured.out.strip())
+
+    # Only 2 anomalies scanned (cap)
+    assert len(payload["archive_anomalies"]) == 2
+    # Warnings list contains the cap_applied entry (path='archive-scan')
+    cap_warnings = [w for w in payload["warnings"] if "cap_applied" in w["reason"]]
+    assert len(cap_warnings) == 1
+    assert cap_warnings[0]["path"] == "archive-scan"
+
+
+def test_run_prescan_handles_anomaly_as_dict_in_log(
+    monkeypatch, tmp_path, capsys
+):
+    """Daily log writer handles archive_anomalies entries when serialized as dict
+    (the run_prescan wire path uses asdict, so this is the production shape)."""
+    inbox, archive, _, log_dir = _setup_env(monkeypatch, tmp_path)
+    _make_archive_file(archive, "Inbox 2026-06-08 0712.md", "unprocessed")
+
+    rc = run_prescan()
+    captured = capsys.readouterr()
+    assert rc == 0
+    payload = json.loads(captured.out.strip())
+    # In the JSON output (from asdict), entries are dicts
+    assert isinstance(payload["archive_anomalies"][0], dict)
+    assert payload["archive_anomalies"][0]["classification"] == "unprocessed"

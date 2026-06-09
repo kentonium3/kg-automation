@@ -96,6 +96,27 @@ class ArchiveResult:
 
 
 @dataclass
+class ArchiveAnomaly:
+    """A file in 02-Inbox-Processed/ whose status is NOT 'processed' (#568).
+
+    Detected by ``scan_archive_anomalies()`` as a defensive safety rail for
+    the silent-content-loss bug class tracked in epic #563. The helper emits
+    one anomaly per anomalous file; the prescan agent (or operator) decides
+    what to do based on the visible alarm.
+    """
+
+    path: str
+    status_raw: Optional[str]
+    classification: str  # "unprocessed" | "needs-review" | "unknown-treated-as-unprocessed" | "parse-failure"
+    warning: str
+
+
+# #568 — module-level constant; operator-tuneable via code edit.
+# 5000 is a generous ceiling at 2026-06-08 archive scale (hundreds of files).
+ARCHIVE_SCAN_CAP = 5000
+
+
+@dataclass
 class PrescanResult:
     run_id: str
     started_at_utc: str
@@ -112,6 +133,8 @@ class PrescanResult:
     parse_failures: list = field(default_factory=list)  # [{"path": ..., "reason": ...}]
     dedup_skipped: list = field(default_factory=list)  # [{"path": ..., "filename": ..., "existing_issue": int|None}]
     marker_cleanup_needed: list = field(default_factory=list)  # [<abs path>]
+    # #568 — defensive safety rail for the silent-content-loss bug class (#563).
+    archive_anomalies: list = field(default_factory=list)  # [ArchiveAnomaly as dict]
 
 
 # ---------------------------------------------------------------------------
@@ -523,6 +546,103 @@ def archive_stale(
 
 
 # ---------------------------------------------------------------------------
+# Archive anomaly scan (#568) — defensive safety rail
+# ---------------------------------------------------------------------------
+
+
+def scan_archive_anomalies(
+    processed_dir: Path,
+    now_utc: datetime,
+) -> tuple[list[ArchiveAnomaly], list[str]]:
+    """Scan ``02-Inbox-Processed/`` for files whose status is NOT 'processed'.
+
+    Defensive safety rail per #568: converts the silent-content-loss bug class
+    (#563) from invisible to visible. Read-only — no remediation.
+
+    Returns ``(anomalies, warnings)``:
+      - ``anomalies``: one ``ArchiveAnomaly`` per non-``processed`` ``.md`` file
+        (excluding daily logs by filename prefix)
+      - ``warnings``: missing-dir warning OR cap-applied warning when triggered;
+        appended to ``PrescanResult.warnings`` by the caller
+
+    Filters daily-log files by filename prefix ``inbox-processing-`` (these are
+    pre-existing pipeline outputs, not routed inbox notes).
+
+    Caps the scan at ``ARCHIVE_SCAN_CAP`` files (mtime descending) when the
+    archive contains more — protects the latency budget.
+
+    Safe on a missing ``processed_dir`` — returns ``([], [<warning>])``.
+    """
+    warnings: list[str] = []
+    if not processed_dir.exists():
+        warnings.append(
+            f"archive scan: processed_dir does not exist at {processed_dir}"
+        )
+        return [], warnings
+
+    # Collect .md files non-recursively, exclude daily logs by filename prefix.
+    candidates = [
+        p
+        for p in processed_dir.iterdir()
+        if p.is_file()
+        and p.suffix == ".md"
+        and not p.name.startswith("inbox-processing-")
+    ]
+
+    # Apply cap (most-recent mtime first) when archive grows beyond the ceiling.
+    if len(candidates) > ARCHIVE_SCAN_CAP:
+        candidates.sort(key=lambda p: p.stat().st_mtime, reverse=True)
+        skipped = len(candidates) - ARCHIVE_SCAN_CAP
+        candidates = candidates[:ARCHIVE_SCAN_CAP]
+        warnings.append(
+            f"archive scan: cap_applied (scanned {ARCHIVE_SCAN_CAP} most-recent; "
+            f"skipped {skipped} older files)"
+        )
+
+    anomalies: list[ArchiveAnomaly] = []
+    for path in candidates:
+        info = classify_file(path, now_utc)
+        # Healthy case — exact 'processed' status, nothing to report.
+        if info.status_raw == "processed":
+            continue
+
+        # Anomaly classification (mirrors the existing prescan vocabulary):
+        if info.classification == "parse-failure":
+            kind = "parse-failure"
+            warning = (
+                f"parse-failure in archive: {info.parse_failure_reason or info.warning}"
+            )
+        elif info.status_raw == "unprocessed":
+            kind = "unprocessed"
+            warning = "status:unprocessed found in 02-Inbox-Processed/"
+        elif info.status_raw == "needs-review":
+            kind = "needs-review"
+            warning = (
+                "status:needs-review found in 02-Inbox-Processed/ "
+                "(belongs in 01-Inbox/)"
+            )
+        elif info.status_raw is None:
+            kind = "unknown-treated-as-unprocessed"
+            warning = "no status field; treated as unprocessed"
+        else:
+            kind = "unknown-treated-as-unprocessed"
+            warning = (
+                f"unknown status:{info.status_raw}; treated as unprocessed"
+            )
+
+        anomalies.append(
+            ArchiveAnomaly(
+                path=str(path),
+                status_raw=info.status_raw,
+                classification=kind,
+                warning=warning,
+            )
+        )
+
+    return anomalies, warnings
+
+
+# ---------------------------------------------------------------------------
 # Output layer (T005)
 # ---------------------------------------------------------------------------
 
@@ -583,6 +703,17 @@ def _append_daily_log(
         lines.append("### Unprocessed handed to agent")
         for u in unprocessed:
             lines.append(f"- {u.path.name}")
+    # #568 — defensive safety rail. Section is OMITTED when no anomalies
+    # to avoid log noise on healthy ticks (the common case).
+    if result.archive_anomalies:
+        lines.append("")
+        lines.append(f"### archive_anomalies (count={len(result.archive_anomalies)})")
+        for a in result.archive_anomalies:
+            # a is either an ArchiveAnomaly instance OR an asdict() dict
+            # (depending on call site); handle both shapes defensively.
+            path = a["path"] if isinstance(a, dict) else a.path
+            warning = a["warning"] if isinstance(a, dict) else a.warning
+            lines.append(f"- {path}: {warning}")
     lines.append("")
     lines.append("")
     with log_path.open("a", encoding="utf-8") as fh:
@@ -681,6 +812,16 @@ def run_prescan() -> int:
         if f.has_stale_error_marker and str(f.path) not in archived_src_paths
     ]
 
+    # #568 — defensive archive-anomaly scan. Read-only; converts any silent
+    # regression of the #563 bug class into a visible alarm. Runs AFTER
+    # archive_stale so freshly-moved files (which we just put in 'processed'
+    # state) aren't double-checked.
+    archive_anomalies, archive_scan_warnings = scan_archive_anomalies(
+        inbox_processed, started
+    )
+    for w in archive_scan_warnings:
+        warnings.append({"path": "archive-scan", "reason": w})
+
     finished = datetime.now(timezone.utc)
     duration_ms = int((time.monotonic() - t0) * 1000)
 
@@ -704,6 +845,7 @@ def run_prescan() -> int:
         parse_failures=parse_failures_json,
         dedup_skipped=dedup_skipped,
         marker_cleanup_needed=marker_cleanup_needed,
+        archive_anomalies=[asdict(a) for a in archive_anomalies],
     )
 
     _emit_stderr("prescan: writing daily log")
@@ -719,7 +861,9 @@ def run_prescan() -> int:
     sys.stdout.flush()
     _emit_stderr(
         f"prescan: done unprocessed={result.unprocessed_count} "
-        f"archived={result.archived_count} warnings={len(result.warnings)} "
+        f"archived={result.archived_count} "
+        f"archive_anomalies={len(result.archive_anomalies)} "
+        f"warnings={len(result.warnings)} "
         f"duration_ms={duration_ms}"
     )
     return 0
