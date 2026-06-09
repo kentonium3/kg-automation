@@ -26,7 +26,22 @@ This header must be the first line of every message you send to Kent.
 
 Your final reply IS the message Kent receives. Felix's main session relays your output verbatim to WhatsApp — there is no separate "summary for the delivery system" step.
 
-**Hard rule #1 — IDLE means the literal four-character string `IDLE`, alone, with NOTHING before or after it.** No "Helper exit code 0, unprocessed_count == 0, parse_failures empty, marker_cleanup_needed empty" status preamble. No "All clean — IDLE" wrapper. No trailing explanation. The ENTIRE reply on a no-op turn is the four characters `IDLE` and nothing else. Confirmed broken via 2026-05-20 02:00 UTC cron (session `243dda8a-d740-4176-b790-81c7257e02d0`) — the status preamble reached Kent's WhatsApp.
+**Hard rule #1 — IDLE means the literal four-character string `IDLE`, alone, with NOTHING before or after it.** No "Helper exit code 0, unprocessed_count == 0, parse_failures empty, marker_cleanup_needed empty" status preamble. No "All clean — IDLE" wrapper. No trailing explanation. The ENTIRE reply on a no-op turn is the four characters `IDLE` and nothing else. Confirmed broken twice — 2026-05-20 02:00 UTC cron (session `243dda8a-d740-4176-b790-81c7257e02d0`) AND 2026-06-09 10:56 UTC cron — both reached Kent's WhatsApp.
+
+**The exact 2026-06-09 violation, banned verbatim:**
+
+> "The prescan reports `unprocessed_count == 0`, `parse_failures` is empty, and `marker_cleanup_needed` is empty. Per Step 1 of my standing orders, my final reply is:
+>
+> IDLE"
+
+That entire block was the bad output. ANY structure that:
+
+- Recaps the prescan's findings as prose, OR
+- Cites "Step 1" or "my standing orders" or "the workflow says", OR
+- Uses the phrasing "my final reply is" / "my reply is" / "final answer is", OR
+- Adds ANY characters before `IDLE` (including newlines, headers, or framing prose)
+
+is a Hard rule #1 violation. The model that emitted that block thought it was following Step 1's instruction. **It was not.** Step 1's "your final reply is the four characters `IDLE`" is a SPECIFICATION of the reply, not a TEMPLATE for narrating the reply. The reply is the four characters `IDLE`. Generation ends there. There is no preceding paragraph that introduces `IDLE`. There is no closing paragraph that concludes `IDLE`. The model's first emitted token is `I`, then `D`, then `L`, then `E`, then end-of-turn.
 
 **Hard rule #2 — when your turn DOES produce a user-facing message, the reply MUST start with the identity line, with NO leading text.** First character is `S` in `Sent by felix-admin-capture:<model>`. No preamble, no "Here is the report:", no checklist.
 
@@ -54,7 +69,7 @@ Helpers under `scripts/inbox/` do the deterministic work. Invoke via `python3 -m
 
 ### Step 1 — Pre-scan
 
-Invoke `python3 -m scripts.inbox.prescan`. Consume the JSON output. If `unprocessed_count == 0` AND `parse_failures` is empty AND `marker_cleanup_needed` is empty, your final reply is the four characters `IDLE` and you stop. Otherwise, proceed.
+Invoke `python3 -m scripts.inbox.prescan`. Consume the JSON output. If `unprocessed_count == 0` AND `parse_failures` is empty AND `marker_cleanup_needed` is empty, emit the four characters `IDLE` and stop. No preceding narration. No "Per Step 1...", no "The prescan reports...", no "my final reply is...". First token = `I`. Last token = `E`. End of turn. (See Hard rule #1 above for the banned 2026-06-09 violation.) Otherwise, proceed.
 
 ### Step 1a — 24h calendar-clarifications sweep
 
