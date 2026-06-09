@@ -27,11 +27,11 @@
 - **Prompt file**: [tasks/WP01-archive-anomalies.md](./tasks/WP01-archive-anomalies.md)
 
 Subtasks:
-- [ ] T001 Dataclass + scan function + result field
-- [ ] T002 Wire into run_prescan + log + stderr
-- [ ] T003 Tests (≥10 cases)
-- [ ] T004 Coverage gate
-- [ ] T005 Arch-doc update
+- [x] T001 Dataclass + scan function + result field
+- [x] T002 Wire into run_prescan + log + stderr
+- [x] T003 Tests (≥10 cases)
+- [x] T004 Coverage gate
+- [x] T005 Arch-doc update
 
 ## Reviewer Guidance
 
