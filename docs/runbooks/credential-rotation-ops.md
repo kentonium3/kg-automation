@@ -3,7 +3,7 @@ title: Credential Rotation Operations
 doc_type: runbook
 status: approved
 audience: humans
-last_updated: '2026-06-05'
+last_updated: '2026-06-09'
 tags: [1]
 ---
 
@@ -627,6 +627,15 @@ child agent sessions cannot decrypt the keyring.
 
    The `--remote` flag prints a URL the operator opens in a browser to
    complete OAuth. Repeat for each account.
+
+   > **Shortcut.** For the default `kentgale@gmail.com` account, the
+   > wrapper script
+   > [`scripts/security/gog-reauth.sh`](<../../scripts/security/gog-reauth.sh>)
+   > automates the two-step flow. Run from Mac:
+   > `ssh -t office2-claude /home/claude/kg-automation/scripts/security/gog-reauth.sh`.
+   > For non-default accounts, pass `--account <email>`. The script also
+   > runs a calendar-list liveness probe after re-auth to confirm the
+   > token is good.
 
 ### Per-consumer verification
 

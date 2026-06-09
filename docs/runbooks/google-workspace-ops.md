@@ -3,8 +3,8 @@ title: Google Workspace Operations
 doc_type: runbook
 status: approved
 owners: ["@kentonium3"]
-last_updated: '2026-06-08'
-updated_by: '#572-7-day-testing-app-callout'
+last_updated: '2026-06-09'
+updated_by: '#572-gog-reauth-script-references'
 audience: agents_and_humans
 ---
 
@@ -195,6 +195,16 @@ This loads the client_id / client_secret into gog's keyring. It does **not**
 authorize any account yet — that happens in the next step.
 
 ### 2.8 Run the OAuth two-step `--remote` flow
+
+> **Shortcut for routine re-auth.** The wrapper script
+> [`scripts/security/gog-reauth.sh`](<../../scripts/security/gog-reauth.sh>)
+> automates everything in this section except the two intrinsically-
+> interactive bits (operator clicks consent in the Mac browser; operator
+> pastes the redirect URL). For the weekly 7-day-cycle re-auth, run from
+> Mac: `ssh -t office2-claude /home/claude/kg-automation/scripts/security/gog-reauth.sh`.
+> The full manual procedure below is the authoritative reference and is
+> still needed for first-time setup (when the env vars + `~/.bashrc`
+> exports don't yet exist).
 
 The `--remote` mode is required because office2 is headless. The OAuth
 consent screen renders in the operator's Mac browser, and the resulting
@@ -647,10 +657,12 @@ current setup)**: while the OAuth app is in `External` + `Testing`
 publishing status, Google expires every refresh token exactly 7 days
 after issuance, regardless of activity. Surface symptom is identical to
 revocation: `oauth2: "invalid_grant" "Token has been expired or
-revoked."` on the next `gog` call. Re-mint via §2.8 step 1+2 — this
-takes ~3 minutes and works every time. Until the OAuth app's publishing
-status changes (see §2.4 callout), expect this re-auth roughly every
-Monday-ish (matched to the previous mint date). Tracking issue: #572.
+revoked."` on the next `gog` call. **Routine remediation:** from Mac, run
+`ssh -t office2-claude /home/claude/kg-automation/scripts/security/gog-reauth.sh`
+(wraps §2.8, ~3 min total including browser consent). Fallback is §2.8
+step 1+2 manually. Until the OAuth app's publishing status changes
+(see §2.4 callout), expect this re-auth roughly every Monday-ish
+(matched to the previous mint date). Tracking issue: #572.
 
 **Refresh token revoked (other causes)**: if `gog auth doctor` reports a
 revoked token AND fewer than 7 days have passed since the last re-mint,
