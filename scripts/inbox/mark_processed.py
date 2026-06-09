@@ -44,23 +44,38 @@ PRIVATE_PATH_MARKER = "04-Growth/_private"
 _FRONTMATTER_LINE_RE = re.compile(r"^([A-Za-z_][A-Za-z0-9_\-]*)\s*:\s*(.*)$")
 
 
-def read_frontmatter(text: str) -> tuple[dict, str]:
+def read_frontmatter(text: str) -> tuple[dict, str, int]:
     """Parse YAML-ish frontmatter from `text`.
 
-    Returns `(frontmatter_dict, body_string)`. Preserves insertion order
-    of keys (built-in dict ordering since 3.7). Raises `ValueError` if
-    the file does not start with `---\\n` or has no closing `---`.
+    Returns `(frontmatter_dict, body_string, leading_blank_lines)`. Preserves
+    insertion order of keys (built-in dict ordering since 3.7) AND preserves
+    the count of leading blank lines before the opening fence so the round-trip
+    write can put them back. Raises `ValueError` if no opening or closing fence
+    is found.
 
     Lines inside the frontmatter block that don't match the simple
     `key: value` shape are skipped (not common in our notes; preserving
     them through a round-trip is out of scope).
+
+    Tolerates leading blank lines before the opening fence — Obsidian Templater
+    and Wispr Flow emit notes with a single blank line above the frontmatter;
+    `prescan.classify_file` already accepts that shape. This fix aligns
+    `mark_processed`'s entry guard with the same convention so production
+    capture cron ticks don't bounce on real templated inbox files.
     """
-    if not text.startswith("---\n"):
+    lines = text.split("\n")
+
+    # Skip leading blank lines (count them for round-trip preservation).
+    leading_blank = 0
+    while leading_blank < len(lines) and not lines[leading_blank].strip():
+        leading_blank += 1
+
+    if leading_blank >= len(lines) or lines[leading_blank] != "---":
         raise ValueError("no opening frontmatter fence (`---`)")
 
-    lines = text.split("\n")
+    open_idx = leading_blank
     close_idx = None
-    for i in range(1, len(lines)):
+    for i in range(open_idx + 1, len(lines)):
         if lines[i] == "---":
             close_idx = i
             break
@@ -68,27 +83,29 @@ def read_frontmatter(text: str) -> tuple[dict, str]:
         raise ValueError("no closing frontmatter fence (`---`)")
 
     fm: dict[str, str] = {}
-    for raw in lines[1:close_idx]:
+    for raw in lines[open_idx + 1:close_idx]:
         m = _FRONTMATTER_LINE_RE.match(raw)
         if m:
             key, value = m.group(1), m.group(2)
             fm[key] = value
 
-    # Body is everything after the closing fence and its newline.
+    # Body is everything after the closing fence.
     body_lines = lines[close_idx + 1:]
     body = "\n".join(body_lines)
-    return fm, body
+    return fm, body, leading_blank
 
 
-def write_frontmatter(fm: dict, body: str) -> str:
+def write_frontmatter(fm: dict, body: str, leading_blank: int = 0) -> str:
     """Serialize `fm` + `body` back into the on-disk form.
 
-    Output shape: `---\\n<key: value>\\n...\\n---\\n<body>`. Key order is
-    preserved from `fm`'s insertion order.
+    Output shape: `<leading-blank-lines>---\\n<key: value>\\n...\\n---\\n<body>`.
+    Key order is preserved from `fm`'s insertion order. `leading_blank` is the
+    count of blank lines to preserve before the opening fence (from the
+    `read_frontmatter` return value); defaults to 0 for backward compatibility.
     """
     fm_lines = [f"{k}: {v}" for k, v in fm.items()]
     fm_block = "---\n" + "\n".join(fm_lines) + "\n---\n"
-    return fm_block + body
+    return ("\n" * leading_blank) + fm_block + body
 
 
 def _atomic_write(path: Path, content: str) -> None:
@@ -158,7 +175,7 @@ def mark_processed(path: Path) -> int:
         return 1
 
     try:
-        fm, body = read_frontmatter(text)
+        fm, body, leading_blank = read_frontmatter(text)
     except ValueError as exc:
         print(
             f'{{"error": "no_frontmatter", "detail": "{exc}"}}',
@@ -176,7 +193,7 @@ def mark_processed(path: Path) -> int:
         datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     )
 
-    new_text = write_frontmatter(fm, body)
+    new_text = write_frontmatter(fm, body, leading_blank=leading_blank)
     _atomic_write(path, new_text)
     return 0
 

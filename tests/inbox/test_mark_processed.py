@@ -227,10 +227,11 @@ def test_mark_processed_processed_at_iso_8601_utc(tmp_path: Path):
 
 def test_read_frontmatter_parses_simple_kv(tmp_path: Path):
     text = "---\nstatus: unprocessed\nid: abc\n---\nbody\n"
-    fm, body = mark_processed.read_frontmatter(text)
+    fm, body, leading = mark_processed.read_frontmatter(text)
     assert fm["status"] == "unprocessed"
     assert fm["id"] == "abc"
     assert body == "body\n"
+    assert leading == 0
 
 
 def test_read_frontmatter_no_opening_fence_raises():
@@ -245,8 +246,60 @@ def test_read_frontmatter_no_closing_fence_raises():
 
 def test_read_frontmatter_preserves_key_order(tmp_path: Path):
     text = "---\nid: 1\nstatus: x\ncreated: 2026-01-01\ntags: a\n---\nbody"
-    fm, _ = mark_processed.read_frontmatter(text)
+    fm, _, _ = mark_processed.read_frontmatter(text)
     assert list(fm.keys()) == ["id", "status", "created", "tags"]
+
+
+def test_read_frontmatter_tolerates_leading_blank_line():
+    """Production inbox files from Obsidian Templater + Wispr Flow have a
+    leading blank line above the opening fence. prescan.classify_file already
+    accepts this shape; mark_processed must too. Real production failure
+    observed during #568 triage on `Inbox 2026-06-06 0127.md` and similar
+    (silent capture-tick regression discovered in the post-#566-merge archive).
+    """
+    text = "\n---\ndate: 2026-06-06\ntime: 01:27\ntype: inbox\nstatus: unprocessed\n---\nbody\n"
+    fm, body, leading = mark_processed.read_frontmatter(text)
+    assert fm["status"] == "unprocessed"
+    assert fm["date"] == "2026-06-06"
+    assert body == "body\n"
+    assert leading == 1
+
+
+def test_read_frontmatter_tolerates_multiple_leading_blank_lines():
+    """Defensive: any number of leading blank lines before the fence is OK."""
+    text = "\n\n\n---\nstatus: unprocessed\n---\nbody\n"
+    _, _, leading = mark_processed.read_frontmatter(text)
+    assert leading == 3
+
+
+def test_read_frontmatter_blank_only_file_raises():
+    """A file with only whitespace and no fence still raises (no fence found)."""
+    with pytest.raises(ValueError):
+        mark_processed.read_frontmatter("\n\n\n")
+
+
+def test_mark_processed_e2e_with_leading_blank_line_inbox_file(tmp_path: Path):
+    """E2E: a templated inbox file with leading blank line is fully processable.
+
+    Regression guard for the bug found in #568 triage. Before the fix, mark_processed
+    exited 1 with no_frontmatter on real production inbox notes. After the fix,
+    the helper round-trips the file (preserving the leading blank line + body)
+    and sets status:processed + processed_at.
+    """
+    p = tmp_path / "Inbox 2026-06-06 0127.md"
+    p.write_text(
+        "\n---\ndate: 2026-06-06\ntime: 01:27\ntype: inbox\nstatus: unprocessed\n---\n"
+        "This is a test file to see if ob is syncing on office2.\n",
+        encoding="utf-8",
+    )
+    rc = mark_processed.mark_processed(p)
+    assert rc == 0
+    out = p.read_text(encoding="utf-8")
+    assert out.startswith("\n---\n"), "leading blank line preserved"
+    assert "status: processed" in out
+    assert "status: unprocessed" not in out
+    assert "processed_at:" in out
+    assert "This is a test file to see if ob is syncing on office2." in out
 
 
 # ---------- write_frontmatter unit tests ----------
