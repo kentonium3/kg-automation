@@ -88,7 +88,7 @@ def probe_oauth_liveness(
                 "--account", cfg.gog_account,
                 "calendar", "list",
                 "-j",
-                "--max-results", "1",
+                "--max", "1",
             ],
             capture_output=True,
             text=True,
