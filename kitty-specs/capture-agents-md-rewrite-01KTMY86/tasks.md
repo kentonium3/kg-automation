@@ -30,10 +30,10 @@
 - **Prompt file**: [tasks/WP01-rewrite.md](./tasks/WP01-rewrite.md)
 
 Subtasks:
-- [ ] T001 Rewrite AGENTS.md per structural map (WP01)
-- [ ] T002 Verify size hard ceiling + mid-target (WP01)
-- [ ] T003 Verify Step 5 invariant placement + `-m` form + no existing-helper regression (WP01)
-- [ ] T004 Update service-inventory.json capture entry (WP01)
+- [x] T001 Rewrite AGENTS.md per structural map (WP01)
+- [x] T002 Verify size hard ceiling + mid-target (WP01)
+- [x] T003 Verify Step 5 invariant placement + `-m` form + no existing-helper regression (WP01)
+- [x] T004 Update service-inventory.json capture entry (WP01)
 
 ## MVP Scope
 
