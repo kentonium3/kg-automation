@@ -11,13 +11,13 @@ requirement_refs:
 tracker_refs: []
 planning_base_branch: main
 merge_target_branch: main
-branch_strategy: Planning artifacts for this mission were generated on the mission coordination branch per the rc41 #1777 workaround. During /spec-kitty.implement this WP gets its own lane worktree, computed by finalize-tasks to have WP03 code present in its base (deploy script smoke-tests the new CLI flag). Completed changes merge back into main as part of the mission's atomic merge.
+branch_strategy: Planning artifacts for this mission were generated on main. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into main unless the human explicitly redirects the landing branch.
 subtasks:
 - T019
 - T020
 - T021
 - T022
-agent: "claude"
+agent: claude
 history: []
 agent_profile: implementer-ivan
 authoritative_surface: scripts/office2/
