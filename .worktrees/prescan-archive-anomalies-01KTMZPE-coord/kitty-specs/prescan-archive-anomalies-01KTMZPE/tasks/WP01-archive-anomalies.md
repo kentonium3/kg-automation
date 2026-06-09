@@ -28,7 +28,7 @@ subtasks:
 - T003
 - T004
 - T005
-agent: "codex"
+agent: claude
 history: []
 agent_profile: python-pedro
 authoritative_surface: scripts/inbox/
@@ -42,7 +42,6 @@ owned_files:
 - docs/design/architecture/data/service-inventory.json
 role: implementer
 tags: []
-shell_pid: "75032"
 ---
 
 ## ⚡ Do This First: Load Agent Profile
@@ -262,9 +261,3 @@ Verify: `python3 -c "import json; json.load(open('docs/design/architecture/data/
 - Independent (codex preferred): focus on edge cases (missing dir, empty archive, all-processed archive, cap exactly at the boundary).
 - Spot-check the daily-log surface: anomaly section ABSENT on healthy tick, PRESENT on anomalous tick.
 - Confirm no regression in the existing prescan tests.
-
-## Activity Log
-
-- 2026-06-09T01:31:13Z – claude – shell_pid=72206 – Assigned agent via action command
-- 2026-06-09T01:40:27Z – claude – shell_pid=72206 – WP01: scan_archive_anomalies + wired through run_prescan; 87 tests pass; coverage 90.35%; arch docs updated.
-- 2026-06-09T01:40:40Z – codex – shell_pid=75032 – Started review via action command

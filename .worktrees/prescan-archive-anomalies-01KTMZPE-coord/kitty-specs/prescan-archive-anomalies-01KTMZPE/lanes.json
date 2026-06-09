@@ -1,0 +1,28 @@
+{
+  "version": 1,
+  "mission_slug": "prescan-archive-anomalies-01KTMZPE",
+  "mission_id": "01KTMZPE0QR0AZACXF1A0X9SV6",
+  "mission_branch": "kitty/mission-prescan-archive-anomalies-01KTMZPE",
+  "target_branch": "main",
+  "lanes": [
+    {
+      "lane_id": "lane-a",
+      "wp_ids": [
+        "WP01"
+      ],
+      "write_scope": [
+        "docs/design/architecture/data/service-inventory.json",
+        "scripts/inbox/prescan.py",
+        "tests/scripts/inbox/test_prescan.py"
+      ],
+      "predicted_surfaces": [
+        "api"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    }
+  ],
+  "computed_at": "2026-06-09T01:29:37.513407+00:00",
+  "computed_from": "dependency_graph+ownership",
+  "planning_artifact_wps": []
+}
