@@ -2,7 +2,7 @@
 title: Service Inventory
 doc_type: reference
 status: approved
-tags: [520, 519, 518, 137, 189, 80, 202, 149, 190, 374, 100, 253, 185, 254, 371, 309, 343, 306, 308, 310, 362, 391, 400, 105, 115]
+tags: [572, 520, 519, 518, 137, 189, 80, 202, 149, 190, 374, 100, 253, 185, 254, 371, 309, 343, 306, 308, 310, 362, 391, 400, 105, 115]
 ---
 
 # Service Inventory
@@ -580,6 +580,16 @@ Per-module metadata mirrors `docs/design/architecture/data/service-inventory.jso
 - **Purpose**: closes R-003 — automated credential expiry/cadence tracking. For fixed-cadence credentials, alerts 30 days before the review boundary. For `monitor-activity` credentials (`tailscale-auth`, `whatsapp-session`), alerts on activity-signal drift.
 - **Alert path**: paired GitHub issue + Vikunja task. The issue is the audit trail; the task's `due_date = boundary − 7 days` drives the existing escalation engine's WhatsApp pressure window. Activity-staleness alerts are GitHub-only (no Vikunja task — drift is "look at it now," not "rotate by date").
 - **Quickstart / runbook**: `kitty-specs/credential-expiry-health-check-01KRCF92/quickstart.md` (mission-local; promote to `docs/runbooks/credential-health-check-ops.md` in a follow-up if operational learnings accumulate).
+
+### Credential Liveness Probe (#572, 2026-06-09)
+- **Deployed by**: #572
+- **Type**: systemd user timer + oneshot service (no LLM — deterministic Python + `gog` CLI probe)
+- **Schedule**: every 6 hours via `credential-liveness-probe.timer` (`OnCalendar=*-*-* 00,06,12,18:00:00`, `Persistent=true`)
+- **Source in repo**: `scripts/office2/credential-liveness-probe.{service,timer}`; deploy script: `scripts/office2/deploy/credential-liveness-probe.sh`
+- **Purpose**: OAuth credential liveness probe — issues a cheap `gog calendar list` call per monitored credential and files a GitHub issue on `invalid_grant`. Surfaces dead refresh tokens within ≤6h instead of waiting for user-facing failure.
+- **Alert path**: GitHub issue only. Title prefix `credential-liveness-routine-7day:` for expected 7-day Testing-app cycle expiry; `credential-liveness-unexpected:` for out-of-cycle revocations. Issue body includes the exact `gog-reauth.sh` recovery command.
+- **Depends on**: `openclaw-gateway.service`, `network-online.target`; consumes `gog-credentials-keyring`
+- **Runbook**: [Google Workspace Operations](<../../runbooks/google-workspace-ops.md>) §Common issues → "Automatic detection (post-#572)"
 
 ## Schema v1.1 Fields
 

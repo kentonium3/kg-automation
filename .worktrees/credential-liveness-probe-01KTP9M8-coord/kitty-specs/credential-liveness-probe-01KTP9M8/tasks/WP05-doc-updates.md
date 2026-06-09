@@ -14,7 +14,7 @@ subtasks:
 - T023
 - T024
 - T025
-agent: "claude:opus:reviewer-renata:reviewer"
+agent: claude
 history: []
 agent_profile: curator-carla
 authoritative_surface: docs/
@@ -26,7 +26,6 @@ owned_files:
 - docs/runbooks/google-workspace-ops.md
 role: implementer
 tags: []
-shell_pid: "47473"
 ---
 
 ## ⚡ Do This First: Load Agent Profile
@@ -215,11 +214,3 @@ No automated tests. Validation by:
 - Read the workspace runbook's §Common Issues "Refresh token expired" entry end-to-end; the new callout should fit naturally.
 - Check that the recovery command in the runbook callout (`systemctl --user start credential-liveness-probe.service`) matches the actual unit name from WP04.
 - For T025, verify the WP author actually ran the `signal-to-doc-map.json` query (per the CLAUDE.md mandate) — the WP commentary in the merge commit should list which doc targets were considered and why each was updated or skipped.
-
-## Activity Log
-
-- 2026-06-09T15:06:29Z – claude:sonnet:curator-carla:implementer – shell_pid=45585 – Assigned agent via action command
-- 2026-06-09T15:06:40Z – claude:sonnet:curator-carla:implementer – shell_pid=45836 – Assigned agent via action command
-- 2026-06-09T15:12:14Z – claude:sonnet:curator-carla:implementer – shell_pid=45836 – Ready for review: doc updates for credential-liveness-probe — service-inventory.json entry added, google-workspace-ops.md automatic-detection callout added, service-inventory.md narrative updated, INDEX.md updated. All signal-to-doc-map targets considered; no silent skips.
-- 2026-06-09T15:12:39Z – claude:opus:reviewer-renata:reviewer – shell_pid=47473 – Started review via action command
-- 2026-06-09T15:17:14Z – user – shell_pid=47473 – Review passed by opus: service-inventory.json entry mirrors recent systemd_user_timer schema (felix-vikunja-sync-driver), unit names + deploy script path EXACTLY match WP04 lane-d (credential-liveness-probe.{service,timer} + deploy/credential-liveness-probe.sh), title prefixes EXACTLY match WP03 orchestrator construction (credential-liveness-routine-7day: / credential-liveness-unexpected:), JSON valid, runbook fence-parity balanced, frontmatter last_updated=2026-06-09 + updated_by='#572-credential-liveness-probe'; signal-to-doc-map enumerated for 4 change classes with explicit no-action rationale for service-dependencies.view.md / felix-capability-roadmap.md / credential-manifest.json — minor: credentials-and-secrets.md and identity-model.md not enumerated but no natural insertion point (they cover storage/identity, not service-level alerting).

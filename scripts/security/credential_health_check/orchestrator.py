@@ -26,6 +26,7 @@ from .github_writer import (
     staleness_alert_title,
     staleness_alert_title_prefix,
 )
+from .liveness import LivenessResult, probe_oauth_liveness
 from .manifest import (
     ManifestQualityIssue,
     ManifestUnreadableError,
@@ -42,6 +43,7 @@ class CycleResult:
     credentials_evaluated: int = 0
     cadence_alerts_filed: int = 0
     staleness_alerts_filed: int = 0
+    liveness_alerts_filed: int = 0
     alerts_deduped: int = 0
     manifest_quality_issue_filed: bool = False
     errors: list[str] = field(default_factory=list)
@@ -63,12 +65,18 @@ def run_cycle(
     *,
     dry_run: bool = False,
     logger: Optional[logging.Logger] = None,
+    liveness_only: bool = False,
 ) -> CycleResult:
     """Execute one full cycle. Returns a CycleResult summary.
 
     Raises ManifestUnreadableError when the manifest cannot be read at all
     (per FR-011). All other failures (per-credential, per-writer) are logged
     and accumulated in result.errors; the cycle continues.
+
+    When ``liveness_only`` is True (used by the 6h credential-liveness-probe.timer),
+    only the OAuth liveness probe pass runs per credential. Cadence, staleness, and
+    manifest-quality passes are skipped. Defense-in-depth: liveness also runs in the
+    default (False) mode so a failing 6h timer doesn't blind the daily cycle.
     """
     cycle_id = uuid.uuid4().hex[:8]
     result = CycleResult()
@@ -80,6 +88,7 @@ def run_cycle(
         today=today.isoformat(),
         manifest=manifest_path,
         dry_run=dry_run,
+        liveness_only=liveness_only,
     )
 
     well_formed, malformed = read_manifest(manifest_path)
@@ -99,70 +108,75 @@ def run_cycle(
     for cred in well_formed:
         result.credentials_evaluated += 1
 
-        # Branch A: fixed-interval cadence.
-        if is_fixed_interval_cadence(cred.review_cadence):
-            boundary = compute_boundary(cred)
-            if boundary is None:
-                _log(
-                    logger,
-                    logging.WARNING,
-                    "credential_evaluated",
-                    cycle_id=cycle_id,
-                    name=cred.name,
-                    action="skip_missing_anchor",
-                )
-                continue
-            if not is_within_warning_window(boundary, today):
+        if not liveness_only:
+            # Branch A: fixed-interval cadence.
+            if is_fixed_interval_cadence(cred.review_cadence):
+                boundary = compute_boundary(cred)
+                if boundary is None:
+                    _log(
+                        logger,
+                        logging.WARNING,
+                        "credential_evaluated",
+                        cycle_id=cycle_id,
+                        name=cred.name,
+                        action="skip_missing_anchor",
+                    )
+                    # Still run liveness probe below even if cadence anchor missing.
+                elif not is_within_warning_window(boundary, today):
+                    _log(
+                        logger,
+                        logging.INFO,
+                        "credential_evaluated",
+                        cycle_id=cycle_id,
+                        name=cred.name,
+                        action="within_cadence",
+                        boundary=boundary.isoformat(),
+                    )
+                    # Still run liveness probe below.
+                else:
+                    # In warning window — dedup, then file.
+                    _process_cadence_alert(
+                        cred,
+                        boundary,
+                        today,
+                        cycle_id,
+                        result,
+                        logger,
+                        dry_run,
+                        vikunja_token=vikunja_token,
+                        inbox_project_id=inbox_project_id,
+                    )
+                    # Cache Vikunja state for subsequent credentials in this cycle.
+                    if vikunja_token is None and not dry_run:
+                        try:
+                            vikunja_token = load_token()
+                            inbox_project_id = lookup_inbox_project_id(vikunja_token)
+                        except VikunjaWriteError:
+                            # _process_cadence_alert already logged. The cached state
+                            # will remain None and subsequent credentials will retry.
+                            pass
+
+            # Branch B: monitor-activity credentials.
+            elif cred.name in MONITOR_ACTIVITY_READERS:
+                _process_staleness_alert(cred, today, cycle_id, result, logger, dry_run)
+
+            # Branch C: skip (on-revocation, n/a, session, or unmapped monitor-activity).
+            else:
                 _log(
                     logger,
                     logging.INFO,
                     "credential_evaluated",
                     cycle_id=cycle_id,
                     name=cred.name,
-                    action="within_cadence",
-                    boundary=boundary.isoformat(),
+                    action="skip_non_fixed",
+                    review_cadence=cred.review_cadence,
                 )
-                continue
-            # In warning window — dedup, then file.
-            _process_cadence_alert(
-                cred,
-                boundary,
-                today,
-                cycle_id,
-                result,
-                logger,
-                dry_run,
-                vikunja_token=vikunja_token,
-                inbox_project_id=inbox_project_id,
-            )
-            # Cache Vikunja state for subsequent credentials in this cycle.
-            if vikunja_token is None and not dry_run:
-                try:
-                    vikunja_token = load_token()
-                    inbox_project_id = lookup_inbox_project_id(vikunja_token)
-                except VikunjaWriteError:
-                    # _process_cadence_alert already logged. The cached state
-                    # will remain None and subsequent credentials will retry.
-                    pass
 
-        # Branch B: monitor-activity credentials.
-        elif cred.name in MONITOR_ACTIVITY_READERS:
-            _process_staleness_alert(cred, today, cycle_id, result, logger, dry_run)
+        # Liveness probe runs in BOTH modes (defense-in-depth per plan §IC-03).
+        _process_liveness_alert(cred, today, cycle_id, result, logger, dry_run)
 
-        # Branch C: skip (on-revocation, n/a, session, or unmapped monitor-activity).
-        else:
-            _log(
-                logger,
-                logging.INFO,
-                "credential_evaluated",
-                cycle_id=cycle_id,
-                name=cred.name,
-                action="skip_non_fixed",
-                review_cadence=cred.review_cadence,
-            )
-
-    # Manifest-quality batch (FR-012).
-    if malformed:
+    # Manifest-quality batch (FR-012). Skipped in liveness_only mode.
+    if malformed and not liveness_only:
         _process_manifest_quality(malformed, today, cycle_id, result, logger, dry_run)
 
     _log(
@@ -173,6 +187,7 @@ def run_cycle(
         credentials_evaluated=result.credentials_evaluated,
         cadence_filed=result.cadence_alerts_filed,
         staleness_filed=result.staleness_alerts_filed,
+        liveness_filed=result.liveness_alerts_filed,
         deduped=result.alerts_deduped,
         manifest_quality_filed=result.manifest_quality_issue_filed,
         errors=len(result.errors),
@@ -398,6 +413,163 @@ def _process_staleness_alert(
         variant="staleness",
         github_issue=issue_number,
         summary=failure.summary,
+    )
+
+
+def _build_liveness_issue_body(r: LivenessResult) -> str:
+    """Build the GitHub issue body for a liveness alert."""
+    body = (
+        f"Credential `{r.credential_name}` failed liveness probe at {r.probed_at.isoformat()}.\n\n"
+        f"Classification: {r.classification}\n"
+        f"Reason: {r.reason}\n\n"
+    )
+    if r.classification == "dead-unexpected":
+        body += (
+            "If you didn't recently change passwords or revoke access, "
+            "investigate at https://myaccount.google.com/permissions before re-auth.\n\n"
+        )
+    recovery = r.recovery_command or "(no recovery command configured)"
+    body += (
+        f"Recovery command:\n"
+        f"```\n{recovery}\n```\n\n"
+        f"After re-auth, the next probe cycle will confirm liveness. "
+        f"Close this issue manually after recovery (auto-close is a future-work item, "
+        f"see kitty-specs/credential-liveness-probe-01KTP9M8/spec.md §Future Work)."
+    )
+    return body
+
+
+def _process_liveness_alert(
+    cred,
+    today: date,
+    cycle_id: str,
+    result: CycleResult,
+    logger,
+    dry_run: bool,
+) -> None:
+    if cred.liveness_probe is None or not cred.liveness_probe.enabled:
+        _log(
+            logger,
+            logging.INFO,
+            "liveness_skipped",
+            cycle_id=cycle_id,
+            name=cred.name,
+            reason="no liveness_probe block" if cred.liveness_probe is None else "liveness_probe disabled",
+        )
+        return
+
+    try:
+        liveness_result = probe_oauth_liveness(cred)
+    except Exception as e:  # noqa: BLE001
+        _log(
+            logger,
+            logging.ERROR,
+            "error",
+            cycle_id=cycle_id,
+            name=cred.name,
+            stage="probe_oauth_liveness",
+            message=str(e),
+        )
+        result.errors.append(f"{cred.name}: probe raised: {e}")
+        return
+
+    if liveness_result is None:
+        # probe_oauth_liveness already logged credential_alive at INFO; nothing more here.
+        return
+
+    if liveness_result.classification == "probe-error":
+        _log(
+            logger,
+            logging.INFO,
+            "credential_probe_error",
+            cycle_id=cycle_id,
+            name=cred.name,
+            reason=liveness_result.reason,
+        )
+        result.errors.append(
+            f"{cred.name}: probe_error: {liveness_result.reason}"
+        )
+        return
+
+    # dead-routine-7day or dead-unexpected
+    # Title prefix: "credential-liveness-routine-7day: <name>" or
+    #               "credential-liveness-unexpected: <name>"
+    title_prefix = (
+        f"credential-liveness-{liveness_result.classification.removeprefix('dead-')}: "
+        f"{cred.name}"
+    )
+
+    try:
+        existing = dedup_check(title_prefix)
+    except GitHubWriteError as e:
+        _log(
+            logger,
+            logging.ERROR,
+            "error",
+            cycle_id=cycle_id,
+            name=cred.name,
+            stage="dedup_check_liveness",
+            message=str(e),
+        )
+        result.errors.append(f"{cred.name}: dedup_check failed: {e}")
+        return
+    if existing:
+        _log(
+            logger,
+            logging.INFO,
+            "alert_deduped",
+            cycle_id=cycle_id,
+            name=cred.name,
+            variant="liveness",
+            existing_issue=existing[0],
+        )
+        result.alerts_deduped += 1
+        return
+
+    if dry_run:
+        _log(
+            logger,
+            logging.INFO,
+            "credential_evaluated",
+            cycle_id=cycle_id,
+            name=cred.name,
+            action="alert_would_file",
+            variant="liveness",
+            classification=liveness_result.classification,
+        )
+        return
+
+    body = _build_liveness_issue_body(liveness_result)
+    title = f"{title_prefix} ({today.isoformat()})"
+    try:
+        issue_number = create_issue(
+            title=title,
+            body=body,
+            labels=("P1-bug", "area/infrastructure"),
+        )
+    except GitHubWriteError as e:
+        _log(
+            logger,
+            logging.ERROR,
+            "error",
+            cycle_id=cycle_id,
+            name=cred.name,
+            stage="file_alert_liveness",
+            message=str(e),
+        )
+        result.errors.append(f"{cred.name}: file_alert failed: {e}")
+        return
+
+    result.liveness_alerts_filed += 1
+    _log(
+        logger,
+        logging.INFO,
+        "alert_filed",
+        cycle_id=cycle_id,
+        name=cred.name,
+        variant="liveness",
+        github_issue=issue_number,
+        classification=liveness_result.classification,
     )
 
 

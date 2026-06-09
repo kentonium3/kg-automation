@@ -9,14 +9,18 @@ import pytest
 
 from credential_health_check.listing import (
     CredentialListing,
+    LivenessListing,
     _status_for,
     build_listings,
+    build_liveness_listings,
     list_credentials,
+    render_liveness_table,
     render_malformed,
     render_table,
 )
 from credential_health_check.manifest import (
     Credential,
+    LivenessProbeConfig,
     ManifestQualityIssue,
     ManifestUnreadableError,
 )
@@ -225,3 +229,103 @@ def test_list_credentials_propagates_unreadable_error():
             today=date(2026, 5, 12),
             stream=buf,
         )
+
+
+# ---------- WP03 liveness listing test ----------
+
+
+def _cred_oauth2_with_liveness(tmp_path, name: str = "gog-credentials-keyring") -> Credential:
+    """Build an oauth2 credential with a real keyring file for liveness listing."""
+    keyring = tmp_path / "keyring_file"
+    keyring.write_bytes(b"")
+    return Credential(
+        name=name,
+        review_cadence="on-revocation",
+        storage=str(keyring),
+        expiry_notes="oauth2 gog token",
+        type="oauth2",
+        liveness_probe=LivenessProbeConfig(
+            enabled=True,
+            gog_account="kentgale@gmail.com",
+            keyring_file=str(keyring),
+            recovery_command=(
+                "ssh -t office2-claude "
+                "/home/claude/kg-automation/scripts/security/gog-reauth.sh"
+            ),
+        ),
+    )
+
+
+def test_list_liveness_includes_credential_table(tmp_path):
+    """--list --liveness: oauth2 credential with liveness_probe appears in output."""
+    cred = _cred_oauth2_with_liveness(tmp_path)
+    listings = build_liveness_listings([cred])
+    assert len(listings) == 1
+    row = listings[0]
+    assert row.name == cred.name
+    assert row.gog_account == "kentgale@gmail.com"
+    assert row.enabled == "yes"
+    # The keyring exists, so age + expiration are non-dash.
+    assert row.keyring_mtime_age != "—"
+    assert row.expected_next_expiration != "—"
+
+    # Also verify the render doesn't crash and includes expected columns.
+    output = render_liveness_table(listings)
+    assert cred.name in output
+    assert "kentgale@gmail.com" in output
+    assert "gog_account" in output
+    assert "keyring_mtime_age" in output
+    assert "expected_next_expiration" in output
+    # Deliberately NOT checking for "current_classification" — it's intentionally absent.
+    assert "current_classification" not in output
+
+
+def test_list_liveness_skips_non_oauth2_credentials():
+    """build_liveness_listings only includes oauth2 credentials."""
+    api_cred = Credential(
+        name="some-api-key",
+        review_cadence="annual",
+        storage="/path/to/key",
+        expiry_notes="api key",
+        type="api-token",
+        last_reviewed=date(2026, 5, 11),
+    )
+    listings = build_liveness_listings([api_cred])
+    assert listings == []
+
+
+def test_list_liveness_oauth2_no_probe_block_shows_dashes():
+    """oauth2 credential with no liveness_probe block shows — placeholders."""
+    cred = Credential(
+        name="personal-google",
+        review_cadence="on-revocation",
+        storage="/some/path",
+        expiry_notes="google oauth2",
+        type="oauth2",
+        liveness_probe=None,
+    )
+    listings = build_liveness_listings([cred])
+    assert len(listings) == 1
+    row = listings[0]
+    assert row.enabled == "—"
+    assert row.gog_account == "—"
+    assert row.keyring_mtime_age == "—"
+    assert row.expected_next_expiration == "—"
+
+
+def test_list_credentials_liveness_flag_prints_extra_table(tmp_path):
+    """list_credentials(..., liveness=True) prints liveness table header in output."""
+    cred = _cred_oauth2_with_liveness(tmp_path)
+    # Verify the liveness table renders correctly.
+    listings = build_liveness_listings([cred])
+    output = render_liveness_table(listings)
+    assert cred.name in output
+    assert "gog_account" in output
+    # The header must have the expected columns.
+    first_line = output.split("\n")[0]
+    assert "Name" in first_line
+    assert "Enabled" in first_line
+    assert "gog_account" in first_line
+    assert "keyring_mtime_age" in first_line
+    assert "expected_next_expiration" in first_line
+    assert "recovery_command" in first_line

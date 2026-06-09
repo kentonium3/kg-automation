@@ -146,9 +146,9 @@ WP01 + WP02 + WP03 are the functional core — once those three are merged, the 
 
 **Included subtasks**:
 
-- [x] T023 Update `docs/design/architecture/data/service-inventory.json` with a new entry for the liveness-probe systemd service (WP05)
-- [x] T024 Update `docs/runbooks/google-workspace-ops.md` §Common Issues "Refresh token expired (Testing-app 7-day cycle)" to mention the new automatic-detection surface (GH issue within 6h) (WP05)
-- [x] T025 Consult `docs/design/architecture/data/signal-to-doc-map.json` (per CLAUDE.md "Discovery aid for spec/plan agents") and update any additional doc surfaces it flags as `doc_targets` for change-classes `systemd-unit-added-or-modified` / `service-added-or-modified` / `runbook-modified` (WP05)
+- [ ] T023 Update `docs/design/architecture/data/service-inventory.json` with a new entry for the liveness-probe systemd service (WP05)
+- [ ] T024 Update `docs/runbooks/google-workspace-ops.md` §Common Issues "Refresh token expired (Testing-app 7-day cycle)" to mention the new automatic-detection surface (GH issue within 6h) (WP05)
+- [ ] T025 Consult `docs/design/architecture/data/signal-to-doc-map.json` (per CLAUDE.md "Discovery aid for spec/plan agents") and update any additional doc surfaces it flags as `doc_targets` for change-classes `systemd-unit-added-or-modified` / `service-added-or-modified` / `runbook-modified` (WP05)
 
 **Dependencies**: WP04 (doc references unit names/paths defined there).
 

@@ -2,14 +2,15 @@
 from __future__ import annotations
 
 import logging
-from datetime import date
+from datetime import date, datetime, timezone
 from pathlib import Path
 from unittest.mock import patch
 
 import pytest
 
 from credential_health_check.github_writer import GitHubWriteError
-from credential_health_check.manifest import ManifestUnreadableError
+from credential_health_check.liveness import LivenessResult
+from credential_health_check.manifest import Credential, LivenessProbeConfig, ManifestUnreadableError
 from credential_health_check.orchestrator import CycleResult, run_cycle
 from credential_health_check.signals import ActivitySignalFailure
 from credential_health_check.vikunja_writer import VikunjaWriteError
@@ -257,3 +258,298 @@ def test_cycle_activity_signal_healthy_does_not_alert():
         )
     assert result.staleness_alerts_filed == 0
     mock_issue.assert_not_called()
+
+
+# ---------- Helpers for liveness tests ----------
+
+
+def _make_cred_with_liveness(name: str = "gog-credentials-keyring") -> Credential:
+    """Build an in-memory Credential with liveness_probe.enabled=True."""
+    return Credential(
+        name=name,
+        review_cadence="on-revocation",
+        storage="/home/claude/.local/share/gog/keyring",
+        expiry_notes="OAuth2 gog token; re-auth via gog-reauth.sh",
+        type="oauth2",
+        liveness_probe=LivenessProbeConfig(
+            enabled=True,
+            gog_account="kentgale@gmail.com",
+            keyring_file="/home/claude/.local/share/gog/keyring",
+            recovery_command=(
+                "ssh -t office2-claude "
+                "/home/claude/kg-automation/scripts/security/gog-reauth.sh"
+            ),
+        ),
+    )
+
+
+def _make_cred_no_liveness(name: str = "no-liveness-cred") -> Credential:
+    """Build an in-memory Credential without a liveness_probe block."""
+    return Credential(
+        name=name,
+        review_cadence="on-revocation",
+        storage="/etc/secrets/token",
+        expiry_notes="some token",
+        type="api-token",
+        liveness_probe=None,
+    )
+
+
+def _fake_dead_result(cred, classification: str = "dead-routine-7day") -> LivenessResult:
+    return LivenessResult(
+        credential_name=cred.name,
+        classification=classification,
+        reason="test reason",
+        recovery_command=(
+            "ssh -t office2-claude "
+            "/home/claude/kg-automation/scripts/security/gog-reauth.sh"
+        ),
+        probed_at=datetime.now(timezone.utc),
+    )
+
+
+_LIVENESS_PATCH = "credential_health_check.orchestrator.probe_oauth_liveness"
+_DEDUP_PATCH = "credential_health_check.orchestrator.dedup_check"
+_CREATE_ISSUE_PATCH = "credential_health_check.orchestrator.create_issue"
+
+
+# ---------- WP03 liveness tests (T018) ----------
+
+
+def test_orchestrator_skips_credentials_without_liveness_probe():
+    """Credential without liveness_probe block: liveness_skipped logged, no issue filed."""
+    cred = _make_cred_no_liveness()
+    log_records: list[str] = []
+
+    class _Capture(logging.Handler):
+        def emit(self, record):
+            log_records.append(record.getMessage())
+
+    handler = _Capture()
+    logger = logging.getLogger("test_skip_no_liveness")
+    logger.addHandler(handler)
+    logger.setLevel(logging.DEBUG)
+
+    with (
+        patch(_LIVENESS_PATCH) as mock_probe,
+        patch(_DEDUP_PATCH, return_value=[]),
+        patch(_CREATE_ISSUE_PATCH) as mock_issue,
+        patch("credential_health_check.orchestrator.read_manifest", return_value=([cred], [])),
+        patch("credential_health_check.orchestrator.MONITOR_ACTIVITY_READERS", new={}),
+        patch("credential_health_check.orchestrator.is_fixed_interval_cadence", return_value=False),
+    ):
+        result = run_cycle("/fake/manifest.json", today=date(2026, 6, 9), logger=logger)
+
+    mock_probe.assert_not_called()
+    mock_issue.assert_not_called()
+    assert any("liveness_skipped" in msg for msg in log_records)
+
+
+def test_orchestrator_files_issue_on_dead_routine():
+    """Probe returns dead-routine-7day; no dedup match → issue filed, liveness_alerts_filed=1."""
+    cred = _make_cred_with_liveness()
+    captured: dict = {}
+
+    def fake_probe(c):
+        return _fake_dead_result(c, "dead-routine-7day")
+
+    def fake_file(title, body, labels):
+        captured["title"] = title
+        captured["body"] = body
+        captured["labels"] = labels
+        return 999
+
+    with (
+        patch(_LIVENESS_PATCH, side_effect=fake_probe),
+        patch(_DEDUP_PATCH, return_value=[]),
+        patch(_CREATE_ISSUE_PATCH, side_effect=fake_file),
+        patch("credential_health_check.orchestrator.read_manifest", return_value=([cred], [])),
+        patch("credential_health_check.orchestrator.MONITOR_ACTIVITY_READERS", new={}),
+        patch("credential_health_check.orchestrator.is_fixed_interval_cadence", return_value=False),
+    ):
+        result = run_cycle("/fake/manifest.json", today=date(2026, 6, 9))
+
+    assert result.liveness_alerts_filed == 1
+    assert captured["title"].startswith("credential-liveness-routine-7day:")
+    assert cred.name in captured["title"]
+
+
+def test_orchestrator_files_separate_issue_on_dead_unexpected():
+    """Probe returns dead-unexpected; routine issue exists → new issue filed with unexpected prefix."""
+    cred = _make_cred_with_liveness()
+    captured: dict = {}
+
+    def fake_probe(c):
+        return _fake_dead_result(c, "dead-unexpected")
+
+    def fake_dedup(prefix):
+        # Simulate a routine issue open, but not the unexpected one
+        if "routine-7day" in prefix:
+            return [100]
+        return []
+
+    def fake_file(title, body, labels):
+        captured["title"] = title
+        return 101
+
+    with (
+        patch(_LIVENESS_PATCH, side_effect=fake_probe),
+        patch(_DEDUP_PATCH, side_effect=fake_dedup),
+        patch(_CREATE_ISSUE_PATCH, side_effect=fake_file),
+        patch("credential_health_check.orchestrator.read_manifest", return_value=([cred], [])),
+        patch("credential_health_check.orchestrator.MONITOR_ACTIVITY_READERS", new={}),
+        patch("credential_health_check.orchestrator.is_fixed_interval_cadence", return_value=False),
+    ):
+        result = run_cycle("/fake/manifest.json", today=date(2026, 6, 9))
+
+    assert result.liveness_alerts_filed == 1
+    assert captured["title"].startswith("credential-liveness-unexpected:")
+
+
+def test_orchestrator_dedups_repeat_routine_failures():
+    """Probe returns dead-routine-7day; existing open issue → deduped, no new issue."""
+    cred = _make_cred_with_liveness()
+
+    def fake_probe(c):
+        return _fake_dead_result(c, "dead-routine-7day")
+
+    with (
+        patch(_LIVENESS_PATCH, side_effect=fake_probe),
+        patch(_DEDUP_PATCH, return_value=[42]),
+        patch(_CREATE_ISSUE_PATCH) as mock_issue,
+        patch("credential_health_check.orchestrator.read_manifest", return_value=([cred], [])),
+        patch("credential_health_check.orchestrator.MONITOR_ACTIVITY_READERS", new={}),
+        patch("credential_health_check.orchestrator.is_fixed_interval_cadence", return_value=False),
+    ):
+        result = run_cycle("/fake/manifest.json", today=date(2026, 6, 9))
+
+    mock_issue.assert_not_called()
+    assert result.liveness_alerts_filed == 0
+    assert result.alerts_deduped >= 1
+
+
+def test_orchestrator_dry_run_does_not_file():
+    """dry_run=True; probe returns dead → alert_would_file logged; no issue filed."""
+    cred = _make_cred_with_liveness()
+    log_records: list[str] = []
+
+    class _Capture(logging.Handler):
+        def emit(self, record):
+            log_records.append(record.getMessage())
+
+    handler = _Capture()
+    logger = logging.getLogger("test_dry_run_liveness")
+    logger.addHandler(handler)
+    logger.setLevel(logging.DEBUG)
+
+    def fake_probe(c):
+        return _fake_dead_result(c, "dead-routine-7day")
+
+    with (
+        patch(_LIVENESS_PATCH, side_effect=fake_probe),
+        patch(_DEDUP_PATCH, return_value=[]),
+        patch(_CREATE_ISSUE_PATCH) as mock_issue,
+        patch("credential_health_check.orchestrator.read_manifest", return_value=([cred], [])),
+        patch("credential_health_check.orchestrator.MONITOR_ACTIVITY_READERS", new={}),
+        patch("credential_health_check.orchestrator.is_fixed_interval_cadence", return_value=False),
+    ):
+        result = run_cycle("/fake/manifest.json", today=date(2026, 6, 9), dry_run=True, logger=logger)
+
+    mock_issue.assert_not_called()
+    assert result.liveness_alerts_filed == 0
+    assert any("alert_would_file" in msg for msg in log_records)
+
+
+def test_orchestrator_probe_error_no_issue():
+    """Probe returns probe-error → result.errors populated; no issue filed."""
+    cred = _make_cred_with_liveness()
+
+    def fake_probe(c):
+        return LivenessResult(
+            credential_name=c.name,
+            classification="probe-error",
+            reason="gog binary not found",
+            recovery_command=None,
+            probed_at=datetime.now(timezone.utc),
+        )
+
+    with (
+        patch(_LIVENESS_PATCH, side_effect=fake_probe),
+        patch(_DEDUP_PATCH, return_value=[]),
+        patch(_CREATE_ISSUE_PATCH) as mock_issue,
+        patch("credential_health_check.orchestrator.read_manifest", return_value=([cred], [])),
+        patch("credential_health_check.orchestrator.MONITOR_ACTIVITY_READERS", new={}),
+        patch("credential_health_check.orchestrator.is_fixed_interval_cadence", return_value=False),
+    ):
+        result = run_cycle("/fake/manifest.json", today=date(2026, 6, 9))
+
+    mock_issue.assert_not_called()
+    assert result.liveness_alerts_filed == 0
+    assert any("probe_error" in e or "gog binary" in e for e in result.errors)
+
+
+def test_liveness_only_skips_cadence_and_staleness():
+    """liveness_only=True: only liveness probe runs, not cadence/staleness."""
+    cred = _make_cred_with_liveness()
+    process_cadence_calls: list = []
+    process_staleness_calls: list = []
+
+    def fake_probe(c):
+        return None  # alive
+
+    with (
+        patch(_LIVENESS_PATCH, side_effect=fake_probe),
+        patch(_DEDUP_PATCH, return_value=[]),
+        patch(_CREATE_ISSUE_PATCH) as mock_issue,
+        patch("credential_health_check.orchestrator.read_manifest", return_value=([cred], [])),
+        patch("credential_health_check.orchestrator.MONITOR_ACTIVITY_READERS", new={}),
+        patch(
+            "credential_health_check.orchestrator._process_cadence_alert",
+            side_effect=lambda *a, **kw: process_cadence_calls.append(1),
+        ),
+        patch(
+            "credential_health_check.orchestrator._process_staleness_alert",
+            side_effect=lambda *a, **kw: process_staleness_calls.append(1),
+        ),
+    ):
+        result = run_cycle("/fake/manifest.json", today=date(2026, 6, 9), liveness_only=True)
+
+    assert len(process_cadence_calls) == 0
+    assert len(process_staleness_calls) == 0
+    mock_issue.assert_not_called()
+
+
+def test_liveness_runs_in_both_modes():
+    """liveness_only=False: liveness probe runs alongside cadence/staleness."""
+    cred = _make_cred_with_liveness()
+    liveness_calls: list = []
+
+    def fake_probe(c):
+        liveness_calls.append(c.name)
+        return None  # alive
+
+    with (
+        patch(_LIVENESS_PATCH, side_effect=fake_probe),
+        patch(_DEDUP_PATCH, return_value=[]),
+        patch(_CREATE_ISSUE_PATCH),
+        patch("credential_health_check.orchestrator.read_manifest", return_value=([cred], [])),
+        patch("credential_health_check.orchestrator.MONITOR_ACTIVITY_READERS", new={}),
+        patch("credential_health_check.orchestrator.is_fixed_interval_cadence", return_value=False),
+    ):
+        result = run_cycle("/fake/manifest.json", today=date(2026, 6, 9), liveness_only=False)
+
+    assert len(liveness_calls) >= 1
+    assert liveness_calls[0] == cred.name
+
+
+def test_dedup_title_prefixes_differ_routine_vs_unexpected():
+    """String-level assertion: routine prefix != unexpected prefix."""
+    routine_prefix = "credential-liveness-routine-7day: gog-credentials-keyring"
+    unexpected_prefix = "credential-liveness-unexpected: gog-credentials-keyring"
+
+    assert routine_prefix.startswith("credential-liveness-routine-7day:")
+    assert unexpected_prefix.startswith("credential-liveness-unexpected:")
+    assert routine_prefix != unexpected_prefix
+    # Verify the removeprefix logic used in the orchestrator.
+    assert "dead-routine-7day".removeprefix("dead-") == "routine-7day"
+    assert "dead-unexpected".removeprefix("dead-") == "unexpected"

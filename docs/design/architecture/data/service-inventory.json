@@ -1,7 +1,7 @@
 {
   "schema_version": "1.1",
-  "last_updated": "2026-06-08",
-  "updated_by": "prescan-archive-anomalies-01KTMZPE (#568) + capture-agents-md-rewrite-01KTMY86 (#566) + capture-d6-helpers-extraction-01KTMS5Q (#566) + agent-prompt-deploy-pipeline-01KTMDDD (#567) + vikunja-client-and-habits-weekly-report-01KTKSFT (#542 + #561 + #562) + inbox-calendar-and-aspiration-routing-01KTHHXS + #520-felix-vikunja-sync-project-layer-and-url-config + #519-touchpoint-migration + #518-felix-vikunja-sync-driver-added + #376-remove-escalation-v1-parity + #400-audit-interpretation-moment0 + #310-tasker-jsonl-migration + #374-main-verbatim-passthrough + #362-drift-event-auto-resolution + #309-migrate-escalation-to-jsonl-state-model + #343-refactor-doc-auditor-to-scripts-first-driver + #307-backfill-habits-jsonl-from-comments + #306-habits-native-repeat-jsonl-state + #304-felix-bot-rotation + #291-felix-file-issue + #289-mutation-surfaces-enumeration + #285-cron-delivery-restore-path-c + #282-habits-d6-extract + #263-cron-delivery-mode-round2 + #100-google-workspace-foundation + #256-scope-discipline-guardrails + #253-step-5a-6-consolidation + #254-atomic-write-perm-preservation + issue-105-doc-auditor + #223-systemd-timer + #208-restic-healthcheck + #202-obsidian-sync-system-level + #203-sync-heartbeat + #199-inbox-schedules + #115-credential-health-check + #189-vikunja-compose + #185-inbox-capture-dedup",
+  "last_updated": "2026-06-09",
+  "updated_by": "#572-credential-liveness-probe + prescan-archive-anomalies-01KTMZPE (#568) + capture-agents-md-rewrite-01KTMY86 (#566) + capture-d6-helpers-extraction-01KTMS5Q (#566) + agent-prompt-deploy-pipeline-01KTMDDD (#567) + vikunja-client-and-habits-weekly-report-01KTKSFT (#542 + #561 + #562) + inbox-calendar-and-aspiration-routing-01KTHHXS + #520-felix-vikunja-sync-project-layer-and-url-config + #519-touchpoint-migration + #518-felix-vikunja-sync-driver-added + #376-remove-escalation-v1-parity + #400-audit-interpretation-moment0 + #310-tasker-jsonl-migration + #374-main-verbatim-passthrough + #362-drift-event-auto-resolution + #309-migrate-escalation-to-jsonl-state-model + #343-refactor-doc-auditor-to-scripts-first-driver + #307-backfill-habits-jsonl-from-comments + #306-habits-native-repeat-jsonl-state + #304-felix-bot-rotation + #291-felix-file-issue + #289-mutation-surfaces-enumeration + #285-cron-delivery-restore-path-c + #282-habits-d6-extract + #263-cron-delivery-mode-round2 + #100-google-workspace-foundation + #256-scope-discipline-guardrails + #253-step-5a-6-consolidation + #254-atomic-write-perm-preservation + issue-105-doc-auditor + #223-systemd-timer + #208-restic-healthcheck + #202-obsidian-sync-system-level + #203-sync-heartbeat + #199-inbox-schedules + #115-credential-health-check + #189-vikunja-compose + #185-inbox-capture-dedup",
   "services": [
     {
       "name": "vikunja",
@@ -2119,6 +2119,72 @@
           "source_in_repo": "scripts/security/credential_health_check/"
         }
       ]
+    },
+    {
+      "name": "credential-liveness-probe",
+      "type": "systemd_user_timer",
+      "schedule": "OnCalendar=*-*-* 00,06,12,18:00:00; Persistent=true",
+      "schedule_note": "Probes OAuth token health every 6 hours (00:00, 06:00, 12:00, 18:00 UTC); Persistent=true ensures a catch-up run after host downtime",
+      "exec_start": "cd /home/claude/kg-automation && python3 -m scripts.security.credential_liveness_probe",
+      "host": "office2",
+      "user": "claude",
+      "log_path": "journalctl --user -u credential-liveness-probe.service",
+      "deployed_by": "#572-credential-liveness-probe",
+      "deployed_on": "2026-06-09",
+      "updated_by": "#572-credential-liveness-probe",
+      "last_updated": "2026-06-09",
+      "status": "active",
+      "purpose": "OAuth credential liveness probe \u2014 issues a cheap `gog calendar list` call per monitored credential and files a GitHub issue on `invalid_grant` (kentonium3/kg-automation#572). Surfaces dead refresh tokens within \u22646h instead of waiting for a user-facing failure. Two issue title prefixes: `credential-liveness-routine-7day:` (expected 7-day Testing-app cycle) vs `credential-liveness-unexpected:` (out-of-cycle revocation). Issue body includes the exact `gog-reauth.sh` recovery command.",
+      "risk_tier": 3,
+      "dependencies": [
+        {
+          "target": "openclaw-gateway.service",
+          "type": "requires",
+          "description": "Waits on openclaw-gateway.service (After= in unit) to ensure the gog skill is available before probing"
+        },
+        {
+          "target": "network-online.target",
+          "type": "requires",
+          "description": "Requires network connectivity before issuing OAuth token probe"
+        },
+        {
+          "target": "gog-credentials-keyring",
+          "type": "consumes",
+          "description": "Reads gog OAuth refresh token from the gnome-keyring-backed gog credential store"
+        },
+        {
+          "target": "gh-cli",
+          "type": "requires",
+          "description": "GitHub issue filing as kg-felix-bot on token-dead detection"
+        }
+      ],
+      "health_check": {
+        "method": "log-tail",
+        "endpoint": "journalctl --user -u credential-liveness-probe.service --since '7 hours ago' | grep -E 'credential_alive|credential_dead|credential_probe_error'",
+        "expected": "At least one credential_alive or credential_dead event in the last 7-hour window; absence means the timer did not fire",
+        "timeout_seconds": 5
+      },
+      "config_files": [
+        {
+          "path": "~/.config/systemd/user/credential-liveness-probe.service",
+          "format": "systemd-unit",
+          "source_in_repo": "scripts/office2/credential-liveness-probe.service"
+        },
+        {
+          "path": "~/.config/systemd/user/credential-liveness-probe.timer",
+          "format": "systemd-unit",
+          "source_in_repo": "scripts/office2/credential-liveness-probe.timer"
+        }
+      ],
+      "deploy_script": "scripts/office2/deploy/credential-liveness-probe.sh",
+      "emits_signals": [
+        "credential_alive",
+        "credential_dead",
+        "credential_probe_error"
+      ],
+      "output_channel": "github-issue",
+      "tracking_issue": "#572",
+      "runbook": "docs/runbooks/google-workspace-ops.md"
     },
     {
       "name": "google-workspace",

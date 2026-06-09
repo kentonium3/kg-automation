@@ -4,7 +4,7 @@ doc_type: runbook
 status: approved
 owners: ["@kentonium3"]
 last_updated: '2026-06-09'
-updated_by: '#572-gog-reauth-script-references'
+updated_by: '#572-credential-liveness-probe'
 audience: agents_and_humans
 ---
 
@@ -664,12 +664,26 @@ step 1+2 manually. Until the OAuth app's publishing status changes
 (see §2.4 callout), expect this re-auth roughly every Monday-ish
 (matched to the previous mint date). Tracking issue: #572.
 
+> **Automatic detection** (post-#572): the `credential-liveness-probe`
+> systemd timer probes the gog token every 6 hours. When the token dies,
+> a GitHub issue is filed within ≤6h titled
+> `credential-liveness-routine-7day: gog-credentials-keyring (<date>)` (or
+> `credential-liveness-unexpected: …` for non-cycle deaths). The issue body
+> carries the exact `gog-reauth.sh` recovery command. You don't need to
+> manually monitor for expiration — the probe surfaces it.
+>
+> Force a probe manually:
+> `systemctl --user start credential-liveness-probe.service` (then
+> `journalctl --user -u credential-liveness-probe.service --since '1 minute ago'`).
+
 **Refresh token revoked (other causes)**: if `gog auth doctor` reports a
 revoked token AND fewer than 7 days have passed since the last re-mint,
 the cause is one of: Google account password change, 6+ months of
 inactivity, manual revocation at https://myaccount.google.com/permissions,
 or a Google security review. Same remediation — re-run §2.8 step 1
-(client credentials are still valid).
+(client credentials are still valid). The liveness probe will file a
+`credential-liveness-unexpected: gog-credentials-keyring (<date>)` issue for
+out-of-cycle revocations.
 
 **Scope expansion**: if a future use case needs a scope not in the
 original `--services` list (e.g., adding `tasks` later), re-run `gog auth

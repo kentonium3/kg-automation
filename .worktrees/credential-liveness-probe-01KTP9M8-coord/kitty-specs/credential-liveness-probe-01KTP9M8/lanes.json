@@ -1,0 +1,104 @@
+{
+  "version": 1,
+  "mission_slug": "credential-liveness-probe-01KTP9M8",
+  "mission_id": "01KTP9M86VF89TQM5SX7JVA83Z",
+  "mission_branch": "kitty/mission-credential-liveness-probe-01KTP9M8",
+  "target_branch": "main",
+  "lanes": [
+    {
+      "lane_id": "lane-a",
+      "wp_ids": [
+        "WP01"
+      ],
+      "write_scope": [
+        "docs/design/architecture/data/credential-manifest.json",
+        "scripts/security/credential_health_check/manifest.py",
+        "tests/security/credential_health_check/test_manifest.py"
+      ],
+      "predicted_surfaces": [
+        "api"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    },
+    {
+      "lane_id": "lane-b",
+      "wp_ids": [
+        "WP02"
+      ],
+      "write_scope": [
+        "scripts/security/credential_health_check/liveness.py",
+        "tests/security/credential_health_check/test_liveness.py"
+      ],
+      "predicted_surfaces": [
+        "api"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    },
+    {
+      "lane_id": "lane-c",
+      "wp_ids": [
+        "WP03"
+      ],
+      "write_scope": [
+        "scripts/security/credential_health_check/__main__.py",
+        "scripts/security/credential_health_check/listing.py",
+        "scripts/security/credential_health_check/orchestrator.py",
+        "tests/security/credential_health_check/test_listing.py",
+        "tests/security/credential_health_check/test_orchestrator.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "legacy-cleanup"
+      ],
+      "depends_on_lanes": [
+        "lane-a",
+        "lane-b"
+      ],
+      "parallel_group": 1
+    },
+    {
+      "lane_id": "lane-d",
+      "wp_ids": [
+        "WP04"
+      ],
+      "write_scope": [
+        "scripts/office2/credential-liveness-probe.service",
+        "scripts/office2/credential-liveness-probe.timer",
+        "scripts/office2/deploy/credential-liveness-probe.sh"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "artifact-rendering",
+        "workspace"
+      ],
+      "depends_on_lanes": [
+        "lane-c"
+      ],
+      "parallel_group": 2
+    },
+    {
+      "lane_id": "lane-e",
+      "wp_ids": [
+        "WP05"
+      ],
+      "write_scope": [
+        "docs/design/architecture/data/service-inventory.json",
+        "docs/runbooks/google-workspace-ops.md"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "artifact-rendering",
+        "workspace"
+      ],
+      "depends_on_lanes": [
+        "lane-d"
+      ],
+      "parallel_group": 3
+    }
+  ],
+  "computed_at": "2026-06-09T14:18:14.174627+00:00",
+  "computed_from": "dependency_graph+ownership",
+  "planning_artifact_wps": []
+}

@@ -2,6 +2,8 @@
 
 See kitty-specs/credential-expiry-health-check-01KRCF92/contracts/manifest-reader.md
 for the authoritative contract.
+
+# Mission WP01 cycle-3 marker — workflow-state cleanup (no code change)
 """
 from __future__ import annotations
 
@@ -30,6 +32,31 @@ class ManifestUnreadableError(Exception):
     """
 
 
+class ManifestQualityError(Exception):
+    """A credential entry has a structural validation error that prevents safe parsing.
+
+    Raised (not collected) for conditions that must halt processing: e.g.,
+    liveness_probe.enabled is true but required fields are missing, or the
+    liveness_probe block contains unknown keys. See
+    kitty-specs/credential-liveness-probe-01KTP9M8/contracts/manifest-liveness-probe-block.md.
+    """
+
+
+@dataclass(frozen=True)
+class LivenessProbeConfig:
+    """Per-credential liveness probe configuration.
+
+    When `enabled is True`, all of `gog_account`, `keyring_file`, and
+    `recovery_command` MUST be set. See
+    kitty-specs/credential-liveness-probe-01KTP9M8/contracts/manifest-liveness-probe-block.md.
+    """
+
+    enabled: bool
+    gog_account: Optional[str] = None
+    keyring_file: Optional[str] = None
+    recovery_command: Optional[str] = None
+
+
 @dataclass(frozen=True)
 class Credential:
     """One well-formed credential entry from the manifest."""
@@ -45,6 +72,7 @@ class Credential:
     host: Optional[str] = None
     last_reviewed: Optional[date] = None
     created_date: Optional[date] = None
+    liveness_probe: Optional[LivenessProbeConfig] = None
 
 
 @dataclass(frozen=True)
@@ -127,6 +155,33 @@ def _validate_and_construct(
     else:
         used_by = tuple(str(x) for x in used_by_raw)
 
+    liveness_probe_raw = entry.get("liveness_probe")
+    if liveness_probe_raw is None:
+        liveness_probe = None
+    else:
+        # Validate unknown subkeys.
+        allowed_keys = {"enabled", "gog_account", "keyring_file", "recovery_command"}
+        unknown = set(liveness_probe_raw.keys()) - allowed_keys
+        if unknown:
+            raise ManifestQualityError(
+                f"credential {name!r}: liveness_probe contains "
+                f"unknown keys: {sorted(unknown)}"
+            )
+        enabled = liveness_probe_raw.get("enabled", False)
+        if enabled:
+            for required in ("gog_account", "keyring_file", "recovery_command"):
+                if not liveness_probe_raw.get(required):
+                    raise ManifestQualityError(
+                        f"credential {name!r}: liveness_probe.enabled "
+                        f"is true but {required!r} is missing or empty"
+                    )
+        liveness_probe = LivenessProbeConfig(
+            enabled=enabled,
+            gog_account=liveness_probe_raw.get("gog_account"),
+            keyring_file=liveness_probe_raw.get("keyring_file"),
+            recovery_command=liveness_probe_raw.get("recovery_command"),
+        )
+
     cred = Credential(
         name=name,
         review_cadence=cadence,
@@ -139,6 +194,7 @@ def _validate_and_construct(
         host=entry.get("host") if isinstance(entry.get("host"), str) else None,
         last_reviewed=last_reviewed,
         created_date=created_date,
+        liveness_probe=liveness_probe,
     )
     return cred, None
 

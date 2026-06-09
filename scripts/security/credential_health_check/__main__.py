@@ -45,6 +45,24 @@ def main(argv: list[str] | None = None) -> int:
         ),
     )
     parser.add_argument(
+        "--liveness",
+        action="store_true",
+        help=(
+            "With --list: print an additional table of OAuth liveness state "
+            "per oauth2-typed credential. Read-only; no probes issued. "
+            "For fresh classification, run with --dry-run --liveness-only."
+        ),
+    )
+    parser.add_argument(
+        "--liveness-only",
+        action="store_true",
+        help=(
+            "Run only the OAuth liveness probe pass for credentials with "
+            "liveness_probe.enabled. Skips cadence, staleness, and "
+            "manifest-quality passes. Used by credential-liveness-probe.timer (6h cadence)."
+        ),
+    )
+    parser.add_argument(
         "--today",
         default=None,
         help="Override 'today' for testing (ISO-8601 date). Production runs always use UTC today.",
@@ -61,7 +79,7 @@ def main(argv: list[str] | None = None) -> int:
         # --list is read-only and prints directly to stdout. No structured logging
         # noise; suitable for ad-hoc terminal use and copy-paste.
         try:
-            return list_credentials(args.manifest, today, stream=sys.stdout)
+            return list_credentials(args.manifest, today, stream=sys.stdout, liveness=args.liveness)
         except ManifestUnreadableError as e:
             print(f"ERROR: manifest unreadable at {args.manifest}: {e}", file=sys.stderr)
             return 1
@@ -74,7 +92,12 @@ def main(argv: list[str] | None = None) -> int:
     logger = logging.getLogger("credential_health_check")
 
     try:
-        result = run_cycle(args.manifest, today, dry_run=args.dry_run, logger=logger)
+        result = run_cycle(
+            args.manifest, today,
+            dry_run=args.dry_run,
+            logger=logger,
+            liveness_only=args.liveness_only,
+        )
     except ManifestUnreadableError as e:
         logger.error("manifest_unreadable path=%s error=%s", args.manifest, e)
         return 1
