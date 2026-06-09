@@ -1,0 +1,13 @@
+{
+  "coordination_branch": "kitty/mission-capture-agents-md-rewrite-01KTMY86",
+  "created_at": "2026-06-09T00:59:19.336974+00:00",
+  "friendly_name": "Capture AGENTS.md Rewrite (Directive-6 half-2)",
+  "mission_id": "01KTMY86X63W50FF36GWPWADH2",
+  "mission_number": null,
+  "mission_slug": "capture-agents-md-rewrite-01KTMY86",
+  "mission_type": "software-dev",
+  "purpose_context": "Half-2 of #566. Half-1 (capture-d6-helpers-extraction-01KTMS5Q, merge ea52ad0e) shipped 6 stdlib helpers under scripts/inbox/ (mark_processed, route_journal_entry, route_someday, route_calendar_event, handle_clarification_state, classify_content) and verified them live on office2 via #567's deploy pipeline. This mission rewrites felix-admin-capture's AGENTS.md to invoke those helpers via python3 -m form, drops the deterministic recipe prose they replace, and keeps only the LLM judgment surfaces (multi-topic note splitting, ambiguous-block disambiguation consuming classify_content's flagged outputs, clarification message authoring + reply interpretation, Output Discipline Hard Rules, identity + scope + lane assignments). Target prompt size: ~250-400 lines (down from 1215) so it fits comfortably under openclaw's 12,000-char bootstrap budget and the 14K effective budget per [[reference_openclaw_gotchas]]. Constraints: existing helpers in scripts/inbox/ (append_routing_entry, file_inbox_quality_issue, etc.) stay untouched; this mission only edits scripts/openclaw/agents/felix-admin-capture/AGENTS.md (and IDENTITY/SOUL/TOOLS/USER if needed for consistency). Verifies the structural fix from epic #563: capture's AGENTS.md is no longer truncated at openclaw session-init; Step 5 routing/preserve instructions become VISIBLE again.",
+  "purpose_tldr": "Rewrite felix-admin-capture's AGENTS.md to invoke the 6 stdlib helpers shipped in half-1; reduce ~1215 lines to ~250-400 so it fits openclaw's 12K bootstrap budget; closes #566.",
+  "slug": "capture-agents-md-rewrite-01KTMY86",
+  "target_branch": "main"
+}
