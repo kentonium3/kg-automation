@@ -213,9 +213,12 @@
       },
       "doc_targets": [
         "docs/design/architecture/data/network-topology.json",
-        "docs/design/architecture/physical-topology.md"
+        "docs/design/architecture/physical-topology.md",
+        "docs/design/architecture/security-posture.md",
+        "docs/design/architecture/adr/0004-tailscale-ssh-with-accept-acl.md",
+        "docs/runbooks/phone-termius-setup.md"
       ],
-      "rationale": "A mission opens or closes a network port, adds a host, changes connectivity (Tailscale ACL, DNS, proxy), or modifies a service binding. Update the JSON first, then the physical-topology narrative. Tier 1 change per CLAUDE.md change-control taxonomy — verification required.",
+      "rationale": "A mission opens or closes a network port, adds a host, changes connectivity (Tailscale ACL, DNS, proxy), or modifies a service binding. Update the JSON first, then the physical-topology narrative. For SSH/Tailscale ACL changes specifically: also update security-posture.md (SSH gates section) AND append to ADR-0004's ACL changes log AND review whether the phone-termius-setup runbook needs an update. Tier 1 change per CLAUDE.md change-control taxonomy — verification required.",
       "consumer_hint": "spec-author"
     },
     {

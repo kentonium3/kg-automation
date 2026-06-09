@@ -66,6 +66,7 @@ Immutable, dated records of *why* particular options were chosen over alternativ
 - [ADR Index](<./design/architecture/adr/README.md>)
 - [ADR-0001 — Google Workspace integration via `gog`](<./design/architecture/adr/0001-google-workspace-via-gog.md>) (approved 2026-05-13)
 - [ADR-0002 — Felix ↔ Vikunja task model](<./design/architecture/adr/0002-felix-vikunja-task-model.md>) (approved 2026-05-17)
+- [ADR-0004 — Enable Tailscale SSH on office2 with `accept` ACL](<./design/architecture/adr/0004-tailscale-ssh-with-accept-acl.md>) (approved 2026-06-09)
 
 ### docs/design/architecture/data/ — Machine-readable state (JSON)
 
@@ -113,6 +114,7 @@ Numerators/denominators captured before and after material architectural changes
 - [Escalation Engine Operations](<./runbooks/escalation-ops.md>)
 - [OpenClaw Agent Setup](<./runbooks/openclaw-agent-setup.md>)
 - [Google Workspace Operations](<./runbooks/google-workspace-ops.md>) — `gog` CLI setup, OAuth flow, pitfalls, common commands, second-account expansion, credential liveness probe auto-detection (#100, ADR-0001, #572)
+- [Phone Termius Setup & Recovery](<./runbooks/phone-termius-setup.md>) — iPhone Termius SSH setup (kgale + claude hosts), new-phone enrollment, post-key-rotation recovery, Tailscale SSH ACL gotchas (#575, ADR-0004)
 
 ### Human and mixed-audience runbooks
 

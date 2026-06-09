@@ -53,7 +53,8 @@ Authoritative data: [`data/hardware-inventory.json`](<./data/hardware-inventory.
 | Attribute | Value |
 |-----------|-------|
 | Tailscale IP | 100.109.208.6 |
-| Role | Mobile capture (Wispr Flow), task monitoring (Vikunja web UI) |
+| Role | Mobile capture (Wispr Flow), task monitoring (Vikunja web UI), emergency SSH access via Termius |
+| SSH client | Termius mobile (free plan), two host entries: `kgale` and `claude` users, both via Tailscale → office2 sshd. See [phone-termius-setup runbook](<../../runbooks/phone-termius-setup.md>) |
 
 ## Network
 
@@ -63,8 +64,10 @@ All inter-device communication uses **Tailscale**. No services are exposed to th
 
 **SSH access:**
 - Agents: `ssh office2-claude` (claude user, no sudo)
-- Kent: `ssh office2-kgale` (kgale user, sudo available)
+- Kent (Mac): `ssh office2-kgale` (kgale user, sudo available)
+- Kent (phone, Termius): two host entries, both via Tailscale → office2 sshd — `kgale` for general ops + `claude` for `gog-reauth` and other claude-user tasks. Termius SSH ID public key is in both users' `~/.ssh/authorized_keys`. Setup procedure: [phone-termius-setup runbook](<../../runbooks/phone-termius-setup.md>).
 - Host aliases defined in `~/.ssh/config` on Mac
+- **Tailscale SSH is enabled on office2** (`tailscale up --ssh`; confirmed via `tailscale debug prefs` showing `RunSSH: true`). tailscaled intercepts incoming SSH on port 22 of the Tailscale IP (100.92.197.90), applies the tailnet ACL, then passes through to sshd. Current ACL: `action: "accept"` for `autogroup:member` → `autogroup:self` → `autogroup:nonroot, root`. The change from `check` to `accept` is documented in [ADR-0004](<./adr/0004-tailscale-ssh-with-accept-acl.md>).
 
 ## Service Dependencies
 

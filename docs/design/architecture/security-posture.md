@@ -29,12 +29,23 @@ tags: [152]
 
 | User | Access | Sudo | Purpose |
 |------|--------|------|---------|
-| `claude` | `ssh office2-claude` | No | Agent operations — all automated actions |
-| `kgale` | `ssh office2-kgale` | Yes | Human operations — sudo commands, initial setup |
+| `claude` | `ssh office2-claude` (Mac), or `claude` host in Termius mobile | No | Agent operations — all automated actions. Humans connecting as `claude` is allowed for specific user-bound operations (e.g. `gog-reauth` weekly re-auth — see [phone-termius-setup runbook](<../../runbooks/phone-termius-setup.md>)) |
+| `kgale` | `ssh office2-kgale` (Mac), or `kgale` host in Termius mobile | Yes | Human operations — sudo commands, initial setup, emergency ops |
 
-**Agents must always use the claude user.** The kgale account is for human use only. This ensures all agent actions are traceable.
+**Agents must always use the claude user.** The kgale account is for human use only by autonomous agents. Humans (Kent) may use either user depending on the task. This ensures all agent actions are traceable.
 
 **Sudo escalation**: When a command requires sudo, agents stop and present the command to Kent for manual execution.
+
+### SSH gates (two layers, in order)
+
+SSH access to office2 passes through **two gates** in sequence:
+
+1. **Tailscale SSH** (network-layer ACL) — tailscaled on office2 intercepts SSH connections to port 22 on the Tailscale IP. With current ACL `action: "accept"`, the connection is allowed through to sshd. With `"check"` it would require browser re-auth (incompatible with Termius mobile). See [ADR-0004](<./adr/0004-tailscale-ssh-with-accept-acl.md>) for the decision rationale.
+2. **sshd** (authentication) — standard OpenSSH authentication using `~/.ssh/authorized_keys` per user. The Termius SSH ID public key (cloud-hosted) is installed in both `kgale`'s and `claude`'s `authorized_keys`.
+
+**SSH key rotation impact**: Rotating a Mac-side SSH key affects only the standard sshd path. Tailscale SSH gating is independent of SSH keys. Termius mobile uses its own SSH ID, NOT any Mac key. The 2026-06-09 #575 rediscovery wasted ~30 min troubleshooting `authorized_keys` permissions before noticing this distinction — see [phone-termius-setup § Gotchas](<../../runbooks/phone-termius-setup.md>).
+
+**ACL changes are tracked in [ADR-0004](<./adr/0004-tailscale-ssh-with-accept-acl.md>) § ACL changes log.** Any future change to the tailnet `ssh` rule (action, src/dst/users) must be recorded there. Undocumented changes are how the #575 docs-debt accumulated.
 
 ## Credential Security
 

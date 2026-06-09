@@ -1,15 +1,27 @@
 {
-  "schema_version": "1.1",
-  "last_updated": "2026-04-05",
-  "updated_by": "F016",
+  "schema_version": "1.2",
+  "last_updated": "2026-06-09",
+  "updated_by": "#575-tailscale-ssh-docs",
   "network": {
     "type": "tailscale",
     "tailnet_owner": "kentgale@",
+    "magic_dns_suffix": "tail0f5f56.ts.net",
     "devices": [
       {"hostname": "office2", "tailscale_ip": "100.92.197.90", "os": "linux"},
       {"hostname": "kents-macbook-pro", "tailscale_ip": "100.71.19.66", "os": "macOS"},
       {"hostname": "iphone-14-pro-max", "tailscale_ip": "100.109.208.6", "os": "iOS"}
     ]
+  },
+  "tailscale_ssh": {
+    "enabled_on": ["office2"],
+    "verified_via": "tailscale debug prefs (RunSSH: true)",
+    "acl_action": "accept",
+    "acl_source": "autogroup:member",
+    "acl_destination": "autogroup:self",
+    "acl_users": ["autogroup:nonroot", "root"],
+    "acl_managed_at": "https://login.tailscale.com/admin/acls",
+    "decision_record": "docs/design/architecture/adr/0004-tailscale-ssh-with-accept-acl.md",
+    "notes": "tailscaled intercepts SSH connections to port 22 on the Tailscale IP. With action: 'accept', the connection is passed through to standard sshd for auth via authorized_keys. ACL changes are logged in ADR-0004."
   },
   "port_assignments": [
     {
@@ -54,7 +66,8 @@
   "access_rules": [
     "Services bind to Tailscale IP (100.92.197.90) unless fronted by Tailscale Serve, which allows 0.0.0.0 binding safely",
     "SSH access for agents: ssh office2-claude only",
-    "SSH access for Kent: ssh office2-kgale",
+    "SSH access for Kent: ssh office2-kgale (Mac terminal) or Termius mobile (kgale + claude hosts)",
+    "SSH connections to port 22 on the Tailscale IP are intercepted by Tailscale SSH first (action: accept), then passed to sshd for authorized_keys auth — see tailscale_ssh block above + ADR-0004",
     "No services exposed to public internet",
     "No port forwarding or NAT traversal outside Tailscale"
   ]

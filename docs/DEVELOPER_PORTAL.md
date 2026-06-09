@@ -173,6 +173,7 @@ local validation and CI.
 - [Escalation Phase 6 Soak Window](<./runbooks/escalation-soak-window.md>)
 - [Felix Governance Runbook](<./runbooks/felix-governance.md>)
 - [felix-bot Vikunja Provisioning](<./runbooks/felix-bot-vikunja-provisioning.md>)
+- [Phone Termius Setup & Recovery](<./runbooks/phone-termius-setup.md>)
 - [Spec-Kitty Installation Guide for Existing Repositories](<./runbooks/spec-kitty-init-in-existing-repo.md>)
 
 ### Unclassified
