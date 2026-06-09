@@ -200,7 +200,7 @@ The pipeline is operator-owned but agent-readable:
 - **Helper**: `scripts/openclaw/deploy/deploy_agent_prompts.py` (stdlib-only Python)
 - **Systemd timer + service**: `scripts/openclaw/deploy/agent-prompt-sync.{timer,service}` (deployed to `~/.config/systemd/user/` on office2 as the `claude` user)
 - **Audit log**: `/data/services/openclaw/deploy/agent-prompt-sync.jsonl` (append-only JSONL)
-- **Operator runbook**: [`agent-prompt-sync-ops.md`](agent-prompt-sync-ops.md)
+- **Operator runbook**: [`agent-prompt-sync-ops.md`](<./agent-prompt-sync-ops.md>)
 
 **Implications for new-agent deployment**:
 
