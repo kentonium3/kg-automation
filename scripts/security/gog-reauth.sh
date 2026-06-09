@@ -67,6 +67,24 @@ if [[ ! -t 0 ]]; then
   exit 1
 fi
 
+# ---- self-update -----------------------------------------------------------
+
+# Pull latest before running. Prevents the trap where a fix to this very
+# script (e.g., the `cut -d= -f2-` fix in acc4c4da) doesn't take effect on
+# the FIRST re-auth because the previous version was on disk at invocation
+# time. Without this, operators silently keep running stale versions.
+REPO_ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)"
+if [[ -d "${REPO_ROOT}/.git" ]]; then
+  echo "==> Pulling latest gog-reauth.sh from main..."
+  git -C "${REPO_ROOT}" fetch origin main --quiet
+  git -C "${REPO_ROOT}" pull --ff-only origin main
+  # Re-exec the (potentially updated) script so any changes apply to THIS run.
+  if [[ -z "${GOG_REAUTH_REEXECED:-}" ]]; then
+    export GOG_REAUTH_REEXECED=1
+    exec "${BASH_SOURCE[0]}" "$@"
+  fi
+fi
+
 # ---- env setup -------------------------------------------------------------
 
 # The keyring password lives in the openclaw-gateway env file (single source
