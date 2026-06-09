@@ -97,7 +97,7 @@ Per operator decision (Option C — live with the weekly cycle + automate around
 | FR-007 | The `recovery_command` field is populated from the manifest: each oauth2 credential has a `liveness_probe.recovery_command` field. For the gog default account: `ssh -t office2-claude /home/claude/kg-automation/scripts/security/gog-reauth.sh`. | Specified |
 | FR-008 | Orchestrator integration: a new `_process_liveness_alert(cred, today, cycle_id, result, logger, dry_run)` function in `orchestrator.py` is invoked for each credential with `monitor_liveness: true`. It calls `probe_oauth_liveness()`, dedups by GitHub issue title prefix, and files an issue on failure. | Specified |
 | FR-009 | Dedup behavior: the title prefix encodes the classification (`credential-liveness-routine-7day:` vs `credential-liveness-unexpected:`) so the two failure modes do NOT dedup against each other. If a routine issue is open and an unexpected-revocation probe later fires, a separate issue is filed. | Specified |
-| FR-010 | When a previously-failing probe now succeeds, the orchestrator does NOT auto-close existing open issues. The operator closes manually after running the recovery command (existing pattern; matches cadence + staleness alerts). | Specified |
+| FR-010 | When a previously-failing probe now succeeds, the orchestrator does NOT auto-close existing open issues. The operator closes manually after running the recovery command (existing pattern; matches cadence + staleness alerts). Auto-close-on-recovery is deferred to a follow-up mission once weekly re-auth becomes routine and operator-closure friction outweighs the audit-trail clarity of manual close (see Future Work). | Specified |
 | FR-011 | A new CLI flag `--liveness-only` runs only the liveness pass and skips cadence/staleness/manifest-quality. Useful for ad-hoc probing and faster cycle times. | Specified |
 | FR-012 | A new CLI flag `--list --liveness` extends `--list` to add a per-oauth2-credential row showing: `name`, `last_probed_at_iso`, `last_classification`, `recovery_command_if_failing`. Read-only; no probes issued. | Specified |
 | FR-013 | The credential manifest gains a new optional per-credential block `liveness_probe`: `{enabled: bool, gog_account: Optional[str], keyring_file: Optional[str], recovery_command: str}`. Credentials without this block are skipped from liveness (logged INFO once per cycle). | Specified |
@@ -108,6 +108,7 @@ Per operator decision (Option C — live with the weekly cycle + automate around
 | FR-018 | The `tailscale-auth` and `whatsapp-session` activity signals (existing) are NOT touched by this mission. They remain in the daily cycle. | Specified |
 | FR-019 | Probe output is structured-logged at INFO with the following fields per call: `cycle_id`, `credential_name`, `classification`, `probed_at`, `duration_ms`. On failure: + `reason`, `recovery_command`. On error: + `error_detail`. | Specified |
 | FR-020 | Dry-run mode (`--dry-run --liveness-only`) still issues the real probe (so the operator sees real classification), but logs `alert_would_file` instead of filing a GitHub issue. | Specified |
+| FR-021 | Phone-based recovery: `scripts/security/gog-reauth.sh` (the recovery command referenced from FR-007) MUST work end-to-end via Termius + Tailscale on the operator's phone with the same UX as a Mac terminal — interactive TTY, redirect-URL paste prompt, and post-auth liveness probe verification. If the existing script needs UX tweaks to be phone-friendly (e.g., URL output formatting, clearer paste prompts), those tweaks are in scope for this mission. | Specified |
 
 ## Non-Functional Requirements
 
@@ -146,6 +147,7 @@ Per operator decision (Option C — live with the weekly cycle + automate around
 8. Dry-run validation: `python3 -m credential_health_check --dry-run --liveness-only` against a state where the gog token is dead logs `alert_would_file` and does NOT file a GitHub issue.
 9. End-to-end on office2 (post-deploy): `systemctl --user start credential-liveness-probe.service` against current state (alive gog token) logs `credential_alive` per credential and files no issue.
 10. The new systemd unit files (`credential-liveness-probe.{service,timer}`) appear under `scripts/office2/` and the deployed copies under `~/.config/systemd/user/` match byte-for-byte.
+11. **Phone-based recovery end-to-end test**: operator (Kent) runs `gog-reauth.sh` via Termius + Tailscale from his phone against a state where the token has just expired. The flow completes successfully: URL is openable from phone browser, redirect URL is pasteable into the Termius prompt, post-auth liveness probe confirms `credential_alive`, and the previously-filed GitHub issue is closeable. Friction observed during this test (if any) is captured in a follow-up commit within the same mission. Until this test passes, the mission is not done.
 
 ## Key Entities
 
@@ -170,6 +172,22 @@ Per operator decision (Option C — live with the weekly cycle + automate around
 - Predictive expiration warnings (e.g., "token expires in 24h") — out of scope; the probe is reactive.
 - Per-scope probing (the probe uses one cheap calendar read as a single-call proof; verifying every scope is overkill).
 - Re-architecting the existing `credential-health-check` cycle. The new cadence is a separate timer; existing cadence is untouched.
+
+## Future Work (deliberately deferred)
+
+### Auto-close GitHub issues on recovery
+
+Once weekly re-auth becomes routine (multiple cycles complete without surprise), the manual-close step in FR-010 will become friction. The eventual target state is:
+
+- When a previously-failing probe now succeeds AND there is an open `credential-liveness-routine-7day:` issue for that credential, the orchestrator auto-closes the issue with a comment: `"Auto-closed: probe at <ts> confirmed token alive. If you didn't recently re-auth, this is unexpected — investigate at https://myaccount.google.com/permissions."`
+- Unexpected-revocation issues (`credential-liveness-unexpected:`) are NOT auto-closed (the diagnostic step Kent took matters; manual close preserves the audit trail).
+- This requires a new `_close_alert(issue_number, comment)` helper in `github_writer.py` and orchestrator wiring to call it when a probe transitions from `dead-*` to `alive` while a matching open issue exists.
+
+Operator trigger to schedule this follow-up mission: when manual-close friction is noticeable (Kent's judgment call, no metric set). File a new issue then; do not pre-file now.
+
+### Multi-account probing
+
+The schema supports `liveness_probe.gog_account` per credential. If a second Google account (e.g., a Workspace migration per the long-term Option A path in `reference_gog_credential_health_gap.md`) is added, the manifest gains a second credential record with its own `liveness_probe` block. No code changes needed in this mission's scope; the probe iteration already handles N credentials. Mention here so the future-Kent doesn't waste time wondering if expansion is supported.
 
 ## Architecture Impact
 
