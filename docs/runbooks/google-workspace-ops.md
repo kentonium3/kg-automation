@@ -3,8 +3,8 @@ title: Google Workspace Operations
 doc_type: runbook
 status: approved
 owners: ["@kentonium3"]
-last_updated: '2026-05-14'
-updated_by: '#100-google-workspace-foundation'
+last_updated: '2026-06-08'
+updated_by: '#572-7-day-testing-app-callout'
 audience: agents_and_humans
 ---
 
@@ -126,6 +126,19 @@ target Google account:
 3. **OAuth consent screen**: configure under **APIs & Services → OAuth
    consent screen**. Use type **External**. Add the Google account you
    intend to authorize as a Test user (under "Test users" → Add users).
+
+   > **⚠ Operational consequence — refresh tokens expire every 7 days.**
+   > Google issues refresh tokens with a hard **7-day expiration** for any
+   > OAuth app in `External` + `Testing` publishing status (current setup).
+   > See [Google OAuth 2.0 expiration docs](https://developers.google.com/identity/protocols/oauth2#expiration).
+   > Symptom: `oauth2: "invalid_grant" "Token has been expired or revoked."`
+   > on the next `gog` call after the 7-day window elapses. Re-auth procedure
+   > is §2.8 below. To eliminate the weekly cycle, the OAuth app must be
+   > moved to "In Production" publishing status (requires Google's
+   > brand-only or sensitive-scope verification, depending on the scope set)
+   > OR replaced with a Workspace-internal OAuth app under a Workspace
+   > tenant. See §"Common issues" → "Refresh token expired (Testing-app
+   > 7-day cycle)" for the day-to-day re-auth pattern.
 4. **Credentials**: navigate to **APIs & Services → Credentials → Create
    Credentials → OAuth Client ID**. Application type: **Desktop app**.
    Name it (the personal account uses `felix-openclaw-gog`). Download the
@@ -629,12 +642,22 @@ openclaw skills info gog
 
 ### Common issues
 
-**Refresh token revoked**: if `gog auth doctor` reports a revoked token,
-re-run the OAuth flow for the affected account starting at step 2.8 step 1
-(no need to re-ingest the client credentials — they are still valid).
-Common revocation triggers: Google account password change, 6+ months of
+**Refresh token expired (Testing-app 7-day cycle — DOMINANT cause for
+current setup)**: while the OAuth app is in `External` + `Testing`
+publishing status, Google expires every refresh token exactly 7 days
+after issuance, regardless of activity. Surface symptom is identical to
+revocation: `oauth2: "invalid_grant" "Token has been expired or
+revoked."` on the next `gog` call. Re-mint via §2.8 step 1+2 — this
+takes ~3 minutes and works every time. Until the OAuth app's publishing
+status changes (see §2.4 callout), expect this re-auth roughly every
+Monday-ish (matched to the previous mint date). Tracking issue: #572.
+
+**Refresh token revoked (other causes)**: if `gog auth doctor` reports a
+revoked token AND fewer than 7 days have passed since the last re-mint,
+the cause is one of: Google account password change, 6+ months of
 inactivity, manual revocation at https://myaccount.google.com/permissions,
-or a Google security review.
+or a Google security review. Same remediation — re-run §2.8 step 1
+(client credentials are still valid).
 
 **Scope expansion**: if a future use case needs a scope not in the
 original `--services` list (e.g., adding `tasks` later), re-run `gog auth
