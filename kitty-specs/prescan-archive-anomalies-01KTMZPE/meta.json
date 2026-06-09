@@ -9,5 +9,6 @@
   "purpose_context": "Sibling sub-issue of #566+#567 under epic #563. The silent-content-loss bug class #563 originally identified is structurally fixed by #566 (AGENTS.md rewrite under capacity, Step 5 invariant visible). This mission adds a defensive READ-ONLY scan of 02-Inbox-Processed/ so that any FUTURE regression of the bug class (agent improvisation, manual move, new code path) converts silent loss into a visible alarm. New function scan_archive_anomalies() on the existing scripts/inbox/prescan.py; output via new archive_anomalies field in prescan JSON + warning in daily-log + stderr summary. Bounded scan (cap 5000 files by mtime) protects latency budget. No file movement; no remediation. Coverage gate per kg-automation convention: >=90% line / >=85% branch. Closes #568; epic #563 closes when this lands.",
   "purpose_tldr": "Extend scripts/inbox/prescan.py with archive-anomaly scan: detect status:unprocessed/needs-review/missing-status files in 02-Inbox-Processed/. Defensive safety rail; closes #568; closes epic #563.",
   "slug": "prescan-archive-anomalies-01KTMZPE",
-  "target_branch": "main"
+  "target_branch": "main",
+  "baseline_merge_commit": ""
 }
