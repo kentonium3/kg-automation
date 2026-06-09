@@ -53,7 +53,7 @@ else
 fi
 
 echo ">>> Smoke-test (dry-run, real probe call)"
-PYTHONPATH="${REPO_ROOT}/scripts/security" python3 -m credential_health_check \
+cd "${REPO_ROOT}" && PYTHONPATH="${REPO_ROOT}" python3 -m scripts.security.credential_health_check \
   --manifest "${REPO_ROOT}/docs/design/architecture/data/credential-manifest.json" \
   --dry-run --liveness-only
 
