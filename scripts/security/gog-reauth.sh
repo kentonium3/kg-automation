@@ -71,7 +71,7 @@ fi
 
 # The keyring password lives in the openclaw-gateway env file (single source
 # of truth). Pulled inline so the script has no hard-coded secret.
-GOG_KEYRING_PASSWORD="$(grep ^GOG_KEYRING_PASSWORD "$ENV_FILE" | cut -d= -f2)"
+GOG_KEYRING_PASSWORD="$(grep ^GOG_KEYRING_PASSWORD "$ENV_FILE" | cut -d= -f2-)"
 if [[ -z "$GOG_KEYRING_PASSWORD" ]]; then
   echo "ERROR: GOG_KEYRING_PASSWORD missing from $ENV_FILE" >&2
   exit 1
