@@ -10,5 +10,5 @@
   "purpose_tldr": "Extend scripts/inbox/prescan.py with archive-anomaly scan: detect status:unprocessed/needs-review/missing-status files in 02-Inbox-Processed/. Defensive safety rail; closes #568; closes epic #563.",
   "slug": "prescan-archive-anomalies-01KTMZPE",
   "target_branch": "main",
-  "baseline_merge_commit": ""
+  "baseline_merge_commit": "668d9b3a"
 }
