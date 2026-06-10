@@ -5,7 +5,7 @@ status: approved
 owners: [kgale]
 version: "2.0"
 last_validated: 2026-05-26
-tags: [152, 126, 119, 103, 114, 115, 116]
+tags: [152, 126, 119, 103, 114, 115, 116, 490, 518/, 507, 572]
 ---
 
 # kg-automation Documentation Index
@@ -67,6 +67,7 @@ Immutable, dated records of *why* particular options were chosen over alternativ
 - [ADR-0001 — Google Workspace integration via `gog`](<./design/architecture/adr/0001-google-workspace-via-gog.md>) (approved 2026-05-13)
 - [ADR-0002 — Felix ↔ Vikunja task model](<./design/architecture/adr/0002-felix-vikunja-task-model.md>) (approved 2026-05-17)
 - [ADR-0004 — Enable Tailscale SSH on office2 with `accept` ACL](<./design/architecture/adr/0004-tailscale-ssh-with-accept-acl.md>) (approved 2026-06-09)
+- [ADR-0005 — Vikunja client standardization (base URL, token, timeout, error policy)](<./design/architecture/adr/0005-vikunja-client-standards.md>) (approved 2026-06-10)
 
 ### docs/design/architecture/data/ — Machine-readable state (JSON)
 
