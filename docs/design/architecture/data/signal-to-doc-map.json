@@ -268,9 +268,10 @@
       },
       "doc_targets": [
         "docs/design/architecture/data/service-inventory.json",
-        "docs/design/architecture/service-inventory.md"
+        "docs/design/architecture/service-inventory.md",
+        "docs/design/architecture/data/audited-surfaces.json"
       ],
-      "rationale": "A mission adds or modifies a systemd unit under scripts/office2/. The deployed unit is the artifact; service-inventory's `config_files`, `schedule`, and `dependencies` fields must reflect the new/changed unit. Pairs with mission-service-added-or-modified when the unit represents a new service.",
+      "rationale": "A mission adds or modifies a systemd unit under scripts/office2/. The deployed unit is the artifact; service-inventory's `config_files`, `schedule`, and `dependencies` fields must reflect the new/changed unit. Pairs with mission-service-added-or-modified when the unit represents a new service. Triggers the rebaseline obligation (#557): the merge commit must record `Rebaseline: completed at <ts>` or `Rebaseline: not required — <reason>` per `docs/runbooks/security-baseline-ops.md`.",
       "consumer_hint": "spec-author"
     },
     {
@@ -283,9 +284,10 @@
         "docs/design/architecture/data/service-inventory.json",
         "docs/design/architecture/service-inventory.md",
         "docs/runbooks/openclaw-agent-setup.md",
-        "docs/runbooks/agent-prompt-sync-ops.md"
+        "docs/runbooks/agent-prompt-sync-ops.md",
+        "docs/design/architecture/data/audited-surfaces.json"
       ],
-      "rationale": "A mission modifies an agent prompt file under scripts/openclaw/agents/<slug>/ (AGENTS.md, IDENTITY.md, SOUL.md, TOOLS.md, USER.md). Service inventory's agent entry purpose/notes/depends_on fields may need updating; the openclaw-agent-setup runbook covers per-agent deploy expectations; the agent-prompt-sync-ops runbook covers the auto-deploy pipeline. No need to touch the helper itself; deployment is handled by the agent-prompt-sync service.",
+      "rationale": "A mission modifies an agent prompt file under scripts/openclaw/agents/<slug>/ (AGENTS.md, IDENTITY.md, SOUL.md, TOOLS.md, USER.md). Service inventory's agent entry purpose/notes/depends_on fields may need updating; the openclaw-agent-setup runbook covers per-agent deploy expectations; the agent-prompt-sync-ops runbook covers the auto-deploy pipeline. No need to touch the helper itself; deployment is handled by the agent-prompt-sync service. Triggers the rebaseline obligation (#557): the merge commit must record `Rebaseline: completed at <ts>` or `Rebaseline: not required — <reason>` per `docs/runbooks/security-baseline-ops.md`.",
       "consumer_hint": "spec-author"
     },
     {

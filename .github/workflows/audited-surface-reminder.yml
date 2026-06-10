@@ -1,0 +1,55 @@
+name: Audited Surface Reminder
+
+# Soft-reminder workflow for changes that touch audited surfaces (#557).
+#
+# Reads docs/design/architecture/data/audited-surfaces.json, compares its
+# patterns to the pushed/PR diff, and emits ::warning:: annotations when any
+# matches. The annotations surface in the GitHub UI as yellow ⚠ markers next
+# to the affected files; the run never fails the build.
+#
+# Rationale: the actual security-monitor rebaseline runs on office2, not in
+# CI. CI cannot perform the rebaseline itself — only remind the operator
+# that they need to. See docs/runbooks/security-baseline-ops.md.
+#
+# CLAUDE.md change-control note: per the user-global rule, modifications to
+# .github/workflows/ require explicit instruction. This workflow was
+# authored under #557's scope-approval question.
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  remind:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          # Need full history so origin/main is resolvable for the diff range.
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+
+      - name: Determine diff range
+        id: range
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            # PR: diff base...head (everything in the PR)
+            echo "range=origin/${{ github.base_ref }}...HEAD" >> "$GITHUB_OUTPUT"
+          elif [ -n "${{ github.event.before }}" ] && [ "${{ github.event.before }}" != "0000000000000000000000000000000000000000" ]; then
+            # Push with a known previous SHA: diff before...after
+            echo "range=${{ github.event.before }}...${{ github.sha }}" >> "$GITHUB_OUTPUT"
+          else
+            # Manual dispatch or first push: just the latest commit
+            echo "range=HEAD~1...HEAD" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Check audited-surface drift
+        run: |
+          python3 tooling/scripts/check_audited_surface_drift.py \
+            --range "${{ steps.range.outputs.range }}"

@@ -93,6 +93,8 @@ All changes to the deployed system are classified by a five-tier risk taxonomy d
 
 **Post-change verification**: Tier 0, 1, and 2 changes require post-change service health verification. See `docs/runbooks/governance/post-change-verification.md`.
 
+**Post-change rebaseline**: When the change touches an **audited surface** (any path enumerated in `docs/design/architecture/data/audited-surfaces.json`), the security-monitor baselines on office2 must be reset so the daily 3 AM audit does not alert on the now-expected state. The canonical command is in `docs/runbooks/security-baseline-ops.md`; the soft-reminder CI (`.github/workflows/audited-surface-reminder.yml`) annotates PRs/pushes that touch these paths. Per #557. Currently 6 audited-surface classes are tracked: openclaw agent prompts, openclaw config, systemd user units (incl. deploy scripts), Python dependency manifests, Docker stack files, and committed SSH key material.
+
 **Dependency awareness**: The service dependency graph (`docs/design/architecture/data/service-inventory.json` — `dependencies` field) is consulted during pre-flight to identify blast radius. See `docs/design/architecture/service-dependencies.view.md` for a visual map.
 
 **Postmortems**: When a change causes an incident, a postmortem is filed as a GitHub issue or archived to `docs/archive/`.

@@ -107,6 +107,28 @@ Every change is classified by a 5-tier risk model. Before editing or deploying, 
 | **Tier 3** — Standard | Logic/workflow (Python scripts, agent prompts, cron schedules) | Proceed with dry-run or sandbox validation. No pre-flight checklist. |
 | **Tier 4** — Auto-Commit | Schema/metadata (CLAUDE.md, READMEs, comments, frontmatter, logging) | Full autonomy. No pre-flight or verification required. |
 
+## Rebaseline Obligation (Audited Surfaces, #557)
+
+Separate from the tier-based protocol above, **any** change that touches an **audited surface** triggers a rebaseline obligation: the security-monitor baselines on office2 must be reset after the change deploys, otherwise the daily 3 AM audit alerts as drift. This applies regardless of tier — a Tier 4 prompt edit that touches an OpenClaw agent's `AGENTS.md` triggers the same obligation as a Tier 2 docker-compose change.
+
+**Authoritative list of audited surfaces**: `docs/design/architecture/data/audited-surfaces.json` (6 surface classes as of 2026-06-10: openclaw agent prompts, openclaw config, systemd user units + deploy scripts, Python dependency manifests, Docker stack files, committed SSH key material).
+
+**Reset procedure**: `docs/runbooks/security-baseline-ops.md` (canonical command + verification).
+
+**Mission-end obligation**: For any spec-kitty mission whose Architecture Impact section includes a change class that maps to an audited surface, the merge commit message (or a comment on the closing issue) must record one of:
+
+- `Rebaseline: completed at <ISO-8601 UTC>` (with verification output if practical), OR
+- `Rebaseline: not required — <one-line justification>` (e.g., "change is doc-only, no deployed-state effect")
+
+Missing or vague rebaseline notes are a spec-kitty review-cycle defect. The reviewer should reject with `--review-feedback-file` citing the missing record. The acceptance gate (`spec-kitty accept`) is a soft-reminder surface that flags this concern; the merge commit is the authoritative record.
+
+**Pre-merge reminder surfaces** (informational, not a hard gate):
+
+- `.github/workflows/audited-surface-reminder.yml` annotates PRs/pushes touching audited-surface paths with `::warning::`
+- `tooling/scripts/check_audited_surface_drift.py` can be run locally before push or merge to preview the same warnings
+
+The operator is responsible for actually running the reset command on office2. Neither CI nor the charter can perform the reset itself.
+
 ## Governance Activation
 
 ```yaml

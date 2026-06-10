@@ -44,6 +44,17 @@ Select one. If uncertain, default to the higher tier.
 
 ---
 
+## Rebaseline obligation (#557)
+
+<!--
+Independent of tier. Consult docs/design/architecture/data/audited-surfaces.json.
+-->
+
+- [ ] This change touches an audited surface (openclaw agent prompts, openclaw config, systemd user units + deploy scripts, Python deps, Docker stack, committed SSH keys) — `Yes` / `No`
+- [ ] If `Yes`: merge commit will record `Rebaseline: completed at <ts>` or `Rebaseline: not required — <reason>` per `docs/runbooks/security-baseline-ops.md`
+
+---
+
 ## Services affected
 
 <!--
@@ -147,4 +158,5 @@ This issue qualifies for the `spec: ready` label when:
 - [ ] **Supply-chain review** — if this change adds a new package source (brew tap, pip index, npm registry, MCP plugin / AI extension with system access), the body documents the dependency-tree review and pinning posture
 - [ ] **Design-time discipline** — deterministic-vs-stochastic split has been considered; helper-script extraction is identified where appropriate (per Felix Constitution Directive 6 and the approved [helper-script conventions](../../docs/design/helper-script-conventions.md))
 - [ ] **Helper / library / skill decision** — for any deterministic work this change introduces, the choice between agent-co-located helper, domain-co-located helper, shared library (`scripts/lib/`), or skill (`~/.openclaw/skills/`) has been made per the invocation-surface test in [helper-script-conventions § 9](../../docs/design/helper-script-conventions.md) (or the body explicitly affirms no new deterministic work is introduced)
+- [ ] **Rebaseline obligation** answered (#557) — `Yes / No` per `docs/design/architecture/data/audited-surfaces.json`; if `Yes`, merge-commit rebaseline-record expected per `docs/runbooks/security-baseline-ops.md`
 - [ ] HTML comment guidance blocks have been removed

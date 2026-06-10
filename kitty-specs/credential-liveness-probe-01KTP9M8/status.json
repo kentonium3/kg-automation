@@ -2,7 +2,7 @@
   "event_count": 48,
   "last_event_id": "01KTPGQRBQSA8SQYG89RV8ZB5X",
   "materialized_at": "2026-06-09T15:41:37.527754+00:00",
-  "mission_number": "",
+  "mission_number": "71",
   "mission_slug": "credential-liveness-probe-01KTP9M8",
   "mission_type": "software-dev",
   "summary": {

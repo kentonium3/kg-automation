@@ -1,0 +1,119 @@
+{
+  "schema_version": "1.0",
+  "last_updated": "2026-06-10",
+  "updated_by": "#557-rebaseline-workflow",
+  "description": "Repo-side inputs whose changes alter the office2 security-monitor baselines. When a commit modifies any matching path, the rebaseline procedure in security-baseline-ops.md should be triggered after the change deploys, otherwise the daily audit will alert as drift. Consumed by tooling/scripts/check_audited_surface_drift.py (CI soft-reminder) and referenced by docs/design/architecture/change-control.md + spec-kitty charter quality gates.",
+  "rebaseline_runbook": "docs/runbooks/security-baseline-ops.md",
+  "rebaseline_command": "ssh office2-claude 'rm /data/services/security-monitor/baselines/* && sg docker -c /data/services/security-monitor/scripts/audit.sh'",
+  "rebaseline_verification": "ssh office2-claude 'ls /data/services/security-monitor/baselines/ | wc -l && tail -5 /data/services/security-monitor/logs/audit-$(date +%Y-%m-%d).log'",
+  "expected_baseline_count": 14,
+  "audited_surfaces": [
+    {
+      "id": "openclaw-agent-prompts",
+      "description": "OpenClaw agent workspace files. The 5-min agent-prompt-sync timer (#567) copies these to /data/services/openclaw/<workspace>/, which the security audit hashes into openclaw-config.txt.",
+      "patterns": [
+        "scripts/openclaw/agents/*/AGENTS.md",
+        "scripts/openclaw/agents/*/AGENTS.md.tmpl",
+        "scripts/openclaw/agents/*/SOUL.md",
+        "scripts/openclaw/agents/*/IDENTITY.md",
+        "scripts/openclaw/agents/*/USER.md",
+        "scripts/openclaw/agents/*/GOVERNANCE.md"
+      ],
+      "affected_baselines": ["openclaw-config.txt"],
+      "deploy_path": "scripts/openclaw/deploy/deploy_agent_prompts.py + agent-prompt-sync.service (auto)",
+      "rebaseline_required": true
+    },
+    {
+      "id": "openclaw-config",
+      "description": "OpenClaw runtime config (openclaw.json) is deployed to /home/claude/.openclaw/. The security audit fingerprints openclaw-config.txt from the deployed copy.",
+      "patterns": [
+        "scripts/openclaw/openclaw.json",
+        "scripts/openclaw/openclaw.*.json"
+      ],
+      "affected_baselines": ["openclaw-config.txt", "openclaw-cron.txt"],
+      "deploy_path": "manual (openclaw config edits land on office2 via direct edit or deploy script)",
+      "rebaseline_required": true
+    },
+    {
+      "id": "systemd-user-units",
+      "description": "Systemd user units deployed to ~/.config/systemd/user/ on office2 via scripts/office2/deploy/*.sh wrappers. The audit hashes the enabled-services / systemd-user-units baselines.",
+      "patterns": [
+        "scripts/office2/*.service",
+        "scripts/office2/*.timer",
+        "scripts/office2/*.target",
+        "scripts/office2/*.path",
+        "scripts/office2/deploy/*.sh"
+      ],
+      "affected_baselines": [
+        "enabled-services.txt",
+        "systemd-user-units.txt",
+        "systemd-user-dropins.txt"
+      ],
+      "deploy_path": "scripts/office2/deploy/<service>.sh (operator-invoked)",
+      "rebaseline_required": true
+    },
+    {
+      "id": "python-dependencies",
+      "description": "Top-level Python dependency manifests. Changes deploy via `pip install -r requirements.txt` on office2 and affect pip-packages.txt baseline + pth-files.txt for any new .pth-emitting packages.",
+      "patterns": [
+        "requirements.txt",
+        "requirements-*.txt",
+        "pyproject.toml"
+      ],
+      "affected_baselines": ["pip-packages.txt", "pth-files.txt"],
+      "deploy_path": "operator runs pip install on office2",
+      "rebaseline_required": true
+    },
+    {
+      "id": "docker-stack",
+      "description": "Docker Compose stacks + Dockerfiles. Changes affect docker-images.txt baseline after `docker compose pull` or rebuild on office2.",
+      "patterns": [
+        "**/docker-compose.yml",
+        "**/docker-compose.*.yml",
+        "**/Dockerfile",
+        "**/Dockerfile.*"
+      ],
+      "affected_baselines": ["docker-images.txt", "listening-ports.txt"],
+      "deploy_path": "operator runs docker compose pull/up on office2",
+      "rebaseline_required": true
+    },
+    {
+      "id": "ssh-authorized-keys-source",
+      "description": "Repo-side SSH key material. Most authorized_keys updates are operator-driven outside the repo; included here so any future committed key source is caught.",
+      "patterns": [
+        "scripts/security/ssh-keys/*",
+        "**/authorized_keys*"
+      ],
+      "affected_baselines": ["ssh-keys.txt"],
+      "deploy_path": "operator copies to ~/.ssh/authorized_keys on office2",
+      "rebaseline_required": true
+    }
+  ],
+  "non_repo_baselines": [
+    {
+      "name": "brew-packages.txt",
+      "rationale": "Homebrew installs are operator-side on office2; no repo input."
+    },
+    {
+      "name": "brew-taps.txt",
+      "rationale": "Same as brew-packages."
+    },
+    {
+      "name": "hosts-hash.txt",
+      "rationale": "/etc/hosts is operator-edited; no repo input."
+    },
+    {
+      "name": "crontabs.txt",
+      "rationale": "Per CLAUDE.md + #533, system crontab use is deprecated. No active repo input."
+    }
+  ],
+  "verification": {
+    "soft_reminder_ci": ".github/workflows/audited-surface-reminder.yml",
+    "check_script": "tooling/scripts/check_audited_surface_drift.py",
+    "charter_gate": ".kittify/charter/charter.md § Rebaseline obligation",
+    "issue_template_gate": [
+      ".github/ISSUE_TEMPLATE/feature.md § Architecture Impact / Rebaseline",
+      ".github/ISSUE_TEMPLATE/infra.md § Architecture Impact / Rebaseline"
+    ]
+  }
+}

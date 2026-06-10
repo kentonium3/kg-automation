@@ -85,6 +85,7 @@ Authoritative operational state. **Exempt from moves (F015 constraint C-001)**.
 - [Change Risk Taxonomy](<./design/architecture/data/change-risk-taxonomy.json>)
 - [Doc Domain Map](<./design/architecture/data/doc-domain-map.json>)
 - [LLM Spend Baseline](<./design/architecture/data/llm-spend-baseline.json>) — monthly LLM cost across all services (authoritative; see narrative companion in parent dir)
+- [Audited Surfaces](<./design/architecture/data/audited-surfaces.json>) — repo paths whose changes affect office2 security-monitor baselines; consumed by `.github/workflows/audited-surface-reminder.yml` and the spec-kitty charter rebaseline obligation (#557)
 
 ### docs/design/architecture/baselines/ — Pre/post-change measurement baselines
 

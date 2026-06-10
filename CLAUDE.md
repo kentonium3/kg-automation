@@ -288,6 +288,19 @@ checklist required.
 frontmatter, logging)**:
 Full autonomy. No pre-flight or verification steps required.
 
+**Rebaseline obligation (independent of tier, #557)**: Any change that
+touches an audited surface (per `docs/design/architecture/data/audited-surfaces.json`
+— openclaw agent prompts, openclaw config, systemd user units + deploy
+scripts, Python dependency manifests, Docker stack files, committed SSH
+key material) requires resetting the security-monitor baselines on office2
+after the change deploys. Run `ssh office2-claude 'rm /data/services/security-monitor/baselines/* && sg docker -c /data/services/security-monitor/scripts/audit.sh'`
+(canonical command in `docs/runbooks/security-baseline-ops.md`).
+Soft-reminder CI (`.github/workflows/audited-surface-reminder.yml`)
+annotates pushes/PRs that touch these paths. For spec-kitty missions,
+the merge commit must record `Rebaseline: completed at <ts>` or
+`Rebaseline: not required — <reason>`. The operator is responsible
+for running the reset — neither CI nor the charter performs it.
+
 ## Documentation Standards
 
 Machine-readable files (JSON) are the authoritative record for all operational

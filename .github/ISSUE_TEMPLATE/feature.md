@@ -186,6 +186,10 @@ from `docs/runbooks/governance/pre-flight-checklist.md` and
 - [ ] Pre-flight/backup/approval requirements identified for the selected tier
 - [ ] Rollback and post-change verification expectations identified
 
+**Rebaseline obligation** (#557, independent of tier):
+- [ ] Audited surfaces touched? (consult `docs/design/architecture/data/audited-surfaces.json` — agent prompts, openclaw config, systemd units + deploy scripts, Python deps, Docker, SSH keys) → Yes / No
+- [ ] If Yes: merge commit will record `Rebaseline: completed at <ts>` or `Rebaseline: not required — <reason>` per `docs/runbooks/security-baseline-ops.md`
+
 ---
 
 ## Constitutional Compliance
@@ -244,4 +248,5 @@ This issue qualifies for the `spec: ready` label when:
 - [ ] **Constitutional Compliance** addresses autonomy level, scope, and failure behavior
 - [ ] **Design-time discipline** — deterministic-vs-stochastic split has been considered; helper-script extraction is identified where appropriate (per Felix Constitution Directive 6 and the approved [helper-script conventions](../../docs/design/helper-script-conventions.md))
 - [ ] **Helper / library / skill decision** — for any deterministic work this feature introduces, the choice between agent-co-located helper, domain-co-located helper, shared library (`scripts/lib/`), or skill (`~/.openclaw/skills/`) has been made per the invocation-surface test in [helper-script-conventions § 9](../../docs/design/helper-script-conventions.md) (or the body explicitly affirms no new deterministic work is introduced)
+- [ ] **Rebaseline obligation** answered (#557) — `Yes / No` per `docs/design/architecture/data/audited-surfaces.json`; if `Yes`, merge-commit rebaseline-record expected per `docs/runbooks/security-baseline-ops.md`
 - [ ] HTML comment guidance blocks have been removed
