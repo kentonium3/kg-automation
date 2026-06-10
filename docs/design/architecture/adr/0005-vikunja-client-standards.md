@@ -22,7 +22,7 @@ tags: [541, 542, 520, 281]
 
 Before this epic, five separate Python scripts under `scripts/{sync,habits,escalation,enrichment,vikunja}/` each implemented their own Vikunja HTTP wrapper — base URL composition, token loading, timeout handling, error semantics, and redaction logic were copy-pasted with subtle drift. The 2026-06-05 architecture review surfaced this as finding **F-004** (High / boundary design / maintainability / integration reliability) and named **Principle 3** ("Integration Clients Are Shared Boundaries") as the governing constraint.
 
-#542 (the refactor child of Epic #531) consolidated the runtime HTTP surface into `scripts/common/vikunja_client.py`. The client is currently consumed by 14+ helpers (verified via `grep -l 'from scripts.common.vikunja_client' scripts/`); migration of remaining ~10 un-migrated helpers is tracked separately as #543 (opportunistic, no deadline).
+Issue #542 (the refactor child of Epic #531) consolidated the runtime HTTP surface into `scripts/common/vikunja_client.py`. The client is currently consumed by 14+ helpers (verified via `grep -l 'from scripts.common.vikunja_client' scripts/`); migration of remaining ~10 un-migrated helpers is tracked separately as #543 (opportunistic, no deadline).
 
 This ADR captures the **decisions embodied in the shipped client** so future migrations, new helpers, and reviewers have an explicit standards reference rather than having to re-derive intent from code.
 
@@ -91,7 +91,7 @@ The client uses `urllib.request` from the standard library, NOT `requests` or `h
 
 The client maps HTTP responses to a small typed hierarchy:
 
-```
+```text
 VikunjaError
 ├── VikunjaHttpError              (any non-2xx that doesn't match a subclass)
 │   ├── VikunjaAuthError          (401)
@@ -136,7 +136,7 @@ Successful responses with empty bodies (typical for DELETE 204) parse to an empt
 ## Alternatives Considered
 
 | Alternative | Why rejected |
-|---|---|
+| --- | --- |
 | `requests` library | Adds a third-party dependency for a small API surface; Directive 6 prefers stdlib-only where practical |
 | `httpx` with async support | Same dependency cost + we have no async call sites yet; would over-engineer for current needs |
 | Token loaded from env var (`VIKUNJA_TOKEN`) | Env vars leak into child processes; file + permissions is the cleaner posture |

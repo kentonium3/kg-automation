@@ -6,6 +6,7 @@ owners: ["@kentonium3"]
 last_updated: '2026-06-09'
 updated_by: '#572-credential-liveness-probe'
 audience: agents_and_humans
+tags: [100, a4bdfc, 46d6db, 7ae7bf, e1e1e1, dbadff, 5484ed, ff887c, 51b749, fbd75b, dc2127, ffb878, 572]
 ---
 
 # Google Workspace Operations
@@ -139,6 +140,7 @@ target Google account:
    > OR replaced with a Workspace-internal OAuth app under a Workspace
    > tenant. See §"Common issues" → "Refresh token expired (Testing-app
    > 7-day cycle)" for the day-to-day re-auth pattern.
+
 4. **Credentials**: navigate to **APIs & Services → Credentials → Create
    Credentials → OAuth Client ID**. Application type: **Desktop app**.
    Name it (the personal account uses `felix-openclaw-gog`). Download the

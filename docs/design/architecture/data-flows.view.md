@@ -4,14 +4,14 @@ title: Data Flows (Rendered)
 doc_type: guide
 level: reference
 status: approved
-owners:
-  - "@kentonium3"
+owners: ["@kentonium3"]
 last_updated: '2026-06-05'
 revision: v1.8
 audience: agents_and_humans
 updated_by: '#520 (felix-vikunja-sync-project-layer-and-url-config: +sync_driver subgraph, +url_config node)'
-
 ---
+
+# data-flows.view
 
 ```mermaid
 graph LR

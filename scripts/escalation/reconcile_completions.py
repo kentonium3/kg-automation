@@ -72,6 +72,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterable, Literal, Optional
 
+from scripts.common import state_log
 from scripts.common.sync_cache import (
     SLA_NORMAL,
     SLATier,
@@ -231,6 +232,9 @@ class ReconcileReport:
         synthetic_rescheduled_emitted: Count of ``state="rescheduled"``
             synthetic records emitted (or that would have been emitted under
             ``--dry-run``).
+        synthetic_dismissed_emitted: Count of ``state="dismissed"`` synthetic
+            records emitted for tasks the operator deleted in Vikunja (per
+            kentonium3/kg-automation#527). Counted under ``--dry-run`` too.
         hard_fails: Every Q10 hard-fail detected during the sweep. Length
             equals the number of distinct tasks that hard-failed (dedup
             within one tick ensures one entry per task even on repeated
@@ -243,6 +247,7 @@ class ReconcileReport:
     tasks_scanned: int
     synthetic_done_emitted: int
     synthetic_rescheduled_emitted: int
+    synthetic_dismissed_emitted: int = 0
     hard_fails: list[HardFailEvent] = field(default_factory=list)
     duration_seconds: float = 0.0
 
@@ -340,6 +345,72 @@ def _classify_line(
             reason=f"schema: {exc}",
         )
     return obj, None
+
+
+def _task_deleted_event_for_task(
+    task_id: int,
+    history_path: Path | None = None,
+) -> dict | None:
+    """Return the most recent ``task_deleted`` event for ``task_id``, or None.
+
+    Scans ``habits-history.jsonl`` for events where ``event_type == "task_deleted"``
+    and ``task_id`` matches. Returns the event with the highest
+    ``detected_at_utc`` (lexicographic ISO 8601 sort is correct for the
+    canonical ``YYYY-MM-DDTHH:MM:SSZ`` format Phase 5b writes).
+
+    Tolerates missing or malformed files: returns ``None`` on any read
+    failure, missing file, or unparseable line. The audit log is
+    append-only and may contain interleaved entries from multiple writers;
+    we never raise on the audit-log read path.
+
+    Per kentonium3/kg-automation#527: this gates the OSError handler in
+    ``_reconcile_one_task`` so a cache miss caused by operator-initiated
+    Vikunja task deletion does not file a spurious
+    ``derive_state_inconsistency`` hard-fail. The sync driver's Phase 5b
+    cleanup (mission #520, ``scripts/sync/cleanup.py``) is the writer of
+    the ``task_deleted`` event.
+
+    Args:
+        task_id: Vikunja task id to look up.
+        history_path: Override for the ``habits-history.jsonl`` path.
+            Defaults to ``state_log.STATE_DIR / "habits-history.jsonl"``
+            resolved at call time so tests can monkey-patch
+            ``state_log.STATE_DIR``.
+
+    Returns:
+        The event dict, or ``None`` if no matching event was found.
+    """
+    if history_path is None:
+        history_path = state_log.STATE_DIR / "habits-history.jsonl"
+    if not history_path.exists():
+        return None
+    best: dict | None = None
+    best_ts: str = ""
+    try:
+        with history_path.open("r", encoding="utf-8") as fh:
+            for raw in fh:
+                line = raw.strip()
+                if not line:
+                    continue
+                try:
+                    event = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                if not isinstance(event, dict):
+                    continue
+                if event.get("event_type") != "task_deleted":
+                    continue
+                if event.get("task_id") != task_id:
+                    continue
+                ts = event.get("detected_at_utc")
+                if not isinstance(ts, str):
+                    continue
+                if ts > best_ts:
+                    best = event
+                    best_ts = ts
+    except OSError:
+        return None
+    return best
 
 
 def _load_records_for_task(
@@ -795,8 +866,71 @@ def _reconcile_one_task(
             touchpoint_name=TOUCHPOINT_NAME,
         )
     except OSError as exc:
-        # Cache miss or stale cache — surface as derive_state_inconsistency
-        # so the operator can triage.
+        # Cache miss. Two sub-cases:
+        # (a) Operator deleted the task in Vikunja (mission #520 Phase 5b
+        #     records a ``task_deleted`` event in habits-history.jsonl).
+        #     Emit a synthetic ``dismissed`` record so the task drops out of
+        #     subscription on the next tick; no hard-fail. Per #527.
+        # (b) Genuine cache staleness / inconsistency. Surface as
+        #     ``derive_state_inconsistency`` so the operator can triage.
+        deletion_event = _task_deleted_event_for_task(task_id)
+        if deletion_event is not None:
+            if not dry_run:
+                synthetic = {
+                    "domain": "escalation",
+                    "task_id": task_id,
+                    "project_id": project_id,
+                    "title": deletion_event.get("title") or f"task #{task_id}",
+                    "date": datetime.now(rc.LOCAL_TZ).date().isoformat(),
+                    "state": "dismissed",
+                    "reason": (
+                        f"task_deleted_in_vikunja "
+                        f"(detected_at_utc={deletion_event.get('detected_at_utc')})"
+                    ),
+                    "source": "reconcile",
+                    "timestamp": rc._now_utc_iso(),
+                    "note": (
+                        "Synthesized by reconcile: Vikunja task was deleted by "
+                        "the operator; Phase 5b cleanup recorded the deletion "
+                        "in habits-history.jsonl. Per "
+                        "kentonium3/kg-automation#527."
+                    ),
+                }
+                try:
+                    rc.record_event(
+                        synthetic,
+                        base_url=base_url,
+                        token_path=DEFAULT_TOKEN_PATH,
+                        skip_vikunja=True,
+                    )
+                except (
+                    EscalationSchemaError,
+                    rc.StateLogError,
+                    rc.VikunjaError,
+                ) as inner_exc:
+                    # If even the synthetic-dismissed write fails, surface
+                    # as derive_state_inconsistency — same triage path the
+                    # done/rescheduled drift handlers use on write failure.
+                    _emit_hard_fail(
+                        task_id=task_id,
+                        task_title=(
+                            deletion_event.get("title") or f"task #{task_id}"
+                        ),
+                        project_id=project_id,
+                        reason="derive_state_inconsistency",
+                        detail=(
+                            f"synthetic dismissed record failed: {inner_exc}"
+                        ),
+                        jsonl_path=jsonl_path,
+                        vikunja_state={"done": "unknown", "due_date": None},
+                        derive_state_error_message=None,
+                        filed_this_tick=filed_this_tick,
+                        report_hard_fails=report_hard_fails,
+                    )
+                    return
+            report["synthetic_dismissed_emitted"] += 1
+            return
+        # No matching task_deleted event — genuine inconsistency.
         _emit_hard_fail(
             task_id=task_id,
             task_title=f"task #{task_id}",
@@ -1030,6 +1164,7 @@ def reconcile_project(
     report_counters: dict[str, int] = {
         "synthetic_done_emitted": 0,
         "synthetic_rescheduled_emitted": 0,
+        "synthetic_dismissed_emitted": 0,
     }
     report_hard_fails: list[HardFailEvent] = []
     filed_this_tick: set[tuple[int, str]] = set()
@@ -1072,6 +1207,9 @@ def reconcile_project(
         synthetic_done_emitted=report_counters["synthetic_done_emitted"],
         synthetic_rescheduled_emitted=(
             report_counters["synthetic_rescheduled_emitted"]
+        ),
+        synthetic_dismissed_emitted=(
+            report_counters["synthetic_dismissed_emitted"]
         ),
         hard_fails=report_hard_fails,
         duration_seconds=duration,
@@ -1264,6 +1402,7 @@ def _emit_summary(report: ReconcileReport) -> None:
         "tasks_scanned": report.tasks_scanned,
         "synthetic_done": report.synthetic_done_emitted,
         "synthetic_rescheduled": report.synthetic_rescheduled_emitted,
+        "synthetic_dismissed": report.synthetic_dismissed_emitted,
         "hard_fails": len(report.hard_fails),
         "duration_s": round(report.duration_seconds, 3),
     }
@@ -1290,6 +1429,14 @@ def _emit_per_task_lines(report: ReconcileReport, *, quiet: bool) -> None:
             project_id=report.project_id,
             reason="due_date_changed",
             emitted_synthetic="rescheduled",
+        )
+    for _ in range(report.synthetic_dismissed_emitted):
+        _emit_drift_line(
+            quiet=quiet,
+            task_id=0,
+            project_id=report.project_id,
+            reason="vikunja_task_deleted",
+            emitted_synthetic="dismissed",
         )
     for event in report.hard_fails:
         _emit_hardfail_line(quiet=quiet, event=event)

@@ -908,6 +908,191 @@ def test_cache_read_failure_routes_to_hard_fail(
     assert "cache read failed" in report.hard_fails[0].detail
 
 
+# ---------------------------------------------------------------------------
+# #527: cache miss caused by operator-initiated Vikunja task deletion
+# ---------------------------------------------------------------------------
+
+
+def _write_habits_history_task_deleted(
+    history_path: Path,
+    task_id: int,
+    title: str = "Deleted habit",
+    detected_at_utc: str = "2026-06-10T12:00:00Z",
+) -> None:
+    """Append a Phase 5b-shaped ``task_deleted`` event to habits-history.jsonl."""
+    history_path.parent.mkdir(parents=True, exist_ok=True)
+    event = {
+        "event_type": "task_deleted",
+        "task_id": task_id,
+        "title": title,
+        "detected_at_utc": detected_at_utc,
+        "schema_version": 1,
+    }
+    with history_path.open("a", encoding="utf-8") as fh:
+        fh.write(json.dumps(event, separators=(",", ":")) + "\n")
+
+
+def test_cache_miss_with_task_deleted_event_emits_synthetic_dismissed(
+    jsonl_sandbox: Path,
+    tmp_token_file: Path,
+    tmp_path: Path,
+    monkeypatch,
+    mock_sync_cache_fixture,
+    mock_urlopen,
+    recorded_hard_fails: _HardFailRecorder,
+) -> None:
+    """Per #527: cache miss + Phase 5b task_deleted event → synthetic dismissed, no hard-fail."""
+    # Redirect habits-history.jsonl into the test sandbox.
+    from scripts.common import state_log
+
+    history_root = tmp_path / "habits_state"
+    history_root.mkdir(parents=True, exist_ok=True)
+    monkeypatch.setattr(state_log, "STATE_DIR", history_root)
+    _write_habits_history_task_deleted(
+        history_root / "habits-history.jsonl",
+        task_id=4321,
+        title="Daily push-ups",
+        detected_at_utc="2026-06-10T08:15:30Z",
+    )
+
+    project_id = 4
+    task_id = 4321
+    jsonl_path = jsonl_sandbox / f"project-{project_id}-escalation-history.jsonl"
+    _write_jsonl(
+        jsonl_path,
+        [_make_record(task_id=task_id, project_id=project_id, level=1)],
+    )
+
+    # Cache has no entry for task_id 4321 → read_cached_task_by_id raises OSError.
+    mock_sync_cache_fixture(
+        tasks={9999: _cache_task_fields(9999, done=False)},
+    )
+
+    report = reconcile_project(project_id, jsonl_dir=jsonl_sandbox)
+
+    # NO hard-fail filed. Synthetic dismissed emitted instead.
+    assert report.hard_fails == []
+    assert report.synthetic_dismissed_emitted == 1
+
+    # The synthetic dismissed record was appended to the per-project JSONL.
+    with jsonl_path.open("r", encoding="utf-8") as fh:
+        records = [json.loads(line) for line in fh if line.strip()]
+    dismissed_records = [
+        r for r in records if r.get("state") == "dismissed" and r.get("task_id") == task_id
+    ]
+    assert len(dismissed_records) == 1
+    dismissed = dismissed_records[0]
+    assert dismissed["source"] == "reconcile"
+    assert "task_deleted_in_vikunja" in dismissed["reason"]
+    assert "2026-06-10T08:15:30Z" in dismissed["reason"]
+    assert dismissed["title"] == "Daily push-ups"
+
+
+def test_cache_miss_with_task_deleted_event_for_different_task_still_hard_fails(
+    jsonl_sandbox: Path,
+    tmp_token_file: Path,
+    tmp_path: Path,
+    monkeypatch,
+    mock_sync_cache_fixture,
+    mock_urlopen,
+    recorded_hard_fails: _HardFailRecorder,
+) -> None:
+    """Regression check: task_deleted event for a DIFFERENT task_id must NOT suppress the hard-fail."""
+    from scripts.common import state_log
+
+    history_root = tmp_path / "habits_state"
+    history_root.mkdir(parents=True, exist_ok=True)
+    monkeypatch.setattr(state_log, "STATE_DIR", history_root)
+    # Event for task 9999 — NOT the task we're reconciling (4321).
+    _write_habits_history_task_deleted(
+        history_root / "habits-history.jsonl",
+        task_id=9999,
+    )
+
+    project_id = 4
+    task_id = 4321
+    jsonl_path = jsonl_sandbox / f"project-{project_id}-escalation-history.jsonl"
+    _write_jsonl(
+        jsonl_path,
+        [_make_record(task_id=task_id, project_id=project_id, level=1)],
+    )
+    mock_sync_cache_fixture(
+        tasks={5555: _cache_task_fields(5555, done=False)},
+    )
+
+    report = reconcile_project(project_id, jsonl_dir=jsonl_sandbox)
+    # task 4321 is NOT the deleted task — hard-fail fires per original behavior.
+    assert len(report.hard_fails) == 1
+    assert report.hard_fails[0].reason == "derive_state_inconsistency"
+    assert report.synthetic_dismissed_emitted == 0
+
+
+def test_task_deleted_helper_returns_most_recent_event(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    """When multiple task_deleted events exist for the same task_id, helper returns the newest by detected_at_utc."""
+    from scripts.common import state_log
+    from scripts.escalation.reconcile_completions import _task_deleted_event_for_task
+
+    history_root = tmp_path / "habits_state"
+    history_root.mkdir(parents=True, exist_ok=True)
+    monkeypatch.setattr(state_log, "STATE_DIR", history_root)
+    _write_habits_history_task_deleted(
+        history_root / "habits-history.jsonl",
+        task_id=42,
+        detected_at_utc="2026-06-09T10:00:00Z",
+        title="first detection",
+    )
+    _write_habits_history_task_deleted(
+        history_root / "habits-history.jsonl",
+        task_id=42,
+        detected_at_utc="2026-06-10T11:30:00Z",
+        title="re-run detection",
+    )
+
+    event = _task_deleted_event_for_task(42)
+    assert event is not None
+    assert event["detected_at_utc"] == "2026-06-10T11:30:00Z"
+    assert event["title"] == "re-run detection"
+
+
+def test_task_deleted_helper_returns_none_for_missing_history_file(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    """Helper tolerates a missing habits-history.jsonl: returns None, no exception."""
+    from scripts.common import state_log
+    from scripts.escalation.reconcile_completions import _task_deleted_event_for_task
+
+    history_root = tmp_path / "habits_state_no_file"
+    history_root.mkdir(parents=True, exist_ok=True)
+    monkeypatch.setattr(state_log, "STATE_DIR", history_root)
+    assert _task_deleted_event_for_task(42) is None
+
+
+def test_task_deleted_helper_tolerates_malformed_lines(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    """Helper skips malformed lines and returns the first valid match."""
+    from scripts.common import state_log
+    from scripts.escalation.reconcile_completions import _task_deleted_event_for_task
+
+    history_root = tmp_path / "habits_state_malformed"
+    history_root.mkdir(parents=True, exist_ok=True)
+    monkeypatch.setattr(state_log, "STATE_DIR", history_root)
+    path = history_root / "habits-history.jsonl"
+    with path.open("w", encoding="utf-8") as fh:
+        fh.write("not json at all\n")
+        fh.write("\n")  # blank
+        fh.write(json.dumps({"event_type": "auto_skipped", "task_id": 42}) + "\n")  # wrong event_type
+        fh.write(json.dumps({"event_type": "task_deleted", "task_id": 42, "title": "ok", "detected_at_utc": "2026-06-10T12:00:00Z"}) + "\n")
+    event = _task_deleted_event_for_task(42)
+    assert event is not None
+    assert event["title"] == "ok"
+
+
 def test_zero_sentinel_due_date_treated_as_none(
     jsonl_sandbox: Path,
     tmp_token_file: Path,
