@@ -16,6 +16,7 @@ subtasks:
 - T004
 - T005
 phase: Phase 1 - Foundation
+shell_pid: "31547"
 history:
 - at: '2026-06-11T03:26:12Z'
   actor: system

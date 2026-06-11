@@ -14,6 +14,7 @@ subtasks:
 - T032
 - T033
 phase: Phase 1 - Documentation Verification
+shell_pid: "31884"
 history:
 - at: '2026-06-11T03:26:12Z'
   actor: system
