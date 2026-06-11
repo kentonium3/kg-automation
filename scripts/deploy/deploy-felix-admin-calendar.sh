@@ -21,6 +21,13 @@ IFS=$'\n\t'
 #   2. Agent sync       — start agent-prompt-sync.service, verify sizes
 #   3. openclaw.json    — idempotent jq insert of the felix-admin-calendar
 #                         entry with backup + parse validation
+#   3b. agentDir setup  — idempotent creation of OpenClaw state directory
+#                         at /home/claude/.openclaw/agents/felix-admin-calendar/agent
+#                         with canonical files copied from felix-admin-habits
+#                         (auth-profiles, models, plugins). Without this,
+#                         memory-sync errors fire at agent bootstrap.
+#                         Added 2026-06-11 (post-deploy fix); the original
+#                         deploy registered the entry but missed the state dir.
 #   4. Service restart  — restart openclaw-gateway, confirm active
 #   5. Journal watch    — NFR-002: zero "truncating in injected context"
 #                         hits scoped to agent:main:* sessions since
@@ -85,6 +92,13 @@ AGENT_FILES=(AGENTS.md IDENTITY.md SOUL.md TOOLS.md USER.md)
 # per the existing agent-prompt-sync convention.
 REMOTE_CALENDAR_WORKSPACE="/data/services/openclaw/calendar-agent"
 REMOTE_MAIN_AGENTS_MD="/data/services/openclaw/data/AGENTS.md"
+
+# Remote agentDir (OpenClaw state directory — auth-profiles.json, models.json,
+# plugins/) for felix-admin-calendar.  Must match the path declared in the
+# openclaw.json entry (see Stage 3).  Sibling subagents store the same
+# canonical files; we copy from felix-admin-habits as the reference.
+REMOTE_CALENDAR_AGENT_DIR="/home/claude/.openclaw/agents/felix-admin-calendar/agent"
+REMOTE_HABITS_AGENT_DIR="/home/claude/.openclaw/agents/felix-admin-habits/agent"
 
 # Local main agents file for the sync-size comparison.
 LOCAL_MAIN_AGENTS_MD="${REPO_ROOT}/scripts/openclaw/agents/main/AGENTS.md"
@@ -313,6 +327,57 @@ else
     exit 3
   fi
   log "  OK: openclaw.json now contains felix-admin-calendar entry"
+fi
+
+# Stage 3b — agentDir setup (OpenClaw state directory).
+#
+# OpenClaw expects each registered agent to have a state directory at the
+# `agentDir` path declared in openclaw.json.  Without it, the gateway can
+# still bootstrap but the agent's auth-profiles.json / models.json /
+# plugins/<provider>/catalog.json files are missing — which surfaces as
+# memory-sync errors during agent bootstrap and (anecdotally) contributed
+# to the post-deploy debugging path on 2026-06-11.
+#
+# The canonical files for OpenClaw subagents are identical across
+# felix-admin-* agents in this project (verified by diff on 2026-06-11).
+# We copy from felix-admin-habits as the reference sibling.  Idempotent:
+# if the agentDir already exists, the step is a no-op.
+log "Stage 3b: agentDir setup (${REMOTE_CALENDAR_AGENT_DIR})"
+# shellcheck disable=SC2029  # REMOTE_CALENDAR_AGENT_DIR expansion is intentional
+if ssh "${OFFICE2_HOST}" "test -d ${REMOTE_CALENDAR_AGENT_DIR}" 2>/dev/null; then
+  log "  agentDir already exists; skipping setup."
+else
+  log "  agentDir not present; creating from felix-admin-habits canonical files."
+  # shellcheck disable=SC2029  # REMOTE_* expansion is intentional
+  if ! ssh "${OFFICE2_HOST}" "
+    set -euo pipefail
+    SRC=${REMOTE_HABITS_AGENT_DIR}
+    DST=${REMOTE_CALENDAR_AGENT_DIR}
+    test -d \"\$SRC\" || { echo 'reference agentDir missing: '\"\$SRC\" >&2; exit 1; }
+    mkdir -p \"\$DST/plugins/anthropic\" \"\$DST/plugins/ollama\"
+    cp \"\$SRC/auth-profiles.json\" \"\$DST/auth-profiles.json\"
+    cp \"\$SRC/models.json\" \"\$DST/models.json\"
+    cp \"\$SRC/plugins/anthropic/catalog.json\" \"\$DST/plugins/anthropic/catalog.json\"
+    cp \"\$SRC/plugins/ollama/catalog.json\" \"\$DST/plugins/ollama/catalog.json\"
+  "; then
+    err "agentDir setup FAILED."
+    err "ROLLBACK: openclaw.json was already mutated; restore via:"
+    err "  ssh ${OFFICE2_HOST} \"cp \\\$HOME/.openclaw/openclaw.json.bak-${TS} \\\$HOME/.openclaw/openclaw.json\""
+    err "  (then re-run this deploy after diagnosing the agentDir failure)"
+    exit 3
+  fi
+  # Post-create validation: the 4 canonical files exist.
+  # shellcheck disable=SC2029  # REMOTE_CALENDAR_AGENT_DIR expansion is intentional
+  if ! ssh "${OFFICE2_HOST}" "
+    test -f ${REMOTE_CALENDAR_AGENT_DIR}/auth-profiles.json &&
+    test -f ${REMOTE_CALENDAR_AGENT_DIR}/models.json &&
+    test -f ${REMOTE_CALENDAR_AGENT_DIR}/plugins/anthropic/catalog.json &&
+    test -f ${REMOTE_CALENDAR_AGENT_DIR}/plugins/ollama/catalog.json
+  "; then
+    err "agentDir post-create validation FAILED: one or more canonical files missing."
+    exit 3
+  fi
+  log "  OK: agentDir populated with canonical files (auth-profiles, models, plugins)"
 fi
 log ""
 
