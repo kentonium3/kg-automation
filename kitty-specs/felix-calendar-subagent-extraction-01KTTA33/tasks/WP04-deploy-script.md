@@ -31,6 +31,9 @@ execution_mode: code_change
 owned_files:
 - scripts/deploy/deploy-felix-admin-calendar.sh
 tags: []
+agent_profile: implementer-ivan
+role: implementer
+agent: claude
 ---
 
 # Work Package Prompt: WP04 – Deploy script (strict-order-of-operations Bash wrapper)

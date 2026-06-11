@@ -26,6 +26,9 @@ owned_files:
 - docs/design/felix-capability-roadmap.md
 - docs/design/architecture/data/audited-surfaces.json
 tags: []
+agent_profile: curator-carla
+role: curator
+agent: claude
 ---
 
 # Work Package Prompt: WP06 – Runbook + roadmap + audited-surfaces verifications

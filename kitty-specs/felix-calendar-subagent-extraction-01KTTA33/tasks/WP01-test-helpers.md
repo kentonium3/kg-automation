@@ -25,6 +25,9 @@ execution_mode: code_change
 owned_files:
 - scripts/openclaw/agents/tests/**
 tags: []
+agent_profile: python-pedro
+role: implementer
+agent: claude
 ---
 
 # Work Package Prompt: WP01 – Test-first deterministic verification helpers

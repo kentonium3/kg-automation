@@ -25,6 +25,9 @@ owned_files:
 - docs/INDEX.md
 - docs/DEVELOPER_PORTAL.md
 tags: []
+agent_profile: curator-carla
+role: curator
+agent: claude
 ---
 
 # Work Package Prompt: WP07 – Smoke runbook + navigation entries

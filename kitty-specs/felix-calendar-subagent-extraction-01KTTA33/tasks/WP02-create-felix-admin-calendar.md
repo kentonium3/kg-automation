@@ -30,6 +30,9 @@ execution_mode: code_change
 owned_files:
 - scripts/openclaw/agents/felix-admin-calendar/**
 tags: []
+agent_profile: implementer-ivan
+role: implementer
+agent: claude
 ---
 
 # Work Package Prompt: WP02 – Create felix-admin-calendar OpenClaw subagent

@@ -27,6 +27,9 @@ execution_mode: code_change
 owned_files:
 - scripts/openclaw/agents/main/AGENTS.md
 tags: []
+agent_profile: implementer-ivan
+role: implementer
+agent: claude
 ---
 
 # Work Package Prompt: WP03 – Tighten main/AGENTS.md below 12K bootstrap context cap

@@ -30,6 +30,9 @@ owned_files:
 - docs/design/architecture/service-inventory.md
 - docs/design/architecture/service-dependencies.view.md
 tags: []
+agent_profile: curator-carla
+role: curator
+agent: claude
 ---
 
 # Work Package Prompt: WP05 – Architecture + Constitution documentation sync
