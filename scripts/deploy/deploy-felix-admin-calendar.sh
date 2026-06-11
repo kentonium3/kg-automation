@@ -166,9 +166,9 @@ log "  OK: all ${#AGENT_FILES[@]} agent prompt files present in ${AGENT_DIR_LOCA
 
 # 1b — Pytest green.  Asserts NFR-001 + NFR-004 (char-count) and openclaw.json
 # schema shape locally before any remote state changes.
-log "Pre-flight 2/5: running pytest scripts/openclaw/agents/tests/ -v"
-if ! ( cd "${REPO_ROOT}" && pytest scripts/openclaw/agents/tests/ -v ); then
-  err "pytest scripts/openclaw/agents/tests/ FAILED."
+log "Pre-flight 2/5: running python3 -m pytest scripts/openclaw/agents/tests/ -v"
+if ! ( cd "${REPO_ROOT}" && python3 -m pytest scripts/openclaw/agents/tests/ -v ); then
+  err "python3 -m pytest scripts/openclaw/agents/tests/ FAILED."
   err "Resolve red tests before re-running the deploy."
   err "ROLLBACK: no-op — nothing was touched on office2."
   exit 1
