@@ -1,28 +1,28 @@
 {
-  "event_count": 15,
-  "last_event_id": "01KTTDB5D8PCX2NAX9GDW5ZYK9",
-  "materialized_at": "2026-06-11T03:59:16.904587+00:00",
+  "event_count": 16,
+  "last_event_id": "01KTTDSPM8VF4K8XCB92NSF9RK",
+  "materialized_at": "2026-06-11T04:07:13.289073+00:00",
   "mission_number": "",
   "mission_slug": "felix-calendar-subagent-extraction-01KTTA33",
   "mission_type": "software-dev",
   "summary": {
-    "approved": 0,
+    "approved": 1,
     "blocked": 0,
     "canceled": 0,
     "claimed": 0,
     "done": 0,
     "for_review": 0,
     "in_progress": 0,
-    "in_review": 2,
+    "in_review": 1,
     "planned": 5
   },
   "work_packages": {
     "WP01": {
-      "actor": "claude::reviewer-renata:reviewer",
+      "actor": "user",
       "force_count": 0,
-      "lane": "in_review",
-      "last_event_id": "01KTTD7E9B5TFXAXT04QQSRVFX",
-      "last_transition_at": "2026-06-11T03:57:14.923477+00:00"
+      "lane": "approved",
+      "last_event_id": "01KTTDSPM8VF4K8XCB92NSF9RK",
+      "last_transition_at": "2026-06-11T04:07:13.289073+00:00"
     },
     "WP02": {
       "actor": "finalize-tasks",
