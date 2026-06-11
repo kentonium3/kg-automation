@@ -17,7 +17,7 @@ subtasks:
 - T028
 - T029
 phase: Phase 3 - Documentation
-shell_pid: "43094"
+shell_pid: "47640"
 history:
 - at: '2026-06-11T03:26:12Z'
   actor: system
@@ -33,7 +33,7 @@ owned_files:
 tags: []
 agent_profile: curator-carla
 role: curator
-agent: "claude::curator-carla:curator"
+agent: "claude::reviewer-renata:reviewer"
 ---
 
 # Work Package Prompt: WP05 – Architecture + Constitution documentation sync
@@ -163,3 +163,5 @@ If the repo has a `tooling/scripts/validate_docs.py` style validator, run it aft
 
 - 2026-06-11T03:26:12Z -- system -- Prompt created.
 - 2026-06-11T04:23:16Z – claude::curator-carla:curator – shell_pid=43094 – Assigned agent via action command
+- 2026-06-11T04:31:08Z – claude::curator-carla:curator – shell_pid=43094 – Ready for review: 5 doc surfaces updated, JSON validates, narrative views consistent with JSON authoritative sources
+- 2026-06-11T04:32:04Z – claude::reviewer-renata:reviewer – shell_pid=47640 – Started review via action command
