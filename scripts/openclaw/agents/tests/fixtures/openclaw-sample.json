@@ -60,6 +60,13 @@
         "workspace": "/data/services/openclaw/tasker-agent",
         "agentDir": "/home/claude/.openclaw/agents/felix-admin-tasker/agent",
         "model": "anthropic/claude-haiku-4-5"
+      },
+      {
+        "id": "felix-admin-calendar",
+        "name": "felix-admin-calendar",
+        "workspace": "/data/services/openclaw/calendar-agent",
+        "agentDir": "/home/claude/.openclaw/agents/felix-admin-calendar/agent",
+        "model": "anthropic/claude-haiku-4-5"
       }
     ]
   },
