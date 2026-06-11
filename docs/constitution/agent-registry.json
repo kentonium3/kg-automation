@@ -1,7 +1,7 @@
 {
-  "version": "1.4",
-  "updated": "2026-05-31",
-  "updated_by": "suspension reflected; model drift reconciled (was sonnet-4-6, corrected to haiku-4-5 per #343)",
+  "version": "1.5",
+  "updated": "2026-06-11",
+  "updated_by": "felix-admin-calendar registered per mission felix-calendar-subagent-extraction-01KTTA33 (#579)",
   "agents": {
     "felix-admin-capture": {
       "team": "SuperAdmin (B)",
@@ -79,6 +79,26 @@
           "autonomy_level": "assisted",
           "direction": "registration",
           "reason": "Initial registration under Felix governance framework (F019)",
+          "decided_by": "Kent Gale"
+        }
+      ]
+    },
+    "felix-admin-calendar": {
+      "team": "SuperAdmin (B)",
+      "scope": "Calendar substrate \u2014 event creation via gog/Google Calendar, clarification reply handler for incomplete inbox-captured events; future home for calendar credential health, recurrence, attendee tracking",
+      "autonomy_level": "assisted",
+      "model": "anthropic/claude-haiku-4-5",
+      "model_policy": "optimizable",
+      "model_rationale": "Routine deterministic-validator-driven workflow \u2014 matches capture / habits / tasker shape. Re-evaluate if accuracy is poor in production.",
+      "log_verbosity": "standard",
+      "deployed_feature": "#579",
+      "registered": "2026-06-11",
+      "transition_history": [
+        {
+          "date": "2026-06-11",
+          "autonomy_level": "assisted",
+          "direction": "registration",
+          "reason": "Extracted from main/AGENTS.md per kentonium3/kg-automation#579 to restore WhatsApp reply relay; broader calendar-substrate charter per mission spec discovery Q2 = A+C (mission felix-calendar-subagent-extraction-01KTTA33)",
           "decided_by": "Kent Gale"
         }
       ]

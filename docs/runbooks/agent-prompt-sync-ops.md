@@ -5,8 +5,8 @@ title: Agent prompt sync — operator runbook
 status: active
 level: howto
 owners: ["kgale"]
-last_validated: 2026-06-08
-version: 1.0
+last_validated: 2026-06-11
+version: 1.1
 ---
 
 # Agent prompt sync — operator runbook
@@ -148,6 +148,7 @@ pick up the new prompt:
 - `felix-admin-habits`: next at 7:05am ET (morning) or Sunday 22:00 ET (weekly)
 - `felix-admin-escalation`: next at 8am ET
 - `felix-admin-tasker`: triggered on delegation; force-trigger with a test delegation
+- `felix-admin-calendar`: triggered on delegation; force-trigger with a test delegation
 
 The helper does NOT force-restart openclaw (per spec FR-017). If you need an
 agent to pick up a prompt change immediately, trigger that agent's cron entry

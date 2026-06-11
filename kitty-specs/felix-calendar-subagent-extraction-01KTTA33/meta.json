@@ -3,7 +3,7 @@
   "created_at": "2026-06-11T03:02:27.522041+00:00",
   "friendly_name": "Felix Calendar Subagent Extraction",
   "mission_id": "01KTTA33XZ0VG1SXQH3YD854K1",
-  "mission_number": null,
+  "mission_number": 72,
   "mission_slug": "felix-calendar-subagent-extraction-01KTTA33",
   "mission_type": "software-dev",
   "purpose_context": "Since 2026-06-09 ~17:00 UTC, Felix's main agent has stopped relaying subagent replies to WhatsApp because main/AGENTS.md grew past OpenClaw's 12K bootstrap context cap and the runtime silently truncated the habit-tracking delegation instructions. This mission resolves the bug by extracting the largest delegation section — calendar event creation + clarification reply handlers (~10-11K chars, lines 259-440) — into a new felix-admin-calendar subagent that follows the established Felix subagent pattern (habits, capture, tasker, escalation, auditor), and tightening main/AGENTS.md to fit under the 12K hard cap. Calendar gets a permanent architectural home with a broader charter for future work; conversational reply flow is restored.",

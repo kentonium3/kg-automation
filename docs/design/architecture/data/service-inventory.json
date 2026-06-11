@@ -1,7 +1,7 @@
 {
   "schema_version": "1.1",
-  "last_updated": "2026-06-09",
-  "updated_by": "#572-credential-liveness-probe + prescan-archive-anomalies-01KTMZPE (#568) + capture-agents-md-rewrite-01KTMY86 (#566) + capture-d6-helpers-extraction-01KTMS5Q (#566) + agent-prompt-deploy-pipeline-01KTMDDD (#567) + vikunja-client-and-habits-weekly-report-01KTKSFT (#542 + #561 + #562) + inbox-calendar-and-aspiration-routing-01KTHHXS + #520-felix-vikunja-sync-project-layer-and-url-config + #519-touchpoint-migration + #518-felix-vikunja-sync-driver-added + #376-remove-escalation-v1-parity + #400-audit-interpretation-moment0 + #310-tasker-jsonl-migration + #374-main-verbatim-passthrough + #362-drift-event-auto-resolution + #309-migrate-escalation-to-jsonl-state-model + #343-refactor-doc-auditor-to-scripts-first-driver + #307-backfill-habits-jsonl-from-comments + #306-habits-native-repeat-jsonl-state + #304-felix-bot-rotation + #291-felix-file-issue + #289-mutation-surfaces-enumeration + #285-cron-delivery-restore-path-c + #282-habits-d6-extract + #263-cron-delivery-mode-round2 + #100-google-workspace-foundation + #256-scope-discipline-guardrails + #253-step-5a-6-consolidation + #254-atomic-write-perm-preservation + issue-105-doc-auditor + #223-systemd-timer + #208-restic-healthcheck + #202-obsidian-sync-system-level + #203-sync-heartbeat + #199-inbox-schedules + #115-credential-health-check + #189-vikunja-compose + #185-inbox-capture-dedup",
+  "last_updated": "2026-06-11",
+  "updated_by": "felix-calendar-subagent-extraction-01KTTA33 (#579) + #572-credential-liveness-probe + prescan-archive-anomalies-01KTMZPE (#568) + capture-agents-md-rewrite-01KTMY86 (#566) + capture-d6-helpers-extraction-01KTMS5Q (#566) + agent-prompt-deploy-pipeline-01KTMDDD (#567) + vikunja-client-and-habits-weekly-report-01KTKSFT (#542 + #561 + #562) + inbox-calendar-and-aspiration-routing-01KTHHXS + #520-felix-vikunja-sync-project-layer-and-url-config + #519-touchpoint-migration + #518-felix-vikunja-sync-driver-added + #376-remove-escalation-v1-parity + #400-audit-interpretation-moment0 + #310-tasker-jsonl-migration + #374-main-verbatim-passthrough + #362-drift-event-auto-resolution + #309-migrate-escalation-to-jsonl-state-model + #343-refactor-doc-auditor-to-scripts-first-driver + #307-backfill-habits-jsonl-from-comments + #306-habits-native-repeat-jsonl-state + #304-felix-bot-rotation + #291-felix-file-issue + #289-mutation-surfaces-enumeration + #285-cron-delivery-restore-path-c + #282-habits-d6-extract + #263-cron-delivery-mode-round2 + #100-google-workspace-foundation + #256-scope-discipline-guardrails + #253-step-5a-6-consolidation + #254-atomic-write-perm-preservation + issue-105-doc-auditor + #223-systemd-timer + #208-restic-healthcheck + #202-obsidian-sync-system-level + #203-sync-heartbeat + #199-inbox-schedules + #115-credential-health-check + #189-vikunja-compose + #185-inbox-capture-dedup",
   "services": [
     {
       "name": "vikunja",
@@ -621,15 +621,48 @@
             "scripts/common/state_log.py"
           ]
         },
+        "felix-admin-calendar": {
+          "workspace": "/data/services/openclaw/calendar-agent",
+          "agentDir": "/home/claude/.openclaw/agents/felix-admin-calendar/agent",
+          "model": "anthropic/claude-haiku-4-5",
+          "purpose": "Calendar substrate \u2014 event creation via `gog`/Google Calendar, clarification reply handler for incomplete inbox-captured events. Extracted from main/AGENTS.md per mission `felix-calendar-subagent-extraction-01KTTA33` (#579) to restore WhatsApp reply relay (delegations to main were blocking on the deprecated 'main' alias surface). On delegation from felix-admin-capture, validates the calendar event payload, executes `gog calendar create`, and returns the response envelope. On inbound WhatsApp clarification reply, reads pending-calendar-clarifications state file, merges Kent's reply into the deferred event payload, re-validates, and issues the deferred `gog calendar create`. Future home for calendar credential health, recurrence (Vikunja-side RRULE parity pending), and attendee tracking.",
+          "source_in_repo": "scripts/openclaw/agents/felix-admin-calendar/",
+          "skills": [
+            "calendar",
+            "gog"
+          ],
+          "triggers": [
+            "delegation",
+            "whatsapp-reply"
+          ],
+          "deployed_by": "#579",
+          "deployed_on": "2026-06-11",
+          "autonomy_level": "assisted",
+          "updated_by": "felix-calendar-subagent-extraction-01KTTA33 (#579)",
+          "updated_at": "2026-06-11",
+          "depends_on": [
+            "gog",
+            "openclaw-gateway-env"
+          ],
+          "state_files": [
+            {
+              "path": "~/second-brain/agents/state/pending-calendar-clarifications.jsonl",
+              "format": "jsonl",
+              "purpose": "Pending calendar clarifications awaiting Kent's WhatsApp reply. 24h aged out by sweep. Atomic-write protocol (LOCK_EX + .tmp + rename) preserved verbatim from main/AGENTS.md \u2014 contract is moved 1:1 from main per mission spec (no behavioral change).",
+              "moved_from": "main/AGENTS.md (lines 333-440 pre-mission)"
+            }
+          ],
+          "notes": "Per data-model.md: openclaw.json agents.list[] entry shape is `{id, name, workspace, agentDir, model}`. Model anthropic/claude-haiku-4-5 chosen per F-06 decision (routine workload, validator-driven). On WhatsApp inbound clarification reply, main no longer holds the deferred-event payload \u2014 felix-admin-calendar reads pending-calendar-clarifications state file and resolves the round-trip. felix-admin-capture continues to dispatch inbox-captured calendar events via openclaw-agent dispatch (unchanged); the contract owner after extraction is felix-admin-calendar. Authoritative deployment + verification: docs/runbooks/openclaw-agent-setup.md."
+        },
         "main": {
           "workspace": "/data/services/openclaw/data",
           "source_in_repo": "scripts/openclaw/agents/main/",
           "model": "anthropic/claude-sonnet-4-6",
-          "purpose": "Top-level OpenClaw orchestrator. Standing orders at /data/services/openclaw/data/AGENTS.md govern routing of inbound channel messages (WhatsApp, etc.) to the felix-admin-* sub-agents. Per mission inbox-calendar-and-aspiration-routing-01KTHHXS, main also (a) receives calendar-create delegation from felix-admin-capture and executes the event via `gog calendar create`, and (b) on inbound WhatsApp, resolves open calendar clarifications by reading the pending-calendar-clarifications state file, merging Kent's reply into the deferred event payload, re-validating, and then issuing the deferred `gog calendar create`.",
+          "purpose": "Top-level OpenClaw orchestrator. Standing orders at /data/services/openclaw/data/AGENTS.md govern routing of inbound channel messages (WhatsApp, etc.) to the felix-admin-* sub-agents. Per mission `felix-calendar-subagent-extraction-01KTTA33` (#579), calendar-create delegation and clarification reply handling have been MOVED OUT of main into the new felix-admin-calendar subagent \u2014 main now routes calendar work to felix-admin-calendar via openclaw-agent dispatch rather than executing `gog calendar create` itself.",
           "verbatim_passthrough_rule": "Per #374 (main-verbatim-passthrough-01KSATRP), the main agent must pass downstream messages to sub-agents VERBATIM (no paraphrase, no summary, no editorial). AGENTS.md changes that affect this rule are governed by the cutover sequence in docs/runbooks/openclaw-agent-setup.md \u00a7'Cutover sequence for main-agent AGENTS.md changes (post-#374)'.",
           "deployed_by": "F002",
-          "updated_by": "inbox-calendar-and-aspiration-routing-01KTHHXS + #374 + agent-prompt-deploy-pipeline-01KTMDDD (#567)",
-          "updated_at": "2026-06-08"
+          "updated_by": "felix-calendar-subagent-extraction-01KTTA33 (#579) + inbox-calendar-and-aspiration-routing-01KTHHXS + #374 + agent-prompt-deploy-pipeline-01KTMDDD (#567)",
+          "updated_at": "2026-06-11"
         }
       },
       "risk_tier": 2,

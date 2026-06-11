@@ -3,10 +3,10 @@ title: OpenClaw Agent Setup
 doc_type: runbook
 status: approved
 audience: agents_and_humans
-last_updated: '2026-06-08'
-last_validated: '2026-06-08'
-updated_by: '#374 + vikunja-client-and-habits-weekly-report-01KTKSFT (#561)'
-revision: v1.2
+last_updated: '2026-06-11'
+last_validated: '2026-06-11'
+updated_by: '#374 + vikunja-client-and-habits-weekly-report-01KTKSFT (#561) + felix-calendar-subagent-extraction-01KTTA33 (#579)'
+revision: v1.3
 ---
 
 # OpenClaw agent setup
@@ -250,6 +250,12 @@ The pipeline is operator-owned but agent-readable:
 │   ├── AGENTS.md
 │   ├── IDENTITY.md
 │   └── SOUL.md
+├── calendar-agent/       ← felix-admin-calendar (#579)
+│   ├── AGENTS.md
+│   ├── IDENTITY.md
+│   ├── SOUL.md
+│   ├── TOOLS.md
+│   └── USER.md
 └── data/                 ← main agent workspace
 
 ~/.openclaw/
@@ -259,7 +265,8 @@ The pipeline is operator-owned but agent-readable:
 │   ├── felix-admin-capture/agent/
 │   ├── felix-admin-habits/agent/
 │   ├── felix-admin-escalation/agent/
-│   └── felix-admin-tasker/agent/
+│   ├── felix-admin-tasker/agent/
+│   └── felix-admin-calendar/agent/
 ├── skills/               ← shared skills (vikunja-api, whisper, etc.)
 └── workspace/            ← global defaults (AGENTS.md, SOUL.md, etc.)
 ```

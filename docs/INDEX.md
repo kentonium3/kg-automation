@@ -118,6 +118,7 @@ Numerators/denominators captured before and after material architectural changes
 - [Google Workspace Operations](<./runbooks/google-workspace-ops.md>) — `gog` CLI setup, OAuth flow, pitfalls, common commands, second-account expansion, credential liveness probe auto-detection (#100, ADR-0001, #572)
 - [Phone Termius Setup & Recovery](<./runbooks/phone-termius-setup.md>) — iPhone Termius SSH setup (kgale + claude hosts), new-phone enrollment, post-key-rotation recovery, Tailscale SSH ACL gotchas (#575, ADR-0004)
 - [Local Test Gate (pre-push hook)](<./runbooks/local-test-gate.md>) — `.githooks/pre-push` runs `make test` before `git push`; one-time `git config core.hooksPath .githooks` setup; bypass policy (#571)
+- [Smoke checklist — felix-admin-calendar extraction (#579)](<./runbooks/felix-calendar-subagent-extraction-01KTTA33-smoke.md>) — operator-driven post-deploy verification for the felix-calendar-subagent-extraction mission: DM round-trips per subagent, doc-auditor `last-tick.json` freshness, 24h observation window for scheduled outbound flows, decision criteria
 
 ### Human and mixed-audience runbooks
 

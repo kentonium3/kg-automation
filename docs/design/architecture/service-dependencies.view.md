@@ -4,11 +4,11 @@ doc_type: guide
 level: reference
 status: approved
 owners: [kgale]
-last_validated: 2026-06-05
-revision: v1.3
+last_validated: 2026-06-11
+revision: v1.4
 audience: agents_and_humans
-updated_by: '#520'
-tags: [309, 408, 518, 519, 520]
+updated_by: '#579'
+tags: [309, 408, 518, 519, 520, 579]
 ---
 
 # Service Dependencies
@@ -16,6 +16,12 @@ tags: [309, 408, 518, 519, 520]
 Visual dependency map of office2 services, grouped by tier.
 Arrows show runtime dependencies. The critical external path
 (port 443 through tailscale-serve into vikunja) is highlighted.
+Updated 2026-06-11 (#579) — added `felix-admin-calendar` agent node
+(extracted from `main/AGENTS.md` per mission
+`felix-calendar-subagent-extraction-01KTTA33`) with delegation edges
+from `main` and `inbox-processing` (capture initiates calendar event
+creation) and runtime edges to the `gog` CLI (Google Calendar) and
+`openclaw-gateway-env` (credential surface for `GOG_KEYRING_PASSWORD`).
 Updated 2026-06-05 (#520) — added `felix-vikunja-sync-driver` node and
 `vikunja-url-config` file node; the sync driver depends on Vikunja API
 and the URL config file, and the URL config file is also consumed by the
@@ -47,11 +53,13 @@ graph LR
     end
 
     subgraph Agents["Agent Services (Tier 3)"]
-        inbox["inbox-processing<br/>Tier 3"]
+        main["openclaw-main<br/>Tier 3<br/>(orchestrator)"]
+        inbox["inbox-processing<br/>Tier 3<br/>(felix-admin-capture)"]
         habits["habit-checkin<br/>Tier 3<br/>(scripts-first #371)"]
         habitsweeper["felix-habit-sweeper<br/>Tier 3<br/>(48hr auto-skip #408)"]
         taskdet["task-detection<br/>Tier 3"]
         escalation["escalation-daily<br/>Tier 3<br/>(JSONL state #309)"]
+        calendar["felix-admin-calendar<br/>Tier 3<br/>(extracted from main #579)"]
         digest["felix-core-digest<br/>Tier 3"]
     end
 
@@ -63,12 +71,14 @@ graph LR
 
     subgraph Config["Config Files"]
         url_config["vikunja-base-url.txt<br/>/data/services/openclaw/config/<br/>mode 0644 — #520"]
+        gateway_env["openclaw-gateway-env<br/>/data/services/openclaw/secrets/<br/>GOG_KEYRING_PASSWORD"]
     end
 
     subgraph External["External Dependencies"]
         tailscale["tailscale-serve:443"]
         anthropic["anthropic-api"]
         docker["docker"]
+        gog["gog CLI<br/>(Google Calendar)"]
     end
 
     vikunja -->|"requires"| tailscale
@@ -87,6 +97,11 @@ graph LR
     taskdet -->|"requires"| openclaw
     escalation -->|"requires"| openclaw
     digest -->|"requires"| openclaw
+
+    main -->|"delegation<br/>(create_calendar_event,<br/>clarification reply, #579)"| calendar
+    inbox -->|"delegation<br/>(create_calendar_event, #579)"| calendar
+    calendar -->|"requires<br/>(gog calendar create)"| gog
+    calendar -->|"reads credentials<br/>(GOG_KEYRING_PASSWORD)"| gateway_env
 
     vikunja_sync -->|"GET /tasks/all<br/>GET /projects<br/>(full-poll, #518)"| vikunja
     vikunja_sync -->|"reads base URL<br/>(#520)"| url_config
@@ -122,3 +137,13 @@ graph LR
   Vikunja) and resolves the base URL from the shared config file
   (`vikunja-base-url.txt`, mode 0644 — not a secret). The same config
   file is consumed by the six touchpoint scripts migrated by #519.
+- **Calendar substrate isolation (#579)**: `felix-admin-calendar` owns
+  all Google Calendar interactions (`gog calendar create`, clarification
+  round-trips). The agent receives delegation from both `main` (for
+  WhatsApp clarification reply relays) and `inbox-processing` (for
+  inbox-captured calendar events) and depends on the `gog` CLI for
+  Google Calendar API access plus `openclaw-gateway-env` for the
+  `GOG_KEYRING_PASSWORD` credential. Prior to extraction, this work lived
+  in `main/AGENTS.md` and blocked the WhatsApp reply relay — moving it to
+  a dedicated subagent restored the relay and gives the calendar substrate
+  room to grow (recurrence, attendees, credential health).

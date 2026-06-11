@@ -2,7 +2,7 @@
 title: Service Inventory
 doc_type: reference
 status: approved
-tags: [572, 520, 519, 518, 137, 189, 80, 202, 149, 190, 374, 100, 253, 185, 254, 371, 309, 343, 306, 308, 310, 362, 391, 400, 105, 115, 562, 490, 408, 567, 563, 558, 561, 540, 542, 306/, 152, 376, 368-, 112]
+tags: [579, 572, 520, 519, 518, 137, 189, 80, 202, 149, 190, 374, 100, 253, 185, 254, 371, 309, 343, 306, 308, 310, 362, 391, 400, 105, 115, 562, 490, 408, 567, 563, 558, 561, 540, 542, 306/, 152, 376, 368-, 112]
 ---
 
 # Service Inventory
@@ -75,6 +75,7 @@ content loss) and unsticks stranded changes from #558 + #561.
 | `felix-admin-habits` | `/data/services/openclaw/habits-agent/` |
 | `felix-admin-escalation` | `/data/services/openclaw/escalation-agent/` |
 | `felix-admin-tasker` | `/data/services/openclaw/tasker-agent/` |
+| `felix-admin-calendar` | `/data/services/openclaw/calendar-agent/` |
 | `main` | `/data/services/openclaw/data/` |
 
 **Files synced** (in-scope filename allowlist):
@@ -425,6 +426,31 @@ Per-helper metadata mirrors `docs/design/architecture/data/service-inventory.jso
   - **writes_to**: GitHub Issues (P2-bug, area/escalation via `felix-file-issue.py` subprocess)
   - **reads_from**: GitHub Issues (`gh issue list --state open --search` dedup query)
   - **credentials**: `github-pat-kg-felix-bot`
+
+### Felix Admin Calendar Agent (#579, mission `felix-calendar-subagent-extraction-01KTTA33`, 2026-06-11)
+- **Deployed by**: [#579](https://github.com/kentonium3/kg-automation/issues/579) / mission `felix-calendar-subagent-extraction-01KTTA33`
+- **Type**: OpenClaw agent (sub-agent of the gateway)
+- **Agent name**: `felix-admin-calendar`
+- **Workspace**: `/data/services/openclaw/calendar-agent/`
+- **agentDir**: `/home/claude/.openclaw/agents/felix-admin-calendar/agent`
+- **Source in repo**: `scripts/openclaw/agents/felix-admin-calendar/` (IDENTITY.md, SOUL.md, AGENTS.md, TOOLS.md, USER.md per `docs/runbooks/openclaw-agent-setup.md`)
+- **Model**: `anthropic/claude-haiku-4-5` (optimizable) — Routine deterministic-validator-driven workflow; matches capture / habits / tasker shape. Re-evaluate if accuracy is poor in production.
+- **Purpose**: Calendar substrate — receives `create_calendar_event` delegation from `felix-admin-capture`, validates the payload, executes `gog calendar create`, and returns the response envelope. On inbound WhatsApp clarification reply (where Kent answers an earlier incomplete-event prompt), reads the pending-calendar-clarifications state file, merges Kent's reply into the deferred event payload, re-validates, and issues the deferred `gog calendar create`. Future home for calendar credential health, recurrence (Vikunja-side RRULE parity pending — see [reference: Vikunja recurrence model]), and attendee tracking.
+- **Skills**: calendar, gog
+- **Autonomy**: Assisted (Level 1)
+- **Triggers**: Delegation (from `felix-admin-capture` for `create_calendar_event`); WhatsApp reply relay (for clarification round-trips routed by `main`)
+- **Depends on**: `gog` CLI (`/home/linuxbrew/.linuxbrew/bin/gog`) for Google Calendar API access; `openclaw-gateway-env` for OAuth/credential surface (`GOG_KEYRING_PASSWORD`)
+- **Privacy boundary**: `04-Growth/_private/` is never accessed
+- **Why extracted from main**: Per mission spec, calendar work previously lived in `main/AGENTS.md` (lines 259-440 pre-mission). Delegations to `main` were blocking on the deprecated `main` alias surface, suppressing the WhatsApp reply relay. Extracting to a dedicated subagent restores the relay and gives the calendar substrate room to grow.
+- **Contract owner after extraction**: `felix-admin-calendar` (was: `main`). The calendar event creation payload and response envelope contracts (per `kitty-specs/inbox-calendar-and-aspiration-routing-01KTHHXS/contracts/capture_to_main_calendar_payload.md`) are moved 1:1 — no behavioral change.
+- **Dispatcher (unchanged)**: `felix-admin-capture` routes inbox-captured calendar events via openclaw-agent dispatch.
+- **Runbook**: `docs/runbooks/openclaw-agent-setup.md` (canonical agent-setup procedure — required reading before deploy/modify/register); mission-specific smoke runbook: `docs/runbooks/felix-calendar-subagent-extraction-01KTTA33-smoke.md`
+- **Mission spec**: `kitty-specs/felix-calendar-subagent-extraction-01KTTA33/spec.md` (data model + payload contracts in `data-model.md`)
+- **Authoritative JSON**: see `services[openclaw-gateway].agents.felix-admin-calendar` in `data/service-inventory.json`
+
+#### State files
+
+- **Pending calendar clarifications** (`~/second-brain/agents/state/pending-calendar-clarifications.jsonl`) — Per data-model.md, file path and JSONL record shape are PRESERVED from main's pre-mission handler. Atomic-write protocol (LOCK_EX + .tmp + rename) preserved verbatim — this is shared with capture's append-record pattern. Records aged out after 24h by the sweep.
 
 ### Felix Doc Auditor (#105 deployed 2026-05-10; refactored to scripts-first driver in #343, 2026-05-21; Moment 0 drift interpretation added in #362, 2026-05-22)
 - **Operational status**: ⏸ **Suspended indefinitely 2026-05-26**. Implementation complete (post-#343 / #362 / #391 / #400). Two-layer suspension in place: `felix-doc-auditor.timer` `disabled` + `[drift_interpretation].enabled = false` + `[audit_interpretation].enabled = false` in `scripts/doc_audit/config.toml` (commit `d46a9ead`). GH Actions workflows `Doc Audit Trigger` + `Doc Audit Weekly` also `disabled_manually`. Reactivation gated on [#137](https://github.com/kentonium3/kg-automation/issues/137) cost-control epic landing plus explicit operator decision. The entries below describe the design and intended runtime behavior, unchanged by suspension.

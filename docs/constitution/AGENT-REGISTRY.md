@@ -97,6 +97,24 @@ results, update this registry and `agent-registry.json`.
 
 ---
 
+## felix-admin-calendar
+
+**Team**: SuperAdmin (B)
+**Scope**: Calendar substrate — event creation via `gog`/Google Calendar, clarification reply handler for incomplete inbox-captured events; future home for calendar credential health, recurrence, attendee tracking
+**Does NOT handle**: Inbox classification (felix-admin-capture), habits, task enrichment (felix-admin-tasker), escalation, briefings
+**Current Autonomy Level**: Assisted (Level 1)
+**Model**: Haiku 4.5 (optimizable) — Routine deterministic-validator-driven workflow, matches capture / habits / tasker shape. Re-evaluate if accuracy is poor in production.
+**Deployed**: [#579](https://github.com/kentonium3/kg-automation/issues/579) / mission `felix-calendar-subagent-extraction-01KTTA33` (2026-06-11)
+**Registered**: [#579](https://github.com/kentonium3/kg-automation/issues/579) / mission `felix-calendar-subagent-extraction-01KTTA33` (2026-06-11)
+
+### Transition History
+
+| Date | Level | Direction | Reason | Decided By |
+|------|-------|-----------|--------|------------|
+| 2026-06-11 | Assisted | Registration | Extracted from `main/AGENTS.md` per [#579](https://github.com/kentonium3/kg-automation/issues/579) to restore WhatsApp reply relay; broader calendar-substrate charter per mission spec discovery Q2 = A+C (mission `felix-calendar-subagent-extraction-01KTTA33`) | Kent Gale |
+
+---
+
 ## felix-doc-auditor
 
 **Team**: SuperAdmin (B)

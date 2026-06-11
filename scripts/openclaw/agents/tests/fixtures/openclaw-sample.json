@@ -1,0 +1,124 @@
+{
+  "meta": {
+    "lastTouchedVersion": "2026.5.28",
+    "lastTouchedAt": "2026-06-02T18:18:52.079Z"
+  },
+  "wizard": {
+    "lastRunAt": "2026-06-02T18:18:07.192Z",
+    "lastRunVersion": "2026.5.28",
+    "lastRunCommand": "doctor",
+    "lastRunMode": "local"
+  },
+  "auth": {
+    "profiles": {
+      "anthropic:default": {
+        "provider": "anthropic",
+        "mode": "api_key"
+      }
+    }
+  },
+  "agents": {
+    "defaults": {
+      "model": {
+        "primary": "anthropic/claude-haiku-4-5"
+      },
+      "models": {
+        "anthropic/claude-haiku-4-5": {},
+        "anthropic/claude-sonnet-4-6": {}
+      },
+      "workspace": "/data/services/openclaw/data"
+    },
+    "list": [
+      {
+        "id": "main",
+        "model": "anthropic/claude-sonnet-4-6"
+      },
+      {
+        "id": "felix-admin-capture",
+        "name": "felix-admin-capture",
+        "workspace": "/data/services/openclaw/inbox-agent",
+        "agentDir": "/home/claude/.openclaw/agents/felix-admin-capture/agent",
+        "model": "anthropic/claude-haiku-4-5"
+      },
+      {
+        "id": "felix-admin-habits",
+        "name": "felix-admin-habits",
+        "workspace": "/data/services/openclaw/habits-agent",
+        "agentDir": "/home/claude/.openclaw/agents/felix-admin-habits/agent",
+        "model": "anthropic/claude-haiku-4-5"
+      },
+      {
+        "id": "felix-admin-escalation",
+        "name": "felix-admin-escalation",
+        "workspace": "/data/services/openclaw/escalation-agent",
+        "agentDir": "/home/claude/.openclaw/agents/felix-admin-escalation/agent",
+        "model": "anthropic/claude-sonnet-4-6"
+      },
+      {
+        "id": "felix-admin-tasker",
+        "name": "felix-admin-tasker",
+        "workspace": "/data/services/openclaw/tasker-agent",
+        "agentDir": "/home/claude/.openclaw/agents/felix-admin-tasker/agent",
+        "model": "anthropic/claude-haiku-4-5"
+      }
+    ]
+  },
+  "tools": {
+    "profile": "coding",
+    "web": {
+      "search": {
+        "enabled": true,
+        "provider": "gemini"
+      }
+    }
+  },
+  "commands": {
+    "native": "auto",
+    "nativeSkills": "auto",
+    "restart": true,
+    "ownerDisplay": "raw"
+  },
+  "session": {
+    "dmScope": "per-channel-peer"
+  },
+  "channels": {
+    "whatsapp": {
+      "enabled": true,
+      "dmPolicy": "allowlist",
+      "selfChatMode": false,
+      "allowFrom": [
+        "+10000000000"
+      ],
+      "groupPolicy": "allowlist",
+      "debounceMs": 0,
+      "mediaMaxMb": 50,
+      "groupAllowFrom": [
+        "+10000000000"
+      ]
+    }
+  },
+  "gateway": {
+    "port": 18789,
+    "mode": "local",
+    "bind": "loopback",
+    "auth": {
+      "mode": "token",
+      "token": "REDACTED-DO-NOT-USE"
+    },
+    "tailscale": {
+      "mode": "off",
+      "resetOnExit": false
+    },
+    "nodes": {
+      "denyCommands": [
+        "camera.snap",
+        "camera.clip",
+        "screen.record",
+        "contacts.add",
+        "calendar.add",
+        "reminders.add",
+        "sms.send"
+      ]
+    }
+  }
+}
