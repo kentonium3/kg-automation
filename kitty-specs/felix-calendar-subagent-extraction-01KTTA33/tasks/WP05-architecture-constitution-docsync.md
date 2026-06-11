@@ -17,6 +17,7 @@ subtasks:
 - T028
 - T029
 phase: Phase 3 - Documentation
+shell_pid: "43094"
 history:
 - at: '2026-06-11T03:26:12Z'
   actor: system
@@ -32,7 +33,7 @@ owned_files:
 tags: []
 agent_profile: curator-carla
 role: curator
-agent: claude
+agent: "claude::curator-carla:curator"
 ---
 
 # Work Package Prompt: WP05 – Architecture + Constitution documentation sync
@@ -161,3 +162,4 @@ If the repo has a `tooling/scripts/validate_docs.py` style validator, run it aft
 > **CRITICAL**: Activity log entries MUST be in chronological order (oldest first, newest last).
 
 - 2026-06-11T03:26:12Z -- system -- Prompt created.
+- 2026-06-11T04:23:16Z – claude::curator-carla:curator – shell_pid=43094 – Assigned agent via action command
