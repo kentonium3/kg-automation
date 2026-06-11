@@ -190,10 +190,10 @@
 
 **Included subtasks**:
 
-- [ ] T030 Verify `docs/runbooks/openclaw-agent-setup.md` still accurate (WP06)
-- [ ] T031 Verify `docs/runbooks/agent-prompt-sync-ops.md` still accurate (WP06)
-- [ ] T032 Verify `docs/design/felix-capability-roadmap.md` calendar capability status; update if drifted (WP06)
-- [ ] T033 Verify `docs/design/architecture/data/audited-surfaces.json` patterns cover new agent dir (no pattern change expected) (WP06)
+- [x] T030 Verify `docs/runbooks/openclaw-agent-setup.md` still accurate (WP06)
+- [x] T031 Verify `docs/runbooks/agent-prompt-sync-ops.md` still accurate (WP06)
+- [x] T032 Verify `docs/design/felix-capability-roadmap.md` calendar capability status; update if drifted (WP06)
+- [x] T033 Verify `docs/design/architecture/data/audited-surfaces.json` patterns cover new agent dir (no pattern change expected) (WP06)
 
 **Implementation sketch**: Read each doc top to bottom; for each, decide PASS or UPDATE. Document the decision in the WP's history note so reviewer understands what was checked.
 
