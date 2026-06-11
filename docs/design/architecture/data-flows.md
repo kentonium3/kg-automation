@@ -4,6 +4,7 @@ doc_type: reference
 status: approved
 last_updated: '2026-06-08'
 updated_by: 'inbox-calendar-and-aspiration-routing-01KTHHXS + #520-felix-vikunja-sync-project-layer-and-url-config'
+tags: [520, 507, 519, 518, 309, 343, 362, 391, 400, 310, 374]
 ---
 
 # Data Flows

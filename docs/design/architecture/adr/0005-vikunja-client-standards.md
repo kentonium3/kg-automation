@@ -6,7 +6,7 @@ owners: ["@kentonium3"]
 last_updated: '2026-06-10'
 version: v1.0
 audience: agents_and_humans
-tags: [541, 542, 520, 281]
+tags: [541, 542, 520, 281, 531, 543]
 ---
 
 # ADR-0005 — Vikunja client standardization (base URL, token, timeout, error policy)
