@@ -113,11 +113,11 @@
 
 **Included subtasks**:
 
-- [ ] T013 Remove calendar handlers (current lines 259–440) (WP03)
-- [ ] T014 Add calendar delegation pointer section (~15-20 lines, mirror habit/inbox pattern) (WP03)
-- [ ] T015 Compress whole file if still over 12K (WP03)
-- [ ] T016 Verify final size < 12K and semantics preserved (WP03)
-- [ ] T017 Verify pytest main-file assertion green (WP03)
+- [x] T013 Remove calendar handlers (current lines 259–440) (WP03)
+- [x] T014 Add calendar delegation pointer section (~15-20 lines, mirror habit/inbox pattern) (WP03)
+- [x] T015 Compress whole file if still over 12K (WP03)
+- [x] T016 Verify final size < 12K and semantics preserved (WP03)
+- [x] T017 Verify pytest main-file assertion green (WP03)
 
 **Implementation sketch**: T013 is a straight excision of lines 259–440 in the current file. T014 inserts the delegation pointer matching the existing habit/inbox patterns (the new home is `felix-admin-calendar`, with the same dispatch-payload contract per data-model.md). T015 runs only if T013+T014 don't already get under 12K — review every section for compression opportunities while preserving meaning. T016 review by a reviewer with the original main/AGENTS.md side-by-side.
 
@@ -165,11 +165,11 @@
 
 **Included subtasks**:
 
-- [ ] T025 Add felix-admin-calendar entry to `docs/constitution/agent-registry.json` (WP05)
-- [ ] T026 Update `docs/constitution/AGENT-REGISTRY.md` markdown view (WP05)
-- [ ] T027 Add felix-admin-calendar service entry to `docs/design/architecture/data/service-inventory.json` (WP05)
-- [ ] T028 Update `docs/design/architecture/service-inventory.md` narrative (WP05)
-- [ ] T029 Update `docs/design/architecture/service-dependencies.view.md` diagram (WP05)
+- [x] T025 Add felix-admin-calendar entry to `docs/constitution/agent-registry.json` (WP05)
+- [x] T026 Update `docs/constitution/AGENT-REGISTRY.md` markdown view (WP05)
+- [x] T027 Add felix-admin-calendar service entry to `docs/design/architecture/data/service-inventory.json` (WP05)
+- [x] T028 Update `docs/design/architecture/service-inventory.md` narrative (WP05)
+- [x] T029 Update `docs/design/architecture/service-dependencies.view.md` diagram (WP05)
 
 **Implementation sketch**: Use data-model.md as the source-of-truth for entry shape. Reference existing felix-admin-tasker / felix-admin-escalation entries as the canonical template for service-inventory and agent-registry rows. For the dependencies view, add the felix-admin-calendar node and its incoming edge from main (delegation) + outgoing edge to gog/Google Calendar.
 
