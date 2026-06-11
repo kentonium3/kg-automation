@@ -14,6 +14,7 @@ subtasks:
 - T032
 - T033
 phase: Phase 1 - Documentation Verification
+shell_pid: "31884"
 history:
 - at: '2026-06-11T03:26:12Z'
   actor: system
@@ -28,7 +29,7 @@ owned_files:
 tags: []
 agent_profile: curator-carla
 role: curator
-agent: claude
+agent: "claude::curator-carla:curator"
 ---
 
 # Work Package Prompt: WP06 – Runbook + roadmap + audited-surfaces verifications
@@ -135,3 +136,4 @@ No automated tests; this WP is verification + minimal-touch edits. Reviewer shou
 > **CRITICAL**: Activity log entries MUST be in chronological order (oldest first, newest last).
 
 - 2026-06-11T03:26:12Z -- system -- Prompt created.
+- 2026-06-11T03:52:14Z – claude::curator-carla:curator – shell_pid=31884 – Assigned agent via action command
