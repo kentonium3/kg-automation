@@ -86,13 +86,13 @@
 
 **Included subtasks**:
 
-- [ ] T006 Create `scripts/openclaw/agents/felix-admin-calendar/` directory (WP02)
-- [ ] T007 Author IDENTITY.md (WP02)
-- [ ] T008 Author SOUL.md (WP02)
-- [ ] T009 Author AGENTS.md — charter + handlers (WP02)
-- [ ] T010 Author TOOLS.md (WP02)
-- [ ] T011 Author USER.md (WP02)
-- [ ] T012 Verify pytest felix-admin-calendar size assertion green (WP02)
+- [x] T006 Create `scripts/openclaw/agents/felix-admin-calendar/` directory (WP02)
+- [x] T007 Author IDENTITY.md (WP02)
+- [x] T008 Author SOUL.md (WP02)
+- [x] T009 Author AGENTS.md — charter + handlers (WP02)
+- [x] T010 Author TOOLS.md (WP02)
+- [x] T011 Author USER.md (WP02)
+- [x] T012 Verify pytest felix-admin-calendar size assertion green (WP02)
 
 **Implementation sketch**: Mirror `felix-admin-habits` triad as the canonical reference. AGENTS.md content moves from main/AGENTS.md lines 259–440 with `--agent` log_action values updated to `felix-admin-calendar`. Broader calendar-substrate charter prefaces the handlers per spec discovery Q2=A+C.
 
