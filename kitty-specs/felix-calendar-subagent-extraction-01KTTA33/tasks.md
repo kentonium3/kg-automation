@@ -138,13 +138,13 @@
 
 **Included subtasks**:
 
-- [ ] T018 Pre-flight block (Restic age, SSH reachable, artifact presence, pytest invocation) (WP04)
-- [ ] T019 agent-prompt-sync trigger + post-sync verification (WP04)
-- [ ] T020 openclaw.json edit block (SSH+jq with backup, idempotency, validation) (WP04)
-- [ ] T021 Service restart + activity check (WP04)
-- [ ] T022 Journal-watch (NFR-002) (WP04)
-- [ ] T023 Post-flight reporting (smoke link, rebaseline command) (WP04)
-- [ ] T024 Rollback documentation in script header + exit-code conventions (WP04)
+- [x] T018 Pre-flight block (Restic age, SSH reachable, artifact presence, pytest invocation) (WP04)
+- [x] T019 agent-prompt-sync trigger + post-sync verification (WP04)
+- [x] T020 openclaw.json edit block (SSH+jq with backup, idempotency, validation) (WP04)
+- [x] T021 Service restart + activity check (WP04)
+- [x] T022 Journal-watch (NFR-002) (WP04)
+- [x] T023 Post-flight reporting (smoke link, rebaseline command) (WP04)
+- [x] T024 Rollback documentation in script header + exit-code conventions (WP04)
 
 **Implementation sketch**: Single Bash file with `set -euo pipefail`; clear stepwise functions; SSH invocations to `office2-claude`; jq mutation matches `contracts/openclaw-json-entry.md` exactly. Idempotency check on T020 (skip if entry already present). Halt on any error with rollback instructions printed.
 
