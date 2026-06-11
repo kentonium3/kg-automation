@@ -22,6 +22,7 @@ subtasks:
 - T023
 - T024
 phase: Phase 2 - Deploy Substrate
+shell_pid: "37534"
 history:
 - at: '2026-06-11T03:26:12Z'
   actor: system
@@ -33,7 +34,7 @@ owned_files:
 tags: []
 agent_profile: implementer-ivan
 role: implementer
-agent: claude
+agent: "claude::implementer-ivan:implementer"
 ---
 
 # Work Package Prompt: WP04 – Deploy script (strict-order-of-operations Bash wrapper)
@@ -197,3 +198,4 @@ Build `scripts/deploy/deploy-felix-admin-calendar.sh` per the strict-order-of-op
 > **CRITICAL**: Activity log entries MUST be in chronological order (oldest first, newest last).
 
 - 2026-06-11T03:26:12Z -- system -- Prompt created.
+- 2026-06-11T04:08:16Z – claude::implementer-ivan:implementer – shell_pid=37534 – Assigned agent via action command
