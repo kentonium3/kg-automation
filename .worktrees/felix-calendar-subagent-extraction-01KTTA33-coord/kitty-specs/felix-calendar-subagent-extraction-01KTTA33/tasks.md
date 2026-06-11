@@ -86,13 +86,13 @@
 
 **Included subtasks**:
 
-- [ ] T006 Create `scripts/openclaw/agents/felix-admin-calendar/` directory (WP02)
-- [ ] T007 Author IDENTITY.md (WP02)
-- [ ] T008 Author SOUL.md (WP02)
-- [ ] T009 Author AGENTS.md — charter + handlers (WP02)
-- [ ] T010 Author TOOLS.md (WP02)
-- [ ] T011 Author USER.md (WP02)
-- [ ] T012 Verify pytest felix-admin-calendar size assertion green (WP02)
+- [x] T006 Create `scripts/openclaw/agents/felix-admin-calendar/` directory (WP02)
+- [x] T007 Author IDENTITY.md (WP02)
+- [x] T008 Author SOUL.md (WP02)
+- [x] T009 Author AGENTS.md — charter + handlers (WP02)
+- [x] T010 Author TOOLS.md (WP02)
+- [x] T011 Author USER.md (WP02)
+- [x] T012 Verify pytest felix-admin-calendar size assertion green (WP02)
 
 **Implementation sketch**: Mirror `felix-admin-habits` triad as the canonical reference. AGENTS.md content moves from main/AGENTS.md lines 259–440 with `--agent` log_action values updated to `felix-admin-calendar`. Broader calendar-substrate charter prefaces the handlers per spec discovery Q2=A+C.
 
@@ -138,13 +138,13 @@
 
 **Included subtasks**:
 
-- [ ] T018 Pre-flight block (Restic age, SSH reachable, artifact presence, pytest invocation) (WP04)
-- [ ] T019 agent-prompt-sync trigger + post-sync verification (WP04)
-- [ ] T020 openclaw.json edit block (SSH+jq with backup, idempotency, validation) (WP04)
-- [ ] T021 Service restart + activity check (WP04)
-- [ ] T022 Journal-watch (NFR-002) (WP04)
-- [ ] T023 Post-flight reporting (smoke link, rebaseline command) (WP04)
-- [ ] T024 Rollback documentation in script header + exit-code conventions (WP04)
+- [x] T018 Pre-flight block (Restic age, SSH reachable, artifact presence, pytest invocation) (WP04)
+- [x] T019 agent-prompt-sync trigger + post-sync verification (WP04)
+- [x] T020 openclaw.json edit block (SSH+jq with backup, idempotency, validation) (WP04)
+- [x] T021 Service restart + activity check (WP04)
+- [x] T022 Journal-watch (NFR-002) (WP04)
+- [x] T023 Post-flight reporting (smoke link, rebaseline command) (WP04)
+- [x] T024 Rollback documentation in script header + exit-code conventions (WP04)
 
 **Implementation sketch**: Single Bash file with `set -euo pipefail`; clear stepwise functions; SSH invocations to `office2-claude`; jq mutation matches `contracts/openclaw-json-entry.md` exactly. Idempotency check on T020 (skip if entry already present). Halt on any error with rollback instructions printed.
 

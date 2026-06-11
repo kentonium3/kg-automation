@@ -22,6 +22,7 @@ subtasks:
 - T023
 - T024
 phase: Phase 2 - Deploy Substrate
+shell_pid: "40362"
 history:
 - at: '2026-06-11T03:26:12Z'
   actor: system
@@ -33,7 +34,7 @@ owned_files:
 tags: []
 agent_profile: implementer-ivan
 role: implementer
-agent: claude
+agent: "claude::reviewer-renata:reviewer"
 ---
 
 # Work Package Prompt: WP04 – Deploy script (strict-order-of-operations Bash wrapper)
@@ -197,3 +198,7 @@ Build `scripts/deploy/deploy-felix-admin-calendar.sh` per the strict-order-of-op
 > **CRITICAL**: Activity log entries MUST be in chronological order (oldest first, newest last).
 
 - 2026-06-11T03:26:12Z -- system -- Prompt created.
+- 2026-06-11T04:08:16Z – claude::implementer-ivan:implementer – shell_pid=37534 – Assigned agent via action command
+- 2026-06-11T04:14:20Z – claude::implementer-ivan:implementer – shell_pid=37534 – Ready for review: deploy script complete (bash -n clean, shellcheck clean)
+- 2026-06-11T04:14:47Z – claude::reviewer-renata:reviewer – shell_pid=40362 – Started review via action command
+- 2026-06-11T04:16:45Z – user – shell_pid=40362 – Review passed: bash -n + shellcheck clean (SC2016/SC2029 disables justified); 30-line header w/ exit-code table 0-5; all 6 stages ordered per DIR-005 (pre-flight, agent-sync, openclaw.json edit, restart, journal watch, post-flight); jq mutation byte-for-byte match to contracts/openclaw-json-entry.md (all 5 required fields); idempotency check uses jq '.agents.list[] | select(.id == "felix-admin-calendar")' at line 277, skips cleanly on hit; pytest invocation present at line 170; Stage 5 grep filters explicitly to agent:main:* sessions; rebaseline command printed VERBATIM (matches CLAUDE.md canonical form); zero office2-kgale occurrences, 5 office2-claude occurrences; executable bit set; no test-run backup files on office2; only scripts/deploy/deploy-felix-admin-calendar.sh changed (no scope creep); issue-matrix.md present with verdicts for #579 and #492. Anti-pattern checklist: dead-code N/A (no new modules), synthetic-fixture N/A (deploy script, not test code), silent-empty-return PASS (every failure path errs+exits), FR coverage PASS (FR-002/004/008/009/010 all addressed by stage shape), frozen surface PASS (no frozen files touched), locked decision PASS (no MUST NOT contradictions), shared-file ownership PASS (lane-d alone), production-fragility PASS (every err path documents rollback).
