@@ -14,7 +14,7 @@ subtasks:
 - T035
 - T036
 phase: Phase 3 - Acceptance Substrate
-shell_pid: "43094"
+shell_pid: "46069"
 history:
 - at: '2026-06-11T03:26:12Z'
   actor: system
@@ -28,7 +28,7 @@ owned_files:
 tags: []
 agent_profile: curator-carla
 role: curator
-agent: "claude::curator-carla:curator"
+agent: "claude::reviewer-renata:reviewer"
 ---
 
 # Work Package Prompt: WP07 – Smoke runbook + navigation entries
@@ -130,3 +130,5 @@ Author the operator smoke runbook (the canonical behavioral verification surface
 
 - 2026-06-11T03:26:12Z -- system -- Prompt created.
 - 2026-06-11T04:23:28Z – claude::curator-carla:curator – shell_pid=43094 – Assigned agent via action command
+- 2026-06-11T04:29:02Z – claude::curator-carla:curator – shell_pid=43094 – Ready for review: smoke runbook authored per contracts/smoke-runbook-shape.md (all 6 sections), INDEX + DEVELOPER_PORTAL updated
+- 2026-06-11T04:29:25Z – claude::reviewer-renata:reviewer – shell_pid=46069 – Started review via action command

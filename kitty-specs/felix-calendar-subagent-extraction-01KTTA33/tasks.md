@@ -214,9 +214,9 @@
 
 **Included subtasks**:
 
-- [ ] T034 Author smoke runbook per contracts/smoke-runbook-shape.md (WP07)
-- [ ] T035 Add INDEX.md entry (WP07)
-- [ ] T036 Add DEVELOPER_PORTAL.md entry (WP07)
+- [x] T034 Author smoke runbook per contracts/smoke-runbook-shape.md (WP07)
+- [x] T035 Add INDEX.md entry (WP07)
+- [x] T036 Add DEVELOPER_PORTAL.md entry (WP07)
 
 **Implementation sketch**: Follow the shape contract in `contracts/smoke-runbook-shape.md`. Cover all 8 SCs; explicit DM templates per subagent; doc-auditor `last-tick.json` check (separate substrate per F-05 in research); decision criteria block.
 
