@@ -238,3 +238,58 @@ These are NOT spec-blocking but should be confirmed during the implement lane:
 | **C-001** (No vendored openclaw modifications) | Source dive in §3.4 is read-only; H1 explicitly out of scope. |
 | **Engineering Principle: Architecture docs first** (per `feedback_architecture_docs_first` memory) | §1 reads JSONs before §3 SSH probes. |
 | **Spec Fidelity** (DIRECTIVE_010) | All §4 hypotheses map cleanly to FR-004 (`sessions.resolve current` proximate cause) and FR-009 (vendored-runtime out-of-scope branch). |
+
+---
+
+## 9. Update — H6 (openclaw upgrade) added at tasks phase (2026-06-11T18:50:00Z)
+
+**Trigger**: Codex review of the openclaw 2026.6.5 release notes during the tasks-phase planning, surfaced via the operator (Kent) in the tasks-phase session.
+
+**Codex evidence summary** (verbatim from operator's message):
+
+> Relevant 2026.6.5 fixes include:
+> - Replies captured during a restart use the successor controller instead of stale controller state
+> - WhatsApp startup waits are bounded
+> - Failed sockets close cleanly
+> - Account configuration changes trigger proper restarts
+> - Disabled accounts shut down on reload
+> - Reconnect handling is more reliable
+> - Broader agent/Anthropic recovery improvements address stalled thinking, interrupted tools, stale compaction state, and gateway restarts
+>
+> The strongest log evidence is repeated: `classification=stalled_agent_run`, `activeWorkKind=embedded_run`, `recovery=abort_embedded_run` — exactly our journal pattern from §3.2.
+
+**New hypothesis ranking** (supersedes §4):
+
+| # | Hypothesis | Confidence | Cost | Order in WP01 ramp |
+|---|---|---|---|---|
+| **H6** | **openclaw 2026.5.28 → 2026.6.5 upgrade resolves the embedded_run completion path via runtime fixes named in the release notes** | **High (~55%)** | Low (npm-global upgrade + verification per `reference_openclaw_upgrade_gotchas` checklist) | **1st** |
+| H5 | `@openclaw/whatsapp` plugin install state | Low | Lowest | 2nd |
+| H4 | Config-swap (dmPolicy / dmScope) | Low | Low | 3rd |
+| H2 | Missing config field | Medium | Medium | 4th |
+| H3 | AGENTS.md post-#579 hole | Low | Medium (rollback probe) | 5th |
+| H1 | Vendored regression with no available fix | Low (downgraded from "high area" because H6 may consume the fix) | High (file upstream + wait) | Escalation only |
+
+**Decision D7 — Relax spec assumption A3**
+
+Spec assumption A3 ("Upgrade/downgrade of openclaw is not contemplated by this mission") is **relaxed** as of this update. Rationale: Codex's release-notes review provides concrete evidence that the 2026.6.5 upgrade likely addresses the bug. Per the user's confirmation in the tasks-phase session, openclaw upgrade is now an in-scope remediation candidate (H6). C-001 (no vendored runtime *modification*) still holds — npm-global upgrade replaces the package; it doesn't patch vendored binaries.
+
+**Implications for WP plans**:
+- WP01 ramp adds T001 (H6 probe + plan); execution priority highest
+- WP02 gets an upgrade-path branch (when WP01 verdict = H6); execution follows the operational upgrade procedure with the `reference_openclaw_upgrade_gotchas` checklist baked in
+- WP05 acceptance smoke runs against the upgraded runtime; the deploy script handles both `apt`-style upgrades and config edits
+- C-003 Tier classification: openclaw upgrade is Tier 2 (Application/State); does NOT escalate to Tier 1 because openclaw-gateway already runs as a user-level service and the upgrade is via `pipx`/`npm` (not host-level systemd changes). Pre-flight is the standard Tier 2 Restic-≤24h attestation.
+
+**Implications for FR-009 / C-001**:
+- FR-009 escalation path is preserved but reframed: it now fires ONLY if H6 AND H2-H5 all fail. The probability of reaching it is lower than the original §4 ranking suggested.
+- C-001 unchanged: vendored runtime code at `/usr/lib/node_modules/openclaw/dist/` is not modified by this mission, regardless of upgrade path.
+
+**Implications for the smoke contract**:
+- `contracts/journal-event-assertions.md` patterns remain valid post-upgrade (they assert against event log markers that are stable across runtime versions)
+- The expected post-fix output (`stall=0 recovery=0 resolve_fail=0`) is the same regardless of which hypothesis (H6 / H2 / H3 / H4 / H5) was the actual fix path
+
+**Operator-side checklist for H6** (per memory `reference_openclaw_upgrade_gotchas`):
+- Verify pre-upgrade openclaw.json captures all required fields (especially `models.providers.<x>.models[]` — already present in our deployed config)
+- Confirm `@openclaw/whatsapp` external plugin version is current after upgrade
+- Verify systemd unit Description is current (cosmetic but per memory it's known to lag)
+- Run `openclaw doctor --json` after upgrade and before sending test DMs
+- Standard Tier 2: Restic ≤24h before, rebaseline reset per #557 after
