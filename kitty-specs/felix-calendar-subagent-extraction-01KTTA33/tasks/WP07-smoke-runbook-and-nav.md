@@ -14,6 +14,7 @@ subtasks:
 - T035
 - T036
 phase: Phase 3 - Acceptance Substrate
+shell_pid: "43094"
 history:
 - at: '2026-06-11T03:26:12Z'
   actor: system
@@ -27,7 +28,7 @@ owned_files:
 tags: []
 agent_profile: curator-carla
 role: curator
-agent: claude
+agent: "claude::curator-carla:curator"
 ---
 
 # Work Package Prompt: WP07 – Smoke runbook + navigation entries
@@ -128,3 +129,4 @@ Author the operator smoke runbook (the canonical behavioral verification surface
 > **CRITICAL**: Activity log entries MUST be in chronological order (oldest first, newest last).
 
 - 2026-06-11T03:26:12Z -- system -- Prompt created.
+- 2026-06-11T04:23:28Z – claude::curator-carla:curator – shell_pid=43094 – Assigned agent via action command
