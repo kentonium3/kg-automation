@@ -18,6 +18,7 @@ subtasks:
 - T016
 - T017
 phase: Phase 3 - Main Tightening
+shell_pid: "43094"
 history:
 - at: '2026-06-11T03:26:12Z'
   actor: system
@@ -29,7 +30,7 @@ owned_files:
 tags: []
 agent_profile: implementer-ivan
 role: implementer
-agent: claude
+agent: "claude::implementer-ivan:implementer"
 ---
 
 # Work Package Prompt: WP03 – Tighten main/AGENTS.md below 12K bootstrap context cap
@@ -174,3 +175,4 @@ Reviewer should also verify the structural diff (T016 checklist) — passing the
 > **CRITICAL**: Activity log entries MUST be in chronological order (oldest first, newest last).
 
 - 2026-06-11T03:26:12Z -- system -- Prompt created.
+- 2026-06-11T04:23:03Z – claude::implementer-ivan:implementer – shell_pid=43094 – Assigned agent via action command
