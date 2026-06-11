@@ -14,7 +14,6 @@ subtasks:
 - T032
 - T033
 phase: Phase 1 - Documentation Verification
-shell_pid: "34479"
 history:
 - at: '2026-06-11T03:26:12Z'
   actor: system
@@ -29,7 +28,7 @@ owned_files:
 tags: []
 agent_profile: curator-carla
 role: curator
-agent: "claude::reviewer-renata:reviewer"
+agent: claude
 ---
 
 # Work Package Prompt: WP06 – Runbook + roadmap + audited-surfaces verifications
@@ -136,10 +135,3 @@ No automated tests; this WP is verification + minimal-touch edits. Reviewer shou
 > **CRITICAL**: Activity log entries MUST be in chronological order (oldest first, newest last).
 
 - 2026-06-11T03:26:12Z -- system -- Prompt created.
-- 2026-06-11T03:52:14Z – claude::curator-carla:curator – shell_pid=31884 – Assigned agent via action command
-- 2026-06-11T03:56:55Z – claude::curator-carla:curator – shell_pid=31884 – T030 (openclaw-agent-setup.md): Read full runbook (345 lines). Drift articulable in 'Current agent layout' tree (lines 222-264) — explicitly enumerates each deployed agent dir; missing felix-admin-calendar / calendar-agent entries after WP02+WP05 land. EDIT: appended calendar-agent/ branch to /data/services/openclaw/ tree (AGENTS.md, IDENTITY.md, SOUL.md, TOOLS.md, USER.md) and felix-admin-calendar/agent/ to the ~/.openclaw/agents/ tree. Bumped frontmatter last_updated → 2026-06-11, revision → v1.3, added mission attribution. Other sections checked but not drifted: 'Two registrations', 'Per-agent workspace files', 'Output Discipline', deploy-pipeline section, checklist, cutover sequence.
-- 2026-06-11T03:57:04Z – claude::curator-carla:curator – shell_pid=31884 – T031 (agent-prompt-sync-ops.md): Read full runbook (226 lines). Sync mechanism is JSON-driven (reads service-inventory.json, globs scripts/openclaw/agents/<slug>/) so new agents auto-included — no behavioral drift. Drift articulable in operator troubleshooting block (lines 147-150): explicit per-agent next-tick schedule list omitted felix-admin-calendar. Per WP02 spec, calendar is event-driven (delegation-triggered, same as tasker). EDIT: added one line for felix-admin-calendar matching tasker's pattern. Bumped frontmatter last_validated → 2026-06-11, version → 1.1. No other sections required edits.
-- 2026-06-11T03:57:15Z – claude::curator-carla:curator – shell_pid=31884 – T032 (felix-capability-roadmap.md): Read full roadmap (422 lines). Calendar Integration tracked as a feature cluster (line 162) with status 'Planned'; planned features include F020 OAuth (#100), F021 task-event linking (#117), calendar-aware briefing (#164). This mission (#579) is architectural extraction — moving calendar handlers from main/AGENTS.md into a dedicated subagent. NOT a new F-series feature; does NOT change Calendar Integration cluster status (still Planned — F020 OAuth foundation still upstream); does NOT match 'Self-documenting system epic' table scope (cross-cutting doc/auditor infra missions, not subagent topology). The roadmap operates at capability cluster / F-series abstraction level, not agent topology level. No 'calendar handled inline by main agent' statement appears in the doc. PASS WITH NO EDITS — adding a subagent-extraction line would be churn at the wrong abstraction layer.
-- 2026-06-11T03:57:25Z – claude::curator-carla:curator – shell_pid=31884 – T033 (audited-surfaces.json): Read full JSON. openclaw-agent-prompts entry's patterns array uses six scripts/openclaw/agents/*/<FILE>.md globs (AGENTS.md, AGENTS.md.tmpl, SOUL.md, IDENTITY.md, USER.md, GOVERNANCE.md). EXECUTED the glob per WP step 3: (a) in-tree run from worktree root showed all six globs match every existing felix-admin-* dir (felix-admin-capture, felix-admin-escalation, felix-admin-habits, felix-admin-tasker, felix-doc-auditor, main); (b) positive-proof simulation with a temp scripts/openclaw/agents/felix-admin-calendar/ dir confirmed the * wildcard auto-includes the new dir for AGENTS.md, IDENTITY.md, SOUL.md, USER.md. CI consumer tooling/scripts/check_audited_surface_drift.py exists. PASS WITH NO EDITS — pattern coverage already in place; the glob is the contract, specific agent enumeration not required (per WP guidance: 'don't treat absence of explicit felix-admin-calendar mention as drift').
-- 2026-06-11T03:58:38Z – claude::curator-carla:curator – shell_pid=31884 – Verifications complete (see WP file Activity Log for per-doc rationale). T030+T031: minimal-touch edits to runbook trees / schedule list. T032+T033: pass with articulated rationale.
-- 2026-06-11T03:59:17Z – claude::reviewer-renata:reviewer – shell_pid=34479 – Started review via action command

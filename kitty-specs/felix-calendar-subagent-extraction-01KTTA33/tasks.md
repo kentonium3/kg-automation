@@ -61,11 +61,11 @@
 
 **Included subtasks**:
 
-- [x] T001 Create `scripts/openclaw/agents/tests/__init__.py` + `conftest.py` (WP01)
-- [x] T002 Create fixture `tests/fixtures/openclaw-sample.json` (WP01)
-- [x] T003 Author `test_agents_md_size.py` (WP01)
-- [x] T004 Author `test_openclaw_config_schema.py` (WP01)
-- [x] T005 Confirm pytest runs and produces expected red state (WP01)
+- [ ] T001 Create `scripts/openclaw/agents/tests/__init__.py` + `conftest.py` (WP01)
+- [ ] T002 Create fixture `tests/fixtures/openclaw-sample.json` (WP01)
+- [ ] T003 Author `test_agents_md_size.py` (WP01)
+- [ ] T004 Author `test_openclaw_config_schema.py` (WP01)
+- [ ] T005 Confirm pytest runs and produces expected red state (WP01)
 
 **Implementation sketch**: Stand up the test package; write a sanitized openclaw.json fixture (no real auth token); write assertions for char-count + schema; verify pytest discovers and runs the tests. Tests fail initially — that's the test-first discipline.
 
@@ -190,10 +190,10 @@
 
 **Included subtasks**:
 
-- [x] T030 Verify `docs/runbooks/openclaw-agent-setup.md` still accurate (WP06)
-- [x] T031 Verify `docs/runbooks/agent-prompt-sync-ops.md` still accurate (WP06)
-- [x] T032 Verify `docs/design/felix-capability-roadmap.md` calendar capability status; update if drifted (WP06)
-- [x] T033 Verify `docs/design/architecture/data/audited-surfaces.json` patterns cover new agent dir (no pattern change expected) (WP06)
+- [ ] T030 Verify `docs/runbooks/openclaw-agent-setup.md` still accurate (WP06)
+- [ ] T031 Verify `docs/runbooks/agent-prompt-sync-ops.md` still accurate (WP06)
+- [ ] T032 Verify `docs/design/felix-capability-roadmap.md` calendar capability status; update if drifted (WP06)
+- [ ] T033 Verify `docs/design/architecture/data/audited-surfaces.json` patterns cover new agent dir (no pattern change expected) (WP06)
 
 **Implementation sketch**: Read each doc top to bottom; for each, decide PASS or UPDATE. Document the decision in the WP's history note so reviewer understands what was checked.
 

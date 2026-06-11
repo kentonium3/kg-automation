@@ -16,7 +16,6 @@ subtasks:
 - T004
 - T005
 phase: Phase 1 - Foundation
-shell_pid: "33591"
 history:
 - at: '2026-06-11T03:26:12Z'
   actor: system
@@ -28,7 +27,7 @@ owned_files:
 tags: []
 agent_profile: python-pedro
 role: implementer
-agent: "claude::reviewer-renata:reviewer"
+agent: claude
 ---
 
 # Work Package Prompt: WP01 – Test-first deterministic verification helpers
@@ -171,6 +170,3 @@ To run: `pytest scripts/openclaw/agents/tests/ -v`
 > **CRITICAL**: Activity log entries MUST be in chronological order (oldest first, newest last).
 
 - 2026-06-11T03:26:12Z -- system -- Prompt created.
-- 2026-06-11T03:51:56Z – claude::python-pedro:implementer – shell_pid=31547 – Assigned agent via action command
-- 2026-06-11T03:56:47Z – claude::python-pedro:implementer – shell_pid=31547 – Ready for review: test-first helpers; expected RED state confirmed (7 failed, 1 passed)
-- 2026-06-11T03:57:15Z – claude::reviewer-renata:reviewer – shell_pid=33591 – Started review via action command
