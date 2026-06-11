@@ -61,11 +61,11 @@
 
 **Included subtasks**:
 
-- [ ] T001 Create `scripts/openclaw/agents/tests/__init__.py` + `conftest.py` (WP01)
-- [ ] T002 Create fixture `tests/fixtures/openclaw-sample.json` (WP01)
-- [ ] T003 Author `test_agents_md_size.py` (WP01)
-- [ ] T004 Author `test_openclaw_config_schema.py` (WP01)
-- [ ] T005 Confirm pytest runs and produces expected red state (WP01)
+- [x] T001 Create `scripts/openclaw/agents/tests/__init__.py` + `conftest.py` (WP01)
+- [x] T002 Create fixture `tests/fixtures/openclaw-sample.json` (WP01)
+- [x] T003 Author `test_agents_md_size.py` (WP01)
+- [x] T004 Author `test_openclaw_config_schema.py` (WP01)
+- [x] T005 Confirm pytest runs and produces expected red state (WP01)
 
 **Implementation sketch**: Stand up the test package; write a sanitized openclaw.json fixture (no real auth token); write assertions for char-count + schema; verify pytest discovers and runs the tests. Tests fail initially — that's the test-first discipline.
 
