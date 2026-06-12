@@ -11,5 +11,6 @@
   "slug": "restore-whatsapp-dm-reply-delivery-01KTVVHH",
   "source_description": "GitHub issue #588 — WhatsApp DM reply delivery silently fails; main/subagent generate replies but channel never sends",
   "target_branch": "main",
-  "vcs": "git"
+  "vcs": "git",
+  "baseline_merge_commit": "298b79dc"
 }
