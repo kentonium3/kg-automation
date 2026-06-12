@@ -1,0 +1,11 @@
+🛑 felix-deployer apply failed
+
+manifest: {manifest_name}
+tier:     {tier}
+phase:    {phase}
+head:     {head_sha_short}
+when:     {failed_at}
+
+{error_summary}
+
+(Manifest stays in queued/; next applier tick will re-attempt unless you delete it.)

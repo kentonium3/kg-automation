@@ -18,7 +18,8 @@ subtasks:
 - T027
 - T028
 - T029
-agent: claude
+agent: "claude:sonnet:implementer-ivan:reviewer"
+shell_pid: "45240"
 history:
 - ts: '2026-06-12T20:30:00Z'
   actor: spec-kitty.tasks
@@ -211,3 +212,10 @@ These reuse the fixtures from WP01.
 3. Verify the grep pattern excludes comment lines (test with a fixture file containing `# crontab` — should NOT be flagged).
 4. Confirm `actions/cache@v4` is keyed on requirement files.
 5. Confirm tier-0-rejection test reuses WP01 fixtures (no duplicate fixture data).
+
+## Activity Log
+
+- 2026-06-12T23:22:48Z – claude:sonnet:implementer-ivan:implementer – shell_pid=43068 – Assigned agent via action command
+- 2026-06-12T23:29:44Z – claude:sonnet:implementer-ivan:implementer – shell_pid=43068 – CI workflow + cross-link test + tier-0 cases. Local cross-link test passes (17 pass, 1 skip for scripts/deploy/lib/README.md owned by WP02). Grep pattern verified against good/bad fixture pairs.
+- 2026-06-12T23:30:18Z – claude:sonnet:implementer-ivan:reviewer – shell_pid=45240 – Started review via action command
+- 2026-06-12T23:32:45Z – user – shell_pid=45240 – Review passed: 2 owned files exist; workflow YAML valid; all 9 paths covered; 8/8 doctrinal edges asserted; T029 tier-0 + tier-1-missing-verification cases pass via in-test ci_tier_guard reusing WP01 schema; 17 passed + 1 expected skip (lib/README.md owned by WP02, gated by DEPLOY_CROSS_LINK_STRICT=1 in CI). Grep-pattern DEVIATION accepted: implementer's claim that prompt pattern (^|[^#])\bcrontab\b fails on '# crontab forbidden' confirmed (the space satisfies [^#]); replacement ["'/\[]crontab\b correctly flags all 4 realistic call shapes (subprocess argv, os.system, /usr/bin path, quoted constant) and ignores prose comments — tighter FR-017 enforcement. checkout@v5 / setup-python@v6 match existing repo workflow convention (also a sensible deviation from prompt's @v4/@v5). Anti-pattern checklist all PASS/N/A.

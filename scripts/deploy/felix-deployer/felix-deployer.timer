@@ -1,0 +1,10 @@
+[Unit]
+Description=Schedule felix-deployer every 5 minutes
+
+[Timer]
+OnBootSec=5min
+OnUnitActiveSec=5min
+Unit=felix-deployer.service
+
+[Install]
+WantedBy=timers.target

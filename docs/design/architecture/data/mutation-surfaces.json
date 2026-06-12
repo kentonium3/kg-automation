@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
-  "last_updated": "2026-05-15",
-  "updated_by": "#289-mutation-surfaces-enumeration",
+  "last_updated": "2026-06-12",
+  "updated_by": "pull-based-deploy-pipeline-01KTYQQS (#136) + #289-mutation-surfaces-enumeration",
   "description": "Catalog of mutation surfaces accessible to actors that can change office2 (and Kent-owned external service) state, classified by tier per docs/design/architecture/data/change-risk-taxonomy.json. Layer 1.5 of epic #270. Consumed by Layer 2 (felix-change.py wrapper) to know which surfaces need gating, and by Layer 3 (drift auditor) to know what mutation paths exist. MVP scope: surfaces with documented incident history or clear governance classification. Catalog grows as Layer 2 implementation and ongoing operations discover new surfaces.",
   "actors": {
     "claude-code": {
@@ -35,6 +35,10 @@
     "felix-doc-auditor": {
       "description": "Documentation auditor sub-agent (claude-sonnet-4-6). Files [doc-audit] GitHub issues; auto-applies Tier 4 doc edits via audit-edit routing (mission #259).",
       "governance": "Same as felix-admin-capture; additionally files issues via kg-felix-bot identity."
+    },
+    "felix-deployer": {
+      "description": "Pull-based deploy applier on office2 (#136). Stateless 5-minute systemd --user oneshot. Reads deploys/queued/<name>.yaml manifests, dispatches through scripts/deploy/lib/, atomically moves manifests to deploys/applied/ or deploys/failed/, and emits a WhatsApp DM on failure.",
+      "governance": "Mutations gated by the deploy manifest contract (scripts/deploy/lib/) which performs per-handler dry_run_then_apply_gate. No LLM in the path."
     }
   },
   "felix_actors": [
@@ -43,7 +47,8 @@
     "felix-admin-habits",
     "felix-admin-escalation",
     "felix-admin-tasker",
-    "felix-doc-auditor"
+    "felix-doc-auditor",
+    "felix-deployer"
   ],
   "scope_notes": {
     "covered": [
@@ -375,6 +380,27 @@
       "available_to": [],
       "gating_treatment": "wrap",
       "notes": "Currently no remote hosts in Felix's reach. As Kent's automation expands to multi-host workflows (e.g., uploading customer-facing artifacts to a VPS, archiving to an offsite backup target, syncing transcripts to a portal), Felix could initiate scp from office2. Layer 2 should pre-register this surface so when usage emerges, the wrapper is ready. Tier depends on destination and content."
+    },
+    {
+      "id": "felix-deployer-apply",
+      "category": "filesystem",
+      "actor": "felix-deployer",
+      "command_pattern": "felix-deployer tick: scan deploys/queued/<name>.yaml -> dispatch through scripts/deploy/lib/ -> atomic mv to deploys/applied/<ts>-<name>.yaml or deploys/failed/<ts>-<name>.yaml",
+      "tier": 2,
+      "scope": "Pull-based deploy applier on office2. Mutates the deploys/ queue (moves manifests between queued/, applied/, failed/), writes per-tick state under /data/services/felix-deployer/, and invokes per-handler deploy library functions whose downstream effects vary by manifest kind. Reading the manifest defines the effective tier per-deploy; the applier itself is a Tier 2 orchestrator.",
+      "mutates": [
+        "deploys/queued/ (moves out)",
+        "deploys/applied/ (writes in)",
+        "deploys/failed/ (writes in)",
+        "/data/services/felix-deployer/logs/",
+        "/data/services/felix-deployer/state/last-tick.json"
+      ],
+      "frequency": "5 minutes (per tick)",
+      "available_to": ["felix-deployer"],
+      "gating_treatment": "wrap",
+      "notes": "The wrapping is structural: every mutation flows through scripts/deploy/lib/<handler>.py which implements dry_run_then_apply_gate before any real change. The applier itself is stateless per tick. Effective per-manifest tier may be higher (e.g., Tier 1 systemd unit edits) — the manifest schema includes the tier so the handler can enforce the matching protocol.",
+      "introduced_by": "#136",
+      "last_updated_by": "#136"
     }
   ]
 }

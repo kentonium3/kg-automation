@@ -1,7 +1,7 @@
 {
   "schema_version": "1.1",
-  "last_updated": "2026-06-08",
-  "updated_by": "agent-prompt-deploy-pipeline-01KTMDDD (#567) + inbox-calendar-and-aspiration-routing-01KTHHXS (verified service-added-or-modified and data-flow-added-or-modified targets) + #510-sweeper-tick + #343-wp01 + #492-mission-end-classes",
+  "last_updated": "2026-06-12",
+  "updated_by": "pull-based-deploy-pipeline-01KTYQQS (#136 deploy-manifest-added, office2-service-deployment, deploy-library-modified) + agent-prompt-deploy-pipeline-01KTMDDD (#567) + inbox-calendar-and-aspiration-routing-01KTHHXS (verified service-added-or-modified and data-flow-added-or-modified targets) + #510-sweeper-tick + #343-wp01 + #492-mission-end-classes",
   "description": "Maps deterministic change signals to the documentation surfaces that likely need review when the signal fires. Two consumer classes: (1) drift-event entries (match.source='audit.sh') consumed by scripts/doc_audit/helpers/handle_drift_events.py to auto-file [doc-audit] issues; (2) mission-end entries (match.source='mission-architecture-impact') consumed by /spec-kitty.specify and /spec-kitty.plan agents per CLAUDE.md to populate a mission's Architecture Impact section with the full set of likely-affected docs. v1.1 adds match.change_class and consumer_hint fields; existing v1.0 entries unchanged.",
   "mappings": [
     {
@@ -307,6 +307,51 @@
         "spec: brief",
         "area/felix-core"
       ]
+    },
+    {
+      "id": "deploy-manifest-added",
+      "match": {
+        "source": "mission-architecture-impact",
+        "change_class": "deploy-manifest-added"
+      },
+      "doc_targets": [
+        "docs/runbooks/deploy/discipline.md",
+        "scripts/deploy/lib/README.md"
+      ],
+      "rationale": "New deploys/queued/<name>.yaml requires familiarity with the manifest schema and library API. Surfaced during specify/plan when the mission needs an office2 deploy.",
+      "issue_labels": ["P3-candidate", "spec: brief", "area/infrastructure"],
+      "consumer_hint": "spec-author",
+      "introduced_by": "#136"
+    },
+    {
+      "id": "office2-service-deployment",
+      "match": {
+        "source": "mission-architecture-impact",
+        "change_class": "office2-service-deployment"
+      },
+      "doc_targets": [
+        "docs/runbooks/deploy/discipline.md",
+        "docs/design/architecture/data/service-inventory.json"
+      ],
+      "rationale": "Any new or modified office2 service should be planned against the discipline runbook and recorded in service-inventory.json.",
+      "issue_labels": ["P3-candidate", "spec: brief", "area/infrastructure"],
+      "consumer_hint": "spec-author",
+      "introduced_by": "#136"
+    },
+    {
+      "id": "deploy-library-modified",
+      "match": {
+        "source": "mission-architecture-impact",
+        "change_class": "deploy-library-modified"
+      },
+      "doc_targets": [
+        "scripts/deploy/lib/README.md",
+        "docs/runbooks/deploy/discipline.md"
+      ],
+      "rationale": "Changes to scripts/deploy/lib/ affect every downstream deploy. Library API contract (kitty-specs/<slug>/contracts/deploy-library-api.md) should be reviewed.",
+      "issue_labels": ["P3-candidate", "spec: brief", "area/infrastructure"],
+      "consumer_hint": "spec-author",
+      "introduced_by": "#136"
     }
   ]
 }

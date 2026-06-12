@@ -135,6 +135,13 @@ GitHub tracks checkbox completion percentage automatically.
 
 ---
 
+## Deploy required?
+
+- [ ] This feature requires a deploy to office2
+- If yes: the plan MUST include a `deploys/queued/<name>.yaml` manifest entry per [`docs/runbooks/deploy/discipline.md`](../../docs/runbooks/deploy/discipline.md)
+
+---
+
 ## Out of Scope
 
 - ❌ 

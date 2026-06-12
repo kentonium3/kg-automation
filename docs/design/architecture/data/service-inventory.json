@@ -1,7 +1,7 @@
 {
   "schema_version": "1.1",
-  "last_updated": "2026-06-11",
-  "updated_by": "felix-calendar-subagent-extraction-01KTTA33 (#579) + #572-credential-liveness-probe + prescan-archive-anomalies-01KTMZPE (#568) + capture-agents-md-rewrite-01KTMY86 (#566) + capture-d6-helpers-extraction-01KTMS5Q (#566) + agent-prompt-deploy-pipeline-01KTMDDD (#567) + vikunja-client-and-habits-weekly-report-01KTKSFT (#542 + #561 + #562) + inbox-calendar-and-aspiration-routing-01KTHHXS + #520-felix-vikunja-sync-project-layer-and-url-config + #519-touchpoint-migration + #518-felix-vikunja-sync-driver-added + #376-remove-escalation-v1-parity + #400-audit-interpretation-moment0 + #310-tasker-jsonl-migration + #374-main-verbatim-passthrough + #362-drift-event-auto-resolution + #309-migrate-escalation-to-jsonl-state-model + #343-refactor-doc-auditor-to-scripts-first-driver + #307-backfill-habits-jsonl-from-comments + #306-habits-native-repeat-jsonl-state + #304-felix-bot-rotation + #291-felix-file-issue + #289-mutation-surfaces-enumeration + #285-cron-delivery-restore-path-c + #282-habits-d6-extract + #263-cron-delivery-mode-round2 + #100-google-workspace-foundation + #256-scope-discipline-guardrails + #253-step-5a-6-consolidation + #254-atomic-write-perm-preservation + issue-105-doc-auditor + #223-systemd-timer + #208-restic-healthcheck + #202-obsidian-sync-system-level + #203-sync-heartbeat + #199-inbox-schedules + #115-credential-health-check + #189-vikunja-compose + #185-inbox-capture-dedup + restore-whatsapp-dm-reply-delivery-01KTVVHH (#588)",
+  "last_updated": "2026-06-12",
+  "updated_by": "pull-based-deploy-pipeline-01KTYQQS (#136) + felix-calendar-subagent-extraction-01KTTA33 (#579) + #572-credential-liveness-probe + prescan-archive-anomalies-01KTMZPE (#568) + capture-agents-md-rewrite-01KTMY86 (#566) + capture-d6-helpers-extraction-01KTMS5Q (#566) + agent-prompt-deploy-pipeline-01KTMDDD (#567) + vikunja-client-and-habits-weekly-report-01KTKSFT (#542 + #561 + #562) + inbox-calendar-and-aspiration-routing-01KTHHXS + #520-felix-vikunja-sync-project-layer-and-url-config + #519-touchpoint-migration + #518-felix-vikunja-sync-driver-added + #376-remove-escalation-v1-parity + #400-audit-interpretation-moment0 + #310-tasker-jsonl-migration + #374-main-verbatim-passthrough + #362-drift-event-auto-resolution + #309-migrate-escalation-to-jsonl-state-model + #343-refactor-doc-auditor-to-scripts-first-driver + #307-backfill-habits-jsonl-from-comments + #306-habits-native-repeat-jsonl-state + #304-felix-bot-rotation + #291-felix-file-issue + #289-mutation-surfaces-enumeration + #285-cron-delivery-restore-path-c + #282-habits-d6-extract + #263-cron-delivery-mode-round2 + #100-google-workspace-foundation + #256-scope-discipline-guardrails + #253-step-5a-6-consolidation + #254-atomic-write-perm-preservation + issue-105-doc-auditor + #223-systemd-timer + #208-restic-healthcheck + #202-obsidian-sync-system-level + #203-sync-heartbeat + #199-inbox-schedules + #115-credential-health-check + #189-vikunja-compose + #185-inbox-capture-dedup + restore-whatsapp-dm-reply-delivery-01KTVVHH (#588)",
   "services": [
     {
       "name": "vikunja",
@@ -2415,6 +2415,68 @@
         "/data/services/openclaw/state/sync/last-tick.errors.jsonl"
       ],
       "runbook": "docs/runbooks/sync-driver-ops.md"
+    },
+    {
+      "name": "felix-deployer",
+      "type": "systemd-timer",
+      "host": "office2",
+      "user": "claude",
+      "systemd_unit": "felix-deployer.timer",
+      "systemd_user": "claude",
+      "schedule": "every 5 minutes",
+      "account": "claude",
+      "description": "Pull-based deploy applier — reads deploys/queued/, applies via scripts/deploy/lib/, dispatches WhatsApp DM on failure. systemd --user Type=oneshot, 5-min timer.",
+      "purpose": "Pull-based deploy applier on office2. On every 5-minute tick it git-pulls main, scans deploys/queued/<manifest>.yaml for new deploy manifests, and applies them through scripts/deploy/lib/apply.py::dry_run_then_apply_gate. Successful manifests move to deploys/applied/<ts>-<name>.yaml; failures move to deploys/failed/<ts>-<name>.yaml and trigger a WhatsApp DM to the operator. Stateless per tick — state lives entirely in the deploys/ directory plus state/last-tick.json.",
+      "state_root": "/data/services/felix-deployer/",
+      "log_root": "/data/services/felix-deployer/logs/",
+      "health_signal": "/data/services/felix-deployer/state/last-tick.json",
+      "dependent_services": ["openclaw"],
+      "deployed_by": "#136",
+      "last_updated": "2026-06-12",
+      "last_updated_by": "#136",
+      "updated_by": "#136 (pull-based-deploy-pipeline-01KTYQQS)",
+      "risk_tier": 3,
+      "status": "active",
+      "dependencies": [
+        {
+          "target": "openclaw",
+          "type": "requires",
+          "description": "Failure-path WhatsApp DM is dispatched via openclaw send --channel whatsapp; the openclaw runtime must be present on office2"
+        },
+        {
+          "target": "git",
+          "type": "requires",
+          "description": "Each tick performs `git pull` against github.com/kentonium3/kg-automation main; transport HTTPS via Tailscale exit node or public internet"
+        },
+        {
+          "target": "scripts/deploy/lib/",
+          "type": "requires",
+          "description": "Deploy library API (dry_run_then_apply_gate plus per-handler implementations) is the applier's only mutation surface"
+        },
+        {
+          "target": "deploys/queued/",
+          "type": "reads_from",
+          "description": "Manifest queue source of truth. The applier scans this directory each tick and applies any new <name>.yaml files."
+        },
+        {
+          "target": "deploys/applied/",
+          "type": "writes_to",
+          "description": "Applied manifests are moved here with timestamp prefix"
+        },
+        {
+          "target": "deploys/failed/",
+          "type": "writes_to",
+          "description": "Failed manifests are moved here with timestamp prefix; WhatsApp DM dispatched"
+        }
+      ],
+      "health_check": {
+        "method": "tick-signal-file",
+        "endpoint": "/data/services/felix-deployer/state/last-tick.json",
+        "expected": "status=success within the last 10 minutes; exit_code=0",
+        "timeout_seconds": 5,
+        "note": "Mirrors the felix-doc-auditor / felix-vikunja-sync last-tick.json health-signal pattern. last-tick.json is rewritten atomically every tick regardless of whether any manifests were applied."
+      },
+      "runbook": "docs/runbooks/deploy/discipline.md"
     }
   ]
 }

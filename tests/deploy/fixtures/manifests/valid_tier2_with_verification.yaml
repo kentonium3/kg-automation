@@ -1,0 +1,17 @@
+schema_version: v1
+name: tier2-with-verification
+issue: kentonium3/kg-automation#136
+tier: 2
+entrypoint: scripts/deploy/tier2/example.sh
+audited_surface: true
+verification:
+  pre:
+    - systemctl --user is-active openclaw.service
+    - test -f /data/services/openclaw/openclaw.json
+  post:
+    - systemctl --user is-active openclaw.service
+    - test -f /data/services/openclaw/openclaw.json
+notes: |
+  Tier 2 deploy that touches an audited surface; verification block is mandatory.
+created_at: "2026-06-12T20:05:00Z"
+created_by: kent@intentional.biz

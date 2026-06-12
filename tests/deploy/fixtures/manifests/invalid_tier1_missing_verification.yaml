@@ -1,0 +1,8 @@
+schema_version: v1
+name: tier1-missing-verification
+mission_slug: pull-based-deploy-pipeline-01KTYQQS
+tier: 1
+entrypoint: scripts/deploy/tier1/example.sh
+audited_surface: false
+created_at: "2026-06-12T20:00:00Z"
+created_by: kent@intentional.biz

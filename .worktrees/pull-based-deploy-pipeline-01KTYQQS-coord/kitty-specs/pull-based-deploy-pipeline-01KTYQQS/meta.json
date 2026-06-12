@@ -1,0 +1,15 @@
+{
+  "coordination_branch": "kitty/mission-pull-based-deploy-pipeline-01KTYQQS",
+  "created_at": "2026-06-12T20:17:54.006599+00:00",
+  "friendly_name": "Pull-Based Deploy Pipeline with Tier Guard and Doctrinal Anchor",
+  "mission_id": "01KTYQQSAJA888YXKYBX24W2AJ",
+  "mission_number": null,
+  "mission_slug": "pull-based-deploy-pipeline-01KTYQQS",
+  "mission_type": "software-dev",
+  "purpose_context": "Every mission that touches office2 today builds a one-shot deploy wrapper, reinventing patterns and occasionally reintroducing bug classes the governance prohibits (closed #162 conflated system crontab with openclaw-managed crons). This mission delivers a manifest-driven pull-based pipeline where office2 reads a deploys/queued/ directory every 5 minutes, runs a vetted Python library of primitives, enforces tier-aware controls in CI and at execute time, and anchors the discipline in CLAUDE.md, the project charter, issue templates, and the architecture signal-to-doc map. The result is that any future agent writing a spec for new work automatically incorporates the deploy story without operator prompting. Existing deploy scripts are grandfathered; sibling issue #548 handles their cleanup post-merge.",
+  "purpose_tldr": "Replace ad-hoc deploy wrappers with a manifest-driven pull-based pipeline; anchor the deploy discipline in agent-facing docs so future specify/plan runs include it automatically.",
+  "slug": "pull-based-deploy-pipeline-01KTYQQS",
+  "target_branch": "main",
+  "vcs": "git",
+  "vcs_locked_at": "2026-06-12T21:52:53.167029+00:00"
+}

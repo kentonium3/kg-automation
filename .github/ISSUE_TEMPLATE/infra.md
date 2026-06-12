@@ -68,6 +68,13 @@ Check service-inventory.json for dependency relationships.
 
 ---
 
+## Deploy required?
+
+- [ ] This change requires a deploy to office2 (most infra changes do)
+- If yes: the plan MUST include a `deploys/queued/<name>.yaml` manifest entry per [`docs/runbooks/deploy/discipline.md`](../../docs/runbooks/deploy/discipline.md)
+
+---
+
 ## Pre-flight checklist
 
 <!--

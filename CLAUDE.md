@@ -301,6 +301,22 @@ the merge commit must record `Rebaseline: completed at <ts>` or
 `Rebaseline: not required — <reason>`. The operator is responsible
 for running the reset — neither CI nor the charter performs it.
 
+## Deploys to office2
+
+Every deploy to office2 flows through the **manifest discipline** at
+`deploys/queued/<name>.yaml` consumed by the `felix-deployer` applier on office2.
+The shared library at `scripts/deploy/lib/` provides vetted primitives for cron
+management (OpenClaw only — never system crontab), backup verification,
+file-presence checks, and tier guard.
+
+When planning any feature/infra issue that involves deploying to office2, your
+plan MUST include a `deploys/queued/<name>.yaml` manifest entry. See
+[`docs/runbooks/deploy/discipline.md`](docs/runbooks/deploy/discipline.md)
+for the operational pattern and worked examples.
+
+The 7 pre-discipline scripts at `scripts/deploy/deploy-*.sh` are grandfathered
+and remain in use; sibling issue #548 handles their cleanup post-merge.
+
 ## Documentation Standards
 
 Machine-readable files (JSON) are the authoritative record for all operational

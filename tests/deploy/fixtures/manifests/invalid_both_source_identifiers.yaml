@@ -1,0 +1,9 @@
+schema_version: v1
+name: both-source-identifiers
+mission_slug: pull-based-deploy-pipeline-01KTYQQS
+issue: kentonium3/kg-automation#136
+tier: 3
+entrypoint: scripts/deploy/tier3/example.sh
+audited_surface: false
+created_at: "2026-06-12T20:00:00Z"
+created_by: kent@intentional.biz

@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
-  "last_updated": "2026-06-10",
-  "updated_by": "#557-rebaseline-workflow",
+  "last_updated": "2026-06-12",
+  "updated_by": "pull-based-deploy-pipeline-01KTYQQS (#136) + #557-rebaseline-workflow",
   "description": "Repo-side inputs whose changes alter the office2 security-monitor baselines. When a commit modifies any matching path, the rebaseline procedure in security-baseline-ops.md should be triggered after the change deploys, otherwise the daily audit will alert as drift. Consumed by tooling/scripts/check_audited_surface_drift.py (CI soft-reminder) and referenced by docs/design/architecture/change-control.md + spec-kitty charter quality gates.",
   "rebaseline_runbook": "docs/runbooks/security-baseline-ops.md",
   "rebaseline_command": "ssh office2-claude 'rm /data/services/security-monitor/baselines/* && sg docker -c /data/services/security-monitor/scripts/audit.sh'",
@@ -87,6 +87,23 @@
       "affected_baselines": ["ssh-keys.txt"],
       "deploy_path": "operator copies to ~/.ssh/authorized_keys on office2",
       "rebaseline_required": true
+    },
+    {
+      "id": "deploy-pipeline",
+      "description": "Pull-based deploy pipeline (#136 / pull-based-deploy-pipeline-01KTYQQS). The felix-deployer applier on office2 enumerates deploys/queued/<name>.yaml manifests every 5 minutes and routes them through scripts/deploy/lib/. Manifest schema or library API changes can affect every downstream deploy, so both surfaces need a rebaseline if their fingerprints contribute to any baseline.",
+      "patterns": [
+        "deploys/queued/*.yaml",
+        "deploys/queued/*.yml",
+        "deploys/applied/*.yaml",
+        "deploys/failed/*.yaml",
+        "scripts/deploy/lib/**/*.py",
+        "scripts/deploy/lib/README.md"
+      ],
+      "affected_baselines": [],
+      "deploy_path": "felix-deployer.timer (auto, every 5 minutes, pull-based)",
+      "rebaseline_required": true,
+      "rationale": "Deploy script and manifest changes can affect every deployed service; rebaseline required on every change.",
+      "introduced_by": "#136"
     }
   ],
   "non_repo_baselines": [

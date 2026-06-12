@@ -1,0 +1,8 @@
+schema_version: v1
+name: invalid-tier0-host-change
+mission_slug: pull-based-deploy-pipeline-01KTYQQS
+tier: 0
+entrypoint: scripts/deploy/tier0/forbidden.sh
+audited_surface: true
+created_at: "2026-06-12T20:00:00Z"
+created_by: kent@intentional.biz

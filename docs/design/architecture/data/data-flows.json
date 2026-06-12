@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
-  "last_updated": "2026-06-11",
-  "updated_by": "inbox-calendar-and-aspiration-routing-01KTHHXS + #520-felix-vikunja-sync-project-layer-and-url-config + #519-touchpoint-migration + #376-remove-escalation-v1-parity + #400-audit-interpretation-moment0 + #310-tasker-jsonl-migration + #374-main-verbatim-passthrough + #362-drift-event-auto-resolution + #371-habits-checkin-reply-scripts-first + #309-migrate-escalation-to-jsonl-state-model + #343-refactor-doc-auditor-to-scripts-first-driver + #307-backfill-habits-jsonl-from-comments + #306-habits-native-repeat-jsonl-state + #152 + restore-whatsapp-dm-reply-delivery-01KTVVHH (#588)",
+  "last_updated": "2026-06-12",
+  "updated_by": "pull-based-deploy-pipeline-01KTYQQS (#136) + inbox-calendar-and-aspiration-routing-01KTHHXS + #520-felix-vikunja-sync-project-layer-and-url-config + #519-touchpoint-migration + #376-remove-escalation-v1-parity + #400-audit-interpretation-moment0 + #310-tasker-jsonl-migration + #374-main-verbatim-passthrough + #362-drift-event-auto-resolution + #371-habits-checkin-reply-scripts-first + #309-migrate-escalation-to-jsonl-state-model + #343-refactor-doc-auditor-to-scripts-first-driver + #307-backfill-habits-jsonl-from-comments + #306-habits-native-repeat-jsonl-state + #152 + restore-whatsapp-dm-reply-delivery-01KTVVHH (#588)",
   "flows": [
     {
       "name": "vikunja-web-ui",
@@ -1360,6 +1360,56 @@
         }
       ],
       "operational_notes": "Per the embedded_run lifecycle contract (kitty-specs/restore-whatsapp-dm-reply-delivery-01KTVVHH/contracts/embedded-run-lifecycle.md): `embedded_run:started` must be followed by `embedded_run:ended` via `clearActiveEmbeddedRun`. If `clearActiveEmbeddedRun` is not called, the session enters the stuck-recovery path after ~378s, the run is aborted, and no reply is dispatched. See #588 + the openclaw-agent-setup runbook DM-reply troubleshooting section."
+    },
+    {
+      "name": "github-to-office2-deploy-pull",
+      "status": "active",
+      "deployed_by": "pull-based-deploy-pipeline-01KTYQQS (#136)",
+      "introduced_by": "pull-based-deploy-pipeline-01KTYQQS (#136)",
+      "introduced_at": "2026-06-12",
+      "updated_by": "#136",
+      "last_updated_by": "#136",
+      "source": "github.com/kentonium3/kg-automation (main branch)",
+      "destination": "office2 (claude user, /home/claude/kg-automation)",
+      "transport": "git pull (HTTPS via Tailscale exit node OR public internet)",
+      "frequency": "every 5 minutes (driven by felix-deployer.timer)",
+      "payload": "manifests under deploys/queued/, deploy scripts under scripts/deploy/, library under scripts/deploy/lib/",
+      "triggers": "automatic (systemd timer)",
+      "trigger": "automatic (felix-deployer.timer tick every 5 minutes)",
+      "description": "The applier pulls from main on every tick, scans deploys/queued/ for new manifests, and applies them through lib.apply.dry_run_then_apply_gate. Replaces the historical Mac-push scp deploy path for office2-side services with a pull-based pipeline driven by a manifest queue on main.",
+      "path": [
+        {
+          "from": "github.com/kentonium3/kg-automation (main)",
+          "to": "felix-deployer (office2)",
+          "protocol": "git pull (HTTPS)",
+          "description": "Each tick performs `git pull origin main` against the repo mirror at /home/claude/kg-automation; transport is HTTPS via Tailscale exit node or public internet"
+        },
+        {
+          "from": "felix-deployer (office2)",
+          "to": "deploys/queued/ (scan)",
+          "protocol": "file read",
+          "description": "Applier enumerates deploys/queued/<name>.yaml manifest files"
+        },
+        {
+          "from": "felix-deployer (office2)",
+          "to": "scripts/deploy/lib/ (apply)",
+          "protocol": "in-process Python call",
+          "description": "Each manifest is dispatched through scripts/deploy/lib/apply.py::dry_run_then_apply_gate which routes to the handler for the manifest's kind"
+        },
+        {
+          "from": "felix-deployer (office2)",
+          "to": "deploys/applied/ OR deploys/failed/",
+          "protocol": "file rename (atomic mv)",
+          "description": "On success the manifest moves to deploys/applied/<ts>-<name>.yaml; on failure to deploys/failed/<ts>-<name>.yaml"
+        },
+        {
+          "from": "felix-deployer (office2)",
+          "to": "Kent (WhatsApp)",
+          "protocol": "openclaw send --channel whatsapp",
+          "description": "Failure path emits a WhatsApp DM summarizing the failed manifest and error class. No DM is sent on success."
+        }
+      ],
+      "purpose": "Provide a pull-based, manifest-driven deploy pipeline for office2-side services so deploys are committed to main, audit-trailed, and reversible — replacing the historical Mac-push scp pattern for kg-automation-managed surfaces."
     }
   ],
   "planned_flows": [

@@ -1,0 +1,120 @@
+name: deploy-manifest-validate
+
+# CI tier guard + doctrinal cross-link verification for the
+# pull-based deploy pipeline (FR-006, FR-008, FR-016, FR-017).
+#
+# Two invariants:
+#   1. Tier-aware controls — manifests in PRs must pass schema validation
+#      and tier policy (Tier 0 is hard-locked).
+#   2. Doctrinal cross-link integrity — the IC-06 graph that makes the
+#      deploy discipline discoverable to future agents must remain
+#      closed (no missing edges, no broken targets).
+#
+# The third step is a static grep that rejects literal `crontab`
+# references in scripts/deploy/lib/ — the library must route all cron
+# operations through OpenClaw (#162). The grep pattern excludes comment
+# lines so legitimate "# crontab is forbidden" docstrings don't trip
+# the check.
+#
+# NFR-005 budget is <30s typical; the 2-minute job timeout provides
+# headroom for cold-cache pip installs.
+#
+# CLAUDE.md change-control note: per the user-global rule, modifications
+# to .github/workflows/ require explicit instruction. This workflow was
+# authored under the WP06 scope of mission pull-based-deploy-pipeline-01KTYQQS.
+
+on:
+  pull_request:
+    paths:
+      - 'deploys/**'
+      - 'scripts/deploy/**'
+      - 'docs/runbooks/deploy/**'
+      - 'docs/runbooks/deployment.md'
+      - 'docs/design/architecture/data/signal-to-doc-map.json'
+      - '.kittify/charter/charter.md'
+      - 'CLAUDE.md'
+      - '.github/ISSUE_TEMPLATE/feature.md'
+      - '.github/ISSUE_TEMPLATE/infra.md'
+      - 'tests/deploy/**'
+      - '.github/workflows/deploy-manifest-validate.yml'
+  push:
+    branches: [ main ]
+    paths:
+      - 'deploys/**'
+      - 'scripts/deploy/**'
+      - 'docs/runbooks/deploy/**'
+      - 'docs/runbooks/deployment.md'
+      - 'docs/design/architecture/data/signal-to-doc-map.json'
+      - '.kittify/charter/charter.md'
+      - 'CLAUDE.md'
+      - '.github/ISSUE_TEMPLATE/feature.md'
+      - '.github/ISSUE_TEMPLATE/infra.md'
+      - 'tests/deploy/**'
+      - '.github/workflows/deploy-manifest-validate.yml'
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    env:
+      # Strict mode: missing cross-link targets fail the build instead
+      # of skipping. On main and PRs we always want strict — every
+      # doctrinal surface is expected to be present on a merged tree.
+      DEPLOY_CROSS_LINK_STRICT: '1'
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.10'
+
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: deploy-manifest-validate-pip-${{ hashFiles('requirements*.txt') }}
+          restore-keys: |
+            deploy-manifest-validate-pip-
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install PyYAML jsonschema pytest
+
+      - name: Manifest schema + tier guard
+        run: pytest tests/deploy/test_manifest_schema.py -v
+
+      - name: Doctrinal cross-link integrity + CI tier guard
+        run: pytest tests/deploy/test_cross_link.py -v
+
+      - name: Static check — no crontab literal in scripts/deploy/lib/
+        run: |
+          if [ -d scripts/deploy/lib ]; then
+            # We want to reject real invocations of the system crontab
+            # (subprocess argv lists, os.system strings, /usr/bin/crontab
+            # paths, CRONTAB constants) while ignoring legitimate prose
+            # mentions in docstrings and comments that say things like
+            # "crontab is forbidden here".
+            #
+            # The pattern ["'\/\[]crontab\b matches `crontab` only when
+            # it follows one of: `"`, `'`, `/`, or `[` — i.e. it's quoted,
+            # in an argv list, or a filesystem path. That covers every
+            # realistic call site and excludes bare prose.
+            #
+            # FR-017 hazard examples this catches:
+            #   subprocess.run(["crontab", "-l"])
+            #   os.system("crontab -e")
+            #   cmd = "/usr/bin/crontab"
+            #   CRONTAB = "crontab"
+            #
+            # Examples this allows (legitimate doc references):
+            #   # crontab is forbidden in this module
+            #   """Use openclaw cron, not crontab."""
+            if grep -rn -E '["'"'"'/\[]crontab\b' scripts/deploy/lib/; then
+              echo "::error::Found crontab literal in scripts/deploy/lib/ — use openclaw cron only (#162, FR-017)"
+              exit 1
+            fi
+          else
+            echo "scripts/deploy/lib/ not present in this tree — static check skipped"
+          fi

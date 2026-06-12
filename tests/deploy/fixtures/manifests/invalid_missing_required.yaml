@@ -1,0 +1,7 @@
+schema_version: v1
+name: missing-entrypoint
+mission_slug: pull-based-deploy-pipeline-01KTYQQS
+tier: 3
+audited_surface: false
+created_at: "2026-06-12T20:00:00Z"
+created_by: kent@intentional.biz

@@ -80,11 +80,11 @@ Sequencing (recommended serial to avoid #1572 parallel-WP status invisibility):
 
 **Included subtasks** (`mark-status` targets these checkboxes):
 
-- [ ] T001 Create `deploys/{queued,applied,failed}/.gitkeep` and `deploys/schema/` (WP01)
-- [ ] T002 Author `deploys/schema/manifest-v1.schema.json` (WP01)
-- [ ] T003 Write `deploys/schema/README.md` (WP01)
-- [ ] T004 Build manifest fixtures under `tests/deploy/fixtures/manifests/` (WP01)
-- [ ] T005 Write `tests/deploy/test_manifest_schema.py` (WP01)
+- [x] T001 Create `deploys/{queued,applied,failed}/.gitkeep` and `deploys/schema/` (WP01)
+- [x] T002 Author `deploys/schema/manifest-v1.schema.json` (WP01)
+- [x] T003 Write `deploys/schema/README.md` (WP01)
+- [x] T004 Build manifest fixtures under `tests/deploy/fixtures/manifests/` (WP01)
+- [x] T005 Write `tests/deploy/test_manifest_schema.py` (WP01)
 
 **Implementation sketch**: Create directory skeleton with .gitkeep; copy `contracts/manifest-v1.schema.json` to `deploys/schema/manifest-v1.schema.json`; write a small README pointing at the discipline runbook (to be written by WP07); build ~6 fixtures (valid Tier 3, valid Tier 2 with verification, missing verification on Tier 1 [should fail], Tier 0 [should fail], applied entry with apply_mode, queued entry); test loops over fixtures.
 
@@ -102,13 +102,13 @@ Sequencing (recommended serial to avoid #1572 parallel-WP status invisibility):
 
 **Included subtasks**:
 
-- [ ] T030 Rewrite `.kittify/charter/charter.md` Deployment Constraints rule (WP07)
-- [ ] T031 Run `spec-kitty charter sync`; commit synced doctrine artifacts (WP07)
-- [ ] T032 Author `docs/runbooks/deploy/discipline.md` (WP07)
-- [ ] T033 Rewrite `docs/runbooks/deployment.md` to point at discipline.md (WP07)
-- [ ] T034 Add "Deploys to office2" section to `CLAUDE.md` (project root) (WP07)
-- [ ] T035 Add "Deploy required?" prompt to `.github/ISSUE_TEMPLATE/feature.md` (WP07)
-- [ ] T036 Add "Deploy required?" prompt to `.github/ISSUE_TEMPLATE/infra.md` (WP07)
+- [x] T030 Rewrite `.kittify/charter/charter.md` Deployment Constraints rule (WP07)
+- [x] T031 Run `spec-kitty charter sync`; commit synced doctrine artifacts (WP07)
+- [x] T032 Author `docs/runbooks/deploy/discipline.md` (WP07)
+- [x] T033 Rewrite `docs/runbooks/deployment.md` to point at discipline.md (WP07)
+- [x] T034 Add "Deploys to office2" section to `CLAUDE.md` (project root) (WP07)
+- [x] T035 Add "Deploy required?" prompt to `.github/ISSUE_TEMPLATE/feature.md` (WP07)
+- [x] T036 Add "Deploy required?" prompt to `.github/ISSUE_TEMPLATE/infra.md` (WP07)
 
 **Implementation sketch**: Charter rewrite is single rule replacement (bullet 4 of Deployment Constraints — see plan.md Charter Check). Discipline runbook is a 1-2 page operational doc; lean on `quickstart.md` from the planning artifacts. CLAUDE.md gets a 5-10 line section. Issue templates get a checkbox + link.
 
@@ -124,11 +124,11 @@ Sequencing (recommended serial to avoid #1572 parallel-WP status invisibility):
 
 **Included subtasks**:
 
-- [ ] T037 Add `felix-deployer` entry to `service-inventory.json` (WP08)
-- [ ] T038 Add `github-to-office2-deploy-pull` flow to `data-flows.json` (WP08)
-- [ ] T039 Add `deploys/` + `scripts/deploy/lib/` paths to `audited-surfaces.json` (WP08)
-- [ ] T040 Add 3 deploy change-classes to `signal-to-doc-map.json` (WP08)
-- [ ] T041 Add deployer mutation surfaces to `mutation-surfaces.json` (WP08)
+- [x] T037 Add `felix-deployer` entry to `service-inventory.json` (WP08)
+- [x] T038 Add `github-to-office2-deploy-pull` flow to `data-flows.json` (WP08)
+- [x] T039 Add `deploys/` + `scripts/deploy/lib/` paths to `audited-surfaces.json` (WP08)
+- [x] T040 Add 3 deploy change-classes to `signal-to-doc-map.json` (WP08)
+- [x] T041 Add deployer mutation surfaces to `mutation-surfaces.json` (WP08)
 
 **Implementation sketch**: Each JSON edit mirrors an existing entry shape (e.g., service-inventory's `felix-doc-auditor` is the canonical template per memory `reference_felix_doc_auditor_ops`). Set `updated_by` to `136`. Update markdown views if present.
 
@@ -146,11 +146,11 @@ Sequencing (recommended serial to avoid #1572 parallel-WP status invisibility):
 
 **Included subtasks**:
 
-- [ ] T006 `lib/__init__.py` with `LibResult` (WP02)
-- [ ] T007 `lib/cron.py` + `test_cron.py` (WP02)
-- [ ] T008 `lib/snapshot.py` + `test_snapshot.py` (WP02)
-- [ ] T009 `lib/verify.py` + `test_verify.py` (WP02)
-- [ ] T010 `lib/manifest.py` + `lib/applied.py` + their tests (WP02)
+- [x] T006 `lib/__init__.py` with `LibResult` (WP02)
+- [x] T007 `lib/cron.py` + `test_cron.py` (WP02)
+- [x] T008 `lib/snapshot.py` + `test_snapshot.py` (WP02)
+- [x] T009 `lib/verify.py` + `test_verify.py` (WP02)
+- [x] T010 `lib/manifest.py` + `lib/applied.py` + their tests (WP02)
 
 **Implementation sketch**: `LibResult` is the frozen dataclass from `contracts/deploy-library-api.md`. Each module is a thin subprocess wrapper around the canonical surface (openclaw CLI for cron; backup log file for snapshot; pathlib + grep-like checks for verify). `manifest.py` loads YAML + validates against schema; `applied.py` writes well-formed YAML to `deploys/applied/`. All mock subprocess in tests; no live calls.
 
@@ -168,11 +168,11 @@ Sequencing (recommended serial to avoid #1572 parallel-WP status invisibility):
 
 **Included subtasks**:
 
-- [ ] T011 `lib/tier.py` + `test_tier.py` (WP03)
-- [ ] T012 `lib/apply.py` + `test_apply.py` (WP03)
-- [ ] T013 `lib/README.md` (WP03)
-- [ ] T014 Module-as-CLI shims for bash callers (`__main__.py`) (WP03)
-- [ ] T015 Round-trip integration test (WP03)
+- [x] T011 `lib/tier.py` + `test_tier.py` (WP03)
+- [x] T012 `lib/apply.py` + `test_apply.py` (WP03)
+- [x] T013 `lib/README.md` (WP03)
+- [x] T014 Module-as-CLI shims for bash callers (`__main__.py`) (WP03)
+- [x] T015 Round-trip integration test (WP03)
 
 **Implementation sketch**: `tier.py` reads `manifest.tier` + the change-risk-taxonomy; returns LibResult with error_code on rejection. `apply.py` orchestrates the canonical sequence from `data-model.md` (tier → snapshot → pre → dry-run → apply → post). Each module also exports a `__main__.py` that maps `argv[1]` to function calls per `contracts/deploy-library-api.md`.
 
@@ -189,12 +189,12 @@ Sequencing (recommended serial to avoid #1572 parallel-WP status invisibility):
 
 **Included subtasks**:
 
-- [ ] T016 `felix-deployer/__init__.py` + `deployer.py` scaffold (WP04)
-- [ ] T017 `deployer.py` tick lifecycle (WP04)
-- [ ] T018 `notify.py` + `test_notify.py` (WP04)
-- [ ] T019 `felix-deployer.service` + `felix-deployer.timer` systemd units (WP04)
-- [ ] T020 `templates/felix-deployer-alert.txt` (WP04)
-- [ ] T021 `test_deployer.py` end-to-end (WP04)
+- [x] T016 `felix-deployer/__init__.py` + `deployer.py` scaffold (WP04)
+- [x] T017 `deployer.py` tick lifecycle (WP04)
+- [x] T018 `notify.py` + `test_notify.py` (WP04)
+- [x] T019 `felix-deployer.service` + `felix-deployer.timer` systemd units (WP04)
+- [x] T020 `templates/felix-deployer-alert.txt` (WP04)
+- [x] T021 `test_deployer.py` end-to-end (WP04)
 
 **Implementation sketch**: Service is `Type=oneshot`; timer fires every 5 min. Entry script: log `tick_start` → `git pull` → enumerate `deploys/queued/*.yaml` (sorted alphabetical for determinism) → for each, invoke `lib.apply.dry_run_then_apply_gate`; on success git-mv to `applied/<NNNN>-<name>.yaml` (where NNNN is monotonic from `lib.applied.next_seq()`), commit + push; on failure write `failed/<name>-<ts>.yaml`, call `notify.dispatch_failure_dm(payload)`. JSONL log line per tick + per manifest. The `.service` unit references the `claude` user's home for paths.
 
@@ -214,10 +214,10 @@ Sequencing (recommended serial to avoid #1572 parallel-WP status invisibility):
 
 **Included subtasks**:
 
-- [ ] T022 `deploy-felix-deployer-bootstrap.sh` core (WP05)
-- [ ] T023 Bootstrap writes `deploys/applied/0001-bootstrap-felix-deployer.yaml` (WP05)
-- [ ] T024 `--rollback` mode + manual rollback header (WP05)
-- [ ] T025 `tests/deploy/test_bootstrap_record.py` (WP05)
+- [x] T022 `deploy-felix-deployer-bootstrap.sh` core (WP05)
+- [x] T023 Bootstrap writes `deploys/applied/0001-bootstrap-felix-deployer.yaml` (WP05)
+- [x] T024 `--rollback` mode + manual rollback header (WP05)
+- [x] T025 `tests/deploy/test_bootstrap_record.py` (WP05)
 
 **Implementation sketch**: Mirrors `deploy-149.sh` shape (header, modes, openclaw cron registration). Pre-flight: confirm openclaw cron is healthy via `python3 -m scripts.deploy.lib.cron openclaw_cron_list`. Apply: rsync `scripts/deploy/felix-deployer/` to office2; rsync `scripts/deploy/lib/`; install systemd user units; `systemctl --user daemon-reload`; `systemctl --user enable --now felix-deployer.timer`; register `felix-deployer-alert` openclaw cron via `openclaw cron edit`. On success: `python3 -m scripts.deploy.lib.applied write_applied --name 0001-bootstrap-felix-deployer --apply-mode bootstrap`. Rollback: disable timer, remove units, daemon-reload.
 
@@ -236,10 +236,10 @@ Sequencing (recommended serial to avoid #1572 parallel-WP status invisibility):
 
 **Included subtasks**:
 
-- [ ] T026 `.github/workflows/deploy-manifest-validate.yml` (WP06)
-- [ ] T027 `tests/deploy/test_cross_link.py` (WP06)
-- [ ] T028 Static `crontab` literal check in `scripts/deploy/lib/` (WP06)
-- [ ] T029 Tier-0-rejection and schema-invalid test cases in `test_cross_link.py` (WP06)
+- [x] T026 `.github/workflows/deploy-manifest-validate.yml` (WP06)
+- [x] T027 `tests/deploy/test_cross_link.py` (WP06)
+- [x] T028 Static `crontab` literal check in `scripts/deploy/lib/` (WP06)
+- [x] T029 Tier-0-rejection and schema-invalid test cases in `test_cross_link.py` (WP06)
 
 **Implementation sketch**: GH Actions workflow runs on `pull_request` and `push` to main. Steps: `actions/setup-python@v5`; `pip install PyYAML jsonschema pytest`; `pytest tests/deploy/test_manifest_schema.py tests/deploy/test_cross_link.py`. Cross-link test walks the graph from plan.md (CLAUDE.md ↔ runbook ↔ charter ↔ signal-to-doc-map ↔ issue templates) using filesystem reads + regex; fails on missing edge or broken link target.
 

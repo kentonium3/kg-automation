@@ -1,0 +1,16 @@
+[Unit]
+Description=Felix pull-based deploy applier (oneshot)
+Documentation=https://github.com/kentonium3/kg-automation/blob/main/docs/runbooks/deploy/discipline.md
+
+[Service]
+Type=oneshot
+WorkingDirectory=/home/claude/kg-automation
+# File-path invocation: the felix-deployer/ directory name contains a
+# hyphen so it is not importable as a Python module. The deployer.py
+# bootstrap inserts the repo root and the felix-deployer directory
+# itself onto sys.path so scripts.deploy.lib and the sibling notify
+# module both resolve.
+ExecStart=/usr/bin/python3 /home/claude/kg-automation/scripts/deploy/felix-deployer/deployer.py
+Environment=PATH=/home/claude/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+StandardOutput=journal
+StandardError=journal

@@ -1,0 +1,191 @@
+{
+  "version": 1,
+  "mission_slug": "pull-based-deploy-pipeline-01KTYQQS",
+  "mission_id": "01KTYQQSAJA888YXKYBX24W2AJ",
+  "mission_branch": "kitty/mission-pull-based-deploy-pipeline-01KTYQQS",
+  "target_branch": "main",
+  "lanes": [
+    {
+      "lane_id": "lane-a",
+      "wp_ids": [
+        "WP01"
+      ],
+      "write_scope": [
+        "deploys/applied/.gitkeep",
+        "deploys/failed/.gitkeep",
+        "deploys/queued/.gitkeep",
+        "deploys/schema/README.md",
+        "deploys/schema/manifest-v1.schema.json",
+        "tests/deploy/__init__.py",
+        "tests/deploy/fixtures/manifests/**",
+        "tests/deploy/test_manifest_schema.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "app-shell",
+        "artifact-rendering"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    },
+    {
+      "lane_id": "lane-g",
+      "wp_ids": [
+        "WP07"
+      ],
+      "write_scope": [
+        ".github/ISSUE_TEMPLATE/feature.md",
+        ".github/ISSUE_TEMPLATE/infra.md",
+        ".kittify/charter/charter.md",
+        "CLAUDE.md",
+        "docs/runbooks/deploy/discipline.md",
+        "docs/runbooks/deployment.md"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "artifact-rendering",
+        "legacy-cleanup",
+        "tracker-integration"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    },
+    {
+      "lane_id": "lane-h",
+      "wp_ids": [
+        "WP08"
+      ],
+      "write_scope": [
+        "docs/design/architecture/data/audited-surfaces.json",
+        "docs/design/architecture/data/data-flows.json",
+        "docs/design/architecture/data/mutation-surfaces.json",
+        "docs/design/architecture/data/service-inventory.json",
+        "docs/design/architecture/data/signal-to-doc-map.json"
+      ],
+      "predicted_surfaces": [
+        "api"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    },
+    {
+      "lane_id": "lane-b",
+      "wp_ids": [
+        "WP02"
+      ],
+      "write_scope": [
+        "scripts/deploy/lib/__init__.py",
+        "scripts/deploy/lib/applied.py",
+        "scripts/deploy/lib/cron.py",
+        "scripts/deploy/lib/manifest.py",
+        "scripts/deploy/lib/snapshot.py",
+        "scripts/deploy/lib/verify.py",
+        "tests/deploy/test_applied.py",
+        "tests/deploy/test_cron.py",
+        "tests/deploy/test_manifest.py",
+        "tests/deploy/test_snapshot.py",
+        "tests/deploy/test_verify.py"
+      ],
+      "predicted_surfaces": [
+        "api"
+      ],
+      "depends_on_lanes": [
+        "lane-a"
+      ],
+      "parallel_group": 1
+    },
+    {
+      "lane_id": "lane-f",
+      "wp_ids": [
+        "WP06"
+      ],
+      "write_scope": [
+        ".github/workflows/deploy-manifest-validate.yml",
+        "tests/deploy/test_cross_link.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "artifact-rendering",
+        "legacy-cleanup"
+      ],
+      "depends_on_lanes": [
+        "lane-a",
+        "lane-g",
+        "lane-h"
+      ],
+      "parallel_group": 1
+    },
+    {
+      "lane_id": "lane-c",
+      "wp_ids": [
+        "WP03"
+      ],
+      "write_scope": [
+        "scripts/deploy/lib/README.md",
+        "scripts/deploy/lib/apply.py",
+        "scripts/deploy/lib/tier.py",
+        "tests/deploy/test_apply.py",
+        "tests/deploy/test_tier.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "tests",
+        "tracker-integration"
+      ],
+      "depends_on_lanes": [
+        "lane-b"
+      ],
+      "parallel_group": 2
+    },
+    {
+      "lane_id": "lane-d",
+      "wp_ids": [
+        "WP04"
+      ],
+      "write_scope": [
+        "scripts/deploy/felix-deployer/__init__.py",
+        "scripts/deploy/felix-deployer/deployer.py",
+        "scripts/deploy/felix-deployer/felix-deployer.service",
+        "scripts/deploy/felix-deployer/felix-deployer.timer",
+        "scripts/deploy/felix-deployer/notify.py",
+        "scripts/deploy/felix-deployer/templates/felix-deployer-alert.txt",
+        "tests/deploy/test_deployer.py",
+        "tests/deploy/test_notify.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "artifact-rendering",
+        "legacy-cleanup"
+      ],
+      "depends_on_lanes": [
+        "lane-b",
+        "lane-c"
+      ],
+      "parallel_group": 3
+    },
+    {
+      "lane_id": "lane-e",
+      "wp_ids": [
+        "WP05"
+      ],
+      "write_scope": [
+        "scripts/deploy/deploy-felix-deployer-bootstrap.sh",
+        "tests/deploy/test_bootstrap_record.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "artifact-rendering",
+        "tracker-integration"
+      ],
+      "depends_on_lanes": [
+        "lane-b",
+        "lane-c",
+        "lane-d"
+      ],
+      "parallel_group": 4
+    }
+  ],
+  "computed_at": "2026-06-12T21:44:15.247704+00:00",
+  "computed_from": "dependency_graph+ownership",
+  "planning_artifact_wps": []
+}
