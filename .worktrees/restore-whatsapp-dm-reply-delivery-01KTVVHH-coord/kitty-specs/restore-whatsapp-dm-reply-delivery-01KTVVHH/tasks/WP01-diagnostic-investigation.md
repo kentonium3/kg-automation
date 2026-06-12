@@ -287,3 +287,4 @@ If any check fails, reject with structured feedback naming the failing item.
 - 2026-06-11T18:59:24Z – claude:opus:debugger-debbie:investigator – shell_pid=42734 – Started implementation via action command
 - 2026-06-11T19:09:43Z – claude:opus:debugger-debbie:investigator – shell_pid=42734 – H6 desk review complete; destructive probes (T003 config-swap, T005 AGENTS.md rollback) skipped per orchestrator instruction; Decision Record: Fix shape: H6 — upgrade openclaw 2026.6.5 (release-notes mapping in docs/diagnostics/restore-whatsapp-dm-reply-delivery-01KTVVHH-investigation.md §3.3 + Decision Record §10); decision ledger clean (DM-01KTW1CJVX0YPJZR27XZFRG95M)
 - 2026-06-11T19:10:46Z – claude:opus:reviewer-renata:reviewer – shell_pid=46240 – Started review via action command
+- 2026-06-11T19:15:01Z – user – shell_pid=46240 – Review passed: H6 verdict well-evidenced (3 CHANGELOG mappings); office2 untouched; staging clean; WP02 has clear upgrade plan

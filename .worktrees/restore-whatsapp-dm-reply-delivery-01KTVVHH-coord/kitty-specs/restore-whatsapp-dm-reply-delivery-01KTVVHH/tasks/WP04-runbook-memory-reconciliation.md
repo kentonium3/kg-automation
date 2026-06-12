@@ -14,8 +14,8 @@ subtasks:
 - T019
 - T020
 - T021
-agent: "claude:opus:reviewer-renata:reviewer"
-shell_pid: "49464"
+agent: "claude:opus:curator-carla:curator"
+shell_pid: "46535"
 history:
 - event: created
   timestamp: '2026-06-11T18:30:00Z'
@@ -273,5 +273,3 @@ Check:
 ## Activity Log
 
 - 2026-06-11T19:11:02Z – claude:opus:curator-carla:curator – shell_pid=46535 – Started implementation via action command
-- 2026-06-11T19:16:36Z – claude:opus:curator-carla:curator – shell_pid=46535 – DR-6 troubleshooting section + DR-7 INDEX (or skipped) + DR-8 dmPolicy memory corrected + DR-9 new lifecycle reference memory added
-- 2026-06-11T19:17:15Z – claude:opus:reviewer-renata:reviewer – shell_pid=49464 – Started review via action command

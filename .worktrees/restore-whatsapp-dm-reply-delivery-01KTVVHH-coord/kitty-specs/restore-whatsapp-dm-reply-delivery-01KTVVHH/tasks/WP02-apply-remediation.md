@@ -21,8 +21,7 @@ subtasks:
 - T010
 - T011
 - T012
-agent: "claude:opus:reviewer-renata:reviewer"
-shell_pid: "52258"
+agent: claude
 history:
 - event: created
   timestamp: '2026-06-11T18:30:00Z'
@@ -330,9 +329,3 @@ Check (path-specific):
 - `terminal-disposition.md` committed
 - DIRECTIVE_033 staging discipline followed
 - C-001 honored (no vendored runtime modifications; upgrade is not modification)
-
-## Activity Log
-
-- 2026-06-11T19:15:42Z – claude:opus:implementer-ivan:implementer – shell_pid=48407 – Assigned agent via action command
-- 2026-06-11T19:23:51Z – claude:opus:implementer-ivan:implementer – shell_pid=48407 – Upgrade-path deploy script (Stage 3 sudo pause + 1-DM post-flight smoke + rollback instructions) per WP01 H6 verdict; T011 N/A (no escalation needed)
-- 2026-06-11T19:24:37Z – claude:opus:reviewer-renata:reviewer – shell_pid=52258 – Started review via action command

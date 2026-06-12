@@ -21,8 +21,7 @@ subtasks:
 - T024
 - T025
 - T026
-agent: "claude:opus:reviewer-renata:reviewer"
-shell_pid: "34420"
+agent: claude
 history:
 - event: created
   timestamp: '2026-06-11T18:50:00Z'
@@ -293,13 +292,3 @@ Check:
 4. **Next-day check captured**: T026 is run AT THE SCHEDULED TIME (not skipped due to impatience)
 5. **Escalation-path consistency**: if escalation, T022/T023/T024/T025 explicitly skipped with reason; T026 still executed
 6. **DIRECTIVE_033**: only `deploy-smoke-evidence.md` in commit; nothing else
-
-## Activity Log
-
-- 2026-06-11T19:27:01Z – claude:opus:implementer-ivan:implementer – shell_pid=53199 – Started implementation via action command
-- 2026-06-12T01:45:24Z – claude:opus:implementer-ivan:implementer – shell_pid=53199 – Escalation-path outcome: H6 upgrade landed cleanly but 1-DM smoke failed with identical bug signature on 2026.6.5; FR-009 triggered → filed kentonium3/kg-automation#589 as the residual vendored-runtime regression tracker; openclaw 2026.6.5 retained; T025 rebaseline + T026 next-day cron check are operator-pending hand-off steps documented in smoke evidence
-- 2026-06-12T01:45:42Z – claude:opus:reviewer-renata:reviewer – shell_pid=32484 – Started review via action command
-- 2026-06-12T01:48:26Z – user – shell_pid=32484 – Moved to planned
-- 2026-06-12T01:48:57Z – claude:opus:implementer-ivan:implementer – shell_pid=33686 – Started implementation via action command
-- 2026-06-12T01:50:59Z – claude:opus:implementer-ivan:implementer – shell_pid=33686 – Cycle 1 fix: #589 verdict flipped to terminal 'fixed' per reviewer feedback (deliverable IS the filed issue per spec-kitty rule)
-- 2026-06-12T01:51:15Z – claude:opus:reviewer-renata:reviewer – shell_pid=34420 – Started review via action command

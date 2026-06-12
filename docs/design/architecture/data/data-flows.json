@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
-  "last_updated": "2026-06-08",
-  "updated_by": "inbox-calendar-and-aspiration-routing-01KTHHXS + #520-felix-vikunja-sync-project-layer-and-url-config + #519-touchpoint-migration + #376-remove-escalation-v1-parity + #400-audit-interpretation-moment0 + #310-tasker-jsonl-migration + #374-main-verbatim-passthrough + #362-drift-event-auto-resolution + #371-habits-checkin-reply-scripts-first + #309-migrate-escalation-to-jsonl-state-model + #343-refactor-doc-auditor-to-scripts-first-driver + #307-backfill-habits-jsonl-from-comments + #306-habits-native-repeat-jsonl-state + #152",
+  "last_updated": "2026-06-11",
+  "updated_by": "inbox-calendar-and-aspiration-routing-01KTHHXS + #520-felix-vikunja-sync-project-layer-and-url-config + #519-touchpoint-migration + #376-remove-escalation-v1-parity + #400-audit-interpretation-moment0 + #310-tasker-jsonl-migration + #374-main-verbatim-passthrough + #362-drift-event-auto-resolution + #371-habits-checkin-reply-scripts-first + #309-migrate-escalation-to-jsonl-state-model + #343-refactor-doc-auditor-to-scripts-first-driver + #307-backfill-habits-jsonl-from-comments + #306-habits-native-repeat-jsonl-state + #152 + restore-whatsapp-dm-reply-delivery-01KTVVHH (#588)",
   "flows": [
     {
       "name": "vikunja-web-ui",
@@ -1294,6 +1294,72 @@
         }
       ],
       "purpose": "Route aspirations and musings to the dated journal instead of Vikunja todos"
+    },
+    {
+      "name": "whatsapp-dm-reply",
+      "status": "active",
+      "deployed_by": "F002",
+      "updated_by": "restore-whatsapp-dm-reply-delivery-01KTVVHH (#588)",
+      "introduced_at": "2026-06-11",
+      "description": "Bidirectional DM-reply path. Inbound WhatsApp DM enters the openclaw-gateway; the gateway creates a session keyed `agent:main:whatsapp:direct:<peer>`; main agent processes the message (delegating to felix-admin-* subagents as appropriate); the agent's reply text reaches the channel-send subsystem; openclaw-gateway sends the reply back to the originating WhatsApp thread. Distinct from cron-driven announce-mode delivery (separate fire-and-forget path).",
+      "path": [
+        {
+          "from": "operator (WhatsApp client on phone)",
+          "to": "openclaw-gateway (inbound channel)",
+          "protocol": "WhatsApp Web (Baileys plugin)",
+          "endpoint": "+16179300916",
+          "description": "Operator sends a DM to Felix's WhatsApp number"
+        },
+        {
+          "from": "openclaw-gateway",
+          "to": "main agent (embedded_run)",
+          "protocol": "internal IPC (openclaw runtime)",
+          "session_key_format": "agent:main:whatsapp:direct:<peer>",
+          "description": "Gateway creates a session, starts an embedded_run for the main agent; routes the inbound message as the agent's input"
+        },
+        {
+          "from": "main agent",
+          "to": "felix-admin-* subagent (delegation, conditional)",
+          "protocol": "openclaw-agent dispatch",
+          "description": "main agent classifies the DM intent and delegates to felix-admin-habits / felix-admin-tasker / felix-admin-escalation / felix-admin-calendar / felix-admin-capture per its AGENTS.md routing rules"
+        },
+        {
+          "from": "subagent (or main directly)",
+          "to": "openclaw-gateway (channel-send subsystem)",
+          "protocol": "internal IPC",
+          "description": "Agent's reply text is returned through the embedded_run completion path; gateway invokes the WhatsApp plugin's send function"
+        },
+        {
+          "from": "openclaw-gateway",
+          "to": "operator (WhatsApp client)",
+          "protocol": "WhatsApp Web (Baileys plugin)",
+          "endpoint": "+16179300916",
+          "description": "Reply delivered to the originating DM thread within seconds; typing indicator fires during the agent run"
+        }
+      ],
+      "consumers": [
+        {
+          "agent": "main",
+          "purpose": "Top-level orchestrator; handles DM intent classification + delegation"
+        },
+        {
+          "agent": "felix-admin-habits",
+          "purpose": "Habit check-in queries via DM (delegation target)"
+        },
+        {
+          "agent": "felix-admin-tasker",
+          "purpose": "Task creation/update via DM (delegation target)"
+        },
+        {
+          "agent": "felix-admin-escalation",
+          "purpose": "Escalation reply handling (delegation target)"
+        },
+        {
+          "agent": "felix-admin-calendar",
+          "purpose": "Calendar event create + reply handling (delegation target)"
+        }
+      ],
+      "operational_notes": "Per the embedded_run lifecycle contract (kitty-specs/restore-whatsapp-dm-reply-delivery-01KTVVHH/contracts/embedded-run-lifecycle.md): `embedded_run:started` must be followed by `embedded_run:ended` via `clearActiveEmbeddedRun`. If `clearActiveEmbeddedRun` is not called, the session enters the stuck-recovery path after ~378s, the run is aborted, and no reply is dispatched. See #588 + the openclaw-agent-setup runbook DM-reply troubleshooting section."
     }
   ],
   "planned_flows": [

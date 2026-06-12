@@ -5,8 +5,8 @@ status: approved
 audience: agents_and_humans
 last_updated: '2026-06-11'
 last_validated: '2026-06-11'
-updated_by: '#374 + vikunja-client-and-habits-weekly-report-01KTKSFT (#561) + felix-calendar-subagent-extraction-01KTTA33 (#579)'
-revision: v1.3
+updated_by: '#374 + vikunja-client-and-habits-weekly-report-01KTKSFT (#561) + felix-calendar-subagent-extraction-01KTTA33 (#579) + restore-whatsapp-dm-reply-delivery-01KTVVHH (#588)'
+revision: v1.4
 ---
 
 # OpenClaw agent setup
@@ -285,6 +285,83 @@ The pipeline is operator-owned but agent-readable:
 - [ ] Restart: `systemctl --user restart openclaw-gateway.service`
 - [ ] Verify: `openclaw agents` shows the new agent with identity
 - [ ] Architecture: update `docs/design/architecture/data/service-inventory.json` if needed
+
+## DM-reply lifecycle troubleshooting
+
+When inbound WhatsApp DMs are received but no reply is delivered, the
+break is usually in the gateway's `embedded_run` lifecycle. Cron
+`announce`-mode outbound (morning checkin, IDLE pings, periodic digests)
+is a separate code path and will keep working even when DM-reply is
+broken — that's the diagnostic giveaway. Added during mission
+`restore-whatsapp-dm-reply-delivery-01KTVVHH` (#588) after WP01 traced
+the bug shape to an `openclaw` 2026.5.28 lifecycle regression.
+
+### Symptom signature
+
+In `journalctl --user -u openclaw-gateway` for the affected DM window:
+
+- `[whatsapp] Inbound message` fires for the DM (channel received it) ✓
+- `Sent by <agent>:<model>` appears (agent's stdout marker per #561) ✓
+- `[whatsapp] Sending message ->` is **MISSING** (channel-send never invoked) ✗
+- After ~378 seconds: `[diagnostic] stuck session recovery: action=abort_embedded_run` ✗
+- Adjacent downstream symptom: `[ws] ⇄ res ✗ sessions.resolve … errorCode=INVALID_REQUEST errorMessage=No session found: current`
+
+The agent IS executing (its stdout reaches the journal) but the
+gateway's `embedded_run` completion event (`embedded_run:ended`) is
+never observed. Do not be fooled by the agent's `Sent by` line — that's
+the AGENT'S stdout, not the GATEWAY'S delivery signal.
+
+### Lifecycle contract reference
+
+The `embedded_run` lifecycle contract lives in the mission folder during
+the fix:
+`kitty-specs/restore-whatsapp-dm-reply-delivery-01KTVVHH/contracts/embedded-run-lifecycle.md`
+(carries through to its canonical home in `docs/design/architecture/`
+post-mission). Two state markers (in vendored
+`openclaw/dist/diagnostic-run-activity-*.js`):
+
+- `embedded_run:started` — fires via `markDiagnosticEmbeddedRunStarted`
+  when `setActiveEmbeddedRun` is called
+- `embedded_run:ended` — fires via `markDiagnosticEmbeddedRunEnded` when
+  `clearActiveEmbeddedRun` is called
+
+Healthy runs see both. Broken runs see only `started`, then a
+stuck-session recovery abort.
+
+### Operator smoke command
+
+Send 5 DMs from the operator phone within a 5-minute window, note `T0`
+(ISO timestamp at start), then run:
+
+```bash
+ssh office2-claude "journalctl --user -u openclaw-gateway --since '<T0>' --until '<T0+5min>' 2>/dev/null | awk '/\[whatsapp\] Inbound message/{i++} /\[whatsapp\] Sending message ->/{s++} /\[whatsapp\] Sent message /{sent++} /\[diagnostic\] stalled session/{stall++} /\[diagnostic\] stuck session recovery/{rec++} /sessions\.resolve.*INVALID_REQUEST.*current/{rf++} /truncating in injected context.*sessionKey=agent:main:/{trunc++} END{print \"inbound=\"i\" send=\"s\" sent=\"sent\" stall=\"stall\" recovery=\"rec\" resolve_fail_current=\"rf\" trunc_main=\"trunc}'"
+```
+
+Healthy output: `inbound=5 send=5 sent=5 stall=0 recovery=0 resolve_fail_current=0 trunc_main=0`.
+
+Broken output (pre-fix observation): `inbound=5+ send=0 sent=0 stall=N recovery=>=1 resolve_fail_current=>=1 trunc_main=0`.
+
+The canonical pattern reference is
+`kitty-specs/restore-whatsapp-dm-reply-delivery-01KTVVHH/contracts/journal-event-assertions.md`.
+
+### Investigation order if signature detected
+
+Per `research.md` §4 + §5 D1 of the mission, in cost order:
+
+1. **H6 — `openclaw` version**: confirm running version with `openclaw --version`. Lifecycle regression first surfaced on 2026.5.28; upgrade to 2026.6.5+ is the fix shape WP01 landed.
+2. **H5 — plugin install state**: `openclaw plugins list` — verify `@openclaw/whatsapp` is present and matches the running openclaw version (channels moved to external plugins in 2026.5.28 per `reference_openclaw_upgrade_gotchas`).
+3. **H4 — config drift**: read `/home/claude/.openclaw/openclaw.json` `channels.whatsapp` + `session` blocks; compare against vendored docs for required-field deltas.
+4. **H2 — vendored docs**: read `/usr/lib/node_modules/openclaw/docs/{channels,gateway}/*.md` for any required field absent from our config.
+5. **H3 — AGENTS.md rollback probe**: try a `main/AGENTS.md` rollback to pre-#579 (fast-rollback probe; always restore current state before continuing).
+6. **H1 escalation** — if all in-scope hypotheses fail, the bug is in vendored `openclaw/dist/`. File an internal tracking issue per FR-009. Do NOT patch vendored code.
+
+### Cross-references
+
+- Memory `reference_openclaw_dm_reply_lifecycle` — canonical bug signature + smoke command (in
+  `/Users/kentgale/.claude/projects/-Users-kentgale-repos-kg-automation/memory/`)
+- Memory `reference_openclaw_upgrade_gotchas` — channels-moved-to-plugins regression context for openclaw 2026.5.28
+- `contracts/journal-event-assertions.md` — full POSIX-ERE pattern reference for SC-001..SC-007
+- `docs/design/architecture/data/data-flows.json` (`flows[?name=whatsapp-dm-reply]`) — architectural data flow
 
 ## Cutover sequence for main-agent AGENTS.md changes (post-#374)
 

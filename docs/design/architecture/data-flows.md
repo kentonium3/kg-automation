@@ -2,9 +2,9 @@
 title: Data Flows
 doc_type: reference
 status: approved
-last_updated: '2026-06-08'
-updated_by: 'inbox-calendar-and-aspiration-routing-01KTHHXS + #520-felix-vikunja-sync-project-layer-and-url-config'
-tags: [520, 507, 519, 518, 309, 343, 362, 391, 400, 310, 374]
+last_updated: '2026-06-11'
+updated_by: 'restore-whatsapp-dm-reply-delivery-01KTVVHH (#588) + inbox-calendar-and-aspiration-routing-01KTHHXS + #520-felix-vikunja-sync-project-layer-and-url-config'
+tags: [588, 520, 507, 519, 518, 309, 343, 362, 391, 400, 310, 374]
 ---
 
 # Data Flows
@@ -591,6 +591,42 @@ Someday items continue to flow into the existing Vikunja path; the new
 behavior is that capture resolves the target project by name (Someday)
 rather than relying on a hard-coded project id. This keeps the routing
 table tolerant of future project renames.
+
+### whatsapp-dm-reply (bidirectional DM-initiated reply path)
+
+Restored as part of mission
+`restore-whatsapp-dm-reply-delivery-01KTVVHH` (#588), this flow models the
+inbound→reply round-trip for operator DMs to Felix's WhatsApp number
+(`+16179300916`). An inbound DM is accepted by the openclaw-gateway's
+WhatsApp channel (`allowlist` policy, operator number only), which creates a
+session keyed `agent:main:whatsapp:direct:+16179300916` (the `v2026.5.28+`
+per-channel-peer scoping introduced upstream) and starts an `embedded_run`
+for the main agent. The main agent classifies the DM intent and, where
+appropriate, delegates to a `felix-admin-*` sub-agent (habits, tasker,
+escalation, calendar, capture) via openclaw-agent dispatch. The reply text
+returned through the `embedded_run` completion path reaches the
+channel-send subsystem, and the gateway dispatches the reply via the
+WhatsApp plugin back to the originating DM thread within seconds. A typing
+indicator fires for the duration of the agent run.
+
+This is distinct from the cron-driven announce-mode delivery path used by
+habits morning checks and escalation alerts (which is fire-and-forget, not
+reply-shaped). It is also distinct from inbox-capture's calendar
+clarification round-trip — that flow shares the same channel-send substrate
+but is driven by a state-file timeout sweep, not by an inbound DM.
+
+The operational invariant is captured by the `embedded_run` lifecycle
+contract: every `embedded_run:started` must be followed by
+`embedded_run:ended` via `clearActiveEmbeddedRun`. Failing to call
+`clearActiveEmbeddedRun` causes the session to enter the stuck-recovery
+path after ~378 s, the run is aborted, and no reply is dispatched — this
+was the regression #588 was filed to address. Authoritative JSON: see
+`flows[?name=whatsapp-dm-reply]` in
+[`data/data-flows.json`](<./data/data-flows.json>). Lifecycle contract
+(in-mission, may relocate post-merge):
+`kitty-specs/restore-whatsapp-dm-reply-delivery-01KTVVHH/contracts/embedded-run-lifecycle.md`.
+Troubleshooting: see the DM-reply section of
+[`docs/runbooks/openclaw-agent-setup.md`](<../../runbooks/openclaw-agent-setup.md>).
 
 ## Planned Flows (Not Yet Implemented)
 

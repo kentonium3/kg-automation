@@ -15,8 +15,8 @@ subtasks:
 - T015
 - T016
 - T017
-agent: "claude:opus:reviewer-renata:reviewer"
-shell_pid: "49713"
+agent: "claude:opus:curator-carla:curator"
+shell_pid: "46367"
 history:
 - event: created
   timestamp: '2026-06-11T18:30:00Z'
@@ -318,5 +318,3 @@ Check:
 ## Activity Log
 
 - 2026-06-11T19:10:54Z – claude:opus:curator-carla:curator – shell_pid=46367 – Started implementation via action command
-- 2026-06-11T19:16:50Z – claude:opus:curator-carla:curator – shell_pid=46367 – DR-1 (v2026.6.5 + allowlist + per-channel-peer), DR-2 (new whatsapp-dm-reply flow active), DR-3 verified, DR-4+DR-5 narrative+Mermaid mirror
-- 2026-06-11T19:17:51Z – claude:opus:reviewer-renata:reviewer – shell_pid=49713 – Started review via action command

@@ -1,0 +1,33 @@
+{
+  "entries": [
+    {
+      "created_at": "2026-06-11T19:08:49.405735Z",
+      "decision_id": "01KTW1CJVX0YPJZR27XZFRG95M",
+      "final_answer": "H6",
+      "input_key": "root_cause_verdict",
+      "mission_id": "01KTVVHHBJKKG3JPMGRVHSB81P",
+      "mission_slug": "restore-whatsapp-dm-reply-delivery-01KTVVHH",
+      "opened_by": "cli",
+      "options": [
+        "H6",
+        "H5",
+        "H4",
+        "H2",
+        "H3",
+        "H1-escalation"
+      ],
+      "origin_flow": "plan",
+      "other_answer": false,
+      "question": "Which hypothesis is the validated root cause for #588?",
+      "rationale": null,
+      "resolved_at": "2026-06-11T19:08:55.837159Z",
+      "resolved_by": null,
+      "slot_key": "tasks.wp01.root-cause-verdict",
+      "status": "resolved",
+      "step_id": null,
+      "summary_json": null
+    }
+  ],
+  "mission_id": "01KTVVHHBJKKG3JPMGRVHSB81P",
+  "version": 1
+}

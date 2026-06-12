@@ -2,7 +2,7 @@
 title: Service Inventory
 doc_type: reference
 status: approved
-tags: [579, 572, 520, 519, 518, 137, 189, 80, 202, 149, 190, 374, 100, 253, 185, 254, 371, 309, 343, 306, 308, 310, 362, 391, 400, 105, 115, 562, 490, 408, 567, 563, 558, 561, 540, 542, 306/, 152, 376, 368-, 112]
+tags: [588, 579, 572, 520, 519, 518, 137, 189, 80, 202, 149, 190, 374, 100, 253, 185, 254, 371, 309, 343, 306, 308, 310, 362, 391, 400, 105, 115, 562, 490, 408, 567, 563, 558, 561, 540, 542, 306/, 152, 376, 368-, 112]
 ---
 
 # Service Inventory
@@ -18,7 +18,7 @@ All services run on office2 unless otherwise noted.
 | Vikunja | Docker (compose) | `vikunja/vikunja:0.24.6` | 3456 | 100.92.197.90 | `vikunja.service` (system, oneshot → `docker compose up -d`) | `/data/services/vikunja/data` |
 | Obsidian Sync | Native | `ob` v0.0.10 (upgraded 2026-06-06), `ob sync --continuous` | — | — | `obsidian-sync.service` (system, runs as `kgale`) | `/home/kgale/second-brain/notes` |
 | Transcribe API | Docker (GPU) | `transcribe-transcribe` | 8787 | 100.92.197.90 | `transcribe.service` | `/data/services/transcribe` |
-| OpenClaw Gateway | npm-global | `v2026.3.24` | 18789 | 127.0.0.1 | `openclaw-gateway.service` (user) | `/data/services/openclaw/data` |
+| OpenClaw Gateway | npm-global | `v2026.6.5` | 18789 | 127.0.0.1 | `openclaw-gateway.service` (user) | `/data/services/openclaw/data` |
 | Ollama | Host binary | `ollama` (latest, 0.23.2) | 11434 | 127.0.0.1 (localhost) | `ollama.service` (system, user `ollama`) | `/usr/share/ollama/.ollama` |
 | Google Workspace (`gog` CLI) | CLI integration | `gog` (Linuxbrew, `steipete/tap/gogcli`) | — | — | n/a (on-demand CLI) | `/home/claude/.config/gogcli/credentials.json` |
 
@@ -158,7 +158,7 @@ spec FR-017.
 
 ### OpenClaw Gateway (F002)
 - **Deployed by**: F002
-- **Installation**: `npm install -g openclaw@v2026.3.24` (global, requires sudo)
+- **Installation**: `npm install -g openclaw@v2026.6.5` (global, requires sudo)
 - **Binary**: `/usr/bin/openclaw`
 - **Config**: `/home/claude/.openclaw/openclaw.json`
 - **Service level**: User-level systemd with lingering (not system-level)
@@ -166,6 +166,7 @@ spec FR-017.
 - **Credential store**: `/data/services/openclaw/secrets/` (mode 700)
 - **Backup**: Data at `/data/services/openclaw/data/` and config at `/home/claude/.openclaw/` — both in Restic scope
 - **Model tiering**: Global default is Haiku; per-agent model override via `agents.list[].model` in `openclaw.json`. See agent registry for per-agent assignments.
+- **Session scoping (`v2026.5.28+`)**: Sessions are keyed per channel + peer phone-number using the `agent:<agent_id>:<channel>:<scope>:<peer>` format (e.g., `agent:main:whatsapp:direct:+16179300916`). This per-channel-peer scoping is what makes a DM thread its own session — separate from group-chat sessions and from cron-driven announce-mode invocations. See also the [`whatsapp-dm-reply`](<./data-flows.md>) data flow for the full runtime path.
 - **Main agent standing orders**: `/data/services/openclaw/data/AGENTS.md` governs the **main** agent's routing of inbound channel messages to the `felix-admin-*` sub-agents. Per #374 (`main-verbatim-passthrough-01KSATRP`), the main agent must pass downstream messages to sub-agents **verbatim** (no paraphrase, no summary, no editorial). Sessions cache the system prompt for their lifetime — AGENTS.md changes only load on the next-started session. Force-rotating active sessions after a deploy is the 5-step cutover sequence in [openclaw-agent-setup.md](<../../runbooks/openclaw-agent-setup.md>) §"Cutover sequence for main-agent AGENTS.md changes (post-#374)"; step 4 invokes `scripts/openclaw/helpers/rotate_main_session.py`.
 - **Runbook**: `docs/runbooks/openclaw-ops.md`
 
@@ -661,10 +662,11 @@ These fields are consumed by the governance runbooks — not by runtime automati
 - **Deployed by**: F004
 - **Type**: OpenClaw channel (Baileys — unofficial WhatsApp Web protocol)
 - **Account**: Kent's personal cell (617) 930-0916 — linked device
-- **DM policy**: `disabled` — unknown contacts silently ignored
+- **DM policy**: `allowlist` — `allow_from = ["+16179300916"]`. Inbound DMs from the operator phone number are accepted and routed to the main agent via an `embedded_run` keyed `agent:main:whatsapp:direct:+16179300916`; DMs from any other number are silently ignored. (The previous `disabled` setting matched the v2026.3.24 runtime; per the `restore-whatsapp-dm-reply-delivery-01KTVVHH` (#588) reconciliation, the deployed openclaw.json uses `allowlist` with the operator number.)
 - **Group policy**: `allowlist` — no group chats by default
 - **Session storage**: `~/.openclaw/credentials/whatsapp/` (managed by OpenClaw)
 - **No external credentials**: Baileys session is managed internally, not in the credential store
 - **No new ports**: Baileys uses outbound WebSocket only
 - **Risk acceptance**: Baileys is unofficial; account ban risk accepted (see `security-posture.md`)
+- **DM runtime path**: see the [`whatsapp-dm-reply`](<./data-flows.md>) entry in `data-flows.md` (and the corresponding flow in `data-flows.json`) for the full inbound→reply round-trip semantics.
 - **Runbook**: `docs/runbooks/whatsapp-ops.md`

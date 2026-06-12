@@ -5,10 +5,10 @@ doc_type: guide
 level: reference
 status: approved
 owners: ["@kentonium3"]
-last_updated: '2026-06-05'
-revision: v1.8
+last_updated: '2026-06-11'
+revision: v1.9
 audience: agents_and_humans
-updated_by: '#520 (felix-vikunja-sync-project-layer-and-url-config: +sync_driver subgraph, +url_config node)'
+updated_by: 'restore-whatsapp-dm-reply-delivery-01KTVVHH (#588: +whatsapp_dm subgraph, +phone_wa input node) + #520 (felix-vikunja-sync-project-layer-and-url-config: +sync_driver subgraph, +url_config node)'
 ---
 
 # data-flows.view
@@ -18,6 +18,7 @@ graph LR
     subgraph inputs["Input Sources"]
         browser["Browser<br/>(Mac/iPhone)"]
         obsidian_app["Obsidian<br/>(Mac/iPhone)"]
+        phone_wa["WhatsApp on phone<br/>(operator +16179300916)"]
     end
 
     subgraph office2["office2"]
@@ -129,6 +130,13 @@ graph LR
             gate_ledger[("gate-ledger.jsonl<br/>/data/services/openclaw/<br/>felix-heartbeat-gate/<br/>(append-only)")]
             openclaw_event["openclaw system event --mode now<br/>(subprocess, ONLY on ESCALATE<br/>or fallback)"]
             main_agent_sonnet["OpenClaw main agent<br/>(Sonnet 4.6)<br/>existing expensive-tier path"]
+        end
+
+        subgraph whatsapp_dm["WhatsApp DM Reply (#588 — restore-whatsapp-dm-reply-delivery-01KTVVHH)"]
+            wa_gateway["openclaw-gateway<br/>WhatsApp channel<br/>(Baileys, allowlist)"]
+            wa_main["main agent<br/>(embedded_run; session key<br/>agent:main:whatsapp:direct:&lt;peer&gt;)"]
+            wa_subagent["felix-admin-* subagent<br/>(habits / tasker / escalation /<br/>calendar / capture)"]
+            wa_channel_send["openclaw-gateway<br/>channel-send subsystem<br/>(WhatsApp plugin)"]
         end
     end
 
@@ -257,4 +265,11 @@ graph LR
     hab_query -->|"read base URL<br/>(TP-02/TP-03/TP-04, #519)"| url_config
     esc_record -->|"read base URL<br/>(TP-10, #519)"| url_config
     tasker_record -->|"read base URL<br/>(TP-12, #519)"| url_config
+
+    phone_wa -->|"inbound DM<br/>(WhatsApp Web — Baileys)"| wa_gateway
+    wa_gateway -->|"embedded_run<br/>(session per channel+peer)"| wa_main
+    wa_main -.->|"delegate (conditional)<br/>via openclaw-agent dispatch"| wa_subagent
+    wa_subagent -.->|"reply text"| wa_main
+    wa_main -->|"reply text<br/>(embedded_run completion)"| wa_channel_send
+    wa_channel_send -->|"[whatsapp] Sending<br/>(reply to originating DM thread)"| phone_wa
 ```

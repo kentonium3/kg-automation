@@ -104,11 +104,11 @@
 
 **Included subtasks**:
 
-- [x] T008 Apply named remediation per WP01 outcome (WP02)
-- [x] T009 Create scripts/deploy/deploy-restore-whatsapp-dm-reply-delivery.sh (WP02)
-- [x] T010 Add post-flight smoke assertion to deploy script (WP02)
-- [x] T011 Alt-path: file internal tracking issue per FR-009 if escalated (WP02)
-- [x] T012 Append terminal disposition to terminal-disposition.md (WP02)
+- [ ] T008 Apply named remediation per WP01 outcome (WP02)
+- [ ] T009 Create scripts/deploy/deploy-restore-whatsapp-dm-reply-delivery.sh (WP02)
+- [ ] T010 Add post-flight smoke assertion to deploy script (WP02)
+- [ ] T011 Alt-path: file internal tracking issue per FR-009 if escalated (WP02)
+- [ ] T012 Append terminal disposition to terminal-disposition.md (WP02)
 
 **Implementation sketch**:
 1. Read WP01's Decision Record to determine which of the 3 execution paths.
@@ -138,11 +138,11 @@
 
 **Included subtasks**:
 
-- [x] T013 DR-1 update service-inventory.json (WP03)
-- [x] T014 DR-2 add whatsapp-dm-reply flow to data-flows.json (WP03)
-- [x] T015 DR-3 verify audited-surfaces.json coverage (WP03)
-- [x] T016 DR-4 update service-inventory.md narrative (WP03)
-- [x] T017 DR-5 update data-flows.md + .view.md (WP03)
+- [ ] T013 DR-1 update service-inventory.json (WP03)
+- [ ] T014 DR-2 add whatsapp-dm-reply flow to data-flows.json (WP03)
+- [ ] T015 DR-3 verify audited-surfaces.json coverage (WP03)
+- [ ] T016 DR-4 update service-inventory.md narrative (WP03)
+- [ ] T017 DR-5 update data-flows.md + .view.md (WP03)
 
 **Implementation sketch**:
 1. T013 + T014 are parallel-safe ([P]) — distinct files.
@@ -168,10 +168,10 @@
 
 **Included subtasks**:
 
-- [x] T018 DR-6 add "DM-reply lifecycle troubleshooting" section to openclaw-agent-setup.md (WP04)
-- [x] T019 DR-7 update INDEX.md (conditional) (WP04)
-- [x] T020 DR-8 update memory project_whatsapp_dmpolicy.md (WP04)
-- [x] T021 DR-9 add memory reference_openclaw_dm_reply_lifecycle.md (WP04)
+- [ ] T018 DR-6 add "DM-reply lifecycle troubleshooting" section to openclaw-agent-setup.md (WP04)
+- [ ] T019 DR-7 update INDEX.md (conditional) (WP04)
+- [ ] T020 DR-8 update memory project_whatsapp_dmpolicy.md (WP04)
+- [ ] T021 DR-9 add memory reference_openclaw_dm_reply_lifecycle.md (WP04)
 
 **Implementation sketch**:
 1. T020 + T021 are parallel-safe ([P]) — distinct memory files at `/Users/kentgale/.claude/projects/-Users-kentgale-repos-kg-automation/memory/`. Remember to update `MEMORY.md` index as part of each.
@@ -199,11 +199,11 @@
 
 **Included subtasks**:
 
-- [x] T022 Tier 2 pre-flight (Restic ≤24h attestation per DIR-009) (WP05)
-- [x] T023 Execute deploy via scripts/deploy/deploy-restore-whatsapp-dm-reply-delivery.sh (WP05)
-- [x] T024 Operator smoke (5 DMs, 5-min window) + journal assertion (WP05)
-- [x] T025 #557 rebaseline: reset security-monitor baselines; record timestamp (WP05)
-- [x] T026 SC-005 next-day cron regression check (deferred ~14h) (WP05)
+- [ ] T022 Tier 2 pre-flight (Restic ≤24h attestation per DIR-009) (WP05)
+- [ ] T023 Execute deploy via scripts/deploy/deploy-restore-whatsapp-dm-reply-delivery.sh (WP05)
+- [ ] T024 Operator smoke (5 DMs, 5-min window) + journal assertion (WP05)
+- [ ] T025 #557 rebaseline: reset security-monitor baselines; record timestamp (WP05)
+- [ ] T026 SC-005 next-day cron regression check (deferred ~14h) (WP05)
 
 **Implementation sketch**:
 1. Read WP02's `terminal-disposition.md` first to determine path (upgrade / config / escalation).
