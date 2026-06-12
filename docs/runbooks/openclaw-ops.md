@@ -11,10 +11,13 @@ This runbook covers operations for the OpenClaw gateway service on office2.
 
 ## Installed Version
 
-- **Version**: OpenClaw 2026.3.24
-- **Installation**: `npm install -g openclaw@v2026.3.24` (global, requires sudo)
-- **Binary**: `/usr/bin/openclaw`
+- **Version**: OpenClaw 2026.6.5 (upgraded from 2026.3.24 on 2026-06-12)
+- **Installation**: `sudo npm install -g openclaw@<version>` (global)
+- **Binary**: `/usr/bin/openclaw` → symlink to `/usr/lib/node_modules/openclaw/openclaw.mjs`
 - **Config**: `/home/claude/.openclaw/openclaw.json`
+- **Per-agent auth (2026.6+)**: `~/.openclaw/agents/<id>/agent/openclaw-agent.sqlite`
+  (replaces the legacy `auth-profiles.json` file-based store; see
+  [Version Updates](<#version-updates>) for the migration step)
 
 ## Service Management
 
@@ -91,17 +94,74 @@ sudo loginctl enable-linger claude
 
 ## Version Updates
 
-1. **Check release notes** for breaking changes
+1. **Check release notes** for breaking changes — pay attention to auth
+   storage, cron storage, plugin packaging, and any config schema changes.
+   See [Known upgrade gotchas](<#known-upgrade-gotchas>) below.
 2. **Verify a recent backup exists**: `restic snapshots --latest 1` (with correct env vars)
-3. **Install new version** (Kent runs): `sudo npm install -g openclaw@<new-version>`
-4. **Update the captured unit file** in `scripts/openclaw/openclaw-gateway.service` (version in Description)
+3. **Verify no missions are in flight**: `openclaw cron list` (no `error` state
+   except known-stale displays) and any in-progress agent sessions are quiesced.
+4. **Install new version** (Kent runs): `sudo npm install -g openclaw@<new-version>`
 5. **Restart**: `systemctl --user restart openclaw-gateway`
-6. **Verify**: `openclaw --version` and check logs
-7. **Commit** the version change to the repo
+6. **Run the post-upgrade migration sweep** (REQUIRED after every upgrade,
+   even minor ones — `openclaw doctor` without `--fix` does NOT surface
+   pending migrations, and `--post-upgrade` only reports plugin-compat
+   findings):
+
+   ```bash
+   ssh office2-claude 'openclaw doctor --fix --non-interactive'
+   ```
+
+   This runs the file→SQLite auth migration (importing any per-agent
+   `auth-profiles.json` into `openclaw-agent.sqlite`), normalizes legacy
+   cron job storage, and applies any other safe migrations the new version
+   knows about. Doctor preserves timestamped backups of every file it
+   migrates (`*.sqlite-import.<ts>.bak`).
+7. **Update the captured unit file** in `scripts/openclaw/openclaw-gateway.service` (version in Description)
+8. **Verify**: `openclaw --version` and check logs
+9. **Verify per-agent auth health** — manually run one cron job per
+   isolated agent to exercise the openclaw-gateway → sub-agent → provider
+   API path end-to-end:
+
+   ```bash
+   ssh office2-claude 'openclaw cron run <inbox-7am-id>'  # felix-admin-capture
+   ssh office2-claude 'openclaw cron run <habits-morning-id>'  # felix-admin-habits
+   # ...one per affected agent
+   ssh office2-claude 'openclaw cron runs --id <id> --limit 1'  # confirm status=ok
+   ```
+
+   IMPORTANT: the `openclaw cron list` "Status" column shows the LAST
+   scheduled run's outcome, not current health. Treat post-upgrade `error`
+   rows as stale until you've manually rerun one job per affected agent.
+10. **Commit** the version change to the repo
+11. **Rebaseline** the security-monitor audited surfaces per
+    [`docs/runbooks/security-baseline-ops.md`](<./security-baseline-ops.md>)
+    if any audited surface changed.
+
+### Known upgrade gotchas
+
+- **2026.6.x — auth storage moved to per-agent SQLite.** The runtime now
+  reads from `~/.openclaw/agents/<id>/agent/openclaw-agent.sqlite`. Until
+  `openclaw doctor --fix` is run after the upgrade, sub-agents whose
+  `auth-profiles.json` files are empty (the kg-automation pattern, where
+  sub-agents inherit from `main`) will fail every cron job with
+  `FailoverError: No API key found for provider "anthropic"`. The error
+  message's hint to run `openclaw agents add <id>` is misleading — that
+  command refuses to operate on existing agents. The actual fix is
+  `openclaw doctor --fix`. (See: incident 2026-06-12, Felix outage of
+  ~9 hours between gateway restart and rotation.)
+- **2026.6.x — `openclaw auth set` is gone.** The CLI for writing an
+  auth profile is now `openclaw models auth paste-api-key --provider <p>
+  --profile-id <p>:<id> --agent <a>`. The
+  [`anthropic-rotate.sh`](<../../scripts/security/anthropic-rotate.sh>)
+  helper uses the new form.
+- **Plugin packaging — channels may move to external plugins** between
+  versions. Verify after upgrade: `openclaw channels list` should still
+  show every channel you had before; `openclaw doctor` will flag missing
+  ones if `plugins.allow` is not set.
 
 ### Rollback
 
-1. `sudo npm install -g openclaw@v2026.3.24` (previous version)
+1. `sudo npm install -g openclaw@<previous-version>`
 2. `systemctl --user restart openclaw-gateway`
 3. Verify service is healthy
 

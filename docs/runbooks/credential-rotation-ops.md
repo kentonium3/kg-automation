@@ -251,16 +251,29 @@ gh run view <run-id> --repo kentonium3/kg-automation --log | grep -E "priority-f
 **Consumers** (3): `openclaw-gateway`, `felix-doc-auditor-driver`,
 `felix-heartbeat-gate` (#490).
 **Storage** (2):
-- `/home/claude/.openclaw/agents/main/agent/auth-profiles.json` (OpenClaw
-  native auth store, consumed by `openclaw-gateway`)
+- `/home/claude/.openclaw/agents/main/agent/openclaw-agent.sqlite`
+  (OpenClaw 2026.6+ per-agent SQLite auth store; consumed by
+  `openclaw-gateway`. Sub-agents inherit via read-through.)
 - `/data/services/openclaw/secrets/anthropic` (file, 0600, consumed
   directly by `felix-doc-auditor-driver` and `felix-heartbeat-gate`)
 **Risk tier**: 3 (logic/workflow). Note: a partial rotation that updates
 only one of the two storage paths leaves consumers reading stale values —
 plan to do both atomically before the next tick.
-**Expected duration**: 15-20 minutes.
+**Expected duration**: 5-10 minutes via the helper script; 15-20 manually.
 
-### Steps
+### Preferred path: helper script
+
+```bash
+ssh -t office2-claude /home/claude/kg-automation/scripts/security/anthropic-rotate.sh
+```
+
+The script handles steps 2–4 below in lock-step, runs the OpenClaw
+auth-store update via the current 2026.6.x CLI, restarts the gateway,
+and runs an end-to-end liveness probe. You only do the browser-side key
+generation (step 1) and the old-key revoke (step 5). Source:
+[`scripts/security/anthropic-rotate.sh`](<../../scripts/security/anthropic-rotate.sh>).
+
+### Manual steps (if the script is unavailable or you need to debug)
 
 1. **Generate new API key** at `console.anthropic.com`:
    - Settings → API Keys → Create Key
@@ -279,15 +292,20 @@ plan to do both atomically before the next tick.
 
    Expected: `600 claude:claude /data/services/openclaw/secrets/anthropic`.
 
-3. **Update OpenClaw's native auth store** for the `main` agent:
+3. **Update OpenClaw's per-agent SQLite auth store** for the `main` agent
+   (OpenClaw 2026.6+; pre-2026.6 used `openclaw auth set` which has been
+   removed):
 
    ```bash
-   ssh office2-claude 'openclaw auth set --provider anthropic --profile default'
+   ssh office2-claude 'openclaw models auth paste-api-key --provider anthropic --profile-id anthropic:default --agent main'
    ```
 
-   The CLI prompts for the key; paste it. This updates
-   `/home/claude/.openclaw/agents/main/agent/auth-profiles.json` and is the
-   path that `openclaw-gateway` reads.
+   The CLI prompts for the key; paste it. This writes the
+   `anthropic:default` profile into
+   `/home/claude/.openclaw/agents/main/agent/openclaw-agent.sqlite`, which
+   is the canonical 2026.6+ auth store that `openclaw-gateway` reads.
+   Sub-agents (`felix-admin-*`) inherit from `main` via read-through and
+   need no separate update.
 
 4. **Restart `openclaw-gateway`** to pick up the new key in its child
    agent sessions:
@@ -339,8 +357,10 @@ ssh office2-claude 'cat /data/services/felix-heartbeat-gate/state/last-gate-deci
   outage on whichever consumer hadn't yet picked up the new key. The
   `felix-heartbeat-gate` fallback (ESCALATE_TO_SONNET) absorbs gate ticks
   during the gap, but `openclaw-gateway` child agents will fail outright.
-- `openclaw auth set` rejects the key → confirm the key was copied without
-  trailing whitespace; re-generate if necessary.
+- `openclaw models auth paste-api-key` rejects the key → confirm the key was
+  copied without trailing whitespace; re-generate if necessary. (Pre-2026.6
+  this was `openclaw auth set`; the old form errors with "unknown command"
+  on current installs.)
 
 ---
 
