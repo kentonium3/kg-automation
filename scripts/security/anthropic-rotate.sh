@@ -172,47 +172,17 @@ if [[ "$SKIP_LIVENESS" -eq 1 ]]; then
   echo "==> Step 5: liveness probe skipped (--skip-liveness)"
 else
   echo "==> Step 5: liveness probe — running cron job '$LIVENESS_CRON_NAME'..."
-  ENQUEUE_RESULT="$("$OPENCLAW_BIN" cron run "$LIVENESS_CRON_ID" 2>&1)"
-  if ! echo "$ENQUEUE_RESULT" | grep -q '"ok": true'; then
-    echo "ERROR: failed to enqueue liveness cron run." >&2
-    echo "$ENQUEUE_RESULT" >&2
+  # `cron run --wait` is synchronous and returns a JSON envelope with a
+  # top-level `status` field. Simpler and bug-free vs polling cron runs.
+  PROBE_JSON="$("$OPENCLAW_BIN" cron run --wait --wait-timeout 90s "$LIVENESS_CRON_ID" 2>&1)" || {
+    echo "ERROR: liveness probe call failed." >&2
+    echo "$PROBE_JSON" >&2
     exit 1
-  fi
-  # Poll for the run to finish. Manual runs typically complete in <30s.
-  RUN_AT_MS=""
-  for i in $(seq 1 30); do
-    sleep 2
-    LATEST="$("$OPENCLAW_BIN" cron runs --id "$LIVENESS_CRON_ID" --limit 1 2>&1 \
-      | python3 -c "
-import json, sys
-try:
-    d = json.load(sys.stdin)
-    e = d.get('entries') or []
-    if e:
-        print(f\"{e[0].get('runAtMs',0)} {e[0].get('status','?')}\")
-except Exception:
-    pass
-" 2>/dev/null)"
-    if [[ -z "$LATEST" ]]; then continue; fi
-    LATEST_RUN_AT_MS="${LATEST%% *}"
-    LATEST_STATUS="${LATEST##* }"
-    # Skip the historical entry; only the run we just enqueued (after script start) counts.
-    if [[ "$LATEST_RUN_AT_MS" -gt "$(date -u +%s)000" ]] 2>/dev/null; then : ; fi
-    # Anything younger than ~5 min is our run.
-    AGE_MS=$(( $(date -u +%s)000 - LATEST_RUN_AT_MS ))
-    if [[ "$AGE_MS" -lt 300000 ]]; then
-      RUN_AT_MS="$LATEST_RUN_AT_MS"
-      STATUS="$LATEST_STATUS"
-      break
-    fi
-  done
-  if [[ -z "$RUN_AT_MS" ]]; then
-    echo "ERROR: liveness cron did not surface a fresh run within 60s." >&2
-    exit 1
-  fi
-  if [[ "$STATUS" != "ok" ]]; then
-    echo "ERROR: liveness probe failed (status=$STATUS)." >&2
-    "$OPENCLAW_BIN" cron runs --id "$LIVENESS_CRON_ID" --limit 1 >&2
+  }
+  PROBE_STATUS="$(echo "$PROBE_JSON" | python3 -c "import json,sys; print(json.load(sys.stdin).get('status',''))" 2>/dev/null)"
+  if [[ "$PROBE_STATUS" != "ok" ]]; then
+    echo "ERROR: liveness probe returned status=$PROBE_STATUS (expected ok)." >&2
+    echo "$PROBE_JSON" >&2
     exit 1
   fi
   echo "  $LIVENESS_CRON_NAME: ok"
