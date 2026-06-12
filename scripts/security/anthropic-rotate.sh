@@ -129,11 +129,12 @@ stat -c "  %a %U:%G %n (%s bytes)" "$PLAINTEXT_FILE"
 # OpenClaw 2026.6+ stores auth in agents/<id>/agent/openclaw-agent.sqlite.
 # `openclaw models auth paste-api-key` is the current CLI for writing the
 # anthropic:default profile on the main agent. (Pre-2026.6 was `openclaw auth set`.)
-# Pipe via stdin to avoid a second key-paste prompt; the CLI reads from stdin
-# when not on a TTY for the key value.
+# IMPORTANT: --agent is an option on the `models auth` parent command, NOT on
+# `paste-api-key`. It must appear BEFORE the subcommand. Pipe via stdin to
+# avoid a second key-paste prompt; the CLI reads from stdin when not on a TTY.
 echo "==> Step 3: updating OpenClaw auth store (anthropic:default on agent 'main')..."
-if ! printf '%s' "$NEW_KEY" | "$OPENCLAW_BIN" models auth paste-api-key \
-      --provider anthropic --profile-id anthropic:default --agent main; then
+if ! printf '%s' "$NEW_KEY" | "$OPENCLAW_BIN" models auth --agent main paste-api-key \
+      --provider anthropic --profile-id anthropic:default; then
   echo "ERROR: openclaw models auth paste-api-key failed." >&2
   echo "       The plaintext file at $PLAINTEXT_FILE was already updated." >&2
   echo "       Remediate manually before continuing — gateway is on stale auth." >&2
