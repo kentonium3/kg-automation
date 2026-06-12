@@ -2,7 +2,7 @@
   "event_count": 40,
   "last_event_id": "01KTWRQDW6GVS68V69NW1H7GFA",
   "materialized_at": "2026-06-12T01:56:41.990793+00:00",
-  "mission_number": "",
+  "mission_number": "73",
   "mission_slug": "restore-whatsapp-dm-reply-delivery-01KTVVHH",
   "mission_type": "software-dev",
   "summary": {
