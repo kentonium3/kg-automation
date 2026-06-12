@@ -1,4 +1,5 @@
 {
+  "baseline_merge_commit": "2844404ea35702ab5165a11dad35c31b3dbcf42e",
   "coordination_branch": "kitty/mission-pull-based-deploy-pipeline-01KTYQQS",
   "created_at": "2026-06-12T20:17:54.006599+00:00",
   "friendly_name": "Pull-Based Deploy Pipeline with Tier Guard and Doctrinal Anchor",
