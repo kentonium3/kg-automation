@@ -1,7 +1,7 @@
 {
-  "event_count": 5,
-  "last_event_id": "01KTYWNV7P6QJXXQ75EWX1YBV9",
-  "materialized_at": "2026-06-12T21:44:13.302916+00:00",
+  "event_count": 6,
+  "last_event_id": "01KTYWNVT0SADTZDMACRX9BD79",
+  "materialized_at": "2026-06-12T21:44:13.888410+00:00",
   "mission_number": "",
   "mission_slug": "pull-based-deploy-pipeline-01KTYQQS",
   "mission_type": "software-dev",
@@ -14,7 +14,7 @@
     "for_review": 0,
     "in_progress": 0,
     "in_review": 0,
-    "planned": 5
+    "planned": 6
   },
   "work_packages": {
     "WP01": {
@@ -51,6 +51,13 @@
       "lane": "planned",
       "last_event_id": "01KTYWNV7P6QJXXQ75EWX1YBV9",
       "last_transition_at": "2026-06-12T21:44:13.302916+00:00"
+    },
+    "WP06": {
+      "actor": "finalize-tasks",
+      "force_count": 0,
+      "lane": "planned",
+      "last_event_id": "01KTYWNVT0SADTZDMACRX9BD79",
+      "last_transition_at": "2026-06-12T21:44:13.888410+00:00"
     }
   }
 }
