@@ -1,0 +1,30 @@
+{
+  "entries": [
+    {
+      "created_at": "2026-06-13T20:56:44.177853Z",
+      "decision_id": "01KV1CBKWHJPVSC6JMDH28FCYD",
+      "final_answer": "yes_four_agents \u2014 affected set is 4 agents (felix-admin-capture, felix-admin-habits, felix-admin-tasker, felix-admin-escalation). Calendar excluded: no Hard rule #1, no IDLE concept, no cron.",
+      "input_key": "affected_agent_set",
+      "mission_id": "01KV1BSS2A5085M762PQ7TYNPY",
+      "mission_slug": "idle-cron-reply-agent-prefix-01KV1BSS",
+      "opened_by": "cli",
+      "options": [
+        "yes_four_agents",
+        "add_idle_rule_to_calendar_too",
+        "other"
+      ],
+      "origin_flow": "plan",
+      "other_answer": false,
+      "question": "Issue 592 named 5 agents including calendar; probing shows calendar has no IDLE rule and no cron. Should this mission update 4 agents (capture/habits/tasker/escalation) and leave calendar untouched?",
+      "rationale": null,
+      "resolved_at": "2026-06-13T21:21:52.064721Z",
+      "resolved_by": null,
+      "slot_key": "plan.scope.agent-set",
+      "status": "resolved",
+      "step_id": null,
+      "summary_json": null
+    }
+  ],
+  "mission_id": "01KV1BSS2A5085M762PQ7TYNPY",
+  "version": 1
+}

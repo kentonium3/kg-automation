@@ -31,10 +31,13 @@ observed mode, this breaks WhatsApp as the observability surface.
 This mission adds identity-attribution parity by changing the no-op reply
 format to the exact byte string `[<agent-slug>]: IDLE`, while explicitly
 preserving every anti-narrative invariant from the original Hard rule #1.
-The change is editorial across all five Felix sub-agents' AGENTS.md files —
-both their in-repo source-of-truth copies and the deployed copies on office2.
-No code changes, no infrastructure changes, no runtime enforcement (a CI
-lint or runtime guard was considered and deferred — see Out of scope).
+The change is editorial across the four Felix sub-agents whose AGENTS.md
+currently carries the Hard rule #1 (felix-admin-capture, felix-admin-habits,
+felix-admin-tasker, felix-admin-escalation). `felix-admin-calendar` is
+excluded: plan-phase probing confirmed it has no Hard rule #1, no IDLE
+reply path, and no cron schedule — it's a delegate-only sub-agent. No code
+changes, no infrastructure changes, no runtime enforcement (a CI lint or
+runtime guard was considered and deferred — see Out of scope).
 
 This is a small, scoped mission whose secondary purpose is to exercise the
 spec-kitty 3.2.0rc43 upgrade and confirm previously observed friction
@@ -80,11 +83,13 @@ mission does not change that path.
 
 ### Edge cases
 
-**EC-1 — Calendar agent in fleet scope**
-The calendar agent shipped under mission #027 is the newest sub-agent in the
-Felix fleet. The plan phase MUST confirm that its AGENTS.md is in scope and
-that its agent-slug literal (`felix-admin-calendar` per
-[[reference_office2_agent_deploy_paths]]) matches the deployed substitution.
+**EC-1 — Calendar agent confirmed out of scope**
+Plan-phase probing of `scripts/openclaw/agents/felix-admin-calendar/AGENTS.md`
+and live `openclaw cron list` on office2 confirmed that the calendar agent
+has no Hard rule #1, no IDLE reply path, and no cron schedule. If a future
+mission ever adds an IDLE path to calendar (e.g., a calendar-substrate cron
+that polls for events), this mission's rule shape extends naturally:
+`[felix-admin-calendar]: IDLE`. No change in this mission.
 
 **EC-2 — Agent slug vs deploy-directory mismatch**
 Per [[reference_office2_agent_deploy_paths]], `felix-admin-capture` is
@@ -123,13 +128,13 @@ this deploys, and the merge commit MUST record `Rebaseline: completed at
 | ID | Requirement | Status |
 |----|-------------|--------|
 | FR-001 | Each Felix sub-agent's no-op turn reply is exactly the byte string `[<agent-slug>]: IDLE` (literal brackets, colon, single space, then the four-character IDLE marker), and nothing else. | Locked |
-| FR-002 | The `<agent-slug>` placeholder is substituted with the canonical agent slug for that agent: `felix-admin-capture`, `habits-agent`, `tasker-agent`, `escalation-agent`, `felix-admin-calendar`. (Final slug list verified by plan against the OpenClaw registry; see EC-1, EC-2.) | Proposed |
-| FR-003 | The Hard rule #1 text in AGENTS.md is updated for all 5 affected sub-agents in **both** the in-repo source-of-truth copies and the deployed copies on office2. | Locked |
+| FR-002 | The `<agent-slug>` placeholder is substituted with the canonical agent slug for that agent: `felix-admin-capture`, `felix-admin-habits`, `felix-admin-tasker`, `felix-admin-escalation`. (Verified during plan against `docs/constitution/agent-registry.json` and live `openclaw cron list` on office2 — `felix-admin-calendar` excluded per EC-1.) | Locked |
+| FR-003 | The Hard rule #1 text in AGENTS.md is updated for all 4 affected sub-agents in the in-repo source-of-truth files at `scripts/openclaw/agents/<slug>/AGENTS.md`. Deployed copies on office2 sync automatically via the existing `agent-prompt-sync.service` 5-min timer (see FR-008). | Locked |
 | FR-004 | The updated Hard rule #1 enumerates the still-prohibited patterns explicitly with prior-incident anchors: no `Helper exit code…` preamble (2026-05-20), no narrative-wrapped form like `All clean — IDLE` (2026-06-09 class), no leading text before `[`, no trailing prose after `IDLE`. | Locked |
 | FR-005 | The updated rule includes a one-line operator rationale: "observed-mode attribution is a load-bearing observability surface; the structured prefix is required for that." | Locked |
 | FR-006 | The updated Hard rule #1 includes an explicit byte-format example (e.g., `[felix-admin-capture]: IDLE`) and a trailing-newline directive consistent with the WhatsApp egress path. | Locked |
 | FR-007 | Non-IDLE reply formatting (including the `Sent by <agent>:<model>` identity line) is **not** modified by this mission. | Locked |
-| FR-008 | The deploy of the updated AGENTS.md files to office2 uses the existing manifest pipeline at `deploys/queued/<name>.yaml` per `docs/runbooks/deploy/discipline.md`. | Locked |
+| FR-008 | Deployment to office2 uses the existing automatic path: committing the updated `scripts/openclaw/agents/<slug>/AGENTS.md` files to `main` triggers the `agent-prompt-sync.service` 5-min systemd timer on office2, which invokes `scripts/openclaw/deploy/deploy_agent_prompts.py` and copies AGENTS.md into `/data/services/openclaw/<workspace>/`. No `deploys/queued/<name>.yaml` manifest is authored for this mission. | Locked |
 
 ---
 
@@ -137,9 +142,9 @@ this deploys, and the merge commit MUST record `Rebaseline: completed at
 
 | ID | Requirement | Threshold | Status |
 |----|-------------|-----------|--------|
-| NFR-001 | After deploy, the rule-text body across all 5 AGENTS.md files is byte-identical except for the substituted agent-slug literal. | Verified by diff — the only per-file delta within the Hard rule #1 block is the slug literal. | Locked |
-| NFR-002 | The post-change AGENTS.md size stays inside the observed effective system-prompt budget (14-15K source per [[reference_openclaw_gotchas]]). | Each updated AGENTS.md ≤ 15,000 source bytes; no agent exceeds its pre-change size by more than 5%. | Locked |
-| NFR-003 | The change ships without modifying non-IDLE reply paths or any code in the WhatsApp egress pipeline. | Diff of merge commit contains no changes outside AGENTS.md files, deploy manifest, doc-sync targets, and (if needed) the OpenClaw registry. | Locked |
+| NFR-001 | After deploy, the new Hard rule #1 rule-text block has the same shape across all 4 updated AGENTS.md files: any per-file prose retained around the rule stays as-is; the only intentional per-file delta within the rule block is the substituted slug literal. | Diff review during implement/review confirms each file's rule block contains the same byte-format spec, the same enumerated prohibited-pattern list, and the same operator-rationale line. | Locked |
+| NFR-002 | This mission does not regress AGENTS.md size beyond a small absolute budget per file. (Note: `felix-admin-capture/AGENTS.md` is already 15,288 source bytes at mission start, slightly above the 14-15K observed budget per [[reference_openclaw_gotchas]]; current production has not surfaced budget-related failures, so this mission targets non-regression rather than retroactive compression.) | Per-file post-change source size grows by ≤ 500 bytes vs. pre-mission baseline (measured at the `wc -c` byte level on the in-repo file). Expected growth: ~+150-250 bytes per file. | Locked |
+| NFR-003 | The change ships without modifying non-IDLE reply paths or any code in the WhatsApp egress pipeline. | Merge-commit diff contains no changes outside the 4 AGENTS.md files, the documentation-sync targets, and the spec-kitty mission artifacts. | Locked |
 
 ---
 
@@ -148,11 +153,11 @@ this deploys, and the merge commit MUST record `Rebaseline: completed at
 | ID | Constraint | Source | Status |
 |----|-----------|--------|--------|
 | C-001 | Tier 3 (Logic/Workflow). Standard sandbox validation. No infrastructure, credential, network topology, or Restic-snapshot precondition. | `docs/design/architecture/data/change-risk-taxonomy.json` | Locked |
-| C-002 | kg-automation in-repo AGENTS.md files are the canonical source-of-truth. Deployed copies on office2 are produced via the manifest-driven deploy pipeline; never hand-edited on the server. | `docs/runbooks/openclaw-agent-setup.md`; operator decision Q2 (2026-06-13) | Locked |
+| C-002 | kg-automation in-repo AGENTS.md files at `scripts/openclaw/agents/<slug>/AGENTS.md` are the canonical source-of-truth. Deployed copies on office2 at `/data/services/openclaw/<workspace>/` are produced automatically by `scripts/openclaw/deploy/deploy_agent_prompts.py` invoked by the `agent-prompt-sync.service` 5-min systemd timer; never hand-edited on the server. | `docs/runbooks/openclaw-agent-setup.md`; `docs/design/architecture/data/audited-surfaces.json`; operator decision Q2 (2026-06-13) | Locked |
 | C-003 | The post-deploy rebaseline obligation per #557 applies: security-monitor baselines reset on office2, merge commit records `Rebaseline: completed at <ts>`. | `docs/runbooks/security-baseline-ops.md`; `docs/design/architecture/data/audited-surfaces.json`; CLAUDE.md | Locked |
 | C-004 | No mechanical enforcement is added in this mission (no CI lint, no runtime regex guard, no egress rewrite). Per-file prompt change only. | Operator decision Q3 (2026-06-13) | Locked |
 | C-005 | The existing anti-narrative invariants from the original Hard rule #1 remain in force. Identity attribution is **added**, not substituted for, the bare-output discipline. | Issue #592 spec section "Proposed change: spec completion, not relaxation" | Locked |
-| C-006 | The five affected agents are the complete IDLE-emitting set as of 2026-06-13: `felix-admin-capture`, `habits-agent`, `tasker-agent`, `escalation-agent`, `felix-admin-calendar`. The plan phase MUST verify this list against `docs/constitution/AGENT-REGISTRY.md` and surface any additions. | Issue #592; mission-027 calendar agent fleet status | Locked |
+| C-006 | The four affected agents are the complete Hard-rule-#1-bearing set as of 2026-06-13 per plan-phase probing: `felix-admin-capture`, `felix-admin-habits`, `felix-admin-tasker`, `felix-admin-escalation`. `felix-admin-calendar` (no Hard rule #1, no IDLE path, no cron) is excluded. `main`, `felix-doc-auditor` (Python driver post-#343, no IDLE) are not Felix sub-agents in this scope. | Plan-phase probe (2026-06-13): `scripts/openclaw/agents/<slug>/AGENTS.md` grep + live `openclaw cron list` | Locked |
 | C-007 | OpenClaw `systemPromptReport` caches at session-init and may show stale content for in-session checks (per [[reference_openclaw_gotchas]]). Post-deploy verification MUST be done via a fresh `openclaw cron run --wait <id>` rather than relying on `systemPromptReport`. | [[reference_openclaw_gotchas]] | Locked |
 
 ---
@@ -161,11 +166,12 @@ this deploys, and the merge commit MUST record `Rebaseline: completed at
 
 | ID | Criterion (measurable, technology-agnostic) | Verification |
 |----|--------------------------------------------|--------------|
-| SC-001 | After deploy and rebaseline, one manually-triggered IDLE cron per agent produces a WhatsApp reply equal to the exact byte string `[<agent-slug>]: IDLE` for that agent (5/5 agents pass). | `openclaw cron run --wait <id>` per agent; visual inspection of WhatsApp thread. |
-| SC-002 | Over a 24-hour observation window of naturally-fired cron jobs across all five agents, zero rule-#1 violations occur (no narrative wrapping, no missing prefix, no preamble, no trailing prose). | 24-hour observation; sample at least one natural IDLE reply per agent. |
+| SC-001 | After deploy and rebaseline, one manually-triggered IDLE cron per **cron-firing** agent produces a WhatsApp reply equal to the exact byte string `[<agent-slug>]: IDLE` for that agent. Agents covered: `felix-admin-capture` (via any inbox-N cron), `felix-admin-habits` (via `habits-morning-checkin`), `felix-admin-escalation` (via `escalation-daily`). | `openclaw cron run --wait <id>` per agent; visual inspection of WhatsApp thread. |
+| SC-002 | Over a 24-hour observation window of naturally-fired cron jobs across the three cron-firing affected agents, zero rule-#1 violations occur (no narrative wrapping, no missing prefix, no preamble, no trailing prose). | 24-hour observation; sample at least one natural IDLE reply per agent. |
 | SC-003 | For any IDLE WhatsApp message received during normal operation, the operator can identify the issuing agent from the message text alone, without SSH or any other surface. | Operator self-report at SC-002 completion. |
 | SC-004 | After this mission lands, no Felix sub-agent emits the legacy bare four-character `IDLE` reply on any subsequent cron firing. | SC-002 observation; failure of this criterion is a regression. |
 | SC-005 | The security-monitor baselines on office2 are reset post-deploy and the merge commit records `Rebaseline: completed at <ts>`. | `ls -la /data/services/security-monitor/baselines/` post-deploy; commit message inspection. |
+| SC-006 | `felix-admin-tasker` (no cron, delegate-only) is verified at the source level: its updated AGENTS.md Hard rule #1 contains the new `[felix-admin-tasker]: IDLE` byte spec, matches the same rule shape as the three cron-firing agents (NFR-001), and `openclaw systemPromptReport --agent felix-admin-tasker` on office2 returns the updated content in a fresh session. | Source diff + `openclaw systemPromptReport --agent felix-admin-tasker` in a fresh OpenClaw session (avoids the [[reference_openclaw_gotchas]] cache-staleness gotcha). |
 
 ---
 
@@ -182,10 +188,15 @@ this deploys, and the merge commit MUST record `Rebaseline: completed at
   uses for an agent (e.g., `felix-admin-capture`), distinct from the
   deploy-directory name (e.g., `inbox-agent`). Reference:
   [[reference_office2_agent_deploy_paths]].
-- **Sub-agent / Felix sub-agent** — One of the five OpenClaw agents in the
-  Felix fleet that runs scheduled cron jobs and emits IDLE replies on no-op
-  turns: `felix-admin-capture`, `habits-agent`, `tasker-agent`,
-  `escalation-agent`, `felix-admin-calendar`.
+- **Sub-agent / Felix sub-agent** — A Felix-fleet OpenClaw agent governed by
+  its own AGENTS.md. The four sub-agents in scope for this mission carry the
+  Hard rule #1: `felix-admin-capture`, `felix-admin-habits`,
+  `felix-admin-tasker`, `felix-admin-escalation`. `felix-admin-calendar` is a
+  Felix sub-agent but has no Hard rule #1 (no IDLE path) and is out of scope.
+- **Cron-firing agent** — A Felix sub-agent that has at least one
+  `openclaw cron list` entry. Three of the four in-scope agents are
+  cron-firing (`felix-admin-capture`, `felix-admin-habits`,
+  `felix-admin-escalation`); `felix-admin-tasker` is delegate-only.
 
 ---
 
@@ -193,14 +204,20 @@ this deploys, and the merge commit MUST record `Rebaseline: completed at
 
 The merge of this mission MUST update:
 
-- All 5 in-repo AGENTS.md source-of-truth files (paths confirmed by plan).
-- The deploy manifest at `deploys/queued/<name>.yaml` for the AGENTS.md
-  redeploy.
-- `docs/design/architecture/data/audited-surfaces.json` (if AGENTS.md path
-  coverage requires verification — plan phase confirms).
+- The 4 in-repo AGENTS.md source-of-truth files at
+  `scripts/openclaw/agents/<slug>/AGENTS.md` for `felix-admin-capture`,
+  `felix-admin-habits`, `felix-admin-tasker`, `felix-admin-escalation`.
+- No `deploys/queued/<name>.yaml` manifest — deployment is automatic via
+  `scripts/openclaw/deploy/deploy_agent_prompts.py` triggered by the
+  `agent-prompt-sync.service` 5-min systemd timer on office2.
+- `docs/design/architecture/data/audited-surfaces.json` — no edit expected;
+  AGENTS.md is already covered by the `openclaw-agent-prompts` entry. Plan
+  phase confirms.
 - Any narrative architecture doc that describes Felix sub-agent output
-  discipline (e.g., `docs/design/architecture/agent-architecture.*`,
-  AGENT-REGISTRY.md) so the documented rule matches the deployed rule.
+  discipline (e.g., `docs/design/architecture/agent-architecture.*`) so the
+  documented rule matches the deployed rule. `docs/constitution/AGENT-REGISTRY.md`
+  itself is **not** updated by this mission (the registry records autonomy
+  and team identity, not reply discipline).
 - `docs/INDEX.md` and `docs/DEVELOPER_PORTAL.md` if any new artifact is
   introduced (none expected for this mission).
 
@@ -224,38 +241,48 @@ C-003.
 
 ## Assumptions
 
-- The five affected agents are the complete set of Felix sub-agents that
-  emit IDLE replies as of 2026-06-13. The plan phase verifies against
-  `docs/constitution/AGENT-REGISTRY.md`.
+- The four affected agents (capture, habits, tasker, escalation) are the
+  complete Hard-rule-#1-bearing set as of 2026-06-13. Plan-phase probe
+  verified this against `scripts/openclaw/agents/*/AGENTS.md` greps and
+  `docs/constitution/agent-registry.json`. Any new agent added between mission
+  start and merge would need its own rule and is out of scope.
 - AGENTS.md in the kg-automation repo is the canonical source-of-truth, and
-  the deploy pipeline produces byte-identical copies on office2. Any drift
-  surfaced by the plan phase is reconciled before this mission's rule-text
-  change overwrites the deployed copy.
-- The OpenClaw runtime's effective system-prompt budget remains the observed
-  14-15K source bytes (per [[reference_openclaw_gotchas]]); no concurrent
-  OpenClaw upgrade increases or decreases that ceiling during this mission.
-- The WhatsApp egress path (OpenClaw's reply pipeline) does not transform
-  the agent's literal reply text. If transformation exists (whitespace
-  stripping, trailing-newline policy, etc.), plan phase surfaces it and
-  adjusts FR-006 accordingly.
+  the existing `agent-prompt-sync.service` timer produces byte-identical
+  copies on office2 within 5 minutes of a `main` push. Any drift surfaced
+  before this mission's commit is reconciled first.
+- The WhatsApp egress path (OpenClaw `delivery.mode: "announce"`) does not
+  transform the agent's literal reply text — the bare `IDLE` reaches WhatsApp
+  unchanged today, so `[<agent-slug>]: IDLE` will too. If a transformation
+  ever surfaces (whitespace stripping, trailing-newline policy), the SC-001
+  byte-exact verification will surface it and FR-006 adjusts.
+- The auth-store rotation incident #591 is operationally resolved (auth-store
+  baselines reset 2026-06-12 via #596/#597) and does not block IDLE crons
+  from firing during the SC-002 24-hour observation window. If the live
+  `inbox-5pm` auth error (`FailoverError: LLM error authentication_error:
+  invalid x-api-key` observed during plan probe at 2026-06-13T20:54Z) is
+  still firing at implement time, it's a separate issue from this mission's
+  scope; implement-phase surfaces it and the operator decides whether to
+  resolve it inline or proceed with the 3 healthy agents.
 
 ---
 
 ## Dependencies
 
-- `docs/runbooks/openclaw-agent-setup.md` — defines the workspace and
-  AGENTS.md mirroring contract.
-- `docs/runbooks/deploy/discipline.md` — defines the deploy manifest format
-  and the felix-deployer applier behavior.
+- `docs/runbooks/openclaw-agent-setup.md` — workspace and AGENTS.md
+  mirroring contract.
+- `scripts/openclaw/deploy/deploy_agent_prompts.py` +
+  `scripts/office2/agent-prompt-sync.service|timer` — automatic AGENTS.md
+  sync pipeline (replaces the deploys/queued manifest path for this file
+  class; see C-002, FR-008).
 - `docs/runbooks/security-baseline-ops.md` — rebaseline procedure for #557.
 - `docs/design/architecture/data/audited-surfaces.json` — confirms AGENTS.md
-  is in scope for the rebaseline obligation.
-- `docs/constitution/AGENT-REGISTRY.md` — canonical agent-slug list for
-  FR-002 verification.
+  is in scope for the rebaseline obligation under `openclaw-agent-prompts`.
+- `docs/constitution/agent-registry.json` + `docs/constitution/AGENT-REGISTRY.md`
+   — canonical agent-slug list for FR-002 verification.
 - [[reference_office2_agent_deploy_paths]] — agent-slug vs deploy-dir
   distinction (load-bearing for FR-002 and EC-2).
 - [[reference_openclaw_gotchas]] — token budget and `systemPromptReport`
-  staleness (load-bearing for NFR-002 and C-007).
+  staleness (load-bearing for NFR-002, C-007, SC-006).
 
 ---
 
