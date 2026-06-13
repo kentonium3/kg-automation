@@ -1,0 +1,99 @@
+{
+  "version": 1,
+  "mission_slug": "openclaw-auth-verifier-01KV0Y9E",
+  "mission_id": "01KV0Y9EKTAYDVRB59PQKCRCDK",
+  "mission_branch": "kitty/mission-openclaw-auth-verifier-01KV0Y9E",
+  "target_branch": "main",
+  "lanes": [
+    {
+      "lane_id": "lane-a",
+      "wp_ids": [
+        "WP01"
+      ],
+      "write_scope": [
+        "scripts/security/anthropic-verify.sh",
+        "scripts/security/anthropic_verify/__init__.py",
+        "scripts/security/anthropic_verify/core.py",
+        "scripts/security/anthropic_verify/findings.py",
+        "tests/security/__init__.py",
+        "tests/security/conftest.py",
+        "tests/security/fixtures/__init__.py",
+        "tests/security/fixtures/build_fixtures.py",
+        "tests/security/fixtures/drift/.gitkeep",
+        "tests/security/fixtures/healthy/.gitkeep",
+        "tests/security/fixtures/shadow/.gitkeep",
+        "tests/security/test_anthropic_verify_core.py",
+        "tests/security/test_anthropic_verify_output.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "app-shell",
+        "tests"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    },
+    {
+      "lane_id": "lane-b",
+      "wp_ids": [
+        "WP02"
+      ],
+      "write_scope": [
+        "scripts/security/anthropic_verify/repair.py",
+        "tests/security/test_anthropic_verify_repair.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "tests"
+      ],
+      "depends_on_lanes": [
+        "lane-a"
+      ],
+      "parallel_group": 1
+    },
+    {
+      "lane_id": "lane-c",
+      "wp_ids": [
+        "WP03"
+      ],
+      "write_scope": [
+        "scripts/security/anthropic-rotate.sh",
+        "tests/security/test_anthropic_rotate_gate.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "app-shell",
+        "artifact-rendering"
+      ],
+      "depends_on_lanes": [
+        "lane-a",
+        "lane-b"
+      ],
+      "parallel_group": 2
+    },
+    {
+      "lane_id": "lane-d",
+      "wp_ids": [
+        "WP04"
+      ],
+      "write_scope": [
+        "docs/runbooks/credential-rotation-ops.md",
+        "docs/runbooks/openclaw-ops.md",
+        "tests/security/test_runbook_anchors.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "legacy-cleanup"
+      ],
+      "depends_on_lanes": [
+        "lane-a",
+        "lane-b",
+        "lane-c"
+      ],
+      "parallel_group": 3
+    }
+  ],
+  "computed_at": "2026-06-13T17:39:11.288968+00:00",
+  "computed_from": "dependency_graph+ownership",
+  "planning_artifact_wps": []
+}
