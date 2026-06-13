@@ -18,7 +18,7 @@ subtasks:
 - T014
 - T015
 - T016
-agent: "claude:sonnet:reviewer-rachel:reviewer"
+agent: claude
 history: []
 agent_profile: implementer-ivan
 authoritative_surface: docs/runbooks/
@@ -30,7 +30,6 @@ owned_files:
 - tests/security/test_runbook_anchors.py
 role: implementer
 tags: []
-shell_pid: "94232"
 ---
 
 ## ⚡ Do This First: Load Agent Profile
@@ -215,9 +214,3 @@ When ready for review:
 ```bash
 spec-kitty agent action review WP04 --agent claude
 ```
-
-## Activity Log
-
-- 2026-06-13T18:42:22Z – claude:sonnet:implementer-ivan:implementer – shell_pid=92593 – Assigned agent via action command
-- 2026-06-13T18:45:17Z – claude:sonnet:implementer-ivan:implementer – shell_pid=92593 – Ready for review — runbook addenda landed, anti-drift test passes
-- 2026-06-13T18:45:47Z – claude:sonnet:reviewer-rachel:reviewer – shell_pid=94232 – Started review via action command

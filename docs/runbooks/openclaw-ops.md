@@ -159,6 +159,88 @@ sudo loginctl enable-linger claude
   show every channel you had before; `openclaw doctor` will flag missing
   ones if `plugins.allow` is not set.
 
+### Per-agent auth-row shadow (post-`doctor --fix`)
+
+**Symptom**: a sub-agent's cron jobs fail with `FailoverError: LLM error
+authentication_error: invalid x-api-key` while sibling sub-agents continue
+to work. WhatsApp escalations from `inbox-5pm` / `inbox-10pm` / `inbox-7am`
+are the canonical signal.
+
+**Cause**: `openclaw doctor --fix` migrates a sub-agent's pre-existing
+`auth-profiles.json` into the per-agent SQLite store
+(`~/.openclaw/agents/<id>/agent/openclaw-agent.sqlite`, tables
+`auth_profile_store` + `auth_profile_state`). The migrated row OVERRIDES
+the read-through inheritance from `main`. If the imported value is stale,
+every LLM call routed through that sub-agent fails with `invalid x-api-key`.
+Healthy state for any sub-agent is **zero rows** in both tables — the
+sub-agent should inherit from `main` via read-through.
+
+**Detection**: run `anthropic-verify --check` (see
+[`scripts/security/anthropic-verify.sh`](<../../scripts/security/anthropic-verify.sh>)).
+Exit code 2 = shadow detected; the finding names the affected agent
+and the specific table.
+
+**Remediation**:
+
+```bash
+ssh office2-claude /home/claude/kg-automation/scripts/security/anthropic-verify.sh --repair
+ssh office2-claude 'systemctl --user restart openclaw-gateway.service'
+ssh office2-claude /home/claude/kg-automation/scripts/security/anthropic-verify.sh --check
+```
+
+The `--repair` mode writes a `.pre-repair.<unix-ts>.bak` sibling file
+before clearing the rows. The final `--check` confirms the shadow is
+gone (exit 0 = healthy).
+
+**Reference**: `#596` (the post-incident write-up that uncovered this
+failure mode), `#597` (this preventive surface — the verifier and the
+two runbook addenda).
+
+### Plaintext / SQLite drift
+
+**Symptom**: `felix-doc-auditor-driver` or `felix-heartbeat-gate` ticks
+emit `invalid x-api-key` errors while openclaw-gateway-routed agents
+continue to work. The two consumer classes are on different keys.
+
+**Cause**: `/data/services/openclaw/secrets/anthropic` (plaintext file
+consumed by the non-openclaw Python drivers) has drifted from `main`'s
+SQLite store. Usually triggered by an Anthropic key rotation that went
+through `openclaw models auth paste-api-key` directly without going
+through [`anthropic-rotate.sh`](<../../scripts/security/anthropic-rotate.sh>),
+which updates both substrates atomically.
+
+**Detection**: `anthropic-verify --check` reports a `drift` finding with
+both sha256[:8] fingerprints. Exit code 3.
+
+**Remediation**:
+
+```bash
+ssh office2-claude /home/claude/kg-automation/scripts/security/anthropic-verify.sh --repair
+```
+
+The `--repair` mode atomically rewrites the plaintext file from `main`'s
+SQLite value via tmp-rename, preserving mode 0600. No gateway restart is
+needed — the Python consumers re-read the file on their next tick.
+
+**Reference**: `#597`.
+
+### Post-`doctor --fix` and post-rotation gate (recommended)
+
+Always run `anthropic-verify --check` after any of:
+
+- `openclaw doctor --fix` (any invocation, including the post-upgrade
+  migration sweep documented above).
+- `anthropic-rotate.sh` (already invoked automatically at end-of-rotation
+  as a fail-closed gate per `#597` FR-012 — operators do not need to
+  re-run it).
+- Manual edits to any of the three auth substrates: `main`'s SQLite
+  (`/home/claude/.openclaw/agents/main/agent/openclaw-agent.sqlite`), the
+  plaintext file (`/data/services/openclaw/secrets/anthropic`), or any
+  sub-agent SQLite (`~/.openclaw/agents/<id>/agent/openclaw-agent.sqlite`).
+
+Output is fingerprints (sha256[:8]) plus per-substrate verdicts. No key
+values are printed.
+
 ### Rollback
 
 1. `sudo npm install -g openclaw@<previous-version>`

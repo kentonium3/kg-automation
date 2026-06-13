@@ -362,6 +362,48 @@ ssh office2-claude 'cat /data/services/felix-heartbeat-gate/state/last-gate-deci
   this was `openclaw auth set`; the old form errors with "unknown command"
   on current installs.)
 
+### Post-rotation verification (mandatory)
+
+`anthropic-rotate.sh` invokes `anthropic-verify --check` at the end of every
+successful rotation as a fail-closed gate (see FR-012 of
+[`kentonium3/kg-automation#597`](https://github.com/kentonium3/kg-automation/issues/597)).
+If verify reports any finding, the rotation script prints a copy-pasteable
+rollback command and exits non-zero. The rotation is NOT auto-undone — the
+operator decides whether to roll back or remediate forward.
+
+The verifier covers three failure modes:
+
+1. **Drift** between `/data/services/openclaw/secrets/anthropic` (plaintext,
+   read by `felix-doc-auditor-driver` and `felix-heartbeat-gate`) and
+   `main`'s SQLite store (read by `openclaw-gateway`).
+2. **Per-agent auth-row shadow** — any sub-agent with a non-empty
+   `auth_profile_store` or `auth_profile_state` row in its SQLite store
+   overrides read-through inheritance from `main`. Healthy state is zero
+   rows on every sub-agent. See
+   [`openclaw-ops.md` § _Per-agent auth-row shadow_](<./openclaw-ops.md#per-agent-auth-row-shadow-post-doctor---fix>).
+3. **Liveness** — a probe call to the Anthropic API with the new key,
+   confirming the key is valid before the rotation is declared green.
+
+**Rollback** — if verify fails post-rotation:
+
+```bash
+ssh office2-claude /home/claude/kg-automation/scripts/security/anthropic-rotate.sh --rollback <ROTATION_TS>
+```
+
+The `<ROTATION_TS>` value is emitted by `anthropic-rotate.sh`'s error output
+and recorded in `~/.cache/anthropic-rotate/manifest.<ts>.json`. The rollback
+restores the plaintext file, `openclaw.json`, and the SQLite-side
+`auth-profiles.json.sqlite-import.<ts>.bak` from the per-step backups, then
+restarts `openclaw-gateway.service`.
+
+**Targeted remediation** — if only specific findings need to be remediated
+(for example, a pre-existing shadow row that the rotation did not create),
+`anthropic-verify --repair` is the targeted surface; see
+[`openclaw-ops.md` § _Per-agent auth-row shadow_](<./openclaw-ops.md#per-agent-auth-row-shadow-post-doctor---fix>)
+and [`openclaw-ops.md` § _Plaintext / SQLite drift_](<./openclaw-ops.md#plaintext--sqlite-drift>)
+for the per-mode remediation flows. `--repair` is idempotent and prints
+fingerprints + verdicts only (no key values).
+
 ---
 
 ## `vikunja-api` (felix-bot API token)

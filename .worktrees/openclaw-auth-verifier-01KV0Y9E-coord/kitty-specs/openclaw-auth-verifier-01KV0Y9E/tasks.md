@@ -122,9 +122,9 @@
 
 **Included subtasks**:
 
-- [x] T014 `docs/runbooks/openclaw-ops.md` § _Known upgrade gotchas_ addendum
-- [x] T015 `docs/runbooks/credential-rotation-ops.md` § _anthropic_ addendum
-- [x] T016 `test_runbook_anchors.py` — assert section anchors exist in both runbooks
+- [ ] T014 `docs/runbooks/openclaw-ops.md` § _Known upgrade gotchas_ addendum
+- [ ] T015 `docs/runbooks/credential-rotation-ops.md` § _anthropic_ addendum
+- [ ] T016 `test_runbook_anchors.py` — assert section anchors exist in both runbooks
 
 **Risks**:
 - Minor — runbook drift if a future PR removes the sections. The anchor-existence test guards against that.

@@ -1,8 +1,8 @@
 """Pytest conftest for security tests.
 
-Adds scripts/security/ to sys.path so the credential_health_check package
-imports without installation. Mirrors how the systemd unit sets PYTHONPATH
-on office2.
+Adds scripts/security/ to sys.path so the credential_health_check and
+anthropic_verify packages import without installation. Mirrors how the
+systemd unit sets PYTHONPATH on office2.
 """
 from __future__ import annotations
 
@@ -20,6 +20,31 @@ if str(SCRIPTS_SECURITY) not in sys.path:
     sys.path.insert(0, str(SCRIPTS_SECURITY))
 
 FIXTURES_DIR = Path(__file__).resolve().parent / "fixtures"
+
+
+# --------------------------------------------------------------------------- #
+# anthropic-verify fixture: mock office2 root
+# --------------------------------------------------------------------------- #
+
+
+@pytest.fixture
+def tmp_office2_root(tmp_path, monkeypatch):
+    """Build an empty office2-shaped layout under ``tmp_path`` and redirect
+    anthropic_verify.core to it via environment variables.
+
+    Returns a tuple ``(agents_dir, plaintext_path)`` so tests can populate the
+    layout via the fixture-builder helpers in ``tests.security.fixtures``.
+
+    Tests that need populated scenarios call ``build_fixtures.build_healthy``
+    / ``build_shadow`` / ``build_drift`` against the returned ``agents_dir``
+    + ``plaintext_path``.
+    """
+    agents_dir = tmp_path / "agents"
+    plaintext_path = tmp_path / "anthropic"
+    agents_dir.mkdir()
+    monkeypatch.setenv("ANTHROPIC_VERIFY_AGENTS_DIR", str(agents_dir))
+    monkeypatch.setenv("ANTHROPIC_VERIFY_PLAINTEXT_FILE", str(plaintext_path))
+    return agents_dir, plaintext_path
 
 _TEST_URL = "https://vikunja.test/api/v1/"
 
