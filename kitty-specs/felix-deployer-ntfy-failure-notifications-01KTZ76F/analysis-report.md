@@ -4,7 +4,7 @@ artifact_type: spec-kitty.analysis-report
 command: /spec-kitty.analyze
 mission_slug: felix-deployer-ntfy-failure-notifications-01KTZ76F
 mission_id: 01KTZ76FE60RPNPQKKBK4ZTF46
-generated_at: '2026-06-13T01:42:51.918471+00:00'
+generated_at: '2026-06-13T01:25:16.725245+00:00'
 analyzer_agent: unknown
 input_artifacts:
   spec.md:

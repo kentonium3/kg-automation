@@ -9,7 +9,5 @@
   "purpose_context": "WP04/WP05 of the pull-based-deploy-pipeline mission assumed openclaw cron flags (--payload-template, --kind, --schedule, --payload-file) that don't exist on openclaw 2026.6.5. The applier is live on office2 but a failed deploy currently produces no push notification — the operator has to manually poll deploys/failed/. This mission switches the failure-notification substrate to ntfy.sh, mirroring the existing security-monitor push pattern, so failed deploys reliably reach the operator's phone independent of openclaw/WhatsApp availability.",
   "purpose_tldr": "Replace the broken openclaw-cron WhatsApp DM dispatch in felix-deployer with an ntfy.sh push so failed deploys actually notify the operator.",
   "slug": "felix-deployer-ntfy-failure-notifications-01KTZ76F",
-  "target_branch": "main",
-  "vcs": "git",
-  "vcs_locked_at": "2026-06-13T01:28:48.336121+00:00"
+  "target_branch": "main"
 }
