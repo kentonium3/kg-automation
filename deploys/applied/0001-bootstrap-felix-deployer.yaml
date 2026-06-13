@@ -1,0 +1,24 @@
+schema_version: v1
+name: bootstrap-felix-deployer
+issue: kentonium3/kg-automation#136
+tier: 1
+entrypoint: scripts/deploy/deploy-felix-deployer-bootstrap.sh
+audited_surface: true
+verification:
+  pre:
+    - "python3 -m scripts.deploy.lib.verify verify_file_present scripts/deploy/felix-deployer/deployer.py"
+    - "ssh office2-claude 'openclaw cron list'"
+  post:
+    - "ssh office2-claude 'systemctl --user status felix-deployer.timer'"
+created_at: "2026-06-12T20:00:00Z"
+created_by: operator-bootstrap
+notes: |
+  Bootstrap deploy of felix-deployer itself. First-ever applied manifest under the discipline.
+  Partial apply: steps 1-4 of 7 succeeded (rsync, systemd units, daemon-reload, timer enable+now).
+  Steps 5-6 (openclaw cron registration for felix-deployer-alert, post-flight timer verify) skipped
+  due to openclaw 2026.6.5 CLI surface drift (--payload-template flag does not exist; cascading
+  issue in notify.py's --payload-file). Tracked as follow-up bug. Applier is LIVE on office2 and
+  ticking every 5 min; will harmlessly succeed when queue is empty. DM dispatch path is broken
+  but WP04 design swallows DM errors so applier continues correctly.
+apply_mode: bootstrap
+applied_at: "2026-06-12T23:30:00Z"
