@@ -229,7 +229,8 @@ def run_tick(
     log_dir = pathlib.Path(log_dir) if log_dir else DEFAULT_LOG_DIR
     log_path = log_dir / f"{_dt.date.today():%Y-%m-%d}.jsonl"
 
-    _log(log_path, {"event": "tick_start"})
+    import os as _os  # TEMP DEBUG: trace env for #595 smoke
+    _log(log_path, {"event": "tick_start", "debug_ntfy_topic_present": bool(_os.environ.get("FELIX_DEPLOYER_NTFY_TOPIC", "").strip()), "debug_ntfy_topic_len": len(_os.environ.get("FELIX_DEPLOYER_NTFY_TOPIC", ""))})
 
     # 1. git pull --ff-only.
     pull = _git(["pull", "--ff-only"], cwd=repo_root)
