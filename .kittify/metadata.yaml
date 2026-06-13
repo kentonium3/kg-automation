@@ -3,9 +3,9 @@
 # DO NOT EDIT MANUALLY
 
 spec_kitty:
-  version: 3.2.0rc37
+  version: 3.2.0rc43
   initialized_at: '2026-03-25T23:07:06.539751'
-  last_upgraded_at: '2026-06-06T12:35:07.388512'
+  last_upgraded_at: '2026-06-13T16:00:16.174750'
   schema_version: 3
 environment:
   python_version: 3.13.12
@@ -397,5 +397,23 @@ migrations:
       [], "migration_id": "3.2.0rc35_unified_bundle", "target_version": "3.2.0rc35"}'
   - id: 3.2.0rc35_update_planning_templates
     applied_at: '2026-06-06T12:35:07.350112'
+    result: skipped
+    notes: Not applicable
+  - id: 3_2_0rc39_refresh_orientation_block
+    applied_at: '2026-06-13T16:00:15.913959'
+    result: skipped
+    notes: Not applicable
+  - id: 3_3_0_session_presence_all_harnesses
+    applied_at: '2026-06-13T16:00:16.030502'
+    result: success
+    notes: 'Wrote session presence orientation for harness: copilot; Wrote session
+      presence orientation for harness: codex'
+  - id: 3_3_0_session_presence_claude_code
+    applied_at: '2026-06-13T16:00:16.126179'
+    result: success
+    notes: Wrote spec-kitty orientation to .claude/CLAUDE.md; Registered spec-kitty
+      session-start SessionStart hook; Registered spec-kitty session-stop Stop hook
+  - id: 3_3_0_op_record_schema_v2
+    applied_at: '2026-06-13T16:00:16.148850'
     result: skipped
     notes: Not applicable
