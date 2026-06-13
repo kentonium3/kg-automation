@@ -6,8 +6,11 @@
   "mission_number": null,
   "mission_slug": "idle-cron-reply-agent-prefix-01KV1BSS",
   "mission_type": "software-dev",
+  "pr_bound": true,
   "purpose_context": "While Felix sub-agents run in observed mode, bare four-character IDLE replies arrive in WhatsApp with no way to tell which agent fired which message. After incidents like the 2026-06-12 OpenClaw auth-store rotation, operators cannot confirm recovery without SSHing to office2 and inspecting per-job cron run logs. This mission updates the AGENTS.md Hard rule #1 across all five Felix sub-agents (felix-admin-capture, habits-agent, tasker-agent, escalation-agent, calendar-agent) to require the structured byte format [<agent-slug>]: IDLE - adding identity-attribution parity with non-IDLE replies while preserving the anti-narrative invariants from the 2026-05-20 and 2026-06-09 incidents.",
   "purpose_tldr": "Tag every IDLE WhatsApp reply with the issuing agent's slug so observed-mode operators can attribute each ping without SSHing to office2.",
   "slug": "idle-cron-reply-agent-prefix-01KV1BSS",
-  "target_branch": "feat/idle-cron-reply-agent-prefix"
+  "source_description": "GitHub issue #592 — Prefix IDLE cron messages with agent identifier",
+  "target_branch": "feat/idle-cron-reply-agent-prefix",
+  "vcs": "git"
 }
