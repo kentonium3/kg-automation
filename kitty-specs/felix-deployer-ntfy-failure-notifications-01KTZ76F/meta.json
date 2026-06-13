@@ -1,4 +1,5 @@
 {
+  "baseline_merge_commit": "bf400c29dd41d5020d0709dfbb23a84c0191daa8",
   "coordination_branch": "kitty/mission-felix-deployer-ntfy-failure-notifications-01KTZ76F",
   "created_at": "2026-06-13T00:48:04.042301+00:00",
   "friendly_name": "Felix-deployer ntfy failure notifications",
