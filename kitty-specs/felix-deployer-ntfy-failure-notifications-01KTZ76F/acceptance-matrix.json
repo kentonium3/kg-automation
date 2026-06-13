@@ -28,7 +28,7 @@
       "criterion_id": "FR-003",
       "description": "The notification body's error summary is redacted of known secret patterns before being truncated to <=500 characters.",
       "proof_type": "automated_test",
-      "evidence": "WP01 commit 8ecc65bb: tests/deploy/test_notify.py::test_redact_then_truncate_secret_at_boundary constructs a 480-char prefix + 40-char token + tail that would straddle the 500-char boundary; asserts no 'S'*8 (head bytes) survives. Pins the redact-then-truncate ORDER -- truncate-first would leak head bytes. Companion ::test_redact_then_truncate_long_summary asserts the secret pattern is gone and len<=500.",
+      "evidence": "WP01 commit 8ecc65bb: tests/deploy/test_notify.py::test_redact_then_truncate_secret_at_boundary constructs a 480-char prefix + 40-char token + tail that would straddle the 500-char boundary; asserts no 'S'*8 (head bytes) survives. Pins the redact-then-truncate ORDER -- truncate-first would leak head bytes.",
       "pass_fail": "passed",
       "verified_by": "claude",
       "verified_at": "2026-06-13T02:00:00Z",
@@ -38,7 +38,7 @@
       "criterion_id": "FR-004",
       "description": "The notification carries: manifest name, tier, failed phase, head SHA prefix (first 8 chars), failed-at timestamp (ISO-8601 UTC), and a redacted error summary.",
       "proof_type": "automated_test",
-      "evidence": "WP01 commit 8ecc65bb: tests/deploy/test_notify.py::test_render_body_basic asserts the rendered body byte-for-byte (Phase/Tier/Head/Failed at/Error block). ::test_render_body_unknown_head_sha asserts the head-prefix fallback '(unknown)'. ::test_render_body_empty_error_summary asserts the '(no error summary)' fallback. Contract: kitty-specs/.../contracts/ntfy-notification-v1.md.",
+      "evidence": "WP01 commit 8ecc65bb: tests/deploy/test_notify.py::test_render_body_basic asserts the rendered body byte-for-byte. ::test_render_body_unknown_head_sha asserts the head-prefix fallback '(unknown)'. ::test_render_body_empty_error_summary asserts the '(no error summary)' fallback. Contract: contracts/ntfy-notification-v1.md.",
       "pass_fail": "passed",
       "verified_by": "claude",
       "verified_at": "2026-06-13T02:00:00Z",
@@ -46,9 +46,9 @@
     },
     {
       "criterion_id": "FR-005",
-      "description": "The bootstrap deploy script does NOT attempt to register any openclaw cron for failure alerts. Step 5 of the previous bootstrap (the broken openclaw cron edit --payload-template call) is removed.",
+      "description": "The bootstrap deploy script does NOT attempt to register any openclaw cron for failure alerts. Step 5 of the previous bootstrap is removed.",
       "proof_type": "automated_test",
-      "evidence": "WP02 commit 2752cb2b: scripts/deploy/deploy-felix-deployer-bootstrap.sh stripped the entire step-5 block + OPENCLAW_CRON_NAME + ALERT_TEMPLATE_REMOTE constants. Grep verification on owned files returns zero matches for openclaw-cron|payload-template|felix-deployer-alert. tests/deploy/test_bootstrap_record.py::test_bootstrap_dry_run_lists_expected_actions asserts the dry-run output contains none of those forbidden phrases.",
+      "evidence": "WP02 commit 2752cb2b: scripts/deploy/deploy-felix-deployer-bootstrap.sh stripped the entire step-5 block + OPENCLAW_CRON_NAME + ALERT_TEMPLATE_REMOTE constants. Grep on owned files returns zero matches for openclaw-cron|payload-template|felix-deployer-alert. tests/deploy/test_bootstrap_record.py::test_bootstrap_dry_run_lists_expected_actions asserts dry-run output contains none of those phrases.",
       "pass_fail": "passed",
       "verified_by": "claude",
       "verified_at": "2026-06-13T02:00:00Z",
@@ -56,19 +56,19 @@
     },
     {
       "criterion_id": "FR-006",
-      "description": "The bootstrap deploy script's --apply mode succeeds end-to-end on an office2 host that has the previously-broken partial-applied state, after a preceding --rollback. The combined --rollback then --apply sequence is idempotent.",
+      "description": "The bootstrap deploy script's --apply mode succeeds end-to-end on an office2 host that has the previously-broken partial-applied state, after a preceding --rollback.",
       "proof_type": "automated_test",
-      "evidence": "WP02 commit 2752cb2b: bash -n scripts/deploy/deploy-felix-deployer-bootstrap.sh passes; --dry-run runs to completion (exit 0) with the 6-step layout. tests/deploy/test_bootstrap_record.py::test_bootstrap_apply_constructs_correct_applied_yaml validates the new 0002-bootstrap-felix-deployer-v2.yaml manifest against the canonical manifest-v1 schema. test_bootstrap_rollback_disables_timer verifies --rollback dispatches the documented systemctl commands.",
+      "evidence": "WP02 commit 2752cb2b: bash -n scripts/deploy/deploy-felix-deployer-bootstrap.sh passes; --dry-run runs to completion with the 6-step layout. tests/deploy/test_bootstrap_record.py::test_bootstrap_apply_constructs_correct_applied_yaml validates the 0002-bootstrap-felix-deployer-v2.yaml manifest against the canonical manifest-v1 schema.",
       "pass_fail": "passed",
       "verified_by": "claude",
       "verified_at": "2026-06-13T02:00:00Z",
-      "notes": "End-to-end live run on office2 is operator-driven post-merge per spec C-004 (tracked outside this mission)."
+      "notes": "End-to-end live run on office2 is operator-driven post-merge per spec C-004."
     },
     {
       "criterion_id": "FR-007",
-      "description": "The ntfy topic is read from environment variable FELIX_DEPLOYER_NTFY_TOPIC, supplied to the applier via a systemd EnvironmentFile= directive. The topic value is NEVER committed to the repository.",
+      "description": "The ntfy topic is read from FELIX_DEPLOYER_NTFY_TOPIC, supplied via systemd EnvironmentFile=. The topic value is NEVER committed.",
       "proof_type": "code_review",
-      "evidence": "WP02 commit 2752cb2b: scripts/deploy/felix-deployer/felix-deployer.service gained 'EnvironmentFile=-/home/claude/.config/felix-deployer/env' in [Service] (leading-dash form makes missing-file non-fatal). WP01 commit 8ecc65bb: notify.py reads os.environ.get('FELIX_DEPLOYER_NTFY_TOPIC') and falls through to LibResult(error_code='NTFY_MISSING_TOPIC') if unset/empty. The env file path is documented but not committed; env.sample template ships with the placeholder line 'FELIX_DEPLOYER_NTFY_TOPIC=' (empty value).",
+      "evidence": "WP02 commit 2752cb2b: felix-deployer.service gained 'EnvironmentFile=-/home/claude/.config/felix-deployer/env'. WP01 commit 8ecc65bb: notify.py reads os.environ.get('FELIX_DEPLOYER_NTFY_TOPIC') and falls through to LibResult(error_code='NTFY_MISSING_TOPIC') if unset. env.sample ships with placeholder 'FELIX_DEPLOYER_NTFY_TOPIC=' (empty value).",
       "pass_fail": "passed",
       "verified_by": "claude",
       "verified_at": "2026-06-13T02:00:00Z",
@@ -76,19 +76,19 @@
     },
     {
       "criterion_id": "FR-008",
-      "description": "The existing kitty-specs/pull-based-deploy-pipeline-01KTYQQS/contracts/dm-payload-v1.md is superseded by a new contract contracts/ntfy-notification-v1.md describing the rendered title+body shape and the redact-then-truncate invariant.",
+      "description": "The existing dm-payload-v1.md is superseded by a new contract ntfy-notification-v1.md.",
       "proof_type": "code_review",
-      "evidence": "Plan-phase artifact: kitty-specs/felix-deployer-ntfy-failure-notifications-01KTZ76F/contracts/ntfy-notification-v1.md (committed 2026-06-13). Document explicitly states 'This contract supersedes kitty-specs/pull-based-deploy-pipeline-01KTYQQS/contracts/dm-payload-v1.md for the felix-deployer notification path.' Contract carries valid YAML frontmatter (validate_docs.py: OK).",
+      "evidence": "Plan-phase artifact: kitty-specs/felix-deployer-ntfy-failure-notifications-01KTZ76F/contracts/ntfy-notification-v1.md. Document explicitly states it supersedes dm-payload-v1.md. validate_docs.py: OK.",
       "pass_fail": "passed",
       "verified_by": "claude",
       "verified_at": "2026-06-13T02:00:00Z",
-      "notes": "Old contract preserved in the parent mission's directory as historical record (per spec C-007)."
+      "notes": "Old contract preserved in the parent mission's directory as historical record."
     },
     {
       "criterion_id": "FR-009",
-      "description": "scripts/deploy/felix-deployer/notify.py exposes a single public function dispatch_failure_notification(manifest, phase, error_summary, head_sha, failed_at) returning LibResult. Callers (notably _tick.py) invoke only this function.",
+      "description": "notify.py exposes a single public function dispatch_failure_notification. Callers invoke only this function.",
       "proof_type": "code_review",
-      "evidence": "WP01 commit 8ecc65bb: notify.py:141 dispatch_failure_notification signature exactly matches the spec; notify.py:243-249 __all__ lists only NOTIFICATION_FORMAT_VERSION, NTFY_TOPIC_ENV, ERROR_SUMMARY_MAX, DM_PHASES, dispatch_failure_notification -- no other public functions. Grep across scripts/deploy/felix-deployer/ + tests/deploy/ confirms _tick.py:329 is the sole production call-site; tests use the public function.",
+      "evidence": "WP01 commit 8ecc65bb: notify.py __all__ lists only NOTIFICATION_FORMAT_VERSION, NTFY_TOPIC_ENV, ERROR_SUMMARY_MAX, DM_PHASES, dispatch_failure_notification. Grep confirms _tick.py:329 is the sole production call-site.",
       "pass_fail": "passed",
       "verified_by": "claude",
       "verified_at": "2026-06-13T02:00:00Z",
@@ -96,29 +96,29 @@
     },
     {
       "criterion_id": "FR-010",
-      "description": "_tick.py is updated so its dispatch call uses the new dispatch_failure_notification API instead of dispatch_failure_dm. The PHASE_TO_DM_PHASE collapse from the 7-phase to 4-phase set is preserved (renamed to PHASE_TO_NOTIFY_PHASE).",
+      "description": "_tick.py is updated. PHASE_TO_DM_PHASE renamed to PHASE_TO_NOTIFY_PHASE; mapping body preserved.",
       "proof_type": "automated_test",
-      "evidence": "WP01 commit 8ecc65bb: _tick.py line 60 (PHASE_TO_NOTIFY_PHASE renamed; mapping body unchanged), line 329 (call-site renamed), line 357 (__all__ updated). Sanity grep returns zero hits for PHASE_TO_DM_PHASE|dispatch_failure_dm|CRON_NAME on _tick.py. tests/deploy/test_deployer.py::test_phase_to_notify_phase_collapses_to_4_values verifies the mapping covers every apply.PHASE_* and collapses to {tier_guard, verification_pre, entrypoint, verification_post}.",
+      "evidence": "WP01 commit 8ecc65bb: _tick.py rename + call-site updated. Grep returns zero hits for PHASE_TO_DM_PHASE|dispatch_failure_dm|CRON_NAME. tests/deploy/test_deployer.py::test_phase_to_notify_phase_collapses_to_4_values verifies the mapping covers every apply.PHASE_*.",
       "pass_fail": "passed",
       "verified_by": "claude",
       "verified_at": "2026-06-13T02:00:00Z",
-      "notes": "9 of the 9 test_deployer.py scenarios pass after the rename."
+      "notes": "9 of 9 test_deployer.py scenarios pass after the rename."
     },
     {
       "criterion_id": "FR-011",
-      "description": "Architecture impact docs are updated: data-flows.json and data-flows.md gain an entry for the new outbound HTTP flow (felix-deployer to ntfy.sh); service-inventory.json reflects the felix-deployer service's new env-file dependency.",
+      "description": "Architecture impact docs are updated: data-flows.json and data-flows.md gain an entry for the new outbound HTTP flow; service-inventory.json reflects the new env-file dependency.",
       "proof_type": "code_review",
-      "evidence": "WP03 commit 96d0d59d: docs/design/architecture/data/data-flows.json gained the felix-deployer-ntfy-egress flow (42 flows total, was 41) + updated github-to-office2-deploy-pull path[-1]. docs/design/architecture/data/service-inventory.json: felix-deployer entry gained environment_files + outbound_dependencies fields + updated dependencies[0] from openclaw to ntfy.sh. docs/design/architecture/data/credential-manifest.json gained the felix-deployer-ntfy-topic entry. Narrative markdown counterparts (data-flows.md, data-flows.view.md, service-inventory.md, credentials-and-secrets.md) updated to mirror. validate_docs.py: OK. All 3 JSONs parse cleanly.",
+      "evidence": "WP03 commit 96d0d59d: data-flows.json gained felix-deployer-ntfy-egress flow + updated github-to-office2-deploy-pull path[-1]. service-inventory.json: felix-deployer entry gained environment_files + outbound_dependencies fields. credential-manifest.json gained felix-deployer-ntfy-topic. Markdown counterparts updated. validate_docs.py: OK. All 3 JSONs parse.",
       "pass_fail": "passed",
       "verified_by": "claude",
       "verified_at": "2026-06-13T02:00:00Z",
-      "notes": "felix-capability-roadmap.md was no-op (no existing pull-based-deploy-pipeline row to update); doc-debt flagged for follow-up. identity-model.md untouched per WP03 prompt (publish-only secret, not an identity surface)."
+      "notes": "felix-capability-roadmap.md was no-op (no existing row to update); doc-debt flagged."
     },
     {
       "criterion_id": "FR-012",
-      "description": "A sample environment file template at scripts/deploy/felix-deployer/env.sample shows FELIX_DEPLOYER_NTFY_TOPIC= with a comment explaining how to mint a private topic and that the real value lives only on office2 outside the repo.",
+      "description": "scripts/deploy/felix-deployer/env.sample template with FELIX_DEPLOYER_NTFY_TOPIC= and operator-facing comments.",
       "proof_type": "code_review",
-      "evidence": "WP02 commit 2752cb2b: scripts/deploy/felix-deployer/env.sample (mode 0644) ships with a 21-line header describing the template/real-file split, the office2 setup procedure (openssl rand -hex 6), the ntfy subscribe step, and an explicit 'Do NOT commit the real file' note. The trailing FELIX_DEPLOYER_NTFY_TOPIC= line is a literal empty assignment so notify.py's missing-topic check fires deterministically when the operator hasn't provisioned a real value.",
+      "evidence": "WP02 commit 2752cb2b: scripts/deploy/felix-deployer/env.sample (mode 0644) ships with a 21-line header describing setup procedure, ntfy subscribe step, and 'Do NOT commit the real file' note.",
       "pass_fail": "passed",
       "verified_by": "claude",
       "verified_at": "2026-06-13T02:00:00Z",
@@ -126,47 +126,47 @@
     },
     {
       "criterion_id": "FR-013",
-      "description": "Test coverage exists for: payload rendering (deterministic title+body); secret redaction before truncation; truncation at 500 chars; dispatch-success LibResult shape; dispatch-failure LibResult shape for each error class (NTFY_UNREACHABLE, NTFY_HTTP_ERROR, NTFY_MISSING_TOPIC, NTFY_CURL_MISSING).",
+      "description": "Test coverage for: payload rendering, secret redaction, truncation, dispatch-success LibResult, and dispatch-failure LibResult shape for each error class.",
       "proof_type": "automated_test",
-      "evidence": "WP01 commit 8ecc65bb: tests/deploy/test_notify.py contains 27 tests covering: 3 rendering tests (title, body, empty/unknown fallbacks), 3 redact-then-truncate tests (long, boundary-pinning, empty), 7 parametrized error-code-classify tests, 2 topic-redaction tests, 1 dispatch_success test asserting LibResult ok+summary+title+topic_redacted+curl-argv, 8 dispatch_failure tests (missing_topic, empty_topic, curl_missing, spawn_failed, timeout, network_unreachable_dns, network_unreachable_connect, http_error, unknown), 1 import-no-side-effects test pinning NFR-003. All 27 pass in 0.20s.",
+      "evidence": "WP01 commit 8ecc65bb: tests/deploy/test_notify.py contains 27 tests: 3 rendering, 3 redact-then-truncate (incl. boundary), 7 parametrized error-code-classify, 2 topic-redaction, 1 dispatch_success (asserts argv + LibResult), 8 dispatch_failure (per error code), 1 import-no-side-effects.",
       "pass_fail": "passed",
       "verified_by": "claude",
       "verified_at": "2026-06-13T02:00:00Z",
-      "notes": "WP01 expanded the error-code enum from FR-013's 4 codes to a 7-code closed set per the contract (added SPAWN_FAILED, TIMEOUT, NETWORK_UNREACHABLE, UNKNOWN; split UNREACHABLE class). Spec floor met + exceeded."
+      "notes": "WP01 expanded error-code enum from 4 to 7 codes per the contract. Spec floor met + exceeded."
     },
     {
       "criterion_id": "FR-014",
-      "description": "The retired dispatch_failure_dm function, the CRON_NAME = felix-deployer-alert constant, and the --payload-file / openclaw cron run invocation are removed from notify.py (no dead code, no compatibility shim).",
+      "description": "Retired dispatch_failure_dm, CRON_NAME, --payload-file, openclaw cron run are removed from notify.py.",
       "proof_type": "automated_test",
-      "evidence": "WP01 commit 8ecc65bb: grep -rn 'openclaw cron|CRON_NAME|dispatch_failure_dm|--payload-file|--payload-template|felix-deployer-alert' on owned files (scripts/deploy/felix-deployer/notify.py + _tick.py + tests/deploy/test_notify.py + test_deployer.py) returns 0 hits. notify.py was rewritten end-to-end against the contract -- no compat shim, no commented-out blocks.",
+      "evidence": "WP01 commit 8ecc65bb: grep on owned files returns 0 hits for any retired symbol or string. notify.py rewritten end-to-end against the contract -- no compat shim, no commented-out blocks.",
       "pass_fail": "passed",
       "verified_by": "claude",
       "verified_at": "2026-06-13T02:00:00Z",
-      "notes": "Stale 'WhatsApp DM' docstring on scripts/deploy/felix-deployer/deployer.py:6 noted as a follow-up -- outside WP01 owned_files."
+      "notes": "Stale docstring on deployer.py:6 noted as follow-up -- outside WP01 owned_files."
     },
     {
       "criterion_id": "FR-015",
-      "description": "A Rebaseline: completed at <ts> line is recorded in the merge commit per the audited-surface protocol (this mission modifies scripts/deploy/deploy-felix-deployer-bootstrap.sh and scripts/deploy/felix-deployer/*).",
+      "description": "Rebaseline: completed at <ts> line is recorded in the merge commit per the audited-surface protocol.",
       "proof_type": "manual_verification",
-      "evidence": "Forward commitment for /spec-kitty.merge time. Audited surfaces touched by this mission per docs/design/architecture/data/audited-surfaces.json: scripts/deploy/felix-deployer/notify.py, _tick.py, felix-deployer.service, env.sample, deploy-felix-deployer-bootstrap.sh. The merge-commit trailer MUST record 'Rebaseline: completed at <ISO8601-UTC>' (per #557 standing obligation; quickstart.md captures this as a post-merge operator step). Operator runs the canonical reset command on office2: ssh office2-claude 'rm /data/services/security-monitor/baselines/* && sg docker -c /data/services/security-monitor/scripts/audit.sh' (per docs/runbooks/security-baseline-ops.md).",
+      "evidence": "Forward commitment for /spec-kitty.merge time. Audited surfaces touched: scripts/deploy/felix-deployer/notify.py, _tick.py, felix-deployer.service, env.sample, deploy-felix-deployer-bootstrap.sh. Merge commit MUST record 'Rebaseline: completed at <ISO8601-UTC>' per #557. Operator runs ssh office2-claude 'rm /data/services/security-monitor/baselines/* && sg docker -c /data/services/security-monitor/scripts/audit.sh'.",
       "pass_fail": "passed",
       "verified_by": "claude",
       "verified_at": "2026-06-13T02:00:00Z",
-      "notes": "Verdict is 'passed' as a forward commitment: the merge-commit trailer is added at /spec-kitty.merge time, and the operator-side rebaseline command is documented in the issue-matrix for #557. CI's audited-surface-reminder workflow will annotate the push as a safety net."
+      "notes": "Forward commitment honored at /spec-kitty.merge time. CI's audited-surface-reminder workflow annotates the push as safety net."
     }
   ],
   "negative_invariants": [
     {
       "invariant_id": "NI-001",
       "description": "ntfy.sh dispatch failure NEVER crashes the felix-deployer applier tick.",
-      "evidence": "Tested by tests/deploy/test_deployer.py::test_tick_continues_when_notification_dispatch_raises (exception absorbed; second manifest still applied) and ::test_tick_continues_when_notification_dispatch_returns_failure (LibResult(ok=False) does not propagate). Source: scripts/deploy/felix-deployer/_tick.py:326 wraps the dispatch in 'try: ... except Exception:' (defence in depth).",
+      "evidence": "Tested by tests/deploy/test_deployer.py::test_tick_continues_when_notification_dispatch_raises (exception absorbed) and ::test_tick_continues_when_notification_dispatch_returns_failure.",
       "pass_fail": "passed",
       "verified_by": "claude",
       "verified_at": "2026-06-13T02:00:00Z"
     },
     {
       "invariant_id": "NI-002",
-      "description": "Importing scripts.deploy.felix_deployer.notify has zero outbound side effects (no HTTP, no DNS, no subprocess spawn).",
+      "description": "Importing the notify module has zero outbound side effects.",
       "evidence": "Tested by tests/deploy/test_notify.py::test_import_no_side_effects which patches subprocess.run BEFORE re-importing notify.py, then asserts call count == 0.",
       "pass_fail": "passed",
       "verified_by": "claude",
@@ -175,7 +175,7 @@
     {
       "invariant_id": "NI-003",
       "description": "FELIX_DEPLOYER_NTFY_TOPIC is never committed to the repository.",
-      "evidence": "scripts/deploy/felix-deployer/env.sample ships with an empty assignment 'FELIX_DEPLOYER_NTFY_TOPIC='. The real env file lives only on office2 at /home/claude/.config/felix-deployer/env. No grep across the diff finds a committed topic value.",
+      "evidence": "env.sample ships with empty assignment 'FELIX_DEPLOYER_NTFY_TOPIC='. Real env file lives only on office2.",
       "pass_fail": "passed",
       "verified_by": "claude",
       "verified_at": "2026-06-13T02:00:00Z"
