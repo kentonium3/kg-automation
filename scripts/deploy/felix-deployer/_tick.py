@@ -18,12 +18,12 @@ Tick sequence (see ``data-model.md`` "Manifest lifecycle" + WP04 prompt):
       :func:`scripts.deploy.lib.applied.write_applied`, ``git mv`` the
       queued path into ``deploys/applied/``, ``git commit + push``.
    d. On failure: write ``deploys/failed/<name>-<ts>.yaml`` and dispatch
-      a WhatsApp DM via the sibling ``notify`` module.
+      an ntfy.sh push notification via the sibling ``notify`` module.
       The manifest stays in ``deploys/queued/``.
 
 The function ALWAYS returns 0 unless it crashes outright. Routine
-failures (manifest parse, entrypoint exit non-zero, DM dispatch
-errors) are observability events, not tick failures.
+failures (manifest parse, entrypoint exit non-zero, notification
+dispatch errors) are observability events, not tick failures.
 
 Tick log lines are appended to
 ``/data/services/felix-deployer/logs/<YYYY-MM-DD>.jsonl`` — one JSON
@@ -55,9 +55,11 @@ DEFAULT_REPO_ROOT = pathlib.Path("/home/claude/kg-automation")
 DEFAULT_LOG_DIR = pathlib.Path("/data/services/felix-deployer/logs")
 
 # Phase mapping from lib.apply's 7-value internal enum to the 4-value
-# dm-payload-v1 enum. Drift here would silently break the operator's
-# WhatsApp triage — keep these in lockstep with contracts/dm-payload-v1.md.
-PHASE_TO_DM_PHASE = {
+# ntfy-notification-v1 enum. Drift here would silently break the operator's
+# push-notification triage — keep these in lockstep with
+# contracts/ntfy-notification-v1.md (felix-deployer-ntfy-failure-notifications
+# mission).
+PHASE_TO_NOTIFY_PHASE = {
     _apply.PHASE_TIER_GUARD: "tier_guard",
     _apply.PHASE_SNAPSHOT: "verification_pre",
     _apply.PHASE_VERIFICATION_PRE: "verification_pre",
@@ -310,8 +312,8 @@ def run_tick(
                 )
             continue
 
-        # Apply failed: write failure record + dispatch DM. Manifest
-        # stays in the queue.
+        # Apply failed: write failure record + dispatch notification.
+        # Manifest stays in the queue.
         phase = result.details.get("phase", "unknown")
         exit_code = result.details.get("returncode")
         record_path = _write_failure_record(
@@ -322,9 +324,9 @@ def run_tick(
             exit_code=exit_code if isinstance(exit_code, int) else None,
         )
 
-        # DM dispatch MUST NOT crash the tick — wrap broadly.
+        # Notification dispatch MUST NOT crash the tick — wrap broadly.
         try:
-            _notify.dispatch_failure_dm(
+            _notify.dispatch_failure_notification(
                 manifest=manifest_data,
                 phase=phase,
                 error_summary=result.summary,
@@ -334,7 +336,7 @@ def run_tick(
             _log(
                 log_path,
                 {
-                    "event": "dm_dispatch_error",
+                    "event": "notify_dispatch_error",
                     "manifest_name": manifest_name,
                     "error": str(exc)[:200],
                 },
@@ -354,4 +356,4 @@ def run_tick(
     return 0
 
 
-__all__ = ["run_tick", "PHASE_TO_DM_PHASE"]
+__all__ = ["run_tick", "PHASE_TO_NOTIFY_PHASE"]

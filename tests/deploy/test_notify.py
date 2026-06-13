@@ -1,20 +1,21 @@
-"""Tests for the felix-deployer DM-notify surface.
+"""Tests for the felix-deployer ntfy notification surface.
 
-Covers the payload shape contract (`contracts/dm-payload-v1.md`),
-secret redaction in `error_summary`, temp-file cleanup, and
-non-propagation of subprocess failures.
+Covers the wire-shape contract (``contracts/ntfy-notification-v1.md``),
+secret redaction in ``error_summary``, the redact-then-truncate
+invariant (including boundary-pinning), and every closed-enum
+``error_code`` returned by ``dispatch_failure_notification``.
 
-The notify module lives under ``scripts/deploy/felix-deployer/`` —
-that directory name contains a hyphen so it is not importable via
+The notify module lives under ``scripts/deploy/felix-deployer/`` — that
+directory name contains a hyphen so it is not importable via
 ``import scripts.deploy.felix_deployer.notify``. We load it through
-``importlib`` from its on-disk path; the same trick the systemd
-service uses (path-based ``ExecStart``).
+``importlib`` from its on-disk path; the same trick the systemd service
+uses (path-based ``ExecStart``).
 """
 
 from __future__ import annotations
 
+import importlib
 import importlib.util
-import json
 import pathlib
 import subprocess
 import sys
@@ -44,102 +45,14 @@ def _load_notify():
 notify = _load_notify()
 
 
-# ---------------------------------------------------------------------------
-# build_payload — shape contract
-# ---------------------------------------------------------------------------
-
-
 def _minimal_manifest() -> dict[str, Any]:
     return {
-        "name": "rotate-secret-example",
-        "tier": 3,
+        "name": "vikunja-image-bump",
+        "tier": 2,
         "schema_version": "v1",
         "entrypoint": "scripts/deploy/example.sh",
         "audited_surface": False,
     }
-
-
-def test_build_payload_has_all_v1_required_fields():
-    p = notify.build_payload(
-        manifest=_minimal_manifest(),
-        phase="entrypoint",
-        error_summary="something broke",
-        head_sha="abc1234567",
-        failed_at="2026-06-12T20:00:00Z",
-    )
-    assert p["payload_version"] == "v1"
-    assert p["manifest_name"] == "rotate-secret-example"
-    assert p["tier"] == 3
-    assert p["phase"] == "entrypoint"
-    assert p["error_summary"] == "something broke"
-    assert p["head_sha"] == "abc1234567"
-    assert p["failed_at"] == "2026-06-12T20:00:00Z"
-
-
-def test_build_payload_uses_dm_v1_phase_enum():
-    for phase in notify.DM_PHASES:
-        p = notify.build_payload(
-            manifest=_minimal_manifest(),
-            phase=phase,
-            error_summary="x",
-            head_sha="abc",
-        )
-        assert p["phase"] == phase
-
-
-def test_build_payload_truncates_error_summary_to_500():
-    # Use short tokens separated by whitespace so redact_secrets's
-    # 32+ char token-shape regex does NOT collapse the whole string
-    # to "[REDACTED]" before truncation. Each segment is 5 chars + a
-    # space — well under the token threshold.
-    long_summary = ("hello " * 200).rstrip()  # 1199 chars
-    assert len(long_summary) > 500
-    p = notify.build_payload(
-        manifest=_minimal_manifest(),
-        phase="entrypoint",
-        error_summary=long_summary,
-        head_sha="abc",
-    )
-    assert len(p["error_summary"]) == notify.ERROR_SUMMARY_MAX
-    assert len(p["error_summary"]) == 500
-
-
-def test_build_payload_redacts_secrets_in_error_summary():
-    # 40-character token-shaped string triggers verify._TOKEN_RE.
-    secret = "A" * 40
-    p = notify.build_payload(
-        manifest=_minimal_manifest(),
-        phase="entrypoint",
-        error_summary=f"failed with token={secret}",
-        head_sha="abc",
-    )
-    assert secret not in p["error_summary"]
-    assert "REDACTED" in p["error_summary"]
-
-
-def test_build_payload_redacts_bearer_token():
-    p = notify.build_payload(
-        manifest=_minimal_manifest(),
-        phase="entrypoint",
-        error_summary="auth failed: Bearer abc123secrettoken",
-        head_sha="abc",
-    )
-    assert "abc123secrettoken" not in p["error_summary"]
-
-
-def test_build_payload_defaults_failed_at_to_now():
-    p = notify.build_payload(
-        manifest=_minimal_manifest(),
-        phase="entrypoint",
-        error_summary="x",
-        head_sha="abc",
-    )
-    assert p["failed_at"].endswith("Z")
-
-
-# ---------------------------------------------------------------------------
-# dispatch_failure_dm — subprocess interaction
-# ---------------------------------------------------------------------------
 
 
 class _FakeProc:
@@ -149,138 +62,379 @@ class _FakeProc:
         self.stderr = stderr
 
 
-def test_dispatch_invokes_openclaw_with_correct_args(monkeypatch, tmp_path):
+# ---------------------------------------------------------------------------
+# Rendering: title + body
+# ---------------------------------------------------------------------------
+
+
+def test_render_title_basic():
+    assert notify._render_title("vikunja-image-bump") == (
+        "felix-deployer failed: vikunja-image-bump"
+    )
+
+
+def test_render_body_basic():
+    body = notify._render_body(
+        manifest=_minimal_manifest(),
+        phase="verification_post",
+        error_summary="vikunja smoke check failed: expected 200, got 502",
+        head_sha="31f63d6070bf5377fa20be921feb9f0e7f69a608",
+        failed_at="2026-06-13T15:30:42Z",
+    )
+    assert body == (
+        "Phase: verification_post\n"
+        "Tier: 2\n"
+        "Head: 31f63d60\n"
+        "Failed at: 2026-06-13T15:30:42Z\n"
+        "\n"
+        "Error:\n"
+        "vikunja smoke check failed: expected 200, got 502"
+    )
+
+
+def test_render_body_empty_error_summary():
+    body = notify._render_body(
+        manifest=_minimal_manifest(),
+        phase="entrypoint",
+        error_summary="",
+        head_sha="abc",
+        failed_at="2026-06-13T00:00:00Z",
+    )
+    assert "Error:\n(no error summary)" in body
+
+
+def test_render_body_unknown_head_sha():
+    body = notify._render_body(
+        manifest=_minimal_manifest(),
+        phase="entrypoint",
+        error_summary="boom",
+        head_sha="",
+        failed_at="2026-06-13T00:00:00Z",
+    )
+    assert "Head: (unknown)\n" in body
+
+
+# ---------------------------------------------------------------------------
+# Redact-then-truncate invariant
+# ---------------------------------------------------------------------------
+
+
+def test_redact_then_truncate_long_summary():
+    # 40-char token-shaped secret followed by 1000 chars of padding.
+    # Each 'A' run is shorter than the 32-char token threshold so
+    # redact_secrets doesn't collapse the padding.
+    secret = "B" * 40  # token-shaped → redacted
+    padding = ("hello " * 200).rstrip()  # 1199 chars, none redactable
+    summary = f"token={secret} {padding}"
+    out = notify._redact_and_truncate(summary)
+    assert secret not in out
+    assert len(out) <= notify.ERROR_SUMMARY_MAX
+    assert len(out) == notify.ERROR_SUMMARY_MAX  # filled to cap
+
+
+def test_redact_then_truncate_secret_at_boundary():
+    # Construct a summary where a token-shaped secret would straddle the
+    # 500-char boundary. If truncation ran BEFORE redaction, the leading
+    # head bytes of the secret would survive in the output.
+    prefix = "x" * 480
+    secret = "S" * 40  # 32+ chars triggers _TOKEN_RE → fully redacted
+    summary = prefix + secret + "tail"
+    out = notify._redact_and_truncate(summary)
+    # The secret pattern must not appear in any form (head bytes either).
+    assert secret not in out
+    # And no partial run of 'S' of 8+ characters (the head bytes that
+    # truncate-then-redact would leave behind).
+    assert "S" * 8 not in out
+    assert len(out) <= notify.ERROR_SUMMARY_MAX
+
+
+def test_redact_then_truncate_empty_input():
+    assert notify._redact_and_truncate("") == ""
+
+
+# ---------------------------------------------------------------------------
+# Error-code classification
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "returncode,expected",
+    [
+        (6, "NTFY_NETWORK_UNREACHABLE"),
+        (7, "NTFY_NETWORK_UNREACHABLE"),
+        (22, "NTFY_HTTP_ERROR"),
+        (28, "NTFY_TIMEOUT"),
+        (35, "NTFY_UNKNOWN"),
+        (42, "NTFY_UNKNOWN"),
+        (1, "NTFY_UNKNOWN"),
+    ],
+)
+def test_classify_error_code(returncode, expected):
+    assert notify._classify_error_code(returncode) == expected
+
+
+# ---------------------------------------------------------------------------
+# Topic redaction
+# ---------------------------------------------------------------------------
+
+
+def test_topic_redact_short_topic():
+    assert notify._topic_redact("short") == "***"
+
+
+def test_topic_redact_long_topic():
+    topic = "felix-deployer-rndAlpha123XYZ"
+    out = notify._topic_redact(topic)
+    assert topic not in out
+    assert "***" in out
+    assert out.startswith(topic[:8])
+    assert out.endswith(topic[-4:])
+
+
+# ---------------------------------------------------------------------------
+# dispatch_failure_notification — success path
+# ---------------------------------------------------------------------------
+
+
+def test_dispatch_success(monkeypatch):
+    monkeypatch.setenv(notify.NTFY_TOPIC_ENV, "test-topic-alpha-1234")
     seen: dict[str, Any] = {}
 
-    def _fake_run(argv, capture_output, text, check):
+    def _fake_run(argv, input=None, capture_output=None, text=None, check=None):
         seen["argv"] = list(argv)
-        # Read the payload file the caller created and capture its contents.
-        i = argv.index("--payload-file")
-        payload_path = argv[i + 1]
-        seen["payload_file_existed"] = pathlib.Path(payload_path).exists()
-        seen["payload"] = json.loads(pathlib.Path(payload_path).read_text())
-        return _FakeProc(returncode=0, stdout='{"ok": true}')
+        seen["input"] = input
+        return _FakeProc(returncode=0, stdout="", stderr="")
 
-    monkeypatch.setattr(subprocess, "run", _fake_run)
     monkeypatch.setattr(notify.subprocess, "run", _fake_run)
 
-    result = notify.dispatch_failure_dm(
+    result = notify.dispatch_failure_notification(
         manifest=_minimal_manifest(),
-        phase="entrypoint",
-        error_summary="exit code 7",
-        head_sha="abc1234",
+        phase="verification_post",
+        error_summary="vikunja smoke check failed",
+        head_sha="31f63d6070bf5377fa20be921feb9f0e7f69a608",
+        failed_at="2026-06-13T15:30:42Z",
     )
     assert result.ok is True
-    assert seen["argv"][:5] == [
-        "openclaw",
-        "cron",
+    assert result.summary == "ntfy notification sent"
+    assert result.details["title"] == "felix-deployer failed: vikunja-image-bump"
+    assert "test-topic-alpha-1234" not in result.details["topic_redacted"]
+    assert "***" in result.details["topic_redacted"]
+    assert result.details["format_version"] == "v1"
+
+    # Curl argv must match the contract exactly (key flags + ordering).
+    argv = seen["argv"]
+    assert argv[0] == "curl"
+    assert "--silent" in argv
+    assert "--show-error" in argv
+    assert "--fail" in argv
+    assert "--max-time" in argv
+    assert str(notify.CURL_MAX_TIME_SECONDS) in argv
+    assert "--data-binary" in argv
+    assert "@-" in argv
+    assert argv[-1] == "https://ntfy.sh/test-topic-alpha-1234"
+    # Body piped via stdin (not as a CLI argument).
+    assert seen["input"].startswith("Phase: verification_post\n")
+    assert "Title: felix-deployer failed: vikunja-image-bump" in " ".join(argv)
+    assert "Priority: high" in " ".join(argv)
+    assert "Tags: warning,rotating_light" in " ".join(argv)
+
+
+# ---------------------------------------------------------------------------
+# dispatch_failure_notification — error-code paths
+# ---------------------------------------------------------------------------
+
+
+def test_dispatch_missing_topic(monkeypatch):
+    monkeypatch.delenv(notify.NTFY_TOPIC_ENV, raising=False)
+    called = []
+
+    def _fake_run(*args, **kwargs):
+        called.append(True)
+        return _FakeProc(returncode=0)
+
+    monkeypatch.setattr(notify.subprocess, "run", _fake_run)
+
+    result = notify.dispatch_failure_notification(
+        manifest=_minimal_manifest(),
+        phase="entrypoint",
+        error_summary="boom",
+        head_sha="abc",
+    )
+    assert result.ok is False
+    assert result.details["error_code"] == "NTFY_MISSING_TOPIC"
+    assert called == []  # curl was NOT invoked
+
+
+def test_dispatch_empty_topic(monkeypatch):
+    monkeypatch.setenv(notify.NTFY_TOPIC_ENV, "   ")
+    called = []
+    monkeypatch.setattr(
+        notify.subprocess,
         "run",
-        "felix-deployer-alert",
-        "--payload-file",
-    ]
-    assert "--wait" in seen["argv"]
-    assert "--json" in seen["argv"]
-    # Payload was written and parses as v1.
-    assert seen["payload_file_existed"] is True
-    assert seen["payload"]["payload_version"] == "v1"
-    assert seen["payload"]["manifest_name"] == "rotate-secret-example"
-    assert seen["payload"]["phase"] == "entrypoint"
+        lambda *a, **kw: called.append(True) or _FakeProc(returncode=0),
+    )
+
+    result = notify.dispatch_failure_notification(
+        manifest=_minimal_manifest(),
+        phase="entrypoint",
+        error_summary="boom",
+        head_sha="abc",
+    )
+    assert result.ok is False
+    assert result.details["error_code"] == "NTFY_MISSING_TOPIC"
+    assert called == []
 
 
-def test_dispatch_cleans_up_temp_file_on_success(monkeypatch):
-    written_paths: list[str] = []
-    original_run = subprocess.run
+def test_dispatch_curl_missing(monkeypatch):
+    monkeypatch.setenv(notify.NTFY_TOPIC_ENV, "abc")
 
-    def _fake_run(argv, capture_output, text, check):
-        i = argv.index("--payload-file")
-        path = argv[i + 1]
-        written_paths.append(path)
+    def _fake_run(*args, **kwargs):
+        raise FileNotFoundError("curl")
+
+    monkeypatch.setattr(notify.subprocess, "run", _fake_run)
+
+    result = notify.dispatch_failure_notification(
+        manifest=_minimal_manifest(),
+        phase="entrypoint",
+        error_summary="boom",
+        head_sha="abc",
+    )
+    assert result.ok is False
+    assert result.details["error_code"] == "NTFY_CURL_MISSING"
+
+
+def test_dispatch_spawn_failed(monkeypatch):
+    monkeypatch.setenv(notify.NTFY_TOPIC_ENV, "abc")
+
+    def _fake_run(*args, **kwargs):
+        raise OSError("resource temporarily unavailable")
+
+    monkeypatch.setattr(notify.subprocess, "run", _fake_run)
+
+    result = notify.dispatch_failure_notification(
+        manifest=_minimal_manifest(),
+        phase="entrypoint",
+        error_summary="boom",
+        head_sha="abc",
+    )
+    assert result.ok is False
+    assert result.details["error_code"] == "NTFY_SPAWN_FAILED"
+
+
+def test_dispatch_timeout(monkeypatch):
+    monkeypatch.setenv(notify.NTFY_TOPIC_ENV, "abc")
+    monkeypatch.setattr(
+        notify.subprocess,
+        "run",
+        lambda *a, **kw: _FakeProc(returncode=28, stderr="timeout"),
+    )
+
+    result = notify.dispatch_failure_notification(
+        manifest=_minimal_manifest(),
+        phase="entrypoint",
+        error_summary="boom",
+        head_sha="abc",
+    )
+    assert result.ok is False
+    assert result.details["error_code"] == "NTFY_TIMEOUT"
+    assert len(result.details["stderr_excerpt"]) <= 200
+
+
+def test_dispatch_network_unreachable_dns(monkeypatch):
+    monkeypatch.setenv(notify.NTFY_TOPIC_ENV, "abc")
+    monkeypatch.setattr(
+        notify.subprocess,
+        "run",
+        lambda *a, **kw: _FakeProc(returncode=6, stderr="could not resolve host"),
+    )
+
+    result = notify.dispatch_failure_notification(
+        manifest=_minimal_manifest(),
+        phase="entrypoint",
+        error_summary="boom",
+        head_sha="abc",
+    )
+    assert result.ok is False
+    assert result.details["error_code"] == "NTFY_NETWORK_UNREACHABLE"
+
+
+def test_dispatch_network_unreachable_connect(monkeypatch):
+    monkeypatch.setenv(notify.NTFY_TOPIC_ENV, "abc")
+    monkeypatch.setattr(
+        notify.subprocess,
+        "run",
+        lambda *a, **kw: _FakeProc(returncode=7, stderr="connection refused"),
+    )
+
+    result = notify.dispatch_failure_notification(
+        manifest=_minimal_manifest(),
+        phase="entrypoint",
+        error_summary="boom",
+        head_sha="abc",
+    )
+    assert result.ok is False
+    assert result.details["error_code"] == "NTFY_NETWORK_UNREACHABLE"
+
+
+def test_dispatch_http_error(monkeypatch):
+    monkeypatch.setenv(notify.NTFY_TOPIC_ENV, "abc")
+    monkeypatch.setattr(
+        notify.subprocess,
+        "run",
+        lambda *a, **kw: _FakeProc(returncode=22, stderr="HTTP 500"),
+    )
+
+    result = notify.dispatch_failure_notification(
+        manifest=_minimal_manifest(),
+        phase="entrypoint",
+        error_summary="boom",
+        head_sha="abc",
+    )
+    assert result.ok is False
+    assert result.details["error_code"] == "NTFY_HTTP_ERROR"
+
+
+def test_dispatch_unknown(monkeypatch):
+    monkeypatch.setenv(notify.NTFY_TOPIC_ENV, "abc")
+    monkeypatch.setattr(
+        notify.subprocess,
+        "run",
+        lambda *a, **kw: _FakeProc(returncode=42, stderr="weird failure"),
+    )
+
+    result = notify.dispatch_failure_notification(
+        manifest=_minimal_manifest(),
+        phase="entrypoint",
+        error_summary="boom",
+        head_sha="abc",
+    )
+    assert result.ok is False
+    assert result.details["error_code"] == "NTFY_UNKNOWN"
+
+
+# ---------------------------------------------------------------------------
+# NFR-003: no import-time side effects (no curl spawn, no DNS, no HTTP)
+# ---------------------------------------------------------------------------
+
+
+def test_import_no_side_effects(monkeypatch):
+    """Re-importing notify.py from disk must not invoke subprocess.run."""
+    call_count = {"n": 0}
+
+    def _fake_run(*args, **kwargs):
+        call_count["n"] += 1
         return _FakeProc(returncode=0)
 
-    monkeypatch.setattr(notify.subprocess, "run", _fake_run)
-
-    notify.dispatch_failure_dm(
-        manifest=_minimal_manifest(),
-        phase="entrypoint",
-        error_summary="x",
-        head_sha="abc",
+    # Patch the real subprocess.run BEFORE the re-import so any
+    # import-time call would land on our counter.
+    monkeypatch.setattr(subprocess, "run", _fake_run)
+    spec = importlib.util.spec_from_file_location(
+        "felix_deployer_notify_import_test",
+        FELIX_DEPLOYER_DIR / "notify.py",
     )
-    assert written_paths, "temp file was not created"
-    assert not pathlib.Path(written_paths[0]).exists()
-
-
-def test_dispatch_cleans_up_temp_file_on_failure(monkeypatch):
-    written_paths: list[str] = []
-
-    def _fake_run(argv, capture_output, text, check):
-        i = argv.index("--payload-file")
-        path = argv[i + 1]
-        written_paths.append(path)
-        return _FakeProc(returncode=2, stderr="boom")
-
-    monkeypatch.setattr(notify.subprocess, "run", _fake_run)
-
-    result = notify.dispatch_failure_dm(
-        manifest=_minimal_manifest(),
-        phase="entrypoint",
-        error_summary="x",
-        head_sha="abc",
-    )
-    assert result.ok is False
-    assert result.details["error_code"] == "DISPATCH_FAILED"
-    assert written_paths
-    assert not pathlib.Path(written_paths[0]).exists()
-
-
-def test_dispatch_does_not_raise_when_subprocess_returns_nonzero(monkeypatch):
-    def _fake_run(argv, capture_output, text, check):
-        return _FakeProc(returncode=5, stderr="cron not registered")
-
-    monkeypatch.setattr(notify.subprocess, "run", _fake_run)
-
-    # The function must return a LibResult, NOT raise.
-    result = notify.dispatch_failure_dm(
-        manifest=_minimal_manifest(),
-        phase="entrypoint",
-        error_summary="x",
-        head_sha="abc",
-    )
-    assert result.ok is False
-    assert result.details["returncode"] == 5
-
-
-def test_dispatch_handles_openclaw_binary_missing(monkeypatch):
-    def _fake_run(argv, capture_output, text, check):
-        raise FileNotFoundError("[Errno 2] openclaw")
-
-    monkeypatch.setattr(notify.subprocess, "run", _fake_run)
-
-    result = notify.dispatch_failure_dm(
-        manifest=_minimal_manifest(),
-        phase="entrypoint",
-        error_summary="x",
-        head_sha="abc",
-    )
-    assert result.ok is False
-    assert result.details["error_code"] == "OPENCLAW_MISSING"
-
-
-def test_dispatch_passes_redacted_summary_in_payload(monkeypatch):
-    captured: dict[str, Any] = {}
-
-    def _fake_run(argv, capture_output, text, check):
-        i = argv.index("--payload-file")
-        captured["payload"] = json.loads(pathlib.Path(argv[i + 1]).read_text())
-        return _FakeProc(returncode=0)
-
-    monkeypatch.setattr(notify.subprocess, "run", _fake_run)
-
-    secret = "B" * 50  # token-shaped
-    notify.dispatch_failure_dm(
-        manifest=_minimal_manifest(),
-        phase="entrypoint",
-        error_summary=f"failed: {secret}",
-        head_sha="abc",
-    )
-    assert secret not in captured["payload"]["error_summary"]
-    assert "REDACTED" in captured["payload"]["error_summary"]
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    assert call_count["n"] == 0
+    # And confirm the public surface loaded as expected.
+    assert hasattr(module, "dispatch_failure_notification")
+    assert module.NOTIFICATION_FORMAT_VERSION == "v1"

@@ -171,7 +171,9 @@ def test_bootstrap_dry_run_lists_expected_actions(tmp_path):
     )
 
     out = proc.stdout
-    # Each expected "would do" line must appear.
+    # Each expected "would do" line must appear. The 6-step layout retired
+    # step 5 (openclaw cron registration) per
+    # kitty-specs/felix-deployer-ntfy-failure-notifications-01KTZ76F.
     expected_phrases = [
         "DRY RUN",
         "rsync scripts/deploy/felix-deployer/",
@@ -180,15 +182,27 @@ def test_bootstrap_dry_run_lists_expected_actions(tmp_path):
         "felix-deployer.timer",
         "systemctl --user daemon-reload",
         "systemctl --user enable --now felix-deployer.timer",
-        "openclaw cron edit felix-deployer-alert",
         "write_applied",
         "--apply-mode bootstrap",
-        "0001-bootstrap-felix-deployer.yaml",
+        "0002-bootstrap-felix-deployer-v2.yaml",
         "DRY RUN COMPLETE",
     ]
     missing = [p for p in expected_phrases if p not in out]
     assert not missing, (
         f"dry-run output missing expected phrases: {missing}\n"
+        f"--- stdout ---\n{out}"
+    )
+
+    # The retired openclaw-cron registration must not appear anywhere.
+    forbidden_phrases = [
+        "openclaw cron edit",
+        "felix-deployer-alert",
+        "--payload-template",
+        "--payload-file",
+    ]
+    found = [p for p in forbidden_phrases if p in out]
+    assert not found, (
+        f"dry-run output contains retired openclaw-cron references: {found}\n"
         f"--- stdout ---\n{out}"
     )
 
@@ -229,10 +243,11 @@ def test_bootstrap_apply_constructs_correct_applied_yaml(tmp_path):
 
     # Substitute the bash variable placeholders the script expands at runtime.
     # Each known bash variable maps to its production value (or, for the
-    # timestamp, a fixed test value).
+    # timestamp, a fixed test value). The v2 bootstrap retired the openclaw
+    # cron registration, so ISSUE_REF now points at kg-automation#595.
     substitutions = {
         "${CREATED_AT}": "2026-06-12T00:00:00Z",
-        "${ISSUE_REF}": "kentonium3/kg-automation#136",
+        "${ISSUE_REF}": "kentonium3/kg-automation#595",
         "${REMOTE_SYSTEMD_USER_DIR}": "/home/claude/.config/systemd/user",
     }
     for key, value in substitutions.items():
@@ -247,13 +262,13 @@ def test_bootstrap_apply_constructs_correct_applied_yaml(tmp_path):
     base_manifest = yaml.safe_load(manifest_body)
     assert isinstance(base_manifest, dict), "manifest heredoc must parse to a mapping"
 
-    # Pin the fields a bootstrap manifest MUST have.
+    # Pin the fields a v2 bootstrap manifest MUST have.
     assert base_manifest["schema_version"] == "v1"
-    assert base_manifest["name"] == "bootstrap-felix-deployer"
+    assert base_manifest["name"] == "bootstrap-felix-deployer-v2"
     assert base_manifest["tier"] == 1
     assert base_manifest["audited_surface"] is True
     assert base_manifest["entrypoint"] == "scripts/deploy/deploy-felix-deployer-bootstrap.sh"
-    assert base_manifest["issue"] == "kentonium3/kg-automation#136"
+    assert base_manifest["issue"] == "kentonium3/kg-automation#595"
     assert base_manifest["created_by"] == "operator-bootstrap"
     # Tier 1 requires a verification block (schema enforces this).
     assert "verification" in base_manifest

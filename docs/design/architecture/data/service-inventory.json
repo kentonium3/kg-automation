@@ -2425,12 +2425,18 @@
       "systemd_user": "claude",
       "schedule": "every 5 minutes",
       "account": "claude",
-      "description": "Pull-based deploy applier — reads deploys/queued/, applies via scripts/deploy/lib/, dispatches WhatsApp DM on failure. systemd --user Type=oneshot, 5-min timer.",
-      "purpose": "Pull-based deploy applier on office2. On every 5-minute tick it git-pulls main, scans deploys/queued/<manifest>.yaml for new deploy manifests, and applies them through scripts/deploy/lib/apply.py::dry_run_then_apply_gate. Successful manifests move to deploys/applied/<ts>-<name>.yaml; failures move to deploys/failed/<ts>-<name>.yaml and trigger a WhatsApp DM to the operator. Stateless per tick — state lives entirely in the deploys/ directory plus state/last-tick.json.",
+      "description": "Pull-based deploy applier — reads deploys/queued/, applies via scripts/deploy/lib/, dispatches ntfy.sh push notification on failure. systemd --user Type=oneshot, 5-min timer.",
+      "purpose": "Pull-based deploy applier on office2. On every 5-minute tick it git-pulls main, scans deploys/queued/<manifest>.yaml for new deploy manifests, and applies them through scripts/deploy/lib/apply.py::dry_run_then_apply_gate. Successful manifests move to deploys/applied/<ts>-<name>.yaml; failures move to deploys/failed/<ts>-<name>.yaml and trigger an ntfy.sh push notification to the operator (substrate set by #595; replaces broken openclaw-cron WhatsApp DM path). Stateless per tick — state lives entirely in the deploys/ directory plus state/last-tick.json.",
       "state_root": "/data/services/felix-deployer/",
       "log_root": "/data/services/felix-deployer/logs/",
       "health_signal": "/data/services/felix-deployer/state/last-tick.json",
-      "dependent_services": ["openclaw"],
+      "environment_files": [
+        "/home/claude/.config/felix-deployer/env — provides FELIX_DEPLOYER_NTFY_TOPIC for ntfy.sh dispatch; non-fatal if missing per systemd EnvironmentFile=- directive; added by #595"
+      ],
+      "outbound_dependencies": [
+        "ntfy.sh:443/tcp — HTTPS POST for failure notifications; added by #595"
+      ],
+      "dependent_services": [],
       "deployed_by": "#136",
       "last_updated": "2026-06-12",
       "last_updated_by": "#136",
@@ -2439,9 +2445,9 @@
       "status": "active",
       "dependencies": [
         {
-          "target": "openclaw",
+          "target": "ntfy.sh",
           "type": "requires",
-          "description": "Failure-path WhatsApp DM is dispatched via openclaw send --channel whatsapp; the openclaw runtime must be present on office2"
+          "description": "Failure-path notification is dispatched via HTTPS POST to https://ntfy.sh/<topic> using curl --max-time 10. Best-effort: dispatch failure is logged but never crashes the tick. Substrate added by #595 (felix-deployer-ntfy-failure-notifications); supersedes openclaw-cron WhatsApp DM path."
         },
         {
           "target": "git",
@@ -2466,7 +2472,7 @@
         {
           "target": "deploys/failed/",
           "type": "writes_to",
-          "description": "Failed manifests are moved here with timestamp prefix; WhatsApp DM dispatched"
+          "description": "Failed manifests are moved here with timestamp prefix; ntfy.sh push notification dispatched per ntfy-notification-v1 contract"
         }
       ],
       "health_check": {

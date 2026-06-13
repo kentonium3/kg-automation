@@ -12,5 +12,11 @@ WorkingDirectory=/home/claude/kg-automation
 # module both resolve.
 ExecStart=/usr/bin/python3 /home/claude/kg-automation/scripts/deploy/felix-deployer/deployer.py
 Environment=PATH=/home/claude/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+# Load FELIX_DEPLOYER_NTFY_TOPIC for notify.py's ntfy.sh dispatch (see
+# scripts/deploy/felix-deployer/env.sample and
+# kitty-specs/felix-deployer-ntfy-failure-notifications-01KTZ76F/contracts/ntfy-notification-v1.md).
+# Leading `-` makes the directive non-fatal if the env file is missing —
+# graceful onboarding before the operator provisions the topic.
+EnvironmentFile=-/home/claude/.config/felix-deployer/env
 StandardOutput=journal
 StandardError=journal

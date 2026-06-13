@@ -1,199 +1,248 @@
-"""felix-deployer DM-notify surface.
+"""felix-deployer failure-notification surface (ntfy.sh substrate).
 
-Synthesises the WhatsApp DM payload per
-``kitty-specs/pull-based-deploy-pipeline-01KTYQQS/contracts/dm-payload-v1.md``
-and dispatches it through the existing ``openclaw cron`` surface.
+Renders the failure notification per
+``kitty-specs/felix-deployer-ntfy-failure-notifications-01KTZ76F/contracts/ntfy-notification-v1.md``
+and POSTs it to ``https://ntfy.sh/<topic>`` via a ``curl`` subprocess.
 
-The DM is best-effort: a dispatch failure is recorded but never
-crashes the tick. The applier's job is to record the failure on
-disk (in ``deploys/failed/``) so the operator has the durable
-artefact; the DM is escalation, not the source of truth.
+The notification is best-effort: dispatch failure is recorded but never
+crashes the tick. The applier's job is to record the failure on disk
+(in ``deploys/failed/``) so the operator has the durable artefact; the
+push is escalation, not the source of truth.
 
 Invariants enforced here:
 
-* ``payload_version`` is always ``"v1"``.
+* ``NOTIFICATION_FORMAT_VERSION`` is always ``"v1"``.
 * ``error_summary`` is run through
   :func:`scripts.deploy.lib.verify.redact_secrets` BEFORE truncation
-  to ≤500 chars.
-* The 4-value ``phase`` enum is the one in dm-payload-v1.md
-  (``tier_guard``, ``verification_pre``, ``entrypoint``,
-  ``verification_post``). Callers pass either that or a lib.apply
-  7-value phase; the mapping in :mod:`_tick` collapses it.
-* Temp payload files are unlinked even when dispatch fails.
+  to ≤500 chars. Order is fixed; tests pin it.
+* The 4-value ``phase`` enum (``tier_guard``, ``verification_pre``,
+  ``entrypoint``, ``verification_post``) is what the contract documents.
+  Callers may pass either that or one of lib.apply's 7 phases; the
+  mapping in :mod:`_tick` (``PHASE_TO_NOTIFY_PHASE``) collapses them.
+* Importing this module has zero outbound side effects (no HTTP request,
+  no DNS lookup, no subprocess spawn at import time).
 """
 
 from __future__ import annotations
 
 import datetime as _dt
-import json
 import os
-import pathlib
 import subprocess
-import tempfile
 from typing import Any, Mapping
 
 from scripts.deploy.lib import LibResult
 from scripts.deploy.lib import verify as _verify
 
-PAYLOAD_VERSION = "v1"
-CRON_NAME = "felix-deployer-alert"
+NTFY_BASE_URL = "https://ntfy.sh"
+NTFY_TOPIC_ENV = "FELIX_DEPLOYER_NTFY_TOPIC"
+NOTIFICATION_FORMAT_VERSION = "v1"
 
-# Maximum length of error_summary in the payload (contract: ≤500 chars).
 ERROR_SUMMARY_MAX = 500
+CURL_MAX_TIME_SECONDS = 10
 
-# Phase strings accepted in the v1 payload. The applier may pass any of
-# lib.apply's 7 phase constants; _tick.PHASE_TO_DM_PHASE collapses them
-# before reaching this function. If a caller bypasses that mapping and
+PRIORITY_HEADER = "high"
+TAGS_HEADER = "warning,rotating_light"
+
+# Phase strings accepted in the v1 notification body. The applier may pass
+# any of lib.apply's 7 phase constants; _tick.PHASE_TO_NOTIFY_PHASE collapses
+# them before reaching this function. If a caller bypasses that mapping and
 # passes an unknown phase string, we pass it through verbatim so the
-# operator at least sees the raw signal — but it will fail validation
-# under the receiving openclaw cron's schema.
+# operator at least sees the raw signal.
 DM_PHASES = ("tier_guard", "verification_pre", "entrypoint", "verification_post")
+
+# Closed enum of error_code values returned in LibResult.details on failure.
+_ERROR_CODES = frozenset(
+    {
+        "NTFY_MISSING_TOPIC",
+        "NTFY_CURL_MISSING",
+        "NTFY_SPAWN_FAILED",
+        "NTFY_TIMEOUT",
+        "NTFY_NETWORK_UNREACHABLE",
+        "NTFY_HTTP_ERROR",
+        "NTFY_UNKNOWN",
+    }
+)
 
 
 def _utc_now_iso() -> str:
     return _dt.datetime.now(tz=_dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
-def build_payload(
+def _render_title(manifest_name: str) -> str:
+    return f"felix-deployer failed: {manifest_name}"
+
+
+def _redact_and_truncate(error_summary: str) -> str:
+    """Redact secrets BEFORE truncating to ERROR_SUMMARY_MAX.
+
+    Order is invariant; truncate-first would slice a secret pattern across
+    the boundary and leak head bytes. Tests pin the boundary case.
+    """
+    redacted = _verify.redact_secrets(error_summary or "")
+    if len(redacted) > ERROR_SUMMARY_MAX:
+        redacted = redacted[:ERROR_SUMMARY_MAX]
+    return redacted
+
+
+def _render_body(
     manifest: Mapping[str, Any],
     phase: str,
     error_summary: str,
     head_sha: str,
     failed_at: str | None = None,
-) -> dict[str, Any]:
-    """Synthesise the v1 DM payload.
+) -> str:
+    redacted = _redact_and_truncate(error_summary or "")
+    if not redacted:
+        redacted = "(no error summary)"
+    head_prefix = head_sha[:8] if head_sha else "(unknown)"
+    failed_at_iso = failed_at or _utc_now_iso()
+    return (
+        f"Phase: {phase}\n"
+        f"Tier: {manifest.get('tier')}\n"
+        f"Head: {head_prefix}\n"
+        f"Failed at: {failed_at_iso}\n"
+        f"\n"
+        f"Error:\n"
+        f"{redacted}"
+    )
 
-    See ``contracts/dm-payload-v1.md`` for the canonical field shape.
-    The ``error_summary`` is redacted then truncated to
-    :data:`ERROR_SUMMARY_MAX` chars.
+
+def _classify_error_code(returncode: int) -> str:
+    """Map curl exit code to a closed-enum LibResult error_code.
+
+    Stable libcurl 7.x/8.x exit codes:
+        6  = couldn't resolve host (DNS)
+        7  = couldn't connect to host
+        22 = HTTP error caught by --fail
+        28 = operation timed out
+    Anything else falls to NTFY_UNKNOWN.
     """
-    redacted = _verify.redact_secrets(error_summary or "")
-    if len(redacted) > ERROR_SUMMARY_MAX:
-        redacted = redacted[:ERROR_SUMMARY_MAX]
-    return {
-        "payload_version": PAYLOAD_VERSION,
-        "manifest_name": manifest.get("name", "<unknown>"),
-        "tier": manifest.get("tier"),
-        "phase": phase,
-        "error_summary": redacted,
-        "head_sha": head_sha or "",
-        "failed_at": failed_at or _utc_now_iso(),
-    }
+    if returncode in (6, 7):
+        return "NTFY_NETWORK_UNREACHABLE"
+    if returncode == 22:
+        return "NTFY_HTTP_ERROR"
+    if returncode == 28:
+        return "NTFY_TIMEOUT"
+    return "NTFY_UNKNOWN"
 
 
-def _safe_unlink(path: str | pathlib.Path) -> None:
-    """Unlink *path*, swallowing OSError. Used for temp-file cleanup."""
-    try:
-        os.unlink(path)
-    except OSError:
-        pass
+def _topic_redact(topic: str) -> str:
+    """Produce a non-leaky log-audit form of the topic.
+
+    The topic is private (operator's subscribed ntfy channel) but not a
+    cryptographic secret; we still avoid logging it verbatim so log
+    aggregators don't propagate it. Short topics are short-redacted.
+    """
+    if len(topic) <= 12:
+        return "***"
+    return f"{topic[:8]}***{topic[-4:]}"
 
 
-def dispatch_failure_dm(
+def dispatch_failure_notification(
     manifest: Mapping[str, Any],
     phase: str,
     error_summary: str,
     head_sha: str,
     failed_at: str | None = None,
 ) -> LibResult:
-    """Build payload and invoke ``openclaw cron run felix-deployer-alert``.
+    """Render and POST a failure notification to ntfy.sh.
 
-    Returns a :class:`LibResult` so the caller can record the dispatch
-    outcome in the tick log. The function never raises for routine
-    subprocess failures — only a genuine programmer error (e.g.,
-    payload JSON serialisation crash) would surface as an exception,
-    and even those are caught in :func:`scripts.deploy.felix_deployer._tick.run_tick`.
+    Returns ``LibResult(ok=True, ...)`` on successful POST.
+    Returns ``LibResult(ok=False, details={"error_code": <code>, ...})``
+    on any failure mode. NEVER raises for routine failures.
 
-    The temp payload file is unlinked even when dispatch fails.
+    See ``contracts/ntfy-notification-v1.md`` for the wire-shape contract.
     """
-    payload = build_payload(
+    topic = os.environ.get(NTFY_TOPIC_ENV, "").strip()
+    if not topic:
+        return LibResult(
+            ok=False,
+            summary=f"ntfy: skipped ({NTFY_TOPIC_ENV} not configured)",
+            details={"error_code": "NTFY_MISSING_TOPIC"},
+        )
+
+    manifest_name = manifest.get("name", "<unknown>")
+    title = _render_title(manifest_name)
+    body = _render_body(
         manifest=manifest,
         phase=phase,
         error_summary=error_summary,
         head_sha=head_sha,
         failed_at=failed_at,
     )
-
-    # Write the payload to a temp file. ``delete=False`` so the child
-    # process can read it after we close the handle.
-    tmp_path: str | None = None
-    try:
-        with tempfile.NamedTemporaryFile(
-            mode="w",
-            suffix=".json",
-            prefix="felix-deployer-alert-",
-            delete=False,
-            encoding="utf-8",
-        ) as fh:
-            json.dump(payload, fh)
-            tmp_path = fh.name
-    except OSError as exc:
-        return LibResult(
-            ok=False,
-            summary=f"failed to write DM payload temp file: {exc}",
-            details={"error_code": "TMPFILE_WRITE_FAILED", "error": str(exc)},
-        )
+    topic_redacted = _topic_redact(topic)
 
     try:
-        proc = subprocess.run(  # noqa: S603 - argv list, no shell
+        result = subprocess.run(  # noqa: S603 - argv list, no shell
             [
-                "openclaw",
-                "cron",
-                "run",
-                CRON_NAME,
-                "--payload-file",
-                tmp_path,
-                "--wait",
-                "--json",
+                "curl",
+                "--silent",
+                "--show-error",
+                "--fail",
+                "--max-time", str(CURL_MAX_TIME_SECONDS),
+                "-H", f"Title: {title}",
+                "-H", f"Priority: {PRIORITY_HEADER}",
+                "-H", f"Tags: {TAGS_HEADER}",
+                "-X", "POST",
+                "--data-binary", "@-",
+                f"{NTFY_BASE_URL}/{topic}",
             ],
+            input=body,
             capture_output=True,
             text=True,
             check=False,
         )
     except FileNotFoundError as exc:
-        # openclaw binary not on PATH. Operator visibility, not crash.
-        _safe_unlink(tmp_path)
         return LibResult(
             ok=False,
-            summary=f"openclaw not found on PATH: {exc}",
-            details={"error_code": "OPENCLAW_MISSING", "error": str(exc)},
-        )
-    except OSError as exc:
-        _safe_unlink(tmp_path)
-        return LibResult(
-            ok=False,
-            summary=f"failed to spawn openclaw: {exc}",
-            details={"error_code": "SPAWN_FAILED", "error": str(exc)},
-        )
-
-    _safe_unlink(tmp_path)
-
-    if proc.returncode == 0:
-        return LibResult(
-            ok=True,
-            summary=f"DM dispatched via {CRON_NAME}",
+            summary=f"ntfy: curl not found on PATH ({exc})",
             details={
-                "payload": payload,
-                "stdout_excerpt": (proc.stdout or "")[:200],
+                "error_code": "NTFY_CURL_MISSING",
+                "error": str(exc),
+                "title": title,
+                "topic_redacted": topic_redacted,
             },
         )
+    except OSError as exc:
+        return LibResult(
+            ok=False,
+            summary=f"ntfy: failed to spawn curl ({exc})",
+            details={
+                "error_code": "NTFY_SPAWN_FAILED",
+                "error": str(exc),
+                "title": title,
+                "topic_redacted": topic_redacted,
+            },
+        )
+
+    if result.returncode == 0:
+        return LibResult(
+            ok=True,
+            summary="ntfy notification sent",
+            details={
+                "title": title,
+                "topic_redacted": topic_redacted,
+                "format_version": NOTIFICATION_FORMAT_VERSION,
+            },
+        )
+
     return LibResult(
         ok=False,
-        summary=f"openclaw cron run {CRON_NAME} failed (rc={proc.returncode})",
+        summary=f"ntfy: curl failed (rc={result.returncode})",
         details={
-            "error_code": "DISPATCH_FAILED",
-            "returncode": proc.returncode,
-            "stderr_excerpt": (proc.stderr or "")[:200],
-            "payload": payload,
+            "error_code": _classify_error_code(result.returncode),
+            "returncode": result.returncode,
+            "stderr_excerpt": (result.stderr or "")[:200],
+            "title": title,
+            "topic_redacted": topic_redacted,
         },
     )
 
 
 __all__ = [
-    "PAYLOAD_VERSION",
-    "CRON_NAME",
+    "NOTIFICATION_FORMAT_VERSION",
+    "NTFY_TOPIC_ENV",
     "ERROR_SUMMARY_MAX",
     "DM_PHASES",
-    "build_payload",
-    "dispatch_failure_dm",
+    "dispatch_failure_notification",
 ]

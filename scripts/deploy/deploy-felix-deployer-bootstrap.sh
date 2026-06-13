@@ -3,9 +3,10 @@
 # ============================================================================
 # Bootstrap deploy for the felix-deployer applier.
 #
-# Mission:   pull-based-deploy-pipeline-01KTYQQS (WP05)
-# Issue:     kentonium3/kg-automation#136
-# Contract:  kitty-specs/pull-based-deploy-pipeline-01KTYQQS/plan.md
+# Mission:   felix-deployer-ntfy-failure-notifications-01KTZ76F (v2 substrate swap)
+#            pull-based-deploy-pipeline-01KTYQQS (WP05, original v1 bootstrap)
+# Issue:     kentonium3/kg-automation#595 (v2 substrate swap; supersedes #136)
+# Contract:  kitty-specs/felix-deployer-ntfy-failure-notifications-01KTZ76F/contracts/ntfy-notification-v1.md
 # Reference: scripts/deploy/deploy-149.sh (canonical one-shot shape)
 #
 # This is a one-shot wrapper that mirrors the deploy-149.sh canonical shape:
@@ -14,15 +15,17 @@
 #   - Pre-flight checks for every mode
 #   - Strict order-of-operations
 #   - Halt on any failure (no silent fallbacks)
-#   - NEVER touches the system cron table (closed issue #162). All cron edits
-#     route through `openclaw cron` subcommands.
+#   - NEVER touches the system cron table (closed issue #162). Failure
+#     notifications now route via direct ntfy.sh POST (curl subprocess in
+#     notify.py); no openclaw cron registration in this bootstrap path.
 #
 # After this script runs successfully on office2 once, every subsequent
 # deploy goes through the manifest discipline (deploys/queued/ -> applier
-# -> deploys/applied/). This deploy ITSELF is recorded as the first
-# applied entry: deploys/applied/0001-bootstrap-felix-deployer.yaml, with
-# `apply_mode: bootstrap`. That entry is the canonical worked example of
-# what an applied manifest looks like.
+# -> deploys/applied/). This deploy ITSELF is recorded as an applied entry:
+# deploys/applied/0002-bootstrap-felix-deployer-v2.yaml, with
+# `apply_mode: bootstrap`. That entry supersedes the original
+# 0001-bootstrap-felix-deployer.yaml (which is preserved as the historical
+# record of the original — partially-applied — bootstrap event).
 #
 # ----------------------------------------------------------------------------
 # Modes
@@ -63,11 +66,9 @@ FELIX_DEPLOYER_SRC_DIR="${REPO_ROOT}/scripts/deploy/felix-deployer"
 DEPLOY_LIB_SRC_DIR="${REPO_ROOT}/scripts/deploy/lib"
 SYSTEMD_SERVICE_SRC="${FELIX_DEPLOYER_SRC_DIR}/felix-deployer.service"
 SYSTEMD_TIMER_SRC="${FELIX_DEPLOYER_SRC_DIR}/felix-deployer.timer"
-ALERT_TEMPLATE_REMOTE="${REMOTE_REPO}/scripts/deploy/felix-deployer/templates/felix-deployer-alert.txt"
 
-OPENCLAW_CRON_NAME="felix-deployer-alert"
-ISSUE_REF="kentonium3/kg-automation#136"
-APPLIED_NAME="0001-bootstrap-felix-deployer"
+ISSUE_REF="kentonium3/kg-automation#595"
+APPLIED_NAME="0002-bootstrap-felix-deployer-v2"
 
 # ---------------------------------------------------------------------------
 # Output helpers
@@ -87,10 +88,12 @@ Usage:
   ${SCRIPT_NAME} -h|--help    Print this message.
 
 Invariants:
-  - Never touches the system cron table; all cron operations route through
-    'openclaw cron edit' (closed issue #162).
+  - Never touches the system cron table (closed issue #162). Failure
+    notifications route via direct ntfy.sh POST in notify.py — no
+    openclaw cron registration in this bootstrap path.
   - --apply records itself as deploys/applied/${APPLIED_NAME}.yaml
-    with apply_mode: bootstrap (the canonical first applied entry).
+    with apply_mode: bootstrap (supersedes the original
+    0001-bootstrap-felix-deployer.yaml — preserved as historical record).
   - --rollback exactly matches the rollback recipe in the script header.
 
 Reference shape: scripts/deploy/deploy-149.sh
@@ -124,7 +127,7 @@ esac
 # ---------------------------------------------------------------------------
 # Summary header
 # ---------------------------------------------------------------------------
-log "Mission:        pull-based-deploy-pipeline-01KTYQQS (WP05)"
+log "Mission:        felix-deployer-ntfy-failure-notifications-01KTZ76F (v2)"
 log "Mode:           ${MODE}"
 log "Repo root:      ${REPO_ROOT}"
 log "SSH host:       ${SSH_HOST}"
@@ -188,18 +191,21 @@ fi
 if [[ "$MODE" == "--dry-run" ]]; then
   log ""
   log "===== DRY RUN ====="
-  log "DRY RUN — would do:"
-  log "  rsync scripts/deploy/felix-deployer/ -> ${SSH_HOST}:${REMOTE_REPO}/scripts/deploy/felix-deployer/"
-  log "  rsync scripts/deploy/lib/             -> ${SSH_HOST}:${REMOTE_REPO}/scripts/deploy/lib/"
-  log "  mkdir -p ${REMOTE_SYSTEMD_USER_DIR}"
-  log "  scp felix-deployer.service             -> ${SSH_HOST}:${REMOTE_SYSTEMD_USER_DIR}/"
-  log "  scp felix-deployer.timer               -> ${SSH_HOST}:${REMOTE_SYSTEMD_USER_DIR}/"
-  log "  ssh ${SSH_HOST} 'systemctl --user daemon-reload'"
-  log "  ssh ${SSH_HOST} 'systemctl --user enable --now felix-deployer.timer'"
-  log "  ssh ${SSH_HOST} 'openclaw cron edit ${OPENCLAW_CRON_NAME} --payload-template ${ALERT_TEMPLATE_REMOTE} --kind whatsapp-dm-outbound --schedule manual'"
-  log "  ssh ${SSH_HOST} 'systemctl --user status felix-deployer.timer' (verify active)"
-  log "  ssh ${SSH_HOST} 'python3 -m scripts.deploy.lib.applied write_applied --manifest <temp> --apply-mode bootstrap'"
-  log "  (writes deploys/applied/${APPLIED_NAME}.yaml; commit + push from office2)"
+  log "DRY RUN — would do (6 steps):"
+  log "  1. rsync scripts/deploy/felix-deployer/ -> ${SSH_HOST}:${REMOTE_REPO}/scripts/deploy/felix-deployer/"
+  log "     rsync scripts/deploy/lib/             -> ${SSH_HOST}:${REMOTE_REPO}/scripts/deploy/lib/"
+  log "  2. mkdir -p ${REMOTE_SYSTEMD_USER_DIR}"
+  log "     scp felix-deployer.service            -> ${SSH_HOST}:${REMOTE_SYSTEMD_USER_DIR}/"
+  log "     scp felix-deployer.timer              -> ${SSH_HOST}:${REMOTE_SYSTEMD_USER_DIR}/"
+  log "  3. ssh ${SSH_HOST} 'systemctl --user daemon-reload'"
+  log "  4. ssh ${SSH_HOST} 'systemctl --user enable --now felix-deployer.timer'"
+  log "  5. ssh ${SSH_HOST} 'systemctl --user status felix-deployer.timer' (verify active)"
+  log "  6. ssh ${SSH_HOST} 'python3 -m scripts.deploy.lib.applied write_applied --manifest <temp> --apply-mode bootstrap'"
+  log "     (writes deploys/applied/${APPLIED_NAME}.yaml; commit + push from office2)"
+  log ""
+  log "Note: notification topic provisioning (FELIX_DEPLOYER_NTFY_TOPIC in"
+  log "      ~/.config/felix-deployer/env on office2) is operator-driven, NOT"
+  log "      part of this bootstrap. See scripts/deploy/felix-deployer/env.sample."
   log ""
   log "===== DRY RUN COMPLETE ====="
   log "No mutations performed."
@@ -213,7 +219,7 @@ log ""
 log "===== APPLY ====="
 
 # Step 1: Rsync source artifacts (felix-deployer + deploy lib)
-log "Step 1/7: rsync felix-deployer/ and lib/ to ${SSH_HOST}..."
+log "Step 1/6: rsync felix-deployer/ and lib/ to ${SSH_HOST}..."
 ssh "${SSH_OPTS[@]}" "$SSH_HOST" "mkdir -p ${REMOTE_REPO}/scripts/deploy/felix-deployer ${REMOTE_REPO}/scripts/deploy/lib"
 rsync -avz --delete --exclude='__pycache__' --exclude='*.pyc' \
   "${FELIX_DEPLOYER_SRC_DIR}/" "${SSH_HOST}:${REMOTE_REPO}/scripts/deploy/felix-deployer/"
@@ -222,33 +228,24 @@ rsync -avz --delete --exclude='__pycache__' --exclude='*.pyc' \
 log "[OK]   Source artifacts rsynced."
 
 # Step 2: Install systemd user units
-log "Step 2/7: installing systemd user units..."
+log "Step 2/6: installing systemd user units..."
 ssh "${SSH_OPTS[@]}" "$SSH_HOST" "mkdir -p ${REMOTE_SYSTEMD_USER_DIR}"
 scp "${SSH_OPTS[@]}" "${SYSTEMD_SERVICE_SRC}" "${SSH_HOST}:${REMOTE_SYSTEMD_USER_DIR}/"
 scp "${SSH_OPTS[@]}" "${SYSTEMD_TIMER_SRC}" "${SSH_HOST}:${REMOTE_SYSTEMD_USER_DIR}/"
 log "[OK]   Unit files installed."
 
 # Step 3: Reload systemd user daemon
-log "Step 3/7: systemctl --user daemon-reload..."
+log "Step 3/6: systemctl --user daemon-reload..."
 ssh "${SSH_OPTS[@]}" "$SSH_HOST" 'systemctl --user daemon-reload'
 log "[OK]   Daemon reloaded."
 
 # Step 4: Enable + start the timer
-log "Step 4/7: systemctl --user enable --now felix-deployer.timer..."
+log "Step 4/6: systemctl --user enable --now felix-deployer.timer..."
 ssh "${SSH_OPTS[@]}" "$SSH_HOST" 'systemctl --user enable --now felix-deployer.timer'
 log "[OK]   Timer enabled and started."
 
-# Step 5: Register the openclaw DM-outbound cron for failure alerts
-# NOTE: openclaw cron edit surface has shifted across versions (see memory
-# reference_openclaw_upgrade_gotchas). If this fails, run `openclaw cron edit --help`
-# on office2 and adjust accordingly. The cron MUST be named felix-deployer-alert
-# and use the payload template at ${ALERT_TEMPLATE_REMOTE}.
-log "Step 5/7: registering openclaw cron '${OPENCLAW_CRON_NAME}'..."
-ssh -n "${SSH_OPTS[@]}" "$SSH_HOST" "openclaw cron edit ${OPENCLAW_CRON_NAME} --payload-template ${ALERT_TEMPLATE_REMOTE} --kind whatsapp-dm-outbound --schedule manual"
-log "[OK]   openclaw cron '${OPENCLAW_CRON_NAME}' registered."
-
-# Step 6: Post-flight — confirm the timer is actually active
-log "Step 6/7: post-flight — confirm felix-deployer.timer is active..."
+# Step 5: Post-flight — confirm the timer is actually active
+log "Step 5/6: post-flight — confirm felix-deployer.timer is active..."
 if ! ssh "${SSH_OPTS[@]}" "$SSH_HOST" 'systemctl --user status felix-deployer.timer' | grep -Eq 'active \((waiting|running)\)'; then
   err "[FAIL] felix-deployer.timer is not active on ${SSH_HOST}."
   err "       Investigate: ssh ${SSH_HOST} 'systemctl --user status felix-deployer.timer'"
@@ -256,19 +253,19 @@ if ! ssh "${SSH_OPTS[@]}" "$SSH_HOST" 'systemctl --user status felix-deployer.ti
 fi
 log "[OK]   felix-deployer.timer is active."
 
-# Step 7: Write the retroactive applied entry (T023)
+# Step 6: Write the retroactive applied entry
 # Constructs a Tier 1 manifest inline (verification block required by schema),
 # writes it via the canonical lib.applied CLI, then commits + pushes from office2.
-log "Step 7/7: writing retroactive applied entry deploys/applied/${APPLIED_NAME}.yaml..."
+log "Step 6/6: writing retroactive applied entry deploys/applied/${APPLIED_NAME}.yaml..."
 
 CREATED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 
 # The manifest is written to a temp file on office2 (the lib.applied CLI
 # requires --manifest <path>), then load + augment + write under
 # deploys/applied/. Tier 1 schema requires a verification block.
-ssh "${SSH_OPTS[@]}" "$SSH_HOST" "cat > /tmp/bootstrap-felix-deployer-manifest.yaml" <<EOF
+ssh "${SSH_OPTS[@]}" "$SSH_HOST" "cat > /tmp/bootstrap-felix-deployer-v2-manifest.yaml" <<EOF
 schema_version: v1
-name: bootstrap-felix-deployer
+name: bootstrap-felix-deployer-v2
 issue: ${ISSUE_REF}
 tier: 1
 entrypoint: scripts/deploy/deploy-felix-deployer-bootstrap.sh
@@ -276,19 +273,26 @@ audited_surface: true
 verification:
   pre:
     - test -f scripts/deploy/felix-deployer/deployer.py
-    - openclaw cron list --json
   post:
     - systemctl --user is-active felix-deployer.timer
     - test -f ${REMOTE_SYSTEMD_USER_DIR}/felix-deployer.service
 notes: |
-  Bootstrap deploy of felix-deployer itself. First-ever applied manifest
-  under the discipline. Written retroactively by
-  scripts/deploy/deploy-felix-deployer-bootstrap.sh on first --apply run.
+  Bootstrap re-apply of felix-deployer with the ntfy.sh substrate fix
+  (kentonium3/kg-automation#595). Supersedes
+  deploys/applied/0001-bootstrap-felix-deployer.yaml, which records the
+  original partial-applied state when step 5 (openclaw cron registration
+  with non-existent flags) failed. The original 0001 entry is preserved
+  verbatim as the historical record of the broken-bootstrap event.
+
+  This v2 bootstrap is the first successful clean apply of felix-deployer
+  with the ntfy.sh failure-notification substrate. ntfy topic provisioning
+  (FELIX_DEPLOYER_NTFY_TOPIC env var via /home/claude/.config/felix-deployer/env)
+  is operator-driven, NOT part of this bootstrap.
 created_at: "${CREATED_AT}"
 created_by: operator-bootstrap
 EOF
 
-ssh "${SSH_OPTS[@]}" "$SSH_HOST" "cd ${REMOTE_REPO} && python3 -m scripts.deploy.lib.applied write_applied --manifest /tmp/bootstrap-felix-deployer-manifest.yaml --apply-mode bootstrap"
+ssh "${SSH_OPTS[@]}" "$SSH_HOST" "cd ${REMOTE_REPO} && python3 -m scripts.deploy.lib.applied write_applied --manifest /tmp/bootstrap-felix-deployer-v2-manifest.yaml --apply-mode bootstrap"
 log "[OK]   Applied entry written."
 
 # Commit + push the new applied entry from office2 (uses claude user's git config).
@@ -296,7 +300,7 @@ ssh "${SSH_OPTS[@]}" "$SSH_HOST" "cd ${REMOTE_REPO} && git add deploys/applied/$
 log "[OK]   Applied entry committed and pushed."
 
 # Cleanup the temp manifest.
-ssh "${SSH_OPTS[@]}" "$SSH_HOST" 'rm -f /tmp/bootstrap-felix-deployer-manifest.yaml'
+ssh "${SSH_OPTS[@]}" "$SSH_HOST" 'rm -f /tmp/bootstrap-felix-deployer-v2-manifest.yaml'
 
 log ""
 log "===== APPLY COMPLETE ====="

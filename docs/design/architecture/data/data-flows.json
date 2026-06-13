@@ -1404,12 +1404,45 @@
         },
         {
           "from": "felix-deployer (office2)",
-          "to": "Kent (WhatsApp)",
-          "protocol": "openclaw send --channel whatsapp",
-          "description": "Failure path emits a WhatsApp DM summarizing the failed manifest and error class. No DM is sent on success."
+          "to": "Kent (ntfy phone app)",
+          "protocol": "HTTPS POST to https://ntfy.sh/<topic>",
+          "description": "Failure path emits an ntfy.sh push notification summarizing the failed manifest and error class. Substrate updated by kentonium3/kg-automation#595 (felix-deployer-ntfy-failure-notifications-01KTZ76F); previously routed via openclaw send --channel whatsapp (broken: CLI flags assumed by the bootstrap never existed). Wire-shape contract at kitty-specs/felix-deployer-ntfy-failure-notifications-01KTZ76F/contracts/ntfy-notification-v1.md. No notification is sent on success."
         }
       ],
       "purpose": "Provide a pull-based, manifest-driven deploy pipeline for office2-side services so deploys are committed to main, audit-trailed, and reversible — replacing the historical Mac-push scp pattern for kg-automation-managed surfaces."
+    },
+    {
+      "name": "felix-deployer-ntfy-egress",
+      "status": "active",
+      "deployed_by": "felix-deployer-ntfy-failure-notifications-01KTZ76F (#595)",
+      "introduced_by": "felix-deployer-ntfy-failure-notifications-01KTZ76F (#595)",
+      "introduced_at": "2026-06-13",
+      "updated_by": "#595",
+      "last_updated_by": "#595",
+      "source": "felix-deployer (office2)",
+      "destination": "ntfy.sh (public hosted push service)",
+      "transport": "HTTPS POST via curl subprocess",
+      "frequency": "best-effort, only on deploy manifest failure (≤5/day expected)",
+      "payload": "plain UTF-8 body per ntfy-notification-v1 contract (manifest name, phase, tier, head SHA prefix, failed-at ISO timestamp, redacted error summary ≤500 chars); Title/Priority/Tags headers carry routing metadata",
+      "triggers": "deploy manifest fails apply (any phase: tier_guard, verification_pre, entrypoint, verification_post)",
+      "trigger": "deploy manifest fails apply",
+      "description": "Outbound HTTPS POST from the felix-deployer applier to https://ntfy.sh/${FELIX_DEPLOYER_NTFY_TOPIC}. Substrate chosen for failure-mode independence from openclaw/WhatsApp — a deploy failure that breaks the openclaw or WhatsApp paths must not also break the operator notification. Mirrors the security-monitor precedent (canonical ntfy substrate per memory ntfy_notification_pattern). Failure isolation: a notify dispatch error never crashes the applier tick; the on-disk failure record in deploys/failed/ remains the source of truth.",
+      "path": [
+        {
+          "from": "felix-deployer (office2)",
+          "to": "ntfy.sh public hosted service",
+          "protocol": "HTTPS POST (curl --max-time 10)",
+          "port": 443,
+          "description": "POST body is the rendered notification per ntfy-notification-v1 contract; curl --fail surfaces HTTP 4xx/5xx; on any dispatch failure the LibResult carries a closed-enum error_code (NTFY_MISSING_TOPIC / NTFY_CURL_MISSING / NTFY_SPAWN_FAILED / NTFY_TIMEOUT / NTFY_NETWORK_UNREACHABLE / NTFY_HTTP_ERROR / NTFY_UNKNOWN)"
+        },
+        {
+          "from": "ntfy.sh hosted service",
+          "to": "Kent (ntfy phone app subscribed to topic)",
+          "protocol": "ntfy push (websocket / FCM)",
+          "description": "Operator subscribes their ntfy app to the private topic value; ntfy.sh fans out to subscribers. Operator-side topic subscription is out-of-band of this mission."
+        }
+      ],
+      "purpose": "Deliver pull-based-deploy-pipeline failure alerts to the operator via a substrate that is failure-mode-independent of openclaw/WhatsApp, so a deploy failure that breaks those substrates does not also break the operator notification path."
     }
   ],
   "planned_flows": [

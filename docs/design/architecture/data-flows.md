@@ -628,6 +628,40 @@ was the regression #588 was filed to address. Authoritative JSON: see
 Troubleshooting: see the DM-reply section of
 [`docs/runbooks/openclaw-agent-setup.md`](<../../runbooks/openclaw-agent-setup.md>).
 
+### Felix-deployer ntfy egress (felix-deployer-ntfy-failure-notifications-01KTZ76F, #595)
+
+```
+felix-deployer (office2) → HTTPS POST https://ntfy.sh/<topic> → Kent (ntfy phone app)
+```
+
+Outbound HTTPS POST from the felix-deployer applier to ntfy.sh whenever a queued
+deploy manifest fails apply (any phase). Wire shape per
+[`kitty-specs/felix-deployer-ntfy-failure-notifications-01KTZ76F/contracts/ntfy-notification-v1.md`](<../../../kitty-specs/felix-deployer-ntfy-failure-notifications-01KTZ76F/contracts/ntfy-notification-v1.md>):
+title `felix-deployer failed: <manifest_name>`, body carries phase + tier +
+head SHA prefix + failed-at ISO timestamp + redacted error summary (≤500 chars,
+secrets redacted BEFORE truncation). Curl `--max-time 10`.
+
+**Substrate rationale**: chosen for failure-mode independence from openclaw/WhatsApp
+— a deploy failure that breaks the openclaw or WhatsApp paths must not also break
+the operator notification. Mirrors the security-monitor precedent. Failure isolation
+invariant: a dispatch error never crashes the applier tick; the on-disk failure
+record in `deploys/failed/<manifest>/` remains the source of truth.
+
+The private topic value is provisioned out-of-band on office2 at
+`/home/claude/.config/felix-deployer/env` and exported into the
+`felix-deployer.service` process environment via `EnvironmentFile=-`. If the
+file is missing, the dispatcher returns `LibResult(ok=False, error_code="NTFY_MISSING_TOPIC")`
+without invoking curl. See
+[`scripts/deploy/felix-deployer/env.sample`](<../../../scripts/deploy/felix-deployer/env.sample>)
+for the operator setup procedure.
+
+This egress flow **replaces** the broken openclaw-cron WhatsApp DM dispatch
+that shipped with the parent mission (`pull-based-deploy-pipeline-01KTYQQS`,
+#136). The original DM path assumed openclaw 2026.6.5 CLI flags
+(`--payload-file`, `--payload-template`, `--kind`, `--schedule manual`) that do
+not exist; the applier shipped live on office2 with the notify path silently
+failing.
+
 ## Planned Flows (Not Yet Implemented)
 
 | Flow | Features | Description |

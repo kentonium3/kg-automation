@@ -115,7 +115,7 @@ The two tokens are distinct identities; office2 never holds a copy of
 
 ### 6. systemd `EnvironmentFile` injection
 
-Used by: `openclaw-gateway-env`
+Used by: `openclaw-gateway-env`, `felix-deployer-ntfy-topic`
 
 Plain `KEY=VALUE` env-files consumed by systemd `EnvironmentFile=` directives
 in drop-in configs under `~/.config/systemd/user/<service>.service.d/`. The
@@ -138,6 +138,16 @@ for the full operational context and the regeneration command.
 The mechanism is distinct from §3 (scoped plaintext files read by skills via
 `cat`) and from §1 (gog's own auth store) — it specifically bridges the
 systemd-services-don't-see-bashrc gap.
+
+`felix-deployer-ntfy-topic` (added by #595) uses the same mechanism via
+`EnvironmentFile=-/home/claude/.config/felix-deployer/env` (leading-dash form;
+non-fatal if the file is missing). The file carries `FELIX_DEPLOYER_NTFY_TOPIC`
+— a private ntfy.sh topic identifier consumed by
+`scripts/deploy/felix-deployer/notify.py` for failure notifications.
+Mode 0640. Provisioned out-of-band on office2; template at
+[`scripts/deploy/felix-deployer/env.sample`](<../../../scripts/deploy/felix-deployer/env.sample>).
+Publish-only secret: knowing the topic enables passive listening to failure
+alerts but cannot be used to impersonate the service.
 
 ### 7. GitHub Actions secret storage
 
@@ -259,6 +269,7 @@ graph TD
 | `kg-felix-bot-pat` | classic PAT | gh CLI auth store — `/home/claude/.config/gh/hosts.yml` | `felix-doc-auditor` (git push, `gh` CLI), `felix-core-digest-signals` (deterministic signal filer in `tick.py` → `felix-file-issue.py`; #490), future Felix agents |
 | `kentonium3-gh-oauth` | OAuth app token | gh CLI auth store — macOS Keychain (managed by `gh` CLI on Mac) | Kent's manual git + `gh` CLI from Mac |
 | `kg-felix-bot-project-sync-pat` | classic PAT (scope=project only) | GitHub Actions secret `PROJECT_SYNC_PAT` on `kentonium3/kg-automation` | `spec-lifecycle.yml` `priority-field-sync` job (#523) — mirrors P1-* / P2-* / P3-* labels to the Felix Roadmap project's Priority field via GraphQL |
+| `felix-deployer-ntfy-topic` | env-file (publish-only topic id) | systemd `EnvironmentFile=-` — `/home/claude/.config/felix-deployer/env` (mode 0640, claude:claude); template at `scripts/deploy/felix-deployer/env.sample`; **never committed** | `felix-deployer.service` — provides `FELIX_DEPLOYER_NTFY_TOPIC` to `scripts/deploy/felix-deployer/notify.py` for failure-notification dispatch to ntfy.sh (#595). Rotate only on suspected leak. |
 
 ---
 

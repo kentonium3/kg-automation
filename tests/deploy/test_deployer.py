@@ -5,10 +5,10 @@ Five canonical scenarios per WP04 T021:
 1. ``tick_no_queue_no_pull`` — empty queue → only tick_start/queue_scanned/tick_complete logged.
 2. ``tick_git_pull_fails`` — git pull non-zero → tick_skip, no manifest processing.
 3. ``tick_successful_manifest`` — one valid manifest, entrypoint succeeds → applied entry written, queued path removed, commit issued.
-4. ``tick_failed_manifest_dispatches_dm`` — entrypoint fails → failure record written, notify.dispatch_failure_dm called with correct payload, manifest stays in queue.
+4. ``tick_failed_manifest_dispatches_notification`` — entrypoint fails → failure record written, notify.dispatch_failure_notification called with correct payload, manifest stays in queue.
 5. ``tick_multiple_manifests_serial`` — three manifests, second fails → first applied, second failed, third still processed.
 
-Plus: DM dispatch failure does NOT crash the tick (T018 isolation
+Plus: notification dispatch failure does NOT crash the tick (T018 isolation
 contract). The tick must complete and emit ``tick_complete``.
 
 All subprocess interaction is mocked. We construct a real on-disk
@@ -219,11 +219,11 @@ def _git_mock(
 
 def test_tick_no_queue_no_pull(fake_repo, log_dir, monkeypatch):
     monkeypatch.setattr(tick, "_git", _git_mock())
-    # No DM should be invoked since there are no manifests.
+    # No notification should be invoked since there are no manifests.
     dispatched: list[dict] = []
     monkeypatch.setattr(
         notify,
-        "dispatch_failure_dm",
+        "dispatch_failure_notification",
         lambda **kw: dispatched.append(kw) or None,
     )
 
@@ -238,7 +238,7 @@ def test_tick_no_queue_no_pull(fake_repo, log_dir, monkeypatch):
     # queue_scanned reports count=0.
     scanned = next(e for e in events if e["event"] == "queue_scanned")
     assert scanned["count"] == 0
-    # No DM dispatched.
+    # No notification dispatched.
     assert dispatched == []
 
 
@@ -252,7 +252,7 @@ def test_tick_git_pull_fails(fake_repo, log_dir, monkeypatch):
     dispatched: list[dict] = []
     monkeypatch.setattr(
         notify,
-        "dispatch_failure_dm",
+        "dispatch_failure_notification",
         lambda **kw: dispatched.append(kw) or None,
     )
     # Drop a manifest so we can verify it was NOT processed.
@@ -284,7 +284,7 @@ def test_tick_successful_manifest(fake_repo, log_dir, monkeypatch):
     dispatched: list[dict] = []
     monkeypatch.setattr(
         notify,
-        "dispatch_failure_dm",
+        "dispatch_failure_notification",
         lambda **kw: dispatched.append(kw) or None,
     )
 
@@ -304,21 +304,21 @@ def test_tick_successful_manifest(fake_repo, log_dir, monkeypatch):
     applied_files = list((fake_repo / "deploys" / "applied").glob("*.yaml"))
     assert len(applied_files) == 1
     assert applied_files[0].name.startswith("0001-happy-path")
-    # No DM dispatched for success.
+    # No notification dispatched for success.
     assert dispatched == []
 
 
 # ---------------------------------------------------------------------------
-# Scenario 4: one failing manifest → DM dispatched, manifest stays in queue
+# Scenario 4: one failing manifest → notification dispatched, manifest stays in queue
 # ---------------------------------------------------------------------------
 
 
-def test_tick_failed_manifest_dispatches_dm(fake_repo, log_dir, monkeypatch):
+def test_tick_failed_manifest_dispatches_notification(fake_repo, log_dir, monkeypatch):
     monkeypatch.setattr(tick, "_git", _git_mock())
     dispatched: list[dict] = []
     monkeypatch.setattr(
         notify,
-        "dispatch_failure_dm",
+        "dispatch_failure_notification",
         lambda **kw: dispatched.append(kw) or None,
     )
 
@@ -355,13 +355,14 @@ def test_tick_failed_manifest_dispatches_dm(fake_repo, log_dir, monkeypatch):
     assert failure["phase"] in ("entrypoint_apply", "entrypoint_dry_run", "entrypoint")
     assert "error_summary" in failure
 
-    # DM dispatched exactly once with the failed manifest + a DM-style phase.
+    # Notification dispatched exactly once with the failed manifest + a phase.
     assert len(dispatched) == 1
     call = dispatched[0]
     assert call["manifest"]["name"] == "broken-deploy"
-    # Tick passes the apply.PHASE_* value verbatim; the openclaw cron
-    # receiver maps it via the dm-payload-v1 contract. We assert here
-    # only that a phase is present and is one of apply.PHASE_*.
+    # Tick passes the apply.PHASE_* value verbatim; the ntfy-notification-v1
+    # contract documents the 4-value collapse but _tick.py forwards the
+    # raw 7-value enum. We assert here only that a phase is present and is
+    # one of apply.PHASE_*.
     assert call["phase"] in (
         "entrypoint_apply",
         "entrypoint_dry_run",
@@ -379,7 +380,7 @@ def test_tick_multiple_manifests_serial(fake_repo, log_dir, monkeypatch):
     dispatched: list[dict] = []
     monkeypatch.setattr(
         notify,
-        "dispatch_failure_dm",
+        "dispatch_failure_notification",
         lambda **kw: dispatched.append(kw) or None,
     )
 
@@ -425,25 +426,25 @@ def test_tick_multiple_manifests_serial(fake_repo, log_dir, monkeypatch):
     failed_files = list((fake_repo / "deploys" / "failed").glob("b-broken-*.yaml"))
     assert len(failed_files) == 1
 
-    # DM dispatched exactly once (for the middle failure).
+    # Notification dispatched exactly once (for the middle failure).
     assert len(dispatched) == 1
     assert dispatched[0]["manifest"]["name"] == "b-broken"
 
 
 # ---------------------------------------------------------------------------
-# DM dispatch failure isolation (WP04 reviewer guidance #2 + #4):
-# the tick MUST NOT crash if openclaw cron run raises.
+# Notification dispatch failure isolation (WP04 reviewer guidance #2 + #4):
+# the tick MUST NOT crash if dispatch_failure_notification raises.
 # ---------------------------------------------------------------------------
 
 
-def test_tick_continues_when_dm_dispatch_raises(fake_repo, log_dir, monkeypatch):
+def test_tick_continues_when_notification_dispatch_raises(fake_repo, log_dir, monkeypatch):
     monkeypatch.setattr(tick, "_git", _git_mock())
 
     # notify raises an arbitrary exception — the tick must absorb it.
     def _exploding_dispatch(**kw):
-        raise RuntimeError("openclaw socket dead")
+        raise RuntimeError("ntfy curl socket dead")
 
-    monkeypatch.setattr(notify, "dispatch_failure_dm", _exploding_dispatch)
+    monkeypatch.setattr(notify, "dispatch_failure_notification", _exploding_dispatch)
 
     ep = _write_entrypoint(
         fake_repo,
@@ -471,22 +472,22 @@ def test_tick_continues_when_dm_dispatch_raises(fake_repo, log_dir, monkeypatch)
 
 
 # ---------------------------------------------------------------------------
-# DM dispatch returning a non-ok LibResult also does not propagate.
+# Notification dispatch returning a non-ok LibResult also does not propagate.
 # ---------------------------------------------------------------------------
 
 
-def test_tick_continues_when_dm_dispatch_returns_failure(fake_repo, log_dir, monkeypatch):
+def test_tick_continues_when_notification_dispatch_returns_failure(fake_repo, log_dir, monkeypatch):
     monkeypatch.setattr(tick, "_git", _git_mock())
 
     from scripts.deploy.lib import LibResult
 
     monkeypatch.setattr(
         notify,
-        "dispatch_failure_dm",
+        "dispatch_failure_notification",
         lambda **kw: LibResult(
             ok=False,
-            summary="openclaw rc=3",
-            details={"error_code": "DISPATCH_FAILED", "returncode": 3},
+            summary="ntfy: curl failed (rc=22)",
+            details={"error_code": "NTFY_HTTP_ERROR", "returncode": 22},
         ),
     )
 
@@ -516,7 +517,7 @@ def test_tick_log_is_valid_jsonl(fake_repo, log_dir, monkeypatch):
     monkeypatch.setattr(tick, "_git", _git_mock())
     monkeypatch.setattr(
         notify,
-        "dispatch_failure_dm",
+        "dispatch_failure_notification",
         lambda **kw: None,
     )
 
@@ -535,14 +536,14 @@ def test_tick_log_is_valid_jsonl(fake_repo, log_dir, monkeypatch):
 # ---------------------------------------------------------------------------
 
 
-def test_phase_to_dm_phase_collapses_to_4_values():
+def test_phase_to_notify_phase_collapses_to_4_values():
     from scripts.deploy.lib import apply as _apply
 
-    expected_dm_phases = {"tier_guard", "verification_pre", "entrypoint", "verification_post"}
-    mapped = set(tick.PHASE_TO_DM_PHASE.values())
-    assert mapped == expected_dm_phases
+    expected_notify_phases = {"tier_guard", "verification_pre", "entrypoint", "verification_post"}
+    mapped = set(tick.PHASE_TO_NOTIFY_PHASE.values())
+    assert mapped == expected_notify_phases
     # Every apply phase (except 'complete') is covered.
     for phase in _apply.PHASES:
         if phase == _apply.PHASE_COMPLETE:
             continue
-        assert phase in tick.PHASE_TO_DM_PHASE, f"missing mapping for {phase}"
+        assert phase in tick.PHASE_TO_NOTIFY_PHASE, f"missing mapping for {phase}"

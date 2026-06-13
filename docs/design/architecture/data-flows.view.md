@@ -138,12 +138,27 @@ graph LR
             wa_subagent["felix-admin-* subagent<br/>(habits / tasker / escalation /<br/>calendar / capture)"]
             wa_channel_send["openclaw-gateway<br/>channel-send subsystem<br/>(WhatsApp plugin)"]
         end
+
+        subgraph felix_deployer["Felix-Deployer Failure Notification (#595 — felix-deployer-ntfy-failure-notifications-01KTZ76F)"]
+            fd_applier["felix-deployer applier<br/>(systemd-timer, 5-min)"]
+            fd_notify["scripts/deploy/felix-deployer/<br/>notify.py<br/>(curl subprocess)"]
+            fd_env_file[("env file<br/>/home/claude/.config/<br/>felix-deployer/env<br/>(FELIX_DEPLOYER_NTFY_TOPIC)")]
+            fd_failed_dir[("deploys/failed/<br/>(source of truth)")]
+        end
     end
 
     subgraph external["External"]
         anthropic_api["Anthropic API<br/>api.anthropic.com"]
         gh_api["GitHub<br/>(via gh CLI)"]
+        ntfy_sh["ntfy.sh<br/>(hosted push service)"]
+        phone_ntfy["Kent (ntfy phone app<br/>subscribed to private topic)"]
     end
+
+    fd_applier -->|"on manifest apply failure"| fd_notify
+    fd_applier -->|"writes failure record (source of truth)"| fd_failed_dir
+    fd_env_file -.->|"EnvironmentFile=-<br/>(non-fatal if missing)"| fd_applier
+    fd_notify -->|"HTTPS POST (curl --max-time 10)<br/>per ntfy-notification-v1 contract"| ntfy_sh
+    ntfy_sh -->|"ntfy push (websocket / FCM)"| phone_ntfy
 
     browser -->|"HTTPS via Tailscale Serve"| vikunja_ui
     vikunja_ui --> vikunja_db
