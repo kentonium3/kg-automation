@@ -5,21 +5,20 @@ dependencies:
 - WP02
 requirement_refs:
 - FR-011
-- SC-006
 tracker_refs:
-- "kentonium3/kg-automation#595"
+- kentonium3/kg-automation#595
 planning_base_branch: main
 merge_target_branch: main
-branch_strategy: Planning artifacts for this mission were generated on the coordination branch (per #1716 split-authority workaround). During /spec-kitty.implement this WP runs in a per-lane worktree under .worktrees/. Completed changes merge into main via /spec-kitty.merge.
+branch_strategy: Planning artifacts for this mission were generated on main. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into main unless the human explicitly redirects the landing branch.
 subtasks:
 - T010
 - T011
 - T012
 - T013
 - T014
+agent: claude
+history: []
 agent_profile: implementer-ivan
-role: implementer
-agent: "claude"
 authoritative_surface: docs/design/
 execution_mode: code_change
 mission_slug: felix-deployer-ntfy-failure-notifications-01KTZ76F
@@ -32,6 +31,7 @@ owned_files:
 - docs/design/architecture/service-inventory.md
 - docs/design/architecture/credentials-and-secrets.md
 - docs/design/felix-capability-roadmap.md
+role: implementer
 tags: []
 ---
 
