@@ -1,6 +1,6 @@
 ---
 work_package_id: WP01
-title: "Apply canonical Hard rule #1 across 4 AGENTS.md files"
+title: 'Apply canonical Hard rule #1 across 4 AGENTS.md files'
 dependencies: []
 requirement_refs:
 - C-005
