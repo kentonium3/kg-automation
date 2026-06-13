@@ -20,10 +20,10 @@
 | T003 | Extend `tests/deploy/test_notify.py` with each failure-mode error_code (NTFY_MISSING_TOPIC, NTFY_CURL_MISSING, NTFY_SPAWN_FAILED, NTFY_TIMEOUT, NTFY_NETWORK_UNREACHABLE, NTFY_HTTP_ERROR, NTFY_UNKNOWN) | WP01 | [P] vs T002 |
 | T004 | Update `scripts/deploy/felix-deployer/_tick.py` to call `dispatch_failure_notification` and rename `PHASE_TO_DM_PHASE` → `PHASE_TO_NOTIFY_PHASE` | WP01 | |
 | T005 | Update `tests/deploy/test_deployer.py` for renamed symbols and the new mock-target path | WP01 | |
-| T006 | Add `EnvironmentFile=-/home/claude/.config/felix-deployer/env` to `scripts/deploy/felix-deployer/felix-deployer.service` | WP02 | |
-| T007 | Strip step 5 (openclaw cron registration) from `scripts/deploy/deploy-felix-deployer-bootstrap.sh`; renumber subsequent steps and update header docs | WP02 | |
-| T008 | Update `--apply` mode of `deploy-felix-deployer-bootstrap.sh` to write `deploys/applied/0002-bootstrap-felix-deployer-v2.yaml` with `notes` referencing 0001 as superseded | WP02 | |
-| T009 | Add `scripts/deploy/felix-deployer/env.sample` template with `FELIX_DEPLOYER_NTFY_TOPIC=` placeholder and operator-facing comments | WP02 | |
+| T006 | Add `EnvironmentFile=-/home/claude/.config/felix-deployer/env` to `scripts/deploy/felix-deployer/felix-deployer.service` | WP02 | | [D] |
+| T007 | Strip step 5 (openclaw cron registration) from `scripts/deploy/deploy-felix-deployer-bootstrap.sh`; renumber subsequent steps and update header docs | WP02 | | [D] |
+| T008 | Update `--apply` mode of `deploy-felix-deployer-bootstrap.sh` to write `deploys/applied/0002-bootstrap-felix-deployer-v2.yaml` with `notes` referencing 0001 as superseded | WP02 | | [D] |
+| T009 | Add `scripts/deploy/felix-deployer/env.sample` template with `FELIX_DEPLOYER_NTFY_TOPIC=` placeholder and operator-facing comments | WP02 | | [D] |
 | T010 | Update `docs/design/architecture/data/data-flows.json` — add `felix-deployer-ntfy-egress` outbound entry; validate against schema | WP03 | [P] vs T011/T012 |
 | T011 | Update `docs/design/architecture/data/service-inventory.json` — felix-deployer outbound dep on ntfy.sh; new env-file path | WP03 | [P] vs T010/T012 |
 | T012 | Update `docs/design/architecture/data/credential-manifest.json` — add `felix-deployer-ntfy-topic` env credential entry | WP03 | [P] vs T010/T011 |
