@@ -19,7 +19,7 @@ subtasks:
 - T007
 - T008
 - T009
-agent: claude
+agent: "claude"
 history: []
 agent_profile: implementer-ivan
 authoritative_surface: scripts/deploy/
@@ -31,6 +31,7 @@ owned_files:
 - scripts/deploy/deploy-felix-deployer-bootstrap.sh
 role: implementer
 tags: []
+shell_pid: "83864"
 ---
 
 ## ⚡ Do This First: Load Agent Profile
@@ -203,3 +204,7 @@ The trailing `=` with empty value makes the systemd unit treat it as set-to-empt
 - Confirm step renumbering is consistent across `usage()`, the file header, log lines, and `--dry-run` preview text.
 - Confirm `0002-bootstrap-felix-deployer-v2.yaml`'s `name:` field matches the file name minus the `0002-` prefix and the `.yaml` suffix.
 - Confirm `env.sample` has a meaningful operator-facing comment (the procedure to mint and install the real file) — the file is the only documentation of that procedure at the time WP02 ships (quickstart.md ships in this same mission but is a planning artifact, not visible to the deployed system).
+
+## Activity Log
+
+- 2026-06-13T01:46:19Z – claude – shell_pid=83864 – Assigned agent via action command
