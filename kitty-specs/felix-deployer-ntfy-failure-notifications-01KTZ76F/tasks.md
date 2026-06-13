@@ -24,11 +24,11 @@
 | T007 | Strip step 5 (openclaw cron registration) from `scripts/deploy/deploy-felix-deployer-bootstrap.sh`; renumber subsequent steps and update header docs | WP02 | |
 | T008 | Update `--apply` mode of `deploy-felix-deployer-bootstrap.sh` to write `deploys/applied/0002-bootstrap-felix-deployer-v2.yaml` with `notes` referencing 0001 as superseded | WP02 | |
 | T009 | Add `scripts/deploy/felix-deployer/env.sample` template with `FELIX_DEPLOYER_NTFY_TOPIC=` placeholder and operator-facing comments | WP02 | |
-| T010 | Update `docs/design/architecture/data/data-flows.json` — add `felix-deployer-ntfy-egress` outbound entry; validate against schema | WP03 | [P] vs T011/T012 |
-| T011 | Update `docs/design/architecture/data/service-inventory.json` — felix-deployer outbound dep on ntfy.sh; new env-file path | WP03 | [P] vs T010/T012 |
-| T012 | Update `docs/design/architecture/data/credential-manifest.json` — add `felix-deployer-ntfy-topic` env credential entry | WP03 | [P] vs T010/T011 |
-| T013 | Update narrative markdown counterparts: `data-flows.md`, `data-flows.view.md`, `service-inventory.md`, `credentials-and-secrets.md` | WP03 | |
-| T014 | Update `docs/design/felix-capability-roadmap.md` — felix-deployer capability row reflects substrate swap | WP03 | |
+| T010 | Update `docs/design/architecture/data/data-flows.json` — add `felix-deployer-ntfy-egress` outbound entry; validate against schema | WP03 | [P] vs T011/T012 | [D] |
+| T011 | Update `docs/design/architecture/data/service-inventory.json` — felix-deployer outbound dep on ntfy.sh; new env-file path | WP03 | [P] vs T010/T012 | [D] |
+| T012 | Update `docs/design/architecture/data/credential-manifest.json` — add `felix-deployer-ntfy-topic` env credential entry | WP03 | [P] vs T010/T011 | [D] |
+| T013 | Update narrative markdown counterparts: `data-flows.md`, `data-flows.view.md`, `service-inventory.md`, `credentials-and-secrets.md` | WP03 | | [D] |
+| T014 | Update `docs/design/felix-capability-roadmap.md` — felix-deployer capability row reflects substrate swap | WP03 | | [D] |
 
 Total: 14 subtasks across 3 WPs.
 
