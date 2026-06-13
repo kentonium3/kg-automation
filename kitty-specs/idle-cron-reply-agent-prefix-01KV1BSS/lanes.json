@@ -1,0 +1,50 @@
+{
+  "version": 1,
+  "mission_slug": "idle-cron-reply-agent-prefix-01KV1BSS",
+  "mission_id": "01KV1BSS2A5085M762PQ7TYNPY",
+  "mission_branch": "kitty/mission-idle-cron-reply-agent-prefix-01KV1BSS-01KV1BSS",
+  "target_branch": "feat/idle-cron-reply-agent-prefix",
+  "lanes": [
+    {
+      "lane_id": "lane-a",
+      "wp_ids": [
+        "WP01"
+      ],
+      "write_scope": [
+        "scripts/openclaw/agents/felix-admin-capture/AGENTS.md",
+        "scripts/openclaw/agents/felix-admin-escalation/AGENTS.md",
+        "scripts/openclaw/agents/felix-admin-habits/AGENTS.md",
+        "scripts/openclaw/agents/felix-admin-tasker/AGENTS.md"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "artifact-rendering",
+        "legacy-cleanup",
+        "workspace"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    },
+    {
+      "lane_id": "lane-b",
+      "wp_ids": [
+        "WP02"
+      ],
+      "write_scope": [
+        "docs/design/architecture/service-inventory.md"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "tracker-integration",
+        "workspace"
+      ],
+      "depends_on_lanes": [
+        "lane-a"
+      ],
+      "parallel_group": 1
+    }
+  ],
+  "computed_at": "2026-06-13T23:31:34.349768+00:00",
+  "computed_from": "dependency_graph+ownership",
+  "planning_artifact_wps": []
+}

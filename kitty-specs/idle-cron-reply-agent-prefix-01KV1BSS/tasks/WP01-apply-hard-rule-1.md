@@ -18,7 +18,7 @@ tracker_refs:
 - kentonium3/kg-automation#592
 planning_base_branch: feat/idle-cron-reply-agent-prefix
 merge_target_branch: feat/idle-cron-reply-agent-prefix
-branch_strategy: Planning artifacts and code for this mission live on feat/idle-cron-reply-agent-prefix. During /spec-kitty.implement this WP may branch into a lane-specific worktree; completed changes must merge back into feat/idle-cron-reply-agent-prefix. The GitHub PR from feat/idle-cron-reply-agent-prefix to main is opened after spec-kitty.merge.
+branch_strategy: Planning artifacts for this mission were generated on feat/idle-cron-reply-agent-prefix. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into feat/idle-cron-reply-agent-prefix unless the human explicitly redirects the landing branch.
 subtasks:
 - T001
 - T002
