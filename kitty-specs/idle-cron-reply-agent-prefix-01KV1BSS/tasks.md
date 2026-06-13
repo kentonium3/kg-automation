@@ -35,7 +35,7 @@
 
 **Estimated prompt size**: ~420 lines (5 subtasks).
 
-**Requirement Refs**: FR-001, FR-002, FR-003, FR-004, FR-005, FR-006, FR-007, NFR-001, NFR-002, NFR-003, C-005
+**Requirements**: FR-001, FR-002, FR-003, FR-004, FR-005, FR-006, FR-007, NFR-001, NFR-002, NFR-003, C-005
 
 **Dependencies**: none.
 
@@ -70,7 +70,7 @@
 
 **Estimated prompt size**: ~430 lines (5 subtasks).
 
-**Requirement Refs**: FR-008, NFR-003, C-002, C-003, C-007, SC-001, SC-003, SC-005, SC-006
+**Requirements**: FR-008, NFR-003, C-002, C-003, C-007, SC-001, SC-003, SC-005, SC-006
 
 **Dependencies**: WP01.
 
