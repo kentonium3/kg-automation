@@ -1,0 +1,129 @@
+{
+  "cli_version": "3.2.0rc43",
+  "command_args": [
+    "doctor",
+    "mission-state",
+    "--fix",
+    "--mission",
+    "felix-deployer-ntfy-failure-notifications-01KTZ76F",
+    "--allow-dirty"
+  ],
+  "generated_ids": [
+    "2157a8e7a282c6ba"
+  ],
+  "manifest_path": ".kittify/migrations/mission-state/2157a8e7a282c6ba.json",
+  "missions": [
+    {
+      "file_changes": [
+        {
+          "new_sha256": "51c327dfe2cf5c90875121c10a1a42b54861fbb6c0bf385f6732b4e5bc7395fd",
+          "new_size": 14822,
+          "old_sha256": "512a9af937d889f2c4071e034f370d984f1471353978816c3a708c69a074ca60",
+          "old_size": 18442,
+          "path": "kitty-specs/felix-deployer-ntfy-failure-notifications-01KTZ76F/status.events.jsonl"
+        },
+        {
+          "new_sha256": "c3383a1f62a9a1b3384be37657278dcde5ad07196838a0f2a15fb027ca001b68",
+          "new_size": 3620,
+          "old_sha256": null,
+          "old_size": null,
+          "path": ".kittify/migrations/mission-state/quarantine/2157a8e7a282c6ba/felix-deployer-ntfy-failure-notifications-01KTZ76F/status.events.jsonl"
+        },
+        {
+          "new_sha256": "709b43e655512fe66dabd2cdbc2654c26723e6c7e1af911fe9272dd35c5161c7",
+          "new_size": 1097,
+          "old_sha256": "60ad5d3d7edd9c62f1dafa2da5835d5b97f85587e6ed9fe25dabeb4190a44f98",
+          "old_size": 1095,
+          "path": "kitty-specs/felix-deployer-ntfy-failure-notifications-01KTZ76F/status.json"
+        }
+      ],
+      "mission_id": "01KTZ76FE60RPNPQKKBK4ZTF46",
+      "mission_slug": "felix-deployer-ntfy-failure-notifications-01KTZ76F",
+      "quarantined_rows": 5,
+      "row_transformations": [
+        {
+          "actions": [
+            "quarantined_non_status_event"
+          ],
+          "artifact_path": "kitty-specs/felix-deployer-ntfy-failure-notifications-01KTZ76F/status.events.jsonl",
+          "event_id": "01KTZ76FKQW6233QAG2PF2XYEN",
+          "line_number": 1,
+          "new_sha256": null,
+          "old_sha256": "8f9824e8b37d1b4bd1ba33c8c25fd304c8effa57014278a2798180e5e3e25b00"
+        },
+        {
+          "actions": [
+            "quarantined_non_status_event"
+          ],
+          "artifact_path": "kitty-specs/felix-deployer-ntfy-failure-notifications-01KTZ76F/status.events.jsonl",
+          "event_id": "01KTZ76FKV6TJWD8CWAQ94SEAV",
+          "line_number": 2,
+          "new_sha256": null,
+          "old_sha256": "2783bbc361c681a35dc8e84c203f764d4dec53159d24a609f0a6aee74d936611"
+        },
+        {
+          "actions": [
+            "quarantined_non_status_event"
+          ],
+          "artifact_path": "kitty-specs/felix-deployer-ntfy-failure-notifications-01KTZ76F/status.events.jsonl",
+          "event_id": "01KTZ7HJJG1XPR0EWAZ4CJF3ET",
+          "line_number": 3,
+          "new_sha256": null,
+          "old_sha256": "6cfa29a78c6454bf5f8c4427fed5605c44239e534d8e5ce1e57aa8c8853ea44e"
+        },
+        {
+          "actions": [
+            "quarantined_non_status_event"
+          ],
+          "artifact_path": "kitty-specs/felix-deployer-ntfy-failure-notifications-01KTZ76F/status.events.jsonl",
+          "event_id": "01KTZ7HJJJPDD001EHHZJ3GE7Q",
+          "line_number": 4,
+          "new_sha256": null,
+          "old_sha256": "1860c3f204bc4c71fe8460b248be605d658ebb43cfe4d6a978800c51b8c9fd46"
+        },
+        {
+          "actions": [
+            "quarantined_non_status_event"
+          ],
+          "artifact_path": "kitty-specs/felix-deployer-ntfy-failure-notifications-01KTZ76F/status.events.jsonl",
+          "event_id": "01KTZ7VAHCZ8ZG70R6VANXEVVN",
+          "line_number": 5,
+          "new_sha256": null,
+          "old_sha256": "806db453e1b3b37ebfa0b8f5e9498e8edb074a3e2e5ee1c0eabe95dc5522acde"
+        }
+      ],
+      "status": "updated",
+      "validation_errors": []
+    }
+  ],
+  "policy": {
+    "ignored": [
+      "*.pyc",
+      ".git/",
+      ".worktrees/",
+      "__pycache__/"
+    ],
+    "optional": [
+      "kitty-specs/*/status.json"
+    ],
+    "tracked": [
+      ".kittify/migrations/mission-state/*.json",
+      "kitty-specs/*/meta.json",
+      "kitty-specs/*/status.events.jsonl",
+      "kitty-specs/*/status.json"
+    ]
+  },
+  "repo_head": "835b84b2616b474a4f406415f27be816b77abbe6",
+  "run_id": "2157a8e7a282c6ba",
+  "schema_version": "1.0.0",
+  "summary": {
+    "missions_error": 0,
+    "missions_total": 1,
+    "missions_unchanged": 0,
+    "missions_updated": 1,
+    "quarantined_rows": 5
+  },
+  "target_missions": [
+    "felix-deployer-ntfy-failure-notifications-01KTZ76F"
+  ]
+}
