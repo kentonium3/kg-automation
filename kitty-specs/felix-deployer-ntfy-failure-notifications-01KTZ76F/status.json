@@ -1,7 +1,7 @@
 {
-  "event_count": 10,
-  "last_event_id": "01KTZAH484PVRXD2KYP8RZM1B6",
-  "materialized_at": "2026-06-13T01:46:18.755725+00:00",
+  "event_count": 11,
+  "last_event_id": "01KTZAXYYV6QPVH9G4EDDHJ66Q",
+  "materialized_at": "2026-06-13T01:53:19.323953+00:00",
   "mission_number": "",
   "mission_slug": "felix-deployer-ntfy-failure-notifications-01KTZ76F",
   "mission_type": "software-dev",
@@ -11,8 +11,8 @@
     "canceled": 0,
     "claimed": 0,
     "done": 0,
-    "for_review": 0,
-    "in_progress": 1,
+    "for_review": 1,
+    "in_progress": 0,
     "in_review": 0,
     "planned": 1
   },
@@ -27,9 +27,9 @@
     "WP02": {
       "actor": "claude",
       "force_count": 0,
-      "lane": "in_progress",
-      "last_event_id": "01KTZAH484PVRXD2KYP8RZM1B6",
-      "last_transition_at": "2026-06-13T01:46:18.755725+00:00"
+      "lane": "for_review",
+      "last_event_id": "01KTZAXYYV6QPVH9G4EDDHJ66Q",
+      "last_transition_at": "2026-06-13T01:53:19.323953+00:00"
     },
     "WP03": {
       "actor": "finalize-tasks",
