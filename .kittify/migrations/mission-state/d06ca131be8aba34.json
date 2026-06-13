@@ -1,0 +1,64 @@
+{
+  "cli_version": "3.2.0rc43",
+  "command_args": [
+    "doctor",
+    "mission-state",
+    "--fix",
+    "--mission",
+    "felix-calendar-subagent-split-01KTT00X"
+  ],
+  "generated_ids": [
+    "7NB5Z9VEHCTCKXMAVAV7ASHF64",
+    "d06ca131be8aba34"
+  ],
+  "manifest_path": ".kittify/migrations/mission-state/d06ca131be8aba34.json",
+  "missions": [
+    {
+      "file_changes": [
+        {
+          "new_sha256": "adc6c6740f292cccafdd9a702fc01830867b5a2fe4f1ebd8ff091c470b6a8599",
+          "new_size": 354,
+          "old_sha256": null,
+          "old_size": null,
+          "path": "kitty-specs/felix-calendar-subagent-split-01KTT00X/meta.json"
+        }
+      ],
+      "mission_id": "7NB5Z9VEHCTCKXMAVAV7ASHF64",
+      "mission_slug": "felix-calendar-subagent-split-01KTT00X",
+      "quarantined_rows": 0,
+      "row_transformations": [],
+      "status": "updated",
+      "validation_errors": []
+    }
+  ],
+  "policy": {
+    "ignored": [
+      "*.pyc",
+      ".git/",
+      ".worktrees/",
+      "__pycache__/"
+    ],
+    "optional": [
+      "kitty-specs/*/status.json"
+    ],
+    "tracked": [
+      ".kittify/migrations/mission-state/*.json",
+      "kitty-specs/*/meta.json",
+      "kitty-specs/*/status.events.jsonl",
+      "kitty-specs/*/status.json"
+    ]
+  },
+  "repo_head": "5e2ec7cb98efc336e3449ac2e8d48a8855f442b5",
+  "run_id": "d06ca131be8aba34",
+  "schema_version": "1.0.0",
+  "summary": {
+    "missions_error": 0,
+    "missions_total": 1,
+    "missions_unchanged": 0,
+    "missions_updated": 1,
+    "quarantined_rows": 0
+  },
+  "target_missions": [
+    "felix-calendar-subagent-split-01KTT00X"
+  ]
+}
