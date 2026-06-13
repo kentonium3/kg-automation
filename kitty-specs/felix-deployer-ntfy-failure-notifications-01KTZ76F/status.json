@@ -2,7 +2,7 @@
   "event_count": 21,
   "last_event_id": "01KTZC6TFBCZ5NZM1FQQD88CS4",
   "materialized_at": "2026-06-13T02:15:38.219555+00:00",
-  "mission_number": "",
+  "mission_number": "75",
   "mission_slug": "felix-deployer-ntfy-failure-notifications-01KTZ76F",
   "mission_type": "software-dev",
   "summary": {

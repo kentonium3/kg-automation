@@ -1,0 +1,10 @@
+{
+  "created_at": "1970-01-01T00:00:00+00:00",
+  "friendly_name": "felix-calendar-subagent-split-01KTT00X",
+  "mission_id": "7NB5Z9VEHCTCKXMAVAV7ASHF64",
+  "mission_number": null,
+  "mission_slug": "felix-calendar-subagent-split-01KTT00X",
+  "mission_type": "software-dev",
+  "slug": "felix-calendar-subagent-split-01KTT00X",
+  "target_branch": "main"
+}

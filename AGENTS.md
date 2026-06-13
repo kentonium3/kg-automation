@@ -24,8 +24,7 @@ last_updated: '2026-06-05'
   context for kg-automation.
 
 <!-- spec-kitty:orientation -->
-**Spec Kitty v3.2.0rc43** — project: unknown (migration-required)
-⚠ Project migration required — run `spec-kitty upgrade` before using missions.
+**Spec Kitty v3.2.0rc43** — project: unknown (healthy)
 
 Two usage patterns:
 - **Full mission** (spec → plan → tasks → implement → review → merge):
