@@ -1,3 +1,4 @@
 anthropic>=0.103,<1.0
 pyyaml
 watchdog
+jsonschema>=4.0,<5.0

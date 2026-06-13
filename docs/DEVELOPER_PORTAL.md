@@ -140,6 +140,7 @@ local validation and CI.
 
 ### Dual-audience
 - [Agent Workspace Reconciliation](<./runbooks/agent-workspace-reconciliation.md>)
+- [Deploy Discipline (canonical)](<./runbooks/deploy/discipline.md>)
 - [Deployment Runbook](<./runbooks/deployment.md>)
 - [Doc Auditor Operations Runbook](<./runbooks/doc-auditor-ops.md>)
 - [Doc Maintenance](<./runbooks/doc-maintenance.md>)

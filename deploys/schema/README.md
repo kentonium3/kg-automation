@@ -1,3 +1,13 @@
+---
+title: Deploy Manifest Schema (v1)
+doc_type: reference
+status: approved
+audience: agents_and_humans
+owners: [kgale]
+last_validated: '2026-06-12'
+last_updated: '2026-06-12'
+---
+
 # Deploy Manifest Schema (v1)
 
 The deploy manifest is the single declarative artifact an operator or agent
