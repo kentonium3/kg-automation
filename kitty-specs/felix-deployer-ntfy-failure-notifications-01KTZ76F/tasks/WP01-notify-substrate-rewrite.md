@@ -260,3 +260,4 @@ If `test_deployer.py` mocks `dispatch_failure_dm`'s return shape, the new mock s
 - 2026-06-13T01:28:52Z – claude – shell_pid=78366 – Assigned agent via action command
 - 2026-06-13T01:38:38Z – claude – shell_pid=78366 – Ready for review — notify.py rewritten to ntfy.sh substrate, _tick.py + tests updated, 36 deploy tests pass, 3540 repo tests pass, no regressions. notify.py at 100% branch coverage. Stale docstring in deployer.py:6 left for WP02 (outside owned_files).
 - 2026-06-13T01:38:46Z – claude – shell_pid=81804 – Started review via action command
+- 2026-06-13T01:41:10Z – user – shell_pid=81804 – Review passed: all 8 anti-pattern items PASS; reviewer-guidance items all confirmed; 36 deploy tests pass, 3540 repo tests pass; notify.py at 100% statement+branch coverage (was 87%/75%); owned-files grep clean; stale docstring on deployer.py:6 noted for WP02 / follow-up.
