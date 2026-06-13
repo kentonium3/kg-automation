@@ -1,0 +1,38 @@
+schema_version: v1
+name: bootstrap-felix-deployer-v2
+issue: kentonium3/kg-automation#595
+tier: 1
+entrypoint: scripts/deploy/deploy-felix-deployer-bootstrap.sh
+audited_surface: true
+verification:
+  pre:
+  - test -f scripts/deploy/felix-deployer/deployer.py
+  post:
+  - systemctl --user is-active felix-deployer.timer
+  - test -f /home/claude/.config/systemd/user/felix-deployer.service
+notes: 'Bootstrap re-apply of felix-deployer with the ntfy.sh substrate fix
+
+  (kentonium3/kg-automation#595). Supersedes
+
+  deploys/applied/0001-bootstrap-felix-deployer.yaml, which records the
+
+  original partial-applied state when step 5 (openclaw cron registration
+
+  with non-existent flags) failed. The original 0001 entry is preserved
+
+  verbatim as the historical record of the broken-bootstrap event.
+
+
+  This v2 bootstrap is the first successful clean apply of felix-deployer
+
+  with the ntfy.sh failure-notification substrate. ntfy topic provisioning
+
+  (FELIX_DEPLOYER_NTFY_TOPIC env var via /home/claude/.config/felix-deployer/env)
+
+  is operator-driven, NOT part of this bootstrap.
+
+  '
+created_at: '2026-06-13T02:56:58Z'
+created_by: operator-bootstrap
+apply_mode: bootstrap
+applied_at: '2026-06-13T02:56:58Z'
