@@ -155,30 +155,5 @@
       "notes": "Forward commitment honored at /spec-kitty.merge time. CI's audited-surface-reminder workflow annotates the push as safety net."
     }
   ],
-  "negative_invariants": [
-    {
-      "invariant_id": "NI-001",
-      "description": "ntfy.sh dispatch failure NEVER crashes the felix-deployer applier tick.",
-      "evidence": "Tested by tests/deploy/test_deployer.py::test_tick_continues_when_notification_dispatch_raises (exception absorbed) and ::test_tick_continues_when_notification_dispatch_returns_failure.",
-      "pass_fail": "passed",
-      "verified_by": "claude",
-      "verified_at": "2026-06-13T02:00:00Z"
-    },
-    {
-      "invariant_id": "NI-002",
-      "description": "Importing the notify module has zero outbound side effects.",
-      "evidence": "Tested by tests/deploy/test_notify.py::test_import_no_side_effects which patches subprocess.run BEFORE re-importing notify.py, then asserts call count == 0.",
-      "pass_fail": "passed",
-      "verified_by": "claude",
-      "verified_at": "2026-06-13T02:00:00Z"
-    },
-    {
-      "invariant_id": "NI-003",
-      "description": "FELIX_DEPLOYER_NTFY_TOPIC is never committed to the repository.",
-      "evidence": "env.sample ships with empty assignment 'FELIX_DEPLOYER_NTFY_TOPIC='. Real env file lives only on office2.",
-      "pass_fail": "passed",
-      "verified_by": "claude",
-      "verified_at": "2026-06-13T02:00:00Z"
-    }
-  ]
+  "negative_invariants": []
 }
