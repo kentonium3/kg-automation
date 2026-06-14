@@ -17,7 +17,7 @@
   "created_at": "2026-06-13T20:46:59.662276+00:00",
   "friendly_name": "Prefix IDLE Cron Replies With Agent Slug",
   "mission_id": "01KV1BSS2A5085M762PQ7TYNPY",
-  "mission_number": null,
+  "mission_number": 77,
   "mission_slug": "idle-cron-reply-agent-prefix-01KV1BSS",
   "mission_type": "software-dev",
   "pr_bound": true,
