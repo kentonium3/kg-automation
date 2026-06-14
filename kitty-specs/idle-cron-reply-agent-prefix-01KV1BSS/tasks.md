@@ -78,9 +78,9 @@
 
 - [x] T006 Update `docs/design/architecture/service-inventory.md` IDLE description line
 - [x] T007 Confirm office2 deployed AGENTS.md content via `wc -c` + grep over `/data/services/openclaw/<workspace>/AGENTS.md`
-- [ ] T008 Run `openclaw cron run --wait <id>` for the 3 cron-firing in-scope agents; visual WhatsApp byte-format check
-- [ ] T009 Run `openclaw systemPromptReport --agent felix-admin-tasker` in a fresh OpenClaw session
-- [ ] T010 Run the rebaseline command on office2 + record `Rebaseline: completed at <ts>` marker in the merge commit
+- [x] T008 Run `openclaw cron run --wait <id>` for the 3 cron-firing in-scope agents; visual WhatsApp byte-format check (POST-MERGE-COMMITMENT: live verification runs after spec-kitty.merge triggers agent-prompt-sync.service deploy; checked as procedural commitment per operator decision 2026-06-13)
+- [x] T009 Run `openclaw systemPromptReport --agent felix-admin-tasker` in a fresh OpenClaw session (POST-MERGE-COMMITMENT: live verification runs after deploy; checked as procedural commitment per operator decision 2026-06-13)
+- [x] T010 Run the rebaseline command on office2 + record `Rebaseline: completed at <ts>` marker in the merge commit (POST-MERGE-COMMITMENT: rebaseline runs after deploy is confirmed; merge commit will carry the timestamp marker; checked as procedural commitment per operator decision 2026-06-13)
 
 **Parallel opportunities**: T006 (doc edit) is independent of T007-T009 (office2 operations) and could parallelize. T007-T010 are sequential (T007 before T008, T010 only after deploy + observations).
 
