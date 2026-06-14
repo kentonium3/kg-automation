@@ -4,12 +4,12 @@ artifact_type: spec-kitty.analysis-report
 command: /spec-kitty.analyze
 mission_slug: idle-cron-reply-agent-prefix-01KV1BSS
 mission_id: 01KV1BSS2A5085M762PQ7TYNPY
-generated_at: '2026-06-13T23:44:38.622507+00:00'
+generated_at: '2026-06-14T00:12:21.855060+00:00'
 analyzer_agent: unknown
 input_artifacts:
   spec.md:
     path: /Users/kentgale/repos/kg-automation/.worktrees/idle-cron-reply-agent-prefix-01KV1BSS-coord/kitty-specs/idle-cron-reply-agent-prefix-01KV1BSS/spec.md
-    sha256: 7e0de5b2c83eea8576a5a965767390ff78a34f06050f79f7cfce91165b1f6b5d
+    sha256: e877fe4ed8738ef4c4cea278604c331e46b4f36f5250622eafa07dd15539e91b
   plan.md:
     path: /Users/kentgale/repos/kg-automation/.worktrees/idle-cron-reply-agent-prefix-01KV1BSS-coord/kitty-specs/idle-cron-reply-agent-prefix-01KV1BSS/plan.md
     sha256: 72e3529ec1148716486c6350a5d2b7f48e2a8d1380850b69cc7c9ccd8d0b8db4
@@ -21,9 +21,9 @@ input_artifacts:
     sha256: 00830dc7171f8d0aa399e6296d25c4af74833f5da317c9d12b1401f2d2152688
 verdict: ready
 issue_counts:
-  high: 0
-  low: 2
   medium: 1
+  low: 2
+  high: 0
   critical: 0
   info: 0
 findings:
