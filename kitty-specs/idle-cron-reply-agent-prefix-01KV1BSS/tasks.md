@@ -76,8 +76,8 @@
 
 **Included subtasks**:
 
-- [ ] T006 Update `docs/design/architecture/service-inventory.md` IDLE description line
-- [ ] T007 Confirm office2 deployed AGENTS.md content via `wc -c` + grep over `/data/services/openclaw/<workspace>/AGENTS.md`
+- [x] T006 Update `docs/design/architecture/service-inventory.md` IDLE description line
+- [x] T007 Confirm office2 deployed AGENTS.md content via `wc -c` + grep over `/data/services/openclaw/<workspace>/AGENTS.md`
 - [ ] T008 Run `openclaw cron run --wait <id>` for the 3 cron-firing in-scope agents; visual WhatsApp byte-format check
 - [ ] T009 Run `openclaw systemPromptReport --agent felix-admin-tasker` in a fresh OpenClaw session
 - [ ] T010 Run the rebaseline command on office2 + record `Rebaseline: completed at <ts>` marker in the merge commit
