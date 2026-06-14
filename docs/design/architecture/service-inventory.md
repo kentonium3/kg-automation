@@ -236,7 +236,7 @@ Operator workflow: see `docs/runbooks/inbox-ops.md` §"When you see an 'Inbox qu
   6. Archives stale (>7 day) processed files to `{{VAULT_INBOX_PROCESSED}}`
   7. Returns a JSON result with unprocessed paths, parse_failures, dedup_skipped, marker_cleanup_needed, archived entries, and warnings
 
-  When the helper reports zero unprocessed files, zero parse failures, and zero markers to clean up, the agent replies with the single token `IDLE` and takes no further action.
+  When the helper reports zero unprocessed files, zero parse failures, and zero markers to clean up, the agent replies with the byte string `[felix-admin-capture]: IDLE` and takes no further action. (Per kentonium3/kg-automation#592, the same `[<agent-slug>]: IDLE` pattern applies across the four IDLE-emitting Felix sub-agents: `felix-admin-capture`, `felix-admin-habits`, `felix-admin-tasker`, `felix-admin-escalation`.)
 
   - **Language**: Python
   - **Dependencies**: `scripts/vault/paths.json`, `scripts/inbox/routing_log.py`
