@@ -314,8 +314,12 @@ plan MUST include a `deploys/queued/<name>.yaml` manifest entry. See
 [`docs/runbooks/deploy/discipline.md`](docs/runbooks/deploy/discipline.md)
 for the operational pattern and worked examples.
 
-The 7 pre-discipline scripts at `scripts/deploy/deploy-*.sh` are grandfathered
-and remain in use; sibling issue #548 handles their cleanup post-merge.
+The 7 pre-discipline deploy scripts named in #548 were archived to
+`docs/archive/scripts/deploy/` on 2026-06-13 (their missions had all merged
+and the scripts were one-shot wrappers). The only active `scripts/deploy/`
+entry now is `deploy-felix-deployer-bootstrap.sh` (the post-discipline
+canonical bootstrap that the manifest pipeline records as
+`deploys/applied/0002-bootstrap-felix-deployer-v2.yaml`).
 
 ## Documentation Standards
 
