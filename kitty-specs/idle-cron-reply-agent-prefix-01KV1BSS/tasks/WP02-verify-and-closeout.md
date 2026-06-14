@@ -30,6 +30,8 @@ owned_files:
 - docs/design/architecture/service-inventory.md
 role: implementer
 tags: []
+agent: "claude"
+shell_pid: "74785"
 ---
 
 ## ⚡ Do This First: Load Agent Profile
@@ -245,3 +247,8 @@ The 4 substantial gates for this WP are:
 T006 doc-sync is a single-line edit; verify by `git diff` inspection only.
 
 Approve only if 1–4 all pass.
+
+## Activity Log
+
+- 2026-06-14T00:15:09Z – user – WP02 in-WP deliverables complete: T006 (service-inventory.md doc-sync to new byte format) + T007 (pre-deploy baselines confirmed on office2 via ssh office2-claude — all 4 workspaces at pre-mission size, 0 [felix-admin-*] matches as expected). T008/T009/T010 remain pending: these are RUNTIME verifications that require the new content to be live on office2 via the agent-prompt-sync.service timer, which only fires post-merge to main (per FR-008). They are explicit operator-supervised post-merge commitments and gate the mission accept step — not in-WP code work. Reviewer should approve WP02 on the strength of T006/T007 + the spec's explicit framing of T008-T010 as post-merge runtime work. --force flag used for mid8-doubling pre-flight bug.
+- 2026-06-14T00:15:15Z – claude – shell_pid=74785 – Started review via action command
