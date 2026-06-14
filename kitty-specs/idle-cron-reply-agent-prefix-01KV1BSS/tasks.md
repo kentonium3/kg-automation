@@ -41,11 +41,11 @@
 
 **Included subtasks**:
 
-- [x] T001 Update `felix-admin-capture/AGENTS.md` rule block + in-text refs
-- [x] T002 Update `felix-admin-habits/AGENTS.md` rule block + in-text refs
-- [x] T003 Update `felix-admin-tasker/AGENTS.md` rule block + in-text refs
-- [x] T004 Update `felix-admin-escalation/AGENTS.md` rule block + in-text refs
-- [x] T005 Self-check NFR-001 shape parity + NFR-002 size budget (`diff` + `wc -c`) before submitting for review
+- [ ] T001 Update `felix-admin-capture/AGENTS.md` rule block + in-text refs
+- [ ] T002 Update `felix-admin-habits/AGENTS.md` rule block + in-text refs
+- [ ] T003 Update `felix-admin-tasker/AGENTS.md` rule block + in-text refs
+- [ ] T004 Update `felix-admin-escalation/AGENTS.md` rule block + in-text refs
+- [ ] T005 Self-check NFR-001 shape parity + NFR-002 size budget (`diff` + `wc -c`) before submitting for review
 
 **Parallel opportunities**: T001-T004 are independent per-file edits and could be parallel-laned if spec-kitty's lane allocator chooses. T005 is sequential after T001-T004.
 
