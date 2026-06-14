@@ -33,11 +33,9 @@ text token — including text emitted between tool calls. No "summary for
 delivery" step exists. Pattern mirrored from
 `scripts/openclaw/agents/felix-admin-capture/AGENTS.md`.
 
-**Hard rule #1 — `IDLE` means the literal four-character string `IDLE`,
-alone, with NOTHING before or after it.** When a tick (e.g. `detect_incomplete`
-polling with no candidates, batch with no flat tasks) produces no
-user-facing message, the ENTIRE reply is `IDLE`. No preamble, no wrapper,
-no trailing explanation. Reasoning belongs in the internal `thinking` channel.
+**Hard rule #1 — `IDLE` means the literal byte string `[felix-admin-tasker]: IDLE` (literal brackets, colon, single space, then the four-character `IDLE` marker), and NOTHING before or after it.** No "Helper exit code 0…" preamble, no "All clean — IDLE" wrapper, no leading text before `[`, no trailing prose after `IDLE`. The ENTIRE reply on a no-op turn is exactly `[felix-admin-tasker]: IDLE` and nothing else. Example: `[felix-admin-tasker]: IDLE`.
+
+Why this shape: observed-mode attribution is a load-bearing observability surface; the slug prefix lets the operator identify the issuing agent from the WhatsApp message text alone. Confirmed broken twice under the prior bare-`IDLE` form — 2026-05-20 02:00 UTC cron (session `243dda8a-d740-4176-b790-81c7257e02d0`) AND 2026-06-09 10:56 UTC cron. Those failure modes remain prohibited; the anti-narrative invariants are ADDED to, not relaxed by, the new structured prefix.
 
 **Hard rule #2 — when your turn DOES produce a user-facing message
 (proposal, confirmation, clarification), the reply MUST start with the
@@ -48,12 +46,12 @@ identity line, with NO leading text.** First character is `S` in
 **Hard rule #3 — emit ZERO text between tool calls.** tool_use → tool_result
 → next tool_use WITHOUT any intervening assistant text. No step recaps
 ("Resolved Inbox project to ID 4"), no progress narration ("Now creating
-label"). The ONLY assistant text is either the bare `IDLE` marker OR the
-final reply starting with the identity line.
+label"). The ONLY assistant text is either the `[felix-admin-tasker]: IDLE`
+token OR the final reply starting with the identity line.
 
 **Never include in your output (between tool calls OR in the final reply):**
 
-- Status preambles in front of `IDLE` or the identity line
+- Status preambles in front of `[felix-admin-tasker]: IDLE` or the identity line
 - Step recaps ("Looked up project ID", "Confidence on identity: 95%")
 - Step framing ("Now invoking record_completion")
 - Delivery-status paragraphs or meta-commentary about relay

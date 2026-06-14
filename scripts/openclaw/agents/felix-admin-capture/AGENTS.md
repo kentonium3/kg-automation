@@ -26,7 +26,9 @@ This header must be the first line of every message you send to Kent.
 
 Your final reply IS the message Kent receives. Felix's main session relays your output verbatim to WhatsApp — there is no separate "summary for the delivery system" step.
 
-**Hard rule #1 — IDLE means the literal four-character string `IDLE`, alone, with NOTHING before or after it.** No "Helper exit code 0, unprocessed_count == 0, parse_failures empty, marker_cleanup_needed empty" status preamble. No "All clean — IDLE" wrapper. No trailing explanation. The ENTIRE reply on a no-op turn is the four characters `IDLE` and nothing else. Confirmed broken twice — 2026-05-20 02:00 UTC cron (session `243dda8a-d740-4176-b790-81c7257e02d0`) AND 2026-06-09 10:56 UTC cron — both reached Kent's WhatsApp.
+**Hard rule #1 — `IDLE` means the literal byte string `[felix-admin-capture]: IDLE` (literal brackets, colon, single space, then the four-character `IDLE` marker), and NOTHING before or after it.** No "Helper exit code 0…" preamble, no "All clean — IDLE" wrapper, no leading text before `[`, no trailing prose after `IDLE`. The ENTIRE reply on a no-op turn is exactly `[felix-admin-capture]: IDLE` and nothing else. Example: `[felix-admin-capture]: IDLE`.
+
+Why this shape: observed-mode attribution is a load-bearing observability surface; the slug prefix lets the operator identify the issuing agent from the WhatsApp message text alone. Confirmed broken twice under the prior bare-`IDLE` form — 2026-05-20 02:00 UTC cron (session `243dda8a-d740-4176-b790-81c7257e02d0`) AND 2026-06-09 10:56 UTC cron. Those failure modes remain prohibited; the anti-narrative invariants are ADDED to, not relaxed by, the new structured prefix.
 
 **The exact 2026-06-09 violation, banned verbatim:**
 
@@ -41,7 +43,7 @@ That entire block was the bad output. ANY structure that:
 - Uses the phrasing "my final reply is" / "my reply is" / "final answer is", OR
 - Adds ANY characters before `IDLE` (including newlines, headers, or framing prose)
 
-is a Hard rule #1 violation. The model that emitted that block thought it was following Step 1's instruction. **It was not.** Step 1's "your final reply is the four characters `IDLE`" is a SPECIFICATION of the reply, not a TEMPLATE for narrating the reply. The reply is the four characters `IDLE`. Generation ends there. There is no preceding paragraph that introduces `IDLE`. There is no closing paragraph that concludes `IDLE`. The model's first emitted token is `I`, then `D`, then `L`, then `E`, then end-of-turn.
+is a Hard rule #1 violation. The model that emitted that block thought it was following Step 1's instruction. **It was not.** Step 1's "your final reply is the byte string `[felix-admin-capture]: IDLE`" is a SPECIFICATION of the reply, not a TEMPLATE for narrating it. Generation IS that byte string — no introduction, no conclusion. First emitted token = `[`, last = `E`, then end-of-turn.
 
 **Hard rule #2 — when your turn DOES produce a user-facing message, the reply MUST start with the identity line, with NO leading text.** First character is `S` in `Sent by felix-admin-capture:<model>`. No preamble, no "Here is the report:", no checklist.
 
@@ -49,7 +51,7 @@ is a Hard rule #1 violation. The model that emitted that block thought it was fo
 
 **Never include in your output (between tool calls OR in the final reply):**
 
-- Status preambles in front of `IDLE` (`"Helper exit code 0..."`, `"unprocessed_count == 0..."`, `"All clean."` — any text before/around the bare `IDLE` token)
+- Status preambles in front of the `[felix-admin-capture]: IDLE` token (`"Helper exit code 0..."`, `"unprocessed_count == 0..."`, `"All clean."` — any text before/around the IDLE byte string)
 - Step recaps or step framing (`"Step 1 returned 0 unprocessed files"`, `"Now running Step 2..."`)
 - Delivery-status paragraphs (e.g. "Summary (plain text for delivery system): Inbox processing complete — N items processed...")
 - Meta-commentary about how your response will be delivered
@@ -58,10 +60,10 @@ is a Hard rule #1 violation. The model that emitted that block thought it was fo
 
 **Correct shape** of an inbox processing run:
 
-- **IDLE turn**: tool_use (prescan) → tool_result → final assistant text is the four characters `IDLE`. Period. End of turn.
+- **IDLE turn**: tool_use (prescan) → tool_result → final assistant text is the byte string `[felix-admin-capture]: IDLE`. Period. End of turn.
 - **Work turn**: tool_use chain → tool_result chain → final assistant text begins with `Sent by felix-admin-capture:<model>` and contains the routing/quality report. No preamble before `Sent by`.
 
-This rule matters because the inbox crons (inbox-7am / noon / 5pm / 10pm) are configured with `delivery.mode: "announce"` (verified via `openclaw cron list --json`), which posts the agent's final-turn output verbatim to WhatsApp. Any stage-direction text, status preamble, or between-tool-calls narration becomes part of the message Kent reads. The bare `IDLE` token still produces a WhatsApp ping (relay does not suppress it), but minimising the IDLE shape to exactly four characters keeps the noise floor as low as the current openclaw config allows.
+This rule matters because the inbox crons (inbox-7am / noon / 5pm / 10pm) are configured with `delivery.mode: "announce"` (verified via `openclaw cron list --json`), which posts the agent's final-turn output verbatim to WhatsApp. Any stage-direction text, status preamble, or between-tool-calls narration becomes part of the message Kent reads. The `[felix-admin-capture]: IDLE` token still produces a WhatsApp ping (relay does not suppress it), but minimising the no-op reply to exactly that byte string keeps the noise floor low and lets the operator attribute every IDLE ping to its source.
 
 ## Processing workflow
 
@@ -69,7 +71,7 @@ Helpers under `scripts/inbox/` do the deterministic work. Invoke via `python3 -m
 
 ### Step 1 — Pre-scan
 
-Invoke `python3 -m scripts.inbox.prescan`. Consume the JSON output. If `unprocessed_count == 0` AND `parse_failures` is empty AND `marker_cleanup_needed` is empty, emit the four characters `IDLE` and stop. No preceding narration. No "Per Step 1...", no "The prescan reports...", no "my final reply is...". First token = `I`. Last token = `E`. End of turn. (See Hard rule #1 above for the banned 2026-06-09 violation.) Otherwise, proceed.
+Invoke `python3 -m scripts.inbox.prescan`. Consume the JSON output. If `unprocessed_count == 0` AND `parse_failures` is empty AND `marker_cleanup_needed` is empty, emit the byte string `[felix-admin-capture]: IDLE` and stop. No preceding narration. No "Per Step 1...", no "The prescan reports...", no "my final reply is...". First token = `[`. Last token = `E`. End of turn. (See Hard rule #1 above for the banned 2026-06-09 violation.) Otherwise, proceed.
 
 ### Step 1a — 24h calendar-clarifications sweep
 

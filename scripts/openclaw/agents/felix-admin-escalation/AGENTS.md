@@ -42,18 +42,11 @@ your output verbatim to WhatsApp — there is no separate "summary for the
 delivery system" step. This section mirrors the same three-rule pattern
 that lives in `felix-admin-habits` and `felix-admin-capture` AGENTS.md.
 
-**Hard rule #1 — `IDLE` means the literal four-character string `IDLE`,
-alone, with NOTHING before or after it.** When the tick produces no
-user-facing alert (no qualifying tasks, all candidates below threshold,
-silent-run scenario, etc.), the ENTIRE reply on that turn is the four
-characters `IDLE` and nothing else. No "Silent run." preamble, no "No
-qualifying tasks today" explanation, no "below the escalation threshold"
-justification, no "No WhatsApp message sent" status, no trailing `NOOP`
-marker. The agent's reasoning belongs in the internal `thinking` channel.
-Confirmed broken via 2026-05-22 (original #372 filing) and recurred
-2026-06-04 8:01a ET — both deliveries shipped prose decisions that
-contradicted themselves by claiming "No WhatsApp message sent" inside
-the WhatsApp message they were sending.
+**Hard rule #1 — `IDLE` means the literal byte string `[felix-admin-escalation]: IDLE` (literal brackets, colon, single space, then the four-character `IDLE` marker), and NOTHING before or after it.** No "Helper exit code 0…" preamble, no "All clean — IDLE" wrapper, no leading text before `[`, no trailing prose after `IDLE`. The ENTIRE reply on a no-op turn is exactly `[felix-admin-escalation]: IDLE` and nothing else. Example: `[felix-admin-escalation]: IDLE`.
+
+Why this shape: observed-mode attribution is a load-bearing observability surface; the slug prefix lets the operator identify the issuing agent from the WhatsApp message text alone. Confirmed broken twice under the prior bare-`IDLE` form — 2026-05-20 02:00 UTC cron (session `243dda8a-d740-4176-b790-81c7257e02d0`) AND 2026-06-09 10:56 UTC cron. Those failure modes remain prohibited; the anti-narrative invariants are ADDED to, not relaxed by, the new structured prefix.
+
+**Escalation-specific banned patterns** (preserved from prior incidents on this agent): no "Silent run." preamble, no "No qualifying tasks today" explanation, no "below the escalation threshold" justification, no "No WhatsApp message sent" status, no trailing `NOOP` marker. Local incidents: 2026-05-22 (original #372 filing) and 2026-06-04 8:01a ET both shipped prose decisions that contradicted themselves by claiming "No WhatsApp message sent" inside the WhatsApp message they were sending.
 
 **Hard rule #2 — when your turn DOES produce a user-facing alert, the
 reply MUST start with the identity line, with NO leading text.** First
@@ -67,8 +60,8 @@ chains tool_use → tool_result → next tool_use WITHOUT any intervening
 assistant text. No step recaps ("Reconcile sweep complete", "2
 candidates found"), no progress narration ("Now writing state log"), no
 JSONL-entry confirmations. The ONLY assistant text in the entire run is
-either the `IDLE` marker OR the final formatted alert starting with the
-identity line.
+either the `[felix-admin-escalation]: IDLE` token OR the final formatted
+alert starting with the identity line.
 
 **Never include in your output (between tool calls OR in the final reply):**
 
@@ -83,8 +76,8 @@ identity line.
 - Any text BEFORE the identity line in a user-facing reply
 
 **Correct shape**: tool_use → tool_result → tool_use → tool_result → … →
-final assistant text that is EITHER the bare four-character `IDLE`
-marker OR a reply starting with `Sent by`. Nothing else.
+final assistant text that is EITHER the byte string `[felix-admin-escalation]:
+IDLE` OR a reply starting with `Sent by`. Nothing else.
 
 This rule exists because earlier cron jobs ran with `delivery.mode:
 "announce"`, which posted the agent's raw output to WhatsApp and made the

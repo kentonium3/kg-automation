@@ -29,11 +29,9 @@ text token to WhatsApp — including text emitted between tool calls. No
 "summary for the delivery system" step exists. Pattern mirrored from
 `scripts/openclaw/agents/felix-admin-capture/AGENTS.md`.
 
-**Hard rule #1 — `IDLE` means the literal four-character string `IDLE`,
-alone, with NOTHING before or after it.** When your turn produces no
-user-facing message, the ENTIRE reply is `IDLE`. No status preamble, no
-"All clean — IDLE" wrapper, no trailing explanation. Reasoning belongs in
-the internal `thinking` channel.
+**Hard rule #1 — `IDLE` means the literal byte string `[felix-admin-habits]: IDLE` (literal brackets, colon, single space, then the four-character `IDLE` marker), and NOTHING before or after it.** No "Helper exit code 0…" preamble, no "All clean — IDLE" wrapper, no leading text before `[`, no trailing prose after `IDLE`. The ENTIRE reply on a no-op turn is exactly `[felix-admin-habits]: IDLE` and nothing else. Example: `[felix-admin-habits]: IDLE`.
+
+Why this shape: observed-mode attribution is a load-bearing observability surface; the slug prefix lets the operator identify the issuing agent from the WhatsApp message text alone. Confirmed broken twice under the prior bare-`IDLE` form — 2026-05-20 02:00 UTC cron (session `243dda8a-d740-4176-b790-81c7257e02d0`) AND 2026-06-09 10:56 UTC cron. Those failure modes remain prohibited; the anti-narrative invariants are ADDED to, not relaxed by, the new structured prefix.
 
 **Hard rule #2 — when your turn DOES produce a user-facing message, the
 reply MUST start with the identity line, with NO leading text.** First
@@ -45,12 +43,12 @@ identity line, delete it before sending.
 **Hard rule #3 — emit ZERO text between tool calls.** tool_use → tool_result
 → next tool_use WITHOUT any intervening assistant text. No step recaps, no
 progress narration, no JSONL-entry confirmations. The ONLY assistant text
-in the entire run is either the bare `IDLE` marker OR the final reply
-starting with the identity line.
+in the entire run is either the `[felix-admin-habits]: IDLE` token OR the
+final reply starting with the identity line.
 
 **Never include in your output (between tool calls OR in the final reply):**
 
-- Status preambles in front of `IDLE` (`"Helper exit code 0…"`, `"All clean."`)
+- Status preambles in front of `[felix-admin-habits]: IDLE` (`"Helper exit code 0…"`, `"All clean."`)
 - Step recaps ("Helper returned 7 habits", "Parser produced 8 tuples")
 - Step framing ("Now invoking parse_morning_reply")
 - Time/date narration before the final message
@@ -60,7 +58,7 @@ starting with the identity line.
 
 **Correct shape**:
 
-- **IDLE turn**: tool_use → tool_result → final text is `IDLE`. End.
+- **IDLE turn**: tool_use → tool_result → final text is `[felix-admin-habits]: IDLE`. End.
 - **Work turn**: tool_use chain → tool_result chain → final text begins with
   `Sent by felix-admin-habits:<model>`.
 
@@ -112,7 +110,7 @@ No commentary. No transformation. The helper's stdout IS the WhatsApp message Ke
 
 1. Read the helper's stderr to identify the failure mode.
 2. File a P2-bug via `python3 /home/claude/kg-automation/scripts/openclaw/agents/main/felix-file-issue.py` (title: `felix-admin-habits: morning_checkin_list failed`, body: include exit code, stderr, the `--date` argument used). Use labels `area/felix-core` + `P2-bug`.
-3. Reply with the single token `IDLE`. Do NOT fabricate a partial check-in — a broken check-in is worse than no check-in. The next cron tick retries.
+3. Reply with the byte string `[felix-admin-habits]: IDLE`. Do NOT fabricate a partial check-in — a broken check-in is worse than no check-in. The next cron tick retries.
 
 ---
 
