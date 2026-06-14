@@ -1,7 +1,7 @@
 {
-  "event_count": 7,
-  "last_event_id": "01KV1Q5ZSPC2MY3FS842FVM0JH",
-  "materialized_at": "2026-06-14T00:05:54.102391+00:00",
+  "event_count": 9,
+  "last_event_id": "01KV1QJ6984RBXRVRZ4V0CGGCB",
+  "materialized_at": "2026-06-14T00:12:33.920636+00:00",
   "mission_number": "",
   "mission_slug": "idle-cron-reply-agent-prefix-01KV1BSS",
   "mission_type": "software-dev",
@@ -12,9 +12,9 @@
     "claimed": 0,
     "done": 0,
     "for_review": 0,
-    "in_progress": 0,
+    "in_progress": 1,
     "in_review": 0,
-    "planned": 1
+    "planned": 0
   },
   "work_packages": {
     "WP01": {
@@ -25,11 +25,11 @@
       "last_transition_at": "2026-06-14T00:05:54.102391+00:00"
     },
     "WP02": {
-      "actor": "finalize-tasks",
+      "actor": "claude",
       "force_count": 0,
-      "lane": "planned",
-      "last_event_id": "01KV1N73YR3S097MXB5J832FXV",
-      "last_transition_at": "2026-06-13T23:31:33.976294+00:00"
+      "lane": "in_progress",
+      "last_event_id": "01KV1QJ6984RBXRVRZ4V0CGGCB",
+      "last_transition_at": "2026-06-14T00:12:33.920636+00:00"
     }
   }
 }
