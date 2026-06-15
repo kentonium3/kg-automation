@@ -1,25 +1,32 @@
 ---
-work_package_id: "WP05"
-title: "Cron reschedule via deploy manifest"
-subtasks: ["T020", "T021"]
-dependencies: ["WP04"]
-planning_base_branch: "main"
-merge_target_branch: "main"
-branch_strategy: "lane-from-coord"
-owned_files:
-  - "deploys/queued/reschedule-felix-admin-habits-weekly-cron.yaml"
-create_intent:
-  - "deploys/queued/reschedule-felix-admin-habits-weekly-cron.yaml"
-authoritative_surface: "deploys/queued/reschedule-felix-admin-habits-weekly-cron.yaml"
-execution_mode: "code_change"
-agent_profile: "implementer-ivan"
-role: "implementer"
-agent: "claude"
-requirement_refs: ["FR-001", "C-006"]
+work_package_id: WP05
+title: Cron reschedule via deploy manifest
+dependencies:
+- WP04
+requirement_refs:
+- FR-001
+- C-006
+tracker_refs: []
+planning_base_branch: main
+merge_target_branch: main
+branch_strategy: Planning artifacts for this mission were generated on main. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into main unless the human explicitly redirects the landing branch.
+subtasks:
+- T020
+- T021
+agent: claude
 history:
-  - at: "2026-06-15T02:33:00Z"
-    actor: "spec-kitty agent mission tasks"
-    event: "WP created from /spec-kitty.tasks"
+- at: '2026-06-15T02:33:00Z'
+  actor: spec-kitty agent mission tasks
+  event: WP created from /spec-kitty.tasks
+agent_profile: implementer-ivan
+authoritative_surface: deploys/queued/reschedule-felix-admin-habits-weekly-cron.yaml
+create_intent:
+- deploys/queued/reschedule-felix-admin-habits-weekly-cron.yaml
+execution_mode: code_change
+owned_files:
+- deploys/queued/reschedule-felix-admin-habits-weekly-cron.yaml
+role: implementer
+tags: []
 ---
 
 ## ⚡ Do This First: Load Agent Profile
