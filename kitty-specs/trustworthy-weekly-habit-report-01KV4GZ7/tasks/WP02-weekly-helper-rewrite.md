@@ -1,24 +1,44 @@
 ---
-work_package_id: "WP02"
-title: "Weekly helper rewrite (canonical-read + rendering)"
-subtasks: ["T006", "T007", "T008", "T009", "T010", "T011"]
-dependencies: ["WP01"]
-planning_base_branch: "main"
-merge_target_branch: "main"
-branch_strategy: "lane-from-coord"
-owned_files:
-  - "scripts/habits/query_active_habits_weekly.py"
-  - "tests/habits/test_query_active_habits_weekly.py"
-authoritative_surface: "scripts/habits/query_active_habits_weekly.py"
-execution_mode: "code_change"
-agent_profile: "implementer-ivan"
-role: "implementer"
-agent: "claude"
-requirement_refs: ["FR-002", "FR-005", "FR-006", "FR-007", "FR-009", "FR-010", "NFR-001", "NFR-004", "NFR-005", "SC-001", "SC-002", "SC-004"]
+work_package_id: WP02
+title: Weekly helper rewrite (canonical-read + rendering)
+dependencies:
+- WP01
+requirement_refs:
+- FR-002
+- FR-005
+- FR-006
+- FR-007
+- FR-008
+- FR-009
+- FR-010
+- NFR-001
+- NFR-004
+- NFR-005
+tracker_refs: []
+planning_base_branch: main
+merge_target_branch: main
+branch_strategy: lane-from-coord
+subtasks:
+- T006
+- T007
+- T008
+- T009
+- T010
+- T011
+agent: claude
 history:
-  - at: "2026-06-15T02:33:00Z"
-    actor: "spec-kitty agent mission tasks"
-    event: "WP created from /spec-kitty.tasks"
+- at: '2026-06-15T02:33:00Z'
+  actor: spec-kitty agent mission tasks
+  event: WP created from /spec-kitty.tasks
+agent_profile: implementer-ivan
+authoritative_surface: scripts/habits/query_active_habits_weekly.py
+create_intent: []
+execution_mode: code_change
+owned_files:
+- scripts/habits/query_active_habits_weekly.py
+- tests/habits/test_query_active_habits_weekly.py
+role: implementer
+tags: []
 ---
 
 ## ⚡ Do This First: Load Agent Profile

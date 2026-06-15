@@ -1,26 +1,35 @@
 ---
-work_package_id: "WP06"
-title: "Architecture documentation update"
-subtasks: ["T022", "T023", "T024", "T025"]
-dependencies: ["WP02"]
-planning_base_branch: "main"
-merge_target_branch: "main"
-branch_strategy: "lane-from-coord"
-owned_files:
-  - "docs/design/architecture/data/service-inventory.json"
-  - "docs/design/architecture/data/data-flows.json"
-  - "docs/design/architecture/data/signal-to-doc-map.json"
-  - "docs/design/architecture/services.md"
-authoritative_surface: "docs/design/architecture/data/service-inventory.json"
-execution_mode: "code_change"
-agent_profile: "curator-carla"
-role: "documenter"
-agent: "claude"
-requirement_refs: ["FR-011", "SC-006"]
+work_package_id: WP06
+title: Architecture documentation update
+dependencies:
+- WP02
+requirement_refs:
+- FR-011
+tracker_refs: []
+planning_base_branch: main
+merge_target_branch: main
+branch_strategy: lane-from-coord
+subtasks:
+- T022
+- T023
+- T024
+- T025
+agent: claude
 history:
-  - at: "2026-06-15T02:33:00Z"
-    actor: "spec-kitty agent mission tasks"
-    event: "WP created from /spec-kitty.tasks"
+- at: '2026-06-15T02:33:00Z'
+  actor: spec-kitty agent mission tasks
+  event: WP created from /spec-kitty.tasks
+agent_profile: curator-carla
+authoritative_surface: docs/design/architecture/data/service-inventory.json
+create_intent: []
+execution_mode: code_change
+owned_files:
+- docs/design/architecture/data/service-inventory.json
+- docs/design/architecture/data/data-flows.json
+- docs/design/architecture/data/signal-to-doc-map.json
+- docs/design/architecture/services.md
+role: documenter
+tags: []
 ---
 
 ## ⚡ Do This First: Load Agent Profile

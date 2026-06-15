@@ -1,23 +1,35 @@
 ---
-work_package_id: "WP03"
-title: "Architectural test ratchet"
-subtasks: ["T012", "T013", "T014", "T015", "T016"]
-dependencies: ["WP02"]
-planning_base_branch: "main"
-merge_target_branch: "main"
-branch_strategy: "lane-from-coord"
-owned_files:
-  - "tests/architectural/test_habits_history_canonical_read.py"
-authoritative_surface: "tests/architectural/test_habits_history_canonical_read.py"
-execution_mode: "code_change"
-agent_profile: "implementer-ivan"
-role: "implementer"
-agent: "claude"
-requirement_refs: ["FR-004", "NFR-002", "NFR-003", "SC-003"]
+work_package_id: WP03
+title: Architectural test ratchet
+dependencies:
+- WP02
+requirement_refs:
+- FR-004
+- NFR-002
+- NFR-003
+tracker_refs: []
+planning_base_branch: main
+merge_target_branch: main
+branch_strategy: lane-from-coord
+subtasks:
+- T012
+- T013
+- T014
+- T015
+- T016
+agent: claude
 history:
-  - at: "2026-06-15T02:33:00Z"
-    actor: "spec-kitty agent mission tasks"
-    event: "WP created from /spec-kitty.tasks"
+- at: '2026-06-15T02:33:00Z'
+  actor: spec-kitty agent mission tasks
+  event: WP created from /spec-kitty.tasks
+agent_profile: implementer-ivan
+authoritative_surface: tests/architectural/test_habits_history_canonical_read.py
+create_intent: []
+execution_mode: code_change
+owned_files:
+- tests/architectural/test_habits_history_canonical_read.py
+role: implementer
+tags: []
 ---
 
 ## ⚡ Do This First: Load Agent Profile

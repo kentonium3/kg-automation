@@ -1,25 +1,39 @@
 ---
-work_package_id: "WP01"
-title: "Habits-domain query wrapper"
-subtasks: ["T001", "T002", "T003", "T004", "T005"]
+work_package_id: WP01
+title: Habits-domain query wrapper
 dependencies: []
-planning_base_branch: "main"
-merge_target_branch: "main"
-branch_strategy: "lane-from-coord"
-owned_files:
-  - "scripts/habits/history.py"
-  - "tests/habits/test_history.py"
-  - "tests/habits/fixtures/golden_week_jsonl.py"
-authoritative_surface: "scripts/habits/history.py"
-execution_mode: "code_change"
-agent_profile: "implementer-ivan"
-role: "implementer"
-agent: "claude"
-requirement_refs: ["FR-002", "FR-003", "FR-007", "NFR-001", "NFR-005", "SC-005"]
+requirement_refs:
+- FR-002
+- FR-003
+- FR-007
+- FR-008
+- NFR-001
+- NFR-005
+tracker_refs: []
+planning_base_branch: main
+merge_target_branch: main
+branch_strategy: lane-from-coord
+subtasks:
+- T001
+- T002
+- T003
+- T004
+- T005
+agent: claude
 history:
-  - at: "2026-06-15T02:33:00Z"
-    actor: "spec-kitty agent mission tasks"
-    event: "WP created from /spec-kitty.tasks"
+- at: '2026-06-15T02:33:00Z'
+  actor: spec-kitty agent mission tasks
+  event: WP created from /spec-kitty.tasks
+agent_profile: implementer-ivan
+authoritative_surface: scripts/habits/history.py
+create_intent: []
+execution_mode: code_change
+owned_files:
+- scripts/habits/history.py
+- tests/habits/test_history.py
+- tests/habits/fixtures/golden_week_jsonl.py
+role: implementer
+tags: []
 ---
 
 ## ⚡ Do This First: Load Agent Profile
