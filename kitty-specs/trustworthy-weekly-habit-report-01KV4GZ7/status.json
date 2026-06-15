@@ -1,7 +1,7 @@
 {
-  "event_count": 6,
-  "last_event_id": "01KV4JW2YF466C7GF9QS8PYKYV",
-  "materialized_at": "2026-06-15T02:48:18.639440+00:00",
+  "event_count": 8,
+  "last_event_id": "01KV4KHB4PM11GZMPEBQTNT0TS",
+  "materialized_at": "2026-06-15T02:59:55.114558+00:00",
   "mission_number": "",
   "mission_slug": "trustworthy-weekly-habit-report-01KV4GZ7",
   "mission_type": "software-dev",
@@ -12,17 +12,17 @@
     "claimed": 0,
     "done": 0,
     "for_review": 0,
-    "in_progress": 0,
+    "in_progress": 1,
     "in_review": 0,
-    "planned": 6
+    "planned": 5
   },
   "work_packages": {
     "WP01": {
-      "actor": "finalize-tasks",
+      "actor": "claude:opus:implementer-ivan:implementer",
       "force_count": 0,
-      "lane": "planned",
-      "last_event_id": "01KV4JW082D4WP3M9Y0TKCC6VE",
-      "last_transition_at": "2026-06-15T02:48:15.874698+00:00"
+      "lane": "in_progress",
+      "last_event_id": "01KV4KHB4PM11GZMPEBQTNT0TS",
+      "last_transition_at": "2026-06-15T02:59:55.114558+00:00"
     },
     "WP02": {
       "actor": "finalize-tasks",
