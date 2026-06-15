@@ -24,7 +24,8 @@ history:
   event: WP created from /spec-kitty.tasks
 agent_profile: implementer-ivan
 authoritative_surface: tests/architectural/test_habits_history_canonical_read.py
-create_intent: []
+create_intent:
+- tests/architectural/test_habits_history_canonical_read.py
 execution_mode: code_change
 owned_files:
 - tests/architectural/test_habits_history_canonical_read.py

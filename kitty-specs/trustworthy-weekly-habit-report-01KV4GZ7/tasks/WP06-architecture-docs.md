@@ -27,7 +27,7 @@ owned_files:
 - docs/design/architecture/data/service-inventory.json
 - docs/design/architecture/data/data-flows.json
 - docs/design/architecture/data/signal-to-doc-map.json
-- docs/design/architecture/services.md
+- docs/design/architecture/service-inventory.md
 role: documenter
 tags: []
 ---

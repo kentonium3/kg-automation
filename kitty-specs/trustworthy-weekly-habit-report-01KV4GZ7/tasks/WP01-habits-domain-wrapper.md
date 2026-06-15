@@ -26,7 +26,10 @@ history:
   event: WP created from /spec-kitty.tasks
 agent_profile: implementer-ivan
 authoritative_surface: scripts/habits/history.py
-create_intent: []
+create_intent:
+- scripts/habits/history.py
+- tests/habits/test_history.py
+- tests/habits/fixtures/golden_week_jsonl.py
 execution_mode: code_change
 owned_files:
 - scripts/habits/history.py

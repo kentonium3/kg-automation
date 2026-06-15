@@ -8,6 +8,8 @@ merge_target_branch: "main"
 branch_strategy: "lane-from-coord"
 owned_files:
   - "deploys/queued/reschedule-felix-admin-habits-weekly-cron.yaml"
+create_intent:
+  - "deploys/queued/reschedule-felix-admin-habits-weekly-cron.yaml"
 authoritative_surface: "deploys/queued/reschedule-felix-admin-habits-weekly-cron.yaml"
 execution_mode: "code_change"
 agent_profile: "implementer-ivan"
