@@ -19,7 +19,8 @@ subtasks:
 - T003
 - T004
 - T005
-agent: claude
+agent: "claude:opus:implementer-ivan:implementer"
+shell_pid: "59086"
 history:
 - at: '2026-06-15T02:33:00Z'
   actor: spec-kitty agent mission tasks
@@ -212,3 +213,7 @@ If reviewers find the API surface drifting (e.g. an extra operation tacked on), 
 ```bash
 spec-kitty agent action implement WP01 --agent claude
 ```
+
+## Activity Log
+
+- 2026-06-15T02:59:56Z – claude:opus:implementer-ivan:implementer – shell_pid=59086 – Assigned agent via action command
