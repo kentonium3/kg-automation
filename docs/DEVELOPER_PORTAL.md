@@ -177,7 +177,7 @@ local validation and CI.
 - [Local Test Gate (pre-push hook)](<./runbooks/local-test-gate.md>)
 - [Phone Termius Setup & Recovery](<./runbooks/phone-termius-setup.md>)
 - [Smoke checklist — felix-admin-calendar extraction](<./runbooks/felix-calendar-subagent-extraction-01KTTA33-smoke.md>)
-- [Spec-Kitty Installation Guide for Existing Repositories](<./runbooks/spec-kitty-init-in-existing-repo.md>)
+- [Spec-Kitty — Install, Initialize, Upgrade](<./runbooks/spec-kitty-init-in-existing-repo.md>)
 
 ### Unclassified
 - [Agent prompt sync — operator runbook](<./runbooks/agent-prompt-sync-ops.md>) — missing `audience:` frontmatter
