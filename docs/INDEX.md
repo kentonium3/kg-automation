@@ -97,6 +97,13 @@ Numerators/denominators captured before and after material architectural changes
 
 ## Operational Runbooks (docs/runbooks/)
 
+### Configuration Integrity Sweeps (topical view)
+
+Two periodic sweeps verify that office2's configuration is in the state we expect; together they cover system-level drift and credential-level drift, and any new sweep should be added to this group. Both runbooks are also listed under *Agent-executable* below.
+
+- [Security Baseline Operations](<./runbooks/security-baseline-ops.md>) — daily 3 AM audit comparing the live system (pip / brew packages, Docker images, listening ports, systemd units, SSH keys, crontabs, OpenClaw cron + config) against `/data/services/security-monitor/baselines/`. Drift fires the alert log + `drift-events.jsonl`. Audited surface list at [`audited-surfaces.json`](<./design/architecture/data/audited-surfaces.json>) drives the rebaseline obligation (#557).
+- [Credential Liveness Probe Operations](<./runbooks/credential-liveness-probe-ops.md>) — 6-hourly OAuth liveness probe (00, 06, 12, 18 UTC). Live API call per credential, classified as `dead-routine-7day` (re-auth cycle), `dead-unexpected` (mid-week token death — investigate before re-authing), or `probe-error`. Auto-files a GitHub issue with the recovery command in the body (#572, #616).
+
 ### Agent-executable runbooks
 
 - [Doc Auditor Driver Operations](<./runbooks/doc-auditor-driver-ops.md>) — felix-doc-auditor **scripts-first driver** operations (post-#343): hourly systemd tick, `last-tick.json` health signal, prompt artifacts, backlog/lock recovery, pending-approval workflow, troubleshooting, baselines *(⏸ currently suspended; see runbook banner)*
@@ -104,6 +111,7 @@ Numerators/denominators captured before and after material architectural changes
 - [Felix-Vikunja Sync Driver Operations](<./runbooks/sync-driver-ops.md>) — install, bootstrap, observe, and recover the Felix-Vikunja reconciliation driver per ADR-0003: 5-min systemd timer, 7-phase full-poll pipeline, project-layer audit (`layer_summary`), deletion cleanup (Phase 5b), URL config prerequisite (`vikunja-base-url.txt`), `conflict-events.jsonl` audit trail, three delivery guards (G-1/G-2/G-3), known soft edge for Vikunja server-side auto-advance, full SC-001..SC-009 verification commands. Missions #518/#519/#520 (Epic #507 complete).
 - [Doc Auditor Operations (pre-#343 — historical)](<./runbooks/doc-auditor-ops.md>) — original openclaw-agent runbook; retained for reference until the pre-#343 implementation is fully retired
 - [Security Baseline Operations](<./runbooks/security-baseline-ops.md>) — canonical baseline-reset procedure for the daily 3 AM audit; linked from service runbooks for the "how"
+- [Credential Liveness Probe Operations](<./runbooks/credential-liveness-probe-ops.md>) — 6-hourly OAuth liveness probe (sister sweep to the daily security audit); cadence, classification logic, manifest config, operator response when an issue is filed (#572, #616)
 - [Vikunja Operations](<./runbooks/vikunja-ops.md>)
 - [OpenClaw Operations](<./runbooks/openclaw-ops.md>)
 - [Obsidian Sync Operations](<./runbooks/obsidian-sync-ops.md>)
@@ -123,7 +131,8 @@ Numerators/denominators captured before and after material architectural changes
 ### Human and mixed-audience runbooks
 
 - [Agent Workspace Reconciliation](<./runbooks/agent-workspace-reconciliation.md>) — drift enforcement, factory-default lifecycle, last-author-wins strategy
-- [Deployment Runbook](<./runbooks/deployment.md>) — how features are deployed to office2
+- [Deploy Discipline (canonical)](<./runbooks/deploy/discipline.md>) — manifest-driven deploys to office2 via the felix-deployer applier; entrypoint shape, tier policy, verification commands, failure handling, rebaseline obligation
+- [Deployment Runbook](<./runbooks/deployment.md>) — historical stub; redirects to the discipline runbook above. Preserved as a stable URL for older docs / ADRs / issues that link here
 - [Felix Governance](<./runbooks/felix-governance.md>) — agent registration, promotion, demotion, violation handling
 - [felix-bot Vikunja Provisioning](<./runbooks/felix-bot-vikunja-provisioning.md>) — operator runbook for provisioning, rotating, and revoking the kg-felix-bot Vikunja API credential
 - [Credential Rotation Operations](<./runbooks/credential-rotation-ops.md>) — operator runbook for manually rotating each credential in the manifest with a manual rotation path (8 procedures + pre-flight + manifest-update obligations)

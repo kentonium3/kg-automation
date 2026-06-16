@@ -667,16 +667,13 @@ step 1+2 manually. Until the OAuth app's publishing status changes
 (matched to the previous mint date). Tracking issue: #572.
 
 > **Automatic detection** (post-#572): the `credential-liveness-probe`
-> systemd timer probes the gog token every 6 hours. When the token dies,
-> a GitHub issue is filed within ≤6h titled
-> `credential-liveness-routine-7day: gog-credentials-keyring (<date>)` (or
-> `credential-liveness-unexpected: …` for non-cycle deaths). The issue body
-> carries the exact `gog-reauth.sh` recovery command. You don't need to
-> manually monitor for expiration — the probe surfaces it.
->
-> Force a probe manually:
-> `systemctl --user start credential-liveness-probe.service` (then
-> `journalctl --user -u credential-liveness-probe.service --since '1 minute ago'`).
+> systemd timer probes the gog token every 6 hours and auto-files a
+> GitHub issue when the token dies, with the `gog-reauth.sh` recovery
+> command in the body. You don't need to manually monitor for expiration.
+> See [credential-liveness-probe-ops.md](<./credential-liveness-probe-ops.md>)
+> for the probe's cadence, classification logic (`dead-routine-7day` vs
+> `dead-unexpected` vs `probe-error`), manifest configuration, manual
+> trigger commands, and troubleshooting.
 
 **Refresh token revoked (other causes)**: if `gog auth doctor` reports a
 revoked token AND fewer than 7 days have passed since the last re-mint,
