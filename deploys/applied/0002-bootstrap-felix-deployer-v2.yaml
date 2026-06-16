@@ -31,6 +31,27 @@ notes: 'Bootstrap re-apply of felix-deployer with the ntfy.sh substrate fix
 
   is operator-driven, NOT part of this bootstrap.
 
+
+  ⚠ DO NOT COPY THIS verification BLOCK FOR ROUTINE QUEUED DEPLOYS. The
+
+  patterns `ssh office2-claude ''…''` (used here in some earlier drafts and
+
+  in older verification commands) work only because this bootstrap was
+
+  operator-run from Mac, where the `office2-claude` SSH host alias is
+
+  defined in ~/.ssh/config. Routine queued deploys are applied by
+
+  felix-deployer running ON office2 itself, where that alias does not
+
+  exist — loopback SSH fails with "Could not resolve hostname
+
+  office2-claude". For routine deploys, write verification commands as
+
+  local commands (no ssh wrapper). See the verification-commands callout
+
+  in docs/runbooks/deploy/discipline.md and kentonium3/kg-automation#612.
+
   '
 created_at: '2026-06-13T02:56:58Z'
 created_by: operator-bootstrap

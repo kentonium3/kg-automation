@@ -58,8 +58,26 @@ verification:
     - python3 -m scripts.deploy.lib.snapshot verify_restic_recent --max-age-hours 24
   post:
     - python3 -m scripts.deploy.lib.verify verify_file_present /home/claude/.../bar.py --executable
-    - ssh office2-claude 'systemctl --user status foo.service' >/dev/null
+    - systemctl --user status foo.service >/dev/null
 ```
+
+> **⚠️ Verification commands run on office2, not on Mac.** Felix-deployer (the
+> applier) runs as a systemd user timer on office2, and every `verification.pre`
+> and `verification.post` command is executed in that context. Two consequences:
+>
+> 1. **Never wrap a verification command in `ssh office2-claude '…'`** — the
+>    `office2-claude` host alias is defined in **Mac's** `~/.ssh/config`, not in
+>    office2's. Loopback SSH from office2 to itself fails with
+>    `Could not resolve hostname office2-claude`. Use the command locally.
+> 2. **The bootstrap manifest at `deploys/applied/0002-bootstrap-felix-deployer-v2.yaml`
+>    uses `ssh office2-claude '…'` in its verification block.** That was correct
+>    for the one-off operator-run bootstrap (which executed from Mac), and that
+>    file is **bootstrap-only** — its verification block is **not safe to copy**
+>    for routine queued deploys. See `kentonium3/kg-automation#612`.
+>
+> When in doubt: copy the verification pattern from a recent
+> `deploys/applied/<NNNN>-*.yaml` whose manifest has `apply_mode: manifest`
+> (not `apply_mode: bootstrap`).
 
 The full manifest schema lives at `deploys/schema/manifest-v1.schema.json` —
 that file is authoritative. CI rejects any manifest that does not validate.
@@ -252,7 +270,7 @@ online, and the applier handles every subsequent deploy on the system.
 
 Independent of the tier above, any deploy that touches an **audited
 surface** triggers the rebaseline obligation described in the project
-charter and in [`docs/runbooks/security-baseline-ops.md`](../security-baseline-ops.md).
+charter and in [`docs/runbooks/security-baseline-ops.md`](<../security-baseline-ops.md>).
 
 Audited surfaces (per `docs/design/architecture/data/audited-surfaces.json`):
 
@@ -273,7 +291,7 @@ the manifest in (or the post-merge follow-up) MUST record one of:
 
 The operator runs the reset command on office2 — neither the applier nor
 CI runs it. Canonical command lives in
-[`docs/runbooks/security-baseline-ops.md`](../security-baseline-ops.md).
+[`docs/runbooks/security-baseline-ops.md`](<../security-baseline-ops.md>).
 
 If the manifest declared `audited_surface: false` but the deploy turned
 out to touch an audited surface, fix the manifest in a follow-up PR
