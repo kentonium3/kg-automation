@@ -13,7 +13,8 @@ branch_strategy: Planning artifacts for this mission were generated on main. Dur
 subtasks:
 - T020
 - T021
-agent: claude
+agent: "claude"
+shell_pid: "68474"
 history:
 - at: '2026-06-15T02:33:00Z'
   actor: spec-kitty agent mission tasks
@@ -164,3 +165,10 @@ If reviewer thinks the manifest names a tick identifier that doesn't exist in th
 ```bash
 spec-kitty agent action implement WP05 --agent claude
 ```
+
+## Activity Log
+
+- 2026-06-16T19:26:14Z – user – Moved to planned
+- 2026-06-16T19:26:21Z – claude – shell_pid=66531 – Started implementation via action command
+- 2026-06-16T19:29:40Z – claude – shell_pid=66531 – WP05 complete. Manifest validates against schema; thin entrypoint over openclaw_cron_edit.
+- 2026-06-16T19:29:50Z – claude – shell_pid=68474 – Started review via action command

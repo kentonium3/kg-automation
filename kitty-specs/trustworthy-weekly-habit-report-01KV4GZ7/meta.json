@@ -3,7 +3,7 @@
   "created_at": "2026-06-15T02:15:04.198651+00:00",
   "friendly_name": "Trustworthy weekly habit report",
   "mission_id": "01KV4GZ785Q55498XMZJM6W8ZZ",
-  "mission_number": null,
+  "mission_number": 78,
   "mission_slug": "trustworthy-weekly-habit-report-01KV4GZ7",
   "mission_type": "software-dev",
   "purpose_context": "Felix's weekly habit accountability report is currently unusable — it shows 0% for habits Kent completed multiple times because the helper reads Vikunja's volatile done_at field instead of the canonical habits-history.jsonl, and it fires Sunday 22:00 ET, three hours before the reporting window closes. This mission routes the weekly query through the canonical store via a new habits-domain wrapper, adds an architectural test that fails the build if any habits script reads completion history from Vikunja, moves WhatsApp rendering into the helper so Haiku cannot drift the numbers, and reschedules the cron to Monday 06:00 ET. Trust in this report is a prerequisite for the planned analysis-and-course-correction epic, so the investment goes into a tight ratchet now rather than patching the symptom.",

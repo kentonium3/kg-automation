@@ -1,25 +1,28 @@
-"""Weekly habit-completion report helper (mission vikunja-client-and-habits-weekly-report-01KTKSFT).
+"""Weekly habit-completion report helper.
 
-Queries Vikunja project 13 (habits) via the shared VikunjaClient, classifies
-each habit, computes per-habit completion percentages over a current 7-day
-window and a prior 7-day baseline, and emits the WeeklyHabitReport JSON
-document on stdout. Consumed by ``felix-admin-habits`` on the weekly
-cron tick (Sunday 22:00 America/New_York). The agent prompt rewiring
-that wires this helper into the cron tick lives in WP03 of the same
-mission slice — by spec-kitty convention, multi-WP mission slices land
-as a unit via ``spec-kitty merge``, so this module is not "dead code"
-within the mission scope: it is the deterministic substrate WP03
-consumes.
+Originally introduced under mission
+``vikunja-client-and-habits-weekly-report-01KTKSFT``; rewritten in
+mission ``trustworthy-weekly-habit-report-01KV4GZ7`` (issue
+kentonium3/kg-automation#605) to read completion history from the
+canonical ``habits-history.jsonl`` (via :mod:`scripts.habits.history`)
+instead of Vikunja's volatile ``done_at`` field.
 
 Per Felix Constitution Directive 6 this is the deterministic surface of
-the weekly habit-report fix (kentonium3/kg-automation#562). Same Vikunja
-state + same CLI arguments → byte-identical JSON output (NFR-004).
+the weekly habit-report fix. Same canonical state + same Vikunja
+current-state response + same CLI arguments → byte-identical JSON
+output AND byte-identical ``rendered_text`` (NFR-001, NFR-004).
 
-Authoritative contract:
-``kitty-specs/vikunja-client-and-habits-weekly-report-01KTKSFT/contracts/query_active_habits_weekly.md``.
+The Vikunja side is retained only for **current-state** habit-list
+metadata (titles + ``repeat_after`` for classification). Completion
+history is read exclusively from the canonical JSONL store via the
+IC-01 wrapper. The IC-03 architectural test in WP03 ratchets this
+boundary — this file is on the current-state allowlist but is NOT
+allowed to read ``done_at`` for historical purposes.
 
-Spec requirements implemented here: FR-003, FR-004, FR-005, FR-006,
-FR-011, FR-012, FR-013.
+Authoritative contracts:
+
+- ``kitty-specs/trustworthy-weekly-habit-report-01KV4GZ7/contracts/weekly_helper_cli.md`` (CLI surface)
+- ``kitty-specs/vikunja-client-and-habits-weekly-report-01KTKSFT/contracts/weekly_report_payload.md`` (JSON shape — preserved per FR-007 / NFR-005; ``rendered_text`` added additively per FR-005)
 
 Public surface
 --------------
@@ -39,8 +42,10 @@ import sys
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Iterable, Optional
+from zoneinfo import ZoneInfo
 
 from scripts.common.vikunja_client import VikunjaClient, VikunjaError
+from scripts.habits import history
 
 __all__ = [
     "HABITS_PROJECT_ID",
@@ -49,6 +54,7 @@ __all__ = [
     "WEEKDAY_TO_ISO",
     "ISO_TO_PYTHON_WEEKDAY",
     "AGENT_NAME",
+    "REPORT_TZ",
     "parse_weekday_in_title",
     "classify_habit",
     "scheduled_days_for_window",
@@ -56,6 +62,10 @@ __all__ = [
     "build_report",
     "main",
 ]
+
+
+#: Canonical reporting timezone for habit windowing and rendered labels.
+REPORT_TZ: ZoneInfo = ZoneInfo("America/New_York")
 
 
 HABITS_PROJECT_ID = 13
@@ -184,27 +194,6 @@ def scheduled_days_for_window(
 # ---------------------------------------------------------------------------
 
 
-def _parse_done_at(value: object) -> Optional[datetime]:
-    """Parse a Vikunja ``done_at`` ISO 8601 timestamp.
-
-    Returns ``None`` if the value is missing, empty, or unparseable;
-    Vikunja occasionally emits the zero-value sentinel
-    (``"0001-01-01T00:00:00Z"``) which we also treat as "no completion".
-    """
-    if not value or not isinstance(value, str):
-        return None
-    if value.startswith("0001-01-01"):
-        return None
-    normalized = value.replace("Z", "+00:00")
-    try:
-        parsed = datetime.fromisoformat(normalized)
-    except ValueError:
-        return None
-    if parsed.tzinfo is None:
-        parsed = parsed.replace(tzinfo=timezone.utc)
-    return parsed
-
-
 def _paginate(
     client: VikunjaClient,
     *,
@@ -232,6 +221,40 @@ def _paginate(
         page += 1
 
 
+def _completed_in_window_for_habit(
+    *,
+    kind: str,
+    title: str,
+    habit_id: int,
+    window_start: datetime,
+    window_end: datetime,
+) -> int:
+    """Return dedup-by-date completion count for ``habit_id`` in the window.
+
+    Routes through :func:`scripts.habits.history.scheduled_vs_completed_for_habit`
+    so the canonical-read invariant (FR-002) is honored even by the helper's
+    internal aggregation path. The wrapper handles dedup-by-date and clamping;
+    we discard the scheduled half and return only the completed count because
+    we already compute scheduled here via :func:`scheduled_days_for_window`.
+
+    Falls back to 0 when scheduled is 0 (e.g. weekday-in-title habit whose
+    target weekday isn't in the window): the wrapper requires
+    ``scheduled_days_count > 0`` so we can't call it; a habit with no
+    scheduled occurrences in the window contributes 0 to the report
+    regardless.
+    """
+    scheduled = scheduled_days_for_window(kind, title, window_start, window_end)
+    if scheduled <= 0:
+        return 0
+    _, completed = history.scheduled_vs_completed_for_habit(
+        habit_id=habit_id,
+        window_start=window_start,
+        window_end=window_end,
+        scheduled_days_count=scheduled,
+    )
+    return completed
+
+
 def query_completion_events(
     client: VikunjaClient,
     *,
@@ -240,70 +263,71 @@ def query_completion_events(
     prior_window_start: Optional[datetime],
     prior_window_end: Optional[datetime],
 ) -> dict[str, dict]:
-    """Fetch project-13 tasks via the client, classify, and aggregate counts.
+    """Fetch the project-13 habit list and aggregate canonical-store counts.
 
     Returns a dict keyed by habit title. Each value carries:
 
     - ``kind``: ``"daily"`` or ``"weekday-in-title"``.
     - ``title``: canonical habit title (same as the dict key).
-    - ``current_count``: number of ``done_at`` events in the current window.
-    - ``prior_count``: number of ``done_at`` events in the prior window
-      (0 if ``prior_window_start`` / ``prior_window_end`` is ``None``).
+    - ``current_count``: dedup-by-date completion count from
+      ``habits-history.jsonl`` in the current window.
+    - ``prior_count``: same for the prior window (0 if
+      ``prior_window_start`` / ``prior_window_end`` is ``None``).
 
-    ``"other"``-classified tasks are filtered out per FR-006 before
-    aggregation; the cardiac-lab one-off never appears.
+    The Vikunja query is intentionally **current-state only**: titles +
+    ``repeat_after`` for classification. Completion counts come from the
+    canonical store via :mod:`scripts.habits.history` (FR-002). The
+    WP03 architectural test allowlists this file for the current-state
+    Vikunja call; it does NOT allow ``task.get("done_at")`` reads —
+    those have been removed from this module.
+
+    ``"other"``-classified tasks are filtered out before aggregation
+    (the cardiac-lab one-off and any non-recurring/non-weekday tasks
+    never appear in the report).
     """
     events: dict[str, dict] = {}
 
-    done_path = f"/projects/{HABITS_PROJECT_ID}/tasks"
-    for task in _paginate(
-        client,
-        path=done_path,
-        base_params={"filter": "done=true"},
-    ):
+    tasks_path = f"/projects/{HABITS_PROJECT_ID}/tasks"
+    # No ``filter`` param — we want every habit in project 13 regardless
+    # of current-tick done flag; the report enumerates each habit and
+    # consults the canonical store for completion counts.
+    for task in _paginate(client, path=tasks_path, base_params={}):
         kind = classify_habit(task)
         if kind == "other":
             continue
         title = task.get("title") or ""
-        done_at = _parse_done_at(task.get("done_at"))
-        bucket = events.setdefault(
-            title,
-            {"kind": kind, "title": title, "current_count": 0, "prior_count": 0},
-        )
-        if done_at is None:
-            # Done flag set but no parseable done_at; warn and continue.
-            print(
-                f"warning: skipping done task without parseable done_at: "
-                f"id={task.get('id')!r} title={title!r}",
-                file=sys.stderr,
-            )
+        habit_id = task.get("id")
+        if not isinstance(habit_id, int):
             continue
-        if window_start <= done_at < window_end:
-            bucket["current_count"] += 1
-        if (
-            prior_window_start is not None
-            and prior_window_end is not None
-            and prior_window_start <= done_at < prior_window_end
-        ):
-            bucket["prior_count"] += 1
+        if title in events:
+            # Vikunja may return the same habit twice across page boundaries
+            # in edge cases; keep the first-seen bucket.
+            continue
 
-    # Active (not-done) pass — guarantees every habit shows up even if
-    # the operator never completed it within either window. Vikunja's
-    # ``done=false`` filter returns currently-open instances of each
-    # recurring habit (the next due date).
-    for task in _paginate(
-        client,
-        path=done_path,
-        base_params={"filter": "done=false"},
-    ):
-        kind = classify_habit(task)
-        if kind == "other":
-            continue
-        title = task.get("title") or ""
-        events.setdefault(
-            title,
-            {"kind": kind, "title": title, "current_count": 0, "prior_count": 0},
+        current_count = _completed_in_window_for_habit(
+            kind=kind,
+            title=title,
+            habit_id=habit_id,
+            window_start=window_start,
+            window_end=window_end,
         )
+        if prior_window_start is not None and prior_window_end is not None:
+            prior_count = _completed_in_window_for_habit(
+                kind=kind,
+                title=title,
+                habit_id=habit_id,
+                window_start=prior_window_start,
+                window_end=prior_window_end,
+            )
+        else:
+            prior_count = 0
+
+        events[title] = {
+            "kind": kind,
+            "title": title,
+            "current_count": current_count,
+            "prior_count": prior_count,
+        }
 
     return events
 
@@ -479,7 +503,7 @@ def build_report(
         prior_window_start_iso = None
         prior_window_end_iso = None
 
-    return {
+    report = {
         "window_start_iso": _iso_utc(window_start),
         "window_end_iso": _iso_utc(window_end),
         "prior_window_start_iso": prior_window_start_iso,
@@ -488,6 +512,116 @@ def build_report(
         "overall_percent_current": overall_percent_current,
         "overall_percent_prior": overall_percent_prior,
     }
+    # ``rendered_text`` is a pure function of all other fields; same JSON
+    # → byte-identical text (NFR-004). Computed last so it observes the
+    # final sorted/clamped values rather than intermediate state.
+    report["rendered_text"] = _render_whatsapp_text(
+        report,
+        window_start=window_start,
+        window_end=window_end,
+    )
+    return report
+
+
+# ---------------------------------------------------------------------------
+# Rendered text (FR-005 / NFR-004) + window label (FR-006)
+# ---------------------------------------------------------------------------
+
+
+def _format_window_label(window_start: datetime, window_end: datetime) -> str:
+    """Format a 7-day inclusive window label for the rendered message.
+
+    ``window_end`` here is the **exclusive** upper bound used internally
+    (e.g. next Monday 00:00 ET); the label converts it to the inclusive
+    last-day form humans expect (the prior Sunday).
+
+    Examples:
+
+    - Mon Jun 8 → Mon Jun 15 (exclusive)  → ``"Jun 8–14"`` (same month)
+    - Mon Jul 28 → Mon Aug 4 (exclusive)  → ``"Jul 28 – Aug 3"`` (cross-month)
+
+    Uses ``window_start`` in :data:`REPORT_TZ` for month-equality so DST
+    or UTC-supplied bounds don't accidentally cross-month the label.
+    """
+    start_local = window_start.astimezone(REPORT_TZ)
+    last_day_local = (window_end - timedelta(days=1)).astimezone(REPORT_TZ)
+    month_abbr = start_local.strftime("%b")
+    if start_local.month == last_day_local.month:
+        return f"{month_abbr} {start_local.day}–{last_day_local.day}"
+    end_month_abbr = last_day_local.strftime("%b")
+    return (
+        f"{month_abbr} {start_local.day} – "
+        f"{end_month_abbr} {last_day_local.day}"
+    )
+
+
+def _arrow_for_delta(current_pct: float, prior_pct: Optional[float]) -> str:
+    """Return the WhatsApp arrow glyph for a current-vs-prior comparison.
+
+    Uses the same percent units the report exposes (0–100 floats from
+    :func:`_percent`). The 0.5-percentage-point epsilon prevents arrow
+    flicker on essentially-equal rates.
+    """
+    if prior_pct is None:
+        return ""
+    delta = current_pct - prior_pct
+    if delta > 0.5:
+        return "↑"  # ↑
+    if delta < -0.5:
+        return "↓"  # ↓
+    return ""
+
+
+def _render_pct(value: float) -> str:
+    """Round to integer percent without trailing decimal."""
+    return f"{int(round(value))}"
+
+
+def _render_whatsapp_text(
+    report: dict,
+    *,
+    window_start: datetime,
+    window_end: datetime,
+) -> str:
+    """Render the WeeklyHabitReport JSON dict to the canonical WhatsApp text.
+
+    Pure function: same ``report`` dict + same window bounds → byte-identical
+    output (NFR-004). The identity-attribution line is the agent's
+    responsibility (FR-010) and is NOT rendered here.
+    """
+    short_window = _format_window_label(window_start, window_end)
+    lines: list[str] = []
+    lines.append(f"*This week* ({short_window}):")
+    lines.append("")
+    for habit in report["habits"]:
+        current_pct = habit["percent_current"]
+        prior_pct = habit.get("percent_prior")
+        arrow = _arrow_for_delta(current_pct, prior_pct)
+        if prior_pct is None:
+            row = f"{habit['habit_title']} — {_render_pct(current_pct)}%"
+        else:
+            row = (
+                f"{habit['habit_title']} — {_render_pct(current_pct)}% "
+                f"(was {_render_pct(prior_pct)}%)"
+            )
+        if arrow:
+            row = f"{row} {arrow}"
+        lines.append(row)
+    lines.append("")
+    overall_current = report["overall_percent_current"]
+    overall_prior = report.get("overall_percent_prior")
+    overall_arrow = _arrow_for_delta(overall_current, overall_prior)
+    if overall_prior is None:
+        overall_line = f"*Overall: {_render_pct(overall_current)}%*"
+    else:
+        overall_line = (
+            f"*Overall: {_render_pct(overall_current)}%* "
+            f"(was {_render_pct(overall_prior)}%)"
+        )
+    if overall_arrow:
+        overall_line = f"{overall_line} {overall_arrow}"
+    lines.append(overall_line)
+    return "\n".join(lines)
 
 
 # ---------------------------------------------------------------------------
@@ -576,13 +710,74 @@ def _emit_log_action(
 # ---------------------------------------------------------------------------
 
 
+def _parse_as_of(value: str) -> datetime:
+    """Argparse type converter: parse a tz-aware ISO 8601 datetime string.
+
+    Accepts the same shapes :func:`datetime.fromisoformat` does, plus the
+    trailing ``Z`` UTC marker. Rejects naive datetimes with
+    :class:`argparse.ArgumentTypeError` so the helper never silently
+    windows against an ambiguous wall clock (DST-safe testing).
+    """
+    if not isinstance(value, str) or not value:
+        raise argparse.ArgumentTypeError(
+            "--as-of must be a non-empty ISO 8601 datetime string"
+        )
+    normalized = value.replace("Z", "+00:00")
+    try:
+        parsed = datetime.fromisoformat(normalized)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError(
+            f"--as-of must be ISO 8601, got {value!r}: {exc}"
+        ) from exc
+    if parsed.tzinfo is None:
+        raise argparse.ArgumentTypeError(
+            "--as-of must be tz-aware (include an offset, e.g. -04:00)"
+        )
+    return parsed
+
+
+def _now_in_et() -> datetime:
+    """Return the current wall-clock time in :data:`REPORT_TZ`.
+
+    Thin wrapper so tests can monkeypatch a fixed instant without
+    touching the whole module's time source.
+    """
+    return datetime.now(REPORT_TZ)
+
+
 def _parse_args(argv: Optional[list[str]]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         prog="query_active_habits_weekly",
         description=(
             "Emit a weekly habit-completion report for Vikunja project 13. "
+            "Reads canonical habits-history.jsonl for completion counts; "
+            "does NOT query Vikunja done_at for history (kg-automation#605). "
             "Output is JSON on stdout; exit code 0 on success, 3 on Vikunja "
             "API failure."
+        ),
+    )
+    parser.add_argument(
+        "--as-of",
+        dest="as_of",
+        type=_parse_as_of,
+        default=None,
+        metavar="ISO_DATETIME",
+        help=(
+            "Reference datetime (ISO 8601, tz-aware) for the report window. "
+            "When supplied, the current window is "
+            "[as_of - 7 days @ 00:00 ET, as_of @ 00:00 ET) regardless of "
+            "--window-end / --window-days. Used by tests for "
+            "deterministic golden-week fixtures."
+        ),
+    )
+    parser.add_argument(
+        "--output",
+        choices=("json", "text"),
+        default="json",
+        help=(
+            "Output format. 'json' (default) emits the full "
+            "WeeklyHabitReport JSON. 'text' emits only the rendered_text "
+            "field on stdout — for the WhatsApp message body."
         ),
     )
     parser.add_argument(
@@ -590,8 +785,8 @@ def _parse_args(argv: Optional[list[str]]) -> argparse.Namespace:
         default=None,
         metavar="YYYY-MM-DD",
         help=(
-            "End of the current window (exclusive). Defaults to today (UTC). "
-            "Must be an ISO 8601 date."
+            "[Legacy] End of the current window (exclusive). Defaults to "
+            "today (UTC). Ignored when --as-of is supplied."
         ),
     )
     parser.add_argument(
@@ -623,18 +818,38 @@ def _resolve_windows(args: argparse.Namespace) -> tuple[
         raise ValueError(
             f"--window-days must be positive, got {args.window_days!r}"
         )
-    if args.window_end is None:
-        today = datetime.now(timezone.utc).date()
+
+    # FR-006 / R-04: the canonical window is 7 days in ET, anchored to ET
+    # midnight (not the wall time) so the same window is computed regardless
+    # of what hour the cron fires. ``--as-of`` lets tests inject a
+    # deterministic instant; production resolves through :func:`_now_in_et`.
+    # The legacy ``--window-end`` branch (UTC-anchored) is retained for
+    # compatibility with existing call sites that still pass the prior
+    # mission's flag shape; explicit ``--window-end`` wins over the
+    # ET-anchored default but ``--as-of`` wins over both.
+    if args.as_of is not None:
+        anchor_dt = args.as_of
+        use_et = True
+    elif args.window_end is None:
+        anchor_dt = _now_in_et()
+        use_et = True
     else:
+        use_et = False
         try:
             today = datetime.strptime(args.window_end, "%Y-%m-%d").date()
         except ValueError as exc:
             raise ValueError(
                 f"--window-end must be YYYY-MM-DD, got {args.window_end!r}: {exc}"
             ) from exc
-    window_end = datetime(
-        today.year, today.month, today.day, tzinfo=timezone.utc
-    )
+        window_end = datetime(
+            today.year, today.month, today.day, tzinfo=timezone.utc
+        )
+
+    if use_et:
+        anchor_et = anchor_dt.astimezone(REPORT_TZ).replace(
+            hour=0, minute=0, second=0, microsecond=0
+        )
+        window_end = anchor_et
     window_start = window_end - timedelta(days=args.window_days)
     if args.include_baseline:
         prior_window_end = window_start
@@ -684,8 +899,12 @@ def main(argv: Optional[list[str]] = None) -> int:
             prior_window_start=prior_window_start,
             prior_window_end=prior_window_end,
         )
-        sys.stdout.write(json.dumps(report))
-        sys.stdout.write("\n")
+        if args.output == "text":
+            sys.stdout.write(report["rendered_text"])
+            sys.stdout.write("\n")
+        else:
+            sys.stdout.write(json.dumps(report))
+            sys.stdout.write("\n")
         sys.stdout.flush()
         _emit_log_action(
             category="routine",

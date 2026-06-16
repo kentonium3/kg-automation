@@ -14,7 +14,8 @@ subtasks:
 - T023
 - T024
 - T025
-agent: claude
+agent: "claude"
+shell_pid: "65618"
 history:
 - at: '2026-06-15T02:33:00Z'
   actor: spec-kitty agent mission tasks
@@ -181,3 +182,9 @@ If the reviewer thinks the change-control protocol (`docs/design/architecture/ch
 ```bash
 spec-kitty agent action implement WP06 --agent claude
 ```
+
+## Activity Log
+
+- 2026-06-16T19:21:01Z – claude – shell_pid=63203 – Assigned agent via action command
+- 2026-06-16T19:25:13Z – claude – shell_pid=63203 – WP06 complete.
+- 2026-06-16T19:25:21Z – claude – shell_pid=65618 – Started review via action command

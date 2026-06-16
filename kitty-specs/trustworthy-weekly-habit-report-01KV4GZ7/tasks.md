@@ -157,9 +157,9 @@ T015 / T016 are independent tests within the same file.
 
 ### Included subtasks
 
-- [ ] T017 Strip in-prompt rendering rules from the "Weekly report (tick workflow)" section. Replace with: invoke helper, capture stdout, post `rendered_text` field verbatim to WhatsApp, preserve `Sent by felix-admin-habits:<model>` identity line. Keep the contract-failure render path. (WP04)
-- [ ] T018 Update every cron-schedule reference in AGENTS.md to `0 6 * * 1 America/New_York` (Monday 06:00 ET). Per `research.md` R-06, expect mentions near lines 76 and 119; verify by grep before editing. (WP04)
-- [ ] T019 Verify AGENTS.md effective character budget. Run `wc -c < scripts/openclaw/agents/felix-admin-habits/AGENTS.md`; raw char count after edits should be well under 20K (effective budget ~14-15K source after openclaw's ~26% inflation per memory). (WP04)
+- [x] T017 Strip in-prompt rendering rules from the "Weekly report (tick workflow)" section. Replace with: invoke helper, capture stdout, post `rendered_text` field verbatim to WhatsApp, preserve `Sent by felix-admin-habits:<model>` identity line. Keep the contract-failure render path. (WP04)
+- [x] T018 Update every cron-schedule reference in AGENTS.md to `0 6 * * 1 America/New_York` (Monday 06:00 ET). Per `research.md` R-06, expect mentions near lines 76 and 119; verify by grep before editing. (WP04)
+- [x] T019 Verify AGENTS.md effective character budget. Run `wc -c < scripts/openclaw/agents/felix-admin-habits/AGENTS.md`; raw char count after edits should be well under 20K (effective budget ~14-15K source after openclaw's ~26% inflation per memory). (WP04)
 
 ### Implementation sketch
 
@@ -189,8 +189,8 @@ None.
 
 ### Included subtasks
 
-- [ ] T020 Create `deploys/queued/reschedule-felix-admin-habits-weekly-cron.yaml` declaring an openclaw cron update from `0 22 * * 0` (`America/New_York`) to `0 6 * * 1` (`America/New_York`) for the felix-admin-habits weekly tick. Reference `docs/runbooks/deploy/discipline.md` for required manifest fields. (WP05)
-- [ ] T021 Verify the openclaw cron primitive in `scripts/deploy/lib/` supports the per-job TZ declaration we're using. Read the primitive source; align the manifest field names. If TZ isn't supported, the manifest schedule MUST be the UTC equivalent (`0 10 * * 1` for ET; check DST handling) and the WP prompt must declare this. (WP05)
+- [x] T020 Create `deploys/queued/reschedule-felix-admin-habits-weekly-cron.yaml` declaring an openclaw cron update from `0 22 * * 0` (`America/New_York`) to `0 6 * * 1` (`America/New_York`) for the felix-admin-habits weekly tick. Reference `docs/runbooks/deploy/discipline.md` for required manifest fields. (WP05)
+- [x] T021 Verify the openclaw cron primitive in `scripts/deploy/lib/` supports the per-job TZ declaration we're using. Read the primitive source; align the manifest field names. If TZ isn't supported, the manifest schedule MUST be the UTC equivalent (`0 10 * * 1` for ET; check DST handling) and the WP prompt must declare this. (WP05)
 
 ### Implementation sketch
 
@@ -219,10 +219,10 @@ None within WP05.
 
 ### Included subtasks
 
-- [ ] T022 [P] Update `docs/design/architecture/data/service-inventory.json`: the felix-admin-habits agent's `purpose` field currently describes the weekly tick as "queries Vikunja directly via the new shared scripts/common/vikunja_client.py for `done_at` history". Rewrite that sentence to describe the canonical-read path through `habits-history.jsonl` via the new `scripts/habits/history.py` wrapper. (WP06)
-- [ ] T023 [P] Update `docs/design/architecture/data/data-flows.json`: locate any weekly-tick data flow entry (search for "weekly" or the prior mission slug `vikunja-client-and-habits-weekly-report-01KTKSFT`); update source-of-truth declarations to point at `habits-history.jsonl`. (WP06)
-- [ ] T024 [P] Update `docs/design/architecture/data/signal-to-doc-map.json` if there's an entry whose `doc_targets` include the affected docs (per CLAUDE.md the signal-to-doc-map is consulted during specify/plan; verify whether the mission's audit triggers require a new or updated entry). (WP06)
-- [ ] T025 [P] Update narrative architecture counterpart (e.g. `docs/design/architecture/services.md`) if it carries a description of the felix-admin-habits weekly tick. Grep first to confirm presence. (WP06)
+- [x] T022 [P] Update `docs/design/architecture/data/service-inventory.json`: the felix-admin-habits agent's `purpose` field currently describes the weekly tick as "queries Vikunja directly via the new shared scripts/common/vikunja_client.py for `done_at` history". Rewrite that sentence to describe the canonical-read path through `habits-history.jsonl` via the new `scripts/habits/history.py` wrapper. (WP06)
+- [x] T023 [P] Update `docs/design/architecture/data/data-flows.json`: locate any weekly-tick data flow entry (search for "weekly" or the prior mission slug `vikunja-client-and-habits-weekly-report-01KTKSFT`); update source-of-truth declarations to point at `habits-history.jsonl`. (WP06)
+- [x] T024 [P] Update `docs/design/architecture/data/signal-to-doc-map.json` if there's an entry whose `doc_targets` include the affected docs (per CLAUDE.md the signal-to-doc-map is consulted during specify/plan; verify whether the mission's audit triggers require a new or updated entry). (WP06)
+- [x] T025 [P] Update narrative architecture counterpart (e.g. `docs/design/architecture/services.md`) if it carries a description of the felix-admin-habits weekly tick. Grep first to confirm presence. (WP06)
 
 ### Implementation sketch
 

@@ -28,6 +28,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Optional
 from unittest.mock import MagicMock
+from zoneinfo import ZoneInfo
 
 import pytest
 
@@ -36,6 +37,14 @@ from scripts.common.vikunja_client import (
     VikunjaTimeoutError,
 )
 from scripts.habits import query_active_habits_weekly as helper
+from tests.habits.fixtures.golden_week_jsonl import (
+    DAILY_HABIT_ID,
+    DAYSPEC_HABIT_ID,
+    GOLDEN_WEEK_ANCHOR,
+    GOLDEN_WEEK_TZ,
+    WEEKLY_HABIT_ID,
+    write_golden_week_jsonl,
+)
 
 
 FIXTURES_PATH = Path(__file__).parent / "fixtures" / "weekly_report_responses.json"
@@ -45,6 +54,26 @@ CURRENT_END = datetime(2026, 6, 8, tzinfo=timezone.utc)
 CURRENT_START = datetime(2026, 6, 1, tzinfo=timezone.utc)
 PRIOR_END = CURRENT_START
 PRIOR_START = datetime(2026, 5, 25, tzinfo=timezone.utc)
+
+
+# Vikunja habit-task payload helper for the new path. Unlike the prior
+# done_at-based tests, the new path never reads done_at — only id, title,
+# repeat_after — so the mock task shape collapses to just those fields.
+def _vk_task(
+    *,
+    habit_id: int,
+    title: str,
+    repeat_after: int = 86400,
+) -> dict:
+    """Build a minimal Vikunja-shaped task dict for the new helper path."""
+    return {
+        "id": habit_id,
+        "title": title,
+        "repeat_after": repeat_after,
+        # Intentionally include a sentinel done_at to prove the new code path
+        # does NOT read it. Tests in the regression group assert this.
+        "done_at": "9999-01-01T00:00:00Z",
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -61,20 +90,24 @@ def _build_mock_client(
     *,
     done_pages: Optional[list[list[dict]]] = None,
     active_pages: Optional[list[list[dict]]] = None,
+    tasks_pages: Optional[list[list[dict]]] = None,
     raises: Optional[Exception] = None,
 ) -> MagicMock:
     """Synthesize a ``VikunjaClient``-shaped mock for these tests.
 
-    Drives ``client.get`` by inspecting its ``params`` to decide whether to
-    serve a done-page or an active-page. Pagination is interleaved per
-    filter — the helper requests page=1, page=2, ... for done first, then
-    for active.
+    The new (canonical-store) path issues a single paginated GET
+    ``/projects/13/tasks`` with NO ``filter`` param — those pages come
+    from ``tasks_pages``. The legacy ``done_pages`` / ``active_pages``
+    args are retained to keep the inherited mock shape compatible with
+    older tests that still drive the old code paths during transition.
     """
     client = MagicMock(name="VikunjaClient")
     done_pages = done_pages or []
     active_pages = active_pages or []
+    tasks_pages = tasks_pages or []
     done_iter = iter(done_pages)
     active_iter = iter(active_pages)
+    tasks_iter = iter(tasks_pages)
 
     def _get(path, *, params=None, **_kwargs):
         if raises is not None:
@@ -90,7 +123,14 @@ def _build_mock_client(
                 return next(active_iter)
             except StopIteration:
                 return []
-        return []
+        # No filter set — new (canonical-store) path. Serve from
+        # tasks_pages, falling back to done_pages flattened-into-one-page
+        # for ergonomic compatibility with the existing tests that
+        # provided habit lists via done_pages.
+        try:
+            return next(tasks_iter)
+        except StopIteration:
+            return []
 
     client.get.side_effect = _get
     return client
@@ -252,15 +292,68 @@ def test_scheduled_days_inverted_window_returns_zero() -> None:
 
 
 # ---------------------------------------------------------------------------
-# query_completion_events (aggregation)
+# query_completion_events (canonical-store path, post-trustworthy-weekly-...)
 # ---------------------------------------------------------------------------
+#
+# The new code path reads only current-state habit metadata from Vikunja
+# (id, title, repeat_after) and derives completion counts from
+# ``habits-history.jsonl`` via :mod:`scripts.habits.history`. Each test
+# sets up:
+#   1. A ``tasks_pages`` mock so the Vikunja list call returns the habit
+#      catalog.
+#   2. A ``mock_state_log_dir`` writing a tailored JSONL fixture so the
+#      history wrapper reads deterministic completion records.
 
 
-def test_query_events_single_habit_single_completion() -> None:
+def _write_habits_jsonl(state_dir: Path, records: list[dict]) -> Path:
+    """Helper: write a JSONL file at ``<state_dir>/habits-history.jsonl``."""
+    path = state_dir / "habits-history.jsonl"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if not records:
+        path.write_text("", encoding="utf-8")
+    else:
+        path.write_text(
+            "\n".join(json.dumps(r, ensure_ascii=False) for r in records) + "\n",
+            encoding="utf-8",
+        )
+    return path
+
+
+def _habit_record(
+    *,
+    task_id: int,
+    date_iso: str,
+    timestamp_iso: str,
+    title: str = "Habit",
+    state: str = "complete",
+) -> dict:
+    return {
+        "domain": "habits",
+        "task_id": task_id,
+        "title": title,
+        "date": date_iso,
+        "state": state,
+        "source": "whatsapp",
+        "timestamp": timestamp_iso,
+    }
+
+
+def test_query_events_single_habit_one_completion_from_jsonl(
+    mock_state_log_dir,
+) -> None:
+    """One daily habit + one completion in window → current_count=1."""
     client = _build_mock_client(
-        done_pages=[[{"id": 1, "title": "Meditate", "repeat_after": 86400,
-                      "done_at": "2026-06-02T07:00:00Z"}]],
-        active_pages=[[]],
+        tasks_pages=[[_vk_task(habit_id=1, title="Meditate")]],
+    )
+    _write_habits_jsonl(
+        mock_state_log_dir,
+        [
+            _habit_record(
+                task_id=1,
+                date_iso="2026-06-02",
+                timestamp_iso="2026-06-02T07:00:00+00:00",
+            )
+        ],
     )
     events = helper.query_completion_events(
         client,
@@ -279,16 +372,15 @@ def test_query_events_single_habit_single_completion() -> None:
     }
 
 
-def test_query_events_filters_other_kind() -> None:
+def test_query_events_filters_other_kind(mock_state_log_dir) -> None:
+    """A non-recurring non-weekday task ('other') is excluded from events."""
     client = _build_mock_client(
-        done_pages=[[
-            {"id": 1, "title": "Meditate", "repeat_after": 86400,
-             "done_at": "2026-06-02T07:00:00Z"},
-            {"id": 2, "title": "Upload cardiac lab history", "repeat_after": 0,
-             "done_at": "2026-06-03T15:00:00Z"},
+        tasks_pages=[[
+            _vk_task(habit_id=1, title="Meditate", repeat_after=86400),
+            _vk_task(habit_id=2, title="Upload cardiac lab history", repeat_after=0),
         ]],
-        active_pages=[[]],
     )
+    _write_habits_jsonl(mock_state_log_dir, [])
     events = helper.query_completion_events(
         client,
         window_start=CURRENT_START,
@@ -300,8 +392,11 @@ def test_query_events_filters_other_kind() -> None:
     assert "Meditate" in events
 
 
-def test_query_events_empty_responses_returns_empty_dict() -> None:
-    client = _build_mock_client(done_pages=[[]], active_pages=[[]])
+def test_query_events_empty_responses_returns_empty_dict(
+    mock_state_log_dir,
+) -> None:
+    """No Vikunja tasks → empty events dict (no completion lookups needed)."""
+    client = _build_mock_client(tasks_pages=[[]])
     events = helper.query_completion_events(
         client,
         window_start=CURRENT_START,
@@ -312,27 +407,25 @@ def test_query_events_empty_responses_returns_empty_dict() -> None:
     assert events == {}
 
 
-def test_query_events_paginates_when_page_size_exact() -> None:
-    full_page = [
-        {
-            "id": i,
-            "title": "Meditate",
-            "repeat_after": 86400,
-            "done_at": "2026-06-02T07:00:00Z",
-        }
-        for i in range(200)
-    ]
-    second_page = [
-        {
-            "id": 9000,
-            "title": "Meditate",
-            "repeat_after": 86400,
-            "done_at": "2026-06-03T07:00:00Z",
-        }
-    ]
+def test_query_events_dedup_by_date(mock_state_log_dir) -> None:
+    """Two completions on the same date for the same habit → count = 1."""
     client = _build_mock_client(
-        done_pages=[full_page, second_page],
-        active_pages=[[]],
+        tasks_pages=[[_vk_task(habit_id=1, title="Meditate")]],
+    )
+    _write_habits_jsonl(
+        mock_state_log_dir,
+        [
+            _habit_record(
+                task_id=1,
+                date_iso="2026-06-02",
+                timestamp_iso="2026-06-02T07:00:00+00:00",
+            ),
+            _habit_record(
+                task_id=1,
+                date_iso="2026-06-02",
+                timestamp_iso="2026-06-02T19:00:00+00:00",
+            ),
+        ],
     )
     events = helper.query_completion_events(
         client,
@@ -341,17 +434,49 @@ def test_query_events_paginates_when_page_size_exact() -> None:
         prior_window_start=PRIOR_START,
         prior_window_end=PRIOR_END,
     )
-    # Two distinct in-window completions for the same habit; the cap-at-7
-    # only happens at build_report, so events tracks the raw count here.
-    assert events["Meditate"]["current_count"] == 201
+    assert events["Meditate"]["current_count"] == 1
 
 
-def test_query_events_active_fallback_creates_zero_row() -> None:
-    client = _build_mock_client(
-        done_pages=[[]],
-        active_pages=[[{"id": 1, "title": "Meditate", "repeat_after": 86400,
-                        "done_at": None}]],
+def test_query_events_pagination_no_dupe(mock_state_log_dir) -> None:
+    """A habit appearing on multiple Vikunja pages (edge case) is counted once."""
+    full_page = [
+        _vk_task(habit_id=1, title="Meditate") for _ in range(200)
+    ]
+    second_page = [_vk_task(habit_id=1, title="Meditate")]
+    client = _build_mock_client(tasks_pages=[full_page, second_page])
+    # CURRENT window is [2026-06-01 00:00 UTC, 2026-06-08 00:00 UTC).
+    # Use days 1..7 at noon UTC so every record falls inside.
+    _write_habits_jsonl(
+        mock_state_log_dir,
+        [
+            _habit_record(
+                task_id=1,
+                date_iso=f"2026-06-{day:02d}",
+                timestamp_iso=f"2026-06-{day:02d}T12:00:00+00:00",
+            )
+            for day in range(1, 8)
+        ],
     )
+    events = helper.query_completion_events(
+        client,
+        window_start=CURRENT_START,
+        window_end=CURRENT_END,
+        prior_window_start=PRIOR_START,
+        prior_window_end=PRIOR_END,
+    )
+    # Single bucket (de-duped), with the 7 distinct dates from the JSONL.
+    assert list(events.keys()) == ["Meditate"]
+    assert events["Meditate"]["current_count"] == 7
+
+
+def test_query_events_active_no_completions_creates_zero_row(
+    mock_state_log_dir,
+) -> None:
+    """A habit listed in Vikunja with no JSONL records → current/prior = 0."""
+    client = _build_mock_client(
+        tasks_pages=[[_vk_task(habit_id=1, title="Meditate")]],
+    )
+    _write_habits_jsonl(mock_state_log_dir, [])
     events = helper.query_completion_events(
         client,
         window_start=CURRENT_START,
@@ -363,85 +488,27 @@ def test_query_events_active_fallback_creates_zero_row() -> None:
     assert events["Meditate"]["prior_count"] == 0
 
 
-def test_query_events_active_pass_skips_other_kind() -> None:
+def test_query_events_prior_count_filled_when_prior_set(
+    mock_state_log_dir,
+) -> None:
+    """Completions in the prior window populate prior_count."""
     client = _build_mock_client(
-        done_pages=[[]],
-        active_pages=[[
-            {"id": 1, "title": "Upload cardiac lab history", "repeat_after": 0,
-             "done_at": None},
-        ]],
+        tasks_pages=[[_vk_task(habit_id=1, title="Meditate")]],
     )
-    events = helper.query_completion_events(
-        client,
-        window_start=CURRENT_START,
-        window_end=CURRENT_END,
-        prior_window_start=PRIOR_START,
-        prior_window_end=PRIOR_END,
-    )
-    assert events == {}
-
-
-def test_query_events_skips_done_task_with_missing_done_at(capsys) -> None:
-    client = _build_mock_client(
-        done_pages=[[{"id": 42, "title": "Meditate", "repeat_after": 86400,
-                      "done_at": None}]],
-        active_pages=[[]],
-    )
-    events = helper.query_completion_events(
-        client,
-        window_start=CURRENT_START,
-        window_end=CURRENT_END,
-        prior_window_start=PRIOR_START,
-        prior_window_end=PRIOR_END,
-    )
-    # The habit row is still created (from the bucket assignment) but no
-    # window increment happened.
-    assert events["Meditate"]["current_count"] == 0
-    captured = capsys.readouterr()
-    assert "warning" in captured.err.lower()
-
-
-def test_query_events_skips_zero_date_sentinel(capsys) -> None:
-    client = _build_mock_client(
-        done_pages=[[{"id": 42, "title": "Meditate", "repeat_after": 86400,
-                      "done_at": "0001-01-01T00:00:00Z"}]],
-        active_pages=[[]],
-    )
-    events = helper.query_completion_events(
-        client,
-        window_start=CURRENT_START,
-        window_end=CURRENT_END,
-        prior_window_start=PRIOR_START,
-        prior_window_end=PRIOR_END,
-    )
-    assert events["Meditate"]["current_count"] == 0
-
-
-def test_query_events_skips_unparseable_done_at(capsys) -> None:
-    client = _build_mock_client(
-        done_pages=[[{"id": 42, "title": "Meditate", "repeat_after": 86400,
-                      "done_at": "not-a-date"}]],
-        active_pages=[[]],
-    )
-    events = helper.query_completion_events(
-        client,
-        window_start=CURRENT_START,
-        window_end=CURRENT_END,
-        prior_window_start=PRIOR_START,
-        prior_window_end=PRIOR_END,
-    )
-    assert events["Meditate"]["current_count"] == 0
-
-
-def test_query_events_prior_count_filled_when_prior_set() -> None:
-    client = _build_mock_client(
-        done_pages=[[
-            {"id": 1, "title": "Meditate", "repeat_after": 86400,
-             "done_at": "2026-05-26T07:00:00Z"},
-            {"id": 2, "title": "Meditate", "repeat_after": 86400,
-             "done_at": "2026-06-02T07:00:00Z"},
-        ]],
-        active_pages=[[]],
+    _write_habits_jsonl(
+        mock_state_log_dir,
+        [
+            _habit_record(
+                task_id=1,
+                date_iso="2026-05-26",
+                timestamp_iso="2026-05-26T07:00:00+00:00",
+            ),
+            _habit_record(
+                task_id=1,
+                date_iso="2026-06-02",
+                timestamp_iso="2026-06-02T07:00:00+00:00",
+            ),
+        ],
     )
     events = helper.query_completion_events(
         client,
@@ -454,13 +521,20 @@ def test_query_events_prior_count_filled_when_prior_set() -> None:
     assert events["Meditate"]["prior_count"] == 1
 
 
-def test_query_events_prior_window_none_skipped() -> None:
+def test_query_events_prior_window_none_skipped(mock_state_log_dir) -> None:
+    """prior_window_*=None disables the prior wrapper call (count stays 0)."""
     client = _build_mock_client(
-        done_pages=[[
-            {"id": 1, "title": "Meditate", "repeat_after": 86400,
-             "done_at": "2026-05-26T07:00:00Z"},
-        ]],
-        active_pages=[[]],
+        tasks_pages=[[_vk_task(habit_id=1, title="Meditate")]],
+    )
+    _write_habits_jsonl(
+        mock_state_log_dir,
+        [
+            _habit_record(
+                task_id=1,
+                date_iso="2026-05-26",
+                timestamp_iso="2026-05-26T07:00:00+00:00",
+            ),
+        ],
     )
     events = helper.query_completion_events(
         client,
@@ -472,14 +546,15 @@ def test_query_events_prior_window_none_skipped() -> None:
     assert events["Meditate"]["prior_count"] == 0
 
 
-def test_query_events_handles_naive_done_at() -> None:
-    # Vikunja occasionally returns naive datetimes; helper should treat
-    # them as UTC.
+def test_query_events_skips_task_missing_id(mock_state_log_dir) -> None:
+    """A task without an integer id is skipped (defensive against bad data)."""
     client = _build_mock_client(
-        done_pages=[[{"id": 1, "title": "Meditate", "repeat_after": 86400,
-                      "done_at": "2026-06-02T07:00:00"}]],
-        active_pages=[[]],
+        tasks_pages=[[
+            {"title": "No-ID habit", "repeat_after": 86400},
+            _vk_task(habit_id=1, title="Meditate"),
+        ]],
     )
+    _write_habits_jsonl(mock_state_log_dir, [])
     events = helper.query_completion_events(
         client,
         window_start=CURRENT_START,
@@ -487,12 +562,22 @@ def test_query_events_handles_naive_done_at() -> None:
         prior_window_start=PRIOR_START,
         prior_window_end=PRIOR_END,
     )
-    assert events["Meditate"]["current_count"] == 1
+    assert "No-ID habit" not in events
+    assert "Meditate" in events
 
 
-def test_query_events_handles_non_list_response() -> None:
-    client = MagicMock(name="VikunjaClient")
-    client.get.return_value = {"unexpected": "shape"}
+def test_query_events_does_not_read_done_at(mock_state_log_dir) -> None:
+    """Regression: even with garbage done_at, helper relies on JSONL only.
+
+    The Vikunja task here carries ``done_at`` = year-9999 sentinel — clearly
+    not a real completion. If the code path still read ``done_at`` it would
+    show a completion in some window; reading from JSONL (empty) ensures it
+    does not.
+    """
+    client = _build_mock_client(
+        tasks_pages=[[_vk_task(habit_id=1, title="Meditate")]],
+    )
+    _write_habits_jsonl(mock_state_log_dir, [])
     events = helper.query_completion_events(
         client,
         window_start=CURRENT_START,
@@ -500,7 +585,8 @@ def test_query_events_handles_non_list_response() -> None:
         prior_window_start=PRIOR_START,
         prior_window_end=PRIOR_END,
     )
-    assert events == {}
+    assert events["Meditate"]["current_count"] == 0
+    assert events["Meditate"]["prior_count"] == 0
 
 
 # ---------------------------------------------------------------------------
@@ -754,11 +840,21 @@ def _silence_log_action(monkeypatch):
     monkeypatch.setattr(helper, "_emit_log_action", lambda **_kwargs: None)
 
 
-def test_main_success_returns_zero_and_emits_json(monkeypatch, capsys) -> None:
+def test_main_success_returns_zero_and_emits_json(
+    monkeypatch, capsys, mock_state_log_dir
+) -> None:
     client = _build_mock_client(
-        done_pages=[[{"id": 1, "title": "Meditate", "repeat_after": 86400,
-                      "done_at": "2026-06-02T07:00:00Z"}]],
-        active_pages=[[]],
+        tasks_pages=[[_vk_task(habit_id=1, title="Meditate")]],
+    )
+    _write_habits_jsonl(
+        mock_state_log_dir,
+        [
+            _habit_record(
+                task_id=1,
+                date_iso="2026-06-02",
+                timestamp_iso="2026-06-02T07:00:00+00:00",
+            )
+        ],
     )
     _patch_client_with_mock(monkeypatch, mock_client=client)
     _silence_log_action(monkeypatch)
@@ -769,6 +865,10 @@ def test_main_success_returns_zero_and_emits_json(monkeypatch, capsys) -> None:
     assert payload["window_start_iso"] == "2026-06-01T00:00:00Z"
     assert payload["window_end_iso"] == "2026-06-08T00:00:00Z"
     assert payload["habits"][0]["habit_title"] == "Meditate"
+    # FR-005: rendered_text is now a top-level field, additive to the
+    # existing schema.
+    assert "rendered_text" in payload
+    assert payload["rendered_text"].startswith("*This week*")
 
 
 def test_main_vikunja_error_returns_three(monkeypatch, capsys) -> None:
@@ -822,8 +922,11 @@ def test_main_bad_window_days_returns_two(monkeypatch, capsys) -> None:
     assert rc == 2
 
 
-def test_main_no_baseline_flag_strips_prior(monkeypatch, capsys) -> None:
-    client = _build_mock_client(done_pages=[[]], active_pages=[[]])
+def test_main_no_baseline_flag_strips_prior(
+    monkeypatch, capsys, mock_state_log_dir
+) -> None:
+    client = _build_mock_client(tasks_pages=[[]])
+    _write_habits_jsonl(mock_state_log_dir, [])
     _patch_client_with_mock(monkeypatch, mock_client=client)
     _silence_log_action(monkeypatch)
     rc = helper.main(["--window-end", "2026-06-08", "--no-include-baseline"])
@@ -834,8 +937,11 @@ def test_main_no_baseline_flag_strips_prior(monkeypatch, capsys) -> None:
     assert payload["overall_percent_prior"] is None
 
 
-def test_main_default_window_end_uses_today(monkeypatch, capsys) -> None:
-    client = _build_mock_client(done_pages=[[]], active_pages=[[]])
+def test_main_default_window_end_uses_today(
+    monkeypatch, capsys, mock_state_log_dir
+) -> None:
+    client = _build_mock_client(tasks_pages=[[]])
+    _write_habits_jsonl(mock_state_log_dir, [])
     _patch_client_with_mock(monkeypatch, mock_client=client)
     _silence_log_action(monkeypatch)
     rc = helper.main([])
@@ -948,98 +1054,8 @@ def test_emit_log_action_subprocess_oserror_swallowed(monkeypatch, tmp_path, cap
 
 
 # ---------------------------------------------------------------------------
-# Fixture-driven end-to-end tests (FR-012)
+# Vikunja-failure surface (FR-012 d/f)
 # ---------------------------------------------------------------------------
-
-
-def _run_fixture(monkeypatch, fixture_name: str, fixtures: dict, capsys) -> dict:
-    scenario = fixtures[fixture_name]
-    client = _build_mock_client(
-        done_pages=scenario["done_responses"],
-        active_pages=scenario["active_responses"],
-    )
-    _patch_client_with_mock(monkeypatch, mock_client=client)
-    _silence_log_action(monkeypatch)
-    rc = helper.main(["--window-end", fixtures["_meta"]["window_end"]])
-    captured = capsys.readouterr()
-    assert rc == 0, captured.err
-    return json.loads(captured.out)
-
-
-def test_fixture_weekly_normal_data(monkeypatch, fixtures, capsys) -> None:
-    payload = _run_fixture(monkeypatch, "weekly_normal_data", fixtures, capsys)
-    assert payload == fixtures["weekly_normal_data"]["expected_report"]
-
-
-def test_fixture_weekly_cardiac_non_habit_present(monkeypatch, fixtures, capsys) -> None:
-    payload = _run_fixture(monkeypatch, "weekly_cardiac_non_habit_present", fixtures, capsys)
-    assert payload == fixtures["weekly_cardiac_non_habit_present"]["expected_report"]
-    # FR-012 (a): explicit assertion that the cardiac task never appears.
-    titles = [h["habit_title"] for h in payload["habits"]]
-    assert "Upload cardiac lab history" not in titles
-
-
-def test_fixture_weekly_baseline_nonzero(monkeypatch, fixtures, capsys) -> None:
-    payload = _run_fixture(monkeypatch, "weekly_baseline_nonzero", fixtures, capsys)
-    assert payload == fixtures["weekly_baseline_nonzero"]["expected_report"]
-    # FR-012 (c): prior baseline is non-zero — regression test for the
-    # 2026-06-08 uniform-zero bug.
-    assert payload["overall_percent_prior"] > 0
-    assert payload["habits"][0]["percent_prior"] > 0
-
-
-def test_fixture_weekly_weekday_in_title_completed_on_match(
-    monkeypatch, fixtures, capsys
-) -> None:
-    payload = _run_fixture(
-        monkeypatch, "weekly_weekday_in_title_completed_on_match", fixtures, capsys
-    )
-    assert payload == fixtures["weekly_weekday_in_title_completed_on_match"]["expected_report"]
-    # FR-012 (b): Monday/Wednesday habit done on its weekday → 100%.
-    assert payload["habits"][0]["percent_current"] == 100.0
-
-
-def test_fixture_weekly_weekday_in_title_skipped(monkeypatch, fixtures, capsys) -> None:
-    payload = _run_fixture(monkeypatch, "weekly_weekday_in_title_skipped", fixtures, capsys)
-    assert payload == fixtures["weekly_weekday_in_title_skipped"]["expected_report"]
-    assert payload["habits"][0]["percent_current"] == 0.0
-
-
-def test_fixture_weekly_partial_pagination(monkeypatch, fixtures, capsys) -> None:
-    # Synthesize the two-page payload deterministically; the JSON fixture
-    # records only the expected shape because 200+ tasks inline bloats the
-    # fixture file.
-    full_page = [
-        {
-            "id": i,
-            "title": "Meditate",
-            "repeat_after": 86400,
-            "done_at": f"2026-06-{(i % 7) + 1:02d}T07:00:00Z",
-        }
-        for i in range(200)
-    ]
-    second_page = [
-        {
-            "id": 9000 + i,
-            "title": "Meditate",
-            "repeat_after": 86400,
-            "done_at": f"2026-06-0{(i % 7) + 1}T07:00:00Z",
-        }
-        for i in range(5)
-    ]
-    client = _build_mock_client(
-        done_pages=[full_page, second_page],
-        active_pages=[[]],
-    )
-    _patch_client_with_mock(monkeypatch, mock_client=client)
-    _silence_log_action(monkeypatch)
-    rc = helper.main(["--window-end", "2026-06-08"])
-    captured = capsys.readouterr()
-    assert rc == 0
-    payload = json.loads(captured.out)
-    assert len(payload["habits"]) == 1
-    # Capped at the scheduled-day count.
-    assert payload["habits"][0]["completed_events_current"] == 7
 
 
 def test_fixture_weekly_vikunja_unreachable(monkeypatch, fixtures, capsys) -> None:
@@ -1082,3 +1098,480 @@ def test_helper_strips_base_url_trailing_slash() -> None:
     from scripts.common.vikunja_client import VikunjaClient as _VC
     client = _VC(token="tok")
     assert client.base_url == "https://vikunja.test/api/v1"
+
+
+# ===========================================================================
+# WP02 (trustworthy-weekly-habit-report-01KV4GZ7) — new surface tests
+# ===========================================================================
+#
+# Tests below exercise WP02-specific additions:
+#   - ``--as-of`` argparse type converter (T008)
+#   - ``_format_window_label`` (T010)
+#   - ``_arrow_for_delta`` + ``_render_whatsapp_text`` (T009)
+#   - ``--output text`` CLI mode (T009)
+#   - End-to-end byte-stable JSON + rendered_text via the golden-week
+#     JSONL fixture (T011 / FR-008 + FR-009 + NFR-001 + NFR-004)
+#   - ``done_at`` is NOT read (regression that pins FR-002)
+
+
+# ---------------------------------------------------------------------------
+# _parse_as_of (T008)
+# ---------------------------------------------------------------------------
+
+
+def test_parse_as_of_accepts_iso_with_offset() -> None:
+    parsed = helper._parse_as_of("2026-06-15T06:00:00-04:00")
+    assert parsed.tzinfo is not None
+    assert parsed.year == 2026
+    assert parsed.month == 6
+    assert parsed.day == 15
+
+
+def test_parse_as_of_accepts_z_suffix() -> None:
+    parsed = helper._parse_as_of("2026-06-15T10:00:00Z")
+    assert parsed.tzinfo is not None
+
+
+def test_parse_as_of_rejects_naive_datetime() -> None:
+    import argparse as _argparse
+    with pytest.raises(_argparse.ArgumentTypeError, match="tz-aware"):
+        helper._parse_as_of("2026-06-15T06:00:00")
+
+
+def test_parse_as_of_rejects_garbage() -> None:
+    import argparse as _argparse
+    with pytest.raises(_argparse.ArgumentTypeError, match="ISO 8601"):
+        helper._parse_as_of("not-a-date")
+
+
+def test_parse_as_of_rejects_empty() -> None:
+    import argparse as _argparse
+    with pytest.raises(_argparse.ArgumentTypeError):
+        helper._parse_as_of("")
+
+
+# ---------------------------------------------------------------------------
+# _format_window_label (T010, FR-006)
+# ---------------------------------------------------------------------------
+
+
+def test_format_window_label_same_month_seven_days() -> None:
+    """A Mon-to-next-Mon (exclusive) window over Jun 8-14 → 'Jun 8–14'."""
+    start = datetime(2026, 6, 8, tzinfo=GOLDEN_WEEK_TZ)
+    end = start + timedelta(days=7)
+    assert helper._format_window_label(start, end) == "Jun 8–14"
+
+
+def test_format_window_label_cross_month_seven_days() -> None:
+    """A window crossing months renders both abbreviations with en-dash."""
+    start = datetime(2026, 7, 28, tzinfo=GOLDEN_WEEK_TZ)
+    end = start + timedelta(days=7)
+    # Inclusive last day is Aug 3.
+    assert helper._format_window_label(start, end) == "Jul 28 – Aug 3"
+
+
+def test_format_window_label_not_eight_day_span() -> None:
+    """Sanity: the label must NOT show an 8-day span (the bug we're fixing)."""
+    start = datetime(2026, 6, 8, tzinfo=GOLDEN_WEEK_TZ)
+    end = start + timedelta(days=7)
+    label = helper._format_window_label(start, end)
+    assert "Jun 8–15" not in label  # 8-day span (the bug)
+    assert "Jun 7–14" not in label  # other 8-day variant
+
+
+# ---------------------------------------------------------------------------
+# _arrow_for_delta (T009)
+# ---------------------------------------------------------------------------
+
+
+def test_arrow_up_when_current_clearly_above_prior() -> None:
+    assert helper._arrow_for_delta(80.0, 70.0) == "↑"
+
+
+def test_arrow_down_when_current_clearly_below_prior() -> None:
+    assert helper._arrow_for_delta(60.0, 70.0) == "↓"
+
+
+def test_arrow_empty_when_essentially_equal() -> None:
+    """Epsilon prevents arrow flicker on essentially-equal rates."""
+    assert helper._arrow_for_delta(70.2, 70.0) == ""
+    assert helper._arrow_for_delta(69.8, 70.0) == ""
+
+
+def test_arrow_empty_when_prior_is_none() -> None:
+    """Without a baseline there's no arrow to draw."""
+    assert helper._arrow_for_delta(70.0, None) == ""
+
+
+# ---------------------------------------------------------------------------
+# _render_whatsapp_text (T009, NFR-004 determinism)
+# ---------------------------------------------------------------------------
+
+
+def _example_report_for_render() -> dict:
+    """A minimal report dict to drive renderer tests."""
+    return {
+        "window_start_iso": "2026-06-08T04:00:00Z",
+        "window_end_iso": "2026-06-15T04:00:00Z",
+        "prior_window_start_iso": "2026-06-01T04:00:00Z",
+        "prior_window_end_iso": "2026-06-08T04:00:00Z",
+        "habits": [
+            {
+                "habit_title": "Get steps in today",
+                "habit_kind": "daily",
+                "scheduled_days_current": 7,
+                "completed_events_current": 4,
+                "percent_current": 57.0,
+                "scheduled_days_prior": 7,
+                "completed_events_prior": 5,
+                "percent_prior": 71.0,
+            },
+            {
+                "habit_title": "Strength — Monday",
+                "habit_kind": "weekday-in-title",
+                "scheduled_days_current": 1,
+                "completed_events_current": 1,
+                "percent_current": 100.0,
+                "scheduled_days_prior": 1,
+                "completed_events_prior": 0,
+                "percent_prior": 0.0,
+            },
+        ],
+        # 62.6 (not 62.5) avoids banker's-rounding ambiguity for the
+        # integer percent display.
+        "overall_percent_current": 62.6,
+        "overall_percent_prior": 45.0,
+    }
+
+
+def test_render_whatsapp_text_byte_stable_for_identical_input() -> None:
+    """NFR-004: same report dict + same bounds → byte-identical text."""
+    report = _example_report_for_render()
+    start = datetime(2026, 6, 8, tzinfo=GOLDEN_WEEK_TZ)
+    end = start + timedelta(days=7)
+    a = helper._render_whatsapp_text(report, window_start=start, window_end=end)
+    b = helper._render_whatsapp_text(report, window_start=start, window_end=end)
+    assert a == b
+
+
+def test_render_whatsapp_text_contains_short_window() -> None:
+    report = _example_report_for_render()
+    start = datetime(2026, 6, 8, tzinfo=GOLDEN_WEEK_TZ)
+    end = start + timedelta(days=7)
+    text = helper._render_whatsapp_text(
+        report, window_start=start, window_end=end
+    )
+    assert text.startswith("*This week* (Jun 8–14):")
+
+
+def test_render_whatsapp_text_includes_arrows_per_habit() -> None:
+    report = _example_report_for_render()
+    start = datetime(2026, 6, 8, tzinfo=GOLDEN_WEEK_TZ)
+    end = start + timedelta(days=7)
+    text = helper._render_whatsapp_text(
+        report, window_start=start, window_end=end
+    )
+    # First habit: 57 (was 71) → down arrow.
+    assert "Get steps in today — 57% (was 71%) ↓" in text
+    # Second habit: 100 (was 0) → up arrow.
+    assert "Strength — Monday — 100% (was 0%) ↑" in text
+
+
+def test_render_whatsapp_text_overall_line_with_arrow() -> None:
+    report = _example_report_for_render()
+    start = datetime(2026, 6, 8, tzinfo=GOLDEN_WEEK_TZ)
+    end = start + timedelta(days=7)
+    text = helper._render_whatsapp_text(
+        report, window_start=start, window_end=end
+    )
+    assert "*Overall: 63%* (was 45%) ↑" in text
+
+
+def test_render_whatsapp_text_no_baseline_drops_was_clause() -> None:
+    report = _example_report_for_render()
+    report["overall_percent_prior"] = None
+    for h in report["habits"]:
+        h["percent_prior"] = None
+    start = datetime(2026, 6, 8, tzinfo=GOLDEN_WEEK_TZ)
+    end = start + timedelta(days=7)
+    text = helper._render_whatsapp_text(
+        report, window_start=start, window_end=end
+    )
+    assert "was" not in text
+    assert "*Overall: 63%*" in text
+
+
+def test_render_whatsapp_text_does_not_include_identity_line() -> None:
+    """FR-010: identity attribution belongs to the agent, not the helper."""
+    report = _example_report_for_render()
+    start = datetime(2026, 6, 8, tzinfo=GOLDEN_WEEK_TZ)
+    end = start + timedelta(days=7)
+    text = helper._render_whatsapp_text(
+        report, window_start=start, window_end=end
+    )
+    assert "Sent by" not in text
+    assert "felix-admin-habits" not in text
+
+
+# ---------------------------------------------------------------------------
+# build_report adds rendered_text additively (FR-007 + NFR-005 backward-compat)
+# ---------------------------------------------------------------------------
+
+
+def test_build_report_includes_rendered_text_field() -> None:
+    """Additive ``rendered_text`` keeps the existing schema intact."""
+    events = {
+        "Meditate": {"kind": "daily", "title": "Meditate",
+                     "current_count": 3, "prior_count": 2},
+    }
+    report = helper.build_report(
+        events,
+        window_start=CURRENT_START,
+        window_end=CURRENT_END,
+        prior_window_start=PRIOR_START,
+        prior_window_end=PRIOR_END,
+    )
+    # Old fields preserved.
+    assert report["window_start_iso"] == "2026-06-01T00:00:00Z"
+    assert report["habits"][0]["habit_title"] == "Meditate"
+    assert report["habits"][0]["percent_current"] == round(100 * 3 / 7, 1)
+    # New field added.
+    assert isinstance(report["rendered_text"], str)
+    assert report["rendered_text"].startswith("*This week*")
+
+
+# ---------------------------------------------------------------------------
+# CLI: --as-of + --output text (T008, T009)
+# ---------------------------------------------------------------------------
+
+
+def test_main_as_of_anchors_window_to_et_midnight(
+    monkeypatch, capsys, mock_state_log_dir
+) -> None:
+    """``--as-of`` Mon 06:00 ET anchors window to Mon 00:00 ET (7 days back)."""
+    client = _build_mock_client(
+        tasks_pages=[[_vk_task(habit_id=1, title="Meditate")]],
+    )
+    write_golden_week_jsonl(mock_state_log_dir / "habits-history.jsonl")
+    _patch_client_with_mock(monkeypatch, mock_client=client)
+    _silence_log_action(monkeypatch)
+    # Monday 2026-06-15 06:00 ET — after the golden week ended.
+    rc = helper.main(["--as-of", "2026-06-15T06:00:00-04:00"])
+    captured = capsys.readouterr()
+    assert rc == 0, captured.err
+    payload = json.loads(captured.out)
+    # Window should be the golden week (Jun 8 → Jun 15 exclusive).
+    # We expose UTC ISO; Jun 8 00:00 ET == Jun 8 04:00 UTC.
+    assert payload["window_start_iso"] == "2026-06-08T04:00:00Z"
+    assert payload["window_end_iso"] == "2026-06-15T04:00:00Z"
+
+
+def test_main_output_text_emits_only_rendered_text(
+    monkeypatch, capsys, mock_state_log_dir
+) -> None:
+    """``--output text`` writes the rendered_text field only (no JSON)."""
+    client = _build_mock_client(
+        tasks_pages=[[_vk_task(habit_id=1, title="Meditate")]],
+    )
+    _write_habits_jsonl(
+        mock_state_log_dir,
+        [
+            _habit_record(
+                task_id=1,
+                date_iso="2026-06-02",
+                timestamp_iso="2026-06-02T07:00:00+00:00",
+            )
+        ],
+    )
+    _patch_client_with_mock(monkeypatch, mock_client=client)
+    _silence_log_action(monkeypatch)
+    rc = helper.main([
+        "--window-end", "2026-06-08", "--output", "text",
+    ])
+    captured = capsys.readouterr()
+    assert rc == 0, captured.err
+    # Not valid JSON — it should be plain text.
+    assert captured.out.startswith("*This week*")
+    with pytest.raises(json.JSONDecodeError):
+        json.loads(captured.out)
+
+
+def test_main_as_of_rejects_naive_returns_two(monkeypatch, capsys) -> None:
+    """argparse rejects naive --as-of with usage exit code 2."""
+    _silence_log_action(monkeypatch)
+    rc = helper.main(["--as-of", "2026-06-15T06:00:00"])
+    captured = capsys.readouterr()
+    assert rc == 2
+    assert "tz-aware" in captured.err or "as-of" in captured.err
+
+
+# ---------------------------------------------------------------------------
+# End-to-end golden-week regression (T011: FR-008 + FR-009)
+# ---------------------------------------------------------------------------
+
+
+def _golden_week_vk_tasks() -> list[dict]:
+    """The Vikunja-side task catalog matching the golden-week fixture."""
+    return [
+        _vk_task(habit_id=DAILY_HABIT_ID, title="Daily walk", repeat_after=86400),
+        _vk_task(
+            habit_id=DAYSPEC_HABIT_ID,
+            title="Strength training — Monday",
+            repeat_after=0,
+        ),
+        # Weekly-review habit (week-bounded). With repeat_after=0 + no
+        # weekday-in-title token the existing classifier reads "other" and
+        # filters it. WP02 inherits that classifier as-is; the report
+        # cardinal-3 behavior for weekly habits is covered downstream.
+    ]
+
+
+def test_golden_week_daily_habit_reports_four_of_seven(
+    monkeypatch, capsys, mock_state_log_dir
+) -> None:
+    """FR-009: daily habit completed 4/7 → percent_current == 4/7 * 100."""
+    client = _build_mock_client(tasks_pages=[_golden_week_vk_tasks()])
+    write_golden_week_jsonl(mock_state_log_dir / "habits-history.jsonl")
+    _patch_client_with_mock(monkeypatch, mock_client=client)
+    _silence_log_action(monkeypatch)
+    rc = helper.main(["--as-of", "2026-06-15T06:00:00-04:00"])
+    captured = capsys.readouterr()
+    assert rc == 0, captured.err
+    payload = json.loads(captured.out)
+    daily = next(h for h in payload["habits"] if h["habit_title"] == "Daily walk")
+    assert daily["completed_events_current"] == 4
+    assert daily["scheduled_days_current"] == 7
+    assert daily["percent_current"] == pytest.approx(round(100 * 4 / 7, 1))
+
+
+def test_golden_week_day_specific_habit_reports_one_of_one(
+    monkeypatch, capsys, mock_state_log_dir
+) -> None:
+    """FR-009: day-specific habit completed Mon → percent_current == 100."""
+    client = _build_mock_client(tasks_pages=[_golden_week_vk_tasks()])
+    write_golden_week_jsonl(mock_state_log_dir / "habits-history.jsonl")
+    _patch_client_with_mock(monkeypatch, mock_client=client)
+    _silence_log_action(monkeypatch)
+    rc = helper.main(["--as-of", "2026-06-15T06:00:00-04:00"])
+    captured = capsys.readouterr()
+    assert rc == 0, captured.err
+    payload = json.loads(captured.out)
+    dayspec = next(
+        h for h in payload["habits"]
+        if h["habit_title"] == "Strength training — Monday"
+    )
+    assert dayspec["scheduled_days_current"] == 1
+    assert dayspec["completed_events_current"] == 1
+    assert dayspec["percent_current"] == 100.0
+
+
+def test_golden_week_byte_stable_json(
+    monkeypatch, capsys, mock_state_log_dir
+) -> None:
+    """NFR-001: same JSONL + same Vikunja + same --as-of → identical JSON."""
+    client = _build_mock_client(
+        tasks_pages=[_golden_week_vk_tasks(), _golden_week_vk_tasks()]
+    )
+    write_golden_week_jsonl(mock_state_log_dir / "habits-history.jsonl")
+    _patch_client_with_mock(monkeypatch, mock_client=client)
+    _silence_log_action(monkeypatch)
+
+    rc = helper.main(["--as-of", "2026-06-15T06:00:00-04:00"])
+    out_a = capsys.readouterr().out
+    assert rc == 0
+    rc = helper.main(["--as-of", "2026-06-15T06:00:00-04:00"])
+    out_b = capsys.readouterr().out
+    assert rc == 0
+    assert out_a == out_b
+
+
+def test_golden_week_byte_stable_rendered_text(
+    monkeypatch, capsys, mock_state_log_dir
+) -> None:
+    """NFR-004: rendered_text is byte-stable for identical inputs."""
+    client = _build_mock_client(
+        tasks_pages=[_golden_week_vk_tasks(), _golden_week_vk_tasks()]
+    )
+    write_golden_week_jsonl(mock_state_log_dir / "habits-history.jsonl")
+    _patch_client_with_mock(monkeypatch, mock_client=client)
+    _silence_log_action(monkeypatch)
+
+    rc = helper.main([
+        "--as-of", "2026-06-15T06:00:00-04:00", "--output", "text",
+    ])
+    text_a = capsys.readouterr().out
+    assert rc == 0
+    rc = helper.main([
+        "--as-of", "2026-06-15T06:00:00-04:00", "--output", "text",
+    ])
+    text_b = capsys.readouterr().out
+    assert rc == 0
+    assert text_a == text_b
+    # Reasonableness checks on the rendered text.
+    assert text_a.startswith("*This week* (Jun 8–14):")
+
+
+def test_golden_week_sunday_late_completion_captured(
+    monkeypatch, capsys, mock_state_log_dir
+) -> None:
+    """The Sunday completion (weekly review @ offset=6) lands inside the
+    current window when --as-of is Monday-after at 06:00 ET. This pins the
+    cron-timing fix (FR-001 partner): if the report ran Sun 22:00 ET, the
+    Sunday completion captured AFTER 22:00 would be missed; running at
+    Monday 06:00 ET ensures the Sunday completion is inside the window.
+    """
+    # The weekly-review habit is classified 'other' by the existing
+    # classifier and excluded. Use the daily habit and add a Sunday entry
+    # to verify the window includes Sunday completions.
+    client = _build_mock_client(tasks_pages=[_golden_week_vk_tasks()])
+    extra_sunday_iso = (
+        GOLDEN_WEEK_ANCHOR + timedelta(days=6, hours=23, minutes=30)
+    ).astimezone(ZoneInfo("UTC")).isoformat()
+    extra_sunday_record = _habit_record(
+        task_id=DAILY_HABIT_ID,
+        date_iso=(GOLDEN_WEEK_ANCHOR + timedelta(days=6)).date().isoformat(),
+        timestamp_iso=extra_sunday_iso,
+        title="Daily walk",
+    )
+    write_golden_week_jsonl(mock_state_log_dir / "habits-history.jsonl")
+    # Append an additional Sunday completion to the canonical fixture.
+    existing = (mock_state_log_dir / "habits-history.jsonl").read_text(
+        encoding="utf-8"
+    )
+    (mock_state_log_dir / "habits-history.jsonl").write_text(
+        existing + json.dumps(extra_sunday_record) + "\n",
+        encoding="utf-8",
+    )
+    _patch_client_with_mock(monkeypatch, mock_client=client)
+    _silence_log_action(monkeypatch)
+    rc = helper.main(["--as-of", "2026-06-15T06:00:00-04:00"])
+    captured = capsys.readouterr()
+    assert rc == 0, captured.err
+    payload = json.loads(captured.out)
+    daily = next(h for h in payload["habits"] if h["habit_title"] == "Daily walk")
+    # 4 weekday completions + 1 added Sunday = 5 distinct dates.
+    assert daily["completed_events_current"] == 5
+
+
+def test_golden_week_does_not_read_done_at_regression(
+    monkeypatch, capsys, mock_state_log_dir
+) -> None:
+    """Regression pin for #605: garbage done_at on Vikunja tasks must NOT
+    affect the report — completion counts come from JSONL only.
+
+    The ``_vk_task`` helper plants ``done_at = "9999-01-01"`` (clearly
+    invalid). If this were still read, every habit would show 0% even
+    where JSONL has completions. Asserting non-zero rates proves the
+    canonical-store read path is in effect (FR-002, FR-009).
+    """
+    client = _build_mock_client(tasks_pages=[_golden_week_vk_tasks()])
+    write_golden_week_jsonl(mock_state_log_dir / "habits-history.jsonl")
+    _patch_client_with_mock(monkeypatch, mock_client=client)
+    _silence_log_action(monkeypatch)
+    rc = helper.main(["--as-of", "2026-06-15T06:00:00-04:00"])
+    captured = capsys.readouterr()
+    assert rc == 0, captured.err
+    payload = json.loads(captured.out)
+    daily = next(h for h in payload["habits"] if h["habit_title"] == "Daily walk")
+    assert daily["completed_events_current"] == 4
+    assert daily["percent_current"] > 0.0

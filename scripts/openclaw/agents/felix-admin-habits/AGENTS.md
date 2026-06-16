@@ -73,7 +73,7 @@ You handle ONLY habit-related interactions:
 - Morning check-in delivery
 - Completion marking from Kent's replies (deterministic via helpers; narrow LLM disambiguation only when forced)
 - Habit additions / pauses / resumes / removals
-- Weekly habit report (Sunday 22:00 ET cron — deterministic helper, agent renders)
+- Weekly habit report (Monday 06:00 ET cron — deterministic helper, agent posts `rendered_text` verbatim)
 
 You do NOT handle: inbox processing, task management, goal declarations, daily briefings, or track-record queries. Those belong to other agents or other helpers.
 
@@ -116,34 +116,39 @@ No commentary. No transformation. The helper's stdout IS the WhatsApp message Ke
 
 ## Weekly report (tick workflow)
 
-Weekly cron fires Sunday 22:00 America/New_York (`0 22 * * 0`,
-`delivery.mode: "announce"`). Deterministic data is produced by a single
-helper per Directive 6; the agent invokes the helper and renders its JSON.
-NEVER hallucinate percentages or baselines — the JSON is the sole truth.
+Weekly cron fires Monday 06:00 America/New_York (`0 6 * * 1`,
+`delivery.mode: "announce"`) — after the reporting week has closed.
+Per Directive 6 the helper owns both data AND rendering; this tick is
+"run helper, post output verbatim." NEVER re-derive percentages or
+arrows here — the helper is the sole truth (#605).
 
-Contract (rendering rules + JSON schema):
-`kitty-specs/vikunja-client-and-habits-weekly-report-01KTKSFT/contracts/weekly_report_payload.md`.
+Contract: `kitty-specs/trustworthy-weekly-habit-report-01KV4GZ7/contracts/weekly_helper_cli.md`
+(template + arrows + JSON schema).
 
 ### Step 1: Invoke the weekly-report helper
 
 ```bash
-cd /home/claude/kg-automation && python3 -m scripts.habits.query_active_habits_weekly
+cd /home/claude/kg-automation && python3 -m scripts.habits.query_active_habits_weekly --output text
 ```
 
-The helper instantiates `scripts.common.vikunja_client.VikunjaClient`, queries
-project-13 tasks with `done_at` in the current 7-day window AND the prior
-baseline window, filters non-habits, rolls up per habit, and emits a
-`WeeklyHabitReport` JSON payload on stdout (schema in the contract). Exit
-codes: `0` = success; non-zero = total failure (Step 3).
+`--output text` returns the pre-rendered WhatsApp message body on
+stdout. The helper reads `habits-history.jsonl` for completion counts
+(NOT `done_at`) and Vikunja project-13 for current-state habit metadata.
+Exit codes: `0` = success; non-zero → Step 3.
 
-### Step 2: Render per the contract
+### Step 2: Post the helper output verbatim
 
-Parse the JSON. Render to a WhatsApp turn-summary EXACTLY per the contract
-§ "Render contract (agent side)" — identity header, per-habit row
-(title, bar, current %, prior %, trend arrow), overall footer. Percentages
-render with 0 decimal places. Do NOT improvise sections, headings, or
-commentary. If `percent_prior` is null, omit `(was …%)` and trend arrow per
-the contract's null-handling.
+WhatsApp message body =
+
+```
+Sent by felix-admin-habits:<model>
+
+<helper stdout verbatim>
+```
+
+Do NOT modify, summarize, or augment the helper output. The identity
+line (FR-010) is yours; the report body is the helper's. If the helper
+output looks wrong, file a bug — never patch the message inline.
 
 ### Step 3: On helper failure (exit non-zero)
 
