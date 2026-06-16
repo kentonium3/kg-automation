@@ -277,3 +277,147 @@ def test_keyring_missing_is_probe_error(tmp_path, monkeypatch):
     assert result.classification == "probe-error"
     assert "keyring file not found" in result.reason
     assert result.recovery_command is None
+
+
+# ---------- reauth_marker_glob tests (#616) ----------
+
+def make_credential_with_reauth_marker(
+    tmp_path: Path,
+    *,
+    marker_files: list[str],
+    enabled: bool = True,
+) -> _CredentialStub:
+    """Credential whose liveness_probe has a reauth_marker_glob set.
+
+    The keyring file mtime is left at NOW (simulating a recently-touched
+    keyring — the real-world condition where every probe tick updates it
+    and the keyring-fallback heuristic always says 'unexpected'). The
+    marker files' mtimes are what each test drives.
+    """
+    keyring = tmp_path / "keyring_file"
+    keyring.write_bytes(b"")  # mtime = now
+    for name in marker_files:
+        (tmp_path / name).write_text("")  # mtime = now (caller overwrites)
+    return _CredentialStub(
+        name="gog-credentials-keyring",
+        liveness_probe=LivenessProbeConfig(
+            enabled=enabled,
+            gog_account="kentgale@gmail.com",
+            keyring_file=str(keyring),
+            recovery_command=RECOVERY_CMD,
+            reauth_marker_glob=str(tmp_path / "oauth-manual-state-*.json"),
+        ),
+    )
+
+
+def _set_mtime(path: Path, dt: datetime) -> None:
+    ts = dt.timestamp()
+    os.utime(str(path), (ts, ts))
+
+
+def test_reauth_marker_drives_routine_classification(tmp_path, monkeypatch):
+    """#616: reauth marker at ~6.9d → dead-routine-7day even when keyring is fresh."""
+    cred = make_credential_with_reauth_marker(
+        tmp_path, marker_files=["oauth-manual-state-abc.json"]
+    )
+    now = datetime.now(timezone.utc)
+    # Keyring is fresh — this is the production state every 6h.
+    _set_mtime(Path(cred.liveness_probe.keyring_file), now)
+    # Marker says last re-auth was 6.9 days ago — within the ±24h routine window.
+    _set_mtime(tmp_path / "oauth-manual-state-abc.json", now - timedelta(days=6, hours=21, minutes=36))
+
+    monkeypatch.setattr(
+        subprocess, "run",
+        make_subprocess_run(returncode=1, stderr="invalid_grant"),
+    )
+    result = probe_oauth_liveness(cred)
+    assert isinstance(result, LivenessResult)
+    assert result.classification == "dead-routine-7day"
+    # Reason must label the baseline source so operators know which clock fired.
+    assert "reauth+7d=" in result.reason
+
+
+def test_reauth_marker_drives_unexpected_classification(tmp_path, monkeypatch):
+    """#616: reauth marker at 3d (mid-week token death) → dead-unexpected."""
+    cred = make_credential_with_reauth_marker(
+        tmp_path, marker_files=["oauth-manual-state-abc.json"]
+    )
+    now = datetime.now(timezone.utc)
+    _set_mtime(Path(cred.liveness_probe.keyring_file), now)
+    _set_mtime(tmp_path / "oauth-manual-state-abc.json", now - timedelta(days=3))
+
+    monkeypatch.setattr(
+        subprocess, "run",
+        make_subprocess_run(returncode=1, stderr="invalid_grant"),
+    )
+    result = probe_oauth_liveness(cred)
+    assert isinstance(result, LivenessResult)
+    assert result.classification == "dead-unexpected"
+    assert "reauth+7d=" in result.reason
+
+
+def test_reauth_marker_picks_max_mtime_across_multiple_files(tmp_path, monkeypatch):
+    """When the glob matches several files, the newest mtime wins."""
+    cred = make_credential_with_reauth_marker(
+        tmp_path,
+        marker_files=[
+            "oauth-manual-state-old.json",
+            "oauth-manual-state-new.json",
+        ],
+    )
+    now = datetime.now(timezone.utc)
+    _set_mtime(Path(cred.liveness_probe.keyring_file), now)
+    _set_mtime(tmp_path / "oauth-manual-state-old.json", now - timedelta(days=15))
+    _set_mtime(
+        tmp_path / "oauth-manual-state-new.json",
+        now - timedelta(days=6, hours=21, minutes=36),
+    )
+
+    monkeypatch.setattr(
+        subprocess, "run",
+        make_subprocess_run(returncode=1, stderr="invalid_grant"),
+    )
+    result = probe_oauth_liveness(cred)
+    assert isinstance(result, LivenessResult)
+    # Newer marker (6.9d) drives the result → routine, not unexpected (15d).
+    assert result.classification == "dead-routine-7day"
+
+
+def test_reauth_marker_no_match_falls_back_to_keyring(tmp_path, monkeypatch):
+    """If the glob matches nothing, behaviour falls back to keyring mtime."""
+    cred = make_credential_with_reauth_marker(tmp_path, marker_files=[])
+    now = datetime.now(timezone.utc)
+    # Keyring at 6.9d → routine via fallback.
+    _set_mtime(
+        Path(cred.liveness_probe.keyring_file),
+        now - timedelta(days=6, hours=21, minutes=36),
+    )
+
+    monkeypatch.setattr(
+        subprocess, "run",
+        make_subprocess_run(returncode=1, stderr="invalid_grant"),
+    )
+    result = probe_oauth_liveness(cred)
+    assert isinstance(result, LivenessResult)
+    assert result.classification == "dead-routine-7day"
+    # Fallback path labels the source.
+    assert "keyring+7d=" in result.reason
+
+
+def test_keyring_fallback_message_labels_source(tmp_path, monkeypatch):
+    """#616 regression pin: without reauth_marker_glob, message says 'keyring+7d='."""
+    cred = make_credential(tmp_path)  # no reauth_marker_glob set
+    now = datetime.now(timezone.utc)
+    _set_keyring_mtime(
+        Path(cred.liveness_probe.keyring_file),
+        now - timedelta(days=3),
+    )
+
+    monkeypatch.setattr(
+        subprocess, "run",
+        make_subprocess_run(returncode=1, stderr="invalid_grant"),
+    )
+    result = probe_oauth_liveness(cred)
+    assert isinstance(result, LivenessResult)
+    assert result.classification == "dead-unexpected"
+    assert "keyring+7d=" in result.reason
