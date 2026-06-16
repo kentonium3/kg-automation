@@ -109,21 +109,127 @@ python3 -m scripts.deploy.lib.cron openclaw_cron_list >/dev/null
 
 if [ "$MODE" = "--dry-run" ]; then
   echo "would: rsync scripts/foo/bar.py → office2:/home/claude/.../bar.py"
-  echo "would: edit openclaw cron foo-job to point at new payload"
+  echo "would: edit openclaw cron foo-job to schedule '0 6 * * 1'"
   exit 0
 fi
 
 # Apply: copy file
 rsync ... office2-claude:...
 
-# Apply: edit cron
-python3 -m scripts.deploy.lib.cron openclaw_cron_edit foo-job --payload-file ...
+# Apply: edit cron (positional args: name, schedule, tz)
+python3 -m scripts.deploy.lib.cron openclaw_cron_edit foo-job "0 6 * * 1" "America/New_York"
 ```
 
 Choose Python for complex orchestration with multiple primitives (import
 `scripts.deploy.lib` directly); choose bash for simple file-copy or systemd
 unit installs (use `python3 -m scripts.deploy.lib.<module>` for cron, verify,
 and snapshot primitives).
+
+Worked example (Python entrypoint, subprocesses openclaw directly — pattern
+used by `scripts/deploy/reschedule-felix-admin-habits-weekly-cron.py` and
+`scripts/deploy/restore-tz-on-habits-weekly-report-cron.py`):
+
+```python
+#!/usr/bin/env python3
+"""Deploy entrypoint — short description of what this changes."""
+from __future__ import annotations
+
+import json
+import subprocess
+import sys
+from pathlib import Path
+
+# Required only when importing from scripts.deploy.lib.*. felix-deployer
+# invokes the entrypoint by path (not via `python3 -m`), so the repo root
+# isn't on sys.path unless we put it there.
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+
+
+def _dry_run() -> int:
+    print("DRY-RUN: would …")
+    return 0
+
+
+def _apply() -> int:
+    proc = subprocess.run(
+        ["openclaw", "cron", "edit", "<uuid>", "--cron", "0 6 * * 1", "--tz", "America/New_York"],
+        capture_output=True, text=True, check=False,
+    )
+    print(f"APPLY: rc={proc.returncode}")
+    return 0 if proc.returncode == 0 else 1
+
+
+def main(argv: list[str] | None = None) -> int:
+    args = list(sys.argv[1:] if argv is None else argv)
+    if len(args) != 1 or args[0] not in ("--dry-run", "--apply"):
+        sys.stderr.write("usage: <entrypoint> --dry-run|--apply\n")
+        return 2
+    return _dry_run() if args[0] == "--dry-run" else _apply()
+
+
+if __name__ == "__main__":  # pragma: no cover
+    sys.exit(main())
+```
+
+### Python entrypoint authoring checklist
+
+When the entrypoint is a Python file (`scripts/deploy/<slug>.py`):
+
+1. **Shebang**: file starts with `#!/usr/bin/env python3`.
+2. **Exec bit**: committed with mode `0755` (`chmod +x <file>` BEFORE
+   `git add`). felix-deployer invokes the entrypoint as
+   `subprocess.run([path, "--dry-run"], shell=False)` — a direct exec.
+   Without the exec bit this errors out as `Permission denied` (exit
+   126) at the `entrypoint_dry_run` phase.
+3. **sys.path shim**: if you `from scripts.deploy.lib import ...`, add
+   `sys.path.insert(0, str(Path(__file__).resolve().parents[2]))` near
+   the top of the file. felix-deployer invokes entrypoints by path,
+   NOT via `python3 -m`, so the `scripts` package isn't on `sys.path`
+   without help.
+4. **Argv dispatch**: `main()` parses `sys.argv[1:]` for `--dry-run`
+   (no side effects on office2 — read-only lookups OK) and `--apply`
+   (execute). Anything else returns exit 2 with a usage string on stderr.
+5. **Dry-run as scout**: in the dry-run path, perform the read-only
+   lookups your apply will need (e.g. resolve a cron UUID via
+   `openclaw cron list --json`). Misconfiguration surfaces before the
+   live apply tick rather than at `entrypoint_apply` time.
+
+### Manifest verification-command pitfalls
+
+`verification.pre` and `verification.post` are shell strings executed
+by felix-deployer **on office2** under `shell=True`. Common foot-guns:
+
+1. **Never wrap in `ssh office2-claude '…'`**. The `office2-claude`
+   alias is defined in **Mac's** `~/.ssh/config`, not on office2. The
+   bootstrap manifest at `deploys/applied/0002-bootstrap-felix-deployer-v2.yaml`
+   uses the alias because it was operator-run from Mac; copying that
+   pattern for routine queued deploys produces `Could not resolve
+   hostname office2-claude`. See kg-automation#612.
+2. **`openclaw cron list --json` returns `{"jobs": [...], "total": ...}`**,
+   not a bare array. Index `["jobs"]` first.
+3. **A cron's `schedule` field is an object**: `{"kind": "cron",
+   "expr": "0 6 * * 1", "tz": "America/New_York"}`. Compare
+   `m["schedule"]["expr"]` for the cron string and
+   `m["schedule"].get("tz")` for the timezone — not `m["schedule"]`
+   itself.
+4. **No `\"` inside f-string `{}` expressions**. Python rejects the
+   f-string at compile time with `SyntaxError: unexpected character
+   after line continuation character`. Hoist the value to a local
+   name first:
+   ```python
+   expr = m["schedule"]["expr"]
+   assert expr == "0 6 * * 1", f"schedule still {expr!r}"
+   ```
+5. **If you edited an openclaw cron, verify BOTH `expr` and `tz`**.
+   `openclaw cron edit <id> --cron <expr>` (without `--tz`) silently
+   resets the cron's timezone to UTC. A schedule-only post-check
+   passes and the cron then fires at the wrong wall clock. See
+   kg-automation#614.
+6. **Bug-class aware**: prefer subprocessing `openclaw` directly over
+   `python3 -m scripts.deploy.lib.cron …` until kg-automation#613
+   (cron.py CLI-shadow defect) is verified fixed in your checkout.
 
 ---
 
