@@ -5,7 +5,10 @@ user-invocable: true
 ---
 ## Startup Upgrade Check
 
-Before continuing, run:
+Run this at most once per active agent session before the first Spec Kitty command workflow.
+If you already ran `spec-kitty upgrade --agent-check --json` in this session, reuse that result and skip this block.
+Do not run or announce an upgrade check again for later Spec Kitty commands in the same session.
+Otherwise, before continuing, run:
 
 ```bash
 spec-kitty upgrade --agent-check --json
@@ -152,6 +155,8 @@ model: ""          # filled in Step 4a — model identifier (e.g., claude-sonnet
 ---
 ```
 
+**IMPORTANT — `plan_concern_refs` lives in `wps.yaml` only.** Do NOT copy `plan_concern_refs` into WP prompt frontmatter. `WPMetadata` uses `extra="forbid"`, so any WP prompt file with `plan_concern_refs` in its frontmatter will cause `finalize-tasks --validate-only` to raise a `ValidationError`.
+
 Body sections (in order):
 0. `## ⚡ Do This First: Load Agent Profile` — **REQUIRED. Must be the first section after the H1 title, before Objective.** Instructs the implementing agent to load the assigned profile via `/ad-hoc-profile-load` before reading anything else. Use this exact structure, substituting frontmatter values:
    ```markdown
@@ -217,6 +222,8 @@ Example of a fully-populated entry after this step:
   requirement_refs:
     - FR-001
     - NFR-001
+  plan_concern_refs:
+    - IC-02
   subtasks:
     - T001
     - T002
@@ -238,6 +245,8 @@ execution_mode: "code_change"
 ---
 ```
 
+**Note**: `plan_concern_refs` is a `wps.yaml`-only field. It must NOT appear in WP prompt frontmatter — `WPMetadata` (`extra="forbid"`) will reject any WP file that includes it.
+
 Include the correct implementation command:
 - `spec-kitty agent action implement WP01 --agent <name>`
 - `spec-kitty agent action implement WP02 --agent <name>`
@@ -248,7 +257,7 @@ Include the correct implementation command:
 - `owned_files`: List of glob patterns for files this WP touches — no two WPs may overlap.
 - `authoritative_surface`: Path prefix that must be a prefix of at least one `owned_files` entry.
 - `execution_mode`: `"code_change"` for source code changes, `"planning_artifact"` for kitty-specs docs.
-- Agents working on a WP must not modify files outside their `owned_files` list.
+- Agents working on a WP should prefer to stay within their `owned_files` list; a small, well-justified out-of-map edit is acceptable when recorded with a one-line rationale (the no-overlap rule above is the real guard against parallel-WP collisions).
 
 ### 4a. Assign Agent Profiles
 

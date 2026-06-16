@@ -5,7 +5,10 @@ user-invocable: true
 ---
 ## Startup Upgrade Check
 
-Before continuing, run:
+Run this at most once per active agent session before the first Spec Kitty command workflow.
+If you already ran `spec-kitty upgrade --agent-check --json` in this session, reuse that result and skip this block.
+Do not run or announce an upgrade check again for later Spec Kitty commands in the same session.
+Otherwise, before continuing, run:
 
 ```bash
 spec-kitty upgrade --agent-check --json
@@ -299,9 +302,9 @@ If the mission is not a bulk edit, skip this step.
    - Phase 1: Generate data-model.md, contracts/, quickstart.md based on confirmed intent; when applicable, capture entities/value objects, invariants, state transitions, and externally visible events in the design artifacts
    - Re-evaluate Charter Check post-design, asking the user to resolve new gaps before proceeding
 
-6. **STOP and report**: This command ends after Phase 1 planning. Report branch, IMPL_PLAN path, and generated artifacts.
+6. **STOP and report**: This command ends after Phase 1 planning. Report branch, IMPL_PLAN path, and generated artifacts (including the Implementation Concern Map if present).
 
-   **⚠️ CRITICAL: DO NOT proceed to task generation!** The user must explicitly run `/spec-kitty.tasks` to generate work packages. Your job is COMPLETE after reporting the planning artifacts.
+   **⚠️ CRITICAL: DO NOT proceed to task generation!** The user must explicitly run `/spec-kitty.tasks` to translate implementation concerns from `plan.md` into executable work packages. Your job is COMPLETE after reporting the planning artifacts.
 
 ## Phases
 
@@ -373,6 +376,6 @@ Do NOT:
 - ❌ Create `tasks/` subdirectories
 - ❌ Proceed to implementation
 
-The user will run `/spec-kitty.tasks` when they are ready to generate work packages.
+`/spec-kitty.tasks` translates implementation concerns from `plan.md` into executable work packages. The user will run it when they are ready.
 
 **Next suggested command**: `/spec-kitty.tasks` (user must invoke this explicitly)

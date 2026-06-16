@@ -2,7 +2,7 @@
   "event_count": 12,
   "last_event_id": "01KV1QQKSWTJ0JE5N490EFHK7S",
   "materialized_at": "2026-06-14T00:15:31.644171+00:00",
-  "mission_number": "",
+  "mission_number": "77",
   "mission_slug": "idle-cron-reply-agent-prefix-01KV1BSS",
   "mission_type": "software-dev",
   "summary": {

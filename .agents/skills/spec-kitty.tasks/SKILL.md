@@ -1,11 +1,14 @@
 ---
 name: spec-kitty.tasks
-description: Break a plan into work packages
+description: Translate implementation concerns into work packages
 user-invocable: true
 ---
 ## Startup Upgrade Check
 
-Before continuing, run:
+Run this at most once per active agent session before the first Spec Kitty command workflow.
+If you already ran `spec-kitty upgrade --agent-check --json` in this session, reuse that result and skip this block.
+Do not run or announce an upgrade check again for later Spec Kitty commands in the same session.
+Otherwise, before continuing, run:
 
 ```bash
 spec-kitty upgrade --agent-check --json
@@ -233,7 +236,7 @@ Prompts do not rediscover feature context. Commands do.
    **Ownership rules**:
    - No two WPs may have overlapping `owned_files`.
    - Use specific paths, not broad globs like `src/**`.
-   - Agents working on a WP must not modify files outside their `owned_files` list.
+   - Agents working on a WP should prefer to stay within their `owned_files` list; a small, well-justified out-of-map edit is acceptable when recorded with a one-line rationale (the no-overlap rule above is the real guard against parallel-WP collisions).
    - Run `spec-kitty agent mission finalize-tasks --validate-only --mission <mission-slug> --json` to check ownership before committing.
 
 8. **Finalize tasks with dependency parsing and commit**:
@@ -594,9 +597,12 @@ After reporting, ask the user directly:
 
 > **Should I use the `/spec-kitty-implement-review` skill to fully implement all WPs until completion?**
 > This will dispatch implementing and reviewing agents for every WP, handle rejection cycles, and merge all lanes when done.
+>
+> Optional quality control gate before implementation: run `/spec-kitty.analyze` first to persist an `analysis-report.md` and review spec/plan/task consistency before any WP implementation starts.
 
 - If the user says **yes**: invoke the `spec-kitty-implement-review` skill with the mission slug. The user may also specify which agents to use for implementation and review (e.g., "yes, use sonnet for implementing and opus for reviewing").
 - If the user says **no** or wants to do it manually: end here and let them run `/spec-kitty.implement` at their own pace.
+- If the user wants the optional quality gate first: run `/spec-kitty.analyze --mission <mission-slug>` and wait for the user's decision on whether to address findings before invoking implementation.
 - If the user asks for a subset (e.g., "just WP01 and WP02 for now"): invoke the skill with that scope.
 
 This handoff is the natural transition from planning to execution. Do NOT skip the question — always offer it explicitly so the user can choose their execution strategy.

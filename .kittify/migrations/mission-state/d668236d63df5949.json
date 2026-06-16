@@ -1,0 +1,1570 @@
+{
+  "cli_version": "3.2.0rc45",
+  "command_args": [
+    "upgrade",
+    "--project",
+    "--yes"
+  ],
+  "generated_ids": [
+    "d668236d63df5949"
+  ],
+  "manifest_path": ".kittify/migrations/mission-state/d668236d63df5949.json",
+  "missions": [
+    {
+      "file_changes": [],
+      "mission_id": "01KN5QX3W9YZC8278D6BM01V28",
+      "mission_slug": "001-vikunja-docker-deploy",
+      "quarantined_rows": 0,
+      "row_transformations": [],
+      "status": "unchanged",
+      "validation_errors": []
+    },
+    {
+      "file_changes": [],
+      "mission_id": "01KN5QX3WBC1M57EENV2JHWAT7",
+      "mission_slug": "002-openclaw-install-config",
+      "quarantined_rows": 0,
+      "row_transformations": [],
+      "status": "unchanged",
+      "validation_errors": []
+    },
+    {
+      "file_changes": [],
+      "mission_id": "01KN5QX3WCFA855XAHAHZ10CB4",
+      "mission_slug": "003-whisper-transcription-skill",
+      "quarantined_rows": 0,
+      "row_transformations": [],
+      "status": "unchanged",
+      "validation_errors": []
+    },
+    {
+      "file_changes": [],
+      "mission_id": "01KN5QX3WDVP7JH72J2D8NHKMX",
+      "mission_slug": "004-whatsapp-channel",
+      "quarantined_rows": 0,
+      "row_transformations": [],
+      "status": "unchanged",
+      "validation_errors": []
+    },
+    {
+      "file_changes": [],
+      "mission_id": "01KN5QX3WEJQ6KMCTQ8K1FX4FS",
+      "mission_slug": "005-system-architecture-development",
+      "quarantined_rows": 0,
+      "row_transformations": [],
+      "status": "unchanged",
+      "validation_errors": []
+    },
+    {
+      "file_changes": [],
+      "mission_id": "01KN5QX3WGCV3TGJ9CKAPFQ5N7",
+      "mission_slug": "goal-and-outcome-structure",
+      "quarantined_rows": 0,
+      "row_transformations": [],
+      "status": "unchanged",
+      "validation_errors": []
+    },
+    {
+      "file_changes": [],
+      "mission_id": "01KN5QX3WHZRDC03C5G6MQ2Y75",
+      "mission_slug": "007-vikunja-api-skill",
+      "quarantined_rows": 0,
+      "row_transformations": [],
+      "status": "unchanged",
+      "validation_errors": []
+    },
+    {
+      "file_changes": [],
+      "mission_id": "01KN5QX3WJGAVA67AVPSBGXX96",
+      "mission_slug": "008-inbox-processing-migration",
+      "quarantined_rows": 0,
+      "row_transformations": [],
+      "status": "unchanged",
+      "validation_errors": []
+    },
+    {
+      "file_changes": [],
+      "mission_id": "01KN5QX3WMQC0B8XXG1QKT3N9E",
+      "mission_slug": "009-daily-habit-checkin",
+      "quarantined_rows": 0,
+      "row_transformations": [],
+      "status": "unchanged",
+      "validation_errors": []
+    },
+    {
+      "file_changes": [],
+      "mission_id": "01KN5QX3WNQ7X8S386F2A0ME8Q",
+      "mission_slug": "obsidian-sync-office2",
+      "quarantined_rows": 0,
+      "row_transformations": [],
+      "status": "unchanged",
+      "validation_errors": []
+    },
+    {
+      "file_changes": [],
+      "mission_id": "01KN5QX3WPT8E1MP9T6H487WY6",
+      "mission_slug": "011-second-brain-vault-cleanup",
+      "quarantined_rows": 0,
+      "row_transformations": [],
+      "status": "unchanged",
+      "validation_errors": []
+    },
+    {
+      "file_changes": [],
+      "mission_id": "01KN5QX3WQ3CEY5FNQ77X9MCNF",
+      "mission_slug": "constitution-agent-governance-setup",
+      "quarantined_rows": 0,
+      "row_transformations": [],
+      "status": "unchanged",
+      "validation_errors": []
+    },
+    {
+      "file_changes": [],
+      "mission_id": "01KRG3V5ENAGJM72RSME25EX7F",
+      "mission_slug": "013-vikunja-task-intelligence-agent",
+      "quarantined_rows": 0,
+      "row_transformations": [],
+      "status": "unchanged",
+      "validation_errors": []
+    },
+    {
+      "file_changes": [],
+      "mission_id": "01KRG3V5EP2ZNQT3V3SH8MWMKH",
+      "mission_slug": "014-felix-core-digest",
+      "quarantined_rows": 0,
+      "row_transformations": [],
+      "status": "unchanged",
+      "validation_errors": []
+    },
+    {
+      "file_changes": [],
+      "mission_id": "01KRG3V5ER7MN5MV4JDKBF7BNK",
+      "mission_slug": "015-documentation-architecture-rationalization",
+      "quarantined_rows": 0,
+      "row_transformations": [],
+      "status": "unchanged",
+      "validation_errors": []
+    },
+    {
+      "file_changes": [],
+      "mission_id": "01KRG3V5EST5CZ4BQQK3H6JC3B",
+      "mission_slug": "016-change-control-governance",
+      "quarantined_rows": 0,
+      "row_transformations": [],
+      "status": "unchanged",
+      "validation_errors": []
+    },
+    {
+      "file_changes": [],
+      "mission_id": "01KRG3V5ET8KEBZ6GB024KWHVN",
+      "mission_slug": "017-vikunja-habit-tracking-architecture",
+      "quarantined_rows": 0,
+      "row_transformations": [],
+      "status": "unchanged",
+      "validation_errors": []
+    },
+    {
+      "file_changes": [],
+      "mission_id": "01KRG3V5EV6ASHDRGN7T6KBJ15",
+      "mission_slug": "018-habit-today-filter-visibility",
+      "quarantined_rows": 0,
+      "row_transformations": [],
+      "status": "unchanged",
+      "validation_errors": []
+    },
+    {
+      "file_changes": [],
+      "mission_id": "01KRG3V5EHX5TWP9GDFVJTTF34",
+      "mission_slug": "019-escalation-engine",
+      "quarantined_rows": 0,
+      "row_transformations": [],
+      "status": "unchanged",
+      "validation_errors": []
+    },
+    {
+      "file_changes": [],
+      "mission_id": "01KRG3V5EJTJ39DZ1961WEER44",
+      "mission_slug": "020-doc-audit-infrastructure",
+      "quarantined_rows": 0,
+      "row_transformations": [],
+      "status": "unchanged",
+      "validation_errors": []
+    },
+    {
+      "file_changes": [],
+      "mission_id": "01KRG3V5EMA8FE8EG0DHA0HVV3",
+      "mission_slug": "021-openclaw-agent-model-tiering",
+      "quarantined_rows": 0,
+      "row_transformations": [],
+      "status": "unchanged",
+      "validation_errors": []
+    },
+    {
+      "file_changes": [],
+      "mission_id": "01KNSX4HKM991Z98V5V26WSGPD",
+      "mission_slug": "022-inbox-github-issue-routing",
+      "quarantined_rows": 0,
+      "row_transformations": [],
+      "status": "unchanged",
+      "validation_errors": []
+    },
+    {
+      "file_changes": [],
+      "mission_id": "01KNTK9DC85TZD4WMDRSEDZQKS",
+      "mission_slug": "023-agent-identity-whatsapp-header",
+      "quarantined_rows": 0,
+      "row_transformations": [],
+      "status": "unchanged",
+      "validation_errors": []
+    },
+    {
+      "file_changes": [],
+      "mission_id": "01KNVRCJGNJ5B4D8JD2ZBZ42SN",
+      "mission_slug": "024-vault-path-registry-mvp",
+      "quarantined_rows": 0,
+      "row_transformations": [],
+      "status": "unchanged",
+      "validation_errors": []
+    },
+    {
+      "file_changes": [],
+      "mission_id": "01KNW5R9B1Q13K8CQ9RYVX7VR2",
+      "mission_slug": "025-vikunja-date-timezone-bug",
+      "quarantined_rows": 0,
+      "row_transformations": [],
+      "status": "unchanged",
+      "validation_errors": []
+    },
+    {
+      "file_changes": [],
+      "mission_id": "01KNWXH81HPVTXM8NMBSDWH0Q9",
+      "mission_slug": "026-vault-path-registry-and-folder-renumber",
+      "quarantined_rows": 0,
+      "row_transformations": [],
+      "status": "unchanged",
+      "validation_errors": []
+    },
+    {
+      "file_changes": [],
+      "mission_id": "01KNYQCV6BKH2KNC0Z5GHG6KQS",
+      "mission_slug": "027-inbox-pre-scan-helper",
+      "quarantined_rows": 0,
+      "row_transformations": [],
+      "status": "unchanged",
+      "validation_errors": []
+    },
+    {
+      "file_changes": [],
+      "mission_id": "01KP3VEQ5YHEPPF1ZJS178HM0Z",
+      "mission_slug": "028-agent-workspace-reconciliation",
+      "quarantined_rows": 0,
+      "row_transformations": [],
+      "status": "unchanged",
+      "validation_errors": []
+    },
+    {
+      "file_changes": [],
+      "mission_id": "01KTMDDDGGY00S3S3VFGK0Z6P9",
+      "mission_slug": "agent-prompt-deploy-pipeline-01KTMDDD",
+      "quarantined_rows": 0,
+      "row_transformations": [],
+      "status": "unchanged",
+      "validation_errors": []
+    },
+    {
+      "file_changes": [],
+      "mission_id": null,
+      "mission_slug": "audit-interpretation-moment0-01KSBGBS",
+      "quarantined_rows": 0,
+      "row_transformations": [],
+      "status": "error",
+      "validation_errors": [
+        "Invalid canonical meta.json for audit-interpretation-moment0-01KSBGBS: Invalid change_mode 'regular'; valid values: ['bulk_edit']"
+      ]
+    },
+    {
+      "file_changes": [],
+      "mission_id": null,
+      "mission_slug": "audit-interpretation-size-guard-01KSEN9B",
+      "quarantined_rows": 0,
+      "row_transformations": [],
+      "status": "error",
+      "validation_errors": [
+        "Invalid canonical meta.json for audit-interpretation-size-guard-01KSEN9B: Invalid change_mode 'regular'; valid values: ['bulk_edit']"
+      ]
+    },
+    {
+      "file_changes": [],
+      "mission_id": "01KSESPDA4FEEGKQX9GTTM7T52",
+      "mission_slug": "audit-judgment-fence-strip-hardening-01KSESPD",
+      "quarantined_rows": 0,
+      "row_transformations": [],
+      "status": "unchanged",
+      "validation_errors": []
+    },
+    {
+      "file_changes": [],
+      "mission_id": "01KRG1BGWEYN76ECNMSCFXRM11",
+      "mission_slug": "auto-apply-audit-edits-01KRG1BG",
+      "quarantined_rows": 0,
+      "row_transformations": [],
+      "status": "unchanged",
+      "validation_errors": []
+    },
+    {
+      "file_changes": [],
+      "mission_id": "01KS0Y4F60A30H8CT28Z3VMVT6",
+      "mission_slug": "backfill-habits-jsonl-from-comments-01KS0Y4F",
+      "quarantined_rows": 0,
+      "row_transformations": [],
+      "status": "unchanged",
+      "validation_errors": []
+    },
+    {
+      "file_changes": [],
+      "mission_id": "01KTMY86X63W50FF36GWPWADH2",
+      "mission_slug": "capture-agents-md-rewrite-01KTMY86",
+      "quarantined_rows": 0,
+      "row_transformations": [],
+      "status": "unchanged",
+      "validation_errors": []
+    },
+    {
+      "file_changes": [],
+      "mission_id": "01KTMS5QGXFJWQYVXB03SPYB48",
+      "mission_slug": "capture-d6-helpers-extraction-01KTMS5Q",
+      "quarantined_rows": 0,
+      "row_transformations": [],
+      "status": "unchanged",
+      "validation_errors": []
+    },
+    {
+      "file_changes": [],
+      "mission_id": "01KTCXMWWGDBM4Y0HJS25YZ4FP",
+      "mission_slug": "constitution-risk-tier-autonomy-guard-01KTCXMW",
+      "quarantined_rows": 0,
+      "row_transformations": [],
+      "status": "unchanged",
+      "validation_errors": []
+    },
+    {
+      "file_changes": [],
+      "mission_id": "01KRCF92Z12FNBQGY09A51J23M",
+      "mission_slug": "credential-expiry-health-check-01KRCF92",
+      "quarantined_rows": 0,
+      "row_transformations": [],
+      "status": "unchanged",
+      "validation_errors": []
+    },
+    {
+      "file_changes": [],
+      "mission_id": "01KTP9M86VF89TQM5SX7JVA83Z",
+      "mission_slug": "credential-liveness-probe-01KTP9M8",
+      "quarantined_rows": 0,
+      "row_transformations": [],
+      "status": "unchanged",
+      "validation_errors": []
+    },
+    {
+      "file_changes": [],
+      "mission_id": "01KSJ75K165FF1FYH8XWX4GNQG",
+      "mission_slug": "documentation-developer-portal-01KSJ75K",
+      "quarantined_rows": 0,
+      "row_transformations": [],
+      "status": "unchanged",
+      "validation_errors": []
+    },
+    {
+      "file_changes": [],
+      "mission_id": null,
+      "mission_slug": "drift-event-auto-resolution-01KS8J32",
+      "quarantined_rows": 0,
+      "row_transformations": [],
+      "status": "error",
+      "validation_errors": [
+        "Invalid canonical meta.json for drift-event-auto-resolution-01KS8J32: Invalid change_mode 'regular'; valid values: ['bulk_edit']"
+      ]
+    },
+    {
+      "file_changes": [],
+      "mission_id": null,
+      "mission_slug": "drift-interpretation-debug-capture-01KSEFT8",
+      "quarantined_rows": 0,
+      "row_transformations": [],
+      "status": "error",
+      "validation_errors": [
+        "Invalid canonical meta.json for drift-interpretation-debug-capture-01KSEFT8: Invalid change_mode 'regular'; valid values: ['bulk_edit']"
+      ]
+    },
+    {
+      "file_changes": [],
+      "mission_id": null,
+      "mission_slug": "drift-interpretation-fence-strip-fix-01KSEM6S",
+      "quarantined_rows": 0,
+      "row_transformations": [],
+      "status": "error",
+      "validation_errors": [
+        "Invalid canonical meta.json for drift-interpretation-fence-strip-fix-01KSEM6S: Invalid change_mode 'regular'; valid values: ['bulk_edit']"
+      ]
+    },
+    {
+      "file_changes": [],
+      "mission_id": null,
+      "mission_slug": "drift-interpretation-payload-capture-01KSEJD7",
+      "quarantined_rows": 0,
+      "row_transformations": [],
+      "status": "error",
+      "validation_errors": [
+        "Invalid canonical meta.json for drift-interpretation-payload-capture-01KSEJD7: Invalid change_mode 'regular'; valid values: ['bulk_edit']"
+      ]
+    },
+    {
+      "file_changes": [],
+      "mission_id": "01KSC6AJ2JK8N2NJT4QB6AB36Z",
+      "mission_slug": "drift-ledger-retry-count-hardening-01KSC6AJ",
+      "quarantined_rows": 0,
+      "row_transformations": [],
+      "status": "unchanged",
+      "validation_errors": []
+    },
+    {
+      "file_changes": [],
+      "mission_id": "01KRT3N4AHYVZF9XGD457AQC1J",
+      "mission_slug": "felix-bot-vikunja-provisioning-01KRT3N4",
+      "quarantined_rows": 0,
+      "row_transformations": [],
+      "status": "unchanged",
+      "validation_errors": []
+    },
+    {
+      "file_changes": [
+        {
+          "new_sha256": "5ee9edcecc489ff3180497039b365a0b1a1d9e68336b0e666b3d9e6e305e7075",
+          "new_size": 36783,
+          "old_sha256": "da7614fdb03957c4f9b19b89d67df4320d39d0fb43b7ab12149cbe9bdc30ba7f",
+          "old_size": 40549,
+          "path": "kitty-specs/felix-calendar-subagent-extraction-01KTTA33/status.events.jsonl"
+        },
+        {
+          "new_sha256": "832467062400ee0e4b8789bcef8a07b4956a9123c999791430d03f63cc4f37ff",
+          "new_size": 3766,
+          "old_sha256": null,
+          "old_size": null,
+          "path": ".kittify/migrations/mission-state/quarantine/d668236d63df5949/felix-calendar-subagent-extraction-01KTTA33/status.events.jsonl"
+        }
+      ],
+      "mission_id": "01KTTA33XZ0VG1SXQH3YD854K1",
+      "mission_slug": "felix-calendar-subagent-extraction-01KTTA33",
+      "quarantined_rows": 5,
+      "row_transformations": [
+        {
+          "actions": [
+            "quarantined_non_status_event"
+          ],
+          "artifact_path": "kitty-specs/felix-calendar-subagent-extraction-01KTTA33/status.events.jsonl",
+          "event_id": "01KTTA343A348M002N0FRX4F3H",
+          "line_number": 1,
+          "new_sha256": null,
+          "old_sha256": "7629bb402e26f9a89d19e06fff65eb4511bc5cf60b523ab4fb6ac3720983655a"
+        },
+        {
+          "actions": [
+            "quarantined_non_status_event"
+          ],
+          "artifact_path": "kitty-specs/felix-calendar-subagent-extraction-01KTTA33/status.events.jsonl",
+          "event_id": "01KTTA343EZBMZQ3X6JAJVK6QV",
+          "line_number": 2,
+          "new_sha256": null,
+          "old_sha256": "2831976f49d366a545d47d540e0e7b759e4e60d855fb0a17127ca27c9b7415be"
+        },
+        {
+          "actions": [
+            "quarantined_non_status_event"
+          ],
+          "artifact_path": "kitty-specs/felix-calendar-subagent-extraction-01KTTA33/status.events.jsonl",
+          "event_id": "01KTTAC9EZG2508VVQH3S5VZ43",
+          "line_number": 3,
+          "new_sha256": null,
+          "old_sha256": "e1e66a299a0d62d152ef1ae86d0b922332a096a1ece1981281d0cb9511e5ddf8"
+        },
+        {
+          "actions": [
+            "quarantined_non_status_event"
+          ],
+          "artifact_path": "kitty-specs/felix-calendar-subagent-extraction-01KTTA33/status.events.jsonl",
+          "event_id": "01KTTAC9F22SPXQDT47SG78Z95",
+          "line_number": 4,
+          "new_sha256": null,
+          "old_sha256": "0f26589064c64342a1338c25bbae26f9a477584a81e57c1a1cde571ff7d65ce7"
+        },
+        {
+          "actions": [
+            "quarantined_non_status_event"
+          ],
+          "artifact_path": "kitty-specs/felix-calendar-subagent-extraction-01KTTA33/status.events.jsonl",
+          "event_id": "01KTTBA20BQ3FA4CWMB8TGGQDY",
+          "line_number": 5,
+          "new_sha256": null,
+          "old_sha256": "fdd54f554e9a23fdf278f4f45b3511856894c370a9493f107142ca104d4fe418"
+        }
+      ],
+      "status": "updated",
+      "validation_errors": []
+    },
+    {
+      "file_changes": [],
+      "mission_id": "7NB5Z9VEHCTCKXMAVAV7ASHF64",
+      "mission_slug": "felix-calendar-subagent-split-01KTT00X",
+      "quarantined_rows": 0,
+      "row_transformations": [],
+      "status": "unchanged",
+      "validation_errors": []
+    },
+    {
+      "file_changes": [],
+      "mission_id": null,
+      "mission_slug": "felix-constitution-migration-completeness-01KT5NZ7",
+      "quarantined_rows": 0,
+      "row_transformations": [],
+      "status": "error",
+      "validation_errors": [
+        "Invalid canonical meta.json for felix-constitution-migration-completeness-01KT5NZ7: Invalid change_mode 'regular'; valid values: ['bulk_edit']"
+      ]
+    },
+    {
+      "file_changes": [],
+      "mission_id": "01KTZ76FE60RPNPQKKBK4ZTF46",
+      "mission_slug": "felix-deployer-ntfy-failure-notifications-01KTZ76F",
+      "quarantined_rows": 0,
+      "row_transformations": [],
+      "status": "unchanged",
+      "validation_errors": []
+    },
+    {
+      "file_changes": [],
+      "mission_id": null,
+      "mission_slug": "felix-doc-auditor-agent-01KR7JK9",
+      "quarantined_rows": 0,
+      "row_transformations": [],
+      "status": "error",
+      "validation_errors": [
+        "Invalid canonical meta.json for felix-doc-auditor-agent-01KR7JK9: Invalid change_mode 'regular'; valid values: ['bulk_edit']"
+      ]
+    },
+    {
+      "file_changes": [],
+      "mission_id": "01KT7Q15NKQFW1J276F4KN2JFG",
+      "mission_slug": "felix-vikunja-sync-architecture-research-01KT7Q15",
+      "quarantined_rows": 0,
+      "row_transformations": [],
+      "status": "unchanged",
+      "validation_errors": []
+    },
+    {
+      "file_changes": [],
+      "mission_id": null,
+      "mission_slug": "felix-vikunja-sync-project-layer-and-url-config-01KTCDZ7",
+      "quarantined_rows": 0,
+      "row_transformations": [],
+      "status": "error",
+      "validation_errors": [
+        "Invalid canonical meta.json for felix-vikunja-sync-project-layer-and-url-config-01KTCDZ7: Invalid change_mode 'regular'; valid values: ['bulk_edit']"
+      ]
+    },
+    {
+      "file_changes": [],
+      "mission_id": null,
+      "mission_slug": "felix-vikunja-sync-reconciliation-driver-01KTA1J3",
+      "quarantined_rows": 0,
+      "row_transformations": [],
+      "status": "error",
+      "validation_errors": [
+        "Invalid canonical meta.json for felix-vikunja-sync-reconciliation-driver-01KTA1J3: Invalid change_mode 'regular'; valid values: ['bulk_edit']"
+      ]
+    },
+    {
+      "file_changes": [],
+      "mission_id": "01KRH4PEKQVMVWCJ0XPKZWHNWG",
+      "mission_slug": "google-workspace-foundation-01KRH4PE",
+      "quarantined_rows": 0,
+      "row_transformations": [],
+      "status": "unchanged",
+      "validation_errors": []
+    },
+    {
+      "file_changes": [],
+      "mission_id": null,
+      "mission_slug": "habit-day-specific-scheduling-01KT48Y6",
+      "quarantined_rows": 0,
+      "row_transformations": [],
+      "status": "error",
+      "validation_errors": [
+        "Invalid canonical meta.json for habit-day-specific-scheduling-01KT48Y6: Invalid change_mode 'regular'; valid values: ['bulk_edit']"
+      ]
+    },
+    {
+      "file_changes": [],
+      "mission_id": "01KRNV46XYGDDM4F66PX5KXB4P",
+      "mission_slug": "habits-checkin-d6-extract-01KRNV46",
+      "quarantined_rows": 0,
+      "row_transformations": [],
+      "status": "unchanged",
+      "validation_errors": []
+    },
+    {
+      "file_changes": [],
+      "mission_id": null,
+      "mission_slug": "habits-checkin-reply-scripts-first-01KS86ZQ",
+      "quarantined_rows": 0,
+      "row_transformations": [],
+      "status": "error",
+      "validation_errors": [
+        "Invalid canonical meta.json for habits-checkin-reply-scripts-first-01KS86ZQ: Invalid change_mode 'regular'; valid values: ['bulk_edit']"
+      ]
+    },
+    {
+      "file_changes": [],
+      "mission_id": "01KS1FKE0QHYEHZW684YEJNEPW",
+      "mission_slug": "habits-cutover-to-jsonl-v2-flow-01KS1FKE",
+      "quarantined_rows": 0,
+      "row_transformations": [],
+      "status": "unchanged",
+      "validation_errors": []
+    },
+    {
+      "file_changes": [],
+      "mission_id": "01KS0M59313RF0WVJZTXYDJC6C",
+      "mission_slug": "habits-native-repeat-jsonl-state-01KS0M59",
+      "quarantined_rows": 0,
+      "row_transformations": [],
+      "status": "unchanged",
+      "validation_errors": []
+    },
+    {
+      "file_changes": [
+        {
+          "new_sha256": "9cb53db88fd91999a1a3d38ad33474f128958352a24caf19d247f42bae9b2921",
+          "new_size": 7642,
+          "old_sha256": "7eb0a63d1f1a0bb66a67d07d54fd42083d404ed4f9a32d23ff4f90490f677717",
+          "old_size": 12572,
+          "path": "kitty-specs/idle-cron-reply-agent-prefix-01KV1BSS/status.events.jsonl"
+        },
+        {
+          "new_sha256": "8534af0c23b41f924c37fab51d745f5b4ecfc4f2bcca6fd89a00b2b9c184edb9",
+          "new_size": 4930,
+          "old_sha256": null,
+          "old_size": null,
+          "path": ".kittify/migrations/mission-state/quarantine/d668236d63df5949/idle-cron-reply-agent-prefix-01KV1BSS/status.events.jsonl"
+        },
+        {
+          "new_sha256": "7be6d464159c8fd42668253dde4f8f6782f2390a9e8f738d21cb7d9c9459f5cc",
+          "new_size": 883,
+          "old_sha256": "a140aa2092cab6f5049bb1f52bd3259cff34721d8e8ef9311efdf6953c349f5b",
+          "old_size": 881,
+          "path": "kitty-specs/idle-cron-reply-agent-prefix-01KV1BSS/status.json"
+        }
+      ],
+      "mission_id": "01KV1BSS2A5085M762PQ7TYNPY",
+      "mission_slug": "idle-cron-reply-agent-prefix-01KV1BSS",
+      "quarantined_rows": 6,
+      "row_transformations": [
+        {
+          "actions": [
+            "quarantined_non_status_event"
+          ],
+          "artifact_path": "kitty-specs/idle-cron-reply-agent-prefix-01KV1BSS/status.events.jsonl",
+          "event_id": "01KV1BSSJPC2RNDDRMPACKATV9",
+          "line_number": 1,
+          "new_sha256": null,
+          "old_sha256": "d5b6cafa0cc34eeee23864eb3e340b41929fe49a51b53d5897d6cc2e58bd34d5"
+        },
+        {
+          "actions": [
+            "quarantined_non_status_event"
+          ],
+          "artifact_path": "kitty-specs/idle-cron-reply-agent-prefix-01KV1BSS/status.events.jsonl",
+          "event_id": "01KV1BSSJT5KBK8TBDPA078P65",
+          "line_number": 2,
+          "new_sha256": null,
+          "old_sha256": "abe0801366a07c06b8d36a30f91c47bf3ac73bd60d90561dce73c18c2496ac22"
+        },
+        {
+          "actions": [
+            "quarantined_non_status_event"
+          ],
+          "artifact_path": "kitty-specs/idle-cron-reply-agent-prefix-01KV1BSS/status.events.jsonl",
+          "event_id": "01KV1C567T7KTD4RXFA2BABSKD",
+          "line_number": 3,
+          "new_sha256": null,
+          "old_sha256": "3bc23bbf711b177ec299fd2a910da4b2c3527d9ce4fbe32f8dd91e898422b3ff"
+        },
+        {
+          "actions": [
+            "quarantined_non_status_event"
+          ],
+          "artifact_path": "kitty-specs/idle-cron-reply-agent-prefix-01KV1BSS/status.events.jsonl",
+          "event_id": "01KV1C567XJ1N5GE603DCE72TF",
+          "line_number": 4,
+          "new_sha256": null,
+          "old_sha256": "4ecd22f5a208be5feba15d4c2a992d71eb5f243b75d0c42bfb901e6c2f22050e"
+        },
+        {
+          "actions": [
+            "quarantined_non_status_event"
+          ],
+          "artifact_path": "kitty-specs/idle-cron-reply-agent-prefix-01KV1BSS/status.events.jsonl",
+          "event_id": "01KV1CBKWR1SYVXMPE2KCBGAB3",
+          "line_number": 5,
+          "new_sha256": null,
+          "old_sha256": "9d654c33f196b8e60119fd4f60428a23860679d13de8445c60a95d683d8e7912"
+        },
+        {
+          "actions": [
+            "quarantined_non_status_event"
+          ],
+          "artifact_path": "kitty-specs/idle-cron-reply-agent-prefix-01KV1BSS/status.events.jsonl",
+          "event_id": "01KV1DSME3036GPBRT3TV4CTXJ",
+          "line_number": 6,
+          "new_sha256": null,
+          "old_sha256": "613ad7632a819c623fa26a5685e960b66d023ecb477bd42a73c1b9f9e199d8bc"
+        }
+      ],
+      "status": "updated",
+      "validation_errors": []
+    },
+    {
+      "file_changes": [],
+      "mission_id": "01KRFS03WMK5YYH0V6A1V2S4XR",
+      "mission_slug": "inbox-atomic-write-perm-preservation-01KRFS03",
+      "quarantined_rows": 0,
+      "row_transformations": [],
+      "status": "unchanged",
+      "validation_errors": []
+    },
+    {
+      "file_changes": [
+        {
+          "new_sha256": "bea1d4e6db75e81f8772a34a42111b93b798ea1668f2f867d99eae1d441aca01",
+          "new_size": 19965,
+          "old_sha256": "460dc7e2e99e2f7c35ee3a0abc4fc44ae63baefb3b1fa322ab4ea6e6a3b3a193",
+          "old_size": 27425,
+          "path": "kitty-specs/inbox-calendar-and-aspiration-routing-01KTHHXS/status.events.jsonl"
+        },
+        {
+          "new_sha256": "2ecb97142dd0c36abc8f6e637046c70aaa7b777773e401d70492d24099dac3c4",
+          "new_size": 7460,
+          "old_sha256": null,
+          "old_size": null,
+          "path": ".kittify/migrations/mission-state/quarantine/d668236d63df5949/inbox-calendar-and-aspiration-routing-01KTHHXS/status.events.jsonl"
+        }
+      ],
+      "mission_id": "01KTHHXSAP609CQYPJ490JV1NJ",
+      "mission_slug": "inbox-calendar-and-aspiration-routing-01KTHHXS",
+      "quarantined_rows": 11,
+      "row_transformations": [
+        {
+          "actions": [
+            "quarantined_non_status_event"
+          ],
+          "artifact_path": "kitty-specs/inbox-calendar-and-aspiration-routing-01KTHHXS/status.events.jsonl",
+          "event_id": "01KTHHXSFDB2Q6KN9EZRJ1ZKTG",
+          "line_number": 1,
+          "new_sha256": null,
+          "old_sha256": "318c2676c0117adbd1e495059414c0675796af207d14b0a688e00cf41d2577c0"
+        },
+        {
+          "actions": [
+            "quarantined_non_status_event"
+          ],
+          "artifact_path": "kitty-specs/inbox-calendar-and-aspiration-routing-01KTHHXS/status.events.jsonl",
+          "event_id": "01KTHHXSFFK8VG2F3N50HS8NDH",
+          "line_number": 2,
+          "new_sha256": null,
+          "old_sha256": "50b4d6c4e21ebddf486989ccc290a63affe89498281c005ee21da525f3db2908"
+        },
+        {
+          "actions": [
+            "quarantined_non_status_event"
+          ],
+          "artifact_path": "kitty-specs/inbox-calendar-and-aspiration-routing-01KTHHXS/status.events.jsonl",
+          "event_id": "01KTHZZ00SNK939WTV0Q69N6YD",
+          "line_number": 3,
+          "new_sha256": null,
+          "old_sha256": "f6d7e3dccffdc906d30be0893f6ae8e2a4cbaaaf43cbb542c4ace44cd9d9bae1"
+        },
+        {
+          "actions": [
+            "quarantined_non_status_event"
+          ],
+          "artifact_path": "kitty-specs/inbox-calendar-and-aspiration-routing-01KTHHXS/status.events.jsonl",
+          "event_id": "01KTHZZ00WC415GPJWT7YEBHD8",
+          "line_number": 4,
+          "new_sha256": null,
+          "old_sha256": "c5a8d58c48a3d28e7c2a547e95e4a5bba244bfb5b1b91b4d21eaf26c26fbaea0"
+        },
+        {
+          "actions": [
+            "quarantined_non_status_event"
+          ],
+          "artifact_path": "kitty-specs/inbox-calendar-and-aspiration-routing-01KTHHXS/status.events.jsonl",
+          "event_id": "01KTJ16H70380CYP865XS9KK10",
+          "line_number": 5,
+          "new_sha256": null,
+          "old_sha256": "4663356700024604e15186c43b1b2f3e9c1c2628f6e105f24573d3f38d080db8"
+        },
+        {
+          "actions": [
+            "quarantined_non_status_event"
+          ],
+          "artifact_path": "kitty-specs/inbox-calendar-and-aspiration-routing-01KTHHXS/status.events.jsonl",
+          "event_id": "01KTJ2GFV20Y0MN2SPT3DV13CR",
+          "line_number": 6,
+          "new_sha256": null,
+          "old_sha256": "c555f16921e728117628c9cb153c9a0c06c2e443159aa26fff3d55ff0c213f72"
+        },
+        {
+          "actions": [
+            "quarantined_non_status_event"
+          ],
+          "artifact_path": "kitty-specs/inbox-calendar-and-aspiration-routing-01KTHHXS/status.events.jsonl",
+          "event_id": "01KTJ2GFV6XHV83E349QC4C4MS",
+          "line_number": 7,
+          "new_sha256": null,
+          "old_sha256": "eee5d09ffbdbad3ea7faab5f51d73fedcf9a81f46e0766b253b2b3db500e114f"
+        },
+        {
+          "actions": [
+            "quarantined_non_status_event"
+          ],
+          "artifact_path": "kitty-specs/inbox-calendar-and-aspiration-routing-01KTHHXS/status.events.jsonl",
+          "event_id": "01KTJ2GFV76JGAQPZS5KEBCQMK",
+          "line_number": 8,
+          "new_sha256": null,
+          "old_sha256": "d6594e73d2e196cb1a6444c0824e80963bf9e30ebcd97b5202b3edf24c47e91c"
+        },
+        {
+          "actions": [
+            "quarantined_non_status_event"
+          ],
+          "artifact_path": "kitty-specs/inbox-calendar-and-aspiration-routing-01KTHHXS/status.events.jsonl",
+          "event_id": "01KTJ2GFV76JGAQPZS5KEBCQMM",
+          "line_number": 9,
+          "new_sha256": null,
+          "old_sha256": "8fd4f46d0bffc7543d85ca6e9d87d3770f603aac93ecdb04d29227c32db0c441"
+        },
+        {
+          "actions": [
+            "quarantined_non_status_event"
+          ],
+          "artifact_path": "kitty-specs/inbox-calendar-and-aspiration-routing-01KTHHXS/status.events.jsonl",
+          "event_id": "01KTJ2GFV8F33EXSEXXBW0YCFS",
+          "line_number": 10,
+          "new_sha256": null,
+          "old_sha256": "93ffbd9eed3e9782c8a665cec2b4213f5ad2abdddc5b3d463fb1e54225c6290e"
+        },
+        {
+          "actions": [
+            "quarantined_non_status_event"
+          ],
+          "artifact_path": "kitty-specs/inbox-calendar-and-aspiration-routing-01KTHHXS/status.events.jsonl",
+          "event_id": "01KTJ2GFV9T534Y9XWF2NTA00E",
+          "line_number": 11,
+          "new_sha256": null,
+          "old_sha256": "24f6d2772c31da7dee0bb8324bf577fbf6d679f1aaec85c51c379f1468afb79e"
+        }
+      ],
+      "status": "updated",
+      "validation_errors": []
+    },
+    {
+      "file_changes": [],
+      "mission_id": "01KREZJ8VE320Z8C78Q9VMAP0C",
+      "mission_slug": "inbox-capture-dedup-and-parser-hardening-01KREZJ8",
+      "quarantined_rows": 0,
+      "row_transformations": [],
+      "status": "unchanged",
+      "validation_errors": []
+    },
+    {
+      "file_changes": [],
+      "mission_id": "01KRFVS4QJFHKHWC0DQ6R1MFTN",
+      "mission_slug": "inbox-parse-failure-cleanup-helpers-01KRFVS4",
+      "quarantined_rows": 0,
+      "row_transformations": [],
+      "status": "unchanged",
+      "validation_errors": []
+    },
+    {
+      "file_changes": [],
+      "mission_id": "01KQZ2Y5FMK7C9H5HQQR1PENE5",
+      "mission_slug": "inbox-processed-at-timestamp-01KQZ2Y5",
+      "quarantined_rows": 0,
+      "row_transformations": [],
+      "status": "unchanged",
+      "validation_errors": []
+    },
+    {
+      "file_changes": [],
+      "mission_id": null,
+      "mission_slug": "main-verbatim-passthrough-01KSATRP",
+      "quarantined_rows": 0,
+      "row_transformations": [],
+      "status": "error",
+      "validation_errors": [
+        "Invalid canonical meta.json for main-verbatim-passthrough-01KSATRP: Invalid change_mode 'regular'; valid values: ['bulk_edit']"
+      ]
+    },
+    {
+      "file_changes": [],
+      "mission_id": null,
+      "mission_slug": "migrate-escalation-to-jsonl-state-model-01KS5R4D",
+      "quarantined_rows": 0,
+      "row_transformations": [],
+      "status": "error",
+      "validation_errors": [
+        "Invalid canonical meta.json for migrate-escalation-to-jsonl-state-model-01KS5R4D: Invalid change_mode 'regular'; valid values: ['bulk_edit']"
+      ]
+    },
+    {
+      "file_changes": [],
+      "mission_id": null,
+      "mission_slug": "migrate-felix-touchpoints-to-sync-cache-01KTAAGX",
+      "quarantined_rows": 0,
+      "row_transformations": [],
+      "status": "error",
+      "validation_errors": [
+        "Invalid canonical meta.json for migrate-felix-touchpoints-to-sync-cache-01KTAAGX: Invalid change_mode 'regular'; valid values: ['bulk_edit']"
+      ]
+    },
+    {
+      "file_changes": [],
+      "mission_id": null,
+      "mission_slug": "moment0-integration-fix-01KS8XRM",
+      "quarantined_rows": 0,
+      "row_transformations": [],
+      "status": "error",
+      "validation_errors": [
+        "Invalid canonical meta.json for moment0-integration-fix-01KS8XRM: Invalid change_mode 'regular'; valid values: ['bulk_edit']"
+      ]
+    },
+    {
+      "file_changes": [
+        {
+          "new_sha256": "83d8b235e3dad0ea0b339d142a95d10f2590c5c3dda923fb30f55c96b0c8c90a",
+          "new_size": 16635,
+          "old_sha256": "7012a6232411448b2affa978b923793860b1a1c4c0989a0f92841084edfadbb5",
+          "old_size": 18687,
+          "path": "kitty-specs/openclaw-auth-verifier-01KV0Y9E/status.events.jsonl"
+        },
+        {
+          "new_sha256": "dfbe0d27b1360e406f9719a4a0a1150633381beeb93d8a41b0558880f5abbadd",
+          "new_size": 2052,
+          "old_sha256": null,
+          "old_size": null,
+          "path": ".kittify/migrations/mission-state/quarantine/d668236d63df5949/openclaw-auth-verifier-01KV0Y9E/status.events.jsonl"
+        }
+      ],
+      "mission_id": "01KV0Y9EKTAYDVRB59PQKCRCDK",
+      "mission_slug": "openclaw-auth-verifier-01KV0Y9E",
+      "quarantined_rows": 2,
+      "row_transformations": [
+        {
+          "actions": [
+            "quarantined_non_status_event"
+          ],
+          "artifact_path": "kitty-specs/openclaw-auth-verifier-01KV0Y9E/status.events.jsonl",
+          "event_id": "01KV0Y9ETBJ9P8N2E71B5CDJ2T",
+          "line_number": 1,
+          "new_sha256": null,
+          "old_sha256": "8bae2a92da0a172b3cd05b1735fdb48429749b4edfbcfaedb4648ffd4c2e28f9"
+        },
+        {
+          "actions": [
+            "quarantined_non_status_event"
+          ],
+          "artifact_path": "kitty-specs/openclaw-auth-verifier-01KV0Y9E/status.events.jsonl",
+          "event_id": "01KV0Y9ETEQPCWSM9FE0Y67C5S",
+          "line_number": 2,
+          "new_sha256": null,
+          "old_sha256": "ca21f0b73bc655baeeacebbd5452b365dce23c7765307f9f862a536a1d95296f"
+        }
+      ],
+      "status": "updated",
+      "validation_errors": []
+    },
+    {
+      "file_changes": [],
+      "mission_id": "01KTMZPE0QR0AZACXF1A0X9SV6",
+      "mission_slug": "prescan-archive-anomalies-01KTMZPE",
+      "quarantined_rows": 0,
+      "row_transformations": [],
+      "status": "unchanged",
+      "validation_errors": []
+    },
+    {
+      "file_changes": [
+        {
+          "new_sha256": "c2f112cee359058286e2b56bc16586e3cf0c518856452b8cc89b32562fe42869",
+          "new_size": 37345,
+          "old_sha256": "771e1c701d4a0d0ebadcf3348f1ef28aea6abc86e180cbb9c3e21ab827016a92",
+          "old_size": 45965,
+          "path": "kitty-specs/pull-based-deploy-pipeline-01KTYQQS/status.events.jsonl"
+        },
+        {
+          "new_sha256": "9b05221b3ac351e89a8c08256a7a545521ad39526a6839cb5838e73a940a66c5",
+          "new_size": 8620,
+          "old_sha256": null,
+          "old_size": null,
+          "path": ".kittify/migrations/mission-state/quarantine/d668236d63df5949/pull-based-deploy-pipeline-01KTYQQS/status.events.jsonl"
+        }
+      ],
+      "mission_id": "01KTYQQSAJA888YXKYBX24W2AJ",
+      "mission_slug": "pull-based-deploy-pipeline-01KTYQQS",
+      "quarantined_rows": 10,
+      "row_transformations": [
+        {
+          "actions": [
+            "quarantined_non_status_event"
+          ],
+          "artifact_path": "kitty-specs/pull-based-deploy-pipeline-01KTYQQS/status.events.jsonl",
+          "event_id": "01KTYQQSH46JK8JM3M8YNX0EXG",
+          "line_number": 1,
+          "new_sha256": null,
+          "old_sha256": "ac50c7cde3b146f57b84a69346f10d56e50c3ffbf710f8306fe6ab2466cca9bd"
+        },
+        {
+          "actions": [
+            "quarantined_non_status_event"
+          ],
+          "artifact_path": "kitty-specs/pull-based-deploy-pipeline-01KTYQQS/status.events.jsonl",
+          "event_id": "01KTYQQSH8VNW2X1T6GR398XAQ",
+          "line_number": 2,
+          "new_sha256": null,
+          "old_sha256": "d6570166f76b6d079158c952a41e03cd18c64cedfcc50a1735f966833745086f"
+        },
+        {
+          "actions": [
+            "quarantined_non_status_event"
+          ],
+          "artifact_path": "kitty-specs/pull-based-deploy-pipeline-01KTYQQS/status.events.jsonl",
+          "event_id": "01KTYSYC9JK9F093DN679845GX",
+          "line_number": 3,
+          "new_sha256": null,
+          "old_sha256": "0153db43eb67800d6e8c9a65237ae73f8b31455eda3933020bd4fae0deadbfb2"
+        },
+        {
+          "actions": [
+            "quarantined_non_status_event"
+          ],
+          "artifact_path": "kitty-specs/pull-based-deploy-pipeline-01KTYQQS/status.events.jsonl",
+          "event_id": "01KTYSYWCX1JJQB2NCH9P65BS5",
+          "line_number": 4,
+          "new_sha256": null,
+          "old_sha256": "0dc4d78b0f4628131cbd9164ecec8ef1f842c057a61a7718ae7b9e6b83e6bb6d"
+        },
+        {
+          "actions": [
+            "quarantined_non_status_event"
+          ],
+          "artifact_path": "kitty-specs/pull-based-deploy-pipeline-01KTYQQS/status.events.jsonl",
+          "event_id": "01KTYSZ054R8M6TGFV0YMBQFMH",
+          "line_number": 5,
+          "new_sha256": null,
+          "old_sha256": "797e523bbf640ff4684f4eb5b4aaf6b68d420dfdcb1de61902fd670ac6b1fa55"
+        },
+        {
+          "actions": [
+            "quarantined_non_status_event"
+          ],
+          "artifact_path": "kitty-specs/pull-based-deploy-pipeline-01KTYQQS/status.events.jsonl",
+          "event_id": "01KTYT07WM4JQX42R3AB4HMXXH",
+          "line_number": 6,
+          "new_sha256": null,
+          "old_sha256": "51764c6adfc7f0540c62cf95535c70807268965f5b00092e11328bda13bf9037"
+        },
+        {
+          "actions": [
+            "quarantined_non_status_event"
+          ],
+          "artifact_path": "kitty-specs/pull-based-deploy-pipeline-01KTYQQS/status.events.jsonl",
+          "event_id": "01KTYT0M1TZPAXKHRZGH2P0GPD",
+          "line_number": 7,
+          "new_sha256": null,
+          "old_sha256": "1d839205fe89d4bc0c80ed8fbc332140a432b71daa47ef9a00ee62e073c222e5"
+        },
+        {
+          "actions": [
+            "quarantined_non_status_event"
+          ],
+          "artifact_path": "kitty-specs/pull-based-deploy-pipeline-01KTYQQS/status.events.jsonl",
+          "event_id": "01KTYT49A41D71FA72YNBGQ42C",
+          "line_number": 8,
+          "new_sha256": null,
+          "old_sha256": "3f58100f9633ab189b38a62995fcc58c7562924af869d361cf6022014300524e"
+        },
+        {
+          "actions": [
+            "quarantined_non_status_event"
+          ],
+          "artifact_path": "kitty-specs/pull-based-deploy-pipeline-01KTYQQS/status.events.jsonl",
+          "event_id": "01KTYT4HCY8DMYHMB8X7CBBH06",
+          "line_number": 9,
+          "new_sha256": null,
+          "old_sha256": "c4cf21fb1fdd8a55a28912f218f41097b61710b846458d7af4d763b927206f46"
+        },
+        {
+          "actions": [
+            "quarantined_non_status_event"
+          ],
+          "artifact_path": "kitty-specs/pull-based-deploy-pipeline-01KTYQQS/status.events.jsonl",
+          "event_id": "01KTYT5QCFGQ92498P2KW7HBW4",
+          "line_number": 10,
+          "new_sha256": null,
+          "old_sha256": "176f7cceb673852823ca0851412c0c799aff3c84c3eb0d86f960c9ac76c5dd78"
+        }
+      ],
+      "status": "updated",
+      "validation_errors": []
+    },
+    {
+      "file_changes": [],
+      "mission_id": "01KS2XNXGQVC18MEF7801JKCYR",
+      "mission_slug": "refactor-doc-auditor-to-scripts-first-driver-01KS2XNX",
+      "quarantined_rows": 0,
+      "row_transformations": [],
+      "status": "unchanged",
+      "validation_errors": []
+    },
+    {
+      "file_changes": [],
+      "mission_id": null,
+      "mission_slug": "remove-escalation-v1-parity-01KT4VTD",
+      "quarantined_rows": 0,
+      "row_transformations": [],
+      "status": "error",
+      "validation_errors": [
+        "Invalid canonical meta.json for remove-escalation-v1-parity-01KT4VTD: Invalid change_mode 'regular'; valid values: ['bulk_edit']"
+      ]
+    },
+    {
+      "file_changes": [
+        {
+          "new_sha256": "cbaf5526f115f69af5178c8707c588101cf7749e4ca7e10d94233ed26fe035e9",
+          "new_size": 21810,
+          "old_sha256": "95544a2bf5008bfc3a0d4cb64ec6c53b9117cdeeab556eeb65218ec179f11963",
+          "old_size": 23333,
+          "path": "kitty-specs/restore-whatsapp-dm-reply-delivery-01KTVVHH/status.events.jsonl"
+        },
+        {
+          "new_sha256": "5ea0272f7af90aad890feda4a5838a2cf21257e607eddf7eaa360f95af3c8b37",
+          "new_size": 1523,
+          "old_sha256": null,
+          "old_size": null,
+          "path": ".kittify/migrations/mission-state/quarantine/d668236d63df5949/restore-whatsapp-dm-reply-delivery-01KTVVHH/status.events.jsonl"
+        }
+      ],
+      "mission_id": "01KTVVHHBJKKG3JPMGRVHSB81P",
+      "mission_slug": "restore-whatsapp-dm-reply-delivery-01KTVVHH",
+      "quarantined_rows": 2,
+      "row_transformations": [
+        {
+          "actions": [
+            "quarantined_non_status_event"
+          ],
+          "artifact_path": "kitty-specs/restore-whatsapp-dm-reply-delivery-01KTVVHH/status.events.jsonl",
+          "event_id": "01KTW1CJVZQEVZNF3YVYWK7N86",
+          "line_number": 8,
+          "new_sha256": null,
+          "old_sha256": "0b71997d3bffd7fc1b918bf0b14f40b00e3be032e9db19f64e27680fa0df9481"
+        },
+        {
+          "actions": [
+            "quarantined_non_status_event"
+          ],
+          "artifact_path": "kitty-specs/restore-whatsapp-dm-reply-delivery-01KTVVHH/status.events.jsonl",
+          "event_id": "01KTW1CS4ZCXZRZBCHHY3ZBVTK",
+          "line_number": 9,
+          "new_sha256": null,
+          "old_sha256": "570235088344e2d94e3669862abf18cfd9e267317036e035e25f822cbbd21315"
+        }
+      ],
+      "status": "updated",
+      "validation_errors": []
+    },
+    {
+      "file_changes": [],
+      "mission_id": "01KS0E9A6TZBA9AWT97DR1XMQB",
+      "mission_slug": "shared-jsonl-state-log-library-01KS0E9A",
+      "quarantined_rows": 0,
+      "row_transformations": [],
+      "status": "unchanged",
+      "validation_errors": []
+    },
+    {
+      "file_changes": [],
+      "mission_id": null,
+      "mission_slug": "signal-driven-monitoring-haiku-gate-01KT22PC",
+      "quarantined_rows": 0,
+      "row_transformations": [],
+      "status": "error",
+      "validation_errors": [
+        "Invalid canonical meta.json for signal-driven-monitoring-haiku-gate-01KT22PC: Invalid change_mode 'regular'; valid values: ['bulk_edit']"
+      ]
+    },
+    {
+      "file_changes": [],
+      "mission_id": null,
+      "mission_slug": "signal-trip-cycle-floor-01KT4NHJ",
+      "quarantined_rows": 0,
+      "row_transformations": [],
+      "status": "error",
+      "validation_errors": [
+        "Invalid canonical meta.json for signal-trip-cycle-floor-01KT4NHJ: Invalid change_mode 'regular'; valid values: ['bulk_edit']"
+      ]
+    },
+    {
+      "file_changes": [],
+      "mission_id": null,
+      "mission_slug": "sweeper-tick-signal-extractor-01KT6MJP",
+      "quarantined_rows": 0,
+      "row_transformations": [],
+      "status": "error",
+      "validation_errors": [
+        "Invalid canonical meta.json for sweeper-tick-signal-extractor-01KT6MJP: Invalid change_mode 'regular'; valid values: ['bulk_edit']"
+      ]
+    },
+    {
+      "file_changes": [],
+      "mission_id": null,
+      "mission_slug": "tasker-jsonl-migration-01KSB5XV",
+      "quarantined_rows": 0,
+      "row_transformations": [],
+      "status": "error",
+      "validation_errors": [
+        "Invalid canonical meta.json for tasker-jsonl-migration-01KSB5XV: Invalid change_mode 'regular'; valid values: ['bulk_edit']"
+      ]
+    },
+    {
+      "file_changes": [
+        {
+          "new_sha256": "9aaebce42cf15a9966e1dcae58bf6f2ca02e36851243a81e0e8475996b75fcaf",
+          "new_size": 23421,
+          "old_sha256": "983b5096dbf49c1fd41cc365bc317a641de5c62cb11e987513f5b853e004b3fb",
+          "old_size": 26605,
+          "path": "kitty-specs/trustworthy-weekly-habit-report-01KV4GZ7/status.events.jsonl"
+        },
+        {
+          "new_sha256": "352cc55589cc243bcf8262a40965d853e2b25ea70a88b5a4d5bb0825e285d938",
+          "new_size": 3184,
+          "old_sha256": null,
+          "old_size": null,
+          "path": ".kittify/migrations/mission-state/quarantine/d668236d63df5949/trustworthy-weekly-habit-report-01KV4GZ7/status.events.jsonl"
+        }
+      ],
+      "mission_id": "01KV4GZ785Q55498XMZJM6W8ZZ",
+      "mission_slug": "trustworthy-weekly-habit-report-01KV4GZ7",
+      "quarantined_rows": 4,
+      "row_transformations": [
+        {
+          "actions": [
+            "quarantined_non_status_event"
+          ],
+          "artifact_path": "kitty-specs/trustworthy-weekly-habit-report-01KV4GZ7/status.events.jsonl",
+          "event_id": "01KV4GZ7D9QN3E0SC6R45WPSH2",
+          "line_number": 1,
+          "new_sha256": null,
+          "old_sha256": "250f26a853a95053bf68a2a324e7110012d5e8f1c74915baaeea5a38250a3904"
+        },
+        {
+          "actions": [
+            "quarantined_non_status_event"
+          ],
+          "artifact_path": "kitty-specs/trustworthy-weekly-habit-report-01KV4GZ7/status.events.jsonl",
+          "event_id": "01KV4GZ7DB67QXWD9R4WTKCTB0",
+          "line_number": 2,
+          "new_sha256": null,
+          "old_sha256": "4cea22f69d9f80961a9e724bc2678326012fe4f8492bedcb1e126a43da8e86e3"
+        },
+        {
+          "actions": [
+            "quarantined_non_status_event"
+          ],
+          "artifact_path": "kitty-specs/trustworthy-weekly-habit-report-01KV4GZ7/status.events.jsonl",
+          "event_id": "01KV4H62D2FTYJ2Z5JG927TS4W",
+          "line_number": 3,
+          "new_sha256": null,
+          "old_sha256": "f376d26a0ead152c3b18f16da8f8c8833c5107f59009dc5a1488f682e2190ec1"
+        },
+        {
+          "actions": [
+            "quarantined_non_status_event"
+          ],
+          "artifact_path": "kitty-specs/trustworthy-weekly-habit-report-01KV4GZ7/status.events.jsonl",
+          "event_id": "01KV4H62D4BYMP0QB69T1TV7FG",
+          "line_number": 4,
+          "new_sha256": null,
+          "old_sha256": "cd1902f7bfc461f0c3428c54ca3d52c52246a98a129323707522c4025a1c2a9a"
+        }
+      ],
+      "status": "updated",
+      "validation_errors": []
+    },
+    {
+      "file_changes": [
+        {
+          "new_sha256": "f2ffee9718996516d9d1c6df891d7fd404b2a51fe0531d9cda709d8ba4d25474",
+          "new_size": 34565,
+          "old_sha256": "7a327b301102a981b261565b44f79e5cfa3e0642d7cd567b1afd795f227ebd97",
+          "old_size": 42070,
+          "path": "kitty-specs/vikunja-client-and-habits-weekly-report-01KTKSFT/status.events.jsonl"
+        },
+        {
+          "new_sha256": "3b0cb35faef5ed00a671af22dc874c80da9fd710166a85387260cccca076eb42",
+          "new_size": 7505,
+          "old_sha256": null,
+          "old_size": null,
+          "path": ".kittify/migrations/mission-state/quarantine/d668236d63df5949/vikunja-client-and-habits-weekly-report-01KTKSFT/status.events.jsonl"
+        }
+      ],
+      "mission_id": "01KTKSFTZ3HMJDS73FPREW38NY",
+      "mission_slug": "vikunja-client-and-habits-weekly-report-01KTKSFT",
+      "quarantined_rows": 11,
+      "row_transformations": [
+        {
+          "actions": [
+            "quarantined_non_status_event"
+          ],
+          "artifact_path": "kitty-specs/vikunja-client-and-habits-weekly-report-01KTKSFT/status.events.jsonl",
+          "event_id": "01KTKSFV4ABWC2EWFZMPS122FD",
+          "line_number": 1,
+          "new_sha256": null,
+          "old_sha256": "c612c4ae97fc8b6e3e4464550eab02242cd1fef6f5d2053256df097451a1321d"
+        },
+        {
+          "actions": [
+            "quarantined_non_status_event"
+          ],
+          "artifact_path": "kitty-specs/vikunja-client-and-habits-weekly-report-01KTKSFT/status.events.jsonl",
+          "event_id": "01KTKSFV4DBG51BRH5HW21FZBA",
+          "line_number": 2,
+          "new_sha256": null,
+          "old_sha256": "a8edeaf3fc5dc1dbd9e79fdcef0ebff8b1d5b0708087d9f68d1c9718ff4e0d7d"
+        },
+        {
+          "actions": [
+            "quarantined_non_status_event"
+          ],
+          "artifact_path": "kitty-specs/vikunja-client-and-habits-weekly-report-01KTKSFT/status.events.jsonl",
+          "event_id": "01KTKSTKPJ2R193JYS0AA2GHB0",
+          "line_number": 3,
+          "new_sha256": null,
+          "old_sha256": "e02a9c8f816ffa9eb0c1e4174160898e672877518cb9dee0ae2f264e9b60cb92"
+        },
+        {
+          "actions": [
+            "quarantined_non_status_event"
+          ],
+          "artifact_path": "kitty-specs/vikunja-client-and-habits-weekly-report-01KTKSFT/status.events.jsonl",
+          "event_id": "01KTKSTKPP5WX7MADJDAXHHACQ",
+          "line_number": 4,
+          "new_sha256": null,
+          "old_sha256": "da40588cc4706f5d6ba44d44de8ebacdab186f02c21cef25720ddbb1d7d2d3f2"
+        },
+        {
+          "actions": [
+            "quarantined_non_status_event"
+          ],
+          "artifact_path": "kitty-specs/vikunja-client-and-habits-weekly-report-01KTKSFT/status.events.jsonl",
+          "event_id": "01KTKT2JWYED3EGGND7BR0ZV6T",
+          "line_number": 5,
+          "new_sha256": null,
+          "old_sha256": "af76a65954cafce2426504e54afb851582cde20574a94fda0d1d3ae08c673c44"
+        },
+        {
+          "actions": [
+            "quarantined_non_status_event"
+          ],
+          "artifact_path": "kitty-specs/vikunja-client-and-habits-weekly-report-01KTKSFT/status.events.jsonl",
+          "event_id": "01KTKW5Q44EASY2ERM633FR06T",
+          "line_number": 6,
+          "new_sha256": null,
+          "old_sha256": "0c60c3ba721c3ab7499ff29228d7ac7192ced172c13fcae50d91ca99dbadf1b5"
+        },
+        {
+          "actions": [
+            "quarantined_non_status_event"
+          ],
+          "artifact_path": "kitty-specs/vikunja-client-and-habits-weekly-report-01KTKSFT/status.events.jsonl",
+          "event_id": "01KTKW5Q478NXCHP32NVCH1J10",
+          "line_number": 7,
+          "new_sha256": null,
+          "old_sha256": "e17c7f38a385e3e011aa98b1e49e504c43d8a870c54fad8d62bd2680914add28"
+        },
+        {
+          "actions": [
+            "quarantined_non_status_event"
+          ],
+          "artifact_path": "kitty-specs/vikunja-client-and-habits-weekly-report-01KTKSFT/status.events.jsonl",
+          "event_id": "01KTKW5Q48670R6PX6FHP7PNAD",
+          "line_number": 8,
+          "new_sha256": null,
+          "old_sha256": "f38718d5b29a30951ea6eac0f37f5bf7c41b0d12dc657e40c922c5183a85430c"
+        },
+        {
+          "actions": [
+            "quarantined_non_status_event"
+          ],
+          "artifact_path": "kitty-specs/vikunja-client-and-habits-weekly-report-01KTKSFT/status.events.jsonl",
+          "event_id": "01KTKW5Q49HS39FXX1YP419HTS",
+          "line_number": 9,
+          "new_sha256": null,
+          "old_sha256": "1d90bccfb1fb503e783f1eb3ff94de01627d6be4b135c996d97c499042afed01"
+        },
+        {
+          "actions": [
+            "quarantined_non_status_event"
+          ],
+          "artifact_path": "kitty-specs/vikunja-client-and-habits-weekly-report-01KTKSFT/status.events.jsonl",
+          "event_id": "01KTKW5Q4AZ3S19DE2EYB82P7D",
+          "line_number": 10,
+          "new_sha256": null,
+          "old_sha256": "e76500f10d95a5d884e5d9ea7fa7a828a98a26186c4ab780281f3fab7bb3299c"
+        },
+        {
+          "actions": [
+            "quarantined_non_status_event"
+          ],
+          "artifact_path": "kitty-specs/vikunja-client-and-habits-weekly-report-01KTKSFT/status.events.jsonl",
+          "event_id": "01KTKW5Q4AZ3S19DE2EYB82P7E",
+          "line_number": 11,
+          "new_sha256": null,
+          "old_sha256": "898f5c2b20abb9b24399f1942ee452043989c3875c5f5d3320a6fba8f238b2f3"
+        }
+      ],
+      "status": "updated",
+      "validation_errors": []
+    },
+    {
+      "file_changes": [],
+      "mission_id": "01KS1K1YE6H1CTY29A6MRWW836",
+      "mission_slug": "vikunja-g7-query-filter-fix-01KS1K1Y",
+      "quarantined_rows": 0,
+      "row_transformations": [],
+      "status": "unchanged",
+      "validation_errors": []
+    }
+  ],
+  "policy": {
+    "ignored": [
+      "*.pyc",
+      ".git/",
+      ".worktrees/",
+      "__pycache__/"
+    ],
+    "optional": [
+      "kitty-specs/*/status.json"
+    ],
+    "tracked": [
+      ".kittify/migrations/mission-state/*.json",
+      "kitty-specs/*/meta.json",
+      "kitty-specs/*/status.events.jsonl",
+      "kitty-specs/*/status.json"
+    ]
+  },
+  "repo_head": "57bdb99d18af4a0edac6c2d85f14705a2f307385",
+  "run_id": "d668236d63df5949",
+  "schema_version": "1.0.0",
+  "summary": {
+    "missions_error": 21,
+    "missions_total": 84,
+    "missions_unchanged": 55,
+    "missions_updated": 8,
+    "quarantined_rows": 51
+  },
+  "target_missions": [
+    "001-vikunja-docker-deploy",
+    "002-openclaw-install-config",
+    "003-whisper-transcription-skill",
+    "004-whatsapp-channel",
+    "005-system-architecture-development",
+    "006-goal-and-outcome-structure",
+    "007-vikunja-api-skill",
+    "008-inbox-processing-migration",
+    "009-daily-habit-checkin",
+    "010-obsidian-sync-office2",
+    "011-second-brain-vault-cleanup",
+    "012-constitution-agent-governance-setup",
+    "013-vikunja-task-intelligence-agent",
+    "014-felix-core-digest",
+    "015-documentation-architecture-rationalization",
+    "016-change-control-governance",
+    "017-vikunja-habit-tracking-architecture",
+    "018-habit-today-filter-visibility",
+    "019-escalation-engine",
+    "020-doc-audit-infrastructure",
+    "021-openclaw-agent-model-tiering",
+    "022-inbox-github-issue-routing",
+    "023-agent-identity-whatsapp-header",
+    "024-vault-path-registry-mvp",
+    "025-vikunja-date-timezone-bug",
+    "026-vault-path-registry-and-folder-renumber",
+    "027-inbox-pre-scan-helper",
+    "028-agent-workspace-reconciliation",
+    "agent-prompt-deploy-pipeline-01KTMDDD",
+    "audit-interpretation-moment0-01KSBGBS",
+    "audit-interpretation-size-guard-01KSEN9B",
+    "audit-judgment-fence-strip-hardening-01KSESPD",
+    "auto-apply-audit-edits-01KRG1BG",
+    "backfill-habits-jsonl-from-comments-01KS0Y4F",
+    "capture-agents-md-rewrite-01KTMY86",
+    "capture-d6-helpers-extraction-01KTMS5Q",
+    "constitution-risk-tier-autonomy-guard-01KTCXMW",
+    "credential-expiry-health-check-01KRCF92",
+    "credential-liveness-probe-01KTP9M8",
+    "documentation-developer-portal-01KSJ75K",
+    "drift-event-auto-resolution-01KS8J32",
+    "drift-interpretation-debug-capture-01KSEFT8",
+    "drift-interpretation-fence-strip-fix-01KSEM6S",
+    "drift-interpretation-payload-capture-01KSEJD7",
+    "drift-ledger-retry-count-hardening-01KSC6AJ",
+    "felix-bot-vikunja-provisioning-01KRT3N4",
+    "felix-calendar-subagent-extraction-01KTTA33",
+    "felix-calendar-subagent-split-01KTT00X",
+    "felix-constitution-migration-completeness-01KT5NZ7",
+    "felix-deployer-ntfy-failure-notifications-01KTZ76F",
+    "felix-doc-auditor-agent-01KR7JK9",
+    "felix-vikunja-sync-architecture-research-01KT7Q15",
+    "felix-vikunja-sync-project-layer-and-url-config-01KTCDZ7",
+    "felix-vikunja-sync-reconciliation-driver-01KTA1J3",
+    "google-workspace-foundation-01KRH4PE",
+    "habit-day-specific-scheduling-01KT48Y6",
+    "habits-checkin-d6-extract-01KRNV46",
+    "habits-checkin-reply-scripts-first-01KS86ZQ",
+    "habits-cutover-to-jsonl-v2-flow-01KS1FKE",
+    "habits-native-repeat-jsonl-state-01KS0M59",
+    "idle-cron-reply-agent-prefix-01KV1BSS",
+    "inbox-atomic-write-perm-preservation-01KRFS03",
+    "inbox-calendar-and-aspiration-routing-01KTHHXS",
+    "inbox-capture-dedup-and-parser-hardening-01KREZJ8",
+    "inbox-parse-failure-cleanup-helpers-01KRFVS4",
+    "inbox-processed-at-timestamp-01KQZ2Y5",
+    "main-verbatim-passthrough-01KSATRP",
+    "migrate-escalation-to-jsonl-state-model-01KS5R4D",
+    "migrate-felix-touchpoints-to-sync-cache-01KTAAGX",
+    "moment0-integration-fix-01KS8XRM",
+    "openclaw-auth-verifier-01KV0Y9E",
+    "prescan-archive-anomalies-01KTMZPE",
+    "pull-based-deploy-pipeline-01KTYQQS",
+    "refactor-doc-auditor-to-scripts-first-driver-01KS2XNX",
+    "remove-escalation-v1-parity-01KT4VTD",
+    "restore-whatsapp-dm-reply-delivery-01KTVVHH",
+    "shared-jsonl-state-log-library-01KS0E9A",
+    "signal-driven-monitoring-haiku-gate-01KT22PC",
+    "signal-trip-cycle-floor-01KT4NHJ",
+    "sweeper-tick-signal-extractor-01KT6MJP",
+    "tasker-jsonl-migration-01KSB5XV",
+    "trustworthy-weekly-habit-report-01KV4GZ7",
+    "vikunja-client-and-habits-weekly-report-01KTKSFT",
+    "vikunja-g7-query-filter-fix-01KS1K1Y"
+  ]
+}
