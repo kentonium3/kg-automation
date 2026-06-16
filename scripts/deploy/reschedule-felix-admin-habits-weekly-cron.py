@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """Deploy entrypoint — move felix-admin-habits weekly cron to Mon 06:00 ET.
 
 Mission: ``trustworthy-weekly-habit-report-01KV4GZ7`` (issue
