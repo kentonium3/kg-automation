@@ -163,7 +163,7 @@ def openclaw_cron_disable(cron_name: str) -> LibResult:
             details={"idempotent": True, "name": cron_name},
         )
 
-    argv = [_OPENCLAW, "cron", "disable", "--name", cron_name]
+    argv = [_OPENCLAW, "cron", "disable", job["id"]]
     rc, stdout, stderr = _run(argv)
     if rc != 0:
         return LibResult(
@@ -213,7 +213,7 @@ def openclaw_cron_enable(cron_name: str) -> LibResult:
             details={"idempotent": True, "name": cron_name},
         )
 
-    argv = [_OPENCLAW, "cron", "enable", "--name", cron_name]
+    argv = [_OPENCLAW, "cron", "enable", job["id"]]
     rc, stdout, stderr = _run(argv)
     if rc != 0:
         return LibResult(
@@ -234,13 +234,32 @@ def openclaw_cron_enable(cron_name: str) -> LibResult:
 
 def openclaw_cron_edit(
     cron_name: str,
-    payload_path: str | None = None,
     schedule: str | None = None,
+    tz: str | None = None,
 ) -> LibResult:
-    """Edit a cron's payload-file and/or schedule.
+    """Edit a cron's schedule expression and/or timezone.
 
-    One or both of *payload_path* and *schedule* must be set. Refuses to
-    touch a cron not registered with openclaw.
+    One or both of *schedule* and *tz* must be set. Refuses to touch a cron
+    not registered with openclaw.
+
+    Important: ``openclaw cron edit <id> --cron <expr>`` is a patch on the
+    schedule object, but when called WITHOUT ``--tz`` it resets the cron's
+    timezone to the openclaw default (UTC). If you only want to change the
+    expression and preserve the existing timezone, pass the existing ``tz``
+    value through alongside (read it first from
+    :func:`openclaw_cron_list`). The lib does not auto-preserve the
+    timezone because openclaw treats the absence of ``--tz`` as
+    user-intent-to-reset, not as user-intent-to-leave-untouched. Callers
+    who deliberately want UTC can call this function with ``tz=None``.
+
+    Args:
+        cron_name: Display name of the registered cron (e.g.
+            ``habits-weekly-report``). Resolved to the openclaw UUID
+            via :func:`openclaw_cron_list`.
+        schedule: New cron expression (e.g. ``"0 6 * * 1"``). Passed to
+            openclaw as ``--cron <expr>``.
+        tz: IANA timezone (e.g. ``"America/New_York"``). Passed to
+            openclaw as ``--tz <iana>``.
     """
     if not cron_name:
         return LibResult(
@@ -248,10 +267,10 @@ def openclaw_cron_edit(
             summary="openclaw_cron_edit requires a non-empty cron_name",
             details={"error_code": "INVALID_ARGUMENT"},
         )
-    if payload_path is None and schedule is None:
+    if schedule is None and tz is None:
         return LibResult(
             ok=False,
-            summary="openclaw_cron_edit requires payload_path and/or schedule",
+            summary="openclaw_cron_edit requires at least one of schedule, tz",
             details={"error_code": "INVALID_ARGUMENT"},
         )
 
@@ -263,18 +282,19 @@ def openclaw_cron_edit(
             details={**listing.details, "error_code": "LIST_FAILED"},
         )
     jobs = list(listing.details.get("crons", []))
-    if _find_job_by_name(jobs, cron_name) is None:
+    job = _find_job_by_name(jobs, cron_name)
+    if job is None:
         return LibResult(
             ok=False,
             summary=f"openclaw cron {cron_name!r} not registered; refusing to edit",
             details={"error_code": "NOT_FOUND", "available": [j.get("name") for j in jobs]},
         )
 
-    argv: list[str] = [_OPENCLAW, "cron", "edit", "--name", cron_name]
-    if payload_path is not None:
-        argv.extend(["--payload-file", payload_path])
+    argv: list[str] = [_OPENCLAW, "cron", "edit", job["id"]]
     if schedule is not None:
-        argv.extend(["--schedule", schedule])
+        argv.extend(["--cron", schedule])
+    if tz is not None:
+        argv.extend(["--tz", tz])
 
     rc, stdout, stderr = _run(argv)
     if rc != 0:
@@ -292,8 +312,8 @@ def openclaw_cron_edit(
         summary=f"openclaw cron {cron_name!r} edited",
         details={
             "argv": argv,
-            "payload_path": payload_path,
             "schedule": schedule,
+            "tz": tz,
             "stdout": _excerpt(stdout),
         },
     )

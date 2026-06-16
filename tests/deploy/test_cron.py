@@ -94,7 +94,9 @@ def test_openclaw_cron_list_returns_failure_on_non_zero_exit(patch_run):
 
 
 def test_openclaw_cron_disable_invokes_disable_when_enabled(patch_run):
-    list_payload = json.dumps({"jobs": [{"name": "felix-x", "enabled": True}]})
+    list_payload = json.dumps(
+        {"jobs": [{"id": "abc123", "name": "felix-x", "enabled": True}]}
+    )
     stub = patch_run([
         _completed(0, stdout=list_payload),
         _completed(0, stdout="disabled"),
@@ -103,7 +105,8 @@ def test_openclaw_cron_disable_invokes_disable_when_enabled(patch_run):
     result = cron.openclaw_cron_disable("felix-x")
 
     assert result.ok is True
-    assert stub.calls[1] == ["openclaw", "cron", "disable", "--name", "felix-x"]
+    # openclaw expects the UUID positionally (#614).
+    assert stub.calls[1] == ["openclaw", "cron", "disable", "abc123"]
 
 
 def test_openclaw_cron_disable_is_idempotent_when_already_disabled(patch_run):
@@ -129,7 +132,9 @@ def test_openclaw_cron_disable_returns_failure_when_cron_not_found(patch_run):
 
 
 def test_openclaw_cron_disable_propagates_subprocess_failure(patch_run):
-    list_payload = json.dumps({"jobs": [{"name": "felix-x", "enabled": True}]})
+    list_payload = json.dumps(
+        {"jobs": [{"id": "abc123", "name": "felix-x", "enabled": True}]}
+    )
     patch_run([
         _completed(0, stdout=list_payload),
         _completed(1, stderr="permission denied"),
@@ -158,7 +163,9 @@ def test_openclaw_cron_disable_rejects_empty_name(patch_run):
 
 
 def test_openclaw_cron_enable_invokes_enable_when_disabled(patch_run):
-    list_payload = json.dumps({"jobs": [{"name": "felix-x", "enabled": False}]})
+    list_payload = json.dumps(
+        {"jobs": [{"id": "abc123", "name": "felix-x", "enabled": False}]}
+    )
     stub = patch_run([
         _completed(0, stdout=list_payload),
         _completed(0, stdout="enabled"),
@@ -167,7 +174,8 @@ def test_openclaw_cron_enable_invokes_enable_when_disabled(patch_run):
     result = cron.openclaw_cron_enable("felix-x")
 
     assert result.ok is True
-    assert stub.calls[1] == ["openclaw", "cron", "enable", "--name", "felix-x"]
+    # openclaw expects the UUID positionally (#614).
+    assert stub.calls[1] == ["openclaw", "cron", "enable", "abc123"]
 
 
 def test_openclaw_cron_enable_is_idempotent_when_already_enabled(patch_run):
@@ -183,7 +191,9 @@ def test_openclaw_cron_enable_is_idempotent_when_already_enabled(patch_run):
 
 def test_openclaw_cron_enable_handles_status_string(patch_run):
     """status='disabled' should be treated as disabled."""
-    list_payload = json.dumps({"jobs": [{"name": "felix-x", "status": "disabled"}]})
+    list_payload = json.dumps(
+        {"jobs": [{"id": "abc123", "name": "felix-x", "status": "disabled"}]}
+    )
     stub = patch_run([
         _completed(0, stdout=list_payload),
         _completed(0, stdout="enabled"),
@@ -200,29 +210,8 @@ def test_openclaw_cron_enable_handles_status_string(patch_run):
 # ---------------------------------------------------------------------------
 
 
-def test_openclaw_cron_edit_with_payload_path_only(patch_run):
-    list_payload = json.dumps({"jobs": [{"name": "felix-x", "enabled": True}]})
-    stub = patch_run([
-        _completed(0, stdout=list_payload),
-        _completed(0, stdout="edited"),
-    ])
-
-    result = cron.openclaw_cron_edit("felix-x", payload_path="/tmp/new.json")
-
-    assert result.ok is True
-    assert stub.calls[1] == [
-        "openclaw",
-        "cron",
-        "edit",
-        "--name",
-        "felix-x",
-        "--payload-file",
-        "/tmp/new.json",
-    ]
-
-
 def test_openclaw_cron_edit_with_schedule_only(patch_run):
-    list_payload = json.dumps({"jobs": [{"name": "felix-x"}]})
+    list_payload = json.dumps({"jobs": [{"id": "abc123", "name": "felix-x"}]})
     stub = patch_run([
         _completed(0, stdout=list_payload),
         _completed(0, stdout="edited"),
@@ -231,30 +220,59 @@ def test_openclaw_cron_edit_with_schedule_only(patch_run):
     result = cron.openclaw_cron_edit("felix-x", schedule="0 */2 * * *")
 
     assert result.ok is True
+    # openclaw uses positional UUID + `--cron` (NOT `--name` + `--schedule`) per #614.
     assert stub.calls[1] == [
         "openclaw",
         "cron",
         "edit",
-        "--name",
-        "felix-x",
-        "--schedule",
+        "abc123",
+        "--cron",
         "0 */2 * * *",
     ]
 
 
-def test_openclaw_cron_edit_with_both_fields(patch_run):
-    list_payload = json.dumps({"jobs": [{"name": "felix-x"}]})
+def test_openclaw_cron_edit_with_tz_only(patch_run):
+    """Edit only the timezone; schedule expression preserved at openclaw layer."""
+    list_payload = json.dumps({"jobs": [{"id": "abc123", "name": "felix-x"}]})
     stub = patch_run([
         _completed(0, stdout=list_payload),
         _completed(0, stdout="edited"),
     ])
 
-    result = cron.openclaw_cron_edit("felix-x", payload_path="/tmp/p.json", schedule="*/15 * * * *")
+    result = cron.openclaw_cron_edit("felix-x", tz="America/New_York")
+
+    assert result.ok is True
+    assert stub.calls[1] == [
+        "openclaw",
+        "cron",
+        "edit",
+        "abc123",
+        "--tz",
+        "America/New_York",
+    ]
+
+
+def test_openclaw_cron_edit_with_both_schedule_and_tz(patch_run):
+    """Passing both fields emits both --cron AND --tz to preserve TZ across schedule changes (#614 / mission-debt)."""
+    list_payload = json.dumps({"jobs": [{"id": "abc123", "name": "felix-x"}]})
+    stub = patch_run([
+        _completed(0, stdout=list_payload),
+        _completed(0, stdout="edited"),
+    ])
+
+    result = cron.openclaw_cron_edit(
+        "felix-x",
+        schedule="*/15 * * * *",
+        tz="America/New_York",
+    )
 
     assert result.ok is True
     edit_call = stub.calls[1]
-    assert "--payload-file" in edit_call
-    assert "--schedule" in edit_call
+    assert "abc123" in edit_call
+    assert "--cron" in edit_call
+    assert "*/15 * * * *" in edit_call
+    assert "--tz" in edit_call
+    assert "America/New_York" in edit_call
 
 
 def test_openclaw_cron_edit_requires_at_least_one_field(patch_run):
@@ -268,7 +286,7 @@ def test_openclaw_cron_edit_requires_at_least_one_field(patch_run):
 
 
 def test_openclaw_cron_edit_refuses_unregistered_cron(patch_run):
-    list_payload = json.dumps({"jobs": [{"name": "other"}]})
+    list_payload = json.dumps({"jobs": [{"id": "zzz999", "name": "other"}]})
     patch_run([_completed(0, stdout=list_payload)])
 
     result = cron.openclaw_cron_edit("felix-x", schedule="* * * * *")
