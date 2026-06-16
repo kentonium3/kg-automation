@@ -1,3 +1,9 @@
+---
+title: Gemini / Antigravity Context — kg-automation
+doc_type: reference
+status: approved
+---
+
 <!-- spec-kitty:orientation -->
 **Spec Kitty v3.2.0rc45** — project: kg-automation (healthy)
 
