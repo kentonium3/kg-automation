@@ -323,6 +323,11 @@ _CLI_FUNCS = {
 if __name__ == "__main__":  # pragma: no cover - CLI entrypoint
     import sys as _sys
 
-    from ._cli import run as _run
+    # Bind to a NEW name (not `_run`) so the module-level subprocess wrapper
+    # defined at the top of the file (`def _run(argv: list[str]) -> ...`)
+    # is not shadowed at module scope. Subsequent function-body calls to
+    # ``_run(argv)`` must continue to resolve to the subprocess wrapper
+    # rather than the CLI dispatcher (kentonium3/kg-automation#613).
+    from ._cli import run as _cli_run
 
-    _sys.exit(_run(_CLI_FUNCS, _sys.argv[1:], prog="scripts.deploy.lib.cron"))
+    _sys.exit(_cli_run(_CLI_FUNCS, _sys.argv[1:], prog="scripts.deploy.lib.cron"))
