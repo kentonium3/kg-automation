@@ -6,9 +6,9 @@ entrypoint: scripts/deploy/reschedule-felix-admin-habits-weekly-cron.py
 audited_surface: false
 verification:
   pre:
-    - "ssh office2-claude 'openclaw cron list --json' | python3 -c 'import json,sys; jobs=json.load(sys.stdin); names=[j[\"name\"] for j in jobs]; assert \"habits-weekly-report\" in names, f\"habits-weekly-report not registered (have {names})\"; print(\"pre-check ok\")'"
+    - "openclaw cron list --json | python3 -c 'import json,sys; jobs=json.load(sys.stdin)[\"jobs\"]; names=[j[\"name\"] for j in jobs]; assert \"habits-weekly-report\" in names, f\"habits-weekly-report not registered (have {names})\"; print(\"pre-check ok\")'"
   post:
-    - "ssh office2-claude 'openclaw cron list --json' | python3 -c 'import json,sys; jobs=json.load(sys.stdin); m=[j for j in jobs if j[\"name\"]==\"habits-weekly-report\"][0]; assert m[\"schedule\"]==\"0 6 * * 1\", f\"schedule still {m[\\\"schedule\\\"]!r}\"; print(\"post-check ok: schedule=\\\"0 6 * * 1\\\"\")'"
+    - "openclaw cron list --json | python3 -c 'import json,sys; jobs=json.load(sys.stdin)[\"jobs\"]; m=[j for j in jobs if j[\"name\"]==\"habits-weekly-report\"][0]; assert m[\"schedule\"][\"expr\"]==\"0 6 * * 1\", f\"schedule still {m[\\\"schedule\\\"][\\\"expr\\\"]!r}\"; print(\"post-check ok: schedule=\\\"0 6 * * 1\\\"\")'"
 created_at: "2026-06-16T19:30:00Z"
 created_by: trustworthy-weekly-habit-report-01KV4GZ7
 notes: |
