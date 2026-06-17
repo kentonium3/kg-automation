@@ -1,7 +1,7 @@
 {
-  "event_count": 1,
-  "last_event_id": "01KVAZY2V8DRNBGKJN4NG2YVCP",
-  "materialized_at": "2026-06-17T14:32:02.152427+00:00",
+  "event_count": 2,
+  "last_event_id": "01KVAZY40SDK3CRXQBM395NG97",
+  "materialized_at": "2026-06-17T14:32:03.353350+00:00",
   "mission_number": "",
   "mission_slug": "auto-rebaseline-on-deploy-01KVAYJN",
   "mission_type": "software-dev",
@@ -14,7 +14,7 @@
     "for_review": 0,
     "in_progress": 0,
     "in_review": 0,
-    "planned": 1
+    "planned": 2
   },
   "work_packages": {
     "WP01": {
@@ -23,6 +23,13 @@
       "lane": "planned",
       "last_event_id": "01KVAZY2V8DRNBGKJN4NG2YVCP",
       "last_transition_at": "2026-06-17T14:32:02.152427+00:00"
+    },
+    "WP02": {
+      "actor": "finalize-tasks",
+      "force_count": 0,
+      "lane": "planned",
+      "last_event_id": "01KVAZY40SDK3CRXQBM395NG97",
+      "last_transition_at": "2026-06-17T14:32:03.353350+00:00"
     }
   }
 }
