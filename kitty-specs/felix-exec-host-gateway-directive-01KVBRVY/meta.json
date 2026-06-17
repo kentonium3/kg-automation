@@ -3,7 +3,7 @@
   "created_at": "2026-06-17T21:47:46.435492+00:00",
   "friendly_name": "Felix exec host=gateway directive",
   "mission_id": "01KVBRVYC0GG1G4CFB1AYKW67V",
-  "mission_number": null,
+  "mission_number": 80,
   "mission_slug": "felix-exec-host-gateway-directive-01KVBRVY",
   "mission_type": "software-dev",
   "pr_bound": true,

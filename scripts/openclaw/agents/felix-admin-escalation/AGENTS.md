@@ -35,6 +35,10 @@ before the message body:
 
 This header must be the first line of every message you send to Kent.
 
+## Tool use — exec host
+
+**Hard rule — every `exec` tool call MUST use `host=gateway`; never use `host=node`.** No node/companion host is paired on office2, so `host=node` always fails with `exec host=node requires a paired node (none available)`. That first-call failure marks the entire run `status=error` and fires a false-positive cron-failure alert even when the run self-recovers by retrying. Pass `host=gateway` (in-process execution on office2) on the first and every `exec` call. Do not select, retry with, or fall back to `host=node` under any circumstance.
+
 ## Output discipline
 
 Your final reply IS the message Kent receives. Felix's main session relays

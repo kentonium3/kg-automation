@@ -15,17 +15,13 @@ tracker_refs:
 planning_base_branch: fix/felix-exec-host-gateway-directive
 merge_target_branch: fix/felix-exec-host-gateway-directive
 branch_strategy: Planning artifacts for this mission were generated on fix/felix-exec-host-gateway-directive. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into fix/felix-exec-host-gateway-directive unless the human explicitly redirects the landing branch.
-base_branch: kitty/mission-felix-exec-host-gateway-directive-01KVBRVY
-base_commit: 287d67ae786a3b7735607a50f17a972442b54dd0
-created_at: '2026-06-17T22:23:58.577570+00:00'
 subtasks:
 - T001
 - T002
 - T003
 - T004
 - T005
-agent: claude
-shell_pid: '68140'
+agent: "claude"
 history: []
 agent_profile: implementer-ivan
 authoritative_surface: scripts/openclaw/agents/
@@ -38,6 +34,7 @@ owned_files:
 - scripts/openclaw/agents/felix-admin-escalation/AGENTS.md
 role: implementer
 tags: []
+shell_pid: "71210"
 ---
 
 ## ⚡ Do This First: Load Agent Profile
@@ -144,3 +141,9 @@ agent-specific changes:
 - Confirm placement is consistent (after `## Message identity`, before `## Output discipline`) in each file.
 - Confirm no unrelated edits crept into the four files (diff should show only the added block per file).
 - FR-004 (deploy via `agent-prompt-sync.service`) and the #557/#618 rebaseline are **automated post-merge**; they are not implemented here — see `../quickstart.md` for the post-merge verification recipe.
+
+## Activity Log
+
+- 2026-06-17T22:24:00Z – claude – shell_pid=68140 – Assigned agent via action command
+- 2026-06-17T22:26:46Z – claude – shell_pid=68140 – Ready for review
+- 2026-06-17T22:29:35Z – claude – shell_pid=71210 – Started review via action command

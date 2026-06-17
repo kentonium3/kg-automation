@@ -42,11 +42,11 @@ selection that produces false-positive cron-failure alerts (#603).
 
 **Included subtasks**:
 
-- [ ] T001 Add `## Tool use — exec host` section to felix-admin-capture/AGENTS.md (WP01)
-- [ ] T002 Add identical section to felix-admin-habits/AGENTS.md (WP01)
-- [ ] T003 Add identical section to felix-admin-tasker/AGENTS.md (WP01)
-- [ ] T004 Add identical section to felix-admin-escalation/AGENTS.md (WP01)
-- [ ] T005 Verify all four files carry the identical directive (WP01)
+- [x] T001 Add `## Tool use — exec host` section to felix-admin-capture/AGENTS.md (WP01)
+- [x] T002 Add identical section to felix-admin-habits/AGENTS.md (WP01)
+- [x] T003 Add identical section to felix-admin-tasker/AGENTS.md (WP01)
+- [x] T004 Add identical section to felix-admin-escalation/AGENTS.md (WP01)
+- [x] T005 Verify all four files carry the identical directive (WP01)
 
 **Implementation sketch**: In each file, insert the identical section at the
 shared anchor — immediately after the `## Message identity` section and before
