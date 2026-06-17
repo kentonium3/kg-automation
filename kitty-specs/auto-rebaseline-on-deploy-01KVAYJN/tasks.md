@@ -32,9 +32,9 @@ MVP scope = WP01 + WP02 + WP03 (the working auto-rebaseline). WP04 ships, docume
 - **Goal**: one importable matcher consumed by both the CI reminder and felix-deployer (NFR-001 single source of truth).
 - **Priority**: P1 (foundational). **Independent test**: `pytest tests/deploy/test_audited_surfaces.py` + CI script still emits identical annotations.
 - **Subtasks**:
-  - [ ] T001 Extract `load_audited_surfaces`, `changed_files(range)`, `file_matches_pattern`, `match_surfaces` into `tooling/scripts/audited_surfaces.py` (WP01)
-  - [ ] T002 Refactor `check_audited_surface_drift.py` to import them; byte-stable CLI + exit codes (WP01)
-  - [ ] T003 Unit tests: matcher globbing (`**`), surface matching, CLI parity (WP01)
+  - [x] T001 Extract `load_audited_surfaces`, `changed_files(range)`, `file_matches_pattern`, `match_surfaces` into `tooling/scripts/audited_surfaces.py` (WP01)
+  - [x] T002 Refactor `check_audited_surface_drift.py` to import them; byte-stable CLI + exit codes (WP01)
+  - [x] T003 Unit tests: matcher globbing (`**`), surface matching, CLI parity (WP01)
 - **Dependencies**: none. **Est.**: ~220 lines.
 
 ### WP02 — Pending-token rebaseline engine

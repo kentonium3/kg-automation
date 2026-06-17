@@ -2,97 +2,97 @@
   "mission_slug": "auto-rebaseline-on-deploy-01KVAYJN",
   "mission_number": "",
   "mission_type": "software-dev",
-  "overall_verdict": "pending",
+  "overall_verdict": "pass",
   "criteria": [
     {
       "criterion_id": "FR-001",
       "description": "Verify FR-001 is satisfied",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "TODO: replace with a real acceptance criterion"
+      "evidence": "tests/deploy/test_audited_surfaces.py (match_surfaces) + test_rebaseline.py TestObserve \u2014 pulled-range paths matched to audited-surface registry",
+      "pass_fail": "pass",
+      "verified_by": "claude (opus review + pytest: tests/deploy green)",
+      "verified_at": "2026-06-17T16:33:47Z",
+      "notes": "Unit-verified (mocked audit). Live SC-001..SC-004 verified post-merge via the office2 canary (WP04 T017), the mission's merge acceptance criterion."
     },
     {
       "criterion_id": "FR-002",
       "description": "Verify FR-002 is satisfied",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "TODO: replace with a real acceptance criterion"
+      "evidence": "test_rebaseline.py TestReconcile/TestRebaselineAndVerify \u2014 D\u2286E confirmed \u2192 baselines reset+regenerated, no human (completed)",
+      "pass_fail": "pass",
+      "verified_by": "claude (opus review + pytest: tests/deploy green)",
+      "verified_at": "2026-06-17T16:33:47Z",
+      "notes": "Unit-verified (mocked audit). Live SC-001..SC-004 verified post-merge via the office2 canary (WP04 T017), the mission's merge acceptance criterion."
     },
     {
       "criterion_id": "FR-003",
       "description": "Verify FR-003 is satisfied",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "TODO: replace with a real acceptance criterion"
+      "evidence": "test_tick_rebaseline.py test_rebaseline_stamped_on_applied_manifest \u2014 rebaseline outcome surfaced on applied deploy record",
+      "pass_fail": "pass",
+      "verified_by": "claude (opus review + pytest: tests/deploy green)",
+      "verified_at": "2026-06-17T16:33:47Z",
+      "notes": "Unit-verified (mocked audit). Live SC-001..SC-004 verified post-merge via the office2 canary (WP04 T017), the mission's merge acceptance criterion."
     },
     {
       "criterion_id": "FR-004",
       "description": "Verify FR-004 is satisfied",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "TODO: replace with a real acceptance criterion"
+      "evidence": "test_rebaseline.py \u2014 not_required (no audited surface) / cleared_clean (audit clean) \u2192 no reset",
+      "pass_fail": "pass",
+      "verified_by": "claude (opus review + pytest: tests/deploy green)",
+      "verified_at": "2026-06-17T16:33:47Z",
+      "notes": "Unit-verified (mocked audit). Live SC-001..SC-004 verified post-merge via the office2 canary (WP04 T017), the mission's merge acceptance criterion."
     },
     {
       "criterion_id": "FR-005",
       "description": "Verify FR-005 is satisfied",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "TODO: replace with a real acceptance criterion"
+      "evidence": "test_rebaseline.py \u2014 completed path verifies regenerated file count==expected_baseline_count AND audit clear before recording",
+      "pass_fail": "pass",
+      "verified_by": "claude (opus review + pytest: tests/deploy green)",
+      "verified_at": "2026-06-17T16:33:47Z",
+      "notes": "Unit-verified (mocked audit). Live SC-001..SC-004 verified post-merge via the office2 canary (WP04 T017), the mission's merge acceptance criterion."
     },
     {
       "criterion_id": "FR-006",
       "description": "Verify FR-006 is satisfied",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "TODO: replace with a real acceptance criterion"
+      "evidence": "test_rebaseline.py (failed) + test_tick_rebaseline.py (dispatch dedupe) \u2014 exactly one ntfy, failure recorded, applied code left in place",
+      "pass_fail": "pass",
+      "verified_by": "claude (opus review + pytest: tests/deploy green)",
+      "verified_at": "2026-06-17T16:33:47Z",
+      "notes": "Unit-verified (mocked audit). Live SC-001..SC-004 verified post-merge via the office2 canary (WP04 T017), the mission's merge acceptance criterion."
     },
     {
       "criterion_id": "FR-007",
       "description": "Verify FR-007 is satisfied",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "TODO: replace with a real acceptance criterion"
+      "evidence": "test_rebaseline.py (rebaseline only on D\u2286E,D\u2260\u2205) + test_tick_rebaseline.py (runs after queue/apply) \u2014 only clean, confirmed-drift triggers",
+      "pass_fail": "pass",
+      "verified_by": "claude (opus review + pytest: tests/deploy green)",
+      "verified_at": "2026-06-17T16:33:47Z",
+      "notes": "Unit-verified (mocked audit). Live SC-001..SC-004 verified post-merge via the office2 canary (WP04 T017), the mission's merge acceptance criterion."
     },
     {
       "criterion_id": "FR-008",
       "description": "Verify FR-008 is satisfied",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "TODO: replace with a real acceptance criterion"
+      "evidence": "test_audited_surfaces.py + test_rebaseline.py TestObserve \u2014 full pre_pull..post_pull commit range diffed",
+      "pass_fail": "pass",
+      "verified_by": "claude (opus review + pytest: tests/deploy green)",
+      "verified_at": "2026-06-17T16:33:47Z",
+      "notes": "Unit-verified (mocked audit). Live SC-001..SC-004 verified post-merge via the office2 canary (WP04 T017), the mission's merge acceptance criterion."
     },
     {
       "criterion_id": "FR-009",
       "description": "Verify FR-009 is satisfied",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "TODO: replace with a real acceptance criterion"
+      "evidence": "test_rebaseline.py (unexpected_drift: D\u2284E, no reset, token kept) + test_tick_rebaseline.py (unexpected_drift alert)",
+      "pass_fail": "pass",
+      "verified_by": "claude (opus review + pytest: tests/deploy green)",
+      "verified_at": "2026-06-17T16:33:47Z",
+      "notes": "Unit-verified (mocked audit). Live SC-001..SC-004 verified post-merge via the office2 canary (WP04 T017), the mission's merge acceptance criterion."
     }
   ],
   "negative_invariants": []

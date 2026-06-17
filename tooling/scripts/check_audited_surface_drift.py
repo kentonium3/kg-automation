@@ -19,104 +19,28 @@ Without --range, defaults to the staged diff (`git diff --cached --name-only`).
 
 Exit code is always 0 unless the audited-surfaces.json is unreadable or the
 git command fails — failure modes that warrant a CI red, not silent skip.
+
+The surface-matching core (load / changed-files / glob-match / match-surfaces)
+lives in the shared module `tooling/scripts/audited_surfaces.py` so
+felix-deployer's rebaseline engine and this reminder consume one source of
+truth (#618, NFR-001).
 """
 from __future__ import annotations
 
 import argparse
-import fnmatch
-import json
-import subprocess
 import sys
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parent.parent.parent
-AUDITED_SURFACES_PATH = (
-    REPO_ROOT
-    / "docs"
-    / "design"
-    / "architecture"
-    / "data"
-    / "audited-surfaces.json"
+# Ensure the sibling shared module is importable whether this file is run as a
+# script (CI: `python3 tooling/scripts/check_audited_surface_drift.py`) or
+# imported by tests via importlib.spec_from_file_location.
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from audited_surfaces import (  # noqa: E402  (intentional: after sys.path bootstrap)
+    changed_files,
+    load_audited_surfaces,
+    match_surfaces,
 )
-
-
-def _load_audited_surfaces() -> dict:
-    if not AUDITED_SURFACES_PATH.exists():
-        print(
-            f"ERROR: audited-surfaces.json not found at {AUDITED_SURFACES_PATH}",
-            file=sys.stderr,
-        )
-        sys.exit(2)
-    try:
-        return json.loads(AUDITED_SURFACES_PATH.read_text(encoding="utf-8"))
-    except json.JSONDecodeError as exc:
-        print(f"ERROR: audited-surfaces.json is malformed: {exc}", file=sys.stderr)
-        sys.exit(2)
-
-
-def _changed_files(range_spec: str | None) -> list[str]:
-    """Return the list of changed file paths for the given range.
-
-    If range_spec is None, returns the staged diff.
-    """
-    if range_spec is None:
-        cmd = ["git", "diff", "--cached", "--name-only"]
-    else:
-        cmd = ["git", "diff", "--name-only", range_spec]
-    try:
-        result = subprocess.run(
-            cmd, capture_output=True, text=True, check=True, cwd=REPO_ROOT
-        )
-    except subprocess.CalledProcessError as exc:
-        print(
-            f"ERROR: git diff failed (cmd={cmd}): {exc.stderr.strip()}",
-            file=sys.stderr,
-        )
-        sys.exit(2)
-    return [line for line in result.stdout.splitlines() if line.strip()]
-
-
-def _file_matches_pattern(path: str, pattern: str) -> bool:
-    """Glob match with `**` support.
-
-    `fnmatch` handles `*` and `?` per shell semantics. We add `**` as a
-    "zero-or-more directories" wildcard so `**/Dockerfile` matches a
-    Dockerfile at any depth.
-    """
-    if "**" in pattern:
-        # Expand `**/x` to also match `x` at top level.
-        if pattern.startswith("**/"):
-            tail = pattern[3:]
-            if fnmatch.fnmatch(path, tail) or fnmatch.fnmatch(path, pattern):
-                return True
-        # Try `**` as `*/*/.../*` for fnmatch
-        # fnmatch doesn't support **, so we approximate: replace ** with *
-        # and accept that we'll over-match slightly (false positives are
-        # acceptable for a reminder).
-        normalized = pattern.replace("**/", "*/").replace("/**", "/*")
-        if fnmatch.fnmatch(path, normalized):
-            return True
-        return False
-    return fnmatch.fnmatch(path, pattern)
-
-
-def _match_surfaces(changed_files: list[str], audited: dict) -> list[dict]:
-    """Return surfaces whose patterns match at least one changed file.
-
-    Each returned entry has the surface dict + a `matched_files` list.
-    """
-    surfaces = audited.get("audited_surfaces", [])
-    matches: list[dict] = []
-    for surface in surfaces:
-        matched_files: list[str] = []
-        for pattern in surface.get("patterns", []):
-            for changed_file in changed_files:
-                if _file_matches_pattern(changed_file, pattern):
-                    if changed_file not in matched_files:
-                        matched_files.append(changed_file)
-        if matched_files:
-            matches.append({**surface, "matched_files": matched_files})
-    return matches
 
 
 def _emit_warnings(matches: list[dict], audited: dict) -> None:
@@ -187,14 +111,14 @@ def main(argv: list[str] | None = None) -> int:
     )
     args = parser.parse_args(argv)
 
-    audited = _load_audited_surfaces()
-    changed = _changed_files(args.range)
+    audited = load_audited_surfaces()
+    changed = changed_files(args.range)
     if not changed:
         if not args.quiet:
             print("No changed files in range; nothing to check.")
         return 0
 
-    matches = _match_surfaces(changed, audited)
+    matches = match_surfaces(changed, audited)
     if not matches:
         if not args.quiet:
             print(

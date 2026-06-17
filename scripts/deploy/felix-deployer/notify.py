@@ -239,10 +239,188 @@ def dispatch_failure_notification(
     )
 
 
+# ---------------------------------------------------------------------------
+# Rebaseline alert dispatch (C5 — rebaseline-lifecycle-v1.md)
+# ---------------------------------------------------------------------------
+
+# Off-happy-path event keys for rebaseline alerts.
+# ``stale_ntfy`` is the WP03 dispatch-layer dedupe key for the stale token
+# alert — distinct from the engine's ``stale`` classification marker which is
+# pre-appended to ``alerts_emitted`` by _maybe_stale before dispatch runs.
+REBASELINE_ALERT_EVENTS = ("rebaseline_failed", "unexpected_drift", "stale", "stale_ntfy")
+
+# Priority for rebaseline alerts — high (same as failure notifications).
+_REBASELINE_PRIORITY = "high"
+_REBASELINE_TAGS = "warning,rotating_light"
+
+
+def _render_rebaseline_title(event_key: str) -> str:
+    return f"felix-deployer rebaseline: {event_key}"
+
+
+def _render_rebaseline_body(
+    event_key: str,
+    token: dict,
+    detail: str,
+    head_sha: str,
+    registry: dict | None = None,
+) -> str:
+    """Render the ntfy body for a rebaseline alert (C5).
+
+    Includes surface_ids, drifted baselines (from *detail*), and the
+    manual rebaseline_command from the registry for the operator.
+    """
+    surface_ids = token.get("surface_ids", [])
+    surface_ids_str = ", ".join(surface_ids) if surface_ids else "(none)"
+    head_prefix = head_sha[:8] if head_sha else "(unknown)"
+    rebaseline_command = ""
+    if registry:
+        rebaseline_command = registry.get("rebaseline_command", "")
+    lines = [
+        f"Event: {event_key}",
+        f"Surfaces: {surface_ids_str}",
+        f"Head: {head_prefix}",
+        f"Detail: {detail[:300] if detail else '(none)'}",
+    ]
+    if rebaseline_command:
+        lines.append(f"\nManual rebaseline command:\n{rebaseline_command}")
+    return "\n".join(lines)
+
+
+def dispatch_rebaseline_alert(
+    event_key: str,
+    token: dict,
+    detail: str,
+    head_sha: str,
+    *,
+    registry: dict | None = None,
+) -> LibResult:
+    """Dispatch one ntfy alert for a rebaseline off-happy-path event (C5).
+
+    Deduplicates via ``token["alerts_emitted"]``: fires at most once per
+    ``event_key`` per token lifetime (FR-006, FR-009). If the event has
+    already been emitted, returns a no-op ``LibResult(ok=True, ...)``.
+
+    On success, mutates ``token["alerts_emitted"]`` in place so the caller
+    (``_tick``) can persist the updated token via ``rebaseline.write_token``.
+
+    Args:
+        event_key: one of ``"rebaseline_failed"``, ``"unexpected_drift"``,
+            ``"stale"``.
+        token: the current pending-token dict (mutable — this function
+            appends to ``alerts_emitted`` on success so the caller can persist).
+        detail: short human-readable detail string for the body.
+        head_sha: current HEAD SHA (included in body for triage).
+        registry: injectable audited-surfaces registry (for
+            ``rebaseline_command`` in body). Falls back to no command line.
+
+    Returns a ``LibResult``. Dispatch errors are caught and returned as
+    ``ok=False``; they are **never raised** to the caller.
+    """
+    # Dedupe: skip if already emitted for this token.
+    alerts_emitted: list[str] = list(token.get("alerts_emitted", []))
+    if event_key in alerts_emitted:
+        return LibResult(
+            ok=True,
+            summary=f"rebaseline alert deduplicated: {event_key}",
+            details={"event_key": event_key, "deduplicated": True},
+        )
+
+    topic = os.environ.get(NTFY_TOPIC_ENV, "").strip()
+    if not topic:
+        return LibResult(
+            ok=False,
+            summary=f"rebaseline alert: skipped ({NTFY_TOPIC_ENV} not configured)",
+            details={"error_code": "NTFY_MISSING_TOPIC", "event_key": event_key},
+        )
+
+    title = _render_rebaseline_title(event_key)
+    body = _render_rebaseline_body(
+        event_key=event_key,
+        token=token,
+        detail=detail,
+        head_sha=head_sha,
+        registry=registry,
+    )
+    topic_redacted = _topic_redact(topic)
+
+    try:
+        result = subprocess.run(  # noqa: S603 - argv list, no shell
+            [
+                "curl",
+                "--silent",
+                "--show-error",
+                "--fail",
+                "--max-time", str(CURL_MAX_TIME_SECONDS),
+                "-H", f"Title: {title}",
+                "-H", f"Priority: {_REBASELINE_PRIORITY}",
+                "-H", f"Tags: {_REBASELINE_TAGS}",
+                "-X", "POST",
+                "--data-binary", "@-",
+                f"{NTFY_BASE_URL}/{topic}",
+            ],
+            input=body,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    except FileNotFoundError as exc:
+        return LibResult(
+            ok=False,
+            summary=f"rebaseline alert: curl not found ({exc})",
+            details={
+                "error_code": "NTFY_CURL_MISSING",
+                "event_key": event_key,
+                "error": str(exc),
+            },
+        )
+    except OSError as exc:
+        return LibResult(
+            ok=False,
+            summary=f"rebaseline alert: failed to spawn curl ({exc})",
+            details={
+                "error_code": "NTFY_SPAWN_FAILED",
+                "event_key": event_key,
+                "error": str(exc),
+            },
+        )
+
+    if result.returncode != 0:
+        return LibResult(
+            ok=False,
+            summary=f"rebaseline alert: curl failed (rc={result.returncode})",
+            details={
+                "error_code": _classify_error_code(result.returncode),
+                "event_key": event_key,
+                "returncode": result.returncode,
+                "stderr_excerpt": (result.stderr or "")[:200],
+                "topic_redacted": topic_redacted,
+            },
+        )
+
+    # Success: mark event as emitted on the mutable token dict.
+    # The caller (_tick) holds the same reference and will persist it via
+    # rebaseline.write_token. Mutating here is the single dedupe write.
+    alerts_emitted.append(event_key)
+    token["alerts_emitted"] = alerts_emitted
+
+    return LibResult(
+        ok=True,
+        summary=f"rebaseline alert sent: {event_key}",
+        details={
+            "event_key": event_key,
+            "title": title,
+            "topic_redacted": topic_redacted,
+        },
+    )
+
+
 __all__ = [
     "NOTIFICATION_FORMAT_VERSION",
     "NTFY_TOPIC_ENV",
     "ERROR_SUMMARY_MAX",
     "DM_PHASES",
+    "REBASELINE_ALERT_EVENTS",
     "dispatch_failure_notification",
+    "dispatch_rebaseline_alert",
 ]

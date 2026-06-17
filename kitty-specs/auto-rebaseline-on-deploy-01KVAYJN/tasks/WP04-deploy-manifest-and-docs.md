@@ -16,8 +16,7 @@ subtasks:
 - T015
 - T016
 - T017
-agent: claude
-shell_pid: '29845'
+agent: "claude"
 history: []
 agent_profile: curator-carla
 authoritative_surface: deploys/queued/
@@ -30,6 +29,7 @@ owned_files:
 - docs/runbooks/security-baseline-ops.md
 role: implementer
 tags: []
+shell_pid: "40349"
 ---
 
 ## ⚡ Do This First: Load Agent Profile
@@ -135,3 +135,10 @@ Depends on WP03 (docs describe behavior built in WP02/WP03).
 - Do not hand-edit `.kittify`. Charter changes flow through the charter workflow.
 - Reviewer: validate the manifest against the schema; confirm no state mutation in
   the entrypoint; confirm the canary procedure is concrete and operator-runnable.
+
+## Activity Log
+
+- 2026-06-17T16:13:10Z – claude – shell_pid=35424 – Started implementation via action command
+- 2026-06-17T16:20:06Z – claude – shell_pid=35424 – Ready for review: deploy manifest (0005, Tier 3, verification-only, schema-validated), CLAUDE.md rebaseline-obligation rewrite, security-baseline-ops.md automatic-rebaseline + canary sections, T016 charter deferral noted
+- 2026-06-17T16:22:37Z – claude – shell_pid=40349 – Started review via action command
+- 2026-06-17T16:27:22Z – user – shell_pid=40349 – opus review PASSED first-pass (manifest schema-valid + verification-only entrypoint, docs accurate, charter deferred). --skip-review-artifact-check: review-cycle-1.md is a blocked-recovery byproduct, not a quality rejection. --force: lane-d kitty-specs verified byte-identical to main (history-only).

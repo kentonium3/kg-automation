@@ -1,8 +1,8 @@
 {
-  "event_count": 4,
-  "last_event_id": "01KVAZY5993J6HKTNJBFQ44ETR",
-  "materialized_at": "2026-06-17T14:32:04.649311+00:00",
-  "mission_number": "",
+  "event_count": 40,
+  "last_event_id": "01KVB72J7DXEH57N6GRJSZV4Q1",
+  "materialized_at": "2026-06-17T16:36:49.005486+00:00",
+  "mission_number": "79",
   "mission_slug": "auto-rebaseline-on-deploy-01KVAYJN",
   "mission_type": "software-dev",
   "summary": {
@@ -10,40 +10,40 @@
     "blocked": 0,
     "canceled": 0,
     "claimed": 0,
-    "done": 0,
+    "done": 4,
     "for_review": 0,
     "in_progress": 0,
     "in_review": 0,
-    "planned": 4
+    "planned": 0
   },
   "work_packages": {
     "WP01": {
-      "actor": "finalize-tasks",
+      "actor": "merge",
       "force_count": 0,
-      "lane": "planned",
-      "last_event_id": "01KVAZY2V8DRNBGKJN4NG2YVCP",
-      "last_transition_at": "2026-06-17T14:32:02.152427+00:00"
+      "lane": "done",
+      "last_event_id": "01KVB72FVD0KJQYEGBTZ6XVF4Y",
+      "last_transition_at": "2026-06-17T16:36:46.573984+00:00"
     },
     "WP02": {
-      "actor": "finalize-tasks",
-      "force_count": 0,
-      "lane": "planned",
-      "last_event_id": "01KVAZY40SDK3CRXQBM395NG97",
-      "last_transition_at": "2026-06-17T14:32:03.353350+00:00"
+      "actor": "merge",
+      "force_count": 4,
+      "lane": "done",
+      "last_event_id": "01KVB72GVRDJBG7B3ADBHXHNXR",
+      "last_transition_at": "2026-06-17T16:36:47.609076+00:00"
     },
     "WP03": {
-      "actor": "finalize-tasks",
-      "force_count": 0,
-      "lane": "planned",
-      "last_event_id": "01KVAZY4PFN0133N8GA0MC1SGV",
-      "last_transition_at": "2026-06-17T14:32:04.047854+00:00"
+      "actor": "merge",
+      "force_count": 4,
+      "lane": "done",
+      "last_event_id": "01KVB72HHZRE8RSAWQ1BJ0HCF8",
+      "last_transition_at": "2026-06-17T16:36:48.319960+00:00"
     },
     "WP04": {
-      "actor": "finalize-tasks",
-      "force_count": 0,
-      "lane": "planned",
-      "last_event_id": "01KVAZY5993J6HKTNJBFQ44ETR",
-      "last_transition_at": "2026-06-17T14:32:04.649311+00:00"
+      "actor": "merge",
+      "force_count": 3,
+      "lane": "done",
+      "last_event_id": "01KVB72J7DXEH57N6GRJSZV4Q1",
+      "last_transition_at": "2026-06-17T16:36:49.005486+00:00"
     }
   }
 }

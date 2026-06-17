@@ -288,18 +288,48 @@ checklist required.
 frontmatter, logging)**:
 Full autonomy. No pre-flight or verification steps required.
 
-**Rebaseline obligation (independent of tier, #557)**: Any change that
-touches an audited surface (per `docs/design/architecture/data/audited-surfaces.json`
-— openclaw agent prompts, openclaw config, systemd user units + deploy
-scripts, Python dependency manifests, Docker stack files, committed SSH
-key material) requires resetting the security-monitor baselines on office2
-after the change deploys. Run `ssh office2-claude 'rm /data/services/security-monitor/baselines/* && sg docker -c /data/services/security-monitor/scripts/audit.sh'`
-(canonical command in `docs/runbooks/security-baseline-ops.md`).
-Soft-reminder CI (`.github/workflows/audited-surface-reminder.yml`)
-annotates pushes/PRs that touch these paths. For spec-kitty missions,
-the merge commit must record `Rebaseline: completed at <ts>` or
-`Rebaseline: not required — <reason>`. The operator is responsible
-for running the reset — neither CI nor the charter performs it.
+**Rebaseline obligation (independent of tier, #557, automated via #618)**:
+Any change that touches an audited surface (per
+`docs/design/architecture/data/audited-surfaces.json` — openclaw agent
+prompts, openclaw config, systemd user units + deploy scripts, Python
+dependency manifests, Docker stack files, committed SSH key material)
+requires resetting the security-monitor baselines on office2 after the
+change deploys.
+
+**Happy path (pipeline-driven changes):** for changes applied through the
+`deploys/queued/` manifest pipeline, felix-deployer rebaselines
+automatically and silently — no operator action needed. The deployer uses
+a deferred-confirm flow: it observes the committed audited-surface change
+on `git pull`, sets a pending token, then rebaselines once the expected
+drift is confirmed by a read-only audit run. Outcomes are recorded on the
+deploy record (`rebaseline: completed / not_required / failed`). The
+operator is NOT the load-bearing component on the happy path.
+
+**Out-of-band exception (manual reset still required):** changes made
+directly on office2 — not through the manifest pipeline — are invisible
+to felix-deployer. The daily security audit surfaces these as drift;
+investigate and reset manually:
+
+```bash
+ssh office2-claude 'rm /data/services/security-monitor/baselines/* && sg docker -c /data/services/security-monitor/scripts/audit.sh'
+```
+
+(Canonical procedure in `docs/runbooks/security-baseline-ops.md`.)
+
+**Failure / unexpected-drift:** if the automatic rebaseline fails or if
+observed drift extends beyond what the change is expected to affect,
+felix-deployer emits one ntfy alert and leaves the applied code in place.
+A human must investigate before clearing.
+
+**Soft-reminder CI** (`.github/workflows/audited-surface-reminder.yml`)
+annotates pushes/PRs that touch audited paths. For spec-kitty missions,
+the merge commit must record `Rebaseline: completed at <ts>` (automated
+or manual), or `Rebaseline: not required — <reason>`.
+
+**Transition note:** this mission's own merge (#618) touches
+`scripts/deploy/**` (an audited surface) and predates the automation
+being live. Its merge is rebaselined **manually** — the last manual one
+for a pipeline-driven change.
 
 ## Deploys to office2
 

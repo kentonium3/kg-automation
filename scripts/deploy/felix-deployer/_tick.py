@@ -50,6 +50,7 @@ from scripts.deploy.lib import applied as _applied
 from scripts.deploy.lib import manifest as _manifest
 
 import notify as _notify  # type: ignore[import-not-found]
+import rebaseline as _rebaseline  # type: ignore[import-not-found]
 
 DEFAULT_REPO_ROOT = pathlib.Path("/home/claude/kg-automation")
 DEFAULT_LOG_DIR = pathlib.Path("/data/services/felix-deployer/logs")
@@ -232,6 +233,11 @@ def run_tick(
     _log(log_path, {"event": "tick_start"})
 
     # 1. git pull --ff-only.
+    # Capture pre-pull HEAD so the rebaseline engine can compute the pulled
+    # range (pre_pull_head..post_pull_head) — it needs the exact range to
+    # detect which audited-surface files were added by this pull (C1).
+    pre_pull_head = _resolve_head_sha(repo_root)
+
     pull = _git(["pull", "--ff-only"], cwd=repo_root)
     if pull.returncode != 0:
         _log(
@@ -245,6 +251,7 @@ def run_tick(
         return 0
 
     head_sha = _resolve_head_sha(repo_root)
+    post_pull_head = head_sha  # alias for rebaseline engine
 
     # 2. Scan deploys/queued/ in alphabetical order.
     queued_dir = repo_root / "deploys" / "queued"
@@ -257,6 +264,11 @@ def run_tick(
             "head_sha": head_sha,
         },
     )
+
+    # Track applied manifest names so we can stamp the rebaseline outcome on
+    # the deploy record (FR-003).  Populated inside the queue loop below;
+    # consumed after reconcile.
+    applied_this_tick: list[str] = []
 
     # 3. Process each manifest in turn. One failure does NOT abort the
     #    remaining manifests in the queue.
@@ -291,6 +303,7 @@ def run_tick(
                 repo_root, manifest_path, manifest_data, head_sha
             )
             if ok:
+                applied_this_tick.append(manifest_name)
                 _log(
                     log_path,
                     {
@@ -352,8 +365,160 @@ def run_tick(
             },
         )
 
+    # 4. Rebaseline observe + reconcile (runs AFTER the queue loop so manifest
+    #    application is never delayed — NFR-002).
+    #
+    # The entire rebaseline path is wrapped in a broad try/except that emits a
+    # tick-log entry and lets the tick return 0.  This mirrors the pattern used
+    # for notification dispatch above: the tick MUST NEVER crash on rebaseline
+    # logic (no-crash discipline).
+    try:
+        # C1 — observe the pulled range.
+        obs_result = _rebaseline.observe(pre_pull_head, post_pull_head)
+        obs_outcome = obs_result.get("outcome", "not_required")
+        obs_entry: dict[str, Any] = {
+            "event": "rebaseline_observe",
+            "outcome": obs_outcome,
+            "pre_pull_head": pre_pull_head,
+            "post_pull_head": post_pull_head,
+        }
+        if obs_outcome == _rebaseline.OUTCOME_PENDING_SET:
+            obs_entry["surface_ids"] = obs_result.get("surface_ids", [])
+            obs_entry["matched_files"] = obs_result.get("matched_files", [])
+        _log(log_path, obs_entry)
+
+        # C2 — reconcile (only meaningful when a pending token exists, but
+        # reconcile() is idempotent on no-token: returns not_required).
+        rec_result = _rebaseline.reconcile()
+        rec_outcome = rec_result.get("outcome", "not_required")
+        rec_entry: dict[str, Any] = {
+            "event": "rebaseline_reconcile",
+            "outcome": rec_outcome,
+        }
+        if rec_outcome == _rebaseline.OUTCOME_COMPLETED:
+            rec_entry["rebaselined_at_utc"] = rec_result.get("rebaselined_at_utc")
+            rec_entry["baseline_count"] = rec_result.get("baseline_count")
+        elif rec_outcome == _rebaseline.OUTCOME_FAILED:
+            rec_entry["error_summary"] = rec_result.get("error_summary", "")
+        elif rec_outcome == _rebaseline.OUTCOME_UNEXPECTED_DRIFT:
+            rec_entry["drifted"] = rec_result.get("drifted", [])
+            rec_entry["expected"] = rec_result.get("expected", [])
+            rec_entry["unexpected"] = rec_result.get("unexpected", [])
+        if rec_result.get("stale"):
+            rec_entry["stale"] = True
+        _log(log_path, rec_entry)
+
+        # FR-003 — surface the rebaseline outcome on the applied deploy record.
+        # When ≥1 manifest was applied this tick, emit a correlating
+        # ``rebaseline_stamped`` log entry that links the applied manifest
+        # names to the reconcile outcome and key details.  This gives operators
+        # a single log line per tick that correlates deploys with the security
+        # rebaseline state, satisfying the data-model.md "surfaced on the deploy
+        # record" requirement.
+        if applied_this_tick:
+            stamp: dict[str, Any] = {
+                "event": "rebaseline_stamped",
+                "applied_manifests": applied_this_tick,
+                "rebaseline_outcome": rec_outcome,
+            }
+            if rec_outcome == _rebaseline.OUTCOME_COMPLETED:
+                stamp["rebaselined_at_utc"] = rec_result.get("rebaselined_at_utc")
+                stamp["baseline_count"] = rec_result.get("baseline_count")
+            elif rec_outcome == _rebaseline.OUTCOME_FAILED:
+                stamp["error_summary"] = rec_result.get("error_summary", "")
+            if rec_result.get("stale"):
+                stamp["stale"] = True
+            _log(log_path, stamp)
+
+        # Dispatch ntfy alerts for off-happy-path events (C5).
+        # Alert dispatch is best-effort: errors must NEVER propagate.
+        _maybe_dispatch_rebaseline_alert(rec_outcome, rec_result, head_sha, log_path)
+
+    except Exception as exc:  # pragma: no cover - defence in depth
+        _log(
+            log_path,
+            {
+                "event": "rebaseline_error",
+                "error": str(exc)[:300],
+            },
+        )
+
     _log(log_path, {"event": "tick_complete"})
     return 0
 
 
-__all__ = ["run_tick", "PHASE_TO_NOTIFY_PHASE"]
+def _maybe_dispatch_rebaseline_alert(
+    rec_outcome: str,
+    rec_result: dict[str, Any],
+    head_sha: str,
+    log_path: pathlib.Path,
+) -> None:
+    """Dispatch ntfy alerts for off-happy-path rebaseline events (C5 / FR-006/009).
+
+    Handles ``rebaseline_failed``, ``unexpected_drift``, and ``stale``
+    outcomes.  Reads the pending token to check/update ``alerts_emitted``
+    (dedupe).  Errors are caught and logged — NEVER raised.
+    """
+    # Map reconcile outcomes to the C5 event keys that require alerts.
+    # ``stale`` may be co-emitted with ``unexpected_drift`` or ``inconclusive``.
+    alert_events: list[str] = []
+    if rec_outcome == _rebaseline.OUTCOME_FAILED:
+        alert_events.append("rebaseline_failed")
+    elif rec_outcome == _rebaseline.OUTCOME_UNEXPECTED_DRIFT:
+        alert_events.append("unexpected_drift")
+    if rec_result.get("stale"):
+        # Use a DISTINCT dispatch key ("stale_ntfy") for the stale ntfy alert.
+        # The engine's _maybe_stale pre-appends "stale" to token["alerts_emitted"]
+        # before returning {"stale": True}, which would cause dispatch_rebaseline_alert
+        # to dedupe (skip) the send if we used "stale" as the event_key here.
+        # "stale_ntfy" is the WP03-layer dedupe key; "stale" remains the engine's
+        # classification marker.  The two are intentionally decoupled.
+        alert_events.append("stale_ntfy")
+
+    if not alert_events:
+        return
+
+    # Load the current token (may have been updated by reconcile).
+    token = _rebaseline.read_token()
+    if token is None:
+        # No token means nothing pending — alerts are not needed.
+        return
+
+    for event_key in alert_events:
+        try:
+            detail = _build_alert_detail(event_key, rec_result)
+            _notify.dispatch_rebaseline_alert(
+                event_key=event_key,
+                token=token,
+                detail=detail,
+                head_sha=head_sha,
+            )
+            # Persist the updated alerts_emitted list (dispatch_rebaseline_alert
+            # mutated ``token`` in place on successful send or dedupe).
+            _rebaseline.write_token(token)
+        except Exception as exc:  # noqa: BLE001 - defence in depth
+            _log(
+                log_path,
+                {
+                    "event": "rebaseline_alert_dispatch_error",
+                    "event_key": event_key,
+                    "error": str(exc)[:200],
+                },
+            )
+
+
+def _build_alert_detail(event_key: str, rec_result: dict[str, Any]) -> str:
+    """Build a short detail string for the ntfy alert body."""
+    if event_key == "rebaseline_failed":
+        return rec_result.get("error_summary", "rebaseline command failed")[:300]
+    if event_key == "unexpected_drift":
+        unexpected = rec_result.get("unexpected", [])
+        return f"unexpected baselines: {', '.join(unexpected)}" if unexpected else "drift beyond expected set"
+    if event_key in ("stale", "stale_ntfy"):
+        # Accept both the canonical engine key ("stale") and the dispatch-layer
+        # dedupe key ("stale_ntfy") so callers need not special-case either.
+        return "token has exceeded max age; operator rebaseline required"
+    return ""
+
+
+__all__ = ["run_tick", "PHASE_TO_NOTIFY_PHASE", "_maybe_dispatch_rebaseline_alert"]
