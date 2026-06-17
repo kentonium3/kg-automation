@@ -15,6 +15,9 @@ tracker_refs:
 planning_base_branch: fix/felix-exec-host-gateway-directive
 merge_target_branch: fix/felix-exec-host-gateway-directive
 branch_strategy: Planning artifacts for this mission were generated on fix/felix-exec-host-gateway-directive. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into fix/felix-exec-host-gateway-directive unless the human explicitly redirects the landing branch.
+base_branch: kitty/mission-felix-exec-host-gateway-directive-01KVBRVY
+base_commit: 287d67ae786a3b7735607a50f17a972442b54dd0
+created_at: '2026-06-17T22:23:58.577570+00:00'
 subtasks:
 - T001
 - T002
@@ -22,6 +25,7 @@ subtasks:
 - T004
 - T005
 agent: claude
+shell_pid: '68140'
 history: []
 agent_profile: implementer-ivan
 authoritative_surface: scripts/openclaw/agents/
