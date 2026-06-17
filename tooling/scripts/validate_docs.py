@@ -103,7 +103,8 @@ SKIP_DIRS = {'.git', 'node_modules', '.venv', '_templates', '.obsidian',
 # docs/archive/openclaw-runtime-state-audit.md remained undetected for a
 # month because the secret scanner reused SKIP_DIRS.
 SECRET_SCAN_SKIP_DIRS = {'.git', 'node_modules', '.venv', '.kittify',
-                         '.codex-tmp-home', '.pytest_cache', 'temp', '.worktrees'}
+                         '.codex-tmp-home', '.pytest_cache', 'temp', '.worktrees',
+                         '__pycache__'}  # gitignored build artifacts; .pyc bytecode false-positives (#619)
 
 def is_blocker(check_type):
     return check_type in POLICY.get('blockers', [])
