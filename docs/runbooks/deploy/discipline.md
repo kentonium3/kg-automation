@@ -3,7 +3,7 @@ title: Deploy Discipline (canonical)
 doc_type: runbook
 audience: agents_and_humans
 status: approved
-last_updated: '2026-06-12'
+last_updated: '2026-06-17'
 ---
 
 # Deploy Discipline
@@ -304,6 +304,41 @@ The applier flow on each tick:
 
 The applier is itself deployed via the bootstrap script — see the
 **Bootstrap** section below.
+
+### Troubleshooting: applier stuck on `git pull` (ref lock)
+
+**Symptom**: consecutive ticks log `tick_skip` with `reason: git_pull_failed`
+and a stderr like `cannot lock ref 'refs/remotes/origin/main': is at <X> but
+expected <Y>`. No manifests process — the applier is effectively stuck (step 1
+of the flow above fails, so the whole tick is skipped).
+
+**Cause**: a loose-vs-packed ref split for `origin/main` in the office2 clone
+(`/home/claude/kg-automation`) — a stale `packed-refs` entry coexisting with the
+current loose ref. The usual trigger is **manual `git` operations run on the
+clone concurrently with the 5-minute tick**: the manual command and the tick's
+`git pull` race on the ref lock.
+
+**Rule — never run manual `git` operations on the live felix-deployer clone**
+(`/home/claude/kg-automation`) while the timer is active. `git fetch` / `pull` /
+`pack-refs` / `gc` from a shell will race the tick and produce exactly this lock
+error. If you must inspect the clone, read files / logs only; do not invoke git
+write paths.
+
+**Fix** (non-destructive — does not move any branch tip):
+
+```bash
+ssh office2-claude 'cd /home/claude/kg-automation && git pack-refs --all'
+```
+
+This consolidates the loose ref and drops the stale packed entry. Then stay
+hands-off; the next tick pulls cleanly. Verify with a `tick_complete` (not
+`tick_skip`) in the current day's log:
+
+```bash
+ssh office2-claude 'tail -5 /data/services/felix-deployer/logs/$(date -u +%F).jsonl'
+```
+
+(Surfaced and fixed during the #618 post-merge canary.)
 
 ---
 
