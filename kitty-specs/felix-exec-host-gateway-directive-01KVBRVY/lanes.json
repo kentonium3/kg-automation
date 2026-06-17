@@ -1,0 +1,32 @@
+{
+  "version": 1,
+  "mission_slug": "felix-exec-host-gateway-directive-01KVBRVY",
+  "mission_id": "01KVBRVYC0GG1G4CFB1AYKW67V",
+  "mission_branch": "kitty/mission-felix-exec-host-gateway-directive-01KVBRVY",
+  "target_branch": "fix/felix-exec-host-gateway-directive",
+  "lanes": [
+    {
+      "lane_id": "lane-a",
+      "wp_ids": [
+        "WP01"
+      ],
+      "write_scope": [
+        "scripts/openclaw/agents/felix-admin-capture/AGENTS.md",
+        "scripts/openclaw/agents/felix-admin-escalation/AGENTS.md",
+        "scripts/openclaw/agents/felix-admin-habits/AGENTS.md",
+        "scripts/openclaw/agents/felix-admin-tasker/AGENTS.md"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "artifact-rendering",
+        "legacy-cleanup",
+        "tracker-integration"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    }
+  ],
+  "computed_at": "2026-06-17T22:09:52.119860+00:00",
+  "computed_from": "dependency_graph+ownership",
+  "planning_artifact_wps": []
+}
