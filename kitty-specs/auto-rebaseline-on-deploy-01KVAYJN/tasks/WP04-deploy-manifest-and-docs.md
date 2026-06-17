@@ -17,6 +17,7 @@ subtasks:
 - T016
 - T017
 agent: claude
+shell_pid: '29845'
 history: []
 agent_profile: curator-carla
 authoritative_surface: deploys/queued/
