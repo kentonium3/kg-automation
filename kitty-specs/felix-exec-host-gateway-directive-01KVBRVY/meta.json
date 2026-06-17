@@ -1,0 +1,13 @@
+{
+  "coordination_branch": "kitty/mission-felix-exec-host-gateway-directive-01KVBRVY",
+  "created_at": "2026-06-17T21:47:46.435492+00:00",
+  "friendly_name": "Felix exec host=gateway directive",
+  "mission_id": "01KVBRVYC0GG1G4CFB1AYKW67V",
+  "mission_number": null,
+  "mission_slug": "felix-exec-host-gateway-directive-01KVBRVY",
+  "mission_type": "software-dev",
+  "purpose_context": "Felix sub-agents non-deterministically pick the unpaired exec host=node, which errors and triggers a false-positive WhatsApp cron-failure alert even though the run self-recovers. This mission adds an explicit AGENTS.md directive across the Felix sub-agents to always use host=gateway, eliminating the alert noise.",
+  "purpose_tldr": "Stop false-positive cron-failure alerts by pinning Felix sub-agents to exec host=gateway.",
+  "slug": "felix-exec-host-gateway-directive-01KVBRVY",
+  "target_branch": "fix/felix-exec-host-gateway-directive"
+}
