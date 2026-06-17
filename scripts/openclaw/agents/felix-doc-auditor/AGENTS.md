@@ -483,3 +483,5 @@ re-read each audit).
 - Audit logic source-of-truth: `~/.openclaw/skills/doc-audit/SKILL.md`
 - Issue / commit contracts: `kitty-specs/felix-doc-auditor-agent-01KR7JK9/contracts/`
 - Operator runbook: `docs/runbooks/doc-auditor-ops.md`
+
+<!-- #618 auto-rebaseline canary (benign, behaviorally inert): verifies felix-deployer observes a real audited-surface commit (pending_set) then reconciles to cleared_clean since no security baseline actually drifts. Safe to remove. -->
