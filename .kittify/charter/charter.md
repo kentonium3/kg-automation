@@ -58,14 +58,15 @@ Neither replaces the other. Spec-kitty cares about the charter; Felix agents car
 - **Python unit tests (pytest, scope-dependent)**: any non-trivial Python helper or script MUST ship with pytest coverage for its core behaviors before merge. Trivial one-shot scripts may ship without tests if their contract fits on one screen.
 - **Test fixtures must mirror real inputs**: fixtures must be sampled from real file structures, not invented. If the code processes Obsidian vault files, the fixtures should come from actual vault files (e.g., with real frontmatter shapes, encoding, and whitespace patterns).
 - **No formal coverage target yet**: pragma-driven. Add tests where the cost of a regression is high; skip where the behavior is obvious and one-shot.
-- **Integration verification is mandatory before `for_review`**: a module with passing unit tests but no live callers is NOT implemented. Grep for callers. Verify dead code does not ship.
+- **No dead code (mandatory before `for_review`)**: a module with passing unit tests but no live callers is NOT implemented. Grep for callers; verify dead code does not ship.
+- **Live-environment verification is required but feasibility-scaled (no staging)**: office2 is the only runtime — there is no staging environment, and deploy-pipeline code goes live only on felix-deployer's *post-merge* `git pull`. A pre-merge live smoke is therefore often impossible. The pre-merge bar is unit + contract tests + dry-run; the *live* verification of real service state is then a **post-merge operator canary** (defined in the mission, its outcome recorded). Do not block merge on a live smoke that cannot run pre-merge; do require the live verification to be defined and its result recorded (see Quality Gates).
 
 ## Quality Gates
 
 - **CI validation passes** (`validate_docs.py`: frontmatter compliance + secret scan) on every push to `main`.
 - **Self-review of diff** before push. Diff review catches accidental inclusion of unrelated changes, secrets, or scope creep.
 - **Spec-kitty review phase** is the in-workflow quality gate for missions; use it rigorously, do not rubber-stamp.
-- **Integration gate (WP05-equivalent)**: any mission that touches deployed services MUST have an explicit integration verification work package that exercises the real environment. Unit tests and dry-runs are necessary but not sufficient; live smoke tests against real service state catch a class of bugs that nothing else does.
+- **Integration verification (no-staging-aware)**: any mission that touches deployed services MUST define an explicit integration verification that exercises real service state — but its *form follows feasibility*, because there is no staging environment (office2 is the only runtime; deploy-pipeline changes go live only on the post-merge felix-deployer pull). Acceptable forms, in preference order: (a) a pre-merge live exercise, when the code can safely run against real (ideally read-only) state before merge; (b) a **post-merge operator canary** against the live system, recorded as the mission's acceptance criterion in the merge record or closing issue. Unit/contract tests and dry-runs are necessary but not sufficient on their own — yet the gate is the *defined, recorded* live verification (pre- or post-merge), NOT a pre-merge live smoke that cannot run. A mission is not complete until its live verification has either passed or is recorded as an explicit, owned post-merge follow-up.
 
 ## Performance Benchmarks
 
@@ -117,8 +118,9 @@ Separate from the tier-based protocol above, **any** change that touches an **au
 
 **Mission-end obligation**: For any spec-kitty mission whose Architecture Impact section includes a change class that maps to an audited surface, the merge commit message (or a comment on the closing issue) must record one of:
 
-- `Rebaseline: completed at <ISO-8601 UTC>` (with verification output if practical), OR
-- `Rebaseline: not required — <one-line justification>` (e.g., "change is doc-only, no deployed-state effect")
+- `Rebaseline: completed at <ISO-8601 UTC>` (manual reset, with verification output if practical), OR
+- `Rebaseline: automated — felix-deployer (deferred-confirm) on the post-merge deploy` (pipeline-driven audited-surface changes, #618), OR
+- `Rebaseline: not required — <one-line justification>` (e.g., "change is doc-only, no deployed-state effect"; or "only audited surface touched has no `affected_baselines`")
 
 Missing or vague rebaseline notes are a spec-kitty review-cycle defect. The reviewer should reject with `--review-feedback-file` citing the missing record. The acceptance gate (`spec-kitty accept`) is a soft-reminder surface that flags this concern; the merge commit is the authoritative record.
 
@@ -127,7 +129,9 @@ Missing or vague rebaseline notes are a spec-kitty review-cycle defect. The revi
 - `.github/workflows/audited-surface-reminder.yml` annotates PRs/pushes touching audited-surface paths with `::warning::`
 - `tooling/scripts/check_audited_surface_drift.py` can be run locally before push or merge to preview the same warnings
 
-The operator is responsible for actually running the reset command on office2. Neither CI nor the charter can perform the reset itself.
+**Happy path — pipeline-driven changes (automated, #618)**: for changes that deploy through the `deploys/queued/` manifest pipeline, felix-deployer rebaselines automatically and silently. It uses a deferred-confirm flow — it observes the committed audited-surface change on `git pull`, sets a pending token, and resets the baselines once the expected drift is confirmed by a read-only audit — then records the outcome (`rebaseline: completed / not_required / failed`) on the deploy record. The operator is NOT the load-bearing component on the happy path.
+
+**Out-of-band exception — manual reset still required**: changes made directly on office2 that bypass the manifest pipeline are invisible to felix-deployer. The daily audit surfaces them as drift; the operator investigates and resets manually (canonical command above). A rebaseline that fails after a clean apply, or drift extending beyond the expected baselines, raises one ntfy alert for a human. Neither CI nor the charter performs the reset — on the happy path felix-deployer does; off it, the operator does.
 
 ## Governance Activation
 
