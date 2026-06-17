@@ -19,6 +19,7 @@ subtasks:
 - T011
 - T012
 agent: claude
+shell_pid: '16410'
 history: []
 agent_profile: python-pedro
 authoritative_surface: scripts/deploy/felix-deployer/_tick.py
