@@ -21,6 +21,7 @@ subtasks:
 - T007
 - T008
 agent: claude
+shell_pid: '95679'
 history: []
 agent_profile: python-pedro
 authoritative_surface: scripts/deploy/felix-deployer/rebaseline.py
