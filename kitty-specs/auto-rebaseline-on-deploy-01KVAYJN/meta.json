@@ -1,4 +1,16 @@
 {
+  "acceptance_history": [
+    {
+      "acceptance_mode": "pr",
+      "accepted_at": "2026-06-17T16:33:50.422399+00:00",
+      "accepted_by": "kentgale",
+      "accepted_from_commit": "0335b355a2f59d6f0a412e2f2c9d2432eeb5eb13"
+    }
+  ],
+  "acceptance_mode": "pr",
+  "accepted_at": "2026-06-17T16:33:50.422399+00:00",
+  "accepted_by": "kentgale",
+  "accepted_from_commit": "0335b355a2f59d6f0a412e2f2c9d2432eeb5eb13",
   "coordination_branch": "kitty/mission-auto-rebaseline-on-deploy-01KVAYJN",
   "created_at": "2026-06-17T14:08:19.050107+00:00",
   "friendly_name": "Auto-Rebaseline Security Baselines on Deploy",
