@@ -3,9 +3,9 @@
 # DO NOT EDIT MANUALLY
 
 spec_kitty:
-  version: 3.2.0rc45
+  version: 3.2.1
   initialized_at: '2026-03-25T23:07:06.539751'
-  last_upgraded_at: '2026-06-16T15:41:05.262061'
+  last_upgraded_at: '2026-06-18T11:18:39.064362'
   schema_version: 3
 environment:
   python_version: 3.13.12
@@ -421,3 +421,13 @@ migrations:
     applied_at: '2026-06-16T15:41:05.236133'
     result: success
     notes: 'surface_repair_wiring: probed 508 tool surface(s)'
+  - id: 3.2.0rc45_retire_standalone_skill_surface
+    applied_at: '2026-06-18T11:18:39.016946'
+    result: success
+    notes: Removed retired skill surface .agents/skills/spec-kitty.advise; Removed
+      retired skill surface .claude/skills/spec-kitty.advise; Pruned retired skill
+      manifest entry .agents/skills/spec-kitty.advise/SKILL.md; Pruned retired skill
+      manifest entry .agents/skills/spec-kitty.advise/SKILL.md; Pruned retired skill
+      manifest entry .agents/skills/spec-kitty.advise/SKILL.md; Pruned retired skill
+      manifest entry .agents/skills/spec-kitty.advise/SKILL.md; Pruned retired skill
+      manifest entry .claude/skills/spec-kitty.advise/SKILL.md
