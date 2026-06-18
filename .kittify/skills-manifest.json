@@ -1,7 +1,7 @@
 {
   "version": 1,
   "created_at": "2026-06-06T16:35:05.377267+00:00",
-  "updated_at": "2026-06-18T15:18:39.003300+00:00",
+  "updated_at": "2026-06-18T15:18:48.850224+00:00",
   "spec_kitty_version": "3.2.0rc35",
   "entries": [
     {
@@ -130,8 +130,18 @@
       "installed_path": ".agents/skills/ad-hoc-profile-load/SKILL.md",
       "installation_class": "shared-root-capable",
       "agent_key": "antigravity",
-      "content_hash": "sha256:d368f8914855d00ba36a9287ca9adc03c718e07bafd0800d4d755efc7cc61168",
-      "installed_at": "2026-06-16T19:41:54.660800+00:00",
+      "content_hash": "sha256:1c911da5f7cc90d9b820b478446a080a5553291e8add83f9511f347a1073e87f",
+      "installed_at": "2026-06-18T15:18:47.432534+00:00",
+      "delivery_mode": "symlink"
+    },
+    {
+      "skill_name": "spec-kitty",
+      "source_file": "SKILL.md",
+      "installed_path": ".agents/skills/spec-kitty/SKILL.md",
+      "installation_class": "shared-root-capable",
+      "agent_key": "antigravity",
+      "content_hash": "sha256:3cc9ad33b2f8dbc1852e7531cf21aa8a19a1ca337017bd47cf2d2da3292dc2dc",
+      "installed_at": "2026-06-18T15:18:47.434803+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -141,7 +151,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "antigravity",
       "content_hash": "sha256:807572d61b0fef9efe1bcfa03c6f7c70cdfa4cde3ea97676f734bf5b4d4aa650",
-      "installed_at": "2026-06-16T19:41:54.663061+00:00",
+      "installed_at": "2026-06-18T15:18:47.437855+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -150,8 +160,8 @@
       "installed_path": ".agents/skills/spec-kitty-charter-doctrine/SKILL.md",
       "installation_class": "shared-root-capable",
       "agent_key": "antigravity",
-      "content_hash": "sha256:311e0185e495a1c516acc6c0cd96187f28312d68ba662c61ad8c30be0266706c",
-      "installed_at": "2026-06-16T19:41:54.668795+00:00",
+      "content_hash": "sha256:6b078d47404a54366793719fd10d0435ef9dd7ac6807dbce78958f84e7ce568b",
+      "installed_at": "2026-06-18T15:18:47.443049+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -161,7 +171,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "antigravity",
       "content_hash": "sha256:fc6bc50e49fc02cbcfa7a08ba1c44dc8ab73990c11bc75ca1390ab8380e7381e",
-      "installed_at": "2026-06-16T19:41:54.668795+00:00",
+      "installed_at": "2026-06-18T15:18:47.443049+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -171,7 +181,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "antigravity",
       "content_hash": "sha256:407195b2f9906fae3cd3a4681469e0ccdbc9a876c1cf8d1650f0e515232f56e4",
-      "installed_at": "2026-06-16T19:41:54.668795+00:00",
+      "installed_at": "2026-06-18T15:18:47.443049+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -181,7 +191,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "antigravity",
       "content_hash": "sha256:d93fa7371dc719bbee27192d384bbd88773ff6d82023992bfd630aa032610622",
-      "installed_at": "2026-06-16T19:41:54.676273+00:00",
+      "installed_at": "2026-06-18T15:18:47.447806+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -191,7 +201,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "antigravity",
       "content_hash": "sha256:f5496be4802402a8fb6f41e5ed70392b4b0e68a26004711512a25d99fe5bae6a",
-      "installed_at": "2026-06-16T19:41:54.676273+00:00",
+      "installed_at": "2026-06-18T15:18:47.447806+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -201,7 +211,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "antigravity",
       "content_hash": "sha256:e9592a088d2d6d2e2ecf65eaa6a8d31f0dbe1e6f4236d5747d6fe26ea980e89e",
-      "installed_at": "2026-06-16T19:41:54.681976+00:00",
+      "installed_at": "2026-06-18T15:18:47.453679+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -211,7 +221,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "antigravity",
       "content_hash": "sha256:9cddfccd64773976cf97450fa983dc8cc3aa7354a6002d763a7fa3ac65ff9ace",
-      "installed_at": "2026-06-16T19:41:54.681976+00:00",
+      "installed_at": "2026-06-18T15:18:47.453679+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -221,7 +231,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "antigravity",
       "content_hash": "sha256:d2df36b399316d12d05b10b36dab19a3eb330ed9c502b9b0fa2bb35ecf8341c4",
-      "installed_at": "2026-06-16T19:41:54.681976+00:00",
+      "installed_at": "2026-06-18T15:18:47.453679+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -230,8 +240,8 @@
       "installed_path": ".agents/skills/spec-kitty-implement-review/SKILL.md",
       "installation_class": "shared-root-capable",
       "agent_key": "antigravity",
-      "content_hash": "sha256:61156049f4abf1f781a6ad6f62286fa5f820cf807fcd33fd572141979d852fbb",
-      "installed_at": "2026-06-16T19:41:54.690197+00:00",
+      "content_hash": "sha256:c5a5449b7692904ace5585a6ccad4a271c5ac72259e5c7d5700a0ab285df15bd",
+      "installed_at": "2026-06-18T15:18:47.458975+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -241,7 +251,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "antigravity",
       "content_hash": "sha256:d99ceb8ca16cdc42827c1dc0ae6e00f6de7a9b5fa30b8367c2a84a2205f75681",
-      "installed_at": "2026-06-16T19:41:54.690197+00:00",
+      "installed_at": "2026-06-18T15:18:47.458975+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -251,7 +261,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "antigravity",
       "content_hash": "sha256:dcf6ffa8a173a5ea937a74fd1af4c0427f595008a00d91b5a7970a13f2e202ab",
-      "installed_at": "2026-06-16T19:41:54.690197+00:00",
+      "installed_at": "2026-06-18T15:18:47.458975+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -261,7 +271,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "antigravity",
       "content_hash": "sha256:3914936f70e4bc4a0b1b209f40a58bb29983d00eaa954c1363b7c6949f3fa425",
-      "installed_at": "2026-06-16T19:41:54.696269+00:00",
+      "installed_at": "2026-06-18T15:18:47.462404+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -271,7 +281,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "antigravity",
       "content_hash": "sha256:4ae2391cd2e4c3bdb32a25e7a8476612fb1b94d156a4250701c9f537e011f0fd",
-      "installed_at": "2026-06-16T19:41:54.696269+00:00",
+      "installed_at": "2026-06-18T15:18:47.462404+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -280,8 +290,8 @@
       "installed_path": ".agents/skills/spec-kitty-mission-system/SKILL.md",
       "installation_class": "shared-root-capable",
       "agent_key": "antigravity",
-      "content_hash": "sha256:711529f18f2c10e05858aa87d8513270581cb0ccd996190ed065cbfc61328685",
-      "installed_at": "2026-06-16T19:41:54.703255+00:00",
+      "content_hash": "sha256:7516f34c2cfc0676e22ecd2dbd6a83e7dbb5146d4881b22b1c585bb4aadba4cb",
+      "installed_at": "2026-06-18T15:18:47.465391+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -291,7 +301,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "antigravity",
       "content_hash": "sha256:9942d27336957053a25f99ab3606b319b2c010c01f36f3926f4660eacb9eaf95",
-      "installed_at": "2026-06-16T19:41:54.703255+00:00",
+      "installed_at": "2026-06-18T15:18:47.465391+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -301,7 +311,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "antigravity",
       "content_hash": "sha256:ac22bccc1e14560b03a2568285d7e337192965ab84ebfc049ee05cf130e16010",
-      "installed_at": "2026-06-16T19:41:54.710268+00:00",
+      "installed_at": "2026-06-18T15:18:47.469493+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -311,7 +321,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "antigravity",
       "content_hash": "sha256:f9f0e26519c2a69ad1beae7c2982300565abc5209e978ece1c8ca5ac6eff93c4",
-      "installed_at": "2026-06-16T19:41:54.710268+00:00",
+      "installed_at": "2026-06-18T15:18:47.469493+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -321,7 +331,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "antigravity",
       "content_hash": "sha256:9cf4fa4a46d12bca8c66e33cc3567eb5e06dee4895f3569128ecc1ba1eaf557e",
-      "installed_at": "2026-06-16T19:41:54.710268+00:00",
+      "installed_at": "2026-06-18T15:18:47.469493+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -331,7 +341,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "antigravity",
       "content_hash": "sha256:6048eb97b30159e9748fa83077f09f578b71df51988d7783d9523678e466cf80",
-      "installed_at": "2026-06-16T19:41:54.714109+00:00",
+      "installed_at": "2026-06-18T15:18:47.472966+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -340,8 +350,8 @@
       "installed_path": ".agents/skills/spec-kitty-runtime-next/SKILL.md",
       "installation_class": "shared-root-capable",
       "agent_key": "antigravity",
-      "content_hash": "sha256:9df83e0f1b3e6911217fc9b4f1d69e277ff1689bc86b2849595b7aa65d0ae767",
-      "installed_at": "2026-06-16T19:41:54.720782+00:00",
+      "content_hash": "sha256:ce8b20b68b7805450cb0c9cddaf151bbf20f45d912146e2058758498af55c07c",
+      "installed_at": "2026-06-18T15:18:47.478916+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -351,7 +361,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "antigravity",
       "content_hash": "sha256:0ff7709a8eaec348e7aee4cd9f1f62226e6c88d3e2f4a84d5c761a4607071179",
-      "installed_at": "2026-06-16T19:41:54.720782+00:00",
+      "installed_at": "2026-06-18T15:18:47.478916+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -361,7 +371,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "antigravity",
       "content_hash": "sha256:e1386311442d926b1b5e17646cb56cf1f06cbabc474a95c4120794091b900c8b",
-      "installed_at": "2026-06-16T19:41:54.720782+00:00",
+      "installed_at": "2026-06-18T15:18:47.478916+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -371,7 +381,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "antigravity",
       "content_hash": "sha256:c06d9fabb0ba6837efd7c44bfc6a222c34e91fd2aafa95a1e77227474eb2ca3c",
-      "installed_at": "2026-06-16T19:41:54.727239+00:00",
+      "installed_at": "2026-06-18T15:18:47.483864+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -381,7 +391,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "antigravity",
       "content_hash": "sha256:9279016c3b96e71fbd5d06cbaedf719307fd4497afe1673af7a613a4e38b93ab",
-      "installed_at": "2026-06-16T19:41:54.727239+00:00",
+      "installed_at": "2026-06-18T15:18:47.483864+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -391,7 +401,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "antigravity",
       "content_hash": "sha256:0bd689abc3c5583bf44501485c6ad26733454676a259935271131b7cf763e69e",
-      "installed_at": "2026-06-16T19:41:54.735775+00:00",
+      "installed_at": "2026-06-18T15:18:47.490540+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -401,7 +411,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "antigravity",
       "content_hash": "sha256:aaf30ca564850325fab2a04f79d6cfb4522ed2cab7d07547a4730cb4ed8d6a8b",
-      "installed_at": "2026-06-16T19:41:54.735775+00:00",
+      "installed_at": "2026-06-18T15:18:47.490540+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -411,7 +421,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "antigravity",
       "content_hash": "sha256:442a96b1ffd48b51e68e98995564dd7a7ce24403b53b30f8029c2f0b5e17c476",
-      "installed_at": "2026-06-16T19:41:54.735775+00:00",
+      "installed_at": "2026-06-18T15:18:47.490540+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -421,7 +431,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "antigravity",
       "content_hash": "sha256:0af4323f4cc121dc8ffa5997d0b98edca8401f2c4076ef5fbde9ac1d7cdffc74",
-      "installed_at": "2026-06-16T19:41:54.739873+00:00",
+      "installed_at": "2026-06-18T15:18:47.495280+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -431,7 +441,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "antigravity",
       "content_hash": "sha256:775d48a832a40756a83b5b2380217044a07d3343ac00cb5e8a8bb00f1319e7c7",
-      "installed_at": "2026-06-16T19:41:54.744736+00:00",
+      "installed_at": "2026-06-18T15:18:47.498092+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -441,7 +451,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "antigravity",
       "content_hash": "sha256:215eafd3ae4c8eb0bb1b20bfc0dc74264519fb37405087b1595bb951060b255b",
-      "installed_at": "2026-06-16T19:41:54.749058+00:00",
+      "installed_at": "2026-06-18T15:18:47.501457+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -451,7 +461,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "antigravity",
       "content_hash": "sha256:8cfb152041d1c23388b9018c65ce7dabd45d95c2a0096a94fcdeedad129010f8",
-      "installed_at": "2026-06-16T19:41:54.749058+00:00",
+      "installed_at": "2026-06-18T15:18:47.501457+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -461,7 +471,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "antigravity",
       "content_hash": "sha256:14d25df8010b9cbea3d3d331a7e97d72725e88ca71c3c2559a66cb02c35c1dea",
-      "installed_at": "2026-06-16T19:41:54.752173+00:00",
+      "installed_at": "2026-06-18T15:18:47.503340+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -471,7 +481,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "antigravity",
       "content_hash": "sha256:9a0be9f102262144ea88c40738add99d608d429806ba8a877e97f9b75bca4ea7",
-      "installed_at": "2026-06-16T19:41:54.754951+00:00",
+      "installed_at": "2026-06-18T15:18:47.504829+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -481,7 +491,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "antigravity",
       "content_hash": "sha256:b7a55e9e2b34615dbed3423890e9ec0bef0c2327525cb31310e2e331fffe61bf",
-      "installed_at": "2026-06-16T19:41:54.757881+00:00",
+      "installed_at": "2026-06-18T15:18:47.506761+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -491,7 +501,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "antigravity",
       "content_hash": "sha256:6ff391973da8c312833a25b2f47cc9a7ac16ab7ae3e90f61e0eb4e20eb24b243",
-      "installed_at": "2026-06-16T19:41:54.760326+00:00",
+      "installed_at": "2026-06-18T15:18:47.508960+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -501,7 +511,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "antigravity",
       "content_hash": "sha256:4aa5bacce79f17941a5b6f659c743bb47a1836a483d4c5fb8b0930555946de62",
-      "installed_at": "2026-06-16T19:41:54.762900+00:00",
+      "installed_at": "2026-06-18T15:18:47.510656+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -511,7 +521,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "antigravity",
       "content_hash": "sha256:5865af59913b63c48abe6058a5c96eeae2695d28bfdc1a98b52c0ac8a656d2af",
-      "installed_at": "2026-06-16T19:41:54.765475+00:00",
+      "installed_at": "2026-06-18T15:18:47.512228+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -521,7 +531,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "antigravity",
       "content_hash": "sha256:39d9c571cbc895f4a75122a81dd6d861bcfc7532ccf37b308ccd4fc57713bd57",
-      "installed_at": "2026-06-16T19:41:54.768737+00:00",
+      "installed_at": "2026-06-18T15:18:47.514239+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -531,7 +541,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "antigravity",
       "content_hash": "sha256:396e0c56e4adf6ef27008a5bcf758dc8efdca9a5b13acaf351ba3992ca9adcfb",
-      "installed_at": "2026-06-16T19:41:54.772160+00:00",
+      "installed_at": "2026-06-18T15:18:47.515778+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -541,7 +551,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "antigravity",
       "content_hash": "sha256:9edcd544867d95d3de98cc884e1e2d3d9e61b4d24cf8468f5cb586772794eb94",
-      "installed_at": "2026-06-16T19:41:54.774579+00:00",
+      "installed_at": "2026-06-18T15:18:47.517461+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -551,7 +561,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "antigravity",
       "content_hash": "sha256:6c674d1639103fc84478d69a25f5d35005b44160e9fb1738f067051d1eaf006a",
-      "installed_at": "2026-06-16T19:41:54.776835+00:00",
+      "installed_at": "2026-06-18T15:18:47.519065+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -561,7 +571,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "antigravity",
       "content_hash": "sha256:9066c7b7f505f3d2b8e8f54372679c97f91caa02b55e4bc79b5aaefcf1400ba8",
-      "installed_at": "2026-06-16T19:41:54.779215+00:00",
+      "installed_at": "2026-06-18T15:18:47.521196+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -571,7 +581,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "antigravity",
       "content_hash": "sha256:93ce4915ef305cd79db59de591c72da02b0bf686865ab803236c2f3cd5f95dcb",
-      "installed_at": "2026-06-16T19:41:54.781659+00:00",
+      "installed_at": "2026-06-18T15:18:47.523092+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -581,7 +591,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "antigravity",
       "content_hash": "sha256:70c650dd350dc68d7f5d2461d4e55157991e671affa7f4b898491f8f398d4ffc",
-      "installed_at": "2026-06-16T19:41:54.784425+00:00",
+      "installed_at": "2026-06-18T15:18:47.524690+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -591,7 +601,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "antigravity",
       "content_hash": "sha256:a7ecaa827b48932286bd94c685e95617bfa0491a8ca46beea4d5c0d31a71c9ca",
-      "installed_at": "2026-06-16T19:41:54.786986+00:00",
+      "installed_at": "2026-06-18T15:18:47.526658+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -601,7 +611,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "antigravity",
       "content_hash": "sha256:cc28813302d88051da162e6e53af82daca91e5563ff41fb60c82148dc3f19f10",
-      "installed_at": "2026-06-16T19:41:54.789376+00:00",
+      "installed_at": "2026-06-18T15:18:47.529144+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -611,7 +621,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "antigravity",
       "content_hash": "sha256:4c3d416b3923061c64f58bd77f279e1e04c31d7680280b07bc5bfdf43110e161",
-      "installed_at": "2026-06-16T19:41:54.795266+00:00",
+      "installed_at": "2026-06-18T15:18:47.533681+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -621,7 +631,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "antigravity",
       "content_hash": "sha256:e5003be1506496672b1f5f5b2f67d44cd4cd5da8a81af5084ffa2bf83f93390f",
-      "installed_at": "2026-06-16T19:41:54.795266+00:00",
+      "installed_at": "2026-06-18T15:18:47.533681+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -631,7 +641,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "antigravity",
       "content_hash": "sha256:806032aed42b95e16f13aa119d644ad5896f954965e1ef9b0e63dd0c71c5dacd",
-      "installed_at": "2026-06-16T19:41:54.799092+00:00",
+      "installed_at": "2026-06-18T15:18:47.537950+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -641,7 +651,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "antigravity",
       "content_hash": "sha256:6daafc7db930481349d4796fa42b5f8850d06c6b7bf1698b1cdd3a033f366af0",
-      "installed_at": "2026-06-16T19:41:54.802263+00:00",
+      "installed_at": "2026-06-18T15:18:47.541477+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -651,7 +661,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "antigravity",
       "content_hash": "sha256:b3e82611f3dcee368c249013ef0ca4cddecf166d67e2563c92209b84af0a9071",
-      "installed_at": "2026-06-16T19:41:54.805223+00:00",
+      "installed_at": "2026-06-18T15:18:47.544690+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -661,7 +671,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "antigravity",
       "content_hash": "sha256:a86a6e3c887521bd82ae00e19dbe214945c1d7534798a72cbee37e6bd6bb82c5",
-      "installed_at": "2026-06-16T19:41:54.807439+00:00",
+      "installed_at": "2026-06-18T15:18:47.547833+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -671,7 +681,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "antigravity",
       "content_hash": "sha256:ffb48b9750702cd1025f83a23212809c45268748c6f042ae22c291daab0f8f7a",
-      "installed_at": "2026-06-16T19:41:54.809328+00:00",
+      "installed_at": "2026-06-18T15:18:47.550459+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -681,7 +691,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "antigravity",
       "content_hash": "sha256:22365265b08b80842473b5f2f801eb5e609e0293ada65e91cf390465451987f3",
-      "installed_at": "2026-06-16T19:41:54.812459+00:00",
+      "installed_at": "2026-06-18T15:18:47.553663+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -691,7 +701,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "antigravity",
       "content_hash": "sha256:ccf960cf27f5b3e77c2c6736eae0912fe539f3e147700eaa3235491d78279247",
-      "installed_at": "2026-06-16T19:41:54.815576+00:00",
+      "installed_at": "2026-06-18T15:18:47.559062+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -701,7 +711,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "antigravity",
       "content_hash": "sha256:34d6a08406e0baef0c2d492133dd0282794914b8b12cd6b98fde2abd6116464b",
-      "installed_at": "2026-06-16T19:41:54.819896+00:00",
+      "installed_at": "2026-06-18T15:18:47.562578+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -711,7 +721,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "antigravity",
       "content_hash": "sha256:52a766928bd8dffc657b243bce0ea9e01f6a0679bfe48cddad996841e84eaa38",
-      "installed_at": "2026-06-16T19:41:54.823079+00:00",
+      "installed_at": "2026-06-18T15:18:47.565844+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -721,7 +731,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "antigravity",
       "content_hash": "sha256:d2a3eb9cffa38e4e3dde914da448b13d27813b05845b1d274efdfd8629211d7a",
-      "installed_at": "2026-06-16T19:41:54.825720+00:00",
+      "installed_at": "2026-06-18T15:18:47.569238+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -731,7 +741,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "antigravity",
       "content_hash": "sha256:0f12f35abb4dc86c0d674cafd94f8f85263c35dcda9daf8d62cc16a45bc194b1",
-      "installed_at": "2026-06-16T19:41:54.829035+00:00",
+      "installed_at": "2026-06-18T15:18:47.572701+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -741,7 +751,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "antigravity",
       "content_hash": "sha256:22e09ee2309ab45f9cb0e18d5d903f0ed489509bca5d38ef3767822350624a19",
-      "installed_at": "2026-06-16T19:41:54.832401+00:00",
+      "installed_at": "2026-06-18T15:18:47.576506+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -751,7 +761,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "antigravity",
       "content_hash": "sha256:d8c94122c25f61a048ca417df1e1efd813a943943f40227ef620d3c1d9818116",
-      "installed_at": "2026-06-16T19:41:54.837599+00:00",
+      "installed_at": "2026-06-18T15:18:47.581605+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -761,7 +771,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "antigravity",
       "content_hash": "sha256:1f8bed16b2bbcc86dbe54973fc8ed2b10cc96e12541eabd219ff143f046e1e37",
-      "installed_at": "2026-06-16T19:41:54.837599+00:00",
+      "installed_at": "2026-06-18T15:18:47.581605+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -771,7 +781,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "antigravity",
       "content_hash": "sha256:4dca2ebb1a910ad8afea393d6b65c44a496f0a2991d9c893d17166d4a844b187",
-      "installed_at": "2026-06-16T19:41:54.841269+00:00",
+      "installed_at": "2026-06-18T15:18:47.585261+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -781,7 +791,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "antigravity",
       "content_hash": "sha256:c7556425f808f9ff537466c17fae27e6b8892d39dee4263054403420cc28097a",
-      "installed_at": "2026-06-16T19:41:54.844065+00:00",
+      "installed_at": "2026-06-18T15:18:47.587983+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -791,7 +801,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "antigravity",
       "content_hash": "sha256:695f10211c79069f4f76294ce0276948aca0670475eea794452b164d67b11af9",
-      "installed_at": "2026-06-16T19:41:54.846294+00:00",
+      "installed_at": "2026-06-18T15:18:47.591115+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -801,7 +811,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "antigravity",
       "content_hash": "sha256:2eaf4f80e7b0b2390327f383f6a03f5ac3b9590e5848ee6cfa98a43b4b0ded5f",
-      "installed_at": "2026-06-16T19:41:54.848126+00:00",
+      "installed_at": "2026-06-18T15:18:47.594986+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -811,7 +821,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "antigravity",
       "content_hash": "sha256:5edfff458df8cc99c61a45af1e15a44f8741f47644e69dcb7072f0edd10c10c7",
-      "installed_at": "2026-06-16T19:41:54.850484+00:00",
+      "installed_at": "2026-06-18T15:18:47.597806+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -821,7 +831,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "antigravity",
       "content_hash": "sha256:3723263b469b74a5f74771e4cb6f19f168f73faa0e03f149ddd6fe2f6f015eb9",
-      "installed_at": "2026-06-16T19:41:54.853262+00:00",
+      "installed_at": "2026-06-18T15:18:47.600763+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -830,8 +840,18 @@
       "installed_path": ".claude/skills/ad-hoc-profile-load/SKILL.md",
       "installation_class": "native-root-required",
       "agent_key": "claude",
-      "content_hash": "sha256:d368f8914855d00ba36a9287ca9adc03c718e07bafd0800d4d755efc7cc61168",
-      "installed_at": "2026-06-16T19:41:54.855115+00:00",
+      "content_hash": "sha256:1c911da5f7cc90d9b820b478446a080a5553291e8add83f9511f347a1073e87f",
+      "installed_at": "2026-06-18T15:18:47.604362+00:00",
+      "delivery_mode": "symlink"
+    },
+    {
+      "skill_name": "spec-kitty",
+      "source_file": "SKILL.md",
+      "installed_path": ".claude/skills/spec-kitty/SKILL.md",
+      "installation_class": "native-root-required",
+      "agent_key": "claude",
+      "content_hash": "sha256:3cc9ad33b2f8dbc1852e7531cf21aa8a19a1ca337017bd47cf2d2da3292dc2dc",
+      "installed_at": "2026-06-18T15:18:47.608091+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -841,7 +861,7 @@
       "installation_class": "native-root-required",
       "agent_key": "claude",
       "content_hash": "sha256:807572d61b0fef9efe1bcfa03c6f7c70cdfa4cde3ea97676f734bf5b4d4aa650",
-      "installed_at": "2026-06-16T19:41:54.857661+00:00",
+      "installed_at": "2026-06-18T15:18:47.611023+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -850,8 +870,8 @@
       "installed_path": ".claude/skills/spec-kitty-charter-doctrine/SKILL.md",
       "installation_class": "native-root-required",
       "agent_key": "claude",
-      "content_hash": "sha256:311e0185e495a1c516acc6c0cd96187f28312d68ba662c61ad8c30be0266706c",
-      "installed_at": "2026-06-16T19:41:54.863897+00:00",
+      "content_hash": "sha256:6b078d47404a54366793719fd10d0435ef9dd7ac6807dbce78958f84e7ce568b",
+      "installed_at": "2026-06-18T15:18:47.619295+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -861,7 +881,7 @@
       "installation_class": "native-root-required",
       "agent_key": "claude",
       "content_hash": "sha256:fc6bc50e49fc02cbcfa7a08ba1c44dc8ab73990c11bc75ca1390ab8380e7381e",
-      "installed_at": "2026-06-16T19:41:54.863897+00:00",
+      "installed_at": "2026-06-18T15:18:47.619295+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -871,7 +891,7 @@
       "installation_class": "native-root-required",
       "agent_key": "claude",
       "content_hash": "sha256:407195b2f9906fae3cd3a4681469e0ccdbc9a876c1cf8d1650f0e515232f56e4",
-      "installed_at": "2026-06-16T19:41:54.863897+00:00",
+      "installed_at": "2026-06-18T15:18:47.619295+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -881,7 +901,7 @@
       "installation_class": "native-root-required",
       "agent_key": "claude",
       "content_hash": "sha256:d93fa7371dc719bbee27192d384bbd88773ff6d82023992bfd630aa032610622",
-      "installed_at": "2026-06-16T19:41:54.870786+00:00",
+      "installed_at": "2026-06-18T15:18:47.627455+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -891,7 +911,7 @@
       "installation_class": "native-root-required",
       "agent_key": "claude",
       "content_hash": "sha256:f5496be4802402a8fb6f41e5ed70392b4b0e68a26004711512a25d99fe5bae6a",
-      "installed_at": "2026-06-16T19:41:54.870786+00:00",
+      "installed_at": "2026-06-18T15:18:47.627455+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -901,7 +921,7 @@
       "installation_class": "native-root-required",
       "agent_key": "claude",
       "content_hash": "sha256:e9592a088d2d6d2e2ecf65eaa6a8d31f0dbe1e6f4236d5747d6fe26ea980e89e",
-      "installed_at": "2026-06-16T19:41:54.877263+00:00",
+      "installed_at": "2026-06-18T15:18:47.639033+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -911,7 +931,7 @@
       "installation_class": "native-root-required",
       "agent_key": "claude",
       "content_hash": "sha256:9cddfccd64773976cf97450fa983dc8cc3aa7354a6002d763a7fa3ac65ff9ace",
-      "installed_at": "2026-06-16T19:41:54.877263+00:00",
+      "installed_at": "2026-06-18T15:18:47.639033+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -921,7 +941,7 @@
       "installation_class": "native-root-required",
       "agent_key": "claude",
       "content_hash": "sha256:d2df36b399316d12d05b10b36dab19a3eb330ed9c502b9b0fa2bb35ecf8341c4",
-      "installed_at": "2026-06-16T19:41:54.877263+00:00",
+      "installed_at": "2026-06-18T15:18:47.639033+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -930,8 +950,8 @@
       "installed_path": ".claude/skills/spec-kitty-implement-review/SKILL.md",
       "installation_class": "native-root-required",
       "agent_key": "claude",
-      "content_hash": "sha256:61156049f4abf1f781a6ad6f62286fa5f820cf807fcd33fd572141979d852fbb",
-      "installed_at": "2026-06-16T19:41:54.882382+00:00",
+      "content_hash": "sha256:c5a5449b7692904ace5585a6ccad4a271c5ac72259e5c7d5700a0ab285df15bd",
+      "installed_at": "2026-06-18T15:18:47.649948+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -941,7 +961,7 @@
       "installation_class": "native-root-required",
       "agent_key": "claude",
       "content_hash": "sha256:d99ceb8ca16cdc42827c1dc0ae6e00f6de7a9b5fa30b8367c2a84a2205f75681",
-      "installed_at": "2026-06-16T19:41:54.882382+00:00",
+      "installed_at": "2026-06-18T15:18:47.649948+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -951,7 +971,7 @@
       "installation_class": "native-root-required",
       "agent_key": "claude",
       "content_hash": "sha256:dcf6ffa8a173a5ea937a74fd1af4c0427f595008a00d91b5a7970a13f2e202ab",
-      "installed_at": "2026-06-16T19:41:54.882382+00:00",
+      "installed_at": "2026-06-18T15:18:47.649948+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -961,7 +981,7 @@
       "installation_class": "native-root-required",
       "agent_key": "claude",
       "content_hash": "sha256:3914936f70e4bc4a0b1b209f40a58bb29983d00eaa954c1363b7c6949f3fa425",
-      "installed_at": "2026-06-16T19:41:54.887297+00:00",
+      "installed_at": "2026-06-18T15:18:47.658564+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -971,7 +991,7 @@
       "installation_class": "native-root-required",
       "agent_key": "claude",
       "content_hash": "sha256:4ae2391cd2e4c3bdb32a25e7a8476612fb1b94d156a4250701c9f537e011f0fd",
-      "installed_at": "2026-06-16T19:41:54.887297+00:00",
+      "installed_at": "2026-06-18T15:18:47.658564+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -980,8 +1000,8 @@
       "installed_path": ".claude/skills/spec-kitty-mission-system/SKILL.md",
       "installation_class": "native-root-required",
       "agent_key": "claude",
-      "content_hash": "sha256:711529f18f2c10e05858aa87d8513270581cb0ccd996190ed065cbfc61328685",
-      "installed_at": "2026-06-16T19:41:54.891240+00:00",
+      "content_hash": "sha256:7516f34c2cfc0676e22ecd2dbd6a83e7dbb5146d4881b22b1c585bb4aadba4cb",
+      "installed_at": "2026-06-18T15:18:47.666314+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -991,7 +1011,7 @@
       "installation_class": "native-root-required",
       "agent_key": "claude",
       "content_hash": "sha256:9942d27336957053a25f99ab3606b319b2c010c01f36f3926f4660eacb9eaf95",
-      "installed_at": "2026-06-16T19:41:54.891240+00:00",
+      "installed_at": "2026-06-18T15:18:47.666314+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -1001,7 +1021,7 @@
       "installation_class": "native-root-required",
       "agent_key": "claude",
       "content_hash": "sha256:ac22bccc1e14560b03a2568285d7e337192965ab84ebfc049ee05cf130e16010",
-      "installed_at": "2026-06-16T19:41:54.898406+00:00",
+      "installed_at": "2026-06-18T15:18:47.676246+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -1011,7 +1031,7 @@
       "installation_class": "native-root-required",
       "agent_key": "claude",
       "content_hash": "sha256:f9f0e26519c2a69ad1beae7c2982300565abc5209e978ece1c8ca5ac6eff93c4",
-      "installed_at": "2026-06-16T19:41:54.898406+00:00",
+      "installed_at": "2026-06-18T15:18:47.676246+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -1021,7 +1041,7 @@
       "installation_class": "native-root-required",
       "agent_key": "claude",
       "content_hash": "sha256:9cf4fa4a46d12bca8c66e33cc3567eb5e06dee4895f3569128ecc1ba1eaf557e",
-      "installed_at": "2026-06-16T19:41:54.898406+00:00",
+      "installed_at": "2026-06-18T15:18:47.676246+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -1031,7 +1051,7 @@
       "installation_class": "native-root-required",
       "agent_key": "claude",
       "content_hash": "sha256:6048eb97b30159e9748fa83077f09f578b71df51988d7783d9523678e466cf80",
-      "installed_at": "2026-06-16T19:41:54.902200+00:00",
+      "installed_at": "2026-06-18T15:18:47.682576+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -1040,8 +1060,8 @@
       "installed_path": ".claude/skills/spec-kitty-runtime-next/SKILL.md",
       "installation_class": "native-root-required",
       "agent_key": "claude",
-      "content_hash": "sha256:9df83e0f1b3e6911217fc9b4f1d69e277ff1689bc86b2849595b7aa65d0ae767",
-      "installed_at": "2026-06-16T19:41:54.905800+00:00",
+      "content_hash": "sha256:ce8b20b68b7805450cb0c9cddaf151bbf20f45d912146e2058758498af55c07c",
+      "installed_at": "2026-06-18T15:18:47.692491+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -1051,7 +1071,7 @@
       "installation_class": "native-root-required",
       "agent_key": "claude",
       "content_hash": "sha256:0ff7709a8eaec348e7aee4cd9f1f62226e6c88d3e2f4a84d5c761a4607071179",
-      "installed_at": "2026-06-16T19:41:54.905800+00:00",
+      "installed_at": "2026-06-18T15:18:47.692491+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -1061,7 +1081,7 @@
       "installation_class": "native-root-required",
       "agent_key": "claude",
       "content_hash": "sha256:e1386311442d926b1b5e17646cb56cf1f06cbabc474a95c4120794091b900c8b",
-      "installed_at": "2026-06-16T19:41:54.905800+00:00",
+      "installed_at": "2026-06-18T15:18:47.692491+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -1071,7 +1091,7 @@
       "installation_class": "native-root-required",
       "agent_key": "claude",
       "content_hash": "sha256:c06d9fabb0ba6837efd7c44bfc6a222c34e91fd2aafa95a1e77227474eb2ca3c",
-      "installed_at": "2026-06-16T19:41:54.911373+00:00",
+      "installed_at": "2026-06-18T15:18:47.702314+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -1081,7 +1101,7 @@
       "installation_class": "native-root-required",
       "agent_key": "claude",
       "content_hash": "sha256:9279016c3b96e71fbd5d06cbaedf719307fd4497afe1673af7a613a4e38b93ab",
-      "installed_at": "2026-06-16T19:41:54.911373+00:00",
+      "installed_at": "2026-06-18T15:18:47.702314+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -1091,7 +1111,7 @@
       "installation_class": "native-root-required",
       "agent_key": "claude",
       "content_hash": "sha256:0bd689abc3c5583bf44501485c6ad26733454676a259935271131b7cf763e69e",
-      "installed_at": "2026-06-16T19:41:54.916026+00:00",
+      "installed_at": "2026-06-18T15:18:47.712745+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -1101,7 +1121,7 @@
       "installation_class": "native-root-required",
       "agent_key": "claude",
       "content_hash": "sha256:aaf30ca564850325fab2a04f79d6cfb4522ed2cab7d07547a4730cb4ed8d6a8b",
-      "installed_at": "2026-06-16T19:41:54.916026+00:00",
+      "installed_at": "2026-06-18T15:18:47.712745+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -1111,7 +1131,7 @@
       "installation_class": "native-root-required",
       "agent_key": "claude",
       "content_hash": "sha256:442a96b1ffd48b51e68e98995564dd7a7ce24403b53b30f8029c2f0b5e17c476",
-      "installed_at": "2026-06-16T19:41:54.916026+00:00",
+      "installed_at": "2026-06-18T15:18:47.712745+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -1121,7 +1141,7 @@
       "installation_class": "native-root-required",
       "agent_key": "claude",
       "content_hash": "sha256:0af4323f4cc121dc8ffa5997d0b98edca8401f2c4076ef5fbde9ac1d7cdffc74",
-      "installed_at": "2026-06-16T19:41:54.920049+00:00",
+      "installed_at": "2026-06-18T15:18:47.719303+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -1131,7 +1151,7 @@
       "installation_class": "native-root-required",
       "agent_key": "claude",
       "content_hash": "sha256:775d48a832a40756a83b5b2380217044a07d3343ac00cb5e8a8bb00f1319e7c7",
-      "installed_at": "2026-06-16T19:41:54.925647+00:00",
+      "installed_at": "2026-06-18T15:18:47.723035+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -1141,7 +1161,7 @@
       "installation_class": "native-root-required",
       "agent_key": "claude",
       "content_hash": "sha256:215eafd3ae4c8eb0bb1b20bfc0dc74264519fb37405087b1595bb951060b255b",
-      "installed_at": "2026-06-16T19:41:54.928771+00:00",
+      "installed_at": "2026-06-18T15:18:47.737213+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -1151,7 +1171,7 @@
       "installation_class": "native-root-required",
       "agent_key": "claude",
       "content_hash": "sha256:8cfb152041d1c23388b9018c65ce7dabd45d95c2a0096a94fcdeedad129010f8",
-      "installed_at": "2026-06-16T19:41:54.928771+00:00",
+      "installed_at": "2026-06-18T15:18:47.737213+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -1161,7 +1181,7 @@
       "installation_class": "native-root-required",
       "agent_key": "claude",
       "content_hash": "sha256:14d25df8010b9cbea3d3d331a7e97d72725e88ca71c3c2559a66cb02c35c1dea",
-      "installed_at": "2026-06-16T19:41:54.930895+00:00",
+      "installed_at": "2026-06-18T15:18:47.748613+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -1171,7 +1191,7 @@
       "installation_class": "native-root-required",
       "agent_key": "claude",
       "content_hash": "sha256:9a0be9f102262144ea88c40738add99d608d429806ba8a877e97f9b75bca4ea7",
-      "installed_at": "2026-06-16T19:41:54.933564+00:00",
+      "installed_at": "2026-06-18T15:18:47.754308+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -1181,7 +1201,7 @@
       "installation_class": "native-root-required",
       "agent_key": "claude",
       "content_hash": "sha256:b7a55e9e2b34615dbed3423890e9ec0bef0c2327525cb31310e2e331fffe61bf",
-      "installed_at": "2026-06-16T19:41:54.935778+00:00",
+      "installed_at": "2026-06-18T15:18:47.759995+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -1191,7 +1211,7 @@
       "installation_class": "native-root-required",
       "agent_key": "claude",
       "content_hash": "sha256:6ff391973da8c312833a25b2f47cc9a7ac16ab7ae3e90f61e0eb4e20eb24b243",
-      "installed_at": "2026-06-16T19:41:54.937425+00:00",
+      "installed_at": "2026-06-18T15:18:47.764496+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -1201,7 +1221,7 @@
       "installation_class": "native-root-required",
       "agent_key": "claude",
       "content_hash": "sha256:4aa5bacce79f17941a5b6f659c743bb47a1836a483d4c5fb8b0930555946de62",
-      "installed_at": "2026-06-16T19:41:54.939803+00:00",
+      "installed_at": "2026-06-18T15:18:47.769386+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -1211,7 +1231,7 @@
       "installation_class": "native-root-required",
       "agent_key": "claude",
       "content_hash": "sha256:5865af59913b63c48abe6058a5c96eeae2695d28bfdc1a98b52c0ac8a656d2af",
-      "installed_at": "2026-06-16T19:41:54.942938+00:00",
+      "installed_at": "2026-06-18T15:18:47.773705+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -1221,7 +1241,7 @@
       "installation_class": "native-root-required",
       "agent_key": "claude",
       "content_hash": "sha256:39d9c571cbc895f4a75122a81dd6d861bcfc7532ccf37b308ccd4fc57713bd57",
-      "installed_at": "2026-06-16T19:41:54.945379+00:00",
+      "installed_at": "2026-06-18T15:18:47.779016+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -1231,7 +1251,7 @@
       "installation_class": "native-root-required",
       "agent_key": "claude",
       "content_hash": "sha256:396e0c56e4adf6ef27008a5bcf758dc8efdca9a5b13acaf351ba3992ca9adcfb",
-      "installed_at": "2026-06-16T19:41:54.947397+00:00",
+      "installed_at": "2026-06-18T15:18:47.784381+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -1241,7 +1261,7 @@
       "installation_class": "native-root-required",
       "agent_key": "claude",
       "content_hash": "sha256:9edcd544867d95d3de98cc884e1e2d3d9e61b4d24cf8468f5cb586772794eb94",
-      "installed_at": "2026-06-16T19:41:54.951067+00:00",
+      "installed_at": "2026-06-18T15:18:47.788186+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -1251,7 +1271,7 @@
       "installation_class": "native-root-required",
       "agent_key": "claude",
       "content_hash": "sha256:6c674d1639103fc84478d69a25f5d35005b44160e9fb1738f067051d1eaf006a",
-      "installed_at": "2026-06-16T19:41:54.953476+00:00",
+      "installed_at": "2026-06-18T15:18:47.795748+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -1261,7 +1281,7 @@
       "installation_class": "native-root-required",
       "agent_key": "claude",
       "content_hash": "sha256:9066c7b7f505f3d2b8e8f54372679c97f91caa02b55e4bc79b5aaefcf1400ba8",
-      "installed_at": "2026-06-16T19:41:54.955801+00:00",
+      "installed_at": "2026-06-18T15:18:47.799930+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -1271,7 +1291,7 @@
       "installation_class": "native-root-required",
       "agent_key": "claude",
       "content_hash": "sha256:93ce4915ef305cd79db59de591c72da02b0bf686865ab803236c2f3cd5f95dcb",
-      "installed_at": "2026-06-16T19:41:54.958948+00:00",
+      "installed_at": "2026-06-18T15:18:47.803441+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -1281,7 +1301,7 @@
       "installation_class": "native-root-required",
       "agent_key": "claude",
       "content_hash": "sha256:70c650dd350dc68d7f5d2461d4e55157991e671affa7f4b898491f8f398d4ffc",
-      "installed_at": "2026-06-16T19:41:54.960689+00:00",
+      "installed_at": "2026-06-18T15:18:47.809397+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -1291,7 +1311,7 @@
       "installation_class": "native-root-required",
       "agent_key": "claude",
       "content_hash": "sha256:a7ecaa827b48932286bd94c685e95617bfa0491a8ca46beea4d5c0d31a71c9ca",
-      "installed_at": "2026-06-16T19:41:54.962362+00:00",
+      "installed_at": "2026-06-18T15:18:47.813153+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -1301,7 +1321,7 @@
       "installation_class": "native-root-required",
       "agent_key": "claude",
       "content_hash": "sha256:cc28813302d88051da162e6e53af82daca91e5563ff41fb60c82148dc3f19f10",
-      "installed_at": "2026-06-16T19:41:54.964664+00:00",
+      "installed_at": "2026-06-18T15:18:47.816884+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -1311,7 +1331,7 @@
       "installation_class": "native-root-required",
       "agent_key": "claude",
       "content_hash": "sha256:4c3d416b3923061c64f58bd77f279e1e04c31d7680280b07bc5bfdf43110e161",
-      "installed_at": "2026-06-16T19:41:54.969844+00:00",
+      "installed_at": "2026-06-18T15:18:47.828651+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -1321,7 +1341,7 @@
       "installation_class": "native-root-required",
       "agent_key": "claude",
       "content_hash": "sha256:e5003be1506496672b1f5f5b2f67d44cd4cd5da8a81af5084ffa2bf83f93390f",
-      "installed_at": "2026-06-16T19:41:54.969844+00:00",
+      "installed_at": "2026-06-18T15:18:47.828651+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -1331,7 +1351,7 @@
       "installation_class": "native-root-required",
       "agent_key": "claude",
       "content_hash": "sha256:806032aed42b95e16f13aa119d644ad5896f954965e1ef9b0e63dd0c71c5dacd",
-      "installed_at": "2026-06-16T19:41:54.972749+00:00",
+      "installed_at": "2026-06-18T15:18:47.834213+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -1341,7 +1361,7 @@
       "installation_class": "native-root-required",
       "agent_key": "claude",
       "content_hash": "sha256:6daafc7db930481349d4796fa42b5f8850d06c6b7bf1698b1cdd3a033f366af0",
-      "installed_at": "2026-06-16T19:41:54.976821+00:00",
+      "installed_at": "2026-06-18T15:18:47.838478+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -1351,7 +1371,7 @@
       "installation_class": "native-root-required",
       "agent_key": "claude",
       "content_hash": "sha256:b3e82611f3dcee368c249013ef0ca4cddecf166d67e2563c92209b84af0a9071",
-      "installed_at": "2026-06-16T19:41:54.979234+00:00",
+      "installed_at": "2026-06-18T15:18:47.841987+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -1361,7 +1381,7 @@
       "installation_class": "native-root-required",
       "agent_key": "claude",
       "content_hash": "sha256:a86a6e3c887521bd82ae00e19dbe214945c1d7534798a72cbee37e6bd6bb82c5",
-      "installed_at": "2026-06-16T19:41:54.982161+00:00",
+      "installed_at": "2026-06-18T15:18:47.845444+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -1371,7 +1391,7 @@
       "installation_class": "native-root-required",
       "agent_key": "claude",
       "content_hash": "sha256:ffb48b9750702cd1025f83a23212809c45268748c6f042ae22c291daab0f8f7a",
-      "installed_at": "2026-06-16T19:41:54.984806+00:00",
+      "installed_at": "2026-06-18T15:18:47.849590+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -1381,7 +1401,7 @@
       "installation_class": "native-root-required",
       "agent_key": "claude",
       "content_hash": "sha256:22365265b08b80842473b5f2f801eb5e609e0293ada65e91cf390465451987f3",
-      "installed_at": "2026-06-16T19:41:54.987910+00:00",
+      "installed_at": "2026-06-18T15:18:47.852890+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -1391,7 +1411,7 @@
       "installation_class": "native-root-required",
       "agent_key": "claude",
       "content_hash": "sha256:ccf960cf27f5b3e77c2c6736eae0912fe539f3e147700eaa3235491d78279247",
-      "installed_at": "2026-06-16T19:41:54.991643+00:00",
+      "installed_at": "2026-06-18T15:18:47.859489+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -1401,7 +1421,7 @@
       "installation_class": "native-root-required",
       "agent_key": "claude",
       "content_hash": "sha256:34d6a08406e0baef0c2d492133dd0282794914b8b12cd6b98fde2abd6116464b",
-      "installed_at": "2026-06-16T19:41:54.994527+00:00",
+      "installed_at": "2026-06-18T15:18:47.862969+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -1411,7 +1431,7 @@
       "installation_class": "native-root-required",
       "agent_key": "claude",
       "content_hash": "sha256:52a766928bd8dffc657b243bce0ea9e01f6a0679bfe48cddad996841e84eaa38",
-      "installed_at": "2026-06-16T19:41:54.997622+00:00",
+      "installed_at": "2026-06-18T15:18:47.866642+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -1421,7 +1441,7 @@
       "installation_class": "native-root-required",
       "agent_key": "claude",
       "content_hash": "sha256:d2a3eb9cffa38e4e3dde914da448b13d27813b05845b1d274efdfd8629211d7a",
-      "installed_at": "2026-06-16T19:41:55.000668+00:00",
+      "installed_at": "2026-06-18T15:18:47.871221+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -1431,7 +1451,7 @@
       "installation_class": "native-root-required",
       "agent_key": "claude",
       "content_hash": "sha256:0f12f35abb4dc86c0d674cafd94f8f85263c35dcda9daf8d62cc16a45bc194b1",
-      "installed_at": "2026-06-16T19:41:55.002915+00:00",
+      "installed_at": "2026-06-18T15:18:47.876344+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -1441,7 +1461,7 @@
       "installation_class": "native-root-required",
       "agent_key": "claude",
       "content_hash": "sha256:22e09ee2309ab45f9cb0e18d5d903f0ed489509bca5d38ef3767822350624a19",
-      "installed_at": "2026-06-16T19:41:55.005198+00:00",
+      "installed_at": "2026-06-18T15:18:47.881553+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -1451,7 +1471,7 @@
       "installation_class": "native-root-required",
       "agent_key": "claude",
       "content_hash": "sha256:d8c94122c25f61a048ca417df1e1efd813a943943f40227ef620d3c1d9818116",
-      "installed_at": "2026-06-16T19:41:55.011454+00:00",
+      "installed_at": "2026-06-18T15:18:47.887549+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -1461,7 +1481,7 @@
       "installation_class": "native-root-required",
       "agent_key": "claude",
       "content_hash": "sha256:1f8bed16b2bbcc86dbe54973fc8ed2b10cc96e12541eabd219ff143f046e1e37",
-      "installed_at": "2026-06-16T19:41:55.011454+00:00",
+      "installed_at": "2026-06-18T15:18:47.887549+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -1471,7 +1491,7 @@
       "installation_class": "native-root-required",
       "agent_key": "claude",
       "content_hash": "sha256:4dca2ebb1a910ad8afea393d6b65c44a496f0a2991d9c893d17166d4a844b187",
-      "installed_at": "2026-06-16T19:41:55.014347+00:00",
+      "installed_at": "2026-06-18T15:18:47.894485+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -1481,7 +1501,7 @@
       "installation_class": "native-root-required",
       "agent_key": "claude",
       "content_hash": "sha256:c7556425f808f9ff537466c17fae27e6b8892d39dee4263054403420cc28097a",
-      "installed_at": "2026-06-16T19:41:55.017343+00:00",
+      "installed_at": "2026-06-18T15:18:47.915144+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -1491,7 +1511,7 @@
       "installation_class": "native-root-required",
       "agent_key": "claude",
       "content_hash": "sha256:695f10211c79069f4f76294ce0276948aca0670475eea794452b164d67b11af9",
-      "installed_at": "2026-06-16T19:41:55.019649+00:00",
+      "installed_at": "2026-06-18T15:18:47.933756+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -1501,7 +1521,7 @@
       "installation_class": "native-root-required",
       "agent_key": "claude",
       "content_hash": "sha256:2eaf4f80e7b0b2390327f383f6a03f5ac3b9590e5848ee6cfa98a43b4b0ded5f",
-      "installed_at": "2026-06-16T19:41:55.021880+00:00",
+      "installed_at": "2026-06-18T15:18:47.950535+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -1511,7 +1531,7 @@
       "installation_class": "native-root-required",
       "agent_key": "claude",
       "content_hash": "sha256:5edfff458df8cc99c61a45af1e15a44f8741f47644e69dcb7072f0edd10c10c7",
-      "installed_at": "2026-06-16T19:41:55.024336+00:00",
+      "installed_at": "2026-06-18T15:18:47.954603+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -1521,7 +1541,7 @@
       "installation_class": "native-root-required",
       "agent_key": "claude",
       "content_hash": "sha256:3723263b469b74a5f74771e4cb6f19f168f73faa0e03f149ddd6fe2f6f015eb9",
-      "installed_at": "2026-06-16T19:41:55.026241+00:00",
+      "installed_at": "2026-06-18T15:18:47.959392+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -1530,8 +1550,18 @@
       "installed_path": ".agents/skills/ad-hoc-profile-load/SKILL.md",
       "installation_class": "shared-root-capable",
       "agent_key": "codex",
-      "content_hash": "sha256:d368f8914855d00ba36a9287ca9adc03c718e07bafd0800d4d755efc7cc61168",
-      "installed_at": "2026-06-16T19:41:55.029629+00:00",
+      "content_hash": "sha256:1c911da5f7cc90d9b820b478446a080a5553291e8add83f9511f347a1073e87f",
+      "installed_at": "2026-06-18T15:18:47.966432+00:00",
+      "delivery_mode": "symlink"
+    },
+    {
+      "skill_name": "spec-kitty",
+      "source_file": "SKILL.md",
+      "installed_path": ".agents/skills/spec-kitty/SKILL.md",
+      "installation_class": "shared-root-capable",
+      "agent_key": "codex",
+      "content_hash": "sha256:3cc9ad33b2f8dbc1852e7531cf21aa8a19a1ca337017bd47cf2d2da3292dc2dc",
+      "installed_at": "2026-06-18T15:18:47.970933+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -1541,7 +1571,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "codex",
       "content_hash": "sha256:807572d61b0fef9efe1bcfa03c6f7c70cdfa4cde3ea97676f734bf5b4d4aa650",
-      "installed_at": "2026-06-16T19:41:55.031605+00:00",
+      "installed_at": "2026-06-18T15:18:47.975608+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -1550,8 +1580,8 @@
       "installed_path": ".agents/skills/spec-kitty-charter-doctrine/SKILL.md",
       "installation_class": "shared-root-capable",
       "agent_key": "codex",
-      "content_hash": "sha256:311e0185e495a1c516acc6c0cd96187f28312d68ba662c61ad8c30be0266706c",
-      "installed_at": "2026-06-16T19:41:55.034930+00:00",
+      "content_hash": "sha256:6b078d47404a54366793719fd10d0435ef9dd7ac6807dbce78958f84e7ce568b",
+      "installed_at": "2026-06-18T15:18:47.988702+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -1561,7 +1591,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "codex",
       "content_hash": "sha256:fc6bc50e49fc02cbcfa7a08ba1c44dc8ab73990c11bc75ca1390ab8380e7381e",
-      "installed_at": "2026-06-16T19:41:55.034930+00:00",
+      "installed_at": "2026-06-18T15:18:47.988702+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -1571,7 +1601,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "codex",
       "content_hash": "sha256:407195b2f9906fae3cd3a4681469e0ccdbc9a876c1cf8d1650f0e515232f56e4",
-      "installed_at": "2026-06-16T19:41:55.034930+00:00",
+      "installed_at": "2026-06-18T15:18:47.988702+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -1581,7 +1611,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "codex",
       "content_hash": "sha256:d93fa7371dc719bbee27192d384bbd88773ff6d82023992bfd630aa032610622",
-      "installed_at": "2026-06-16T19:41:55.038648+00:00",
+      "installed_at": "2026-06-18T15:18:47.998898+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -1591,7 +1621,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "codex",
       "content_hash": "sha256:f5496be4802402a8fb6f41e5ed70392b4b0e68a26004711512a25d99fe5bae6a",
-      "installed_at": "2026-06-16T19:41:55.038648+00:00",
+      "installed_at": "2026-06-18T15:18:47.998898+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -1601,7 +1631,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "codex",
       "content_hash": "sha256:e9592a088d2d6d2e2ecf65eaa6a8d31f0dbe1e6f4236d5747d6fe26ea980e89e",
-      "installed_at": "2026-06-16T19:41:55.044939+00:00",
+      "installed_at": "2026-06-18T15:18:48.006351+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -1611,7 +1641,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "codex",
       "content_hash": "sha256:9cddfccd64773976cf97450fa983dc8cc3aa7354a6002d763a7fa3ac65ff9ace",
-      "installed_at": "2026-06-16T19:41:55.044939+00:00",
+      "installed_at": "2026-06-18T15:18:48.006351+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -1621,7 +1651,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "codex",
       "content_hash": "sha256:d2df36b399316d12d05b10b36dab19a3eb330ed9c502b9b0fa2bb35ecf8341c4",
-      "installed_at": "2026-06-16T19:41:55.044939+00:00",
+      "installed_at": "2026-06-18T15:18:48.006351+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -1630,8 +1660,8 @@
       "installed_path": ".agents/skills/spec-kitty-implement-review/SKILL.md",
       "installation_class": "shared-root-capable",
       "agent_key": "codex",
-      "content_hash": "sha256:61156049f4abf1f781a6ad6f62286fa5f820cf807fcd33fd572141979d852fbb",
-      "installed_at": "2026-06-16T19:41:55.048793+00:00",
+      "content_hash": "sha256:c5a5449b7692904ace5585a6ccad4a271c5ac72259e5c7d5700a0ab285df15bd",
+      "installed_at": "2026-06-18T15:18:48.015894+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -1641,7 +1671,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "codex",
       "content_hash": "sha256:d99ceb8ca16cdc42827c1dc0ae6e00f6de7a9b5fa30b8367c2a84a2205f75681",
-      "installed_at": "2026-06-16T19:41:55.048793+00:00",
+      "installed_at": "2026-06-18T15:18:48.015894+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -1651,7 +1681,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "codex",
       "content_hash": "sha256:dcf6ffa8a173a5ea937a74fd1af4c0427f595008a00d91b5a7970a13f2e202ab",
-      "installed_at": "2026-06-16T19:41:55.048793+00:00",
+      "installed_at": "2026-06-18T15:18:48.015894+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -1661,7 +1691,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "codex",
       "content_hash": "sha256:3914936f70e4bc4a0b1b209f40a58bb29983d00eaa954c1363b7c6949f3fa425",
-      "installed_at": "2026-06-16T19:41:55.053127+00:00",
+      "installed_at": "2026-06-18T15:18:48.025620+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -1671,7 +1701,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "codex",
       "content_hash": "sha256:4ae2391cd2e4c3bdb32a25e7a8476612fb1b94d156a4250701c9f537e011f0fd",
-      "installed_at": "2026-06-16T19:41:55.053127+00:00",
+      "installed_at": "2026-06-18T15:18:48.025620+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -1680,8 +1710,8 @@
       "installed_path": ".agents/skills/spec-kitty-mission-system/SKILL.md",
       "installation_class": "shared-root-capable",
       "agent_key": "codex",
-      "content_hash": "sha256:711529f18f2c10e05858aa87d8513270581cb0ccd996190ed065cbfc61328685",
-      "installed_at": "2026-06-16T19:41:55.058008+00:00",
+      "content_hash": "sha256:7516f34c2cfc0676e22ecd2dbd6a83e7dbb5146d4881b22b1c585bb4aadba4cb",
+      "installed_at": "2026-06-18T15:18:48.034737+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -1691,7 +1721,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "codex",
       "content_hash": "sha256:9942d27336957053a25f99ab3606b319b2c010c01f36f3926f4660eacb9eaf95",
-      "installed_at": "2026-06-16T19:41:55.058008+00:00",
+      "installed_at": "2026-06-18T15:18:48.034737+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -1701,7 +1731,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "codex",
       "content_hash": "sha256:ac22bccc1e14560b03a2568285d7e337192965ab84ebfc049ee05cf130e16010",
-      "installed_at": "2026-06-16T19:41:55.064139+00:00",
+      "installed_at": "2026-06-18T15:18:48.044230+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -1711,7 +1741,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "codex",
       "content_hash": "sha256:f9f0e26519c2a69ad1beae7c2982300565abc5209e978ece1c8ca5ac6eff93c4",
-      "installed_at": "2026-06-16T19:41:55.064139+00:00",
+      "installed_at": "2026-06-18T15:18:48.044230+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -1721,7 +1751,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "codex",
       "content_hash": "sha256:9cf4fa4a46d12bca8c66e33cc3567eb5e06dee4895f3569128ecc1ba1eaf557e",
-      "installed_at": "2026-06-16T19:41:55.064139+00:00",
+      "installed_at": "2026-06-18T15:18:48.044230+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -1731,7 +1761,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "codex",
       "content_hash": "sha256:6048eb97b30159e9748fa83077f09f578b71df51988d7783d9523678e466cf80",
-      "installed_at": "2026-06-16T19:41:55.067927+00:00",
+      "installed_at": "2026-06-18T15:18:48.050105+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -1740,8 +1770,8 @@
       "installed_path": ".agents/skills/spec-kitty-runtime-next/SKILL.md",
       "installation_class": "shared-root-capable",
       "agent_key": "codex",
-      "content_hash": "sha256:9df83e0f1b3e6911217fc9b4f1d69e277ff1689bc86b2849595b7aa65d0ae767",
-      "installed_at": "2026-06-16T19:41:55.074376+00:00",
+      "content_hash": "sha256:ce8b20b68b7805450cb0c9cddaf151bbf20f45d912146e2058758498af55c07c",
+      "installed_at": "2026-06-18T15:18:48.058154+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -1751,7 +1781,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "codex",
       "content_hash": "sha256:0ff7709a8eaec348e7aee4cd9f1f62226e6c88d3e2f4a84d5c761a4607071179",
-      "installed_at": "2026-06-16T19:41:55.074376+00:00",
+      "installed_at": "2026-06-18T15:18:48.058154+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -1761,7 +1791,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "codex",
       "content_hash": "sha256:e1386311442d926b1b5e17646cb56cf1f06cbabc474a95c4120794091b900c8b",
-      "installed_at": "2026-06-16T19:41:55.074376+00:00",
+      "installed_at": "2026-06-18T15:18:48.058154+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -1771,7 +1801,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "codex",
       "content_hash": "sha256:c06d9fabb0ba6837efd7c44bfc6a222c34e91fd2aafa95a1e77227474eb2ca3c",
-      "installed_at": "2026-06-16T19:41:55.081255+00:00",
+      "installed_at": "2026-06-18T15:18:48.065295+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -1781,7 +1811,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "codex",
       "content_hash": "sha256:9279016c3b96e71fbd5d06cbaedf719307fd4497afe1673af7a613a4e38b93ab",
-      "installed_at": "2026-06-16T19:41:55.081255+00:00",
+      "installed_at": "2026-06-18T15:18:48.065295+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -1791,7 +1821,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "codex",
       "content_hash": "sha256:0bd689abc3c5583bf44501485c6ad26733454676a259935271131b7cf763e69e",
-      "installed_at": "2026-06-16T19:41:55.136340+00:00",
+      "installed_at": "2026-06-18T15:18:48.075799+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -1801,7 +1831,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "codex",
       "content_hash": "sha256:aaf30ca564850325fab2a04f79d6cfb4522ed2cab7d07547a4730cb4ed8d6a8b",
-      "installed_at": "2026-06-16T19:41:55.136340+00:00",
+      "installed_at": "2026-06-18T15:18:48.075799+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -1811,7 +1841,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "codex",
       "content_hash": "sha256:442a96b1ffd48b51e68e98995564dd7a7ce24403b53b30f8029c2f0b5e17c476",
-      "installed_at": "2026-06-16T19:41:55.136340+00:00",
+      "installed_at": "2026-06-18T15:18:48.075799+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -1821,7 +1851,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "codex",
       "content_hash": "sha256:0af4323f4cc121dc8ffa5997d0b98edca8401f2c4076ef5fbde9ac1d7cdffc74",
-      "installed_at": "2026-06-16T19:41:55.138930+00:00",
+      "installed_at": "2026-06-18T15:18:48.080115+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -1831,7 +1861,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "codex",
       "content_hash": "sha256:775d48a832a40756a83b5b2380217044a07d3343ac00cb5e8a8bb00f1319e7c7",
-      "installed_at": "2026-06-16T19:41:55.163341+00:00",
+      "installed_at": "2026-06-18T15:18:48.083737+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -1841,7 +1871,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "codex",
       "content_hash": "sha256:215eafd3ae4c8eb0bb1b20bfc0dc74264519fb37405087b1595bb951060b255b",
-      "installed_at": "2026-06-16T19:41:55.171012+00:00",
+      "installed_at": "2026-06-18T15:18:48.089265+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -1851,7 +1881,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "codex",
       "content_hash": "sha256:8cfb152041d1c23388b9018c65ce7dabd45d95c2a0096a94fcdeedad129010f8",
-      "installed_at": "2026-06-16T19:41:55.171012+00:00",
+      "installed_at": "2026-06-18T15:18:48.089265+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -1861,7 +1891,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "codex",
       "content_hash": "sha256:14d25df8010b9cbea3d3d331a7e97d72725e88ca71c3c2559a66cb02c35c1dea",
-      "installed_at": "2026-06-16T19:41:55.200478+00:00",
+      "installed_at": "2026-06-18T15:18:48.092473+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -1871,7 +1901,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "codex",
       "content_hash": "sha256:9a0be9f102262144ea88c40738add99d608d429806ba8a877e97f9b75bca4ea7",
-      "installed_at": "2026-06-16T19:41:55.205331+00:00",
+      "installed_at": "2026-06-18T15:18:48.095477+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -1881,7 +1911,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "codex",
       "content_hash": "sha256:b7a55e9e2b34615dbed3423890e9ec0bef0c2327525cb31310e2e331fffe61bf",
-      "installed_at": "2026-06-16T19:41:55.211482+00:00",
+      "installed_at": "2026-06-18T15:18:48.098898+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -1891,7 +1921,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "codex",
       "content_hash": "sha256:6ff391973da8c312833a25b2f47cc9a7ac16ab7ae3e90f61e0eb4e20eb24b243",
-      "installed_at": "2026-06-16T19:41:55.215897+00:00",
+      "installed_at": "2026-06-18T15:18:48.101813+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -1901,7 +1931,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "codex",
       "content_hash": "sha256:4aa5bacce79f17941a5b6f659c743bb47a1836a483d4c5fb8b0930555946de62",
-      "installed_at": "2026-06-16T19:41:55.220981+00:00",
+      "installed_at": "2026-06-18T15:18:48.105374+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -1911,7 +1941,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "codex",
       "content_hash": "sha256:5865af59913b63c48abe6058a5c96eeae2695d28bfdc1a98b52c0ac8a656d2af",
-      "installed_at": "2026-06-16T19:41:55.227051+00:00",
+      "installed_at": "2026-06-18T15:18:48.109309+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -1921,7 +1951,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "codex",
       "content_hash": "sha256:39d9c571cbc895f4a75122a81dd6d861bcfc7532ccf37b308ccd4fc57713bd57",
-      "installed_at": "2026-06-16T19:41:55.230213+00:00",
+      "installed_at": "2026-06-18T15:18:48.113284+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -1931,7 +1961,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "codex",
       "content_hash": "sha256:396e0c56e4adf6ef27008a5bcf758dc8efdca9a5b13acaf351ba3992ca9adcfb",
-      "installed_at": "2026-06-16T19:41:55.233162+00:00",
+      "installed_at": "2026-06-18T15:18:48.116571+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -1941,7 +1971,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "codex",
       "content_hash": "sha256:9edcd544867d95d3de98cc884e1e2d3d9e61b4d24cf8468f5cb586772794eb94",
-      "installed_at": "2026-06-16T19:41:55.235588+00:00",
+      "installed_at": "2026-06-18T15:18:48.120247+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -1951,7 +1981,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "codex",
       "content_hash": "sha256:6c674d1639103fc84478d69a25f5d35005b44160e9fb1738f067051d1eaf006a",
-      "installed_at": "2026-06-16T19:41:55.237661+00:00",
+      "installed_at": "2026-06-18T15:18:48.124759+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -1961,7 +1991,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "codex",
       "content_hash": "sha256:9066c7b7f505f3d2b8e8f54372679c97f91caa02b55e4bc79b5aaefcf1400ba8",
-      "installed_at": "2026-06-16T19:41:55.240670+00:00",
+      "installed_at": "2026-06-18T15:18:48.129095+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -1971,7 +2001,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "codex",
       "content_hash": "sha256:93ce4915ef305cd79db59de591c72da02b0bf686865ab803236c2f3cd5f95dcb",
-      "installed_at": "2026-06-16T19:41:55.242808+00:00",
+      "installed_at": "2026-06-18T15:18:48.132250+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -1981,7 +2011,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "codex",
       "content_hash": "sha256:70c650dd350dc68d7f5d2461d4e55157991e671affa7f4b898491f8f398d4ffc",
-      "installed_at": "2026-06-16T19:41:55.245289+00:00",
+      "installed_at": "2026-06-18T15:18:48.136436+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -1991,7 +2021,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "codex",
       "content_hash": "sha256:a7ecaa827b48932286bd94c685e95617bfa0491a8ca46beea4d5c0d31a71c9ca",
-      "installed_at": "2026-06-16T19:41:55.247463+00:00",
+      "installed_at": "2026-06-18T15:18:48.141969+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -2001,7 +2031,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "codex",
       "content_hash": "sha256:cc28813302d88051da162e6e53af82daca91e5563ff41fb60c82148dc3f19f10",
-      "installed_at": "2026-06-16T19:41:55.249593+00:00",
+      "installed_at": "2026-06-18T15:18:48.148671+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -2011,7 +2041,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "codex",
       "content_hash": "sha256:4c3d416b3923061c64f58bd77f279e1e04c31d7680280b07bc5bfdf43110e161",
-      "installed_at": "2026-06-16T19:41:55.254376+00:00",
+      "installed_at": "2026-06-18T15:18:48.154674+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -2021,7 +2051,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "codex",
       "content_hash": "sha256:e5003be1506496672b1f5f5b2f67d44cd4cd5da8a81af5084ffa2bf83f93390f",
-      "installed_at": "2026-06-16T19:41:55.254376+00:00",
+      "installed_at": "2026-06-18T15:18:48.154674+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -2031,7 +2061,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "codex",
       "content_hash": "sha256:806032aed42b95e16f13aa119d644ad5896f954965e1ef9b0e63dd0c71c5dacd",
-      "installed_at": "2026-06-16T19:41:55.257505+00:00",
+      "installed_at": "2026-06-18T15:18:48.159223+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -2041,7 +2071,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "codex",
       "content_hash": "sha256:6daafc7db930481349d4796fa42b5f8850d06c6b7bf1698b1cdd3a033f366af0",
-      "installed_at": "2026-06-16T19:41:55.259895+00:00",
+      "installed_at": "2026-06-18T15:18:48.162995+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -2051,7 +2081,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "codex",
       "content_hash": "sha256:b3e82611f3dcee368c249013ef0ca4cddecf166d67e2563c92209b84af0a9071",
-      "installed_at": "2026-06-16T19:41:55.262135+00:00",
+      "installed_at": "2026-06-18T15:18:48.166874+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -2061,7 +2091,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "codex",
       "content_hash": "sha256:a86a6e3c887521bd82ae00e19dbe214945c1d7534798a72cbee37e6bd6bb82c5",
-      "installed_at": "2026-06-16T19:41:55.264691+00:00",
+      "installed_at": "2026-06-18T15:18:48.170160+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -2071,7 +2101,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "codex",
       "content_hash": "sha256:ffb48b9750702cd1025f83a23212809c45268748c6f042ae22c291daab0f8f7a",
-      "installed_at": "2026-06-16T19:41:55.267522+00:00",
+      "installed_at": "2026-06-18T15:18:48.175383+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -2081,7 +2111,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "codex",
       "content_hash": "sha256:22365265b08b80842473b5f2f801eb5e609e0293ada65e91cf390465451987f3",
-      "installed_at": "2026-06-16T19:41:55.275276+00:00",
+      "installed_at": "2026-06-18T15:18:48.180131+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -2091,7 +2121,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "codex",
       "content_hash": "sha256:ccf960cf27f5b3e77c2c6736eae0912fe539f3e147700eaa3235491d78279247",
-      "installed_at": "2026-06-16T19:41:55.278711+00:00",
+      "installed_at": "2026-06-18T15:18:48.183472+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -2101,7 +2131,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "codex",
       "content_hash": "sha256:34d6a08406e0baef0c2d492133dd0282794914b8b12cd6b98fde2abd6116464b",
-      "installed_at": "2026-06-16T19:41:55.281847+00:00",
+      "installed_at": "2026-06-18T15:18:48.186970+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -2111,7 +2141,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "codex",
       "content_hash": "sha256:52a766928bd8dffc657b243bce0ea9e01f6a0679bfe48cddad996841e84eaa38",
-      "installed_at": "2026-06-16T19:41:55.287903+00:00",
+      "installed_at": "2026-06-18T15:18:48.191475+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -2121,7 +2151,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "codex",
       "content_hash": "sha256:d2a3eb9cffa38e4e3dde914da448b13d27813b05845b1d274efdfd8629211d7a",
-      "installed_at": "2026-06-16T19:41:55.291395+00:00",
+      "installed_at": "2026-06-18T15:18:48.194727+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -2131,7 +2161,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "codex",
       "content_hash": "sha256:0f12f35abb4dc86c0d674cafd94f8f85263c35dcda9daf8d62cc16a45bc194b1",
-      "installed_at": "2026-06-16T19:41:55.294926+00:00",
+      "installed_at": "2026-06-18T15:18:48.197765+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -2141,7 +2171,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "codex",
       "content_hash": "sha256:22e09ee2309ab45f9cb0e18d5d903f0ed489509bca5d38ef3767822350624a19",
-      "installed_at": "2026-06-16T19:41:55.300223+00:00",
+      "installed_at": "2026-06-18T15:18:48.201130+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -2151,7 +2181,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "codex",
       "content_hash": "sha256:d8c94122c25f61a048ca417df1e1efd813a943943f40227ef620d3c1d9818116",
-      "installed_at": "2026-06-16T19:41:55.312389+00:00",
+      "installed_at": "2026-06-18T15:18:48.206715+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -2161,7 +2191,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "codex",
       "content_hash": "sha256:1f8bed16b2bbcc86dbe54973fc8ed2b10cc96e12541eabd219ff143f046e1e37",
-      "installed_at": "2026-06-16T19:41:55.312389+00:00",
+      "installed_at": "2026-06-18T15:18:48.206715+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -2171,7 +2201,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "codex",
       "content_hash": "sha256:4dca2ebb1a910ad8afea393d6b65c44a496f0a2991d9c893d17166d4a844b187",
-      "installed_at": "2026-06-16T19:41:55.316130+00:00",
+      "installed_at": "2026-06-18T15:18:48.210646+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -2181,7 +2211,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "codex",
       "content_hash": "sha256:c7556425f808f9ff537466c17fae27e6b8892d39dee4263054403420cc28097a",
-      "installed_at": "2026-06-16T19:41:55.319696+00:00",
+      "installed_at": "2026-06-18T15:18:48.213124+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -2191,7 +2221,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "codex",
       "content_hash": "sha256:695f10211c79069f4f76294ce0276948aca0670475eea794452b164d67b11af9",
-      "installed_at": "2026-06-16T19:41:55.325488+00:00",
+      "installed_at": "2026-06-18T15:18:48.216192+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -2201,7 +2231,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "codex",
       "content_hash": "sha256:2eaf4f80e7b0b2390327f383f6a03f5ac3b9590e5848ee6cfa98a43b4b0ded5f",
-      "installed_at": "2026-06-16T19:41:55.329215+00:00",
+      "installed_at": "2026-06-18T15:18:48.218750+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -2211,7 +2241,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "codex",
       "content_hash": "sha256:5edfff458df8cc99c61a45af1e15a44f8741f47644e69dcb7072f0edd10c10c7",
-      "installed_at": "2026-06-16T19:41:55.333467+00:00",
+      "installed_at": "2026-06-18T15:18:48.222069+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -2221,7 +2251,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "codex",
       "content_hash": "sha256:3723263b469b74a5f74771e4cb6f19f168f73faa0e03f149ddd6fe2f6f015eb9",
-      "installed_at": "2026-06-16T19:41:55.336317+00:00",
+      "installed_at": "2026-06-18T15:18:48.225545+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -2230,8 +2260,18 @@
       "installed_path": ".agents/skills/ad-hoc-profile-load/SKILL.md",
       "installation_class": "shared-root-capable",
       "agent_key": "copilot",
-      "content_hash": "sha256:d368f8914855d00ba36a9287ca9adc03c718e07bafd0800d4d755efc7cc61168",
-      "installed_at": "2026-06-16T19:41:55.341904+00:00",
+      "content_hash": "sha256:1c911da5f7cc90d9b820b478446a080a5553291e8add83f9511f347a1073e87f",
+      "installed_at": "2026-06-18T15:18:48.230255+00:00",
+      "delivery_mode": "symlink"
+    },
+    {
+      "skill_name": "spec-kitty",
+      "source_file": "SKILL.md",
+      "installed_path": ".agents/skills/spec-kitty/SKILL.md",
+      "installation_class": "shared-root-capable",
+      "agent_key": "copilot",
+      "content_hash": "sha256:3cc9ad33b2f8dbc1852e7531cf21aa8a19a1ca337017bd47cf2d2da3292dc2dc",
+      "installed_at": "2026-06-18T15:18:48.234434+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -2241,7 +2281,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "copilot",
       "content_hash": "sha256:807572d61b0fef9efe1bcfa03c6f7c70cdfa4cde3ea97676f734bf5b4d4aa650",
-      "installed_at": "2026-06-16T19:41:55.346406+00:00",
+      "installed_at": "2026-06-18T15:18:48.237942+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -2250,8 +2290,8 @@
       "installed_path": ".agents/skills/spec-kitty-charter-doctrine/SKILL.md",
       "installation_class": "shared-root-capable",
       "agent_key": "copilot",
-      "content_hash": "sha256:311e0185e495a1c516acc6c0cd96187f28312d68ba662c61ad8c30be0266706c",
-      "installed_at": "2026-06-16T19:41:55.352091+00:00",
+      "content_hash": "sha256:6b078d47404a54366793719fd10d0435ef9dd7ac6807dbce78958f84e7ce568b",
+      "installed_at": "2026-06-18T15:18:48.245543+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -2261,7 +2301,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "copilot",
       "content_hash": "sha256:fc6bc50e49fc02cbcfa7a08ba1c44dc8ab73990c11bc75ca1390ab8380e7381e",
-      "installed_at": "2026-06-16T19:41:55.352091+00:00",
+      "installed_at": "2026-06-18T15:18:48.245543+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -2271,7 +2311,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "copilot",
       "content_hash": "sha256:407195b2f9906fae3cd3a4681469e0ccdbc9a876c1cf8d1650f0e515232f56e4",
-      "installed_at": "2026-06-16T19:41:55.352091+00:00",
+      "installed_at": "2026-06-18T15:18:48.245543+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -2281,7 +2321,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "copilot",
       "content_hash": "sha256:d93fa7371dc719bbee27192d384bbd88773ff6d82023992bfd630aa032610622",
-      "installed_at": "2026-06-16T19:41:55.358161+00:00",
+      "installed_at": "2026-06-18T15:18:48.251668+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -2291,7 +2331,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "copilot",
       "content_hash": "sha256:f5496be4802402a8fb6f41e5ed70392b4b0e68a26004711512a25d99fe5bae6a",
-      "installed_at": "2026-06-16T19:41:55.358161+00:00",
+      "installed_at": "2026-06-18T15:18:48.251668+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -2301,7 +2341,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "copilot",
       "content_hash": "sha256:e9592a088d2d6d2e2ecf65eaa6a8d31f0dbe1e6f4236d5747d6fe26ea980e89e",
-      "installed_at": "2026-06-16T19:41:55.364443+00:00",
+      "installed_at": "2026-06-18T15:18:48.261620+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -2311,7 +2351,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "copilot",
       "content_hash": "sha256:9cddfccd64773976cf97450fa983dc8cc3aa7354a6002d763a7fa3ac65ff9ace",
-      "installed_at": "2026-06-16T19:41:55.364443+00:00",
+      "installed_at": "2026-06-18T15:18:48.261620+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -2321,7 +2361,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "copilot",
       "content_hash": "sha256:d2df36b399316d12d05b10b36dab19a3eb330ed9c502b9b0fa2bb35ecf8341c4",
-      "installed_at": "2026-06-16T19:41:55.364443+00:00",
+      "installed_at": "2026-06-18T15:18:48.261620+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -2330,8 +2370,8 @@
       "installed_path": ".agents/skills/spec-kitty-implement-review/SKILL.md",
       "installation_class": "shared-root-capable",
       "agent_key": "copilot",
-      "content_hash": "sha256:61156049f4abf1f781a6ad6f62286fa5f820cf807fcd33fd572141979d852fbb",
-      "installed_at": "2026-06-16T19:41:55.371389+00:00",
+      "content_hash": "sha256:c5a5449b7692904ace5585a6ccad4a271c5ac72259e5c7d5700a0ab285df15bd",
+      "installed_at": "2026-06-18T15:18:48.273564+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -2341,7 +2381,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "copilot",
       "content_hash": "sha256:d99ceb8ca16cdc42827c1dc0ae6e00f6de7a9b5fa30b8367c2a84a2205f75681",
-      "installed_at": "2026-06-16T19:41:55.371389+00:00",
+      "installed_at": "2026-06-18T15:18:48.273564+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -2351,7 +2391,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "copilot",
       "content_hash": "sha256:dcf6ffa8a173a5ea937a74fd1af4c0427f595008a00d91b5a7970a13f2e202ab",
-      "installed_at": "2026-06-16T19:41:55.371389+00:00",
+      "installed_at": "2026-06-18T15:18:48.273564+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -2361,7 +2401,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "copilot",
       "content_hash": "sha256:3914936f70e4bc4a0b1b209f40a58bb29983d00eaa954c1363b7c6949f3fa425",
-      "installed_at": "2026-06-16T19:41:55.380600+00:00",
+      "installed_at": "2026-06-18T15:18:48.286618+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -2371,7 +2411,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "copilot",
       "content_hash": "sha256:4ae2391cd2e4c3bdb32a25e7a8476612fb1b94d156a4250701c9f537e011f0fd",
-      "installed_at": "2026-06-16T19:41:55.380600+00:00",
+      "installed_at": "2026-06-18T15:18:48.286618+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -2380,8 +2420,8 @@
       "installed_path": ".agents/skills/spec-kitty-mission-system/SKILL.md",
       "installation_class": "shared-root-capable",
       "agent_key": "copilot",
-      "content_hash": "sha256:711529f18f2c10e05858aa87d8513270581cb0ccd996190ed065cbfc61328685",
-      "installed_at": "2026-06-16T19:41:55.389216+00:00",
+      "content_hash": "sha256:7516f34c2cfc0676e22ecd2dbd6a83e7dbb5146d4881b22b1c585bb4aadba4cb",
+      "installed_at": "2026-06-18T15:18:48.299333+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -2391,7 +2431,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "copilot",
       "content_hash": "sha256:9942d27336957053a25f99ab3606b319b2c010c01f36f3926f4660eacb9eaf95",
-      "installed_at": "2026-06-16T19:41:55.389216+00:00",
+      "installed_at": "2026-06-18T15:18:48.299333+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -2401,7 +2441,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "copilot",
       "content_hash": "sha256:ac22bccc1e14560b03a2568285d7e337192965ab84ebfc049ee05cf130e16010",
-      "installed_at": "2026-06-16T19:41:55.395260+00:00",
+      "installed_at": "2026-06-18T15:18:48.311104+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -2411,7 +2451,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "copilot",
       "content_hash": "sha256:f9f0e26519c2a69ad1beae7c2982300565abc5209e978ece1c8ca5ac6eff93c4",
-      "installed_at": "2026-06-16T19:41:55.395260+00:00",
+      "installed_at": "2026-06-18T15:18:48.311104+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -2421,7 +2461,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "copilot",
       "content_hash": "sha256:9cf4fa4a46d12bca8c66e33cc3567eb5e06dee4895f3569128ecc1ba1eaf557e",
-      "installed_at": "2026-06-16T19:41:55.395260+00:00",
+      "installed_at": "2026-06-18T15:18:48.311104+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -2431,7 +2471,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "copilot",
       "content_hash": "sha256:6048eb97b30159e9748fa83077f09f578b71df51988d7783d9523678e466cf80",
-      "installed_at": "2026-06-16T19:41:55.400605+00:00",
+      "installed_at": "2026-06-18T15:18:48.317595+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -2440,8 +2480,8 @@
       "installed_path": ".agents/skills/spec-kitty-runtime-next/SKILL.md",
       "installation_class": "shared-root-capable",
       "agent_key": "copilot",
-      "content_hash": "sha256:9df83e0f1b3e6911217fc9b4f1d69e277ff1689bc86b2849595b7aa65d0ae767",
-      "installed_at": "2026-06-16T19:41:55.408543+00:00",
+      "content_hash": "sha256:ce8b20b68b7805450cb0c9cddaf151bbf20f45d912146e2058758498af55c07c",
+      "installed_at": "2026-06-18T15:18:48.338953+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -2451,7 +2491,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "copilot",
       "content_hash": "sha256:0ff7709a8eaec348e7aee4cd9f1f62226e6c88d3e2f4a84d5c761a4607071179",
-      "installed_at": "2026-06-16T19:41:55.408543+00:00",
+      "installed_at": "2026-06-18T15:18:48.338953+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -2461,7 +2501,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "copilot",
       "content_hash": "sha256:e1386311442d926b1b5e17646cb56cf1f06cbabc474a95c4120794091b900c8b",
-      "installed_at": "2026-06-16T19:41:55.408543+00:00",
+      "installed_at": "2026-06-18T15:18:48.338953+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -2471,7 +2511,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "copilot",
       "content_hash": "sha256:c06d9fabb0ba6837efd7c44bfc6a222c34e91fd2aafa95a1e77227474eb2ca3c",
-      "installed_at": "2026-06-16T19:41:55.413930+00:00",
+      "installed_at": "2026-06-18T15:18:48.353386+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -2481,7 +2521,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "copilot",
       "content_hash": "sha256:9279016c3b96e71fbd5d06cbaedf719307fd4497afe1673af7a613a4e38b93ab",
-      "installed_at": "2026-06-16T19:41:55.413930+00:00",
+      "installed_at": "2026-06-18T15:18:48.353386+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -2491,7 +2531,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "copilot",
       "content_hash": "sha256:0bd689abc3c5583bf44501485c6ad26733454676a259935271131b7cf763e69e",
-      "installed_at": "2026-06-16T19:41:55.422912+00:00",
+      "installed_at": "2026-06-18T15:18:48.384430+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -2501,7 +2541,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "copilot",
       "content_hash": "sha256:aaf30ca564850325fab2a04f79d6cfb4522ed2cab7d07547a4730cb4ed8d6a8b",
-      "installed_at": "2026-06-16T19:41:55.422912+00:00",
+      "installed_at": "2026-06-18T15:18:48.384430+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -2511,7 +2551,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "copilot",
       "content_hash": "sha256:442a96b1ffd48b51e68e98995564dd7a7ce24403b53b30f8029c2f0b5e17c476",
-      "installed_at": "2026-06-16T19:41:55.422912+00:00",
+      "installed_at": "2026-06-18T15:18:48.384430+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -2521,7 +2561,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "copilot",
       "content_hash": "sha256:0af4323f4cc121dc8ffa5997d0b98edca8401f2c4076ef5fbde9ac1d7cdffc74",
-      "installed_at": "2026-06-16T19:41:55.427194+00:00",
+      "installed_at": "2026-06-18T15:18:48.392699+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -2531,7 +2571,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "copilot",
       "content_hash": "sha256:775d48a832a40756a83b5b2380217044a07d3343ac00cb5e8a8bb00f1319e7c7",
-      "installed_at": "2026-06-16T19:41:55.433304+00:00",
+      "installed_at": "2026-06-18T15:18:48.396974+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -2541,7 +2581,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "copilot",
       "content_hash": "sha256:215eafd3ae4c8eb0bb1b20bfc0dc74264519fb37405087b1595bb951060b255b",
-      "installed_at": "2026-06-16T19:41:55.437314+00:00",
+      "installed_at": "2026-06-18T15:18:48.402404+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -2551,7 +2591,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "copilot",
       "content_hash": "sha256:8cfb152041d1c23388b9018c65ce7dabd45d95c2a0096a94fcdeedad129010f8",
-      "installed_at": "2026-06-16T19:41:55.437314+00:00",
+      "installed_at": "2026-06-18T15:18:48.402404+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -2561,7 +2601,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "copilot",
       "content_hash": "sha256:14d25df8010b9cbea3d3d331a7e97d72725e88ca71c3c2559a66cb02c35c1dea",
-      "installed_at": "2026-06-16T19:41:55.440009+00:00",
+      "installed_at": "2026-06-18T15:18:48.406235+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -2571,7 +2611,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "copilot",
       "content_hash": "sha256:9a0be9f102262144ea88c40738add99d608d429806ba8a877e97f9b75bca4ea7",
-      "installed_at": "2026-06-16T19:41:55.442372+00:00",
+      "installed_at": "2026-06-18T15:18:48.409309+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -2581,7 +2621,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "copilot",
       "content_hash": "sha256:b7a55e9e2b34615dbed3423890e9ec0bef0c2327525cb31310e2e331fffe61bf",
-      "installed_at": "2026-06-16T19:41:55.444528+00:00",
+      "installed_at": "2026-06-18T15:18:48.412347+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -2591,7 +2631,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "copilot",
       "content_hash": "sha256:6ff391973da8c312833a25b2f47cc9a7ac16ab7ae3e90f61e0eb4e20eb24b243",
-      "installed_at": "2026-06-16T19:41:55.446842+00:00",
+      "installed_at": "2026-06-18T15:18:48.414662+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -2601,7 +2641,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "copilot",
       "content_hash": "sha256:4aa5bacce79f17941a5b6f659c743bb47a1836a483d4c5fb8b0930555946de62",
-      "installed_at": "2026-06-16T19:41:55.449144+00:00",
+      "installed_at": "2026-06-18T15:18:48.417618+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -2611,7 +2651,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "copilot",
       "content_hash": "sha256:5865af59913b63c48abe6058a5c96eeae2695d28bfdc1a98b52c0ac8a656d2af",
-      "installed_at": "2026-06-16T19:41:55.451646+00:00",
+      "installed_at": "2026-06-18T15:18:48.420444+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -2621,7 +2661,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "copilot",
       "content_hash": "sha256:39d9c571cbc895f4a75122a81dd6d861bcfc7532ccf37b308ccd4fc57713bd57",
-      "installed_at": "2026-06-16T19:41:55.454015+00:00",
+      "installed_at": "2026-06-18T15:18:48.424258+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -2631,7 +2671,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "copilot",
       "content_hash": "sha256:396e0c56e4adf6ef27008a5bcf758dc8efdca9a5b13acaf351ba3992ca9adcfb",
-      "installed_at": "2026-06-16T19:41:55.456338+00:00",
+      "installed_at": "2026-06-18T15:18:48.427242+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -2641,7 +2681,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "copilot",
       "content_hash": "sha256:9edcd544867d95d3de98cc884e1e2d3d9e61b4d24cf8468f5cb586772794eb94",
-      "installed_at": "2026-06-16T19:41:55.459172+00:00",
+      "installed_at": "2026-06-18T15:18:48.430352+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -2651,7 +2691,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "copilot",
       "content_hash": "sha256:6c674d1639103fc84478d69a25f5d35005b44160e9fb1738f067051d1eaf006a",
-      "installed_at": "2026-06-16T19:41:55.513869+00:00",
+      "installed_at": "2026-06-18T15:18:48.433267+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -2661,7 +2701,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "copilot",
       "content_hash": "sha256:9066c7b7f505f3d2b8e8f54372679c97f91caa02b55e4bc79b5aaefcf1400ba8",
-      "installed_at": "2026-06-16T19:41:55.521779+00:00",
+      "installed_at": "2026-06-18T15:18:48.436567+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -2671,7 +2711,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "copilot",
       "content_hash": "sha256:93ce4915ef305cd79db59de591c72da02b0bf686865ab803236c2f3cd5f95dcb",
-      "installed_at": "2026-06-16T19:41:55.527835+00:00",
+      "installed_at": "2026-06-18T15:18:48.439936+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -2681,7 +2721,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "copilot",
       "content_hash": "sha256:70c650dd350dc68d7f5d2461d4e55157991e671affa7f4b898491f8f398d4ffc",
-      "installed_at": "2026-06-16T19:41:55.532530+00:00",
+      "installed_at": "2026-06-18T15:18:48.442357+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -2691,7 +2731,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "copilot",
       "content_hash": "sha256:a7ecaa827b48932286bd94c685e95617bfa0491a8ca46beea4d5c0d31a71c9ca",
-      "installed_at": "2026-06-16T19:41:55.535463+00:00",
+      "installed_at": "2026-06-18T15:18:48.445279+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -2701,7 +2741,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "copilot",
       "content_hash": "sha256:cc28813302d88051da162e6e53af82daca91e5563ff41fb60c82148dc3f19f10",
-      "installed_at": "2026-06-16T19:41:55.538188+00:00",
+      "installed_at": "2026-06-18T15:18:48.449000+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -2711,7 +2751,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "copilot",
       "content_hash": "sha256:4c3d416b3923061c64f58bd77f279e1e04c31d7680280b07bc5bfdf43110e161",
-      "installed_at": "2026-06-16T19:41:55.544324+00:00",
+      "installed_at": "2026-06-18T15:18:48.455137+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -2721,7 +2761,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "copilot",
       "content_hash": "sha256:e5003be1506496672b1f5f5b2f67d44cd4cd5da8a81af5084ffa2bf83f93390f",
-      "installed_at": "2026-06-16T19:41:55.544324+00:00",
+      "installed_at": "2026-06-18T15:18:48.455137+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -2731,7 +2771,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "copilot",
       "content_hash": "sha256:806032aed42b95e16f13aa119d644ad5896f954965e1ef9b0e63dd0c71c5dacd",
-      "installed_at": "2026-06-16T19:41:55.548329+00:00",
+      "installed_at": "2026-06-18T15:18:48.458210+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -2741,7 +2781,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "copilot",
       "content_hash": "sha256:6daafc7db930481349d4796fa42b5f8850d06c6b7bf1698b1cdd3a033f366af0",
-      "installed_at": "2026-06-16T19:41:55.551684+00:00",
+      "installed_at": "2026-06-18T15:18:48.460750+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -2751,7 +2791,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "copilot",
       "content_hash": "sha256:b3e82611f3dcee368c249013ef0ca4cddecf166d67e2563c92209b84af0a9071",
-      "installed_at": "2026-06-16T19:41:55.554745+00:00",
+      "installed_at": "2026-06-18T15:18:48.463319+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -2761,7 +2801,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "copilot",
       "content_hash": "sha256:a86a6e3c887521bd82ae00e19dbe214945c1d7534798a72cbee37e6bd6bb82c5",
-      "installed_at": "2026-06-16T19:41:55.557944+00:00",
+      "installed_at": "2026-06-18T15:18:48.465704+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -2771,7 +2811,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "copilot",
       "content_hash": "sha256:ffb48b9750702cd1025f83a23212809c45268748c6f042ae22c291daab0f8f7a",
-      "installed_at": "2026-06-16T19:41:55.560491+00:00",
+      "installed_at": "2026-06-18T15:18:48.468711+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -2781,7 +2821,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "copilot",
       "content_hash": "sha256:22365265b08b80842473b5f2f801eb5e609e0293ada65e91cf390465451987f3",
-      "installed_at": "2026-06-16T19:41:55.563481+00:00",
+      "installed_at": "2026-06-18T15:18:48.471451+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -2791,7 +2831,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "copilot",
       "content_hash": "sha256:ccf960cf27f5b3e77c2c6736eae0912fe539f3e147700eaa3235491d78279247",
-      "installed_at": "2026-06-16T19:41:55.566744+00:00",
+      "installed_at": "2026-06-18T15:18:48.475522+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -2801,7 +2841,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "copilot",
       "content_hash": "sha256:34d6a08406e0baef0c2d492133dd0282794914b8b12cd6b98fde2abd6116464b",
-      "installed_at": "2026-06-16T19:41:55.569695+00:00",
+      "installed_at": "2026-06-18T15:18:48.478883+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -2811,7 +2851,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "copilot",
       "content_hash": "sha256:52a766928bd8dffc657b243bce0ea9e01f6a0679bfe48cddad996841e84eaa38",
-      "installed_at": "2026-06-16T19:41:55.572219+00:00",
+      "installed_at": "2026-06-18T15:18:48.481909+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -2821,7 +2861,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "copilot",
       "content_hash": "sha256:d2a3eb9cffa38e4e3dde914da448b13d27813b05845b1d274efdfd8629211d7a",
-      "installed_at": "2026-06-16T19:41:55.574577+00:00",
+      "installed_at": "2026-06-18T15:18:48.485177+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -2831,7 +2871,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "copilot",
       "content_hash": "sha256:0f12f35abb4dc86c0d674cafd94f8f85263c35dcda9daf8d62cc16a45bc194b1",
-      "installed_at": "2026-06-16T19:41:55.577580+00:00",
+      "installed_at": "2026-06-18T15:18:48.488362+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -2841,7 +2881,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "copilot",
       "content_hash": "sha256:22e09ee2309ab45f9cb0e18d5d903f0ed489509bca5d38ef3767822350624a19",
-      "installed_at": "2026-06-16T19:41:55.580243+00:00",
+      "installed_at": "2026-06-18T15:18:48.491994+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -2851,7 +2891,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "copilot",
       "content_hash": "sha256:d8c94122c25f61a048ca417df1e1efd813a943943f40227ef620d3c1d9818116",
-      "installed_at": "2026-06-16T19:41:55.584087+00:00",
+      "installed_at": "2026-06-18T15:18:48.497291+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -2861,7 +2901,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "copilot",
       "content_hash": "sha256:1f8bed16b2bbcc86dbe54973fc8ed2b10cc96e12541eabd219ff143f046e1e37",
-      "installed_at": "2026-06-16T19:41:55.584087+00:00",
+      "installed_at": "2026-06-18T15:18:48.497291+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -2871,7 +2911,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "copilot",
       "content_hash": "sha256:4dca2ebb1a910ad8afea393d6b65c44a496f0a2991d9c893d17166d4a844b187",
-      "installed_at": "2026-06-16T19:41:55.587020+00:00",
+      "installed_at": "2026-06-18T15:18:48.499774+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -2881,7 +2921,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "copilot",
       "content_hash": "sha256:c7556425f808f9ff537466c17fae27e6b8892d39dee4263054403420cc28097a",
-      "installed_at": "2026-06-16T19:41:55.589477+00:00",
+      "installed_at": "2026-06-18T15:18:48.502902+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -2891,7 +2931,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "copilot",
       "content_hash": "sha256:695f10211c79069f4f76294ce0276948aca0670475eea794452b164d67b11af9",
-      "installed_at": "2026-06-16T19:41:55.592747+00:00",
+      "installed_at": "2026-06-18T15:18:48.507017+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -2901,7 +2941,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "copilot",
       "content_hash": "sha256:2eaf4f80e7b0b2390327f383f6a03f5ac3b9590e5848ee6cfa98a43b4b0ded5f",
-      "installed_at": "2026-06-16T19:41:55.594909+00:00",
+      "installed_at": "2026-06-18T15:18:48.510730+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -2911,7 +2951,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "copilot",
       "content_hash": "sha256:5edfff458df8cc99c61a45af1e15a44f8741f47644e69dcb7072f0edd10c10c7",
-      "installed_at": "2026-06-16T19:41:55.598073+00:00",
+      "installed_at": "2026-06-18T15:18:48.513996+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -2921,7 +2961,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "copilot",
       "content_hash": "sha256:3723263b469b74a5f74771e4cb6f19f168f73faa0e03f149ddd6fe2f6f015eb9",
-      "installed_at": "2026-06-16T19:41:55.601138+00:00",
+      "installed_at": "2026-06-18T15:18:48.519391+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -2930,8 +2970,18 @@
       "installed_path": ".agents/skills/ad-hoc-profile-load/SKILL.md",
       "installation_class": "shared-root-capable",
       "agent_key": "gemini",
-      "content_hash": "sha256:d368f8914855d00ba36a9287ca9adc03c718e07bafd0800d4d755efc7cc61168",
-      "installed_at": "2026-06-16T19:41:55.604686+00:00",
+      "content_hash": "sha256:1c911da5f7cc90d9b820b478446a080a5553291e8add83f9511f347a1073e87f",
+      "installed_at": "2026-06-18T15:18:48.528628+00:00",
+      "delivery_mode": "symlink"
+    },
+    {
+      "skill_name": "spec-kitty",
+      "source_file": "SKILL.md",
+      "installed_path": ".agents/skills/spec-kitty/SKILL.md",
+      "installation_class": "shared-root-capable",
+      "agent_key": "gemini",
+      "content_hash": "sha256:3cc9ad33b2f8dbc1852e7531cf21aa8a19a1ca337017bd47cf2d2da3292dc2dc",
+      "installed_at": "2026-06-18T15:18:48.536091+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -2941,7 +2991,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "gemini",
       "content_hash": "sha256:807572d61b0fef9efe1bcfa03c6f7c70cdfa4cde3ea97676f734bf5b4d4aa650",
-      "installed_at": "2026-06-16T19:41:55.608185+00:00",
+      "installed_at": "2026-06-18T15:18:48.546233+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -2950,8 +3000,8 @@
       "installed_path": ".agents/skills/spec-kitty-charter-doctrine/SKILL.md",
       "installation_class": "shared-root-capable",
       "agent_key": "gemini",
-      "content_hash": "sha256:311e0185e495a1c516acc6c0cd96187f28312d68ba662c61ad8c30be0266706c",
-      "installed_at": "2026-06-16T19:41:55.613877+00:00",
+      "content_hash": "sha256:6b078d47404a54366793719fd10d0435ef9dd7ac6807dbce78958f84e7ce568b",
+      "installed_at": "2026-06-18T15:18:48.565873+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -2961,7 +3011,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "gemini",
       "content_hash": "sha256:fc6bc50e49fc02cbcfa7a08ba1c44dc8ab73990c11bc75ca1390ab8380e7381e",
-      "installed_at": "2026-06-16T19:41:55.613877+00:00",
+      "installed_at": "2026-06-18T15:18:48.565873+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -2971,7 +3021,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "gemini",
       "content_hash": "sha256:407195b2f9906fae3cd3a4681469e0ccdbc9a876c1cf8d1650f0e515232f56e4",
-      "installed_at": "2026-06-16T19:41:55.613877+00:00",
+      "installed_at": "2026-06-18T15:18:48.565873+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -2981,7 +3031,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "gemini",
       "content_hash": "sha256:d93fa7371dc719bbee27192d384bbd88773ff6d82023992bfd630aa032610622",
-      "installed_at": "2026-06-16T19:41:55.618853+00:00",
+      "installed_at": "2026-06-18T15:18:48.590854+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -2991,7 +3041,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "gemini",
       "content_hash": "sha256:f5496be4802402a8fb6f41e5ed70392b4b0e68a26004711512a25d99fe5bae6a",
-      "installed_at": "2026-06-16T19:41:55.618853+00:00",
+      "installed_at": "2026-06-18T15:18:48.590854+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -3001,7 +3051,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "gemini",
       "content_hash": "sha256:e9592a088d2d6d2e2ecf65eaa6a8d31f0dbe1e6f4236d5747d6fe26ea980e89e",
-      "installed_at": "2026-06-16T19:41:55.625864+00:00",
+      "installed_at": "2026-06-18T15:18:48.611391+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -3011,7 +3061,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "gemini",
       "content_hash": "sha256:9cddfccd64773976cf97450fa983dc8cc3aa7354a6002d763a7fa3ac65ff9ace",
-      "installed_at": "2026-06-16T19:41:55.625864+00:00",
+      "installed_at": "2026-06-18T15:18:48.611391+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -3021,7 +3071,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "gemini",
       "content_hash": "sha256:d2df36b399316d12d05b10b36dab19a3eb330ed9c502b9b0fa2bb35ecf8341c4",
-      "installed_at": "2026-06-16T19:41:55.625864+00:00",
+      "installed_at": "2026-06-18T15:18:48.611391+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -3030,8 +3080,8 @@
       "installed_path": ".agents/skills/spec-kitty-implement-review/SKILL.md",
       "installation_class": "shared-root-capable",
       "agent_key": "gemini",
-      "content_hash": "sha256:61156049f4abf1f781a6ad6f62286fa5f820cf807fcd33fd572141979d852fbb",
-      "installed_at": "2026-06-16T19:41:55.631975+00:00",
+      "content_hash": "sha256:c5a5449b7692904ace5585a6ccad4a271c5ac72259e5c7d5700a0ab285df15bd",
+      "installed_at": "2026-06-18T15:18:48.627341+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -3041,7 +3091,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "gemini",
       "content_hash": "sha256:d99ceb8ca16cdc42827c1dc0ae6e00f6de7a9b5fa30b8367c2a84a2205f75681",
-      "installed_at": "2026-06-16T19:41:55.631975+00:00",
+      "installed_at": "2026-06-18T15:18:48.627341+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -3051,7 +3101,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "gemini",
       "content_hash": "sha256:dcf6ffa8a173a5ea937a74fd1af4c0427f595008a00d91b5a7970a13f2e202ab",
-      "installed_at": "2026-06-16T19:41:55.631975+00:00",
+      "installed_at": "2026-06-18T15:18:48.627341+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -3061,7 +3111,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "gemini",
       "content_hash": "sha256:3914936f70e4bc4a0b1b209f40a58bb29983d00eaa954c1363b7c6949f3fa425",
-      "installed_at": "2026-06-16T19:41:55.637351+00:00",
+      "installed_at": "2026-06-18T15:18:48.642818+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -3071,7 +3121,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "gemini",
       "content_hash": "sha256:4ae2391cd2e4c3bdb32a25e7a8476612fb1b94d156a4250701c9f537e011f0fd",
-      "installed_at": "2026-06-16T19:41:55.637351+00:00",
+      "installed_at": "2026-06-18T15:18:48.642818+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -3080,8 +3130,8 @@
       "installed_path": ".agents/skills/spec-kitty-mission-system/SKILL.md",
       "installation_class": "shared-root-capable",
       "agent_key": "gemini",
-      "content_hash": "sha256:711529f18f2c10e05858aa87d8513270581cb0ccd996190ed065cbfc61328685",
-      "installed_at": "2026-06-16T19:41:55.642856+00:00",
+      "content_hash": "sha256:7516f34c2cfc0676e22ecd2dbd6a83e7dbb5146d4881b22b1c585bb4aadba4cb",
+      "installed_at": "2026-06-18T15:18:48.649016+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -3091,7 +3141,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "gemini",
       "content_hash": "sha256:9942d27336957053a25f99ab3606b319b2c010c01f36f3926f4660eacb9eaf95",
-      "installed_at": "2026-06-16T19:41:55.642856+00:00",
+      "installed_at": "2026-06-18T15:18:48.649016+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -3101,7 +3151,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "gemini",
       "content_hash": "sha256:ac22bccc1e14560b03a2568285d7e337192965ab84ebfc049ee05cf130e16010",
-      "installed_at": "2026-06-16T19:41:55.647751+00:00",
+      "installed_at": "2026-06-18T15:18:48.656564+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -3111,7 +3161,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "gemini",
       "content_hash": "sha256:f9f0e26519c2a69ad1beae7c2982300565abc5209e978ece1c8ca5ac6eff93c4",
-      "installed_at": "2026-06-16T19:41:55.647751+00:00",
+      "installed_at": "2026-06-18T15:18:48.656564+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -3121,7 +3171,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "gemini",
       "content_hash": "sha256:9cf4fa4a46d12bca8c66e33cc3567eb5e06dee4895f3569128ecc1ba1eaf557e",
-      "installed_at": "2026-06-16T19:41:55.647751+00:00",
+      "installed_at": "2026-06-18T15:18:48.656564+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -3131,7 +3181,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "gemini",
       "content_hash": "sha256:6048eb97b30159e9748fa83077f09f578b71df51988d7783d9523678e466cf80",
-      "installed_at": "2026-06-16T19:41:55.651110+00:00",
+      "installed_at": "2026-06-18T15:18:48.661466+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -3140,8 +3190,8 @@
       "installed_path": ".agents/skills/spec-kitty-runtime-next/SKILL.md",
       "installation_class": "shared-root-capable",
       "agent_key": "gemini",
-      "content_hash": "sha256:9df83e0f1b3e6911217fc9b4f1d69e277ff1689bc86b2849595b7aa65d0ae767",
-      "installed_at": "2026-06-16T19:41:55.656795+00:00",
+      "content_hash": "sha256:ce8b20b68b7805450cb0c9cddaf151bbf20f45d912146e2058758498af55c07c",
+      "installed_at": "2026-06-18T15:18:48.669098+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -3151,7 +3201,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "gemini",
       "content_hash": "sha256:0ff7709a8eaec348e7aee4cd9f1f62226e6c88d3e2f4a84d5c761a4607071179",
-      "installed_at": "2026-06-16T19:41:55.656795+00:00",
+      "installed_at": "2026-06-18T15:18:48.669098+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -3161,7 +3211,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "gemini",
       "content_hash": "sha256:e1386311442d926b1b5e17646cb56cf1f06cbabc474a95c4120794091b900c8b",
-      "installed_at": "2026-06-16T19:41:55.656795+00:00",
+      "installed_at": "2026-06-18T15:18:48.669098+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -3171,7 +3221,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "gemini",
       "content_hash": "sha256:c06d9fabb0ba6837efd7c44bfc6a222c34e91fd2aafa95a1e77227474eb2ca3c",
-      "installed_at": "2026-06-16T19:41:55.661806+00:00",
+      "installed_at": "2026-06-18T15:18:48.676029+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -3181,7 +3231,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "gemini",
       "content_hash": "sha256:9279016c3b96e71fbd5d06cbaedf719307fd4497afe1673af7a613a4e38b93ab",
-      "installed_at": "2026-06-16T19:41:55.661806+00:00",
+      "installed_at": "2026-06-18T15:18:48.676029+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -3191,7 +3241,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "gemini",
       "content_hash": "sha256:0bd689abc3c5583bf44501485c6ad26733454676a259935271131b7cf763e69e",
-      "installed_at": "2026-06-16T19:41:55.669327+00:00",
+      "installed_at": "2026-06-18T15:18:48.687400+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -3201,7 +3251,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "gemini",
       "content_hash": "sha256:aaf30ca564850325fab2a04f79d6cfb4522ed2cab7d07547a4730cb4ed8d6a8b",
-      "installed_at": "2026-06-16T19:41:55.669327+00:00",
+      "installed_at": "2026-06-18T15:18:48.687400+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -3211,7 +3261,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "gemini",
       "content_hash": "sha256:442a96b1ffd48b51e68e98995564dd7a7ce24403b53b30f8029c2f0b5e17c476",
-      "installed_at": "2026-06-16T19:41:55.669327+00:00",
+      "installed_at": "2026-06-18T15:18:48.687400+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -3221,7 +3271,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "gemini",
       "content_hash": "sha256:0af4323f4cc121dc8ffa5997d0b98edca8401f2c4076ef5fbde9ac1d7cdffc74",
-      "installed_at": "2026-06-16T19:41:55.673328+00:00",
+      "installed_at": "2026-06-18T15:18:48.693084+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -3231,7 +3281,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "gemini",
       "content_hash": "sha256:775d48a832a40756a83b5b2380217044a07d3343ac00cb5e8a8bb00f1319e7c7",
-      "installed_at": "2026-06-16T19:41:55.679294+00:00",
+      "installed_at": "2026-06-18T15:18:48.696566+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -3241,7 +3291,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "gemini",
       "content_hash": "sha256:215eafd3ae4c8eb0bb1b20bfc0dc74264519fb37405087b1595bb951060b255b",
-      "installed_at": "2026-06-16T19:41:55.684823+00:00",
+      "installed_at": "2026-06-18T15:18:48.701975+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -3251,7 +3301,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "gemini",
       "content_hash": "sha256:8cfb152041d1c23388b9018c65ce7dabd45d95c2a0096a94fcdeedad129010f8",
-      "installed_at": "2026-06-16T19:41:55.684823+00:00",
+      "installed_at": "2026-06-18T15:18:48.701975+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -3261,7 +3311,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "gemini",
       "content_hash": "sha256:14d25df8010b9cbea3d3d331a7e97d72725e88ca71c3c2559a66cb02c35c1dea",
-      "installed_at": "2026-06-16T19:41:55.688425+00:00",
+      "installed_at": "2026-06-18T15:18:48.705746+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -3271,7 +3321,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "gemini",
       "content_hash": "sha256:9a0be9f102262144ea88c40738add99d608d429806ba8a877e97f9b75bca4ea7",
-      "installed_at": "2026-06-16T19:41:55.691926+00:00",
+      "installed_at": "2026-06-18T15:18:48.709387+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -3281,7 +3331,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "gemini",
       "content_hash": "sha256:b7a55e9e2b34615dbed3423890e9ec0bef0c2327525cb31310e2e331fffe61bf",
-      "installed_at": "2026-06-16T19:41:55.696362+00:00",
+      "installed_at": "2026-06-18T15:18:48.713000+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -3291,7 +3341,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "gemini",
       "content_hash": "sha256:6ff391973da8c312833a25b2f47cc9a7ac16ab7ae3e90f61e0eb4e20eb24b243",
-      "installed_at": "2026-06-16T19:41:55.699968+00:00",
+      "installed_at": "2026-06-18T15:18:48.716283+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -3301,7 +3351,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "gemini",
       "content_hash": "sha256:4aa5bacce79f17941a5b6f659c743bb47a1836a483d4c5fb8b0930555946de62",
-      "installed_at": "2026-06-16T19:41:55.702930+00:00",
+      "installed_at": "2026-06-18T15:18:48.719751+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -3311,7 +3361,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "gemini",
       "content_hash": "sha256:5865af59913b63c48abe6058a5c96eeae2695d28bfdc1a98b52c0ac8a656d2af",
-      "installed_at": "2026-06-16T19:41:55.706614+00:00",
+      "installed_at": "2026-06-18T15:18:48.722905+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -3321,7 +3371,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "gemini",
       "content_hash": "sha256:39d9c571cbc895f4a75122a81dd6d861bcfc7532ccf37b308ccd4fc57713bd57",
-      "installed_at": "2026-06-16T19:41:55.709560+00:00",
+      "installed_at": "2026-06-18T15:18:48.725543+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -3331,7 +3381,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "gemini",
       "content_hash": "sha256:396e0c56e4adf6ef27008a5bcf758dc8efdca9a5b13acaf351ba3992ca9adcfb",
-      "installed_at": "2026-06-16T19:41:55.713114+00:00",
+      "installed_at": "2026-06-18T15:18:48.728576+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -3341,7 +3391,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "gemini",
       "content_hash": "sha256:9edcd544867d95d3de98cc884e1e2d3d9e61b4d24cf8468f5cb586772794eb94",
-      "installed_at": "2026-06-16T19:41:55.716206+00:00",
+      "installed_at": "2026-06-18T15:18:48.731453+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -3351,7 +3401,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "gemini",
       "content_hash": "sha256:6c674d1639103fc84478d69a25f5d35005b44160e9fb1738f067051d1eaf006a",
-      "installed_at": "2026-06-16T19:41:55.719778+00:00",
+      "installed_at": "2026-06-18T15:18:48.734757+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -3361,7 +3411,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "gemini",
       "content_hash": "sha256:9066c7b7f505f3d2b8e8f54372679c97f91caa02b55e4bc79b5aaefcf1400ba8",
-      "installed_at": "2026-06-16T19:41:55.723595+00:00",
+      "installed_at": "2026-06-18T15:18:48.738113+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -3371,7 +3421,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "gemini",
       "content_hash": "sha256:93ce4915ef305cd79db59de591c72da02b0bf686865ab803236c2f3cd5f95dcb",
-      "installed_at": "2026-06-16T19:41:55.728126+00:00",
+      "installed_at": "2026-06-18T15:18:48.740685+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -3381,7 +3431,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "gemini",
       "content_hash": "sha256:70c650dd350dc68d7f5d2461d4e55157991e671affa7f4b898491f8f398d4ffc",
-      "installed_at": "2026-06-16T19:41:55.731317+00:00",
+      "installed_at": "2026-06-18T15:18:48.743721+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -3391,7 +3441,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "gemini",
       "content_hash": "sha256:a7ecaa827b48932286bd94c685e95617bfa0491a8ca46beea4d5c0d31a71c9ca",
-      "installed_at": "2026-06-16T19:41:55.734208+00:00",
+      "installed_at": "2026-06-18T15:18:48.746825+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -3401,7 +3451,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "gemini",
       "content_hash": "sha256:cc28813302d88051da162e6e53af82daca91e5563ff41fb60c82148dc3f19f10",
-      "installed_at": "2026-06-16T19:41:55.737628+00:00",
+      "installed_at": "2026-06-18T15:18:48.749643+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -3411,7 +3461,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "gemini",
       "content_hash": "sha256:4c3d416b3923061c64f58bd77f279e1e04c31d7680280b07bc5bfdf43110e161",
-      "installed_at": "2026-06-16T19:41:55.743455+00:00",
+      "installed_at": "2026-06-18T15:18:48.754065+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -3421,7 +3471,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "gemini",
       "content_hash": "sha256:e5003be1506496672b1f5f5b2f67d44cd4cd5da8a81af5084ffa2bf83f93390f",
-      "installed_at": "2026-06-16T19:41:55.743455+00:00",
+      "installed_at": "2026-06-18T15:18:48.754065+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -3431,7 +3481,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "gemini",
       "content_hash": "sha256:806032aed42b95e16f13aa119d644ad5896f954965e1ef9b0e63dd0c71c5dacd",
-      "installed_at": "2026-06-16T19:41:55.746546+00:00",
+      "installed_at": "2026-06-18T15:18:48.757551+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -3441,7 +3491,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "gemini",
       "content_hash": "sha256:6daafc7db930481349d4796fa42b5f8850d06c6b7bf1698b1cdd3a033f366af0",
-      "installed_at": "2026-06-16T19:41:55.749506+00:00",
+      "installed_at": "2026-06-18T15:18:48.761587+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -3451,7 +3501,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "gemini",
       "content_hash": "sha256:b3e82611f3dcee368c249013ef0ca4cddecf166d67e2563c92209b84af0a9071",
-      "installed_at": "2026-06-16T19:41:55.753272+00:00",
+      "installed_at": "2026-06-18T15:18:48.764388+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -3461,7 +3511,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "gemini",
       "content_hash": "sha256:a86a6e3c887521bd82ae00e19dbe214945c1d7534798a72cbee37e6bd6bb82c5",
-      "installed_at": "2026-06-16T19:41:55.757592+00:00",
+      "installed_at": "2026-06-18T15:18:48.771535+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -3471,7 +3521,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "gemini",
       "content_hash": "sha256:ffb48b9750702cd1025f83a23212809c45268748c6f042ae22c291daab0f8f7a",
-      "installed_at": "2026-06-16T19:41:55.761063+00:00",
+      "installed_at": "2026-06-18T15:18:48.775716+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -3481,7 +3531,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "gemini",
       "content_hash": "sha256:22365265b08b80842473b5f2f801eb5e609e0293ada65e91cf390465451987f3",
-      "installed_at": "2026-06-16T19:41:55.763986+00:00",
+      "installed_at": "2026-06-18T15:18:48.780506+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -3491,7 +3541,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "gemini",
       "content_hash": "sha256:ccf960cf27f5b3e77c2c6736eae0912fe539f3e147700eaa3235491d78279247",
-      "installed_at": "2026-06-16T19:41:55.767043+00:00",
+      "installed_at": "2026-06-18T15:18:48.783646+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -3501,7 +3551,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "gemini",
       "content_hash": "sha256:34d6a08406e0baef0c2d492133dd0282794914b8b12cd6b98fde2abd6116464b",
-      "installed_at": "2026-06-16T19:41:55.770096+00:00",
+      "installed_at": "2026-06-18T15:18:48.788597+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -3511,7 +3561,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "gemini",
       "content_hash": "sha256:52a766928bd8dffc657b243bce0ea9e01f6a0679bfe48cddad996841e84eaa38",
-      "installed_at": "2026-06-16T19:41:55.773982+00:00",
+      "installed_at": "2026-06-18T15:18:48.794231+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -3521,7 +3571,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "gemini",
       "content_hash": "sha256:d2a3eb9cffa38e4e3dde914da448b13d27813b05845b1d274efdfd8629211d7a",
-      "installed_at": "2026-06-16T19:41:55.777078+00:00",
+      "installed_at": "2026-06-18T15:18:48.799164+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -3531,7 +3581,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "gemini",
       "content_hash": "sha256:0f12f35abb4dc86c0d674cafd94f8f85263c35dcda9daf8d62cc16a45bc194b1",
-      "installed_at": "2026-06-16T19:41:55.780510+00:00",
+      "installed_at": "2026-06-18T15:18:48.802914+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -3541,7 +3591,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "gemini",
       "content_hash": "sha256:22e09ee2309ab45f9cb0e18d5d903f0ed489509bca5d38ef3767822350624a19",
-      "installed_at": "2026-06-16T19:41:55.785502+00:00",
+      "installed_at": "2026-06-18T15:18:48.807775+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -3551,7 +3601,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "gemini",
       "content_hash": "sha256:d8c94122c25f61a048ca417df1e1efd813a943943f40227ef620d3c1d9818116",
-      "installed_at": "2026-06-16T19:41:55.793622+00:00",
+      "installed_at": "2026-06-18T15:18:48.813418+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -3561,7 +3611,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "gemini",
       "content_hash": "sha256:1f8bed16b2bbcc86dbe54973fc8ed2b10cc96e12541eabd219ff143f046e1e37",
-      "installed_at": "2026-06-16T19:41:55.793622+00:00",
+      "installed_at": "2026-06-18T15:18:48.813418+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -3571,7 +3621,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "gemini",
       "content_hash": "sha256:4dca2ebb1a910ad8afea393d6b65c44a496f0a2991d9c893d17166d4a844b187",
-      "installed_at": "2026-06-16T19:41:55.798271+00:00",
+      "installed_at": "2026-06-18T15:18:48.817353+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -3581,7 +3631,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "gemini",
       "content_hash": "sha256:c7556425f808f9ff537466c17fae27e6b8892d39dee4263054403420cc28097a",
-      "installed_at": "2026-06-16T19:41:55.803496+00:00",
+      "installed_at": "2026-06-18T15:18:48.821651+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -3591,7 +3641,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "gemini",
       "content_hash": "sha256:695f10211c79069f4f76294ce0276948aca0670475eea794452b164d67b11af9",
-      "installed_at": "2026-06-16T19:41:55.808905+00:00",
+      "installed_at": "2026-06-18T15:18:48.825519+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -3601,7 +3651,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "gemini",
       "content_hash": "sha256:2eaf4f80e7b0b2390327f383f6a03f5ac3b9590e5848ee6cfa98a43b4b0ded5f",
-      "installed_at": "2026-06-16T19:41:55.813630+00:00",
+      "installed_at": "2026-06-18T15:18:48.828552+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -3611,7 +3661,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "gemini",
       "content_hash": "sha256:5edfff458df8cc99c61a45af1e15a44f8741f47644e69dcb7072f0edd10c10c7",
-      "installed_at": "2026-06-16T19:41:55.817843+00:00",
+      "installed_at": "2026-06-18T15:18:48.832237+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -3621,7 +3671,7 @@
       "installation_class": "shared-root-capable",
       "agent_key": "gemini",
       "content_hash": "sha256:3723263b469b74a5f74771e4cb6f19f168f73faa0e03f149ddd6fe2f6f015eb9",
-      "installed_at": "2026-06-16T19:41:55.821446+00:00",
+      "installed_at": "2026-06-18T15:18:48.836856+00:00",
       "delivery_mode": "symlink"
     }
   ]

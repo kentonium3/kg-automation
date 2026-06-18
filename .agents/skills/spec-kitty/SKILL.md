@@ -1,0 +1,1 @@
+/Users/kentgale/.agents/skills/spec-kitty/SKILL.md
