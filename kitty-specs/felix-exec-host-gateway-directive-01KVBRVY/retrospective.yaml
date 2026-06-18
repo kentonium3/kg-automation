@@ -1,0 +1,74 @@
+schema_version: 1
+mission_id: 01KVBRVYC0GG1G4CFB1AYKW67V
+mission_slug: felix-exec-host-gateway-directive-01KVBRVY
+mission_number: 80
+friendly_name: Felix exec host=gateway directive
+mission_type: software-dev
+target_branch: fix/felix-exec-host-gateway-directive
+created_at: '2026-06-18T14:41:42.533446+00:00'
+created_by:
+  kind: human
+  id: cli
+  display: spec-kitty retrospect
+provenance:
+  kind: explicit_create
+  invoked_at: '2026-06-18T14:41:42.533446+00:00'
+  policy_resolved_from:
+    enabled: <default>
+    timing: <default>
+    failure_policy: <default>
+    write_record: <default>
+    generate_proposals: <default>
+    apply_proposals: <default>
+    permissions.write_record: <default>
+    permissions.inspect_mission_artifacts: <default>
+    permissions.propose_glossary_changes: <default>
+    permissions.propose_drg_changes: <default>
+    permissions.propose_doctrine_changes: <default>
+    permissions.apply_low_risk_changes: <default>
+    permissions.apply_structural_changes: <default>
+    precedence: <default>
+    generator: <default>
+  command: spec-kitty retrospect create
+policy_source:
+  enabled: <default>
+  timing: <default>
+  failure_policy: <default>
+  write_record: <default>
+  generate_proposals: <default>
+  apply_proposals: <default>
+  permissions.write_record: <default>
+  permissions.inspect_mission_artifacts: <default>
+  permissions.propose_glossary_changes: <default>
+  permissions.propose_drg_changes: <default>
+  permissions.propose_doctrine_changes: <default>
+  permissions.apply_low_risk_changes: <default>
+  permissions.apply_structural_changes: <default>
+  precedence: <default>
+  generator: <default>
+findings_status: ran_no_findings
+helped: []
+not_helpful: []
+gaps: []
+proposals: []
+evidence_refs:
+- id: e-001
+  kind: file
+  path: kitty-specs/felix-exec-host-gateway-directive-01KVBRVY/meta.json
+- id: e-002
+  kind: file
+  path: kitty-specs/felix-exec-host-gateway-directive-01KVBRVY/spec.md
+- id: e-003
+  kind: file
+  path: kitty-specs/felix-exec-host-gateway-directive-01KVBRVY/plan.md
+- id: e-004
+  kind: file
+  path: kitty-specs/felix-exec-host-gateway-directive-01KVBRVY/tasks.md
+- id: e-005
+  kind: file
+  path: kitty-specs/felix-exec-host-gateway-directive-01KVBRVY/tasks/WP01-add-exec-host-gateway-directive.md
+- id: e-006
+  kind: file
+  path: kitty-specs/felix-exec-host-gateway-directive-01KVBRVY/status.events.jsonl
+generator_version: '1.0'
+provenance_history: []
