@@ -2,10 +2,10 @@
 title: kg-automation Engineering Principles
 doc_type: standard
 status: approved
-last_updated: '2026-06-05'
-last_validated: '2026-06-05'
+last_updated: '2026-06-19'
+last_validated: '2026-06-19'
 owners: [kgale]
-version: '1.0'
+version: '1.1'
 tags: [architecture, principles, governance]
 ---
 
@@ -14,10 +14,16 @@ tags: [architecture, principles, governance]
 These principles sit between broad Felix governance and individual feature
 specs. They are intended to guide new work before it creates retrofit debt.
 
-Approved 2026-06-05 from the architecture review report at
+Principles 1–10 approved 2026-06-05 from the architecture review report at
 `docs/research/kg-automation-architecture-review/`. Constitution Directive 6
 will reference this document; CLAUDE.md gains an "Engineering Principles"
 section pointing here in a follow-on commit.
+
+Principles 11–13 added 2026-06-19 (kentonium3/kg-automation#624), adapted from
+the [system-design-primer](https://github.com/donnemartin/system-design-primer)
+and selected for a single-server, solo-operator system. The charter's
+`## Design Principles` section is the spec-kitty-active subset that cross-references
+these entries.
 
 ## 1. Runtime Truth Must Have a Machine-Readable State
 
@@ -86,3 +92,32 @@ failure observer, and response route before implementation.
 When a pattern recurs, add a small validator, template checkbox, shared helper,
 or issue-template prompt while the pattern is still small. Avoid waiting until a
 Felix-wide retrofit is necessary.
+
+## 11. Retryable Operations Must Be Idempotent
+
+Any operation that can fire more than once — cron-triggered runs, agent actions
+that may be retried, deploy applies, task/inbox creation — must be safe to replay
+without duplicating or corrupting state. Creation paths check for an existing
+record before inserting; partial-update APIs are treated as read-modify-write
+(e.g. Vikunja POST zeroes unstated fields); deploy applies are gated and
+re-runnable. A second identical run that yields different state is a defect, not
+an edge case.
+
+## 12. Decouple Producers and Consumers
+
+Components that hand work to each other should communicate through a durable queue
+or a polled store, not a tight synchronous call, so that a slow or failed
+component degrades locally instead of blocking the rest. The inbox is a file queue
+drained by cron; Felix↔Vikunja sync is ~5-minute polling rather than webhooks. New
+agent-to-agent paths default to a queue/poll boundary. This principle grows in
+weight as more agents are added.
+
+## 13. No Single Point of Failure Without a Recovery Path
+
+For each new stateful component, identify what its loss would stop and ensure a
+recovery path exists. On a deliberately single-host system (office2) the
+mitigation is backup + degraded-mode operation, not redundancy: Tier 2 changes
+require a Restic snapshot ≤24h, the daily security audit and felix-deployer are
+the drift safety nets, and any new stateful dependency documents how it is
+restored. A component whose loss is unrecoverable and undocumented is a latent
+outage.

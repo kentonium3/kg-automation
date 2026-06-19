@@ -41,6 +41,66 @@ This system is built by a solo operator who sets direction and makes judgment ca
 
 **Standing obligation:** Any work that creates a new service, agent, script, cron job, data flow, or operational pattern MUST leave behind enough documentation for a cold-start AI session to discover, understand, and safely modify it. "It works" is not sufficient; "it works and the next agent can find it, understand why, and change it safely" is the bar.
 
+## Design Principles
+
+Beyond the foundational *Self-Documenting and Self-Discoverable* principle above,
+these design principles are evaluated during `/spec-kitty.plan`. A proposed design
+should be assessable against each as **satisfies / violates / has tension with**.
+They are the charter-active subset, adapted from the
+[system-design-primer](https://github.com/donnemartin/system-design-primer) for a
+single-server, solo-operator system; full rationale and the broader catalog live
+in `docs/design/engineering-principles.md`. Large-scale distributed-systems
+concepts (sharding, CDN, load balancing, multi-region replication) are out of
+scope and must not be raised as objections.
+
+1. **Separation of concerns (stochastic vs. deterministic split).** Mechanically
+   verifiable work belongs in a tested helper/library; agent prompts are reserved
+   for judgment, classification, and interpretation. *In practice:* every plan
+   identifies which steps are deterministic (→ helper under `scripts/<domain>/`,
+   per `docs/design/helper-script-conventions.md`) and which need an LLM.
+   Reinforces DIRECTIVE_001 and engineering-principle #2.
+
+2. **Idempotency.** Any operation that can be retried — cron runs, agent actions,
+   deploy applies, task creation — must be safe to replay without duplicating or
+   corrupting state. *In practice:* inbox/task creation checks for an existing
+   record before inserting; Vikunja writes are read-modify-write (POST zeroes
+   unstated fields); deploy applies are gated and re-runnable. A design that
+   yields different state on a second identical run violates this.
+   See engineering-principle #11.
+
+3. **Graceful failure (degrade, don't cascade).** A failing agent, tool, or
+   external dependency must fail loudly into a recoverable state, never silently
+   corrupt data or take down adjacent components. *In practice:* every component
+   exposes a state signal (`healthy/degraded/failed/stale/disabled/suspended`,
+   engineering-principle #1); failures emit an observable signal (ntfy/last-tick)
+   and leave prior good state intact. Fail-loud-not-silent.
+
+4. **Observability before optimization.** Measure real workload and failure modes
+   before adding routing, caching, parallelism, or scaling machinery. *In
+   practice:* every new deployed component or scheduled job defines its health
+   signal, failure observer, and response route *before* implementation
+   (engineering-principle #9). Don't optimize a path whose cost or frequency is
+   unmeasured.
+
+5. **Asynchronism / decoupling.** Producers and consumers communicate through a
+   durable queue or polled store, not tight synchronous coupling, so a slow or
+   down component doesn't block the rest. *In practice:* inbox is file-queue +
+   cron; Felix↔Vikunja sync is ~5-min polling, not webhooks; new agent-to-agent
+   paths default to a queue/poll boundary. Grows in relevance as agents are added.
+   See engineering-principle #12.
+
+6. **Avoid single points of failure.** Identify the component whose loss stops the
+   system and ensure a recovery path exists — for a single-host design that means
+   backup + degraded-mode operation, not redundancy. *In practice:* Tier 2 changes
+   require a Restic snapshot ≤24h; the daily audit and felix-deployer are the
+   drift safety nets; document the recovery path for any new stateful dependency.
+   See engineering-principle #13.
+
+**Lower-relevance now (revisit if the substrate changes):** consistency patterns
+and replication apply only if a second data store or sync layer is introduced.
+Remaining primer topics (CAP theorem, load balancing, CDN, sharding) do not apply
+to this single-server, Tailscale-internal, solo-operator context.
+
 ## Two Constitutions — Don't Conflate
 
 This project has two distinct governance artifacts. Both exist intentionally:
