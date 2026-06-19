@@ -15,9 +15,9 @@ These principles sit between broad Felix governance and individual feature
 specs. They are intended to guide new work before it creates retrofit debt.
 
 Principles 1–10 approved 2026-06-05 from the architecture review report at
-`docs/research/kg-automation-architecture-review/`. Constitution Directive 6
-will reference this document; CLAUDE.md gains an "Engineering Principles"
-section pointing here in a follow-on commit.
+`docs/research/kg-automation-architecture-review/`. CLAUDE.md's "Engineering
+Principles" section points here; the sibling `docs/design/helper-script-conventions.md`
+is the doc referenced from Felix Constitution Directive 6.
 
 Principles 11–13 added 2026-06-19 (kentonium3/kg-automation#624), adapted from
 the [system-design-primer](https://github.com/donnemartin/system-design-primer)
