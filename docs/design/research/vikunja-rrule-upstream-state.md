@@ -173,7 +173,7 @@ roughly highest leverage first:
 
 1. **PR #2032 — comment requesting re-review.** This is the single
    highest-leverage spot. A community user already did this on 2026-05-15
-   ("`@kolaente can you take a new look at this PR? Thanks!`") with no
+   ("`kolaente can you take a new look at this PR? Thanks!`") with no
    maintainer response yet. A second voice pinging in support — ideally
    referencing concrete CalDAV / weekly-recurrence use cases — would
    reinforce the signal that this PR has user demand behind it.
