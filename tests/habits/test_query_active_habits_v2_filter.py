@@ -113,6 +113,85 @@ def test_boundary_inclusive(mock_sync_cache_fixture):
     assert result[0]["id"] == 7
 
 
+def test_end_of_day_et_due_date_included_on_its_own_day(mock_sync_cache_fixture):
+    """Regression for #607: a habit due at end-of-day ET is included today.
+
+    Vikunja stores due_dates in UTC. A habit due Friday 23:59:59 ET is
+    stored as ``2026-06-20T03:59:59Z`` (the next UTC calendar day). The old
+    lexicographic ``<today>T23:59:59Z`` boundary excluded it on Friday, so
+    the Mon/Wed/Fri strength-training habits never appeared on their own
+    day. The boundary is now a tz-aware end-of-day in America/New_York, so
+    the task is correctly included.
+    """
+    mock_sync_cache_fixture(
+        tasks={
+            77: _task_fields(
+                title="Strength training — Friday",
+                done=False,
+                due_date="2026-06-20T03:59:59Z",  # Fri 23:59:59 ET in UTC
+            ),
+        },
+    )
+
+    result = qv2.query_active_today(today="2026-06-19")  # Friday
+
+    assert len(result) == 1
+    assert result[0]["id"] == 77
+
+
+def test_next_utc_day_but_still_today_et_is_included(mock_sync_cache_fixture):
+    """A due_date just after UTC midnight but still 'today' in ET is kept.
+
+    ``2026-06-20T02:00:00Z`` is 2026-06-19 22:00 ET — still Kent's Friday.
+    The tz-aware boundary includes it; the old UTC-string compare dropped it.
+    """
+    mock_sync_cache_fixture(
+        tasks={
+            5: _task_fields(title="Late ET today", done=False, due_date="2026-06-20T02:00:00Z"),
+        },
+    )
+
+    result = qv2.query_active_today(today="2026-06-19")
+
+    assert len(result) == 1
+    assert result[0]["id"] == 5
+
+
+def test_unset_due_date_sentinel_still_included(mock_sync_cache_fixture):
+    """Vikunja's unset-due-date sentinel (0001-01-01) remains INCLUDED.
+
+    Confirms the tz-aware boundary preserves the prior behavior where a
+    far-past sentinel passes the ``<= boundary`` filter.
+    """
+    mock_sync_cache_fixture(
+        tasks={
+            9: _task_fields(title="No due date", done=False, due_date="0001-01-01T00:00:00Z"),
+        },
+    )
+
+    result = qv2.query_active_today(today="2026-06-19")
+
+    assert len(result) == 1
+    assert result[0]["id"] == 9
+
+
+def test_genuinely_future_task_still_excluded(mock_sync_cache_fixture):
+    """A task due a full day in the future (in ET) is still excluded.
+
+    Guards against the boundary fix over-including: Saturday's task must not
+    leak into Friday's list.
+    """
+    mock_sync_cache_fixture(
+        tasks={
+            8: _task_fields(title="Tomorrow ET", done=False, due_date="2026-06-21T03:59:59Z"),
+        },
+    )
+
+    result = qv2.query_active_today(today="2026-06-19")
+
+    assert result == []
+
+
 def test_cache_missing_propagates_oserror(tmp_path, monkeypatch):
     """A missing cache surfaces as OSError (replaces the old HTTP 400 test).
 

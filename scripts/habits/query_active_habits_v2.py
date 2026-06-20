@@ -6,14 +6,14 @@
 Replaces the comment-parsing / day-of-week descriptor approach of the v1
 sibling (``scripts/habits/query_active_habits.py``) with a project-scoped
 task enumeration + a Python-side filter equivalent to
-``due_date <= <today>T23:59:59Z AND done == false``. The v1 sibling
+``due_date <= <end-of-day ET today> AND done == false``. The v1 sibling
 continues to drive the felix-admin-habits cron until Phase 5 cutover
 (#308); both files coexist until then.
 
 The helper:
   1. Reads all tasks from the Felix sync cache (``scripts/common/sync_cache``).
   2. Applies a Python-side filter equivalent to
-     ``done == False AND due_date <= <today>T23:59:59Z`` scoped to the
+     ``done == False AND due_date <= <end-of-day ET today>`` scoped to the
      Habits project. The cache is populated and kept fresh by the
      felix-vikunja-sync driver (mission #518).
   3. Returns the list of matching task dicts on stdout as JSONL.
@@ -52,6 +52,7 @@ import re
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 from scripts.common.sync_cache import (
     SLA_NORMAL,
@@ -105,6 +106,12 @@ HABITS_PROJECT_TITLE = "Habits"
 #: Regex for the --today flag (ISO-8601 date).
 _DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
+#: Timezone for the day-boundary anchor. Habit due_dates are written as
+#: end-of-day Eastern (see scripts/habits/compute_today.py, issue #112);
+#: the read-side boundary must use the same zone or day-specific habits are
+#: dropped on their own day (#607).
+_ET_ZONE = "America/New_York"
+
 #: Map Python ``datetime.weekday()`` ints (Mon=0..Sun=6) to 3-letter names.
 _WEEKDAY_BY_INDEX: tuple[str, ...] = (
     "Mon",
@@ -157,8 +164,10 @@ def query_active_today(
     Reads all tasks from the sync cache at
     /data/services/openclaw/state/sync/task-cache.json and filters
     client-side for ``done == False`` AND
-    ``due_date <= <today>T23:59:59Z``, scoped to the Habits project
-    (``project_id`` field in the cached task fields).
+    ``due_date <= <end-of-day ET today>``, scoped to the Habits project
+    (``project_id`` field in the cached task fields). The boundary is a
+    timezone-aware end-of-day in America/New_York (not a UTC string), so
+    habits due at end-of-day ET are not dropped on their own day (#607).
 
     **Day-of-week filter (mission #408)**: when ``schedule_path`` is
     supplied, the function loads the habit schedule via
@@ -204,15 +213,22 @@ def query_active_today(
     )
 
     # Client-side filter — equivalent to the rejected server-side filter
-    # ``due_date <= <today>T23:59:59Z AND done = false``:
+    # ``due_date <= <end-of-day ET today> AND done = false``:
     #   - exclude tasks with ``done == True``
-    #   - include tasks where ``due_date`` (string lex compare) is
-    #     non-empty AND ``<= boundary``. Vikunja's unset-due-date
-    #     sentinel ``"0001-01-01T00:00:00Z"`` lex-compares less than the
-    #     boundary, so unset-due-date tasks are INCLUDED (same behavior
-    #     the server-side filter would have produced). An empty-string
-    #     ``due_date`` (truly absent field) is excluded.
-    boundary = f"{today_date}T23:59:59Z"
+    #   - include tasks whose ``due_date`` is non-empty AND ``<= boundary``.
+    #
+    # The boundary is a TIMEZONE-AWARE end-of-day in America/New_York, NOT a
+    # lexicographic ``<today>T23:59:59Z`` (UTC) string. Vikunja stores
+    # due_dates in UTC; a habit due at end-of-day ET (e.g. Friday
+    # 23:59:59 ET) is the *next* calendar day in UTC (Saturday 03:59:59Z).
+    # A naive UTC-string compare dropped such day-specific habits on their
+    # own day — the #112 fix resurfacing on the read side (#607). Comparing
+    # tz-aware datetimes anchored to end-of-day ET fixes it. Vikunja's
+    # unset-due-date sentinel ``"0001-01-01T00:00:00Z"`` parses to a
+    # far-past datetime and stays INCLUDED (same as before); an empty-string
+    # ``due_date`` (truly absent field) is excluded.
+    _y, _m, _d = (int(part) for part in today_date.split("-"))
+    boundary = datetime(_y, _m, _d, 23, 59, 59, tzinfo=ZoneInfo(_ET_ZONE))
     candidates: list[dict] = []
     for task_id, view in cached_tasks.items():
         if view.is_private:
@@ -223,7 +239,22 @@ def query_active_today(
         if fields.get("done", False):
             continue
         due = fields.get("due_date") or ""
-        if not due or due > boundary:
+        if not due:
+            continue  # truly-absent due date — excluded (unchanged)
+        try:
+            due_dt = datetime.fromisoformat(due.replace("Z", "+00:00"))
+        except ValueError:
+            # Malformed timestamp in the cache — exclude and warn rather than
+            # crash the morning check-in for every habit.
+            print(
+                f"WARN: habit task_id={task_id} has unparseable due_date "
+                f"{due!r} — excluding",
+                file=sys.stderr,
+            )
+            continue
+        if due_dt.tzinfo is None:
+            due_dt = due_dt.replace(tzinfo=timezone.utc)
+        if due_dt > boundary:
             continue
         # Reconstruct the dict shape callers expect (same fields as the old
         # Vikunja GET /projects/<id>/tasks response body).
@@ -285,7 +316,7 @@ def build_parser() -> argparse.ArgumentParser:
             "Reads active habit tasks from the Felix sync cache at "
             "/data/services/openclaw/state/sync/task-cache.json. "
             "Applies a Python-side filter equivalent to "
-            "`due_date <= <today>T23:59:59Z AND done == false`. "
+            "`due_date <= <end-of-day ET today> AND done == false`. "
             "Emits one JSON object per active task on stdout (newline-delimited). "
             "Exits 0 on success (empty result OK), 2 on usage error, "
             "3 on cache error (missing or stale cache)."

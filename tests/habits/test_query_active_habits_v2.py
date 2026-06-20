@@ -97,11 +97,16 @@ class TestHappyPath:
         assert result[0]["id"] == 14
 
     def test_excludes_future_due_date(self, mock_sync_cache_fixture):
-        """Tasks with due_date > today boundary are excluded."""
+        """Tasks with due_date > today boundary are excluded.
+
+        Note (#607): "Tomorrow" must be genuinely the next ET day. A
+        ``T00:00:00Z`` timestamp is only 8pm ET the *prior* day, i.e. still
+        today in Eastern, so the tz-aware boundary correctly includes it.
+        """
         mock_sync_cache_fixture(
             tasks={
                 14: _task_fields(title="Today", due_date="2026-05-20T08:00:00Z"),
-                15: _task_fields(title="Tomorrow", due_date="2026-05-21T00:00:00Z"),
+                15: _task_fields(title="Tomorrow", due_date="2026-05-21T08:00:00Z"),
             },
         )
         result = qv2.query_active_today(today="2026-05-20")
@@ -227,7 +232,9 @@ class TestTodayOverride:
         mock_sync_cache_fixture(
             tasks={
                 1: _task_fields(title="Before", due_date="2026-05-15T08:00:00Z"),
-                2: _task_fields(title="After", due_date="2026-05-16T00:00:00Z"),
+                # Genuinely the next ET day (#607): T00:00:00Z is still 8pm ET
+                # of 05-15, which the tz-aware boundary correctly keeps.
+                2: _task_fields(title="After", due_date="2026-05-16T08:00:00Z"),
             },
         )
         result = qv2.query_active_today(today="2026-05-15")
