@@ -146,6 +146,24 @@ and wait for the upstream fix.
 - Internal tracker: kentonium3/kg-automation#606 (rc44 path-resolution
   residuals; references upstream #1666 / #1716) — updated with this journal link.
 
-## Reporting status
-- Upstream #1716 evidence comment: **drafted, pending operator posting approval.**
-- Internal #606: updated with journal link + repro summary.
+## Reporting status — STOOD DOWN (2026-06-20)
+**Decision: do not post upstream.** The blocker is already known and the fix is
+actively in flight; a 3.2.1 "still broken" comment would be noise.
+
+Upstream state checked before deciding:
+- **#1716** OPEN, `priority:P0`, `launch-blocker` — write-side coord/primary
+  desync (our spec→feat / plan→coord split). Write-side fixes already merged:
+  PR #2020 + #2015 (2026-06-17).
+- **PR #2045** closed as **superseded** (today), consolidating onto branch
+  `feat/read-side-surface-resolver-adoption`, which stacks #2046.
+- **#2046** OPEN — read-side residual: operator read CLIs (`agent tasks status`
+  at `tasks.py ~4052`, `agent context`, `agent mission`, `decision`,
+  `acceptance`) bypass the canonical resolver; bare-slug + coord-topology →
+  silent **primary** read. This is exactly our resolver-inconsistency finding,
+  already root-caused to source lines with a 4-cell strict-xfail matrix.
+
+**Mapping:** our write-side split = #1716; our resolver inconsistency = #2046.
+Both already captured + being fixed. Nothing additive to contribute.
+
+**Action: none — wait for the fix to land in a release, then re-validate** before
+retrying the mission. Internal record: this journal + kentonium3/kg-automation#606.
