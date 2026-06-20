@@ -30,3 +30,11 @@ jobs:
       # validator catching its own step name.
       - name: Validate privacy boundary lint (no stale legacy growth-private references in active surfaces)
         run: python tooling/scripts/validate_privacy_boundary.py
+
+      # Semantic validation of the architecture data store (#544). Warn-only in
+      # this phase: the script exits 0 and emits ::warning:: annotations, so it
+      # cannot turn the build red while the current data still has known
+      # violations (corrected under #545). Flip to a blocking gate by adding
+      # --strict here once #545 lands. Uses only the stdlib — no extra deps.
+      - name: Validate architecture data (semantic, warn-only — #544)
+        run: python tooling/scripts/validate_architecture_data.py --github
