@@ -3,7 +3,7 @@ title: Spec-Kitty — Install, Initialize, Upgrade
 doc_type: runbook
 audience: humans
 status: active
-last_validated: 2026-06-14
+last_validated: 2026-06-23
 ---
 
 # Spec-Kitty — Install, Initialize, Upgrade
@@ -19,7 +19,10 @@ Authoritative paths and versions on Kent's Mac (as of 2026-06-14):
 - pipx venv: `/Users/kentgale/.local/pipx/venvs/spec-kitty-cli/`
 - binary: `/Users/kentgale/.local/bin/spec-kitty`
 - PyPI package name: `spec-kitty-cli` (NOT `spec-kitty`; the latter 404s)
-- Spec-kitty-initialized repos: `metalbox`, `bake-planner`, `intentional`, `bake-tracker`, `kg-automation`
+- Spec-kitty-initialized repos: `metalbox`, `bake-planner`, `intentional`, `bake-tracker`, `kg-automation`, `spec-kitty-analyzer-harness`, `vikunja-harness`
+  - **The list grows.** Rather than trust this line, discover the live set on demand:
+    `for d in /Users/kentgale/repos/*/; do [ -d "$d/.kittify" ] && [ -d "$d/.git" ] && basename "$d"; done`
+    (excludes the spec-kitty **source** repo only if you filter it out — it has `.kittify/` because it dogfoods, but is **not** a consumer; never run `upgrade --project` on it).
 
 ---
 
@@ -40,6 +43,19 @@ spec-kitty --version
 ```
 
 If the binary isn't on `PATH`, run `pipx ensurepath` and open a new shell.
+
+### ⚠️ Which `spec-kitty` binary am I running? (matters while 3.2.2 is main-only)
+
+There can be **two** `spec-kitty` binaries on this Mac:
+
+| Install | Path | What it is | Use for |
+|---|---|---|---|
+| **pipx (canonical)** | `~/.local/bin/spec-kitty` | Frozen build; currently 3.2.2 from upstream `main@aeb8dfc31` (no PyPI 3.2.2 yet) | **Managing these consumer repos** |
+| **editable dev** | `~/repos/spec-kitty/.venv/bin/spec-kitty` | Runs live from the spec-kitty **source** working tree; reflects whatever branch is checked out | **Developing spec-kitty itself** |
+
+When the source `.venv` is **activated**, it sits *first* on `PATH` and shadows pipx — so a bare `spec-kitty` runs the **dev build off the current branch**, not clean main. Both currently report `3.2.2`, so you can't tell them apart by `--version`.
+
+**Rule until a real 3.2.2 release lands:** for consumer-repo work, run from a shell where the source `.venv` is **not** active (or call `~/.local/bin/spec-kitty` by full path, or `deactivate` first). Confirm with `type -a spec-kitty` (first line wins) or `command -v spec-kitty`.
 
 ---
 
@@ -94,7 +110,7 @@ Spec-kitty migrations applied mid-mission can permanently break that mission's a
 The authoritative signal is git worktrees — an active mission always has a coord/target worktree:
 
 ```bash
-for repo in metalbox bake-planner intentional bake-tracker kg-automation; do
+for repo in metalbox bake-planner intentional bake-tracker kg-automation spec-kitty-analyzer-harness vikunja-harness; do
   d=/Users/kentgale/repos/$repo
   echo "=== $repo ==="
   (cd "$d" && git worktree list 2>/dev/null | grep -v "^$d ")
@@ -121,7 +137,7 @@ pipx install --force "spec-kitty-cli==3.2.0rc44"
 Dry-run first to inspect the plan:
 
 ```bash
-for repo in metalbox bake-planner intentional bake-tracker kg-automation; do
+for repo in metalbox bake-planner intentional bake-tracker kg-automation spec-kitty-analyzer-harness vikunja-harness; do
   echo "=== $repo ==="
   (cd /Users/kentgale/repos/$repo && spec-kitty upgrade --project --dry-run 2>&1 | tail -15)
 done
@@ -130,7 +146,7 @@ done
 Then apply per repo:
 
 ```bash
-for repo in metalbox bake-planner intentional bake-tracker kg-automation; do
+for repo in metalbox bake-planner intentional bake-tracker kg-automation spec-kitty-analyzer-harness vikunja-harness; do
   echo "=== $repo ==="
   (cd /Users/kentgale/repos/$repo && spec-kitty upgrade --project --yes 2>&1 | tail -10)
 done
@@ -141,7 +157,7 @@ Each successful upgrade auto-commits a `chore: apply spec-kitty upgrade changes 
 Verify the version stamp in every repo:
 
 ```bash
-for repo in metalbox bake-planner intentional bake-tracker kg-automation; do
+for repo in metalbox bake-planner intentional bake-tracker kg-automation spec-kitty-analyzer-harness vikunja-harness; do
   v=$(grep -E '^  version:' /Users/kentgale/repos/$repo/.kittify/metadata.yaml | head -1 | tr -d ' ')
   echo "$repo: $v"
 done
