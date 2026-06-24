@@ -5,7 +5,10 @@
       "format": "claude-agent",
       "output_path": "/Users/kentgale/repos/kg-automation/.claude/agents/architect-alphonso.md",
       "profile_urn": "agent_profile:architect-alphonso",
+      "projection_version": null,
+      "source_hash": null,
       "source_layer": "builtin",
+      "source_path": null,
       "tool_key": "claude"
     },
     {
@@ -13,7 +16,10 @@
       "format": "claude-agent",
       "output_path": "/Users/kentgale/repos/kg-automation/.claude/agents/curator-carla.md",
       "profile_urn": "agent_profile:curator-carla",
+      "projection_version": null,
+      "source_hash": null,
       "source_layer": "builtin",
+      "source_path": null,
       "tool_key": "claude"
     },
     {
@@ -21,7 +27,10 @@
       "format": "claude-agent",
       "output_path": "/Users/kentgale/repos/kg-automation/.claude/agents/debugger-debbie.md",
       "profile_urn": "agent_profile:debugger-debbie",
+      "projection_version": null,
+      "source_hash": null,
       "source_layer": "builtin",
+      "source_path": null,
       "tool_key": "claude"
     },
     {
@@ -29,7 +38,21 @@
       "format": "claude-agent",
       "output_path": "/Users/kentgale/repos/kg-automation/.claude/agents/designer-dagmar.md",
       "profile_urn": "agent_profile:designer-dagmar",
+      "projection_version": null,
+      "source_hash": null,
       "source_layer": "builtin",
+      "source_path": null,
+      "tool_key": "claude"
+    },
+    {
+      "file_hash": "097fb87e2464b80f2e3f4ae449d18794c6ffc13d91587bb72f94a9fe34bc356c",
+      "format": "claude-agent",
+      "output_path": "/Users/kentgale/repos/kg-automation/.claude/agents/doctrine-daphne.md",
+      "profile_urn": "agent_profile:doctrine-daphne",
+      "projection_version": 1,
+      "source_hash": "74cfa3be38947e24458f7f8788a406fe078f45a6ff58efcd2f31ab8f846ff007",
+      "source_layer": "builtin",
+      "source_path": "/Users/kentgale/.local/pipx/venvs/spec-kitty-cli/lib/python3.13/site-packages/doctrine/agent_profiles/built-in/doctrine-daphne.agent.yaml",
       "tool_key": "claude"
     },
     {
@@ -37,7 +60,10 @@
       "format": "claude-agent",
       "output_path": "/Users/kentgale/repos/kg-automation/.claude/agents/frontend-freddy.md",
       "profile_urn": "agent_profile:frontend-freddy",
+      "projection_version": null,
+      "source_hash": null,
       "source_layer": "builtin",
+      "source_path": null,
       "tool_key": "claude"
     },
     {
@@ -45,7 +71,10 @@
       "format": "claude-agent",
       "output_path": "/Users/kentgale/repos/kg-automation/.claude/agents/generic-agent.md",
       "profile_urn": "agent_profile:generic-agent",
+      "projection_version": null,
+      "source_hash": null,
       "source_layer": "builtin",
+      "source_path": null,
       "tool_key": "claude"
     },
     {
@@ -53,7 +82,10 @@
       "format": "claude-agent",
       "output_path": "/Users/kentgale/repos/kg-automation/.claude/agents/implementer-ivan.md",
       "profile_urn": "agent_profile:implementer-ivan",
+      "projection_version": null,
+      "source_hash": null,
       "source_layer": "builtin",
+      "source_path": null,
       "tool_key": "claude"
     },
     {
@@ -61,7 +93,10 @@
       "format": "claude-agent",
       "output_path": "/Users/kentgale/repos/kg-automation/.claude/agents/java-jenny.md",
       "profile_urn": "agent_profile:java-jenny",
+      "projection_version": null,
+      "source_hash": null,
       "source_layer": "builtin",
+      "source_path": null,
       "tool_key": "claude"
     },
     {
@@ -69,7 +104,10 @@
       "format": "claude-agent",
       "output_path": "/Users/kentgale/repos/kg-automation/.claude/agents/node-norris.md",
       "profile_urn": "agent_profile:node-norris",
+      "projection_version": null,
+      "source_hash": null,
       "source_layer": "builtin",
+      "source_path": null,
       "tool_key": "claude"
     },
     {
@@ -77,7 +115,10 @@
       "format": "claude-agent",
       "output_path": "/Users/kentgale/repos/kg-automation/.claude/agents/paula-patterns.md",
       "profile_urn": "agent_profile:paula-patterns",
+      "projection_version": null,
+      "source_hash": null,
       "source_layer": "builtin",
+      "source_path": null,
       "tool_key": "claude"
     },
     {
@@ -85,7 +126,10 @@
       "format": "claude-agent",
       "output_path": "/Users/kentgale/repos/kg-automation/.claude/agents/planner-priti.md",
       "profile_urn": "agent_profile:planner-priti",
+      "projection_version": null,
+      "source_hash": null,
       "source_layer": "builtin",
+      "source_path": null,
       "tool_key": "claude"
     },
     {
@@ -93,7 +137,10 @@
       "format": "claude-agent",
       "output_path": "/Users/kentgale/repos/kg-automation/.claude/agents/python-pedro.md",
       "profile_urn": "agent_profile:python-pedro",
+      "projection_version": null,
+      "source_hash": null,
       "source_layer": "builtin",
+      "source_path": null,
       "tool_key": "claude"
     },
     {
@@ -101,7 +148,10 @@
       "format": "claude-agent",
       "output_path": "/Users/kentgale/repos/kg-automation/.claude/agents/randy-reducer.md",
       "profile_urn": "agent_profile:randy-reducer",
+      "projection_version": null,
+      "source_hash": null,
       "source_layer": "builtin",
+      "source_path": null,
       "tool_key": "claude"
     },
     {
@@ -109,7 +159,10 @@
       "format": "claude-agent",
       "output_path": "/Users/kentgale/repos/kg-automation/.claude/agents/researcher-robbie.md",
       "profile_urn": "agent_profile:researcher-robbie",
+      "projection_version": null,
+      "source_hash": null,
       "source_layer": "builtin",
+      "source_path": null,
       "tool_key": "claude"
     },
     {
@@ -117,7 +170,10 @@
       "format": "claude-agent",
       "output_path": "/Users/kentgale/repos/kg-automation/.claude/agents/retrospective-facilitator.md",
       "profile_urn": "agent_profile:retrospective-facilitator",
+      "projection_version": null,
+      "source_hash": null,
       "source_layer": "builtin",
+      "source_path": null,
       "tool_key": "claude"
     },
     {
@@ -125,7 +181,10 @@
       "format": "claude-agent",
       "output_path": "/Users/kentgale/repos/kg-automation/.claude/agents/reviewer-renata.md",
       "profile_urn": "agent_profile:reviewer-renata",
+      "projection_version": null,
+      "source_hash": null,
       "source_layer": "builtin",
+      "source_path": null,
       "tool_key": "claude"
     },
     {
@@ -133,7 +192,10 @@
       "format": "codex-agent",
       "output_path": "/Users/kentgale/repos/kg-automation/.codex/agents/architect-alphonso.toml",
       "profile_urn": "agent_profile:architect-alphonso",
+      "projection_version": null,
+      "source_hash": null,
       "source_layer": "builtin",
+      "source_path": null,
       "tool_key": "codex"
     },
     {
@@ -141,7 +203,10 @@
       "format": "codex-agent",
       "output_path": "/Users/kentgale/repos/kg-automation/.codex/agents/curator-carla.toml",
       "profile_urn": "agent_profile:curator-carla",
+      "projection_version": null,
+      "source_hash": null,
       "source_layer": "builtin",
+      "source_path": null,
       "tool_key": "codex"
     },
     {
@@ -149,7 +214,10 @@
       "format": "codex-agent",
       "output_path": "/Users/kentgale/repos/kg-automation/.codex/agents/debugger-debbie.toml",
       "profile_urn": "agent_profile:debugger-debbie",
+      "projection_version": null,
+      "source_hash": null,
       "source_layer": "builtin",
+      "source_path": null,
       "tool_key": "codex"
     },
     {
@@ -157,7 +225,21 @@
       "format": "codex-agent",
       "output_path": "/Users/kentgale/repos/kg-automation/.codex/agents/designer-dagmar.toml",
       "profile_urn": "agent_profile:designer-dagmar",
+      "projection_version": null,
+      "source_hash": null,
       "source_layer": "builtin",
+      "source_path": null,
+      "tool_key": "codex"
+    },
+    {
+      "file_hash": "e1ebd710966ecca5502014f8d98d389718931865eb944a296298dbf19a4e3d73",
+      "format": "codex-agent",
+      "output_path": "/Users/kentgale/repos/kg-automation/.codex/agents/doctrine-daphne.toml",
+      "profile_urn": "agent_profile:doctrine-daphne",
+      "projection_version": 1,
+      "source_hash": "74cfa3be38947e24458f7f8788a406fe078f45a6ff58efcd2f31ab8f846ff007",
+      "source_layer": "builtin",
+      "source_path": "/Users/kentgale/.local/pipx/venvs/spec-kitty-cli/lib/python3.13/site-packages/doctrine/agent_profiles/built-in/doctrine-daphne.agent.yaml",
       "tool_key": "codex"
     },
     {
@@ -165,7 +247,10 @@
       "format": "codex-agent",
       "output_path": "/Users/kentgale/repos/kg-automation/.codex/agents/frontend-freddy.toml",
       "profile_urn": "agent_profile:frontend-freddy",
+      "projection_version": null,
+      "source_hash": null,
       "source_layer": "builtin",
+      "source_path": null,
       "tool_key": "codex"
     },
     {
@@ -173,7 +258,10 @@
       "format": "codex-agent",
       "output_path": "/Users/kentgale/repos/kg-automation/.codex/agents/generic-agent.toml",
       "profile_urn": "agent_profile:generic-agent",
+      "projection_version": null,
+      "source_hash": null,
       "source_layer": "builtin",
+      "source_path": null,
       "tool_key": "codex"
     },
     {
@@ -181,7 +269,10 @@
       "format": "codex-agent",
       "output_path": "/Users/kentgale/repos/kg-automation/.codex/agents/implementer-ivan.toml",
       "profile_urn": "agent_profile:implementer-ivan",
+      "projection_version": null,
+      "source_hash": null,
       "source_layer": "builtin",
+      "source_path": null,
       "tool_key": "codex"
     },
     {
@@ -189,7 +280,10 @@
       "format": "codex-agent",
       "output_path": "/Users/kentgale/repos/kg-automation/.codex/agents/java-jenny.toml",
       "profile_urn": "agent_profile:java-jenny",
+      "projection_version": null,
+      "source_hash": null,
       "source_layer": "builtin",
+      "source_path": null,
       "tool_key": "codex"
     },
     {
@@ -197,7 +291,10 @@
       "format": "codex-agent",
       "output_path": "/Users/kentgale/repos/kg-automation/.codex/agents/node-norris.toml",
       "profile_urn": "agent_profile:node-norris",
+      "projection_version": null,
+      "source_hash": null,
       "source_layer": "builtin",
+      "source_path": null,
       "tool_key": "codex"
     },
     {
@@ -205,7 +302,10 @@
       "format": "codex-agent",
       "output_path": "/Users/kentgale/repos/kg-automation/.codex/agents/paula-patterns.toml",
       "profile_urn": "agent_profile:paula-patterns",
+      "projection_version": null,
+      "source_hash": null,
       "source_layer": "builtin",
+      "source_path": null,
       "tool_key": "codex"
     },
     {
@@ -213,7 +313,10 @@
       "format": "codex-agent",
       "output_path": "/Users/kentgale/repos/kg-automation/.codex/agents/planner-priti.toml",
       "profile_urn": "agent_profile:planner-priti",
+      "projection_version": null,
+      "source_hash": null,
       "source_layer": "builtin",
+      "source_path": null,
       "tool_key": "codex"
     },
     {
@@ -221,7 +324,10 @@
       "format": "codex-agent",
       "output_path": "/Users/kentgale/repos/kg-automation/.codex/agents/python-pedro.toml",
       "profile_urn": "agent_profile:python-pedro",
+      "projection_version": null,
+      "source_hash": null,
       "source_layer": "builtin",
+      "source_path": null,
       "tool_key": "codex"
     },
     {
@@ -229,7 +335,10 @@
       "format": "codex-agent",
       "output_path": "/Users/kentgale/repos/kg-automation/.codex/agents/randy-reducer.toml",
       "profile_urn": "agent_profile:randy-reducer",
+      "projection_version": null,
+      "source_hash": null,
       "source_layer": "builtin",
+      "source_path": null,
       "tool_key": "codex"
     },
     {
@@ -237,7 +346,10 @@
       "format": "codex-agent",
       "output_path": "/Users/kentgale/repos/kg-automation/.codex/agents/researcher-robbie.toml",
       "profile_urn": "agent_profile:researcher-robbie",
+      "projection_version": null,
+      "source_hash": null,
       "source_layer": "builtin",
+      "source_path": null,
       "tool_key": "codex"
     },
     {
@@ -245,7 +357,10 @@
       "format": "codex-agent",
       "output_path": "/Users/kentgale/repos/kg-automation/.codex/agents/retrospective-facilitator.toml",
       "profile_urn": "agent_profile:retrospective-facilitator",
+      "projection_version": null,
+      "source_hash": null,
       "source_layer": "builtin",
+      "source_path": null,
       "tool_key": "codex"
     },
     {
@@ -253,7 +368,10 @@
       "format": "codex-agent",
       "output_path": "/Users/kentgale/repos/kg-automation/.codex/agents/reviewer-renata.toml",
       "profile_urn": "agent_profile:reviewer-renata",
+      "projection_version": null,
+      "source_hash": null,
       "source_layer": "builtin",
+      "source_path": null,
       "tool_key": "codex"
     },
     {
@@ -261,7 +379,10 @@
       "format": "copilot-agent",
       "output_path": "/Users/kentgale/repos/kg-automation/.github/agents/architect-alphonso.agent.md",
       "profile_urn": "agent_profile:architect-alphonso",
+      "projection_version": null,
+      "source_hash": null,
       "source_layer": "builtin",
+      "source_path": null,
       "tool_key": "copilot"
     },
     {
@@ -269,7 +390,10 @@
       "format": "copilot-agent",
       "output_path": "/Users/kentgale/repos/kg-automation/.github/agents/curator-carla.agent.md",
       "profile_urn": "agent_profile:curator-carla",
+      "projection_version": null,
+      "source_hash": null,
       "source_layer": "builtin",
+      "source_path": null,
       "tool_key": "copilot"
     },
     {
@@ -277,7 +401,10 @@
       "format": "copilot-agent",
       "output_path": "/Users/kentgale/repos/kg-automation/.github/agents/debugger-debbie.agent.md",
       "profile_urn": "agent_profile:debugger-debbie",
+      "projection_version": null,
+      "source_hash": null,
       "source_layer": "builtin",
+      "source_path": null,
       "tool_key": "copilot"
     },
     {
@@ -285,7 +412,21 @@
       "format": "copilot-agent",
       "output_path": "/Users/kentgale/repos/kg-automation/.github/agents/designer-dagmar.agent.md",
       "profile_urn": "agent_profile:designer-dagmar",
+      "projection_version": null,
+      "source_hash": null,
       "source_layer": "builtin",
+      "source_path": null,
+      "tool_key": "copilot"
+    },
+    {
+      "file_hash": "097fb87e2464b80f2e3f4ae449d18794c6ffc13d91587bb72f94a9fe34bc356c",
+      "format": "copilot-agent",
+      "output_path": "/Users/kentgale/repos/kg-automation/.github/agents/doctrine-daphne.agent.md",
+      "profile_urn": "agent_profile:doctrine-daphne",
+      "projection_version": 1,
+      "source_hash": "74cfa3be38947e24458f7f8788a406fe078f45a6ff58efcd2f31ab8f846ff007",
+      "source_layer": "builtin",
+      "source_path": "/Users/kentgale/.local/pipx/venvs/spec-kitty-cli/lib/python3.13/site-packages/doctrine/agent_profiles/built-in/doctrine-daphne.agent.yaml",
       "tool_key": "copilot"
     },
     {
@@ -293,7 +434,10 @@
       "format": "copilot-agent",
       "output_path": "/Users/kentgale/repos/kg-automation/.github/agents/frontend-freddy.agent.md",
       "profile_urn": "agent_profile:frontend-freddy",
+      "projection_version": null,
+      "source_hash": null,
       "source_layer": "builtin",
+      "source_path": null,
       "tool_key": "copilot"
     },
     {
@@ -301,7 +445,10 @@
       "format": "copilot-agent",
       "output_path": "/Users/kentgale/repos/kg-automation/.github/agents/generic-agent.agent.md",
       "profile_urn": "agent_profile:generic-agent",
+      "projection_version": null,
+      "source_hash": null,
       "source_layer": "builtin",
+      "source_path": null,
       "tool_key": "copilot"
     },
     {
@@ -309,7 +456,10 @@
       "format": "copilot-agent",
       "output_path": "/Users/kentgale/repos/kg-automation/.github/agents/implementer-ivan.agent.md",
       "profile_urn": "agent_profile:implementer-ivan",
+      "projection_version": null,
+      "source_hash": null,
       "source_layer": "builtin",
+      "source_path": null,
       "tool_key": "copilot"
     },
     {
@@ -317,7 +467,10 @@
       "format": "copilot-agent",
       "output_path": "/Users/kentgale/repos/kg-automation/.github/agents/java-jenny.agent.md",
       "profile_urn": "agent_profile:java-jenny",
+      "projection_version": null,
+      "source_hash": null,
       "source_layer": "builtin",
+      "source_path": null,
       "tool_key": "copilot"
     },
     {
@@ -325,7 +478,10 @@
       "format": "copilot-agent",
       "output_path": "/Users/kentgale/repos/kg-automation/.github/agents/node-norris.agent.md",
       "profile_urn": "agent_profile:node-norris",
+      "projection_version": null,
+      "source_hash": null,
       "source_layer": "builtin",
+      "source_path": null,
       "tool_key": "copilot"
     },
     {
@@ -333,7 +489,10 @@
       "format": "copilot-agent",
       "output_path": "/Users/kentgale/repos/kg-automation/.github/agents/paula-patterns.agent.md",
       "profile_urn": "agent_profile:paula-patterns",
+      "projection_version": null,
+      "source_hash": null,
       "source_layer": "builtin",
+      "source_path": null,
       "tool_key": "copilot"
     },
     {
@@ -341,7 +500,10 @@
       "format": "copilot-agent",
       "output_path": "/Users/kentgale/repos/kg-automation/.github/agents/planner-priti.agent.md",
       "profile_urn": "agent_profile:planner-priti",
+      "projection_version": null,
+      "source_hash": null,
       "source_layer": "builtin",
+      "source_path": null,
       "tool_key": "copilot"
     },
     {
@@ -349,7 +511,10 @@
       "format": "copilot-agent",
       "output_path": "/Users/kentgale/repos/kg-automation/.github/agents/python-pedro.agent.md",
       "profile_urn": "agent_profile:python-pedro",
+      "projection_version": null,
+      "source_hash": null,
       "source_layer": "builtin",
+      "source_path": null,
       "tool_key": "copilot"
     },
     {
@@ -357,7 +522,10 @@
       "format": "copilot-agent",
       "output_path": "/Users/kentgale/repos/kg-automation/.github/agents/randy-reducer.agent.md",
       "profile_urn": "agent_profile:randy-reducer",
+      "projection_version": null,
+      "source_hash": null,
       "source_layer": "builtin",
+      "source_path": null,
       "tool_key": "copilot"
     },
     {
@@ -365,7 +533,10 @@
       "format": "copilot-agent",
       "output_path": "/Users/kentgale/repos/kg-automation/.github/agents/researcher-robbie.agent.md",
       "profile_urn": "agent_profile:researcher-robbie",
+      "projection_version": null,
+      "source_hash": null,
       "source_layer": "builtin",
+      "source_path": null,
       "tool_key": "copilot"
     },
     {
@@ -373,7 +544,10 @@
       "format": "copilot-agent",
       "output_path": "/Users/kentgale/repos/kg-automation/.github/agents/retrospective-facilitator.agent.md",
       "profile_urn": "agent_profile:retrospective-facilitator",
+      "projection_version": null,
+      "source_hash": null,
       "source_layer": "builtin",
+      "source_path": null,
       "tool_key": "copilot"
     },
     {
@@ -381,7 +555,10 @@
       "format": "copilot-agent",
       "output_path": "/Users/kentgale/repos/kg-automation/.github/agents/reviewer-renata.agent.md",
       "profile_urn": "agent_profile:reviewer-renata",
+      "projection_version": null,
+      "source_hash": null,
       "source_layer": "builtin",
+      "source_path": null,
       "tool_key": "copilot"
     }
   ],
