@@ -155,8 +155,63 @@ Human-driven consistency read at pause (to compare against analyze findings):
   (D-01) is a design decision deferred to implementation, not yet resolved in
   artifacts.
 
-## State at pause
-- Planning arc COMPLETE on `feat/finalize-inbox-file`; tree clean.
+## IMPLEMENT BOUNDARY — SPLIT-BRAIN, STOPPED (the new blocker)
+
+Resumed driving the workflow into implement (Kent: "keep going"). It blocked
+immediately — a genuine residual split-brain at the **planning→implement
+handoff**, one boundary downstream of the attempts 1+2 blockers (which the release
+DID fix).
+
+Sequence:
+- `spec-kitty agent action implement WP01 --agent claude --mission …` →
+  `Error: Feature 'finalize-inbox-file-01KVXNDC' has no tasks directory at
+  .worktrees/finalize-inbox-file-01KVXNDC-coord/kitty-specs/finalize-inbox-file-01KVXNDC/tasks`.
+- Canonical loop driver `spec-kitty next --mission … --agent claude` →
+  `[QUERY] Mission @ not_started · Next step: discovery`. The state machine the
+  implement read-side consults thinks the mission never started.
+- `spec-kitty agent tasks status --mission …` → same "Tasks directory not found"
+  in the coord worktree.
+
+Root cause (observed, read-only):
+- **`feat/finalize-inbox-file` (target/primary)** holds ALL planning artifacts
+  (meta, spec, plan, research, data-model, contracts, tasks.md, `tasks/WP0*.md`,
+  lanes.json) PLUS a **lifecycle** event log `status.events.jsonl` (10 events,
+  schema 5.0.0: MissionCreated…SpecCompleted…PlanCompleted…WPCreated×3…TasksCompleted).
+- **`kitty/mission-…` (coord) branch + its worktree
+  `.worktrees/finalize-inbox-file-01KVXNDC-coord/`** hold ONLY `status.json` +
+  a **lane** event log `status.events.jsonl` (3 events: WP01/02/03 genesis→planned,
+  "canonical bootstrap"). **No planning artifacts, no `tasks/` dir.**
+- So there are TWO different-schema `status.events.jsonl` on the two branches, and
+  `implement`/`next`/`tasks status` all read the **coord** side, which was never
+  populated with the planning artifacts. `next` reads lifecycle state from a source
+  that shows `not_started`.
+
+Assessment: #2106 fixed planning-artifact **placement** (planning phases cohered on
+the target branch and every step succeeded), but the planning→implement **handoff**
+is still split: the implement read-side is coord-anchored, the coord worktree was
+never populated with the planning artifacts, and the lifecycle progress recorded on
+the target branch is not consulted by `next`. This is the **same split-brain class**
+as #1716/#2046/#2087/#2090, surfacing at the **next boundary downstream** on the
+official release.
+
+Not me: every commit placement was chosen by the tooling — `spec-commit` printed
+"committed to feat/finalize-inbox-file"; `setup-plan` and `finalize-tasks`
+auto-committed to feat; `finalize-tasks` reported `commit_created: true`. The mission
+is `topology: coord` yet its planning artifacts live on the target branch while the
+coord worktree (which implement reads) stayed empty.
+
+**STOPPED per the no-workaround posture.** Did NOT: populate the coord worktree,
+merge feat→coord, advance any event log, or git-manipulate. Mission left intact as
+evidence. No upstream filing (needs Kent's approval + dedup check vs #1716-reopened
+and the #2010/#2040/#2046 strangler).
+
+## State at STOP
+- Planning arc COMPLETE on `feat/finalize-inbox-file`; implement BLOCKED by the
+  split-brain above. Repo-root on `feat/finalize-inbox-file`; coord worktree present
+  but empty of artifacts. Tree clean (no uncommitted changes).
+- Commits on feat: `2b2522e5`(meta) `254967c7`(spec) `8c6f83c3`(plan)
+  `8c0722f4`(plan artifacts) `37113bab`(tasks) `3dcd86a9`(journal).
 - Internal tracker #606. Mission intact; nothing torn down.
-- Next: (per Kent) run `/spec-kitty.analyze` on the mission, compare to this
-  journal; then implement → review → merge.
+- Next: Kent's call — characterize/dedup vs upstream; decide file-vs-known;
+  decide mission disposition (likely teardown, as attempts 1+2). `/spec-kitty.analyze`
+  deferred (can't reach implement/merge).
