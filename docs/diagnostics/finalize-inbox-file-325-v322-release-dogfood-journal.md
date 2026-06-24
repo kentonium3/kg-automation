@@ -215,3 +215,50 @@ and the #2010/#2040/#2046 strangler).
 - Next: Kent's call — characterize/dedup vs upstream; decide file-vs-known;
   decide mission disposition (likely teardown, as attempts 1+2). `/spec-kitty.analyze`
   deferred (can't reach implement/merge).
+
+## Upstream dedup — EXACT MATCH, already tracked (#2115, OPEN)
+
+The implement-boundary split-brain is a **known maintainer-tracked residual**:
+- **Priivacy-ai/spec-kitty#2115** (OPEN, `bug`, 0 comments): *"Implement/review/merge
+  command surface reads WP `tasks/` off coord (dir-read residual cluster, N+2)."*
+  Found by the maintainer's own gate-read-surface-completion adversarial squad
+  during PR #2113. Names exactly the surfaces I hit: `agent/workflow.py`
+  (`implement`, `review`), `agent/tasks.py` (`status`, `finalize_tasks` dir-read
+  legs), `merge.py`. Deliberately OUT of scope of the behavior-neutral
+  read-completion mission; **pinned in `_DIR_READ_KNOWN_RESIDUALS`** (test-only)
+  until a follow-on mission. Part of the #1716 coordination-topology cluster.
+- The **3.2.2 CHANGELOG itself says remediation is "ongoing."** The coord-topology
+  "WPs reached done with nothing committed" fixes it DID ship are all on the
+  external **`orchestrator-api`** path (start-implementation lane allocation, etc.)
+  — NOT the native `spec-kitty next` / `agent action implement` path the runbooks
+  prescribe and that I drove. My finding is the **native-path twin** of an
+  already-fixed api-path class.
+- **Verdict: not a new issue — a confirming real-world event for #2115.** Value
+  added: a disciplined operator drove the *native* workflow on the *released*
+  3.2.2 artifact and was hard-blocked at exactly this surface (previously
+  only test-pinned). Related: #2091 (`next` malformed coord branch — distinct),
+  #1878/#1716 (cluster umbrellas).
+
+## Analyzer comparison (spec-kitty-analyzer, mission-first)
+
+Ran `spec-kitty-analyzer analyze finalize-inbox-file-01KVXNDC` against this
+session's transcript (65 timeline events, 27 slash cmds, 35 CLI invocations,
+1 mission). Report: `/tmp/skanalyzer-325-attempt3.json`. **3 failure modes
+detected — 2 false positives + 1 minor-real; the actual blocker was MISSED:**
+- FP **"Permission denied"** — fired on a SUCCESS line (`File created
+  successfully at: …/spec.md`); it matched the word "permission" inside authored
+  spec/WP *content* describing permission-denied test scenarios. = the PR #2
+  `permission_denied`-precision class (still unmerged).
+- FP **"Timeout"** — fired on my literal `timeout 300 go run …` command text.
+- Real-but-minor **"Generic error"** — the `spec-commit` dir-vs-file abort I
+  recovered from; not the blocker.
+- **MISS** — no fingerprint matched the structural blocker (`no tasks directory
+  at …-coord/…/tasks`; `[QUERY] Mission @ not_started` after `finalize-tasks`
+  succeeded), although those strings are in the transcript and the analyzer
+  advertises a `branch_worktree_confusion` failure catalog. The journal caught
+  what the analyzer missed — confirming the redundancy rationale.
+- **Candidate analyzer work (separate repo, contributor mode):** (a) tighten
+  `permission_denied`/error fingerprints so they don't match failure-keyword
+  *content* on success lines (PR #2 class); (b) add a coord/primary split-brain /
+  "tasks dir read off coord" + "not_started after TasksCompleted" fingerprint with
+  recovery guidance. Last comparable comparison produced analyzer PRs #2 and #5.
