@@ -228,3 +228,48 @@ create→plan on 3.2.1 is FIXED, and specify+plan now drive cleanly on the
 coordination topology. The #2046 read-side residual remains and now surfaces one
 phase later, blocking `finalize-tasks`. Re-run the mission after the read-side
 resolver fix ships in a release.
+
+---
+
+## Post-stop verification (2026-06-24) — fix-in-build + upstream search → STAND DOWN, no post
+
+Operator asked to (a) verify whether the fix is actually in our build, and (b)
+search up/down-stream from #2046 for a more specific tracking issue. Both done.
+
+### Fix-in-build (definitive)
+- Our 3.2.2 = source build of `git+https://github.com/Priivacy-ai/spec-kitty.git@main`,
+  commit **`aeb8dfc31a88d2ae779e7b32f5340e90159733e6`** (pipx install 2026-06-23,
+  AFTER the strangler merged).
+- Strangler **PR #2065** (`1f42e94e`, closes #2010/#2040/#2046) **IS in our build**
+  (compare `1f42e94e...aeb8dfc` → behind_by 0). Residual persists regardless.
+- Installed-code confirmation (`specify_cli/cli/commands/agent/mission.py`):
+  `finalize_tasks` resolves feature_dir via `_resolve_mission_dir_name_primary_anchored`
+  (primary checkout); `check_prerequisites` via `_primary_anchored_feature_dir`
+  (the PR #2089 point-fix). Neither uses the coord-aware surface resolver, while
+  `context resolve` / `map-requirements` / `setup-plan` do → the tasks-phase split.
+  This is **primary-anchoring by design** in finalize/check-prereq, contradicting
+  the coord-pointing authoring/mapping CLIs — an internal inconsistency, not a
+  stale build.
+
+### Upstream search — the bug is ALREADY filed, with maximal precision (all OPEN, 2026-06-24)
+Operator's recollection ("represented in a different issue somewhere") was correct.
+- **#2087** (P1 bug) — "check-prerequisites and finalize-tasks resolve a
+  coord-topology mission's planning surface to DIFFERENT checkouts (authoring/read
+  split)" — exact mechanism match.
+- **#2101** (P1 bug) — "Coordination-worktree missions: planning/tasks commands
+  resolve different feature_dir (tasks phase deadlocks; not fixed by #2070)" —
+  cites our **exact** build commit `aeb8dfc3`, `pr_bound`/`topology: coord`.
+- **#2090** (P0 enh) — "Unify all planning-lifecycle commands onto ONE
+  topology-aware surface authority" — the structural cure; explicitly lists
+  `map-requirements` + `finalize-tasks` among commands still to unify. PR #2089
+  was a point-fix only.
+- **#1716** — **reopened** (P0 launch-blocker), updated today.
+
+### Disposition: STAND DOWN — no upstream post
+The blocker is already captured down to our exact commit, today, by the
+maintainers, with a P0 structural fix (#2090) scoped. A confirming comment would
+be noise — same call as the 3.2.1 stand-down. The drafted #2046 evidence note is
+therefore moot; do NOT reopen #2046 (it's correctly closed — the residual lives in
+the OPEN #2087/#2090/#2101 + reopened #1716). **Re-run #325 after the
+planning-lifecycle unification (#2090) ships in a release**, then re-validate the
+full specify→merge arc. Internal record: #606 (updated with these cross-refs).
