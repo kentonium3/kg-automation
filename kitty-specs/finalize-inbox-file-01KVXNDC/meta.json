@@ -1,0 +1,15 @@
+{
+  "coordination_branch": "kitty/mission-finalize-inbox-file-01KVXNDC",
+  "created_at": "2026-06-24T20:33:43.755727+00:00",
+  "flattened": false,
+  "friendly_name": "Atomic inbox-file finalize helper",
+  "mission_id": "01KVXNDCT9GB32JJ6M67B7PS5F",
+  "mission_number": null,
+  "mission_slug": "finalize-inbox-file-01KVXNDC",
+  "mission_type": "software-dev",
+  "purpose_context": "The felix-admin-capture agent finalizes each routed inbox file with a sequence of separate LLM-issued tool calls (frontmatter write, file move, log append) that has no atomicity, no error surface, and no idempotent recovery — which has twice left files silently stuck in an inconsistent state. This mission delivers a helper the agent invokes once per file so the deterministic cleanup runs reliably and failures are visible.",
+  "purpose_tldr": "Make inbox post-routing cleanup a single atomic, idempotent, error-surfacing helper instead of fragile inline agent tool calls.",
+  "slug": "finalize-inbox-file-01KVXNDC",
+  "target_branch": "feat/finalize-inbox-file",
+  "topology": "coord"
+}
