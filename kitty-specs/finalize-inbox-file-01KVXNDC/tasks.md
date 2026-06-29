@@ -52,12 +52,12 @@ error surfacing) in a hermetic tmp vault.
 **Independent test**: `pytest tests/inbox/test_finalize_inbox_file.py -v` green.
 **Est. prompt size**: ~260 lines. **Requirements**: NFR-004 (validates FR-001…FR-009, NFR-001…003).
 
-- [ ] T007 Hermetic test harness (tmp vault, registry override) (WP02)
-- [ ] T008 Happy + already-finalized + partial-recovery tests (WP02)
-- [ ] T009 Permission-denied file + dir tests (WP02)
-- [ ] T010 Missing-frontmatter + malformed-YAML tests (WP02)
-- [ ] T011 Cross-filesystem rename-rejected test (WP02)
-- [ ] T012 Idempotency / no-duplicate-log assertion (WP02)
+- [x] T007 Hermetic test harness (tmp vault, registry override) (WP02)
+- [x] T008 Happy + already-finalized + partial-recovery tests (WP02)
+- [x] T009 Permission-denied file + dir tests (WP02)
+- [x] T010 Missing-frontmatter + malformed-YAML tests (WP02)
+- [x] T011 Cross-filesystem rename-rejected test (WP02)
+- [x] T012 Idempotency / no-duplicate-log assertion (WP02)
 
 Prompt: `tasks/WP02-test-suite.md`
 

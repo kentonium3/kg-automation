@@ -28,7 +28,8 @@ subtasks:
 - T012
 phase: Phase 2 - Verification
 assignee: ''
-agent: claude
+agent: "claude"
+shell_pid: "38334"
 history:
 - at: '2026-06-24T20:35:00Z'
   actor: system
@@ -139,3 +140,10 @@ surfacing.
 - Confirm every contract scenario maps to a test. Confirm the cross-FS test
   asserts no copy fallback. Confirm no-duplicate-log on re-run. Confirm tests do
   not touch the real vault (env override in effect).
+
+## Activity Log
+
+- 2026-06-29T01:37:38Z – claude – shell_pid=36224 – Assigned agent via action command
+- 2026-06-29T01:42:28Z – claude – shell_pid=36224 – Ready for review: 16 tests green (8 scenarios + 3x-idempotency + branch edges); helper coverage 97%; full inbox suite 288 passed no regressions
+- 2026-06-29T01:42:48Z – claude – shell_pid=38334 – Started review via action command
+- 2026-06-29T01:43:32Z – user – shell_pid=38334 – Review passed: 16 tests, all 8 contract scenarios + 3x-idempotency + branch edges; tests invoke production main() (no synthetic fixtures); cross-FS asserts no copy fallback; helper untouched (frozen surface intact); 97% coverage. Anti-pattern: 2/4/5/6/7 PASS, 1/3/8 N/A (test code).
