@@ -37,6 +37,22 @@ the workflow did *well*. **Consumed automatically by the retrospective generator
   same-family review misses (precedent: the catfood CX report). Disposition:
   documented approach (effectiveness assessed at review time).
 
+- **[2026-06-28][specify] feature-branch start avoided the coord split** — `spec-commit`
+  landed directly on `feat/finalize-inbox-file-v2` (commit `b0bc1cb`), NOT via a
+  protected-`main` coordination-worktree materialization. The protected-main coord
+  read/write split paused all three prior #325 attempts; starting on a dedicated
+  *unprotected* feature branch sidestepped it at the spec boundary. Anchor:
+  `spec-commit --mission`. Disposition: **worked as designed** (validate it holds
+  through tasks→implement).
+
+- **[2026-06-29][tasks] past the historical blocker — finalize-tasks clean** — the
+  mutating `finalize-tasks` succeeded (commit `bbe12a6a`) and computed 3 lanes with
+  a correct WP01→{WP02,WP03} fan-out. All three prior #325 attempts died at or
+  before this exact phase (#1716 / tasks-resolver split / planning→implement
+  handoff). `map-requirements` mapped 6/6 FRs first try. Anchor:
+  `finalize-tasks --mission`. Disposition: **worked as designed** (the planning arc
+  is fully unblocked on `7530597a` when started on an unprotected feature branch).
+
 - **[2026-06-28][specify] doc updates pulled into mission scope** — per operator
   direction + kg-automation standing requirement, required architecture/doc updates
   (driven by `signal-to-doc-map.json`) are committed inside this mission, not
