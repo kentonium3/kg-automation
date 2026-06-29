@@ -302,5 +302,61 @@ WP02 `851ba566`, WP03 `2963026a`.
 
 ### Accept + Merge
 
-_(in progress — watch for the example's accept walls: src/tests path_violations,
-#1826 dirty coord/primary, hollow-reviews false-positive)_
+**Accept** — got *further* than the example: **no `src/tests` path_violations**
+(kg-automation's `scripts/`+`tests/` layout doesn't trip the hardcoded check that
+broke the example's Go repo). Two items: `git_dirty` (approve-updated WP prompts —
+committed per instruction) and the **acceptance-matrix `pending`** (auto-scaffolded 6
+TODO placeholders, no authoring CLI, reads from coord — the example's step-21 class).
+Authored real FR-001..006 verdicts (pass, evidence = the actual tests/commits/Codex
+approvals), synced to coord (#2115 tax), `git_dirty` committed → **accept PASSED**
+("No outstanding acceptance issues"), acceptance commit `a54b2a29`.
+
+**Merge** — `spec-kitty merge`: gate-evidence/risk/dependency all ✓; lanes a/b/c →
+mission branch cleanly; `mission_number=81`; WPs→done. Then the mission→feat merge
+**failed on add/add conflicts in mission-state files** (meta.json/status.json/tasks.md/
+WP prompts) — the #1826/#2115 class, a direct downstream consequence of the #2115
+workaround forcing mission-state onto *both* feat and coord. **CODE merged cleanly**
+(no source file conflicted). The command rolled the failed merge back. **`spec-kitty
+merge --resume`** then completed it cleanly (the canonical #1826 recovery: conflict →
+resume): **`kitty/mission-… → feat/finalize-inbox-file-v2` @ `9bf9701`**, dossier
+synced, lane worktrees/branches removed, stale-assertion check clean. Leftover: the
+coord worktree (my #2115 scratch) blocked the mission-branch deletion → cleaned up
+manually (`git worktree remove` + `git branch -D`).
+
+**Post-merge verification:** code on feat (`mark_processed.py` exit-2 present;
+`tests/inbox/test_mark_processed.py` 27 passed). **#2095 retrospective tracer
+ingestion (FR-007) WORKED end-to-end:** `retrospective.yaml` auto-consumed the live
+tracers — `helped` ← the "worked as designed" entries (feature-branch-avoided-split,
+past-blocker…), `gaps` ← the three "candidate gap" entries (version-string,
+tracer-scaffold, **#2115 split**), approach/design decisions → `not_helpful` (default
+bucket, no disposition keyword). **New #2095 finding (F4):** the tracer header's
+*format-example* bullet (`- **[date][phase] symptom**…`) is mis-ingested as a real
+finding — the entry regex matches it; tracer headers should keep the example out of a
+bullet, or the ingestor should skip fenced examples.
+
+## Outcome
+
+**Mission #325 MERGED** — `mission_number=81`, merge commit `9bf9701` on
+`feat/finalize-inbox-file-v2`. Drove **specify → plan → tasks → implement → review →
+accept → merge** to completion on `3.2.3 @ git 7530597a`.
+
+**Headline:** the planning arc was *flawless* (zero interventions, the first #325
+attempt to clear `finalize-tasks` and the planning→implement handoff). The friction
+was concentrated in implement/approve/merge as **one root-cause family — the #2115
+coord/primary read-write split** (issue-matrix + acceptance-matrix read from coord,
+edits/commits land on feat; merge add/add conflicts; mission-branch-deletion leftover).
+And **Codex adversarial review found real defects in EVERY WP** (2 HIGH / 1 MED / 1
+HIGH+MED+LOW) that same-family review cleared — including one re-introducing the exact
+silent-failure class the mission exists to kill.
+
+**Friction ledger:** F1 version-string non-granularity · F2 tracer-scaffold gap · F3
+#2115 read/write split (the load-bearing one — issue-matrix, acceptance-matrix, merge
+conflict, branch-deletion leftover all trace to it) · F4 tracer header-example
+mis-ingestion. Documented gates (analysis-required, auto-commit-disabled,
+populate-to-pass, deferred-with-followup handle) cleared by following the tool;
+`.worktrees/` gitignore spared the #2102 dirty-tree trip.
+
+### Next (post-merge)
+- spec-kitty-analyzer **Customer Experience Report** (PR #9 channel-scoped build) on
+  this mission's event log — the deliverable.
+- feat → main; close #325 with the merge SHA; mission-review / retrospective synthesize.
