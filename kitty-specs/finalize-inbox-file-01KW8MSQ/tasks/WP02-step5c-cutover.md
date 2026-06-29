@@ -148,3 +148,4 @@ manifest was added.
 
 - 2026-06-29T04:01:05Z – claude – shell_pid=78916 – Assigned agent via action command
 - 2026-06-29T04:09:19Z – claude – shell_pid=78916 – Step 5c exit-code table + tmpl stale-Edit fix; commit 5168f80e
+- 2026-06-29T04:19:57Z – user – shell_pid=78916 – Codex APPROVE after fix (851ba566): needs-review exception added
