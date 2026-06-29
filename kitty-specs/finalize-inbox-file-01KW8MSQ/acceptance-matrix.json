@@ -1,0 +1,69 @@
+{
+  "mission_slug": "finalize-inbox-file-01KW8MSQ",
+  "mission_number": "",
+  "mission_type": "software-dev",
+  "overall_verdict": "pass",
+  "criteria": [
+    {
+      "criterion_id": "FR-001",
+      "description": "A filesystem write failure surfaces as exit 2 + fs_error JSON on stderr (not an uncaught traceback); original note uncorrupted.",
+      "proof_type": "automated_test",
+      "evidence": "tests/inbox/test_mark_processed.py: perm-denied (chmod parent 0o555, root-skipped) + mocked os.replace OSError, both assert rc==2 and note bytes unchanged. commit c100acaa; full inbox suite 277 passed.",
+      "pass_fail": "pass",
+      "verified_by": "codex:spec-kitty-review + pytest",
+      "verified_at": "2026-06-29T04:10:00Z",
+      "notes": "Closes the 2026-05-18 silent-write-failure class (SC-001)."
+    },
+    {
+      "criterion_id": "FR-002",
+      "description": "On success (incl. idempotent no-op) the helper emits a single-line JSON object on stdout (finalized/already_processed/status/file_final_path).",
+      "proof_type": "automated_test",
+      "evidence": "tests/inbox/test_mark_processed.py::test_mark_processed_stdout_json_happy_and_idempotent asserts one parseable stdout line, already_processed flips on re-run. commit c100acaa.",
+      "pass_fail": "pass",
+      "verified_by": "codex:spec-kitty-review + pytest",
+      "verified_at": "2026-06-29T04:10:00Z",
+      "notes": "Orchestrator can machine-confirm finalize without re-reading the note (SC-002)."
+    },
+    {
+      "criterion_id": "FR-003",
+      "description": "Path outside the registry-resolved inbox root is a validation failure (exit 1, outside_inbox_root); legitimate in-root notes finalize even across path-spelling/symlink differences.",
+      "proof_type": "automated_test",
+      "evidence": "test_mark_processed_exit1_outside_inbox_root + test_mark_processed_inbox_root_spelling_mismatch + test_mark_processed_symlink_note_finalizes_real_target (Codex-driven regressions). commit c100acaa.",
+      "pass_fail": "pass",
+      "verified_by": "codex:spec-kitty-review + pytest",
+      "verified_at": "2026-06-29T04:10:00Z",
+      "notes": "inbox_root resolved before comparison; canonical candidate written (Codex caught both)."
+    },
+    {
+      "criterion_id": "FR-004",
+      "description": "Atomicity, idempotency, frontmatter/body round-trip, exit-3 private refusal, and in-place (no move) are all preserved.",
+      "proof_type": "automated_test",
+      "evidence": "Full tests/inbox/ suite green (277 passed, 35 skipped, 1 xfailed) incl. pre-existing idempotency/atomic-write/exit-3 tests; module docstring updated to 0/1/2/3. commit c100acaa.",
+      "pass_fail": "pass",
+      "verified_by": "codex:spec-kitty-review + pytest",
+      "verified_at": "2026-06-29T04:10:00Z",
+      "notes": "No move anywhere; exit 2 is additive (exit 3 retained)."
+    },
+    {
+      "criterion_id": "FR-005",
+      "description": "felix-admin-capture Step 5c defines explicit 0/1/2/3 exit-code handling, retains the no-move invariant, and mandates surfacing non-zero finalize exits; the needs-review exception is preserved.",
+      "proof_type": "inspection",
+      "evidence": "AGENTS.md + AGENTS.md.tmpl Step 5c exit-code table matches contracts/cli-contract.md; no-move invariant intact; stale inline-Edit removed from .tmpl; needs-review exception added. Codex APPROVE. commit 851ba566.",
+      "pass_fail": "pass",
+      "verified_by": "codex:spec-kitty-review",
+      "verified_at": "2026-06-29T04:10:00Z",
+      "notes": "Deploys via pull-based agent-prompt-sync (slug felix-admin-capture -> inbox-agent); no felix-deployer manifest."
+    },
+    {
+      "criterion_id": "FR-006",
+      "description": "Required agent-prompt-changed doc-map updates are committed (service-inventory JSON+md, audited-surfaces #621 correction); architecture-data validator passes.",
+      "proof_type": "inspection",
+      "evidence": "service-inventory.json/.md updated (full 0/1/2/3 contract); audited-surfaces.json corrected per #621 (affected_baselines=[], rebaseline_required=false); post-change-verification.md corrected; validate_architecture_data: OK (0 findings). Codex APPROVE. commit 2963026a.",
+      "pass_fail": "pass",
+      "verified_by": "codex:spec-kitty-review + validate_architecture_data",
+      "verified_at": "2026-06-29T04:10:00Z",
+      "notes": "Rebaseline not required (agent-prompt surface not hashed by audit.sh, gap #621)."
+    }
+  ],
+  "negative_invariants": []
+}

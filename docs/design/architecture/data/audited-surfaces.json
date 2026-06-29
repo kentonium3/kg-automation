@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
-  "last_updated": "2026-06-12",
-  "updated_by": "pull-based-deploy-pipeline-01KTYQQS (#136) + #557-rebaseline-workflow",
+  "last_updated": "2026-06-28",
+  "updated_by": "finalize-inbox-file-01KW8MSQ (#325, #621 correction) + pull-based-deploy-pipeline-01KTYQQS (#136) + #557-rebaseline-workflow",
   "description": "Repo-side inputs whose changes alter the office2 security-monitor baselines. When a commit modifies any matching path, the rebaseline procedure in security-baseline-ops.md should be triggered after the change deploys, otherwise the daily audit will alert as drift. Consumed by tooling/scripts/check_audited_surface_drift.py (CI soft-reminder) and referenced by docs/design/architecture/change-control.md + spec-kitty charter quality gates.",
   "rebaseline_runbook": "docs/runbooks/security-baseline-ops.md",
   "rebaseline_command": "ssh office2-claude 'rm /data/services/security-monitor/baselines/* && sg docker -c /data/services/security-monitor/scripts/audit.sh'",
@@ -10,7 +10,7 @@
   "audited_surfaces": [
     {
       "id": "openclaw-agent-prompts",
-      "description": "OpenClaw agent workspace files. The 5-min agent-prompt-sync timer (#567) copies these to /data/services/openclaw/<workspace>/, which the security audit hashes into openclaw-config.txt.",
+      "description": "OpenClaw agent workspace files. The 5-min agent-prompt-sync timer (#567) copies these to /data/services/openclaw/<workspace>/. NOTE (gap #621, confirmed finalize-inbox-file-01KW8MSQ #325): audit.sh hashes only openclaw.json into openclaw-config.txt — it does NOT hash deployed AGENTS.md or other agent workspace files. Agent prompts are an unmonitored audited surface; no baseline is written when they change, so no rebaseline is required or possible for AGENTS.md edits.",
       "patterns": [
         "scripts/openclaw/agents/*/AGENTS.md",
         "scripts/openclaw/agents/*/AGENTS.md.tmpl",
@@ -19,9 +19,9 @@
         "scripts/openclaw/agents/*/USER.md",
         "scripts/openclaw/agents/*/GOVERNANCE.md"
       ],
-      "affected_baselines": ["openclaw-config.txt"],
+      "affected_baselines": [],
       "deploy_path": "scripts/openclaw/deploy/deploy_agent_prompts.py + agent-prompt-sync.service (auto)",
-      "rebaseline_required": true
+      "rebaseline_required": false
     },
     {
       "id": "openclaw-config",

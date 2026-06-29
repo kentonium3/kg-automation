@@ -122,7 +122,20 @@ For each fully-routed note (per Step 3): `python3 -m scripts.inbox.append_routin
 
 #### Step 5c — Atomic frontmatter write
 
-For each fully-routed note: `python3 -m scripts.inbox.mark_processed --path <path>`. Writes `status: processed` + `processed_at: <ISO-8601 UTC>` atomically, preserves all other frontmatter, preserves the body verbatim, leaves the file at its original path. Idempotent on already-processed notes.
+For each fully-routed note: `python3 -m scripts.inbox.mark_processed --path <path>`. Writes `status: processed` + `processed_at: <ISO-8601 UTC>` atomically, preserves all other frontmatter, preserves the body verbatim, leaves the file at its original path. Idempotent on already-processed notes. This step is frontmatter-only, in place — the note stays in `01-Inbox/` indefinitely; `prescan.py` archives it after the 7-day window. Do NOT move or delete the file (see Step 5 INVARIANT above).
+
+The helper prints a single-line JSON to stdout on exit 0 and `{"error": …, "detail": "…"}` to stderr on non-zero exits. Act on the exit code immediately:
+
+| Exit | Meaning | Action |
+|------|---------|--------|
+| 0 | finalized (or already processed) | proceed; note stays in `01-Inbox/` |
+| 1 | validation failure (bad path / outside inbox root / bad frontmatter) | record in the run summary; do NOT silently continue |
+| 2 | filesystem error (perm denied / write race) | **surface/escalate** — this is the silent-failure class; note left `unprocessed`, uncorrupted |
+| 3 | privacy refusal (`04-Growth/_private/`) | expected; skip, no escalation |
+
+**Standing order**: a non-zero finalize exit must be surfaced in the tick summary — no silent failures.
+
+**Exception — unclassifiable blocks**: if any content block could not be classified, set `status: needs-review` via a direct frontmatter edit — do NOT call `mark_processed` for this case, and do NOT write `processed_at`. Note the reason in the processing log (Step 7). This is the one legitimate non-`mark_processed` frontmatter write (it mirrors the `AGENTS.md.tmpl` source).
 
 ### Step 6 — End-of-turn parse-failure handling
 
