@@ -32,7 +32,8 @@ subtasks:
 - T006
 phase: Phase 1 - Foundation
 assignee: ''
-agent: claude
+agent: "claude"
+shell_pid: "34579"
 history:
 - at: '2026-06-24T20:35:00Z'
   actor: system
@@ -203,3 +204,10 @@ Done when:
 - Verify atomicity (temp+rename; `os.rename`) and the absence of any copy
   fallback. Verify each step's idempotence pre-check. Verify exit-code mapping and
   the exact JSON keys. Confirm no hardcoded vault paths.
+
+## Activity Log
+
+- 2026-06-29T01:23:27Z – claude – shell_pid=31327 – Assigned agent via action command
+- 2026-06-29T01:32:51Z – claude – shell_pid=31327 – Ready for review: atomic idempotent finalize helper; py_compile clean + 4-case hermetic smoke green
+- 2026-06-29T01:33:13Z – claude – shell_pid=34579 – Started review via action command
+- 2026-06-29T01:36:30Z – user – shell_pid=34579 – Review passed: contract-exact exit 0/1/2 + JSON; atomic (mark_processed._atomic_write + os.rename, no copy fallback C-004); idempotent recovery smoke-verified; reuses prescan+mark_processed (T006); C-001 registry paths. Anti-pattern: 1/3/5/6/7/8 PASS, 2/4 N/A (tests=WP02).

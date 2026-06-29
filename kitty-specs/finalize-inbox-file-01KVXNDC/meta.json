@@ -12,5 +12,7 @@
   "purpose_tldr": "Make inbox post-routing cleanup a single atomic, idempotent, error-surfacing helper instead of fragile inline agent tool calls.",
   "slug": "finalize-inbox-file-01KVXNDC",
   "target_branch": "feat/finalize-inbox-file",
-  "topology": "coord"
+  "topology": "coord",
+  "vcs": "git",
+  "vcs_locked_at": "2026-06-29T01:23:22.901894+00:00"
 }

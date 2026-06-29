@@ -35,12 +35,12 @@ atomic-per-step, idempotent finalize operation with exit-code + JSON contract.
 exit 0 + JSON stdout. **Est. prompt size**: ~280 lines.
 **Requirements**: FR-001…FR-009, NFR-001, NFR-002, NFR-003, C-001, C-003, C-004, C-005.
 
-- [ ] T001 Vault-path resolution + input validation (WP01)
-- [ ] T002 Atomic frontmatter status write, idempotent (WP01)
-- [ ] T003 Atomic move + cross-FS rejection, idempotent (WP01)
-- [ ] T004 Daily-log append + bootstrap, idempotent (WP01)
-- [ ] T005 Orchestration: exit codes + JSON stdout (WP01)
-- [ ] T006 Reconcile/reuse existing inbox primitives (WP01)
+- [x] T001 Vault-path resolution + input validation (WP01)
+- [x] T002 Atomic frontmatter status write, idempotent (WP01)
+- [x] T003 Atomic move + cross-FS rejection, idempotent (WP01)
+- [x] T004 Daily-log append + bootstrap, idempotent (WP01)
+- [x] T005 Orchestration: exit codes + JSON stdout (WP01)
+- [x] T006 Reconcile/reuse existing inbox primitives (WP01)
 
 Prompt: `tasks/WP01-finalize-helper-core.md`
 
