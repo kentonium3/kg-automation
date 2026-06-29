@@ -7,6 +7,7 @@
   "mission_number": null,
   "mission_slug": "finalize-inbox-file-01KW8MSQ",
   "mission_type": "software-dev",
+  "pr_bound": true,
   "purpose_context": "On 2026-05-18 the felix-admin-capture agent's inline Edit to write 'status: processed' failed silently (file 0644, agent needed group write); the note was left unprocessed for five days with no orchestrator detection. Per Constitution Directive 6 (deterministic work belongs in helper scripts), this mission folds an atomic, idempotent, error-surfacing finalize into the existing scripts/inbox/mark_processed.py and points the felix-admin-capture Step-5 standing orders at it. Finalize happens in place: the note keeps status:processed and stays in 01-Inbox/ for the 7-day retention window; prescan.py owns the eventual archive. Detectability comes from the atomic status write plus a 0/1/2 exit-code contract.",
   "purpose_tldr": "Make the inbox post-routing finalize a single atomic, idempotent, error-surfacing call by hardening mark_processed.py, replacing the agent's fragile inline frontmatter edit.",
   "slug": "finalize-inbox-file-01KW8MSQ",
