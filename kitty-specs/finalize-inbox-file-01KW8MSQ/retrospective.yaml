@@ -1,0 +1,289 @@
+schema_version: 1
+mission_id: 01KW8MSQ183M0QQWT5J2P55TRF
+mission_slug: finalize-inbox-file-01KW8MSQ
+mission_number: 81
+friendly_name: Atomic in-place inbox finalize
+mission_type: software-dev
+target_branch: feat/finalize-inbox-file-v2
+created_at: '2026-06-29T04:26:02.758501+00:00'
+created_by:
+  kind: runtime
+  id: spec-kitty-generator
+  display: Spec Kitty Generator
+provenance:
+  kind: runtime_post_completion
+  invoked_at: '2026-06-29T04:26:02.758501+00:00'
+  policy_resolved_from:
+    enabled: <default>
+    timing: <default>
+    failure_policy: <default>
+    write_record: <default>
+    generate_proposals: <default>
+    apply_proposals: <default>
+    permissions.write_record: <default>
+    permissions.inspect_mission_artifacts: <default>
+    permissions.propose_glossary_changes: <default>
+    permissions.propose_drg_changes: <default>
+    permissions.propose_doctrine_changes: <default>
+    permissions.apply_low_risk_changes: <default>
+    permissions.apply_structural_changes: <default>
+    precedence: <default>
+    generator: <default>
+policy_source:
+  enabled: <default>
+  timing: <default>
+  failure_policy: <default>
+  write_record: <default>
+  generate_proposals: <default>
+  apply_proposals: <default>
+  permissions.write_record: <default>
+  permissions.inspect_mission_artifacts: <default>
+  permissions.propose_glossary_changes: <default>
+  permissions.propose_drg_changes: <default>
+  permissions.propose_doctrine_changes: <default>
+  permissions.apply_low_risk_changes: <default>
+  permissions.apply_structural_changes: <default>
+  precedence: <default>
+  generator: <default>
+findings_status: has_findings
+helped:
+- id: h-001
+  category: implementation
+  summary: WP02 completed without rejection cycles
+  evidence_refs:
+  - e-008
+- id: h-002
+  category: implementation
+  summary: WP03 completed without rejection cycles
+  evidence_refs:
+  - e-008
+- id: h-003
+  category: tooling
+  summary: 'Tracer: [2026-06-28][pre-flight] build pinned by commit, not version'
+  evidence_refs:
+  - e-012
+  details: "- **[2026-06-28][pre-flight] build pinned by commit, not version** — verified the\n  installed pipx build `7530597a`
+    == upstream `main` HEAD via `git ls-remote`\n  before starting, so the run is anchored to a known build rather than the\n\
+    \  ambiguous `3.2.3` string. Disposition: **worked as designed** (operator-side\n  diligence; the tooling gap is logged
+    separately in the friction tracer)."
+- id: h-004
+  category: tooling
+  summary: 'Tracer: [2026-06-28][specify] branch-context helper was clean'
+  evidence_refs:
+  - e-012
+  details: "- **[2026-06-28][specify] branch-context helper was clean** — `mission\n  branch-context --json` deterministically
+    flagged `current_is_primary=true` and\n  recommended the feature-branch strategy with a human-readable reason; no git\n\
+    \  probing inside the prompt. Disposition: **worked as designed**."
+- id: h-005
+  category: tooling
+  summary: 'Tracer: [2026-06-28][specify] discovery via host-native question UI'
+  evidence_refs:
+  - e-012
+  details: "- **[2026-06-28][specify] discovery via host-native question UI** — the #325 body\n  pre-identified exactly two
+    design forks (helper scope; detectability). Asked both\n  through the host question UI and resolved them live rather than
+    running an\n  open-ended interview, keeping the signal clean. Both answers *shrank* the mission.\n  Disposition: **worked
+    as designed**."
+- id: h-006
+  category: tooling
+  summary: 'Tracer: [2026-06-28][specify] feature-branch start avoided the coord split'
+  evidence_refs:
+  - e-012
+  details: "- **[2026-06-28][specify] feature-branch start avoided the coord split** — `spec-commit`\n  landed directly on
+    `feat/finalize-inbox-file-v2` (commit `b0bc1cb`), NOT via a\n  protected-`main` coordination-worktree materialization.
+    The protected-main coord\n  read/write split paused all three prior #325 attempts; starting on a dedicated\n  *unprotected*
+    feature branch sidestepped it at the spec boundary. Anchor:\n  `spec-commit --mission`. Disposition: **worked as designed**
+    (validate it holds\n  through tasks→implement)."
+- id: h-008
+  category: tooling
+  summary: 'Tracer: [2026-06-28][specify] in-place, NO move (retention invariant)'
+  evidence_refs:
+  - e-013
+  details: "- **[2026-06-28][specify] in-place, NO move (retention invariant)** — finalize sets\n  `status: processed` and
+    leaves the note at its `01-Inbox/` path. `prescan.py`'s\n  `archive_stale` owns the eventual move to `02-Inbox-Processed/`
+    after the 7-day\n  retention window (Kent refers back to recent inbox notes). The move-era spec was a\n  regression; it
+    is removed. Disposition: **expected** (worked as designed — the\n  corrected design restores the `felix-admin-capture`
+    AGENTS.md Step-5 invariant)."
+- id: h-007
+  category: tooling
+  summary: 'Tracer: [2026-06-29][tasks] past the historical blocker — finalize-tasks clean'
+  evidence_refs:
+  - e-012
+  details: "- **[2026-06-29][tasks] past the historical blocker — finalize-tasks clean** — the\n  mutating `finalize-tasks`
+    succeeded (commit `bbe12a6a`) and computed 3 lanes with\n  a correct WP01→{WP02,WP03} fan-out. All three prior #325 attempts
+    died at or\n  before this exact phase (#1716 / tasks-resolver split / planning→implement\n  handoff). `map-requirements`
+    mapped 6/6 FRs first try. Anchor:\n  `finalize-tasks --mission`. Disposition: **worked as designed** (the planning arc\n\
+    \  is fully unblocked on `7530597a` when started on an unprotected feature branch)."
+not_helpful:
+- id: n-003
+  category: doc
+  summary: analysis-report.md present with findings
+  evidence_refs:
+  - e-011
+  details: An analysis-report.md artifact is present for this mission. Review its findings to understand documented 
+    issues and decisions.
+- id: n-001
+  category: process
+  summary: WP01 had 1 lane bounce(s) before approval
+  evidence_refs:
+  - e-009
+  details: WP WP01 moved backward across workflow lanes 1 time(s) outside the documented reviewer-feedback flow.
+- id: n-002
+  category: process
+  summary: WP01 required 1 --force override(s) during workflow
+  evidence_refs:
+  - e-010
+  details: WP WP01 required 1 operator-driven --force lane transition(s). Force overrides typically indicate the runtime
+    guard failed or the operator routed around it; investigate the underlying cause.
+- id: n-004
+  category: tooling
+  summary: 'Tracer: [2026-06-28][pre-flight] three-artifact instrumentation'
+  evidence_refs:
+  - e-012
+  details: "- **[2026-06-28][pre-flight] three-artifact instrumentation** — this mission is\n  captured by (1) a narrative
+    journal, (2) these #2095 tracers, and (3) an\n  end-of-mission spec-kitty-analyzer Customer Experience Report (PR #9 channel-scoped\n\
+    \  build). The three cross-check each other: narrative recall vs live tracers vs the\n  machine event-log analysis. Disposition:
+    documented approach."
+- id: n-005
+  category: tooling
+  summary: 'Tracer: [2026-06-28][specify] Codex as adversarial second reviewer'
+  evidence_refs:
+  - e-012
+  details: "- **[2026-06-28][specify] Codex as adversarial second reviewer** — per operator\n  direction, the implement-review
+    loop will add a Codex code-review pass after the\n  native spec-kitty review (`-p spec-kitty-review`, `sandbox_mode` profile
+    key, no\n  `--full-auto`). Rationale: independent-family review demonstrably catches what\n  same-family review misses
+    (precedent: the catfood CX report). Disposition:\n  documented approach (effectiveness assessed at review time)."
+- id: n-008
+  category: tooling
+  summary: 'Tracer: [2026-06-28][specify] detectability = atomic status write + exit code'
+  evidence_refs:
+  - e-013
+  details: "- **[2026-06-28][specify] detectability = atomic status write + exit code** — decided\n  fork: no separate finalize
+    audit line. A failed/missing finalize is surfaceable\n  via the non-zero exit (orchestrator) + a note left `status: unprocessed`
+    (prescan\n  reads frontmatter). Do NOT re-introduce a `02-Inbox-Processed/` per-file log under\n  the no-move design.
+    Disposition: documented design decision."
+- id: n-006
+  category: tooling
+  summary: 'Tracer: [2026-06-28][specify] doc updates pulled into mission scope'
+  evidence_refs:
+  - e-012
+  details: "- **[2026-06-28][specify] doc updates pulled into mission scope** — per operator\n  direction + kg-automation
+    standing requirement, required architecture/doc updates\n  (driven by `signal-to-doc-map.json`) are committed inside this
+    mission, not\n  deferred. This touches the `felix-admin-capture` AGENTS.md audited surface.\n  Disposition: documented
+    approach."
+- id: n-009
+  category: tooling
+  summary: 'Tracer: [2026-06-28][specify] exit-code contract 0/1/2'
+  evidence_refs:
+  - e-013
+  details: "- **[2026-06-28][specify] exit-code contract 0/1/2** — `0` success or idempotent\n  re-run; `1` validation failure
+    (bad path / outside inbox root / missing or\n  unparseable frontmatter); `2` filesystem error (perm denied / write race),
+    with\n  the specific OSError on stderr. stdout = single-line JSON matching the prescan\n  convention. Disposition: documented
+    design decision (contract under test)."
+- id: n-007
+  category: tooling
+  summary: 'Tracer: [2026-06-28][specify] fold into mark_processed.py, no new script'
+  evidence_refs:
+  - e-013
+  details: "- **[2026-06-28][specify] fold into mark_processed.py, no new script** — decided\n  fork: `mark_processed.py`
+    already performs the atomic idempotent in-place\n  `status: processed` write; the finalize work is folded into it (exit-code
+    contract\n  + JSON stdout + error surfacing), NOT a new `finalize_inbox_file.py`. **Deviation\n  from the issue's literal
+    title — recorded in spec.md per DIRECTIVE_010.**\n  Disposition: documented design decision."
+- id: n-010
+  category: tooling
+  summary: 'Tracer: [2026-06-28][specify] reuse mark_processed atomic-write core'
+  evidence_refs:
+  - e-013
+  details: "- **[2026-06-28][specify] reuse mark_processed atomic-write core** — the temp-sibling\n  + fsync + rename atomic
+    write already in `mark_processed.py` is the substrate;\n  finalize must not duplicate or weaken it. Reuse the prescan
+    path-registry resolver\n  (`scripts/vault/paths.json`) for inbox-root validation. Disposition: documented\n  design decision
+    (locality of change, DIRECTIVE_024)."
+gaps:
+- id: g-004
+  category: tooling
+  summary: 'Tracer: [2026-06-28][pre-flight] tracer scaffolding gap (#2095)'
+  evidence_refs:
+  - e-014
+  details: "- **[2026-06-28][pre-flight] tracer scaffolding gap (#2095)** — the retrospective\n  generator *ingests* `kitty-specs/<mission>/traces/*.md`
+    (FR-007, shipped) but\n  nothing *scaffolds or seeds* them and there is no `traces` CLI. The operator must\n  hand-create
+    all three files at the exact path with the documented bold-lead /\n  disposition-keyword format, or ingestion silently
+    finds zero entries. Anchor:\n  `retrospective/generator.py:225`; #2095. Disposition: **candidate gap** —\n  auto-scaffold
+    `traces/` at `mission create` (the #2095 \"if ROI positive\" goal)."
+- id: g-003
+  category: tooling
+  summary: 'Tracer: [2026-06-28][pre-flight] version-string non-granularity'
+  evidence_refs:
+  - e-014
+  details: "- **[2026-06-28][pre-flight] version-string non-granularity** — `spec-kitty upgrade\n  --agent-check --json` returns
+    `installed=3.2.3, latest=3.2.2 (pypi), action=none,\n  reason=up_to_date`. We are on a from-`main` build (`7530597a`)
+    that is *ahead* of\n  the latest PyPI tag, yet the only identifier surfaced is the string `3.2.3`. An\n  operator cannot
+    tell *which* main build is installed or what in-flight fixes it\n  carries from the version alone. Anchor: `upgrade --agent-check`.
+    Disposition:\n  **candidate gap** — surface the git commit / build SHA alongside the version\n  string, or a `--build`
+    field."
+- id: g-002
+  category: tooling
+  summary: 'Tracer: [2026-06-29][implement] WP-approve issue-matrix read/write split'
+  evidence_refs:
+  - e-014
+  details: "- **[2026-06-29][implement] WP-approve issue-matrix read/write split** — `move-task\n  WP01 --to approved` fails:
+    `issue-matrix.md has unresolved entries … Unknown:\n  #325,#327,#557,#621`. The approve gate reads `issue-matrix.md` from
+    the **coord**\n  branch/worktree (`kitty/mission-…`, d7d6fa9d, still `unknown`), but the gate's own\n  printed remedy
+    (`cd <main checkout>; git add kitty-specs/…; git commit`) commits to\n  **feat** (99c5c32f, where my verdicts ARE). Following
+    the tool's literal instruction\n  cannot clear the gate — wrong side of the coord/primary split. Anchor:\n  `agent tasks
+    move-task … --to approved`. Disposition: **candidate gap / open** — the\n  #2115/#2155/#1716 read/write-split family (example
+    CX report hit the identical class\n  at `accept` for acceptance-matrix); here it bites one step earlier at WP-approval,
+    and\n  the remedy message points at the wrong checkout."
+- id: g-001
+  category: tooling
+  summary: 'Tracer: [date][phase] symptom'
+  evidence_refs:
+  - e-014
+  details: "- **[date][phase] symptom** — anchor (command/file) — disposition: <candidate gap | fixed | documented friction>\n\
+    ```\n\n## Entries"
+proposals: []
+evidence_refs:
+- id: e-001
+  kind: file
+  path: kitty-specs/finalize-inbox-file-01KW8MSQ/meta.json
+- id: e-002
+  kind: file
+  path: kitty-specs/finalize-inbox-file-01KW8MSQ/spec.md
+- id: e-003
+  kind: file
+  path: kitty-specs/finalize-inbox-file-01KW8MSQ/plan.md
+- id: e-004
+  kind: file
+  path: kitty-specs/finalize-inbox-file-01KW8MSQ/tasks.md
+- id: e-005
+  kind: file
+  path: kitty-specs/finalize-inbox-file-01KW8MSQ/tasks/WP01-harden-mark-processed.md
+- id: e-006
+  kind: file
+  path: kitty-specs/finalize-inbox-file-01KW8MSQ/tasks/WP02-step5c-cutover.md
+- id: e-007
+  kind: file
+  path: kitty-specs/finalize-inbox-file-01KW8MSQ/tasks/WP03-architecture-doc-updates.md
+- id: e-008
+  kind: file
+  path: kitty-specs/finalize-inbox-file-01KW8MSQ/status.events.jsonl
+- id: e-009
+  kind: event_range
+  path: kitty-specs/finalize-inbox-file-01KW8MSQ/status.events.jsonl
+  range: 01KW8QK28H9WR5CS4SG67JR2MC
+- id: e-010
+  kind: event_range
+  path: kitty-specs/finalize-inbox-file-01KW8MSQ/status.events.jsonl
+  range: 01KW8QK28H9WR5CS4SG67JR2MC
+- id: e-011
+  kind: file
+  path: kitty-specs/finalize-inbox-file-01KW8MSQ/analysis-report.md
+- id: e-012
+  kind: file
+  path: kitty-specs/finalize-inbox-file-01KW8MSQ/traces/approach-trace.md
+- id: e-013
+  kind: file
+  path: kitty-specs/finalize-inbox-file-01KW8MSQ/traces/design-trace.md
+- id: e-014
+  kind: file
+  path: kitty-specs/finalize-inbox-file-01KW8MSQ/traces/tooling-friction-trace.md
+generator_version: '1.0'
+provenance_history: []
