@@ -265,4 +265,42 @@ auto-commit-disabled, populate-to-pass) cleared by following the tool.
 
 ### Implement — WP02 + WP03 (parallel, depend on WP01)
 
-_(in progress)_
+Both lanes materialized cleanly (lane-b, lane-c, each rebased on lane-a); the
+auto-commit-disabled gate fired once (committed per instruction). Dispatched both
+implementers **in parallel** — implementer-ivan (WP02) + curator-carla (WP03).
+
+**WP02** (`5168f80e`): Step 5c exit-code table + reaffirmed no-move. The implementer
+**found a stale inline-`Edit` finalize in `AGENTS.md.tmpl`** (the template — a future
+re-render would have regressed the live prompt) and replaced it. So #325's "replace
+inline Edit" premise was still live *in the template*.
+
+**WP03** (`6842733e`): service-inventory JSON+md; **corrected a genuine inaccuracy in
+`audited-surfaces.json`** (the openclaw-agent-prompts entry falsely claimed audit.sh
+hashes agent prompts — set `affected_baselines:[]`, `rebaseline_required:false` per
+gap #621); runbooks reviewed-no-change. Validator OK.
+
+🎯 **Codex earned its keep on the doc WPs too — REQUEST-CHANGES on both:**
+- **WP02 (MED):** rendered AGENTS.md lost the `needs-review` exception that `.tmpl`
+  still had (unclassifiable block → direct `needs-review` write, NOT `mark_processed`).
+  Fixed `851ba566` → Codex APPROVE.
+- **WP03 (HIGH+MED+LOW):** **HIGH** — `post-change-verification.md` *still* claimed
+  agent-prompt edits need rebaseline, contradicting the new audited-surfaces.json +
+  the **live `audit.sh`** (Codex cross-checked the actual script). **MED** — inventory
+  note over-claimed AGENTS.md handling (lane-c lacks WP02's edit) and **dropped exit 3**.
+  **LOW** — stale metadata. Fixed `2963026a` (incl. an owned-files-rationale'd edit to
+  post-change-verification.md) → validator OK → Codex APPROVE.
+
+**Independent-review scorecard: Codex found real defects in EVERY WP** — 2 HIGH (WP01,
+one re-introducing the silent-failure class), 1 MED (WP02), 1 HIGH + 1 MED + 1 LOW
+(WP03). Same-family review (implementers + my orchestrator pass) cleared all of them.
+This is the strongest possible validation of the example CX report's central thesis.
+
+**Approve tax:** WP02/WP03 approvals cleared the issue-matrix gate **without** a
+re-sync (the matrix populated during WP01 persisted on coord); only the routine
+commit-before-approve gate fired. **All 3 WPs → approved.** Commits: WP01 `c100acaa`,
+WP02 `851ba566`, WP03 `2963026a`.
+
+### Accept + Merge
+
+_(in progress — watch for the example's accept walls: src/tests path_violations,
+#1826 dirty coord/primary, hollow-reviews false-positive)_
