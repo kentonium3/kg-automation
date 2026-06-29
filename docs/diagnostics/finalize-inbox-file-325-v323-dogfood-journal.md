@@ -356,7 +356,27 @@ mis-ingestion. Documented gates (analysis-required, auto-commit-disabled,
 populate-to-pass, deferred-with-followup handle) cleared by following the tool;
 `.worktrees/` gitignore spared the #2102 dirty-tree trip.
 
-### Next (post-merge)
-- spec-kitty-analyzer **Customer Experience Report** (PR #9 channel-scoped build) on
-  this mission's event log — the deliverable.
-- feat → main; close #325 with the merge SHA; mission-review / retrospective synthesize.
+### Customer Experience Report — DONE
+
+Ran **spec-kitty-analyzer** (PR #9 + followups build, `fix/failure-scan-followups`) in
+mission-first mode: `analyze finalize-inbox-file-01KW8MSQ`. Output: **309 timeline
+events across 7 input logs** (main session + 2 Codex rollouts + sub-agent logs); **8
+failure events / 4 modes** — `generic_error`×5 (implement gates + merge conflict),
+`permission_denied`×2 (exit-2 perm tests), `typer_usage_error`×2 (the #2115 approve/
+matrix CLI rejections), `timeout`×1. The channel-scoping fix correctly surfaced the
+**real** friction as output-channel detections — NOT inflated by my extensive narrative
+about those same errors (PR #9 validated). 🐛 **Analyzer self-loop finding:** dozens of
+unmapped `codex` event shapes (`function_call`/`reasoning`/`task_started`/…) — the
+analyzer doesn't yet parse Codex sub-agent transcripts, so the most valuable review
+activity in this mission is invisible to it (its top backlog item).
+
+**CX report written:** `~/spec-kitty-analyzer-issue4-backup/catfood-findings/customer-experience-one-mission-3.2.3-7530597a.md`
+(modeled on the example; full event-by-event timeline, attribution table, the
+analyzer self-loop, "the point"). Analyzer artifacts: `/tmp/cx-analyzer-01KW8MSQ.{json,md,html,pdf}`.
+
+### Still open (operator decisions)
+- **feat → main** — LEFT FOR KENT (deploys to office2 via git pull; this was a
+  PR-bound mission landing on `feat/finalize-inbox-file-v2`).
+- **Close #325** with the merge SHA + a comment, once feat→main lands.
+- Optional: `/spec-kitty-mission-review` + `retrospect synthesize` (merge output
+  suggested both).
