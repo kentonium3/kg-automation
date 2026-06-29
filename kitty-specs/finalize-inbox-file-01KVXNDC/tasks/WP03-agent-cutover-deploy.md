@@ -16,7 +16,8 @@ subtasks:
 - T015
 phase: Phase 3 - Cutover & Deploy
 assignee: ''
-agent: claude
+agent: "claude"
+shell_pid: "39115"
 history:
 - at: '2026-06-24T20:35:00Z'
   actor: system
@@ -137,3 +138,7 @@ Done when:
 - Confirm manifest matches the discipline schema and uses shared-lib checks.
 - Confirm exit-code handling in the standing orders is unambiguous.
 - Confirm the no-rebaseline rationale is correct (AGENTS.md unhashed).
+
+## Activity Log
+
+- 2026-06-29T01:44:14Z – claude – shell_pid=39115 – Assigned agent via action command
