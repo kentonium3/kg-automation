@@ -15,6 +15,18 @@ entry: `candidate gap` / `open (` → **gaps**; `fixed` / `worked as designed` /
 
 ## Entries
 
+- **[2026-06-29][implement] WP-approve issue-matrix read/write split** — `move-task
+  WP01 --to approved` fails: `issue-matrix.md has unresolved entries … Unknown:
+  #325,#327,#557,#621`. The approve gate reads `issue-matrix.md` from the **coord**
+  branch/worktree (`kitty/mission-…`, d7d6fa9d, still `unknown`), but the gate's own
+  printed remedy (`cd <main checkout>; git add kitty-specs/…; git commit`) commits to
+  **feat** (99c5c32f, where my verdicts ARE). Following the tool's literal instruction
+  cannot clear the gate — wrong side of the coord/primary split. Anchor:
+  `agent tasks move-task … --to approved`. Disposition: **candidate gap / open** — the
+  #2115/#2155/#1716 read/write-split family (example CX report hit the identical class
+  at `accept` for acceptance-matrix); here it bites one step earlier at WP-approval, and
+  the remedy message points at the wrong checkout.
+
 - **[2026-06-28][pre-flight] version-string non-granularity** — `spec-kitty upgrade
   --agent-check --json` returns `installed=3.2.3, latest=3.2.2 (pypi), action=none,
   reason=up_to_date`. We are on a from-`main` build (`7530597a`) that is *ahead* of
