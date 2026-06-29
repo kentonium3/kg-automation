@@ -209,5 +209,60 @@ unprotected feature-branch start.
 
 ### Implement
 
-_(in progress — appended live below; this is where attempt-3 re-split — the critical
-watch point)_
+**Analysis gate** (`/spec-kitty.analyze`): `agent action implement WP01` correctly
+gated on `analysis_report_required` (legit, not a block). Authored the
+`analysis-findings/v1` carrier (2 LOW findings, verdict `ready`), `record-analysis`
+→ `verdict: ready`. **Notably `record-analysis` did NOT trip the dirty-tree
+preflight** (the example CX report's #2102 class) — `.worktrees/` is already
+gitignored here (line 65) and the tree was clean. kg-automation is hardened against
+that class.
+
+**implement WP01 — no attempt-3 split.** First call hit the **auto-commit-disabled
+gate** (commit planning artifacts first — a documented gate, tool printed the exact
+remedy). Committed the residual workflow state → *"✓ Planning artifacts committed to
+coordination branch"* (the #2106+ placement routing feat→coord on commit). Lane
+worktree `.worktrees/…-lane-a` materialized cleanly, WP01→doing, claimed. **Crucially
+implement FOUND the tasks** — not the attempt-3 "no tasks directory at empty coord
+worktree" failure. The planning→implement handoff held.
+
+**Implementation (python-pedro sub-agent, sonnet)** → commit `4fa8be6d`, 275 passed.
+It also **caught a real bug in my WP01 prompt**: my perm-denied test used
+`chmod(note, 0o444)`, but `os.replace` is governed by *parent-dir* write perms — so
+the test would have falsely passed at exit 0. It used `chmod(parent, 0o555)` instead.
+My orchestrator diff sanity-pass: judged clean (it was not — see below).
+
+🎯 **MARQUEE RESULT — Codex adversarial review caught two HIGH bugs the implementer
+AND my sanity pass both missed.** `codex exec -p spec-kitty-review` (sandbox_mode,
+no --full-auto) on the WP01 diff, REPRODUCED both:
+1. **HIGH** `inbox_root` not resolved before `is_relative_to` → false
+   `outside_inbox_root` on `/var` vs `/private/var` (a legitimate in-inbox note exits
+   1 instead of finalizing).
+2. **HIGH** symlink note path passed raw to `mark_processed` → `os.replace` replaces
+   the symlink, leaving the real target `unprocessed` **while exiting 0 + success
+   JSON** — i.e. it re-introduced *the exact silent-failure class this WP exists to
+   close*.
+3. **MED** tests miss both. VERDICT: REQUEST-CHANGES. This is the live validation of
+   the example CX report's thesis: independent (different-family) review catches what
+   same-family review misses. Fixed in `c100acaa` (`inbox_root.resolve()`; pass
+   canonical `candidate`) + 2 regression tests; 277 passed. **Codex re-review →
+   APPROVE, no findings** (it even probed extra: private-path still exit-3 with a bad
+   registry; a symlink pointing outside the inbox correctly rejected).
+
+**Approve gate — #2115 coord/primary read-write split (worked around, operator-
+directed).** `move-task WP01 --to approved` blocked: the gate reads `issue-matrix.md`
+(populate-to-pass) from the **coord** branch, but my verdicts + the gate's own printed
+`git commit` remedy land on **feat**. Following the tool literally can't clear it
+(wrong side of the split) — the #2115/#2155/#1716 family, biting one phase earlier
+than the example's `accept` variant. **Stopped + captured + surfaced to Kent**; Kent
+directed the example's documented resolution (author the matrix in the coord
+worktree). Also hit the matrix's `deferred-with-followup` validator (needs a `#NNN`
+follow-up handle in evidence_ref) — added `Follow-up: #327 / #621`. **WP01 → approved.**
+
+**Friction tally so far:** F1 version-string, F2 tracer-scaffold gap, F3 #2115
+issue-matrix read-write split (the one real STOP point — operator-directed
+workaround). Everything else was documented gates (analysis-required,
+auto-commit-disabled, populate-to-pass) cleared by following the tool.
+
+### Implement — WP02 + WP03 (parallel, depend on WP01)
+
+_(in progress)_
