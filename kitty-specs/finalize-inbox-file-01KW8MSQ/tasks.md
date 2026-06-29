@@ -53,9 +53,9 @@ action mapping and reaffirms the invariant; no stale inline-Edit finalize refere
 **Dependencies**: WP01. **Requirements**: FR-005.
 **Prompt**: [tasks/WP02-step5c-cutover.md](tasks/WP02-step5c-cutover.md) (~210 lines). Est. 3 subtasks.
 
-- [ ] T007 Add an exit-code handling table to Step 5c: 0→proceed, 1→surface validation, 2→surface/escalate, 3→skip private (WP02)
-- [ ] T008 Reaffirm "do NOT move; preserve in 01-Inbox/" invariant, tied to the helper call (WP02)
-- [ ] T009 Add "a non-zero finalize must be surfaced" note; verify no stale inline-`Edit` finalize references remain (WP02)
+- [x] T007 Add an exit-code handling table to Step 5c: 0→proceed, 1→surface validation, 2→surface/escalate, 3→skip private (WP02)
+- [x] T008 Reaffirm "do NOT move; preserve in 01-Inbox/" invariant, tied to the helper call (WP02)
+- [x] T009 Add "a non-zero finalize must be surfaced" note; verify no stale inline-`Edit` finalize references remain (WP02)
 
 ---
 
@@ -68,10 +68,10 @@ surfaces + runbooks reviewed; architecture-data validator passes.
 **Dependencies**: WP01. **Requirements**: FR-006.
 **Prompt**: [tasks/WP03-architecture-doc-updates.md](tasks/WP03-architecture-doc-updates.md) (~230 lines). Est. 4 subtasks.
 
-- [ ] T010 Update `service-inventory.json` felix-admin-capture entry (finalize now error-surfacing; depends_on mark_processed) (WP03)
-- [ ] T011 Update `service-inventory.md` narrative counterpart to match (WP03)
-- [ ] T012 Review/update `audited-surfaces.json` agent-prompt surface mapping (gap #621 context; no fabrication) (WP03)
-- [ ] T013 Review `openclaw-agent-setup.md` + `agent-prompt-sync-ops.md`; record rebaseline-not-required reasoning (WP03)
+- [x] T010 Update `service-inventory.json` felix-admin-capture entry (finalize now error-surfacing; depends_on mark_processed) (WP03)
+- [x] T011 Update `service-inventory.md` narrative counterpart to match (WP03)
+- [x] T012 Review/update `audited-surfaces.json` agent-prompt surface mapping (gap #621 context; no fabrication) (WP03)
+- [x] T013 Review `openclaw-agent-setup.md` + `agent-prompt-sync-ops.md`; record rebaseline-not-required reasoning (WP03)
 
 ---
 
