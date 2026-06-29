@@ -241,3 +241,4 @@ can any input leave the note `unprocessed` while the helper exits 0?
 - 2026-06-29T03:38:23Z – claude – shell_pid=67116 – WP01: exit-2 fs-error, JSON stdout, inbox-root validation; 275 passed/0 fail; commit 4fa8be6d
 - 2026-06-29T03:43:26Z – user – shell_pid=67116 – Codex adversarial review REQUEST-CHANGES: (HIGH) inbox_root not resolved -> false outside_inbox_root on /var vs /private/var; (HIGH) symlink note -> os.replace replaces symlink, target left unprocessed but exit 0 + success JSON (silent-failure class); (MEDIUM) tests miss both. Fix: resolve inbox_root; pass canonical candidate to mark_processed; add symlink + spelling-mismatch tests.
 - 2026-06-29T03:48:50Z – claude – shell_pid=67116 – Fix applied (c100acaa): inbox_root resolved + canonical candidate. 277 passed.
+- 2026-06-29T03:55:33Z – user – shell_pid=67116 – Codex APPROVE; matrix populated+synced (#2115 workaround)
