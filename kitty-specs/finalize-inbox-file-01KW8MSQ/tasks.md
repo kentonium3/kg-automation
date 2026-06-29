@@ -35,12 +35,12 @@ five outcomes (happy/idempotent/validation/fs-fail/private).
 **Dependencies**: none. **Requirements**: FR-001, FR-002, FR-003, FR-004; NFR-003, NFR-004.
 **Prompt**: [tasks/WP01-harden-mark-processed.md](tasks/WP01-harden-mark-processed.md) (~320 lines). Est. 6 subtasks.
 
-- [ ] T001 Add inbox-root validation via `prescan.resolve_registry()`; path outside root → exit 1 (WP01)
-- [ ] T002 Wrap the atomic write; catch `OSError` → exit 2 + `{"error":"fs_error",...}` on stderr; original uncorrupted (WP01)
-- [ ] T003 Print single-line success JSON on stdout (finalized/already_processed/status/file_final_path) (WP01)
-- [ ] T004 Preserve atomicity/idempotency/round-trip/exit-3; update module docstring exit table to 0/1/2/3 (WP01)
-- [ ] T005 Extend `tests/inbox/test_mark_processed.py`: exit-2 perm-denied (root-skip) + uncorrupted, exit-2 mocked replace, exit-1 outside-root, stdout JSON shape (WP01)
-- [ ] T006 Run full `pytest tests/inbox/ -v` — green, no regression in existing tests (WP01)
+- [x] T001 Add inbox-root validation via `prescan.resolve_registry()`; path outside root → exit 1 (WP01)
+- [x] T002 Wrap the atomic write; catch `OSError` → exit 2 + `{"error":"fs_error",...}` on stderr; original uncorrupted (WP01)
+- [x] T003 Print single-line success JSON on stdout (finalized/already_processed/status/file_final_path) (WP01)
+- [x] T004 Preserve atomicity/idempotency/round-trip/exit-3; update module docstring exit table to 0/1/2/3 (WP01)
+- [x] T005 Extend `tests/inbox/test_mark_processed.py`: exit-2 perm-denied (root-skip) + uncorrupted, exit-2 mocked replace, exit-1 outside-root, stdout JSON shape (WP01)
+- [x] T006 Run full `pytest tests/inbox/ -v` — green, no regression in existing tests (WP01)
 
 ---
 

@@ -12,5 +12,7 @@
   "purpose_tldr": "Make the inbox post-routing finalize a single atomic, idempotent, error-surfacing call by hardening mark_processed.py, replacing the agent's fragile inline frontmatter edit.",
   "slug": "finalize-inbox-file-01KW8MSQ",
   "target_branch": "feat/finalize-inbox-file-v2",
-  "topology": "coord"
+  "topology": "coord",
+  "vcs": "git",
+  "vcs_locked_at": "2026-06-29T03:24:57.549113+00:00"
 }
