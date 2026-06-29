@@ -294,15 +294,20 @@ rare and visible in the activity log.
 
 #### Step 5c: Atomic frontmatter write
 
-- Update frontmatter: `status: processed`
-- Update frontmatter: `processed_at: "<current timestamp>"` using your local
-  timezone in ISO 8601 format (e.g. `processed_at: "2026-05-06T12:30:00-04:00"`)
-- Quote the timestamp value in the YAML frontmatter
-- Do NOT delete the original file — preserve it as a record
+For each fully-routed note: `python3 -m scripts.inbox.mark_processed --path <path>`. Writes `status: processed` + `processed_at: <ISO-8601 UTC>` atomically, preserves all other frontmatter, preserves the body verbatim, leaves the file at its original path. Idempotent on already-processed notes. This step is frontmatter-only, in place — the note stays in `01-Inbox/` indefinitely; `prescan.py` archives it after the 7-day window. Do NOT move or delete the file.
 
-If any content block could not be classified:
-- Set `status: needs-review` instead (do NOT write `processed_at`)
-- Add a note in the processing log explaining what was unclear
+The helper prints a single-line JSON to stdout on exit 0 and `{"error": …, "detail": "…"}` to stderr on non-zero exits. Act on the exit code immediately:
+
+| Exit | Meaning | Action |
+|------|---------|--------|
+| 0 | finalized (or already processed) | proceed; note stays in `01-Inbox/` |
+| 1 | validation failure (bad path / outside inbox root / bad frontmatter) | record in the run summary; do NOT silently continue |
+| 2 | filesystem error (perm denied / write race) | **surface/escalate** — this is the silent-failure class; note left `unprocessed`, uncorrupted |
+| 3 | privacy refusal (`04-Growth/_private/`) | expected; skip, no escalation |
+
+**Standing order**: a non-zero finalize exit must be surfaced in the tick summary — no silent failures.
+
+If any content block could not be classified, set `status: needs-review` via direct frontmatter edit (do NOT use `mark_processed` for this case; do NOT write `processed_at`). Add a note in the processing log explaining what was unclear.
 
 ### Step 6: End-of-turn parse-failure handling
 

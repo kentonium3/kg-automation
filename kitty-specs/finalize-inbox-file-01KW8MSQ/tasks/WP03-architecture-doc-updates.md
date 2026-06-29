@@ -154,5 +154,3 @@ reasoning is recorded. Verify edits are minimal and accurate, not doc-bloat.
 ## Activity Log
 
 - 2026-06-29T04:01:26Z – claude – shell_pid=79495 – Assigned agent via action command
-- 2026-06-29T04:09:23Z – claude – shell_pid=79495 – service-inventory + audited-surfaces (#621 correction); validator OK; commit 6842733e
-- 2026-06-29T04:20:03Z – user – shell_pid=79495 – Codex APPROVE after fix (2963026a): #621 runbook correction, exit-3, metadata

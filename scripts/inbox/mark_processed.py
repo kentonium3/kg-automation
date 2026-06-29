@@ -11,22 +11,32 @@ CLI (mandatory `-m` invocation form per NFR-004 /
     python3 -m scripts.inbox.mark_processed --path <abs-path-to-note>
 
 Exit codes:
-    0  success (including idempotent no-op)
-    1  validation error (missing file, no frontmatter)
+    0  success (including idempotent no-op); stdout carries a single-line
+       JSON: {"finalized": true, "already_processed": <bool>, "status":
+       "processed", "file_final_path": "<abs-path>"}
+    1  validation error (missing file, no frontmatter, outside inbox root,
+       unresolvable inbox registry)
+    2  filesystem error (perm denied / write race); stderr carries the
+       OSError detail as {"error": "fs_error", "detail": "<exc>"}
     3  refusal: --path is under `04-Growth/_private/` (C-001)
 
 Stdlib only (NFR-002): no requests / httpx / pydantic / PyYAML /
 python-frontmatter. Frontmatter parsing is a minimal regex-based parser
 sufficient for the simple key-value frontmatter used in inbox notes.
+`json` is stdlib; no new dependencies are introduced.
 
 Atomic write pattern mirrors `scripts/inbox/inject_parse_error_marker.py`:
 write-temp + fsync + os.replace, with the original file mode preserved.
+On write failure the original note is left uncorrupted — `_atomic_write`
+unlinks its temp file before re-raising, and `mark_processed` catches the
+OSError to convert it to a clean exit 2.
 
-References: FR-001, FR-002, FR-008, FR-009, FR-010, C-001.
+References: FR-001, FR-002, FR-003, FR-004, FR-008, FR-009, FR-010, C-001.
 """
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import re
 import stat
@@ -156,11 +166,18 @@ def _atomic_write(path: Path, content: str) -> None:
 def mark_processed(path: Path) -> int:
     """Atomically set `status: processed` + `processed_at` on `path`.
 
-    Returns the exit code per the CLI contract (0/1/3).
+    Returns the exit code per the CLI contract (0/1/2/3).
+
+    Exit 2 is returned on a write-phase OSError (permission denied, write
+    race); the original note is guaranteed uncorrupted because _atomic_write
+    unlinks its temp file before re-raising and the except scope is limited
+    to the write call only.
     """
     if not path.exists():
         print(
-            f'{{"error": "missing_file", "detail": "{path} does not exist"}}',
+            json.dumps(
+                {"error": "missing_file", "detail": f"{path} does not exist"}
+            ),
             file=sys.stderr,
         )
         return 1
@@ -168,8 +185,9 @@ def mark_processed(path: Path) -> int:
     try:
         text = path.read_text(encoding="utf-8")
     except OSError as exc:
+        # Read failure is a validation concern (exit 1), not a write failure.
         print(
-            f'{{"error": "read_failed", "detail": "{exc}"}}',
+            json.dumps({"error": "read_failed", "detail": str(exc)}),
             file=sys.stderr,
         )
         return 1
@@ -178,13 +196,26 @@ def mark_processed(path: Path) -> int:
         fm, body, leading_blank = read_frontmatter(text)
     except ValueError as exc:
         print(
-            f'{{"error": "no_frontmatter", "detail": "{exc}"}}',
+            json.dumps({"error": "no_frontmatter", "detail": str(exc)}),
             file=sys.stderr,
         )
         return 1
 
-    # Idempotency check (FR-002): if already processed, no-op.
+    abs_path = str(path.resolve())
+
+    # Idempotency check (FR-002): if already processed, emit success JSON
+    # and return 0 without writing.
     if fm.get("status") == "processed":
+        print(
+            json.dumps(
+                {
+                    "finalized": True,
+                    "already_processed": True,
+                    "status": "processed",
+                    "file_final_path": abs_path,
+                }
+            )
+        )
         return 0
 
     # Mutate. Keep existing keys, only modify/add the two we own.
@@ -194,7 +225,31 @@ def mark_processed(path: Path) -> int:
     )
 
     new_text = write_frontmatter(fm, body, leading_blank=leading_blank)
-    _atomic_write(path, new_text)
+
+    # T002 (FR-001): catch write-phase OSError and return 2.
+    # Scope is strictly the write — the read/validation paths above use exit 1.
+    # _atomic_write unlinks its temp on failure so the original note is
+    # never left partial or corrupted.
+    try:
+        _atomic_write(path, new_text)
+    except OSError as exc:
+        print(
+            json.dumps({"error": "fs_error", "detail": str(exc)}),
+            file=sys.stderr,
+        )
+        return 2
+
+    # T003 (FR-002): emit single-line success JSON on stdout.
+    print(
+        json.dumps(
+            {
+                "finalized": True,
+                "already_processed": False,
+                "status": "processed",
+                "file_final_path": abs_path,
+            }
+        )
+    )
     return 0
 
 
@@ -220,12 +275,51 @@ def main(argv: list[str] | None = None) -> int:
     # Refusal check (C-001) happens BEFORE any disk read.
     if _is_private_path(args.path):
         print(
-            '{"error": "refused", "detail": "path is under 04-Growth/_private/"}',
+            json.dumps(
+                {
+                    "error": "refused",
+                    "detail": "path is under 04-Growth/_private/",
+                }
+            ),
             file=sys.stderr,
         )
         return 3
 
-    return mark_processed(Path(args.path))
+    # T001 (FR-003): inbox-root validation. Resolve the inbox root from the
+    # vault registry (honoring PRESCAN_REGISTRY_PATH for test isolation) and
+    # reject any path that does not live under it.
+    try:
+        from scripts.inbox.prescan import resolve_registry  # lazy import
+
+        inbox_root, _inbox_processed = resolve_registry()
+        # Resolve the root too (Codex review): comparing a resolved candidate
+        # against an unresolved root caused false `outside_inbox_root` on macOS
+        # (`/var` registry vs `/private/var` resolved). Normalize both sides.
+        inbox_root = inbox_root.resolve()
+    except Exception as exc:
+        print(
+            json.dumps(
+                {"error": "inbox_root_unresolvable", "detail": str(exc)}
+            ),
+            file=sys.stderr,
+        )
+        return 1
+
+    candidate = Path(args.path).resolve()
+    if not candidate.is_relative_to(inbox_root):
+        print(
+            json.dumps(
+                {"error": "outside_inbox_root", "detail": str(candidate)}
+            ),
+            file=sys.stderr,
+        )
+        return 1
+
+    # Operate on the canonical resolved path end-to-end (Codex review): passing
+    # the raw symlink path would have os.replace() replace the symlink itself,
+    # leaving the real target `unprocessed` while the helper exits 0 with success
+    # JSON — re-introducing the silent-failure class this WP exists to close.
+    return mark_processed(candidate)
 
 
 if __name__ == "__main__":

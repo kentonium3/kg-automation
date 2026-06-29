@@ -68,7 +68,7 @@ Per the enriched service inventory, services declare their health-check method:
 
 Tier 3 (Logic/Workflow) and Tier 4 (Schema/Metadata) changes do not require post-change *service health* verification. Standard dry-run/sandbox testing (Tier 3) or direct commit (Tier 4) per the taxonomy.
 
-**Note**: Tier 3/4 changes may still trigger the **rebaseline obligation** below if the change touches an audited surface. The two obligations are independent — a Tier 3 prompt edit doesn't need service-health verification, but if it's an OpenClaw agent prompt (`scripts/openclaw/agents/*/AGENTS.md`) then it touches the `openclaw-config.txt` audit baseline and the rebaseline is required.
+**Note**: Tier 3/4 changes may still trigger the **rebaseline obligation** below if the change touches an audited surface. The two obligations are independent — a Tier 3 prompt edit doesn't need service-health verification. **Caveat (gap #621):** OpenClaw **agent prompt** files (`scripts/openclaw/agents/*/AGENTS.md`, etc.) are **not currently hashed** by the office2 `audit.sh` — it baselines only `~/.openclaw/openclaw.json` into `openclaw-config.txt`. So an AGENTS-only edit is `Rebaseline: not required` until audit coverage is extended to agent prompts (tracked in #621), even though it is listed as an intended-monitored trigger below.
 
 ---
 
@@ -78,7 +78,7 @@ Separate from the service-health verification above, ANY change that touches an 
 
 **Trigger classes** (any of these → rebaseline required):
 
-- OpenClaw agent prompts (`AGENTS.md`, `SOUL.md`, `IDENTITY.md`, `USER.md`, `GOVERNANCE.md` under `scripts/openclaw/agents/`)
+- OpenClaw agent prompts (`AGENTS.md`, `SOUL.md`, `IDENTITY.md`, `USER.md`, `GOVERNANCE.md` under `scripts/openclaw/agents/`) — **intended** trigger, but **not yet enforced**: `audit.sh` does not currently hash agent-prompt files (gap #621), so these edits are `Rebaseline: not required` until coverage is added
 - OpenClaw runtime config (`scripts/openclaw/openclaw*.json`)
 - Systemd user units + deploy scripts (`scripts/office2/*.{service,timer,target,path}` + `scripts/office2/deploy/*.sh`)
 - Python dependency manifests (`requirements*.txt`, `pyproject.toml`)

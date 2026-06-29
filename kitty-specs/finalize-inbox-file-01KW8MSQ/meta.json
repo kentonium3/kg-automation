@@ -1,24 +1,10 @@
 {
-  "accept_commit": "a54b2a29c5c2598905281ae082e8da98ae383800",
-  "acceptance_history": [
-    {
-      "accept_commit": "a54b2a29c5c2598905281ae082e8da98ae383800",
-      "acceptance_mode": "pr",
-      "accepted_at": "2026-06-29T04:23:13.375634+00:00",
-      "accepted_by": "kentgale",
-      "accepted_from_commit": "0ec58ebf8747efeaf5740ec0938d91c3ec75a50d"
-    }
-  ],
-  "acceptance_mode": "pr",
-  "accepted_at": "2026-06-29T04:23:13.375634+00:00",
-  "accepted_by": "kentgale",
-  "accepted_from_commit": "0ec58ebf8747efeaf5740ec0938d91c3ec75a50d",
   "coordination_branch": "kitty/mission-finalize-inbox-file-01KW8MSQ",
   "created_at": "2026-06-29T02:54:37.610689+00:00",
   "flattened": false,
   "friendly_name": "Atomic in-place inbox finalize",
   "mission_id": "01KW8MSQ183M0QQWT5J2P55TRF",
-  "mission_number": null,
+  "mission_number": 81,
   "mission_slug": "finalize-inbox-file-01KW8MSQ",
   "mission_type": "software-dev",
   "pr_bound": true,
@@ -28,5 +14,5 @@
   "target_branch": "feat/finalize-inbox-file-v2",
   "topology": "coord",
   "vcs": "git",
-  "vcs_locked_at": "2026-06-29T03:24:57.549113+00:00"
+  "vcs_locked_at": "2026-06-29T04:01:00.021641+00:00"
 }
