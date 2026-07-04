@@ -143,7 +143,7 @@ not deployed to office2.
 ## Relationship to reconciliation
 
 This standard governs **how workspace files are authored**. The
-[agent workspace reconciliation](<./../runbooks/agent-workspace-reconciliation.md>)
+[agent workspace reconciliation](<../runbooks/agent-workspace-reconciliation.md>)
 system governs **how authored files stay in sync** between the repo and office2
 (three-way diff, last-author-wins). They are complementary: author to this standard,
 reconcile with that system.
@@ -154,5 +154,5 @@ reconcile with that system.
 - [#553](https://github.com/kentonium3/kg-automation/issues/553) — self-contained workspace decision
 - [#167](https://github.com/kentonium3/kg-automation/issues/167) — epic: intentionally author every workspace
 - OpenClaw docs: `concepts/soul`, `reference/templates/USER`, `reference/templates/TOOLS`
-- [`docs/runbooks/openclaw-agent-setup.md`](<./../runbooks/openclaw-agent-setup.md>) — setup + deploy
-- [`docs/runbooks/agent-workspace-reconciliation.md`](<./../runbooks/agent-workspace-reconciliation.md>) — drift enforcement
+- [`docs/runbooks/openclaw-agent-setup.md`](<../runbooks/openclaw-agent-setup.md>) — setup + deploy
+- [`docs/runbooks/agent-workspace-reconciliation.md`](<../runbooks/agent-workspace-reconciliation.md>) — drift enforcement
