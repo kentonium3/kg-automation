@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "mission_slug": "author-capture-workspace-01KWPXBB",
+  "mission_id": "01KWPXBBD9BCG4PYWQYP5GKMEV",
+  "mission_branch": "kitty/mission-author-capture-workspace-01KWPXBB",
+  "target_branch": "feat/author-capture-workspace",
+  "lanes": [
+    {
+      "lane_id": "lane-a",
+      "wp_ids": [
+        "WP01"
+      ],
+      "write_scope": [
+        "scripts/openclaw/agents/felix-admin-capture/AGENTS.md",
+        "scripts/openclaw/agents/felix-admin-capture/SOUL.md",
+        "scripts/openclaw/agents/felix-admin-capture/TOOLS.md",
+        "scripts/openclaw/agents/felix-admin-capture/USER.md"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "artifact-rendering",
+        "legacy-cleanup",
+        "tracker-integration",
+        "workspace"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    }
+  ],
+  "computed_at": "2026-07-04T18:35:36.655000+00:00",
+  "computed_from": "dependency_graph+ownership",
+  "planning_artifact_wps": []
+}
