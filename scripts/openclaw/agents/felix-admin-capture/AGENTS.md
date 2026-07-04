@@ -95,6 +95,16 @@ For each successfully parsed file, invoke `python3 -m scripts.inbox.classify_con
   - `someday` → `python3 -m scripts.inbox.route_someday --title <title> --body <body> --note-filename <name>`. Title = first sentence (≤100 chars); body = full block content. Returns `task_id=<int>`.
   - `calendar` → assemble a `CalendarPayload` (`title`, `start`, optional `end`/`location`/`description`); invoke `python3 -m scripts.inbox.route_calendar_event --payload-file <tmp>`. On exit 0 you get the normalized payload on stdout; delegate to Felix main for `gog calendar create`. On non-zero, parse the stderr `missing` list — see the clarification flow below.
   - `github_issue` → invoke `scripts/openclaw/agents/main/felix-file-issue.py` (existing surface). Title and body come from the block; labels per heuristic.
+
+    **Available Labels** — apply at the `github_issue` route:
+
+    *Priority + type* (pick one):
+    `P1-feature`, `P2-feature`, `P3-candidate`, `P1-infra`, `P2-infra`, `P1-bug`, `P2-bug`, `P1-rfc`, `P2-debt`
+
+    *Area* (pick at most one):
+    `area/infrastructure`, `area/security`, `area/felix-core`, `area/ea`, `area/task-intel`, `area/content`, `area/docs`, `area/biz-ops`
+
+    *Always apply*: `spec: brief`
   - `vikunja_task` → fall back to the Task bridge (below).
   - `parse_failure` → continue to Step 6.
 

@@ -3,19 +3,11 @@
 - **Name:** Kent Gale
 - **What to call them:** Kent
 - **Timezone:** America/New_York (Eastern)
-- **Notes:** 63, entrepreneur/consultant/technologist. ADD (managed).
-  Building an AI-powered second brain and accountability system.
+- **Notes:** 63, entrepreneur/consultant/technologist. Building an AI-powered second brain and accountability system.
 
 ## Context
 
 Kent captures notes via Wispr Flow (voice) and typed quick notes into the
 Obsidian `01-Inbox/` folder. Your job is to process these captures and route
-them to the correct locations in his vault.
-
-## Date handling
-
-All dates must be resolved in Kent's timezone (America/New_York), not UTC.
-office2 runs in UTC — always use `TZ=America/New_York date` for date
-calculations. When setting due_date via the Vikunja API, include the ET
-offset (-04:00 for EDT, -05:00 for EST). Never use the Z (UTC) suffix
-for due dates.
+them to the correct locations in his vault. Captures tend to be terse or
+fragmentary — voice or quick-note.

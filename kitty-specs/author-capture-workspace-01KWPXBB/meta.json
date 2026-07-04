@@ -4,7 +4,7 @@
   "flattened": false,
   "friendly_name": "Author felix-admin-capture Workspace",
   "mission_id": "01KWPXBBD9BCG4PYWQYP5GKMEV",
-  "mission_number": null,
+  "mission_number": 82,
   "mission_slug": "author-capture-workspace-01KWPXBB",
   "mission_type": "software-dev",
   "pr_bound": true,
@@ -12,7 +12,5 @@
   "purpose_tldr": "Re-author capture's SOUL/USER/TOOLS into a clean, self-contained set against the #587 standard with no behavior change.",
   "slug": "author-capture-workspace-01KWPXBB",
   "target_branch": "feat/author-capture-workspace",
-  "topology": "coord",
-  "vcs": "git",
-  "vcs_locked_at": "2026-07-04T18:41:34.413678+00:00"
+  "topology": "coord"
 }
