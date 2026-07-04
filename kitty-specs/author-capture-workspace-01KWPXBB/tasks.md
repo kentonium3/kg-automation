@@ -39,12 +39,12 @@ post-merge acceptance (agent-prompt-sync fires only on merge to main) — docume
 
 Included subtasks:
 
-- [ ] T001 Author SOUL.md — remove role/purpose + changelog + ADD bullet; reduce privacy to one-line stance; keep voice (WP01)
-- [ ] T002 Author USER.md — remove `## Date handling` + "ADD (managed)"; keep filtered context + neutral terseness line (WP01)
-- [ ] T003 Author TOOLS.md — add relocated date-handling; replace Available Labels list with a pointer; keep vault/vikunja/github/privacy (WP01)
-- [ ] T004 AGENTS.md — add Available Labels taxonomy beside Step 3 `github_issue` route; no other change (WP01)
-- [ ] T005 Run `validate_workspace.py`; confirm capture PASS on Invariants A+B (WP01)
-- [ ] T006 Content-conservation check — grep proves each moved block in exactly one place; ADD gone; privacy rule retained in AGENTS/TOOLS (WP01)
+- [x] T001 Author SOUL.md — remove role/purpose + changelog + ADD bullet; reduce privacy to one-line stance; keep voice (WP01)
+- [x] T002 Author USER.md — remove `## Date handling` + "ADD (managed)"; keep filtered context + neutral terseness line (WP01)
+- [x] T003 Author TOOLS.md — add relocated date-handling; replace Available Labels list with a pointer; keep vault/vikunja/github/privacy (WP01)
+- [x] T004 AGENTS.md — add Available Labels taxonomy beside Step 3 `github_issue` route; no other change (WP01)
+- [x] T005 Run `validate_workspace.py`; confirm capture PASS on Invariants A+B (WP01)
+- [x] T006 Content-conservation check — grep proves each moved block in exactly one place; ADD gone; privacy rule retained in AGENTS/TOOLS (WP01)
 
 **Implementation sketch**: Apply the move-table (research.md Decision 1) file by file; run the
 validator; run the conservation greps (quickstart §2–3). Pure relocation — do not reword in a
