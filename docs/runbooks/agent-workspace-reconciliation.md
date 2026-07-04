@@ -26,6 +26,16 @@ OpenClaw agents on office2 have workspace files (`AGENTS.md`, `SOUL.md`, `TOOLS.
 
 The enforcement system uses a **three-way diff** against a baseline manifest to detect changes and automatically reconcile them using a **"last author edits wins"** strategy.
 
+**Workspaces are self-contained.** OpenClaw loads each configured agent's prompt
+files strictly from that agent's own workspace directory — there is no
+`defaults.workspace` inheritance for configured agents (source-verified in
+[#553](https://github.com/kentonium3/kg-automation/issues/553)). Reconciliation
+therefore treats each agent's files as an independent set; there is no shared/base
+layer to reconcile against. How those files are *authored* (which concern lives in
+which file, which invariants must be present) is governed by the
+[OpenClaw Workspace Authoring Standard](<../design/openclaw-workspace-authoring-standard.md>);
+this runbook governs how the authored files stay *in sync* between repo and office2.
+
 ## Architecture
 
 ```
@@ -54,6 +64,19 @@ Repo (scripts/openclaw/agents/)     ←→     Office2 (workspace paths)
 | `felix-admin-tasker` | `scripts/openclaw/agents/felix-admin-tasker/` | `/data/services/openclaw/tasker-agent/` |
 
 This mapping is stored in `scripts/openclaw/enforcement/drift-check-config.json`.
+
+**Roster reconciliation (as of #587):**
+
+- **`felix-admin-calendar`** (added #579) is a live, deployed agent
+  (`scripts/openclaw/agents/felix-admin-calendar/` → `/data/services/openclaw/calendar-agent/`,
+  registered in `service-inventory.json`) but is **not yet listed in
+  `drift-check-config.json`** — so its workspace deploys via the manifest pipeline
+  but is **not currently drift-monitored**. Closing this gap (adding the
+  `felix-admin-calendar` entry and regenerating the baseline manifest) is a tracked
+  follow-up; it is out of #587's file scope.
+- **`felix-doc-auditor`** was refactored to a scripts-first Python driver (#343) and
+  is **suspended** as a live agent — no deployed workspace, intentionally absent from
+  the drift roster. Its repo directory is retained as history only.
 
 ## Last-Author-Wins Enforcement Strategy
 

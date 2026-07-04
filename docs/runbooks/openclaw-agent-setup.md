@@ -34,14 +34,33 @@ under Felix's governance framework.
 ## Per-agent workspace files
 
 Each agent has a workspace directory at `/data/services/openclaw/<agent-name>/`.
-These files define the agent's identity and behavior:
+These files define the agent's identity and behavior.
+
+**Workspaces are self-contained (no inheritance).** OpenClaw loads each configured
+agent's prompt files strictly from that agent's own workspace directory — it does
+**not** fall back to `defaults.workspace` for a configured agent (source-verified in
+[#553](https://github.com/kentonium3/kg-automation/issues/553): `plan.js` loads
+`path.join(workspaceDir, "SOUL.md")` with no fallback). Every applicable workspace
+must therefore carry its shared invariants (privacy boundary, Output Discipline) in
+its own files. The `defaults.workspace/` directory is the factory scaffold for
+*unconfigured* agents, not a base layer configured Felix agents inherit from.
+
+**Author to the standard.** Which concern belongs in which file — and which
+invariants must be present per workspace — is governed by the
+[OpenClaw Workspace Authoring Standard](<../design/openclaw-workspace-authoring-standard.md>)
+(#587). The tables below summarize; the standard is authoritative. Validate a
+workspace against it with:
+
+```bash
+python3 -m scripts.openclaw.agents.validate_workspace --json
+```
 
 ### Required files
 
 | File | Purpose |
 |------|---------|
 | **AGENTS.md** | Standing orders — the agent's complete operational instructions. Scope, workflow, constraints, and delegation rules. This is the longest and most important file. |
-| **SOUL.md** | Purpose, voice, and personality. Defines how the agent writes and communicates. Includes privacy boundaries. |
+| **SOUL.md** | Voice, tone, and stance — how the agent writes ("write as Kent"). Per the authoring standard, SOUL carries only a one-line privacy **stance** ("I work only where I'm invited"); the *enforceable* privacy rule and the role/purpose live in AGENTS.md (with the path also in TOOLS.md), **not** in SOUL. |
 | **IDENTITY.md** | Short identity card — name, emoji, creature type, vibe. OpenClaw reads this to display agent identity in `openclaw agents` output. |
 
 ### Optional files
@@ -66,22 +85,21 @@ These files define the agent's identity and behavior:
 
 ### Example: SOUL.md
 
+Per the authoring standard, SOUL is voice/stance only — the role/purpose lives in
+AGENTS.md and the enforceable privacy rule in AGENTS.md/TOOLS.md:
+
 ```markdown
 # SOUL.md — felix-admin-tasker
-
-## Purpose
-
-You are felix-admin-tasker. Your purpose is structuring and enriching
-Kent's tasks in Vikunja. [...]
 
 ## Voice — write as Kent
 
 Follow the same voice principles as other Felix agents. First person,
 direct, no filler.
 
-## Privacy boundary
+## Privacy stance
 
-NEVER read, process, route to, or reference `04-Growth/_private/`.
+I work only where I'm invited. (Enforceable `04-Growth/_private/` never-touch
+rule lives in AGENTS.md; see the authoring standard.)
 ```
 
 ### Output Discipline (Hard Rules) — standard for user-facing surfaces
@@ -268,18 +286,29 @@ The pipeline is operator-owned but agent-readable:
 │   ├── felix-admin-tasker/agent/
 │   └── felix-admin-calendar/agent/
 ├── skills/               ← shared skills (vikunja-api, whisper, etc.)
-└── workspace/            ← global defaults (AGENTS.md, SOUL.md, etc.)
+└── workspace/            ← factory defaults for UNconfigured agents — NOT inherited by the configured agents above (#553)
 ```
+
+**Roster note:** `felix-doc-auditor` was refactored to a scripts-first Python
+driver (#343) and is **suspended** as a live agent — it has no deployed workspace
+here and is excluded from workspace validation. Its repo directory
+(`scripts/openclaw/agents/felix-doc-auditor/`) is retained as history only. Re-add
+it to the deployed roster only if it is reactivated as a live agent.
 
 ## Checklist for new agent deployment
 
+Author each file to the
+[OpenClaw Workspace Authoring Standard](<../design/openclaw-workspace-authoring-standard.md>),
+then run `python3 -m scripts.openclaw.agents.validate_workspace --json` before deploy.
+
 - [ ] Governance: add entry to `docs/constitution/agent-registry.json`
 - [ ] Workspace: create `/data/services/openclaw/<agent-name>/`
-- [ ] Workspace: create AGENTS.md with standing orders
-- [ ] Workspace: create SOUL.md with purpose, voice, privacy boundary
-- [ ] Workspace: create IDENTITY.md with name, emoji, vibe
-- [ ] Workspace: create TOOLS.md if agent uses specific resources
-- [ ] Workspace: create USER.md if agent communicates with the user
+- [ ] Workspace: create AGENTS.md with standing orders — role/authority, workflow, the enforceable privacy rule, and (if user-facing WhatsApp) the Output Discipline block
+- [ ] Workspace: create SOUL.md with voice/stance only (one-line privacy stance, not the enforceable rule)
+- [ ] Workspace: create IDENTITY.md with name, emoji, vibe (≤ ~10 lines)
+- [ ] Workspace: create TOOLS.md if agent uses specific resources (paths, endpoints, mechanics; privacy path)
+- [ ] Workspace: create USER.md if agent communicates with the user (filtered view, not a full profile)
+- [ ] Validate: `python3 -m scripts.openclaw.agents.validate_workspace` passes for the new workspace
 - [ ] Config: add agent entry to `~/.openclaw/openclaw.json`
 - [ ] Config: create `~/.openclaw/agents/<agent-id>/agent/` with auth-profiles.json
 - [ ] Restart: `systemctl --user restart openclaw-gateway.service`
