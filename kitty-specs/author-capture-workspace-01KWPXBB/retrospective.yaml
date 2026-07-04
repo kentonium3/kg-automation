@@ -1,0 +1,115 @@
+schema_version: 1
+mission_id: 01KWPXBBD9BCG4PYWQYP5GKMEV
+mission_slug: author-capture-workspace-01KWPXBB
+mission_number: 82
+friendly_name: Author felix-admin-capture Workspace
+mission_type: software-dev
+target_branch: feat/author-capture-workspace
+created_at: '2026-07-04T19:20:37.191774+00:00'
+created_by:
+  kind: runtime
+  id: spec-kitty-generator
+  display: Spec Kitty Generator
+provenance:
+  kind: runtime_post_completion
+  invoked_at: '2026-07-04T19:20:37.191774+00:00'
+  policy_resolved_from:
+    enabled: <default>
+    timing: <default>
+    failure_policy: <default>
+    write_record: <default>
+    generate_proposals: <default>
+    apply_proposals: <default>
+    permissions.write_record: <default>
+    permissions.inspect_mission_artifacts: <default>
+    permissions.propose_glossary_changes: <default>
+    permissions.propose_drg_changes: <default>
+    permissions.propose_doctrine_changes: <default>
+    permissions.apply_low_risk_changes: <default>
+    permissions.apply_structural_changes: <default>
+    precedence: <default>
+    generator: <default>
+policy_source:
+  enabled: <default>
+  timing: <default>
+  failure_policy: <default>
+  write_record: <default>
+  generate_proposals: <default>
+  apply_proposals: <default>
+  permissions.write_record: <default>
+  permissions.inspect_mission_artifacts: <default>
+  permissions.propose_glossary_changes: <default>
+  permissions.propose_drg_changes: <default>
+  permissions.propose_doctrine_changes: <default>
+  permissions.apply_low_risk_changes: <default>
+  permissions.apply_structural_changes: <default>
+  precedence: <default>
+  generator: <default>
+findings_status: has_findings
+helped: []
+not_helpful:
+- id: n-003
+  category: doc
+  summary: analysis-report.md present with findings
+  evidence_refs:
+  - e-010
+  details: An analysis-report.md artifact is present for this mission. Review its findings to understand documented 
+    issues and decisions.
+- id: n-002
+  category: process
+  summary: WP01 required 4 --force override(s) during workflow
+  evidence_refs:
+  - e-008
+  details: WP WP01 required 4 operator-driven --force lane transition(s). Force overrides typically indicate the runtime
+    guard failed or the operator routed around it; investigate the underlying cause.
+- id: n-001
+  category: review_loop
+  summary: WP01 required 1 rejection cycle(s) before approval
+  evidence_refs:
+  - e-007
+  details: WP WP01 was sent back from review to planning 1 time(s).
+gaps:
+- id: g-001
+  category: process
+  summary: Arbiter override needed for WP01 (3x)
+  evidence_refs:
+  - e-009
+  details: WP WP01 required 3 arbiter override(s). Arbiter overrides are an escape hatch; recurring use suggests the 
+    normal review path is blocked and the underlying policy/guard may need adjustment.
+proposals: []
+evidence_refs:
+- id: e-001
+  kind: file
+  path: kitty-specs/author-capture-workspace-01KWPXBB/meta.json
+- id: e-002
+  kind: file
+  path: kitty-specs/author-capture-workspace-01KWPXBB/spec.md
+- id: e-003
+  kind: file
+  path: kitty-specs/author-capture-workspace-01KWPXBB/plan.md
+- id: e-004
+  kind: file
+  path: kitty-specs/author-capture-workspace-01KWPXBB/tasks.md
+- id: e-005
+  kind: file
+  path: kitty-specs/author-capture-workspace-01KWPXBB/tasks/WP01-author-workspace-files.md
+- id: e-006
+  kind: file
+  path: kitty-specs/author-capture-workspace-01KWPXBB/status.events.jsonl
+- id: e-007
+  kind: event_range
+  path: kitty-specs/author-capture-workspace-01KWPXBB/status.events.jsonl
+  range: 01KWQ7GM2SRAH8ZGGN7DG4YES7
+- id: e-008
+  kind: event_range
+  path: kitty-specs/author-capture-workspace-01KWPXBB/status.events.jsonl
+  range: 01KWQ7GM2SRAH8ZGGN7DG4YES7..01KWQ8Y10540CGR0NW73SB1X9J
+- id: e-009
+  kind: event_range
+  path: kitty-specs/author-capture-workspace-01KWPXBB/status.events.jsonl
+  range: 01KWQ8BRD1P5DTPH4E3BH46FMS..01KWQ8KN54RZ1M4ZST7MMRZMX7
+- id: e-010
+  kind: file
+  path: kitty-specs/author-capture-workspace-01KWPXBB/analysis-report.md
+generator_version: '1.0'
+provenance_history: []
