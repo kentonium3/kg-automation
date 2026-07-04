@@ -1,0 +1,15 @@
+{
+  "coordination_branch": "kitty/mission-author-capture-workspace-01KWPXBB",
+  "created_at": "2026-07-04T15:53:26.187820+00:00",
+  "flattened": false,
+  "friendly_name": "Author felix-admin-capture Workspace",
+  "mission_id": "01KWPXBBD9BCG4PYWQYP5GKMEV",
+  "mission_number": null,
+  "mission_slug": "author-capture-workspace-01KWPXBB",
+  "mission_type": "software-dev",
+  "purpose_context": "felix-admin-capture's workspace files have procedural material leaked across them and a user context that is not scoped to the capture role. This mission cleanly separates SOUL (voice/stance), USER (filtered person-view), and TOOLS (actual tool surface) per the #587 file-ownership standard, then reconciles and deploys to office2 with a smoke test. It is a pure refactor: capture's behavior is unchanged, and all routing-intelligence work is deferred to #651.",
+  "purpose_tldr": "Re-author capture's SOUL/USER/TOOLS into a clean, self-contained set against the #587 standard with no behavior change.",
+  "slug": "author-capture-workspace-01KWPXBB",
+  "target_branch": "feat/author-capture-workspace",
+  "topology": "coord"
+}
