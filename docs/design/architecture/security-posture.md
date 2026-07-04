@@ -2,7 +2,7 @@
 title: Security Posture
 doc_type: reference
 status: approved
-tags: [152]
+tags: [152, 575]
 ---
 
 # Security Posture

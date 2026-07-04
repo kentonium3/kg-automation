@@ -3,6 +3,7 @@ title: LLM Spend Baseline
 doc_type: reference
 status: approved
 audience: humans
+tags: [296, 137, 297]
 ---
 
 # LLM Spend Baseline
