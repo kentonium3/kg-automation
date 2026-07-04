@@ -146,6 +146,7 @@ Two periodic sweeps verify that office2's configuration is in the state we expec
 
 ### Deprecated runbooks (retained in place)
 
+- [Spec-Kitty Mission Review Cycle](<./runbooks/spec-kitty-review-cycle.md>) — full mission arc with the two mandatory independent Codex review checkpoints (post-plan + post-merge); how they complement `analyze` and `mission-review`
 - [Spec-Kitty Bug Reporting](<./runbooks/spec-kitty-bug-reporting.md>) — dual-track workflow for filing tooling bugs: internal kg-automation issue tracks status, slim external paste doc goes upstream
 - [Spec-Kitty Install Guide](<./runbooks/spec-kitty-init-in-existing-repo.md>) — historical, setup already complete
 
