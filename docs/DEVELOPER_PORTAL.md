@@ -164,6 +164,7 @@ local validation and CI.
 - [Security Baseline Operations](<./runbooks/security-baseline-ops.md>)
 - [Signal-driven monitoring operations (felix-core-digest signal extraction + felix-heartbeat-gate)](<./runbooks/signal-driven-monitoring-ops.md>)
 - [Spec-Kitty Bug Reporting](<./runbooks/spec-kitty-bug-reporting.md>)
+- [Spec-Kitty Mission Review Cycle](<./runbooks/spec-kitty-review-cycle.md>)
 - [Tasker Operations (Enrichment JSONL Migration)](<./runbooks/tasker-ops.md>)
 - [Templater Commands (Canon v2)](<./runbooks/templater-commands.md>)
 - [Vault Path Registry Migration Runbook](<./runbooks/vault-path-registry-migration.md>)
