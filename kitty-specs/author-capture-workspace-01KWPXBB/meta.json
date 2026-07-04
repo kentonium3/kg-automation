@@ -12,5 +12,7 @@
   "purpose_tldr": "Re-author capture's SOUL/USER/TOOLS into a clean, self-contained set against the #587 standard with no behavior change.",
   "slug": "author-capture-workspace-01KWPXBB",
   "target_branch": "feat/author-capture-workspace",
-  "topology": "coord"
+  "topology": "coord",
+  "vcs": "git",
+  "vcs_locked_at": "2026-07-04T18:41:34.413678+00:00"
 }
