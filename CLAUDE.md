@@ -213,6 +213,13 @@ Do not stop to ask "should I proceed to the next step?" — the instruction to
 drive the workflow IS the approval for all subsequent steps until a genuine
 stop condition is hit.
 
+**Codex review checkpoints (mandatory):** the arc includes two independent Codex
+review-and-fix passes — a **post-plan** review (after `/spec-kitty.plan`, before
+`/spec-kitty.tasks`) for gaps/opportunities, and a **post-merge** review of the
+complete merged diff (after all WPs merge; for feature-branch missions, before
+`feat → main`) for cross-WP issues per-WP reviews can't see. These are not optional.
+Canonical description in the global `~/.claude/CLAUDE.md` "Codex review checkpoints".
+
 **Issue types and their workflows:**
 - `P1-feature` / `P2-feature` → full spec-kitty workflow above
 - `P1-bug` / `P2-bug` → spec-kitty software-dev mission, fix-focused
