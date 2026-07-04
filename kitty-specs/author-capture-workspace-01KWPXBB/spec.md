@@ -41,9 +41,9 @@ logging) are explicitly deferred to #651.
 3. **Happy path**: The operator relocates each leaked block to its correct owner file,
    reduces the SOUL privacy block to a one-line behavioral stance, removes ADD references
    everywhere, and confirms the resulting three-file set is self-contained and passes the
-   #587 shared-invariant validation. The files are then reconciled and deployed to office2
-   through the manifest pipeline, and a post-deploy smoke test confirms capture still
-   processes the inbox exactly as before.
+   #587 shared-invariant validation. On merge to main the files deploy to office2
+   automatically through the agent-prompt-sync pull pipeline, and a post-deploy smoke test
+   confirms capture still processes the inbox exactly as before.
 4. **Success outcome**: SOUL/USER/TOOLS each own only their proper content; the deployed
    office2 copies match the repo; capture's behavior is unchanged.
 
@@ -78,7 +78,7 @@ logging) are explicitly deferred to #651.
 | FR-006 | Relocate the `### Available Labels` taxonomy out of `TOOLS.md` and into `AGENTS.md` beside the Step 3 `github_issue` route; leave in `TOOLS.md` only a pointer to the canonical repository label source (no inlined list). | Accepted |
 | FR-007 | Keep the canonical enforceable privacy path (`04-Growth/_private/` never-touch) present in `TOOLS.md` and `AGENTS.md` as the mechanically-checked home, so reducing SOUL to a stance does not remove the enforceable rule from the workspace. | Accepted |
 | FR-008 | The authored three-file set passes the #587 shared-invariant validation (including the presence of the privacy boundary and the Output Discipline expectation for a user-facing WhatsApp agent). | Accepted |
-| FR-009 | Add a `deploys/queued/<name>.yaml` manifest entry that deploys the three authored files to the felix-admin-capture office2 workspace via felix-deployer. | Accepted |
+| FR-009 | Deploy the three authored files to the felix-admin-capture office2 workspace (`/data/services/openclaw/inbox-agent/`) via the existing automatic **agent-prompt-sync** pipeline (systemd timer, mission #567/#136), which `git pull --ff-only origin main`s and atomically copies drifted prompt files every 5 min. **No `deploys/queued/` manifest is authored** — agent-prompt files are outside felix-deployer's scope and flow through this separate pull-based path (the #636 boundary). Success = the sync audit log (`/data/services/openclaw/deploy/agent-prompt-sync.jsonl`) records the copy of each changed file after merge to main. | Accepted |
 | FR-010 | After rollout, verify the deployed office2 copies of `SOUL.md`, `USER.md`, and `TOOLS.md` match the repository copies. | Accepted |
 | FR-011 | Run a post-deploy smoke test confirming felix-admin-capture still processes the inbox with no observable behavior change (correct classification, routing, and clarification behavior). | Accepted |
 
@@ -95,9 +95,9 @@ logging) are explicitly deferred to #651.
 
 | ID | Constraint | Status |
 |---|---|---|
-| C-001 | Depends on #587 (the authoring standard + validation). #587 must land first or co-ship; this mission consumes that standard. The plan phase confirms ordering. | Accepted |
+| C-001 | Depends on #587 (the authoring standard + validation). **Resolved: #587 landed on main 2026-07-04 (merge `ad7ee47d`)** — the file-ownership contract and `scripts/openclaw/agents/validate_workspace.py` are available; this mission is authored against them. | Accepted |
 | C-002 | `AGENTS.md` is not re-authored here. The only permitted AGENTS.md edits are receiving relocated material (the Available Labels taxonomy beside Step 3) — capture's scope, workflow, and routing logic are unchanged. | Accepted |
-| C-003 | Office2 deploy of agent prompt files flows through `deploys/queued/<name>.yaml` and felix-deployer, per deploy discipline. No direct edits on office2. | Accepted |
+| C-003 | Office2 deploy of agent prompt files flows through the automatic **agent-prompt-sync** pull pipeline (`deploy_agent_prompts.py`, #567/#136) triggered by merge to main — **not** the `deploys/queued/` felix-deployer path (that path is for crons/helpers/systemd/config, not agent prompts; see #636). No direct edits on office2; the merge to main is the deploy trigger. | Accepted |
 | C-004 | Risk tier 3 (agent-prompt change): per-agent review before deploy, controlled deploy, post-deploy smoke verification. Rollback = revert workspace files + re-deploy. | Accepted |
 | C-005 | Rebaseline obligation (#557): agent prompts are an audited surface, but per the #621 gap `audit.sh` currently hashes only `openclaw.json`, not per-agent SOUL/USER/TOOLS files. The merge records the exact rebaseline outcome ("not required — agent prompt files are not currently hashed by the monitor (#621 gap)") after the plan confirms it. | Accepted |
 | C-006 | All routing-intelligence behavior (clarify-until-disposed, capability-gap logging, removal of the 2-round calendar cap) is out of scope and deferred to #651. | Accepted |
@@ -119,7 +119,7 @@ logging) are explicitly deferred to #651.
   AGENTS.md and IDENTITY.md are context/receivers only).
 - **#587 file-ownership standard** — the contract that assigns content to owner files and
   defines the shared invariants validated here.
-- **Deploy manifest** — `deploys/queued/<name>.yaml`, consumed by felix-deployer on office2.
+- **agent-prompt-sync pipeline** — the office2 systemd timer (`deploy_agent_prompts.py`, #567/#136) that auto-deploys prompt-file changes on `git pull --ff-only origin main`; the deploy path for this mission's files. Audit log: `/data/services/openclaw/deploy/agent-prompt-sync.jsonl`.
 
 ## Assumptions
 
