@@ -161,6 +161,7 @@ Two periodic sweeps verify that office2's configuration is in the state we expec
 
 - [Felix System Overview](<./design/README.md>) — **start here for new contributors.** Day-1 orientation: what Felix is, what it does for Kent, how he interacts with it, key flows, components, and architectural principles. 5 high-level mermaid diagrams.
 - [Felix Capability Roadmap](<./design/felix-capability-roadmap.md>) — living capability status, feature sequence, and design principles
+- [OpenClaw Workspace Authoring Standard](<./design/openclaw-workspace-authoring-standard.md>) — file-ownership contract (SOUL/USER/TOOLS/IDENTITY/AGENTS) + shared-invariant rules every agent workspace is authored against; validated by `scripts/openclaw/agents/validate_workspace.py` (#587)
 - [Vision & Architecture](<./archive/vision-framework.md>) *(archived — superseded by capability roadmap)*
 - [Personal AI System Spec v1.0](<./archive/personal-ai-system-spec-v1.0.md>) *(archived — design intent consolidated into roadmap; work items in GitHub issues)*
 - [Strategic Acceleration Charter](<./archive/strategic-acceleration-charter.md>) *(archived — pre-Felix era, superseded by capability roadmap)*
