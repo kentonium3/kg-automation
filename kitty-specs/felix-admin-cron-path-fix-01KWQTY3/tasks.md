@@ -41,9 +41,9 @@
 - **Prompt**: `tasks/WP01-gateway-pythonpath-dropin.md` (~180 lines)
 - **Dependencies**: none.
 - **Subtasks**:
-  - [ ] T001 Create gateway `PYTHONPATH` systemd drop-in (WP01)
-  - [ ] T002 Deploy entrypoint: install drop-in, reload, restart, verify in-agent (WP01)
-  - [ ] T003 Deploy manifest for the drop-in (WP01)
+  - [x] T001 Create gateway `PYTHONPATH` systemd drop-in (WP01)
+  - [x] T002 Deploy entrypoint: install drop-in, reload, restart, verify in-agent (WP01)
+  - [x] T003 Deploy manifest for the drop-in (WP01)
 - **Risks**: gateway restart is disruptive (Tier-1); env-inheritance must be verified in a real agent subprocess, not an SSH shell. Drop-in avoids #653 ExecStart collision.
 
 ## WP02 — Inbox state helpers: relocate + ownership
@@ -79,11 +79,11 @@
 - **Prompt**: `tasks/WP04-agent-prompt-path-reconciliation.md` (~260 lines)
 - **Dependencies**: none (path strings must match WP02/WP03 constants — stated in prompt).
 - **Subtasks**:
-  - [ ] T011 Capture prompts log path + prose (WP04)
-  - [ ] T012 Calendar + main `.jsonl` path (WP04)
-  - [ ] T013 Escalation ref + prose (WP04)
-  - [ ] T014 Tasker refs (WP04)
-  - [ ] T015 Habits prose (keep `cd &&`) (WP04)
+  - [x] T011 Capture prompts log path + prose (WP04)
+  - [x] T012 Calendar + main `.jsonl` path (WP04)
+  - [x] T013 Escalation ref + prose (WP04)
+  - [x] T014 Tasker refs (WP04)
+  - [x] T015 Habits prose (keep `cd &&`) (WP04)
 
 ## WP05 — Migration entrypoint + manifest (Tier-2)
 
