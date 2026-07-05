@@ -1,6 +1,8 @@
 {
+  "accept_commit": "3eb214c67050310daa048f768b686a6af7b0bfae",
   "acceptance_history": [
     {
+      "accept_commit": "3eb214c67050310daa048f768b686a6af7b0bfae",
       "acceptance_mode": "pr",
       "accepted_at": "2026-07-05T05:42:39.333307+00:00",
       "accepted_by": "claude-opus-4-8",
