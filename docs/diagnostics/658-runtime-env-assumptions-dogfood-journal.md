@@ -270,4 +270,49 @@ failures, ZERO coord splits.** Plan hit its ⛔ MANDATORY STOP cleanly (no tasks
 
 ### Post-plan Codex review
 
+Dispatched `codex exec --sandbox read-only` (gpt-5.5) against spec.md + plan.md + research.md
++ data-model.md + contracts/checker-contract.md, cross-checked against the real agent
+prompts + validator + the #656 gateway drop-in. Read-only was the right sandbox: a post-plan
+review only reads + emits findings; the `spec-kitty-review` profile's `danger-full-access`
+exists solely for the implement/review loop's `.git` writes (which a review doesn't do).
+Note: the profile is NOT registered in `~/.codex/config.toml` (migrated to a separate file);
+`-p spec-kitty-review` would not resolve — read-only sidestepped that entirely.
+
+🎯 **MARQUEE: Codex returned REQUEST-CHANGES with 3 HIGH + 5 MED + 1 LOW — ALL valid**, several
+would have caused real implementation bugs. This is the single strongest validation of the
+mandatory post-plan checkpoint on this run. Every finding was folded (commit `95d28ed`):
+
+- **HIGH-1 (recognizer false-greens capture).** My R-03 recognizer excluded inline-backtick
+  spans as "prose" — but capture's REAL commands are inline imperatives ("Invoke
+  `python3 -m scripts.inbox.prescan`", lines 78/82/90/94-96/113/115/127/131/135/152/221).
+  Would have false-greened ~14 invocations while SC-003 claimed all converted. → Recognizer
+  rewritten: classify concrete inline-imperative commands; exclude only `<placeholder>`-bearing
+  docs + HTML comments.
+- **HIGH-2 (fail-loud ≠ "works without gateway").** Spec wording overpromised; `${PYTHONPATH:?}`
+  fails outside the gateway unless PYTHONPATH is exported. → Reconciled spec/SC to "works
+  under gateway OR with exported PYTHONPATH; fails LOUD, never silent/wrong-checkout" — which
+  is Kent's actual "allow running outside gateway" intent (don't silently break).
+- **HIGH-3 (non-cd form doesn't fix cwd drift).** My preferred non-cd form fixed imports but
+  left cwd drifted — a helper with relative I/O still breaks (the #656 mode). → **Flipped the
+  canonical form to the cd form** `cd "${PYTHONPATH:?}" && …` (fixes cwd + imports) + require
+  absolute helper args + a non-repo-cwd smoke test. A genuine design reversal Codex earned.
+- **MED-1** `python` (not just `python3`) abs-path lines → ViolationKind/D1 cover both.
+- **MED-2** multiline/continuation commands → recognizer joins logical commands, reports start line.
+- **MED-3** `CheckResult.passed` → the real dataclass field is **`ok`**; following the contract
+  literally would have broken the validator. Fixed in data-model + contract.
+- **MED-4** calendar converted but had no health check → added to SC-004/IC-06.
+- **MED-5** doc-auditor both "audited" (FR-008) and validator-excluded → dispositioned as
+  RETIRED (scripts-first, no live agent), not an unverifiable audit.
+- **LOW-1** plan said Python 3.12 but Test CI runs 3.11 (C-001 forbids workflow change) →
+  checker must be 3.11-compatible.
+
+Decisions verify still `clean` (no NEEDS-CLARIFICATION markers introduced). Folded commit
+landed **direct on feat** (`95d28ed`) — still no coord split.
+
+**Phase scorecard (specify→plan→post-plan-review): ZERO tool failures, ZERO coord splits;
+the ONE substantive design reversal (cd form) came from Codex, exactly as the checkpoint is
+designed to produce.** Proceeding to `/spec-kitty.tasks`.
+
+### Tasks
+
 _(to be appended)_
