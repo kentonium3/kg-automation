@@ -78,10 +78,11 @@ class Finding:
 # whitespace, backtick, or quote). A `<placeholder>` in the module marks docs.
 _M_SCRIPTS_RE = re.compile(r"python3?\s+-m\s+scripts\.(?P<mod>[^\s`\"']+)")
 
-# A literal absolute-path script invocation: `python[3] /abs/.../scripts/x.py`.
-# The compliant `python3 "${PYTHONPATH:?}/scripts/x.py"` form starts with a quote
-# or `$`, never a bare `/`, so it is not matched here.
-_ABS_PATH_RE = re.compile(r"python3?\s+(?P<path>/[^\s`\"']*/scripts/[^\s`\"']+\.py)")
+# A literal absolute-path script invocation: `python[3] /abs/.../scripts/x.py`,
+# including a quoted variant `python3 "/abs/.../scripts/x.py"` (the opening quote is
+# consumed by `["']?`). The compliant `python3 "${PYTHONPATH:?}/scripts/x.py"` form
+# begins with `$` after the quote, never a bare `/`, so it is not matched here.
+_ABS_PATH_RE = re.compile(r"python3?\s+[\"']?(?P<path>/[^\s`\"']*/scripts/[^\s`\"']+\.py)")
 
 # A `cd` into a hardcoded checkout (path literal containing kg-automation). The
 # compliant `cd "${PYTHONPATH:?}"` starts with a quote/`$`, not `/`.
@@ -164,7 +165,6 @@ def _waived_kinds(logical: list[tuple[int, str]], idx: int) -> set[str]:
 def _classify(start: int, text: str, path: str) -> list[Finding]:
     """Classify one logical command; return its findings (may be empty)."""
     findings: list[Finding] = []
-    anchored = bool(_PYTHONPATH_ANCHOR_RE.search(text))
     snippet = text.strip()
 
     hardcoded_cd = _HARDCODED_CD_RE.search(text)
@@ -174,13 +174,17 @@ def _classify(start: int, text: str, path: str) -> list[Finding]:
                     _REMEDIATION[ViolationKind.HARDCODED_CD])
         )
 
-    # Bare -m scripts. — only when NOT anchored and NOT already governed by a
-    # hardcoded cd on the same logical line (fixing the cd fixes the -m).
+    # Bare -m scripts. — flag when the invocation is NOT preceded by a fail-loud
+    # PYTHONPATH anchor in the same logical line, and not already governed by a
+    # hardcoded cd (fixing the cd fixes the -m). The anchor must appear BEFORE the
+    # invocation (a `cd "${PYTHONPATH:?}" &&` prefix), so a `python3 -m scripts.bad`
+    # that precedes the cd — or sits after it with no governing anchor — is still
+    # flagged (post-merge Codex MED-1).
     if not hardcoded_cd:
         for m in _M_SCRIPTS_RE.finditer(text):
             if "<" in m.group("mod"):  # placeholder like scripts.inbox.<helper>
                 continue
-            if not anchored:
+            if not _PYTHONPATH_ANCHOR_RE.search(text[: m.start()]):
                 findings.append(
                     Finding(path, start, ViolationKind.BARE_M_SCRIPTS, snippet,
                             _REMEDIATION[ViolationKind.BARE_M_SCRIPTS])

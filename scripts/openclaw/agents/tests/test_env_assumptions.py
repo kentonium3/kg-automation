@@ -39,6 +39,29 @@ def test_hardcoded_abs_path_bare_python_flagged():
     assert _kinds(text) == [ViolationKind.HARDCODED_ABS_PATH]
 
 
+def test_hardcoded_abs_path_quoted_flagged():
+    # Post-merge Codex MED-2: quoted hardcoded absolute paths must not slip through.
+    assert _kinds('python3 "/home/claude/kg-automation/scripts/inbox/prescan.py"') == [
+        ViolationKind.HARDCODED_ABS_PATH
+    ]
+    assert _kinds("python3 '/home/claude/kg-automation/scripts/inbox/prescan.py'") == [
+        ViolationKind.HARDCODED_ABS_PATH
+    ]
+
+
+def test_invocation_before_anchor_is_flagged():
+    # Post-merge Codex MED-1: an anchor anywhere on the line must NOT excuse an
+    # invocation that PRECEDES it (that invocation runs before the cd).
+    text = 'python3 -m scripts.inbox.bad && cd "${PYTHONPATH:?x}" && python3 -m scripts.inbox.ok'
+    assert _kinds(text) == [ViolationKind.BARE_M_SCRIPTS]
+
+
+def test_invocation_after_anchor_passes():
+    # The canonical shape: the anchor precedes the invocation → compliant.
+    text = 'cd "${PYTHONPATH:?x}" && python3 -m scripts.inbox.a && python3 -m scripts.inbox.b'
+    assert scan_text(text) == []
+
+
 def test_home_relative_write_flagged():
     assert _kinds('echo hi >> ~/second-brain/agents/logs/x.md') == [
         ViolationKind.HOME_RELATIVE_WRITE
