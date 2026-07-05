@@ -36,6 +36,17 @@ superset record is `docs/diagnostics/658-runtime-env-assumptions-dogfood-journal
   --agent-check` reports `installed=3.2.5, latest=3.2.4(pypi), action=none` — the string
   can't express WHICH main build is installed — mitigation: pin by commit (`78bc2307`),
   not version.
+- `[2026-07-05][implement]` record-analysis dirty-tree preflight (#2102 class) — `record-analysis`
+  refused on a tree dirty only with spec-kitty's OWN uncommitted state (meta.json + decisions/) —
+  had to `spec-commit` the workflow's own state first — candidate gap: preflight should ignore
+  workflow-owned uncommitted state.
+- `[2026-07-05][implement]` spec-commit dir-vs-files backstop — `spec-commit <dir>` fails
+  ("staging area contains unexpected paths") when a directory is passed; must pass explicit file
+  paths — minor UX friction, cleared by listing files.
+- `[2026-07-05][implement]` approve-gate chain (#2115/#1817 coord-split family) — for_review
+  preflight wants status artifacts committed; approved gate wants issue-matrix.md verdicts filled
+  (auto-scaffolded `unknown` rows for every issue referenced in spec.md). Both cleared by
+  populate + spec-commit — the recurring coord/primary read-write-split tax, one gate at a time.
 - `[2026-07-05][pre-flight]` Tracer scaffolding still agent-driven (F2, carried/evolved) —
   #2203 shipped the tracer lifecycle as doctrine (procedure + 3 templates) but there is
   still NO CLI scaffolder at `mission create` — operator hand-copied the templates into
