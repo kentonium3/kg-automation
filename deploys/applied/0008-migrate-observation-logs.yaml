@@ -1,0 +1,35 @@
+schema_version: v1
+name: migrate-observation-logs
+mission_slug: observation-digest-repoint-01KWS2E2
+tier: 2
+entrypoint: scripts/deploy/migrate-observation-logs.py
+audited_surface: false
+verification:
+  pre:
+  - python3 -m scripts.deploy.lib.snapshot verify_restic_recent
+  post:
+  - test -d /home/kgale/second-brain/agents/logs
+  - 'python3 -c ''import glob; d="/home/kgale/second-brain/agents/logs"; j=glob.glob(d+"/*/*.jsonl");
+    assert j, f"no per-agent observation jsonl in {d} after migrate"; print(f"vault
+    observation logs present: {len(j)} file(s)")'''
+notes: "Phase 1 of #659 (observation-digest repoint) \u2014 NON-DESTRUCTIVE.\n\nRuns\
+  \ scripts/deploy/migrate-observation-logs.py --apply, which:\n  - Tier-2 snapshot\
+  \ gate: refuses without a Restic snapshot <=24h.\n  - Atomically union-merges each\
+  \ stray per-agent observation log\n    (/home/claude/second-brain/agents/logs/<agent>/*.jsonl)\
+  \ into the vault\n    (/home/kgale/second-brain/agents/logs/<agent>/*.jsonl) via\
+  \ temp+fsync+\n    os.replace. Idempotent / convergent.\n  - Verifies the vault\
+  \ log dir is writable by the service user.\n  - Performs NO deletion. The /home/claude/second-brain\
+  \ tree is LEFT IN PLACE.\n\nThis pairs with the WP01 config repoint (config.py DEFAULT_AGENT_LOGS_DIR),\n\
+  which merges in the same mission: after this deploy, felix-core-digest writes\n\
+  new raw logs to the vault, and this manifest carries the pre-existing history\n\
+  across.\n\nDECOMMISSION IS PHASE 2 and is deliberately NOT queued here \u2014 see\n\
+  deploys/staged/0009-decommission-observation-stray-tree.yaml. Verify this\nPhase-1\
+  \ migrate over >=1 clean 15-min digest cycle (new logs under\n/home/kgale, none\
+  \ new under /home/claude/second-brain) BEFORE promoting Phase 2.\n\nRebaseline:\
+  \ not required \u2014 log migration touches no security-monitor audited\nsurface\
+  \ (openclaw config/prompts/systemd/deps unchanged); deploy-pipeline\nmanifest addition\
+  \ has affected_baselines=[] (cf. #618). audited_surface: false.\n"
+created_at: '2026-07-05T13:35:00Z'
+created_by: observation-digest-repoint-01KWS2E2
+apply_mode: manifest
+applied_at: '2026-07-05T15:26:43Z'
