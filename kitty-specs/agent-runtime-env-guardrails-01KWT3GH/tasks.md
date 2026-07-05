@@ -11,12 +11,12 @@ No hardcoded checkout; deterministic cwd; fail-loud outside gateway; helper args
 
 | ID | Description | WP | Parallel |
 |----|-------------|----|----------|
-| T001 | Finding dataclass + ViolationKind enum (4 kinds; python+python3 abs-path) | WP01 | |
-| T002 | Logical-command recognizer (join continuations/fenced; inline-imperative; exclude placeholder/comment) | WP01 | |
-| T003 | Classification: cd-form compliance predicate + 4 violation detectors | WP01 | |
-| T004 | Waiver parsing (`# env-guard: waive <kind> — reason`) | WP01 | |
-| T005 | Public API scan_text/scan_file/scan_agents_root (exclude retired doc-auditor) | WP01 | |
-| T006 | Unit tests: each ViolationKind TP, canonical TN, must-not-flag, multiline, python-abspath, waiver | WP01 | |
+| T001 | Finding dataclass + ViolationKind enum (4 kinds; python+python3 abs-path) | WP01 | | [D] |
+| T002 | Logical-command recognizer (join continuations/fenced; inline-imperative; exclude placeholder/comment) | WP01 | | [D] |
+| T003 | Classification: cd-form compliance predicate + 4 violation detectors | WP01 | | [D] |
+| T004 | Waiver parsing (`# env-guard: waive <kind> — reason`) | WP01 | | [D] |
+| T005 | Public API scan_text/scan_file/scan_agents_root (exclude retired doc-auditor) | WP01 | | [D] |
+| T006 | Unit tests: each ViolationKind TP, canonical TN, must-not-flag, multiline, python-abspath, waiver | WP01 | | [D] |
 | T007 | capture AGENTS.md: convert 14 bare `-m scripts.` → cd form | WP02 | [P] |
 | T008 | capture AGENTS.md.tmpl: convert abs-path `python3 /home/claude/...` invocations | WP02 | [P] |
 | T009 | capture `.tmpl`↔AGENTS.md lockstep; convert the `.tmpl` `-m scripts.` | WP02 | [P] |

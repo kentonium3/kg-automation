@@ -18,7 +18,8 @@ subtasks:
 - T004
 - T005
 - T006
-agent: claude
+agent: "claude"
+shell_pid: "3092"
 history:
 - 2026-07-05 authored from plan IC-01 (+ post-plan Codex fixes)
 agent_profile: python-pedro
@@ -125,3 +126,7 @@ allocated for this WP's lane from `lanes.json` at implement time — do not crea
 - Verify multiline/continuation joining (Codex MED-2) and `python`+`python3` coverage (MED-1).
 - Verify the compliance predicate accepts the cd form and rejects bare/hardcoded (HIGH-3).
 - Confirm determinism and stdlib-only / 3.11-compat.
+
+## Activity Log
+
+- 2026-07-05T22:20:23Z – claude – shell_pid=3092 – Assigned agent via action command

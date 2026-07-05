@@ -12,5 +12,7 @@
   "purpose_tldr": "Stop Felix agents from silently failing or writing to the wrong place due to unstated runtime-environment assumptions (cwd, HOME/~, checkout path).",
   "slug": "agent-runtime-env-guardrails-01KWT3GH",
   "target_branch": "feat/agent-runtime-env-guardrails",
-  "topology": "coord"
+  "topology": "coord",
+  "vcs": "git",
+  "vcs_locked_at": "2026-07-05T22:20:17.898735+00:00"
 }
