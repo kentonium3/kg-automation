@@ -1,0 +1,15 @@
+{
+  "coordination_branch": "kitty/mission-agent-runtime-env-guardrails-01KWT3GH",
+  "created_at": "2026-07-05T21:38:51.373414+00:00",
+  "flattened": false,
+  "friendly_name": "Agent runtime-env guardrails",
+  "mission_id": "01KWT3GHVB4X49DKG02FVEQYCQ",
+  "mission_number": null,
+  "mission_slug": "agent-runtime-env-guardrails-01KWT3GH",
+  "mission_type": "software-dev",
+  "purpose_context": "This mission hardens every OpenClaw agent command against hidden dependencies on working directory, HOME/~ expansion, and which office2 checkout is active — the bug class behind #656's ModuleNotFoundError and stray-directory writes. It adds a deterministic guard (Test CI + the #587 workspace validator) so the class cannot re-enter as new agents are authored, plus converts the existing in-scope invocations to a robust, gateway-independent form. Entirely Felix-side; no native OpenClaw elements are altered.",
+  "purpose_tldr": "Stop Felix agents from silently failing or writing to the wrong place due to unstated runtime-environment assumptions (cwd, HOME/~, checkout path).",
+  "slug": "agent-runtime-env-guardrails-01KWT3GH",
+  "target_branch": "feat/agent-runtime-env-guardrails",
+  "topology": "coord"
+}
