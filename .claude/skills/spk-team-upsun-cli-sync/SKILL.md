@@ -1,1 +1,0 @@
-/Users/kentgale/.claude/skills/spk-team-upsun-cli-sync/SKILL.md
