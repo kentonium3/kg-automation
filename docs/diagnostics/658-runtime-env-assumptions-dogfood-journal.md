@@ -496,4 +496,16 @@ to main. Neither would have surfaced from the per-WP checker-clean signal alone.
 
 ### PR feat→main
 
-_(the maintainer-lands-via-PR step — to be appended)_
+Pushed `feat/agent-runtime-env-guardrails` to origin (was unpushed; 38 commits ahead of main —
+the full mission incl. all spec-commits + WP commits + journal). Opened **PR
+kentonium3/kg-automation#664** (feat → main) with a summary body (what/why, deliverables, scope
+decisions, verification, rebaseline-not-required, journal pointer). Body auto-closes #658 on
+merge (canonical `kentonium3/kg-automation#658` per the auto-close format rule). **This is the
+first PR-landed change in kg-automation** (departure from the usual push-to-main / spec-kitty
+merge-to-main) — the whole point per Kent: generate journal + analyzer data over a PR-involved
+workflow. **Kent merges** (agent never `gh pr merge`s). Internal-repo PR → copy-approval
+exception applies (no pre-review of the PR body).
+
+### Post-mission analyzer gap-analysis (objective 4)
+
+_(spec-kitty-analyzer vs journal + tracers — to be appended)_
