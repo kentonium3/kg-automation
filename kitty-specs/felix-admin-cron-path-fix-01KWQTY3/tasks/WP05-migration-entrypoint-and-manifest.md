@@ -16,7 +16,8 @@ subtasks:
 - T016
 - T017
 - T018
-agent: claude
+agent: "codex:gpt-5-codex:reviewer-renata:reviewer"
+shell_pid: "72525"
 history:
 - at: 2026-07-05T02:30:00Z
   actor: system
@@ -137,3 +138,7 @@ nothing, the entrypoint is idempotent, and it refuses to delete if anything is u
 ## Activity Log
 
 - 2026-07-05T02:30:00Z – system – Prompt created.
+- 2026-07-05T03:51:20Z – claude:sonnet:python-pedro:implementer – shell_pid=65970 – Assigned agent via action command
+- 2026-07-05T04:04:47Z – claude:sonnet:python-pedro:implementer – shell_pid=65970 – Ready for review: dry-run safe (mutates nothing, tested), idempotent (second run no-op, tested), H2 refuse-on-unclassified tested, atomic copy-before-cutover, recursive log preservation, quarantine-rename with stamp. Lint: ruff not installed on host; py_compile syntax OK. All 5 pytest cases pass.
+- 2026-07-05T04:05:32Z – codex:gpt-5-codex:reviewer-renata:reviewer – shell_pid=72525 – Started review via action command
+- 2026-07-05T04:08:01Z – user – shell_pid=72525 – Moved to planned

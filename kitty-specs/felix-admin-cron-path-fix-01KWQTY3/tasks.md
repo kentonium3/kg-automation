@@ -93,9 +93,9 @@
 - **Prompt**: `tasks/WP05-migration-entrypoint-and-manifest.md` (~280 lines)
 - **Dependencies**: WP02, WP03 (final paths).
 - **Subtasks**:
-  - [ ] T016 Migration entrypoint (WP05)
-  - [ ] T017 Migration manifest (WP05)
-  - [ ] T018 Migration tests (WP05)
+  - [x] T016 Migration entrypoint (WP05)
+  - [x] T017 Migration manifest (WP05)
+  - [x] T018 Migration tests (WP05)
 
 ## WP06 — Architecture docs + rebaseline record
 
