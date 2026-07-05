@@ -427,3 +427,74 @@ def test_coverage_required_when_not_attested(tmp_path, monkeypatch):
     ok, detail = od.check_snapshot_coverage(root, attest_backup_coverage=False)
     assert ok is False
     assert detail["reason"] == "backup_coverage_unproven"
+
+
+# ---------------------------------------------------------------------------
+# T-QUIESCE-ERR (post-merge Codex finding): the writer-check subprocess errors
+# AFTER the timer is stopped. _run_cmd must not raise (maps to rc 124), the
+# gate must fail-safe, and the timer MUST still be restarted — never left
+# stopped after a failed destructive deploy.
+# ---------------------------------------------------------------------------
+
+def test_run_cmd_maps_timeout_to_nonzero(monkeypatch):
+    """_run_cmd converts TimeoutExpired/OSError into a synthetic non-zero result
+    instead of raising, so an exception can never escape after the timer stop."""
+    def _raise_timeout(*_a, **_k):
+        raise subprocess.TimeoutExpired(cmd=["pgrep"], timeout=10.0)
+
+    monkeypatch.setattr(od.subprocess, "run", _raise_timeout)
+    proc = od._run_cmd(["pgrep", "-f", "summarize.py"], timeout=10.0)
+    assert proc.returncode == 124
+
+    def _raise_oserror(*_a, **_k):
+        raise OSError("boom")
+
+    monkeypatch.setattr(od.subprocess, "run", _raise_oserror)
+    proc2 = od._run_cmd(["systemctl", "--user", "stop", "x"])
+    assert proc2.returncode == 124
+
+
+def test_quiesce_writer_check_error_aborts_and_restarts_timer(tmp_path, monkeypatch):
+    """systemctl-stop succeeds, then pgrep is unconfirmable (rc 124). The gate
+    must abort (no delete) AND the timer must be restarted on the abort path."""
+    root = tmp_path / "second-brain"
+    vault = tmp_path / "vault-logs"
+    _make_stray_tree(root)
+
+    call_log: list[str] = []
+
+    def _fake(cmd, timeout=None):  # noqa: ANN001
+        prog = cmd[0]
+        if prog == "git":
+            return SimpleNamespace(returncode=0, stdout="  origin/main\n", stderr="")
+        if prog == "systemctl":
+            action = cmd[2]
+            call_log.append(f"systemctl-{action}")
+            return SimpleNamespace(returncode=0, stdout="", stderr="")
+        if prog == "pgrep":
+            # Unconfirmable: mirrors _run_cmd's synthetic timeout result (rc 124).
+            call_log.append("pgrep-error")
+            return SimpleNamespace(returncode=124, stdout="", stderr="timeout")
+        return SimpleNamespace(returncode=0, stdout="", stderr="")
+
+    monkeypatch.setattr(od, "verify_restic_recent", _ok_snapshot)
+    monkeypatch.setattr(od, "_run_cmd", _fake)
+    spy = _spy_rmtree(call_log, really_delete=False)
+    monkeypatch.setattr(od.shutil, "rmtree", spy)
+    monkeypatch.setattr(od.time, "sleep", lambda *_a, **_k: None)
+
+    rc = od.main(
+        [
+            "--apply",
+            "--attest-backup-coverage",
+            "--source-root", str(root),
+            "--vault-logs-dir", str(vault),
+        ]
+    )
+
+    assert rc != 0, "an unconfirmable writer check must abort non-zero (fail-safe)"
+    assert spy.calls == [], "rmtree must NOT run when quiesce cannot be confirmed"
+    assert root.exists()
+    assert "systemctl-stop" in call_log
+    assert "systemctl-start" in call_log, "timer MUST be restarted even on the error path"
+    assert call_log.index("systemctl-start") > call_log.index("systemctl-stop")

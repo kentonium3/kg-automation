@@ -93,13 +93,20 @@ _PRESCAN_GLOB = "inbox-prescan-*.md"
 # ---------------------------------------------------------------------------
 
 def _run_cmd(cmd: list[str], timeout: float | None = 30.0) -> subprocess.CompletedProcess:
-    """Run *cmd* capturing text output. Never raises on non-zero exit."""
-    return subprocess.run(  # noqa: S603 - fixed argv, no shell
-        cmd,
-        capture_output=True,
-        text=True,
-        timeout=timeout,
-    )
+    """Run *cmd* capturing text output. Never raises — a timeout or OS error is
+    mapped to a synthetic non-zero result (returncode 124) so callers treat
+    "could not run" fail-safe. Critical: an exception escaping here after the
+    digest timer is stopped would skip the timer-restart in decommission()'s
+    finally (post-merge Codex finding)."""
+    try:
+        return subprocess.run(  # noqa: S603 - fixed argv, no shell
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+        )
+    except (subprocess.TimeoutExpired, OSError) as exc:
+        return subprocess.CompletedProcess(cmd, 124, stdout="", stderr=str(exc))
 
 
 def stop_digest_timer() -> subprocess.CompletedProcess:
@@ -113,10 +120,16 @@ def start_digest_timer() -> subprocess.CompletedProcess:
 
 
 def _writer_active() -> bool:
-    """True if any known observation writer process is currently running."""
+    """True if any known observation writer process is running, OR if the check
+    could not be completed. pgrep exit codes: 0=match, 1=no match, >=2=error.
+    An error/timeout (incl. the synthetic 124 from _run_cmd) is treated fail-safe
+    as "active" so an unconfirmable quiesce aborts before any deletion rather
+    than proceeding on a false "no writer"."""
     for pattern in WRITER_PROCESS_PATTERNS:
         proc = _run_cmd(["pgrep", "-f", pattern], timeout=10.0)
         if proc.returncode == 0 and proc.stdout.strip():
+            return True
+        if proc.returncode not in (0, 1):
             return True
     return False
 
