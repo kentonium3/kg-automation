@@ -479,13 +479,20 @@ def test_divergent_non_mergeable_state_file_aborts_without_quarantine(tmp_path):
 # ---------------------------------------------------------------------------
 
 def test_manifest_validates_against_schema():
-    """deploys/queued/0007-migrate-inbox-state-and-logs.yaml validates against v1 schema."""
+    """0007-migrate-inbox-state-and-logs.yaml validates against v1 schema.
+
+    The manifest lives in deploys/queued/ until felix-deployer applies it, then
+    moves to deploys/applied/. Accept either location so this test survives the
+    deploy lifecycle (the manifest was applied for #656)."""
     from scripts.deploy.lib.manifest import validate_manifest_file
 
-    manifest_path = (
-        _WORKTREE_ROOT / "deploys" / "queued" / "0007-migrate-inbox-state-and-logs.yaml"
-    )
-    assert manifest_path.exists(), f"manifest not found: {manifest_path}"
+    name = "0007-migrate-inbox-state-and-logs.yaml"
+    candidates = [
+        _WORKTREE_ROOT / "deploys" / "queued" / name,
+        _WORKTREE_ROOT / "deploys" / "applied" / name,
+    ]
+    manifest_path = next((p for p in candidates if p.exists()), None)
+    assert manifest_path is not None, f"manifest not found in queued/ or applied/: {name}"
     result = validate_manifest_file(manifest_path)
     assert result.ok, f"Manifest validation failed:\n{result.details}"
 
