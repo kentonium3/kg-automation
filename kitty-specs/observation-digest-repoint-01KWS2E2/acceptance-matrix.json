@@ -2,98 +2,109 @@
   "mission_slug": "observation-digest-repoint-01KWS2E2",
   "mission_number": "",
   "mission_type": "software-dev",
-  "overall_verdict": "pending",
+  "overall_verdict": "pass",
   "criteria": [
     {
       "criterion_id": "FR-001",
-      "description": "Verify FR-001 is satisfied",
+      "description": "config.py log_dir default resolves to /home/kgale/second-brain/agents/logs independent of HOME (output_dir untouched)",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "TODO: replace with a real acceptance criterion"
+      "evidence": "scripts/openclaw/observation/tests/test_config_log_dir.py (HOME-independence + override honoring); WP01 commit a3a930e4; 223 observation tests green",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-07-05T14:15:00Z",
+      "notes": "DEFAULT_AGENT_LOGS_DIR module constant per research.md D1"
     },
     {
       "criterion_id": "FR-002",
-      "description": "Verify FR-002 is satisfied",
+      "description": "runtime observation agents/logs/*/*.jsonl union-merged to the vault with no entry lost or duplicated",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "TODO: replace with a real acceptance criterion"
+      "evidence": "tests/deploy/test_observation_migration.py (atomic union-merge, dry-run no-mutation); WP02 commit daf6e2e3; 295 deploy tests green",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-07-05T14:15:00Z",
+      "notes": "temp+fsync+os.replace atomic (NFR-005)"
     },
     {
       "criterion_id": "FR-003",
-      "description": "Verify FR-003 is satisfied",
+      "description": "decommission removes /home/claude/second-brain via a single root-only rmtree; no tree walk; _private never read/logged",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "TODO: replace with a real acceptance criterion"
+      "evidence": "tests/deploy/test_observation_decommission.py (single root rmtree assertion + privacy leak test); grep confirms no rglob/os.walk/git-status-ignored in code; WP03 commit a28715b7",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-07-05T14:15:00Z",
+      "notes": "Authorized DM-01KWS4F986PVHTJRSHZPQACDM7"
     },
     {
       "criterion_id": "FR-004",
-      "description": "Verify FR-004 is satisfied",
+      "description": "precondition gate (snapshot+coverage, origin recoverability, quiesce+no-live-proc, inbox-prescan mtime) aborts non-zero before any delete on any failure",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "TODO: replace with a real acceptance criterion"
+      "evidence": "tests/deploy/test_observation_decommission.py per-gate failing-case tests (exit != 0, rmtree not called, target present); quiesce runs last; WP03 commit a28715b7",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-07-05T14:15:00Z",
+      "notes": "if not pre[ok]: return before rmtree"
     },
     {
       "criterion_id": "FR-005",
-      "description": "Verify FR-005 is satisfied",
+      "description": "migration and decommission are idempotent and convergent (safe re-run; completed state is a no-op)",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "TODO: replace with a real acceptance criterion"
+      "evidence": "idempotent union-merge tests (WP02 daf6e2e3) + convergent no-op path (WP03 a28715b7)",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-07-05T14:15:00Z",
+      "notes": ""
     },
     {
       "criterion_id": "FR-006",
-      "description": "Verify FR-006 is satisfied",
+      "description": "service-inventory.json + data-flows.json (+ md views) corrected to vault paths; #659 retention notes removed; stale output_path/exec_start fixed; updated_by #659",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "TODO: replace with a real acceptance criterion"
+      "evidence": "validate_architecture_data.py OK (0 findings); path_retention_note count 2->0; WP05 commit 0d49f537",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-07-05T14:15:00Z",
+      "notes": "#490 signal paths untouched"
     },
     {
       "criterion_id": "FR-007",
-      "description": "Verify FR-007 is satisfied",
-      "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "TODO: replace with a real acceptance criterion"
+      "description": "docstrings referencing ~/second-brain/agents/logs updated to the canonical vault path",
+      "proof_type": "manual_inspection",
+      "evidence": "config.py + summarize.py docstrings repointed; WP01 commit a3a930e4 (log_action.py had no matching reference)",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-07-05T14:15:00Z",
+      "notes": ""
     },
     {
       "criterion_id": "FR-008",
-      "description": "Verify FR-008 is satisfied",
+      "description": "deployment expressed as deploys/queued manifest(s) consumed by felix-deployer, Tier-2 snapshot-gated, reusing the shared deploy library",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "TODO: replace with a real acceptance criterion"
+      "evidence": "deploys/queued/0008-migrate-observation-logs.yaml; tests/deploy/test_manifest_schema.py 7 passed; WP04 lane commit 72213258",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-07-05T14:15:00Z",
+      "notes": ""
     },
     {
       "criterion_id": "FR-009",
-      "description": "Verify FR-009 is satisfied",
-      "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "TODO: replace with a real acceptance criterion"
+      "description": "two-phase staged rollout: Phase 1 (migrate, queued, non-destructive) and Phase 2 (decommission, staged, not auto-applied) are independent manifests/entrypoints",
+      "proof_type": "manual_inspection",
+      "evidence": "0008 in deploys/queued/ (auto-applied); 0009 in deploys/staged/ (felix-deployer scans queued/*.yaml only, so not auto-applied; operator git-mv to promote after Phase-1 verify); both schema-valid; WP04",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-07-05T14:15:00Z",
+      "notes": "FR-009 verify-first gap enforced by staged/ location"
     }
   ],
-  "negative_invariants": []
+  "negative_invariants": [
+    {
+      "criterion_id": "NEG-001",
+      "description": "No _private path (nor any descendant of source_root outside agents/logs) ever appears in migrator/decommission stdout, stderr, logs, or returned data",
+      "proof_type": "automated_test",
+      "evidence": "tests/deploy/test_observation_decommission.py::test_privacy_no_descendant_or_private_leak (fixture with vault/02-Growth/_private/secret.md asserts absence across stdout/stderr/result); code globs only agents/logs/*/*.jsonl",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-07-05T14:15:00Z",
+      "notes": "C-008 enforced at implementation level"
+    }
+  ]
 }
