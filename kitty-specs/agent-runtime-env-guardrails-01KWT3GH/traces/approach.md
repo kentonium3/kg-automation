@@ -31,3 +31,12 @@ journal). This is a multi-objective diagnostic run: complete #658 + journal (sup
   #658-as-PR lands our OWN mission output (no fork, no contributor adjudication) so it's a
   hollow #2341 trial — the #2341 trial now runs separately on a real spec-kitty-family PR.
   #658 keeps the feat→main PR purely for OUR journaling/analyzer research.
+- `[2026-07-05][plan]` Design-phase LIVE code scan was the highest-value plan work — it
+  overturned the issue body's clean "~30 `-m scripts.`" framing (found fleet inconsistency +
+  a third abs-path shape + already-clean HOME writes), reshaping scope + the canonical form.
+  Lesson reinforced: probe the real code during plan; don't trust the issue's inventory.
+- `[2026-07-05][plan]` Post-plan Codex review returned 3 HIGH + 5 MED + 1 LOW, ALL valid,
+  ALL folded — including one real design reversal (cd form) and one implement-breaking bug
+  (`.ok` vs `.passed`). The mandatory checkpoint paid for itself on this run. Approach note:
+  ran codex read-only (not the `-p spec-kitty-review` profile) because a review needs no
+  `.git` writes — simpler + sidesteps the unregistered-profile snag.

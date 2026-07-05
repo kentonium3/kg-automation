@@ -41,3 +41,23 @@
   altered.** No change to OpenClaw core, `~/.openclaw/skills/` layout, openclaw.json, or
   `openclaw-gateway.service`. Rationale: keeps the change Tier-3 and the blast radius on
   our side of the fence (Kent's explicit boundary check).
+- `[2026-07-05][plan]` Decision: **Scope covers BOTH `-m scripts.` AND abs-path invocations
+  (D1); canonical form REUSES gateway PYTHONPATH fail-loud (D2).** Rationale: live scan found
+  the checkout-path axis in three shapes (bare, hardcoded-cd, hardcoded abs-path); reuse
+  avoids a gateway-unit change. Alternatives: `-m scripts.` only (leaves cruft); FELIX_REPO_ROOT
+  var (touches gateway unit).
+- `[2026-07-05][plan/codex] REVERSAL` Decision: **canonical form = the CD form
+  `cd "${PYTHONPATH:?}" && …`, NOT the non-cd `PYTHONPATH=… python3 -m …`.** Post-plan Codex
+  HIGH-3 showed the non-cd form fixes imports but leaves cwd drifted — a helper doing relative
+  I/O still breaks (the #656 mode). CD form makes cwd deterministic (repo root). Companion:
+  helper args must be absolute + a non-repo-cwd smoke test. Rationale: robustness over the
+  cwd-preservation the non-cd form bought (moot since args are absolute).
+- `[2026-07-05][plan/codex]` Decision: **"works without gateway" = fail-loud, not magic.**
+  Codex HIGH-2: `${PYTHONPATH:?}` fails outside the gateway. Reconciled to "under gateway OR
+  exported PYTHONPATH; fail-loud otherwise" — matches Kent's "allow running outside gateway"
+  intent (don't silently break). Alternative (magically resolve anywhere) is impossible without
+  hardcoding.
+- `[2026-07-05][plan/codex]` Decision: **doc-auditor dispositioned RETIRED, not audited.**
+  Codex MED-5: FR-008 "audit doc-auditor" contradicted the validator excluding it. It's a
+  scripts-first driver with no live agent (#343) → explicit retired disposition, not an
+  unverifiable audit.
