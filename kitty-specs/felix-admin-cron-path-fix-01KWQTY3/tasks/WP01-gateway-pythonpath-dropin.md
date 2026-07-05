@@ -13,7 +13,8 @@ subtasks:
 - T001
 - T002
 - T003
-agent: claude
+agent: "claude:sonnet:implementer-ivan:implementer"
+shell_pid: "46408"
 history:
 - at: 2026-07-05T02:30:00Z
   actor: system
@@ -137,3 +138,4 @@ Done when:
 ## Activity Log
 
 - 2026-07-05T02:30:00Z – system – Prompt created.
+- 2026-07-05T03:22:15Z – claude:sonnet:implementer-ivan:implementer – shell_pid=46408 – Assigned agent via action command

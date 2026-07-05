@@ -14,7 +14,8 @@ subtasks:
 - T004
 - T005
 - T006
-agent: claude
+agent: "claude:sonnet:python-pedro:implementer"
+shell_pid: "47053"
 history:
 - at: 2026-07-05T02:30:00Z
   actor: system
@@ -121,3 +122,4 @@ right mode, and tests prove path-independence from HOME/cwd.
 ## Activity Log
 
 - 2026-07-05T02:30:00Z – system – Prompt created.
+- 2026-07-05T03:22:48Z – claude:sonnet:python-pedro:implementer – shell_pid=47053 – Assigned agent via action command

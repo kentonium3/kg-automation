@@ -12,5 +12,7 @@
   "purpose_tldr": "Make Felix's admin cron jobs reliable and relocate their state and logs to canonical, synced homes.",
   "slug": "felix-admin-cron-path-fix-01KWQTY3",
   "target_branch": "fix/felix-admin-cron-path-fix",
-  "topology": "coord"
+  "topology": "coord",
+  "vcs": "git",
+  "vcs_locked_at": "2026-07-05T03:22:09.545030+00:00"
 }

@@ -54,9 +54,9 @@
 - **Prompt**: `tasks/WP02-state-helper-relocation.md` (~200 lines)
 - **Dependencies**: none.
 - **Subtasks**:
-  - [ ] T004 `routing_log.py` path + mode (WP02)
-  - [ ] T005 `handle_clarification_state.py` path + mode (WP02)
-  - [ ] T006 State-path tests (WP02)
+  - [x] T004 `routing_log.py` path + mode (WP02)
+  - [x] T005 `handle_clarification_state.py` path + mode (WP02)
+  - [x] T006 State-path tests (WP02)
 
 ## WP03 — Prescan log-dir + dedup import correctness
 
