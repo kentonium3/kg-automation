@@ -95,16 +95,5 @@
       "notes": "FR-009 verify-first gap enforced by staged/ location"
     }
   ],
-  "negative_invariants": [
-    {
-      "invariant_id": "NEG-001",
-      "description": "No _private path (nor any descendant of source_root outside agents/logs) ever appears in migrator/decommission stdout, stderr, logs, or returned data",
-      "verification_method": "automated_test",
-      "evidence": "tests/deploy/test_observation_decommission.py::test_privacy_no_descendant_or_private_leak (fixture with vault/02-Growth/_private/secret.md asserts absence across stdout/stderr/result); code globs only agents/logs/*/*.jsonl",
-      "result": "confirmed_absent",
-      "verified_by": "claude",
-      "verified_at": "2026-07-05T14:15:00Z",
-      "notes": "C-008 enforced at implementation level"
-    }
-  ]
+  "negative_invariants": []
 }
