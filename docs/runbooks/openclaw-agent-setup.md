@@ -3,10 +3,10 @@ title: OpenClaw Agent Setup
 doc_type: runbook
 status: approved
 audience: agents_and_humans
-last_updated: '2026-06-11'
-last_validated: '2026-06-11'
-updated_by: '#374 + vikunja-client-and-habits-weekly-report-01KTKSFT (#561) + felix-calendar-subagent-extraction-01KTTA33 (#579) + restore-whatsapp-dm-reply-delivery-01KTVVHH (#588)'
-revision: v1.4
+last_updated: '2026-07-05'
+last_validated: '2026-07-05'
+updated_by: '#374 + vikunja-client-and-habits-weekly-report-01KTKSFT (#561) + felix-calendar-subagent-extraction-01KTTA33 (#579) + restore-whatsapp-dm-reply-delivery-01KTVVHH (#588) + agent-runtime-env-guardrails-01KWT3GH (#658)'
+revision: v1.5
 ---
 
 # OpenClaw agent setup
@@ -129,6 +129,54 @@ only the `<agent-id>` placeholder. Agents that do NOT emit user-facing
 WhatsApp must carry an explicit "no user-facing WhatsApp" annotation in
 their standing orders so the audit trail records the deliberate
 non-application of the rules.
+
+### Runtime-environment guardrails (#658) — canonical invocation form
+
+Every command a newly-authored agent prompt emits that invokes a repo helper
+MUST use the canonical, launch-context-independent form. Do **not** rely on the
+current working directory, `~`/`HOME` expansion, or a specific checkout path —
+those are the recurring silent-failure / wrong-location bug class #658 eliminated
+fleet-wide.
+
+**Canonical form** — reuse the gateway-declared `PYTHONPATH` as the repo root,
+fail loud when it is unset, hardcode no checkout path:
+
+```bash
+cd "${PYTHONPATH:?PYTHONPATH unset}" && python3 -m scripts.<pkg>.<mod> [absolute args]
+# piped / file-path variant:
+python3 "${PYTHONPATH:?PYTHONPATH unset}/scripts/<path>.py" [absolute args]
+```
+
+**Banned shapes** (each is a guard violation):
+
+- A **bare** `python3 -m scripts.<mod>` with no `cd "${PYTHONPATH:?…}"` anchor —
+  it silently assumes the gateway-provided `PYTHONPATH`/cwd and fails
+  (`ModuleNotFoundError`) or resolves the wrong checkout when launched otherwise.
+- A **hardcoded checkout path** such as `cd /home/claude/kg-automation && …` or
+  `python3 /home/claude/kg-automation/scripts/…py` — re-introduces the very
+  checkout-path assumption the mission exists to kill.
+- A `~`/`HOME`-relative **write** — write to a canonical absolute anchor instead.
+  (Reads of `~/.openclaw/…`, OpenClaw's own stable home, are permitted.)
+
+Helper path arguments must be **absolute** so the `cd` never breaks a
+cwd-relative argument.
+
+**Enforcement (two layers, same checker).** The shared deterministic checker is
+`scripts/openclaw/agents/env_assumptions.py`. It is consumed by:
+
+- `validate_workspace.py`'s **`runtime_env_assumptions`** check
+  (`check_runtime_env_assumptions()`) — run at authoring time via
+  `python3 -m scripts.openclaw.agents.validate_workspace`, so a workspace
+  carrying a banned shape is rejected before it is ever deployed.
+- The **Test-CI env-assumption guard**
+  (`scripts/openclaw/agents/tests/test_env_assumptions_guard.py`) — rides the
+  existing pytest Test CI and turns red on any unremediated invocation across
+  all agent prompts.
+
+If a specific line is a deliberate, documented exception, waive it inline with a
+marker on the same or preceding line:
+`# env-guard: waive <kind> — <reason>` (kinds: `bare_m_scripts`, `hardcoded_cd`,
+`hardcoded_abs_path`, `home_relative_write`). Prefer conversion over waiver.
 
 ## OpenClaw configuration
 

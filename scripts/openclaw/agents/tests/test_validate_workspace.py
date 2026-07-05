@@ -109,6 +109,56 @@ def test_fully_compliant_workspace_is_ok(tmp_path: Path) -> None:
     assert validate_workspace(ws).ok
 
 
+# --- Invariant C: runtime-env assumptions (#658) ------------------------------
+
+
+def test_runtime_env_assumptions_clean_passes(tmp_path: Path) -> None:
+    ws = _write(
+        tmp_path / "agent",
+        AGENTS_md=(
+            "04-Growth/_private/\n## Output discipline\n"
+            'Invoke `cd "${PYTHONPATH:?msg}" && python3 -m scripts.inbox.prescan`.\n'
+        ),
+    )
+    result = _check(validate_workspace(ws), "runtime_env_assumptions")
+    assert result.ok
+    assert result.detail == "ok"
+
+
+def test_runtime_env_assumptions_bare_invocation_fails(tmp_path: Path) -> None:
+    ws = _write(
+        tmp_path / "agent",
+        AGENTS_md=(
+            "04-Growth/_private/\n## Output discipline\n"
+            "Invoke `python3 -m scripts.inbox.prescan`.\n"  # bare — unanchored
+        ),
+    )
+    result = _check(validate_workspace(ws), "runtime_env_assumptions")
+    assert not result.ok
+    assert "bare_m_scripts" in result.detail
+
+
+def test_runtime_env_assumptions_hardcoded_checkout_fails(tmp_path: Path) -> None:
+    ws = _write(
+        tmp_path / "agent",
+        AGENTS_md=(
+            "04-Growth/_private/\n## Output discipline\n"
+            "```bash\ncd /home/claude/kg-automation && python3 -m scripts.habits.x\n```\n"
+        ),
+    )
+    result = _check(validate_workspace(ws), "runtime_env_assumptions")
+    assert not result.ok
+    assert "hardcoded_cd" in result.detail
+
+
+def test_runtime_env_assumptions_failure_bubbles_to_workspace_ok(tmp_path: Path) -> None:
+    ws = _write(
+        tmp_path / "agent",
+        AGENTS_md="04-Growth/_private/\n## Output discipline\npython3 -m scripts.inbox.prescan\n",
+    )
+    assert not validate_workspace(ws).ok  # a runtime-env violation fails the whole workspace
+
+
 # --- Discovery ----------------------------------------------------------------
 
 

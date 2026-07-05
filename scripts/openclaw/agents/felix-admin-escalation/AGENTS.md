@@ -111,7 +111,7 @@ briefings (felix-core-digest), or goal-level commitment assessment
 1. **Reconcile sweep** (FIRST — detects UI-marking-done and due-date edits since
    last tick):
 
-       python3 -m scripts.escalation.reconcile_completions --all
+       cd "${PYTHONPATH:?PYTHONPATH unset}" && python3 -m scripts.escalation.reconcile_completions --all
 
    Capture stdout. Each `DRIFT` line means a synthetic record was emitted. Each
    `HARDFAIL` line means a P2-bug was filed (or deduped). Do not retry — these
@@ -133,7 +133,7 @@ briefings (felix-core-digest), or goal-level commitment assessment
 
 3. **State derivation**: for each candidate, invoke:
 
-       python3 -m scripts.escalation.derive_state \
+       cd "${PYTHONPATH:?PYTHONPATH unset}" && python3 -m scripts.escalation.derive_state \
          --task-id <id> --project-id <pid>
 
    Parse stdout JSON. Use `next_eligible_level` to decide whether to alert
@@ -150,7 +150,7 @@ briefings (felix-core-digest), or goal-level commitment assessment
 
 6. **Record events**: for each task that received an alert, invoke:
 
-       python3 -m scripts.escalation.record_completion \
+       cd "${PYTHONPATH:?PYTHONPATH unset}" && python3 -m scripts.escalation.record_completion \
          --task-id <id> --project-id <pid> --title "<title>" \
          --date <today-local> --state level_sent --level <N> --source agent
 
@@ -186,7 +186,7 @@ For each recognized action:
 1. Mark task complete: `POST /api/v1/tasks/{id}` with `{"done": true}`
 2. Record event:
 
-       python3 -m scripts.escalation.record_completion \
+       cd "${PYTHONPATH:?PYTHONPATH unset}" && python3 -m scripts.escalation.record_completion \
          --task-id <id> --project-id <pid> --title "<title>" \
          --date <today-local> --state done --source kent_reply
 
@@ -195,7 +195,7 @@ For each recognized action:
 **Snooze** (`N snooze` or `N snooze Nd`):
 1. Record event (default N=1 if duration not specified):
 
-       python3 -m scripts.escalation.record_completion \
+       cd "${PYTHONPATH:?PYTHONPATH unset}" && python3 -m scripts.escalation.record_completion \
          --task-id <id> --project-id <pid> --title "<title>" \
          --date <today-local> --state snoozed --snooze-days <N> \
          --source kent_reply
@@ -205,7 +205,7 @@ For each recognized action:
 **Dismiss** (`N dismiss`):
 1. Record event:
 
-       python3 -m scripts.escalation.record_completion \
+       cd "${PYTHONPATH:?PYTHONPATH unset}" && python3 -m scripts.escalation.record_completion \
          --task-id <id> --project-id <pid> --title "<title>" \
          --date <today-local> --state dismissed --source kent_reply
 
@@ -218,7 +218,7 @@ For each recognized action:
    with `{"due_date": "<YYYY-MM-DD>T00:00:00Z"}`
 4. Record event:
 
-       python3 -m scripts.escalation.record_completion \
+       cd "${PYTHONPATH:?PYTHONPATH unset}" && python3 -m scripts.escalation.record_completion \
          --task-id <id> --project-id <pid> --title "<title>" \
          --date <today-local> --state rescheduled \
          --reschedule-to <YYYY-MM-DD> --source kent_reply
@@ -262,7 +262,7 @@ hold off until it's triaged." Continue processing other tasks.
 Log every significant operational action using the `exec` tool:
 
 ```bash
-python /home/claude/kg-automation/scripts/openclaw/observation/log_action.py \
+cd "${PYTHONPATH:?PYTHONPATH unset}" && python scripts/openclaw/observation/log_action.py \
   --agent felix-admin-escalation \
   --category <category> \
   --action <action> \

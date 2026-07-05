@@ -46,6 +46,8 @@ PRIVACY_OWNER_FILES = ("AGENTS.md", "TOOLS.md")
 
 #: Workspaces retained on disk but not active — excluded from validation.
 #: felix-doc-auditor was refactored to a scripts-first driver (#343); no live agent.
+#: Disposition (#658): with no live agent prompt it carries no deployed invocation to
+#: convert — excluded here by design, not left unaudited.
 SUSPENDED_WORKSPACES = frozenset({"felix-doc-auditor"})
 
 #: Directories under the agents root that are not agent workspaces.
@@ -113,9 +115,33 @@ def check_output_discipline(workspace_dir: Path) -> CheckResult:
     )
 
 
+def check_runtime_env_assumptions(workspace_dir: Path) -> CheckResult:
+    """Invariant C (#658): no unstated runtime-env assumptions in the workspace prompts.
+
+    Reuses the shared env-assumption checker so #167-authored workspaces inherit the
+    guardrail at validation time. Imported lazily to avoid an import cycle
+    (``env_assumptions`` imports the exclusion sets from this module).
+    """
+    from scripts.openclaw.agents.env_assumptions import scan_file  # noqa: PLC0415 (cycle-break)
+
+    findings = [
+        f
+        for name in ("AGENTS.md", "AGENTS.md.tmpl")
+        for f in scan_file(workspace_dir / name)
+    ]
+    if not findings:
+        return CheckResult("runtime_env_assumptions", True, "ok")
+    detail = "; ".join(f"{Path(f.path).name}:{f.line} {f.kind.value}" for f in findings)
+    return CheckResult("runtime_env_assumptions", False, detail)
+
+
 def validate_workspace(workspace_dir: Path) -> WorkspaceReport:
     """Run all invariant checks against one workspace directory."""
-    checks = [check_privacy_boundary(workspace_dir), check_output_discipline(workspace_dir)]
+    checks = [
+        check_privacy_boundary(workspace_dir),
+        check_output_discipline(workspace_dir),
+        check_runtime_env_assumptions(workspace_dir),
+    ]
     return WorkspaceReport(
         workspace=workspace_dir.name,
         ok=all(c.ok for c in checks),

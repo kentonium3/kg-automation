@@ -55,13 +55,13 @@ Every calendar-create attempt emits a structured `log_action` event before the r
 
 ```bash
 # On success:
-python /home/claude/kg-automation/scripts/openclaw/observation/log_action.py \
+cd "${PYTHONPATH:?PYTHONPATH unset}" && python scripts/openclaw/observation/log_action.py \
   --agent felix-admin-calendar --category routine \
   --action calendar_event_created --target "<gcal_event_id>" --outcome success \
   --context '{"source_inbox_path": "<from payload>", "account": "<from payload>", "calendar_id": "<from payload>", "rrule": "<from payload or null>", "clarification_id": "<from payload or null>"}'
 
 # On failure:
-python /home/claude/kg-automation/scripts/openclaw/observation/log_action.py \
+cd "${PYTHONPATH:?PYTHONPATH unset}" && python scripts/openclaw/observation/log_action.py \
   --agent felix-admin-calendar --category error \
   --action calendar_event_failed --target "<source_inbox_path>" --outcome error \
   --context '{"error_detail": "<gog stderr>", "exit_code": <gog exit code>, "clarification_id": "<from payload or null>"}'
@@ -108,7 +108,7 @@ Build a merged candidate block by applying these extracted fields to the open re
 Re-run the validator via stdin:
 
 ```bash
-echo "<merged candidate block JSON>" | python3 /home/claude/kg-automation/scripts/calendar_routing/validate_calendar_event.py
+echo "<merged candidate block JSON>" | python3 "${PYTHONPATH:?PYTHONPATH unset}/scripts/calendar_routing/validate_calendar_event.py"
 ```
 
 Set `tick_iso` in the merged block to the **inbound message receipt time** — NOT the original `sent_at` of the prompt. Relative phrases ("next Tuesday") in the reply must resolve against now.
@@ -152,7 +152,7 @@ When re-validation returns `complete: true`, do the following in order:
 5. **Log the resolution**:
 
    ```bash
-   python /home/claude/kg-automation/scripts/openclaw/observation/log_action.py \
+   cd "${PYTHONPATH:?PYTHONPATH unset}" && python scripts/openclaw/observation/log_action.py \
      --agent felix-admin-calendar --category routine \
      --action calendar_event_clarification_resolved \
      --target "<clarification_id>" --outcome success \

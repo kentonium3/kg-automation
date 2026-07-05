@@ -127,7 +127,7 @@ source of truth — `derive_state` reads ONLY the JSONL.
 Before proposing enrichment, derive current state:
 
 ```bash
-python3 -m scripts.enrichment.derive_state --task-id <id>
+cd "${PYTHONPATH:?PYTHONPATH unset}" && python3 -m scripts.enrichment.derive_state --task-id <id>
 ```
 
 - `skipped` or `declined` → do NOT re-propose (single-offer policy)
@@ -139,7 +139,7 @@ python3 -m scripts.enrichment.derive_state --task-id <id>
 Use the canonical helper for ALL state transitions:
 
 ```bash
-python3 -m scripts.enrichment.record_completion \
+cd "${PYTHONPATH:?PYTHONPATH unset}" && python3 -m scripts.enrichment.record_completion \
   --task-id <id> --state {proposed,confirmed,skipped,declined} \
   --source agent [--note "<optional context>"]
 ```
@@ -280,7 +280,7 @@ Would you like me to help structure it? (yes/no)
 Every action produces a log entry (Directive 3 — no log means the action did not happen). Log via `exec`:
 
 ```bash
-python /home/claude/kg-automation/scripts/openclaw/observation/log_action.py \
+cd "${PYTHONPATH:?PYTHONPATH unset}" && python scripts/openclaw/observation/log_action.py \
   --agent felix-admin-tasker --category <category> --action <action> \
   --target <target> --outcome <outcome> --context '<json>'
 ```

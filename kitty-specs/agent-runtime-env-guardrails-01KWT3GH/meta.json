@@ -1,24 +1,10 @@
 {
-  "accept_commit": "7db58b8db0111ebd6acd025731aa9cd1566b11bb",
-  "acceptance_history": [
-    {
-      "accept_commit": "7db58b8db0111ebd6acd025731aa9cd1566b11bb",
-      "acceptance_mode": "pr",
-      "accepted_at": "2026-07-05T23:07:25.062704+00:00",
-      "accepted_by": "kentgale",
-      "accepted_from_commit": "6133740d75de2339e1db98583cff49a94217c0b9"
-    }
-  ],
-  "acceptance_mode": "pr",
-  "accepted_at": "2026-07-05T23:07:25.062704+00:00",
-  "accepted_by": "kentgale",
-  "accepted_from_commit": "6133740d75de2339e1db98583cff49a94217c0b9",
   "coordination_branch": "kitty/mission-agent-runtime-env-guardrails-01KWT3GH",
   "created_at": "2026-07-05T21:38:51.373414+00:00",
   "flattened": false,
   "friendly_name": "Agent runtime-env guardrails",
   "mission_id": "01KWT3GHVB4X49DKG02FVEQYCQ",
-  "mission_number": null,
+  "mission_number": 85,
   "mission_slug": "agent-runtime-env-guardrails-01KWT3GH",
   "mission_type": "software-dev",
   "pr_bound": true,
@@ -28,5 +14,5 @@
   "target_branch": "feat/agent-runtime-env-guardrails",
   "topology": "coord",
   "vcs": "git",
-  "vcs_locked_at": "2026-07-05T22:20:17.898735+00:00"
+  "vcs_locked_at": "2026-07-05T22:33:16.243078+00:00"
 }
