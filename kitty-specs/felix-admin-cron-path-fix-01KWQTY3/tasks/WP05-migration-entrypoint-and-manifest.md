@@ -134,3 +134,4 @@ mutates nothing, the entrypoint is idempotent, and no ledger entry can be lost.
 - 2026-07-05T04:27:17Z – claude:sonnet:python-pedro:implementer – shell_pid=80086 – Cycle 3: divergent-target data-loss fixed — union-merge ledger, conflict-abort otherwise; no dropped entries; all tests green
 - 2026-07-05T04:27:55Z – codex:gpt-5-codex:reviewer-renata:reviewer – shell_pid=82197 – Started review via action command
 - 2026-07-05T04:30:08Z – user – shell_pid=82197 – Review passed: union-merge preserves JSONL ledger entries, non-mergeable divergent state aborts before quarantine, snapshot/dry-run/idempotency/classification gates verified; focused migration and dependency path tests pass
+- 2026-07-05T05:11:13Z – user – shell_pid=82197 – Moved to planned

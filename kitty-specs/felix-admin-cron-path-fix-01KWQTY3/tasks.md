@@ -105,9 +105,9 @@
 - **Prompt**: `tasks/WP06-architecture-docs-and-rebaseline.md` (~160 lines)
 - **Dependencies**: WP01, WP02, WP03, WP04, WP05.
 - **Subtasks**:
-  - [ ] T019 service-inventory json+md (WP06)
-  - [ ] T020 data-flows + signal-to-doc consult (WP06)
-  - [ ] T021 rebaseline determination record (WP06)
+  - [x] T019 service-inventory json+md (WP06)
+  - [x] T020 data-flows + signal-to-doc consult (WP06)
+  - [x] T021 rebaseline determination record (WP06)
 
 ---
 

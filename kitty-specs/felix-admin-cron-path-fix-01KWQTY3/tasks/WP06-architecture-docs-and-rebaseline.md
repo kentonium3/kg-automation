@@ -19,7 +19,8 @@ subtasks:
 - T019
 - T020
 - T021
-agent: claude
+agent: "claude:opus:reviewer-renata:reviewer"
+shell_pid: "89077"
 history:
 - at: 2026-07-05T02:30:00Z
   actor: system
@@ -111,3 +112,9 @@ note is captured for the merge commit.
 ## Activity Log
 
 - 2026-07-05T02:30:00Z – system – Prompt created.
+- 2026-07-05T04:30:52Z – claude:sonnet:curator-carla:implementer – shell_pid=83710 – Assigned agent via action command
+- 2026-07-05T04:39:08Z – claude:sonnet:curator-carla:implementer – shell_pid=83710 – Ready for review: arch docs updated (state dir + vault log relocation, gateway PYTHONPATH drop-in), validators green (validate_docs: OK, validate_architecture_data: OK 0 findings), rebaseline determination recorded in commit message and audited-surfaces.json. Signal-to-doc map targets for service-added-or-modified + data-flow-added-or-modified + systemd-unit-added-or-modified all addressed. audited-surfaces.json extended with openclaw/*.service.d/ pattern.
+- 2026-07-05T04:39:50Z – codex:gpt-5-codex:reviewer-renata:reviewer – shell_pid=87301 – Started review via action command
+- 2026-07-05T04:43:33Z – user – shell_pid=87301 – Reset stuck codex review claim (codex hit usage limit mid-review); re-reviewing with independent opus per operator decision
+- 2026-07-05T04:43:37Z – claude:opus:reviewer-renata:reviewer – shell_pid=89077 – Started review via action command
+- 2026-07-05T04:50:40Z – user – shell_pid=89077 – Moved to planned
