@@ -15,7 +15,7 @@ subtasks:
 - T012
 - T013
 agent: "claude"
-shell_pid: "54736"
+shell_pid: "58081"
 history:
 - created by /spec-kitty.tasks 2026-07-05
 agent_profile: implementer-ivan
@@ -91,3 +91,6 @@ Worktrees per-lane from `lanes.json`.
 ## Activity Log
 
 - 2026-07-05T14:06:33Z – claude – shell_pid=54736 – Assigned agent via action command
+- 2026-07-05T14:13:57Z – claude – shell_pid=54736 – Moved to for_review
+- 2026-07-05T14:14:14Z – claude – shell_pid=58081 – Started review via action command
+- 2026-07-05T14:14:26Z – user – shell_pid=58081 – Review passed: 0008 queued (Phase 1, non-destructive, schema test 7-pass), 0009 staged (Phase 2, felix-deployer scans queued/ only so not auto-applied; operator git-mv to promote after Phase-1 verify), both tier2 snapshot-gated audited_surface:false, entrypoints correct, staged manifest schema-valid
