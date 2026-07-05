@@ -84,3 +84,5 @@ rebases on the converted fleet (WP02-04) — the guard cannot be green before th
 
 - 2026-07-05T22:40:23Z – claude – shell_pid=11765 – Assigned agent via action command
 - 2026-07-05T22:48:40Z – claude – shell_pid=14634 – Assigned agent via action command
+- 2026-07-05T22:50:48Z – claude – shell_pid=14634 – Fleet guard + validator fold; 45 tests green
+- 2026-07-05T22:50:58Z – user – shell_pid=14634 – Reviewed: check_runtime_env_assumptions uses .ok (lazy import breaks cycle); fleet guard green; doc-auditor disposition recorded; 45 tests green incl size caps.
