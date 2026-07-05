@@ -9,11 +9,15 @@ tracker_refs: []
 planning_base_branch: fix/observation-digest-repoint
 merge_target_branch: fix/observation-digest-repoint
 branch_strategy: Planning artifacts for this mission were generated on fix/observation-digest-repoint. During /spec-kitty.implement this WP may branch from a dependency-specific base, but completed changes must merge back into fix/observation-digest-repoint unless the human explicitly redirects the landing branch.
+base_branch: kitty/mission-observation-digest-repoint-01KWS2E2
+base_commit: 027f0e006e1cabb547808f9bbd9960892a94963a
+created_at: '2026-07-05T13:06:47.868338+00:00'
 subtasks:
 - T001
 - T002
 - T003
 agent: claude
+shell_pid: '37823'
 history:
 - created by /spec-kitty.tasks 2026-07-05
 agent_profile: python-pedro

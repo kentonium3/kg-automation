@@ -12,5 +12,7 @@
   "purpose_tldr": "Move Felix's agent-activity logs onto Kent's backed-up account and retire the stray directory left behind by #656.",
   "slug": "observation-digest-repoint-01KWS2E2",
   "target_branch": "fix/observation-digest-repoint",
-  "topology": "coord"
+  "topology": "coord",
+  "vcs": "git",
+  "vcs_locked_at": "2026-07-05T13:06:44.861507+00:00"
 }
