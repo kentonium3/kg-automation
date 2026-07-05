@@ -25,10 +25,10 @@ No hardcoded checkout; deterministic cwd; fail-loud outside gateway; helper args
 | T012 | habits: convert 3 abs-path felix-file-issue.py invocations | WP03 | [D] |
 | T013 | escalation: convert 7 bare `-m scripts.` + 1 abs-path | WP03 | [D] |
 | T014 | habits+escalation self-scan → 0 findings | WP03 | [D] |
-| T015 | tasker: convert 2 `-m scripts.` + abs-path + `.tmpl` lockstep | WP04 | [P] |
-| T016 | calendar: convert abs-path log_action.py (×3) + validate_calendar_event.py | WP04 | [P] |
-| T017 | main: audit; convert any abs-path or confirm clean | WP04 | [P] |
-| T018 | tasker+calendar+main self-scan → 0 findings | WP04 | [P] |
+| T015 | tasker: convert 2 `-m scripts.` + abs-path + `.tmpl` lockstep | WP04 | [D] |
+| T016 | calendar: convert abs-path log_action.py (×3) + validate_calendar_event.py | WP04 | [D] |
+| T017 | main: audit; convert any abs-path or confirm clean | WP04 | [D] |
+| T018 | tasker+calendar+main self-scan → 0 findings | WP04 | [D] |
 | T019 | Fleet-scan guard test (scan_agents_root → 0 non-waived; actionable msg) | WP05 | |
 | T020 | check_runtime_env_assumptions() in validate_workspace.py (CheckResult `ok`) + append to checks | WP05 | |
 | T021 | doc-auditor retired disposition recorded | WP05 | |
