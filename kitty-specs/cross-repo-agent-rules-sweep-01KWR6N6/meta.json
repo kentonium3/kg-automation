@@ -7,6 +7,7 @@
   "mission_number": null,
   "mission_slug": "cross-repo-agent-rules-sweep-01KWR6N6",
   "mission_type": "software-dev",
+  "pr_bound": true,
   "purpose_context": "This mission completes #649 by sweeping kg-automation guidance surfaces for rules that apply across repositories, promoting only short always-on rules into the canonical cross-repo standing-rules library, and leaving long protocols or repo-specific practices in their existing homes with links where appropriate.",
   "purpose_tldr": "Ensure universal agent rules are discoverable in every repository session without bloating always-on context.",
   "slug": "cross-repo-agent-rules-sweep-01KWR6N6",
