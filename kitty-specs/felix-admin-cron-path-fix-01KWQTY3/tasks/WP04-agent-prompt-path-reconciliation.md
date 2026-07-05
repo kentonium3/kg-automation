@@ -19,7 +19,7 @@ subtasks:
 - T014
 - T015
 agent: "codex:gpt-5-codex:reviewer-renata:reviewer"
-shell_pid: "51712"
+shell_pid: "61308"
 history:
 - at: 2026-07-05T02:30:00Z
   actor: system
@@ -140,3 +140,7 @@ Done when the deployed prompts contain no `/home/claude/second-brain`, no
 - 2026-07-05T03:29:29Z – claude:sonnet:curator-carla:implementer – shell_pid=47053 – Ready for review: grep gate clean, cd belts kept, _private lines untouched
 - 2026-07-05T03:30:09Z – codex:gpt-5-codex:reviewer-renata:reviewer – shell_pid=51712 – Started review via action command
 - 2026-07-05T03:38:34Z – user – shell_pid=51712 – Moved to planned
+- 2026-07-05T03:39:30Z – claude:sonnet:curator-carla:implementer – shell_pid=57941 – Started implementation via action command
+- 2026-07-05T03:42:23Z – claude:sonnet:curator-carla:implementer – shell_pid=57941 – Cycle 2: fixed tasker AGENTS.md.tmpl; all 3 grep gates now clean across .md AND .tmpl
+- 2026-07-05T03:43:01Z – codex:gpt-5-codex:reviewer-renata:reviewer – shell_pid=61308 – Started review via action command
+- 2026-07-05T03:46:47Z – user – shell_pid=61308 – Review passed: cycle-2 tasker AGENTS.md.tmpl sync verified; .md/.tmpl stale-path grep gates clean; contract path refs and cd/_private constraints satisfied

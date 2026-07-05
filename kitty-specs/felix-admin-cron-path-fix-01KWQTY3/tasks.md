@@ -66,10 +66,10 @@
 - **Prompt**: `tasks/WP03-prescan-logdir-and-imports.md` (~200 lines)
 - **Dependencies**: none.
 - **Subtasks**:
-  - [ ] T007 `prescan.py` log dir (WP03)
-  - [ ] T008 `prescan.py` package-absolute import (WP03)
-  - [ ] T009 `append_routing_entry.py` import alignment (WP03)
-  - [ ] T010 Dedup-active + frontmatter-only-dedup tests (WP03)
+  - [x] T007 `prescan.py` log dir (WP03)
+  - [x] T008 `prescan.py` package-absolute import (WP03)
+  - [x] T009 `append_routing_entry.py` import alignment (WP03)
+  - [x] T010 Dedup-active + frontmatter-only-dedup tests (WP03)
 
 ## WP04 — Agent prompt path/ref reconciliation
 
