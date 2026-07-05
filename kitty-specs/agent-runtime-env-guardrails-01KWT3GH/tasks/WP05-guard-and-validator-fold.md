@@ -18,7 +18,8 @@ subtasks:
 - T020
 - T021
 - T022
-agent: claude
+agent: "claude"
+shell_pid: "14634"
 history:
 - 2026-07-05 authored from plan IC-02/IC-03/IC-05 (guard + fold + doc-auditor disposition)
 agent_profile: python-pedro
@@ -78,3 +79,8 @@ rebases on the converted fleet (WP02-04) — the guard cannot be green before th
 - Confirm the guard actually scans the WHOLE fleet and is green ONLY because WP02-04 converted it
   (temporarily revert one converted line in a scratch check → guard should go red).
 - Confirm no `.github/workflows/` change; test lives in the existing collected tests dir.
+
+## Activity Log
+
+- 2026-07-05T22:40:23Z – claude – shell_pid=11765 – Assigned agent via action command
+- 2026-07-05T22:48:40Z – claude – shell_pid=14634 – Assigned agent via action command

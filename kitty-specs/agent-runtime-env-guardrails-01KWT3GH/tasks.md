@@ -29,10 +29,10 @@ No hardcoded checkout; deterministic cwd; fail-loud outside gateway; helper args
 | T016 | calendar: convert abs-path log_action.py (×3) + validate_calendar_event.py | WP04 | [D] |
 | T017 | main: audit; convert any abs-path or confirm clean | WP04 | [D] |
 | T018 | tasker+calendar+main self-scan → 0 findings | WP04 | [D] |
-| T019 | Fleet-scan guard test (scan_agents_root → 0 non-waived; actionable msg) | WP05 | |
-| T020 | check_runtime_env_assumptions() in validate_workspace.py (CheckResult `ok`) + append to checks | WP05 | |
-| T021 | doc-auditor retired disposition recorded | WP05 | |
-| T022 | Extend test_validate_workspace.py; full guard green | WP05 | |
+| T019 | Fleet-scan guard test (scan_agents_root → 0 non-waived; actionable msg) | WP05 | | [D] |
+| T020 | check_runtime_env_assumptions() in validate_workspace.py (CheckResult `ok`) + append to checks | WP05 | | [D] |
+| T021 | doc-auditor retired disposition recorded | WP05 | | [D] |
+| T022 | Extend test_validate_workspace.py; full guard green | WP05 | | [D] |
 | T023 | Update #167 workspace-authoring standard doc to reference the guardrail | WP06 | |
 | T024 | Reconcile architecture docs per signal-to-doc-map | WP06 | |
 | T025 | Author deploys/queued/0010-agent-runtime-env-guardrails.yaml (deploy_agent_prompts.py; health incl calendar; auto-rebaseline) | WP06 | |
