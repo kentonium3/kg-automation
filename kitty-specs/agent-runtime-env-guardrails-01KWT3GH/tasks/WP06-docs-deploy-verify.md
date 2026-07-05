@@ -84,3 +84,5 @@ WP05 (the guard must be green and the #167 reference points at it).
 ## Activity Log
 
 - 2026-07-05T22:51:41Z – claude – shell_pid=16079 – Assigned agent via action command
+- 2026-07-05T23:03:14Z – claude – shell_pid=16079 – deploy manifest 0010 + entrypoint + doc; 45 tests green
+- 2026-07-05T23:03:21Z – user – shell_pid=16079 – Reviewed: manifest schema-valid + tier-guard pass; self-bootstrapping entrypoint (dry-run from /tmp exits 0, cwd-independent); rebaseline corrected to 'not required' per canonical audited-surfaces.json (#621); #167 doc references guardrail.
