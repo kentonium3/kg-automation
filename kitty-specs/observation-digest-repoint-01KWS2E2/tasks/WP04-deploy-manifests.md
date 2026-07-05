@@ -14,18 +14,19 @@ branch_strategy: Planning artifacts for this mission were generated on fix/obser
 subtasks:
 - T012
 - T013
-agent: claude
+agent: "claude"
+shell_pid: "54736"
 history:
 - created by /spec-kitty.tasks 2026-07-05
 agent_profile: implementer-ivan
 authoritative_surface: deploys/queued/0008-migrate-observation-logs.yaml
 create_intent:
 - deploys/queued/0008-migrate-observation-logs.yaml
-- deploys/queued/0009-decommission-observation-stray-tree.yaml
+- deploys/staged/0009-decommission-observation-stray-tree.yaml
 execution_mode: code_change
 owned_files:
 - deploys/queued/0008-migrate-observation-logs.yaml
-- deploys/queued/0009-decommission-observation-stray-tree.yaml
+- deploys/staged/0009-decommission-observation-stray-tree.yaml
 role: implementer
 tags: []
 ---
@@ -86,3 +87,7 @@ Worktrees per-lane from `lanes.json`.
 - Reviewer confirms Phase-2 `post` includes the `test ! -e` absence check.
 - Reviewer confirms neither manifest passes destructive flags implicitly; the gate lives in the
   Phase-2 entrypoint (WP03), not the manifest.
+
+## Activity Log
+
+- 2026-07-05T14:06:33Z – claude – shell_pid=54736 – Assigned agent via action command
