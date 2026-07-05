@@ -1,0 +1,42 @@
+schema_version: v1
+name: gateway-pythonpath-dropin
+mission_slug: felix-admin-cron-path-fix-01KWQTY3
+tier: 1
+entrypoint: scripts/deploy/install-gateway-pythonpath-dropin.py
+audited_surface: true
+verification:
+  pre:
+  - systemctl --user is-active openclaw-gateway.service
+  post:
+  - systemctl --user show openclaw-gateway.service -p Environment | grep 'PYTHONPATH=/home/claude/kg-automation'
+  - 'MAINPID=$(systemctl --user show -p MainPID --value openclaw-gateway.service)
+    && [ -n "$MAINPID" ] && [ "$MAINPID" != "0" ] && tr ''\0'' ''\n'' < /proc/$MAINPID/environ
+    | grep -qx ''PYTHONPATH=/home/claude/kg-automation'' && echo "SC-10b ok: PYTHONPATH=/home/claude/kg-automation
+    confirmed in /proc/$MAINPID/environ (live gateway process env)"'
+created_at: '2026-07-05T02:30:00Z'
+created_by: felix-admin-cron-path-fix-01KWQTY3
+notes: "Ships FR-001/FR-002 from kentonium3/kg-automation#656: export\nPYTHONPATH=/home/claude/kg-automation\
+  \ into the openclaw-gateway.service process\nenvironment via a systemd drop-in.\n\
+  \nThe base unit (scripts/openclaw/openclaw-gateway.service) is NOT edited;\nthis\
+  \ manifest installs a drop-in at\n~/.config/systemd/user/openclaw-gateway.service.d/pythonpath.conf\n\
+  so the change composes with #653's in-flight ExecStart relocation.\n\nPYTHONPATH\
+  \ propagates to all agent subprocesses (Node child_process inherits\nprocess.env),\
+  \ making 'python3 -m scripts.*' resolve from any working directory\nfleet-wide.\
+  \ This moves the cwd-import invariant from the stochastic layer\n(LLM prompt adherence)\
+  \ to the deterministic layer (process environment).\n\nTier 1 (Connectivity/Fabric):\
+  \ gateway restart briefly disconnects all agents;\nverify gateway returns healthy\
+  \ before declaring success.\n\naudited_surface: true \u2014 systemd user unit drop-in\
+  \ is an audited surface per\ndocs/design/architecture/data/audited-surfaces.json.\
+  \ Rebaseline obligation\nis recorded in WP06.\n\nSC-10 verification gates:\n(a)\
+  \ systemctl --user show ... -p Environment (declared-value sanity):\nconfirms the\
+  \ unit definition carries the expected value.\n(b) /proc/<MainPID>/environ (live-process\
+  \ gate): reads the running gateway\nprocess's own environment and asserts the exact\
+  \ PYTHONPATH entry.\nThe gateway is a systemctl --user service; its Node child_process\n\
+  subprocesses (agent tool calls) inherit process.env. This proves the\nrunning gateway\
+  \ actually carries PYTHONPATH, not just that the unit\ndeclares it. This is the\
+  \ deterministic automated gate.\nThe DEFINITIVE real-agent confirmation is the operator's\
+  \ post-deploy step:\nrun an actual felix-admin cron job (openclaw cron runs showing\
+  \ status=success\nwith no ModuleNotFoundError). That step is documented in quickstart.md\n\
+  SC-1/SC-2 and is intentionally outside this automated gate.\n\nDecision: DM 01KWR0CRKY6G91P715GD375YKC.\n"
+apply_mode: manifest
+applied_at: '2026-07-05T10:55:43Z'
