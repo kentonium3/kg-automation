@@ -16,8 +16,8 @@ subtasks:
 - T001
 - T002
 - T003
-agent: claude
-shell_pid: '37823'
+agent: "claude"
+shell_pid: "39897"
 history:
 - created by /spec-kitty.tasks 2026-07-05
 agent_profile: python-pedro
@@ -100,3 +100,9 @@ new HOME-independence test.
 - **Risk**: accidentally changing `output_dir` or importing the vault registry — reviewer verifies line 41 is untouched and no `paths.json` edit.
 - **Risk**: breaking existing `test_config.py` — reviewer checks the full observation test suite passes.
 - Confirm the constant value exactly matches `/home/kgale/second-brain/agents/logs` (byte-for-byte, matches #656's `DEFAULT_VAULT_LOGS_DIR`).
+
+## Activity Log
+
+- 2026-07-05T13:12:02Z – claude – shell_pid=37823 – Moved to for_review
+- 2026-07-05T13:12:14Z – claude – shell_pid=39897 – Started review via action command
+- 2026-07-05T13:14:19Z – user – shell_pid=39897 – Review passed: HOME-independent constant, output_dir/registry untouched, 223 tests green
