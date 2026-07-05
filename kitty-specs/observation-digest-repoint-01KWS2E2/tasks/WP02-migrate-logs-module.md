@@ -14,7 +14,8 @@ subtasks:
 - T005
 - T006
 - T007
-agent: claude
+agent: "claude"
+shell_pid: "41154"
 history:
 - created by /spec-kitty.tasks 2026-07-05
 agent_profile: python-pedro
@@ -125,3 +126,7 @@ snapshot gate.
   `os.walk`, `iterdir` on the tree root; only `agents/logs/*/*.jsonl` globbing is allowed.
 - **Risk**: import-name mismatch — reviewer confirms logic is in the underscore module and the
   hyphenated file is a thin wrapper.
+
+## Activity Log
+
+- 2026-07-05T13:15:02Z – claude – shell_pid=41154 – Assigned agent via action command
