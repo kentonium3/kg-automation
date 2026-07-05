@@ -1,0 +1,41 @@
+schema_version: v1
+name: decommission-observation-stray-tree
+mission_slug: observation-digest-repoint-01KWS2E2
+tier: 2
+entrypoint: scripts/deploy/decommission-observation-stray-tree.py
+audited_surface: false
+verification:
+  pre:
+  - python3 -m scripts.deploy.lib.snapshot verify_restic_recent
+  post:
+  - test ! -e /home/claude/second-brain
+notes: |
+  Phase 2 of #659 — DESTRUCTIVE. STAGED, NOT auto-applied (FR-009).
+
+  In deploys/staged/ ON PURPOSE: felix-deployer scans only deploys/queued/*.yaml,
+  so this is NOT applied automatically. Promote ONLY AFTER Phase 1
+  (0008-migrate-observation-logs) is applied and verified over >=1 clean digest
+  cycle (new logs under /home/kgale, none new under /home/claude/second-brain):
+
+    git mv deploys/staged/0009-decommission-observation-stray-tree.yaml deploys/queued/
+    git commit -m "deploy: promote #659 Phase-2 decommission after Phase-1 verify" && git push
+
+  On apply, decommission-observation-stray-tree.py --apply runs a HARD gate
+  (aborts non-zero WITHOUT deleting on any failure): (a) fresh Restic snapshot
+  AND automated coverage proof that /home/claude/second-brain is in the backup
+  set (recency alone insufficient); (b) clone HEAD present on origin
+  (kentonium3/second-brain); (c) quiesce felix-core-digest.timer + no running
+  summarize.py/log_action.py; (d) no agents/logs/inbox-prescan-*.md newer than
+  2026-07-04. Then final union-merge under quiesce -> single root-level
+  shutil.rmtree(/home/claude/second-brain) (no tree walk; _private removed with
+  the tree but never read/logged) -> restart timer -> post-check tree absent.
+
+  The manifest runs the entrypoint with only "--apply", so coverage check (a)
+  must pass on office2. If Restic does not cover the tree the gate ABORTS
+  (fail-safe); the operator then runs it manually after confirming a backup:
+    python3 scripts/deploy/decommission-observation-stray-tree.py --apply --attest-backup-coverage
+
+  Authorized by DM-01KWS4F986PVHTJRSHZPQACDM7. Rebaseline: not required (removing
+  the tree touches no security-monitor audited surface). audited_surface: false.
+created_at: '2026-07-05T13:35:00Z'
+created_by: observation-digest-repoint-01KWS2E2

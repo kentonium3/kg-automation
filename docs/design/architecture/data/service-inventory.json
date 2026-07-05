@@ -1926,11 +1926,11 @@
       "systemd_unit": "felix-core-digest.timer (user unit) + felix-core-digest.service (user oneshot, two chained ExecStart)",
       "systemd_user": "claude",
       "schedule": "every 15 minutes",
-      "exec_start": "/usr/bin/python3 /home/claude/repos/kg-automation/scripts/openclaw/observation/summarize.py && /usr/bin/python3 /home/claude/repos/kg-automation/scripts/openclaw/observation/tick.py",
+      "exec_start": "/usr/bin/python3 /home/claude/kg-automation/scripts/openclaw/observation/summarize.py && /usr/bin/python3 /home/claude/kg-automation/scripts/openclaw/observation/tick.py",
       "exec_start_note": "systemd Type=oneshot permits multiple ExecStart= directives executed in order. summarize.py runs first; on success tick.py runs second. If summarize.py exits non-zero, tick.py does NOT run (systemd semantics). See docs/runbooks/signal-driven-monitoring-ops.md Troubleshooting for distinguishing the two failure modes.",
       "source_in_repo": "scripts/openclaw/observation/summarize.py, scripts/openclaw/observation/tick.py",
-      "input_path": "/home/claude/second-brain/agents/logs/ (summarize.py) + /tmp/openclaw/openclaw-*.log (tick.py)",
-      "output_path": "/home/claude/second-brain/notes/Agent-Logs/ (summarize.py) + /data/services/openclaw/felix-core-digest-signals/ (tick.py state, ledger, last-tick.json)",
+      "input_path": "/home/kgale/second-brain/agents/logs/ (summarize.py) + /tmp/openclaw/openclaw-*.log (tick.py)",
+      "output_path": "/home/kgale/second-brain/notes/00-System/agent-activity/Agent-Logs/ (summarize.py) + /data/services/openclaw/felix-core-digest-signals/ (tick.py state, ledger, last-tick.json)",
       "state_path": "/data/services/openclaw/felix-core-digest-signals/",
       "retention": "5 days (digest files only, by filename date); signal state + last-tick.json overwritten each cycle; signals-ledger.jsonl append-only",
       "deployed_by": "F014",
@@ -1938,9 +1938,8 @@
       "status": "active",
       "purpose": "Observation intelligence layer \u2014 reads agent JSONL logs and OpenClaw logs, generates per-agent Markdown digests for Obsidian (summarize.py), AND extracts defined signals from OpenClaw logs to file threshold-triggered GitHub issues deterministically via kg-felix-bot (tick.py; introduced by #490).",
       "runbook": "docs/runbooks/observation-ops.md (summary digest), docs/runbooks/signal-driven-monitoring-ops.md (signal extraction + cutover)",
-      "updated_by": "#490",
+      "updated_by": "#659",
       "last_updated": "2026-06-01",
-      "path_retention_note": "The input_path (/home/claude/second-brain/agents/logs/) and output_path (/home/claude/second-brain/notes/Agent-Logs/) are intentionally retained as-is. Mission felix-admin-cron-path-fix-01KWQTY3 (#656) narrowed its scope to relocating only inbox state files and prescan logs; the /home/claude/second-brain/ tree is NOT decommissioned this mission. Full repoint of summarize.py + log_action.py to /home/kgale/second-brain/ and complete tree decommission is tracked in #659.",
       "risk_tier": 3,
       "capabilities": {
         "agent_log_digest": true,
@@ -1949,9 +1948,9 @@
       },
       "dependencies": [
         {
-          "target": "/home/claude/second-brain/agents/logs/",
+          "target": "/home/kgale/second-brain/agents/logs/",
           "type": "requires",
-          "description": "Input JSONL agent activity logs (summarize.py). Path retained pending #659 (tree not decommissioned this mission)."
+          "description": "Input JSONL agent activity logs (summarize.py)."
         },
         {
           "target": "/tmp/openclaw/",

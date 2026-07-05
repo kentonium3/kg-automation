@@ -552,11 +552,11 @@ Per-module metadata mirrors `docs/design/architecture/data/service-inventory.jso
 - **systemd unit**: `felix-core-digest.timer` + `felix-core-digest.service` (user unit under claude)
 - **Schedule**: Every 15 minutes (OnUnitActiveSec=15min, OnBootSec=3min, Persistent=true)
 - **Runs as**: claude user
-- **ExecStart 1**: `/usr/bin/python3 /home/claude/repos/kg-automation/scripts/openclaw/observation/summarize.py` (existing — agent-log digest)
-- **ExecStart 2** (post-#490): `/usr/bin/python3 /home/claude/repos/kg-automation/scripts/openclaw/observation/tick.py` (NEW — deterministic OpenClaw-log signal extraction). Runs **only if** ExecStart 1 exits 0 (systemd `Type=oneshot` semantics).
-- **Input (summarize)**: JSONL log files at `~/second-brain/agents/logs/{agent}/YYYY-MM-DD.jsonl` *(path retained — tree not decommissioned by #656; full repoint + decommission tracked in #659)*
+- **ExecStart 1**: `/usr/bin/python3 /home/claude/kg-automation/scripts/openclaw/observation/summarize.py` (existing — agent-log digest)
+- **ExecStart 2** (post-#490): `/usr/bin/python3 /home/claude/kg-automation/scripts/openclaw/observation/tick.py` (NEW — deterministic OpenClaw-log signal extraction). Runs **only if** ExecStart 1 exits 0 (systemd `Type=oneshot` semantics).
+- **Input (summarize)**: JSONL log files at `/home/kgale/second-brain/agents/logs/{agent}/YYYY-MM-DD.jsonl`
 - **Input (tick)**: OpenClaw daily logs at `/tmp/openclaw/openclaw-YYYY-MM-DD.log`
-- **Output (summarize)**: Markdown digests at `~/second-brain/notes/Agent-Logs/` *(path retained — see #659)*
+- **Output (summarize)**: Markdown digests at `/home/kgale/second-brain/notes/00-System/agent-activity/Agent-Logs/`
 - **Output (tick)**: Per-signal state + `last-tick.json` + `signals-ledger.jsonl` under `/data/services/openclaw/felix-core-digest-signals/`; GitHub issue filings via `scripts/openclaw/agents/main/felix-file-issue.py` (subprocess, kg-felix-bot identity)
 - **Retention**: 5 days (digest files deleted by filename date); signal state + `last-tick.json` overwritten each cycle; `signals-ledger.jsonl` append-only
 - **Idempotency**: Skips digest writes when no new JSONL content; signal filer deduplicates against open issues within the configured dedup window (FR-002)

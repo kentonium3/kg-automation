@@ -127,8 +127,8 @@ Felix agent → log_action.py → JSONL → summarize.py (15-min timer) → Mark
 
 Agent activity logging and digest generation pipeline:
 1. Felix agents call `log_action.py` via OpenClaw's exec tool with structured arguments
-2. `log_action.py` validates, enforces schema, and appends a JSONL entry to `~/second-brain/agents/logs/{agent}/YYYY-MM-DD.jsonl`
-3. `summarize.py` runs every 15 minutes via systemd timer, reads JSONL, generates per-agent Markdown digests at `~/second-brain/notes/Agent-Logs/`
+2. `log_action.py` validates, enforces schema, and appends a JSONL entry to `/home/kgale/second-brain/agents/logs/{agent}/YYYY-MM-DD.jsonl`
+3. `summarize.py` runs every 15 minutes via systemd timer, reads JSONL, generates per-agent Markdown digests at `/home/kgale/second-brain/notes/00-System/agent-activity/Agent-Logs/`
 4. Digests reach Kent's Mac and iPhone via the existing Obsidian Sync flow
 
 Raw JSONL logs are gitignored in the second-brain repo. Digest Markdown flows through Obsidian Sync (not git).
@@ -682,8 +682,8 @@ failing.
 | Security baselines | `/data/services/security-monitor/baselines` | Yes |
 | Security/audit logs | `/data/services/security-monitor/logs` | Yes |
 | Backup logs | `/data/services/backup/logs` | Yes |
-| Agent JSONL logs | `/home/claude/second-brain/agents/logs/` | No (gitignored, ephemeral) — path retained pending #659 (tree not decommissioned by #656) |
-| Agent digest files | `/home/claude/second-brain/notes/Agent-Logs/` | Via Obsidian Sync — path retained pending #659 (tree not decommissioned by #656) |
+| Agent JSONL logs | `/home/kgale/second-brain/agents/logs/` | No (gitignored, ephemeral) |
+| Agent digest files | `/home/kgale/second-brain/notes/00-System/agent-activity/Agent-Logs/` | Via Obsidian Sync |
 | Doc-auditor tick signal | `/data/services/openclaw/felix-doc-auditor-driver/last-tick.json` | No (overwritten each tick) |
 | Doc-auditor activity log | `/home/kgale/second-brain/agents/logs/doc-auditor-YYYY-MM-DD.md` | Via Obsidian Sync |
 | Anthropic API key (sensitive) | `/data/services/openclaw/secrets/anthropic` | Yes (mode 0600) |

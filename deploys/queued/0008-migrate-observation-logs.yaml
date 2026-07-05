@@ -1,0 +1,44 @@
+schema_version: v1
+name: migrate-observation-logs
+mission_slug: observation-digest-repoint-01KWS2E2
+tier: 2
+entrypoint: scripts/deploy/migrate-observation-logs.py
+audited_surface: false
+verification:
+  pre:
+  - python3 -m scripts.deploy.lib.snapshot verify_restic_recent
+  post:
+  - test -d /home/kgale/second-brain/agents/logs
+  - >-
+    python3 -c
+    'import glob; d="/home/kgale/second-brain/agents/logs";
+    j=glob.glob(d+"/*/*.jsonl");
+    assert j, f"no per-agent observation jsonl in {d} after migrate";
+    print(f"vault observation logs present: {len(j)} file(s)")'
+notes: |
+  Phase 1 of #659 (observation-digest repoint) — NON-DESTRUCTIVE.
+
+  Runs scripts/deploy/migrate-observation-logs.py --apply, which:
+    - Tier-2 snapshot gate: refuses without a Restic snapshot <=24h.
+    - Atomically union-merges each stray per-agent observation log
+      (/home/claude/second-brain/agents/logs/<agent>/*.jsonl) into the vault
+      (/home/kgale/second-brain/agents/logs/<agent>/*.jsonl) via temp+fsync+
+      os.replace. Idempotent / convergent.
+    - Verifies the vault log dir is writable by the service user.
+    - Performs NO deletion. The /home/claude/second-brain tree is LEFT IN PLACE.
+
+  This pairs with the WP01 config repoint (config.py DEFAULT_AGENT_LOGS_DIR),
+  which merges in the same mission: after this deploy, felix-core-digest writes
+  new raw logs to the vault, and this manifest carries the pre-existing history
+  across.
+
+  DECOMMISSION IS PHASE 2 and is deliberately NOT queued here — see
+  deploys/staged/0009-decommission-observation-stray-tree.yaml. Verify this
+  Phase-1 migrate over >=1 clean 15-min digest cycle (new logs under
+  /home/kgale, none new under /home/claude/second-brain) BEFORE promoting Phase 2.
+
+  Rebaseline: not required — log migration touches no security-monitor audited
+  surface (openclaw config/prompts/systemd/deps unchanged); deploy-pipeline
+  manifest addition has affected_baselines=[] (cf. #618). audited_surface: false.
+created_at: '2026-07-05T13:35:00Z'
+created_by: observation-digest-repoint-01KWS2E2

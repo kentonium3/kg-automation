@@ -16,6 +16,15 @@ if str(_REPO_ROOT_FOR_RESOLVER) not in sys.path:
 
 from scripts.vault.resolver import get_vault_path  # noqa: E402
 
+# Absolute, HOME-independent default for the raw agent log directory. This is a
+# non-Obsidian-synced sibling of the vault `notes/` tree, so it is NOT resolved
+# via the vault registry (Decision D1, research.md) — it is a fixed constant so
+# that under the deployed service account (felix-core-digest.service sets
+# HOME=/home/claude) raw logs still land on the backed-up /home/kgale vault
+# tree rather than a stray /home/claude/second-brain path. Matches #656's
+# DEFAULT_VAULT_LOGS_DIR.
+DEFAULT_AGENT_LOGS_DIR = Path("/home/kgale/second-brain/agents/logs")
+
 
 class ObservationConfig:
     """Configuration for the observation intelligence layer."""
@@ -26,8 +35,9 @@ class ObservationConfig:
         Args:
             registry_path: Path to agent-registry.json. Defaults to
                 docs/constitution/agent-registry.json relative to repo root.
-            log_dir: Path to agent log directory. Defaults to
-                ~/second-brain/agents/logs/
+            log_dir: Path to agent log directory. Defaults to the absolute,
+                HOME-independent path /home/kgale/second-brain/agents/logs/
+                (DEFAULT_AGENT_LOGS_DIR).
             output_dir: Path to Obsidian digest output directory. Defaults to
                 the vault `system` path (resolved via get_vault_path) +
                 `/agent-activity/`.
@@ -37,7 +47,7 @@ class ObservationConfig:
             registry_path = repo_root / "docs" / "constitution" / "agent-registry.json"
 
         self._registry_path = Path(registry_path)
-        self._log_dir = Path(log_dir) if log_dir else Path.home() / "second-brain" / "agents" / "logs"
+        self._log_dir = Path(log_dir) if log_dir else DEFAULT_AGENT_LOGS_DIR
         self._output_dir = Path(output_dir) if output_dir else Path(get_vault_path("system")) / "agent-activity"
 
         self._registry = self._load_registry()
