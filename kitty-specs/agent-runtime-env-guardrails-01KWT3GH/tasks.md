@@ -33,10 +33,10 @@ No hardcoded checkout; deterministic cwd; fail-loud outside gateway; helper args
 | T020 | check_runtime_env_assumptions() in validate_workspace.py (CheckResult `ok`) + append to checks | WP05 | | [D] |
 | T021 | doc-auditor retired disposition recorded | WP05 | | [D] |
 | T022 | Extend test_validate_workspace.py; full guard green | WP05 | | [D] |
-| T023 | Update #167 workspace-authoring standard doc to reference the guardrail | WP06 | |
-| T024 | Reconcile architecture docs per signal-to-doc-map | WP06 | |
-| T025 | Author deploys/queued/0010-agent-runtime-env-guardrails.yaml (deploy_agent_prompts.py; health incl calendar; auto-rebaseline) | WP06 | |
-| T026 | Post-deploy verification (capture prescan self-check; cron green; calendar; cwd smoke) | WP06 | |
+| T023 | Update #167 workspace-authoring standard doc to reference the guardrail | WP06 | | [D] |
+| T024 | Reconcile architecture docs per signal-to-doc-map | WP06 | | [D] |
+| T025 | Author deploys/queued/0010-agent-runtime-env-guardrails.yaml (deploy_agent_prompts.py; health incl calendar; auto-rebaseline) | WP06 | | [D] |
+| T026 | Post-deploy verification (capture prescan self-check; cron green; calendar; cwd smoke) | WP06 | | [D] |
 
 ## Work Packages
 

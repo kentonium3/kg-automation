@@ -14,7 +14,8 @@ subtasks:
 - T024
 - T025
 - T026
-agent: claude
+agent: "claude"
+shell_pid: "16079"
 history:
 - 2026-07-05 authored from plan IC-05/IC-06 (docs + deploy + verify)
 agent_profile: curator-carla
@@ -79,3 +80,7 @@ WP05 (the guard must be green and the #167 reference points at it).
 - Confirm calendar health checks + the non-repo-cwd smoke are present (Codex MED-4/HIGH-3).
 - Confirm no edits under `~/.openclaw`, `openclaw.json`, or `openclaw-gateway.service` (SC-005).
 - Confirm the #167 doc path is the real authoring standard (not a wrong surface).
+
+## Activity Log
+
+- 2026-07-05T22:51:41Z – claude – shell_pid=16079 – Assigned agent via action command
