@@ -12,7 +12,8 @@ subtasks:
 - T014
 - T015
 - T016
-agent: claude
+agent: "claude"
+shell_pid: "44231"
 history:
 - created by /spec-kitty.tasks 2026-07-05
 agent_profile: curator-carla
@@ -99,3 +100,10 @@ removed — only the #659 ones).
 - **Risk**: removing a NON-#659 retention note. Reviewer diffs to confirm only the two #659 notes
   are removed.
 - **Risk**: markdown views drifting from JSON. Reviewer spot-checks the rendered paths match.
+
+## Activity Log
+
+- 2026-07-05T13:16:08Z – claude – shell_pid=41864 – Assigned agent via action command
+- 2026-07-05T13:21:42Z – claude – shell_pid=41864 – Moved to for_review
+- 2026-07-05T13:21:52Z – claude – shell_pid=44231 – Started review via action command
+- 2026-07-05T13:22:03Z – user – shell_pid=44231 – Review passed: both arch-data validators OK; retention notes 2→0; paths repointed to vault; digest stale-path also corrected; updated_by #659; #490 signal paths untouched

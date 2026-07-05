@@ -15,7 +15,7 @@ subtasks:
 - T006
 - T007
 agent: "claude"
-shell_pid: "41154"
+shell_pid: "45480"
 history:
 - created by /spec-kitty.tasks 2026-07-05
 agent_profile: python-pedro
@@ -130,3 +130,6 @@ snapshot gate.
 ## Activity Log
 
 - 2026-07-05T13:15:02Z – claude – shell_pid=41154 – Assigned agent via action command
+- 2026-07-05T13:22:52Z – claude – shell_pid=41154 – Moved to for_review
+- 2026-07-05T13:23:18Z – claude – shell_pid=45480 – Started review via action command
+- 2026-07-05T13:23:30Z – user – shell_pid=45480 – Review passed: atomic union-merge (temp+fsync+os.replace), glob agents/logs/*/*.jsonl only (no rglob/walk) + defensive _private filter, no deletion, wrapper 100755+shim, 13 tests green, 295 deploy tests no regression
