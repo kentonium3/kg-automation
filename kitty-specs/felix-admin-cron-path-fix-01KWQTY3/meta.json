@@ -7,6 +7,7 @@
   "mission_number": null,
   "mission_slug": "felix-admin-cron-path-fix-01KWQTY3",
   "mission_type": "software-dev",
+  "pr_bound": true,
   "purpose_context": "Felix's inbox-capture and escalation cron agents intermittently fail because their helper scripts only resolve from one specific directory, so some scheduled runs silently error out including the daily overdue-task alert. Separately the inbox agent writes its dedup ledger and forensic logs into a stray folder that never syncs to Kent's phone or Mac and is tracked nowhere. This mission makes the helpers work regardless of working directory and relocates the dedup state and forensic logs to their canonical, device-synced locations.",
   "purpose_tldr": "Make Felix's admin cron jobs reliable and relocate their state and logs to canonical, synced homes.",
   "slug": "felix-admin-cron-path-fix-01KWQTY3",
