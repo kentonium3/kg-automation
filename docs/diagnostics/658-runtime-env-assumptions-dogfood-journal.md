@@ -212,4 +212,62 @@ ZERO coord splits.** Specify complete; proceeding to plan.
 
 ### Plan
 
+**CLI setup clean.** `charter context --action plan` (compact, same carried tool-registry
+diagnostic), `context resolve --action plan --mission <handle>`, `setup-plan`. First
+`setup-plan` correctly `blocked` (plan.md Technical Context not yet substantive) — entry
+gate (spec committed+substantive) passed. Branch contract restated: all
+`feat/agent-runtime-env-guardrails`, `branch_matches_target=true`.
+
+**Design-phase research (probe live — the highest-value work of the phase).** A ground-truth
+scan of `scripts/openclaw/agents/**` overturned the issue body's clean "~30 `-m scripts.`"
+framing and reshaped the design:
+- **The fleet is INCONSISTENT.** capture = **bare** `python3 -m scripts.inbox.…` (relies on
+  ambient gateway PYTHONPATH); habits = **hardcoded** `cd /home/claude/kg-automation && …`
+  — i.e. habits is "anchored" but via the FORBIDDEN checkout-path, which is *itself* the
+  #658 assumption we're killing. escalation/tasker = bare.
+- **A third invocation style the body didn't enumerate:** direct `python3
+  /home/claude/kg-automation/scripts/…py` abs-path invocations (calendar, tasker, habits,
+  `.tmpl`s) — hardcoded checkout on the same axis.
+- **Gateway env, precisely:** `openclaw-gateway.service` sets `HOME`+`PATH`; the #656
+  drop-in adds `PYTHONPATH=/home/claude/kg-automation`. No abstract root var — PYTHONPATH
+  *is* the root. This unlocked the reuse-PYTHONPATH canonical form.
+- **`~`/HOME WRITE sub-class already clean:** writes use absolute `/home/kgale/second-brain/…`
+  (post-#659); remaining `~` refs are reads or the `_private/` prohibition. FR-006 → a
+  confirm-clean audit, not a conversion.
+- **Repo already has the robust idiom** (`REPO_ROOT="$(git rev-parse --show-toplevel)"` in
+  install-hooks.sh) and the correct shape (`cd "$ROOT" && PYTHONPATH="$ROOT" python3 -m …`
+  in the credential deploy scripts) — but git-rev-parse fails when cwd drifts OUTSIDE the
+  repo (the exact #656 case), so it's not the answer for the portable form.
+
+**Two decisions surfaced to Kent (minted via decision CLI, resolved, verify `clean`):**
+- **D1 (scope) → include abs-path invocations.** The checkout-path axis manifests as both
+  `-m scripts.` and abs-path; converting only the former leaves cruft. Kent: no cruft.
+- **D2 (canonical form) → reuse gateway PYTHONPATH, fail-loud `${PYTHONPATH:?…}`.** No
+  gateway/systemd change (preserves the "no native OpenClaw element altered" boundary).
+  Surfaced a boundary nuance: the cleaner-semantics alternative (`FELIX_REPO_ROOT` var)
+  would touch the gateway unit; Kent chose the minimal-blast-radius reuse. (I flagged this
+  live because it revised a boundary claim I'd made.)
+
+**Plan artifacts authored:** `plan.md` (Technical Context substantive; Charter Check PASS,
+no violations; **6-item IC map** — IC-01 shared checker / IC-02 Test-CI guard / IC-03
+validator fold / IC-04 conversion / IC-05 fleet audit+docs / IC-06 deploy+verify),
+`research.md` (R-01..R-06 incl. the reuse-PYTHONPATH single-path trade-off flagged as a
+Codex target + the prose-vs-command false-positive risk, the v323 F4 class), `data-model.md`
+(Finding/ViolationKind model + canonical-form predicate + the command-recognizer),
+`contracts/checker-contract.md` (checker API + both consumers + waiver mechanism),
+`quickstart.md`. Second `setup-plan` → `phase_complete=True`, auto-committed plan.md
+(`3189c72e`); Phase-1 artifacts via `spec-commit` (`5b31204`).
+
+🎯 **Still landing directly on `feat` — no coord materialization through the entire plan
+phase** (spec-commit "committed to feat/agent-runtime-env-guardrails"). spec-kitty state
+(`meta.json`, `status.events.jsonl`, `tasks/`, `decisions/`) correctly remains uncommitted
+(rides the next lane-transition auto-commit).
+
+**Phase scorecard (specify→plan): ZERO interventions, ZERO hand-cranking, ZERO tool
+failures, ZERO coord splits.** Plan hit its ⛔ MANDATORY STOP cleanly (no tasks generated).
+
+**Next: mandatory post-plan Codex review** (review-and-fix, before `/spec-kitty.tasks`).
+
+### Post-plan Codex review
+
 _(to be appended)_
