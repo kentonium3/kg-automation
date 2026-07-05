@@ -50,90 +50,74 @@ Load `/ad-hoc-profile-load python-pedro` (role: implementer) before anything els
 
 ## Objectives & Success Criteria
 
-A one-time, idempotent, **safe** office2 migration: move the inbox state file(s) to
-`/data/services/openclaw/state/` (correct ownership/modes), preserve historical
-forensic logs into the vault, and decommission the stray `/home/claude/second-brain`
-**without data loss**. Delivered as a Tier-2 deploy manifest + entrypoint on the
-`scripts/deploy/lib/` primitives. Done when `--dry-run` shows the plan and mutates
-nothing, the entrypoint is idempotent, and it refuses to delete if anything is unclassified.
+**SCOPE NARROWED (see spec FR-008/SC-5 + fast-follow #659).** A one-time, idempotent,
+**safe, non-destructive** office2 migration of the **inbox** content only: move the inbox
+state file(s) to `/data/services/openclaw/state/` (correct ownership/modes) and copy the
+**inbox** historical forensic logs (`inbox-prescan-*.md`) into the vault. **Do NOT remove
+or quarantine the `/home/claude/second-brain` tree** — it still hosts the active
+observation-digest subsystem (`scripts/openclaw/observation/config.py`, felix-core-digest)
+which is out of scope and handled by the fast-follow **#659**. Delivered as a Tier-2 deploy
+manifest + entrypoint on `scripts/deploy/lib/`. Done when `--dry-run` shows the plan and
+mutates nothing, the entrypoint is idempotent, and no ledger entry can be lost.
 
 ## Context & Constraints
 
-- Plan IC-05; `research.md` R5/R7 (H1, H2, H3); `data-model.md` migration transition;
-  `contracts` C5.
-- **Tier-2** (state mutation on a service data dir, C-003): the entrypoint MUST
-  confirm a Restic snapshot ≤24h (or trigger one) via `scripts/deploy/lib/snapshot`
-  before mutating.
+- Plan IC-05; `research.md` R5/R7 (H1); `data-model.md`; `contracts` C5. Where those
+  describe full-tree decommission/quarantine, treat that as **superseded** by this
+  narrowed scope (#659 owns the full decommission).
+- **Tier-2** (state mutation on a service data dir, C-003): confirm a Restic snapshot
+  ≤24h (or trigger one) via `scripts/deploy/lib/snapshot` before mutating.
 - **Live state (probe 2026-07-04)**: `/home/claude/second-brain/agents/state/` holds
-  only `inbox-routing.jsonl`; `agents/logs/` has per-agent subdirs (enrichment,
-  felix-admin-*, …) **plus** top-level `inbox-prescan-*.md`. `pending-calendar-clarifications.*`
-  is not on disk now (created on demand).
+  only `inbox-routing.jsonl`; `agents/logs/` has **top-level `inbox-prescan-*.md` (ours)**
+  PLUS per-agent subdirs (enrichment, felix-admin-*, …) that belong to the observation
+  subsystem — **do NOT touch those subdirs**. `pending-calendar-clarifications.*` not on disk now.
 - **Cutover (H1)**: readers (WP02/WP03) target `/data/...`; copy state there **before**
   they rely on it. The manifest ordering + `pre` presence check guarantee this.
 - Target dir convention: `claude:secondbrain`, dir `0750`, files `0640`.
 
 ## Subtasks & Detailed Guidance
 
-### Subtask T016 – migration entrypoint
+### Subtask T016 – migration entrypoint (inbox-only, non-destructive)
 - **File**: `scripts/deploy/migrate-inbox-state-and-logs.py`
-- **Steps** (idempotent; support `--dry-run`):
-  1. **Snapshot gate**: refuse unless a Restic snapshot ≤24h exists (or trigger one)
-     via `scripts/deploy/lib/snapshot`.
-  2. **Ensure target dir**: `/data/services/openclaw/state/` exists as `claude:secondbrain`, `0750`.
-  3. **Copy state**: for each present file under `/home/claude/second-brain/agents/state/`
-     (currently `inbox-routing.jsonl`; also any `pending-calendar-clarifications.*` if
-     present), copy to the target preserving content; set `claude:secondbrain 0640`.
-     Skip if an identical file already exists at target (idempotent).
-  4. **Preserve logs**: **recursively** copy `/home/claude/second-brain/agents/logs/`
-     (incl. per-agent subdirs) into `/home/kgale/second-brain/agents/logs/` without
-     overwriting a same-named canonical log (skip-if-exists or suffix).
-  5. **Inventory + classify**: walk the entire `/home/claude/second-brain` tree; every
-     path must be classified as copied/handled. If any path is unclassified, **refuse**
-     to remove and report it.
-  6. **Quarantine**: rename `/home/claude/second-brain` → `/home/claude/second-brain.quarantine-<ts>`
-     (ts passed in / derived deterministically — do not call `Date.now()` style in a
-     way that breaks idempotency; accept a `--stamp` arg). Final delete only after the
-     manifest `post` checks pass (or leave quarantined for a later verified window).
-- **Notes**: `claude` has no sudo; all paths are claude-owned. Use `shutil`/`os` with
-  explicit modes; chgrp to `secondbrain` (claude is in that group).
+- **Steps** (idempotent; support `--dry-run`; parameterize roots so tests use tmp dirs):
+  1. **Snapshot gate**: refuse unless a Restic snapshot ≤24h exists (or trigger one) via `scripts/deploy/lib/snapshot`.
+  2. **Ensure target dir**: `/data/services/openclaw/state/` exists as `claude:secondbrain`, `0750`. Always ENFORCE (repair) owner/group/mode even if it pre-exists.
+  3. **Migrate state (non-destructive)**: for each present state file under `agents/state/` (`inbox-routing.jsonl`; also `pending-calendar-clarifications.*` if present), copy to the target and enforce `claude:secondbrain 0640`. If the target already exists: identical → skip copy (still enforce perms); **divergent `.jsonl` ledger → UNION-MERGE** (preserve every entry from both sides, no loss); divergent non-mergeable → **CONFLICT abort** (exit 1). [Keep the accepted cycle-2/3 logic.]
+  4. **Copy INBOX logs only**: copy the **top-level** `agents/logs/inbox-prescan-*.md` files into `/home/kgale/second-brain/agents/logs/` (skip-if-exists). **Do NOT** recurse into the per-agent subdirs (enrichment, felix-admin-*, …) — those are the observation subsystem's, owned by #659.
+  5. **NO decommission**: do NOT inventory/quarantine/remove `/home/claude/second-brain`. Leave the tree in place. (Removing it is #659, after its writers are repointed.)
+- **Notes**: `claude` has no sudo; strict ownership enforcement is a hard error in production (`--skip-chown` for dev tests). Keep the snapshot gate + strict perms from the accepted cycles.
 
 ### Subtask T017 – manifest
 - **File**: `deploys/queued/0007-migrate-inbox-state-and-logs.yaml`
 - **Steps**: schema `v1`; `tier: 2`; `entrypoint: scripts/deploy/migrate-inbox-state-and-logs.py`.
-  `verification.pre`: Restic snapshot ≤24h present. `verification.post`: state file(s)
-  present + non-empty at `/data/...` with `claude:secondbrain 0640`; historical logs
-  present in the vault; `/home/claude/second-brain` gone or quarantined; parity check
-  (nothing unclassified dropped). `notes`: cite #656 FR-005/008/012; depends on the
-  WP02/WP03 code being deployed (repointed readers).
+  `verification.pre`: Restic snapshot ≤24h present. `verification.post`: state file(s) present + non-empty at `/data/...` with owner=claude group=secondbrain mode=0640; state dir mode 0750; at least the migrated `inbox-prescan-*.md` present in the vault. **Do NOT** assert `/home/claude/second-brain` is gone (it intentionally remains — #659). `notes`: cite #656 FR-005/008/012 (narrowed) + the #659 fast-follow for full decommission; depends on WP02/WP03 repointed readers.
 
 ### Subtask T018 – tests
 - **File**: `tests/deploy/test_migrate_inbox_state.py`
-- **Steps**: build a fake stray tree in a tmp dir; assert `--dry-run` prints the plan
-  and mutates nothing; a real run copies + sets modes + quarantines; a second run is a
-  no-op (idempotent); an unclassified extra file causes a refusal-to-delete.
+- **Steps** (tmp fixtures, no office2 dep): `--dry-run` mutates nothing; a real run migrates state + copies inbox-prescan logs + enforces modes (incl. on a pre-existing target); second run idempotent no-op; **divergent-ledger union-merge preserves all entries** (target {A,B}+source {B,C} → {A,B,C}); divergent non-mergeable → conflict abort; and **the `/home/claude/second-brain` tree + its per-agent log subdirs are LEFT INTACT** (assert they still exist and the observation subdirs were not copied/removed).
 
 ## Test Strategy
 
-- `python3 -m pytest tests/deploy/test_migrate_inbox_state.py -q` against tmp fixtures
-  (no office2 dependency).
+- `python3 -m pytest tests/deploy/test_migrate_inbox_state.py -q` against tmp fixtures.
 
 ## Risks & Mitigations
 
-- **Data loss on decommission (H2)** → inventory+quarantine+refuse-on-unclassified.
-- **Cutover window (H1)** → copy-before-readers-rely + `pre` presence check; note the
-  frontmatter-only-dedup case (WP03 T010) is the residual risk this ordering closes.
+- **Ledger data loss** → union-merge on divergent target / conflict-abort non-mergeable (keep accepted logic).
+- **Cutover window (H1)** → copy-before-readers-rely + `pre` presence check.
+- **Accidentally touching the observation subsystem** → copy only top-level `inbox-prescan-*.md`; never recurse per-agent subdirs; never remove the tree (that's #659).
 - **Snapshot missing** → gate refuses; trigger one first.
 
 ## Integration Verification (before for_review)
 
-- [ ] `--dry-run` mutates nothing; real run idempotent.
-- [ ] Refuses to delete when an unclassified path remains.
-- [ ] Target files carry `claude:secondbrain 0640`; logs preserved recursively.
+- [ ] `--dry-run` mutates nothing; real run idempotent; strict perms enforced (incl. pre-existing target).
+- [ ] Divergent-ledger union-merge loses no entry; non-mergeable divergence aborts.
+- [ ] Only top-level `inbox-prescan-*.md` copied to vault; observation per-agent subdirs untouched.
+- [ ] `/home/claude/second-brain` tree is LEFT IN PLACE (no quarantine/remove); manifest post does not assert it gone.
 
 ## Review Guidance
 
-- Scrutinize the decommission path: is deletion truly gated on full classification +
-  parity? Is the copy recursive over per-agent log subdirs?
+- Confirm the tree is NOT removed and observation subdirs are untouched (that's #659).
+- Confirm the union-merge no-data-loss path and strict perms are intact from prior cycles.
 
 ## Activity Log
 
