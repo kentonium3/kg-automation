@@ -45,22 +45,34 @@ or editing an OpenClaw agent prompt; secondarily, CI acting as the always-on enf
    ever deployed.
 
 ### Scenario 3 — existing fleet is cleared
-1. The four felix-admin agents (capture, habits, escalation, tasker) currently emit 30
-   `python3 -m scripts.` invocations across their `AGENTS.md` (and the capture
-   `AGENTS.md.tmpl`).
-2. Each is converted to a form that resolves its runtime environment explicitly and works
-   whether or not it is launched under `openclaw-gateway.service`, without hardcoding a
-   checkout path.
-3. The hardened prompts are redeployed to office2; each agent passes its health check on
-   the next run (capture routes real inbox content with no "helpers not deployed"
-   hallucination; habits/escalation/tasker cron runs are green).
+1. The felix-admin agents emit both `python3 -m scripts.…` invocations (30, across
+   capture/habits/escalation/tasker) and hardcoded-checkout absolute-path invocations
+   (`python`/`python3 /home/claude/kg-automation/scripts/…py`, in calendar/tasker/habits and
+   the `.tmpl` sources).
+2. Each is converted to the canonical `cd "${PYTHONPATH:?…}" && …` form: no hardcoded
+   checkout, deterministic cwd (repo root), works under the gateway or with an exported
+   `PYTHONPATH`, fails loud otherwise.
+3. A representative converted helper, run from a **non-repo cwd** (e.g. `/tmp`) with
+   `PYTHONPATH` exported, succeeds — proving cwd-independence (not just import resolution).
+4. The hardened prompts are redeployed to office2; each affected agent passes its health
+   check on the next run (capture routes real inbox content with no "helpers not deployed"
+   hallucination; habits/escalation/tasker cron runs green; calendar's converted
+   validator/log_action invocations resolve).
 
 ### Edge cases
-- **`-m scripts.` outside the gateway.** Invocations must not assume the gateway-provided
-  `PYTHONPATH`; a manually-run or helper-chained invocation must still resolve correctly.
+- **`-m scripts.` outside the gateway.** Invocations must not silently assume the
+  gateway-provided `PYTHONPATH`; run outside the gateway they resolve when `PYTHONPATH` is
+  exported and **fail loud** (never silent/wrong-checkout) otherwise.
+- **cwd drift, not just imports.** Fixing imports is insufficient — a helper doing relative
+  file I/O must still work from a drifted cwd; the canonical form `cd`s to repo root and
+  helper args are absolute.
 - **Checkout-path trap.** A remediation that hardcodes `/home/claude/kg-automation`
   re-introduces the very checkout-path assumption the mission exists to kill; such a
   remediation is itself a violation.
+- **`python` vs `python3`.** Both interpreters appear in live abs-path invocations; both
+  are in scope.
+- **Multiline commands.** Invocations span backslash continuations and pipelines; the guard
+  evaluates the whole logical command, not a single line.
 - **Template drift.** Fixing a rendered `AGENTS.md` without fixing its `AGENTS.md.tmpl`
   leaves a latent regression that the next render reintroduces.
 - **Reads vs writes.** A read of `~/.openclaw/...` (OpenClaw's own home) is a legitimate,
@@ -77,10 +89,10 @@ or editing an OpenClaw agent prompt; secondarily, CI acting as the always-on enf
 | FR-002 | The guard detects `~`/`HOME`-relative **write** operations in agent prompts, while **permitting** reads of `~/.openclaw/...` (OpenClaw-home) paths. | Proposed |
 | FR-003 | The guard executes as a pytest-based check inside the **existing** kg-automation Test CI, requiring **no** change to any `.github/workflows/` file. | Proposed |
 | FR-004 | The same env-assumption check is integrated into `scripts/openclaw/agents/validate_workspace.py` (the #587 validator) so newly authored agent workspaces are validated for the class at authoring time. | Proposed |
-| FR-005 | Every in-scope `python3 -m scripts.` invocation in the four felix-admin agents (capture, habits, escalation, tasker) **and** the capture `AGENTS.md.tmpl` is converted to a guardrail-explicit form that (a) resolves its runtime environment explicitly, (b) works with or without `openclaw-gateway.service`, and (c) does **not** hardcode a checkout path. | Proposed |
-| FR-006 | Any `~`/`HOME`-relative **write** in the in-scope prompts is converted to a canonical absolute anchor, or explicitly dispositioned with a documented reason. | Proposed |
-| FR-007 | The canonical guardrail-explicit form and any permitted reliance (e.g. on a declared root env var) are documented **at the guard**, not in scattered prose. | Proposed |
-| FR-008 | `felix-admin-calendar`, `felix-doc-auditor`, and `main` are audited for the same class and remediated or dispositioned (each currently has zero `-m scripts.` invocations). | Proposed |
+| FR-005 | Every in-scope invocation — both `python3 -m scripts.…` AND `python`/`python3 <abs>/scripts/…py` absolute-path calls — in capture, habits, escalation, tasker, **and calendar**, plus the capture/tasker `AGENTS.md.tmpl` sources, is converted to the canonical `cd "${PYTHONPATH:?…}" && …` form that (a) resolves its runtime environment explicitly, (b) makes cwd deterministic (repo root), (c) does **not** hardcode a checkout path, and (d) works under the gateway OR with an explicitly-exported `PYTHONPATH`, failing **loud** (never silent/wrong-checkout) when neither is present. Helper path arguments are absolute so the `cd` never breaks a cwd-relative argument. | Proposed |
+| FR-006 | Any `~`/`HOME`-relative **write** in the in-scope prompts is converted to a canonical absolute anchor, or explicitly dispositioned. (Audit finding: the write sub-class is already clean — writes use absolute `/home/kgale/second-brain/…` paths; the guard asserts the absence going forward.) | Proposed |
+| FR-007 | The canonical guardrail-explicit form and the reuse-`PYTHONPATH` reliance are documented **at the guard**, not in scattered prose. | Proposed |
+| FR-008 | `main` is audited for the class and remediated (abs-path invocations converted per FR-005) or confirmed clean. `felix-doc-auditor` is **dispositioned as retired** — it is a scripts-first driver with no live agent prompt (#343) and is in the validator's suspended-workspace exclusion set; it carries no deployed invocation to convert, recorded as an explicit disposition (not an active remediation). | Proposed |
 | FR-009 | The hardened prompts are redeployed to office2 through a `deploys/queued/<name>.yaml` manifest consumed by felix-deployer. | Proposed |
 
 ### Non-Functional Requirements
@@ -108,8 +120,8 @@ or editing an OpenClaw agent prompt; secondarily, CI acting as the always-on enf
 |----|-----------|
 | SC-001 | The env-assumption guard exists and runs green in Test CI, with zero unremediated flags across all agent prompts (or every remaining flag explicitly waived with a documented reason at the guard). |
 | SC-002 | `validate_workspace.py` enforces the check: a newly-authored workspace containing an unguarded env-assuming invocation or a `~`/`HOME`-relative write is rejected at validation. |
-| SC-003 | A re-scan of the four felix-admin agents (+ capture `.tmpl`) shows zero unanchored `python3 -m scripts.` invocations; all 30 known occurrences are converted or dispositioned. |
-| SC-004 | Post-redeploy, the four affected agents pass their health checks: capture `prescan --self-check` → `ok` and the next cron run routes real inbox content with no "helpers not deployed" hallucination; habits/escalation/tasker next cron runs are green. |
+| SC-003 | A re-scan of the in-scope agents (capture/habits/escalation/tasker/calendar + the `.tmpl` sources) shows zero bare `-m scripts.` invocations, zero hardcoded-checkout `cd`, and zero hardcoded abs-path (`python`/`python3`) invocations; all known occurrences are converted or dispositioned. |
+| SC-004 | Post-redeploy, the affected agents pass their health checks: capture `prescan --self-check` → `ok` and the next cron run routes real inbox content with no "helpers not deployed" hallucination; habits/escalation/tasker next cron runs green; **calendar's converted invocations resolve** (validate_calendar_event via stdin returns, log_action command shape runs) under the deployed prompt. A representative converted helper also succeeds from a non-repo cwd with `PYTHONPATH` exported (cwd-independence). |
 | SC-005 | No native OpenClaw element is changed — verifiable from the mission diff scope (no edits under `~/.openclaw`, `openclaw.json`, or `openclaw-gateway.service`). |
 
 ## Key Entities

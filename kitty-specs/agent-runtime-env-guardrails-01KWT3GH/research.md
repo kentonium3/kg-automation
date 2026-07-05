@@ -16,53 +16,74 @@ grounded in a live scan of `scripts/openclaw/agents/**` (2026-07-05).
 - **Alternatives**: hold to the literal `-m scripts.` set (rejected — leaves the axis
   half-cleared, needs a follow-up).
 
-## R-02 — Canonical anchor form (Decision D2)
+## R-02 — Canonical anchor form (Decision D2, refined post-Codex)
 
 - **Decision**: Reuse the gateway-declared `PYTHONPATH` (= repo root, set by the #656
   drop-in `deploys/applied/0006-gateway-pythonpath-dropin.yaml`) as the explicit,
   fail-loud root anchor. No new env var, no gateway/systemd change.
-- **Canonical forms**:
+- **Canonical form — the `cd` form (REVISED per Codex HIGH-3):**
   - `-m scripts.` form (retain the module form per C-003):
     ```bash
-    PYTHONPATH="${PYTHONPATH:?PYTHONPATH not set — run under openclaw-gateway or export the kg-automation checkout root}" python3 -m scripts.<pkg>.<mod> [args]
+    cd "${PYTHONPATH:?PYTHONPATH not set — run under openclaw-gateway or export the kg-automation checkout root}" && python3 -m scripts.<pkg>.<mod> [args]
     ```
-    Preferred over `cd "${PYTHONPATH:?…}" && python3 -m …` because it does NOT change cwd,
-    so cwd-relative arguments the agent passes (tempfiles, `--content-file <path>`) are
-    unaffected. Both forms are acceptable to the guard; the non-cd form is the documented
-    default.
-  - abs-path form (de-hardcode the checkout):
+  - abs-path form (de-hardcode the checkout; covers BOTH `python` and `python3` per MED-1):
     ```bash
-    python3 "${PYTHONPATH:?…}/scripts/<path>.py" [args]
+    cd "${PYTHONPATH:?…}" && python3 scripts/<path>.py [args]     # or: python "${PYTHONPATH:?…}/scripts/<path>.py"
     ```
-- **Why this honors the constraints**: no hardcoded checkout (C-003 sibling); works under
-  the gateway (PYTHONPATH set) and fails LOUD outside it (`:?`) rather than silently
-  picking the wrong cwd/checkout — the #656 failure mode inverted from silent to explicit;
-  portable to any checkout (set PYTHONPATH to whichever root).
-- **Known trade-off (Codex-review target)**: reusing `PYTHONPATH` assumes it is a
-  SINGLE path (the repo root). If PYTHONPATH ever became a colon-list, `${PYTHONPATH}/scripts/…`
-  would break. In this deployment it is a single path (`/home/claude/kg-automation`). The
-  checker MAY additionally assert single-path PYTHONPATH at the guard. A dedicated
-  `FELIX_REPO_ROOT` var would be semantically cleaner but was rejected (D2) to avoid a
-  gateway-unit change / extra deploy+audited surface (DIRECTIVE_024 locality).
-- **Alternatives**: `git rev-parse --show-toplevel` (rejected — fails when cwd has drifted
-  OUTSIDE the repo, i.e. the exact #656 scenario); add `FELIX_REPO_ROOT` (rejected per D2).
+- **Why the cd form, not the non-cd form (Codex HIGH-3).** An earlier draft preferred
+  `PYTHONPATH="${PYTHONPATH:?}" python3 -m …` (no cd) to preserve cwd. Codex correctly
+  observed that fixes IMPORTS but leaves **cwd drift intact** — a helper doing relative
+  file I/O, or receiving a cwd-relative path arg, still breaks from a drifted cwd (the very
+  #656 failure mode). The `cd "${PYTHONPATH}"` form makes cwd DETERMINISTIC (repo root),
+  fixing both imports and cwd in one move. **Companion requirement:** helper path arguments
+  MUST be absolute (tempfiles under `/tmp`, absolute vault paths) — which the live prompts
+  already satisfy; a WP smoke test runs representative converted helpers from a **non-repo
+  cwd** (e.g. `/tmp`) to prove cwd-independence.
+- **"Works without the gateway" — reconciled semantics (Codex HIGH-2).** The spec's
+  "works with or without the gateway" is made precise: the canonical form works (a) under
+  `openclaw-gateway.service` (PYTHONPATH set by #656), OR (b) with an explicitly-exported
+  `PYTHONPATH` when run outside the gateway; and (c) **fails LOUD** (`:?`) — never
+  silent-wrong / wrong-checkout — when neither holds. Fail-loud IS the designed
+  out-of-gateway behavior (the operator's "allow for running outside the gateway" intent is
+  "don't silently break," not "magically resolve with zero env"). Spec FR-005 + SC wording
+  updated to say so.
+- **Known trade-off (still a review target)**: reusing `PYTHONPATH` assumes a SINGLE path
+  (the repo root). If it ever became a colon-list, `cd "${PYTHONPATH}"` and
+  `${PYTHONPATH}/scripts/…` break. In this deployment it is a single path
+  (`/home/claude/kg-automation`); the checker asserts single-path PYTHONPATH usage in its
+  fixtures. A dedicated `FELIX_REPO_ROOT` var would be semantically cleaner but was rejected
+  (D2) to avoid a gateway-unit change / extra deploy+audited surface (DIRECTIVE_024).
+- **Alternatives**: non-cd form (rejected per HIGH-3 above); `git rev-parse --show-toplevel`
+  (rejected — fails when cwd has drifted OUTSIDE the repo); add `FELIX_REPO_ROOT` (rejected
+  per D2).
 
-## R-03 — Checker must distinguish commands from prose (false-positive avoidance)
+## R-03 — Checker must distinguish real commands from documentation (REVISED per Codex HIGH-1)
 
-- **Decision**: The checker classifies only **actual command invocations**, not prose
-  mentions or documentation of the pattern.
-- **Rationale**: agent prompts document the pattern in prose — e.g. capture line 74:
-  "Invoke via `python3 -m scripts.inbox.<helper>` form" — and in comments (`<!-- helper at
-  /home/claude/kg-automation/scripts/inbox/prescan.py -->`). Flagging those would be the
-  v323 **F4 mis-flag class** (an example bullet mistaken for a finding). The checker must
-  therefore only evaluate lines that are real shell commands.
-- **Approach**: treat a line as an invocation candidate when it is a shell-command line
-  (inside a fenced ```bash/```sh block, or a line whose leading non-whitespace token is
-  `python3`/`python`/`cd` followed by the invocation), and EXCLUDE inline-code spans in
-  prose (single-backtick mentions with surrounding sentence text), HTML comments, and
-  `<placeholder>`-bearing template illustrations. The exact recognizer is specified in
-  `data-model.md`; fixtures in IC-02 pin both the true-positive and the
-  must-not-flag-prose cases.
+- **Decision**: The checker classifies **actual command invocations, including inline
+  imperative commands in prose**, and excludes only genuine documentation-of-the-pattern.
+- **The trap Codex caught (HIGH-1).** An earlier draft said "exclude inline-code spans in
+  prose." But capture's REAL operational commands ARE inline-backtick imperatives —
+  `AGENTS.md:78` "Invoke `python3 -m scripts.inbox.prescan`", `:82`, `:90`, `:94-96`,
+  `:113`, `:115`, `:127`, `:131`, `:135`, `:152`, `:221` — not fenced blocks. Excluding
+  inline spans would **false-green ~14 of capture's invocations** while SC-003 claims all
+  are converted. The fenced-vs-inline axis is the WRONG discriminator.
+- **The right discriminator = concrete-invocation vs placeholder/doc.** Flag an inline or
+  fenced backtick command when it contains a **concrete** `-m scripts.<mod>` or
+  `<abs>/scripts/<file>.py` invocation, whether introduced by an imperative
+  ("Invoke `…`", "route → `…`", "For each …: `…`") or standing alone. EXCLUDE only:
+  - lines whose invocation carries an unresolved `<placeholder>` in the module/path
+    position (e.g. capture `:74` "`python3 -m scripts.inbox.<helper>` form" — the `<helper>`
+    marks it as documentation of the pattern), and
+  - HTML comments (`<!-- … -->`).
+- **Multiline / continuation handling (MED-2).** Commands span backslash continuations and
+  pipelines (capture `.tmpl:68-69`, habits `:93-94`, escalation `:136-137`, tasker
+  `:142-144`). The recognizer joins backslash-continued lines (and fenced-bash blocks) into
+  ONE logical command before classifying, and reports the STARTING line — so a hardcoded
+  path or canonical prefix split across a continuation is not missed or double-counted.
+- Fixtures in IC-02 pin: each true-positive (inline imperative + fenced + multiline), the
+  `<helper>` placeholder true-negative, the HTML-comment true-negative, and a
+  continuation-spanning command. This is the v323 **F4 mis-flag class** handled in both
+  directions (don't miss real commands; don't flag docs).
 
 ## R-04 — Fleet inventory (ground truth, 2026-07-05)
 

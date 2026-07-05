@@ -23,8 +23,10 @@ Two decisions fixed during planning (see `research.md`):
 
 ## Technical Context
 
-**Language/Version**: Python 3.12 (stdlib only) for the checker/guard; Bash for the
-converted invocation forms inside agent prompts; deploy manifest YAML.
+**Language/Version**: Python for the checker/guard — **must be 3.11-compatible** (stdlib
+only; the existing Test CI runs Python 3.11 per `.github/workflows/test-ci.yml` and C-001
+forbids changing the workflow — so no 3.12-only syntax, Codex LOW-1); Bash for the converted
+invocation forms inside agent prompts; deploy manifest YAML.
 **Primary Dependencies**: pytest (existing Test CI); `scripts/openclaw/agents/validate_workspace.py`
 (#587 validator, extended); the `deploys/queued/` felix-deployer manifest pipeline. No new
 third-party packages.
@@ -149,31 +151,39 @@ the guard test and the workspace validator). The guard test lives in the existin
   privacy/output-discipline checks.
 
 ### IC-04 — Invocation conversion
-- **Purpose**: Convert every in-scope invocation (both `-m scripts.` and abs-path) in
-  capture/habits/escalation/tasker AND their `.tmpl` sources to the canonical
-  `${PYTHONPATH:?}` form; keep each `.tmpl` and its rendered `AGENTS.md` in lockstep.
+- **Purpose**: Convert every in-scope invocation (both `-m scripts.` and `python`/`python3`
+  abs-path) in capture/habits/escalation/tasker **and calendar** AND their `.tmpl` sources
+  to the canonical **cd form** `cd "${PYTHONPATH:?…}" && …`; keep each `.tmpl` and its
+  rendered `AGENTS.md` in lockstep; ensure helper path args are absolute.
 - **Relevant requirements**: FR-005, FR-006.
-- **Affected surfaces**: the four agents' `AGENTS.md` (+ capture/tasker `.tmpl`).
+- **Affected surfaces**: capture/habits/escalation/tasker/calendar `AGENTS.md`
+  (+ capture/tasker `.tmpl`).
 - **Sequencing/depends-on**: IC-01 (canonical form defined); verified by IC-02.
-- **Risks**: `.tmpl`↔rendered drift (v323 lesson); cwd-relative arg breakage if the form
-  cd's (see research — prefer non-cd form); `~`/HOME writes already clean (confirm).
+- **Risks**: `.tmpl`↔rendered drift (v323 lesson); the cd form requires absolute helper args
+  (Codex HIGH-3 — audit each helper's args); `~`/HOME writes already clean (confirm);
+  `python` (not just `python3`) abs-path lines (Codex MED-1).
 
 ### IC-05 — Fleet audit + docs
-- **Purpose**: Audit calendar/doc-auditor/main for the class (0 `-m scripts.`; calendar +
-  tasker carry abs-path invocations) and remediate/disposition; update the #167 authoring
-  standard doc to reference the guardrail; reconcile architecture docs per the signal map.
+- **Purpose**: Audit `main` for the class (0 `-m scripts.`; convert any abs-path per D1);
+  **disposition `felix-doc-auditor` as retired** (scripts-first driver, no live agent, in
+  the validator exclusion set — recorded disposition, not active remediation, Codex MED-5);
+  update the #167 authoring standard doc to reference the guardrail; reconcile architecture
+  docs per the signal map. (calendar's abs-path CONVERSION moved to IC-04, not audit-only.)
 - **Relevant requirements**: FR-008, Architecture Impact.
-- **Affected surfaces**: remaining agent prompts; #167 standard doc; `docs/INDEX.md` /
-  `DEVELOPER_PORTAL.md` if a new guard surface warrants it.
+- **Affected surfaces**: `main` prompt; #167 standard doc; `docs/INDEX.md` /
+  `DEVELOPER_PORTAL.md` if a new guard surface warrants it; a disposition note for doc-auditor.
 - **Sequencing/depends-on**: IC-01.
-- **Risks**: audit-only agents still need their abs-path invocations converted per D1.
+- **Risks**: doc-auditor's exclusion from the validator must not read as an unverifiable
+  "audit" — disposition it explicitly.
 
 ### IC-06 — Deploy + verify
-- **Purpose**: Ship the converted prompts to office2 via `deploys/queued/0010-…yaml`;
-  felix-deployer auto-rebaselines the audited surface; verify per-agent health.
+- **Purpose**: Ship the converted prompts to office2 via `deploys/queued/0010-…yaml`
+  (invoking `deploy_agent_prompts.py`); felix-deployer auto-rebaselines the audited surface;
+  verify per-agent health INCLUDING calendar; run the cwd-independence smoke.
 - **Relevant requirements**: FR-009, SC-004, SC-005.
 - **Affected surfaces**: `deploys/queued/0010-agent-runtime-env-guardrails.yaml` (new).
 - **Sequencing/depends-on**: IC-04, IC-05 (converted prompts must exist).
 - **Risks**: agent slug ≠ deploy dir (verify per `reference_office2_agent_deploy_paths`);
-  post-deploy health checks (capture prescan self-check + no "helpers not deployed"
-  hallucination; habits/escalation/tasker cron green).
+  health checks must cover **calendar** (validate_calendar_event via stdin + log_action
+  shape, Codex MED-4) in addition to capture prescan self-check + habits/escalation/tasker
+  cron green; plus the non-repo-cwd smoke (Codex HIGH-3).

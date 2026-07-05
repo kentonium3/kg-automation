@@ -45,15 +45,15 @@ def check_runtime_env_assumptions(workspace_dir: Path) -> CheckResult:
     findings = [f for p in _prompt_files(workspace_dir) for f in scan_file(p)]
     return CheckResult(
         name="runtime_env_assumptions",
-        passed=not findings,
+        ok=not findings,          # field is `ok`, matching the existing dataclass (Codex MED-3)
         detail=("ok" if not findings
                 else "; ".join(f"{f.path}:{f.line} {f.kind.value}" for f in findings)),
     )
 ```
 
 - Appended to the `checks` list in `validate_workspace(workspace_dir)` alongside the
-  existing `check_privacy_boundary` / `check_output_discipline` — same return contract,
-  no regression to those checks (FR-004, SC-002).
+  existing `check_privacy_boundary` / `check_output_discipline` — same return contract
+  (`CheckResult(name, ok, detail)`), no regression to those checks (FR-004, SC-002).
 - `validate_workspace.py --json` exit status reflects the new check (non-zero when any
   workspace fails).
 
