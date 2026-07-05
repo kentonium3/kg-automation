@@ -11,7 +11,7 @@ Three subcommands:
          `--reply-content`. Prints the matched entry as JSON, or `null`
          if no match. Does NOT delete the entry.
 
-State file (default): `~/second-brain/agents/state/pending-calendar-clarifications.json`
+State file (default): `/data/services/openclaw/state/pending-calendar-clarifications.json`
 Layout: JSON array of PendingClarification objects:
     {"note_filename": str, "partial_payload": dict, "created_at": ISO 8601 Z}
 
@@ -43,9 +43,7 @@ import tempfile
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-STATE_PATH_DEFAULT = (
-    Path.home() / "second-brain" / "agents" / "state" / "pending-calendar-clarifications.json"
-)
+STATE_PATH_DEFAULT = Path("/data/services/openclaw/state/pending-calendar-clarifications.json")
 
 SWEEP_MAX_AGE = timedelta(hours=24)
 
@@ -76,7 +74,7 @@ def save_state(path: Path, entries: list) -> None:
     Creates the parent directory if absent. Writes to a tempfile in the
     target directory then `os.replace`s it into place.
     """
-    path.parent.mkdir(parents=True, exist_ok=True)
+    path.parent.mkdir(parents=True, exist_ok=True, mode=0o750)
     payload = json.dumps(entries, indent=2, sort_keys=True) + "\n"
     fd, tmp_name = tempfile.mkstemp(
         prefix=path.name + ".",
@@ -245,7 +243,7 @@ def _add_state_file_arg(p: argparse.ArgumentParser) -> None:
         default=str(STATE_PATH_DEFAULT),
         help=(
             "Path to the JSON state file. Defaults to "
-            "~/second-brain/agents/state/pending-calendar-clarifications.json."
+            "/data/services/openclaw/state/pending-calendar-clarifications.json."
         ),
     )
 

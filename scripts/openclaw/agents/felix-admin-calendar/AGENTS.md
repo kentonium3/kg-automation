@@ -79,7 +79,7 @@ When the inbox contained an incomplete calendar event, capture prompts Kent on W
 
 ### Trigger
 
-On every inbound WhatsApp message, BEFORE any other intent classification, check `~/second-brain/agents/state/pending-calendar-clarifications.jsonl`. If missing or empty, skip this handler.
+On every inbound WhatsApp message, BEFORE any other intent classification, check `/data/services/openclaw/state/pending-calendar-clarifications.jsonl`. If missing or empty, skip this handler.
 
 ### Match the reply to an open record
 
@@ -131,7 +131,7 @@ When re-validation returns `complete: true`, do the following in order:
 
    ```python
    import fcntl, json, os
-   STATE_FILE = os.path.expanduser("~/second-brain/agents/state/pending-calendar-clarifications.jsonl")
+   STATE_FILE = "/data/services/openclaw/state/pending-calendar-clarifications.jsonl"
    with open(STATE_FILE, "r+b") as f:
        fcntl.flock(f.fileno(), fcntl.LOCK_EX)
        lines = f.read().decode("utf-8").splitlines()

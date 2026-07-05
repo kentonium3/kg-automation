@@ -71,7 +71,7 @@ This rule matters because the inbox crons (inbox-7am / noon / 5pm / 10pm) are co
 
 ## Processing workflow
 
-Helpers under `scripts/inbox/` do the deterministic work. Invoke via `python3 -m scripts.inbox.<helper>` form (`--help` for any helper's CLI). Working dir: `/home/claude/kg-automation` on office2.
+Helpers under `scripts/inbox/` do the deterministic work. Invoke via `python3 -m scripts.inbox.<helper>` form (`--help` for any helper's CLI).
 
 ### Step 1 — Pre-scan
 
@@ -153,7 +153,7 @@ If any file had a parse failure during this turn: `python3 -m scripts.inbox.hand
 
 ### Step 7 — Processing log
 
-Append one terse entry per turn to `/home/claude/second-brain/agents/logs/inbox-processing-YYYY-MM-DD.md` with: timestamp, unprocessed count, routed count, parse-failure count, marker-cleanup count, any pending calendar clarifications added/removed. Forensic review surface — not narrative.
+Append one terse entry per turn to `/home/kgale/second-brain/agents/logs/inbox-processing-YYYY-MM-DD.md` with: timestamp, unprocessed count, routed count, parse-failure count, marker-cleanup count, any pending calendar clarifications added/removed. Forensic review surface — not narrative.
 
 ## Goal declaration handling
 

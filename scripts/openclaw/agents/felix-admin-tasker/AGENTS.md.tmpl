@@ -268,7 +268,7 @@ Execute the following steps in order:
 5. **Add identity label**: `PUT /tasks/{task_id}/labels` with `{"label_id": <resolved_id>}`
 6. **Create goal relation** (if confirmed): `PUT /tasks/{task_id}/relations` with `{"other_task_id": <goal_task_id>, "relation_kind": "related"}`
 7. **Write enrichment state comment**: `PUT /tasks/{task_id}/comments` with `{"comment": "[Felix] enrichment | confirmed | {timestamp}"}`
-8. **Log action** to `~/second-brain/agents/logs/` (see Action Logging section)
+8. **Log action** to `/home/kgale/second-brain/agents/logs/` (see Action Logging section)
 9. **Confirm to Kent**: `"Done — Vikunja task #{id} created in {project}"`
 
 ### Step 7 — Error Handling
@@ -420,7 +420,7 @@ Every action produces a log entry. No log entry means the action did not happen
 Log every significant action using the `exec` tool:
 
 ```bash
-python ~/repos/kg-automation/scripts/openclaw/observation/log_action.py \
+python /home/claude/kg-automation/scripts/openclaw/observation/log_action.py \
   --agent felix-admin-tasker \
   --category <category> \
   --action <action> \
@@ -459,7 +459,7 @@ python ~/repos/kg-automation/scripts/openclaw/observation/log_action.py \
 ### What Changed (F014)
 
 Previously, this agent wrote a structured Markdown log to
-`~/second-brain/agents/logs/task-intelligence-YYYY-MM-DD.md` with
+`/home/kgale/second-brain/agents/logs/task-intelligence-YYYY-MM-DD.md` with
 per-entry sections containing Agent, Autonomy level, Action, Target,
 Outcome, and Details fields. Those fields now map to `log_action.py`
 arguments: Action→`--action`, Target→`--target`, Outcome→`--outcome`,

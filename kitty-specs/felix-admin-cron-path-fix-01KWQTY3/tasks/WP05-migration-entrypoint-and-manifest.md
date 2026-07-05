@@ -144,4 +144,3 @@ mutates nothing, the entrypoint is idempotent, and no ledger entry can be lost.
 - 2026-07-05T05:46:13Z – user – shell_pid=12070 – Re-confirm: independent opus review PASS (narrow inbox-only migration; union-merge/perms/snapshot intact; 9/9 tests; tree+observation subdirs left intact). Approved artifact for merge gate.
 - 2026-07-05T05:47:50Z – user – shell_pid=12070 – write approved artifact
 - 2026-07-05T05:47:54Z – claude:opus:reviewer-renata:reviewer – shell_pid=13191 – Started review via action command
-- 2026-07-05T05:48:05Z – user – shell_pid=13191 – opus approved

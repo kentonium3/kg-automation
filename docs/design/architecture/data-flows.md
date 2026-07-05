@@ -2,9 +2,9 @@
 title: Data Flows
 doc_type: reference
 status: approved
-last_updated: '2026-06-11'
-updated_by: 'restore-whatsapp-dm-reply-delivery-01KTVVHH (#588) + inbox-calendar-and-aspiration-routing-01KTHHXS + #520-felix-vikunja-sync-project-layer-and-url-config'
-tags: [588, 520, 507, 519, 518, 309, 343, 362, 391, 400, 310, 374]
+last_updated: '2026-07-05'
+updated_by: 'felix-admin-cron-path-fix-01KWQTY3 (#656) + restore-whatsapp-dm-reply-delivery-01KTVVHH (#588) + inbox-calendar-and-aspiration-routing-01KTHHXS + #520-felix-vikunja-sync-project-layer-and-url-config'
+tags: [656, 588, 520, 507, 519, 518, 309, 343, 362, 391, 400, 310, 374]
 ---
 
 # Data Flows
@@ -682,8 +682,8 @@ failing.
 | Security baselines | `/data/services/security-monitor/baselines` | Yes |
 | Security/audit logs | `/data/services/security-monitor/logs` | Yes |
 | Backup logs | `/data/services/backup/logs` | Yes |
-| Agent JSONL logs | `/home/claude/second-brain/agents/logs/` | No (gitignored, ephemeral) |
-| Agent digest files | `/home/claude/second-brain/notes/Agent-Logs/` | Via Obsidian Sync |
+| Agent JSONL logs | `/home/claude/second-brain/agents/logs/` | No (gitignored, ephemeral) — path retained pending #659 (tree not decommissioned by #656) |
+| Agent digest files | `/home/claude/second-brain/notes/Agent-Logs/` | Via Obsidian Sync — path retained pending #659 (tree not decommissioned by #656) |
 | Doc-auditor tick signal | `/data/services/openclaw/felix-doc-auditor-driver/last-tick.json` | No (overwritten each tick) |
 | Doc-auditor activity log | `/home/kgale/second-brain/agents/logs/doc-auditor-YYYY-MM-DD.md` | Via Obsidian Sync |
 | Anthropic API key (sensitive) | `/data/services/openclaw/secrets/anthropic` | Yes (mode 0600) |
