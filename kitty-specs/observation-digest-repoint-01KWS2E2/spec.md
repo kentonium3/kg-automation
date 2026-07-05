@@ -32,6 +32,26 @@ vault-account path, migrate the historical logs, and fully **decommission** the 
 - No systemd unit edit is required: making the `log_dir` default an absolute, registry-resolved
   path removes the `HOME` dependency.
 
+### What the stray tree actually contains (verified on office2, 2026-07-05)
+
+`/home/claude/second-brain` is **not** a bare log directory. It is a **git clone of
+`kentonium3/second-brain`** (origin `git@github.com:kentonium3/second-brain.git`, single
+"Initial commit", created 2026-04-04; 12M total). Its contents:
+
+| Path | Nature | Disposition |
+|---|---|---|
+| `agents/logs/{agent}/*.jsonl` | observation raw logs — **live** (`felix-admin-escalation` written 2026-07-05); git-ignored runtime | **migrate** to vault, then remove with tree |
+| `agents/logs/inbox-prescan-*.md` | historical inbox prescan logs; deployed `prescan.py` now writes to `/home/kgale` | remove with tree (superseded) |
+| `agents/state/inbox-routing.jsonl` | old inbox dedup state | remove with tree (superseded by #656 → `/data`) |
+| `notes/00-System/agent-activity/Agent-Logs/` | old digest output, frozen ~2026-06-01 | remove with tree (superseded; code now writes vault) |
+| `vault/Notes/…` (8.1M) | March-2026 Obsidian vault snapshot (tracked in the clone) | remove with tree; recoverable via GitHub origin |
+| `vault/02-Growth/_private/` | private-growth content (per `.gitignore`) | **NEVER read/log**; removed wholesale with the tree, never inspected |
+
+**Governance decision (recorded `DM-01KWS4F986PVHTJRSHZPQACDM7`):** deleting this tree crosses
+the second-brain boundary (for the `claude` account, `/home/claude/second-brain` *is*
+`~/second-brain`). Kent **explicitly authorized** the full decommission for this specific tree,
+overriding the boundary here only, with the guards in FR-003/FR-004/C-008/C-009.
+
 ## Domain Language
 
 | Canonical term | Meaning | Avoid |
@@ -55,13 +75,16 @@ there is no human-facing UI.
 3. Nothing is written under `/home/claude/second-brain`.
 4. The digest continues to be produced at the unchanged, already-synced vault output path.
 
-### Migration scenario — historical logs + decommission
+### Migration scenario — runtime logs + decommission
 
 1. The deploy manifest runs the one-time migrator under a Tier-2 Restic snapshot gate.
-2. Historical raw logs are **union-merged** from the stray tree into the vault log dir
-   (copy-before-cutover; no entry lost or duplicated).
-3. After cutover is verified, the entire `/home/claude/second-brain` tree is removed.
-4. Post-checks confirm absence of the stray tree and correct ownership/mode on the vault dir.
+2. Runtime observation raw logs (`agents/logs/{agent}/*.jsonl`) are **union-merged** from the
+   stray tree into the vault log dir (copy-before-cutover; no entry lost or duplicated).
+3. The migrator verifies the decommission preconditions (FR-004): fresh snapshot, tracked
+   content recoverable from origin, repoint deployed, no active writer.
+4. The entire `/home/claude/second-brain` tree is removed **wholesale** — without enumerating,
+   reading, or logging any `_private` path (C-008).
+5. Post-checks confirm absence of the stray tree and correct ownership/mode on the vault dir.
 
 ### Exception & edge cases
 
@@ -81,8 +104,8 @@ there is no human-facing UI.
 |---|---|---|
 | FR-001 | The observation-digest raw `log_dir` default MUST resolve to an absolute, backed-up vault-account path (`/home/kgale/second-brain/agents/logs`) independent of `HOME`, so that under the deployed service account raw logs no longer land on the stray tree. | Draft |
 | FR-002 | Existing historical raw logs under the stray tree MUST be migrated to the vault log dir with no entry lost or duplicated (union-merge of overlapping per-day JSONL files). | Draft |
-| FR-003 | After migration and verified cutover, the entire stray tree (`/home/claude/second-brain`) MUST be removed (decommissioned). | Draft |
-| FR-004 | Decommission MUST be preceded by a verification that no writer targets the stray tree; if any writer is detected, the destructive step MUST abort. | Draft |
+| FR-003 | After migration and verified cutover, the entire stray tree (`/home/claude/second-brain`) MUST be removed wholesale (`rm -rf`), WITHOUT enumerating, reading, copying, or logging any path under `_private`. Only runtime observation logs are migrated first (FR-002); all other content is removed in place. | Draft |
+| FR-004 | Decommission MUST be preceded by ALL of: (a) a fresh Restic snapshot (NFR-001); (b) verification that the git clone's tracked content is recoverable from origin (`kentonium3/second-brain`) — clean/pushed working tree, or snapshot as backstop; (c) verification that the repointed `log_dir` is the deployed steady state and no writer has touched the stray tree within a full digest cycle. If any writer is still active, the destructive step MUST abort. | Draft |
 | FR-005 | The migration + decommission MUST be idempotent and convergent (safe to re-run; completed state re-runs as a no-op). | Draft |
 | FR-006 | Architecture docs MUST be corrected: `service-inventory.json` (`felix-core-digest`) and `data-flows.json` (`observation-digest`) repoint the log path, remove the `#659` `path_retention_note`s, correct the stale `output_path`, and correct the `exec_start` `repos/` discrepancy; markdown views regenerated to match. `updated_by` set to `659`. | Draft |
 | FR-007 | Docstrings referencing `~/second-brain/agents/logs/` in `config.py`, `log_action.py`, and `summarize.py` MUST be updated to the canonical path. | Draft |
@@ -108,6 +131,9 @@ there is no human-facing UI.
 | C-005 | Raw JSONL logs MUST NOT be placed inside the Obsidian-synced `notes/` tree; they stay at `agents/logs` (forensic, high-volume). | Draft |
 | C-006 | All office2 changes MUST flow through the `deploys/queued` manifest pipeline; no out-of-band changes on office2. | Draft |
 | C-007 | The #557 rebaseline obligation is triggered by the `deploy-pipeline` audited surface; the merge commit MUST record the rebaseline outcome per `security-baseline-ops.md`. | Draft |
+| C-008 | No agent or script in this mission may read, copy, reference, or log any `_private` path (e.g. `vault/02-Growth/_private/`). The tree is removed wholesale; `_private` is deleted with it but never inspected. Absolute — overrides any inventory/verbosity convenience. | Draft |
+| C-009 | The decommission is authorized only because the tracked content is a clone of `kentonium3/second-brain` recoverable from origin, and the runtime observation logs are migrated first. If either recoverability precondition cannot be verified, the destructive step MUST NOT run (abort and surface). | Draft |
+| C-010 | The full tree deletion crosses the second-brain boundary and proceeds ONLY under Kent's explicit authorization recorded in `DM-01KWS4F986PVHTJRSHZPQACDM7`; it is not a generalizable pattern. | Draft |
 
 ## Success Criteria
 
@@ -119,12 +145,13 @@ there is no human-facing UI.
 | SC-004 | #656 SC-5's invariant — "no writer targets `/home/claude/second-brain`" — is fully satisfied across both the inbox and observation subsystems. |
 | SC-005 | `service-inventory.json`, `data-flows.json`, and their markdown views reflect reality: vault log path, no `#659` retention notes, corrected `output_path` and `exec_start`. |
 | SC-006 | Rebaseline recorded on merge; post-change verification passes; no felix-deployer failure ntfy alert. |
+| SC-007 | The decommission touched no `_private` path (no `_private` path appears in any migrator output, log, or emitted record); preconditions (snapshot, recoverability, no-writer) were all verified before deletion. |
 
 ## Key Entities
 
 - **felix-core-digest (F014)** — systemd user timer + oneshot service (user `claude`, office2); runs `summarize.py` then `tick.py` every 15 min.
 - **Raw agent-activity logs** — per-agent JSONL at `agents/logs/{agent}/YYYY-MM-DD.jsonl`; written by `log_action.py`, read by `summarize.py`.
-- **Stray tree** — `/home/claude/second-brain` (to be decommissioned).
+- **Stray tree** — `/home/claude/second-brain`: a stale **git clone of `kentonium3/second-brain`** (March vault snapshot + old digest/state + live observation logs + `_private`); to be decommissioned wholesale after runtime-log migration.
 - **Vault log dir** — `/home/kgale/second-brain/agents/logs` (backed-up account; sibling of `notes/`).
 - **Vault path registry** — `scripts/vault/paths.json` + `scripts/vault/resolver.py`.
 - **One-time migrator** — new deploy helper under `scripts/deploy/` (sibling of `migrate-inbox-state-and-logs.py`), reusing its union-merge / snapshot-gate / atomic-copy machinery.
@@ -136,6 +163,8 @@ there is no human-facing UI.
 - felix-deployer's happy-path auto-rebaseline satisfies the #557 obligation for the `deploy-pipeline` surface; the merge commit records the outcome.
 - No systemd unit edit is needed — making the `log_dir` default absolute/registry-resolved removes the `HOME=/home/claude` dependency (keeps the audited-surface footprint to the manifest only).
 - The migrator's SOURCE root (`/home/claude/second-brain`) is intentionally hardcoded/parameterized as the stray tree; only the default is repointed in `config.py`.
+- The stray tree is a git clone of `kentonium3/second-brain`; its **tracked** content (incl. the March vault snapshot) is recoverable from origin, so wholesale deletion is safe once runtime logs are migrated and the snapshot gate passes.
+- Full deletion is authorized by Kent per `DM-01KWS4F986PVHTJRSHZPQACDM7` (second-brain boundary overridden for this tree only). `_private` content is deleted with the tree but never read, copied, or logged (C-008).
 
 ## Out of Scope
 
