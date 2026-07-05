@@ -488,3 +488,37 @@ def test_manifest_validates_against_schema():
     assert manifest_path.exists(), f"manifest not found: {manifest_path}"
     result = validate_manifest_file(manifest_path)
     assert result.ok, f"Manifest validation failed:\n{result.details}"
+
+
+def test_dry_run_via_shebang_from_nonrepo_cwd(tmp_path):
+    """felix-deployer runs `[entrypoint, --dry-run]` via the shebang from a
+    non-repo cwd with no PYTHONPATH. Reproduce that exactly: it must exit 0.
+    Catches (a) the missing executable bit, (b) the sys.path shim needed for
+    `from scripts.deploy.lib...`, and (c) the snapshot gate wrongly gating a
+    dry-run. The prior unit tests imported main() directly and missed all three."""
+    import os
+    import subprocess
+    from pathlib import Path as _P
+    ep = _P(__file__).resolve().parents[2] / "scripts" / "deploy" / "migrate-inbox-state-and-logs.py"
+    assert os.access(ep, os.X_OK), "entrypoint must be executable (git mode 100755)"
+    env = {k: v for k, v in os.environ.items() if k != "PYTHONPATH"}
+    proc = subprocess.run(
+        [str(ep), "--dry-run"], cwd=str(tmp_path), env=env,
+        capture_output=True, text=True,
+    )
+    assert proc.returncode == 0, f"dry-run must exit 0.\nSTDERR:\n{proc.stderr}\nSTDOUT:\n{proc.stdout}"
+
+
+def test_gateway_dropin_entrypoint_dry_run_via_shebang(tmp_path):
+    """Same reproduction for the WP01 gateway drop-in entrypoint."""
+    import os
+    import subprocess
+    from pathlib import Path as _P
+    ep = _P(__file__).resolve().parents[2] / "scripts" / "deploy" / "install-gateway-pythonpath-dropin.py"
+    assert os.access(ep, os.X_OK), "entrypoint must be executable (git mode 100755)"
+    env = {k: v for k, v in os.environ.items() if k != "PYTHONPATH"}
+    proc = subprocess.run(
+        [str(ep), "--dry-run"], cwd=str(tmp_path), env=env,
+        capture_output=True, text=True,
+    )
+    assert proc.returncode == 0, f"dry-run must exit 0.\nSTDERR:\n{proc.stderr}\nSTDOUT:\n{proc.stdout}"

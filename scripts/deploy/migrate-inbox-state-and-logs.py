@@ -62,6 +62,15 @@ import sys
 from pathlib import Path
 from typing import Any
 
+# sys.path shim — felix-deployer runs this entrypoint via its shebang, so the
+# script dir (scripts/deploy/) is on sys.path but the repo root is NOT. Add the
+# repo root so the lazy `from scripts.deploy.lib...` imports resolve regardless of
+# how the entrypoint is invoked (matches the convention in the other deploy
+# entrypoints, e.g. verify-felix-deployer-auto-rebaseline.py).
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+
 # ---------------------------------------------------------------------------
 # Production defaults (real office2 paths)
 # ---------------------------------------------------------------------------
@@ -472,7 +481,16 @@ def main(argv: list[str] | None = None) -> int:  # noqa: C901 — linear flow, r
         )
 
     # ── 1. Snapshot gate (Tier-2 requirement) ─────────────────────────────
-    if not args.skip_snapshot_gate:
+    # Enforced on --apply ONLY: a --dry-run mutates nothing, so it must not
+    # require a recent snapshot and must exit 0 for felix-deployer's
+    # dry-run→apply gate (apply.py runs `<entrypoint> --dry-run` first and
+    # aborts the whole deploy if it is non-zero).
+    if dry_run:
+        _emit(
+            "INFO",
+            "DRY-RUN: snapshot gate would be enforced on --apply (Tier-2, C-003).",
+        )
+    elif not args.skip_snapshot_gate:
         if not _run_snapshot_gate(args.snapshot_log_dir):
             _emit(
                 "ABORT",
