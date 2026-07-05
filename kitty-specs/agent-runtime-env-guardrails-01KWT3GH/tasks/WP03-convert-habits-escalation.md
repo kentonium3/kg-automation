@@ -68,3 +68,5 @@ Base/merge: `feat/agent-runtime-env-guardrails`. Lane worktree from `lanes.json`
 ## Activity Log
 
 - 2026-07-05T22:33:37Z – claude – shell_pid=7663 – Assigned agent via action command
+- 2026-07-05T22:38:03Z – claude – shell_pid=7663 – habits+escalation converted; checker clean
+- 2026-07-05T22:38:18Z – user – shell_pid=7663 – Reviewed: 16 invocations converted to canonical cd-form; checker self-verify clean; grep confirms zero hardcoded checkout; list indentation + python/python3 preserved.

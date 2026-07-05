@@ -73,3 +73,5 @@ Base/merge: `feat/agent-runtime-env-guardrails`. Lane worktree from `lanes.json`
 ## Activity Log
 
 - 2026-07-05T22:33:52Z – claude – shell_pid=7663 – Assigned agent via action command
+- 2026-07-05T22:38:43Z – claude – shell_pid=7663 – tasker+calendar+main converted; calendar pipe uses no-cd path form; checker clean
+- 2026-07-05T22:38:48Z – user – shell_pid=7663 – Reviewed: 9 invocations; piped calendar validate_calendar_event correctly uses no-cd ${PYTHONPATH}/scripts form; python/python3 preserved; main abs-path caught+converted; checker clean.

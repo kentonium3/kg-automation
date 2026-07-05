@@ -73,3 +73,5 @@ Base/merge: `feat/agent-runtime-env-guardrails`. Lane worktree allocated from `l
 ## Activity Log
 
 - 2026-07-05T22:33:21Z – claude – shell_pid=7663 – Assigned agent via action command
+- 2026-07-05T22:39:34Z – claude – shell_pid=7663 – capture converted (13 AGENTS.md + 6 .tmpl); prescan pipe uses no-cd form; checker clean
+- 2026-07-05T22:39:40Z – user – shell_pid=7663 – Reviewed: 19 invocations; inline-imperative commands converted; .tmpl↔rendered lockstep; prescan pipe no-cd form; checker self-verify clean.
