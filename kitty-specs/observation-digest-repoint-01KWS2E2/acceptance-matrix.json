@@ -97,9 +97,9 @@
   ],
   "negative_invariants": [
     {
-      "criterion_id": "NEG-001",
+      "invariant_id": "NEG-001",
       "description": "No _private path (nor any descendant of source_root outside agents/logs) ever appears in migrator/decommission stdout, stderr, logs, or returned data",
-      "proof_type": "automated_test",
+      "verification_method": "automated_test",
       "evidence": "tests/deploy/test_observation_decommission.py::test_privacy_no_descendant_or_private_leak (fixture with vault/02-Growth/_private/secret.md asserts absence across stdout/stderr/result); code globs only agents/logs/*/*.jsonl",
       "pass_fail": "pass",
       "verified_by": "claude",
