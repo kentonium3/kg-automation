@@ -16,7 +16,8 @@ subtasks:
 - T009
 - T010
 - T011
-agent: claude
+agent: "claude"
+shell_pid: "54061"
 history:
 - created by /spec-kitty.tasks 2026-07-05
 agent_profile: python-pedro
@@ -138,3 +139,10 @@ systemctl, filesystem delete) mocked — tests never delete anything real and ne
   delete reachable unless all gates passed).
 - Reviewer confirms the privacy test actually exercises a `_private` fixture and asserts absence.
 - Reviewer confirms the delete cannot run in dry-run.
+
+## Activity Log
+
+- 2026-07-05T13:23:59Z – claude – shell_pid=45988 – Assigned agent via action command
+- 2026-07-05T14:05:43Z – claude – shell_pid=45988 – Moved to for_review
+- 2026-07-05T14:05:48Z – claude – shell_pid=54061 – Started review via action command
+- 2026-07-05T14:06:05Z – user – shell_pid=54061 – Review passed (highest-risk WP): rmtree unreachable unless all 4 gates pass (if not pre[ok] return before delete); quiesce runs last so abort never stops timer; single root rmtree no onerror; no walk/rglob/git-status-ignored (grep=docstrings only); privacy test asserts no _private/secret/descendant leak; wrapper 100755; 9 tests + 304 no-regress
