@@ -17,7 +17,7 @@ subtasks:
 - T017
 - T018
 agent: "codex:gpt-5-codex:reviewer-renata:reviewer"
-shell_pid: "78208"
+shell_pid: "82197"
 history:
 - at: 2026-07-05T02:30:00Z
   actor: system
@@ -146,3 +146,7 @@ nothing, the entrypoint is idempotent, and it refuses to delete if anything is u
 - 2026-07-05T04:17:57Z – claude:sonnet:python-pedro:implementer – shell_pid=74738 – Cycle 2: perms repaired on existing targets, strict chown (hard fail, test override), manifest post verifies owner/group/mode/logs/quarantine/parity
 - 2026-07-05T04:18:34Z – codex:gpt-5-codex:reviewer-renata:reviewer – shell_pid=78208 – Started review via action command
 - 2026-07-05T04:20:42Z – user – shell_pid=78208 – Moved to planned
+- 2026-07-05T04:22:40Z – claude:sonnet:python-pedro:implementer – shell_pid=80086 – Started implementation via action command
+- 2026-07-05T04:27:17Z – claude:sonnet:python-pedro:implementer – shell_pid=80086 – Cycle 3: divergent-target data-loss fixed — union-merge ledger, conflict-abort otherwise; no dropped entries; all tests green
+- 2026-07-05T04:27:55Z – codex:gpt-5-codex:reviewer-renata:reviewer – shell_pid=82197 – Started review via action command
+- 2026-07-05T04:30:08Z – user – shell_pid=82197 – Review passed: union-merge preserves JSONL ledger entries, non-mergeable divergent state aborts before quarantine, snapshot/dry-run/idempotency/classification gates verified; focused migration and dependency path tests pass
