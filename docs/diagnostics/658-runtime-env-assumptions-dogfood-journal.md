@@ -428,4 +428,43 @@ after every WP's `mark-status` (touches tasks.md) → re-record before the next 
 for_review/approved each needed a status `spec-commit`. All documented-gate taxes, no
 hand-cranking of workflow actions.
 
-_(WP06 + accept/merge/post-merge-Codex/PR/analyzer to be appended)_
+**WP06 — deploy manifest + entrypoint + #167 doc (via curator-carla sub-agent).** Created
+`deploys/queued/0010-agent-runtime-env-guardrails.yaml` + a self-bootstrapping entrypoint
+`scripts/deploy/redeploy-agent-prompts-658.py` (shebang-run, `sys.path` bootstrap + `os.chdir`
+to repo root, maps `--dry-run`/`--apply` → `deploy_agent_prompts.main`; itself free of the bug
+the mission kills). Added the guardrail subsection to `docs/runbooks/openclaw-agent-setup.md`.
+🎯 **Sub-agent caught a spec-vs-canonical discrepancy:** the spec's Architecture Impact said
+"Rebaseline: Yes/completed", but the canonical `audited-surfaces.json` (`openclaw-agent-prompts`)
+has `affected_baselines:[]`/`rebaseline_required:false` — audit.sh hashes only `openclaw.json`,
+NOT deployed AGENTS.md (#621). Per "machine-readable wins", corrected the merge record to
+**"Rebaseline: not required — agent prompts are an unmonitored audited surface (#621)"**. Also
+noted felix-deployer.service has no PYTHONPATH (WorkingDirectory=/home/claude/kg-automation), so
+verification commands export `PYTHONPATH="$(git rev-parse --show-toplevel)"` — the deployer's env
+≠ the gateway's. WP06 validated: manifest schema + tier-guard pass; entrypoint dry-run from `/tmp`
+exits 0 (cwd-independent). 45 tests green in lane-f. Approved.
+
+### Accept + Merge
+
+**Accept** — `all_done: True` but `ok: False` on the **acceptance-matrix.json** `pending` verdict
+(9 FR TODO scaffold). Authored real FR-001..009 verdicts (all `pass`, evidence = the actual
+tests/commits/artifacts) + `overall_verdict: pass`. **Friction F8 (v323 lesson re-confirmed):
+accept reads the matrix from the COORD worktree copy, not the main checkout** — filling only the
+main copy left it `pending`; had to copy the filled matrix into
+`.worktrees/…-coord/…/acceptance-matrix.json` and commit on the coordination branch. Then accept
+→ **"No outstanding acceptance issues"**, acceptance commit `7db58b8`.
+
+**Merge** — `spec-kitty merge`: gate evidence/risk(0.24)/dependency all ✓. **Friction F9 (#1826
+class):** merge aborted on lane-a because the coord worktree held an uncommitted `meta.json` (the
+accept step wrote it) — `git reset --hard` would destroy it. Committed it on the coordination
+branch → `spec-kitty merge --resume` completed cleanly: **squash merge `eb4aa5f1` → feat**, all 6
+lane worktrees + branches removed, done transitions + retrospective captured. Leftover: the coord
+worktree blocked the mission-branch deletion (the v323 pattern) → cleaned up manually
+(`git worktree remove --force` + `git branch -D`).
+
+**Post-merge verification on feat:** full agent suite **45 passed**; fleet checker **0 findings**;
+manifest present; converted prompts under the 12K cap. Merged diff vs main = 47 files (16
+substantive code/prompt/deploy + the kitty-specs artifacts + this journal).
+
+### Post-merge Codex review
+
+_(running against the complete merged diff — to be appended)_
