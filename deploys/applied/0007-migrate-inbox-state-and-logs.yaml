@@ -1,0 +1,51 @@
+schema_version: v1
+name: migrate-inbox-state-and-logs
+mission_slug: felix-admin-cron-path-fix-01KWQTY3
+tier: 2
+entrypoint: scripts/deploy/migrate-inbox-state-and-logs.py
+audited_surface: false
+verification:
+  pre:
+  - python3 -m scripts.deploy.lib.snapshot verify_restic_recent
+  post:
+  - test -s /data/services/openclaw/state/inbox-routing.jsonl
+  - python3 -c 'import os,stat,pwd,grp; p="/data/services/openclaw/state"; s=os.stat(p);
+    u=pwd.getpwuid(s.st_uid).pw_name; g=grp.getgrgid(s.st_gid).gr_name; m=stat.S_IMODE(s.st_mode);
+    assert u=="claude",f"dir owner {u} != claude"; assert g=="secondbrain",f"dir group
+    {g} != secondbrain"; assert m==0o750,f"dir mode {oct(m)} != 0750"; print("state
+    dir ok:", u, g, oct(m))'
+  - python3 -c 'import os,stat,pwd,grp; p="/data/services/openclaw/state/inbox-routing.jsonl";
+    s=os.stat(p); u=pwd.getpwuid(s.st_uid).pw_name; g=grp.getgrgid(s.st_gid).gr_name;
+    m=stat.S_IMODE(s.st_mode); assert u=="claude",f"file owner {u} != claude"; assert
+    g=="secondbrain",f"file group {g} != secondbrain"; assert m==0o640,f"file mode
+    {oct(m)} != 0640"; print("state file ok:", u, g, oct(m))'
+  - "python3 -c 'import glob; d=\"/home/kgale/second-brain/agents/logs\"; logs=glob.glob(d+\"\
+    /inbox-prescan-*.md\"); assert logs,f\"No inbox-prescan-*.md found in {d} \u2014\
+    \ inbox forensic logs not preserved\"; print(f\"Vault inbox logs ok: {len(logs)}\
+    \ file(s) present\")'"
+notes: "One-time Tier-2 data migration \u2014 narrowed scope (FR-008/SC-5;\nkentonium3/kg-automation#656).\
+  \ Full decommission of /home/claude/second-brain\nis deferred to #659 (observation-digest\
+  \ subsystem still active there).\n\nMigrates:\n  - Inbox dedup ledger + pending-calendar-clarifications\
+  \ state files from\n    /home/claude/second-brain/agents/state/ to the canonical\n\
+  \    /data/services/openclaw/state/ (claude:secondbrain 0640, dir 0750).\n  - Top-level\
+  \ inbox forensic logs (inbox-prescan-*.md only) to\n    /home/kgale/second-brain/agents/logs/\
+  \ (skip-if-exists).\n\nPer-agent observation subdirs (enrichment/, felix-admin-*,\
+  \ \u2026) are NOT copied\n\u2014 they belong to the observation-digest subsystem\
+  \ and are handled by #659.\nThe /home/claude/second-brain tree is LEFT IN PLACE\
+  \ by this migration.\n\nSafety:\n  - Tier-2 snapshot gate: refuses without Restic\
+  \ snapshot <=24h (C-003).\n  - Atomic copy-before-cutover: state files at target\
+  \ before WP02/WP03\n    repointed readers rely on the new path (H1 ordering guarantee).\n\
+  \  - Idempotent: second run is a safe no-op.\n  - Convergent: ownership and mode\
+  \ always enforced on target dir/files,\n    including pre-existing targets from\
+  \ a partial prior run (FR-012).\n  - Union-merge for divergent JSONL ledger; conflict-abort\
+  \ for non-JSONL.\n  - --dry-run prints the full plan and mutates nothing.\n\nPost-checks\
+  \ verify:\n  - State file exists and is non-empty.\n  - State dir owner=claude,\
+  \ group=secondbrain, mode=0750.\n  - State file owner=claude, group=secondbrain,\
+  \ mode=0640.\n  - At least one inbox-prescan-*.md present in vault (forensic logs\
+  \ preserved).\n\nDepends on WP02 (scripts/inbox/*.py repoint) and WP03 (agent prompt\n\
+  log-path fix) being deployed first so code readers already point at\n/data/services/openclaw/state/\
+  \ before this manifest runs.\n"
+created_at: '2026-07-05T03:51:20Z'
+created_by: felix-admin-cron-path-fix-01KWQTY3
+apply_mode: manifest
+applied_at: '2026-07-05T11:16:09Z'
