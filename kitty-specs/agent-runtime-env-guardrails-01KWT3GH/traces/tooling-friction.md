@@ -47,6 +47,15 @@ superset record is `docs/diagnostics/658-runtime-env-assumptions-dogfood-journal
   preflight wants status artifacts committed; approved gate wants issue-matrix.md verdicts filled
   (auto-scaffolded `unknown` rows for every issue referenced in spec.md). Both cleared by
   populate + spec-commit — the recurring coord/primary read-write-split tax, one gate at a time.
+- `[2026-07-05][implement]` analysis re-stales after EVERY WP's mark-status — `mark-status`
+  edits tasks.md → `stale_analysis_report` blocks the NEXT `implement` → must re-record analysis
+  each time. Repetitive; candidate: mark-status shouldn't invalidate the analysis (it doesn't
+  change requirements/coverage, just [D] markers).
+- `[2026-07-05][implement]` stale-lane propagation gap (F7) — fix commits added to already-approved
+  dependency lanes did NOT reach the dependent in-progress lane via `spec-kitty implement`'s
+  auto-refresh (it merges the mission branch, not the dependency lane HEADs; lane-branch commits
+  reach mission only at final merge). Required a manual `git merge` of the updated dependency
+  lanes (disjoint files → clean). Candidate: stale-refresh should track dependency lane HEADs.
 - `[2026-07-05][pre-flight]` Tracer scaffolding still agent-driven (F2, carried/evolved) —
   #2203 shipped the tracer lifecycle as doctrine (procedure + 3 templates) but there is
   still NO CLI scaffolder at `mission create` — operator hand-copied the templates into
