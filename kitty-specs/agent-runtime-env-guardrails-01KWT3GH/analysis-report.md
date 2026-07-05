@@ -4,7 +4,7 @@ artifact_type: spec-kitty.analysis-report
 command: /spec-kitty.analyze
 mission_slug: agent-runtime-env-guardrails-01KWT3GH
 mission_id: 01KWT3GHVB4X49DKG02FVEQYCQ
-generated_at: '2026-07-05T22:32:57.056281+00:00'
+generated_at: '2026-07-05T22:40:05.053626+00:00'
 analyzer_agent: unknown
 input_artifacts:
   spec.md:
@@ -15,15 +15,15 @@ input_artifacts:
     sha256: e02e8da9365192ebce94815faf0aaa5d9660a970def84fc81d8107488228490a
   tasks.md:
     path: /Users/kentgale/repos/kg-automation/kitty-specs/agent-runtime-env-guardrails-01KWT3GH/tasks.md
-    sha256: 2f458ca8f9872e4a994caf8c7d9ba2d03d9a8ab955baaa065a67c54bbedba9e0
+    sha256: 8f48e2ed635e7266eba85f63d20c5d5ab8a9869d73e3e71bed7acdf2079e5f15
   charter:
     path: /Users/kentgale/repos/kg-automation/.kittify/charter/charter.md
     sha256: 4891223a0c3fc0dc96917475523586e8f3147a3ccaa113ecb7ff19da646e82e2
 verdict: ready
 issue_counts:
-  low: 2
-  high: 0
   medium: 0
+  high: 0
+  low: 2
   critical: 0
   info: 1
 findings:
