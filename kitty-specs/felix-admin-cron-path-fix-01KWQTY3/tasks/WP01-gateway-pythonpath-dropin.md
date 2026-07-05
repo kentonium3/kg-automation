@@ -146,3 +146,4 @@ Done when:
 - 2026-07-05T03:40:35Z – claude:sonnet:implementer-ivan:implementer – shell_pid=56417 – Cycle 2: SC-10 now checks gateway /proc/<MainPID>/environ + operator cron-run belt documented
 - 2026-07-05T03:41:36Z – codex:gpt-5-codex:reviewer-renata:reviewer – shell_pid=59528 – Started review via action command
 - 2026-07-05T03:44:16Z – user – shell_pid=59528 – Moved to planned
+- 2026-07-05T03:50:48Z – user – shell_pid=59528 – Arbiter decision (operator-approved): SC-10 automated gate = live gateway /proc/<MainPID>/environ (deterministic proof agent subprocesses inherit PYTHONPATH via Node child env inheritance) + systemctl show; real end-to-end agent-run confirmation is the operator's documented post-deploy step (quickstart SC-1/SC-2). Running a real agent turn in the deploy gate is impractical (billed LLM turn + side effects). Meets acceptance criteria.
