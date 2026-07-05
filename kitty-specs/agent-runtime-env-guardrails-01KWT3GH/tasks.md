@@ -21,10 +21,10 @@ No hardcoded checkout; deterministic cwd; fail-loud outside gateway; helper args
 | T008 | capture AGENTS.md.tmpl: convert abs-path `python3 /home/claude/...` invocations | WP02 | [P] |
 | T009 | capture `.tmpl`↔AGENTS.md lockstep; convert the `.tmpl` `-m scripts.` | WP02 | [P] |
 | T010 | capture self-scan with checker → 0 findings; args absolute | WP02 | [P] |
-| T011 | habits: de-hardcode 5 `cd /home/claude/kg-automation` → cd "${PYTHONPATH:?}" | WP03 | [P] |
-| T012 | habits: convert 3 abs-path felix-file-issue.py invocations | WP03 | [P] |
-| T013 | escalation: convert 7 bare `-m scripts.` + 1 abs-path | WP03 | [P] |
-| T014 | habits+escalation self-scan → 0 findings | WP03 | [P] |
+| T011 | habits: de-hardcode 5 `cd /home/claude/kg-automation` → cd "${PYTHONPATH:?}" | WP03 | [D] |
+| T012 | habits: convert 3 abs-path felix-file-issue.py invocations | WP03 | [D] |
+| T013 | escalation: convert 7 bare `-m scripts.` + 1 abs-path | WP03 | [D] |
+| T014 | habits+escalation self-scan → 0 findings | WP03 | [D] |
 | T015 | tasker: convert 2 `-m scripts.` + abs-path + `.tmpl` lockstep | WP04 | [P] |
 | T016 | calendar: convert abs-path log_action.py (×3) + validate_calendar_event.py | WP04 | [P] |
 | T017 | main: audit; convert any abs-path or confirm clean | WP04 | [P] |

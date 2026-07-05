@@ -14,7 +14,8 @@ subtasks:
 - T008
 - T009
 - T010
-agent: claude
+agent: "claude"
+shell_pid: "7663"
 history:
 - 2026-07-05 authored from plan IC-04 (capture)
 agent_profile: implementer-ivan
@@ -68,3 +69,7 @@ Base/merge: `feat/agent-runtime-env-guardrails`. Lane worktree allocated from `l
 - Diff each converted line: canonical `cd "${PYTHONPATH:?}" && …`, no `/home/claude/kg-automation`.
 - Confirm the `<helper>` placeholder doc line is untouched, and `.tmpl`↔rendered parity.
 - Run WP01's checker over both files → expect 0 findings.
+
+## Activity Log
+
+- 2026-07-05T22:33:21Z – claude – shell_pid=7663 – Assigned agent via action command

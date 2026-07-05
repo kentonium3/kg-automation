@@ -15,7 +15,8 @@ subtasks:
 - T012
 - T013
 - T014
-agent: claude
+agent: "claude"
+shell_pid: "7663"
 history:
 - 2026-07-05 authored from plan IC-04 (habits + escalation)
 agent_profile: implementer-ivan
@@ -63,3 +64,7 @@ Base/merge: `feat/agent-runtime-env-guardrails`. Lane worktree from `lanes.json`
 - Confirm EVERY habits `cd /home/claude/kg-automation` is gone (grep the file).
 - Confirm escalation's indented invocations keep their list structure and are all converted.
 - Run WP01 checker → 0 findings; spot-check one habits helper for absolute-arg safety.
+
+## Activity Log
+
+- 2026-07-05T22:33:37Z – claude – shell_pid=7663 – Assigned agent via action command

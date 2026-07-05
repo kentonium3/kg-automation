@@ -15,7 +15,8 @@ subtasks:
 - T016
 - T017
 - T018
-agent: claude
+agent: "claude"
+shell_pid: "7663"
 history:
 - 2026-07-05 authored from plan IC-04/IC-05 (tasker, calendar, main audit)
 agent_profile: implementer-ivan
@@ -68,3 +69,7 @@ Base/merge: `feat/agent-runtime-env-guardrails`. Lane worktree from `lanes.json`
   the `cd "${PYTHONPATH:?}" && …` prefix.
 - Confirm `python` (not just `python3`) abs-path lines were caught.
 - Run WP01 checker over all four → 0 findings; verify main's audit disposition is recorded.
+
+## Activity Log
+
+- 2026-07-05T22:33:52Z – claude – shell_pid=7663 – Assigned agent via action command
