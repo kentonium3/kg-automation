@@ -3,9 +3,9 @@
 # DO NOT EDIT MANUALLY
 
 spec_kitty:
-  version: 3.2.3
+  version: 3.2.4
   initialized_at: '2026-03-25T23:07:06.539751'
-  last_upgraded_at: '2026-06-28T13:32:27.155386'
+  last_upgraded_at: '2026-07-05T14:49:04.280883'
   schema_version: 3
 environment:
   python_version: 3.13.12
@@ -431,3 +431,11 @@ migrations:
       manifest entry .agents/skills/spec-kitty.advise/SKILL.md; Pruned retired skill
       manifest entry .agents/skills/spec-kitty.advise/SKILL.md; Pruned retired skill
       manifest entry .claude/skills/spec-kitty.advise/SKILL.md
+  - id: 3.2.3_encoding_provenance_gitignore_backfill
+    applied_at: '2026-07-05T14:49:04.226997'
+    result: success
+    notes: 'Added gitignore entries: kitty-ops/ops-index.jsonl'
+  - id: 3.2.4_derived_mission_views_gitignore_backfill
+    applied_at: '2026-07-05T14:49:04.254165'
+    result: skipped
+    notes: Not applicable
