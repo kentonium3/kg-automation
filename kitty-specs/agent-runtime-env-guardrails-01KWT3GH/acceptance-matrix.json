@@ -2,97 +2,97 @@
   "mission_slug": "agent-runtime-env-guardrails-01KWT3GH",
   "mission_number": "",
   "mission_type": "software-dev",
-  "overall_verdict": "pending",
+  "overall_verdict": "pass",
   "criteria": [
     {
       "criterion_id": "FR-001",
-      "description": "Verify FR-001 is satisfied",
+      "description": "The deterministic checker detects unanchored `python3 -m scripts.` invocations (bare + hardcoded-checkout shapes) in agent prompts.",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "TODO: replace with a real acceptance criterion"
+      "evidence": "scripts/openclaw/agents/tests/test_env_assumptions.py (bare_m_scripts / hardcoded_cd / seed-shape fixtures) — 21 unit tests green; checker commit 6bfaceff.",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-07-05T22:15:00Z",
+      "notes": "env_assumptions.scan_text classifies each invocation; compliant iff ${PYTHONPATH:?} guard and no hardcoded checkout."
     },
     {
       "criterion_id": "FR-002",
-      "description": "Verify FR-002 is satisfied",
+      "description": "The checker detects ~/HOME-relative WRITES while permitting reads of ~/.openclaw/... paths.",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "TODO: replace with a real acceptance criterion"
+      "evidence": "test_env_assumptions.py::test_home_relative_write_flagged + test_home_read_of_openclaw_not_flagged (green).",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-07-05T22:15:00Z",
+      "notes": "HOME_RELATIVE_WRITE fires only on a redirect/tee sink; reads are never flagged."
     },
     {
       "criterion_id": "FR-003",
-      "description": "Verify FR-003 is satisfied",
+      "description": "The guard runs as a pytest check in the existing Test CI with no .github/workflows/ change.",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "TODO: replace with a real acceptance criterion"
+      "evidence": "scripts/openclaw/agents/tests/test_env_assumptions_guard.py::test_fleet_has_no_env_assumptions green; collected from the existing tests/ dir (WP05 commit 48072c16). No workflow file changed.",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-07-05T22:15:00Z",
+      "notes": "45-test agent suite green in lane-f."
     },
     {
       "criterion_id": "FR-004",
-      "description": "Verify FR-004 is satisfied",
+      "description": "The same check is folded into validate_workspace.py so #167-authored workspaces inherit it.",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "TODO: replace with a real acceptance criterion"
+      "evidence": "validate_workspace.check_runtime_env_assumptions (CheckResult.ok, lazy import breaks the cycle) + test_validate_workspace.py runtime_env_assumptions tests green.",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-07-05T22:15:00Z",
+      "notes": "Appended to the checks list; privacy/output-discipline checks unregressed."
     },
     {
       "criterion_id": "FR-005",
-      "description": "Verify FR-005 is satisfied",
+      "description": "Every in-scope invocation (`-m scripts.` and abs-path, python+python3) across capture/habits/escalation/tasker/calendar + .tmpl is converted to the canonical cd form.",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "TODO: replace with a real acceptance criterion"
+      "evidence": "scan_agents_root over the converted fleet returns 0 findings (was 44 across 6 agents); WP02/03/04 commits + the global message-shorten fix.",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-07-05T22:15:00Z",
+      "notes": "Calendar's piped validate_calendar_event uses the no-cd \"${PYTHONPATH:?}/scripts/..\" form."
     },
     {
       "criterion_id": "FR-006",
-      "description": "Verify FR-006 is satisfied",
+      "description": "~/HOME-relative writes are converted/absent; the guard prevents re-entry.",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "TODO: replace with a real acceptance criterion"
+      "evidence": "Fleet scan shows zero HOME_RELATIVE_WRITE findings (writes already use absolute /home/kgale paths); detector fixtures green (NFR-003).",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-07-05T22:15:00Z",
+      "notes": "Confirm-clean audit per research R-05; detector still present to block re-entry."
     },
     {
       "criterion_id": "FR-007",
-      "description": "Verify FR-007 is satisfied",
-      "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "TODO: replace with a real acceptance criterion"
+      "description": "The canonical form and its reuse-PYTHONPATH reliance are documented at the guard.",
+      "proof_type": "manual_review",
+      "evidence": "env_assumptions.py module docstring states the canonical form; docs/runbooks/openclaw-agent-setup.md carries the #658 guardrail subsection (WP06 commit fc31e328).",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-07-05T22:15:00Z",
+      "notes": "Documented at the guard + the authoring standard, not scattered prose."
     },
     {
       "criterion_id": "FR-008",
-      "description": "Verify FR-008 is satisfied",
-      "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "TODO: replace with a real acceptance criterion"
+      "description": "main is audited/converted; felix-doc-auditor is dispositioned as retired.",
+      "proof_type": "manual_review",
+      "evidence": "main/AGENTS.md hardcoded abs-path converted (WP04); felix-doc-auditor in SUSPENDED_WORKSPACES with the #658 retired-disposition comment (WP05).",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-07-05T22:15:00Z",
+      "notes": "The checker caught main's abs-path that grep missed — validated the audit."
     },
     {
       "criterion_id": "FR-009",
-      "description": "Verify FR-009 is satisfied",
-      "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "TODO: replace with a real acceptance criterion"
+      "description": "The hardened prompts are redeployed via a deploys/queued/ manifest.",
+      "proof_type": "manual_review",
+      "evidence": "deploys/queued/0010-agent-runtime-env-guardrails.yaml (JSON-Schema + tier-guard pass); self-bootstrapping entrypoint scripts/deploy/redeploy-agent-prompts-658.py dry-run from /tmp exits 0 (WP06).",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-07-05T22:15:00Z",
+      "notes": "Rebaseline: not required — agent prompts are an unmonitored audited surface (#621, per canonical audited-surfaces.json)."
     }
   ],
   "negative_invariants": []
