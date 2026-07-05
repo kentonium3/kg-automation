@@ -1,4 +1,16 @@
 {
+  "acceptance_history": [
+    {
+      "acceptance_mode": "pr",
+      "accepted_at": "2026-07-05T14:21:46.450398+00:00",
+      "accepted_by": "claude",
+      "accepted_from_commit": "3aea9e5f14fb77c74346cfb26c9123568071a0ae"
+    }
+  ],
+  "acceptance_mode": "pr",
+  "accepted_at": "2026-07-05T14:21:46.450398+00:00",
+  "accepted_by": "claude",
+  "accepted_from_commit": "3aea9e5f14fb77c74346cfb26c9123568071a0ae",
   "coordination_branch": "kitty/mission-observation-digest-repoint-01KWS2E2",
   "created_at": "2026-07-05T12:00:47.255482+00:00",
   "flattened": false,
