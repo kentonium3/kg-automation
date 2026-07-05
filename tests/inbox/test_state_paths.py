@@ -157,3 +157,29 @@ def test_clarification_state_parent_dir_mode(tmp_path):
         f"parent dir mode {oct(parent_mode)} is more restrictive than 0o750 "
         "(group-read bit not set)"
     )
+
+
+# --- FR-012/SC-9: newly-created state files must be 0640 (Codex #2 H1) ---
+
+def test_routing_log_new_file_is_0640(tmp_path):
+    import os as _os
+    import scripts.inbox.routing_log as rl
+    p = tmp_path / "state" / "inbox-routing.jsonl"
+    old = _os.umask(0o077)  # hostile umask: proves we chmod explicitly
+    try:
+        rl.RoutingLogWriter(path=p).append(filename="n.md", issue_number=1, vikunja_task_id=None)
+    finally:
+        _os.umask(old)
+    assert (p.stat().st_mode & 0o777) == 0o640
+
+
+def test_clarification_state_file_is_0640(tmp_path):
+    import os as _os
+    import scripts.inbox.handle_clarification_state as hcs
+    p = tmp_path / "state" / "pending-calendar-clarifications.json"
+    old = _os.umask(0o077)
+    try:
+        hcs.save_state(p, [])  # save_state(path, entries)
+    finally:
+        _os.umask(old)
+    assert (p.stat().st_mode & 0o777) == 0o640

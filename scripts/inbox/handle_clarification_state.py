@@ -86,6 +86,12 @@ def save_state(path: Path, entries: list) -> None:
             fh.write(payload)
             fh.flush()
             os.fsync(fh.fileno())
+        # FR-012/SC-9: state files must be group-readable (0640), not the 0600
+        # that mkstemp creates (and os.replace preserves). Best-effort.
+        try:
+            os.chmod(tmp_name, 0o640)
+        except OSError:  # pragma: no cover - best-effort
+            pass
         os.replace(tmp_name, path)
     except Exception:
         try:

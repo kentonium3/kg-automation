@@ -128,7 +128,7 @@ For each path in `marker_cleanup_needed` from prescan: `python3 -m scripts.inbox
 
 #### Step 5b — Append to the routing log
 
-For each fully-routed note (per Step 3): `python3 -m scripts.inbox.append_routing_entry --filename <name> --issue-number <n-or-empty> --vikunja-task-id <id-or-empty> --note-excerpt <short>`. This is the dedup substrate; future ticks consult it to skip re-routing the same file.
+For each fully-routed note (per Step 3): `python3 -m scripts.inbox.append_routing_entry <name> <issue-number-or-0> <vikunja-task-id-or-dash> <short-excerpt>` — **positional** args (matching the CLI + `AGENTS.md.tmpl`): note basename, GitHub issue number as an integer (`0` if none), Vikunja task id (or `-` if none), optional ≤120-char excerpt. This is the dedup substrate; future ticks consult it to skip re-routing the same file.
 
 #### Step 5c — Atomic frontmatter write
 

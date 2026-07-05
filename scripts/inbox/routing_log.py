@@ -131,6 +131,15 @@ class RoutingLogWriter:
             note_excerpt=(note_excerpt or "")[:120],
         )
         self._path.parent.mkdir(parents=True, exist_ok=True, mode=0o750)
+        new_file = not self._path.exists()
         with self._path.open("a", encoding="utf-8") as fh:
             fh.write(json.dumps(entry.to_dict()) + "\n")
+        # FR-012/SC-9: state files must be group-readable (0640), not umask-dependent.
+        # Only enforce on first create so we don't fight an operator-set mode on an
+        # existing file; best-effort (a chmod failure must not break routing).
+        if new_file:
+            try:
+                self._path.chmod(0o640)
+            except OSError:
+                pass
         return entry
