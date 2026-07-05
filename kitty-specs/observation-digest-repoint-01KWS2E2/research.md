@@ -86,9 +86,39 @@ Phase 0 output. Each decision: what was chosen, why, and the alternative rejecte
   `/home/claude/second-brain` (or that GitHub origin + the vault migration together cover all
   non-disposable data) BEFORE the destructive step. The migrator asserts this precondition.
 
-## D7 — Anomaly noted (non-blocking, for #656 close)
+## D7 — Anomaly (now a hard pre-delete check, was non-blocking)
 
 A 250-byte `inbox-prescan-2026-07-05.md` (mtime 02:00) exists in the stray tree while the
 deployed `prescan.py` writes to `/home/kgale` (which also has the 2026-07-05 file). Likely a
-stale-path remnant or a snapshot-log side-write. Non-blocking for #659 (removed with the tree);
-flagged for the #656 close review and worth a glance during implement.
+stale-path remnant or a snapshot-log side-write. Per the post-plan Codex review it is NO LONGER
+"non-blocking": Phase 2 aborts if any top-level `agents/logs/inbox-prescan-*.md` is newer than
+the #656 cutover (FR-004e). Still flagged for the #656 close review.
+
+## Post-plan Codex review — resolved findings (spec-kitty-review, 2026-07-05)
+
+The mandatory post-plan Codex review found real gaps; all are folded into spec/plan/contract:
+
+- **D8 — Two-phase staged rollout (Codex Critical 2 + Major 1).** The single migrate+delete
+  manifest raced the 15-min timer (check-then-`rm`) and `apply.py` runs `[entrypoint, "--apply"]`
+  only. Resolved: split into Phase 1 (repoint + non-destructive migrate) and Phase 2
+  (decommission) as **two entrypoints + two manifests** (FR-009). Phase 2 quiesces the
+  `felix-core-digest` user timer for a bounded window and confirms no `summarize.py`/`log_action.py`
+  process before deleting.
+- **D9 — Backup-coverage proof, not recency (Codex Critical 1).** `verify_restic_recent` only
+  proves a backup log completed, not that `/home/claude/second-brain` is in the set; "HEAD on
+  origin" does not cover gitignored/untracked unique data. Resolved: FR-004a now requires an
+  explicit coverage proof (restore/include-list) OR `--attest-backup-coverage`; abort if
+  unprovable (never inspect `_private` to prove it).
+- **D10 — Underscore importable module (Codex Major 4).** Logic lives in
+  `scripts/deploy/observation_migration.py` (importable); hyphenated `.py` files are thin
+  executable wrappers. Fixes the `-m` vs script-path inconsistency.
+- **D11 — Atomic merge (Codex Major 3).** #656's `_union_merge_jsonl_files` appends directly;
+  a live-writer append could be missed then deleted. Resolved: temp+`fsync`+`os.replace`
+  (NFR-005); the final decommission-phase merge runs under quiesce.
+- **D12 — `_private` enforced at impl level (Codex Major 5).** C-008 now forbids
+  `rglob`/`os.walk`/`git status --ignored`/path-echoing errors; only `agents/logs/*/*.jsonl` is
+  globbed; deletion is root-only; errors name only `source_root`.
+- **D13 — Vault-dir permissions (Codex Major 6).** C-011 specifies exact owner/group/mode for the
+  vault log hierarchy and adds a service-user append+remove writability post-check.
+- **Grounding confirmed by Codex**: `output_dir` already resolves to the vault; no systemd-unit
+  edit needed.

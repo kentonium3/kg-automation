@@ -28,9 +28,10 @@ unless explicitly overridden.
 
 | Precondition | Check | Requirement |
 |---|---|---|
-| Snapshot freshness | Restic snapshot ≤24h (`lib/snapshot.py`) | NFR-001 |
-| Tracked-content recoverability | stray tree working dir clean AND HEAD present on `origin` (`kentonium3/second-brain`) | C-009 |
-| Repoint deployed | resolved `log_dir` == vault path; no stray-tree write after cutover within one 15-min cycle | FR-004 |
+| Snapshot + coverage | fresh Restic snapshot AND `/home/claude/second-brain` in the backup set (restore/include-list) OR `--attest-backup-coverage`; recency alone insufficient | FR-004a, NFR-001 |
+| Origin recoverability | clone HEAD commit present on `origin` (`kentonium3/second-brain`) | FR-004b, C-009 |
+| Quiesce + no live process | `felix-core-digest` user timer stopped; no `summarize.py`/`log_action.py` running | FR-004c |
+| inbox-prescan mtime | no top-level `agents/logs/inbox-prescan-*.md` newer than #656 cutover | FR-004e |
 
 ### Decommission target
 
@@ -38,22 +39,35 @@ unless explicitly overridden.
 - Removal: wholesale `rm -rf`, no traversal/logging of `_private` (C-008).
 - Post-state: path absent (`test ! -e`), not recreated within a full digest cycle (SC-003).
 
-## State transitions (migrator)
+## State transitions (two entrypoints — FR-009)
 
+**Phase 1 — `migrate-observation-logs.py` (non-destructive):**
 ```
-DRY-RUN (default)  ── report planned actions, no mutation, exit 0
-      │  --apply
-      ▼
-MIGRATE LOGS  ── union-merge agents/logs/{agent}/*.jsonl → vault (copy-before-cutover)
-      │
-      ▼
-VERIFY PRECONDITIONS ── snapshot ✓  recoverability ✓  no-writer ✓   (any ✗ → ABORT, non-zero)
-      │
-      ▼
-DECOMMISSION  ── rm -rf /home/claude/second-brain  (no _private traversal)
-      │
-      ▼
-POST-CHECK  ── stray absent; vault ownership/mode correct  → exit 0
+DRY-RUN (default) ── plan, no mutation, exit 0
+   │ --apply
+   ▼
+MIGRATE LOGS ── union-merge agents/logs/{agent}/*.jsonl → vault (temp+fsync+os.replace)
+   │
+   ▼
+POST-CHECK ── vault writable by service user (append+remove temp jsonl) → exit 0
+```
+Verified over ≥1 clean digest cycle before Phase 2 is staged.
+
+**Phase 2 — `decommission-observation-stray-tree.py` (destructive, gated):**
+```
+DRY-RUN (default) ── plan + precondition results, no mutation, exit 0
+   │ --apply
+   ▼
+GATE ── snapshot+coverage ✓  origin ✓  quiesce+no-live-proc ✓  inbox-prescan-mtime ✓
+   │        (any ✗ → ABORT, non-zero, nothing destructive)
+   ▼
+FINAL MERGE ── union-merge remaining source jsonl under quiesce (atomic)
+   │
+   ▼
+DELETE ── root-only rm -rf /home/claude/second-brain  (no descendant walk; no _private)
+   │
+   ▼
+RESTART + POST-CHECK ── restart timer; stray absent; vault ownership/mode  → exit 0
 ```
 
 Re-running after completion is a convergent no-op (FR-005): logs already merged, tree already

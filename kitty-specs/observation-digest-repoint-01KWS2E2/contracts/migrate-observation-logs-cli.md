@@ -1,73 +1,89 @@
-# Contract: `migrate-observation-logs.py` CLI + deploy manifest
+# Contract: two-phase migrate + decommission entrypoints + deploy manifests
 
-No REST/GraphQL surface. The mission's contracts are (1) the migrator CLI and (2) the deploy
-manifest that invokes it. Both follow the kg-automation helper-script conventions and the #656
-migrator precedent.
+No REST/GraphQL surface. Contracts = (1) an importable logic module, (2) two thin executable
+entrypoints (Phase 1 migrate, Phase 2 decommission), and (3) two deploy manifests. This shape is
+required because `scripts/deploy/lib/apply.py` invokes an entrypoint as `[entrypoint, "--apply"]`
+only (no extra args), so staged behavior MUST be expressed as separate entrypoints — not flags.
 
-## Migrator CLI
+## Importable module (fixes hyphen/underscore inconsistency — Codex Major 4)
+
+`scripts/deploy/observation_migration.py` — underscore name, importable as
+`scripts.deploy.observation_migration`. Holds all logic (union-merge, precondition checks,
+quiesce, delete). Unit-tested directly via `import`. The two hyphenated `.py` files below are
+**thin executable wrappers** (shebang + `+x` + `sys.path` shim) that call into this module.
+
+## Phase 1 entrypoint — migrate only (non-destructive)
 
 `scripts/deploy/migrate-observation-logs.py`
 
-### Invocation
+| Flag | Default | Meaning |
+|---|---|---|
+| `--dry-run` | **on** | Print JSON plan; no mutation; exit 0. |
+| `--apply` | — | Union-merge `agents/logs/{agent}/*.jsonl` (source → vault). **Never deletes.** |
+| `--source-root` | `/home/claude/second-brain` | Stray-tree root. |
+| `--vault-logs-dir` | `/home/kgale/second-brain/agents/logs` | Migration target. |
 
-- Module form (preferred for tests): `python3 -m scripts.deploy.migrate_observation_logs [flags]`
-- Entrypoint form (felix-deployer, via shebang): `/usr/bin/env python3 scripts/deploy/migrate-observation-logs.py [flags]`
-  - MUST have the `+x` bit (git mode 100755) and a `sys.path` shim resolving the repo root
-    (`_REPO_ROOT = Path(__file__).resolve().parents[2]; sys.path.insert(0, str(_REPO_ROOT))`).
+- Union-merge is **atomic**: write merged file to a temp path, `fsync`, `os.replace` onto the
+  destination (NFR-005). Idempotent; convergent re-run = no-op.
+- Globs ONLY `source_root/agents/logs/*/*.jsonl`. No `rglob`/`os.walk`/`git status --ignored` (C-008).
+- Post-check: vault dir writable by service user `claude` (append+remove a temp JSONL) (C-011).
 
-### Flags
+## Phase 2 entrypoint — decommission (destructive, separate deploy)
+
+`scripts/deploy/decommission-observation-stray-tree.py`
 
 | Flag | Default | Meaning |
 |---|---|---|
-| `--dry-run` | **on** (default) | Report planned actions; no mutation; exit 0. |
-| `--apply` | — | Perform migration; then, if preconditions pass, decommission. |
-| `--source-root` | `/home/claude/second-brain` | Stray-tree root (the clone to migrate-from + remove). |
-| `--vault-logs-dir` | `/home/kgale/second-brain/agents/logs` | Migration target. |
-| `--skip-snapshot-gate` | off | Test-only escape hatch; NEVER set in the manifest. |
-| `--no-decommission` | off | Migrate logs only; skip the destructive removal (staged rollout). |
+| `--dry-run` | **on** | Print JSON plan + precondition results; no mutation; exit 0. |
+| `--apply` | — | Run precondition gate → quiesce → final merge → root-only delete → restart. |
+| `--source-root` | `/home/claude/second-brain` | Tree to remove. |
+| `--vault-logs-dir` | `/home/kgale/second-brain/agents/logs` | Final-merge target. |
+| `--attest-backup-coverage` | off | Operator attestation accepted in lieu of an automated Restic include-list proof (FR-004a). |
 
-### Behavior contract
+### Precondition gate (ALL must pass, else exit non-zero, nothing destructive) — FR-004
 
-1. `--dry-run` (default) prints a JSON plan (`{migrate: [...], remove: "<root>", preconditions: {...}}`)
-   to stdout and exits **0** with **zero** filesystem side effects (NFR-004).
-2. `--apply`:
-   - Union-merges `agents/logs/{agent}/*.jsonl` into `--vault-logs-dir` (copy-before-cutover,
-     atomic per file). Idempotent.
-   - Evaluates preconditions (snapshot ≤24h, recoverability, no-writer). On any failure: emit a
-     structured error to stderr and exit **non-zero** WITHOUT removing anything.
-   - On all-pass: `rm -rf` the `--source-root` tree. MUST NOT traverse/read/log any `_private`
-     path (C-008).
-   - Post-checks: source absent; vault dir ownership `claude` / mode `0640` files as applicable.
-3. Idempotent re-run after success: no-op, exit 0 (FR-005).
+1. **Snapshot + coverage**: fresh Restic snapshot AND proof `/home/claude/second-brain` is in the
+   backup set (restore-list/include check) OR `--attest-backup-coverage`. Recency alone fails.
+2. **Origin recoverability**: the clone's HEAD commit is present on `origin`
+   (`kentonium3/second-brain`).
+3. **Quiesce**: stop the `felix-core-digest` user timer; confirm no `summarize.py`/`log_action.py`
+   process running (bounded wait); if a writer is active → abort.
+4. **inbox-prescan mtime**: no top-level `agents/logs/inbox-prescan-*.md` newer than the #656
+   cutover; else abort / require operator disposition (Codex Minor).
 
-### Exit codes
+### Destructive sequence (only after gate passes)
+
+1. Final union-merge of any remaining `agents/logs/{agent}/*.jsonl` (atomic; under quiesce).
+2. **Root-only** `rm -rf <source-root>` — a single root-level operation. MUST NOT enumerate,
+   walk, `git status --ignored`, or emit any descendant path. Errors may name only `<source-root>`.
+3. Restart the `felix-core-digest` timer; post-check `test ! -e <source-root>`.
+
+## Exit codes (both entrypoints)
 
 | Code | Meaning |
 |---|---|
 | 0 | Success (dry-run, applied, or convergent no-op) |
-| non-zero | Precondition failed / migration error / abort-before-delete (nothing destructive ran) |
+| non-zero | Precondition failed / error / abort-before-delete (nothing destructive ran) |
 
-### stdout / stderr
+## stdout / stderr
 
-- stdout: single JSON object (plan in dry-run; result summary in apply). No `_private` paths ever.
-- stderr: structured `_emit`-style progress + errors.
+- stdout: one JSON object (plan in dry-run; result summary in apply). Never a `_private` or any
+  descendant path.
+- stderr: structured `_emit` progress + errors; error strings name only `source_root`.
 
-## Deploy manifest
+## Deploy manifests (two, staged — FR-009)
 
-`deploys/queued/NNNN-migrate-observation-logs-and-decommission.yaml`
+- Phase 1: `deploys/queued/NNNN-migrate-observation-logs.yaml` — `tier: 2`; `pre` Restic snapshot
+  gate; `apply` runs `migrate-observation-logs.py --apply`; `post` vault writability; audited
+  surface (deploy-pipeline) → auto-rebaseline. **No deletion.**
+- Phase 2: `deploys/queued/MMMM-decommission-observation-stray-tree.yaml` — queued only AFTER
+  Phase 1 is verified over ≥1 clean cycle; `tier: 2`; `pre` snapshot gate; `apply` runs
+  `decommission-observation-stray-tree.py --apply`; `post` `test ! -e /home/claude/second-brain`.
 
-- `tier: 2`
-- `pre`: Restic snapshot gate (`verify_restic_recent`, ≤24h).
-- `apply`: run `scripts/deploy/migrate-observation-logs.py --apply`.
-- `post`:
-  - `test ! -e /home/claude/second-brain` (decommission verified)
-  - vault log dir present with expected ownership/mode
-- `audited_surface: true` (deploy-pipeline) → felix-deployer auto-rebaseline; record on deploy.
+## Regression test contract (NFR-004 / C-008)
 
-## Regression test contract (NFR-004)
-
-A test MUST assert, for the entrypoint:
-- file mode has the executable bit,
-- the `sys.path` shim is present,
-- invoking the script path with `--dry-run` via subprocess exits 0 and mutates nothing,
-- the JSON plan never contains a `_private` substring.
+For BOTH executable entrypoints:
+- file mode has the executable bit; `sys.path` shim present;
+- script-path `--dry-run` via subprocess exits 0 and mutates nothing;
+- the JSON plan/output contains no `_private` and no descendant path (only `source_root`);
+- (module test) union-merge uses temp+`os.replace` and preserves the union of source+dest lines.

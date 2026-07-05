@@ -75,26 +75,37 @@ there is no human-facing UI.
 3. Nothing is written under `/home/claude/second-brain`.
 4. The digest continues to be produced at the unchanged, already-synced vault output path.
 
-### Migration scenario — runtime logs + decommission
+### Migration scenario — two-phase (FR-009)
 
-1. The deploy manifest runs the one-time migrator under a Tier-2 Restic snapshot gate.
-2. Runtime observation raw logs (`agents/logs/{agent}/*.jsonl`) are **union-merged** from the
-   stray tree into the vault log dir (copy-before-cutover; no entry lost or duplicated).
-3. The migrator verifies the decommission preconditions (FR-004): fresh snapshot, tracked
-   content recoverable from origin, repoint deployed, no active writer.
-4. The entire `/home/claude/second-brain` tree is removed **wholesale** — without enumerating,
-   reading, or logging any `_private` path (C-008).
-5. Post-checks confirm absence of the stray tree and correct ownership/mode on the vault dir.
+**Phase 1 — repoint + migrate (non-destructive):**
+1. `config.py` repoint merges; felix-deployer applies the Phase-1 manifest (Tier-2 snapshot gate).
+2. The migrate entrypoint union-merges runtime `agents/logs/{agent}/*.jsonl` from the stray tree
+   into the vault log dir (temp+fsync+`os.replace`; no entry lost/duplicated). It does NOT delete.
+3. Operator/verification confirms ≥1 clean digest cycle: new logs appear under `/home/kgale`,
+   none new under `/home/claude/second-brain`.
+
+**Phase 2 — decommission (destructive, separate deploy):**
+4. The Phase-2 manifest runs the decommission entrypoint: verify FR-004 preconditions
+   (snapshot + **coverage proof**, origin recoverability, inbox-prescan mtime check).
+5. Quiesce: stop the `felix-core-digest` user timer for a bounded window; confirm no
+   `summarize.py`/`log_action.py` running; final union-merge of any remaining source JSONL.
+6. Root-only `rm -rf /home/claude/second-brain` — no `_private` traversal (C-008); restart timer.
+7. Post-checks confirm the stray tree is absent and the vault dir ownership/mode is correct.
 
 ### Exception & edge cases
 
-- **Live writer still targets stray tree at decommission time** → the migrator MUST abort
-  before removal (fail-safe) and surface the condition; no destructive step runs.
-- **Restic snapshot older than 24h** → the snapshot gate fails; a fresh snapshot is taken
-  before proceeding.
+- **Concurrent cron write during Phase-1 migrate** → harmless: Phase 1 is non-destructive; the
+  repoint means new writes go to the vault, and any straggler source appends are caught by the
+  next cycle and the Phase-2 final merge under quiesce.
+- **Live `summarize.py`/`log_action.py` at decommission** → Phase 2 quiesces the timer and checks
+  for a running process; if one is active it MUST abort before removal (fail-safe).
+- **Restic snapshot missing or backup coverage of the source root unprovable** → abort; do not
+  delete. Recency alone does not satisfy FR-004(a).
+- **`inbox-prescan-*.md` newer than the #656 cutover** → abort / require operator disposition
+  (evidence of a lingering writer into the tree).
 - **Re-run after completion** → idempotent no-op (convergent).
-- **Interrupted migration** → copy-before-cutover keeps the source intact until the copy is
-  verified; safe to resume.
+- **Interrupted migration** → temp+`os.replace` keeps the destination consistent and the source
+  intact until the copy is verified; safe to resume.
 
 ## Requirements
 
@@ -104,8 +115,9 @@ there is no human-facing UI.
 |---|---|---|
 | FR-001 | The observation-digest raw `log_dir` default MUST resolve to an absolute, backed-up vault-account path (`/home/kgale/second-brain/agents/logs`) independent of `HOME`, so that under the deployed service account raw logs no longer land on the stray tree. | Draft |
 | FR-002 | Existing historical raw logs under the stray tree MUST be migrated to the vault log dir with no entry lost or duplicated (union-merge of overlapping per-day JSONL files). | Draft |
-| FR-003 | After migration and verified cutover, the entire stray tree (`/home/claude/second-brain`) MUST be removed wholesale (`rm -rf`), WITHOUT enumerating, reading, copying, or logging any path under `_private`. Only runtime observation logs are migrated first (FR-002); all other content is removed in place. | Draft |
-| FR-004 | Decommission MUST be preceded by ALL of: (a) a fresh Restic snapshot (NFR-001); (b) verification that the git clone's tracked content is recoverable from origin (`kentonium3/second-brain`) — clean/pushed working tree, or snapshot as backstop; (c) verification that the repointed `log_dir` is the deployed steady state and no writer has touched the stray tree within a full digest cycle. If any writer is still active, the destructive step MUST abort. | Draft |
+| FR-003 | Decommission removes the entire stray tree (`/home/claude/second-brain`) via a **root-only** `rm -rf` of the source root. The implementation MUST NOT enumerate, walk (`rglob`/`os.walk`), `git status --ignored`, read, copy, or log any descendant path — in particular any `_private` path. Only runtime observation logs are migrated first (FR-002); all other content is removed in place without inspection. | Draft |
+| FR-004 | Decommission MUST be preceded by ALL of, else ABORT before any destructive action: (a) a fresh Restic snapshot AND proof that `/home/claude/second-brain` is actually **covered** by the backup (include-list/restore-list check) OR an explicit operator attestation accepted by the migrator — recency alone is insufficient; (b) verification that the clone's tracked content is present on origin (`kentonium3/second-brain`); (c) the repointed `log_dir` is the deployed steady state, the `felix-core-digest` user timer is **quiesced** (stopped) for a bounded window, and no `summarize.py`/`log_action.py` process is running; (d) a final union-merge of any remaining source `agents/logs/{agent}/*.jsonl` is performed under quiesce; (e) no top-level `agents/logs/inbox-prescan-*.md` has an mtime newer than the #656 cutover (else abort / require operator disposition). | Draft |
+| FR-009 | Delivery MUST be a **two-phase staged rollout**: Phase 1 deploys the `config.py` repoint + a non-destructive log migration and is verified over ≥1 clean digest cycle (logs land only under `/home/kgale`); Phase 2 is a **separate** decommission deploy (quiesce → final merge → coverage-gated root-only delete → restart timer). The two phases MUST be independent manifests/entrypoints so Phase 2 runs only after Phase 1 is confirmed. | Draft |
 | FR-005 | The migration + decommission MUST be idempotent and convergent (safe to re-run; completed state re-runs as a no-op). | Draft |
 | FR-006 | Architecture docs MUST be corrected: `service-inventory.json` (`felix-core-digest`) and `data-flows.json` (`observation-digest`) repoint the log path, remove the `#659` `path_retention_note`s, correct the stale `output_path`, and correct the `exec_start` `repos/` discrepancy; markdown views regenerated to match. `updated_by` set to `659`. | Draft |
 | FR-007 | Docstrings referencing `~/second-brain/agents/logs/` in `config.py`, `log_action.py`, and `summarize.py` MUST be updated to the canonical path. | Draft |
@@ -118,7 +130,8 @@ there is no human-facing UI.
 | NFR-001 | Any destructive migration step MUST be gated on a recent Restic backup. | Snapshot age ≤ 24h at gate time (Tier-2). | Draft |
 | NFR-002 | The digest subsystem MUST keep running on its existing schedule with no downtime introduced. | No missed 15-minute timer cycle; `felix-core-digest.timer` active post-deploy. | Draft |
 | NFR-003 | Zero raw-log data loss during migration. | Post-migration union entry count ≥ union(source, target) pre-migration; verified by count/dedup check. | Draft |
-| NFR-004 | The migrator deploy entrypoint MUST survive felix-deployer's shebang/dry-run invocation. | Regression test asserts `+x` bit, `sys.path` shim present, and `--dry-run` exits 0 with no side effects. | Draft |
+| NFR-004 | Each migrator/decommission deploy entrypoint MUST survive felix-deployer's shebang/dry-run invocation. | Regression test asserts `+x` bit, `sys.path` shim present, and `--dry-run` exits 0 with no side effects, for BOTH entrypoints. | Draft |
+| NFR-005 | JSONL union-merge MUST be crash- and writer-safe. | Merge writes to a temp file, `fsync`s, then `os.replace` onto the destination (atomic); the final decommission-phase merge runs under timer quiesce so no concurrent append can be missed. | Draft |
 
 ### Constraints
 
@@ -131,7 +144,8 @@ there is no human-facing UI.
 | C-005 | Raw JSONL logs MUST NOT be placed inside the Obsidian-synced `notes/` tree; they stay at `agents/logs` (forensic, high-volume). | Draft |
 | C-006 | All office2 changes MUST flow through the `deploys/queued` manifest pipeline; no out-of-band changes on office2. | Draft |
 | C-007 | The #557 rebaseline obligation is triggered by the `deploy-pipeline` audited surface; the merge commit MUST record the rebaseline outcome per `security-baseline-ops.md`. | Draft |
-| C-008 | No agent or script in this mission may read, copy, reference, or log any `_private` path (e.g. `vault/02-Growth/_private/`). The tree is removed wholesale; `_private` is deleted with it but never inspected. Absolute — overrides any inventory/verbosity convenience. | Draft |
+| C-008 | No agent or script in this mission may read, copy, reference, or log any `_private` path. Implementation-level constraints (enforced, not just intent): the decommission MUST glob ONLY `source_root/agents/logs/*/*.jsonl` for migration; MUST NOT `rglob`/`os.walk`/inventory the tree, MUST NOT run `git status --ignored`, MUST NOT use per-file delete callbacks that echo child paths; deletion is a single root-level operation; any emitted error may name only `source_root`, never a descendant. | Draft |
+| C-011 | The vault log dir hierarchy under `/home/kgale/second-brain/agents/logs/` MUST be writable by the deploying service user (`claude`): exact owner/group/mode specified for `agents/`, `agents/logs/`, per-agent subdirs, and JSONL files; a post-check MUST confirm the service user can append and remove a temp JSONL under the target. | Draft |
 | C-009 | The decommission is authorized only because the tracked content is a clone of `kentonium3/second-brain` recoverable from origin, and the runtime observation logs are migrated first. If either recoverability precondition cannot be verified, the destructive step MUST NOT run (abort and surface). | Draft |
 | C-010 | The full tree deletion crosses the second-brain boundary and proceeds ONLY under Kent's explicit authorization recorded in `DM-01KWS4F986PVHTJRSHZPQACDM7`; it is not a generalizable pattern. | Draft |
 
@@ -145,7 +159,8 @@ there is no human-facing UI.
 | SC-004 | #656 SC-5's invariant — "no writer targets `/home/claude/second-brain`" — is fully satisfied across both the inbox and observation subsystems. |
 | SC-005 | `service-inventory.json`, `data-flows.json`, and their markdown views reflect reality: vault log path, no `#659` retention notes, corrected `output_path` and `exec_start`. |
 | SC-006 | Rebaseline recorded on merge; post-change verification passes; no felix-deployer failure ntfy alert. |
-| SC-007 | The decommission touched no `_private` path (no `_private` path appears in any migrator output, log, or emitted record); preconditions (snapshot, recoverability, no-writer) were all verified before deletion. |
+| SC-007 | The decommission touched no `_private` path (no descendant path appears in any migrator output, log, or emitted record); ALL preconditions (snapshot **+ coverage proof**, origin recoverability, timer quiesce + no live process, inbox-prescan mtime check) were verified before deletion. |
+| SC-008 | Phase 1 ran and was verified over ≥1 clean digest cycle BEFORE Phase 2 executed; the two phases were independent deploys. If Phase 1 verification had failed, Phase 2 would not have run. |
 
 ## Key Entities
 

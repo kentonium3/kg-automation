@@ -12,24 +12,30 @@ pytest scripts/openclaw/observation/tests -k log_dir -q
 pytest scripts/deploy -k observation -q
 ```
 
-## Dry-run the migrator (safe; no mutation)
+## Dry-run both entrypoints (safe; no mutation)
 
 ```bash
-# On office2, as the claude user — dry-run prints a JSON plan and exits 0
+# Phase 1 (migrate-only): JSON plan of jsonl to union-merge; no delete
 ssh office2-claude 'cd /home/claude/kg-automation && python3 scripts/deploy/migrate-observation-logs.py --dry-run'
+# Phase 2 (decommission): JSON plan + precondition results; no delete
+ssh office2-claude 'cd /home/claude/kg-automation && python3 scripts/deploy/decommission-observation-stray-tree.py --dry-run'
 ```
 
-Expect: JSON `{migrate:[...jsonl...], remove:"/home/claude/second-brain", preconditions:{...}}`,
-no filesystem change, no `_private` path in output.
+Expect: JSON plans, no filesystem change, and NO `_private` or any descendant path in output
+(only `source_root` appears).
 
-## Deploy (via manifest pipeline — do NOT run destructive steps by hand)
+## Deploy — two staged phases (do NOT run destructive steps by hand)
 
 1. Merge the mission to `main` (spec-kitty), land `feat → main` after post-merge Codex review.
-2. felix-deployer picks up `deploys/queued/NNNN-migrate-observation-logs-and-decommission.yaml`:
-   - Tier-2 Restic snapshot gate (`pre`)
-   - `migrate-observation-logs.py --apply` (migrate logs → verify preconditions → decommission)
-   - `post`: `test ! -e /home/claude/second-brain`, vault ownership/mode
-   - auto-rebaseline (deploy-pipeline audited surface); outcome recorded on the deploy record
+2. **Phase 1** — felix-deployer picks up `deploys/queued/NNNN-migrate-observation-logs.yaml`:
+   - Tier-2 Restic snapshot gate (`pre`); `migrate-observation-logs.py --apply` (migrate only);
+     `post` vault writability; auto-rebaseline. **No deletion.**
+   - Verify ≥1 clean digest cycle: new logs under `/home/kgale`, none new under `/home/claude`.
+3. **Phase 2** — only after Phase 1 is verified, stage
+   `deploys/queued/MMMM-decommission-observation-stray-tree.yaml`:
+   - `pre` snapshot gate; `decommission-observation-stray-tree.py --apply`
+     (gate → quiesce → final merge → root-only delete → restart timer);
+     `post` `test ! -e /home/claude/second-brain`.
 
 ## Post-change verification (maps to Success Criteria)
 

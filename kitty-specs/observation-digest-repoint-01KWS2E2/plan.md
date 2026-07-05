@@ -67,12 +67,15 @@ scripts/
 ├── vault/
 │   └── (resolver.py / paths.json)      # touched ONLY if registry mechanism chosen (see research.md)
 └── deploy/
-    ├── migrate-observation-logs.py     # NEW: FR-002/003/004/005 one-time migrator + decommission
-    ├── migrate-inbox-state-and-logs.py # REUSED machinery (union-merge, snapshot gate, atomic copy)
-    └── lib/                            # REUSED shared deploy library
+    ├── observation_migration.py            # NEW: importable logic module (union-merge, gates, quiesce, delete)
+    ├── migrate-observation-logs.py         # NEW Phase-1 wrapper: FR-002/005 migrate-only (non-destructive)
+    ├── decommission-observation-stray-tree.py  # NEW Phase-2 wrapper: FR-003/004 quiesce + gate + root-only rm
+    ├── migrate-inbox-state-and-logs.py     # REUSED machinery reference (union-merge, snapshot gate)
+    └── lib/                                # REUSED shared deploy library
 
 deploys/queued/
-└── NNNN-migrate-observation-logs-and-decommission.yaml  # FR-008: Tier-2 manifest
+├── NNNN-migrate-observation-logs.yaml              # FR-008/FR-009 Phase 1 (Tier-2, non-destructive)
+└── MMMM-decommission-observation-stray-tree.yaml   # FR-009 Phase 2 (queued after Phase 1 verified)
 
 docs/design/architecture/data/
 ├── service-inventory.json              # FR-006: felix-core-digest corrections
@@ -100,22 +103,30 @@ spec FR-008.
 - **Sequencing/depends-on**: none.
 - **Risks**: script-path invocation (`/usr/bin/python3 …/summarize.py`, not `-m`) means the import surface must keep working; the existing `sys.path` shim in `config.py` covers `scripts.vault.resolver`. A config-default unit test locks FR-001.
 
-### IC-02 — One-time migration + decommission helper (code + tests)
+### IC-02a — Phase 1: migrate observation logs (non-destructive) + logic module
 
-- **Purpose**: Migrate runtime observation raw logs (`agents/logs/{agent}/*.jsonl`) from the stray tree to the vault (union-merge, atomic, idempotent), verify the decommission preconditions, then remove the entire `/home/claude/second-brain` clone **wholesale** — never touching `_private`.
-- **Relevant requirements**: FR-002, FR-003, FR-004, FR-005; NFR-001 (snapshot gate), NFR-003 (no loss), NFR-004 (shebang/dry-run); C-008 (`_private` never read/logged), C-009 (recoverability precondition), C-010 (authorized per `DM-01KWS4F986PVHTJRSHZPQACDM7`).
-- **Affected surfaces**: NEW `scripts/deploy/migrate-observation-logs.py`; reuse union-merge / atomic-copy / snapshot-gate helpers from `migrate-inbox-state-and-logs.py` and `scripts/deploy/lib/`; co-located tests.
-- **Sequencing/depends-on**: IC-01 (the repoint must be the deployed steady state before decommission is safe).
-- **Reality note**: the stray tree is a git clone of `kentonium3/second-brain` (March vault snapshot + old digest/state + live logs + `_private`), NOT a bare log dir. Only the git-ignored runtime logs are migrated; tracked content is recoverable from origin; everything else is removed in place.
-- **Risks**: destructive `rm -rf` of a second-brain clone — MUST be gated on ALL of (a) fresh Restic snapshot, (b) tracked-content recoverability from origin, (c) no active writer after repoint deploys; abort-before-delete otherwise. The migrator MUST NOT enumerate/read/log any `_private` path (bulk removal only). Copy-before-cutover for logs; idempotent re-run.
+- **Purpose**: Union-merge runtime observation logs (`agents/logs/{agent}/*.jsonl`) from the stray tree into the vault, atomically (temp+`os.replace`), idempotently. **No deletion.** House the shared logic in an importable underscore module.
+- **Relevant requirements**: FR-002, FR-005, FR-009 (Phase 1); NFR-003 (no loss), NFR-004 (shebang/dry-run), NFR-005 (atomic merge), C-011 (vault writability).
+- **Affected surfaces**: NEW `scripts/deploy/observation_migration.py` (importable module) + `scripts/deploy/migrate-observation-logs.py` (thin executable wrapper); reuse union-merge/snapshot-gate helpers; co-located tests.
+- **Sequencing/depends-on**: IC-01 (repoint is Phase 1's code).
+- **Risks**: a concurrent cron append during migrate is harmless (non-destructive; stragglers caught next cycle + Phase-2 final merge). Merge MUST be atomic (Codex Major 3). Entrypoint import name must be underscore-importable (Codex Major 4).
 
-### IC-03 — Deploy manifest (pipeline wiring)
+### IC-02b — Phase 2: decommission the stray tree (destructive, gated)
 
-- **Purpose**: Express the migration + decommission as a felix-deployer manifest with a Tier-2 snapshot gate and post-checks (ownership/mode; stray-tree absence).
-- **Relevant requirements**: FR-008; C-006 (manifest pipeline), C-007 (rebaseline), NFR-001, NFR-002 (no downtime).
-- **Affected surfaces**: NEW `deploys/queued/NNNN-migrate-observation-logs-and-decommission.yaml`.
-- **Sequencing/depends-on**: IC-02 (manifest invokes the migrator entrypoint).
-- **Risks**: entrypoint must survive felix-deployer's shebang invocation (NFR-004); manifest is the audited surface that triggers rebaseline.
+- **Purpose**: After Phase 1 is verified, quiesce the timer, run the precondition gate, final-merge stragglers, then root-only `rm -rf` the `/home/claude/second-brain` clone — never touching `_private`.
+- **Relevant requirements**: FR-003, FR-004, FR-009 (Phase 2); NFR-001 (snapshot+coverage); C-008 (`_private`/no-walk), C-009 (recoverability), C-010 (authorized `DM-01KWS4F986PVHTJRSHZPQACDM7`).
+- **Affected surfaces**: NEW `scripts/deploy/decommission-observation-stray-tree.py` (wrapper over the module); co-located tests.
+- **Sequencing/depends-on**: IC-02a AND a verified clean digest cycle (Phase 1 confirmed) — enforced by staging the Phase-2 manifest separately.
+- **Reality note**: the stray tree is a git clone of `kentonium3/second-brain` (March vault snapshot + old digest/state + live logs + `_private`), NOT a bare log dir. Only runtime logs are migrated; tracked content is recoverable from origin; everything else is removed in place without inspection.
+- **Risks (Codex Critical 1+2)**: `rm -rf` of a second-brain clone — gate on ALL of: fresh snapshot **+ proof the source root is in the backup set** (recency insufficient) OR operator attestation; HEAD present on origin; timer quiesced + no live `summarize.py`/`log_action.py`; inbox-prescan mtime check. Abort-before-delete on any failure. Root-only deletion; NO `rglob`/`os.walk`/`git status --ignored`; errors name only `source_root`.
+
+### IC-03 — Deploy manifests (two, staged)
+
+- **Purpose**: Express Phase 1 (migrate, non-destructive) and Phase 2 (decommission) as **two separate** felix-deployer manifests, each Tier-2 snapshot-gated, so Phase 2 is queued only after Phase 1 is verified over ≥1 clean cycle.
+- **Relevant requirements**: FR-008, FR-009; C-006 (manifest pipeline), C-007 (rebaseline), NFR-001, NFR-002 (no downtime).
+- **Affected surfaces**: NEW `deploys/queued/NNNN-migrate-observation-logs.yaml` (Phase 1) and `deploys/queued/MMMM-decommission-observation-stray-tree.yaml` (Phase 2).
+- **Sequencing/depends-on**: Phase-1 manifest → IC-02a; Phase-2 manifest → IC-02b + verified Phase 1. `apply.py` invokes `[entrypoint, "--apply"]` only, so staged behavior lives in two entrypoints, not flags (Codex Major 1).
+- **Risks**: each entrypoint must survive felix-deployer's shebang invocation (NFR-004); both manifests are the audited surface that triggers rebaseline. Phase-2 manifest MUST NOT be applied before Phase-1 verification — operator stages it deliberately.
 
 ### IC-04 — Architecture-doc corrections
 
