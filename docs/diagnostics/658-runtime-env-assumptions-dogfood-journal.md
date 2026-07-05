@@ -315,4 +315,34 @@ designed to produce.** Proceeding to `/spec-kitty.tasks`.
 
 ### Tasks
 
+`context resolve` + `check-prerequisites` clean (`branch_matches_target=True`, tasks_dir
+resolved). Decomposed the 6-item IC map into **6 WPs / 26 subtasks**:
+- WP01 (lane-a, foundational) — shared checker `env_assumptions.py` + unit tests · FR-001/002/007
+- WP02/03/04 (parallel after WP01) — convert capture / habits+escalation / tasker+calendar+main · FR-005/006/008
+- WP05 (after WP02-04) — Test-CI fleet guard + `validate_workspace` fold + doc-auditor disposition · FR-003/004/008
+- WP06 (after WP05) — docs (#167 + arch) + deploy manifest 0010 + verify · FR-009
+Profiles pre-assigned: python-pedro (WP01/05), implementer-ivan (WP02/03/04), curator-carla
+(WP06); impl agent claude / claude-sonnet-4-6 (Codex reserved for the adversarial review pass).
+`owned_files` non-overlapping; all `code_change`.
+
+`map-requirements --batch` → **9/9 FRs mapped, `unmapped_functional: None`**.
+
+**Friction F3 — finalize ownership gate (documented gotcha, cleared by following the tool).**
+First `finalize-tasks --validate-only` FAILED: *"Ownership validation failed: literal-path
+owned_files entries match zero files. Fix the paths or add them to 'create_intent'."* — the
+NEW files (env_assumptions.py, the two new test files, the 0010 manifest) were in `owned_files`
+but not yet on disk. Added `create_intent:` for the new-file WPs (WP01/05/06) — the known 3.2.4
+"create_intent + owned_files both list new files" lesson. Re-run → `validation_passed`.
+
+🎯 **`finalize-tasks` (mutating) SUCCEEDED — commit `3bd5a66b`, 6 lanes computed
+(lane-a…lane-f), `collapse_report` 0 merges** (correct — the WPs have distinct surfaces). Still
+committing direct on feat, no coord materialization through the entire planning arc.
+
+**Phase scorecard (specify→plan→post-plan-Codex→tasks): ZERO tool failures, ZERO coord splits,
+ONE design reversal (all from Codex), ONE documented ownership gate cleared by following the
+tool.** Tasks hit its ⛔ MANDATORY STOP. Proceeding to implement (auto-drive; the handoff
+question is pre-answered by the drive-the-arc instruction).
+
+### Implement
+
 _(to be appended)_
