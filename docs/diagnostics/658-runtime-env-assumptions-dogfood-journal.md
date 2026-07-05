@@ -467,4 +467,33 @@ substantive code/prompt/deploy + the kitty-specs artifacts + this journal).
 
 ### Post-merge Codex review
 
-_(running against the complete merged diff — to be appended)_
+Dispatched `codex exec --sandbox read-only` against the complete merged diff (1186-line scoped
+patch over the 16 substantive code/prompt/deploy files, excluding kitty-specs planning artifacts +
+this journal). It read the actual merged feat state.
+
+🎯 **Codex returned REQUEST-CHANGES with 2 MED — both valid false-NEGATIVES in the checker
+itself** (the prevention mechanism, so worth fixing before feat→main even though the CURRENT
+fleet exhibits neither shape):
+- **MED-1 — line-level anchor over-governs.** `anchored` was computed for the whole logical line
+  and suppressed EVERY `-m scripts.` finding on it, so an invocation *preceding* the `cd`
+  anchor (`python3 -m scripts.bad && cd "${PYTHONPATH:?}" && python3 -m scripts.ok`) — which runs
+  before the cd — was wrongly passed. Fix: the anchor must appear BEFORE the invocation
+  (`_PYTHONPATH_ANCHOR_RE.search(text[:m.start()])`), not merely somewhere on the line.
+- **MED-2 — quoted hardcoded abs-path missed.** `_ABS_PATH_RE` matched `python3 /abs/…py` but not
+  `python3 "/home/claude/kg-automation/…py"` (Codex empirically verified the quoted form returned
+  no finding). Fix: allow an optional quote before the path.
+
+Both folded on feat (commit `c84769d9`) + 3 regression tests. 🎯 **After hardening the checker, the
+fleet STILL scans 0 findings** — confirming the conversions are genuinely compliant, not merely
+passing a lax check (a lesser check passing everything would have been the failure mode). 48 tests
+green. Codex found NO semantic-breakage / consistency / deploy-correctness issues in the
+conversions themselves — the calendar pipe form, the .tmpl lockstep, the validator fold, and the
+self-bootstrapping entrypoint all passed its scrutiny.
+
+**Both mandatory Codex checkpoints paid off:** post-plan caught a design reversal + an
+implement-breaking bug before any code; post-merge caught 2 checker false-negatives before the PR
+to main. Neither would have surfaced from the per-WP checker-clean signal alone.
+
+### PR feat→main
+
+_(the maintainer-lands-via-PR step — to be appended)_
