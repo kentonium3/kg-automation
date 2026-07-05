@@ -17,10 +17,10 @@ No hardcoded checkout; deterministic cwd; fail-loud outside gateway; helper args
 | T004 | Waiver parsing (`# env-guard: waive <kind> — reason`) | WP01 | | [D] |
 | T005 | Public API scan_text/scan_file/scan_agents_root (exclude retired doc-auditor) | WP01 | | [D] |
 | T006 | Unit tests: each ViolationKind TP, canonical TN, must-not-flag, multiline, python-abspath, waiver | WP01 | | [D] |
-| T007 | capture AGENTS.md: convert 14 bare `-m scripts.` → cd form | WP02 | [P] |
-| T008 | capture AGENTS.md.tmpl: convert abs-path `python3 /home/claude/...` invocations | WP02 | [P] |
-| T009 | capture `.tmpl`↔AGENTS.md lockstep; convert the `.tmpl` `-m scripts.` | WP02 | [P] |
-| T010 | capture self-scan with checker → 0 findings; args absolute | WP02 | [P] |
+| T007 | capture AGENTS.md: convert 14 bare `-m scripts.` → cd form | WP02 | [D] |
+| T008 | capture AGENTS.md.tmpl: convert abs-path `python3 /home/claude/...` invocations | WP02 | [D] |
+| T009 | capture `.tmpl`↔AGENTS.md lockstep; convert the `.tmpl` `-m scripts.` | WP02 | [D] |
+| T010 | capture self-scan with checker → 0 findings; args absolute | WP02 | [D] |
 | T011 | habits: de-hardcode 5 `cd /home/claude/kg-automation` → cd "${PYTHONPATH:?}" | WP03 | [D] |
 | T012 | habits: convert 3 abs-path felix-file-issue.py invocations | WP03 | [D] |
 | T013 | escalation: convert 7 bare `-m scripts.` + 1 abs-path | WP03 | [D] |
