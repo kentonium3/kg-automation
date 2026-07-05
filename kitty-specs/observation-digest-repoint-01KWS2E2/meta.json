@@ -7,6 +7,7 @@
   "mission_number": null,
   "mission_slug": "observation-digest-repoint-01KWS2E2",
   "mission_type": "software-dev",
+  "pr_bound": true,
   "purpose_context": "Felix's observation-digest subsystem still writes raw agent-activity logs into a stray directory on the service account that isn't backed up with Kent's vault. A prior fix (#656) relocated the inbox logs but had to leave this one in place. This mission repoints the remaining writer to the backed-up location, migrates the existing logs, and fully decommissions the stray directory so there is one clear home for Felix's activity records.",
   "purpose_tldr": "Move Felix's agent-activity logs onto Kent's backed-up account and retire the stray directory left behind by #656.",
   "slug": "observation-digest-repoint-01KWS2E2",
