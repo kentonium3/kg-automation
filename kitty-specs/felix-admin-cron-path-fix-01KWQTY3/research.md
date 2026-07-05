@@ -5,10 +5,13 @@ Phase 0 findings. All conclusions are grounded in live codebase probes of
 
 ## R1 — FR1 guardrail mechanism: environment vs. prompt
 
-**Decision**: Set `Environment=PYTHONPATH=/home/claude/kg-automation` in
-`scripts/openclaw/openclaw-gateway.service`. Do **not** add per-invocation
-`PYTHONPATH` prefixes or a wrapper script to the prompts. (Decision
-`DM 01KWR0CRKY6G91P715GD375YKC`.)
+**Decision**: Set `PYTHONPATH=/home/claude/kg-automation` in the process
+environment of the OpenClaw gateway, delivered as a dedicated **systemd drop-in**
+`scripts/openclaw/openclaw-gateway.service.d/pythonpath.conf` (revised after
+Codex #1 M2 — a drop-in avoids source-line collision with #653's in-flight
+`ExecStart` change). Do **not** add per-invocation `PYTHONPATH` prefixes or a
+wrapper to the prompts. (Decision `DM 01KWR0CRKY6G91P715GD375YKC`.) **Gate**: the
+inheritance is verified in a real agent subprocess before reliance (see R7/C1).
 
 **Rationale**: The invariant "`scripts` is importable" must live in the
 deterministic layer. Inline prefixes and wrapper calls are *improved
@@ -107,17 +110,25 @@ present (`post`) → decommission `/home/claude/second-brain/`.
 
 **Rationale**: `deploys/applied/0003-*` establishes the manifest schema (v1:
 entrypoint + pre/post verification + tier + snapshot). C-003 makes this Tier-2
-(state mutation on a service data dir) → snapshot-required. The
-**migration/cutover window** (code reads new path before the copy exists) is
-bounded by two existing safeguards: routing_log's reader is fail-safe (missing
-file → empty set) and notes carry `status: processed` frontmatter enforced by
-`mark_processed`, so already-routed notes are skipped even against an empty ledger.
-Worst case is re-evaluation, not duplicate routing.
+(state mutation on a service data dir) → snapshot-required.
 
-**Alternatives considered**: a transitional new→old read-fallback in both state
-modules — deferred to the tasks phase as an option only if IC-05's copy-first +
-fail-safe reasoning proves insufficient; if adopted it needs an explicit removal
-forcing function (no-vestiges rule).
+**Cutover safety — CORRECTED (Codex #1 H1)**: the initial reasoning ("notes carry
+`status: processed`, so worst case is re-evaluation not duplication") is
+**overbroad and withdrawn**. `prescan.py:427-446` treats missing/unknown
+frontmatter as *unprocessed*, so for that class the routing ledger is the *sole*
+dedup guard — an empty ledger during the window **can** cause duplicate routing.
+Therefore cutover must be **atomic**: the migration copies/merges state (with
+correct perms) **before** any code that reads the new path can run, and/or a
+one-release transitional new→old read-fallback is shipped with an explicit removal
+forcing function (no-vestiges rule). Add a test for the malformed-frontmatter case
+where the ledger is the only guard.
+
+**Live probe (2026-07-04)**: `/home/claude/second-brain/agents/state/` currently
+holds only `inbox-routing.jsonl` (1508 B, mtime Jul 4 21:00); no
+`pending-calendar-clarifications.*` on disk. `agents/logs/` has per-agent subdirs
+(enrichment, felix-admin-*, …) beyond top-level `*.md` — the preservation copy
+must recurse. Target `/data/services/openclaw/state/` is owned `claude:secondbrain`,
+dir mode `0750` (files `0640` by precedent).
 
 ## R6 — Audited-surface / rebaseline determination
 
@@ -129,3 +140,27 @@ carry a rebaseline line. **Open item for the plan-to-tasks boundary**: per the
 *unmonitored* audited surface, while the systemd-unit change **is** monitored and
 does require a rebaseline. Tasks/merge must state which applies (expected:
 `Rebaseline: completed …` for the unit change; note the AGENTS.md gap).
+
+## R7 — Post-plan Codex review (#1) findings & resolutions
+
+Independent Codex pass (2026-07-04, profile `spec-kitty-review`). All findings
+confirmed against code and/or live office2 probe. Resolutions folded into this
+plan before task decomposition.
+
+| Finding | Sev | Confirmed by | Resolution |
+|---------|-----|--------------|------------|
+| C1 — env inheritance asserted not verified; `HOME` also from passwd; SSH shell is wrong test surface | crit | `getent passwd claude` (home from passwd); no live agent subprocess to inspect | IC-01 **verification gate**: prove `PYTHONPATH` in a real agent/cron subprocess before reliance + before IC-04 prose removal (SC-10) |
+| C2 — `prescan.py:771` bare `from routing_log import` → silent dedup-disabled even with env fix | crit | code read; Codex ran prescan from `/tmp` → "dedup-disabled mode" | **FR-011** package-absolute imports; test dedup active from `/tmp` (SC-8) |
+| C3 — two clarification substrates: helper `.json` + calendar inline `.jsonl`, both stray-dir writers | crit | code read (`handle_clarification_state.py:47` vs `felix-admin-calendar/AGENTS.md:82,134`, `main/AGENTS.md:198`) | **FR-010** repoint both writers' paths (Kent: minimal — path only); format unification = follow-up |
+| H1 — cutover "status: processed" mitigation overbroad | high | `prescan.py:427-446` treats missing frontmatter as unprocessed | R5 corrected → **atomic copy-before-cutover** + malformed-frontmatter test |
+| H2 — blind `rm` of stray dir can destroy unclassified data | high | contract copied only 2 files + `*.md`; live probe shows per-agent log subdirs | **FR-008** inventory→classify→verify→quarantine→conditional-delete |
+| H3 — `/data/.../state/` ownership/modes unspecified; writers create 0700/umask | high | `routing_log.py:135` (0700); precedent `claude:secondbrain` 0750/0640 | **FR-012** encode owner/group/modes in migration + writers |
+| M1 — sweep misses tasker `~/repos` + `~/second-brain` refs | med | `felix-admin-tasker/AGENTS.md:283`, `TOOLS.md:30` | **FR-009** broadened to all felix-admin `AGENTS.md*`/`TOOLS.md*` (not `_private`) |
+| M2 — #653 collision note too weak for a shared unit | med | shared `ExecStart` line | IC-01 delivered as **systemd drop-in** → no source-line collision |
+
+**Follow-up spun out**: the `.json`/`.jsonl` calendar-clarification format duality
+(investigate live-ness + unify) — to be folded into #658 or filed separately after
+this mission (Kent: minimal-repoint here).
+
+Codex verdict was "not sound to decompose yet"; with the above folded in, the
+design is ready for `/spec-kitty.tasks`.

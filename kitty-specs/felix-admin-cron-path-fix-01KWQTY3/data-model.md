@@ -16,13 +16,26 @@ rules** that must hold. Recorded so the path contract is explicit and testable.
 - **Location — after**: `/data/services/openclaw/state/inbox-routing.jsonl`.
 - **Invariant**: relocation must not cause any already-routed filename to be re-routed (SC-3). Reader is fail-safe: missing file → empty set.
 
-### E2 — Calendar clarification state (`pending-calendar-clarifications.json`)
+### E2 — Calendar clarification state (TWO writers, path-repoint only)
 
-- **Shape**: JSON object keyed by note filename → partial payload + timestamp; swept at 24h.
-- **Producer/Consumer**: `scripts/inbox/handle_clarification_state.py` (`add`/`match`/`sweep`).
-- **Location — before**: `/home/claude/second-brain/agents/state/pending-calendar-clarifications.json`.
-- **Location — after**: `/data/services/openclaw/state/pending-calendar-clarifications.json`.
-- **Invariant**: an in-flight clarification pending across the migration must still `match` after the move (no lost clarifications).
+Codex #1 (C3) found two parallel substrates for calendar clarification state,
+**both** currently writing under the stray `~/second-brain/agents/state/`:
+
+- **E2a — helper `.json`**: `pending-calendar-clarifications.json`, a JSON object
+  keyed by note filename → partial payload + timestamp; swept at 24h.
+  Producer/Consumer `scripts/inbox/handle_clarification_state.py`
+  (`add`/`match`/`sweep`). Before → `/home/claude/second-brain/agents/state/…json`;
+  after → `/data/services/openclaw/state/…json`.
+- **E2b — calendar inline `.jsonl`**: `pending-calendar-clarifications.jsonl`,
+  written/read by inline `os.path.expanduser("~/…")` code in
+  `felix-admin-calendar/AGENTS.md` (+ `main/AGENTS.md`, calendar `TOOLS.md`).
+  Before → `~/second-brain/agents/state/…jsonl`; after →
+  `/data/services/openclaw/state/…jsonl`.
+- **Scope**: **path repoint only** (both writers → `/data/…`). The `.json`/`.jsonl`
+  format duality is a latent inconsistency reconciled in a follow-up, NOT here.
+- **Invariant**: neither writer targets the stray dir after this mission (SC-5); an
+  in-flight clarification pending across the migration must still `match` after the
+  move (no lost clarifications). Neither file is on disk at plan time (live probe).
 
 ### E3 — Forensic log (`inbox-prescan-YYYY-MM-DD.md`)
 
@@ -48,7 +61,9 @@ rules** that must hold. Recorded so the path contract is explicit and testable.
 | PR-2 | Agent state (machine-readable, not for the vault) lives under `/data/services/openclaw/state/`. |
 | PR-3 | Agent forensic output meant for Kent lives under `/home/kgale/second-brain/agents/…` (the synced vault). |
 | PR-4 | `scripts` package import must not depend on cwd (satisfied by E4). |
-| PR-5 | No writer may target `/home/claude/second-brain/*` after this mission (SC-5). |
+| PR-5 | No writer may target `/home/claude/second-brain/*` (or bare `~/second-brain` for writes) after this mission (SC-5). The `_private/` read-prohibition lines are exempt (not writers). |
+| PR-6 | State under `/data/services/openclaw/state/` follows the ownership/mode convention: owner `claude`, group `secondbrain`, dir `0750`, files `0640` (FR-012); helper parent-creation must not impose a stricter mode. |
+| PR-7 | Intra-`scripts.inbox` imports are package-absolute so dedup resolves under the guardrail from any cwd (FR-011); `prescan` never silently disables dedup (SC-8). |
 
 ## State transition — the migration (one-time)
 

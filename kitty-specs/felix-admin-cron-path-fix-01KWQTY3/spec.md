@@ -89,8 +89,11 @@ his phone/Mac via Obsidian sync.
 | FR-005 | The existing live `inbox-routing.jsonl` MUST be migrated from `/home/claude/second-brain/agents/state/` to the new location with its contents preserved, such that no already-routed note is re-routed after the move. | Draft |
 | FR-006 | Inbox forensic logs MUST be written to the canonical Obsidian-synced vault at `/home/kgale/second-brain/agents/logs/`. This requires fixing the hardcoded `DEFAULT_LOG_DIR` in `scripts/inbox/prescan.py` and removing the `~/second-brain`-relative ambiguity in the capture agent prompt template (which resolves to `/home/claude` for the claude-run agent). | Draft |
 | FR-007 | The deployed capture-agent prompt surfaces MUST be internally consistent about the forensic-log and state locations — the `AGENTS.md`/`AGENTS.md.tmpl` and `TOOLS.md`/`TOOLS.md.tmpl` copies MUST agree, with no residual references to the stray `/home/claude/second-brain` path. | Draft |
-| FR-008 | Existing historical forensic logs and any other live contents under `/home/claude/second-brain/` MUST be preserved into their new canonical locations, after which the stray `/home/claude/second-brain/` directory MUST be decommissioned and no writer MUST recreate it. | Draft |
-| FR-009 | The stale reference to the second, out-of-date repo copy `~/repos/kg-automation/…/log_action.py` in the escalation agent prompt (pointing at an April-15 copy rather than `/home/claude/kg-automation`) MUST be corrected in the same sweep. | Draft |
+| FR-008 | Existing historical forensic logs and any other live contents under `/home/claude/second-brain/` MUST be preserved into their new canonical locations, after which the stray directory MUST be decommissioned and no writer MUST recreate it. Decommission MUST NOT be a blind delete: the migration MUST inventory the entire stray tree, classify and copy every path with size/count verification, **quarantine-rename** the tree, and refuse final removal if any unclassified content remains. | Draft |
+| FR-009 | Stale/`~`-relative references to `~/repos/kg-automation/…` and `~/second-brain/…` MUST be corrected across **all** felix-admin agent prompts (`AGENTS.md*` + `TOOLS.md*`), not only the escalation copy — grep confirmed additional instances in the tasker prompt (`AGENTS.md:283` `~/repos/kg-automation/…/log_action.py`; `TOOLS.md:30` `~/second-brain/agents/logs/`). The second-brain `_private/` boundary references MUST be left untouched. | Draft |
+| FR-010 | **Every** writer of agent state that currently resolves under the stray `/home/claude/second-brain/agents/state/` MUST target `/data/services/openclaw/state/` — the capture dedup ledger (`routing_log.py`), the capture clarification helper (`handle_clarification_state.py`, `pending-calendar-clarifications.json`), AND the calendar agent's inline clarification writer (`pending-calendar-clarifications.jsonl`, currently `os.path.expanduser("~/…")` in `felix-admin-calendar/AGENTS.md` + `main/AGENTS.md`). This is a **path repoint only**; unifying the `.json`/`.jsonl` format duality is out of scope (tracked as a follow-up). Required for FR-008/SC-5 to hold. | Draft |
+| FR-011 | Intra-package imports within `scripts/inbox/` (notably `prescan.py` importing `routing_log`) MUST use the package-absolute form (`from scripts.inbox.routing_log import …`) so dedup resolves under the `PYTHONPATH` guardrail from any working directory. `prescan.py` MUST NOT silently enter "dedup-disabled mode" from a non-repo cwd. | Draft |
+| FR-012 | State written under `/data/services/openclaw/state/` MUST follow the established ownership/mode convention (owner `claude`, group `secondbrain`, directory `0750`, files `0640`). The migration MUST ensure the directory and migrated files carry these; helper parent-directory creation MUST NOT impose a more restrictive mode (`routing_log.py` currently creates `0700`, `handle_clarification_state.py` uses default umask). | Draft |
 
 ### Non-Functional Requirements
 
@@ -118,6 +121,9 @@ his phone/Mac via Obsidian sync.
 - **SC-5**: The stray `/home/claude/second-brain/` directory is decommissioned (its live contents preserved first) and no agent or helper recreates it on subsequent runs.
 - **SC-6**: The stale `~/repos/kg-automation` reference is gone from the escalation agent prompt.
 - **SC-7**: No regression in inbox routing/dedup or escalation state after deploy.
+- **SC-8**: A full prescan run from a non-repo working directory reports dedup **active** (no "dedup-disabled mode" warning); the routing-log reader import resolves under the guardrail. (Guards FR-011.)
+- **SC-9**: Migrated state files at `/data/services/openclaw/state/` carry owner `claude`, group `secondbrain`, dir `0750`, files `0640`. (Guards FR-012.)
+- **SC-10**: The FR1 `PYTHONPATH` guardrail is verified present in a real OpenClaw-launched agent/cron subprocess (not just an SSH login shell) before any cwd prose is removed.
 
 ## Key Entities
 
@@ -128,7 +134,9 @@ his phone/Mac via Obsidian sync.
 ## Assumptions
 
 - The `scripts.enrichment` module (not `scripts.tasker`) is the correct package the tasker agent invokes; confirmed by grep of the agent prompt. The issue's "tasker" label refers to the `felix-admin-tasker` agent.
-- `felix-admin-calendar` currently issues **no** `python3 -m scripts.*` invocation (grep found none); the plan will confirm and, if so, exclude it from the FR-002 sweep rather than invent a guardrail with nothing to guard.
+- `felix-admin-calendar` issues **no** `python3 -m scripts.*` invocation (grep confirmed) so it is excluded from the FR-002 import sweep — **but** it IS a stray-dir *state writer* (inline `pending-calendar-clarifications.jsonl` via `~`), so it is in scope for FR-010.
+- No `pending-calendar-clarifications.{json,jsonl}` file exists on office2 right now (live probe 2026-07-04) — the clarification file is created on demand — so the immediate data migration moves only `inbox-routing.jsonl`; the two clarification *writers* are still repointed (FR-010) so the file lands correctly next time and the decommission holds.
+- The `.json` (helper) vs `.jsonl` (calendar inline) clarification-substrate duality is a genuine latent inconsistency, but reconciling/unifying it is **out of scope** here (path-repoint only); a follow-up will investigate whether both flows are live and unify the format.
 - `felix-doc-auditor` is a scripts-first driver, not an OpenClaw prompt agent, and is out of scope unless the plan's sweep surfaces an in-prompt `-m scripts.*` invocation.
 - The canonical vault path for logs is `/home/kgale/second-brain` because `obsidian-sync` syncs `/home/kgale/second-brain/notes`; `~` in the claude-run agent resolves to `/home/claude`, which is the root cause of the drift.
 
@@ -142,6 +150,7 @@ his phone/Mac via Obsidian sync.
 ## Out of Scope
 
 - Redesigning the helper invocation convention project-wide beyond the felix-admin agents that actually invoke `-m scripts.*`.
+- Unifying the `.json`/`.jsonl` calendar-clarification substrate duality (FR-010 repoints the paths only; format reconciliation is a tracked follow-up).
 - Changing the canonical target locations (fixed by C-004).
 - Any change to the doc-auditor driver, the OpenClaw core relocation (#653), or the WhatsApp DM-reply work (#652).
 - Broader consolidation of the two repo checkouts on office2 beyond removing the single stale reference in FR-009.

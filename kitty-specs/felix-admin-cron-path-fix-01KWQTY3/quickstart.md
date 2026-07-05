@@ -9,9 +9,16 @@ Run as `ssh office2-claude` unless noted. Read-only checks; no sudo.
 ssh office2-claude 'cd /data/services/openclaw/escalation-agent && python3 -m scripts.escalation.derive_state --help >/dev/null && echo OK-escalation'
 ssh office2-claude 'cd /home/kgale/second-brain && python3 -m scripts.inbox.prescan --help >/dev/null && echo OK-inbox'
 ```
-Both print `OK-…` (previously `ModuleNotFoundError`). Confirms the gateway
-`PYTHONPATH` env is inherited (these shells inherit it the same way agent
-subprocesses do).
+Both print `OK-…` (previously `ModuleNotFoundError`).
+
+> ⚠️ **SSH shells are NOT the acceptance surface (Codex #1 C1).** An SSH login
+> shell inherits env from the login profile, not from the gateway service. The
+> authoritative check (SC-10) is that `PYTHONPATH` is present inside a **real
+> agent/cron subprocess** — run a one-off agent/cron payload that executes
+> `python3 -c 'import os;print(os.environ.get("PYTHONPATH"))'` from a non-repo cwd
+> and confirm it prints `/home/claude/kg-automation`. Also:
+> `systemctl --user show openclaw-gateway.service -p Environment` shows the
+> drop-in value — necessary but not sufficient on its own.
 
 ## SC-2 — consecutive clean cron runs
 
@@ -47,12 +54,29 @@ ssh office2-claude 'test ! -e /home/claude/second-brain && echo stray-gone'
 ssh office2-claude 'test ! -e /home/claude/second-brain && echo stray-still-gone'
 ```
 
-## SC-6 — stale checkout ref removed
+## SC-6 — stale/stray refs removed (broadened, Codex #1 M1)
 
 ```
-grep -rn "~/repos/kg-automation" scripts/openclaw/agents/ || echo "no stale ref"
+grep -rn "~/repos/kg-automation" scripts/openclaw/agents/ || echo "no stale checkout ref"
+grep -rn "/home/claude/second-brain" scripts/openclaw/agents/ scripts/inbox/ || echo "no stray-dir ref"
+# ~/second-brain write/log targets should be gone EXCEPT the _private read-prohibition lines:
+grep -rn "~/second-brain" scripts/openclaw/agents/ | grep -v "_private" || echo "no ~/second-brain write refs"
 ```
-Run against the deployed prompts; expect none.
+Run against the deployed prompts; expect none outside the `_private` boundary lines.
+
+## SC-8 — dedup active from any cwd (FR-011)
+
+```
+ssh office2-claude 'cd /tmp && python3 -m scripts.inbox.prescan --self-check 2>&1 | grep -i "dedup-disabled" && echo "FAIL: dedup disabled" || echo "OK: dedup active"'
+```
+Expect `OK: dedup active` — the routing-log reader import resolves under the guardrail.
+
+## SC-9 — state dir ownership/modes (FR-012)
+
+```
+ssh office2-claude 'stat -c "%U:%G %a %n" /data/services/openclaw/state /data/services/openclaw/state/inbox-routing.jsonl'
+```
+Expect `claude:secondbrain 750 …/state` and `claude:secondbrain 640 …/inbox-routing.jsonl`.
 
 ## SC-7 — no routing/escalation regression
 
