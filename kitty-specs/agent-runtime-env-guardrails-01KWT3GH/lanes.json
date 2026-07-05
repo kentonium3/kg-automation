@@ -1,0 +1,126 @@
+{
+  "version": 1,
+  "mission_slug": "agent-runtime-env-guardrails-01KWT3GH",
+  "mission_id": "01KWT3GHVB4X49DKG02FVEQYCQ",
+  "mission_branch": "kitty/mission-agent-runtime-env-guardrails-01KWT3GH",
+  "target_branch": "feat/agent-runtime-env-guardrails",
+  "lanes": [
+    {
+      "lane_id": "lane-a",
+      "wp_ids": [
+        "WP01"
+      ],
+      "write_scope": [
+        "scripts/openclaw/agents/env_assumptions.py",
+        "scripts/openclaw/agents/tests/test_env_assumptions.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "workspace"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    },
+    {
+      "lane_id": "lane-b",
+      "wp_ids": [
+        "WP02"
+      ],
+      "write_scope": [
+        "scripts/openclaw/agents/felix-admin-capture/AGENTS.md",
+        "scripts/openclaw/agents/felix-admin-capture/AGENTS.md.tmpl"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "artifact-rendering",
+        "legacy-cleanup"
+      ],
+      "depends_on_lanes": [
+        "lane-a"
+      ],
+      "parallel_group": 1
+    },
+    {
+      "lane_id": "lane-c",
+      "wp_ids": [
+        "WP03"
+      ],
+      "write_scope": [
+        "scripts/openclaw/agents/felix-admin-escalation/AGENTS.md",
+        "scripts/openclaw/agents/felix-admin-habits/AGENTS.md"
+      ],
+      "predicted_surfaces": [
+        "api"
+      ],
+      "depends_on_lanes": [
+        "lane-a"
+      ],
+      "parallel_group": 1
+    },
+    {
+      "lane_id": "lane-d",
+      "wp_ids": [
+        "WP04"
+      ],
+      "write_scope": [
+        "scripts/openclaw/agents/felix-admin-calendar/AGENTS.md",
+        "scripts/openclaw/agents/felix-admin-tasker/AGENTS.md",
+        "scripts/openclaw/agents/felix-admin-tasker/AGENTS.md.tmpl",
+        "scripts/openclaw/agents/main/AGENTS.md"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "artifact-rendering"
+      ],
+      "depends_on_lanes": [
+        "lane-a"
+      ],
+      "parallel_group": 1
+    },
+    {
+      "lane_id": "lane-e",
+      "wp_ids": [
+        "WP05"
+      ],
+      "write_scope": [
+        "scripts/openclaw/agents/tests/test_env_assumptions_guard.py",
+        "scripts/openclaw/agents/tests/test_validate_workspace.py",
+        "scripts/openclaw/agents/validate_workspace.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "workspace"
+      ],
+      "depends_on_lanes": [
+        "lane-b",
+        "lane-c",
+        "lane-d"
+      ],
+      "parallel_group": 2
+    },
+    {
+      "lane_id": "lane-f",
+      "wp_ids": [
+        "WP06"
+      ],
+      "write_scope": [
+        "deploys/queued/0010-agent-runtime-env-guardrails.yaml",
+        "docs/design/architecture/data/audited-surfaces.json",
+        "docs/runbooks/openclaw-agent-setup.md"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "artifact-rendering",
+        "tracker-integration",
+        "workspace"
+      ],
+      "depends_on_lanes": [
+        "lane-e"
+      ],
+      "parallel_group": 3
+    }
+  ],
+  "computed_at": "2026-07-05T22:14:53.563720+00:00",
+  "computed_from": "dependency_graph+ownership",
+  "planning_artifact_wps": []
+}
