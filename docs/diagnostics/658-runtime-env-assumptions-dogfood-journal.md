@@ -345,4 +345,41 @@ question is pre-answered by the drive-the-arc instruction).
 
 ### Implement
 
-_(to be appended)_
+**Analysis gate + record-analysis.** `implement WP01` correctly gated on
+`analysis_report_required` (legit, not a block). Authored the `analysis-findings/v1`
+carrier (2 LOW + 1 info, verdict computed `ready`), `record-analysis`. **Friction F4 —
+record-analysis dirty-tree preflight (#2102 class).** First `record-analysis` refused:
+*"Refusing to record analysis report with pre-existing dirty working tree."* — dirty tree
+was spec-kitty's OWN uncommitted state (`meta.json` M + `decisions/` from the plan-phase
+decision CLI). Committed it via `spec-commit` (explicit file paths — spec-commit's backstop
+rejects passing a bare directory) → re-record → `verdict: ready`. Candidate spec-kitty gap:
+the preflight should ignore the workflow's own uncommitted state.
+
+**WP01 — env-assumption checker (`env_assumptions.py`).** Implemented directly in the
+lane-a worktree per the data-model/contract with all Codex fixes: logical-command recognizer
+(joins backslash continuations, flags inline-imperative backtick commands, excludes
+`<placeholder>` docs + HTML comments), cd-form compliance predicate, 4 ViolationKinds
+(python+python3 abs-path), waiver parsing, `scan_agents_root` reusing the validator's real
+`SUSPENDED_WORKSPACES`/`NON_WORKSPACE_DIRS` (the WP prompt's `EXCLUDED` was my approximation
+— used the actual symbols). **21 unit tests green** covering every Codex-flagged edge case.
+
+🎯 **The checker validated on REAL data — and caught a bug the grep missed.** Running it over
+the unconverted fleet: **44 findings across 6 agents** (23 bare / 16 abs-path / 5 hardcoded-cd)
+— vindicating the D1 scope expansion (the "~30 -m scripts." framing undercounted). Notably it
+flagged a **hardcoded abs-path in `main` (line 85)** that my earlier `grep -m scripts.` reported
+as 0 invocations — so `main` is a real conversion target, not audit-only. Ground-truth via the
+tool beats ground-truth via grep.
+
+**Friction F5 — approve-gate chain (documented gates, cleared by following the tool).** Moving
+WP01 for_review→approved surfaced the #2115 coord/primary-split family, one gate at a time:
+(a) `move-task for_review` preflight required committing accumulated status artifacts (tasks.md
+`[D]` markers, analysis-report.md) — `spec-commit`ed; (b) `move-task approved` hit the
+**issue-matrix gate** (#1817/#2115) — auto-scaffolded rows for the 5 issues my spec references
+(#656/#659/#167/#587/#343), all dispositioned `verified-already-fixed` (each is prior/completed
+work this mission BUILDS ON, not fixes) with evidence refs → `spec-commit` → **WP01 approved**.
+All gates were documented + cleared by following the tool (no hand-cranking of workflow actions).
+
+**WP01 DONE + approved.** Commits: checker `6bfaceff` (in lane-a). MVP (the prevention
+mechanism) is in. Proceeding to the conversion WPs (WP02-04, parallel, verified by this checker).
+
+_(WP02-06 to be appended)_
