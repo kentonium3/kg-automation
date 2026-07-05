@@ -382,4 +382,50 @@ All gates were documented + cleared by following the tool (no hand-cranking of w
 **WP01 DONE + approved.** Commits: checker `6bfaceff` (in lane-a). MVP (the prevention
 mechanism) is in. Proceeding to the conversion WPs (WP02-04, parallel, verified by this checker).
 
-_(WP02-06 to be appended)_
+**WP02/03/04 — conversions via 3 parallel implementer sub-agents (lanes b/c/d).** Each converted
+its agents to the canonical form + self-verified with the WP01 checker (0 findings) before
+committing. Results: capture 19 (13 AGENTS.md inline-imperative + 6 `.tmpl`, incl. prescan's
+piped invocation → no-cd path form); habits+escalation 16 (all 5 habits hardcoded-`cd`
+de-hardcoded + 3 abs-path; 7 escalation bare + 1 abs-path, list indentation preserved);
+tasker+calendar+main 9 (calendar's piped `validate_calendar_event` correctly using the no-cd
+`"${PYTHONPATH:?}/scripts/…"` form — the exact Codex MED-4 case; `python`/`python3` preserved).
+Dispatching sub-agents kept orchestrator context lean; each got the canonical form + checker
+self-verify loop inlined. All three approved through the gates (status-commit each; the
+issue-matrix gate passed on WP02-04 without re-authoring — WP01's fill persisted).
+
+**WP05 — Test-CI fleet guard + `validate_workspace` fold + doc-auditor disposition.**
+`check_runtime_env_assumptions()` uses the real `.ok` CheckResult field (Codex MED-3) with a
+**lazy import** of `scan_file` to break the import cycle (env_assumptions imports the exclusion
+sets from validate_workspace). Fleet guard scans `scan_agents_root` → 0. doc-auditor
+dispositioned RETIRED in the SUSPENDED_WORKSPACES comment.
+
+🎯 **FINDING F6 — the domain checker is necessary but NOT sufficient; the FULL test suite caught
+a real regression the checker couldn't.** WP05's `pytest scripts/openclaw/agents/tests/` showed
+**43 pass, 2 FAIL** — `test_agents_md_size.py` (a prior mission's hard 12K cap on
+`main`/`calendar` AGENTS.md). My verbose canonical guard message (`${PYTHONPATH:?PYTHONPATH not
+set — run under openclaw-gateway or export the checkout root}`, ~74 bytes, em-dash = 3 bytes)
+repeated per invocation pushed calendar (12167) + main past 12K. The env-assumption CHECKER was
+happy (the long form is compliant) — only the independent size test caught it. **LESSON: per-WP
+approval must run the whole suite, not just the domain verifier; I approved WP02-04 on
+checker-clean alone and missed this.** Fix: shortened the canonical message globally to
+`${PYTHONPATH:?PYTHONPATH unset}` across all converted files (calendar → 11923, main → 11949,
+all owned-file scans still 0). This also serves Kent's "consistently implemented, no cruft" goal.
+
+🐛 **FINDING F7 — stale-lane propagation gap (candidate spec-kitty issue).** The message-shorten
+fix committed to the already-approved conversion lanes (b/c/d). WP05's lane-e had already merged
+those lanes' OLD commits at approval time. `spec-kitty implement WP05` (the sanctioned stale-lane
+refresh) merged the **mission branch** — which does NOT yet carry the lane-branch fix commits
+(they reach mission only at final merge) — so lane-e stayed stale (calendar 12167, size tests
+red). Resolved by a manual `git merge` of the updated conversion lane branches into lane-e
+(disjoint files — validator/tests vs agent prompts — clean, no conflicts) → calendar 11923, **45
+tests green**. The final `spec-kitty merge` will rebase everything correctly regardless; the
+manual merge was only to verify WP05 green in its own lane before approval. Candidate gap: the
+CLI stale-refresh should follow dependency **lane HEADs**, not just the mission branch, when a
+dependency lane advances post-approval.
+
+**WP05 approved.** Recurring friction (each cleared by following the tool): analysis went stale
+after every WP's `mark-status` (touches tasks.md) → re-record before the next `implement`;
+for_review/approved each needed a status `spec-commit`. All documented-gate taxes, no
+hand-cranking of workflow actions.
+
+_(WP06 + accept/merge/post-merge-Codex/PR/analyzer to be appended)_
