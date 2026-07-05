@@ -24,7 +24,7 @@ Modes:
 Environment overrides (test isolation):
     PRESCAN_REGISTRY_PATH: absolute path to an alternate ``paths.json``
     PRESCAN_LOG_DIR:       directory for daily log files (default
-                           ``/home/claude/second-brain/agents/logs``; falls
+                           ``/home/kgale/second-brain/agents/logs``; falls
                            back to ``$TMPDIR`` if missing)
 
 Dependencies: stdlib + PyYAML (``yaml.safe_load`` only, per NFR-004).
@@ -53,7 +53,7 @@ import yaml
 # ---------------------------------------------------------------------------
 
 STALE_AGE_DAYS = 7  # exclusive boundary: age_days > 7 is stale
-DEFAULT_LOG_DIR = Path("/home/claude/second-brain/agents/logs")
+DEFAULT_LOG_DIR = Path("/home/kgale/second-brain/agents/logs")
 
 
 # ---------------------------------------------------------------------------
@@ -768,7 +768,14 @@ def run_prescan() -> int:
     try:
         # Local import keeps prescan importable when routing_log is missing
         # (e.g., during partial deploys).
-        from routing_log import RoutingLogReader  # type: ignore[import-not-found]
+        # Deduplicate module loading: if routing_log is already in sys.modules
+        # (e.g. scripts/inbox/ on sys.path), reuse that object so any
+        # monkeypatching of DEFAULT_ROUTING_LOG_PATH applies correctly.
+        import sys as _prescan_sys
+        _bare_rl = _prescan_sys.modules.get("routing_log")
+        if _bare_rl is not None:
+            _prescan_sys.modules.setdefault("scripts.inbox.routing_log", _bare_rl)
+        from scripts.inbox.routing_log import RoutingLogReader  # type: ignore[import-not-found]
         reader = RoutingLogReader()
         routed_names = reader.routed_filenames()
     except ImportError:

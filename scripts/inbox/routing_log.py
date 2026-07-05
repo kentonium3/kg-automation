@@ -1,7 +1,7 @@
 """Routing log helper module for felix-admin-capture inbox dedup.
 
 The routing log is the load-bearing dedup substrate for the inbox-capture
-agent (per #185). It lives at ~/second-brain/agents/state/inbox-routing.jsonl
+agent (per #185). It lives at /data/services/openclaw/state/inbox-routing.jsonl
 as an append-only JSONL file. Each line records one successful route
 (filename, GitHub issue#, Vikunja task ID, routed_at, note excerpt).
 
@@ -18,9 +18,7 @@ from pathlib import Path
 from typing import Optional
 
 
-DEFAULT_ROUTING_LOG_PATH = (
-    Path.home() / "second-brain" / "agents" / "state" / "inbox-routing.jsonl"
-)
+DEFAULT_ROUTING_LOG_PATH = Path("/data/services/openclaw/state/inbox-routing.jsonl")
 
 
 @dataclass(frozen=True)
@@ -132,7 +130,16 @@ class RoutingLogWriter:
             routed_at=datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
             note_excerpt=(note_excerpt or "")[:120],
         )
-        self._path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+        self._path.parent.mkdir(parents=True, exist_ok=True, mode=0o750)
+        new_file = not self._path.exists()
         with self._path.open("a", encoding="utf-8") as fh:
             fh.write(json.dumps(entry.to_dict()) + "\n")
+        # FR-012/SC-9: state files must be group-readable (0640), not umask-dependent.
+        # Only enforce on first create so we don't fight an operator-set mode on an
+        # existing file; best-effort (a chmod failure must not break routing).
+        if new_file:
+            try:
+                self._path.chmod(0o640)
+            except OSError:
+                pass
         return entry

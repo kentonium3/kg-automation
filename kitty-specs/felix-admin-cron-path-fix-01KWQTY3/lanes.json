@@ -1,0 +1,133 @@
+{
+  "version": 1,
+  "mission_slug": "felix-admin-cron-path-fix-01KWQTY3",
+  "mission_id": "01KWQTY3TGBDC2MVWD93H5DK2Y",
+  "mission_branch": "kitty/mission-felix-admin-cron-path-fix-01KWQTY3",
+  "target_branch": "fix/felix-admin-cron-path-fix",
+  "lanes": [
+    {
+      "lane_id": "lane-a",
+      "wp_ids": [
+        "WP01"
+      ],
+      "write_scope": [
+        "deploys/queued/0006-gateway-pythonpath-dropin.yaml",
+        "scripts/deploy/install-gateway-pythonpath-dropin.py",
+        "scripts/openclaw/openclaw-gateway.service.d/pythonpath.conf"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "workspace"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    },
+    {
+      "lane_id": "lane-b",
+      "wp_ids": [
+        "WP02"
+      ],
+      "write_scope": [
+        "scripts/inbox/handle_clarification_state.py",
+        "scripts/inbox/routing_log.py",
+        "tests/inbox/test_state_paths.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "tracker-integration"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    },
+    {
+      "lane_id": "lane-c",
+      "wp_ids": [
+        "WP03"
+      ],
+      "write_scope": [
+        "scripts/inbox/append_routing_entry.py",
+        "scripts/inbox/prescan.py",
+        "tests/inbox/test_prescan_paths_and_dedup.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "legacy-cleanup",
+        "tracker-integration"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    },
+    {
+      "lane_id": "lane-d",
+      "wp_ids": [
+        "WP04"
+      ],
+      "write_scope": [
+        "scripts/openclaw/agents/felix-admin-calendar/AGENTS.md",
+        "scripts/openclaw/agents/felix-admin-calendar/TOOLS.md",
+        "scripts/openclaw/agents/felix-admin-capture/AGENTS.md",
+        "scripts/openclaw/agents/felix-admin-capture/AGENTS.md.tmpl",
+        "scripts/openclaw/agents/felix-admin-capture/TOOLS.md",
+        "scripts/openclaw/agents/felix-admin-capture/TOOLS.md.tmpl",
+        "scripts/openclaw/agents/felix-admin-escalation/AGENTS.md",
+        "scripts/openclaw/agents/felix-admin-habits/AGENTS.md",
+        "scripts/openclaw/agents/felix-admin-tasker/AGENTS.md",
+        "scripts/openclaw/agents/felix-admin-tasker/TOOLS.md",
+        "scripts/openclaw/agents/main/AGENTS.md"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "legacy-cleanup",
+        "tracker-integration"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    },
+    {
+      "lane_id": "lane-e",
+      "wp_ids": [
+        "WP05"
+      ],
+      "write_scope": [
+        "deploys/queued/0007-migrate-inbox-state-and-logs.yaml",
+        "scripts/deploy/migrate-inbox-state-and-logs.py",
+        "tests/deploy/test_migrate_inbox_state.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "legacy-cleanup"
+      ],
+      "depends_on_lanes": [
+        "lane-b",
+        "lane-c"
+      ],
+      "parallel_group": 1
+    },
+    {
+      "lane_id": "lane-f",
+      "wp_ids": [
+        "WP06"
+      ],
+      "write_scope": [
+        "docs/design/architecture/data/data-flows.json",
+        "docs/design/architecture/data/service-inventory.json",
+        "docs/design/architecture/service-inventory.md"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "app-shell"
+      ],
+      "depends_on_lanes": [
+        "lane-a",
+        "lane-b",
+        "lane-c",
+        "lane-d",
+        "lane-e"
+      ],
+      "parallel_group": 2
+    }
+  ],
+  "computed_at": "2026-07-05T03:16:54.093064+00:00",
+  "computed_from": "dependency_graph+ownership",
+  "planning_artifact_wps": []
+}

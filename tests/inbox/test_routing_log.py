@@ -193,7 +193,9 @@ def test_entry_is_frozen():
         entry.filename = "other.md"  # type: ignore[misc]
 
 
-def test_default_routing_log_path_under_second_brain():
+def test_default_routing_log_path_under_data_services():
     # Sanity check that the default path is what the spec / contract say.
-    assert "second-brain" in str(DEFAULT_ROUTING_LOG_PATH)
+    # WP02 (cycle 2): relocated from ~/second-brain/agents/state/ to
+    # /data/services/openclaw/state/ per #656 (persistent-state boundary fix).
+    assert str(DEFAULT_ROUTING_LOG_PATH) == "/data/services/openclaw/state/inbox-routing.jsonl"
     assert DEFAULT_ROUTING_LOG_PATH.name == "inbox-routing.jsonl"

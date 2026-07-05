@@ -9,13 +9,17 @@ from __future__ import annotations
 
 import argparse
 import sys
-from pathlib import Path
 
-SCRIPT_DIR = Path(__file__).resolve().parent
-if str(SCRIPT_DIR) not in sys.path:
-    sys.path.insert(0, str(SCRIPT_DIR))
+# Deduplicate module loading: if routing_log is already in sys.modules
+# (e.g. scripts/inbox/ on sys.path), reuse that object so any external
+# monkeypatching of DEFAULT_ROUTING_LOG_PATH (e.g. in tests) applies to the
+# package-absolute import form as well.
+_bare_rl = sys.modules.get("routing_log")
+if _bare_rl is not None:
+    sys.modules.setdefault("scripts.inbox.routing_log", _bare_rl)
+del _bare_rl
 
-from routing_log import RoutingLogWriter
+from scripts.inbox.routing_log import RoutingLogWriter  # noqa: E402
 
 
 def main(argv: list[str] | None = None) -> int:

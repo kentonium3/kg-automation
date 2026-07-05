@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
-  "last_updated": "2026-06-19",
-  "updated_by": "pull-based-deploy-pipeline-01KTYQQS (#136) + inbox-calendar-and-aspiration-routing-01KTHHXS + #520-felix-vikunja-sync-project-layer-and-url-config + #519-touchpoint-migration + #376-remove-escalation-v1-parity + #400-audit-interpretation-moment0 + #310-tasker-jsonl-migration + #374-main-verbatim-passthrough + #362-drift-event-auto-resolution + #371-habits-checkin-reply-scripts-first + #309-migrate-escalation-to-jsonl-state-model + #343-refactor-doc-auditor-to-scripts-first-driver + #307-backfill-habits-jsonl-from-comments + #306-habits-native-repeat-jsonl-state + #152 + restore-whatsapp-dm-reply-delivery-01KTVVHH (#588) + #545-bump-stale-last-updated-for-introduced-at",
+  "last_updated": "2026-07-05",
+  "updated_by": "felix-admin-cron-path-fix-01KWQTY3 (#656) + pull-based-deploy-pipeline-01KTYQQS (#136) + inbox-calendar-and-aspiration-routing-01KTHHXS + #520-felix-vikunja-sync-project-layer-and-url-config + #519-touchpoint-migration + #376-remove-escalation-v1-parity + #400-audit-interpretation-moment0 + #310-tasker-jsonl-migration + #374-main-verbatim-passthrough + #362-drift-event-auto-resolution + #371-habits-checkin-reply-scripts-first + #309-migrate-escalation-to-jsonl-state-model + #343-refactor-doc-auditor-to-scripts-first-driver + #307-backfill-habits-jsonl-from-comments + #306-habits-native-repeat-jsonl-state + #152 + restore-whatsapp-dm-reply-delivery-01KTVVHH (#588) + #545-bump-stale-last-updated-for-introduced-at",
   "flows": [
     {
       "name": "vikunja-web-ui",
@@ -137,6 +137,7 @@
       "status": "active",
       "deployed_by": "F014",
       "description": "Agent activity logging and digest generation: agents \u2192 log_action.py \u2192 JSONL \u2192 summarize.py \u2192 Markdown digests \u2192 Obsidian",
+      "path_retention_note": "All /home/claude/second-brain/ paths in this flow are intentionally retained. Mission felix-admin-cron-path-fix-01KWQTY3 (#656) narrowed its scope to inbox state + prescan log relocation only; the /home/claude/second-brain/ tree is NOT decommissioned this mission. Full repoint of log_action.py and summarize.py to /home/kgale/second-brain/ paths and complete tree decommission is tracked in #659.",
       "path": [
         {
           "from": "Felix agent (via exec tool)",
@@ -1224,7 +1225,8 @@
       "status": "active",
       "deployed_by": "inbox-calendar-and-aspiration-routing-01KTHHXS",
       "introduced_by": "inbox-calendar-and-aspiration-routing-01KTHHXS",
-      "description": "Flow B \u2014 Incomplete inbox-captured calendar event resolved through a single WhatsApp clarification round-trip. felix-admin-capture detects missing required fields, writes a deferred-event entry to the pending-calendar-clarifications state file (24h timeout sweep), and asks Kent one clarification question via WhatsApp. When Kent replies, Felix main reads the open clarification, merges the reply into the deferred payload, re-validates, and issues `gog calendar create`. Avoids losing the original capture context between the inbox tick and Kent's reply.",
+      "updated_by": "felix-admin-cron-path-fix-01KWQTY3 (#656)",
+      "description": "Flow B \u2014 Incomplete inbox-captured calendar event resolved through a single WhatsApp clarification round-trip. felix-admin-capture detects missing required fields, writes a deferred-event entry to the pending-calendar-clarifications state file (24h timeout sweep), and asks Kent one clarification question via WhatsApp. When Kent replies, felix-admin-calendar reads the open clarification, merges the reply into the deferred payload, re-validates, and issues `gog calendar create`. Avoids losing the original capture context between the inbox tick and Kent's reply.",
       "trigger": "felix-admin-capture classifies an inbox note as a calendar event but validation reports missing required fields",
       "path": [
         {
@@ -1235,9 +1237,9 @@
         },
         {
           "from": "felix-admin-capture",
-          "to": "pending-calendar-clarifications state file",
+          "to": "/data/services/openclaw/state/pending-calendar-clarifications.jsonl",
           "protocol": "file write (atomic rename)",
-          "description": "Persists the deferred event payload + the open question for Kent. 24h timeout sweep cleans up stale entries."
+          "description": "Persists the deferred event payload + the open question for Kent. 24h timeout sweep cleans up stale entries. Owner claude:secondbrain, dir 0750, file 0640. Relocated from ~/second-brain/agents/state/ by felix-admin-cron-path-fix-01KWQTY3 (#656)."
         },
         {
           "from": "felix-admin-capture",
@@ -1249,16 +1251,16 @@
           "from": "Kent (WhatsApp reply)",
           "to": "Felix main",
           "protocol": "openclaw inbound WhatsApp",
-          "description": "Main receives the reply via the WhatsApp channel"
+          "description": "Main receives the reply via the WhatsApp channel and delegates to felix-admin-calendar"
         },
         {
-          "from": "Felix main",
-          "to": "pending-calendar-clarifications state file",
+          "from": "felix-admin-calendar",
+          "to": "/data/services/openclaw/state/pending-calendar-clarifications.jsonl",
           "protocol": "file read",
           "description": "Resolves Kent's reply against the open clarification entry; merges the reply into the deferred event payload."
         },
         {
-          "from": "Felix main",
+          "from": "felix-admin-calendar",
           "to": "gog calendar create",
           "protocol": "subprocess",
           "description": "Re-validates the merged payload and executes the deferred `gog calendar create` call."

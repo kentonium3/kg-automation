@@ -1,0 +1,30 @@
+{
+  "entries": [
+    {
+      "created_at": "2026-07-05T02:05:52.638595Z",
+      "decision_id": "01KWR0CRKY6G91P715GD375YKC",
+      "final_answer": "Env-level: add Environment=PYTHONPATH=/home/claude/kg-automation to scripts/openclaw/openclaw-gateway.service (inherited by all agent subprocesses via the same mechanism that delivers HOME=/home/claude). Guardrail over instruction. No inline prompt prefixes; remove now-inert cwd prose per FR3.",
+      "input_key": "fr1_guardrail_mechanism",
+      "mission_id": "01KWQTY3TGBDC2MVWD93H5DK2Y",
+      "mission_slug": "felix-admin-cron-path-fix-01KWQTY3",
+      "opened_by": "cli",
+      "options": [
+        "inline PYTHONPATH prefix",
+        "committed thin wrapper script",
+        "openclaw.json agent env (out of repo)"
+      ],
+      "origin_flow": "plan",
+      "other_answer": false,
+      "question": "Mechanism to make python3 -m scripts.* invocations cwd-independent in the felix-admin agent prompts",
+      "rationale": null,
+      "resolved_at": "2026-07-05T02:24:14.228697Z",
+      "resolved_by": null,
+      "slot_key": "plan.fr1-guardrail.mechanism",
+      "status": "resolved",
+      "step_id": null,
+      "summary_json": null
+    }
+  ],
+  "mission_id": "01KWQTY3TGBDC2MVWD93H5DK2Y",
+  "version": 1
+}

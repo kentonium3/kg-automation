@@ -280,7 +280,7 @@ Would you like me to help structure it? (yes/no)
 Every action produces a log entry (Directive 3 — no log means the action did not happen). Log via `exec`:
 
 ```bash
-python ~/repos/kg-automation/scripts/openclaw/observation/log_action.py \
+python /home/claude/kg-automation/scripts/openclaw/observation/log_action.py \
   --agent felix-admin-tasker --category <category> --action <action> \
   --target <target> --outcome <outcome> --context '<json>'
 ```

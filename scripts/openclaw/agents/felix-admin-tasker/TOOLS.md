@@ -27,7 +27,7 @@ REST API for task management.
 
 ### Action log
 
-Central logging to `~/second-brain/agents/logs/`.
+Central logging to `/home/kgale/second-brain/agents/logs/`.
 
 - **Format**: task-intelligence-YYYY-MM-DD.md
 - Required per Felix Constitution Directive 3
