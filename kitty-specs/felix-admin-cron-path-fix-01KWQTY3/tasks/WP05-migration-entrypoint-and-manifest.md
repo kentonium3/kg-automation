@@ -17,7 +17,7 @@ subtasks:
 - T017
 - T018
 agent: "claude:opus:reviewer-renata:reviewer"
-shell_pid: "2506"
+shell_pid: "13191"
 history:
 - at: 2026-07-05T02:30:00Z
   actor: system
@@ -139,3 +139,9 @@ mutates nothing, the entrypoint is idempotent, and no ledger entry can be lost.
 - 2026-07-05T05:19:58Z – claude:sonnet:python-pedro:implementer – shell_pid=98955 – Narrowed to inbox-only: migrate state (union-merge kept) + copy inbox-prescan logs; tree LEFT INTACT (#659 owns full decommission); tests updated
 - 2026-07-05T05:20:45Z – claude:opus:reviewer-renata:reviewer – shell_pid=2506 – Started review via action command
 - 2026-07-05T05:27:00Z – user – shell_pid=2506 – Independent opus review (codex quota fallback): PASS — inbox-only narrow verified (no destructive ops, union-merge/perms/snapshot intact, 9/9 tests, tree+observation subdirs left intact). Matrix gate cleared (#659 row filled).
+- 2026-07-05T05:45:41Z – user – shell_pid=2506 – re-confirm approval to write approved artifact (merge-gate REJECTED_REVIEW_ARTIFACT invariant)
+- 2026-07-05T05:45:44Z – claude:opus:reviewer-renata:reviewer – shell_pid=12070 – Started review via action command
+- 2026-07-05T05:46:13Z – user – shell_pid=12070 – Re-confirm: independent opus review PASS (narrow inbox-only migration; union-merge/perms/snapshot intact; 9/9 tests; tree+observation subdirs left intact). Approved artifact for merge gate.
+- 2026-07-05T05:47:50Z – user – shell_pid=12070 – write approved artifact
+- 2026-07-05T05:47:54Z – claude:opus:reviewer-renata:reviewer – shell_pid=13191 – Started review via action command
+- 2026-07-05T05:48:05Z – user – shell_pid=13191 – opus approved
