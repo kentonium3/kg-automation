@@ -130,3 +130,5 @@ allocated for this WP's lane from `lanes.json` at implement time — do not crea
 ## Activity Log
 
 - 2026-07-05T22:20:23Z – claude – shell_pid=3092 – Assigned agent via action command
+- 2026-07-05T22:25:53Z – claude – shell_pid=3092 – Checker + 21 unit tests green; verified on real fleet (44 findings across 6 agents)
+- 2026-07-05T22:28:39Z – user – shell_pid=3092 – Reviewed: 21 tests green (all Codex edge cases); real-fleet verified (44 findings, caught main's hidden abs-path); reuses SUSPENDED_WORKSPACES; stdlib/3.11/deterministic.
