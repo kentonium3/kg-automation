@@ -71,7 +71,9 @@ the caller aborts non-zero WITHOUT any destructive action (FR-004):
    (`systemctl --user stop felix-core-digest.timer`); confirm no `summarize.py`/`log_action.py`
    process is running (bounded wait). If a writer is active → abort.
 4. **inbox-prescan mtime** (FR-004e): no top-level `agents/logs/inbox-prescan-*.md` newer than the
-   #656 cutover constant; else abort / require operator disposition.
+   #656 cutover. Pin this as a named constant `INBOX_PRESCAN_CUTOFF = date(2026, 7, 4)` (the date
+   the #656 `0007` migration manifest was applied and prescan repointed to `/home/kgale`); if any
+   such file is newer, abort / require operator disposition.
 
 `check_preconditions` MUST NOT walk the tree beyond the specific checks above; it references only
 `source_root` and `source_root/agents/logs/inbox-prescan-*.md`.
@@ -83,7 +85,7 @@ the caller aborts non-zero WITHOUT any destructive action (FR-004):
 - Delete: a single root-level operation removing `source_root` (e.g. `shutil.rmtree(source_root)`
   or `subprocess rm -rf <source_root>`). MUST NOT enumerate/`rglob`/`os.walk`/`git status --ignored`
   the tree, MUST NOT use per-file delete callbacks that echo child paths. If `rmtree` needs an
-  error handler, it may name only `source_root`, never a descendant (C-008/C-012).
+  error handler, it may name only `source_root`, never a descendant (C-008).
 - Restart the timer (`systemctl --user start felix-core-digest.timer`).
 - Post-check: `source_root` absent.
 
