@@ -136,8 +136,8 @@
       "name": "observation-digest",
       "status": "active",
       "deployed_by": "F014",
+      "updated_by": "#659",
       "description": "Agent activity logging and digest generation: agents \u2192 log_action.py \u2192 JSONL \u2192 summarize.py \u2192 Markdown digests \u2192 Obsidian",
-      "path_retention_note": "All /home/claude/second-brain/ paths in this flow are intentionally retained. Mission felix-admin-cron-path-fix-01KWQTY3 (#656) narrowed its scope to inbox state + prescan log relocation only; the /home/claude/second-brain/ tree is NOT decommissioned this mission. Full repoint of log_action.py and summarize.py to /home/kgale/second-brain/ paths and complete tree decommission is tracked in #659.",
       "path": [
         {
           "from": "Felix agent (via exec tool)",
@@ -148,7 +148,7 @@
         {
           "from": "log_action.py",
           "to": "JSONL log file",
-          "path": "/home/claude/second-brain/agents/logs/{agent}/YYYY-MM-DD.jsonl"
+          "path": "/home/kgale/second-brain/agents/logs/{agent}/YYYY-MM-DD.jsonl"
         },
         {
           "from": "summarize.py (15-min timer)",
@@ -158,7 +158,7 @@
         {
           "from": "summarize.py",
           "to": "Markdown digests",
-          "path": "/home/claude/second-brain/notes/Agent-Logs/"
+          "path": "/home/kgale/second-brain/notes/00-System/agent-activity/Agent-Logs/"
         },
         {
           "from": "Markdown digests",

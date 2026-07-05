@@ -1,24 +1,10 @@
 {
-  "accept_commit": "aab872d60ff20b48acb0c3ec5fb57090a31e9ec2",
-  "acceptance_history": [
-    {
-      "accept_commit": "aab872d60ff20b48acb0c3ec5fb57090a31e9ec2",
-      "acceptance_mode": "pr",
-      "accepted_at": "2026-07-05T14:21:46.450398+00:00",
-      "accepted_by": "claude",
-      "accepted_from_commit": "3aea9e5f14fb77c74346cfb26c9123568071a0ae"
-    }
-  ],
-  "acceptance_mode": "pr",
-  "accepted_at": "2026-07-05T14:21:46.450398+00:00",
-  "accepted_by": "claude",
-  "accepted_from_commit": "3aea9e5f14fb77c74346cfb26c9123568071a0ae",
   "coordination_branch": "kitty/mission-observation-digest-repoint-01KWS2E2",
   "created_at": "2026-07-05T12:00:47.255482+00:00",
   "flattened": false,
   "friendly_name": "Observation-Digest Log Repoint & Decommission",
   "mission_id": "01KWS2E2MMJ9WRPVMBJKKJS6T1",
-  "mission_number": null,
+  "mission_number": 84,
   "mission_slug": "observation-digest-repoint-01KWS2E2",
   "mission_type": "software-dev",
   "pr_bound": true,
@@ -28,5 +14,5 @@
   "target_branch": "fix/observation-digest-repoint",
   "topology": "coord",
   "vcs": "git",
-  "vcs_locked_at": "2026-07-05T13:06:44.861507+00:00"
+  "vcs_locked_at": "2026-07-05T13:14:57.172902+00:00"
 }
