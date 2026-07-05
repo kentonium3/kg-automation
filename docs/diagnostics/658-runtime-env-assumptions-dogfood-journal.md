@@ -508,4 +508,77 @@ exception applies (no pre-review of the PR body).
 
 ### Post-mission analyzer gap-analysis (objective 4)
 
-_(spec-kitty-analyzer vs journal + tracers — to be appended)_
+Built spec-kitty-analyzer from source (`~/repos/spec-kitty-analyzer`, Go) and ran
+`analyze agent-runtime-env-guardrails-01KWT3GH` (mission-first mode). Output: **361 timeline
+events across 3 inputs, 1 mission, 9 failure events / 3 modes** (JSON/MD/HTML/PDF reports).
+
+**What the analyzer captured WELL (matches the journal):**
+- The **spec-kitty CLI spine** — cli_invocations, slash_commands, skill_reads
+  (`ad-hoc-profile-load` ×many = the sub-agents loading profiles), and even the D1/D2
+  **decision open/resolve** events (the scope + canonical-form decisions, via the decision CLI).
+- The **load-bearing failure modes**, correctly: `dirty_worktree_ref_advance` (HIGH — the #1826
+  merge coord-dirty block, journal F9), `test_failure` ×2 (the size-cap failures — journal F6),
+  `generic_error` ×6. Its failure detection aligns with the journal's friction ledger, at lower
+  resolution.
+
+**Analyzer GAPS — what it EXCLUDED that the journal + tracers captured (the "unmapped event
+shape" warnings ARE the gap list):**
+1. 🐛 **Codex reasoning invisible** — `codex payload.type=reasoning` **×11 excluded**. BOTH
+   mandatory Codex checkpoints (post-plan: the design reversal + 8 findings; post-merge: the 2
+   checker false-negatives) — the **highest-value quality activity of the run** — are invisible to
+   the analyzer. It cannot see the reviews that most improved the output. (This re-confirms the
+   v323 finding; still the analyzer's #1 gap.)
+2. 🐛 **Parallel sub-agent dispatches invisible** — `toolUseResult` with
+   `agentId,…,isAsync,outputFile,prompt,resolvedModel,status` **excluded**. The **4 implementer
+   sub-agents** (WP02/03/04 conversions + WP06) — the BULK of the implementation — are invisible;
+   the analyzer sees only the `ad-hoc-profile-load` skill-reads they emitted, not the
+   dispatch/result. Modern parallel-orchestration work is a blind spot.
+3. 🐛 **Host-native question decisions invisible** — `toolUseResult` with
+   `annotations,answers,questions` / `answers,questions` **excluded** (AskUserQuestion). The
+   scope/design decisions I took with Kent via the question UI (discovery forks, D1/D2, the
+   size-cap approach) are invisible — though the analyzer DID catch the *spec-kitty* decision-CLI
+   events, so decisions routed through spec-kitty's own `decision` command are captured but
+   host-UI ones are not. Partial coverage.
+4. Minor: some Bash `toolUseResult` (`commandName,success`) excluded; the mission row shows
+   `Type`/`Target` blank and attributes only 2 commands (mission-review/analyze) — attribution
+   under-counts the actual command volume.
+
+**The comparison (objective 4's point):** the **journal is the superset** — it captured all three
+blind-spot classes (Codex reviews, sub-agent work, question-UI decisions) richly, plus per-finding
+detail the analyzer has no event shape for. The analyzer is strong on the spec-kitty-CLI timeline
++ failure taxonomy but blind to the three "modern orchestration" activity types this run leaned on
+heavily. This is exactly the data Kent wanted for the **"incorporate tracers into the analyzer"**
+idea: the tracer/journal content fills precisely the analyzer's unmapped-shape gaps. **Actionable
+analyzer backlog (Kent's repo):** add parsers for (a) `codex payload.type=reasoning` sub-agent
+transcripts, (b) `Agent`/Task sub-agent dispatch+result events, (c) AskUserQuestion decision
+events — in priority order (Codex first; it's the highest-value invisible activity).
+
+Analyzer artifacts: `~/repos/spec-kitty-analyzer/spec-kitty-analyzer-report.{json,md,html,pdf}`.
+
+## Outcome
+
+**Mission #658 COMPLETE** — all 6 WPs implemented/reviewed/approved, accepted, merged to
+`feat/agent-runtime-env-guardrails` (squash `eb4aa5f1`), post-merge Codex folded (`c84769d9`), and
+landed via **PR kentonium3/kg-automation#664** (feat→main, awaiting Kent's merge). 48 tests green;
+fleet checker 0 findings; converted prompts under the 12K cap.
+
+**Headline:** the planning + review discipline carried the quality. Both mandatory Codex
+checkpoints paid off (post-plan: 1 design reversal + an implement-breaking `.ok`/`.passed` bug
+caught before any code; post-merge: 2 checker false-negatives caught before the PR). The checker
+validated on live data caught a `main` violation grep missed. The single design reversal (cd form)
+came from the checkpoint exactly as intended. All friction was documented gates cleared by
+following the tool — **zero hand-cranking of workflow actions, zero genuine tool failures**.
+
+**Friction ledger (candidate spec-kitty gaps, all journaled):** P1 orphan coord worktrees +
+unbounded `.kittify/workspaces/` cruft · F1 version-string non-granularity · F2 tracer
+scaffolding still agent-driven · F3 finalize new-file ownership (create_intent) · F4 record-analysis
+dirty-tree preflight trips on workflow's own state · F5 approve-gate chain (issue-matrix) · F6
+domain-checker insufficient, full suite caught the size regression · F7 stale-lane propagation
+(fix commits on approved dep lanes don't reach dependents via CLI refresh) · F8 acceptance-matrix
+must be filled in BOTH main + coord copies · F9 #1826 merge coord-dirty → resume · analysis
+re-stales after every mark-status.
+
+**Still open (operator):** Kent merges PR #664 → #658 auto-closes → felix-deployer applies
+`deploys/queued/0010` on office2 (git pull) → verify SC-004 (capture prescan self-check + no
+"helpers not deployed" hallucination; habits/escalation/tasker/calendar cron green; cwd smoke).
+Rebaseline: not required (unmonitored audited surface, #621).
