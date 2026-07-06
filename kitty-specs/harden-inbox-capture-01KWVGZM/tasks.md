@@ -74,12 +74,12 @@ whole fleet stops failing under exec sanitization.
 fleet-wide (with WP02 also landed); `pytest` green.
 **Requirements**: FR-001. **Prompt**: [tasks/WP03-fleet-invocation-swap.md](./tasks/WP03-fleet-invocation-swap.md) (~280 lines).
 
-- [ ] T020 Swap `felix-admin-escalation/AGENTS.md` (WP03)
-- [ ] T021 Swap `felix-admin-habits/AGENTS.md` (WP03)
-- [ ] T022 Swap `felix-admin-calendar/AGENTS.md` (WP03)
-- [ ] T023 Swap `felix-admin-tasker/AGENTS.md` (+ `.tmpl`) (WP03)
-- [ ] T024 Swap `main/AGENTS.md` (WP03)
-- [ ] T025 Verify fleet checker = ok (WP03)
+- [x] T020 Swap `felix-admin-escalation/AGENTS.md` (WP03)
+- [x] T021 Swap `felix-admin-habits/AGENTS.md` (WP03)
+- [x] T022 Swap `felix-admin-calendar/AGENTS.md` (WP03)
+- [x] T023 Swap `felix-admin-tasker/AGENTS.md` (+ `.tmpl`) (WP03)
+- [x] T024 Swap `main/AGENTS.md` (WP03)
+- [x] T025 Verify fleet checker = ok (WP03)
 
 ## WP04 — Model doc updates (arch data + agent registry)
 

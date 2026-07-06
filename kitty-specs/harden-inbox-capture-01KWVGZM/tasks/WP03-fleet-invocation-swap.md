@@ -17,7 +17,7 @@ subtasks:
 - T024
 - T025
 agent: "claude"
-shell_pid: "40828"
+shell_pid: "44826"
 history:
 - 2026-07-06 authored from plan IC-02 (non-capture fleet)
 agent_profile: curator-carla
@@ -97,3 +97,5 @@ Branches from WP01; parallel with WP02/WP04. Command: `spec-kitty agent action i
 ## Activity Log
 
 - 2026-07-06T12:22:18Z – claude – shell_pid=40828 – Assigned agent via action command
+- 2026-07-06T12:29:43Z – claude – shell_pid=40828 – Fleet swap: 5 agents + tasker.tmpl → checkout-cd; 2 prose refs + calendar-pipe anchored; grep empty, checker clean for the 5
+- 2026-07-06T12:30:05Z – claude – shell_pid=44826 – Started review via action command
