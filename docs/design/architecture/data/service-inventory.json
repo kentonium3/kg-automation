@@ -388,7 +388,7 @@
       "agents": {
         "felix-admin-capture": {
           "workspace": "/data/services/openclaw/inbox-agent",
-          "model": "anthropic/claude-sonnet-4-6",
+          "model": "anthropic/claude-haiku-4-5",
           "purpose": "Obsidian inbox processing \u2014 classifies, routes, creates Vikunja tasks. Per mission inbox-calendar-and-aspiration-routing-01KTHHXS, the classifier vocabulary is extended to also (a) classify and route calendar events to Google Calendar via Felix main delegation, (b) classify and route aspirations to dated journal entries (08-Journal/), (c) classify and route Someday items to the Vikunja Someday project (resolved by name), and (d) maintain a pending-calendar-clarifications state file with a 24h timeout sweep.",
           "source_in_repo": "scripts/openclaw/agents/felix-admin-capture/",
           "deployed_by": "F008",
@@ -721,7 +721,7 @@
           "path": "/home/claude/.config/systemd/user/openclaw-gateway.service.d/pythonpath.conf",
           "format": "systemd-unit-dropin",
           "source_in_repo": "scripts/openclaw/openclaw-gateway.service.d/pythonpath.conf",
-          "note": "Sets PYTHONPATH=/home/claude/kg-automation on the openclaw-gateway *process* environment. CORRECTION (harden-inbox-capture-01KWVGZM #662, verified #658): this does NOT make bare `python3 -m scripts.<pkg>.<mod>` work inside agent helper invocations — OpenClaw's `exec` tool STRIPS PYTHONPATH from the subshells it spawns, so an inherited gateway PYTHONPATH is not visible to helpers launched via exec. Agents must invoke helpers with the self-contained `cd /home/claude/kg-automation && python3 -m scripts.<pkg>.<mod> …` form; the leading `cd` makes cwd the checkout root so `scripts.*` imports resolve regardless of env. The drop-in still usefully sets the process env for non-exec import paths and composes with the base unit (systemd merges .d/*.conf), avoiding source-line collision with #653's in-flight ExecStart relocation. Introduced by felix-admin-cron-path-fix-01KWQTY3 (#656). Deployed via deploys/queued/0006-gateway-pythonpath-dropin.yaml."
+          "note": "Sets PYTHONPATH=/home/claude/kg-automation on the openclaw-gateway *process* environment. CORRECTION (harden-inbox-capture-01KWVGZM #662, verified #658): this does NOT make bare `python3 -m scripts.<pkg>.<mod>` work inside agent helper invocations \u2014 OpenClaw's `exec` tool STRIPS PYTHONPATH from the subshells it spawns, so an inherited gateway PYTHONPATH is not visible to helpers launched via exec. Agents must invoke helpers with the self-contained `cd /home/claude/kg-automation && python3 -m scripts.<pkg>.<mod> \u2026` form; the leading `cd` makes cwd the checkout root so `scripts.*` imports resolve regardless of env. The drop-in still usefully sets the process env for non-exec import paths and composes with the base unit (systemd merges .d/*.conf), avoiding source-line collision with #653's in-flight ExecStart relocation. Introduced by felix-admin-cron-path-fix-01KWQTY3 (#656). Deployed via deploys/queued/0006-gateway-pythonpath-dropin.yaml."
         },
         {
           "path": "/home/claude/.openclaw/openclaw.json",
@@ -905,7 +905,7 @@
           "path": "/home/claude/kg-automation/scripts/habits/query_active_habits_weekly.py",
           "format": "python",
           "source_in_repo": "scripts/habits/query_active_habits_weekly.py",
-          "purpose": "Deterministic weekly-report helper invoked by the Monday 06:00 ET habits-weekly-report cron (post mission trustworthy-weekly-habit-report-01KV4GZ7 / #605; previously Sunday 22:00 per #542 + #562). Reads completion history from canonical /data/services/openclaw/state/habits-history.jsonl via scripts/habits/history.py (built on scripts/common/state_log.py); queries Vikunja project-13 only for current-state habit metadata (titles + repeat_after for classification) via scripts/common/vikunja_client.py. Rolls up by canonical title (treating weekday-in-title variants as distinct habits) and emits a WeeklyHabitReport JSON on stdout (--output json, default) or the pre-rendered WhatsApp body (--output text). Per-habit percentage = dedup-by-date completed_count / scheduled_days_in_window * 100; scheduled-days math is 7 for daily-cadence habits (`repeat_after == 86400`) and 1 per matched-weekday occurrence for weekday-in-title habits. Vikunja `done_at` is NOT read for completion history — `repeat_after` recurrence resets that field on each cycle, collapsing daily-habit history to 0% (the original #605 bug). Standard library only beyond the shared client + state-log primitive. Failure mode: typed VikunjaError exceptions propagate to the agent, which renders `Weekly report unavailable: <reason>` rather than fabricating data.",
+          "purpose": "Deterministic weekly-report helper invoked by the Monday 06:00 ET habits-weekly-report cron (post mission trustworthy-weekly-habit-report-01KV4GZ7 / #605; previously Sunday 22:00 per #542 + #562). Reads completion history from canonical /data/services/openclaw/state/habits-history.jsonl via scripts/habits/history.py (built on scripts/common/state_log.py); queries Vikunja project-13 only for current-state habit metadata (titles + repeat_after for classification) via scripts/common/vikunja_client.py. Rolls up by canonical title (treating weekday-in-title variants as distinct habits) and emits a WeeklyHabitReport JSON on stdout (--output json, default) or the pre-rendered WhatsApp body (--output text). Per-habit percentage = dedup-by-date completed_count / scheduled_days_in_window * 100; scheduled-days math is 7 for daily-cadence habits (`repeat_after == 86400`) and 1 per matched-weekday occurrence for weekday-in-title habits. Vikunja `done_at` is NOT read for completion history \u2014 `repeat_after` recurrence resets that field on each cycle, collapsing daily-habit history to 0% (the original #605 bug). Standard library only beyond the shared client + state-log primitive. Failure mode: typed VikunjaError exceptions propagate to the agent, which renders `Weekly report unavailable: <reason>` rather than fabricating data.",
           "host": "office2",
           "introduced_by": "vikunja-client-and-habits-weekly-report-01KTKSFT (#542 + #562)"
         },
@@ -2447,16 +2447,16 @@
       "systemd_user": "claude",
       "schedule": "every 5 minutes",
       "account": "claude",
-      "description": "Pull-based deploy applier — reads deploys/queued/, applies via scripts/deploy/lib/, dispatches ntfy.sh push notification on failure. systemd --user Type=oneshot, 5-min timer.",
-      "purpose": "Pull-based deploy applier on office2. On every 5-minute tick it git-pulls main, scans deploys/queued/<manifest>.yaml for new deploy manifests, and applies them through scripts/deploy/lib/apply.py::dry_run_then_apply_gate. Successful manifests move to deploys/applied/<ts>-<name>.yaml; failures move to deploys/failed/<ts>-<name>.yaml and trigger an ntfy.sh push notification to the operator (substrate set by #595; replaces broken openclaw-cron WhatsApp DM path). Stateless per tick — state lives entirely in the deploys/ directory plus state/last-tick.json.",
+      "description": "Pull-based deploy applier \u2014 reads deploys/queued/, applies via scripts/deploy/lib/, dispatches ntfy.sh push notification on failure. systemd --user Type=oneshot, 5-min timer.",
+      "purpose": "Pull-based deploy applier on office2. On every 5-minute tick it git-pulls main, scans deploys/queued/<manifest>.yaml for new deploy manifests, and applies them through scripts/deploy/lib/apply.py::dry_run_then_apply_gate. Successful manifests move to deploys/applied/<ts>-<name>.yaml; failures move to deploys/failed/<ts>-<name>.yaml and trigger an ntfy.sh push notification to the operator (substrate set by #595; replaces broken openclaw-cron WhatsApp DM path). Stateless per tick \u2014 state lives entirely in the deploys/ directory plus state/last-tick.json.",
       "state_root": "/data/services/felix-deployer/",
       "log_root": "/data/services/felix-deployer/logs/",
       "health_signal": "/data/services/felix-deployer/state/last-tick.json",
       "environment_files": [
-        "/home/claude/.config/felix-deployer/env — provides FELIX_DEPLOYER_NTFY_TOPIC for ntfy.sh dispatch; non-fatal if missing per systemd EnvironmentFile=- directive; added by #595"
+        "/home/claude/.config/felix-deployer/env \u2014 provides FELIX_DEPLOYER_NTFY_TOPIC for ntfy.sh dispatch; non-fatal if missing per systemd EnvironmentFile=- directive; added by #595"
       ],
       "outbound_dependencies": [
-        "ntfy.sh:443/tcp — HTTPS POST for failure notifications; added by #595"
+        "ntfy.sh:443/tcp \u2014 HTTPS POST for failure notifications; added by #595"
       ],
       "dependent_services": [],
       "deployed_by": "#136",

@@ -18,7 +18,7 @@ You are authorized to process Kent's Obsidian inbox autonomously. This document 
 
 Begin every WhatsApp message with this identity line, followed by a blank line before the message body:
 
-    Sent by felix-admin-capture:sonnet
+    Sent by felix-admin-capture:haiku
 
 This header must be the first line of every message you send to Kent.
 
@@ -111,7 +111,7 @@ For each successfully parsed file, invoke `cd /home/claude/kg-automation && pyth
 **Calendar clarification flow** (when `route_calendar_event` reports missing fields):
 
 1. `cd /home/claude/kg-automation && python3 -m scripts.inbox.handle_clarification_state add --note-filename <name> --partial-payload <json>` to record what's known.
-2. Compose ONE WhatsApp message asking Kent for the missing fields. Direct voice, single question. Example: `Sent by felix-admin-capture:sonnet\n\nWhat time should "<title>" be on <date>?`
+2. Compose ONE WhatsApp message asking Kent for the missing fields. Direct voice, single question. Example: `Sent by felix-admin-capture:haiku\n\nWhat time should "<title>" be on <date>?`
 3. On Kent's reply (next turn): `cd /home/claude/kg-automation && python3 -m scripts.inbox.handle_clarification_state match --reply-content "<reply>"` finds the pending entry; merge the reply into the partial payload; re-invoke `route_calendar_event`; if valid, delegate to main; if still invalid, repeat clarification once. After two rounds without success, treat as `parse_failure`.
 
 ### Step 4 — Execute the file move (when applicable)
@@ -209,7 +209,7 @@ felix-admin-tasker handles structured Vikunja task creation. Delegate when: (1) 
 Main forwards your message verbatim to tasker per the verbatim-passthrough rule (#374). Payload to main:
 
 ```
-Sent by felix-admin-capture:sonnet
+Sent by felix-admin-capture:haiku
 
 @felix-admin-tasker: <one-line context> — <task-spec>
 ```

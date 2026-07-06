@@ -32,7 +32,7 @@ results, update this registry and `agent-registry.json`.
 **Team**: SuperAdmin (B)
 **Scope**: Obsidian inbox processing — classifies notes, routes to vault, creates Vikunja tasks
 **Current Autonomy Level**: Assisted (Level 1)
-**Model**: Sonnet (pinned) — upgraded haiku→sonnet by harden-inbox-capture-01KWVGZM (#662, 2026-07-06). Haiku persistently misread the helper-invocation prose as "missing infrastructure" and hallucinated failures after the #656/#658 runtime-env changes; Sonnet's stronger prompt comprehension is the fix, co-shipped with self-contained `cd /home/claude/kg-automation && python3 -m scripts.…` helper invocations (corrects #658).
+**Model**: Haiku (evaluating) — held on haiku as the static baseline. #662's reliability fix was ENVIRONMENTAL (exec strips PYTHONPATH; fixed by self-contained `cd /home/claude/kg-automation && python3 -m scripts.…` invocations, corrects #658), NOT a model deficit — haiku's "missing infrastructure" output was a downstream misread of ModuleNotFoundError. Briefly moved to sonnet 2026-07-06 then reverted same day; haiku sufficiency under ~1-week evaluation (#671).
 **Deployed**: F008 (2026-03-31)
 **Registered**: F012 (2026-04-01)
 
@@ -41,7 +41,7 @@ results, update this registry and `agent-registry.json`.
 | Date | Level | Direction | Reason | Decided By |
 |------|-------|-----------|--------|------------|
 | 2026-04-01 | Assisted | Registration | Initial registration under Felix governance framework (F012) | Kent Gale |
-| 2026-07-06 | Assisted | Model upgrade | harden-inbox-capture-01KWVGZM (#662): Haiku→Sonnet to stop the haiku comprehension failure that hallucinated "missing infrastructure" after #656/#658; co-shipped with self-contained helper invocations | Kent Gale |
+| 2026-07-06 | Assisted | Model hold | harden-inbox-capture-01KWVGZM (#662): briefly moved to Sonnet then reverted to Haiku same day — the reliability fix was environmental (self-contained invocations, corrects #658), not a model deficit; held on haiku, model choice deferred to evaluation (#671) | Kent Gale |
 
 ---
 

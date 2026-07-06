@@ -1,15 +1,15 @@
 {
-  "version": "1.6",
+  "version": "1.7",
   "updated": "2026-07-06",
-  "updated_by": "felix-admin-capture model haiku→sonnet per mission harden-inbox-capture-01KWVGZM (#662)",
+  "updated_by": "harden-inbox-capture-01KWVGZM (#662) model-hold revert to haiku baseline (#671)",
   "agents": {
     "felix-admin-capture": {
       "team": "SuperAdmin (B)",
       "scope": "Obsidian inbox processing \u2014 classifies notes, routes to vault, creates Vikunja tasks",
       "autonomy_level": "assisted",
-      "model": "anthropic/claude-sonnet-4-6",
-      "model_policy": "pinned",
-      "model_rationale": "Upgraded haiku\u2192sonnet by harden-inbox-capture-01KWVGZM (#662, 2026-07-06). Haiku persistently misread the helper-invocation prose as \"missing infrastructure\" and hallucinated failures after the #656/#658 runtime-env changes; Sonnet's stronger prompt comprehension is the fix, co-shipped with self-contained `cd /home/claude/kg-automation && python3 -m scripts.\u2026` helper invocations (corrects #658).",
+      "model": "anthropic/claude-haiku-4-5",
+      "model_policy": "evaluating",
+      "model_rationale": "Held on haiku as the static baseline. #662's reliability fix was ENVIRONMENTAL (OpenClaw's exec tool strips PYTHONPATH; fixed fleet-wide by self-contained `cd /home/claude/kg-automation && python3 -m scripts.\u2026` invocations, corrects #658) \u2014 NOT a model deficit; haiku's 'missing infrastructure' output was a downstream misread of the resulting ModuleNotFoundError. Whether haiku suffices for the capture reasoning task is being evaluated over ~1 week of real activity before any model change (#671).",
       "log_verbosity": "standard",
       "deployed_feature": "F008",
       "registered": "2026-04-01",
@@ -24,8 +24,8 @@
         {
           "date": "2026-07-06",
           "autonomy_level": "assisted",
-          "direction": "model-upgrade",
-          "reason": "harden-inbox-capture-01KWVGZM (#662): model anthropic/claude-haiku-4-5 \u2192 anthropic/claude-sonnet-4-6 to stop the haiku comprehension failure that hallucinated 'missing infrastructure' after #656/#658; co-shipped with self-contained helper invocations.",
+          "direction": "model-hold",
+          "reason": "Briefly deployed sonnet during #662 then reverted to haiku the same day: the reliability failure was environmental (self-contained invocations, corrects #658), not a model deficit. Capture held on haiku as the static baseline; model-per-task choice deferred to evidence-based evaluation (#671).",
           "decided_by": "Kent Gale"
         }
       ]
