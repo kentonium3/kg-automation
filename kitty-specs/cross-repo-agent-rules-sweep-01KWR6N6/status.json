@@ -2,7 +2,7 @@
   "event_count": 18,
   "last_event_id": "01KWVKJ324NDXJJHCEQCFAR3WA",
   "materialized_at": "2026-07-06T11:38:33.412953+00:00",
-  "mission_number": "",
+  "mission_number": "85",
   "mission_slug": "cross-repo-agent-rules-sweep-01KWR6N6",
   "mission_type": "software-dev",
   "summary": {
