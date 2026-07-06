@@ -1,0 +1,51 @@
+{
+  "version": 1,
+  "mission_slug": "cross-repo-agent-rules-sweep-01KWR6N6",
+  "mission_id": "01KWR6N68GVY41YYJAJQSQM4E0",
+  "mission_branch": "kitty/mission-cross-repo-agent-rules-sweep-01KWR6N6",
+  "target_branch": "feat/cross-repo-standing-rules-sweep",
+  "lanes": [
+    {
+      "lane_id": "lane-planning",
+      "wp_ids": [
+        "WP01",
+        "WP03"
+      ],
+      "write_scope": [
+        "docs/diagnostics/cross-repo-standing-rules-sweep-candidates.md",
+        "docs/diagnostics/cross-repo-standing-rules-sweep-validation.md"
+      ],
+      "predicted_surfaces": [
+        "planning"
+      ],
+      "depends_on_lanes": [
+        "lane-a"
+      ],
+      "parallel_group": 1
+    },
+    {
+      "lane_id": "lane-a",
+      "wp_ids": [
+        "WP02"
+      ],
+      "write_scope": [
+        ".agents/rules/cross-repo-standing-rules.md"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "tracker-integration",
+        "workspace"
+      ],
+      "depends_on_lanes": [
+        "lane-planning"
+      ],
+      "parallel_group": 2
+    }
+  ],
+  "computed_at": "2026-07-06T00:32:21.605959+00:00",
+  "computed_from": "dependency_graph+ownership",
+  "planning_artifact_wps": [
+    "WP01",
+    "WP03"
+  ]
+}
