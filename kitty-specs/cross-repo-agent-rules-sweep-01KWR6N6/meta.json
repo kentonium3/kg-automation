@@ -12,5 +12,7 @@
   "purpose_tldr": "Ensure universal agent rules are discoverable in every repository session without bloating always-on context.",
   "slug": "cross-repo-agent-rules-sweep-01KWR6N6",
   "target_branch": "feat/cross-repo-standing-rules-sweep",
-  "topology": "coord"
+  "topology": "coord",
+  "vcs": "git",
+  "vcs_locked_at": "2026-07-06T11:24:23.001251+00:00"
 }
