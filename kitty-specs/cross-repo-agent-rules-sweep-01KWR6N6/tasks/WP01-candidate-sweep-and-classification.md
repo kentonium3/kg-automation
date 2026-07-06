@@ -138,3 +138,4 @@ Check that the classification note is evidence-backed and conservative. A missin
 ## Activity Log
 
 - 2026-07-06T11:07:59Z – codex – shell_pid=7621 – Surgical workaround: claim WP01 via move-task --no-auto-commit after action implement safe-commit blocker
+- 2026-07-06T11:18:31Z – codex – shell_pid=7621 – Ready for review: candidate classification diagnostic created and docs validation passed
