@@ -128,6 +128,22 @@ secondary effects. Root of the #662 misdiagnosis.
 - **HARD CONSTRAINT: no LLM in the hot path.** Canaries are file/mtime/attribute/version/
   count assertions. (The #485 doc-auditor suspension proves why.)
 
+**Alerting seam — WhatsApp vs ntfy (route by audience-role, not failure-type).** Two channels,
+two roles: **WhatsApp** = Felix communicating with Kent *as the user* in the course of work
+(confirmations, clarifying questions, and honest soft-fail/capability-gap transparency — "I
+can't do X yet"); **ntfy** (the one communication bus) = the *system* needs Kent *as operator*
+(hard failures + silent degradation + the watchdog). Three zones: conversational→WhatsApp
+only; system-health→ntfy only; a failure that blocks a user request→both, deliberately, in
+each channel's register. The pairing is a **safety property, not redundancy**: WhatsApp is
+*agent-emitted, judgment-based, best-effort* ("helpful when possible") and can be missed if an
+agent misreasons; **ntfy canaries are deterministic and independent of agent judgment** ("must
+always") — they fire even when the agent stays silent or misclassifies a hard failure as a
+soft no-op (the #657/#662 trap). Soft-fails accumulate in the deterministic capability-gap
+*log* (#651) → an aggregate prioritization signal, **not** per-instance ntfy spam — so the
+seam scales role-based (not volume-based) as the capability surface broadens with #670. This
+seam is authored as a founding **doctrine invariant** (F3) so every agent applies it
+identically, ending the per-agent output-discipline drift (#573/#561/#406).
+
 **Absorbs:** #637, #667(alert half), #654, #628, #657(error-envelope guard), #652(delivery
 canary), #634(replaced by semantic filtering). **#516** is the research spike whose answer
 *is* this build.
