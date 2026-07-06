@@ -74,9 +74,9 @@ Use WP01's diagnostic classification note as the source of truth. Edit only `.ag
 
 **Included subtasks**:
 
-- [ ] T008 Run docs validation and targeted standing-rules checks from the quickstart. (WP03)
-- [ ] T009 Write a mission-owned validation report covering line count, stale wording checks, protected headings, and any follow-up judgment items. (WP03)
-- [ ] T010 Summarize whether #649 is ready for closeout or needs operator judgment. (WP03)
+- [x] T008 Run docs validation and targeted standing-rules checks from the quickstart. (WP03)
+- [x] T009 Write a mission-owned validation report covering line count, stale wording checks, protected headings, and any follow-up judgment items. (WP03)
+- [x] T010 Summarize whether #649 is ready for closeout or needs operator judgment. (WP03)
 
 **Implementation sketch**:
 
