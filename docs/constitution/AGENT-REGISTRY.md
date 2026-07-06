@@ -32,7 +32,7 @@ results, update this registry and `agent-registry.json`.
 **Team**: SuperAdmin (B)
 **Scope**: Obsidian inbox processing — classifies notes, routes to vault, creates Vikunja tasks
 **Current Autonomy Level**: Assisted (Level 1)
-**Model**: Haiku (optimizable) — validated 2026-04-09, equivalent routing accuracy
+**Model**: Sonnet (pinned) — upgraded haiku→sonnet by harden-inbox-capture-01KWVGZM (#662, 2026-07-06). Haiku persistently misread the helper-invocation prose as "missing infrastructure" and hallucinated failures after the #656/#658 runtime-env changes; Sonnet's stronger prompt comprehension is the fix, co-shipped with self-contained `cd /home/claude/kg-automation && python3 -m scripts.…` helper invocations (corrects #658).
 **Deployed**: F008 (2026-03-31)
 **Registered**: F012 (2026-04-01)
 
@@ -41,6 +41,7 @@ results, update this registry and `agent-registry.json`.
 | Date | Level | Direction | Reason | Decided By |
 |------|-------|-----------|--------|------------|
 | 2026-04-01 | Assisted | Registration | Initial registration under Felix governance framework (F012) | Kent Gale |
+| 2026-07-06 | Assisted | Model upgrade | harden-inbox-capture-01KWVGZM (#662): Haiku→Sonnet to stop the haiku comprehension failure that hallucinated "missing infrastructure" after #656/#658; co-shipped with self-contained helper invocations | Kent Gale |
 
 ---
 

@@ -1,15 +1,15 @@
 {
-  "version": "1.5",
-  "updated": "2026-06-11",
-  "updated_by": "felix-admin-calendar registered per mission felix-calendar-subagent-extraction-01KTTA33 (#579)",
+  "version": "1.6",
+  "updated": "2026-07-06",
+  "updated_by": "felix-admin-capture model haiku→sonnet per mission harden-inbox-capture-01KWVGZM (#662)",
   "agents": {
     "felix-admin-capture": {
       "team": "SuperAdmin (B)",
       "scope": "Obsidian inbox processing \u2014 classifies notes, routes to vault, creates Vikunja tasks",
       "autonomy_level": "assisted",
-      "model": "anthropic/claude-haiku-4-5",
-      "model_policy": "optimizable",
-      "model_rationale": "Routine classification \u2014 validated on Haiku 2026-04-09, equivalent routing accuracy",
+      "model": "anthropic/claude-sonnet-4-6",
+      "model_policy": "pinned",
+      "model_rationale": "Upgraded haiku\u2192sonnet by harden-inbox-capture-01KWVGZM (#662, 2026-07-06). Haiku persistently misread the helper-invocation prose as \"missing infrastructure\" and hallucinated failures after the #656/#658 runtime-env changes; Sonnet's stronger prompt comprehension is the fix, co-shipped with self-contained `cd /home/claude/kg-automation && python3 -m scripts.\u2026` helper invocations (corrects #658).",
       "log_verbosity": "standard",
       "deployed_feature": "F008",
       "registered": "2026-04-01",
@@ -19,6 +19,13 @@
           "autonomy_level": "assisted",
           "direction": "registration",
           "reason": "Initial registration under Felix governance framework (F012)",
+          "decided_by": "Kent Gale"
+        },
+        {
+          "date": "2026-07-06",
+          "autonomy_level": "assisted",
+          "direction": "model-upgrade",
+          "reason": "harden-inbox-capture-01KWVGZM (#662): model anthropic/claude-haiku-4-5 \u2192 anthropic/claude-sonnet-4-6 to stop the haiku comprehension failure that hallucinated 'missing infrastructure' after #656/#658; co-shipped with self-contained helper invocations.",
           "decided_by": "Kent Gale"
         }
       ]

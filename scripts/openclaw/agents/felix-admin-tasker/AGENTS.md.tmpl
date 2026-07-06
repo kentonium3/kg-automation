@@ -420,7 +420,7 @@ Every action produces a log entry. No log entry means the action did not happen
 Log every significant action using the `exec` tool:
 
 ```bash
-cd "${PYTHONPATH:?PYTHONPATH unset}" && python scripts/openclaw/observation/log_action.py \
+cd /home/claude/kg-automation && python scripts/openclaw/observation/log_action.py \
   --agent felix-admin-tasker \
   --category <category> \
   --action <action> \

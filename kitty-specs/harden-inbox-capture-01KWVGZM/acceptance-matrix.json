@@ -1,0 +1,59 @@
+{
+  "mission_slug": "harden-inbox-capture-01KWVGZM",
+  "mission_number": "",
+  "mission_type": "software-dev",
+  "overall_verdict": "pass",
+  "criteria": [
+    {
+      "criterion_id": "FR-001",
+      "description": "Verify FR-001 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "WP02 (capture) + WP03 (fleet) swapped ALL helper invocations to the exact `cd /home/claude/kg-automation && \u2026` form. `python3 -m scripts.openclaw.agents.env_assumptions` reports 0 findings fleet-wide (post WP02+WP03); grep `${PYTHONPATH:?}` empty across every active AGENTS.md/.tmpl.",
+      "pass_fail": "pass",
+      "verified_by": "claude-opus-4-8 (orchestrator/acceptance-actor)",
+      "verified_at": "2026-07-06T12:34:07.000000+00:00",
+      "notes": "Fleet checker gate green after WP02+WP03 land on the mission branch; suspended felix-doc-auditor excluded."
+    },
+    {
+      "criterion_id": "FR-002",
+      "description": "Verify FR-002 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "WP01 inverted `env_assumptions.py`: exact-match `CANONICAL_CHECKOUT` anchor, new `RELATIVE_SCRIPT` class, `PYTHONPATH_ANCHOR` (flags `${PYTHONPATH:?}`), `HOME_RELATIVE_WRITE`+waiver preserved. 52 unit tests green; `test_env_assumptions_guard.py` fleet guard goes green once the fleet is swapped.",
+      "pass_fail": "pass",
+      "verified_by": "claude-opus-4-8 (orchestrator/acceptance-actor)",
+      "verified_at": "2026-07-06T12:34:07.000000+00:00",
+      "notes": "Docs runbook openclaw-agent-setup.md corrected in the same WP."
+    },
+    {
+      "criterion_id": "FR-003",
+      "description": "Verify FR-003 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "capture AGENTS.md:74 reworded \u2014 helpers referenced only as opaque self-contained commands + explicit 'report actual stderr, never speculate infra is missing/not deployed/not implemented' rule. No negatable 'helpers live at <path>' claim remains.",
+      "pass_fail": "pass",
+      "verified_by": "claude-opus-4-8 (orchestrator/acceptance-actor)",
+      "verified_at": "2026-07-06T12:34:07.000000+00:00",
+      "notes": "Wording verified by diff review; invocation compliance verified by env_assumptions (capture clean)."
+    },
+    {
+      "criterion_id": "FR-004",
+      "description": "Verify FR-004 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "capture identity `:haiku`\u2192`:sonnet` (WP02); docs reconciled to `anthropic/claude-sonnet-4-6` in service-inventory.json/.md + agent-registry.json + AGENT-REGISTRY.md (WP04). Model `anthropic/claude-sonnet-4-6` already registered in openclaw.json providers.",
+      "pass_fail": "pass",
+      "verified_by": "claude-opus-4-8 (orchestrator/acceptance-actor)",
+      "verified_at": "2026-07-06T12:34:07.000000+00:00",
+      "notes": "Runtime openclaw.json model flip + SC-002 (`openclaw cron runs` shows claude-sonnet-4-6) verified at post-merge office2 deploy (quickstart) \u2014 the operator step."
+    },
+    {
+      "criterion_id": "FR-005",
+      "description": "Verify FR-005 is satisfied",
+      "proof_type": "automated_test",
+      "evidence": "capture calendar clarification ask-and-reply loop (Step 3 route_calendar_event + handle_clarification_state add/match/sweep) unchanged \u2014 only invocation form/identity/line-74 wording changed.",
+      "pass_fail": "pass",
+      "verified_by": "claude-opus-4-8 (orchestrator/acceptance-actor)",
+      "verified_at": "2026-07-06T12:34:07.000000+00:00",
+      "notes": "Non-regression confirmed by diff review; behavioral SC-006 verified at post-merge deploy."
+    }
+  ],
+  "negative_invariants": []
+}

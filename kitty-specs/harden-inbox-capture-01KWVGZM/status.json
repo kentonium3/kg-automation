@@ -1,0 +1,49 @@
+{
+  "event_count": 28,
+  "last_event_id": "01KWVPSCJGSVXEBR7MGQV1AXZA",
+  "materialized_at": "2026-07-06T12:34:58.256704+00:00",
+  "mission_number": "86",
+  "mission_slug": "harden-inbox-capture-01KWVGZM",
+  "mission_type": "software-dev",
+  "summary": {
+    "approved": 0,
+    "blocked": 0,
+    "canceled": 0,
+    "claimed": 0,
+    "done": 4,
+    "for_review": 0,
+    "in_progress": 0,
+    "in_review": 0,
+    "planned": 0
+  },
+  "work_packages": {
+    "WP01": {
+      "actor": "merge",
+      "force_count": 0,
+      "lane": "done",
+      "last_event_id": "01KWVPS9BD10VAZ426HFXWW759",
+      "last_transition_at": "2026-07-06T12:34:54.957519+00:00"
+    },
+    "WP02": {
+      "actor": "merge",
+      "force_count": 0,
+      "lane": "done",
+      "last_event_id": "01KWVPSBJDSFWEMXC4ZK9H04BK",
+      "last_transition_at": "2026-07-06T12:34:57.229286+00:00"
+    },
+    "WP03": {
+      "actor": "merge",
+      "force_count": 0,
+      "lane": "done",
+      "last_event_id": "01KWVPSCJGSVXEBR7MGQV1AXZA",
+      "last_transition_at": "2026-07-06T12:34:58.256704+00:00"
+    },
+    "WP04": {
+      "actor": "merge",
+      "force_count": 0,
+      "lane": "done",
+      "last_event_id": "01KWVPSAK9F0KV3XZ2KEA3A9Y1",
+      "last_transition_at": "2026-07-06T12:34:56.233774+00:00"
+    }
+  }
+}
