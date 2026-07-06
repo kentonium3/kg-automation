@@ -1,0 +1,129 @@
+{
+    "mission_slug": "felix-admin-cron-path-fix-01KWQTY3",
+    "mission_number": "",
+    "mission_type": "software-dev",
+    "overall_verdict": "pass",
+    "criteria": [
+        {
+            "criterion_id": "FR-001",
+            "description": "Verify FR-001 is satisfied",
+            "proof_type": "automated_test",
+            "evidence": "WP01 gateway PYTHONPATH systemd drop-in; tests/deploy/test_install_gateway_pythonpath_dropin.py (17 pass); SC-10 automated gate = live gateway /proc/<MainPID>/environ.",
+            "pass_fail": "pass",
+            "verified_by": "claude-opus-4-8 (orchestrator/acceptance-actor)",
+            "verified_at": "2026-07-05T05:38:33.348425+00:00",
+            "notes": "office2 in-agent cron-run confirmation is post-deploy (quickstart SC-1/SC-2/SC-10)."
+        },
+        {
+            "criterion_id": "FR-002",
+            "description": "Verify FR-002 is satisfied",
+            "proof_type": "automated_test",
+            "evidence": "WP01 drop-in is inherited fleet-wide by all agent subprocesses; same tests.",
+            "pass_fail": "pass",
+            "verified_by": "claude-opus-4-8 (orchestrator/acceptance-actor)",
+            "verified_at": "2026-07-05T05:38:33.348425+00:00",
+            "notes": "office2 verification post-deploy."
+        },
+        {
+            "criterion_id": "FR-003",
+            "description": "Verify FR-003 is satisfied",
+            "proof_type": "automated_test",
+            "evidence": "WP04 removed now-false cwd warning prose (habits/capture) while keeping functional cd belts; grep-gate clean.",
+            "pass_fail": "pass",
+            "verified_by": "claude-opus-4-8 (orchestrator/acceptance-actor)",
+            "verified_at": "2026-07-05T05:38:33.348425+00:00",
+            "notes": "cd-belt removal itself deferred to #658."
+        },
+        {
+            "criterion_id": "FR-004",
+            "description": "Verify FR-004 is satisfied",
+            "proof_type": "automated_test",
+            "evidence": "WP02 routing_log.DEFAULT_ROUTING_LOG_PATH -> /data/services/openclaw/state/; tests/inbox/test_state_paths.py + test_routing_log.py (28 pass).",
+            "pass_fail": "pass",
+            "verified_by": "claude-opus-4-8 (orchestrator/acceptance-actor)",
+            "verified_at": "2026-07-05T05:38:33.348425+00:00",
+            "notes": "Verified by per-WP review (opus/codex) + automated tests on the feature branch."
+        },
+        {
+            "criterion_id": "FR-005",
+            "description": "Verify FR-005 is satisfied",
+            "proof_type": "automated_test",
+            "evidence": "WP05 non-destructive migration entrypoint (union-merge divergent ledger, conflict-abort); tests/deploy/test_migrate_inbox_state.py (9 pass).",
+            "pass_fail": "pass",
+            "verified_by": "claude-opus-4-8 (orchestrator/acceptance-actor)",
+            "verified_at": "2026-07-05T05:38:33.348425+00:00",
+            "notes": "office2 migration runs at deploy via manifest 0007 (Tier-2, snapshot-gated)."
+        },
+        {
+            "criterion_id": "FR-006",
+            "description": "Verify FR-006 is satisfied",
+            "proof_type": "automated_test",
+            "evidence": "WP03 prescan DEFAULT_LOG_DIR -> /home/kgale vault + WP04 prompt log paths; tests/inbox/test_prescan_paths_and_dedup.py.",
+            "pass_fail": "pass",
+            "verified_by": "claude-opus-4-8 (orchestrator/acceptance-actor)",
+            "verified_at": "2026-07-05T05:38:33.348425+00:00",
+            "notes": "vault sync confirmation post-deploy (SC-4)."
+        },
+        {
+            "criterion_id": "FR-007",
+            "description": "Verify FR-007 is satisfied",
+            "proof_type": "automated_test",
+            "evidence": "WP04 reconciled capture AGENTS.md/.tmpl + TOOLS.md/.tmpl log-path copies; grep-gate clean.",
+            "pass_fail": "pass",
+            "verified_by": "claude-opus-4-8 (orchestrator/acceptance-actor)",
+            "verified_at": "2026-07-05T05:38:33.348425+00:00",
+            "notes": "Verified by per-WP review (opus/codex) + automated tests on the feature branch."
+        },
+        {
+            "criterion_id": "FR-008",
+            "description": "Verify FR-008 is satisfied",
+            "proof_type": "automated_test",
+            "evidence": "WP05 preserves inbox-prescan logs to the vault (narrowed); tree left intact; test T-INTACT.",
+            "pass_fail": "pass",
+            "verified_by": "claude-opus-4-8 (orchestrator/acceptance-actor)",
+            "verified_at": "2026-07-05T05:38:33.348425+00:00",
+            "notes": "FULL /home/claude/second-brain decommission NARROWED out -> fast-follow #659 (spec FR-008/SC-5)."
+        },
+        {
+            "criterion_id": "FR-009",
+            "description": "Verify FR-009 is satisfied",
+            "proof_type": "automated_test",
+            "evidence": "WP04 fixed stale ~/repos/kg-automation + ~/second-brain refs across all felix-admin AGENTS.md*/TOOLS.md* (incl .tmpl siblings); 3 grep-gates clean; _private untouched.",
+            "pass_fail": "pass",
+            "verified_by": "claude-opus-4-8 (orchestrator/acceptance-actor)",
+            "verified_at": "2026-07-05T05:38:33.348425+00:00",
+            "notes": "Verified by per-WP review (opus/codex) + automated tests on the feature branch."
+        },
+        {
+            "criterion_id": "FR-010",
+            "description": "Verify FR-010 is satisfied",
+            "proof_type": "automated_test",
+            "evidence": "WP02 (routing_log + handle_clarification_state .json) + WP04 (calendar/main inline .jsonl) \u2014 both stray-dir state writers repointed to /data.",
+            "pass_fail": "pass",
+            "verified_by": "claude-opus-4-8 (orchestrator/acceptance-actor)",
+            "verified_at": "2026-07-05T05:38:33.348425+00:00",
+            "notes": "format .json/.jsonl unification deferred (follow-up)."
+        },
+        {
+            "criterion_id": "FR-011",
+            "description": "Verify FR-011 is satisfied",
+            "proof_type": "automated_test",
+            "evidence": "WP03 package-absolute imports (from scripts.inbox.routing_log); dedup-active-from-/tmp test (SC-8), codex-smoke-verified (no dedup-disabled warning).",
+            "pass_fail": "pass",
+            "verified_by": "claude-opus-4-8 (orchestrator/acceptance-actor)",
+            "verified_at": "2026-07-05T05:38:33.348425+00:00",
+            "notes": "Verified by per-WP review (opus/codex) + automated tests on the feature branch."
+        },
+        {
+            "criterion_id": "FR-012",
+            "description": "Verify FR-012 is satisfied",
+            "proof_type": "automated_test",
+            "evidence": "WP02 + WP05 ownership/mode convention claude:secondbrain dir 0750 files 0640; strict enforcement incl pre-existing target; tests T-PERM-REPAIR/STRICT.",
+            "pass_fail": "pass",
+            "verified_by": "claude-opus-4-8 (orchestrator/acceptance-actor)",
+            "verified_at": "2026-07-05T05:38:33.348425+00:00",
+            "notes": "office2 stat confirmation post-deploy (SC-9)."
+        }
+    ],
+    "negative_invariants": []
+}

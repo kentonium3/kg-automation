@@ -1,7 +1,7 @@
 {
   "schema_version": "1.1",
-  "last_updated": "2026-06-28",
-  "updated_by": "finalize-inbox-file-01KW8MSQ (#325) + pull-based-deploy-pipeline-01KTYQQS (#136) + felix-calendar-subagent-extraction-01KTTA33 (#579) + #572-credential-liveness-probe + prescan-archive-anomalies-01KTMZPE (#568) + capture-agents-md-rewrite-01KTMY86 (#566) + capture-d6-helpers-extraction-01KTMS5Q (#566) + agent-prompt-deploy-pipeline-01KTMDDD (#567) + vikunja-client-and-habits-weekly-report-01KTKSFT (#542 + #561 + #562) + inbox-calendar-and-aspiration-routing-01KTHHXS + #520-felix-vikunja-sync-project-layer-and-url-config + #519-touchpoint-migration + #518-felix-vikunja-sync-driver-added + #376-remove-escalation-v1-parity + #400-audit-interpretation-moment0 + #310-tasker-jsonl-migration + #374-main-verbatim-passthrough + #362-drift-event-auto-resolution + #309-migrate-escalation-to-jsonl-state-model + #343-refactor-doc-auditor-to-scripts-first-driver + #307-backfill-habits-jsonl-from-comments + #306-habits-native-repeat-jsonl-state + #304-felix-bot-rotation + #291-felix-file-issue + #289-mutation-surfaces-enumeration + #285-cron-delivery-restore-path-c + #282-habits-d6-extract + #263-cron-delivery-mode-round2 + #100-google-workspace-foundation + #256-scope-discipline-guardrails + #253-step-5a-6-consolidation + #254-atomic-write-perm-preservation + issue-105-doc-auditor + #223-systemd-timer + #208-restic-healthcheck + #202-obsidian-sync-system-level + #203-sync-heartbeat + #199-inbox-schedules + #115-credential-health-check + #189-vikunja-compose + #185-inbox-capture-dedup + restore-whatsapp-dm-reply-delivery-01KTVVHH (#588) + #545-reconcile-doc-auditor-status",
+  "last_updated": "2026-07-05",
+  "updated_by": "felix-admin-cron-path-fix-01KWQTY3 (#656) + finalize-inbox-file-01KW8MSQ (#325) + pull-based-deploy-pipeline-01KTYQQS (#136) + felix-calendar-subagent-extraction-01KTTA33 (#579) + #572-credential-liveness-probe + prescan-archive-anomalies-01KTMZPE (#568) + capture-agents-md-rewrite-01KTMY86 (#566) + capture-d6-helpers-extraction-01KTMS5Q (#566) + agent-prompt-deploy-pipeline-01KTMDDD (#567) + vikunja-client-and-habits-weekly-report-01KTKSFT (#542 + #561 + #562) + inbox-calendar-and-aspiration-routing-01KTHHXS + #520-felix-vikunja-sync-project-layer-and-url-config + #519-touchpoint-migration + #518-felix-vikunja-sync-driver-added + #376-remove-escalation-v1-parity + #400-audit-interpretation-moment0 + #310-tasker-jsonl-migration + #374-main-verbatim-passthrough + #362-drift-event-auto-resolution + #309-migrate-escalation-to-jsonl-state-model + #343-refactor-doc-auditor-to-scripts-first-driver + #307-backfill-habits-jsonl-from-comments + #306-habits-native-repeat-jsonl-state + #304-felix-bot-rotation + #291-felix-file-issue + #289-mutation-surfaces-enumeration + #285-cron-delivery-restore-path-c + #282-habits-d6-extract + #263-cron-delivery-mode-round2 + #100-google-workspace-foundation + #256-scope-discipline-guardrails + #253-step-5a-6-consolidation + #254-atomic-write-perm-preservation + issue-105-doc-auditor + #223-systemd-timer + #208-restic-healthcheck + #202-obsidian-sync-system-level + #203-sync-heartbeat + #199-inbox-schedules + #115-credential-health-check + #189-vikunja-compose + #185-inbox-capture-dedup + restore-whatsapp-dm-reply-delivery-01KTVVHH (#588) + #545-reconcile-doc-auditor-status",
   "services": [
     {
       "name": "vikunja",
@@ -393,15 +393,20 @@
           "source_in_repo": "scripts/openclaw/agents/felix-admin-capture/",
           "deployed_by": "F008",
           "autonomy_level": "assisted",
-          "updated_by": "finalize-inbox-file-01KW8MSQ (#325) + capture-agents-md-rewrite-01KTMY86 (#566) + inbox-calendar-and-aspiration-routing-01KTHHXS + #185-inbox-capture-dedup",
-          "updated_at": "2026-06-28",
+          "updated_by": "felix-admin-cron-path-fix-01KWQTY3 (#656) + finalize-inbox-file-01KW8MSQ (#325) + capture-agents-md-rewrite-01KTMY86 (#566) + inbox-calendar-and-aspiration-routing-01KTHHXS + #185-inbox-capture-dedup",
+          "updated_at": "2026-07-05",
           "notes": "As of #185 (2026-05-12): routes are deduped via a filename-keyed routing log (see state_files). Notes with malformed frontmatter halt routing and surface via a batched 'Inbox quality:' GitHub issue + an Obsidian `> [!error] felix-capture:` callout marker injected at the top of the affected note. Markers auto-strip when the note next parses cleanly. As of inbox-calendar-and-aspiration-routing-01KTHHXS (2026-06-08): calendar events with all required fields are delegated to Felix main for `gog calendar create`; incomplete calendar events trigger a single WhatsApp clarification prompt and a write to the pending-calendar-clarifications state file (24h timeout sweep); aspirations and musings are appended to the dated `08-Journal/Journal YYYY-MM-DD HHmm.md` entry; Someday items are routed to the Vikunja Someday project resolved by name. Post-mission capture-agents-md-rewrite-01KTMY86 (2026-06-08): AGENTS.md rewritten from 52,942 chars to ~13,986 chars per Felix Constitution Directive 6; deterministic Step 1-7 recipes extracted to scripts/inbox/ helpers (6 new from capture-d6-helpers-extraction-01KTMS5Q + 8 existing); Step 5 invariant ('do NOT delete the original file \u2014 preserve it in 01-Inbox/') now visible in the first 8K bootstrap chars. As of finalize-inbox-file-01KW8MSQ (#325, 2026-06-28): the per-file finalize (Step 5c) is now an error-surfacing call \u2014 mark_processed.py exposes a 0/1/2/3 exit contract (0 success/idempotent, 1 validation failure incl. outside-inbox-root, 2 filesystem error surfaced via OSError where previously an uncaught traceback, 3 privacy refusal) and emits a single-line JSON success object on stdout (exit 0). The felix-admin-capture Step 5c standing orders act on these exit codes, surfacing/escalating any non-zero finalize rather than silently continuing.",
           "state_files": [
             {
-              "path": "~/second-brain/agents/state/inbox-routing.jsonl",
+              "path": "/data/services/openclaw/state/inbox-routing.jsonl",
               "format": "jsonl",
               "purpose": "Routing log \u2014 load-bearing dedup substrate. Each line: {filename, issue_number, vikunja_task_id, routed_at, note_excerpt}. Append-only. NOT git-tracked; backed up by nightly Restic.",
-              "introduced_by": "#185"
+              "introduced_by": "#185",
+              "updated_by": "felix-admin-cron-path-fix-01KWQTY3 (#656)",
+              "owner": "claude:secondbrain",
+              "dir_mode": "0750",
+              "file_mode": "0640",
+              "migration_note": "Relocated from ~/second-brain/agents/state/ (stray unsynced dir) to /data/services/openclaw/state/ by felix-admin-cron-path-fix-01KWQTY3 (#656) via deploy manifest 0007-migrate-inbox-state-and-logs.yaml."
             }
           ],
           "components": [
@@ -411,7 +416,7 @@
               "language": "python",
               "source": "scripts/inbox/prescan.py",
               "deploy_path": "/home/claude/kg-automation/scripts/inbox/prescan.py",
-              "log_path": "/home/claude/second-brain/agents/logs/inbox-prescan-*.md",
+              "log_path": "/home/kgale/second-brain/agents/logs/inbox-prescan-*.md",
               "dependencies": [
                 "scripts/vault/paths.json",
                 "scripts/inbox/routing_log.py"
@@ -428,7 +433,7 @@
               "language": "python",
               "source": "scripts/inbox/routing_log.py",
               "deploy_path": "/home/claude/kg-automation/scripts/inbox/routing_log.py",
-              "purpose": "RoutingLogReader + RoutingLogWriter for the dedup substrate at ~/second-brain/agents/state/inbox-routing.jsonl",
+              "purpose": "RoutingLogReader + RoutingLogWriter for the dedup substrate at /data/services/openclaw/state/inbox-routing.jsonl",
               "invoked_by": "prescan.py (read), append_routing_entry.py (write)",
               "introduced_by": "#185"
             },
@@ -530,16 +535,21 @@
               "language": "python",
               "source": "scripts/inbox/handle_clarification_state.py",
               "deploy_path": "/home/claude/kg-automation/scripts/inbox/handle_clarification_state.py",
-              "purpose": "Manages ~/second-brain/agents/state/pending-calendar-clarifications.json \u2014 add / sweep (24h aging) / match subcommands. Safe on missing state file. Significant-token match heuristic for incoming WhatsApp replies.",
+              "purpose": "Manages /data/services/openclaw/state/pending-calendar-clarifications.json \u2014 add / sweep (24h aging) / match subcommands. Safe on missing state file. Significant-token match heuristic for incoming WhatsApp replies.",
               "invoked_by": "felix-admin-capture (post #566 follow-on AGENTS.md rewrite); separate sweep cron tick (TBD)",
               "introduced_by": "#566",
               "updated_at": "2026-06-08",
               "state_files": [
                 {
-                  "path": "~/second-brain/agents/state/pending-calendar-clarifications.json",
+                  "path": "/data/services/openclaw/state/pending-calendar-clarifications.json",
                   "format": "json-array",
                   "purpose": "Pending calendar clarifications awaiting Kent's WhatsApp reply. 24h aged out by sweep subcommand.",
-                  "introduced_by": "#566"
+                  "introduced_by": "#566",
+                  "updated_by": "felix-admin-cron-path-fix-01KWQTY3 (#656)",
+                  "owner": "claude:secondbrain",
+                  "dir_mode": "0750",
+                  "file_mode": "0640",
+                  "migration_note": "Relocated from ~/second-brain/agents/state/ (stray unsynced dir) to /data/services/openclaw/state/ by felix-admin-cron-path-fix-01KWQTY3 (#656) via deploy manifest 0007-migrate-inbox-state-and-logs.yaml."
                 }
               ]
             },
@@ -646,18 +656,23 @@
           "deployed_by": "#579",
           "deployed_on": "2026-06-11",
           "autonomy_level": "assisted",
-          "updated_by": "felix-calendar-subagent-extraction-01KTTA33 (#579)",
-          "updated_at": "2026-06-11",
+          "updated_by": "felix-admin-cron-path-fix-01KWQTY3 (#656) + felix-calendar-subagent-extraction-01KTTA33 (#579)",
+          "updated_at": "2026-07-05",
           "depends_on": [
             "gog",
             "openclaw-gateway-env"
           ],
           "state_files": [
             {
-              "path": "~/second-brain/agents/state/pending-calendar-clarifications.jsonl",
+              "path": "/data/services/openclaw/state/pending-calendar-clarifications.jsonl",
               "format": "jsonl",
               "purpose": "Pending calendar clarifications awaiting Kent's WhatsApp reply. 24h aged out by sweep. Atomic-write protocol (LOCK_EX + .tmp + rename) preserved verbatim from main/AGENTS.md \u2014 contract is moved 1:1 from main per mission spec (no behavioral change).",
-              "moved_from": "main/AGENTS.md (lines 333-440 pre-mission)"
+              "moved_from": "main/AGENTS.md (lines 333-440 pre-mission)",
+              "updated_by": "felix-admin-cron-path-fix-01KWQTY3 (#656)",
+              "owner": "claude:secondbrain",
+              "dir_mode": "0750",
+              "file_mode": "0640",
+              "migration_note": "Relocated from ~/second-brain/agents/state/ (stray unsynced dir) to /data/services/openclaw/state/ by felix-admin-cron-path-fix-01KWQTY3 (#656) via deploy manifest 0007-migrate-inbox-state-and-logs.yaml."
             }
           ],
           "notes": "Per data-model.md: openclaw.json agents.list[] entry shape is `{id, name, workspace, agentDir, model}`. Model anthropic/claude-haiku-4-5 chosen per F-06 decision (routine workload, validator-driven). On WhatsApp inbound clarification reply, main no longer holds the deferred-event payload \u2014 felix-admin-calendar reads pending-calendar-clarifications state file and resolves the round-trip. felix-admin-capture continues to dispatch inbox-captured calendar events via openclaw-agent dispatch (unchanged); the contract owner after extraction is felix-admin-calendar. Authoritative deployment + verification: docs/runbooks/openclaw-agent-setup.md."
@@ -701,6 +716,12 @@
         {
           "path": "/home/claude/.config/systemd/user/openclaw-gateway.service",
           "format": "systemd-unit"
+        },
+        {
+          "path": "/home/claude/.config/systemd/user/openclaw-gateway.service.d/pythonpath.conf",
+          "format": "systemd-unit-dropin",
+          "source_in_repo": "scripts/openclaw/openclaw-gateway.service.d/pythonpath.conf",
+          "note": "Sets PYTHONPATH=/home/claude/kg-automation so every agent subprocess launched by the gateway can import scripts.* from any cwd. Drop-in composes with the base unit (systemd merges .d/*.conf) and avoids source-line collision with #653's in-flight ExecStart relocation. Introduced by felix-admin-cron-path-fix-01KWQTY3 (#656). Deployed via deploys/queued/0006-gateway-pythonpath-dropin.yaml."
         },
         {
           "path": "/home/claude/.openclaw/openclaw.json",
@@ -1905,11 +1926,11 @@
       "systemd_unit": "felix-core-digest.timer (user unit) + felix-core-digest.service (user oneshot, two chained ExecStart)",
       "systemd_user": "claude",
       "schedule": "every 15 minutes",
-      "exec_start": "/usr/bin/python3 /home/claude/repos/kg-automation/scripts/openclaw/observation/summarize.py && /usr/bin/python3 /home/claude/repos/kg-automation/scripts/openclaw/observation/tick.py",
+      "exec_start": "/usr/bin/python3 /home/claude/kg-automation/scripts/openclaw/observation/summarize.py && /usr/bin/python3 /home/claude/kg-automation/scripts/openclaw/observation/tick.py",
       "exec_start_note": "systemd Type=oneshot permits multiple ExecStart= directives executed in order. summarize.py runs first; on success tick.py runs second. If summarize.py exits non-zero, tick.py does NOT run (systemd semantics). See docs/runbooks/signal-driven-monitoring-ops.md Troubleshooting for distinguishing the two failure modes.",
       "source_in_repo": "scripts/openclaw/observation/summarize.py, scripts/openclaw/observation/tick.py",
-      "input_path": "/home/claude/second-brain/agents/logs/ (summarize.py) + /tmp/openclaw/openclaw-*.log (tick.py)",
-      "output_path": "/home/claude/second-brain/notes/Agent-Logs/ (summarize.py) + /data/services/openclaw/felix-core-digest-signals/ (tick.py state, ledger, last-tick.json)",
+      "input_path": "/home/kgale/second-brain/agents/logs/ (summarize.py) + /tmp/openclaw/openclaw-*.log (tick.py)",
+      "output_path": "/home/kgale/second-brain/notes/00-System/agent-activity/Agent-Logs/ (summarize.py) + /data/services/openclaw/felix-core-digest-signals/ (tick.py state, ledger, last-tick.json)",
       "state_path": "/data/services/openclaw/felix-core-digest-signals/",
       "retention": "5 days (digest files only, by filename date); signal state + last-tick.json overwritten each cycle; signals-ledger.jsonl append-only",
       "deployed_by": "F014",
@@ -1917,7 +1938,7 @@
       "status": "active",
       "purpose": "Observation intelligence layer \u2014 reads agent JSONL logs and OpenClaw logs, generates per-agent Markdown digests for Obsidian (summarize.py), AND extracts defined signals from OpenClaw logs to file threshold-triggered GitHub issues deterministically via kg-felix-bot (tick.py; introduced by #490).",
       "runbook": "docs/runbooks/observation-ops.md (summary digest), docs/runbooks/signal-driven-monitoring-ops.md (signal extraction + cutover)",
-      "updated_by": "#490",
+      "updated_by": "#659",
       "last_updated": "2026-06-01",
       "risk_tier": 3,
       "capabilities": {
@@ -1927,9 +1948,9 @@
       },
       "dependencies": [
         {
-          "target": "/home/claude/second-brain/agents/logs/",
+          "target": "/home/kgale/second-brain/agents/logs/",
           "type": "requires",
-          "description": "Input JSONL agent activity logs (summarize.py)"
+          "description": "Input JSONL agent activity logs (summarize.py)."
         },
         {
           "target": "/tmp/openclaw/",

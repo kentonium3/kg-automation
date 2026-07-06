@@ -1,0 +1,107 @@
+{
+  "version": 1,
+  "mission_slug": "observation-digest-repoint-01KWS2E2",
+  "mission_id": "01KWS2E2MMJ9WRPVMBJKKJS6T1",
+  "mission_branch": "kitty/mission-observation-digest-repoint-01KWS2E2",
+  "target_branch": "fix/observation-digest-repoint",
+  "lanes": [
+    {
+      "lane_id": "lane-a",
+      "wp_ids": [
+        "WP01"
+      ],
+      "write_scope": [
+        "scripts/openclaw/observation/config.py",
+        "scripts/openclaw/observation/log_action.py",
+        "scripts/openclaw/observation/summarize.py",
+        "scripts/openclaw/observation/tests/test_config_log_dir.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "tests",
+        "tracker-integration"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    },
+    {
+      "lane_id": "lane-b",
+      "wp_ids": [
+        "WP02"
+      ],
+      "write_scope": [
+        "scripts/deploy/migrate-observation-logs.py",
+        "scripts/deploy/observation_migration.py",
+        "tests/deploy/test_observation_migration.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "legacy-cleanup",
+        "tracker-integration"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    },
+    {
+      "lane_id": "lane-e",
+      "wp_ids": [
+        "WP05"
+      ],
+      "write_scope": [
+        "docs/design/architecture/data-flows.md",
+        "docs/design/architecture/data-flows.view.md",
+        "docs/design/architecture/data/data-flows.json",
+        "docs/design/architecture/data/service-inventory.json",
+        "docs/design/architecture/service-dependencies.view.md",
+        "docs/design/architecture/service-inventory.md"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "artifact-rendering",
+        "legacy-cleanup"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    },
+    {
+      "lane_id": "lane-c",
+      "wp_ids": [
+        "WP03"
+      ],
+      "write_scope": [
+        "scripts/deploy/decommission-observation-stray-tree.py",
+        "scripts/deploy/observation_decommission.py",
+        "tests/deploy/test_observation_decommission.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "legacy-cleanup"
+      ],
+      "depends_on_lanes": [
+        "lane-b"
+      ],
+      "parallel_group": 1
+    },
+    {
+      "lane_id": "lane-d",
+      "wp_ids": [
+        "WP04"
+      ],
+      "write_scope": [
+        "deploys/queued/0008-migrate-observation-logs.yaml",
+        "deploys/queued/0009-decommission-observation-stray-tree.yaml"
+      ],
+      "predicted_surfaces": [
+        "api"
+      ],
+      "depends_on_lanes": [
+        "lane-b",
+        "lane-c"
+      ],
+      "parallel_group": 2
+    }
+  ],
+  "computed_at": "2026-07-05T13:02:31.401140+00:00",
+  "computed_from": "dependency_graph+ownership",
+  "planning_artifact_wps": []
+}

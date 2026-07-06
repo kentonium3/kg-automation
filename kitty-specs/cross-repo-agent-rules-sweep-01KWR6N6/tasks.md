@@ -53,9 +53,9 @@ Use the search patterns from `quickstart.md`, then read only the line ranges nee
 
 **Included subtasks**:
 
-- [ ] T005 Update `.agents/rules/cross-repo-standing-rules.md` to remove stale spec-kitty paste-file wording and align to the v1.3 runbook flow. (WP02)
-- [ ] T006 Promote any universal short rule identified by WP01, preserving the existing concise style and public-copy protections. (WP02)
-- [ ] T007 Keep long procedures as links instead of duplicated prose, and preserve all existing protection sections. (WP02)
+- [x] T005 Update `.agents/rules/cross-repo-standing-rules.md` to remove stale spec-kitty paste-file wording and align to the v1.3 runbook flow. (WP02)
+- [x] T006 Promote any universal short rule identified by WP01, preserving the existing concise style and public-copy protections. (WP02)
+- [x] T007 Keep long procedures as links instead of duplicated prose, and preserve all existing protection sections. (WP02)
 
 **Implementation sketch**:
 
@@ -74,9 +74,9 @@ Use WP01's diagnostic classification note as the source of truth. Edit only `.ag
 
 **Included subtasks**:
 
-- [ ] T008 Run docs validation and targeted standing-rules checks from the quickstart. (WP03)
-- [ ] T009 Write a mission-owned validation report covering line count, stale wording checks, protected headings, and any follow-up judgment items. (WP03)
-- [ ] T010 Summarize whether #649 is ready for closeout or needs operator judgment. (WP03)
+- [x] T008 Run docs validation and targeted standing-rules checks from the quickstart. (WP03)
+- [x] T009 Write a mission-owned validation report covering line count, stale wording checks, protected headings, and any follow-up judgment items. (WP03)
+- [x] T010 Summarize whether #649 is ready for closeout or needs operator judgment. (WP03)
 
 **Implementation sketch**:
 

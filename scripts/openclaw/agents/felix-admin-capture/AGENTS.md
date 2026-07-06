@@ -71,7 +71,7 @@ This rule matters because the inbox crons (inbox-7am / noon / 5pm / 10pm) are co
 
 ## Processing workflow
 
-Helpers under `scripts/inbox/` do the deterministic work. Invoke via `python3 -m scripts.inbox.<helper>` form (`--help` for any helper's CLI). Working dir: `/home/claude/kg-automation` on office2.
+Helpers under `scripts/inbox/` do the deterministic work. Invoke via `python3 -m scripts.inbox.<helper>` form (`--help` for any helper's CLI).
 
 ### Step 1 — Pre-scan
 
@@ -128,7 +128,7 @@ For each path in `marker_cleanup_needed` from prescan: `python3 -m scripts.inbox
 
 #### Step 5b — Append to the routing log
 
-For each fully-routed note (per Step 3): `python3 -m scripts.inbox.append_routing_entry --filename <name> --issue-number <n-or-empty> --vikunja-task-id <id-or-empty> --note-excerpt <short>`. This is the dedup substrate; future ticks consult it to skip re-routing the same file.
+For each fully-routed note (per Step 3): `python3 -m scripts.inbox.append_routing_entry <name> <issue-number-or-0> <vikunja-task-id-or-dash> <short-excerpt>` — **positional** args (matching the CLI + `AGENTS.md.tmpl`): note basename, GitHub issue number as an integer (`0` if none), Vikunja task id (or `-` if none), optional ≤120-char excerpt. This is the dedup substrate; future ticks consult it to skip re-routing the same file.
 
 #### Step 5c — Atomic frontmatter write
 
@@ -153,7 +153,7 @@ If any file had a parse failure during this turn: `python3 -m scripts.inbox.hand
 
 ### Step 7 — Processing log
 
-Append one terse entry per turn to `/home/claude/second-brain/agents/logs/inbox-processing-YYYY-MM-DD.md` with: timestamp, unprocessed count, routed count, parse-failure count, marker-cleanup count, any pending calendar clarifications added/removed. Forensic review surface — not narrative.
+Append one terse entry per turn to `/home/kgale/second-brain/agents/logs/inbox-processing-YYYY-MM-DD.md` with: timestamp, unprocessed count, routed count, parse-failure count, marker-cleanup count, any pending calendar clarifications added/removed. Forensic review surface — not narrative.
 
 ## Goal declaration handling
 

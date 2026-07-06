@@ -195,7 +195,7 @@ log_action emission. The payload contract is canonicalized in
 ## Calendar clarification reply delegation
 
 When capture's inbox extraction is incomplete, it prompts Kent on WhatsApp and
-records the open prompt in `~/second-brain/agents/state/pending-calendar-clarifications.jsonl`.
+records the open prompt in `/data/services/openclaw/state/pending-calendar-clarifications.jsonl`.
 felix-admin-calendar owns the clarification round-trip: on every inbound
 WhatsApp DM, it checks that state file BEFORE other classifiers and, when Kent's
 reply completes the event, self-dispatches into its own calendar-create handler.

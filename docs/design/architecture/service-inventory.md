@@ -2,7 +2,7 @@
 title: Service Inventory
 doc_type: reference
 status: approved
-tags: [588, 579, 572, 520, 519, 518, 137, 189, 80, 202, 149, 190, 374, 100, 253, 185, 254, 371, 309, 343, 306, 308, 310, 362, 391, 400, 105, 115, 562, 490, 408, 567, 563, 558, 561, 540, 542, 306/, 152, 376, 368-, 112]
+tags: [656, 588, 579, 572, 520, 519, 518, 137, 189, 80, 202, 149, 190, 374, 100, 253, 185, 254, 371, 309, 343, 306, 308, 310, 362, 391, 400, 105, 115, 562, 490, 408, 567, 563, 558, 561, 540, 542, 306/, 152, 376, 368-, 112]
 ---
 
 # Service Inventory
@@ -164,6 +164,7 @@ spec FR-017.
 - **Config**: `/home/claude/.openclaw/openclaw.json`
 - **Service level**: User-level systemd with lingering (not system-level)
 - **Config in repo**: `scripts/openclaw/openclaw-gateway.service`, `scripts/openclaw/install.sh`
+- **PYTHONPATH drop-in** (`scripts/openclaw/openclaw-gateway.service.d/pythonpath.conf`, introduced by #656): Sets `Environment=PYTHONPATH=/home/claude/kg-automation` in a systemd drop-in at `~/.config/systemd/user/openclaw-gateway.service.d/pythonpath.conf`. This ensures every agent subprocess launched by the gateway can import `scripts.*` from any cwd — moving the invariant from stochastic (LLM-emitted `cd`) to deterministic (process environment). Drop-in composes with the base unit; avoids source-line collision with #653's in-flight `ExecStart` relocation. Deployed via `deploys/queued/0006-gateway-pythonpath-dropin.yaml`. **Audited surface** (systemd-user-dropins.txt baseline): merge commit must carry `Rebaseline: completed at <ts>`.
 - **Credential store**: `/data/services/openclaw/secrets/` (mode 700)
 - **Backup**: Data at `/data/services/openclaw/data/` and config at `/home/claude/.openclaw/` — both in Restic scope
 - **Model tiering**: Global default is Haiku; per-agent model override via `agents.list[].model` in `openclaw.json`. See agent registry for per-agent assignments.
@@ -212,7 +213,7 @@ spec FR-017.
 
 #### State files
 
-- **Routing log** (`~/second-brain/agents/state/inbox-routing.jsonl`, introduced by #185) — Append-only JSONL. Each line records one successful route: `{filename, issue_number, vikunja_task_id, routed_at, note_excerpt}`. The classifier in prescan.py consults this log on every cron tick and filters already-routed filenames out of `unprocessed_paths` invisibly to the agent. This is the load-bearing dedup substrate; it decouples dedup from frontmatter parseability (which was the failure mode in the original #185 bug where a malformed note got filed nine times). NOT git-tracked; backed up by the nightly Restic job.
+- **Routing log** (`/data/services/openclaw/state/inbox-routing.jsonl`, introduced by #185, relocated from `~/second-brain/agents/state/` by #656) — Append-only JSONL. Each line records one successful route: `{filename, issue_number, vikunja_task_id, routed_at, note_excerpt}`. The classifier in prescan.py consults this log on every cron tick and filters already-routed filenames out of `unprocessed_paths` invisibly to the agent. This is the load-bearing dedup substrate; it decouples dedup from frontmatter parseability (which was the failure mode in the original #185 bug where a malformed note got filed nine times). NOT git-tracked; backed up by the nightly Restic job. Owner `claude:secondbrain`, dir mode 0750, file mode 0640.
 
 #### Parse-failure surface (#185)
 
@@ -231,7 +232,7 @@ Operator workflow: see `docs/runbooks/inbox-ops.md` §"When you see an 'Inbox qu
   1. Resolves `{{VAULT_INBOX}}` and `{{VAULT_INBOX_PROCESSED}}` via the vault path registry (`scripts/vault/paths.json`)
   2. Lists files in the inbox with `status: unprocessed`
   3. Detects malformed frontmatter (BOM, leading content, missing close fence, invalid YAML) and emits them as `parse_failures` (NOT in `unprocessed_paths`)
-  4. Consults the routing log (`scripts/inbox/routing_log.py` → `~/second-brain/agents/state/inbox-routing.jsonl`) and filters already-routed filenames out of `unprocessed_paths`; surfaces those in `dedup_skipped`
+  4. Consults the routing log (`scripts/inbox/routing_log.py` → `/data/services/openclaw/state/inbox-routing.jsonl`) and filters already-routed filenames out of `unprocessed_paths`; surfaces those in `dedup_skipped`
   5. Flags any cleanly-parseable note that still carries a stale `> [!error] felix-capture:` marker in `marker_cleanup_needed`
   6. Archives stale (>7 day) processed files to `{{VAULT_INBOX_PROCESSED}}`
   7. Returns a JSON result with unprocessed paths, parse_failures, dedup_skipped, marker_cleanup_needed, archived entries, and warnings
@@ -241,9 +242,9 @@ Operator workflow: see `docs/runbooks/inbox-ops.md` §"When you see an 'Inbox qu
   - **Language**: Python
   - **Dependencies**: `scripts/vault/paths.json`, `scripts/inbox/routing_log.py`
   - **Invoked by**: `felix-admin-capture` step 1
-  - **Helper log**: `/home/claude/second-brain/agents/logs/inbox-prescan-YYYY-MM-DD.md` (daily rotation, append-only)
+  - **Helper log**: `/home/kgale/second-brain/agents/logs/inbox-prescan-YYYY-MM-DD.md` (daily rotation, append-only; relocated from `/home/claude/second-brain/agents/logs/` by #656)
 
-- **routing-log module** (`scripts/inbox/routing_log.py`, introduced by #185) — Stdlib-only Python module exposing `RoutingLogReader` and `RoutingLogWriter`. Read path is used by prescan.py; write path is wrapped by `append_routing_entry.py`. Atomic appends; reader caches per-tick.
+- **routing-log module** (`scripts/inbox/routing_log.py`, introduced by #185, updated by #656) — Stdlib-only Python module exposing `RoutingLogReader` and `RoutingLogWriter` for the dedup substrate at `/data/services/openclaw/state/inbox-routing.jsonl`. Read path is used by prescan.py; write path is wrapped by `append_routing_entry.py`. Atomic appends; reader caches per-tick. `DEFAULT_ROUTING_LOG_PATH` relocated from `~/second-brain/agents/state/` by #656.
 
 - **handle_parse_failures.py** (script, #253) — End-to-end orchestrator for parse-failure handling. Invoked by AGENTS.md §Step 6 as a single CLI call when `parse_failures` is non-empty. Reads prescan JSON (`@<path>` argument); files-or-dedups the inbox-quality GitHub issue via direct function import of `file_inbox_quality_issue.{find_existing_open_issue,file_new_issue}`; then injects parse-error markers per entry via direct function import of `inject_parse_error_marker.inject_marker`. Subprocess-out to `log_action.py` for structured action-log entries (`inbox_quality_issue_filed`/`_deduped`, `parse_error_marker_injected`, `parse_failure_handling_error`). Exits non-zero on any per-entry failure (continues processing the rest). Replaces the prior multi-step bash recipe to collapse the prompt-execution surface.
 
@@ -454,7 +455,7 @@ Per-helper metadata mirrors `docs/design/architecture/data/service-inventory.jso
 
 #### State files
 
-- **Pending calendar clarifications** (`~/second-brain/agents/state/pending-calendar-clarifications.jsonl`) — Per data-model.md, file path and JSONL record shape are PRESERVED from main's pre-mission handler. Atomic-write protocol (LOCK_EX + .tmp + rename) preserved verbatim — this is shared with capture's append-record pattern. Records aged out after 24h by the sweep.
+- **Pending calendar clarifications** (`/data/services/openclaw/state/pending-calendar-clarifications.jsonl`, relocated from `~/second-brain/agents/state/` by #656) — Per data-model.md, file path and JSONL record shape are PRESERVED from main's pre-mission handler (path only was updated by #656). Atomic-write protocol (LOCK_EX + .tmp + rename) preserved verbatim. Records aged out after 24h by the sweep. Owner `claude:secondbrain`, dir mode 0750, file mode 0640.
 
 ### Felix Doc Auditor (#105 deployed 2026-05-10; refactored to scripts-first driver in #343, 2026-05-21; Moment 0 drift interpretation added in #362, 2026-05-22)
 - **Operational status**: ⏸ **Suspended indefinitely 2026-05-26**. Implementation complete (post-#343 / #362 / #391 / #400). Two-layer suspension in place: `felix-doc-auditor.timer` `disabled` + `[drift_interpretation].enabled = false` + `[audit_interpretation].enabled = false` in `scripts/doc_audit/config.toml` (commit `d46a9ead`). GH Actions workflows `Doc Audit Trigger` + `Doc Audit Weekly` also `disabled_manually`. Reactivation gated on [#137](https://github.com/kentonium3/kg-automation/issues/137) cost-control epic landing plus explicit operator decision. The entries below describe the design and intended runtime behavior, unchanged by suspension.
@@ -551,11 +552,11 @@ Per-module metadata mirrors `docs/design/architecture/data/service-inventory.jso
 - **systemd unit**: `felix-core-digest.timer` + `felix-core-digest.service` (user unit under claude)
 - **Schedule**: Every 15 minutes (OnUnitActiveSec=15min, OnBootSec=3min, Persistent=true)
 - **Runs as**: claude user
-- **ExecStart 1**: `/usr/bin/python3 /home/claude/repos/kg-automation/scripts/openclaw/observation/summarize.py` (existing — agent-log digest)
-- **ExecStart 2** (post-#490): `/usr/bin/python3 /home/claude/repos/kg-automation/scripts/openclaw/observation/tick.py` (NEW — deterministic OpenClaw-log signal extraction). Runs **only if** ExecStart 1 exits 0 (systemd `Type=oneshot` semantics).
-- **Input (summarize)**: JSONL log files at `~/second-brain/agents/logs/{agent}/YYYY-MM-DD.jsonl`
+- **ExecStart 1**: `/usr/bin/python3 /home/claude/kg-automation/scripts/openclaw/observation/summarize.py` (existing — agent-log digest)
+- **ExecStart 2** (post-#490): `/usr/bin/python3 /home/claude/kg-automation/scripts/openclaw/observation/tick.py` (NEW — deterministic OpenClaw-log signal extraction). Runs **only if** ExecStart 1 exits 0 (systemd `Type=oneshot` semantics).
+- **Input (summarize)**: JSONL log files at `/home/kgale/second-brain/agents/logs/{agent}/YYYY-MM-DD.jsonl`
 - **Input (tick)**: OpenClaw daily logs at `/tmp/openclaw/openclaw-YYYY-MM-DD.log`
-- **Output (summarize)**: Markdown digests at `~/second-brain/notes/Agent-Logs/`
+- **Output (summarize)**: Markdown digests at `/home/kgale/second-brain/notes/00-System/agent-activity/Agent-Logs/`
 - **Output (tick)**: Per-signal state + `last-tick.json` + `signals-ledger.jsonl` under `/data/services/openclaw/felix-core-digest-signals/`; GitHub issue filings via `scripts/openclaw/agents/main/felix-file-issue.py` (subprocess, kg-felix-bot identity)
 - **Retention**: 5 days (digest files deleted by filename date); signal state + `last-tick.json` overwritten each cycle; `signals-ledger.jsonl` append-only
 - **Idempotency**: Skips digest writes when no new JSONL content; signal filer deduplicates against open issues within the configured dedup window (FR-002)

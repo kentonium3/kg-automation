@@ -17,7 +17,7 @@
 
 ## State file: pending-calendar-clarifications.jsonl
 
-- Path: `~/second-brain/agents/state/pending-calendar-clarifications.jsonl`
+- Path: `/data/services/openclaw/state/pending-calendar-clarifications.jsonl`
 - Format: JSONL, one record per line. Schema:
   `kitty-specs/inbox-calendar-and-aspiration-routing-01KTHHXS/contracts/pending_clarification_record.md`.
 - Write protocol: `fcntl.LOCK_EX` + atomic `.tmp` + `os.rename` (see Resolve

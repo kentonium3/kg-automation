@@ -7,7 +7,7 @@ the Obsidian vault. Sends WhatsApp critical alerts when errors or security
 items are detected.
 
 JSONL log format:
-  Each agent writes a JSONL log to ~/second-brain/agents/logs/{agent-name}/
+  Each agent writes a JSONL log to /home/kgale/second-brain/agents/logs/{agent-name}/
   after every run. Each line is a JSON object with fields:
     ts, run_id, agent, autonomy_level, category, action, target, outcome
   Optional fields: context (object), trace (object)

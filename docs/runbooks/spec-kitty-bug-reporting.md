@@ -4,9 +4,9 @@ doc_type: runbook
 audience: agents_and_humans
 status: approved
 created: 2026-05-28
-last_validated: 2026-06-08
-last_updated: '2026-06-08'
-version: v1.3
+last_validated: 2026-07-05
+last_updated: '2026-07-05'
+version: v1.4
 owners: [kgale]
 ---
 
@@ -50,10 +50,19 @@ fields the maintainer benefits from.
 1. OBSERVE              Suspected spec-kitty bug surfaces during work.
 2. FILE INTERNAL        gh issue create in kentonium3/kg-automation with
                         the internal template; label area/tooling; spec: brief.
+                        **When the bug is already understood well enough to draft
+                        the upstream report (the common case), embed the upstream
+                        draft in this SAME issue body in one shot** (step 4 shape),
+                        so Kent reviews the internal tracker AND the upstream copy
+                        together in a single pass. Filing internal in
+                        kg-automation needs no pre-review (repo-scoped exception in
+                        the cross-repo standing rules); only the upstream filing
+                        (step 5/6) is gated.
 3. INVESTIGATE          Edit the issue body / add comments as evidence and
                         root-cause analysis accumulate. Internal status tracked
                         via labels (P1-bug, P2-bug, etc.) and issue state.
-4. EMBED UPSTREAM DRAFT Add a "Proposed upstream title" section and an
+4. EMBED UPSTREAM DRAFT If not already embedded at creation (step 2 — preferred),
+                        add a "Proposed upstream title" section and an
                         "Embedded upstream draft (paste-ready)" code block
                         directly inside the internal issue body. The embedded
                         draft uses the slim shape from the external template
@@ -61,6 +70,8 @@ fields the maintainer benefits from.
                         Workaround Applied / Environment / attribution+approval
                         footer) — Suggested Fix, Open Questions, Next Steps,
                         internal refs, frontmatter, and dates are all dropped.
+                        Use a 4-backtick outer fence so the draft's inner
+                        ```bash/```text fences stay verbatim and paste-ready.
                         No separate paste file.
 5. PRE-FILING APPROVAL  Operator reviews and approves BOTH the proposed
                         title AND the embedded draft body in the internal
@@ -80,6 +91,17 @@ fields the maintainer benefits from.
                         labels upstream-filed → upstream-pending-release →
                         upstream-released and close the kg-automation issue.
 ```
+
+### v1.4 change note (2026-07-05)
+
+Two changes: (1) **Embed the upstream draft at issue creation** (step 2), not as a
+separate later step — when the bug is understood well enough to draft the upstream
+report, create the internal issue with the embedded draft already in the body so Kent
+reviews both surfaces in one pass. Step 4 remains as the fallback for drafts added
+during investigation. (2) Recorded the **repo-scoped copy-approval exception**: internal
+`kentonium3/kg-automation` posts need no pre-review (Kent's own tracking repo); only
+copy leaving the repo — the upstream filing — stays gated. Both driven by operator
+preference given 2026-07-05.
 
 ### v1.3 change note (2026-06-08)
 

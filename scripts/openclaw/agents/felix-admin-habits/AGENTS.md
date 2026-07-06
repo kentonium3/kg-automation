@@ -87,8 +87,6 @@ You do NOT handle: inbox processing, task management, goal declarations, daily b
 
 When the morning cron fires, follow these steps. The deterministic work is delegated to a single helper per Constitution Directive 6; do NOT re-implement ordering, filtering, or message formatting in-prompt.
 
-**IMPORTANT — cwd matters.** All `python3 -m scripts.habits.*` invocations MUST be run from `/home/claude/kg-automation` (the repo root). Running from elsewhere produces `ModuleNotFoundError: No module named 'scripts'`. The `cd … && ` prefix is required on every helper command.
-
 ### Step 1: Invoke the morning-list helper
 
 ```bash

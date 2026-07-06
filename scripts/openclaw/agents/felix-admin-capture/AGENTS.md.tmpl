@@ -101,7 +101,7 @@ introduced by mission #185 (inbox capture dedup + parser hardening):
   These are NOT in `unprocessed_paths`. Halt-before-route protects
   them from being filed as duplicate normal issues.
 - `dedup_skipped` — notes already in the routing log
-  (`~/second-brain/agents/state/inbox-routing.jsonl`). The classifier
+  (`/data/services/openclaw/state/inbox-routing.jsonl`). The classifier
   filters these out invisibly. You will never see them in
   `unprocessed_paths` — this list is informational only.
 - `marker_cleanup_needed` — notes that parse cleanly now but still
@@ -510,7 +510,7 @@ processing log what was unclear and why classification failed.
 Log every significant action using the `exec` tool to call `log_action.py`:
 
 ```bash
-python ~/repos/kg-automation/scripts/openclaw/observation/log_action.py \
+python /home/claude/kg-automation/scripts/openclaw/observation/log_action.py \
   --agent felix-admin-capture \
   --category <category> \
   --action <action> \
@@ -562,7 +562,7 @@ python ~/repos/kg-automation/scripts/openclaw/observation/log_action.py \
 ### What Changed (F014)
 
 Previously, this agent wrote a free-form Markdown log to
-`~/second-brain/agents/logs/inbox-processing-YYYY-MM-DD.md` with
+`/home/kgale/second-brain/agents/logs/inbox-processing-YYYY-MM-DD.md` with
 frontmatter, section headers, and summary counts. That format is
 replaced by structured `log_action.py` calls. Summary counts are no
 longer written by the agent — they are derived by `summarize.py`
