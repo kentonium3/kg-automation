@@ -82,7 +82,7 @@ When filing (Tier 2+ observed without approval, ambiguous case, problem worth su
 echo "<problem paragraph>" > /tmp/felix-issue-problem.txt
 echo "<logs/diffs/output>" > /tmp/felix-issue-context.txt   # optional
 
-cd "${PYTHONPATH:?PYTHONPATH unset}" && python3 scripts/openclaw/agents/main/felix-file-issue.py \
+cd /home/claude/kg-automation && python3 scripts/openclaw/agents/main/felix-file-issue.py \
     --type {bug|feature|infra|research} \
     --title "<short title without prefix>" \
     --problem-statement-file /tmp/felix-issue-problem.txt \

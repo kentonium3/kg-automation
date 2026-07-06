@@ -130,33 +130,47 @@ WhatsApp must carry an explicit "no user-facing WhatsApp" annotation in
 their standing orders so the audit trail records the deliberate
 non-application of the rules.
 
-### Runtime-environment guardrails (#658) — canonical invocation form
+### Runtime-environment guardrails (#662, corrects #658) — canonical invocation form
 
 Every command a newly-authored agent prompt emits that invokes a repo helper
-MUST use the canonical, launch-context-independent form. Do **not** rely on the
-current working directory, `~`/`HOME` expansion, or a specific checkout path —
-those are the recurring silent-failure / wrong-location bug class #658 eliminated
-fleet-wide.
+MUST use the canonical, **self-contained checkout-`cd`** form. Do **not** rely on
+the current working directory, an inherited `PYTHONPATH`, `~`/`HOME` expansion, or
+a guessed checkout path — those are the recurring silent-failure / wrong-location
+bug class this guardrail eliminates fleet-wide.
 
-**Canonical form** — reuse the gateway-declared `PYTHONPATH` as the repo root,
-fail loud when it is unset, hardcode no checkout path:
+**Why the `${PYTHONPATH:?}` form (#658) was wrong.** OpenClaw's `exec` tool runs
+commands in a sanitized subshell that **strips `PYTHONPATH`**, so
+`cd "${PYTHONPATH:?PYTHONPATH unset}"` exits 127 ("PYTHONPATH unset") on every
+cron run. #662 corrects #658: the only form that works is the exact checkout-`cd`.
+
+**Canonical form** — `cd` into the exact OpenClaw checkout, then invoke a relative
+helper. No env-var dependence, no path guessing:
 
 ```bash
-cd "${PYTHONPATH:?PYTHONPATH unset}" && python3 -m scripts.<pkg>.<mod> [absolute args]
-# piped / file-path variant:
-python3 "${PYTHONPATH:?PYTHONPATH unset}/scripts/<path>.py" [absolute args]
+cd /home/claude/kg-automation && python3 -m scripts.<pkg>.<mod> [absolute args]
+# file-path variant:
+cd /home/claude/kg-automation && python3 scripts/<path>.py [absolute args]
 ```
+
+The checkout path is `/home/claude/kg-automation` **exactly** — it is a deploy
+invariant on office2 (the repo is always cloned there for the `claude` user).
 
 **Banned shapes** (each is a guard violation):
 
-- A **bare** `python3 -m scripts.<mod>` with no `cd "${PYTHONPATH:?…}"` anchor —
-  it silently assumes the gateway-provided `PYTHONPATH`/cwd and fails
-  (`ModuleNotFoundError`) or resolves the wrong checkout when launched otherwise.
-- A **hardcoded checkout path** such as `cd /home/claude/kg-automation && …` or
-  `python3 /home/claude/kg-automation/scripts/…py` — re-introduces the very
-  checkout-path assumption the mission exists to kill.
-- A `~`/`HOME`-relative **write** — write to a canonical absolute anchor instead.
-  (Reads of `~/.openclaw/…`, OpenClaw's own stable home, are permitted.)
+- A **`${PYTHONPATH:?…}` anchor** such as `cd "${PYTHONPATH:?…}" && …` or
+  `python3 "${PYTHONPATH:?…}/scripts/…py"` — it exits 127 under `exec`'s
+  PYTHONPATH sanitization (`pythonpath_anchor`).
+- A **bare** `python3 -m scripts.<mod>` with no `cd /home/claude/kg-automation`
+  anchor — it fails with `ModuleNotFoundError` from the deployed workspace cwd
+  (`bare_m_scripts`).
+- A **relative** `python3 scripts/<path>.py`, or a **bare imperative**
+  `scripts/<path>.py` in prose, with no checkout-`cd` anchor — same failure mode
+  (`relative_script`).
+- A **hardcoded absolute path** such as `python3 /home/claude/kg-automation/scripts/…py`
+  — use the relative `cd … && python3 scripts/…py` form instead (`hardcoded_abs_path`).
+- A `~`/`HOME`-relative **write** — write to a canonical absolute anchor instead
+  (`home_relative_write`). (Reads of `~/.openclaw/…`, OpenClaw's own stable home,
+  are permitted.)
 
 Helper path arguments must be **absolute** so the `cd` never breaks a
 cwd-relative argument.
@@ -166,8 +180,8 @@ cwd-relative argument.
 
 - `validate_workspace.py`'s **`runtime_env_assumptions`** check
   (`check_runtime_env_assumptions()`) — run at authoring time via
-  `python3 -m scripts.openclaw.agents.validate_workspace`, so a workspace
-  carrying a banned shape is rejected before it is ever deployed.
+  `cd /home/claude/kg-automation && python3 -m scripts.openclaw.agents.validate_workspace`,
+  so a workspace carrying a banned shape is rejected before it is ever deployed.
 - The **Test-CI env-assumption guard**
   (`scripts/openclaw/agents/tests/test_env_assumptions_guard.py`) — rides the
   existing pytest Test CI and turns red on any unremediated invocation across
@@ -175,8 +189,9 @@ cwd-relative argument.
 
 If a specific line is a deliberate, documented exception, waive it inline with a
 marker on the same or preceding line:
-`# env-guard: waive <kind> — <reason>` (kinds: `bare_m_scripts`, `hardcoded_cd`,
-`hardcoded_abs_path`, `home_relative_write`). Prefer conversion over waiver.
+`# env-guard: waive <kind> — <reason>` (kinds: `bare_m_scripts`, `relative_script`,
+`pythonpath_anchor`, `hardcoded_abs_path`, `home_relative_write`). Prefer
+conversion over waiver.
 
 ## OpenClaw configuration
 

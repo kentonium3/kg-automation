@@ -1,25 +1,11 @@
 {
-  "accept_commit": "d71ab89439e3c1c2fc4fa95c29ccfbb52649152f",
-  "acceptance_history": [
-    {
-      "accept_commit": "d71ab89439e3c1c2fc4fa95c29ccfbb52649152f",
-      "acceptance_mode": "pr",
-      "accepted_at": "2026-07-06T12:34:25.085157+00:00",
-      "accepted_by": "kentgale",
-      "accepted_from_commit": "4464620af3b4a45f9ccbf3903abf947d9154dc49"
-    }
-  ],
-  "acceptance_mode": "pr",
-  "accepted_at": "2026-07-06T12:34:25.085157+00:00",
-  "accepted_by": "kentgale",
-  "accepted_from_commit": "4464620af3b4a45f9ccbf3903abf947d9154dc49",
   "change_mode": "bulk_edit",
   "coordination_branch": "kitty/mission-harden-inbox-capture-01KWVGZM",
   "created_at": "2026-07-06T10:53:31.727388+00:00",
   "flattened": false,
   "friendly_name": "Harden Inbox Capture on Sonnet",
   "mission_id": "01KWVGZMPBC3FQRCTMPYTF6PCM",
-  "mission_number": null,
+  "mission_number": 86,
   "mission_slug": "harden-inbox-capture-01KWVGZM",
   "mission_type": "software-dev",
   "pr_bound": true,
@@ -29,5 +15,5 @@
   "target_branch": "feat/harden-inbox-capture",
   "topology": "coord",
   "vcs": "git",
-  "vcs_locked_at": "2026-07-06T11:50:52.013393+00:00"
+  "vcs_locked_at": "2026-07-06T12:21:41.419996+00:00"
 }

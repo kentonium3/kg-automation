@@ -109,7 +109,7 @@ def test_fully_compliant_workspace_is_ok(tmp_path: Path) -> None:
     assert validate_workspace(ws).ok
 
 
-# --- Invariant C: runtime-env assumptions (#658) ------------------------------
+# --- Invariant C: runtime-env assumptions (#662, corrects #658) ---------------
 
 
 def test_runtime_env_assumptions_clean_passes(tmp_path: Path) -> None:
@@ -117,7 +117,7 @@ def test_runtime_env_assumptions_clean_passes(tmp_path: Path) -> None:
         tmp_path / "agent",
         AGENTS_md=(
             "04-Growth/_private/\n## Output discipline\n"
-            'Invoke `cd "${PYTHONPATH:?msg}" && python3 -m scripts.inbox.prescan`.\n'
+            "Invoke `cd /home/claude/kg-automation && python3 -m scripts.inbox.prescan`.\n"
         ),
     )
     result = _check(validate_workspace(ws), "runtime_env_assumptions")
@@ -138,17 +138,18 @@ def test_runtime_env_assumptions_bare_invocation_fails(tmp_path: Path) -> None:
     assert "bare_m_scripts" in result.detail
 
 
-def test_runtime_env_assumptions_hardcoded_checkout_fails(tmp_path: Path) -> None:
+def test_runtime_env_assumptions_pythonpath_anchor_fails(tmp_path: Path) -> None:
+    # The old #658 canonical form is now a violation (fails under OpenClaw exec).
     ws = _write(
         tmp_path / "agent",
         AGENTS_md=(
             "04-Growth/_private/\n## Output discipline\n"
-            "```bash\ncd /home/claude/kg-automation && python3 -m scripts.habits.x\n```\n"
+            '```bash\ncd "${PYTHONPATH:?msg}" && python3 -m scripts.habits.x\n```\n'
         ),
     )
     result = _check(validate_workspace(ws), "runtime_env_assumptions")
     assert not result.ok
-    assert "hardcoded_cd" in result.detail
+    assert "pythonpath_anchor" in result.detail
 
 
 def test_runtime_env_assumptions_failure_bubbles_to_workspace_ok(tmp_path: Path) -> None:
@@ -176,10 +177,19 @@ def test_discover_excludes_suspended_and_non_workspaces(tmp_path: Path) -> None:
 
 
 def test_live_capture_workspace_passes(repo_root: Path) -> None:
-    """felix-admin-capture is the canonical Output Discipline source — must pass."""
+    """felix-admin-capture is the canonical Output Discipline + privacy source.
+
+    We anchor those two stable invariants here. The ``runtime_env_assumptions``
+    check is intentionally NOT asserted on the live corpus in this WP: under the
+    inverted policy (#662, corrects #658) the fleet still carries the old
+    ``${PYTHONPATH:?}`` form until WP02/WP03 swap it, so that check is red-by-design
+    fleet-wide. Its migration gate lives in ``test_env_assumptions_guard.py`` (the
+    Test-CI fleet guard), not in this per-workspace anchor.
+    """
     root = repo_root / "scripts/openclaw/agents"
     report = next(r for r in validate_all(root) if r.workspace == "felix-admin-capture")
-    assert report.ok, [c.detail for c in report.checks if not c.ok]
+    assert _check(report, "privacy_boundary").ok, _check(report, "privacy_boundary").detail
+    assert _check(report, "output_discipline").ok, _check(report, "output_discipline").detail
 
 
 def test_live_doc_auditor_excluded(repo_root: Path) -> None:

@@ -90,7 +90,7 @@ When the morning cron fires, follow these steps. The deterministic work is deleg
 ### Step 1: Invoke the morning-list helper
 
 ```bash
-cd "${PYTHONPATH:?PYTHONPATH unset}" && python3 -m scripts.habits.morning_checkin_list \
+cd /home/claude/kg-automation && python3 -m scripts.habits.morning_checkin_list \
     --date $(TZ=America/New_York date +%Y-%m-%d)
 ```
 
@@ -111,7 +111,7 @@ No commentary. No transformation. The helper's stdout IS the WhatsApp message Ke
 ### Step 3: On helper failure (exit non-zero)
 
 1. Read the helper's stderr to identify the failure mode.
-2. File a P2-bug via `cd "${PYTHONPATH:?PYTHONPATH unset}" && python3 scripts/openclaw/agents/main/felix-file-issue.py` (title: `felix-admin-habits: morning_checkin_list failed`, body: include exit code, stderr, the `--date` argument used). Use labels `area/felix-core` + `P2-bug`.
+2. File a P2-bug via `cd /home/claude/kg-automation && python3 scripts/openclaw/agents/main/felix-file-issue.py` (title: `felix-admin-habits: morning_checkin_list failed`, body: include exit code, stderr, the `--date` argument used). Use labels `area/felix-core` + `P2-bug`.
 3. Reply with the byte string `[felix-admin-habits]: IDLE`. Do NOT fabricate a partial check-in — a broken check-in is worse than no check-in. The next cron tick retries.
 
 ---
@@ -130,7 +130,7 @@ Contract: `kitty-specs/trustworthy-weekly-habit-report-01KV4GZ7/contracts/weekly
 ### Step 1: Invoke the weekly-report helper
 
 ```bash
-cd "${PYTHONPATH:?PYTHONPATH unset}" && python3 -m scripts.habits.query_active_habits_weekly --output text
+cd /home/claude/kg-automation && python3 -m scripts.habits.query_active_habits_weekly --output text
 ```
 
 `--output text` returns the pre-rendered WhatsApp message body on
@@ -164,7 +164,7 @@ Weekly report unavailable: <one-line error class + stripped path>
 
 NO preamble. NO internal monologue. NO in-turn retry — the next weekly cron
 tick is the retry surface. Also file a P2-bug via
-`cd "${PYTHONPATH:?PYTHONPATH unset}" && python3 scripts/openclaw/agents/main/felix-file-issue.py`
+`cd /home/claude/kg-automation && python3 scripts/openclaw/agents/main/felix-file-issue.py`
 (title: `felix-admin-habits: query_active_habits_weekly failed`; body: exit
 code, stderr, `--window`) with labels `area/felix-core` + `P2-bug`.
 
@@ -177,7 +177,7 @@ When Kent sends a reply mentioning habit completion or skipping, follow these st
 ### Step 1: Invoke the parser
 
 ```bash
-cd "${PYTHONPATH:?PYTHONPATH unset}" && python3 -m scripts.habits.parse_morning_reply \
+cd /home/claude/kg-automation && python3 -m scripts.habits.parse_morning_reply \
     --reply "$KENT_REPLY_TEXT" \
     --date $(TZ=America/New_York date +%Y-%m-%d)
 ```
@@ -193,7 +193,7 @@ Exit codes: `0` = parsed; `4` = no morning-list artifact for `--date`; `5` = art
 For each item in the parser's `tuples` array, invoke `record_completion` exactly once. `record_completion` performs the three-write atomic operation (Vikunja `done=true` POST → Vikunja comment PUT → JSONL state-log append) and is internally idempotent — duplicate calls for the same `(task_id, date)` with identical state are no-ops.
 
 ```bash
-cd "${PYTHONPATH:?PYTHONPATH unset}" && python3 -m scripts.habits.record_completion \
+cd /home/claude/kg-automation && python3 -m scripts.habits.record_completion \
     --task-id <task_id> \
     --title "<title from the morning-list artifact>" \
     --date $(TZ=America/New_York date +%Y-%m-%d) \
@@ -212,7 +212,7 @@ DO NOT make inline `POST /api/v1/tasks/...` or `PUT /api/v1/tasks/.../comments` 
 For each item in the parser's `judgment_required` array, write the item to a temp file (or pipe via stdin) and invoke the disambiguator:
 
 ```bash
-cd "${PYTHONPATH:?PYTHONPATH unset}" && python3 -m scripts.habits.judgment.disambiguate_reply \
+cd /home/claude/kg-automation && python3 -m scripts.habits.judgment.disambiguate_reply \
     --input-file <ambiguity.json>
 ```
 
@@ -225,7 +225,7 @@ The input must follow Entity 3 shape: `{"schema_version": 1, "reply_text": "..."
 
 ### Step 4: On parser hard-fail (errors non-empty, or exit codes 4/5)
 
-1. File a P2-bug via `cd "${PYTHONPATH:?PYTHONPATH unset}" && python3 scripts/openclaw/agents/main/felix-file-issue.py` (title: `felix-admin-habits: parse_morning_reply hard-fail`, body: include exit code, parser stderr, the reply text, and the `errors` array if exit was 0).
+1. File a P2-bug via `cd /home/claude/kg-automation && python3 scripts/openclaw/agents/main/felix-file-issue.py` (title: `felix-admin-habits: parse_morning_reply hard-fail`, body: include exit code, parser stderr, the reply text, and the `errors` array if exit was 0).
 2. Reply asking Kent to re-state his habit progress in plain natural language (one habit per sentence), then file `record_completion` calls per his clarification. Never invent state from a failed parse.
 
 ### Confirmation reply
@@ -271,7 +271,7 @@ Vikunja is at `http://100.92.197.90:3456/` (Tailscale); blips surface as helper 
 
 ## Action logging
 
-Log significant operational actions via `scripts/openclaw/observation/log_action.py`. For completion actions, the entry MUST include the `(task_id, date, state)` tuple so the action log is cross-referenceable with the JSONL state log (the canonical history record per ADR-0002).
+Log significant operational actions via `cd /home/claude/kg-automation && python3 scripts/openclaw/observation/log_action.py`. For completion actions, the entry MUST include the `(task_id, date, state)` tuple so the action log is cross-referenceable with the JSONL state log (the canonical history record per ADR-0002).
 
 ---
 

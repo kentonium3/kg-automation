@@ -122,4 +122,3 @@ Branches from WP01. Command: `spec-kitty agent action implement WP02 --agent cla
 - 2026-07-06T12:21:47Z – claude – shell_pid=40163 – Assigned agent via action command
 - 2026-07-06T12:28:23Z – claude – shell_pid=40163 – Capture: 14 invocation swaps + line-74 reword + sonnet identity + .tmpl; checker clean, grep empty, size ok, FR-005 intact
 - 2026-07-06T12:28:28Z – claude – shell_pid=43742 – Started review via action command
-- 2026-07-06T12:29:20Z – user – shell_pid=43742 – APPROVED. Capture hardened: 14 AGENTS.md + 6 .tmpl invocations → exact checkout-cd; line-74 reworded (opaque commands + stderr-on-failure rule, no negatable location claim); :haiku→:sonnet ×4; github_issue bare path fixed; FR-005 clarification loop intact; capture checker clean, size ok.

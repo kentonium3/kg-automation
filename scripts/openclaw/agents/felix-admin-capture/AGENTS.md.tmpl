@@ -20,7 +20,7 @@ This document defines your complete processing workflow. Follow it exactly.
 Begin every WhatsApp message with this identity line, followed by a blank line
 before the message body:
 
-    Sent by felix-admin-capture:haiku
+    Sent by felix-admin-capture:sonnet
 
 This header must be the first line of every message you send to Kent.
 
@@ -65,7 +65,7 @@ a prescan failure is not masked by the `tee`:
 
 ```bash
 set -o pipefail
-python3 "${PYTHONPATH:?PYTHONPATH unset}/scripts/inbox/prescan.py" \
+cd /home/claude/kg-automation && python3 scripts/inbox/prescan.py \
   | tee /tmp/inbox-prescan-latest.json
 ```
 
@@ -233,7 +233,7 @@ If prescan's `marker_cleanup_needed` list is empty: skip this step.
 If `marker_cleanup_needed` is non-empty, invoke the orchestrator helper:
 
 ```bash
-cd "${PYTHONPATH:?PYTHONPATH unset}" && python3 scripts/inbox/handle_marker_cleanup.py @/tmp/inbox-prescan-latest.json
+cd /home/claude/kg-automation && python3 scripts/inbox/handle_marker_cleanup.py @/tmp/inbox-prescan-latest.json
 ```
 
 The helper iterates the list, strips the marker from each note, logs
@@ -259,7 +259,7 @@ After **all** content blocks for this note have been successfully routed
 append exactly ONE routing-log entry for the note:
 
 ```bash
-cd "${PYTHONPATH:?PYTHONPATH unset}" && python3 scripts/inbox/append_routing_entry.py \
+cd /home/claude/kg-automation && python3 scripts/inbox/append_routing_entry.py \
   "<basename of note>" <issue_number_or_zero> <task_id_or_dash> "<short excerpt, ≤120 chars>"
 ```
 
@@ -294,7 +294,7 @@ rare and visible in the activity log.
 
 #### Step 5c: Atomic frontmatter write
 
-For each fully-routed note: `cd "${PYTHONPATH:?PYTHONPATH unset}" && python3 -m scripts.inbox.mark_processed --path <path>`. Writes `status: processed` + `processed_at: <ISO-8601 UTC>` atomically, preserves all other frontmatter, preserves the body verbatim, leaves the file at its original path. Idempotent on already-processed notes. This step is frontmatter-only, in place — the note stays in `01-Inbox/` indefinitely; `prescan.py` archives it after the 7-day window. Do NOT move or delete the file.
+For each fully-routed note: `cd /home/claude/kg-automation && python3 -m scripts.inbox.mark_processed --path <path>`. Writes `status: processed` + `processed_at: <ISO-8601 UTC>` atomically, preserves all other frontmatter, preserves the body verbatim, leaves the file at its original path. Idempotent on already-processed notes. This step is frontmatter-only, in place — the note stays in `01-Inbox/` indefinitely; `prescan.py` archives it after the 7-day window. Do NOT move or delete the file.
 
 The helper prints a single-line JSON to stdout on exit 0 and `{"error": …, "detail": "…"}` to stderr on non-zero exits. Act on the exit code immediately:
 
@@ -322,7 +322,7 @@ If prescan's `parse_failures` list is empty: skip this step.
 If `parse_failures` is non-empty, invoke the orchestrator helper:
 
 ```bash
-cd "${PYTHONPATH:?PYTHONPATH unset}" && python3 scripts/inbox/handle_parse_failures.py @/tmp/inbox-prescan-latest.json
+cd /home/claude/kg-automation && python3 scripts/inbox/handle_parse_failures.py @/tmp/inbox-prescan-latest.json
 ```
 
 The helper files (or dedups) the inbox-quality GitHub issue, then
@@ -510,7 +510,7 @@ processing log what was unclear and why classification failed.
 Log every significant action using the `exec` tool to call `log_action.py`:
 
 ```bash
-cd "${PYTHONPATH:?PYTHONPATH unset}" && python scripts/openclaw/observation/log_action.py \
+cd /home/claude/kg-automation && python scripts/openclaw/observation/log_action.py \
   --agent felix-admin-capture \
   --category <category> \
   --action <action> \

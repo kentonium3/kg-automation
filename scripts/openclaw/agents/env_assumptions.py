@@ -1,15 +1,20 @@
-"""Env-assumption checker for OpenClaw agent prompts (kentonium3/kg-automation#658).
+"""Env-assumption checker for OpenClaw agent prompts (kentonium3/kg-automation#662,
+corrects #658).
 
-Detects invocations in agent prompts that assume an unstated runtime environment
-(cwd / PYTHONPATH / hardcoded checkout path) or write to a HOME-relative path, and
-distinguishes them from the canonical, gateway-independent form.
+Detects helper invocations in agent prompts that assume an unstated runtime
+environment (cwd / an inherited ``PYTHONPATH`` / a hardcoded absolute checkout path)
+or write to a HOME-relative path, and distinguishes them from the canonical,
+self-contained form.
 
-Canonical (compliant) form — reuse the gateway-declared PYTHONPATH as the repo root,
-fail-loud, no hardcoded checkout::
+Canonical (compliant) form — the invocation ``cd``s into the exact OpenClaw checkout
+first, so it depends on neither the deployed cwd nor an inherited env var::
 
-    cd "${PYTHONPATH:?<msg>}" && python3 -m scripts.<pkg>.<mod> [absolute args]
-    cd "${PYTHONPATH:?<msg>}" && python3 scripts/<path>.py [absolute args]
-    python  "${PYTHONPATH:?<msg>}/scripts/<path>.py" [absolute args]
+    cd /home/claude/kg-automation && python3 -m scripts.<pkg>.<mod> [absolute args]
+    cd /home/claude/kg-automation && python3 scripts/<path>.py [absolute args]
+
+Rationale: OpenClaw's ``exec`` tool runs commands in a sanitized subshell that
+STRIPS ``PYTHONPATH``, so the old #658 ``cd "${PYTHONPATH:?…}"`` anchor exits 127 on
+every cron run — the exact checkout-``cd`` is the only form that works (research D1).
 
 Shared by the Test-CI fleet guard (tests/test_env_assumptions_guard.py) and the
 workspace validator (validate_workspace.check_runtime_env_assumptions). Pure and
@@ -32,6 +37,11 @@ from scripts.openclaw.agents.validate_workspace import (
     SUSPENDED_WORKSPACES,
 )
 
+#: The one-and-only OpenClaw checkout path on office2. The compliant anchor is an
+#: EXACT match of this literal — a ``cd /home/kgale/repos/kg-automation`` or a
+#: ``cd /tmp/kg-automation`` must NOT satisfy the anchor (Codex MED-4).
+CANONICAL_CHECKOUT = "/home/claude/kg-automation"
+
 # --- Model --------------------------------------------------------------------
 
 
@@ -39,21 +49,27 @@ class ViolationKind(enum.Enum):
     """The classes of runtime-environment assumption this checker detects."""
 
     BARE_M_SCRIPTS = "bare_m_scripts"
-    HARDCODED_CD = "hardcoded_cd"
+    RELATIVE_SCRIPT = "relative_script"
+    PYTHONPATH_ANCHOR = "pythonpath_anchor"
     HARDCODED_ABS_PATH = "hardcoded_abs_path"
     HOME_RELATIVE_WRITE = "home_relative_write"
 
 
-#: Per-kind remediation guidance surfaced in each Finding (NFR-004).
+#: Per-kind remediation guidance surfaced in each Finding (NFR-004). Every kind now
+#: steers to the self-contained checkout-``cd`` form (#662, corrects #658).
 _REMEDIATION = {
     ViolationKind.BARE_M_SCRIPTS: (
-        'anchor with cd "${PYTHONPATH:?...}" && python3 -m scripts....'
+        "anchor with cd /home/claude/kg-automation && python3 -m scripts...."
     ),
-    ViolationKind.HARDCODED_CD: (
-        'replace the hardcoded checkout with cd "${PYTHONPATH:?...}"'
+    ViolationKind.RELATIVE_SCRIPT: (
+        "anchor with cd /home/claude/kg-automation && python3 scripts/....py"
+    ),
+    ViolationKind.PYTHONPATH_ANCHOR: (
+        "${PYTHONPATH:?...} fails under OpenClaw exec — use "
+        "cd /home/claude/kg-automation && python3 -m scripts...."
     ),
     ViolationKind.HARDCODED_ABS_PATH: (
-        'use cd "${PYTHONPATH:?...}" && python3 scripts/....py (or "${PYTHONPATH:?...}/scripts/....py")'
+        "use cd /home/claude/kg-automation && python3 scripts/....py"
     ),
     ViolationKind.HOME_RELATIVE_WRITE: (
         "write to a canonical absolute path, not a ~/$HOME-relative one"
@@ -78,18 +94,30 @@ class Finding:
 # whitespace, backtick, or quote). A `<placeholder>` in the module marks docs.
 _M_SCRIPTS_RE = re.compile(r"python3?\s+-m\s+scripts\.(?P<mod>[^\s`\"']+)")
 
+# A relative-script reference: `python[3] scripts/<path>.py` OR a bare imperative
+# `scripts/<path>.py` (e.g. prose "invoke `scripts/openclaw/.../felix-file-issue.py`").
+# The lookbehind rejects an absolute-path `/…/scripts/x.py` (leading `/`) and the
+# `-m scripts.<mod>` dotted form (`scripts.` not `scripts/`) — those are handled by
+# _ABS_PATH_RE and _M_SCRIPTS_RE respectively.
+_REL_SCRIPT_RE = re.compile(r"(?<![\w/.])scripts/(?P<path>[^\s`\"']+\.py)")
+
 # A literal absolute-path script invocation: `python[3] /abs/.../scripts/x.py`,
 # including a quoted variant `python3 "/abs/.../scripts/x.py"` (the opening quote is
-# consumed by `["']?`). The compliant `python3 "${PYTHONPATH:?}/scripts/x.py"` form
-# begins with `$` after the quote, never a bare `/`, so it is not matched here.
+# consumed by `["']?`). The compliant relative `python3 scripts/x.py` form has no
+# leading `/` after the interpreter, so it is not matched here.
 _ABS_PATH_RE = re.compile(r"python3?\s+[\"']?(?P<path>/[^\s`\"']*/scripts/[^\s`\"']+\.py)")
 
-# A `cd` into a hardcoded checkout (path literal containing kg-automation). The
-# compliant `cd "${PYTHONPATH:?}"` starts with a quote/`$`, not `/`.
-_HARDCODED_CD_RE = re.compile(r"cd\s+[\"']?(?P<path>/[^\s`\"']*kg-automation[^\s`\"']*)")
+# The EXACT checkout-`cd` that makes a relative invocation compliant. Built from
+# CANONICAL_CHECKOUT and terminated by a boundary lookahead so a longer path such as
+# `/home/claude/kg-automation-fork` (or `/home/kgale/repos/kg-automation`) does NOT
+# satisfy it — the anchor is an exact-match, not "contains kg-automation" (Codex MED-4).
+_CHECKOUT_CD_RE = re.compile(
+    r"cd\s+[\"']?" + re.escape(CANONICAL_CHECKOUT) + r"(?=[\"'\s;&]|$)"
+)
 
-# The fail-loud PYTHONPATH anchor that makes an invocation compliant.
-_PYTHONPATH_ANCHOR_RE = re.compile(r"\$\{PYTHONPATH:\?")
+# The `${PYTHONPATH:?…}` anchor #658 taught. It now FAILS under OpenClaw exec
+# (which strips PYTHONPATH), so its presence is itself a violation.
+_PYTHONPATH_RE = re.compile(r"\$\{PYTHONPATH:\?")
 
 # A write (redirect or tee) to a ~/$HOME-relative destination — the stray-dir class.
 # Reads of ~/.openclaw/... have no redirect and are never matched.
@@ -162,36 +190,64 @@ def _waived_kinds(logical: list[tuple[int, str]], idx: int) -> set[str]:
 # --- Classification -----------------------------------------------------------
 
 
+def _governing_anchor(prefix: str) -> str | None:
+    """Classify the anchor (if any) that precedes an invocation.
+
+    Returns ``"checkout"`` if an exact checkout-``cd`` governs the invocation
+    (compliant), ``"pythonpath"`` if a ``${PYTHONPATH:?…}`` cd governs it (already
+    reported once as PYTHONPATH_ANCHOR — don't double-report the invocation), or
+    ``None`` if the invocation is genuinely unanchored.
+    """
+    if _CHECKOUT_CD_RE.search(prefix):
+        return "checkout"
+    if _PYTHONPATH_RE.search(prefix):
+        return "pythonpath"
+    return None
+
+
 def _classify(start: int, text: str, path: str) -> list[Finding]:
     """Classify one logical command; return its findings (may be empty)."""
     findings: list[Finding] = []
     snippet = text.strip()
 
-    hardcoded_cd = _HARDCODED_CD_RE.search(text)
-    if hardcoded_cd:
+    # PYTHONPATH anchor — now a violation: it exits 127 under OpenClaw exec's
+    # PYTHONPATH sanitization (research D1). Reported once per logical line.
+    if _PYTHONPATH_RE.search(text):
         findings.append(
-            Finding(path, start, ViolationKind.HARDCODED_CD, snippet,
-                    _REMEDIATION[ViolationKind.HARDCODED_CD])
+            Finding(path, start, ViolationKind.PYTHONPATH_ANCHOR, snippet,
+                    _REMEDIATION[ViolationKind.PYTHONPATH_ANCHOR])
         )
 
-    # Bare -m scripts. — flag when the invocation is NOT preceded by a fail-loud
-    # PYTHONPATH anchor in the same logical line, and not already governed by a
-    # hardcoded cd (fixing the cd fixes the -m). The anchor must appear BEFORE the
-    # invocation (a `cd "${PYTHONPATH:?}" &&` prefix), so a `python3 -m scripts.bad`
-    # that precedes the cd — or sits after it with no governing anchor — is still
-    # flagged (post-merge Codex MED-1).
-    if not hardcoded_cd:
-        for m in _M_SCRIPTS_RE.finditer(text):
-            if "<" in m.group("mod"):  # placeholder like scripts.inbox.<helper>
-                continue
-            if not _PYTHONPATH_ANCHOR_RE.search(text[: m.start()]):
-                findings.append(
-                    Finding(path, start, ViolationKind.BARE_M_SCRIPTS, snippet,
-                            _REMEDIATION[ViolationKind.BARE_M_SCRIPTS])
-                )
-                break
+    # Bare -m scripts. — flag when the invocation is NOT preceded by the EXACT
+    # checkout-`cd` anchor in the same logical line. The anchor must appear BEFORE
+    # the invocation (a `cd /home/claude/kg-automation &&` prefix), so a
+    # `python3 -m scripts.bad` that precedes the cd is still flagged (Codex MED-1).
+    # An invocation governed by a `${PYTHONPATH:?}` cd is suppressed here — that cd
+    # is already reported above as PYTHONPATH_ANCHOR.
+    for m in _M_SCRIPTS_RE.finditer(text):
+        if "<" in m.group("mod"):  # placeholder like scripts.inbox.<helper>
+            continue
+        if _governing_anchor(text[: m.start()]) is None:
+            findings.append(
+                Finding(path, start, ViolationKind.BARE_M_SCRIPTS, snippet,
+                        _REMEDIATION[ViolationKind.BARE_M_SCRIPTS])
+            )
+            break
 
-    # Hardcoded absolute-path script invocations (python or python3).
+    # Relative-script invocations (`python3 scripts/x.py`) and bare imperative
+    # `scripts/x.py` references — same anchor rule as the -m form (Codex HIGH-2).
+    for m in _REL_SCRIPT_RE.finditer(text):
+        if "<" in m.group("path"):  # placeholder like scripts/<pkg>/x.py
+            continue
+        if _governing_anchor(text[: m.start()]) is None:
+            findings.append(
+                Finding(path, start, ViolationKind.RELATIVE_SCRIPT, snippet,
+                        _REMEDIATION[ViolationKind.RELATIVE_SCRIPT])
+            )
+            break
+
+    # Hardcoded absolute-path script invocations (python or python3) — always a
+    # violation, checkout-`cd` or not: steer to the relative `python3 scripts/x.py`.
     for m in _ABS_PATH_RE.finditer(text):
         if _HARDCODED_CHECKOUT_RE.search(m.group("path")):
             findings.append(
@@ -200,7 +256,7 @@ def _classify(start: int, text: str, path: str) -> list[Finding]:
             )
             break
 
-    # HOME-relative writes.
+    # HOME-relative writes (UNCHANGED, #659).
     if _HOME_WRITE_RE.search(text):
         findings.append(
             Finding(path, start, ViolationKind.HOME_RELATIVE_WRITE, snippet,

@@ -59,11 +59,11 @@ swap + reword + identity land atomically (no ownership split).
 grep shows zero `${PYTHONPATH:?}` and zero bare `scripts/…py` invocations in capture.
 **Requirements**: FR-001, FR-003, FR-004, FR-005. **Prompt**: [tasks/WP02-capture-prompt-hardening.md](./tasks/WP02-capture-prompt-hardening.md) (~300 lines).
 
-- [x] T010 Swap all capture `AGENTS.md` invocations to checkout-cd form (incl. bare felix-file-issue.py) (WP02)
-- [x] T011 Reword `AGENTS.md:74` (WP02)
-- [x] T012 `:haiku`→`:sonnet` identity (WP02)
-- [x] T013 Apply swaps to capture `AGENTS.md.tmpl` (WP02)
-- [x] T014 Verify capture passes checker + pytest (WP02)
+- [ ] T010 Swap all capture `AGENTS.md` invocations to checkout-cd form (incl. bare felix-file-issue.py) (WP02)
+- [ ] T011 Reword `AGENTS.md:74` (WP02)
+- [ ] T012 `:haiku`→`:sonnet` identity (WP02)
+- [ ] T013 Apply swaps to capture `AGENTS.md.tmpl` (WP02)
+- [ ] T014 Verify capture passes checker + pytest (WP02)
 
 ## WP03 — Fleet invocation-form swap (escalation, habits, calendar, tasker, main)
 
@@ -74,12 +74,12 @@ whole fleet stops failing under exec sanitization.
 fleet-wide (with WP02 also landed); `pytest` green.
 **Requirements**: FR-001. **Prompt**: [tasks/WP03-fleet-invocation-swap.md](./tasks/WP03-fleet-invocation-swap.md) (~280 lines).
 
-- [x] T020 Swap `felix-admin-escalation/AGENTS.md` (WP03)
-- [x] T021 Swap `felix-admin-habits/AGENTS.md` (WP03)
-- [x] T022 Swap `felix-admin-calendar/AGENTS.md` (WP03)
-- [x] T023 Swap `felix-admin-tasker/AGENTS.md` (+ `.tmpl`) (WP03)
-- [x] T024 Swap `main/AGENTS.md` (WP03)
-- [x] T025 Verify fleet checker = ok (WP03)
+- [ ] T020 Swap `felix-admin-escalation/AGENTS.md` (WP03)
+- [ ] T021 Swap `felix-admin-habits/AGENTS.md` (WP03)
+- [ ] T022 Swap `felix-admin-calendar/AGENTS.md` (WP03)
+- [ ] T023 Swap `felix-admin-tasker/AGENTS.md` (+ `.tmpl`) (WP03)
+- [ ] T024 Swap `main/AGENTS.md` (WP03)
+- [ ] T025 Verify fleet checker = ok (WP03)
 
 ## WP04 — Model doc updates (arch data + agent registry)
 
@@ -89,8 +89,8 @@ fleet-wide (with WP02 also landed); `pytest` green.
 `anthropic/claude-sonnet-4-6`; architecture-data validator green.
 **Requirements**: FR-004. **Prompt**: [tasks/WP04-model-doc-updates.md](./tasks/WP04-model-doc-updates.md) (~200 lines).
 
-- [x] T030 `service-inventory.json` + `service-inventory.md`: capture model + PYTHONPATH-drop-in claim (WP04)
-- [x] T031 `AGENT-REGISTRY.md` + `agent-registry.json`: capture model (WP04)
+- [ ] T030 `service-inventory.json` + `service-inventory.md`: capture model + PYTHONPATH-drop-in claim (WP04)
+- [ ] T031 `AGENT-REGISTRY.md` + `agent-registry.json`: capture model (WP04)
 
 ## Post-merge operator step (not a WP)
 
