@@ -138,12 +138,18 @@ is *substantiated* — Felix already correctly chose the structured Obsidian vau
 memory-core; **(b)** the hard-enforcement mechanism Foundation 0 needs — **per-agent tool policy
 enforced before the model call + sandboxing — already exists as a first-class OpenClaw feature**,
 so configuring the default-deny boundary *uses OpenClaw's own designed mechanism* rather than
-fighting it (a significant de-risk); and **(c)** under per-token billing, OpenClaw's own
-LLM-calling behavior is a **cost surface to audit and minimize** — the memory-curation loops
-(`promote`/"REM dreaming"), heartbeats, and recall re-ranking are billed calls Felix may neither
-need nor want. **Deliverable: audit what LLM calls OpenClaw makes *on Felix's behalf, unbidden*,
-via the F1 usage ledger + config inspection, and disable/minimize what Felix doesn't use**
-(the memory-core lock-down is the first instance). Felix's durable value (governance +
+fighting it (a significant de-risk); and **(c)** the per-token-billing cost audit
+(2026-07-06) found that **OpenClaw itself is *not* a significant unbidden drain** — memory-core
+is **dormant** ($0, vector search paused, not calling OpenAI), plugins are all disabled ($0), and
+there is no background OpenClaw summarization. The real "monitoring overhead" (~$19/mo, estimated,
+= **46–85% of Felix's designed-work budget**) is **Felix's *own* observability using LLMs where
+deterministic checks would do**: the #490 heartbeat-gate (a **Haiku** routing call every 30 min,
+48×/day, ~$7/mo, never delivered) and the health-check (a bash script run via the **Sonnet** main
+agent 2×/day, ~$12/mo, mostly wasteful cache-write). **This resolves *into* F1**: its
+deterministic-canary principle (no LLM in the monitoring hot path) *replaces* both and **saves
+~$15–20/mo while improving reliability** — a measured cost figure for F1. The memory-core
+lock-down remains worthwhile as **hygiene + future-proofing** ($0 now since dormant, but a
+liability if ever repaired) and clears the #580 noise. Felix's durable value (governance +
 specialization + structured knowledge) is *strengthened* by the cost regime; OpenClaw's durable
 value is the **orchestration substrate**, not its (eroding) connector ecosystem or its
 token-hungry memory-core.
