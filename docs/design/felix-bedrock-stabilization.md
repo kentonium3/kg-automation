@@ -334,6 +334,14 @@ knowledge-graph; the coherence lens runs on a hand-curated decision list without
 > **after** the trust foundations — an effective-but-untrustworthy EA (confidently wrong) is
 > worse than a reliable one that fails cleanly. Not stabilization-sprint scope, but its priority
 > is raised by the realization that the second brain is *core EA value*.
+> The capability is **three stages**: multi-modal **ingestion** (audio→transcript via the
+> existing Whisper skill; image/scan→text via **Claude-native vision**; PDF/video/email→text,
+> keeping a pointer to the original artifact), the graph/vector **store**, and deterministic
+> **retrieval**. Felix has only a thin slice today (Whisper + the Obsidian vault + LLM-mediated
+> recall); the roadmap item is *store + retrieval*, with **ingestion** a parallel capability
+> extended beyond voice/notes to the full corpus. The cost shape is the point: *pay once to
+> distill+index* (a one-time per-artifact call), then *cheap deterministic recall* — the right
+> economics vs re-embedding on the fly or an LLM re-reading documents per query.
 
 **Absorbs:** #409, #160(prevention half), and the "which artifact is canonical" question
 (#669 + #409 + the deploy-path note) → **one "canonical agent-artifact source of truth"
