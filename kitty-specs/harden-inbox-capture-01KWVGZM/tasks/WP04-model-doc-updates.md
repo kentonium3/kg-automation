@@ -11,7 +11,8 @@ branch_strategy: Planning artifacts for this mission were generated on feat/hard
 subtasks:
 - T030
 - T031
-agent: claude
+agent: "claude"
+shell_pid: "41440"
 history:
 - 2026-07-06 authored from plan IC-03 (docs) + Codex MED-5 (agent-registry.json)
 agent_profile: curator-carla
@@ -78,3 +79,7 @@ narrative per the repo's documentation standard, so update BOTH the JSON and the
 
 Planning base `feat/harden-inbox-capture`; final merge target `feat/harden-inbox-capture`.
 Independent; parallel with WP02/WP03. Command: `spec-kitty agent action implement WP04 --agent claude`.
+
+## Activity Log
+
+- 2026-07-06T12:22:41Z – claude – shell_pid=41440 – Assigned agent via action command

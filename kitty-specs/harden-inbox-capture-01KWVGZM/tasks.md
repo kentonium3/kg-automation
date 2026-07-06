@@ -59,11 +59,11 @@ swap + reword + identity land atomically (no ownership split).
 grep shows zero `${PYTHONPATH:?}` and zero bare `scripts/…py` invocations in capture.
 **Requirements**: FR-001, FR-003, FR-004, FR-005. **Prompt**: [tasks/WP02-capture-prompt-hardening.md](./tasks/WP02-capture-prompt-hardening.md) (~300 lines).
 
-- [ ] T010 Swap all capture `AGENTS.md` invocations to checkout-cd form (incl. bare felix-file-issue.py) (WP02)
-- [ ] T011 Reword `AGENTS.md:74` (WP02)
-- [ ] T012 `:haiku`→`:sonnet` identity (WP02)
-- [ ] T013 Apply swaps to capture `AGENTS.md.tmpl` (WP02)
-- [ ] T014 Verify capture passes checker + pytest (WP02)
+- [x] T010 Swap all capture `AGENTS.md` invocations to checkout-cd form (incl. bare felix-file-issue.py) (WP02)
+- [x] T011 Reword `AGENTS.md:74` (WP02)
+- [x] T012 `:haiku`→`:sonnet` identity (WP02)
+- [x] T013 Apply swaps to capture `AGENTS.md.tmpl` (WP02)
+- [x] T014 Verify capture passes checker + pytest (WP02)
 
 ## WP03 — Fleet invocation-form swap (escalation, habits, calendar, tasker, main)
 
