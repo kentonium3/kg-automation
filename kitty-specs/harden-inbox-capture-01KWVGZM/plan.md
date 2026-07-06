@@ -65,13 +65,15 @@ Data/entities: [data-model.md](./data-model.md). Verification: [quickstart.md](.
 
 | IC / WP | Concern | Key files | Notes |
 |---------|---------|-----------|-------|
-| IC-01 / WP01 | Invert the env-assumption checker + tests (FIRST — it defines "compliant" and gates the fleet swap) | `scripts/openclaw/agents/env_assumptions.py`, `tests/test_env_assumptions.py`, `tests/test_validate_workspace.py`, Test-CI env-guard test | Semantic inversion (manual_review). New: checkout-cd compliant; bare `-m scripts` + `${PYTHONPATH:?}` flagged. Retain HOME_RELATIVE_WRITE (#659). |
-| IC-02 / WP02 | Fleet prompt invocation-form swap (rename) | `scripts/openclaw/agents/{capture,escalation,habits,calendar,tasker,main}/AGENTS.md` (+ capture/tasker `.tmpl`) | 44 occurrences. Gate: `python3 -m scripts.openclaw.agents.env_assumptions` reports **ok** fleet-wide (SC-001, SC-008); full `pytest` green. |
-| IC-03 / WP03 | Capture comprehension hardening + model doc updates | capture `AGENTS.md` (+ `.tmpl`): line-74 reword, `:haiku`→`:sonnet`; `service-inventory.json`+md, `AGENT-REGISTRY.md` model haiku→sonnet | openclaw.json is office2-only; the runtime model VALUE flip is applied in WP04, docs here. |
-| IC-04 / WP04 | Deploy + verify + rebaseline | office2 manual steps ([quickstart.md](./quickstart.md)) | After feat→main: prompt-sync auto-deploys prompts; manually edit openclaw.json model + restart gateway + **manual rebaseline**; run SC-001..008. |
+| IC-01 / WP01 | Invert the env-assumption checker + tests + correct the authoring runbook (FIRST — it defines "compliant" and gates the fleet swap) | `scripts/openclaw/agents/env_assumptions.py`, `tests/test_env_assumptions.py`, `tests/test_validate_workspace.py`, Test-CI env-guard test, `docs/runbooks/openclaw-agent-setup.md` | Semantic inversion (manual_review). New: **exact** checkout-cd (`/home/claude/kg-automation`) compliant; `${PYTHONPATH:?}` flagged (renamed from HARDCODED_CD → `PYTHONPATH_ANCHOR`); **new `RELATIVE_SCRIPT` class** for `python3 scripts/x.py` / bare `scripts/x.py` without checkout-cd (Codex HIGH-2); bare `-m scripts` still flagged; retain HOME_RELATIVE_WRITE (#659). Single `CANONICAL_CHECKOUT` constant, exact-match (Codex MED-4). Runbook stops teaching the broken form (Codex HIGH-3). |
+| IC-02 / WP02 | Fleet prompt invocation-form swap (rename) | `scripts/openclaw/agents/{capture,escalation,habits,calendar,tasker,main}/AGENTS.md` (+ capture/tasker `.tmpl`) | 44 `${PYTHONPATH:?}` occurrences **plus** bare/relative script forms the checker now flags (e.g. capture `AGENTS.md:97` `invoke scripts/.../felix-file-issue.py`; `python scripts/x.py` in main/calendar/tasker). Gate: `python3 -m scripts.openclaw.agents.env_assumptions` reports **ok** fleet-wide (SC-001, SC-008); full `pytest` green. |
+| IC-03 / WP03 | Capture comprehension hardening + model doc updates | capture `AGENTS.md` (+ `.tmpl`): line-74 reword, `:haiku`→`:sonnet`; docs: `service-inventory.json`+md (model **and** the PYTHONPATH-drop-in claim), `AGENT-REGISTRY.md` **and** authoritative `agent-registry.json` (Codex MED-5) model haiku→sonnet | openclaw.json is office2-only; the runtime model VALUE flip is applied in WP04, docs here. |
+| IC-04 / WP04 | Deploy + verify + rebaseline | office2 manual steps ([quickstart.md](./quickstart.md)) | After feat→main: prompt-sync auto-deploys prompts (**verify all six** deployed AGENTS.md + the prompt-sync log — Codex MED-6); backup+`jq`-validate openclaw.json, edit model, restart gateway, **confirm model-in-effect, THEN manual rebaseline** (Codex LOW-7); run SC-001..008. |
 
-Dependencies: WP01 → WP02 → WP03 → WP04. WP03's arch-doc edits are independent of the
-WP02 prompt swap and may proceed in parallel with WP02 once WP01 lands.
+Dependencies: WP01 → WP02 → WP03 → WP04. WP03's doc edits are independent of the
+WP02 prompt swap and may proceed in parallel with WP02 once WP01 lands. The
+`openclaw-agent-setup.md` runbook correction is in WP01 (co-located with the policy it
+documents).
 
 ## Risks & Mitigations
 
@@ -88,10 +90,18 @@ WP02 prompt swap and may proceed in parallel with WP02 once WP01 lands.
 - **R5 — gateway not restarted** → model change silent; quickstart makes restart +
   `openclaw cron runs` model check explicit (SC-002).
 
+## Post-plan Codex review
+
+Run 2026-07-06 (`codex -s read-only`): no CRITICAL findings; root cause + fix
+validated. 7 findings folded in-plan before task decomposition — HIGH-1/2
+(bare/relative script forms + new `RELATIVE_SCRIPT` checker class), HIGH-3 (correct
+`openclaw-agent-setup.md` in-mission → WP01), MED-4 (exact `CANONICAL_CHECKOUT`
+constant), MED-5 (`agent-registry.json` → WP03), MED-6 (fleet-wide deploy verify),
+LOW-7 (validate model-in-effect before rebaseline). No scope-changing decisions
+required.
+
 ## Follow-ups to file (post-merge)
 
-- **#658 correction note** — record that #658's `${PYTHONPATH:?}` canonical form was
-  reversed and why (exec sanitizes env; gateway-env check was a blind spot).
 - **FR-5 / Phase 2** — richer multi-intent decomposition (separate issue).
 - **Fleetwide model-selection framework** — deferred (separate issue).
 - **capture `AGENTS.md.tmpl` full re-sync** — stale vs the 223-line deployed prompt.

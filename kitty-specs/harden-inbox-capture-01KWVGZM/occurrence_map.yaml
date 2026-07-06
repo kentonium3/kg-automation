@@ -6,6 +6,13 @@
 # in env_assumptions.py (as the policy it enforces) and its tests (as the
 # canonical form they assert) — those must be inverted semantically, NOT
 # mechanically swapped. That divergence is exactly why this is classified.
+#
+# NOTE (Codex post-plan HIGH-1/2): the `target.term` below is the PRIMARY broken
+# form, but the WP scope also covers other broken invocation shapes in the same
+# prompt files — bare relative `scripts/<path>.py` (e.g. capture AGENTS.md:97) and
+# `python3 scripts/<path>.py` without a checkout-cd. The inverted checker's new
+# RELATIVE_SCRIPT class is the completeness net; the `AGENTS.md` `rename` exceptions
+# below already place every prompt file in scope for the swap.
 
 target:
   term: 'cd "${PYTHONPATH:?PYTHONPATH unset}"'
@@ -47,3 +54,9 @@ exceptions:
   - path: "docs/constitution/AGENT-REGISTRY.md"
     action: manual_review
     reason: "Agent registry model/behavior update for capture"
+  - path: "docs/constitution/agent-registry.json"
+    action: manual_review
+    reason: "Authoritative agent registry — capture model haiku→sonnet (Codex MED-5; else docs split-brain)"
+  - path: "docs/runbooks/openclaw-agent-setup.md"
+    action: manual_review
+    reason: "Runbook teaches the broken ${PYTHONPATH:?} form + bans the canonical checkout-cd; correct in-mission (Codex HIGH-3)"

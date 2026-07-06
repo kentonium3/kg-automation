@@ -26,8 +26,14 @@ cd /home/claude/kg-automation && python3 scripts/<path>.py [args]
 3. **Never** hardcode an absolute `python3 /home/claude/kg-automation/scripts/x.py`
    form — use the `cd … && python3 scripts/x.py` relative form (keeps args/paths
    consistent and matches the checker's compliant pattern).
-4. Multiple helper calls in one command may share a single `cd` via `&&`.
-5. Arguments that are absolute paths (vault paths, tempfiles) are unchanged.
+4. **Bare imperative script paths also count.** A prose instruction like "invoke
+   `scripts/openclaw/agents/main/felix-file-issue.py`" (capture `AGENTS.md:97`) is a
+   helper invocation and is equally broken under exec — rewrite it to
+   `cd /home/claude/kg-automation && python3 scripts/openclaw/agents/main/felix-file-issue.py …`.
+5. The checkout path is the **exact** literal `/home/claude/kg-automation` — never a
+   `~`, `$PYTHONPATH`, `/home/kgale/...`, or other variant.
+6. Multiple helper calls in one command may share a single `cd` via `&&`.
+7. Arguments that are absolute paths (vault paths, tempfiles) are unchanged.
 
 ## Verification
 

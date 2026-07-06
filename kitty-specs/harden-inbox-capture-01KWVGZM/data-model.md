@@ -39,7 +39,9 @@ mission mutates and the checker policy that governs them.
   **manual** rebaseline.
 - **Doc mirrors**: `docs/design/architecture/data/service-inventory.json`
   (`services.openclaw.agents.felix-admin-capture.model` / registry entry) + its md view;
-  `docs/constitution/AGENT-REGISTRY.md`.
+  `docs/constitution/AGENT-REGISTRY.md` **and** the authoritative
+  `docs/constitution/agent-registry.json`; plus `docs/runbooks/openclaw-agent-setup.md`
+  (corrected to teach the canonical checkout-`cd` form, not `${PYTHONPATH:?}`).
 
 ### EnvAssumptionPolicy (the checker)
 - **File**: `scripts/openclaw/agents/env_assumptions.py`; consumers
