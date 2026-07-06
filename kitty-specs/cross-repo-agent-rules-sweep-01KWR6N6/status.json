@@ -1,7 +1,7 @@
 {
-  "event_count": 8,
-  "last_event_id": "01KWVJN6RTNG7PTW1ABJ0E4N98",
-  "materialized_at": "2026-07-06T11:22:46.938448+00:00",
+  "event_count": 10,
+  "last_event_id": "01KWVJR8JY9Y3WFBPN82MZSD1J",
+  "materialized_at": "2026-07-06T11:24:27.046141+00:00",
   "mission_number": "",
   "mission_slug": "cross-repo-agent-rules-sweep-01KWR6N6",
   "mission_type": "software-dev",
@@ -12,9 +12,9 @@
     "claimed": 0,
     "done": 0,
     "for_review": 0,
-    "in_progress": 0,
+    "in_progress": 1,
     "in_review": 0,
-    "planned": 2
+    "planned": 1
   },
   "work_packages": {
     "WP01": {
@@ -25,11 +25,11 @@
       "last_transition_at": "2026-07-06T11:22:46.938448+00:00"
     },
     "WP02": {
-      "actor": "finalize-tasks",
+      "actor": "codex:gpt-5:curator-carla:implementer",
       "force_count": 0,
-      "lane": "planned",
-      "last_event_id": "01KWTDE6KMFRQ8EKP6K7TFQB46",
-      "last_transition_at": "2026-07-06T00:32:20.084397+00:00"
+      "lane": "in_progress",
+      "last_event_id": "01KWVJR8JY9Y3WFBPN82MZSD1J",
+      "last_transition_at": "2026-07-06T11:24:27.046141+00:00"
     },
     "WP03": {
       "actor": "finalize-tasks",
