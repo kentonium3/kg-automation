@@ -31,10 +31,10 @@
 
 **Included subtasks**:
 
-- [ ] T001 Review canonical standing-rules file and linked spec-kitty bug-reporting runbook for stale or duplicated guidance. (WP01)
-- [ ] T002 Sweep repo, runbook, constitution, and agent-rule surfaces for candidate universal rules using focused searches. (WP01)
-- [ ] T003 Classify high-signal candidates using the promote/link-only/already-represented/local/agent-specific/unclear model. (WP01)
-- [ ] T004 Write a mission-owned candidate classification note with promoted, rejected, and unclear candidates. (WP01)
+- [x] T001 Review canonical standing-rules file and linked spec-kitty bug-reporting runbook for stale or duplicated guidance. (WP01)
+- [x] T002 Sweep repo, runbook, constitution, and agent-rule surfaces for candidate universal rules using focused searches. (WP01)
+- [x] T003 Classify high-signal candidates using the promote/link-only/already-represented/local/agent-specific/unclear model. (WP01)
+- [x] T004 Write a mission-owned candidate classification note with promoted, rejected, and unclear candidates. (WP01)
 
 **Implementation sketch**:
 
