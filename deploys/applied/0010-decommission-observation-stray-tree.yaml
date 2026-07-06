@@ -39,3 +39,19 @@ notes: |
   the tree touches no security-monitor audited surface). audited_surface: false.
 created_at: '2026-07-05T13:35:00Z'
 created_by: observation-digest-repoint-01KWS2E2
+applied_manually_at: '2026-07-06T02:16:00Z'
+applied_by: claude (office2, ssh session)
+applied_note: |
+  Applied MANUALLY on office2, not via felix-deployer. felix-deployer runs the
+  entrypoint as user `claude` with `--apply` (no attestation); gate (a) then
+  requires a live `restic snapshots` coverage query, which `claude` cannot run
+  (no RESTIC_REPOSITORY in its env; fails closed). So the pipeline can never
+  apply this manifest — it would fail-loop. Run instead as:
+    python3 scripts/deploy/decommission-observation-stray-tree.py --apply --attest-backup-coverage
+  Backup coverage confirmed deterministically from scripts/office2/restic-backup.sh
+  (backs up /home/claude; no exclude matches second-brain) and a fresh Restic
+  snapshot 3c6937df (2026-07-06T02:14:55Z, rc=0) taken immediately before.
+  Gates passed: origin (3 refs), inbox_prescan (0 newer than cutoff, after
+  clearing a stale pre-cutover inbox-prescan-2026-07-05.md), quiesce
+  (timer_stopped, no writer). Tree removed; SC-003 verified (test ! -e). Timer
+  restarted healthy. Rebaseline: not required (audited_surface: false).
