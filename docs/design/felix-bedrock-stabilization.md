@@ -1,9 +1,9 @@
 ---
 id: felix-bedrock-stabilization
-doc_type: design
+doc_type: charter
 title: "Felix Bedrock Stabilization — Reliability, Observability & Coherence"
 status: draft
-level: strategic
+level: overview
 owners: [kgale]
 last_validated: '2026-07-06'
 version: '0.1'
@@ -38,7 +38,7 @@ complexity → fragility + wasteful sysadmin toil, the opposite of what Felix de
 
 **Felix's bedrock is already *designed* but *under-implemented and fragmented*, with no
 coherence-enforcement to keep new work aligned.** The 13 ratified [engineering
-principles](engineering-principles.md) already encode the bedrock — machine-readable
+principles](<./engineering-principles.md>) already encode the bedrock — machine-readable
 health-state (#1), "how will we know this broke?" (#9), small guardrails over large
 retrofits (#10), no SPOF without recovery (#13) — as do roadmap design principles #4
 ("never fail silently") and #7 ("central action logging"). The ~40 open reliability /
