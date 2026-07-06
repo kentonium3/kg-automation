@@ -18,8 +18,8 @@ protocols are linked, not inlined.
 ## Spec-Kitty (and sibling tooling) issue reporting
 - Follow the dual-track runbook `~/repos/kg-automation/docs/runbooks/spec-kitty-bug-reporting.md`.
   Do NOT file upstream ad-hoc. Flow: file the INTERNAL status tracker as a
-  `kentonium3/kg-automation` issue (template `.github/ISSUE_TEMPLATE/spec-kitty-bug.md`), then
-  generate the slim EXTERNAL upstream report from it via
-  `docs/diagnostics/spec-kitty-bug-report-external-template.md`.
+  `kentonium3/kg-automation` issue (template `.github/ISSUE_TEMPLATE/spec-kitty-bug.md`), embed
+  the proposed upstream title and paste-ready upstream draft in that issue, get explicit operator
+  approval for both, then file upstream and cross-link both issues.
 - Internal kg-automation issues use the `.github/ISSUE_TEMPLATE/` forms (bug / feature / infra /
   docs-debt / research / rfc).
