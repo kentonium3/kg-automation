@@ -19,7 +19,7 @@ subtasks:
 - T013
 - T014
 agent: "claude"
-shell_pid: "40163"
+shell_pid: "43742"
 history:
 - 2026-07-06 authored from plan IC-02/IC-03 (capture portion; owns the whole capture prompt to avoid an ownership split)
 agent_profile: curator-carla
@@ -120,3 +120,5 @@ Branches from WP01. Command: `spec-kitty agent action implement WP02 --agent cla
 ## Activity Log
 
 - 2026-07-06T12:21:47Z – claude – shell_pid=40163 – Assigned agent via action command
+- 2026-07-06T12:28:23Z – claude – shell_pid=40163 – Capture: 14 invocation swaps + line-74 reword + sonnet identity + .tmpl; checker clean, grep empty, size ok, FR-005 intact
+- 2026-07-06T12:28:28Z – claude – shell_pid=43742 – Started review via action command
