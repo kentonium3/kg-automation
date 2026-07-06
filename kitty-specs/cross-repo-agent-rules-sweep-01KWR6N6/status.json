@@ -1,16 +1,16 @@
 {
-  "event_count": 20,
-  "last_event_id": "01KWVMGWW7DKWXKVHDXWD4F9Z4",
-  "materialized_at": "2026-07-06T11:55:22.887873+00:00",
+  "event_count": 21,
+  "last_event_id": "01KWVMGYW2KQN8HKSCRFWM4297",
+  "materialized_at": "2026-07-06T11:55:24.930397+00:00",
   "mission_number": "85",
   "mission_slug": "cross-repo-agent-rules-sweep-01KWR6N6",
   "mission_type": "software-dev",
   "summary": {
-    "approved": 1,
+    "approved": 0,
     "blocked": 0,
     "canceled": 0,
     "claimed": 0,
-    "done": 2,
+    "done": 3,
     "for_review": 0,
     "in_progress": 0,
     "in_review": 0,
@@ -25,11 +25,11 @@
       "last_transition_at": "2026-07-06T11:55:20.848363+00:00"
     },
     "WP02": {
-      "actor": "user",
+      "actor": "merge",
       "force_count": 0,
-      "lane": "approved",
-      "last_event_id": "01KWVK35AK2426BH30GV8M5303",
-      "last_transition_at": "2026-07-06T11:30:24.211985+00:00"
+      "lane": "done",
+      "last_event_id": "01KWVMGYW2KQN8HKSCRFWM4297",
+      "last_transition_at": "2026-07-06T11:55:24.930397+00:00"
     },
     "WP03": {
       "actor": "merge",
