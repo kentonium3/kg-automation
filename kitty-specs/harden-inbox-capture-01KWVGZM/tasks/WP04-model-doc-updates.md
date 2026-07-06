@@ -85,3 +85,4 @@ Independent; parallel with WP02/WP03. Command: `spec-kitty agent action implemen
 - 2026-07-06T12:22:41Z – claude – shell_pid=41440 – Assigned agent via action command
 - 2026-07-06T12:30:43Z – claude – shell_pid=41440 – Docs: capture haiku→sonnet reconciled across service-inventory.md + agent-registry.json + AGENT-REGISTRY.md (JSON was already sonnet — pre-existing split-brain reconciled); PYTHONPATH-drop-in claim corrected; validator OK
 - 2026-07-06T12:31:05Z – claude – shell_pid=45586 – Started review via action command
+- 2026-07-06T12:31:16Z – user – shell_pid=45586 – APPROVED. capture haiku→sonnet reconciled on all narrative surfaces (JSON pre-existing sonnet split-brain reconciled + documented); PYTHONPATH-drop-in claim corrected to exec-sanitization reality; only capture model touched; validator OK, JSON parses.
