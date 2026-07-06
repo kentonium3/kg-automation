@@ -1,0 +1,28 @@
+{
+  "event_count": 1,
+  "last_event_id": "01KWTDE508J4KF7D3S4PV7RCSJ",
+  "materialized_at": "2026-07-06T00:32:18.440879+00:00",
+  "mission_number": "",
+  "mission_slug": "cross-repo-agent-rules-sweep-01KWR6N6",
+  "mission_type": "software-dev",
+  "summary": {
+    "approved": 0,
+    "blocked": 0,
+    "canceled": 0,
+    "claimed": 0,
+    "done": 0,
+    "for_review": 0,
+    "in_progress": 0,
+    "in_review": 0,
+    "planned": 1
+  },
+  "work_packages": {
+    "WP01": {
+      "actor": "finalize-tasks",
+      "force_count": 0,
+      "lane": "planned",
+      "last_event_id": "01KWTDE508J4KF7D3S4PV7RCSJ",
+      "last_transition_at": "2026-07-06T00:32:18.440879+00:00"
+    }
+  }
+}
