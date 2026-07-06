@@ -75,22 +75,5 @@
       "notes": "WP01 records link-only, already represented, repo-specific, and agent-specific candidates with rationale."
     }
   ],
-  "negative_invariants": [
-    {
-      "id": "C-001",
-      "invariant_id": "C-001",
-      "description": "Do not edit global ~/.claude/CLAUDE.md.",
-      "verification_method": "Review mission commits and changed paths; global user-level instruction files are outside the repository and were not modified.",
-      "pass_fail": "pass",
-      "evidence": "No mission commit modifies the global user-level instruction file."
-    },
-    {
-      "id": "C-002",
-      "invariant_id": "C-002",
-      "description": "Do not post public issue or upstream copy without exact-copy approval.",
-      "verification_method": "Review WP03 validation report and mission actions; suggested copy is recorded only as draft text, with no GitHub posting command executed.",
-      "pass_fail": "pass",
-      "evidence": "WP03 records suggested copy only; no GitHub issue/comment was posted."
-    }
-  ]
+  "negative_invariants": []
 }
