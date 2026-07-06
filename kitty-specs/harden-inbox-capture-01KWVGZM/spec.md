@@ -44,7 +44,7 @@ spot this mission corrects.
 
 **Scope decision (Kent, 2026-07-06):** fix the invocation form fleet-wide in this
 mission; keep the capture haiku→sonnet move. This is **Phase 1** of #662; the
-richer multi-intent decomposition (original FR-5) is a separate follow-up.
+richer multi-intent decomposition (#662's original fifth requirement) is a separate follow-up.
 
 ## The governing principle: two layers, model in only one
 
@@ -143,7 +143,7 @@ the prompt reword are the comprehension-layer reinforcements.
 
 ## Out of Scope
 
-- **FR-5 / Phase 2** of #662 — richer LLM-driven multi-intent decomposition. Separate follow-up.
+- **Phase 2 of #662** (its original fifth requirement) — richer LLM-driven multi-intent decomposition. Separate follow-up.
 - **Fleetwide model-selection framework** — only capture moves to sonnet here; the framework is deferred.
 - **Non-capture model changes** — only the invocation form (not the model) changes for escalation/habits/calendar/tasker/main.
 - **The helpers, routing destinations, vault layout, and future email/research intents** — unchanged.

@@ -102,7 +102,7 @@ required.
 
 ## Follow-ups to file (post-merge)
 
-- **FR-5 / Phase 2** — richer multi-intent decomposition (separate issue).
+- **Phase 2 of #662** (its original fifth requirement) — richer multi-intent decomposition (separate issue).
 - **Fleetwide model-selection framework** — deferred (separate issue).
 - **capture `AGENTS.md.tmpl` full re-sync** — stale vs the 223-line deployed prompt.
 
