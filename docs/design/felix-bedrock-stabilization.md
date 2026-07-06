@@ -133,14 +133,20 @@ positioning level*; the difference is **depth + governance**, not category.
 | OpenClaw **memory-core** | unstructured AI-curated append-only memory + **OpenAI-embedding** vector search | **LOCK DOWN** — confirmed HIGH-risk liability (external OpenAI dependency + cost + #580 noise); Felix uses the *structured* vault instead and should disable it |
 | **Felix** | specialized agents, governance, controlled paths, structured vault, cost-discipline, EA intelligence | **the differentiated, durable value** |
 
-Two consequences: **(a)** the "structured Felix vs unstructured second-brain OpenClaw" reading is
-*substantiated* — Felix already correctly chose the structured Obsidian vault over OpenClaw's
-memory-core; and **(b)** the hard-enforcement mechanism Foundation 0 needs — **per-agent tool
-policy enforced before the model call + sandboxing — already exists as a first-class OpenClaw
-feature**, so configuring the default-deny boundary *uses OpenClaw's own designed mechanism*
-rather than fighting it (a significant de-risk). Felix's durable value (governance +
+Three consequences: **(a)** the "structured Felix vs unstructured second-brain OpenClaw" reading
+is *substantiated* — Felix already correctly chose the structured Obsidian vault over OpenClaw's
+memory-core; **(b)** the hard-enforcement mechanism Foundation 0 needs — **per-agent tool policy
+enforced before the model call + sandboxing — already exists as a first-class OpenClaw feature**,
+so configuring the default-deny boundary *uses OpenClaw's own designed mechanism* rather than
+fighting it (a significant de-risk); and **(c)** under per-token billing, OpenClaw's own
+LLM-calling behavior is a **cost surface to audit and minimize** — the memory-curation loops
+(`promote`/"REM dreaming"), heartbeats, and recall re-ranking are billed calls Felix may neither
+need nor want. **Deliverable: audit what LLM calls OpenClaw makes *on Felix's behalf, unbidden*,
+via the F1 usage ledger + config inspection, and disable/minimize what Felix doesn't use**
+(the memory-core lock-down is the first instance). Felix's durable value (governance +
 specialization + structured knowledge) is *strengthened* by the cost regime; OpenClaw's durable
-value is the **orchestration substrate**, not its (eroding) connector ecosystem.
+value is the **orchestration substrate**, not its (eroding) connector ecosystem or its
+token-hungry memory-core.
 
 **Minimal coherent deliverable (define → configure-to-enforce → author):**
 1. **A canonical capability map** — for each request class (calendar, email, tasks, habits,
@@ -312,15 +318,22 @@ is authored as a founding `INV`.
 **Defer (for the sprint):** #644/#645/#646 (Obsidian Canvas/graph) — the heavyweight
 knowledge-graph; the coherence lens runs on a hand-curated decision list without it.
 
-> **Forward pointer — vectorized/knowledge graphs as a medium-term roadmap item (not sprint
-> work).** Deferring the graph *as sprint scope* is distinct from the operator's intent to
-> *learn* vectorized-graph concepts and find a **minimal entry point** for them in Felix — as
-> an enhanced-development-environment or system-state-awareness capability. The near-term F3
-> substrate (flat doctrine file + decision corpus) is deliberately graph-free and sufficient
-> at single-operator scale; when a *basic* vectorized-graph application has a clear, bounded
-> home in Felix, it becomes the natural evolution of the F3 decision/doctrine corpus (which
-> is already the raw material for a typed graph) rather than a parallel build. Tracked as a
-> roadmap-level research item, sequenced after the stabilization foundations land.
+> **Forward pointer — a vectorized-graph *second brain* (elevated-priority roadmap item, still
+> post-stabilization).** Two knowledge domains, two right-answers: **doctrine/coherence** (F3)
+> is *small, stable, human-authored* → flat files are correct (a graph would be over-engineering
+> for ~dozens of invariants). The **second brain — learning the human** (preferences, history,
+> relationships, patterns, voice) is *large, growing, relational, dynamic* → **documents don't
+> scale there** (slow to relate, expensive to mutate/keep coherent), and a graph/vector
+> substrate wins. The decisive argument is cost + determinism: a graph makes *recall a
+> deterministic lookup* instead of a *billed LLM re-reading documents* — the bedrock's
+> deterministic-first principle applied to memory. This is **Felix-built, Claude-native**, and
+> the natural evolution of assets Felix already maintains (structured JSONs, Obsidian backlinks,
+> the F3 decision corpus are its seed) — it does **not** adopt OpenClaw's embeddings-only,
+> OpenAI-locked memory-core (which Foundation 0 locks down). **Sequencing:** *higher-priority
+> roadmap*; design F3 **graph-ready now** (so the corpus is the entry point); full build lands
+> **after** the trust foundations — an effective-but-untrustworthy EA (confidently wrong) is
+> worse than a reliable one that fails cleanly. Not stabilization-sprint scope, but its priority
+> is raised by the realization that the second brain is *core EA value*.
 
 **Absorbs:** #409, #160(prevention half), and the "which artifact is canonical" question
 (#669 + #409 + the deploy-path note) → **one "canonical agent-artifact source of truth"
