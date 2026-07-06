@@ -12,7 +12,7 @@ subtasks:
 - T030
 - T031
 agent: "claude"
-shell_pid: "41440"
+shell_pid: "45586"
 history:
 - 2026-07-06 authored from plan IC-03 (docs) + Codex MED-5 (agent-registry.json)
 agent_profile: curator-carla
@@ -83,3 +83,5 @@ Independent; parallel with WP02/WP03. Command: `spec-kitty agent action implemen
 ## Activity Log
 
 - 2026-07-06T12:22:41Z – claude – shell_pid=41440 – Assigned agent via action command
+- 2026-07-06T12:30:43Z – claude – shell_pid=41440 – Docs: capture haiku→sonnet reconciled across service-inventory.md + agent-registry.json + AGENT-REGISTRY.md (JSON was already sonnet — pre-existing split-brain reconciled); PYTHONPATH-drop-in claim corrected; validator OK
+- 2026-07-06T12:31:05Z – claude – shell_pid=45586 – Started review via action command

@@ -89,8 +89,8 @@ fleet-wide (with WP02 also landed); `pytest` green.
 `anthropic/claude-sonnet-4-6`; architecture-data validator green.
 **Requirements**: FR-004. **Prompt**: [tasks/WP04-model-doc-updates.md](./tasks/WP04-model-doc-updates.md) (~200 lines).
 
-- [ ] T030 `service-inventory.json` + `service-inventory.md`: capture model + PYTHONPATH-drop-in claim (WP04)
-- [ ] T031 `AGENT-REGISTRY.md` + `agent-registry.json`: capture model (WP04)
+- [x] T030 `service-inventory.json` + `service-inventory.md`: capture model + PYTHONPATH-drop-in claim (WP04)
+- [x] T031 `AGENT-REGISTRY.md` + `agent-registry.json`: capture model (WP04)
 
 ## Post-merge operator step (not a WP)
 

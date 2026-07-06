@@ -99,3 +99,4 @@ Branches from WP01; parallel with WP02/WP04. Command: `spec-kitty agent action i
 - 2026-07-06T12:22:18Z – claude – shell_pid=40828 – Assigned agent via action command
 - 2026-07-06T12:29:43Z – claude – shell_pid=40828 – Fleet swap: 5 agents + tasker.tmpl → checkout-cd; 2 prose refs + calendar-pipe anchored; grep empty, checker clean for the 5
 - 2026-07-06T12:30:05Z – claude – shell_pid=44826 – Started review via action command
+- 2026-07-06T12:30:16Z – user – shell_pid=44826 – APPROVED. Fleet swap invocation-prefix-only across escalation/habits/calendar/tasker(+tmpl)/main; correctly anchored 2 prose script refs (escalation:22, habits:274) the checker flags + converted calendar stdin-pipe to subshell; grep empty + checker clean for all 5; no behavior/model changes.
