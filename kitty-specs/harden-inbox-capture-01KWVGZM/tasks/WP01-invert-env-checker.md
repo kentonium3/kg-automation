@@ -15,7 +15,8 @@ subtasks:
 - T004
 - T005
 - T006
-agent: claude
+agent: "claude"
+shell_pid: "28505"
 history:
 - 2026-07-06 authored from plan IC-01 (+ post-plan Codex HIGH-2/MED-4/HIGH-3)
 agent_profile: python-pedro
@@ -146,3 +147,7 @@ Update `ViolationKind` and `_classify`:
 Planning base `feat/harden-inbox-capture`; final merge target `feat/harden-inbox-capture`.
 Execution worktrees are allocated per computed lane from `lanes.json`. Command:
 `spec-kitty agent action implement WP01 --agent claude`.
+
+## Activity Log
+
+- 2026-07-06T11:50:57Z – claude – shell_pid=28505 – Assigned agent via action command

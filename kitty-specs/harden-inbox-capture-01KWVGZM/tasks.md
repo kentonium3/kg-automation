@@ -42,12 +42,12 @@ of the bug. This is the gate for WP02/WP03.
 scripts.openclaw.agents.env_assumptions` runs (will still report findings until WP02/03 land).
 **Requirements**: FR-002. **Prompt**: [tasks/WP01-invert-env-checker.md](./tasks/WP01-invert-env-checker.md) (~350 lines).
 
-- [ ] T001 Invert checker canonical form: exact `CANONICAL_CHECKOUT` const (WP01)
-- [ ] T002 Add `RELATIVE_SCRIPT`; rename `HARDCODED_CD`→`PYTHONPATH_ANCHOR`; keep bare-m + home-write (WP01)
-- [ ] T003 Update remediation strings + docstring (WP01)
-- [ ] T004 Rewrite `test_env_assumptions.py` (WP01)
-- [ ] T005 Update `test_validate_workspace.py` + `test_env_assumptions_guard.py` (WP01)
-- [ ] T006 Correct `openclaw-agent-setup.md` runbook (WP01)
+- [x] T001 Invert checker canonical form: exact `CANONICAL_CHECKOUT` const (WP01)
+- [x] T002 Add `RELATIVE_SCRIPT`; rename `HARDCODED_CD`→`PYTHONPATH_ANCHOR`; keep bare-m + home-write (WP01)
+- [x] T003 Update remediation strings + docstring (WP01)
+- [x] T004 Rewrite `test_env_assumptions.py` (WP01)
+- [x] T005 Update `test_validate_workspace.py` + `test_env_assumptions_guard.py` (WP01)
+- [x] T006 Correct `openclaw-agent-setup.md` runbook (WP01)
 
 ## WP02 — Capture prompt hardening (invocation swap + reword + sonnet identity)
 
