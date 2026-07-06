@@ -1,4 +1,16 @@
 {
+  "acceptance_history": [
+    {
+      "acceptance_mode": "pr",
+      "accepted_at": "2026-07-06T11:50:48.610556+00:00",
+      "accepted_by": "kentgale",
+      "accepted_from_commit": "f6f172b73680cd04ca4c1a981bd7720cc8c418ee"
+    }
+  ],
+  "acceptance_mode": "pr",
+  "accepted_at": "2026-07-06T11:50:48.610556+00:00",
+  "accepted_by": "kentgale",
+  "accepted_from_commit": "f6f172b73680cd04ca4c1a981bd7720cc8c418ee",
   "coordination_branch": "kitty/mission-cross-repo-agent-rules-sweep-01KWR6N6",
   "created_at": "2026-07-05T03:55:20.210429+00:00",
   "flattened": false,
