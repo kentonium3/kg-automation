@@ -16,7 +16,8 @@ subtasks:
 - T023
 - T024
 - T025
-agent: claude
+agent: "claude"
+shell_pid: "40828"
 history:
 - 2026-07-06 authored from plan IC-02 (non-capture fleet)
 agent_profile: curator-carla
@@ -92,3 +93,7 @@ Preserve every argument, `&&` chain, and surrounding prose. Use the EXACT path.
 
 Planning base `feat/harden-inbox-capture`; final merge target `feat/harden-inbox-capture`.
 Branches from WP01; parallel with WP02/WP04. Command: `spec-kitty agent action implement WP03 --agent claude`.
+
+## Activity Log
+
+- 2026-07-06T12:22:18Z – claude – shell_pid=40828 – Assigned agent via action command
