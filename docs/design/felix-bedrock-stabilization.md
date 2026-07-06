@@ -121,6 +121,27 @@ audited surface). Because the skill ecosystem is unbounded, only a **default-den
 allow-per-agent** model scales — a new skill pack is governed the moment it exists, without a
 new decision.
 
+**Confirmed value division (investigated 2026-07-06 from OpenClaw's own install/docs, not
+impression).** OpenClaw's README positions it as "a personal AI assistant… the Gateway is just
+the control plane — the product is the assistant" — so OpenClaw and Felix *overlap at the
+positioning level*; the difference is **depth + governance**, not category.
+
+| Layer | Confirmed value | Classification |
+|---|---|---|
+| OpenClaw **runtime/orchestration** | gateway; **27+ channels**; multi-agent routing + **per-agent sandbox**; cron; sessions; **tool-policy enforcement *before* the model call**; browser/canvas/code-exec | **HARNESS** — durable, hard-to-replicate |
+| OpenClaw **bundled skills (53)** | CLI-wrapper connectors (github/notion/gog/obsidian…) | **MONITOR** — erodes as Claude gains native tool-use |
+| OpenClaw **memory-core** | unstructured AI-curated append-only memory + **OpenAI-embedding** vector search | **LOCK DOWN** — confirmed HIGH-risk liability (external OpenAI dependency + cost + #580 noise); Felix uses the *structured* vault instead and should disable it |
+| **Felix** | specialized agents, governance, controlled paths, structured vault, cost-discipline, EA intelligence | **the differentiated, durable value** |
+
+Two consequences: **(a)** the "structured Felix vs unstructured second-brain OpenClaw" reading is
+*substantiated* — Felix already correctly chose the structured Obsidian vault over OpenClaw's
+memory-core; and **(b)** the hard-enforcement mechanism Foundation 0 needs — **per-agent tool
+policy enforced before the model call + sandboxing — already exists as a first-class OpenClaw
+feature**, so configuring the default-deny boundary *uses OpenClaw's own designed mechanism*
+rather than fighting it (a significant de-risk). Felix's durable value (governance +
+specialization + structured knowledge) is *strengthened* by the cost regime; OpenClaw's durable
+value is the **orchestration substrate**, not its (eroding) connector ecosystem.
+
 **Minimal coherent deliverable (define → configure-to-enforce → author):**
 1. **A canonical capability map** — for each request class (calendar, email, tasks, habits,
    inbox, health/notes, file/vault writes, website/dev changes), *who owns it* (a specific
