@@ -7,6 +7,8 @@
   "mission_number": null,
   "mission_slug": "harden-inbox-capture-01KWVGZM",
   "mission_type": "software-dev",
+  "change_mode": "bulk_edit",
+  "pr_bound": true,
   "purpose_context": "Felix's inbox-capture agent intermittently hallucinates that its helper scripts do not exist and emits false 'system broken' alarms, because it runs on a weak model (haiku) that leaks into deterministic plumbing. This mission moves capture to a sonnet-class model and hardens the prompt so the model only does comprehension, routing, and interaction, restoring reliable capture without sacrificing Felix's interactivity.",
   "purpose_tldr": "Make Felix's inbox capture reliable by moving it to a stronger model and keeping the LLM out of the plumbing.",
   "slug": "harden-inbox-capture-01KWVGZM",

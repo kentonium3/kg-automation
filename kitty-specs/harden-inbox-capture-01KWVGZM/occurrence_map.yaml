@@ -1,0 +1,49 @@
+# Occurrence map — harden-inbox-capture-01KWVGZM (DIRECTIVE_035)
+#
+# Bulk term: the helper-invocation prefix that #658 established fleet-wide and
+# that fails under OpenClaw exec's PYTHONPATH sanitization. It is swapped to the
+# self-contained checkout-cd form in AGENT PROMPTS, but the SAME string appears
+# in env_assumptions.py (as the policy it enforces) and its tests (as the
+# canonical form they assert) — those must be inverted semantically, NOT
+# mechanically swapped. That divergence is exactly why this is classified.
+
+target:
+  term: 'cd "${PYTHONPATH:?PYTHONPATH unset}"'
+  replacement: 'cd /home/claude/kg-automation'
+  operation: rename
+
+categories:
+  code_symbols:        { action: manual_review }          # env_assumptions.py patterns/remediation reference the form — invert, don't swap
+  import_paths:        { action: do_not_change }           # no import paths change
+  filesystem_paths:    { action: manual_review }           # the checkout-path literal is the crux — review each site
+  serialized_keys:     { action: do_not_change }           # no JSON/YAML KEYS renamed (openclaw.json model VALUE changes, not a key)
+  cli_commands:        { action: rename }                  # the `python3 -m scripts...` invocation commands in prompts — the primary swap
+  user_facing_strings: { action: rename_if_user_visible }  # `:haiku`→`:sonnet` identity line + line-74 prose reword
+  tests_fixtures:      { action: manual_review }           # env_assumptions/validate_workspace tests assert the OLD canonical — rewrite to new policy
+  logs_telemetry:      { action: do_not_change }           # no metric/log label changes
+
+exceptions:
+  - path: "scripts/openclaw/agents/*/AGENTS.md"
+    action: rename
+    reason: "Fleet invocation-form swap — the primary bulk edit (capture/escalation/habits/calendar/tasker/main)"
+  - path: "scripts/openclaw/agents/*/AGENTS.md.tmpl"
+    action: rename
+    reason: "Template copies scanned by validate_workspace; keep in sync with AGENTS.md"
+  - path: "scripts/openclaw/agents/env_assumptions.py"
+    action: manual_review
+    reason: "Checker policy inversion — semantic rewrite of patterns/remediation, not a mechanical string swap"
+  - path: "scripts/openclaw/agents/tests/test_env_assumptions.py"
+    action: manual_review
+    reason: "Asserts the old #658 canonical form; rewrite to the corrected policy"
+  - path: "scripts/openclaw/agents/tests/test_validate_workspace.py"
+    action: manual_review
+    reason: "Validator test references the env-assumption form; align with the new policy"
+  - path: "docs/design/architecture/data/service-inventory.json"
+    action: manual_review
+    reason: "Capture `model` field haiku→sonnet; unrelated to the invocation term"
+  - path: "docs/design/architecture/**"
+    action: manual_review
+    reason: "Architecture narrative/data updates for the model change"
+  - path: "docs/constitution/AGENT-REGISTRY.md"
+    action: manual_review
+    reason: "Agent registry model/behavior update for capture"
