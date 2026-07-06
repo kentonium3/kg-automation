@@ -33,6 +33,16 @@ deploys/queued/<slug>.yaml          # manifest — picked up by felix-deployer
 scripts/deploy/deploy-<slug>.{sh,py} # entrypoint — uses scripts/deploy/lib/
 ```
 
+> **Numbering is felix-deployer's job, not the author's.** Name the queued manifest
+> `<slug>.yaml` — do **not** pre-add an `NNNN-` prefix. On apply, `lib.applied`
+> assigns the next sequential number (`next_applied_seq` = `max(applied)+1`) and
+> writes `deploys/applied/<NNNN>-<slug>.yaml`. A pre-added number is at best cosmetic
+> and at worst misleading: e.g. #658's manifest was authored as `0010-…` but applied
+> as `0009-…` (next slot after `0008`), which briefly collided with the `#659` Phase-2
+> *staged* `0009-…` (fixed by renumbering the staged file to `0010`, its eventual
+> applied number). If you stage a manifest and want its name to preview the applied
+> number, use the next expected slot — but felix-deployer is authoritative.
+
 The manifest names the deploy, tier, and entrypoint:
 
 ```yaml

@@ -17,7 +17,7 @@ notes: |
   (0008-migrate-observation-logs) is applied and verified over >=1 clean digest
   cycle (new logs under /home/kgale, none new under /home/claude/second-brain):
 
-    git mv deploys/staged/0009-decommission-observation-stray-tree.yaml deploys/queued/
+    git mv deploys/staged/0010-decommission-observation-stray-tree.yaml deploys/queued/
     git commit -m "deploy: promote #659 Phase-2 decommission after Phase-1 verify" && git push
 
   On apply, decommission-observation-stray-tree.py --apply runs a HARD gate
