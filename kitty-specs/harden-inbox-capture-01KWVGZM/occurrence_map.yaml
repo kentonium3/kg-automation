@@ -30,6 +30,9 @@ categories:
   logs_telemetry:      { action: do_not_change }           # no metric/log label changes
 
 exceptions:
+  - path: "kitty-specs/**"
+    action: manual_review
+    reason: "spec-kitty's own mission bookkeeping (status.json, status.events.jsonl, meta.json, tasks.md, WP files, analysis-report) — workflow-written state, not a target of the code bulk edit; must not trip the diff-compliance gate"
   - path: "scripts/openclaw/agents/*/AGENTS.md"
     action: rename
     reason: "Fleet invocation-form swap — the primary bulk edit (capture/escalation/habits/calendar/tasker/main)"
