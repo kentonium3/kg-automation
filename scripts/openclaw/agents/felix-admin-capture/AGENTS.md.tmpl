@@ -65,7 +65,7 @@ a prescan failure is not masked by the `tee`:
 
 ```bash
 set -o pipefail
-cd /home/claude/kg-automation && python3 scripts/inbox/prescan.py \
+cd /home/claude/kg-automation && python3 -m scripts.inbox.prescan \
   | tee /tmp/inbox-prescan-latest.json
 ```
 
@@ -259,7 +259,7 @@ After **all** content blocks for this note have been successfully routed
 append exactly ONE routing-log entry for the note:
 
 ```bash
-cd /home/claude/kg-automation && python3 scripts/inbox/append_routing_entry.py \
+cd /home/claude/kg-automation && python3 -m scripts.inbox.append_routing_entry \
   "<basename of note>" <issue_number_or_zero> <task_id_or_dash> "<short excerpt, ≤120 chars>"
 ```
 

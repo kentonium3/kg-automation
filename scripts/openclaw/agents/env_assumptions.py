@@ -12,6 +12,13 @@ first, so it depends on neither the deployed cwd nor an inherited env var::
     cd /home/claude/kg-automation && python3 -m scripts.<pkg>.<mod> [absolute args]
     cd /home/claude/kg-automation && python3 scripts/<path>.py [absolute args]
 
+NOTE: this checker validates the invocation *shape*, not whether the target script
+is runnable by path. The file-path form is correct ONLY for a self-contained script;
+any helper that does ``import scripts.…`` must use the ``-m scripts.<pkg>.<mod>`` form
+(running by path does not put the repo root on ``sys.path``). Prefer ``-m`` for every
+repo helper. (Standing rule; strengthening the checker to resolve the target's imports
+is a tracked follow-up.)
+
 Rationale: OpenClaw's ``exec`` tool runs commands in a sanitized subshell that
 STRIPS ``PYTHONPATH``, so the old #658 ``cd "${PYTHONPATH:?…}"`` anchor exits 127 on
 every cron run — the exact checkout-``cd`` is the only form that works (research D1).

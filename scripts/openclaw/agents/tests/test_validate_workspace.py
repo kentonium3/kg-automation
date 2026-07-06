@@ -177,19 +177,18 @@ def test_discover_excludes_suspended_and_non_workspaces(tmp_path: Path) -> None:
 
 
 def test_live_capture_workspace_passes(repo_root: Path) -> None:
-    """felix-admin-capture is the canonical Output Discipline + privacy source.
+    """felix-admin-capture is the canonical Output Discipline + privacy source, and
+    (post-fleet-migration, #662) also a clean ``runtime_env_assumptions`` corpus.
 
-    We anchor those two stable invariants here. The ``runtime_env_assumptions``
-    check is intentionally NOT asserted on the live corpus in this WP: under the
-    inverted policy (#662, corrects #658) the fleet still carries the old
-    ``${PYTHONPATH:?}`` form until WP02/WP03 swap it, so that check is red-by-design
-    fleet-wide. Its migration gate lives in ``test_env_assumptions_guard.py`` (the
-    Test-CI fleet guard), not in this per-workspace anchor.
+    All three per-workspace invariants are asserted now that WP02/WP03 have swapped
+    the fleet to the self-contained checkout-``cd`` form. The whole-fleet migration
+    gate additionally lives in ``test_env_assumptions_guard.py``.
     """
     root = repo_root / "scripts/openclaw/agents"
     report = next(r for r in validate_all(root) if r.workspace == "felix-admin-capture")
     assert _check(report, "privacy_boundary").ok, _check(report, "privacy_boundary").detail
     assert _check(report, "output_discipline").ok, _check(report, "output_discipline").detail
+    assert _check(report, "runtime_env_assumptions").ok, _check(report, "runtime_env_assumptions").detail
 
 
 def test_live_doc_auditor_excluded(repo_root: Path) -> None:

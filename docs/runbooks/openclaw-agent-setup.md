@@ -148,9 +148,18 @@ helper. No env-var dependence, no path guessing:
 
 ```bash
 cd /home/claude/kg-automation && python3 -m scripts.<pkg>.<mod> [absolute args]
-# file-path variant:
+# file-path variant — ONLY for a self-contained script (see caveat below):
 cd /home/claude/kg-automation && python3 scripts/<path>.py [absolute args]
 ```
+
+**Prefer the `-m scripts.<pkg>.<mod>` form for every repo helper.** The file-path
+variant (`python3 scripts/<path>.py`) puts the *script's own directory* on
+`sys.path[0]`, NOT the repo root — so any helper that does `import scripts.…` /
+`from scripts.… import …` fails with `ModuleNotFoundError` when run by path (the
+`cd` sets the cwd but the cwd is not on `sys.path` for a script invocation). The
+file-path form is safe ONLY for a truly self-contained script that never imports
+the `scripts` package. When in doubt, use `-m` — it always puts the checkout
+(cwd) on `sys.path`. (Standing rule; see the "Helper -m invocation" memory.)
 
 The checkout path is `/home/claude/kg-automation` **exactly** — it is a deploy
 invariant on office2 (the repo is always cloned there for the `claude` user).
