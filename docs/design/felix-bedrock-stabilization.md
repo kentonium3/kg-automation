@@ -61,6 +61,10 @@ Three research passes fed this analysis:
    *recurrence patterns* (the history that per-issue fixes miss).
 3. **spec-kitty doctrine survey** — spec-kitty's rapidly-developing doctrine/governance
    machinery, mined for patterns borrowable *at Felix's single-operator scale*.
+4. **Felix/OpenClaw boundary investigation** — an office2 probe of OpenClaw's actual bundled
+   capability surface (the OG skill pack, `gog`), its per-agent tool-policy model, the
+   main-agent routing/fallback prose, and the calendar-incident mechanism — because the
+   boundary had been *asserted*, never *investigated*. It produced Foundation 0.
 
 ## 4. Historical pattern evidence (the closed corpus)
 
@@ -91,7 +95,59 @@ recur despite fixes:
   shared agent prompt context — author per-agent, validate shared invariants) is exactly the
   kind of decision the doctrine substrate must canonicalize.
 
-## 5. The three foundations
+## 5. The foundations
+
+### Foundation 0 — Define & Enforce the Felix/OpenClaw capability boundary *(upstream prerequisite)*
+
+**Gap (discovered 2026-07-06 by investigation):** the Felix/OpenClaw boundary is **prompt-hoped,
+not enforced.** OpenClaw ships a broad **bundled default capability surface** — chiefly `gog`
+(Google Workspace: calendar, gmail, drive, contacts, sheets…), plus ~a dozen other bundled
+skills — that is **automatically available to *every* agent.** Felix's controlled paths
+(main → felix-admin-calendar → `gog` with a payload contract) are enforced **only by AGENTS.md
+standing orders** ("Do NOT call `gog` directly"), with **no OpenClaw tool policy** behind them.
+So any delegation failure, prompt truncation (#579), or misread punches straight through to the
+generic bundled skill — the mechanism behind the "scheduled on Wednesday" calendar incident
+("*took care of it directly*" = main fell through to raw `gog`).
+
+**Reframe:** Felix's job is **not** primarily to *add* capabilities OpenClaw lacks — it is to
+**narrow and govern** OpenClaw's already-broad default surface into controlled, contract-bound,
+tier-gated paths, **defaulting capability-overlap to *denial*, not availability.** "Complement,
+don't duplicate" (as the charter and roadmap phrased it) is too weak; the accurate rule is
+**govern + restrict.**
+
+**Minimal coherent deliverable (define, then enforce):**
+1. **A canonical capability map** — for each request class (calendar-create, calendar-read,
+   email, tasks, habits, inbox, health/notes, file/vault writes, website/dev changes), *who
+   owns it* (a specific Felix agent / OpenClaw-default / not-yet-supported) and *the one
+   controlled path*. (Investigation produced a concrete draft: **CONTAINED** = tasks/inbox/
+   habits (Felix-custom, no bundled competitor); **AMBIGUOUS/UNCONTROLLED** = calendar (gog
+   available to all), email (gog gmail, unowned, F024 pending), file/website writes (exec →
+   arbitrary Bash).)
+2. **The no-silent-fallback doctrine** — a Felix-owned capability is handled *exclusively*
+   through its controlled path; on failure it *fails safe* (report + escalate via the F1
+   alerting seam), it does **not** fall through to a generic/default handler. Uncontrolled
+   fallback is worse than a clean failure — a clean failure is visible and retryable; a wrong
+   action may go uncaught.
+3. **HARD enforcement via OpenClaw per-agent tool/skill allowlists** (the new, load-bearing
+   part) — so an agent *technically cannot* invoke a capability it doesn't own (e.g., only
+   felix-admin-calendar may call `gog calendar`; main's `exec`/skill surface is allowlisted).
+   Overlap defaults to *denial*. This is what makes the boundary real rather than prompt-hoped,
+   and it is the part Felix has **not** been using.
+
+**Why upstream:** the three foundations and the #167 agent-authoring family all *assume* a
+boundary. #167/#587/#583 **operationalize** it in prompts (the *soft* layer) — but the incident
+proves soft-alone fails; the boundary must be *defined* (map + doctrine) and *hard-enforced*
+(tool policy) first. **Connects to:** F2 (high-stakes capabilities — website/dev changes — are
+Tier-2+ and must ride the guarded path, not ungoverned `exec`), F1 (outcome canaries detect
+handling by the wrong path — the #657 assertion), F3 (the map + doctrine are canonical
+invariants). Also fixes the **identity/voice confusion** ("who am I talking to?"): the internal
+delegation/fallback machinery must never leak into the conversation — Felix presents one voice
+(output-discipline, #573/#561/#406).
+
+**Note — needs a real investigation, not more assertion.** Sprint 0 opens with a bounded
+research spike into OpenClaw's actual capability + tool-policy surface (the OG skill pack, the
+`tools.exec`/`tools.skill` security model) before authoring, so the map and allowlists are
+grounded. This is deliberately scoped small; it is not an OpenClaw fork.
 
 ### Foundation 1 — Health & Observability → *"is a Felix capability silently degraded?"*
 
@@ -237,8 +293,12 @@ decision**.
 
 ## 6. OpenClaw / Felix boundary discipline
 
-Every foundation adds only the **EA-semantic layer OpenClaw does not provide** and consumes
-OpenClaw's telemetry/config rather than re-emitting or mutating it. Enforced guardrails:
+**The boundary is govern-and-restrict, hard-enforced (Foundation 0), not merely
+"complement."** OpenClaw's default surface is broad and available-to-all; Felix imposes
+controlled, contract-bound, tier-gated paths and defaults overlap to *denial* via per-agent
+tool/skill allowlists. Beyond that, every foundation adds only the **EA-semantic layer
+OpenClaw does not provide** and consumes OpenClaw's telemetry/config rather than re-emitting or
+mutating it. Enforced guardrails:
 - **F1** reads OpenClaw cron-runs/sessions/delivery/error events; it does **not** rebuild them
   (that is why **#124/OTel is deferred** and **#634's raw-log-grep is replaced** by semantic
   assertions).
@@ -274,7 +334,7 @@ governs every subsequent sprint.
 
 | Sprint | Grouping | Contents |
 |---|---|---|
-| **0 — Converge & correct** | cheap, now; install the coherence *practice* | verify #323 umask shipped · #667 · #636 · #621 · backlog hygiene (merge #270+#642 · re-parent #671→#137 · split #556→#409 · re-scope #323) · stand up `doctrine.md` + decision markers + a coherence-review step |
+| **0 — Boundary + converge & correct** | cheap, now; install the coherence *practice*; **define the boundary (gates the rest)** | **Foundation 0**: OpenClaw capability/tool-policy research spike → canonical **capability map** + **no-silent-fallback doctrine** + begin **per-agent tool/skill allowlists** (hard enforcement). Plus: verify #323 umask shipped · #667 · #636 · #621 · backlog hygiene (merge #270+#642 · re-parent #671→#137 · split #556→#409 · re-scope #323) · stand up `doctrine.md` + decision markers + a coherence-review step |
 | **1 — Observability + DM-reply** | F1 (deterministic) + cost-collection primitive | extend `felix-core-digest` → canary registry + `felix-alert` + semantic-filter/dedup + #269 watchdog + #538 · **co-emit `felix-usage.jsonl` + `model-prices.json`** · #296 (zero-code) · **DM-reply class #653 + #628** |
 | **2 — Coherence machinery** | F3 build | #643-core (A/B/C machinery) + #133 (trimmed) + #587 |
 | **3 — Consistent agent authoring** | behind #587 | #167 family (#582/#583/#585/#586/#635/#584) + canonical-source resolution (#669/#409/#160) |
@@ -297,13 +357,25 @@ governs every subsequent sprint.
 
 ## 10. What is genuinely *new* (kept minimal)
 
-Almost nothing is invented — the issues mostly exist; the work is **convergence**: (1) one
-coordinating stabilization epic; (2) the #270↔#642 merge and #671→#137 re-parent; (3) one
-"canonical agent-artifact source of truth" decision; (4) recording the borrow/defer calls
-(#327 over #124; #639 over #551; ledger-now/reports-later) as doctrine so they are not
-re-litigated. The only net-new *artifacts* are the F3 practice files (`doctrine.md`,
-`decisions.jsonl`, the coherence-review step) and the F1 `felix-usage.jsonl` +
-`model-prices.json` primitives — all flat files.
+Most of the reliability/observability/governance work is **convergence** of existing issues:
+(1) one coordinating stabilization epic; (2) the #270↔#642 merge and #671→#137 re-parent;
+(3) one "canonical agent-artifact source of truth" decision; (4) recording the borrow/defer
+calls (#327 over #124; #639 over #551; ledger-now/reports-later) as doctrine. The net-new
+*artifacts* there are flat files (`doctrine.md`, `decisions.jsonl`, the coherence-review step,
+`felix-usage.jsonl`, `model-prices.json`).
+
+**Two genuinely-new architectural elements** stand apart from that convergence — and both were
+*discovered by digging*, not present in the backlog:
+- **F3's coherence-enforcement** — a mechanism Felix had in no form (doctrine + decision markers
+  + point-cut review). This is the "missing governance."
+- **Foundation 0's boundary definition + *hard* enforcement** — the capability map + no-silent-
+  fallback doctrine + **per-agent OpenClaw tool/skill allowlists**, a runtime mechanism Felix has
+  **never used**. Until now the boundary was prompt-hoped; this makes it real.
+
+So the honest summary is: **mostly operationalization of a sound existing design, plus these two
+missing load-bearing pieces** — coherence-enforcement and an enforced boundary. That is a
+markedly cheaper and lower-risk investment than a redesign, and it is why a stabilization
+*program* (not a re-founding) is the right instrument.
 
 ## 11. Next step
 
