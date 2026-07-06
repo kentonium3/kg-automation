@@ -2,78 +2,91 @@
   "mission_slug": "cross-repo-agent-rules-sweep-01KWR6N6",
   "mission_number": "",
   "mission_type": "software-dev",
-  "overall_verdict": "pending",
+  "overall_verdict": "pass",
   "criteria": [
     {
       "criterion_id": "FR-001",
-      "description": "Verify FR-001 is satisfied",
-      "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "TODO: replace with a real acceptance criterion"
+      "description": "Inventory candidate universal rules from kg-automation guidance surfaces.",
+      "proof_type": "artifact_review",
+      "evidence": "docs/diagnostics/cross-repo-standing-rules-sweep-candidates.md",
+      "pass_fail": "pass",
+      "verified_by": "codex:gpt-5",
+      "verified_at": "2026-07-06T11:42:00Z",
+      "notes": "WP01 records reviewed surfaces including repo guidance, standing rules, the Spec-Kitty bug-reporting runbook, constitution boundaries, and agent rule surfaces."
     },
     {
       "criterion_id": "FR-002",
-      "description": "Verify FR-002 is satisfied",
-      "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "TODO: replace with a real acceptance criterion"
+      "description": "Classify each reviewed candidate before changing the canonical standing-rules file.",
+      "proof_type": "artifact_review",
+      "evidence": "docs/diagnostics/cross-repo-standing-rules-sweep-candidates.md",
+      "pass_fail": "pass",
+      "verified_by": "codex:gpt-5",
+      "verified_at": "2026-07-06T11:42:00Z",
+      "notes": "WP01 classifies candidates as promoted, link-only, already represented, local or agent-specific, with no unclear candidates."
     },
     {
       "criterion_id": "FR-003",
-      "description": "Verify FR-003 is satisfied",
-      "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "TODO: replace with a real acceptance criterion"
+      "description": "Promote only universal, concise, not-already-represented rules into the canonical standing-rules file.",
+      "proof_type": "diff_review",
+      "evidence": ".agents/rules/cross-repo-standing-rules.md",
+      "pass_fail": "pass",
+      "verified_by": "codex:gpt-5",
+      "verified_at": "2026-07-06T11:42:00Z",
+      "notes": "The final live-rule diff promotes only the WP01 promoted stale wording correction and does not add repo-specific or agent-specific candidates."
     },
     {
       "criterion_id": "FR-004",
-      "description": "Verify FR-004 is satisfied",
-      "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "TODO: replace with a real acceptance criterion"
+      "description": "Leave long procedural guidance in linked runbooks or templates instead of duplicating it.",
+      "proof_type": "diff_review",
+      "evidence": ".agents/rules/cross-repo-standing-rules.md",
+      "pass_fail": "pass",
+      "verified_by": "codex:gpt-5",
+      "verified_at": "2026-07-06T11:42:00Z",
+      "notes": "The standing-rules file links to the Spec-Kitty bug-reporting runbook and keeps only the short always-on flow reminder."
     },
     {
       "criterion_id": "FR-005",
-      "description": "Verify FR-005 is satisfied",
-      "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "TODO: replace with a real acceptance criterion"
+      "description": "Update stale standing-rules wording for the current Spec-Kitty bug-reporting flow.",
+      "proof_type": "command",
+      "evidence": "rg -n \"paste file|paste-buffer|generate.*external\" .agents/rules/cross-repo-standing-rules.md",
+      "pass_fail": "pass",
+      "verified_by": "codex:gpt-5",
+      "verified_at": "2026-07-06T11:42:00Z",
+      "notes": "The targeted stale wording check returns no matches in the final standing-rules file."
     },
     {
       "criterion_id": "FR-006",
-      "description": "Verify FR-006 is satisfied",
-      "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "TODO: replace with a real acceptance criterion"
+      "description": "Preserve public-post copy approval, local tracking ticket, and sibling-tool bug-reporting protections.",
+      "proof_type": "command",
+      "evidence": "rg -n \"Public-post copy approval|Local tracking tickets|issue reporting\" .agents/rules/cross-repo-standing-rules.md",
+      "pass_fail": "pass",
+      "verified_by": "codex:gpt-5",
+      "verified_at": "2026-07-06T11:42:00Z",
+      "notes": "The required sections remain present at lines 8, 22, and 26 in the final standing-rules file."
     },
     {
       "criterion_id": "FR-007",
-      "description": "Verify FR-007 is satisfied",
-      "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "TODO: replace with a real acceptance criterion"
+      "description": "Document non-promoted high-signal candidates when exclusion is not obvious from the diff.",
+      "proof_type": "artifact_review",
+      "evidence": "docs/diagnostics/cross-repo-standing-rules-sweep-candidates.md",
+      "pass_fail": "pass",
+      "verified_by": "codex:gpt-5",
+      "verified_at": "2026-07-06T11:42:00Z",
+      "notes": "WP01 records link-only, already represented, repo-specific, and agent-specific candidates with rationale."
     }
   ],
-  "negative_invariants": []
+  "negative_invariants": [
+    {
+      "invariant_id": "C-001",
+      "description": "Do not edit global ~/.claude/CLAUDE.md.",
+      "pass_fail": "pass",
+      "evidence": "No mission commit modifies the global user-level instruction file."
+    },
+    {
+      "invariant_id": "C-002",
+      "description": "Do not post public issue or upstream copy without exact-copy approval.",
+      "pass_fail": "pass",
+      "evidence": "WP03 records suggested copy only; no GitHub issue/comment was posted."
+    }
+  ]
 }
