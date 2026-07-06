@@ -35,12 +35,16 @@
 
 ## Notes
 
-- This is an agent-configuration + prompt mission, so certain named surfaces
-  (`openclaw.json`, the sonnet-class model, the `python3 -m scripts.inbox.<helper>`
-  invocation form) appear in requirements. These are the *substance* of the change,
-  not leaked implementation detail — the model identity and the audited-surface it
-  lives in are the actual requirement (FR-001, C-003). Success Criteria remain
-  outcome-focused (correct routing, zero hallucination, reliable delivery).
-- Scope is bounded to Phase 1 (FR-001..FR-004). Phase 2 (multi-intent
-  decomposition) and the fleetwide model-selection framework are explicitly out.
-- All checklist items pass on first iteration.
+- This is an agent-configuration + prompt + checker-logic mission, so certain named
+  surfaces (`openclaw.json`, the sonnet model, the self-contained
+  `cd /home/claude/kg-automation && python3 -m scripts.<pkg>.<mod>` invocation form,
+  `env_assumptions.py`) appear in requirements. These are the *substance* of the
+  change — the invocation form and the checker policy ARE the fix. Success Criteria
+  remain outcome-focused (reliable runs, zero hallucination, clean delivery, CI green).
+- Scope expanded (Kent 2026-07-06) from capture-only to the **fleet-wide invocation-form
+  fix** after design-phase probing found the real root cause: OpenClaw's exec tool
+  strips `PYTHONPATH`, so #658's `${PYTHONPATH:?}` form fails on every run. This mission
+  **corrects #658** (FR-002, C-008). Phase 2 (multi-intent decomposition) and the
+  fleetwide model-selection framework remain out.
+- The fleet invocation swap is a bulk edit → `occurrence_map.yaml` produced in plan (C-007).
+- All checklist items pass.
