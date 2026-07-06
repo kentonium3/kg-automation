@@ -16,7 +16,7 @@ subtasks:
 - T005
 - T006
 agent: "claude"
-shell_pid: "28505"
+shell_pid: "38435"
 history:
 - 2026-07-06 authored from plan IC-01 (+ post-plan Codex HIGH-2/MED-4/HIGH-3)
 agent_profile: python-pedro
@@ -151,3 +151,5 @@ Execution worktrees are allocated per computed lane from `lanes.json`. Command:
 ## Activity Log
 
 - 2026-07-06T11:50:57Z – claude – shell_pid=28505 – Assigned agent via action command
+- 2026-07-06T12:03:52Z – claude – shell_pid=28505 – Checker inverted; unit tests green; fleet guard red-by-design until WP02/03
+- 2026-07-06T12:17:08Z – claude – shell_pid=38435 – Started review via action command
