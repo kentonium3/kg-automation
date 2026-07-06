@@ -110,44 +110,58 @@ generic bundled skill — the mechanism behind the "scheduled on Wednesday" cale
 ("*took care of it directly*" = main fell through to raw `gog`).
 
 **Reframe:** Felix's job is **not** primarily to *add* capabilities OpenClaw lacks — it is to
-**narrow and govern** OpenClaw's already-broad default surface into controlled, contract-bound,
-tier-gated paths, **defaulting capability-overlap to *denial*, not availability.** "Complement,
-don't duplicate" (as the charter and roadmap phrased it) is too weak; the accurate rule is
-**govern + restrict.**
+**govern** OpenClaw's already-broad, **ever-expandable** capability surface (`gog` is one of
+*hundreds* of potential skill packs) into controlled, contract-bound, tier-gated, cost-aware
+paths, **defaulting capability-overlap to *denial*, not availability.** "Complement, don't
+duplicate" (as the charter and roadmap phrased it) is too weak; the accurate rule is
+**govern + restrict**, and — critically — **Felix both *defines* the boundary and *owns the
+OpenClaw configuration that enforces it***. The enforcement is not Felix-side prompt discipline;
+it lives in OpenClaw's own tool/skill/exec policies (in `openclaw.json`, the one *monitored*
+audited surface). Because the skill ecosystem is unbounded, only a **default-deny + explicit-
+allow-per-agent** model scales — a new skill pack is governed the moment it exists, without a
+new decision.
 
-**Minimal coherent deliverable (define, then enforce):**
-1. **A canonical capability map** — for each request class (calendar-create, calendar-read,
-   email, tasks, habits, inbox, health/notes, file/vault writes, website/dev changes), *who
-   owns it* (a specific Felix agent / OpenClaw-default / not-yet-supported) and *the one
-   controlled path*. (Investigation produced a concrete draft: **CONTAINED** = tasks/inbox/
-   habits (Felix-custom, no bundled competitor); **AMBIGUOUS/UNCONTROLLED** = calendar (gog
-   available to all), email (gog gmail, unowned, F024 pending), file/website writes (exec →
-   arbitrary Bash).)
+**Minimal coherent deliverable (define → configure-to-enforce → author):**
+1. **A canonical capability map** — for each request class (calendar, email, tasks, habits,
+   inbox, health/notes, file/vault writes, website/dev changes), *who owns it* (a specific
+   Felix agent / OpenClaw-default / not-yet-supported) and *the one controlled path*.
+   (Investigation draft: **CONTAINED** = tasks/inbox/habits; **AMBIGUOUS/UNCONTROLLED** =
+   calendar (gog available to all), email (gog gmail, unowned, F024 pending), file/website
+   writes (exec → arbitrary Bash).)
 2. **The no-silent-fallback doctrine** — a Felix-owned capability is handled *exclusively*
-   through its controlled path; on failure it *fails safe* (report + escalate via the F1
+   through its controlled path; on failure it **fails safe** (report + escalate via the F1
    alerting seam), it does **not** fall through to a generic/default handler. Uncontrolled
-   fallback is worse than a clean failure — a clean failure is visible and retryable; a wrong
-   action may go uncaught.
-3. **HARD enforcement via OpenClaw per-agent tool/skill allowlists** (the new, load-bearing
-   part) — so an agent *technically cannot* invoke a capability it doesn't own (e.g., only
-   felix-admin-calendar may call `gog calendar`; main's `exec`/skill surface is allowlisted).
-   Overlap defaults to *denial*. This is what makes the boundary real rather than prompt-hoped,
-   and it is the part Felix has **not** been using.
+   fallback is worse than a clean failure on two axes: **correctness** (a wrong action may go
+   uncaught) *and* **cost** (fall-through-and-flail — main improvising through raw `gog`, an
+   agent retrying, an LLM working around a missing capability — burns Claude tokens; #662's
+   haiku burned **252k tokens** flailing on one failed run). Fail-fast-and-stop is both safer
+   and cheaper; F1's usage ledger measures the waste this prevents.
+3. **HARD enforcement by configuring OpenClaw itself** (the new, load-bearing part Felix has
+   **never used**) — a **default-deny per-agent tool/skill allowlist** in `openclaw.json` so an
+   agent *technically cannot* invoke a capability it doesn't own (only felix-admin-calendar may
+   call `gog calendar`; main's exec/skill surface is scoped). Managing this config is itself a
+   **governed, tier-aware, rebaseline-tracked** change (F2; openclaw.json is the monitored
+   surface) — so Foundation 0 and F2 share the same enforcement plane.
 
 **Why upstream:** the three foundations and the #167 agent-authoring family all *assume* a
 boundary. #167/#587/#583 **operationalize** it in prompts (the *soft* layer) — but the incident
-proves soft-alone fails; the boundary must be *defined* (map + doctrine) and *hard-enforced*
-(tool policy) first. **Connects to:** F2 (high-stakes capabilities — website/dev changes — are
-Tier-2+ and must ride the guarded path, not ungoverned `exec`), F1 (outcome canaries detect
-handling by the wrong path — the #657 assertion), F3 (the map + doctrine are canonical
-invariants). Also fixes the **identity/voice confusion** ("who am I talking to?"): the internal
-delegation/fallback machinery must never leak into the conversation — Felix presents one voice
-(output-discipline, #573/#561/#406).
+proves soft-alone fails; the boundary must be *defined* (map + doctrine) and *hard-enforced in
+OpenClaw config* first. **Connects to:** F2 (high-stakes surfaces — website/dev changes — are
+Tier-2+ and ride the guarded path, not ungoverned `exec`; and the enforcement config is an F2
+audited surface), F1 (outcome canaries detect handling by the wrong path — #657 — and the usage
+ledger quantifies fallback cost), F3 (the map + doctrine are canonical invariants). Also fixes
+the **identity/voice confusion** ("who am I talking to?"): internal delegation/fallback
+machinery must never leak into the conversation — Felix presents one voice (#573/#561/#406).
 
-**Note — needs a real investigation, not more assertion.** Sprint 0 opens with a bounded
-research spike into OpenClaw's actual capability + tool-policy surface (the OG skill pack, the
-`tools.exec`/`tools.skill` security model) before authoring, so the map and allowlists are
-grounded. This is deliberately scoped small; it is not an OpenClaw fork.
+**Sprint-0 research spike — learn OpenClaw's *intended* governance model, don't reverse-engineer
+it.** OpenClaw is a mature, popular product that almost certainly ships a *designed* capability-
+governance model (per-agent tool policies, skill scoping, exec security tiers) that Felix is
+**under-using** — we have been inferring the boundary from deployed config. The spike **reads
+OpenClaw's official documentation + curates the community best practices that fit**, with the
+explicit discipline of *filtering for single-operator-EA fit* rather than blind adoption (the
+hard part is knowing which of the abundant third-party guidance actually fits our scenario).
+Deliberately scoped small; it is **not** an OpenClaw fork — the goal is to use OpenClaw's own
+supported governance mechanisms correctly.
 
 ### Foundation 1 — Health & Observability → *"is a Felix capability silently degraded?"*
 
