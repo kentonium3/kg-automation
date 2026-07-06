@@ -18,7 +18,8 @@ subtasks:
 - T012
 - T013
 - T014
-agent: claude
+agent: "claude"
+shell_pid: "40163"
 history:
 - 2026-07-06 authored from plan IC-02/IC-03 (capture portion; owns the whole capture prompt to avoid an ownership split)
 agent_profile: curator-carla
@@ -115,3 +116,7 @@ re-sync is a separately-filed follow-up). Do NOT change `{{VAULT_*}}` markers.
 
 Planning base `feat/harden-inbox-capture`; final merge target `feat/harden-inbox-capture`.
 Branches from WP01. Command: `spec-kitty agent action implement WP02 --agent claude`.
+
+## Activity Log
+
+- 2026-07-06T12:21:47Z – claude – shell_pid=40163 – Assigned agent via action command
