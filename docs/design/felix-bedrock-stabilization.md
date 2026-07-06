@@ -101,7 +101,15 @@ secondary effects. Root of the #662 misdiagnosis.
 **Minimal coherent substrate (deterministic; extend, don't build new):**
 - **Extend `felix-core-digest`** (the #490 deterministic Python signal-extractor, already
   running every 15 min at zero token cost) with a **declarative canary/assertion registry**
-  + one **`felix-alert` delivery primitive** (ntfy is the existing substrate).
+  + one **`felix-alert` delivery primitive**.
+- **SINGLE CANONICAL ALERT SURFACE ("communication bus") — a first-class requirement, not a
+  nice-to-have.** Every alert source publishes to **one** ntfy stream: the in-band canary
+  primitive, the felix-deployer failure alerts, the security-monitor, prompt-sync failures,
+  and the out-of-band watchdog. **Consolidate the two streams the operator monitors today
+  into that one stream** and route all future alerts to it. Rationale: the more surfaces the
+  operator must watch, the more toil and the less likely timely detection — reducing *the
+  operator's* monitoring load is a core Felix value, not a UX detail. (Severity/topic can be
+  a message field or a small set of tags on the *same* stream, not separate streams.)
 - Canaries **consume OpenClaw's own telemetry** (cron-run records, session logs, delivery
   status, error events) and add the **EA-semantic layer** OpenClaw cannot provide: "the
   inbox digest OpenClaw marked success actually wrote today's doc"; "the DM-reply actually
@@ -109,8 +117,11 @@ secondary effects. Root of the #662 misdiagnosis.
   deployed agent is in drift-check" (#654); "core and channel-plugin versions match" (#628).
 - **Semantic filtering + dedup** (the explicit fix for the #512/#634 noise flood) and
   **assert on outcomes, not proxies** (#572 lesson).
-- **One out-of-band watchdog (#269)** — deliberately disjoint dependency surface — because
-  an in-band bus can't alert when Felix/OpenClaw itself is down.
+- **One out-of-band watchdog (#269)** — a deliberately **disjoint send *path*** (a systemd
+  timer that does not route through Felix/OpenClaw, `curl`-ing ntfy directly), because an
+  in-band bus can't alert when Felix/OpenClaw itself is down. Critically, its *destination is
+  the SAME canonical stream* — disjoint path, shared surface — so the single-stream
+  requirement above holds even for the down-detector.
 - **Component lifecycle-status contract (#538)** as the shared vocabulary
   (active/suspended/failed/stale/degraded), and **fix the audited-surface mismap (#621)** so
   prompt drift is actually monitored.
@@ -191,8 +202,18 @@ decision). The fleet-wide **two-layer invariant** ("deterministic plumbing the L
 touches; the LLM never fabricates infrastructure state") — proven fleet-wide by #562+#662 —
 is authored as a founding `INV`.
 
-**Defer:** #644/#645/#646 (Obsidian Canvas/graph) — the heavyweight knowledge-graph; the
-coherence lens runs on a hand-curated decision list without it.
+**Defer (for the sprint):** #644/#645/#646 (Obsidian Canvas/graph) — the heavyweight
+knowledge-graph; the coherence lens runs on a hand-curated decision list without it.
+
+> **Forward pointer — vectorized/knowledge graphs as a medium-term roadmap item (not sprint
+> work).** Deferring the graph *as sprint scope* is distinct from the operator's intent to
+> *learn* vectorized-graph concepts and find a **minimal entry point** for them in Felix — as
+> an enhanced-development-environment or system-state-awareness capability. The near-term F3
+> substrate (flat doctrine file + decision corpus) is deliberately graph-free and sufficient
+> at single-operator scale; when a *basic* vectorized-graph application has a clear, bounded
+> home in Felix, it becomes the natural evolution of the F3 decision/doctrine corpus (which
+> is already the raw material for a typed graph) rather than a parallel build. Tracked as a
+> roadmap-level research item, sequenced after the stabilization foundations land.
 
 **Absorbs:** #409, #160(prevention half), and the "which artifact is canonical" question
 (#669 + #409 + the deploy-path note) → **one "canonical agent-artifact source of truth"
