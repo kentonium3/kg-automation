@@ -45,7 +45,7 @@ if POLICY_FILE.exists():
 
 # ---------- Load allowed values ----------
 ALLOWED_VALUES = {
-    'doc_type': {'strategy','charter','decision','explanation','policy','handbook',
+    'doc_type': {'strategy','charter','decision','design','plan','explanation','policy','handbook',
                  'postmortem','runbook','guide','reference','readme','index',
                  'project','note','func-spec','standard'},
     'status': {'draft','in_review','approved','deprecated','archived','active'},
