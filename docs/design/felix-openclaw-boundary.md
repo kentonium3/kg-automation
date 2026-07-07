@@ -240,9 +240,14 @@ reversible**:
    validated sets, with **calendar the only list containing `gog`**. Cleanest form: set
    `agents.defaults.skills` to the fleet's non-gog skill union and override only
    `felix-admin-calendar.skills: ["calendar","gog"]` — removes gog's instruction pack from every other
-   agent in one change. Verify `skills check --agent main` (and each worker) **no longer lists gog**;
-   verify each agent's cron/on-demand job still runs. Rebaseline. *(Soft containment — removes gog
-   instructions; does not yet block the binary via exec.)*
+   agent in one change. **Verify with the deterministic snapshot helper**
+   `scripts/openclaw/agents/skills_snapshot.py` (runs `openclaw skills check --agent <id>` per agent,
+   extracts the visible-skill set + the `excluded_by_agent_allowlist` count): capture *before*, apply,
+   capture *after*, confirm the only delta is "gog removed from every agent except calendar" (and each
+   worker keeps its skills). Then behavioral-verify each agent's cron/on-demand job still runs.
+   Rebaseline. *(Soft containment — removes gog instructions; does not yet block the binary via exec.)*
+   **Baseline (2026-07-07, pre-scoping):** all 6 agents `visible=26, excluded=0`, **all see gog**
+   (`office2:/tmp/skills-before-20260707.json`).
 3. **Exec-hardening — hard containment, defense-in-depth (higher effort, do after step 2 is stable).**
    Per §6.1: `felix-admin-calendar.tools.exec.security: "full"`; every other agent
    `security: "allowlist"` + a host approvals allowlist of their exact helper commands (excluding
