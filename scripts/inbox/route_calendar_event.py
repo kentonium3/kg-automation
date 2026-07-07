@@ -11,9 +11,14 @@ Behavior:
     (ISO 8601 datetime). Optional ``end`` must also be parseable when
     supplied.
   * On valid: write the normalized payload to stdout as JSON. ``end`` is
-    filled in (start + 1 hour) when absent so downstream consumers (gog
-    calendar create via Felix main) always have an explicit interval.
-    Optional fields (``location``, ``description``) pass through verbatim.
+    filled in (start + 1 hour) when absent so downstream consumers always
+    have an explicit interval. Optional fields (``location``,
+    ``description``) pass through verbatim.
+  * With ``--as-delegation-payload --source-path <abs>``: emit the
+    ``create_calendar_event`` delegation envelope (the felix-admin-calendar
+    contract shape) instead of the bare normalized payload, so capture can
+    forward it verbatim (capture -> main -> felix-admin-calendar). The
+    deterministic field mapping lives here, not in the agent prompt.
   * On invalid: write ``{"error": "invalid_payload", "missing": [...]}``
     to stderr; exit 1.
   * On missing / malformed file: write a structured error JSON to stderr;
@@ -46,6 +51,16 @@ from typing import Optional
 REQUIRED_FIELDS = ("title", "start")
 OPTIONAL_FIELDS = ("end", "location", "description")
 DEFAULT_DURATION = timedelta(hours=1)
+
+# Contract defaults for the capture -> main -> felix-admin-calendar delegation
+# envelope (`create_calendar_event`). Per
+# kitty-specs/.../contracts/capture_to_main_calendar_payload.md, capture resolves
+# these defaults before dispatch. The field mapping lives here (deterministic
+# helper) rather than in the agent prompt, per the two-layer doctrine — the LLM
+# must never do this mechanical transform (#661/#662 haiku-fragility class).
+DELEGATION_ACTION = "create_calendar_event"
+DEFAULT_CALENDAR_ID = "primary"
+DEFAULT_ACCOUNT = "kent@intentional.biz"
 
 
 # ---------------------------------------------------------------------------
@@ -138,6 +153,39 @@ def normalize_payload(payload: dict) -> dict:
     return result
 
 
+def build_delegation_payload(normalized: dict, source_inbox_path: str) -> dict:
+    """Wrap a normalized ``CalendarPayload`` into the ``create_calendar_event``
+    delegation envelope consumed by felix-admin-calendar.
+
+    Deterministic field mapping (kept out of the agent prompt per the two-layer
+    doctrine): ``title`` -> ``summary``, ``start`` -> ``start_rfc3339``,
+    ``end`` -> ``end_rfc3339``; constant defaults (`action`, `calendar_id`,
+    `account`) + ``source_inbox_path`` added; optional ``location`` /
+    ``description`` pass through (null when absent); ``start_timezone`` /
+    ``rrule`` / ``attendees`` default to null (the inbox path does not extract
+    them — the RFC3339 offset in ``start_rfc3339`` carries the zone).
+    ``clarification_id`` is null on first dispatch from capture.
+
+    The envelope is forwarded verbatim capture -> main -> felix-admin-calendar;
+    no agent reshapes it.
+    """
+    return {
+        "action": DELEGATION_ACTION,
+        "calendar_id": DEFAULT_CALENDAR_ID,
+        "account": DEFAULT_ACCOUNT,
+        "summary": normalized["title"],
+        "start_rfc3339": normalized["start"],
+        "end_rfc3339": normalized["end"],
+        "start_timezone": None,
+        "location": normalized.get("location"),
+        "description": normalized.get("description"),
+        "rrule": None,
+        "attendees": None,
+        "source_inbox_path": source_inbox_path,
+        "clarification_id": None,
+    }
+
+
 # ---------------------------------------------------------------------------
 # CLI orchestrator
 # ---------------------------------------------------------------------------
@@ -187,7 +235,27 @@ def main(argv: Optional[list[str]] = None) -> int:
         required=True,
         help="Absolute path to a JSON file containing a CalendarPayload.",
     )
+    parser.add_argument(
+        "--as-delegation-payload",
+        action="store_true",
+        help=(
+            "Emit the `create_calendar_event` delegation envelope "
+            "(felix-admin-calendar contract) instead of the bare normalized "
+            "payload. Requires --source-path. Default off (backward compatible)."
+        ),
+    )
+    parser.add_argument(
+        "--source-path",
+        help=(
+            "Absolute inbox path of the source note; required with "
+            "--as-delegation-payload (populates source_inbox_path for audit)."
+        ),
+    )
     args = parser.parse_args(argv)
+
+    if args.as_delegation_payload and not args.source_path:
+        _emit_error("missing_source_path", detail="--source-path is required with --as-delegation-payload")
+        return 1
 
     payload, err_code = _load_payload(Path(args.payload_file))
     if err_code is not None:
@@ -200,7 +268,12 @@ def main(argv: Optional[list[str]] = None) -> int:
 
     assert isinstance(payload, dict)  # narrowed by validate_payload
     normalized = normalize_payload(payload)
-    sys.stdout.write(json.dumps(normalized) + "\n")
+    result = (
+        build_delegation_payload(normalized, args.source_path)
+        if args.as_delegation_payload
+        else normalized
+    )
+    sys.stdout.write(json.dumps(result) + "\n")
     return 0
 
 

@@ -268,3 +268,79 @@ class TestCli:
             helper.main([])
         # argparse exits 2 when required args are missing.
         assert exc.value.code == 2
+
+
+# ---------------------------------------------------------------------------
+# Delegation-envelope mode (#679 — route through felix-admin-calendar)
+# ---------------------------------------------------------------------------
+
+
+class TestBuildDelegationPayload:
+    def test_maps_fields_and_defaults(self):
+        normalized = {
+            "title": "Tuesday trivia night",
+            "start": "2026-06-09T18:00:00-04:00",
+            "end": "2026-06-09T19:00:00-04:00",
+            "location": "Tru West Brewery",
+            "description": "Source note",
+        }
+        env = helper.build_delegation_payload(normalized, "/inbox/note.md")
+        assert env["action"] == "create_calendar_event"
+        assert env["calendar_id"] == "primary"
+        assert env["account"] == "kent@intentional.biz"
+        # renamed fields
+        assert env["summary"] == "Tuesday trivia night"
+        assert env["start_rfc3339"] == "2026-06-09T18:00:00-04:00"
+        assert env["end_rfc3339"] == "2026-06-09T19:00:00-04:00"
+        # passthrough optionals
+        assert env["location"] == "Tru West Brewery"
+        assert env["description"] == "Source note"
+        # inbox-path nulls
+        assert env["start_timezone"] is None
+        assert env["rrule"] is None
+        assert env["attendees"] is None
+        assert env["clarification_id"] is None
+        assert env["source_inbox_path"] == "/inbox/note.md"
+
+    def test_optional_fields_default_null_when_absent(self):
+        normalized = {
+            "title": "Quick sync",
+            "start": "2026-06-09T18:00:00-04:00",
+            "end": "2026-06-09T19:00:00-04:00",
+        }
+        env = helper.build_delegation_payload(normalized, "/inbox/x.md")
+        assert env["location"] is None
+        assert env["description"] is None
+
+
+class TestDelegationCLI:
+    def test_emits_envelope_with_source_path(self, tmp_path, capsys):
+        pf = _write_payload(tmp_path, {"title": "Sync", "start": "2026-06-12T15:00:00-04:00"})
+        code, out, err = _run(
+            ["--payload-file", str(pf), "--as-delegation-payload", "--source-path", "/inbox/n.md"],
+            capsys,
+        )
+        assert code == 0, err
+        env = json.loads(out)
+        assert env["action"] == "create_calendar_event"
+        assert env["summary"] == "Sync"
+        assert env["start_rfc3339"] == "2026-06-12T15:00:00-04:00"
+        assert env["end_rfc3339"] == "2026-06-12T16:00:00-04:00"  # +1h default
+        assert env["source_inbox_path"] == "/inbox/n.md"
+
+    def test_requires_source_path(self, tmp_path, capsys):
+        pf = _write_payload(tmp_path, {"title": "Sync", "start": "2026-06-12T15:00:00-04:00"})
+        code, out, err = _run(["--payload-file", str(pf), "--as-delegation-payload"], capsys)
+        assert code == 1
+        assert "missing_source_path" in err
+        assert out == ""
+
+    def test_default_mode_unchanged(self, tmp_path, capsys):
+        # Without the flag, the bare normalized payload is emitted (backward compat).
+        pf = _write_payload(tmp_path, {"title": "Sync", "start": "2026-06-12T15:00:00-04:00"})
+        code, out, err = _run(["--payload-file", str(pf)], capsys)
+        assert code == 0, err
+        result = json.loads(out)
+        assert "action" not in result
+        assert result["title"] == "Sync"
+        assert result["end"] == "2026-06-12T16:00:00-04:00"

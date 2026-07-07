@@ -187,9 +187,10 @@ openclaw agent --agent felix-admin-calendar \
   --message "<the JSON payload or Kent's verbatim request>" --json --timeout 120
 ```
 
-Do NOT call `gog calendar create` yourself. felix-admin-calendar owns the gog
-invocation, response envelope, and `calendar_event_created` / `calendar_event_failed`
-log_action emission. The payload contract is canonicalized in
+Forward it **verbatim**; **NEVER run `gog calendar create`/`update` yourself**
+(that is the #679 boundary violation). felix-admin-calendar owns all
+`gog calendar` invocations + `calendar_event_created`/`calendar_event_failed`
+logging. Contract:
 `kitty-specs/inbox-calendar-and-aspiration-routing-01KTHHXS/contracts/capture_to_main_calendar_payload.md`.
 
 ## Calendar clarification reply delegation
