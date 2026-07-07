@@ -215,6 +215,14 @@ the #580 noise; $0 impact since dormant, but removes the liability if a key were
 Optionally also `plugins.slots.memory: "none"`. Felix uses the **structured Obsidian vault**, not
 memory-core. This closes #580 permanently.
 
+> **✅ DEPLOYED 2026-07-07 (Step 1 of §8).** Applied via `openclaw config patch` (dry-run validated
+> first): `agents.defaults.memorySearch.enabled: false`. Verified: config valid, value = `false`,
+> gateway restarted healthy. Pre-flight: no agent prompt uses `memory_search`/`memory_get` (safe);
+> Restic snapshot `517bc952` within 24h; openclaw.json backed up to `...bak-memcore-20260707T011745Z`.
+> Rebaseline: audit flagged **only** `openclaw-config.txt` drift (`1c1`, the expected one-key change),
+> rebaselined → "All clear". Key verified against 2026.6.11 bundled `reference/memory-config.md`
+> (`enabled`, bool, default `true`; provider defaults to OpenAI when unset — the #580 cause).
+
 ## 8. Phased rollout (governed, rebaseline-tracked — operator go/no-go)
 
 `openclaw.json` is the **one monitored audited surface**; changing it is a **Tier-2 out-of-band**
