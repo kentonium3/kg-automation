@@ -6,7 +6,7 @@ status: draft
 level: overview
 owners: [kgale]
 last_validated: '2026-07-06'
-version: '0.1'
+version: '0.2'
 tags: [architecture, governance, openclaw, security, boundary, foundation-0]
 ---
 
@@ -178,6 +178,29 @@ agents: {
   `agents.defaults.sandbox.mode: "non-main"` with the Docker backend. Not required for the boundary;
   tool policy is the load-bearing control.
 
+## 6.1 Pre-flight validation (2026-07-06) — the validated per-agent config
+
+Each agent's real needs were cross-checked against its live prompt sources
+(`scripts/openclaw/agents/<agent>/AGENTS.md` + `TOOLS.md`) and helper-invocation evidence. Result:
+
+| Agent | `skills` (final set) | Needs exec? | For what | gog? |
+|---|---|---|---|---|
+| **main** | `["github"]` *(confirm full set from TOOLS.md before deploy)* | **yes** | `openclaw agent --agent … --message` (delegation) + `felix-file-issue.py` + `gh` | **no** — AGENTS.md:190 already forbids it (*"Do NOT call `gog calendar create` yourself"*) |
+| **felix-admin-calendar** | `["calendar","gog"]` | **yes** | `gog …` + `validate_calendar_event.py` | **YES — sole owner** |
+| **felix-admin-capture** | `[]` *(or `["github"]` if it files issues)* | **yes** | `python3 -m scripts.inbox.*` (many) + delegation | no — routes calendar via `route_calendar_event` helper |
+| **felix-admin-tasker** | `["task_intelligence","vikunja_api"]` | **yes** | `python3 -m scripts.enrichment.*` | no |
+| **felix-admin-escalation** | `["escalation","vikunja_api"]` | **yes** | `python3 -m scripts.escalation.*` | no |
+| **felix-admin-habits** | `["vikunja_api"]` ← **gap resolved** | **yes** | `python3 -m scripts.habits.*` + `observation/log_action.py` | no |
+
+**Corrections to §6's draft this forced:**
+- **`main` is NOT a no-exec router.** It delegates by running `openclaw agent` (a shell command) and files issues via a Python helper — so it genuinely needs `exec`. The §6 "messaging profile, deny runtime" design would have broken delegation + issue-filing. Corrected design for main: **keep exec, remove the gog skill** (enforcing the prompt rule it already states), keep github + sessions/messaging.
+- **`habits` skills gap resolved** → `["vikunja_api"]`.
+
+**Hard vs soft gog containment (the key mechanism finding):**
+- **Soft (skills):** removing the gog `SKILL` from a non-calendar agent removes the gog *instructions* from its prompt — low-risk, won't break helpers, and directly shrinks the fall-through surface. But an **exec-capable agent could still run the `gog` binary** (gog is "available as command"; exec is arbitrary Bash). So skill-removal alone is *soft* for exec-capable agents.
+- **Hard (exec):** `tools.exec.security` is **per-agent**; the approvals **allowlist is host-level**. Design: **calendar → `security: "full"`** (sole gog runner); **every other agent → `security: "allowlist"`** with a host approvals allowlist listing their helpers (`cd`, `python3 -m scripts.*`, `gh`, `openclaw agent`) but **not** `gog`. Non-calendar agents then *technically cannot* run gog.
+  - **Caveat (found in `exec-approvals-advanced.md`):** allowlisting `python3` broadly is itself an escape hatch (an allowlisted `python3 -c` could shell to gog). True hard containment wants **script-specific** allowlist entries, and the `python3 -m <module>` form interacts awkwardly with OpenClaw's single-file-operand binding. Also: allowlist mode rejects `$()`/backticks and redirections and requires every `&&` segment to be allowlisted — Felix helpers use `cd … && python3 -m …`, so both segments must be listed. **⇒ exec-hardening is real but non-trivial; treat it as defense-in-depth *after* skill-scoping, not a day-1 step.**
+
 ## 7. Memory-core lock-down (hygiene deliverable)
 
 **State (probed):** no top-level `memory`/`memorySearch` config → defaults apply → memorySearch
@@ -199,21 +222,33 @@ change (manual rebaseline required — not a felix-deployer happy-path). It can 
 an allowlist is wrong (an agent silently loses a capability it needs). Therefore **phased, verified,
 reversible**:
 
-0. **Pre-flight:** confirm each agent's real tool/skill needs against its live `AGENTS.md` +
-   trajectory (which exact commands does each exec-run?). Resolve the `habits` skills row. Snapshot
-   `openclaw.json` (a `.bak` is auto-written on edits; also take a Restic snapshot).
-1. **Memory-core lock-down first** (lowest risk, immediate #580 win): `memorySearch.enabled:false`,
-   restart gateway, confirm #580 noise stops. Rebaseline.
-2. **`main` de-capability** (highest value, main should only route): apply main's `messaging` profile
-   + deny runtime/fs, `skills:[]`. Verify main still routes to all sub-agents; verify it can **no
-   longer** call gog (`skills check --agent main` should no longer list gog). Rebaseline.
-3. **Scope gog to calendar** + **exec allowlists per agent**, one agent at a time, verifying each
-   agent's cron/on-demand run still succeeds after its lockdown. Rebaseline after each.
-4. **`skills.allowBundled`** global tightening once per-agent lists are proven.
-5. **(Later) sandbox** as defense-in-depth.
+0. **Pre-flight — DONE (§6.1).** Per-agent skill/exec needs validated against live prompt sources;
+   `habits` gap resolved; `main`-needs-exec correction made; exec-hardening feasibility resolved.
+   Remaining pre-flight nit: confirm `main`'s exact skill set (and whether `capture` files issues)
+   from their `TOOLS.md` before writing their explicit `skills` lists.
+1. **Memory-core lock-down** (lowest risk, immediate #580 win): `agents.defaults.memorySearch.enabled:false`,
+   restart gateway, confirm #580 noise stops. Rebaseline. *(No per-agent analysis needed — deployable now.)*
+2. **Per-agent skill-scoping — the low-risk gog-surface win.** Set `agents.list[].skills` to the §6.1
+   validated sets, with **calendar the only list containing `gog`**. Cleanest form: set
+   `agents.defaults.skills` to the fleet's non-gog skill union and override only
+   `felix-admin-calendar.skills: ["calendar","gog"]` — removes gog's instruction pack from every other
+   agent in one change. Verify `skills check --agent main` (and each worker) **no longer lists gog**;
+   verify each agent's cron/on-demand job still runs. Rebaseline. *(Soft containment — removes gog
+   instructions; does not yet block the binary via exec.)*
+3. **Exec-hardening — hard containment, defense-in-depth (higher effort, do after step 2 is stable).**
+   Per §6.1: `felix-admin-calendar.tools.exec.security: "full"`; every other agent
+   `security: "allowlist"` + a host approvals allowlist of their exact helper commands (excluding
+   `gog`). Author the allowlist carefully (script-specific entries, not bare `python3`; handle the
+   `cd … && python3 -m …` chaining). Verify each agent's real job still runs **and** that a
+   non-calendar agent's attempt to run `gog` is denied. Rebaseline per agent.
+4. **`skills.allowBundled`** global tightening once per-agent lists are proven — so a newly-bundled
+   skill pack is denied fleet-wide by default.
+5. **(Later) sandbox** (`agents.defaults.sandbox.mode`) as further defense-in-depth.
 
 Each step: apply → behavioral-verify the agent's real job → rebaseline (out-of-band exception) →
-only then proceed. Roll back via the `.bak` if any agent breaks. **No big-bang rewrite.**
+only then proceed. Roll back via the `.bak` if any agent breaks. **No big-bang rewrite.** Steps 1–2
+are low-risk and high-value (kill #580 + close the gog *instruction* surface fleet-wide); step 3 is
+the harder hard-containment pass.
 
 ## 9. Side-findings (file as their own issues / notes)
 
