@@ -248,6 +248,23 @@ reversible**:
    Rebaseline. *(Soft containment — removes gog instructions; does not yet block the binary via exec.)*
    **Baseline (2026-07-07, pre-scoping):** all 6 agents `visible=26, excluded=0`, **all see gog**
    (`office2:/tmp/skills-before-20260707.json`).
+
+   > **✅ PARTIALLY DEPLOYED 2026-07-07 (safe subset; `main` HELD).** Applied per-agent `skills` via
+   > `openclaw config patch` (built programmatically from live config, all fields preserved, dry-run
+   > validated): **capture=`[vikunja_api,github]`, habits=`[vikunja_api]`, tasker=`[task_intelligence,
+   > vikunja_api]`, escalation=`[escalation,vikunja_api]`, calendar=`[gog]`.** Snapshot diff confirms
+   > gog removed from all 4 workers, retained on calendar, main unchanged → **gog now visible only to
+   > `main` + `calendar`.** Gateway restarted healthy; rebaselined "All clear". (Note: `calendar` skill
+   > name dropped — no such skill exists in OpenClaw; the real skill is `gog`.)
+   >
+   > **`main` HELD — trajectory investigation found main is the *live* gog executor** (`exec` tool
+   > entries: `gog calendar create/update`, `gog gmail` ×13, `gog drive`, last Jul 5). Removing gog from
+   > main would delete Felix's only path for calendar-create, **email, and drive** (email/drive have no
+   > owning agent). **Two blockers must clear first** (filed as #675 children): (a) the calendar-create
+   > path bypasses felix-admin-calendar — main is the de-facto gog executor despite #579 extracting a
+   > calendar agent + main's own AGENTS.md forbidding it (capture still delegates calendar to *main* for
+   > `gog calendar create`); (b) email + drive need controlled owners (F024). Until both clear, main
+   > keeps gog. capture's stale "delegate to main for gog calendar create" line rides on blocker (a).
 3. **Exec-hardening — hard containment, defense-in-depth (higher effort, do after step 2 is stable).**
    Per §6.1: `felix-admin-calendar.tools.exec.security: "full"`; every other agent
    `security: "allowlist"` + a host approvals allowlist of their exact helper commands (excluding
