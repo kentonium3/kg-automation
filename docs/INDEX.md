@@ -172,6 +172,12 @@ Two periodic sweeps verify that office2's configuration is in the state we expec
 - [Risk Register](<./archive/risk-register.md>) *(archived — items transcribed to GitHub issues #114, #115, #116)*
 - [Decision Log](<./archive/decision-log.md>) *(archived — decisions tracked as GitHub issues with RFC labels)*
 
+### docs/design/coherence/ — Coherence doctrine (Foundation 3)
+
+- [Coherence Practice](<./design/coherence/README.md>) — the anti-myopia practice: how the point-cut coherence review, the action-scoped injection map, and the 3-boolean significance gate work (Bedrock Foundation 3, #677; machinery deferred to #643)
+- [Felix Doctrine — Scoped Invariants](<./design/coherence/doctrine.md>) — canonical `INV-###` cross-cutting invariants (no-fabrication, no-silent-fallback, alerting seam, self-contained workspaces)
+- [Decision Corpus](<./design/coherence/decisions.jsonl>) — append-only `DEC-###` decision markers that establish and cite the invariants
+
 ### docs/design/standards/ — Cross-cutting standards
 
 - [Divio Classification Standard](<./design/standards/divio-classification.md>)

@@ -39,6 +39,10 @@ few hops as possible.
    system reference (detailed; use after the overview above)
 5. [GitHub Issues Workflow](<./runbooks/github-issues-workflow.md>) — labels,
    milestones, project board, and the spec lifecycle
+6. [Coherence Practice](<./design/coherence/README.md>) — at the spec and plan
+   point-cuts, check the work against the settled invariants (`doctrine.md`) and
+   decision corpus (`decisions.jsonl`) so a fix doesn't contradict a settled
+   decision (Bedrock Foundation 3, #677)
 
 ### Runbook Execution
 
