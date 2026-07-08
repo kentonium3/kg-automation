@@ -1,0 +1,53 @@
+#!/usr/bin/env bash
+# Pre-commit hook: run the Docs CI validators locally so a doc-validation
+# problem is caught at commit time — closest to authoring — instead of
+# reddening Docs CI on main after the push.
+#
+# Rationale (#678, cf. #560): validate_docs.py & siblings only run in Docs CI,
+# post-push. So an unknown doc_type/status enum value (or any doc-validation
+# failure) turns main red for everyone until it is hand-patched. Moving the
+# catch to commit time removes that churn: the bad frontmatter never enters a
+# commit.
+#
+# Cost-tiered so it is not friction on every commit (measured 2026-07-08):
+#   - privacy-boundary (~0.2s) + architecture-data (~0.1s) are cheap and
+#     repo-wide, so they ALWAYS run;
+#   - validate_docs.py (~3.9s, whole-tree frontmatter scan) runs ONLY when the
+#     commit stages markdown/docs — a code-only commit pays ~0.3s.
+#
+# Active only when hooks are enabled for this clone:
+#   git config core.hooksPath .githooks
+# (See docs/runbooks/local-test-gate.md for setup + bypass policy.)
+#
+# Bypass with `git commit --no-verify` in genuine emergencies — Docs CI still
+# gates on main.
+
+set -euo pipefail
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+cd "$REPO_ROOT"
+
+PY="${PYTHON:-python3}"
+fail=0
+
+echo ">>> pre-commit: doc validation (see #678; skip with --no-verify)"
+
+# Cheap + repo-wide — always run.
+"$PY" tooling/scripts/validate_privacy_boundary.py || fail=1
+"$PY" tooling/scripts/validate_architecture_data.py --strict || fail=1
+
+# Expensive whole-tree frontmatter scan — only when this commit stages docs.
+if git diff --cached --name-only --diff-filter=ACM | grep -qE '(^|/)docs/|\.md$'; then
+  "$PY" tooling/scripts/validate_docs.py || fail=1
+fi
+
+if [[ "$fail" -ne 0 ]]; then
+  echo
+  echo "❌ pre-commit: doc validation failed — commit ABORTED."
+  echo "   Fix the finding above (e.g. add a new doc_type to"
+  echo "   docs/design/standards/allowed-values.json), then re-commit."
+  echo "   Bypass with 'git commit --no-verify' only if you are certain."
+  exit 1
+fi
+
+echo "✓ pre-commit: doc validation passed."

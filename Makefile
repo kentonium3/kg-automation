@@ -2,8 +2,13 @@
 
 PY ?= python
 
+# Full doc validation — mirrors the Docs CI workflow
+# (.github/workflows/docs-ci.yml). Run before pushing, or let the
+# .githooks/pre-commit gate invoke the cost-scoped subset (see #678).
 docs-check:
 	$(PY) tooling/scripts/validate_docs.py
+	$(PY) tooling/scripts/validate_privacy_boundary.py
+	$(PY) tooling/scripts/validate_architecture_data.py --strict
 
 diagrams-sync:
 	$(PY) tooling/scripts/sync_mermaid_views.py --write

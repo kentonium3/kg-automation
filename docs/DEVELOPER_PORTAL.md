@@ -176,7 +176,7 @@ local validation and CI.
 - [Escalation Phase 6 Soak Window](<./runbooks/escalation-soak-window.md>)
 - [Felix Governance Runbook](<./runbooks/felix-governance.md>)
 - [felix-bot Vikunja Provisioning](<./runbooks/felix-bot-vikunja-provisioning.md>)
-- [Local Test Gate (pre-push hook)](<./runbooks/local-test-gate.md>)
+- [Local Test Gate (pre-commit + pre-push hooks)](<./runbooks/local-test-gate.md>)
 - [Phone Termius Setup & Recovery](<./runbooks/phone-termius-setup.md>)
 - [Smoke checklist — felix-admin-calendar extraction](<./runbooks/felix-calendar-subagent-extraction-01KTTA33-smoke.md>)
 - [Spec-Kitty — Install, Initialize, Upgrade](<./runbooks/spec-kitty-init-in-existing-repo.md>)
