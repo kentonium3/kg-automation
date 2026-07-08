@@ -4,7 +4,7 @@ artifact_type: spec-kitty.analysis-report
 command: /spec-kitty.analyze
 mission_slug: deterministic-monitoring-checks-01KX1XNW
 mission_id: 01KX1XNWV5K6NFZRKJBA33CH0D
-generated_at: '2026-07-08T23:19:12.854676+00:00'
+generated_at: '2026-07-08T23:37:14.626210+00:00'
 analyzer_agent: unknown
 input_artifacts:
   spec.md:
@@ -15,16 +15,16 @@ input_artifacts:
     sha256: 5dec1b89629da619bd2edf358588e6bb2e627c27a1b564160cddea0215ef924f
   tasks.md:
     path: /Users/kentgale/repos/kg-automation/kitty-specs/deterministic-monitoring-checks-01KX1XNW/tasks.md
-    sha256: 68212956e3ed517978e33ad55c39797b4655611baca3103ee4e21b2242aa6ecb
+    sha256: f80243a1d8444067177c2183da44a650b1232420032b273a76a550495336825d
   charter:
     path: /Users/kentgale/repos/kg-automation/.kittify/charter/charter.md
     sha256: 4891223a0c3fc0dc96917475523586e8f3147a3ccaa113ecb7ff19da646e82e2
 verdict: ready
 issue_counts:
   high: 0
+  low: 2
   critical: 0
   medium: 0
-  low: 2
   info: 0
 findings:
 - id: I1
