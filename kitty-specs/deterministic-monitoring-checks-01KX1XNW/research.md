@@ -114,10 +114,11 @@ deterministic check.
   same two times (`11:00` and `23:00`), matching the `felix-core-digest` /
   `credential-health-check` reference posture (both are enabled systemd user timers
   on office2 — confirmed live).
-- The service runs a thin wrapper that execs the **existing**
-  `/home/claude/helper-scripts/health-check.sh` unchanged (FR-010) and inspects its
-  output: `ALL_HEALTHY` → silent (a health-signal file is stamped for observability);
-  `FAILURES_DETECTED` → push the full output as an alert.
+- The service runs a thin wrapper that runs (via `subprocess`, **not** `exec` — see
+  R9/Codex #1) the **existing** `/home/claude/helper-scripts/health-check.sh` unchanged
+  (FR-010) and inspects its output: `ALL_HEALTHY` → silent (a health-signal file is
+  stamped for observability); `FAILURES_DETECTED`/`UNKNOWN`/`SCRIPT_MISSING` → push the
+  full (bounded) output as an alert.
 - The two `health-check-*` openclaw crons are **removed** via the `openclaw cron`
   CLI (DIR-007), eliminating the `main` session (NFR-002).
 
@@ -173,3 +174,30 @@ Resolve during tasks against the deploy lib.
 view) — health-check execution path moves off `main` to a systemd timer; heartbeat-
 gate loses its Haiku/model dependency. Review `docs/constitution/AGENT-REGISTRY.md`
 for `main`'s scheduled-workload reduction (two fewer scheduled sessions/day).
+
+## R9 — Post-plan Codex review folds (2026-07-08)
+
+Codex (`spec-kitty-review` profile) reviewed spec+plan+research+data-model+contracts
+against the live code. 9 findings, all accepted and folded:
+
+**New precedent discovered** (reuse, don't reinvent): `scripts/office2/
+credential-health-check.{service,timer}` + `scripts/office2/deploy/
+credential-health-check.sh` = the systemd-timer deterministic-check pattern to mirror;
+`scripts/office2/security-monitor/audit.sh:243-255` = the canonical ntfy send. The
+health-check wrapper/units land under `scripts/office2/` accordingly.
+
+| # | Severity | Finding | Fold |
+|---|---|---|---|
+| 1 | HIGH | Wrapper `exec` can't classify; missing-script/ntfy-failure could be silent | `subprocess` not `exec`; missing-script + ntfy-failure both alert/log; deploy preflight — health-check contract + FR-009 |
+| 2 | HIGH | Step-2 fail-safe only catches 2 exc types; a deterministic impl error → exit-1 emergency path, violating FR-007 | `decide_deterministic` must be **total** and/or broaden step-2 `except`; malformed-context test — escalation contract + FR-007 |
+| 3 | HIGH | Plan over-claims the 1748-tick replay proves all 3 labels | Replay validates **escalate boolean only**; label split via synthetic fixtures — escalation contract + FR-011 |
+| 4 | MED | Replay can't validate full `GateDecision` (ledger lacks issues_filed/counts) | Split: live replay = escalation; synthetic fixtures = 3-label — IC-02 |
+| 5 | MED | WhatsApp→ntfy is a user-visible regression w/o acceptance parity | Operator-visible delivery-parity acceptance (push received, full output, all-alert-cases, ntfy-failure logged) — contract + quickstart |
+| 6 | MED | Deploy sequencing leaves double-run/no-run windows | Strict order: install→smoke→enable→verify→remove crons→confirm — quickstart + IC-04 |
+| 7 | MED | Removing `--api-key`/`--prompt` may break tests | Full removal (no vestiges), update ALL tests, smoke installed ExecStart — FR-008 |
+| 8 | LOW | Escalation reason parity (cite triggers, no action framing) | reason test: contains trigger IDs, excludes recommendation language — escalation contract |
+| 9 | LOW | Health-check status precedence ambiguous | `FAILURES_DETECTED` wins; test both-token/stderr-only/non-zero+healthy/truncation — health-check contract |
+
+**Open operator decision surfaced (Codex #5)**: failure alerts move **WhatsApp → ntfy**.
+Proceeding with ntfy (canonical non-agent substrate; healthy case already silent) but
+flagged to Kent; a fold to a non-agent WhatsApp send is available if he prefers.

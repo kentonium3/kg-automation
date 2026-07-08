@@ -11,18 +11,29 @@ Deploy target: office2 (Ubuntu 24.04, `claude` systemd user). All agent SSH via
 2. Confirm the deploy manifest `deploys/queued/<NNNN>-deterministic-monitoring-checks.yaml`
    is present and schema-valid.
 
-## Deploy (via manifest pipeline, DIR-004)
+## Deploy (via manifest pipeline, DIR-004) — STRICT ORDER (Codex #6)
+
+Order matters to avoid a double-alert or missed-check window around 11:00/23:00:
+**install units → smoke → enable timer → verify → remove crons → confirm**.
 
 3. felix-deployer picks up the manifest within ~5 min of merge to main, installs
    `felix-health-check.{service,timer}` + the wrapper, and reloads the user daemon.
-4. Remove the two openclaw crons via CLI (DIR-007) — either the manifest script does
-   this through the vetted lib, or run out-of-band:
+4. **Smoke** the service manually (before enabling the timer, before removing crons):
+   ```
+   ssh office2-claude 'systemctl --user start felix-health-check.service; systemctl --user status felix-health-check.service --no-pager | head'
+   ```
+5. **Enable** the timer and **verify** it is scheduled:
+   ```
+   ssh office2-claude 'systemctl --user enable --now felix-health-check.timer && systemctl --user list-timers felix-health-check.timer --no-pager'
+   ```
+6. **Only then remove** the two openclaw crons via CLI (DIR-007) — via the manifest
+   script's vetted lib, or out-of-band:
    ```
    ssh office2-claude 'openclaw cron remove health-check-morning; openclaw cron remove health-check-evening'
    ```
-5. Enable + start the timer (if not enabled by the manifest):
+7. **Confirm** no health-check cron remains:
    ```
-   ssh office2-claude 'systemctl --user enable --now felix-health-check.timer'
+   ssh office2-claude 'openclaw cron list 2>/dev/null | grep -i health || echo "no health-check cron (expected)"'
    ```
 
 ## Verify — heartbeat gate (no LLM in the hot path)
@@ -45,15 +56,21 @@ Deploy target: office2 (Ubuntu 24.04, `claude` systemd user). All agent SSH via
 10. Fail-safe: point `--last-tick` at a corrupt/missing file and confirm
     `fallback_invoked=true` + escalation still fires.
 
-## Verify — health-check (off the Sonnet agent)
+## Verify — health-check (off the Sonnet agent) + delivery parity (Codex #5)
 
-11. Trigger the service once and confirm the check ran with **no main session**:
+11. Confirm the check runs with **no main session** created:
     ```
-    ssh office2-claude 'systemctl --user start felix-health-check.service; systemctl --user status felix-health-check.service --no-pager | head'
     ssh office2-claude 'openclaw cron runs 2>/dev/null | grep -i health || echo "no health-check cron runs (expected)"'
     ```
-12. Confirm healthy = silent; force a `FAILURES_DETECTED` (or point at a failing check)
-    and confirm an ntfy alert arrives with the full output.
+12. Confirm healthy = silent (signal file stamped `ALL_HEALTHY`, no push):
+    ```
+    ssh office2-claude 'cat /data/services/openclaw/felix-health-check/last-run.json'
+    ```
+13. **Delivery parity** — force a `FAILURES_DETECTED` (or a `SCRIPT_MISSING`) and
+    confirm the **ntfy push is actually received** with the full (bounded) output, and
+    that `UNKNOWN`/non-zero/missing-script all alert. Confirm an ntfy send failure is
+    recorded (journal + signal file `delivery` field), not silently swallowed.
+    (ntfy topic must be configured — mirror `security-monitor` `NTFY_TOPIC`.)
 
 ## INV-006 validation (verify-before-done)
 

@@ -21,7 +21,11 @@ against the full 1748-tick historical ledger: 0 missed escalations, 0 over-escal
 path becomes **standard-library only** (removes `anthropic` from the hot path).
 **Primary Dependencies**: no new packages. Removes `anthropic` from the tick path.
 Runtime touchpoints: systemd user units, `openclaw cron` CLI (removal only), ntfy
-(`curl` to ntfy.sh) for health-check failure alerts.
+(`curl` to ntfy.sh) for health-check failure alerts. **Reuse existing precedents**:
+`scripts/office2/credential-health-check.{service,timer}` + `scripts/office2/deploy/
+credential-health-check.sh` (systemd-timer deterministic-check pattern) and
+`scripts/office2/security-monitor/audit.sh:243-255` (canonical ntfy-send: curl POST
+with Title/Priority/Tags, non-fatal-on-failure with a log line).
 **Storage**: files only — `gate-ledger.jsonl`, `last-gate-decision.json` (heartbeat),
 a health-check signal/state file; no database. `/home/claude/helper-scripts/health-check.sh`
 reused in place.
@@ -98,8 +102,9 @@ docs/constitution/AGENT-REGISTRY.md                                # REVIEWED (F
 
 **Structure Decision**: Single-project layout. The heartbeat-gate change is
 co-located in the existing `scripts/openclaw/heartbeat_gate/` module (Locality of
-Change, DIR-024). The health-check wrapper is a new small non-agent script; exact
-directory (`scripts/openclaw/health_check/` vs `scripts/office2/`) finalized in tasks.
+Change, DIR-024). The health-check wrapper + units live under **`scripts/office2/`**
+(with `scripts/office2/deploy/`), mirroring the `credential-health-check` precedent
+rather than inventing a new layout — decided post-Codex-review.
 
 ## Complexity Tracking
 
@@ -114,12 +119,18 @@ directory (`scripts/openclaw/health_check/` vs `scripts/office2/`) finalized in 
 - **Purpose**: Replace the Haiku `gate.decide` call with a pure, stdlib-only
   `decide_deterministic(context)` that reproduces the routing prompt's boolean
   escalation contract and emits a deterministic reason + zeroed token fields.
-- **Relevant requirements**: FR-001, FR-002, FR-003, FR-004, FR-006, NFR-001, NFR-004, NFR-005
+- **Relevant requirements**: FR-001, FR-002, FR-003, FR-004, FR-006, FR-007, FR-008, NFR-001, NFR-004, NFR-005
 - **Affected surfaces**: `scripts/openclaw/heartbeat_gate/gate.py`, `run.py` (step 2
   call site + CLI parser), `tests/test_gate_routing.py`, `tests/test_run.py`
 - **Sequencing/depends-on**: none
 - **Risks**: keep `run.py` steps 1/3/4 and the fail-safe byte-for-byte behavioral;
-  ensure the deterministic path never imports `anthropic`.
+  the deterministic path never imports `anthropic`. **Codex #2**: `decide_deterministic`
+  must be **total** over any `GateContext` `load_context` can produce, and/or broaden
+  `run.py` step-2 `except` to `Exception` → fallback (else an impl error hits the
+  exit-1 emergency path, violating FR-007) — ship a malformed-context fail-safe test.
+  **Codex #7**: fully remove `--api-key`/`--prompt` (no vestigial no-op flags), update
+  ALL affected tests, and smoke the installed `ExecStart`. **Codex #8**: escalation
+  `reason` must cite triggers with no action/recommendation framing.
 
 ### IC-02 — Validate the rule against history (INV-006)
 
@@ -127,10 +138,13 @@ directory (`scripts/openclaw/health_check/` vs `scripts/office2/`) finalized in 
   reports over-escalation, run against the live ledger and a committed fixture.
 - **Relevant requirements**: FR-011, NFR-006, SC-005
 - **Affected surfaces**: `scripts/openclaw/heartbeat_gate/validate_ledger.py`, a
-  committed fixture ledger, `tests/`
+  committed fixture ledger, synthetic `GateContext` fixtures, `tests/`
 - **Sequencing/depends-on**: IC-01 (needs `decide_deterministic`)
-- **Risks**: fixture must include escalate + both non-escalate labels; keep the live
-  replay result (0/0) reproducible.
+- **Risks (Codex #3/#4)**: the **live ledger replay validates the escalate-vs-not
+  boolean ONLY** (ledger lacks `issues_filed`/per-signal counts) — do not claim it
+  proves the 3-label split. Validate `LOG_AND_SKIP`↔`HEARTBEAT_OK` via **synthetic
+  `GateContext` fixtures** (issues_filed non-empty; below-but-nonzero activity; fully
+  quiet). Keep the live replay result (0 missed / 0 over) reproducible.
 
 ### IC-03 — Move the health-check off the Sonnet agent
 
@@ -138,11 +152,17 @@ directory (`scripts/openclaw/health_check/` vs `scripts/office2/`) finalized in 
   the existing bash check and alerts on failure via ntfy; remove the two openclaw
   `health-check-*` crons.
 - **Relevant requirements**: FR-009, FR-010, NFR-002
-- **Affected surfaces**: `deploy/systemd/felix-health-check.{service,timer}`, new
-  wrapper script, `openclaw cron` removal (2 crons), wrapper tests
+- **Affected surfaces**: `scripts/office2/felix-health-check.{service,timer}` +
+  `scripts/office2/deploy/`, new wrapper script, `openclaw cron` removal (2 crons),
+  wrapper tests
 - **Sequencing/depends-on**: none (parallel to IC-01)
-- **Risks**: delivery channel change WhatsApp → ntfy (flagged for Kent); wrapper must
-  classify `ALL_HEALTHY` / `FAILURES_DETECTED` exactly; timer schedule matches 11:00/23:00.
+- **Risks**: delivery channel change WhatsApp → ntfy (flagged for Kent). **Codex #1**:
+  run the check via `subprocess` (NOT `exec`); a missing script AND an ntfy-send
+  failure must each alert/log (not rely on systemd-failed alone). **Codex #9**:
+  classification precedence = `FAILURES_DETECTED` wins over `ALL_HEALTHY`; handle
+  both-token / stderr-only / non-zero+ALL_HEALTHY / oversized-output (truncation).
+  **Codex #5**: acceptance must operator-visibly verify the ntfy push is received with
+  full output. Timer `OnCalendar` matches 11:00/23:00.
 
 ### IC-04 — Deploy, docs, rebaseline
 
@@ -155,7 +175,10 @@ directory (`scripts/openclaw/health_check/` vs `scripts/office2/`) finalized in 
 - **Sequencing/depends-on**: IC-01, IC-03 (deploys their outputs)
 - **Risks**: resolve whether `openclaw cron remove` rides the felix-deployer happy
   path or is out-of-band manual (research R7 open sub-question); rebaseline covers both
-  systemd units and openclaw config.
+  systemd units and openclaw config. **Codex #6 (deploy order)**: to avoid double-alert
+  or missed-check windows around 11:00/23:00 — install wrapper+unit → manual smoke →
+  enable timer → `systemctl --user list-timers` verify → remove the 2 crons via CLI →
+  confirm no health-check cron remains. Rollback re-adds the crons.
 
 ---
 
