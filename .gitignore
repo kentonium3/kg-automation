@@ -67,3 +67,7 @@ htmlcov/
 # Spec-kitty 3.2 worktree state (was just .claude/worktrees/ for 3.0)
 .worktrees/
 kitty-ops/ops-index.jsonl
+.kittify/migrations/
+.kittify/logs/
+.agents/skills/
+.kittify/skills-manifest.json
