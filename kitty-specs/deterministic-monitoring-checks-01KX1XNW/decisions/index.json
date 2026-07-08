@@ -1,0 +1,54 @@
+{
+  "entries": [
+    {
+      "created_at": "2026-07-08T22:35:18.293172Z",
+      "decision_id": "01KX1XY2CN2RHA6675BXDRG84Y",
+      "final_answer": "systemd user timer \u2014 matches the felix-core-digest deterministic reference posture; fully removes the agent; result delivery re-implemented off the agent path (ntfy or direct notify, to be finalized in research against office2).",
+      "input_key": "healthcheck_runner_mechanism",
+      "mission_id": "01KX1XNWV5K6NFZRKJBA33CH0D",
+      "mission_slug": "deterministic-monitoring-checks-01KX1XNW",
+      "opened_by": "cli",
+      "options": [
+        "systemd user timer",
+        "non-agent openclaw cron",
+        "let research decide"
+      ],
+      "origin_flow": "plan",
+      "other_answer": false,
+      "question": "How should the twice-daily health-check run off the Sonnet main agent: a systemd user timer (matches felix-core-digest deterministic posture) or a non-agent openclaw cron (keeps existing WhatsApp delivery)?",
+      "rationale": null,
+      "resolved_at": "2026-07-08T22:36:24.298244Z",
+      "resolved_by": null,
+      "slot_key": "plan.healthcheck.runner-mechanism",
+      "status": "resolved",
+      "step_id": null,
+      "summary_json": null
+    },
+    {
+      "created_at": "2026-07-08T22:53:13.308645Z",
+      "decision_id": "01KX1YYW6W80CC9J25NP9RAMVE",
+      "final_answer": "ntfy \u2014 canonical non-agent push substrate (security-monitor/credential-health-check precedent); fully decouples from the agent. Healthy case stays silent; only failures alert. Kent confirmed 2026-07-08.",
+      "input_key": "healthcheck_alert_channel",
+      "mission_id": "01KX1XNWV5K6NFZRKJBA33CH0D",
+      "mission_slug": "deterministic-monitoring-checks-01KX1XNW",
+      "opened_by": "cli",
+      "options": [
+        "ntfy",
+        "WhatsApp",
+        "both"
+      ],
+      "origin_flow": "plan",
+      "other_answer": false,
+      "question": "Where should health-check failure alerts go once off the Sonnet agent?",
+      "rationale": null,
+      "resolved_at": "2026-07-08T22:53:15.336786Z",
+      "resolved_by": null,
+      "slot_key": "plan.healthcheck.alert-channel",
+      "status": "resolved",
+      "step_id": null,
+      "summary_json": null
+    }
+  ],
+  "mission_id": "01KX1XNWV5K6NFZRKJBA33CH0D",
+  "version": 1
+}
