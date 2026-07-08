@@ -1,6 +1,9 @@
 # Claude Code local settings
 .claude/settings.local.json
 
+# RFC #681 Workspace-auth spike — never commit minted credentials
+token.json
+
 # Antigravity (agy) CLI machine-local project marker
 .antigravitycli/
 

@@ -23,10 +23,15 @@ Prereqs (Mac, one-time):
 Then follow docs/design/research/felix-workspace-api-vs-gog-681.md runbook to
 obtain client_secret.json (Desktop-app OAuth client on an Internal app).
 
+Credentials home: ~/.config/felix/ (0700), override with FELIX_GOOGLE_DIR.
+Place client_secret.json there and --client-secret becomes optional. The minted
+token.json is written there too — never in ~/Downloads (macOS TCC blocks CLI
+reads) or /tmp (world-readable + wiped on reboot).
+
 Usage:
-  python workspace_auth_spike.py --client-secret client_secret.json --stage a
-  python workspace_auth_spike.py --client-secret client_secret.json --stage b \
-      --target-calendar kentgale@gmail.com
+  # one-time: mkdir -p ~/.config/felix && mv client_secret.json ~/.config/felix/
+  python workspace_auth_spike.py --stage a
+  python workspace_auth_spike.py --stage b --target-calendar kentgale@gmail.com
   python workspace_auth_spike.py --refresh-only
 
 Nothing here is destructive: created events are tagged and can be deleted with
@@ -36,6 +41,7 @@ from __future__ import annotations
 
 import argparse
 import datetime as dt
+import os
 import sys
 from pathlib import Path
 
@@ -52,8 +58,20 @@ except ImportError:
 
 # Least-privilege for the calendar proof. Add more scopes per phase later.
 SCOPES = ["https://www.googleapis.com/auth/calendar.events"]
-TOKEN_PATH = Path("token.json")
+# Credentials live in a user-only dir OUTSIDE any git repo (override w/ FELIX_GOOGLE_DIR).
+# Never ~/Downloads (macOS TCC blocks CLI reads) or /tmp (world-readable + wiped on reboot).
+SECRETS_DIR = Path(os.environ.get("FELIX_GOOGLE_DIR", Path.home() / ".config" / "felix"))
+TOKEN_PATH = SECRETS_DIR / "token.json"
+DEFAULT_CLIENT_SECRET = SECRETS_DIR / "client_secret.json"
 EVENT_TAG = "[felix-681-spike]"
+
+
+def _write_token(creds: Credentials) -> None:
+    """Persist the token to the user-only secrets dir (0700 dir, 0600 file)."""
+    SECRETS_DIR.mkdir(parents=True, exist_ok=True)
+    SECRETS_DIR.chmod(0o700)
+    TOKEN_PATH.write_text(creds.to_json())
+    TOKEN_PATH.chmod(0o600)
 
 
 def _load_or_mint(client_secret: Path | None) -> Credentials:
@@ -65,17 +83,20 @@ def _load_or_mint(client_secret: Path | None) -> Credentials:
         return creds
     if creds and creds.expired and creds.refresh_token:
         creds.refresh(Request())  # exercises the refresh grant (F6 check)
-        TOKEN_PATH.write_text(creds.to_json())
+        _write_token(creds)
         return creds
+    if not client_secret and DEFAULT_CLIENT_SECRET.exists():
+        client_secret = DEFAULT_CLIENT_SECRET  # default home, no flag needed
     if not client_secret:
         sys.exit(
-            f"No usable {TOKEN_PATH} and no --client-secret to mint one. "
-            "Run stage a first (with --client-secret)."
+            f"No usable {TOKEN_PATH} and no client_secret to mint one. "
+            f"Pass --client-secret or place it at {DEFAULT_CLIENT_SECRET}, "
+            "then run stage a first."
         )
     flow = InstalledAppFlow.from_client_secrets_file(str(client_secret), SCOPES)
     # Loopback consent on the Mac; access_type=offline to get a refresh token.
     creds = flow.run_local_server(port=0, access_type="offline", prompt="consent")
-    TOKEN_PATH.write_text(creds.to_json())
+    _write_token(creds)
     return creds
 
 
@@ -120,7 +141,7 @@ def main() -> int:
         creds = _load_or_mint(None)
         # _load_or_mint already refreshed if expired; force one regardless.
         creds.refresh(Request())
-        TOKEN_PATH.write_text(creds.to_json())
+        _write_token(creds)
         print("SC-F6 OK: refresh grant succeeded — token still valid "
               f"({dt.datetime.now(dt.timezone.utc).isoformat()}).")
         return 0
