@@ -262,7 +262,7 @@ hold off until it's triaged." Continue processing other tasks.
 Log every significant operational action using the `exec` tool:
 
 ```bash
-cd /home/claude/kg-automation && python scripts/openclaw/observation/log_action.py \
+cd /home/claude/kg-automation && python3 scripts/openclaw/observation/log_action.py \
   --agent felix-admin-escalation \
   --category <category> \
   --action <action> \

@@ -55,13 +55,13 @@ Every calendar-create attempt emits a structured `log_action` event before the r
 
 ```bash
 # On success:
-cd /home/claude/kg-automation && python scripts/openclaw/observation/log_action.py \
+cd /home/claude/kg-automation && python3 scripts/openclaw/observation/log_action.py \
   --agent felix-admin-calendar --category routine \
   --action calendar_event_created --target "<gcal_event_id>" --outcome success \
   --context '{"source_inbox_path": "<from payload>", "account": "<from payload>", "calendar_id": "<from payload>", "rrule": "<from payload or null>", "clarification_id": "<from payload or null>"}'
 
 # On failure:
-cd /home/claude/kg-automation && python scripts/openclaw/observation/log_action.py \
+cd /home/claude/kg-automation && python3 scripts/openclaw/observation/log_action.py \
   --agent felix-admin-calendar --category error \
   --action calendar_event_failed --target "<source_inbox_path>" --outcome error \
   --context '{"error_detail": "<gog stderr>", "exit_code": <gog exit code>, "clarification_id": "<from payload or null>"}'
@@ -152,7 +152,7 @@ When re-validation returns `complete: true`, do the following in order:
 5. **Log the resolution**:
 
    ```bash
-   cd /home/claude/kg-automation && python scripts/openclaw/observation/log_action.py \
+   cd /home/claude/kg-automation && python3 scripts/openclaw/observation/log_action.py \
      --agent felix-admin-calendar --category routine \
      --action calendar_event_clarification_resolved \
      --target "<clarification_id>" --outcome success \
