@@ -44,6 +44,7 @@ types, surface the mapped invariants for the review:
 | Status / completion reporting, or any infra-state logic | INV-001 |
 | Agent workspace authoring (SOUL/USER/TOOLS/IDENTITY/AGENTS) | INV-004, INV-005 |
 | File / vault access, ingestion, logging, or backup traversal | INV-005 |
+| Declaring a fix/capability done, or closing an issue as complete | INV-006 |
 | New tooling / service / substrate (over-engineering risk) | *(none yet — apply the anti-over-engineering decisions DEC-003/004/005)* |
 
 Keep this map current as invariants are added. (This is the charter's pattern **B** at the

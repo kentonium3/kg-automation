@@ -118,3 +118,24 @@ the thinking; nothing here calls an LLM.
   excluding the private area? That violates INV-005. Enforced deterministically by the
   `tooling/scripts/validate_privacy_boundary.py` CI lint and restated in every agent workspace.
 - *Provenance:* Felix Constitution (absolute rule); CLAUDE.md § "Second Brain Boundary".
+
+## INV-006 — A fix is not "done" until behaviorally verified end-to-end
+
+- **Intent:** A fix or capability is not complete until its real path has been exercised and its
+  real outcome observed. Static signals (prompt text, config, greps, mocked unit tests) are
+  necessary but never sufficient to declare something fixed, working, or done. Where INV-001
+  governs the *runtime agent* (it must not fabricate state), INV-006 governs *us building and
+  reporting fixes* (we must not infer success from static evidence).
+- **When:** closing an issue as done; reporting a fix/completion; declaring a capability working;
+  accepting a mission; any "it should work now" claim.
+- **Rules:**
+  - Run the real path and observe the real outcome before declaring done, closing, or reporting
+    completion.
+  - Static signals confirm *structure*, not *behavior* — they never substitute for exercising
+    the live path.
+  - If the path cannot be exercised, say so explicitly; do not infer success from static evidence.
+- **Check:** does the completion/fix claim rest on an observed end-to-end run, or only on static
+  signals? A "done" resting on static signals alone violates INV-006.
+- *Provenance:* #662 (haiku→sonnet fix diagnosed from static evidence, later reversed), #679
+  (static signals validated, path never run e2e), #683 (fabricated completion status) → DEC-006.
+  Surfaced by the first F3 point-cut dry-run (2026-07-08).
