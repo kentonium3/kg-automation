@@ -1,129 +1,9 @@
 {
   "version": 1,
   "created_at": "2026-06-06T16:35:05.377267+00:00",
-  "updated_at": "2026-06-28T17:32:36.785281+00:00",
+  "updated_at": "2026-07-08T17:32:13.141961+00:00",
   "spec_kitty_version": "3.2.0rc35",
   "entries": [
-    {
-      "skill_name": "spec-kitty-constitution-doctrine",
-      "source_file": "SKILL.md",
-      "installed_path": ".agents/skills/spec-kitty-constitution-doctrine/SKILL.md",
-      "installation_class": "shared-root-capable",
-      "agent_key": "copilot",
-      "content_hash": "sha256:e255b9bfe4e59f8c4788e3aac8812b468b6f6ed65a8dce07c17596ecee3bac51",
-      "installed_at": "2026-03-26T03:07:05.164364+00:00",
-      "delivery_mode": "copy"
-    },
-    {
-      "skill_name": "spec-kitty-constitution-doctrine",
-      "source_file": "references/constitution-command-map.md",
-      "installed_path": ".agents/skills/spec-kitty-constitution-doctrine/references/constitution-command-map.md",
-      "installation_class": "shared-root-capable",
-      "agent_key": "copilot",
-      "content_hash": "sha256:3f9c710ca338edd170d7da99dc47fed7a6f170ca7f15cc84470b8b0aafd40e3a",
-      "installed_at": "2026-03-26T03:07:05.164364+00:00",
-      "delivery_mode": "copy"
-    },
-    {
-      "skill_name": "spec-kitty-constitution-doctrine",
-      "source_file": "references/doctrine-artifact-structure.md",
-      "installed_path": ".agents/skills/spec-kitty-constitution-doctrine/references/doctrine-artifact-structure.md",
-      "installation_class": "shared-root-capable",
-      "agent_key": "copilot",
-      "content_hash": "sha256:8a9c8b20b8d9c72fd03d6e2e92ccd9e4321f2e62a5bae35e11d889de185ffddf",
-      "installed_at": "2026-03-26T03:07:05.164364+00:00",
-      "delivery_mode": "copy"
-    },
-    {
-      "skill_name": "spec-kitty-constitution-doctrine",
-      "source_file": "SKILL.md",
-      "installed_path": ".claude/skills/spec-kitty-constitution-doctrine/SKILL.md",
-      "installation_class": "native-root-required",
-      "agent_key": "claude",
-      "content_hash": "sha256:e255b9bfe4e59f8c4788e3aac8812b468b6f6ed65a8dce07c17596ecee3bac51",
-      "installed_at": "2026-03-26T03:07:05.209262+00:00",
-      "delivery_mode": "copy"
-    },
-    {
-      "skill_name": "spec-kitty-constitution-doctrine",
-      "source_file": "references/constitution-command-map.md",
-      "installed_path": ".claude/skills/spec-kitty-constitution-doctrine/references/constitution-command-map.md",
-      "installation_class": "native-root-required",
-      "agent_key": "claude",
-      "content_hash": "sha256:3f9c710ca338edd170d7da99dc47fed7a6f170ca7f15cc84470b8b0aafd40e3a",
-      "installed_at": "2026-03-26T03:07:05.209262+00:00",
-      "delivery_mode": "copy"
-    },
-    {
-      "skill_name": "spec-kitty-constitution-doctrine",
-      "source_file": "references/doctrine-artifact-structure.md",
-      "installed_path": ".claude/skills/spec-kitty-constitution-doctrine/references/doctrine-artifact-structure.md",
-      "installation_class": "native-root-required",
-      "agent_key": "claude",
-      "content_hash": "sha256:8a9c8b20b8d9c72fd03d6e2e92ccd9e4321f2e62a5bae35e11d889de185ffddf",
-      "installed_at": "2026-03-26T03:07:05.209262+00:00",
-      "delivery_mode": "copy"
-    },
-    {
-      "skill_name": "spec-kitty-constitution-doctrine",
-      "source_file": "SKILL.md",
-      "installed_path": ".agents/skills/spec-kitty-constitution-doctrine/SKILL.md",
-      "installation_class": "shared-root-capable",
-      "agent_key": "gemini",
-      "content_hash": "sha256:e255b9bfe4e59f8c4788e3aac8812b468b6f6ed65a8dce07c17596ecee3bac51",
-      "installed_at": "2026-03-26T03:07:05.262393+00:00",
-      "delivery_mode": "copy"
-    },
-    {
-      "skill_name": "spec-kitty-constitution-doctrine",
-      "source_file": "references/constitution-command-map.md",
-      "installed_path": ".agents/skills/spec-kitty-constitution-doctrine/references/constitution-command-map.md",
-      "installation_class": "shared-root-capable",
-      "agent_key": "gemini",
-      "content_hash": "sha256:3f9c710ca338edd170d7da99dc47fed7a6f170ca7f15cc84470b8b0aafd40e3a",
-      "installed_at": "2026-03-26T03:07:05.262393+00:00",
-      "delivery_mode": "copy"
-    },
-    {
-      "skill_name": "spec-kitty-constitution-doctrine",
-      "source_file": "references/doctrine-artifact-structure.md",
-      "installed_path": ".agents/skills/spec-kitty-constitution-doctrine/references/doctrine-artifact-structure.md",
-      "installation_class": "shared-root-capable",
-      "agent_key": "gemini",
-      "content_hash": "sha256:8a9c8b20b8d9c72fd03d6e2e92ccd9e4321f2e62a5bae35e11d889de185ffddf",
-      "installed_at": "2026-03-26T03:07:05.262393+00:00",
-      "delivery_mode": "copy"
-    },
-    {
-      "skill_name": "spec-kitty-constitution-doctrine",
-      "source_file": "SKILL.md",
-      "installed_path": ".agents/skills/spec-kitty-constitution-doctrine/SKILL.md",
-      "installation_class": "shared-root-capable",
-      "agent_key": "codex",
-      "content_hash": "sha256:e255b9bfe4e59f8c4788e3aac8812b468b6f6ed65a8dce07c17596ecee3bac51",
-      "installed_at": "2026-03-26T03:07:05.287505+00:00",
-      "delivery_mode": "copy"
-    },
-    {
-      "skill_name": "spec-kitty-constitution-doctrine",
-      "source_file": "references/constitution-command-map.md",
-      "installed_path": ".agents/skills/spec-kitty-constitution-doctrine/references/constitution-command-map.md",
-      "installation_class": "shared-root-capable",
-      "agent_key": "codex",
-      "content_hash": "sha256:3f9c710ca338edd170d7da99dc47fed7a6f170ca7f15cc84470b8b0aafd40e3a",
-      "installed_at": "2026-03-26T03:07:05.287505+00:00",
-      "delivery_mode": "copy"
-    },
-    {
-      "skill_name": "spec-kitty-constitution-doctrine",
-      "source_file": "references/doctrine-artifact-structure.md",
-      "installed_path": ".agents/skills/spec-kitty-constitution-doctrine/references/doctrine-artifact-structure.md",
-      "installation_class": "shared-root-capable",
-      "agent_key": "codex",
-      "content_hash": "sha256:8a9c8b20b8d9c72fd03d6e2e92ccd9e4321f2e62a5bae35e11d889de185ffddf",
-      "installed_at": "2026-03-26T03:07:05.287505+00:00",
-      "delivery_mode": "copy"
-    },
     {
       "skill_name": "ad-hoc-profile-load",
       "source_file": "SKILL.md",
@@ -842,16 +722,6 @@
       "agent_key": "antigravity",
       "content_hash": "sha256:3723263b469b74a5f74771e4cb6f19f168f73faa0e03f149ddd6fe2f6f015eb9",
       "installed_at": "2026-06-28T17:32:35.903671+00:00",
-      "delivery_mode": "symlink"
-    },
-    {
-      "skill_name": "spk-team-upsun-cli-sync",
-      "source_file": "SKILL.md",
-      "installed_path": ".agents/skills/spk-team-upsun-cli-sync/SKILL.md",
-      "installation_class": "shared-root-capable",
-      "agent_key": "antigravity",
-      "content_hash": "sha256:fded2c1fa6a2d8b9b5ebc6b90ebbb673dad7320b41cd6b04419c698b2eb7a7ab",
-      "installed_at": "2026-06-28T17:32:35.905755+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -1575,16 +1445,6 @@
       "delivery_mode": "symlink"
     },
     {
-      "skill_name": "spk-team-upsun-cli-sync",
-      "source_file": "SKILL.md",
-      "installed_path": ".claude/skills/spk-team-upsun-cli-sync/SKILL.md",
-      "installation_class": "native-root-required",
-      "agent_key": "claude",
-      "content_hash": "sha256:fded2c1fa6a2d8b9b5ebc6b90ebbb673dad7320b41cd6b04419c698b2eb7a7ab",
-      "installed_at": "2026-06-28T17:32:36.073646+00:00",
-      "delivery_mode": "symlink"
-    },
-    {
       "skill_name": "ad-hoc-profile-load",
       "source_file": "SKILL.md",
       "installed_path": ".agents/skills/ad-hoc-profile-load/SKILL.md",
@@ -2302,16 +2162,6 @@
       "agent_key": "codex",
       "content_hash": "sha256:3723263b469b74a5f74771e4cb6f19f168f73faa0e03f149ddd6fe2f6f015eb9",
       "installed_at": "2026-06-28T17:32:36.319708+00:00",
-      "delivery_mode": "symlink"
-    },
-    {
-      "skill_name": "spk-team-upsun-cli-sync",
-      "source_file": "SKILL.md",
-      "installed_path": ".agents/skills/spk-team-upsun-cli-sync/SKILL.md",
-      "installation_class": "shared-root-capable",
-      "agent_key": "codex",
-      "content_hash": "sha256:fded2c1fa6a2d8b9b5ebc6b90ebbb673dad7320b41cd6b04419c698b2eb7a7ab",
-      "installed_at": "2026-06-28T17:32:36.323166+00:00",
       "delivery_mode": "symlink"
     },
     {
@@ -3035,16 +2885,6 @@
       "delivery_mode": "symlink"
     },
     {
-      "skill_name": "spk-team-upsun-cli-sync",
-      "source_file": "SKILL.md",
-      "installed_path": ".agents/skills/spk-team-upsun-cli-sync/SKILL.md",
-      "installation_class": "shared-root-capable",
-      "agent_key": "copilot",
-      "content_hash": "sha256:fded2c1fa6a2d8b9b5ebc6b90ebbb673dad7320b41cd6b04419c698b2eb7a7ab",
-      "installed_at": "2026-06-28T17:32:36.533035+00:00",
-      "delivery_mode": "symlink"
-    },
-    {
       "skill_name": "ad-hoc-profile-load",
       "source_file": "SKILL.md",
       "installed_path": ".agents/skills/ad-hoc-profile-load/SKILL.md",
@@ -3762,16 +3602,6 @@
       "agent_key": "gemini",
       "content_hash": "sha256:3723263b469b74a5f74771e4cb6f19f168f73faa0e03f149ddd6fe2f6f015eb9",
       "installed_at": "2026-06-28T17:32:36.769280+00:00",
-      "delivery_mode": "symlink"
-    },
-    {
-      "skill_name": "spk-team-upsun-cli-sync",
-      "source_file": "SKILL.md",
-      "installed_path": ".agents/skills/spk-team-upsun-cli-sync/SKILL.md",
-      "installation_class": "shared-root-capable",
-      "agent_key": "gemini",
-      "content_hash": "sha256:fded2c1fa6a2d8b9b5ebc6b90ebbb673dad7320b41cd6b04419c698b2eb7a7ab",
-      "installed_at": "2026-06-28T17:32:36.772445+00:00",
       "delivery_mode": "symlink"
     }
   ]
