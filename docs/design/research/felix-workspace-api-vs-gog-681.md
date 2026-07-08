@@ -154,24 +154,61 @@ quota regime for projects created ≥2026-05-01 — pin the live quota page.
 Sources: [Calendar quota](https://developers.google.com/workspace/calendar/api/guides/quota),
 [Gmail quota](https://developers.google.com/workspace/gmail/api/reference/quota)
 
-## Q3 findings — build vs buy
+## Q3 findings — build vs buy  _(decided post-spike, 2026-07-08)_
 
-Deferred to post-spike. Leaning: Google's official `google-api-python-client`
-(our code, tested, full control) for Calendar; evaluate a self-hosted Workspace
-MCP server per-app later (same trust category as gog, self-hosted). The spike
-uses `google-api-python-client` directly.
+**Decision: BUILD a thin Felix-owned Calendar helper** on Google's official
+`google-api-python-client`, rather than adopting a third-party or self-hosted
+Workspace MCP server — at least for the Calendar-first phase.
+
+Rationale:
+- **The spike already proved the whole path** (auth → create/update/read) in
+  ~150 lines of official-client code. The build cost is low, the surface is
+  narrow, and it's our code — testable and deterministic (matches
+  `engineering-principles.md`: deterministic mechanics belong in a helper the
+  agent invokes; judgment stays in the LLM).
+- **A self-hosted Workspace MCP server is the same trust category as gog** — a
+  broad connector exposing many tools to the model. Adopting one now would
+  reintroduce exactly the "broad surface visible to the model" problem F0 (#675)
+  is closing, trading a narrow owned surface for a wide one.
+- **Maintenance is bounded** to the endpoints we actually use (events
+  create/update/list/delete + read). No third-party release cadence to track.
+- **Revisit "buy" only if** we later need many Workspace surfaces
+  (Drive/Docs/Sheets/Gmail) and the per-app build cost compounds — then a
+  self-hosted MCP per-app could amortize. Calendar alone doesn't justify it.
+
+Shape: a deterministic helper under `scripts/` exposing the calendar mechanics;
+the calendar agent keeps only the judgment layer (NL date parsing, disambiguation,
+follow-ups). Credentials follow the `~/.config/felix/` pattern (production home
+under the office2 `claude` user).
 
 ## Q4 — scope + sequencing
 
 Decided (D2): Calendar-first → Mail (F024) → Drive/Docs/Sheets later.
 
-## Q5 — fate of felix-admin-calendar + gog coexistence
+## Q5 — fate of felix-admin-calendar + identity  _(recommendation post-spike, 2026-07-08)_
 
-Open. Hypothesis: felix-admin-calendar **shrinks to the judgment-only layer**
-(NL date parsing, clarification round-trips) over a deterministic calendar
-helper, or dissolves entirely; gog stays for any non-Google or not-yet-migrated
-surface during transition. Also folds the dedicated-vs-shared Felix identity
-sub-note from D1. Resolve after the Calendar-first proof.
+Two sub-questions: **(a) agent fate** and **(b) Felix's production Google identity**.
+
+**(a) felix-admin-calendar shrinks to a judgment-only layer.** It keeps the NL
+comprehension (parse "next Tuesday 3pm", disambiguate, ask follow-ups) and
+delegates all mechanics to the deterministic Calendar helper (Q3). It **stops
+calling gog.** This directly resolves the #679/#680 wall: capture invokes the
+helper (directly, or via the calendar agent's judgment layer) instead of doing
+cross-agent `gog` delegation — which is precisely the haiku-can't-delegate
+failure that broke #679. gog stays **only** for not-yet-migrated Google surfaces
+(mail/drive) during transition, then retires as those migrate (F024+).
+
+**(b) Provision a dedicated `felix@intentional.biz` for production.** The spike
+authorized as `kent@intentional.biz`; production should use a dedicated in-org
+account so Felix's API actions are attributable and separable from Kent's, and so
+rotating/revoking Felix's access never touches Kent's account. Cost: one Workspace
+seat (small). The Stage-B bridge means `felix@` can still manage Kent's **personal**
+calendar via cross-account sharing — no need to authorize as the consumer account.
+Decision deferred to build-time but recommended.
+
+Open at build-time: the helper's token home on office2 (mirror `~/.config/felix/`
+under the `claude` user) and the helper↔gog coexistence window (both can run;
+the helper is the migrated path).
 
 ---
 
@@ -212,21 +249,29 @@ production-time choice (Q5).
 `scripts/google/workspace_auth_spike.py` (see below in the repo). Proves the full
 chain: Internal-app OAuth → refresh token → live Calendar API call.
 
+**Secrets handling (learned 2026-07-08):** put `client_secret.json` in a
+user-only dir OUTSIDE the repo — `~/.config/felix/` (`chmod 700`), which the
+script defaults to (override with `FELIX_GOOGLE_DIR`). Do **not** leave it in
+`~/Downloads` (macOS TCC blocks the terminal from reading Downloads → the OAuth
+open fails `PermissionError`; move it out with Finder or grant the terminal Full
+Disk Access) or in `/tmp` (world-readable + wiped on reboot). The minted
+`token.json` (a real refresh token) is written to the same dir at `0600`; it must
+never be committed (repo `.gitignore` also excludes `token.json` as belt-and-suspenders).
+
 ```bash
 # one-time, on the Mac
-python3 -m venv /tmp/felix-gspike && source /tmp/felix-gspike/bin/activate
-pip install google-api-python-client google-auth-oauthlib
+mkdir -p ~/.config/felix && chmod 700 ~/.config/felix
+mv ~/Downloads/client_secret_*.json ~/.config/felix/client_secret.json  # via Finder if TCC blocks
+python3 -m venv ~/.venvs/felix-gspike && source ~/.venvs/felix-gspike/bin/activate  # durable, not /tmp
+PIP_USER=0 pip install google-api-python-client google-auth-oauthlib      # PIP_USER=0 if user-site is forced
 
 # Stage A — auth + API proof on the authorizing account's own calendar
-python scripts/google/workspace_auth_spike.py \
-  --client-secret /path/to/client_secret.json --stage a
+python scripts/google/workspace_auth_spike.py --stage a
 
 # Stage B — cross-account bridge: create on the shared personal calendar
-python scripts/google/workspace_auth_spike.py \
-  --client-secret /path/to/client_secret.json \
-  --stage b --target-calendar kentgale@gmail.com
+python scripts/google/workspace_auth_spike.py --stage b --target-calendar kentgale@gmail.com
 
-# Q5/F6 longevity — re-run daily past day 7; success = token still refreshes
+# F6 longevity — re-run daily past day 7; success = token still refreshes
 python scripts/google/workspace_auth_spike.py --refresh-only
 ```
 
@@ -241,11 +286,32 @@ Success criteria:
 
 ---
 
+## Spike results — Q1 auth PROVEN _(2026-07-08)_
+
+Both stages passed on the first run against a fresh Internal OAuth app on the
+`intentional.biz` org, authorized as `kent@intentional.biz`:
+
+- **SC-A ✓** — Internal app minted a **long-lived refresh token**
+  (`refresh_token present=True`) and created + read back an event on
+  `kent@intentional.biz`'s primary calendar. Confirms D1's core claim (Internal
+  app ≠ the 7-day Testing-app behavior of #572) and the #572 Option A auth model.
+- **SC-B ✓** — the in-org token created + read back an event on the **personal
+  `kentgale@gmail.com`** calendar via cross-account sharing ("Make changes to
+  events"). Confirms the personal-calendar bridge → removes gog from that path.
+- **SC-F6 (in progress)** — daily `--refresh-only`; verdict ~**2026-07-16**. No
+  `invalid_grant` = the Internal-app token is durable.
+
+**RFC status: cleared to ACCEPT pending the F6 durability confirmation.** The
+make-or-break uncertainty (auth) is resolved empirically; Q2 (cost ~$0), Q3
+(build), Q4 (calendar-first), Q5 (judgment-layer agent + dedicated identity) are
+all decided or recommended above.
+
 ## Open items / next
 
-- [ ] Kent runs the runbook steps 1–5.
-- [ ] Run spike Stage A → SC-A; Stage B → SC-B.
-- [ ] Start the F6 daily longevity check; verdict ~day 8.
-- [ ] On green: RFC moves toward **accept**; write up Q3 (build-vs-buy for
-      Calendar) + Q5 (agent fate, dedicated identity) and convert to a
-      feature/infra issue for the Calendar helper build.
+- [x] Kent runs the console runbook (project + Internal consent + Calendar API +
+      Desktop OAuth client). _(2026-07-08)_
+- [x] Run spike Stage A → SC-A; Stage B → SC-B. _(both green 2026-07-08)_
+- [ ] F6 daily longevity check → verdict ~2026-07-16.
+- [ ] On F6 green: mark RFC **accepted** and convert to a **feature issue** for
+      the Calendar-helper build (deterministic helper on `google-api-python-client`
+      per Q3; judgment-only calendar agent + `felix@intentional.biz` per Q5).
