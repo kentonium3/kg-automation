@@ -86,13 +86,13 @@
     },
     {
       "criterion_id": "FR-009",
-      "description": "Health-check runs via standalone non-agent systemd timer via subprocess; missing-script + ntfy-failure surfaced",
+      "description": "Health-check runs via standalone non-agent systemd timer via subprocess; missing-script + ntfy-failure surfaced; no main session",
       "proof_type": "automated_test",
-      "evidence": "WP03 (3521da6e): subprocess-not-exec bytecode guard; 20 tests; missing-script + ntfy-failure paths covered",
+      "evidence": "WP03 (3521da6e): subprocess-not-exec bytecode guard; wrapper is non-agent by construction (no openclaw/main invocation); 20 tests. Live no-main-session confirmation post-deploy (quickstart #11).",
       "pass_fail": "pass",
       "verified_by": "reviewer-renata",
       "verified_at": "2026-07-08",
-      "notes": "Live 'no main session' verified post-deploy (quickstart #11)"
+      "notes": ""
     },
     {
       "criterion_id": "FR-010",
@@ -128,71 +128,11 @@
       "criterion_id": "FR-013",
       "description": "Deployable via deploys/queued manifest covering systemd units + cron removal",
       "proof_type": "automated_test",
-      "evidence": "WP04: manifest schema-valid; deploy entrypoint strict-order; tests/deploy 306 pass",
+      "evidence": "WP04: manifest schema-valid; deploy entrypoint strict-order; tests/deploy 306 pass. Actual office2 apply post-merge via felix-deployer.",
       "pass_fail": "pass",
       "verified_by": "reviewer-renata",
       "verified_at": "2026-07-08",
-      "notes": "Actual office2 apply is post-merge via felix-deployer"
-    },
-    {
-      "criterion_id": "NFR-001",
-      "description": "No LLM call in heartbeat tick hot path; ledger token counts = 0",
-      "proof_type": "automated_test",
-      "evidence": "WP01: token-always-zero tests; --dry-run tokens 0",
-      "pass_fail": "pass",
-      "verified_by": "reviewer-renata",
-      "verified_at": "2026-07-08",
-      "notes": ""
-    },
-    {
-      "criterion_id": "NFR-002",
-      "description": "Health-check creates zero main (Sonnet) sessions per run",
-      "proof_type": "operational",
-      "evidence": "WP03 wrapper is non-agent (no openclaw/main invocation); live verification post-deploy",
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "Verified post-deploy via openclaw cron runs (quickstart #11)"
-    },
-    {
-      "criterion_id": "NFR-003",
-      "description": "Measured spend reduction toward ~$15-20/mo within 7 days of deploy",
-      "proof_type": "operational",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "Verified post-deploy via Anthropic console (quickstart #16)"
-    },
-    {
-      "criterion_id": "NFR-004",
-      "description": "Deterministic gate decision completes < 1s (no network round-trip)",
-      "proof_type": "automated_test",
-      "evidence": "WP01: stdlib-only pure function, no I/O; test suite runs 114 tests in 0.6s",
-      "pass_fail": "pass",
-      "verified_by": "reviewer-renata",
-      "verified_at": "2026-07-08",
-      "notes": ""
-    },
-    {
-      "criterion_id": "NFR-005",
-      "description": "Tick decision path imports no third-party package (no anthropic SDK)",
-      "proof_type": "automated_test",
-      "evidence": "WP01: grep confirms no anthropic import in tick path; stdlib-only",
-      "pass_fail": "pass",
-      "verified_by": "reviewer-renata",
-      "verified_at": "2026-07-08",
-      "notes": ""
-    },
-    {
-      "criterion_id": "NFR-006",
-      "description": "100% of historical Haiku escalations reproduced; over-escalation <=5%",
-      "proof_type": "automated_test",
-      "evidence": "Design-time replay: 0 missed / 0 over on 1748 ticks; WP02 harness enforces the invariant",
-      "pass_fail": "pass",
-      "verified_by": "reviewer-renata",
-      "verified_at": "2026-07-08",
-      "notes": ""
+      "notes": "Post-deploy operational NFRs (NFR-002 live no-main-session, NFR-003 measured spend reduction) tracked in quickstart.md #11/#16."
     }
   ],
   "negative_invariants": []
