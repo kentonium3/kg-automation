@@ -16,20 +16,20 @@ synthetic label fixtures, and the health-check test matrix).
 | T004 | Remove `--api-key`/`--prompt` + `anthropic` from the tick path (no vestiges) | WP01 | | [D] |
 | T005 | Update `test_gate_routing.py` + `test_run.py` (deterministic + malformed→fallback) | WP01 | | [D] |
 | T006 | Retire/neutralize the routing prompt + measure-tokens LLM baseline if now dead | WP01 | | [D] |
-| T007 | Implement `validate_ledger.py` (replay; assert 0 missed; report over-escalation %) | WP02 | | [D] |
-| T008 | Commit a fixture `gate-ledger.jsonl` (escalate + both non-escalate labels) | WP02 | [D] |
-| T009 | Synthetic `GateContext` fixtures + tests for the 3-label split | WP02 | | [D] |
-| T010 | Test `validate_ledger` against the fixture; wire into pytest | WP02 | | [D] |
+| T007 | Implement `validate_ledger.py` (replay; assert 0 missed; report over-escalation %) | WP02 | |
+| T008 | Commit a fixture `gate-ledger.jsonl` (escalate + both non-escalate labels) | WP02 | [P] |
+| T009 | Synthetic `GateContext` fixtures + tests for the 3-label split | WP02 | |
+| T010 | Test `validate_ledger` against the fixture; wire into pytest | WP02 | |
 | T011 | Health-check wrapper (subprocess, precedence, signal file, ntfy, truncation) | WP03 | | [D] |
 | T012 | `felix-health-check.service` (mirrors credential-health-check.service) | WP03 | [D] |
 | T013 | `felix-health-check.timer` (OnCalendar 11:00 + 23:00) | WP03 | [D] |
 | T014 | Deploy script `scripts/office2/deploy/felix-health-check.sh` (+ preflight) | WP03 | | [D] |
 | T015 | Wrapper test matrix (both-token / stderr / non-zero+healthy / missing / truncation / ntfy-fail) | WP03 | | [D] |
-| T016 | Author `deploys/queued/deterministic-monitoring-checks.yaml` manifest | WP04 | | [D] |
-| T017 | Resolve cron-removal path (felix-deployer happy-path vs out-of-band) + encode | WP04 | | [D] |
-| T018 | Update `service-inventory.json` (+ md view); `updated_by=676` | WP04 | [D] |
-| T019 | Review/update `AGENT-REGISTRY.md` for main's reduced scheduled workload | WP04 | [D] |
-| T020 | Record rebaseline obligation (systemd units + openclaw config) in deploy notes | WP04 | | [D] |
+| T016 | Author `deploys/queued/deterministic-monitoring-checks.yaml` manifest | WP04 | |
+| T017 | Resolve cron-removal path (felix-deployer happy-path vs out-of-band) + encode | WP04 | |
+| T018 | Update `service-inventory.json` (+ md view); `updated_by=676` | WP04 | [P] |
+| T019 | Review/update `AGENT-REGISTRY.md` for main's reduced scheduled workload | WP04 | [P] |
+| T020 | Record rebaseline obligation (systemd units + openclaw config) in deploy notes | WP04 | |
 
 ## Work Packages
 

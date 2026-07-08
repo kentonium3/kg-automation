@@ -1,8 +1,10 @@
-"""End-to-end tests for ``heartbeat_gate.run`` (WP-03 T021).
+"""End-to-end tests for ``heartbeat_gate.run`` (#676 -- deterministic gate).
 
-These tests exercise the orchestrator with all external dependencies
-mocked: Anthropic SDK (via the ``client_factory`` override) and the
-escalator (via the ``escalator_fn`` override).
+These tests exercise the orchestrator with the escalator mocked (via
+the ``escalator_fn`` override). The gate decision itself is no longer
+an external dependency -- ``decide_deterministic`` is pure Python, so
+these tests drive it via real ``last-tick.json`` / ``HEARTBEAT.md``
+fixtures rather than a fake LLM client.
 """
 from __future__ import annotations
 
@@ -17,24 +19,12 @@ from scripts.openclaw.heartbeat_gate import gate as _gate
 from scripts.openclaw.heartbeat_gate import run as _run
 from scripts.openclaw.heartbeat_gate.escalator import EscalationResult
 from scripts.openclaw.heartbeat_gate.ledger import GateTickRecord, SCHEMA_VERSION
-from scripts.openclaw.heartbeat_gate.tests.conftest import (
-    make_client_factory,
-    write_last_tick,
-)
-
-
-PROMPT_PATH = (
-    Path(__file__).resolve().parents[1] / "prompts" / "routing.prompt.md"
-)
+from scripts.openclaw.heartbeat_gate.tests.conftest import write_last_tick
 
 
 def _make_paths(tmp_path: Path) -> dict[str, Path]:
     """Common path bundle for run_tick calls."""
-    api_key = tmp_path / "anthropic.key"
-    api_key.write_text("test-key")
     return {
-        "api_key_path": api_key,
-        "prompt_path": PROMPT_PATH,
         "last_decision_path": tmp_path / "last-gate-decision.json",
         "ledger_path": tmp_path / "gate-ledger.jsonl",
         "heartbeat_md_path": tmp_path / "HEARTBEAT.md",
@@ -63,14 +53,10 @@ def test_run_heartbeat_ok_no_escalation(tmp_path: Path) -> None:
     write_last_tick(tmp_path / "last-tick.json")
     paths["heartbeat_md_path"].write_text("")
 
-    client_factory = make_client_factory(
-        response_text='{"outcome": "HEARTBEAT_OK", "reason": "all clean"}',
-    )
     escalator = _fake_escalator()
     record = _run.run_tick(
         last_tick_path=tmp_path / "last-tick.json",
         **paths,
-        client_factory=client_factory,
         escalator_fn=escalator,
     )
 
@@ -84,19 +70,24 @@ def test_run_heartbeat_ok_no_escalation(tmp_path: Path) -> None:
     payload = json.loads(paths["last_decision_path"].read_text())
     assert payload["schema_version"] == SCHEMA_VERSION
     assert payload["outcome"] == "HEARTBEAT_OK"
+    # No LLM call in the tick path -- tokens are always zero.
+    assert payload["gate_input_tokens"] == 0
+    assert payload["gate_cache_hit_tokens"] == 0
+    assert payload["gate_output_tokens"] == 0
 
 
 def test_run_log_and_skip_no_escalation(tmp_path: Path) -> None:
     paths = _make_paths(tmp_path)
-    write_last_tick(tmp_path / "last-tick.json")
-    client_factory = make_client_factory(
-        response_text='{"outcome": "LOG_AND_SKIP", "reason": "noisy single event"}',
+    write_last_tick(
+        tmp_path / "last-tick.json",
+        issues_filed=[
+            {"signal_id": "whatsapp_creds_restore", "issue_number": 491}
+        ],
     )
     escalator = _fake_escalator()
     record = _run.run_tick(
         last_tick_path=tmp_path / "last-tick.json",
         **paths,
-        client_factory=client_factory,
         escalator_fn=escalator,
     )
     assert record.outcome == "LOG_AND_SKIP"
@@ -129,40 +120,47 @@ def test_run_escalate_invokes_escalator_with_reason(tmp_path: Path) -> None:
             }
         ],
     )
-    client_factory = make_client_factory(
-        response_text=(
-            '{"outcome": "ESCALATE_TO_SONNET", '
-            '"reason": "Signal whatsapp_creds_restore tripped both."}'
-        ),
-    )
     escalator = _fake_escalator(event_id="evt_42")
     record = _run.run_tick(
         last_tick_path=tmp_path / "last-tick.json",
         **paths,
-        client_factory=client_factory,
         escalator_fn=escalator,
     )
     assert record.outcome == "ESCALATE_TO_SONNET"
     assert record.fallback_invoked is False
     assert record.escalated_event_id == "evt_42"
-    # Escalator received the gate's reason, NOT the fallback text.
-    assert escalator.calls[0][0].startswith("Signal whatsapp_creds_restore")  # type: ignore[attr-defined]
+    # Escalator received the gate's reason, citing the novelty marker.
+    assert "whatsapp_creds_restore" in escalator.calls[0][0]  # type: ignore[attr-defined]
     # novelty_markers recorded in ledger.
     payload = json.loads(paths["last_decision_path"].read_text())
     assert payload["novelty_markers_seen"] == ["whatsapp_creds_restore"]
 
 
-def test_run_escalator_failure_recorded_in_errors(tmp_path: Path) -> None:
+def test_run_escalate_on_heartbeat_has_tasks(tmp_path: Path) -> None:
     paths = _make_paths(tmp_path)
     write_last_tick(tmp_path / "last-tick.json")
-    client_factory = make_client_factory(
-        response_text='{"outcome": "ESCALATE_TO_SONNET", "reason": "test"}',
+    paths["heartbeat_md_path"].write_text("Please check the mail backlog.\n")
+
+    escalator = _fake_escalator(event_id="evt_task")
+    record = _run.run_tick(
+        last_tick_path=tmp_path / "last-tick.json",
+        **paths,
+        escalator_fn=escalator,
+    )
+    assert record.outcome == "ESCALATE_TO_SONNET"
+    assert "heartbeat contract has tasks" in escalator.calls[0][0]  # type: ignore[attr-defined]
+
+
+def test_run_escalator_failure_recorded_in_errors(tmp_path: Path) -> None:
+    paths = _make_paths(tmp_path)
+    write_last_tick(
+        tmp_path / "last-tick.json",
+        errors=[{"error_type": "source_missing", "error_message": "x"}],
     )
     escalator = _fake_escalator(event_id=None, error="openclaw not on path")
     record = _run.run_tick(
         last_tick_path=tmp_path / "last-tick.json",
         **paths,
-        client_factory=client_factory,
         escalator_fn=escalator,
     )
     assert record.outcome == "ESCALATE_TO_SONNET"
@@ -181,13 +179,11 @@ def test_run_fallback_on_missing_tick_file(tmp_path: Path) -> None:
     paths = _make_paths(tmp_path)
     # No last-tick.json written -> MissingTickError -> fallback.
     paths["heartbeat_md_path"].write_text("")
-    client_factory = make_client_factory()
     escalator = _fake_escalator(event_id="evt_fallback")
 
     record = _run.run_tick(
         last_tick_path=tmp_path / "nope.json",
         **paths,
-        client_factory=client_factory,
         escalator_fn=escalator,
     )
     assert record.fallback_invoked is True
@@ -206,13 +202,11 @@ def test_run_fallback_on_missing_tick_file(tmp_path: Path) -> None:
 def test_run_fallback_on_malformed_tick_json(tmp_path: Path) -> None:
     paths = _make_paths(tmp_path)
     (tmp_path / "last-tick.json").write_text("{not json")
-    client_factory = make_client_factory()
     escalator = _fake_escalator(event_id="evt_fb")
 
     record = _run.run_tick(
         last_tick_path=tmp_path / "last-tick.json",
         **paths,
-        client_factory=client_factory,
         escalator_fn=escalator,
     )
     assert record.fallback_invoked is True
@@ -221,54 +215,65 @@ def test_run_fallback_on_malformed_tick_json(tmp_path: Path) -> None:
     )
 
 
-def test_run_fallback_on_gate_routing_error(tmp_path: Path) -> None:
+def test_run_fallback_on_malformed_context_proves_decide_fail_safe(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Malformed-but-loaded tick payload: step 1 succeeds (context loads),
+    but ``decide_deterministic`` is monkeypatched to raise, simulating an
+    unanticipated implementation bug. Proves step 2's broadened
+    ``except Exception`` routes to the FAIL-SAFE fallback path
+    (``fallback_invoked=True``, exit 0 at the CLI layer) -- NOT the
+    unhandled-exception emergency path (exit 1). This is the load-bearing
+    test for Codex finding #2 / FR-007.
+    """
     paths = _make_paths(tmp_path)
     write_last_tick(tmp_path / "last-tick.json")
 
-    # The Haiku returns malformed JSON on both attempts -> GateRoutingError.
-    client_factory = make_client_factory(
-        response_text="garbage",
-        additional_responses=[
-            type(
-                "R",
-                (),
-                {"content": [type("B", (), {"text": "garbage2"})()], "usage": None},
-            )()
-        ],
-    )
+    def _boom(context: Any) -> _gate.GateDecision:
+        raise TypeError("simulated implementation bug in decide_deterministic")
 
-    escalator = _fake_escalator(event_id="evt_fb2")
+    monkeypatch.setattr(_run._gate, "decide_deterministic", _boom)
+
+    escalator = _fake_escalator(event_id="evt_malformed")
     record = _run.run_tick(
         last_tick_path=tmp_path / "last-tick.json",
         **paths,
-        client_factory=client_factory,
         escalator_fn=escalator,
     )
+
     assert record.fallback_invoked is True
+    assert record.outcome == "ESCALATE_TO_SONNET"
     assert record.reason == _run.FALLBACK_REASON_DEFAULT
+    assert record.gate_input_tokens == 0
+    assert record.escalated_event_id == "evt_malformed"
     assert any(
-        err["error_type"] == "gate_routing_failed" for err in record.errors
+        err["error_type"] == "gate_decision_failed" for err in record.errors
     )
-    # Escalator was called with the fallback reason (not the failed parse).
-    assert escalator.calls[0][0] == _run.FALLBACK_REASON_DEFAULT  # type: ignore[attr-defined]
+    # Ledger written -- the fail-safe path always persists.
+    assert paths["last_decision_path"].exists()
+    assert paths["ledger_path"].exists()
 
-
-def test_run_fallback_on_missing_api_key(tmp_path: Path) -> None:
-    paths = _make_paths(tmp_path)
-    write_last_tick(tmp_path / "last-tick.json")
-    paths["api_key_path"] = tmp_path / "nope.key"  # does not exist
-    client_factory = make_client_factory()
-    escalator = _fake_escalator()
-    record = _run.run_tick(
-        last_tick_path=tmp_path / "last-tick.json",
-        **paths,
-        client_factory=client_factory,
-        escalator_fn=escalator,
+    # Now prove the SAME scenario exits 0 through main(), not 1 -- the
+    # fail-safe, not the emergency exit-1 path.
+    argv = [
+        "--last-tick",
+        str(tmp_path / "last-tick.json"),
+        "--heartbeat-md",
+        str(paths["heartbeat_md_path"]),
+        "--last-decision",
+        str(paths["last_decision_path"]),
+        "--ledger",
+        str(paths["ledger_path"]),
+    ]
+    monkeypatch.setattr(
+        _run._escalator,
+        "escalate",
+        lambda reason, **kw: EscalationResult(
+            escalated_event_id="evt_malformed_cli", error=None
+        ),
     )
-    assert record.fallback_invoked is True
-    assert any(
-        err["error_type"] == "api_key_missing" for err in record.errors
-    )
+    rc = _run.main(argv)
+    assert rc == 0
 
 
 # ---------------------------------------------------------------------------
@@ -279,14 +284,10 @@ def test_run_fallback_on_missing_api_key(tmp_path: Path) -> None:
 def test_run_dry_run_skips_persistence_and_escalation(tmp_path: Path) -> None:
     paths = _make_paths(tmp_path)
     write_last_tick(tmp_path / "last-tick.json")
-    client_factory = make_client_factory(
-        response_text='{"outcome": "HEARTBEAT_OK", "reason": "dry"}',
-    )
     escalator = _fake_escalator()
     record = _run.run_tick(
         last_tick_path=tmp_path / "last-tick.json",
         **paths,
-        client_factory=client_factory,
         escalator_fn=escalator,
         dry_run=True,
     )
@@ -304,33 +305,16 @@ def test_run_dry_run_skips_persistence_and_escalation(tmp_path: Path) -> None:
 
 def test_main_dry_run_exits_zero(
     tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture,
 ) -> None:
     paths = _make_paths(tmp_path)
     write_last_tick(tmp_path / "last-tick.json")
-
-    # Patch the decide() function so main() does not need a real API call.
-    def fake_decide(context, **kwargs):  # type: ignore[no-untyped-def]
-        return _gate.GateDecision(
-            outcome="HEARTBEAT_OK",
-            reason="ok",
-            input_tokens=10,
-            cache_hit_tokens=5,
-            output_tokens=3,
-        )
-
-    monkeypatch.setattr(_run._gate, "decide", fake_decide)
 
     argv = [
         "--last-tick",
         str(tmp_path / "last-tick.json"),
         "--heartbeat-md",
         str(paths["heartbeat_md_path"]),
-        "--api-key",
-        str(paths["api_key_path"]),
-        "--prompt",
-        str(paths["prompt_path"]),
         "--last-decision",
         str(paths["last_decision_path"]),
         "--ledger",
@@ -342,6 +326,8 @@ def test_main_dry_run_exits_zero(
     assert rc == 0
     assert "[DRY-RUN]" in captured.out
     assert "SUMMARY:" in captured.out
+    # No LLM in the tick path -- tokens print as zero.
+    assert "tokens=in:0(cache:0)/out:0" in captured.out
 
 
 def test_main_unhandled_exception_writes_emergency_record(
@@ -371,10 +357,6 @@ def test_main_unhandled_exception_writes_emergency_record(
         str(tmp_path / "last-tick.json"),
         "--heartbeat-md",
         str(paths["heartbeat_md_path"]),
-        "--api-key",
-        str(paths["api_key_path"]),
-        "--prompt",
-        str(paths["prompt_path"]),
         "--last-decision",
         str(paths["last_decision_path"]),
         "--ledger",
@@ -398,17 +380,17 @@ def test_summary_line_includes_token_counts(tmp_path: Path) -> None:
         heartbeat_md_state="empty",
         outcome="HEARTBEAT_OK",
         reason="ok",
-        gate_input_tokens=120,
-        gate_cache_hit_tokens=100,
-        gate_output_tokens=8,
+        gate_input_tokens=0,
+        gate_cache_hit_tokens=0,
+        gate_output_tokens=0,
     )
     line = _run._summary_line(record, dry_run=False)
     assert "outcome=HEARTBEAT_OK" in line
     assert "fallback=False" in line
     assert "dur=1234ms" in line
-    assert "in:120" in line
-    assert "cache:100" in line
-    assert "out:8" in line
+    assert "in:0" in line
+    assert "cache:0" in line
+    assert "out:0" in line
 
 
 # ---------------------------------------------------------------------------

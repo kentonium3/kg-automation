@@ -6,6 +6,19 @@ mission: signal-driven-monitoring-haiku-gate-01KT22PC
 fr_refs: [FR-007, FR-008, FR-010, FR-011]
 ---
 
+<!--
+DEPRECATED (#676): retained for history; no longer executed.
+
+This prompt drove the Haiku `gate.decide()` call, retired 2026-07-08
+by the deterministic-monitoring-checks mission. The routing decision
+described below is now implemented directly as Python boolean logic in
+`scripts/openclaw/heartbeat_gate/gate.py::decide_deterministic` (see
+`kitty-specs/deterministic-monitoring-checks-01KX1XNW/contracts/
+escalation-rule.contract.md` for the authoritative truth table). No
+runtime code reads this file anymore. It is kept as documentation of
+the routing rule's original rationale and worked examples.
+-->
+
 # Felix Heartbeat Routing — Boilerplate (cached)
 
 [CACHE_PREFIX_START]

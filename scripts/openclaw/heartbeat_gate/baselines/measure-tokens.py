@@ -6,6 +6,24 @@ NFR-001's ≥80% reduction can be measured post-deploy. The output
 matches the shape of
 ``docs/design/architecture/baselines/felix-doc-auditor-pre-rework.json``.
 
+.. note:: PARTIALLY STALE (#676, 2026-07-08)
+
+   This script measures the **pre-rollout Sonnet** heartbeat cost (the
+   "every heartbeat invokes Sonnet directly" era, before the Haiku gate
+   existed at all) by walking historical OpenClaw session logs. That
+   measurement is still historically valid and this script still runs.
+
+   However, the ``haiku_input_usd_per_mtok`` / ``haiku_output_usd_per_mtok``
+   pricing constants below, and the "post-rollout Haiku comparison"
+   framing in the methodology text, refer to the Haiku-fronted
+   ``gate.decide()`` call that #676 retired in favor of
+   ``gate.decide_deterministic()`` (pure Python, zero tokens, zero
+   cost). There is no longer a Haiku cost to compare against -- the
+   post-#676 per-tick cost is $0 by construction. The Haiku pricing
+   constants are retained here only as a historical record of the
+   intermediate (Haiku-gate) architecture's assumed cost; do not use
+   them to project current or future spend.
+
 Modes
 -----
 

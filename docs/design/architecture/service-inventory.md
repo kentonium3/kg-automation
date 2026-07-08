@@ -40,7 +40,8 @@ All services run on office2 unless otherwise noted.
 | Doc Audit Poll | ⏸ Suspended 2026-05-26 (was: every 60 min top of hour UTC) | `felix-doc-auditor.timer` (systemd, currently **disabled**) → `/usr/bin/python3 /home/claude/kg-automation/scripts/doc_audit/run.py` (#343 scripts-first driver) | claude | Process Doc Audit / Weekly Doc Audit issues — **paused indefinitely** pending #137 cost-control work |
 | Second Brain Sync | Every 15 min | `second-brain-sync.timer` (systemd) | kgale | Bidirectional git sync for non-vault content |
 | Felix Core Digest | Every 15 min | `felix-core-digest.timer` (systemd, two chained ExecStart post-#490) | claude | Agent activity log summarization → Obsidian digests + deterministic OpenClaw-log signal extraction → GitHub issues via kg-felix-bot (#490) |
-| Felix Heartbeat Gate | Every 30 min (OnUnitActiveSec=30min, OnBootSec=5min) | `felix-heartbeat-gate.timer` (systemd, #490) → `/usr/bin/python3 /home/claude/repos/kg-automation/scripts/openclaw/heartbeat_gate/run.py` | claude | Routes each OpenClaw heartbeat tick via claude-haiku-4-5; only escalates to Sonnet 4.6 on novel signal / contract task / fallback. Replaces OpenClaw's internal heartbeat. (#490) |
+| Felix Heartbeat Gate | Every 30 min (OnUnitActiveSec=30min, OnBootSec=5min) | `felix-heartbeat-gate.timer` (systemd, #490) → `/usr/bin/python3 /home/claude/repos/kg-automation/scripts/openclaw/heartbeat_gate/run.py` | claude | Routes each OpenClaw heartbeat tick via a **deterministic stdlib rule** (no LLM call, post-#676); only escalates to Sonnet 4.6 on novel signal / contract task / fallback. Replaces OpenClaw's internal heartbeat. (#490; determinized by #676) |
+| Felix Health Check | Twice daily 11:00 + 23:00 local | `felix-health-check.timer` (systemd, #676) → `python3 -m scripts.office2.felix_health_check.run` | claude | Runs the existing bash health check off the Sonnet `main` agent (zero `main` sessions per run); ntfy alert on failure. Replaces the openclaw crons `health-check-morning` / `health-check-evening`. (#676) |
 | Felix Habit Sweeper | 7:30 AM ET daily (`OnCalendar=*-*-* 07:30 America/New_York`) | `felix-habit-sweeper.timer` (systemd, #408) → `/usr/bin/python3 /home/claude/kg-automation/scripts/habits/sweeper.py` | claude | Daily 48hr auto-skip pass for habit check-ins — marks unresolved habits as `auto_skipped` and advances day-specific habit `due_date` to the next designated weekday EOD-ET. Deterministic, zero LLM calls. (#408) |
 | Agent Prompt Sync | Every 5 min after last tick (`OnUnitInactiveSec=300s`) | `agent-prompt-sync.timer` (systemd, #567) → `/usr/bin/python3 -m scripts.openclaw.deploy.deploy_agent_prompts` | claude | Pull-based deploy pipeline. Each tick `git pull --ff-only` then MD5-compare + atomic-copy any drifted agent prompt file from repo into `/data/services/openclaw/<deploy-dir>/`. Slug → deploy-dir mapping is NOT 1:1 (see Agent Prompt Deploy Pipeline section below). Deterministic, zero LLM calls. (#567) |
 | Felix-Deployer | Every 5 min (`felix-deployer.timer`, systemd-user, #136) | `/usr/bin/python3 scripts/deploy/felix-deployer/deployer.py` (Type=oneshot) | claude | Pull-based deploy applier. Each tick `git pull` then scans `deploys/queued/*.yaml`, applies each via `scripts/deploy/lib/`, dispatches **ntfy.sh push notification on failure** (substrate set by #595, replaces broken openclaw-cron WhatsApp DM path). Reads `FELIX_DEPLOYER_NTFY_TOPIC` from `EnvironmentFile=-/home/claude/.config/felix-deployer/env` (non-fatal if missing). Outbound dep: `ntfy.sh:443/tcp`. Runbook: [`deploy/discipline.md`](../runbooks/deploy/discipline.md). |
@@ -565,23 +566,24 @@ Per-module metadata mirrors `docs/design/architecture/data/service-inventory.jso
 - **Health check (post-#490)**: `/data/services/openclaw/felix-core-digest-signals/last-tick.json` — `exit_status=success` within last 30 minutes, `errors=[]` (see `kitty-specs/signal-driven-monitoring-haiku-gate-01KT22PC/contracts/tick-signal.contract.md`)
 - **Runbook**: `docs/runbooks/observation-ops.md` (summary digest); `docs/runbooks/signal-driven-monitoring-ops.md` (signal extraction + cutover, #490)
 
-### Felix Heartbeat Gate (#490, signal-driven-monitoring-haiku-gate)
-- **Deployed by**: #490 / mission `signal-driven-monitoring-haiku-gate-01KT22PC`
-- **Type**: systemd user timer + oneshot service (Haiku-tier routing gate for OpenClaw's heartbeat)
+### Felix Heartbeat Gate (#490, signal-driven-monitoring-haiku-gate; determinized #676)
+- **Deployed by**: #490 / mission `signal-driven-monitoring-haiku-gate-01KT22PC`; determinized by #676 / mission `deterministic-monitoring-checks-01KX1XNW`
+- **Type**: systemd user timer + oneshot service (**deterministic** stdlib routing gate for OpenClaw's heartbeat — no LLM call, post-#676; previously Haiku-tier)
 - **systemd unit**: `felix-heartbeat-gate.timer` + `felix-heartbeat-gate.service` (user unit under claude)
 - **Schedule**: `OnUnitActiveSec=30min`, `OnBootSec=5min`, `Persistent=true`. The 5-min boot offset (vs `felix-core-digest.timer`'s 3-min) avoids lockstep contention.
 - **Runs as**: claude user
 - **ExecStart**: `/usr/bin/python3 /home/claude/repos/kg-automation/scripts/openclaw/heartbeat_gate/run.py`
 - **Session mode**: stateless per tick — each invocation is a fresh Python process; nothing carried between ticks except via filesystem (`last-gate-decision.json`, `gate-ledger.jsonl`, `HEARTBEAT.md`).
-- **Model**: `claude-haiku-4-5` (anthropic SDK, direct — no openclaw-gateway proxy in path). Pinned.
-- **Inputs**: `/data/services/openclaw/felix-core-digest-signals/last-tick.json` (primary), `/data/services/openclaw/data/HEARTBEAT.md` (contract file, FR-010), `/data/services/openclaw/secrets/anthropic` (API key, 0600 — never logged).
-- **Outputs**: `last-gate-decision.json` (canonical health surface, overwritten each tick), `gate-ledger.jsonl` (append-only per-tick ledger backing NFR-001 cost telemetry).
-- **Escalation surface**: on `ESCALATE_TO_SONNET` or fallback (FR-011), invokes `openclaw system event --mode now` exactly once per tick to wake the existing Sonnet 4.6 main-agent path.
-- **Cutover note (Tier 2)**: this gate replaces OpenClaw's internal heartbeat. The cutover step `openclaw system heartbeat disable` is Tier 2 — requires Restic backup currency check. See the runbook.
-- **Source in repo**: `scripts/openclaw/heartbeat_gate/` (run.py, gate.py, context.py, escalator.py, ledger.py, prompts/routing.prompt.md)
+- **Model**: **none** (post-#676) — the tick decision (`decide_deterministic(context)`) is Python-standard-library-only; no `anthropic` SDK import, no API key read in the hot path. Formerly `claude-haiku-4-5` (anthropic SDK, direct, pinned) prior to #676.
+- **Inputs**: `/data/services/openclaw/felix-core-digest-signals/last-tick.json` (primary), `/data/services/openclaw/data/HEARTBEAT.md` (contract file, FR-010 of the original mission).
+- **Outputs**: `last-gate-decision.json` (canonical health surface, overwritten each tick; token fields always `0` post-#676), `gate-ledger.jsonl` (append-only per-tick ledger backing NFR-001/NFR-003 cost telemetry).
+- **Escalation surface**: on `ESCALATE_TO_SONNET` or fallback (fail-safe, FR-007 of #676), invokes `openclaw system event --mode now` exactly once per tick to wake the existing Sonnet 4.6 main-agent path — unchanged from the original mission.
+- **Determinism (#676)**: `decide_deterministic(context)` reproduces the former routing prompt's boolean escalation contract exactly (`novelty_markers` non-empty OR `heartbeat_md_state == "has_tasks"` OR `errors` non-empty → `ESCALATE_TO_SONNET`); validated against the full historical `gate-ledger.jsonl` before cutover — 0 missed escalations (INV-006), over-escalation ≤5%. See `scripts/openclaw/heartbeat_gate/validate_ledger.py`.
+- **Cutover note (Tier 2, original mission)**: the original #490 cutover step `openclaw system heartbeat disable` was Tier 2 — requires Restic backup currency check. #676 is Tier 3 (logic-only change to an already-running deterministic timer; no new systemd cutover against OpenClaw's internal heartbeat).
+- **Source in repo**: `scripts/openclaw/heartbeat_gate/` (run.py, gate.py, context.py, escalator.py, ledger.py, validate_ledger.py). `prompts/routing.prompt.md` is retained in the repo as historical reference for the boolean contract it specified, but is no longer read by the tick path.
 - **Health check**: `/data/services/openclaw/felix-heartbeat-gate/last-gate-decision.json` — `outcome ∈ {HEARTBEAT_OK, LOG_AND_SKIP, ESCALATE_TO_SONNET}` within last 35 min, `errors=[]`, `fallback_invoked=false` on the steady state.
 - **Runbook**: `docs/runbooks/signal-driven-monitoring-ops.md`
-- **Mission context**: `kitty-specs/signal-driven-monitoring-haiku-gate-01KT22PC/spec.md`
+- **Mission context**: `kitty-specs/signal-driven-monitoring-haiku-gate-01KT22PC/spec.md` (original); `kitty-specs/deterministic-monitoring-checks-01KX1XNW/spec.md` (determinization)
 
 ### Felix Habit Sweeper (#408, 2026-06-02)
 - **Deployed by**: #408 / mission `habit-day-specific-scheduling-01KT48Y6`
@@ -601,6 +603,18 @@ Per-module metadata mirrors `docs/design/architecture/data/service-inventory.jso
 - **Source in repo**: `scripts/habits/sweeper.py` (~700 lines) + `scripts/office2/felix-habit-sweeper.{service,timer}`
 - **Runbook**: `docs/runbooks/habits-ops.md`
 - **Mission context**: `kitty-specs/habit-day-specific-scheduling-01KT48Y6/spec.md`
+
+### Felix Health Check (#676, 2026-07-08)
+- **Deployed by**: #676 / mission `deterministic-monitoring-checks-01KX1XNW`
+- **Type**: systemd user timer + oneshot service (no LLM — the existing bash health check's assertions are reused unchanged; only the execution path moves off the Sonnet `main` agent)
+- **Schedule**: twice daily via `felix-health-check.timer` (`OnCalendar=*-*-* 11:00:00` + `OnCalendar=*-*-* 23:00:00`, `Persistent=true`) — matches the two removed crons' `0 11 * * *` / `0 23 * * *`, cadence unchanged (FR-010)
+- **Per-tick invocation**: `felix-health-check.service` runs `/usr/bin/python3 -m scripts.office2.felix_health_check.run`, which subprocesses (never `exec`s) `/home/claude/helper-scripts/health-check.sh` and classifies the result with failure-wins precedence (`FAILURES_DETECTED` > `ALL_HEALTHY` > `UNKNOWN`/`SCRIPT_MISSING`)
+- **Source in repo**: `scripts/office2/felix_health_check/` (package: `__init__.py`, `run.py`, `tests/`)
+- **Purpose**: replaces the two openclaw crons `health-check-morning` / `health-check-evening`, which ran the same bash check but **through a full Sonnet `main` session** (mostly cache-write cost, ~$12/mo, NFR-003). The new timer creates zero `main` sessions per run (NFR-002, verified via `openclaw cron runs`).
+- **Alert path**: ntfy.sh push on any non-healthy outcome (`FAILURES_DETECTED` / `UNKNOWN` / `SCRIPT_MISSING`), Title `Felix Health Check — office2`, Priority `high`, full (bounded/truncated) output. Healthy runs are silent — only a signal-file stamp, no push. **Delivery-channel change**: WhatsApp → ntfy (research R5 — a non-agent timer avoids re-coupling to the openclaw/WhatsApp messaging capability being removed). An ntfy-send failure is logged (journal + signal file `delivery` field), non-fatal.
+- **Health check (self)**: `/data/services/openclaw/felix-health-check/last-run.json` — `status`, `ran_at_utc`, `exit_code`, `delivery`.
+- **Cron removal**: `health-check-morning` / `health-check-evening` are removed via `openclaw cron rm <id>` by the deploy manifest's entrypoint (`scripts/deploy/deploy-deterministic-monitoring-checks.py`), strictly after the new timer is installed, smoke-tested, enabled, and verified active — never before (avoids a double-alert or missed-check window around 11:00/23:00).
+- **Contract**: `kitty-specs/deterministic-monitoring-checks-01KX1XNW/contracts/health-check-runner.contract.md`
 
 ### Credential Health Check (#115, 2026-05-11)
 - **Deployed by**: #115

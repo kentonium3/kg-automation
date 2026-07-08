@@ -1,24 +1,10 @@
 {
-  "accept_commit": "919cf7b489029f614a48e911f86cc7c8a1f9b060",
-  "acceptance_history": [
-    {
-      "accept_commit": "919cf7b489029f614a48e911f86cc7c8a1f9b060",
-      "acceptance_mode": "pr",
-      "accepted_at": "2026-07-08T23:58:03.399930+00:00",
-      "accepted_by": "claude-orchestrator",
-      "accepted_from_commit": "28d9c62d814ca2bda1ea0ab270f2362fd979ca40"
-    }
-  ],
-  "acceptance_mode": "pr",
-  "accepted_at": "2026-07-08T23:58:03.399930+00:00",
-  "accepted_by": "claude-orchestrator",
-  "accepted_from_commit": "28d9c62d814ca2bda1ea0ab270f2362fd979ca40",
   "coordination_branch": "kitty/mission-deterministic-monitoring-checks-01KX1XNW",
   "created_at": "2026-07-08T22:30:50.470793+00:00",
   "flattened": false,
   "friendly_name": "Deterministic Monitoring Checks",
   "mission_id": "01KX1XNWV5K6NFZRKJBA33CH0D",
-  "mission_number": null,
+  "mission_number": 87,
   "mission_slug": "deterministic-monitoring-checks-01KX1XNW",
   "mission_type": "software-dev",
   "pr_bound": true,
@@ -26,7 +12,5 @@
   "purpose_tldr": "Replace Felix's two LLM-mediated self-monitoring paths with deterministic checks, cutting ~$15-20/mo of avoidable spend while preserving escalation and fail-safe behavior.",
   "slug": "deterministic-monitoring-checks-01KX1XNW",
   "target_branch": "feat/deterministic-monitoring-checks",
-  "topology": "coord",
-  "vcs": "git",
-  "vcs_locked_at": "2026-07-08T23:19:40.991160+00:00"
+  "topology": "coord"
 }
