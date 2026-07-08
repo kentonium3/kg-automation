@@ -12,5 +12,7 @@
   "purpose_tldr": "Replace Felix's two LLM-mediated self-monitoring paths with deterministic checks, cutting ~$15-20/mo of avoidable spend while preserving escalation and fail-safe behavior.",
   "slug": "deterministic-monitoring-checks-01KX1XNW",
   "target_branch": "feat/deterministic-monitoring-checks",
-  "topology": "coord"
+  "topology": "coord",
+  "vcs": "git",
+  "vcs_locked_at": "2026-07-08T23:19:40.991160+00:00"
 }
