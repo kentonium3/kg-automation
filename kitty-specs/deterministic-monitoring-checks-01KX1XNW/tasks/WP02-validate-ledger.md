@@ -16,7 +16,7 @@ subtasks:
 - T008
 - T009
 - T010
-agent: claude
+agent: "claude:opus:reviewer-renata:reviewer"
 history: []
 agent_profile: python-pedro
 authoritative_surface: scripts/openclaw/heartbeat_gate/validate_ledger.py
@@ -31,6 +31,7 @@ owned_files:
 - scripts/openclaw/heartbeat_gate/tests/fixtures/**
 role: implementer
 tags: []
+shell_pid: "70639"
 ---
 
 ## ⚡ Do This First: Load Agent Profile
@@ -122,3 +123,10 @@ shared escalate helper must already exist.
   the escalate predicate is a single shared source of truth with WP01.
 - The real 1748-tick run is an operational verification step (quickstart #13), not a
   unit test — don't commit the live ledger.
+
+## Activity Log
+
+- 2026-07-08T23:37:51Z – claude:sonnet:python-pedro:implementer – shell_pid=67708 – Assigned agent via action command
+- 2026-07-08T23:43:11Z – claude:sonnet:python-pedro:implementer – shell_pid=67708 – Ready for review: INV-006 replay harness + synthetic label fixtures
+- 2026-07-08T23:43:39Z – claude:opus:reviewer-renata:reviewer – shell_pid=70639 – Started review via action command
+- 2026-07-08T23:45:50Z – user – shell_pid=70639 – Review passed: INV-006 replay harness imports gate.decide_deterministic (single source of truth, no duplicated escalate boolean); mislabeled fixture exits non-zero (gate has teeth); ledger replay validates escalate-boolean ONLY with docstrings not over-claiming label split; synthetic GateContext fixtures cover LOG_AND_SKIP<->HEARTBEAT_OK split; sample fixture covers all 3 escalate triggers + both non-escalate labels; validate_ledger.py correctly kept OUT of .coveragerc source (skills_snapshot precedent); scope clean (only owned files in WP02 commit 55c74f06); full suite 133 passed.

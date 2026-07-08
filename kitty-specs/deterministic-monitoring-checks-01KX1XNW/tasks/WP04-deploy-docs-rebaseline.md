@@ -22,7 +22,7 @@ subtasks:
 - T018
 - T019
 - T020
-agent: claude
+agent: "claude:opus:reviewer-renata:reviewer"
 history: []
 agent_profile: implementer-ivan
 authoritative_surface: deploys/queued/deterministic-monitoring-checks.yaml
@@ -36,6 +36,7 @@ owned_files:
 - docs/constitution/AGENT-REGISTRY.md
 role: implementer
 tags: []
+shell_pid: "72895"
 ---
 
 ## ⚡ Do This First: Load Agent Profile
@@ -126,3 +127,12 @@ they must exist on your lane's base.
 - Confirm the manifest references WP03's real unit/wrapper paths (not invented ones).
 - The architecture-data validator is a hard gate — do not merge red.
 - NFR-003 (spend reduction) is verified post-deploy (quickstart #16), not in this WP.
+
+## Activity Log
+
+- 2026-07-08T23:38:16Z – claude:sonnet:implementer-ivan:implementer – shell_pid=68257 – Assigned agent via action command
+- 2026-07-08T23:48:22Z – claude:sonnet:implementer-ivan:implementer – shell_pid=68257 – T017 decision: scripts/deploy/lib/cron.py has no remove/rm primitive (list/disable/enable/edit only). Cron removal RIDES the felix-deployer happy path (deploys/queued/deterministic-monitoring-checks.yaml + scripts/deploy/deploy-deterministic-monitoring-checks.py) rather than going out-of-band manual. The entrypoint resolves each legacy cron's id via the vetted read-only cron.openclaw_cron_list(), then subprocesses 'openclaw cron rm <id>' directly -- same bypass pattern as scripts/deploy/reschedule-felix-admin-habits-weekly-cron.py used for the lib's cron-edit flag-shape defect (#613). Per docs/design/architecture/data/mutation-surfaces.json, 'openclaw cron rm <id>' is Tier 2 for a LIVE actor (main/claude-code) invoking it directly, but the actor here is felix-deployer, whose mutations are already gated by the manifest's own dry_run_then_apply_gate contract (see that file's actors.felix-deployer entry) -- so this is consistent with the mission's Tier 3 classification. quickstart.md's manual 'openclaw cron remove ...' commands (note: quickstart says remove, mutation-surfaces.json says rm -- pre-existing naming variance, not introduced by WP04) already frame this as 'via the manifest script's vetted lib, or out-of-band' -- reads consistently with this decision as the illustrative/verification narration, not a second execution path. quickstart.md is not in WP04 owned_files and was not edited.
+- 2026-07-08T23:48:31Z – claude:sonnet:implementer-ivan:implementer – shell_pid=68257 – T019: reviewed docs/constitution/AGENT-REGISTRY.md. It documents per-agent scope/model/autonomy-level/transition-history for felix-admin-* sub-agents and felix-doc-auditor; it does NOT document main's scheduled cron/timer workload anywhere (no cron table, no schedule section for main). service-inventory.json/.md are the correct and only surface that already tracked the health-check crons' agent-mediated execution, and those are updated in this WP (T018). Reviewed, no change needed to AGENT-REGISTRY.md.
+- 2026-07-08T23:48:39Z – claude:sonnet:implementer-ivan:implementer – shell_pid=68257 – Ready for review: deploy manifest, arch docs, rebaseline
+- 2026-07-08T23:49:18Z – claude:opus:reviewer-renata:reviewer – shell_pid=72895 – Started review via action command
+- 2026-07-08T23:53:39Z – user – shell_pid=72895 – Review passed: manifest valid vs manifest-v1 schema (validate_manifest_file ok); deploy tests 306 passed; validate_architecture_data.py 0 findings; validate_docs.py OK. Entrypoint encodes strict order (preflight->install+daemon-reload->smoke->enable+verify timer->remove 2 legacy crons via 'openclaw cron rm <id>'->confirm none remain), cron ops via openclaw CLI only (DIR-007, no crontab); T017 rides felix-deployer happy path, sound. WP03 real paths (felix-health-check.{service,timer}, felix_health_check/run.py) exist + referenced correctly. service-inventory.json/.md reflect health-check off main + heartbeat-gate losing model dep (model:null, anthropic dependency_removed), updated_by includes 676. Rebaseline (#557) recorded in manifest notes. Non-blocking notes: (1) deploy entrypoint scripts/deploy/deploy-deterministic-monitoring-checks.py not in WP04 owned_files frontmatter though mandated by T016 - a frontmatter-completeness gap, not an out-of-bounds edit; (2) quickstart.md line 32 uses 'openclaw cron remove <name>' while entrypoint+mutation-surfaces.json use canonical 'openclaw cron rm <id>' - entrypoint uses the correct shape; quickstart variance is pre-existing and quickstart is not in WP04 owned_files.
