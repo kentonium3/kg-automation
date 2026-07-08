@@ -1,0 +1,15 @@
+{
+  "coordination_branch": "kitty/mission-deterministic-monitoring-checks-01KX1XNW",
+  "created_at": "2026-07-08T22:30:50.470793+00:00",
+  "flattened": false,
+  "friendly_name": "Deterministic Monitoring Checks",
+  "mission_id": "01KX1XNWV5K6NFZRKJBA33CH0D",
+  "mission_number": null,
+  "mission_slug": "deterministic-monitoring-checks-01KX1XNW",
+  "mission_type": "software-dev",
+  "purpose_context": "Felix's own observability currently spends money by using LLMs where plain deterministic checks would do: a Haiku call gates every 30-minute heartbeat, and the twice-daily health-check is routed through the Sonnet main agent. This mission moves both onto deterministic, no-LLM-in-the-hot-path execution while preserving cadence, escalation-to-Sonnet, the ledger, and the fail-safe. It is the Sprint-0 quick win of the Felix Bedrock Stabilization program (epic #673, Foundation 1), applying the deterministic-canary principle ahead of the full F1 build (#516).",
+  "purpose_tldr": "Replace Felix's two LLM-mediated self-monitoring paths with deterministic checks, cutting ~$15-20/mo of avoidable spend while preserving escalation and fail-safe behavior.",
+  "slug": "deterministic-monitoring-checks-01KX1XNW",
+  "target_branch": "feat/deterministic-monitoring-checks",
+  "topology": "coord"
+}
