@@ -109,11 +109,40 @@ missing fields). In both, its terminal action becomes
 `calendar_helper …` instead of `gog calendar create`. **The `gog` skill is
 removed from its openclaw.json registration.**
 
+**Single deterministic command for capture (post-plan Codex fold)**: rather than
+have the haiku capture agent bridge the envelope JSON from one command into a
+second `calendar_helper create` exec (quoting/tempfile/status parsing left to the
+weakest model in the path), `scripts/inbox/route_calendar_event.py` gains a
+`--create` mode that validates → assembles the envelope → invokes the calendar
+helper → emits a single `{status: created|error|needs_clarification, …}` result.
+Capture then runs **one opaque command** (`route_calendar_event --create
+--payload-file <tmp> --source-path <abs>`); its only jobs are detecting the
+calendar intent and extracting the natural-language fields. This shrinks haiku's
+surface to the minimum and keeps the create atomic-from-the-agent's-view.
+
 **Rationale**: Removing the agent hop from the happy path is the minimal,
 robust fix. The existing deterministic parsers are reused verbatim (no reason to
 re-derive judgment that is already code). This aligns with the spec's explicit
 AC: "reaches calendar via a deterministic helper call, not agent-to-agent
 delegation."
+
+**Clarification state (post-plan Codex fold — factual fix)**: the existing
+clarification store is a **JSON array** at
+`/data/services/openclaw/state/pending-calendar-clarifications.json` (per
+`scripts/inbox/handle_clarification_state.py`), **not** a `.jsonl` file. All
+mission artifacts reference the `.json` array form. This mission does not change
+the store's format; the clarification-reply handler (felix-admin-calendar) keeps
+using it and swaps only its terminal `gog` call for the helper. A regression test
+covers reply→resolution.
+
+**Trust boundary (post-plan Codex fold)**: because OpenClaw `exec` is currently
+unrestricted (F0/#675 not fully rolled out), removing `gog` from
+felix-admin-calendar's `skills` does not by itself stop any exec-capable agent
+from calling the helper against the personal calendar. This is the *existing*
+exec=yolo reality, not a regression. Mitigations in scope: every helper call is
+logged (`log_action`), and the helper never prints secrets. Constraining which
+agents may invoke the calendar helper is explicitly deferred to F0 Step 3
+(exec-hardening); this mission documents the boundary rather than closing it.
 
 **Alternatives rejected**:
 - A deterministic agent-to-agent delegation mechanism (fix the hop) — this is
@@ -160,11 +189,21 @@ fixtures, not a global string rename (mission stays `change_mode: normal`).
 Helper **code** reaches office2 via the checkout's `git pull` (felix-deployer's
 5-min tick) after `feat → main`. **Agent prompts** reach office2 via the
 `agent-prompt-sync` timer (edits to `scripts/openclaw/agents/felix-admin-calendar/
-AGENTS.md` + capture's `AGENTS.md.tmpl`). The openclaw.json change (remove `gog`
-from felix-admin-calendar `skills`) is a **manual out-of-band** edit + gateway
-restart (monitored surface) → **manual rebaseline** (out-of-band exception, per
-CLAUDE.md), OR encoded so felix-deployer covers it — finalized in quickstart.
-Either way the merge records `Rebaseline: completed at <ts>`.
+AGENTS.md` + capture's `AGENTS.md.tmpl`).
+
+**Rebaseline scope (post-plan Codex fold — factual correction)**: per
+`docs/design/architecture/data/audited-surfaces.json`, `openclaw-agent-prompts`
+has `rebaseline_required: false` / `affected_baselines: []` — the audit hashes
+only `openclaw.json`, not deployed AGENTS.md. So **the AGENTS.md/.tmpl edits
+require NO rebaseline** (unmonitored surface). The **only** surface that triggers
+rebaseline here is the `openclaw.json` `skills` edit (remove `gog` from
+felix-admin-calendar) → `openclaw-config` surface, `rebaseline_required: true`.
+That edit is a **manual out-of-band** office2 change + gateway restart → **manual
+rebaseline** (out-of-band exception, per CLAUDE.md). The merge records
+`Rebaseline: completed at <ts>` for the openclaw.json change. **The google deps
+live in the dedicated venv, NOT in `requirements.txt`/`pyproject.toml`**, so the
+`python-dependencies` baseline (pip-packages.txt) is deliberately untouched — do
+not add them to the repo requirements.
 
 **Credential staging**: copy Mac `~/.config/felix/google/personal/{client_secret,
 token}.json` → office2 same path (0600, dir 0700). Secrets never enter the repo,
@@ -190,6 +229,16 @@ never reports a false success (no-silent-fallback, #675/#683; SC-004).
 distinguish "credentials need re-staging" from a transient API error, and
 guarantees a failed auth can never be misread as a completed action.
 
+**Create idempotency (post-plan Codex fold)**: "inbox marks the note processed"
+does not protect the window where Google's `insert` succeeds but the subsequent
+mark/log fails — a retry would create a duplicate event. The helper stamps
+`extendedProperties.private.felix_source_key` (derived from `source_inbox_path`,
+or a caller-supplied `--idempotency-key`) on create, and on a `create` whose key
+already matches an existing event in a bounded lookback window it **returns the
+existing event** (`status=created idempotent=true`) instead of inserting a
+duplicate. Conversational/manual creates without a source key are not deduped
+(Google assigns a fresh id), which is the correct behavior there.
+
 ---
 
 ## D8 — Testing strategy
@@ -199,12 +248,21 @@ test_calendar_auth.py`. Mock the Google client (`googleapiclient.discovery.build
 returns a fake `service` whose `.events()` records calls) and `Credentials`
 (valid / expired-refreshable / invalid-grant). Cover: create/list/update/delete
 happy paths, the auth-failure fail-safe path (FR-006/SC-004), payload-file
-mapping from the `create_calendar_event` envelope, multi-account credential-path
-resolution (FR-005), and exit-code contract. The repo's global
-`tests/conftest.py` HTTP block already forbids live network; a `live_smoke`
-marker (per `pytest.ini`, gated by `LIVE_SMOKE_ENABLED=1`) carries one opt-in
-real-calendar round-trip for local verification only (never in CI). Coverage
-runs `--cov-branch` at the repo threshold.
+mapping from the `create_calendar_event` envelope, create **idempotency** (retry
+with a matching source key returns the existing event, no duplicate),
+`sendUpdates=none` (attendees do not email by default), multi-account
+credential-path resolution (FR-005), and the exit-code contract.
+
+**Mock discipline (post-plan Codex fold)**: the repo's global `tests/conftest.py`
+HTTP block only patches `urllib.request.urlopen`; `google-api-python-client` uses
+`httplib2`/`google-auth` transports, so that guard is **not** sufficient. Tests
+mock `googleapiclient.discovery.build` and the credential refresh transport
+explicitly, and assert that no test constructs a real network request (a fake
+`service` whose `.execute()` is the only call surface — any unmocked
+`.execute()` raises). A `live_smoke` marker (per `pytest.ini`, gated by
+`LIVE_SMOKE_ENABLED=1`) carries one opt-in real-calendar round-trip for local
+verification only (never in CI). Coverage runs `--cov-branch` at the repo
+threshold.
 
 **Rationale**: Matches the existing mocking discipline (`tests/common/
 test_vikunja_client.py`) and NFR-003 (100% of subcommands + explicit auth-failure
@@ -214,15 +272,37 @@ marker documents the quirk; it is not a mock-substitute).
 
 ---
 
+## Scope & auth-longevity (post-plan Codex fold)
+
+- **`--self-check` avoids the scope trap.** Rather than list *calendars* (which
+  needs `calendar.readonly`/`calendar` and could mismatch a token minted with
+  only `calendar.events`), `--self-check` refreshes the token and does a bounded
+  `events().list(calendarId=primary, maxResults=1)` — covered by
+  `calendar.events`. It **never** runs an interactive consent flow on office2
+  (headless); on any scope/auth problem it exits `3` with an actionable
+  "re-mint token with scope X on the Mac" message.
+- **Token is minted Mac-side with the final scope** before staging. The mission
+  standardizes on `calendar.events` for event CRUD + the bounded self-check; if a
+  later need requires calendar-list, the token is re-minted Mac-side with the
+  broader scope and re-staged (a one-time operator action, never interactive on
+  office2).
+
+## Recurring-event edits (post-plan Codex fold)
+
+`create` supports RRULE (already produced deterministically upstream). For v1,
+`update`/`delete` act on the **event id as given** (the series master for a
+recurring event). **Single-occurrence edits of a recurring series are OUT of
+scope for v1** — the helper returns a clear error directing the caller to the
+series or to a future `--recurrence-scope single|series` flag. This keeps v1
+bounded (consistent with the CRUD-only, defer-free/busy decision) without
+silently doing the wrong thing.
+
 ## Open items folded into design (no NEEDS CLARIFICATION remain)
 
-- **Scope string** (`calendar` vs `calendar.events`+`calendar.readonly`):
-  finalized in data-model.md — helper uses the scope that supports `calendars`
-  list + event CRUD; re-consent is a one-time operator action if the staged
-  token's scope is narrower.
-- **openclaw.json rebaseline path** (manual vs deployer-covered): finalized in
-  quickstart.md; default is manual out-of-band + manual rebaseline, matching the
-  CLAUDE.md out-of-band exception.
+- **openclaw.json rebaseline path** (manual vs deployer-covered): default is
+  manual out-of-band + manual rebaseline for the `openclaw.json` `skills` edit
+  only (the sole monitored surface here), per the CLAUDE.md out-of-band
+  exception. AGENTS.md edits need no rebaseline.
 - **Duplicate validators** (`validate_calendar_event.validate` vs
   `route_calendar_event.validate_payload`): left as-is (documented in
   route_calendar_event's own header); this mission does not collapse them —

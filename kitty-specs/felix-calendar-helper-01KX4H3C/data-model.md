@@ -28,8 +28,8 @@ layout, not a persistent schema.
 | Field | Type | Rule |
 |---|---|---|
 | `client_secret.json` | file | Desktop-app OAuth client (from GCP project `felix-personal`). Operator-staged; never committed. |
-| `token.json` | file | Authorized-user token incl. `refresh_token`. Minted once (interactive consent on Mac), then durable (RFC #681). Auto-refreshed in place (0600). |
-| `scopes` | list | `["https://www.googleapis.com/auth/calendar"]` — supports both calendar `list` (for `--self-check`) and event CRUD. (If a staged token was minted with only `calendar.events`, `--self-check`'s calendar-list step re-consents once; documented in quickstart.) |
+| `token.json` | file | Authorized-user token incl. `refresh_token`. Minted once (interactive consent on Mac) **with the final scope**, then durable (RFC #681). Auto-refreshed in place (0600). |
+| `scopes` | list | `["https://www.googleapis.com/auth/calendar.events"]` — sufficient for event CRUD **and** the bounded `--self-check` (which does `events().list(primary, maxResults=1)`, not a calendars-list). office2 **never** runs interactive consent; a scope/auth failure exits `3` with an actionable "re-mint on the Mac" message. If a future need requires calendar-list, re-mint Mac-side with `calendar` scope and re-stage. |
 
 - **Fail-safe (FR-006)**: if `token.json` is absent, `Credentials` is invalid,
   or a refresh raises `invalid_grant`/`RefreshError`, the helper emits
@@ -49,7 +49,8 @@ The unit created/read/updated/deleted. Google-API request-body shape
 | `location` | string? | `location` | optional passthrough |
 | `description` | string? | `description` | optional passthrough |
 | `recurrence` | `["RRULE:…"]`? | `rrule` | optional; RRULE already produced deterministically by `validate_calendar_event.py` |
-| `attendees` | `[{email}]`? | `attendees` (comma list) | optional; empty on the default inbox path |
+| `attendees` | `[{email}]`? | `attendees` (comma list) | optional; empty on the default inbox path. **`sendUpdates=none` by default** (no invitation email); inbox-created events reject attendees unless explicitly confirmed (see FR-001 / SC edge case). |
+| `extendedProperties.private.felix_source_key` | string? | `source_inbox_path` or `--idempotency-key` | dedupe key stamped on create; used to return an existing event on retry instead of duplicating |
 | `id` | string | Google response | returned on create; addressed on update/delete |
 | `htmlLink` | string | Google response | surfaced back to the agent/Kent |
 
@@ -86,8 +87,12 @@ natural language — that stays upstream (deterministic, D4).
 Stateless per invocation (the helper holds no cursor). The only persistent
 mutation the helper performs is refreshing `token.json` in place (atomic write,
 0600). Event lifecycle (create → update → delete) lives in Google Calendar and
-is addressed by the returned `id`. The inbox clarification lifecycle
-(`pending-calendar-clarifications.jsonl`) is owned by the agents, unchanged.
+is addressed by the returned `id`. The inbox clarification lifecycle is owned by
+the agents and unchanged: it is a **JSON array** at
+`/data/services/openclaw/state/pending-calendar-clarifications.json` (per
+`scripts/inbox/handle_clarification_state.py`) — not a `.jsonl` file. The
+clarification-reply handler (felix-admin-calendar) keeps this store and swaps
+only its terminal `gog` call for the helper.
 
 ## Externally visible effects
 

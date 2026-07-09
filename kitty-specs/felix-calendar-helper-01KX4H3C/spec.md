@@ -78,9 +78,16 @@ authorization; live connectivity probe was green on 2026-07-09).
   distinguishable from an error.
 - An event identifier that no longer exists on update/delete surfaces a clear
   not-found error, not a silent success.
-- Attendees are an optional field; a note with no attendees creates a personal
-  event with none. Adding attendees that would email external people is allowed
-  but is not the default inbox path.
+- **Attendees never silently email people.** Invitations are suppressed by
+  default; the inbox path rejects attendees unless explicitly confirmed — a
+  personal-calendar note must not send mail to external people as a side effect.
+- **Retry safety**: if event creation succeeds but the follow-up (marking the
+  note processed / logging) fails, a retry must not create a duplicate event.
+  Keyed (inbox) creations carry a stable source key and return the existing event
+  on retry.
+- **Recurring events (v1 boundary)**: creating recurring events is supported;
+  editing/canceling a *single occurrence* of a recurring series is out of scope
+  for v1 and returns a clear error (whole-series operations act on the event id).
 - Timezone: when a note omits a timezone, the default operating timezone
   (America/New_York) is applied and stated.
 
@@ -109,7 +116,7 @@ authorization; live connectivity probe was green on 2026-07-09).
 | FR-007 | The calendar helper conforms to the project helper-script CLI contract: subcommand interface, documented exit codes, and a machine-parseable `SUMMARY:` result line on stdout. | Draft |
 | FR-008 | The `felix-admin-calendar` agent is reshaped to a judgment-only layer: it interprets natural-language date/time/intent, performs at most one clarification round on ambiguity, emits a structured helper request, and makes no `gog` calls on the calendar surface. | Draft |
 | FR-009 | Inbox capture reaches the calendar via a deterministic helper call (directly or through the reshaped judgment layer) with no agent-to-agent delegation; an inbox note with a calendar intent results in a created event end-to-end (closes #679). | Draft |
-| FR-010 | The calendar helper is deployed to office2 through the manifest pipeline; per-account credentials are staged in their canonical location; and the deploy is rebaselined per the audited-surface protocol (agent-prompt change). | Draft |
+| FR-010 | The calendar helper is deployed to office2 through the manifest pipeline (including provisioning its dedicated dependency venv); per-account credentials are staged in their canonical location; and the `openclaw.json` change is rebaselined per the audited-surface protocol. | Draft |
 | FR-011 | Architecture documentation is synchronized as part of this work: credential/identity records (new personal Google authorization), data-flow records (calendar now flows helper→Google directly, not through `gog`), service inventory (external Calendar API dependency), and navigation/roadmap entries (INDEX, capability roadmap, #681/#699/#679 status), as applicable per `signal-to-doc-map.json`. | Draft |
 
 ### Non-Functional Requirements
@@ -130,7 +137,7 @@ authorization; live connectivity probe was green on 2026-07-09).
 | C-002 | Calendar scope only (a "sensitive", not "restricted", scope). No Gmail/Drive scopes — mail is F024, a later RFC #681 phase. | Active |
 | C-003 | Deploy to office2 flows only through the manifest pipeline (`deploys/queued/<name>.yaml`), except the documented per-account credential staging and the required rebaseline. | Active |
 | C-004 | `gog` is not retired by this mission; it retains its other surfaces until they migrate, and the #572 `gog` re-auth residual stays open. | Active |
-| C-005 | Change is Tier 2 + Tier 3: confirm a recent Restic snapshot before deploy (Tier 2 state/credentials); the agent-prompt change is an audited surface requiring rebaseline (Tier 3). | Active |
+| C-005 | Change is Tier 2 + Tier 3: confirm a recent Restic snapshot before deploy (Tier 2 state/credentials). The **only** rebaseline-triggering surface is the `openclaw.json` change (removing the `gog` skill); agent-prompt (AGENTS.md) edits are an *unmonitored* audited surface (no rebaseline), and the google dependencies live in a dedicated venv (not `requirements.txt`), so the pip-packages baseline is untouched. | Active |
 | C-006 | Adding the second (`intentional.biz`) account is out of scope for implementation here; the design must not preclude it. | Active |
 | C-007 | office2 is python3-only; the helper is invoked in module form (`python3 -m …`) to satisfy package imports and avoid the bare-`python` exit-127 class (#682). | Active |
 

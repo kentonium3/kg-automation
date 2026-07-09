@@ -16,8 +16,14 @@
 
 ## 1. Stage credentials (MANUAL — secrets, never via git)
 
-Copy the personal OAuth creds from the Mac to office2 (they already exist on the
-Mac at `~/.config/felix/google/personal/`):
+The Mac token must be minted with the mission scope (`calendar.events`) before
+staging — office2 is headless and will never run interactive consent. The
+personal creds already exist on the Mac at `~/.config/felix/google/personal/`;
+if the staged token was minted with a narrower/different scope, re-mint it
+Mac-side first (`workspace_auth_spike`-style consent) so office2 `--self-check`
+passes without re-consent.
+
+Copy the personal OAuth creds from the Mac to office2:
 
 ```
 scp ~/.config/felix/google/personal/client_secret.json office2-claude:~/.config/felix/google/personal/client_secret.json
@@ -43,16 +49,20 @@ The manifest `deploys/queued/felix-calendar-helper.yaml` (Tier 3,
 3. verifies the staged creds are present (file-presence, 0600),
 4. runs the self-check smoke (step 4).
 
-Manual venv provisioning (if run out-of-band for validation):
+Manual venv provisioning (if run out-of-band for validation) — use the `uv`
+executable to build and install *into* the venv (uv is not installed inside it);
+pin versions:
 
 ```
-ssh office2-claude 'uv venv /data/services/openclaw/felix-calendar/venv --python 3.12'
+ssh office2-claude '~/.local/bin/uv venv /data/services/openclaw/felix-calendar/venv --python 3.12'
 ```
 ```
-ssh office2-claude '/data/services/openclaw/felix-calendar/venv/bin/python -m uv pip install "google-api-python-client" "google-auth" "google-auth-oauthlib"'
+ssh office2-claude '~/.local/bin/uv pip install --python /data/services/openclaw/felix-calendar/venv/bin/python "google-api-python-client==<pin>" "google-auth==<pin>" "google-auth-oauthlib==<pin>"'
 ```
 
-(Prefer the manifest path; the above is the equivalent for a manual check.)
+(Prefer the manifest path; the deploy script performs exactly these steps
+idempotently with the pins resolved. The above is the equivalent for a manual
+check.)
 
 ## 3. Deploy prompts + openclaw.json (audited surface)
 
@@ -74,7 +84,10 @@ Self-check (auth + list calendars) — the primary smoke:
 ```
 ssh office2-claude 'cd /home/claude/kg-automation && /data/services/openclaw/felix-calendar/venv/bin/python -m scripts.google.calendar_helper --self-check --account personal'
 ```
-Expect `SUMMARY: op=self-check status=ok account=personal calendars=<n>`, exit 0.
+Expect `SUMMARY: op=self-check status=ok account=personal`, exit 0. (Self-check
+refreshes the token + does a bounded `events().list(primary, maxResults=1)`; it
+never runs interactive consent — a scope/auth failure exits 3 with a re-mint
+message.)
 
 CRUD round-trip on the real personal calendar (SC-001):
 
@@ -97,16 +110,21 @@ clear missing-creds error is the check).
 
 ## 5. Rebaseline (audited surface, #557)
 
-The agent-prompt + openclaw.json edits are audited surfaces.
-- If the manifest/felix-deployer covered the drift: confirm the applied record
-  stamped `rebaseline:` (per #688).
-- Otherwise (openclaw.json manual out-of-band): reset baselines manually:
+Only the **openclaw.json** `skills` edit is a monitored surface
+(`openclaw-config`, `rebaseline_required: true`). The **AGENTS.md/.tmpl** edits
+are an *unmonitored* audited surface (`rebaseline_required: false`) — no
+rebaseline is written or needed for them. The **google deps live in the venv, not
+`requirements.txt`**, so the `python-dependencies` (pip-packages) baseline is
+untouched — do not add them to the repo requirements.
+
+For the openclaw.json edit, reset baselines manually (out-of-band exception):
 
 ```
 ssh office2-claude 'rm /data/services/security-monitor/baselines/* && sg docker -c /data/services/security-monitor/scripts/audit.sh'
 ```
 
-The merge commit records `Rebaseline: completed at <ts>` (or `not required — <reason>`).
+The merge commit records `Rebaseline: completed at <ts>` for the openclaw.json
+change (or `not required — <reason>` if the openclaw.json edit is deferred).
 
 ## 6. Close-out
 

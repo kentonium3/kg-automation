@@ -24,10 +24,16 @@ verbatim; the agent never reports a created event that did not create
 
 | Aspect | Before (#679, broken) | After |
 |---|---|---|
-| Build envelope | `python3 -m scripts.inbox.route_calendar_event --payload-file <tmp> --as-delegation-payload --source-path <abs>` | unchanged (still builds the `create_calendar_event` envelope deterministically) |
-| Terminal step | `openclaw agent --agent felix-admin-calendar --message '<envelope>' --json` (agent-to-agent hop; haiku mishandles it) | `… venv/bin/python -m scripts.google.calendar_helper create --payload-file <tmp> --json` (**direct helper call, no hop**) |
-| Incomplete note | record `PendingClarificationRecord`, ask Kent once | unchanged — clarification reply is later handled by felix-admin-calendar (Kent→agent, not capture→agent) |
+| Build + create | build envelope (`route_calendar_event … --as-delegation-payload`), THEN a second exec to hand it off | **one deterministic command**: `route_calendar_event --create --payload-file <tmp> --source-path <abs>` validates → builds envelope → invokes the calendar helper → emits `{status: created\|error\|needs_clarification, …}`. Capture runs a single opaque command (no JSON-bridging between two execs). |
+| Terminal step | `openclaw agent --agent felix-admin-calendar --message '<envelope>' --json` (agent-to-agent hop; haiku mishandles it) | folded into the one command above — the create runs in-process via the helper; **no agent hop** |
+| Haiku's job | detect intent, extract fields, build envelope, parse stdout, quote+exec a second command | detect intent, extract natural-language fields, run one command, read `status` — the minimum surface |
+| Incomplete note | record `PendingClarificationRecord`, ask Kent once | unchanged — `--create` returns `needs_clarification` with the missing fields; capture records the clarification and asks Kent. Reply later handled by felix-admin-calendar (Kent→agent, not capture→agent) |
 | gog | never (capture had no gog) | never |
+
+The `--create` mode is added to `scripts/inbox/route_calendar_event.py` (D4);
+the deterministic field-mapping + helper invocation stay out of the agent prompt
+(two-layer doctrine). The clarification store is the existing JSON array at
+`/data/services/openclaw/state/pending-calendar-clarifications.json` (unchanged).
 
 **Net effect**: the common happy path (complete inbox note → event) no longer
 crosses an agent boundary. The clarification path still uses felix-admin-calendar
@@ -48,6 +54,9 @@ delegation.
 ## Deploy note
 
 Prompt edits (`AGENTS.md` / `AGENTS.md.tmpl`) reach office2 via the
-agent-prompt-sync timer. The openclaw.json `skills` edit (removing `gog`) is a
-manual out-of-band office2 change + gateway restart → **manual rebaseline**
-(monitored surface, out-of-band exception). See quickstart.md.
+agent-prompt-sync timer and require **no rebaseline** — per
+`audited-surfaces.json`, `openclaw-agent-prompts` is an *unmonitored* surface
+(`rebaseline_required: false`; the audit hashes only `openclaw.json`). The
+**only** rebaseline trigger here is the `openclaw.json` `skills` edit (removing
+`gog`) → `openclaw-config` surface → manual out-of-band edit + gateway restart +
+**manual rebaseline**. See quickstart.md step 5.

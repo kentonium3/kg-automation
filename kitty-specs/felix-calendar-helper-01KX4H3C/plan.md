@@ -19,7 +19,7 @@ the manifest pipeline with a dedicated uv venv for the Google dependencies.
 
 **Language/Version**: Python 3.12 (office2 system `python3` is 3.12.3; repo targets 3.11+)
 **Primary Dependencies**: `google-api-python-client`, `google-auth`, `google-auth-oauthlib` (pinned in a dedicated office2 venv — NOT in the repo's minimal `requirements.txt` runtime set); stdlib `argparse`/`json`/`datetime` for the CLI shell
-**Storage**: Per-account OAuth credentials on disk at `~/.config/felix/google/<account>/{client_secret.json, token.json}` (0600 file, 0700 dir); no database. Existing clarification state file `/data/services/openclaw/state/pending-calendar-clarifications.jsonl` unchanged.
+**Storage**: Per-account OAuth credentials on disk at `~/.config/felix/google/<account>/{client_secret.json, token.json}` (0600 file, 0700 dir); no database. Existing clarification state (JSON array at `/data/services/openclaw/state/pending-calendar-clarifications.json`) unchanged.
 **Testing**: `pytest` with the Google client + `Credentials` mocked; repo-global `tests/conftest.py` HTTP block; `--cov-branch` at repo threshold; one opt-in `live_smoke`-marked real-calendar round-trip (gated by `LIVE_SMOKE_ENABLED=1`, never CI)
 **Target Platform**: office2 (Ubuntu 24.04 LTS), invoked on demand by OpenClaw agents via `exec`; authored on Mac
 **Project Type**: single (helper scripts + agent-prompt reshape within the existing kg-automation tree)
@@ -37,7 +37,7 @@ the manifest pipeline with a dedicated uv venv for the Google dependencies.
 | **DIR-004** deploy via manifest discipline | ✅ | `deploys/queued/felix-calendar-helper.yaml`, Tier 3, entrypoint deploy script using `scripts/deploy/lib/` primitives. |
 | **DIR-005/006** strict-order safe-deploy | ✅ | Deploy script: pre-flight (Restic age, creds presence) → provision venv → verify → self-check smoke. Artifacts before config. |
 | **DIR-009 / C-005** Tier 2 Restic ≤24h before state change | ✅ | `snapshot.verify_restic_recent --max-age-hours 24` gate; operator-ack path available. |
-| **Rebaseline (#557)** audited surface | ✅ | Agent-prompt + openclaw.json change → merge records `Rebaseline: completed at <ts>`. |
+| **Rebaseline (#557)** audited surface | ✅ | Only the `openclaw.json` `skills` edit is monitored (`openclaw-config`, rebaseline_required:true) → merge records `Rebaseline: completed at <ts>`. AGENTS.md edits are unmonitored (rebaseline_required:false — audit hashes only openclaw.json); google deps go in the venv, NOT requirements.txt, so the pip-packages baseline is untouched. (Corrected per post-plan Codex vs `audited-surfaces.json`.) |
 | **DIRECTIVE_034** test-first | ✅ | Contract tests authored before/with helper code; auth-failure path explicitly tested. |
 | **DIR-011** privacy/security boundaries | ✅ | Personal calendar only; no `_private`; creds 0600 outside repo, never committed. |
 | **DIR-014** documentation-sync requirement | ✅ | Spec §Documentation Synchronization + IC-06; credentials/data-flows/service-inventory/INDEX/roadmap updated in-merge. |
@@ -129,11 +129,11 @@ established manifest + architecture-data conventions.
 
 ### IC-03 — Inbox rewire + felix-admin-calendar reshape (closes #679)
 
-- **Purpose**: Capture calls the helper directly (no agent hop); the calendar agent becomes judgment-only and calls the helper instead of gog; default account flips to `personal`.
+- **Purpose**: Capture reaches the calendar via a **single deterministic command** (`route_calendar_event --create`, which validates → builds envelope → invokes the helper → emits status) — no agent hop; the calendar agent becomes judgment-only and calls the helper instead of gog; default account flips to `personal`.
 - **Relevant requirements**: FR-008, FR-009; SC-002, SC-003
-- **Affected surfaces**: capture `AGENTS.md`(.tmpl), `felix-admin-calendar/AGENTS.md`, `scripts/inbox/route_calendar_event.py`, `scripts/calendar_routing/validate_calendar_event.py`
+- **Affected surfaces**: `scripts/inbox/route_calendar_event.py` (add `--create` helper-call mode), capture `AGENTS.md`(.tmpl), `felix-admin-calendar/AGENTS.md`, `scripts/calendar_routing/validate_calendar_event.py`
 - **Sequencing/depends-on**: IC-01 (helper must exist to be called)
-- **Risks**: prompt fidelity (agents follow the deterministic call, not gog); preserving the existing clarification round-trip; the `DEFAULT_ACCOUNT` default-change touch points + fixtures.
+- **Risks**: prompt fidelity (agents follow the deterministic call, not gog); preserving the existing clarification round-trip (JSON-array store at `pending-calendar-clarifications.json`); the `DEFAULT_ACCOUNT` default-change touch points + fixtures. Minimizing haiku's role to "one opaque command" is the core de-risk (post-plan Codex).
 
 ### IC-04 — Tests
 
@@ -149,7 +149,7 @@ established manifest + architecture-data conventions.
 - **Relevant requirements**: FR-010; C-003, C-005
 - **Affected surfaces**: `deploys/queued/felix-calendar-helper.yaml`, `scripts/deploy/deploy-felix-calendar-helper.py`, `scripts/deploy/lib/` (reuse)
 - **Sequencing/depends-on**: IC-01..IC-03 (code + prompts exist to deploy)
-- **Risks**: Tier-2 Restic gate; venv idempotency; creds are a manual step (manifest only verifies presence); openclaw.json rebaseline path (manual out-of-band).
+- **Risks**: Tier-2 Restic gate; venv idempotency (use `~/.local/bin/uv pip install --python <venv>/bin/python`, pinned — not `-m uv` inside the venv); creds are a manual step, minted Mac-side with `calendar.events` scope (manifest only verifies presence); rebaseline is openclaw.json-only (manual out-of-band); google deps NOT in requirements.txt.
 
 ### IC-06 — Architecture documentation sync
 
