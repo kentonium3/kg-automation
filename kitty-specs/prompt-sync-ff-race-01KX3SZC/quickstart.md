@@ -16,19 +16,40 @@ Tier 1 change (deploy fabric). Verify prompt-deploy connectivity before and afte
    checkout is Tier-2-adjacent state) — the felix-deployer nightly backup covers
    `/home/claude`.
 
-## Deploy sequence
+## Deploy sequence — controlled operator bootstrap
+
+The fix **cannot** be delivered by the checkout's own `git pull` (that is the
+broken path being repaired), so deploy is a controlled bootstrap, not a queued
+manifest. Some steps need `git`/systemctl as `claude`; any step needing sudo is
+handed to Kent.
 
 1. **Merge the mission** to `main` (after `feat/prompt-sync-ff-race` → `main`).
-   The new `scripts/deploy/lib/` primitives + both modified actors reach office2
-   via the checkout's own `git pull` on the next tick.
-2. **Delete the stale origin lane branch (FR-003)** — one command, run once:
+2. **Stop both timers** so no tick races the bootstrap:
+   ```
+   ssh office2-claude 'systemctl --user stop agent-prompt-sync.timer felix-deployer.timer'
+   ```
+3. **Manually fast-forward the checkout** with the race-immune form:
+   ```
+   ssh office2-claude 'cd /home/claude/kg-automation && git fetch origin main && git merge --ff-only origin/main'
+   ```
+4. **Verify the fixed files are present** on office2:
+   ```
+   ssh office2-claude 'cd /home/claude/kg-automation && ls scripts/deploy/lib/gitsync.py scripts/deploy/lib/deploylock.py scripts/deploy/lib/health.py && git log --oneline -1'
+   ```
+5. **Delete the stale origin lane branch (FR-003)** — once:
    ```
    git push origin --delete kitty/mission-trustworthy-weekly-habit-report-01KV4GZ7-lane-a
    ```
-3. **felix-deployer picks up the queued manifest** `00NN-prompt-sync-ff-race.yaml`
-   on its next tick; because `scripts/deploy/**` changed in the pulled range, the
-   watermark observe-range auto-rebaselines (per #685). Confirm the applied
-   record + `rebaseline:` stamp (#688).
+6. **Manual audited-surface rebaseline** — the new `scripts/deploy/lib/**` files
+   changed a monitored surface (out-of-band exception → manual reset). First
+   confirm drift is expected-only, then reset per
+   `docs/runbooks/security-baseline-ops.md`.
+7. **Restart both timers**:
+   ```
+   ssh office2-claude 'systemctl --user start agent-prompt-sync.timer felix-deployer.timer'
+   ```
+8. **Record** the bootstrap as `deploys/applied/00NN-prompt-sync-ff-race.yaml`
+   (operator-applied pattern).
 
 ## Post-deploy verification (maps to Success Criteria)
 
@@ -66,8 +87,10 @@ Re-run the audited-surface rebaseline after the revert deploys.
 
 ## Rebaseline obligation
 
-`scripts/deploy/**` is an audited surface. On the happy path felix-deployer
-auto-rebaselines from the observe-range (repo-file signal present). Confirm via
-the applied record's `rebaseline:` stamp; if it did not fire, reset manually per
-`docs/runbooks/security-baseline-ops.md`. The mission merge commit records
-`Rebaseline: completed at <ts>` (or `not required — <reason>`).
+The new `scripts/deploy/lib/**` files are the audited surface (per the
+`deploy-pipeline` registry; the actor edits `_tick.py`/`deploy_agent_prompts.py`/
+`notify.py` are not registry-matched). Because this deploy is an **out-of-band
+manual bootstrap** (not the felix-deployer happy path), the rebaseline is a
+**manual** reset — step 6 above — after confirming drift is expected-only. The
+mission merge commit records `Rebaseline: completed at <ts>` (or `not required —
+<reason>`).

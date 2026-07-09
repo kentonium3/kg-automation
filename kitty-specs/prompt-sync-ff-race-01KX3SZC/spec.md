@@ -55,17 +55,17 @@ generic error and no-op looping.
 | ID | Requirement | Status |
 |----|-------------|--------|
 | FR-001 | Both deploy actors (agent-prompt-sync and felix-deployer) MUST advance the shared checkout to origin's latest commit using the atomic remote-tracking ref (`origin/main`) as the merge target, not the mutable shared `.git/FETCH_HEAD`. | Draft |
-| FR-002 | The two actors' git-and-working-tree critical sections MUST be mutually excluded (a shared advisory lock) so their working-tree mutations cannot interleave on the shared checkout. | Draft |
+| FR-002 | Each actor's **entire** checkout-mutating critical section MUST be mutually excluded via a shared advisory lock — for felix-deployer this spans pre-head capture through its post-pull commit/push/rebaseline-stamp/watermark writes, not merely the fetch/merge — so no actor can mutate the working tree or index while the other holds it. | Draft |
 | FR-003 | The stale origin lane branch `kitty/mission-trustworthy-weekly-habit-report-01KV4GZ7-lane-a` MUST be removed, leaving no orphaned mission lane branches on origin. | Draft |
 | FR-004 | When either actor falls more than a configured number of consecutive ticks behind origin, an operator-visible health signal MUST be emitted. | Draft |
-| FR-005 | When an actor genuinely cannot fast-forward (true divergence), it MUST fail loudly with a diagnostic capturing the observed ref state, rather than silently no-op looping. | Draft |
+| FR-005 | When an actor genuinely cannot fast-forward — true divergence, defined as the local checkout being **both ahead and behind** origin — it MUST fail loudly with a diagnostic capturing the observed ref state, rather than silently no-op looping. An actor being merely *ahead* (its own unpushed commits, with nothing to pull) MUST be treated as a clean no-op, not a failure. | Draft |
 | FR-006 | The race-immune advance logic and the shared lock MUST be provided as a shared library primitive reused by both actors, not duplicated per script. | Draft |
 
 ### Non-Functional Requirements
 
 | ID | Requirement | Threshold | Status |
 |----|-------------|-----------|--------|
-| NFR-001 | Concurrency correctness | Across ≥100 deliberately-overlapped tick pairs in test, 0 occurrences of `Cannot fast-forward to multiple branches` and 0 corrupted working trees. | Draft |
+| NFR-001 | Concurrency correctness | Proven by an **actor-level** integration harness (both real tick bodies sharing one lock + one checkout, ≥100 barrier-overlapped pairs): 0 occurrences of `Cannot fast-forward to multiple branches`, 0 residual `.git/index.lock`, 0 corrupted working trees, and felix's `pre_pull_head`/`post_pull_head` + prompt-sync audit records intact. A primitive-level concurrency test is necessary but not sufficient. | Draft |
 | NFR-002 | Lock-induced latency bound | Shared-lock acquisition adds ≤ 5 s to a tick; a lock-blocked actor never blocks longer than one tick interval (≤ 5 min) before deferring. | Draft |
 | NFR-003 | Health-signal latency | The behind-N health signal fires within one tick interval (≤ 5 min) of crossing the configured threshold. | Draft |
 | NFR-004 | Observability of failure | Every failed advance records the exact observed ref state (local HEAD short-sha + `origin/main` short-sha) in its structured log line. | Draft |
@@ -75,8 +75,8 @@ generic error and no-op looping.
 | ID | Constraint | Status |
 |----|-----------|--------|
 | C-001 | Changes are confined to `scripts/openclaw/deploy/`, `scripts/deploy/felix-deployer/`, the shared `scripts/deploy/lib/`, and their tests. No OpenClaw config or agent-prompt content changes. (Locality of change) | Draft |
-| C-002 | `scripts/deploy/**` is an audited surface — deploying this change triggers the rebaseline obligation. | Draft |
-| C-003 | The felix-deployer change MUST deploy via the manifest pipeline (`deploys/queued/<name>.yaml`) per deploy discipline; the prompt-sync change auto-syncs on merge to main. | Draft |
+| C-002 | The new `scripts/deploy/lib/**` primitives are an audited surface (per the `deploy-pipeline` registry) — deploying triggers the rebaseline obligation. (The actor edits `_tick.py`/`deploy_agent_prompts.py`/`notify.py` are NOT in the registry.) | Draft |
+| C-003 | Deploy MUST use a controlled operator **bootstrap** recorded as `deploys/applied/<name>.yaml` (stop timers → manual ff-merge on office2 → verify → restart), NOT a queued manifest — because the fix cannot be delivered by the broken pull path it repairs, and queued manifests require an executable entrypoint. | Draft |
 | C-004 | Giving the two actors separate checkouts (#636) is out of scope; this mission converges the shared-checkout path only. | Draft |
 | C-005 | Tier 1 change (connectivity/deploy fabric): connectivity of the prompt deploy path MUST be verified before and after deploy. | Draft |
 

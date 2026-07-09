@@ -34,7 +34,7 @@ make a genuine divergence fail loudly with the observed ref state.
 **Target Platform**: Linux (Ubuntu 24.04, office2), systemd user timers, run as the `claude` user (no sudo)
 **Project Type**: single project — Python helper scripts + shared library under `scripts/`
 **Performance Goals**: lock acquisition adds ≤5 s per tick; behind-N alert fires within one tick interval (≤5 min) of crossing threshold (NFR-002/003)
-**Constraints**: Tier 1 (deploy fabric) — verify prompt-deploy connectivity before/after; `scripts/deploy/**` is an audited surface → rebaseline on deploy; no OpenClaw config or agent-prompt content changes (locality); separate checkouts (#636) out of scope
+**Constraints**: Tier 1 (deploy fabric) — verify prompt-deploy connectivity before/after; the new `scripts/deploy/lib/**` primitives are the audited surface (per the `deploy-pipeline` registry) → **manual** rebaseline on the out-of-band bootstrap deploy; no OpenClaw config or agent-prompt content changes (locality); separate checkouts (#636) out of scope
 **Scale/Scope**: 2 deploy actors, 1 shared checkout, ~5-min cadence; ~2 modified scripts + 1–2 new shared-lib modules + tests + 1 deploy manifest
 
 ## Charter Check
@@ -80,8 +80,8 @@ scripts/deploy/felix-deployer/
 scripts/openclaw/deploy/
 └── deploy_agent_prompts.py   # MODIFY — replace git_pull() internals with advance_checkout() under the lock; add ntfy + behind-N health
 
-deploys/queued/
-└── 00NN-prompt-sync-ff-race.yaml   # NEW — records the deploy + audited-surface rebaseline
+deploys/applied/
+└── 00NN-prompt-sync-ff-race.yaml   # NEW — operator-bootstrap applied record (NOT a queued manifest)
 
 tests/
 ├── deploy/lib/test_gitsync.py        # NEW — incl. concurrency test (NFR-001)
@@ -109,13 +109,13 @@ FR-006 (one primitive, no duplication) and keeps the actor scripts thin.
 - **Sequencing/depends-on**: none (foundation).
 - **Risks**: `git fetch origin main` must reliably update `refs/remotes/origin/main` (it does, via the configured `+refs/heads/*:refs/remotes/origin/*` refspec) — cover in tests; distinguish ff-failure-from-divergence vs transient.
 
-### IC-02 — Shared advisory lock
+### IC-02 — Shared advisory lock (actor-level scope)
 
-- **Purpose**: Mutually exclude the two actors' git/working-tree critical sections via a well-known advisory file lock (`fcntl.flock`), with bounded wait then defer-to-next-tick.
+- **Purpose**: Mutually exclude each actor's **entire** checkout-mutating critical section via a well-known advisory file lock (`fcntl.flock`), bounded wait then defer-to-next-tick. **Standalone** primitive (not embedded in `advance_checkout`), so felix-deployer can hold it across its post-pull commit/push/stamp/watermark phase — the Codex CRITICAL correction.
 - **Relevant requirements**: FR-002, NFR-002.
 - **Affected surfaces**: `scripts/deploy/lib/deploylock.py` (new) + tests.
 - **Sequencing/depends-on**: none (foundation, parallel to IC-01).
-- **Risks**: lock-file path must be identical for both actors and writable by `claude`; a stale lock must never permanently wedge a tick (use bounded non-blocking acquire).
+- **Risks**: lock-file path must be identical for both actors and writable by `claude`; a stale lock must never permanently wedge a tick (bounded non-blocking acquire; OS auto-release on death).
 
 ### IC-03 — Behind-N health signal + fail-loud
 
@@ -127,16 +127,16 @@ FR-006 (one primitive, no duplication) and keeps the actor scripts thin.
 
 ### IC-04 — Actor integration (both deploy paths)
 
-- **Purpose**: Replace `felix-deployer` `_tick.py` bare pull and `prompt-sync` `git_pull()` internals with `advance_checkout()` under the shared lock + health wiring, preserving each actor's existing contracts (felix-deployer's `pre_pull_head`/`post_pull_head` for rebaseline; prompt-sync's `GitPullResult` + JSONL audit records).
-- **Relevant requirements**: FR-001, FR-002, FR-004, FR-005.
-- **Affected surfaces**: `scripts/deploy/felix-deployer/_tick.py`, `scripts/openclaw/deploy/deploy_agent_prompts.py` + their tests.
+- **Purpose**: Wrap each actor's whole critical section in `deploylock` and replace `felix-deployer` `_tick.py` bare pull + `prompt-sync` `git_pull()` internals with `advance_checkout(assume_locked=True)` + health wiring, preserving each actor's existing contracts (felix-deployer's `pre_pull_head`/`post_pull_head` for rebaseline; prompt-sync's `GitPullResult` + JSONL audit records). Includes the **actor-level concurrency integration harness** (NFR-001, Codex HIGH).
+- **Relevant requirements**: FR-001, FR-002, FR-004, FR-005, NFR-001.
+- **Affected surfaces**: `scripts/deploy/felix-deployer/_tick.py`, `scripts/openclaw/deploy/deploy_agent_prompts.py` (+ its env/service wiring for the ntfy topic), their tests, and a new actor-level integration test.
 - **Sequencing/depends-on**: IC-01, IC-02, IC-03.
-- **Risks**: must not regress felix-deployer's rebaseline range computation (it relies on pre/post HEAD across the advance) or prompt-sync's audit-log contract; keep the git seam mockable.
+- **Risks**: must not regress felix-deployer's rebaseline range computation (pre/post HEAD across the advance) or prompt-sync's audit-log contract; felix must hold the lock across ALL its checkout mutations (not just the pull); keep the git seam mockable.
 
-### IC-05 — Stale lane-branch cleanup + deploy/rebaseline
+### IC-05 — Controlled bootstrap deploy + stale lane-branch cleanup
 
-- **Purpose**: Delete the orphan `kitty/…-lane-a` origin branch; author the `deploys/queued/` manifest that records the deploy and drives the audited-surface rebaseline; document the spec-kitty lane-cleanup gap.
+- **Purpose**: Deploy via a controlled operator **bootstrap** (stop both timers → manual `git fetch && git merge --ff-only origin/main` on office2 → verify fixed files present → delete the orphan `kitty/…-lane-a` origin branch → manual audited-surface rebaseline → restart timers), recorded as a `deploys/applied/` record. Document the spec-kitty lane-cleanup gap. This replaces the unsound "queued manifest / self-delivering pull" story (Codex HIGH ×2).
 - **Relevant requirements**: FR-003, C-002, C-003, C-005.
-- **Affected surfaces**: origin (branch delete), `deploys/queued/00NN-prompt-sync-ff-race.yaml` (new), quickstart deploy steps.
-- **Sequencing/depends-on**: IC-04 (code merged) before deploy; branch delete can happen independently.
-- **Risks**: confirm no active mission uses that lane branch (verified: it's from a mission merged ~2026-06-16); rebaseline must confirm drift is expected-only before resetting baselines.
+- **Affected surfaces**: origin (branch delete), office2 runtime (timers, rebaseline), `deploys/applied/00NN-prompt-sync-ff-race.yaml` (new), quickstart deploy steps.
+- **Sequencing/depends-on**: IC-04 (code merged to main) before the bootstrap; branch delete happens during the bootstrap.
+- **Risks**: sudo not available to `claude` for some steps — hand any sudo to Kent; confirm no active mission uses that lane branch (verified: mission merged ~2026-06-16); rebaseline must confirm drift is expected-only (the new `scripts/deploy/lib/**` files) before resetting baselines.
