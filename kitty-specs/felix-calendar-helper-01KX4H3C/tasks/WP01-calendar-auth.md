@@ -83,8 +83,14 @@ Authoritative detail: `../data-model.md` (Account, OAuth credential) and
 - Persist refreshed tokens atomically (temp + `os.replace`, `0600`) — never print token contents.
 
 ### T003 — Tests (`tests/google/test_calendar_auth.py`, + `tests/google/__init__.py`)
-Mock `google.oauth2.credentials.Credentials` and the refresh transport (do **not**
-rely on the urlopen block — google uses other transports). Cover:
+**CI-safe imports (important)**: the google libs are NOT in `requirements.txt`
+(they live only in the office2 venv), so CI won't have them. Make the module
+import cleanly without them — do google imports **lazily** inside functions, and
+in tests inject fakes via `sys.modules` (`google`, `google.oauth2.credentials`,
+`google.auth.transport.requests`, `googleapiclient.discovery`) before importing
+the module. The unit tests must pass with **no** google packages installed.
+Mock `Credentials` and the refresh transport (do **not** rely on the urlopen
+block — google uses other transports). Cover:
 - valid token → returned unchanged;
 - expired-but-refreshable → `refresh` called + persisted;
 - `invalid_grant`/`RefreshError` → `CalendarAuthError` (no interactive flow attempted);

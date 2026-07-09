@@ -104,6 +104,11 @@ with the google libs.
   with the actionable re-mint message. **Never** interactive.
 
 ### T008 — Tests (`tests/google/test_calendar_helper.py`)
+**CI-safe imports (important)**: google libs are NOT in `requirements.txt` (venv-only
+on office2), so CI lacks them. Import google lazily in the module and inject fake
+google modules via `sys.modules` in tests before importing the helper — the unit
+tests must pass with **no** google packages installed. (The one `live_smoke` test
+needs real libs and stays CI-skipped.)
 Mock `googleapiclient.discovery.build` to return a fake `service` whose
 `.events()` records insert/list/get/update/delete calls; mock `calendar_auth.load_credentials`
 (valid + raising `CalendarAuthError`). Any unmocked `.execute()` must raise. Cover:
