@@ -44,6 +44,14 @@ WorkingDirectory=/home/claude/kg-automation
 ExecStart=/usr/bin/python3 -m scripts.openclaw.deploy.deploy_agent_prompts
 StandardOutput=journal
 StandardError=journal
+# ntfy health-alert topic for the git-advance behind-N health signal (#667).
+# Operator-filled: set this to the ntfy.sh topic this actor should publish
+# health alerts to. If left EMPTY, the generic health notifier falls back to
+# the shared FELIX_DEPLOYER_NTFY_TOPIC (see
+# scripts/deploy/felix-deployer/notify.py:_resolve_health_topic). If neither is
+# set, health alerts are skipped silently (no crash) — but a silent multi-week
+# stall is exactly the harm #667 exists to prevent, so set one of the two.
+Environment=AGENT_PROMPT_SYNC_NTFY_TOPIC=
 # Generous timeout: no-drift ticks complete in <2s normally (NFR-001);
 # this ceiling accommodates slow git fetches on flaky network without
 # prematurely killing the process.

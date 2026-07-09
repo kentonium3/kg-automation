@@ -207,6 +207,103 @@ outcome. Tracked for a future enhancement.
 
 ---
 
+## Two-actor shared-checkout lock (deploylock)
+
+Two systemd-timed actors share the single office2 checkout at
+`/home/claude/kg-automation`:
+
+- **felix-deployer** — the manifest applier (`felix-deployer.timer`, ~5 min).
+- **agent-prompt-sync** — the Felix agent-prompt sync (`agent-prompt-sync.timer`,
+  ~5 min).
+
+Both advance the checkout to `origin/main` every tick, and felix-deployer keeps
+mutating the checkout after the pull (queue-apply commits, applied-record
+commit/push, rebaseline stamp commits, watermark writes). Two concurrent
+working-tree/index mutations on one checkout race.
+
+**Race-immune advance.** Neither actor uses a bare `git pull` anymore. Both
+fetch, then fast-forward the atomic remote-tracking **ref** `origin/main`
+(`git merge --ff-only origin/main`) via `scripts/deploy/lib/gitsync.py`
+(`advance_checkout`). The historical `fatal: Cannot fast-forward to multiple
+branches` came from concurrent writers clobbering the single shared
+`.git/FETCH_HEAD` and then merging from it; merging the per-ref-locked
+`origin/main` instead removes `FETCH_HEAD` from the merge path entirely, so the
+race is gone even before the lock (#667).
+
+**Actor-level lock.** Each actor additionally wraps its **entire**
+checkout-mutating critical section in a shared advisory lock,
+`scripts/deploy/lib/deploylock.py` (`deploylock`, `fcntl.flock(LOCK_EX |
+LOCK_NB)`), so felix-deployer's post-pull commit/push/stamp phase never overlaps
+prompt-sync's fetch/merge/copy. The lock file is a neutral shared path
+(`/data/services/deploy/locks/office2-checkout.lock` by default, overridable via
+the `DEPLOY_CHECKOUT_LOCK` env var). Acquisition is **non-blocking with a bounded
+retry (~5 s)**: if the other actor holds the lock, the tick **defers cleanly** to
+its next interval (a benign `lock_unavailable` — logged, but NOT a health
+failure). `flock` auto-releases if the holder dies, so a crashed actor never
+wedges the other.
+
+**The lock directory must be provisioned by the bootstrap.** `deploylock()`
+`mkdir`s the lock file's parent at runtime, so if `/data/services/deploy` is not
+creatable by the `claude` user the **first tick crashes BOTH actors** with a
+`PermissionError`. The controlled bootstrap MUST create and verify the directory
+as the `claude` user **before** restarting the timers, and it must be writable
+by `claude`:
+
+```
+ssh office2-claude 'mkdir -p /data/services/deploy/locks && test -w /data/services/deploy/locks && echo lock-dir-ok'
+```
+
+**Health signal.** A per-actor watermark (`scripts/deploy/lib/health.py`) counts
+only *confirmed* advance failures (`diverged | fetch_failed | merge_failed`) and
+fires at most one ntfy alert per failure streak, so a silent multi-week stall
+(the original #667 harm) is impossible. `lock_unavailable` defers do **not**
+count.
+
+The actor-level concurrency proof for all of the above lives in
+`tests/deploy/test_actor_concurrency.py` — it runs both real tick bodies
+barrier-synchronized through one lock against one checkout (seeded with a stale
+extra origin branch) over 120 overlapped rounds.
+
+## Controlled-bootstrap deploy pattern (not a queued manifest)
+
+Some changes **cannot** ride the normal `deploys/queued/<name>.yaml` self-pull
+path and must be deployed as a **controlled operator bootstrap**, recorded as a
+`deploys/applied/<NNNN>-<name>.yaml` record (`apply_mode: bootstrap`) rather than
+a queued manifest. Two reasons force this class:
+
+1. **Chicken-and-egg on the deploy mechanism itself.** When the change *is* the
+   git-advance path (e.g. #667 fixed the very `git pull` both actors use), the
+   fixed code can only arrive via that same broken pull. Relying on the broken
+   path to deliver its own fix is unsound — so the operator fast-forwards the
+   checkout **by hand** with the race-immune form
+   (`git fetch origin main && git merge --ff-only origin/main`) while both timers
+   are stopped, then restarts them.
+2. **Queued manifests are not record-only.** The manifest schema requires an
+   executable `entrypoint` that felix-deployer runs `--dry-run`/`--apply`. A
+   change with nothing to *run* (only a checkout fast-forward + a manual
+   rebaseline) has no valid entrypoint, so it cannot be a queued manifest.
+
+**Shape of the bootstrap record.** It is a `deploys/applied/` YAML with
+`apply_mode: bootstrap`, the six required manifest fields, and (for Tier 1/2) a
+`verification` block. Because there is no script, the `entrypoint` names a
+manual-bootstrap path purely to satisfy the schema; the actual step-by-step
+sequence lives in `notes` and in the mission quickstart. `0012-prompt-sync-ff-race.yaml`
+is the worked example (#667): stop both timers → manual `--ff-only` merge →
+verify the new `scripts/deploy/lib/**` files present → delete the stale origin
+lane branch → **manual** audited-surface rebaseline → **provision + verify the
+shared lock directory** (`mkdir -p /data/services/deploy/locks`, writable by
+`claude`; see the deploylock note above) → restart both timers. If the next free
+applied number is taken at deploy time, the operator renames the file before
+committing (the applied sequence stays gap-free and monotonic).
+
+**Rebaseline is manual for a bootstrap.** A controlled bootstrap is an
+*out-of-band* change (not applied by felix-deployer through the manifest tick),
+so its audited-surface rebaseline is a **manual** out-of-band reset — see
+[`docs/runbooks/security-baseline-ops.md`](<./security-baseline-ops.md>) — not
+the deployer's auto-rebaseline happy path.
+
+---
+
 ## Troubleshooting (legacy scripts only)
 
 For new deploys (manifest discipline), failure handling is documented in

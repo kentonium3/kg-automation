@@ -47,13 +47,23 @@ from typing import Any
 
 from scripts.deploy.lib import apply as _apply
 from scripts.deploy.lib import applied as _applied
+from scripts.deploy.lib import health as _health
 from scripts.deploy.lib import manifest as _manifest
+from scripts.deploy.lib.deploylock import LockUnavailable, deploylock
+from scripts.deploy.lib.gitsync import AdvanceResult, advance_checkout
 
 import notify as _notify  # type: ignore[import-not-found]
 import rebaseline as _rebaseline  # type: ignore[import-not-found]
 
 DEFAULT_REPO_ROOT = pathlib.Path("/home/claude/kg-automation")
 DEFAULT_LOG_DIR = pathlib.Path("/data/services/felix-deployer/logs")
+
+#: Actor name for the shared per-actor git-advance health watermark (#667).
+HEALTH_ACTOR = "felix-deployer"
+#: Per-actor health-watermark state file (data drive on office2).
+DEFAULT_STATE_DIR = pathlib.Path("/data/services/felix-deployer/state")
+#: Env var naming felix-deployer's ntfy topic (reused for health alerts).
+HEALTH_TOPIC_ENV = "FELIX_DEPLOYER_NTFY_TOPIC"
 
 # Phase mapping from lib.apply's 7-value internal enum to the 4-value
 # ntfy-notification-v1 enum. Drift here would silently break the operator's
@@ -108,6 +118,38 @@ def _resolve_head_sha(repo_root: pathlib.Path) -> str:
     if r.returncode != 0:
         return ""
     return r.stdout.strip()
+
+
+def _advance_git_runner(repo_root: pathlib.Path):
+    """Return a git runner bound to *repo_root* for :func:`advance_checkout`.
+
+    Routing the fetch/merge through ``_tick._git`` keeps every git call in the
+    tick uniformly mockable (the same seam the rebaseline engine uses).
+    """
+
+    def _runner(args: list[str]) -> subprocess.CompletedProcess:
+        return _git(args, cwd=repo_root)
+
+    return _runner
+
+
+def _health_notifier(actor: str):
+    """Return a health notifier that sends via the felix-deployer ntfy path.
+
+    ``health.record`` calls the notifier with ``(title, body)`` and expects a
+    delivery ``bool`` back; we route to
+    :func:`notify.dispatch_health_notification` (best-effort, never raises into
+    the tick) resolving the topic from ``FELIX_DEPLOYER_NTFY_TOPIC`` and return
+    its delivery bool so ``health.record`` only stamps ``last_alert_ts`` on an
+    actually-delivered alert.
+    """
+
+    def _notifier(title: str, body: str) -> bool:
+        return _notify.dispatch_health_notification(
+            actor, title, body, topic_env=HEALTH_TOPIC_ENV
+        )
+
+    return _notifier
 
 
 def _rebaseline_git_runner(repo_root: pathlib.Path):
@@ -329,29 +371,109 @@ def run_tick(
     repo_root = pathlib.Path(repo_root) if repo_root else DEFAULT_REPO_ROOT
     log_dir = pathlib.Path(log_dir) if log_dir else DEFAULT_LOG_DIR
     log_path = log_dir / f"{_dt.date.today():%Y-%m-%d}.jsonl"
+    state_path = DEFAULT_STATE_DIR / "git-health.json"
 
     _log(log_path, {"event": "tick_start"})
 
-    # 1. git pull --ff-only.
-    # Capture pre-pull HEAD so the rebaseline engine can compute the pulled
-    # range (pre_pull_head..post_pull_head) — it needs the exact range to
-    # detect which audited-surface files were added by this pull (C1).
-    pre_pull_head = _resolve_head_sha(repo_root)
-
-    pull = _git(["pull", "--ff-only"], cwd=repo_root)
-    if pull.returncode != 0:
+    # T011 — Acquire the shared actor-level checkout lock around the ENTIRE
+    # checkout-mutating critical section (Codex CRITICAL). felix-deployer keeps
+    # mutating the same checkout/index long after the pull — the queue-apply
+    # commits, applied-record commit/push, rebaseline stamp commit/push, and the
+    # watermark write — so the lock MUST span all of it, not just the pull. The
+    # only work OUTSIDE the lock is the pure-read setup above (path resolution +
+    # the tick_start log), which touches nothing in the checkout.
+    #
+    # LockUnavailable is a benign defer: the other actor (agent-prompt-sync)
+    # holds the lock this tick. Log tick_skip and return 0 — the next tick
+    # retries. NOT a health failure (health.record is never called on defer).
+    try:
+        with deploylock():
+            return _run_tick_locked(repo_root, log_path, state_path)
+    except LockUnavailable:
         _log(
             log_path,
             {
                 "event": "tick_skip",
-                "reason": "git_pull_failed",
-                "stderr": (pull.stderr or "")[:200],
+                "reason": "lock_unavailable",
             },
         )
         return 0
 
-    head_sha = _resolve_head_sha(repo_root)
-    post_pull_head = head_sha  # alias for rebaseline engine
+
+def _run_tick_locked(
+    repo_root: pathlib.Path,
+    log_path: pathlib.Path,
+    state_path: pathlib.Path,
+) -> int:
+    """The checkout-mutating tick body — runs with the shared deploylock held.
+
+    Spans pre-head capture → race-immune advance → queue-apply → applied-record
+    commit/push → rebaseline observe/reconcile/stamp → watermark write. Every git
+    mutation in the tick happens inside this function (i.e. inside the lock).
+    """
+    # 1. Race-immune fast-forward (T012). Replaces the historical bare
+    # ``git pull --ff-only`` that read the shared .git/FETCH_HEAD and blew up with
+    # "Cannot fast-forward to multiple branches" under the two-actor race.
+    # ``advance_checkout`` fetches then merges the atomic ref ``origin/main``,
+    # never FETCH_HEAD. assume_locked=True: we already hold the lock (above), so
+    # advance_checkout must NOT re-acquire it. The git seam is routed through
+    # ``_tick._git`` so every call stays uniformly mockable.
+    #
+    # Capture pre/post HEAD from the result so the rebaseline engine computes the
+    # SAME pulled range (pre_pull_head..post_pull_head) as before — the #685/#688
+    # rebaseline subsystem is byte-for-byte unchanged (result.pre_head →
+    # pre_pull_head, result.post_head → post_pull_head).
+    result = advance_checkout(
+        repo_root,
+        assume_locked=True,
+        git_runner=_advance_git_runner(repo_root),
+    )
+    pre_pull_head = result.pre_head
+    post_pull_head = result.post_head
+
+    # T013 — record the advance outcome into the per-actor health watermark and
+    # (on a confirmed-failure streak crossing the threshold) fire one ntfy alert.
+    # lock_unavailable never reaches here (we hold the lock), so record() only
+    # ever sees ok / diverged / fetch_failed / merge_failed. Best-effort: a
+    # health-store error must never crash the tick.
+    try:
+        _health.record(
+            HEALTH_ACTOR,
+            result,
+            state_path=state_path,
+            notifier=_health_notifier(HEALTH_ACTOR),
+        )
+    except Exception as exc:  # noqa: BLE001 - health is escalation, never fatal
+        _log(
+            log_path,
+            {
+                "event": "health_record_error",
+                "error": str(exc)[:200],
+            },
+        )
+
+    if not result.ok:
+        # T012/T013 — enriched fail-loud record (FR-005). diverged / fetch_failed
+        # / merge_failed all carry the full ref state so a future incident is
+        # self-diagnosing (the old log said only "Cannot fast-forward to multiple
+        # branches" with no SHAs). Keep the git_pull_failed-shaped tick_skip
+        # event, enriched with local_head/origin_head/behind/ahead/reason.
+        _log(
+            log_path,
+            {
+                "event": "tick_skip",
+                "reason": result.reason,
+                "local_head": result.pre_head,
+                "origin_head": result.origin_head,
+                "behind": result.behind,
+                "ahead": result.ahead,
+                "diverged": result.diverged,
+                "stderr": (result.stderr or "")[:200],
+            },
+        )
+        return 0
+
+    head_sha = post_pull_head  # deployer bookkeeping commits reference this
 
     # 2. Scan deploys/queued/ in alphabetical order.
     queued_dir = repo_root / "deploys" / "queued"
@@ -894,4 +1016,14 @@ def _build_alert_detail(event_key: str, rec_result: dict[str, Any]) -> str:
     return ""
 
 
-__all__ = ["run_tick", "PHASE_TO_NOTIFY_PHASE", "_maybe_dispatch_rebaseline_alert"]
+__all__ = [
+    "run_tick",
+    "PHASE_TO_NOTIFY_PHASE",
+    "_maybe_dispatch_rebaseline_alert",
+    # Re-exported so the tick's git-advance primitive + result type are a single
+    # import surface for tests/consumers of the felix-deployer tick (#667).
+    "AdvanceResult",
+    "advance_checkout",
+    "deploylock",
+    "LockUnavailable",
+]

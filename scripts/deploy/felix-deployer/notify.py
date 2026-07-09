@@ -415,6 +415,93 @@ def dispatch_rebaseline_alert(
     )
 
 
+# ---------------------------------------------------------------------------
+# Generic health notifier (#667, WP03)
+# ---------------------------------------------------------------------------
+#
+# The functions above are manifest-failure-shaped: they render a manifest title
+# and read the fixed FELIX_DEPLOYER_NTFY_TOPIC. The git-advance health signal
+# (scripts/deploy/lib/health.py) needs a *generic* sender: any actor supplies
+# its own title/body and names the env var that holds its ntfy topic. This
+# reuses the redaction (`_topic_redact` / `_redact_and_truncate`) and the curl
+# POST internals so there is one wire path, but owns its own topic resolution.
+
+# Health-alert priority/tags — same high-urgency shape as the failure path.
+_HEALTH_PRIORITY = "high"
+_HEALTH_TAGS = "warning,rotating_light"
+
+
+def _resolve_health_topic(topic_env: str) -> str:
+    """Resolve the ntfy topic for a health alert.
+
+    Reads the env var named by *topic_env* (e.g. ``AGENT_PROMPT_SYNC_NTFY_TOPIC``);
+    if unset/blank, falls back to the shared ``FELIX_DEPLOYER_NTFY_TOPIC``.
+    Returns "" when neither is configured.
+    """
+    topic = os.environ.get(topic_env, "").strip()
+    if topic:
+        return topic
+    return os.environ.get(NTFY_TOPIC_ENV, "").strip()
+
+
+def dispatch_health_notification(
+    actor: str,
+    title: str,
+    body: str,
+    *,
+    topic_env: str,
+) -> bool:
+    """Send a generic ntfy health alert for *actor* (best-effort).
+
+    Resolves the topic from the env var named by *topic_env*, falling back to
+    ``FELIX_DEPLOYER_NTFY_TOPIC`` if that is unset. The *body* is run through the
+    shared redact-then-truncate path before POST.
+
+    Returns ``True`` iff the alert was **actually delivered** — i.e. a topic
+    resolved AND the curl POST succeeded (rc == 0). Returns ``False`` on every
+    non-delivery mode (no topic configured, curl missing, spawn failure,
+    network/HTTP error). This delivery bool is the contract
+    :func:`scripts.deploy.lib.health.record` relies on to decide whether to stamp
+    ``last_alert_ts``: a False return must NOT burn the alert. This function is
+    best-effort and NEVER raises into the caller's tick.
+    """
+    topic = _resolve_health_topic(topic_env)
+    if not topic:
+        # No topic configured → nothing delivered.
+        return False
+
+    safe_body = _redact_and_truncate(body or "")
+    if not safe_body:
+        safe_body = "(no detail)"
+
+    try:
+        result = subprocess.run(  # noqa: S603 - argv list, no shell
+            [
+                "curl",
+                "--silent",
+                "--show-error",
+                "--fail",
+                "--max-time", str(CURL_MAX_TIME_SECONDS),
+                "-H", f"Title: {title}",
+                "-H", f"Priority: {_HEALTH_PRIORITY}",
+                "-H", f"Tags: {_HEALTH_TAGS}",
+                "-X", "POST",
+                "--data-binary", "@-",
+                f"{NTFY_BASE_URL}/{topic}",
+            ],
+            input=safe_body,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    except (FileNotFoundError, OSError):
+        # curl missing / spawn failure → not delivered. Best-effort: swallow.
+        return False
+
+    # Delivered iff the POST succeeded.
+    return result.returncode == 0
+
+
 __all__ = [
     "NOTIFICATION_FORMAT_VERSION",
     "NTFY_TOPIC_ENV",
@@ -423,4 +510,5 @@ __all__ = [
     "REBASELINE_ALERT_EVENTS",
     "dispatch_failure_notification",
     "dispatch_rebaseline_alert",
+    "dispatch_health_notification",
 ]

@@ -1,0 +1,128 @@
+schema_version: 1
+mission_id: 01KX3SZC2YHPWRCYD7WXQSFZQ7
+mission_slug: prompt-sync-ff-race-01KX3SZC
+mission_number: 89
+friendly_name: Prompt-sync FETCH_HEAD race fix
+mission_type: software-dev
+target_branch: fix/prompt-sync-ff-race
+created_at: '2026-07-09T18:27:05.465600+00:00'
+created_by:
+  kind: runtime
+  id: spec-kitty-generator
+  display: Spec Kitty Generator
+provenance:
+  kind: runtime_post_completion
+  invoked_at: '2026-07-09T18:27:05.465600+00:00'
+  policy_resolved_from:
+    enabled: <default>
+    timing: <default>
+    failure_policy: <default>
+    write_record: <default>
+    generate_proposals: <default>
+    apply_proposals: <default>
+    permissions.write_record: <default>
+    permissions.inspect_mission_artifacts: <default>
+    permissions.propose_glossary_changes: <default>
+    permissions.propose_drg_changes: <default>
+    permissions.propose_doctrine_changes: <default>
+    permissions.apply_low_risk_changes: <default>
+    permissions.apply_structural_changes: <default>
+    precedence: <default>
+    generator: <default>
+policy_source:
+  enabled: <default>
+  timing: <default>
+  failure_policy: <default>
+  write_record: <default>
+  generate_proposals: <default>
+  apply_proposals: <default>
+  permissions.write_record: <default>
+  permissions.inspect_mission_artifacts: <default>
+  permissions.propose_glossary_changes: <default>
+  permissions.propose_drg_changes: <default>
+  permissions.propose_doctrine_changes: <default>
+  permissions.apply_low_risk_changes: <default>
+  permissions.apply_structural_changes: <default>
+  precedence: <default>
+  generator: <default>
+findings_status: has_findings
+helped:
+- id: h-001
+  category: implementation
+  summary: WP01 completed without rejection cycles
+  evidence_refs:
+  - e-011
+- id: h-002
+  category: implementation
+  summary: WP02 completed without rejection cycles
+  evidence_refs:
+  - e-011
+- id: h-003
+  category: implementation
+  summary: WP03 completed without rejection cycles
+  evidence_refs:
+  - e-011
+- id: h-004
+  category: implementation
+  summary: WP04 completed without rejection cycles
+  evidence_refs:
+  - e-011
+- id: h-005
+  category: implementation
+  summary: WP05 completed without rejection cycles
+  evidence_refs:
+  - e-011
+- id: h-006
+  category: implementation
+  summary: WP06 completed without rejection cycles
+  evidence_refs:
+  - e-011
+not_helpful:
+- id: n-001
+  category: doc
+  summary: analysis-report.md present with findings
+  evidence_refs:
+  - e-012
+  details: An analysis-report.md artifact is present for this mission. Review its findings to understand documented 
+    issues and decisions.
+gaps: []
+proposals: []
+evidence_refs:
+- id: e-001
+  kind: file
+  path: kitty-specs/prompt-sync-ff-race-01KX3SZC/meta.json
+- id: e-002
+  kind: file
+  path: kitty-specs/prompt-sync-ff-race-01KX3SZC/spec.md
+- id: e-003
+  kind: file
+  path: kitty-specs/prompt-sync-ff-race-01KX3SZC/plan.md
+- id: e-004
+  kind: file
+  path: kitty-specs/prompt-sync-ff-race-01KX3SZC/tasks.md
+- id: e-005
+  kind: file
+  path: kitty-specs/prompt-sync-ff-race-01KX3SZC/tasks/WP01-gitsync-primitive.md
+- id: e-006
+  kind: file
+  path: kitty-specs/prompt-sync-ff-race-01KX3SZC/tasks/WP02-deploylock-primitive.md
+- id: e-007
+  kind: file
+  path: kitty-specs/prompt-sync-ff-race-01KX3SZC/tasks/WP03-health-notifier.md
+- id: e-008
+  kind: file
+  path: kitty-specs/prompt-sync-ff-race-01KX3SZC/tasks/WP04-felix-deployer-integration.md
+- id: e-009
+  kind: file
+  path: kitty-specs/prompt-sync-ff-race-01KX3SZC/tasks/WP05-prompt-sync-integration.md
+- id: e-010
+  kind: file
+  path: kitty-specs/prompt-sync-ff-race-01KX3SZC/tasks/WP06-actor-concurrency-deploy.md
+- id: e-011
+  kind: file
+  path: kitty-specs/prompt-sync-ff-race-01KX3SZC/status.events.jsonl
+- id: e-012
+  kind: file
+  path: kitty-specs/prompt-sync-ff-race-01KX3SZC/analysis-report.md
+generator_version: '1.0'
+provenance_history: []

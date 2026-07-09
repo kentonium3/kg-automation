@@ -185,6 +185,21 @@ list specific triggers:
 - New service added per [deployment.md](<./deployment.md>)
 - Bulk repo changes that touch `openclaw-config.txt` content (e.g.,
   agent-config sweeps)
+- **Deploy-pipeline primitives** — changes to `scripts/deploy/lib/**` (and
+  `deploys/{queued,applied,failed}/*.yaml`) are the `deploy-pipeline` audited
+  surface. When such a change ships via a **controlled operator bootstrap**
+  rather than the felix-deployer manifest tick, the rebaseline is a **manual**
+  out-of-band reset — not the auto-rebaseline happy path. Worked example: the
+  #667 prompt-sync FETCH_HEAD-race bootstrap
+  (`deploys/applied/0012-prompt-sync-ff-race.yaml`, mission
+  prompt-sync-ff-race-01KX3SZC) added
+  `scripts/deploy/lib/{gitsync,deploylock,health}.py`. **Confirm the observed
+  drift is expected-only first** (only those new-file surfaces should differ);
+  if drift extends beyond the change, investigate before resetting. Then run the
+  manual reset below. See the controlled-bootstrap deploy pattern in
+  [deployment.md](<./deployment.md>). Note the actor edits to
+  `_tick.py` / `deploy_agent_prompts.py` / `notify.py` are **not** registry-matched
+  and do not by themselves trigger a rebaseline.
 
 If you see drift alerts and aren't sure whether the change is
 intentional, inspect `logs/alerts-YYYY-MM-DD.log` for the diff before

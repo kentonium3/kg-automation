@@ -147,6 +147,65 @@ def _git_mock(
 
 
 # ---------------------------------------------------------------------------
+# WP04 autouse harness — deploylock + advance_checkout + health seams
+# ---------------------------------------------------------------------------
+#
+# WP04 routes the tick's pull through ``advance_checkout`` inside a shared
+# ``deploylock``. These tests were written against the pre-WP04 bare-``git pull``
+# path. To keep the rebaseline regression contract byte-for-byte — and to prove
+# the pre/post head (observe range) is UNCHANGED — an autouse fixture:
+#
+#   1. Points ``deploylock`` at a tmp lock file (env override) so it never
+#      touches the read-only ``/data`` path in CI.
+#   2. Redirects the health-watermark state dir to tmp.
+#   3. Replaces ``tick.advance_checkout`` with a clean-advance stub that derives
+#      pre/post EXACTLY as the old code did — two ``rev-parse HEAD`` calls through
+#      the SAME ``tick._git`` seam each test already mocks (1st → pre_pull_head,
+#      2nd → post_pull_head). So the pre/post fed to the rebaseline engine is
+#      identical to the pre-WP04 tick, regardless of which per-test ``_git`` mock
+#      is installed. Tests that need a failure/lock path opt out via the helpers
+#      below (``patch_advance`` / not applicable here) or live in
+#      ``test_tick_ffrace.py``.
+# ---------------------------------------------------------------------------
+
+
+def _clean_advance_from_git(repo_root, **kwargs):
+    """Stub for ``tick.advance_checkout``: clean fast-forward using tick._git.
+
+    Consumes exactly two ``rev-parse HEAD`` calls (pre then post) so any
+    per-test ``_git`` mock's call ordering — where the 3rd+ rev-parse returns an
+    own/stamp commit SHA — is preserved just as it was under the bare pull.
+    """
+    pre = tick._resolve_head_sha(repo_root)
+    post = tick._resolve_head_sha(repo_root)
+    advanced = bool(post) and post != pre
+    return tick.AdvanceResult(
+        ok=True,
+        advanced=advanced,
+        pre_head=pre,
+        post_head=post,
+        origin_head=post,
+        behind=1 if advanced else 0,
+        ahead=0,
+        diverged=False,
+    )
+
+
+@pytest.fixture(autouse=True)
+def _wp04_seams(monkeypatch, tmp_path):
+    """Autouse: neutralize the WP04 lock/health/advance seams for legacy tests.
+
+    Individual tests can still override ``tick.advance_checkout`` afterwards
+    (monkeypatch precedence) to drive failure/defer paths.
+    """
+    lock_path = tmp_path / "wp04-checkout.lock"
+    monkeypatch.setenv("DEPLOY_CHECKOUT_LOCK", str(lock_path))
+    monkeypatch.setattr(tick, "DEFAULT_STATE_DIR", tmp_path / "state")
+    monkeypatch.setattr(tick, "advance_checkout", _clean_advance_from_git)
+    yield
+
+
+# ---------------------------------------------------------------------------
 # T009 — observe + reconcile called with correct pulled range
 # ---------------------------------------------------------------------------
 
@@ -462,16 +521,107 @@ def test_reconcile_exception_is_swallowed(monkeypatch, fake_repo, log_dir):
 
 
 def test_tick_returns_zero_on_pull_failure(monkeypatch, fake_repo, log_dir):
-    """git pull failure produces tick_skip and does not invoke the engine."""
+    """advance_checkout failure produces tick_skip and does not invoke the engine.
+
+    WP04: the bare ``git pull`` is gone; a failed advance (here ``fetch_failed``)
+    now short-circuits the tick before the rebaseline engine — the same early
+    return the old ``git_pull_failed`` path gave, but enriched with ref state.
+    """
     observe_called = []
-    monkeypatch.setattr(tick, "_git", _git_mock(pull_rc=1))
+    monkeypatch.setattr(tick, "_git", _git_mock())
+
+    def _failed_advance(repo_root, **kwargs):
+        return tick.AdvanceResult(
+            ok=False,
+            advanced=False,
+            pre_head="aabbccdd",
+            post_head="aabbccdd",
+            origin_head="",
+            behind=0,
+            ahead=0,
+            diverged=False,
+            reason="fetch_failed",
+            stderr="network unreachable",
+        )
+
+    monkeypatch.setattr(tick, "advance_checkout", _failed_advance)
     monkeypatch.setattr(rebaseline, "observe", lambda *a, **kw: observe_called.append(True) or {"outcome": "not_required"})
     monkeypatch.setattr(rebaseline, "reconcile", lambda **kw: {"outcome": "not_required"})
 
     rc = tick.run_tick(repo_root=fake_repo, log_dir=log_dir)
     assert rc == 0
-    # On pull failure the tick returns early; engine must NOT be called.
+    # On advance failure the tick returns early; engine must NOT be called.
     assert observe_called == []
+    # Fail-loud: the tick_skip record carries the enriched ref state (FR-005).
+    entries = _read_log(log_dir)
+    skip = next(e for e in entries if e.get("event") == "tick_skip")
+    assert skip["reason"] == "fetch_failed"
+    assert skip["local_head"] == "aabbccdd"
+    assert "behind" in skip and "ahead" in skip
+
+
+# ---------------------------------------------------------------------------
+# T014 — rebaseline observe range is UNCHANGED when routed via advance_checkout
+# ---------------------------------------------------------------------------
+
+
+def test_advance_checkout_result_feeds_rebaseline_range_unchanged(
+    monkeypatch, fake_repo, log_dir
+):
+    """The #685/#688 rebaseline observe range MUST be byte-for-byte identical to
+    the pre-WP04 tick: ``result.pre_head → pre_pull_head`` and
+    ``result.post_head → post_pull_head`` feed observe(pre, post) exactly.
+
+    Mock ``advance_checkout`` to return KNOWN pre/post heads and assert observe
+    (and the observe log entry) sees those exact values. This is the regression
+    guard for the rebaseline subsystem: the pull mechanism changed, the range
+    contract did not.
+    """
+    KNOWN_PRE = "1234abcd" * 5
+    KNOWN_POST = "9876fedc" * 5
+
+    monkeypatch.setattr(tick, "_git", _git_mock())
+
+    def _known_advance(repo_root, **kwargs):
+        # assume_locked must be passed by the tick (it already holds the lock).
+        assert kwargs.get("assume_locked") is True
+        return tick.AdvanceResult(
+            ok=True,
+            advanced=True,
+            pre_head=KNOWN_PRE,
+            post_head=KNOWN_POST,
+            origin_head=KNOWN_POST,
+            behind=2,
+            ahead=0,
+            diverged=False,
+        )
+
+    monkeypatch.setattr(tick, "advance_checkout", _known_advance)
+
+    observe_calls: list[tuple[str, str]] = []
+    monkeypatch.setattr(
+        rebaseline,
+        "observe",
+        lambda base, post, **kw: observe_calls.append((base, post))
+        or {"outcome": "not_required"},
+    )
+    monkeypatch.setattr(rebaseline, "reconcile", lambda **kw: {"outcome": "not_required"})
+
+    # No watermark file → fallback base == pre_pull_head (legacy range semantics).
+    wm_path = fake_repo / "rebaseline-observed-head.json"
+    monkeypatch.setattr(rebaseline, "DEFAULT_OBSERVED_HEAD_PATH", wm_path)
+
+    rc = tick.run_tick(repo_root=fake_repo, log_dir=log_dir)
+    assert rc == 0
+
+    # observe was driven with the EXACT pre/post from the AdvanceResult.
+    assert observe_calls == [(KNOWN_PRE, KNOWN_POST)]
+
+    entries = _read_log(log_dir)
+    obs = next(e for e in entries if e.get("event") == "rebaseline_observe")
+    assert obs["pre_pull_head"] == KNOWN_PRE
+    assert obs["post_pull_head"] == KNOWN_POST
+    assert obs["range_source"] == "fallback"
 
 
 # ---------------------------------------------------------------------------
