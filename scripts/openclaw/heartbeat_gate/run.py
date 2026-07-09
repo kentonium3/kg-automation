@@ -198,6 +198,20 @@ def run_tick(
             }
         )
         fallback_invoked = True
+    except Exception as exc:  # noqa: BLE001 - defense-in-depth (post-merge Codex #1)
+        # load_context assumes last-tick.json is a JSON object with iterable
+        # list fields; a valid-but-wrong-shaped payload (e.g. a top-level
+        # array or a truthy scalar field) raises AttributeError/TypeError.
+        # Catch it here so step-1 failures land on the fallback path
+        # (fallback_invoked=True, exit 0) rather than escaping to the
+        # unhandled-exception emergency path (exit 1) — FR-007.
+        errors.append(
+            {
+                "error_type": "context_load_failed",
+                "error_message": f"{type(exc).__name__}: {exc}",
+            }
+        )
+        fallback_invoked = True
 
     # --- Step 2: gate decision --------------------------------------------
     if context_obj is not None and not fallback_invoked:

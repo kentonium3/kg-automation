@@ -123,9 +123,8 @@ graph LR
             gate_timer["felix-heartbeat-gate.timer<br/>OnUnitActiveSec=30min<br/>OnBootSec=5min"]
             gate_service["felix-heartbeat-gate.service<br/>(oneshot)"]
             gate_run["scripts/openclaw/heartbeat_gate/<br/>run.py<br/>(NEW #490)"]
-            gate_prompt[("prompts/routing.prompt.md<br/>scripts/openclaw/heartbeat_gate/<br/>(cache-aware system prompt)")]
+            gate_decide["gate.decide_deterministic(context)<br/>pure stdlib rule — NO LLM (#676)<br/>escalate iff novelty/has_tasks/errors"]
             heartbeat_contract[("HEARTBEAT.md<br/>/data/services/openclaw/data/<br/>(read; FR-010 contract)")]
-            anthropic_key_sdm[("anthropic API key<br/>/data/services/openclaw/<br/>secrets/anthropic (0600)<br/>shared with doc-audit + habits")]
             gate_decision[("last-gate-decision.json<br/>/data/services/openclaw/<br/>felix-heartbeat-gate/<br/>(overwritten each tick)")]
             gate_ledger[("gate-ledger.jsonl<br/>/data/services/openclaw/<br/>felix-heartbeat-gate/<br/>(append-only)")]
             openclaw_event["openclaw system event --mode now<br/>(subprocess, ONLY on ESCALATE<br/>or fallback)"]
@@ -259,9 +258,7 @@ graph LR
     gate_service -->|"ExecStart"| gate_run
     gate_run -->|"read (PRIMARY INPUT)"| sdm_tick_signal
     gate_run -->|"read (FR-010 contract)"| heartbeat_contract
-    gate_run -->|"read 0600<br/>(never logged)"| anthropic_key_sdm
-    gate_run -->|"system prompt<br/>(cache-aware)"| gate_prompt
-    gate_run -->|"HTTPS (anthropic-python SDK,<br/>claude-haiku-4-5)"| anthropic_api
+    gate_run -->|"in-process pure rule<br/>(no LLM, tokens=0; #676)"| gate_decide
     gate_run -.->|"ONLY on ESCALATE_TO_SONNET<br/>OR fallback (FR-008/FR-011)"| openclaw_event
     openclaw_event -->|"wake existing main-agent path"| main_agent_sonnet
     gate_run -->|"atomic write per tick<br/>(FR-009 audit surface)"| gate_decision

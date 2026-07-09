@@ -109,8 +109,17 @@ def _run(argv: list[str]) -> tuple[int, str, str]:
     return proc.returncode, proc.stdout, proc.stderr
 
 
-def _preflight() -> tuple[bool, dict]:
-    """Confirm the wrapper package and the reused bash script are present."""
+def _preflight(*, require_health_check_script: bool = False) -> tuple[bool, dict]:
+    """Confirm the wrapper package and the reused bash script are present.
+
+    ``require_health_check_script`` — when True (``--apply`` on office2), a
+    missing/absent reused ``health-check.sh`` is a **hard failure** (fail
+    closed): the wrapper returns exit 0 for ``SCRIPT_MISSING``, so without
+    this gate the smoke step would pass, the timer would be enabled, and the
+    legacy crons would be removed while the new check has no runnable script —
+    silently bricking health monitoring (post-merge Codex #2). ``--dry-run``
+    leaves it False (it runs off-office2 where the script legitimately absent).
+    """
     details: dict = {}
     ok = True
     if not (_WRAPPER_PACKAGE / "run.py").exists():
@@ -123,10 +132,13 @@ def _preflight() -> tuple[bool, dict]:
         ok = False
         details["timer_unit_missing"] = str(_SYSTEMD_REPO_DIR / f"{_SERVICE_NAME}.timer")
     # health-check.sh is reused in place (not shipped by this repo); on
-    # office2 it must already exist. In --dry-run we only report presence,
-    # we never fail dry-run on a fact about the live host that --apply will
-    # also re-check.
-    details["health_check_script_present"] = _HEALTH_CHECK_SCRIPT.exists()
+    # office2 it must already exist. --dry-run only reports presence; --apply
+    # fails closed on it (see require_health_check_script above).
+    script_present = _HEALTH_CHECK_SCRIPT.exists()
+    details["health_check_script_present"] = script_present
+    if require_health_check_script and not script_present:
+        ok = False
+        details["health_check_script_missing"] = str(_HEALTH_CHECK_SCRIPT)
     return ok, details
 
 
@@ -287,7 +299,7 @@ def _confirm_no_health_cron_remains() -> tuple[bool, dict]:
 
 
 def _apply() -> int:
-    ok, details = _preflight()
+    ok, details = _preflight(require_health_check_script=True)
     _print_line("APPLY", "preflight " + ("OK" if ok else "FAILED"), details)
     if not ok:
         return 1

@@ -183,6 +183,8 @@ def send_ntfy_alert(status: str, body: str) -> dict:
                 "curl",
                 "--silent",
                 "--show-error",
+                "--fail",  # post-merge Codex #3: HTTP 4xx/5xx -> non-zero rc (else a
+                           # rejected topic/ntfy error would be recorded as sent)
                 "--max-time",
                 str(NTFY_CURL_MAX_TIME_SECONDS),
                 "-H",

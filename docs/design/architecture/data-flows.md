@@ -530,7 +530,7 @@ Behavior per tick:
 
 Signal definitions are edit-without-code-changes (FR-005) — operator edits `signals/config.toml`, commits, deploys; next cycle picks them up.
 
-### Heartbeat Gate → Main Agent (#490, signal-driven-monitoring-haiku-gate)
+### Heartbeat Gate → Main Agent (#490 origin; #676 determinized the decision)
 
 ```
 felix-heartbeat-gate.timer (30-min, +5-min boot offset)
@@ -538,21 +538,20 @@ felix-heartbeat-gate.timer (30-min, +5-min boot offset)
       → scripts/openclaw/heartbeat_gate/run.py
            → /data/services/openclaw/felix-core-digest-signals/last-tick.json   (read — primary input)
            → /data/services/openclaw/data/HEARTBEAT.md                          (read — contract file, FR-010)
-           → /data/services/openclaw/secrets/anthropic                          (read 0600 — never logged)
-           → api.anthropic.com (HTTPS, anthropic-python SDK, claude-haiku-4-5)
+           → decide_deterministic(context)   (pure stdlib rule — NO LLM, NO Anthropic call, #676)
            → openclaw system event --mode now   (subprocess, ON ESCALATE_TO_SONNET or fallback only)
            → /data/services/openclaw/felix-heartbeat-gate/last-gate-decision.json   (atomic write)
-           → /data/services/openclaw/felix-heartbeat-gate/gate-ledger.jsonl    (append)
+           → /data/services/openclaw/felix-heartbeat-gate/gate-ledger.jsonl    (append, gate_*_tokens=0)
 ```
 
-Haiku-tier routing gate that fronts OpenClaw's heartbeat. The gate decides whether each 30-minute tick needs to wake the expensive Sonnet main-agent path; on the steady state it does not.
+Deterministic routing gate that fronts OpenClaw's heartbeat. The gate decides whether each 30-minute tick needs to wake the expensive Sonnet main-agent path; on the steady state it does not. **As of #676 the decision is a pure Python rule over the already-deterministic novelty markers — no Haiku/Anthropic call in the tick hot path** (the routing prompt's boolean contract, validated 0 missed / 0 over against 1748 historical ticks). The Anthropic key is no longer read on this path.
 
 Per tick, the gate returns one of:
 - **HEARTBEAT_OK** — nothing to do (silent tick, no escalation, no contract task).
 - **LOG_AND_SKIP** — observable but doesn't require action this tick.
-- **ESCALATE_TO_SONNET** — novel/ambiguous signal OR contract task requires judgment. Gate invokes `openclaw system event --mode now` exactly once (FR-008), wakes the existing Sonnet 4.6 main-agent path with the gate's structured reason as context.
+- **ESCALATE_TO_SONNET** — a novelty marker is present, `HEARTBEAT.md` has tasks, or the tick recorded errors. Gate invokes `openclaw system event --mode now` exactly once (FR-008), wakes the existing Sonnet 4.6 main-agent path with the gate's deterministically-built reason as context.
 
-**Failure handling (FR-011)**: API error, timeout, or malformed-response triggers the fallback path — same `openclaw system event --mode now` invocation, with `fallback_invoked: true` recorded in `last-gate-decision.json`. Observation is **never silently dropped**.
+**Failure handling (FR-011)**: any failure loading the context or computing the decision triggers the fallback path — same `openclaw system event --mode now` invocation, with `fallback_invoked: true` recorded in `last-gate-decision.json`. Observation is **never silently dropped**.
 
 **Contract semantics (FR-010)**: the gate honors the existing `HEARTBEAT.md` "empty = skip" rule. Scheduled tasks in the contract file are executed (cheap-tier where feasible, escalated when judgment is required) — behavior indistinguishable from the pre-#490 path from the contract author's perspective.
 

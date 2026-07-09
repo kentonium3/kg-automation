@@ -155,10 +155,16 @@ def _recompute_escalate(record: dict) -> bool:
     """Recompute the escalate boolean for one ledger record via the SHARED
     predicate (``gate.decide_deterministic``) -- never reimplemented here.
     """
+    # Pass the RAW ledger values straight through; gate._safe_list coerces
+    # any non-list (dict/scalar/None) to [] exactly as it does in production.
+    # Pre-coercing here with ``list(... or [])`` would DIVERGE from the shared
+    # predicate — a dict would become a non-empty list (false over-escalation)
+    # and a truthy scalar would raise (post-merge Codex #4). Staying lockstep
+    # is the whole point of importing decide_deterministic.
     shim = _ReplayContext(
-        novelty_markers=list(record.get("novelty_markers_seen") or []),
+        novelty_markers=record.get("novelty_markers_seen"),
         heartbeat_md_state=record.get("heartbeat_md_state") or "empty",
-        errors=list(record.get("errors") or []),
+        errors=record.get("errors"),
     )
     decision = decide_deterministic(shim)
     return decision.outcome == "ESCALATE_TO_SONNET"

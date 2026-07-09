@@ -215,6 +215,33 @@ def test_run_fallback_on_malformed_tick_json(tmp_path: Path) -> None:
     )
 
 
+def test_run_fallback_on_valid_but_wrong_shaped_tick(tmp_path: Path) -> None:
+    """Valid JSON but the wrong SHAPE (a top-level array instead of an
+    object) makes ``context.load_context`` raise AttributeError/TypeError,
+    NOT JSONDecodeError. Regression guard for post-merge Codex #1: step 1's
+    broadened ``except Exception`` must route this to the fail-safe
+    (fallback_invoked=True) rather than escaping to the exit-1 emergency
+    path -- FR-007.
+    """
+    paths = _make_paths(tmp_path)
+    (tmp_path / "last-tick.json").write_text("[]")  # valid JSON, wrong shape
+    paths["heartbeat_md_path"].write_text("")
+    escalator = _fake_escalator(event_id="evt_ws")
+
+    record = _run.run_tick(
+        last_tick_path=tmp_path / "last-tick.json",
+        **paths,
+        escalator_fn=escalator,
+    )
+    assert record.fallback_invoked is True
+    assert record.outcome == "ESCALATE_TO_SONNET"
+    assert record.gate_input_tokens == 0
+    assert any(
+        err["error_type"] == "context_load_failed" for err in record.errors
+    )
+    assert paths["ledger_path"].exists()
+
+
 def test_run_fallback_on_malformed_context_proves_decide_fail_safe(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
