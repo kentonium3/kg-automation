@@ -15,7 +15,7 @@ subtasks:
 - T015
 - T016
 - T017
-agent: claude
+agent: "claude:opus:curator-carla:implementer"
 history: []
 agent_profile: curator-carla
 authoritative_surface: docs/runbooks/deployment.md
@@ -27,6 +27,7 @@ owned_files:
 - docs/runbooks/security-baseline-ops.md
 role: implementer
 tags: []
+shell_pid: "18477"
 ---
 
 ## ⚡ Do This First: Load Agent Profile
@@ -103,3 +104,8 @@ Depends on WP01 + WP02 (docs describe their behavior). Execution worktrees per `
 - Reviewer: confirm the docs match the merged WP01/WP02 behavior (no aspirational claims);
   confirm the manifest `expected_baselines` guidance matches WP02's validation rules
   (known names only; requires `audited_surface: true`).
+
+## Activity Log
+
+- 2026-07-09T02:10:06Z – claude:opus:curator-carla:implementer – shell_pid=18477 – Assigned agent via action command
+- 2026-07-09T02:14:56Z – claude:opus:curator-carla:implementer – shell_pid=18477 – WP03 complete: CLAUDE.md happy-path + deployment.md + security-baseline-ops.md updated; docs validate
