@@ -42,14 +42,14 @@ clear grace rule — all in `rebaseline.py` + `_tick.py`, fully unit-tested.
 **Dependencies**: none (engine code is unit-tested with constructed manifest dicts).
 **Estimated prompt size**: ~520 lines.
 
-- [ ] T001 `read_observed_head` / `write_observed_head` (atomic; absent/corrupt → None) (WP01)
-- [ ] T002 Watermark validity classification + range-base selection (WP01)
-- [ ] T003 Structured `_record_success` result + wire observe range base (WP01)
-- [ ] T004 Watermark advance to last own `deploy(applied)` commit; crash-safe (WP01)
-- [ ] T005 Same-tick clear grace rule in `reconcile()` (`pending_clean`) (WP01)
-- [ ] T006 `fold_manifest_baselines(...)` + tick collects declared baselines and folds (WP01)
-- [ ] T007 Unit tests in `test_rebaseline.py` (WP01)
-- [ ] T008 Tick tests in `test_tick_rebaseline.py` (WP01)
+- [x] T001 `read_observed_head` / `write_observed_head` (atomic; absent/corrupt → None) (WP01)
+- [x] T002 Watermark validity classification + range-base selection (WP01)
+- [x] T003 Structured `_record_success` result + wire observe range base (WP01)
+- [x] T004 Watermark advance to last own `deploy(applied)` commit; crash-safe (WP01)
+- [x] T005 Same-tick clear grace rule in `reconcile()` (`pending_clean`) (WP01)
+- [x] T006 `fold_manifest_baselines(...)` + tick collects declared baselines and folds (WP01)
+- [x] T007 Unit tests in `test_rebaseline.py` (WP01)
+- [x] T008 Tick tests in `test_tick_rebaseline.py` (WP01)
 
 **Dependencies**: none. **Risks**: touching `_record_success`'s return contract — keep
 call sites in sync. The grace rule must not permanently withhold a legitimate clear.

@@ -27,7 +27,7 @@ subtasks:
 - T006
 - T007
 - T008
-agent: "claude:opus:python-pedro:implementer"
+agent: "claude:opus:reviewer-renata:reviewer"
 history: []
 agent_profile: python-pedro
 authoritative_surface: scripts/deploy/felix-deployer/rebaseline.py
@@ -40,7 +40,7 @@ owned_files:
 - tests/deploy/test_tick_rebaseline.py
 role: implementer
 tags: []
-shell_pid: "10163"
+shell_pid: "15984"
 ---
 
 ## ⚡ Do This First: Load Agent Profile
@@ -250,3 +250,6 @@ the mission branch unless a human redirects.
 ## Activity Log
 
 - 2026-07-09T01:48:58Z – claude:opus:python-pedro:implementer – shell_pid=10163 – Assigned agent via action command
+- 2026-07-09T02:02:35Z – claude:opus:python-pedro:implementer – shell_pid=10163 – WP01 complete: watermark range + fold + grace; pytest green
+- 2026-07-09T02:03:44Z – claude:opus:reviewer-renata:reviewer – shell_pid=15984 – Started review via action command
+- 2026-07-09T02:08:34Z – user – shell_pid=15984 – Review passed: watermark-based observe range + fold + grace correctly implemented; 104/104 target tests + 341/341 full deploy suite green; out-of-band repro test empirically FAILS on old (pre,post) logic and passes on the fix (locks it in); HIGH-1 transient leaves watermark unchanged (test w/ merge-base rc=128); MED-1 push-fail SHA capture verified; HIGH-2 grace fresh->pending_clean/aged->cleared_clean; fold create/merge/empty never raises/audits; observe() signature unchanged; all 5 new fns live-called from run_tick (no dead code); NFR-001 no-crash under injected exceptions in read/write/fold; stdlib-only; _RecordResult refactor updates sole call site + handles legacy tuple; scope clean (only 4 owned files).
