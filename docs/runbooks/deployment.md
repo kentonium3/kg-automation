@@ -9,7 +9,7 @@ last_updated: '2026-06-12'
 # Deployment Runbook
 
 **This page has moved.** The canonical deploy discipline is now documented
-at [`docs/runbooks/deploy/discipline.md`](deploy/discipline.md). All
+at [`docs/runbooks/deploy/discipline.md`](<./deploy/discipline.md>). All
 conceptual questions about how a deploy reaches office2 — manifest shape,
 applier behavior, tier policy, failure handling, rebaseline obligation —
 are answered there.
@@ -26,7 +26,7 @@ This page is preserved for two reasons:
    redirects to the canonical discipline runbook.
 
 For **any new deploy after the pull-based-deploy-pipeline mission merges**,
-read [`docs/runbooks/deploy/discipline.md`](deploy/discipline.md). Do not
+read [`docs/runbooks/deploy/discipline.md`](<./deploy/discipline.md>). Do not
 author new deploys against the patterns below.
 
 ---
@@ -94,7 +94,7 @@ documentation-sync standing requirement; it is not optional.
 
 After deploying new services or modifying existing audited surfaces, reset
 the security audit baselines on office2. See
-[`docs/runbooks/security-baseline-ops.md`](security-baseline-ops.md) for
+[`docs/runbooks/security-baseline-ops.md`](<./security-baseline-ops.md>) for
 the canonical procedure. The rebaseline obligation applies regardless of
 whether the deploy goes through the manifest discipline or a grandfathered
 script.
@@ -107,7 +107,7 @@ On the happy path, felix-deployer resets the security-monitor baselines
 automatically after a pipeline deploy that touches an audited surface, so
 the operator is not the load-bearing component (see the "Rebaseline
 obligation" section in `CLAUDE.md` and the deferred-confirm flow in
-[`security-baseline-ops.md`](security-baseline-ops.md#automatic-rebaseline-felix-deployer)).
+[`security-baseline-ops.md`](<./security-baseline-ops.md#automatic-rebaseline-felix-deployer>)).
 Three behaviors of that flow are load-bearing for anyone authoring or
 debugging a deploy:
 
@@ -175,12 +175,42 @@ until a subsequent tick (once the token has aged past the grace window,
 currently ~330s / roughly one tick). Only then, on a still-clean audit, is the
 token `cleared_clean`.
 
+### Rebaseline outcome on the applied record
+
+After reconcile, the deployer stamps the tick's rebaseline outcome onto the
+applied YAML record(s) written that tick (#688) — the durable per-deploy
+artefact — in addition to the real-time tick-log events:
+
+```yaml
+rebaseline:
+  outcome: completed        # completed / cleared_clean / pending_clean /
+                            #   not_required / unexpected_drift / inconclusive / failed
+  at_utc: '2026-07-09T03:22:55Z'
+  baseline_count: 14        # on completed
+  # error_summary: ...      # on failed
+  # unexpected: [...]        # on unexpected_drift
+```
+
+Only **audited** deploys are stamped. A `not_required` reconcile means no pending
+token existed (a non-audited deploy — the common case), so the record carries **no**
+`rebaseline` field; its absence means "no rebaseline was in play" and avoids a
+second commit on every routine deploy.
+
+The applied record is committed early in the queue loop (so a crash never
+re-runs a non-idempotent entrypoint); the outcome is known only after reconcile,
+so it is written in a **second** `deploy(rebaseline): …` commit whose SHA feeds
+the watermark advance (the stamp commit is never re-observed). **Limitation
+(same-tick MVP):** the field holds the outcome as of the applying tick — a deploy
+whose drift lands in the grace window is stamped `pending_clean` and is not
+re-stamped by the later tick that resolves it; the tick log carries the terminal
+outcome. Tracked for a future enhancement.
+
 ---
 
 ## Troubleshooting (legacy scripts only)
 
 For new deploys (manifest discipline), failure handling is documented in
-[`docs/runbooks/deploy/discipline.md`](deploy/discipline.md) under the
+[`docs/runbooks/deploy/discipline.md`](<./deploy/discipline.md>) under the
 **Failure handling** section.
 
 For legacy scripts:
@@ -207,7 +237,7 @@ For legacy scripts:
 
 ## Related documents
 
-- [`docs/runbooks/deploy/discipline.md`](deploy/discipline.md) — **canonical** deploy discipline
+- [`docs/runbooks/deploy/discipline.md`](<./deploy/discipline.md>) — **canonical** deploy discipline
 - `docs/runbooks/openclaw-ops.md` — OpenClaw service management
 - `docs/runbooks/security-baseline-ops.md` — rebaseline obligation procedure
 - `docs/runbooks/maintenance.md` — branch and CI conventions

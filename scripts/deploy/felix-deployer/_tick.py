@@ -369,6 +369,9 @@ def run_tick(
     # the deploy record (FR-003).  Populated inside the queue loop below;
     # consumed after reconcile.
     applied_this_tick: list[str] = []
+    # Applied-record paths written this tick — the durable YAML artefacts the
+    # reconcile outcome is stamped onto after reconcile (#688).
+    applied_record_paths: list[str] = []
     # Baselines declared by manifests applied this tick — folded into the
     # pending token AFTER observe, BEFORE reconcile (T006 / FR-005/006).
     declared_baselines: set[str] = set()
@@ -449,6 +452,12 @@ def run_tick(
             # or push then fails; otherwise a push failure silently drops the
             # manifest-declared drift → NFR-001 / undetected drift.
             applied_this_tick.append(manifest_name)
+            # Record the applied YAML path (when write_applied produced one) so
+            # the reconcile outcome can be stamped onto it after reconcile
+            # (#688). Present even when push failed, since the record file was
+            # already written on disk.
+            if rec.applied_path:
+                applied_record_paths.append(rec.applied_path)
             for b in manifest_data.get("expected_baselines", []) or []:
                 if b:
                     declared_baselines.add(b)
@@ -622,6 +631,100 @@ def run_tick(
                 stamp["stale"] = True
             _log(log_path, stamp)
 
+        # #688 — stamp the reconcile outcome onto the applied deploy record(s)
+        # written this tick, so a deploy's rebaseline disposition is legible
+        # from the durable YAML artefact (not only the tick-log stream). The
+        # record was committed early in the queue loop (idempotency: a crash
+        # must never re-run a non-idempotent entrypoint), so the outcome —
+        # known only now, after reconcile — is written in a SECOND commit whose
+        # SHA is appended to ``own_commit_shas`` BEFORE the watermark advance, so
+        # the advance still lands on the deployer's last own commit (C4) and the
+        # stamp commit is never re-observed next tick. Crash-safe: any failure is
+        # logged and the tick proceeds (NFR-001).
+        #
+        # Gated on an outcome OTHER than ``not_required``: a ``not_required``
+        # reconcile means no pending token existed (a non-audited deploy — the
+        # common case), so there is no rebaseline disposition worth a second
+        # commit. The applied record simply carries no ``rebaseline`` field then;
+        # its absence means "no rebaseline was in play". Only audited deploys
+        # (completed / cleared_clean / pending_clean / unexpected_drift /
+        # failed / inconclusive) are stamped.
+        if applied_record_paths and rec_outcome != _rebaseline.OUTCOME_NOT_REQUIRED:
+            try:
+                annotation = _build_rebaseline_annotation(rec_outcome, rec_result)
+                stamped_rel: list[str] = []
+                for rec_path in applied_record_paths:
+                    if not pathlib.Path(rec_path).exists():
+                        continue
+                    res = _applied.stamp_rebaseline(rec_path, annotation)
+                    if res.ok:
+                        stamped_rel.append(
+                            str(pathlib.Path(rec_path).relative_to(repo_root))
+                        )
+                    else:
+                        _log(
+                            log_path,
+                            {
+                                "event": "rebaseline_record_stamp_error",
+                                "path": rec_path,
+                                "reason": res.summary,
+                            },
+                        )
+                if stamped_rel:
+                    # On ANY git failure below, restore the stamped paths to HEAD
+                    # (`git checkout HEAD -- <paths>` resets both index and
+                    # working tree) so no dirty/staged record write leaks into
+                    # the next tick's `deploy(applied)` commit or a later pull
+                    # (Codex #688 MED-2).
+                    add = _git(["add", *stamped_rel], cwd=repo_root)
+                    if add.returncode != 0:
+                        _git(["checkout", "HEAD", "--", *stamped_rel], cwd=repo_root)
+                        _log(
+                            log_path,
+                            {
+                                "event": "rebaseline_record_stamp_error",
+                                "reason": f"git add failed: {add.stderr[:200]}",
+                            },
+                        )
+                    else:
+                        commit_msg = (
+                            f"deploy(rebaseline): {rec_outcome} for "
+                            f"{', '.join(applied_this_tick)}"
+                        )
+                        commit = _git(["commit", "-m", commit_msg], cwd=repo_root)
+                        if commit.returncode != 0:
+                            _git(["checkout", "HEAD", "--", *stamped_rel], cwd=repo_root)
+                            _log(
+                                log_path,
+                                {
+                                    "event": "rebaseline_record_stamp_error",
+                                    "reason": f"git commit failed: {commit.stderr[:200]}",
+                                },
+                            )
+                        else:
+                            stamp_sha = _resolve_head_sha(repo_root)
+                            if stamp_sha:
+                                own_commit_shas.append(stamp_sha)
+                            push = _git(["push"], cwd=repo_root)
+                            _log(
+                                log_path,
+                                {
+                                    "event": "rebaseline_record_stamped",
+                                    "applied_records": stamped_rel,
+                                    "outcome": rec_outcome,
+                                    "commit_sha": stamp_sha,
+                                    "pushed": push.returncode == 0,
+                                },
+                            )
+            except Exception as exc:  # noqa: BLE001 - never crash the tick
+                _log(
+                    log_path,
+                    {
+                        "event": "rebaseline_record_stamp_error",
+                        "error": str(exc)[:200],
+                    },
+                )
+
         # Dispatch ntfy alerts for off-happy-path events (C5).
         # Alert dispatch is best-effort: errors must NEVER propagate.
         _maybe_dispatch_rebaseline_alert(rec_outcome, rec_result, head_sha, log_path)
@@ -666,6 +769,34 @@ def run_tick(
 
     _log(log_path, {"event": "tick_complete"})
     return 0
+
+
+def _build_rebaseline_annotation(
+    rec_outcome: str, rec_result: dict[str, Any]
+) -> dict[str, Any]:
+    """Build the ``rebaseline`` annotation stamped onto an applied record (#688).
+
+    Mirrors the fields in the ``rebaseline_stamped`` tick-log event so the
+    durable record and the real-time log agree. ``at_utc`` timestamps the stamp
+    so a non-terminal outcome's staleness is visible (a deploy whose drift lands
+    in the grace window may be stamped ``pending_clean`` and is not re-stamped by
+    a later tick in this MVP — see docs/runbooks/deployment.md).
+    """
+    annotation: dict[str, Any] = {
+        "outcome": rec_outcome,
+        "at_utc": _utc_now_iso(),
+    }
+    if rec_outcome == _rebaseline.OUTCOME_COMPLETED:
+        bc = rec_result.get("baseline_count")
+        if isinstance(bc, int):
+            annotation["baseline_count"] = bc
+    elif rec_outcome == _rebaseline.OUTCOME_FAILED:
+        annotation["error_summary"] = (rec_result.get("error_summary") or "")[:500]
+    elif rec_outcome == _rebaseline.OUTCOME_UNEXPECTED_DRIFT:
+        unexpected = rec_result.get("unexpected") or []
+        if unexpected:
+            annotation["unexpected"] = list(unexpected)
+    return annotation
 
 
 def _select_watermark_advance(

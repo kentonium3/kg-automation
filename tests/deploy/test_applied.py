@@ -235,3 +235,93 @@ def test_write_applied_round_trip_passes_schema(tmp_path):
     round_trip = manifest.load_manifest(result.details["path"])
     revalidate = manifest.validate_manifest(round_trip, schema_path=SCHEMA_PATH)
     assert revalidate.ok is True
+
+
+# ---------------------------------------------------------------------------
+# stamp_rebaseline (#688)
+# ---------------------------------------------------------------------------
+
+
+def _write_applied_record(tmp_path):
+    base = _load_valid_tier3()
+    result = applied.write_applied(
+        base,
+        apply_mode="manifest",
+        applied_at="2026-07-09T12:00:00Z",
+        applied_dir=tmp_path,
+        schema_path=SCHEMA_PATH,
+    )
+    assert result.ok is True
+    return pathlib.Path(result.details["path"])
+
+
+def test_stamp_rebaseline_writes_field_and_revalidates(tmp_path):
+    rec = _write_applied_record(tmp_path)
+    ann = {"outcome": "completed", "at_utc": "2026-07-09T12:05:00Z", "baseline_count": 14}
+
+    result = applied.stamp_rebaseline(rec, ann, schema_path=SCHEMA_PATH)
+
+    assert result.ok is True
+    written = yaml.safe_load(rec.read_text(encoding="utf-8"))
+    assert written["rebaseline"] == ann
+    # Record still validates against the v1 schema with the new field.
+    assert manifest.validate_manifest(written, schema_path=SCHEMA_PATH).ok is True
+
+
+def test_stamp_rebaseline_is_idempotent(tmp_path):
+    rec = _write_applied_record(tmp_path)
+    applied.stamp_rebaseline(
+        rec, {"outcome": "pending_clean", "at_utc": "2026-07-09T12:05:00Z"},
+        schema_path=SCHEMA_PATH,
+    )
+    result = applied.stamp_rebaseline(
+        rec, {"outcome": "completed", "at_utc": "2026-07-09T12:11:00Z", "baseline_count": 14},
+        schema_path=SCHEMA_PATH,
+    )
+    assert result.ok is True
+    written = yaml.safe_load(rec.read_text(encoding="utf-8"))
+    assert written["rebaseline"]["outcome"] == "completed"
+
+
+def test_stamp_rebaseline_rejects_invalid_annotation(tmp_path):
+    rec = _write_applied_record(tmp_path)
+    # Unknown outcome + missing at_utc are schema violations.
+    result = applied.stamp_rebaseline(
+        rec, {"outcome": "bogus-outcome"}, schema_path=SCHEMA_PATH,
+    )
+    assert result.ok is False
+    # The record on disk is untouched (no rebaseline field written).
+    written = yaml.safe_load(rec.read_text(encoding="utf-8"))
+    assert "rebaseline" not in written
+
+
+def test_stamp_rebaseline_missing_file_returns_not_ok(tmp_path):
+    result = applied.stamp_rebaseline(
+        tmp_path / "0009-nope.yaml",
+        {"outcome": "completed", "at_utc": "2026-07-09T12:05:00Z"},
+        schema_path=SCHEMA_PATH,
+    )
+    assert result.ok is False
+    assert result.details.get("error_code") == "READ_FAILED"
+
+
+def test_write_applied_strips_smuggled_rebaseline(tmp_path):
+    """A queued manifest cannot pre-seed the deployer-owned rebaseline field."""
+    base = _load_valid_tier3()
+    base["rebaseline"] = {"outcome": "completed", "at_utc": "2026-07-09T00:00:00Z"}
+
+    result = applied.write_applied(
+        base, apply_mode="manifest", applied_at="2026-07-09T12:00:00Z",
+        applied_dir=tmp_path, schema_path=SCHEMA_PATH,
+    )
+    assert result.ok is True
+    written = yaml.safe_load(pathlib.Path(result.details["path"]).read_text(encoding="utf-8"))
+    assert "rebaseline" not in written
+
+
+def test_schema_rejects_rebaseline_on_queued_manifest():
+    """A queued manifest (no applied_at/apply_mode) with a rebaseline field is invalid."""
+    base = _load_valid_tier3()
+    base["rebaseline"] = {"outcome": "completed", "at_utc": "2026-07-09T00:00:00Z"}
+    result = manifest.validate_manifest(base, schema_path=SCHEMA_PATH)
+    assert result.ok is False

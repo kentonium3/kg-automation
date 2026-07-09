@@ -1492,3 +1492,258 @@ def test_malformed_registry_degrades_and_tick_returns_zero(
     monkeypatch.setattr(tick, "_git", _git_mock(pre_sha=PRE, post_sha=POST))
     rc = tick.run_tick(repo_root=fake_repo, log_dir=log_dir)
     assert rc == 0
+
+
+# ---------------------------------------------------------------------------
+# #688 — stamp the reconcile outcome onto the applied deploy record
+# ---------------------------------------------------------------------------
+
+
+def test_build_rebaseline_annotation_per_outcome():
+    a = tick._build_rebaseline_annotation("completed", {"baseline_count": 14})
+    assert a["outcome"] == "completed" and a["baseline_count"] == 14 and a["at_utc"]
+
+    f = tick._build_rebaseline_annotation("failed", {"error_summary": "boom"})
+    assert f["outcome"] == "failed" and f["error_summary"] == "boom"
+
+    u = tick._build_rebaseline_annotation(
+        "unexpected_drift", {"unexpected": ["openclaw-cron.txt"]}
+    )
+    assert u["unexpected"] == ["openclaw-cron.txt"]
+
+    n = tick._build_rebaseline_annotation("not_required", {})
+    assert n["outcome"] == "not_required" and set(n) == {"outcome", "at_utc"}
+
+
+def _write_valid_applied_record(path: pathlib.Path) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        "\n".join(
+            [
+                "schema_version: v1",
+                "name: test-deploy",
+                "mission_slug: felix-deployer-rebaseline-detection-01KX26DS",
+                "tier: 3",
+                "entrypoint: scripts/deploy/deploy-test.py",
+                "audited_surface: false",
+                "created_at: '2026-07-09T12:00:00Z'",
+                "created_by: felix-deployer",
+                "apply_mode: manifest",
+                "applied_at: '2026-07-09T12:00:00Z'",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+
+def test_reconcile_outcome_stamped_onto_applied_record(
+    monkeypatch, fake_repo_with_manifest, log_dir
+):
+    """A deploy applied this tick has the reconcile outcome written onto its
+    applied YAML in a second commit, and that commit becomes the watermark."""
+    import yaml
+
+    from scripts.deploy.lib import apply as _apply_lib
+
+    STAMP = "5ada5ada" * 5
+    applied_path = fake_repo_with_manifest / "deploys" / "applied" / "0099-test-deploy.yaml"
+    _write_valid_applied_record(applied_path)
+
+    def _fake_git(args, cwd):
+        cmd = args[0] if args else ""
+        if cmd == "rev-parse":
+            if not getattr(_fake_git, "_pre", False):
+                _fake_git._pre = True
+                return _FakeProc(returncode=0, stdout=PRE + "\n")
+            if not getattr(_fake_git, "_post", False):
+                _fake_git._post = True
+                return _FakeProc(returncode=0, stdout=POST + "\n")
+            return _FakeProc(returncode=0, stdout=STAMP + "\n")  # post-stamp-commit HEAD
+        return _FakeProc(returncode=0)  # pull/add/commit/push/merge-base/cat-file ok
+
+    monkeypatch.setattr(tick, "_git", _fake_git)
+
+    wm_path = fake_repo_with_manifest / "rebaseline-observed-head.json"
+    monkeypatch.setattr(rebaseline, "DEFAULT_OBSERVED_HEAD_PATH", wm_path)
+    rebaseline.write_observed_head(WATERMARK, wm_path)
+
+    # _record_success succeeds and returns the real applied-record path.
+    monkeypatch.setattr(
+        tick,
+        "_record_success",
+        lambda repo_root, manifest_path, manifest_data, head_sha: tick._RecordResult(
+            ok=True, pushed=True, commit_sha="dep10000" * 5, applied_path=str(applied_path)
+        ),
+    )
+
+    class _OkResult:
+        ok = True
+        summary = "ok"
+        details: dict = {}
+
+    monkeypatch.setattr(_apply_lib, "dry_run_then_apply_gate", lambda *a, **kw: _OkResult())
+    monkeypatch.setattr(rebaseline, "observe", lambda *a, **kw: {"outcome": "not_required"})
+    monkeypatch.setattr(
+        rebaseline, "reconcile", lambda **kw: {"outcome": "completed", "baseline_count": 14}
+    )
+
+    rc = tick.run_tick(repo_root=fake_repo_with_manifest, log_dir=log_dir)
+    assert rc == 0
+
+    # The applied record on disk now carries the rebaseline outcome.
+    written = yaml.safe_load(applied_path.read_text(encoding="utf-8"))
+    assert written["rebaseline"]["outcome"] == "completed"
+    assert written["rebaseline"]["baseline_count"] == 14
+
+    entries = _read_log(log_dir)
+    stamped = next(e for e in entries if e.get("event") == "rebaseline_record_stamped")
+    assert stamped["outcome"] == "completed"
+    assert "deploys/applied/0099-test-deploy.yaml" in stamped["applied_records"]
+
+    # The stamp commit is the deployer's last own commit → the new watermark.
+    assert rebaseline.read_observed_head(wm_path) == STAMP
+
+
+def test_record_stamp_failure_never_crashes_tick(
+    monkeypatch, fake_repo_with_manifest, log_dir
+):
+    """If stamping raises, the tick logs the error and still returns 0 (NFR-001)."""
+    from scripts.deploy.lib import apply as _apply_lib
+    from scripts.deploy.lib import applied as _applied_lib
+
+    applied_path = fake_repo_with_manifest / "deploys" / "applied" / "0099-test-deploy.yaml"
+    _write_valid_applied_record(applied_path)
+
+    monkeypatch.setattr(tick, "_git", lambda args, cwd: _FakeProc(returncode=0, stdout=POST + "\n"))
+    wm_path = fake_repo_with_manifest / "rebaseline-observed-head.json"
+    monkeypatch.setattr(rebaseline, "DEFAULT_OBSERVED_HEAD_PATH", wm_path)
+
+    monkeypatch.setattr(
+        tick,
+        "_record_success",
+        lambda *a, **kw: tick._RecordResult(ok=True, pushed=True, applied_path=str(applied_path)),
+    )
+
+    class _OkResult:
+        ok = True
+        summary = "ok"
+        details: dict = {}
+
+    monkeypatch.setattr(_apply_lib, "dry_run_then_apply_gate", lambda *a, **kw: _OkResult())
+    monkeypatch.setattr(rebaseline, "observe", lambda *a, **kw: {"outcome": "not_required"})
+    monkeypatch.setattr(rebaseline, "reconcile", lambda **kw: {"outcome": "completed"})
+
+    def _boom(*a, **kw):
+        raise RuntimeError("stamp exploded")
+
+    monkeypatch.setattr(_applied_lib, "stamp_rebaseline", _boom)
+
+    rc = tick.run_tick(repo_root=fake_repo_with_manifest, log_dir=log_dir)
+    assert rc == 0
+    entries = _read_log(log_dir)
+    assert any(e.get("event") == "rebaseline_record_stamp_error" for e in entries)
+
+
+def test_not_required_does_not_stamp_applied_record(
+    monkeypatch, fake_repo_with_manifest, log_dir
+):
+    """A non-audited deploy (reconcile=not_required) leaves the applied record
+    unstamped — no rebaseline field, no second commit."""
+    import yaml
+
+    from scripts.deploy.lib import apply as _apply_lib
+
+    applied_path = fake_repo_with_manifest / "deploys" / "applied" / "0099-test-deploy.yaml"
+    _write_valid_applied_record(applied_path)
+
+    committed: list = []
+
+    def _fake_git(args, cwd):
+        if args and args[0] == "commit":
+            committed.append(args)
+        if args and args[0] == "rev-parse":
+            return _FakeProc(returncode=0, stdout=POST + "\n")
+        return _FakeProc(returncode=0)
+
+    monkeypatch.setattr(tick, "_git", _fake_git)
+    wm_path = fake_repo_with_manifest / "rebaseline-observed-head.json"
+    monkeypatch.setattr(rebaseline, "DEFAULT_OBSERVED_HEAD_PATH", wm_path)
+    monkeypatch.setattr(
+        tick,
+        "_record_success",
+        lambda *a, **kw: tick._RecordResult(ok=True, pushed=True, applied_path=str(applied_path)),
+    )
+
+    class _OkResult:
+        ok = True
+        summary = "ok"
+        details: dict = {}
+
+    monkeypatch.setattr(_apply_lib, "dry_run_then_apply_gate", lambda *a, **kw: _OkResult())
+    monkeypatch.setattr(rebaseline, "observe", lambda *a, **kw: {"outcome": "not_required"})
+    monkeypatch.setattr(rebaseline, "reconcile", lambda **kw: {"outcome": "not_required"})
+
+    rc = tick.run_tick(repo_root=fake_repo_with_manifest, log_dir=log_dir)
+    assert rc == 0
+
+    written = yaml.safe_load(applied_path.read_text(encoding="utf-8"))
+    assert "rebaseline" not in written
+    entries = _read_log(log_dir)
+    assert not any(e.get("event") == "rebaseline_record_stamped" for e in entries)
+    # No deploy(rebaseline) commit was made.
+    assert not any("deploy(rebaseline)" in " ".join(a) for a in committed)
+
+
+def test_stamp_commit_failure_restores_paths(
+    monkeypatch, fake_repo_with_manifest, log_dir
+):
+    """If the stamp git commit fails, the stamped paths are restored from HEAD
+    (git checkout HEAD -- <paths>) so no dirty state leaks to the next tick."""
+    from scripts.deploy.lib import apply as _apply_lib
+
+    applied_path = fake_repo_with_manifest / "deploys" / "applied" / "0099-test-deploy.yaml"
+    _write_valid_applied_record(applied_path)
+
+    calls: list = []
+
+    def _fake_git(args, cwd):
+        calls.append(list(args))
+        cmd = args[0] if args else ""
+        if cmd == "commit":
+            return _FakeProc(returncode=1, stderr="nothing to commit / hook failed")
+        if cmd == "rev-parse":
+            return _FakeProc(returncode=0, stdout=POST + "\n")
+        return _FakeProc(returncode=0)  # pull/add/checkout/merge-base/cat-file ok
+
+    monkeypatch.setattr(tick, "_git", _fake_git)
+    wm_path = fake_repo_with_manifest / "rebaseline-observed-head.json"
+    monkeypatch.setattr(rebaseline, "DEFAULT_OBSERVED_HEAD_PATH", wm_path)
+    monkeypatch.setattr(
+        tick,
+        "_record_success",
+        lambda *a, **kw: tick._RecordResult(ok=True, pushed=True, applied_path=str(applied_path)),
+    )
+
+    class _OkResult:
+        ok = True
+        summary = "ok"
+        details: dict = {}
+
+    monkeypatch.setattr(_apply_lib, "dry_run_then_apply_gate", lambda *a, **kw: _OkResult())
+    monkeypatch.setattr(rebaseline, "observe", lambda *a, **kw: {"outcome": "not_required"})
+    monkeypatch.setattr(rebaseline, "reconcile", lambda **kw: {"outcome": "completed"})
+
+    rc = tick.run_tick(repo_root=fake_repo_with_manifest, log_dir=log_dir)
+    assert rc == 0
+
+    # A restore (`git checkout HEAD -- <path>`) was issued after the failed commit.
+    assert any(
+        c[:3] == ["checkout", "HEAD", "--"] for c in calls
+    ), f"expected a checkout-HEAD restore in {calls}"
+    entries = _read_log(log_dir)
+    assert any(
+        e.get("event") == "rebaseline_record_stamp_error"
+        and "git commit failed" in (e.get("reason") or "")
+        for e in entries
+    )

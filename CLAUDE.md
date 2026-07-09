@@ -308,11 +308,12 @@ change deploys.
 automatically and silently — no operator action needed. The deployer uses
 a deferred-confirm flow: it observes the committed audited-surface change,
 sets a pending token, then rebaselines once the expected drift is confirmed
-by a read-only audit run. Outcomes are recorded on the felix-deployer **tick
-log** (`/data/services/felix-deployer/logs/<date>.jsonl`), via the
-`rebaseline_reconcile` / `rebaseline_stamped` events correlated to the applied
-manifest name (`completed / not_required / failed`) — NOT as a field on the
-applied YAML record. The operator is NOT the load-bearing component on the
+by a read-only audit run. Outcomes are recorded in two places (#688): the
+real-time felix-deployer **tick log** (`/data/services/felix-deployer/logs/<date>.jsonl`,
+`rebaseline_reconcile` / `rebaseline_stamped` events), AND — as the durable
+per-deploy annotation — a `rebaseline:` field stamped onto the **applied YAML
+record** (`deploys/applied/<NNNN>-<name>.yaml`) after reconcile (`outcome` +
+`at_utc` + details). The operator is NOT the load-bearing component on the
 happy path.
 
 The observe range is driven by a **persisted last-observed-head watermark**
