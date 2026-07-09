@@ -17,10 +17,10 @@ Tests ARE requested (NFR-001 concurrency proof is central). Design detail lives 
 | T004 | gitsync primitive concurrency test | WP01 | [D] |
 | T005 | `deploylock` context manager (flock, bounded retry, path resolution) | WP02 | | [D] |
 | T006 | deploylock tests (exclusion, timeout→LockUnavailable, release) | WP02 | [D] |
-| T007 | health watermark schema + atomic read/write | WP03 | |
-| T008 | `health.record()` — streak logic (confirmed-only, defer-benign, throttle) | WP03 | |
-| T009 | generic `dispatch_health_notification()` in notify.py | WP03 | |
-| T010 | health/notifier tests | WP03 | [P] |
+| T007 | health watermark schema + atomic read/write | WP03 | | [D] |
+| T008 | `health.record()` — streak logic (confirmed-only, defer-benign, throttle) | WP03 | | [D] |
+| T009 | generic `dispatch_health_notification()` in notify.py | WP03 | | [D] |
+| T010 | health/notifier tests | WP03 | [D] |
 | T011 | felix-deployer: wrap whole tick critical section in `deploylock` | WP04 | |
 | T012 | felix-deployer: bare pull → `advance_checkout(assume_locked=True)`; preserve pre/post head | WP04 | |
 | T013 | felix-deployer: wire `health.record` + fail-loud ref-state logging | WP04 | |

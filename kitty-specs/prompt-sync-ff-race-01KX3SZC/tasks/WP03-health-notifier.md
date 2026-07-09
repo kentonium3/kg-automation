@@ -17,7 +17,7 @@ subtasks:
 - T008
 - T009
 - T010
-agent: claude
+agent: "claude"
 history: []
 agent_profile: python-pedro
 authoritative_surface: scripts/deploy/lib/
@@ -33,6 +33,7 @@ owned_files:
 - tests/deploy/test_health.py
 role: implementer
 tags: []
+shell_pid: "67770"
 ---
 
 # WP03 — health signal + generic notifier
@@ -95,3 +96,7 @@ and does not raise. Confirm no regression to the manifest-failure notifier.
 ## Branch Strategy
 Planning on `fix/prompt-sync-ff-race`; final merge target `fix/prompt-sync-ff-race`.
 Execution worktrees are allocated per computed lane from `lanes.json`.
+
+## Activity Log
+
+- 2026-07-09T17:05:59Z – claude – shell_pid=67770 – Assigned agent via action command
