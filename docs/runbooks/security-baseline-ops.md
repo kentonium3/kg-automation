@@ -62,6 +62,17 @@ audited surface. **No operator action is needed on the happy path.**
    recording the matched surface IDs, expected affected baselines, and
    `pending_since` timestamp.
 
+   **CLI-mutation deploys.** Some deploys drift a baseline without any
+   tracked-file change — e.g. an `openclaw cron rm` that drifts
+   `openclaw-cron.txt` but touches no `openclaw.json`. These have no
+   repo-file signal for the observe step, so the deploy manifest declares
+   the baselines it will drift via an `expected_baselines` field
+   (requires `audited_surface: true`; each name must be a known baseline).
+   Those declared baselines are folded into the pending token's expected
+   set, so the auto-rebaseline covers them and **no manual reset is
+   needed**. See the felix-deployer reference in
+   [deployment.md](deployment.md#manifest-expected_baselines-declaration).
+
 2. On each subsequent tick while a pending token exists, the deployer
    runs a **read-only** audit (baselines present — compare mode, no
    reset) to check whether expected drift has appeared yet:

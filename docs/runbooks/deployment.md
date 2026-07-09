@@ -101,6 +101,82 @@ script.
 
 ---
 
+## felix-deployer rebaseline behavior (reference)
+
+On the happy path, felix-deployer resets the security-monitor baselines
+automatically after a pipeline deploy that touches an audited surface, so
+the operator is not the load-bearing component (see the "Rebaseline
+obligation" section in `CLAUDE.md` and the deferred-confirm flow in
+[`security-baseline-ops.md`](security-baseline-ops.md#automatic-rebaseline-felix-deployer)).
+Three behaviors of that flow are load-bearing for anyone authoring or
+debugging a deploy:
+
+### Watermark-based observe range
+
+felix-deployer decides which commits to scan for audited-surface changes
+using a **persisted last-observed-head watermark** rather than the range of
+its own `git pull`. The watermark is stored at:
+
+```
+/data/services/felix-deployer/state/rebaseline-observed-head.json
+```
+
+Each tick the observe range is `last_observed_head..post_pull_head`, where
+`last_observed_head` is read from the watermark file and `post_pull_head` is
+the checkout HEAD after the tick's `git pull --ff-only`. Because the range
+starts from the watermark — not from the tick's own pull — the deployer
+detects audited-surface changes even when an **out-of-band** `git pull`
+fast-forwarded the checkout before the tick ran (the #685 defect). After
+observe and reconcile complete, the deployer advances the watermark to the
+end-of-tick HEAD (including its own `deploy(applied)` bookkeeping commit),
+so it never re-observes commits it made itself. On the first tick after this
+code ships — when the watermark file does not yet exist — the deployer falls
+back to the tick's own pre-pull HEAD as the range base (legacy behavior) and
+writes the watermark for subsequent ticks.
+
+### Manifest `expected_baselines` declaration
+
+The observe range only sees drift that has a **repo-file signal**. A deploy
+that mutates state via a runtime CLI with no tracked-file change — e.g. an
+`openclaw cron rm` that drifts `openclaw-cron.txt` without touching any
+`openclaw.json` — produces no matched audited surface, so reconcile would
+classify the resulting drift as `unexpected_drift`.
+
+For those CLI-mutation deploys, the manifest declares the baselines it will
+drift via an optional `expected_baselines` field:
+
+```yaml
+audited_surface: true
+expected_baselines:
+  - openclaw-cron.txt
+```
+
+When such a manifest is applied in a tick, its declared baselines are unioned
+into the pending rebaseline token's `expected_baselines`, so reconcile sees
+the drift as **expected** (D ⊆ E) and rebaselines to `completed` instead of
+alerting. Validation rules (enforced by `scripts/deploy/lib/manifest.py`):
+
+- Each declared name **must be a known security-monitor baseline** (validated
+  against the audited-surfaces registry); an unrecognized name fails manifest
+  validation rather than being silently ignored.
+- `expected_baselines` **requires `audited_surface: true`**; declaring
+  baselines on a non-audited manifest is a validation error.
+- A manifest that declares **no** `expected_baselines` behaves exactly as
+  before — no behavior change (backward compatible).
+
+### Same-tick clear grace rule
+
+A pending token whose baselines were created or folded in the current tick is
+**not** cleared on an empty-drift (`D=∅`) audit in that same tick. A deploy's
+audited effect can materialize shortly after apply, so clearing on the first
+empty audit would delete the only memory of the pending rebaseline. Instead
+reconcile returns `pending_clean` and leaves the token; the clear is deferred
+until a subsequent tick (once the token has aged past the grace window,
+currently ~330s / roughly one tick). Only then, on a still-clean audit, is the
+token `cleared_clean`.
+
+---
+
 ## Troubleshooting (legacy scripts only)
 
 For new deploys (manifest discipline), failure handling is documented in
