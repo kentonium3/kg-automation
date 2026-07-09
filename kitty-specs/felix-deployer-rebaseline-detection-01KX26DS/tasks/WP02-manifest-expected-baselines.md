@@ -20,7 +20,7 @@ subtasks:
 - T012
 - T013
 - T014
-agent: claude
+agent: "claude:opus:python-pedro:implementer"
 history: []
 agent_profile: python-pedro
 authoritative_surface: scripts/deploy/lib/manifest.py
@@ -35,6 +35,7 @@ owned_files:
 - tests/deploy/test_audited_surfaces.py
 role: implementer
 tags: []
+shell_pid: "10726"
 ---
 
 ## ⚡ Do This First: Load Agent Profile
@@ -143,3 +144,7 @@ Execution worktrees are allocated per computed lane from `lanes.json`.
   `load_audited_surfaces` is not called from `manifest.py`); confirm `additionalProperties:
   false` is preserved; confirm the CI reminder consumer (`check_audited_surface_drift.py`)
   is untouched (NFR-005, C-002).
+
+## Activity Log
+
+- 2026-07-09T01:49:25Z – claude:opus:python-pedro:implementer – shell_pid=10726 – Assigned agent via action command
