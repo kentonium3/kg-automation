@@ -49,6 +49,11 @@
       "type": "boolean",
       "description": "True if the deploy touches a path in docs/design/architecture/data/audited-surfaces.json. The applier records audited deploys with a rebaseline-required flag."
     },
+    "expected_baselines": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Baseline filenames this deploy is expected to drift (folded into the felix-deployer rebaseline token). Each must be a known security-monitor baseline; requires audited_surface: true."
+    },
     "verification": {
       "type": "object",
       "additionalProperties": false,

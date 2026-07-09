@@ -220,3 +220,104 @@ def test_validate_manifest_file_runs_validation_when_load_ok(tmp_path):
     result = manifest.validate_manifest_file(dest, schema_path=SCHEMA_PATH)
 
     assert result.ok is True
+
+
+# ---------------------------------------------------------------------------
+# expected_baselines validation (WP02 T013, FR-005/007/009, C6)
+# ---------------------------------------------------------------------------
+
+
+def _baseline_manifest(**overrides):
+    """A minimal valid tier-3 manifest, plus any overrides."""
+    data = {
+        "schema_version": "v1",
+        "name": "expected-baselines-example",
+        "mission_slug": "felix-deployer-rebaseline-detection-01KX26DS",
+        "tier": 3,
+        "entrypoint": "scripts/deploy/tier3/example.sh",
+        "audited_surface": True,
+        "created_at": "2026-07-09T00:00:00Z",
+        "created_by": "kent@intentional.biz",
+    }
+    data.update(overrides)
+    return data
+
+
+def test_expected_baselines_valid_known_name_and_audited_surface_true():
+    data = _baseline_manifest(
+        audited_surface=True, expected_baselines=["openclaw-cron.txt"]
+    )
+
+    result = manifest.validate_manifest(data, schema_path=SCHEMA_PATH)
+
+    assert result.ok is True
+
+
+def test_expected_baselines_unknown_name_fails_and_names_offender():
+    data = _baseline_manifest(
+        audited_surface=True, expected_baselines=["bogus.txt"]
+    )
+
+    result = manifest.validate_manifest(data, schema_path=SCHEMA_PATH)
+
+    assert result.ok is False
+    assert "bogus.txt" in result.summary
+    assert result.details["error_code"] == "EXPECTED_BASELINES_UNKNOWN"
+    assert "bogus.txt" in result.details["unknown"]
+
+
+def test_expected_baselines_requires_audited_surface_true_when_false():
+    data = _baseline_manifest(
+        audited_surface=False, expected_baselines=["openclaw-cron.txt"]
+    )
+
+    result = manifest.validate_manifest(data, schema_path=SCHEMA_PATH)
+
+    assert result.ok is False
+    assert result.details["error_code"] == "EXPECTED_BASELINES_COUPLING"
+    assert "audited_surface" in result.summary
+
+
+def test_expected_baselines_requires_audited_surface_true_when_absent():
+    data = _baseline_manifest(expected_baselines=["openclaw-cron.txt"])
+    # audited_surface is required by the schema, so exercise the coupling via a
+    # false value at the field level; here we assert an explicit False also
+    # trips the coupling gate (absent == not True).
+    data["audited_surface"] = False
+
+    result = manifest.validate_manifest(data, schema_path=SCHEMA_PATH)
+
+    assert result.ok is False
+    assert result.details["error_code"] == "EXPECTED_BASELINES_COUPLING"
+
+
+def test_expected_baselines_malformed_registry_returns_invalid_without_exit(
+    monkeypatch, tmp_path
+):
+    bad = tmp_path / "audited-surfaces.json"
+    bad.write_text("{ not valid json", encoding="utf-8")
+    # Point the NON-exiting reader at a malformed registry via the module
+    # manifest.py actually references. If validation reached the exiting
+    # load_audited_surfaces this would raise SystemExit.
+    monkeypatch.setattr(
+        manifest.audited_surfaces, "AUDITED_SURFACES_PATH", bad
+    )
+
+    data = _baseline_manifest(
+        audited_surface=True, expected_baselines=["openclaw-cron.txt"]
+    )
+
+    # Assert NO SystemExit escapes and the manifest is reported invalid.
+    result = manifest.validate_manifest(data, schema_path=SCHEMA_PATH)
+
+    assert isinstance(result, LibResult)
+    assert result.ok is False
+    assert result.details["error_code"] == "REGISTRY_UNREADABLE"
+
+
+def test_expected_baselines_absent_is_unchanged_behavior():
+    data = _baseline_manifest(audited_surface=False)  # no expected_baselines
+
+    result = manifest.validate_manifest(data, schema_path=SCHEMA_PATH)
+
+    assert result.ok is True
