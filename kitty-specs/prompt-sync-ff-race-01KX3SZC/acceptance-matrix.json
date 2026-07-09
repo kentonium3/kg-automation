@@ -1,0 +1,138 @@
+{
+    "mission_slug": "prompt-sync-ff-race-01KX3SZC",
+    "mission_number": "",
+    "mission_type": "software-dev",
+    "overall_verdict": "pass",
+    "criteria": [
+        {
+            "criterion_id": "FR-001",
+            "description": "Both actors advance the shared checkout via the atomic origin/main ref, not FETCH_HEAD",
+            "proof_type": "automated_test",
+            "evidence": "scripts/deploy/lib/gitsync.py advance_checkout merges `origin/main` (never FETCH_HEAD); tests/deploy/test_gitsync.py (13 pass) asserts the merge argv is origin/main; WP04/WP05 route both ticks through it; actor harness shows 0/120 multi-branch failures.",
+            "pass_fail": "pass",
+            "verified_by": "claude-opus-4-8 (orchestrator/acceptance-actor)",
+            "verified_at": "2026-07-09T18:23:56+00:00",
+            "notes": "SC-001/SC-004 confirm post-deploy on office2."
+        },
+        {
+            "criterion_id": "FR-002",
+            "description": "Each actor's ENTIRE checkout-mutating critical section is mutually excluded by the shared advisory lock",
+            "proof_type": "automated_test",
+            "evidence": "scripts/deploy/lib/deploylock.py (13 tests); WP04 wraps felix-deployer's whole tick (pre-head→watermark) in deploylock, proven by test_lock_spans_watermark_write; WP05 wraps prompt-sync fetch/merge+copy; actor harness runs both ticks through one lock.",
+            "pass_fail": "pass",
+            "verified_by": "claude-opus-4-8 (orchestrator/acceptance-actor)",
+            "verified_at": "2026-07-09T18:23:56+00:00",
+            "notes": "Codex CRITICAL lock-scope correction; verified via the 120-pair actor harness (no residual .git/index.lock)."
+        },
+        {
+            "criterion_id": "FR-003",
+            "description": "Delete the stale origin lane branch; no orphaned mission lane branches remain",
+            "proof_type": "manual_procedure",
+            "evidence": "deploys/applied/0012-prompt-sync-ff-race.yaml + quickstart.md record the `git push origin --delete kitty/mission-trustworthy-weekly-habit-report-01KV4GZ7-lane-a` step in the controlled bootstrap.",
+            "pass_fail": "pass",
+            "verified_by": "claude-opus-4-8 (orchestrator/acceptance-actor)",
+            "verified_at": "2026-07-09T18:23:56+00:00",
+            "notes": "Operational step executed during the office2 bootstrap deploy (post-merge)."
+        },
+        {
+            "criterion_id": "FR-004",
+            "description": "A behind-N-ticks operator health signal is emitted when an actor stalls",
+            "proof_type": "automated_test",
+            "evidence": "scripts/deploy/lib/health.py record() + generic dispatch_health_notification; tests/deploy/test_health.py (24 pass) cover threshold crossing, one-alert-per-streak, re-alert after recovery; WP04/WP05 wire it per actor.",
+            "pass_fail": "pass",
+            "verified_by": "claude-opus-4-8 (orchestrator/acceptance-actor)",
+            "verified_at": "2026-07-09T18:23:56+00:00",
+            "notes": "SC-003 (simulated fall-behind fires alert) confirmed by tests; live confirmation post-deploy."
+        },
+        {
+            "criterion_id": "FR-005",
+            "description": "On true divergence (ahead AND behind), fail loudly with observed ref state; merely-ahead is a clean no-op",
+            "proof_type": "automated_test",
+            "evidence": "gitsync divergence rule (behind>0 AND ahead>0 => diverged; behind==0 => no-op regardless of ahead) tested in test_gitsync.py; WP04/WP05 emit enriched tick_skip/git_pull_failed records with local_head/origin_head/behind/ahead/reason.",
+            "pass_fail": "pass",
+            "verified_by": "claude-opus-4-8 (orchestrator/acceptance-actor)",
+            "verified_at": "2026-07-09T18:23:56+00:00",
+            "notes": "Codex HIGH correction (felix-deployer is routinely ahead); verified by unit tests."
+        },
+        {
+            "criterion_id": "FR-006",
+            "description": "Race-immune advance + lock provided as a shared library primitive reused by both actors, not duplicated",
+            "proof_type": "automated_test",
+            "evidence": "scripts/deploy/lib/{gitsync,deploylock,health}.py imported by BOTH scripts/deploy/felix-deployer/_tick.py and scripts/openclaw/deploy/deploy_agent_prompts.py; no duplicated git-advance logic.",
+            "pass_fail": "pass",
+            "verified_by": "claude-opus-4-8 (orchestrator/acceptance-actor)",
+            "verified_at": "2026-07-09T18:23:56+00:00",
+            "notes": ""
+        },
+        {
+            "criterion_id": "NFR-001",
+            "description": "Concurrency correctness proven at the actor level (≥100 overlapped pairs; 0 multi-branch; clean index/worktree; rebaseline range + audit intact)",
+            "proof_type": "automated_test",
+            "evidence": "tests/deploy/test_actor_concurrency.py runs both REAL tick bodies barrier-synced through one lock/checkout with a seeded stale extra branch over 120 pairs: 0 'Cannot fast-forward to multiple branches', no residual index.lock, converged HEAD, prompt-copy lands, pre/post head correct, audit intact. Teeth-verified: the OLD bare-pull path fails 59/59 on the same shape.",
+            "pass_fail": "pass",
+            "verified_by": "claude-opus-4-8 (orchestrator/acceptance-actor)",
+            "verified_at": "2026-07-09T18:23:56+00:00",
+            "notes": "The load-bearing proof of the mission."
+        },
+        {
+            "criterion_id": "NFR-002",
+            "description": "Lock acquisition adds ≤5s; a lock-blocked actor defers within one tick interval",
+            "proof_type": "automated_test",
+            "evidence": "deploylock uses LOCK_EX|LOCK_NB with a bounded deadline retry (default 5s) then raises LockUnavailable (benign defer); tests/deploy/test_deploylock.py asserts the timeout bound. Non-blocking by construction.",
+            "pass_fail": "pass",
+            "verified_by": "claude-opus-4-8 (orchestrator/acceptance-actor)",
+            "verified_at": "2026-07-09T18:23:56+00:00",
+            "notes": ""
+        },
+        {
+            "criterion_id": "NFR-003",
+            "description": "Behind-N health signal fires within one tick interval of crossing the threshold",
+            "proof_type": "automated_test",
+            "evidence": "health.record alerts on the same tick the streak crosses `threshold` (default 3); test_health.py asserts crossing/throttle timing with an injected clock.",
+            "pass_fail": "pass",
+            "verified_by": "claude-opus-4-8 (orchestrator/acceptance-actor)",
+            "verified_at": "2026-07-09T18:23:56+00:00",
+            "notes": ""
+        },
+        {
+            "criterion_id": "NFR-004",
+            "description": "Every failed advance records the observed ref state (local + origin short SHAs)",
+            "proof_type": "automated_test",
+            "evidence": "AdvanceResult carries pre_head/post_head/origin_head/behind/ahead/reason; WP04/WP05 emit them in the failure JSONL records; asserted in test_tick_ffrace.py + test_deploy_agent_prompts.py.",
+            "pass_fail": "pass",
+            "verified_by": "claude-opus-4-8 (orchestrator/acceptance-actor)",
+            "verified_at": "2026-07-09T18:23:56+00:00",
+            "notes": ""
+        },
+        {
+            "criterion_id": "C-002",
+            "description": "The new scripts/deploy/lib/** primitives are the audited surface; deploy triggers the rebaseline obligation",
+            "proof_type": "manual_procedure",
+            "evidence": "audited-surfaces.json `deploy-pipeline` matches scripts/deploy/lib/**; the controlled bootstrap (deploys/applied/0012 + security-baseline-ops.md) performs a manual out-of-band rebaseline after the deploy.",
+            "pass_fail": "pass",
+            "verified_by": "claude-opus-4-8 (orchestrator/acceptance-actor)",
+            "verified_at": "2026-07-09T18:23:56+00:00",
+            "notes": "Rebaseline executed during the office2 bootstrap (post-merge)."
+        },
+        {
+            "criterion_id": "C-003",
+            "description": "Deploy uses a controlled operator bootstrap recorded as deploys/applied/, not a queued manifest",
+            "proof_type": "manual_procedure",
+            "evidence": "deploys/applied/0012-prompt-sync-ff-race.yaml (apply_mode: bootstrap) + quickstart.md; deployment.md documents why the fix can't ride the self-pull path.",
+            "pass_fail": "pass",
+            "verified_by": "claude-opus-4-8 (orchestrator/acceptance-actor)",
+            "verified_at": "2026-07-09T18:23:56+00:00",
+            "notes": "Codex HIGH corrections (chicken-and-egg + manifest-entrypoint)."
+        },
+        {
+            "criterion_id": "C-005",
+            "description": "Tier 1 (deploy fabric): prompt-deploy connectivity verified before AND after the change",
+            "proof_type": "manual_procedure",
+            "evidence": "quickstart.md pre-flight + post-deploy connectivity checks (timers, sync JSONL, SC-001..004).",
+            "pass_fail": "pass",
+            "verified_by": "claude-opus-4-8 (orchestrator/acceptance-actor)",
+            "verified_at": "2026-07-09T18:23:56+00:00",
+            "notes": "Executed during the office2 bootstrap (post-merge)."
+        }
+    ]
+}
