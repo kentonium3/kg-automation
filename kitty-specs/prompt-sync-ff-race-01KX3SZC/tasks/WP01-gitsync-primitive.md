@@ -32,7 +32,7 @@ owned_files:
 - tests/deploy/test_gitsync.py
 role: implementer
 tags: []
-shell_pid: "45836"
+shell_pid: "64625"
 ---
 
 # WP01 — gitsync primitive (race-immune advance)
@@ -110,3 +110,6 @@ Execution worktrees are allocated per computed lane from `lanes.json`.
 ## Activity Log
 
 - 2026-07-09T16:46:22Z – claude – shell_pid=45836 – Assigned agent via action command
+- 2026-07-09T16:57:44Z – claude – shell_pid=45836 – gitsync green (13 passed; full deploy suite 384)
+- 2026-07-09T16:57:48Z – claude – shell_pid=64625 – Started review via action command
+- 2026-07-09T16:58:15Z – user – shell_pid=64625 – Review passed: ref-merge (origin/main, never FETCH_HEAD), corrected divergence logic, lazy-guarded lock seam, frozen invariants; 13 tests + full deploy suite (384) green
