@@ -12,7 +12,7 @@ audience: agents_and_humans
 **Status:** Draft
 **Author:** Kent Gale
 **Location:** `docs/design/second-brain-graph-layer.md`
-**Related Epic:** (to be linked by Claude Code on creation)
+**Related Epic:** [#692](https://github.com/kentonium3/kg-automation/issues/692)
 
 ---
 
