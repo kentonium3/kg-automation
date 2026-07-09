@@ -18,7 +18,7 @@ subtasks:
 - T019
 - T020
 - T021
-agent: claude
+agent: "claude"
 history: []
 agent_profile: python-pedro
 authoritative_surface: tests/deploy/
@@ -35,6 +35,7 @@ owned_files:
 - docs/runbooks/security-baseline-ops.md
 role: implementer
 tags: []
+shell_pid: "82925"
 ---
 
 # WP06 — actor-level concurrency harness + bootstrap deploy + docs
@@ -102,3 +103,7 @@ the docs explain the bootstrap rationale.
 ## Branch Strategy
 Planning on `fix/prompt-sync-ff-race`; final merge target `fix/prompt-sync-ff-race`.
 Execution worktrees are allocated per computed lane from `lanes.json`.
+
+## Activity Log
+
+- 2026-07-09T17:33:09Z – claude – shell_pid=82925 – Assigned agent via action command

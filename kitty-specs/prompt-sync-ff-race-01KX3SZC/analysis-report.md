@@ -4,7 +4,7 @@ artifact_type: spec-kitty.analysis-report
 command: /spec-kitty.analyze
 mission_slug: prompt-sync-ff-race-01KX3SZC
 mission_id: 01KX3SZC2YHPWRCYD7WXQSFZQ7
-generated_at: '2026-07-09T17:14:24.516181+00:00'
+generated_at: '2026-07-09T17:32:54.218045+00:00'
 analyzer_agent: unknown
 input_artifacts:
   spec.md:
@@ -15,15 +15,15 @@ input_artifacts:
     sha256: f5cc643b42c6ddf4c65ad7edf584e917a09b601fef581371c9c9abcaa71adc8f
   tasks.md:
     path: /Users/kentgale/repos/kg-automation/kitty-specs/prompt-sync-ff-race-01KX3SZC/tasks.md
-    sha256: 781c02522f0bb51089541bbc1407853a8399f41dee4a76905a4208dd411f0612
+    sha256: 4fef84efbb18e8444d1fe8d9e942766b173d29cb3910a042b1d41d844109113d
   charter:
     path: /Users/kentgale/repos/kg-automation/.kittify/charter/charter.md
     sha256: 4891223a0c3fc0dc96917475523586e8f3147a3ccaa113ecb7ff19da646e82e2
 verdict: ready
 issue_counts:
+  medium: 0
   high: 0
   critical: 0
-  medium: 0
   low: 3
   info: 0
 findings:

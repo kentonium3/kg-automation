@@ -29,9 +29,9 @@ Tests ARE requested (NFR-001 concurrency proof is central). Design detail lives 
 | T016 | prompt-sync: `git_pull` internals → `advance_checkout`; preserve GitPullResult + enrich audit | WP05 | | [D] |
 | T017 | prompt-sync: wire health + `dispatch_health_notification` + topic env in service unit | WP05 | | [D] |
 | T018 | prompt-sync tests (audit contract intact + advance integration) | WP05 | | [D] |
-| T019 | actor-level concurrency integration harness (both ticks, one lock, ≥100 pairs) | WP06 | |
-| T020 | `deploys/applied/0012-prompt-sync-ff-race.yaml` bootstrap record | WP06 | [P] |
-| T021 | docs: deployment.md bootstrap + security-baseline-ops.md manual-rebaseline note | WP06 | [P] |
+| T019 | actor-level concurrency integration harness (both ticks, one lock, ≥100 pairs) | WP06 | | [D] |
+| T020 | `deploys/applied/0012-prompt-sync-ff-race.yaml` bootstrap record | WP06 | [D] |
+| T021 | docs: deployment.md bootstrap + security-baseline-ops.md manual-rebaseline note | WP06 | [D] |
 
 ## Work Packages
 
