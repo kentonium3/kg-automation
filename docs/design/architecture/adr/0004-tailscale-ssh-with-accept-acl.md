@@ -25,8 +25,8 @@ office2 is the always-on hub for Felix and is accessed via SSH from:
 - Future devices as the system grows
 
 All inter-device communication uses Tailscale (per
-[`network-topology.json`](../data/network-topology.json) and
-[`security-posture.md`](../security-posture.md) § Network Security).
+[`network-topology.json`](<../data/network-topology.json>) and
+[`security-posture.md`](<../security-posture.md>) § Network Security).
 
 The network-layer ACL governs what reaches sshd. Two architectural options
 were live for SSH access governance:
@@ -166,8 +166,8 @@ re-auth that `check` mode requires — see "Tradeoffs" below.
 ## References
 
 - [`docs/runbooks/phone-termius-setup.md`](../../runbooks/phone-termius-setup.md) — operator runbook
-- [`docs/design/architecture/data/network-topology.json`](../data/network-topology.json) — machine-readable network state
-- [`docs/design/architecture/security-posture.md`](../security-posture.md) — broader security model
+- [`docs/design/architecture/data/network-topology.json`](<../data/network-topology.json>) — machine-readable network state
+- [`docs/design/architecture/security-posture.md`](<../security-posture.md>) — broader security model
 - kentonium3/kg-automation#575 — originating docs-debt issue
 - Tailscale SSH docs: <https://tailscale.com/kb/1193/tailscale-ssh>
 - Tailscale ACL `ssh` reference: <https://tailscale.com/kb/1337/policy-syntax#ssh>

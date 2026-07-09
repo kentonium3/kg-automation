@@ -17,9 +17,9 @@ tags: [507, 508, 516]
 promotes to Accepted)
 **Date**: 2026-06-04
 **Deciders**: Kent Gale
-**Extends**: [ADR-0002 — Felix ↔ Vikunja task model](0002-felix-vikunja-task-model.md)
+**Extends**: [ADR-0002 — Felix ↔ Vikunja task model](<./0002-felix-vikunja-task-model.md>)
 (extends decisions Q3, Q4, Q5, Q7, Q10; preserves Q1, Q2, Q6, Q8, Q9)
-**Source research**: [Mission felix-vikunja-sync-architecture-research-01KT7Q15](../../../research/felix-vikunja-sync-architecture/findings.md)
+**Source research**: [Mission felix-vikunja-sync-architecture-research-01KT7Q15](<../../../research/felix-vikunja-sync-architecture/findings.md>)
 **Closes design-gate for**: [Epic #507](https://github.com/kentonium3/kg-automation/issues/507)
 
 ## Context
@@ -219,7 +219,7 @@ events (majority of conflicts) and add cross-tool cognitive load for what is fun
 
 Issue #516 scopes a Felix-wide observability and status-emission framework. The conflict-event
 log's `schema_version` and `event_id` fields are forward-compatible with all three #516 outcome
-scenarios (see [conflict-event-log.sketch.md](../../../research/felix-vikunja-sync-architecture/findings/conflict-event-log.sketch.md)).
+scenarios (see [conflict-event-log.sketch.md](<../../../research/felix-vikunja-sync-architecture/findings/conflict-event-log.sketch.md>)).
 Pre-implementing the #516 framework as part of this ADR would couple the sync architecture to
 an unresolved design decision. Deferred per C-006.
 
@@ -229,18 +229,18 @@ an unresolved design decision. Deferred per C-006.
 
 - **Research spec**: [kitty-specs/felix-vikunja-sync-architecture-research-01KT7Q15/spec.md](../../../kitty-specs/felix-vikunja-sync-architecture-research-01KT7Q15/spec.md)
 - **Research plan**: [kitty-specs/felix-vikunja-sync-architecture-research-01KT7Q15/plan.md](../../../kitty-specs/felix-vikunja-sync-architecture-research-01KT7Q15/plan.md)
-- **Operator recommendation** (explainer): [docs/research/felix-vikunja-sync-architecture/recommendation.md](../../../research/felix-vikunja-sync-architecture/recommendation.md)
-- **Findings synthesis**: [docs/research/felix-vikunja-sync-architecture/findings.md](../../../research/felix-vikunja-sync-architecture/findings.md)
+- **Operator recommendation** (explainer): [docs/research/felix-vikunja-sync-architecture/recommendation.md](<../../../research/felix-vikunja-sync-architecture/recommendation.md>)
+- **Findings synthesis**: [docs/research/felix-vikunja-sync-architecture/findings.md](<../../../research/felix-vikunja-sync-architecture/findings.md>)
 - **Per-RQ findings**:
-  - [rq-1-vikunja-api.md](../../../research/felix-vikunja-sync-architecture/findings/rq-1-vikunja-api.md)
-  - [rq-2-touchpoints.md](../../../research/felix-vikunja-sync-architecture/findings/rq-2-touchpoints.md)
-  - [rq-3-conflict-policy.md](../../../research/felix-vikunja-sync-architecture/findings/rq-3-conflict-policy.md)
-  - [rq-4-use-case-mapping.md](../../../research/felix-vikunja-sync-architecture/findings/rq-4-use-case-mapping.md)
-  - [rq-5-pattern-fit.md](../../../research/felix-vikunja-sync-architecture/findings/rq-5-pattern-fit.md)
-  - [rq-6-adr-scope.md](../../../research/felix-vikunja-sync-architecture/findings/rq-6-adr-scope.md)
-- **Conflict-event log schema**: [conflict-event-log.sketch.md](../../../research/felix-vikunja-sync-architecture/findings/conflict-event-log.sketch.md)
+  - [rq-1-vikunja-api.md](<../../../research/felix-vikunja-sync-architecture/findings/rq-1-vikunja-api.md>)
+  - [rq-2-touchpoints.md](<../../../research/felix-vikunja-sync-architecture/findings/rq-2-touchpoints.md>)
+  - [rq-3-conflict-policy.md](<../../../research/felix-vikunja-sync-architecture/findings/rq-3-conflict-policy.md>)
+  - [rq-4-use-case-mapping.md](<../../../research/felix-vikunja-sync-architecture/findings/rq-4-use-case-mapping.md>)
+  - [rq-5-pattern-fit.md](<../../../research/felix-vikunja-sync-architecture/findings/rq-5-pattern-fit.md>)
+  - [rq-6-adr-scope.md](<../../../research/felix-vikunja-sync-architecture/findings/rq-6-adr-scope.md>)
+- **Conflict-event log schema**: [conflict-event-log.sketch.md](<../../../research/felix-vikunja-sync-architecture/findings/conflict-event-log.sketch.md>)
 - **Parent epic**: [#507 — Felix ↔ Vikunja bi-directional sync](https://github.com/kentonium3/kg-automation/issues/507)
 - **Operator review issue**: [#508 — Sync architecture research](https://github.com/kentonium3/kg-automation/issues/508)
 - **Observability framework spike**: [#516 — Felix-wide observability framework](https://github.com/kentonium3/kg-automation/issues/516)
-- **Base ADR**: [ADR-0002 — Felix ↔ Vikunja task model](0002-felix-vikunja-task-model.md)
-- **Format precedent**: [ADR-0001 — Google Workspace via gog](0001-google-workspace-via-gog.md)
+- **Base ADR**: [ADR-0002 — Felix ↔ Vikunja task model](<./0002-felix-vikunja-task-model.md>)
+- **Format precedent**: [ADR-0001 — Google Workspace via gog](<./0001-google-workspace-via-gog.md>)

@@ -158,6 +158,6 @@ this maintenance action small):
 ## Cross-references
 
 - **Service entry**: `docs/design/architecture/data/service-inventory.json` → `restic-backup` (updated_by `#511 + #159 + #208`).
-- **Pre-flight checklist**: [`docs/runbooks/governance/pre-flight-checklist.md`](governance/pre-flight-checklist.md) Tier 2 § "Confirm recent backup exists".
-- **Backup architecture overview**: [`docs/design/architecture/backup-and-recovery.md`](../design/architecture/backup-and-recovery.md).
+- **Pre-flight checklist**: [`docs/runbooks/governance/pre-flight-checklist.md`](<./governance/pre-flight-checklist.md>) Tier 2 § "Confirm recent backup exists".
+- **Backup architecture overview**: [`docs/design/architecture/backup-and-recovery.md`](<../design/architecture/backup-and-recovery.md>).
 - **Issue**: [#511](https://github.com/kentonium3/kg-automation/issues/511).

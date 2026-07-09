@@ -235,6 +235,6 @@ identity is what authenticates.)
 - [ADR-0004 — Enable Tailscale SSH with `accept` ACL on office2](<../design/architecture/adr/0004-tailscale-ssh-with-accept-acl.md>) — decision rationale + tradeoffs
 - [`physical-topology.md`](<../design/architecture/physical-topology.md>) § SSH access — machine-readable device + IP listing
 - [`security-posture.md`](<../design/architecture/security-posture.md>) § Agent Access Model — user-role table
-- [`google-workspace-ops.md`](./google-workspace-ops.md) — gog-reauth's full procedure (the script automates §2.8)
+- [`google-workspace-ops.md`](<./google-workspace-ops.md>) — gog-reauth's full procedure (the script automates §2.8)
 - kentonium3/kg-automation#572 — credential liveness probe (the reason phone-recovery matters)
 - kentonium3/kg-automation#575 — this runbook's originating docs-debt issue

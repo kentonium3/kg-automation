@@ -37,7 +37,7 @@ Before I start ticking any boxes below, all of the following must be true.
 If any of them fail, stop and resolve before running the smoke. False
 negatives from a half-deployed system are worse than no run at all.
 
-- [ ] Deploy script ([`scripts/deploy/deploy-felix-admin-calendar.sh`](<../../scripts/deploy/deploy-felix-admin-calendar.sh>))
+- [ ] Deploy script ([`scripts/deploy/deploy-felix-admin-calendar.sh`](<../archive/scripts/deploy/deploy-felix-admin-calendar.sh>))
       completed with exit code 0. The deploy script runs pytest and a
       journal-watch before exiting; if it didn't exit clean, don't continue.
 - [ ] `journalctl --user -u openclaw-gateway --since "<deploy-start-ts>"`
@@ -219,7 +219,7 @@ footer or follow-up issue.
 - Mission spec: [`kitty-specs/felix-calendar-subagent-extraction-01KTTA33/spec.md`](<../../kitty-specs/felix-calendar-subagent-extraction-01KTTA33/spec.md>)
 - Plan: [`kitty-specs/felix-calendar-subagent-extraction-01KTTA33/plan.md`](<../../kitty-specs/felix-calendar-subagent-extraction-01KTTA33/plan.md>)
 - Structure contract: [`kitty-specs/felix-calendar-subagent-extraction-01KTTA33/contracts/smoke-runbook-shape.md`](<../../kitty-specs/felix-calendar-subagent-extraction-01KTTA33/contracts/smoke-runbook-shape.md>)
-- Deploy script: [`scripts/deploy/deploy-felix-admin-calendar.sh`](<../../scripts/deploy/deploy-felix-admin-calendar.sh>)
+- Deploy script: [`scripts/deploy/deploy-felix-admin-calendar.sh`](<../archive/scripts/deploy/deploy-felix-admin-calendar.sh>)
 - Origin issue: [kentonium3/kg-automation#579](https://github.com/kentonium3/kg-automation/issues/579)
 - Rebaseline procedure: [`security-baseline-ops.md`](<./security-baseline-ops.md>)
 - Doc-auditor driver substrate: [`doc-auditor-driver-ops.md`](<./doc-auditor-driver-ops.md>)

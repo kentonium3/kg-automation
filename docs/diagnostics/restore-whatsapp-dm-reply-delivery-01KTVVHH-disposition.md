@@ -43,7 +43,7 @@ The remediation is therefore an in-place **runtime upgrade**, not a vendored edi
 
 | Deliverable | Path | Notes |
 |---|---|---|
-| Upgrade-variant deploy script | [`scripts/deploy/deploy-restore-whatsapp-dm-reply-delivery.sh`](../../scripts/deploy/deploy-restore-whatsapp-dm-reply-delivery.sh) | Six-stage idempotent deploy with `--backup-confirmed` Tier 2 gate, operator-driven Stage 3 sudo pause, post-upgrade gotchas verification, 1-DM post-flight smoke with rollback instructions. Shellcheck-clean. |
+| Upgrade-variant deploy script | [`scripts/deploy/deploy-restore-whatsapp-dm-reply-delivery.sh`](<../archive/scripts/deploy/deploy-restore-whatsapp-dm-reply-delivery.sh>) | Six-stage idempotent deploy with `--backup-confirmed` Tier 2 gate, operator-driven Stage 3 sudo pause, post-upgrade gotchas verification, 1-DM post-flight smoke with rollback instructions. Shellcheck-clean. |
 | Terminal disposition (this file) | `docs/diagnostics/restore-whatsapp-dm-reply-delivery-01KTVVHH-disposition.md` | Records path-taken + commit SHA + handoff to WP05 |
 
 **Files NOT touched** (intentional, per WP01 H6 verdict):
@@ -102,8 +102,8 @@ WP05 NEXT STEPS (operator):
 
 ## 7. Artifacts
 
-- WP01 investigation: [`docs/diagnostics/restore-whatsapp-dm-reply-delivery-01KTVVHH-investigation.md`](./restore-whatsapp-dm-reply-delivery-01KTVVHH-investigation.md)
-- Deploy script: [`scripts/deploy/deploy-restore-whatsapp-dm-reply-delivery.sh`](../../scripts/deploy/deploy-restore-whatsapp-dm-reply-delivery.sh)
+- WP01 investigation: [`docs/diagnostics/restore-whatsapp-dm-reply-delivery-01KTVVHH-investigation.md`](<./restore-whatsapp-dm-reply-delivery-01KTVVHH-investigation.md>)
+- Deploy script: [`scripts/deploy/deploy-restore-whatsapp-dm-reply-delivery.sh`](<../archive/scripts/deploy/deploy-restore-whatsapp-dm-reply-delivery.sh>)
 - Smoke contract: [`kitty-specs/restore-whatsapp-dm-reply-delivery-01KTVVHH/contracts/journal-event-assertions.md`](../../kitty-specs/restore-whatsapp-dm-reply-delivery-01KTVVHH/contracts/journal-event-assertions.md)
 - Operator quickstart: [`kitty-specs/restore-whatsapp-dm-reply-delivery-01KTVVHH/quickstart.md`](../../kitty-specs/restore-whatsapp-dm-reply-delivery-01KTVVHH/quickstart.md) sections 4.6 + 4.7
 - Upgrade-gotchas reference: memory `reference_openclaw_upgrade_gotchas`

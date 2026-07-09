@@ -241,7 +241,7 @@ instead of the actual token state.
 This is the #616 baseline-misclassification class. Check the manifest
 entry's `liveness_probe.reauth_marker_glob`: if unset, the probe is
 falling back to the keyring-mtime baseline (always biased toward
-unexpected). Set the field per the [Manifest entry shape](#manifest-entry-shape)
+unexpected). Set the field per the [Manifest entry shape](<#manifest-entry-shape>)
 section and re-run the probe; the next failure should classify
 correctly. (Fixed in commit `cab0a2af` for `gog-credentials-keyring`.)
 

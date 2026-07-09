@@ -105,7 +105,7 @@ mode for picking the slightly wrong value.
 
 ## 4. The developer portal's auto-generated filter
 
-[`docs/DEVELOPER_PORTAL.md`](<./../DEVELOPER_PORTAL.md>) has a section
+[`docs/DEVELOPER_PORTAL.md`](<../DEVELOPER_PORTAL.md>) has a section
 populated from runbook frontmatter. The marker pair:
 
 ```

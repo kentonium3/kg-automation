@@ -13,7 +13,7 @@ last_validated: 2026-05-19
 ## Purpose
 
 The canonical JSONL state-log schema shared by every Vikunja-touching Felix
-agent, per [ADR-0002 Q5-C](../adr/0002-felix-vikunja-task-model.md). One
+agent, per [ADR-0002 Q5-C](<../adr/0002-felix-vikunja-task-model.md>). One
 append-only JSONL file per domain under `/data/services/openclaw/state/`
 records the discrete state transitions Kent and Felix care about for habits,
 escalation, and enrichment. Producers write through the
@@ -143,7 +143,7 @@ is when the reconciler caught it:
 - CLI contract: [`contracts/cli.md`](../../../../kitty-specs/shared-jsonl-state-log-library-01KS0E9A/contracts/cli.md)
 - JSONL on-disk format contract: [`contracts/jsonl.md`](../../../../kitty-specs/shared-jsonl-state-log-library-01KS0E9A/contracts/jsonl.md)
 - Mission spec & plan: [`spec.md`](../../../../kitty-specs/shared-jsonl-state-log-library-01KS0E9A/spec.md), [`plan.md`](../../../../kitty-specs/shared-jsonl-state-log-library-01KS0E9A/plan.md)
-- Design intent: [ADR-0002 — Felix ↔ Vikunja task model](../adr/0002-felix-vikunja-task-model.md)
+- Design intent: [ADR-0002 — Felix ↔ Vikunja task model](<../adr/0002-felix-vikunja-task-model.md>)
 
 ## Reading via shell tools
 

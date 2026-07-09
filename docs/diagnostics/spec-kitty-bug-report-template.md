@@ -155,7 +155,7 @@ in-progress together, visible at a glance.
 
 **Cross-reference the running journal**:
 
-The [spec-kitty workflow journal](<../spec-kitty-workflow-journal.md>) captures
+The [spec-kitty workflow journal](<./spec-kitty-workflow-journal.md>) captures
 observations during feature work. Promote an entry to a standalone bug report
 here when:
 
