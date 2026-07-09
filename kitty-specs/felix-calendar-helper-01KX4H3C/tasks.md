@@ -13,11 +13,11 @@ Tests are in scope (NFR-003 requires them). Work packages are sized 3–5 subtas
 | T001 | Per-account credential path resolution + charset guard + perms | WP01 | | [D] |
 | T002 | Load / refresh / persist creds; typed AuthError fail-safe (no headless consent) | WP01 | | [D] |
 | T003 | Auth tests (valid / expired-refreshable / invalid_grant / account paths) | WP01 | | [D] |
-| T004 | Helper CLI shell: subcommands, common flags, exit-code map, SUMMARY/JSON ordering, service build | WP02 | |
-| T005 | `create`: payload-file + explicit; sendUpdates=none; `--allow-attendees`; idempotency key + dedupe | WP02 | |
-| T006 | `list` / `update` / `delete`: window schema, patch + `--clear`, recurring-scope error, not_found | WP02 | |
-| T007 | `--self-check`: refresh + bounded events.list; exit 3 with re-mint message | WP02 | |
-| T008 | Helper tests: mock google client + Credentials; CRUD, idempotent retry, sendUpdates, exit codes, auth-fail | WP02 | |
+| T004 | Helper CLI shell: subcommands, common flags, exit-code map, SUMMARY/JSON ordering, service build | WP02 | | [D] |
+| T005 | `create`: payload-file + explicit; sendUpdates=none; `--allow-attendees`; idempotency key + dedupe | WP02 | | [D] |
+| T006 | `list` / `update` / `delete`: window schema, patch + `--clear`, recurring-scope error, not_found | WP02 | | [D] |
+| T007 | `--self-check`: refresh + bounded events.list; exit 3 with re-mint message | WP02 | | [D] |
+| T008 | Helper tests: mock google client + Credentials; CRUD, idempotent retry, sendUpdates, exit codes, auth-fail | WP02 | | [D] |
 | T009 | `route_calendar_event.py`: add `--create` mode (validate→build→invoke helper→emit status); DEFAULT_ACCOUNT→personal | WP03 | |
 | T010 | `validate_calendar_event.py`: DEFAULT_ACCOUNT→personal (+ fixtures) | WP03 | |
 | T011 | `felix-admin-calendar` AGENTS.md + TOOLS.md: judgment-only, helper not gog, keep clarification handling | WP03 | |

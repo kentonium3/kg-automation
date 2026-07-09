@@ -135,3 +135,4 @@ Mock `googleapiclient.discovery.build` to return a fake `service` whose
 ## Activity Log
 
 - 2026-07-09T23:41:28Z – claude:opus:python-pedro:implementer – shell_pid=51610 – Assigned agent via action command
+- 2026-07-09T23:49:22Z – claude:opus:python-pedro:implementer – shell_pid=51610 – Ready for review — helper CLI + tests green (no network), exit-code contract + idempotency + fail-safe covered. Lint exit 0.
