@@ -4,34 +4,61 @@ mission_slug: deterministic-monitoring-checks-01KX1XNW
 tier: 3
 entrypoint: scripts/deploy/deploy-deterministic-monitoring-checks.py
 audited_surface: true
-created_at: "2026-07-08T00:00:00Z"
+created_at: '2026-07-08T00:00:00Z'
 created_by: deterministic-monitoring-checks-01KX1XNW
-notes: |
-  Deterministic monitoring checks cutover (#676, epic #673 Sprint 0).
-  Installs WP03's felix-health-check.{service,timer} + wrapper, then
+notes: 'Deterministic monitoring checks cutover (#676, epic #673 Sprint 0).
+
+  Installs WP03''s felix-health-check.{service,timer} + wrapper, then
+
   removes the two legacy health-check-morning/-evening openclaw crons
+
   that ran the check through the Sonnet `main` agent.
 
+
   STRICT ORDER (plan.md IC-04, Codex #6) inside the entrypoint: preflight
+
   -> install units + daemon-reload -> smoke-start -> enable+start timer ->
+
   verify via list-timers -> remove the 2 legacy crons via `openclaw cron
+
   rm <id>` -> confirm none remain. Each step halts on failure, so a
+
   partial run never leaves both paths disabled; crons are removed only
+
   after the new timer is verified active.
 
+
   T017 cron-removal decision: scripts/deploy/lib/cron.py has no `remove`
+
   primitive (list/disable/enable/edit only), so the entrypoint subprocesses
+
   `openclaw cron rm <id>` directly (id resolved via the vetted read-only
+
   list call) -- same bypass pattern as
+
   scripts/deploy/reschedule-felix-admin-habits-weekly-cron.py (#613).
+
   This RIDES the felix-deployer happy path (this manifest/entrypoint); it
+
   is not an out-of-band manual step. Full rationale incl. the
-  mutation-surfaces.json Tier-2-for-live-actors vs. felix-deployer's own
+
+  mutation-surfaces.json Tier-2-for-live-actors vs. felix-deployer''s own
+
   gated-mutation actor status: WP04 history.
 
+
   Rebaseline (#557, T020): audited_surface true -- touches systemd units +
+
   a new scripts/deploy/ entrypoint AND openclaw config (cron removal),
-  both applied by this one manifest tick. Expect felix-deployer's
+
+  both applied by this one manifest tick. Expect felix-deployer''s
+
   auto-rebaseline (#618) to cover both; merge commit must record
+
   `Rebaseline: completed at <ts>` or `not required -- <reason>` per
+
   docs/runbooks/security-baseline-ops.md.
+
+  '
+apply_mode: manifest
+applied_at: '2026-07-09T00:22:54Z'
