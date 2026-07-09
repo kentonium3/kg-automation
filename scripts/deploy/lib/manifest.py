@@ -13,6 +13,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -20,6 +21,23 @@ import yaml
 from jsonschema import Draft202012Validator, ValidationError
 
 from . import LibResult
+
+# ---------------------------------------------------------------------------
+# Tooling-scripts path bootstrap so ``audited_surfaces`` resolves.
+#
+# ``tooling/scripts/audited_surfaces.py`` is not a package (no __init__.py);
+# we replicate the sibling pattern (check_audited_surface_drift.py,
+# felix-deployer/rebaseline.py): insert the directory on sys.path and import
+# by module name. We import the *module* (not the names) so a test that
+# monkeypatches ``audited_surfaces.AUDITED_SURFACES_PATH`` is honoured, and so
+# validation reads the registry through the **non-exiting** helper only.
+# ---------------------------------------------------------------------------
+
+_TOOLING_SCRIPTS = Path(__file__).resolve().parents[3] / "tooling" / "scripts"
+if str(_TOOLING_SCRIPTS) not in sys.path:
+    sys.path.insert(0, str(_TOOLING_SCRIPTS))
+
+import audited_surfaces  # noqa: E402  # type: ignore[import-not-found]
 
 # Default locations relative to the repo root. Callers may override either
 # via the explicit *schema_path* argument or by passing a *root* hint to
@@ -74,6 +92,68 @@ def load_manifest(path: str | os.PathLike[str]) -> dict[str, Any]:
     return data
 
 
+def _validate_expected_baselines(
+    data: dict[str, Any],
+    schema_path_resolved: Path,
+) -> LibResult | None:
+    """Validate the optional ``expected_baselines`` field.
+
+    Returns ``None`` when the field is absent (unchanged behaviour, FR-009) or
+    when the declaration is valid. Returns an invalid :class:`LibResult` when:
+
+    * the registry cannot be read — via the **non-exiting** reader, so a
+      malformed registry fails the *manifest*, never the deployer tick (a
+      ``SystemExit`` in the tick queue loop would crash felix-deployer; NFR-001);
+    * a declared name is not in the registry's known-baseline set (message
+      names the offender(s), FR-007);
+    * ``audited_surface`` is not ``true`` (the R2 coupling rule, FR-007).
+    """
+    declared = data.get("expected_baselines")
+    if declared is None:
+        return None
+
+    if data.get("audited_surface") is not True:
+        return LibResult(
+            ok=False,
+            summary="expected_baselines requires audited_surface: true",
+            details={
+                "error_code": "EXPECTED_BASELINES_COUPLING",
+                "schema_path": str(schema_path_resolved),
+            },
+        )
+
+    # NON-exiting read only — never audited_surfaces.load_audited_surfaces().
+    registry, reason = audited_surfaces.load_audited_surfaces_or_error()
+    if registry is None:
+        return LibResult(
+            ok=False,
+            summary=f"expected_baselines: registry could not be read: {reason}",
+            details={
+                "error_code": "REGISTRY_UNREADABLE",
+                "error": reason,
+                "schema_path": str(schema_path_resolved),
+            },
+        )
+
+    known = audited_surfaces.known_baselines(registry)
+    unknown = [name for name in declared if name not in known]
+    if unknown:
+        return LibResult(
+            ok=False,
+            summary=(
+                "expected_baselines contains unknown baseline(s) "
+                f"(validated against the registry's known set): {', '.join(unknown)}"
+            ),
+            details={
+                "error_code": "EXPECTED_BASELINES_UNKNOWN",
+                "unknown": unknown,
+                "known": sorted(known),
+                "schema_path": str(schema_path_resolved),
+            },
+        )
+    return None
+
+
 def validate_manifest(
     data: dict[str, Any],
     schema_path: str | os.PathLike[str] | None = None,
@@ -119,6 +199,9 @@ def validate_manifest(
     validator = Draft202012Validator(schema)
     errors = sorted(validator.iter_errors(data), key=lambda e: list(e.absolute_path))
     if not errors:
+        baselines_result = _validate_expected_baselines(data, schema_path_resolved)
+        if baselines_result is not None:
+            return baselines_result
         return LibResult(
             ok=True,
             summary=f"manifest valid against {schema_path_resolved.name}",

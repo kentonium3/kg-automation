@@ -2,107 +2,107 @@
   "mission_slug": "felix-deployer-rebaseline-detection-01KX26DS",
   "mission_number": "",
   "mission_type": "software-dev",
-  "overall_verdict": "pass",
+  "overall_verdict": "pending",
   "criteria": [
     {
       "criterion_id": "FR-001",
-      "description": "FR-001 verified by automated tests in WP01",
+      "description": "Verify FR-001 is satisfied",
       "proof_type": "automated_test",
-      "evidence": "Watermark-based observe range (last_observed..post_pull_head). test_tick_rebaseline.py out-of-band repro asserts observe called with (WATERMARK, POST) even when pre==post; reviewer empirically confirmed old (pre,post) logic fails the test.",
-      "pass_fail": "pass",
-      "verified_by": "reviewer-renata (per-WP review)",
-      "verified_at": "2026-07-09T02:20:44Z",
-      "notes": "Full deploy suite green post-implementation (WP01: 341 passed; WP02: 319 passed). Verified in WP01."
+      "evidence": null,
+      "pass_fail": "pending",
+      "verified_by": null,
+      "verified_at": null,
+      "notes": "TODO: replace with a real acceptance criterion"
     },
     {
       "criterion_id": "FR-002",
-      "description": "FR-002 verified by automated tests in WP01",
+      "description": "Verify FR-002 is satisfied",
       "proof_type": "automated_test",
-      "evidence": "First-run fallback to pre_pull_head when no watermark. test_tick_rebaseline.py fallback-base test.",
-      "pass_fail": "pass",
-      "verified_by": "reviewer-renata (per-WP review)",
-      "verified_at": "2026-07-09T02:20:44Z",
-      "notes": "Full deploy suite green post-implementation (WP01: 341 passed; WP02: 319 passed). Verified in WP01."
+      "evidence": null,
+      "pass_fail": "pending",
+      "verified_by": null,
+      "verified_at": null,
+      "notes": "TODO: replace with a real acceptance criterion"
     },
     {
       "criterion_id": "FR-003",
-      "description": "FR-003 verified by automated tests in WP01",
+      "description": "Verify FR-003 is satisfied",
       "proof_type": "automated_test",
-      "evidence": "Watermark advances to deployer's own last deploy(applied) commit descending from post_pull_head; self-commit-skip test shows next idle tick observes empty range -> not_required.",
-      "pass_fail": "pass",
-      "verified_by": "reviewer-renata (per-WP review)",
-      "verified_at": "2026-07-09T02:20:44Z",
-      "notes": "Full deploy suite green post-implementation (WP01: 341 passed; WP02: 319 passed). Verified in WP01."
+      "evidence": null,
+      "pass_fail": "pending",
+      "verified_by": null,
+      "verified_at": null,
+      "notes": "TODO: replace with a real acceptance criterion"
     },
     {
       "criterion_id": "FR-004",
-      "description": "FR-004 verified by automated tests in WP01",
+      "description": "Verify FR-004 is satisfied",
       "proof_type": "automated_test",
-      "evidence": "classify_watermark: self_heal only on provably-invalid/non-ancestor; transient git failure leaves watermark unchanged (test_transient_classification_leaves_watermark_unchanged).",
-      "pass_fail": "pass",
-      "verified_by": "reviewer-renata (per-WP review)",
-      "verified_at": "2026-07-09T02:20:44Z",
-      "notes": "Full deploy suite green post-implementation (WP01: 341 passed; WP02: 319 passed). Verified in WP01."
+      "evidence": null,
+      "pass_fail": "pending",
+      "verified_by": null,
+      "verified_at": null,
+      "notes": "TODO: replace with a real acceptance criterion"
     },
     {
       "criterion_id": "FR-005",
-      "description": "FR-005 verified by automated tests in WP02",
+      "description": "Verify FR-005 is satisfied",
       "proof_type": "automated_test",
-      "evidence": "manifest expected_baselines field added to schema; test_manifest_schema.py accepts it; validate_manifest folds it. test_manifest.py valid-declaration test.",
-      "pass_fail": "pass",
-      "verified_by": "reviewer-renata (per-WP review)",
-      "verified_at": "2026-07-09T02:20:44Z",
-      "notes": "Full deploy suite green post-implementation (WP01: 341 passed; WP02: 319 passed). Verified in WP02."
+      "evidence": null,
+      "pass_fail": "pending",
+      "verified_by": null,
+      "verified_at": null,
+      "notes": "TODO: replace with a real acceptance criterion"
     },
     {
       "criterion_id": "FR-006",
-      "description": "FR-006 verified by automated tests in WP01",
+      "description": "Verify FR-006 is satisfied",
       "proof_type": "automated_test",
-      "evidence": "fold_manifest_baselines unions declared baselines into token; end-to-end test folds openclaw-cron.txt -> reconcile completed (not unexpected_drift).",
-      "pass_fail": "pass",
-      "verified_by": "reviewer-renata (per-WP review)",
-      "verified_at": "2026-07-09T02:20:44Z",
-      "notes": "Full deploy suite green post-implementation (WP01: 341 passed; WP02: 319 passed). Verified in WP01."
+      "evidence": null,
+      "pass_fail": "pending",
+      "verified_by": null,
+      "verified_at": null,
+      "notes": "TODO: replace with a real acceptance criterion"
     },
     {
       "criterion_id": "FR-007",
-      "description": "FR-007 verified by automated tests in WP02",
+      "description": "Verify FR-007 is satisfied",
       "proof_type": "automated_test",
-      "evidence": "validate_manifest rejects unknown baseline names (EXPECTED_BASELINES_UNKNOWN naming offender), requires audited_surface:true (EXPECTED_BASELINES_COUPLING), malformed registry -> invalid without SystemExit. test_manifest.py.",
-      "pass_fail": "pass",
-      "verified_by": "reviewer-renata (per-WP review)",
-      "verified_at": "2026-07-09T02:20:44Z",
-      "notes": "Full deploy suite green post-implementation (WP01: 341 passed; WP02: 319 passed). Verified in WP02."
+      "evidence": null,
+      "pass_fail": "pending",
+      "verified_by": null,
+      "verified_at": null,
+      "notes": "TODO: replace with a real acceptance criterion"
     },
     {
       "criterion_id": "FR-008",
-      "description": "FR-008 verified by automated tests in WP01",
+      "description": "Verify FR-008 is satisfied",
       "proof_type": "automated_test",
-      "evidence": "Outcome stamping preserved: rebaseline_observe/reconcile/stamped tick-log entries retained; pending_clean handled as benign.",
-      "pass_fail": "pass",
-      "verified_by": "reviewer-renata (per-WP review)",
-      "verified_at": "2026-07-09T02:20:44Z",
-      "notes": "Full deploy suite green post-implementation (WP01: 341 passed; WP02: 319 passed). Verified in WP01."
+      "evidence": null,
+      "pass_fail": "pending",
+      "verified_by": null,
+      "verified_at": null,
+      "notes": "TODO: replace with a real acceptance criterion"
     },
     {
       "criterion_id": "FR-009",
-      "description": "FR-009 verified by automated tests in WP01/WP02",
+      "description": "Verify FR-009 is satisfied",
       "proof_type": "automated_test",
-      "evidence": "No-declaration manifests behave unchanged; backward-compat tests in test_tick_rebaseline.py and test_manifest.py; legacy (ok,summary) tuple still handled.",
-      "pass_fail": "pass",
-      "verified_by": "reviewer-renata (per-WP review)",
-      "verified_at": "2026-07-09T02:20:44Z",
-      "notes": "Full deploy suite green post-implementation (WP01: 341 passed; WP02: 319 passed). Verified in WP01/WP02."
+      "evidence": null,
+      "pass_fail": "pending",
+      "verified_by": null,
+      "verified_at": null,
+      "notes": "TODO: replace with a real acceptance criterion"
     },
     {
       "criterion_id": "FR-010",
-      "description": "FR-010 verified by automated tests in WP01",
+      "description": "Verify FR-010 is satisfied",
       "proof_type": "automated_test",
-      "evidence": "Same-tick clear grace rule: fresh token+D=empty -> pending_clean (retained); aged -> cleared_clean. TestGraceRule in test_rebaseline.py.",
-      "pass_fail": "pass",
-      "verified_by": "reviewer-renata (per-WP review)",
-      "verified_at": "2026-07-09T02:20:44Z",
-      "notes": "Full deploy suite green post-implementation (WP01: 341 passed; WP02: 319 passed). Verified in WP01."
+      "evidence": null,
+      "pass_fail": "pending",
+      "verified_by": null,
+      "verified_at": null,
+      "notes": "TODO: replace with a real acceptance criterion"
     }
   ],
   "negative_invariants": []

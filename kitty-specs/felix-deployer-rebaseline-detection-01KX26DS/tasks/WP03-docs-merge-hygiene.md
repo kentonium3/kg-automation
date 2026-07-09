@@ -110,4 +110,3 @@ Depends on WP01 + WP02 (docs describe their behavior). Execution worktrees per `
 - 2026-07-09T02:10:06Z – claude:opus:curator-carla:implementer – shell_pid=18477 – Assigned agent via action command
 - 2026-07-09T02:14:56Z – claude:opus:curator-carla:implementer – shell_pid=18477 – WP03 complete: CLAUDE.md happy-path + deployment.md + security-baseline-ops.md updated; docs validate
 - 2026-07-09T02:16:03Z – claude:opus:reviewer-renata:reviewer – shell_pid=20715 – Started review via action command
-- 2026-07-09T02:18:41Z – user – shell_pid=20715 – Review passed: docs match shipped behavior; validate_docs OK

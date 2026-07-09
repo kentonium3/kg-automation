@@ -84,9 +84,9 @@ watermark + manifest `expected_baselines`, and confirm the signal-to-doc-map tar
 **Dependencies**: WP01, WP02 (docs describe their shipped behavior).
 **Estimated prompt size**: ~190 lines.
 
-- [x] T015 Update `CLAUDE.md` happy-path text (out-of-band robustness + watermark) (WP03)
-- [x] T016 Update `docs/runbooks/deployment.md` (watermark observe + manifest `expected_baselines`) (WP03)
-- [x] T017 Update `docs/runbooks/security-baseline-ops.md` + confirm signal-to-doc-map coverage (WP03)
+- [ ] T015 Update `CLAUDE.md` happy-path text (out-of-band robustness + watermark) (WP03)
+- [ ] T016 Update `docs/runbooks/deployment.md` (watermark observe + manifest `expected_baselines`) (WP03)
+- [ ] T017 Update `docs/runbooks/security-baseline-ops.md` + confirm signal-to-doc-map coverage (WP03)
 
 **Dependencies**: WP01, WP02. **Risks**: missing a doc surface — mitigate via the
 `signal-to-doc-map.json` lookup (change classes: `systemd-unit-added-or-modified`,

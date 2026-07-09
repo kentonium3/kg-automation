@@ -66,3 +66,38 @@ def test_invalid_manifests_fail_schema(validator: Draft202012Validator, name: st
     data = _load_fixture(name)
     with pytest.raises(ValidationError):
         validator.validate(data)
+
+
+# ---------------------------------------------------------------------------
+# expected_baselines schema field (WP02 T014)
+# ---------------------------------------------------------------------------
+
+
+def _minimal_manifest() -> dict:
+    return {
+        "schema_version": "v1",
+        "name": "expected-baselines-schema-example",
+        "mission_slug": "felix-deployer-rebaseline-detection-01KX26DS",
+        "tier": 3,
+        "entrypoint": "scripts/deploy/tier3/example.sh",
+        "audited_surface": True,
+        "created_at": "2026-07-09T00:00:00Z",
+        "created_by": "kent@intentional.biz",
+    }
+
+
+def test_manifest_with_expected_baselines_passes_schema(
+    validator: Draft202012Validator,
+) -> None:
+    data = _minimal_manifest()
+    data["expected_baselines"] = ["openclaw-cron.txt"]
+    validator.validate(data)  # must not raise
+
+
+def test_unknown_property_still_fails_additional_properties_false(
+    validator: Draft202012Validator,
+) -> None:
+    data = _minimal_manifest()
+    data["not_a_real_field"] = "nope"
+    with pytest.raises(ValidationError):
+        validator.validate(data)

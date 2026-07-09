@@ -1,24 +1,10 @@
 {
-  "accept_commit": "7007d395b44d175cb4ed89bb8237caac1cb4cbe7",
-  "acceptance_history": [
-    {
-      "accept_commit": "7007d395b44d175cb4ed89bb8237caac1cb4cbe7",
-      "acceptance_mode": "pr",
-      "accepted_at": "2026-07-09T02:20:59.695624+00:00",
-      "accepted_by": "kentgale",
-      "accepted_from_commit": "5640fa309e2528e05df761d02810c6797f0d6822"
-    }
-  ],
-  "acceptance_mode": "pr",
-  "accepted_at": "2026-07-09T02:20:59.695624+00:00",
-  "accepted_by": "kentgale",
-  "accepted_from_commit": "5640fa309e2528e05df761d02810c6797f0d6822",
   "coordination_branch": "kitty/mission-felix-deployer-rebaseline-detection-01KX26DS",
   "created_at": "2026-07-09T01:03:42.279890+00:00",
   "flattened": false,
   "friendly_name": "Robust Felix-Deployer Rebaseline Detection",
   "mission_id": "01KX26DSP56DD8YD34DXNMNMFC",
-  "mission_number": null,
+  "mission_number": 88,
   "mission_slug": "felix-deployer-rebaseline-detection-01KX26DS",
   "mission_type": "software-dev",
   "pr_bound": true,
@@ -26,7 +12,5 @@
   "purpose_tldr": "Make felix-deployer's auto-rebaseline fire reliably after every deploy, so there are no false security-drift alerts and no manual rebaselining.",
   "slug": "felix-deployer-rebaseline-detection-01KX26DS",
   "target_branch": "fix/felix-deployer-rebaseline-detection",
-  "topology": "coord",
-  "vcs": "git",
-  "vcs_locked_at": "2026-07-09T01:48:53.184153+00:00"
+  "topology": "coord"
 }

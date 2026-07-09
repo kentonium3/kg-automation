@@ -306,11 +306,23 @@ change deploys.
 **Happy path (pipeline-driven changes):** for changes applied through the
 `deploys/queued/` manifest pipeline, felix-deployer rebaselines
 automatically and silently — no operator action needed. The deployer uses
-a deferred-confirm flow: it observes the committed audited-surface change
-on `git pull`, sets a pending token, then rebaselines once the expected
-drift is confirmed by a read-only audit run. Outcomes are recorded on the
-deploy record (`rebaseline: completed / not_required / failed`). The
-operator is NOT the load-bearing component on the happy path.
+a deferred-confirm flow: it observes the committed audited-surface change,
+sets a pending token, then rebaselines once the expected drift is confirmed
+by a read-only audit run. Outcomes are recorded on the deploy record
+(`rebaseline: completed / not_required / failed`). The operator is NOT the
+load-bearing component on the happy path.
+
+The observe range is driven by a **persisted last-observed-head watermark**
+(`rebaseline-observed-head.json` in `/data/services/felix-deployer/state/`),
+so the deployer detects audited-surface changes **regardless of which actor
+advanced the checkout HEAD** — including an out-of-band `git pull` that
+fast-forwards the checkout before the deployer's own tick runs (closes #685).
+One caveat: a deploy whose drift has **no repo-file signal** (e.g. a runtime
+`openclaw cron rm` that drifts a baseline without changing any tracked file)
+is not detected by the observe range; such a deploy must declare the
+baselines it will drift via the `expected_baselines` field in its manifest
+(see [deployment.md](docs/runbooks/deployment.md)) so the auto-rebaseline
+still covers it.
 
 **Out-of-band exception (manual reset still required):** changes made
 directly on office2 — not through the manifest pipeline — are invisible
