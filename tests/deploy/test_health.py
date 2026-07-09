@@ -126,11 +126,32 @@ class _Clock:
 
 
 class _RecordingNotifier:
+    """Notifier that records calls and reports delivery via *delivered*.
+
+    The notifier contract (#667 post-merge fix) is
+    ``Callable[[str, str], bool]`` — True iff the alert was actually delivered.
+    Default is a delivered alert; set ``delivered=False`` to simulate an
+    undeliverable/misconfigured notifier (e.g. no ntfy topic).
+    """
+
+    def __init__(self, delivered: bool = True):
+        self.calls: list[tuple[str, str]] = []
+        self.delivered = delivered
+
+    def __call__(self, title: str, body: str) -> bool:
+        self.calls.append((title, body))
+        return self.delivered
+
+
+class _RaisingNotifier:
+    """Notifier that raises — must be caught and treated as not-delivered."""
+
     def __init__(self):
         self.calls: list[tuple[str, str]] = []
 
-    def __call__(self, title: str, body: str) -> None:
+    def __call__(self, title: str, body: str) -> bool:
         self.calls.append((title, body))
+        raise RuntimeError("notifier blew up")
 
 
 @pytest.fixture()
@@ -348,16 +369,84 @@ def test_re_alert_after_recovery(state_path):
     assert len(notifier.calls) == 2  # one per streak
 
 
-def test_notifier_none_still_stamps_and_reports_crossing(state_path):
+def test_notifier_none_does_not_stamp_or_crash(state_path):
+    """notifier=None → never delivered → no stamp, no crash (delivery-gated)."""
     clock = _Clock()
     fired = [
         health.record("felix-deployer", _failed_advance("fetch_failed"),
                       state_path=state_path, threshold=3, notifier=None, clock=clock)
+        for _ in range(4)
+    ]
+    # No notifier means nothing is ever delivered, so no crossing is ever
+    # reported as alerted and last_alert_ts is never stamped — the crossing
+    # keeps re-attempting on each failing tick (but there is nothing to deliver).
+    assert fired == [False, False, False, False]
+    wm = health.read_watermark("felix-deployer", state_path)
+    assert wm.last_alert_ts is None
+    assert wm.consecutive_failures == 4
+
+
+def test_delivered_alert_stamps_and_returns_true(state_path):
+    """A delivered alert (notifier returns True) stamps last_alert_ts once."""
+    clock = _Clock()
+    notifier = _RecordingNotifier(delivered=True)
+    fired = [
+        health.record("felix-deployer", _failed_advance("fetch_failed"),
+                      state_path=state_path, threshold=3, notifier=notifier, clock=clock)
         for _ in range(3)
     ]
     assert fired == [False, False, True]
+    assert len(notifier.calls) == 1
     wm = health.read_watermark("felix-deployer", state_path)
     assert wm.last_alert_ts is not None
+
+
+def test_undelivered_alert_does_not_stamp_and_reattempts(state_path):
+    """A failed delivery (notifier returns False) must NOT stamp last_alert_ts,
+    and the NEXT failing tick must re-attempt the alert (not silently burned)."""
+    clock = _Clock()
+    notifier = _RecordingNotifier(delivered=False)
+    # First cross the threshold with an undeliverable notifier.
+    fired = [
+        health.record("felix-deployer", _failed_advance("fetch_failed"),
+                      state_path=state_path, threshold=3, notifier=notifier, clock=clock)
+        for _ in range(3)
+    ]
+    assert fired == [False, False, False]  # crossing not delivered → not alerted
+    wm = health.read_watermark("felix-deployer", state_path)
+    assert wm.last_alert_ts is None  # NOT stamped
+    assert wm.consecutive_failures == 3
+    # The notifier was ATTEMPTED at the crossing (best-effort delivery).
+    assert len(notifier.calls) == 1
+
+    # Next failing tick: the notifier now succeeds — the alert re-attempts and
+    # this time delivers + stamps (the alert was never lost).
+    notifier.delivered = True
+    fired_next = health.record(
+        "felix-deployer", _failed_advance("fetch_failed"),
+        state_path=state_path, threshold=3, notifier=notifier, clock=clock,
+    )
+    assert fired_next is True
+    assert len(notifier.calls) == 2  # re-attempted
+    wm2 = health.read_watermark("felix-deployer", state_path)
+    assert wm2.last_alert_ts is not None
+    assert wm2.consecutive_failures == 4
+
+
+def test_raising_notifier_is_caught_and_not_delivered(state_path):
+    """A raising notifier must be caught (no crash) and treated as not-delivered."""
+    clock = _Clock()
+    notifier = _RaisingNotifier()
+    # Must not raise.
+    fired = [
+        health.record("felix-deployer", _failed_advance("merge_failed"),
+                      state_path=state_path, threshold=3, notifier=notifier, clock=clock)
+        for _ in range(3)
+    ]
+    assert fired == [False, False, False]  # exception → not delivered → not alerted
+    assert len(notifier.calls) == 1  # attempted at the crossing
+    wm = health.read_watermark("felix-deployer", state_path)
+    assert wm.last_alert_ts is None  # NOT stamped — re-attempts next tick
 
 
 def test_custom_threshold_respected(state_path):
@@ -403,17 +492,14 @@ def test_health_notification_resolves_actor_topic(monkeypatch):
 
     monkeypatch.setattr(notify.subprocess, "run", _fake_run)
 
-    result = notify.dispatch_health_notification(
+    delivered = notify.dispatch_health_notification(
         "agent-prompt-sync", "stalled", "detail body",
         topic_env="AGENT_PROMPT_SYNC_NTFY_TOPIC",
     )
-    assert result.ok is True
+    # A successful POST reports delivery True (the contract health.record needs).
+    assert delivered is True
     # Actor-specific topic wins over the shared fallback.
     assert seen["argv"][-1] == "https://ntfy.sh/prompt-sync-topic-abcd"
-    # Topic redacted in the result details.
-    assert "prompt-sync-topic-abcd" not in result.details["topic_redacted"]
-    assert "***" in result.details["topic_redacted"]
-    assert result.details["actor"] == "agent-prompt-sync"
 
 
 def test_health_notification_falls_back_to_shared_topic(monkeypatch):
@@ -427,11 +513,11 @@ def test_health_notification_falls_back_to_shared_topic(monkeypatch):
 
     monkeypatch.setattr(notify.subprocess, "run", _fake_run)
 
-    result = notify.dispatch_health_notification(
+    delivered = notify.dispatch_health_notification(
         "agent-prompt-sync", "stalled", "body",
         topic_env="AGENT_PROMPT_SYNC_NTFY_TOPIC",
     )
-    assert result.ok is True
+    assert delivered is True
     assert seen["argv"][-1] == "https://ntfy.sh/shared-deployer-topic-xyz"
 
 
@@ -443,12 +529,12 @@ def test_health_notification_missing_topic_is_noop(monkeypatch):
         notify.subprocess, "run",
         lambda *a, **kw: called.append(True) or _FakeProc(returncode=0),
     )
-    result = notify.dispatch_health_notification(
+    delivered = notify.dispatch_health_notification(
         "agent-prompt-sync", "stalled", "body",
         topic_env="AGENT_PROMPT_SYNC_NTFY_TOPIC",
     )
-    assert result.ok is False
-    assert result.details["error_code"] == "NTFY_MISSING_TOPIC"
+    # No topic → not delivered. This is the case health.record must NOT burn.
+    assert delivered is False
     assert called == []  # curl NOT invoked
 
 
@@ -459,13 +545,12 @@ def test_health_notification_best_effort_on_curl_missing(monkeypatch):
         raise FileNotFoundError("curl")
 
     monkeypatch.setattr(notify.subprocess, "run", _fake_run)
-    # Must NOT raise — best-effort.
-    result = notify.dispatch_health_notification(
+    # Must NOT raise — best-effort — and reports not delivered.
+    delivered = notify.dispatch_health_notification(
         "agent-prompt-sync", "stalled", "body",
         topic_env="AGENT_PROMPT_SYNC_NTFY_TOPIC",
     )
-    assert result.ok is False
-    assert result.details["error_code"] == "NTFY_CURL_MISSING"
+    assert delivered is False
 
 
 def test_health_notification_best_effort_on_http_error(monkeypatch):
@@ -474,13 +559,12 @@ def test_health_notification_best_effort_on_http_error(monkeypatch):
         notify.subprocess, "run",
         lambda *a, **kw: _FakeProc(returncode=22, stderr="HTTP 500"),
     )
-    result = notify.dispatch_health_notification(
+    delivered = notify.dispatch_health_notification(
         "agent-prompt-sync", "stalled", "body",
         topic_env="AGENT_PROMPT_SYNC_NTFY_TOPIC",
     )
-    assert result.ok is False
-    assert result.details["error_code"] == "NTFY_HTTP_ERROR"
-    assert len(result.details["stderr_excerpt"]) <= 200
+    # A non-zero curl rc → not delivered.
+    assert delivered is False
 
 
 def test_health_notification_redacts_body(monkeypatch):

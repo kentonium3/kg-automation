@@ -376,7 +376,11 @@ def test_repeated_failures_alert_then_clean_advance_resets(
     monkeypatch.setattr(
         notify,
         "dispatch_health_notification",
-        lambda actor, title, body, *, topic_env: alerts.append((title, body)),
+        # Report delivery True so health.record stamps last_alert_ts (fires
+        # exactly once per streak); a falsy return would re-attempt every tick.
+        lambda actor, title, body, *, topic_env: (
+            alerts.append((title, body)) or True
+        ),
     )
     monkeypatch.setattr(tick, "_git", _spy_git([]))
     monkeypatch.setattr(rebaseline, "observe", lambda *a, **kw: {"outcome": "not_required"})

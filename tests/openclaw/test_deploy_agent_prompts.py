@@ -467,7 +467,7 @@ def _isolate_deploy_lock(tmp_path_factory, monkeypatch):
     state_dir = tmp_path_factory.mktemp("deploy-health")
     monkeypatch.setattr(dap, "HEALTH_STATE_PATH_DEFAULT", state_dir / "git-health.json")
     # Health alerts must never hit the network in tests: no topic configured →
-    # dispatch_health_notification returns a benign "skipped" LibResult.
+    # dispatch_health_notification returns False (not delivered), best-effort.
     monkeypatch.delenv("AGENT_PROMPT_SYNC_NTFY_TOPIC", raising=False)
     monkeypatch.delenv("FELIX_DEPLOYER_NTFY_TOPIC", raising=False)
 
@@ -916,16 +916,53 @@ def test_run_tick_records_health_on_failure(tmp_path):
     assert state["consecutive_failures"] == 1
 
 
+def test_health_record_failure_never_crashes_tick(tmp_path):
+    """A health-store failure is best-effort: the prompt-sync tick logs a
+    health_record_error audit record and still completes (FIX 2, mirrors
+    felix-deployer _tick.py). The git_pull_skipped/copy behaviour is unchanged."""
+    dst_dir = tmp_path / "dst"
+    dst_dir.mkdir()
+    repo = _setup_fake_repo(tmp_path, {
+        "test-agent": {"source_in_repo": "src/", "workspace": str(dst_dir)},
+    })
+    (repo / "src").mkdir()
+    (repo / "src" / "AGENTS.md").write_bytes(b"identical")
+    (dst_dir / "AGENTS.md").write_bytes(b"identical")
+    log = tmp_path / "audit.jsonl"
+    health_state = tmp_path / "git-health.json"
+    args = dap.parse_args([])
+    sha = "a" * 40
+
+    def _boom(*a, **kw):
+        raise RuntimeError("health store unwritable")
+
+    with _patch_advance_success(sha), \
+         patch.object(dap._health, "record", _boom):
+        rc = dap.run_tick(args, repo_root=repo, audit_path=log,
+                          health_state_path=health_state)
+
+    # The tick still completes normally (success — no copies needed).
+    assert rc == dap.EXIT_SUCCESS
+    parsed = [json.loads(line) for line in log.read_text().splitlines()]
+    kinds = [p["kind"] for p in parsed]
+    # A health_record_error was logged, and the normal tick_summary still ran.
+    assert "health_record_error" in kinds
+    assert kinds[-1] == "tick_summary"
+
+
 def test_health_notifier_dispatches_via_generic_notify(monkeypatch):
-    """_health_notifier calls dispatch_health_notification with this actor's topic env."""
+    """_health_notifier calls dispatch_health_notification with this actor's topic env
+    and returns its delivery bool (True iff actually delivered)."""
     notify = dap._load_notify()
     captured = {}
 
     def _fake_dispatch(actor, title, body, *, topic_env):
         captured.update(actor=actor, title=title, body=body, topic_env=topic_env)
+        return True
 
     monkeypatch.setattr(notify, "dispatch_health_notification", _fake_dispatch)
-    dap._health_notifier("t", "b")
+    delivered = dap._health_notifier("t", "b")
+    assert delivered is True  # the delivery bool is forwarded to health.record
     assert captured["actor"] == dap.HEALTH_ACTOR
     assert captured["topic_env"] == dap.HEALTH_TOPIC_ENV == "AGENT_PROMPT_SYNC_NTFY_TOPIC"
     assert captured["title"] == "t"

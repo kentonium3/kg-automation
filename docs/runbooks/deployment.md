@@ -242,6 +242,17 @@ its next interval (a benign `lock_unavailable` — logged, but NOT a health
 failure). `flock` auto-releases if the holder dies, so a crashed actor never
 wedges the other.
 
+**The lock directory must be provisioned by the bootstrap.** `deploylock()`
+`mkdir`s the lock file's parent at runtime, so if `/data/services/deploy` is not
+creatable by the `claude` user the **first tick crashes BOTH actors** with a
+`PermissionError`. The controlled bootstrap MUST create and verify the directory
+as the `claude` user **before** restarting the timers, and it must be writable
+by `claude`:
+
+```
+ssh office2-claude 'mkdir -p /data/services/deploy/locks && test -w /data/services/deploy/locks && echo lock-dir-ok'
+```
+
 **Health signal.** A per-actor watermark (`scripts/deploy/lib/health.py`) counts
 only *confirmed* advance failures (`diverged | fetch_failed | merge_failed`) and
 fires at most one ntfy alert per failure streak, so a silent multi-week stall
@@ -279,9 +290,11 @@ manual-bootstrap path purely to satisfy the schema; the actual step-by-step
 sequence lives in `notes` and in the mission quickstart. `0012-prompt-sync-ff-race.yaml`
 is the worked example (#667): stop both timers → manual `--ff-only` merge →
 verify the new `scripts/deploy/lib/**` files present → delete the stale origin
-lane branch → **manual** audited-surface rebaseline → restart both timers. If the
-next free applied number is taken at deploy time, the operator renames the file
-before committing (the applied sequence stays gap-free and monotonic).
+lane branch → **manual** audited-surface rebaseline → **provision + verify the
+shared lock directory** (`mkdir -p /data/services/deploy/locks`, writable by
+`claude`; see the deploylock note above) → restart both timers. If the next free
+applied number is taken at deploy time, the operator renames the file before
+committing (the applied sequence stays gap-free and monotonic).
 
 **Rebaseline is manual for a bootstrap.** A controlled bootstrap is an
 *out-of-band* change (not applied by felix-deployer through the manifest tick),

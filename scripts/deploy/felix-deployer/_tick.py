@@ -136,13 +136,16 @@ def _advance_git_runner(repo_root: pathlib.Path):
 def _health_notifier(actor: str):
     """Return a health notifier that sends via the felix-deployer ntfy path.
 
-    ``health.record`` calls the notifier with ``(title, body)``; we route to
+    ``health.record`` calls the notifier with ``(title, body)`` and expects a
+    delivery ``bool`` back; we route to
     :func:`notify.dispatch_health_notification` (best-effort, never raises into
-    the tick) resolving the topic from ``FELIX_DEPLOYER_NTFY_TOPIC``.
+    the tick) resolving the topic from ``FELIX_DEPLOYER_NTFY_TOPIC`` and return
+    its delivery bool so ``health.record`` only stamps ``last_alert_ts`` on an
+    actually-delivered alert.
     """
 
-    def _notifier(title: str, body: str) -> None:
-        _notify.dispatch_health_notification(
+    def _notifier(title: str, body: str) -> bool:
+        return _notify.dispatch_health_notification(
             actor, title, body, topic_env=HEALTH_TOPIC_ENV
         )
 

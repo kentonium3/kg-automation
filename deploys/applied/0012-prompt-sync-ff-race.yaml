@@ -33,6 +33,7 @@ verification:
     - test -f scripts/deploy/lib/deploylock.py
     - test -f scripts/deploy/lib/health.py
     - git -C /home/claude/kg-automation rev-list --count HEAD..origin/main
+    - test -w /data/services/deploy/locks
 created_at: '2026-07-09T00:00:00Z'
 created_by: operator-bootstrap
 apply_mode: bootstrap
@@ -67,7 +68,17 @@ notes: 'Controlled operator bootstrap of the prompt-sync FETCH_HEAD race fix
   Because this is an out-of-band manual bootstrap (not the felix-deployer happy
   path), the rebaseline is a manual reset, not an auto-rebaseline.
 
-  7. Restart both timers: systemctl --user start agent-prompt-sync.timer
+  7. Provision the shared checkout-lock directory BEFORE restarting the timers.
+  Both actors wrap their critical section in deploylock(), whose default lock
+  file is /data/services/deploy/locks/office2-checkout.lock; deploylock() mkdir''s
+  the parent at runtime, so if /data/services/deploy is not creatable by the
+  claude user the very first tick raises PermissionError and crashes BOTH actors.
+  Pre-create and verify the directory as the claude user (it must be writable by
+  claude): ssh office2-claude ''mkdir -p /data/services/deploy/locks && test -w
+  /data/services/deploy/locks && echo lock-dir-ok''. Do not proceed to step 8
+  until this prints lock-dir-ok.
+
+  8. Restart both timers: systemctl --user start agent-prompt-sync.timer
   felix-deployer.timer.
 
   Audited surface is specifically the new scripts/deploy/lib/** primitives (the

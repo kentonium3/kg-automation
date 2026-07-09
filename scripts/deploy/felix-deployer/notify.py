@@ -450,31 +450,29 @@ def dispatch_health_notification(
     body: str,
     *,
     topic_env: str,
-) -> LibResult:
+) -> bool:
     """Send a generic ntfy health alert for *actor* (best-effort).
 
     Resolves the topic from the env var named by *topic_env*, falling back to
     ``FELIX_DEPLOYER_NTFY_TOPIC`` if that is unset. The *body* is run through the
-    shared redact-then-truncate path before POST. This function is best-effort:
-    it returns a ``LibResult`` describing the outcome and NEVER raises into the
-    caller's tick — every failure mode (missing topic, curl missing, spawn
-    failure, network/HTTP error) is captured and returned as ``ok=False``.
+    shared redact-then-truncate path before POST.
+
+    Returns ``True`` iff the alert was **actually delivered** — i.e. a topic
+    resolved AND the curl POST succeeded (rc == 0). Returns ``False`` on every
+    non-delivery mode (no topic configured, curl missing, spawn failure,
+    network/HTTP error). This delivery bool is the contract
+    :func:`scripts.deploy.lib.health.record` relies on to decide whether to stamp
+    ``last_alert_ts``: a False return must NOT burn the alert. This function is
+    best-effort and NEVER raises into the caller's tick.
     """
     topic = _resolve_health_topic(topic_env)
     if not topic:
-        return LibResult(
-            ok=False,
-            summary=(
-                f"health ntfy: skipped ({topic_env} and "
-                f"{NTFY_TOPIC_ENV} not configured)"
-            ),
-            details={"error_code": "NTFY_MISSING_TOPIC", "actor": actor},
-        )
+        # No topic configured → nothing delivered.
+        return False
 
     safe_body = _redact_and_truncate(body or "")
     if not safe_body:
         safe_body = "(no detail)"
-    topic_redacted = _topic_redact(topic)
 
     try:
         result = subprocess.run(  # noqa: S603 - argv list, no shell
@@ -496,51 +494,12 @@ def dispatch_health_notification(
             text=True,
             check=False,
         )
-    except FileNotFoundError as exc:
-        return LibResult(
-            ok=False,
-            summary=f"health ntfy: curl not found on PATH ({exc})",
-            details={
-                "error_code": "NTFY_CURL_MISSING",
-                "actor": actor,
-                "error": str(exc),
-                "topic_redacted": topic_redacted,
-            },
-        )
-    except OSError as exc:
-        return LibResult(
-            ok=False,
-            summary=f"health ntfy: failed to spawn curl ({exc})",
-            details={
-                "error_code": "NTFY_SPAWN_FAILED",
-                "actor": actor,
-                "error": str(exc),
-                "topic_redacted": topic_redacted,
-            },
-        )
+    except (FileNotFoundError, OSError):
+        # curl missing / spawn failure → not delivered. Best-effort: swallow.
+        return False
 
-    if result.returncode == 0:
-        return LibResult(
-            ok=True,
-            summary=f"health ntfy sent ({actor})",
-            details={
-                "actor": actor,
-                "title": title,
-                "topic_redacted": topic_redacted,
-            },
-        )
-
-    return LibResult(
-        ok=False,
-        summary=f"health ntfy: curl failed (rc={result.returncode})",
-        details={
-            "error_code": _classify_error_code(result.returncode),
-            "actor": actor,
-            "returncode": result.returncode,
-            "stderr_excerpt": (result.stderr or "")[:200],
-            "topic_redacted": topic_redacted,
-        },
-    )
+    # Delivered iff the POST succeeded.
+    return result.returncode == 0
 
 
 __all__ = [

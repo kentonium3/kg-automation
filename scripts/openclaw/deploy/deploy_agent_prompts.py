@@ -111,22 +111,29 @@ def _load_notify():
             "felix_deployer_notify_for_prompt_sync",
             _FELIX_DEPLOYER_DIR / "notify.py",
         )
+        if spec is None or spec.loader is None:
+            raise ImportError(
+                f"could not load felix-deployer notify module from "
+                f"{_FELIX_DEPLOYER_DIR / 'notify.py'}"
+            )
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
         _notify_module = module
     return _notify_module
 
 
-def _health_notifier(title: str, body: str) -> None:
+def _health_notifier(title: str, body: str) -> bool:
     """Notifier seam passed to :func:`scripts.deploy.lib.health.record`.
 
     Dispatches a best-effort ntfy health alert for this actor via the generic
-    ``dispatch_health_notification`` in the felix-deployer notify module. The
-    notifier never raises into the tick — the underlying dispatcher returns a
-    LibResult and swallows every failure mode.
+    ``dispatch_health_notification`` in the felix-deployer notify module and
+    returns its delivery ``bool`` (True iff the alert was actually delivered) so
+    ``health.record`` only stamps ``last_alert_ts`` on a delivered alert. The
+    notifier never raises into the tick — the underlying dispatcher swallows
+    every failure mode and returns False.
     """
     notify = _load_notify()
-    notify.dispatch_health_notification(
+    return notify.dispatch_health_notification(
         HEALTH_ACTOR,
         title,
         body,
@@ -660,14 +667,27 @@ def _run_locked_tick(
 
     # Update the health watermark from the advance outcome (fires at most one
     # ntfy alert per confirmed-failure streak; lock_unavailable never reaches
-    # here since the lock is held). Best-effort — the notifier never raises.
+    # here since the lock is held). Best-effort — the notifier never raises, and
+    # the whole call is failure-contained: a health-store or notify-import error
+    # must never crash the prompt-sync tick (mirrors felix-deployer _tick.py).
     if advance is not None:
-        _health.record(
-            HEALTH_ACTOR,
-            advance,
-            state_path=health_state_path,
-            notifier=_health_notifier,
-        )
+        try:
+            _health.record(
+                HEALTH_ACTOR,
+                advance,
+                state_path=health_state_path,
+                notifier=_health_notifier,
+            )
+        except Exception as exc:  # noqa: BLE001 - health is escalation, never fatal
+            audit_append(
+                audit_path,
+                audit_record(
+                    kind="health_record_error",
+                    tick_id=tick_id,
+                    error=str(exc)[:200],
+                    error_class=type(exc).__name__,
+                ),
+            )
 
     if not pull_result.success:
         audit_append(

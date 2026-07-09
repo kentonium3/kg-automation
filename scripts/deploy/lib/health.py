@@ -16,6 +16,13 @@ Key correctness rules (research D3, data-model "Health watermark"):
 * The alert throttle is anchored on ``failure_streak_started_ts`` so exactly one
   alert fires per streak; ``last_alert_ts`` is cleared on success so the next
   streak can alert again.
+* ``last_alert_ts`` is stamped (and the crossing reported as ``alerted=True``)
+  **only when the notifier actually DELIVERED the alert** — the notifier returns
+  a ``bool`` (True iff delivered). A misconfigured/undeliverable notifier (e.g.
+  no ntfy topic → dispatch returns False) or a notifier that raises does NOT burn
+  the stamp: the crossing is re-attempted on the next failing tick so the alert
+  is never silently lost. The notifier is called best-effort inside a
+  ``try/except`` so it can never crash the tick.
 
 The state file is written atomically (temp file in the same directory +
 ``os.replace``) so a crash mid-write never leaves a torn watermark. A clock is
@@ -44,8 +51,11 @@ DEFAULT_THRESHOLD = 3
 # Injected-clock seam: returns an ISO-8601 UTC "Z" timestamp string.
 Clock = Callable[[], str]
 
-# Notifier seam: called with (title, body) exactly once per streak crossing.
-Notifier = Callable[[str, str], None]
+# Notifier seam: called with (title, body) at most once per streak crossing.
+# Returns True iff the alert was ACTUALLY DELIVERED (e.g. ntfy POST succeeded).
+# A False return (or a raised exception) means "not delivered" — the crossing
+# is NOT stamped so it re-attempts on the next failing tick.
+Notifier = Callable[[str, str], bool]
 
 
 def utc_now_iso() -> str:
@@ -158,14 +168,20 @@ def record(
     * ``result.reason in {diverged, fetch_failed, merge_failed}`` → increment
       ``consecutive_failures``; set ``failure_streak_started_ts`` if this begins
       a new streak.
-    * Alert (via *notifier*) exactly once per streak when
+    * Alert (via *notifier*) at most once per streak when
       ``consecutive_failures >= threshold`` AND (``last_alert_ts`` is None OR
-      ``last_alert_ts < failure_streak_started_ts``); stamp ``last_alert_ts``.
+      ``last_alert_ts < failure_streak_started_ts``). The notifier returns a
+      ``bool`` reporting DELIVERY. ``last_alert_ts`` is stamped and the return
+      value is ``alerted=True`` **only when delivery succeeded** — an
+      undeliverable notifier (returns False), a raising notifier, or
+      ``notifier is None`` all leave the crossing UNSTAMPED so it re-attempts on
+      the next failing tick. The alert is never silently burned.
 
     *clock* is injectable (default :func:`utc_now_iso`) so tests control every
-    timestamp. *notifier* is injectable (called with ``(title, body)``); when
-    None, no alert is dispatched even at threshold (but the return value still
-    reflects whether the crossing condition was met and stamped).
+    timestamp. *notifier* is injectable (called with ``(title, body)`` and
+    returning a delivery ``bool``); it is invoked best-effort inside a
+    ``try/except`` so a misconfigured/raising notifier can never crash the tick.
+    Returns True iff an alert was actually delivered this call.
     """
     state = read_watermark(actor, state_path)
     now = clock()
@@ -194,11 +210,30 @@ def record(
             or state.last_alert_ts < state.failure_streak_started_ts
         )
         if crossed and not_yet_alerted:
-            state.last_alert_ts = now
-            alerted = True
+            # Best-effort delivery: only stamp last_alert_ts (and report
+            # alerted=True) when the notifier ACTUALLY delivered the alert. A
+            # None notifier, a False return (e.g. no ntfy topic configured), or
+            # a raising notifier all count as "not delivered" — leave the
+            # crossing unstamped so the next failing tick re-attempts. This is
+            # what makes the anti-silent-stall guarantee real: a burned stamp on
+            # an undelivered alert would suppress every future alert for the
+            # streak.
+            delivered = False
             if notifier is not None:
                 title, body = _render_alert(state, result, threshold)
-                notifier(title, body)
+                try:
+                    delivered = bool(notifier(title, body))
+                except Exception as exc:  # noqa: BLE001 - never crash the tick
+                    # A misconfigured/raising notifier must not crash the tick
+                    # and must be treated as "not delivered".
+                    delivered = False
+                    print(
+                        f"health_notifier_error: {type(exc).__name__}: "
+                        f"{str(exc)[:200]}"
+                    )
+            if delivered:
+                state.last_alert_ts = now
+                alerted = True
     # Any other (unexpected) non-ok reason: treat conservatively as a no-op on
     # the streak. This should not happen given the AdvanceResult contract, but
     # we never want an unknown reason to spam or crash a tick.
