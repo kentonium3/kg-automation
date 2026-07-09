@@ -94,3 +94,4 @@ must pass it). Verify actual field names before editing (architecture-docs-first
 ## Activity Log
 
 - 2026-07-09T23:25:46Z – claude:opus:curator-carla:implementer – shell_pid=45865 – Assigned agent via action command
+- 2026-07-09T23:38:14Z – claude:opus:curator-carla:implementer – shell_pid=45865 – Ready for review — arch data (credential-manifest/data-flows/service-inventory JSON) + narrative views + INDEX + roadmap + new calendar-helper-ops runbook updated; validate_architecture_data.py --strict, validate_docs.py, validate_privacy_boundary.py all pass. NOTE: also touched docs/DEVELOPER_PORTAL.md (single auto-generated runbook-filter line, forced by Docs-CI + build_runbook_filter.py) which is outside WP05 owned_files; and two out-of-scope .view.md files (service-dependencies.view.md, data-flows.view.md) have stale calendar->gog edges — flagged for follow-up.

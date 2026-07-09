@@ -115,3 +115,4 @@ block — google uses other transports). Cover:
 - 2026-07-09T23:25:09Z – claude:opus:python-pedro:implementer – shell_pid=45344 – Assigned agent via action command
 - 2026-07-09T23:33:38Z – claude:opus:python-pedro:implementer – shell_pid=45344 – Ready for review — calendar_auth module + 28 tests, 100% cov, ruff clean, no interactive-consent path; foundation for WP02 so zero live callers is expected.
 - 2026-07-09T23:33:54Z – claude:opus:reviewer-renata:reviewer – shell_pid=48843 – Started review via action command
+- 2026-07-09T23:38:41Z – user – shell_pid=48843 – Review passed (reviewer-renata): all AC met; foundation for WP02.
