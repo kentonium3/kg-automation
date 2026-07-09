@@ -82,8 +82,8 @@ audited surface. **No operator action is needed on the happy path.**
      (`rm baselines/* && sg docker -c audit.sh`), verifies that the
      baseline count equals `expected_baseline_count` from the registry
      and that the audit reports clear, records the `completed` outcome on
-     the tick log (`rebaseline_reconcile` / `rebaseline_stamped`), and clears
-     the token.
+     the tick log (`rebaseline_reconcile` / `rebaseline_stamped`) and on the
+     applied record's `rebaseline:` field (#688), and clears the token.
 
    - **Audit clean (no drift)** — the committed change did not alter
      the hashed content of any monitored surface (e.g. a comment-only
@@ -102,11 +102,15 @@ audited surface. **No operator action is needed on the happy path.**
 
 ### Observability outcomes
 
-The outcome is recorded on the felix-deployer tick log
-(`/data/services/felix-deployer/logs/<date>.jsonl`), via the
-`rebaseline_reconcile` and (when ≥1 manifest was applied this tick)
-`rebaseline_stamped` events correlated to the applied manifest name. It is NOT
-written as a field on the `deploys/applied/` YAML entry:
+The outcome is recorded in two places (#688): the real-time felix-deployer tick
+log (`/data/services/felix-deployer/logs/<date>.jsonl`, `rebaseline_reconcile` /
+`rebaseline_stamped` events correlated to the applied manifest name) AND, as the
+durable per-deploy annotation, a `rebaseline:` field stamped onto the
+`deploys/applied/<NNNN>-<name>.yaml` entry after reconcile (`outcome` + `at_utc`
++ details), in a follow-up `deploy(rebaseline): …` commit. Note: the field holds
+the outcome as of the applying tick — a deploy whose drift lands in the grace
+window is stamped `pending_clean` and is not re-stamped by the later tick that
+resolves it (same-tick MVP; the tick log carries the terminal outcome).
 
 | Outcome | Meaning |
 |---|---|
@@ -246,11 +250,11 @@ To exercise the failure path without a real failure, the operator can:
 3. Observe the tick log for `failed` outcome.
 4. Confirm exactly one ntfy alert with topic `rebaseline_failed` was
    emitted.
-5. Confirm the tick log carries the `failed` outcome (the
+5. Confirm the `failed` outcome is recorded both on the tick log (the
    `rebaseline_reconcile` / `rebaseline_stamped` events in
    `/data/services/felix-deployer/logs/<date>.jsonl`, correlated to the applied
-   manifest name — the outcome is recorded on the tick log, not on the applied
-   YAML record).
+   manifest name) and as the `rebaseline:` field on the applied YAML record
+   (`deploys/applied/<NNNN>-<name>.yaml`, with `outcome: failed` + `error_summary`).
 6. Confirm the applied code is still in place (no rollback).
 7. Restore the correct `expected_baseline_count` and reset manually.
 

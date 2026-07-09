@@ -64,6 +64,10 @@ def write_applied(
         )
 
     augmented = dict(manifest)
+    # ``rebaseline`` is a deployer-owned field stamped post-hoc by
+    # stamp_rebaseline (#688) — never author-supplied. Strip any value carried in
+    # from the queued manifest so an operator cannot pre-seed a false outcome.
+    augmented.pop("rebaseline", None)
     augmented["apply_mode"] = apply_mode
     augmented["applied_at"] = applied_at or _utc_now_iso()
 
@@ -128,6 +132,68 @@ def write_applied(
             "apply_mode": apply_mode,
             "applied_at": augmented["applied_at"],
         },
+    )
+
+
+def stamp_rebaseline(
+    applied_path: str | os.PathLike[str],
+    annotation: dict[str, Any],
+    schema_path: str | os.PathLike[str] | None = None,
+) -> LibResult:
+    """Write the ``rebaseline`` annotation onto an existing applied record (#688).
+
+    Reads the applied YAML at *applied_path*, sets its ``rebaseline`` field to
+    *annotation*, re-validates against the v1 schema (so a malformed annotation
+    is refused, never silently written), and writes the file back.
+
+    Idempotent: re-stamping overwrites the field. Never raises — all failures
+    are returned as a non-ok ``LibResult`` so the felix-deployer tick can log
+    and continue (NFR-001).
+    """
+    path = Path(applied_path)
+    try:
+        record = yaml.safe_load(path.read_text(encoding="utf-8"))
+    except (OSError, yaml.YAMLError) as exc:
+        return LibResult(
+            ok=False,
+            summary=f"failed to read applied record {path}: {exc}",
+            details={"error_code": "READ_FAILED", "error": str(exc)},
+        )
+    if not isinstance(record, dict):
+        return LibResult(
+            ok=False,
+            summary=f"applied record {path} is not a mapping",
+            details={"error_code": "INVALID_RECORD"},
+        )
+
+    augmented = dict(record)
+    augmented["rebaseline"] = annotation
+
+    validation = validate_manifest(augmented, schema_path=schema_path)
+    if not validation.ok:
+        return LibResult(
+            ok=False,
+            summary=f"refusing to stamp invalid rebaseline annotation: {validation.summary}",
+            details={
+                "error_code": validation.details.get("error_code", "SCHEMA_VIOLATION"),
+                "errors": validation.details.get("errors"),
+            },
+        )
+
+    try:
+        serialised = yaml.safe_dump(augmented, sort_keys=False, default_flow_style=False)
+        path.write_text(serialised, encoding="utf-8")
+    except (OSError, yaml.YAMLError) as exc:
+        return LibResult(
+            ok=False,
+            summary=f"failed to write stamped applied record {path}: {exc}",
+            details={"error_code": "WRITE_FAILED", "error": str(exc)},
+        )
+
+    return LibResult(
+        ok=True,
+        summary=f"stamped rebaseline outcome {annotation.get('outcome')!r} onto {path.name}",
+        details={"path": str(path), "outcome": annotation.get("outcome")},
     )
 
 
@@ -214,4 +280,4 @@ if __name__ == "__main__":  # pragma: no cover - CLI entrypoint
     sys.exit(_main())
 
 
-__all__ = ["write_applied"]
+__all__ = ["write_applied", "stamp_rebaseline"]

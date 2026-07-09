@@ -93,6 +93,45 @@
       "type": "string",
       "format": "date-time",
       "description": "When the applier (or bootstrap wrapper) recorded success. Only valid in deploys/applied/."
+    },
+    "rebaseline": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["outcome", "at_utc"],
+      "description": "Security-rebaseline disposition felix-deployer stamped onto this applied record after the tick's deferred-confirm reconcile (#688). The felix-deployer tick log remains the real-time stream; this is the durable per-deploy annotation. Only valid in deploys/applied/.",
+      "properties": {
+        "outcome": {
+          "type": "string",
+          "enum": [
+            "completed",
+            "cleared_clean",
+            "pending_clean",
+            "not_required",
+            "unexpected_drift",
+            "inconclusive",
+            "failed"
+          ],
+          "description": "The reconcile outcome for the tick that applied this manifest."
+        },
+        "at_utc": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When the outcome was stamped (UTC). Makes staleness of a non-terminal outcome visible."
+        },
+        "baseline_count": {
+          "type": "integer",
+          "description": "Regenerated baseline file count (outcome=completed)."
+        },
+        "error_summary": {
+          "type": "string",
+          "description": "Failure detail (outcome=failed)."
+        },
+        "unexpected": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Baselines that drifted beyond the expected set (outcome=unexpected_drift)."
+        }
+      }
     }
   },
   "oneOf": [
@@ -114,6 +153,15 @@
       "comment": "Applied manifests MUST include apply_mode and applied_at; queued manifests MUST NOT.",
       "if": {
         "required": ["applied_at"]
+      },
+      "then": {
+        "required": ["apply_mode", "applied_at"]
+      }
+    },
+    {
+      "comment": "The rebaseline outcome is applied-record-only (deployer-stamped); it cannot appear on a queued manifest.",
+      "if": {
+        "required": ["rebaseline"]
       },
       "then": {
         "required": ["apply_mode", "applied_at"]
