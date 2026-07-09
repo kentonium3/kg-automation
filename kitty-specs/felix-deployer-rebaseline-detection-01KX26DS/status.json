@@ -1,7 +1,7 @@
 {
-  "event_count": 13,
-  "last_event_id": "01KX2A4H272WMVXKMGY99VYMSD",
-  "materialized_at": "2026-07-09T02:08:32.839726+00:00",
+  "event_count": 15,
+  "last_event_id": "01KX2A7ASAYF5RXGEE1G1Y8GWS",
+  "materialized_at": "2026-07-09T02:10:04.713946+00:00",
   "mission_number": "",
   "mission_slug": "felix-deployer-rebaseline-detection-01KX26DS",
   "mission_type": "software-dev",
@@ -12,9 +12,9 @@
     "claimed": 0,
     "done": 0,
     "for_review": 0,
-    "in_progress": 0,
+    "in_progress": 1,
     "in_review": 0,
-    "planned": 1
+    "planned": 0
   },
   "work_packages": {
     "WP01": {
@@ -32,11 +32,11 @@
       "last_transition_at": "2026-07-09T02:06:40.196588+00:00"
     },
     "WP03": {
-      "actor": "finalize-tasks",
+      "actor": "claude:opus:curator-carla:implementer",
       "force_count": 0,
-      "lane": "planned",
-      "last_event_id": "01KX28VH3CDTCQXWPF27HMRXHQ",
-      "last_transition_at": "2026-07-09T01:46:09.388251+00:00"
+      "lane": "in_progress",
+      "last_event_id": "01KX2A7ASAYF5RXGEE1G1Y8GWS",
+      "last_transition_at": "2026-07-09T02:10:04.713946+00:00"
     }
   }
 }
