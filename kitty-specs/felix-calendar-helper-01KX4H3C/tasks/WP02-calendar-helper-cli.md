@@ -23,7 +23,7 @@ subtasks:
 - T006
 - T007
 - T008
-agent: claude
+agent: "claude:opus:python-pedro:implementer"
 history: []
 agent_profile: python-pedro
 authoritative_surface: scripts/google/calendar_helper.py
@@ -38,6 +38,7 @@ owned_files:
 - tests/google/test_calendar_helper.py
 role: implementer
 tags: []
+shell_pid: "51610"
 ---
 
 # WP02 — Calendar helper CLI (CRUD + self-check)
@@ -130,3 +131,7 @@ Mock `googleapiclient.discovery.build` to return a fake `service` whose
 - Verify no live network in tests (fake service; `.execute()` guarded).
 - Confirm timezone handling: RFC3339 offset + optional `--start-timezone` for recurrence correctness.
 - Confirm attendee suppression default and the inbox-path attendee block.
+
+## Activity Log
+
+- 2026-07-09T23:41:28Z – claude:opus:python-pedro:implementer – shell_pid=51610 – Assigned agent via action command
