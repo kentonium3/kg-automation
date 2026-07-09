@@ -4,7 +4,7 @@ artifact_type: spec-kitty.analysis-report
 command: /spec-kitty.analyze
 mission_slug: felix-calendar-helper-01KX4H3C
 mission_id: 01KX4H3C4CZ2W0DRSHZHSNAY53
-generated_at: '2026-07-09T23:24:11.598528+00:00'
+generated_at: '2026-07-09T23:41:06.513498+00:00'
 analyzer_agent: unknown
 input_artifacts:
   spec.md:
@@ -15,16 +15,16 @@ input_artifacts:
     sha256: 62e8fc71bbbb9ef27173a209b89b72d7516c86fc6cb915e9eafe3048ba9a084e
   tasks.md:
     path: /Users/kentgale/repos/kg-automation/kitty-specs/felix-calendar-helper-01KX4H3C/tasks.md
-    sha256: 5688131934ecc8f84b3583ae8d2feccf9529447d5eb7f834ac40444163dd41fd
+    sha256: 40df3439178a9c2eb2cde570a6f04f053730160954ed376f5d308111d7eb728e
   charter:
     path: /Users/kentgale/repos/kg-automation/.kittify/charter/charter.md
     sha256: 4891223a0c3fc0dc96917475523586e8f3147a3ccaa113ecb7ff19da646e82e2
 verdict: ready
 issue_counts:
+  critical: 0
+  high: 0
   medium: 0
   low: 3
-  high: 0
-  critical: 0
   info: 0
 findings:
 - id: C1
