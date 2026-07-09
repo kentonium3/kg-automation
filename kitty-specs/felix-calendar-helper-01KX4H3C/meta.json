@@ -12,5 +12,7 @@
   "purpose_tldr": "Give Felix direct, deterministic Google Calendar access as a multi-account helper, replacing the gog skill and fixing the broken inbox-to-calendar path.",
   "slug": "felix-calendar-helper-01KX4H3C",
   "target_branch": "feat/felix-calendar-helper",
-  "topology": "coord"
+  "topology": "coord",
+  "vcs": "git",
+  "vcs_locked_at": "2026-07-09T23:25:03.420693+00:00"
 }

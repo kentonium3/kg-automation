@@ -13,7 +13,7 @@ subtasks:
 - T018
 - T019
 - T020
-agent: claude
+agent: "claude:opus:curator-carla:implementer"
 history: []
 agent_profile: curator-carla
 authoritative_surface: docs/design/architecture/data/
@@ -34,6 +34,7 @@ owned_files:
 - docs/runbooks/calendar-helper-ops.md
 role: implementer
 tags: []
+shell_pid: "45865"
 ---
 
 # WP05 — Architecture documentation sync
@@ -89,3 +90,7 @@ must pass it). Verify actual field names before editing (architecture-docs-first
 - The architecture-data validator is blocking — verify schema/enum fields before committing.
 - Do not remove the legacy gog credential/flow entirely (gog retains other surfaces; #572 residual open).
 - Keep machine-readable JSON authoritative; markdown is the narrative view.
+
+## Activity Log
+
+- 2026-07-09T23:25:46Z – claude:opus:curator-carla:implementer – shell_pid=45865 – Assigned agent via action command

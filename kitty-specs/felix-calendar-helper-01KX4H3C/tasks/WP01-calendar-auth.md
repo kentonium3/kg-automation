@@ -15,7 +15,7 @@ subtasks:
 - T001
 - T002
 - T003
-agent: claude
+agent: "claude:opus:python-pedro:implementer"
 history: []
 agent_profile: python-pedro
 authoritative_surface: scripts/google/calendar_auth.py
@@ -32,6 +32,7 @@ owned_files:
 - tests/google/__init__.py
 role: implementer
 tags: []
+shell_pid: "45344"
 ---
 
 # WP01 — Calendar auth module (per-account, fail-safe)
@@ -108,3 +109,7 @@ block — google uses other transports). Cover:
 - Verify the fail-safe: there is **no** code path that opens a browser / local server on office2.
 - Confirm charset guard blocks `../` and absolute-path account names.
 - Confirm scope constant matches `calendar.events` (data-model D-note) — the helper's self-check must work with it.
+
+## Activity Log
+
+- 2026-07-09T23:25:09Z – claude:opus:python-pedro:implementer – shell_pid=45344 – Assigned agent via action command

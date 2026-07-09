@@ -10,9 +10,9 @@ Tests are in scope (NFR-003 requires them). Work packages are sized 3–5 subtas
 
 | ID | Description | WP | Parallel |
 |---|---|---|---|
-| T001 | Per-account credential path resolution + charset guard + perms | WP01 | |
-| T002 | Load / refresh / persist creds; typed AuthError fail-safe (no headless consent) | WP01 | |
-| T003 | Auth tests (valid / expired-refreshable / invalid_grant / account paths) | WP01 | |
+| T001 | Per-account credential path resolution + charset guard + perms | WP01 | | [D] |
+| T002 | Load / refresh / persist creds; typed AuthError fail-safe (no headless consent) | WP01 | | [D] |
+| T003 | Auth tests (valid / expired-refreshable / invalid_grant / account paths) | WP01 | | [D] |
 | T004 | Helper CLI shell: subcommands, common flags, exit-code map, SUMMARY/JSON ordering, service build | WP02 | |
 | T005 | `create`: payload-file + explicit; sendUpdates=none; `--allow-attendees`; idempotency key + dedupe | WP02 | |
 | T006 | `list` / `update` / `delete`: window schema, patch + `--clear`, recurring-scope error, not_found | WP02 | |
