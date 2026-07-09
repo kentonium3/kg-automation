@@ -11,10 +11,10 @@ Tests ARE requested (NFR-001 concurrency proof is central). Design detail lives 
 
 | ID | Description | WP | Parallel |
 |----|-------------|----|----------|
-| T001 | `AdvanceResult` dataclass | WP01 | |
-| T002 | `advance_checkout()` — fetch + ref-merge + divergence + `assume_locked` | WP01 | |
-| T003 | gitsync unit tests (ff / no-op / ahead-only / diverged / never-FETCH_HEAD) | WP01 | [P] |
-| T004 | gitsync primitive concurrency test | WP01 | [P] |
+| T001 | `AdvanceResult` dataclass | WP01 | | [D] |
+| T002 | `advance_checkout()` — fetch + ref-merge + divergence + `assume_locked` | WP01 | | [D] |
+| T003 | gitsync unit tests (ff / no-op / ahead-only / diverged / never-FETCH_HEAD) | WP01 | [D] |
+| T004 | gitsync primitive concurrency test | WP01 | [D] |
 | T005 | `deploylock` context manager (flock, bounded retry, path resolution) | WP02 | | [D] |
 | T006 | deploylock tests (exclusion, timeout→LockUnavailable, release) | WP02 | [D] |
 | T007 | health watermark schema + atomic read/write | WP03 | |

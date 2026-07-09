@@ -27,7 +27,7 @@ owned_files:
 - tests/deploy/test_deploylock.py
 role: implementer
 tags: []
-shell_pid: "46630"
+shell_pid: "55252"
 ---
 
 # WP02 — deploylock primitive
@@ -86,3 +86,6 @@ Execution worktrees are allocated per computed lane from `lanes.json`.
 ## Activity Log
 
 - 2026-07-09T16:47:38Z – claude – shell_pid=46630 – Assigned agent via action command
+- 2026-07-09T16:52:51Z – claude – shell_pid=46630 – deploylock + tests green (13 passed; full deploy suite 384 passed)
+- 2026-07-09T16:53:11Z – claude – shell_pid=55252 – Started review via action command
+- 2026-07-09T16:56:09Z – user – shell_pid=55252 – Review passed: deploylock matches contract; 13 tests + full deploy suite (384) green
