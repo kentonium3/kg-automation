@@ -23,7 +23,7 @@ subtasks:
 - T006
 - T007
 - T008
-agent: "claude:opus:python-pedro:implementer"
+agent: "claude:opus:reviewer-renata:reviewer"
 history: []
 agent_profile: python-pedro
 authoritative_surface: scripts/google/calendar_helper.py
@@ -38,7 +38,7 @@ owned_files:
 - tests/google/test_calendar_helper.py
 role: implementer
 tags: []
-shell_pid: "51610"
+shell_pid: "55355"
 ---
 
 # WP02 — Calendar helper CLI (CRUD + self-check)
@@ -136,3 +136,4 @@ Mock `googleapiclient.discovery.build` to return a fake `service` whose
 
 - 2026-07-09T23:41:28Z – claude:opus:python-pedro:implementer – shell_pid=51610 – Assigned agent via action command
 - 2026-07-09T23:49:22Z – claude:opus:python-pedro:implementer – shell_pid=51610 – Ready for review — helper CLI + tests green (no network), exit-code contract + idempotency + fail-safe covered. Lint exit 0.
+- 2026-07-09T23:50:16Z – claude:opus:reviewer-renata:reviewer – shell_pid=55355 – Started review via action command
