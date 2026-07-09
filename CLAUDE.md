@@ -207,11 +207,25 @@ Sanity check after spec-kitty upgrades: `wc -l ~/.claude/commands/spec-kitty.<st
 **Only stop for:**
 1. Mandatory stops marked in the command file (e.g., "MANDATORY STOP POINT")
 2. Required input from Kent (discovery questions, scope decisions, approvals)
-3. Workflow errors or unexpected state that can't be resolved autonomously
+3. **ANY unexpected spec-kitty (or sibling-tooling) behavior — whether or not
+   you could work around it.** Non-exhaustive triggers: missing or inconsistent
+   state/status; **authority confusion** (which checkout/branch/actor owns a
+   step — the coordination split-authority class); **source or location errors**
+   (wrong path/file/checkout); **ambiguous direction that forces retries or
+   redos** to get it right; **permissions issues**; **unexpected git conditions**
+   (branch, worktree, index, stale state — e.g. a merge that lands but leaves the
+   checkout needing manual git surgery); a command that fails/blocks/produces
+   unexpected output; a gate that won't pass. STOP, capture the exact error +
+   command sequence, and surface it. **Silently working around a resolvable
+   anomaly is prohibited** — it destroys the evidence that is the only way
+   spec-kitty gets better. Happy-path decisions *within* the prescribed path are
+   fine (authoring spec/plan/tasks/matrix artifacts, committing workflow-generated
+   status files) — those are NOT "unexpected."
 
 Do not stop to ask "should I proceed to the next step?" — the instruction to
 drive the workflow IS the approval for all subsequent steps until a genuine
-stop condition is hit.
+stop condition is hit. This does NOT narrow rule 3: auto-drive removes per-step
+approval, never the duty to stop and surface any unexpected workflow behavior.
 
 **Codex review checkpoints (mandatory):** the arc includes two independent Codex
 review-and-fix passes — a **post-plan** review (after `/spec-kitty.plan`, before
