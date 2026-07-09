@@ -19,7 +19,7 @@ subtasks:
 - T012
 - T013
 - T014
-agent: claude
+agent: "claude"
 history: []
 agent_profile: python-pedro
 authoritative_surface: scripts/deploy/felix-deployer/
@@ -34,6 +34,7 @@ owned_files:
 - tests/deploy/test_tick_ffrace.py
 role: implementer
 tags: []
+shell_pid: "71988"
 ---
 
 # WP04 — felix-deployer integration
@@ -97,3 +98,7 @@ mutating, and diverged/fetch/merge failures are logged with ref state + counted 
 ## Branch Strategy
 Planning on `fix/prompt-sync-ff-race`; final merge target `fix/prompt-sync-ff-race`.
 Execution worktrees are allocated per computed lane from `lanes.json`.
+
+## Activity Log
+
+- 2026-07-09T17:14:43Z – claude – shell_pid=71988 – Assigned agent via action command

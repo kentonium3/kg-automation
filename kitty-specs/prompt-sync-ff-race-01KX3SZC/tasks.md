@@ -25,10 +25,10 @@ Tests ARE requested (NFR-001 concurrency proof is central). Design detail lives 
 | T012 | felix-deployer: bare pull → `advance_checkout(assume_locked=True)`; preserve pre/post head | WP04 | |
 | T013 | felix-deployer: wire `health.record` + fail-loud ref-state logging | WP04 | |
 | T014 | felix-deployer tests (rebaseline range preserved + ff-race behaviors) | WP04 | |
-| T015 | prompt-sync: wrap fetch/merge+copy in `deploylock` | WP05 | |
-| T016 | prompt-sync: `git_pull` internals → `advance_checkout`; preserve GitPullResult + enrich audit | WP05 | |
-| T017 | prompt-sync: wire health + `dispatch_health_notification` + topic env in service unit | WP05 | |
-| T018 | prompt-sync tests (audit contract intact + advance integration) | WP05 | |
+| T015 | prompt-sync: wrap fetch/merge+copy in `deploylock` | WP05 | | [D] |
+| T016 | prompt-sync: `git_pull` internals → `advance_checkout`; preserve GitPullResult + enrich audit | WP05 | | [D] |
+| T017 | prompt-sync: wire health + `dispatch_health_notification` + topic env in service unit | WP05 | | [D] |
+| T018 | prompt-sync tests (audit contract intact + advance integration) | WP05 | | [D] |
 | T019 | actor-level concurrency integration harness (both ticks, one lock, ≥100 pairs) | WP06 | |
 | T020 | `deploys/applied/0012-prompt-sync-ff-race.yaml` bootstrap record | WP06 | [P] |
 | T021 | docs: deployment.md bootstrap + security-baseline-ops.md manual-rebaseline note | WP06 | [P] |

@@ -19,7 +19,7 @@ subtasks:
 - T016
 - T017
 - T018
-agent: claude
+agent: "claude"
 history: []
 agent_profile: python-pedro
 authoritative_surface: scripts/openclaw/deploy/
@@ -33,6 +33,7 @@ owned_files:
 - tests/openclaw/test_deploy_agent_prompts.py
 role: implementer
 tags: []
+shell_pid: "71988"
 ---
 
 # WP05 — prompt-sync integration
@@ -90,3 +91,7 @@ copy loop too, and the ntfy topic env is actually wired (not just referenced).
 ## Branch Strategy
 Planning on `fix/prompt-sync-ff-race`; final merge target `fix/prompt-sync-ff-race`.
 Execution worktrees are allocated per computed lane from `lanes.json`.
+
+## Activity Log
+
+- 2026-07-09T17:15:09Z – claude – shell_pid=71988 – Assigned agent via action command
