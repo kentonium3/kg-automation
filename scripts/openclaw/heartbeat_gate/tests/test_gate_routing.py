@@ -1,24 +1,28 @@
-"""Tests for ``heartbeat_gate.gate`` (WP-03 T021)."""
+"""Tests for ``heartbeat_gate.gate`` (#676 -- deterministic escalation rule).
+
+Covers the escalation truth table from
+``kitty-specs/deterministic-monitoring-checks-01KX1XNW/contracts/
+escalation-rule.contract.md``:
+
+- ``ESCALATE_TO_SONNET`` iff novelty markers, ``has_tasks``, or errors.
+- ``LOG_AND_SKIP`` vs ``HEARTBEAT_OK`` split on the non-escalate branch.
+- ``build_reason`` cites triggers, stays under 500 chars, and contains
+  no action/recommendation framing.
+- Totality: ``decide_deterministic`` never raises on malformed input.
+- Token fields are always zero.
+"""
 from __future__ import annotations
 
-import json
-from pathlib import Path
+from dataclasses import dataclass, field
+from typing import Any
 
 import pytest
 
-from scripts.openclaw.heartbeat_gate import gate as _gate
 from scripts.openclaw.heartbeat_gate.context import GateContext
 from scripts.openclaw.heartbeat_gate.gate import (
     GateDecision,
-    GateRoutingError,
-    decide,
-    read_api_key,
-)
-from scripts.openclaw.heartbeat_gate.tests.conftest import (
-    FakeBlock,
-    FakeResponse,
-    FakeUsage,
-    make_client_factory,
+    build_reason,
+    decide_deterministic,
 )
 
 
@@ -28,25 +32,19 @@ from scripts.openclaw.heartbeat_gate.tests.conftest import (
 
 
 @pytest.fixture
-def api_key_file(tmp_path: Path) -> Path:
-    path = tmp_path / "anthropic.key"
-    path.write_text("test-key-not-real\n")
-    return path
-
-
-@pytest.fixture
-def prompt_path() -> Path:
-    return (
-        Path(__file__).resolve().parents[1] / "prompts" / "routing.prompt.md"
-    )
-
-
-@pytest.fixture
-def sample_context() -> GateContext:
+def quiet_context() -> GateContext:
+    """Fully quiet tick: nothing to escalate, log, or notice."""
     return GateContext(
         tick_id="01JTEST",
         digest_snapshot_at_utc="2026-06-01T17:15:00Z",
-        signals_evaluated=[],
+        signals_evaluated=[
+            {
+                "signal_id": "whatsapp_creds_restore",
+                "count_cycle": 0,
+                "count_rolling": 0,
+                "threshold_status": "below",
+            },
+        ],
         issues_filed=[],
         errors=[],
         heartbeat_md_state="empty",
@@ -55,457 +53,325 @@ def sample_context() -> GateContext:
 
 
 # ---------------------------------------------------------------------------
-# Happy-path outcomes
+# Escalation triggers (each condition independently)
 # ---------------------------------------------------------------------------
 
 
-def test_decide_heartbeat_ok(
-    sample_context: GateContext, prompt_path: Path, api_key_file: Path
-) -> None:
-    factory = make_client_factory(
-        response_text='{"outcome": "HEARTBEAT_OK", "reason": "all clean"}',
-        usage=FakeUsage(input_tokens=120, cache_read_input_tokens=100, output_tokens=8),
+def test_escalates_on_novelty_markers(quiet_context: GateContext) -> None:
+    ctx = GateContext(
+        **{
+            **quiet_context.__dict__,
+            "novelty_markers": ["whatsapp_creds_restore"],
+        }
     )
-    decision = decide(
-        sample_context,
-        api_key_path=api_key_file,
-        prompt_path=prompt_path,
-        client_factory=factory,
-    )
-    assert isinstance(decision, GateDecision)
-    assert decision.outcome == "HEARTBEAT_OK"
-    assert decision.reason == "all clean"
-    assert decision.input_tokens == 120
-    assert decision.cache_hit_tokens == 100
-    assert decision.output_tokens == 8
-
-
-def test_decide_log_and_skip(
-    sample_context: GateContext, prompt_path: Path, api_key_file: Path
-) -> None:
-    factory = make_client_factory(
-        response_text='{"outcome": "LOG_AND_SKIP", "reason": "single noisy event"}',
-    )
-    decision = decide(
-        sample_context,
-        api_key_path=api_key_file,
-        prompt_path=prompt_path,
-        client_factory=factory,
-    )
-    assert decision.outcome == "LOG_AND_SKIP"
-    assert decision.reason == "single noisy event"
-
-
-def test_decide_escalate_to_sonnet(
-    sample_context: GateContext, prompt_path: Path, api_key_file: Path
-) -> None:
-    factory = make_client_factory(
-        response_text=(
-            '{"outcome": "ESCALATE_TO_SONNET", '
-            '"reason": "Signal whatsapp_creds_restore tripped both thresholds."}'
-        ),
-    )
-    decision = decide(
-        sample_context,
-        api_key_path=api_key_file,
-        prompt_path=prompt_path,
-        client_factory=factory,
-    )
+    decision = decide_deterministic(ctx)
     assert decision.outcome == "ESCALATE_TO_SONNET"
-    assert "tripped" in decision.reason
+    assert "whatsapp_creds_restore" in decision.reason
 
 
-def test_decide_strips_code_fence_around_json(
-    sample_context: GateContext, prompt_path: Path, api_key_file: Path
+def test_escalates_on_heartbeat_has_tasks(quiet_context: GateContext) -> None:
+    ctx = GateContext(
+        **{**quiet_context.__dict__, "heartbeat_md_state": "has_tasks"}
+    )
+    decision = decide_deterministic(ctx)
+    assert decision.outcome == "ESCALATE_TO_SONNET"
+    assert "heartbeat contract has tasks" in decision.reason
+
+
+def test_escalates_on_errors(quiet_context: GateContext) -> None:
+    ctx = GateContext(
+        **{
+            **quiet_context.__dict__,
+            "errors": [
+                {
+                    "error_type": "source_missing",
+                    "error_message": "signal source path failed",
+                }
+            ],
+        }
+    )
+    decision = decide_deterministic(ctx)
+    assert decision.outcome == "ESCALATE_TO_SONNET"
+    assert "source_missing" in decision.reason
+
+
+def test_escalates_on_mixed_triggers_cites_all(
+    quiet_context: GateContext,
 ) -> None:
-    factory = make_client_factory(
-        response_text='```json\n{"outcome": "HEARTBEAT_OK", "reason": "ok"}\n```',
+    ctx = GateContext(
+        **{
+            **quiet_context.__dict__,
+            "novelty_markers": ["whatsapp_creds_restore"],
+            "heartbeat_md_state": "has_tasks",
+            "errors": [{"error_type": "source_missing"}],
+        }
     )
-    decision = decide(
-        sample_context,
-        api_key_path=api_key_file,
-        prompt_path=prompt_path,
-        client_factory=factory,
-    )
-    assert decision.outcome == "HEARTBEAT_OK"
+    decision = decide_deterministic(ctx)
+    assert decision.outcome == "ESCALATE_TO_SONNET"
+    assert "whatsapp_creds_restore" in decision.reason
+    assert "heartbeat contract has tasks" in decision.reason
+    assert "source_missing" in decision.reason
 
 
-def test_decide_truncates_overlong_reason(
-    sample_context: GateContext, prompt_path: Path, api_key_file: Path
-) -> None:
-    overlong = "x" * 1000
-    factory = make_client_factory(
-        response_text=json.dumps(
-            {"outcome": "LOG_AND_SKIP", "reason": overlong}
-        ),
-    )
-    decision = decide(
-        sample_context,
-        api_key_path=api_key_file,
-        prompt_path=prompt_path,
-        client_factory=factory,
-    )
-    assert len(decision.reason) == 500
+# ---------------------------------------------------------------------------
+# Non-escalation sub-label split
+# ---------------------------------------------------------------------------
 
 
-def test_decide_accepts_null_reason(
-    sample_context: GateContext, prompt_path: Path, api_key_file: Path
-) -> None:
-    # The schema marks reason as optional for HEARTBEAT_OK; the parser
-    # must coerce ``null`` to empty string rather than raising.
-    factory = make_client_factory(
-        response_text='{"outcome": "HEARTBEAT_OK", "reason": null}',
-    )
-    decision = decide(
-        sample_context,
-        api_key_path=api_key_file,
-        prompt_path=prompt_path,
-        client_factory=factory,
-    )
+def test_heartbeat_ok_when_fully_quiet(quiet_context: GateContext) -> None:
+    decision = decide_deterministic(quiet_context)
     assert decision.outcome == "HEARTBEAT_OK"
     assert decision.reason == ""
 
 
-# ---------------------------------------------------------------------------
-# Cache structure
-# ---------------------------------------------------------------------------
-
-
-def test_decide_sends_cache_control_on_system_block(
-    sample_context: GateContext, prompt_path: Path, api_key_file: Path
-) -> None:
-    factory = make_client_factory()
-    decide(
-        sample_context,
-        api_key_path=api_key_file,
-        prompt_path=prompt_path,
-        client_factory=factory,
+def test_log_and_skip_on_issues_filed(quiet_context: GateContext) -> None:
+    ctx = GateContext(
+        **{
+            **quiet_context.__dict__,
+            "issues_filed": [
+                {
+                    "signal_id": "whatsapp_creds_restore",
+                    "issue_number": 491,
+                }
+            ],
+        }
     )
-    call = factory.messages.calls[0]  # type: ignore[attr-defined]
-    system_blocks = call["system"]
-    assert isinstance(system_blocks, list) and len(system_blocks) == 1
-    block = system_blocks[0]
-    assert block["type"] == "text"
-    # The cache-control annotation MUST be present so prompt caching
-    # actually engages -- this is the load-bearing assertion for NFR-001
-    # cost projection.
-    assert block["cache_control"] == {"type": "ephemeral"}
+    decision = decide_deterministic(ctx)
+    assert decision.outcome == "LOG_AND_SKIP"
 
 
-def test_decide_user_message_excludes_static_rules(
-    sample_context: GateContext, prompt_path: Path, api_key_file: Path
-) -> None:
-    """The cached static rules MUST NOT appear in the user message body.
-
-    If they did, the dynamic per-tick content would be polluting the
-    cache key and the cache hit rate would drop to ~0%.
-    """
-    factory = make_client_factory()
-    decide(
-        sample_context,
-        api_key_path=api_key_file,
-        prompt_path=prompt_path,
-        client_factory=factory,
-    )
-    call = factory.messages.calls[0]  # type: ignore[attr-defined]
-    user_msg = call["messages"][0]["content"]
-    # The "Why this gate exists" header lives in the cached system
-    # portion; it must not bleed into the user message.
-    assert "Why this gate exists" not in user_msg
-    # The user template's "Per-call inputs" header should be present.
-    assert "Per-call inputs" in user_msg
-    # Placeholder substitution: tick_id should be present in rendered form.
-    assert "01JTEST" in user_msg
-
-
-def test_decide_user_message_includes_context_fields(
-    prompt_path: Path, api_key_file: Path
+def test_log_and_skip_on_below_threshold_activity(
+    quiet_context: GateContext,
 ) -> None:
     ctx = GateContext(
-        tick_id="01JABC",
+        **{
+            **quiet_context.__dict__,
+            "signals_evaluated": [
+                {
+                    "signal_id": "web_watchdog_reconnect",
+                    "count_cycle": 1,
+                    "count_rolling": 3,
+                    "threshold_status": "below",
+                },
+            ],
+        }
+    )
+    decision = decide_deterministic(ctx)
+    assert decision.outcome == "LOG_AND_SKIP"
+
+
+def test_issues_filed_alone_is_not_an_escalation_trigger(
+    quiet_context: GateContext,
+) -> None:
+    """issues_filed must NEVER escalate on its own (contract: it only
+    distinguishes LOG_AND_SKIP from HEARTBEAT_OK, never wakes Sonnet).
+    """
+    ctx = GateContext(
+        **{
+            **quiet_context.__dict__,
+            "issues_filed": [{"signal_id": "x", "issue_number": 1}],
+        }
+    )
+    decision = decide_deterministic(ctx)
+    assert decision.outcome != "ESCALATE_TO_SONNET"
+
+
+# ---------------------------------------------------------------------------
+# Token fields always zero
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "context_kwargs",
+    [
+        {},
+        {"novelty_markers": ["x"]},
+        {"heartbeat_md_state": "has_tasks"},
+        {"errors": [{"error_type": "x"}]},
+        {"issues_filed": [{"signal_id": "x"}]},
+    ],
+)
+def test_tokens_always_zero(
+    quiet_context: GateContext, context_kwargs: dict[str, Any]
+) -> None:
+    ctx = GateContext(**{**quiet_context.__dict__, **context_kwargs})
+    decision = decide_deterministic(ctx)
+    assert isinstance(decision, GateDecision)
+    assert decision.input_tokens == 0
+    assert decision.cache_hit_tokens == 0
+    assert decision.output_tokens == 0
+
+
+# ---------------------------------------------------------------------------
+# build_reason: content and framing
+# ---------------------------------------------------------------------------
+
+
+def test_build_reason_cites_novelty_marker_ids(
+    quiet_context: GateContext,
+) -> None:
+    ctx = GateContext(
+        **{
+            **quiet_context.__dict__,
+            "novelty_markers": ["whatsapp_creds_restore", "web_watchdog"],
+        }
+    )
+    reason = build_reason(ctx)
+    assert "whatsapp_creds_restore" in reason
+    assert "web_watchdog" in reason
+
+
+def test_build_reason_cites_has_tasks(quiet_context: GateContext) -> None:
+    ctx = GateContext(
+        **{**quiet_context.__dict__, "heartbeat_md_state": "has_tasks"}
+    )
+    reason = build_reason(ctx)
+    assert "heartbeat contract has tasks" in reason
+
+
+def test_build_reason_cites_error_types(quiet_context: GateContext) -> None:
+    ctx = GateContext(
+        **{
+            **quiet_context.__dict__,
+            "errors": [
+                {"error_type": "source_missing"},
+                {"error_type": "parse_failed"},
+            ],
+        }
+    )
+    reason = build_reason(ctx)
+    assert "source_missing" in reason
+    assert "parse_failed" in reason
+
+
+def test_build_reason_within_500_chars(quiet_context: GateContext) -> None:
+    ctx = GateContext(
+        **{
+            **quiet_context.__dict__,
+            "novelty_markers": [f"signal_{i}" for i in range(100)],
+        }
+    )
+    reason = build_reason(ctx)
+    assert len(reason) <= 500
+
+
+def test_build_reason_no_action_recommendation_framing(
+    quiet_context: GateContext,
+) -> None:
+    ctx = GateContext(
+        **{
+            **quiet_context.__dict__,
+            "novelty_markers": ["whatsapp_creds_restore"],
+            "heartbeat_md_state": "has_tasks",
+            "errors": [{"error_type": "source_missing"}],
+        }
+    )
+    reason = build_reason(ctx).lower()
+    forbidden_phrases = [
+        "so sonnet can",
+        "should",
+        "recommend",
+        "you should",
+        "needs to",
+        "must ",
+    ]
+    for phrase in forbidden_phrases:
+        assert phrase not in reason, f"reason contains action framing: {phrase!r}"
+
+
+def test_build_reason_non_empty_when_no_clauses_present() -> None:
+    """Defensive: build_reason called directly (not via decide_deterministic)
+    on a context with no firing triggers still returns a non-empty,
+    factual string rather than an empty one.
+    """
+    ctx = GateContext(
+        tick_id="01JTEST",
         digest_snapshot_at_utc="2026-06-01T17:15:00Z",
-        signals_evaluated=[
-            {
-                "signal_id": "whatsapp_creds_restore",
-                "count_cycle": 12,
-                "threshold_status": "tripped_both",
-            }
-        ],
+        signals_evaluated=[],
         issues_filed=[],
         errors=[],
         heartbeat_md_state="empty",
-        novelty_markers=["whatsapp_creds_restore"],
+        novelty_markers=[],
     )
-    factory = make_client_factory()
-    decide(
-        ctx,
-        api_key_path=api_key_file,
-        prompt_path=prompt_path,
-        client_factory=factory,
-    )
-    call = factory.messages.calls[0]  # type: ignore[attr-defined]
-    user_msg = call["messages"][0]["content"]
-    assert "whatsapp_creds_restore" in user_msg
-    assert "tripped_both" in user_msg
+    reason = build_reason(ctx)
+    assert reason != ""
 
 
 # ---------------------------------------------------------------------------
-# Error / retry behavior
+# Totality (Codex finding #2, load-bearing)
 # ---------------------------------------------------------------------------
 
 
-def test_decide_malformed_json_raises_after_retry(
-    sample_context: GateContext, prompt_path: Path, api_key_file: Path
+@dataclass
+class _MalformedContext:
+    """A context-shaped object with malformed/missing fields.
+
+    Deliberately does NOT match ``GateContext``'s schema -- some fields
+    are missing entirely, others hold the wrong type. Used to prove
+    ``decide_deterministic`` is total: it must not raise regardless.
+    """
+
+    tick_id: str = "01JBAD"
+    digest_snapshot_at_utc: str = "2026-06-01T17:15:00Z"
+    # signals_evaluated omitted entirely (getattr will miss).
+    issues_filed: Any = None  # wrong type: None instead of list
+    errors: Any = "not-a-list"  # wrong type: str instead of list
+    heartbeat_md_state: Any = 12345  # wrong type: int instead of str
+    novelty_markers: Any = field(default_factory=lambda: {"not": "a-list"})
+
+
+def test_decide_deterministic_never_raises_on_malformed_context() -> None:
+    malformed = _MalformedContext()
+    decision = decide_deterministic(malformed)  # must not raise
+    assert isinstance(decision, GateDecision)
+    assert decision.outcome in {
+        "HEARTBEAT_OK",
+        "LOG_AND_SKIP",
+        "ESCALATE_TO_SONNET",
+    }
+    assert decision.input_tokens == 0
+    assert decision.cache_hit_tokens == 0
+    assert decision.output_tokens == 0
+
+
+def test_decide_deterministic_handles_malformed_signal_entries(
+    quiet_context: GateContext,
 ) -> None:
-    # Both attempts return non-JSON; retry exhausts and we raise.
-    factory = make_client_factory(
-        response_text="not json at all",
-        additional_responses=[
-            FakeResponse(
-                content=[FakeBlock(text="still not json")],
-                usage=FakeUsage(),
-            )
-        ],
+    """A signals_evaluated entry missing fields, or a non-dict entry,
+    must not raise -- it should be treated as "no activity".
+    """
+    ctx = GateContext(
+        **{
+            **quiet_context.__dict__,
+            "signals_evaluated": [
+                {"signal_id": "incomplete"},  # missing threshold_status
+                "not-a-dict",
+                42,
+                None,
+                {
+                    "signal_id": "ok_one",
+                    "count_cycle": "not-a-number",
+                    "threshold_status": "below",
+                },
+            ],
+        }
     )
-    sleep_calls: list[float] = []
-    with pytest.raises(GateRoutingError):
-        decide(
-            sample_context,
-            api_key_path=api_key_file,
-            prompt_path=prompt_path,
-            client_factory=factory,
-            sleep=lambda s: sleep_calls.append(s),
-        )
-    # Retry was attempted with the 5s backoff.
-    assert sleep_calls == [5]
+    decision = decide_deterministic(ctx)  # must not raise
+    assert isinstance(decision, GateDecision)
 
 
-def test_decide_invalid_outcome_raises_after_retry(
-    sample_context: GateContext, prompt_path: Path, api_key_file: Path
-) -> None:
-    factory = make_client_factory(
-        response_text='{"outcome": "ESCALATE_NOW", "reason": "?"}',
-        additional_responses=[
-            FakeResponse(
-                content=[
-                    FakeBlock(text='{"outcome": "UNKNOWN", "reason": "x"}')
-                ],
-                usage=FakeUsage(),
-            )
-        ],
-    )
-    with pytest.raises(GateRoutingError):
-        decide(
-            sample_context,
-            api_key_path=api_key_file,
-            prompt_path=prompt_path,
-            client_factory=factory,
-            sleep=lambda s: None,
-        )
+def test_decide_deterministic_handles_object_with_no_relevant_attrs() -> None:
+    """A bare object() has none of the expected attributes at all."""
 
+    class _Empty:
+        pass
 
-def test_decide_rate_limit_then_success(
-    sample_context: GateContext, prompt_path: Path, api_key_file: Path
-) -> None:
-    # First attempt raises a subclass of anthropic.RateLimitError so
-    # the SDK's __init__ doesn't fight us. The gate's retry-class check
-    # uses isinstance() so a subclass triggers the retry branch.
-    import anthropic
-
-    class _TestRateLimit(anthropic.RateLimitError):
-        def __init__(self) -> None:  # noqa: D401 - test helper
-            BaseException.__init__(self, "rate limited")
-
-    rate_err = _TestRateLimit()
-    factory = make_client_factory(
-        response_text='{"outcome": "HEARTBEAT_OK", "reason": "ok"}',
-        errors_to_raise=[rate_err, None],
-    )
-    sleep_calls: list[float] = []
-    decision = decide(
-        sample_context,
-        api_key_path=api_key_file,
-        prompt_path=prompt_path,
-        client_factory=factory,
-        sleep=lambda s: sleep_calls.append(s),
-    )
+    decision = decide_deterministic(_Empty())  # must not raise
     assert decision.outcome == "HEARTBEAT_OK"
-    assert sleep_calls == [5]
 
 
-def test_decide_rate_limit_exhausts_retries(
-    sample_context: GateContext, prompt_path: Path, api_key_file: Path
-) -> None:
-    import anthropic
-
-    class _TestRateLimit(anthropic.RateLimitError):
-        def __init__(self) -> None:
-            BaseException.__init__(self, "rate limited")
-
-    # Both attempts raise -> GateRoutingError.
-    factory = make_client_factory(
-        response_text='{"outcome": "HEARTBEAT_OK", "reason": "ok"}',
-        errors_to_raise=[_TestRateLimit(), _TestRateLimit()],
-    )
-    with pytest.raises(GateRoutingError):
-        decide(
-            sample_context,
-            api_key_path=api_key_file,
-            prompt_path=prompt_path,
-            client_factory=factory,
-            sleep=lambda s: None,
-        )
-
-
-def test_decide_non_retryable_exception_raises_immediately(
-    sample_context: GateContext, prompt_path: Path, api_key_file: Path
-) -> None:
-    # A ValueError is NOT an anthropic transient -- the gate must NOT
-    # retry generic exceptions; it should wrap and raise.
-    factory = make_client_factory(
-        response_text='{"outcome": "HEARTBEAT_OK", "reason": "ok"}',
-        errors_to_raise=[ValueError("some random failure")],
-    )
-    with pytest.raises(GateRoutingError):
-        decide(
-            sample_context,
-            api_key_path=api_key_file,
-            prompt_path=prompt_path,
-            client_factory=factory,
-            sleep=lambda s: None,
-        )
-
-
-def test_decide_empty_response_content_raises(
-    sample_context: GateContext, prompt_path: Path, api_key_file: Path
-) -> None:
-    factory = make_client_factory(
-        response_text="",
-        additional_responses=[
-            FakeResponse(content=[], usage=FakeUsage())
-        ],
-    )
-    with pytest.raises(GateRoutingError):
-        decide(
-            sample_context,
-            api_key_path=api_key_file,
-            prompt_path=prompt_path,
-            client_factory=factory,
-            sleep=lambda s: None,
-        )
-
-
-# ---------------------------------------------------------------------------
-# Prompt-file integrity
-# ---------------------------------------------------------------------------
-
-
-def test_decide_missing_prompt_raises(
-    sample_context: GateContext, api_key_file: Path, tmp_path: Path
-) -> None:
-    factory = make_client_factory()
-    with pytest.raises(GateRoutingError):
-        decide(
-            sample_context,
-            api_key_path=api_key_file,
-            prompt_path=tmp_path / "nonexistent.md",
-            client_factory=factory,
-        )
-
-
-def test_decide_prompt_missing_cache_markers_raises(
-    sample_context: GateContext, api_key_file: Path, tmp_path: Path
-) -> None:
-    bad_prompt = tmp_path / "bad.prompt.md"
-    bad_prompt.write_text("# Routing prompt\n\nNo cache markers here.\n")
-    factory = make_client_factory()
-    with pytest.raises(GateRoutingError):
-        decide(
-            sample_context,
-            api_key_path=api_key_file,
-            prompt_path=bad_prompt,
-            client_factory=factory,
-        )
-
-
-def test_decide_prompt_misordered_markers_raises(
-    sample_context: GateContext, api_key_file: Path, tmp_path: Path
-) -> None:
-    bad = tmp_path / "bad2.prompt.md"
-    bad.write_text(
-        "[CACHE_PREFIX_END]\nSomething\n[CACHE_PREFIX_START]\nMore\n"
-    )
-    factory = make_client_factory()
-    with pytest.raises(GateRoutingError):
-        decide(
-            sample_context,
-            api_key_path=api_key_file,
-            prompt_path=bad,
-            client_factory=factory,
-        )
-
-
-# ---------------------------------------------------------------------------
-# read_api_key
-# ---------------------------------------------------------------------------
-
-
-def test_read_api_key_strips_whitespace(tmp_path: Path) -> None:
-    path = tmp_path / "key"
-    path.write_text("  sk-real-key-abcdef\n\n")
-    assert read_api_key(path) == "sk-real-key-abcdef"
-
-
-def test_read_api_key_missing_raises(tmp_path: Path) -> None:
-    with pytest.raises(FileNotFoundError) as exc_info:
-        read_api_key(tmp_path / "nope")
-    # Path must surface in the error, NOT the key.
-    assert "nope" in str(exc_info.value)
-
-
-def test_response_parser_rejects_list_payload(
-    sample_context: GateContext, prompt_path: Path, api_key_file: Path
-) -> None:
-    factory = make_client_factory(
-        response_text='[{"outcome": "HEARTBEAT_OK"}]',
-        additional_responses=[
-            FakeResponse(
-                content=[FakeBlock(text='[{"outcome": "HEARTBEAT_OK"}]')],
-                usage=FakeUsage(),
-            )
-        ],
-    )
-    with pytest.raises(GateRoutingError):
-        decide(
-            sample_context,
-            api_key_path=api_key_file,
-            prompt_path=prompt_path,
-            client_factory=factory,
-            sleep=lambda s: None,
-        )
-
-
-def test_response_parser_rejects_non_string_reason(
-    sample_context: GateContext, prompt_path: Path, api_key_file: Path
-) -> None:
-    factory = make_client_factory(
-        response_text='{"outcome": "HEARTBEAT_OK", "reason": 12345}',
-        additional_responses=[
-            FakeResponse(
-                content=[
-                    FakeBlock(
-                        text='{"outcome": "HEARTBEAT_OK", "reason": 12345}'
-                    )
-                ],
-                usage=FakeUsage(),
-            )
-        ],
-    )
-    with pytest.raises(GateRoutingError):
-        decide(
-            sample_context,
-            api_key_path=api_key_file,
-            prompt_path=prompt_path,
-            client_factory=factory,
-            sleep=lambda s: None,
-        )
+def test_build_reason_never_raises_on_malformed_context() -> None:
+    malformed = _MalformedContext()
+    reason = build_reason(malformed)  # must not raise
+    assert isinstance(reason, str)
+    assert len(reason) <= 500

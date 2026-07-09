@@ -1116,11 +1116,11 @@
       "status": "active",
       "deployed_by": "#490",
       "introduced_by": "#490",
-      "updated_by": "#490",
-      "last_updated": "2026-06-01",
-      "description": "#490 (signal-driven-monitoring-haiku-gate-01KT22PC) \u2014 Haiku-tier routing gate decides whether each 30-minute heartbeat tick needs to wake the expensive Sonnet main-agent path. The gate (scripts/openclaw/heartbeat_gate/run.py) reads the latest signal-extraction snapshot (last-tick.json) and the heartbeat contract file (HEARTBEAT.md), assembles a cache-aware prompt, and calls claude-haiku-4-5 directly via the anthropic-python SDK. The gate returns one of HEARTBEAT_OK (do nothing), LOG_AND_SKIP (record but no action), or ESCALATE_TO_SONNET (wake the main agent with the gate's structured reason). On ESCALATE_TO_SONNET the gate invokes `openclaw system event --mode now` exactly once per tick (FR-008). On API error, timeout, or malformed-response the gate falls back to the same ESCALATE_TO_SONNET path so observation is never silently dropped (FR-011); the fallback is recorded in last-gate-decision.json.fallback_invoked. The gate honors the existing HEARTBEAT.md contract semantics (FR-010): scheduled tasks in the contract file are executed (cheap-tier where feasible, escalated when judgment is required). Replaces OpenClaw's internal heartbeat for the steady state; the internal heartbeat is disabled at cutover via `openclaw system heartbeat disable` (Tier 2 \u2014 see runbook).",
+      "updated_by": "#676",
+      "last_updated": "2026-07-08",
+      "description": "#490 origin; #676 determinized the decision. The routing gate decides whether each 30-minute heartbeat tick needs to wake the expensive Sonnet main-agent path. The gate (scripts/openclaw/heartbeat_gate/run.py) reads the latest signal-extraction snapshot (last-tick.json) and the heartbeat contract file (HEARTBEAT.md), then computes the route with a pure Python rule (gate.decide_deterministic) over the already-deterministic novelty markers \u2014 NO LLM, NO Anthropic call in the tick hot path (#676). The gate returns one of HEARTBEAT_OK (do nothing), LOG_AND_SKIP (record but no action), or ESCALATE_TO_SONNET (wake the main agent with the gate's deterministically-built reason). ESCALATE fires iff novelty_markers is non-empty OR heartbeat_md_state == has_tasks OR errors is non-empty (the routing prompt's boolean contract, validated 0 missed / 0 over vs 1748 historical ticks). On ESCALATE_TO_SONNET the gate invokes `openclaw system event --mode now` exactly once per tick (FR-008). Any failure loading context or computing the decision falls back to the same ESCALATE_TO_SONNET path so observation is never silently dropped (FR-011); the fallback is recorded in last-gate-decision.json.fallback_invoked. The gate honors the existing HEARTBEAT.md contract semantics (FR-010). Replaces OpenClaw's internal heartbeat for the steady state; the internal heartbeat is disabled at cutover via `openclaw system heartbeat disable` (Tier 2 \u2014 see runbook).",
       "trigger": "every 30 minutes via felix-heartbeat-gate.timer (systemd user); also on manual `systemctl --user start --wait felix-heartbeat-gate.service`",
-      "data_classification": "operational routing decision; gate prompt + response are logged in gate-ledger.jsonl (no credential material)",
+      "data_classification": "operational routing decision; the deterministic decision is logged in gate-ledger.jsonl (no credential material, no LLM tokens \u2014 gate_*_tokens are 0)",
       "path": [
         {
           "from": "felix-heartbeat-gate.timer",
@@ -1148,22 +1148,15 @@
         },
         {
           "from": "scripts/openclaw/heartbeat_gate/run.py",
-          "to": "/data/services/openclaw/secrets/anthropic",
-          "protocol": "file read (0600)",
-          "description": "Anthropic API key \u2014 same file as felix-doc-auditor-driver. Loaded once per tick into process memory; never logged or persisted in any output."
-        },
-        {
-          "from": "scripts/openclaw/heartbeat_gate/run.py",
-          "to": "Anthropic API",
-          "protocol": "HTTPS (anthropic-python SDK)",
-          "endpoint": "api.anthropic.com",
-          "description": "Single judgment call per tick to claude-haiku-4-5 with cache-aware prompt (stable system prompt + per-tick context). Returns strict-schema JSON; malformed responses trigger the fallback path (FR-011)."
+          "to": "gate.decide_deterministic(context)",
+          "protocol": "in-process pure function (stdlib only)",
+          "description": "#676 \u2014 the routing decision is a deterministic rule over the already-computed novelty markers (novelty_markers / heartbeat_md_state / errors). No Anthropic key read, no api.anthropic.com call, no LLM token cost in the tick hot path. Total over any GateContext load_context can produce; any raise routes to the FR-011 fallback (escalate, fallback_invoked=true, exit 0)."
         },
         {
           "from": "scripts/openclaw/heartbeat_gate/run.py",
           "to": "openclaw system event --mode now",
           "protocol": "subprocess",
-          "description": "Invoked exactly once per tick on ESCALATE_TO_SONNET (FR-008). This wakes the existing OpenClaw main-agent (Sonnet 4.6) path with the gate's structured reason injected via the standard event-context mechanism. Also invoked on the fallback path (API failure, malformed response, timeout) so observation is never silently dropped (FR-011)."
+          "description": "Invoked exactly once per tick on ESCALATE_TO_SONNET (FR-008). This wakes the existing OpenClaw main-agent (Sonnet 4.6) path with the gate's deterministically-built reason injected via the standard event-context mechanism. Also invoked on the fallback path (context-load or decision failure) so observation is never silently dropped (FR-011)."
         },
         {
           "from": "openclaw system event --mode now",

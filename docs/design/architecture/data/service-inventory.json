@@ -1,7 +1,7 @@
 {
   "schema_version": "1.1",
-  "last_updated": "2026-07-06",
-  "updated_by": "harden-inbox-capture-01KWVGZM (#662) + felix-admin-cron-path-fix-01KWQTY3 (#656) + finalize-inbox-file-01KW8MSQ (#325) + pull-based-deploy-pipeline-01KTYQQS (#136) + felix-calendar-subagent-extraction-01KTTA33 (#579) + #572-credential-liveness-probe + prescan-archive-anomalies-01KTMZPE (#568) + capture-agents-md-rewrite-01KTMY86 (#566) + capture-d6-helpers-extraction-01KTMS5Q (#566) + agent-prompt-deploy-pipeline-01KTMDDD (#567) + vikunja-client-and-habits-weekly-report-01KTKSFT (#542 + #561 + #562) + inbox-calendar-and-aspiration-routing-01KTHHXS + #520-felix-vikunja-sync-project-layer-and-url-config + #519-touchpoint-migration + #518-felix-vikunja-sync-driver-added + #376-remove-escalation-v1-parity + #400-audit-interpretation-moment0 + #310-tasker-jsonl-migration + #374-main-verbatim-passthrough + #362-drift-event-auto-resolution + #309-migrate-escalation-to-jsonl-state-model + #343-refactor-doc-auditor-to-scripts-first-driver + #307-backfill-habits-jsonl-from-comments + #306-habits-native-repeat-jsonl-state + #304-felix-bot-rotation + #291-felix-file-issue + #289-mutation-surfaces-enumeration + #285-cron-delivery-restore-path-c + #282-habits-d6-extract + #263-cron-delivery-mode-round2 + #100-google-workspace-foundation + #256-scope-discipline-guardrails + #253-step-5a-6-consolidation + #254-atomic-write-perm-preservation + issue-105-doc-auditor + #223-systemd-timer + #208-restic-healthcheck + #202-obsidian-sync-system-level + #203-sync-heartbeat + #199-inbox-schedules + #115-credential-health-check + #189-vikunja-compose + #185-inbox-capture-dedup + restore-whatsapp-dm-reply-delivery-01KTVVHH (#588) + #545-reconcile-doc-auditor-status",
+  "last_updated": "2026-07-08",
+  "updated_by": "deterministic-monitoring-checks-01KX1XNW (#676) + harden-inbox-capture-01KWVGZM (#662) + felix-admin-cron-path-fix-01KWQTY3 (#656) + finalize-inbox-file-01KW8MSQ (#325) + pull-based-deploy-pipeline-01KTYQQS (#136) + felix-calendar-subagent-extraction-01KTTA33 (#579) + #572-credential-liveness-probe + prescan-archive-anomalies-01KTMZPE (#568) + capture-agents-md-rewrite-01KTMY86 (#566) + capture-d6-helpers-extraction-01KTMS5Q (#566) + agent-prompt-deploy-pipeline-01KTMDDD (#567) + vikunja-client-and-habits-weekly-report-01KTKSFT (#542 + #561 + #562) + inbox-calendar-and-aspiration-routing-01KTHHXS + #520-felix-vikunja-sync-project-layer-and-url-config + #519-touchpoint-migration + #518-felix-vikunja-sync-driver-added + #376-remove-escalation-v1-parity + #400-audit-interpretation-moment0 + #310-tasker-jsonl-migration + #374-main-verbatim-passthrough + #362-drift-event-auto-resolution + #309-migrate-escalation-to-jsonl-state-model + #343-refactor-doc-auditor-to-scripts-first-driver + #307-backfill-habits-jsonl-from-comments + #306-habits-native-repeat-jsonl-state + #304-felix-bot-rotation + #291-felix-file-issue + #289-mutation-surfaces-enumeration + #285-cron-delivery-restore-path-c + #282-habits-d6-extract + #263-cron-delivery-mode-round2 + #100-google-workspace-foundation + #256-scope-discipline-guardrails + #253-step-5a-6-consolidation + #254-atomic-write-perm-preservation + issue-105-doc-auditor + #223-systemd-timer + #208-restic-healthcheck + #202-obsidian-sync-system-level + #203-sync-heartbeat + #199-inbox-schedules + #115-credential-health-check + #189-vikunja-compose + #185-inbox-capture-dedup + restore-whatsapp-dm-reply-delivery-01KTVVHH (#588) + #545-reconcile-doc-auditor-status",
   "services": [
     {
       "name": "vikunja",
@@ -2002,7 +2002,7 @@
     {
       "name": "felix-heartbeat-gate",
       "type": "systemd-timer",
-      "description": "Heartbeat routing gate \u2014 Haiku-tier decision over OpenClaw heartbeat invocations. Each 30-minute tick reads the latest signal-extraction snapshot (last-tick.json) and HEARTBEAT.md, asks claude-haiku-4-5 to classify the situation, and emits one of HEARTBEAT_OK / LOG_AND_SKIP / ESCALATE_TO_SONNET. On ESCALATE_TO_SONNET the gate invokes `openclaw system event --mode now` exactly once to wake the existing Sonnet main-agent path. On API/timeout failure the gate falls back to the same escalation path so observation is never silently dropped (FR-011).",
+      "description": "Heartbeat routing gate \u2014 DETERMINISTIC decision over OpenClaw heartbeat invocations (deterministic-monitoring-checks-01KX1XNW, #676; previously Haiku-tier). Each 30-minute tick reads the latest signal-extraction snapshot (last-tick.json) and HEARTBEAT.md, and a pure stdlib rule (decide_deterministic, no LLM call) classifies the situation into one of HEARTBEAT_OK / LOG_AND_SKIP / ESCALATE_TO_SONNET by reproducing the former routing prompt's boolean escalation contract. On ESCALATE_TO_SONNET the gate invokes `openclaw system event --mode now` exactly once to wake the existing Sonnet main-agent path. On a step-1/step-2 failure the gate falls back to the same escalation path so observation is never silently dropped (FR-007); the deterministic rule is total over any GateContext load_context can produce. Validated against the full historical gate-ledger.jsonl (0 missed escalations, INV-006) before cutover.",
       "host": "office2",
       "user": "claude",
       "systemd_unit": "felix-heartbeat-gate.timer (user unit) + felix-heartbeat-gate.service (user oneshot)",
@@ -2016,12 +2016,12 @@
       "deployed_on": "2026-06-01",
       "status": "active",
       "session_mode": "stateless",
-      "purpose": "Replaces OpenClaw's general-purpose Sonnet heartbeat with a cheap-tier router. Mission: signal-driven-monitoring-haiku-gate-01KT22PC. Cuts expensive-tier invocation cost by >=80% (NFR-001) while preserving novel-signal escalation (FR-008) and HEARTBEAT.md scheduled-task semantics (FR-010).",
+      "purpose": "Replaces OpenClaw's general-purpose Sonnet heartbeat with a zero-LLM deterministic router. Mission: signal-driven-monitoring-haiku-gate-01KT22PC (original Haiku-tier gate); determinized by deterministic-monitoring-checks-01KX1XNW (#676) to remove the remaining per-tick LLM call. Cuts expensive-tier invocation cost to $0 for the tick decision itself (NFR-001/NFR-003) while preserving novel-signal escalation (FR-002) and HEARTBEAT.md scheduled-task semantics (FR-010 of the original mission).",
       "runbook": "docs/runbooks/signal-driven-monitoring-ops.md",
-      "updated_by": "#490",
-      "last_updated": "2026-06-01",
-      "model": "anthropic/claude-haiku-4-5",
-      "model_policy": "pinned",
+      "updated_by": "676",
+      "last_updated": "2026-07-08",
+      "model": null,
+      "model_policy_note": "No model \u2014 the tick decision path is Python-standard-library-only (no anthropic SDK import, no API key read) per deterministic-monitoring-checks-01KX1XNW (#676). The prior claude-haiku-4-5 / pinned model dependency is REMOVED from the hot path.",
       "autonomy_level": "Observed (Level 2)",
       "risk_tier": 3,
       "dependencies": [
@@ -2036,20 +2036,24 @@
           "description": "On ESCALATE_TO_SONNET the gate shells out `openclaw system event --mode now` to wake the existing main-agent (Sonnet 4.6) path. Internal openclaw heartbeat must be disabled to avoid double-fire \u2014 see runbook cutover step."
         },
         {
-          "target": "anthropic",
-          "type": "requires",
-          "description": "API key read at tick start from /data/services/openclaw/secrets/anthropic; sent directly to Anthropic via the anthropic-python SDK (no openclaw-gateway proxy in path). Same key as felix-doc-auditor-driver."
-        },
-        {
           "target": "/data/services/openclaw/data/HEARTBEAT.md",
           "type": "requires",
           "description": "Heartbeat contract file \u2014 read each tick to honor scheduled-task semantics (FR-010). Empty/template content = skip (per existing convention)."
         }
       ],
+      "dependencies_removed": [
+        {
+          "target": "anthropic",
+          "type": "requires",
+          "removed_by": "676",
+          "removed_on": "2026-07-08",
+          "description": "Formerly: API key read at tick start from /data/services/openclaw/secrets/anthropic; sent directly to Anthropic via the anthropic-python SDK. Deterministic-monitoring-checks-01KX1XNW (#676) removes this from the tick hot path \u2014 the decision is now pure stdlib (NFR-005). The anthropic dependency may still exist elsewhere (e.g. felix-doc-auditor-driver) but is no longer read or required by this service."
+        }
+      ],
       "health_check": {
         "method": "tick-signal-file",
         "endpoint": "/data/services/openclaw/felix-heartbeat-gate/last-gate-decision.json",
-        "expected": "outcome in {HEARTBEAT_OK, LOG_AND_SKIP, ESCALATE_TO_SONNET} within the last 35 minutes; errors=[]; fallback_invoked=false on the steady state. See kitty-specs/signal-driven-monitoring-haiku-gate-01KT22PC/contracts/gate-decision.contract.md for the schema.",
+        "expected": "outcome in {HEARTBEAT_OK, LOG_AND_SKIP, ESCALATE_TO_SONNET} within the last 35 minutes; errors=[]; fallback_invoked=false on the steady state; token fields (gate_input_tokens/gate_cache_hit_tokens/gate_output_tokens) always 0 post-#676. See kitty-specs/signal-driven-monitoring-haiku-gate-01KT22PC/contracts/gate-decision.contract.md for the schema.",
         "timeout_seconds": 5
       },
       "config_files": [
@@ -2064,10 +2068,18 @@
           "source_in_repo": "scripts/office2/felix-heartbeat-gate.timer"
         },
         {
+          "path": "/home/claude/repos/kg-automation/scripts/openclaw/heartbeat_gate/validate_ledger.py",
+          "format": "python",
+          "source_in_repo": "scripts/openclaw/heartbeat_gate/validate_ledger.py",
+          "purpose": "INV-006 ledger-replay validation harness introduced by #676 \u2014 confirms the deterministic rule reproduces 100% of historical escalations before/after cutover."
+        }
+      ],
+      "config_files_removed": [
+        {
           "path": "/home/claude/repos/kg-automation/scripts/openclaw/heartbeat_gate/prompts/routing.prompt.md",
           "format": "markdown",
-          "source_in_repo": "scripts/openclaw/heartbeat_gate/prompts/routing.prompt.md",
-          "purpose": "Cache-aware routing prompt (stable system prompt + dynamic per-tick context). Introduced by #490."
+          "removed_by": "676",
+          "description": "Former cache-aware routing prompt read by the Haiku call. No longer read \u2014 the routing decision is now the pure-stdlib decide_deterministic(context) function, which reproduces this prompt's boolean escalation contract in code."
         }
       ]
     },
@@ -2113,6 +2125,65 @@
           "format": "systemd-unit"
         }
       ]
+    },
+    {
+      "name": "felix-health-check",
+      "type": "systemd-timer",
+      "host": "office2",
+      "user": "claude",
+      "systemd_unit": "felix-health-check.timer (user unit) + felix-health-check.service (user oneshot)",
+      "systemd_user": "claude",
+      "schedule": "twice daily 11:00 + 23:00 local (OnCalendar=*-*-* 11:00:00, OnCalendar=*-*-* 23:00:00, Persistent=true)",
+      "exec_start": "/usr/bin/python3 -m scripts.office2.felix_health_check.run",
+      "timeout_seconds": 600,
+      "timeout_seconds_note": "TimeoutStartSec=10min systemd outer failsafe.",
+      "deployed_by": "676",
+      "deployed_on": "2026-07-08",
+      "updated_by": "676",
+      "status": "active",
+      "purpose": "Twice-daily system health check, moved OFF the Sonnet `main` agent per deterministic-monitoring-checks-01KX1XNW (#676). Runs the existing bash health check (/home/claude/helper-scripts/health-check.sh, reused unchanged) via subprocess (not exec, so the wrapper survives to classify), classifies the result with failure-wins precedence (FAILURES_DETECTED > ALL_HEALTHY > UNKNOWN/SCRIPT_MISSING), stamps a signal file for observability, and pushes an ntfy alert on any non-healthy outcome. Replaces the two former openclaw crons health-check-morning / health-check-evening, which invoked the check through a full Sonnet main session (NFR-002: zero main sessions created per run, verified via `openclaw cron runs`).",
+      "runbook": "kitty-specs/deterministic-monitoring-checks-01KX1XNW/contracts/health-check-runner.contract.md",
+      "risk_tier": 3,
+      "dependencies": [
+        {
+          "target": "/home/claude/helper-scripts/health-check.sh",
+          "type": "requires",
+          "description": "Reused unchanged bash health-check script; the wrapper only changes execution path + delivery, not the assertions themselves (FR-010)."
+        },
+        {
+          "target": "ntfy.sh",
+          "type": "requires",
+          "description": "Failure-delivery channel (delivery-channel change WhatsApp -> ntfy per research R5 — a non-agent timer avoids re-coupling to the openclaw/WhatsApp messaging capability being removed). NTFY_TOPIC provisioned out-of-band via /data/services/openclaw/felix-health-check/ntfy.env (never committed). An ntfy-send failure is logged (journal + signal file `delivery` field), non-fatal."
+        }
+      ],
+      "health_check": {
+        "method": "signal-file",
+        "endpoint": "/data/services/openclaw/felix-health-check/last-run.json",
+        "expected": "status in {ALL_HEALTHY, FAILURES_DETECTED, UNKNOWN, SCRIPT_MISSING}, ran_at_utc within the last ~13 hours (covers both 11:00/23:00 ticks), exit_code recorded. Healthy runs are silent (no ntfy push); non-healthy runs alert. See kitty-specs/deterministic-monitoring-checks-01KX1XNW/contracts/health-check-runner.contract.md for the schema.",
+        "timeout_seconds": 5
+      },
+      "config_files": [
+        {
+          "path": "~/.config/systemd/user/felix-health-check.timer",
+          "format": "systemd-unit",
+          "source_in_repo": "scripts/office2/felix-health-check.timer"
+        },
+        {
+          "path": "~/.config/systemd/user/felix-health-check.service",
+          "format": "systemd-unit",
+          "source_in_repo": "scripts/office2/felix-health-check.service"
+        },
+        {
+          "path": "/home/claude/kg-automation/scripts/office2/felix_health_check/",
+          "format": "python-package",
+          "source_in_repo": "scripts/office2/felix_health_check/"
+        }
+      ],
+      "replaces": {
+        "description": "The two openclaw crons this systemd timer replaces were never modeled as first-class service-inventory entries (they ran as scheduled agent invocations inside openclaw config, not a tracked systemd/cron surface); removed by deploys/queued/deterministic-monitoring-checks.yaml via `openclaw cron rm` after this timer is verified active.",
+        "removed_openclaw_crons": ["health-check-morning", "health-check-evening"],
+        "removed_by": "676"
+      }
     },
     {
       "name": "credential-health-check",

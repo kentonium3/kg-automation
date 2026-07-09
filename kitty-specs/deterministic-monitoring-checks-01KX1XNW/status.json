@@ -1,0 +1,49 @@
+{
+  "event_count": 28,
+  "last_event_id": "01KX22PWS8SP6EHGQ01XSRZVMY",
+  "materialized_at": "2026-07-08T23:58:46.056456+00:00",
+  "mission_number": "87",
+  "mission_slug": "deterministic-monitoring-checks-01KX1XNW",
+  "mission_type": "software-dev",
+  "summary": {
+    "approved": 0,
+    "blocked": 0,
+    "canceled": 0,
+    "claimed": 0,
+    "done": 4,
+    "for_review": 0,
+    "in_progress": 0,
+    "in_review": 0,
+    "planned": 0
+  },
+  "work_packages": {
+    "WP01": {
+      "actor": "merge",
+      "force_count": 0,
+      "lane": "done",
+      "last_event_id": "01KX22PRJM9R75SNSAR9NG2PVY",
+      "last_transition_at": "2026-07-08T23:58:41.748648+00:00"
+    },
+    "WP02": {
+      "actor": "merge",
+      "force_count": 0,
+      "lane": "done",
+      "last_event_id": "01KX22PVEY34BGCG0VA58VEZX7",
+      "last_transition_at": "2026-07-08T23:58:44.702050+00:00"
+    },
+    "WP03": {
+      "actor": "merge",
+      "force_count": 0,
+      "lane": "done",
+      "last_event_id": "01KX22PT5BP67BV72HCCET37N4",
+      "last_transition_at": "2026-07-08T23:58:43.371736+00:00"
+    },
+    "WP04": {
+      "actor": "merge",
+      "force_count": 0,
+      "lane": "done",
+      "last_event_id": "01KX22PWS8SP6EHGQ01XSRZVMY",
+      "last_transition_at": "2026-07-08T23:58:46.056456+00:00"
+    }
+  }
+}

@@ -1,63 +1,36 @@
-"""Anthropic SDK wrapper for the heartbeat routing decision (WP-03 T017).
+"""Deterministic heartbeat-gate routing decision (#676 T001/T002).
 
-Mirrors the architectural precedent of ``scripts/doc_audit/judgment/``:
+Replaces the former Haiku-fronted ``decide()`` (Anthropic SDK wrapper,
+retired 2026-07-08) with a pure, standard-library-only function that
+reproduces the routing prompt's exact boolean escalation contract. See
+``kitty-specs/deterministic-monitoring-checks-01KX1XNW/contracts/
+escalation-rule.contract.md`` for the authoritative truth table.
 
-- Single Anthropic SDK chokepoint per tick.
-- Cache-aware prompt split on ``[CACHE_PREFIX_START]`` /
-  ``[CACHE_PREFIX_END]`` markers; the cached prefix is sent as a
-  ``cache_control: {"type": "ephemeral"}`` system block.
-- Retry policy mirrors ``audit_interpretation._call_with_retry``:
-  one retry on transient anthropic errors (``RateLimitError``,
-  ``APIError``, ``APITimeoutError``, ``APIConnectionError``) with a
-  5-second backoff. Schema-violation responses also retry once.
-- After retry exhaustion → :class:`GateRoutingError`, which the
-  orchestrator catches and translates into a fallback per FR-011.
-
-The client is intentionally minimal -- it does not own decision
-logic, only "call Haiku, parse the JSON, count tokens." Decision
-semantics live in the prompt + the orchestrator (run.py).
+Design notes
+------------
+- :func:`decide_deterministic` is **total**: it must never raise on any
+  ``GateContext`` that ``context.load_context`` can produce. Every field
+  access is guarded so malformed-but-loaded data (a non-list ``errors``,
+  a ``signals_evaluated`` entry missing a key) degrades gracefully
+  instead of escaping to the orchestrator's emergency path (FR-007).
+- No I/O. No ``anthropic`` import. No network calls. The tick hot path
+  imports only this module and the stdlib.
+- Token fields are always zero -- there is no LLM call to measure.
 """
 
 from __future__ import annotations
 
-import json
-import logging
-import time
-from dataclasses import asdict, dataclass, field
-from pathlib import Path
-from typing import Any, Callable, Literal, Optional
+from dataclasses import dataclass
+from typing import Any, Literal
 
 
 __all__ = [
-    "DEFAULT_API_KEY_PATH",
-    "DEFAULT_MODEL",
     "GateDecision",
-    "GateRoutingError",
-    "RETRY_BACKOFF_SECONDS",
-    "decide",
-    "read_api_key",
+    "build_reason",
+    "decide_deterministic",
 ]
 
 
-logger = logging.getLogger(__name__)
-
-
-DEFAULT_MODEL = "claude-haiku-4-5-20251001"
-DEFAULT_API_KEY_PATH = Path("/data/services/openclaw/secrets/anthropic")
-DEFAULT_MAX_TOKENS = 512
-
-# One retry per the WP prompt's spec: "1 retry on RateLimitError or 5xx
-# (5s backoff). After retry exhaustion → raise GateRoutingError." We
-# express that as a single delay value: 5 seconds before attempt #2.
-RETRY_BACKOFF_SECONDS: tuple[int, ...] = (5,)
-
-# Markers must exactly match the prompt file's CACHE_PREFIX_* sentinels.
-_CACHE_PREFIX_START = "[CACHE_PREFIX_START]"
-_CACHE_PREFIX_END = "[CACHE_PREFIX_END]"
-
-_VALID_OUTCOMES: frozenset[str] = frozenset(
-    {"HEARTBEAT_OK", "LOG_AND_SKIP", "ESCALATE_TO_SONNET"}
-)
 _REASON_MAX_LEN = 500
 
 
@@ -68,12 +41,13 @@ _REASON_MAX_LEN = 500
 
 @dataclass(frozen=True)
 class GateDecision:
-    """Result of one heartbeat-gate routing call.
+    """Result of one heartbeat-gate routing decision.
 
     The orchestrator uses this struct to:
     - Decide whether to invoke the escalator (``ESCALATE_TO_SONNET``).
-    - Record per-tick token cost in the gate ledger (the three token
-      fields) for the NFR-001 baseline comparison.
+    - Record per-tick token cost in the gate ledger. Since the decision
+      is now made deterministically (no LLM call), all three token
+      fields are always ``0`` (NFR-001).
     - Surface the reason text to the operator via the ledger.
     """
 
@@ -84,162 +58,107 @@ class GateDecision:
     output_tokens: int = 0
 
 
-class GateRoutingError(Exception):
-    """Raised when the gate cannot produce a valid :class:`GateDecision`.
-
-    Causes (per FR-011): Anthropic API exhaustion after retry, malformed
-    JSON response, schema-invalid response (missing ``outcome`` or
-    non-enum ``outcome`` value).
-
-    The orchestrator catches this and falls back to the
-    expensive-tier path with ``"Gate fallback — see ledger"`` as the
-    reason, so observation is not silently dropped.
-    """
-
-
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
 
 
-def read_api_key(api_key_path: Path) -> str:
-    """Read the Anthropic API key from disk.
+def decide_deterministic(context: Any) -> GateDecision:
+    """Route one heartbeat tick using the deterministic escalation rule.
 
-    NEVER logs the key. NEVER includes the key in error messages.
-    Pattern matches ``doc_audit.config.read_api_key``.
+    Reproduces the routing prompt's boolean escalation contract exactly
+    (see the contract doc's truth table):
 
-    Raises:
-        FileNotFoundError: With the path (NOT the key) in the message.
-    """
-    try:
-        raw = Path(api_key_path).read_text(encoding="utf-8")
-    except FileNotFoundError as exc:
-        raise FileNotFoundError(
-            f"Anthropic API key file not found at {api_key_path}"
-        ) from exc
-    return raw.strip()
+    - ``ESCALATE_TO_SONNET`` iff ``novelty_markers`` is non-empty, OR
+      ``heartbeat_md_state == "has_tasks"``, OR ``errors`` is non-empty.
+    - Otherwise, ``LOG_AND_SKIP`` when ``issues_filed`` is non-empty OR
+      any evaluated signal shows non-zero cycle activity while
+      ``threshold_status == "below"``; else ``HEARTBEAT_OK``.
 
-
-def decide(
-    context: Any,
-    *,
-    api_key_path: Path = DEFAULT_API_KEY_PATH,
-    prompt_path: Path,
-    model: str = DEFAULT_MODEL,
-    max_tokens: int = DEFAULT_MAX_TOKENS,
-    client_factory: Optional[Callable[[str], Any]] = None,
-    sleep: Callable[[float], None] = time.sleep,
-) -> GateDecision:
-    """Run the heartbeat-routing Haiku call and return a typed decision.
-
-    Parameters
-    ----------
-    context:
-        A :class:`heartbeat_gate.context.GateContext` (passed as ``Any``
-        to keep this module decoupled from ``context`` imports for
-        easier testing). Must be ``dataclasses.asdict``-able.
-    api_key_path:
-        File path to the Anthropic key. Default matches the production
-        deployment at ``/data/services/openclaw/secrets/anthropic``.
-    prompt_path:
-        Path to ``routing.prompt.md``. The file is split on the
-        ``[CACHE_PREFIX_START]`` / ``[CACHE_PREFIX_END]`` markers; the
-        cached prefix is sent as the system block, the rest of the
-        file (with ``{{...}}`` placeholders substituted from
-        ``context``) is sent as the user message.
-    model:
-        Anthropic model identifier. Default ``claude-haiku-4-5-20251001``.
-    max_tokens:
-        Max output tokens. Default 512 -- ample for a JSON object.
-    client_factory:
-        Optional override for the Anthropic client constructor. Tests
-        pass a stub that returns a canned response. Production callers
-        leave this ``None`` and the function resolves
-        ``anthropic.Anthropic`` at call time.
-    sleep:
-        Override hook for ``time.sleep`` (tests pass a no-op).
+    This function is **total**: it never raises, regardless of how
+    malformed ``context`` is (short of not being passed at all). Every
+    field access is defensively guarded -- missing attributes, wrong
+    types, and malformed list entries are all treated as "no signal"
+    rather than propagating an exception. This is load-bearing: an
+    uncaught exception here would otherwise escape to the orchestrator's
+    unhandled-exception path (exit 1), contradicting the spec's
+    "step 1/2 failure -> fallback, exit 0" contract (FR-007). The
+    orchestrator's broadened ``except Exception`` in ``run.py`` is a
+    second, independent line of defense behind this totality guarantee.
 
     Returns
     -------
     GateDecision
-        Typed decision with token counts pulled from ``response.usage``.
-
-    Raises
-    ------
-    GateRoutingError
-        On any retry-exhausted API failure or schema violation. The
-        orchestrator catches this and falls back per FR-011.
+        ``input_tokens == cache_hit_tokens == output_tokens == 0``
+        always -- there is no LLM call to measure (NFR-001).
     """
-    system_text, user_template = _split_prompt(prompt_path)
-    user_text = _render_user_section(user_template, context)
+    novelty_markers = _safe_list(context, "novelty_markers")
+    errors = _safe_list(context, "errors")
+    issues_filed = _safe_list(context, "issues_filed")
+    signals_evaluated = _safe_list(context, "signals_evaluated")
+    heartbeat_md_state = getattr(context, "heartbeat_md_state", None)
 
-    api_key = read_api_key(Path(api_key_path))
-    client = _build_client(client_factory, api_key)
+    escalate = (
+        len(novelty_markers) > 0
+        or heartbeat_md_state == "has_tasks"
+        or len(errors) > 0
+    )
 
-    last_error: Optional[BaseException] = None
-    delays: tuple[int, ...] = (0,) + RETRY_BACKOFF_SECONDS
-
-    for attempt_idx, delay in enumerate(delays, start=1):
-        if delay:
-            logger.info(
-                "heartbeat_gate retry sleeping %ds before attempt %d",
-                delay,
-                attempt_idx,
-            )
-            sleep(delay)
-        try:
-            response = client.messages.create(
-                model=model,
-                max_tokens=max_tokens,
-                system=[
-                    {
-                        "type": "text",
-                        "text": system_text,
-                        "cache_control": {"type": "ephemeral"},
-                    }
-                ],
-                messages=[{"role": "user", "content": user_text}],
-            )
-        except Exception as exc:  # noqa: BLE001 - re-narrowed below
-            if _is_retryable_api_error(exc) and attempt_idx < len(delays):
-                last_error = exc
-                logger.info(
-                    "heartbeat_gate attempt %d failed (%s); will retry",
-                    attempt_idx,
-                    type(exc).__name__,
-                )
-                continue
-            raise GateRoutingError(
-                f"Anthropic call failed: {type(exc).__name__}"
-            ) from exc
-
-        try:
-            outcome, reason = _parse_response(response)
-        except GateRoutingError as exc:
-            if attempt_idx < len(delays):
-                last_error = exc
-                logger.info(
-                    "heartbeat_gate attempt %d returned malformed response; "
-                    "will retry",
-                    attempt_idx,
-                )
-                continue
-            raise
-
+    if escalate:
         return GateDecision(
-            outcome=outcome,
-            reason=reason,
-            input_tokens=_usage_field(response, "input_tokens"),
-            cache_hit_tokens=_usage_field(response, "cache_read_input_tokens"),
-            output_tokens=_usage_field(response, "output_tokens"),
+            outcome="ESCALATE_TO_SONNET",
+            reason=build_reason(context),
         )
 
-    # Defensive fallback -- the loop above always either returns or
-    # raises, but if delays is empty for any reason we surface a
-    # well-formed error instead of looping silently.
-    raise GateRoutingError(  # pragma: no cover - unreachable
-        f"heartbeat_gate retry budget exhausted: {last_error!r}"
-    )
+    if len(issues_filed) > 0 or _has_below_threshold_activity(
+        signals_evaluated
+    ):
+        return GateDecision(outcome="LOG_AND_SKIP", reason="")
+
+    return GateDecision(outcome="HEARTBEAT_OK", reason="")
+
+
+def build_reason(context: Any) -> str:
+    """Build a deterministic, factual reason for an ``ESCALATE_TO_SONNET``.
+
+    Cites only the firing triggers -- novelty marker IDs, the heartbeat
+    contract flag, and error types -- in one paragraph, truncated
+    defensively to ``_REASON_MAX_LEN`` (500) characters. Contains no
+    action/recommendation framing ("so Sonnet can...", "should...");
+    the reason reports what was observed, it does not prescribe next
+    steps (Codex finding #8).
+
+    Guards every field access the same way :func:`decide_deterministic`
+    does, so this function is total over any ``context`` shape.
+    """
+    novelty_markers = _safe_list(context, "novelty_markers")
+    errors = _safe_list(context, "errors")
+    heartbeat_md_state = getattr(context, "heartbeat_md_state", None)
+
+    clauses: list[str] = []
+
+    if novelty_markers:
+        marker_ids = ", ".join(str(m) for m in novelty_markers)
+        clauses.append(f"novelty markers: {marker_ids}")
+
+    if heartbeat_md_state == "has_tasks":
+        clauses.append("heartbeat contract has tasks")
+
+    if errors:
+        error_types = ", ".join(_error_type(e) for e in errors)
+        clauses.append(f"tick errors: {error_types}")
+
+    if not clauses:
+        # Defensive fallback -- decide_deterministic only calls this when
+        # escalate is True, but if a future caller invokes build_reason
+        # directly with a context that doesn't actually trigger any of
+        # the three conditions, still return a non-empty, factual string
+        # rather than an empty reason.
+        reason = "Escalation triggered; no specific trigger fields present."
+    else:
+        reason = "Escalating on: " + "; ".join(clauses) + "."
+
+    return reason[:_REASON_MAX_LEN]
 
 
 # ---------------------------------------------------------------------------
@@ -247,212 +166,50 @@ def decide(
 # ---------------------------------------------------------------------------
 
 
-def _split_prompt(prompt_path: Path) -> tuple[str, str]:
-    """Read the prompt file and split on cache markers.
+def _safe_list(context: Any, field_name: str) -> list:
+    """Read ``context.<field_name>``, coercing anything non-list to ``[]``.
 
-    Returns ``(system_text, user_template)``. The system text is the
-    content between ``[CACHE_PREFIX_START]`` and ``[CACHE_PREFIX_END]``,
-    with surrounding whitespace stripped. The user template is the
-    portion AFTER ``[CACHE_PREFIX_END]``, also stripped.
-
-    Raises:
-        GateRoutingError: If the markers are missing or misordered.
-            We use ``GateRoutingError`` (not ``ValueError``) so the
-            orchestrator's blanket ``except GateRoutingError`` catches
-            this and falls back rather than crashing.
+    Totality guard: ``context`` might not be a ``GateContext`` at all
+    (missing attribute), or a field might have been corrupted into a
+    non-list value. Either way we treat it as "no entries" rather than
+    raising ``AttributeError``/``TypeError``.
     """
-    try:
-        template = Path(prompt_path).read_text(encoding="utf-8")
-    except FileNotFoundError as exc:
-        raise GateRoutingError(
-            f"Routing prompt file missing: {prompt_path}"
-        ) from exc
-
-    try:
-        start = template.index(_CACHE_PREFIX_START) + len(_CACHE_PREFIX_START)
-        end = template.index(_CACHE_PREFIX_END)
-    except ValueError as exc:
-        raise GateRoutingError(
-            "Routing prompt missing CACHE_PREFIX markers: " f"{prompt_path}"
-        ) from exc
-
-    if end < start:
-        raise GateRoutingError(
-            "Routing prompt CACHE_PREFIX markers misordered: " f"{prompt_path}"
-        )
-
-    system_text = template[start:end].strip()
-    user_template = template[end + len(_CACHE_PREFIX_END) :].strip()
-    return system_text, user_template
+    value = getattr(context, field_name, None)
+    if isinstance(value, list):
+        return value
+    return []
 
 
-def _render_user_section(user_template: str, context: Any) -> str:
-    """Substitute ``{{field}}`` placeholders with ``context`` values.
+def _error_type(entry: Any) -> str:
+    """Extract ``error_type`` from one ``errors[]`` entry, defensively.
 
-    ``context`` must be ``dataclasses.asdict``-able. List/dict values
-    are rendered via ``json.dumps`` so the model sees structured data
-    in a stable format. Missing fields render as the empty string
-    (defensive -- the prompt's static portion already specifies the
-    schema, so an unknown placeholder is a prompt-author bug, not a
-    runtime fault).
+    Malformed entries (not a dict, missing the key, non-string value)
+    render as ``"unknown"`` rather than raising.
     """
-    payload = asdict(context)
-
-    rendered = user_template
-    for key, value in payload.items():
-        token = "{{" + key + "}}"
-        if isinstance(value, (list, dict)):
-            rendered_value = json.dumps(value, ensure_ascii=False, default=str)
-        else:
-            rendered_value = str(value)
-        rendered = rendered.replace(token, rendered_value)
-    return rendered
+    if isinstance(entry, dict):
+        value = entry.get("error_type")
+        if isinstance(value, str) and value:
+            return value
+    return "unknown"
 
 
-def _build_client(
-    client_factory: Optional[Callable[[str], Any]], api_key: str
-) -> Any:
-    """Resolve the Anthropic client.
+def _has_below_threshold_activity(signals_evaluated: list) -> bool:
+    """True if any evaluated signal has non-zero cycle activity while
+    still ``"below"`` threshold.
 
-    The factory pattern lets tests inject a stub without monkeypatching
-    the ``anthropic`` module at import time. Production callers leave
-    ``client_factory=None`` and we resolve ``anthropic.Anthropic`` here
-    -- the late import means tests that never call ``decide()`` do not
-    need the SDK installed.
+    Guards every field on each entry: non-dict entries, missing
+    ``count_cycle``, and non-numeric ``count_cycle`` values are all
+    treated as "no activity" rather than raising.
     """
-    if client_factory is not None:
-        return client_factory(api_key)
-    import anthropic  # type: ignore[import-not-found]
-
-    return anthropic.Anthropic(api_key=api_key)
-
-
-def _is_retryable_api_error(exc: BaseException) -> bool:
-    """Return True for the anthropic transient error classes.
-
-    We import the SDK at call time so the import is lazy (tests that
-    never trigger this branch never need ``anthropic`` installed). If
-    the SDK is unavailable, no exception is retryable -- the failure
-    propagates as a ``GateRoutingError`` on the first attempt.
-    """
-    try:
-        import anthropic  # type: ignore[import-not-found]
-    except ImportError:  # pragma: no cover - defensive
-        return False
-
-    retryable: tuple[type[BaseException], ...] = (
-        getattr(anthropic, "RateLimitError", ()),
-        getattr(anthropic, "APITimeoutError", ()),
-        getattr(anthropic, "APIConnectionError", ()),
-        getattr(anthropic, "APIError", ()),
-    )
-    # Filter out empty-tuple placeholders before the isinstance check
-    # (defensive in case an SDK version is missing one of these classes).
-    real_classes = tuple(cls for cls in retryable if isinstance(cls, type))
-    if not real_classes:
-        return False
-    return isinstance(exc, real_classes)
-
-
-def _parse_response(response: Any) -> tuple[str, str]:
-    """Extract ``(outcome, reason)`` from the Anthropic response.
-
-    Raises :class:`GateRoutingError` on:
-    - Empty content.
-    - Non-JSON content (after fence-stripping).
-    - Missing or non-enum ``outcome`` field.
-    - Non-string ``reason`` field.
-
-    The reason is truncated to ``_REASON_MAX_LEN`` characters at parse
-    time (defense in depth -- the prompt says ≤500 chars but the model
-    occasionally exceeds).
-    """
-    text = _extract_text(response).strip()
-    if not text:
-        raise GateRoutingError("Empty Anthropic response content")
-
-    stripped = _strip_code_fence(text)
-    try:
-        parsed = json.loads(stripped)
-    except json.JSONDecodeError as exc:
-        raise GateRoutingError(f"Non-JSON gate response: {exc}") from exc
-
-    if not isinstance(parsed, dict):
-        raise GateRoutingError(
-            f"Gate response is not a JSON object: {type(parsed).__name__}"
-        )
-
-    outcome = parsed.get("outcome")
-    if outcome not in _VALID_OUTCOMES:
-        raise GateRoutingError(
-            f"Gate response has invalid outcome: {outcome!r}"
-        )
-
-    reason_raw = parsed.get("reason", "")
-    if reason_raw is None:
-        reason_raw = ""
-    if not isinstance(reason_raw, str):
-        raise GateRoutingError(
-            f"Gate response reason is not a string: {type(reason_raw).__name__}"
-        )
-
-    reason = reason_raw[:_REASON_MAX_LEN]
-    return outcome, reason
-
-
-def _extract_text(response: Any) -> str:
-    """Pull the first text block out of an Anthropic response.
-
-    Matches the SDK's ``response.content[0].text`` shape; tolerates
-    fixture-style dicts and missing attributes (returns empty string).
-    """
-    content = getattr(response, "content", None) or []
-    if not content:
-        return ""
-    first = content[0]
-    if hasattr(first, "text"):
-        return first.text or ""
-    if isinstance(first, dict):
-        return str(first.get("text", ""))
-    return ""
-
-
-def _strip_code_fence(text: str) -> str:
-    """Strip markdown code fences from an LLM response.
-
-    Mirrors ``doc_audit.judgment._llm_response._strip_code_fence``.
-    Haiku 4.5 frequently wraps JSON in ```json ...``` despite the
-    prompt forbidding fences -- so the parser strips them defensively.
-    """
-    stripped = text.strip()
-    if not stripped.startswith("```"):
-        return text
-    lines = stripped.splitlines()
-    if lines and lines[0].startswith("```"):  # pragma: no branch
-        lines = lines[1:]
-    if lines and lines[-1].startswith("```"):
-        lines = lines[:-1]
-    return "\n".join(lines).strip()
-
-
-def _usage_field(response: Any, name: str) -> int:
-    """Read ``response.usage.<name>``, defaulting to 0 if absent.
-
-    Handles three shapes:
-    - SDK object with ``.usage.<attr>``.
-    - Dict-shaped ``usage`` field.
-    - Missing ``usage`` entirely.
-    """
-    usage = getattr(response, "usage", None)
-    if usage is None:
-        return 0
-    if hasattr(usage, name):
-        value = getattr(usage, name)
-    elif isinstance(usage, dict):
-        value = usage.get(name, 0)
-    else:
-        value = 0
-    try:
-        return int(value or 0)
-    except (TypeError, ValueError):
-        return 0
+    for sig in signals_evaluated:
+        if not isinstance(sig, dict):
+            continue
+        if sig.get("threshold_status") != "below":
+            continue
+        count_cycle = sig.get("count_cycle", 0)
+        try:
+            if float(count_cycle) > 0:
+                return True
+        except (TypeError, ValueError):
+            continue
+    return False

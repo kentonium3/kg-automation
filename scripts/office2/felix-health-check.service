@@ -1,0 +1,17 @@
+[Unit]
+Description=felix-health-check — twice-daily system health check (off-agent)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+TimeoutStartSec=10min
+ExecStart=/usr/bin/python3 -m scripts.office2.felix_health_check.run
+Environment=HOME=/home/claude
+Environment=PYTHONPATH=/home/claude/kg-automation
+WorkingDirectory=/home/claude/kg-automation
+# NTFY_TOPIC is provisioned out-of-band on office2 (never committed here).
+# Leading "-" means startup proceeds even if the file is absent; the
+# wrapper then logs "ntfy skipped" and records it in the signal file
+# instead of failing the run (see contract's non-fatal delivery rule).
+EnvironmentFile=-/data/services/openclaw/felix-health-check/ntfy.env

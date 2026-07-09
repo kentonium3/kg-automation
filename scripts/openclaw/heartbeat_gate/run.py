@@ -4,7 +4,8 @@ Composes the four heartbeat-gate modules into one tick:
 
 1. :mod:`context.load_context` -- read ``last-tick.json`` +
    ``HEARTBEAT.md``; derive novelty markers.
-2. :mod:`gate.decide` -- run the Haiku routing prompt.
+2. :mod:`gate.decide_deterministic` -- apply the deterministic
+   escalation rule (#676; no LLM call in the tick hot path).
 3. :mod:`escalator.escalate` -- if ``ESCALATE_TO_SONNET``, wake the
    main agent via ``openclaw system event --mode now``.
 4. :mod:`ledger.write_tick_record` -- write
@@ -22,6 +23,14 @@ ANY failure in steps 1-2 triggers the fallback path:
 - Write the ledger entry per the normal path.
 - Exit 0 (observation succeeded; the fallback IS the observation).
 
+Step 2's ``except`` is intentionally broadened to catch ``Exception``
+(not just the historical ``GateRoutingError``/``FileNotFoundError``
+pair): ``decide_deterministic`` is designed to be total (never raise),
+but this is defense-in-depth so an unanticipated implementation bug
+still lands on the fallback path (exit 0) rather than escaping to the
+unhandled-exception emergency path (exit 1), which would contradict
+FR-007 (Codex finding #2).
+
 A failure in steps 3 or 4 (escalator or ledger write) cannot be fully
 recovered. We still try to write the ledger with whatever partial
 information we have, and exit 0 if at least one of the persistence
@@ -31,16 +40,13 @@ CLI flags
 ---------
 - ``--last-tick PATH``        signal-extraction tick file.
 - ``--heartbeat-md PATH``     operator's contract file.
-- ``--api-key PATH``          Anthropic API key file.
-- ``--prompt PATH``           routing prompt template.
 - ``--last-decision PATH``    atomic-write target for tick decision.
 - ``--ledger PATH``           append-only JSONL ledger.
 - ``--openclaw-binary PATH``  override hook for tests; production uses
   ``openclaw`` on PATH.
-- ``--dry-run``               skip the actual Haiku call AND the
-  escalator; print SUMMARY only. The ledger is NOT written when
-  ``--dry-run`` is set, so dry-run never pollutes the production
-  decision file.
+- ``--dry-run``               skip the escalator; print SUMMARY only.
+  The ledger is NOT written when ``--dry-run`` is set, so dry-run
+  never pollutes the production decision file.
 """
 
 from __future__ import annotations
@@ -77,7 +83,6 @@ __all__ = [
     "DEFAULT_LAST_DECISION_PATH",
     "DEFAULT_LAST_TICK_PATH",
     "DEFAULT_LEDGER_PATH",
-    "DEFAULT_PROMPT_PATH",
     "FALLBACK_REASON_DEFAULT",
     "main",
     "new_tick_id",
@@ -97,9 +102,6 @@ DEFAULT_LAST_DECISION_PATH = Path(
 )
 DEFAULT_LEDGER_PATH = Path(
     "/data/services/openclaw/felix-heartbeat-gate/gate-ledger.jsonl"
-)
-DEFAULT_PROMPT_PATH = (
-    Path(__file__).resolve().parent / "prompts" / "routing.prompt.md"
 )
 
 FALLBACK_REASON_DEFAULT = "Gate fallback — see ledger"
@@ -142,14 +144,11 @@ def run_tick(
     *,
     last_tick_path: Path,
     heartbeat_md_path: Path,
-    api_key_path: Path,
-    prompt_path: Path,
     last_decision_path: Path,
     ledger_path: Path,
     openclaw_binary: str = "openclaw",
     dry_run: bool = False,
     now: Optional[datetime] = None,
-    client_factory: Optional[Any] = None,
     escalator_fn: Optional[Any] = None,
 ) -> _ledger.GateTickRecord:
     """Run one heartbeat-gate tick.
@@ -161,8 +160,8 @@ def run_tick(
 
     The function is structured so each step's failure mode rolls
     forward into the next: a failed context load goes to fallback; a
-    failed gate call goes to fallback; a failed escalation populates
-    the ``errors`` field but does not raise.
+    failed gate decision goes to fallback; a failed escalation
+    populates the ``errors`` field but does not raise.
     """
     started_at = now or datetime.now(tz=timezone.utc)
     tick_id = new_tick_id(started_at)
@@ -199,29 +198,35 @@ def run_tick(
             }
         )
         fallback_invoked = True
+    except Exception as exc:  # noqa: BLE001 - defense-in-depth (post-merge Codex #1)
+        # load_context assumes last-tick.json is a JSON object with iterable
+        # list fields; a valid-but-wrong-shaped payload (e.g. a top-level
+        # array or a truthy scalar field) raises AttributeError/TypeError.
+        # Catch it here so step-1 failures land on the fallback path
+        # (fallback_invoked=True, exit 0) rather than escaping to the
+        # unhandled-exception emergency path (exit 1) — FR-007.
+        errors.append(
+            {
+                "error_type": "context_load_failed",
+                "error_message": f"{type(exc).__name__}: {exc}",
+            }
+        )
+        fallback_invoked = True
 
     # --- Step 2: gate decision --------------------------------------------
     if context_obj is not None and not fallback_invoked:
         try:
-            decision = _gate.decide(
-                context_obj,
-                api_key_path=api_key_path,
-                prompt_path=prompt_path,
-                client_factory=client_factory,
-            )
-        except _gate.GateRoutingError as exc:
+            decision = _gate.decide_deterministic(context_obj)
+        except Exception as exc:  # noqa: BLE001 - defense-in-depth (Codex #2)
+            # decide_deterministic is designed to be total (never raise),
+            # but this broadened except is deliberate: it ensures ANY
+            # unanticipated implementation bug still lands on the
+            # fallback path (exit 0) rather than escaping to the
+            # unhandled-exception emergency path (exit 1), which would
+            # contradict FR-007.
             errors.append(
                 {
-                    "error_type": "gate_routing_failed",
-                    "error_message": f"{type(exc).__name__}: {exc}",
-                }
-            )
-            fallback_invoked = True
-        except FileNotFoundError as exc:
-            # Missing API key file -- distinct from a routing error.
-            errors.append(
-                {
-                    "error_type": "api_key_missing",
+                    "error_type": "gate_decision_failed",
                     "error_message": f"{type(exc).__name__}: {exc}",
                 }
             )
@@ -342,18 +347,6 @@ def _build_parser() -> argparse.ArgumentParser:
         ),
     )
     parser.add_argument(
-        "--api-key",
-        type=Path,
-        default=_gate.DEFAULT_API_KEY_PATH,
-        help=f"Anthropic API key file (default: {_gate.DEFAULT_API_KEY_PATH})",
-    )
-    parser.add_argument(
-        "--prompt",
-        type=Path,
-        default=DEFAULT_PROMPT_PATH,
-        help=f"routing prompt template (default: {DEFAULT_PROMPT_PATH})",
-    )
-    parser.add_argument(
         "--last-decision",
         type=Path,
         default=DEFAULT_LAST_DECISION_PATH,
@@ -377,8 +370,8 @@ def _build_parser() -> argparse.ArgumentParser:
         "--dry-run",
         action="store_true",
         help=(
-            "skip the Haiku call AND the escalator; do NOT write the ledger. "
-            "Useful for smoke-testing the orchestrator wiring."
+            "skip the escalator; do NOT write the ledger. Useful for "
+            "smoke-testing the orchestrator wiring."
         ),
     )
     return parser
@@ -393,8 +386,6 @@ def main(argv: Optional[list[str]] = None) -> int:
         record = run_tick(
             last_tick_path=args.last_tick,
             heartbeat_md_path=args.heartbeat_md,
-            api_key_path=args.api_key,
-            prompt_path=args.prompt,
             last_decision_path=args.last_decision,
             ledger_path=args.ledger,
             openclaw_binary=args.openclaw_binary,

@@ -1,0 +1,10 @@
+[Unit]
+Description=felix-health-check — twice-daily system health check (off-agent)
+
+[Timer]
+OnCalendar=*-*-* 11:00:00
+OnCalendar=*-*-* 23:00:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target
