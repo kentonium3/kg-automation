@@ -1,0 +1,15 @@
+{
+  "coordination_branch": "kitty/mission-prompt-sync-ff-race-01KX3SZC",
+  "created_at": "2026-07-09T16:04:35.552219+00:00",
+  "flattened": false,
+  "friendly_name": "Prompt-sync FETCH_HEAD race fix",
+  "mission_id": "01KX3SZC2YHPWRCYD7WXQSFZQ7",
+  "mission_number": null,
+  "mission_slug": "prompt-sync-ff-race-01KX3SZC",
+  "mission_type": "software-dev",
+  "purpose_context": "Agent prompt changes reach office2 via a timer that git-pulls a shared checkout, but a second deploy actor (felix-deployer) races the shared FETCH_HEAD and intermittently breaks the pull for weeks, so merged prompt changes never reach the running Felix agents. This mission makes both actors' pulls race-immune, serializes their working-tree mutation, deletes the stale lane branch that amplifies the race, and adds a behind-N-ticks health signal so a silent deploy stall cannot recur.",
+  "purpose_tldr": "Stop the office2 prompt-sync deploy path from silently failing under a git concurrency race.",
+  "slug": "prompt-sync-ff-race-01KX3SZC",
+  "target_branch": "fix/prompt-sync-ff-race",
+  "topology": "coord"
+}
