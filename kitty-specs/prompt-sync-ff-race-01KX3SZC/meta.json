@@ -1,24 +1,10 @@
 {
-  "accept_commit": "b70ae5520cbe1fa169dcdb5afa4ae797b01f465c",
-  "acceptance_history": [
-    {
-      "accept_commit": "b70ae5520cbe1fa169dcdb5afa4ae797b01f465c",
-      "acceptance_mode": "pr",
-      "accepted_at": "2026-07-09T18:24:57.799145+00:00",
-      "accepted_by": "kentgale",
-      "accepted_from_commit": "492b0d8faecf288e1644d0e3647ceb8fd5f3377b"
-    }
-  ],
-  "acceptance_mode": "pr",
-  "accepted_at": "2026-07-09T18:24:57.799145+00:00",
-  "accepted_by": "kentgale",
-  "accepted_from_commit": "492b0d8faecf288e1644d0e3647ceb8fd5f3377b",
   "coordination_branch": "kitty/mission-prompt-sync-ff-race-01KX3SZC",
   "created_at": "2026-07-09T16:04:35.552219+00:00",
   "flattened": false,
   "friendly_name": "Prompt-sync FETCH_HEAD race fix",
   "mission_id": "01KX3SZC2YHPWRCYD7WXQSFZQ7",
-  "mission_number": null,
+  "mission_number": 89,
   "mission_slug": "prompt-sync-ff-race-01KX3SZC",
   "mission_type": "software-dev",
   "pr_bound": true,
@@ -26,7 +12,5 @@
   "purpose_tldr": "Stop the office2 prompt-sync deploy path from silently failing under a git concurrency race.",
   "slug": "prompt-sync-ff-race-01KX3SZC",
   "target_branch": "fix/prompt-sync-ff-race",
-  "topology": "coord",
-  "vcs": "git",
-  "vcs_locked_at": "2026-07-09T16:46:16.665112+00:00"
+  "topology": "coord"
 }

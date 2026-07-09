@@ -1,0 +1,77 @@
+# Operator-applied bootstrap record for mission prompt-sync-ff-race-01KX3SZC
+# (kentonium3/kg-automation#667). This is a *manual* controlled bootstrap, NOT a
+# queued manifest — the fix cannot ride the checkout's own `git pull` (that is
+# the broken path being repaired). See research D6 + quickstart.md.
+#
+# There is intentionally NO executable entrypoint script: the whole deploy is a
+# hand-run sequence of git/systemctl commands on office2 (recorded verbatim in
+# `notes` below and in the mission quickstart). The `entrypoint` field is
+# required by the v1 manifest schema and must match
+# `^scripts/deploy/.+\.(sh|py)$`; it names the (non-existent) manual-bootstrap
+# path purely to satisfy the schema and to signal "manual bootstrap, no script".
+# apply_mode: bootstrap makes the operator-applied nature explicit.
+#
+# NUMBERING: if 0012 is taken at deploy time, the operator renames this file to
+# the next free number (e.g. 0013-…) before committing — the applied-record
+# sequence must stay gap-free and monotonic.
+# Source identifier: exactly one of mission_slug OR issue (schema oneOf). We use
+# mission_slug (the canonical spec-kitty source); kentonium3/kg-automation#667 is
+# referenced throughout `notes`.
+schema_version: v1
+name: prompt-sync-ff-race
+mission_slug: prompt-sync-ff-race-01KX3SZC
+tier: 1
+entrypoint: scripts/deploy/manual-bootstrap-prompt-sync-ff-race.sh
+audited_surface: true
+verification:
+  pre:
+    - test -f scripts/deploy/lib/gitsync.py
+    - test -f scripts/deploy/lib/deploylock.py
+    - test -f scripts/deploy/lib/health.py
+  post:
+    - test -f scripts/deploy/lib/gitsync.py
+    - test -f scripts/deploy/lib/deploylock.py
+    - test -f scripts/deploy/lib/health.py
+    - git -C /home/claude/kg-automation rev-list --count HEAD..origin/main
+created_at: '2026-07-09T00:00:00Z'
+created_by: operator-bootstrap
+apply_mode: bootstrap
+applied_at: '2026-07-09T00:00:00Z'
+notes: 'Controlled operator bootstrap of the prompt-sync FETCH_HEAD race fix
+  (kentonium3/kg-automation#667, mission prompt-sync-ff-race-01KX3SZC). Delivered
+  by hand, NOT a queued manifest: the fixed code can only arrive via the
+  checkout''s own git pull, which is the exact broken path being repaired, so a
+  self-pull rollout is unsound (research D6). Manual sequence run on office2 as
+  claude (quickstart.md is authoritative):
+
+  1. Merge the mission to main.
+
+  2. Stop both timers so no tick races the bootstrap: systemctl --user stop
+  agent-prompt-sync.timer felix-deployer.timer.
+
+  3. Manually fast-forward the shared checkout with the race-immune form: cd
+  /home/claude/kg-automation && git fetch origin main && git merge --ff-only
+  origin/main.
+
+  4. Verify the new scripts/deploy/lib/{gitsync,deploylock,health}.py files and
+  the modified actor tick bodies are present (ls + git log --oneline -1).
+
+  5. Delete the stale origin lane branch (FR-003): git push origin --delete
+  kitty/mission-trustworthy-weekly-habit-report-01KV4GZ7-lane-a — dead since the
+  weekly-habit-report mission merged ~2026-06-16; it amplified the bare-fetch
+  multi-head surface.
+
+  6. Manual audited-surface rebaseline (out-of-band exception): the new
+  scripts/deploy/lib/** files change a monitored surface. Confirm drift is
+  expected-only FIRST, then reset per docs/runbooks/security-baseline-ops.md.
+  Because this is an out-of-band manual bootstrap (not the felix-deployer happy
+  path), the rebaseline is a manual reset, not an auto-rebaseline.
+
+  7. Restart both timers: systemctl --user start agent-prompt-sync.timer
+  felix-deployer.timer.
+
+  Audited surface is specifically the new scripts/deploy/lib/** primitives (the
+  deploy-pipeline registry matches scripts/deploy/lib/** + deploys/*.yaml); the
+  actor edits to _tick.py / deploy_agent_prompts.py / notify.py are NOT
+  registry-matched. No sudo required at any step; any sudo step would be handed
+  to Kent per Tier-0 discipline.'

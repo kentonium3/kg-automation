@@ -213,6 +213,49 @@ def _git_mock(
 
 
 # ---------------------------------------------------------------------------
+# WP04 autouse harness — deploylock + advance_checkout seams (#667)
+# ---------------------------------------------------------------------------
+#
+# WP04 wraps the whole tick in a shared ``deploylock`` and routes the pull
+# through ``advance_checkout``. These end-to-end tests predate WP04 and drive the
+# tick via the ``_git`` seam (whose ``_git_mock`` still models ``pull``). To keep
+# them green without changing what they exercise, an autouse fixture:
+#   1. Points ``deploylock`` at a tmp file so it never touches the read-only
+#      ``/data`` default path.
+#   2. Redirects the health state dir to tmp.
+#   3. Shims ``tick.advance_checkout`` to a faithful pull-equivalent that probes
+#      the SAME ``_git`` seam: it runs ``git pull --ff-only`` (so ``pull_rc`` still
+#      drives a failure) then two ``rev-parse`` reads for pre/post — identical to
+#      the pre-WP04 tick ordering. A non-zero pull maps to a ``fetch_failed``
+#      advance so the tick still logs ``tick_skip`` and returns early.
+
+
+def _advance_shim_via_git(repo_root, **kwargs):
+    pull = tick._git(["pull", "--ff-only"], cwd=repo_root)
+    pre = tick._resolve_head_sha(repo_root)
+    if pull.returncode != 0:
+        return tick.AdvanceResult(
+            ok=False, advanced=False, pre_head=pre, post_head=pre,
+            origin_head="", behind=0, ahead=0, diverged=False,
+            reason="fetch_failed", stderr=(pull.stderr or "")[:200],
+        )
+    post = tick._resolve_head_sha(repo_root)
+    return tick.AdvanceResult(
+        ok=True, advanced=bool(post) and post != pre, pre_head=pre, post_head=post,
+        origin_head=post, behind=1 if (post and post != pre) else 0, ahead=0,
+        diverged=False,
+    )
+
+
+@pytest.fixture(autouse=True)
+def _wp04_seams(monkeypatch, tmp_path):
+    monkeypatch.setenv("DEPLOY_CHECKOUT_LOCK", str(tmp_path / "wp04-checkout.lock"))
+    monkeypatch.setattr(tick, "DEFAULT_STATE_DIR", tmp_path / "wp04-state")
+    monkeypatch.setattr(tick, "advance_checkout", _advance_shim_via_git)
+    yield
+
+
+# ---------------------------------------------------------------------------
 # Scenario 1: empty queue, git pull succeeds
 # ---------------------------------------------------------------------------
 

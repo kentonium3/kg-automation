@@ -1,38 +1,57 @@
-"""Felix agent-prompt deploy pipeline helper (WP01).
+"""Felix agent-prompt deploy pipeline helper (WP01 + #667 WP05).
 
-Pull-based sync: each tick (every 5 min via systemd) runs `git pull --ff-only`
-inside /home/claude/kg-automation, then for each Felix agent declared under
+Pull-based sync: each tick (every 5 min via systemd) advances the shared
+checkout at /home/claude/kg-automation and, for each Felix agent declared under
 services[openclaw].agents.* in service-inventory.json, MD5-compares each
 in-scope prompt file in the agent's source_in_repo against the deployed file
 at workspace/<filename>, and atomically copies any drifted file. Audit log
 at /data/services/openclaw/deploy/agent-prompt-sync.jsonl.
+
+Race-immune advance + shared lock (#667):
+    The checkout advance goes through scripts.deploy.lib.gitsync.advance_checkout,
+    which fetches then fast-forwards the atomic remote-tracking ref origin/main
+    (never .git/FETCH_HEAD), structurally eliminating the historical
+    "Cannot fast-forward to multiple branches" race. The whole checkout-touching
+    critical section (the advance AND the per-agent prompt-copy loop) runs inside
+    the shared scripts.deploy.lib.deploylock so it never races felix-deployer's
+    concurrent checkout mutation. If the lock is contended the tick defers cleanly
+    (git_pull_skipped audit record, exit 0 — prompts are NOT copied outside the
+    lock). A per-actor health watermark (scripts.deploy.lib.health) fires at most
+    one ntfy alert per confirmed-failure streak so a silent multi-week stall is
+    impossible.
 
 Invocation form (mandatory per NFR-005):
 
     python3 -m scripts.openclaw.deploy.deploy_agent_prompts [--dry-run] [--agent SLUG]
 
 Exit codes (per contracts/helper-cli.md):
-    0: success (no drift OR all copies succeeded)
-    1: partial failure (git pull succeeded, one or more per-file copies failed)
-    2: git pull failed (no copies attempted)
+    0: success (no drift OR all copies succeeded; also a benign lock defer)
+    1: partial failure (advance succeeded, one or more per-file copies failed)
+    2: git advance failed (fetch/merge/diverged — no copies attempted)
     3: validation error (missing .git/, missing service-inventory.json, unknown --agent slug)
 
-Stdlib only — no requests, httpx, pydantic, or other non-stdlib imports.
+Stdlib only for the core sync path; the shared deploy primitives
+(gitsync/deploylock/health) and the generic ntfy notifier are imported from
+scripts.deploy.* — no requests, httpx, pydantic, or other third-party imports.
 """
 from __future__ import annotations
 
 import argparse
 import hashlib
+import importlib.util
 import json
 import os
-import subprocess
 import sys
 import time
 import uuid
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Iterator, List, Optional
+
+from scripts.deploy.lib import health as _health
+from scripts.deploy.lib.deploylock import LockUnavailable, deploylock
+from scripts.deploy.lib.gitsync import AdvanceResult, advance_checkout
 
 
 # ---------------------------------------------------------------------------
@@ -47,7 +66,72 @@ REPO_ROOT_DEFAULT = Path("/home/claude/kg-automation")
 AUDIT_PATH_DEFAULT = Path("/data/services/openclaw/deploy/agent-prompt-sync.jsonl")
 SERVICE_INVENTORY_RELATIVE = Path("docs/design/architecture/data/service-inventory.json")
 
+# Per-actor git-advance health watermark (#667, WP05). Lives beside the audit
+# log so the prompt-sync deploy state is co-located.
+HEALTH_STATE_PATH_DEFAULT = Path("/data/services/openclaw/deploy/git-health.json")
+
+# This actor's ntfy topic env var. The generic health notifier reads it and
+# falls back to FELIX_DEPLOYER_NTFY_TOPIC when unset (see notify.py).
+HEALTH_ACTOR = "agent-prompt-sync"
+HEALTH_TOPIC_ENV = "AGENT_PROMPT_SYNC_NTFY_TOPIC"
+
 MD5_CHUNK_BYTES = 65536
+
+
+# ---------------------------------------------------------------------------
+# Cross-package notify loader
+# ---------------------------------------------------------------------------
+#
+# The generic ntfy health notifier lives in scripts/deploy/felix-deployer/notify.py.
+# That directory name contains a hyphen, so it is NOT importable via a dotted
+# path (``import scripts.deploy.felix_deployer.notify`` → ModuleNotFoundError).
+# The repo convention for reaching it (see tests/deploy/test_notify.py and
+# felix-deployer's own _tick.py path bootstrap) is an ``importlib`` load from the
+# on-disk path. We wrap that in a lazily-cached accessor so importing this module
+# stays side-effect-free and cheap.
+
+_FELIX_DEPLOYER_DIR = Path(__file__).resolve().parents[2] / "deploy" / "felix-deployer"
+_notify_module = None
+
+
+def _load_notify():
+    """Load and cache the felix-deployer ``notify`` module from its on-disk path.
+
+    Mirrors the ``importlib.util.spec_from_file_location`` mechanism used by the
+    existing felix-deployer tests, because the hyphenated ``felix-deployer/``
+    directory is not importable as a dotted package path.
+    """
+    global _notify_module
+    if _notify_module is None:
+        repo_root = _FELIX_DEPLOYER_DIR.parents[2]
+        for extra in (str(repo_root), str(_FELIX_DEPLOYER_DIR)):
+            if extra not in sys.path:
+                sys.path.insert(0, extra)
+        spec = importlib.util.spec_from_file_location(
+            "felix_deployer_notify_for_prompt_sync",
+            _FELIX_DEPLOYER_DIR / "notify.py",
+        )
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        _notify_module = module
+    return _notify_module
+
+
+def _health_notifier(title: str, body: str) -> None:
+    """Notifier seam passed to :func:`scripts.deploy.lib.health.record`.
+
+    Dispatches a best-effort ntfy health alert for this actor via the generic
+    ``dispatch_health_notification`` in the felix-deployer notify module. The
+    notifier never raises into the tick — the underlying dispatcher returns a
+    LibResult and swallows every failure mode.
+    """
+    notify = _load_notify()
+    notify.dispatch_health_notification(
+        HEALTH_ACTOR,
+        title,
+        body,
+        topic_env=HEALTH_TOPIC_ENV,
+    )
 
 
 # Exit codes
@@ -73,12 +157,21 @@ class AgentInventoryEntry:
 
 @dataclass(frozen=True)
 class GitPullResult:
-    """Result of git_pull(): success + post-pull HEAD SHA, or failure + stage + stderr."""
+    """Result of git_pull(): success + post-pull HEAD SHA, or failure + stage + stderr.
+
+    Public field contract (``success``, ``head_sha``, ``stderr``, ``stage``) is
+    frozen — downstream code and existing tests depend on these names and order.
+    ``advance`` is an additive, optional companion field carrying the underlying
+    :class:`~scripts.deploy.lib.gitsync.AdvanceResult` so ``run_tick`` can enrich
+    the failure audit record with ref-state and feed the health watermark; it
+    defaults to ``None`` and never displaces the four public fields.
+    """
 
     success: bool
     head_sha: Optional[str]
     stderr: str
     stage: Optional[str]
+    advance: Optional[AdvanceResult] = None
 
 
 # ---------------------------------------------------------------------------
@@ -212,41 +305,35 @@ def atomic_copy(src: Path, dst: Path) -> None:
 
 
 def git_pull(repo_root: Path) -> GitPullResult:
-    """Run `git fetch && git pull --ff-only origin main` inside repo_root.
+    """Race-immune fast-forward of *repo_root* to origin/main (#667).
 
-    Returns a GitPullResult capturing success, post-pull HEAD SHA, and stage
-    on failure (one of "fetch" or "pull"). Never raises; subprocess failures
-    are surfaced via the GitPullResult.
+    Delegates to :func:`scripts.deploy.lib.gitsync.advance_checkout` with
+    ``assume_locked=True`` — the caller (:func:`run_tick`) already holds the
+    shared ``deploylock`` around the whole checkout-mutating critical section
+    (fetch/merge + prompt-copy). ``advance_checkout`` fetches, then fast-forwards
+    the atomic remote-tracking **ref** ``origin/main`` (never ``.git/FETCH_HEAD``),
+    structurally eliminating the ``Cannot fast-forward to multiple branches`` race.
+
+    The :class:`AdvanceResult` is adapted onto the frozen public ``GitPullResult``
+    shape (unchanged field names): a clean no-op (``behind == 0``) and a real
+    fast-forward both map to ``success=True``; ``diverged``/``fetch_failed``/
+    ``merge_failed``/``lock_unavailable`` map to ``success=False`` with ``stage``
+    carrying the ``reason``. The underlying result is preserved on ``.advance``
+    for the enriched audit record + health watermark.
+
+    Never raises; git failures are surfaced via ``advance_checkout``'s reason.
     """
-    fetch = subprocess.run(
-        ["git", "fetch", "origin", "main"],
-        cwd=str(repo_root),
-        capture_output=True,
-        text=True,
-        check=False,
+    result = advance_checkout(repo_root, assume_locked=True)
+    success = result.ok and (result.advanced or result.behind == 0)
+    head_sha = result.post_head or None
+    stage = None if success else result.reason
+    return GitPullResult(
+        success=success,
+        head_sha=head_sha,
+        stderr=result.stderr,
+        stage=stage,
+        advance=result,
     )
-    if fetch.returncode != 0:
-        return GitPullResult(success=False, head_sha=None, stderr=fetch.stderr.strip(), stage="fetch")
-    pull = subprocess.run(
-        ["git", "pull", "--ff-only", "origin", "main"],
-        cwd=str(repo_root),
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-    if pull.returncode != 0:
-        return GitPullResult(success=False, head_sha=None, stderr=pull.stderr.strip(), stage="pull")
-    rev_parse = subprocess.run(
-        ["git", "rev-parse", "HEAD"],
-        cwd=str(repo_root),
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-    if rev_parse.returncode != 0:
-        return GitPullResult(success=False, head_sha=None, stderr=rev_parse.stderr.strip(), stage="rev_parse")
-    head_sha = rev_parse.stdout.strip()
-    return GitPullResult(success=True, head_sha=head_sha, stderr="", stage=None)
 
 
 # ---------------------------------------------------------------------------
@@ -454,55 +541,22 @@ def _validate(repo_root: Path, agent_filter: Optional[str]) -> Optional[str]:
     return None
 
 
-def run_tick(args: argparse.Namespace, repo_root: Path, audit_path: Path) -> int:
-    """Run one tick: validate, git_pull, iterate agents, return exit code."""
-    tick_id = str(uuid.uuid4())
-    start = time.monotonic()
-
-    validation_error = _validate(repo_root, args.agent)
-    if validation_error is not None:
-        sys.stderr.write(validation_error + "\n")
-        return EXIT_VALIDATION_ERROR
-
-    inventory_path = repo_root / SERVICE_INVENTORY_RELATIVE
-
-    git_head: Optional[str] = None
-    if not args.dry_run:
-        pull_result = git_pull(repo_root)
-        if not pull_result.success:
-            audit_append(
-                audit_path,
-                audit_record(
-                    kind="git_pull_failed",
-                    tick_id=tick_id,
-                    stage=pull_result.stage or "unknown",
-                    git_exit_code=1,
-                    error=pull_result.stderr[:2000],
-                ),
-            )
-            duration_ms = int((time.monotonic() - start) * 1000)
-            audit_tick_summary(
-                audit_path,
-                tick_id=tick_id,
-                agents_processed=0,
-                files_copied=0,
-                files_skipped=0,
-                files_errored=0,
-                git_head_after_pull=None,
-                exit_code=EXIT_GIT_PULL_FAILED,
-                duration_ms=duration_ms,
-            )
-            return EXIT_GIT_PULL_FAILED
-        git_head = pull_result.head_sha
-
-    dry_run_sink: List[str] = []
+def _sync_all_agents(
+    inventory_path: Path,
+    repo_root: Path,
+    audit_path: Path,
+    tick_id: str,
+    agent_filter: Optional[str],
+    dry_run: bool,
+    dry_run_sink: List[str],
+) -> tuple[int, int, int, int]:
+    """Iterate agents and sync each; return (processed, copied, skipped, errored)."""
     total_copied = 0
     total_skipped = 0
     total_errored = 0
     agents_processed = 0
-
     for agent in iter_agents(inventory_path):
-        if args.agent is not None and agent.slug != args.agent:
+        if agent_filter is not None and agent.slug != agent_filter:
             continue
         agents_processed += 1
         counts = sync_agent(
@@ -510,17 +564,157 @@ def run_tick(args: argparse.Namespace, repo_root: Path, audit_path: Path) -> int
             repo_root=repo_root,
             log_path=audit_path,
             tick_id=tick_id,
-            dry_run=args.dry_run,
-            dry_run_sink=dry_run_sink if args.dry_run else None,
+            dry_run=dry_run,
+            dry_run_sink=dry_run_sink if dry_run else None,
         )
         total_copied += counts.copied
         total_skipped += counts.skipped
         total_errored += counts.errored
+    return agents_processed, total_copied, total_skipped, total_errored
 
+
+def run_tick(
+    args: argparse.Namespace,
+    repo_root: Path,
+    audit_path: Path,
+    health_state_path: Optional[Path] = None,
+) -> int:
+    """Run one tick: validate, git_pull, iterate agents, return exit code.
+
+    The checkout-touching critical section (the ``git_pull`` fetch/merge AND the
+    per-agent prompt-copy loop) runs inside the shared ``deploylock`` so it never
+    races felix-deployer's concurrent checkout mutation (#667). If the lock is
+    contended past its bounded retry, the tick defers cleanly: a
+    ``git_pull_skipped`` audit record is written and the tick returns success —
+    prompts are NOT copied outside the lock.
+    """
+    tick_id = str(uuid.uuid4())
+    start = time.monotonic()
+    if health_state_path is None:
+        health_state_path = HEALTH_STATE_PATH_DEFAULT
+
+    validation_error = _validate(repo_root, args.agent)
+    if validation_error is not None:
+        sys.stderr.write(validation_error + "\n")
+        return EXIT_VALIDATION_ERROR
+
+    inventory_path = repo_root / SERVICE_INVENTORY_RELATIVE
+    dry_run_sink: List[str] = []
+
+    # --dry-run is read-only (no fetch/merge, no copy) — it takes no lock so it
+    # can never block, and mirrors the existing dry-run contract.
     if args.dry_run:
+        _sync_all_agents(
+            inventory_path,
+            repo_root,
+            audit_path,
+            tick_id,
+            args.agent,
+            dry_run=True,
+            dry_run_sink=dry_run_sink,
+        )
         for line in dry_run_sink:
             sys.stdout.write(line + "\n")
         return EXIT_SUCCESS
+
+    # Real tick: hold the shared checkout lock across fetch/merge + copy.
+    try:
+        with deploylock():
+            return _run_locked_tick(
+                inventory_path=inventory_path,
+                repo_root=repo_root,
+                audit_path=audit_path,
+                health_state_path=health_state_path,
+                tick_id=tick_id,
+                start=start,
+                agent_filter=args.agent,
+            )
+    except LockUnavailable:
+        # Benign defer: the other actor held the lock. Record it and retry next
+        # tick. NOT a git failure and NOT a health failure — no prompts copied.
+        audit_append(
+            audit_path,
+            audit_record(
+                kind="git_pull_skipped",
+                tick_id=tick_id,
+                stage="lock",
+                reason="lock_unavailable",
+            ),
+        )
+        return EXIT_SUCCESS
+
+
+def _run_locked_tick(
+    *,
+    inventory_path: Path,
+    repo_root: Path,
+    audit_path: Path,
+    health_state_path: Path,
+    tick_id: str,
+    start: float,
+    agent_filter: Optional[str],
+) -> int:
+    """The fetch/merge + copy body — runs with the shared deploylock held."""
+    pull_result = git_pull(repo_root)
+    advance = pull_result.advance
+
+    # Update the health watermark from the advance outcome (fires at most one
+    # ntfy alert per confirmed-failure streak; lock_unavailable never reaches
+    # here since the lock is held). Best-effort — the notifier never raises.
+    if advance is not None:
+        _health.record(
+            HEALTH_ACTOR,
+            advance,
+            state_path=health_state_path,
+            notifier=_health_notifier,
+        )
+
+    if not pull_result.success:
+        audit_append(
+            audit_path,
+            audit_record(
+                kind="git_pull_failed",
+                tick_id=tick_id,
+                stage=pull_result.stage or "unknown",
+                git_exit_code=1,
+                error=pull_result.stderr[:2000],
+                local_head=(advance.pre_head if advance else None),
+                origin_head=(advance.origin_head if advance else None),
+                behind=(advance.behind if advance else None),
+                ahead=(advance.ahead if advance else None),
+                reason=(advance.reason if advance else pull_result.stage),
+            ),
+        )
+        duration_ms = int((time.monotonic() - start) * 1000)
+        audit_tick_summary(
+            audit_path,
+            tick_id=tick_id,
+            agents_processed=0,
+            files_copied=0,
+            files_skipped=0,
+            files_errored=0,
+            git_head_after_pull=None,
+            exit_code=EXIT_GIT_PULL_FAILED,
+            duration_ms=duration_ms,
+        )
+        return EXIT_GIT_PULL_FAILED
+
+    git_head = pull_result.head_sha
+
+    (
+        agents_processed,
+        total_copied,
+        total_skipped,
+        total_errored,
+    ) = _sync_all_agents(
+        inventory_path,
+        repo_root,
+        audit_path,
+        tick_id,
+        agent_filter,
+        dry_run=False,
+        dry_run_sink=[],
+    )
 
     exit_code = EXIT_PARTIAL_FAILURE if total_errored > 0 else EXIT_SUCCESS
     duration_ms = int((time.monotonic() - start) * 1000)

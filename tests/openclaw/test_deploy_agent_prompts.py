@@ -11,13 +11,13 @@ from __future__ import annotations
 
 import json
 import os
-import subprocess
 import sys
 from pathlib import Path
 from unittest.mock import patch
 
 import pytest
 
+from scripts.deploy.lib.gitsync import AdvanceResult
 from scripts.openclaw.deploy import deploy_agent_prompts as dap
 
 
@@ -261,78 +261,93 @@ def test_atomic_copy_raises_and_cleans_up_temp_on_failure(tmp_path):
 
 
 # ---------------------------------------------------------------------------
-# git_pull
+# git_pull — now delegates to scripts.deploy.lib.gitsync.advance_checkout (#667)
 # ---------------------------------------------------------------------------
+#
+# git_pull no longer shells out to `git pull --ff-only`; it calls
+# advance_checkout(repo_root, assume_locked=True) and adapts the AdvanceResult
+# onto the FROZEN public GitPullResult shape. These tests pin that mapping by
+# patching advance_checkout (the seam is subprocess-mocked in gitsync's own
+# suite; here we assert the GitPullResult adaptation contract).
 
 
-def _mock_run_factory(*results):
-    """Return a side_effect callable that returns successive CompletedProcess-like results."""
-    iter_results = iter(results)
+def _advance(**kw):
+    """Build an AdvanceResult, respecting its frozen invariants."""
+    base = dict(
+        ok=True,
+        advanced=False,
+        pre_head="aaaaaaa",
+        post_head="aaaaaaa",
+        origin_head="aaaaaaa",
+        behind=0,
+        ahead=0,
+        diverged=False,
+        reason=None,
+        stderr="",
+    )
+    base.update(kw)
+    return AdvanceResult(**base)
 
-    def _run(*args, **kwargs):
-        return next(iter_results)
 
-    return _run
+def test_git_pull_success_maps_advanced(tmp_path):
+    """A real fast-forward → success=True, head_sha=post_head, stage=None."""
+    adv = _advance(ok=True, advanced=True, pre_head="aaaaaaa", post_head="bbbbbbb",
+                   origin_head="bbbbbbb", behind=2, ahead=0)
+    with patch.object(dap, "advance_checkout", return_value=adv) as p:
+        result = dap.git_pull(tmp_path)
+    # assume_locked=True is passed (the run_tick caller holds the lock)
+    assert p.call_args.kwargs.get("assume_locked") is True
+    assert result.success is True
+    assert result.head_sha == "bbbbbbb"
+    assert result.stage is None
+    assert result.advance is adv
 
 
-def _ok(stdout="", stderr=""):
-    return subprocess.CompletedProcess(args=[], returncode=0, stdout=stdout, stderr=stderr)
-
-
-def _fail(stderr="fatal: simulated", code=1):
-    return subprocess.CompletedProcess(args=[], returncode=code, stdout="", stderr=stderr)
-
-
-def test_git_pull_success_returns_head_sha(tmp_path):
-    sha = "a" * 40
-    side = _mock_run_factory(_ok(), _ok(), _ok(stdout=sha + "\n"))
-    with patch.object(dap.subprocess, "run", side_effect=side):
+def test_git_pull_noop_maps_success(tmp_path):
+    """behind==0 clean no-op → success=True even though advanced=False."""
+    adv = _advance(ok=True, advanced=False, behind=0, ahead=3, post_head="aaaaaaa")
+    with patch.object(dap, "advance_checkout", return_value=adv):
         result = dap.git_pull(tmp_path)
     assert result.success is True
-    assert result.head_sha == sha
+    assert result.head_sha == "aaaaaaa"
     assert result.stage is None
 
 
-def test_git_pull_fetch_fails(tmp_path):
-    side = _mock_run_factory(_fail("fatal: no network"))
-    with patch.object(dap.subprocess, "run", side_effect=side):
+def test_git_pull_diverged_maps_failure(tmp_path):
+    """diverged → success=False, stage=reason='diverged'."""
+    adv = _advance(ok=False, advanced=False, behind=2, ahead=1, diverged=True,
+                   reason="diverged", origin_head="ccccccc")
+    with patch.object(dap, "advance_checkout", return_value=adv):
         result = dap.git_pull(tmp_path)
     assert result.success is False
-    assert result.stage == "fetch"
+    assert result.stage == "diverged"
+    assert result.advance.reason == "diverged"
+
+
+def test_git_pull_fetch_failed_maps_failure(tmp_path):
+    """fetch_failed → success=False, stage='fetch_failed', stderr passed through."""
+    adv = _advance(ok=False, advanced=False, reason="fetch_failed", stderr="no network")
+    with patch.object(dap, "advance_checkout", return_value=adv):
+        result = dap.git_pull(tmp_path)
+    assert result.success is False
+    assert result.stage == "fetch_failed"
     assert "no network" in result.stderr
 
 
-def test_git_pull_pull_fails(tmp_path):
-    side = _mock_run_factory(_ok(), _fail("fatal: not possible to fast-forward"))
-    with patch.object(dap.subprocess, "run", side_effect=side):
+def test_git_pull_merge_failed_maps_failure(tmp_path):
+    adv = _advance(ok=False, advanced=False, behind=1, ahead=0, reason="merge_failed",
+                   stderr="merge conflict")
+    with patch.object(dap, "advance_checkout", return_value=adv):
         result = dap.git_pull(tmp_path)
     assert result.success is False
-    assert result.stage == "pull"
-    assert "fast-forward" in result.stderr
+    assert result.stage == "merge_failed"
 
 
-def test_git_pull_argv_assertions(tmp_path):
-    captured = []
-
-    def _run(*args, **kwargs):
-        captured.append((args[0], kwargs.get("cwd")))
-        return _ok(stdout=("a" * 40) + "\n")
-
-    with patch.object(dap.subprocess, "run", side_effect=_run):
-        dap.git_pull(tmp_path)
-    assert captured[0][0] == ["git", "fetch", "origin", "main"]
-    assert captured[1][0] == ["git", "pull", "--ff-only", "origin", "main"]
-    assert captured[2][0] == ["git", "rev-parse", "HEAD"]
-    for _, cwd in captured:
-        assert cwd == str(tmp_path)
-
-
-def test_git_pull_rev_parse_fails(tmp_path):
-    side = _mock_run_factory(_ok(), _ok(), _fail("rev-parse error"))
-    with patch.object(dap.subprocess, "run", side_effect=side):
-        result = dap.git_pull(tmp_path)
-    assert result.success is False
-    assert result.stage == "rev_parse"
+def test_git_pull_preserves_public_field_names():
+    """GitPullResult keeps its four public fields in order (downstream depends on it)."""
+    from dataclasses import fields
+    names = [f.name for f in fields(dap.GitPullResult)]
+    assert names[:4] == ["success", "head_sha", "stderr", "stage"]
 
 
 # ---------------------------------------------------------------------------
@@ -437,6 +452,45 @@ def _setup_fake_repo(tmp_path: Path, agents_meta: dict, *, with_git: bool = True
     return repo
 
 
+@pytest.fixture(autouse=True)
+def _isolate_deploy_lock(tmp_path_factory, monkeypatch):
+    """Point the shared deploylock at a per-test tmp path (never /data on CI).
+
+    run_tick now wraps its critical section in deploylock(); without this the
+    lock would try to create /data/services/deploy/locks/ which does not exist
+    in the test environment.
+    """
+    lock_dir = tmp_path_factory.mktemp("deploy-lock")
+    monkeypatch.setenv("DEPLOY_CHECKOUT_LOCK", str(lock_dir / "checkout.lock"))
+    # Redirect the health watermark default off the read-only /data path so
+    # run_tick tests that don't pass an explicit state_path stay hermetic.
+    state_dir = tmp_path_factory.mktemp("deploy-health")
+    monkeypatch.setattr(dap, "HEALTH_STATE_PATH_DEFAULT", state_dir / "git-health.json")
+    # Health alerts must never hit the network in tests: no topic configured →
+    # dispatch_health_notification returns a benign "skipped" LibResult.
+    monkeypatch.delenv("AGENT_PROMPT_SYNC_NTFY_TOPIC", raising=False)
+    monkeypatch.delenv("FELIX_DEPLOYER_NTFY_TOPIC", raising=False)
+
+
+def _advance_success(post_head: str, *, advanced: bool = True):
+    """AdvanceResult for a successful git_pull in run_tick tests."""
+    return AdvanceResult(
+        ok=True,
+        advanced=advanced,
+        pre_head="0000000",
+        post_head=post_head,
+        origin_head=post_head,
+        behind=1 if advanced else 0,
+        ahead=0,
+        diverged=False,
+    )
+
+
+def _patch_advance_success(post_head: str):
+    """Context manager patching dap.advance_checkout to return a success."""
+    return patch.object(dap, "advance_checkout", return_value=_advance_success(post_head))
+
+
 def test_run_tick_validation_no_git_dir(tmp_path):
     repo = tmp_path / "norepo"
     repo.mkdir()
@@ -486,8 +540,12 @@ def test_run_tick_git_pull_failed(tmp_path):
     (repo / "src" / "AGENTS.md").write_bytes(b"content")
     log = tmp_path / "audit.jsonl"
     args = dap.parse_args([])
-    side = _mock_run_factory(_fail("net down"))
-    with patch.object(dap.subprocess, "run", side_effect=side):
+    adv = AdvanceResult(
+        ok=False, advanced=False, pre_head="1111111", post_head="1111111",
+        origin_head="", behind=0, ahead=0, diverged=False,
+        reason="fetch_failed", stderr="net down",
+    )
+    with patch.object(dap, "advance_checkout", return_value=adv):
         rc = dap.run_tick(args, repo_root=repo, audit_path=log)
     assert rc == dap.EXIT_GIT_PULL_FAILED
     lines = log.read_text().splitlines()
@@ -496,6 +554,17 @@ def test_run_tick_git_pull_failed(tmp_path):
     assert "git_pull_failed" in kinds
     assert kinds[-1] == "tick_summary"
     assert parsed[-1]["exit_code"] == dap.EXIT_GIT_PULL_FAILED
+    # Enriched ref-state fields present on the failure record (T016).
+    fail_rec = next(p for p in parsed if p["kind"] == "git_pull_failed")
+    assert fail_rec["reason"] == "fetch_failed"
+    assert fail_rec["local_head"] == "1111111"
+    assert fail_rec["origin_head"] == ""
+    assert fail_rec["behind"] == 0
+    assert fail_rec["ahead"] == 0
+    # Existing success/summary record shape is unchanged: git_pull_failed keeps
+    # its original keys too.
+    assert fail_rec["stage"] == "fetch_failed"
+    assert "git_exit_code" in fail_rec
 
 
 def test_run_tick_no_drift(tmp_path):
@@ -512,8 +581,7 @@ def test_run_tick_no_drift(tmp_path):
     log = tmp_path / "audit.jsonl"
     args = dap.parse_args([])
     sha = "a" * 40
-    side = _mock_run_factory(_ok(), _ok(), _ok(stdout=sha + "\n"))
-    with patch.object(dap.subprocess, "run", side_effect=side):
+    with _patch_advance_success(sha):
         rc = dap.run_tick(args, repo_root=repo, audit_path=log)
     assert rc == dap.EXIT_SUCCESS
     parsed = [json.loads(line) for line in log.read_text().splitlines()]
@@ -540,8 +608,7 @@ def test_run_tick_drift_copied(tmp_path):
     log = tmp_path / "audit.jsonl"
     args = dap.parse_args([])
     sha = "b" * 40
-    side = _mock_run_factory(_ok(), _ok(), _ok(stdout=sha + "\n"))
-    with patch.object(dap.subprocess, "run", side_effect=side):
+    with _patch_advance_success(sha):
         rc = dap.run_tick(args, repo_root=repo, audit_path=log)
     assert rc == dap.EXIT_SUCCESS
     assert (dst_dir / "AGENTS.md").read_bytes() == b"v2"
@@ -566,8 +633,7 @@ def test_run_tick_per_file_error_exit_1(tmp_path):
     log = tmp_path / "audit.jsonl"
     args = dap.parse_args([])
     sha = "c" * 40
-    side = _mock_run_factory(_ok(), _ok(), _ok(stdout=sha + "\n"))
-    with patch.object(dap.subprocess, "run", side_effect=side), \
+    with _patch_advance_success(sha), \
          patch.object(dap, "atomic_copy", side_effect=OSError("disk full")):
         rc = dap.run_tick(args, repo_root=repo, audit_path=log)
     assert rc == dap.EXIT_PARTIAL_FAILURE
@@ -617,8 +683,7 @@ def test_run_tick_single_agent_filter_skips_others(tmp_path):
     log = tmp_path / "audit.jsonl"
     args = dap.parse_args(["--agent", "agent-a"])
     sha = "d" * 40
-    side = _mock_run_factory(_ok(), _ok(), _ok(stdout=sha + "\n"))
-    with patch.object(dap.subprocess, "run", side_effect=side):
+    with _patch_advance_success(sha):
         rc = dap.run_tick(args, repo_root=repo, audit_path=log)
     assert rc == dap.EXIT_SUCCESS
     parsed = [json.loads(line) for line in log.read_text().splitlines()]
@@ -637,8 +702,7 @@ def test_run_tick_source_dir_missing_warns(tmp_path):
     log = tmp_path / "audit.jsonl"
     args = dap.parse_args([])
     sha = "e" * 40
-    side = _mock_run_factory(_ok(), _ok(), _ok(stdout=sha + "\n"))
-    with patch.object(dap.subprocess, "run", side_effect=side):
+    with _patch_advance_success(sha):
         rc = dap.run_tick(args, repo_root=repo, audit_path=log)
     assert rc == dap.EXIT_SUCCESS
     parsed = [json.loads(line) for line in log.read_text().splitlines()]
@@ -656,8 +720,7 @@ def test_run_tick_creates_workspace_dir_on_first_copy(tmp_path):
     log = tmp_path / "audit.jsonl"
     args = dap.parse_args([])
     sha = "f" * 40
-    side = _mock_run_factory(_ok(), _ok(), _ok(stdout=sha + "\n"))
-    with patch.object(dap.subprocess, "run", side_effect=side):
+    with _patch_advance_success(sha):
         rc = dap.run_tick(args, repo_root=repo, audit_path=log)
     assert rc == dap.EXIT_SUCCESS
     assert dst_dir.exists()
@@ -705,8 +768,7 @@ def test_run_tick_excludes_heartbeat_tmpl_bak_governance(tmp_path):
     log = tmp_path / "audit.jsonl"
     args = dap.parse_args([])
     sha = "a" * 40
-    side = _mock_run_factory(_ok(), _ok(), _ok(stdout=sha + "\n"))
-    with patch.object(dap.subprocess, "run", side_effect=side):
+    with _patch_advance_success(sha):
         rc = dap.run_tick(args, repo_root=repo, audit_path=log)
     assert rc == dap.EXIT_SUCCESS
     assert (dst_dir / "AGENTS.md").read_bytes() == b"in-scope"
@@ -714,3 +776,165 @@ def test_run_tick_excludes_heartbeat_tmpl_bak_governance(tmp_path):
     assert not (dst_dir / "AGENTS.md.tmpl").exists()
     assert not (dst_dir / "AGENTS.md.bak").exists()
     assert not (dst_dir / "GOVERNANCE.md").exists()
+
+
+# ---------------------------------------------------------------------------
+# T015 — deploylock wraps the critical section; LockUnavailable → clean defer
+# ---------------------------------------------------------------------------
+
+
+def test_run_tick_lock_wraps_critical_section(tmp_path):
+    """The tick acquires deploylock() around git_pull + the copy loop."""
+    dst_dir = tmp_path / "dst"
+    dst_dir.mkdir()
+    repo = _setup_fake_repo(tmp_path, {
+        "test-agent": {"source_in_repo": "src/", "workspace": str(dst_dir)},
+    })
+    (repo / "src").mkdir()
+    (repo / "src" / "AGENTS.md").write_bytes(b"v2")
+    (dst_dir / "AGENTS.md").write_bytes(b"v1")
+    log = tmp_path / "audit.jsonl"
+    args = dap.parse_args([])
+    sha = "a" * 40
+
+    import contextlib
+
+    order: list[str] = []
+
+    @contextlib.contextmanager
+    def _tracking_lock(*a, **k):
+        order.append("lock_enter")
+        try:
+            yield
+        finally:
+            order.append("lock_exit")
+
+    def _advance(*a, **k):
+        # The advance (git_pull) must run while the lock is held.
+        assert order == ["lock_enter"], "advance ran outside the lock"
+        order.append("advance")
+        return _advance_success(sha)
+
+    with patch.object(dap, "deploylock", _tracking_lock), \
+         patch.object(dap, "advance_checkout", side_effect=_advance):
+        rc = dap.run_tick(args, repo_root=repo, audit_path=log)
+
+    assert rc == dap.EXIT_SUCCESS
+    # Lock entered before the advance ran, exited after; the copy landed inside.
+    assert order == ["lock_enter", "advance", "lock_exit"]
+    assert (dst_dir / "AGENTS.md").read_bytes() == b"v2"
+
+
+def test_run_tick_lock_unavailable_defers_cleanly(tmp_path):
+    """LockUnavailable → git_pull_skipped audit + clean success; NO prompt copy."""
+    dst_dir = tmp_path / "dst"
+    dst_dir.mkdir()
+    repo = _setup_fake_repo(tmp_path, {
+        "test-agent": {"source_in_repo": "src/", "workspace": str(dst_dir)},
+    })
+    (repo / "src").mkdir()
+    (repo / "src" / "AGENTS.md").write_bytes(b"v2")
+    (dst_dir / "AGENTS.md").write_bytes(b"v1")
+    log = tmp_path / "audit.jsonl"
+    args = dap.parse_args([])
+
+    def _raise_lock(*a, **k):
+        raise dap.LockUnavailable("held by other actor")
+
+    advance_spy = patch.object(dap, "advance_checkout")
+    with patch.object(dap, "deploylock", side_effect=_raise_lock), advance_spy as adv:
+        rc = dap.run_tick(args, repo_root=repo, audit_path=log)
+
+    assert rc == dap.EXIT_SUCCESS
+    # advance_checkout (git_pull) was never reached — lock came first.
+    adv.assert_not_called()
+    # Prompt NOT copied outside the lock.
+    assert (dst_dir / "AGENTS.md").read_bytes() == b"v1"
+    parsed = [json.loads(line) for line in log.read_text().splitlines()]
+    assert len(parsed) == 1
+    rec = parsed[0]
+    assert rec["kind"] == "git_pull_skipped"
+    assert rec["stage"] == "lock"
+    assert rec["reason"] == "lock_unavailable"
+
+
+# ---------------------------------------------------------------------------
+# T017 — health watermark + notifier wiring
+# ---------------------------------------------------------------------------
+
+
+def test_run_tick_records_health_on_success(tmp_path):
+    """A successful tick feeds the AdvanceResult into health.record."""
+    dst_dir = tmp_path / "dst"
+    dst_dir.mkdir()
+    repo = _setup_fake_repo(tmp_path, {
+        "test-agent": {"source_in_repo": "src/", "workspace": str(dst_dir)},
+    })
+    (repo / "src").mkdir()
+    (repo / "src" / "AGENTS.md").write_bytes(b"identical")
+    (dst_dir / "AGENTS.md").write_bytes(b"identical")
+    log = tmp_path / "audit.jsonl"
+    health_state = tmp_path / "git-health.json"
+    args = dap.parse_args([])
+    sha = "a" * 40
+
+    with _patch_advance_success(sha), \
+         patch.object(dap._health, "record", wraps=dap._health.record) as rec_spy:
+        rc = dap.run_tick(args, repo_root=repo, audit_path=log,
+                          health_state_path=health_state)
+
+    assert rc == dap.EXIT_SUCCESS
+    rec_spy.assert_called_once()
+    call = rec_spy.call_args
+    assert call.args[0] == dap.HEALTH_ACTOR
+    assert isinstance(call.args[1], AdvanceResult)
+    assert call.kwargs["state_path"] == health_state
+    assert call.kwargs["notifier"] is dap._health_notifier
+    # The watermark was written with a success reset.
+    state = json.loads(health_state.read_text())
+    assert state["consecutive_failures"] == 0
+    assert state["last_success_head"] == sha
+
+
+def test_run_tick_records_health_on_failure(tmp_path):
+    """A failed advance increments the health streak via health.record."""
+    repo = _setup_fake_repo(tmp_path, {
+        "test-agent": {"source_in_repo": "src/", "workspace": str(tmp_path / "dst")},
+    })
+    log = tmp_path / "audit.jsonl"
+    health_state = tmp_path / "git-health.json"
+    args = dap.parse_args([])
+    adv = AdvanceResult(
+        ok=False, advanced=False, pre_head="1111111", post_head="1111111",
+        origin_head="2222222", behind=1, ahead=1, diverged=True, reason="diverged",
+    )
+    with patch.object(dap, "advance_checkout", return_value=adv):
+        rc = dap.run_tick(args, repo_root=repo, audit_path=log,
+                          health_state_path=health_state)
+    assert rc == dap.EXIT_GIT_PULL_FAILED
+    state = json.loads(health_state.read_text())
+    assert state["consecutive_failures"] == 1
+
+
+def test_health_notifier_dispatches_via_generic_notify(monkeypatch):
+    """_health_notifier calls dispatch_health_notification with this actor's topic env."""
+    notify = dap._load_notify()
+    captured = {}
+
+    def _fake_dispatch(actor, title, body, *, topic_env):
+        captured.update(actor=actor, title=title, body=body, topic_env=topic_env)
+
+    monkeypatch.setattr(notify, "dispatch_health_notification", _fake_dispatch)
+    dap._health_notifier("t", "b")
+    assert captured["actor"] == dap.HEALTH_ACTOR
+    assert captured["topic_env"] == dap.HEALTH_TOPIC_ENV == "AGENT_PROMPT_SYNC_NTFY_TOPIC"
+    assert captured["title"] == "t"
+    assert captured["body"] == "b"
+
+
+def test_load_notify_resolves_hyphenated_package():
+    """The cross-package importlib load resolves dispatch_health_notification."""
+    notify = dap._load_notify()
+    assert hasattr(notify, "dispatch_health_notification")
+    # Cached on repeat.
+    assert dap._load_notify() is notify
