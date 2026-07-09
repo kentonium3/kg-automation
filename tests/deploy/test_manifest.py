@@ -321,3 +321,53 @@ def test_expected_baselines_absent_is_unchanged_behavior():
     result = manifest.validate_manifest(data, schema_path=SCHEMA_PATH)
 
     assert result.ok is True
+
+
+# ---------------------------------------------------------------------------
+# validate_expected_baselines_only — pre-apply rule check, no JSON-Schema pass
+# (Codex post-merge HIGH-2)
+# ---------------------------------------------------------------------------
+
+
+def test_validate_expected_baselines_only_skips_schema_pass():
+    """A manifest missing JSON-Schema-required fields (schema_version,
+    created_at, ...) but with NO expected_baselines passes the rules-only check:
+    the tick uses this pre-apply and must not tighten apply behaviour for every
+    manifest by running the full schema pass here.
+    """
+    minimal = {"name": "0099-minimal", "tier": 3, "entrypoint": "scripts/noop.sh"}
+
+    result = manifest.validate_expected_baselines_only(minimal)
+
+    assert result.ok is True
+
+
+def test_validate_expected_baselines_only_rejects_unknown_name():
+    minimal = {
+        "name": "0099-bogus",
+        "tier": 3,
+        "entrypoint": "scripts/noop.sh",
+        "audited_surface": True,
+        "expected_baselines": ["bogus.txt"],
+    }
+
+    result = manifest.validate_expected_baselines_only(minimal)
+
+    assert result.ok is False
+    assert result.details["error_code"] == "EXPECTED_BASELINES_UNKNOWN"
+    assert "bogus.txt" in result.details["unknown"]
+
+
+def test_validate_expected_baselines_only_enforces_coupling():
+    minimal = {
+        "name": "0099-decoupled",
+        "tier": 3,
+        "entrypoint": "scripts/noop.sh",
+        "audited_surface": False,
+        "expected_baselines": ["openclaw-cron.txt"],
+    }
+
+    result = manifest.validate_expected_baselines_only(minimal)
+
+    assert result.ok is False
+    assert result.details["error_code"] == "EXPECTED_BASELINES_COUPLING"

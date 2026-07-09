@@ -402,6 +402,35 @@ def run_tick(
             continue
 
         manifest_name = manifest_data.get("name") or manifest_path.stem
+
+        # Pre-apply manifest validation (Codex HIGH-2): the
+        # ``expected_baselines`` rules (known-baseline membership +
+        # ``audited_surface: true`` coupling) MUST be enforced BEFORE the
+        # entrypoint mutates office2 — a bogus/decoupled declaration should
+        # reject the manifest with the office2 state untouched, not after the
+        # apply already ran (which is when ``write_applied`` used to catch it).
+        # Only the expected_baselines rules move earlier — we deliberately do
+        # NOT add a full JSON-Schema pass here (the pipeline never schema-checked
+        # pre-apply, so that would change apply behaviour for every manifest).
+        validation = _manifest.validate_expected_baselines_only(manifest_data)
+        if not validation.ok:
+            _write_failure_record(
+                repo_root,
+                manifest_name,
+                phase="manifest_validation",
+                error_summary=validation.summary,
+            )
+            _log(
+                log_path,
+                {
+                    "event": "manifest_processed",
+                    "manifest_name": manifest_name,
+                    "outcome": "failed_manifest_validation",
+                    "reason": validation.summary,
+                },
+            )
+            continue
+
         result = _apply.dry_run_then_apply_gate(manifest_data, str(manifest_path))
 
         if result.ok:
@@ -413,12 +442,17 @@ def run_tick(
             # bookkeeping commit so we never re-observe it.
             if rec.commit_sha:
                 own_commit_shas.append(rec.commit_sha)
+            # Declared-baseline fold is gated on the APPLY success (result.ok),
+            # NOT the record/push success (rec.ok) — Codex HIGH-1.  The office2
+            # mutation already happened when apply succeeded, so its declared
+            # rebaseline intent MUST be folded even if the applied-record commit
+            # or push then fails; otherwise a push failure silently drops the
+            # manifest-declared drift → NFR-001 / undetected drift.
+            applied_this_tick.append(manifest_name)
+            for b in manifest_data.get("expected_baselines", []) or []:
+                if b:
+                    declared_baselines.add(b)
             if rec.ok:
-                applied_this_tick.append(manifest_name)
-                # Collect declared baselines for the fold step (T006).
-                for b in manifest_data.get("expected_baselines", []) or []:
-                    if b:
-                        declared_baselines.add(b)
                 _log(
                     log_path,
                     {

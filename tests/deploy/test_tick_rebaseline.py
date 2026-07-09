@@ -1274,3 +1274,221 @@ def test_legacy_tuple_record_success_still_supported(monkeypatch, fake_repo_with
         e.get("event") == "manifest_processed" and e.get("outcome") == "applied"
         for e in entries
     )
+
+
+# ---------------------------------------------------------------------------
+# Codex post-merge HIGH-1 — declared-baseline fold survives a push failure
+# ---------------------------------------------------------------------------
+
+
+def test_declared_fold_survives_push_failure(
+    monkeypatch, fake_repo_with_manifest_declared, log_dir
+):
+    """HIGH-1: apply succeeds but the applied-record push fails
+    (``rec.ok=False`` with a ``commit_sha`` set).  The office2 mutation already
+    happened, so the manifest-declared ``expected_baselines`` MUST still be
+    folded into the pending token — reconcile must see the declared baseline in
+    E.  Pre-fix, the fold was gated on ``rec.ok`` and this token would be empty.
+    """
+    from scripts.deploy.lib import apply as _apply_lib
+
+    monkeypatch.setattr(tick, "_git", _git_mock(pre_sha=PRE, post_sha=POST))
+
+    wm_path = fake_repo_with_manifest_declared / "rebaseline-observed-head.json"
+    token_path = fake_repo_with_manifest_declared / "rebaseline-pending.json"
+    monkeypatch.setattr(rebaseline, "DEFAULT_OBSERVED_HEAD_PATH", wm_path)
+    monkeypatch.setattr(rebaseline, "DEFAULT_TOKEN_PATH", token_path)
+
+    class _OkResult:
+        ok = True
+        summary = "dry-run ok"
+        details: dict = {}
+
+    monkeypatch.setattr(_apply_lib, "dry_run_then_apply_gate", lambda *a, **kw: _OkResult())
+
+    OWN_COMMIT = "d00dfeed" * 5
+
+    # Apply succeeds, but the applied-record PUSH fails: ok=False, but the
+    # deployer's own commit SHA was captured before the push blew up.
+    monkeypatch.setattr(
+        tick,
+        "_record_success",
+        lambda repo_root, manifest_path, manifest_data, head_sha: tick._RecordResult(
+            ok=False,
+            commit_sha=OWN_COMMIT,
+            pushed=False,
+            applied_path=str(repo_root / "deploys" / "applied" / "x.yaml"),
+            error="git push failed: rejected",
+        ),
+    )
+    # observe finds nothing (the manifest move itself has no repo-file signal).
+    monkeypatch.setattr(rebaseline, "observe", lambda *a, **kw: {"outcome": "not_required"})
+
+    rec_seen: dict = {}
+
+    def _real_reconcile(**kw):
+        rec_seen["token"] = rebaseline.read_token(token_path)
+        return {"outcome": "not_required"}
+
+    monkeypatch.setattr(rebaseline, "reconcile", _real_reconcile)
+
+    rc = tick.run_tick(repo_root=fake_repo_with_manifest_declared, log_dir=log_dir)
+    assert rc == 0
+
+    # The record push failed (applied_record_failed logged) …
+    entries = _read_log(log_dir)
+    assert any(
+        e.get("event") == "manifest_processed"
+        and e.get("outcome") == "applied_record_failed"
+        for e in entries
+    ), "push failure must be logged as applied_record_failed"
+
+    # … but the fold still ran and armed the token with the declared baseline,
+    # so reconcile would see it as EXPECTED drift.
+    assert rec_seen["token"] is not None, (
+        "fold must arm a token even when the applied-record push fails"
+    )
+    assert "openclaw-cron.txt" in rec_seen["token"]["expected_baselines"]
+
+    fold = next(e for e in entries if e.get("event") == "rebaseline_fold")
+    assert "openclaw-cron.txt" in fold["expected_baselines"]
+
+    # The captured own commit SHA still advanced the watermark past our commit.
+    assert rebaseline.read_observed_head(wm_path) == OWN_COMMIT
+
+
+# ---------------------------------------------------------------------------
+# Codex post-merge HIGH-2 — expected_baselines rejected PRE-apply
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture()
+def fake_repo_with_bogus_baseline(tmp_path: pathlib.Path) -> pathlib.Path:
+    """Queued manifest declaring an unknown baseline (registry-invalid)."""
+    import yaml
+
+    for sub in ("queued", "applied", "failed", "schema"):
+        (tmp_path / "deploys" / sub).mkdir(parents=True, exist_ok=True)
+
+    manifest = {
+        "name": "0099-bogus-deploy",
+        "tier": 3,
+        "entrypoint": "scripts/noop.sh",
+        "audited_surface": True,
+        "expected_baselines": ["bogus.txt"],  # not in the registry
+    }
+    (tmp_path / "deploys" / "queued" / "0099-bogus-deploy.yaml").write_text(
+        yaml.safe_dump(manifest), encoding="utf-8"
+    )
+    return tmp_path
+
+
+def test_bogus_expected_baseline_rejected_before_apply(
+    monkeypatch, fake_repo_with_bogus_baseline, log_dir
+):
+    """HIGH-2: a manifest whose ``expected_baselines`` names an unknown baseline
+    is rejected BEFORE the entrypoint runs.  The apply gate (office2 mutation)
+    must NEVER be invoked and a manifest_validation failure record is written.
+    """
+    from scripts.deploy.lib import apply as _apply_lib
+
+    monkeypatch.setattr(tick, "_git", _git_mock(pre_sha=PRE, post_sha=POST))
+    monkeypatch.setattr(rebaseline, "observe", lambda *a, **kw: {"outcome": "not_required"})
+    monkeypatch.setattr(rebaseline, "reconcile", lambda **kw: {"outcome": "not_required"})
+
+    # Spy on the apply gate: it must NOT be called for a pre-apply-rejected manifest.
+    apply_calls: list = []
+
+    def _spy_apply(*a, **kw):
+        apply_calls.append(a)
+
+        class _R:
+            ok = True
+            summary = "should-not-run"
+            details: dict = {}
+
+        return _R()
+
+    monkeypatch.setattr(_apply_lib, "dry_run_then_apply_gate", _spy_apply)
+
+    # _record_success must also never run.
+    record_calls: list = []
+    monkeypatch.setattr(
+        tick,
+        "_record_success",
+        lambda *a, **kw: record_calls.append(a)
+        or tick._RecordResult(ok=True, pushed=True, applied_path="x"),
+    )
+
+    rc = tick.run_tick(repo_root=fake_repo_with_bogus_baseline, log_dir=log_dir)
+    assert rc == 0
+
+    # The entrypoint / apply gate was NEVER invoked (office2 untouched).
+    assert apply_calls == [], "apply gate must not run for a pre-apply-rejected manifest"
+    assert record_calls == [], "_record_success must not run when apply was skipped"
+
+    # A manifest_validation failure record was written.
+    failed_dir = fake_repo_with_bogus_baseline / "deploys" / "failed"
+    failed_files = list(failed_dir.glob("0099-bogus-deploy-*.yaml"))
+    assert failed_files, "a manifest_validation failure record must be written"
+
+    entries = _read_log(log_dir)
+    assert any(
+        e.get("event") == "manifest_processed"
+        and e.get("outcome") == "failed_manifest_validation"
+        for e in entries
+    ), "the tick log must record failed_manifest_validation"
+
+
+# ---------------------------------------------------------------------------
+# Codex post-merge HIGH-3 — malformed registry never crashes the tick
+# ---------------------------------------------------------------------------
+
+
+def test_malformed_registry_degrades_and_tick_returns_zero(
+    monkeypatch, fake_repo, log_dir, tmp_path
+):
+    """HIGH-3: with a malformed audited-surfaces registry, ``observe`` and
+    ``reconcile`` must degrade gracefully (``not_required`` / ``inconclusive``)
+    WITHOUT raising ``SystemExit``, and ``run_tick`` must return 0.
+
+    Pre-fix, observe/reconcile defaulted to ``load_audited_surfaces()`` which
+    calls ``sys.exit(2)`` on a malformed registry; ``run_tick``'s wrapper caught
+    ``Exception`` (not ``SystemExit``) → the tick would crash.
+    """
+    import audited_surfaces as _as
+
+    # Point the registry at a malformed JSON file.
+    bad_registry = tmp_path / "audited-surfaces.json"
+    bad_registry.write_text("{ this is not valid json ", encoding="utf-8")
+    monkeypatch.setattr(_as, "AUDITED_SURFACES_PATH", bad_registry)
+
+    # A pending token exists so reconcile actually reaches the registry read.
+    token_path = fake_repo / "rebaseline-pending.json"
+    monkeypatch.setattr(rebaseline, "DEFAULT_TOKEN_PATH", token_path)
+    rebaseline.write_token(
+        {
+            "schema_version": 1,
+            "pending_since_utc": "2020-01-01T00:00:00Z",
+            "observed_head_sha": POST,
+            "surface_ids": ["s1"],
+            "expected_baselines": ["openclaw-cron.txt"],
+            "matched_files": [],
+            "last_check_utc": None,
+            "alerts_emitted": [],
+        },
+        token_path,
+    )
+
+    # Direct-call assertions: neither raises SystemExit, both degrade.
+    obs = rebaseline.observe(PRE, POST, token_path=token_path)
+    assert obs["outcome"] == rebaseline.OUTCOME_NOT_REQUIRED
+
+    rec = rebaseline.reconcile(token_path=token_path)
+    assert rec["outcome"] == rebaseline.OUTCOME_INCONCLUSIVE
+
+    # End-to-end: the tick uses the real (unmocked) observe/reconcile and must
+    # still return 0 with the malformed registry in place.
+    monkeypatch.setattr(tick, "_git", _git_mock(pre_sha=PRE, post_sha=POST))
+    rc = tick.run_tick(repo_root=fake_repo, log_dir=log_dir)
+    assert rc == 0

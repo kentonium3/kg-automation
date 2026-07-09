@@ -154,6 +154,38 @@ def _validate_expected_baselines(
     return None
 
 
+def validate_expected_baselines_only(
+    data: dict[str, Any],
+    schema_path: str | os.PathLike[str] | None = None,
+) -> LibResult:
+    """Validate ONLY the ``expected_baselines`` rules (no JSON-Schema pass).
+
+    The felix-deployer tick calls this BEFORE ``dry_run_then_apply_gate`` so a
+    bogus/decoupled ``expected_baselines`` declaration rejects the manifest with
+    office2 state untouched (Codex HIGH-2). Running the full ``validate_manifest``
+    pre-apply is deliberately avoided: the pull-based pipeline does not
+    JSON-Schema-validate before applying today, so tightening that here would
+    change apply behaviour for every manifest. This checks purely the R2 rules:
+
+    * ``expected_baselines`` absent → ``ok=True`` (FR-009, unchanged behaviour);
+    * ``expected_baselines`` present but ``audited_surface`` not ``true`` →
+      invalid (coupling rule);
+    * a declared name not in the registry's known-baseline set → invalid.
+
+    Reuses :func:`_validate_expected_baselines` so the rule stays single-sourced
+    with :func:`validate_manifest`.
+    """
+    schema_path_resolved = Path(schema_path) if schema_path else _default_schema_path()
+    result = _validate_expected_baselines(data, schema_path_resolved)
+    if result is not None:
+        return result
+    return LibResult(
+        ok=True,
+        summary="expected_baselines valid",
+        details={"schema_path": str(schema_path_resolved)},
+    )
+
+
 def validate_manifest(
     data: dict[str, Any],
     schema_path: str | os.PathLike[str] | None = None,
@@ -281,6 +313,7 @@ def validate_manifest_file(
 __all__ = [
     "load_manifest",
     "validate_manifest",
+    "validate_expected_baselines_only",
     "validate_manifest_file",
     "next_applied_seq",
 ]

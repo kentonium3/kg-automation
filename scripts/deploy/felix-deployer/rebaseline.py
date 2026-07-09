@@ -105,6 +105,7 @@ if str(_TOOLING_SCRIPTS) not in sys.path:
 # Late import after sys.path bootstrap (same pattern as check_audited_surface_drift.py).
 from audited_surfaces import (  # noqa: E402  # type: ignore[import-not-found]
     load_audited_surfaces,
+    load_audited_surfaces_or_error,
     match_surfaces,
 )
 
@@ -277,7 +278,18 @@ def observe(
         return {"outcome": OUTCOME_NOT_REQUIRED}
 
     runner = git_runner if git_runner is not None else _default_git_runner
-    reg = registry if registry is not None else load_audited_surfaces()
+    if registry is not None:
+        reg = registry
+    else:
+        # NON-exiting read only — a malformed/missing registry must never
+        # ``sys.exit`` inside the deployer tick (Codex HIGH-3 / NFR-001).
+        reg, reason = load_audited_surfaces_or_error()
+        if reg is None:
+            _log.warning(
+                "rebaseline.observe: registry unreadable (%s) — not_required",
+                reason,
+            )
+            return {"outcome": OUTCOME_NOT_REQUIRED}
 
     # Compute changed paths for the pulled range.
     diff_range = f"{pre_pull_head}..{post_pull_head}"
@@ -771,7 +783,20 @@ def reconcile(
     if token is None:
         return {"outcome": OUTCOME_NOT_REQUIRED}
 
-    reg = registry if registry is not None else load_audited_surfaces()
+    if registry is not None:
+        reg = registry
+    else:
+        # NON-exiting read only — a malformed/missing registry must never
+        # ``sys.exit`` inside the deployer tick (Codex HIGH-3 / NFR-001).  A
+        # pending token exists but we cannot classify drift this tick, so we
+        # degrade to ``inconclusive`` (token left intact, next tick retries).
+        reg, reason = load_audited_surfaces_or_error()
+        if reg is None:
+            _log.warning(
+                "rebaseline.reconcile: registry unreadable (%s) — inconclusive",
+                reason,
+            )
+            return {"outcome": OUTCOME_INCONCLUSIVE}
     runner = audit_runner if audit_runner is not None else _default_audit_runner
 
     # Build the read-only audit command (local, no SSH wrapper).
