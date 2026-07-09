@@ -17,7 +17,7 @@ versioning policy and non-goals.
 | `cron` | OpenClaw cron primitives — never touches the system cron table | `openclaw_cron_disable`, `openclaw_cron_enable`, `openclaw_cron_edit`, `openclaw_cron_list` |
 | `snapshot` | Restic backup-recency verification (fallback via daily log file) | `verify_restic_recent` |
 | `verify` | File presence, stale-content, secret redaction | `verify_file_present`, `verify_no_stale_literal`, `redact_secrets` |
-| `manifest` | Manifest load + Draft 2020-12 schema validation; applied-seq math | `load_manifest`, `validate_manifest`, `validate_manifest_file`, `next_applied_seq` |
+| `manifest` | Manifest load + Draft 2020-12 schema validation; applied-seq math. `validate_manifest` also enforces the optional `expected_baselines` field (CLI-mutation deploys declare drifted baselines; names must be known security-monitor baselines and require `audited_surface: true`) via a non-exiting registry read — see `docs/runbooks/deploy/discipline.md`. | `load_manifest`, `validate_manifest`, `validate_manifest_file`, `next_applied_seq` |
 | `applied` | Applied-entry writer for `deploys/applied/<NNNN>-<name>.yaml` | `write_applied` |
 | `tier` | Tier-policy guard (CI + runtime modes) | `tier_guard` |
 | `apply` | Canonical apply orchestrator (composes everything above) | `dry_run_then_apply_gate` |
