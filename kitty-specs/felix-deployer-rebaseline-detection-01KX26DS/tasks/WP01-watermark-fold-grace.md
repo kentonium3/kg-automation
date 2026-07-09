@@ -27,7 +27,7 @@ subtasks:
 - T006
 - T007
 - T008
-agent: "claude:opus:python-pedro:implementer"
+agent: "claude:opus:reviewer-renata:reviewer"
 history: []
 agent_profile: python-pedro
 authoritative_surface: scripts/deploy/felix-deployer/rebaseline.py
@@ -40,7 +40,7 @@ owned_files:
 - tests/deploy/test_tick_rebaseline.py
 role: implementer
 tags: []
-shell_pid: "10163"
+shell_pid: "15984"
 ---
 
 ## ⚡ Do This First: Load Agent Profile
@@ -250,3 +250,5 @@ the mission branch unless a human redirects.
 ## Activity Log
 
 - 2026-07-09T01:48:58Z – claude:opus:python-pedro:implementer – shell_pid=10163 – Assigned agent via action command
+- 2026-07-09T02:02:35Z – claude:opus:python-pedro:implementer – shell_pid=10163 – WP01 complete: watermark range + fold + grace; pytest green
+- 2026-07-09T02:03:44Z – claude:opus:reviewer-renata:reviewer – shell_pid=15984 – Started review via action command
