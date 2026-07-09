@@ -1,0 +1,118 @@
+{
+  "version": 1,
+  "mission_slug": "felix-calendar-helper-01KX4H3C",
+  "mission_id": "01KX4H3C4CZ2W0DRSHZHSNAY53",
+  "mission_branch": "kitty/mission-felix-calendar-helper-01KX4H3C",
+  "target_branch": "feat/felix-calendar-helper",
+  "lanes": [
+    {
+      "lane_id": "lane-a",
+      "wp_ids": [
+        "WP01"
+      ],
+      "write_scope": [
+        "scripts/google/calendar_auth.py",
+        "tests/google/__init__.py",
+        "tests/google/test_calendar_auth.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "workspace"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    },
+    {
+      "lane_id": "lane-e",
+      "wp_ids": [
+        "WP05"
+      ],
+      "write_scope": [
+        "docs/INDEX.md",
+        "docs/design/architecture/credentials-and-secrets.md",
+        "docs/design/architecture/data-flows.md",
+        "docs/design/architecture/data/credential-manifest.json",
+        "docs/design/architecture/data/data-flows.json",
+        "docs/design/architecture/data/service-inventory.json",
+        "docs/design/architecture/service-inventory.md",
+        "docs/design/felix-capability-roadmap.md",
+        "docs/runbooks/calendar-helper-ops.md"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "app-shell",
+        "legacy-cleanup",
+        "tracker-integration"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    },
+    {
+      "lane_id": "lane-b",
+      "wp_ids": [
+        "WP02"
+      ],
+      "write_scope": [
+        "scripts/google/calendar_helper.py",
+        "tests/google/test_calendar_helper.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "legacy-cleanup",
+        "workspace"
+      ],
+      "depends_on_lanes": [
+        "lane-a"
+      ],
+      "parallel_group": 1
+    },
+    {
+      "lane_id": "lane-c",
+      "wp_ids": [
+        "WP03"
+      ],
+      "write_scope": [
+        "scripts/calendar_routing/validate_calendar_event.py",
+        "scripts/inbox/route_calendar_event.py",
+        "scripts/openclaw/agents/felix-admin-calendar/AGENTS.md",
+        "scripts/openclaw/agents/felix-admin-calendar/TOOLS.md",
+        "scripts/openclaw/agents/felix-admin-capture/AGENTS.md",
+        "scripts/openclaw/agents/felix-admin-capture/AGENTS.md.tmpl",
+        "tests/calendar/test_validate_calendar_event.py",
+        "tests/inbox/test_route_calendar_event.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "legacy-cleanup",
+        "tracker-integration",
+        "workspace"
+      ],
+      "depends_on_lanes": [
+        "lane-b"
+      ],
+      "parallel_group": 2
+    },
+    {
+      "lane_id": "lane-d",
+      "wp_ids": [
+        "WP04"
+      ],
+      "write_scope": [
+        "deploys/queued/felix-calendar-helper.yaml",
+        "scripts/deploy/deploy-felix-calendar-helper.py",
+        "tests/deploy/test_deploy_felix_calendar_helper.py"
+      ],
+      "predicted_surfaces": [
+        "api"
+      ],
+      "depends_on_lanes": [
+        "lane-b",
+        "lane-c"
+      ],
+      "parallel_group": 3
+    }
+  ],
+  "computed_at": "2026-07-09T23:19:55.384601+00:00",
+  "computed_from": "dependency_graph+ownership",
+  "planning_artifact_wps": []
+}
