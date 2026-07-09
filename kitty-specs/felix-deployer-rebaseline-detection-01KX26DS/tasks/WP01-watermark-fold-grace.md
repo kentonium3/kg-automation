@@ -27,7 +27,7 @@ subtasks:
 - T006
 - T007
 - T008
-agent: claude
+agent: "claude:opus:python-pedro:implementer"
 history: []
 agent_profile: python-pedro
 authoritative_surface: scripts/deploy/felix-deployer/rebaseline.py
@@ -40,6 +40,7 @@ owned_files:
 - tests/deploy/test_tick_rebaseline.py
 role: implementer
 tags: []
+shell_pid: "10163"
 ---
 
 ## ⚡ Do This First: Load Agent Profile
@@ -245,3 +246,7 @@ the mission branch unless a human redirects.
   not a blind `rev-parse HEAD` (mid-tick race); confirm transient git failures leave the
   watermark UNCHANGED (no advance); confirm the grace rule defers but does not permanently
   withhold a clear; confirm no new non-stdlib import.
+
+## Activity Log
+
+- 2026-07-09T01:48:58Z – claude:opus:python-pedro:implementer – shell_pid=10163 – Assigned agent via action command

@@ -12,5 +12,7 @@
   "purpose_tldr": "Make felix-deployer's auto-rebaseline fire reliably after every deploy, so there are no false security-drift alerts and no manual rebaselining.",
   "slug": "felix-deployer-rebaseline-detection-01KX26DS",
   "target_branch": "fix/felix-deployer-rebaseline-detection",
-  "topology": "coord"
+  "topology": "coord",
+  "vcs": "git",
+  "vcs_locked_at": "2026-07-09T01:48:53.184153+00:00"
 }

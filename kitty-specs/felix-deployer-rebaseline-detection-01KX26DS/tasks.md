@@ -64,12 +64,12 @@ manifest, never the tick).
 **Dependencies**: none.
 **Estimated prompt size**: ~360 lines.
 
-- [ ] T009 Add optional `expected_baselines` array to `manifest-v1.schema.json` (WP02)
-- [ ] T010 Non-exiting registry read + `known_baselines()` helper in `audited_surfaces.py` (WP02)
-- [ ] T011 `validate_manifest`: names ⊆ known baselines; require `audited_surface: true`; visible error (WP02)
-- [ ] T012 Guard test: derived union == 14 documented baselines (WP02)
-- [ ] T013 Validation tests in `test_manifest.py` (WP02)
-- [ ] T014 Schema tests in `test_manifest_schema.py` (WP02)
+- [x] T009 Add optional `expected_baselines` array to `manifest-v1.schema.json` (WP02)
+- [x] T010 Non-exiting registry read + `known_baselines()` helper in `audited_surfaces.py` (WP02)
+- [x] T011 `validate_manifest`: names ⊆ known baselines; require `audited_surface: true`; visible error (WP02)
+- [x] T012 Guard test: derived union == 14 documented baselines (WP02)
+- [x] T013 Validation tests in `test_manifest.py` (WP02)
+- [x] T014 Schema tests in `test_manifest_schema.py` (WP02)
 
 **Dependencies**: none. **Risks**: must NOT reach the `sys.exit(2)` loader from
 `validate_manifest`; `additionalProperties: false` means the field must be added to the
