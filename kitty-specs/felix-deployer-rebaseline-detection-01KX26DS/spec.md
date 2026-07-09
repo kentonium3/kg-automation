@@ -130,11 +130,11 @@ and backward compatibility with manifests that declare nothing.
 
 | ID | Constraint | Status |
 |---|---|---|
-| C-001 | Tier 3 change (Python logic in the felix-deployer applier). The fix touches `scripts/deploy/**`, itself an audited surface → the mission merge MUST record the rebaseline per `docs/runbooks/security-baseline-ops.md`. | Draft |
+| C-001 | Tier 3 change (Python logic in the felix-deployer applier). The fix touches `scripts/deploy/**`, but that surface's `affected_baselines` is empty — no security-monitor baseline hashes repo Python — so **no rebaseline is required**. The mission merge records `Rebaseline: not required — deploy-pipeline surface has affected_baselines=[]`. | Draft |
 | C-002 | The manifest baseline declaration is a change to the **deploy manifest schema** (`deploys/schema/manifest-v1.schema.json`), NOT to `audited-surfaces.json`; the CI reminder consumer (`check_audited_surface_drift.py`) MUST remain unaffected. | Draft |
 | C-003 | Backward compatible: existing pending tokens (`schema_version`) and existing manifests without a baseline declaration MUST continue to work unchanged. | Draft |
 | C-004 | felix-deployer runs on office2 as the `claude` user (no sudo). The rebaseline command derivation (SSH-wrapper stripping, `sg docker -c … audit.sh`) MUST remain as-is. | Draft |
-| C-005 | The fix itself MUST be deployed through the `deploys/queued/<name>.yaml` manifest discipline (felix-deployer applies it). | Draft |
+| C-005 | felix-deployer runs its applier **directly from the office2 checkout** (`systemd ExecStart=…/scripts/deploy/felix-deployer/deployer.py`; the tick git-pulls that same checkout). The fix therefore **deploys by merging to `main`** — office2's next tick pulls and runs the new code. **No `deploys/queued` manifest is required** (none could redeploy the deployer's own code more directly than its self-pull). | Draft |
 
 ## Success Criteria
 
@@ -165,8 +165,8 @@ full doc-target set. Anticipated surfaces:
 
 - **Code**: `scripts/deploy/felix-deployer/rebaseline.py`, `scripts/deploy/felix-deployer/_tick.py`, and their tests (audited surface: `scripts/deploy/**` → rebaseline obligation, C-001).
 - **Manifest schema**: `deploys/schema/manifest-v1.schema.json` (optional baseline-declaration field) + `scripts/deploy/lib/manifest.py` validation (FR-007).
-- **Deploy manifest**: a `deploys/queued/<name>.yaml` to ship the fix (C-005).
-- **Docs**: the `CLAUDE.md` "happy path" text (the guarantee it makes is restored, and should note robustness to out-of-band HEAD advance); `docs/runbooks/felix-deployer` behavior / `security-baseline-ops.md`; the felix-deployer behavior reference. Verify via the signal-to-doc-map in plan.
+- **Deploy**: none required — the applier self-pulls its own code from the checkout (C-005); the merge to `main` is the deploy.
+- **Docs**: the `CLAUDE.md` "happy path" text (the guarantee it makes is restored, and should note robustness to out-of-band HEAD advance); `docs/runbooks/security-baseline-ops.md`; the felix-deployer behavior reference. Verify via the signal-to-doc-map in plan.
 - **No change** to `audited-surfaces.json` (its systemd/openclaw patterns are already correct; the defect was never in the registry).
 
 ## Out of Scope
