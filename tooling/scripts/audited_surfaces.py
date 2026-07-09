@@ -61,6 +61,44 @@ def load_audited_surfaces() -> dict:
         sys.exit(2)
 
 
+def load_audited_surfaces_or_error() -> tuple[dict | None, str | None]:
+    """Load and parse the audited-surface registry **without exiting**.
+
+    Non-exiting counterpart to :func:`load_audited_surfaces`, for callers that
+    run inside a long-lived loop where a ``sys.exit`` would be fatal (e.g.
+    felix-deployer's tick, which validates manifests outside the rebaseline
+    try/except — NFR-001). Returns ``(registry, None)`` on success, or
+    ``(None, "<reason>")`` on a missing/malformed registry. Never prints to
+    stderr and never calls ``sys.exit``.
+    """
+    if not AUDITED_SURFACES_PATH.exists():
+        return None, f"audited-surfaces.json not found at {AUDITED_SURFACES_PATH}"
+    try:
+        return json.loads(AUDITED_SURFACES_PATH.read_text(encoding="utf-8")), None
+    except (json.JSONDecodeError, OSError) as exc:
+        return None, f"audited-surfaces.json is malformed: {exc}"
+
+
+def known_baselines(registry: dict) -> set[str]:
+    """Return the registry's known-baseline set.
+
+    The union of every audited surface's ``affected_baselines`` plus every
+    ``non_repo_baselines[].name``. This is the exact set of baseline files
+    ``audit.sh`` emits (== ``expected_baseline_count``); a
+    ``manifest``-declared ``expected_baselines`` entry is valid iff it is in
+    this set.
+    """
+    names: set[str] = set()
+    for surface in registry.get("audited_surfaces", []):
+        for baseline in surface.get("affected_baselines", []):
+            names.add(baseline)
+    for entry in registry.get("non_repo_baselines", []):
+        name = entry.get("name")
+        if name is not None:
+            names.add(name)
+    return names
+
+
 def changed_files(range_spec: str | None) -> list[str]:
     """Return the list of changed file paths for the given range.
 
