@@ -81,10 +81,15 @@ _log = logging.getLogger(__name__)
 
 DEFAULT_STATE_DIR = pathlib.Path("/data/services/felix-deployer/state")
 DEFAULT_TOKEN_PATH = DEFAULT_STATE_DIR / "rebaseline-pending.json"
+DEFAULT_OBSERVED_HEAD_PATH = DEFAULT_STATE_DIR / "rebaseline-observed-head.json"
 DEFAULT_BASELINES_DIR = pathlib.Path("/data/services/security-monitor/baselines")
 
 # Stale-token alert threshold (seconds).  24 h matches the daily-audit cycle.
 MAX_AGE_SECONDS: int = 86_400
+
+# Same-tick clear grace window (seconds).  One 5-min tick plus slack — a token
+# younger than this is NOT ``cleared_clean`` on ``D=∅`` (C8 / FR-010 / R7).
+GRACE_SECONDS: int = 330
 
 # ---------------------------------------------------------------------------
 # Tooling-scripts path bootstrap so ``audited_surfaces`` resolves
@@ -111,10 +116,20 @@ OUTCOME_NOT_REQUIRED = "not_required"
 OUTCOME_PENDING_SET = "pending_set"
 OUTCOME_COMPLETED = "completed"
 OUTCOME_CLEARED_CLEAN = "cleared_clean"
+OUTCOME_PENDING_CLEAN = "pending_clean"
 OUTCOME_UNEXPECTED_DRIFT = "unexpected_drift"
 OUTCOME_FAILED = "failed"
 OUTCOME_STALE = "stale"
 OUTCOME_INCONCLUSIVE = "inconclusive"
+
+# ---------------------------------------------------------------------------
+# Watermark validity classifications (T002 / FR-004 / contract C3)
+# ---------------------------------------------------------------------------
+
+WATERMARK_FALLBACK = "fallback"
+WATERMARK_VALID = "valid"
+WATERMARK_SELF_HEAL = "self_heal"
+WATERMARK_TRANSIENT = "transient"
 
 # ---------------------------------------------------------------------------
 # T4 — Pending-token store (atomic)
@@ -166,6 +181,54 @@ def clear_token(token_path: pathlib.Path | None = None) -> None:
         path.unlink(missing_ok=True)
     except OSError as exc:
         _log.warning("rebaseline: failed to clear token at %s: %s", path, exc)
+
+
+# ---------------------------------------------------------------------------
+# T001 — Observe-head watermark store (atomic)
+# ---------------------------------------------------------------------------
+
+
+def read_observed_head(watermark_path: pathlib.Path | None = None) -> str | None:
+    """Return the last-observed head SHA, or ``None`` if absent/unreadable.
+
+    Absent file → ``None`` (first tick after this ships; caller falls back to
+    ``pre_pull_head``).  Corrupt JSON / OSError → ``None`` + WARNING log.
+    Mirrors :func:`read_token`; never raises (C1 / NFR-001).
+    """
+    path = watermark_path if watermark_path is not None else DEFAULT_OBSERVED_HEAD_PATH
+    if not path.exists():
+        return None
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        _log.warning("rebaseline: could not read watermark at %s: %s", path, exc)
+        return None
+    sha = data.get("observed_head_sha") if isinstance(data, dict) else None
+    return sha if isinstance(sha, str) and sha else None
+
+
+def write_observed_head(
+    sha: str, watermark_path: pathlib.Path | None = None
+) -> None:
+    """Atomically persist the observe watermark (``.tmp`` + ``os.replace``).
+
+    Writes ``{schema_version, observed_head_sha, updated_at}``, creating the
+    parent directory if needed.  On ``OSError`` the error is logged at ERROR
+    and swallowed so the tick continues (C2 / NFR-001/003).  Never raises.
+    """
+    path = watermark_path if watermark_path is not None else DEFAULT_OBSERVED_HEAD_PATH
+    payload = {
+        "schema_version": SCHEMA_VERSION,
+        "observed_head_sha": sha,
+        "updated_at": _utc_now_iso(),
+    }
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        tmp = path.with_suffix(".tmp")
+        tmp.write_text(json.dumps(payload, indent=2, default=str), encoding="utf-8")
+        os.replace(tmp, path)
+    except OSError as exc:
+        _log.error("rebaseline: failed to write watermark to %s: %s", path, exc)
 
 
 # ---------------------------------------------------------------------------
@@ -291,6 +354,171 @@ def observe(
         "outcome": OUTCOME_PENDING_SET,
         "surface_ids": merged_surface_ids,
         "matched_files": merged_matched,
+    }
+
+
+# ---------------------------------------------------------------------------
+# T002 — Watermark validity classification + range-base selection
+# ---------------------------------------------------------------------------
+
+
+def classify_watermark(
+    watermark: str | None,
+    post_pull_head: str,
+    *,
+    git_runner: RunnerFn | None = None,
+) -> tuple[str, str | None]:
+    """Classify the observe watermark and pick the range base (FR-004 / C3).
+
+    Pure function of the injected git runner's results so tests can drive
+    every branch.  Returns ``(classification, range_base)``:
+
+    - ``watermark`` is ``None`` → ``(WATERMARK_FALLBACK, None)`` — the caller
+      uses ``pre_pull_head`` as the base (legacy first-run behavior).
+    - ``git cat-file -e "<W>^{commit}"`` non-zero **or**
+      ``git merge-base --is-ancestor <W> <post>`` non-zero →
+      ``(WATERMARK_SELF_HEAL, post_pull_head)`` — the watermark can never
+      yield a valid range; self-heal to ``post`` (empty range → not_required),
+      caller advances the watermark.
+    - both deterministic checks succeed → ``(WATERMARK_VALID, watermark)`` —
+      use ``W`` as the base.
+    - any OTHER git error (runner raises / a check errors for an unexpected
+      reason such as an index lock) → ``(WATERMARK_TRANSIENT, None)`` — the
+      caller leaves the watermark UNCHANGED and skips the advance this tick.
+      Never advance past an unverified range (Codex HIGH-1).
+    """
+    if watermark is None:
+        return (WATERMARK_FALLBACK, None)
+
+    runner = git_runner if git_runner is not None else _default_git_runner
+
+    try:
+        exists = runner(["cat-file", "-e", f"{watermark}^{{commit}}"])
+    except Exception as exc:  # noqa: BLE001 - transient runner failure
+        _log.warning(
+            "rebaseline.classify_watermark: cat-file runner raised: %s", exc
+        )
+        return (WATERMARK_TRANSIENT, None)
+
+    if exists.returncode != 0:
+        # The watermark commit is unknown to this repo → provably invalid.
+        _log.warning(
+            "rebaseline.classify_watermark: watermark %s not a known commit "
+            "(rc=%d) → self_heal",
+            watermark,
+            exists.returncode,
+        )
+        return (WATERMARK_SELF_HEAL, post_pull_head)
+
+    try:
+        is_ancestor = runner(
+            ["merge-base", "--is-ancestor", watermark, post_pull_head]
+        )
+    except Exception as exc:  # noqa: BLE001 - transient runner failure
+        _log.warning(
+            "rebaseline.classify_watermark: merge-base runner raised: %s", exc
+        )
+        return (WATERMARK_TRANSIENT, None)
+
+    # git merge-base --is-ancestor: 0 = ancestor, 1 = not an ancestor,
+    # other = error (transient).
+    if is_ancestor.returncode == 0:
+        return (WATERMARK_VALID, watermark)
+    if is_ancestor.returncode == 1:
+        _log.warning(
+            "rebaseline.classify_watermark: watermark %s not an ancestor of "
+            "%s → self_heal",
+            watermark,
+            post_pull_head,
+        )
+        return (WATERMARK_SELF_HEAL, post_pull_head)
+
+    _log.warning(
+        "rebaseline.classify_watermark: merge-base returned rc=%d → transient",
+        is_ancestor.returncode,
+    )
+    return (WATERMARK_TRANSIENT, None)
+
+
+# ---------------------------------------------------------------------------
+# T006 — Fold manifest-declared baselines into the token
+# ---------------------------------------------------------------------------
+
+
+def fold_manifest_baselines(
+    declared: "set[str] | list[str]",
+    *,
+    observed_head_sha: str,
+    manifest_names: "list[str] | None" = None,
+    token_path: pathlib.Path | None = None,
+) -> dict[str, Any]:
+    """Enter manifest-declared baselines into the pending token (C5 / FR-005/006).
+
+    Args:
+        declared: baseline filenames declared by manifests applied this tick.
+        observed_head_sha: the tick's ``post_pull_head`` — carried onto a
+            scratch-created token so it has observe-like fields.
+        manifest_names: applied manifest names, recorded for outcome
+            correlation.
+        token_path: injectable token path (tests).
+
+    Behavior:
+    - ``declared`` empty → no-op, returns ``{"outcome": not_required}``
+      (legacy manifests, FR-009).
+    - a token already exists → union ``declared`` into ``expected_baselines``,
+      persist, return ``{"outcome": "merged", ...}``.
+    - no token exists → create a synthetic ``manifest-declared`` token, persist,
+      return ``{"outcome": "created", ...}``.
+
+    Never raises; never runs an audit (pure token mutation).
+    """
+    declared_set = {b for b in (declared or []) if b}
+    names = list(manifest_names or [])
+    if not declared_set:
+        return {"outcome": OUTCOME_NOT_REQUIRED}
+
+    now_iso = _utc_now_iso()
+    existing = read_token(token_path)
+
+    if existing is not None:
+        merged_expected = sorted(
+            declared_set | set(existing.get("expected_baselines", []))
+        )
+        token = dict(existing)
+        token["expected_baselines"] = merged_expected
+        write_token(token, token_path)
+        _log.info(
+            "rebaseline.fold_manifest_baselines: merged declared=%s manifests=%s",
+            sorted(declared_set),
+            names,
+        )
+        return {
+            "outcome": "merged",
+            "expected_baselines": merged_expected,
+            "manifest_names": names,
+        }
+
+    token = {
+        "schema_version": SCHEMA_VERSION,
+        "pending_since_utc": now_iso,
+        "observed_head_sha": observed_head_sha,
+        "surface_ids": ["manifest-declared"],
+        "expected_baselines": sorted(declared_set),
+        "matched_files": [],
+        "last_check_utc": None,
+        "alerts_emitted": [],
+        "manifest_names": names,
+    }
+    write_token(token, token_path)
+    _log.info(
+        "rebaseline.fold_manifest_baselines: created declared=%s manifests=%s",
+        sorted(declared_set),
+        names,
+    )
+    return {
+        "outcome": "created",
+        "expected_baselines": sorted(declared_set),
+        "manifest_names": names,
     }
 
 
@@ -519,6 +747,7 @@ def reconcile(
     registry: dict | None = None,
     max_age_seconds: int = MAX_AGE_SECONDS,
     baselines_dir: pathlib.Path | None = None,
+    grace_seconds: int = GRACE_SECONDS,
 ) -> dict[str, Any]:
     """Classify pending drift and act (C2).
 
@@ -530,6 +759,9 @@ def reconcile(
         registry: injectable audited-surfaces registry (tests).
         max_age_seconds: threshold for stale-token alert.
         baselines_dir: injectable baselines directory for file-count (tests).
+        grace_seconds: same-tick clear grace window (C8 / FR-010).  A token
+            whose age is within this window is NOT ``cleared_clean`` on
+            ``D=∅`` — reconcile returns ``pending_clean`` and leaves the token.
 
     Returns a dict with at least ``{"outcome": <str>}``.  On
     ``completed`` the dict carries ``rebaselined_at_utc`` and
@@ -572,7 +804,17 @@ def reconcile(
     expected: set[str] = set(token.get("expected_baselines", []))
 
     if drifted == set():
-        # D = ∅ → cleared_clean: delete token.
+        # D = ∅.  Same-tick clear grace rule (C8 / FR-010 / Codex HIGH-2):
+        # a token created/folded within one tick may describe a deploy whose
+        # audited effect materializes AFTER this same-tick audit — clearing it
+        # now would delete the only memory of the pending rebaseline.  Defer.
+        if _within_grace(token, now_iso, grace_seconds):
+            write_token(token, token_path)
+            _log.info(
+                "rebaseline.reconcile: pending_clean (D=∅, token within grace)"
+            )
+            return {"outcome": OUTCOME_PENDING_CLEAN}
+        # Token older than the grace window → cleared_clean: delete token.
         clear_token(token_path)
         _log.info("rebaseline.reconcile: cleared_clean (D=∅)")
         return {"outcome": OUTCOME_CLEARED_CLEAN}
@@ -609,6 +851,27 @@ def reconcile(
     }
     result.update(_maybe_stale(token, token_path, now_iso, max_age_seconds))
     return result
+
+
+def _within_grace(
+    token: _TokenDict, now_iso: str, grace_seconds: int
+) -> bool:
+    """Return True if *token* is younger than *grace_seconds* (C8 / R7).
+
+    Compares ``pending_since_utc`` to ``now_iso``.  A token whose age cannot be
+    computed (missing/unparseable ``pending_since_utc``) is treated as NOT
+    within grace so a legitimate clear is never permanently withheld.
+    """
+    pending_since = token.get("pending_since_utc")
+    if not pending_since:
+        return False
+    try:
+        since_dt = _dt.datetime.fromisoformat(pending_since.replace("Z", "+00:00"))
+        now_dt = _dt.datetime.fromisoformat(now_iso.replace("Z", "+00:00"))
+        age_seconds = (now_dt - since_dt).total_seconds()
+    except (ValueError, TypeError, AttributeError):
+        return False
+    return age_seconds < grace_seconds
 
 
 def _maybe_stale(
@@ -768,24 +1031,37 @@ __all__ = [
     # Constants
     "DEFAULT_STATE_DIR",
     "DEFAULT_TOKEN_PATH",
+    "DEFAULT_OBSERVED_HEAD_PATH",
     "DEFAULT_BASELINES_DIR",
     "MAX_AGE_SECONDS",
+    "GRACE_SECONDS",
     "SCHEMA_VERSION",
     # Outcome strings
     "OUTCOME_NOT_REQUIRED",
     "OUTCOME_PENDING_SET",
     "OUTCOME_COMPLETED",
     "OUTCOME_CLEARED_CLEAN",
+    "OUTCOME_PENDING_CLEAN",
     "OUTCOME_UNEXPECTED_DRIFT",
     "OUTCOME_FAILED",
     "OUTCOME_STALE",
     "OUTCOME_INCONCLUSIVE",
+    # Watermark classifications
+    "WATERMARK_FALLBACK",
+    "WATERMARK_VALID",
+    "WATERMARK_SELF_HEAL",
+    "WATERMARK_TRANSIENT",
     # Token store
     "read_token",
     "write_token",
     "clear_token",
+    # Watermark store
+    "read_observed_head",
+    "write_observed_head",
     # Engine
     "observe",
+    "classify_watermark",
+    "fold_manifest_baselines",
     "reconcile",
     "rebaseline_and_verify",
 ]
