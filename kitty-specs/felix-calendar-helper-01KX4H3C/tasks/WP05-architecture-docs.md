@@ -13,7 +13,7 @@ subtasks:
 - T018
 - T019
 - T020
-agent: "claude:opus:curator-carla:implementer"
+agent: "claude:opus:reviewer-renata:reviewer"
 history: []
 agent_profile: curator-carla
 authoritative_surface: docs/design/architecture/data/
@@ -34,7 +34,7 @@ owned_files:
 - docs/runbooks/calendar-helper-ops.md
 role: implementer
 tags: []
-shell_pid: "45865"
+shell_pid: "52570"
 ---
 
 # WP05 — Architecture documentation sync
@@ -95,3 +95,4 @@ must pass it). Verify actual field names before editing (architecture-docs-first
 
 - 2026-07-09T23:25:46Z – claude:opus:curator-carla:implementer – shell_pid=45865 – Assigned agent via action command
 - 2026-07-09T23:38:14Z – claude:opus:curator-carla:implementer – shell_pid=45865 – Ready for review — arch data (credential-manifest/data-flows/service-inventory JSON) + narrative views + INDEX + roadmap + new calendar-helper-ops runbook updated; validate_architecture_data.py --strict, validate_docs.py, validate_privacy_boundary.py all pass. NOTE: also touched docs/DEVELOPER_PORTAL.md (single auto-generated runbook-filter line, forced by Docs-CI + build_runbook_filter.py) which is outside WP05 owned_files; and two out-of-scope .view.md files (service-dependencies.view.md, data-flows.view.md) have stale calendar->gog edges — flagged for follow-up.
+- 2026-07-09T23:42:55Z – claude:opus:reviewer-renata:reviewer – shell_pid=52570 – Started review via action command
