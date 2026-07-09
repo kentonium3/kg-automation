@@ -15,7 +15,7 @@ subtasks:
 - T015
 - T016
 - T017
-agent: "claude:opus:curator-carla:implementer"
+agent: "claude:opus:reviewer-renata:reviewer"
 history: []
 agent_profile: curator-carla
 authoritative_surface: docs/runbooks/deployment.md
@@ -27,7 +27,7 @@ owned_files:
 - docs/runbooks/security-baseline-ops.md
 role: implementer
 tags: []
-shell_pid: "18477"
+shell_pid: "20715"
 ---
 
 ## ⚡ Do This First: Load Agent Profile
@@ -109,3 +109,5 @@ Depends on WP01 + WP02 (docs describe their behavior). Execution worktrees per `
 
 - 2026-07-09T02:10:06Z – claude:opus:curator-carla:implementer – shell_pid=18477 – Assigned agent via action command
 - 2026-07-09T02:14:56Z – claude:opus:curator-carla:implementer – shell_pid=18477 – WP03 complete: CLAUDE.md happy-path + deployment.md + security-baseline-ops.md updated; docs validate
+- 2026-07-09T02:16:03Z – claude:opus:reviewer-renata:reviewer – shell_pid=20715 – Started review via action command
+- 2026-07-09T02:18:41Z – user – shell_pid=20715 – Review passed: docs match shipped behavior; validate_docs OK
