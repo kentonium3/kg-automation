@@ -15,7 +15,7 @@ subtasks:
 - T001
 - T002
 - T003
-agent: "claude:opus:python-pedro:implementer"
+agent: "claude:opus:reviewer-renata:reviewer"
 history: []
 agent_profile: python-pedro
 authoritative_surface: scripts/google/calendar_auth.py
@@ -32,7 +32,7 @@ owned_files:
 - tests/google/__init__.py
 role: implementer
 tags: []
-shell_pid: "45344"
+shell_pid: "48843"
 ---
 
 # WP01 — Calendar auth module (per-account, fail-safe)
@@ -113,3 +113,5 @@ block — google uses other transports). Cover:
 ## Activity Log
 
 - 2026-07-09T23:25:09Z – claude:opus:python-pedro:implementer – shell_pid=45344 – Assigned agent via action command
+- 2026-07-09T23:33:38Z – claude:opus:python-pedro:implementer – shell_pid=45344 – Ready for review — calendar_auth module + 28 tests, 100% cov, ruff clean, no interactive-consent path; foundation for WP02 so zero live callers is expected.
+- 2026-07-09T23:33:54Z – claude:opus:reviewer-renata:reviewer – shell_pid=48843 – Started review via action command
