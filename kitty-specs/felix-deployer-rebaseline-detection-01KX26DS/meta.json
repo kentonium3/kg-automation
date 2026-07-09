@@ -1,4 +1,16 @@
 {
+  "acceptance_history": [
+    {
+      "acceptance_mode": "pr",
+      "accepted_at": "2026-07-09T02:20:59.695624+00:00",
+      "accepted_by": "kentgale",
+      "accepted_from_commit": "5640fa309e2528e05df761d02810c6797f0d6822"
+    }
+  ],
+  "acceptance_mode": "pr",
+  "accepted_at": "2026-07-09T02:20:59.695624+00:00",
+  "accepted_by": "kentgale",
+  "accepted_from_commit": "5640fa309e2528e05df761d02810c6797f0d6822",
   "coordination_branch": "kitty/mission-felix-deployer-rebaseline-detection-01KX26DS",
   "created_at": "2026-07-09T01:03:42.279890+00:00",
   "flattened": false,
