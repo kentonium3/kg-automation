@@ -16,7 +16,7 @@ subtasks:
 - T011
 - T012
 - T013
-agent: claude
+agent: "claude:opus:python-pedro:implementer"
 history: []
 agent_profile: python-pedro
 authoritative_surface: scripts/inbox/route_calendar_event.py
@@ -35,6 +35,7 @@ owned_files:
 - tests/calendar/test_validate_calendar_event.py
 role: implementer
 tags: []
+shell_pid: "56852"
 ---
 
 # WP03 — Inbox rewire + felix-admin-calendar reshape (closes #679)
@@ -106,3 +107,7 @@ JSON **array** at `/data/services/openclaw/state/pending-calendar-clarifications
   weakest-model (haiku) surface is minimized (detect intent + extract NL fields + run one command + read status).
 - Grep both agent workspaces for residual `gog` on the calendar surface.
 - Confirm the clarification store path/format (`.json` array) is referenced correctly.
+
+## Activity Log
+
+- 2026-07-09T23:53:42Z – claude:opus:python-pedro:implementer – shell_pid=56852 – Assigned agent via action command
