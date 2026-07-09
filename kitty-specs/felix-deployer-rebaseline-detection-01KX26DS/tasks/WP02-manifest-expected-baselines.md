@@ -20,7 +20,7 @@ subtasks:
 - T012
 - T013
 - T014
-agent: "claude:opus:python-pedro:implementer"
+agent: "claude:opus:reviewer-renata:reviewer"
 history: []
 agent_profile: python-pedro
 authoritative_surface: scripts/deploy/lib/manifest.py
@@ -35,7 +35,7 @@ owned_files:
 - tests/deploy/test_audited_surfaces.py
 role: implementer
 tags: []
-shell_pid: "10726"
+shell_pid: "13871"
 ---
 
 ## ⚡ Do This First: Load Agent Profile
@@ -148,3 +148,5 @@ Execution worktrees are allocated per computed lane from `lanes.json`.
 ## Activity Log
 
 - 2026-07-09T01:49:25Z – claude:opus:python-pedro:implementer – shell_pid=10726 – Assigned agent via action command
+- 2026-07-09T01:58:13Z – claude:opus:python-pedro:implementer – shell_pid=10726 – WP02 complete: expected_baselines schema+validation, non-exiting registry read; 51 tests pass
+- 2026-07-09T01:58:28Z – claude:opus:reviewer-renata:reviewer – shell_pid=13871 – Started review via action command
