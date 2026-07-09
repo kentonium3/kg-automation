@@ -17,7 +17,7 @@ subtasks:
 - T002
 - T003
 - T004
-agent: claude
+agent: "claude"
 history: []
 agent_profile: python-pedro
 authoritative_surface: scripts/deploy/lib/
@@ -32,6 +32,7 @@ owned_files:
 - tests/deploy/test_gitsync.py
 role: implementer
 tags: []
+shell_pid: "45836"
 ---
 
 # WP01 — gitsync primitive (race-immune advance)
@@ -105,3 +106,7 @@ Confirm `AdvanceResult` invariants are enforced.
 ## Branch Strategy
 Planning on `fix/prompt-sync-ff-race`; final merge target `fix/prompt-sync-ff-race`.
 Execution worktrees are allocated per computed lane from `lanes.json`.
+
+## Activity Log
+
+- 2026-07-09T16:46:22Z – claude – shell_pid=45836 – Assigned agent via action command

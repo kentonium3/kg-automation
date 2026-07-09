@@ -15,8 +15,8 @@ Tests ARE requested (NFR-001 concurrency proof is central). Design detail lives 
 | T002 | `advance_checkout()` — fetch + ref-merge + divergence + `assume_locked` | WP01 | |
 | T003 | gitsync unit tests (ff / no-op / ahead-only / diverged / never-FETCH_HEAD) | WP01 | [P] |
 | T004 | gitsync primitive concurrency test | WP01 | [P] |
-| T005 | `deploylock` context manager (flock, bounded retry, path resolution) | WP02 | |
-| T006 | deploylock tests (exclusion, timeout→LockUnavailable, release) | WP02 | [P] |
+| T005 | `deploylock` context manager (flock, bounded retry, path resolution) | WP02 | | [D] |
+| T006 | deploylock tests (exclusion, timeout→LockUnavailable, release) | WP02 | [D] |
 | T007 | health watermark schema + atomic read/write | WP03 | |
 | T008 | `health.record()` — streak logic (confirmed-only, defer-benign, throttle) | WP03 | |
 | T009 | generic `dispatch_health_notification()` in notify.py | WP03 | |

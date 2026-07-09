@@ -12,7 +12,7 @@ branch_strategy: Planning artifacts for this mission were generated on fix/promp
 subtasks:
 - T005
 - T006
-agent: claude
+agent: "claude"
 history: []
 agent_profile: python-pedro
 authoritative_surface: scripts/deploy/lib/
@@ -27,6 +27,7 @@ owned_files:
 - tests/deploy/test_deploylock.py
 role: implementer
 tags: []
+shell_pid: "46630"
 ---
 
 # WP02 — deploylock primitive
@@ -81,3 +82,7 @@ temp path (not `/data`).
 ## Branch Strategy
 Planning on `fix/prompt-sync-ff-race`; final merge target `fix/prompt-sync-ff-race`.
 Execution worktrees are allocated per computed lane from `lanes.json`.
+
+## Activity Log
+
+- 2026-07-09T16:47:38Z – claude – shell_pid=46630 – Assigned agent via action command

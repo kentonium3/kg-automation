@@ -12,5 +12,7 @@
   "purpose_tldr": "Stop the office2 prompt-sync deploy path from silently failing under a git concurrency race.",
   "slug": "prompt-sync-ff-race-01KX3SZC",
   "target_branch": "fix/prompt-sync-ff-race",
-  "topology": "coord"
+  "topology": "coord",
+  "vcs": "git",
+  "vcs_locked_at": "2026-07-09T16:46:16.665112+00:00"
 }
