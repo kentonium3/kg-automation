@@ -107,3 +107,4 @@ Execution worktrees are allocated per computed lane from `lanes.json`.
 ## Activity Log
 
 - 2026-07-09T17:33:09Z – claude – shell_pid=82925 – Assigned agent via action command
+- 2026-07-09T18:21:44Z – claude – shell_pid=82925 – actor-level harness green (120 pairs, both real ticks; old path 59/59 fail, new 0/120)
