@@ -97,3 +97,4 @@ Execution worktrees are allocated per computed lane from `lanes.json`.
 - 2026-07-09T17:15:09Z – claude – shell_pid=71988 – Assigned agent via action command
 - 2026-07-09T17:30:05Z – claude – shell_pid=71988 – prompt-sync integration green (65 tests; openclaw+deploy 608; ruff/mypy clean); GitPullResult+audit preserved
 - 2026-07-09T17:30:09Z – claude – shell_pid=80886 – Started review via action command
+- 2026-07-09T17:30:36Z – user – shell_pid=80886 – Review passed: advance_checkout(assume_locked) mapping; GitPullResult public shape + audit contract preserved additively; lock wraps fetch+copy; health/ntfy wired; 608 green

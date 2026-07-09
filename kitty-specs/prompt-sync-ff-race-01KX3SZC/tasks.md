@@ -21,10 +21,10 @@ Tests ARE requested (NFR-001 concurrency proof is central). Design detail lives 
 | T008 | `health.record()` — streak logic (confirmed-only, defer-benign, throttle) | WP03 | | [D] |
 | T009 | generic `dispatch_health_notification()` in notify.py | WP03 | | [D] |
 | T010 | health/notifier tests | WP03 | [D] |
-| T011 | felix-deployer: wrap whole tick critical section in `deploylock` | WP04 | |
-| T012 | felix-deployer: bare pull → `advance_checkout(assume_locked=True)`; preserve pre/post head | WP04 | |
-| T013 | felix-deployer: wire `health.record` + fail-loud ref-state logging | WP04 | |
-| T014 | felix-deployer tests (rebaseline range preserved + ff-race behaviors) | WP04 | |
+| T011 | felix-deployer: wrap whole tick critical section in `deploylock` | WP04 | | [D] |
+| T012 | felix-deployer: bare pull → `advance_checkout(assume_locked=True)`; preserve pre/post head | WP04 | | [D] |
+| T013 | felix-deployer: wire `health.record` + fail-loud ref-state logging | WP04 | | [D] |
+| T014 | felix-deployer tests (rebaseline range preserved + ff-race behaviors) | WP04 | | [D] |
 | T015 | prompt-sync: wrap fetch/merge+copy in `deploylock` | WP05 | | [D] |
 | T016 | prompt-sync: `git_pull` internals → `advance_checkout`; preserve GitPullResult + enrich audit | WP05 | | [D] |
 | T017 | prompt-sync: wire health + `dispatch_health_notification` + topic env in service unit | WP05 | | [D] |
