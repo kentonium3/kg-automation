@@ -36,13 +36,31 @@ commit SHA(s) made this tick** — captured deterministically from the commit st
 - *No persistence; diff `origin/main@{1}..origin/main`* — reflog-relative selectors are
   brittle across concurrent pulls (rejected).
 
-**Fallback (FR-002/FR-004)**: If the watermark file is absent (first tick after this
-ships) → use `pre_pull_head` as the base (current legacy behavior), then write the
-watermark. If the stored SHA is unreachable (range diff returns non-zero) → log, treat
-the range as not-determinable for that tick (observe returns `not_required`, as it
-already does on diff failure), and still advance the watermark to `post_pull_head` so
-it self-heals next tick. Reads of a missing/corrupt watermark return `None` and never
-raise (mirrors `read_token`).
+**Fallback + failure classification (FR-002/FR-004)** — *revised per post-plan Codex
+HIGH-1*: If the watermark file is absent (first tick after this ships) → use
+`pre_pull_head` as the base (legacy behavior), then write the watermark. If a watermark
+`W` exists, **classify it before self-healing**:
+- **Provably invalid or non-ancestor** — `git cat-file -e W^{commit}` fails, OR
+  `git merge-base --is-ancestor W post_pull_head` returns non-zero → the watermark can
+  never yield a valid range; self-heal by advancing to `post_pull_head` and proceeding.
+- **Valid ancestor** — use `W..post_pull_head` as the range.
+- **Any other git/diff failure** (transient: index lock, malformed runner output) →
+  leave the watermark **unchanged**, treat the range as not-determinable this tick
+  (`observe` → `not_required`), and **retry next tick**. Never advance past an unverified
+  range (that would permanently skip audited commits).
+
+Reads of a missing/corrupt watermark return `None` and never raise (mirrors
+`read_token`).
+
+**Structured `_record_success` result** — *added per Codex MEDIUM-1*: the watermark
+advance depends on the deployer's own `deploy(applied)` commit SHA. `_record_success`
+currently returns `(bool, str)` and treats "commit ok, push failed" as failure. Change
+it to return a typed result carrying `commit_sha`, `pushed`, `applied_path`, `error`.
+**Capture `commit_sha` immediately after a successful `git commit`, even if the
+subsequent push fails.** The tick collects these SHAs; the watermark advances to the
+last own commit that is a descendant of `post_pull_head` (deterministic "last own
+commit", not a vague max-along-history). This prevents the watermark from lagging and
+re-observing an unpushed local bookkeeping commit forever.
 
 ## R2 — Manifest baseline-declaration field shape
 
@@ -87,17 +105,37 @@ baseline additions. `openclaw-cron.txt` and the other non-repo baselines
 (`crontabs.txt`, `brew-*`, `hosts-hash.txt`) are all in the union, so CLI-mutation
 declarations validate.
 
+**Non-exiting read** — *added per Codex MEDIUM-2*: `validate_manifest` runs in the tick's
+queue loop, **outside** the rebaseline `try/except`. The shared
+`audited_surfaces.load_audited_surfaces()` calls `sys.exit(2)` on a missing/malformed
+registry — reaching that from manifest validation would raise `SystemExit` and crash the
+tick (NFR-001 violation). `manifest.py` MUST therefore read the registry via a
+**non-exiting** helper that returns a `LibResult`/error on a bad registry, so a malformed
+registry fails the *manifest* visibly without terminating the deployer. A test injects a
+missing/malformed registry and asserts validation fails without exiting.
+
+**Guard test** — *added per Codex LOW*: add a focused test asserting the derived union
+equals the documented 14-baseline inventory (== `expected_baseline_count`), so a stale
+registry name that `audit.sh` no longer emits is caught rather than silently accepted as
+a "known" declaration target.
+
 **Alternatives considered**: Add an explicit `known_baselines` array to the registry —
-rejected as unnecessary churn now; the union is exact. (Revisit only if audit.sh gains
-a baseline not referenced by any surface.)
+rejected as unnecessary churn now; the union is exact and the guard test pins it.
+(Revisit only if audit.sh gains a baseline not referenced by any surface.)
 
 ## R4 — Folding declared baselines into the token
 
 **Decision**: `_tick.py` collects the union of `expected_baselines` across all manifests
 **successfully applied this tick** during the queue loop, then — after `observe()` runs
-— calls a new `rebaseline.fold_manifest_baselines(declared, token_path=…)` that
-**creates-or-merges** the pending token, unioning `declared` into
-`expected_baselines`. `reconcile()` then runs against the merged token.
+— calls a new `rebaseline.fold_manifest_baselines(declared, *, observed_head_sha,
+manifest_names, token_path=…)` that **creates-or-merges** the pending token, unioning
+`declared` into `expected_baselines`. `reconcile()` then runs against the merged token.
+
+*Signature revised per Codex MEDIUM-3*: passing `observed_head_sha` (the tick's
+`post_pull_head`) and the applied `manifest_names` lets a scratch-created token carry the
+same observe-like fields (`observed_head_sha`, `pending_since_utc`) and preserves
+outcome correlation on the applied record — the function never reaches into git or
+invents values.
 
 **Rationale**:
 - Ordering: manifests are applied in the queue loop (before the rebaseline block), so
@@ -135,6 +173,34 @@ scenarios) are proven by deterministic unit/integration tests using the injectio
 confirmed passively on the **next** natural audited-surface deploy after this ships;
 there is no synthetic office2 deploy in this mission. This is honest about what the
 mission can demonstrate.
+
+## R7 — Same-tick clear grace rule (Codex HIGH-2)
+
+**Decision**: `reconcile()` MUST NOT clear a token on a `D=∅` audit when that token was
+**created or folded during the current tick**. Implement a grace guard: a token clear on
+empty drift is deferred if the token's `pending_since_utc` is this tick (or younger than
+a minimum age, one tick). Instead of `cleared_clean`, reconcile logs/returns a
+`pending_clean` outcome and leaves the token for a later tick to confirm.
+
+**Rationale**: observe + fold + reconcile run in the same tick, immediately after the
+manifest entrypoint applies. For synchronous surfaces (a systemd unit the entrypoint
+enables+starts+verifies before returning; a cron removed via `openclaw cron rm`) the
+drift is visible when the same-tick audit runs — fine. But for an **eventually-visible**
+audited effect (listening ports, docker images pulled, a service restart with delayed
+effect, package state written after the wrapper returns), the immediate `D=∅` audit
+would `cleared_clean` and **delete the only memory of the pending rebaseline** — the
+drift then surfaces on the next daily audit with no token to service it. This is a latent
+#618 flaw; since robustness is this mission's whole point, we close it here rather than
+carry it forward. The grace guard costs one extra tick of latency (~5 min) in the
+eventually-visible case and nothing in the synchronous case.
+
+**Alternatives considered**: Move reconcile to a *later* tick than observe entirely —
+rejected (larger change; the synchronous common case then always pays a tick of latency).
+The grace guard is the minimal, targeted fix.
+
+**Scope note**: The grace guard protects **all** tokens (repo-file-signal surfaces too),
+not just manifest-declared ones — R4's create-from-scratch only helps declared-baseline
+deploys, whereas the guard also covers a systemd-unit deploy whose effect lags.
 
 ## R6 — Backward compatibility
 

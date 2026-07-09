@@ -40,13 +40,18 @@ sources unioned together — (a) git-diff-matched audited surfaces (as today, vi
 `observe`) and (b) manifest declarations (via `fold_manifest_baselines`). No field is
 added or removed; existing tokens remain valid (C-003).
 
-When `fold_manifest_baselines` must create a token from scratch (no prior observe match
-this tick), it uses:
+When `fold_manifest_baselines(declared, *, observed_head_sha, manifest_names, …)` must
+create a token from scratch (no prior observe match this tick), it uses:
 - `surface_ids`: `["manifest-declared"]` (synthetic marker)
-- `expected_baselines`: the declared set
-- `matched_files`: `[]`
-- other fields identical to `observe`'s create path (`pending_since_utc`,
-  `observed_head_sha`, `last_check_utc: null`, `alerts_emitted: []`).
+- `expected_baselines`: `sorted(declared)`
+- `observed_head_sha`: the passed `post_pull_head` (not invented / not read from git)
+- `matched_files`: `[]`; `last_check_utc: null`; `alerts_emitted: []`;
+  `pending_since_utc`: now. `manifest_names` recorded for outcome correlation.
+
+**Grace field (FR-010)**: `reconcile()` reads `pending_since_utc` to enforce the
+same-tick clear grace rule — a token whose age is within one tick is not `cleared_clean`
+on `D=∅` (returns `pending_clean` instead). No new persisted field is required;
+`pending_since_utc` already carries the needed timestamp.
 
 ## Entity: Deploy Manifest (EXTENDED — schema change)
 

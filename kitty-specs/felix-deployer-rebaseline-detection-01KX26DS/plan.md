@@ -104,25 +104,25 @@ in the existing `tests/deploy/` suites.
 
 - **Purpose**: Make the observe range complete regardless of which actor advanced HEAD, and never re-observe the deployer's own bookkeeping commits.
 - **Relevant requirements**: FR-001, FR-002, FR-003, FR-004; NFR-003.
-- **Affected surfaces**: `scripts/deploy/felix-deployer/rebaseline.py` (add `read_observed_head`/`write_observed_head`, atomic; keep `observe()` pure — it still takes `(base, head)`), `scripts/deploy/felix-deployer/_tick.py` (compute range base = watermark or `pre_pull_head` fallback; after observe+reconcile advance watermark to the tick's own final commit, not a blind HEAD resolve — see research.md R1).
+- **Affected surfaces**: `scripts/deploy/felix-deployer/rebaseline.py` (add `read_observed_head`/`write_observed_head`, atomic; keep `observe()` pure — it still takes `(base, head)`), `scripts/deploy/felix-deployer/_tick.py` (range base = watermark or `pre_pull_head` fallback; **classify watermark validity** before self-healing per FR-004; advance watermark to the deployer's own last `deploy(applied)` commit that descends from `post_pull_head`). Change `_record_success` to return a **structured result** (`commit_sha`, `pushed`, `applied_path`, `error`) capturing the SHA even when push fails (Codex MED-1).
 - **Sequencing/depends-on**: none (foundational).
-- **Risks**: The mid-tick out-of-band-pull race — advancing the watermark to a blind end-of-tick HEAD could skip an out-of-band commit that landed during the tick. Mitigation (R1): advance to `post_pull_head` extended only by the deployer's *own* captured commit SHA(s).
+- **Risks**: (a) mid-tick out-of-band-pull race — mitigated by advancing only to our own captured commit SHA, not a blind HEAD resolve. (b) **transient** git-diff failure must NOT self-heal past an unverified range (Codex HIGH-1) — only a provably invalid/non-ancestor watermark self-heals (`git cat-file -e` + `merge-base --is-ancestor`); other failures leave the watermark and retry.
 
 ### IC-02 — Manifest-declared expected baselines
 
 - **Purpose**: Give CLI-mutation deploys (no repo-file signal) a way to declare the baselines they drift, so reconcile treats that drift as expected.
 - **Relevant requirements**: FR-005, FR-006, FR-007, FR-009; C-002, C-003.
-- **Affected surfaces**: `deploys/schema/manifest-v1.schema.json` (add optional `expected_baselines`), `scripts/deploy/lib/manifest.py` (`validate_manifest`: names ⊆ known-baseline set derived from the registry union; require `audited_surface: true` when present), `scripts/deploy/felix-deployer/_tick.py` (collect declared baselines from manifests applied this tick), `scripts/deploy/felix-deployer/rebaseline.py` (`fold_manifest_baselines()` — create-or-merge the token, unioning declared baselines into `expected_baselines`).
+- **Affected surfaces**: `deploys/schema/manifest-v1.schema.json` (add optional `expected_baselines`), `scripts/deploy/lib/manifest.py` (`validate_manifest`: names ⊆ known-baseline set derived from the registry union via a **non-exiting** read — never the `sys.exit(2)` loader (Codex MED-2); require `audited_surface: true` when present), `scripts/deploy/felix-deployer/_tick.py` (collect declared baselines from manifests applied this tick), `scripts/deploy/felix-deployer/rebaseline.py` (`fold_manifest_baselines(declared, *, observed_head_sha, manifest_names, …)` — create-or-merge the token, unioning declared baselines into `expected_baselines`; Codex MED-3 signature).
 - **Sequencing/depends-on**: IC-01 (folds into the same token observe manages).
-- **Risks**: A declared-baseline deploy whose only audited-surface change is the manifest move itself must still get a token — `fold_manifest_baselines()` creates one if absent (research.md R3). Unknown baseline names must fail visibly, not silently (FR-007).
+- **Risks**: A declared-baseline deploy whose only audited-surface change is the manifest move itself must still get a token — `fold_manifest_baselines()` creates one if absent. Unknown baseline names must fail visibly, not silently (FR-007), and a malformed registry must fail the *manifest*, not crash the tick (NFR-001).
 
 ### IC-03 — No-crash, outcome stamping, backward compatibility
 
-- **Purpose**: Preserve the tick's no-crash discipline and outcome correlation; guarantee legacy manifests/tokens are unaffected.
-- **Relevant requirements**: FR-008, FR-009; NFR-001, NFR-002, NFR-005; C-003.
-- **Affected surfaces**: `_tick.py` (keep rebaseline block wrapped; keep `rebaseline_stamped` correlation; watermark advance must itself be crash-safe), regression tests across all three suites.
+- **Purpose**: Preserve the tick's no-crash discipline and outcome correlation; add the same-tick clear **grace rule**; guarantee legacy manifests/tokens are unaffected.
+- **Relevant requirements**: FR-008, FR-009, **FR-010**; NFR-001, NFR-002, NFR-005; C-003.
+- **Affected surfaces**: `rebaseline.py` (`reconcile()` grace guard — do not `cleared_clean` a token created/folded this tick on `D=∅`; return/log `pending_clean` instead, research.md R7), `_tick.py` (keep rebaseline block wrapped; keep `rebaseline_stamped` correlation; watermark advance crash-safe), regression tests across all three suites.
 - **Sequencing/depends-on**: IC-01, IC-02.
-- **Risks**: Watermark write failure must degrade gracefully (log + continue), never abort the tick.
+- **Risks**: Grace guard must not *permanently* withhold a legitimate clear — it defers one tick / a minimum age, then clears normally. Watermark write failure must degrade gracefully (log + continue), never abort the tick.
 
 ### IC-04 — Docs & merge hygiene
 
