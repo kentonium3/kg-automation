@@ -1,0 +1,16 @@
+{
+  "coordination_branch": "kitty/mission-felix-deployer-rebaseline-detection-01KX26DS",
+  "created_at": "2026-07-09T01:03:42.279890+00:00",
+  "flattened": false,
+  "friendly_name": "Robust Felix-Deployer Rebaseline Detection",
+  "mission_id": "01KX26DSP56DD8YD34DXNMNMFC",
+  "mission_number": null,
+  "mission_slug": "felix-deployer-rebaseline-detection-01KX26DS",
+  "mission_type": "software-dev",
+  "pr_bound": true,
+  "purpose_context": "felix-deployer is supposed to silently reset the office2 security baselines after any deploy that changes an audited surface, so the daily security audit never fires a false drift alert and the operator never has to rebaseline by hand. Issue #685 shows that automation silently skips when the code checkout was advanced out-of-band before the deploy tick, and when a deploy mutates state through a CLI with no repo-file trace (e.g. removing an OpenClaw cron). This mission closes both gaps so the 'no operator action' guarantee actually holds.",
+  "purpose_tldr": "Make felix-deployer's auto-rebaseline fire reliably after every deploy, so there are no false security-drift alerts and no manual rebaselining.",
+  "slug": "felix-deployer-rebaseline-detection-01KX26DS",
+  "target_branch": "fix/felix-deployer-rebaseline-detection",
+  "topology": "coord"
+}
