@@ -13,6 +13,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -20,6 +21,23 @@ import yaml
 from jsonschema import Draft202012Validator, ValidationError
 
 from . import LibResult
+
+# ---------------------------------------------------------------------------
+# Tooling-scripts path bootstrap so ``audited_surfaces`` resolves.
+#
+# ``tooling/scripts/audited_surfaces.py`` is not a package (no __init__.py);
+# we replicate the sibling pattern (check_audited_surface_drift.py,
+# felix-deployer/rebaseline.py): insert the directory on sys.path and import
+# by module name. We import the *module* (not the names) so a test that
+# monkeypatches ``audited_surfaces.AUDITED_SURFACES_PATH`` is honoured, and so
+# validation reads the registry through the **non-exiting** helper only.
+# ---------------------------------------------------------------------------
+
+_TOOLING_SCRIPTS = Path(__file__).resolve().parents[3] / "tooling" / "scripts"
+if str(_TOOLING_SCRIPTS) not in sys.path:
+    sys.path.insert(0, str(_TOOLING_SCRIPTS))
+
+import audited_surfaces  # noqa: E402  # type: ignore[import-not-found]
 
 # Default locations relative to the repo root. Callers may override either
 # via the explicit *schema_path* argument or by passing a *root* hint to
@@ -74,6 +92,100 @@ def load_manifest(path: str | os.PathLike[str]) -> dict[str, Any]:
     return data
 
 
+def _validate_expected_baselines(
+    data: dict[str, Any],
+    schema_path_resolved: Path,
+) -> LibResult | None:
+    """Validate the optional ``expected_baselines`` field.
+
+    Returns ``None`` when the field is absent (unchanged behaviour, FR-009) or
+    when the declaration is valid. Returns an invalid :class:`LibResult` when:
+
+    * the registry cannot be read — via the **non-exiting** reader, so a
+      malformed registry fails the *manifest*, never the deployer tick (a
+      ``SystemExit`` in the tick queue loop would crash felix-deployer; NFR-001);
+    * a declared name is not in the registry's known-baseline set (message
+      names the offender(s), FR-007);
+    * ``audited_surface`` is not ``true`` (the R2 coupling rule, FR-007).
+    """
+    declared = data.get("expected_baselines")
+    if declared is None:
+        return None
+
+    if data.get("audited_surface") is not True:
+        return LibResult(
+            ok=False,
+            summary="expected_baselines requires audited_surface: true",
+            details={
+                "error_code": "EXPECTED_BASELINES_COUPLING",
+                "schema_path": str(schema_path_resolved),
+            },
+        )
+
+    # NON-exiting read only — never audited_surfaces.load_audited_surfaces().
+    registry, reason = audited_surfaces.load_audited_surfaces_or_error()
+    if registry is None:
+        return LibResult(
+            ok=False,
+            summary=f"expected_baselines: registry could not be read: {reason}",
+            details={
+                "error_code": "REGISTRY_UNREADABLE",
+                "error": reason,
+                "schema_path": str(schema_path_resolved),
+            },
+        )
+
+    known = audited_surfaces.known_baselines(registry)
+    unknown = [name for name in declared if name not in known]
+    if unknown:
+        return LibResult(
+            ok=False,
+            summary=(
+                "expected_baselines contains unknown baseline(s) "
+                f"(validated against the registry's known set): {', '.join(unknown)}"
+            ),
+            details={
+                "error_code": "EXPECTED_BASELINES_UNKNOWN",
+                "unknown": unknown,
+                "known": sorted(known),
+                "schema_path": str(schema_path_resolved),
+            },
+        )
+    return None
+
+
+def validate_expected_baselines_only(
+    data: dict[str, Any],
+    schema_path: str | os.PathLike[str] | None = None,
+) -> LibResult:
+    """Validate ONLY the ``expected_baselines`` rules (no JSON-Schema pass).
+
+    The felix-deployer tick calls this BEFORE ``dry_run_then_apply_gate`` so a
+    bogus/decoupled ``expected_baselines`` declaration rejects the manifest with
+    office2 state untouched (Codex HIGH-2). Running the full ``validate_manifest``
+    pre-apply is deliberately avoided: the pull-based pipeline does not
+    JSON-Schema-validate before applying today, so tightening that here would
+    change apply behaviour for every manifest. This checks purely the R2 rules:
+
+    * ``expected_baselines`` absent → ``ok=True`` (FR-009, unchanged behaviour);
+    * ``expected_baselines`` present but ``audited_surface`` not ``true`` →
+      invalid (coupling rule);
+    * a declared name not in the registry's known-baseline set → invalid.
+
+    Reuses :func:`_validate_expected_baselines` so the rule stays single-sourced
+    with :func:`validate_manifest`.
+    """
+    schema_path_resolved = Path(schema_path) if schema_path else _default_schema_path()
+    result = _validate_expected_baselines(data, schema_path_resolved)
+    if result is not None:
+        return result
+    return LibResult(
+        ok=True,
+        summary="expected_baselines valid",
+        details={"schema_path": str(schema_path_resolved)},
+    )
+
+
 def validate_manifest(
     data: dict[str, Any],
     schema_path: str | os.PathLike[str] | None = None,
@@ -119,6 +231,9 @@ def validate_manifest(
     validator = Draft202012Validator(schema)
     errors = sorted(validator.iter_errors(data), key=lambda e: list(e.absolute_path))
     if not errors:
+        baselines_result = _validate_expected_baselines(data, schema_path_resolved)
+        if baselines_result is not None:
+            return baselines_result
         return LibResult(
             ok=True,
             summary=f"manifest valid against {schema_path_resolved.name}",
@@ -198,6 +313,7 @@ def validate_manifest_file(
 __all__ = [
     "load_manifest",
     "validate_manifest",
+    "validate_expected_baselines_only",
     "validate_manifest_file",
     "next_applied_seq",
 ]

@@ -1,0 +1,68 @@
+{
+  "version": 1,
+  "mission_slug": "felix-deployer-rebaseline-detection-01KX26DS",
+  "mission_id": "01KX26DSP56DD8YD34DXNMNMFC",
+  "mission_branch": "kitty/mission-felix-deployer-rebaseline-detection-01KX26DS",
+  "target_branch": "fix/felix-deployer-rebaseline-detection",
+  "lanes": [
+    {
+      "lane_id": "lane-a",
+      "wp_ids": [
+        "WP01"
+      ],
+      "write_scope": [
+        "scripts/deploy/felix-deployer/_tick.py",
+        "scripts/deploy/felix-deployer/rebaseline.py",
+        "tests/deploy/test_rebaseline.py",
+        "tests/deploy/test_tick_rebaseline.py"
+      ],
+      "predicted_surfaces": [
+        "api"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    },
+    {
+      "lane_id": "lane-b",
+      "wp_ids": [
+        "WP02"
+      ],
+      "write_scope": [
+        "deploys/schema/manifest-v1.schema.json",
+        "scripts/deploy/lib/manifest.py",
+        "tests/deploy/test_audited_surfaces.py",
+        "tests/deploy/test_manifest.py",
+        "tests/deploy/test_manifest_schema.py",
+        "tooling/scripts/audited_surfaces.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "legacy-cleanup"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    },
+    {
+      "lane_id": "lane-c",
+      "wp_ids": [
+        "WP03"
+      ],
+      "write_scope": [
+        "CLAUDE.md",
+        "docs/runbooks/deployment.md",
+        "docs/runbooks/security-baseline-ops.md"
+      ],
+      "predicted_surfaces": [
+        "api"
+      ],
+      "depends_on_lanes": [
+        "lane-a",
+        "lane-b"
+      ],
+      "parallel_group": 1
+    }
+  ],
+  "computed_at": "2026-07-09T01:46:10.398788+00:00",
+  "computed_from": "dependency_graph+ownership",
+  "planning_artifact_wps": []
+}

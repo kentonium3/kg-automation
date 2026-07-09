@@ -1004,6 +1004,262 @@ class TestHappyPath:
 # ---------------------------------------------------------------------------
 
 
+# ---------------------------------------------------------------------------
+# T001 — Observe-head watermark store
+# ---------------------------------------------------------------------------
+
+
+class TestWatermarkStore:
+    def test_read_absent_returns_none(self, tmp_path):
+        """Absent watermark file → None (first tick fallback)."""
+        wm = tmp_path / "rebaseline-observed-head.json"
+        assert rbl.read_observed_head(wm) is None
+
+    def test_write_then_read_round_trip(self, tmp_path):
+        """write_observed_head + read_observed_head round-trips the SHA."""
+        wm = tmp_path / "rebaseline-observed-head.json"
+        rbl.write_observed_head(SHA_B, wm)
+        assert rbl.read_observed_head(wm) == SHA_B
+
+    def test_write_payload_shape(self, tmp_path):
+        """Watermark file carries schema_version + observed_head_sha + updated_at."""
+        wm = tmp_path / "rebaseline-observed-head.json"
+        rbl.write_observed_head(SHA_B, wm)
+        data = json.loads(wm.read_text(encoding="utf-8"))
+        assert data["schema_version"] == rbl.SCHEMA_VERSION
+        assert data["observed_head_sha"] == SHA_B
+        assert "updated_at" in data
+
+    def test_write_is_atomic_no_tmp_left(self, tmp_path):
+        """No .tmp file remains after a successful atomic write."""
+        wm = tmp_path / "rebaseline-observed-head.json"
+        rbl.write_observed_head(SHA_B, wm)
+        assert not (tmp_path / "rebaseline-observed-head.tmp").exists()
+        assert wm.exists()
+
+    def test_write_creates_parent_dir(self, tmp_path):
+        """Parent directories are created on write."""
+        wm = tmp_path / "state" / "deep" / "rebaseline-observed-head.json"
+        rbl.write_observed_head(SHA_A, wm)
+        assert rbl.read_observed_head(wm) == SHA_A
+
+    def test_read_corrupt_returns_none(self, tmp_path):
+        """Corrupt JSON → None (not raise)."""
+        wm = tmp_path / "rebaseline-observed-head.json"
+        wm.write_text("{ not json", encoding="utf-8")
+        assert rbl.read_observed_head(wm) is None
+
+    def test_read_missing_key_returns_none(self, tmp_path):
+        """Valid JSON without observed_head_sha → None."""
+        wm = tmp_path / "rebaseline-observed-head.json"
+        wm.write_text(json.dumps({"schema_version": 1}), encoding="utf-8")
+        assert rbl.read_observed_head(wm) is None
+
+    def test_write_to_unwritable_dir_does_not_raise(self, tmp_path):
+        """OSError on write is swallowed (never raises)."""
+        # Point at a path whose parent is a file → mkdir/replace fails.
+        blocker = tmp_path / "blocker"
+        blocker.write_text("x", encoding="utf-8")
+        wm = blocker / "rebaseline-observed-head.json"
+        # Must not raise.
+        rbl.write_observed_head(SHA_A, wm)
+
+
+# ---------------------------------------------------------------------------
+# T002 — Watermark validity classification
+# ---------------------------------------------------------------------------
+
+WM_W = "wwww9999" * 5  # a watermark SHA
+WM_POST = "pppp8888" * 5  # post_pull_head
+
+
+def _make_git_runner(cat_file_rc: int = 0, ancestor_rc: int = 0, raise_on: str | None = None):
+    """Build a fake git runner for classify_watermark branches."""
+
+    def _runner(args: list[str]) -> subprocess.CompletedProcess:
+        sub = args[0] if args else ""
+        if raise_on == sub:
+            raise RuntimeError(f"simulated {sub} failure")
+        if sub == "cat-file":
+            return _make_proc(returncode=cat_file_rc)
+        if sub == "merge-base":
+            return _make_proc(returncode=ancestor_rc)
+        return _make_proc(returncode=0)
+
+    return _runner
+
+
+class TestClassifyWatermark:
+    def test_none_watermark_is_fallback(self):
+        cls, base = rbl.classify_watermark(None, WM_POST, git_runner=_make_git_runner())
+        assert cls == rbl.WATERMARK_FALLBACK
+        assert base is None
+
+    def test_valid_ancestor(self):
+        cls, base = rbl.classify_watermark(
+            WM_W, WM_POST, git_runner=_make_git_runner(cat_file_rc=0, ancestor_rc=0)
+        )
+        assert cls == rbl.WATERMARK_VALID
+        assert base == WM_W
+
+    def test_unknown_commit_is_self_heal(self):
+        """cat-file non-zero → provably invalid → self_heal to post."""
+        cls, base = rbl.classify_watermark(
+            WM_W, WM_POST, git_runner=_make_git_runner(cat_file_rc=1)
+        )
+        assert cls == rbl.WATERMARK_SELF_HEAL
+        assert base == WM_POST
+
+    def test_non_ancestor_is_self_heal(self):
+        """merge-base --is-ancestor rc=1 → non-ancestor → self_heal."""
+        cls, base = rbl.classify_watermark(
+            WM_W, WM_POST, git_runner=_make_git_runner(cat_file_rc=0, ancestor_rc=1)
+        )
+        assert cls == rbl.WATERMARK_SELF_HEAL
+        assert base == WM_POST
+
+    def test_cat_file_raises_is_transient(self):
+        cls, base = rbl.classify_watermark(
+            WM_W, WM_POST, git_runner=_make_git_runner(raise_on="cat-file")
+        )
+        assert cls == rbl.WATERMARK_TRANSIENT
+        assert base is None
+
+    def test_merge_base_raises_is_transient(self):
+        cls, base = rbl.classify_watermark(
+            WM_W, WM_POST, git_runner=_make_git_runner(raise_on="merge-base")
+        )
+        assert cls == rbl.WATERMARK_TRANSIENT
+        assert base is None
+
+    def test_merge_base_error_code_is_transient(self):
+        """merge-base rc=128 (neither 0 nor 1) → transient, not self_heal."""
+        cls, base = rbl.classify_watermark(
+            WM_W, WM_POST, git_runner=_make_git_runner(cat_file_rc=0, ancestor_rc=128)
+        )
+        assert cls == rbl.WATERMARK_TRANSIENT
+        assert base is None
+
+
+# ---------------------------------------------------------------------------
+# T005 — Same-tick clear grace rule
+# ---------------------------------------------------------------------------
+
+
+class TestGraceRule:
+    def test_fresh_token_D_empty_is_pending_clean(self, tmp_path):
+        """A token created this tick + D=∅ → pending_clean; token retained."""
+        token_path = tmp_path / "token.json"
+        fresh = rbl._utc_now_iso()
+        rbl.write_token(_token_with_openclaw(pending_since=fresh), token_path)
+
+        result = rbl.reconcile(
+            token_path=token_path,
+            audit_runner=_clean_audit_runner,
+            registry=_REGISTRY,
+        )
+        assert result["outcome"] == rbl.OUTCOME_PENDING_CLEAN
+        assert token_path.exists(), "fresh token must be retained under grace"
+
+    def test_aged_token_D_empty_is_cleared_clean(self, tmp_path):
+        """A token older than the grace window + D=∅ → cleared_clean."""
+        token_path = tmp_path / "token.json"
+        old = (
+            _dt.datetime.now(_dt.timezone.utc) - _dt.timedelta(seconds=1000)
+        ).strftime("%Y-%m-%dT%H:%M:%SZ")
+        rbl.write_token(_token_with_openclaw(pending_since=old), token_path)
+
+        result = rbl.reconcile(
+            token_path=token_path,
+            audit_runner=_clean_audit_runner,
+            registry=_REGISTRY,
+        )
+        assert result["outcome"] == rbl.OUTCOME_CLEARED_CLEAN
+        assert not token_path.exists()
+
+    def test_grace_seconds_override(self, tmp_path):
+        """grace_seconds=0 disables the grace window (legacy behavior)."""
+        token_path = tmp_path / "token.json"
+        fresh = rbl._utc_now_iso()
+        rbl.write_token(_token_with_openclaw(pending_since=fresh), token_path)
+
+        result = rbl.reconcile(
+            token_path=token_path,
+            audit_runner=_clean_audit_runner,
+            registry=_REGISTRY,
+            grace_seconds=0,
+        )
+        assert result["outcome"] == rbl.OUTCOME_CLEARED_CLEAN
+        assert not token_path.exists()
+
+
+# ---------------------------------------------------------------------------
+# T006 — fold_manifest_baselines
+# ---------------------------------------------------------------------------
+
+
+class TestFoldManifestBaselines:
+    def test_empty_declared_is_not_required(self, tmp_path):
+        """Empty declared set → not_required, no token written."""
+        token_path = tmp_path / "token.json"
+        result = rbl.fold_manifest_baselines(
+            set(), observed_head_sha=SHA_B, token_path=token_path
+        )
+        assert result["outcome"] == rbl.OUTCOME_NOT_REQUIRED
+        assert not token_path.exists()
+
+    def test_no_token_creates_synthetic(self, tmp_path):
+        """No token → create with manifest-declared surface + declared baselines."""
+        token_path = tmp_path / "token.json"
+        result = rbl.fold_manifest_baselines(
+            {"openclaw-cron.txt"},
+            observed_head_sha=SHA_B,
+            manifest_names=["0099-cron-deploy"],
+            token_path=token_path,
+        )
+        assert result["outcome"] == "created"
+        token = rbl.read_token(token_path)
+        assert token is not None
+        assert token["surface_ids"] == ["manifest-declared"]
+        assert token["expected_baselines"] == ["openclaw-cron.txt"]
+        assert token["observed_head_sha"] == SHA_B
+        assert token["matched_files"] == []
+        assert token["last_check_utc"] is None
+        assert token["alerts_emitted"] == []
+        assert token["manifest_names"] == ["0099-cron-deploy"]
+
+    def test_existing_token_merges(self, tmp_path):
+        """Existing token → union declared into expected_baselines."""
+        token_path = tmp_path / "token.json"
+        rbl.write_token(_token_with_openclaw(), token_path)
+        result = rbl.fold_manifest_baselines(
+            {"openclaw-cron.txt", "crontabs.txt"},
+            observed_head_sha=SHA_B,
+            token_path=token_path,
+        )
+        assert result["outcome"] == "merged"
+        token = rbl.read_token(token_path)
+        assert token is not None
+        # Original openclaw baselines preserved + new ones unioned.
+        assert "openclaw-config.txt" in token["expected_baselines"]
+        assert "openclaw-cron.txt" in token["expected_baselines"]
+        assert "crontabs.txt" in token["expected_baselines"]
+        # Original surface_ids preserved (not overwritten with manifest-declared).
+        assert token["surface_ids"] == ["openclaw-config"]
+
+    def test_fold_never_raises_on_bad_declared(self, tmp_path):
+        """None/empty entries in declared are filtered; never raises."""
+        token_path = tmp_path / "token.json"
+        result = rbl.fold_manifest_baselines(
+            ["", "openclaw-cron.txt"],
+            observed_head_sha=SHA_B,
+            token_path=token_path,
+        )
+        assert result["outcome"] == "created"
+        token = rbl.read_token(token_path)
+        assert token["expected_baselines"] == ["openclaw-cron.txt"]
+
+
 class TestRegistryDrivenCount:
     def test_count_from_registry_not_hardcoded(self, tmp_path):
         """expected_baseline_count is read from registry; varying it changes behaviour."""

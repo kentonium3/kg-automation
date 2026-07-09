@@ -92,6 +92,28 @@ verification:
 The full manifest schema lives at `deploys/schema/manifest-v1.schema.json` —
 that file is authoritative. CI rejects any manifest that does not validate.
 
+#### Optional `expected_baselines` (CLI-mutation deploys)
+
+When a deploy drifts a security-monitor baseline through a runtime action with
+**no repo-file signal** — e.g. removing an OpenClaw cron via `openclaw cron rm`
+(which drifts `openclaw-cron.txt`) — declare the baselines it will drift so
+felix-deployer's auto-rebaseline (#618/#685) treats that drift as *expected*
+instead of `unexpected_drift`:
+
+```yaml
+audited_surface: true
+expected_baselines:
+  - openclaw-cron.txt
+```
+
+Validation rules (`validate_manifest`): every name must be a known
+security-monitor baseline (the 14-name set derived from
+`docs/design/architecture/data/audited-surfaces.json`), and `expected_baselines`
+requires `audited_surface: true`. Omit the field entirely for deploys whose
+audited-surface change *is* signaled by a repo-file (systemd unit, deploy
+script, etc.) — those are matched automatically. See
+`docs/runbooks/deployment.md` § felix-deployer rebaseline behavior.
+
 The entrypoint script MUST support two modes:
 
 - `--dry-run` — print what would happen; no side effects on office2.

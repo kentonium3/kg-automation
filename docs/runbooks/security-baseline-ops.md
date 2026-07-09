@@ -62,6 +62,17 @@ audited surface. **No operator action is needed on the happy path.**
    recording the matched surface IDs, expected affected baselines, and
    `pending_since` timestamp.
 
+   **CLI-mutation deploys.** Some deploys drift a baseline without any
+   tracked-file change — e.g. an `openclaw cron rm` that drifts
+   `openclaw-cron.txt` but touches no `openclaw.json`. These have no
+   repo-file signal for the observe step, so the deploy manifest declares
+   the baselines it will drift via an `expected_baselines` field
+   (requires `audited_surface: true`; each name must be a known baseline).
+   Those declared baselines are folded into the pending token's expected
+   set, so the auto-rebaseline covers them and **no manual reset is
+   needed**. See the felix-deployer reference in
+   [deployment.md](<./deployment.md#manifest-expected_baselines-declaration>).
+
 2. On each subsequent tick while a pending token exists, the deployer
    runs a **read-only** audit (baselines present — compare mode, no
    reset) to check whether expected drift has appeared yet:
@@ -70,8 +81,9 @@ audited surface. **No operator action is needed on the happy path.**
      deployed and its fingerprint has changed. The deployer rebaselines
      (`rm baselines/* && sg docker -c audit.sh`), verifies that the
      baseline count equals `expected_baseline_count` from the registry
-     and that the audit reports clear, stamps the deploy record
-     `rebaseline: completed`, and clears the token.
+     and that the audit reports clear, records the `completed` outcome on
+     the tick log (`rebaseline_reconcile` / `rebaseline_stamped`), and clears
+     the token.
 
    - **Audit clean (no drift)** — the committed change did not alter
      the hashed content of any monitored surface (e.g. a comment-only
@@ -90,9 +102,11 @@ audited surface. **No operator action is needed on the happy path.**
 
 ### Observability outcomes
 
-The outcome is recorded on the tick log
-(`/data/services/felix-deployer/logs/<date>.jsonl`) and, when a deploy
-record is available, on the `deploys/applied/` entry:
+The outcome is recorded on the felix-deployer tick log
+(`/data/services/felix-deployer/logs/<date>.jsonl`), via the
+`rebaseline_reconcile` and (when ≥1 manifest was applied this tick)
+`rebaseline_stamped` events correlated to the applied manifest name. It is NOT
+written as a field on the `deploys/applied/` YAML entry:
 
 | Outcome | Meaning |
 |---|---|
@@ -162,9 +176,9 @@ out-of-band changes or post-alert recovery, reset manually after any
 **intentional** change to one of the audited surfaces. Service runbooks
 list specific triggers:
 
-- Vikunja deploy / image upgrade → [vikunja-ops.md](vikunja-ops.md#security-baseline-trigger)
-- OpenClaw deploy / config change → [openclaw-ops.md](openclaw-ops.md#security-baseline-trigger)
-- New service added per [deployment.md](deployment.md)
+- Vikunja deploy / image upgrade → [vikunja-ops.md](<./vikunja-ops.md#security-baseline-trigger>)
+- OpenClaw deploy / config change → [openclaw-ops.md](<./openclaw-ops.md#security-baseline-trigger>)
+- New service added per [deployment.md](<./deployment.md>)
 - Bulk repo changes that touch `openclaw-config.txt` content (e.g.,
   agent-config sweeps)
 
@@ -232,7 +246,11 @@ To exercise the failure path without a real failure, the operator can:
 3. Observe the tick log for `failed` outcome.
 4. Confirm exactly one ntfy alert with topic `rebaseline_failed` was
    emitted.
-5. Confirm the deploy record carries a `failed` annotation.
+5. Confirm the tick log carries the `failed` outcome (the
+   `rebaseline_reconcile` / `rebaseline_stamped` events in
+   `/data/services/felix-deployer/logs/<date>.jsonl`, correlated to the applied
+   manifest name — the outcome is recorded on the tick log, not on the applied
+   YAML record).
 6. Confirm the applied code is still in place (no rollback).
 7. Restore the correct `expected_baseline_count` and reset manually.
 
@@ -250,6 +268,6 @@ only fire on subsequent real changes.
 
 ## Related documents
 
-- [office2 Backup and Security Model](../design/office2-backup-and-security.md) — overall security posture and audit context
-- [Security Posture (architecture)](../design/architecture/security-posture.md) — change-control tiers + audit surface table
-- [Deployment Runbook](deployment.md) — when a feature deploy should trigger a reset
+- [office2 Backup and Security Model](<../design/office2-backup-and-security.md>) — overall security posture and audit context
+- [Security Posture (architecture)](<../design/architecture/security-posture.md>) — change-control tiers + audit surface table
+- [Deployment Runbook](<./deployment.md>) — when a feature deploy should trigger a reset

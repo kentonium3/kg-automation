@@ -152,3 +152,69 @@ def test_load_audited_surfaces_exits_2_when_missing(monkeypatch, tmp_path):
     with pytest.raises(SystemExit) as exc:
         audited_surfaces.load_audited_surfaces()
     assert exc.value.code == 2
+
+
+# --- known_baselines guard (WP02 T012, Codex LOW) -------------------------
+
+# The documented 14-baseline inventory audit.sh emits (== expected_baseline_count).
+# Pinning this set catches a stale registry name that audit.sh no longer emits
+# being silently accepted as a "known" declaration target.
+_KNOWN_BASELINES_INVENTORY = {
+    "brew-packages.txt",
+    "brew-taps.txt",
+    "crontabs.txt",
+    "docker-images.txt",
+    "enabled-services.txt",
+    "hosts-hash.txt",
+    "listening-ports.txt",
+    "openclaw-config.txt",
+    "openclaw-cron.txt",
+    "pip-packages.txt",
+    "pth-files.txt",
+    "ssh-keys.txt",
+    "systemd-user-dropins.txt",
+    "systemd-user-units.txt",
+}
+
+
+def test_known_baselines_equals_documented_14_inventory():
+    registry = audited_surfaces.load_audited_surfaces()
+    names = audited_surfaces.known_baselines(registry)
+    assert len(names) == 14
+    assert names == _KNOWN_BASELINES_INVENTORY
+    # And the registry's own count field agrees.
+    assert registry.get("expected_baseline_count") == 14
+
+
+def test_load_audited_surfaces_or_error_success():
+    registry, reason = audited_surfaces.load_audited_surfaces_or_error()
+    assert reason is None
+    assert registry is not None
+    assert registry.get("expected_baseline_count") == 14
+
+
+def test_load_audited_surfaces_or_error_missing_does_not_exit(monkeypatch, tmp_path):
+    monkeypatch.setattr(audited_surfaces, "AUDITED_SURFACES_PATH", tmp_path / "missing.json")
+    registry, reason = audited_surfaces.load_audited_surfaces_or_error()
+    assert registry is None
+    assert reason is not None and "not found" in reason
+
+
+def test_load_audited_surfaces_or_error_malformed_does_not_exit(monkeypatch, tmp_path):
+    bad = tmp_path / "audited-surfaces.json"
+    bad.write_text("{ not valid json", encoding="utf-8")
+    monkeypatch.setattr(audited_surfaces, "AUDITED_SURFACES_PATH", bad)
+    registry, reason = audited_surfaces.load_audited_surfaces_or_error()
+    assert registry is None
+    assert reason is not None and "malformed" in reason
+
+
+def test_known_baselines_unions_surfaces_and_non_repo():
+    registry = {
+        "audited_surfaces": [
+            {"id": "a", "affected_baselines": ["one.txt", "two.txt"]},
+            {"id": "b", "affected_baselines": ["two.txt"]},
+        ],
+        "non_repo_baselines": [{"name": "three.txt"}, {"name": "one.txt"}],
+    }
+    assert audited_surfaces.known_baselines(registry) == {"one.txt", "two.txt", "three.txt"}

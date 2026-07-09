@@ -110,6 +110,20 @@ def _resolve_head_sha(repo_root: pathlib.Path) -> str:
     return r.stdout.strip()
 
 
+def _rebaseline_git_runner(repo_root: pathlib.Path):
+    """Return a git runner bound to *repo_root* for the rebaseline engine.
+
+    The engine's ``classify_watermark`` takes a ``git_runner`` that runs from
+    the deployer's checkout.  Routing through ``_tick._git`` keeps every git
+    call uniformly mockable in the tick tests.
+    """
+
+    def _runner(args: list[str]) -> subprocess.CompletedProcess:
+        return _git(args, cwd=repo_root)
+
+    return _runner
+
+
 def _write_failure_record(
     repo_root: pathlib.Path,
     manifest_name: str,
@@ -152,18 +166,59 @@ def _write_failure_record(
     return out_path
 
 
+class _RecordResult:
+    """Structured outcome of :func:`_record_success` (C4 / Codex MED-1).
+
+    ``commit_sha`` is captured immediately after a successful ``git commit``,
+    **even when the subsequent push fails**, so the watermark advance can use
+    the deployer's own commit SHA rather than a blind ``rev-parse HEAD``.
+    ``ok`` is ``True`` only when both commit AND push succeed (queue-retry
+    semantics unchanged); a commit-ok/push-fail still carries ``commit_sha``.
+
+    Implemented as a plain class (not ``@dataclasses.dataclass``) because this
+    module is loaded under synthetic names via ``spec_from_file_location`` in
+    several test loaders; on Python 3.13 ``@dataclass`` resolves
+    ``sys.modules[cls.__module__]`` at class-creation time, which is ``None``
+    for a loader that does not register the module first.
+    """
+
+    __slots__ = ("ok", "commit_sha", "pushed", "applied_path", "error")
+
+    def __init__(
+        self,
+        ok: bool,
+        commit_sha: str | None = None,
+        pushed: bool = False,
+        applied_path: str | None = None,
+        error: str | None = None,
+    ) -> None:
+        self.ok = ok
+        self.commit_sha = commit_sha
+        self.pushed = pushed
+        self.applied_path = applied_path
+        self.error = error
+
+    def __repr__(self) -> str:  # pragma: no cover - debug aid only
+        return (
+            f"_RecordResult(ok={self.ok!r}, commit_sha={self.commit_sha!r}, "
+            f"pushed={self.pushed!r}, applied_path={self.applied_path!r}, "
+            f"error={self.error!r})"
+        )
+
+
 def _record_success(
     repo_root: pathlib.Path,
     manifest_path: pathlib.Path,
     manifest_data: dict[str, Any],
     head_sha: str,
-) -> tuple[bool, str]:
+) -> _RecordResult:
     """Write applied entry, git-mv queued→applied, commit+push.
 
-    Returns ``(ok, summary)``. On any sub-step failure, returns
-    ``(False, reason)`` so the caller can record a tick log entry. The
-    manifest is NOT removed from the queue when this fails — the next
-    tick re-attempts it.
+    Returns a :class:`_RecordResult`. On any sub-step failure ``ok`` is
+    ``False`` so the caller can record a tick log entry. The manifest is NOT
+    removed from the queue when this fails — the next tick re-attempts it.
+    The deployer's own commit SHA is captured right after ``git commit`` even
+    if push then fails.
     """
     applied_dir = repo_root / "deploys" / "applied"
     schema_path = repo_root / "deploys" / "schema" / "manifest-v1.schema.json"
@@ -175,7 +230,9 @@ def _record_success(
         schema_path=schema_path if schema_path.exists() else None,
     )
     if not write_res.ok:
-        return False, f"write_applied failed: {write_res.summary}"
+        return _RecordResult(
+            ok=False, error=f"write_applied failed: {write_res.summary}"
+        )
 
     applied_path = pathlib.Path(write_res.details["path"])
 
@@ -197,7 +254,11 @@ def _record_success(
         cwd=repo_root,
     )
     if add.returncode != 0:
-        return False, f"git add applied entry failed: {add.stderr[:200]}"
+        return _RecordResult(
+            ok=False,
+            applied_path=str(applied_path),
+            error=f"git add applied entry failed: {add.stderr[:200]}",
+        )
 
     commit_msg = (
         f"deploy(applied): {manifest_data.get('name', '<unknown>')}"
@@ -205,15 +266,54 @@ def _record_success(
     )
     commit = _git(["commit", "-m", commit_msg], cwd=repo_root)
     if commit.returncode != 0:
-        return False, f"git commit failed: {commit.stderr[:200]}"
+        return _RecordResult(
+            ok=False,
+            applied_path=str(applied_path),
+            error=f"git commit failed: {commit.stderr[:200]}",
+        )
+
+    # Capture the deployer's own commit SHA NOW — before push — so the
+    # watermark can advance to it even if the push fails (Codex MED-1 / C4).
+    commit_sha = _resolve_head_sha(repo_root) or None
 
     push = _git(["push"], cwd=repo_root)
     if push.returncode != 0:
         # Commit succeeded but push failed — operator visibility, not
-        # crash. Next tick's git pull will reconcile.
-        return False, f"git push failed: {push.stderr[:200]}"
+        # crash. Next tick's git pull will reconcile.  Carry commit_sha.
+        return _RecordResult(
+            ok=False,
+            commit_sha=commit_sha,
+            pushed=False,
+            applied_path=str(applied_path),
+            error=f"git push failed: {push.stderr[:200]}",
+        )
 
-    return True, str(applied_path)
+    return _RecordResult(
+        ok=True,
+        commit_sha=commit_sha,
+        pushed=True,
+        applied_path=str(applied_path),
+    )
+
+
+def _coerce_record_result(res: Any) -> _RecordResult:
+    """Normalize a ``_record_success`` return into a :class:`_RecordResult`.
+
+    Accepts the structured result directly, or a legacy ``(ok, summary)``
+    tuple (some tests monkeypatch ``_record_success`` to return a tuple).
+    """
+    if isinstance(res, _RecordResult):
+        return res
+    if isinstance(res, tuple) and len(res) == 2:
+        ok, summary = res
+        return _RecordResult(
+            ok=bool(ok),
+            pushed=bool(ok),
+            applied_path=summary if ok else None,
+            error=None if ok else summary,
+        )
+    # Unexpected shape — treat as failure without crashing.
+    return _RecordResult(ok=False, error="unrecognized _record_success result")
 
 
 def run_tick(
@@ -269,6 +369,12 @@ def run_tick(
     # the deploy record (FR-003).  Populated inside the queue loop below;
     # consumed after reconcile.
     applied_this_tick: list[str] = []
+    # Baselines declared by manifests applied this tick — folded into the
+    # pending token AFTER observe, BEFORE reconcile (T006 / FR-005/006).
+    declared_baselines: set[str] = set()
+    # Commit SHAs the deployer itself created this tick — used to advance the
+    # watermark past our own bookkeeping commits (T004 / C4).
+    own_commit_shas: list[str] = []
 
     # 3. Process each manifest in turn. One failure does NOT abort the
     #    remaining manifests in the queue.
@@ -296,21 +402,64 @@ def run_tick(
             continue
 
         manifest_name = manifest_data.get("name") or manifest_path.stem
+
+        # Pre-apply manifest validation (Codex HIGH-2): the
+        # ``expected_baselines`` rules (known-baseline membership +
+        # ``audited_surface: true`` coupling) MUST be enforced BEFORE the
+        # entrypoint mutates office2 — a bogus/decoupled declaration should
+        # reject the manifest with the office2 state untouched, not after the
+        # apply already ran (which is when ``write_applied`` used to catch it).
+        # Only the expected_baselines rules move earlier — we deliberately do
+        # NOT add a full JSON-Schema pass here (the pipeline never schema-checked
+        # pre-apply, so that would change apply behaviour for every manifest).
+        validation = _manifest.validate_expected_baselines_only(manifest_data)
+        if not validation.ok:
+            _write_failure_record(
+                repo_root,
+                manifest_name,
+                phase="manifest_validation",
+                error_summary=validation.summary,
+            )
+            _log(
+                log_path,
+                {
+                    "event": "manifest_processed",
+                    "manifest_name": manifest_name,
+                    "outcome": "failed_manifest_validation",
+                    "reason": validation.summary,
+                },
+            )
+            continue
+
         result = _apply.dry_run_then_apply_gate(manifest_data, str(manifest_path))
 
         if result.ok:
-            ok, summary = _record_success(
-                repo_root, manifest_path, manifest_data, head_sha
+            rec = _coerce_record_result(
+                _record_success(repo_root, manifest_path, manifest_data, head_sha)
             )
-            if ok:
-                applied_this_tick.append(manifest_name)
+            # Capture the deployer's own commit SHA regardless of push outcome
+            # (C4): a commit-ok/push-fail still advances the watermark past our
+            # bookkeeping commit so we never re-observe it.
+            if rec.commit_sha:
+                own_commit_shas.append(rec.commit_sha)
+            # Declared-baseline fold is gated on the APPLY success (result.ok),
+            # NOT the record/push success (rec.ok) — Codex HIGH-1.  The office2
+            # mutation already happened when apply succeeded, so its declared
+            # rebaseline intent MUST be folded even if the applied-record commit
+            # or push then fails; otherwise a push failure silently drops the
+            # manifest-declared drift → NFR-001 / undetected drift.
+            applied_this_tick.append(manifest_name)
+            for b in manifest_data.get("expected_baselines", []) or []:
+                if b:
+                    declared_baselines.add(b)
+            if rec.ok:
                 _log(
                     log_path,
                     {
                         "event": "manifest_processed",
                         "manifest_name": manifest_name,
                         "outcome": "applied",
-                        "applied_path": summary,
+                        "applied_path": rec.applied_path,
                     },
                 )
             else:
@@ -320,7 +469,7 @@ def run_tick(
                         "event": "manifest_processed",
                         "manifest_name": manifest_name,
                         "outcome": "applied_record_failed",
-                        "reason": summary,
+                        "reason": rec.error,
                     },
                 )
             continue
@@ -372,20 +521,63 @@ def run_tick(
     # tick-log entry and lets the tick return 0.  This mirrors the pattern used
     # for notification dispatch above: the tick MUST NEVER crash on rebaseline
     # logic (no-crash discipline).
+    watermark_class = _rebaseline.WATERMARK_FALLBACK
     try:
-        # C1 — observe the pulled range.
-        obs_result = _rebaseline.observe(pre_pull_head, post_pull_head)
+        # C3 — resolve the observe range base from the persisted watermark so
+        # the range is complete regardless of which actor advanced HEAD (the
+        # #685 out-of-band-pull defect).  The watermark is classified before
+        # any self-heal so a transient git failure never advances past an
+        # unverified range (FR-004 / Codex HIGH-1).
+        watermark = _rebaseline.read_observed_head()
+        watermark_class, range_base = _rebaseline.classify_watermark(
+            watermark, post_pull_head, git_runner=_rebaseline_git_runner(repo_root)
+        )
+        if watermark_class == _rebaseline.WATERMARK_FALLBACK:
+            observe_base = pre_pull_head
+            range_source = "fallback"
+        elif watermark_class == _rebaseline.WATERMARK_VALID:
+            observe_base = range_base or pre_pull_head
+            range_source = "watermark"
+        elif watermark_class == _rebaseline.WATERMARK_SELF_HEAL:
+            observe_base = range_base or post_pull_head
+            range_source = "self_heal"
+        else:  # WATERMARK_TRANSIENT — cannot determine range this tick.
+            observe_base = post_pull_head  # empty range → not_required
+            range_source = "transient"
+
+        # C1 — observe the pulled range from the resolved base.
+        obs_result = _rebaseline.observe(observe_base, post_pull_head)
         obs_outcome = obs_result.get("outcome", "not_required")
         obs_entry: dict[str, Any] = {
             "event": "rebaseline_observe",
             "outcome": obs_outcome,
             "pre_pull_head": pre_pull_head,
             "post_pull_head": post_pull_head,
+            "base": observe_base,
+            "range_source": range_source,
         }
         if obs_outcome == _rebaseline.OUTCOME_PENDING_SET:
             obs_entry["surface_ids"] = obs_result.get("surface_ids", [])
             obs_entry["matched_files"] = obs_result.get("matched_files", [])
         _log(log_path, obs_entry)
+
+        # T006 — fold manifest-declared baselines into the token AFTER observe
+        # and BEFORE reconcile (FR-005/006).  No-op when nothing was declared.
+        if declared_baselines:
+            fold_result = _rebaseline.fold_manifest_baselines(
+                declared_baselines,
+                observed_head_sha=post_pull_head,
+                manifest_names=list(applied_this_tick),
+            )
+            _log(
+                log_path,
+                {
+                    "event": "rebaseline_fold",
+                    "outcome": fold_result.get("outcome"),
+                    "expected_baselines": fold_result.get("expected_baselines", []),
+                    "manifest_names": fold_result.get("manifest_names", []),
+                },
+            )
 
         # C2 — reconcile (only meaningful when a pending token exists, but
         # reconcile() is idempotent on no-token: returns not_required).
@@ -434,6 +626,35 @@ def run_tick(
         # Alert dispatch is best-effort: errors must NEVER propagate.
         _maybe_dispatch_rebaseline_alert(rec_outcome, rec_result, head_sha, log_path)
 
+        # T004 / C4 — advance the observe watermark past our own bookkeeping
+        # commit(s), crash-safe.  Skip on a TRANSIENT classification so we never
+        # advance past an unverified range (Codex HIGH-1).  The new watermark is
+        # the deployer's last own ``deploy(applied)`` commit that descends from
+        # ``post_pull_head`` (deterministic "last own commit"), else
+        # ``post_pull_head`` when we made no own commit this tick.
+        if watermark_class != _rebaseline.WATERMARK_TRANSIENT:
+            try:
+                new_watermark = _select_watermark_advance(
+                    repo_root, post_pull_head, own_commit_shas
+                )
+                _rebaseline.write_observed_head(new_watermark)
+                _log(
+                    log_path,
+                    {
+                        "event": "rebaseline_watermark",
+                        "observed_head_sha": new_watermark,
+                        "own_commits": own_commit_shas,
+                    },
+                )
+            except Exception as exc:  # noqa: BLE001 - never crash the tick
+                _log(
+                    log_path,
+                    {
+                        "event": "rebaseline_watermark_error",
+                        "error": str(exc)[:200],
+                    },
+                )
+
     except Exception as exc:  # pragma: no cover - defence in depth
         _log(
             log_path,
@@ -445,6 +666,27 @@ def run_tick(
 
     _log(log_path, {"event": "tick_complete"})
     return 0
+
+
+def _select_watermark_advance(
+    repo_root: pathlib.Path,
+    post_pull_head: str,
+    own_commit_shas: list[str],
+) -> str:
+    """Pick the new watermark value (C4).
+
+    Returns the **last** captured own commit SHA that is a descendant of
+    ``post_pull_head`` (verified with ``git merge-base --is-ancestor post
+    <sha>``), or ``post_pull_head`` if we made no such commit this tick.
+    Deterministic "last own commit" — never a blind ``rev-parse HEAD``.
+    """
+    for sha in reversed(own_commit_shas):
+        if not sha:
+            continue
+        r = _git(["merge-base", "--is-ancestor", post_pull_head, sha], cwd=repo_root)
+        if r.returncode == 0:
+            return sha
+    return post_pull_head
 
 
 def _maybe_dispatch_rebaseline_alert(
