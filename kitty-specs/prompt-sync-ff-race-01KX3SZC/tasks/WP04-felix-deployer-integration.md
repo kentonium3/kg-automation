@@ -34,7 +34,7 @@ owned_files:
 - tests/deploy/test_tick_ffrace.py
 role: implementer
 tags: []
-shell_pid: "71988"
+shell_pid: "81996"
 ---
 
 # WP04 — felix-deployer integration
@@ -102,3 +102,5 @@ Execution worktrees are allocated per computed lane from `lanes.json`.
 ## Activity Log
 
 - 2026-07-09T17:14:43Z – claude – shell_pid=71988 – Assigned agent via action command
+- 2026-07-09T17:31:51Z – claude – shell_pid=71988 – felix-deployer integration green (53 tests; full deploy suite 434); rebaseline range preserved; lock spans whole tick
+- 2026-07-09T17:31:55Z – claude – shell_pid=81996 – Started review via action command
