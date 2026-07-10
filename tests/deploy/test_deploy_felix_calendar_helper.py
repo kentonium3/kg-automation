@@ -14,6 +14,7 @@ sibling test_install_gateway_pythonpath_dropin.py pattern.
 from __future__ import annotations
 
 import importlib.util
+import os
 import pathlib
 import sys
 
@@ -409,3 +410,14 @@ def test_manifest_not_prenumbered():
     """The queued manifest filename must not carry an applied NNNN- prefix."""
     assert _MANIFEST_PATH.name == "felix-calendar-helper.yaml"
     assert not _MANIFEST_PATH.name[0].isdigit()
+
+
+def test_deploy_script_is_executable():
+    """felix-deployer's applier invokes the entrypoint DIRECTLY
+    (``[entrypoint, "--dry-run"]``, no ``python3`` prefix — see
+    scripts/deploy/lib/apply.py), so the script MUST be executable with a
+    shebang. Regression: it shipped 100644, which failed the deployer dry-run
+    ("dry-run failed; not applying") while ``python3 <script>`` still worked."""
+    script = _REPO_ROOT / "scripts/deploy/deploy-felix-calendar-helper.py"
+    assert os.access(script, os.X_OK), f"{script} must be executable (chmod +x)"
+    assert script.read_text(encoding="utf-8").startswith("#!/usr/bin/env python3")
