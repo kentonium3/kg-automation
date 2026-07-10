@@ -1,7 +1,7 @@
 {
   "schema_version": "1.1",
   "last_updated": "2026-07-10",
-  "updated_by": "unified-alert-bus-01KX5TYT (#701 — felix-alert bus shared library + unified operator-alerts topic added; three ntfy emitters (felix-deployer subsystem, security-monitor, felix-health-check) migrated to the bus, their per-component topics retired) + f0-exec-hardening-01KX4ZCY (#675 — exec-hardening finding + live-config reconcile: habits/tasker model drift, per-agent skills, post-#699 gog paths, gateway version) + felix-calendar-helper-01KX4H3C (#699 — calendar helper on-demand invocation + Google Calendar API dependency + felix-admin-calendar gog-skill removal; RFC #681 calendar phase) + deterministic-monitoring-checks-01KX1XNW (#676) + harden-inbox-capture-01KWVGZM (#662) + felix-admin-cron-path-fix-01KWQTY3 (#656) + finalize-inbox-file-01KW8MSQ (#325) + pull-based-deploy-pipeline-01KTYQQS (#136) + felix-calendar-subagent-extraction-01KTTA33 (#579) + #572-credential-liveness-probe + prescan-archive-anomalies-01KTMZPE (#568) + capture-agents-md-rewrite-01KTMY86 (#566) + capture-d6-helpers-extraction-01KTMS5Q (#566) + agent-prompt-deploy-pipeline-01KTMDDD (#567) + vikunja-client-and-habits-weekly-report-01KTKSFT (#542 + #561 + #562) + inbox-calendar-and-aspiration-routing-01KTHHXS + #520-felix-vikunja-sync-project-layer-and-url-config + #519-touchpoint-migration + #518-felix-vikunja-sync-driver-added + #376-remove-escalation-v1-parity + #400-audit-interpretation-moment0 + #310-tasker-jsonl-migration + #374-main-verbatim-passthrough + #362-drift-event-auto-resolution + #309-migrate-escalation-to-jsonl-state-model + #343-refactor-doc-auditor-to-scripts-first-driver + #307-backfill-habits-jsonl-from-comments + #306-habits-native-repeat-jsonl-state + #304-felix-bot-rotation + #291-felix-file-issue + #289-mutation-surfaces-enumeration + #285-cron-delivery-restore-path-c + #282-habits-d6-extract + #263-cron-delivery-mode-round2 + #100-google-workspace-foundation + #256-scope-discipline-guardrails + #253-step-5a-6-consolidation + #254-atomic-write-perm-preservation + issue-105-doc-auditor + #223-systemd-timer + #208-restic-healthcheck + #202-obsidian-sync-system-level + #203-sync-heartbeat + #199-inbox-schedules + #115-credential-health-check + #189-vikunja-compose + #185-inbox-capture-dedup + restore-whatsapp-dm-reply-delivery-01KTVVHH (#588) + #545-reconcile-doc-auditor-status",
+  "updated_by": "felix-truthful-reporting-01KX6MN5 (#683 — felix-trust-scan systemd timer added: cron-drift + completion-assertion detection, alerts via the #701 felix-alert bus) + unified-alert-bus-01KX5TYT (#701 — felix-alert bus shared library + unified operator-alerts topic added; three ntfy emitters (felix-deployer subsystem, security-monitor, felix-health-check) migrated to the bus, their per-component topics retired) + f0-exec-hardening-01KX4ZCY (#675 — exec-hardening finding + live-config reconcile: habits/tasker model drift, per-agent skills, post-#699 gog paths, gateway version) + felix-calendar-helper-01KX4H3C (#699 — calendar helper on-demand invocation + Google Calendar API dependency + felix-admin-calendar gog-skill removal; RFC #681 calendar phase) + deterministic-monitoring-checks-01KX1XNW (#676) + harden-inbox-capture-01KWVGZM (#662) + felix-admin-cron-path-fix-01KWQTY3 (#656) + finalize-inbox-file-01KW8MSQ (#325) + pull-based-deploy-pipeline-01KTYQQS (#136) + felix-calendar-subagent-extraction-01KTTA33 (#579) + #572-credential-liveness-probe + prescan-archive-anomalies-01KTMZPE (#568) + capture-agents-md-rewrite-01KTMY86 (#566) + capture-d6-helpers-extraction-01KTMS5Q (#566) + agent-prompt-deploy-pipeline-01KTMDDD (#567) + vikunja-client-and-habits-weekly-report-01KTKSFT (#542 + #561 + #562) + inbox-calendar-and-aspiration-routing-01KTHHXS + #520-felix-vikunja-sync-project-layer-and-url-config + #519-touchpoint-migration + #518-felix-vikunja-sync-driver-added + #376-remove-escalation-v1-parity + #400-audit-interpretation-moment0 + #310-tasker-jsonl-migration + #374-main-verbatim-passthrough + #362-drift-event-auto-resolution + #309-migrate-escalation-to-jsonl-state-model + #343-refactor-doc-auditor-to-scripts-first-driver + #307-backfill-habits-jsonl-from-comments + #306-habits-native-repeat-jsonl-state + #304-felix-bot-rotation + #291-felix-file-issue + #289-mutation-surfaces-enumeration + #285-cron-delivery-restore-path-c + #282-habits-d6-extract + #263-cron-delivery-mode-round2 + #100-google-workspace-foundation + #256-scope-discipline-guardrails + #253-step-5a-6-consolidation + #254-atomic-write-perm-preservation + issue-105-doc-auditor + #223-systemd-timer + #208-restic-healthcheck + #202-obsidian-sync-system-level + #203-sync-heartbeat + #199-inbox-schedules + #115-credential-health-check + #189-vikunja-compose + #185-inbox-capture-dedup + restore-whatsapp-dm-reply-delivery-01KTVVHH (#588) + #545-reconcile-doc-auditor-status",
   "services": [
     {
       "name": "vikunja",
@@ -2188,6 +2188,76 @@
         "removed_openclaw_crons": ["health-check-morning", "health-check-evening"],
         "removed_by": "676"
       }
+    },
+    {
+      "name": "felix-trust-scan",
+      "type": "systemd-timer",
+      "host": "office2",
+      "agent": "n/a (agent-independent detector; no openclaw agent identity)",
+      "user": "claude",
+      "systemd_unit": "felix-trust-scan.timer (user unit) + felix-trust-scan.service (user oneshot)",
+      "systemd_user": "claude",
+      "schedule": "every 15 minutes (OnBootSec=5min, OnUnitActiveSec=15min, Persistent=true) — NFR-002 detection-cycle ceiling",
+      "exec_start": "/usr/bin/python3 -m scripts.trust.run_trust_scan --json",
+      "timeout_seconds_note": "Type=oneshot with no explicit TimeoutStartSec override; timer mode always exits 0 on internal fault (see run-mode note below), so there is no systemd failed/restart-loop risk to bound.",
+      "deployed_by": "683",
+      "deployed_on": "2026-07-10",
+      "updated_by": "683 (felix-truthful-reporting-01KX6MN5, WP05)",
+      "status": "active",
+      "purpose": "Detection half of the Felix Truthful Reporting Guardrails (kentonium3/kg-automation#683). Each tick runs two deterministic scans and alerts via the #701 unified alert bus (felix-alert topic; C-002, no parallel channel): (1) cron-drift detection — diffs live OpenClaw crons (`openclaw cron list --json`) against the committed approved-cron baseline (approved-crons.json), the load-bearing agent-independent guard against unrequested standing infrastructure (FR-003/FR-005/FR-006(b)); (2) completion-assertion verification — checks artifact ids named in completion-assertion ledger records (auto-emitted by artifact-creation helpers, e.g. the Vikunja task helper) against their owning system, grounding completion claims (FR-004/FR-005/FR-006(a)). Run-mode exit-code contract: timer mode (default, this unit's ExecStart) always exits 0 — a scan fault is caught, recorded in `errors[]`, and reported as `ok:false` in the JSON summary, never a non-zero process exit (NFR-001); preflight/explicit mode (`--preflight`/`--once`) may exit 2 on a hard scan-inability fault (used by the deploy self-test). Finding drift itself is never a non-zero exit in either mode. Explicit non-goal: a pure verbal completion claim with no artifact and no assertion is not detectable (doctrine-only, FR-006 blind spot).",
+      "runbook": "docs/runbooks/trust-reporting-detector.md",
+      "risk_tier": 3,
+      "dependencies": [
+        {
+          "target": "alert-bus",
+          "type": "requires",
+          "description": "All alerts (cron-drift + assertion findings + drift_resolved events) are rendered and emitted via the shared #701 felix-alert bus (scripts/common/alert_bus/, scripts/trust/alert_render.py) — no parallel alerting mechanism (C-002)."
+        },
+        {
+          "target": "openclaw-gateway",
+          "type": "requires",
+          "description": "Cron-drift enumeration shells out to `openclaw cron list --json` (scripts/trust/cron_drift_detector.py::enumerate_live_crons); a CLI failure/timeout/non-JSON output raises CronEnumerationError rather than silently returning an empty list (fail-safe, NFR-001)."
+        },
+        {
+          "target": "vikunja",
+          "type": "requires",
+          "description": "Assertion verification checks vikunja_task artifact ids for existence via the shared Vikunja client (scripts/common/vikunja_client.py). calendar_event/vault_note/other kinds have no existence check today and yield an unverifiable_kind warning instead."
+        },
+        {
+          "target": "docs/design/architecture/data/approved-crons.json",
+          "type": "requires",
+          "description": "Committed allowlist of legitimate OpenClaw crons (schema_version + crons[] with name/agent_id/schedule_expr/tz/purpose/approved_by/approved_at). A missing/malformed baseline raises BaselineError — the detector never silently degrades to \"no approved crons\" (fail-safe, NFR-001). Must be updated in the same change (or before) any legitimate cron addition/removal — see the runbook's baseline-maintenance ordering rule."
+        }
+      ],
+      "health_check": {
+        "method": "state-file",
+        "endpoint": "/data/services/trust/state/seen-findings.json",
+        "expected": "Seen-findings state map written atomically each non-dry-run tick (scripts/trust/state.py); a stale/missing file beyond ~30 minutes indicates the timer stopped ticking. The JSON scan summary (`{ok, drift_findings, assertion_findings, alerts_emitted, errors}`) printed by `run_trust_scan --json` is the per-tick machine-readable result; `errors: []` and `ok: true` indicate a clean tick.",
+        "timeout_seconds": 5
+      },
+      "config_files": [
+        {
+          "path": "~/.config/systemd/user/felix-trust-scan.timer",
+          "format": "systemd-unit",
+          "source_in_repo": "scripts/office2/felix-trust-scan.timer"
+        },
+        {
+          "path": "~/.config/systemd/user/felix-trust-scan.service",
+          "format": "systemd-unit",
+          "source_in_repo": "scripts/office2/felix-trust-scan.service"
+        },
+        {
+          "path": "/home/claude/kg-automation/scripts/trust/",
+          "format": "python-package",
+          "source_in_repo": "scripts/trust/"
+        },
+        {
+          "path": "/home/claude/kg-automation/docs/design/architecture/data/approved-crons.json",
+          "format": "json",
+          "source_in_repo": "docs/design/architecture/data/approved-crons.json",
+          "purpose": "Approved-cron baseline consumed by the cron-drift scan."
+        }
+      ]
     },
     {
       "name": "credential-health-check",

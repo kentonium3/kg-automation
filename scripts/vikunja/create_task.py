@@ -30,6 +30,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from typing import Any
 
@@ -112,6 +113,30 @@ def _build_client() -> Any:
     return VikunjaClient()
 
 
+def _emit_completion_assertion(task: dict[str, Any]) -> None:
+    """Best-effort completion-assertion auto-emit on a successful create (#683).
+
+    Wrapped in its own ``try/except`` so ANY failure here (import error,
+    ledger-write error, agent resolution, ...) is swallowed and never breaks
+    task creation — ``main()``'s exit code and printed output are unaffected
+    either way. Imported lazily to avoid a hard import-time dependency for
+    callers that never hit this path (e.g. on a host missing the trust
+    package).
+    """
+    try:
+        from scripts.trust.completion_assertion import record_assertion
+
+        agent = os.environ.get("FELIX_TRUST_AGENT") or os.environ.get("FELIX_AGENT") or "unknown"
+        record_assertion(
+            agent=agent,
+            artifact_kind="vikunja_task",
+            artifact_ids=[str(task.get("id"))],
+            claim=f"Created Vikunja task #{task.get('identifier')}",
+        )
+    except Exception:  # noqa: BLE001 - fail-safe: must never break task creation
+        pass
+
+
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="scripts.vikunja.create_task",
@@ -150,6 +175,10 @@ def main(argv: list[str] | None = None, *, client: Any | None = None) -> int:
     except Exception as exc:  # noqa: BLE001 - CLI boundary: report, exit 1
         print(f"ERROR: {type(exc).__name__}: {exc}", file=sys.stderr)
         return 1
+
+    # Fail-safe completion-assertion auto-emit (#683) — never affects the
+    # success return value or the printed output below.
+    _emit_completion_assertion(task)
 
     if args.json:
         print(json.dumps(task, ensure_ascii=False))

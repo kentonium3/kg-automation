@@ -1,0 +1,37 @@
+schema_version: v1
+name: truthful-reporting-detector
+mission_slug: felix-truthful-reporting-01KX6MN5
+tier: 3
+entrypoint: scripts/deploy/deploy-truthful-reporting.py
+audited_surface: true
+created_at: '2026-07-10T00:00:00Z'
+created_by: felix-truthful-reporting-01KX6MN5
+notes: |
+  Installs the felix-trust-scan systemd user timer (<=15min cadence) on
+  office2 (kentonium3/kg-automation#683, WP04). The timer runs
+  `scripts.trust.run_trust_scan --json` (timer mode, always exits 0 on
+  fault; a fault surfaces as ok:false + errors[] in the JSON, never a
+  systemd failed/restart loop).
+
+  The entrypoint (scripts/deploy/deploy-truthful-reporting.py --apply):
+    1. installs felix-trust-scan.{service,timer} into
+       ~/.config/systemd/user/;
+    2. runs `systemctl --user daemon-reload` then
+       `systemctl --user enable --now felix-trust-scan.timer`;
+    3. runs a preflight self-test
+       (`run_trust_scan --preflight --json`, may exit 2 on a hard
+       scan-inability fault);
+    4. triggers `systemctl --user start agent-prompt-sync.service` and
+       verifies the truthful-reporting doctrine (WP01) landed in the
+       deployed main AGENTS.md, rather than waiting for the 5-min
+       prompt-sync timer;
+    5. reports the outcome via the #701 alert bus (no parallel channel).
+
+  Tier 3 (Logic/Workflow — installs a user timer + runs a preflight
+  self-test; no Tier 0/1/2 action).
+
+  Rebaseline: not required — agent prompts are an unmonitored audited
+  surface (gap #621: audit.sh does not hash deployed AGENTS.md, so no
+  baseline is written for the WP01 doctrine change); the detector/systemd
+  code under scripts/trust/ and scripts/office2/ is not a hashed baseline
+  either.

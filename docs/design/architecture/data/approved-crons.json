@@ -1,0 +1,70 @@
+{
+  "schema_version": 1,
+  "last_updated": "2026-07-10",
+  "_note": "Committed allowlist of legitimate OpenClaw crons (ApprovedCron, felix-truthful-reporting-01KX6MN5 data-model.md). The cron-drift detector (scripts/trust) diffs live `openclaw cron list --json` output against this baseline. Adding or removing a legitimate cron must edit this file in the same change (keeps reality == baseline). schedule_expr/tz values below were captured live via `ssh office2-claude 'openclaw cron list --json'` on 2026-07-10 and should be reconfirmed at deploy time if this baseline is not deployed same-day. Two crons (habits-morning-checkin, escalation-daily) omit `schedule.tz` in the live payload; office2's system timezone is `Etc/UTC` (confirmed via `timedatectl`), so `tz` for those two entries is recorded as `Etc/UTC` here, not America/New_York.",
+  "crons": [
+    {
+      "name": "inbox-5pm",
+      "agent_id": "felix-admin-capture",
+      "schedule_expr": "0 17 * * *",
+      "tz": "America/New_York",
+      "purpose": "Scheduled inbox processing run (5pm ET).",
+      "approved_by": "kent",
+      "approved_at": "2026-07-10"
+    },
+    {
+      "name": "inbox-10pm",
+      "agent_id": "felix-admin-capture",
+      "schedule_expr": "0 22 * * *",
+      "tz": "America/New_York",
+      "purpose": "Scheduled inbox processing run (10pm ET).",
+      "approved_by": "kent",
+      "approved_at": "2026-07-10"
+    },
+    {
+      "name": "inbox-7am",
+      "agent_id": "felix-admin-capture",
+      "schedule_expr": "0 7 * * *",
+      "tz": "America/New_York",
+      "purpose": "Scheduled inbox processing run (7am ET).",
+      "approved_by": "kent",
+      "approved_at": "2026-07-10"
+    },
+    {
+      "name": "inbox-noon",
+      "agent_id": "felix-admin-capture",
+      "schedule_expr": "0 12 * * *",
+      "tz": "America/New_York",
+      "purpose": "Scheduled inbox processing run (noon ET).",
+      "approved_by": "kent",
+      "approved_at": "2026-07-10"
+    },
+    {
+      "name": "habits-morning-checkin",
+      "agent_id": "felix-admin-habits",
+      "schedule_expr": "5 11 * * *",
+      "tz": "Etc/UTC",
+      "purpose": "Daily habit check-in delivery. Live payload omits `schedule.tz`; office2 system tz (Etc/UTC) applies.",
+      "approved_by": "kent",
+      "approved_at": "2026-07-10"
+    },
+    {
+      "name": "habits-weekly-report",
+      "agent_id": "felix-admin-habits",
+      "schedule_expr": "0 6 * * 1",
+      "tz": "America/New_York",
+      "purpose": "Weekly habit pattern report.",
+      "approved_by": "kent",
+      "approved_at": "2026-07-10"
+    },
+    {
+      "name": "escalation-daily",
+      "agent_id": "felix-admin-escalation",
+      "schedule_expr": "0 12 * * *",
+      "tz": "Etc/UTC",
+      "purpose": "Daily escalation check. Live payload omits `schedule.tz`; office2 system tz (Etc/UTC) applies.",
+      "approved_by": "kent",
+      "approved_at": "2026-07-10"
+    }
+  ]
+}

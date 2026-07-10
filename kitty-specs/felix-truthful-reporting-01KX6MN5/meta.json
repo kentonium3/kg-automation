@@ -1,0 +1,32 @@
+{
+  "accept_commit": "7cdf0b4fd97226bd967816457849d662da40566f",
+  "acceptance_history": [
+    {
+      "accept_commit": "7cdf0b4fd97226bd967816457849d662da40566f",
+      "acceptance_mode": "pr",
+      "accepted_at": "2026-07-10T20:16:51.461358+00:00",
+      "accepted_by": "kentgale",
+      "accepted_from_commit": "4d3824a760e67fb16e5f0a9d3c5616608e836e15"
+    }
+  ],
+  "acceptance_mode": "pr",
+  "accepted_at": "2026-07-10T20:16:51.461358+00:00",
+  "accepted_by": "kentgale",
+  "accepted_from_commit": "4d3824a760e67fb16e5f0a9d3c5616608e836e15",
+  "baseline_merge_commit": "25896aef29e25f5b0d477f9ae4913aae01b3bdb2",
+  "created_at": "2026-07-10T18:29:21.614409+00:00",
+  "flattened": true,
+  "friendly_name": "Felix Truthful Reporting Guardrails",
+  "mission_id": "01KX6MN5JC8B79XTTYZC9MM580",
+  "mission_number": 93,
+  "mission_slug": "felix-truthful-reporting-01KX6MN5",
+  "mission_type": "software-dev",
+  "pr_bound": true,
+  "purpose_context": "Felix once told Kent a daily test was 'logged as complete' when nothing had run, and silently created a cron job instead of the requested reminder task. Until Felix's status reports can be trusted as ground truth and it stops taking unrequested actions, Kent cannot safely delegate real executive-assistant work to it. This mission adds truthful-reporting and mechanism-fidelity doctrine across the agent fleet, a no-unrequested-infrastructure guardrail for the main agent, and a lightweight detection path that alerts when a reported outcome cannot be grounded in a real action.",
+  "purpose_tldr": "Stop Felix from reporting actions as done that it did not perform, and from creating infrastructure nobody asked for.",
+  "slug": "felix-truthful-reporting-01KX6MN5",
+  "target_branch": "fix/felix-truthful-reporting",
+  "topology": "coord",
+  "vcs": "git",
+  "vcs_locked_at": "2026-07-10T19:15:26.063778+00:00"
+}

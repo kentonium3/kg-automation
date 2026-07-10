@@ -1,0 +1,17 @@
+[Unit]
+Description=felix-trust-scan — cron-drift + completion-assertion scan (timer mode)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 -m scripts.trust.run_trust_scan --json
+Environment=HOME=/home/claude
+Environment=PYTHONPATH=/home/claude/kg-automation
+WorkingDirectory=/home/claude/kg-automation
+# Load FELIX_ALERT_NTFY_TOPIC for the unified felix-alert bus
+# (scripts/common/alert_bus/). Credential: felix-alert-ntfy-topic; template
+# scripts/common/alert_bus.env.sample. Leading "-" keeps startup non-fatal if
+# the topic env-file is absent (the bus returns NTFY_MISSING_TOPIC instead of
+# failing the run).
+EnvironmentFile=-/home/claude/.config/felix/alert-bus/env

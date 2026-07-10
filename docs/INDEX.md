@@ -99,10 +99,15 @@ Numerators/denominators captured before and after material architectural changes
 
 ### Configuration Integrity Sweeps (topical view)
 
-Two periodic sweeps verify that office2's configuration is in the state we expect; together they cover system-level drift and credential-level drift, and any new sweep should be added to this group. Both runbooks are also listed under *Agent-executable* below.
+Three periodic sweeps verify that office2's configuration and Felix's own
+reported behavior are in the state we expect; together they cover
+system-level drift, credential-level drift, and unrequested-infrastructure /
+ungrounded-completion drift, and any new sweep should be added to this group.
+All three runbooks are also listed under *Agent-executable* below.
 
 - [Security Baseline Operations](<./runbooks/security-baseline-ops.md>) — daily 3 AM audit comparing the live system (pip / brew packages, Docker images, listening ports, systemd units, SSH keys, crontabs, OpenClaw cron + config) against `/data/services/security-monitor/baselines/`. Drift fires the alert log + `drift-events.jsonl`. Audited surface list at [`audited-surfaces.json`](<./design/architecture/data/audited-surfaces.json>) drives the rebaseline obligation (#557).
 - [Credential Liveness Probe Operations](<./runbooks/credential-liveness-probe-ops.md>) — 6-hourly OAuth liveness probe (00, 06, 12, 18 UTC). Live API call per credential, classified as `dead-routine-7day` (re-auth cycle), `dead-unexpected` (mid-week token death — investigate before re-authing), or `probe-error`. Auto-files a GitHub issue with the recovery command in the body (#572, #616).
+- [Trust Reporting Detector Operations](<./runbooks/trust-reporting-detector.md>) — 15-min `felix-trust-scan` timer: cron-drift detection (live OpenClaw crons vs the approved-cron baseline — the load-bearing, agent-independent guard) + completion-assertion verification (asserted artifacts checked against their owning system). Alerts via the `#701` felix-alert bus. Detection half of the Felix Truthful Reporting Guardrails (#683).
 
 ### Agent-executable runbooks
 
@@ -112,6 +117,7 @@ Two periodic sweeps verify that office2's configuration is in the state we expec
 - [Doc Auditor Operations (pre-#343 — historical)](<./runbooks/doc-auditor-ops.md>) — original openclaw-agent runbook; retained for reference until the pre-#343 implementation is fully retired
 - [Security Baseline Operations](<./runbooks/security-baseline-ops.md>) — canonical baseline-reset procedure for the daily 3 AM audit; linked from service runbooks for the "how"
 - [Credential Liveness Probe Operations](<./runbooks/credential-liveness-probe-ops.md>) — 6-hourly OAuth liveness probe (sister sweep to the daily security audit); cadence, classification logic, manifest config, operator response when an issue is filed (#572, #616)
+- [Trust Reporting Detector Operations](<./runbooks/trust-reporting-detector.md>) — 15-min `felix-trust-scan` timer (third sweep in the configuration-integrity cluster); how to read alerts, baseline maintenance + ordering rule, run modes + exit-code discipline, disable/rollback, fail-safe guarantee, SC-001..005 regression checklist (#683)
 - [Vikunja Operations](<./runbooks/vikunja-ops.md>)
 - [OpenClaw Operations](<./runbooks/openclaw-ops.md>)
 - [Obsidian Sync Operations](<./runbooks/obsidian-sync-ops.md>)
