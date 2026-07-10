@@ -305,7 +305,7 @@ reversible**:
    `felix-admin-calendar.tools.exec.security: "full"` with every other agent on
    `security: "allowlist"` + a host approvals allowlist of their exact helpers (excluding `gog`).
    Design-phase research (research.md Decision 1) established this cannot be done as a *no-human,
-   no-breakage* control. **Continuation tracked in the sandbox follow-up issue (#TBD — see
+   no-breakage* control. **Continuation tracked in the sandbox follow-up issue (#704 — see
    Appendix A; filed at mission merge).** *(Note: post-#699 no worker even holds `gog`, so this
    Step is now pure defense-in-depth — a further reason to defer it to the sandbox lever.)*
 4. **`skills.allowBundled`** global tightening once per-agent lists are proven — so a newly-bundled
@@ -408,7 +408,7 @@ deferred to a follow-up. To keep "docs + a filed issue" from reading as hard-con
 
 > **Close #675 as RESCOPED** — "allowlist hard-containment found infeasible; the finding + boundary-doc
 > reconcile landed (this mission); the remaining hard boundary is **superseded by the sandbox
-> follow-up #TBD**" — with the sandbox issue linked as the continuation.
+> follow-up #704**" — with the sandbox issue linked as the continuation.
 
 **Explicitly: "docs + issue" ≠ hard-containment completion.** The operator confirms the
 close-vs-keep-open call at merge. (Post-#699, no worker holds `gog` at all, so the residual risk
@@ -445,10 +445,10 @@ the harder hard-containment pass.
 
 ## Appendix A — Sandbox hard-containment follow-up (issue draft)
 
-Ready-to-file **infra**-style issue body for the deferred Foundation-0 hard-containment path
-(the continuation of §8 Step 3 / §8.3). The orchestrator files this at mission merge and replaces
-`#TBD` with the assigned number; #675 and §8 Step 3 link to it. This is a **kg-automation-internal**
-tracking issue (no external/upstream copy; no `@`-mentions of outsiders).
+Filed as **[#704](https://github.com/kentonium3/kg-automation/issues/704)** (infra) from this
+mission; the body below is the source draft. It is the continuation of §8 Step 3 / §8.3; #675 and
+§8 Step 3 link to it. This is a **kg-automation-internal** tracking issue (no external/upstream
+copy; no `@`-mentions of outsiders).
 
 ---
 
