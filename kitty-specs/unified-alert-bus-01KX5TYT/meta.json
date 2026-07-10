@@ -1,0 +1,15 @@
+{
+  "coordination_branch": "kitty/mission-unified-alert-bus-01KX5TYT",
+  "created_at": "2026-07-10T11:00:14.527032+00:00",
+  "flattened": false,
+  "friendly_name": "Unified Alert Bus",
+  "mission_id": "01KX5TYT1W5WFRQGG1S52RSGD1",
+  "mission_number": null,
+  "mission_slug": "unified-alert-bus-01KX5TYT",
+  "mission_type": "software-dev",
+  "purpose_context": "Felix currently scatters operator alerts across several ntfy topics with terse, cryptic bodies, so real failures are easy to miss and each alert costs a manual office2 investigation to decode. This mission builds the shared alert-bus substrate (library + CLI + bash shim) and migrates the worst-offending emitters onto it, so a failing Felix component clearly says what failed, when, how bad, and what to do — the observability foundation the rest of the Bedrock stabilization work depends on.",
+  "purpose_tldr": "Consolidate Felix's fragmented alerts into one ntfy thread with a structured, self-explanatory message schema delivered through a single shared emit library.",
+  "slug": "unified-alert-bus-01KX5TYT",
+  "target_branch": "feat/unified-alert-bus",
+  "topology": "coord"
+}
