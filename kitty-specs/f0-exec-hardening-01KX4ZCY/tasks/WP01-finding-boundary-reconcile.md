@@ -21,7 +21,8 @@ subtasks:
 - T003
 - T004
 - T005
-agent: claude
+agent: "claude"
+shell_pid: "48111"
 history:
 - at: '2026-07-10T03:00:00Z'
   actor: spec-kitty agent mission tasks
@@ -158,3 +159,7 @@ Verify the finding matches `research.md` Decision 1 (no overstated "no narrower 
 — it must be the guardrails-not-isolation framing with each knob disposed of). Confirm history
 is preserved (annotations, not deletions) and that the appendix issue draft demands the three
 separately-proven sandbox properties. Confirm nothing outside the boundary doc changed.
+
+## Activity Log
+
+- 2026-07-10T03:41:30Z – claude – shell_pid=48111 – Assigned agent via action command

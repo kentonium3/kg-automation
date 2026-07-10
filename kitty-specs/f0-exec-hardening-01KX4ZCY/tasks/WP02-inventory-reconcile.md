@@ -20,7 +20,8 @@ subtasks:
 - T008
 - T009
 - T010
-agent: claude
+agent: "claude"
+shell_pid: "48770"
 history:
 - at: '2026-07-10T03:00:00Z'
   actor: spec-kitty agent mission tasks
@@ -152,3 +153,7 @@ research Decision 2 exactly, that calendar shows `[]` (not `["calendar","gog"]`)
 stale narrative fields now describe the inline post-#699 path, and that the JSON stayed
 authoritative with the narrative agreeing. Confirm `data-flows.json`/`service-dependencies.json`
 were not touched (they already reflect #699).
+
+## Activity Log
+
+- 2026-07-10T03:42:16Z – claude – shell_pid=48770 – Assigned agent via action command

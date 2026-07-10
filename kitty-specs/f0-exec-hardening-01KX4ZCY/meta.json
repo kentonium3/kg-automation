@@ -12,5 +12,7 @@
   "purpose_tldr": "Record that per-agent exec allowlists cannot hard-contain gog without breaking Felix's workers (sandbox is the real lever), reconcile the architecture docs to live config, and file the sandbox follow-up — no openclaw.json change.",
   "slug": "f0-exec-hardening-01KX4ZCY",
   "target_branch": "feat/f0-exec-hardening",
-  "topology": "coord"
+  "topology": "coord",
+  "vcs": "git",
+  "vcs_locked_at": "2026-07-10T03:41:23.541655+00:00"
 }

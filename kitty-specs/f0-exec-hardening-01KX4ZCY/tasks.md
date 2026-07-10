@@ -35,11 +35,11 @@ Two independent work packages with disjoint file ownership — parallelizable.
 
 Included subtasks:
 
-- [ ] T001 Boundary doc §8 Step-3 finding: exec approvals = guardrails not isolation (WP01)
-- [ ] T002 Per-agent exec-form evidence table + explicit disposition of narrower knobs (WP01)
-- [ ] T003 Whole-doc gog-ownership sweep (§2/§4/§6/§6.1/§8) to post-#699 reality (WP01)
-- [ ] T004 Sandbox recommendation + 3-part proof + follow-up-issue draft appendix + §8 pointer (WP01)
-- [ ] T005 #675 tracker-disposition recommendation (close-as-rescoped) (WP01)
+- [x] T001 Boundary doc §8 Step-3 finding: exec approvals = guardrails not isolation (WP01)
+- [x] T002 Per-agent exec-form evidence table + explicit disposition of narrower knobs (WP01)
+- [x] T003 Whole-doc gog-ownership sweep (§2/§4/§6/§6.1/§8) to post-#699 reality (WP01)
+- [x] T004 Sandbox recommendation + 3-part proof + follow-up-issue draft appendix + §8 pointer (WP01)
+- [x] T005 #675 tracker-disposition recommendation (close-as-rescoped) (WP01)
 
 ## WP02 — Reconcile architecture inventory to live config
 
@@ -54,11 +54,11 @@ Included subtasks:
 
 Included subtasks:
 
-- [ ] T006 Model drift: habits + tasker → `anthropic/claude-haiku-4-5` (JSON + narrative) (WP02)
-- [ ] T007 Per-agent `skills` arrays → live Step-2 sets (calendar → `[]`) (WP02)
-- [ ] T008 Correct stale per-agent narrative fields #699 missed (capture/calendar/main/route) (WP02)
-- [ ] T009 Gateway version `v2026.6.5` → `2026.6.11`; annotate main as tracked gog exception (WP02)
-- [ ] T010 Provenance + validator + NFR-005 semantic grep; narrative agrees with JSON (WP02)
+- [x] T006 Model drift: habits + tasker → `anthropic/claude-haiku-4-5` (JSON + narrative) (WP02)
+- [x] T007 Per-agent `skills` arrays → live Step-2 sets (calendar → `[]`) (WP02)
+- [x] T008 Correct stale per-agent narrative fields #699 missed (capture/calendar/main/route) (WP02)
+- [x] T009 Gateway version `v2026.6.5` → `2026.6.11`; annotate main as tracked gog exception (WP02)
+- [x] T010 Provenance + validator + NFR-005 semantic grep; narrative agrees with JSON (WP02)
 
 ---
 
