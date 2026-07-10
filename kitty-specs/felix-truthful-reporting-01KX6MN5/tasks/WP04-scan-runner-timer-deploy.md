@@ -22,9 +22,9 @@ subtasks:
 - T020
 phase: Phase 2 - Runner & deploy
 assignee: ''
-agent: "claude:sonnet:python-pedro:implementer"
+agent: "claude:opus:reviewer-renata:reviewer"
 agent_profile: "python-pedro"
-shell_pid: "9700"
+shell_pid: "14219"
 history:
 - at: '2026-07-10T18:45:00Z'
   actor: system
@@ -418,3 +418,5 @@ unreachable defensive branches guarded by an earlier short-circuit.
 
 - 2026-07-10T19:43:36Z – claude:sonnet:python-pedro:implementer – shell_pid=9700 – Assigned agent via action command
 - 2026-07-10T19:56:32Z – claude:sonnet:python-pedro:implementer – shell_pid=9700 – Runner+render+state+timer+deploy; exit-code discipline + fail-safe; tests green incl WP02/03; ruff clean; integration verified
+- 2026-07-10T19:57:34Z – claude:sonnet:python-pedro:implementer – shell_pid=9700 – Runner+render+state+timer+deploy; 136 tests/96% cov; ruff clean; integration verified; commit f40b3caa. Force past non-blocking pre-review gate.
+- 2026-07-10T19:57:38Z – claude:opus:reviewer-renata:reviewer – shell_pid=14219 – Started review via action command
