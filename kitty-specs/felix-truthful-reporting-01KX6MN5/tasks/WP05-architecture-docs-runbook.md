@@ -20,6 +20,7 @@ subtasks:
 phase: Phase 3 - Docs
 assignee: ''
 agent: claude
+agent_profile: "curator-carla"
 history:
 - at: '2026-07-10T18:45:00Z'
   actor: system
