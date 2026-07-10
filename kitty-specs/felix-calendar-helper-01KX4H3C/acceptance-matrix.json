@@ -1,0 +1,119 @@
+{
+  "mission_slug": "felix-calendar-helper-01KX4H3C",
+  "mission_number": "",
+  "mission_type": "software-dev",
+  "overall_verdict": "pass",
+  "criteria": [
+    {
+      "criterion_id": "FR-001",
+      "description": "Calendar helper creates an event (title, start, end, timezone, optional description/location/attendees) on the selected account's calendar via one command, returning the event id",
+      "proof_type": "automated_test",
+      "evidence": "WP02 scripts/google/calendar_helper.py `create` (payload-file + explicit modes); tests/google/test_calendar_helper.py (45 pass, 100% branch cov) assert the Google event body mapping and returned event_id. sendUpdates=none default; attendees suppressed on inbox path.",
+      "pass_fail": "pass",
+      "verified_by": "claude-opus-4-8 (orchestrator/acceptance-actor)",
+      "verified_at": "2026-07-09T23:50:00+00:00",
+      "notes": "Live create on kentgale@gmail.com confirmed at office2 deploy (SC-001)."
+    },
+    {
+      "criterion_id": "FR-002",
+      "description": "Helper lists/finds events in a time window returning id/title/start/end",
+      "proof_type": "automated_test",
+      "evidence": "WP02 `list` subcommand; concrete schema {status,count,events:[{event_id,summary,start,end,recurring}]}; empty window = count 0 (not an error). Covered in test_calendar_helper.py.",
+      "pass_fail": "pass",
+      "verified_by": "claude-opus-4-8 (orchestrator/acceptance-actor)",
+      "verified_at": "2026-07-09T23:50:00+00:00",
+      "notes": ""
+    },
+    {
+      "criterion_id": "FR-003",
+      "description": "Helper updates an existing event's mutable fields by id",
+      "proof_type": "automated_test",
+      "evidence": "WP02 `update` get-then-patch + --clear; single-occurrence recurring -> recurrence_scope_unsupported (exit 2); missing id -> not_found (exit 1). Covered in test_calendar_helper.py.",
+      "pass_fail": "pass",
+      "verified_by": "claude-opus-4-8 (orchestrator/acceptance-actor)",
+      "verified_at": "2026-07-09T23:50:00+00:00",
+      "notes": ""
+    },
+    {
+      "criterion_id": "FR-004",
+      "description": "Helper deletes/cancels an existing event by id",
+      "proof_type": "automated_test",
+      "evidence": "WP02 `delete` (--send-updates default none); missing id -> not_found (exit 1). Covered in test_calendar_helper.py.",
+      "pass_fail": "pass",
+      "verified_by": "claude-opus-4-8 (orchestrator/acceptance-actor)",
+      "verified_at": "2026-07-09T23:50:00+00:00",
+      "notes": ""
+    },
+    {
+      "criterion_id": "FR-005",
+      "description": "Account selected by --account (default personal); per-account credential store; a new account needs only new credentials, no code change",
+      "proof_type": "automated_test",
+      "evidence": "WP01 scripts/google/calendar_auth.py per-account resolution (FELIX_GOOGLE_DIR/<account>) + charset guard; WP02 --account flag default personal. tests/google/test_calendar_auth.py (28 pass) cover path resolution + a second account name resolving to its own dir.",
+      "pass_fail": "pass",
+      "verified_by": "claude-opus-4-8 (orchestrator/acceptance-actor)",
+      "verified_at": "2026-07-09T23:50:00+00:00",
+      "notes": "SC-005: adding intentional account = drop creds, no code change."
+    },
+    {
+      "criterion_id": "FR-006",
+      "description": "Auth loads+auto-refreshes; on any auth failure fails safe (clear error, non-zero, no mutation, no fallback)",
+      "proof_type": "automated_test",
+      "evidence": "WP01 typed CalendarAuthError (no interactive consent path — asserted by an exploding-flow stub); WP02 catches it -> exit 3 with ERROR: auth_failed + SUMMARY status=auth_failed and ZERO recorded API calls on create/self-check auth-fail paths. Auth resolved before any mutation (_build_service before handlers).",
+      "pass_fail": "pass",
+      "verified_by": "claude-opus-4-8 (orchestrator/acceptance-actor)",
+      "verified_at": "2026-07-09T23:50:00+00:00",
+      "notes": "SC-004 (no-silent-fallback, #675/#683)."
+    },
+    {
+      "criterion_id": "FR-007",
+      "description": "Helper conforms to the project CLI contract: subcommands, documented exit codes, SUMMARY: stdout line",
+      "proof_type": "automated_test",
+      "evidence": "WP02 argparse subcommands + exit-code map (0/1/2/3); --json on a preceding line, SUMMARY: always the final stdout line (parametrized invariant test). Matches docs/design/helper-script-conventions.md.",
+      "pass_fail": "pass",
+      "verified_by": "claude-opus-4-8 (orchestrator/acceptance-actor)",
+      "verified_at": "2026-07-09T23:50:00+00:00",
+      "notes": ""
+    },
+    {
+      "criterion_id": "FR-008",
+      "description": "felix-admin-calendar reshaped to judgment-only: NL parse, one clarification round, structured helper call; no gog on the calendar surface",
+      "proof_type": "automated_test",
+      "evidence": "WP03 AGENTS.md/TOOLS.md reshape (+ SOUL.md/USER.md residuals fixed by orchestrator); reviewer-renata grep confirms every remaining `gog` string is a negation, no gog invocation on create/clarification paths; clarification store (JSON array) + log_action preserved.",
+      "pass_fail": "pass",
+      "verified_by": "claude-opus-4-8 (orchestrator/acceptance-actor)",
+      "verified_at": "2026-07-09T23:50:00+00:00",
+      "notes": "SC-003: no gog on the calendar surface (prompt inspection)."
+    },
+    {
+      "criterion_id": "FR-009",
+      "description": "Inbox capture reaches the calendar via a deterministic helper call (no agent-to-agent delegation); an inbox calendar-intent note creates an event end-to-end (closes #679)",
+      "proof_type": "automated_test",
+      "evidence": "WP03 scripts/inbox/route_calendar_event.py --create (validate -> build envelope -> invoke helper -> emit status); capture calendar step is a SINGLE command with NO openclaw agent/sessions_send hop (reviewer-confirmed); tests/inbox/test_route_calendar_event.py cover created/needs_clarification/error with helper mocked. Never fakes a created event (#683).",
+      "pass_fail": "pass",
+      "verified_by": "claude-opus-4-8 (orchestrator/acceptance-actor)",
+      "verified_at": "2026-07-09T23:50:00+00:00",
+      "notes": "Code-complete; live end-to-end (SC-002) confirmed at office2 deploy, then GitHub #679 closed."
+    },
+    {
+      "criterion_id": "FR-010",
+      "description": "Deployed to office2 via the manifest pipeline; per-account creds staged canonically; openclaw.json change rebaselined",
+      "proof_type": "automated_test",
+      "evidence": "WP04 deploys/queued/felix-calendar-helper.yaml (Tier 3, audited_surface, schema-valid) + scripts/deploy/deploy-felix-calendar-helper.py (Restic gate -> uv venv provision -> creds-presence -> self-check, strict halt-on-error, never copies secrets, deps venv-only not requirements.txt); tests/deploy/test_deploy_felix_calendar_helper.py (18 pass).",
+      "pass_fail": "pass",
+      "verified_by": "claude-opus-4-8 (orchestrator/acceptance-actor)",
+      "verified_at": "2026-07-09T23:50:00+00:00",
+      "notes": "Artifact-complete; the actual office2 deploy (creds scp + openclaw.json edit + rebaseline) is the operator step after feat->main."
+    },
+    {
+      "criterion_id": "FR-011",
+      "description": "Architecture documentation synchronized: credentials/identity, data-flows, service inventory, INDEX/roadmap",
+      "proof_type": "automated_test",
+      "evidence": "WP05 credential-manifest.json (personal Google OAuth), data-flows.json (calendar helper->Google, inbox inline), service-inventory.json (on-demand helper + Calendar API dep) + markdown views + INDEX + roadmap + new calendar-helper-ops runbook; orchestrator refreshed service-dependencies.view.md. validate_architecture_data.py passes 0 findings.",
+      "pass_fail": "pass",
+      "verified_by": "claude-opus-4-8 (orchestrator/acceptance-actor)",
+      "verified_at": "2026-07-09T23:50:00+00:00",
+      "notes": ""
+    }
+  ],
+  "negative_invariants": []
+}
