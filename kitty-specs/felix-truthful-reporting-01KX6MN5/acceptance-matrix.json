@@ -2,67 +2,67 @@
   "mission_slug": "felix-truthful-reporting-01KX6MN5",
   "mission_number": "",
   "mission_type": "software-dev",
-  "overall_verdict": "pending",
+  "overall_verdict": "pass",
   "criteria": [
     {
       "criterion_id": "FR-001",
-      "description": "Verify FR-001 is satisfied",
+      "description": "Agents report an action as completed only when actually performed and citable; truthful-reporting doctrine present fleet-wide, and completion claims for created artifacts are grounded in the assertion ledger.",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "TODO: replace with a real acceptance criterion"
+      "evidence": "WP01 scripts/openclaw/agents/tests/test_truthful_doctrine.py (doctrine present in all 7 agents; 7 passed) + WP03 tests/trust/test_completion_assertion.py & test_assertion_verifier.py (assertion ledger + verifier; 29 passed). Commits 0b3d1d5d, 8492a480.",
+      "pass_fail": "pass",
+      "verified_by": "reviewer-renata",
+      "verified_at": "2026-07-10T20:00:00Z",
+      "notes": "Doctrine (prevention) + assertion ledger (detection). Live behavioral regression (SC-001/002) verified post-merge at office2 deploy."
     },
     {
       "criterion_id": "FR-002",
-      "description": "Verify FR-002 is satisfied",
+      "description": "When a request names a specific mechanism, the agent fulfils that mechanism or reports inability; mechanism-fidelity doctrine present fleet-wide.",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "TODO: replace with a real acceptance criterion"
+      "evidence": "WP01 test_truthful_doctrine.py asserts the mechanism-fidelity block is byte-identical across all 7 fleet AGENTS.md (7 passed). Commit 0b3d1d5d.",
+      "pass_fail": "pass",
+      "verified_by": "reviewer-renata",
+      "verified_at": "2026-07-10T20:00:00Z",
+      "notes": "Doctrine-only enforcement per operator decision (C-001)."
     },
     {
       "criterion_id": "FR-003",
-      "description": "Verify FR-003 is satisfied",
+      "description": "The main agent must not create unrequested scheduled/standing infrastructure; and unrequested crons are detected.",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "TODO: replace with a real acceptance criterion"
+      "evidence": "WP01 no-unrequested-infra block present in main only (test_truthful_doctrine.py). WP02 detect_cron_drift flags unapproved_present incl owner-mismatch (tests/trust/test_cron_drift_detector.py; 45 passed, 100% branch cov). Commits 0b3d1d5d, 30a0da24.",
+      "pass_fail": "pass",
+      "verified_by": "reviewer-renata",
+      "verified_at": "2026-07-10T20:00:00Z",
+      "notes": "Prevention (main doctrine) + deterministic detection (cron-drift, agent-independent)."
     },
     {
       "criterion_id": "FR-004",
-      "description": "Verify FR-004 is satisfied",
+      "description": "The system records a structured request-outcome/action ledger grounded in observable state (approved-cron baseline + auto-emitted completion assertions).",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "TODO: replace with a real acceptance criterion"
+      "evidence": "WP02 approved-crons.json + cron_baseline.load_baseline/baseline_hash (fail-safe; tests green). WP03 record_assertion auto-emitted by scripts/vikunja/create_task.py on success, multi-artifact_ids (tests green, live caller verified). Commits 30a0da24, 8492a480.",
+      "pass_fail": "pass",
+      "verified_by": "reviewer-renata",
+      "verified_at": "2026-07-10T20:00:00Z",
+      "notes": "Auto-emit from creation helper removes the compliance dependency (post-plan Codex finding 2)."
     },
     {
       "criterion_id": "FR-005",
-      "description": "Verify FR-005 is satisfied",
+      "description": "When a covered claim (cron drift or missing asserted artifact) cannot be corroborated, an alert is emitted via the #701 unified alert bus.",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "TODO: replace with a real acceptance criterion"
+      "evidence": "WP04 alert_render.py maps findings to #701 Alert with correct severities; run_trust_scan drives both scans and emits; tests/trust/test_alert_render.py + test_run_trust_scan.py (part of 136 passed, 96% cov). Reuses #701 bus, no parallel channel (C-002). Commit f40b3caa.",
+      "pass_fail": "pass",
+      "verified_by": "reviewer-renata",
+      "verified_at": "2026-07-10T20:00:00Z",
+      "notes": "Fail-safe (NFR-001) + exit-code discipline proven by tests; ≤15-min cadence via systemd timer (NFR-002). Live alert-delivery (SC-003) verified post-merge at deploy."
     },
     {
       "criterion_id": "FR-006",
-      "description": "Verify FR-006 is satisfied",
+      "description": "Detection is bounded to two deterministic classes (cron drift + emitted-assertion artifact existence); pure verbal fabrication with no artifact/assertion is an explicit doctrine-only blind spot.",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "TODO: replace with a real acceptance criterion"
+      "evidence": "WP02 cron-drift detector + WP03 assertion verifier are the only detection paths; no general semantic verifier. Blind spot documented in spec FR-006/SC-003 and research D2. Tests: WP02 45, WP03 29 passed. Commits 30a0da24, 8492a480.",
+      "pass_fail": "pass",
+      "verified_by": "reviewer-renata",
+      "verified_at": "2026-07-10T20:00:00Z",
+      "notes": "Bounded scope is operator-chosen and honestly recorded (post-plan Codex finding 1 folded)."
     }
   ],
   "negative_invariants": []
