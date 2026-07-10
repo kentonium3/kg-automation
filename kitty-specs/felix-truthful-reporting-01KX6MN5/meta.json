@@ -13,6 +13,7 @@
   "accepted_at": "2026-07-10T20:16:51.461358+00:00",
   "accepted_by": "kentgale",
   "accepted_from_commit": "4d3824a760e67fb16e5f0a9d3c5616608e836e15",
+  "baseline_merge_commit": "25896aef29e25f5b0d477f9ae4913aae01b3bdb2",
   "created_at": "2026-07-10T18:29:21.614409+00:00",
   "flattened": true,
   "friendly_name": "Felix Truthful Reporting Guardrails",
