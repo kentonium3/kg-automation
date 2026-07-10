@@ -27,12 +27,26 @@ AUDIT_SUMMARY="$(head -5 "$FINDINGS")"
   --detail summary="${AUDIT_SUMMARY}" || true    # best-effort: never fail the audit
 ```
 
-## Verify end-to-end
+## Verify end-to-end (per-runtime self-test)
+
+Prove delivery from **both** runtime contexts the emitters run in — the deploy entrypoint's `--apply`
+phase (`scripts/deploy/deploy-unified-alert-bus.py`) runs the preflight + self-test automatically, and
+you can also run them by hand:
 
 ```bash
-# On office2 (as claude), with the topic env-file provisioned:
+# Preflight: is the topic env-file present? (deploy blocks if not)
+python3 scripts/deploy/deploy-unified-alert-bus.py --dry-run
+
+# Cron context (the security-monitor path): the shim sources the env-file itself.
+#   NOTE: the shim always exits 0 (best-effort); read the emitted alert to confirm.
 cd /home/claude/kg-automation && python3 -m scripts.common.alert_bus self-test
-# exit 0 + an "info" alert appears on the unified thread => delivery OK
+# exit 0 + an "info" alert on the unified thread => delivery OK
+
+# systemd context (felix-deployer / felix-health-check / agent-prompt-sync): run the self-test under a
+# transient unit so it inherits the same EnvironmentFile the real units load.
+systemd-run --user --wait --pipe \
+  -p EnvironmentFile=/home/claude/.config/felix/alert-bus/env \
+  bash -lc 'cd /home/claude/kg-automation && python3 -m scripts.common.alert_bus self-test'
 ```
 
 ## Deploy
