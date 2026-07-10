@@ -1,0 +1,140 @@
+{
+  "mission_slug": "unified-alert-bus-01KX5TYT",
+  "mission_number": "",
+  "mission_type": "software-dev",
+  "overall_verdict": "pass",
+  "result": "pass",
+  "notes": "felix-alert bus + 3 emitter migrations + enforcement co-emit + provisioning/deploy + docs. All 13 code-level criteria PASS (unit tests + artifacts present on feat/unified-alert-bus). Live SC-001..007 verification is a POST-DEPLOY step on office2 (requires operator to mint the high-entropy topic + provision the out-of-band env-file). No real topic committed. Rebaseline handled by the manifest pipeline on deploy (audited surfaces).",
+  "criteria": [
+    {
+      "criterion_id": "FR-001",
+      "description": "All operator alerts delivered to a single canonical thread",
+      "proof_type": "automated_test",
+      "evidence": "scripts/common/alert_bus/delivery.py resolve_topic() reads the single FELIX_ALERT_NTFY_TOPIC (WP01, 540c1f93); WP05 (1fb855d5) wires EnvironmentFile into felix-deployer/felix-health-check/agent-prompt-sync units + shim sources the env-file for cron audit.",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-07-10T13:30:00+00:00",
+      "notes": "Live single-thread arrival is SC-001, verified post-deploy."
+    },
+    {
+      "criterion_id": "FR-002",
+      "description": "Uniform structured Alert schema (timestamp/source/severity/title/description/action/details)",
+      "proof_type": "automated_test",
+      "evidence": "scripts/common/alert_bus/model.py Alert + render.py; tests/common/alert_bus/test_model.py + test_render.py; 100% line+branch coverage (WP01).",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-07-10T13:30:00+00:00",
+      "notes": "Reviewed in WP01."
+    },
+    {
+      "criterion_id": "FR-003",
+      "description": "Failure alerts include the actual error/stderr, not just a phase code",
+      "proof_type": "automated_test",
+      "evidence": "_tick.py threads apply result.details (stderr_excerpt/argv/returncode/manifest_path) into Alert.details; test_notify.py::test_failure_threads_real_stderr_into_alert_details asserts it reaches render_body (WP02, acd10039).",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-07-10T13:30:00+00:00",
+      "notes": "Reviewer proved the regression test is non-synthetic (SC-002)."
+    },
+    {
+      "criterion_id": "FR-004",
+      "description": "Severity vocabulary maps deterministically to ntfy priority + tags",
+      "proof_type": "automated_test",
+      "evidence": "SEVERITY_MAP in model.py (info->low/information_source, warn->default/warning, error->high/rotating_light, critical->max/rotating_light,sos); test_model.py asserts completeness (WP01).",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-07-10T13:30:00+00:00",
+      "notes": "Matches data-model.md verbatim."
+    },
+    {
+      "criterion_id": "FR-005",
+      "description": "A single shared alert bus is the only path that constructs/delivers alerts",
+      "proof_type": "automated_test",
+      "evidence": "emit() is the sole entry (WP01 __init__.py); WP02-04 removed all per-emitter curl/ntfy code (grep-clean); docs/runbooks/alerting.md documents the single seam (WP06).",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-07-10T13:30:00+00:00",
+      "notes": "SC-006 grep verified in each WP review."
+    },
+    {
+      "criterion_id": "FR-006",
+      "description": "The three current ntfy emitters (incl. agent-prompt-sync consumer) emit exclusively via the bus",
+      "proof_type": "automated_test",
+      "evidence": "notify.py+health.py+_tick.py+deploy_agent_prompts.py (WP02, 514 tests), felix_health_check/run.py+adapter (WP03, 11 tests), audit.sh->shim (WP04, 26 tests). No curl remains.",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-07-10T13:30:00+00:00",
+      "notes": "Each independently reviewed + tests run."
+    },
+    {
+      "criterion_id": "FR-007",
+      "description": "Canonical topic stored in the topic/credential registry, not hard-coded",
+      "proof_type": "manual_verification",
+      "evidence": "felix-alert-ntfy-topic env-file credential added to docs/design/architecture/data/credential-manifest.json (WP05); audit.sh hardcoded topic removed; alert_bus.env.sample placeholder only.",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-07-10T13:30:00+00:00",
+      "notes": "validate_architecture_data.py PASS; no real topic committed."
+    },
+    {
+      "criterion_id": "FR-008",
+      "description": "On-demand self-test verifies end-to-end delivery",
+      "proof_type": "automated_test",
+      "evidence": "__main__.py self-test subcommand (WP01, exits non-zero on failure); scripts/deploy/deploy-unified-alert-bus.py --apply runs preflight + self-test; per-runtime self-test documented (WP05).",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-07-10T13:30:00+00:00",
+      "notes": "self-test uses the direct CLI (not the always-exit-0 shim) so failures propagate."
+    },
+    {
+      "criterion_id": "FR-009",
+      "description": "Enforcement notifier additionally emits a felix-alert for drift (co-emit)",
+      "proof_type": "automated_test",
+      "evidence": "_co_emit_drift() added alongside WhatsApp+GitHub in enforcement/notification.py; tests assert co-emit fires AND WhatsApp+GitHub still fire, and co-emit failure never breaks enforcement (WP04, 75194242).",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-07-10T13:30:00+00:00",
+      "notes": "Strictly additive (SC-007)."
+    },
+    {
+      "criterion_id": "NFR-001",
+      "description": "Best-effort, non-blocking, fail-safe delivery (never crashes/hangs the emitter)",
+      "proof_type": "automated_test",
+      "evidence": "emit() wraps deliver() and never raises; deliver() catches TimeoutExpired/OSError; curl --max-time 10; shim exits 0. tests/common/alert_bus/test_delivery.py fail-safe cases (WP01).",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-07-10T13:30:00+00:00",
+      "notes": "Verified live in WP01 review."
+    },
+    {
+      "criterion_id": "NFR-002",
+      "description": "Module unit tests with line+branch coverage >= 90%; repo gate not reduced",
+      "proof_type": "automated_test",
+      "evidence": "100% line+branch coverage on the alert_bus package (WP01); repo coverage gate unaffected.",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-07-10T13:30:00+00:00",
+      "notes": "Exceeds the 90% bar."
+    },
+    {
+      "criterion_id": "NFR-003",
+      "description": "Alert with missing optional fields still produces a deliverable message",
+      "proof_type": "automated_test",
+      "evidence": "render_body omits Action/Details when absent; test_render.py covers missing-field cases (WP01).",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-07-10T13:30:00+00:00",
+      "notes": "No placeholder emitted for absent fields."
+    },
+    {
+      "criterion_id": "NFR-004",
+      "description": "Migrating an emitter preserves its core behavior and health signals",
+      "proof_type": "automated_test",
+      "evidence": "health.py bool return preserved (last_alert_ts); felix-health-check {attempted,sent,detail} adapter byte-compatible; audit non-fatal; enforcement WhatsApp+GitHub untouched. WP02/03/04 tests assert.",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-07-10T13:30:00+00:00",
+      "notes": "Signal shapes verified in each review."
+    }
+  ]
+}
