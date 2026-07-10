@@ -39,8 +39,8 @@ TRUTHFUL_DOCTRINE_BLOCK = (
     "- **Mechanism fidelity**: if a request names a mechanism (e.g. \"create "
     "a Vikunja task\"), fulfil **that** one or say you could not. **Never** "
     "silently substitute another (no \"scheduled a cron instead\").\n"
-    "- Bypassed a wrapped creation helper? Record a completion-assertion via "
-    "`python3 -m scripts.trust.completion_assertion` (normal helper paths "
+    "- Bypassed a wrapped creation helper? Record a completion-assertion with "
+    "the `scripts.trust.completion_assertion` helper (normal helper paths "
     "auto-emit this).\n"
 )
 
