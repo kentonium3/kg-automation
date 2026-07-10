@@ -7,6 +7,7 @@
   "mission_number": null,
   "mission_slug": "felix-truthful-reporting-01KX6MN5",
   "mission_type": "software-dev",
+  "pr_bound": true,
   "purpose_context": "Felix once told Kent a daily test was 'logged as complete' when nothing had run, and silently created a cron job instead of the requested reminder task. Until Felix's status reports can be trusted as ground truth and it stops taking unrequested actions, Kent cannot safely delegate real executive-assistant work to it. This mission adds truthful-reporting and mechanism-fidelity doctrine across the agent fleet, a no-unrequested-infrastructure guardrail for the main agent, and a lightweight detection path that alerts when a reported outcome cannot be grounded in a real action.",
   "purpose_tldr": "Stop Felix from reporting actions as done that it did not perform, and from creating infrastructure nobody asked for.",
   "slug": "felix-truthful-reporting-01KX6MN5",
