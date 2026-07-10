@@ -15,7 +15,8 @@ branch_strategy: Planning artifacts for this mission were generated on feat/unif
 subtasks:
 - T023
 - T024
-agent: claude
+agent: "claude:opus:reviewer-renata:reviewer"
+shell_pid: "41648"
 history:
 - at: '2026-07-10T11:30:00Z'
   actor: spec-kitty agent mission tasks
@@ -74,3 +75,10 @@ Base/merge = `feat/unified-alert-bus`; worktree per `lanes.json`. Depends on **W
 
 Verify the JSON is authoritative and the validator passes; confirm the runbook's emit examples match the
 actual public API + CLI contract (no drift from `contracts/alert-bus-api.md`).
+
+## Activity Log
+
+- 2026-07-10T13:11:55Z – claude:sonnet:curator-carla:implementer – shell_pid=38611 – Assigned agent via action command
+- 2026-07-10T13:18:58Z – claude:sonnet:curator-carla:implementer – shell_pid=38611 – Ready: T023 service-inventory.json (alert-bus library + unified felix-alert topic + 3 migrated emitters + enforcement co-emit; updated_by #701) — arch-data validator 0 findings incl --strict. T024 docs/runbooks/alerting.md (Python/CLI/bash emit, Alert schema, severity->priority/tag map, topic-secret provisioning, fail-safe contract, per-runtime self-test) — emit examples verified against real scripts.common.alert_bus API/CLI, zero drift from contracts. validate_docs OK (regenerated DEVELOPER_PORTAL runbook-filter block — mechanical #492-class sync; INDEX.md flagged for follow-up, not CI-gated). Pre-commit hooks green.
+- 2026-07-10T13:19:36Z – claude:opus:reviewer-renata:reviewer – shell_pid=41648 – Started review via action command
+- 2026-07-10T13:22:29Z – user – shell_pid=41648 – Review passed: service-inventory.json records alert-bus library + unified felix-alert topic + 3 migrated emitters (felix-deployer/security-monitor/felix-health-check) + enforcement co-emit; updated_by credits 701; JSON valid; arch-data validator OK 0 findings incl --strict. alerting.md covers bus purpose, Alert schema, full severity->priority/tag map (info->low/information_source, warn->default/warning, error->high/rotating_light, critical->max/rotating_light,sos), Python/CLI/bash emit, topic-secret provisioning, fail-safe contract, self-test; front-matter matches repo runbook shape. Emit examples verified zero-drift vs real scripts.common.alert_bus API (import OK) + CLI --help + contracts/alert-bus-api.md. Out-of-map DEVELOPER_PORTAL.md edit is minimal (single generated runbook-filter line, build_runbook_filter.py --check exits 0, tree clean) and #492-justified. validate_docs OK. INDEX.md correctly flagged as follow-up. Anti-patterns N/A (docs-only WP); no frozen-surface violation; commit touches only 3 declared files.

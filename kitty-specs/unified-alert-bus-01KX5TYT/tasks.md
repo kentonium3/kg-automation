@@ -34,8 +34,8 @@ office2 via the manifest pipeline. Tier 3; rebaseline on audited surfaces.
 | T020 | New `FELIX_ALERT_NTFY_TOPIC` credential + `credential-manifest.json` + env.sample | WP05 | | [D] |
 | T021 | Wire `EnvironmentFile` into 3 systemd units + `felix-health-check.sh` provisioning | WP05 | | [D] |
 | T022 | Deploy preflight (missing-env report) + per-runtime self-test | WP05 | | [D] |
-| T023 | `service-inventory.json` — bus library + unified topic; retire old topic notes | WP06 | |
-| T024 | `docs/runbooks/alerting.md` — bus, schema, how to emit (Python/CLI/bash) | WP06 | |
+| T023 | `service-inventory.json` — bus library + unified topic; retire old topic notes | WP06 | | [D] |
+| T024 | `docs/runbooks/alerting.md` — bus, schema, how to emit (Python/CLI/bash) | WP06 | | [D] |
 
 ## Work Packages
 
