@@ -110,7 +110,7 @@ Spec-kitty migrations applied mid-mission can permanently break that mission's a
 The authoritative signal is git worktrees — an active mission always has a coord/target worktree:
 
 ```bash
-for repo in metalbox bake-planner intentional bake-tracker kg-automation spec-kitty-analyzer-harness vikunja-harness; do
+for repo in metalbox bake-planner intentional bake-tracker kg-automation vikunja-harness; do
   d=/Users/kentgale/repos/$repo
   echo "=== $repo ==="
   (cd "$d" && git worktree list 2>/dev/null | grep -v "^$d ")
@@ -132,12 +132,41 @@ To pin to a specific RC:
 pipx install --force "spec-kitty-cli==3.2.0rc44"
 ```
 
+### 3.2b Upgrade off `main` (unreleased change)
+
+When a merged upstream PR you need is on `main` but **not yet in any tagged release** (e.g. a doctrine
+directive that hasn't shipped in a `vX.Y.Z` tag), install the CLI directly from upstream `main`:
+
+```bash
+pipx install --force "git+https://github.com/Priivacy-ai/spec-kitty.git@main"
+```
+
+**Capture the build SHA.** `main` moves and the version string (e.g. `3.2.6`) is **not granular** — the
+exact commit is the real build ID. pip records it in the package's `direct_url.json`; take the **9-char
+short SHA** (the reporting convention — see `spec-kitty-bug-reporting.md § Build-ID convention`):
+
+```bash
+python3 -c "import glob,json; f=glob.glob('$HOME/.local/pipx/venvs/spec-kitty-cli/lib/python*/site-packages/spec_kitty_cli-*.dist-info/direct_url.json')[0]; print(json.load(open(f))['vcs_info']['commit_id'][:9])"
+```
+
+Record it in any bug/tracking report as `X.Y.Z (main build, SHA <9char>)`.
+
+**Verify the change actually landed** (a version bump alone doesn't prove the doctrine is present):
+`grep -rl "<new DIRECTIVE_ID or wording>" "$(dirname "$(python3 -c 'import spec_kitty_cli,os;print(os.path.dirname(spec_kitty_cli.__file__))')")/../doctrine" 2>/dev/null` — or list `…/site-packages/doctrine/directives/built-in/`.
+
+**Caveat:** installing off `main` reverses the pinned-official-release posture (daily-driving-main).
+Prefer waiting for the next tagged release unless the change is needed now. Roll back with
+`pipx install --force spec-kitty-cli==<last-good-tag>`. Note new builtin directives are **available** in
+the CLI but not auto-activated in a project's charter — adopting one is a separate charter update.
+
+Then run §3.3 (per-repo `--project --yes`) as normal.
+
 ### 3.3 Roll the bump into each repo
 
 Dry-run first to inspect the plan:
 
 ```bash
-for repo in metalbox bake-planner intentional bake-tracker kg-automation spec-kitty-analyzer-harness vikunja-harness; do
+for repo in metalbox bake-planner intentional bake-tracker kg-automation vikunja-harness; do
   echo "=== $repo ==="
   (cd /Users/kentgale/repos/$repo && spec-kitty upgrade --project --dry-run 2>&1 | tail -15)
 done
@@ -146,7 +175,7 @@ done
 Then apply per repo:
 
 ```bash
-for repo in metalbox bake-planner intentional bake-tracker kg-automation spec-kitty-analyzer-harness vikunja-harness; do
+for repo in metalbox bake-planner intentional bake-tracker kg-automation vikunja-harness; do
   echo "=== $repo ==="
   (cd /Users/kentgale/repos/$repo && spec-kitty upgrade --project --yes 2>&1 | tail -10)
 done
@@ -157,7 +186,7 @@ Each successful upgrade auto-commits a `chore: apply spec-kitty upgrade changes 
 Verify the version stamp in every repo:
 
 ```bash
-for repo in metalbox bake-planner intentional bake-tracker kg-automation spec-kitty-analyzer-harness vikunja-harness; do
+for repo in metalbox bake-planner intentional bake-tracker kg-automation vikunja-harness; do
   v=$(grep -E '^  version:' /Users/kentgale/repos/$repo/.kittify/metadata.yaml | head -1 | tr -d ' ')
   echo "$repo: $v"
 done

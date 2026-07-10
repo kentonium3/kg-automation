@@ -44,6 +44,24 @@ fields the maintainer benefits from.
 | ~~Per-report paste buffer~~ | ~~`docs/diagnostics/{issue#-or-slug}-external.md`~~ | **DEPRECATED 2026-06-08 (v1.3)** — embed the upstream draft directly in the internal issue body instead. See v1.3 change note below. |
 | **Historical archive** | `docs/archive/spec-kitty-feedback/` | Reports for fixed/closed upstream issues |
 
+## Build-ID convention
+
+Always identify the spec-kitty build by a **9-character short SHA**, not just the version string — the
+version (`3.2.6`) is not granular enough when the CLI is built from `main`/`dev` (which moves) or a
+pinned tag. Format the Versions/Environment line as:
+
+- **Released tag:** `spec-kitty-cli X.Y.Z (pinned tag SHA <9char>)` — e.g. `3.2.5 (pinned tag SHA 724edc488)`.
+- **Off-`main` build:** `spec-kitty-cli X.Y.Z (main build, SHA <9char>)` — e.g. `3.2.6 (main build, SHA 1cb51fb32)`.
+
+Get the SHA:
+- **git/`main` install:** from pip's `direct_url.json` →
+  `python3 -c "import glob,json; f=glob.glob('$HOME/.local/pipx/venvs/spec-kitty-cli/lib/python*/site-packages/spec_kitty_cli-*.dist-info/direct_url.json')[0]; print(json.load(open(f))['vcs_info']['commit_id'][:9])"`
+- **pinned tag:** the tag's commit SHA (recorded in `reference_speckitty_version_history.md`).
+
+This 9-char SHA goes in **both** the internal issue and the embedded upstream draft (see the off-`main`
+install path in `spec-kitty-init-in-existing-repo.md § 3.2b`). The full 40-char commit may be mentioned
+once for reference in the internal issue, but the short form is the identifier everywhere else.
+
 ## Lifecycle (v1.3, 2026-06-08)
 
 ```text
