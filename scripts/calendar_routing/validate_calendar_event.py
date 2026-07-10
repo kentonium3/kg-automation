@@ -5,8 +5,8 @@ Reads an ``ExtractedCalendarBlock`` JSON object from stdin, validates that
 every field needed to create a Google Calendar event is present and
 parseable, and emits one of:
 
-- a ``CalendarEventPayload`` ready for delegation to Felix main + ``gog
-  calendar create`` (``complete: true``); or
+- a ``CalendarEventPayload`` ready for the deterministic calendar helper
+  (``scripts.google.calendar_helper create``) (``complete: true``); or
 - a structured ``missing_fields`` report (``complete: false``) so capture
   can persist a ``PendingClarificationRecord`` and prompt Kent.
 
@@ -34,13 +34,16 @@ import os
 import re
 import sys
 import traceback
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from typing import Optional
 from zoneinfo import ZoneInfo
 
 DEFAULT_TIMEZONE = "America/New_York"
 DEFAULT_CALENDAR_ID = "primary"
-DEFAULT_ACCOUNT = "kent@intentional.biz"
+# Credential-set selector for the direct-API calendar helper (D5). Flipped from
+# the legacy gog ``kent@intentional.biz`` value to ``personal`` — the account
+# the new happy path targets. Purely additive to add intentional.biz later.
+DEFAULT_ACCOUNT = "personal"
 
 REQUIRED_INPUT_FIELDS = (
     "title",

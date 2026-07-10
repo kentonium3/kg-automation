@@ -19,8 +19,20 @@ Behavior:
     contract shape) instead of the bare normalized payload, so capture can
     forward it verbatim (capture -> main -> felix-admin-calendar). The
     deterministic field mapping lives here, not in the agent prompt.
+  * With ``--create --source-path <abs>`` (D4, closes #679): validate ->
+    normalize -> build the ``create_calendar_event`` envelope -> invoke the
+    calendar helper (``python3 -m scripts.google.calendar_helper create
+    --payload-file <tmp> --idempotency-key <source_inbox_path> --json``) IN
+    PROCESS as a subprocess -> emit a single result JSON on stdout:
+    ``{"status": "created", "event_id": ..., "html_link": ...}`` on success,
+    ``{"status": "error", ...}`` on helper failure (surfaced verbatim, never
+    faked — #683), or ``{"status": "needs_clarification", "missing": [...]}``
+    when the payload is invalid (the helper is NOT called in that case). This
+    is the single deterministic command capture runs — no agent-to-agent hop.
   * On invalid: write ``{"error": "invalid_payload", "missing": [...]}``
-    to stderr; exit 1.
+    to stderr; exit 1. (In ``--create`` mode an invalid payload is reported as
+    a ``needs_clarification`` result on stdout with exit 0, so capture branches
+    on ``status`` rather than exit code.)
   * On missing / malformed file: write a structured error JSON to stderr;
     exit 1.
 
@@ -43,7 +55,9 @@ from __future__ import annotations
 
 import argparse
 import json
+import subprocess
 import sys
+import tempfile
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Optional
@@ -60,7 +74,16 @@ DEFAULT_DURATION = timedelta(hours=1)
 # must never do this mechanical transform (#661/#662 haiku-fragility class).
 DELEGATION_ACTION = "create_calendar_event"
 DEFAULT_CALENDAR_ID = "primary"
-DEFAULT_ACCOUNT = "kent@intentional.biz"
+# Credential-set selector for the direct-API calendar helper (D5). Flipped from
+# the legacy gog ``kent@intentional.biz`` value to ``personal`` — the account
+# RFC #681 proved and the new happy path targets. Adding the intentional.biz
+# account later is purely additive (drop creds + pass ``--account intentional``);
+# no code change here.
+DEFAULT_ACCOUNT = "personal"
+
+# The calendar helper (WP02) invoked in --create mode. Kept as a module-level
+# constant so tests can monkeypatch the subprocess call site.
+CALENDAR_HELPER_MODULE = "scripts.google.calendar_helper"
 
 
 # ---------------------------------------------------------------------------
@@ -187,6 +210,125 @@ def build_delegation_payload(normalized: dict, source_inbox_path: str) -> dict:
 
 
 # ---------------------------------------------------------------------------
+# --create mode (D4, closes #679): validate -> envelope -> helper subprocess
+# ---------------------------------------------------------------------------
+
+
+def _invoke_calendar_helper(
+    envelope: dict, source_inbox_path: str, account: str
+) -> "subprocess.CompletedProcess[str]":
+    """Invoke the WP02 calendar helper as a subprocess and return the result.
+
+    Writes ``envelope`` to a tempfile and runs
+    ``python3 -m scripts.google.calendar_helper create --payload-file <tmp>
+    --idempotency-key <source_inbox_path> --account <account> --json``. The
+    idempotency key is the source inbox path so re-processing the same note
+    never double-creates (the helper de-dupes on it). Returns the completed
+    process (stdout/stderr/returncode) for the caller to interpret.
+
+    Kept as a small seam so the unit tests can monkeypatch this single call
+    site (the real helper needs the google client libraries + a live token,
+    which never run under CI).
+    """
+    fd, tmp_name = tempfile.mkstemp(prefix="calendar-envelope.", suffix=".json")
+    try:
+        with open(fd, "w", encoding="utf-8") as fh:
+            json.dump(envelope, fh)
+        return subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                CALENDAR_HELPER_MODULE,
+                "create",
+                "--payload-file",
+                tmp_name,
+                "--idempotency-key",
+                source_inbox_path,
+                "--account",
+                account,
+                "--json",
+            ],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    finally:
+        try:
+            Path(tmp_name).unlink()
+        except OSError:  # pragma: no cover - cleanup best-effort
+            pass
+
+
+def _parse_helper_created(stdout: str) -> Optional[dict]:
+    """Extract the helper's ``status: created`` JSON line from its stdout.
+
+    The helper emits a JSON object line *before* its final ``SUMMARY:`` line
+    (contract: JSON never follows SUMMARY). Scan the lines for the first that
+    parses to a dict carrying ``status == "created"``; return it or ``None``.
+    """
+    for line in stdout.splitlines():
+        line = line.strip()
+        if not line.startswith("{"):
+            continue
+        try:
+            obj = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if isinstance(obj, dict) and obj.get("status") == "created":
+            return obj
+    return None
+
+
+def _run_create(
+    payload: dict, source_inbox_path: str, account: str
+) -> tuple[dict, int]:
+    """Validate + normalize + create via the helper. Returns ``(result, code)``.
+
+    Result shapes (all emitted on stdout as a single JSON object):
+
+    - invalid payload -> ``{"status": "needs_clarification", "missing": [...]}``
+      (the helper is NOT called); exit 0 — capture branches on ``status``.
+    - helper success -> ``{"status": "created", "event_id": ..., "html_link": ...}``;
+      exit 0.
+    - helper failure -> ``{"status": "error", "exit_code": <n>, "error": <stderr
+      verbatim>}``; exit 0 — surfaced verbatim, NEVER faked (#683).
+    """
+    is_valid, missing = validate_payload(payload)
+    if not is_valid:
+        return {"status": "needs_clarification", "missing": missing}, 0
+
+    normalized = normalize_payload(payload)
+    envelope = build_delegation_payload(normalized, source_inbox_path)
+    # The envelope's account default is DEFAULT_ACCOUNT; the selected account is
+    # passed to the helper explicitly so the two stay coherent.
+    envelope["account"] = account
+
+    proc = _invoke_calendar_helper(envelope, source_inbox_path, account)
+    if proc.returncode == 0:
+        created = _parse_helper_created(proc.stdout)
+        if created is not None:
+            return {
+                "status": "created",
+                "event_id": created.get("event_id", ""),
+                "html_link": created.get("html_link", ""),
+            }, 0
+        # Exit 0 but no parseable created payload — treat as an error rather
+        # than fabricate a success (#683). Surface what the helper printed.
+        return {
+            "status": "error",
+            "exit_code": 0,
+            "error": (proc.stdout or proc.stderr).strip(),
+        }, 0
+
+    # Non-zero exit (1 operational / 2 usage / 3 auth): surface verbatim.
+    return {
+        "status": "error",
+        "exit_code": proc.returncode,
+        "error": (proc.stderr or proc.stdout).strip(),
+    }, 0
+
+
+# ---------------------------------------------------------------------------
 # CLI orchestrator
 # ---------------------------------------------------------------------------
 
@@ -245,21 +387,55 @@ def main(argv: Optional[list[str]] = None) -> int:
         ),
     )
     parser.add_argument(
+        "--create",
+        action="store_true",
+        help=(
+            "Validate, build the create_calendar_event envelope, and invoke the "
+            "calendar helper directly (no agent hop, closes #679). Emits a single "
+            "result JSON {status: created|error|needs_clarification, ...} on "
+            "stdout. Requires --source-path."
+        ),
+    )
+    parser.add_argument(
+        "--account",
+        default=DEFAULT_ACCOUNT,
+        help=(
+            "Credential-set selector passed through to the calendar helper in "
+            f"--create mode (default {DEFAULT_ACCOUNT!r})."
+        ),
+    )
+    parser.add_argument(
         "--source-path",
         help=(
             "Absolute inbox path of the source note; required with "
-            "--as-delegation-payload (populates source_inbox_path for audit)."
+            "--as-delegation-payload or --create (populates source_inbox_path "
+            "for audit and is the helper's idempotency key)."
         ),
     )
     args = parser.parse_args(argv)
 
-    if args.as_delegation_payload and not args.source_path:
-        _emit_error("missing_source_path", detail="--source-path is required with --as-delegation-payload")
+    if args.as_delegation_payload and args.create:
+        _emit_error("mutually_exclusive", detail="--create and --as-delegation-payload are mutually exclusive")
+        return 1
+
+    if (args.as_delegation_payload or args.create) and not args.source_path:
+        flag = "--create" if args.create else "--as-delegation-payload"
+        _emit_error("missing_source_path", detail=f"--source-path is required with {flag}")
         return 1
 
     payload, err_code = _load_payload(Path(args.payload_file))
     if err_code is not None:
         return err_code
+
+    if args.create:
+        # In --create mode an invalid payload is a needs_clarification RESULT
+        # (on stdout, exit 0), not a stderr error — capture branches on status.
+        if not isinstance(payload, dict):
+            result = {"status": "needs_clarification", "missing": ["payload_not_object"]}
+        else:
+            result, _ = _run_create(payload, args.source_path, args.account)
+        sys.stdout.write(json.dumps(result) + "\n")
+        return 0
 
     is_valid, missing = validate_payload(payload)
     if not is_valid:

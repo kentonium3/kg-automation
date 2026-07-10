@@ -1,27 +1,43 @@
 # TOOLS.md
 
-## gog (Google Calendar CLI)
+## calendar helper (deterministic Google Calendar CLI)
 
-- Sole calendar-write tool. Invocation template lives in the Calendar event
-  creation handler in `AGENTS.md` (gog command synthesis section).
-- Authoritative payload contract:
+- Sole calendar-write tool. This agent has **no `gog` skill** — the terminal
+  create/update/delete is the deterministic helper `scripts.google.calendar_helper`,
+  invoked via the standard `exec` tool. Invocation template lives in the Calendar
+  event creation handler in `AGENTS.md` (Calendar helper invocation section).
+- Deploy venv path on office2:
+  `/data/services/openclaw/felix-calendar/venv/bin/python -m scripts.google.calendar_helper`.
+  Run from `/home/claude/kg-automation`.
+- Authoritative flag/exit-code contract:
+  `kitty-specs/felix-calendar-helper-*/contracts/calendar-helper-cli.md`.
+  Payload (event-body) contract:
   `kitty-specs/felix-calendar-subagent-extraction-01KTTA33/contracts/calendar-event-payload.md`.
-- Run via the standard exec tool. `-j` flag is required for the response
-  envelope (gog emits JSON on stdout with `eventId` and `htmlLink`).
-- OAuth is pre-wired: `openclaw-gateway-env` systemd EnvironmentFile injects
-  `GOG_KEYRING_PASSWORD`. Do NOT prompt for credentials or run `gog auth`
-  in-handler — that's an operator surface, not an agent surface.
-- Refresh-token health is tracked separately (#572 weekly probe). Failures
-  surface as gog non-zero exit; the response envelope conveys the stderr
-  verbatim per the contract.
+- `--json` is required for the response envelope: the helper emits a JSON line
+  (`{"status": "created", "event_id": …, "html_link": …}`) *before* its final
+  `SUMMARY:` line. Parse the JSON line.
+- `--idempotency-key "<source_inbox_path>"` de-dupes re-runs of the same source
+  note so a retry never double-creates.
+- Exit codes: `0` success · `1` operational/API error · `2` usage error ·
+  `3` auth failure. A non-zero exit writes `ERROR: …` to stderr and never
+  mutated the calendar — surface it verbatim (never fake a created event, #683;
+  there is no `gog` fallback).
+- OAuth is per-account (credential-set selector `--account`, default `personal`),
+  resolved inside the helper from `~/.config/felix/google/<account>/`. Do NOT
+  prompt for credentials or run any auth flow in-handler — that's an operator
+  surface. An expired/invalid token surfaces as exit `3`.
 
-## State file: pending-calendar-clarifications.jsonl
+## State file: pending-calendar-clarifications.json
 
-- Path: `/data/services/openclaw/state/pending-calendar-clarifications.jsonl`
-- Format: JSONL, one record per line. Schema:
+- Path: `/data/services/openclaw/state/pending-calendar-clarifications.json`
+- Format: a JSON **array** of PendingClarification objects
+  (`{"note_filename", "partial_payload", "created_at"}`). Managed by
+  `scripts.inbox.handle_clarification_state` (`add` / `sweep` / `match`).
+  Schema context:
   `kitty-specs/inbox-calendar-and-aspiration-routing-01KTHHXS/contracts/pending_clarification_record.md`.
-- Write protocol: `fcntl.LOCK_EX` + atomic `.tmp` + `os.rename` (see Resolve
-  and create step 3 in AGENTS.md). Same protocol as capture's append-record.
+- Do NOT hand-roll parsing — use the `handle_clarification_state match` helper to
+  match a reply, and let the 24h `sweep` age out resolved/stale entries. The
+  helper writes atomically (temp + `os.replace`).
 
 ## Validator: validate_calendar_event.py
 

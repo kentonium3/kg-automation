@@ -2,8 +2,8 @@
 title: Data Flows
 doc_type: reference
 status: approved
-last_updated: '2026-07-05'
-updated_by: 'felix-admin-cron-path-fix-01KWQTY3 (#656) + restore-whatsapp-dm-reply-delivery-01KTVVHH (#588) + inbox-calendar-and-aspiration-routing-01KTHHXS + #520-felix-vikunja-sync-project-layer-and-url-config'
+last_updated: '2026-07-09'
+updated_by: 'felix-calendar-helper-01KX4H3C (#699 — calendar surface now Felix helper -> Google direct, not gog; closes #679) + felix-admin-cron-path-fix-01KWQTY3 (#656) + restore-whatsapp-dm-reply-delivery-01KTVVHH (#588) + inbox-calendar-and-aspiration-routing-01KTHHXS + #520-felix-vikunja-sync-project-layer-and-url-config'
 tags: [656, 588, 520, 507, 519, 518, 309, 343, 362, 391, 400, 310, 374]
 ---
 
@@ -567,19 +567,32 @@ plain todos. Three JSON flow entries cover the new edges; refer to
 [`data/data-flows.json`](<./data/data-flows.json>) by id for the canonical
 machine-readable form.
 
-- **`inbox-calendar-create` — Flow A**: complete calendar events are
-  delegated from capture to Felix main, which executes `gog calendar create`.
-  Capture is the classifier and validator; main is the gog process owner so
-  the existing gog credential and skill stay in one place. Default calendar
-  is `kent@intentional.biz` primary; payload overrides are honored per
-  event. No Vikunja todo is created.
+- **`inbox-calendar-create` — Flow A** (rewired by #699, RFC #681 calendar
+  phase; closes #679): complete calendar events now reach the calendar
+  **inline** — no agent-to-agent hop. Capture classifies the note and
+  extracts the natural-language fields, then runs one deterministic command
+  (`route_calendar_event --create`) that validates the fields, assembles the
+  create envelope, and invokes the **Felix calendar helper**
+  (`scripts/google/calendar_helper.py`) in-process. The helper talks to the
+  Google Calendar API **directly** via `google-api-python-client` using the
+  personal-account credential (`felix-google-personal-calendar`) — **not**
+  through `gog` and **not** through Felix main. Default account `personal`
+  (`kentgale@gmail.com`), default calendar `primary`; the envelope may
+  override per event. No Vikunja todo is created. (Previously, per #679, this
+  delegated to Felix main → `gog calendar create`, which silently failed on
+  the haiku capture agent.)
 - **`inbox-calendar-clarification-loop` — Flow B**: incomplete calendar
-  events trigger a single WhatsApp clarification question. Capture persists
-  the deferred payload to a pending-calendar-clarifications state file (24h
-  timeout sweep cleans up stale entries). When Kent replies, main reads the
-  open clarification, merges the reply into the deferred payload,
-  re-validates, and issues the deferred `gog calendar create`. One question
-  per cluster — capture never silently guesses.
+  events trigger a single WhatsApp clarification question (`--create` returns
+  `needs_clarification` with the missing fields). Capture persists the
+  deferred payload to a pending-calendar-clarifications state file (24h
+  timeout sweep cleans up stale entries). When Kent replies, the reshaped
+  **judgment-only** `felix-admin-calendar` agent reads the open clarification,
+  merges the reply into the deferred payload, re-validates, and issues the
+  create via the **calendar helper** directly against the Google Calendar API
+  — no longer `gog calendar create`, and it holds no gog calendar skill. One
+  question per cluster — capture never silently guesses. This path still
+  involves `felix-admin-calendar`, but only via a separate inbound message
+  from Kent (Kent → agent), which is not capture → agent delegation.
 - **`inbox-aspiration-to-journal` — Flow C**: aspirations and musings are
   appended to the dated journal entry at
   `~/second-brain/notes/08-Journal/Journal YYYY-MM-DD HHmm.md`. No Vikunja

@@ -23,9 +23,9 @@ Tests are in scope (NFR-003 requires them). Work packages are sized 3–5 subtas
 | T011 | `felix-admin-calendar` AGENTS.md + TOOLS.md: judgment-only, helper not gog, keep clarification handling | WP03 | | [D] |
 | T012 | `felix-admin-capture` AGENTS.md + .tmpl: calendar step = single `--create` command, no agent hop | WP03 | | [D] |
 | T013 | Update inbox + calendar_routing tests for new default + `--create` mode | WP03 | | [D] |
-| T014 | `deploys/queued/felix-calendar-helper.yaml` (Tier 3, audited_surface, pre/post verify) | WP04 | | [D] |
-| T015 | `deploy-felix-calendar-helper.py`: Restic gate → uv venv provision → creds-presence → self-check | WP04 | | [D] |
-| T016 | Deploy-script tests (mock subprocess/uv; gate ordering; idempotency) | WP04 | | [D] |
+| T014 | `deploys/queued/felix-calendar-helper.yaml` (Tier 3, audited_surface, pre/post verify) | WP04 | |
+| T015 | `deploy-felix-calendar-helper.py`: Restic gate → uv venv provision → creds-presence → self-check | WP04 | |
+| T016 | Deploy-script tests (mock subprocess/uv; gate ordering; idempotency) | WP04 | |
 | T017 | `credential-manifest.json`: add personal Google OAuth credential | WP05 | [D] |
 | T018 | `data-flows.json` + views: calendar now helper→Google (not gog); inbox→calendar inline | WP05 | [D] |
 | T019 | `service-inventory.json` + md: external Calendar API dependency + on-demand helper (venv) | WP05 | [D] |

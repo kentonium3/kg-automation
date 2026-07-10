@@ -4,7 +4,7 @@
   "calendar_event_payload": {
     "action": "create_calendar_event",
     "calendar_id": "primary",
-    "account": "kent@intentional.biz",
+    "account": "personal",
     "summary": "Coffee with Pat",
     "start_rfc3339": "2026-06-08T12:00:00-04:00",
     "end_rfc3339": "2026-06-08T12:30:00-04:00",

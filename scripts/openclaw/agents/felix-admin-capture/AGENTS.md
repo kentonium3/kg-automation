@@ -93,7 +93,10 @@ For each successfully parsed file, invoke `cd /home/claude/kg-automation && pyth
 - Then route by kind:
   - `journal` → `cd /home/claude/kg-automation && python3 -m scripts.inbox.route_journal_entry --content-file <tmp> --datetime <iso>`. Pass the block content via a tempfile; pass the note's frontmatter `created` (or file mtime if absent) as the datetime.
   - `someday` → `cd /home/claude/kg-automation && python3 -m scripts.inbox.route_someday --title <title> --body <body> --note-filename <name>`. Title = first sentence (≤100 chars); body = full block content. Returns `task_id=<int>`.
-  - `calendar` → assemble a `CalendarPayload` (`title`, `start`, optional `end`/`location`/`description`); invoke `cd /home/claude/kg-automation && python3 -m scripts.inbox.route_calendar_event --payload-file <tmp> --as-delegation-payload --source-path <abs-path-of-the-source-note>`. On exit 0 the helper emits the complete `create_calendar_event` delegation envelope on stdout (all fields already resolved — do **not** reshape, rename, or re-map it). **Invoke `felix-admin-calendar` directly** with it, using the `openclaw agent` command via `exec` (do **NOT** use the `sessions_send` tool — cross-agent `sessions_send` is blocked; and do **NOT** route through `main`): `openclaw agent --agent felix-admin-calendar --message '<the emitted JSON, verbatim>' --json --timeout 120`. felix-admin-calendar is the single owner of `gog calendar create`; **never run `gog` yourself.** **Then check its reply** (fail-safe — do not silently drop the event): only if the calendar-create reports success (`status: "created"` with a `gcal_event_id`) do you continue to Step 5 (mark processed) and record that `gcal_event_id` in the routing log. If it reports `status: "error"`, or you do not get a created-confirmation, **do NOT mark the note processed** — send Kent ONE WhatsApp with the failure text verbatim and leave the note unprocessed for retry. On non-zero exit from `route_calendar_event`, parse the stderr `missing` list — see the clarification flow below.
+  - `calendar` → assemble a `CalendarPayload` (`title`, `start`, optional `end`/`location`/`description`) into a tempfile; run the **single** deterministic command `cd /home/claude/kg-automation && python3 -m scripts.inbox.route_calendar_event --create --payload-file <tmp> --source-path <abs-path-of-the-source-note>`. This one command validates, builds the envelope, and invokes the calendar helper in-process — **there is no agent-to-agent hop**. Do **NOT** run `openclaw agent`, `sessions_send`, or route through `main`; do **NOT** run `gog` (you have none). On exit 0 the command emits ONE result JSON on stdout — branch on its `status`:
+    - `"created"` → the event was created (`event_id` / `html_link` present). Continue to Step 5 (mark processed) and record `event_id` in the routing log.
+    - `"needs_clarification"` → the payload was incomplete (`missing` lists the fields). Do NOT mark the note processed — enter the clarification flow below.
+    - `"error"` → the helper failed (`exit_code` + verbatim `error`). Do NOT mark the note processed — send Kent ONE WhatsApp with the `error` text verbatim and leave the note unprocessed for retry. **Never treat an `error` as a created event (#683).**
   - `github_issue` → invoke `cd /home/claude/kg-automation && python3 scripts/openclaw/agents/main/felix-file-issue.py …` (existing surface). Title and body come from the block; labels per heuristic.
 
     **Available Labels** — apply at the `github_issue` route:
@@ -108,11 +111,11 @@ For each successfully parsed file, invoke `cd /home/claude/kg-automation && pyth
   - `vikunja_task` → fall back to the Task bridge (below).
   - `parse_failure` → continue to Step 6.
 
-**Calendar clarification flow** (when `route_calendar_event` reports missing fields):
+**Calendar clarification flow** (when `route_calendar_event --create` returns `status: "needs_clarification"`):
 
-1. `cd /home/claude/kg-automation && python3 -m scripts.inbox.handle_clarification_state add --note-filename <name> --partial-payload <json>` to record what's known.
+1. `cd /home/claude/kg-automation && python3 -m scripts.inbox.handle_clarification_state add --note-filename <name> --partial-payload <json>` to record what's known (the JSON-array store at `/data/services/openclaw/state/pending-calendar-clarifications.json`).
 2. Compose ONE WhatsApp message asking Kent for the missing fields. Direct voice, single question. Example: `Sent by felix-admin-capture:haiku\n\nWhat time should "<title>" be on <date>?`
-3. On Kent's reply (next turn): `cd /home/claude/kg-automation && python3 -m scripts.inbox.handle_clarification_state match --reply-content "<reply>"` finds the pending entry; merge the reply into the partial payload; re-invoke `route_calendar_event` with `--as-delegation-payload --source-path <source-note>`; if valid, invoke `felix-admin-calendar` directly with the emitted envelope exactly as in the `calendar` route above (`openclaw agent --agent felix-admin-calendar` via `exec` — not `sessions_send`, not `main`; never run `gog` yourself), and apply the same success/fail-safe check (mark processed only on `status: "created"`); if still invalid, repeat clarification once. After two rounds without success, treat as `parse_failure`.
+3. Leave the note unprocessed. **Kent's later reply is handled by `felix-admin-calendar`, not by you** — his reply lands as an inbound message to that agent, which matches it against the pending record, re-validates, and invokes the calendar helper itself. That is a separate Kent→agent message, not a capture→agent hop. Do not re-dispatch, poll, or re-invoke `route_calendar_event` on a subsequent inbox tick for a note already pending clarification (the 24h `sweep` in Step 1a ages out stale entries).
 
 ### Step 4 — Execute the file move (when applicable)
 
@@ -196,7 +199,6 @@ Each meaningful action gets ONE line in the daily processing log. Terse — fiel
 
 - **routed**: `<note-filename> → <kind> (<destination>)`
 - **goal-updated**: `<goal-slug> ← <note-filename>`
-- **calendar-clarified**: `<note-filename> + reply → gog calendar create (event-id <id>)`
 - **calendar-pending**: `<note-filename> + clarification queued`
 - **parse-failed**: `<note-filename> (kind=<error-kind>)`
 - **marker-cleaned**: `<note-filename>`

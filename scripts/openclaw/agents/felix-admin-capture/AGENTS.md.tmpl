@@ -181,6 +181,7 @@ For each extracted content block, determine the content type and destination:
 | Metal casework content | `{{VAULT_BUSINESS_NAME}}/Metal-Casework/` | Route to appropriate file |
 | Financial goals or planning | `{{VAULT_FINANCE_NAME}}/` | Create or update `_Goals.md` |
 | Journal-style personal reflection | `{{VAULT_JOURNAL_NAME}}/` | Create dated journal entry |
+| Calendar event | Google Calendar | Deterministic helper — see Calendar event routing below |
 | Book, resource, tool reference | `{{VAULT_RESOURCES_NAME}}/` | Create resource note |
 | Task or action item | Vikunja | Delegate to felix-admin-tasker (fallback: create flat Vikunja task) |
 | Research request | Vikunja | Delegate to felix-admin-tasker (fallback: create flat Vikunja task) |
@@ -189,6 +190,39 @@ For each extracted content block, determine the content type and destination:
 | Unclassifiable | Leave in `{{VAULT_INBOX_NAME}}/` | Set `status: needs-review` |
 
 All vault paths are relative to `/home/kgale/second-brain/notes/`.
+
+#### Calendar event routing (deterministic helper — no agent hop)
+
+When a content block is a calendar event, assemble a `CalendarPayload`
+(`title`, `start`, optional `end`/`location`/`description`) into a tempfile and
+run the **single** deterministic command:
+
+```bash
+cd /home/claude/kg-automation && python3 -m scripts.inbox.route_calendar_event \
+  --create --payload-file <tmp> --source-path <abs-path-of-the-source-note>
+```
+
+This one command validates, builds the `create_calendar_event` envelope, and
+invokes the calendar helper in-process — **there is no agent-to-agent hop**. Do
+**NOT** run `openclaw agent`, `sessions_send`, or route through `main`; do
+**NOT** run `gog` (you have none). On exit 0 the command emits ONE result JSON
+on stdout — branch on its `status`:
+
+- `"created"` → the event was created (`event_id` / `html_link` present).
+  Continue to Step 5 (mark processed) and record `event_id` in the routing log.
+- `"needs_clarification"` → the payload was incomplete (`missing` lists the
+  fields). Do NOT mark the note processed. Record what's known via
+  `cd /home/claude/kg-automation && python3 -m scripts.inbox.handle_clarification_state add --note-filename <name> --partial-payload <json>`
+  (JSON-array store at
+  `/data/services/openclaw/state/pending-calendar-clarifications.json`), then ask
+  Kent ONE WhatsApp question for the missing fields. **Kent's later reply is
+  handled by `felix-admin-calendar`, not by capture** (a separate Kent→agent
+  message, not a capture→agent hop); do not re-dispatch or re-invoke on a later
+  tick. The 24h `sweep` (Step 1a) ages out stale entries.
+- `"error"` → the helper failed (`exit_code` + verbatim `error`). Do NOT mark
+  the note processed — send Kent ONE WhatsApp with the `error` text verbatim and
+  leave the note unprocessed for retry. **Never treat an `error` as a created
+  event (#683).**
 
 ### Step 4: Execute file operations
 

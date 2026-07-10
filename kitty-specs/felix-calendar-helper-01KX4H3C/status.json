@@ -1,20 +1,56 @@
 {
-  "event_count": 0,
-  "last_event_id": null,
-  "materialized_at": "",
-  "mission_number": "",
-  "mission_slug": "",
+  "event_count": 35,
+  "last_event_id": "01KX4PDCWTGZ55XX0RZFM6MKA8",
+  "materialized_at": "2026-07-10T00:21:35.259032+00:00",
+  "mission_number": "90",
+  "mission_slug": "felix-calendar-helper-01KX4H3C",
   "mission_type": "software-dev",
   "summary": {
     "approved": 0,
     "blocked": 0,
     "canceled": 0,
     "claimed": 0,
-    "done": 0,
+    "done": 5,
     "for_review": 0,
     "in_progress": 0,
     "in_review": 0,
     "planned": 0
   },
-  "work_packages": {}
+  "work_packages": {
+    "WP01": {
+      "actor": "merge",
+      "force_count": 0,
+      "lane": "done",
+      "last_event_id": "01KX4PD7BZ5FPHZEBMJ1W4C5XC",
+      "last_transition_at": "2026-07-10T00:21:29.599469+00:00"
+    },
+    "WP02": {
+      "actor": "merge",
+      "force_count": 0,
+      "lane": "done",
+      "last_event_id": "01KX4PDA9BYDCABD3CCPXTGAX3",
+      "last_transition_at": "2026-07-10T00:21:32.587770+00:00"
+    },
+    "WP03": {
+      "actor": "merge",
+      "force_count": 0,
+      "lane": "done",
+      "last_event_id": "01KX4PDBHDJK7G4ENXGSEWVNMZ",
+      "last_transition_at": "2026-07-10T00:21:33.869053+00:00"
+    },
+    "WP04": {
+      "actor": "merge",
+      "force_count": 0,
+      "lane": "done",
+      "last_event_id": "01KX4PDCWTGZ55XX0RZFM6MKA8",
+      "last_transition_at": "2026-07-10T00:21:35.259032+00:00"
+    },
+    "WP05": {
+      "actor": "merge",
+      "force_count": 0,
+      "lane": "done",
+      "last_event_id": "01KX4PD92AER39J90BKNXTTAT7",
+      "last_transition_at": "2026-07-10T00:21:31.338901+00:00"
+    }
+  }
 }

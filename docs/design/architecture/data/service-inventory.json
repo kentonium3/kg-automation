@@ -1,7 +1,7 @@
 {
   "schema_version": "1.1",
-  "last_updated": "2026-07-08",
-  "updated_by": "deterministic-monitoring-checks-01KX1XNW (#676) + harden-inbox-capture-01KWVGZM (#662) + felix-admin-cron-path-fix-01KWQTY3 (#656) + finalize-inbox-file-01KW8MSQ (#325) + pull-based-deploy-pipeline-01KTYQQS (#136) + felix-calendar-subagent-extraction-01KTTA33 (#579) + #572-credential-liveness-probe + prescan-archive-anomalies-01KTMZPE (#568) + capture-agents-md-rewrite-01KTMY86 (#566) + capture-d6-helpers-extraction-01KTMS5Q (#566) + agent-prompt-deploy-pipeline-01KTMDDD (#567) + vikunja-client-and-habits-weekly-report-01KTKSFT (#542 + #561 + #562) + inbox-calendar-and-aspiration-routing-01KTHHXS + #520-felix-vikunja-sync-project-layer-and-url-config + #519-touchpoint-migration + #518-felix-vikunja-sync-driver-added + #376-remove-escalation-v1-parity + #400-audit-interpretation-moment0 + #310-tasker-jsonl-migration + #374-main-verbatim-passthrough + #362-drift-event-auto-resolution + #309-migrate-escalation-to-jsonl-state-model + #343-refactor-doc-auditor-to-scripts-first-driver + #307-backfill-habits-jsonl-from-comments + #306-habits-native-repeat-jsonl-state + #304-felix-bot-rotation + #291-felix-file-issue + #289-mutation-surfaces-enumeration + #285-cron-delivery-restore-path-c + #282-habits-d6-extract + #263-cron-delivery-mode-round2 + #100-google-workspace-foundation + #256-scope-discipline-guardrails + #253-step-5a-6-consolidation + #254-atomic-write-perm-preservation + issue-105-doc-auditor + #223-systemd-timer + #208-restic-healthcheck + #202-obsidian-sync-system-level + #203-sync-heartbeat + #199-inbox-schedules + #115-credential-health-check + #189-vikunja-compose + #185-inbox-capture-dedup + restore-whatsapp-dm-reply-delivery-01KTVVHH (#588) + #545-reconcile-doc-auditor-status",
+  "last_updated": "2026-07-09",
+  "updated_by": "felix-calendar-helper-01KX4H3C (#699 — calendar helper on-demand invocation + Google Calendar API dependency + felix-admin-calendar gog-skill removal; RFC #681 calendar phase) + deterministic-monitoring-checks-01KX1XNW (#676) + harden-inbox-capture-01KWVGZM (#662) + felix-admin-cron-path-fix-01KWQTY3 (#656) + finalize-inbox-file-01KW8MSQ (#325) + pull-based-deploy-pipeline-01KTYQQS (#136) + felix-calendar-subagent-extraction-01KTTA33 (#579) + #572-credential-liveness-probe + prescan-archive-anomalies-01KTMZPE (#568) + capture-agents-md-rewrite-01KTMY86 (#566) + capture-d6-helpers-extraction-01KTMS5Q (#566) + agent-prompt-deploy-pipeline-01KTMDDD (#567) + vikunja-client-and-habits-weekly-report-01KTKSFT (#542 + #561 + #562) + inbox-calendar-and-aspiration-routing-01KTHHXS + #520-felix-vikunja-sync-project-layer-and-url-config + #519-touchpoint-migration + #518-felix-vikunja-sync-driver-added + #376-remove-escalation-v1-parity + #400-audit-interpretation-moment0 + #310-tasker-jsonl-migration + #374-main-verbatim-passthrough + #362-drift-event-auto-resolution + #309-migrate-escalation-to-jsonl-state-model + #343-refactor-doc-auditor-to-scripts-first-driver + #307-backfill-habits-jsonl-from-comments + #306-habits-native-repeat-jsonl-state + #304-felix-bot-rotation + #291-felix-file-issue + #289-mutation-surfaces-enumeration + #285-cron-delivery-restore-path-c + #282-habits-d6-extract + #263-cron-delivery-mode-round2 + #100-google-workspace-foundation + #256-scope-discipline-guardrails + #253-step-5a-6-consolidation + #254-atomic-write-perm-preservation + issue-105-doc-auditor + #223-systemd-timer + #208-restic-healthcheck + #202-obsidian-sync-system-level + #203-sync-heartbeat + #199-inbox-schedules + #115-credential-health-check + #189-vikunja-compose + #185-inbox-capture-dedup + restore-whatsapp-dm-reply-delivery-01KTVVHH (#588) + #545-reconcile-doc-auditor-status",
   "services": [
     {
       "name": "vikunja",
@@ -2325,11 +2325,11 @@
       "host": "office2",
       "agent": null,
       "deployed_by": "#100",
-      "updated_by": "inbox-calendar-and-aspiration-routing-01KTHHXS + #100-google-workspace-foundation",
-      "last_updated": "2026-06-08",
+      "updated_by": "felix-calendar-helper-01KX4H3C (#699 \u2014 calendar surface migrated off gog to the Felix calendar helper; RFC #681 phase) + inbox-calendar-and-aspiration-routing-01KTHHXS + #100-google-workspace-foundation",
+      "last_updated": "2026-07-09",
       "status": "active",
-      "purpose": "Google Workspace API access (Gmail, Calendar, Drive, Contacts, Sheets, Docs) via the gog CLI for consumption by any Felix agent",
-      "notes": "Consumers: felix-admin-capture (via main delegation; calendar events from inbox \u2014 added by inbox-calendar-and-aspiration-routing-01KTHHXS on 2026-06-08). Capture classifies inbound inbox notes as calendar events and delegates the `gog calendar create` call to Felix main; main is the gog process owner in the calendar path.",
+      "purpose": "Google Workspace API access (Gmail, Drive, Contacts, Sheets, Docs) via the gog CLI for consumption by any Felix agent. NOTE: the CALENDAR surface migrated off gog to the Felix calendar helper by #699 (RFC #681 phase); gog retains its other surfaces and is not retired.",
+      "notes": "As of #699 (RFC #681 calendar phase) the CALENDAR surface no longer flows through gog \u2014 it flows through the Felix calendar helper (see the `felix-calendar-helper` service entry) directly against the Google Calendar API using the personal-account credential. Accordingly, felix-admin-calendar's openclaw.json `skills` no longer include gog (the gog calendar skill was removed; the agent is now judgment-only and invokes the helper via exec), and the inbox->calendar delegation to Felix main is retired (inbox now reaches the calendar inline via route_calendar_event --create). gog is NOT retired: it retains Gmail/Drive/Contacts/Sheets/Docs for other agents, and the #572 gog re-auth residual stays open. Pre-#699 calendar behavior (retired): felix-admin-capture delegated calendar events to Felix main, which was the gog process owner and executed `gog calendar create`.",
       "runbook": "docs/runbooks/google-workspace-ops.md",
       "risk_tier": 3,
       "binary": "/home/linuxbrew/.linuxbrew/bin/gog",
@@ -2576,6 +2576,79 @@
         "note": "Mirrors the felix-doc-auditor / felix-vikunja-sync last-tick.json health-signal pattern. last-tick.json is rewritten atomically every tick regardless of whether any manifests were applied."
       },
       "runbook": "docs/runbooks/deploy/discipline.md"
+    },
+    {
+      "name": "felix-calendar-helper",
+      "type": "library",
+      "host": "office2",
+      "agent": "felix-admin-calendar",
+      "deployed_by": "#699-felix-calendar-helper",
+      "introduced_by": "felix-calendar-helper-01KX4H3C (#699, RFC #681 calendar phase)",
+      "last_updated": "2026-07-09",
+      "status": "active",
+      "purpose": "Felix-owned deterministic Google Calendar helper (CLI + importable library). ON-DEMAND invocation only — NOT a long-running service, no systemd unit, no cron. Performs event create/list/update/delete directly against the Google Calendar API via google-api-python-client, replacing `gog calendar create` on the calendar surface (RFC #681 phase; closes #679). Multi-account-ready (default account `personal` = kentgale@gmail.com; adding intentional.biz is credential-only, no code change). The reshaped felix-admin-calendar agent is the judgment layer that invokes it; inbox capture reaches it inline via scripts/inbox/route_calendar_event.py --create (no agent hop).",
+      "notes": "Runs under a DEDICATED uv-provisioned virtualenv at /data/services/openclaw/felix-calendar/venv holding pinned google-api-python-client, google-auth, google-auth-oauthlib (office2 system python3 lacks these and has no pip). Invoked module-form (C-007, #682): `cd /home/claude/kg-automation && /data/services/openclaw/felix-calendar/venv/bin/python -m scripts.google.calendar_helper <subcommand> ...`. The google deps live in the venv, NOT in the repo requirements.txt, so the python-dependencies security baseline (pip-packages.txt) is untouched. Exit-code contract: 0 success, 1 operational/API error, 2 usage/bad-args, 3 auth failure (fail-safe: no calendar mutation, actionable 're-mint on the Mac' message; #683 trust defect). `--self-check` loads creds + refreshes the token + does a bounded events().list(primary, maxResults=1) as a post-deploy smoke gate. Deployed via the manifest pipeline (deploys/queued/felix-calendar-helper.yaml, Tier 2+3) which provisions the venv, verifies per-account credential presence (staging is a manual operator step), and runs --self-check. Precedent for the venv pattern: felix-doc-auditor-driver, felix-heartbeat-gate.",
+      "risk_tier": 3,
+      "config_files": [
+        {
+          "path": "/home/claude/kg-automation/scripts/google/calendar_helper.py",
+          "format": "python",
+          "source_in_repo": "scripts/google/calendar_helper.py",
+          "purpose": "Calendar helper CLI: create/list/update/delete + --self-check. Maps the create_calendar_event envelope to the Google event body; stamps extendedProperties.private.felix_source_key for idempotent inbox creates; suppresses attendee invitations by default (sendUpdates=none).",
+          "host": "office2",
+          "runs_on": "office2",
+          "invoked_by": [
+            "felix-admin-calendar (agent, via exec — judgment layer)",
+            "scripts/inbox/route_calendar_event.py (--create mode, inline from felix-admin-capture)"
+          ],
+          "writes_to": [
+            "Google Calendar API (events insert/update/delete)"
+          ],
+          "reads_from": [
+            "~/.config/felix/google/personal/client_secret.json",
+            "~/.config/felix/google/personal/token.json",
+            "Google Calendar API (events get/list)"
+          ],
+          "credentials": [
+            "felix-google-personal-calendar"
+          ],
+          "introduced_by": "#699"
+        },
+        {
+          "path": "/home/claude/kg-automation/scripts/google/calendar_auth.py",
+          "format": "python",
+          "source_in_repo": "scripts/google/calendar_auth.py",
+          "purpose": "Per-account OAuth load / auto-refresh / persist. Resolves credentials by --account from ~/.config/felix/google/<account>/ (FELIX_GOOGLE_DIR override for tests); validates the account-name charset to prevent path traversal; enforces 0600/0700. Fail-safe: missing/invalid token or refresh failure -> exit 3, no mutation.",
+          "host": "office2",
+          "runs_on": "office2",
+          "invoked_by": [
+            "scripts/google/calendar_helper.py"
+          ],
+          "writes_to": [
+            "~/.config/felix/google/<account>/token.json (refreshed in place, 0600)"
+          ],
+          "reads_from": [
+            "~/.config/felix/google/<account>/client_secret.json",
+            "~/.config/felix/google/<account>/token.json"
+          ],
+          "credentials": [
+            "felix-google-personal-calendar"
+          ],
+          "introduced_by": "#699"
+        }
+      ],
+      "dependencies": [
+        {
+          "target": "google-calendar-api",
+          "type": "requires",
+          "description": "External Google Calendar REST API (calendar.events scope). Reached directly via google-api-python-client with the personal-account credential (felix-google-personal-calendar) — NOT via gog. Free within Kent's usage quota."
+        }
+      ],
+      "health_check": {
+        "method": "self-check-command",
+        "note": "On-demand helper — no continuous health signal. Liveness is verified on demand via `python -m scripts.google.calendar_helper --self-check` (loads creds, refreshes token, does a bounded events().list(primary, maxResults=1)); the deploy manifest runs it as a post-flight gate. Per-invocation exit codes (0/1/2/3) are the observability surface (NFR-005)."
+      },
+      "runbook": "docs/runbooks/calendar-helper-ops.md"
     }
   ]
 }

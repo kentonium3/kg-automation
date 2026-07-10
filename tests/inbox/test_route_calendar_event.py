@@ -21,7 +21,6 @@ that matches the WP's stated test contract.
 """
 from __future__ import annotations
 
-import io
 import json
 from pathlib import Path
 
@@ -287,7 +286,8 @@ class TestBuildDelegationPayload:
         env = helper.build_delegation_payload(normalized, "/inbox/note.md")
         assert env["action"] == "create_calendar_event"
         assert env["calendar_id"] == "primary"
-        assert env["account"] == "kent@intentional.biz"
+        # D5: default account flipped to the personal credential set.
+        assert env["account"] == "personal"
         # renamed fields
         assert env["summary"] == "Tuesday trivia night"
         assert env["start_rfc3339"] == "2026-06-09T18:00:00-04:00"
@@ -344,3 +344,180 @@ class TestDelegationCLI:
         assert "action" not in result
         assert result["title"] == "Sync"
         assert result["end"] == "2026-06-12T16:00:00-04:00"
+
+
+# ---------------------------------------------------------------------------
+# Default account (D5): personal
+# ---------------------------------------------------------------------------
+
+
+def test_default_account_is_personal():
+    """The routing helper's default credential-set selector is `personal`."""
+    assert helper.DEFAULT_ACCOUNT == "personal"
+
+
+# ---------------------------------------------------------------------------
+# --create mode (D4 / #679): validate -> envelope -> helper subprocess
+#
+# The helper subprocess is MOCKED — the real calendar_helper needs the google
+# client libraries + a live token, which never run under CI.
+# ---------------------------------------------------------------------------
+
+
+import subprocess  # noqa: E402
+
+
+def _fake_completed(returncode: int, stdout: str = "", stderr: str = ""):
+    """Build a subprocess.CompletedProcess stand-in for the mocked helper."""
+    return subprocess.CompletedProcess(
+        args=["calendar_helper"], returncode=returncode, stdout=stdout, stderr=stderr
+    )
+
+
+class TestCreateMode:
+    def test_created_emits_status_created(self, tmp_path, capsys, monkeypatch):
+        """A complete payload -> helper success -> {status: created, ...}."""
+        captured: dict = {}
+
+        def fake_invoke(envelope, source_inbox_path, account):
+            captured["envelope"] = envelope
+            captured["source_inbox_path"] = source_inbox_path
+            captured["account"] = account
+            # The helper prints a JSON line then a SUMMARY line.
+            stdout = (
+                '{"status": "created", "idempotent": false, '
+                '"event_id": "evt_abc123", "html_link": "https://cal/evt_abc123"}\n'
+                "SUMMARY: op=create status=created event_id=evt_abc123\n"
+            )
+            return _fake_completed(0, stdout=stdout)
+
+        monkeypatch.setattr(helper, "_invoke_calendar_helper", fake_invoke)
+
+        pf = _write_payload(tmp_path, {"title": "Sync", "start": "2026-06-12T15:00:00-04:00"})
+        code, out, err = _run(
+            ["--payload-file", str(pf), "--create", "--source-path", "/inbox/n.md"],
+            capsys,
+        )
+
+        assert code == 0, err
+        result = json.loads(out)
+        assert result["status"] == "created"
+        assert result["event_id"] == "evt_abc123"
+        assert result["html_link"] == "https://cal/evt_abc123"
+        # The envelope handed to the helper carries account=personal (D5).
+        assert captured["envelope"]["account"] == "personal"
+        assert captured["envelope"]["action"] == "create_calendar_event"
+        assert captured["account"] == "personal"
+        assert captured["source_inbox_path"] == "/inbox/n.md"
+
+    def test_needs_clarification_when_missing_fields(self, tmp_path, capsys, monkeypatch):
+        """An invalid payload -> needs_clarification; the helper is NOT called."""
+        called = {"invoked": False}
+
+        def fake_invoke(envelope, source_inbox_path, account):  # pragma: no cover
+            called["invoked"] = True
+            return _fake_completed(0)
+
+        monkeypatch.setattr(helper, "_invoke_calendar_helper", fake_invoke)
+
+        # Missing `start`.
+        pf = _write_payload(tmp_path, {"title": "Sync"})
+        code, out, err = _run(
+            ["--payload-file", str(pf), "--create", "--source-path", "/inbox/n.md"],
+            capsys,
+        )
+
+        assert code == 0, err
+        result = json.loads(out)
+        assert result["status"] == "needs_clarification"
+        assert "start" in result["missing"]
+        assert called["invoked"] is False
+
+    def test_error_surfaced_verbatim_on_helper_failure(self, tmp_path, capsys, monkeypatch):
+        """Helper exit 3 (auth) -> {status: error, ...}; error surfaced, never faked."""
+
+        def fake_invoke(envelope, source_inbox_path, account):
+            return _fake_completed(
+                3,
+                stdout="SUMMARY: op=create status=auth_failed account=personal\n",
+                stderr="ERROR: auth_failed invalid_grant\n",
+            )
+
+        monkeypatch.setattr(helper, "_invoke_calendar_helper", fake_invoke)
+
+        pf = _write_payload(tmp_path, {"title": "Sync", "start": "2026-06-12T15:00:00-04:00"})
+        code, out, err = _run(
+            ["--payload-file", str(pf), "--create", "--source-path", "/inbox/n.md"],
+            capsys,
+        )
+
+        assert code == 0, err
+        result = json.loads(out)
+        assert result["status"] == "error"
+        assert result["exit_code"] == 3
+        assert "auth_failed invalid_grant" in result["error"]
+        # Must NOT fabricate an event_id / created status.
+        assert "event_id" not in result
+
+    def test_create_requires_source_path(self, tmp_path, capsys):
+        pf = _write_payload(tmp_path, {"title": "Sync", "start": "2026-06-12T15:00:00-04:00"})
+        code, out, err = _run(["--payload-file", str(pf), "--create"], capsys)
+        assert code == 1
+        assert "missing_source_path" in err
+        assert out == ""
+
+    def test_create_and_delegation_mutually_exclusive(self, tmp_path, capsys):
+        pf = _write_payload(tmp_path, {"title": "Sync", "start": "2026-06-12T15:00:00-04:00"})
+        code, out, err = _run(
+            [
+                "--payload-file", str(pf),
+                "--create", "--as-delegation-payload",
+                "--source-path", "/inbox/n.md",
+            ],
+            capsys,
+        )
+        assert code == 1
+        assert "mutually_exclusive" in err
+
+    def test_create_non_object_payload_needs_clarification(self, tmp_path, capsys, monkeypatch):
+        """A top-level non-object under --create is a needs_clarification result."""
+
+        def fake_invoke(envelope, source_inbox_path, account):  # pragma: no cover
+            raise AssertionError("helper must not be called for a non-object payload")
+
+        monkeypatch.setattr(helper, "_invoke_calendar_helper", fake_invoke)
+
+        pf = _write_payload(tmp_path, ["not", "a", "dict"], name="list.json")
+        code, out, err = _run(
+            ["--payload-file", str(pf), "--create", "--source-path", "/inbox/n.md"],
+            capsys,
+        )
+        assert code == 0, err
+        result = json.loads(out)
+        assert result["status"] == "needs_clarification"
+        assert "payload_not_object" in result["missing"]
+
+    def test_create_success_uses_source_path_as_idempotency_key(self, tmp_path, monkeypatch):
+        """The real _invoke passes source_inbox_path as --idempotency-key."""
+        recorded: dict = {}
+
+        def fake_run(cmd, **kwargs):
+            recorded["cmd"] = cmd
+            return _fake_completed(
+                0,
+                stdout='{"status": "created", "event_id": "e1", "html_link": "h1"}\n'
+                "SUMMARY: op=create status=created\n",
+            )
+
+        monkeypatch.setattr(helper.subprocess, "run", fake_run)
+
+        env = {"action": "create_calendar_event", "account": "personal"}
+        proc = helper._invoke_calendar_helper(env, "/inbox/n.md", "personal")
+        assert proc.returncode == 0
+        cmd = recorded["cmd"]
+        assert "--idempotency-key" in cmd
+        assert cmd[cmd.index("--idempotency-key") + 1] == "/inbox/n.md"
+        assert "--account" in cmd
+        assert cmd[cmd.index("--account") + 1] == "personal"
+        assert "-m" in cmd
+        assert helper.CALENDAR_HELPER_MODULE in cmd
