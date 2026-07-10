@@ -42,11 +42,11 @@ Tests are **required** (DIRECTIVE_034 test-first; SC-005 fail-safe must be prove
 - **Priority**: P1 (MVP — this is the direct #683 doctrine fix). **Independent test**: fleet-guard test asserts doctrine present in all 7 agents, main-block present, all AGENTS.md within budget.
 - **Requirements**: FR-001, FR-002, FR-003. **Dependencies**: none. **Est. prompt**: ~230 lines.
 - Subtasks:
-  - [ ] T001 Draft canonical doctrine block (WP01)
-  - [ ] T002 Apply to 7 fleet AGENTS.md + .tmpl (WP01)
-  - [ ] T003 main no-unrequested-infra block (WP01)
-  - [ ] T004 Doctrine pointer to assertion helper (WP01)
-  - [ ] T005 Fleet-guard doctrine test (WP01)
+  - [x] T001 Draft canonical doctrine block (WP01)
+  - [x] T002 Apply to 7 fleet AGENTS.md + .tmpl (WP01)
+  - [x] T003 main no-unrequested-infra block (WP01)
+  - [x] T004 Doctrine pointer to assertion helper (WP01)
+  - [x] T005 Fleet-guard doctrine test (WP01)
 
 ### WP02 — Cron-drift detector + approved-cron baseline
 
@@ -54,11 +54,11 @@ Tests are **required** (DIRECTIVE_034 test-first; SC-005 fail-safe must be prove
 - **Priority**: P1. **Independent test**: unit tests for present/missing/schedule-mismatch/enabled-mismatch/owner-mismatch against mocked `openclaw cron list --json`.
 - **Requirements**: FR-003, FR-004, FR-005, FR-006. **Dependencies**: none. **Est. prompt**: ~260 lines.
 - Subtasks:
-  - [ ] T006 approved-crons.json baseline + schema (WP02) [P]
-  - [ ] T007 cron_baseline.py loader (WP02)
-  - [ ] T008 cron_drift_detector.py pure diff (WP02)
-  - [ ] T009 live-cron enumeration wrapper (WP02)
-  - [ ] T010 unit tests (WP02)
+  - [x] T006 approved-crons.json baseline + schema (WP02) [P]
+  - [x] T007 cron_baseline.py loader (WP02)
+  - [x] T008 cron_drift_detector.py pure diff (WP02)
+  - [x] T009 live-cron enumeration wrapper (WP02)
+  - [x] T010 unit tests (WP02)
 
 ### WP03 — Completion-assertion ledger + verifier + Vikunja auto-emit
 
@@ -66,10 +66,10 @@ Tests are **required** (DIRECTIVE_034 test-first; SC-005 fail-safe must be prove
 - **Priority**: P1. **Independent test**: unit tests for record roundtrip, multi-artifact verify, missing-artifact finding, unverifiable-kind, fail-safe write.
 - **Requirements**: FR-001, FR-004, FR-005, FR-006. **Dependencies**: none. **Est. prompt**: ~250 lines.
 - Subtasks:
-  - [ ] T011 completion_assertion.py record + CLI (WP03) [P]
-  - [ ] T012 assertion_verifier.py per-artifact (WP03)
-  - [ ] T013 Vikunja create_task.py auto-emit hook (WP03)
-  - [ ] T014 unit tests (WP03)
+  - [x] T011 completion_assertion.py record + CLI (WP03) [P]
+  - [x] T012 assertion_verifier.py per-artifact (WP03)
+  - [x] T013 Vikunja create_task.py auto-emit hook (WP03)
+  - [x] T014 unit tests (WP03)
 
 ### WP04 — Scan runner, alert render, timer & deploy
 
