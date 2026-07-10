@@ -17,7 +17,8 @@ subtasks:
 - T010
 - T011
 - T012
-agent: claude
+agent: "claude:opus:reviewer-renata:reviewer"
+shell_pid: "22532"
 history:
 - at: '2026-07-10T11:30:00Z'
   actor: spec-kitty agent mission tasks
@@ -115,3 +116,10 @@ Base/merge = `feat/unified-alert-bus`; execution worktree per `lanes.json`. This
 Confirm the stderr actually reaches `Alert.details` (trace `_tick.py` → notify → emit); verify the bool
 return contract is intact (grep `last_alert_ts`); ensure no curl remnants; check that removing the old
 topic-env params didn't break `health.record()` callers.
+
+## Activity Log
+
+- 2026-07-10T12:22:35Z – claude:sonnet:python-pedro:implementer – shell_pid=4043 – Assigned agent via action command
+- 2026-07-10T12:38:29Z – claude:sonnet:python-pedro:implementer – shell_pid=4043 – Ready: felix-deployer notify/health/rebaseline migrated to felix-alert emit() (SC-006, no curl/subprocess code in notify.py or health.py); #699 fix threads apply result stderr_excerpt/argv/returncode/manifest_path into Alert.details (regression test asserts cause reaches rendered body); bool contract for last_alert_ts preserved. 514/514 owned tests pass; diff-scoped ruff exit 0.
+- 2026-07-10T12:39:16Z – claude:opus:reviewer-renata:reviewer – shell_pid=22532 – Started review via action command
+- 2026-07-10T12:44:35Z – user – shell_pid=22532 – Review passed: notify.py + health.py contain zero curl/ntfy/subprocess code — delivery via emit() only (SC-006 verified by grep + test_notify_has_no_curl_or_subprocess). SC-002 core fix confirmed: _tick.py:~622 threads apply result's real error context (stderr_excerpt/stdout_excerpt/argv/failed_command/returncode/manifest_path/error_code) into Alert.details; #699 regression test asserts the distinctive stderr string reaches BOTH alert.details AND the real render_body() output — proved NON-synthetic (breaking the threading makes it fail). Signatures/return contracts preserved: failure/rebaseline paths return LibResult, health path returns bool (result.ok) so health.record() stamps last_alert_ts for both felix-deployer and agent-prompt-sync (verified end-to-end). Redaction judgment: _TOKEN_RE can redact very long unbroken path runs to [REDACTED], but realistic deploy-failure stderr (Permission denied, not executable, No such file, exit 126, No module named X) always preserves the diagnostic CAUSE plus the manifest name (title) and returncode — over-redaction degrades the path, never the cause, so SC-002 intent holds; consistent with the documented better-to-over-redact-than-leak invariant. Scope clean (7 owned files only). 514/514 tests pass. Anti-pattern checklist 1-8 all PASS/N-A.

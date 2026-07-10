@@ -15,7 +15,8 @@ subtasks:
 - T016
 - T017
 - T018
-agent: claude
+agent: "claude:opus:reviewer-renata:reviewer"
+shell_pid: "8111"
 history:
 - at: '2026-07-10T11:30:00Z'
   actor: spec-kitty agent mission tasks
@@ -93,3 +94,10 @@ Base/merge = `feat/unified-alert-bus`; worktree per `lanes.json`. Depends on **W
 
 Confirm the co-emit is strictly additive (WhatsApp + GitHub untouched); confirm audit's non-fatal
 guarantee (emit failure cannot fail the cron); confirm no hardcoded topic remains anywhere in audit.sh.
+
+## Activity Log
+
+- 2026-07-10T12:23:21Z – claude:sonnet:python-pedro:implementer – shell_pid=4043 – Assigned agent via action command
+- 2026-07-10T12:28:51Z – claude:sonnet:python-pedro:implementer – shell_pid=4043 – Ready: audit.sh migrated to alert_bus.sh shim (no hardcoded topic/raw curl; severity warn default / error when count>3; emit guarded || true, non-fatal). Enforcement notify() adds additive felix-alert co-emit (WhatsApp+GitHub untouched, wrapped best-effort). 26 tests pass; ruff exit 0; bash -n OK.
+- 2026-07-10T12:29:22Z – claude:opus:reviewer-renata:reviewer – shell_pid=8111 – Started review via action command
+- 2026-07-10T12:31:50Z – user – shell_pid=8111 – Review passed: audit.sh migrated to alert_bus.sh shim (hardcoded topic felix-office2-k9x4m2 and raw curl/ntfy block removed, SC-006), emits via shim, non-fatal (no set -e, guarded || true, external process), severity warn/error>3 documented. Enforcement _co_emit_drift is strictly additive — WhatsApp+GitHub calls unchanged in notify(), co-emit defensively try/except-wrapped so bus bug cannot break enforcement (SC-007). Unused DriftResult import removed (harmless cleanup, no longer referenced). 26 tests pass (additive/severity/failure-isolation/dry-run/audit-static/non-fatal), bash -n clean. Scope: WP04 commit touches only 5 owned files.

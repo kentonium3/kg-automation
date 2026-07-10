@@ -14,7 +14,8 @@ subtasks:
 - T013
 - T014
 - T015
-agent: claude
+agent: "claude:opus:reviewer-renata:reviewer"
+shell_pid: "7256"
 history:
 - at: '2026-07-10T11:30:00Z'
   actor: spec-kitty agent mission tasks
@@ -84,3 +85,10 @@ Base/merge = `feat/unified-alert-bus`; worktree per `lanes.json`. Depends on **W
 
 Verify the adapter mapping matches the contract exactly and that the signal-file shape is byte-compatible
 with the pre-migration output; confirm no live ntfy in tests.
+
+## Activity Log
+
+- 2026-07-10T12:22:58Z – claude:sonnet:python-pedro:implementer – shell_pid=4043 – Assigned agent via action command
+- 2026-07-10T12:27:38Z – claude:sonnet:python-pedro:implementer – shell_pid=4043 – Ready: felix-health-check migrated to felix-alert emit() with AlertResult->{attempted,sent,detail} adapter (attempted=topic_configured, sent=ok, detail=reason or 'delivered'); no curl/ntfy code remains; last-run.json shape byte-preserved. Tests: 11 passed (pytest tests/office2/felix_health_check). Lint: ruff exit 0.
+- 2026-07-10T12:28:11Z – claude:opus:reviewer-renata:reviewer – shell_pid=7256 – Started review via action command
+- 2026-07-10T12:30:10Z – user – shell_pid=7256 – Review passed: run.py fully migrated to felix-alert emit() (no residual curl/ntfy code, only doc comments — SC-006); AlertResult->{attempted,sent,detail} adapter matches contract §5 exactly (attempted=topic_configured, sent=ok, detail=reason or 'delivered'); last-run.json shape byte-compatible incl. key order + healthy sentinel 'no alert (healthy)' (NFR-004); tests exercise real production adapter (_delivery_record/send_alert) not synthetic fixtures, assert exact key set/order/types across missing-topic/failure/success; source=felix-health-check/run, Severity.ERROR, output folded into details; 11/11 pytest green; scope clean (only 4 owned files in WP commit).

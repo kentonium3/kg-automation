@@ -19,17 +19,17 @@ office2 via the manifest pipeline. Tier 3; rebaseline on audited surfaces.
 | T005 | `__main__.py` — CLI `emit`/`self-test` (+`--strict`) | WP01 | | [D] |
 | T006 | `alert_bus.sh` — shim: source env-file, checkout-cd, best-effort exit 0 | WP01 | | [D] |
 | T007 | Unit tests (model/render/delivery/cli) ≥90% coverage | WP01 | | [D] |
-| T008 | Migrate `notify.py` (failure/rebaseline/health) → `emit()` | WP02 | [P] |
-| T009 | Thread real stderr (`result.details`) through `_tick.py` → Alert.details (SC-002) | WP02 | |
-| T010 | Migrate `health.py` `dispatch_health_notification` → `emit()`, preserve bool | WP02 | |
-| T011 | Update `deploy_agent_prompts.py` consumer; preserve `last_alert_ts` stamp | WP02 | |
-| T012 | Update felix-deployer + agent-prompt-sync notifier tests (+#699 regression) | WP02 | |
-| T013 | Migrate `felix_health_check/run.py` → `emit()` | WP03 | [P] |
-| T014 | `AlertResult → {attempted,sent,detail}` adapter; preserve `last-run.json` | WP03 | |
-| T015 | felix-health-check unit tests (missing-topic/failure/success) | WP03 | |
-| T016 | Migrate `audit.sh` → `alert_bus.sh` (drop hardcoded topic + raw curl) | WP04 | [P] |
-| T017 | Add `felix-alert` co-emit to enforcement `notification.py` (keep WhatsApp+GitHub) | WP04 | |
-| T018 | Enforcement + audit behavior-preservation tests | WP04 | |
+| T008 | Migrate `notify.py` (failure/rebaseline/health) → `emit()` | WP02 | [D] |
+| T009 | Thread real stderr (`result.details`) through `_tick.py` → Alert.details (SC-002) | WP02 | | [D] |
+| T010 | Migrate `health.py` `dispatch_health_notification` → `emit()`, preserve bool | WP02 | | [D] |
+| T011 | Update `deploy_agent_prompts.py` consumer; preserve `last_alert_ts` stamp | WP02 | | [D] |
+| T012 | Update felix-deployer + agent-prompt-sync notifier tests (+#699 regression) | WP02 | | [D] |
+| T013 | Migrate `felix_health_check/run.py` → `emit()` | WP03 | [D] |
+| T014 | `AlertResult → {attempted,sent,detail}` adapter; preserve `last-run.json` | WP03 | | [D] |
+| T015 | felix-health-check unit tests (missing-topic/failure/success) | WP03 | | [D] |
+| T016 | Migrate `audit.sh` → `alert_bus.sh` (drop hardcoded topic + raw curl) | WP04 | [D] |
+| T017 | Add `felix-alert` co-emit to enforcement `notification.py` (keep WhatsApp+GitHub) | WP04 | | [D] |
+| T018 | Enforcement + audit behavior-preservation tests | WP04 | | [D] |
 | T019 | `deploys/queued/unified-alert-bus.yaml` manifest | WP05 | |
 | T020 | New `FELIX_ALERT_NTFY_TOPIC` credential + `credential-manifest.json` + env.sample | WP05 | |
 | T021 | Wire `EnvironmentFile` into 3 systemd units + `felix-health-check.sh` provisioning | WP05 | |
