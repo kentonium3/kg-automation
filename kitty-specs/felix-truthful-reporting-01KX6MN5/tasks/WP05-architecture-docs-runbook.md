@@ -19,8 +19,9 @@ subtasks:
 - T024
 phase: Phase 3 - Docs
 assignee: ''
-agent: claude
+agent: "claude:sonnet:curator-carla:implementer"
 agent_profile: "curator-carla"
+shell_pid: "16480"
 history:
 - at: '2026-07-10T18:45:00Z'
   actor: system
@@ -255,3 +256,7 @@ No code tests in this WP. Validate the docs:
   **disable/rollback** — the two ops procedures most likely to be needed.
 - The SC-001..005 checklist is present and cross-references `quickstart.md`.
 - INDEX/portal links resolve; the new service and runbook are discoverable.
+
+## Activity Log
+
+- 2026-07-10T20:04:28Z – claude:sonnet:curator-carla:implementer – shell_pid=16480 – Assigned agent via action command
