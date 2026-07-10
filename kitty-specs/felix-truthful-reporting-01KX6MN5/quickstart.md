@@ -37,15 +37,20 @@ python3 -m scripts.trust.run_trust_scan --dry-run --json
    on its next tick and runs the entrypoint, which:
    - installs `felix-trust-scan.timer` + `.service` (user units under `claude`),
    - `systemctl --user daemon-reload` + `enable --now`,
-   - runs `run_trust_scan --dry-run --json` as a preflight self-test,
+   - runs `run_trust_scan --preflight --json` as a self-test (preflight mode may
+     exit 2 on a hard fault — see the exit-code contract),
+   - **triggers `systemctl --user start agent-prompt-sync.service` and verifies
+     the deployed `AGENTS.md` content** (Codex finding 10) — do not wait for the
+     5-min prompt-sync timer before the regression test,
    - reports via the #701 bus.
-3. **Rebaseline** (audited surface): the AGENTS.md prompt changes touch an
-   audited surface. On the pipeline happy path felix-deployer rebaselines
-   automatically after the committed prompt change is confirmed; verify the
-   `rebaseline:` stamp on the applied YAML record. If out-of-band, reset
-   baselines manually per `docs/runbooks/security-baseline-ops.md`.
-4. The merge commit records `Rebaseline: completed at <ts>` (or
-   `Rebaseline: not required — <reason>` for the non-prompt WPs).
+3. **Rebaseline: NOT required** (Codex finding 9). The AGENTS.md prompt edits are
+   a *listed but unmonitored* audited surface — per gap #621
+   (`audited-surfaces.json`), `audit.sh` does not hash deployed `AGENTS.md`, so
+   no baseline is written and no rebaseline is required or possible. The detector
+   code (`scripts/trust/`, `scripts/deploy/`) is not a hashed baseline either.
+4. The merge commit records `Rebaseline: not required — agent prompts are an
+   unmonitored audited surface (gap #621); detector code is not a hashed
+   baseline`.
 
 ## Verify live (SC-001..005)
 
@@ -60,9 +65,10 @@ python3 -m scripts.trust.run_trust_scan --dry-run --json
   the baseline) and a bogus assertion (nonexistent Vikunja id); run
   `run_trust_scan --once`; confirm two alerts hit Kent's phone within a cycle;
   then remove the throwaway cron.
-- **SC-005** — point the baseline path at an unreadable file; run
-  `run_trust_scan --json`; confirm `ok:false`, exit 2, **no** alert, agents
-  unaffected.
+- **SC-005** — point the baseline path at an unreadable file. In **preflight**
+  mode (`run_trust_scan --preflight --json`) confirm `ok:false` + exit 2; in
+  **timer** mode (`run_trust_scan --json`) confirm `ok:false` + **exit 0** (no
+  systemd failure loop). Both: **no** alert emitted, agents unaffected.
 
 ## Rollback
 

@@ -51,14 +51,35 @@ approved set," which is precisely the signal we want.
 
 ## D2 — How do we detect a fabricated *completion* claim?
 
-**Decision**: A **completion-assertion protocol**. When an agent reports a
-delegated create/do request as complete, doctrine requires it to record a
-structured **completion-assertion** naming the concrete artifact it claims to
-have produced (artifact kind + identifier + the request it answers). A
-deterministic **verifier** reads recent assertions and confirms each referenced
-artifact actually exists in the owning system (e.g., the Vikunja task id is
-present via the Vikunja API). An assertion whose artifact cannot be
+**Decision (revised after post-plan Codex finding 2)**: A completion-assertion
+**action ledger**, populated **deterministically by the artifact-creation
+helpers** — not by free-form agent compliance. When a supported artifact is
+created (starting with the Vikunja task helper `scripts/vikunja/create_task.py`,
+#686), the helper auto-emits a structured **completion-assertion** on success
+(artifact kind + id list, grounded in the creation result). A deterministic
+**verifier** reads recent assertions and confirms each referenced artifact
+actually exists in the owning system. An assertion whose artifact cannot be
 corroborated → alert via the #701 bus.
+
+**Why auto-emit, not agent-emitted**: the original design had the agent choose
+to emit the assertion — but the same agent that fabricates a completion would
+simply omit the record (Codex: "audit decoration"). Anchoring emission in the
+creation helper makes the ledger a reliable ground-truth record of what was
+actually created, independent of the agent's narration. Doctrine still asks an
+agent to record a manual assertion when it bypasses a wrapped helper, but the
+success path no longer depends on compliance.
+
+**What this detects vs. does not (honest framing — Codex finding 1)**:
+- **Cron drift (D1)** is the load-bearing, agent-independent "reported-vs-actual"
+  detector and needs no cooperation.
+- The assertion verifier catches an assertion referencing a **missing** artifact
+  (helper-bug or a narrow fabricate-and-log pattern) and provides the auditable
+  FR-004 ledger.
+- **Blind spot (explicit non-goal):** a pure verbal completion lie that creates
+  no artifact and emits no assertion ("today's run is logged as complete") is
+  **not** detectable in v1 — its only control is doctrine (FR-001). Detecting it
+  needs an outbound-message/request log, which does not exist today. SC-003 is
+  scoped to the two detectable classes accordingly.
 
 **Rationale**:
 - Grounds the claim against **independent system state** (the artifact's owning
@@ -70,19 +91,6 @@ corroborated → alert via the #701 bus.
   (`/home/.../second-brain/agents/logs/<agent>/<date>.jsonl` via
   `log_action.py`); the assertion record fits the same shape. Alerts reuse the
   #701 bus + are durably captured by the #706 ledger.
-
-**Honest limitation (primary design risk — flagged for post-plan Codex)**:
-This detects fabrications for **artifact-producing** delegated requests where
-the agent emits an assertion. A pure verbal fabrication with *no* artifact and
-*no* assertion (e.g., "today's run is logged as complete" when nothing was even
-claimed to be created) is only partially covered by detection — its primary
-control is **doctrine** (FR-001). We mitigate by: (a) doctrine requiring an
-assertion for any delegated create/do completion, so the *absence* of a
-grounding assertion for such a request is itself a doctrine violation; and
-(b) the cron-drift detector (D1) catching the infrastructure side
-independently. We explicitly do **not** claim to detect every conceivable
-verbal lie — that is the deferred full-F1 subsystem. This bounded design is the
-operator-chosen scope.
 
 **Alternatives considered**:
 - *LLM-judge that re-reads the conversation and rules on truthfulness.*
@@ -114,9 +122,14 @@ source for the shared doctrine text to avoid drift across agents.
 - AGENTS.md effective prompt budget (~12k rawChars; ~26% inflation noted in
   prior deploy gotchas). Doctrine additions must be terse; run fleet-guard
   prompt tests after editing (NFR-003).
-- Prompt changes are an **audited surface** → rebaseline obligation on deploy
-  (C-004). Prompts deploy via the agent-prompt-sync path; the detector deploys
-  via a `deploys/queued/` manifest + systemd timer.
+- Prompt changes are a **listed audited surface but UNMONITORED** — per gap
+  #621 (recorded in `audited-surfaces.json`, verified 2026-07-10), `audit.sh`
+  does not hash deployed `AGENTS.md`, so **no baseline is written and no
+  rebaseline is required or possible** for prompt edits (Codex finding 9). The
+  detector code (`scripts/trust/`, `scripts/deploy/`) is likewise not a hashed
+  baseline. Net: this mission is **Rebaseline: not required**. Prompts deploy via
+  the agent-prompt-sync path; the detector deploys via a `deploys/queued/`
+  manifest + systemd timer.
 
 ---
 
@@ -148,14 +161,30 @@ small.
 | D3 | Extend Output-discipline pattern fleet-wide; no-unrequested-infra block in main | FR-001, FR-002, FR-003 (prevention) |
 | D4 | Helper + systemd timer, deploy via manifest, fail-safe, reuse #701/#706 | NFR-001, NFR-002, C-002, C-004 |
 
-## Key risks carried into design
+## Key risks carried into design (post-Codex status)
 
-1. **Completion-fabrication coverage is partial** (D2 limitation) — doctrine is
-   the primary control; detection covers the artifact-producing + infra classes.
-   Post-plan Codex must scrutinize whether this bounded coverage is honestly
-   scoped and whether the assertion protocol's compliance dependency is
-   acceptable.
-2. **Baseline maintenance burden** — the approved-cron baseline must be updated
-   when legitimate crons change, or the detector produces false-positive alerts.
-   Design must make baseline updates a cheap, obvious step.
-3. **Prompt budget** — fleet-wide doctrine must fit within AGENTS.md budget.
+1. **Completion-fabrication coverage is partial — now honestly scoped.**
+   Detection covers cron drift (agent-independent) + missing-artifact
+   assertions; the pure-verbal-lie residual is doctrine-only and declared an
+   explicit blind spot (spec FR-006, SC-003). Auto-emit from creation helpers
+   removes the compliance dependency on the success path. **Resolved** per Codex
+   findings 1–3.
+2. **Baseline maintenance race/false-positives** — a legitimate cron created
+   before its baseline lands on office2 would transiently alert. **Mitigation
+   (Codex finding 5):** the approved-cron baseline must deploy before or with the
+   cron; finding fingerprints include the baseline version/hash; a baseline
+   change clears/re-evaluates seen-findings. See data-model State & idempotency.
+3. **Alert cadence/resolution (Codex finding 6)** — seen-findings must not hide
+   persistent drift forever: first-seen alerts immediately, re-alerts every 24h
+   while unresolved, and a low-priority resolved event fires when drift clears.
+4. **Cron identity semantics (Codex finding 4)** — match key `(name, agent_id)`,
+   diff on `schedule.expr` + `tz` + `enabled`; finding kinds cover present /
+   missing / schedule-mismatch / enabled-mismatch. See data-model.
+5. **Fail-safe exit-code discipline (Codex finding 8)** — timer mode always
+   exits 0 (`ok:false` in JSON on fault) to avoid systemd failure loops;
+   explicit preflight/CLI mode may exit 2. Deploy self-test uses preflight mode.
+6. **Deploy prompt-sync race (Codex finding 10)** — the deploy entrypoint must
+   trigger `agent-prompt-sync.service` and verify deployed prompt content before
+   the regression DM test, rather than waiting for the 5-min timer.
+7. **Prompt budget** — fleet-wide doctrine must fit within AGENTS.md budget
+   (~12k rawChars); run fleet-guard tests after editing.

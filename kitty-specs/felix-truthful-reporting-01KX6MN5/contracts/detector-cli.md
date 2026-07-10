@@ -48,10 +48,15 @@ python3 -m scripts.trust.run_trust_scan [--dry-run] [--once] [--json]
   ```json
   {"ok": true, "drift_findings": 0, "assertion_findings": 0, "alerts_emitted": 0, "errors": []}
   ```
-- **Exit codes**: `0` = scan completed (findings may exist and may have alerted;
-  this is normal operation, not a failure); `2` = the scan itself could not run
-  (e.g., baseline file unreadable) — fail-safe, no partial alerts. Never a
-  non-zero exit merely because drift was found (drift is expected signal).
+- **Exit codes (two modes — Codex finding 8):**
+  - *Timer mode* (default, systemd target): **always exit 0**; a scan fault is
+    reported via `ok:false` + `errors[]` (avoids putting the systemd unit into a
+    failed/restart loop).
+  - *Preflight/explicit mode* (`--once`, deploy self-test, manual): **may exit 2**
+    when the scan itself could not run (e.g., baseline unreadable) — hard signal
+    for the operator/entrypoint. Select with `--preflight` (or `--once`).
+  - **Never** a non-zero exit merely because drift was *found* (drift is expected
+    signal), in either mode.
 - Fail-safe: an exception in one sub-scan is caught, recorded in `errors[]`, and
   does not abort the other sub-scan.
 
@@ -62,36 +67,55 @@ detect_cron_drift(live_jobs: list[dict], baseline: list[ApprovedCron]) -> list[C
 ```
 
 Pure function (no I/O): given parsed live jobs and the loaded baseline, returns
-findings. Matching key = `name` (+ `agent_id` when present). This is the unit-
-testable core (deterministic; no subprocess).
+findings. **Match key = `(name, agent_id)`** (an approved name under a different
+agent is `unapproved_present` — the owner-mismatch/incident case). For a matched
+pair, diff `schedule.expr`, `schedule.tz`, `enabled` → `schedule_mismatch` /
+`enabled_mismatch`. Baseline entry with no live match → `approved_missing`. See
+data-model.md finding kinds. This is the unit-testable core (deterministic; no
+subprocess) — cover present/missing/schedule-mismatch/enabled-mismatch/
+owner-mismatch cases.
 
-## C4 — `completion_assertion` record + helper
+## C4 — `completion_assertion` record + helper (auto-emit)
 
-Agent-facing helper to emit a completion-assertion:
+Primary path (Codex finding 2): the **artifact-creation helper auto-emits** on
+success. `scripts/vikunja/create_task.py` calls the record API after a
+successful create:
+
+```python
+from scripts.trust.completion_assertion import record_assertion
+record_assertion(agent="main", artifact_kind="vikunja_task",
+                 artifact_ids=["91","92","93","94","95","96","97"],
+                 claim="Created 7 Vikunja reminder tasks", request_ref=None)
+```
+
+A thin CLI exists for the manual/bypass path:
 
 ```
 python3 -m scripts.trust.completion_assertion \
-  --agent main \
-  --request "create daily reminder todo for the refresh test" \
-  --artifact-kind vikunja_task \
-  --artifact-id 91 \
-  --claim "Created Vikunja reminder task #91"
+  --agent main --artifact-kind vikunja_task \
+  --artifact-id 91 --artifact-id 92 \
+  --claim "Created Vikunja reminder tasks #91,#92"
 ```
 
-- Appends one JSON line (schema = `CompletionAssertion` in data-model.md) with
-  `fcntl.LOCK_EX`. Best-effort/fail-safe: a write failure must not break the
-  calling agent's turn (returns non-zero but never raises into the agent).
-- The doctrine (IC-01) points agents at this helper for delegated create/do
-  completions.
+- Appends one JSON line (schema = `CompletionAssertion` in data-model.md, with an
+  `artifact_ids` **list** — Codex finding 7) via `fcntl.LOCK_EX`.
+- **Best-effort/fail-safe**: a ledger-write failure must **not** break the
+  caller — `record_assertion` swallows its own errors (logs, returns falsey);
+  the CLI returns non-zero but never raises into the agent. Task creation must
+  succeed even if the assertion write fails.
+- Doctrine (IC-01) asks an agent to record a manual assertion **only** when it
+  bypasses a wrapped helper.
 
 ## C5 — `assertion_verifier` (library + existence checks)
 
 ```
-verify_assertion(a: CompletionAssertion) -> AssertionFinding | None
+verify_assertion(a: CompletionAssertion) -> list[AssertionFinding]
 ```
 
-- `vikunja_task` → look up the task id via the Vikunja client; `None` if it
-  exists, `artifact_missing` finding if not.
+- Verifies **each** id in `artifact_ids` independently (Codex finding 7) and
+  returns zero or more findings (one per missing/unverifiable id).
+- `vikunja_task` → look up each task id via the Vikunja client; `artifact_missing`
+  for any id not found.
 - `calendar_event` / `vault_note` → existence check where cheaply available;
   otherwise `unverifiable_kind` (warn) rather than a false `artifact_missing`.
 - `other` → `unverifiable_kind` (warn).
@@ -106,13 +130,16 @@ free.
 
 ## Acceptance-relevant contracts (map to Success Criteria)
 
-- **SC-001/SC-002** (regression): a delegated "create a reminder todo" flow yields
-  exactly the requested Vikunja task and zero unrequested crons, and the report
-  makes no ungrounded completion claim. Verified by: (a) drift scan shows no
-  `unapproved_present`; (b) an assertion for the created task verifies present.
-- **SC-003**: inject an `unapproved_present` cron and an `artifact_missing`
-  assertion → both produce an alert within one cycle (≤15 min). Test with a
-  forced/immediate scan + mocked bus asserting `emit` was called.
+- **SC-001/SC-002** (regression): a delegated "create N reminder todos" flow
+  yields exactly the requested Vikunja tasks (the motivating case = 7) and zero
+  unrequested crons, and the report makes no ungrounded completion claim.
+  Verified by: (a) drift scan shows no `unapproved_present`; (b) the auto-emitted
+  assertion carries all N `artifact_ids` and each verifies present.
+- **SC-003** (scoped to the two detectable classes — Codex finding 1): inject an
+  `unapproved_present` cron and an `artifact_missing` assertion → both produce an
+  alert within one cycle (≤15 min). Test with a forced/immediate scan + mocked
+  bus asserting `emit` was called. **Not** covered: a pure verbal completion lie
+  with no artifact/assertion (FR-006 blind spot — doctrine-only).
 - **SC-004**: doctrine present in all 7 agent prompts; no-unrequested-infra block
   present in `main`. Verified by a prompt-content test.
 - **SC-005**: force the detector to fail (unreadable baseline / CLI error) →

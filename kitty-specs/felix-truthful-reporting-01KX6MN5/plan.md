@@ -9,12 +9,15 @@ Make Felix's status reports trustworthy and stop it creating unrequested
 infrastructure, via two complementary layers: (1) **doctrine** — a truthful-
 reporting + mechanism-fidelity block applied fleet-wide to agent prompts, plus a
 no-unrequested-infrastructure block for `main`; and (2) **bounded detection** —
-a deterministic cron-drift detector (live crons vs an approved baseline) and a
-completion-assertion verifier (structured claim records grounded against
-artifact existence), both alerting through the shipped #701 unified alert bus.
-Enforcement is doctrine + prompt only (no hard capability change); detection is
-the backstop for residual violations. See [research.md](./research.md) for the
-D1–D4 decisions.
+a **load-bearing** deterministic cron-drift detector (live crons vs an approved
+baseline — agent-independent) and a completion-assertion **action ledger**
+auto-emitted by artifact-creation helpers plus a verifier that grounds asserted
+artifacts against existence, both alerting through the shipped #701 unified alert
+bus. Enforcement is doctrine + prompt only (no hard capability change); the
+cron-drift detector is the reliable backstop for the infrastructure class. A
+pure verbal completion lie with no artifact/assertion is an acknowledged blind
+spot (doctrine-only in v1). See [research.md](./research.md) for the D1–D4
+decisions (revised after the post-plan Codex review — findings 1–10 folded).
 
 ## Technical Context
 
@@ -39,7 +42,7 @@ D1–D4 decisions.
 - **DIRECTIVE_033 Targeted Staging**: WPs stage only their own deliverables. **PASS (process).**
 - **Project — Helper/Library/Skill conventions** (`docs/design/helper-script-conventions.md`): detector is a helper+library with a CLI interface, stdout/exit-code contract, atomic state, idempotency, fail-safe. **PASS (planned).**
 - **Project — Engineering principles** (deterministic work into scripts; LLM for judgment only): detection is fully deterministic; the LLM's only role is doctrine adherence. **PASS.**
-- **Project — Change-risk taxonomy**: agent prompts = Tier 3 logic **and** an audited surface → **rebaseline obligation** on deploy (C-004); detector + manifest = Tier 3. No Tier 0/1/2 actions. **PASS with rebaseline note.**
+- **Project — Change-risk taxonomy**: agent prompts = Tier 3 logic. They are a *listed but unmonitored* audited surface — per gap #621 (verified in `audited-surfaces.json` 2026-07-10) `audit.sh` does not hash `AGENTS.md`, so **rebaseline is NOT required or possible** for the prompt edits; the detector code (`scripts/trust/`, `scripts/deploy/`) is not a hashed baseline either. Detector + manifest = Tier 3. No Tier 0/1/2 actions. **PASS — mission is `Rebaseline: not required` (Codex finding 9).**
 - **Project — Deploy discipline**: office2 deploy flows through `deploys/queued/<name>.yaml` + felix-deployer; entrypoint installs the systemd timer. **PASS (planned).**
 
 No charter violations requiring Complexity Tracking.
@@ -144,28 +147,37 @@ data-model.md.
 - **Risks**: baseline maintenance false-positives; OpenClaw CLI output shape
   drift — mock at the subprocess boundary, verify `--json` shape in a contract.
 
-### IC-04 — Completion-assertion record & verifier (grounding claims)
+### IC-04 — Completion-assertion action ledger & verifier (grounding claims)
 
-- **Purpose**: Define a structured completion-assertion (artifact kind + id +
-  answered-request); doctrine directs agents to emit one on delegated create/do
-  completions; a deterministic verifier confirms the artifact exists and alerts
-  via #701 on ungrounded assertions.
+- **Purpose**: Define a structured completion-assertion (artifact kind + id
+  **list** + optional request/conversation ref) and **auto-emit it from the
+  artifact-creation helpers on success** (starting with the Vikunja task helper
+  `scripts/vikunja/create_task.py`, #686) — not from free-form agent compliance.
+  A deterministic verifier confirms each asserted artifact exists and alerts via
+  #701 on a missing artifact. Doctrine (IC-01) additionally asks for a manual
+  assertion only when an agent bypasses a wrapped helper.
 - **Relevant requirements**: FR-004, FR-005, FR-006(a); NFR-001, NFR-002.
 - **Affected surfaces**: `scripts/trust/completion_assertion.py`,
-  `assertion_verifier.py`; a doctrine line in IC-01 pointing agents at the
-  assertion helper; Vikunja (and later calendar/vault) existence checks.
-- **Sequencing/depends-on**: doctrine (IC-01) references the assertion helper, so
-  the helper's CLI contract should be settled first.
-- **Risks**: **primary design risk** — compliance dependency + partial coverage
-  of pure verbal fabrications (research D2). Keep the verification deterministic;
-  do not add an LLM judge.
+  `assertion_verifier.py`; a small auto-emit hook in
+  `scripts/vikunja/create_task.py`; a doctrine line in IC-01; Vikunja existence
+  checks (calendar/vault → `unverifiable_kind` warn, deferred).
+- **Sequencing/depends-on**: the assertion record schema/helper settles first,
+  then the create-helper auto-emit hook and the verifier.
+- **Risks**: this ledger is **not** a verbal-lie detector (Codex findings 1–2) —
+  the cron-drift detector (IC-03) is the load-bearing guard. Keep verification
+  deterministic; **no LLM judge**. Model **multi-artifact** completions as an id
+  list with per-artifact results (Codex finding 7 — the 7-task case). Be careful
+  the auto-emit hook is fail-safe (a ledger-write failure must not break task
+  creation).
 
 ### IC-05 — Runner, deploy, rebaseline & regression verification
 
 - **Purpose**: A single scan entrypoint driving IC-03+IC-04, a systemd user
   timer (≤15 min), a `deploys/queued/` manifest + entrypoint that installs the
-  timer and runs a preflight self-test, the audited-surface rebaseline for the
-  prompt changes, and the SC-001..005 regression verification.
+  timer and runs a preflight self-test, and the SC-001..005 regression
+  verification. **Rebaseline is NOT required** (gap #621 — prompts unmonitored;
+  detector code not a hashed baseline); the merge commit records
+  `Rebaseline: not required — <reason>`.
 - **Relevant requirements**: NFR-001, NFR-002, C-002, C-004; SC-001..005.
 - **Affected surfaces**: `scripts/trust/run_trust_scan.py`,
   `scripts/deploy/deploy-truthful-reporting.py`, `deploys/queued/…yaml`,
@@ -173,5 +185,8 @@ data-model.md.
   per the standing architecture-update requirement.
 - **Sequencing/depends-on**: after IC-03 + IC-04 logic exists.
 - **Risks**: deploy gotchas (entrypoint must be `chmod +x`; must install +
-  daemon-reload units; failing queued manifest fail-loops felix-deployer). Fold
-  in the #701/#699 deploy lessons.
+  daemon-reload units; failing queued manifest fail-loops felix-deployer). The
+  entrypoint must **trigger `agent-prompt-sync.service` and verify deployed
+  prompt content before the regression DM test** (Codex finding 10 — do not wait
+  for the 5-min timer). Timer mode always exits 0; preflight/self-test mode may
+  exit 2 (Codex finding 8). Fold in the #701/#699 deploy lessons.
