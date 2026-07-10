@@ -113,3 +113,4 @@ JSON **array** at `/data/services/openclaw/state/pending-calendar-clarifications
 - 2026-07-09T23:53:42Z – claude:opus:python-pedro:implementer – shell_pid=56852 – Assigned agent via action command
 - 2026-07-10T00:02:45Z – claude:opus:python-pedro:implementer – shell_pid=56852 – Ready for review — route_calendar_event --create + judgment-only agent, no gog on calendar surface, capture runs one command (no hop), default account personal; inbox+calendar tests green.
 - 2026-07-10T00:03:52Z – claude:opus:reviewer-renata:reviewer – shell_pid=60370 – Started review via action command
+- 2026-07-10T00:07:52Z – user – shell_pid=60370 – Review passed (reviewer-renata): #679 hop gone, never-fake-created, no gog invocations, default account personal, flag-shape verified vs helper --help; 107 tests, 95% cov, ruff clean. SOUL.md+USER.md stale-gog residuals fixed by orchestrator.
