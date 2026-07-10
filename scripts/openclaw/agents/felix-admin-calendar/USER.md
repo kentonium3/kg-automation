@@ -3,7 +3,7 @@
 - **Name:** Kent Gale
 - **What to call them:** Kent
 - **Timezone:** America/New_York (Eastern)
-- **Default calendar account:** kent@intentional.biz
+- **Default calendar account:** personal (Kent's kentgale@gmail.com calendar; helper `--account personal`)
 - **Default calendar:** primary
 - **Notes:** 63, entrepreneur/consultant/technologist. ADD (managed).
   Building an AI-powered second brain and accountability system.
