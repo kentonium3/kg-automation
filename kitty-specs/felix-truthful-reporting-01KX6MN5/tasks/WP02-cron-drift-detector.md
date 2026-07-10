@@ -21,8 +21,9 @@ subtasks:
 - T010
 phase: Phase 1 - Detection
 assignee: ''
-agent: claude
+agent: "claude:sonnet:python-pedro:implementer"
 agent_profile: "python-pedro"
+shell_pid: "98580"
 history:
 - at: '2026-07-10T18:45:00Z'
   actor: system
@@ -382,3 +383,7 @@ no office2 access.
 - Confirm the baseline file is self-describing (`schema_version`), seeds all 7
   crons with unique names, and that no WP04/WP05 concerns (alerts, timer, runner,
   seen-state, inventory) leaked into this WP.
+
+## Activity Log
+
+- 2026-07-10T19:15:59Z – claude:sonnet:python-pedro:implementer – shell_pid=98580 – Assigned agent via action command
