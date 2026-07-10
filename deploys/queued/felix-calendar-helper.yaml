@@ -9,7 +9,7 @@ verification:
   - python3 -m scripts.deploy.lib.snapshot verify_restic_recent 24
   - test -f scripts/google/calendar_helper.py
   post:
-  - /data/services/openclaw/felix-calendar/venv/bin/python -m scripts.google.calendar_helper --self-check --account personal
+  - cd /home/claude/kg-automation && /data/services/openclaw/felix-calendar/venv/bin/python -m scripts.google.calendar_helper --self-check --account personal
 created_at: '2026-07-10T00:00:00Z'
 created_by: felix-calendar-helper-01KX4H3C
 notes: "Ships the deterministic Google Calendar helper to office2\n\

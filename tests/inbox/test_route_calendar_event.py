@@ -22,6 +22,7 @@ that matches the WP's stated test contract.
 from __future__ import annotations
 
 import json
+import sys
 from pathlib import Path
 
 import pytest
@@ -521,3 +522,18 @@ class TestCreateMode:
         assert cmd[cmd.index("--account") + 1] == "personal"
         assert "-m" in cmd
         assert helper.CALENDAR_HELPER_MODULE in cmd
+        # Interpreter MUST be the dedicated venv python (the only one with the
+        # google libs on office2), NOT sys.executable — regression guard for the
+        # post-merge CRITICAL: capture runs this module under system python3.
+        assert cmd[0] == helper.DEFAULT_CALENDAR_HELPER_PYTHON
+        assert cmd[0] != sys.executable
+
+    def test_calendar_helper_python_default_and_override(self, monkeypatch):
+        """The helper interpreter defaults to the office2 venv, overridable by env."""
+        monkeypatch.delenv("FELIX_CALENDAR_HELPER_PYTHON", raising=False)
+        assert (
+            helper._calendar_helper_python()
+            == "/data/services/openclaw/felix-calendar/venv/bin/python"
+        )
+        monkeypatch.setenv("FELIX_CALENDAR_HELPER_PYTHON", "/tmp/venv/bin/python")
+        assert helper._calendar_helper_python() == "/tmp/venv/bin/python"

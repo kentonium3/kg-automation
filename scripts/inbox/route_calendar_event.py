@@ -55,6 +55,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import subprocess
 import sys
 import tempfile
@@ -84,6 +85,22 @@ DEFAULT_ACCOUNT = "personal"
 # The calendar helper (WP02) invoked in --create mode. Kept as a module-level
 # constant so tests can monkeypatch the subprocess call site.
 CALENDAR_HELPER_MODULE = "scripts.google.calendar_helper"
+
+# The calendar helper's Google client libraries live ONLY in a dedicated venv on
+# office2 (system python3 has neither pip nor the google libs). The helper MUST be
+# invoked with that venv's interpreter — NOT ``sys.executable`` (capture runs this
+# module under the system python3, which would then crash on ``import
+# googleapiclient``). Overridable for local/dev via FELIX_CALENDAR_HELPER_PYTHON.
+DEFAULT_CALENDAR_HELPER_PYTHON = "/data/services/openclaw/felix-calendar/venv/bin/python"
+
+
+def _calendar_helper_python() -> str:
+    """Return the interpreter used to run the calendar helper subprocess.
+
+    Defaults to the dedicated office2 venv python (the only interpreter with the
+    google client libs); override with ``FELIX_CALENDAR_HELPER_PYTHON``.
+    """
+    return os.environ.get("FELIX_CALENDAR_HELPER_PYTHON", DEFAULT_CALENDAR_HELPER_PYTHON)
 
 
 # ---------------------------------------------------------------------------
@@ -236,7 +253,7 @@ def _invoke_calendar_helper(
             json.dump(envelope, fh)
         return subprocess.run(
             [
-                sys.executable,
+                _calendar_helper_python(),
                 "-m",
                 CALENDAR_HELPER_MODULE,
                 "create",
