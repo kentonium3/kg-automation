@@ -27,26 +27,39 @@ Guarantees:
 from __future__ import annotations
 
 from .delivery import deliver
+from .ledger import record_alert
 from .model import Alert, AlertResult, Severity
 
 
 def emit(alert: Alert) -> AlertResult:
-    """Render *alert* and deliver it to ntfy; never raises.
+    """Render *alert*, deliver it to ntfy, and record it to the local ledger; never raises.
 
     This is the sole public entry point. Rendering happens inside
     :func:`~scripts.common.alert_bus.delivery.deliver`, which catches all
     delivery failures and returns a structured :class:`AlertResult`. Any other
     unexpected error is also swallowed into a result so callers on cron/audit
     paths are never crashed by the bus.
+
+    After delivery, the alert + its delivery outcome are appended to the durable
+    local ledger (#706) as a best-effort side effect: this records the fault even
+    when ntfy delivery failed, and a ledger problem never changes the returned
+    :class:`AlertResult` or raises.
     """
     try:
-        return deliver(alert)
+        result = deliver(alert)
     except Exception as exc:  # noqa: BLE001 — fail-safe: the bus must never raise
-        return AlertResult(
+        result = AlertResult(
             ok=False,
             reason=f"BUS_ERROR:{exc.__class__.__name__}",
             topic_configured=True,
         )
+    # Best-effort durable record. record_alert() never raises; the extra guard is
+    # belt-and-suspenders so the ledger can never affect delivery semantics.
+    try:
+        record_alert(alert, result)
+    except Exception:  # noqa: BLE001 — fail-safe
+        pass
+    return result
 
 
 __all__ = ["emit", "Alert", "Severity", "AlertResult"]

@@ -39,7 +39,7 @@ mission `unified-alert-bus-01KX5TYT` (kentonium3/kg-automation#701).
 - `emit()` (via `delivery.py`) is the **only** module that performs ntfy I/O
   (FR-005).
 - Stateless: the only configuration is the canonical topic (see
-  [Topic-secret provisioning](#topic-secret-provisioning)).
+  [Topic-secret provisioning](<#topic-secret-provisioning>)).
 
 Three subsystems emit through it today (the three real ntfy emitters, migrated
 by #701):
@@ -231,6 +231,32 @@ Reason codes you may see in an `AlertResult`: `NTFY_MISSING_TOPIC` (topic
 unset/blank), `CURL_CONNECT` (couldn't resolve/connect), `CURL_HTTP` (HTTP
 error via `--fail`), `CURL_TIMEOUT`, `CURL_ERROR:<rc>` / `CURL_EXEC_ERROR:<...>`,
 `BUS_ERROR:<...>`.
+
+## Durable ledger (#706)
+
+Every `emit()` also appends a record to a durable, append-only local ledger on
+office2 — so there is a **queryable fault history** that survives ntfy being
+down and captures delivery failures too (a failed POST is still a recorded
+fault). This is the write-side; a reader/scanner and any self-correction loop
+are separate, later work (the latter gated on #683).
+
+- **Location:** `/data/services/alert-bus/ledger/<YYYY-MM-DD>.jsonl` (override
+  with `FELIX_ALERT_LEDGER_DIR`). Files older than 30 days are pruned on write.
+- **Record shape (one JSON object per line):** `ts` (UTC ISO-8601), `source`,
+  `severity`, `title`, `description`, `action`, `details` (redacted the same way
+  the sent alert is — no secrets the alert wouldn't carry), and `delivery`
+  (`ok`, `reason`, `topic_configured`).
+- **Best-effort:** a ledger write failure never changes the returned
+  `AlertResult` and never breaks `emit()` (same discipline as the ntfy POST).
+- **Query it:**
+  ```bash
+  # today's faults
+  jq -c . /data/services/alert-bus/ledger/$(date -u +%F).jsonl
+  # only failed deliveries this week
+  cat /data/services/alert-bus/ledger/*.jsonl | jq -c 'select(.delivery.ok == false)'
+  # recurring source
+  cat /data/services/alert-bus/ledger/*.jsonl | jq -r .source | sort | uniq -c | sort -rn
+  ```
 
 ## Per-runtime self-test
 
