@@ -393,7 +393,7 @@
             "vikunja_api",
             "github"
           ],
-          "purpose": "Obsidian inbox processing \u2014 classifies, routes, creates Vikunja tasks. Per mission inbox-calendar-and-aspiration-routing-01KTHHXS, the classifier vocabulary is extended to also (a) classify and route calendar events to Google Calendar via Felix main delegation, (b) classify and route aspirations to dated journal entries (08-Journal/), (c) classify and route Someday items to the Vikunja Someday project (resolved by name), and (d) maintain a pending-calendar-clarifications state file with a 24h timeout sweep.",
+          "purpose": "Obsidian inbox processing \u2014 classifies, routes, creates Vikunja tasks. Per mission inbox-calendar-and-aspiration-routing-01KTHHXS, the classifier vocabulary is extended to also (a) classify and route calendar events to Google Calendar inline via the Felix calendar helper (`route_calendar_event --create`, post-#699; was Felix main delegation pre-#699), (b) classify and route aspirations to dated journal entries (08-Journal/), (c) classify and route Someday items to the Vikunja Someday project (resolved by name), and (d) maintain a pending-calendar-clarifications state file with a 24h timeout sweep.",
           "source_in_repo": "scripts/openclaw/agents/felix-admin-capture/",
           "deployed_by": "F008",
           "autonomy_level": "assisted",

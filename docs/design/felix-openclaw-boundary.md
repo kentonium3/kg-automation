@@ -102,9 +102,13 @@ For each request class: the owning Felix agent, the one controlled path, and cur
 | **File / website / dev changes** | *no controlled path* | exec → arbitrary Bash | ❌ **UNCONTROLLED** — full exec, no sandbox, no approval |
 | **Orchestration / routing** | `main` → `sessions_send` to sub-agents | messaging/sessions tools | main also holds gog + exec (should not) |
 
-**Takeaway:** three ❌ UNCONTROLLED surfaces (calendar via ubiquitous gog, email via ubiquitous
-gog-gmail, and arbitrary exec) are the load-bearing gaps. Everything else is contained only by
-prompt convention — one truncation or misroute from falling through.
+**Takeaway** *(pre-#699 historical — see 2026-07-10 status update)*: as of the 2026-07-06 spike,
+three ❌ UNCONTROLLED surfaces (calendar via ubiquitous gog, email via ubiquitous gog-gmail, and
+arbitrary exec) were the load-bearing gaps. **Post-#699 the calendar surface is off gog** (Felix
+calendar helper), so the current uncontrolled-`gog` surfaces are **email (`gog gmail`) + drive on
+`main` only**, plus arbitrary exec fleet-wide (the §8.3 finding: exec approvals are guardrails,
+not isolation). Everything else is contained only by prompt convention — one truncation or
+misroute from falling through.
 
 ## 5. The no-silent-fallback doctrine (invariant)
 

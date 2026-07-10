@@ -452,7 +452,7 @@ Per-helper metadata mirrors `docs/design/architecture/data/service-inventory.jso
 - **Privacy boundary**: `04-Growth/_private/` is never accessed
 - **Why extracted from main**: Per mission spec, calendar work previously lived in `main/AGENTS.md` (lines 259-440 pre-mission). Delegations to `main` were blocking on the deprecated `main` alias surface, suppressing the WhatsApp reply relay. Extracting to a dedicated subagent restores the relay and gives the calendar substrate room to grow.
 - **Contract owner after extraction**: `felix-admin-calendar` (was: `main`). The calendar event creation payload and response envelope contracts (per `kitty-specs/inbox-calendar-and-aspiration-routing-01KTHHXS/contracts/capture_to_main_calendar_payload.md`) are moved 1:1 — no behavioral change.
-- **Dispatcher (unchanged)**: `felix-admin-capture` routes inbox-captured calendar events via openclaw-agent dispatch.
+- **Dispatcher (post-#699)**: `felix-admin-capture` reaches the calendar **inline** via `scripts/inbox/route_calendar_event.py --create` (direct Felix calendar helper call — no agent hop, no `gog`). *(Pre-#699 this was openclaw-agent dispatch to `felix-admin-calendar`; #699 retired the hop for complete inbox-captured events.)*
 - **Runbook**: `docs/runbooks/openclaw-agent-setup.md` (canonical agent-setup procedure — required reading before deploy/modify/register); mission-specific smoke runbook: `docs/runbooks/felix-calendar-subagent-extraction-01KTTA33-smoke.md`
 - **Mission spec**: `kitty-specs/felix-calendar-subagent-extraction-01KTTA33/spec.md` (data model + payload contracts in `data-model.md`)
 - **Authoritative JSON**: see `services[openclaw-gateway].agents.felix-admin-calendar` in `data/service-inventory.json`
