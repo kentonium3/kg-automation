@@ -159,4 +159,3 @@ were not touched (they already reflect #699).
 - 2026-07-10T03:42:16Z – claude – shell_pid=48770 – Assigned agent via action command
 - 2026-07-10T03:50:58Z – claude – shell_pid=48770 – Ready for review
 - 2026-07-10T03:52:08Z – claude – shell_pid=52694 – Started review via action command
-- 2026-07-10T03:58:08Z – user – shell_pid=52694 – Review passed; issue-matrix resolved

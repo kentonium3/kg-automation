@@ -165,4 +165,3 @@ separately-proven sandbox properties. Confirm nothing outside the boundary doc c
 - 2026-07-10T03:41:30Z – claude – shell_pid=48111 – Assigned agent via action command
 - 2026-07-10T03:50:53Z – claude – shell_pid=48111 – Ready for review
 - 2026-07-10T03:51:34Z – claude – shell_pid=52210 – Started review via action command
-- 2026-07-10T03:58:03Z – user – shell_pid=52210 – Review passed; issue-matrix resolved
