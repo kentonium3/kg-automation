@@ -20,7 +20,31 @@ import sys
 
 _REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
 _ENTRYPOINT_PATH = _REPO_ROOT / "scripts" / "deploy" / "deploy-felix-calendar-helper.py"
-_MANIFEST_PATH = _REPO_ROOT / "deploys" / "queued" / "felix-calendar-helper.yaml"
+
+
+def _resolve_manifest_path() -> pathlib.Path:
+    """Locate the felix-calendar-helper manifest.
+
+    felix-deployer relocates the manifest from ``deploys/queued/`` to
+    ``deploys/applied/<NNNN>-felix-calendar-helper.yaml`` once the deploy is
+    applied on office2, so the manifest lives in exactly one of the two
+    directories depending on deploy state. Resolve queued first (pre-deploy),
+    then the applied copy (post-deploy). Falls back to the queued path so a
+    genuine absence still yields a clear not-found error.
+    """
+    queued = _REPO_ROOT / "deploys" / "queued" / "felix-calendar-helper.yaml"
+    if queued.exists():
+        return queued
+    applied = sorted(
+        (_REPO_ROOT / "deploys" / "applied").glob("*-felix-calendar-helper.yaml")
+    )
+    if applied:
+        return applied[-1]
+    return queued
+
+
+_MANIFEST_PATH = _resolve_manifest_path()
+_MANIFEST_IS_QUEUED = _MANIFEST_PATH.parent.name == "queued"
 
 
 def _load_entrypoint():
@@ -428,18 +452,28 @@ def test_manifest_declares_expected_fields():
     assert data["tier"] == 3
     assert data["entrypoint"] == "scripts/deploy/deploy-felix-calendar-helper.py"
     assert data["audited_surface"] is True
-    # Queued manifest must NOT carry applied-only fields.
-    assert "applied_at" not in data
-    assert "apply_mode" not in data
+    # Applied-only fields: absent while queued, stamped in once felix-deployer
+    # relocates the manifest to deploys/applied/.
+    if _MANIFEST_IS_QUEUED:
+        assert "applied_at" not in data
+        assert "apply_mode" not in data
+    else:
+        assert "applied_at" in data
+        assert data.get("apply_mode") == "manifest"
     # Post-verification runs the self-check via the venv python.
     post = data["verification"]["post"]
     assert any("--self-check" in cmd and "--account personal" in cmd for cmd in post)
 
 
 def test_manifest_not_prenumbered():
-    """The queued manifest filename must not carry an applied NNNN- prefix."""
-    assert _MANIFEST_PATH.name == "felix-calendar-helper.yaml"
-    assert not _MANIFEST_PATH.name[0].isdigit()
+    """Queued manifest filename carries no applied NNNN- prefix; the applied
+    copy (post felix-deployer relocation) does."""
+    if _MANIFEST_IS_QUEUED:
+        assert _MANIFEST_PATH.name == "felix-calendar-helper.yaml"
+        assert not _MANIFEST_PATH.name[0].isdigit()
+    else:
+        assert _MANIFEST_PATH.name.endswith("-felix-calendar-helper.yaml")
+        assert _MANIFEST_PATH.name[0].isdigit()
 
 
 def test_deploy_script_is_executable():
