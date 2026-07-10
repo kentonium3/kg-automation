@@ -2,9 +2,9 @@
   "mission_slug": "f0-exec-hardening-01KX4ZCY",
   "mission_number": "",
   "mission_type": "software-dev",
-  "overall_verdict": "pending",
-  "result": "pass_with_deferred",
-  "notes": "Docs/governance mission. 10/12 criteria PASS at accept; FR-005 (file sandbox follow-up) and FR-007 (#675 disposition) are orchestrator merge-time actions that complete during merge. No openclaw.json/runtime change.",
+  "overall_verdict": "pass",
+  "result": "pass",
+  "notes": "Docs/governance mission. All 12 criteria PASS. Sandbox follow-up filed as #704. #675 close-as-rescoped recommended (operator confirms at merge). No openclaw.json/runtime change.",
   "criteria": [
     {
       "criterion_id": "FR-001",
@@ -50,11 +50,11 @@
       "criterion_id": "FR-005",
       "description": "Sandbox hard-containment follow-up issue filed + linked (3-part proof + Step 4)",
       "proof_type": "manual_verification",
-      "evidence": "Draft ready in boundary doc Appendix A (WP01). Follow-up: filed by orchestrator at mission merge; #TBD patched into \u00a78 + this row.",
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "Completes at merge (GitHub side-effect kept out of WPs)."
+      "evidence": "Sandbox hard-containment follow-up filed: kentonium3/kg-automation#704 (from boundary doc Appendix A). Requires the 3 separately-proven properties + Step 4 skills.allowBundled.",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-07-10T04:00:00+00:00",
+      "notes": "Filed at accept time by orchestrator."
     },
     {
       "criterion_id": "FR-006",
@@ -70,11 +70,11 @@
       "criterion_id": "FR-007",
       "description": "#675 tracker disposition explicit (recommend close-as-rescoped)",
       "proof_type": "manual_verification",
-      "evidence": "Recommendation in boundary doc \u00a78.4 (WP01). Follow-up: operator confirms close-vs-keep-open at merge; #675 closed as rescoped/superseded then.",
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "Completes at merge with operator confirmation."
+      "evidence": "Explicit disposition recommendation in docs/design/felix-openclaw-boundary.md \u00a78.4 (close #675 as rescoped, superseded by #704).",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-07-10T04:00:00+00:00",
+      "notes": "Recommendation delivered; operator confirms the actual #675 close at merge."
     },
     {
       "criterion_id": "NFR-001",
