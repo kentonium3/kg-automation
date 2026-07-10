@@ -111,3 +111,4 @@ JSON **array** at `/data/services/openclaw/state/pending-calendar-clarifications
 ## Activity Log
 
 - 2026-07-09T23:53:42Z – claude:opus:python-pedro:implementer – shell_pid=56852 – Assigned agent via action command
+- 2026-07-10T00:02:45Z – claude:opus:python-pedro:implementer – shell_pid=56852 – Ready for review — route_calendar_event --create + judgment-only agent, no gog on calendar surface, capture runs one command (no hop), default account personal; inbox+calendar tests green.

@@ -18,11 +18,11 @@ Tests are in scope (NFR-003 requires them). Work packages are sized 3–5 subtas
 | T006 | `list` / `update` / `delete`: window schema, patch + `--clear`, recurring-scope error, not_found | WP02 | | [D] |
 | T007 | `--self-check`: refresh + bounded events.list; exit 3 with re-mint message | WP02 | | [D] |
 | T008 | Helper tests: mock google client + Credentials; CRUD, idempotent retry, sendUpdates, exit codes, auth-fail | WP02 | | [D] |
-| T009 | `route_calendar_event.py`: add `--create` mode (validate→build→invoke helper→emit status); DEFAULT_ACCOUNT→personal | WP03 | |
-| T010 | `validate_calendar_event.py`: DEFAULT_ACCOUNT→personal (+ fixtures) | WP03 | |
-| T011 | `felix-admin-calendar` AGENTS.md + TOOLS.md: judgment-only, helper not gog, keep clarification handling | WP03 | |
-| T012 | `felix-admin-capture` AGENTS.md + .tmpl: calendar step = single `--create` command, no agent hop | WP03 | |
-| T013 | Update inbox + calendar_routing tests for new default + `--create` mode | WP03 | |
+| T009 | `route_calendar_event.py`: add `--create` mode (validate→build→invoke helper→emit status); DEFAULT_ACCOUNT→personal | WP03 | | [D] |
+| T010 | `validate_calendar_event.py`: DEFAULT_ACCOUNT→personal (+ fixtures) | WP03 | | [D] |
+| T011 | `felix-admin-calendar` AGENTS.md + TOOLS.md: judgment-only, helper not gog, keep clarification handling | WP03 | | [D] |
+| T012 | `felix-admin-capture` AGENTS.md + .tmpl: calendar step = single `--create` command, no agent hop | WP03 | | [D] |
+| T013 | Update inbox + calendar_routing tests for new default + `--create` mode | WP03 | | [D] |
 | T014 | `deploys/queued/felix-calendar-helper.yaml` (Tier 3, audited_surface, pre/post verify) | WP04 | |
 | T015 | `deploy-felix-calendar-helper.py`: Restic gate → uv venv provision → creds-presence → self-check | WP04 | |
 | T016 | Deploy-script tests (mock subprocess/uv; gate ordering; idempotency) | WP04 | |
