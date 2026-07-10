@@ -1,4 +1,16 @@
 {
+  "acceptance_history": [
+    {
+      "acceptance_mode": "pr",
+      "accepted_at": "2026-07-10T00:20:36.156984+00:00",
+      "accepted_by": "kentgale",
+      "accepted_from_commit": "44a9f192626b510073e8ad5a0cc6a161654749d7"
+    }
+  ],
+  "acceptance_mode": "pr",
+  "accepted_at": "2026-07-10T00:20:36.156984+00:00",
+  "accepted_by": "kentgale",
+  "accepted_from_commit": "44a9f192626b510073e8ad5a0cc6a161654749d7",
   "coordination_branch": "kitty/mission-felix-calendar-helper-01KX4H3C",
   "created_at": "2026-07-09T22:48:43.919513+00:00",
   "flattened": false,
