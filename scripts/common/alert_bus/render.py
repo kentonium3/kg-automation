@@ -23,16 +23,23 @@ from .model import Alert
 # ERROR_SUMMARY_MAX so migrated failure alerts keep byte-comparable bodies.
 DETAIL_VALUE_MAX = 500
 
+# Bounded length for the redacted description. The felix-deployer migration puts
+# ``error_summary`` (which can contain secrets) into ``Alert.description``, so it
+# must get the same redact-before-truncate treatment as detail values. Given a
+# slightly larger ceiling than a single detail value since the description is the
+# alert's primary prose field.
+DESCRIPTION_MAX = 1000
 
-def _redact_and_truncate(value: str) -> str:
-    """Redact secrets, THEN truncate to :data:`DETAIL_VALUE_MAX`.
+
+def _redact_and_truncate(value: str, max_length: int = DETAIL_VALUE_MAX) -> str:
+    """Redact secrets, THEN truncate to *max_length*.
 
     Order is invariant: truncate-first could slice a secret pattern across the
     boundary and leak head bytes.
     """
     redacted = redact_secrets(value or "")
-    if len(redacted) > DETAIL_VALUE_MAX:
-        redacted = redacted[:DETAIL_VALUE_MAX]
+    if len(redacted) > max_length:
+        redacted = redacted[:max_length]
     return redacted
 
 
@@ -60,15 +67,16 @@ def render_body(alert: Alert) -> str:
 
     Order: timestamp (UTC + local), ``Source:``, ``Severity:``, a blank line,
     the ``description``, then ``Action:`` only if set, then a ``Details:``
-    block of ``key=value`` lines only if ``details`` is non-empty. Detail
-    values are redacted then truncated.
+    block of ``key=value`` lines only if ``details`` is non-empty. The
+    description and all detail values are redacted then truncated (the
+    description can carry a migrated ``error_summary`` that holds secrets).
     """
     lines: list[str] = [
         _format_timestamp(alert.timestamp),
         f"Source: {alert.source}",
         f"Severity: {alert.severity.value}",
         "",
-        alert.description,
+        _redact_and_truncate(alert.description, DESCRIPTION_MAX),
     ]
 
     if alert.action:
@@ -82,4 +90,4 @@ def render_body(alert: Alert) -> str:
     return "\n".join(lines)
 
 
-__all__ = ["render_title", "render_body", "DETAIL_VALUE_MAX"]
+__all__ = ["render_title", "render_body", "DETAIL_VALUE_MAX", "DESCRIPTION_MAX"]

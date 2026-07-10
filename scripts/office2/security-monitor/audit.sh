@@ -245,16 +245,14 @@ if [ "$ALERT" -eq 1 ]; then
     log "AUDIT COMPLETE: $ALERT_COUNT ALERT(S) FOUND"
 
     # Send push notification via the felix-alert bus shim.
-    # Severity threshold: warn by default; escalate to error when the alert
-    # count is high (> 3) so a large-scale drift maps to the error priority
-    # gradient (this preserves the intent of the old "Priority: high" for
-    # meaningful incidents while keeping routine single-item drift at warn).
+    # Severity: always `error` (maps to ntfy Priority: high). The audit only
+    # emits when count>0, i.e. real baseline drift or an IOC hit — every such
+    # finding warrants the high-priority gradient, matching the old path which
+    # always sent "Priority: high". No warn/error threshold branching: a single
+    # drift is as security-relevant as many, so `error` is the floor for any
+    # finding.
     ALERT_SUMMARY=$(head -5 "$ALERT_FILE" | sed 's/\[ALERT\] //' | tr '\n' ' ')
-    if [ "$ALERT_COUNT" != "?" ] && [ "$ALERT_COUNT" -gt 3 ] 2>/dev/null; then
-        SEVERITY="error"
-    else
-        SEVERITY="warn"
-    fi
+    SEVERITY="error"
     # Best-effort: the shim always exits 0, and `|| true` is belt-and-suspenders
     # so a notification failure can never fail the audit cron.
     "$ALERT_BUS" emit \

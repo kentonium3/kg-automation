@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 
 from scripts.common.alert_bus.model import Alert, Severity
 from scripts.common.alert_bus.render import (
+    DESCRIPTION_MAX,
     DETAIL_VALUE_MAX,
     render_body,
     render_title,
@@ -82,6 +83,25 @@ def test_render_body_truncates_long_redacted_value():
     )
     rendered_value = detail_line.split("note=", 1)[1]
     assert len(rendered_value) == DETAIL_VALUE_MAX
+
+
+def test_render_body_redacts_secret_in_description():
+    # The felix-deployer migration routes error_summary (which can hold a
+    # secret) into Alert.description; it must be redacted, not rendered raw.
+    secret = "Bearer " + ("A" * 100)
+    body = render_body(_alert(description=f"apply failed: {secret}"))
+    assert "[REDACTED]" in body
+    assert "AAAAAAAA" not in body
+
+
+def test_render_body_truncates_long_description():
+    # A long non-secret description is truncated to DESCRIPTION_MAX. Spaces keep
+    # tokens under the redactor's 32-char threshold so this exercises truncation.
+    long_desc = ("word " * (DESCRIPTION_MAX // 2))[: DESCRIPTION_MAX + 250]
+    body = render_body(_alert(description=long_desc))
+    # The description is the 5th line (index 4) of the body.
+    rendered_desc = body.splitlines()[4]
+    assert len(rendered_desc) == DESCRIPTION_MAX
 
 
 def test_render_body_naive_timestamp_treated_as_utc():

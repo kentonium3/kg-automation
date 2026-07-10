@@ -54,12 +54,14 @@ class TestAuditScriptStatic:
         # failure can never propagate a non-zero status into audit control flow.
         assert "|| true" in text
 
-    def test_severity_threshold_documented(self):
+    def test_severity_is_always_error(self):
         text = _audit_text()
-        # The chosen warn/error threshold is documented in a comment.
-        assert "Severity threshold" in text
-        assert 'SEVERITY="warn"' in text
+        # Security findings always map to `error` (ntfy Priority: high), matching
+        # the old always-"Priority: high" path. No warn/error threshold branching.
         assert 'SEVERITY="error"' in text
+        assert 'SEVERITY="warn"' not in text
+        # The always-error rationale is documented in a comment.
+        assert "always `error`" in text
 
 
 class TestAuditEmitNonFatal:
