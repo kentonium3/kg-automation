@@ -51,9 +51,12 @@ python3 -m scripts.common.alert_bus self-test   # emit a known info alert; exit 
 - `--severity` accepts exactly `info|warn|error|critical`.
 - `--detail key=value` may repeat; `--detail-stdin` folds piped text into `details["stdin"]`
   (for shell callers passing captured stderr/output).
-- Exit codes: `0` = delivered; non-zero = delivery failed (for `self-test` and `emit` the CLI reflects
-  `AlertResult.ok` so shell callers *can* detect failure, but callers that must stay fail-safe should
-  ignore the exit status — the bus itself never crashes).
+- Exit codes:
+  - `emit` is **best-effort by default → always exits 0** after attempting delivery (logging the
+    `AlertResult`), so a cron/audit caller never fails because ntfy was down. Pass `--strict` to make
+    `emit` reflect `AlertResult.ok` (non-zero on failure) for callers that want it.
+  - `self-test` always reflects delivery (exit non-zero on failure) — it exists to prove the path.
+  - The bus itself never raises/crashes regardless of exit code.
 
 ## 3. Bash shim (`scripts/common/alert_bus.sh`)
 
@@ -61,9 +64,14 @@ python3 -m scripts.common.alert_bus self-test   # emit a known info alert; exit 
 scripts/common/alert_bus.sh emit --source ... --severity ... --title ... --description ... [...]
 ```
 
-- Env-anchors to the checkout and invokes the CLI: `cd /home/claude/kg-automation && python3 -m
+- **Sources the topic env-file** (`/home/claude/.config/felix/alert-bus/env`) if present, then
+  env-anchors to the checkout and invokes the CLI: `cd /home/claude/kg-automation && python3 -m
   scripts.common.alert_bus "$@"` (proven checkout-cd form; office2 `python3` only — never bare `python`).
-- Best-effort: a shim/CLI failure must never fail the calling cron/audit (callers `|| true` as today).
+  Sourcing the env-file is what lets the cron-launched `audit.sh` (no systemd `EnvironmentFile`) resolve
+  the topic.
+- **Best-effort by default**: the shim logs and **exits 0** even on delivery failure, so it never fails
+  the calling cron/audit regardless of caller `|| true` discipline. (`self-test`/`--strict` still
+  reflect failure.)
 
 ## 4. ntfy message contract (wire)
 
@@ -90,8 +98,17 @@ curl flags: --silent --show-error --fail --max-time 10
 
 - Each migrated emitter's **core behavior and health signals are unchanged** (NFR-004): felix-deployer
   still writes its tick log + applied records; health.py still returns a bool used to stamp
-  `last_alert_ts`; felix-health-check still returns its `{attempted, sent, detail}` shape; audit.sh
-  still runs its full audit and treats notification failure as non-fatal.
+  `last_alert_ts` (used by both felix-deployer **and** the indirect consumer `agent-prompt-sync`);
+  felix-health-check still returns its `{attempted, sent, detail}` shape; audit.sh still runs its full
+  audit and treats notification failure as non-fatal.
+- **Adapters (explicit, tested):**
+  - felix-health-check: `AlertResult` → `{attempted, sent, detail}` — `attempted = topic_configured`,
+    `sent = ok`, `detail = reason or "delivered"`; tested for missing-topic / curl-failure / success so
+    `last-run.json` is byte-compatible.
+  - health.py / agent-prompt-sync: `AlertResult.ok` → the existing `bool` return so `last_alert_ts`
+    stamping is preserved.
+- felix-deployer failure alerts carry the **real captured error** (`stderr_excerpt` etc.) in
+  `Alert.details`, not just `phase`+`summary` (FR-003/SC-002).
 - After migration, **no migrated emitter contains its own curl/ntfy code** (SC-006).
 - Enforcement notifier **adds** a `felix-alert` co-emit and **keeps** its WhatsApp + GitHub records
   (FR-009/SC-007).

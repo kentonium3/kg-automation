@@ -34,9 +34,9 @@ cron as the `claude` user) — **no docker container isolation** — so a bash c
 CLI directly. Confirmed from `service-inventory.json` + the systemd/cron units.
 **Project Type**: single (Python library + CLI + bash shim under `scripts/common/`, plus edits to the
 existing emitter modules and deploy/doc artifacts).
-**Performance Goals**: An `emit()` call completes ≤ 5 s and never blocks the host beyond the curl
-`--max-time` ceiling (existing emitters use 10 s). Alert volume is low (a few per day); no throughput
-concern.
+**Performance Goals**: An `emit()` call is best-effort and non-blocking — it never blocks the host
+beyond the curl `--max-time` ceiling (10 s, matching existing emitters). Alert volume is low (a few per
+day); no throughput concern.
 **Constraints**: ntfy transport only (C-001); deploy exclusively via `deploys/queued/` manifest (C-002);
 no new deps (C-003); Tier 3 with rebaseline on audited surfaces `scripts/deploy/**` + security-monitor
 (C-004); bash-callable (C-005); fail-safe delivery — a delivery failure never crashes/hangs an emitter
@@ -177,12 +177,24 @@ Not required — no Charter Check violations.
 
 - **Purpose**: Rewire the Python ntfy emitters to build an Alert and call `emit()`, deleting their own
   curl code, with no change to their core behavior or health signals.
-- **Relevant requirements**: FR-006, NFR-004.
+- **Relevant requirements**: FR-006, FR-003, NFR-004, SC-002.
 - **Affected surfaces**: `scripts/deploy/felix-deployer/notify.py`, `scripts/deploy/lib/health.py`
-  (+ its caller `_tick.py`), `scripts/office2/felix_health_check/run.py`; their existing tests.
+  (+ its caller `_tick.py`), `scripts/office2/felix_health_check/run.py`, **and the indirect consumer
+  `scripts/openclaw/deploy/deploy_agent_prompts.py`** (rides on `health.py`'s notifier); their tests.
 - **Sequencing/depends-on**: IC-01, IC-02, IC-03 (public API stable).
+- **Hard requirements (from post-plan review)**:
+  - **SC-002 stderr threading**: `_tick.py:622` currently passes only `result.summary`; the migration
+    must thread `result.details` (`stderr_excerpt`, `stdout_excerpt`, `argv`/`failed_command`,
+    `returncode`, `phase`, `manifest_path`) into `Alert.details`, with a #699-regression test asserting
+    the alert body names the failing cause.
+  - **felix-health-check adapter**: define + test an adapter from `AlertResult` → the existing
+    `{attempted, sent, detail}` signal-file shape so `run.py`'s `last-run.json` behavior is preserved
+    (missing-topic / curl-failure / success cases).
+  - **agent-prompt-sync**: preserve `health.record()`'s bool-return contract (used to stamp
+    `last_alert_ts`); update its notifier tests.
 - **Risks**: felix-deployer's three call sites (failure/rebaseline/health) + health.py's bool return
-  contract used to stamp `last_alert_ts` — the migration must preserve those return semantics.
+  contract used by both felix-deployer and agent-prompt-sync — the migration must preserve those
+  return semantics.
 
 ### IC-06 — Bash emitter migration + enforcement co-emit
 
@@ -195,18 +207,29 @@ Not required — no Charter Check violations.
 - **Risks**: audit.sh currently hardcodes its topic + posts once with a summary; the migration must keep
   its cron fail-safe (notification failure never fails the audit).
 
-### IC-07 — Topic provisioning, registry, deploy manifest
+### IC-07 — Topic provisioning, runtime env wiring, registry, deploy manifest
 
 - **Purpose**: Mint + provision the new dedicated topic out-of-band, record it as a credential + in the
-  topic registry, wire each emitter's runtime env to see `FELIX_ALERT_NTFY_TOPIC`, and ship via manifest.
+  topic registry, **wire every emitting runtime to load `FELIX_ALERT_NTFY_TOPIC`**, and ship via manifest.
 - **Relevant requirements**: FR-007, C-002, C-004.
-- **Affected surfaces**: `deploys/queued/unified-alert-bus.yaml`, `credential-manifest.json`,
-  `scripts/common/alert_bus.env.sample`, the felix-deployer/felix-health-check env-files + systemd
-  units, the security-monitor cron env; rebaseline.
-- **Sequencing/depends-on**: IC-03 (topic env-var contract). **Operator step** (Kent mints the
-  high-entropy topic + provisions env-files; topic value never committed).
+- **Env wiring (post-plan CRITICAL — the difference between "built" and "delivering")**:
+  - Add `EnvironmentFile=/home/claude/.config/felix/alert-bus/env` to `felix-deployer.service`,
+    `felix-health-check.service`, and `agent-prompt-sync.service`.
+  - **`scripts/common/alert_bus.sh` sources that env-file itself** before invoking Python, so the
+    cron-launched `audit.sh` (no systemd EnvironmentFile) still resolves the topic.
+  - Update `scripts/office2/deploy/felix-health-check.sh` (and any deploy scripts) to provision the file.
+  - Add a **deploy preflight** that reports a missing env-file, and a **per-runtime self-test**
+    (systemd context + cron context) proving delivery.
+- **Affected surfaces**: `deploys/queued/unified-alert-bus.yaml`,
+  `docs/design/architecture/data/credential-manifest.json`, `scripts/common/alert_bus.env.sample`, the
+  three systemd units above, `scripts/office2/security-monitor/audit.sh` (drop hardcoded topic),
+  `scripts/office2/deploy/felix-health-check.sh`; rebaseline audited surfaces.
+- **Sequencing/depends-on**: IC-03 (topic env-var contract), IC-04 (shim sources env). **Operator step**
+  (Kent mints the high-entropy topic + provisions the env-file; topic value never committed — the
+  deliberate C-002 exception).
 - **Risks**: the topic id is a secret (ntfy security = topic secrecy) — must not land in the repo or
-  logs; each emitter's runtime must actually export the env var (env-file/systemd `EnvironmentFile`).
+  logs; a runtime that isn't wired silently gets `NTFY_MISSING_TOPIC` (the failure the preflight +
+  self-test exist to catch).
 
 ### IC-08 — Architecture docs + alerting runbook
 
