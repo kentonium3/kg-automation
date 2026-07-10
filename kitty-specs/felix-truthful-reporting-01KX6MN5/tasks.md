@@ -77,12 +77,12 @@ Tests are **required** (DIRECTIVE_034 test-first; SC-005 fail-safe must be prove
 - **Priority**: P1. **Independent test**: unit tests for render/severity, seen-findings cadence, exit-code modes, entrypoint dry-run.
 - **Requirements**: FR-005, NFR-001, NFR-002. **Dependencies**: WP02, WP03. **Est. prompt**: ~320 lines.
 - Subtasks:
-  - [ ] T015 findings→Alert render + emit (WP04)
-  - [ ] T016 seen-findings state + cadence (WP04)
-  - [ ] T017 run_trust_scan.py entrypoint (WP04)
-  - [ ] T018 systemd units (WP04)
-  - [ ] T019 deploy manifest + entrypoint (WP04)
-  - [ ] T020 unit tests (WP04)
+  - [x] T015 findings→Alert render + emit (WP04)
+  - [x] T016 seen-findings state + cadence (WP04)
+  - [x] T017 run_trust_scan.py entrypoint (WP04)
+  - [x] T018 systemd units (WP04)
+  - [x] T019 deploy manifest + entrypoint (WP04)
+  - [x] T020 unit tests (WP04)
 
 ### WP05 — Architecture docs, runbook & regression checklist
 
