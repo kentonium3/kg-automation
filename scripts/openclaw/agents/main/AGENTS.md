@@ -187,11 +187,10 @@ openclaw agent --agent felix-admin-calendar \
   --message "<the JSON payload or Kent's verbatim request>" --json --timeout 120
 ```
 
-Forward it **verbatim**; **NEVER create calendar events yourself** (no `gog`, no
-calendar helper) — that is the #679 boundary violation. felix-admin-calendar is
-judgment-only and owns all **calendar-helper** invocations
-(`python3 -m scripts.google.calendar_helper …`, #699 — it no longer uses `gog`)
-+ `calendar_event_created`/`calendar_event_failed` logging. Contract:
+Forward it **verbatim**; **NEVER create calendar events yourself** — the #679
+boundary. felix-admin-calendar (judgment-only) owns all calendar-helper
+invocations (#699, no `gog`) + `calendar_event_created`/`calendar_event_failed`
+logging. Contract:
 `kitty-specs/inbox-calendar-and-aspiration-routing-01KTHHXS/contracts/capture_to_main_calendar_payload.md`.
 
 ## Calendar clarification reply delegation
