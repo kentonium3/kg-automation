@@ -11,5 +11,7 @@
   "purpose_tldr": "Stop Felix from reporting actions as done that it did not perform, and from creating infrastructure nobody asked for.",
   "slug": "felix-truthful-reporting-01KX6MN5",
   "target_branch": "fix/felix-truthful-reporting",
-  "topology": "coord"
+  "topology": "coord",
+  "vcs": "git",
+  "vcs_locked_at": "2026-07-10T19:15:26.063778+00:00"
 }
