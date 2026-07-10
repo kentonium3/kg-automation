@@ -4,7 +4,7 @@
   "calendar_event_payload": {
     "action": "create_calendar_event",
     "calendar_id": "primary",
-    "account": "kent@intentional.biz",
+    "account": "personal",
     "summary": "Dentist cleaning",
     "start_rfc3339": "2026-06-10T14:00:00-04:00",
     "end_rfc3339": "2026-06-10T15:00:00-04:00",

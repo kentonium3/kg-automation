@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
-  "last_updated": "2026-07-05",
-  "updated_by": "felix-admin-cron-path-fix-01KWQTY3 (#656) + pull-based-deploy-pipeline-01KTYQQS (#136) + inbox-calendar-and-aspiration-routing-01KTHHXS + #520-felix-vikunja-sync-project-layer-and-url-config + #519-touchpoint-migration + #376-remove-escalation-v1-parity + #400-audit-interpretation-moment0 + #310-tasker-jsonl-migration + #374-main-verbatim-passthrough + #362-drift-event-auto-resolution + #371-habits-checkin-reply-scripts-first + #309-migrate-escalation-to-jsonl-state-model + #343-refactor-doc-auditor-to-scripts-first-driver + #307-backfill-habits-jsonl-from-comments + #306-habits-native-repeat-jsonl-state + #152 + restore-whatsapp-dm-reply-delivery-01KTVVHH (#588) + #545-bump-stale-last-updated-for-introduced-at",
+  "last_updated": "2026-07-09",
+  "updated_by": "felix-calendar-helper-01KX4H3C (#699 — calendar surface now flows Felix helper -> Google directly, not gog; closes #679) + felix-admin-cron-path-fix-01KWQTY3 (#656) + pull-based-deploy-pipeline-01KTYQQS (#136) + inbox-calendar-and-aspiration-routing-01KTHHXS + #520-felix-vikunja-sync-project-layer-and-url-config + #519-touchpoint-migration + #376-remove-escalation-v1-parity + #400-audit-interpretation-moment0 + #310-tasker-jsonl-migration + #374-main-verbatim-passthrough + #362-drift-event-auto-resolution + #371-habits-checkin-reply-scripts-first + #309-migrate-escalation-to-jsonl-state-model + #343-refactor-doc-auditor-to-scripts-first-driver + #307-backfill-habits-jsonl-from-comments + #306-habits-native-repeat-jsonl-state + #152 + restore-whatsapp-dm-reply-delivery-01KTVVHH (#588) + #545-bump-stale-last-updated-for-introduced-at",
   "flows": [
     {
       "name": "vikunja-web-ui",
@@ -1183,43 +1183,44 @@
       "status": "active",
       "deployed_by": "inbox-calendar-and-aspiration-routing-01KTHHXS",
       "introduced_by": "inbox-calendar-and-aspiration-routing-01KTHHXS",
-      "description": "Flow A \u2014 Inbox-captured calendar event (one-off or recurring) auto-scheduled on Google Calendar with no Vikunja todo created. felix-admin-capture classifies the inbox note as a calendar event, validates required fields (title + start), and delegates the create payload to Felix main; main executes `gog calendar create` against the configured calendar. Default calendar is kent@intentional.biz primary; payload may override per-event.",
+      "updated_by": "felix-calendar-helper-01KX4H3C (#699 \u2014 rewired helper->Google direct, no agent hop; closes #679)",
+      "description": "Flow A \u2014 Inbox-captured calendar event (one-off or recurring) auto-scheduled on Google Calendar with no Vikunja todo created. REWIRED by #699 (RFC #681 calendar phase): the inbox->calendar hop is now INLINE (no agent-to-agent delegation), closing #679. felix-admin-capture classifies the inbox note as a calendar event and extracts the natural-language fields, then runs ONE deterministic command \u2014 `route_calendar_event --create` \u2014 which validates the fields, assembles the create_calendar_event envelope, and invokes the Felix calendar helper (scripts/google/calendar_helper.py) IN-PROCESS. The helper talks to the Google Calendar API directly via google-api-python-client using the personal account credential (felix-google-personal-calendar). It does NOT go through gog and NOT through Felix main. Default account is `personal` (kentgale@gmail.com), default calendar `primary`; the envelope may override per-event. Previously (pre-#699, broken per #679): capture delegated the payload to Felix main, which shelled `gog calendar create` \u2014 the agent-to-agent hop silently failed on the haiku capture agent.",
       "trigger": "felix-admin-capture cron tick (inbox-7am/noon/5pm/10pm) classifies a note whose intent is a complete calendar event",
       "path": [
         {
           "from": "Obsidian inbox note (WisprFlow or typed)",
-          "to": "felix-admin-capture (classification + validator)",
+          "to": "felix-admin-capture (classification + NL field extraction)",
           "protocol": "file read (cron tick)",
-          "description": "Capture parses frontmatter + body, classifies intent, and validates calendar-event required fields (title, start)"
+          "description": "Capture parses frontmatter + body, classifies calendar intent, and extracts the natural-language event fields (title, when, duration, location). Capture's only job is intent detection + field extraction \u2014 the minimum LLM surface (post-#699)."
         },
         {
           "from": "felix-admin-capture",
-          "to": "Felix main",
-          "protocol": "openclaw delegation",
-          "description": "Delegation payload includes the validated event fields (title, start, end/duration, attendees, location, recurrence, calendar override). Capture does not call gog directly."
+          "to": "scripts/inbox/route_calendar_event.py --create",
+          "protocol": "subprocess (single opaque command: --create --payload-file <tmp> --source-path <abs>)",
+          "description": "ONE deterministic command replaces the old build-then-delegate two-step. --create validates required fields (title + start), assembles the create_calendar_event envelope (account defaults to `personal`), invokes the calendar helper in-process, and emits a single {status: created|error|needs_clarification, ...} result. NO openclaw agent / sessions_send hop (closes #679). The deterministic field-mapping + helper invocation stay out of the agent prompt (two-layer doctrine)."
         },
         {
-          "from": "Felix main",
-          "to": "gog calendar create",
-          "protocol": "subprocess",
-          "description": "Main is the gog process owner; executes `gog calendar create` with the delegated payload."
+          "from": "scripts/inbox/route_calendar_event.py",
+          "to": "scripts/google/calendar_helper.py (create)",
+          "protocol": "python invocation (in-process; helper runs under the office2 venv python)",
+          "description": "Maps the envelope `account` -> credential set and the event fields -> the Google event body. Stamps extendedProperties.private.felix_source_key (from source_inbox_path) so a retry after a partial failure returns the existing event instead of duplicating (idempotent create). Attendees suppressed by default (sendUpdates=none) \u2014 an inbox note never silently emails people."
         },
         {
-          "from": "gog calendar create",
-          "to": "Google Calendar (kent@intentional.biz primary, or override per payload)",
-          "protocol": "HTTPS (Google Calendar API via gog)",
-          "description": "Auto-schedule the event without creating a Vikunja todo. Recurrence flows through gog's recurrence flags."
+          "from": "scripts/google/calendar_helper.py",
+          "to": "Google Calendar API (account `personal` = kentgale@gmail.com, calendar `primary`, or override per envelope)",
+          "protocol": "HTTPS (Google Calendar API via google-api-python-client; credential felix-google-personal-calendar)",
+          "description": "events().insert directly \u2014 NOT via gog. On auth failure the helper fails safe (exit 3, no mutation, actionable error surfaced to the agent). Recurrence flows through the event body `recurrence` (RRULE) produced deterministically upstream by validate_calendar_event.py."
         }
       ],
-      "purpose": "Auto-schedule events submitted via inbox capture without creating Vikunja todos"
+      "purpose": "Auto-schedule events submitted via inbox capture without creating Vikunja todos, via a single deterministic helper call (no agent hop) \u2014 closes #679"
     },
     {
       "name": "inbox-calendar-clarification-loop",
       "status": "active",
       "deployed_by": "inbox-calendar-and-aspiration-routing-01KTHHXS",
       "introduced_by": "inbox-calendar-and-aspiration-routing-01KTHHXS",
-      "updated_by": "felix-admin-cron-path-fix-01KWQTY3 (#656)",
-      "description": "Flow B \u2014 Incomplete inbox-captured calendar event resolved through a single WhatsApp clarification round-trip. felix-admin-capture detects missing required fields, writes a deferred-event entry to the pending-calendar-clarifications state file (24h timeout sweep), and asks Kent one clarification question via WhatsApp. When Kent replies, felix-admin-calendar reads the open clarification, merges the reply into the deferred payload, re-validates, and issues `gog calendar create`. Avoids losing the original capture context between the inbox tick and Kent's reply.",
+      "updated_by": "felix-calendar-helper-01KX4H3C (#699 \u2014 terminal create now via the calendar helper, not gog; felix-admin-calendar reshaped to judgment-only) + felix-admin-cron-path-fix-01KWQTY3 (#656)",
+      "description": "Flow B \u2014 Incomplete inbox-captured calendar event resolved through a single WhatsApp clarification round-trip. felix-admin-capture detects missing required fields (the --create command returns needs_clarification with the missing fields), writes a deferred-event entry to the pending-calendar-clarifications state file (24h timeout sweep), and asks Kent one clarification question via WhatsApp. When Kent replies, felix-admin-calendar \u2014 now a JUDGMENT-ONLY layer (RFC #681 / #699 reshape) \u2014 reads the open clarification, merges the reply into the deferred payload, re-validates, and issues the create via the Felix calendar helper (scripts/google/calendar_helper.py) directly against the Google Calendar API. It no longer calls `gog calendar create` and holds no gog calendar skill. This clarification path still involves felix-admin-calendar, but only via a SEPARATE inbound message from Kent (Kent -> agent), which is not capture->agent delegation. Avoids losing the original capture context between the inbox tick and Kent's reply.",
       "trigger": "felix-admin-capture classifies an inbox note as a calendar event but validation reports missing required fields",
       "path": [
         {
@@ -1253,16 +1254,16 @@
           "description": "Resolves Kent's reply against the open clarification entry; merges the reply into the deferred event payload."
         },
         {
-          "from": "felix-admin-calendar",
-          "to": "gog calendar create",
-          "protocol": "subprocess",
-          "description": "Re-validates the merged payload and executes the deferred `gog calendar create` call."
+          "from": "felix-admin-calendar (judgment-only layer)",
+          "to": "scripts/google/calendar_helper.py (create)",
+          "protocol": "subprocess (exec: venv python -m scripts.google.calendar_helper create --payload-file <tmp> --json)",
+          "description": "Re-validates the merged payload and executes the deferred create via the Felix calendar helper — NOT `gog calendar create`. The agent surfaces a helper exit 3 (auth) or 1 (operational) verbatim and never reports a created event that did not create (#683 trust defect); it must not fall back to gog."
         },
         {
-          "from": "gog calendar create",
-          "to": "Google Calendar",
-          "protocol": "HTTPS (Google Calendar API via gog)",
-          "description": "Deferred event scheduled."
+          "from": "scripts/google/calendar_helper.py",
+          "to": "Google Calendar API (account `personal` = kentgale@gmail.com, calendar `primary`)",
+          "protocol": "HTTPS (Google Calendar API via google-api-python-client; credential felix-google-personal-calendar)",
+          "description": "Deferred event scheduled via events().insert directly. Fail-safe on auth error (exit 3, no mutation)."
         }
       ],
       "purpose": "Resolve incomplete calendar events through a single WhatsApp reply round-trip without losing context"

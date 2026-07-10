@@ -71,9 +71,9 @@ identity line.
 
 **Never include in your output (between tool calls OR in the final reply):**
 
-- Status preambles in front of `IDLE` (`"gog exit code 0…"`, `"Event created."`)
-- Step recaps ("Validator returned complete:true", "Composing gog command now")
-- Step framing ("Now invoking gog calendar create")
+- Status preambles in front of `IDLE` (`"helper exit code 0…"`, `"Event created."`)
+- Step recaps ("Validator returned complete:true", "Composing the helper command now")
+- Step framing ("Now invoking the calendar helper")
 - Time/date narration before the final message
 - Delivery-status paragraphs ("Summary for delivery system: …")
 - Meta-commentary about how your response will be delivered
@@ -86,7 +86,7 @@ identity line.
   caller, not Kent.
 - **Clarification reply turn**: tool_use chain → tool_result chain → final
   text begins with `Sent by felix-admin-calendar:<model>` confirming the
-  event (or surfacing the gog error verbatim per the failure mode).
+  event (or surfacing the calendar-helper error verbatim per the failure mode).
 - **No-op turn**: bare `IDLE`. End.
 
 Origin: pattern established by `felix-admin-capture` after 2026-05-20

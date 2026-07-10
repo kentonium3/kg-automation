@@ -2,9 +2,9 @@
 title: Credentials and Secrets
 doc_type: reference
 status: approved
-last_updated: '2026-06-05'
-last_validated: '2026-06-05'
-updated_by: '#520-felix-vikunja-sync-project-layer-and-url-config + #523-kg-felix-bot-project-sync-pat-added + #345-audit-confirms-sync (silent-removal policy per change-control.md) + #304-felix-bot-rotation + #267-openclaw-gateway-env-narrative + #100-google-workspace-foundation + #227 + #115 + #115-narrative-sync + rename-kentonium3-pat-to-gh-oauth'
+last_updated: '2026-07-09'
+last_validated: '2026-07-09'
+updated_by: '#699-felix-calendar-helper-personal-google-oauth (RFC #681 calendar phase) + #520-felix-vikunja-sync-project-layer-and-url-config + #523-kg-felix-bot-project-sync-pat-added + #345-audit-confirms-sync (silent-removal policy per change-control.md) + #304-felix-bot-rotation + #267-openclaw-gateway-env-narrative + #100-google-workspace-foundation + #227 + #115 + #115-narrative-sync + rename-kentonium3-pat-to-gh-oauth'
 tags: [304, 343, 490, 115, 520]
 ---
 
@@ -20,7 +20,7 @@ them. For expiry policies and review cadences, see the manifest.
 
 ## Storage Mechanisms
 
-kg-automation uses seven distinct secret storage mechanisms. Each credential
+kg-automation uses eight distinct secret storage mechanisms. Each credential
 uses the mechanism appropriate to the tool that owns or consumes it. There is
 no single unified secret store — that is a deliberate trade-off favoring
 simplicity on a Tailscale-gated personal server.
@@ -30,6 +30,12 @@ simplicity on a Tailscale-gated personal server.
 Used by: `google-workspace-client`, `gog-keyring-password`,
 `gog-credentials-keyring` (active). `personal-google` (deprecated; see
 "Deprecated credentials" below).
+
+> **Scope note (#699):** `gog` no longer owns the **Calendar** surface. As of
+> #699 (RFC #681 calendar phase), Felix's calendar access uses its own
+> per-account OAuth store (`felix-google-personal-calendar`, §8 below) read
+> directly by the Felix calendar helper. `gog` retains Gmail, Drive, Contacts,
+> Sheets, and Docs; it is not retired.
 
 `gog` (the Google Workspace CLI, installed via Linuxbrew tap
 `steipete/tap/gogcli`) manages its own OAuth2 token store via
@@ -167,6 +173,37 @@ This mechanism is distinct from §5 (gh CLI auth store, used by operator and
 agent CLI shell-outs) because Actions workflows never invoke `gh` against the
 project; they call the GraphQL API directly with `actions/github-script@v8`.
 
+### 8. Per-account Felix Google OAuth store (calendar helper)
+
+Used by: `felix-google-personal-calendar`
+
+Introduced by #699 (RFC #681 calendar phase). Felix's own Google Calendar
+helper (`scripts/google/calendar_helper.py`, via `scripts/google/calendar_auth.py`)
+holds an **authorized-user OAuth2** credential per account in a canonical
+per-account directory, independent of gog:
+
+- `~/.config/felix/google/<account>/client_secret.json` — Desktop OAuth
+  client from GCP project `felix-personal` (External, "In production").
+- `~/.config/felix/google/<account>/token.json` — authorized-user token
+  including the `refresh_token`. Minted once interactively on the Mac with the
+  final `calendar.events` scope, then durable per RFC #681, and auto-refreshed
+  in place by the helper.
+
+Files are mode `0600` inside a mode `0700` per-account directory (on office2:
+`/home/claude/.config/felix/google/personal/`). The base directory is
+overridable via `FELIX_GOOGLE_DIR` for test isolation. The default account is
+`personal` (`kentgale@gmail.com`); **adding a second account** (e.g.
+`intentional.biz`) is create its directory + drop its credentials + pass its
+account name — **no helper code change**.
+
+This store is deliberately **separate** from gog's auth store (§1): the helper
+talks to the Google Calendar API directly via `google-api-python-client` and
+never touches gog's keyring. On any authorization failure the helper **fails
+safe** — it exits `3` with an actionable "re-mint on the Mac" message and
+performs no calendar mutation; office2 never runs interactive consent. See
+[`docs/runbooks/calendar-helper-ops.md`](<../../runbooks/calendar-helper-ops.md>)
+for invocation, per-account creds, re-mint, and troubleshooting.
+
 ### Non-secret config files (not credentials)
 
 Not every runtime-configuration file is a secret. The following file lives
@@ -264,7 +301,8 @@ graph TD
 | `whatsapp-session` | session | OpenClaw native (Baileys) | `openclaw-gateway` |
 | `google-workspace-client` | OAuth Desktop `client_secret` | Scoped plaintext — `/data/services/openclaw/secrets/google-workspace-client.json` | `gog auth credentials` (one-time ingest) |
 | `gog-keyring-password` | passphrase | Scoped plaintext — `/data/services/openclaw/secrets/gog-keyring-password` | `gog` (via `GOG_KEYRING_PASSWORD` env var in claude's `~/.bashrc`) |
-| `gog-credentials-keyring` | gog-managed encrypted bucket | `/home/claude/.config/gogcli/credentials.json` (managed by `gog`, encrypted by `gog-keyring-password`) | `gog` (all subcommands — Gmail, Calendar, Drive, Contacts, Sheets, Docs) |
+| `gog-credentials-keyring` | gog-managed encrypted bucket | `/home/claude/.config/gogcli/credentials.json` (managed by `gog`, encrypted by `gog-keyring-password`) | `gog` (all subcommands — Gmail, Drive, Contacts, Sheets, Docs; **Calendar migrated off gog to the Felix calendar helper by #699**) |
+| `felix-google-personal-calendar` | OAuth2 authorized-user (`calendar.events` scope) | Per-account Felix Google OAuth store (§8) — `~/.config/felix/google/personal/{client_secret,token}.json` (file 0600, dir 0700; `FELIX_GOOGLE_DIR` overrides base) | Felix calendar helper `scripts/google/calendar_helper.py` / `scripts/google/calendar_auth.py` (direct Google Calendar API); `felix-admin-calendar` judgment layer (invokes the helper). Separate from gog; durable per RFC #681. #699 |
 | `openclaw-gateway-env` | env-file | systemd `EnvironmentFile` — `/data/services/openclaw/secrets/openclaw-gateway.env` (mode 0600, claude:claude) | `openclaw-gateway.service` (via drop-in `EnvironmentFile=`) and all child agent sessions |
 | `kg-felix-bot-pat` | classic PAT | gh CLI auth store — `/home/claude/.config/gh/hosts.yml` | `felix-doc-auditor` (git push, `gh` CLI), `felix-core-digest-signals` (deterministic signal filer in `tick.py` → `felix-file-issue.py`; #490), future Felix agents |
 | `kentonium3-gh-oauth` | OAuth app token | gh CLI auth store — macOS Keychain (managed by `gh` CLI on Mac) | Kent's manual git + `gh` CLI from Mac |

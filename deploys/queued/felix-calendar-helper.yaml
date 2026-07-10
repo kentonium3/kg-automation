@@ -1,0 +1,36 @@
+schema_version: v1
+name: felix-calendar-helper
+mission_slug: felix-calendar-helper-01KX4H3C
+tier: 3
+entrypoint: scripts/deploy/deploy-felix-calendar-helper.py
+audited_surface: true
+verification:
+  pre:
+  - python3 -m scripts.deploy.lib.snapshot verify_restic_recent 24
+  - test -f scripts/google/calendar_helper.py
+  post:
+  - cd /home/claude/kg-automation && /data/services/openclaw/felix-calendar/venv/bin/python -m scripts.google.calendar_helper --self-check --account personal
+created_at: '2026-07-10T00:00:00Z'
+created_by: felix-calendar-helper-01KX4H3C
+notes: "Ships the deterministic Google Calendar helper to office2\n\
+  (kentonium3/kg-automation#699).\n\n\
+  Tier 3 (logic/workflow — a Python helper + its dedicated venv). audited_surface:\n\
+  true because the mission's openclaw.json skills edit (remove gog from\n\
+  felix-admin-calendar) touches an audited surface; that edit is a MANUAL\n\
+  out-of-band office2 change + gateway restart and is rebaselined manually\n\
+  (out-of-band exception per CLAUDE.md). The AGENTS.md/.tmpl prompt edits are an\n\
+  UNMONITORED audited surface (openclaw-agent-prompts rebaseline_required: false).\n\n\
+  Entrypoint provisions a dedicated uv venv at\n\
+  /data/services/openclaw/felix-calendar/venv (office2 has no pip; only uv 0.11.2)\n\
+  and installs the pinned google deps INTO the venv. The google deps deliberately\n\
+  do NOT go into requirements.txt/pyproject.toml, so the python-dependencies\n\
+  (pip-packages) baseline is untouched.\n\n\
+  Strict, halt-on-error order (no auto-rollback; recovery instructions printed on\n\
+  failure): (1) Restic <=24h Tier-2 gate; (2) idempotent venv provision via uv;\n\
+  (3) verify manually-staged personal OAuth creds are present (client_secret.json\n\
+  + token.json under ~/.config/felix/google/personal/ — the script NEVER copies\n\
+  secrets); (4) self-check smoke (auth refresh + bounded events.list) via the\n\
+  venv python. verification.post re-runs the self-check as the applier gate.\n\n\
+  Helper code reaches office2 via the checkout's git pull on the felix-deployer\n\
+  tick after feat/felix-calendar-helper merges to main. Credentials are staged\n\
+  manually (scp from the Mac) BEFORE this deploy runs — see quickstart.md.\n"
