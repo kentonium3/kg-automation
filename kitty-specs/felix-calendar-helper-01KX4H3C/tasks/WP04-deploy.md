@@ -14,7 +14,7 @@ subtasks:
 - T014
 - T015
 - T016
-agent: "claude:opus:implementer-ivan:implementer"
+agent: "claude:opus:reviewer-renata:reviewer"
 history: []
 agent_profile: implementer-ivan
 authoritative_surface: scripts/deploy/deploy-felix-calendar-helper.py
@@ -31,7 +31,7 @@ owned_files:
 - tests/deploy/test_deploy_felix_calendar_helper.py
 role: implementer
 tags: []
-shell_pid: "62241"
+shell_pid: "64625"
 ---
 
 # WP04 — Deploy: manifest + deploy script
@@ -97,3 +97,4 @@ requirements — deps live in the venv).
 
 - 2026-07-10T00:08:26Z – claude:opus:implementer-ivan:implementer – shell_pid=62241 – Assigned agent via action command
 - 2026-07-10T00:13:46Z – claude:opus:implementer-ivan:implementer – shell_pid=62241 – Ready for review — Tier-3 manifest (schema-valid) + deploy script (Restic->venv->creds->self-check ordered, idempotent, no secret copy, deps venv-only) + tests green.
+- 2026-07-10T00:14:40Z – claude:opus:reviewer-renata:reviewer – shell_pid=64625 – Started review via action command
