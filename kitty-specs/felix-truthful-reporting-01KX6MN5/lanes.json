@@ -1,0 +1,132 @@
+{
+  "version": 1,
+  "mission_slug": "felix-truthful-reporting-01KX6MN5",
+  "mission_id": "01KX6MN5JC8B79XTTYZC9MM580",
+  "mission_branch": "kitty/mission-felix-truthful-reporting-01KX6MN5",
+  "target_branch": "fix/felix-truthful-reporting",
+  "lanes": [
+    {
+      "lane_id": "lane-a",
+      "wp_ids": [
+        "WP01"
+      ],
+      "write_scope": [
+        "scripts/openclaw/agents/felix-admin-calendar/AGENTS.md",
+        "scripts/openclaw/agents/felix-admin-capture/AGENTS.md",
+        "scripts/openclaw/agents/felix-admin-capture/AGENTS.md.tmpl",
+        "scripts/openclaw/agents/felix-admin-escalation/AGENTS.md",
+        "scripts/openclaw/agents/felix-admin-habits/AGENTS.md",
+        "scripts/openclaw/agents/felix-admin-tasker/AGENTS.md",
+        "scripts/openclaw/agents/felix-admin-tasker/AGENTS.md.tmpl",
+        "scripts/openclaw/agents/felix-doc-auditor/AGENTS.md",
+        "scripts/openclaw/agents/main/AGENTS.md",
+        "scripts/openclaw/agents/tests/test_truthful_doctrine.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "artifact-rendering",
+        "legacy-cleanup",
+        "tests",
+        "workspace"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    },
+    {
+      "lane_id": "lane-b",
+      "wp_ids": [
+        "WP02"
+      ],
+      "write_scope": [
+        "docs/design/architecture/data/approved-crons.json",
+        "scripts/trust/__init__.py",
+        "scripts/trust/cron_baseline.py",
+        "scripts/trust/cron_drift_detector.py",
+        "tests/trust/__init__.py",
+        "tests/trust/test_cron_baseline.py",
+        "tests/trust/test_cron_drift_detector.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "artifact-rendering"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    },
+    {
+      "lane_id": "lane-c",
+      "wp_ids": [
+        "WP03"
+      ],
+      "write_scope": [
+        "scripts/trust/assertion_verifier.py",
+        "scripts/trust/completion_assertion.py",
+        "scripts/vikunja/create_task.py",
+        "tests/trust/test_assertion_verifier.py",
+        "tests/trust/test_completion_assertion.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "artifact-rendering"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    },
+    {
+      "lane_id": "lane-d",
+      "wp_ids": [
+        "WP04"
+      ],
+      "write_scope": [
+        "deploys/queued/truthful-reporting-detector.yaml",
+        "scripts/deploy/deploy-truthful-reporting.py",
+        "scripts/office2/felix-trust-scan.service",
+        "scripts/office2/felix-trust-scan.timer",
+        "scripts/trust/alert_render.py",
+        "scripts/trust/run_trust_scan.py",
+        "scripts/trust/state.py",
+        "tests/trust/test_alert_render.py",
+        "tests/trust/test_run_trust_scan.py",
+        "tests/trust/test_state.py",
+        "tests/trust/test_trust_deploy.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "artifact-rendering",
+        "tracker-integration"
+      ],
+      "depends_on_lanes": [
+        "lane-b",
+        "lane-c"
+      ],
+      "parallel_group": 1
+    },
+    {
+      "lane_id": "lane-e",
+      "wp_ids": [
+        "WP05"
+      ],
+      "write_scope": [
+        "docs/DEVELOPER_PORTAL.md",
+        "docs/INDEX.md",
+        "docs/design/architecture/data/service-inventory.json",
+        "docs/design/architecture/service-inventory.md",
+        "docs/runbooks/trust-reporting-detector.md"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "artifact-rendering",
+        "legacy-cleanup"
+      ],
+      "depends_on_lanes": [
+        "lane-b",
+        "lane-c",
+        "lane-d"
+      ],
+      "parallel_group": 2
+    }
+  ],
+  "computed_at": "2026-07-10T19:10:42.366797+00:00",
+  "computed_from": "dependency_graph+ownership",
+  "planning_artifact_wps": []
+}
