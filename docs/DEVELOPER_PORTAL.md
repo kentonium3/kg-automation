@@ -173,6 +173,7 @@ local validation and CI.
 - [Spec-Kitty Mission Review Cycle](<./runbooks/spec-kitty-review-cycle.md>)
 - [Tasker Operations (Enrichment JSONL Migration)](<./runbooks/tasker-ops.md>)
 - [Templater Commands (Canon v2)](<./runbooks/templater-commands.md>)
+- [Trust Reporting Detector Operations](<./runbooks/trust-reporting-detector.md>)
 - [Vault Path Registry Migration Runbook](<./runbooks/vault-path-registry-migration.md>)
 - [Vikunja Date Handling](<./runbooks/vikunja-date-handling.md>)
 - [WhatsApp Channel Operations Runbook](<./runbooks/whatsapp-ops.md>)

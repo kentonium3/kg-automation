@@ -1,0 +1,10 @@
+[Unit]
+Description=felix-trust-scan — cron-drift + completion-assertion scan (<=15min cadence)
+
+[Timer]
+OnBootSec=5min
+OnUnitActiveSec=15min
+Persistent=true
+
+[Install]
+WantedBy=timers.target

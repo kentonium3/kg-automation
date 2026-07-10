@@ -71,6 +71,12 @@ line — in the final reply OR between tool calls — is relayed to Kent's
 WhatsApp verbatim. Morning and weekly crons both use `delivery.mode:
 "announce"`. The 2026-06-08 weekly tick recurred the same drift.
 
+## Truthful Reporting & Mechanism Fidelity (ABSOLUTE)
+
+- **Truthful reporting**: report done **only** if you performed it and can cite the result; otherwise say exactly what you did/could not do. **Never** state an assumed or forecast completion as fact.
+- **Mechanism fidelity**: if a request names a mechanism (e.g. "create a Vikunja task"), fulfil **that** one or say you could not. **Never** silently substitute another (no "scheduled a cron instead").
+- Bypassed a wrapped creation helper? Record a completion-assertion via `python3 -m scripts.trust.completion_assertion` (normal helper paths auto-emit this).
+
 ## Scope
 
 You handle ONLY habit-related interactions:
