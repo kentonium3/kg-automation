@@ -19,7 +19,8 @@ subtasks:
 - T020
 - T021
 - T022
-agent: claude
+agent: "claude:sonnet:implementer-ivan:implementer"
+shell_pid: "30307"
 history:
 - at: '2026-07-10T11:30:00Z'
   actor: spec-kitty agent mission tasks
@@ -28,10 +29,12 @@ agent_profile: implementer-ivan
 authoritative_surface: deploys/queued/
 create_intent:
 - deploys/queued/unified-alert-bus.yaml
+- scripts/deploy/deploy-unified-alert-bus.py
 - scripts/common/alert_bus.env.sample
 execution_mode: code_change
 owned_files:
 - deploys/queued/unified-alert-bus.yaml
+- scripts/deploy/deploy-unified-alert-bus.py
 - scripts/common/alert_bus.env.sample
 - docs/design/architecture/data/credential-manifest.json
 - scripts/deploy/felix-deployer/felix-deployer.service
@@ -69,13 +72,23 @@ Depends on WP02–WP04 (the migrated code must exist).
 
 ## Subtasks
 
-### T019 — Deploy manifest
-- Create `deploys/queued/unified-alert-bus.yaml` (unnumbered — felix-deployer assigns the applied number)
-  modeling an existing applied manifest. It ships the new library + shim + migrated emitter code, sets
-  Tier 3, declares `expected_baselines` for the audited surfaces it drifts (`scripts/deploy/**`,
-  security-monitor), and includes a **file-presence check** that the topic env-file exists on office2
-  (the preflight — reuse the deploy lib's presence primitive). Ensure `alert_bus.sh` is delivered with
-  its executable bit.
+### T019 — Deploy manifest + entrypoint (two-file shape, per deploy discipline)
+- Create the manifest `deploys/queued/unified-alert-bus.yaml` (unnumbered — felix-deployer assigns the
+  applied number) modeling an existing applied manifest. Tier 3; declares `expected_baselines` for the
+  audited surfaces it drifts (systemd user units it edits + security-monitor); `entrypoint` points at the
+  script below.
+- Create the required companion **entrypoint** `scripts/deploy/deploy-unified-alert-bus.py` (the deploy
+  discipline mandates every manifest ship with a `scripts/deploy/*.{sh,py}` entrypoint supporting
+  `--dry-run`/`--apply`; felix-deployer runs `<entrypoint> --dry-run` then `--apply` each tick). This is a
+  **thin verify-only** entrypoint (the migrated code reaches office2 via felix-deployer's `git pull`, like
+  `deploys/applied/0009`/`0013` — no rsync): `--dry-run` checks the topic env-file is present (the
+  preflight) and reports; `--apply` runs the preflight presence check then `alert_bus.sh self-test` to
+  prove delivery. Make it `chmod +x` and importable/runnable per repo `scripts/deploy/` conventions
+  (mirror an existing entrypoint's `--dry-run/--apply` interface). Ensure `alert_bus.sh` is delivered
+  with its executable bit.
+- **Ownership note (orchestrator amendment):** the entrypoint was added to this WP's `owned_files` after
+  the initial decomposition, which had missed the deploy discipline's two-file requirement. It is a new
+  file no other WP touches (no overlap).
 
 ### T020 — Credential + env template
 - Add a `felix-alert-ntfy-topic` entry to `credential-manifest.json` (type env-file, path
@@ -114,3 +127,7 @@ Confirm NO real topic value is committed anywhere; confirm each emitting runtime
 (systemd EnvironmentFile for the three services, shim-sourced env-file for cron audit); confirm the
 manifest declares the right `expected_baselines` so auto-rebaseline covers the audited-surface drift.
 **Rebaseline**: this WP touches audited surfaces → the merge commit must record the rebaseline outcome.
+
+## Activity Log
+
+- 2026-07-10T12:46:15Z – claude:sonnet:implementer-ivan:implementer – shell_pid=30307 – Assigned agent via action command
