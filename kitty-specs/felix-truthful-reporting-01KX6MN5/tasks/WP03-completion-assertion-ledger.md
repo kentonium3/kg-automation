@@ -19,8 +19,9 @@ subtasks:
 - T014
 phase: Phase 1 - Detection
 assignee: ''
-agent: claude
+agent: "claude:sonnet:python-pedro:implementer"
 agent_profile: "python-pedro"
+shell_pid: "98580"
 history:
 - at: '2026-07-10T18:45:00Z'
   actor: system
@@ -327,3 +328,7 @@ network, no office2, no LLM.
 - Confirm the JSONL write mirrors the #706 `fcntl.LOCK_EX` append pattern and the
   ledger dir is env-overridable (`FELIX_TRUST_ASSERTIONS_DIR`) with the documented
   default.
+
+## Activity Log
+
+- 2026-07-10T19:16:18Z – claude:sonnet:python-pedro:implementer – shell_pid=98580 – Assigned agent via action command
