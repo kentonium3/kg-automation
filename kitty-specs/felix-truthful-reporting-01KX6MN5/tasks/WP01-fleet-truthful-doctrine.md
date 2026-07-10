@@ -19,8 +19,9 @@ subtasks:
 - T005
 phase: Phase 1 - Prevention doctrine
 assignee: ''
-agent: claude
+agent: "claude:sonnet:curator-carla:implementer"
 agent_profile: "curator-carla"
+shell_pid: "98266"
 history:
 - at: '2026-07-10T18:45:00Z'
   actor: system
@@ -338,3 +339,7 @@ constant, import or duplicate it deliberately so the literal stays authoritative
 - Confirm prompt budget respected: run both `test_truthful_doctrine.py` and
   `test_agents_md_size.py`; every touched `AGENTS.md` is `< 12,000` bytes.
 - Confirm **no rebaseline** was performed (unmonitored audited surface, #621).
+
+## Activity Log
+
+- 2026-07-10T19:15:29Z – claude:sonnet:curator-carla:implementer – shell_pid=98266 – Assigned agent via action command
