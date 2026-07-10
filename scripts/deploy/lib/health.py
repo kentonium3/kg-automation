@@ -28,6 +28,13 @@ The state file is written atomically (temp file in the same directory +
 ``os.replace``) so a crash mid-write never leaves a torn watermark. A clock is
 injectable for deterministic tests — there is no untestable bare
 ``datetime.now()`` in the record path.
+
+Delivery backend (WP02 / #701 — felix-alert bus): this module never talks to
+ntfy directly. It calls an injected :data:`Notifier` seam and consumes only its
+delivery ``bool``. The felix-deployer / agent-prompt-sync implementations of
+that seam now deliver through the shared ``scripts.common.alert_bus.emit`` (was
+curl). The bool contract — stamp ``last_alert_ts`` only on a delivered alert —
+is unchanged, so no logic here needed to move.
 """
 
 from __future__ import annotations

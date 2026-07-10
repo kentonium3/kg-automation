@@ -15,3 +15,9 @@ WorkingDirectory=/home/claude/kg-automation
 # wrapper then logs "ntfy skipped" and records it in the signal file
 # instead of failing the run (see contract's non-fatal delivery rule).
 EnvironmentFile=-/data/services/openclaw/felix-health-check/ntfy.env
+# Load FELIX_ALERT_NTFY_TOPIC for the unified felix-alert bus
+# (scripts/common/alert_bus/). Credential: felix-alert-ntfy-topic; template
+# scripts/common/alert_bus.env.sample. Leading "-" keeps startup non-fatal if
+# the topic env-file is absent (the bus returns NTFY_MISSING_TOPIC instead of
+# failing the run).
+EnvironmentFile=-/home/claude/.config/felix/alert-bus/env

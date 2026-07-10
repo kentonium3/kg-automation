@@ -618,12 +618,31 @@ def _run_tick_locked(
         )
 
         # Notification dispatch MUST NOT crash the tick — wrap broadly.
+        # Thread the apply result's REAL captured error context into the alert
+        # (#699 / SC-002): stderr/stdout excerpts, the failing argv/command, the
+        # returncode and manifest_path all live in result.details from
+        # scripts.deploy.lib.apply. Passing only result.summary is exactly how
+        # the missing-exec-bit cause was lost in #699.
+        failure_details = {
+            key: result.details.get(key)
+            for key in (
+                "stderr_excerpt",
+                "stdout_excerpt",
+                "argv",
+                "failed_command",
+                "returncode",
+                "manifest_path",
+                "error_code",
+            )
+            if result.details.get(key) is not None
+        }
         try:
             _notify.dispatch_failure_notification(
                 manifest=manifest_data,
                 phase=phase,
                 error_summary=result.summary,
                 head_sha=head_sha,
+                details=failure_details,
             )
         except Exception as exc:  # pragma: no cover - defence in depth
             _log(

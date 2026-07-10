@@ -75,6 +75,26 @@ else
   echo "             Provision NTFY_TOPIC=<topic> in that file to enable alerts."
 fi
 
+echo ">>> Provisioning unified felix-alert bus env-file skeleton"
+# Create the alert-bus topic env-file DIRECTORY + a 0600 skeleton file if absent
+# (mirrors the ntfy.env pattern). The topic VALUE is a secret provisioned
+# out-of-band by the operator (credential felix-alert-ntfy-topic; template
+# scripts/common/alert_bus.env.sample) — this script NEVER writes a real topic,
+# only the empty FELIX_ALERT_NTFY_TOPIC= placeholder so the file exists with the
+# right ownership/mode and the systemd EnvironmentFile= directives resolve.
+ALERT_BUS_ENV_DIR="/home/claude/.config/felix/alert-bus"
+ALERT_BUS_ENV_FILE="${ALERT_BUS_ENV_DIR}/env"
+if [[ -f "${ALERT_BUS_ENV_FILE}" ]]; then
+  echo "    OK: ${ALERT_BUS_ENV_FILE} present — alert-bus topic env-file exists (not overwritten)."
+else
+  mkdir -p "${ALERT_BUS_ENV_DIR}"
+  # Skeleton only: empty placeholder, never a real topic value.
+  printf 'FELIX_ALERT_NTFY_TOPIC=\n' > "${ALERT_BUS_ENV_FILE}"
+  chmod 600 "${ALERT_BUS_ENV_FILE}"
+  echo "    CREATED: ${ALERT_BUS_ENV_FILE} (0600 skeleton, empty placeholder)."
+  echo "             Fill FELIX_ALERT_NTFY_TOPIC=<topic> out-of-band to enable the felix-alert bus."
+fi
+
 echo ">>> Smoke-test (one-shot run via the installed service)"
 systemctl --user start "${SERVICE_NAME}.service"
 sleep 1

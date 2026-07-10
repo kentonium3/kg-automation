@@ -1,7 +1,8 @@
 #!/bin/bash
 # Security audit script for office2
 # Runs daily via cron at 3AM, alerts on changes from baseline
-# Sends push notification via ntfy.sh when alerts are detected
+# Sends push notification via the felix-alert bus (ntfy under the hood) when
+# alerts are detected
 #
 # Coverage:
 #   System: .pth files, pip packages, Docker images, brew packages + taps,
@@ -11,7 +12,9 @@
 #   Felix:  OpenClaw cron-job normalized config, openclaw.json content hash
 #
 # Setup:
-#   1. NTFY_TOPIC is set below
+#   1. Notifications go through the felix-alert bus shim
+#      (scripts/common/alert_bus.sh), which sources the topic env-file at
+#      /home/claude/.config/felix/alert-bus/env. No topic is hardcoded here.
 #   2. Install the ntfy app on your phone: https://ntfy.sh
 #   3. Subscribe to your topic in the app
 #   4. On first run, baselines are created automatically
@@ -30,8 +33,9 @@ ALERT_FILE="$LOG_DIR/alerts-$DATE.log"
 DRIFT_EVENTS_FILE="$LOG_DIR/drift-events.jsonl"
 ALERT=0
 
-# ntfy topic — keep this private
-NTFY_TOPIC="felix-office2-k9x4m2"
+# felix-alert bus shim — sources the topic env-file and delivers via the
+# single Python ntfy source of truth. No hardcoded topic lives here anymore.
+ALERT_BUS="/home/claude/kg-automation/scripts/common/alert_bus.sh"
 
 # --- Helpers ---
 log()   { echo "[$(date '+%H:%M:%S')] $1" >> "$LOGFILE"; }
@@ -240,20 +244,27 @@ if [ "$ALERT" -eq 1 ]; then
     ALERT_COUNT=$(grep -c "^\[ALERT\]" "$ALERT_FILE" 2>/dev/null || echo "?")
     log "AUDIT COMPLETE: $ALERT_COUNT ALERT(S) FOUND"
 
-    # Send ntfy push notification
-    if [ -n "$NTFY_TOPIC" ] && [ "$NTFY_TOPIC" != "felix-office2-sec-CHANGEME" ]; then
-        ALERT_SUMMARY=$(head -5 "$ALERT_FILE" | sed 's/\[ALERT\] //' | tr '\n' ' ')
-        curl -s --max-time 10 -X POST \
-            -H "Title: Felix Security Alert — office2" \
-            -H "Priority: high" \
-            -H "Tags: warning,rotating_light" \
-            -d "${ALERT_COUNT} alert(s) on ${DATE}: ${ALERT_SUMMARY}" \
-            "https://ntfy.sh/${NTFY_TOPIC}" > /dev/null 2>&1 \
-            && log "ntfy notification sent" \
-            || log "ntfy notification failed (non-fatal, check connectivity)"
+    # Send push notification via the felix-alert bus shim.
+    # Severity threshold: warn by default; escalate to error when the alert
+    # count is high (> 3) so a large-scale drift maps to the error priority
+    # gradient (this preserves the intent of the old "Priority: high" for
+    # meaningful incidents while keeping routine single-item drift at warn).
+    ALERT_SUMMARY=$(head -5 "$ALERT_FILE" | sed 's/\[ALERT\] //' | tr '\n' ' ')
+    if [ "$ALERT_COUNT" != "?" ] && [ "$ALERT_COUNT" -gt 3 ] 2>/dev/null; then
+        SEVERITY="error"
     else
-        log "ntfy: skipped (NTFY_TOPIC not configured)"
+        SEVERITY="warn"
     fi
+    # Best-effort: the shim always exits 0, and `|| true` is belt-and-suspenders
+    # so a notification failure can never fail the audit cron.
+    "$ALERT_BUS" emit \
+        --source "security-monitor/audit" \
+        --severity "$SEVERITY" \
+        --title "Felix Security Alert — office2" \
+        --description "${ALERT_COUNT} alert(s) on ${DATE}" \
+        --detail summary="${ALERT_SUMMARY}" \
+        && log "felix-alert emit attempted (severity=$SEVERITY)" \
+        || true
 
     echo "========================================="
     echo " SECURITY ALERTS DETECTED — $DATE"

@@ -1,11 +1,12 @@
-"""felix-health-check systemd entrypoint (WP03, #676).
+"""felix-health-check systemd entrypoint (WP03, #676; alert-bus migration #701).
 
 Runs the existing bash health check
 (``/home/claude/helper-scripts/health-check.sh``) via ``subprocess.run``
 (never ``exec`` — an ``exec`` would replace this process and make
 classification impossible, Codex finding #1), classifies the result with
 failure-wins precedence, stamps a signal file for observability, and
-pushes an ntfy alert on any non-healthy outcome.
+pushes an alert on any non-healthy outcome via the unified ``felix-alert``
+bus (``scripts.common.alert_bus.emit`` — no local curl/ntfy code; #701).
 
 Invoked by ``scripts/office2/felix-health-check.service`` via::
 
@@ -34,6 +35,8 @@ import sys
 import tempfile
 from pathlib import Path
 
+from scripts.common.alert_bus import Alert, AlertResult, Severity, emit
+
 logger = logging.getLogger("felix_health_check")
 
 # --- Constants -------------------------------------------------------------
@@ -45,15 +48,16 @@ SIGNAL_FILE = Path("/data/services/openclaw/felix-health-check/last-run.json")
 # this is a generous ceiling so a hung dependency can't wedge the timer tick.
 SUBPROCESS_TIMEOUT_SECONDS = 300
 
-# ntfy delivery.
-NTFY_TOPIC_ENV = "NTFY_TOPIC"
-NTFY_BASE_URL = "https://ntfy.sh"
-NTFY_TITLE = "Felix Health Check — office2"
-NTFY_PRIORITY = "high"
-NTFY_TAGS = "warning,rotating_light"
-NTFY_CURL_MAX_TIME_SECONDS = 10
+# Alert delivery (via the unified felix-alert bus, #701). The bus resolves
+# the single ``FELIX_ALERT_NTFY_TOPIC`` and owns all ntfy I/O; this module
+# no longer reads ``NTFY_TOPIC`` or POSTs directly (SC-006). Priority/tags are
+# derived by the bus from ``Severity``, so they are no longer set here.
+ALERT_SOURCE = "felix-health-check/run"
+ALERT_TITLE = "Felix Health Check — office2"
 
-# Raw output is truncated before being pushed to ntfy (contract: ~4 KB).
+# Raw output is truncated before being folded into the alert (contract: ~4 KB).
+# The bus renderer additionally truncates/redacts, so this is a defensive
+# first bound that keeps the signal-file body compact.
 OUTPUT_TRUNCATE_BYTES = 4096
 TRUNCATION_MARKER = "\n... (truncated)"
 
@@ -160,63 +164,59 @@ def run_health_check_script(
     )
 
 
-def send_ntfy_alert(status: str, body: str) -> dict:
-    """POST an ntfy alert for a non-healthy outcome.
+def _delivery_record(result: AlertResult) -> dict:
+    """Adapt an ``AlertResult`` to the legacy ``last-run.json`` delivery shape.
 
-    Returns a small delivery-record dict (never raises for routine
-    failure modes): ``{"attempted": bool, "sent": bool, "detail": str}``.
-    Mirrors the non-fatal-on-failure pattern in
-    ``scripts/office2/security-monitor/audit.sh:243-255`` and
-    ``scripts/deploy/felix-deployer/notify.py``: the topic is read from
-    an environment variable (``NTFY_TOPIC``) and is never hard-coded or
-    committed here.
+    The pre-migration signal file records
+    ``{"attempted": bool, "sent": bool, "detail": str}`` and downstream
+    consumers depend on that exact shape (NFR-004). Map the bus result onto
+    it (migration contract §5):
+
+    - ``attempted`` = ``result.topic_configured`` — a blank topic means the
+      bus made no POST attempt, exactly like the old "topic not configured"
+      short-circuit (``attempted=False``).
+    - ``sent`` = ``result.ok`` — delivery succeeded.
+    - ``detail`` = ``result.reason or "delivered"`` — the bus's failure
+      reason on failure, or the literal ``"delivered"`` on success.
     """
-    topic = os.environ.get(NTFY_TOPIC_ENV, "").strip()
-    if not topic:
-        detail = f"ntfy skipped: {NTFY_TOPIC_ENV} not configured"
-        logger.warning(detail)
-        return {"attempted": False, "sent": False, "detail": detail}
+    return {
+        "attempted": result.topic_configured,
+        "sent": result.ok,
+        "detail": result.reason or "delivered",
+    }
 
-    try:
-        result = subprocess.run(  # noqa: S603 - argv list, no shell
-            [
-                "curl",
-                "--silent",
-                "--show-error",
-                "--fail",  # post-merge Codex #3: HTTP 4xx/5xx -> non-zero rc (else a
-                           # rejected topic/ntfy error would be recorded as sent)
-                "--max-time",
-                str(NTFY_CURL_MAX_TIME_SECONDS),
-                "-H",
-                f"Title: {NTFY_TITLE}",
-                "-H",
-                f"Priority: {NTFY_PRIORITY}",
-                "-H",
-                f"Tags: {NTFY_TAGS}",
-                "-X",
-                "POST",
-                "--data-binary",
-                "@-",
-                f"{NTFY_BASE_URL}/{topic}",
-            ],
-            input=body,
-            capture_output=True,
-            text=True,
-            timeout=NTFY_CURL_MAX_TIME_SECONDS + 5,
-            check=False,
+
+def send_alert(status: str, body: str) -> dict:
+    """Emit an alert for a non-healthy outcome via the felix-alert bus.
+
+    Delivery I/O (topic resolution, ntfy POST, truncation/redaction) is
+    owned entirely by ``scripts.common.alert_bus.emit`` — this module holds
+    no curl/ntfy code (SC-006, #701). ``emit()`` never raises (NFR-001), so
+    this function is non-fatal for all routine delivery failure modes.
+
+    Returns the legacy delivery-record dict
+    ``{"attempted": bool, "sent": bool, "detail": str}`` (via the adapter)
+    so ``last-run.json`` stays byte-compatible with the pre-migration shape.
+    """
+    result = emit(
+        Alert(
+            source=ALERT_SOURCE,
+            severity=Severity.ERROR,
+            title=ALERT_TITLE,
+            description=f"Felix health check on office2 reported: {status}.",
+            details={"status": status, "output": body},
         )
-    except (OSError, subprocess.TimeoutExpired) as exc:
-        detail = f"ntfy send failed (non-fatal): {exc}"
-        logger.error(detail)
-        return {"attempted": True, "sent": False, "detail": detail}
-
-    if result.returncode == 0:
-        logger.info("ntfy notification sent (status=%s)", status)
-        return {"attempted": True, "sent": True, "detail": "ntfy notification sent"}
-
-    detail = f"ntfy send failed (non-fatal): curl rc={result.returncode}"
-    logger.error(detail)
-    return {"attempted": True, "sent": False, "detail": detail}
+    )
+    delivery = _delivery_record(result)
+    if delivery["sent"]:
+        logger.info("felix-alert delivered (status=%s)", status)
+    elif delivery["attempted"]:
+        logger.error(
+            "felix-alert send failed (non-fatal): %s", delivery["detail"]
+        )
+    else:
+        logger.warning("felix-alert skipped: %s", delivery["detail"])
+    return delivery
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -229,7 +229,7 @@ def main(argv: list[str] | None = None) -> int:
             "health-check script missing or non-executable: %s", HEALTH_CHECK_SCRIPT
         )
         body = _truncate(f"Health-check script not found or not executable: {HEALTH_CHECK_SCRIPT}")
-        delivery: dict = send_ntfy_alert(status, body)
+        delivery: dict = send_alert(status, body)
         _atomic_write_json(
             SIGNAL_FILE,
             {
@@ -247,7 +247,7 @@ def main(argv: list[str] | None = None) -> int:
         status = STATUS_UNKNOWN
         logger.error("health-check.sh timed out: %s", exc)
         body = _truncate(f"health-check.sh timed out after {SUBPROCESS_TIMEOUT_SECONDS}s")
-        delivery = send_ntfy_alert(status, body)
+        delivery = send_alert(status, body)
         _atomic_write_json(
             SIGNAL_FILE,
             {
@@ -266,7 +266,7 @@ def main(argv: list[str] | None = None) -> int:
     if status in ALERTING_STATUSES:
         raw_output = f"{completed.stdout}{completed.stderr}"
         body = _truncate(raw_output)
-        delivery = send_ntfy_alert(status, body)
+        delivery = send_alert(status, body)
 
     _atomic_write_json(
         SIGNAL_FILE,

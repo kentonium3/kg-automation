@@ -8,8 +8,8 @@ Covers (WP03 / #667):
   * success resets the streak and clears ``last_alert_ts``; a later streak
     re-alerts;
   * atomic write (state file is valid JSON after write); injected clock;
-  * ``dispatch_health_notification`` topic resolution + fallback + best-effort
-    failure (sender mocked);
+  * ``dispatch_health_notification`` bool delivery contract (bus mocked) —
+    post-WP02 delivery is via ``scripts.common.alert_bus.emit``;
   * a regression smoke assertion that the manifest-shaped
     ``dispatch_failure_notification`` still behaves.
 
@@ -29,6 +29,7 @@ from typing import Any
 
 import pytest
 
+from scripts.common.alert_bus import AlertResult
 from scripts.deploy.lib import health
 from scripts.deploy.lib.gitsync import AdvanceResult
 
@@ -471,63 +472,38 @@ def test_injected_clock_controls_timestamps(state_path):
 
 
 # --------------------------------------------------------------------------- #
-# dispatch_health_notification — topic resolution + fallback + best-effort
+# dispatch_health_notification — bool delivery contract (felix-alert bus, WP02)
+#
+# Post-migration the notifier delivers via the bus (emit()), which resolves the
+# single FELIX_ALERT_NTFY_TOPIC. Per-actor topic resolution / fallback is gone;
+# the topic_env kwarg is vestigial. We mock ``notify.emit`` and assert only on
+# the bool contract health.record depends on.
 # --------------------------------------------------------------------------- #
-class _FakeProc:
-    def __init__(self, returncode: int, stdout: str = "", stderr: str = ""):
-        self.returncode = returncode
-        self.stdout = stdout
-        self.stderr = stderr
+def _emit_ok(_alert):
+    return AlertResult(ok=True, reason=None, topic_configured=True)
 
 
-def test_health_notification_resolves_actor_topic(monkeypatch):
-    monkeypatch.setenv("AGENT_PROMPT_SYNC_NTFY_TOPIC", "prompt-sync-topic-abcd")
-    monkeypatch.setenv(notify.NTFY_TOPIC_ENV, "shared-deployer-topic-xyz")
-    seen: dict[str, Any] = {}
+def _emit_fail(reason: str, topic_configured: bool = True):
+    def _inner(_alert):
+        return AlertResult(ok=False, reason=reason, topic_configured=topic_configured)
 
-    def _fake_run(argv, input=None, capture_output=None, text=None, check=None):
-        seen["argv"] = list(argv)
-        seen["input"] = input
-        return _FakeProc(returncode=0)
+    return _inner
 
-    monkeypatch.setattr(notify.subprocess, "run", _fake_run)
 
+def test_health_notification_delivered_returns_true(monkeypatch):
+    monkeypatch.setattr(notify, "emit", _emit_ok)
     delivered = notify.dispatch_health_notification(
         "agent-prompt-sync", "stalled", "detail body",
         topic_env="AGENT_PROMPT_SYNC_NTFY_TOPIC",
     )
-    # A successful POST reports delivery True (the contract health.record needs).
+    # A delivered alert reports True (the contract health.record needs).
     assert delivered is True
-    # Actor-specific topic wins over the shared fallback.
-    assert seen["argv"][-1] == "https://ntfy.sh/prompt-sync-topic-abcd"
 
 
-def test_health_notification_falls_back_to_shared_topic(monkeypatch):
-    monkeypatch.delenv("AGENT_PROMPT_SYNC_NTFY_TOPIC", raising=False)
-    monkeypatch.setenv(notify.NTFY_TOPIC_ENV, "shared-deployer-topic-xyz")
-    seen: dict[str, Any] = {}
-
-    def _fake_run(argv, input=None, capture_output=None, text=None, check=None):
-        seen["argv"] = list(argv)
-        return _FakeProc(returncode=0)
-
-    monkeypatch.setattr(notify.subprocess, "run", _fake_run)
-
-    delivered = notify.dispatch_health_notification(
-        "agent-prompt-sync", "stalled", "body",
-        topic_env="AGENT_PROMPT_SYNC_NTFY_TOPIC",
-    )
-    assert delivered is True
-    assert seen["argv"][-1] == "https://ntfy.sh/shared-deployer-topic-xyz"
-
-
-def test_health_notification_missing_topic_is_noop(monkeypatch):
-    monkeypatch.delenv("AGENT_PROMPT_SYNC_NTFY_TOPIC", raising=False)
-    monkeypatch.delenv(notify.NTFY_TOPIC_ENV, raising=False)
-    called = []
+def test_health_notification_missing_topic_returns_false(monkeypatch):
+    # Bus returns NTFY_MISSING_TOPIC when no topic is configured → not delivered.
     monkeypatch.setattr(
-        notify.subprocess, "run",
-        lambda *a, **kw: called.append(True) or _FakeProc(returncode=0),
+        notify, "emit", _emit_fail("NTFY_MISSING_TOPIC", topic_configured=False)
     )
     delivered = notify.dispatch_health_notification(
         "agent-prompt-sync", "stalled", "body",
@@ -535,17 +511,11 @@ def test_health_notification_missing_topic_is_noop(monkeypatch):
     )
     # No topic → not delivered. This is the case health.record must NOT burn.
     assert delivered is False
-    assert called == []  # curl NOT invoked
 
 
-def test_health_notification_best_effort_on_curl_missing(monkeypatch):
-    monkeypatch.setenv("AGENT_PROMPT_SYNC_NTFY_TOPIC", "prompt-sync-topic-abcd")
-
-    def _fake_run(*a, **kw):
-        raise FileNotFoundError("curl")
-
-    monkeypatch.setattr(notify.subprocess, "run", _fake_run)
-    # Must NOT raise — best-effort — and reports not delivered.
+def test_health_notification_best_effort_on_delivery_error(monkeypatch):
+    # Any bus non-delivery (curl/timeout/etc.) → not delivered, never raises.
+    monkeypatch.setattr(notify, "emit", _emit_fail("CURL_HTTP"))
     delivered = notify.dispatch_health_notification(
         "agent-prompt-sync", "stalled", "body",
         topic_env="AGENT_PROMPT_SYNC_NTFY_TOPIC",
@@ -553,50 +523,39 @@ def test_health_notification_best_effort_on_curl_missing(monkeypatch):
     assert delivered is False
 
 
-def test_health_notification_best_effort_on_http_error(monkeypatch):
-    monkeypatch.setenv("AGENT_PROMPT_SYNC_NTFY_TOPIC", "prompt-sync-topic-abcd")
-    monkeypatch.setattr(
-        notify.subprocess, "run",
-        lambda *a, **kw: _FakeProc(returncode=22, stderr="HTTP 500"),
-    )
-    delivered = notify.dispatch_health_notification(
-        "agent-prompt-sync", "stalled", "body",
-        topic_env="AGENT_PROMPT_SYNC_NTFY_TOPIC",
-    )
-    # A non-zero curl rc → not delivered.
-    assert delivered is False
+def test_health_notification_body_is_plain_language_description(monkeypatch):
+    """The health body is a plain-language status account → it maps to the
+    Alert ``description`` (per the WP01 data-model: descriptions are plain
+    language; ``details`` values are what the bus redacts). This asserts the
+    body reaches the operator intact and the actor is captured in details."""
+    captured: dict[str, Any] = {}
 
+    def _capture(alert):
+        captured["alert"] = alert
+        return AlertResult(ok=True, reason=None, topic_configured=True)
 
-def test_health_notification_redacts_body(monkeypatch):
-    monkeypatch.setenv("AGENT_PROMPT_SYNC_NTFY_TOPIC", "prompt-sync-topic-abcd")
-    seen: dict[str, Any] = {}
-
-    def _fake_run(argv, input=None, **kw):
-        seen["input"] = input
-        return _FakeProc(returncode=0)
-
-    monkeypatch.setattr(notify.subprocess, "run", _fake_run)
-    secret = "S" * 40  # token-shaped → redacted by _redact_and_truncate
+    monkeypatch.setattr(notify, "emit", _capture)
     notify.dispatch_health_notification(
-        "agent-prompt-sync", "stalled", f"token={secret}",
+        "agent-prompt-sync", "git advance stalled (3x)",
+        "Actor: agent-prompt-sync\nbehind=5 ahead=0",
         topic_env="AGENT_PROMPT_SYNC_NTFY_TOPIC",
     )
-    assert secret not in seen["input"]
+    alert = captured["alert"]
+    assert "behind=5 ahead=0" in alert.description
+    assert alert.details["actor"] == "agent-prompt-sync"
 
 
 # --------------------------------------------------------------------------- #
-# Regression: existing manifest-failure notifier still behaves.
+# Regression: manifest-failure notifier still behaves (bus-backed).
 # --------------------------------------------------------------------------- #
 def test_dispatch_failure_notification_still_works(monkeypatch):
-    monkeypatch.setenv(notify.NTFY_TOPIC_ENV, "test-topic-alpha-1234")
-    seen: dict[str, Any] = {}
+    captured: dict[str, Any] = {}
 
-    def _fake_run(argv, input=None, capture_output=None, text=None, check=None):
-        seen["argv"] = list(argv)
-        seen["input"] = input
-        return _FakeProc(returncode=0)
+    def _capture(alert):
+        captured["alert"] = alert
+        return AlertResult(ok=True, reason=None, topic_configured=True)
 
-    monkeypatch.setattr(notify.subprocess, "run", _fake_run)
+    monkeypatch.setattr(notify, "emit", _capture)
 
     result = notify.dispatch_failure_notification(
         manifest={"name": "vikunja-image-bump", "tier": 2},
@@ -606,8 +565,9 @@ def test_dispatch_failure_notification_still_works(monkeypatch):
         failed_at="2026-06-13T15:30:42Z",
     )
     assert result.ok is True
-    assert result.summary == "ntfy notification sent"
+    assert result.summary == "alert delivered"
     assert result.details["title"] == "felix-deployer failed: vikunja-image-bump"
     assert result.details["format_version"] == "v1"
-    assert seen["argv"][-1] == "https://ntfy.sh/test-topic-alpha-1234"
-    assert seen["input"].startswith("Phase: verification_post\n")
+    alert = captured["alert"]
+    assert alert.title == "felix-deployer failed: vikunja-image-bump"
+    assert alert.details["phase"] == "verification_post"

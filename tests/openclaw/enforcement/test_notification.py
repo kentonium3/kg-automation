@@ -2,6 +2,7 @@
 
 from unittest.mock import patch, MagicMock
 
+from scripts.common.alert_bus import Severity
 from scripts.openclaw.enforcement.detection import DriftResult, DriftState
 from scripts.openclaw.enforcement.notification import (
     compose_alert_message,
@@ -113,3 +114,48 @@ class TestNotify:
             notify(actions, _config())
         mock_issue.assert_called_once()
         mock_wa.assert_called_once()
+
+    def test_co_emit_is_additive_whatsapp_and_github_still_fire(self):
+        """SC-007: felix-alert co-emit is ADDITIVE — WhatsApp + GitHub untouched."""
+        actions = {"conflicts": [_make_result(DriftState.CONFLICT)], "factory_transitions": [], "deployed": [], "captured": [], "errors": []}
+        with patch("scripts.openclaw.enforcement.notification.send_whatsapp") as mock_wa, \
+             patch("scripts.openclaw.enforcement.notification.create_drift_issue", return_value="https://issue/1") as mock_issue, \
+             patch("scripts.openclaw.enforcement.notification.emit") as mock_emit:
+            notify(actions, _config())
+        # All three surfaces fire.
+        mock_issue.assert_called_once()
+        mock_wa.assert_called_once()
+        mock_emit.assert_called_once()
+        # The co-emit carries a well-formed Alert to the bus.
+        alert = mock_emit.call_args.args[0]
+        assert alert.source == "openclaw-enforcement/drift"
+        assert alert.severity == Severity.ERROR  # conflicts present
+        assert alert.details["issue_url"] == "https://issue/1"
+
+    def test_co_emit_warn_when_only_factory_transitions(self):
+        actions = {"conflicts": [], "factory_transitions": [_make_result(DriftState.OFFICE2_CHANGED)], "deployed": [], "captured": [], "errors": []}
+        with patch("scripts.openclaw.enforcement.notification.send_whatsapp"), \
+             patch("scripts.openclaw.enforcement.notification.create_drift_issue", return_value=None), \
+             patch("scripts.openclaw.enforcement.notification.emit") as mock_emit:
+            notify(actions, _config())
+        mock_emit.assert_called_once()
+        assert mock_emit.call_args.args[0].severity == Severity.WARN
+
+    def test_co_emit_failure_never_breaks_enforcement(self):
+        """A bus-layer exception must NOT propagate past enforcement."""
+        actions = {"conflicts": [_make_result(DriftState.CONFLICT)], "factory_transitions": [], "deployed": [], "captured": [], "errors": []}
+        with patch("scripts.openclaw.enforcement.notification.send_whatsapp") as mock_wa, \
+             patch("scripts.openclaw.enforcement.notification.create_drift_issue", return_value="https://issue/1"), \
+             patch("scripts.openclaw.enforcement.notification.emit", side_effect=RuntimeError("bus exploded")):
+            # Must not raise despite emit() blowing up.
+            notify(actions, _config())
+        # WhatsApp still fired even though the co-emit raised internally.
+        mock_wa.assert_called_once()
+
+    def test_co_emit_skipped_on_dry_run(self):
+        actions = {"conflicts": [_make_result(DriftState.CONFLICT)], "factory_transitions": [], "deployed": [], "captured": [], "errors": []}
+        with patch("scripts.openclaw.enforcement.notification.send_whatsapp"), \
+             patch("scripts.openclaw.enforcement.notification.create_drift_issue", return_value=None), \
+             patch("scripts.openclaw.enforcement.notification.emit") as mock_emit:
+            notify(actions, _config(), dry_run=True)
+        mock_emit.assert_not_called()

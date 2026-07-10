@@ -56,6 +56,12 @@ Environment=AGENT_PROMPT_SYNC_NTFY_TOPIC=
 # this ceiling accommodates slow git fetches on flaky network without
 # prematurely killing the process.
 TimeoutStartSec=120s
+# Load FELIX_ALERT_NTFY_TOPIC for the unified felix-alert bus
+# (scripts/common/alert_bus/). Credential: felix-alert-ntfy-topic; template
+# scripts/common/alert_bus.env.sample. Leading "-" keeps startup non-fatal if
+# the topic env-file is absent (the bus returns NTFY_MISSING_TOPIC instead of
+# crashing the tick).
+EnvironmentFile=-/home/claude/.config/felix/alert-bus/env
 
 [Install]
 WantedBy=default.target

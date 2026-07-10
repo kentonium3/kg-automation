@@ -1,24 +1,10 @@
 {
-  "accept_commit": "9ba4d04e3c8c279c9d14f9ca4e4b33efdd97e2a8",
-  "acceptance_history": [
-    {
-      "accept_commit": "9ba4d04e3c8c279c9d14f9ca4e4b33efdd97e2a8",
-      "acceptance_mode": "pr",
-      "accepted_at": "2026-07-10T13:24:44.262454+00:00",
-      "accepted_by": "kentgale",
-      "accepted_from_commit": "b6fed7a23ae9e006762b4bd1b61dcd29dc31f87f"
-    }
-  ],
-  "acceptance_mode": "pr",
-  "accepted_at": "2026-07-10T13:24:44.262454+00:00",
-  "accepted_by": "kentgale",
-  "accepted_from_commit": "b6fed7a23ae9e006762b4bd1b61dcd29dc31f87f",
   "coordination_branch": "kitty/mission-unified-alert-bus-01KX5TYT",
   "created_at": "2026-07-10T11:00:14.527032+00:00",
   "flattened": false,
   "friendly_name": "Unified Alert Bus",
   "mission_id": "01KX5TYT1W5WFRQGG1S52RSGD1",
-  "mission_number": null,
+  "mission_number": 92,
   "mission_slug": "unified-alert-bus-01KX5TYT",
   "mission_type": "software-dev",
   "pr_bound": true,
@@ -26,7 +12,5 @@
   "purpose_tldr": "Consolidate Felix's fragmented alerts into one ntfy thread with a structured, self-explanatory message schema delivered through a single shared emit library.",
   "slug": "unified-alert-bus-01KX5TYT",
   "target_branch": "feat/unified-alert-bus",
-  "topology": "coord",
-  "vcs": "git",
-  "vcs_locked_at": "2026-07-10T12:01:04.294371+00:00"
+  "topology": "coord"
 }
