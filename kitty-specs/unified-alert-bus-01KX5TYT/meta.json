@@ -1,4 +1,16 @@
 {
+  "acceptance_history": [
+    {
+      "acceptance_mode": "pr",
+      "accepted_at": "2026-07-10T13:24:44.262454+00:00",
+      "accepted_by": "kentgale",
+      "accepted_from_commit": "b6fed7a23ae9e006762b4bd1b61dcd29dc31f87f"
+    }
+  ],
+  "acceptance_mode": "pr",
+  "accepted_at": "2026-07-10T13:24:44.262454+00:00",
+  "accepted_by": "kentgale",
+  "accepted_from_commit": "b6fed7a23ae9e006762b4bd1b61dcd29dc31f87f",
   "coordination_branch": "kitty/mission-unified-alert-bus-01KX5TYT",
   "created_at": "2026-07-10T11:00:14.527032+00:00",
   "flattened": false,
