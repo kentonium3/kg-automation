@@ -1,7 +1,7 @@
 {
   "schema_version": "1.1",
-  "last_updated": "2026-07-09",
-  "updated_by": "felix-calendar-helper-01KX4H3C (#699 — calendar helper on-demand invocation + Google Calendar API dependency + felix-admin-calendar gog-skill removal; RFC #681 calendar phase) + deterministic-monitoring-checks-01KX1XNW (#676) + harden-inbox-capture-01KWVGZM (#662) + felix-admin-cron-path-fix-01KWQTY3 (#656) + finalize-inbox-file-01KW8MSQ (#325) + pull-based-deploy-pipeline-01KTYQQS (#136) + felix-calendar-subagent-extraction-01KTTA33 (#579) + #572-credential-liveness-probe + prescan-archive-anomalies-01KTMZPE (#568) + capture-agents-md-rewrite-01KTMY86 (#566) + capture-d6-helpers-extraction-01KTMS5Q (#566) + agent-prompt-deploy-pipeline-01KTMDDD (#567) + vikunja-client-and-habits-weekly-report-01KTKSFT (#542 + #561 + #562) + inbox-calendar-and-aspiration-routing-01KTHHXS + #520-felix-vikunja-sync-project-layer-and-url-config + #519-touchpoint-migration + #518-felix-vikunja-sync-driver-added + #376-remove-escalation-v1-parity + #400-audit-interpretation-moment0 + #310-tasker-jsonl-migration + #374-main-verbatim-passthrough + #362-drift-event-auto-resolution + #309-migrate-escalation-to-jsonl-state-model + #343-refactor-doc-auditor-to-scripts-first-driver + #307-backfill-habits-jsonl-from-comments + #306-habits-native-repeat-jsonl-state + #304-felix-bot-rotation + #291-felix-file-issue + #289-mutation-surfaces-enumeration + #285-cron-delivery-restore-path-c + #282-habits-d6-extract + #263-cron-delivery-mode-round2 + #100-google-workspace-foundation + #256-scope-discipline-guardrails + #253-step-5a-6-consolidation + #254-atomic-write-perm-preservation + issue-105-doc-auditor + #223-systemd-timer + #208-restic-healthcheck + #202-obsidian-sync-system-level + #203-sync-heartbeat + #199-inbox-schedules + #115-credential-health-check + #189-vikunja-compose + #185-inbox-capture-dedup + restore-whatsapp-dm-reply-delivery-01KTVVHH (#588) + #545-reconcile-doc-auditor-status",
+  "last_updated": "2026-07-10",
+  "updated_by": "f0-exec-hardening-01KX4ZCY (#675 — exec-hardening finding + live-config reconcile: habits/tasker model drift, per-agent skills, post-#699 gog paths, gateway version) + felix-calendar-helper-01KX4H3C (#699 — calendar helper on-demand invocation + Google Calendar API dependency + felix-admin-calendar gog-skill removal; RFC #681 calendar phase) + deterministic-monitoring-checks-01KX1XNW (#676) + harden-inbox-capture-01KWVGZM (#662) + felix-admin-cron-path-fix-01KWQTY3 (#656) + finalize-inbox-file-01KW8MSQ (#325) + pull-based-deploy-pipeline-01KTYQQS (#136) + felix-calendar-subagent-extraction-01KTTA33 (#579) + #572-credential-liveness-probe + prescan-archive-anomalies-01KTMZPE (#568) + capture-agents-md-rewrite-01KTMY86 (#566) + capture-d6-helpers-extraction-01KTMS5Q (#566) + agent-prompt-deploy-pipeline-01KTMDDD (#567) + vikunja-client-and-habits-weekly-report-01KTKSFT (#542 + #561 + #562) + inbox-calendar-and-aspiration-routing-01KTHHXS + #520-felix-vikunja-sync-project-layer-and-url-config + #519-touchpoint-migration + #518-felix-vikunja-sync-driver-added + #376-remove-escalation-v1-parity + #400-audit-interpretation-moment0 + #310-tasker-jsonl-migration + #374-main-verbatim-passthrough + #362-drift-event-auto-resolution + #309-migrate-escalation-to-jsonl-state-model + #343-refactor-doc-auditor-to-scripts-first-driver + #307-backfill-habits-jsonl-from-comments + #306-habits-native-repeat-jsonl-state + #304-felix-bot-rotation + #291-felix-file-issue + #289-mutation-surfaces-enumeration + #285-cron-delivery-restore-path-c + #282-habits-d6-extract + #263-cron-delivery-mode-round2 + #100-google-workspace-foundation + #256-scope-discipline-guardrails + #253-step-5a-6-consolidation + #254-atomic-write-perm-preservation + issue-105-doc-auditor + #223-systemd-timer + #208-restic-healthcheck + #202-obsidian-sync-system-level + #203-sync-heartbeat + #199-inbox-schedules + #115-credential-health-check + #189-vikunja-compose + #185-inbox-capture-dedup + restore-whatsapp-dm-reply-delivery-01KTVVHH (#588) + #545-reconcile-doc-auditor-status",
   "services": [
     {
       "name": "vikunja",
@@ -354,7 +354,7 @@
     {
       "name": "openclaw-gateway",
       "type": "npm-global",
-      "version": "v2026.6.5",
+      "version": "2026.6.11",
       "host": "office2",
       "port": 18789,
       "bind_ip": "127.0.0.1",
@@ -389,13 +389,17 @@
         "felix-admin-capture": {
           "workspace": "/data/services/openclaw/inbox-agent",
           "model": "anthropic/claude-haiku-4-5",
-          "purpose": "Obsidian inbox processing \u2014 classifies, routes, creates Vikunja tasks. Per mission inbox-calendar-and-aspiration-routing-01KTHHXS, the classifier vocabulary is extended to also (a) classify and route calendar events to Google Calendar via Felix main delegation, (b) classify and route aspirations to dated journal entries (08-Journal/), (c) classify and route Someday items to the Vikunja Someday project (resolved by name), and (d) maintain a pending-calendar-clarifications state file with a 24h timeout sweep.",
+          "skills": [
+            "vikunja_api",
+            "github"
+          ],
+          "purpose": "Obsidian inbox processing \u2014 classifies, routes, creates Vikunja tasks. Per mission inbox-calendar-and-aspiration-routing-01KTHHXS, the classifier vocabulary is extended to also (a) classify and route calendar events to Google Calendar inline via the Felix calendar helper (`route_calendar_event --create`, post-#699; was Felix main delegation pre-#699), (b) classify and route aspirations to dated journal entries (08-Journal/), (c) classify and route Someday items to the Vikunja Someday project (resolved by name), and (d) maintain a pending-calendar-clarifications state file with a 24h timeout sweep.",
           "source_in_repo": "scripts/openclaw/agents/felix-admin-capture/",
           "deployed_by": "F008",
           "autonomy_level": "assisted",
-          "updated_by": "harden-inbox-capture-01KWVGZM (#662) + felix-admin-cron-path-fix-01KWQTY3 (#656) + finalize-inbox-file-01KW8MSQ (#325) + capture-agents-md-rewrite-01KTMY86 (#566) + inbox-calendar-and-aspiration-routing-01KTHHXS + #185-inbox-capture-dedup",
-          "updated_at": "2026-07-06",
-          "notes": "As of #185 (2026-05-12): routes are deduped via a filename-keyed routing log (see state_files). Notes with malformed frontmatter halt routing and surface via a batched 'Inbox quality:' GitHub issue + an Obsidian `> [!error] felix-capture:` callout marker injected at the top of the affected note. Markers auto-strip when the note next parses cleanly. As of inbox-calendar-and-aspiration-routing-01KTHHXS (2026-06-08): calendar events with all required fields are delegated to Felix main for `gog calendar create`; incomplete calendar events trigger a single WhatsApp clarification prompt and a write to the pending-calendar-clarifications state file (24h timeout sweep); aspirations and musings are appended to the dated `08-Journal/Journal YYYY-MM-DD HHmm.md` entry; Someday items are routed to the Vikunja Someday project resolved by name. Post-mission capture-agents-md-rewrite-01KTMY86 (2026-06-08): AGENTS.md rewritten from 52,942 chars to ~13,986 chars per Felix Constitution Directive 6; deterministic Step 1-7 recipes extracted to scripts/inbox/ helpers (6 new from capture-d6-helpers-extraction-01KTMS5Q + 8 existing); Step 5 invariant ('do NOT delete the original file \u2014 preserve it in 01-Inbox/') now visible in the first 8K bootstrap chars. As of finalize-inbox-file-01KW8MSQ (#325, 2026-06-28): the per-file finalize (Step 5c) is now an error-surfacing call \u2014 mark_processed.py exposes a 0/1/2/3 exit contract (0 success/idempotent, 1 validation failure incl. outside-inbox-root, 2 filesystem error surfaced via OSError where previously an uncaught traceback, 3 privacy refusal) and emits a single-line JSON success object on stdout (exit 0). The felix-admin-capture Step 5c standing orders act on these exit codes, surfacing/escalating any non-zero finalize rather than silently continuing.",
+          "updated_by": "harden-inbox-capture-01KWVGZM (#662) + felix-admin-cron-path-fix-01KWQTY3 (#656) + finalize-inbox-file-01KW8MSQ (#325) + capture-agents-md-rewrite-01KTMY86 (#566) + inbox-calendar-and-aspiration-routing-01KTHHXS + #185-inbox-capture-dedup + f0-exec-hardening-01KX4ZCY (#675 — exec-hardening finding + live-config reconcile)",
+          "updated_at": "2026-07-10",
+          "notes": "As of #185 (2026-05-12): routes are deduped via a filename-keyed routing log (see state_files). Notes with malformed frontmatter halt routing and surface via a batched 'Inbox quality:' GitHub issue + an Obsidian `> [!error] felix-capture:` callout marker injected at the top of the affected note. Markers auto-strip when the note next parses cleanly. As of inbox-calendar-and-aspiration-routing-01KTHHXS (2026-06-08) and reconciled by #699 (RFC #681 calendar phase): calendar events with all required fields are created inline via `route_calendar_event --create` (which invokes the Felix calendar helper directly against the Google Calendar API — no hop through Felix main, no `gog`); incomplete calendar events trigger a single WhatsApp clarification prompt and a write to the pending-calendar-clarifications state file (24h timeout sweep); aspirations and musings are appended to the dated `08-Journal/Journal YYYY-MM-DD HHmm.md` entry; Someday items are routed to the Vikunja Someday project resolved by name. Post-mission capture-agents-md-rewrite-01KTMY86 (2026-06-08): AGENTS.md rewritten from 52,942 chars to ~13,986 chars per Felix Constitution Directive 6; deterministic Step 1-7 recipes extracted to scripts/inbox/ helpers (6 new from capture-d6-helpers-extraction-01KTMS5Q + 8 existing); Step 5 invariant ('do NOT delete the original file \u2014 preserve it in 01-Inbox/') now visible in the first 8K bootstrap chars. As of finalize-inbox-file-01KW8MSQ (#325, 2026-06-28): the per-file finalize (Step 5c) is now an error-surfacing call \u2014 mark_processed.py exposes a 0/1/2/3 exit contract (0 success/idempotent, 1 validation failure incl. outside-inbox-root, 2 filesystem error surfaced via OSError where previously an uncaught traceback, 3 privacy refusal) and emits a single-line JSON success object on stdout (exit 0). The felix-admin-capture Step 5c standing orders act on these exit codes, surfacing/escalating any non-zero finalize rather than silently continuing.",
           "state_files": [
             {
               "path": "/data/services/openclaw/state/inbox-routing.jsonl",
@@ -524,7 +528,7 @@
               "language": "python",
               "source": "scripts/inbox/route_calendar_event.py",
               "deploy_path": "/home/claude/kg-automation/scripts/inbox/route_calendar_event.py",
-              "purpose": "Validate calendar payload (inline schema gate; existing scripts.calendar_routing.validate_calendar_event.validate signature mismatch documented in module docstring); emit normalized payload JSON on stdout for the agent to delegate to Felix main for `gog calendar create`.",
+              "purpose": "Validate calendar payload (inline schema gate; existing scripts.calendar_routing.validate_calendar_event.validate signature mismatch documented in module docstring); emit the normalized create envelope. Post-#699 (RFC #681 calendar phase), the `--create` path consumes that envelope inline via the Felix calendar helper (google-api-python-client) against the Google Calendar API — it no longer delegates to Felix main for `gog calendar create`.",
               "invoked_by": "felix-admin-capture (post #566 follow-on AGENTS.md rewrite)",
               "introduced_by": "#566",
               "updated_at": "2026-06-08"
@@ -568,13 +572,16 @@
         },
         "felix-admin-habits": {
           "workspace": "/data/services/openclaw/habits-agent",
-          "model": "anthropic/claude-sonnet-4-6",
+          "model": "anthropic/claude-haiku-4-5",
+          "skills": [
+            "vikunja_api"
+          ],
           "purpose": "Daily habit check-in, completion tracking, weekly pattern reports. Post-#371 (scripts-first morning + reply flow): the agent is a thin orchestrator that invokes scripts/habits/morning_checkin_list.py for the morning tick (script writes the canonical morning-list artifact + emits the formatted WhatsApp message), scripts/habits/parse_morning_reply.py for reply handling (deterministic mapping of Kent's reply against the persisted morning list), and scripts/habits/judgment/disambiguate_reply.py only for ambiguous reply tokens. Post-mission trustworthy-weekly-habit-report-01KV4GZ7 (#605): the weekly Monday-06:00 cron tick is deterministic-helper-backed \u2014 the agent invokes scripts/habits/query_active_habits_weekly.py, which reads completion history from the canonical /data/services/openclaw/state/habits-history.jsonl via the scripts/habits/history.py domain wrapper (built on scripts/common/state_log.py); Vikunja is queried for current-state habit metadata (titles + repeat_after for classification) only. The helper now emits the pre-rendered WhatsApp body alongside the WeeklyHabitReport JSON (`rendered_text` field, --output text), and the agent posts that text verbatim; in-prompt rendering was removed in WP04 to eliminate LLM drift. Vikunja `done_at` is NOT consulted for history because `repeat_after` recurrence resets that field on each cycle (#605). The prior mission vikunja-client-and-habits-weekly-report-01KTKSFT (#542 + #562) introduced the helper itself; this mission corrected its read path. Co-shipped output-discipline Hard Rules (#561) mirror the felix-admin-capture pattern \u2014 no preamble before the `Sent by felix-admin-habits:<model>` identity line, no between-tool-calls narration. AGENTS.md is cut to <=14,000 source chars to stay within the openclaw effective budget per memory reference_openclaw_gotchas.md.",
           "source_in_repo": "scripts/openclaw/agents/felix-admin-habits/",
           "deployed_by": "F009",
           "autonomy_level": "assisted",
-          "updated_by": "#371 + vikunja-client-and-habits-weekly-report-01KTKSFT (#542 + #561 + #562)",
-          "last_updated": "2026-06-08",
+          "updated_by": "#371 + vikunja-client-and-habits-weekly-report-01KTKSFT (#542 + #561 + #562) + f0-exec-hardening-01KX4ZCY (#675 — exec-hardening finding + live-config reconcile)",
+          "last_updated": "2026-07-10",
           "depends_on": [
             "scripts/habits/morning_checkin_list.py",
             "scripts/habits/parse_morning_reply.py",
@@ -591,12 +598,12 @@
         },
         "felix-admin-tasker": {
           "workspace": "/data/services/openclaw/tasker-agent",
-          "model": "anthropic/claude-sonnet-4-6",
+          "model": "anthropic/claude-haiku-4-5",
           "purpose": "Task intelligence \u2014 transforms raw tasks into structured Vikunja entries. Post-#310 (ADR-0002 Phase 7): enrichment state migration complete. AGENTS.md cut from 19,391 to ~13,800 chars; canonical state lives in JSONL ledger at /data/services/openclaw/state/enrichment/enrichment-history.jsonl; `[Felix] enrichment` Vikunja comments are written through during the post-cutover soak (C-002) but are no longer the source of truth. The agent delegates state transitions to scripts/enrichment/record_completion.py rather than writing comments directly.",
           "source_in_repo": "scripts/openclaw/agents/felix-admin-tasker/",
           "skills": [
-            "task-intelligence",
-            "vikunja-api"
+            "task_intelligence",
+            "vikunja_api"
           ],
           "triggers": [
             "delegation",
@@ -604,8 +611,8 @@
           ],
           "deployed_by": "F013",
           "autonomy_level": "assisted",
-          "updated_by": "#310-tasker-jsonl-migration + F013",
-          "updated_at": "2026-05-23",
+          "updated_by": "#310-tasker-jsonl-migration + F013 + f0-exec-hardening-01KX4ZCY (#675 — exec-hardening finding + live-config reconcile)",
+          "updated_at": "2026-07-10",
           "depends_on": [
             "scripts/enrichment/record_completion.py",
             "scripts/enrichment/reconcile_completions.py",
@@ -620,7 +627,7 @@
           "source_in_repo": "scripts/openclaw/agents/felix-admin-escalation/",
           "skills": [
             "escalation",
-            "vikunja-api"
+            "vikunja_api"
           ],
           "triggers": [
             "cron",
@@ -628,8 +635,8 @@
           ],
           "deployed_by": "F019",
           "autonomy_level": "assisted",
-          "updated_by": "#376-remove-escalation-v1-parity + #309-migrate-escalation-to-jsonl-state-model + F019",
-          "updated_at": "2026-06-02",
+          "updated_by": "#376-remove-escalation-v1-parity + #309-migrate-escalation-to-jsonl-state-model + F019 + f0-exec-hardening-01KX4ZCY (#675 — exec-hardening finding + live-config reconcile)",
+          "updated_at": "2026-07-10",
           "depends_on": [
             "scripts/escalation/record_completion.py",
             "scripts/escalation/reconcile_completions.py",
@@ -643,12 +650,9 @@
           "workspace": "/data/services/openclaw/calendar-agent",
           "agentDir": "/home/claude/.openclaw/agents/felix-admin-calendar/agent",
           "model": "anthropic/claude-haiku-4-5",
-          "purpose": "Calendar substrate \u2014 event creation via `gog`/Google Calendar, clarification reply handler for incomplete inbox-captured events. Extracted from main/AGENTS.md per mission `felix-calendar-subagent-extraction-01KTTA33` (#579) to restore WhatsApp reply relay (delegations to main were blocking on the deprecated 'main' alias surface). On delegation from felix-admin-capture, validates the calendar event payload, executes `gog calendar create`, and returns the response envelope. On inbound WhatsApp clarification reply, reads pending-calendar-clarifications state file, merges Kent's reply into the deferred event payload, re-validates, and issues the deferred `gog calendar create`. Future home for calendar credential health, recurrence (Vikunja-side RRULE parity pending), and attendee tracking.",
+          "purpose": "Calendar judgment layer (reshaped by #699, RFC #681 calendar phase \u2014 formerly a gog-executing substrate). Extracted from main/AGENTS.md per mission `felix-calendar-subagent-extraction-01KTTA33` (#579) to restore WhatsApp reply relay (delegations to main were blocking on the deprecated 'main' alias surface). Handles only the LLM-needing work: the conversational calendar path and clarification round-trips. Its terminal action is a call to the Felix calendar helper (`scripts/google/calendar_helper.py`, google-api-python-client) via `exec` \u2014 it does NOT run `gog calendar create` and must not fall back to gog. On inbound WhatsApp clarification reply, reads pending-calendar-clarifications state file, merges Kent's reply into the deferred event payload, re-validates, and issues the deferred create via the helper. Future home for calendar credential health, recurrence (Vikunja-side RRULE parity pending), and attendee tracking.",
           "source_in_repo": "scripts/openclaw/agents/felix-admin-calendar/",
-          "skills": [
-            "calendar",
-            "gog"
-          ],
+          "skills": [],
           "triggers": [
             "delegation",
             "whatsapp-reply"
@@ -656,10 +660,10 @@
           "deployed_by": "#579",
           "deployed_on": "2026-06-11",
           "autonomy_level": "assisted",
-          "updated_by": "felix-admin-cron-path-fix-01KWQTY3 (#656) + felix-calendar-subagent-extraction-01KTTA33 (#579)",
-          "updated_at": "2026-07-05",
+          "updated_by": "felix-admin-cron-path-fix-01KWQTY3 (#656) + felix-calendar-subagent-extraction-01KTTA33 (#579) + f0-exec-hardening-01KX4ZCY (#675 — exec-hardening finding + live-config reconcile)",
+          "updated_at": "2026-07-10",
           "depends_on": [
-            "gog",
+            "felix-calendar-helper",
             "openclaw-gateway-env"
           ],
           "state_files": [
@@ -675,17 +679,17 @@
               "migration_note": "Relocated from ~/second-brain/agents/state/ (stray unsynced dir) to /data/services/openclaw/state/ by felix-admin-cron-path-fix-01KWQTY3 (#656) via deploy manifest 0007-migrate-inbox-state-and-logs.yaml."
             }
           ],
-          "notes": "Per data-model.md: openclaw.json agents.list[] entry shape is `{id, name, workspace, agentDir, model}`. Model anthropic/claude-haiku-4-5 chosen per F-06 decision (routine workload, validator-driven). On WhatsApp inbound clarification reply, main no longer holds the deferred-event payload \u2014 felix-admin-calendar reads pending-calendar-clarifications state file and resolves the round-trip. felix-admin-capture continues to dispatch inbox-captured calendar events via openclaw-agent dispatch (unchanged); the contract owner after extraction is felix-admin-calendar. Authoritative deployment + verification: docs/runbooks/openclaw-agent-setup.md."
+          "notes": "Per data-model.md: openclaw.json agents.list[] entry shape is `{id, name, workspace, agentDir, model}`. Model anthropic/claude-haiku-4-5 chosen per F-06 decision (routine workload, validator-driven). On WhatsApp inbound clarification reply, main no longer holds the deferred-event payload \u2014 felix-admin-calendar reads pending-calendar-clarifications state file and resolves the round-trip. As of #699 (RFC #681 calendar phase) this agent's `skills` are `[]`: `calendar` was never a real OpenClaw skill and the `gog` skill was removed when the calendar surface migrated onto the Felix calendar helper (google-api-python-client), invoked via `exec`. Complete inbox-captured calendar events no longer dispatch to this agent \u2014 since #699 they reach the calendar inline via `route_calendar_event --create` (closes #679); this agent now handles only the conversational/clarification path. The contract owner after extraction is felix-admin-calendar. Authoritative deployment + verification: docs/runbooks/openclaw-agent-setup.md."
         },
         "main": {
           "workspace": "/data/services/openclaw/data",
           "source_in_repo": "scripts/openclaw/agents/main/",
           "model": "anthropic/claude-sonnet-4-6",
-          "purpose": "Top-level OpenClaw orchestrator. Standing orders at /data/services/openclaw/data/AGENTS.md govern routing of inbound channel messages (WhatsApp, etc.) to the felix-admin-* sub-agents. Per mission `felix-calendar-subagent-extraction-01KTTA33` (#579), calendar-create delegation and clarification reply handling have been MOVED OUT of main into the new felix-admin-calendar subagent \u2014 main now routes calendar work to felix-admin-calendar via openclaw-agent dispatch rather than executing `gog calendar create` itself.",
+          "purpose": "Top-level OpenClaw orchestrator. Standing orders at /data/services/openclaw/data/AGENTS.md govern routing of inbound channel messages (WhatsApp, etc.) to the felix-admin-* sub-agents. Per mission `felix-calendar-subagent-extraction-01KTTA33` (#579) the calendar-create and clarification handling moved out of main; per #699 (RFC #681 calendar phase) inbox-captured calendar events reach the calendar inline via `route_calendar_event --create` and conversational calendar requests route to felix-admin-calendar \u2014 main is NOT in the calendar-create path and no longer executes `gog calendar create`. main's remaining `gog` use is Gmail + Drive only. Foundation-0 exec-hardening note (#675): main is the ONLY current `gog` consumer post-#699 (the tracked exception), retained until email/drive get controlled owners (#680). Exec posture is `security: full` fleet-wide \u2014 no per-agent exec allowlist or containment is deployed; the workers running `security: full` is a recorded finding, not a claimed restriction.",
           "verbatim_passthrough_rule": "Per #374 (main-verbatim-passthrough-01KSATRP), the main agent must pass downstream messages to sub-agents VERBATIM (no paraphrase, no summary, no editorial). AGENTS.md changes that affect this rule are governed by the cutover sequence in docs/runbooks/openclaw-agent-setup.md \u00a7'Cutover sequence for main-agent AGENTS.md changes (post-#374)'.",
           "deployed_by": "F002",
-          "updated_by": "felix-calendar-subagent-extraction-01KTTA33 (#579) + inbox-calendar-and-aspiration-routing-01KTHHXS + #374 + agent-prompt-deploy-pipeline-01KTMDDD (#567)",
-          "updated_at": "2026-06-11"
+          "updated_by": "felix-calendar-subagent-extraction-01KTTA33 (#579) + inbox-calendar-and-aspiration-routing-01KTHHXS + #374 + agent-prompt-deploy-pipeline-01KTMDDD (#567) + f0-exec-hardening-01KX4ZCY (#675 — exec-hardening finding + live-config reconcile)",
+          "updated_at": "2026-07-10"
         }
       },
       "risk_tier": 2,

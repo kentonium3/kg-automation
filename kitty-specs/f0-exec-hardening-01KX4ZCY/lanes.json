@@ -1,0 +1,44 @@
+{
+  "version": 1,
+  "mission_slug": "f0-exec-hardening-01KX4ZCY",
+  "mission_id": "01KX4ZCYXBH071HXECJMJH3VNN",
+  "mission_branch": "kitty/mission-f0-exec-hardening-01KX4ZCY",
+  "target_branch": "feat/f0-exec-hardening",
+  "lanes": [
+    {
+      "lane_id": "lane-a",
+      "wp_ids": [
+        "WP01"
+      ],
+      "write_scope": [
+        "docs/design/felix-openclaw-boundary.md"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "artifact-rendering",
+        "tracker-integration"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    },
+    {
+      "lane_id": "lane-b",
+      "wp_ids": [
+        "WP02"
+      ],
+      "write_scope": [
+        "docs/design/architecture/data/service-inventory.json",
+        "docs/design/architecture/service-inventory.md"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "legacy-cleanup"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    }
+  ],
+  "computed_at": "2026-07-10T03:39:02.531460+00:00",
+  "computed_from": "dependency_graph+ownership",
+  "planning_artifact_wps": []
+}
