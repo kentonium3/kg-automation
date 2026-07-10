@@ -14,7 +14,7 @@ subtasks:
 - T014
 - T015
 - T016
-agent: claude
+agent: "claude:opus:implementer-ivan:implementer"
 history: []
 agent_profile: implementer-ivan
 authoritative_surface: scripts/deploy/deploy-felix-calendar-helper.py
@@ -31,6 +31,7 @@ owned_files:
 - tests/deploy/test_deploy_felix_calendar_helper.py
 role: implementer
 tags: []
+shell_pid: "62241"
 ---
 
 # WP04 — Deploy: manifest + deploy script
@@ -91,3 +92,7 @@ requirements — deps live in the venv).
 - Confirm the uv install form (`uv pip install --python <venv>/bin/python`, not `-m uv` inside the venv).
 - Confirm the script does NOT copy secrets (manual staging) — it only verifies presence.
 - Confirm no google deps leak into `requirements.txt`/`pyproject.toml` (would drift the pip-packages baseline).
+
+## Activity Log
+
+- 2026-07-10T00:08:26Z – claude:opus:implementer-ivan:implementer – shell_pid=62241 – Assigned agent via action command
