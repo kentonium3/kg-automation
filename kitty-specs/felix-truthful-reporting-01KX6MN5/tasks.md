@@ -90,10 +90,10 @@ Tests are **required** (DIRECTIVE_034 test-first; SC-005 fail-safe must be prove
 - **Priority**: P2 (docs). **Independent test**: architecture-data validator passes; INDEX/portal links resolve.
 - **Requirements**: C-004, NFR-003. **Dependencies**: WP02, WP03, WP04. **Est. prompt**: ~180 lines.
 - Subtasks:
-  - [ ] T021 service-inventory.json + .md (WP05) [P]
-  - [ ] T022 ops runbook (WP05)
-  - [ ] T023 INDEX + DEVELOPER_PORTAL (WP05)
-  - [ ] T024 regression checklist (WP05)
+  - [x] T021 service-inventory.json + .md (WP05) [P]
+  - [x] T022 ops runbook (WP05)
+  - [x] T023 INDEX + DEVELOPER_PORTAL (WP05)
+  - [x] T024 regression checklist (WP05)
 
 ## Dependencies & lanes
 
