@@ -154,7 +154,9 @@ def load_credentials(
       headless).
 
     :param account: credential-set selector (default ``personal``).
-    :param scopes: OAuth scopes; defaults to :data:`SCOPES_DEFAULT`.
+    :param scopes: recommended *mint-time* scopes (advisory; defaults to
+        :data:`SCOPES_DEFAULT`). Used only in the re-mint hint — the token's own
+        granted scopes are used for load/refresh at runtime.
     :raises ValueError: if ``account`` fails the charset rule (usage error).
     :raises CalendarAuthError: on any auth failure (auth error, exit 3).
     """
@@ -187,7 +189,14 @@ def load_credentials(
         raise CalendarAuthError(f"no token.json for account {account!r}: {remint_hint}")
 
     try:
-        creds: Any = Credentials.from_authorized_user_file(str(tok), scopes)
+        # Load with the token's OWN granted scopes — do NOT force ``scopes``.
+        # Forcing a scope that differs from what the token was minted with makes
+        # the refresh fail ``invalid_scope`` (e.g. a token granted the broader
+        # ``calendar`` scope refreshed against ``calendar.events``). Least-privilege
+        # is a mint-time choice (``SCOPES_DEFAULT`` is the recommended mint scope in
+        # the re-mint hint); at runtime the helper uses whatever was granted and
+        # fails safe (exit 3 / API 403) if a needed operation isn't permitted.
+        creds: Any = Credentials.from_authorized_user_file(str(tok))
     except (OSError, ValueError) as exc:
         raise CalendarAuthError(
             f"could not read credentials for account {account!r} "

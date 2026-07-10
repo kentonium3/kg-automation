@@ -17,10 +17,11 @@ failure the script prints recovery instructions and exits non-zero:
      before touching any state (the venv + staged creds are state). An operator
      ``--backup-confirmed`` ack path bypasses the automated log check for the
      documented case where a backup was just triggered manually.
-  2. **Provision the venv (idempotent)** — ``uv venv … --python 3.12`` then
-     ``uv pip install --python <venv>/bin/python "<pinned google deps>"``. Both
-     are safe to re-run: ``uv venv`` no-ops an existing venv and ``uv pip
-     install`` is a no-op when the pinned versions are already present. The
+  2. **Provision the venv (idempotent)** — ``uv venv … --python 3.12`` (skipped
+     when the venv already exists — ``uv venv`` ERRORS on an existing dir, it is
+     not a no-op) then ``uv pip install --python <venv>/bin/python "<pinned
+     google deps>"``. Safe to re-run: creation is skipped when present and ``uv
+     pip install`` is a no-op when the pinned versions are already present. The
      ``uv`` executable is used from ``~/.local/bin/uv`` (uv is NOT installed
      inside the venv). The pins live HERE, not in ``requirements.txt`` — the
      ``python-dependencies`` (pip-packages) baseline stays untouched.
@@ -159,15 +160,22 @@ def _gate_restic(*, backup_confirmed: bool) -> tuple[bool, dict]:
 def _gate_provision_venv() -> tuple[bool, dict]:
     details: dict = {"venv": str(_VENV_DIR)}
 
-    # (a) Create/refresh the venv. Idempotent: `uv venv` on an existing venv is
-    #     a no-op refresh.
-    rc, stdout, stderr = _run(
-        [_UV, "venv", str(_VENV_DIR), "--python", _VENV_PYTHON_VERSION]
-    )
-    details["venv_create_rc"] = rc
-    if rc != 0:
-        details["venv_create_stderr"] = stderr[:400]
-        return False, details
+    # (a) Create the venv ONLY if it does not already exist. `uv venv` is NOT a
+    #     no-op on an existing venv — it errors ("already exists … use --clear"),
+    #     which broke re-runs. Skipping when the interpreter is already present
+    #     makes provisioning idempotent without destroying/reinstalling the venv
+    #     (the pip-install step below reconciles the pinned deps either way).
+    if _VENV_PYTHON.exists():
+        details["venv_create_rc"] = 0
+        details["venv_create"] = "skipped (already present)"
+    else:
+        rc, stdout, stderr = _run(
+            [_UV, "venv", str(_VENV_DIR), "--python", _VENV_PYTHON_VERSION]
+        )
+        details["venv_create_rc"] = rc
+        if rc != 0:
+            details["venv_create_stderr"] = stderr[:400]
+            return False, details
 
     # (b) Install the pinned google deps INTO the venv. Idempotent: a no-op when
     #     the pinned versions are already present.

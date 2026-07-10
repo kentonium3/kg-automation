@@ -300,12 +300,9 @@ def test_self_check_failure_fails_deploy(monkeypatch):
 
 
 def test_venv_provision_is_idempotent_rerun(monkeypatch):
-    """A second full apply issues the SAME uv commands — no cleanup/destroy.
-
-    Idempotency here means the provisioning commands (`uv venv`, `uv pip
-    install`) are re-run verbatim and each is a no-op refresh; the script never
-    deletes an existing venv.
-    """
+    """A second full apply (venv absent both times) issues the same commands and
+    never destroys a venv. See ``test_venv_creation_skipped_when_present`` for
+    the exists→skip branch (the real deploy regression)."""
     run1 = _RunRecorder()
     _patch_all_pass(monkeypatch, run1)
     assert _mod.main(["--apply"]) == 0
@@ -320,6 +317,39 @@ def test_venv_provision_is_idempotent_rerun(monkeypatch):
     # No destructive command (rm / --clear / delete) anywhere.
     flat = " ".join(tok for argv in first_argv for tok in argv)
     assert "rm " not in flat and "--clear" not in flat and "delete" not in flat
+
+
+def test_venv_creation_skipped_when_present(monkeypatch):
+    """Regression: when the venv interpreter already exists, `uv venv` is SKIPPED
+    (it ERRORS on an existing dir — "already exists … use --clear" — which failed
+    the felix-deployer apply), while `uv pip install` still runs to reconcile deps."""
+
+    class _FakePath:
+        def __init__(self, p: str) -> None:
+            self._p = p
+
+        def exists(self) -> bool:
+            return True
+
+        def __str__(self) -> str:
+            return self._p
+
+        def __fspath__(self) -> str:
+            return self._p
+
+    run = _RunRecorder()
+    _patch_all_pass(monkeypatch, run)
+    monkeypatch.setattr(
+        _mod, "_VENV_PYTHON", _FakePath("/data/services/openclaw/felix-calendar/venv/bin/python")
+    )
+
+    assert _mod.main(["--apply"]) == 0
+
+    joined = [" ".join(argv) for argv in run.argv_list]
+    assert not any(
+        (" venv " in f or f.endswith(" venv")) and "pip" not in f for f in joined
+    ), "uv venv must be skipped when the venv already exists"
+    assert any("pip" in f and "install" in f for f in joined), "uv pip install must still run"
 
 
 def test_uv_invocation_shape(monkeypatch):

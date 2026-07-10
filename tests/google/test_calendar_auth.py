@@ -226,6 +226,37 @@ def test_valid_token_returned_unchanged(cal_auth, monkeypatch):
     assert result.refresh_called is False
 
 
+def test_load_uses_token_own_scopes_not_forced(cal_auth, monkeypatch):
+    """Regression (deploy scope trap): load_credentials must NOT force a scope
+    onto ``from_authorized_user_file``. A token minted with the broader
+    ``calendar`` scope otherwise fails refresh with ``invalid_scope`` when the
+    helper forces ``calendar.events``. The loader gets only the token path; the
+    token's own granted scopes drive the refresh."""
+    captured: dict = {}
+    creds = _FakeCredentials(valid=True, expired=False)
+
+    def fake_from_file(*a, **k):
+        captured["args"] = a
+        captured["kwargs"] = k
+        return creds
+
+    _seed_token(cal_auth)
+    monkeypatch.setattr(
+        sys.modules["google.oauth2.credentials"].Credentials,
+        "from_authorized_user_file",
+        staticmethod(fake_from_file),
+    )
+
+    cal_auth.load_credentials(
+        "personal", scopes=["https://www.googleapis.com/auth/calendar.events"]
+    )
+
+    # Only the token path is passed — no scopes list forced onto the loader.
+    assert len(captured["args"]) == 1
+    assert "scopes" not in captured["kwargs"]
+    assert not any(isinstance(x, list) for x in captured["args"])
+
+
 def test_expired_refreshable_token_is_refreshed_and_persisted(cal_auth, monkeypatch):
     creds = _FakeCredentials(valid=False, expired=True, refresh_token="rt-xyz")
     _seed_token(cal_auth)
