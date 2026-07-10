@@ -96,3 +96,4 @@ requirements — deps live in the venv).
 ## Activity Log
 
 - 2026-07-10T00:08:26Z – claude:opus:implementer-ivan:implementer – shell_pid=62241 – Assigned agent via action command
+- 2026-07-10T00:13:46Z – claude:opus:implementer-ivan:implementer – shell_pid=62241 – Ready for review — Tier-3 manifest (schema-valid) + deploy script (Restic->venv->creds->self-check ordered, idempotent, no secret copy, deps venv-only) + tests green.
