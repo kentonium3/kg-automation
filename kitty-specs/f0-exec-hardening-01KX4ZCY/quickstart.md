@@ -24,6 +24,20 @@ PY
 
 Ground truth to match (captured 2026-07-10) is in [research.md](./research.md) → Decision 2.
 
+### Semantic-consistency grep (NFR-005) — schema-valid ≠ semantically current
+
+The validator proves JSON schema validity only. Also confirm no stale present-tense gog-path
+phrases survive in the touched architecture docs (matches inside an explicitly pre-#699
+historical block are OK):
+
+```bash
+grep -nE '"calendar","gog"|delegate to Felix main for .gog calendar create|executes .gog calendar create|sole owner|only .*gog holder' \
+  docs/design/felix-openclaw-boundary.md \
+  docs/design/architecture/data/service-inventory.json \
+  docs/design/architecture/service-inventory.md
+# Expect: no present-tense hits (only pre-#699-labelled historical lines, if any)
+```
+
 ## 2. The finding is recorded and actionable
 
 `docs/design/felix-openclaw-boundary.md` §8 Step 3 records:

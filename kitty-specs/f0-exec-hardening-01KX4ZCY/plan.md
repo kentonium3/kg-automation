@@ -76,26 +76,26 @@ boundary doc carries the narrative finding; the narrative architecture view mirr
 
 > Concerns are NOT work packages. `/spec-kitty.tasks` maps these to WPs.
 
-### IC-01 — Record the feasibility finding (boundary doc)
+### IC-01 — Record the finding + full boundary-doc reconcile
 
-- **Purpose:** Capture *why* exec-allowlist hard containment was rejected and *what to do instead* (sandbox), with evidence, so the next maintainer acts without re-probing office2.
-- **Relevant requirements:** FR-001, NFR-002, NFR-003.
-- **Affected surfaces:** `docs/design/felix-openclaw-boundary.md` (§8 Step 3 + a finding subsection); correct the stale "calendar = sole gog owner" in §6.1 (post-#699 gog is main-only).
+- **Purpose:** Capture *why* exec-allowlist hard containment was rejected (exec approvals = guardrails not isolation; the narrower knobs disposed of one by one) and *what to do instead* (sandbox), with evidence, so the next maintainer acts without re-probing office2 — **and** reconcile the boundary doc's stale gog-ownership across the whole document.
+- **Relevant requirements:** FR-001, FR-004, NFR-002, NFR-003.
+- **Affected surfaces:** `docs/design/felix-openclaw-boundary.md` — add §8 Step 3 finding subsection + sandbox pointer; sweep the **whole doc** for stale present-tense gog-ownership (§2 current-state, §4 capability map, §6 design intent/example, §6.1 pre-flight table, §8 rollout steps), relabelling pre-#699 design as historical or correcting to "gog main-only; calendar former owner, now helper."
 - **Sequencing/depends-on:** none.
-- **Risks:** the finding must stay consistent with the reconciled inventory (IC-02) — same gog-ownership facts; author them together or cross-check.
+- **Risks:** the boundary doc is the *design-of-record*; do not destroy its history — prefer a dated status banner + inline "(pre-#699; see status update)" annotations over deleting the historical design narrative. Keep gog-ownership facts identical to IC-02.
 
-### IC-02 — Reconcile the architecture inventory to live config
+### IC-02 — Reconcile the architecture inventory to live config (full sweep)
 
-- **Purpose:** Make `service-inventory.json` + narrative tell the truth: habits/tasker model `haiku`; per-agent `skills` match the live Step-2 sets (calendar `[]`); `main` annotated as the tracked gog/exec exception; gog recorded as main-only.
-- **Relevant requirements:** FR-002, FR-003, FR-004, NFR-001.
-- **Affected surfaces:** `docs/design/architecture/data/service-inventory.json` (authoritative) + its narrative counterpart; must pass `validate_architecture_data.py`.
-- **Sequencing/depends-on:** none (can proceed in parallel with IC-01; share the gog-ownership facts).
-- **Risks:** validator schema constraints (STATUS_ENUM / field shapes) — run the validator locally before commit; the `updated_by` provenance string convention must be preserved.
+- **Purpose:** Make `service-inventory.json` + narrative tell the truth beyond `model`/`skills`: habits/tasker model `haiku`; per-agent `skills` match live Step-2 sets (calendar `[]`); the stale per-agent `purpose`/`notes`/`components[].purpose`/`depends_on` fields #699 missed (capture, calendar, main, `route/validate_calendar_event`) corrected to the inline post-#699 path; gateway version `v2026.6.5` → `2026.6.11`; `main` annotated as the tracked gog/exec exception; gog recorded as main-only.
+- **Relevant requirements:** FR-002, FR-003, FR-004, NFR-001, NFR-005.
+- **Affected surfaces:** `docs/design/architecture/data/service-inventory.json` (authoritative) + its narrative counterpart `docs/design/architecture/service-inventory.md`; must pass `tooling/scripts/validate_architecture_data.py`; the line ~2332 `#699` notes entry is the model of correctness to mirror.
+- **Sequencing/depends-on:** none (parallel with IC-01; share gog-ownership facts).
+- **Risks:** validator schema constraints (STATUS_ENUM / field shapes) — run the validator locally before commit; preserve the `updated_by` provenance-string convention; do not accidentally touch `data-flows.json`/`service-dependencies.json` which already reflect #699 correctly (verify with the NFR-005 grep, don't blanket-edit).
 
-### IC-03 — File the sandbox hard-containment follow-up + link it
+### IC-03 — File the sandbox follow-up (3-part proof + Step 4) and set #675 disposition
 
-- **Purpose:** Route the deferred hard-containment work to a tracked issue so Foundation-0's remaining hard boundary isn't lost.
-- **Relevant requirements:** FR-005, C-006.
-- **Affected surfaces:** a new kentonium3/kg-automation issue (infra template); a back-link added in boundary-doc §8 Step 3.
+- **Purpose:** Route the deferred hard-containment to a tracked issue so Foundation-0's remaining hard boundary isn't lost, and make the #675 tracker disposition explicit so "docs + issue" ≠ "hard containment done."
+- **Relevant requirements:** FR-005, FR-007, C-006.
+- **Affected surfaces:** a new kentonium3/kg-automation infra issue (requiring the 3 separately-proven sandbox properties + folding in Step 4 `skills.allowBundled`); a back-link in boundary-doc §8 Step 3; the mission's closing note recommending #675 be closed as *rescoped/superseded*.
 - **Sequencing/depends-on:** the finding (IC-01) should exist first so the issue can cite it.
-- **Risks:** kg-automation-internal issue (repo-scoped copy-approval exception applies) — but still no `@`-mentions of outsiders; use the infra issue template + symptom/observer/cost framing.
+- **Risks:** kg-automation-internal issue (repo-scoped copy-approval exception applies) — still no `@`-mentions of outsiders; use the infra template + symptom/observer/cost framing. The #675 close itself is an operator decision confirmed at merge, not an autonomous WP action.

@@ -64,12 +64,13 @@ mission. The mission's footprint is repo docs + one GitHub issue only.
 
 | ID | Description | Status |
 | --- | --- | --- |
-| FR-001 | The **feasibility finding MUST be recorded** in `docs/design/felix-openclaw-boundary.md` (§8 Step 3 plus a dedicated finding subsection): that OpenClaw's per-agent exec **allowlist cannot hard-contain `gog`** on the four non-owner workers without breaking their real exec behavior. It MUST include (a) the per-agent exec-form evidence (inline eval, heredoc, redirection, curl, scratch scripts vs clean `python3 -m`), (b) the governing allowlist-mode constraints from the bundled `exec-approvals-advanced.md` (redirection unsupported; `$()`/backticks rejected; inline eval denied under `strictInlineEval`; `python3 -m` interpreter-binding uncertainty), and (c) the recommendation that **sandbox (`agents.defaults.sandbox.mode: non-main`)** is the correct hard-containment lever. | Pending |
-| FR-002 | `docs/design/architecture/data/service-inventory.json` (and its narrative counterpart) MUST be reconciled to the **real deployed config** for all six agents: replace the fictional per-agent `skills` arrays with the actual Step-2-deployed sets, and record each agent's real exec posture (`security: full` fleet-wide today; `gog` scoped to `main` + `calendar`). | Pending |
-| FR-003 | The **model drift MUST be corrected**: the inventory records felix-admin-habits and felix-admin-tasker as `sonnet`; live config runs them on `haiku`. Update the JSON and its narrative counterpart to `haiku`. | Pending |
-| FR-004 | `main` MUST be **documented as the tracked Foundation-0 exception** — retaining `gog` + broad exec as the only path for email/drive until those capabilities get controlled owners (#680) — in both the boundary design doc and the architecture inventory. | Pending |
-| FR-005 | A **follow-up issue MUST be filed** (kentonium3/kg-automation) for **sandbox-based hard containment** — the deferred Foundation-0 hard-boundary path — referencing this finding; and boundary-doc §8 MUST be updated so Step 3 points to that issue as the continuation. | Pending |
+| FR-001 | The **feasibility finding MUST be recorded** in `docs/design/felix-openclaw-boundary.md` (§8 Step 3 plus a dedicated finding subsection): that OpenClaw's exec **approvals are best-effort guardrails, not strong isolation**, and no per-agent allowlist that is simultaneously tight enough to deny `gog`, non-breaking for the workers' real behavior, and free of human-in-the-loop approvals exists for this fleet today. It MUST include (a) the per-agent exec-form evidence (inline eval, heredoc, redirection, curl, scratch scripts vs clean `python3 -m`), (b) the governing allowlist-mode constraints from the bundled `exec-approvals-advanced.md` (redirection unsupported; `$()`/backticks rejected; inline eval requires approval under `strictInlineEval`; `python3 -m` interpreter-binding uncertainty), (c) an **explicit disposition of the narrower knobs** (`argPattern`, `strictInlineEval`, `safeBins`, `ask=on-miss`) explaining why each is rejected, and (d) the recommendation that **sandbox (`agents.defaults.sandbox.mode: non-main`)** is the correct hard-containment lever. | Pending |
+| FR-002 | `docs/design/architecture/data/service-inventory.json` (and its narrative counterpart) MUST be reconciled to the **real deployed config** for all six agents — a **full sweep, not just `model`/`skills`**: replace the fictional per-agent `skills` arrays with the actual Step-2-deployed sets (calendar → `[]`), record each agent's real exec posture (`security: full` fleet-wide), **and correct the stale per-agent narrative fields #699's partial reconcile missed** — the `purpose`/`notes`/`components[].purpose`/`depends_on` fields on capture, calendar, main, and the `route/validate_calendar_event` component that still describe the retired pre-#699 "delegate to Felix main for `gog calendar create`" path (post-#699 the calendar is reached inline via `route_calendar_event --create`; calendar invokes the Felix calendar helper, not gog). Also correct the OpenClaw gateway **version** (inventory `v2026.6.5` → live `2026.6.11`). | Pending |
+| FR-003 | The **model drift MUST be corrected**: the inventory records felix-admin-habits and felix-admin-tasker as `sonnet-4-6`; live config runs both on `haiku`. Update the JSON and its narrative counterpart to `anthropic/claude-haiku-4-5`. (escalation, main correctly `sonnet-4-6`; capture, calendar correctly `haiku` — no change.) | Pending |
+| FR-004 | The **boundary doc's stale `gog`-ownership claims MUST be reconciled across the whole doc** (§2 current-state, §4 capability map, §6 design intent/example, §6.1 pre-flight table, §8 rollout steps) — either rewritten as explicitly-labelled *pre-#699 historical* state or corrected to reality: post-#699 **`gog` is `main`-only** (gmail/drive/etc.); `felix-admin-calendar` is a **former** gog owner, now `gog`-free (Calendar-via-helper). `main` MUST be documented as the tracked Foundation-0 exception (retains `gog` + broad exec for email/drive until #680) in both the boundary doc and the architecture inventory. | Pending |
+| FR-005 | A **follow-up issue MUST be filed** (kentonium3/kg-automation, infra template) for **sandbox-based hard containment** — the deferred Foundation-0 hard-boundary path — referencing this finding. It MUST require the sandbox design to prove **three properties separately** (network:none ≠ no network): (i) `gog` binary absent/unreachable in the worker sandbox, (ii) Google egress blocked, (iii) Vikunja API + kg-automation checkout/venv/state paths still work so each worker's real cron job runs; and it MUST fold in the **Step 4 (`skills.allowBundled`) decision** as a named sub-item. Boundary-doc §8 Step 3 MUST link to this issue as the continuation. | Pending |
 | FR-006 | This mission MUST make **no change to `openclaw.json`** or any office2 runtime config; the deployed Step 1–2 boundary is unchanged. The mission footprint is repo documentation plus one GitHub issue. | Pending |
+| FR-007 | The **#675 tracker disposition MUST be explicit** so "docs + follow-up" does not read as hard-containment *completion*: the mission's closing note recommends closing #675 as **rescoped** (allowlist hard-containment found infeasible; finding + reconcile landed; remaining hard boundary superseded by the sandbox follow-up), with the operator confirming close-vs-keep-open at merge. | Pending |
 
 ## Non-Functional Requirements
 
@@ -79,6 +80,7 @@ mission. The mission's footprint is repo docs + one GitHub issue only.
 | NFR-002 | **Actionable finding**: the recorded finding MUST cite the OpenClaw version it was validated against (2026.6.11) and the specific bundled doc, and MUST include the concrete per-agent exec-form evidence, so a future sandbox mission can act without re-probing office2. | Pending |
 | NFR-003 | **Falsifiable conclusion**: the finding MUST name the specific allowlist-mode mechanics that drive the "insufficient" conclusion (redirection unsupported, inline-eval denial, `-m` binding uncertainty), not merely assert infeasibility. | Pending |
 | NFR-004 | **No runtime drift**: after the mission merges, the office2 daily security audit MUST NOT surface new `openclaw-config` drift attributable to this mission (because `openclaw.json` is untouched). | Pending |
+| NFR-005 | **Semantic-consistency check**: because the architecture-data validator proves JSON schema validity but not cross-doc semantic consistency, the mission MUST include a lightweight grep-based acceptance check that the touched architecture docs no longer contain stale present-tense phrases — e.g. `"calendar","gog"`, `sole owner` / `only gog holder` (of calendar), `delegate to Felix main for `gog calendar create``, calendar `executes gog` — except where explicitly labelled pre-#699 historical. | Pending |
 
 ## Constraints
 
@@ -97,25 +99,26 @@ mission. The mission's footprint is repo docs + one GitHub issue only.
 | --- | --- | --- |
 | **Soft containment** | Skill-scoping (Step 2, deployed): removes the `gog` *instruction pack* from an agent's `skills` list; the binary remains runnable via exec. | — |
 | **Hard containment** | Making the `gog` binary *technically unreachable*. This mission finds the exec-allowlist route insufficient and defers hard containment to **sandbox**. | — |
-| **Owner / non-owner** | `felix-admin-calendar` **owns** `gog`; the other four workers are **non-owners**. `main` is a separate documented exception. | — |
+| **`gog` consumer (post-#699)** | `main` is the **only** current `gog` consumer (gmail + drive + contacts/sheets/docs). **No worker uses `gog`** — #699 migrated calendar onto the Felix calendar helper (`felix-admin-calendar` is a former gog owner; it now owns the Calendar capability through the helper, not gog). | calling calendar a "gog owner" in present tense |
 | **The finding** | The recorded conclusion that OpenClaw's exec allowlist cannot hard-contain `gog` on the non-owner workers without breaking their real exec behavior. | — |
 
 ## Key Entities
 
 - **`docs/design/felix-openclaw-boundary.md`** — the boundary design doc; receives the recorded finding and the §8 Step-3 → sandbox-follow-up pointer.
 - **`docs/design/architecture/data/service-inventory.json`** (+ narrative counterpart) — the architecture inventory reconciled to live config; validated by the architecture-data validator.
-- **The six agents** — `main` (documented exception), `felix-admin-calendar` (gog owner), and the four non-owner workers `capture` / `tasker` / `escalation` / `habits`.
+- **The six agents** — `main` (the only current `gog` consumer + documented exception), `felix-admin-calendar` (former gog owner; now Calendar-via-helper, `gog`-free), and the workers `capture` / `tasker` / `escalation` / `habits` (none use `gog`).
 - **The sandbox follow-up issue** — the deferred hard-containment path, filed in kentonium3/kg-automation and linked from #675 + boundary §8.
 
 ## Success Criteria
 
 | ID | Description |
 | --- | --- |
-| SC-001 | The boundary doc records the exec-allowlist-insufficiency finding with concrete evidence + the sandbox recommendation; a reader can act on it without re-probing office2. |
-| SC-002 | `service-inventory.json` matches live config for all six agents (skills, model, exec posture): zero fictional or drifted fields; the architecture-data validator passes. |
-| SC-003 | `main` is documented as the tracked exception in both the JSON inventory and the boundary doc. |
-| SC-004 | A sandbox hard-containment follow-up issue exists and is linked from #675 and boundary §8. |
+| SC-001 | The boundary doc records the finding (exec approvals = guardrails not isolation; the narrower knobs disposed of) with concrete evidence + the sandbox recommendation; a reader can act on it without re-probing office2. |
+| SC-002 | `service-inventory.json` + narrative match live config for all six agents across **model, skills, per-agent purpose/notes/depends_on, exec posture, and gateway version (`2026.6.11`)**: zero fictional/drifted/stale-gog-path fields; the architecture-data validator passes and the NFR-005 semantic grep is clean. |
+| SC-003 | `main` is documented as the tracked exception (only current gog consumer) in both the JSON inventory and the boundary doc; the boundary doc's whole-document gog-ownership sweep is complete (no stale present-tense "calendar owns gog"). |
+| SC-004 | A sandbox hard-containment follow-up issue exists (requiring the 3 separately-proven properties + Step 4), and is linked from #675 and boundary §8. |
 | SC-005 | `openclaw.json` is byte-unchanged; no rebaseline is required and no new audit drift is introduced. |
+| SC-006 | The #675 tracker disposition is explicit (recommend close-as-rescoped, superseded by the sandbox issue) so the finding is not mistaken for hard-containment completion. |
 
 ## Assumptions
 
@@ -137,6 +140,6 @@ mission. The mission's footprint is repo docs + one GitHub issue only.
 - **#673** — Bedrock Stabilization epic (F0 parent).
 - **#677** — F3 no-silent-fallback doctrine.
 - **#680** — email/drive controlled owner; keeps `main` a documented exception here.
-- **#679** — calendar routing (closed); establishes `calendar` as gog owner.
+- **#679** — calendar routing (closed). Note: #679/#699 *ended* calendar's gog use — calendar now owns the Calendar capability via the Felix helper, not gog.
 - **`docs/design/felix-openclaw-boundary.md`** §6, §6.1, §8 — design source of record; receives the finding.
 - **Bundled `~/.local/lib/node_modules/openclaw/docs/tools/exec-approvals-advanced.md`** (OpenClaw 2026.6.11) — the allowlist-mode constraints the finding cites.
