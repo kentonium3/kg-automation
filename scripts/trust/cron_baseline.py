@@ -28,11 +28,15 @@ from pathlib import Path
 DEFAULT_BASELINE_PATH = Path("docs/design/architecture/data/approved-crons.json")
 
 # The exact set of required, non-empty string fields on every baseline entry.
+# NOTE: ``tz`` is intentionally NOT required — the live OpenClaw payload omits
+# ``schedule.tz`` for crons that run in the host's default timezone, so the
+# baseline must be able to record an empty tz to match (a non-empty sentinel
+# like "Etc/UTC" would produce a spurious ``schedule_mismatch`` — caught at the
+# #683 deploy). ``tz`` is read separately below and defaults to "".
 _REQUIRED_ENTRY_FIELDS = (
     "name",
     "agent_id",
     "schedule_expr",
-    "tz",
     "purpose",
     "approved_by",
     "approved_at",
@@ -121,6 +125,11 @@ def load_baseline(path: Path | str = DEFAULT_BASELINE_PATH) -> list[ApprovedCron
                     f"required field {field_name!r}"
                 )
             values[field_name] = value
+
+        # tz is optional: an absent or non-string tz normalizes to "" (the host
+        # default-timezone case, matching a live payload that omits schedule.tz).
+        tz_value = entry.get("tz")
+        values["tz"] = tz_value if isinstance(tz_value, str) else ""
 
         name = values["name"]
         if name in seen_names:

@@ -359,3 +359,59 @@ def test_enumerate_live_crons_response_not_a_dict_raises(monkeypatch: pytest.Mon
 
     with pytest.raises(CronEnumerationError):
         enumerate_live_crons()
+
+
+def test_tz_omitted_in_live_payload_is_not_schedule_mismatch() -> None:
+    """A host default-tz cron (baseline tz="" + live payload omits schedule.tz)
+    must NOT be flagged as schedule_mismatch (#683 deploy regression)."""
+    from scripts.trust.cron_baseline import ApprovedCron
+
+    baseline = [
+        ApprovedCron(
+            name="escalation-daily",
+            agent_id="felix-admin-escalation",
+            schedule_expr="0 12 * * *",
+            tz="",
+            purpose="p",
+            approved_by="kent",
+            approved_at="2026-07-10",
+        )
+    ]
+    live = [
+        {
+            "id": "abc",
+            "name": "escalation-daily",
+            "agentId": "felix-admin-escalation",
+            "enabled": True,
+            "schedule": {"kind": "cron", "expr": "0 12 * * *"},  # no tz key
+        }
+    ]
+    assert detect_cron_drift(live, baseline) == []
+
+
+def test_genuine_tz_change_still_flagged() -> None:
+    """A real tz change (baseline America/New_York vs live omitting tz) IS drift."""
+    from scripts.trust.cron_baseline import ApprovedCron
+
+    baseline = [
+        ApprovedCron(
+            name="inbox-5pm",
+            agent_id="felix-admin-capture",
+            schedule_expr="0 17 * * *",
+            tz="America/New_York",
+            purpose="p",
+            approved_by="kent",
+            approved_at="2026-07-10",
+        )
+    ]
+    live = [
+        {
+            "id": "abc",
+            "name": "inbox-5pm",
+            "agentId": "felix-admin-capture",
+            "enabled": True,
+            "schedule": {"kind": "cron", "expr": "0 17 * * *"},  # tz dropped → change
+        }
+    ]
+    findings = detect_cron_drift(live, baseline)
+    assert [f.kind for f in findings] == ["schedule_mismatch"]

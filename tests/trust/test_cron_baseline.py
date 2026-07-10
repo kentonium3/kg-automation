@@ -155,7 +155,9 @@ def test_load_baseline_entry_not_an_object(tmp_path: Path) -> None:
         load_baseline(path)
 
 
-@pytest.mark.parametrize("missing_field", sorted(_VALID_ENTRY.keys()))
+# tz is optional (host default-timezone crons omit it) — see the positive test
+# below; all other fields remain required.
+@pytest.mark.parametrize("missing_field", sorted(k for k in _VALID_ENTRY if k != "tz"))
 def test_load_baseline_missing_required_field(tmp_path: Path, missing_field: str) -> None:
     entry = dict(_VALID_ENTRY)
     del entry[missing_field]
@@ -163,6 +165,23 @@ def test_load_baseline_missing_required_field(tmp_path: Path, missing_field: str
 
     with pytest.raises(BaselineError):
         load_baseline(path)
+
+
+@pytest.mark.parametrize("tz_variant", ["absent", "empty"])
+def test_load_baseline_tz_optional_defaults_empty(tmp_path: Path, tz_variant: str) -> None:
+    # A host default-timezone cron omits schedule.tz in the live payload, so the
+    # baseline must accept an absent or empty tz and normalize it to "" (a
+    # non-empty sentinel would produce a spurious schedule_mismatch — #683 deploy).
+    entry = dict(_VALID_ENTRY)
+    if tz_variant == "absent":
+        del entry["tz"]
+    else:
+        entry["tz"] = ""
+    path = _write_baseline(tmp_path, _valid_document([entry]))
+
+    crons = load_baseline(path)
+    assert len(crons) == 1
+    assert crons[0].tz == ""
 
 
 def test_load_baseline_blank_required_field(tmp_path: Path) -> None:

@@ -43,8 +43,8 @@
       "name": "habits-morning-checkin",
       "agent_id": "felix-admin-habits",
       "schedule_expr": "5 11 * * *",
-      "tz": "Etc/UTC",
-      "purpose": "Daily habit check-in delivery. Live payload omits `schedule.tz`; office2 system tz (Etc/UTC) applies.",
+      "tz": "",
+      "purpose": "Daily habit check-in delivery. Live payload omits `schedule.tz`; baseline records empty tz to match the payload (office2 system tz applies at runtime).",
       "approved_by": "kent",
       "approved_at": "2026-07-10"
     },
@@ -61,8 +61,8 @@
       "name": "escalation-daily",
       "agent_id": "felix-admin-escalation",
       "schedule_expr": "0 12 * * *",
-      "tz": "Etc/UTC",
-      "purpose": "Daily escalation check. Live payload omits `schedule.tz`; office2 system tz (Etc/UTC) applies.",
+      "tz": "",
+      "purpose": "Daily escalation check. Live payload omits `schedule.tz`; baseline records empty tz to match the payload (office2 system tz applies at runtime).",
       "approved_by": "kent",
       "approved_at": "2026-07-10"
     }

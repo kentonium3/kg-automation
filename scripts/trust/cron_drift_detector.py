@@ -140,9 +140,14 @@ def detect_cron_drift(
         # Matched pair: evaluate schedule and enabled independently — a
         # single pair may legitimately produce both a schedule_mismatch and
         # an enabled_mismatch finding.
+        # Normalize tz: the live payload omits schedule.tz (→ None) for crons
+        # running in the host default timezone, and the baseline records "" for
+        # the same case — treat absent/empty as equal so that case is NOT a
+        # spurious schedule_mismatch (a genuine tz change, e.g. NY→UTC, still
+        # differs and is flagged). #683 deploy fix.
         schedule_changed = (
             live["schedule_expr"] != baseline_entry.schedule_expr
-            or live["tz"] != baseline_entry.tz
+            or (live["tz"] or "") != (baseline_entry.tz or "")
         )
         if schedule_changed:
             findings.append(
