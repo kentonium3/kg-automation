@@ -25,3 +25,7 @@ notes: "Installs the felix-trust-scan systemd user timer (<=15min cadence) on\no
   code under scripts/trust/ and scripts/office2/ is not a hashed baseline\neither.\n"
 apply_mode: manifest
 applied_at: '2026-07-10T20:54:19Z'
+rebaseline:
+  outcome: completed
+  at_utc: '2026-07-10T20:54:30Z'
+  baseline_count: 14
