@@ -47,7 +47,8 @@ def test_dry_run_prints_steps_and_exits_0(deploy_mod, capsys):
     assert "felix-trust-scan.service" in captured.out
     assert "felix-trust-scan.timer" in captured.out
     assert "daemon-reload" in captured.out
-    assert "preflight" in captured.out
+    assert "self-test" in captured.out
+    assert "--dry-run" in captured.out
     assert "agent-prompt-sync.service" in captured.out
 
 
@@ -122,6 +123,22 @@ def _write_deployed_fleet(deploy_mod, tmp_path, *, main_has_infra=True, drop_blo
     return resolved
 
 
+# Clean happy-path dry-run self-test JSON (0 findings) — the gate requires this
+# before the timer is enabled (#711).
+_CLEAN_SELF_TEST_STDOUT = (
+    '{"ok": true, "drift_findings": 0, "assertion_findings": 0, '
+    '"alerts_emitted": 0, "errors": []}'
+)
+
+
+def _fake_run_clean(argv, cwd=None):
+    """Default happy-path ``_run``: a clean (0-findings) dry-run self-test JSON
+    for the ``run_trust_scan`` call, success for every ``systemctl`` call."""
+    if "run_trust_scan" in " ".join(argv):
+        return (0, _CLEAN_SELF_TEST_STDOUT, "")
+    return (0, "", "")
+
+
 def test_apply_full_success_path(deploy_mod, tmp_path):
     unit_src = tmp_path / "office2-src"
     unit_src.mkdir()
@@ -131,9 +148,11 @@ def test_apply_full_success_path(deploy_mod, tmp_path):
     systemd_dir = tmp_path / "systemd-user"
     deployed = _write_deployed_fleet(deploy_mod, tmp_path)
 
+    calls = []
+
     def _fake_run(argv, cwd=None):
-        # daemon-reload / enable --now / preflight self-test / prompt-sync start
-        return (0, "", "")
+        calls.append(argv)
+        return _fake_run_clean(argv, cwd)
 
     with patch.object(deploy_mod, "_UNIT_SOURCE_DIR", unit_src), patch.object(
         deploy_mod, "_SYSTEMD_USER_DIR", systemd_dir
@@ -148,9 +167,17 @@ def test_apply_full_success_path(deploy_mod, tmp_path):
     for name in deploy_mod._UNIT_NAMES:
         assert (systemd_dir / name).exists()
     mock_emit.assert_called_once()
+    # Order gate (#711): the dry-run self-test must run BEFORE `enable --now`.
+    joined = [" ".join(a) for a in calls]
+    selftest_i = next(i for i, c in enumerate(joined) if "run_trust_scan" in c)
+    enable_i = next(i for i, c in enumerate(joined) if "enable" in c and "--now" in c)
+    assert selftest_i < enable_i
+    # And the self-test uses --dry-run (never --preflight — a self-test must not emit).
+    assert "--dry-run" in joined[selftest_i]
+    assert "--preflight" not in joined[selftest_i]
 
 
-def test_apply_enable_timer_failure_halts(deploy_mod, tmp_path):
+def test_apply_daemon_reload_failure_halts(deploy_mod, tmp_path):
     unit_src = tmp_path / "office2-src"
     unit_src.mkdir()
     for name in deploy_mod._UNIT_NAMES:
@@ -160,6 +187,54 @@ def test_apply_enable_timer_failure_halts(deploy_mod, tmp_path):
     def _fake_run(argv, cwd=None):
         if "daemon-reload" in argv:
             return (1, "", "daemon-reload failed")
+        return _fake_run_clean(argv, cwd)
+
+    with patch.object(deploy_mod, "_UNIT_SOURCE_DIR", unit_src), patch.object(
+        deploy_mod, "_SYSTEMD_USER_DIR", systemd_dir
+    ), patch.object(deploy_mod, "_run", side_effect=_fake_run), patch.object(
+        deploy_mod, "emit"
+    ) as mock_emit:
+        exit_code = deploy_mod.main(["--apply"])
+
+    assert exit_code == 1
+    mock_emit.assert_called_once()
+
+
+def test_apply_enable_timer_failure_halts(deploy_mod, tmp_path):
+    """`enable --now` failing AFTER a clean self-test halts the deploy."""
+    unit_src = tmp_path / "office2-src"
+    unit_src.mkdir()
+    for name in deploy_mod._UNIT_NAMES:
+        (unit_src / name).write_text("[Unit]\n", encoding="utf-8")
+    systemd_dir = tmp_path / "systemd-user"
+
+    def _fake_run(argv, cwd=None):
+        if "enable" in argv and "--now" in argv:
+            return (1, "", "enable failed")
+        return _fake_run_clean(argv, cwd)
+
+    with patch.object(deploy_mod, "_UNIT_SOURCE_DIR", unit_src), patch.object(
+        deploy_mod, "_SYSTEMD_USER_DIR", systemd_dir
+    ), patch.object(deploy_mod, "_run", side_effect=_fake_run), patch.object(
+        deploy_mod, "emit"
+    ) as mock_emit:
+        exit_code = deploy_mod.main(["--apply"])
+
+    assert exit_code == 1
+    mock_emit.assert_called_once()
+
+
+def test_apply_dry_run_self_test_fault_halts(deploy_mod, tmp_path):
+    """A hard scan-inability (rc=2) in the dry-run self-test halts the deploy."""
+    unit_src = tmp_path / "office2-src"
+    unit_src.mkdir()
+    for name in deploy_mod._UNIT_NAMES:
+        (unit_src / name).write_text("[Unit]\n", encoding="utf-8")
+    systemd_dir = tmp_path / "systemd-user"
+
+    def _fake_run(argv, cwd=None):
+        if "run_trust_scan" in " ".join(argv):
+            return (2, "", "scan-inability: unreadable baseline")
         return (0, "", "")
 
     with patch.object(deploy_mod, "_UNIT_SOURCE_DIR", unit_src), patch.object(
@@ -173,16 +248,27 @@ def test_apply_enable_timer_failure_halts(deploy_mod, tmp_path):
     mock_emit.assert_called_once()
 
 
-def test_apply_preflight_self_test_failure_halts(deploy_mod, tmp_path):
+def test_apply_dry_run_findings_gate_leaves_timer_disabled(deploy_mod, tmp_path):
+    """#711: a fresh deploy whose dry-run reports findings (baseline mismatch)
+    FAILS before enabling the timer — so no false-positive alert ever fires."""
     unit_src = tmp_path / "office2-src"
     unit_src.mkdir()
     for name in deploy_mod._UNIT_NAMES:
         (unit_src / name).write_text("[Unit]\n", encoding="utf-8")
     systemd_dir = tmp_path / "systemd-user"
 
+    dirty = (
+        '{"ok": true, "drift_findings": 2, "assertion_findings": 0, '
+        '"alerts_emitted": 0, "errors": []}'
+    )
+    enable_called = {"value": False}
+
     def _fake_run(argv, cwd=None):
+        if "enable" in argv and "--now" in argv:
+            enable_called["value"] = True
+            return (0, "", "")
         if "run_trust_scan" in " ".join(argv):
-            return (2, "", "preflight scan-inability")
+            return (0, dirty, "")
         return (0, "", "")
 
     with patch.object(deploy_mod, "_UNIT_SOURCE_DIR", unit_src), patch.object(
@@ -193,6 +279,7 @@ def test_apply_preflight_self_test_failure_halts(deploy_mod, tmp_path):
         exit_code = deploy_mod.main(["--apply"])
 
     assert exit_code == 1
+    assert enable_called["value"] is False  # timer NEVER enabled on a dirty baseline
     mock_emit.assert_called_once()
 
 
@@ -210,7 +297,7 @@ def test_apply_prompt_sync_block_missing_in_one_prompt_halts(deploy_mod, tmp_pat
     )
 
     def _fake_run(argv, cwd=None):
-        return (0, "", "")
+        return _fake_run_clean(argv, cwd)
 
     with patch.object(deploy_mod, "_UNIT_SOURCE_DIR", unit_src), patch.object(
         deploy_mod, "_SYSTEMD_USER_DIR", systemd_dir
@@ -236,7 +323,7 @@ def test_apply_prompt_sync_main_only_block_missing_halts(deploy_mod, tmp_path):
     deployed = _write_deployed_fleet(deploy_mod, tmp_path, main_has_infra=False)
 
     def _fake_run(argv, cwd=None):
-        return (0, "", "")
+        return _fake_run_clean(argv, cwd)
 
     with patch.object(deploy_mod, "_UNIT_SOURCE_DIR", unit_src), patch.object(
         deploy_mod, "_SYSTEMD_USER_DIR", systemd_dir
@@ -261,7 +348,7 @@ def test_apply_prompt_sync_start_failure_halts(deploy_mod, tmp_path):
     def _fake_run(argv, cwd=None):
         if "agent-prompt-sync.service" in argv:
             return (1, "", "start failed")
-        return (0, "", "")
+        return _fake_run_clean(argv, cwd)
 
     with patch.object(deploy_mod, "_UNIT_SOURCE_DIR", unit_src), patch.object(
         deploy_mod, "_SYSTEMD_USER_DIR", systemd_dir
