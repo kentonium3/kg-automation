@@ -19,9 +19,9 @@ subtasks:
 - T024
 phase: Phase 3 - Docs
 assignee: ''
-agent: "claude:sonnet:curator-carla:implementer"
+agent: "claude:opus:reviewer-renata:reviewer"
 agent_profile: "curator-carla"
-shell_pid: "16480"
+shell_pid: "18707"
 history:
 - at: '2026-07-10T18:45:00Z'
   actor: system
@@ -260,3 +260,5 @@ No code tests in this WP. Validate the docs:
 ## Activity Log
 
 - 2026-07-10T20:04:28Z – claude:sonnet:curator-carla:implementer – shell_pid=16480 – Assigned agent via action command
+- 2026-07-10T20:11:23Z – claude:sonnet:curator-carla:implementer – shell_pid=16480 – Docs: felix-trust-scan inventory + ops runbook + regression checklist; validators green; links resolve; verified against code; commit d3959c4f.
+- 2026-07-10T20:11:28Z – claude:opus:reviewer-renata:reviewer – shell_pid=18707 – Started review via action command
