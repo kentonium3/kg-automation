@@ -1,16 +1,16 @@
 {
-  "event_count": 34,
-  "last_event_id": "01KX6TV9YKFAXVZX1W2J7TXRVT",
-  "materialized_at": "2026-07-10T20:17:34.163289+00:00",
+  "event_count": 35,
+  "last_event_id": "01KX6TVB6Z6H7QRZQVK7T3QFCA",
+  "materialized_at": "2026-07-10T20:17:35.455863+00:00",
   "mission_number": "93",
   "mission_slug": "felix-truthful-reporting-01KX6MN5",
   "mission_type": "software-dev",
   "summary": {
-    "approved": 1,
+    "approved": 0,
     "blocked": 0,
     "canceled": 0,
     "claimed": 0,
-    "done": 4,
+    "done": 5,
     "for_review": 0,
     "in_progress": 0,
     "in_review": 0,
@@ -46,11 +46,11 @@
       "last_transition_at": "2026-07-10T20:17:34.163289+00:00"
     },
     "WP05": {
-      "actor": "user",
+      "actor": "merge",
       "force_count": 1,
-      "lane": "approved",
-      "last_event_id": "01KX6TP6WNK4R6ABY1VYKH11R1",
-      "last_transition_at": "2026-07-10T20:14:47.189620+00:00"
+      "lane": "done",
+      "last_event_id": "01KX6TVB6Z6H7QRZQVK7T3QFCA",
+      "last_transition_at": "2026-07-10T20:17:35.455863+00:00"
     }
   }
 }
