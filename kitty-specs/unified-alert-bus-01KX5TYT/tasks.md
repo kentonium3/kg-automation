@@ -30,10 +30,10 @@ office2 via the manifest pipeline. Tier 3; rebaseline on audited surfaces.
 | T016 | Migrate `audit.sh` → `alert_bus.sh` (drop hardcoded topic + raw curl) | WP04 | [D] |
 | T017 | Add `felix-alert` co-emit to enforcement `notification.py` (keep WhatsApp+GitHub) | WP04 | | [D] |
 | T018 | Enforcement + audit behavior-preservation tests | WP04 | | [D] |
-| T019 | `deploys/queued/unified-alert-bus.yaml` manifest | WP05 | |
-| T020 | New `FELIX_ALERT_NTFY_TOPIC` credential + `credential-manifest.json` + env.sample | WP05 | |
-| T021 | Wire `EnvironmentFile` into 3 systemd units + `felix-health-check.sh` provisioning | WP05 | |
-| T022 | Deploy preflight (missing-env report) + per-runtime self-test | WP05 | |
+| T019 | `deploys/queued/unified-alert-bus.yaml` manifest | WP05 | | [D] |
+| T020 | New `FELIX_ALERT_NTFY_TOPIC` credential + `credential-manifest.json` + env.sample | WP05 | | [D] |
+| T021 | Wire `EnvironmentFile` into 3 systemd units + `felix-health-check.sh` provisioning | WP05 | | [D] |
+| T022 | Deploy preflight (missing-env report) + per-runtime self-test | WP05 | | [D] |
 | T023 | `service-inventory.json` — bus library + unified topic; retire old topic notes | WP06 | |
 | T024 | `docs/runbooks/alerting.md` — bus, schema, how to emit (Python/CLI/bash) | WP06 | |
 

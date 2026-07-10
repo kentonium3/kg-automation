@@ -19,8 +19,8 @@ subtasks:
 - T020
 - T021
 - T022
-agent: "claude:sonnet:implementer-ivan:implementer"
-shell_pid: "30307"
+agent: "claude:opus:reviewer-renata:reviewer"
+shell_pid: "37002"
 history:
 - at: '2026-07-10T11:30:00Z'
   actor: spec-kitty agent mission tasks
@@ -131,3 +131,6 @@ manifest declares the right `expected_baselines` so auto-rebaseline covers the a
 ## Activity Log
 
 - 2026-07-10T12:46:15Z – claude:sonnet:implementer-ivan:implementer – shell_pid=30307 – Assigned agent via action command
+- 2026-07-10T13:06:59Z – claude:sonnet:implementer-ivan:implementer – shell_pid=30307 – Ready: manifest+entrypoint (two-file, validates), credential+env.sample, 3 units + felix-health-check.sh wired; NO real topic committed; self-test direct (not shim) for correct exit code; expected_baselines superset. T022 quickstart done by orchestrator.
+- 2026-07-10T13:07:12Z – claude:opus:reviewer-renata:reviewer – shell_pid=37002 – Started review via action command
+- 2026-07-10T13:10:41Z – user – shell_pid=37002 – Review passed: NO real ntfy topic committed anywhere (only empty FELIX_ALERT_NTFY_TOPIC= placeholder + env-var-name refs + <topic> markers); topic secrecy control intact. Two-file deploy shape correct: manifest (Tier 3, entrypoint field, expected_baselines superset, validates against manifest-v1.schema.json) + chmod +x verify-only entrypoint with --dry-run/--apply. Entrypoint invokes python3 -m scripts.common.alert_bus self-test DIRECTLY (not the always-exit-0 shim) so delivery failures propagate; --dry-run/--apply exit 1 cleanly with no traceback off-office2, usage error exits 2. credential-manifest.json felix-alert-ntfy-topic env-file entry added (valid JSON, arch-data validator 0 findings). All 3 .service units gained EnvironmentFile=- (leading dash, non-fatal) alert-bus/env keeping existing lines; felix-health-check.sh provisions 0600 empty-placeholder skeleton non-destructively. Scope = exactly the 8 owned files. Tests: 38 manifest tests pass. Anti-pattern checklist all PASS/N-A.
