@@ -12,13 +12,13 @@ office2 via the manifest pipeline. Tier 3; rebaseline on audited surfaces.
 
 | ID | Description | WP | Parallel |
 |----|-------------|----|----------|
-| T001 | `model.py` — Alert, Severity, SEVERITY_MAP, AlertResult | WP01 | |
-| T002 | `render.py` — title/body rendering, field-safe, redact-before-truncate | WP01 | |
-| T003 | `delivery.py` — topic resolution + curl POST + fail-safe AlertResult | WP01 | |
-| T004 | `__init__.py` — public API `emit/Alert/Severity/AlertResult` | WP01 | |
-| T005 | `__main__.py` — CLI `emit`/`self-test` (+`--strict`) | WP01 | |
-| T006 | `alert_bus.sh` — shim: source env-file, checkout-cd, best-effort exit 0 | WP01 | |
-| T007 | Unit tests (model/render/delivery/cli) ≥90% coverage | WP01 | |
+| T001 | `model.py` — Alert, Severity, SEVERITY_MAP, AlertResult | WP01 | | [D] |
+| T002 | `render.py` — title/body rendering, field-safe, redact-before-truncate | WP01 | | [D] |
+| T003 | `delivery.py` — topic resolution + curl POST + fail-safe AlertResult | WP01 | | [D] |
+| T004 | `__init__.py` — public API `emit/Alert/Severity/AlertResult` | WP01 | | [D] |
+| T005 | `__main__.py` — CLI `emit`/`self-test` (+`--strict`) | WP01 | | [D] |
+| T006 | `alert_bus.sh` — shim: source env-file, checkout-cd, best-effort exit 0 | WP01 | | [D] |
+| T007 | Unit tests (model/render/delivery/cli) ≥90% coverage | WP01 | | [D] |
 | T008 | Migrate `notify.py` (failure/rebaseline/health) → `emit()` | WP02 | [P] |
 | T009 | Thread real stderr (`result.details`) through `_tick.py` → Alert.details (SC-002) | WP02 | |
 | T010 | Migrate `health.py` `dispatch_health_notification` → `emit()`, preserve bool | WP02 | |

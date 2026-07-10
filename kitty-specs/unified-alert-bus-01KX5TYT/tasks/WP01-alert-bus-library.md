@@ -22,7 +22,8 @@ subtasks:
 - T005
 - T006
 - T007
-agent: claude
+agent: "claude:opus:reviewer-renata:reviewer"
+shell_pid: "99631"
 history:
 - at: '2026-07-10T11:30:00Z'
   actor: spec-kitty agent mission tasks
@@ -164,3 +165,10 @@ Verify: `emit()` truly never raises (grep for uncaught paths); the severity→pr
 data-model.md exactly; redaction runs BEFORE truncation; the shim is `set -uo pipefail` (not `-e`) and
 exits 0; tests mock subprocess and assert the curl argv (flags + headers). Confirm the package is
 importable as `scripts.common.alert_bus` (has `__init__.py`).
+
+## Activity Log
+
+- 2026-07-10T12:01:10Z – claude:sonnet:python-pedro:implementer – shell_pid=95966 – Assigned agent via action command
+- 2026-07-10T12:10:30Z – claude:sonnet:python-pedro:implementer – shell_pid=95966 – Ready for review: felix-alert bus library (model/render/delivery/CLI/shim). ruff clean (exit 0); pytest 55 passed, 100% line+branch coverage on the package.
+- 2026-07-10T12:11:29Z – claude:opus:reviewer-renata:reviewer – shell_pid=99631 – Started review via action command
+- 2026-07-10T12:19:25Z – user – shell_pid=99631 – Review passed (reviewer-renata): 100% cov, all DoD met, scope clean; matrix verdicts filled
