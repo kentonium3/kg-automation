@@ -12,5 +12,7 @@
   "purpose_tldr": "Consolidate Felix's fragmented alerts into one ntfy thread with a structured, self-explanatory message schema delivered through a single shared emit library.",
   "slug": "unified-alert-bus-01KX5TYT",
   "target_branch": "feat/unified-alert-bus",
-  "topology": "coord"
+  "topology": "coord",
+  "vcs": "git",
+  "vcs_locked_at": "2026-07-10T12:01:04.294371+00:00"
 }
