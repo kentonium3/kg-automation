@@ -4,7 +4,7 @@ artifact_type: spec-kitty.analysis-report
 command: /spec-kitty.analyze
 mission_slug: unified-alert-bus-01KX5TYT
 mission_id: 01KX5TYT1W5WFRQGG1S52RSGD1
-generated_at: '2026-07-10T12:22:00.989714+00:00'
+generated_at: '2026-07-10T12:45:40.882103+00:00'
 analyzer_agent: unknown
 input_artifacts:
   spec.md:
@@ -15,16 +15,16 @@ input_artifacts:
     sha256: c68ffc11f4ee2ab12535e772fabb2a5923807775da830e7b85d78789c7c009fc
   tasks.md:
     path: /Users/kentgale/repos/kg-automation/kitty-specs/unified-alert-bus-01KX5TYT/tasks.md
-    sha256: b97fc1f740116a93cd4ca9492d24e6fad28257ce0d93d268fe7da6dc0956284b
+    sha256: 17e1486b08c66c2d8e2563d73260e1414724ce93e2e505e1bfa58841cf482c9c
   charter:
     path: /Users/kentgale/repos/kg-automation/.kittify/charter/charter.md
     sha256: 4891223a0c3fc0dc96917475523586e8f3147a3ccaa113ecb7ff19da646e82e2
 verdict: ready
 issue_counts:
-  critical: 0
   high: 0
   low: 2
   medium: 0
+  critical: 0
   info: 0
 findings:
 - id: A1
