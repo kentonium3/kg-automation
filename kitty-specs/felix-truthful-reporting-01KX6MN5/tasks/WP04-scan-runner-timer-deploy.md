@@ -22,8 +22,9 @@ subtasks:
 - T020
 phase: Phase 2 - Runner & deploy
 assignee: ''
-agent: claude
+agent: "claude:sonnet:python-pedro:implementer"
 agent_profile: "python-pedro"
+shell_pid: "9700"
 history:
 - at: '2026-07-10T18:45:00Z'
   actor: system
@@ -412,3 +413,7 @@ unreachable defensive branches guarded by an earlier short-circuit.
   tier/guard.
 - Confirm the **severity mapping** matches the data-model Finding → Alert table
   exactly.
+
+## Activity Log
+
+- 2026-07-10T19:43:36Z – claude:sonnet:python-pedro:implementer – shell_pid=9700 – Assigned agent via action command
