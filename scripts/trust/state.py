@@ -47,6 +47,8 @@ __all__ = [
     "load_state",
     "save_state",
     "reconcile",
+    "keep_due",
+    "outstanding_assertion_findings",
 ]
 
 logger = logging.getLogger(__name__)
@@ -63,12 +65,19 @@ _ISO_FMT_NOTE = "ISO-8601 UTC, e.g. 2026-07-10T12:00:00+00:00"
 
 @dataclass(frozen=True)
 class ResolvedEvent:
-    """A finding that was previously seen but is absent from the current scan."""
+    """A finding that was previously seen but is absent from the current scan.
+
+    ``source`` distinguishes a cron-drift resolution (``"cron"``) from an
+    assertion resolution (``"assertion"``) so the runner renders the correct
+    alert copy — an ``artifact_missing`` that clears must NOT render as
+    "Cron drift cleared" (Codex F2).
+    """
 
     fingerprint: str
     name: str
     first_seen: str
     cleared_at: str
+    source: str = "cron"
 
 
 def _utc_iso(dt: datetime) -> str:
@@ -103,6 +112,28 @@ def _finding_name(finding: CronDriftFinding | AssertionFinding) -> str:
     if isinstance(finding, CronDriftFinding):
         return finding.name
     return f"{finding.artifact_kind}:{finding.artifact_id}"
+
+
+def _finding_source(finding: CronDriftFinding | AssertionFinding) -> str:
+    """Return ``"cron"`` or ``"assertion"`` for a finding (F2 resolution routing)."""
+    return "cron" if isinstance(finding, CronDriftFinding) else "assertion"
+
+
+def _assertion_identity_fields(finding: AssertionFinding) -> dict[str, str]:
+    """Identity fields persisted for an ``artifact_missing`` assertion (F2).
+
+    These let the scan runner re-verify an outstanding ``artifact_missing``
+    finding each scan (re-checking the artifact's existence) independent of
+    the once-only assertion watermark, so the finding persists (24h re-alert)
+    while the artifact is still missing and only resolves when it reappears.
+    """
+    return {
+        "assertion_kind": finding.kind,
+        "artifact_kind": finding.artifact_kind,
+        "artifact_id": finding.artifact_id,
+        "agent": finding.agent,
+        "claim": finding.claim,
+    }
 
 
 def fingerprint_finding(
@@ -157,18 +188,35 @@ def load_state(path: Path | str = DEFAULT_STATE_PATH) -> dict[str, dict[str, str
 
     # Defensive: only keep entries that look like the expected shape.
     cleaned: dict[str, dict[str, str]] = {}
+    # Optional string fields carried through verbatim when present: `name`
+    # (readability), `source` ("cron"/"assertion" — F2 resolution routing),
+    # and the assertion-identity fields used to re-verify an outstanding
+    # artifact_missing finding each scan (F2).
+    _OPTIONAL_STR_FIELDS = (
+        "name",
+        "source",
+        "assertion_kind",
+        "artifact_kind",
+        "artifact_id",
+        "agent",
+        "claim",
+    )
     for fingerprint, entry in document.items():
         if isinstance(entry, dict) and all(
             isinstance(entry.get(key), str)
             for key in ("first_seen", "last_seen", "last_alerted")
         ):
-            cleaned[fingerprint] = {
+            cleaned_entry = {
                 "first_seen": entry["first_seen"],
                 "last_seen": entry["last_seen"],
                 "last_alerted": entry["last_alerted"],
-                # Preserve name for readability/debugging; optional field.
-                "name": entry.get("name", ""),
             }
+            for opt_key in _OPTIONAL_STR_FIELDS:
+                value = entry.get(opt_key)
+                if isinstance(value, str):
+                    cleaned_entry[opt_key] = value
+            cleaned_entry.setdefault("name", "")
+            cleaned[fingerprint] = cleaned_entry
     return cleaned
 
 
@@ -246,6 +294,14 @@ def reconcile(
         fingerprint = fingerprint_finding(finding, baseline_hash)
         seen_fingerprints.add(fingerprint)
         name = _finding_name(finding)
+        source = _finding_source(finding)
+        # Persist assertion identity so an outstanding artifact_missing can be
+        # re-verified next scan independent of the watermark (F2).
+        identity_fields = (
+            _assertion_identity_fields(finding)
+            if isinstance(finding, AssertionFinding)
+            else {}
+        )
 
         existing = current_state.get(fingerprint)
         if existing is None:
@@ -255,6 +311,8 @@ def reconcile(
                 "last_seen": now_str,
                 "last_alerted": now_str,
                 "name": name,
+                "source": source,
+                **identity_fields,
             }
             to_alert.append(finding)
             continue
@@ -269,21 +327,18 @@ def reconcile(
             # as due for re-alert rather than silently never re-alerting.
             due_for_re_alert = True
 
+        base_entry = {
+            "first_seen": first_seen,
+            "last_seen": now_str,
+            "name": name,
+            "source": source,
+            **identity_fields,
+        }
         if due_for_re_alert:
-            new_state[fingerprint] = {
-                "first_seen": first_seen,
-                "last_seen": now_str,
-                "last_alerted": now_str,
-                "name": name,
-            }
+            new_state[fingerprint] = {**base_entry, "last_alerted": now_str}
             to_alert.append(finding)
         else:
-            new_state[fingerprint] = {
-                "first_seen": first_seen,
-                "last_seen": now_str,
-                "last_alerted": last_alerted_str,
-                "name": name,
-            }
+            new_state[fingerprint] = {**base_entry, "last_alerted": last_alerted_str}
 
     resolved_events: list[ResolvedEvent] = []
     for fingerprint, entry in current_state.items():
@@ -295,8 +350,85 @@ def reconcile(
                 name=entry.get("name", ""),
                 first_seen=entry.get("first_seen", now_str),
                 cleared_at=now_str,
+                source=entry.get("source", "cron"),
             )
         )
         # Dropped from new_state by simply not carrying it forward.
 
     return to_alert, resolved_events, new_state
+
+
+# Sentinel `last_alerted` value that always parses as "long ago", forcing the
+# next scan to treat the finding as due for re-alert. Used by :func:`keep_due`
+# when an emit fails on a *first observation* (there is no prior last_alerted
+# to fall back to).
+_ALWAYS_DUE_SENTINEL = "1970-01-01T00:00:00+00:00"
+
+
+def keep_due(
+    new_state: dict[str, dict[str, str]],
+    fingerprint: str,
+    prior_state: dict[str, dict[str, str]] | None,
+) -> None:
+    """Revert an entry's ``last_alerted`` so a failed emit stays DUE (F3).
+
+    :func:`reconcile` optimistically bumps ``last_alerted`` to *now* for every
+    finding it puts in ``to_alert``. But an alert that never reached Kent (the
+    ``#701`` bus returned ``ok=False``) must NOT be treated as delivered — the
+    finding has to remain due on the very next scan, not wait out the 24h
+    cadence. The runner calls this for each finding whose emit failed:
+
+    - if the finding existed in ``prior_state``, restore that entry's original
+      ``last_alerted`` (so the pre-existing cadence is unchanged — no spurious
+      reset of a still-valid 24h window);
+    - if it was a first observation (absent from ``prior_state``), stamp an
+      always-due sentinel so the immediate retry fires next scan.
+
+    Mutates ``new_state`` in place. Idempotent and fail-safe (a missing
+    fingerprint is a no-op).
+    """
+    entry = new_state.get(fingerprint)
+    if entry is None:
+        return
+    prior = (prior_state or {}).get(fingerprint)
+    if prior is not None and isinstance(prior.get("last_alerted"), str):
+        entry["last_alerted"] = prior["last_alerted"]
+    else:
+        entry["last_alerted"] = _ALWAYS_DUE_SENTINEL
+
+
+def outstanding_assertion_findings(
+    state: dict[str, dict[str, str]] | None,
+) -> list[AssertionFinding]:
+    """Reconstruct the ``artifact_missing`` assertion findings still in *state* (F2).
+
+    Returns one :class:`AssertionFinding` per state entry that was recorded as
+    an outstanding ``artifact_missing`` assertion (``source == "assertion"``
+    and ``assertion_kind == "artifact_missing"`` with a ``vikunja_task``
+    artifact_kind, the only re-verifiable kind). The scan runner re-verifies
+    each of these against Vikunja every scan — independent of the once-only
+    assertion watermark — so a still-missing artifact keeps producing its
+    finding (persisting the 24h re-alert cadence) and only clears when the
+    artifact reappears.
+    """
+    findings: list[AssertionFinding] = []
+    for entry in (state or {}).values():
+        if entry.get("source") != "assertion":
+            continue
+        if entry.get("assertion_kind") != "artifact_missing":
+            continue
+        if entry.get("artifact_kind") != "vikunja_task":
+            continue
+        artifact_id = entry.get("artifact_id")
+        if not artifact_id:
+            continue
+        findings.append(
+            AssertionFinding(
+                kind="artifact_missing",
+                agent=entry.get("agent", ""),
+                artifact_kind="vikunja_task",
+                artifact_id=artifact_id,
+                claim=entry.get("claim", ""),
+            )
+        )
+    return findings

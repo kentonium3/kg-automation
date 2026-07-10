@@ -40,7 +40,8 @@ from typing import Any
 from scripts.trust import alert_render, state as state_mod
 from scripts.trust.assertion_verifier import (
     AssertionFinding,
-    verify_assertion,
+    verify_assertion_detailed,
+    verify_vikunja_id_present,
 )
 from scripts.trust.completion_assertion import assertions_dir
 from scripts.trust.cron_baseline import BaselineError, baseline_hash, load_baseline
@@ -111,18 +112,36 @@ def _iter_new_assertions(
 ) -> tuple[list[dict[str, Any]], dict[str, int]]:
     """Read every assertion appended since the last recorded watermark.
 
-    Uses WP03's :func:`~scripts.trust.assertion_verifier.read_assertions` per
-    date-partitioned file, but tracks a byte offset per file (rather than
-    re-reading from the start every tick) so each assertion is verified
-    exactly once. Returns ``(new_records, updated_watermark)`` — the caller
-    decides whether to persist ``updated_watermark`` (skipped on
-    ``--dry-run``).
+    Thin wrapper over :func:`_iter_new_assertions_positioned` that discards the
+    per-record byte position, preserved for callers/tests that only need the
+    record list + a fully-advanced watermark.
     """
-    new_records: list[dict[str, Any]] = []
+    positioned, updated_watermark = _iter_new_assertions_positioned(base_dir, watermark)
+    return [record for _key, _end_offset, record in positioned], updated_watermark
+
+
+def _iter_new_assertions_positioned(
+    base_dir: Path, watermark: dict[str, int]
+) -> tuple[list[tuple[str, int, dict[str, Any]]], dict[str, int]]:
+    """Read new assertions, each tagged with its file key + end byte offset.
+
+    Returns ``(positioned_records, fully_advanced_watermark)`` where each
+    positioned record is ``(file_key, end_offset, record)`` — ``end_offset``
+    is the byte position in the file *after* that record's line, so the caller
+    can advance the watermark only as far as the last **conclusively-verified**
+    record per file (Codex F1: a record whose artifact could not be
+    conclusively checked, e.g. during a Vikunja outage, must be re-read next
+    scan rather than silently consumed).
+
+    ``fully_advanced_watermark`` is the watermark advanced to each file's full
+    size — the value to persist only when every record in the file was
+    conclusively verified.
+    """
+    positioned: list[tuple[str, int, dict[str, Any]]] = []
     updated_watermark = dict(watermark)
 
     if not base_dir.exists():
-        return new_records, updated_watermark
+        return positioned, updated_watermark
 
     for file_path in sorted(base_dir.glob("*.jsonl")):
         key = str(file_path)
@@ -135,27 +154,40 @@ def _iter_new_assertions(
             # Nothing new in this file since last tick.
             updated_watermark[key] = size
             continue
-        # Re-read the whole file via the WP03 reader (tolerant of
-        # blank/corrupt trailing lines) and only keep records past the
-        # byte offset we've already processed. This trades a bit of
-        # redundant parsing for reuse of the WP03 reader rather than
-        # re-implementing line-tracking here.
+        # Re-read from the byte offset we've already processed, tracking the
+        # end-of-line byte position of each record so the caller can hold the
+        # watermark at the boundary of the last conclusively-verified record.
         try:
-            with file_path.open("r", encoding="utf-8") as fh:
+            with file_path.open("rb") as fh:
                 fh.seek(offset)
-                for line in fh:
+                # Binary mode + explicit readline() so fh.tell() returns a true
+                # BYTE offset after each line — this must stay byte-comparable
+                # with st_size (used in the `offset >= size` short-circuit) and
+                # feed back into seek() on later ticks. A text-mode iterator's
+                # tell() is an opaque, non-byte cookie and raises inside a
+                # `for line in fh` loop.
+                while True:
+                    raw = fh.readline()
+                    if not raw:
+                        break
+                    end_offset = fh.tell()
+                    try:
+                        line = raw.decode("utf-8")
+                    except UnicodeDecodeError:
+                        continue
                     stripped = line.strip()
                     if not stripped:
                         continue
                     try:
-                        new_records.append(json.loads(stripped))
+                        record = json.loads(stripped)
                     except json.JSONDecodeError:
                         continue
+                    positioned.append((key, end_offset, record))
         except OSError:
             continue
         updated_watermark[key] = size
 
-    return new_records, updated_watermark
+    return positioned, updated_watermark
 
 
 def run_scan(
@@ -197,27 +229,89 @@ def run_scan(
         errors.append(f"cron_scan:{exc.__class__.__name__}:{exc}")
         scan_inability = True
 
+    # ---- Seen-findings state (loaded up front) -------------------------
+    # Loaded before the assertion sub-scan so the F2 re-verify of outstanding
+    # artifact_missing assertions can consult it. Fail-safe: a state-load
+    # fault degrades to empty state (spurious re-alert at worst, never a crash).
+    current_state: dict[str, dict[str, str]] = {}
+    try:
+        current_state = state_mod.load_state(state_path)
+    except Exception as exc:  # noqa: BLE001 - fail-safe: state load must not crash the tick
+        errors.append(f"state_load:{exc.__class__.__name__}:{exc}")
+
     # ---- Assertion sub-scan (WP03) -------------------------------------
+    # Two sources feed the assertion findings this tick:
+    #   (a) NEW assertions read once past the byte-offset watermark — but the
+    #       watermark only advances past records that were CONCLUSIVELY verified
+    #       (present or missing). A record with any indeterminate id (transient
+    #       Vikunja fault) holds the watermark so it is re-read next scan (F1).
+    #   (b) OUTSTANDING artifact_missing assertions already in seen-state —
+    #       re-verified against Vikunja every scan, independent of the watermark,
+    #       so a still-missing artifact keeps producing its finding (persisting
+    #       the 24h re-alert) and only clears when the artifact reappears (F2).
     assertion_findings: list[AssertionFinding] = []
     watermark: dict[str, int] = {}
-    new_watermark: dict[str, int] = {}
+    committed_watermark: dict[str, int] = {}
     try:
         base_dir = assertions_base_dir if assertions_base_dir is not None else assertions_dir()
         watermark = _load_watermark(Path(watermark_path))
-        new_records, new_watermark = _iter_new_assertions(base_dir, watermark)
-        for record in new_records:
-            assertion_findings.extend(verify_assertion(record))
+        positioned, fully_advanced = _iter_new_assertions_positioned(base_dir, watermark)
+
+        # Advance the watermark per-file only up to the last conclusively-
+        # verified record; start from the loaded watermark and push each file's
+        # offset forward as records verify conclusively (F1).
+        committed_watermark = dict(watermark)
+        indeterminate_files: set[str] = set()
+        for key, end_offset, record in positioned:
+            result = verify_assertion_detailed(record)
+            assertion_findings.extend(result.findings)
+            if result.indeterminate:
+                # Hold this file's watermark here: do not advance past the
+                # first indeterminate record so it (and everything after it in
+                # this file) is re-read next scan.
+                indeterminate_files.add(key)
+                errors.append(
+                    f"assertion_scan:indeterminate:{record.get('artifact_kind', '')}:"
+                    f"{','.join(str(i) for i in (record.get('artifact_ids') or []))}"
+                )
+                continue
+            if key not in indeterminate_files:
+                committed_watermark[key] = end_offset
+        # Files with no held record advance fully (covers empty/skipped files
+        # and files whose every record verified conclusively).
+        for key, size in fully_advanced.items():
+            if key not in indeterminate_files:
+                committed_watermark[key] = size
+
+        # (b) Re-verify outstanding artifact_missing assertions from state.
+        # A still-missing one re-emits its finding (persists 24h cadence); a
+        # reappeared one is simply absent from current_findings this tick, so
+        # reconcile resolves it as an ASSERTION resolution.
+        for outstanding in state_mod.outstanding_assertion_findings(current_state):
+            present = verify_vikunja_id_present(outstanding.artifact_id)
+            if present is False:
+                assertion_findings.append(outstanding)
+            elif present is None:
+                # Transient fault re-verifying an outstanding finding: keep it
+                # present in current_findings so it does NOT false-resolve, and
+                # record the fault. (Deterministic: no LLM.)
+                assertion_findings.append(outstanding)
+                errors.append(
+                    f"assertion_reverify:indeterminate:vikunja_task:{outstanding.artifact_id}"
+                )
+            # present is True -> omit from current_findings -> reconcile resolves it.
     except Exception as exc:  # noqa: BLE001 - fail-safe isolation (NFR-001)
         errors.append(f"assertion_scan:{exc.__class__.__name__}:{exc}")
         # An assertion-scan fault does NOT count as scan_inability on its
         # own for the "drift is never non-zero" contract — but it does
-        # mean the assertion side found nothing this tick.
+        # mean the assertion side found nothing this tick. Hold the watermark
+        # at its loaded value so nothing is silently consumed.
+        committed_watermark = watermark
 
     # ---- Seen-findings cadence reconciliation --------------------------
     alerts_emitted = 0
     if not dry_run:
         try:
-            current_state = state_mod.load_state(state_path)
             findings_with_hash: list[tuple[Any, str]] = [
                 (finding, current_baseline_hash) for finding in cron_findings
             ] + [(finding, current_baseline_hash) for finding in assertion_findings]
@@ -225,21 +319,30 @@ def run_scan(
                 findings_with_hash, tick_now, current_state
             )
 
+            # Emit-gate last_alerted (F3): only a SUCCESSFUL emit counts as
+            # "alerted". A failed emit (bus ok=False) must leave the finding DUE
+            # next scan, not suppressed until the 24h cadence — so revert its
+            # last_alerted via state.keep_due.
             for finding in to_alert:
                 result = alert_render.emit_finding(finding)
                 if result.ok:
                     alerts_emitted += 1
+                else:
+                    fingerprint = state_mod.fingerprint_finding(
+                        finding, current_baseline_hash
+                    )
+                    state_mod.keep_due(new_state, fingerprint, current_state)
 
             for event in resolved_events:
                 alert = alert_render.render_drift_resolved(
-                    event.name, event.first_seen, event.cleared_at
+                    event.name, event.first_seen, event.cleared_at, source=event.source
                 )
                 result = alert_render.emit_finding(alert)
                 if result.ok:
                     alerts_emitted += 1
 
             state_mod.save_state(new_state, state_path)
-            _save_watermark(new_watermark, Path(watermark_path))
+            _save_watermark(committed_watermark, Path(watermark_path))
         except Exception as exc:  # noqa: BLE001 - fail-safe: state I/O must not crash the tick
             errors.append(f"state_reconcile:{exc.__class__.__name__}:{exc}")
     else:

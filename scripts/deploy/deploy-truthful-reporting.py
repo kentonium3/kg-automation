@@ -23,10 +23,18 @@ Strict, halt-on-error order:
   3. **Preflight self-test** — ``python3 -m scripts.trust.run_trust_scan
      --preflight --json`` (may exit 2 on a hard scan-inability fault; a
      non-zero self-test fails the deploy).
-  4. **Prompt-sync verification (Codex finding 10)** — trigger
-     ``systemctl --user start agent-prompt-sync.service`` and grep the
-     deployed ``main`` ``AGENTS.md`` for the truthful-reporting doctrine
-     marker (WP01), rather than waiting for the 5-minute prompt-sync timer.
+  4. **Prompt-sync verification (Codex finding 10 + F4)** — trigger
+     ``systemctl --user start agent-prompt-sync.service`` (rather than waiting
+     for the 5-minute prompt-sync timer), then verify the **exact canonical**
+     truthful-reporting + mechanism-fidelity doctrine block is present in
+     **every deployed fleet prompt** and the no-unrequested-infra block in
+     deployed ``main`` **only** — reusing the same canonical-block source as
+     the repo-source fleet-guard test
+     (``scripts/openclaw/agents/truthful_doctrine.py``) so the deploy check and
+     the test can never drift apart. Deployed prompt paths are resolved from
+     ``service-inventory.json`` (agents.<slug>.workspace); agents with no
+     deployed workspace (the retired ``felix-doc-auditor`` driver) have no
+     prompt to verify and are skipped.
   5. **Report via the ``#701`` bus** — outcome (success/failure) is emitted
      through ``scripts.common.alert_bus.emit``; no parallel channel.
 
@@ -62,6 +70,11 @@ if str(_REPO_ROOT) not in sys.path:
 
 from scripts.common.alert_bus import emit  # noqa: E402
 from scripts.common.alert_bus.model import Alert, Severity  # noqa: E402
+from scripts.openclaw.agents.truthful_doctrine import (  # noqa: E402
+    FLEET_AGENTS,
+    check_deployed_doctrine,
+)
+from scripts.openclaw.deploy.deploy_agent_prompts import iter_agents  # noqa: E402
 
 # --------------------------------------------------------------------------- #
 # Grounded constants.
@@ -81,20 +94,15 @@ _PREFLIGHT_ARGV = [
     "--json",
 ]
 
-# The deployed location of `main`'s AGENTS.md (per
-# docs/design/architecture/data/service-inventory.json services.openclaw.
-# agents.main.workspace) — the prompt-sync pipeline copies
-# scripts/openclaw/agents/main/AGENTS.md here.
-_MAIN_DEPLOYED_AGENTS_MD = Path("/data/services/openclaw/data/AGENTS.md")
-
-# Stable substring of the WP01 truthful-reporting doctrine block. Kept
-# loose (case-insensitive "truthful" anchor) rather than the full literal so
-# this verification step does not become a second, drift-prone copy of
-# WP01's exact wording — WP01's own fleet-guard test
-# (scripts/openclaw/agents/tests/test_truthful_doctrine.py) is the source of
-# truth for the literal; this is a deploy-time smoke check that *some*
-# truthful-reporting doctrine landed in the synced prompt.
-_DOCTRINE_MARKER = "truthful"
+# The canonical operational-state source for each agent's deployed prompt
+# location: service-inventory.json services[openclaw].agents.<slug>.workspace.
+# The prompt-sync pipeline (scripts.openclaw.deploy.deploy_agent_prompts) copies
+# each repo-source AGENTS.md to <workspace>/AGENTS.md; we resolve the same
+# mapping here so the deploy verification checks exactly what prompt-sync
+# deploys.
+_SERVICE_INVENTORY = (
+    _REPO_ROOT / "docs" / "design" / "architecture" / "data" / "service-inventory.json"
+)
 
 
 def _print_line(prefix: str, summary: str, details: dict) -> None:
@@ -195,6 +203,25 @@ def _step_preflight_self_test() -> tuple[bool, dict]:
 # --------------------------------------------------------------------------- #
 
 
+def _deployed_fleet_prompts() -> dict:
+    """Resolve ``agent_slug -> deployed AGENTS.md Path`` for the doctrine fleet.
+
+    Reads the canonical workspace mapping from service-inventory.json (the same
+    source the prompt-sync pipeline uses) and restricts to the fleet agents
+    that carry the doctrine block (:data:`FLEET_AGENTS`). Agents with no
+    deployed workspace target (e.g. the retired ``felix-doc-auditor``
+    scripts-first driver, absent from the inventory's agents map) are simply
+    not present in the returned mapping — they have no deployed prompt to
+    verify, so the deploy checks the subset that is actually deployed.
+    """
+    fleet = set(FLEET_AGENTS)
+    resolved: dict = {}
+    for agent in iter_agents(_SERVICE_INVENTORY):
+        if agent.slug in fleet:
+            resolved[agent.slug] = agent.workspace / "AGENTS.md"
+    return resolved
+
+
 def _step_prompt_sync_and_verify() -> tuple[bool, dict]:
     details: dict = {}
 
@@ -206,18 +233,23 @@ def _step_prompt_sync_and_verify() -> tuple[bool, dict]:
         details["prompt_sync_start_stderr"] = stderr[:400]
         return False, details
 
-    try:
-        content = _MAIN_DEPLOYED_AGENTS_MD.read_text(encoding="utf-8", errors="replace")
-    except OSError as exc:
-        details["read_error"] = str(exc)
-        details["path"] = str(_MAIN_DEPLOYED_AGENTS_MD)
+    # Verify the exact canonical doctrine block landed in EVERY deployed fleet
+    # prompt (not a loose "truthful" substring on main only — Codex F4), and
+    # the no-unrequested-infra block in main only. Reuses the same canonical
+    # block source as the repo-source fleet-guard test so they cannot drift.
+    deployed = _deployed_fleet_prompts()
+    if not deployed:
+        # Could not resolve any deployed prompt from the inventory — treat as a
+        # verification failure rather than a silent pass.
+        details["error"] = "no deployed fleet prompts resolved from service-inventory.json"
+        details["inventory"] = str(_SERVICE_INVENTORY)
         return False, details
 
-    marker_present = _DOCTRINE_MARKER.lower() in content.lower()
-    details["path"] = str(_MAIN_DEPLOYED_AGENTS_MD)
-    details["marker"] = _DOCTRINE_MARKER
-    details["marker_present"] = marker_present
-    return marker_present, details
+    check = check_deployed_doctrine(deployed)
+    details["checked"] = check.checked
+    details["missing_block"] = check.missing_block
+    details["missing_main_only"] = check.missing_main_only
+    return check.ok, details
 
 
 # --------------------------------------------------------------------------- #
@@ -243,11 +275,16 @@ def _dry_run() -> int:
         "as a self-test",
         {"argv": _PREFLIGHT_ARGV},
     )
+    deployed = _deployed_fleet_prompts()
     _print_line(
         "DRY-RUN",
         "would trigger `systemctl --user start agent-prompt-sync.service` and "
-        f"verify the doctrine marker in {_MAIN_DEPLOYED_AGENTS_MD}",
-        {"marker": _DOCTRINE_MARKER},
+        "verify the exact canonical truthful-reporting doctrine block is present "
+        "in every deployed fleet prompt, plus the no-unrequested-infra block in "
+        "main only",
+        {
+            "deployed_prompts": {slug: str(p) for slug, p in sorted(deployed.items())},
+        },
     )
     return 0
 
@@ -328,8 +365,9 @@ def _apply() -> int:
             [
                 "Confirm agent-prompt-sync.service ran successfully:",
                 "  systemctl --user status agent-prompt-sync.service",
-                f"Confirm the doctrine block landed in {_MAIN_DEPLOYED_AGENTS_MD} "
-                "(WP01 fleet doctrine).",
+                "Confirm the canonical doctrine block landed in every deployed "
+                "fleet prompt (see 'missing_block' above) and the "
+                "no-unrequested-infra block in main (see 'missing_main_only').",
                 "This may indicate WP01's doctrine commit has not reached main yet.",
             ]
         )

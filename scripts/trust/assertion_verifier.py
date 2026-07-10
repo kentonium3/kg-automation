@@ -34,7 +34,7 @@ from __future__ import annotations
 
 import json
 import logging
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any, Iterator
 
@@ -42,7 +42,10 @@ from scripts.trust.completion_assertion import assertions_dir
 
 __all__ = [
     "AssertionFinding",
+    "VerificationResult",
     "verify_assertion",
+    "verify_assertion_detailed",
+    "verify_vikunja_id_present",
     "read_assertions",
     "iter_recent_assertions",
 ]
@@ -67,6 +70,30 @@ class AssertionFinding:
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
+
+
+@dataclass(frozen=True)
+class VerificationResult:
+    """Outcome of verifying one ``CompletionAssertion`` (F1 lifecycle).
+
+    Distinguishes a **conclusive** verification (every id was resolved to
+    *present* or *missing*) from an **indeterminate** one (at least one id
+    hit a transient/unexpected fault — e.g. a Vikunja outage — so its
+    existence could not be established this scan).
+
+    - ``findings`` — zero or more :class:`AssertionFinding` for the ids that
+      were conclusively *missing* / *unverifiable*.
+    - ``indeterminate`` — ``True`` iff at least one id could not be
+      conclusively checked. The scan runner uses this to hold the watermark
+      so the record is re-read (and re-verified) on the next scan rather than
+      being silently consumed after a transient failure (Codex F1).
+
+    A record is safe to advance the watermark past **only** when
+    ``indeterminate`` is ``False``.
+    """
+
+    findings: list[AssertionFinding] = field(default_factory=list)
+    indeterminate: bool = False
 
 
 def _build_client() -> Any:
@@ -105,12 +132,20 @@ def _verify_vikunja_task_id(client: Any, artifact_id: str) -> bool | None:
     return True
 
 
-def verify_assertion(a: dict[str, Any], *, client: Any | None = None) -> list[AssertionFinding]:
-    """Verify each id in a ``CompletionAssertion`` independently.
+def verify_assertion_detailed(
+    a: dict[str, Any], *, client: Any | None = None
+) -> VerificationResult:
+    """Verify a ``CompletionAssertion`` and report conclusiveness (F1).
 
-    ``a`` is a ``CompletionAssertion`` (dict, e.g. as read back from the
-    ledger JSONL). Returns zero or more ``AssertionFinding`` — one per
-    missing/unverifiable id. Deterministic; no LLM.
+    Like :func:`verify_assertion` but returns a :class:`VerificationResult`
+    so the caller can tell a *conclusive* verification (every id resolved to
+    present or missing) apart from an *indeterminate* one (a transient
+    Vikunja fault on at least one id). The scan runner needs this to avoid
+    advancing its watermark past a record it could not conclusively verify
+    (a genuinely-missing artifact after a Vikunja outage must be retried,
+    not silently consumed).
+
+    Deterministic; no LLM.
     """
     agent = str(a.get("agent", ""))
     artifact_kind = str(a.get("artifact_kind", ""))
@@ -122,6 +157,7 @@ def verify_assertion(a: dict[str, Any], *, client: Any | None = None) -> list[As
     if artifact_kind != "vikunja_task":
         # calendar_event / vault_note / other / unknown kinds: no cheap
         # existence check today -> warn, one per id, never artifact_missing.
+        # These are always conclusive (there is no external call to fail).
         for artifact_id in artifact_ids:
             findings.append(
                 AssertionFinding(
@@ -132,9 +168,10 @@ def verify_assertion(a: dict[str, Any], *, client: Any | None = None) -> list[As
                     claim=claim,
                 )
             )
-        return findings
+        return VerificationResult(findings=findings, indeterminate=False)
 
     active_client = client if client is not None else _build_client()
+    indeterminate = False
     for artifact_id in artifact_ids:
         found = _verify_vikunja_task_id(active_client, str(artifact_id))
         if found is False:
@@ -147,9 +184,39 @@ def verify_assertion(a: dict[str, Any], *, client: Any | None = None) -> list[As
                     claim=claim,
                 )
             )
-        # found is True -> no finding; found is None -> transient error,
-        # deliberately no finding (avoid false artifact_missing on outage).
-    return findings
+        elif found is None:
+            # Transient error on this id -> the record is not conclusively
+            # verified. Deliberately no finding (avoid a false artifact_missing
+            # on outage); flag the whole record indeterminate so the runner
+            # holds the watermark and retries next scan.
+            indeterminate = True
+        # found is True -> present, no finding.
+    return VerificationResult(findings=findings, indeterminate=indeterminate)
+
+
+def verify_assertion(a: dict[str, Any], *, client: Any | None = None) -> list[AssertionFinding]:
+    """Verify each id in a ``CompletionAssertion`` independently.
+
+    ``a`` is a ``CompletionAssertion`` (dict, e.g. as read back from the
+    ledger JSONL). Returns zero or more ``AssertionFinding`` — one per
+    missing/unverifiable id. Deterministic; no LLM. Thin wrapper over
+    :func:`verify_assertion_detailed` for callers that don't need the
+    conclusiveness signal.
+    """
+    return verify_assertion_detailed(a, client=client).findings
+
+
+def verify_vikunja_id_present(artifact_id: str, *, client: Any | None = None) -> bool | None:
+    """Re-check a single ``vikunja_task`` id's existence (F2 re-verify path).
+
+    Returns ``True`` if the task is present, ``False`` if confirmed missing,
+    ``None`` if indeterminate (transient error). Used by the scan runner to
+    re-verify an outstanding ``artifact_missing`` assertion each scan —
+    independent of the watermark — so the finding persists (24h re-alert)
+    while the artifact is still missing and only resolves when it reappears.
+    """
+    active_client = client if client is not None else _build_client()
+    return _verify_vikunja_task_id(active_client, str(artifact_id))
 
 
 def read_assertions(path: Path) -> Iterator[dict[str, Any]]:

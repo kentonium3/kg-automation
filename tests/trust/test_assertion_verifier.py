@@ -128,6 +128,60 @@ def test_verify_assertion_transient_error_mixed_with_missing():
     assert findings[0].kind == "artifact_missing"
 
 
+# --- verify_assertion_detailed: conclusiveness signal (F1) -------------------
+
+
+def test_verify_detailed_all_present_is_conclusive():
+    client = _FakeVikunjaClient(present_ids={"91", "92"})
+    res = av.verify_assertion_detailed(_assertion(artifact_ids=["91", "92"]), client=client)
+    assert res.findings == []
+    assert res.indeterminate is False
+
+
+def test_verify_detailed_missing_is_conclusive_with_finding():
+    client = _FakeVikunjaClient(present_ids=set())
+    res = av.verify_assertion_detailed(_assertion(artifact_ids=["91"]), client=client)
+    assert len(res.findings) == 1
+    assert res.indeterminate is False
+
+
+def test_verify_detailed_transient_error_marks_indeterminate_no_finding():
+    client = _FakeVikunjaClient(error_ids={"91"})
+    res = av.verify_assertion_detailed(_assertion(artifact_ids=["91"]), client=client)
+    assert res.findings == []  # no false artifact_missing
+    assert res.indeterminate is True
+
+
+def test_verify_detailed_mixed_missing_and_transient():
+    client = _FakeVikunjaClient(present_ids=set(), error_ids={"91"})
+    res = av.verify_assertion_detailed(_assertion(artifact_ids=["91", "92"]), client=client)
+    # 92 conclusively missing -> finding; 91 transient -> indeterminate.
+    assert {f.artifact_id for f in res.findings} == {"92"}
+    assert res.indeterminate is True
+
+
+def test_verify_detailed_unverifiable_kind_is_conclusive():
+    client = _FakeVikunjaClient()
+    res = av.verify_assertion_detailed(
+        _assertion(artifact_kind="other", artifact_ids=["x1"]), client=client
+    )
+    assert len(res.findings) == 1
+    assert res.findings[0].kind == "unverifiable_kind"
+    assert res.indeterminate is False
+
+
+# --- verify_vikunja_id_present: F2 re-verify primitive -----------------------
+
+
+def test_verify_vikunja_id_present_true_false_none():
+    present = _FakeVikunjaClient(present_ids={"91"})
+    assert av.verify_vikunja_id_present("91", client=present) is True
+    missing = _FakeVikunjaClient(present_ids=set())
+    assert av.verify_vikunja_id_present("91", client=missing) is False
+    transient = _FakeVikunjaClient(error_ids={"91"})
+    assert av.verify_vikunja_id_present("91", client=transient) is None
+
+
 # --- dataclass shape -----------------------------------------------------------
 
 

@@ -14,7 +14,7 @@ calls.
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from unittest.mock import patch
 
@@ -321,7 +321,7 @@ def test_assertion_scan_failure_isolated_cron_scan_still_runs(isolated_paths):
         "scripts.trust.run_trust_scan.enumerate_live_crons",
         return_value=[_live_job(), unapproved_job],
     ), patch(
-        "scripts.trust.run_trust_scan._iter_new_assertions",
+        "scripts.trust.run_trust_scan._iter_new_assertions_positioned",
         side_effect=RuntimeError("assertion read exploded"),
     ), patch("scripts.trust.alert_render.emit") as mock_emit:
         from scripts.common.alert_bus.model import AlertResult
@@ -398,6 +398,279 @@ def test_iter_new_assertions_skips_unstattable_file(tmp_path: Path, monkeypatch)
     records, watermark = rts._iter_new_assertions(assertions_dir, {})
     assert records == []
     assert watermark == {}
+
+
+# --- F1: transient Vikunja fault holds the watermark + surfaces in errors ----
+
+
+class _FakeVikunja:
+    """Fake VikunjaClient.get keyed by task id: present / missing / transient."""
+
+    def __init__(self, *, present=None, error=None):
+        self._present = set(present or [])
+        self._error = set(error or [])
+        self.calls: list[str] = []
+
+    def get(self, path, **_kwargs):
+        self.calls.append(path)
+        task_id = path.rsplit("/", 1)[-1]
+        if task_id in self._error:
+            raise RuntimeError("transient vikunja error")
+        if task_id in self._present:
+            return {"id": int(task_id)}
+        from scripts.common.vikunja_client import VikunjaNotFoundError
+
+        raise VikunjaNotFoundError(path=path, status=404)
+
+
+def _vikunja_assertion(assertions_dir, artifact_ids, *, name="2026-07-10.jsonl"):
+    record = {
+        "ts": "2026-07-10T11:00:00+00:00",
+        "agent": "main",
+        "request_summary": None,
+        "request_ref": None,
+        "artifact_kind": "vikunja_task",
+        "artifact_ids": artifact_ids,
+        "claim": "Created Vikunja reminder tasks",
+    }
+    (assertions_dir / name).write_text(json.dumps(record) + "\n", encoding="utf-8")
+
+
+def _run(isolated_paths, *, client, now=T0, live_jobs=None):
+    state_path, watermark_path, assertions_dir = isolated_paths
+    jobs = live_jobs if live_jobs is not None else [_live_job()]
+    from scripts.common.alert_bus.model import AlertResult
+
+    with patch("scripts.trust.run_trust_scan.load_baseline", return_value=BASELINE), patch(
+        "scripts.trust.run_trust_scan.enumerate_live_crons", return_value=jobs
+    ), patch(
+        "scripts.trust.assertion_verifier._build_client", return_value=client
+    ), patch("scripts.trust.alert_render.emit") as mock_emit:
+        mock_emit.return_value = AlertResult(ok=True)
+        summary = rts.run_scan(
+            now=now,
+            state_path=state_path,
+            watermark_path=watermark_path,
+            assertions_base_dir=assertions_dir,
+        )
+        return summary, mock_emit
+
+
+def test_transient_vikunja_fault_holds_watermark_and_surfaces_error(isolated_paths):
+    """F1: a record whose id hit a transient fault is NOT consumed — the
+    watermark does not advance past it, so it re-reads next scan; the fault is
+    recorded in errors[]."""
+    state_path, watermark_path, assertions_dir = isolated_paths
+    _vikunja_assertion(assertions_dir, ["91"])
+
+    # Scan 1: id 91 errors transiently -> no finding, indeterminate.
+    client1 = _FakeVikunja(error={"91"})
+    summary1, _ = _run(isolated_paths, client=client1)
+    assert summary1["assertion_findings"] == 0  # no false artifact_missing
+    assert any("assertion_scan:indeterminate" in e for e in summary1["errors"])
+    # Watermark did NOT advance past the (single, held) record.
+    wm = rts._load_watermark(watermark_path)
+    assert all(v == 0 for v in wm.values()) or wm == {}
+
+    # Scan 2: Vikunja recovered, id 91 now confirmed missing -> the SAME record
+    # is re-read (proving it was not silently consumed) and now flags missing.
+    client2 = _FakeVikunja(present=set())
+    summary2, _ = _run(isolated_paths, client=client2)
+    assert summary2["assertion_findings"] == 1
+    # Now conclusively verified -> watermark advances.
+    wm2 = rts._load_watermark(watermark_path)
+    assert any(v > 0 for v in wm2.values())
+
+
+def test_conclusive_record_after_indeterminate_holds_whole_file(isolated_paths):
+    """F1: an indeterminate record holds the watermark for the rest of its file
+    even if a later record would verify conclusively — the whole tail re-reads."""
+    state_path, watermark_path, assertions_dir = isolated_paths
+    # Two records in one file: first indeterminate (91 errors), second missing.
+    f = assertions_dir / "2026-07-10.jsonl"
+    r1 = {"agent": "main", "artifact_kind": "vikunja_task", "artifact_ids": ["91"], "claim": "c1"}
+    r2 = {"agent": "main", "artifact_kind": "vikunja_task", "artifact_ids": ["92"], "claim": "c2"}
+    f.write_text(json.dumps(r1) + "\n" + json.dumps(r2) + "\n", encoding="utf-8")
+
+    client = _FakeVikunja(present=set(), error={"91"})
+    summary, _ = _run(isolated_paths, client=client)
+    # 92 is missing -> 1 finding; 91 indeterminate -> held, no finding.
+    assert summary["assertion_findings"] == 1
+    assert any("indeterminate" in e for e in summary["errors"])
+    # Watermark held at 0 for the file (first record indeterminate).
+    wm = rts._load_watermark(watermark_path)
+    assert wm.get(str(f), 0) == 0
+
+
+# --- F2: persistent artifact_missing re-alerts; no false-resolve; resolves ----
+
+
+def test_persistent_artifact_missing_realerts_at_24h_no_false_resolve(isolated_paths):
+    """F2: an artifact_missing persists across scans (re-verified from state,
+    independent of the watermark), re-alerts at 24h, and never emits a false
+    'Cron drift cleared'."""
+    state_path, watermark_path, assertions_dir = isolated_paths
+    _vikunja_assertion(assertions_dir, ["91"])
+
+    # Scan 1: 91 missing -> first-observation alert.
+    client = _FakeVikunja(present=set())
+    summary1, emit1 = _run(isolated_paths, client=client)
+    assert summary1["assertion_findings"] == 1
+    assert summary1["alerts_emitted"] == 1
+
+    # Scan 2, +1h: no NEW assertion lines (watermark advanced), but the
+    # outstanding artifact_missing is re-verified from state and still missing
+    # -> finding persists, NOT re-alerted yet (<24h), and NO resolution emitted.
+    summary2, emit2 = _run(isolated_paths, client=_FakeVikunja(present=set()), now=T0 + timedelta(hours=1))
+    assert summary2["assertion_findings"] == 1  # persisted via re-verify
+    assert summary2["alerts_emitted"] == 0  # not due, not resolved
+    titles2 = [c.args[0].title for c in emit2.call_args_list]
+    assert not any("cleared" in t.lower() for t in titles2)
+    assert not any("drift cleared" in t.lower() for t in titles2)
+
+    # Scan 3, +24h: re-alert fires (persistent unapproved-claim reminder).
+    summary3, emit3 = _run(isolated_paths, client=_FakeVikunja(present=set()), now=T0 + timedelta(hours=24))
+    assert summary3["alerts_emitted"] == 1
+    titles3 = [c.args[0].title for c in emit3.call_args_list]
+    assert any("not grounded" in t.lower() for t in titles3)
+
+
+def test_artifact_missing_resolves_as_assertion_when_it_reappears(isolated_paths):
+    """F2: when the artifact reappears, the finding resolves — rendered as an
+    ASSERTION resolution, not 'Cron drift cleared'."""
+    state_path, watermark_path, assertions_dir = isolated_paths
+    _vikunja_assertion(assertions_dir, ["91"])
+
+    # Scan 1: missing -> alert + seeded into state.
+    _run(isolated_paths, client=_FakeVikunja(present=set()))
+
+    # Scan 2: 91 now present -> re-verify finds it -> omitted from current
+    # findings -> reconcile emits a resolution rendered as an ASSERTION.
+    summary2, emit2 = _run(
+        isolated_paths, client=_FakeVikunja(present={"91"}), now=T0 + timedelta(hours=2)
+    )
+    assert summary2["assertion_findings"] == 0
+    titles = [c.args[0].title for c in emit2.call_args_list]
+    sources = [c.args[0].source for c in emit2.call_args_list]
+    assert any("now grounded" in t.lower() for t in titles)
+    assert not any("cron drift cleared" in t.lower() for t in titles)
+    assert any(s == "felix-trust-scan/assertion" for s in sources)
+
+
+def test_reverify_transient_fault_does_not_false_resolve(isolated_paths):
+    """F2: a transient fault while re-verifying an outstanding artifact_missing
+    keeps it present (no false resolve) and records the fault."""
+    state_path, watermark_path, assertions_dir = isolated_paths
+    _vikunja_assertion(assertions_dir, ["91"])
+    _run(isolated_paths, client=_FakeVikunja(present=set()))
+
+    summary2, emit2 = _run(
+        isolated_paths, client=_FakeVikunja(error={"91"}), now=T0 + timedelta(hours=2)
+    )
+    # Still present in findings (not resolved), fault recorded.
+    assert summary2["assertion_findings"] == 1
+    assert any("assertion_reverify:indeterminate" in e for e in summary2["errors"])
+    titles = [c.args[0].title for c in emit2.call_args_list]
+    assert not any("grounded" in t.lower() for t in titles)
+
+
+# --- F3: failed emit leaves the finding DUE next scan ------------------------
+
+
+def test_failed_emit_keeps_finding_due_next_scan(isolated_paths):
+    """F3: a finding whose emit returns ok=False must stay DUE on the next scan
+    (last_alerted not advanced), rather than being suppressed until 24h."""
+    state_path, watermark_path, assertions_dir = isolated_paths
+    unapproved_job = _live_job(name="mystery-cron", agentId="unknown-agent")
+    from scripts.common.alert_bus.model import AlertResult
+
+    # Scan 1: emit FAILS (ok=False).
+    with patch("scripts.trust.run_trust_scan.load_baseline", return_value=BASELINE), patch(
+        "scripts.trust.run_trust_scan.enumerate_live_crons",
+        return_value=[_live_job(), unapproved_job],
+    ), patch("scripts.trust.alert_render.emit") as mock_emit:
+        mock_emit.return_value = AlertResult(ok=False, reason="bus down")
+        summary1 = rts.run_scan(
+            now=T0,
+            state_path=state_path,
+            watermark_path=watermark_path,
+            assertions_base_dir=assertions_dir,
+        )
+    assert summary1["drift_findings"] == 1
+    assert summary1["alerts_emitted"] == 0  # nothing reached Kent
+
+    # Scan 2, only 1 minute later (far under 24h): emit now succeeds. Because
+    # scan 1's emit failed, the finding must be DUE again immediately.
+    with patch("scripts.trust.run_trust_scan.load_baseline", return_value=BASELINE), patch(
+        "scripts.trust.run_trust_scan.enumerate_live_crons",
+        return_value=[_live_job(), unapproved_job],
+    ), patch("scripts.trust.alert_render.emit") as mock_emit2:
+        mock_emit2.return_value = AlertResult(ok=True)
+        summary2 = rts.run_scan(
+            now=T0 + timedelta(minutes=1),
+            state_path=state_path,
+            watermark_path=watermark_path,
+            assertions_base_dir=assertions_dir,
+        )
+    assert summary2["alerts_emitted"] == 1  # retried immediately, not 24h later
+
+
+def test_successful_emit_does_not_re_alert_before_24h(isolated_paths):
+    """F3 guard: a SUCCESSFUL emit still honors the 24h cadence (no immediate
+    re-alert) — the emit-gating only affects failed emits."""
+    state_path, watermark_path, assertions_dir = isolated_paths
+    unapproved_job = _live_job(name="mystery-cron", agentId="unknown-agent")
+    from scripts.common.alert_bus.model import AlertResult
+
+    for offset_min in (0, 1):
+        with patch("scripts.trust.run_trust_scan.load_baseline", return_value=BASELINE), patch(
+            "scripts.trust.run_trust_scan.enumerate_live_crons",
+            return_value=[_live_job(), unapproved_job],
+        ), patch("scripts.trust.alert_render.emit") as mock_emit:
+            mock_emit.return_value = AlertResult(ok=True)
+            summary = rts.run_scan(
+                now=T0 + timedelta(minutes=offset_min),
+                state_path=state_path,
+                watermark_path=watermark_path,
+                assertions_base_dir=assertions_dir,
+            )
+        if offset_min == 0:
+            assert summary["alerts_emitted"] == 1  # first observation
+        else:
+            assert summary["alerts_emitted"] == 0  # not due yet (<24h)
+
+
+def test_iter_new_assertions_backcompat_wrapper_returns_records(tmp_path: Path):
+    """The thin _iter_new_assertions wrapper returns records + advanced watermark."""
+    d = tmp_path / "assertions"
+    d.mkdir()
+    f = d / "2026-07-10.jsonl"
+    f.write_text('{"artifact_ids": ["1"]}\n\nnot-json\n{"artifact_ids": ["2"]}\n', encoding="utf-8")
+    records, wm = rts._iter_new_assertions(d, {})
+    assert [r["artifact_ids"] for r in records] == [["1"], ["2"]]  # bad line skipped
+    assert wm[str(f)] == f.stat().st_size
+
+
+def test_state_load_fault_degrades_to_empty_and_records_error(isolated_paths):
+    """F-safe: a state-load fault does not crash the tick; it is recorded and
+    the scan proceeds with empty state."""
+    state_path, watermark_path, assertions_dir = isolated_paths
+    from scripts.common.alert_bus.model import AlertResult
+
+    with patch("scripts.trust.run_trust_scan.load_baseline", return_value=BASELINE), patch(
+        "scripts.trust.run_trust_scan.enumerate_live_crons", return_value=[_live_job()]
+    ), patch(
+        "scripts.trust.run_trust_scan.state_mod.load_state",
+        side_effect=RuntimeError("state store exploded"),
+    ), patch("scripts.trust.alert_render.emit") as mock_emit:
+        mock_emit.return_value = AlertResult(ok=True)
+        summary = rts.run_scan(
+            now=T0,
+            state_path=state_path,
+            watermark_path=watermark_path,
+            assertions_base_dir=assertions_dir,
+        )
+    assert any("state_load" in e for e in summary["errors"])
 
 
 def test_main_json_flag_prints_summary(isolated_paths, capsys):

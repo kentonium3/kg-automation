@@ -204,21 +204,36 @@ def render_assertion_finding(finding: AssertionFinding) -> Alert:
     )
 
 
-def render_drift_resolved(name: str, first_seen: str, cleared_at: str) -> Alert:
-    """Render a ``drift_resolved`` (info) event for a finding that cleared.
+def render_drift_resolved(
+    name: str, first_seen: str, cleared_at: str, *, source: str = "cron"
+) -> Alert:
+    """Render a resolution (info) event for a finding that cleared.
 
     ``first_seen`` / ``cleared_at`` are ISO-8601 UTC strings carried from
-    the seen-findings state (:mod:`scripts.trust.state`).
+    the seen-findings state (:mod:`scripts.trust.state`). ``source`` selects
+    the copy + bus ``source`` so an assertion that clears renders as an
+    **assertion** resolution, never "Cron drift cleared" (Codex F2). A
+    cleared ``artifact_missing`` means the previously-ungrounded completion
+    claim is now grounded (the artifact exists).
     """
-    title = f"Cron drift cleared: {name}"
-    description = (
-        f"The previously-alerted drift finding for {name!r} is no longer "
-        "present as of this scan tick."
-    )
+    if source == "assertion":
+        title = f"Completion claim now grounded: {name}"
+        description = (
+            f"The previously-ungrounded completion claim for {name!r} is now "
+            "grounded — the asserted artifact was found as of this scan tick."
+        )
+        alert_source = SOURCE_ASSERTION
+    else:
+        title = f"Cron drift cleared: {name}"
+        description = (
+            f"The previously-alerted drift finding for {name!r} is no longer "
+            "present as of this scan tick."
+        )
+        alert_source = SOURCE_CRON
     details = _stringify_details({"first_seen": first_seen, "cleared_at": cleared_at})
 
     return Alert(
-        source=SOURCE_CRON,
+        source=alert_source,
         severity=Severity.INFO,
         title=title,
         description=description,

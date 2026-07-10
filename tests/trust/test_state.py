@@ -299,6 +299,133 @@ def test_fingerprint_finding_rejects_unsupported_type():
 # --- reconcile: corrupt last_alerted timestamp treated as due for re-alert ---
 
 
+# --- F2: assertion resolution routing + outstanding re-verify seeding --------
+
+
+def test_reconcile_assertion_finding_carries_source_and_identity():
+    finding = _assertion_finding(artifact_id="91")
+    _, _, new_state = state_mod.reconcile([(finding, BASELINE_HASH_A)], T0, state={})
+    fp = state_mod.fingerprint_finding(finding, BASELINE_HASH_A)
+    entry = new_state[fp]
+    assert entry["source"] == "assertion"
+    assert entry["assertion_kind"] == "artifact_missing"
+    assert entry["artifact_kind"] == "vikunja_task"
+    assert entry["artifact_id"] == "91"
+
+
+def test_reconcile_disappeared_assertion_resolves_as_assertion_source():
+    finding = _assertion_finding(artifact_id="91")
+    fp = state_mod.fingerprint_finding(finding, BASELINE_HASH_A)
+    existing = {
+        fp: {
+            "first_seen": state_mod._utc_iso(T0),
+            "last_seen": state_mod._utc_iso(T0),
+            "last_alerted": state_mod._utc_iso(T0),
+            "name": "vikunja_task:91",
+            "source": "assertion",
+            "assertion_kind": "artifact_missing",
+            "artifact_kind": "vikunja_task",
+            "artifact_id": "91",
+            "agent": "main",
+            "claim": "c",
+        }
+    }
+    _, resolved, _ = state_mod.reconcile([], T0 + timedelta(hours=1), state=existing)
+    assert len(resolved) == 1
+    assert resolved[0].source == "assertion"
+
+
+def test_outstanding_assertion_findings_reconstructs_only_vikunja_missing():
+    state = {
+        "fp_missing": {
+            "first_seen": "x", "last_seen": "y", "last_alerted": "z",
+            "source": "assertion", "assertion_kind": "artifact_missing",
+            "artifact_kind": "vikunja_task", "artifact_id": "91",
+            "agent": "main", "claim": "c",
+        },
+        "fp_cron": {  # cron drift -> not an assertion, excluded
+            "first_seen": "x", "last_seen": "y", "last_alerted": "z",
+            "source": "cron", "name": "mystery-cron",
+        },
+        "fp_unverifiable": {  # assertion but unverifiable_kind -> excluded
+            "first_seen": "x", "last_seen": "y", "last_alerted": "z",
+            "source": "assertion", "assertion_kind": "unverifiable_kind",
+            "artifact_kind": "other", "artifact_id": "x1",
+        },
+    }
+    findings = state_mod.outstanding_assertion_findings(state)
+    assert len(findings) == 1
+    assert findings[0].artifact_id == "91"
+    assert findings[0].kind == "artifact_missing"
+    assert findings[0].artifact_kind == "vikunja_task"
+
+
+def test_outstanding_assertion_findings_empty_for_none_or_empty():
+    assert state_mod.outstanding_assertion_findings(None) == []
+    assert state_mod.outstanding_assertion_findings({}) == []
+
+
+def test_load_state_preserves_source_and_assertion_identity(tmp_path: Path):
+    path = tmp_path / "seen-findings.json"
+    path.write_text(
+        json.dumps(
+            {
+                "fp": {
+                    "first_seen": "a", "last_seen": "b", "last_alerted": "c",
+                    "source": "assertion", "assertion_kind": "artifact_missing",
+                    "artifact_kind": "vikunja_task", "artifact_id": "91",
+                    "agent": "main", "claim": "did",
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+    loaded = state_mod.load_state(path)
+    assert loaded["fp"]["source"] == "assertion"
+    assert loaded["fp"]["artifact_id"] == "91"
+    assert loaded["fp"]["claim"] == "did"
+
+
+# --- F3: keep_due reverts last_alerted so a failed emit stays due ------------
+
+
+def test_keep_due_first_observation_sets_always_due_sentinel():
+    finding = _cron_finding()
+    to_alert, _, new_state = state_mod.reconcile([(finding, BASELINE_HASH_A)], T0, state={})
+    fp = state_mod.fingerprint_finding(finding, BASELINE_HASH_A)
+    assert new_state[fp]["last_alerted"] == state_mod._utc_iso(T0)
+    # Emit failed -> keep_due with no prior state -> sentinel (long ago).
+    state_mod.keep_due(new_state, fp, prior_state={})
+    # Next scan (1 min later) must be DUE: reconcile re-alerts.
+    to_alert2, _, _ = state_mod.reconcile(
+        [(finding, BASELINE_HASH_A)], T0 + timedelta(minutes=1), state=new_state
+    )
+    assert to_alert2 == [finding]
+
+
+def test_keep_due_restores_prior_last_alerted_when_present():
+    finding = _cron_finding()
+    fp = state_mod.fingerprint_finding(finding, BASELINE_HASH_A)
+    prior_alerted = state_mod._utc_iso(T0)
+    prior_state = {
+        fp: {
+            "first_seen": prior_alerted, "last_seen": prior_alerted,
+            "last_alerted": prior_alerted, "name": "mystery-cron", "source": "cron",
+        }
+    }
+    # 24h later -> reconcile marks due and bumps last_alerted.
+    later = T0 + timedelta(hours=24)
+    _, _, new_state = state_mod.reconcile([(finding, BASELINE_HASH_A)], later, state=prior_state)
+    assert new_state[fp]["last_alerted"] == state_mod._utc_iso(later)
+    # Emit failed -> restore prior last_alerted (not the bumped one).
+    state_mod.keep_due(new_state, fp, prior_state=prior_state)
+    assert new_state[fp]["last_alerted"] == prior_alerted
+
+
+def test_keep_due_missing_fingerprint_is_noop():
+    state_mod.keep_due({}, "nope", prior_state={})  # must not raise
+
+
 def test_reconcile_corrupt_last_alerted_timestamp_forces_realert():
     finding = _cron_finding()
     fingerprint = state_mod.fingerprint_finding(finding, BASELINE_HASH_A)

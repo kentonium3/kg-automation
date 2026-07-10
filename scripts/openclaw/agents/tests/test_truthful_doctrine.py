@@ -18,37 +18,18 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from scripts.openclaw.agents.truthful_doctrine import (
+    NO_UNREQUESTED_INFRA_HEADING,
+    TRUTHFUL_DOCTRINE_BLOCK,
+)
+from scripts.openclaw.agents.truthful_doctrine import FLEET_AGENTS as _FLEET_AGENTS
+
 CAP = 12_000
 
-# The single source of truth for the canonical doctrine block text (T001).
-# Must appear byte-for-byte identical in all 7 AGENTS.md files and both
-# existing .tmpl variants (capture, tasker).
-TRUTHFUL_DOCTRINE_BLOCK = (
-    "## Truthful Reporting & Mechanism Fidelity (ABSOLUTE)\n"
-    "\n"
-    "- **Truthful reporting**: report done **only** if you performed it and "
-    "can cite the result; otherwise say exactly what you did/could not do. "
-    "**Never** state an assumed or forecast completion as fact.\n"
-    "- **Mechanism fidelity**: if a request names a mechanism (e.g. \"create "
-    "a Vikunja task\"), fulfil **that** one or say you could not. **Never** "
-    "silently substitute another (no \"scheduled a cron instead\").\n"
-    "- Bypassed a wrapped creation helper? Record a completion-assertion via "
-    "`python3 -m scripts.trust.completion_assertion` (normal helper paths "
-    "auto-emit this).\n"
-)
-
-# The no-unrequested-infrastructure guardrail (FR-003), main-only.
-NO_UNREQUESTED_INFRA_HEADING = "## No Unrequested Infrastructure (main)"
-
-FLEET_AGENTS = [
-    "main",
-    "felix-admin-capture",
-    "felix-admin-habits",
-    "felix-admin-tasker",
-    "felix-admin-escalation",
-    "felix-admin-calendar",
-    "felix-doc-auditor",
-]
+# The canonical doctrine block text + fleet composition now live in the shared
+# scripts.openclaw.agents.truthful_doctrine module (single source of truth) so
+# this repo-source test and the deploy verification (Codex F4) cannot drift.
+FLEET_AGENTS = list(_FLEET_AGENTS)
 
 TMPL_VARIANTS = [
     "felix-admin-capture",
