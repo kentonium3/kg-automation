@@ -59,7 +59,7 @@ single shared alert bus — no component retains its own ad-hoc delivery path af
 | FR-003 | For failure alerts, the details include the actual underlying error output (captured stderr / exception text), not merely a phase code or truncated summary. | Planned |
 | FR-004 | Severity is expressed on a defined vocabulary — `info` / `warn` / `error` / `critical` — and each level maps deterministically to a notification priority and a visual tag, so the single thread still visually distinguishes critical from informational alerts. | Planned |
 | FR-005 | A single shared alert bus is the only path that constructs and delivers alerts; it is callable from both Python and shell contexts (some emitters are shell scripts). | Planned |
-| FR-006 | The three current ntfy emitters — the felix-deployer subsystem (`notify.py` + `deploy/lib/health.py`), security-monitor (`audit.sh`), and felix-health-check (`run.py`) — emit exclusively via the shared alert bus, and their previous ad-hoc curl delivery code is removed. | Planned |
+| FR-006 | The three current ntfy emitters — the felix-deployer subsystem (`notify.py` + `deploy/lib/health.py`, **including every consumer of that shared health notifier, such as `agent-prompt-sync`**), security-monitor (`audit.sh`), and felix-health-check (`run.py`) — emit exclusively via the shared alert bus, and their previous ad-hoc curl delivery code is removed. | Planned |
 | FR-007 | The canonical thread identity is stored in the project's topic/credential registry (configuration), not hard-coded in individual emitters. | Planned |
 | FR-008 | An operator can trigger an on-demand self-test alert to verify end-to-end delivery and formatting. | Planned |
 | FR-009 | The openclaw enforcement notifier additionally emits a `felix-alert` for agent-drift events through the shared bus (in addition to its existing WhatsApp + GitHub records), so drift is visible on the unified operator thread. | Planned |
@@ -68,7 +68,7 @@ single shared alert bus — no component retains its own ad-hoc delivery path af
 
 | ID | Requirement | Status |
 |----|-------------|--------|
-| NFR-001 | An emit call completes within 5 seconds and never blocks the host component beyond that even when the notification endpoint is unreachable; a delivery failure never crashes or hangs the emitting component (fail-safe delivery). | Planned |
+| NFR-001 | An emit call is best-effort and non-blocking: it never blocks the host component beyond the ntfy curl `--max-time` ceiling (10 s, matching existing emitters) even when the endpoint is unreachable, and a delivery failure never crashes or hangs the emitting component (fail-safe delivery). | Planned |
 | NFR-002 | The shared alert-bus module has direct unit tests for schema construction, severity→priority/tag mapping, topic resolution, and delivery-failure handling, with line+branch coverage ≥ 90% for the module and no reduction to the repository's enforced coverage gate. | Planned |
 | NFR-003 | An alert missing one or more optional fields (e.g. no known action) still produces a deliverable, human-readable message; no alert is dropped because an optional field is absent. | Planned |
 | NFR-004 | Migrating an emitter changes only its alert delivery/formatting path; the component's core behavior and existing health signals (tick logs, `last-tick.json`) remain unchanged and continue to pass. | Planned |
@@ -78,7 +78,7 @@ single shared alert bus — no component retains its own ad-hoc delivery path af
 | ID | Constraint | Status |
 |----|------------|--------|
 | C-001 | Delivery transport remains ntfy (the existing operator channel); no new notification vendor is introduced. | Active |
-| C-002 | The change deploys to office2 exclusively through the manifest pipeline (`deploys/queued/<name>.yaml`); no out-of-band edits on office2. | Active |
+| C-002 | Code and unit wiring deploy to office2 exclusively through the manifest pipeline (`deploys/queued/<name>.yaml`). The single alert-topic **secret** is the one deliberate exception: provisioned out-of-band as an env-file credential (the established `credential-manifest.json` pattern, like `felix-deployer-ntfy-topic`), never committed. A deploy preflight + per-runtime self-test proves the env is wired before the mission is considered done. | Active |
 | C-003 | No new external package source is introduced (no new brew tap / pip index / npm registry / MCP plugin); delivery uses HTTP patterns already present in the repo. | Active |
 | C-004 | Risk tier is Tier 3 (Standard). The change touches audited surfaces (`scripts/deploy/**`, security-monitor scripts); rebaseline per #557 applies and the manifest pipeline auto-rebaselines on deploy, recorded on the merge/applied record. | Active |
 | C-005 | The alert bus must be invocable from shell (bash-callable shim) as well as Python, because emitters like `audit.sh` are shell. | Active |
@@ -113,7 +113,7 @@ single shared alert bus — no component retains its own ad-hoc delivery path af
 
 - Kent is the sole consumer of these alerts, via ntfy on his phone; a new dedicated topic will be minted and subscribed.
 - Existing ntfy infrastructure and credentials remain available.
-- Emitters can be migrated one at a time; a transient mixed state (some emitters on the bus, some not yet) is tolerable during rollout, provided the mission ends with all five migrated.
+- Emitters can be migrated one at a time; a transient mixed state (some emitters on the bus, some not yet) is tolerable during rollout, provided the mission ends with the three ntfy emitters migrated plus the enforcement co-emit.
 
 ## Dependencies
 
