@@ -7,9 +7,50 @@ GitHub issues for conflicts and factory-default transitions.
 import logging
 import subprocess
 
-from scripts.openclaw.enforcement.detection import DriftResult
+from scripts.common.alert_bus import Alert, Severity, emit
 
 logger = logging.getLogger(__name__)
+
+
+def _co_emit_drift(actions: dict, issue_url: str | None, dry_run: bool = False) -> None:
+    """Best-effort felix-alert co-emit for drift (additive to WhatsApp + GitHub).
+
+    This is a co-emit only: it never replaces or alters the WhatsApp/GitHub
+    records. ``emit()`` never raises, but the whole call is defensively wrapped
+    so a bus-layer bug can never break enforcement (FR-009/SC-007).
+    """
+    if dry_run:
+        logger.info("DRY RUN: would co-emit felix-alert for drift")
+        return
+    try:
+        conflicts = actions.get("conflicts", [])
+        transitions = actions.get("factory_transitions", [])
+        errors = actions.get("errors", [])
+        n_conflicts = len(conflicts)
+        n_transitions = len(transitions)
+        # Conflicts require manual resolution → error; otherwise warn.
+        severity = Severity.ERROR if n_conflicts else Severity.WARN
+        agents = sorted({r.agent_id for r in (conflicts + transitions + errors)})
+        details: dict[str, str] = {
+            "conflicts": str(n_conflicts),
+            "factory_transitions": str(n_transitions),
+            "errors": str(len(errors)),
+            "agents": ", ".join(agents),
+        }
+        if issue_url:
+            details["issue_url"] = issue_url
+        emit(Alert(
+            source="openclaw-enforcement/drift",
+            severity=severity,
+            title="Agent workspace drift detected",
+            description=(
+                f"{n_conflicts} conflict(s), {n_transitions} factory transition(s) "
+                f"require review."
+            ),
+            details=details,
+        ))
+    except Exception:  # noqa: BLE001 — co-emit must never break enforcement
+        logger.exception("felix-alert co-emit failed (non-fatal)")
 
 
 def compose_alert_message(actions: dict) -> str:
@@ -166,9 +207,14 @@ def notify(actions: dict, config: dict, dry_run: bool = False) -> None:
     message = compose_alert_message(actions)
 
     # Create issue first (so we can include the URL in the WhatsApp message)
+    issue_url = None
     if actions.get("conflicts") or actions.get("factory_transitions"):
         issue_url = create_drift_issue(actions, config, dry_run)
         if issue_url:
             message += f"\nIssue: {issue_url}"
 
     send_whatsapp(message, config, dry_run)
+
+    # Additive felix-alert co-emit (FR-009/SC-007): a third alert surface
+    # alongside — never in place of — WhatsApp + GitHub. Best-effort.
+    _co_emit_drift(actions, issue_url, dry_run)

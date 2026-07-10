@@ -1,0 +1,149 @@
+{
+  "version": 1,
+  "mission_slug": "unified-alert-bus-01KX5TYT",
+  "mission_id": "01KX5TYT1W5WFRQGG1S52RSGD1",
+  "mission_branch": "kitty/mission-unified-alert-bus-01KX5TYT",
+  "target_branch": "feat/unified-alert-bus",
+  "lanes": [
+    {
+      "lane_id": "lane-a",
+      "wp_ids": [
+        "WP01"
+      ],
+      "write_scope": [
+        "scripts/common/alert_bus.sh",
+        "scripts/common/alert_bus/__init__.py",
+        "scripts/common/alert_bus/__main__.py",
+        "scripts/common/alert_bus/delivery.py",
+        "scripts/common/alert_bus/model.py",
+        "scripts/common/alert_bus/render.py",
+        "tests/common/alert_bus/__init__.py",
+        "tests/common/alert_bus/test_cli.py",
+        "tests/common/alert_bus/test_delivery.py",
+        "tests/common/alert_bus/test_model.py",
+        "tests/common/alert_bus/test_render.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "artifact-rendering"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    },
+    {
+      "lane_id": "lane-b",
+      "wp_ids": [
+        "WP02"
+      ],
+      "write_scope": [
+        "scripts/deploy/felix-deployer/_tick.py",
+        "scripts/deploy/felix-deployer/notify.py",
+        "scripts/deploy/lib/health.py",
+        "scripts/openclaw/deploy/deploy_agent_prompts.py",
+        "tests/deploy/test_health.py",
+        "tests/deploy/test_notify.py",
+        "tests/deploy/test_tick_ffrace.py",
+        "tests/deploy/test_tick_rebaseline.py",
+        "tests/openclaw/test_deploy_agent_prompts.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "artifact-rendering",
+        "legacy-cleanup",
+        "tracker-integration"
+      ],
+      "depends_on_lanes": [
+        "lane-a"
+      ],
+      "parallel_group": 1
+    },
+    {
+      "lane_id": "lane-c",
+      "wp_ids": [
+        "WP03"
+      ],
+      "write_scope": [
+        "scripts/office2/felix_health_check/run.py",
+        "tests/office2/__init__.py",
+        "tests/office2/felix_health_check/__init__.py",
+        "tests/office2/felix_health_check/test_run.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "artifact-rendering"
+      ],
+      "depends_on_lanes": [
+        "lane-a"
+      ],
+      "parallel_group": 1
+    },
+    {
+      "lane_id": "lane-d",
+      "wp_ids": [
+        "WP04"
+      ],
+      "write_scope": [
+        "scripts/office2/security-monitor/audit.sh",
+        "scripts/openclaw/enforcement/notification.py",
+        "tests/office2/security_monitor/__init__.py",
+        "tests/office2/security_monitor/test_audit_emit.py",
+        "tests/openclaw/enforcement/test_notification.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "legacy-cleanup"
+      ],
+      "depends_on_lanes": [
+        "lane-a"
+      ],
+      "parallel_group": 1
+    },
+    {
+      "lane_id": "lane-e",
+      "wp_ids": [
+        "WP05"
+      ],
+      "write_scope": [
+        "deploys/queued/unified-alert-bus.yaml",
+        "docs/design/architecture/data/credential-manifest.json",
+        "scripts/common/alert_bus.env.sample",
+        "scripts/deploy/felix-deployer/felix-deployer.service",
+        "scripts/office2/deploy/felix-health-check.sh",
+        "scripts/office2/felix-health-check.service",
+        "scripts/openclaw/deploy/agent-prompt-sync.service"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "artifact-rendering",
+        "tracker-integration"
+      ],
+      "depends_on_lanes": [
+        "lane-b",
+        "lane-c",
+        "lane-d"
+      ],
+      "parallel_group": 2
+    },
+    {
+      "lane_id": "lane-f",
+      "wp_ids": [
+        "WP06"
+      ],
+      "write_scope": [
+        "docs/design/architecture/data/service-inventory.json",
+        "docs/runbooks/alerting.md"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "tracker-integration"
+      ],
+      "depends_on_lanes": [
+        "lane-e"
+      ],
+      "parallel_group": 3
+    }
+  ],
+  "computed_at": "2026-07-10T11:57:07.226606+00:00",
+  "computed_from": "dependency_graph+ownership",
+  "planning_artifact_wps": []
+}

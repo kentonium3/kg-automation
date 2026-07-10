@@ -1,0 +1,51 @@
+schema_version: v1
+name: unified-alert-bus
+mission_slug: unified-alert-bus-01KX5TYT
+tier: 3
+entrypoint: scripts/deploy/deploy-unified-alert-bus.py
+audited_surface: true
+expected_baselines:
+- enabled-services.txt
+- systemd-user-units.txt
+- systemd-user-dropins.txt
+verification:
+  pre:
+  - test -f scripts/common/alert_bus/__main__.py
+  - test -x scripts/common/alert_bus.sh
+  - python3 scripts/deploy/deploy-unified-alert-bus.py --dry-run
+  post:
+  - python3 scripts/deploy/deploy-unified-alert-bus.py --apply
+created_at: '2026-07-10T12:00:00Z'
+created_by: unified-alert-bus-01KX5TYT
+notes: |
+  Ships the unified felix-alert bus to office2 (kentonium3/kg-automation#701).
+  Tier 3 (Python library + bash shim + migrated emitters). Code reaches office2
+  via felix-deployer's `git pull` on the applying tick (same path as 0009/0013);
+  this entrypoint does NOT rsync/copy code — it is a thin verify-only gate for
+  the runtime env wiring (D9).
+
+  PREFLIGHT (pre + --dry-run): the topic env-file
+  /home/claude/.config/felix/alert-bus/env must be present. It is the
+  felix-alert-ntfy-topic credential — a secret provisioned out-of-band, NEVER
+  committed (template scripts/common/alert_bus.env.sample = FELIX_ALERT_NTFY_TOPIC=
+  placeholder only). Missing env-file => an emitter silently gets
+  NTFY_MISSING_TOPIC (the CRITICAL gap post-plan review caught); the preflight
+  reports it instead of deploying a broken bus.
+
+  SELF-TEST (post + --apply): --apply runs the alert-bus self-test (emits a known
+  info alert; exits non-zero if not delivered) so a failed delivery is a
+  felix-deployer FAILURE, not a false success. The entrypoint calls `python3 -m
+  scripts.common.alert_bus self-test` directly (NOT via alert_bus.sh): the shim
+  always exits 0 (D10) and its docstring puts self-test exit-code semantics in
+  the Python CLI, so running through the shim would mask a failure. Per-runtime
+  operator/CI self-tests (cron via the shim; systemd via a transient
+  `systemd-run --user` honoring the unit EnvironmentFile) are in ../quickstart.md.
+
+  REBASELINE: this WP adds EnvironmentFile= to three deployed systemd user units
+  and edits scripts/office2/deploy/felix-health-check.sh. felix-health-check
+  .service + .sh match the systemd-user-units surface (auto-matched).
+  expected_baselines (enabled-services.txt / systemd-user-units.txt /
+  systemd-user-dropins.txt) is a harmless superset so deferred-confirm treats
+  unit-content drift as expected (D ⊆ E). Units only re-drift when re-installed
+  (separate operator re-run); this code-only tick does not reinstall them. No
+  service/port/credential added — arch data unchanged.

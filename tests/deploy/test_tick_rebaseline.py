@@ -461,17 +461,16 @@ def test_alert_deduplication_via_notify_dispatch(monkeypatch):
 
 def test_alert_mutates_token_on_first_send(monkeypatch):
     """dispatch_rebaseline_alert appends event to token['alerts_emitted'] on success."""
+    from scripts.common.alert_bus import AlertResult
+
     token = _make_token(alerts_emitted=[])
-    monkeypatch.setenv(notify.NTFY_TOPIC_ENV, "test-topic-abc1234")
 
-    class _FakeProc:
-        returncode = 0
-        stdout = ""
-        stderr = ""
-
-    import subprocess as _sp
-    monkeypatch.setattr(_sp, "run", lambda *a, **kw: _FakeProc())
-    monkeypatch.setattr(notify.subprocess, "run", lambda *a, **kw: _FakeProc())
+    # Delivery is via the bus now; a delivered alert (ok=True) mutates the token.
+    monkeypatch.setattr(
+        notify,
+        "emit",
+        lambda alert: AlertResult(ok=True, reason=None, topic_configured=True),
+    )
 
     result = notify.dispatch_rebaseline_alert(
         event_key="unexpected_drift",

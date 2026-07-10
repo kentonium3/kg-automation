@@ -18,5 +18,11 @@ Environment=PATH=/home/claude/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbi
 # Leading `-` makes the directive non-fatal if the env file is missing —
 # graceful onboarding before the operator provisions the topic.
 EnvironmentFile=-/home/claude/.config/felix-deployer/env
+# Load FELIX_ALERT_NTFY_TOPIC for the unified felix-alert bus
+# (scripts/common/alert_bus/). Credential: felix-alert-ntfy-topic; template
+# scripts/common/alert_bus.env.sample. Leading `-` keeps startup non-fatal if
+# the operator has not yet provisioned the topic (the bus then returns
+# NTFY_MISSING_TOPIC rather than crashing the emitter).
+EnvironmentFile=-/home/claude/.config/felix/alert-bus/env
 StandardOutput=journal
 StandardError=journal

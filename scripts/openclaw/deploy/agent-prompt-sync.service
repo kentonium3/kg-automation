@@ -44,18 +44,23 @@ WorkingDirectory=/home/claude/kg-automation
 ExecStart=/usr/bin/python3 -m scripts.openclaw.deploy.deploy_agent_prompts
 StandardOutput=journal
 StandardError=journal
-# ntfy health-alert topic for the git-advance behind-N health signal (#667).
-# Operator-filled: set this to the ntfy.sh topic this actor should publish
-# health alerts to. If left EMPTY, the generic health notifier falls back to
-# the shared FELIX_DEPLOYER_NTFY_TOPIC (see
-# scripts/deploy/felix-deployer/notify.py:_resolve_health_topic). If neither is
-# set, health alerts are skipped silently (no crash) — but a silent multi-week
-# stall is exactly the harm #667 exists to prevent, so set one of the two.
+# VESTIGIAL (#701): AGENT_PROMPT_SYNC_NTFY_TOPIC is no longer read for delivery.
+# The git-advance behind-N health signal (#667) now flows through the unified
+# felix-alert bus, which resolves the single FELIX_ALERT_NTFY_TOPIC from the
+# alert-bus env-file (EnvironmentFile below). This empty Environment= line is
+# retained only for signature/onboarding continuity; provisioning a value here
+# has no effect. Configure delivery via /home/claude/.config/felix/alert-bus/env.
 Environment=AGENT_PROMPT_SYNC_NTFY_TOPIC=
 # Generous timeout: no-drift ticks complete in <2s normally (NFR-001);
 # this ceiling accommodates slow git fetches on flaky network without
 # prematurely killing the process.
 TimeoutStartSec=120s
+# Load FELIX_ALERT_NTFY_TOPIC for the unified felix-alert bus
+# (scripts/common/alert_bus/). Credential: felix-alert-ntfy-topic; template
+# scripts/common/alert_bus.env.sample. Leading "-" keeps startup non-fatal if
+# the topic env-file is absent (the bus returns NTFY_MISSING_TOPIC instead of
+# crashing the tick).
+EnvironmentFile=-/home/claude/.config/felix/alert-bus/env
 
 [Install]
 WantedBy=default.target

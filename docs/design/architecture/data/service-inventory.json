@@ -1,7 +1,7 @@
 {
   "schema_version": "1.1",
   "last_updated": "2026-07-10",
-  "updated_by": "f0-exec-hardening-01KX4ZCY (#675 — exec-hardening finding + live-config reconcile: habits/tasker model drift, per-agent skills, post-#699 gog paths, gateway version) + felix-calendar-helper-01KX4H3C (#699 — calendar helper on-demand invocation + Google Calendar API dependency + felix-admin-calendar gog-skill removal; RFC #681 calendar phase) + deterministic-monitoring-checks-01KX1XNW (#676) + harden-inbox-capture-01KWVGZM (#662) + felix-admin-cron-path-fix-01KWQTY3 (#656) + finalize-inbox-file-01KW8MSQ (#325) + pull-based-deploy-pipeline-01KTYQQS (#136) + felix-calendar-subagent-extraction-01KTTA33 (#579) + #572-credential-liveness-probe + prescan-archive-anomalies-01KTMZPE (#568) + capture-agents-md-rewrite-01KTMY86 (#566) + capture-d6-helpers-extraction-01KTMS5Q (#566) + agent-prompt-deploy-pipeline-01KTMDDD (#567) + vikunja-client-and-habits-weekly-report-01KTKSFT (#542 + #561 + #562) + inbox-calendar-and-aspiration-routing-01KTHHXS + #520-felix-vikunja-sync-project-layer-and-url-config + #519-touchpoint-migration + #518-felix-vikunja-sync-driver-added + #376-remove-escalation-v1-parity + #400-audit-interpretation-moment0 + #310-tasker-jsonl-migration + #374-main-verbatim-passthrough + #362-drift-event-auto-resolution + #309-migrate-escalation-to-jsonl-state-model + #343-refactor-doc-auditor-to-scripts-first-driver + #307-backfill-habits-jsonl-from-comments + #306-habits-native-repeat-jsonl-state + #304-felix-bot-rotation + #291-felix-file-issue + #289-mutation-surfaces-enumeration + #285-cron-delivery-restore-path-c + #282-habits-d6-extract + #263-cron-delivery-mode-round2 + #100-google-workspace-foundation + #256-scope-discipline-guardrails + #253-step-5a-6-consolidation + #254-atomic-write-perm-preservation + issue-105-doc-auditor + #223-systemd-timer + #208-restic-healthcheck + #202-obsidian-sync-system-level + #203-sync-heartbeat + #199-inbox-schedules + #115-credential-health-check + #189-vikunja-compose + #185-inbox-capture-dedup + restore-whatsapp-dm-reply-delivery-01KTVVHH (#588) + #545-reconcile-doc-auditor-status",
+  "updated_by": "unified-alert-bus-01KX5TYT (#701 — felix-alert bus shared library + unified operator-alerts topic added; three ntfy emitters (felix-deployer subsystem, security-monitor, felix-health-check) migrated to the bus, their per-component topics retired) + f0-exec-hardening-01KX4ZCY (#675 — exec-hardening finding + live-config reconcile: habits/tasker model drift, per-agent skills, post-#699 gog paths, gateway version) + felix-calendar-helper-01KX4H3C (#699 — calendar helper on-demand invocation + Google Calendar API dependency + felix-admin-calendar gog-skill removal; RFC #681 calendar phase) + deterministic-monitoring-checks-01KX1XNW (#676) + harden-inbox-capture-01KWVGZM (#662) + felix-admin-cron-path-fix-01KWQTY3 (#656) + finalize-inbox-file-01KW8MSQ (#325) + pull-based-deploy-pipeline-01KTYQQS (#136) + felix-calendar-subagent-extraction-01KTTA33 (#579) + #572-credential-liveness-probe + prescan-archive-anomalies-01KTMZPE (#568) + capture-agents-md-rewrite-01KTMY86 (#566) + capture-d6-helpers-extraction-01KTMS5Q (#566) + agent-prompt-deploy-pipeline-01KTMDDD (#567) + vikunja-client-and-habits-weekly-report-01KTKSFT (#542 + #561 + #562) + inbox-calendar-and-aspiration-routing-01KTHHXS + #520-felix-vikunja-sync-project-layer-and-url-config + #519-touchpoint-migration + #518-felix-vikunja-sync-driver-added + #376-remove-escalation-v1-parity + #400-audit-interpretation-moment0 + #310-tasker-jsonl-migration + #374-main-verbatim-passthrough + #362-drift-event-auto-resolution + #309-migrate-escalation-to-jsonl-state-model + #343-refactor-doc-auditor-to-scripts-first-driver + #307-backfill-habits-jsonl-from-comments + #306-habits-native-repeat-jsonl-state + #304-felix-bot-rotation + #291-felix-file-issue + #289-mutation-surfaces-enumeration + #285-cron-delivery-restore-path-c + #282-habits-d6-extract + #263-cron-delivery-mode-round2 + #100-google-workspace-foundation + #256-scope-discipline-guardrails + #253-step-5a-6-consolidation + #254-atomic-write-perm-preservation + issue-105-doc-auditor + #223-systemd-timer + #208-restic-healthcheck + #202-obsidian-sync-system-level + #203-sync-heartbeat + #199-inbox-schedules + #115-credential-health-check + #189-vikunja-compose + #185-inbox-capture-dedup + restore-whatsapp-dm-reply-delivery-01KTVVHH (#588) + #545-reconcile-doc-auditor-status",
   "services": [
     {
       "name": "vikunja",
@@ -2653,6 +2653,81 @@
         "note": "On-demand helper — no continuous health signal. Liveness is verified on demand via `python -m scripts.google.calendar_helper --self-check` (loads creds, refreshes token, does a bounded events().list(primary, maxResults=1)); the deploy manifest runs it as a post-flight gate. Per-invocation exit codes (0/1/2/3) are the observability surface (NFR-005)."
       },
       "runbook": "docs/runbooks/calendar-helper-ops.md"
+    },
+    {
+      "name": "alert-bus",
+      "type": "library",
+      "host": "office2",
+      "deployed_by": "701",
+      "introduced_by": "701",
+      "updated_by": "701",
+      "last_updated": "2026-07-10",
+      "status": "active",
+      "purpose": "The felix-alert bus — the single shared library + CLI + bash shim that constructs and delivers every operator-facing Felix alert to one canonical ntfy thread (the unified operator-alerts topic). Package scripts/common/alert_bus/ exposes `from scripts.common.alert_bus import emit, Alert, Severity, AlertResult`; only emit() (via delivery.py) performs ntfy I/O (FR-005) and it never raises (D7/NFR-001). CLI `python3 -m scripts.common.alert_bus emit|self-test`; bash callers use scripts/common/alert_bus.sh (sources the topic env-file, cd's to the checkout, invokes the CLI; best-effort exit 0). Severity info/warn/error/critical maps deterministically to ntfy Priority (low/default/high/max) + Tags (information_source/warning/rotating_light/rotating_light,sos). Built by unified-alert-bus-01KX5TYT (#701; child of #516, advances RFC #327, Bedrock F1 #673).",
+      "unified_topic": {
+        "name": "felix-alert operator-alerts topic",
+        "credential_key": "FELIX_ALERT_NTFY_TOPIC",
+        "env_file": "/home/claude/.config/felix/alert-bus/env",
+        "template": "scripts/common/alert_bus.env.sample",
+        "registry": "docs/design/architecture/data/credential-manifest.json",
+        "description": "The single canonical ntfy thread all migrated emitters deliver to. A NEW dedicated high-entropy topic (D5) — NOT a reuse of felix-deployer-ntfy-topic. Provisioned out-of-band (env-file never committed; the C-002 exception). Loaded via systemd EnvironmentFile=- on felix-deployer/felix-health-check/agent-prompt-sync, and sourced directly by alert_bus.sh for the cron-launched security-monitor audit. Blank topic → AlertResult(ok=False, reason=NTFY_MISSING_TOPIC), no POST."
+      },
+      "migrated_emitters": [
+        {
+          "emitter": "felix-deployer",
+          "note": "notify.py + deploy/lib/health.py (including every consumer of the shared health notifier, e.g. agent-prompt-sync) now emit exclusively via the bus; their own curl/ntfy delivery code is removed (FR-006/SC-006). Prior per-component topic felix-deployer-ntfy-topic is retired for these alerts."
+        },
+        {
+          "emitter": "security-monitor",
+          "note": "audit.sh emits via scripts/common/alert_bus.sh; its ad-hoc curl delivery is removed. Prior per-audit ntfy topic retired."
+        },
+        {
+          "emitter": "felix-health-check",
+          "note": "run.py emits via the bus; the AlertResult is adapted back to its {attempted, sent, detail} shape so last-run.json stays byte-compatible (NFR-004). Prior felix-health-check ntfy env topic retired."
+        }
+      ],
+      "co_emitters": [
+        {
+          "emitter": "openclaw-enforcement-notifier",
+          "note": "ADDS a felix-alert co-emit for agent-drift events (FR-009/SC-007) while KEEPING its existing WhatsApp + GitHub issue records. Not a migration — an addition."
+        }
+      ],
+      "dependencies": [
+        {
+          "target": "ntfy.sh",
+          "type": "requires",
+          "description": "HTTPS POST via curl --max-time 10 to https://ntfy.sh/<FELIX_ALERT_NTFY_TOPIC>. No auth header (public-subscribe topic; secrecy is the control). Best-effort: delivery failure never crashes/hangs the emitting component (NFR-001)."
+        },
+        {
+          "target": "scripts.deploy.lib.verify.redact_secrets",
+          "type": "requires",
+          "description": "Reused secret redactor so alert detail values are redacted before truncation during rendering (D8), sharing one behavior with the existing emitters."
+        }
+      ],
+      "health_check": {
+        "method": "self-test",
+        "note": "Library + CLI + shim — no continuous health signal. Delivery path is proven per-runtime on demand via `python3 -m scripts.common.alert_bus self-test` (or `scripts/common/alert_bus.sh self-test`), which emits a known info alert and exits non-zero iff undelivered. The deploy preflight (scripts/deploy/deploy-unified-alert-bus.py --dry-run) reports an absent env-file."
+      },
+      "config_files": [
+        {
+          "path": "scripts/common/alert_bus/",
+          "format": "python-package",
+          "source_in_repo": "scripts/common/alert_bus/",
+          "purpose": "emit()/Alert/Severity/AlertResult public API (__init__.py), Alert dataclass + Severity enum + SEVERITY_MAP (model.py), title/body rendering (render.py), topic resolution + curl POST + fail-safe AlertResult (delivery.py), CLI (__main__.py)."
+        },
+        {
+          "path": "scripts/common/alert_bus.sh",
+          "format": "bash",
+          "source_in_repo": "scripts/common/alert_bus.sh",
+          "purpose": "Bash shim: sources the topic env-file if present, env-anchors to the checkout, invokes the CLI, always exits 0 (best-effort)."
+        },
+        {
+          "path": "/home/claude/.config/felix/alert-bus/env",
+          "format": "env-file",
+          "purpose": "Out-of-band FELIX_ALERT_NTFY_TOPIC (never committed; C-002 exception). Template at scripts/common/alert_bus.env.sample."
+        }
+      ],
+      "runbook": "docs/runbooks/alerting.md"
     }
   ]
 }

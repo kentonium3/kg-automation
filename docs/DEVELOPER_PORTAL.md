@@ -144,6 +144,7 @@ local validation and CI.
 
 ### Dual-audience
 - [Agent Workspace Reconciliation](<./runbooks/agent-workspace-reconciliation.md>)
+- [Alerting via the felix-alert Bus](<./runbooks/alerting.md>)
 - [Calendar Helper Operations](<./runbooks/calendar-helper-ops.md>)
 - [Credential Liveness Probe Operations](<./runbooks/credential-liveness-probe-ops.md>)
 - [Deploy Discipline (canonical)](<./runbooks/deploy/discipline.md>)

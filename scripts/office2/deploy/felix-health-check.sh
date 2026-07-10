@@ -66,13 +66,40 @@ else
 fi
 
 echo ">>> Checking ntfy delivery config"
+# VESTIGIAL (#701): the felix-health-check wrapper migrated to the unified
+# felix-alert bus (scripts/common/alert_bus/) and NO LONGER reads NTFY_TOPIC
+# from this ntfy.env file (SC-006). Alert delivery is now driven solely by
+# FELIX_ALERT_NTFY_TOPIC in /home/claude/.config/felix/alert-bus/env (checked
+# and provisioned below). This block is retained only as a legacy-file presence
+# note; the ntfy.env file is no longer functional for this wrapper.
 NTFY_ENV_FILE="/data/services/openclaw/felix-health-check/ntfy.env"
 if [[ -f "${NTFY_ENV_FILE}" ]]; then
-  echo "    OK: ${NTFY_ENV_FILE} present — ntfy alerts enabled."
+  echo "    NOTE: legacy ${NTFY_ENV_FILE} present but no longer read (vestigial;"
+  echo "          alerts now flow through the felix-alert bus env-file below)."
 else
-  echo "    WARNING: ${NTFY_ENV_FILE} not found — the wrapper will run but"
-  echo "             failure alerts will be skipped (logged as non-fatal)."
-  echo "             Provision NTFY_TOPIC=<topic> in that file to enable alerts."
+  echo "    NOTE: legacy ${NTFY_ENV_FILE} absent — not needed; the wrapper now"
+  echo "          resolves alerts via FELIX_ALERT_NTFY_TOPIC in the alert-bus"
+  echo "          env-file (/home/claude/.config/felix/alert-bus/env)."
+fi
+
+echo ">>> Provisioning unified felix-alert bus env-file skeleton"
+# Create the alert-bus topic env-file DIRECTORY + a 0600 skeleton file if absent
+# (mirrors the ntfy.env pattern). The topic VALUE is a secret provisioned
+# out-of-band by the operator (credential felix-alert-ntfy-topic; template
+# scripts/common/alert_bus.env.sample) — this script NEVER writes a real topic,
+# only the empty FELIX_ALERT_NTFY_TOPIC= placeholder so the file exists with the
+# right ownership/mode and the systemd EnvironmentFile= directives resolve.
+ALERT_BUS_ENV_DIR="/home/claude/.config/felix/alert-bus"
+ALERT_BUS_ENV_FILE="${ALERT_BUS_ENV_DIR}/env"
+if [[ -f "${ALERT_BUS_ENV_FILE}" ]]; then
+  echo "    OK: ${ALERT_BUS_ENV_FILE} present — alert-bus topic env-file exists (not overwritten)."
+else
+  mkdir -p "${ALERT_BUS_ENV_DIR}"
+  # Skeleton only: empty placeholder, never a real topic value.
+  printf 'FELIX_ALERT_NTFY_TOPIC=\n' > "${ALERT_BUS_ENV_FILE}"
+  chmod 600 "${ALERT_BUS_ENV_FILE}"
+  echo "    CREATED: ${ALERT_BUS_ENV_FILE} (0600 skeleton, empty placeholder)."
+  echo "             Fill FELIX_ALERT_NTFY_TOPIC=<topic> out-of-band to enable the felix-alert bus."
 fi
 
 echo ">>> Smoke-test (one-shot run via the installed service)"

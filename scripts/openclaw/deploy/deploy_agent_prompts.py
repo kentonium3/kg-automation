@@ -70,8 +70,11 @@ SERVICE_INVENTORY_RELATIVE = Path("docs/design/architecture/data/service-invento
 # log so the prompt-sync deploy state is co-located.
 HEALTH_STATE_PATH_DEFAULT = Path("/data/services/openclaw/deploy/git-health.json")
 
-# This actor's ntfy topic env var. The generic health notifier reads it and
-# falls back to FELIX_DEPLOYER_NTFY_TOPIC when unset (see notify.py).
+# This actor's identity for the health watermark. ``HEALTH_TOPIC_ENV`` is now
+# vestigial (WP02 / #701): the felix-alert bus resolves the single
+# FELIX_ALERT_NTFY_TOPIC, so the old per-actor topic env is no longer read for
+# delivery. The constant + the topic_env kwarg are retained only so the notify
+# call site stays signature-compatible.
 HEALTH_ACTOR = "agent-prompt-sync"
 HEALTH_TOPIC_ENV = "AGENT_PROMPT_SYNC_NTFY_TOPIC"
 
@@ -125,12 +128,14 @@ def _load_notify():
 def _health_notifier(title: str, body: str) -> bool:
     """Notifier seam passed to :func:`scripts.deploy.lib.health.record`.
 
-    Dispatches a best-effort ntfy health alert for this actor via the generic
-    ``dispatch_health_notification`` in the felix-deployer notify module and
-    returns its delivery ``bool`` (True iff the alert was actually delivered) so
-    ``health.record`` only stamps ``last_alert_ts`` on a delivered alert. The
-    notifier never raises into the tick — the underlying dispatcher swallows
-    every failure mode and returns False.
+    Dispatches a best-effort health alert for this actor via the generic
+    ``dispatch_health_notification`` in the felix-deployer notify module (now
+    backed by the felix-alert bus — WP02) and returns its delivery ``bool``
+    (True iff the alert was actually delivered) so ``health.record`` only stamps
+    ``last_alert_ts`` on a delivered alert. The notifier never raises into the
+    tick — the underlying bus swallows every failure mode and returns False.
+    ``topic_env`` is passed for signature compatibility but is vestigial (the
+    bus resolves FELIX_ALERT_NTFY_TOPIC).
     """
     notify = _load_notify()
     return notify.dispatch_health_notification(
