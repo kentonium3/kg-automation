@@ -41,11 +41,24 @@ def test_record_alert_writes_success_record() -> None:
     rec = records[0]
     assert rec["source"] == "felix-deployer/apply"
     assert rec["severity"] == "error"
-    assert rec["title"].startswith("felix-deployer failed")
+    # title + action are stored verbatim (not redacted) — consistent with the
+    # renderer, which sends them verbatim too.
+    assert rec["title"] == "felix-deployer failed: felix-calendar-helper"
+    assert rec["action"] == "chmod +x the deploy script."
     assert rec["details"] == {"phase": "dry_run", "exit_code": "126"}
     assert rec["delivery"] == {"ok": True, "reason": None, "topic_configured": True}
     # timestamp round-trips as ISO-8601 UTC.
     assert rec["ts"].endswith("+00:00")
+
+
+def test_record_alert_stringifies_nonstr_detail() -> None:
+    # A caller may pass a non-str detail value (e.g. an int returncode). The
+    # ledger stringifies it (mirroring the renderer) rather than dropping the
+    # whole record to a swallowed TypeError (MED-1).
+    alert = _alert(details={"returncode": 126, "manifest": "felix-calendar-helper"})
+    assert ledger_mod.record_alert(alert, AlertResult(ok=True)) is True
+    rec = _read_records(ledger_mod.ledger_dir())[0]
+    assert rec["details"] == {"returncode": "126", "manifest": "felix-calendar-helper"}
 
 
 def test_record_alert_writes_on_delivery_failure() -> None:
@@ -132,13 +145,16 @@ def test_emit_writes_ledger_and_returns_result(monkeypatch) -> None:
 
 
 def test_emit_ledger_failure_does_not_break_emit(monkeypatch) -> None:
-    # Even if the ledger write raises internally, emit() returns a result.
+    # Even if record_alert() itself were to raise (it shouldn't — it has its own
+    # guard), emit()'s redundant outer try/except keeps the bus fail-safe and the
+    # delivery outcome intact. emit() looks up record_alert via the package
+    # namespace (__init__.py), so patch it there.
     def _boom(*_a, **_k):
         raise RuntimeError("ledger exploded")
 
-    monkeypatch.setattr(ledger_mod, "record_alert", _boom)
-    # Re-import emit's bound name is the same module function; patch where emit looks it up.
     monkeypatch.setattr("scripts.common.alert_bus.record_alert", _boom)
     monkeypatch.delenv("FELIX_ALERT_NTFY_TOPIC", raising=False)
     result = emit(_alert())
-    assert isinstance(result, AlertResult)  # no raise; delivery result still returned
+    # No raise, and the ledger blow-up did not corrupt the delivery result.
+    assert result.ok is False
+    assert result.reason == "NTFY_MISSING_TOPIC"

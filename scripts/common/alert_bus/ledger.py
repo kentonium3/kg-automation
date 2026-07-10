@@ -61,11 +61,14 @@ def build_record(alert: Alert, result: AlertResult) -> dict:
         "severity": alert.severity.value,
         "title": alert.title,
         # Redacted to match what the renderer sends (NFR-2). description can carry
-        # a migrated error_summary; details can carry stderr.
-        "description": _redact_and_truncate(alert.description, DESCRIPTION_MAX),
+        # a migrated error_summary; details can carry stderr. ``str()`` mirrors
+        # the renderer (render.py), so the ledger accepts exactly what the
+        # renderer accepts — a non-str detail (e.g. an int returncode) is
+        # stringified, not dropped by a TypeError in the redactor.
+        "description": _redact_and_truncate(str(alert.description), DESCRIPTION_MAX),
         "action": alert.action,
         "details": {
-            key: _redact_and_truncate(value, DETAIL_VALUE_MAX)
+            key: _redact_and_truncate(str(value), DETAIL_VALUE_MAX)
             for key, value in alert.details.items()
         },
         "delivery": {
@@ -89,7 +92,14 @@ def _append_line(path: Path, line: str) -> None:
 
 
 def _prune(base: Path, retention_days: int) -> None:
-    """Delete date-partition files older than *retention_days* (best-effort)."""
+    """Delete date-partition files older than *retention_days* (best-effort).
+
+    Only triggers a deletion for **old-timestamped** alerts (an alert dated >30d
+    ago writes an old-dated file that is then pruned). In the rare case two
+    emitters concurrently write such an old alert, one may unlink the file the
+    other just wrote; the `unlink` is `OSError`-guarded so it never raises. Real
+    alerts carry a current timestamp and are never pruned on write.
+    """
     cutoff = datetime.now(timezone.utc).date() - timedelta(days=retention_days)
     for path in base.glob("*.jsonl"):
         try:

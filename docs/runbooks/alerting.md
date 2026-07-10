@@ -243,9 +243,11 @@ are separate, later work (the latter gated on #683).
 - **Location:** `/data/services/alert-bus/ledger/<YYYY-MM-DD>.jsonl` (override
   with `FELIX_ALERT_LEDGER_DIR`). Files older than 30 days are pruned on write.
 - **Record shape (one JSON object per line):** `ts` (UTC ISO-8601), `source`,
-  `severity`, `title`, `description`, `action`, `details` (redacted the same way
-  the sent alert is — no secrets the alert wouldn't carry), and `delivery`
-  (`ok`, `reason`, `topic_configured`).
+  `severity`, `title`, `description`, `action`, `details`, and `delivery`
+  (`ok`, `reason`, `topic_configured`). `description` and `details` values are
+  redacted + truncated exactly as the sent alert is (no secrets the alert
+  wouldn't carry); `title` and `action` are stored verbatim, matching what the
+  renderer sends.
 - **Best-effort:** a ledger write failure never changes the returned
   `AlertResult` and never breaks `emit()` (same discipline as the ntfy POST).
 - **Query it:**
