@@ -14,8 +14,19 @@ canonical thread carrying a uniform, self-explanatory message schema, delivered 
 "alert bus" that every component calls. A failing Felix component should clearly say *what* failed,
 *when*, *how bad*, and *what to do*.
 
-This mission builds the substrate and migrates the worst-offending emitters onto it. It is the
-observability foundation the rest of the Bedrock stabilization work depends on.
+This mission builds the substrate (the `felix-alert` bus — the name already used for this primitive
+in the #327 / bedrock-stabilization / coherence-doctrine design docs) and migrates the components
+that emit ntfy alerts today onto it. It is the observability foundation the rest of the Bedrock
+stabilization work depends on.
+
+**Scope correction (from plan-phase code discovery):** the issue's inventory listed five "emitters",
+but only **three subsystems actually emit ntfy today** — the felix-deployer subsystem
+(`notify.py` + `deploy/lib/health.py`), security-monitor (`audit.sh`), and felix-health-check
+(`run.py`). The openclaw enforcement notifier emits via **WhatsApp + GitHub issues**, not ntfy; and
+`scripts/office2/deploy/felix-doc-auditor*.sh` are **deploy scripts**, not ntfy emitters. Operator
+decision (2026-07-10): migrate the three real ntfy emitters, **additionally co-emit** a `felix-alert`
+for enforcement drift onto the unified thread (keeping its WhatsApp/GitHub records), and **defer**
+doc-auditor ntfy coverage to a follow-up.
 
 ## User Scenarios & Testing
 
@@ -48,9 +59,10 @@ single shared alert bus — no component retains its own ad-hoc delivery path af
 | FR-003 | For failure alerts, the details include the actual underlying error output (captured stderr / exception text), not merely a phase code or truncated summary. | Planned |
 | FR-004 | Severity is expressed on a defined vocabulary — `info` / `warn` / `error` / `critical` — and each level maps deterministically to a notification priority and a visual tag, so the single thread still visually distinguishes critical from informational alerts. | Planned |
 | FR-005 | A single shared alert bus is the only path that constructs and delivers alerts; it is callable from both Python and shell contexts (some emitters are shell scripts). | Planned |
-| FR-006 | The five named emitters — felix-deployer, security-monitor, felix-health-check, doc-auditor, and the openclaw enforcement notifier — emit exclusively via the shared alert bus, and their previous ad-hoc per-script delivery code is removed. | Planned |
+| FR-006 | The three current ntfy emitters — the felix-deployer subsystem (`notify.py` + `deploy/lib/health.py`), security-monitor (`audit.sh`), and felix-health-check (`run.py`) — emit exclusively via the shared alert bus, and their previous ad-hoc curl delivery code is removed. | Planned |
 | FR-007 | The canonical thread identity is stored in the project's topic/credential registry (configuration), not hard-coded in individual emitters. | Planned |
 | FR-008 | An operator can trigger an on-demand self-test alert to verify end-to-end delivery and formatting. | Planned |
+| FR-009 | The openclaw enforcement notifier additionally emits a `felix-alert` for agent-drift events through the shared bus (in addition to its existing WhatsApp + GitHub records), so drift is visible on the unified operator thread. | Planned |
 
 ### Non-Functional Requirements
 
@@ -70,18 +82,19 @@ single shared alert bus — no component retains its own ad-hoc delivery path af
 | C-003 | No new external package source is introduced (no new brew tap / pip index / npm registry / MCP plugin); delivery uses HTTP patterns already present in the repo. | Active |
 | C-004 | Risk tier is Tier 3 (Standard). The change touches audited surfaces (`scripts/deploy/**`, security-monitor scripts); rebaseline per #557 applies and the manifest pipeline auto-rebaselines on deploy, recorded on the merge/applied record. | Active |
 | C-005 | The alert bus must be invocable from shell (bash-callable shim) as well as Python, because emitters like `audit.sh` are shell. | Active |
-| C-006 | Out of scope for this mission: routing LLM-agent-detected failures through the bus, the #327 canary registry, and new emitters not yet alerting (#637). | Active |
+| C-006 | Out of scope for this mission: adding ntfy alerting to doc-auditor (deferred to a follow-up), routing LLM-agent-detected failures through the bus, the #327 canary registry, and new emitters not yet alerting (#637). | Active |
 
 ## Success Criteria
 
 | ID | Criterion |
 |----|-----------|
-| SC-001 | After deploy, 100% of alerts from the five migrated components arrive on the single canonical thread; zero arrive on the retired per-component threads. |
+| SC-001 | After deploy, 100% of alerts from the three migrated ntfy emitters arrive on the single canonical thread; zero arrive on the retired per-component threads. |
 | SC-002 | For a forced felix-deployer failure, the resulting alert contains the underlying error text sufficient to diagnose the cause without logging into office2 — verified against the #699 missing-executable-bit class (the alert names the failing cause, not just "dry-run failed"). |
 | SC-003 | Every migrated alert displays all applicable schema fields; reading any single alert tells the operator what failed, when, how bad, and the next step. |
 | SC-004 | Critical and informational alerts are visually distinguishable on the single thread (priority/tag). |
 | SC-005 | A delivery outage (notification endpoint unreachable) does not crash, hang, or block any emitting component. |
-| SC-006 | No migrated emitter retains ad-hoc alert-delivery code — a repository search finds alert delivery only in the shared alert bus. |
+| SC-006 | No migrated emitter retains ad-hoc alert-delivery code — a repository search finds ntfy alert delivery only in the shared alert bus. |
+| SC-007 | An enforcement agent-drift event produces a `felix-alert` on the unified thread (co-emit) while still creating its existing GitHub drift record. |
 
 ## Key Entities
 
