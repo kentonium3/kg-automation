@@ -56,10 +56,10 @@ Tests required (DIRECTIVE_034; NFR-002 fail-safe must be proven). Deploy to offi
 
 ### WP05 — deploy, docs & verification
 - **Goal**: office2 deploy (dry-run-no-emit self-test), manifest, arch-doc reconcile, runbook + SC checklist (re-consent + workbook bootstrap are operator steps). **Deps**: WP01-04. **Requirements**: C-002, C-004; SC-001..005.
-- [ ] T014 deploy entrypoint (WP05)
-- [ ] T015 deploy manifest (WP05)
-- [ ] T016 architecture docs (WP05) [P]
-- [ ] T017 runbook + SC checklist (WP05)
+- [x] T014 deploy entrypoint (WP05)
+- [x] T015 deploy manifest (WP05)
+- [x] T016 architecture docs (WP05) [P]
+- [x] T017 runbook + SC checklist (WP05)
 
 ## Dependencies & lanes
 - Chain: WP01 → WP02 → WP03 → WP04; WP05 depends on WP01–WP04.
