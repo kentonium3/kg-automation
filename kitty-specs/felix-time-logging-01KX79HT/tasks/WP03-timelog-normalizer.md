@@ -24,9 +24,9 @@ subtasks:
 - T010
 phase: Phase 2 - Normalizer
 assignee: ''
-agent: "claude:sonnet:python-pedro:implementer"
+agent: "claude:opus:reviewer-renata:reviewer"
 agent_profile: "python-pedro"
-shell_pid: "45777"
+shell_pid: "49242"
 history:
 - at: '2026-07-10T22:30:00Z'
   actor: system
@@ -391,3 +391,5 @@ Enforce these literally:
 ## Activity Log
 
 - 2026-07-11T01:28:37Z – claude:sonnet:python-pedro:implementer – shell_pid=45777 – Assigned agent via action command
+- 2026-07-11T01:40:18Z – claude:sonnet:python-pedro:implementer – shell_pid=45777 – timelog normalizer: 13-status union, conversation-keyed pending+ledger, corrections w/ correction_ambiguous, fail-safe (logged only on read-back), alert on error; 77 tests/97.6% cov; 211 google-suite pass; 3fbbaf01.
+- 2026-07-11T01:40:22Z – claude:opus:reviewer-renata:reviewer – shell_pid=49242 – Started review via action command
