@@ -62,6 +62,19 @@ EXIT_USAGE = 2
 # passes it as the last element of --values; this helper never invents it.
 ENTRY_ID_COLUMN_INDEX = -1
 
+# The Felix time-log header row written into every client tab (F6). A freshly
+# created tab gets this as row 1 so the first data entry lands at row 2 and the
+# columns are self-describing. Column order matches ``timelog._row_values``.
+HEADER_ROW: tuple[str, ...] = (
+    "date",
+    "hours",
+    "client",
+    "description",
+    "billable",
+    "logged_at",
+    "entry_id",
+)
+
 # Bounded lookback (number of rows scanned from the tail) when de-duping an
 # append retry by entry_id (F8). Mirrors calendar_helper's
 # IDEMPOTENCY_LOOKBACK bounded-scan pattern.
@@ -193,6 +206,19 @@ def _build_service(account: str) -> Any:
     return build("sheets", "v4", credentials=creds, cache_discovery=False)
 
 
+def _quote_a1_title(title: str) -> str:
+    """Return an A1-safe, quoted sheet-title prefix for a ``range=``/``ranges=``.
+
+    Sheet titles containing spaces, punctuation, or apostrophes must be wrapped
+    in single quotes in A1 notation, and any internal single quote doubled
+    (``it's`` -> ``'it''s'``). Always quoting (even simple titles) is valid A1
+    and closes the injection/mis-target surface (F5) uniformly — a tab named
+    ``ACME`` becomes ``'ACME'`` and a tab named ``Q3 'Big' Co`` becomes
+    ``'Q3 ''Big'' Co'``. Callers build ranges as ``f"{_quote_a1_title(tab)}!A1"``.
+    """
+    return "'" + title.replace("'", "''") + "'"
+
+
 def _http_status(exc: Exception) -> int | None:
     """Best-effort extraction of an HTTP status from a googleapiclient error."""
     resp = getattr(exc, "resp", None)
@@ -292,6 +318,17 @@ def _cmd_create_tab(service: Any, args: argparse.Namespace) -> int:
             },
         )
     )
+    # Write the Felix header row into the fresh tab (F6) so the first data entry
+    # lands at row 2 and the columns are self-describing. RAW: header labels are
+    # literal text, never formulas.
+    _run_execute(
+        service.spreadsheets().values().update(
+            spreadsheetId=spreadsheet_id,
+            range=f"{_quote_a1_title(args.tab)}!A1",
+            valueInputOption="RAW",
+            body={"values": [list(HEADER_ROW)]},
+        )
+    )
     _emit_json({"status": "ok", "tab": args.tab, "created": True})
     _emit_summary(
         {
@@ -342,7 +379,7 @@ def _find_existing_row_by_entry_id(
     meta = _run_execute(
         service.spreadsheets().get(
             spreadsheetId=spreadsheet_id,
-            ranges=[tab],
+            ranges=[_quote_a1_title(tab)],
             includeGridData=False,
         )
     )
@@ -356,7 +393,12 @@ def _find_existing_row_by_entry_id(
             break
 
     start_row = max(1, row_count - IDEMPOTENCY_LOOKBACK + 1)
-    range_a1 = f"{tab}!A{start_row}:ZZ{row_count}" if row_count else f"{tab}!A1:ZZ{IDEMPOTENCY_LOOKBACK}"
+    quoted = _quote_a1_title(tab)
+    range_a1 = (
+        f"{quoted}!A{start_row}:ZZ{row_count}"
+        if row_count
+        else f"{quoted}!A1:ZZ{IDEMPOTENCY_LOOKBACK}"
+    )
 
     values_result = _run_execute(
         service.spreadsheets().values().get(
@@ -415,8 +457,11 @@ def _cmd_append_row(service: Any, args: argparse.Namespace) -> int:
     append_result = _run_execute(
         service.spreadsheets().values().append(
             spreadsheetId=spreadsheet_id,
-            range=f"{args.tab}!A1",
-            valueInputOption="USER_ENTERED",
+            range=f"{_quote_a1_title(args.tab)}!A1",
+            # RAW (not USER_ENTERED): time-log values are DATA, never formulas.
+            # A description like "=SUM(A:A)" or "-1h" must land as literal text,
+            # not be evaluated by Sheets (F5 formula-injection defense).
+            valueInputOption="RAW",
             insertDataOption="INSERT_ROWS",
             includeValuesInResponse=True,
             body={"values": [values]},
@@ -489,16 +534,21 @@ def _cmd_update_last(service: Any, args: argparse.Namespace) -> int:
     spreadsheet_id = _resolve_spreadsheet_id()
 
     last_col = _a1_column(len(values))
-    range_a1 = f"{args.tab}!A{args.row}:{last_col}{args.row}"
+    range_a1 = f"{_quote_a1_title(args.tab)}!A{args.row}:{last_col}{args.row}"
 
     _run_execute(
         service.spreadsheets().values().update(
             spreadsheetId=spreadsheet_id,
             range=range_a1,
-            valueInputOption="USER_ENTERED",
+            # RAW: a correction's values are DATA, not formulas (F5).
+            valueInputOption="RAW",
             body={"values": [values]},
         )
     )
+    # Read-back-confirm (F4): re-read the row and verify the entry_id/values
+    # actually landed before reporting `ok`. An update that silently no-ops or
+    # writes to the wrong place must never be reported as corrected.
+    _confirm_update(service, spreadsheet_id, args.tab, args.row, values)
     _emit_json({"status": "ok", "tab": args.tab, "row_index": args.row})
     _emit_summary(
         {
@@ -519,6 +569,74 @@ def _a1_column(n: int) -> str:
         n, remainder = divmod(n - 1, 26)
         letters = chr(ord("A") + remainder) + letters
     return letters or "A"
+
+
+def _read_row_values(
+    service: Any, spreadsheet_id: str, tab: str, row: int, ncols: int
+) -> list[Any]:
+    """Read back a single row's cell values via ``values().get`` (F4)."""
+    last_col = _a1_column(ncols)
+    range_a1 = f"{_quote_a1_title(tab)}!A{row}:{last_col}{row}"
+    result = _run_execute(
+        service.spreadsheets().values().get(
+            spreadsheetId=spreadsheet_id,
+            range=range_a1,
+        )
+    )
+    rows = _row_from_get_values(result)
+    return rows[0] if rows else []
+
+
+def _confirm_update(
+    service: Any,
+    spreadsheet_id: str,
+    tab: str,
+    row: int,
+    expected: list[Any],
+) -> None:
+    """Verify an ``update-last`` actually landed (F4): read the row back and
+    confirm the trailing ``entry_id`` matches. Raises an operational error
+    (exit 1) if the read-back does not confirm — a correction is reported
+    ``corrected`` only when API-confirmed, never optimistically.
+    """
+    read_back = _read_row_values(service, spreadsheet_id, tab, row, len(expected))
+    if not read_back:
+        raise _operational_error(
+            "update not confirmed: row read-back was empty after update-last"
+        )
+    if str(read_back[ENTRY_ID_COLUMN_INDEX]) != str(expected[ENTRY_ID_COLUMN_INDEX]):
+        raise _operational_error(
+            "update not confirmed: read-back row does not carry the expected "
+            f"entry_id (expected {expected[ENTRY_ID_COLUMN_INDEX]!r}, "
+            f"got {read_back[ENTRY_ID_COLUMN_INDEX]!r})"
+        )
+
+
+def _confirm_delete(
+    service: Any,
+    spreadsheet_id: str,
+    tab: str,
+    row: int,
+    expected_entry_id: str | None,
+) -> None:
+    """Verify a ``delete-last`` actually removed the target (F4).
+
+    After a ``deleteDimension`` the row shifts up, so the *former* row index no
+    longer holds the deleted entry_id. Read it back and confirm the expected
+    entry_id is absent from that position. If the caller did not pass an
+    expected entry_id (none available), a best-effort read still runs but only
+    a present-and-matching id fails the confirmation.
+    """
+    if not expected_entry_id:
+        return
+    read_back = _read_row_values(
+        service, spreadsheet_id, tab, row, len(HEADER_ROW)
+    )
+    if read_back and str(read_back[ENTRY_ID_COLUMN_INDEX]) == str(expected_entry_id):
+        raise _operational_error(
+            "delete not confirmed: target row still carries the expected "
+            f"entry_id {expected_entry_id!r} after delete-last"
+        )
 
 
 def _sheet_id_for_tab(service: Any, spreadsheet_id: str, tab: str) -> int:
@@ -563,6 +681,12 @@ def _cmd_delete_last(service: Any, args: argparse.Namespace) -> int:
                 ]
             },
         )
+    )
+    # Read-back-confirm (F4): after the delete the row shifts up, so the target
+    # index must NOT still carry the deleted entry_id. Only confirm ``deleted``
+    # when API-verified.
+    _confirm_delete(
+        service, spreadsheet_id, args.tab, args.row, getattr(args, "entry_id", None)
     )
     _emit_json({"status": "ok", "tab": args.tab, "row_index": args.row})
     _emit_summary(
@@ -641,6 +765,10 @@ def _build_parser() -> argparse.ArgumentParser:
     _add_common_flags(p_delete)
     p_delete.add_argument("--tab", required=True)
     p_delete.add_argument("--row", type=int, required=True)
+    # Optional: the entry_id the deleted row is expected to carry, so the
+    # delete can be read-back-confirmed (F4). If omitted, delete-back-confirm
+    # is skipped (best-effort).
+    p_delete.add_argument("--entry-id", dest="entry_id", default=None)
 
     return parser
 

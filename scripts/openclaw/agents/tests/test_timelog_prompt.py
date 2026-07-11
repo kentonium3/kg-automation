@@ -28,6 +28,13 @@ from pathlib import Path
 
 CAP = 12_000
 
+#: Post-F8 headroom floor (Codex post-merge review): main/AGENTS.md must keep
+#: real slack under the 12,000-byte cap, not merely squeak under it. The F8
+#: compression pass reclaimed >= 400 bytes; this guard requires that headroom
+#: be preserved so a future edit that eats it fails loudly instead of silently
+#: re-approaching the cap.
+MIN_HEADROOM = 400
+
 #: Statuses this test requires the Time-logging section to name explicitly.
 #: These are the ones the T013 spec calls out as load-bearing: the
 #: recognizer/extraction path (implicitly covered by the invocation string
@@ -108,13 +115,21 @@ def test_time_logging_names_key_typed_statuses(repo_root: Path) -> None:
 
 
 def test_main_agents_md_under_12k_budget_guard(repo_root: Path) -> None:
-    """Budget guard (NFR-001): main/AGENTS.md stays under the 12,000B cap.
+    """Budget guard (NFR-001): main/AGENTS.md stays under the 12,000B cap with
+    real headroom (F8).
 
     Mirrors ``test_agents_md_size.py::test_main_agents_md_under_12k`` — kept
     here too so the WP04 time-logging addition's own test suite gates the
-    budget it depends on, not just the fleet-wide size test.
+    budget it depends on, not just the fleet-wide size test. The F8 post-merge
+    review tightened this from a bare ``< 12000`` to ``>= MIN_HEADROOM`` free
+    so the prompt cannot silently creep back to the cap.
     """
     p = repo_root / "scripts/openclaw/agents/main/AGENTS.md"
     assert p.exists(), f"missing: {p}"
     size = p.stat().st_size
     assert size < CAP, f"main/AGENTS.md {size} >= {CAP}"
+    headroom = CAP - size
+    assert headroom >= MIN_HEADROOM, (
+        f"main/AGENTS.md has only {headroom}B free (< {MIN_HEADROOM}B floor); "
+        "the F8 compression headroom has eroded — compress before adding prose"
+    )

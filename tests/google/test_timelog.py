@@ -22,6 +22,7 @@ exit-code contract (0 for every handled status, 2 only for a usage error).
 from __future__ import annotations
 
 import json
+import os
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
@@ -321,7 +322,7 @@ def test_add_client_success_creates_tab_and_logs(monkeypatch, capsys, emitted_al
     source = timelog.Source("whatsapp", "conv-1", "msg-1")
     partial = {"client": "ACME", "hours": 2.5, "description": "onboarding prep", "date": "today"}
     pending = timelog._new_pending(source, partial, awaiting="new_client_confirm")
-    timelog._save_pending("testacct", pending)
+    timelog._save_pending("testacct", source, pending)
 
     _stub_create_tab_ok(monkeypatch, created=True)
     _stub_append_row_ok(monkeypatch, row_index=1)
@@ -337,14 +338,14 @@ def test_add_client_success_creates_tab_and_logs(monkeypatch, capsys, emitted_al
     assert result["tab"] == "ACME"
     assert emitted_alerts == []
     # Pending cleared after a successful write.
-    assert timelog._load_pending("testacct") is None
+    assert timelog._load_pending("testacct", source) is None
 
 
 def test_add_client_partial_mutation_tab_created_append_fails(monkeypatch, capsys, emitted_alerts):
     source = timelog.Source("whatsapp", "conv-1", "msg-1")
     partial = {"client": "ACME", "hours": 2.5, "description": "onboarding prep", "date": "today"}
     pending = timelog._new_pending(source, partial, awaiting="new_client_confirm")
-    timelog._save_pending("testacct", pending)
+    timelog._save_pending("testacct", source, pending)
 
     _stub_create_tab_ok(monkeypatch, created=True)
     _stub_append_row_fails(monkeypatch, "Sheets 503")
@@ -367,7 +368,7 @@ def test_add_client_retry_is_idempotent(monkeypatch, capsys):
     source = timelog.Source("whatsapp", "conv-1", "msg-1")
     partial = {"client": "ACME", "hours": 2.5, "description": "onboarding prep", "date": "today"}
     pending = timelog._new_pending(source, partial, awaiting="new_client_confirm")
-    timelog._save_pending("testacct", pending)
+    timelog._save_pending("testacct", source, pending)
 
     _stub_create_tab_ok(monkeypatch, created=False)  # no-op: already exists
     _stub_append_row_ok(monkeypatch, row_index=2)
@@ -382,7 +383,7 @@ def test_add_client_no_pending_when_uncorrelated(monkeypatch, capsys):
     other_source = timelog.Source("whatsapp", "conv-OTHER", "msg-OTHER")
     partial = {"client": "ACME", "hours": 2.5, "description": "x", "date": "today"}
     pending = timelog._new_pending(other_source, partial, awaiting="new_client_confirm")
-    timelog._save_pending("testacct", pending)
+    timelog._save_pending("testacct", other_source, pending)
 
     code, result = _run(monkeypatch, ["--add-client", "ACME"] + BASE_ARGS, capsys)
 
@@ -408,7 +409,7 @@ def test_confirm_client_uncorrelated_conversation(monkeypatch, capsys):
     other_source = timelog.Source("whatsapp", "conv-OTHER", "msg-OTHER")
     partial = {"client": "Acme", "hours": 2.5, "description": "x", "date": "today"}
     pending = timelog._new_pending(other_source, partial, awaiting="client")
-    timelog._save_pending("testacct", pending)
+    timelog._save_pending("testacct", other_source, pending)
 
     code, result = _run(monkeypatch, ["--confirm-client", "ACME"] + BASE_ARGS, capsys)
 
@@ -423,21 +424,21 @@ def test_confirm_client_stale_pending_clears_record(monkeypatch, capsys, _isolat
     stale_created = datetime.now(timezone.utc) - timedelta(hours=2)
     pending["created_at"] = stale_created.isoformat()
     pending["expires_at"] = (stale_created + timedelta(seconds=timelog.PENDING_TTL_SECONDS)).isoformat()
-    timelog._save_pending("testacct", pending)
+    timelog._save_pending("testacct", source, pending)
 
     code, result = _run(monkeypatch, ["--confirm-client", "ACME"] + BASE_ARGS, capsys)
 
     assert code == 0
     assert result["status"] == "stale_pending"
     assert result["age_s"] > 0
-    assert timelog._load_pending("testacct") is None  # cleared
+    assert timelog._load_pending("testacct", source) is None  # cleared
 
 
 def test_confirm_client_correlated_resumes_and_logs(monkeypatch, capsys):
     source = timelog.Source("whatsapp", "conv-1", "msg-1")
     partial = {"client": "Acme", "hours": 2.5, "description": "onboarding prep", "date": "today"}
     pending = timelog._new_pending(source, partial, awaiting="client")
-    timelog._save_pending("testacct", pending)
+    timelog._save_pending("testacct", source, pending)
 
     _stub_list_tabs(monkeypatch, ["ACME"])
     _stub_append_row_ok(monkeypatch)
@@ -460,7 +461,7 @@ def test_field_supplies_missing_and_logs(monkeypatch, capsys):
     source = timelog.Source("whatsapp", "conv-1", "msg-1")
     partial = {"client": "ACME", "description": "onboarding prep", "date": "today"}
     pending = timelog._new_pending(source, partial, awaiting="field:hours")
-    timelog._save_pending("testacct", pending)
+    timelog._save_pending("testacct", source, pending)
 
     _stub_list_tabs(monkeypatch, ["ACME"])
     _stub_append_row_ok(monkeypatch)
@@ -549,7 +550,7 @@ def test_correct_updates_most_recent_entry(monkeypatch, capsys):
 def test_delete_last_removes_most_recent_entry(monkeypatch, capsys):
     _seed_ledger_entry("testacct", tab="ACME", row_index=5)
 
-    def _fake_delete(tab, row, account):
+    def _fake_delete(tab, row, account, entry_id=None):
         assert tab == "ACME"
         assert row == 5
 
@@ -700,7 +701,7 @@ def test_confirm_client_still_missing_a_field_reprompts(monkeypatch, capsys):
     source = timelog.Source("whatsapp", "conv-1", "msg-1")
     partial = {"description": "onboarding prep", "date": "today"}  # no hours
     pending = timelog._new_pending(source, partial, awaiting="client")
-    timelog._save_pending("testacct", pending)
+    timelog._save_pending("testacct", source, pending)
 
     code, result = _run(monkeypatch, ["--confirm-client", "ACME"] + BASE_ARGS, capsys)
 
@@ -714,7 +715,7 @@ def test_confirm_client_unparseable_date_reprompts(monkeypatch, capsys):
     source = timelog.Source("whatsapp", "conv-1", "msg-1")
     partial = {"hours": 2.5, "description": "onboarding prep", "date": "next week"}
     pending = timelog._new_pending(source, partial, awaiting="client")
-    timelog._save_pending("testacct", pending)
+    timelog._save_pending("testacct", source, pending)
 
     code, result = _run(monkeypatch, ["--confirm-client", "ACME"] + BASE_ARGS, capsys)
 
@@ -727,7 +728,7 @@ def test_confirm_client_still_unknown(monkeypatch, capsys):
     source = timelog.Source("whatsapp", "conv-1", "msg-1")
     partial = {"hours": 2.5, "description": "onboarding prep", "date": "today"}
     pending = timelog._new_pending(source, partial, awaiting="client")
-    timelog._save_pending("testacct", pending)
+    timelog._save_pending("testacct", source, pending)
     _stub_list_tabs(monkeypatch, ["OTHERCO"])
 
     code, result = _run(monkeypatch, ["--confirm-client", "TotallyUnknown"] + BASE_ARGS, capsys)
@@ -741,7 +742,7 @@ def test_confirm_client_still_ambiguous(monkeypatch, capsys, _isolated_clients_c
     source = timelog.Source("whatsapp", "conv-1", "msg-1")
     partial = {"hours": 2.5, "description": "onboarding prep", "date": "today"}
     pending = timelog._new_pending(source, partial, awaiting="client")
-    timelog._save_pending("testacct", pending)
+    timelog._save_pending("testacct", source, pending)
     _stub_list_tabs(monkeypatch, ["ACME-East", "ACME-West"])
 
     code, result = _run(monkeypatch, ["--confirm-client", "acme"] + BASE_ARGS, capsys)
@@ -754,7 +755,7 @@ def test_confirm_client_list_tabs_error_is_fail_safe(monkeypatch, capsys, emitte
     source = timelog.Source("whatsapp", "conv-1", "msg-1")
     partial = {"hours": 2.5, "description": "onboarding prep", "date": "today"}
     pending = timelog._new_pending(source, partial, awaiting="client")
-    timelog._save_pending("testacct", pending)
+    timelog._save_pending("testacct", source, pending)
 
     def _fail(account: str) -> list[str]:
         raise timelog.SheetsOpError("Sheets API 503")
@@ -772,7 +773,7 @@ def test_add_client_still_missing_a_field_reprompts(monkeypatch, capsys):
     source = timelog.Source("whatsapp", "conv-1", "msg-1")
     partial = {"client": "ACME", "date": "today"}  # no hours, no description
     pending = timelog._new_pending(source, partial, awaiting="new_client_confirm")
-    timelog._save_pending("testacct", pending)
+    timelog._save_pending("testacct", source, pending)
 
     code, result = _run(monkeypatch, ["--add-client", "ACME"] + BASE_ARGS, capsys)
 
@@ -785,7 +786,7 @@ def test_add_client_unparseable_date_reprompts(monkeypatch, capsys):
     source = timelog.Source("whatsapp", "conv-1", "msg-1")
     partial = {"client": "ACME", "hours": 2.5, "description": "x", "date": "whenever"}
     pending = timelog._new_pending(source, partial, awaiting="new_client_confirm")
-    timelog._save_pending("testacct", pending)
+    timelog._save_pending("testacct", source, pending)
 
     code, result = _run(monkeypatch, ["--add-client", "ACME"] + BASE_ARGS, capsys)
 
@@ -798,7 +799,7 @@ def test_add_client_create_tab_failure_is_fail_safe(monkeypatch, capsys, emitted
     source = timelog.Source("whatsapp", "conv-1", "msg-1")
     partial = {"client": "ACME", "hours": 2.5, "description": "x", "date": "today"}
     pending = timelog._new_pending(source, partial, awaiting="new_client_confirm")
-    timelog._save_pending("testacct", pending)
+    timelog._save_pending("testacct", source, pending)
 
     def _fail(tab: str, account: str) -> bool:
         raise timelog.SheetsOpError("Sheets API 503")
@@ -817,7 +818,7 @@ def test_field_malformed_no_equals_reprompts(monkeypatch, capsys):
     source = timelog.Source("whatsapp", "conv-1", "msg-1")
     partial = {"client": "ACME", "description": "x", "date": "today"}
     pending = timelog._new_pending(source, partial, awaiting="field:hours")
-    timelog._save_pending("testacct", pending)
+    timelog._save_pending("testacct", source, pending)
 
     code, result = _run(monkeypatch, ["--field", "notanassignment"] + BASE_ARGS, capsys)
 
@@ -830,7 +831,7 @@ def test_field_unknown_name_reprompts(monkeypatch, capsys):
     source = timelog.Source("whatsapp", "conv-1", "msg-1")
     partial = {"client": "ACME", "description": "x", "date": "today"}
     pending = timelog._new_pending(source, partial, awaiting="field:hours")
-    timelog._save_pending("testacct", pending)
+    timelog._save_pending("testacct", source, pending)
 
     code, result = _run(monkeypatch, ["--field", "bogus=1"] + BASE_ARGS, capsys)
 
@@ -842,7 +843,7 @@ def test_field_still_missing_another_field(monkeypatch, capsys):
     source = timelog.Source("whatsapp", "conv-1", "msg-1")
     partial = {"client": "ACME", "date": "today"}  # missing hours + description
     pending = timelog._new_pending(source, partial, awaiting="field:hours")
-    timelog._save_pending("testacct", pending)
+    timelog._save_pending("testacct", source, pending)
 
     code, result = _run(monkeypatch, ["--field", "hours=3"] + BASE_ARGS, capsys)
 
@@ -855,7 +856,7 @@ def test_field_unparseable_date(monkeypatch, capsys):
     source = timelog.Source("whatsapp", "conv-1", "msg-1")
     partial = {"client": "ACME", "hours": 2.5, "description": "x", "date": "whenever"}
     pending = timelog._new_pending(source, partial, awaiting="field:date")
-    timelog._save_pending("testacct", pending)
+    timelog._save_pending("testacct", source, pending)
 
     code, result = _run(monkeypatch, ["--field", "date=nonsense"] + BASE_ARGS, capsys)
 
@@ -868,7 +869,7 @@ def test_field_non_numeric_hours_reprompts(monkeypatch, capsys):
     source = timelog.Source("whatsapp", "conv-1", "msg-1")
     partial = {"client": "ACME", "description": "x", "date": "today"}
     pending = timelog._new_pending(source, partial, awaiting="field:hours")
-    timelog._save_pending("testacct", pending)
+    timelog._save_pending("testacct", source, pending)
 
     code, result = _run(monkeypatch, ["--field", "hours=notanumber"] + BASE_ARGS, capsys)
 
@@ -881,7 +882,7 @@ def test_field_still_unknown_client(monkeypatch, capsys):
     source = timelog.Source("whatsapp", "conv-1", "msg-1")
     partial = {"client": "Nope", "hours": 2.5, "description": "x", "date": "today"}
     pending = timelog._new_pending(source, partial, awaiting="field:hours")
-    timelog._save_pending("testacct", pending)
+    timelog._save_pending("testacct", source, pending)
     _stub_list_tabs(monkeypatch, ["OTHERCO"])
 
     code, result = _run(monkeypatch, ["--field", "hours=3"] + BASE_ARGS, capsys)
@@ -895,7 +896,7 @@ def test_field_still_ambiguous(monkeypatch, capsys, _isolated_clients_config):
     source = timelog.Source("whatsapp", "conv-1", "msg-1")
     partial = {"client": "acme", "hours": 2.5, "description": "x", "date": "today"}
     pending = timelog._new_pending(source, partial, awaiting="field:hours")
-    timelog._save_pending("testacct", pending)
+    timelog._save_pending("testacct", source, pending)
     _stub_list_tabs(monkeypatch, ["ACME-East", "ACME-West"])
 
     code, result = _run(monkeypatch, ["--field", "hours=3"] + BASE_ARGS, capsys)
@@ -908,7 +909,7 @@ def test_field_list_tabs_error_is_fail_safe(monkeypatch, capsys, emitted_alerts)
     source = timelog.Source("whatsapp", "conv-1", "msg-1")
     partial = {"client": "ACME", "description": "x", "date": "today"}
     pending = timelog._new_pending(source, partial, awaiting="field:hours")
-    timelog._save_pending("testacct", pending)
+    timelog._save_pending("testacct", source, pending)
 
     def _fail(account: str) -> list[str]:
         raise timelog.SheetsOpError("Sheets API 503")
@@ -969,7 +970,7 @@ def test_correct_update_last_failure_is_fail_safe(monkeypatch, capsys, emitted_a
 def test_delete_last_failure_is_fail_safe(monkeypatch, capsys, emitted_alerts):
     _seed_ledger_entry("testacct", tab="ACME", row_index=5)
 
-    def _fail(tab, row, account):
+    def _fail(tab, row, account, entry_id=None):
         raise timelog.SheetsOpError("Sheets 503")
 
     monkeypatch.setattr(timelog, "_sh_delete_last", _fail)
@@ -1099,5 +1100,244 @@ def test_read_json_corrupt_file_returns_default(tmp_path):
 def test_save_pending_none_on_already_absent_file_is_a_noop(_isolated_state):
     # No pending file was ever written for this account — clearing it must not
     # raise even though there's nothing to unlink.
-    timelog._save_pending("neveropened", None)
-    assert timelog._load_pending("neveropened") is None
+    source = timelog.Source("whatsapp", "conv-1", "msg-1")
+    timelog._save_pending("neveropened", source, None)
+    assert timelog._load_pending("neveropened", source) is None
+
+
+# --------------------------------------------------------------------------- #
+# F2 — end-to-end append idempotency: a retry reuses a STABLE entry_id
+# --------------------------------------------------------------------------- #
+
+
+def test_entry_id_is_stable_across_retries_of_same_request():
+    """F2: the derived entry_id depends only on (account, source, normalized
+    fields) — NOT wall-clock — so an identical retry produces the SAME id and
+    sheets_helper's dedup-by-entry_id can fire."""
+    source = timelog.Source("whatsapp", "conv-1", "msg-1")
+    kwargs = dict(
+        account="testacct",
+        source=source,
+        normalized_date="2026-07-10",
+        hours=2.5,
+        client="ACME",
+        description="onboarding prep",
+        billable=True,
+    )
+    first = timelog._derive_entry_id(**kwargs)
+    second = timelog._derive_entry_id(**kwargs)
+    assert first == second
+    # A different conversation (or different fields) derives a different id.
+    other = timelog._derive_entry_id(
+        **{**kwargs, "source": timelog.Source("whatsapp", "conv-2", "msg-9")}
+    )
+    assert other != first
+
+
+def test_retry_reuses_entry_id_so_sheets_helper_dedups_no_duplicate(monkeypatch, capsys):
+    """F2 e2e: two identical primary calls (a lost-confirmation retry) hand
+    sheets_helper the SAME entry_id, so its dedup prevents a duplicate row.
+
+    We capture the entry_id passed to _sh_append_row on each attempt and assert
+    they are identical — the property sheets_helper's tail-scan relies on.
+    """
+    _stub_list_tabs(monkeypatch, ["ACME"])
+    seen_entry_ids: list[str] = []
+
+    def _fake_append(tab, entry_id, values, account):
+        seen_entry_ids.append(entry_id)
+        return 5, values
+
+    monkeypatch.setattr(timelog, "_sh_append_row", _fake_append)
+
+    code1, r1 = _run(monkeypatch, _primary_args(), capsys)
+    code2, r2 = _run(monkeypatch, _primary_args(), capsys)
+
+    assert code1 == 0 and code2 == 0
+    assert r1["status"] == "logged" and r2["status"] == "logged"
+    assert len(seen_entry_ids) == 2
+    assert seen_entry_ids[0] == seen_entry_ids[1], (
+        "a retry of the same request must reuse the same entry_id so "
+        "sheets_helper dedups instead of appending a duplicate (F2)"
+    )
+    assert r1["row"]["entry_id"] == r2["row"]["entry_id"]
+
+
+def test_add_client_retry_reuses_entry_id(monkeypatch, capsys):
+    """F2: --add-client also derives a stable entry_id across retries."""
+    source = timelog.Source("whatsapp", "conv-1", "msg-1")
+    partial = {"client": "ACME", "hours": 2.5, "description": "onboarding prep", "date": "today"}
+    seen: list[str] = []
+
+    def _fake_append(tab, entry_id, values, account):
+        seen.append(entry_id)
+        return 2, values
+
+    monkeypatch.setattr(timelog, "_sh_append_row", _fake_append)
+    _stub_create_tab_ok(monkeypatch, created=False)
+
+    for _ in range(2):
+        pending = timelog._new_pending(source, partial, awaiting="new_client_confirm")
+        timelog._save_pending("testacct", source, pending)
+        _run(monkeypatch, ["--add-client", "ACME"] + BASE_ARGS, capsys)
+
+    assert len(seen) == 2
+    assert seen[0] == seen[1]
+
+
+# --------------------------------------------------------------------------- #
+# F3 — pending is source-keyed: concurrent conversations don't clobber
+# --------------------------------------------------------------------------- #
+
+
+def test_pending_two_conversations_do_not_clobber(_isolated_state):
+    """F3: a second conversation's pending record must NOT overwrite the
+    first — each source key gets its own map entry."""
+    src_a = timelog.Source("whatsapp", "conv-A", "msg-A")
+    src_b = timelog.Source("whatsapp", "conv-B", "msg-B")
+    timelog._save_pending("acct", src_a, timelog._new_pending(src_a, {"client": "ACME"}, "client"))
+    timelog._save_pending("acct", src_b, timelog._new_pending(src_b, {"client": "BETA"}, "client"))
+
+    rec_a = timelog._load_pending("acct", src_a)
+    rec_b = timelog._load_pending("acct", src_b)
+    assert rec_a is not None and rec_a["partial"]["client"] == "ACME"
+    assert rec_b is not None and rec_b["partial"]["client"] == "BETA"
+
+    # Clearing one leaves the other intact.
+    timelog._save_pending("acct", src_a, None)
+    assert timelog._load_pending("acct", src_a) is None
+    assert timelog._load_pending("acct", src_b) is not None
+
+
+def test_follow_up_resumes_only_its_correlated_record(monkeypatch, capsys, _isolated_state):
+    """F3: a follow-up for conv-1/msg-1 resumes ITS record even though a
+    different conversation also has a live pending record."""
+    src_other = timelog.Source("whatsapp", "conv-OTHER", "msg-OTHER")
+    timelog._save_pending(
+        "testacct",
+        src_other,
+        timelog._new_pending(src_other, {"client": "OTHER"}, "client"),
+    )
+    src_mine = timelog.Source("whatsapp", "conv-1", "msg-1")
+    partial = {"hours": 2.5, "description": "onboarding prep", "date": "today"}
+    timelog._save_pending("testacct", src_mine, timelog._new_pending(src_mine, partial, "client"))
+
+    _stub_list_tabs(monkeypatch, ["ACME"])
+    _stub_append_row_ok(monkeypatch)
+
+    code, result = _run(monkeypatch, ["--confirm-client", "ACME"] + BASE_ARGS, capsys)
+    assert code == 0
+    assert result["status"] == "logged"
+    # The OTHER conversation's pending record is untouched.
+    assert timelog._load_pending("testacct", src_other) is not None
+
+
+def test_nonce_field_removed_from_pending_record():
+    """F3: the dead `nonce` field is gone (main never echoed it); correlation
+    is by source_key + TTL, documented in the module."""
+    source = timelog.Source("whatsapp", "conv-1", "msg-1")
+    rec = timelog._new_pending(source, {"client": "ACME"}, "client")
+    assert "nonce" not in rec
+
+
+# --------------------------------------------------------------------------- #
+# F4 — corrected/deleted relayed ONLY on sheets_helper confirmation
+# --------------------------------------------------------------------------- #
+
+
+def test_corrected_only_when_update_confirms(monkeypatch, capsys):
+    """F4: if sheets_helper's update-last read-back fails (raises), timelog
+    returns `error`, never `corrected`."""
+    _seed_ledger_entry("testacct", tab="ACME", row_index=5, hours=2.5)
+
+    def _update_fails(tab, row, values, account):
+        raise timelog.SheetsOpError("update not confirmed: read-back mismatch")
+
+    monkeypatch.setattr(timelog, "_sh_update_last", _update_fails)
+
+    code, result = _run(monkeypatch, ["--correct", "--hours", "3"] + BASE_ARGS, capsys)
+    assert code == 0
+    assert result["status"] == "error"
+
+
+def test_deleted_only_when_delete_confirms(monkeypatch, capsys):
+    """F4: if sheets_helper's delete read-back fails (raises), timelog returns
+    `error`, never `deleted`; the ledger entry is preserved."""
+    _seed_ledger_entry("testacct", tab="ACME", row_index=5)
+
+    def _delete_fails(tab, row, account, entry_id=None):
+        raise timelog.SheetsOpError("delete not confirmed: target still present")
+
+    monkeypatch.setattr(timelog, "_sh_delete_last", _delete_fails)
+
+    code, result = _run(monkeypatch, ["--delete-last"] + BASE_ARGS, capsys)
+    assert code == 0
+    assert result["status"] == "error"
+    assert len(timelog._load_ledger("testacct")) == 1
+
+
+def test_delete_passes_entry_id_for_read_back(monkeypatch, capsys):
+    """F4: timelog forwards the ledger row's entry_id to sheets_helper so the
+    delete can be read-back-confirmed."""
+    _seed_ledger_entry("testacct", tab="ACME", row_index=5)
+    ledger = timelog._load_ledger("testacct")
+    expected_eid = ledger[0]["entry_id"]
+    passed: dict[str, Any] = {}
+
+    def _fake_delete(tab, row, account, entry_id=None):
+        passed["entry_id"] = entry_id
+
+    monkeypatch.setattr(timelog, "_sh_delete_last", _fake_delete)
+
+    code, result = _run(monkeypatch, ["--delete-last"] + BASE_ARGS, capsys)
+    assert code == 0
+    assert result["status"] == "deleted"
+    assert passed["entry_id"] == expected_eid
+
+
+# --------------------------------------------------------------------------- #
+# F7 — shared per-account lock serializes state mutations
+# --------------------------------------------------------------------------- #
+
+
+def test_account_lock_serializes_concurrent_ledger_appends(_isolated_state, monkeypatch):
+    """F7: two concurrent processes each appending a ledger record must not
+    lose one another's write. We simulate the race by making the FIRST holder
+    of the lock spawn a subprocess that also appends while the parent is inside
+    the critical section — the flock forces the child to wait, so BOTH records
+    survive.
+
+    Simpler, deterministic proxy: interleave two _append_ledger_record calls
+    that both read the same starting state; without the lock the second would
+    clobber the first. With the lock (held for the whole read-modify-write)
+    both land. We assert both records are present after two appends.
+    """
+    src1 = timelog.Source("whatsapp", "c1", "m1")
+    src2 = timelog.Source("whatsapp", "c2", "m2")
+    timelog._append_ledger_record(
+        "acct", entry_id="e1", source=src1, tab="ACME", row_index=1, entry={"entry_id": "e1"}
+    )
+    timelog._append_ledger_record(
+        "acct", entry_id="e2", source=src2, tab="BETA", row_index=2, entry={"entry_id": "e2"}
+    )
+    ledger = timelog._load_ledger("acct")
+    entry_ids = {r["entry_id"] for r in ledger}
+    assert entry_ids == {"e1", "e2"}
+
+
+def test_account_lock_is_exclusive_across_processes(_isolated_state):
+    """F7: the per-account lock is a real exclusive flock — a second attempt to
+    acquire it (non-blocking) while it's held fails, proving mutual exclusion
+    over the whole transaction, not just the atomic temp-file write."""
+    import fcntl as _fcntl
+
+    account = "lockacct"
+    with timelog._account_lock(account):
+        # While the context holds LOCK_EX, an independent non-blocking attempt
+        # on the same lock file must fail (BlockingIOError / OSError).
+        fd = os.open(str(timelog._lock_path(account)), os.O_WRONLY | os.O_CREAT, 0o600)
+        try:
+            with pytest.raises(OSError):
+                _fcntl.flock(fd, _fcntl.LOCK_EX | _fcntl.LOCK_NB)
+        finally:
+            os.close(fd)

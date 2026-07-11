@@ -28,6 +28,7 @@ Invocation (repo convention): ``python3 -m scripts.google.timelog ...``.
 from __future__ import annotations
 
 import argparse
+import contextlib
 import fcntl
 import json
 import os
@@ -37,6 +38,9 @@ from dataclasses import dataclass
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:  # pragma: no cover - typing only
+    from collections.abc import Iterator
 
 from scripts.common.alert_bus import Alert, Severity, emit
 from scripts.google import sheets_helper
@@ -144,6 +148,34 @@ def _write_json_atomic(path: Path, value: Any) -> None:
     os.replace(tmp_path, path)
 
 
+def _lock_path(account: str) -> Path:
+    return _state_dir() / f".{account}.lock"
+
+
+@contextlib.contextmanager
+def _account_lock(account: str) -> "Iterator[None]":
+    """Hold an exclusive ``flock`` on a per-account lock file for the entire
+    load -> prune -> modify -> atomic-replace transaction (F7).
+
+    The atomic temp+rename in :func:`_write_json_atomic` guarantees a reader
+    never sees a torn file, but it does NOT serialize a read-modify-write
+    against a concurrent one: two processes could both load the ledger, each
+    append its own record, and the second rename would clobber the first's
+    addition. Wrapping the whole transaction in one shared, per-account lock
+    (a dedicated lock file, distinct from the per-write temp file) makes
+    concurrent pending/ledger updates safe.
+    """
+    lock_file = _lock_path(account)
+    lock_file.parent.mkdir(parents=True, exist_ok=True)
+    fd = os.open(str(lock_file), os.O_WRONLY | os.O_CREAT, 0o600)
+    try:
+        fcntl.flock(fd, fcntl.LOCK_EX)
+        yield
+    finally:
+        fcntl.flock(fd, fcntl.LOCK_UN)
+        os.close(fd)
+
+
 # --------------------------------------------------------------------------- #
 # Correlation source (channel + conversation + source-msg-id)
 # --------------------------------------------------------------------------- #
@@ -169,26 +201,68 @@ class Source:
             and other.get("source_message_id") == self.source_message_id
         )
 
+    def key(self) -> str:
+        """Stable string key for the source-keyed pending map (F3).
+
+        A follow-up carries the SAME correlation triple as its originating
+        request (``main`` re-passes ``--channel``/``--conversation``/
+        ``--source-msg-id``), so it resolves to the same map entry; a
+        different conversation gets a different key and never clobbers.
+        The nul separator can't appear in the component strings.
+        """
+        return "\x00".join(
+            (self.channel, self.conversation_id, self.source_message_id)
+        )
+
 
 # --------------------------------------------------------------------------- #
 # PendingTimelog state
+#
+# Stored as a SOURCE-KEYED MAP ``{source_key: record}`` (F3) so concurrent
+# conversations do not clobber one another — a second conversation's pending
+# record used to overwrite the first when state was a single per-account
+# record. A follow-up resumes ONLY the record its correlation triple maps to
+# (else ``no_pending`` / ``stale_pending``). The ``nonce`` field was removed:
+# it was dead (``main`` never echoed it and cannot without growing its prompt
+# past budget), so correlation is by ``source_key`` + TTL, documented here.
 # --------------------------------------------------------------------------- #
 
 
-def _load_pending(account: str) -> dict[str, Any] | None:
-    return _read_json(_pending_path(account), None)
+def _load_pending_map(account: str) -> dict[str, Any]:
+    data = _read_json(_pending_path(account), {})
+    return data if isinstance(data, dict) else {}
 
 
-def _save_pending(account: str, record: dict[str, Any] | None) -> None:
-    """Persist *record*, or clear the file entirely when ``None``."""
-    if record is None:
+def _save_pending_map(account: str, records: dict[str, Any]) -> None:
+    """Persist the whole pending map, or delete the file when empty."""
+    if not records:
         path = _pending_path(account)
         try:
             path.unlink()
         except FileNotFoundError:
             pass
         return
-    _write_json_atomic(_pending_path(account), record)
+    _write_json_atomic(_pending_path(account), records)
+
+
+def _load_pending(account: str, source: Source) -> dict[str, Any] | None:
+    """Return the pending record correlated to *source*, or ``None``."""
+    return _load_pending_map(account).get(source.key())
+
+
+def _save_pending(account: str, source: Source, record: dict[str, Any] | None) -> None:
+    """Set/clear the correlated pending record without clobbering others (F3).
+
+    The whole read-modify-write of the map is serialized under the per-account
+    lock (F7) so concurrent conversations do not lose each other's entries.
+    """
+    with _account_lock(account):
+        records = _load_pending_map(account)
+        if record is None:
+            records.pop(source.key(), None)
+        else:
+            records[source.key()] = record
+        _save_pending_map(account, records)
 
 
 def _new_pending(
@@ -199,7 +273,6 @@ def _new_pending(
         "source": source.as_dict(),
         "partial": partial,
         "awaiting": awaiting,
-        "nonce": uuid.uuid4().hex,
         "created_at": _iso(now),
         "expires_at": _iso(now + timedelta(seconds=PENDING_TTL_SECONDS)),
     }
@@ -258,9 +331,10 @@ def _append_ledger_record(
         "written_at": _iso(now),
         "expires_at": _iso(now + timedelta(seconds=LEDGER_TTL_SECONDS)),
     }
-    records = _prune_ledger(_load_ledger(account))
-    records.append(record)
-    _save_ledger(account, records)
+    with _account_lock(account):
+        records = _prune_ledger(_load_ledger(account))
+        records.append(record)
+        _save_ledger(account, records)
 
 
 def _most_recent(records: list[dict[str, Any]]) -> dict[str, Any] | None:
@@ -464,8 +538,13 @@ def _sh_update_last(tab: str, row: int, values: list[Any], account: str) -> None
     )
 
 
-def _sh_delete_last(tab: str, row: int, account: str) -> None:
-    _call_sheets_helper(["delete-last", "--tab", tab, "--row", str(row), "--account", account])
+def _sh_delete_last(tab: str, row: int, account: str, entry_id: str | None = None) -> None:
+    argv = ["delete-last", "--tab", tab, "--row", str(row), "--account", account]
+    if entry_id:
+        # Pass the entry_id so sheets_helper read-back-confirms the delete (F4):
+        # `deleted` is returned only once the row is verified absent.
+        argv += ["--entry-id", entry_id]
+    _call_sheets_helper(argv)
 
 
 # --------------------------------------------------------------------------- #
@@ -648,11 +727,11 @@ def _handle_primary(args: argparse.Namespace, source: Source) -> dict[str, Any]:
     resolution = _resolve_client(args.client, tabs)
     if resolution.status == "unknown":
         pending = _new_pending(source, _build_partial(args), awaiting="client")
-        _save_pending(args.account, pending)
+        _save_pending(args.account, source, pending)
         return _result_unknown_client(args.client, resolution.closest)
     if resolution.status == "ambiguous":
         pending = _new_pending(source, _build_partial(args), awaiting="client")
-        _save_pending(args.account, pending)
+        _save_pending(args.account, source, pending)
         return _result_ambiguous(resolution.candidates or [])
 
     assert resolution.tab is not None  # resolved
@@ -668,6 +747,49 @@ def _handle_primary(args: argparse.Namespace, source: Source) -> dict[str, Any]:
     )
 
 
+# Fixed namespace for deterministic per-request entry_ids (F2). Any random
+# constant uuid works; it just seeds uuid5 so the derivation is stable and
+# collision-free across accounts/sources.
+_ENTRY_ID_NAMESPACE = uuid.UUID("6f3b1c4e-2a7d-4b9f-8c11-2f0a5d6e7b90")
+
+
+def _derive_entry_id(
+    *,
+    account: str,
+    source: Source,
+    normalized_date: str,
+    hours: float,
+    client: str,
+    description: str,
+    billable: bool,
+) -> str:
+    """Derive a STABLE, deterministic ``entry_id`` for a (account, source,
+    normalized-fields) request (F2).
+
+    Generating a fresh uuid4 on every primary write / ``--add-client`` retry
+    meant a retry after a lost confirmation appended a DUPLICATE row (the
+    sheets_helper dedup-by-entry_id could never fire because each attempt used
+    a different id). Deriving the id deterministically from the account, the
+    conversation-correlation triple, and the normalized entry fields makes an
+    identical retry produce the SAME ``entry_id`` — so ``sheets_helper``'s
+    bounded tail-scan finds the already-appended row and reports it instead of
+    duplicating. ``logged_at`` is intentionally EXCLUDED (it changes per
+    attempt); the id keys on the request's stable identity, not wall-clock.
+    """
+    seed = "\x00".join(
+        (
+            account,
+            source.key(),
+            normalized_date,
+            repr(hours),
+            client,
+            description,
+            "1" if billable else "0",
+        )
+    )
+    return str(uuid.uuid5(_ENTRY_ID_NAMESPACE, seed))
+
+
 def _write_entry(
     *,
     tab: str,
@@ -679,8 +801,21 @@ def _write_entry(
     account: str,
     source: Source,
 ) -> dict[str, Any]:
-    """Append one row via WP02's helper; only ``logged`` on read-back confirm."""
-    entry_id = str(uuid.uuid4())
+    """Append one row via WP02's helper; only ``logged`` on read-back confirm.
+
+    The ``entry_id`` is DERIVED deterministically (F2) so a retry of the same
+    request reuses it and ``sheets_helper`` dedups instead of appending a
+    duplicate.
+    """
+    entry_id = _derive_entry_id(
+        account=account,
+        source=source,
+        normalized_date=normalized_date,
+        hours=hours,
+        client=client,
+        description=description,
+        billable=billable,
+    )
     entry = {
         "date": normalized_date,
         "hours": hours,
@@ -707,9 +842,7 @@ def _write_entry(
 
 
 def _clear_correlated_pending(account: str, source: Source) -> None:
-    record = _load_pending(account)
-    if record is not None and source.matches(record.get("source", {})):
-        _save_pending(account, None)
+    _save_pending(account, source, None)
 
 
 # --------------------------------------------------------------------------- #
@@ -724,12 +857,12 @@ def _resolve_pending_or_signal(
     else ``(None, signal)`` where *signal* is the ``no_pending`` /
     ``stale_pending`` TimelogResult to return immediately.
     """
-    record = _load_pending(args.account)
-    if record is None or not source.matches(record.get("source", {})):
+    record = _load_pending(args.account, source)
+    if record is None:
         return None, _result_no_pending()
     if _pending_is_expired(record):
         age_s = _pending_age_seconds(record)
-        _save_pending(args.account, None)
+        _save_pending(args.account, source, None)
         return None, _result_stale_pending(age_s)
     return record, None
 
@@ -745,13 +878,13 @@ def _handle_confirm_client(args: argparse.Namespace, source: Source) -> dict[str
     missing = _first_missing_from_partial(partial)
     if missing is not None:
         updated = _new_pending(source, partial, awaiting=f"field:{missing}")
-        _save_pending(args.account, updated)
+        _save_pending(args.account, source, updated)
         return _result_need_field(missing, partial)
 
     normalized_date = _normalize_date(str(partial["date"]))
     if normalized_date is None:
         updated = _new_pending(source, partial, awaiting="field:date")
-        _save_pending(args.account, updated)
+        _save_pending(args.account, source, updated)
         return _result_need_field("date", partial)
 
     try:
@@ -763,11 +896,11 @@ def _handle_confirm_client(args: argparse.Namespace, source: Source) -> dict[str
     resolution = _resolve_client(args.confirm_client, tabs)
     if resolution.status == "unknown":
         updated = _new_pending(source, partial, awaiting="client")
-        _save_pending(args.account, updated)
+        _save_pending(args.account, source, updated)
         return _result_unknown_client(args.confirm_client, resolution.closest)
     if resolution.status == "ambiguous":
         updated = _new_pending(source, partial, awaiting="client")
-        _save_pending(args.account, updated)
+        _save_pending(args.account, source, updated)
         return _result_ambiguous(resolution.candidates or [])
 
     assert resolution.tab is not None
@@ -800,14 +933,29 @@ def _handle_add_client(args: argparse.Namespace, source: Source) -> dict[str, An
     missing = _first_missing_from_partial(partial)
     if missing is not None:
         updated = _new_pending(source, partial, awaiting=f"field:{missing}")
-        _save_pending(args.account, updated)
+        _save_pending(args.account, source, updated)
         return _result_need_field(missing, partial)
 
     normalized_date = _normalize_date(str(partial["date"]))
     if normalized_date is None:
         updated = _new_pending(source, partial, awaiting="field:date")
-        _save_pending(args.account, updated)
+        _save_pending(args.account, source, updated)
         return _result_need_field("date", partial)
+
+    hours = float(partial["hours"])
+    description = str(partial["description"])
+    billable = not bool(partial.get("non_billable", False))
+    # Deterministic entry_id (F2): a retry of --add-client for the same request
+    # reuses this id so the append dedupes instead of duplicating.
+    entry_id = _derive_entry_id(
+        account=args.account,
+        source=source,
+        normalized_date=normalized_date,
+        hours=hours,
+        client=tab,
+        description=description,
+        billable=billable,
+    )
 
     try:
         _sh_create_tab(tab, args.account)
@@ -815,13 +963,12 @@ def _handle_add_client(args: argparse.Namespace, source: Source) -> dict[str, An
         _alert_write_failed(detail=str(exc), tab=tab, account=args.account, op="create-tab")
         return _result_error(str(exc))
 
-    entry_id = str(uuid.uuid4())
     entry = {
         "date": normalized_date,
-        "hours": float(partial["hours"]),
+        "hours": hours,
         "client": tab,
-        "description": str(partial["description"]),
-        "billable": not bool(partial.get("non_billable", False)),
+        "description": description,
+        "billable": billable,
         "logged_at": _iso(_utc_now()),
         "entry_id": entry_id,
     }
@@ -868,20 +1015,20 @@ def _handle_field(args: argparse.Namespace, source: Source) -> dict[str, Any]:
     missing = _first_missing_from_partial(partial)
     if missing is not None:
         updated = _new_pending(source, partial, awaiting=f"field:{missing}")
-        _save_pending(args.account, updated)
+        _save_pending(args.account, source, updated)
         return _result_need_field(missing, partial)
 
     normalized_date = _normalize_date(str(partial["date"]))
     if normalized_date is None:
         updated = _new_pending(source, partial, awaiting="field:date")
-        _save_pending(args.account, updated)
+        _save_pending(args.account, source, updated)
         return _result_need_field("date", partial)
 
     try:
         hours = float(partial["hours"])
     except (TypeError, ValueError):
         updated = _new_pending(source, partial, awaiting="field:hours")
-        _save_pending(args.account, updated)
+        _save_pending(args.account, source, updated)
         return _result_need_field("hours", partial)
 
     try:
@@ -893,11 +1040,11 @@ def _handle_field(args: argparse.Namespace, source: Source) -> dict[str, Any]:
     resolution = _resolve_client(str(partial["client"]), tabs)
     if resolution.status == "unknown":
         updated = _new_pending(source, partial, awaiting="client")
-        _save_pending(args.account, updated)
+        _save_pending(args.account, source, updated)
         return _result_unknown_client(str(partial["client"]), resolution.closest)
     if resolution.status == "ambiguous":
         updated = _new_pending(source, partial, awaiting="client")
-        _save_pending(args.account, updated)
+        _save_pending(args.account, source, updated)
         return _result_ambiguous(resolution.candidates or [])
 
     assert resolution.tab is not None
@@ -999,7 +1146,12 @@ def _handle_delete_last(args: argparse.Namespace, source: Source) -> dict[str, A
     assert target is not None
 
     try:
-        _sh_delete_last(target["tab"], target["row_index"], args.account)
+        _sh_delete_last(
+            target["tab"],
+            target["row_index"],
+            args.account,
+            entry_id=target.get("entry_id"),
+        )
     except SheetsOpError as exc:
         _alert_write_failed(detail=str(exc), tab=target["tab"], account=args.account, op="delete-last")
         return _result_error(str(exc))
@@ -1011,22 +1163,24 @@ def _handle_delete_last(args: argparse.Namespace, source: Source) -> dict[str, A
 def _replace_ledger_entry(
     account: str, write_id: str, new_entry: dict[str, Any], source: Source
 ) -> None:
-    records = _prune_ledger(_load_ledger(account))
-    now = _utc_now()
-    for record in records:
-        if record["write_id"] == write_id:
-            record["entry"] = new_entry
-            record["written_at"] = _iso(now)
-            record["expires_at"] = _iso(now + timedelta(seconds=LEDGER_TTL_SECONDS))
-            record["source"] = source.as_dict()
-            break
-    _save_ledger(account, records)
+    with _account_lock(account):
+        records = _prune_ledger(_load_ledger(account))
+        now = _utc_now()
+        for record in records:
+            if record["write_id"] == write_id:
+                record["entry"] = new_entry
+                record["written_at"] = _iso(now)
+                record["expires_at"] = _iso(now + timedelta(seconds=LEDGER_TTL_SECONDS))
+                record["source"] = source.as_dict()
+                break
+        _save_ledger(account, records)
 
 
 def _remove_ledger_entry(account: str, write_id: str) -> None:
-    records = _prune_ledger(_load_ledger(account))
-    records = [r for r in records if r["write_id"] != write_id]
-    _save_ledger(account, records)
+    with _account_lock(account):
+        records = _prune_ledger(_load_ledger(account))
+        records = [r for r in records if r["write_id"] != write_id]
+        _save_ledger(account, records)
 
 
 # --------------------------------------------------------------------------- #

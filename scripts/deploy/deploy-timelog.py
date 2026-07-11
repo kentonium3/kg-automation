@@ -78,8 +78,10 @@ time-log code are not hashed baselines.
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 # felix-deployer invokes the entrypoint by path (not via `python3 -m`), so the
@@ -131,6 +133,12 @@ _SELF_TEST_CLIENT = "__deploy_self_test_no_such_client__"
 _SELF_TEST_CONVERSATION = "deploy-self-test"
 _SELF_TEST_SOURCE_MSG_ID = "deploy-self-test-0"
 
+# The env var timelog honors to relocate its pending/ledger state dir. The
+# self-test MUST point this at a throwaway temp dir (F1) so the unknown_client
+# path — which writes a pending record — can never clobber a real in-flight
+# Kent clarification under /data/services/timelog/state/.
+_TIMELOG_STATE_DIR_ENV = "FELIX_TIMELOG_STATE_DIR"
+
 _SERVICE_INVENTORY = (
     _REPO_ROOT / "docs" / "design" / "architecture" / "data" / "service-inventory.json"
 )
@@ -153,13 +161,21 @@ def _print_recovery(lines: list[str]) -> None:
         sys.stderr.write(f"  - {line}\n")
 
 
-def _run(argv: list[str], cwd: Path | None = None) -> tuple[int, str, str]:
+def _run(
+    argv: list[str], cwd: Path | None = None, env: dict[str, str] | None = None
+) -> tuple[int, str, str]:
     """Execute *argv* and return (returncode, stdout, stderr).
 
     A missing executable (``FileNotFoundError`` — e.g. ``uv``/``systemctl``
     absent from a non-office2 sandbox) is reported as rc=127 with the
     exception text on stderr rather than raising.
+
+    *env*, when given, is merged over the current process environment for the
+    subprocess (used to isolate the timelog self-test's state dir, F1).
     """
+    run_env: dict[str, str] | None = None
+    if env is not None:
+        run_env = {**os.environ, **env}
     try:
         proc = subprocess.run(
             argv,
@@ -167,6 +183,7 @@ def _run(argv: list[str], cwd: Path | None = None) -> tuple[int, str, str]:
             text=True,
             check=False,
             cwd=str(cwd) if cwd is not None else None,
+            env=run_env,
         )
     except FileNotFoundError as exc:
         return 127, "", str(exc)
@@ -282,7 +299,17 @@ def _step_dry_run_self_test() -> tuple[bool, dict]:
         return False, details
 
     tl_argv = _timelog_self_test_argv()
-    rc, stdout, stderr = _run(tl_argv, cwd=_REPO_ROOT)
+    # F1: run the timelog self-test with an ISOLATED state dir so its
+    # unknown_client path writes its pending record into a throwaway temp dir,
+    # never touching real pending/ledger state under
+    # /data/services/timelog/state/ (which could hold a live Kent clarification).
+    with tempfile.TemporaryDirectory(prefix="timelog-self-test-state-") as tmp_state:
+        rc, stdout, stderr = _run(
+            tl_argv,
+            cwd=_REPO_ROOT,
+            env={_TIMELOG_STATE_DIR_ENV: tmp_state},
+        )
+        details["timelog_self_test_isolated_state_dir"] = tmp_state
     details["timelog_self_test_rc"] = rc
     details["timelog_self_test_stdout_excerpt"] = stdout[:400]
     details["timelog_self_test_stderr_excerpt"] = stderr[:400]

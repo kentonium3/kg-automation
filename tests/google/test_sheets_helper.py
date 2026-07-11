@@ -377,16 +377,59 @@ def test_create_tab_noop_when_exists(helper, recorder, capsys):
 def test_create_tab_creates_when_absent(helper, recorder, capsys):
     recorder.outcomes["get"] = _sheets_get_result(["Beta"])
     recorder.outcomes["batchUpdate"] = {"replies": [{"addSheet": {"properties": {"title": "ACME"}}}]}
+    # F6: create-tab now also writes the header row via values.update.
+    recorder.outcomes["values.update"] = {"updatedRange": "'ACME'!A1:G1"}
     code = run(helper, ["create-tab", "--tab", "ACME"])
     assert code == 0
     batches = recorder.calls_for("batchUpdate")
     assert len(batches) == 1
     body = batches[0]["body"]
     assert body["requests"][0]["addSheet"]["properties"]["title"] == "ACME"
+    # F6: header row written into row 1 of the fresh tab, A1-quoted + RAW.
+    updates = recorder.calls_for("values.update")
+    assert len(updates) == 1
+    assert updates[0]["range"] == "'ACME'!A1"
+    assert updates[0]["valueInputOption"] == "RAW"
+    assert updates[0]["body"]["values"] == [list(helper.HEADER_ROW)]
     lines = _stdout_lines(capsys)
     parsed = json.loads(lines[0])
     assert parsed["created"] is True
     assert "created=true" in lines[-1]
+
+
+def test_create_tab_header_first_entry_lands_at_row_2(helper, recorder, capsys):
+    """F6: a freshly created tab carries the header at row 1, so the first
+    append lands at row 2 (Sheets appends after the last non-empty row)."""
+    recorder.outcomes["get"] = _sheets_get_result(["Beta"])
+    recorder.outcomes["batchUpdate"] = {"replies": [{}]}
+    recorder.outcomes["values.update"] = {"updatedRange": "'ACME'!A1:G1"}
+    assert run(helper, ["create-tab", "--tab", "ACME"]) == 0
+    capsys.readouterr()  # drain the create-tab output
+
+    # Now the tab has exactly the header row (row 1). Simulate the tail-scan
+    # seeing only that header, then the append landing at row 2.
+    recorder.outcomes["get"] = _sheets_get_result(["Beta", "ACME"], {"ACME": 1})
+    recorder.outcomes["values.get"] = {"values": [list(helper.HEADER_ROW)]}
+    recorder.outcomes["values.append"] = {
+        "updates": {
+            "updatedRange": "'ACME'!A2:G2",
+            "updatedData": {
+                "values": [
+                    ["2026-07-10", 2.5, "ACME", "desc", True, "iso", "eid-first"]
+                ]
+            },
+        }
+    }
+    vals = json.dumps(["2026-07-10", 2.5, "ACME", "desc", True, "iso", "eid-first"])
+    assert run(
+        helper,
+        ["append-row", "--tab", "ACME", "--entry-id", "eid-first", "--values", vals],
+    ) == 0
+    parsed = json.loads(_stdout_lines(capsys)[0])
+    # First DATA entry is row 2 — the header owns row 1, so the tail scan's
+    # "entry_id" header cell never false-matches a real UUID either.
+    assert parsed["row_index"] == 2
+    assert parsed["idempotent"] is False
 
 
 # --------------------------------------------------------------------------- #
@@ -395,9 +438,10 @@ def test_create_tab_creates_when_absent(helper, recorder, capsys):
 
 
 def test_two_step_create_then_append_fails_no_false_success(helper, recorder, capsys):
-    # Step 1: create-tab succeeds (tab absent -> created).
+    # Step 1: create-tab succeeds (tab absent -> created) + writes the header (F6).
     recorder.outcomes["get"] = _sheets_get_result(["Beta"])
     recorder.outcomes["batchUpdate"] = {"replies": [{"addSheet": {"properties": {"title": "ACME"}}}]}
+    recorder.outcomes["values.update"] = {"updatedRange": "'ACME'!A1:G1"}
     code1 = run(helper, ["create-tab", "--tab", "ACME"])
     assert code1 == 0
 
@@ -424,6 +468,140 @@ def test_two_step_create_then_append_fails_no_false_success(helper, recorder, ca
 
 
 # --------------------------------------------------------------------------- #
+# F5 — formula-injection defense (RAW) + A1 sheet-title quoting
+# --------------------------------------------------------------------------- #
+
+
+def test_append_row_uses_raw_input_option_no_formula_evaluation(helper, recorder, capsys):
+    """F5: a description starting with '=' must land as literal text — the
+    append must use valueInputOption=RAW so Sheets never evaluates it as a
+    formula."""
+    recorder.outcomes["get"] = _sheets_get_result(["ACME"], {"ACME": 1})
+    recorder.outcomes["values.get"] = {"values": []}
+    row = ["2026-07-10", 2.5, "ACME", "=SUM(A:A)", True, "iso", "eid-inj"]
+    recorder.outcomes["values.append"] = {
+        "updates": {
+            "updatedRange": "'ACME'!A2:G2",
+            "updatedData": {"values": [row]},
+        }
+    }
+    code = run(
+        helper,
+        ["append-row", "--tab", "ACME", "--entry-id", "eid-inj", "--values", json.dumps(row)],
+    )
+    assert code == 0
+    append_kw = recorder.calls_for("values.append")[0]
+    assert append_kw["valueInputOption"] == "RAW", (
+        "append must use RAW so a '='-leading description is literal text, "
+        "not an evaluated formula (F5)"
+    )
+    # The value passed through untouched (Sheets stores it verbatim under RAW).
+    assert append_kw["body"]["values"][0][3] == "=SUM(A:A)"
+
+
+def test_append_row_a1_title_with_space_and_apostrophe_is_quoted(helper, recorder, capsys):
+    """F5: a tab name with a space/apostrophe must be single-quoted (internal
+    quotes doubled) in every A1 range so the write targets the right sheet."""
+    tab = "Q3 'Big' Co"
+    recorder.outcomes["get"] = _sheets_get_result([tab], {tab: 1})
+    recorder.outcomes["values.get"] = {"values": []}
+    row = ["2026-07-10", 1.0, tab, "desc", True, "iso", "eid-q"]
+    recorder.outcomes["values.append"] = {
+        "updates": {
+            "updatedRange": f"'{tab}'!A2:G2".replace("'Big'", "''Big''"),
+            "updatedData": {"values": [row]},
+        }
+    }
+    code = run(
+        helper,
+        ["append-row", "--tab", tab, "--entry-id", "eid-q", "--values", json.dumps(row)],
+    )
+    assert code == 0
+    # Both the tail-scan `ranges=[...]` and the append `range=` must carry the
+    # quoted, apostrophe-doubled title.
+    append_kw = recorder.calls_for("values.append")[0]
+    assert append_kw["range"] == "'Q3 ''Big'' Co'!A1"
+    scan_kw = recorder.calls_for("get")[0]
+    assert scan_kw["ranges"] == ["'Q3 ''Big'' Co'"]
+
+
+def test_quote_a1_title_helper(helper):
+    assert helper._quote_a1_title("ACME") == "'ACME'"
+    assert helper._quote_a1_title("Big Co") == "'Big Co'"
+    assert helper._quote_a1_title("it's") == "'it''s'"
+
+
+# --------------------------------------------------------------------------- #
+# F4 — update-last / delete-last read-back-confirm
+# --------------------------------------------------------------------------- #
+
+
+def test_update_last_read_back_mismatch_is_operational_failure(helper, recorder):
+    """F4: if the read-back row does not carry the expected entry_id, the
+    update is NOT confirmed — exit 1, never a false `ok`."""
+    recorder.outcomes["values.update"] = {"updatedRange": "'ACME'!A7:G7"}
+    # Read-back returns a DIFFERENT entry_id in the trailing column.
+    recorder.outcomes["values.get"] = {
+        "values": [["2026-07-10", 3.0, "ACME", "x", True, "iso", "WRONG-ID"]]
+    }
+    values = json.dumps(["2026-07-10", 3.0, "ACME", "x", True, "iso", "eid-1"])
+    code = run(helper, ["update-last", "--tab", "ACME", "--row", "7", "--values", values])
+    assert code == 1
+
+
+def test_update_last_empty_read_back_is_operational_failure(helper, recorder):
+    """F4: an empty read-back (row vanished) fails the confirm."""
+    recorder.outcomes["values.update"] = {"updatedRange": "'ACME'!A7:G7"}
+    recorder.outcomes["values.get"] = {"values": []}
+    values = json.dumps(["2026-07-10", 3.0, "ACME", "x", True, "iso", "eid-1"])
+    code = run(helper, ["update-last", "--tab", "ACME", "--row", "7", "--values", values])
+    assert code == 1
+
+
+def test_delete_last_read_back_confirms_absence(helper, recorder, capsys):
+    """F4: after delete, the target row must NOT still carry the deleted
+    entry_id (rows shift up). A confirmed-absent read-back yields `ok`."""
+    recorder.outcomes["get"] = _sheets_get_result(["ACME", "Beta"])
+    recorder.outcomes["batchUpdate"] = {"replies": [{}]}
+    # After the delete the former row now holds the NEXT entry (shifted up).
+    recorder.outcomes["values.get"] = {
+        "values": [["2026-07-11", 4.0, "ACME", "next", True, "iso", "other-id"]]
+    }
+    code = run(
+        helper,
+        ["delete-last", "--tab", "ACME", "--row", "7", "--entry-id", "eid-gone"],
+    )
+    assert code == 0
+    assert "row_index=7" in _last_line(capsys)
+
+
+def test_delete_last_target_still_present_is_operational_failure(helper, recorder):
+    """F4: if the target row STILL carries the deleted entry_id, the delete is
+    NOT confirmed — exit 1."""
+    recorder.outcomes["get"] = _sheets_get_result(["ACME", "Beta"])
+    recorder.outcomes["batchUpdate"] = {"replies": [{}]}
+    recorder.outcomes["values.get"] = {
+        "values": [["2026-07-10", 2.5, "ACME", "still-here", True, "iso", "eid-gone"]]
+    }
+    code = run(
+        helper,
+        ["delete-last", "--tab", "ACME", "--row", "7", "--entry-id", "eid-gone"],
+    )
+    assert code == 1
+
+
+def test_delete_last_without_entry_id_skips_read_back(helper, recorder, capsys):
+    """F4: without --entry-id there is nothing to correlate; the delete still
+    succeeds (best-effort, no read-back)."""
+    recorder.outcomes["get"] = _sheets_get_result(["ACME", "Beta"])
+    recorder.outcomes["batchUpdate"] = {"replies": [{}]}
+    code = run(helper, ["delete-last", "--tab", "ACME", "--row", "7"])
+    assert code == 0
+    # No read-back get issued for the confirm (only the sheetId lookup `get`).
+    assert recorder.calls_for("values.get") == []
+
+
+# --------------------------------------------------------------------------- #
 # list-tabs
 # --------------------------------------------------------------------------- #
 
@@ -444,8 +622,11 @@ def test_list_tabs_returns_titles(helper, recorder, capsys):
 
 
 def test_update_last_issues_values_update_on_supplied_row(helper, recorder, capsys):
-    recorder.outcomes["values.update"] = {"updatedRange": "ACME!A7:G7"}
-    values = json.dumps(["2026-07-10", 3.0, "ACME", "corrected", True, "iso", "eid-1"])
+    recorder.outcomes["values.update"] = {"updatedRange": "'ACME'!A7:G7"}
+    # F4: read-back-confirm re-reads the row and verifies the entry_id.
+    row = ["2026-07-10", 3.0, "ACME", "corrected", True, "iso", "eid-1"]
+    recorder.outcomes["values.get"] = {"values": [row]}
+    values = json.dumps(row)
     code = run(
         helper,
         ["update-last", "--tab", "ACME", "--row", "7", "--values", values],
@@ -453,8 +634,13 @@ def test_update_last_issues_values_update_on_supplied_row(helper, recorder, caps
     assert code == 0
     updates = recorder.calls_for("values.update")
     assert len(updates) == 1
-    assert updates[0]["range"] == "ACME!A7:G7"
+    # A1 title is now single-quoted (F5) and the input option is RAW (F5).
+    assert updates[0]["range"] == "'ACME'!A7:G7"
+    assert updates[0]["valueInputOption"] == "RAW"
     assert updates[0]["body"]["values"] == [json.loads(values)]
+    # A read-back get was issued for the same row (F4).
+    gets = recorder.calls_for("values.get")
+    assert gets and gets[0]["range"] == "'ACME'!A7:G7"
     assert "row_index=7" in _last_line(capsys)
 
 

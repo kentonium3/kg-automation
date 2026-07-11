@@ -70,7 +70,7 @@ class _RunRecorder:
         self.calls: list[dict] = []
         self._responses = list(responses or [])
 
-    def __call__(self, argv, cwd=None):
+    def __call__(self, argv, cwd=None, env=None):
         self.calls.append({"argv": list(argv), "cwd": cwd})
         if self._responses:
             return self._responses.pop(0)
@@ -88,7 +88,7 @@ _CLEAN_TIMELOG_SELF_TEST_STDOUT = json.dumps(
 )
 
 
-def _fake_run_clean(argv, cwd=None):
+def _fake_run_clean(argv, cwd=None, env=None):
     """Default happy-path ``_run``: sheets_helper self-check ok, timelog
     self-test returns a clean unknown_client, every systemctl call ok."""
     if "scripts.google.timelog" in " ".join(argv):
@@ -115,7 +115,7 @@ def _patch_all_pass(monkeypatch, tmp_path, run_recorder=None):
     """
     run = run_recorder or _RunRecorder()
 
-    def _fake_run(argv, cwd=None):
+    def _fake_run(argv, cwd=None, env=None):
         run.calls.append({"argv": list(argv), "cwd": cwd})
         if run._responses:
             return run._responses.pop(0)
@@ -179,7 +179,7 @@ def test_apply_step_ordering(monkeypatch, tmp_path):
     """Full apply runs the steps in the required order and exits 0."""
     order: list[str] = []
 
-    def _run(argv, cwd=None):
+    def _run(argv, cwd=None, env=None):
         joined = " ".join(argv)
         if _mod._UV in argv[0]:
             order.append("venv")
@@ -279,7 +279,7 @@ def test_halt_on_sheets_self_check_failure(monkeypatch, tmp_path):
     """A non-zero sheets_helper --self-check fails the whole deploy; timelog
     self-test never runs (nothing enabled/synced — #711)."""
 
-    def _run(argv, cwd=None):
+    def _run(argv, cwd=None, env=None):
         joined = " ".join(argv)
         if "sheets_helper" in joined:
             return (1, "", "ERROR: auth_failed")
@@ -294,7 +294,7 @@ def test_halt_on_sheets_self_check_failure(monkeypatch, tmp_path):
 def test_halt_on_timelog_self_test_nonzero_exit(monkeypatch, tmp_path):
     """timelog exiting non-zero (a usage error, F9) fails the self-test gate."""
 
-    def _run(argv, cwd=None):
+    def _run(argv, cwd=None, env=None):
         joined = " ".join(argv)
         if "scripts.google.timelog" in joined:
             return (2, "", "usage error")
@@ -313,7 +313,7 @@ def test_self_test_gate_blocks_on_unexpected_status(monkeypatch, tmp_path):
     success."""
     prompt_sync_called = {"value": False}
 
-    def _run(argv, cwd=None):
+    def _run(argv, cwd=None, env=None):
         joined = " ".join(argv)
         if "scripts.google.timelog" in joined:
             dirty = json.dumps({"status": "logged", "receipt": "should not happen"})
@@ -335,7 +335,7 @@ def test_self_test_gate_blocks_on_unexpected_status(monkeypatch, tmp_path):
 
 
 def test_halt_on_prompt_sync_start_failure(monkeypatch, tmp_path):
-    def _run(argv, cwd=None):
+    def _run(argv, cwd=None, env=None):
         if "agent-prompt-sync.service" in argv:
             return (1, "", "start failed")
         return _fake_run_clean(argv)
@@ -397,7 +397,7 @@ def _patch_all_pass_without_emit_patch(monkeypatch, tmp_path):
     """Same as _patch_all_pass but leaves `emit` untouched for the caller."""
     run = _RunRecorder()
 
-    def _fake_run(argv, cwd=None):
+    def _fake_run(argv, cwd=None, env=None):
         run.calls.append({"argv": list(argv), "cwd": cwd})
         return _fake_run_clean(argv, cwd)
 
@@ -426,6 +426,103 @@ def test_report_never_raises_when_emit_broken(monkeypatch, tmp_path):
 
     # Must not raise even though `emit` blows up.
     assert _mod.main(["--apply"]) == 0
+
+
+# ---------------------------------------------------------------------------
+# F1 (CRITICAL) — the self-test must isolate timelog's state dir so its
+# unknown_client path can never clobber real pending/ledger state.
+# ---------------------------------------------------------------------------
+
+
+def test_self_test_runs_timelog_with_isolated_state_dir(monkeypatch, tmp_path):
+    """F1: the timelog self-test subprocess is handed an isolated
+    FELIX_TIMELOG_STATE_DIR (a throwaway temp dir), NOT the real
+    /data/services/timelog/state/, so its unknown_client pending-write lands
+    in the temp dir."""
+    captured_envs: list[dict | None] = []
+
+    def _fake_run(argv, cwd=None, env=None):
+        joined = " ".join(argv)
+        if "scripts.google.timelog" in joined:
+            captured_envs.append(env)
+            return (0, _CLEAN_TIMELOG_SELF_TEST_STDOUT, "")
+        return (0, "", "")
+
+    _patch_all_pass(monkeypatch, tmp_path, run_recorder=_RunRecorder())
+    monkeypatch.setattr(_mod, "_run", _fake_run)
+
+    assert _mod.main(["--apply"]) == 0
+    assert len(captured_envs) == 1, "timelog self-test should run exactly once"
+    env = captured_envs[0]
+    assert env is not None, "timelog self-test must run with an explicit env"
+    assert _mod._TIMELOG_STATE_DIR_ENV in env, (
+        "timelog self-test must set FELIX_TIMELOG_STATE_DIR to isolate state"
+    )
+    isolated = env[_mod._TIMELOG_STATE_DIR_ENV]
+    assert isolated != "/data/services/timelog/state", (
+        "self-test must NOT point timelog at the real state dir (F1)"
+    )
+
+
+def test_self_test_does_not_modify_real_state_dir(monkeypatch, tmp_path):
+    """F1: end-to-end — the deploy self-test drives the REAL timelog normalizer
+    down its unknown_client path (which WRITES a pending record), and the real
+    'production' state dir stays untouched. The pending write must land only in
+    the deploy-injected isolated temp dir.
+
+    We run timelog in-process (honoring the exact env the deploy hands it) with
+    the sheets layer stubbed to an empty tab list, so unknown_client fires and
+    a pending write really happens — then assert it did NOT land in real_state.
+    """
+    from scripts.google import timelog as _timelog
+
+    real_state = tmp_path / "prod-state"
+    real_state.mkdir()
+
+    def _run_timelog_in_process(argv, cwd=None, env=None):
+        joined = " ".join(argv)
+        if "scripts.google.timelog" not in joined:
+            return (0, "", "")
+        # Apply exactly the env the deploy injected for this subprocess, plus a
+        # DIFFERENT real_state pointer in the ambient environment. Only if the
+        # deploy fails to override FELIX_TIMELOG_STATE_DIR would the write hit
+        # real_state.
+        applied = {**os.environ}
+        if env:
+            applied.update(env)
+        old = dict(os.environ)
+        os.environ.clear()
+        os.environ.update(applied)
+        # Force an empty tab list so the guaranteed-unresolvable client returns
+        # unknown_client (the branch that writes a pending record).
+        monkeypatch.setattr(_timelog, "_sh_list_tabs", lambda account: [])
+        import contextlib
+        import io as _io
+
+        buf = _io.StringIO()
+        try:
+            with contextlib.redirect_stdout(buf):
+                rc = _timelog.main(list(argv[3:]))
+        finally:
+            os.environ.clear()
+            os.environ.update(old)
+        return (rc, buf.getvalue(), "")
+
+    _patch_all_pass(monkeypatch, tmp_path, run_recorder=_RunRecorder())
+    monkeypatch.setattr(_mod, "_run", _run_timelog_in_process)
+    # Ambient (real) state dir the deploy MUST override with its isolated temp.
+    monkeypatch.setenv("FELIX_TIMELOG_STATE_DIR", str(real_state))
+    empty_clients = tmp_path / "clients.json"
+    empty_clients.write_text('{"schema_version": 1, "clients": {}}', encoding="utf-8")
+    monkeypatch.setenv("FELIX_TIMELOG_CLIENTS_CONFIG", str(empty_clients))
+
+    exit_code = _mod.main(["--apply"])
+
+    assert exit_code == 0
+    assert sorted(p.name for p in real_state.iterdir()) == [], (
+        "the deploy self-test wrote into the REAL state dir — its "
+        "unknown_client pending write leaked past the isolated temp dir (F1)"
+    )
 
 
 # ---------------------------------------------------------------------------
