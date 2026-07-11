@@ -50,9 +50,9 @@ Tests required (DIRECTIVE_034; NFR-002 fail-safe must be proven). Deploy to offi
 
 ### WP04 — main prompt integration (option A; no sub-agent)
 - **Goal**: compress main's prompt, then add the recognizer + extract + call-helper + relay-dialog. **Deps**: WP03 (contract). **Requirements**: FR-001, FR-003, FR-004.
-- [ ] T011 PRE-WORK compression (≥600 bytes) (WP04)
-- [ ] T012 recognizer + dialog prose (WP04)
-- [ ] T013 fleet-guard test (WP04)
+- [x] T011 PRE-WORK compression (≥600 bytes) (WP04)
+- [x] T012 recognizer + dialog prose (WP04)
+- [x] T013 fleet-guard test (WP04)
 
 ### WP05 — deploy, docs & verification
 - **Goal**: office2 deploy (dry-run-no-emit self-test), manifest, arch-doc reconcile, runbook + SC checklist (re-consent + workbook bootstrap are operator steps). **Deps**: WP01-04. **Requirements**: C-002, C-004; SC-001..005.
