@@ -1,15 +1,15 @@
 {
-  "coordination_branch": "kitty/mission-felix-canary-registry-01KX8T7B",
   "created_at": "2026-07-11T14:45:08.953802+00:00",
-  "flattened": false,
+  "flattened": true,
   "friendly_name": "Felix component-health canary registry",
   "mission_id": "01KX8T7B6RQZYEHD8ZY2RHB48F",
   "mission_number": null,
   "mission_slug": "felix-canary-registry-01KX8T7B",
   "mission_type": "software-dev",
+  "pr_bound": true,
   "purpose_context": "Today a Felix component can fail or go stale and Kent only finds out through downstream symptoms, sometimes days later. This mission builds a deterministic canary runner that reads the health_check each component already declares in service-inventory.json, computes its health per the ADR-0006 lifecycle contract, and emits stale/failed conditions to the #701 unified alert bus — closing the recurring silent-failure class as the core build of Foundation 1 (#516).",
   "purpose_tldr": "Automatically detect silent failures of Felix components by evaluating each component's declared health check on a schedule and routing failures to the unified alert bus.",
   "slug": "felix-canary-registry-01KX8T7B",
   "target_branch": "feat/felix-canary-registry",
-  "topology": "coord"
+  "topology": "lanes"
 }
