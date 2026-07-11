@@ -14,7 +14,7 @@ subtasks:
 - T002
 - T003
 agent: "claude"
-shell_pid: "38968"
+shell_pid: "41611"
 history:
 - at: '2026-07-11T15:30:13Z'
   actor: spec-kitty agent mission tasks
@@ -120,3 +120,4 @@ into the traversal (not just defined); running the validator on the real tree st
 
 ## Activity Log
 - 2026-07-11T16:51:56Z – claude – shell_pid=38968 – Assigned agent via action command
+- 2026-07-11T16:59:34Z – claude – shell_pid=41611 – Assigned agent via action command
