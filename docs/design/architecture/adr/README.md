@@ -44,3 +44,8 @@ ADRs are numbered sequentially (`0001-`, `0002-`, ...). Once approved, the body 
 | # | Title | Status | Date |
 |---|---|---|---|
 | [0001](<./0001-google-workspace-via-gog.md>) | Google Workspace integration via `gog` CLI | approved | 2026-05-13 |
+| [0002](<./0002-felix-vikunja-task-model.md>) | Felix ↔ Vikunja task model | approved | 2026-05-17 |
+| [0003](<./0003-felix-vikunja-sync-architecture.md>) | Felix ↔ Vikunja sync architecture | approved | 2026-06-09 |
+| [0004](<./0004-tailscale-ssh-with-accept-acl.md>) | Enable Tailscale SSH on office2 with `accept` ACL | approved | 2026-06-09 |
+| [0005](<./0005-vikunja-client-standards.md>) | Vikunja client standardization (base URL, token, timeout, error policy) | approved | 2026-06-10 |
+| [0006](<./0006-felix-component-lifecycle-status-contract.md>) | Felix component lifecycle status contract (declared status vs observed health) | approved | 2026-07-11 |

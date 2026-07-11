@@ -112,8 +112,10 @@ NON_SERVICE_TYPES = {
 
 KNOWN_ENTITY_TYPES = SERVICE_TYPES | NON_SERVICE_TYPES
 
-# Canonical lifecycle status values. STUB pending the #538 lifecycle-status
-# contract — this is the single definition #538 will replace.
+# Canonical lifecycle *declared-status* values, defined by ADR-0006 (the #538
+# lifecycle-status contract) — the single authoritative definition. These are the
+# declared-intention axis only; observed *health* (healthy/stale/failed/degraded/
+# unknown) is computed by the canary registry and never stored here (see ADR-0006 §1).
 STATUS_ENUM = {
     "active",
     "running",
