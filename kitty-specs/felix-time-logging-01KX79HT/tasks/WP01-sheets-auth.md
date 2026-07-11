@@ -14,6 +14,7 @@ subtasks:
 phase: Phase 1 - Auth
 assignee: ''
 agent: claude
+agent_profile: "python-pedro"
 history:
 - at: '2026-07-10T22:30:00Z'
   actor: system

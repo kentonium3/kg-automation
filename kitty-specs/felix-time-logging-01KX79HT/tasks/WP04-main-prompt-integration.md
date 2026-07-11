@@ -18,6 +18,7 @@ subtasks:
 phase: Phase 3 - Dialog
 assignee: ''
 agent: claude
+agent_profile: "curator-carla"
 history:
 - at: '2026-07-10T22:30:00Z'
   actor: system
