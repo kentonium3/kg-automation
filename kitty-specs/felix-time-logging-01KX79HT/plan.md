@@ -19,7 +19,7 @@ shipped trust core (#683 no-fabrication + #701 alerting).
 
 **Language/Version**: Python 3.12 (office2 is `python3`-only; helpers invoked as `python3 -m scripts.google.<mod>`, and by `main` via its OpenClaw `exec` form)
 **Primary Dependencies**: `google-api-python-client` (Sheets API — `spreadsheets().values().append`, `.batchUpdate` addSheet, `.get`); the #699 per-account OAuth substrate (`scripts/google/calendar_auth.py` pattern); `scripts/common/alert_bus` (#701) for failure alerts
-**Storage**: the Felix-owned Google Sheets workbook (Kent's personal account); committed aliases config (`docs/design/architecture/data/timelog-clients.json`); office2 JSON state — `pending-timelog` + `last-write` under `/data/services/timelog/state/` (atomic writes, #706 pattern); workbook-id config `~/.config/felix/timelog/workbook.json` (NOT committed)
+**Storage**: the Felix-owned Google Sheets workbook (Kent's personal account); committed aliases config (`docs/design/architecture/data/timelog-clients.json`); office2 JSON state — `pending-timelog` (keyed by conversation source) + recent-write `ledger` under `/data/services/timelog/state/` (atomic writes, #706 pattern); workbook-id config `~/.config/felix/timelog/workbook.json` (NOT committed)
 **Testing**: pytest `--cov-branch`; mock the Sheets client + auth at the service boundary; deterministic regression scenarios (parse / resolve / each typed signal / write / correct / fail-safe); fleet-guard prompt tests for `main`
 **Target Platform**: office2 (Ubuntu 24.04); `main` agent (WhatsApp channel) invokes the helper via `exec`
 **Project Type**: single (Python helpers/libraries + agent-prompt integration + deploy manifest)
@@ -46,7 +46,7 @@ No charter violations requiring Complexity Tracking.
 scripts/google/
 ├── sheets_auth.py            # NEW — Sheets-scoped per-account creds (mirrors calendar_auth.py)
 ├── sheets_helper.py          # NEW — deterministic CLI: append-row / create-tab / list-tabs / update-last / delete-last / --self-check
-├── timelog.py                # NEW — parse "log …" → fields; resolve client→tab (tabs + aliases); typed signals; last-write/pending state
+├── timelog.py                # NEW — validate main's structured args; resolve client→tab (tabs + aliases); typed signals (full union); ledger + conversation-keyed pending state
 scripts/openclaw/agents/main/
 └── AGENTS.md                 # EDIT — thin "log time" recognizer + how-to-call-the-helper + relay the typed signals (dialog)
 docs/design/architecture/data/
@@ -92,31 +92,53 @@ tests/google/
 - **Risks**: workbook-id resolution (config); Sheets API error mapping → typed
   `error` (never a partial write).
 
-### IC-03 — Time-log parse, client resolution, typed signals & state
+### IC-03 — Time-log validation, client resolution, typed signals & state
 
-- **Purpose**: parse "log N hrs for <client> [today] doing <desc>" → fields
-  (regex, deterministic); resolve client→tab (tabs-as-truth + aliases); return a
-  receipt or a **typed** signal (`unknown_client` / `need_field` / `ambiguous` /
-  `error`); maintain `pending-timelog` + `last-write` state for corrections.
-- **Requirements**: FR-001, FR-002, FR-003, FR-006; NFR-002.
+- **Purpose**: the `timelog` normalizer — accept **structured args** extracted by
+  `main` (`--client/--hours/--date/--description/[--non-billable]`, F7),
+  validate them, resolve client→tab (tabs-as-truth + aliases), and return a
+  receipt or a **typed** signal from the complete union (`logged` /
+  `unknown_client` / `need_field` / `ambiguous` / `error` / `not_timelog` /
+  `no_pending` / `stale_pending` / `client_created_entry_failed` / `corrected` /
+  `deleted` / `no_last_write` / `correction_ambiguous`). **No NL regex, no LLM in
+  the helper** — extraction is main's job. Maintain `pending-timelog` (keyed by
+  conversation source, F5) + the recent-write **ledger** (F4) for corrections.
+  Always emit a TimelogResult JSON, exit `0` for any handled status, `2` only on
+  usage error (F9).
+- **Requirements**: FR-001, FR-002, FR-003, FR-004, FR-006, FR-007; NFR-002.
 - **Surfaces**: `scripts/google/timelog.py`; `timelog-clients.json`.
 - **Depends-on**: IC-02.
-- **Risks**: correction "most-recent entry" must be unambiguous (last-write
-  state keyed per account); regex coverage of the common phrasings vs. asking.
+- **Risks**: correction "most-recent entry" must be unambiguous (recent-write
+  ledger; newer-write/stale → `correction_ambiguous`, F4); pending correlation by
+  conversation source (F5); new-client two-step partial mutation →
+  `client_created_entry_failed` (F3).
 
-### IC-04 — `main` prompt integration (option A — the dialog, no sub-agent)
+### IC-04 — `main` prompt integration (option A — extract + dialog, no sub-agent)
 
-- **Purpose**: `main` recognizes the "log time" shape, calls the helper via
-  `exec`, and conducts the clarifying dialog off the typed signals (ask on
-  `unknown_client`/`need_field`/`ambiguous`; relay receipt on success; resume
-  from pending state on a follow-up; corrections). **No delegation.**
+- **PRE-WORK (MANDATORY, F1) — `main` prompt-compression pass.** `main` is
+  already ~11,960/12,000 bytes. **Before** adding any time-log prose, run a
+  compression pass on the existing `main` prompt to reclaim a stated byte budget
+  (target **≥ ~600 bytes headroom**); record the reclaimed byte count. Then keep
+  the time-log addition minimal by pushing all fixed reply / receipt text into
+  the helper's typed results (main **relays** them, does not author them, F1).
+  The fleet-guard size test must stay green after both the compression and the
+  addition.
+- **Purpose**: `main` recognizes the "log time" shape, **extracts the candidate
+  fields** (`client`, `hours`, `description`, `date`, `billable`) from the NL and
+  calls the helper via `exec` with **structured args** (F7), then conducts the
+  clarifying dialog off the typed signals (ask on
+  `unknown_client`/`need_field`/`ambiguous`; relay the helper-provided receipt on
+  success; resume from pending state on a correlated follow-up; corrections). A
+  message judged non-time-log → main simply does not call the helper (F6). **No
+  delegation.**
 - **Requirements**: FR-001, FR-003, FR-004.
-- **Surfaces**: `scripts/openclaw/agents/main/AGENTS.md` (thin addition) +
-  its `.tmpl` if present; a fleet-guard prompt test.
-- **Depends-on**: IC-03 (the helper CLI + typed-signal contract must be settled
-  so main's prose references the real shapes).
-- **Risks**: main's 12 KB budget (keep terse; lean on the typed signals);
-  audited-but-unmonitored surface (gap #621 → no rebaseline).
+- **Surfaces**: `scripts/openclaw/agents/main/AGENTS.md` (compression + thin
+  addition) + its `.tmpl` if present; a fleet-guard prompt test.
+- **Depends-on**: IC-03 (the helper CLI + structured-args + typed-signal contract
+  must be settled so main's prose references the real shapes).
+- **Risks**: main's 12 KB budget (compression pre-work + lean on the typed
+  results for all fixed text); audited-but-unmonitored surface (gap #621 → no
+  rebaseline).
 
 ### IC-05 — Deploy, workbook bootstrap, re-consent & verification
 

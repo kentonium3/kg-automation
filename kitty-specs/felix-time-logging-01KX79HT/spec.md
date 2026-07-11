@@ -60,10 +60,10 @@ Kent's new multi-client commitments (Intentional consulting, spec-kitty fraction
 | FR-001 | Parse a WhatsApp time-log message into structured fields (client, hours, description, date — default "today"); a non-time-log message is not misinterpreted as a log. | Proposed |
 | FR-002 | Resolve the named client to its workbook tab via a normalizing client→tab map (case/alias tolerant). | Proposed |
 | FR-003 | Unknown or ambiguous client → do **not** write; reply asking Kent to confirm or add the client; wait for his answer. | Proposed |
-| FR-004 | On Kent confirming a new client, create the tab (Felix-defined columns) and then log the pending entry. | Proposed |
+| FR-004 | On Kent confirming a new client, create the tab (Felix-defined columns) and then log the pending entry. New-client onboarding is a **two-step, non-atomic** flow: if the tab is created but the row append then fails, report that the tab was created but the time was **not** logged (never a "logged" claim); retry is idempotent. | Proposed |
 | FR-005 | Append exactly **one** row to the client's tab: `date, hours, client, description, billable` (default `billable=yes`) + a logged-at UTC timestamp. | Proposed |
 | FR-006 | Reply with a receipt matching exactly what was written; support correcting/removing the **most recent** entry on a follow-up ("make it 3h", "delete that last one"). | Proposed |
-| FR-007 | On any failure (Sheets API error, parse ambiguity), do **not** write a partial/wrong entry; report what actually happened — never a fabricated "logged" claim. | Proposed |
+| FR-007 | On any failure (Sheets API error, parse ambiguity, partial new-client mutation), do **not** write a partial/wrong entry; report what actually happened — never a fabricated "logged" claim. A "logged" confirmation is gated on the row append being **API-confirmed** (read-back); a created tab whose append failed is reported as *not logged*. | Proposed |
 
 ### Non-Functional Requirements
 
@@ -119,7 +119,7 @@ Kent's new multi-client commitments (Intentional consulting, spec-kitty fraction
 
 - Reading back / querying the sheet, or generating external client reports (v1 is capture only).
 - Batch / multi-entry in a single message.
-- WhatsApp **voice-note** transcription as an input (text only, unless the existing path already transcribes — confirm at plan).
+- WhatsApp **voice-note** transcription as an input. v1 accepts **TEXT only**; a voice-note input is treated as `not_timelog` / unsupported (no attempt to transcribe in this mission).
 - Client mail / calendar / Slack (client-owned accounts — no OAuth; out of the "manage yourself" boundary).
 
 ## Relationship to roadmap

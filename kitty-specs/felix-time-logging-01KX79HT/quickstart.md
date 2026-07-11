@@ -15,8 +15,9 @@
 
 ```
 python3 -m pytest tests/google -v --cov=scripts/google --cov-branch
-# dry-run the parse+resolve without writing (mock/omit workbook):
-python3 -m scripts.google.timelog --message "log 2.5 hrs for ACME today doing X" --json
+# exercise the normalizer with main's extracted structured args (mock/omit workbook):
+python3 -m scripts.google.timelog --client ACME --hours 2.5 --date today --description "X" \
+    --channel whatsapp --conversation test --source-msg-id t1 --json
 ```
 
 ## Deploy to office2 (post-merge, operator-run — mandatory stops flagged)
