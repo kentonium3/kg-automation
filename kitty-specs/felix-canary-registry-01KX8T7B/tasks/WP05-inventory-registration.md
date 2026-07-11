@@ -15,6 +15,8 @@ subtasks:
 - T022
 - T023
 - T024
+agent: "claude"
+shell_pid: "55097"
 history:
 - at: '2026-07-11T15:30:13Z'
   actor: spec-kitty agent mission tasks
@@ -139,3 +141,4 @@ failed); the canary entry's `max_age_seconds` (2100) matches the 15-min cadence;
 (inventory data only).
 
 ## Activity Log
+- 2026-07-11T17:45:52Z – claude – shell_pid=55097 – Assigned agent via action command
