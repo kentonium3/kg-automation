@@ -42,11 +42,11 @@ Tests required (DIRECTIVE_034; NFR-002 fail-safe must be proven). Deploy to offi
 
 ### WP03 — timelog normalizer (validate/resolve/typed-union/state)
 - **Goal**: `scripts/google/timelog.py` — main-facing normalizer; validates structured args, resolves client, full typed union, ledger + pending state, corrections. **Deps**: WP02. **Requirements**: FR-001, FR-002, FR-003, FR-004, FR-006, FR-007; NFR-002, NFR-003.
-- [ ] T006 validate + resolve client→tab (WP03)
-- [ ] T007 typed-signal union + exit-0 normalizer (WP03)
-- [ ] T008 pending state + ledger + corrections (WP03)
-- [ ] T009 aliases config + #701 alert on error (WP03)
-- [ ] T010 timelog tests (WP03)
+- [x] T006 validate + resolve client→tab (WP03)
+- [x] T007 typed-signal union + exit-0 normalizer (WP03)
+- [x] T008 pending state + ledger + corrections (WP03)
+- [x] T009 aliases config + #701 alert on error (WP03)
+- [x] T010 timelog tests (WP03)
 
 ### WP04 — main prompt integration (option A; no sub-agent)
 - **Goal**: compress main's prompt, then add the recognizer + extract + call-helper + relay-dialog. **Deps**: WP03 (contract). **Requirements**: FR-001, FR-003, FR-004.
