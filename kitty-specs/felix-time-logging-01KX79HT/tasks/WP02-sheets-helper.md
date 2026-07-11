@@ -18,8 +18,9 @@ subtasks:
 - T005
 phase: Phase 1 - Sheets ops
 assignee: ''
-agent: claude
+agent: "claude:sonnet:python-pedro:implementer"
 agent_profile: "python-pedro"
+shell_pid: "43146"
 history:
 - at: '2026-07-10T22:30:00Z'
   actor: system
@@ -315,3 +316,7 @@ Verify concretely (not by prose inspection alone):
   bounded-get, and stdout/`SUMMARY:` discipline match `calendar_helper.py`.
 - **Boundary honored** — confirm this WP added no `tests/google/__init__.py`, imported
   auth from `sheets_auth.py`, and introduced no LLM call or NL parsing.
+
+## Activity Log
+
+- 2026-07-11T01:20:55Z – claude:sonnet:python-pedro:implementer – shell_pid=43146 – Assigned agent via action command
