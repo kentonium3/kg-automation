@@ -36,3 +36,6 @@ notes: "Ships the Felix WhatsApp time-logging Sheets helper to office2 (#703).\n
   \ via #701.\n"
 apply_mode: manifest
 applied_at: '2026-07-11T10:47:52Z'
+rebaseline:
+  outcome: pending_clean
+  at_utc: '2026-07-11T10:47:57Z'
