@@ -45,14 +45,16 @@ restic backup ships as the first concrete canary.
   backup that hasn't run is *expected*, not an incident. No alert is produced.
 - **Health check cannot be evaluated**: if a probe cannot run conclusively (endpoint
   unreachable in an inconclusive way, malformed pointer), the component's health is `unknown`.
-  A persistent `unknown` on a live component is itself surfaced as a lower-severity signal —
-  never silently dropped.
+  A `unknown` that **persists past the dedup window** on a live component is emitted as a
+  warning — a component we cannot even evaluate is itself a signal — never silently dropped.
 - **Continuing failure**: a component that stays failed across many ticks pages Kent once per
   dedup window, not on every tick.
 - **Live component with no usable health check**: an `active`/`running` entry that lacks a
   declared or evaluable `health_check` is reported as a coverage gap, not silently skipped.
-- **The runner itself dies**: because the runner is registered as a Felix component with its
-  own tick signal, a runner that stops ticking is itself detectable and alerted out-of-band.
+- **The runner itself dies**: a *crashing* run fires an out-of-band alert via the service unit's
+  `OnFailure=` hook (systemd, independent of runner logic). A *dead timer* or whole-host silence cannot be
+  caught by anything the runner owns; the runner is self-registered in the inventory so the deferred
+  out-of-band watchdog (#269) will detect it. Full dead-timer/silence detection is out of scope here (#269).
 
 ### Rules that must always hold
 
@@ -69,12 +71,12 @@ restic backup ships as the first concrete canary.
 | ID | Requirement | Status |
 |----|-------------|--------|
 | FR-001 | On each scheduled tick, the runner MUST evaluate every `service-inventory.json` entry whose type denotes a runtime service (has runtime health), computing exactly one `health` value per component from its declared `health_check`. | Accepted |
-| FR-002 | The runner MUST support the `health_check` methods already present in `service-inventory.json`: HTTP status probe, shell-command probe (exit code + expected condition), and tick-signal-file freshness (a state pointer such as `last-tick.json`/`last-backup.json` carrying a timestamp and success/exit/error fields). | Accepted |
-| FR-003 | The runner MUST gate alerting on declared `status` per ADR-0006: components with `status` in {`active`,`running`} are alert-eligible; components with `status` in {`suspended`,`deprecated`,`planned`,`retired`} MUST be suppressed (evaluated but never emitted). | Accepted |
+| FR-002 | The runner MUST support the real `health_check.method` vocabulary present in `service-inventory.json` today: `http`, `shell`, `systemd-status`, freshness-pointer (`tick-signal-file`/`signal-file`/`state-file`, reading the pointer path from `state_path` or `endpoint`), log-scan (`log-tail`/`journal`), and command (`self-check-command`/`self-test`). Variant names are unified in the probe layer (no inventory rewrite). An entry with `method: none`, a missing/empty `health_check`, or an unhandled method is a coverage gap (FR-006), not a silently-skipped component. | Accepted |
+| FR-003 | The runner MUST gate on declared `status` per ADR-0006: components with `status` in {`active`,`running`} are alert-eligible and probed; components with `status` in {`suspended`,`deprecated`,`planned`,`retired`} MUST be suppressed — **not probed**, recorded as `suppressed`, never emitted (gate-before-probe). | Accepted |
 | FR-004 | For an alert-eligible component computed as `stale` or `failed`, the runner MUST emit a structured alert to the #701 unified alert bus containing the component identity, the computed `health`, and the failing evidence. A `degraded` result MUST emit at a lower severity. | Accepted |
 | FR-005 | The runner MUST deduplicate repeated alerts for the same component + health condition within a configurable window, so a continuing failure does not re-page on every tick. | Accepted |
 | FR-006 | An alert-eligible component with a missing or unusable `health_check` MUST be surfaced as a distinct coverage-gap signal, never silently skipped. | Accepted |
-| FR-007 | The restic backup MUST gain a freshness-based health-pointer (`last-backup.json` per #511) and be registered in `service-inventory.json` with a freshness `health_check`, becoming the first component the runner evaluates end-to-end. | Accepted |
+| FR-007 | The restic backup — which **already** writes a `last-backup.json` pointer and is registered with a freshness `health_check` (#511 shipped) — MUST be normalized to the registry's uniform freshness path (add `max_age_seconds: 100800`) so it is the first component the runner evaluates end-to-end via the shared freshness probe. | Accepted |
 | FR-008 | The runner MUST record each tick's per-component evaluation outcome (component, computed health, evidence, timestamp) to a durable local state/ledger, consistent with existing tick-signal patterns, supporting both observability and dedup. | Accepted |
 | FR-009 | The runner MUST perform all health evaluation and alert decisions deterministically, with no LLM invocation in its execution path. | Accepted |
 | FR-010 | The runner MUST itself be a registered Felix component (declared `status` + `health_check` + tick signal), so that a stalled or failed runner is itself detectable. | Accepted |
@@ -106,7 +108,7 @@ restic backup ships as the first concrete canary.
 - **SC-003**: Every `active`/`running` component that declares a `health_check` is evaluated on every cycle (no silent coverage gaps); any live component lacking a usable `health_check` is reported.
 - **SC-004**: A component that stays failed pages Kent once per dedup window, not on every cycle.
 - **SC-005**: The restic backup's staleness is detectable through its health-pointer — deliberately aging the pointer produces a `stale`/`failed` alert (the #511 dogfood, end-to-end).
-- **SC-006**: If the canary runner itself stops ticking, that condition is detected and alerted out-of-band.
+- **SC-006**: If the canary runner **crashes**, an out-of-band alert fires (systemd `OnFailure`), and the runner is registered in the inventory so the deferred out-of-band watchdog (#269) can detect a dead timer / total silence. (Full dead-timer & whole-host-silence detection is out of scope here, tracked by #269.)
 
 ## Key Entities
 

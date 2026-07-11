@@ -33,7 +33,7 @@ A component becomes a canary purely by declaring a `health_check` in
 | SC-003 | Run `--dry-run`; confirm every active/running component with a `health_check` appears; confirm any active component lacking a usable `health_check` is listed as a coverage gap. |
 | SC-004 | Leave a component broken across several ticks; confirm one alert per dedup window (default 6 h), not per tick. |
 | SC-005 | Edit `last-backup.json` `snapshot_timestamp_utc` to 5 days ago; confirm a `stale` alert (the #511 dogfood). |
-| SC-006 | Crash path: `systemctl --user kill felix-canary.service` mid-run → confirm the `OnFailure` out-of-band alert. (Total-silence/dead-timer detection is #269, deferred — see research R8.) |
+| SC-006 | Crash path: `systemctl --user kill felix-canary.service` mid-run → confirm the `OnFailure` out-of-band alert. Confirm the runner is registered in `service-inventory.json` (so #269 can later detect a dead timer). Dead-timer & whole-host-silence detection is #269, deferred — research R8. |
 
 ## Deploy to office2
 
