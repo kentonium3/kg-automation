@@ -1,19 +1,19 @@
 {
-  "event_count": 41,
-  "last_event_id": "01KX988B9ED3QH8AMT73HYYN4K",
-  "materialized_at": "2026-07-11T18:50:21.870361+00:00",
+  "event_count": 42,
+  "last_event_id": "01KX988CK9XHED8ERZFR822J8N",
+  "materialized_at": "2026-07-11T18:50:23.209221+00:00",
   "mission_number": "",
   "mission_slug": "felix-canary-registry-01KX8T7B",
   "mission_type": "software-dev",
   "summary": {
-    "approved": 6,
+    "approved": 7,
     "blocked": 0,
     "canceled": 0,
     "claimed": 0,
     "done": 0,
     "for_review": 0,
     "in_progress": 0,
-    "in_review": 1,
+    "in_review": 0,
     "planned": 0
   },
   "work_packages": {
@@ -62,9 +62,9 @@
     "WP07": {
       "actor": "user",
       "force_count": 0,
-      "lane": "in_review",
-      "last_event_id": "01KX988B9ED3QH8AMT73HYYN4K",
-      "last_transition_at": "2026-07-11T18:50:21.870361+00:00"
+      "lane": "approved",
+      "last_event_id": "01KX988CK9XHED8ERZFR822J8N",
+      "last_transition_at": "2026-07-11T18:50:23.209221+00:00"
     }
   }
 }
