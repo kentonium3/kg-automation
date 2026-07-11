@@ -17,6 +17,8 @@ subtasks:
 - T027
 - T028
 - T029
+agent: "claude"
+shell_pid: "69736"
 history:
 - at: '2026-07-11T15:30:13Z'
   actor: spec-kitty agent mission tasks
@@ -156,3 +158,4 @@ which cannot catch a state-write failure under systemd); the deploy script is ex
 audited_surface + numbering (0017) are correct; no Tier 0/1/2 action smuggled in.
 
 ## Activity Log
+- 2026-07-11T18:28:00Z – claude – shell_pid=69736 – Assigned agent via action command
