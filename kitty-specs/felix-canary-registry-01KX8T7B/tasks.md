@@ -74,9 +74,9 @@ integer on `health_check` — and teach `validate_architecture_data.py` to valid
 every freshness probe. **Dependencies**: none. **Prompt**: [tasks/WP01-max-age-schema-validator.md](tasks/WP01-max-age-schema-validator.md).
 **Est. size**: ~180 lines.
 
-- [ ] T001 Validate `max_age_seconds` is a positive int when present (WP01)
-- [ ] T002 Warn (warn→strict) when an alert-eligible freshness/log-scan `health_check` omits `max_age_seconds` (WP01)
-- [ ] T003 Validator unit tests: accept valid, reject non-int/≤0, warn-on-omit (WP01)
+- [x] T001 Validate `max_age_seconds` is a positive int when present (WP01)
+- [x] T002 Warn (warn→strict) when an alert-eligible freshness/log-scan `health_check` omits `max_age_seconds` (WP01)
+- [x] T003 Validator unit tests: accept valid, reject non-int/≤0, warn-on-omit (WP01)
 
 **Independent test**: `pytest tests/tooling/test_validate_architecture_data*.py` green; `python
 tooling/scripts/validate_architecture_data.py` still exits 0 (warn-only) on the current tree.

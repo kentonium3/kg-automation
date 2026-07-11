@@ -121,3 +121,5 @@ into the traversal (not just defined); running the validator on the real tree st
 ## Activity Log
 - 2026-07-11T16:51:56Z – claude – shell_pid=38968 – Assigned agent via action command
 - 2026-07-11T16:59:34Z – claude – shell_pid=41611 – Assigned agent via action command
+- 2026-07-11T17:37:53Z – claude – shell_pid=41611 – WP01 implemented: max_age_seconds validation (type + advisory max-age-missing under --strict). 82 tests pass; strict pre-commit hook passes.
+- 2026-07-11T17:43:22Z – user – shell_pid=41611 – APPROVE (reviewer-renata): all 6 DoD items pass; strict exit 0; 82 tests green.
