@@ -1,7 +1,7 @@
 {
-  "event_count": 5,
-  "last_event_id": "01KX7BQSB9TCEKJJ8HRAJVVM7M",
-  "materialized_at": "2026-07-11T01:12:44.649868+00:00",
+  "event_count": 7,
+  "last_event_id": "01KX7BTQRDET6NCQ22226F8KJ7",
+  "materialized_at": "2026-07-11T01:14:21.324351+00:00",
   "mission_number": "",
   "mission_slug": "felix-time-logging-01KX79HT",
   "mission_type": "software-dev",
@@ -12,17 +12,17 @@
     "claimed": 0,
     "done": 0,
     "for_review": 0,
-    "in_progress": 0,
+    "in_progress": 1,
     "in_review": 0,
-    "planned": 5
+    "planned": 4
   },
   "work_packages": {
     "WP01": {
-      "actor": "finalize-tasks",
+      "actor": "claude:sonnet:python-pedro:implementer",
       "force_count": 0,
-      "lane": "planned",
-      "last_event_id": "01KX7BQMVM2HR6G2DH1TQXX94D",
-      "last_transition_at": "2026-07-11T01:12:40.052412+00:00"
+      "lane": "in_progress",
+      "last_event_id": "01KX7BTQRDET6NCQ22226F8KJ7",
+      "last_transition_at": "2026-07-11T01:14:21.324351+00:00"
     },
     "WP02": {
       "actor": "finalize-tasks",
