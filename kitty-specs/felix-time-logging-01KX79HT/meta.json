@@ -1,0 +1,15 @@
+{
+  "coordination_branch": "kitty/mission-felix-time-logging-01KX79HT",
+  "created_at": "2026-07-11T00:34:31.752145+00:00",
+  "flattened": false,
+  "friendly_name": "Felix WhatsApp Time-Logging to Sheets",
+  "mission_id": "01KX79HT65XV6AEJ2R2QQ3Z89Y",
+  "mission_number": null,
+  "mission_slug": "felix-time-logging-01KX79HT",
+  "mission_type": "software-dev",
+  "purpose_context": "Kent's new multi-client commitments (Intentional consulting, spec-kitty fractional-exec, business acquisition) create real time-tracking admin. This mission lets Kent log time conversationally over WhatsApp and have Felix write it — correctly and observably — to a fresh Felix-owned Google Sheets workbook (one tab per client), the first EA capability built on the just-shipped trust core (#683 no-fabrication + #701 alerting).",
+  "purpose_tldr": "Log billable time by texting WhatsApp; Felix appends it to the right client tab of a Google Sheet.",
+  "slug": "felix-time-logging-01KX79HT",
+  "target_branch": "feat/felix-time-logging",
+  "topology": "coord"
+}
