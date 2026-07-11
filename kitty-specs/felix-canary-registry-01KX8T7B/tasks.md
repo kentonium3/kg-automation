@@ -168,10 +168,10 @@ tick-signal + ledger line landed (F9, #703). **Dependencies**: WP04, WP05. **Pro
 discoverable and doctrine-consistent. **Dependencies**: WP04, WP05, WP06. **Prompt**:
 [tasks/WP07-docs-and-coherence.md](tasks/WP07-docs-and-coherence.md). **Est. size**: ~200 lines.
 
-- [ ] T030 `docs/runbooks/canary-registry-ops.md` (WP07)
-- [ ] T031 Register in `docs/INDEX.md` + `docs/DEVELOPER_PORTAL.md` (WP07)
-- [ ] T032 Coherence: INV-003 note + `coherence/decisions.jsonl` entry (WP07)
-- [ ] T033 Architecture-doc updates per `signal-to-doc-map.json` (service-added) (WP07)
+- [x] T030 `docs/runbooks/canary-registry-ops.md` (WP07)
+- [x] T031 Register in `docs/INDEX.md` + `docs/DEVELOPER_PORTAL.md` (WP07)
+- [x] T032 Coherence: INV-003 note + `coherence/decisions.jsonl` entry (WP07)
+- [x] T033 Architecture-doc updates per `signal-to-doc-map.json` (service-added) (WP07)
 
 **Independent test**: Docs CI green; INDEX + DEVELOPER_PORTAL link the runbook; `coherence/decisions.jsonl`
 parses.

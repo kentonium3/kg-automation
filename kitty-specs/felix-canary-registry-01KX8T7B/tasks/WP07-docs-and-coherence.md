@@ -123,3 +123,5 @@ noisy component without reading code); INDEX + DEVELOPER_PORTAL actually link it
 
 ## Activity Log
 - 2026-07-11T18:38:47Z – claude – shell_pid=73281 – Assigned agent via action command
+- 2026-07-11T18:50:17Z – claude – shell_pid=73281 – WP07: runbook + INDEX/PORTAL + coherence DEC-007 + narrative row.
+- 2026-07-11T18:50:24Z – user – shell_pid=73281 – APPROVE (reviewer-renata): all 5 DoD pass; runbook accurate vs shipped code; linked from INDEX+PORTAL; DEC-007 valid; no JSON edit.
