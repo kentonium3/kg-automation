@@ -31,8 +31,8 @@ Tests required (DIRECTIVE_034; NFR-002 fail-safe must be proven). Deploy to offi
 
 ### WP01 — Sheets auth (per-account, spreadsheets scope)
 - **Goal**: `scripts/google/sheets_auth.py` mirroring `calendar_auth.py`; returns `spreadsheets`-scoped Credentials, fail-safe. **Deps**: none. **Requirements**: C-002.
-- [ ] T001 sheets_auth loader (WP01)
-- [ ] T002 tests/google pkg + auth tests (WP01)
+- [x] T001 sheets_auth loader (WP01)
+- [x] T002 tests/google pkg + auth tests (WP01)
 
 ### WP02 — Deterministic Sheets helper
 - **Goal**: `scripts/google/sheets_helper.py` CLI (append idempotent+read-back, create-tab no-op, list-tabs, update/delete-last, self-check). **Deps**: WP01. **Requirements**: FR-005, FR-007; NFR-001, NFR-002.
