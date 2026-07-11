@@ -1,16 +1,16 @@
 {
-  "event_count": 33,
-  "last_event_id": "01KX7G7SSDT2N9Q2Y0MGVSYCS2",
-  "materialized_at": "2026-07-11T02:31:23.693080+00:00",
+  "event_count": 34,
+  "last_event_id": "01KX7G7VE8NK1C46GR0GW4R2XG",
+  "materialized_at": "2026-07-11T02:31:25.384153+00:00",
   "mission_number": "94",
   "mission_slug": "felix-time-logging-01KX79HT",
   "mission_type": "software-dev",
   "summary": {
-    "approved": 2,
+    "approved": 1,
     "blocked": 0,
     "canceled": 0,
     "claimed": 0,
-    "done": 3,
+    "done": 4,
     "for_review": 0,
     "in_progress": 0,
     "in_review": 0,
@@ -39,11 +39,11 @@
       "last_transition_at": "2026-07-11T02:31:23.693080+00:00"
     },
     "WP04": {
-      "actor": "user",
+      "actor": "merge",
       "force_count": 1,
-      "lane": "approved",
-      "last_event_id": "01KX7EWCDGZJ6Y8E9FMZKNJF7V",
-      "last_transition_at": "2026-07-11T02:07:40.976193+00:00"
+      "lane": "done",
+      "last_event_id": "01KX7G7VE8NK1C46GR0GW4R2XG",
+      "last_transition_at": "2026-07-11T02:31:25.384153+00:00"
     },
     "WP05": {
       "actor": "user",
