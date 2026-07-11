@@ -268,6 +268,99 @@ def test_freshness_truthy_errors_field_is_failed():
     assert "errors" in result.evidence
 
 
+# --- F2: generalized explicit-error field conventions ------------------------ #
+# The real freshness pointers signal failure via exit_status / status / exit_code
+# (not just restic_exit_code). A FRESH pointer carrying such a signal must read
+# `failed`, and the healthy counterparts must stay `healthy` when fresh.
+def test_freshness_exit_status_failed_is_failed():
+    # felix-core-digest / felix-habit-sweeper tick-signals: exit_status enum
+    # {"success","partial","failure"}. A fresh but failed tick must NOT read
+    # healthy (the F2 regression: pointer was fresh with errors=[] → false ok).
+    pointer = {"exit_status": "failed", "completed_at_utc": "2026-07-11T11:59:00Z",
+               "errors": []}
+    hc = {"method": "tick-signal-file", "endpoint": "/x/last-tick.json",
+          "max_age_seconds": 2100}
+    result = run_probe(hc, NOW, http_get=_boom, run_cmd=_boom,
+                       read_state=make_state(pointer))
+    assert result.evaluable and not result.ok
+    assert "exit_status" in result.evidence
+
+
+def test_freshness_exit_status_partial_is_failed():
+    # `partial` is a non-success exit_status → operator attention → failed.
+    pointer = {"exit_status": "partial", "completed_at_utc": "2026-07-11T11:59:00Z"}
+    hc = {"method": "tick-signal-file", "endpoint": "/x/last-tick.json",
+          "max_age_seconds": 2100}
+    result = run_probe(hc, NOW, http_get=_boom, run_cmd=_boom,
+                       read_state=make_state(pointer))
+    assert result.evaluable and not result.ok
+    assert "partial" in result.evidence
+
+
+def test_freshness_exit_status_success_stays_healthy():
+    pointer = {"exit_status": "success", "completed_at_utc": "2026-07-11T11:59:00Z"}
+    hc = {"method": "tick-signal-file", "endpoint": "/x/last-tick.json",
+          "max_age_seconds": 2100}
+    result = run_probe(hc, NOW, http_get=_boom, run_cmd=_boom,
+                       read_state=make_state(pointer))
+    assert result.ok and result.evaluable and not result.stale
+
+
+def test_freshness_status_error_is_failed():
+    # canary's own / agent-prompt-sync tick-signal: status {"success","error"}.
+    pointer = {"status": "error", "completed_at_utc": "2026-07-11T11:59:00Z"}
+    hc = {"method": "tick-signal-file", "endpoint": "/x/last-tick.json",
+          "max_age_seconds": 2100}
+    result = run_probe(hc, NOW, http_get=_boom, run_cmd=_boom,
+                       read_state=make_state(pointer))
+    assert result.evaluable and not result.ok
+    assert "status" in result.evidence
+
+
+def test_freshness_status_success_stays_healthy():
+    pointer = {"status": "success", "completed_at_utc": "2026-07-11T11:59:00Z"}
+    hc = {"method": "tick-signal-file", "endpoint": "/x/last-tick.json",
+          "max_age_seconds": 2100}
+    result = run_probe(hc, NOW, http_get=_boom, run_cmd=_boom,
+                       read_state=make_state(pointer))
+    assert result.ok and result.evaluable and not result.stale
+
+
+def test_freshness_open_status_vocabulary_not_false_failed():
+    # felix-health-check uses status={ALL_HEALTHY, FAILURES_DETECTED, ...} where
+    # a non-"success" status is NOT a runner failure. The OPEN `status`
+    # vocabulary must be matched on explicit failure VALUES only — neither of
+    # these may flip to failed just because they are not "success".
+    for value in ("ALL_HEALTHY", "FAILURES_DETECTED"):
+        pointer = {"status": value, "completed_at_utc": "2026-07-11T11:59:00Z"}
+        hc = {"method": "signal-file", "endpoint": "/x/last-run.json",
+              "max_age_seconds": 100800}
+        result = run_probe(hc, NOW, http_get=_boom, run_cmd=_boom,
+                           read_state=make_state(pointer))
+        assert result.ok and result.evaluable, f"{value} wrongly failed"
+
+
+def test_freshness_exit_code_nonzero_is_failed():
+    # agent-prompt-sync / felix-doc-auditor / felix-deployer: exit_code=0 good.
+    pointer = {"exit_code": 1, "completed_at_utc": "2026-07-11T11:59:00Z"}
+    hc = {"method": "tick-signal-file", "endpoint": "/x/last-tick.json",
+          "max_age_seconds": 2100}
+    result = run_probe(hc, NOW, http_get=_boom, run_cmd=_boom,
+                       read_state=make_state(pointer))
+    assert result.evaluable and not result.ok
+    assert "exit_code=1" in result.evidence
+
+
+def test_freshness_exit_code_zero_stays_healthy():
+    pointer = {"exit_code": 0, "status": "success",
+               "completed_at_utc": "2026-07-11T11:59:00Z"}
+    hc = {"method": "tick-signal-file", "endpoint": "/x/last-tick.json",
+          "max_age_seconds": 2100}
+    result = run_probe(hc, NOW, http_get=_boom, run_cmd=_boom,
+                       read_state=make_state(pointer))
+    assert result.ok and result.evaluable and not result.stale
+
+
 # --- uninterpretable pointer shapes → unknown -------------------------------- #
 def test_freshness_bare_map_no_timestamp_is_unknown():
     # felix-trust-scan seen-findings.json: a fingerprint→record map with no
@@ -315,9 +408,12 @@ def test_log_scan_marker_present_is_healthy(method):
 
 
 def test_log_scan_marker_absent_is_failed():
+    # Post-F1: the endpoint's own grep does the marker filtering, so "marker
+    # absent" means the command ran clean but returned NO matching lines (empty
+    # stdout). The prose `expected` is never used as a literal substring.
     hc = {"method": "log-tail", "endpoint": "tail x | grep OK", "expected": "OK"}
     result = run_probe(hc, NOW, http_get=_boom,
-                       run_cmd=make_cmd((0, "nothing here", "")),
+                       run_cmd=make_cmd((0, "", "")),
                        read_state=_boom)
     assert result.evaluable and not result.ok
 
@@ -347,6 +443,71 @@ def test_log_scan_spawn_error_is_unknown():
                        run_cmd=make_cmd(raises=OSError("no journalctl")),
                        read_state=_boom)
     assert not result.evaluable
+
+
+# --- F1: healthy is driven by the COMMAND result, never by an expected-prose
+# substring. These use real-shaped credential-liveness-probe inventory data:
+# the endpoint's own grep filters the markers, and `expected` is human prose.
+def test_log_scan_prose_expected_with_marker_output_is_healthy():
+    # credential-liveness-probe (real entry): endpoint greps the markers; the
+    # command returns a real marker line; `expected` is PROSE that is NOT a
+    # substring of stdout. Pre-F1 this false-failed on the prose-substring test.
+    hc = {
+        "method": "log-tail",
+        "endpoint": ("journalctl --user -u credential-liveness-probe.service "
+                     "--since '7 hours ago' | grep -E "
+                     "'credential_alive|credential_dead|credential_probe_error'"),
+        "expected": ("At least one credential_alive or credential_dead event in "
+                     "the last 7-hour window; absence means the timer did not fire"),
+        "timeout_seconds": 5,
+    }
+    result = run_probe(
+        hc, NOW, http_get=_boom,
+        run_cmd=make_cmd((0, "Jul 11 11:59:00 host probe[1]: credential_alive "
+                             "account=personal", "")),
+        read_state=_boom,
+    )
+    assert result.ok and result.evaluable and not result.stale
+
+
+def test_log_scan_clean_run_no_matching_lines_is_failed():
+    # The grep matched nothing (timer did not fire) → exit 0, empty stdout →
+    # marker absent → failed (not a false healthy, not unknown).
+    hc = {
+        "method": "log-tail",
+        "endpoint": ("journalctl --user -u credential-liveness-probe.service "
+                     "--since '7 hours ago' | grep -E 'credential_alive'"),
+        "expected": "At least one credential_alive event in the window",
+    }
+    result = run_probe(hc, NOW, http_get=_boom,
+                       run_cmd=make_cmd((0, "", "")), read_state=_boom)
+    assert result.evaluable and not result.ok and not result.stale
+    assert "no matching lines" in result.evidence
+
+
+def test_log_scan_command_error_is_unknown():
+    # A command spawn/execution error (raised) → unknown, per the wrapper.
+    hc = {"method": "journal", "endpoint": "journalctl --user -u x | grep OK",
+          "expected": "prose about OK events"}
+    result = run_probe(hc, NOW, http_get=_boom,
+                       run_cmd=make_cmd(raises=OSError("journalctl vanished")),
+                       read_state=_boom)
+    assert not result.evaluable
+    assert "OSError" in result.evidence
+
+
+def test_log_scan_staleness_boundary_with_prose_expected():
+    # Timestamped marker line older than max_age → stale, even though the prose
+    # `expected` never appears in stdout (F1: prose is not a matcher).
+    hc = {"method": "journal", "endpoint": "journalctl -u x | grep cycle_end",
+          "expected": "cycle_end event present from the most recent tick",
+          "max_age_seconds": 3600}
+    result = run_probe(
+        hc, NOW, http_get=_boom,
+        run_cmd=make_cmd((0, "2026-07-10T00:00:00Z cycle_end ok", "")),  # >1h old
+        read_state=_boom,
+    )
+    assert result.ok and result.stale and result.evaluable
 
 
 # --------------------------------------------------------------------------- #

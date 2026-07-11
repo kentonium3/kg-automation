@@ -31,9 +31,13 @@ name **differs per component**, and there is no inventory schema field naming
 it (``max_age_seconds`` is the only permitted schema addition). Rather than
 special-casing component names, the freshness probe resolves the timestamp by
 trying an ordered list of candidate top-level keys, :data:`TIMESTAMP_KEYS`, and
-taking the first present ISO-8601 value. It also honors an explicit error
-signal when present (a ``restic_exit_code`` outside ``{0, 3}``, or a truthy
-``errors`` / ``error`` field → ``failed``).
+taking the first present ISO-8601 value. It also honors an explicit error signal
+when present — :func:`_explicit_error` recognizes the real success/failure field
+conventions across the inventory's freshness pointers (``restic_exit_code``
+outside ``{0, 3}``; a non-zero ``exit_code``; a non-success ``exit_status``; a
+``status`` holding an explicit failure value; a truthy ``errors`` / ``error``
+field → ``failed``), all as generic field-convention detection, never keyed on a
+component name.
 
 If the pointer is a shape the probe cannot interpret — a bare map with no
 candidate timestamp key (e.g. ``felix-trust-scan``'s ``seen-findings.json``
@@ -76,6 +80,32 @@ TIMESTAMP_KEYS: tuple[str, ...] = (
 # restic exit codes that are NOT a backup failure: 0 = success, 3 = "some
 # source files could not be read" (partial but the snapshot completed).
 _RESTIC_OK_EXIT_CODES: frozenset[int] = frozenset({0, 3})
+
+# --------------------------------------------------------------------------- #
+# Explicit-failure field conventions (the freshness-pointer analogue of the
+# TIMESTAMP_KEYS candidate list). Audited against the real freshness pointers in
+# service-inventory.json — do NOT special-case component names, recognize field
+# conventions only.
+#
+# Two vocabularies are handled differently on purpose:
+#
+# * ``exit_status`` — a CLOSED enum across the inventory's tick-signals
+#   (``{"success", "partial", "failure"}`` per the tick-signal / sweeper-tick
+#   contracts; canary's own is ``success``). Health is defined as
+#   ``exit_status == "success"``, so anything present-and-not-in the success set
+#   (``partial`` / ``failure``) is an explicit failure.
+#
+# * ``status`` — an OPEN vocabulary. Some pointers use ``success``/``error``
+#   (canary, agent-prompt-sync tick-signals) but ``felix-health-check`` uses
+#   ``{ALL_HEALTHY, FAILURES_DETECTED, UNKNOWN, SCRIPT_MISSING}`` where
+#   ``FAILURES_DETECTED`` means the *monitored system* had failures while the
+#   runner itself ran fine ("a health failure is data, not a runner error").
+#   Using "not success" here would false-fail ``ALL_HEALTHY``. So ``status`` is
+#   matched against an explicit failure-VALUE set only.
+_EXIT_STATUS_SUCCESS: frozenset[str] = frozenset({"success", "ok"})
+_STATUS_FAILURE_VALUES: frozenset[str] = frozenset(
+    {"error", "failed", "fail", "failure"}
+)
 
 # Method groups (kept aligned with WP02's HANDLED_METHODS / contracts §2).
 _LIVENESS_CMD_METHODS: frozenset[str] = frozenset(
@@ -147,14 +177,51 @@ def _resolve_timestamp(pointer: dict[str, Any]) -> tuple[str, datetime] | None:
 def _explicit_error(pointer: dict[str, Any]) -> str | None:
     """Return an evidence string if the pointer explicitly signals failure.
 
-    Honors, in order: a ``restic_exit_code`` outside ``{0, 3}``; a truthy
-    ``errors`` field; a truthy ``error`` field. Returns ``None`` when no
-    explicit error signal is present.
+    Recognizes the real success/failure field conventions used across the
+    inventory's freshness pointers (tick-signal / signal-file / state-file). The
+    detection is generic field-convention matching only — never keyed on a
+    component name (same philosophy as :data:`TIMESTAMP_KEYS`). Recognized
+    conventions, checked in order:
+
+    * ``restic_exit_code`` — an int outside ``{0, 3}`` is a backup failure
+      (0 = success, 3 = some source files unreadable but the snapshot
+      completed). restic-backup's ``last-backup.json``.
+    * ``exit_code`` — present and a non-zero int is a failure. agent-prompt-sync,
+      felix-doc-auditor, felix-deployer tick-signals (``exit_code=0`` is the good
+      signal).
+    * ``exit_status`` — present and NOT in the success set
+      (:data:`_EXIT_STATUS_SUCCESS`) is a failure. A closed enum
+      (``success``/``partial``/``failure``) so "not success" is safe here; covers
+      felix-core-digest, felix-habit-sweeper, and any tick-signal using
+      ``exit_status``.
+    * ``status`` — present and holding an explicit failure VALUE
+      (:data:`_STATUS_FAILURE_VALUES`, e.g. ``error``/``failed``) is a failure.
+      An OPEN vocabulary, so it is matched against explicit failure values only
+      — a legitimate non-failure ``status`` such as felix-health-check's
+      ``ALL_HEALTHY`` / ``FAILURES_DETECTED`` (monitored-system data, not a
+      runner fault) must NOT be flipped to failed.
+    * ``errors`` — a truthy (non-empty) value is a failure.
+    * ``error`` — a truthy value is a failure.
+
+    Returns ``None`` when no explicit failure signal is present. Be conservative:
+    a pointer with ``status: success`` / ``exit_code: 0`` / ``exit_status:
+    success`` and a fresh timestamp must stay healthy; only an explicit failure
+    signal here flips it.
     """
     if "restic_exit_code" in pointer:
         code = pointer["restic_exit_code"]
         if isinstance(code, int) and code not in _RESTIC_OK_EXIT_CODES:
             return f"restic_exit_code={code}"
+    if "exit_code" in pointer:
+        code = pointer["exit_code"]
+        if isinstance(code, int) and code != 0:
+            return f"exit_code={code}"
+    exit_status = pointer.get("exit_status")
+    if isinstance(exit_status, str) and exit_status.lower() not in _EXIT_STATUS_SUCCESS:
+        return f"exit_status={exit_status!r}"
+    status = pointer.get("status")
+    if isinstance(status, str) and status.lower() in _STATUS_FAILURE_VALUES:
+        return f"status={status!r}"
     errors = pointer.get("errors")
     if errors:
         return f"errors={errors!r}"
@@ -322,10 +389,28 @@ def _probe_log_scan(
 ) -> ProbeResult:
     """Log-scan probe (log-tail / journal).
 
-    Runs the ``endpoint`` (a ``tail`` / ``journalctl [| grep]`` command). The
-    marker's presence in the command output is the liveness signal; when
-    ``max_age_seconds`` is declared and a parseable timestamp leads the most
-    recent matching line, an older line is ``stale``.
+    Runs the ``endpoint`` (a ``tail`` / ``journalctl [| grep]`` / ``cat | jq``
+    command). For these methods **the command itself does the marker
+    filtering** — the real inventory endpoints already embed the grep/tail/jq
+    that selects the marker (e.g. ``journalctl … | grep -E
+    'credential_alive|credential_dead|…'``). The ``expected`` field is human
+    PROSE describing the health condition (e.g. "At least one credential_alive
+    within the last window"), NOT a literal substring to match. So healthiness
+    is driven by the COMMAND RESULT, never by an ``expected``-substring test:
+
+    * exit 0 + non-empty stdout ⇒ a matching line exists ⇒ marker present ⇒
+      healthy (grep exit 0 means a match; a bare ``tail`` returning content
+      likewise means the log window is non-empty).
+    * exit 0 + empty stdout ⇒ the command ran cleanly but selected NO matching
+      lines (grep exit 1 is normalized by a trailing ``|| true`` in some
+      endpoints, or the window is simply empty) ⇒ marker absent ⇒ failed.
+    * a command that ran but returned non-zero WITH output/stderr ⇒ a real
+      command-level failure ⇒ failed; a truly failed spawn raises and is caught
+      by the dispatcher wrapper ⇒ unknown.
+
+    When ``max_age_seconds`` is declared and a parseable ISO-8601 timestamp
+    leads the most-recent matching line, an older line is ``stale``; otherwise
+    the probe is liveness-only. Kept deterministic via the injected ``run_cmd``.
     """
     endpoint = health_check.get("endpoint")
     timeout = health_check.get("timeout_seconds")
@@ -343,14 +428,14 @@ def _probe_log_scan(
             )
         return _unevaluable(f"log command exit {exit_code}, no output")
 
-    expected = health_check.get("expected")
-    marker_present = bool(output) and (
-        expected is None or (isinstance(expected, str) and expected in output)
-    )
-    if not marker_present:
+    # Command result — NOT an expected-prose substring — is the marker signal.
+    if not output:
+        # Clean run, but the endpoint's own grep/tail/jq selected nothing: the
+        # marker is absent in the window (stale/dark), not a false healthy.
         return ProbeResult(
             ok=False, stale=False, evaluable=True,
-            evidence=f"expected marker {expected!r} not in log window",
+            evidence="log command ran clean but returned no matching lines "
+                     "(marker absent in window)",
         )
 
     max_age = health_check.get("max_age_seconds")
@@ -368,7 +453,7 @@ def _probe_log_scan(
                 )
     return ProbeResult(
         ok=True, stale=False, evaluable=True,
-        evidence=f"marker {expected!r} present in log window",
+        evidence=f"marker present in log window: {output.splitlines()[-1][:120]}",
     )
 
 
