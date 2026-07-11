@@ -68,11 +68,20 @@ from typing import Any
 # list (not the call sites) when a new pointer shape appears.
 # --------------------------------------------------------------------------- #
 TIMESTAMP_KEYS: tuple[str, ...] = (
-    "completed_at_utc",       # the canary runner's own last-tick.json (WP04)
+    # Completion-type anchors first (when the tick FINISHED), then start-type
+    # fallbacks. Ordered because the first present key wins. Field names audited
+    # against the real office2 freshness pointers (2026-07-11).
+    "completed_at_utc",        # canary runner's own last-tick.json (WP04)
     "snapshot_timestamp_utc",  # restic last-backup.json (WP05 state-file)
+    "script_finished_at_utc",  # restic script-finished witness
+    "ran_at_utc",              # felix-health-check last-run pointer
+    "timestamp_utc",           # felix-doc-auditor tick pointer
     "timestamp",
     "last_tick_utc",
-    "script_finished_at_utc",
+    # start-type fallback: felix-core-digest / felix-heartbeat-gate record only a
+    # tick-start time; it is ms-scale earlier than completion — negligible vs the
+    # minutes-to-hours max_age_seconds bounds, so it is a sound freshness anchor.
+    "started_at_utc",
     "at",
     "ts",
 )

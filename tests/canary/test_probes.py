@@ -226,6 +226,37 @@ def test_freshness_candidate_key_order_prefers_first_present():
     assert "completed_at_utc" in result.evidence
 
 
+@pytest.mark.parametrize("ts_key", ["started_at_utc", "ran_at_utc", "timestamp_utc"])
+def test_freshness_real_office2_timestamp_keys_resolve(ts_key):
+    # Real office2 freshness pointers anchor on these fields (audited 2026-07-11):
+    # felix-core-digest / felix-heartbeat-gate -> started_at_utc; felix-health-check
+    # -> ran_at_utc; felix-doc-auditor -> timestamp_utc. Each MUST resolve so those
+    # (core) components are actually freshness-watched, not persistent-unknown.
+    assert ts_key in TIMESTAMP_KEYS
+    pointer = {ts_key: "2026-07-11T11:50:00Z"}  # 10 min old
+    hc = {"method": "tick-signal-file", "state_path": "/x/p.json",
+          "max_age_seconds": 2100}
+    result = run_probe(hc, NOW, http_get=_boom, run_cmd=_boom,
+                       read_state=make_state(pointer))
+    assert result.evaluable and result.ok and not result.stale
+    assert ts_key in result.evidence
+
+
+def test_freshness_started_at_utc_is_fallback_after_completion_keys():
+    # A pointer with BOTH a completion anchor and started_at_utc must prefer the
+    # completion field (started_at_utc is only the fallback).
+    assert TIMESTAMP_KEYS.index("completed_at_utc") < TIMESTAMP_KEYS.index(
+        "started_at_utc"
+    )
+    pointer = {"started_at_utc": "2020-01-01T00:00:00Z",
+               "completed_at_utc": "2026-07-11T11:59:00Z"}  # 1 min old
+    hc = {"method": "tick-signal-file", "state_path": "/x/p.json",
+          "max_age_seconds": 2100}
+    result = run_probe(hc, NOW, http_get=_boom, run_cmd=_boom,
+                       read_state=make_state(pointer))
+    assert not result.stale and "completed_at_utc" in result.evidence
+
+
 def test_freshness_no_max_age_is_liveness_only():
     pointer = {"completed_at_utc": "2000-01-01T00:00:00Z"}  # ancient, but…
     hc = {"method": "tick-signal-file", "endpoint": "/x/p.json"}  # no max_age
