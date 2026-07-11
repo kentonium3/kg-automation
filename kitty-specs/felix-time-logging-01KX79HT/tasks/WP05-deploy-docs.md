@@ -20,8 +20,9 @@ subtasks:
 - T017
 phase: Phase 4 - Deploy
 assignee: ''
-agent: claude
+agent: "claude:sonnet:python-pedro:implementer"
 agent_profile: "python-pedro"
+shell_pid: "58064"
 history:
 - at: '2026-07-10T22:30:00Z'
   actor: system
@@ -328,3 +329,7 @@ Verify concretely (not by prose inspection alone):
   SC-001..005 checklist present and executable.
 - **Rebaseline** — merge records `Rebaseline: not required — <reason>`; no baseline
   stamp applied.
+
+## Activity Log
+
+- 2026-07-11T02:08:23Z – claude:sonnet:python-pedro:implementer – shell_pid=58064 – Assigned agent via action command
