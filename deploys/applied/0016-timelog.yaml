@@ -1,0 +1,38 @@
+schema_version: v1
+name: timelog
+issue: kentonium3/kg-automation#703
+tier: 2
+entrypoint: scripts/deploy/deploy-timelog.py
+audited_surface: false
+verification:
+  pre:
+  - python3 -m scripts.deploy.lib.snapshot verify_restic_recent 24
+  - test -f scripts/google/sheets_helper.py
+  - test -f scripts/google/timelog.py
+  post:
+  - cd /home/claude/kg-automation && /data/services/openclaw/felix-calendar/venv/bin/python
+    -m scripts.google.sheets_helper --self-check --account personal
+created_at: '2026-07-11T00:00:00Z'
+created_by: felix-time-logging-01KX79HT
+notes: "Ships the Felix WhatsApp time-logging Sheets helper to office2 (#703).\n\n\
+  Tier 2 (touches the felix-personal Google OAuth credential scope \u2014 the\npersonal\
+  \ token is re-minted with the added `spreadsheets` scope alongside\nthe existing\
+  \ `calendar.events` scope from #699) + Tier 3 (installs a\ndeterministic Python\
+  \ helper). audited_surface: false \u2014 main's AGENTS.md\nrecognizer addition is\
+  \ an UNMONITORED audited surface (gap #621) and\nscripts/google/** here is not a\
+  \ hashed baseline; no rebaseline required.\n\nEntrypoint reuses the #699 calendar-helper's\
+  \ shared uv venv at\n/data/services/openclaw/felix-calendar/venv (same google client\
+  \ libs)\nrather than provisioning a second venv.\n\nTWO MANDATORY OPERATOR PRECONDITIONS\
+  \ (Kent-in-the-loop, NOT automated \u2014\npresence-checked only; see docs/runbooks/timelog.md):\n\
+  \  1. Sheets-scope re-consent \u2014 `personal` token re-minted with combined\n\
+  \     `calendar + spreadsheets` scopes (browser OAuth, only Kent), staged\n    \
+  \ at ~/.config/felix/google/personal/{client_secret,token}.json (0600).\n  2. One-time\
+  \ workbook bootstrap \u2014 Felix-owned time-tracking workbook\n     created, id\
+  \ recorded at ~/.config/felix/timelog/workbook.json (0600).\n\nThis manifest re-attempts\
+  \ every ~5-min tick until BOTH preconditions are\ncompleted. Halt-on-error order:\
+  \ (1) venv/deps gate; (2) creds + workbook\npresence; (3) no-emit dry-run self-test\
+  \ (sheets_helper --self-check +\ntimelog against an unresolvable client, gated before\
+  \ go-live, #711);\n(4) prompt-sync trigger + verify main's recognizer; (5) report\
+  \ via #701.\n"
+apply_mode: manifest
+applied_at: '2026-07-11T10:47:52Z'
