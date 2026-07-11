@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
   "last_updated": "2026-07-11",
-  "updated_by": "felix-time-logging-01KX79HT (#703 — WhatsApp -> timelog -> Sheets flow added) + felix-calendar-helper-01KX4H3C (#699 — calendar surface now flows Felix helper -> Google directly, not gog; closes #679) + felix-admin-cron-path-fix-01KWQTY3 (#656) + pull-based-deploy-pipeline-01KTYQQS (#136) + inbox-calendar-and-aspiration-routing-01KTHHXS + #520-felix-vikunja-sync-project-layer-and-url-config + #519-touchpoint-migration + #376-remove-escalation-v1-parity + #400-audit-interpretation-moment0 + #310-tasker-jsonl-migration + #374-main-verbatim-passthrough + #362-drift-event-auto-resolution + #371-habits-checkin-reply-scripts-first + #309-migrate-escalation-to-jsonl-state-model + #343-refactor-doc-auditor-to-scripts-first-driver + #307-backfill-habits-jsonl-from-comments + #306-habits-native-repeat-jsonl-state + #152 + restore-whatsapp-dm-reply-delivery-01KTVVHH (#588) + #545-bump-stale-last-updated-for-introduced-at",
+  "updated_by": "felix-canary-registry-01KX8T7B (#327 — +felix-canary component-health scanner, +felix-trust-scan trust-drift sibling, +unified-alert-bus-emit shared #701 emit path) + felix-time-logging-01KX79HT (#703 — WhatsApp -> timelog -> Sheets flow added) + felix-calendar-helper-01KX4H3C (#699 — calendar surface now flows Felix helper -> Google directly, not gog; closes #679)",
   "flows": [
     {
       "name": "vikunja-web-ui",
@@ -28,7 +28,7 @@
       "status": "active",
       "deployed_by": "manual",
       "updated_by": "F011",
-      "description": "Live bidirectional vault sync: Mac \u2194 Obsidian Cloud \u2194 office2 \u2194 iPhone",
+      "description": "Live bidirectional vault sync: Mac ↔ Obsidian Cloud ↔ office2 ↔ iPhone",
       "path": [
         {
           "from": "Mac (Obsidian)",
@@ -65,7 +65,7 @@
       "name": "second-brain-sync",
       "status": "active",
       "deployed_by": "F011",
-      "description": "Bidirectional git sync for non-vault second-brain content: office2 \u2194 GitHub (every 15 min)",
+      "description": "Bidirectional git sync for non-vault second-brain content: office2 ↔ GitHub (every 15 min)",
       "path": [
         {
           "from": "office2 (/home/kgale/second-brain)",
@@ -137,7 +137,7 @@
       "status": "active",
       "deployed_by": "F014",
       "updated_by": "#659",
-      "description": "Agent activity logging and digest generation: agents \u2192 log_action.py \u2192 JSONL \u2192 summarize.py \u2192 Markdown digests \u2192 Obsidian",
+      "description": "Agent activity logging and digest generation: agents → log_action.py → JSONL → summarize.py → Markdown digests → Obsidian",
       "path": [
         {
           "from": "Felix agent (via exec tool)",
@@ -279,7 +279,7 @@
       "status": "active",
       "deployed_by": "#307",
       "introduced_by": "#307",
-      "description": "Phase 4 (ADR-0002) one-shot historical backfill. Operator-driven helper that reads existing [Felix] completion comments from Vikunja habit tasks and replays them into the habits JSONL log via state_log.append with source=historical-backfill. Read-only on Vikunja (GET only). Idempotent on re-run via the Phase 2 (task_id, date, state) dedup. Not part of cron \u2014 invoked manually once before Phase 5 cutover (#308).",
+      "description": "Phase 4 (ADR-0002) one-shot historical backfill. Operator-driven helper that reads existing [Felix] completion comments from Vikunja habit tasks and replays them into the habits JSONL log via state_log.append with source=historical-backfill. Read-only on Vikunja (GET only). Idempotent on re-run via the Phase 2 (task_id, date, state) dedup. Not part of cron — invoked manually once before Phase 5 cutover (#308).",
       "path": [
         {
           "from": "Operator (Kent)",
@@ -316,13 +316,13 @@
       "introduced_by": "#371",
       "updated_by": "#371",
       "since": "#371",
-      "description": "#371 (habits scripts-first morning tick) canonical write path. At cron tick (7:05 AM ET), scripts/habits/morning_checkin_list.py reads today's active habits from Vikunja (via query_active_habits_v2.py \u2014 project-scoped to Habits, filter due_date<=now/d AND done=false), excludes habits already addressed today (via exclude_completed_v2.py reading habits-history.jsonl), and persists the ordered list to a per-date JSON artifact. Atomic write (tmp+fsync+rename). The artifact ordering is byte-identical to the formatted WhatsApp message also emitted to stdout (FR-001, FR-002, FR-007). One file per Kent-day; no rotation (~365 files/year, ~1 KB each per NFR-005).",
+      "description": "#371 (habits scripts-first morning tick) canonical write path. At cron tick (7:05 AM ET), scripts/habits/morning_checkin_list.py reads today's active habits from Vikunja (via query_active_habits_v2.py — project-scoped to Habits, filter due_date<=now/d AND done=false), excludes habits already addressed today (via exclude_completed_v2.py reading habits-history.jsonl), and persists the ordered list to a per-date JSON artifact. Atomic write (tmp+fsync+rename). The artifact ordering is byte-identical to the formatted WhatsApp message also emitted to stdout (FR-001, FR-002, FR-007). One file per Kent-day; no rotation (~365 files/year, ~1 KB each per NFR-005).",
       "path": [
         {
           "from": "felix-admin-habits agent (cron habits-morning-checkin)",
           "to": "scripts/habits/morning_checkin_list.py",
           "protocol": "subprocess (python3 -m)",
-          "description": "Step 1 of the morning tick \u2014 the agent invokes the helper and relays its stdout verbatim as the WhatsApp message"
+          "description": "Step 1 of the morning tick — the agent invokes the helper and relays its stdout verbatim as the WhatsApp message"
         },
         {
           "from": "scripts/habits/morning_checkin_list.py",
@@ -340,7 +340,7 @@
           "from": "scripts/habits/morning_checkin_list.py",
           "to": "/data/services/openclaw/state/habits/morning-checkin-<YYYY-MM-DD>.json",
           "protocol": "file write (atomic rename)",
-          "description": "Canonical morning-list artifact per data-model Entity 1: {schema_version, date, generated_at, habits:[{position, vikunja_task_id, title}]}. Authoritative ordering for the reply tick \u2014 the parser reads this, never re-queries Vikunja."
+          "description": "Canonical morning-list artifact per data-model Entity 1: {schema_version, date, generated_at, habits:[{position, vikunja_task_id, title}]}. Authoritative ordering for the reply tick — the parser reads this, never re-queries Vikunja."
         }
       ]
     },
@@ -351,13 +351,13 @@
       "introduced_by": "#371",
       "updated_by": "#371",
       "since": "#371",
-      "description": "#371 (habits scripts-first reply tick) canonical read path. When Kent replies to the morning check-in (via WhatsApp), scripts/habits/parse_morning_reply.py loads the persisted morning-list artifact for the relevant date and produces deterministic (task_id, state) tuples by tokenizing the reply against the artifact's positions + titles (FR-003, FR-004, FR-008). Reply parser NEVER re-queries Vikunja \u2014 the artifact is the sole source of ordering, so positions referenced in Kent's reply align with the habits he actually saw. If the artifact is missing (exit code 4), the agent files a P2-bug via felix-file-issue.py rather than falling back to live Vikunja state (FR-009).",
+      "description": "#371 (habits scripts-first reply tick) canonical read path. When Kent replies to the morning check-in (via WhatsApp), scripts/habits/parse_morning_reply.py loads the persisted morning-list artifact for the relevant date and produces deterministic (task_id, state) tuples by tokenizing the reply against the artifact's positions + titles (FR-003, FR-004, FR-008). Reply parser NEVER re-queries Vikunja — the artifact is the sole source of ordering, so positions referenced in Kent's reply align with the habits he actually saw. If the artifact is missing (exit code 4), the agent files a P2-bug via felix-file-issue.py rather than falling back to live Vikunja state (FR-009).",
       "path": [
         {
           "from": "felix-admin-habits agent (reply tick)",
           "to": "scripts/habits/parse_morning_reply.py",
           "protocol": "subprocess (python3 -m)",
-          "description": "Step 1 of the reply tick \u2014 agent passes Kent's reply text + the today-local date"
+          "description": "Step 1 of the reply tick — agent passes Kent's reply text + the today-local date"
         },
         {
           "from": "scripts/habits/parse_morning_reply.py",
@@ -380,7 +380,7 @@
       "introduced_by": "#371",
       "updated_by": "#371",
       "since": "#371",
-      "description": "#371 (narrow LLM judgment surface, mirrors #343 doc-audit pattern). When parse_morning_reply.py emits a judgment_required cluster (e.g., Kent's reply contains 'PT done' but the morning list has multiple PT habits), the agent invokes scripts/habits/judgment/disambiguate_reply.py for that cluster ONLY (FR-006). The helper reads the Anthropic API key from disk, calls api.anthropic.com directly via the anthropic-python SDK, and returns either {result: chosen, chosen_task_id} from the candidate set OR {result: clarify, suggested_question} for the agent to ask Kent. Default model: claude-haiku-4-5. The LLM is NEVER in the path for the bulk of replies \u2014 only ambiguous tokens.",
+      "description": "#371 (narrow LLM judgment surface, mirrors #343 doc-audit pattern). When parse_morning_reply.py emits a judgment_required cluster (e.g., Kent's reply contains 'PT done' but the morning list has multiple PT habits), the agent invokes scripts/habits/judgment/disambiguate_reply.py for that cluster ONLY (FR-006). The helper reads the Anthropic API key from disk, calls api.anthropic.com directly via the anthropic-python SDK, and returns either {result: chosen, chosen_task_id} from the candidate set OR {result: clarify, suggested_question} for the agent to ask Kent. Default model: claude-haiku-4-5. The LLM is NEVER in the path for the bulk of replies — only ambiguous tokens.",
       "path": [
         {
           "from": "felix-admin-habits agent (reply tick, parser emitted judgment_required)",
@@ -399,7 +399,7 @@
           "to": "Anthropic API",
           "protocol": "HTTPS (anthropic-python SDK)",
           "endpoint": "api.anthropic.com",
-          "description": "Single narrow judgment call per ambiguity cluster. Validates chosen_task_id is within the input's candidate_task_ids list \u2014 out-of-set responses are a hard-fail (exit code 5)."
+          "description": "Single narrow judgment call per ambiguity cluster. Validates chosen_task_id is within the input's candidate_task_ids list — out-of-set responses are a hard-fail (exit code 5)."
         }
       ]
     },
@@ -435,7 +435,7 @@
       "introduced_by": "#343",
       "updated_by": "#362",
       "since": "v2 since #362",
-      "description": "Post-#343 doc-audit tick flow \u2014 the Anthropic API call path. The systemd-timer-launched Python driver pulls signals, calls Anthropic directly at judgment moments, and mutates GitHub state via gh CLI. Post-#362 (v2): adds Moment 0 (drift_interpretation) for every mapped drift event before issue filing \u2014 so the judgment surface is now four moments (drift_interpretation, tier_classification, debt_body_generation, cross_file_implication). The Moment 0 LLM call leg is registered separately as flow `doc-audit-drift-interpretation-llm`. Post-#391 (v3): the Moment 0 invocation site on the cron path is `signals/drift_event.py::DriftEventSignalSource.commit()` delegating to the shared helper `routing/drift_moment0.py::route_drift_event()`. The library/CLI surface `helpers/handle_drift_events.py` delegates to the same helper for operator replay only. Replaces the pre-#343 path that routed through openclaw-gateway and an LLM-interpreted SKILL.md procedure. No openclaw-gateway proxy in path.",
+      "description": "Post-#343 doc-audit tick flow — the Anthropic API call path. The systemd-timer-launched Python driver pulls signals, calls Anthropic directly at judgment moments, and mutates GitHub state via gh CLI. Post-#362 (v2): adds Moment 0 (drift_interpretation) for every mapped drift event before issue filing — so the judgment surface is now four moments (drift_interpretation, tier_classification, debt_body_generation, cross_file_implication). The Moment 0 LLM call leg is registered separately as flow `doc-audit-drift-interpretation-llm`. Post-#391 (v3): the Moment 0 invocation site on the cron path is `signals/drift_event.py::DriftEventSignalSource.commit()` delegating to the shared helper `routing/drift_moment0.py::route_drift_event()`. The library/CLI surface `helpers/handle_drift_events.py` delegates to the same helper for operator replay only. Replaces the pre-#343 path that routed through openclaw-gateway and an LLM-interpreted SKILL.md procedure. No openclaw-gateway proxy in path.",
       "path": [
         {
           "from": "felix-doc-auditor.timer (systemd user unit)",
@@ -447,7 +447,7 @@
           "from": "felix-doc-auditor.service",
           "to": "/usr/bin/python3 /home/claude/kg-automation/scripts/doc_audit/run.py",
           "protocol": "exec",
-          "description": "Direct Python driver invocation \u2014 no openclaw gateway in path"
+          "description": "Direct Python driver invocation — no openclaw gateway in path"
         },
         {
           "from": "scripts/doc_audit/run.py",
@@ -460,7 +460,7 @@
           "to": "Anthropic API",
           "protocol": "HTTPS (anthropic-python SDK)",
           "endpoint": "api.anthropic.com",
-          "description": "Direct API calls at judgment moments \u2014 drift_interpretation (Moment 0, #362; invocation corrected to signals/drift_event.py + routing/drift_moment0.py by #391), tier_classification, debt_body_generation, cross_file_implication. Drift events go through Moment 0 first via the cron entry point signals/drift_event.py::commit() \u2192 routing/drift_moment0.py::route_drift_event(); PROPOSED_EDIT verdicts at confidence \u22650.80 are then routed through tier_classification. No openclaw-gateway proxy. Prompt caching enabled via SDK to amortize cached boilerplate across calls within a tick."
+          "description": "Direct API calls at judgment moments — drift_interpretation (Moment 0, #362; invocation corrected to signals/drift_event.py + routing/drift_moment0.py by #391), tier_classification, debt_body_generation, cross_file_implication. Drift events go through Moment 0 first via the cron entry point signals/drift_event.py::commit() → routing/drift_moment0.py::route_drift_event(); PROPOSED_EDIT verdicts at confidence ≥0.80 are then routed through tier_classification. No openclaw-gateway proxy. Prompt caching enabled via SDK to amortize cached boilerplate across calls within a tick."
         },
         {
           "from": "scripts/doc_audit/run.py",
@@ -484,12 +484,12 @@
         {
           "agent": "scripts/doc_audit/run.py",
           "reads_from": "/home/claude/kg-automation/docs/design/architecture/data/doc-domain-map.json",
-          "description": "Scope contract \u2014 changed-file path \u2192 owning doc"
+          "description": "Scope contract — changed-file path → owning doc"
         },
         {
           "agent": "scripts/doc_audit/run.py",
           "reads_from": "/home/claude/kg-automation/docs/design/architecture/data/signal-to-doc-map.json",
-          "description": "Signal class \u2192 candidate-doc map"
+          "description": "Signal class → candidate-doc map"
         }
       ]
     },
@@ -505,7 +505,7 @@
           "from": "scripts/doc_audit/run.py",
           "to": "/data/services/openclaw/felix-doc-auditor-driver/last-tick.json",
           "protocol": "file write (atomic rename)",
-          "description": "Tick signal \u2014 structured JSON capturing status, exit_code, timestamp_utc, signals_processed, judgment-call counts, token usage, errors. See contracts/tick-signal.contract.md. Overwritten each tick."
+          "description": "Tick signal — structured JSON capturing status, exit_code, timestamp_utc, signals_processed, judgment-call counts, token usage, errors. See contracts/tick-signal.contract.md. Overwritten each tick."
         }
       ]
     },
@@ -601,7 +601,7 @@
       "deployed_by": "#309",
       "introduced_by": "#309",
       "updated_by": "#309",
-      "description": "Phase 6 (ADR-0002) drift detection \u2014 Vikunja read leg (FR-005). reconcile_completions.py enumerates escalation-subscribed tasks (those with at least one prior level_sent JSONL record AND no terminal record since) per project, then GETs current Vikunja state per task to detect drift (vikunja.done=true with no JSONL done; vikunja.due_date changed without a JSONL rescheduled record). Triggers: every escalation tick (before per-task event processing).",
+      "description": "Phase 6 (ADR-0002) drift detection — Vikunja read leg (FR-005). reconcile_completions.py enumerates escalation-subscribed tasks (those with at least one prior level_sent JSONL record AND no terminal record since) per project, then GETs current Vikunja state per task to detect drift (vikunja.done=true with no JSONL done; vikunja.due_date changed without a JSONL rescheduled record). Triggers: every escalation tick (before per-task event processing).",
       "path": [
         {
           "from": "felix-admin-escalation agent",
@@ -625,7 +625,7 @@
       "deployed_by": "#309",
       "introduced_by": "#309",
       "updated_by": "#309",
-      "description": "Phase 6 (ADR-0002) drift detection \u2014 synthetic record write leg (FR-005). When reconcile detects drift, it emits synthetic JSONL records via record_completion.py with --no-vikunja (avoiding re-send of alerts already actioned out-of-band). source=reconcile distinguishes these from agent-originated records. Triggers: drift detection during reconcile sweep.",
+      "description": "Phase 6 (ADR-0002) drift detection — synthetic record write leg (FR-005). When reconcile detects drift, it emits synthetic JSONL records via record_completion.py with --no-vikunja (avoiding re-send of alerts already actioned out-of-band). source=reconcile distinguishes these from agent-originated records. Triggers: drift detection during reconcile sweep.",
       "path": [
         {
           "from": "scripts/escalation/reconcile_completions.py",
@@ -659,7 +659,7 @@
           "from": "scripts/escalation/reconcile_completions.py (or record_completion.py during validate)",
           "to": "scripts/escalation/hard_fail.py",
           "protocol": "python-import",
-          "description": "Calls hard_fail.file_hard_fail_bug(...) \u2014 pure library helper (no daemon). Module owned by WP04 in this mission; forward-referenced here per C-004."
+          "description": "Calls hard_fail.file_hard_fail_bug(...) — pure library helper (no daemon). Module owned by WP04 in this mission; forward-referenced here per C-004."
         },
         {
           "from": "scripts/escalation/hard_fail.py",
@@ -671,7 +671,7 @@
           "from": "scripts/escalation/hard_fail.py",
           "to": "scripts/openclaw/agents/main/felix-file-issue.py",
           "protocol": "subprocess",
-          "description": "Hard-fail bug filing per data-model Entity 5 template. Labels: P2-bug, area/escalation. Title format: `Escalation hard-fail: <task title> (task #<vikunja_id>) \u2014 <short reason>`."
+          "description": "Hard-fail bug filing per data-model Entity 5 template. Labels: P2-bug, area/escalation. Title format: `Escalation hard-fail: <task title> (task #<vikunja_id>) — <short reason>`."
         },
         {
           "from": "scripts/openclaw/agents/main/felix-file-issue.py",
@@ -693,7 +693,7 @@
       "deployed_by": "#310",
       "introduced_by": "#310",
       "updated_by": "#310",
-      "description": "Phase 7 (ADR-0002) Vikunja side-effect of an enrichment event \u2014 the FIRST of the three writes (Vikunja FIRST so unreliable remote ops surface before any state_log line lands). felix-admin-tasker invokes scripts/enrichment/record_completion.py per state transition; the helper PUTs a `[Felix] enrichment | <state> | <ISO timestamp>` comment to /tasks/<id>/comments. Triggers: enrich_task action (delegation from felix-admin-capture), retroactive_enrichment batch, detect_incomplete proposal. During the post-cutover soak (C-002), this comment is the rollback substrate; post-soak the comment-write path can be removed in a v2 follow-on while keeping the JSONL canonical.",
+      "description": "Phase 7 (ADR-0002) Vikunja side-effect of an enrichment event — the FIRST of the three writes (Vikunja FIRST so unreliable remote ops surface before any state_log line lands). felix-admin-tasker invokes scripts/enrichment/record_completion.py per state transition; the helper PUTs a `[Felix] enrichment | <state> | <ISO timestamp>` comment to /tasks/<id>/comments. Triggers: enrich_task action (delegation from felix-admin-capture), retroactive_enrichment batch, detect_incomplete proposal. During the post-cutover soak (C-002), this comment is the rollback substrate; post-soak the comment-write path can be removed in a v2 follow-on while keeping the JSONL canonical.",
       "path": [
         {
           "from": "felix-admin-tasker agent",
@@ -717,13 +717,13 @@
       "deployed_by": "#310",
       "introduced_by": "#310",
       "updated_by": "#310",
-      "description": "Phase 7 (ADR-0002) canonical enrichment state write \u2014 the SECOND of the three writes (after the Vikunja comment lands). record_completion.py appends an EnrichmentCompletion row to the single-file JSONL ledger via an fcntl-locked append-then-flush-then-fsync sequence. Per FR-013 (Q10 soft-fail), JSONL failures post-Vikunja log a warning and exit 0 \u2014 the Vikunja state is consistent and reconcile_completions can recover the JSONL row later. Replaces `[Felix] enrichment` comments as the authoritative state source post-cutover.",
+      "description": "Phase 7 (ADR-0002) canonical enrichment state write — the SECOND of the three writes (after the Vikunja comment lands). record_completion.py appends an EnrichmentCompletion row to the single-file JSONL ledger via an fcntl-locked append-then-flush-then-fsync sequence. Per FR-013 (Q10 soft-fail), JSONL failures post-Vikunja log a warning and exit 0 — the Vikunja state is consistent and reconcile_completions can recover the JSONL row later. Replaces `[Felix] enrichment` comments as the authoritative state source post-cutover.",
       "path": [
         {
           "from": "scripts/enrichment/record_completion.py",
           "to": "/data/services/openclaw/state/enrichment/enrichment-history.jsonl",
           "protocol": "fcntl-locked file append + flush + fsync",
-          "description": "Single-file ledger (not per-project \u2014 enrichment is system-wide). Schema (data-model E1): EnrichmentCompletion(task_id, state, timestamp_utc, source[, note], schema_version=1). VALID_STATES = {proposed, confirmed, skipped, declined}. VALID_SOURCES = {agent, reconcile, backfill, operator_repair}."
+          "description": "Single-file ledger (not per-project — enrichment is system-wide). Schema (data-model E1): EnrichmentCompletion(task_id, state, timestamp_utc, source[, note], schema_version=1). VALID_STATES = {proposed, confirmed, skipped, declined}. VALID_SOURCES = {agent, reconcile, backfill, operator_repair}."
         }
       ]
     },
@@ -763,7 +763,7 @@
       "deployed_by": "#362",
       "introduced_by": "#362",
       "updated_by": "#391",
-      "description": "#362 (Moment 0 drift interpretation \u2014 narrow LLM judgment surface); cron-path invocation site corrected by #391. Per mapped drift event, the cron entry point `signals/drift_event.py::DriftEventSignalSource.commit()` delegates to the shared helper `routing/drift_moment0.py::route_drift_event()`, which invokes `drift_interpretation.interpret()` and routes the verdict. The library/CLI surface `helpers/handle_drift_events.py::process_events()` delegates to the same routing helper for operator replay (no longer the cron entry point). `interpret()` builds a cache-aware prompt and calls api.anthropic.com directly via the shared JudgmentClient (claude-haiku-4-5-20251001). The verdict (PROPOSED_EDIT / JUDGMENT_REQUIRED / NO_CHANGE_NEEDED) plus confidence \u2208 [0.0, 1.0] is parsed + validated against the E1 schema. PROPOSED_EDIT verdicts at confidence \u22650.80 feed drift_to_proposed_edit and onward through the existing tier_classification surface; lower confidence demotes to JUDGMENT_REQUIRED. Retry policy 30s/60s/120s; on exhaustion falls back to the pre-#362 issue path. Gated by [drift_interpretation].enabled in config.toml \u2014 flipping to false reverts to deterministic-only behavior in \u226460s (NFR-007).",
+      "description": "#362 (Moment 0 drift interpretation — narrow LLM judgment surface); cron-path invocation site corrected by #391. Per mapped drift event, the cron entry point `signals/drift_event.py::DriftEventSignalSource.commit()` delegates to the shared helper `routing/drift_moment0.py::route_drift_event()`, which invokes `drift_interpretation.interpret()` and routes the verdict. The library/CLI surface `helpers/handle_drift_events.py::process_events()` delegates to the same routing helper for operator replay (no longer the cron entry point). `interpret()` builds a cache-aware prompt and calls api.anthropic.com directly via the shared JudgmentClient (claude-haiku-4-5-20251001). The verdict (PROPOSED_EDIT / JUDGMENT_REQUIRED / NO_CHANGE_NEEDED) plus confidence ∈ [0.0, 1.0] is parsed + validated against the E1 schema. PROPOSED_EDIT verdicts at confidence ≥0.80 feed drift_to_proposed_edit and onward through the existing tier_classification surface; lower confidence demotes to JUDGMENT_REQUIRED. Retry policy 30s/60s/120s; on exhaustion falls back to the pre-#362 issue path. Gated by [drift_interpretation].enabled in config.toml — flipping to false reverts to deterministic-only behavior in ≤60s (NFR-007).",
       "trigger": "per drift event when [drift_interpretation].enabled = true in scripts/doc_audit/config.toml",
       "path": [
         {
@@ -788,20 +788,20 @@
           "from": "scripts/doc_audit/judgment/drift_interpretation.py",
           "to": "/data/services/openclaw/secrets/anthropic",
           "protocol": "file read (0600)",
-          "description": "API key load via the shared JudgmentClient \u2014 not re-read per call; reused across the tick. Sensitive: never logged."
+          "description": "API key load via the shared JudgmentClient — not re-read per call; reused across the tick. Sensitive: never logged."
         },
         {
           "from": "scripts/doc_audit/judgment/drift_interpretation.py",
           "to": "Anthropic API",
           "protocol": "HTTPS (anthropic-python SDK)",
           "endpoint": "api.anthropic.com",
-          "description": "Single narrow judgment call per drift event. Cache-aware: system prompt (\u226580% of tokens by char count) is marked cache_control=ephemeral per the existing tier_classification.py pattern (C-005). Returns strict JSON; defense-in-depth schema validation demotes malformed responses to JUDGMENT_REQUIRED (C-006)."
+          "description": "Single narrow judgment call per drift event. Cache-aware: system prompt (≥80% of tokens by char count) is marked cache_control=ephemeral per the existing tier_classification.py pattern (C-005). Returns strict JSON; defense-in-depth schema validation demotes malformed responses to JUDGMENT_REQUIRED (C-006)."
         },
         {
           "from": "scripts/doc_audit/judgment/drift_interpretation.py",
           "to": "scripts/doc_audit/routing/drift_moment0.py",
           "protocol": "return value",
-          "description": "Returns a DriftVerdict (E1). On retry exhaustion raises DriftInterpretationError which the caller (signals/drift_event.py on the cron path, or handle_drift_events.py on the replay path) catches \u2192 writes RETRY_EXHAUSTED ledger entry \u2192 files pre-#362 fallback [doc-audit] issue with diagnostic block (FR-008, FR-009)."
+          "description": "Returns a DriftVerdict (E1). On retry exhaustion raises DriftInterpretationError which the caller (signals/drift_event.py on the cron path, or handle_drift_events.py on the replay path) catches → writes RETRY_EXHAUSTED ledger entry → files pre-#362 fallback [doc-audit] issue with diagnostic block (FR-008, FR-009)."
         }
       ],
       "operational_status": "suspended",
@@ -817,20 +817,20 @@
       "deployed_by": "#362",
       "introduced_by": "#362",
       "updated_by": "#391",
-      "description": "#362 (Moment 0 audit ledger \u2014 terminal write for every processed drift event); cron-path source corrected by #391. After the verdict is routed (PROPOSED_EDIT through tier_classification, JUDGMENT_REQUIRED via [doc-audit] issue, NO_CHANGE_NEEDED auto-closed, or RETRY_EXHAUSTED escalated), routing/drift_moment0.py calls drift_ledger.append() with one AuditLedgerEntry (E3) capturing event_id, timestamp_utc, baseline, mapping_id, verdict, confidence, outcome \u2208 {auto_committed, pr_filed, issue_filed, auto_closed, retry_exhausted}, doc_paths, retry_count, latency_ms, tier_classification_outcome, github_issue_number. Atomic append (tempfile + rename). The ledger backs the NFR-001 operator-triage-rate metric. Both the cron entry point (signals/drift_event.py) and the replay path (helpers/handle_drift_events.py) reach this write via the same routing helper.",
+      "description": "#362 (Moment 0 audit ledger — terminal write for every processed drift event); cron-path source corrected by #391. After the verdict is routed (PROPOSED_EDIT through tier_classification, JUDGMENT_REQUIRED via [doc-audit] issue, NO_CHANGE_NEEDED auto-closed, or RETRY_EXHAUSTED escalated), routing/drift_moment0.py calls drift_ledger.append() with one AuditLedgerEntry (E3) capturing event_id, timestamp_utc, baseline, mapping_id, verdict, confidence, outcome ∈ {auto_committed, pr_filed, issue_filed, auto_closed, retry_exhausted}, doc_paths, retry_count, latency_ms, tier_classification_outcome, github_issue_number. Atomic append (tempfile + rename). The ledger backs the NFR-001 operator-triage-rate metric. Both the cron entry point (signals/drift_event.py) and the replay path (helpers/handle_drift_events.py) reach this write via the same routing helper.",
       "trigger": "per processed drift event (all verdict branches converge to one ledger row)",
       "path": [
         {
           "from": "scripts/doc_audit/signals/drift_event.py",
           "to": "scripts/doc_audit/routing/drift_moment0.py",
           "protocol": "python-import",
-          "description": "Cron entry point \u2014 calls route_drift_event() which appends the ledger as its terminal side-effect."
+          "description": "Cron entry point — calls route_drift_event() which appends the ledger as its terminal side-effect."
         },
         {
           "from": "scripts/doc_audit/helpers/handle_drift_events.py",
           "to": "scripts/doc_audit/routing/drift_moment0.py",
           "protocol": "python-import",
-          "description": "Library/CLI replay \u2014 calls the same route_drift_event() helper."
+          "description": "Library/CLI replay — calls the same route_drift_event() helper."
         },
         {
           "from": "scripts/doc_audit/routing/drift_moment0.py",
@@ -842,14 +842,14 @@
           "from": "scripts/doc_audit/output/drift_ledger.py",
           "to": "/data/services/security-monitor/logs/drift-events-ledger.jsonl",
           "protocol": "file append (atomic rename)",
-          "description": "Append-only JSONL \u2014 one row per event. No rotation in v1. ~3-10 entries/day at current drift volume. Read-only CLI subcommands (summary, tail, triage-rate) tail from end-of-file forward for the window in question."
+          "description": "Append-only JSONL — one row per event. No rotation in v1. ~3-10 entries/day at current drift volume. Read-only CLI subcommands (summary, tail, triage-rate) tail from end-of-file forward for the window in question."
         }
       ],
       "consumers": [
         {
           "agent": "operator (Kent)",
           "reads_from": "/data/services/security-monitor/logs/drift-events-ledger.jsonl",
-          "description": "Via `python3 -m scripts.doc_audit.output.drift_ledger {summary|tail|triage-rate}` \u2014 NFR-001 metric and daily observation in the 7-day post-deploy window"
+          "description": "Via `python3 -m scripts.doc_audit.output.drift_ledger {summary|tail|triage-rate}` — NFR-001 metric and daily observation in the 7-day post-deploy window"
         }
       ],
       "operational_status": "suspended",
@@ -865,7 +865,7 @@
       "deployed_by": "#400",
       "introduced_by": "#400",
       "updated_by": "#400",
-      "description": "#400 (Moment 0 commit-audit interpretation \u2014 narrow per-doc LLM judgment surface mirroring drift_interpretation but adapted for commit-derived `Doc audit:` issues). When `handle_audit_routing.py` finds no deterministic-pattern proposals AND `[audit_interpretation].enabled = true`, the no-proposals branch invokes `audit_interpretation.interpret_audit(client, context)`. The helper assembles an AuditInterpretationContext (audit issue + commit SHA + diff + in-scope doc paths + per-doc current contents from disk) and calls api.anthropic.com once per in-scope doc via the shared JudgmentClient (claude-haiku-4-5-20251001). Each call returns an AuditVerdict (PROPOSED_EDIT / JUDGMENT_REQUIRED / NO_CHANGE_NEEDED) with confidence \u2208 [0.0, 1.0]. PROPOSED_EDIT at confidence \u22650.80 feeds the existing tier_classification surface (may yield Tier A auto-commit, Tier B pending-approval issue, or judgment debt-issue); PROPOSED_EDIT or NO_CHANGE_NEEDED at confidence <0.80 demotes to JUDGMENT_REQUIRED at the helper boundary. JUDGMENT_REQUIRED verdicts accumulate into a single consolidated comment posted to the audit issue (per research D3). When ALL in-scope docs return NO_CHANGE_NEEDED at confidence \u22650.80, the audit issue is auto-closed with a summary comment. Per-doc isolation: retry exhaustion on doc N does NOT prevent docs N\u00b11 from being evaluated (synthetic JUDGMENT_REQUIRED verdict is emitted for the failed doc). Gated by [audit_interpretation].enabled in config.toml \u2014 flipping to false reverts to the pre-#400 no-proposals path (lock release + 'no automatable edits' comment) in \u226460s (FR-013).",
+      "description": "#400 (Moment 0 commit-audit interpretation — narrow per-doc LLM judgment surface mirroring drift_interpretation but adapted for commit-derived `Doc audit:` issues). When `handle_audit_routing.py` finds no deterministic-pattern proposals AND `[audit_interpretation].enabled = true`, the no-proposals branch invokes `audit_interpretation.interpret_audit(client, context)`. The helper assembles an AuditInterpretationContext (audit issue + commit SHA + diff + in-scope doc paths + per-doc current contents from disk) and calls api.anthropic.com once per in-scope doc via the shared JudgmentClient (claude-haiku-4-5-20251001). Each call returns an AuditVerdict (PROPOSED_EDIT / JUDGMENT_REQUIRED / NO_CHANGE_NEEDED) with confidence ∈ [0.0, 1.0]. PROPOSED_EDIT at confidence ≥0.80 feeds the existing tier_classification surface (may yield Tier A auto-commit, Tier B pending-approval issue, or judgment debt-issue); PROPOSED_EDIT or NO_CHANGE_NEEDED at confidence <0.80 demotes to JUDGMENT_REQUIRED at the helper boundary. JUDGMENT_REQUIRED verdicts accumulate into a single consolidated comment posted to the audit issue (per research D3). When ALL in-scope docs return NO_CHANGE_NEEDED at confidence ≥0.80, the audit issue is auto-closed with a summary comment. Per-doc isolation: retry exhaustion on doc N does NOT prevent docs N±1 from being evaluated (synthetic JUDGMENT_REQUIRED verdict is emitted for the failed doc). Gated by [audit_interpretation].enabled in config.toml — flipping to false reverts to the pre-#400 no-proposals path (lock release + 'no automatable edits' comment) in ≤60s (FR-013).",
       "trigger": "per commit-derived audit when handle_audit_routing.py finds no deterministic-pattern proposals AND [audit_interpretation].enabled = true in scripts/doc_audit/config.toml",
       "path": [
         {
@@ -878,20 +878,20 @@
           "from": "scripts/doc_audit/judgment/audit_interpretation.py",
           "to": "/data/services/openclaw/secrets/anthropic",
           "protocol": "file read (0600)",
-          "description": "API key load via the shared JudgmentClient \u2014 not re-read per call; reused across the per-doc call sequence within a single audit. Sensitive: never logged."
+          "description": "API key load via the shared JudgmentClient — not re-read per call; reused across the per-doc call sequence within a single audit. Sensitive: never logged."
         },
         {
           "from": "scripts/doc_audit/judgment/audit_interpretation.py",
           "to": "Anthropic API",
           "protocol": "HTTPS (anthropic-python SDK)",
           "endpoint": "api.anthropic.com",
-          "description": "ONE narrow judgment call PER in-scope doc. Cache-aware: system prompt (\u226580% of tokens by char count) is marked cache_control=ephemeral per the existing tier_classification.py / drift_interpretation.py pattern. Returns strict JSON; defense-in-depth schema validation demotes malformed responses to JUDGMENT_REQUIRED (proposed edits to paths outside the in-scope list also demote \u2014 semantic violation)."
+          "description": "ONE narrow judgment call PER in-scope doc. Cache-aware: system prompt (≥80% of tokens by char count) is marked cache_control=ephemeral per the existing tier_classification.py / drift_interpretation.py pattern. Returns strict JSON; defense-in-depth schema validation demotes malformed responses to JUDGMENT_REQUIRED (proposed edits to paths outside the in-scope list also demote — semantic violation)."
         },
         {
           "from": "scripts/doc_audit/judgment/audit_interpretation.py",
           "to": "scripts/doc_audit/helpers/handle_audit_routing.py",
           "protocol": "return value",
-          "description": "Returns list[AuditVerdict]. PROPOSED_EDIT at confidence \u22650.80 routes through tier_classification; JUDGMENT_REQUIRED accumulates into a consolidated comment on the audit issue; NO_CHANGE_NEEDED \u2265threshold across all docs auto-closes the audit. Per-doc retry exhaustion emits a synthetic JUDGMENT_REQUIRED verdict; catastrophic failures fall back to the pre-#400 lock-release + 'no automatable edits' comment path."
+          "description": "Returns list[AuditVerdict]. PROPOSED_EDIT at confidence ≥0.80 routes through tier_classification; JUDGMENT_REQUIRED accumulates into a consolidated comment on the audit issue; NO_CHANGE_NEEDED ≥threshold across all docs auto-closes the audit. Per-doc retry exhaustion emits a synthetic JUDGMENT_REQUIRED verdict; catastrophic failures fall back to the pre-#400 lock-release + 'no automatable edits' comment path."
         }
       ],
       "operational_status": "suspended",
@@ -907,7 +907,7 @@
       "deployed_by": "#400",
       "introduced_by": "#400",
       "updated_by": "#400",
-      "description": "#400 (Moment 0 commit-audit ledger \u2014 one row per (audit_issue, doc_path) pair). After the per-doc verdict is routed (PROPOSED_EDIT through tier_classification, JUDGMENT_REQUIRED accumulated into a consolidated comment, NO_CHANGE_NEEDED auto-closed when all docs clean, or RETRY_EXHAUSTED escalated), handle_audit_routing.py calls audit_ledger.append() with one entry per in-scope doc. Schema mirrors drift_ledger with two adaptations per spec D1/E3: (a) audit_issue:int replaces event_id/baseline/mapping_id (the audit issue number is the cursor for the commit-audit path); (b) judgment_required_posted is a distinct outcome value (drift uses issue_filed for JUDGMENT_REQUIRED because drift creates a NEW issue per event; audit appends a comment to the EXISTING audit issue). Atomic append (tempfile + rename). Backs the NFR-001 operator-triage-rate metric via the audit_ledger CLI subcommands.",
+      "description": "#400 (Moment 0 commit-audit ledger — one row per (audit_issue, doc_path) pair). After the per-doc verdict is routed (PROPOSED_EDIT through tier_classification, JUDGMENT_REQUIRED accumulated into a consolidated comment, NO_CHANGE_NEEDED auto-closed when all docs clean, or RETRY_EXHAUSTED escalated), handle_audit_routing.py calls audit_ledger.append() with one entry per in-scope doc. Schema mirrors drift_ledger with two adaptations per spec D1/E3: (a) audit_issue:int replaces event_id/baseline/mapping_id (the audit issue number is the cursor for the commit-audit path); (b) judgment_required_posted is a distinct outcome value (drift uses issue_filed for JUDGMENT_REQUIRED because drift creates a NEW issue per event; audit appends a comment to the EXISTING audit issue). Atomic append (tempfile + rename). Backs the NFR-001 operator-triage-rate metric via the audit_ledger CLI subcommands.",
       "trigger": "per in-scope doc evaluated by audit_interpretation (one ledger row per doc, all verdict branches converge)",
       "path": [
         {
@@ -920,14 +920,14 @@
           "from": "scripts/doc_audit/output/audit_ledger.py",
           "to": "/data/services/openclaw/state/doc_audit/audit-events-ledger.jsonl",
           "protocol": "file append (atomic rename)",
-          "description": "Append-only JSONL \u2014 one row per (audit_issue, doc_path). No rotation in v1. Read-only CLI subcommands (summary, tail, triage-rate) tail from end-of-file forward for the window in question."
+          "description": "Append-only JSONL — one row per (audit_issue, doc_path). No rotation in v1. Read-only CLI subcommands (summary, tail, triage-rate) tail from end-of-file forward for the window in question."
         }
       ],
       "consumers": [
         {
           "agent": "operator (Kent)",
           "reads_from": "/data/services/openclaw/state/doc_audit/audit-events-ledger.jsonl",
-          "description": "Via `python3 -m scripts.doc_audit.output.audit_ledger {summary|tail|triage-rate}` \u2014 NFR-001 metric and daily observation in the 7-day post-deploy window"
+          "description": "Via `python3 -m scripts.doc_audit.output.audit_ledger {summary|tail|triage-rate}` — NFR-001 metric and daily observation in the 7-day post-deploy window"
         }
       ],
       "operational_status": "suspended",
@@ -943,7 +943,7 @@
       "deployed_by": "#362",
       "introduced_by": "#362",
       "updated_by": "#362",
-      "description": "#362 (one-shot backlog cutover \u2014 bridges from pre-#362 deterministic-only behavior into the new Moment 0 pipeline). Operator-driven manual invocation (post-deploy, once). The 13 known pre-#362 [doc-audit] P3 issues (#351-#360, #368-#370) are closed with a comment noting the new pipeline will reprocess them; the drift-events cursor is reset to 0 to enable reprocessing of piled-up drift events via Moment 0; a sentinel marker at ~/.config/doc-audit/cutover-362.done prevents re-run. Idempotent on re-run; `--force` overrides the marker check; `--dry-run` prints intent without mutations.",
+      "description": "#362 (one-shot backlog cutover — bridges from pre-#362 deterministic-only behavior into the new Moment 0 pipeline). Operator-driven manual invocation (post-deploy, once). The 13 known pre-#362 [doc-audit] P3 issues (#351-#360, #368-#370) are closed with a comment noting the new pipeline will reprocess them; the drift-events cursor is reset to 0 to enable reprocessing of piled-up drift events via Moment 0; a sentinel marker at ~/.config/doc-audit/cutover-362.done prevents re-run. Idempotent on re-run; `--force` overrides the marker check; `--dry-run` prints intent without mutations.",
       "trigger": "one-shot operator invocation post-deploy",
       "path": [
         {
@@ -956,7 +956,7 @@
           "from": "scripts/doc_audit/helpers/cutover_362.py",
           "to": "gh CLI (subprocess)",
           "protocol": "subprocess",
-          "description": "gh issue list --search 'is:issue is:open label:P3-candidate \"[doc-audit]\" in:title' \u2192 per result: gh issue comment + gh issue close. Identity: kg-felix-bot (classic PAT)."
+          "description": "gh issue list --search 'is:issue is:open label:P3-candidate \"[doc-audit]\" in:title' → per result: gh issue comment + gh issue close. Identity: kg-felix-bot (classic PAT)."
         },
         {
           "from": "gh CLI (subprocess)",
@@ -985,7 +985,7 @@
       "deployed_by": "#391",
       "introduced_by": "#391",
       "updated_by": "#391",
-      "description": "#391 (one-shot artifact cleanup \u2014 closes the 13 broken-pipeline [doc-audit] issues #378-#390 filed by the broken pre-#391 pipeline replay on 2026-05-22T22:28 UTC). Structurally identical to doc-audit-cutover-gh-close (#362) with two deliberate omissions: (a) static issue list, no `gh issue list` query; (b) no cursor reset \u2014 the fixed pipeline at signals/drift_event.py processes subsequent drift events via Moment 0 naturally. Operator-driven manual invocation (post-deploy, once). Idempotent on re-run; `--force` overrides the marker check; `--dry-run` prints intent without mutations.",
+      "description": "#391 (one-shot artifact cleanup — closes the 13 broken-pipeline [doc-audit] issues #378-#390 filed by the broken pre-#391 pipeline replay on 2026-05-22T22:28 UTC). Structurally identical to doc-audit-cutover-gh-close (#362) with two deliberate omissions: (a) static issue list, no `gh issue list` query; (b) no cursor reset — the fixed pipeline at signals/drift_event.py processes subsequent drift events via Moment 0 naturally. Operator-driven manual invocation (post-deploy, once). Idempotent on re-run; `--force` overrides the marker check; `--dry-run` prints intent without mutations.",
       "trigger": "one-shot operator invocation post-deploy",
       "path": [
         {
@@ -1021,7 +1021,7 @@
       "deployed_by": "#374",
       "introduced_by": "#374",
       "updated_by": "#374",
-      "description": "#374 (main-verbatim-passthrough-01KSATRP) \u2014 operator-driven session rotation to force the main agent to re-load /data/services/openclaw/data/AGENTS.md. OpenClaw caches the system prompt for the lifetime of a session; AGENTS.md edits otherwise stay invisible until the next-started session. The cutover runbook (docs/runbooks/openclaw-agent-setup.md \u00a7'Cutover sequence for main-agent AGENTS.md changes (post-#374)') wraps this helper as step 4 of the 5-step deploy sequence. Idempotent: each call produces a uniquely-timestamped reset suffix and marker. --dry-run prints intent without mutations.",
+      "description": "#374 (main-verbatim-passthrough-01KSATRP) — operator-driven session rotation to force the main agent to re-load /data/services/openclaw/data/AGENTS.md. OpenClaw caches the system prompt for the lifetime of a session; AGENTS.md edits otherwise stay invisible until the next-started session. The cutover runbook (docs/runbooks/openclaw-agent-setup.md §'Cutover sequence for main-agent AGENTS.md changes (post-#374)') wraps this helper as step 4 of the 5-step deploy sequence. Idempotent: each call produces a uniquely-timestamped reset suffix and marker. --dry-run prints intent without mutations.",
       "trigger": "operator (Kent) post-AGENTS.md-deploy",
       "path": [
         {
@@ -1040,7 +1040,7 @@
           "from": "scripts/openclaw/helpers/rotate_main_session.py",
           "to": "~/.config/openclaw/main-rotation-<timestamp>.done",
           "protocol": "file write",
-          "description": "Marker recording mission slug, run_at_utc, and rotated session basenames. Marker dir is created on first run. Permanent audit trail \u2014 operator can leave it in place."
+          "description": "Marker recording mission slug, run_at_utc, and rotated session basenames. Marker dir is created on first run. Permanent audit trail — operator can leave it in place."
         }
       ]
     },
@@ -1051,7 +1051,7 @@
       "introduced_by": "#490",
       "updated_by": "#490",
       "last_updated": "2026-06-01",
-      "description": "#490 (signal-driven-monitoring-haiku-gate-01KT22PC) \u2014 deterministic OpenClaw log signal extraction files threshold-triggered issues to GitHub via kg-felix-bot. Each 15-min felix-core-digest tick chains summarize.py + tick.py (Type=oneshot, two ExecStart). tick.py reads /tmp/openclaw/openclaw-*.log, evaluates each configured signal (FR-001..FR-006), persists per-signal counters under /data/services/openclaw/felix-core-digest-signals/state/, and when a signal crosses its `cycle_threshold` / `rolling_threshold` AND no matching open issue exists within the dedup window, invokes scripts/openclaw/agents/main/felix-file-issue.py to file a new issue via gh under the kg-felix-bot identity. No LLM is in this path (NFR-003). Per-cycle outcomes land in last-tick.json + signals-ledger.jsonl. Log excerpts in issue bodies are credential-redacted per C-005. Replaces the prior heartbeat-driven LLM-judged filing path for the named signal classes; novel patterns continue to escalate via felix-heartbeat-gate (see heartbeat-gate-to-main-agent flow).",
+      "description": "#490 (signal-driven-monitoring-haiku-gate-01KT22PC) — deterministic OpenClaw log signal extraction files threshold-triggered issues to GitHub via kg-felix-bot. Each 15-min felix-core-digest tick chains summarize.py + tick.py (Type=oneshot, two ExecStart). tick.py reads /tmp/openclaw/openclaw-*.log, evaluates each configured signal (FR-001..FR-006), persists per-signal counters under /data/services/openclaw/felix-core-digest-signals/state/, and when a signal crosses its `cycle_threshold` / `rolling_threshold` AND no matching open issue exists within the dedup window, invokes scripts/openclaw/agents/main/felix-file-issue.py to file a new issue via gh under the kg-felix-bot identity. No LLM is in this path (NFR-003). Per-cycle outcomes land in last-tick.json + signals-ledger.jsonl. Log excerpts in issue bodies are credential-redacted per C-005. Replaces the prior heartbeat-driven LLM-judged filing path for the named signal classes; novel patterns continue to escalate via felix-heartbeat-gate (see heartbeat-gate-to-main-agent flow).",
       "trigger": "every 15 minutes via felix-core-digest.timer (systemd user); also on manual `systemctl --user start --wait felix-core-digest.service`",
       "data_classification": "operational telemetry (credential material redacted per C-005)",
       "path": [
@@ -1071,7 +1071,7 @@
           "from": "felix-core-digest.service",
           "to": "scripts/openclaw/observation/tick.py",
           "protocol": "ExecStart (second)",
-          "description": "Signal-extraction tick \u2014 only runs if summarize.py exited 0."
+          "description": "Signal-extraction tick — only runs if summarize.py exited 0."
         },
         {
           "from": "scripts/openclaw/observation/tick.py",
@@ -1095,7 +1095,7 @@
           "from": "scripts/openclaw/agents/main/felix-file-issue.py",
           "to": "GitHub (gh CLI)",
           "protocol": "subprocess (kg-felix-bot PAT)",
-          "description": "gh issue create under the kg-felix-bot identity. Identity verified via `gh auth status` before any write \u2014 refuses to file under any other identity (C-001)."
+          "description": "gh issue create under the kg-felix-bot identity. Identity verified via `gh auth status` before any write — refuses to file under any other identity (C-001)."
         },
         {
           "from": "scripts/openclaw/observation/tick.py",
@@ -1118,9 +1118,9 @@
       "introduced_by": "#490",
       "updated_by": "#676",
       "last_updated": "2026-07-08",
-      "description": "#490 origin; #676 determinized the decision. The routing gate decides whether each 30-minute heartbeat tick needs to wake the expensive Sonnet main-agent path. The gate (scripts/openclaw/heartbeat_gate/run.py) reads the latest signal-extraction snapshot (last-tick.json) and the heartbeat contract file (HEARTBEAT.md), then computes the route with a pure Python rule (gate.decide_deterministic) over the already-deterministic novelty markers \u2014 NO LLM, NO Anthropic call in the tick hot path (#676). The gate returns one of HEARTBEAT_OK (do nothing), LOG_AND_SKIP (record but no action), or ESCALATE_TO_SONNET (wake the main agent with the gate's deterministically-built reason). ESCALATE fires iff novelty_markers is non-empty OR heartbeat_md_state == has_tasks OR errors is non-empty (the routing prompt's boolean contract, validated 0 missed / 0 over vs 1748 historical ticks). On ESCALATE_TO_SONNET the gate invokes `openclaw system event --mode now` exactly once per tick (FR-008). Any failure loading context or computing the decision falls back to the same ESCALATE_TO_SONNET path so observation is never silently dropped (FR-011); the fallback is recorded in last-gate-decision.json.fallback_invoked. The gate honors the existing HEARTBEAT.md contract semantics (FR-010). Replaces OpenClaw's internal heartbeat for the steady state; the internal heartbeat is disabled at cutover via `openclaw system heartbeat disable` (Tier 2 \u2014 see runbook).",
+      "description": "#490 origin; #676 determinized the decision. The routing gate decides whether each 30-minute heartbeat tick needs to wake the expensive Sonnet main-agent path. The gate (scripts/openclaw/heartbeat_gate/run.py) reads the latest signal-extraction snapshot (last-tick.json) and the heartbeat contract file (HEARTBEAT.md), then computes the route with a pure Python rule (gate.decide_deterministic) over the already-deterministic novelty markers — NO LLM, NO Anthropic call in the tick hot path (#676). The gate returns one of HEARTBEAT_OK (do nothing), LOG_AND_SKIP (record but no action), or ESCALATE_TO_SONNET (wake the main agent with the gate's deterministically-built reason). ESCALATE fires iff novelty_markers is non-empty OR heartbeat_md_state == has_tasks OR errors is non-empty (the routing prompt's boolean contract, validated 0 missed / 0 over vs 1748 historical ticks). On ESCALATE_TO_SONNET the gate invokes `openclaw system event --mode now` exactly once per tick (FR-008). Any failure loading context or computing the decision falls back to the same ESCALATE_TO_SONNET path so observation is never silently dropped (FR-011); the fallback is recorded in last-gate-decision.json.fallback_invoked. The gate honors the existing HEARTBEAT.md contract semantics (FR-010). Replaces OpenClaw's internal heartbeat for the steady state; the internal heartbeat is disabled at cutover via `openclaw system heartbeat disable` (Tier 2 — see runbook).",
       "trigger": "every 30 minutes via felix-heartbeat-gate.timer (systemd user); also on manual `systemctl --user start --wait felix-heartbeat-gate.service`",
-      "data_classification": "operational routing decision; the deterministic decision is logged in gate-ledger.jsonl (no credential material, no LLM tokens \u2014 gate_*_tokens are 0)",
+      "data_classification": "operational routing decision; the deterministic decision is logged in gate-ledger.jsonl (no credential material, no LLM tokens — gate_*_tokens are 0)",
       "path": [
         {
           "from": "felix-heartbeat-gate.timer",
@@ -1132,13 +1132,13 @@
           "from": "felix-heartbeat-gate.service",
           "to": "scripts/openclaw/heartbeat_gate/run.py",
           "protocol": "ExecStart",
-          "description": "Direct Python invocation. Stateless per tick \u2014 no openclaw session, no carried-over LLM context."
+          "description": "Direct Python invocation. Stateless per tick — no openclaw session, no carried-over LLM context."
         },
         {
           "from": "scripts/openclaw/heartbeat_gate/run.py",
           "to": "/data/services/openclaw/felix-core-digest-signals/last-tick.json",
           "protocol": "file read",
-          "description": "Primary input \u2014 the signal-extraction snapshot from the last felix-core-digest tick. If missing or stale, the gate flags it in its context and biases toward ESCALATE_TO_SONNET."
+          "description": "Primary input — the signal-extraction snapshot from the last felix-core-digest tick. If missing or stale, the gate flags it in its context and biases toward ESCALATE_TO_SONNET."
         },
         {
           "from": "scripts/openclaw/heartbeat_gate/run.py",
@@ -1150,7 +1150,7 @@
           "from": "scripts/openclaw/heartbeat_gate/run.py",
           "to": "gate.decide_deterministic(context)",
           "protocol": "in-process pure function (stdlib only)",
-          "description": "#676 \u2014 the routing decision is a deterministic rule over the already-computed novelty markers (novelty_markers / heartbeat_md_state / errors). No Anthropic key read, no api.anthropic.com call, no LLM token cost in the tick hot path. Total over any GateContext load_context can produce; any raise routes to the FR-011 fallback (escalate, fallback_invoked=true, exit 0)."
+          "description": "#676 — the routing decision is a deterministic rule over the already-computed novelty markers (novelty_markers / heartbeat_md_state / errors). No Anthropic key read, no api.anthropic.com call, no LLM token cost in the tick hot path. Total over any GateContext load_context can produce; any raise routes to the FR-011 fallback (escalate, fallback_invoked=true, exit 0)."
         },
         {
           "from": "scripts/openclaw/heartbeat_gate/run.py",
@@ -1168,13 +1168,13 @@
           "from": "scripts/openclaw/heartbeat_gate/run.py",
           "to": "/data/services/openclaw/felix-heartbeat-gate/last-gate-decision.json",
           "protocol": "file write (atomic rename)",
-          "description": "Per-tick structured decision: outcome, reason, gate_latency_ms, gate_input_tokens, gate_cache_hit_tokens, gate_output_tokens, escalated_to, fallback_invoked, errors (FR-009). Overwritten each tick \u2014 canonical health-check surface."
+          "description": "Per-tick structured decision: outcome, reason, gate_latency_ms, gate_input_tokens, gate_cache_hit_tokens, gate_output_tokens, escalated_to, fallback_invoked, errors (FR-009). Overwritten each tick — canonical health-check surface."
         },
         {
           "from": "scripts/openclaw/heartbeat_gate/run.py",
           "to": "/data/services/openclaw/felix-heartbeat-gate/gate-ledger.jsonl",
           "protocol": "file append (atomic)",
-          "description": "Append-only ledger row per tick \u2014 backs cost telemetry (NFR-001) and post-rollout escalation review."
+          "description": "Append-only ledger row per tick — backs cost telemetry (NFR-001) and post-rollout escalation review."
         }
       ]
     },
@@ -1183,15 +1183,15 @@
       "status": "active",
       "deployed_by": "inbox-calendar-and-aspiration-routing-01KTHHXS",
       "introduced_by": "inbox-calendar-and-aspiration-routing-01KTHHXS",
-      "updated_by": "felix-calendar-helper-01KX4H3C (#699 \u2014 rewired helper->Google direct, no agent hop; closes #679)",
-      "description": "Flow A \u2014 Inbox-captured calendar event (one-off or recurring) auto-scheduled on Google Calendar with no Vikunja todo created. REWIRED by #699 (RFC #681 calendar phase): the inbox->calendar hop is now INLINE (no agent-to-agent delegation), closing #679. felix-admin-capture classifies the inbox note as a calendar event and extracts the natural-language fields, then runs ONE deterministic command \u2014 `route_calendar_event --create` \u2014 which validates the fields, assembles the create_calendar_event envelope, and invokes the Felix calendar helper (scripts/google/calendar_helper.py) IN-PROCESS. The helper talks to the Google Calendar API directly via google-api-python-client using the personal account credential (felix-google-personal-calendar). It does NOT go through gog and NOT through Felix main. Default account is `personal` (kentgale@gmail.com), default calendar `primary`; the envelope may override per-event. Previously (pre-#699, broken per #679): capture delegated the payload to Felix main, which shelled `gog calendar create` \u2014 the agent-to-agent hop silently failed on the haiku capture agent.",
+      "updated_by": "felix-calendar-helper-01KX4H3C (#699 — rewired helper->Google direct, no agent hop; closes #679)",
+      "description": "Flow A — Inbox-captured calendar event (one-off or recurring) auto-scheduled on Google Calendar with no Vikunja todo created. REWIRED by #699 (RFC #681 calendar phase): the inbox->calendar hop is now INLINE (no agent-to-agent delegation), closing #679. felix-admin-capture classifies the inbox note as a calendar event and extracts the natural-language fields, then runs ONE deterministic command — `route_calendar_event --create` — which validates the fields, assembles the create_calendar_event envelope, and invokes the Felix calendar helper (scripts/google/calendar_helper.py) IN-PROCESS. The helper talks to the Google Calendar API directly via google-api-python-client using the personal account credential (felix-google-personal-calendar). It does NOT go through gog and NOT through Felix main. Default account is `personal` (kentgale@gmail.com), default calendar `primary`; the envelope may override per-event. Previously (pre-#699, broken per #679): capture delegated the payload to Felix main, which shelled `gog calendar create` — the agent-to-agent hop silently failed on the haiku capture agent.",
       "trigger": "felix-admin-capture cron tick (inbox-7am/noon/5pm/10pm) classifies a note whose intent is a complete calendar event",
       "path": [
         {
           "from": "Obsidian inbox note (WisprFlow or typed)",
           "to": "felix-admin-capture (classification + NL field extraction)",
           "protocol": "file read (cron tick)",
-          "description": "Capture parses frontmatter + body, classifies calendar intent, and extracts the natural-language event fields (title, when, duration, location). Capture's only job is intent detection + field extraction \u2014 the minimum LLM surface (post-#699)."
+          "description": "Capture parses frontmatter + body, classifies calendar intent, and extracts the natural-language event fields (title, when, duration, location). Capture's only job is intent detection + field extraction — the minimum LLM surface (post-#699)."
         },
         {
           "from": "felix-admin-capture",
@@ -1203,24 +1203,24 @@
           "from": "scripts/inbox/route_calendar_event.py",
           "to": "scripts/google/calendar_helper.py (create)",
           "protocol": "python invocation (in-process; helper runs under the office2 venv python)",
-          "description": "Maps the envelope `account` -> credential set and the event fields -> the Google event body. Stamps extendedProperties.private.felix_source_key (from source_inbox_path) so a retry after a partial failure returns the existing event instead of duplicating (idempotent create). Attendees suppressed by default (sendUpdates=none) \u2014 an inbox note never silently emails people."
+          "description": "Maps the envelope `account` -> credential set and the event fields -> the Google event body. Stamps extendedProperties.private.felix_source_key (from source_inbox_path) so a retry after a partial failure returns the existing event instead of duplicating (idempotent create). Attendees suppressed by default (sendUpdates=none) — an inbox note never silently emails people."
         },
         {
           "from": "scripts/google/calendar_helper.py",
           "to": "Google Calendar API (account `personal` = kentgale@gmail.com, calendar `primary`, or override per envelope)",
           "protocol": "HTTPS (Google Calendar API via google-api-python-client; credential felix-google-personal-calendar)",
-          "description": "events().insert directly \u2014 NOT via gog. On auth failure the helper fails safe (exit 3, no mutation, actionable error surfaced to the agent). Recurrence flows through the event body `recurrence` (RRULE) produced deterministically upstream by validate_calendar_event.py."
+          "description": "events().insert directly — NOT via gog. On auth failure the helper fails safe (exit 3, no mutation, actionable error surfaced to the agent). Recurrence flows through the event body `recurrence` (RRULE) produced deterministically upstream by validate_calendar_event.py."
         }
       ],
-      "purpose": "Auto-schedule events submitted via inbox capture without creating Vikunja todos, via a single deterministic helper call (no agent hop) \u2014 closes #679"
+      "purpose": "Auto-schedule events submitted via inbox capture without creating Vikunja todos, via a single deterministic helper call (no agent hop) — closes #679"
     },
     {
       "name": "inbox-calendar-clarification-loop",
       "status": "active",
       "deployed_by": "inbox-calendar-and-aspiration-routing-01KTHHXS",
       "introduced_by": "inbox-calendar-and-aspiration-routing-01KTHHXS",
-      "updated_by": "felix-calendar-helper-01KX4H3C (#699 \u2014 terminal create now via the calendar helper, not gog; felix-admin-calendar reshaped to judgment-only) + felix-admin-cron-path-fix-01KWQTY3 (#656)",
-      "description": "Flow B \u2014 Incomplete inbox-captured calendar event resolved through a single WhatsApp clarification round-trip. felix-admin-capture detects missing required fields (the --create command returns needs_clarification with the missing fields), writes a deferred-event entry to the pending-calendar-clarifications state file (24h timeout sweep), and asks Kent one clarification question via WhatsApp. When Kent replies, felix-admin-calendar \u2014 now a JUDGMENT-ONLY layer (RFC #681 / #699 reshape) \u2014 reads the open clarification, merges the reply into the deferred payload, re-validates, and issues the create via the Felix calendar helper (scripts/google/calendar_helper.py) directly against the Google Calendar API. It no longer calls `gog calendar create` and holds no gog calendar skill. This clarification path still involves felix-admin-calendar, but only via a SEPARATE inbound message from Kent (Kent -> agent), which is not capture->agent delegation. Avoids losing the original capture context between the inbox tick and Kent's reply.",
+      "updated_by": "felix-calendar-helper-01KX4H3C (#699 — terminal create now via the calendar helper, not gog; felix-admin-calendar reshaped to judgment-only) + felix-admin-cron-path-fix-01KWQTY3 (#656)",
+      "description": "Flow B — Incomplete inbox-captured calendar event resolved through a single WhatsApp clarification round-trip. felix-admin-capture detects missing required fields (the --create command returns needs_clarification with the missing fields), writes a deferred-event entry to the pending-calendar-clarifications state file (24h timeout sweep), and asks Kent one clarification question via WhatsApp. When Kent replies, felix-admin-calendar — now a JUDGMENT-ONLY layer (RFC #681 / #699 reshape) — reads the open clarification, merges the reply into the deferred payload, re-validates, and issues the create via the Felix calendar helper (scripts/google/calendar_helper.py) directly against the Google Calendar API. It no longer calls `gog calendar create` and holds no gog calendar skill. This clarification path still involves felix-admin-calendar, but only via a SEPARATE inbound message from Kent (Kent -> agent), which is not capture->agent delegation. Avoids losing the original capture context between the inbox tick and Kent's reply.",
       "trigger": "felix-admin-capture classifies an inbox note as a calendar event but validation reports missing required fields",
       "path": [
         {
@@ -1239,7 +1239,7 @@
           "from": "felix-admin-capture",
           "to": "Kent (WhatsApp)",
           "protocol": "openclaw send --channel whatsapp",
-          "description": "Single clarification question sent to Kent. One question per cluster \u2014 never silently guesses."
+          "description": "Single clarification question sent to Kent. One question per cluster — never silently guesses."
         },
         {
           "from": "Kent (WhatsApp reply)",
@@ -1308,7 +1308,7 @@
       "status": "active",
       "deployed_by": "inbox-calendar-and-aspiration-routing-01KTHHXS",
       "introduced_by": "inbox-calendar-and-aspiration-routing-01KTHHXS",
-      "description": "Flow C \u2014 Inbox notes classified as aspirations or musings routed to the dated 08-Journal entry instead of becoming Vikunja todos. felix-admin-capture detects the aspiration/musing intent and appends the note body to `~/second-brain/notes/08-Journal/Journal YYYY-MM-DD HHmm.md`. No Vikunja todo is created; no delegation to gog or main. The dated journal is the canonical destination for non-actionable reflections.",
+      "description": "Flow C — Inbox notes classified as aspirations or musings routed to the dated 08-Journal entry instead of becoming Vikunja todos. felix-admin-capture detects the aspiration/musing intent and appends the note body to `~/second-brain/notes/08-Journal/Journal YYYY-MM-DD HHmm.md`. No Vikunja todo is created; no delegation to gog or main. The dated journal is the canonical destination for non-actionable reflections.",
       "trigger": "felix-admin-capture cron tick classifies an inbox note as an aspiration or musing (non-actionable reflection)",
       "path": [
         {
@@ -1474,6 +1474,157 @@
         }
       ],
       "purpose": "Deliver pull-based-deploy-pipeline failure alerts to the operator via a substrate that is failure-mode-independent of openclaw/WhatsApp, so a deploy failure that breaks those substrates does not also break the operator notification path."
+    },
+    {
+      "name": "unified-alert-bus-emit",
+      "status": "active",
+      "introduced_by": "#701",
+      "deployed_by": "unified-alert-bus-01KX5TYT (#701)",
+      "updated_by": "#706 (durable ledger)",
+      "last_updated": "2026-07-11",
+      "purpose": "The single canonical Felix alert stream (INV-003): every producer emits through one shared bus to one canonical ntfy thread and records to one durable ledger.",
+      "trigger": "Any Felix producer calling scripts.common.alert_bus.emit(Alert)",
+      "data_classification": "operational telemetry (description + detail values redacted with the renderer's redaction helper before write — NFR-2)",
+      "path": [
+        {
+          "from": "any Felix producer (felix-deployer, security-monitor, felix-health-check, felix-canary, felix-trust-scan, openclaw enforcement notifier co-emit)",
+          "to": "scripts/common/alert_bus.emit(Alert)",
+          "protocol": "in-process Python call",
+          "description": "The sole public entry point; never raises. All delivery failures surface as AlertResult(ok=False, reason=...). Constructs render then delivers then records."
+        },
+        {
+          "from": "scripts/common/alert_bus/delivery.py",
+          "to": "https://ntfy.sh/<canonical topic>",
+          "protocol": "HTTPS POST via curl (--max-time 10)",
+          "description": "Resolves one canonical topic from FELIX_ALERT_NTFY_TOPIC (blank -> NTFY_MISSING_TOPIC, no POST). No auth header — ntfy topics are public-subscribe, security is topic secrecy (FR-005). Severity info/warn/error/critical maps to ntfy Priority + Tags. Fail-safe: never raises, never hangs beyond the curl timeout."
+        },
+        {
+          "from": "scripts/common/alert_bus/ledger.py",
+          "to": "/data/services/alert-bus/ledger/<YYYY-MM-DD>.jsonl",
+          "protocol": "file append (fcntl.LOCK_EX, atomic per-line)",
+          "description": "Best-effort durable record (#706): appends the redacted Alert + AlertResult delivery outcome AFTER delivery — records the fault even when ntfy delivery failed (a failed POST is still a recorded fault). Holds an exclusive lock so concurrent emitters cannot tear a record. A ledger problem never changes the returned AlertResult or raises. Date-partitions pruned past 30 days."
+        }
+      ]
+    },
+    {
+      "name": "felix-canary",
+      "status": "active",
+      "introduced_by": "#327",
+      "deployed_by": "felix-canary-registry-01KX8T7B (#327)",
+      "last_updated": "2026-07-11",
+      "purpose": "Deterministic component-health scanner (Foundation 1 / Epic #516): evaluate every service-inventory health_check per ADR-0006 and alert on stale/failed/un-evaluable live components via the #701 bus. Zero LLM in the tick path.",
+      "trigger": "felix-canary.timer (systemd --user, OnUnitActiveSec=15min, OnBootSec=5min, Persistent=true); also manual `systemctl --user start felix-canary.service`",
+      "data_classification": "operational telemetry (component health outcomes + evidence)",
+      "path": [
+        {
+          "from": "felix-canary.timer",
+          "to": "felix-canary.service",
+          "protocol": "systemd timer activation (Type=oneshot)",
+          "description": "~15-min cadence. felix-canary.service declares OnFailure=felix-canary-onfailure.service."
+        },
+        {
+          "from": "felix-canary.service",
+          "to": "python3 -m scripts.canary.run --once",
+          "protocol": "ExecStart",
+          "description": "One full pass. WorkingDirectory=/home/claude/kg-automation; EnvironmentFile=-/home/claude/.config/felix/alert-bus/env for FELIX_ALERT_NTFY_TOPIC."
+        },
+        {
+          "from": "scripts/canary/run.py",
+          "to": "docs/design/architecture/data/service-inventory.json",
+          "protocol": "file read",
+          "description": "Reads every service-type entry's declared health_check + status. A component becomes a canary target purely by declaring a health_check — no separate registry file. NON_SERVICE_TYPES (python-module/library/cli-integration) are exempt."
+        },
+        {
+          "from": "scripts/canary/run.py (via scripts/canary/health.evaluate)",
+          "to": "per-component pointer/state files or endpoints (e.g. /data/services/backup/state/last-backup.json)",
+          "protocol": "file read / http / shell (injected effects)",
+          "description": "ADR-0006 gate-before-probe: only status in {active,running} is probed; a suspended/deprecated/planned/retired component is recorded `suppressed` and never probed. Freshness probes compare the pointer's authoritative timestamp to max_age_seconds; liveness probes check http/shell/systemd-status. A live component with no usable health_check is a coverage `gap` (no-silent-drop). Fail-open: a raising probe becomes `unknown`, never aborts the pass."
+        },
+        {
+          "from": "scripts/canary/run.py (via scripts/canary/dedup.decide)",
+          "to": "scripts/common/alert_bus.emit(Alert)",
+          "protocol": "in-process Python call (#701 bus)",
+          "description": "source=felix-canary:<component_id>. Dedup keyed on component_id + last_outcome: any transition emits (incl. recovery INFO); failed/stale (ERROR) page immediately then once per 6h window; unknown/gap (WARN) are recorded but page only once persistent past the window. Only emitting outcomes reach the bus; healthy/suppressed/deduped are ledger-only."
+        },
+        {
+          "from": "scripts/canary/run.py",
+          "to": "/data/services/felix-canary/ledger/<YYYY-MM-DD>.jsonl",
+          "protocol": "file append (best-effort)",
+          "description": "One line per component per tick recording EVERY outcome (healthy/stale/failed/suppressed/gap/unknown/deduped), evidence, whether it emitted, and evaluated_at (FR-008). A ledger-write fault records an errors[] entry and never aborts the pass."
+        },
+        {
+          "from": "scripts/canary/run.py",
+          "to": "/data/services/felix-canary/state/last-tick.json",
+          "protocol": "file write (atomic tempfile + os.replace)",
+          "description": "Aggregate tick-signal — the runner's own health pointer (FR-010): status, completed_at_utc, components_evaluated, emitted, suppressed_dedup, coverage_gaps, suppressed_status, errors, duration_ms. Registered as the runner's own freshness health_check so #269 can watch the watcher."
+        },
+        {
+          "from": "scripts/canary/run.py",
+          "to": "/data/services/felix-canary/state/dedup.json",
+          "protocol": "file write (atomic tempfile + os.replace)",
+          "description": "Dedup state: component_id -> {last_outcome, last_emitted_utc}. Drives once-per-window paging + the failed->healthy->failed transition guarantee. Fail-safe: a missing/corrupt file loads empty."
+        },
+        {
+          "from": "felix-canary.service OnFailure -> felix-canary-onfailure.service",
+          "to": "scripts/common/alert_bus.sh emit (out-of-band ERROR)",
+          "protocol": "systemd OnFailure activation -> #701 bus",
+          "description": "Fires ONLY when felix-canary.service exits non-zero — a runner-level fault (inventory unreadable, state dir unwritable). Independent of the runner's own emit logic, so a runner that crashed before it could report is still surfaced (SC-006). felix-trust-scan lacked this crash detector."
+        }
+      ]
+    },
+    {
+      "name": "felix-trust-scan",
+      "status": "active",
+      "introduced_by": "#683",
+      "deployed_by": "felix-truthful-reporting-01KX6MN5 (#683)",
+      "last_updated": "2026-07-11",
+      "purpose": "Deterministic trust-drift scanner (the first instance of the deterministic-scanner pattern; sibling to felix-canary): detect rogue/unapproved crons and fabricated completion assertions, alerting via the #701 bus. Zero LLM in the tick path.",
+      "trigger": "felix-trust-scan.timer (systemd --user, ~15-min); also manual `systemctl --user start felix-trust-scan.service`",
+      "data_classification": "operational telemetry (trust findings: cron drift + completion-assertion mismatches)",
+      "path": [
+        {
+          "from": "felix-trust-scan.timer",
+          "to": "felix-trust-scan.service",
+          "protocol": "systemd timer activation (Type=oneshot)",
+          "description": "~15-min cadence. WorkingDirectory=/home/claude/kg-automation; EnvironmentFile=-/home/claude/.config/felix/alert-bus/env."
+        },
+        {
+          "from": "felix-trust-scan.service",
+          "to": "python3 -m scripts.trust.run_trust_scan --json",
+          "protocol": "ExecStart",
+          "description": "Drives both sub-scans. Timer mode ALWAYS exits 0 — finding drift is expected signal, never a process failure; each sub-scan is wrapped so a fault in one never aborts the other (NFR-001)."
+        },
+        {
+          "from": "scripts/trust/run_trust_scan.py (cron-drift detector)",
+          "to": "approved-cron baseline (live openclaw/system crons vs baseline)",
+          "protocol": "subprocess enumeration + baseline diff",
+          "description": "Enumerates live crons and diffs against the approved-cron baseline; a cron not in the baseline is drift. Fingerprints fold in the baseline hash so a baseline edit re-evaluates every finding rather than letting stale seen-state suppress a now-(il)legitimate cron."
+        },
+        {
+          "from": "scripts/trust/run_trust_scan.py (completion-assertion verifier)",
+          "to": "asserted-done claims vs actual artifacts (e.g. Vikunja task exists)",
+          "protocol": "read + verify",
+          "description": "Verifies agent completion assertions against the real artifact; an artifact_missing assertion is drift. Outstanding artifact_missing findings are re-verified each scan independent of the once-only assertion watermark."
+        },
+        {
+          "from": "scripts/trust/run_trust_scan.py (via scripts/trust/state.reconcile)",
+          "to": "scripts/common/alert_bus.emit(Alert)",
+          "protocol": "in-process Python call (#701 bus)",
+          "description": "Cadence: first observation alerts immediately; a persisting finding re-alerts every 24h; a previously-seen finding that disappears emits a low-priority drift_resolved and is dropped from state. A failed emit reverts the finding's last_alerted (keep_due) so it stays due next scan — no lost alert."
+        },
+        {
+          "from": "scripts/trust/run_trust_scan.py",
+          "to": "/data/services/trust/state/seen-findings.json",
+          "protocol": "file write (atomic tempfile + os.replace)",
+          "description": "Seen-findings state: fingerprint -> {first_seen, last_seen, last_alerted, name, source, ...}. Drives the 24h re-alert cadence. Fail-safe: a missing/corrupt file loads empty."
+        },
+        {
+          "from": "scripts/trust/run_trust_scan.py",
+          "to": "/data/services/trust/state/assertion-watermark.json",
+          "protocol": "file write (atomic tempfile + os.replace)",
+          "description": "Per-assertion-file verified byte offset so each assertion is verified once."
+        }
+      ]
     }
   ],
   "planned_flows": [
@@ -1526,24 +1677,24 @@
     {
       "name": "whatsapp-command-channel",
       "planned_by": "F003-F006",
-      "description": "WhatsApp voice/text \u2192 OpenClaw webhook \u2192 Whisper \u2192 Intent Parser \u2192 Vikunja"
+      "description": "WhatsApp voice/text → OpenClaw webhook → Whisper → Intent Parser → Vikunja"
     },
     {
       "name": "obsidian-inbox-processing",
       "planned_by": "F007-F010",
-      "description": "Obsidian 01-Inbox \u2192 hourly processor \u2192 vault routing + Vikunja API"
+      "description": "Obsidian 01-Inbox → hourly processor → vault routing + Vikunja API"
     },
     {
       "name": "daily-briefing",
       "planned_by": "F014",
-      "description": "Heartbeat \u2192 task summary \u2192 WhatsApp message to Kent"
+      "description": "Heartbeat → task summary → WhatsApp message to Kent"
     },
     {
       "name": "sync-cache-read-touchpoints",
       "status": "active",
       "deployed_by": "#519",
       "introduced_by": "#519",
-      "description": "Post-#519 canonical read path: 6 migrated touchpoints across 3 domains (habits \u00d74, escalation \u00d71, enrichment \u00d71) read task state from the sync driver cache via scripts/common/sync_cache.py instead of calling Vikunja directly. No fallback \u2014 cache miss or stale-beyond-SLA_NORMAL raises OSError with structured recovery hint.",
+      "description": "Post-#519 canonical read path: 6 migrated touchpoints across 3 domains (habits ×4, escalation ×1, enrichment ×1) read task state from the sync driver cache via scripts/common/sync_cache.py instead of calling Vikunja directly. No fallback — cache miss or stale-beyond-SLA_NORMAL raises OSError with structured recovery hint.",
       "path": [
         {
           "from": "habits touchpoints (morning_checkin_list.py, query_active_habits_v2.py, set_due_dates.py, reconcile_completions.py)",
@@ -1576,7 +1727,7 @@
           "description": "Freshness pointer read. Used to enforce SLA_NORMAL (900s) staleness check before serving cache."
         }
       ],
-      "pre_migration_note": "Before #519, all 6 touchpoints called Vikunja REST API directly (GET /projects/<id>/tasks or GET /tasks/<id>). Those direct-read code paths are deleted in the same commit that introduces the cache read \u2014 clean cutover, no coexistence period, no fallback path."
+      "pre_migration_note": "Before #519, all 6 touchpoints called Vikunja REST API directly (GET /projects/<id>/tasks or GET /tasks/<id>). Those direct-read code paths are deleted in the same commit that introduces the cache read — clean cutover, no coexistence period, no fallback path."
     }
   ]
 }

@@ -2,9 +2,9 @@
 title: Data Flows
 doc_type: reference
 status: approved
-last_updated: '2026-07-09'
-updated_by: 'felix-calendar-helper-01KX4H3C (#699 — calendar surface now Felix helper -> Google direct, not gog; closes #679) + felix-admin-cron-path-fix-01KWQTY3 (#656) + restore-whatsapp-dm-reply-delivery-01KTVVHH (#588) + inbox-calendar-and-aspiration-routing-01KTHHXS + #520-felix-vikunja-sync-project-layer-and-url-config'
-tags: [656, 588, 520, 507, 519, 518, 309, 343, 362, 391, 400, 310, 374]
+last_updated: '2026-07-11'
+updated_by: 'felix-canary-registry-01KX8T7B (#327 — +felix-canary, +felix-trust-scan, +unified-alert-bus-emit observability flows) + felix-calendar-helper-01KX4H3C (#699 — calendar surface now Felix helper -> Google direct, not gog; closes #679) + felix-admin-cron-path-fix-01KWQTY3 (#656) + restore-whatsapp-dm-reply-delivery-01KTVVHH (#588) + inbox-calendar-and-aspiration-routing-01KTHHXS + #520-felix-vikunja-sync-project-layer-and-url-config'
+tags: [327, 683, 701, 706, 516, 656, 588, 520, 507, 519, 518, 309, 343, 362, 391, 400, 310, 374]
 ---
 
 # Data Flows
@@ -674,6 +674,107 @@ that shipped with the parent mission (`pull-based-deploy-pipeline-01KTYQQS`,
 not exist; the applier shipped live on office2 with the notify path silently
 failing.
 
+### Unified Alert Bus — Shared Emit (#701, ledger #706)
+
+```
+any Felix producer → scripts/common/alert_bus.emit(Alert)
+  → scripts/common/alert_bus/delivery.py (curl POST) → https://ntfy.sh/<canonical topic>   (one canonical thread)
+  → scripts/common/alert_bus/ledger.py → /data/services/alert-bus/ledger/<YYYY-MM-DD>.jsonl   (append, fcntl-locked)
+```
+
+The **single canonical alert stream** (INV-003) every Felix producer emits
+through — no component keeps its own ntfy/curl code (SC-006). `emit()` is the
+sole public entry point and **never raises**: all delivery failures surface as
+`AlertResult(ok=False, reason=…)`. Delivery resolves one canonical topic from
+`FELIX_ALERT_NTFY_TOPIC` (blank → `NTFY_MISSING_TOPIC`, no POST attempted) and
+POSTs the rendered body via `curl` (`--max-time 10`); no auth header — ntfy
+topics are public-subscribe and security is topic secrecy (FR-005). Severity
+(`info`/`warn`/`error`/`critical`) maps to ntfy Priority + Tags.
+
+After delivery, `emit()` appends one record — the redacted `Alert` plus the
+`AlertResult` delivery outcome — to the durable, date-partitioned **#706
+ledger**. This is best-effort and fail-safe: it records the fault **even when
+ntfy delivery failed** (a failed POST is still a recorded fault), holds
+`fcntl.LOCK_EX` so concurrent emitters can't tear a record, redacts with the
+exact renderer helper (never holds secrets the alert wouldn't), and a ledger
+problem never changes the returned `AlertResult` or raises. Files are pruned past
+30 days. The three migrated ntfy emitters (felix-deployer, security-monitor,
+felix-health-check) plus the two Foundation-1 scanners below all emit here. See
+the pattern doc [`observability-and-alerting.md`](<./observability-and-alerting.md>)
+and the how-to [`alerting.md`](<../../runbooks/alerting.md>).
+
+### felix-canary — Component-Health Canary (#327)
+
+```
+felix-canary.timer (15-min) → felix-canary.service (oneshot, Type=oneshot)
+  → python3 -m scripts.canary.run --once
+       → docs/design/architecture/data/service-inventory.json   (read — health_checks + status per service-type entry)
+       → per component: pointer/state files it references (e.g. last-backup.json)   (read — freshness probe)
+       → scripts.canary.health.evaluate (ADR-0006: status gates health — gate-before-probe)
+       → scripts.canary.dedup.decide (component_id → last_outcome/last_emitted; 6h re-remind)
+       → scripts/common/alert_bus.emit(Alert)   (#701 bus — only emitting outcomes)
+  → /data/services/felix-canary/ledger/<YYYY-MM-DD>.jsonl   (append — one line per component per tick, every outcome)
+  → /data/services/felix-canary/state/last-tick.json        (atomic write — aggregate tick-signal, FR-010)
+  → /data/services/felix-canary/state/dedup.json            (atomic write — dedup state)
+felix-canary.service OnFailure=felix-canary-onfailure.service
+  → scripts/common/alert_bus.sh emit   (out-of-band ERROR only on runner-level non-zero exit, SC-006)
+```
+
+The deterministic component-health scanner (Foundation 1 / Epic #516). **No LLM
+in the tick path** (0 tokens/tick, NFR-003). It reads every service-type entry's
+declared `health_check` from `service-inventory.json`, gates on ADR-0006 declared
+`status` (only `active`/`running` are probed — a `suspended` component is
+recorded `suppressed` and never emits, the single suppression rule), computes a
+health outcome (`healthy`/`stale`/`failed`/`unknown`), and routes emitting
+outcomes through dedup to the **#701 bus** with `source = felix-canary:<component_id>`.
+
+A component becomes monitored purely by declaring a `health_check` — there is no
+separate registry file. A live component with no usable check is surfaced as a
+**coverage `gap`** (no-silent-drop), not skipped. **Fail-open:** one component's
+probe fault becomes an `unknown` ledger line + an `errors[]` entry and the pass
+continues; a completed pass exits 0 even with unhealthy components. A non-zero
+**process** exit is reserved for a runner-level fault (inventory unreadable,
+state dir unwritable) — that fires the `OnFailure=` shim, a crash detector
+`felix-trust-scan` lacked. **Dedup:** keyed on `component_id` + `last_outcome`, so
+any transition emits (incl. recovery INFO); `failed`/`stale` page immediately then
+once per 6h window; `unknown`/`gap` are recorded but page only once persistent
+past the window. The runner registers itself as a canary citizen via its
+`last-tick.json` freshness pointer, so the deferred #269 watchdog can watch the
+watcher. Deploy: manifest `deploys/queued/0017-felix-canary-registry.yaml`
+(entrypoint `scripts/deploy/deploy-felix-canary.py`, verify-before-enable per
+#703/#711). Ops: [`canary-registry-ops.md`](<../../runbooks/canary-registry-ops.md>);
+contract [ADR-0006](<./adr/0006-felix-component-lifecycle-status-contract.md>);
+pattern [`observability-and-alerting.md`](<./observability-and-alerting.md>).
+
+### felix-trust-scan — Trust / Cron-Drift Detection (#683)
+
+```
+felix-trust-scan.timer (15-min) → felix-trust-scan.service (oneshot)
+  → python3 -m scripts.trust.run_trust_scan --json
+       → cron-drift detector (live crons vs approved-cron baseline)
+       → completion-assertion verifier (asserted-done vs actual artifact, e.g. Vikunja task exists)
+       → scripts.trust.state.reconcile (fingerprint → first_seen/last_seen/last_alerted; 24h re-alert)
+       → scripts/common/alert_bus.emit(Alert)   (#701 bus — to_alert findings + drift_resolved)
+  → /data/services/trust/state/seen-findings.json        (atomic write — seen-findings + cadence)
+  → /data/services/trust/state/assertion-watermark.json  (atomic write — per-file verified offset)
+```
+
+The trust-drift **sibling** scanner (the first instance of the deterministic-
+scanner pattern; the canary above is the second). Different domain — it watches
+*trust* (rogue/unapproved crons via a baseline diff, and fabricated completion
+assertions) rather than component *health* — but the same shape: a systemd
+`--user` 15-min oneshot, no LLM in the tick path, emitting only through the
+shared **#701 bus** (`scripts/common/alert_bus.emit`). Alert cadence: first
+observation alerts immediately; a persisting finding re-alerts every 24h; a
+previously-seen finding that disappears emits a low-priority `drift_resolved` and
+is dropped from state. Fingerprints fold in the baseline hash so a baseline edit
+re-evaluates every finding. **Timer mode always exits 0** — finding drift is
+expected signal, never a process failure; each sub-scan is wrapped so a fault in
+one never aborts the other. A failed emit reverts the finding's `last_alerted` so
+it stays due next scan (no lost alert). Siblings share the *bus*, not the scanner
+(DEC-007). Ops: [`trust-reporting-detector.md`](<../../runbooks/trust-reporting-detector.md>);
+pattern [`observability-and-alerting.md`](<./observability-and-alerting.md>).
+
 ## Planned Flows (Not Yet Implemented)
 
 | Flow | Features | Description |
@@ -719,3 +820,9 @@ failing.
 | Sync driver project cache (#520) | `/data/services/openclaw/state/sync/project-cache.json` | Yes |
 | Sync driver conflict events (#518) | `/data/services/openclaw/state/sync/conflict-events.jsonl` | Yes |
 | Sync driver last-tick signal (#518) | `/data/services/openclaw/state/sync/last-tick.json` | No (overwritten each tick) |
+| Alert-bus durable ledger (#706) | `/data/services/alert-bus/ledger/<YYYY-MM-DD>.jsonl` | Yes (pruned >30 days) |
+| Canary per-component ledger (#327) | `/data/services/felix-canary/ledger/<YYYY-MM-DD>.jsonl` | Yes |
+| Canary tick-signal (#327) | `/data/services/felix-canary/state/last-tick.json` | No (overwritten each tick) |
+| Canary dedup state (#327) | `/data/services/felix-canary/state/dedup.json` | Yes |
+| Trust-scan seen-findings (#683) | `/data/services/trust/state/seen-findings.json` | Yes |
+| Trust-scan assertion watermark (#683) | `/data/services/trust/state/assertion-watermark.json` | Yes |

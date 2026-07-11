@@ -5,10 +5,10 @@ doc_type: guide
 level: reference
 status: approved
 owners: ["@kentonium3"]
-last_updated: '2026-06-11'
-revision: v1.9
+last_updated: '2026-07-11'
+revision: v2.0
 audience: agents_and_humans
-updated_by: 'restore-whatsapp-dm-reply-delivery-01KTVVHH (#588: +whatsapp_dm subgraph, +phone_wa input node) + #520 (felix-vikunja-sync-project-layer-and-url-config: +sync_driver subgraph, +url_config node)'
+updated_by: 'felix-canary-registry-01KX8T7B (#327: +observability subgraph — felix-canary + felix-trust-scan deterministic scanners sharing the #701 alert bus + #706 ledger) + restore-whatsapp-dm-reply-delivery-01KTVVHH (#588: +whatsapp_dm subgraph, +phone_wa input node) + #520 (felix-vikunja-sync-project-layer-and-url-config: +sync_driver subgraph, +url_config node)'
 ---
 
 # data-flows.view
@@ -144,6 +144,23 @@ graph LR
             fd_env_file[("env file<br/>/home/claude/.config/<br/>felix-deployer/env<br/>(FELIX_DEPLOYER_NTFY_TOPIC)")]
             fd_failed_dir[("deploys/failed/<br/>(source of truth)")]
         end
+
+        subgraph observability["Observability — Deterministic Scanners + #701 Alert Bus (#327 canary / #683 trust-scan / #701 bus + #706 ledger)"]
+            alert_bus["scripts/common/alert_bus.emit()<br/>(single canonical stream — INV-003;<br/>never raises)"]
+            alert_ledger[("alert-bus ledger (#706)<br/>/data/services/alert-bus/<br/>ledger/&lt;date&gt;.jsonl")]
+
+            canary_timer["felix-canary.timer<br/>(15-min)"]
+            canary_service["felix-canary.service<br/>(oneshot; OnFailure shim)"]
+            canary_run["scripts/canary/run.py --once<br/>(ADR-0006 gate-before-probe;<br/>no LLM, tokens=0)"]
+            svc_inventory[("service-inventory.json<br/>health_check + status<br/>(declares what to watch)")]
+            canary_ledger[("canary ledger<br/>/data/services/felix-canary/<br/>ledger/&lt;date&gt;.jsonl<br/>(every outcome every tick)")]
+            canary_tick[("canary tick-signal<br/>state/last-tick.json<br/>(self-health pointer)")]
+            canary_dedup[("dedup.json<br/>component_id → last_outcome")]
+
+            trust_timer["felix-trust-scan.timer<br/>(15-min)"]
+            trust_run["scripts/trust/run_trust_scan.py<br/>(cron-drift + assertion verify;<br/>no LLM)"]
+            trust_state[("seen-findings.json<br/>+ assertion-watermark.json")]
+        end
     end
 
     subgraph external["External"]
@@ -158,6 +175,24 @@ graph LR
     fd_env_file -.->|"EnvironmentFile=-<br/>(non-fatal if missing)"| fd_applier
     fd_notify -->|"HTTPS POST (curl --max-time 10)<br/>per ntfy-notification-v1 contract"| ntfy_sh
     ntfy_sh -->|"ntfy push (websocket / FCM)"| phone_ntfy
+
+    %% Observability — deterministic scanners share the #701 bus (siblings, DEC-007)
+    canary_timer -->|"systemd activation"| canary_service
+    canary_service -->|"ExecStart (--once)"| canary_run
+    canary_run -->|"read health_check + status<br/>(a component = a declared check)"| svc_inventory
+    canary_run -->|"emitting outcomes only<br/>(dedup: transition/6h window)"| alert_bus
+    canary_run -->|"append every outcome (FR-008)"| canary_ledger
+    canary_run -->|"atomic write (FR-010)"| canary_tick
+    canary_run -->|"atomic write"| canary_dedup
+    canary_service -.->|"OnFailure: non-zero exit<br/>(runner-level fault, SC-006)"| alert_bus
+    canary_tick -.->|"registered as own health_check<br/>(#269 watches the watcher)"| svc_inventory
+
+    trust_timer -->|"systemd activation → oneshot"| trust_run
+    trust_run -->|"findings + drift_resolved<br/>(24h re-alert cadence)"| alert_bus
+    trust_run -->|"atomic write"| trust_state
+
+    alert_bus -->|"curl POST (fail-safe)<br/>single canonical topic"| ntfy_sh
+    alert_bus -->|"append redacted record<br/>even on delivery failure (#706)"| alert_ledger
 
     browser -->|"HTTPS via Tailscale Serve"| vikunja_ui
     vikunja_ui --> vikunja_db

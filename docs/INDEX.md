@@ -48,6 +48,7 @@ Master map for all active documentation under `docs/`. Referenced from
 - [README](<./design/architecture/README.md>) — architecture suite index
 - [Service Inventory](<./design/architecture/service-inventory.md>) — running services, ports, systemd units
 - [Data Flows](<./design/architecture/data-flows.md>) + [Mermaid view](<./design/architecture/data-flows.view.md>)
+- [Observability & Alerting — the Deterministic-Scanner Pattern](<./design/architecture/observability-and-alerting.md>) — *Explanation* — the reusable pattern for self-observing scanners (inventory-declared health check → deterministic systemd-timer scanner → #701 alert bus → durable ledger); the shape a new alert producer follows. Exemplars: `felix-canary` (#327) + `felix-trust-scan` (#683).
 - [Physical Topology](<./design/architecture/physical-topology.md>) + [Mermaid view](<./design/architecture/physical-topology.view.md>)
 - [Credentials & Secrets](<./design/architecture/credentials-and-secrets.md>)
 - [Identity Model](<./design/architecture/identity-model.md>)

@@ -3,8 +3,8 @@ title: "Felix — Capability Roadmap & Strategy"
 doc_type: reference
 status: approved
 owners: ["@kentonium3"]
-last_updated: '2026-07-09'
-revision: v0.3
+last_updated: '2026-07-11'
+revision: v0.4
 audience: agents_and_humans
 ---
 
@@ -231,6 +231,36 @@ The epic spans multiple missions and patches across areas — typically a doc-in
 | Solicitation folder hygiene (F026) | U | Email Integration | F024 | #122 |
 | Deep research job management | U | Task Intelligence | F019, F022 | #123 |
 | Commitment Manager Agent | U | Accountability Engine | F013, F019 | #101 |
+
+---
+
+### Foundation 1 — Health & Observability (Core Hub infrastructure, Epic #516)
+
+**Strategic intent**: give Felix deterministic self-observability — the ability to
+detect when its own components fail, drift, or go silent — *without* trusting a
+model's assertion about system state (the recurring fabrication class: #562, #662,
+#683). This is the observability leg of the Bedrock stabilization program
+([`felix-bedrock-stabilization.md`](<./felix-bedrock-stabilization.md>), umbrella
+Epic #673). The reusable shape it establishes — inventory-declared health checks →
+deterministic systemd-timer scanners (zero LLM) → one canonical alert bus → durable
+queryable ledgers — is captured as the **Deterministic-Scanner pattern**
+([`architecture/observability-and-alerting.md`](<./architecture/observability-and-alerting.md>))
+so future alert producers follow it rather than reinventing it.
+
+| Capability | Status | Issues / Missions | Notes |
+|---|---|---|---|
+| Component lifecycle status contract | ✅ Shipped (2026-07-11) | ADR-0006 (closes #538) | Splits declared *lifecycle status* (`active`/`running`/`suspended`/…) from observed *health* (`healthy`/`stale`/`failed`/`unknown`). Status gates health — the load-bearing rule the canary implements. Backs Engineering Principle #8 (suspension as an operational state). |
+| Unified alert bus (`felix-alert`) | ✅ Shipped + deployed | #701 (unified-alert-bus-01KX5TYT); durable ledger #706 | The single canonical alert stream (INV-003): one `scripts/common/alert_bus.emit()` path → one canonical ntfy thread → one durable JSONL ledger that records even failed deliveries. Migrated the three existing ntfy emitters (felix-deployer, security-monitor, felix-health-check) off per-component topics. Runbook: [`alerting.md`](<../runbooks/alerting.md>). |
+| Trust / cron-drift scanner (`felix-trust-scan`) | ✅ Shipped + deployed | #683 (felix-truthful-reporting-01KX6MN5) | First instance of the deterministic-scanner pattern: watches trust drift (rogue/unapproved crons, fabricated completion assertions) on a 15-min systemd-user timer, emits via the #701 bus. Runbook: [`trust-reporting-detector.md`](<../runbooks/trust-reporting-detector.md>). |
+| Component-health canary registry (`felix-canary`) | ✅ Shipped + deployed + verified (2026-07-11) | #327 (felix-canary-registry-01KX8T7B); child of Epic #516 | Second instance of the pattern (sibling to trust-scan, DEC-007). A deterministic 15-min scanner that reads every `service-inventory.json` `health_check`, computes health per ADR-0006 (status-gates-health, gate-before-probe), and alerts stale/failed/un-evaluable *live* components via the #701 bus — zero LLM in the tick path. Writes a per-component ledger + self-health tick-signal; adds an `OnFailure=` crash detector trust-scan lacked. Coverage gaps are surfaced, never silently skipped. Deployed via manifest `0017` (verify-before-enable, #703/#711). Runbook: [`canary-registry-ops.md`](<../runbooks/canary-registry-ops.md>). |
+| Out-of-band dead-timer / whole-host-silence watchdog | ⬜ Deferred | #269 | The one thing a self-hosted scanner structurally cannot cover (a dead process can't report itself). Builds on the canary's tick-signal + the durable ledgers as its queryable substrate. |
+| Alert responder | ⬜ RFC | #707 | Future consumer of the durable ledgers — reads alert/health history to act, rather than re-observing. |
+
+**Why this is foundational**: every autonomous capability the roadmap eventually
+delivers assumes Felix can tell when its own machinery has broken. Deterministic
+observability (not model-asserted status) is the precondition for delegating
+higher-autonomy work — and the single canonical alert stream keeps that signal from
+fragmenting into per-component notification paths as new producers are added.
 
 ---
 
