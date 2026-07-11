@@ -1,0 +1,15 @@
+[Unit]
+Description=felix-canary OnFailure shim — emit an out-of-band ERROR when a canary run fails (SC-006)
+
+[Service]
+Type=oneshot
+# Fires only when felix-canary.service exits non-zero (a runner-level fault:
+# inventory unreadable, state dir unwritable, etc.). This is independent of the
+# runner's own emit logic — if the runner crashed before it could report, this
+# shim guarantees the operator is paged that the canary did not complete a pass.
+# The bus shim exits 0 on a best-effort emit, so a delivery hiccup here never
+# masks the underlying failure that already triggered OnFailure.
+ExecStart=/home/claude/kg-automation/scripts/common/alert_bus.sh emit --source felix-canary/onfailure --severity error --title "felix-canary run failed" --description "The felix-canary.service run exited non-zero; the health canary did not complete a pass."
+# Same alert-bus topic env-file as the main unit (leading "-" keeps it
+# non-fatal if absent — the shim also sources it itself as a fallback).
+EnvironmentFile=-/home/claude/.config/felix/alert-bus/env

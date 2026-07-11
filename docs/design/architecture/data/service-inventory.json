@@ -1,7 +1,7 @@
 {
   "schema_version": "1.1",
   "last_updated": "2026-07-11",
-  "updated_by": "felix-time-logging-01KX79HT (#703 — felix-timelog-helper service added: WhatsApp time-logging to Google Sheets, shares the #699 calendar helper's venv + credential with an added spreadsheets scope) + felix-truthful-reporting-01KX6MN5 (#683 — felix-trust-scan systemd timer added: cron-drift + completion-assertion detection, alerts via the #701 felix-alert bus) + unified-alert-bus-01KX5TYT (#701 — felix-alert bus shared library + unified operator-alerts topic added; three ntfy emitters (felix-deployer subsystem, security-monitor, felix-health-check) migrated to the bus, their per-component topics retired) + f0-exec-hardening-01KX4ZCY (#675 — exec-hardening finding + live-config reconcile: habits/tasker model drift, per-agent skills, post-#699 gog paths, gateway version) + felix-calendar-helper-01KX4H3C (#699 — calendar helper on-demand invocation + Google Calendar API dependency + felix-admin-calendar gog-skill removal; RFC #681 calendar phase) + deterministic-monitoring-checks-01KX1XNW (#676) + harden-inbox-capture-01KWVGZM (#662) + felix-admin-cron-path-fix-01KWQTY3 (#656) + finalize-inbox-file-01KW8MSQ (#325) + pull-based-deploy-pipeline-01KTYQQS (#136) + felix-calendar-subagent-extraction-01KTTA33 (#579) + #572-credential-liveness-probe + prescan-archive-anomalies-01KTMZPE (#568) + capture-agents-md-rewrite-01KTMY86 (#566) + capture-d6-helpers-extraction-01KTMS5Q (#566) + agent-prompt-deploy-pipeline-01KTMDDD (#567) + vikunja-client-and-habits-weekly-report-01KTKSFT (#542 + #561 + #562) + inbox-calendar-and-aspiration-routing-01KTHHXS + #520-felix-vikunja-sync-project-layer-and-url-config + #519-touchpoint-migration + #518-felix-vikunja-sync-driver-added + #376-remove-escalation-v1-parity + #400-audit-interpretation-moment0 + #310-tasker-jsonl-migration + #374-main-verbatim-passthrough + #362-drift-event-auto-resolution + #309-migrate-escalation-to-jsonl-state-model + #343-refactor-doc-auditor-to-scripts-first-driver + #307-backfill-habits-jsonl-from-comments + #306-habits-native-repeat-jsonl-state + #304-felix-bot-rotation + #291-felix-file-issue + #289-mutation-surfaces-enumeration + #285-cron-delivery-restore-path-c + #282-habits-d6-extract + #263-cron-delivery-mode-round2 + #100-google-workspace-foundation + #256-scope-discipline-guardrails + #253-step-5a-6-consolidation + #254-atomic-write-perm-preservation + issue-105-doc-auditor + #223-systemd-timer + #208-restic-healthcheck + #202-obsidian-sync-system-level + #203-sync-heartbeat + #199-inbox-schedules + #115-credential-health-check + #189-vikunja-compose + #185-inbox-capture-dedup + restore-whatsapp-dm-reply-delivery-01KTVVHH (#588) + #545-reconcile-doc-auditor-status",
+  "updated_by": "felix-canary-registry-01KX8T7B (#327 — felix-canary component-health runner registered (systemd_user_timer, tick-signal-file self-observability on last-tick.json, FR-010); restic-backup health_check normalized from method:shell to method:state-file with max_age_seconds:100800 so the shared canary freshness probe drives it uniformly (FR-007)) + felix-time-logging-01KX79HT (#703 — felix-timelog-helper service added: WhatsApp time-logging to Google Sheets, shares the #699 calendar helper's venv + credential with an added spreadsheets scope) + felix-truthful-reporting-01KX6MN5 (#683 — felix-trust-scan systemd timer added: cron-drift + completion-assertion detection, alerts via the #701 felix-alert bus) + unified-alert-bus-01KX5TYT (#701 — felix-alert bus shared library + unified operator-alerts topic added; three ntfy emitters (felix-deployer subsystem, security-monitor, felix-health-check) migrated to the bus, their per-component topics retired) + f0-exec-hardening-01KX4ZCY (#675 — exec-hardening finding + live-config reconcile: habits/tasker model drift, per-agent skills, post-#699 gog paths, gateway version) + felix-calendar-helper-01KX4H3C (#699 — calendar helper on-demand invocation + Google Calendar API dependency + felix-admin-calendar gog-skill removal; RFC #681 calendar phase) + deterministic-monitoring-checks-01KX1XNW (#676) + harden-inbox-capture-01KWVGZM (#662) + felix-admin-cron-path-fix-01KWQTY3 (#656) + finalize-inbox-file-01KW8MSQ (#325) + pull-based-deploy-pipeline-01KTYQQS (#136) + felix-calendar-subagent-extraction-01KTTA33 (#579) + #572-credential-liveness-probe + prescan-archive-anomalies-01KTMZPE (#568) + capture-agents-md-rewrite-01KTMY86 (#566) + capture-d6-helpers-extraction-01KTMS5Q (#566) + agent-prompt-deploy-pipeline-01KTMDDD (#567) + vikunja-client-and-habits-weekly-report-01KTKSFT (#542 + #561 + #562) + inbox-calendar-and-aspiration-routing-01KTHHXS + #520-felix-vikunja-sync-project-layer-and-url-config + #519-touchpoint-migration + #518-felix-vikunja-sync-driver-added + #376-remove-escalation-v1-parity + #400-audit-interpretation-moment0 + #310-tasker-jsonl-migration + #374-main-verbatim-passthrough + #362-drift-event-auto-resolution + #309-migrate-escalation-to-jsonl-state-model + #343-refactor-doc-auditor-to-scripts-first-driver + #307-backfill-habits-jsonl-from-comments + #306-habits-native-repeat-jsonl-state + #304-felix-bot-rotation + #291-felix-file-issue + #289-mutation-surfaces-enumeration + #285-cron-delivery-restore-path-c + #282-habits-d6-extract + #263-cron-delivery-mode-round2 + #100-google-workspace-foundation + #256-scope-discipline-guardrails + #253-step-5a-6-consolidation + #254-atomic-write-perm-preservation + issue-105-doc-auditor + #223-systemd-timer + #208-restic-healthcheck + #202-obsidian-sync-system-level + #203-sync-heartbeat + #199-inbox-schedules + #115-credential-health-check + #189-vikunja-compose + #185-inbox-capture-dedup + restore-whatsapp-dm-reply-delivery-01KTVVHH (#588) + #545-reconcile-doc-auditor-status",
   "services": [
     {
       "name": "vikunja",
@@ -300,12 +300,12 @@
         }
       ],
       "health_check": {
-        "method": "shell",
-        "endpoint": "jq -er '\nif .snapshot_timestamp_utc == null then \"FAIL: no snapshot recorded\" else\n  (now - (.snapshot_timestamp_utc | fromdateiso8601)) as $age_sec |\n  if ($age_sec > 100800) then \"FAIL: stale (\\($age_sec / 3600 | floor) hours old)\"\n  elif (.restic_exit_code != 0 and .restic_exit_code != 3) then \"FAIL: restic exit \\(.restic_exit_code)\"\n  else \"OK (\\($age_sec / 3600 | floor) hours since snapshot)\"\n  end\nend' /data/services/backup/state/last-backup.json",
-        "expected": "exit 0 with an 'OK \u2026' line; the pointer is freshness-checked (snapshot_timestamp_utc must be non-null, within the last 28 hours, and restic_exit_code in {0, 3}). A pointer that exists but is stale or carries a failed exit code MUST fail.",
+        "method": "state-file",
+        "expected": "Freshness-probe semantics (canary registry, FR-007): the pointer's snapshot_timestamp_utc (authoritative anchor) must be non-null and within max_age_seconds (100800 s = 28 h), AND restic_exit_code must be in {0, 3}. Healthy iff both hold; a pointer whose timestamp is older than max_age_seconds is STALE; a pointer carrying restic_exit_code not in {0, 3} is an explicit FAILURE; an unreadable/malformed pointer is UNKNOWN. Replaces the former embedded jq staleness one-liner (converted from method:shell by felix-canary-registry-01KX8T7B #327) so the shared freshness probe drives restic uniformly.",
         "timeout_seconds": 5,
         "state_path": "/data/services/backup/state/last-backup.json",
-        "note": "Pointer file is written by /data/services/backup/scripts/backup.sh on every run (#511). Schema v1 fields: snapshot_timestamp_utc (authoritative \u2014 derived from `restic snapshots --latest 1 --json` after the run), snapshot_id, restic_exit_code (the backup step's actual exit, not the script's overall exit), script_finished_at_utc (separate witness), repo_size_bytes, snapshot_count, integrity_check_run, integrity_check_passed. Atomic write via .tmp + mv so concurrent readers never see a partial file. See docs/runbooks/restic-backup-ops.md."
+        "max_age_seconds": 100800,
+        "note": "Pointer file is written by /data/services/backup/scripts/backup.sh on every run (#511; writer unchanged by #327). Freshness anchor = snapshot_timestamp_utc (confirmed authoritative in docs/runbooks/restic-backup-ops.md); the good-exit set is restic_exit_code \u2208 {0, 3}. Schema v1 fields: snapshot_timestamp_utc (authoritative \u2014 derived from `restic snapshots --latest 1 --json` after the run), snapshot_id, restic_exit_code (the backup step's actual exit, not the script's overall exit), script_finished_at_utc (separate witness), repo_size_bytes, snapshot_count, integrity_check_run, integrity_check_passed. Atomic write via .tmp + mv so concurrent readers never see a partial file. WP03 coordination (#327): the shared freshness probe must include snapshot_timestamp_utc in its candidate-timestamp-key list and treat restic_exit_code \u2209 {0, 3} as an explicit failure. See docs/runbooks/restic-backup-ops.md."
       },
       "config_files": [
         {
@@ -2256,6 +2256,59 @@
           "format": "json",
           "source_in_repo": "docs/design/architecture/data/approved-crons.json",
           "purpose": "Approved-cron baseline consumed by the cron-drift scan."
+        }
+      ]
+    },
+    {
+      "name": "felix-canary",
+      "type": "systemd_user_timer",
+      "host": "office2",
+      "agent": "n/a (agent-independent deterministic runner; no openclaw agent identity)",
+      "user": "claude",
+      "systemd_unit": "felix-canary.timer (user unit) + felix-canary.service (user oneshot)",
+      "systemd_user": "claude",
+      "schedule": "every 15 minutes",
+      "deployed_by": "327",
+      "updated_by": "327 (felix-canary-registry-01KX8T7B, WP05)",
+      "status": "active",
+      "purpose": "The Felix component-health canary runner (kentonium3/kg-automation#327, FR-010 self-observability). Each tick reads this service-inventory.json, evaluates each alert-eligible component's health_check via the shared deterministic freshness/probe layer (scripts/canary/probes.py; no LLM), and emits findings through the #701 felix-alert bus. Registering the runner itself makes a stalled runner detectable: a stopped timer no longer refreshes its own tick-signal, so the freshness probe below (and any external observer of last-tick.json) surfaces the outage rather than the canary silently going dark.",
+      "runbook": "docs/runbooks/canary-registry-ops.md",
+      "risk_tier": 3,
+      "dependencies": [
+        {
+          "target": "alert-bus",
+          "type": "requires",
+          "description": "Health findings are rendered and emitted via the shared #701 felix-alert bus (scripts/common/alert_bus/) — no parallel alerting mechanism."
+        },
+        {
+          "target": "docs/design/architecture/data/service-inventory.json",
+          "type": "requires",
+          "description": "This inventory is the canary's input: the runner iterates services[] and probes each component's health_check. It is both a consumer of and (via this entry) a member of the inventory."
+        }
+      ],
+      "health_check": {
+        "method": "tick-signal-file",
+        "expected": "Tick-signal written each pass to last-tick.json (status: success + completed_at_utc timestamp per the WP04 tick-signal schema); healthy iff status is success and completed_at_utc is within max_age_seconds (2100 s = 15-min cadence + slack). A stale or missing signal beyond ~35 min means the timer stopped ticking (the runner went dark); an explicit non-success status is a failure; an unreadable/malformed file is unknown.",
+        "timeout_seconds": 5,
+        "state_path": "/data/services/felix-canary/state/last-tick.json",
+        "max_age_seconds": 2100,
+        "note": "Self-observability signal for the canary runner (FR-010). Tick-signal schema (WP04 data-model): last-tick.json is rewritten atomically each pass with at least {status: success|error, completed_at_utc: ISO-8601 UTC, ...}; completed_at_utc is the freshness anchor the tick-signal-file probe reads. Mirrors the felix-trust-scan / felix-doc-auditor / felix-vikunja-sync last-tick.json health-signal pattern. Operational detail + the full tick-signal field list live in docs/runbooks/canary-registry-ops.md (authored by this mission, WP07)."
+      },
+      "config_files": [
+        {
+          "path": "~/.config/systemd/user/felix-canary.timer",
+          "format": "systemd-unit",
+          "source_in_repo": "scripts/office2/felix-canary.timer"
+        },
+        {
+          "path": "~/.config/systemd/user/felix-canary.service",
+          "format": "systemd-unit",
+          "source_in_repo": "scripts/office2/felix-canary.service"
+        },
+        {
+          "path": "/home/claude/kg-automation/scripts/canary/",
+          "format": "python-package",
+          "source_in_repo": "scripts/canary/"
         }
       ]
     },

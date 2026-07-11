@@ -129,6 +129,28 @@ STATUS_ENUM = {
 # operational_status == "suspended".
 LIVE_STATUS_VALUES = {"active", "running"}
 
+# health_check methods whose probe is freshness- or log-scan-based: they read an
+# authoritative timestamp / most-recent-event and compare it to now, so they need
+# a ``max_age_seconds`` freshness bound to be evaluable. Pure-liveness methods
+# (http/systemd-status/command/self-test/none) legitimately omit it. WP02/WP03
+# keep their own copy of this set — this constant is not a shared import surface
+# (scripts/ must not import from tooling/).
+FRESHNESS_METHODS = {
+    "tick-signal-file",
+    "signal-file",
+    "state-file",
+    "log-tail",
+    "journal",
+}
+
+# Rules that are informational during a warn→strict rollout: reported in every
+# mode but NOT blocking under --strict, so a not-yet-adopted field doesn't break
+# commits (cf. the STATUS_ENUM #538 / #545 warn→strict pattern). max-age-missing
+# flips to strict-blocking in a future "close freshness coverage gaps" issue once
+# all live freshness/log-scan services declare max_age_seconds. A malformed value
+# (max-age-type) is a real error and is intentionally NOT advisory.
+ADVISORY_RULES: frozenset[str] = frozenset({"max-age-missing"})
+
 
 @dataclass(frozen=True, order=True)
 class Finding:
@@ -223,6 +245,64 @@ def check_health(entry: dict, file: str) -> Iterable[Finding]:
         )
 
 
+def check_max_age_seconds(entry: dict, file: str) -> Iterable[Finding]:
+    """Validate the optional ``health_check.max_age_seconds`` freshness bound.
+
+    When a ``health_check`` dict carries ``max_age_seconds``, it MUST be a
+    positive int. ``bool`` is rejected even though it is an ``int`` subclass in
+    Python (``True``/``False`` are never a valid duration). Absence is legal —
+    pure-liveness checks omit the field entirely (see ``check_max_age_missing``
+    for the alert-eligible-omission *warning*, which is a separate rule).
+    """
+    hc = entry.get("health_check")
+    if not isinstance(hc, dict) or "max_age_seconds" not in hc:
+        return
+    value = hc["max_age_seconds"]
+    if not (isinstance(value, int) and not isinstance(value, bool)) or value <= 0:
+        yield Finding(
+            file=file,
+            entity=_entity_label(entry),
+            rule="max-age-type",
+            detail=(
+                f"health_check.max_age_seconds={value!r} must be a positive int "
+                f"(got {type(value).__name__})"
+            ),
+        )
+
+
+def check_max_age_missing(entry: dict, file: str) -> Iterable[Finding]:
+    """Warn when an alert-eligible freshness/log-scan check omits max_age_seconds.
+
+    Alert-eligibility here is: a recognised runtime-service ``type`` **and** a
+    live ``status`` (``LIVE_STATUS_VALUES``) **and** a freshness/log-scan
+    ``health_check.method`` (``FRESHNESS_METHODS``). Such a check reads a
+    timestamp but has no bound to compare it against, so freshness cannot be
+    evaluated. A suspended/planned entry or a pure-liveness method does not warn.
+
+    This is a *warning* (surfaces under warn-only, only fails under ``--strict``),
+    matching the STATUS_ENUM/health-check posture.
+    """
+    etype = entry.get("type")
+    if not (isinstance(etype, str) and etype in SERVICE_TYPES):
+        return
+    if entry.get("status") not in LIVE_STATUS_VALUES:
+        return
+    hc = entry.get("health_check")
+    if not isinstance(hc, dict) or hc.get("method") not in FRESHNESS_METHODS:
+        return
+    if "max_age_seconds" in hc:
+        return
+    yield Finding(
+        file=file,
+        entity=_entity_label(entry),
+        rule="max-age-missing",
+        detail=(
+            "alert-eligible freshness/log-scan health_check omits "
+            "max_age_seconds; freshness cannot be evaluated"
+        ),
+    )
+
+
 def check_status(entry: dict, file: str) -> Iterable[Finding]:
     """Inventory entries' status must be in the canonical enum; flag contradictions.
 
@@ -315,6 +395,8 @@ def validate_document(doc: dict, file: str) -> list[Finding]:
     for entry in _iter_objects(doc):
         findings.extend(check_dates(entry, last_updated, file))
         findings.extend(check_health(entry, file))
+        findings.extend(check_max_age_seconds(entry, file))
+        findings.extend(check_max_age_missing(entry, file))
         findings.extend(check_status(entry, file))
 
     # An *unrecognised* type only signals a classification gap inside the service
@@ -403,7 +485,11 @@ def main(argv: list[str] | None = None) -> int:
     else:
         print("validate_architecture_data: OK (0 findings)")
 
-    if findings and args.strict:
+    # Advisory findings (warn→strict rollout signals) are reported in every mode
+    # but do not gate the --strict exit code, so a not-yet-adopted field can't
+    # break commits/CI. Only genuine errors (non-advisory rules) block.
+    blocking = [f for f in findings if f.rule not in ADVISORY_RULES]
+    if args.strict and blocking:
         return 1
     return 0
 
