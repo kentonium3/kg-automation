@@ -245,16 +245,18 @@ def test_max_age_missing_is_advisory():
 
 
 def test_strict_gate_on_real_tree_does_not_block(capsys):
-    # The pre-commit hook runs exactly `--strict`. The real tree currently has
-    # only max-age-missing (advisory) findings for max_age — the gate must not
-    # block on them. (Other non-advisory findings would fail; the live tree is
-    # otherwise clean, which this asserts.)
+    # The pre-commit hook runs exactly `--strict`; it must exit 0 on the real
+    # tree. As of #720 every live freshness/log-scan service declares
+    # max_age_seconds, so the tree carries no max-age findings at all. The gate
+    # is advisory-tolerant by design — were an advisory max-age-missing finding
+    # to reappear (e.g. a new service added without the bound) the gate would
+    # still exit 0; only a non-advisory finding (max-age-type) blocks. This
+    # asserts the invariant that matters: exit 0, and no *blocking* max_age
+    # error on the live tree.
     exit_code = vad.main(["--strict"])
     out = capsys.readouterr().out
     assert exit_code == 0
-    # Advisory findings are still printed, not silently dropped.
-    assert "max-age-missing" in out
-    # And no genuine max_age validity error is present on the real tree.
+    # No genuine max_age validity error (the only max_age rule that blocks).
     assert "max-age-type" not in out
 
 

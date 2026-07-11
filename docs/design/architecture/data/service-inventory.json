@@ -1,7 +1,7 @@
 {
   "schema_version": "1.1",
   "last_updated": "2026-07-11",
-  "updated_by": "felix-canary-registry-01KX8T7B (#327 — felix-canary component-health runner registered (systemd_user_timer, tick-signal-file self-observability on last-tick.json, FR-010); restic-backup health_check normalized from method:shell to method:state-file with max_age_seconds:100800 so the shared canary freshness probe drives it uniformly (FR-007)) + felix-time-logging-01KX79HT (#703 — felix-timelog-helper service added: WhatsApp time-logging to Google Sheets, shares the #699 calendar helper's venv + credential with an added spreadsheets scope) + felix-truthful-reporting-01KX6MN5 (#683 — felix-trust-scan systemd timer added: cron-drift + completion-assertion detection, alerts via the #701 felix-alert bus) + unified-alert-bus-01KX5TYT (#701 — felix-alert bus shared library + unified operator-alerts topic added; three ntfy emitters (felix-deployer subsystem, security-monitor, felix-health-check) migrated to the bus, their per-component topics retired) + f0-exec-hardening-01KX4ZCY (#675 — exec-hardening finding + live-config reconcile: habits/tasker model drift, per-agent skills, post-#699 gog paths, gateway version) + felix-calendar-helper-01KX4H3C (#699 — calendar helper on-demand invocation + Google Calendar API dependency + felix-admin-calendar gog-skill removal; RFC #681 calendar phase) + deterministic-monitoring-checks-01KX1XNW (#676) + harden-inbox-capture-01KWVGZM (#662) + felix-admin-cron-path-fix-01KWQTY3 (#656) + finalize-inbox-file-01KW8MSQ (#325) + pull-based-deploy-pipeline-01KTYQQS (#136) + felix-calendar-subagent-extraction-01KTTA33 (#579) + #572-credential-liveness-probe + prescan-archive-anomalies-01KTMZPE (#568) + capture-agents-md-rewrite-01KTMY86 (#566) + capture-d6-helpers-extraction-01KTMS5Q (#566) + agent-prompt-deploy-pipeline-01KTMDDD (#567) + vikunja-client-and-habits-weekly-report-01KTKSFT (#542 + #561 + #562) + inbox-calendar-and-aspiration-routing-01KTHHXS + #520-felix-vikunja-sync-project-layer-and-url-config + #519-touchpoint-migration + #518-felix-vikunja-sync-driver-added + #376-remove-escalation-v1-parity + #400-audit-interpretation-moment0 + #310-tasker-jsonl-migration + #374-main-verbatim-passthrough + #362-drift-event-auto-resolution + #309-migrate-escalation-to-jsonl-state-model + #343-refactor-doc-auditor-to-scripts-first-driver + #307-backfill-habits-jsonl-from-comments + #306-habits-native-repeat-jsonl-state + #304-felix-bot-rotation + #291-felix-file-issue + #289-mutation-surfaces-enumeration + #285-cron-delivery-restore-path-c + #282-habits-d6-extract + #263-cron-delivery-mode-round2 + #100-google-workspace-foundation + #256-scope-discipline-guardrails + #253-step-5a-6-consolidation + #254-atomic-write-perm-preservation + issue-105-doc-auditor + #223-systemd-timer + #208-restic-healthcheck + #202-obsidian-sync-system-level + #203-sync-heartbeat + #199-inbox-schedules + #115-credential-health-check + #189-vikunja-compose + #185-inbox-capture-dedup + restore-whatsapp-dm-reply-delivery-01KTVVHH (#588) + #545-reconcile-doc-auditor-status",
+  "updated_by": "felix-canary-registry-01KX8T7B (#327 — felix-canary component-health runner registered (systemd_user_timer, tick-signal-file self-observability on last-tick.json, FR-010); restic-backup health_check normalized from method:shell to method:state-file with max_age_seconds:100800 so the shared canary freshness probe drives it uniformly (FR-007)) + felix-time-logging-01KX79HT (#703 — felix-timelog-helper service added: WhatsApp time-logging to Google Sheets, shares the #699 calendar helper's venv + credential with an added spreadsheets scope) + felix-truthful-reporting-01KX6MN5 (#683 — felix-trust-scan systemd timer added: cron-drift + completion-assertion detection, alerts via the #701 felix-alert bus) + unified-alert-bus-01KX5TYT (#701 — felix-alert bus shared library + unified operator-alerts topic added; three ntfy emitters (felix-deployer subsystem, security-monitor, felix-health-check) migrated to the bus, their per-component topics retired) + f0-exec-hardening-01KX4ZCY (#675 — exec-hardening finding + live-config reconcile: habits/tasker model drift, per-agent skills, post-#699 gog paths, gateway version) + felix-calendar-helper-01KX4H3C (#699 — calendar helper on-demand invocation + Google Calendar API dependency + felix-admin-calendar gog-skill removal; RFC #681 calendar phase) + deterministic-monitoring-checks-01KX1XNW (#676) + harden-inbox-capture-01KWVGZM (#662) + felix-admin-cron-path-fix-01KWQTY3 (#656) + finalize-inbox-file-01KW8MSQ (#325) + pull-based-deploy-pipeline-01KTYQQS (#136) + felix-calendar-subagent-extraction-01KTTA33 (#579) + #572-credential-liveness-probe + prescan-archive-anomalies-01KTMZPE (#568) + capture-agents-md-rewrite-01KTMY86 (#566) + capture-d6-helpers-extraction-01KTMS5Q (#566) + agent-prompt-deploy-pipeline-01KTMDDD (#567) + vikunja-client-and-habits-weekly-report-01KTKSFT (#542 + #561 + #562) + inbox-calendar-and-aspiration-routing-01KTHHXS + #520-felix-vikunja-sync-project-layer-and-url-config + #519-touchpoint-migration + #518-felix-vikunja-sync-driver-added + #376-remove-escalation-v1-parity + #400-audit-interpretation-moment0 + #310-tasker-jsonl-migration + #374-main-verbatim-passthrough + #362-drift-event-auto-resolution + #309-migrate-escalation-to-jsonl-state-model + #343-refactor-doc-auditor-to-scripts-first-driver + #307-backfill-habits-jsonl-from-comments + #306-habits-native-repeat-jsonl-state + #304-felix-bot-rotation + #291-felix-file-issue + #289-mutation-surfaces-enumeration + #285-cron-delivery-restore-path-c + #282-habits-d6-extract + #263-cron-delivery-mode-round2 + #100-google-workspace-foundation + #256-scope-discipline-guardrails + #253-step-5a-6-consolidation + #254-atomic-write-perm-preservation + issue-105-doc-auditor + #223-systemd-timer + #208-restic-healthcheck + #202-obsidian-sync-system-level + #203-sync-heartbeat + #199-inbox-schedules + #115-credential-health-check + #189-vikunja-compose + #185-inbox-capture-dedup + restore-whatsapp-dm-reply-delivery-01KTVVHH (#588) + #545-reconcile-doc-auditor-status + freshness-max-age-backfill (#720 \u2014 populated max_age_seconds on 11 live freshness/log-scan health_checks so the canary evaluates staleness instead of liveness-only; bound = ~2x tick interval for sub-hourly, cycle+margin for daily)",
   "services": [
     {
       "name": "vikunja",
@@ -140,6 +140,7 @@
       ],
       "health_check": {
         "method": "log-tail",
+        "max_age_seconds": 3600,
         "endpoint": "tail -5 /tmp/sync-heartbeat.log",
         "expected": "recent heartbeat write/check entries within the last 30 minutes",
         "timeout_seconds": 5
@@ -1348,6 +1349,7 @@
       "purpose": "Auto-sync Felix agent prompt files from the repo on office2 into the deployed openclaw workspace dirs. Closes the deploy gap exposed by #563 (truncated prompts surfacing as silent content loss) and unsticks stranded changes from #558 + #561.",
       "health_check": {
         "method": "tick-signal-file",
+        "max_age_seconds": 600,
         "endpoint": "/data/services/openclaw/deploy/agent-prompt-sync.jsonl",
         "expected": "tick_summary entry with exit_code=0 within the last 10 minutes",
         "timeout_seconds": 5,
@@ -1979,6 +1981,7 @@
       ],
       "health_check": {
         "method": "tick-signal-file",
+        "max_age_seconds": 1800,
         "endpoint": "/data/services/openclaw/felix-core-digest-signals/last-tick.json",
         "expected": "exit_status=success within the last 30 minutes; errors=[] (see kitty-specs/signal-driven-monitoring-haiku-gate-01KT22PC/contracts/tick-signal.contract.md). Operators may additionally check `systemctl --user status felix-core-digest.timer` for liveness.",
         "timeout_seconds": 5
@@ -2056,6 +2059,7 @@
       ],
       "health_check": {
         "method": "tick-signal-file",
+        "max_age_seconds": 3600,
         "endpoint": "/data/services/openclaw/felix-heartbeat-gate/last-gate-decision.json",
         "expected": "outcome in {HEARTBEAT_OK, LOG_AND_SKIP, ESCALATE_TO_SONNET} within the last 35 minutes; errors=[]; fallback_invoked=false on the steady state; token fields (gate_input_tokens/gate_cache_hit_tokens/gate_output_tokens) always 0 post-#676. See kitty-specs/signal-driven-monitoring-haiku-gate-01KT22PC/contracts/gate-decision.contract.md for the schema.",
         "timeout_seconds": 5
@@ -2162,6 +2166,7 @@
       ],
       "health_check": {
         "method": "signal-file",
+        "max_age_seconds": 46800,
         "endpoint": "/data/services/openclaw/felix-health-check/last-run.json",
         "expected": "status in {ALL_HEALTHY, FAILURES_DETECTED, UNKNOWN, SCRIPT_MISSING}, ran_at_utc within the last ~13 hours (covers both 11:00/23:00 ticks), exit_code recorded. Healthy runs are silent (no ntfy push); non-healthy runs alert. See kitty-specs/deterministic-monitoring-checks-01KX1XNW/contracts/health-check-runner.contract.md for the schema.",
         "timeout_seconds": 5
@@ -2231,6 +2236,7 @@
       ],
       "health_check": {
         "method": "state-file",
+        "max_age_seconds": 1800,
         "endpoint": "/data/services/trust/state/seen-findings.json",
         "expected": "Seen-findings state map written atomically each non-dry-run tick (scripts/trust/state.py); a stale/missing file beyond ~30 minutes indicates the timer stopped ticking. The JSON scan summary (`{ok, drift_findings, assertion_findings, alerts_emitted, errors}`) printed by `run_trust_scan --json` is the per-tick machine-readable result; `errors: []` and `ok: true` indicate a clean tick.",
         "timeout_seconds": 5
@@ -2358,6 +2364,7 @@
       ],
       "health_check": {
         "method": "journal",
+        "max_age_seconds": 90000,
         "endpoint": "journalctl --user -u credential-health-check --since today",
         "expected": "cycle_end event present from the most recent 13:00 UTC tick",
         "timeout_seconds": 5
@@ -2420,6 +2427,7 @@
       ],
       "health_check": {
         "method": "log-tail",
+        "max_age_seconds": 25200,
         "endpoint": "journalctl --user -u credential-liveness-probe.service --since '7 hours ago' | grep -E 'credential_alive|credential_dead|credential_probe_error'",
         "expected": "At least one credential_alive or credential_dead event in the last 7-hour window; absence means the timer did not fire",
         "timeout_seconds": 5
@@ -2547,6 +2555,7 @@
       ],
       "health_check": {
         "method": "tick-signal-file",
+        "max_age_seconds": 90000,
         "endpoint": "/data/services/openclaw/state/habits/sweeper-tick-<today-ET>.json",
         "expected": "exit_status=success with started_at_utc within the last ~24hr; errors=[] (see kitty-specs/habit-day-specific-scheduling-01KT48Y6/contracts/sweeper-tick.contract.md). Operators may additionally check `systemctl --user status felix-habit-sweeper.timer` for liveness.",
         "timeout_seconds": 5
@@ -2601,6 +2610,7 @@
       ],
       "health_check": {
         "method": "log-tail",
+        "max_age_seconds": 600,
         "endpoint": "cat /data/services/openclaw/state/sync/last-tick.json | jq '.completed_at_utc, .cycle_error'",
         "expected": "completed_at_utc within ~6 minutes; cycle_error: null",
         "timeout_seconds": 5
@@ -2697,6 +2707,7 @@
       ],
       "health_check": {
         "method": "tick-signal-file",
+        "max_age_seconds": 600,
         "endpoint": "/data/services/felix-deployer/state/last-tick.json",
         "expected": "status=success within the last 10 minutes; exit_code=0",
         "timeout_seconds": 5,
