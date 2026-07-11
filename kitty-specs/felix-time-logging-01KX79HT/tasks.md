@@ -36,9 +36,9 @@ Tests required (DIRECTIVE_034; NFR-002 fail-safe must be proven). Deploy to offi
 
 ### WP02 — Deterministic Sheets helper
 - **Goal**: `scripts/google/sheets_helper.py` CLI (append idempotent+read-back, create-tab no-op, list-tabs, update/delete-last, self-check). **Deps**: WP01. **Requirements**: FR-005, FR-007; NFR-001, NFR-002.
-- [ ] T003 append-row + create-tab (WP02)
-- [ ] T004 list-tabs/update-last/delete-last/self-check (WP02)
-- [ ] T005 helper tests (WP02)
+- [x] T003 append-row + create-tab (WP02)
+- [x] T004 list-tabs/update-last/delete-last/self-check (WP02)
+- [x] T005 helper tests (WP02)
 
 ### WP03 — timelog normalizer (validate/resolve/typed-union/state)
 - **Goal**: `scripts/google/timelog.py` — main-facing normalizer; validates structured args, resolves client, full typed union, ledger + pending state, corrections. **Deps**: WP02. **Requirements**: FR-001, FR-002, FR-003, FR-004, FR-006, FR-007; NFR-002, NFR-003.
