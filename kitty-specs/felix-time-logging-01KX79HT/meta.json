@@ -13,6 +13,7 @@
   "accepted_at": "2026-07-11T02:30:46.113923+00:00",
   "accepted_by": "kentgale",
   "accepted_from_commit": "ad59408dcf0919f0cb973b4a42bf6e94d7220dfc",
+  "baseline_merge_commit": "079978d0af5ea3bb9ea8140f8f1edba2bb4c2866",
   "created_at": "2026-07-11T00:34:31.752145+00:00",
   "flattened": true,
   "friendly_name": "Felix WhatsApp Time-Logging to Sheets",
