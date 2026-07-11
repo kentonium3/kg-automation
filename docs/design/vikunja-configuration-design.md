@@ -12,7 +12,7 @@ audience: agents_and_humans
 **Status:** Draft
 **Author:** Kent Gale
 **Location:** `docs/design/vikunja-configuration-design.md`
-**Related:** Felix/Vikunja Integration Epic (TBD)
+**Related:** Vikunja Configuration Reset Epic ([#714](https://github.com/kentonium3/kg-automation/issues/714)) — executes this design; Felix/Vikunja Integration Epic (TBD)
 
 ---
 
