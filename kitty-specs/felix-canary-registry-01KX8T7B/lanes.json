@@ -1,0 +1,151 @@
+{
+  "version": 1,
+  "mission_slug": "felix-canary-registry-01KX8T7B",
+  "mission_id": "01KX8T7B6RQZYEHD8ZY2RHB48F",
+  "mission_branch": "kitty/mission-felix-canary-registry-01KX8T7B",
+  "target_branch": "feat/felix-canary-registry",
+  "lanes": [
+    {
+      "lane_id": "lane-a",
+      "wp_ids": [
+        "WP01"
+      ],
+      "write_scope": [
+        "tests/tooling/test_validate_architecture_data_max_age.py",
+        "tooling/scripts/validate_architecture_data.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "artifact-rendering"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    },
+    {
+      "lane_id": "lane-b",
+      "wp_ids": [
+        "WP02"
+      ],
+      "write_scope": [
+        "scripts/canary/__init__.py",
+        "scripts/canary/registry.py",
+        "tests/canary/__init__.py",
+        "tests/canary/test_registry.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "legacy-cleanup",
+        "tracker-integration"
+      ],
+      "depends_on_lanes": [
+        "lane-a"
+      ],
+      "parallel_group": 1
+    },
+    {
+      "lane_id": "lane-e",
+      "wp_ids": [
+        "WP05"
+      ],
+      "write_scope": [
+        "docs/design/architecture/data/service-inventory.json"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "legacy-cleanup"
+      ],
+      "depends_on_lanes": [
+        "lane-a"
+      ],
+      "parallel_group": 1
+    },
+    {
+      "lane_id": "lane-c",
+      "wp_ids": [
+        "WP03"
+      ],
+      "write_scope": [
+        "scripts/canary/health.py",
+        "scripts/canary/probes.py",
+        "tests/canary/test_health.py",
+        "tests/canary/test_probes.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "tracker-integration"
+      ],
+      "depends_on_lanes": [
+        "lane-a",
+        "lane-b"
+      ],
+      "parallel_group": 2
+    },
+    {
+      "lane_id": "lane-d",
+      "wp_ids": [
+        "WP04"
+      ],
+      "write_scope": [
+        "scripts/canary/dedup.py",
+        "scripts/canary/run.py",
+        "tests/canary/test_dedup.py",
+        "tests/canary/test_run.py"
+      ],
+      "predicted_surfaces": [
+        "api"
+      ],
+      "depends_on_lanes": [
+        "lane-b",
+        "lane-c"
+      ],
+      "parallel_group": 3
+    },
+    {
+      "lane_id": "lane-f",
+      "wp_ids": [
+        "WP06"
+      ],
+      "write_scope": [
+        "deploys/queued/0017-felix-canary-registry.yaml",
+        "scripts/deploy/deploy-felix-canary.py",
+        "scripts/office2/felix-canary-onfailure.service",
+        "scripts/office2/felix-canary.service",
+        "scripts/office2/felix-canary.timer",
+        "tests/deploy/test_deploy_felix_canary.py"
+      ],
+      "predicted_surfaces": [
+        "api"
+      ],
+      "depends_on_lanes": [
+        "lane-d",
+        "lane-e"
+      ],
+      "parallel_group": 4
+    },
+    {
+      "lane_id": "lane-g",
+      "wp_ids": [
+        "WP07"
+      ],
+      "write_scope": [
+        "docs/DEVELOPER_PORTAL.md",
+        "docs/INDEX.md",
+        "docs/design/coherence/decisions.jsonl",
+        "docs/runbooks/canary-registry-ops.md"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "app-shell"
+      ],
+      "depends_on_lanes": [
+        "lane-d",
+        "lane-e",
+        "lane-f"
+      ],
+      "parallel_group": 5
+    }
+  ],
+  "computed_at": "2026-07-11T15:45:18.680571+00:00",
+  "computed_from": "dependency_graph+ownership",
+  "planning_artifact_wps": []
+}
