@@ -29,3 +29,7 @@ notes: "Installs the felix-canary component-health canary as a systemd user time
   \ are a hashed audited surface, so felix-deployer auto-rebaselines on the happy\
   \ path (the change has a repo-file signal; no expected_baselines needed).\n"
 applied_at: '2026-07-11T19:39:45Z'
+rebaseline:
+  outcome: completed
+  at_utc: '2026-07-11T19:39:56Z'
+  baseline_count: 14
