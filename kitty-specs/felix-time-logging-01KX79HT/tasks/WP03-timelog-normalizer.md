@@ -24,8 +24,9 @@ subtasks:
 - T010
 phase: Phase 2 - Normalizer
 assignee: ''
-agent: claude
+agent: "claude:sonnet:python-pedro:implementer"
 agent_profile: "python-pedro"
+shell_pid: "45777"
 history:
 - at: '2026-07-10T22:30:00Z'
   actor: system
@@ -386,3 +387,7 @@ Enforce these literally:
 8. **Tests** exercise every status, the partial mutation, pending correlation,
    ledger corrections, and the fail-safe path, mocking WP02 + the alert bus with
    an isolated state dir.
+
+## Activity Log
+
+- 2026-07-11T01:28:37Z – claude:sonnet:python-pedro:implementer – shell_pid=45777 – Assigned agent via action command
