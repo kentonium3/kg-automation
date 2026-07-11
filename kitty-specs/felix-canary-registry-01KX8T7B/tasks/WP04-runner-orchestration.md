@@ -184,3 +184,5 @@ buried in the modules (inject `now`); atomic writes via temp+`os.replace`.
 
 ## Activity Log
 - 2026-07-11T18:03:09Z – claude – shell_pid=60916 – Assigned agent via action command
+- 2026-07-11T18:27:33Z – claude – shell_pid=60916 – WP04: runner orchestration; F5 fix; 98 tests.
+- 2026-07-11T18:27:38Z – user – shell_pid=60916 – APPROVE (reviewer-renata, re-review): F5 fix correct + scoped; F7 intact; no regressions; 98 tests; no silent-never-paged path.

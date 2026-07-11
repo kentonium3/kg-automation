@@ -122,12 +122,12 @@ F7) → emit stale/failed/degraded + persistent-unknown + gap → write the aggr
 per-component JSONL ledger (F8). Fail-open. **Dependencies**: WP02, WP03. **Prompt**:
 [tasks/WP04-runner-orchestration.md](tasks/WP04-runner-orchestration.md). **Est. size**: ~450 lines.
 
-- [ ] T016 `dedup.py` DedupState (per-`component_id`, mandatory transition/recovery reset, F7) (WP04)
-- [ ] T017 `run.py` orchestration: iterate → evaluate → dedup → emit (WP04)
-- [ ] T018 Emit via `alert_bus` real `Alert`/`Severity` API (F3) + severity map (R6) (WP04)
-- [ ] T019 Per-component JSONL ledger (F8) + aggregate `last-tick.json` (WP04)
-- [ ] T020 CLI `--once`/`--dry-run`/`--self-check`; fail-open pass (NFR-004) (WP04)
-- [ ] T021 Runner unit tests: dedup transitions, fail-safe, emission set (WP04)
+- [x] T016 `dedup.py` DedupState (per-`component_id`, mandatory transition/recovery reset, F7) (WP04)
+- [x] T017 `run.py` orchestration: iterate → evaluate → dedup → emit (WP04)
+- [x] T018 Emit via `alert_bus` real `Alert`/`Severity` API (F3) + severity map (R6) (WP04)
+- [x] T019 Per-component JSONL ledger (F8) + aggregate `last-tick.json` (WP04)
+- [x] T020 CLI `--once`/`--dry-run`/`--self-check`; fail-open pass (NFR-004) (WP04)
+- [x] T021 Runner unit tests: dedup transitions, fail-safe, emission set (WP04)
 
 **Independent test**: `pytest tests/canary/test_run.py tests/canary/test_dedup.py` green;
 `python3 -m scripts.canary.run --dry-run` prints a health line for every service-type entry.
