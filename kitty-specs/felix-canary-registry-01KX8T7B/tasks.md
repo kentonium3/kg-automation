@@ -153,11 +153,11 @@ a `deploys/queued/` manifest; verify before enabling by running the **real unit 
 tick-signal + ledger line landed (F9, #703). **Dependencies**: WP04, WP05. **Prompt**:
 [tasks/WP06-deploy-manifest.md](tasks/WP06-deploy-manifest.md). **Est. size**: ~360 lines.
 
-- [ ] T025 `felix-canary.service` + `.timer` (15-min) + `OnFailure=` alert shim unit (WP06)
-- [ ] T026 `deploy-felix-canary.py`: install → daemon-reload → verify → enable (WP06)
-- [ ] T027 Verify-before-enable: `--self-check` **and** one real unit run asserting tick+ledger (F9) (WP06)
-- [ ] T028 `deploys/queued/0017-felix-canary-registry.yaml` (tier 3, audited_surface, rebaseline) (WP06)
-- [ ] T029 Deploy-script unit tests + byte-identical ExecStart guard (#703) (WP06)
+- [x] T025 `felix-canary.service` + `.timer` (15-min) + `OnFailure=` alert shim unit (WP06)
+- [x] T026 `deploy-felix-canary.py`: install → daemon-reload → verify → enable (WP06)
+- [x] T027 Verify-before-enable: `--self-check` **and** one real unit run asserting tick+ledger (F9) (WP06)
+- [x] T028 `deploys/queued/0017-felix-canary-registry.yaml` (tier 3, audited_surface, rebaseline) (WP06)
+- [x] T029 Deploy-script unit tests + byte-identical ExecStart guard (#703) (WP06)
 
 **Independent test**: `pytest tests/deploy/test_deploy_felix_canary.py` green; the deploy script's
 `ExecStart` string equals the `.service` file's `ExecStart` byte-for-byte.

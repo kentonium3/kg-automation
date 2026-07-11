@@ -159,3 +159,5 @@ audited_surface + numbering (0017) are correct; no Tier 0/1/2 action smuggled in
 
 ## Activity Log
 - 2026-07-11T18:28:00Z – claude – shell_pid=69736 – Assigned agent via action command
+- 2026-07-11T18:38:23Z – claude – shell_pid=69736 – WP06: deploy units+script+manifest; 23 tests; verify-before-enable.
+- 2026-07-11T18:38:30Z – user – shell_pid=69736 – APPROVE (reviewer-renata): all 6 DoD pass; ExecStart guard + OnFailure + enable-last F9 gate all test-proven; fixes #711 hazard.
