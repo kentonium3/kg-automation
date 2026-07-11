@@ -1,0 +1,32 @@
+{
+  "accept_commit": "de5fc4bdc14b83189c9cdf79cde46c6a0817f3fc",
+  "acceptance_history": [
+    {
+      "accept_commit": "de5fc4bdc14b83189c9cdf79cde46c6a0817f3fc",
+      "acceptance_mode": "pr",
+      "accepted_at": "2026-07-11T02:30:46.113923+00:00",
+      "accepted_by": "kentgale",
+      "accepted_from_commit": "ad59408dcf0919f0cb973b4a42bf6e94d7220dfc"
+    }
+  ],
+  "acceptance_mode": "pr",
+  "accepted_at": "2026-07-11T02:30:46.113923+00:00",
+  "accepted_by": "kentgale",
+  "accepted_from_commit": "ad59408dcf0919f0cb973b4a42bf6e94d7220dfc",
+  "baseline_merge_commit": "079978d0af5ea3bb9ea8140f8f1edba2bb4c2866",
+  "created_at": "2026-07-11T00:34:31.752145+00:00",
+  "flattened": true,
+  "friendly_name": "Felix WhatsApp Time-Logging to Sheets",
+  "mission_id": "01KX79HT65XV6AEJ2R2QQ3Z89Y",
+  "mission_number": 94,
+  "mission_slug": "felix-time-logging-01KX79HT",
+  "mission_type": "software-dev",
+  "pr_bound": true,
+  "purpose_context": "Kent's new multi-client commitments (Intentional consulting, spec-kitty fractional-exec, business acquisition) create real time-tracking admin. This mission lets Kent log time conversationally over WhatsApp and have Felix write it — correctly and observably — to a fresh Felix-owned Google Sheets workbook (one tab per client), the first EA capability built on the just-shipped trust core (#683 no-fabrication + #701 alerting).",
+  "purpose_tldr": "Log billable time by texting WhatsApp; Felix appends it to the right client tab of a Google Sheet.",
+  "slug": "felix-time-logging-01KX79HT",
+  "target_branch": "feat/felix-time-logging",
+  "topology": "coord",
+  "vcs": "git",
+  "vcs_locked_at": "2026-07-11T01:14:19.613585+00:00"
+}

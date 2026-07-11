@@ -1,7 +1,7 @@
 {
   "schema_version": "1.1",
-  "last_updated": "2026-07-10",
-  "updated_by": "felix-truthful-reporting-01KX6MN5 (#683 — felix-trust-scan systemd timer added: cron-drift + completion-assertion detection, alerts via the #701 felix-alert bus) + unified-alert-bus-01KX5TYT (#701 — felix-alert bus shared library + unified operator-alerts topic added; three ntfy emitters (felix-deployer subsystem, security-monitor, felix-health-check) migrated to the bus, their per-component topics retired) + f0-exec-hardening-01KX4ZCY (#675 — exec-hardening finding + live-config reconcile: habits/tasker model drift, per-agent skills, post-#699 gog paths, gateway version) + felix-calendar-helper-01KX4H3C (#699 — calendar helper on-demand invocation + Google Calendar API dependency + felix-admin-calendar gog-skill removal; RFC #681 calendar phase) + deterministic-monitoring-checks-01KX1XNW (#676) + harden-inbox-capture-01KWVGZM (#662) + felix-admin-cron-path-fix-01KWQTY3 (#656) + finalize-inbox-file-01KW8MSQ (#325) + pull-based-deploy-pipeline-01KTYQQS (#136) + felix-calendar-subagent-extraction-01KTTA33 (#579) + #572-credential-liveness-probe + prescan-archive-anomalies-01KTMZPE (#568) + capture-agents-md-rewrite-01KTMY86 (#566) + capture-d6-helpers-extraction-01KTMS5Q (#566) + agent-prompt-deploy-pipeline-01KTMDDD (#567) + vikunja-client-and-habits-weekly-report-01KTKSFT (#542 + #561 + #562) + inbox-calendar-and-aspiration-routing-01KTHHXS + #520-felix-vikunja-sync-project-layer-and-url-config + #519-touchpoint-migration + #518-felix-vikunja-sync-driver-added + #376-remove-escalation-v1-parity + #400-audit-interpretation-moment0 + #310-tasker-jsonl-migration + #374-main-verbatim-passthrough + #362-drift-event-auto-resolution + #309-migrate-escalation-to-jsonl-state-model + #343-refactor-doc-auditor-to-scripts-first-driver + #307-backfill-habits-jsonl-from-comments + #306-habits-native-repeat-jsonl-state + #304-felix-bot-rotation + #291-felix-file-issue + #289-mutation-surfaces-enumeration + #285-cron-delivery-restore-path-c + #282-habits-d6-extract + #263-cron-delivery-mode-round2 + #100-google-workspace-foundation + #256-scope-discipline-guardrails + #253-step-5a-6-consolidation + #254-atomic-write-perm-preservation + issue-105-doc-auditor + #223-systemd-timer + #208-restic-healthcheck + #202-obsidian-sync-system-level + #203-sync-heartbeat + #199-inbox-schedules + #115-credential-health-check + #189-vikunja-compose + #185-inbox-capture-dedup + restore-whatsapp-dm-reply-delivery-01KTVVHH (#588) + #545-reconcile-doc-auditor-status",
+  "last_updated": "2026-07-11",
+  "updated_by": "felix-time-logging-01KX79HT (#703 — felix-timelog-helper service added: WhatsApp time-logging to Google Sheets, shares the #699 calendar helper's venv + credential with an added spreadsheets scope) + felix-truthful-reporting-01KX6MN5 (#683 — felix-trust-scan systemd timer added: cron-drift + completion-assertion detection, alerts via the #701 felix-alert bus) + unified-alert-bus-01KX5TYT (#701 — felix-alert bus shared library + unified operator-alerts topic added; three ntfy emitters (felix-deployer subsystem, security-monitor, felix-health-check) migrated to the bus, their per-component topics retired) + f0-exec-hardening-01KX4ZCY (#675 — exec-hardening finding + live-config reconcile: habits/tasker model drift, per-agent skills, post-#699 gog paths, gateway version) + felix-calendar-helper-01KX4H3C (#699 — calendar helper on-demand invocation + Google Calendar API dependency + felix-admin-calendar gog-skill removal; RFC #681 calendar phase) + deterministic-monitoring-checks-01KX1XNW (#676) + harden-inbox-capture-01KWVGZM (#662) + felix-admin-cron-path-fix-01KWQTY3 (#656) + finalize-inbox-file-01KW8MSQ (#325) + pull-based-deploy-pipeline-01KTYQQS (#136) + felix-calendar-subagent-extraction-01KTTA33 (#579) + #572-credential-liveness-probe + prescan-archive-anomalies-01KTMZPE (#568) + capture-agents-md-rewrite-01KTMY86 (#566) + capture-d6-helpers-extraction-01KTMS5Q (#566) + agent-prompt-deploy-pipeline-01KTMDDD (#567) + vikunja-client-and-habits-weekly-report-01KTKSFT (#542 + #561 + #562) + inbox-calendar-and-aspiration-routing-01KTHHXS + #520-felix-vikunja-sync-project-layer-and-url-config + #519-touchpoint-migration + #518-felix-vikunja-sync-driver-added + #376-remove-escalation-v1-parity + #400-audit-interpretation-moment0 + #310-tasker-jsonl-migration + #374-main-verbatim-passthrough + #362-drift-event-auto-resolution + #309-migrate-escalation-to-jsonl-state-model + #343-refactor-doc-auditor-to-scripts-first-driver + #307-backfill-habits-jsonl-from-comments + #306-habits-native-repeat-jsonl-state + #304-felix-bot-rotation + #291-felix-file-issue + #289-mutation-surfaces-enumeration + #285-cron-delivery-restore-path-c + #282-habits-d6-extract + #263-cron-delivery-mode-round2 + #100-google-workspace-foundation + #256-scope-discipline-guardrails + #253-step-5a-6-consolidation + #254-atomic-write-perm-preservation + issue-105-doc-auditor + #223-systemd-timer + #208-restic-healthcheck + #202-obsidian-sync-system-level + #203-sync-heartbeat + #199-inbox-schedules + #115-credential-health-check + #189-vikunja-compose + #185-inbox-capture-dedup + restore-whatsapp-dm-reply-delivery-01KTVVHH (#588) + #545-reconcile-doc-auditor-status",
   "services": [
     {
       "name": "vikunja",
@@ -2723,6 +2723,102 @@
         "note": "On-demand helper — no continuous health signal. Liveness is verified on demand via `python -m scripts.google.calendar_helper --self-check` (loads creds, refreshes token, does a bounded events().list(primary, maxResults=1)); the deploy manifest runs it as a post-flight gate. Per-invocation exit codes (0/1/2/3) are the observability surface (NFR-005)."
       },
       "runbook": "docs/runbooks/calendar-helper-ops.md"
+    },
+    {
+      "name": "felix-timelog-helper",
+      "type": "library",
+      "host": "office2",
+      "agent": "main",
+      "deployed_by": "felix-time-logging-01KX79HT",
+      "introduced_by": "felix-time-logging-01KX79HT (#703)",
+      "last_updated": "2026-07-11",
+      "status": "active",
+      "purpose": "Felix-owned deterministic Google Sheets time-logging helper (CLI + importable library) for the WhatsApp \"log time\" workflow. ON-DEMAND invocation only — NOT a long-running service, no systemd unit, no cron. `scripts/google/timelog.py` validates structured args extracted by main's recognizer, resolves the client to a workbook tab (tabs-as-truth + aliases in timelog-clients.json), maintains pending/correction state, and appends a confirmed row to a Felix-owned Google Sheets workbook via `scripts/google/sheets_helper.py` (append-row/create-tab/list-tabs/update-last/delete-last). main is the sole judgment layer — it extracts NL fields and conducts the clarifying dialog off typed signals (option A, no sub-agent delegation); the helper itself has no LLM anywhere in it.",
+      "notes": "Shares the #699 calendar helper's dedicated uv-provisioned virtualenv at /data/services/openclaw/felix-calendar/venv (same google-api-python-client / google-auth / google-auth-oauthlib pins) — no second venv provisioned. Invoked module-form: `cd /home/claude/kg-automation && /data/services/openclaw/felix-calendar/venv/bin/python -m scripts.google.timelog --client ... --hours ... --date ... --description ... --channel whatsapp --conversation <id> --source-msg-id <id> --json`. timelog's exit-code contract is F9 (NOT the sheets_helper 0/1/2 convention): exit 0 for any handled TimelogResult status (including error/client_created_entry_failed), exit 2 only on a usage/arg error. sheets_helper mirrors calendar_helper's 0/1/2 convention and adds `--self-check --account personal` (auth refresh + a bounded spreadsheets().get, no write) as the deploy/preflight smoke gate. The workbook id is resolved from the one-time operator-bootstrapped ~/.config/felix/timelog/workbook.json config (not committed). Deployed via the manifest pipeline (deploys/queued/timelog.yaml, Tier 2+3) which verifies the shared venv/deps, verifies staged combined-scope credential + workbook-config presence (staging/bootstrap are manual operator steps — re-consent + workbook creation), and runs a no-emit dry-run self-test (sheets_helper --self-check + timelog against a guaranteed-unresolvable client) gated before prompt-sync verification (#711 pattern).",
+      "risk_tier": 3,
+      "config_files": [
+        {
+          "path": "/home/claude/kg-automation/scripts/google/timelog.py",
+          "format": "python",
+          "source_in_repo": "scripts/google/timelog.py",
+          "purpose": "main-facing normalizer: validate/resolve-client/typed-signal/write. Maintains pending-timelog state (keyed by conversation) and a recent-write ledger for corrections (\"make that 3h\", \"delete that last one\"). Emits a TimelogResult JSON on stdout; never reports `logged` without an API-confirmed append (#683 trust defect).",
+          "host": "office2",
+          "runs_on": "office2",
+          "invoked_by": [
+            "main (agent, via exec — the sole judgment/extraction layer)"
+          ],
+          "writes_to": [
+            "Google Sheets API (via sheets_helper, in-process)",
+            "~/.config/felix/timelog/ (pending-timelog + recent-write ledger state, per-account)"
+          ],
+          "reads_from": [
+            "docs/design/architecture/data/timelog-clients.json (client aliases)",
+            "~/.config/felix/timelog/workbook.json (workbook id)"
+          ],
+          "credentials": [
+            "felix-google-personal-calendar"
+          ],
+          "introduced_by": "#703"
+        },
+        {
+          "path": "/home/claude/kg-automation/scripts/google/sheets_helper.py",
+          "format": "python",
+          "source_in_repo": "scripts/google/sheets_helper.py",
+          "purpose": "Deterministic Sheets CLI: append-row (read-back-confirmed + idempotent retry) / create-tab (no-op if already present) / list-tabs / update-last / delete-last + --self-check. No LLM anywhere in this helper.",
+          "host": "office2",
+          "runs_on": "office2",
+          "invoked_by": [
+            "scripts/google/timelog.py (in-process)"
+          ],
+          "writes_to": [
+            "Google Sheets API (values append/update, batchUpdate for new tabs)"
+          ],
+          "reads_from": [
+            "~/.config/felix/google/personal/client_secret.json",
+            "~/.config/felix/google/personal/token.json",
+            "~/.config/felix/timelog/workbook.json",
+            "Google Sheets API (values get/list)"
+          ],
+          "credentials": [
+            "felix-google-personal-calendar"
+          ],
+          "introduced_by": "#703"
+        },
+        {
+          "path": "/home/claude/kg-automation/scripts/google/sheets_auth.py",
+          "format": "python",
+          "source_in_repo": "scripts/google/sheets_auth.py",
+          "purpose": "Per-account OAuth load / auto-refresh / persist for the Sheets scope, mirroring calendar_auth.py. Loads WITHOUT forcing scope so the combined calendar+spreadsheets token loads cleanly for both helpers. Fail-safe: missing/invalid token or refresh failure -> SheetsAuthError, mapped to exit 1 by sheets_helper.",
+          "host": "office2",
+          "runs_on": "office2",
+          "invoked_by": [
+            "scripts/google/sheets_helper.py"
+          ],
+          "writes_to": [
+            "~/.config/felix/google/<account>/token.json (refreshed in place, 0600)"
+          ],
+          "reads_from": [
+            "~/.config/felix/google/<account>/client_secret.json",
+            "~/.config/felix/google/<account>/token.json"
+          ],
+          "credentials": [
+            "felix-google-personal-calendar"
+          ],
+          "introduced_by": "#703"
+        }
+      ],
+      "dependencies": [
+        {
+          "target": "google-sheets-api",
+          "type": "requires",
+          "description": "External Google Sheets REST API (spreadsheets scope). Reached directly via google-api-python-client with the personal-account credential (felix-google-personal-calendar, combined calendar.events + spreadsheets scope) — NOT via gog. Free within Kent's usage quota."
+        }
+      ],
+      "health_check": {
+        "method": "self-check-command",
+        "note": "On-demand helper — no continuous health signal. Liveness is verified on demand via `sheets_helper --self-check --account personal` (loads creds, refreshes token, does a bounded spreadsheets().get); the deploy manifest runs both this AND a no-write timelog self-test as a post-deploy gate before prompt-sync verification (#711)."
+      },
+      "runbook": "docs/runbooks/timelog.md"
     },
     {
       "name": "alert-bus",

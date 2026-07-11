@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
-  "last_updated": "2026-07-09",
-  "updated_by": "felix-calendar-helper-01KX4H3C (#699 — calendar surface now flows Felix helper -> Google directly, not gog; closes #679) + felix-admin-cron-path-fix-01KWQTY3 (#656) + pull-based-deploy-pipeline-01KTYQQS (#136) + inbox-calendar-and-aspiration-routing-01KTHHXS + #520-felix-vikunja-sync-project-layer-and-url-config + #519-touchpoint-migration + #376-remove-escalation-v1-parity + #400-audit-interpretation-moment0 + #310-tasker-jsonl-migration + #374-main-verbatim-passthrough + #362-drift-event-auto-resolution + #371-habits-checkin-reply-scripts-first + #309-migrate-escalation-to-jsonl-state-model + #343-refactor-doc-auditor-to-scripts-first-driver + #307-backfill-habits-jsonl-from-comments + #306-habits-native-repeat-jsonl-state + #152 + restore-whatsapp-dm-reply-delivery-01KTVVHH (#588) + #545-bump-stale-last-updated-for-introduced-at",
+  "last_updated": "2026-07-11",
+  "updated_by": "felix-time-logging-01KX79HT (#703 — WhatsApp -> timelog -> Sheets flow added) + felix-calendar-helper-01KX4H3C (#699 — calendar surface now flows Felix helper -> Google directly, not gog; closes #679) + felix-admin-cron-path-fix-01KWQTY3 (#656) + pull-based-deploy-pipeline-01KTYQQS (#136) + inbox-calendar-and-aspiration-routing-01KTHHXS + #520-felix-vikunja-sync-project-layer-and-url-config + #519-touchpoint-migration + #376-remove-escalation-v1-parity + #400-audit-interpretation-moment0 + #310-tasker-jsonl-migration + #374-main-verbatim-passthrough + #362-drift-event-auto-resolution + #371-habits-checkin-reply-scripts-first + #309-migrate-escalation-to-jsonl-state-model + #343-refactor-doc-auditor-to-scripts-first-driver + #307-backfill-habits-jsonl-from-comments + #306-habits-native-repeat-jsonl-state + #152 + restore-whatsapp-dm-reply-delivery-01KTVVHH (#588) + #545-bump-stale-last-updated-for-introduced-at",
   "flows": [
     {
       "name": "vikunja-web-ui",
@@ -1267,6 +1267,41 @@
         }
       ],
       "purpose": "Resolve incomplete calendar events through a single WhatsApp reply round-trip without losing context"
+    },
+    {
+      "name": "whatsapp-timelog-to-sheets",
+      "status": "active",
+      "deployed_by": "felix-time-logging-01KX79HT",
+      "introduced_by": "felix-time-logging-01KX79HT (#703)",
+      "description": "Kent logs billable/non-billable time via a WhatsApp DM to Felix main; main recognizes the \"log time\" shape (option A — extract + dialog, no sub-agent delegation), extracts the candidate fields (client, hours, description, date, billable) from the natural-language message, and calls the deterministic `timelog` normalizer via `exec` with structured args. `timelog` validates the fields, resolves the client to a workbook tab (tabs-as-truth + aliases in timelog-clients.json), and — only on a resolved client — appends a row to the Felix-owned time-tracking Google Sheets workbook via the Sheets helper, confirming success via an API read-back before reporting `logged`. Unresolved/ambiguous clients and missing fields return a typed signal (`unknown_client` / `ambiguous` / `need_field`) that main relays as a clarifying question instead of writing; main resumes the pending entry from a correlated follow-up reply. Corrections (\"make that 3h\", \"delete that last one\") resolve against a recent-write ledger keyed to the conversation. No LLM anywhere below main — the helper is pure validation/API calls.",
+      "trigger": "Inbound WhatsApp DM to Felix whose content main's recognizer judges to be a time-log statement, correction, or reply to a pending time-log clarification",
+      "path": [
+        {
+          "from": "Kent (WhatsApp DM)",
+          "to": "main agent (recognizer + NL field extraction)",
+          "protocol": "openclaw inbound WhatsApp (embedded_run)",
+          "description": "main recognizes the \"log time\" shape and extracts candidate fields (client, hours, description, date, billable) from the NL message. A message judged non-time-log is simply not routed to the helper. main authors no fixed reply/receipt text itself — it relays the helper's typed results verbatim."
+        },
+        {
+          "from": "main agent",
+          "to": "scripts/google/timelog.py (exec, structured args)",
+          "protocol": "subprocess (venv python -m scripts.google.timelog --client/--hours/--date/--description/[--non-billable] --channel whatsapp --conversation <id> --source-msg-id <id> --json)",
+          "description": "ONE deterministic command per turn — no sub-agent delegation (option A). Validates required fields (missing -> need_field), resolves the client against timelog-clients.json aliases + the live tab list (unresolved -> unknown_client; multiple candidates -> ambiguous), and maintains a pending-timelog state (keyed by conversation) so a follow-up reply resumes the same in-flight entry. A resolved client proceeds to the Sheets write; an unresolved one returns its typed signal without ever calling append-row."
+        },
+        {
+          "from": "scripts/google/timelog.py",
+          "to": "scripts/google/sheets_helper.py (append-row / create-tab / update-last / delete-last, in-process)",
+          "protocol": "python invocation (in-process; helper runs under the shared office2 venv python)",
+          "description": "Mechanical Sheets operations only — no judgment. append-row confirms the write via an API read-back before timelog reports `logged` (fail-safe: an unconfirmed write is reported as `error`, never a false success, #683). A new-client onboarding (SC-004) runs create-tab then append-row as two steps; a create-succeeded-but-append-failed case is reported as `client_created_entry_failed`, never as `logged`."
+        },
+        {
+          "from": "scripts/google/sheets_helper.py",
+          "to": "Google Sheets API (account `personal` = kentgale@gmail.com, Felix-owned time-tracking workbook)",
+          "protocol": "HTTPS (Google Sheets API via google-api-python-client; credential felix-google-personal-calendar, spreadsheets scope)",
+          "description": "spreadsheets.values.append / batchUpdate (create-tab) / values.update (update-last) directly — not via gog. The workbook id is resolved from the one-time operator-bootstrapped ~/.config/felix/timelog/workbook.json config. On any Sheets API error the helper fails safe (exit 1, no partial write) and timelog surfaces it via an alert (scripts.common.alert_bus.emit, #701) rather than a silent no-op."
+        }
+      ],
+      "purpose": "Log billable/non-billable time to a Sheets workbook via a single WhatsApp exchange, with clarification/correction round-trips and no false-success reporting (#703, closes RFC #681 Sheets phase groundwork)"
     },
     {
       "name": "inbox-aspiration-to-journal",
