@@ -1,0 +1,10 @@
+[Unit]
+Description=felix-canary — component-health canary pass (<=15min cadence)
+
+[Timer]
+OnBootSec=5min
+OnUnitActiveSec=15min
+Persistent=true
+
+[Install]
+WantedBy=timers.target

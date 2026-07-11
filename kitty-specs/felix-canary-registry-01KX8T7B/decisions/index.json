@@ -1,0 +1,54 @@
+{
+  "entries": [
+    {
+      "created_at": "2026-07-11T14:57:32.792092Z",
+      "decision_id": "01KX8TY1KRNXQ2Y7C6QKXYEYCR",
+      "final_answer": "Sibling runner sharing scripts/common/alert_bus; keeps felix-trust-scan (trust/fabrication drift) and the health-canary runner as separate single-responsibility scanners.",
+      "input_key": "runner_structure",
+      "mission_id": "01KX8T7B6RQZYEHD8ZY2RHB48F",
+      "mission_slug": "felix-canary-registry-01KX8T7B",
+      "opened_by": "cli",
+      "options": [
+        "sibling-runner",
+        "extend-trust-scan",
+        "Other"
+      ],
+      "origin_flow": "plan",
+      "other_answer": false,
+      "question": "Should the canary runner extend felix-trust-scan or run as a sibling scanner sharing the alert-bus emit lib?",
+      "rationale": null,
+      "resolved_at": "2026-07-11T15:00:51.955830Z",
+      "resolved_by": null,
+      "slot_key": "plan.architecture.runner-structure",
+      "status": "resolved",
+      "step_id": null,
+      "summary_json": null
+    },
+    {
+      "created_at": "2026-07-11T14:57:34.881748Z",
+      "decision_id": "01KX8TY3N10EQT1V81Z8DJCMRZ",
+      "final_answer": "Machine-readable optional max_age_seconds field added to health_check in service-inventory.json; runner reads it directly, validator can enforce; no prose parsing.",
+      "input_key": "freshness_threshold",
+      "mission_id": "01KX8T7B6RQZYEHD8ZY2RHB48F",
+      "mission_slug": "felix-canary-registry-01KX8T7B",
+      "opened_by": "cli",
+      "options": [
+        "machine-readable-field",
+        "parse-prose",
+        "Other"
+      ],
+      "origin_flow": "plan",
+      "other_answer": false,
+      "question": "Should per-component freshness be a machine-readable max_age_seconds field on health_check, or parsed from the prose expected clause?",
+      "rationale": null,
+      "resolved_at": "2026-07-11T15:00:54.165094Z",
+      "resolved_by": null,
+      "slot_key": "plan.datamodel.freshness-threshold",
+      "status": "resolved",
+      "step_id": null,
+      "summary_json": null
+    }
+  ],
+  "mission_id": "01KX8T7B6RQZYEHD8ZY2RHB48F",
+  "version": 1
+}

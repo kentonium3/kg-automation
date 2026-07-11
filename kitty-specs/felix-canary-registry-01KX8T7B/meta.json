@@ -1,0 +1,39 @@
+{
+  "accept_commit": "20157e3205b9474582324911f398b49eb2a6f0e4",
+  "acceptance_history": [
+    {
+      "accept_commit": "5e6203b2a4ea2afab8ac6ea0708546c7567a5159",
+      "acceptance_mode": "pr",
+      "accepted_at": "2026-07-11T18:53:22.713941+00:00",
+      "accepted_by": "kentgale",
+      "accepted_from_commit": "4f3e2ddd21b0c35f53bff20c332381f76d2cb171"
+    },
+    {
+      "accept_commit": "20157e3205b9474582324911f398b49eb2a6f0e4",
+      "acceptance_mode": "pr",
+      "accepted_at": "2026-07-11T18:53:33.145234+00:00",
+      "accepted_by": "kentgale",
+      "accepted_from_commit": "4a61c7e94c29a577cc4221cb9b458a2c79acc7f7"
+    }
+  ],
+  "acceptance_mode": "pr",
+  "accepted_at": "2026-07-11T18:53:33.145234+00:00",
+  "accepted_by": "kentgale",
+  "accepted_from_commit": "4a61c7e94c29a577cc4221cb9b458a2c79acc7f7",
+  "baseline_merge_commit": "3f3eb5f09ea8ead2a09b041349f8d10fff8a9f99",
+  "created_at": "2026-07-11T14:45:08.953802+00:00",
+  "flattened": true,
+  "friendly_name": "Felix component-health canary registry",
+  "mission_id": "01KX8T7B6RQZYEHD8ZY2RHB48F",
+  "mission_number": 95,
+  "mission_slug": "felix-canary-registry-01KX8T7B",
+  "mission_type": "software-dev",
+  "pr_bound": true,
+  "purpose_context": "Today a Felix component can fail or go stale and Kent only finds out through downstream symptoms, sometimes days later. This mission builds a deterministic canary runner that reads the health_check each component already declares in service-inventory.json, computes its health per the ADR-0006 lifecycle contract, and emits stale/failed conditions to the #701 unified alert bus — closing the recurring silent-failure class as the core build of Foundation 1 (#516).",
+  "purpose_tldr": "Automatically detect silent failures of Felix components by evaluating each component's declared health check on a schedule and routing failures to the unified alert bus.",
+  "slug": "felix-canary-registry-01KX8T7B",
+  "target_branch": "feat/felix-canary-registry",
+  "topology": "lanes",
+  "vcs": "git",
+  "vcs_locked_at": "2026-07-11T16:51:51.512599+00:00"
+}
