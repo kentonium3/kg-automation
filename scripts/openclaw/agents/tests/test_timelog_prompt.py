@@ -82,12 +82,26 @@ def test_time_logging_recognizes_intent(repo_root: Path) -> None:
 
 
 def test_time_logging_calls_helper_directly_anchored(repo_root: Path) -> None:
-    """main calls `timelog` via the anchored -m form (env-guard compliant)."""
+    """main calls `timelog` via the anchored -m form under the venv python.
+
+    The Google client libs live ONLY in the felix-calendar venv (office2 system
+    python3 lacks them), and timelog.py imports sheets_helper in-process — so the
+    interpreter main runs MUST be the venv python, not bare python3. Asserting the
+    venv path here is the guard that would have caught the go-live invocation bug.
+    """
     p = repo_root / "scripts/openclaw/agents/main/AGENTS.md"
     section = _time_logging_section(p.read_text(encoding="utf-8"))
-    assert "cd /home/claude/kg-automation && python3 -m scripts.google.timelog" in section, (
+    assert (
+        "cd /home/claude/kg-automation && "
+        "/data/services/openclaw/felix-calendar/venv/bin/python "
+        "-m scripts.google.timelog"
+    ) in section, (
         "Time-logging section must invoke the helper with the anchored "
-        "checkout-cd + -m module form"
+        "checkout-cd + venv-python + -m module form (system python3 lacks the "
+        "Google libs)"
+    )
+    assert "python3 -m scripts.google.timelog" not in section, (
+        "must NOT use bare python3 (no Google libs in the system interpreter)"
     )
 
 

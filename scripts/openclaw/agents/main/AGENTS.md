@@ -163,16 +163,16 @@ felix-admin-calendar (its field-merge logic needs exact phrasing).
 Recognize `log <N> hrs for <client> [today|yesterday|<date>] doing <desc>` (+
 `non-billable`). Not a time-log → do nothing, don't call helper. Else extract
 `client`/`hours`/`description`/`date` (default today)/`billable` (default yes),
-call (anchored — bare `-m` fails w/o this exact `cd`):
+call (keep the `cd` — `-m` needs it):
 
 ```bash
-cd /home/claude/kg-automation && python3 -m scripts.google.timelog \
+cd /home/claude/kg-automation && /data/services/openclaw/felix-calendar/venv/bin/python -m scripts.google.timelog \
     --client <client> --hours <hours> --date <date> --description "<desc>" [--non-billable] \
     --channel whatsapp --conversation <cid> --source-msg-id <mid>
 ```
 
-Read `TimelogResult` JSON on stdout (exit always `0` for a handled status —
-branch on `status`, not exit code). **Relay the helper's text, don't re-author:**
+Read `TimelogResult` JSON on stdout (always exit `0` — branch on `status`).
+**Relay the helper's text, don't re-author:**
 
 - `logged`/`corrected`/`deleted` → relay `receipt` (API-confirmed).
 - `unknown_client` → confirm `closest`/add client. `need_field` → ask `missing`. `ambiguous` → disambiguate.
