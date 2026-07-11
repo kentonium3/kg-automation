@@ -1,7 +1,7 @@
 {
-  "event_count": 22,
-  "last_event_id": "01KX95024NCDPR4QJEH3WE5KRD",
-  "materialized_at": "2026-07-11T17:53:24.629473+00:00",
+  "event_count": 24,
+  "last_event_id": "01KX9514K38YQJ9W5NX7DGMM4K",
+  "materialized_at": "2026-07-11T17:53:59.906162+00:00",
   "mission_number": "",
   "mission_slug": "felix-canary-registry-01KX8T7B",
   "mission_type": "software-dev",
@@ -12,9 +12,9 @@
     "claimed": 0,
     "done": 0,
     "for_review": 0,
-    "in_progress": 0,
+    "in_progress": 1,
     "in_review": 0,
-    "planned": 4
+    "planned": 3
   },
   "work_packages": {
     "WP01": {
@@ -32,11 +32,11 @@
       "last_transition_at": "2026-07-11T17:53:24.629473+00:00"
     },
     "WP03": {
-      "actor": "finalize-tasks",
+      "actor": "claude",
       "force_count": 0,
-      "lane": "planned",
-      "last_event_id": "01KX8XNAQRWJFYWMMMWFAY8KVN",
-      "last_transition_at": "2026-07-11T15:45:12.953054+00:00"
+      "lane": "in_progress",
+      "last_event_id": "01KX9514K38YQJ9W5NX7DGMM4K",
+      "last_transition_at": "2026-07-11T17:53:59.906162+00:00"
     },
     "WP04": {
       "actor": "finalize-tasks",
