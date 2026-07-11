@@ -13,9 +13,9 @@ subtasks:
 - T002
 phase: Phase 1 - Auth
 assignee: ''
-agent: "claude:sonnet:python-pedro:implementer"
+agent: "claude:opus:reviewer-renata:reviewer"
 agent_profile: "python-pedro"
-shell_pid: "40758"
+shell_pid: "41877"
 history:
 - at: '2026-07-10T22:30:00Z'
   actor: system
@@ -202,3 +202,5 @@ faked/mocked at the boundary, exactly as `test_calendar_auth.py` does.
 ## Activity Log
 
 - 2026-07-11T01:14:23Z – claude:sonnet:python-pedro:implementer – shell_pid=40758 – Assigned agent via action command
+- 2026-07-11T01:17:37Z – claude:sonnet:python-pedro:implementer – shell_pid=40758 – sheets_auth per-account/spreadsheets-scope, fail-safe, mirrors calendar_auth; 29 tests/100% cov; ruff clean; commit 9db3e7b4.
+- 2026-07-11T01:17:42Z – claude:opus:reviewer-renata:reviewer – shell_pid=41877 – Started review via action command
