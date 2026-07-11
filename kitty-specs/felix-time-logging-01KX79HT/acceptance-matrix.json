@@ -2,77 +2,77 @@
   "mission_slug": "felix-time-logging-01KX79HT",
   "mission_number": "",
   "mission_type": "software-dev",
-  "overall_verdict": "pending",
+  "overall_verdict": "pass",
   "criteria": [
     {
       "criterion_id": "FR-001",
-      "description": "Verify FR-001 is satisfied",
+      "description": "A WhatsApp time-log message is parsed into structured fields; a non-time-log message is not misinterpreted as a log.",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "TODO: replace with a real acceptance criterion"
+      "evidence": "WP04 main recognizes the log-time shape + extracts fields (scripts/openclaw/agents/tests/test_timelog_prompt.py); WP03 returns not_timelog for non-time-log input (tests/google/test_timelog.py). Commits 78d38302, 3fbbaf01.",
+      "pass_fail": "pass",
+      "verified_by": "reviewer-renata",
+      "verified_at": "2026-07-10T23:30:00Z",
+      "notes": "Option A: main (LLM) extracts; the deterministic helper validates. No NL regex/LLM in the write path."
     },
     {
       "criterion_id": "FR-002",
-      "description": "Verify FR-002 is satisfied",
+      "description": "The named client resolves to its workbook tab via a normalizing client->tab map (tabs-as-truth + aliases).",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "TODO: replace with a real acceptance criterion"
+      "evidence": "WP03 timelog resolves client->tab via WP02 list-tabs + timelog-clients.json aliases (tests/google/test_timelog.py). Commit 3fbbaf01.",
+      "pass_fail": "pass",
+      "verified_by": "reviewer-renata",
+      "verified_at": "2026-07-10T23:30:00Z",
+      "notes": "Tabs are the source of truth; aliases bridge fuzzy names."
     },
     {
       "criterion_id": "FR-003",
-      "description": "Verify FR-003 is satisfied",
+      "description": "Unknown/ambiguous client -> do not write; ask to confirm or add; wait.",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "TODO: replace with a real acceptance criterion"
+      "evidence": "WP03 returns unknown_client/ambiguous with NO write; WP04 main asks (test_timelog + test_timelog_prompt). Commits 3fbbaf01, 78d38302.",
+      "pass_fail": "pass",
+      "verified_by": "reviewer-renata",
+      "verified_at": "2026-07-10T23:30:00Z",
+      "notes": "Fail-safe: nothing lands in the wrong tab."
     },
     {
       "criterion_id": "FR-004",
-      "description": "Verify FR-004 is satisfied",
+      "description": "On new-client confirm, create the tab then log; the two-step is non-atomic and a created-tab-with-failed-append is reported as not logged.",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "TODO: replace with a real acceptance criterion"
+      "evidence": "WP03 client_created_entry_failed on create-ok/append-fail (never 'logged'); WP02 create-tab no-op + append (tests/google/test_timelog.py + test_sheets_helper.py). Commits 3fbbaf01, 4c52201b.",
+      "pass_fail": "pass",
+      "verified_by": "reviewer-renata",
+      "verified_at": "2026-07-10T23:30:00Z",
+      "notes": "Codex CRITICAL finding F3 folded + tested."
     },
     {
       "criterion_id": "FR-005",
-      "description": "Verify FR-005 is satisfied",
+      "description": "Append exactly one row (date, hours, client, description, billable) + a logged-at timestamp + entry_id.",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "TODO: replace with a real acceptance criterion"
+      "evidence": "WP02 append-row (idempotent + read-back-confirmed) + WP03 row assembly (tests/google/test_sheets_helper.py + test_timelog.py). Commits 4c52201b, 3fbbaf01.",
+      "pass_fail": "pass",
+      "verified_by": "reviewer-renata",
+      "verified_at": "2026-07-10T23:30:00Z",
+      "notes": "Idempotency key (entry_id) + read-back before success (Codex F8)."
     },
     {
       "criterion_id": "FR-006",
-      "description": "Verify FR-006 is satisfied",
+      "description": "Reply with a receipt matching what was written; correct/remove the most-recent entry on a follow-up.",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "TODO: replace with a real acceptance criterion"
+      "evidence": "WP03 corrected/deleted via the recent-write ledger; correction_ambiguous guards a newer write; WP04 relays the receipt (tests/google/test_timelog.py). Commit 3fbbaf01.",
+      "pass_fail": "pass",
+      "verified_by": "reviewer-renata",
+      "verified_at": "2026-07-10T23:30:00Z",
+      "notes": "Conversation-keyed ledger prevents cross-conversation mis-correction (Codex F4)."
     },
     {
       "criterion_id": "FR-007",
-      "description": "Verify FR-007 is satisfied",
+      "description": "On any failure, no partial/wrong write; report truthfully; 'logged' gated on an API-confirmed append.",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "TODO: replace with a real acceptance criterion"
+      "evidence": "WP02 read-back-confirms before success; WP03 error (never false 'logged') + #701 alert; mutation-tested in both reviews (tests/google/test_sheets_helper.py + test_timelog.py). Commits 4c52201b, 3fbbaf01.",
+      "pass_fail": "pass",
+      "verified_by": "reviewer-renata",
+      "verified_at": "2026-07-10T23:30:00Z",
+      "notes": "The whole #683 dependency: never fabricate a 'logged'. Live SC-001..005 verified post-deploy at office2 (with the Sheets re-consent)."
     }
   ],
   "negative_invariants": []
