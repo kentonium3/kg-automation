@@ -105,12 +105,12 @@ results to a health outcome per ADR-0006, gating before probing. Pure w.r.t. inj
 **Dependencies**: WP01, WP02. **Prompt**: [tasks/WP03-probes-and-health.md](tasks/WP03-probes-and-health.md).
 **Est. size**: ~420 lines.
 
-- [ ] T010 `ProbeResult` dataclass + method→probe dispatch (real vocabulary, F1) (WP03)
-- [ ] T011 `http`/`shell`/`systemd-status`/`command` liveness probes (WP03)
-- [ ] T012 Freshness-pointer probe — heterogeneous timestamp field resolution (design callout) (WP03)
-- [ ] T013 Log-scan probe (`log-tail`/`journal`) (WP03)
-- [ ] T014 `evaluate()` — gate-before-probe (F6) + ProbeResult→HealthResult mapping (WP03)
-- [ ] T015 Probe + health unit tests, injected effects, offline (WP03)
+- [x] T010 `ProbeResult` dataclass + method→probe dispatch (real vocabulary, F1) (WP03)
+- [x] T011 `http`/`shell`/`systemd-status`/`command` liveness probes (WP03)
+- [x] T012 Freshness-pointer probe — heterogeneous timestamp field resolution (design callout) (WP03)
+- [x] T013 Log-scan probe (`log-tail`/`journal`) (WP03)
+- [x] T014 `evaluate()` — gate-before-probe (F6) + ProbeResult→HealthResult mapping (WP03)
+- [x] T015 Probe + health unit tests, injected effects, offline (WP03)
 
 **Independent test**: `pytest tests/canary/test_probes.py tests/canary/test_health.py` green; a suppressed
 target returns `suppressed` without any probe call.

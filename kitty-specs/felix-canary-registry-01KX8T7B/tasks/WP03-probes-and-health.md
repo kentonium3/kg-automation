@@ -194,3 +194,5 @@ WARN — a live scheduled job that didn't run is a real incident, R6); no `datet
 
 ## Activity Log
 - 2026-07-11T17:54:02Z – claude – shell_pid=58263 – Assigned agent via action command
+- 2026-07-11T18:02:45Z – claude – shell_pid=58263 – WP03: probes+health; 66 tests; gate-before-probe proven.
+- 2026-07-11T18:02:51Z – user – shell_pid=58263 – APPROVE (reviewer-renata): all 6 DoD pass; gate-before-probe + never-raises proven; restic probe coordination honored; pure.
