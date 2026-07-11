@@ -2,107 +2,107 @@
   "mission_slug": "felix-canary-registry-01KX8T7B",
   "mission_number": "",
   "mission_type": "software-dev",
-  "overall_verdict": "pending",
+  "overall_verdict": "pass",
   "criteria": [
     {
       "criterion_id": "FR-001",
-      "description": "Verify FR-001 is satisfied",
+      "description": "On each tick the runner evaluates every service-type inventory entry, computing exactly one health value per component.",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "TODO: replace with a real acceptance criterion"
+      "evidence": "WP02 registry.load_targets yields one CanaryTarget per SERVICE_TYPES entry (tests/canary/test_registry.py); WP04 run.run_pass iterates and evaluates each, one HealthResult/ledger line per entry (tests/canary/test_run.py). --dry-run over the real inventory prints one line per service-type entry.",
+      "pass_fail": "pass",
+      "verified_by": "reviewer-renata",
+      "verified_at": "2026-07-11T18:00:00+00:00",
+      "notes": "WP02+WP04 approved."
     },
     {
       "criterion_id": "FR-002",
-      "description": "Verify FR-002 is satisfied",
+      "description": "Runner supports the real health_check.method vocabulary (http, shell, systemd-status, freshness-pointer, log-scan, command); method:none/missing/unhandled becomes a coverage gap.",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "TODO: replace with a real acceptance criterion"
+      "evidence": "WP03 probes._DISPATCH maps all real methods (tests/canary/test_probes.py: per-method healthy/failed/unknown, unhandled/none -> evaluable=False); WP01 adds the machine-readable max_age_seconds field + validator (tests/tooling/test_validate_architecture_data_max_age.py).",
+      "pass_fail": "pass",
+      "verified_by": "reviewer-renata",
+      "verified_at": "2026-07-11T18:00:00+00:00",
+      "notes": "WP01+WP03 approved; real vocabulary per research R3/F1."
     },
     {
       "criterion_id": "FR-003",
-      "description": "Verify FR-003 is satisfied",
+      "description": "Runner gates on declared status per ADR-0006: active/running are probed; suspended/deprecated/planned/retired are suppressed (not probed), recorded suppressed, never emitted.",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "TODO: replace with a real acceptance criterion"
+      "evidence": "WP02 alert_eligible = status in {active,running}; WP03 health.evaluate returns suppressed WITHOUT calling any probe for non-alert-eligible targets (tests/canary/test_health.py::test_suppressed_target_returns_suppressed_without_probing + _boom-effects test). Verified live: real suspended felix-doc-auditor produces no alert.",
+      "pass_fail": "pass",
+      "verified_by": "reviewer-renata",
+      "verified_at": "2026-07-11T18:00:00+00:00",
+      "notes": "Gate-before-probe (F6/INV-A); SC-002."
     },
     {
       "criterion_id": "FR-004",
-      "description": "Verify FR-004 is satisfied",
+      "description": "For an alert-eligible component computed stale/failed, the runner emits a structured alert to the #701 bus with identity + computed health + evidence; degraded emits at lower severity.",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "TODO: replace with a real acceptance criterion"
+      "evidence": "WP04 emits via scripts.common.alert_bus.emit(Alert(source, severity, title, description, details)); severity map failed/stale->ERROR, degraded/gap/persistent-unknown->WARN, recovery->INFO (tests/canary/test_run.py assert emitted Alert source/severity). No new delivery path (C-002).",
+      "pass_fail": "pass",
+      "verified_by": "reviewer-renata",
+      "verified_at": "2026-07-11T18:00:00+00:00",
+      "notes": "Real Alert API (F3); WP04 approved."
     },
     {
       "criterion_id": "FR-005",
-      "description": "Verify FR-005 is satisfied",
+      "description": "Runner deduplicates repeated alerts for the same component + health condition within a configurable window (default 6h) so a continuing failure does not re-page every tick.",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "TODO: replace with a real acceptance criterion"
+      "evidence": "WP04 dedup.decide keyed by component_id with last_outcome; within-window unchanged-bad suppressed, window-elapsed re-emits; failed->healthy->failed emits all three transitions (tests/canary/test_dedup.py, DEFAULT_WINDOW=6h).",
+      "pass_fail": "pass",
+      "verified_by": "reviewer-renata",
+      "verified_at": "2026-07-11T18:00:00+00:00",
+      "notes": "F7 transition/recovery reset (INV-F)."
     },
     {
       "criterion_id": "FR-006",
-      "description": "Verify FR-006 is satisfied",
+      "description": "An alert-eligible component with a missing/unusable health_check is surfaced as a distinct coverage-gap signal, never silently skipped.",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "TODO: replace with a real acceptance criterion"
+      "evidence": "WP02 emits a CoverageGap for active/running entries with method:none/missing/unhandled (tests/canary/test_registry.py; suspended never a gap); WP04 routes gaps as WARN once persistent past the window and ledgers every entry (tests/canary/test_run.py::test_first_seen_gap_is_ledgered_not_paged / test_persistent_gap_pages_once_past_window). INV-B: one ledger line per entry.",
+      "pass_fail": "pass",
+      "verified_by": "reviewer-renata",
+      "verified_at": "2026-07-11T18:00:00+00:00",
+      "notes": "F5 persistence + no silent drop."
     },
     {
       "criterion_id": "FR-007",
-      "description": "Verify FR-007 is satisfied",
+      "description": "The restic backup is normalized to the registry's uniform freshness path (max_age_seconds: 100800) so the shared freshness probe drives it end-to-end.",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "TODO: replace with a real acceptance criterion"
+      "evidence": "WP05 converts restic health_check.method shell->state-file, adds max_age_seconds:100800, keeps state_path; WP03 freshness probe honors snapshot_timestamp_utc + treats restic_exit_code not in {0,3} as failed (tests/canary/test_probes.py). validate_architecture_data.py --strict exits 0 (reviewer-verified).",
+      "pass_fail": "pass",
+      "verified_by": "reviewer-renata",
+      "verified_at": "2026-07-11T18:00:00+00:00",
+      "notes": "#511 dogfood; SC-005 dead-pointer test is a post-deploy live check."
     },
     {
       "criterion_id": "FR-008",
-      "description": "Verify FR-008 is satisfied",
+      "description": "Runner records each tick's per-component evaluation outcome (component, health, evidence, timestamp) to a durable local ledger supporting observability and dedup.",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "TODO: replace with a real acceptance criterion"
+      "evidence": "WP04 appends one JSON line per component per tick to /data/services/felix-canary/ledger/<date>.jsonl recording EVERY outcome incl. healthy/suppressed/gap/deduped; best-effort, never aborts the pass (tests/canary/test_run.py). Aggregate last-tick.json carries counts+timing.",
+      "pass_fail": "pass",
+      "verified_by": "reviewer-renata",
+      "verified_at": "2026-07-11T18:00:00+00:00",
+      "notes": "F8; WP07 runbook documents reading it."
     },
     {
       "criterion_id": "FR-009",
-      "description": "Verify FR-009 is satisfied",
+      "description": "All health evaluation and alert decisions are deterministic with no LLM invocation in the runner's execution path.",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "TODO: replace with a real acceptance criterion"
+      "evidence": "WP03+WP04 purity: no datetime.now()/utcnow() in the pure paths (now injected), network/subprocess/filesystem all injected (http_get/run_cmd/read_state/emit_fn), no LLM references (reviewer purity-greps confirmed). 0 tokens/tick (NFR-003).",
+      "pass_fail": "pass",
+      "verified_by": "reviewer-renata",
+      "verified_at": "2026-07-11T18:00:00+00:00",
+      "notes": "INV-E."
     },
     {
       "criterion_id": "FR-010",
-      "description": "Verify FR-010 is satisfied",
+      "description": "The runner is itself a registered Felix component (declared status + health_check + tick signal) so a stalled/failed runner is detectable.",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "TODO: replace with a real acceptance criterion"
+      "evidence": "WP05 registers felix-canary in service-inventory.json (systemd_user_timer, active, tick-signal-file health_check on /data/services/felix-canary/state/last-tick.json, max_age_seconds:2100); WP04 writes last-tick.json with completed_at_utc; WP06 systemd unit + OnFailure shim (SC-006). Dead-timer detection deferred to #269.",
+      "pass_fail": "pass",
+      "verified_by": "reviewer-renata",
+      "verified_at": "2026-07-11T18:00:00+00:00",
+      "notes": "Self-observability boundary honest (crash covered; dead-timer #269)."
     }
   ],
   "negative_invariants": []
