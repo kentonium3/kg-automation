@@ -18,9 +18,9 @@ subtasks:
 - T005
 phase: Phase 1 - Sheets ops
 assignee: ''
-agent: "claude:sonnet:python-pedro:implementer"
+agent: "claude:opus:reviewer-renata:reviewer"
 agent_profile: "python-pedro"
-shell_pid: "43146"
+shell_pid: "44707"
 history:
 - at: '2026-07-10T22:30:00Z'
   actor: system
@@ -320,3 +320,5 @@ Verify concretely (not by prose inspection alone):
 ## Activity Log
 
 - 2026-07-11T01:20:55Z – claude:sonnet:python-pedro:implementer – shell_pid=43146 – Assigned agent via action command
+- 2026-07-11T01:25:46Z – claude:sonnet:python-pedro:implementer – shell_pid=43146 – Sheets helper: idempotent append + read-back-confirm, no-op create-tab, two-step failure, fail-safe; 31 tests/95% cov; ruff clean; 4c52201b.
+- 2026-07-11T01:25:50Z – claude:opus:reviewer-renata:reviewer – shell_pid=44707 – Started review via action command
