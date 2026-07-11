@@ -3,8 +3,8 @@ title: Local Test Gate (pre-commit + pre-push hooks)
 doc_type: runbook
 status: approved
 owners: ["@kentonium3"]
-last_updated: '2026-07-08'
-updated_by: '#678-precommit-docs-gate'
+last_updated: '2026-07-11'
+updated_by: '#719-prepush-docs-only-skip'
 audience: humans
 ---
 
@@ -17,7 +17,7 @@ workflow on `main`:
 | Hook | Runs | Catches | Cost |
 |---|---|---|---|
 | `.githooks/pre-commit` | the Docs CI validators (cost-tiered) | `docs-ci.yml` failures | ~0.3s code-only, ~4s doc commits |
-| `.githooks/pre-push` | `make test` (full pytest suite) | `test-ci.yml` failures | ~50s |
+| `.githooks/pre-push` | `make test` (full pytest suite) — **skipped when every changed file is `*.md`** | `test-ci.yml` failures | ~0s docs-only, ~2min+ code |
 
 ## One-time setup (per clone)
 
@@ -56,8 +56,18 @@ If validation fails, the commit is aborted with the finding and the fix
 ## pre-push — test suite (#571)
 
 1. Reads the pre-push protocol from stdin to skip no-op pushes.
-2. Runs `make test` (the full pytest suite).
-3. Aborts the push (exit 1) if any test fails.
+2. **Docs-only fast path (#719):** if the pushed range is known and *every*
+   changed file is Markdown (`*.md`), skips `make test` entirely. Markdown
+   edits cannot change pytest outcomes, and the pre-commit hook already ran the
+   doc validators on the same commits. Any non-`.md` file in the push runs the
+   full suite. New-branch pushes (unknown range) run the suite as a safe
+   default. Force a run with `PRE_PUSH_HOOK_FORCE_RUN=1`.
+3. Otherwise runs `make test` (the full pytest suite).
+4. Aborts the push (exit 1) if any test fails.
+
+This is the narrowest bucket of the broader change-scoped test selection tracked
+in [#719](https://github.com/kentonium3/kg-automation/issues/719) (map source
+dirs → test dirs, or a change-aware runner, for *code* pushes).
 
 ## Bypass
 
@@ -115,4 +125,5 @@ until hand-patched (**#560**: ~2 days red; **#678**: 7 red runs over 5 hours).
 - [`.github/workflows/test-ci.yml`](../../.github/workflows/test-ci.yml) — the test CI side
 - kentonium3/kg-automation#678 — pre-commit docs gate (this change)
 - kentonium3/kg-automation#571 — pre-push test gate
+- kentonium3/kg-automation#719 — pre-push docs-only skip (this change) + holistic change-scoped test selection
 - kentonium3/kg-automation#537 — the original "tests are the only pre-merge gate" decision

@@ -25,15 +25,44 @@ cd "$REPO_ROOT"
 if [[ -z "${PRE_PUSH_HOOK_FORCE_RUN:-}" ]]; then
   # Read the standard pre-push protocol from stdin: <local-ref> <local-sha> <remote-ref> <remote-sha>
   WORK=0
+  CHANGED=""
+  RANGE_UNKNOWN=0
   while read -r local_ref local_sha remote_ref remote_sha; do
     # All-zeros = nothing being pushed (or deletion). Skip.
     if [[ "$local_sha" =~ ^0+$ ]]; then continue; fi
     # Local matches remote = no-op. Skip.
     if [[ "$local_sha" == "$remote_sha" ]]; then continue; fi
     WORK=1
+    if [[ "$remote_sha" =~ ^0+$ ]]; then
+      # New ref on the remote — the pushed range is unknown, so we can't prove
+      # the change is docs-only. Fall through and run the suite (safe default).
+      RANGE_UNKNOWN=1
+    else
+      files=$(git diff --name-only "$remote_sha" "$local_sha" 2>/dev/null) || RANGE_UNKNOWN=1
+      CHANGED+="${files}"$'\n'
+    fi
   done
   if [[ "$WORK" -eq 0 ]]; then
     exit 0
+  fi
+
+  # Docs-only fast path (#719 tracks the general change-scoped version). If the
+  # full pushed range is known and EVERY changed file is Markdown, skip the
+  # suite: markdown edits cannot change pytest outcomes, and the pre-commit
+  # hook already ran the doc validators (validate_docs / privacy /
+  # architecture-data) on these same commits. Any non-.md file runs the full
+  # suite. Override with PRE_PUSH_HOOK_FORCE_RUN=1.
+  if [[ "$RANGE_UNKNOWN" -eq 0 ]]; then
+    CHANGED_FILES=$(printf '%s\n' "$CHANGED" | sed '/^$/d' | sort -u)
+    # List the changed files that are NOT markdown. Empty result (with at least
+    # one changed file) == docs-only. Captured explicitly rather than via a
+    # `! ... | grep` pipeline, whose negation precedence is shell-dependent.
+    NON_DOC=$(printf '%s\n' "$CHANGED_FILES" | grep -vE '\.md$' || true)
+    if [[ -n "$CHANGED_FILES" && -z "$NON_DOC" ]]; then
+      echo ">>> pre-push: docs-only push (all changed files are *.md) — skipping make test (#719)."
+      echo "    pre-commit already ran the doc validators; force with PRE_PUSH_HOOK_FORCE_RUN=1."
+      exit 0
+    fi
   fi
 fi
 
