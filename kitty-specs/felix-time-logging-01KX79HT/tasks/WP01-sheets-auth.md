@@ -13,8 +13,9 @@ subtasks:
 - T002
 phase: Phase 1 - Auth
 assignee: ''
-agent: claude
+agent: "claude:sonnet:python-pedro:implementer"
 agent_profile: "python-pedro"
+shell_pid: "40758"
 history:
 - at: '2026-07-10T22:30:00Z'
   actor: system
@@ -197,3 +198,7 @@ faked/mocked at the boundary, exactly as `test_calendar_auth.py` does.
   and least-privilege scope is `spreadsheets`.
 - Confirm tests fake `google.*` at the boundary (no real packages, no network) and
   cover valid-load / missing-token / malformed-token / `FELIX_GOOGLE_DIR`.
+
+## Activity Log
+
+- 2026-07-11T01:14:23Z – claude:sonnet:python-pedro:implementer – shell_pid=40758 – Assigned agent via action command
