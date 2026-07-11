@@ -20,9 +20,9 @@ subtasks:
 - T017
 phase: Phase 4 - Deploy
 assignee: ''
-agent: "claude:sonnet:python-pedro:implementer"
+agent: "claude:opus:reviewer-renata:reviewer"
 agent_profile: "python-pedro"
-shell_pid: "58064"
+shell_pid: "74894"
 history:
 - at: '2026-07-10T22:30:00Z'
   actor: system
@@ -333,3 +333,5 @@ Verify concretely (not by prose inspection alone):
 ## Activity Log
 
 - 2026-07-11T02:08:23Z – claude:sonnet:python-pedro:implementer – shell_pid=58064 – Assigned agent via action command
+- 2026-07-11T02:27:03Z – claude:sonnet:python-pedro:implementer – shell_pid=58064 – deploy entrypoint 100755 w/ #711 dry-run-no-emit gate; manifest (re-consent+bootstrap preconditions); arch docs (validators green); runbook + SC checklist; 24 deploy tests, 4193 suite pass; 0efa8b31.
+- 2026-07-11T02:27:07Z – claude:opus:reviewer-renata:reviewer – shell_pid=74894 – Started review via action command
