@@ -204,3 +204,4 @@ faked/mocked at the boundary, exactly as `test_calendar_auth.py` does.
 - 2026-07-11T01:14:23Z – claude:sonnet:python-pedro:implementer – shell_pid=40758 – Assigned agent via action command
 - 2026-07-11T01:17:37Z – claude:sonnet:python-pedro:implementer – shell_pid=40758 – sheets_auth per-account/spreadsheets-scope, fail-safe, mirrors calendar_auth; 29 tests/100% cov; ruff clean; commit 9db3e7b4.
 - 2026-07-11T01:17:42Z – claude:opus:reviewer-renata:reviewer – shell_pid=41877 – Started review via action command
+- 2026-07-11T01:20:01Z – user – shell_pid=41877 – Review passed: mirror of calendar_auth.py; fail-safe verified (no forced scopes=); 29 tests 100% cov; mutation-tested non-synthetic; diff = 2 owned files only.
