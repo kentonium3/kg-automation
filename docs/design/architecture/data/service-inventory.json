@@ -2556,7 +2556,7 @@
       "health_check": {
         "method": "tick-signal-file",
         "max_age_seconds": 90000,
-        "endpoint": "/data/services/openclaw/state/habits/sweeper-tick-<today-ET>.json",
+        "endpoint": "/data/services/openclaw/state/habits/sweeper-tick-latest.json",
         "expected": "exit_status=success with started_at_utc within the last ~24hr; errors=[] (see kitty-specs/habit-day-specific-scheduling-01KT48Y6/contracts/sweeper-tick.contract.md). Operators may additionally check `systemctl --user status felix-habit-sweeper.timer` for liveness.",
         "timeout_seconds": 5
       },

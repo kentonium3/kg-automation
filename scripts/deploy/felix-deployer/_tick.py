@@ -41,6 +41,7 @@ from __future__ import annotations
 
 import datetime as _dt
 import json
+import os
 import pathlib
 import subprocess
 from typing import Any
@@ -82,6 +83,38 @@ PHASE_TO_NOTIFY_PHASE = {
 
 def _utc_now_iso() -> str:
     return _dt.datetime.now(tz=_dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def _write_last_tick(
+    state_dir: pathlib.Path, *, status: str, exit_code: int
+) -> None:
+    """Atomically write the per-tick freshness signal the canary reads.
+
+    The felix-deployer ``health_check`` in ``service-inventory.json`` points at
+    ``last-tick.json``; the canary freshness probe reads it and judges staleness
+    against ``max_age_seconds``. ``completed_at_utc`` is the canary-recognized
+    timestamp key and ``exit_code=0`` is the good signal.
+
+    Written on EVERY tick — including a lock-defer — so the pointer reflects
+    *timer liveness*, not deploy-work outcome. Deploy failures alert through
+    ``git-health.json`` (consecutive-failure escalation) and ``deploys/failed/``,
+    never this pointer, so it is always ``exit_code=0`` while the timer runs.
+    Best-effort: a write failure must not crash the tick.
+    """
+    payload = {
+        "status": status,
+        "exit_code": exit_code,
+        "completed_at_utc": _utc_now_iso(),
+    }
+    path = state_dir / "last-tick.json"
+    try:
+        state_dir.mkdir(parents=True, exist_ok=True)
+        tmp = path.with_name(path.name + ".tmp")
+        tmp.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+        os.replace(tmp, path)
+    except OSError:
+        # Freshness-signal loss is preferable to crashing the applier.
+        pass
 
 
 def _log(log_path: pathlib.Path, entry: dict[str, Any]) -> None:
@@ -386,18 +419,28 @@ def run_tick(
     # LockUnavailable is a benign defer: the other actor (agent-prompt-sync)
     # holds the lock this tick. Log tick_skip and return 0 — the next tick
     # retries. NOT a health failure (health.record is never called on defer).
+    status = "success"
+    rc = 0
     try:
-        with deploylock():
-            return _run_tick_locked(repo_root, log_path, state_path)
-    except LockUnavailable:
-        _log(
-            log_path,
-            {
-                "event": "tick_skip",
-                "reason": "lock_unavailable",
-            },
-        )
-        return 0
+        try:
+            with deploylock():
+                rc = _run_tick_locked(repo_root, log_path, state_path)
+        except LockUnavailable:
+            _log(
+                log_path,
+                {
+                    "event": "tick_skip",
+                    "reason": "lock_unavailable",
+                },
+            )
+            status = "deferred"
+            rc = 0
+        return rc
+    finally:
+        # Freshness signal for the canary (service-inventory felix-deployer
+        # health_check → last-tick.json). Written on EVERY tick, incl. a
+        # lock-defer, so it reflects timer liveness, not deploy-work outcome.
+        _write_last_tick(DEFAULT_STATE_DIR, status=status, exit_code=rc)
 
 
 def _run_tick_locked(

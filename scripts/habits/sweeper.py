@@ -961,6 +961,12 @@ def write_tick_artifact(state_dir: Path, tick: SweeperTickRecord) -> Path:
     et_date = started_dt.astimezone(ET_ZONE).date().isoformat()
     path = state_dir / f"sweeper-tick-{et_date}.json"
     _atomic_write_json(path, tick.to_dict())
+    # Stable-path freshness pointer for the canary (service-inventory
+    # felix-habit-sweeper health_check → sweeper-tick-latest.json). The dated
+    # artifact above rotates daily, so a static-path freshness probe cannot
+    # follow it; this overwrite-each-run copy carries the same payload, whose
+    # ``started_at_utc`` is a canary-recognized timestamp key.
+    _atomic_write_json(state_dir / "sweeper-tick-latest.json", tick.to_dict())
     return path
 
 

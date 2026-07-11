@@ -286,6 +286,46 @@ def test_tick_no_queue_no_pull(fake_repo, log_dir, monkeypatch):
 
 
 # ---------------------------------------------------------------------------
+# #720: last-tick.json freshness signal (read by the canary)
+# ---------------------------------------------------------------------------
+
+
+def test_tick_writes_last_tick_freshness_signal(fake_repo, log_dir, tmp_path, monkeypatch):
+    # Every tick writes last-tick.json — the pointer the felix-deployer
+    # health_check in service-inventory.json declares. status=success,
+    # exit_code=0, and a canary-recognized completed_at_utc timestamp key.
+    monkeypatch.setattr(tick, "_git", _git_mock())
+    rc = tick.run_tick(repo_root=fake_repo, log_dir=log_dir)
+    assert rc == 0
+
+    last_tick = tmp_path / "wp04-state" / "last-tick.json"
+    assert last_tick.exists()
+    payload = json.loads(last_tick.read_text(encoding="utf-8"))
+    assert payload["status"] == "success"
+    assert payload["exit_code"] == 0
+    # completed_at_utc must parse as the canary's ISO-8601 form.
+    import datetime as _dt
+
+    _dt.datetime.strptime(payload["completed_at_utc"], "%Y-%m-%dT%H:%M:%SZ")
+    # Atomic write leaves no stray temp file.
+    assert not (tmp_path / "wp04-state" / "last-tick.json.tmp").exists()
+
+
+def test_write_last_tick_helper_shapes_deferred_pointer(tmp_path):
+    # A lock-defer tick still stamps the pointer (timer liveness), with a
+    # non-failure status so the canary never reads it as a fault.
+    state_dir = tmp_path / "st"
+    tick._write_last_tick(state_dir, status="deferred", exit_code=0)
+    payload = json.loads((state_dir / "last-tick.json").read_text(encoding="utf-8"))
+    assert payload == {
+        "status": "deferred",
+        "exit_code": 0,
+        "completed_at_utc": payload["completed_at_utc"],
+    }
+    assert payload["completed_at_utc"].endswith("Z")
+
+
+# ---------------------------------------------------------------------------
 # Scenario 2: git pull fails
 # ---------------------------------------------------------------------------
 

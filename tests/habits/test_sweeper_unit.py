@@ -535,6 +535,44 @@ class TestRunSweepWriteHelpers:
         assert loaded["tick_id"] == "01TEST"
         assert loaded["duration_ms"] == 123
 
+    def test_write_tick_artifact_also_writes_stable_latest_pointer(self, tmp_path):
+        # The canary freshness probe reads a STATIC path (no date substitution),
+        # so the sweeper writes an overwrite-each-run sweeper-tick-latest.json
+        # alongside the dated artifact (#720). Same payload; started_at_utc is
+        # the canary-recognized timestamp key.
+        state_dir = tmp_path / "state"
+        tick = sweeper.SweeperTickRecord(
+            tick_id="01TEST",
+            started_at_utc="2026-06-02T11:30:00Z",
+            duration_ms=123,
+        )
+        sweeper.write_tick_artifact(state_dir, tick)
+        latest = state_dir / "sweeper-tick-latest.json"
+        assert latest.exists()
+        loaded = json.loads(latest.read_text(encoding="utf-8"))
+        assert loaded["started_at_utc"] == "2026-06-02T11:30:00Z"
+        assert loaded["exit_status"] == "success"
+        # Latest mirrors the dated artifact exactly.
+        assert loaded == json.loads(
+            (state_dir / "sweeper-tick-2026-06-02.json").read_text(encoding="utf-8")
+        )
+
+    def test_write_tick_artifact_latest_overwrites_across_runs(self, tmp_path):
+        # A later tick overwrites the stable pointer (never appends/rotates it).
+        state_dir = tmp_path / "state"
+        sweeper.write_tick_artifact(
+            state_dir,
+            sweeper.SweeperTickRecord(tick_id="01OLD", started_at_utc="2026-06-02T11:30:00Z"),
+        )
+        sweeper.write_tick_artifact(
+            state_dir,
+            sweeper.SweeperTickRecord(tick_id="01NEW", started_at_utc="2026-06-03T11:30:00Z"),
+        )
+        latest = json.loads(
+            (state_dir / "sweeper-tick-latest.json").read_text(encoding="utf-8")
+        )
+        assert latest["tick_id"] == "01NEW"
+
     def test_append_ledger_appends_one_line_per_tick(self, tmp_path):
         state_dir = tmp_path / "state"
         tick = sweeper.SweeperTickRecord(
@@ -580,9 +618,14 @@ class TestRunSweepCli:
         assert rc == 0
         captured = capsys.readouterr()
         assert "SUMMARY:" in captured.out
-        # Tick artifact written.
-        tick_files = list(state_dir.glob("sweeper-tick-*.json"))
-        assert len(tick_files) == 1
+        # Tick artifact written: exactly one dated artifact, plus the stable
+        # sweeper-tick-latest.json freshness pointer (#720).
+        dated = [
+            p for p in state_dir.glob("sweeper-tick-*.json")
+            if p.name != "sweeper-tick-latest.json"
+        ]
+        assert len(dated) == 1
+        assert (state_dir / "sweeper-tick-latest.json").exists()
 
     def test_invalid_now_utc_returns_3(self, capsys):
         rc = sweeper.main(["--now-utc", "not-a-date"])
