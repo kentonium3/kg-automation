@@ -88,12 +88,12 @@ alert-eligibility by declared `status`, resolve the freshness pointer path, and 
 set for live entries with no usable `health_check`. **Dependencies**: WP01. **Prompt**:
 [tasks/WP02-registry-loader.md](tasks/WP02-registry-loader.md). **Est. size**: ~300 lines.
 
-- [ ] T004 `CanaryTarget` dataclass; reuse the canonical `SERVICE_TYPES`/`NON_SERVICE_TYPES` sets (WP02)
-- [ ] T005 Load inventory → a target for each service-type entry (WP02)
-- [ ] T006 Alert-eligibility: `status ∈ {active,running}` (ADR-0006) (WP02)
-- [ ] T007 Pointer-path resolution: `state_path` else `endpoint` (F4) (WP02)
-- [ ] T008 Coverage-gap set: active/running with `method: none`/missing/unhandled method (FR-006) (WP02)
-- [ ] T009 Unit tests against fixtures (not the live inventory) (WP02)
+- [x] T004 `CanaryTarget` dataclass; reuse the canonical `SERVICE_TYPES`/`NON_SERVICE_TYPES` sets (WP02)
+- [x] T005 Load inventory → a target for each service-type entry (WP02)
+- [x] T006 Alert-eligibility: `status ∈ {active,running}` (ADR-0006) (WP02)
+- [x] T007 Pointer-path resolution: `state_path` else `endpoint` (F4) (WP02)
+- [x] T008 Coverage-gap set: active/running with `method: none`/missing/unhandled method (FR-006) (WP02)
+- [x] T009 Unit tests against fixtures (not the live inventory) (WP02)
 
 **Independent test**: `pytest tests/canary/test_registry.py` green; a fixture inventory yields the
 expected target set + gap set.
@@ -139,9 +139,9 @@ uniform freshness path (`max_age_seconds: 100800`) and register the `felix-canar
 component (FR-010). **Dependencies**: WP01. **Prompt**:
 [tasks/WP05-inventory-registration.md](tasks/WP05-inventory-registration.md). **Est. size**: ~160 lines.
 
-- [ ] T022 Add `max_age_seconds: 100800` to restic `health_check`; reconcile method (design callout) (WP05)
-- [ ] T023 Register `felix-canary` runner entry (`systemd_user_timer`, `active`, tick-signal health_check) (WP05)
-- [ ] T024 Confirm `snapshot_timestamp_utc` semantics; update inventory narrative + `updated_by` (WP05)
+- [x] T022 Add `max_age_seconds: 100800` to restic `health_check`; reconcile method (design callout) (WP05)
+- [x] T023 Register `felix-canary` runner entry (`systemd_user_timer`, `active`, tick-signal health_check) (WP05)
+- [x] T024 Confirm `snapshot_timestamp_utc` semantics; update inventory narrative + `updated_by` (WP05)
 
 **Independent test**: `python tooling/scripts/validate_architecture_data.py` exits 0; the two edited
 entries validate; `python3 -m json.tool` parses the file.

@@ -147,3 +147,5 @@ no LLM in the loader; the handled-method constant is consistent with WP03's disp
 
 ## Activity Log
 - 2026-07-11T17:45:10Z – claude – shell_pid=54709 – Assigned agent via action command
+- 2026-07-11T17:53:18Z – claude – shell_pid=54709 – WP02: registry loader; 20 tests; SERVICE_TYPES matches validator.
+- 2026-07-11T17:53:25Z – user – shell_pid=54709 – APPROVE (reviewer-renata): all 7 DoD pass; pointer order + gap gating + SERVICE_TYPES match verified; 20 tests.

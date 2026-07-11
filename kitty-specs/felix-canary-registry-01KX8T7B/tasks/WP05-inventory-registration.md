@@ -142,3 +142,5 @@ failed); the canary entry's `max_age_seconds` (2100) matches the 15-min cadence;
 
 ## Activity Log
 - 2026-07-11T17:45:52Z – claude – shell_pid=55097 – Assigned agent via action command
+- 2026-07-11T17:52:02Z – claude – shell_pid=55097 – WP05: restic→state-file freshness + felix-canary registration; strict validator exit 0.
+- 2026-07-11T17:52:08Z – user – shell_pid=55097 – APPROVE (reviewer-renata): all 5 DoD pass; FR-007+FR-010; strict exit 0; surgical diff.
