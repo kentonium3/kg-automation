@@ -3,21 +3,22 @@ title: Local Test Gate (pre-commit + pre-push hooks)
 doc_type: runbook
 status: approved
 owners: ["@kentonium3"]
-last_updated: '2026-07-11'
-updated_by: '#719-prepush-docs-only-skip'
+last_updated: '2026-07-12'
+updated_by: '#719-prepush-gate-removed'
 audience: humans
 ---
 
-# Local Test Gate (pre-commit + pre-push hooks)
+# Local Test Gate (pre-commit hook)
 
-The repo ships two git hooks under `.githooks/` that catch CI failures
-locally — where they're cheaper to fix — instead of after they redden a
-workflow on `main`:
+The repo ships a **pre-commit** hook under `.githooks/` that catches Docs CI
+failures locally — where they're cheaper to fix — instead of after they redden
+a workflow on `main`. The former **pre-push** `make test` gate was removed
+(#719, 2026-07-12) — see below.
 
 | Hook | Runs | Catches | Cost |
 |---|---|---|---|
 | `.githooks/pre-commit` | the Docs CI validators (cost-tiered) | `docs-ci.yml` failures | ~0.3s code-only, ~4s doc commits |
-| `.githooks/pre-push` | `make test` (full pytest suite) — **skipped when every changed file is `*.md`** | `test-ci.yml` failures | ~0s docs-only, ~2min+ code |
+| `.githooks/pre-push` | **nothing (no-op)** — removed #719 | — (code is checked post-push by `test-ci.yml`) | ~0s |
 
 ## One-time setup (per clone)
 
@@ -53,33 +54,40 @@ It is **cost-tiered** so it isn't friction on every commit:
 If validation fails, the commit is aborted with the finding and the fix
 (e.g. add the new `doc_type` to `docs/design/standards/allowed-values.json`).
 
-## pre-push — test suite (#571)
+## pre-push — removed (#719, 2026-07-12)
 
-1. Reads the pre-push protocol from stdin to skip no-op pushes.
-2. **Docs-only fast path (#719):** if the pushed range is known and *every*
-   changed file is Markdown (`*.md`), skips `make test` entirely. Markdown
-   edits cannot change pytest outcomes, and the pre-commit hook already ran the
-   doc validators on the same commits. Any non-`.md` file in the push runs the
-   full suite. New-branch pushes (unknown range) run the suite as a safe
-   default. Force a run with `PRE_PUSH_HOOK_FORCE_RUN=1`.
-3. Otherwise runs `make test` (the full pytest suite).
-4. Aborts the push (exit 1) if any test fails.
+The pre-push hook is now an intentional **no-op** (`exit 0`). It formerly ran
+the full `make test` suite (#571) to keep `main` green, but:
 
-This is the narrowest bucket of the broader change-scoped test selection tracked
-in [#719](https://github.com/kentonium3/kg-automation/issues/719) (map source
-dirs → test dirs, or a change-aware runner, for *code* pushes).
+- the suite grew to ~3.5 min (5000+ tests), far past #571's "runnable locally in
+  <1 minute" premise, so the per-push tax stopped paying off;
+- `test-ci.yml` runs the full suite on `push: [main]` (see below), so **code is
+  already checked post-push by CI**;
+- doc-frontmatter — the original reason for a local gate — is caught at *commit*
+  time by the pre-commit hook, not at push.
+
+Kent accepts an occasional briefly-red `main` (caught by `test-ci.yml` +
+fix-forward) in exchange for fast pushes. `felix-deployer` is not gated on
+tests, so a briefly-red `main` does not block deploys. To run the suite before
+pushing anyway, run `make test` yourself.
+
+This **supersedes** the change-scoped test-selection idea originally tracked in
+[#719](https://github.com/kentonium3/kg-automation/issues/719) (removing the
+gate is simpler than bucketing tests to changed surfaces).
 
 ## Bypass
 
 ```bash
 git commit --no-verify   # skip the pre-commit doc gate
-git push   --no-verify   # skip the pre-push test gate
 ```
 
-Use ONLY when the failure is verifiably unrelated, or for a genuine emergency
-hot-fix. Don't bypass routinely — the CI workflows still gate `main`, so a
-bypass just moves the churn back to where these hooks exist to prevent it. If a
-gate produces false positives often, fix the underlying check instead.
+(There is no longer a pre-push gate to bypass — `git push` runs no tests.)
+
+Use `--no-verify` ONLY when a doc-validation failure is verifiably unrelated, or
+for a genuine emergency. Don't bypass routinely — `docs-ci.yml` still gates
+`main`, so a bypass just moves the churn back to where the pre-commit hook exists
+to prevent it. If a gate produces false positives often, fix the underlying
+check instead.
 
 ## Why this exists (#571, #678)
 
@@ -119,11 +127,11 @@ until hand-patched (**#560**: ~2 days red; **#678**: 7 red runs over 5 hours).
 ## Cross-references
 
 - [`.githooks/pre-commit`](../../.githooks/pre-commit) — doc-validation gate
-- [`.githooks/pre-push`](../../.githooks/pre-push) — test gate
+- [`.githooks/pre-push`](../../.githooks/pre-push) — no-op (test gate removed, #719)
 - [`Makefile`](../../Makefile) — `docs-check` + `test` targets
 - [`.github/workflows/docs-ci.yml`](../../.github/workflows/docs-ci.yml) — the docs CI side
-- [`.github/workflows/test-ci.yml`](../../.github/workflows/test-ci.yml) — the test CI side
-- kentonium3/kg-automation#678 — pre-commit docs gate (this change)
-- kentonium3/kg-automation#571 — pre-push test gate
-- kentonium3/kg-automation#719 — pre-push docs-only skip (this change) + holistic change-scoped test selection
+- [`.github/workflows/test-ci.yml`](../../.github/workflows/test-ci.yml) — the test CI side (checks code post-push)
+- kentonium3/kg-automation#678 — pre-commit docs gate
+- kentonium3/kg-automation#571 — pre-push test gate (added; removed by #719)
+- kentonium3/kg-automation#719 — pre-push test gate removed (code checked post-push by test-ci)
 - kentonium3/kg-automation#537 — the original "tests are the only pre-merge gate" decision

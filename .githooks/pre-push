@@ -1,80 +1,19 @@
 #!/usr/bin/env bash
-# Pre-push hook: run the local test suite before pushing.
+# Pre-push hook: intentionally a no-op (#719).
 #
-# Rationale (#571): Test CI failures on main are wasted cycles when the same
-# tests are runnable locally in <1 minute. This hook catches them at push
-# time. Skip with `git push --no-verify` in genuine emergencies.
+# History: #571 ran the full `make test` here to keep `main` green, because the
+# repo pushes straight to `main` (no PR gate). Removed 2026-07-12 (#719):
+#   - the suite grew to ~3.5 min (5000+ tests) — far past #571's "runnable
+#     locally in <1 minute" premise, so the per-push tax no longer pays off;
+#   - `test-ci.yml` already runs the full pytest suite on `push: [main]`, so
+#     code IS checked post-push by CI (an occasional briefly-red main, caught
+#     by CI + fix-forward, is the accepted trade for fast pushes);
+#   - doc-frontmatter — the original motivation for a local gate — is caught at
+#     commit time by the `.githooks/pre-commit` gate, not here.
 #
-# To activate locally, run once per clone:
-#   git config core.hooksPath .githooks
+# There is deliberately no pre-push test gate now. If you want to run the suite
+# before pushing, run `make test` yourself.
 #
-# (See docs/runbooks/local-test-gate.md for setup + rationale + bypass policy.)
-#
-# Exit 0 to allow the push; non-zero to abort.
-#
-# This hook does NOT run if the push is empty (e.g., re-push after a failed
-# remote update) — only when the local HEAD differs from what's on origin.
+# See docs/runbooks/local-test-gate.md for the full rationale.
 
-set -euo pipefail
-
-REPO_ROOT="$(git rev-parse --show-toplevel)"
-cd "$REPO_ROOT"
-
-# Skip on push of empty/no-op refs (avoid wasted runs on retried pushes
-# where the commit is already on the remote).
-if [[ -z "${PRE_PUSH_HOOK_FORCE_RUN:-}" ]]; then
-  # Read the standard pre-push protocol from stdin: <local-ref> <local-sha> <remote-ref> <remote-sha>
-  WORK=0
-  CHANGED=""
-  RANGE_UNKNOWN=0
-  while read -r local_ref local_sha remote_ref remote_sha; do
-    # All-zeros = nothing being pushed (or deletion). Skip.
-    if [[ "$local_sha" =~ ^0+$ ]]; then continue; fi
-    # Local matches remote = no-op. Skip.
-    if [[ "$local_sha" == "$remote_sha" ]]; then continue; fi
-    WORK=1
-    if [[ "$remote_sha" =~ ^0+$ ]]; then
-      # New ref on the remote — the pushed range is unknown, so we can't prove
-      # the change is docs-only. Fall through and run the suite (safe default).
-      RANGE_UNKNOWN=1
-    else
-      files=$(git diff --name-only "$remote_sha" "$local_sha" 2>/dev/null) || RANGE_UNKNOWN=1
-      CHANGED+="${files}"$'\n'
-    fi
-  done
-  if [[ "$WORK" -eq 0 ]]; then
-    exit 0
-  fi
-
-  # Docs-only fast path (#719 tracks the general change-scoped version). If the
-  # full pushed range is known and EVERY changed file is Markdown, skip the
-  # suite: markdown edits cannot change pytest outcomes, and the pre-commit
-  # hook already ran the doc validators (validate_docs / privacy /
-  # architecture-data) on these same commits. Any non-.md file runs the full
-  # suite. Override with PRE_PUSH_HOOK_FORCE_RUN=1.
-  if [[ "$RANGE_UNKNOWN" -eq 0 ]]; then
-    CHANGED_FILES=$(printf '%s\n' "$CHANGED" | sed '/^$/d' | sort -u)
-    # List the changed files that are NOT markdown. Empty result (with at least
-    # one changed file) == docs-only. Captured explicitly rather than via a
-    # `! ... | grep` pipeline, whose negation precedence is shell-dependent.
-    NON_DOC=$(printf '%s\n' "$CHANGED_FILES" | grep -vE '\.md$' || true)
-    if [[ -n "$CHANGED_FILES" && -z "$NON_DOC" ]]; then
-      echo ">>> pre-push: docs-only push (all changed files are *.md) — skipping make test (#719)."
-      echo "    pre-commit already ran the doc validators; force with PRE_PUSH_HOOK_FORCE_RUN=1."
-      exit 0
-    fi
-  fi
-fi
-
-echo ">>> pre-push: running local test suite (make test) — see #571"
-echo "    skip with: git push --no-verify (use ONLY for emergencies)"
-
-if ! make test; then
-  echo
-  echo "❌ pre-push: tests failed — push ABORTED."
-  echo "   Fix the failures or use 'git push --no-verify' if you're confident the"
-  echo "   failure is unrelated and you'll address it in the next commit."
-  exit 1
-fi
-
-echo "✓ pre-push: all tests passed; proceeding."
+exit 0
