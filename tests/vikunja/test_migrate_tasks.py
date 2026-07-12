@@ -401,6 +401,44 @@ def test_list_all_tasks_non_list_raises():
         mt.list_all_tasks(_Bad())
 
 
+def test_list_all_tasks_non_dict_element_raises():
+    # MED-3: a non-dict task element must fail loud, never be silently dropped.
+    client = _FakeClient(task_pages=[[_task(1, 2), "not-a-dict"]])
+    with pytest.raises(mt.ReconcileError, match="non-dict task element"):
+        mt.list_all_tasks(client)
+
+
+def test_list_all_tasks_task_missing_project_id_raises():
+    # MED-3: a task lacking an integer project_id could make a doomed project
+    # look empty → fail loud.
+    bad = {"id": 5, "title": "no-project"}  # no project_id
+    client = _FakeClient(task_pages=[[bad]])
+    with pytest.raises(mt.ReconcileError, match="non-integer project_id"):
+        mt.list_all_tasks(client)
+
+
+def test_list_all_tasks_task_missing_id_raises():
+    # MED-3: a task lacking an integer id is malformed → fail loud.
+    bad = {"project_id": 2, "title": "no-id"}  # no id
+    client = _FakeClient(task_pages=[[bad]])
+    with pytest.raises(mt.ReconcileError, match="non-integer id"):
+        mt.list_all_tasks(client)
+
+
+def test_list_projects_non_dict_element_raises():
+    # MED-3: a non-dict project element must fail loud.
+    client = _FakeClient(project_pages=[[_project(20, "Personal"), 42]])
+    with pytest.raises(mt.ReconcileError, match="non-dict project element"):
+        mt.list_projects(client)
+
+
+def test_list_labels_non_dict_element_raises():
+    # MED-3: a non-dict label element must fail loud.
+    client = _FakeClient(label_pages=[[_habit_label(), "bogus"]])
+    with pytest.raises(mt.ReconcileError, match="non-dict label element"):
+        mt.list_labels(client)
+
+
 def test_tasks_in_project_filters():
     tasks = [_task(1, 2), _task(2, 4), _task(3, 2)]
     assert {t["id"] for t in mt.tasks_in_project(tasks, 2)} == {1, 3}
@@ -594,6 +632,35 @@ def test_build_plan_done_only_task_blocks_project():
     assert any(ident == 15 for _k, ident, _r in plan.blocked)
 
 
+def test_build_plan_absent_survivor_with_doomed_present_blocks():
+    # MED-4: a moves task absent from live tasks while doomed projects still
+    # exist is NOT an idempotent skip — surface it BLOCKED so apply fails loud.
+    tasks = [t for t in _pre_migration_tasks() if t["id"] != 42]  # drop move 42
+    plan, _m = _build_plan(tasks)  # all_touched_projects → doomed still present
+    assert any(
+        kind == "move" and tid == 42 and reason == "survivor task absent"
+        for kind, tid, reason in plan.blocked
+    )
+    assert all(
+        not (kind == "move" and tid == 42)
+        for kind, tid, _r in plan.skipped
+    )
+
+
+def test_build_plan_absent_survivor_with_all_doomed_gone_skips():
+    # MED-4: once every doomed project is deleted (post-migration idempotent
+    # state), an absent moved task is a legitimate no-op skip, not a block.
+    tasks = [t for t in _post_migration_tasks() if t["id"] != 42]  # 42 gone too
+    plan, _m = _build_plan(tasks, projects=_post_migration_projects())
+    assert any(
+        kind == "move" and tid == 42 for kind, tid, _r in plan.skipped
+    )
+    assert all(
+        not (kind == "move" and tid == 42)
+        for kind, tid, _r in plan.blocked
+    )
+
+
 # ---------------------------------------------------------------------------
 # move_task — allowlisted RMW payload + readback
 # ---------------------------------------------------------------------------
@@ -655,6 +722,50 @@ def test_move_task_readback_non_object_raises():
     client = _FakeClient(readbacks={"/tasks/42": None})
     with pytest.raises(mt.ReconcileError, match="non-object"):
         mt.move_task(client, task, 20)
+
+
+def test_move_task_readback_dropped_labels_raises():
+    # HIGH-1: source has a label; readback shows labels: [] → the move silently
+    # dropped the label → must fail loud.
+    task = _task(42, 2, labels=[{"id": 7, "title": "keep-me"}])
+    readback = {"id": 42, "project_id": 20, "title": "task-42", "labels": []}
+    client = _FakeClient(readbacks={"/tasks/42": readback})
+    with pytest.raises(mt.ReconcileError, match="label set changed"):
+        mt.move_task(client, task, 20)
+
+
+def test_move_task_readback_missing_labels_key_raises():
+    # HIGH-1: source had labels but readback omits the 'labels' key entirely →
+    # a missing/malformed labels list is a fail-loud drop.
+    task = _task(42, 2, labels=[{"id": 7}])
+    readback = {"id": 42, "project_id": 20, "title": "task-42"}  # no 'labels'
+    client = _FakeClient(readbacks={"/tasks/42": readback})
+    with pytest.raises(mt.ReconcileError, match="missing or malformed"):
+        mt.move_task(client, task, 20)
+
+
+def test_move_task_readback_non_dict_label_entry_raises():
+    # HIGH-1: source had labels; readback labels contain a non-dict entry → the
+    # shape is untrustworthy → fail loud.
+    task = _task(42, 2, labels=[{"id": 7}])
+    readback = {"id": 42, "project_id": 20, "title": "task-42", "labels": [7]}
+    client = _FakeClient(readbacks={"/tasks/42": readback})
+    with pytest.raises(mt.ReconcileError, match="missing or malformed"):
+        mt.move_task(client, task, 20)
+
+
+def test_move_task_readback_labels_survive_passes():
+    # HIGH-1: labels present on source AND readback (same id set) → no raise.
+    task = _task(42, 2, labels=[{"id": 7, "title": "keep-me"}])
+    readback = {
+        "id": 42,
+        "project_id": 20,
+        "title": "task-42",
+        "labels": [{"id": 7, "title": "keep-me"}],
+    }
+    client = _FakeClient(readbacks={"/tasks/42": readback})
+    mt.move_task(client, task, 20)  # must not raise
+    assert client.post_calls[0][0] == "/tasks/42"
 
 
 # ---------------------------------------------------------------------------
@@ -961,6 +1072,135 @@ def test_main_felix_bot_token_path_refused_via_cli(capsys):
     rc = mt.main(["--token-file", mt.FELIX_BOT_TOKEN_FILE], client=_FakeClient())
     assert rc == 1
     assert "felix-bot" in capsys.readouterr().err.lower()
+
+
+# ---------------------------------------------------------------------------
+# HIGH-2: --apply locked to the canonical kent token + endpoint (real client)
+# ---------------------------------------------------------------------------
+
+
+def test_apply_with_nondefault_token_file_raises(tmp_path, capsys):
+    # A live --apply (real client, client is None) with a non-default token-file
+    # must fail loud BEFORE building any client / touching the network.
+    tf = tmp_path / "some-other-token"
+    tf.write_text("whatever\n", encoding="utf-8")
+    rc = mt.main(["--apply", "--backup-ref", "restic-x", "--token-file", str(tf)])
+    assert rc == 1
+    err = capsys.readouterr().err
+    assert "locked to the canonical kent token" in err
+
+
+def test_apply_with_explicit_base_url_raises(tmp_path, monkeypatch, capsys):
+    # A live --apply with the default token-file but an explicit --base-url must
+    # fail loud (non-canonical endpoint) absent the escape hatch.
+    tf = tmp_path / "vikunja-api-kent"
+    tf.write_text("kent-secret\n", encoding="utf-8")
+    monkeypatch.setattr(mt, "DEFAULT_KENT_TOKEN_FILE", str(tf))
+    rc = mt.main(
+        [
+            "--apply",
+            "--backup-ref",
+            "restic-x",
+            "--token-file",
+            str(tf),
+            "--base-url",
+            "https://evil/api/v1",
+        ]
+    )
+    assert rc == 1
+    assert "canonical Vikunja base URL" in capsys.readouterr().err
+
+
+def test_apply_with_default_token_proceeds(tmp_path, monkeypatch):
+    # A live --apply with the default token-file and no --base-url passes the
+    # HIGH-2 lock and proceeds to build + run the (monkeypatched) client.
+    tf = tmp_path / "vikunja-api-kent"
+    tf.write_text("kent-secret\n", encoding="utf-8")
+    monkeypatch.setattr(mt, "DEFAULT_KENT_TOKEN_FILE", str(tf))
+
+    class _FakeVC:
+        def __init__(self, *, base_url=None, token=None):
+            pass
+
+        def get(self, path, *, params=None, **_kwargs):
+            # Post-migration state → clean plan, no deletes, preflight passes.
+            if path == "/tasks/all":
+                return _post_migration_tasks()
+            if path == "/projects":
+                return _post_migration_projects()
+            if path == "/labels":
+                return [_habit_label()]
+            return None
+
+    import scripts.common.vikunja_client as vc_mod
+
+    monkeypatch.setattr(vc_mod, "VikunjaClient", _FakeVC)
+    # No deletes in a post-migration plan, so --backup-ref is not required.
+    rc = mt.main(["--apply", "--token-file", str(tf)])
+    assert rc == 0
+
+
+def test_apply_nonstandard_endpoint_flag_permits_override(tmp_path, monkeypatch):
+    # The escape hatch lets an --apply run use a non-default token-file AND an
+    # explicit --base-url.
+    tf = tmp_path / "some-other-token"
+    tf.write_text("kent-secret\n", encoding="utf-8")
+
+    class _FakeVC:
+        def __init__(self, *, base_url=None, token=None):
+            pass
+
+        def get(self, path, *, params=None, **_kwargs):
+            if path == "/tasks/all":
+                return _post_migration_tasks()
+            if path == "/projects":
+                return _post_migration_projects()
+            if path == "/labels":
+                return [_habit_label()]
+            return None
+
+    import scripts.common.vikunja_client as vc_mod
+
+    monkeypatch.setattr(vc_mod, "VikunjaClient", _FakeVC)
+    rc = mt.main(
+        [
+            "--apply",
+            "--allow-nonstandard-endpoint",
+            "--token-file",
+            str(tf),
+            "--base-url",
+            "https://x/api/v1",
+        ]
+    )
+    assert rc == 0
+
+
+def test_dry_run_with_nondefault_token_not_locked(tmp_path, monkeypatch):
+    # Dry-run (read-only, no --apply) may use a non-default token-file / base URL
+    # — the HIGH-2 lock only applies to a mutating --apply.
+    tf = tmp_path / "some-other-token"
+    tf.write_text("kent-secret\n", encoding="utf-8")
+
+    class _FakeVC:
+        def __init__(self, *, base_url=None, token=None):
+            pass
+
+        def get(self, path, *, params=None, **_kwargs):
+            if path == "/tasks/all":
+                return _post_migration_tasks()
+            if path == "/projects":
+                return _post_migration_projects()
+            if path == "/labels":
+                return [_habit_label()]
+            return None
+
+    import scripts.common.vikunja_client as vc_mod
+
+    monkeypatch.setattr(vc_mod, "VikunjaClient", _FakeVC)
+    rc = mt.main(
+        ["--token-file", str(tf), "--base-url", "https://x/api/v1"]
+    )
+    assert rc == 0
 
 
 def test_read_token_file_refuses_felix_bot_path():

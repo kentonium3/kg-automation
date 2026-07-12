@@ -1100,3 +1100,13 @@ class TestCLI:
         assert rc == 0
         assert "MALFORMED task=100" in captured.out
         assert "unknown state token" in captured.out
+
+
+class TestReconcileDocstring:
+    def test_reconcile_docstring_names_habits_only(self):
+        """The ``reconcile`` docstring must describe the default exclusion as
+        "Habits" only — Goals(11) was deleted by #717 and the constant is now
+        ``frozenset({13})`` (LOW-5, post-merge Codex hardening)."""
+        doc = reconcile.__doc__ or ""
+        assert "Goals" not in doc
+        assert "Habits" in doc

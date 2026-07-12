@@ -347,8 +347,28 @@ def list_all_tasks(client: Any) -> list[dict]:
         if not isinstance(batch, list):
             raise VikunjaError(path="/tasks/all", status=200)
         for element in batch:
-            if isinstance(element, dict):
-                tasks.append(element)
+            # A malformed task element must NEVER be silently dropped: a dropped
+            # task can make a doomed project look empty and green-light a delete
+            # of a project that still holds data. Fail loud (NFR-004).
+            if not isinstance(element, dict):
+                raise ReconcileError(
+                    f"GET /tasks/all returned a non-dict task element "
+                    f"{element!r}; refusing to trust the enumeration."
+                )
+            tid = element.get("id")
+            if not isinstance(tid, int) or isinstance(tid, bool):
+                raise ReconcileError(
+                    f"GET /tasks/all returned a task with a non-integer id "
+                    f"{tid!r}; refusing to trust the enumeration."
+                )
+            pid = element.get("project_id")
+            if not isinstance(pid, int) or isinstance(pid, bool):
+                raise ReconcileError(
+                    f"GET /tasks/all task {tid} has a non-integer project_id "
+                    f"{pid!r}; a malformed task must never let a doomed project "
+                    f"look empty — refusing to trust the enumeration."
+                )
+            tasks.append(element)
         if len(batch) < _PAGE_SIZE:
             break
         page += 1
@@ -393,8 +413,12 @@ def list_projects(client: Any) -> list[dict]:
         if not isinstance(batch, list):
             raise VikunjaError(path="/projects", status=200)
         for element in batch:
-            if isinstance(element, dict):
-                projects.append(element)
+            if not isinstance(element, dict):
+                raise ReconcileError(
+                    f"GET /projects returned a non-dict project element "
+                    f"{element!r}; refusing to trust the enumeration."
+                )
+            projects.append(element)
         if len(batch) < _PAGE_SIZE:
             break
         page += 1
@@ -415,8 +439,12 @@ def list_labels(client: Any) -> list[dict]:
         if not isinstance(batch, list):
             raise VikunjaError(path="/labels", status=200)
         for element in batch:
-            if isinstance(element, dict):
-                labels.append(element)
+            if not isinstance(element, dict):
+                raise ReconcileError(
+                    f"GET /labels returned a non-dict label element "
+                    f"{element!r}; refusing to trust the enumeration."
+                )
+            labels.append(element)
         if len(batch) < _PAGE_SIZE:
             break
         page += 1
@@ -657,12 +685,32 @@ def build_plan(
     }
     index = _index_projects(projects)
 
+    # A survivor task that has vanished is only safe to skip once the migration
+    # is obviously complete — i.e. every doomed project is already deleted. If
+    # ANY doomed project still exists, an absent moved task means we never got
+    # to move it (or it disappeared mid-migration): surface it BLOCKED so apply
+    # mode fails loud instead of silently declaring the move already handled.
+    all_doomed_gone = all(
+        index.get(pid) is None for pid in manifest.delete_projects
+    )
+
     # Moves: only where the task is present and its project differs from target.
     for task_id, key in manifest.moves.items():
         target_pid = manifest.target_projects[key]
         task = tasks_by_id.get(task_id)
         if task is None:
-            plan.skipped.append(("move", task_id, "task absent (already moved/deleted)"))
+            if all_doomed_gone:
+                # Post-migration idempotent state: the task was migrated and may
+                # since have been completed/deleted — a legitimate no-op.
+                plan.skipped.append(
+                    ("move", task_id, "task absent (migration complete)")
+                )
+            else:
+                # Migration NOT complete yet but the survivor is gone — never
+                # skip silently over live task data (fail loud at apply).
+                plan.blocked.append(
+                    ("move", task_id, "survivor task absent")
+                )
             continue
         if task_id in blocked_task_ids:
             # Reported via blocked; never queued as a move.
@@ -747,18 +795,40 @@ def _writable_payload(task: dict) -> dict[str, Any]:
     return {name: task[name] for name in _WRITABLE_FIELDS if name in task}
 
 
+def _label_id_set(task: dict) -> set[int]:
+    """Return the set of integer label ids on ``task`` (missing/None → empty).
+
+    Each label entry is ``{"id": ...}``; non-dict entries or entries without an
+    integer ``id`` are ignored here (the caller detects a shape mismatch by
+    comparing the *survivor set*, not by counting raw entries).
+    """
+    ids: set[int] = set()
+    for label in task.get("labels") or []:
+        if isinstance(label, dict):
+            lid = label.get("id")
+            if isinstance(lid, int) and not isinstance(lid, bool):
+                ids.add(lid)
+    return ids
+
+
 def move_task(client: Any, task: dict, to_pid: int) -> None:
     """Move ``task`` to project ``to_pid`` via an allowlisted RMW + readback.
 
     Builds the payload from :func:`_writable_payload` plus ``project_id`` (never
     a blind echo of GET output — Vikunja POST is partial-replace, #524), POSTs
     to ``/tasks/{id}``, then GETs the task back and asserts ``project_id`` is the
-    new target AND every allowlisted field is unchanged. Any mismatch raises
-    :class:`ReconcileError` (a readback mismatch is a hard failure, not a warn).
+    new target, every allowlisted field is unchanged, AND the task's labels
+    survived the move (a silent label drop must fail loud, not pass). Any
+    mismatch raises :class:`ReconcileError` (a readback mismatch is a hard
+    failure, not a warn).
     """
     task_id = task.get("id")
     if not isinstance(task_id, int) or isinstance(task_id, bool):
         raise ReconcileError(f"cannot move task with non-integer id {task_id!r}")
+
+    # Capture the source label id set BEFORE the move so we can assert it
+    # survived the readback (a move that silently dropped labels must fail loud).
+    source_label_ids = _label_id_set(task)
 
     payload = _writable_payload(task)
     payload["project_id"] = to_pid
@@ -783,6 +853,30 @@ def move_task(client: Any, task: dict, to_pid: int) -> None:
                 f"{payload[name]!r} to {readback.get(name)!r}. Vikunja may have "
                 f"zeroed an unstated field — aborting fail-loud (#524)."
             )
+
+    # Labels are NOT in the writable payload (they are a separate association),
+    # so a move must not perturb them. If the source had labels, the readback
+    # must present a well-shaped ``labels`` list whose id set matches; a missing
+    # ``labels`` key, a non-list, or non-dict entries when the source had labels
+    # is a fail-loud drop.
+    if source_label_ids:
+        raw_labels = readback.get("labels")
+        if not isinstance(raw_labels, list) or any(
+            not isinstance(entry, dict) for entry in raw_labels
+        ):
+            raise ReconcileError(
+                f"move readback for task {task_id}: expected labels "
+                f"{sorted(source_label_ids)} but readback 'labels' is "
+                f"{raw_labels!r} (missing or malformed). Refusing to trust a "
+                f"move that may have dropped labels — aborting fail-loud."
+            )
+    readback_label_ids = _label_id_set(readback)
+    if readback_label_ids != source_label_ids:
+        raise ReconcileError(
+            f"move readback for task {task_id}: label set changed from "
+            f"{sorted(source_label_ids)} to {sorted(readback_label_ids)}. The "
+            f"move may have dropped or altered labels — aborting fail-loud."
+        )
 
 
 def apply_habit_label(client: Any, task: dict, label_id: int) -> bool:
@@ -1066,6 +1160,17 @@ def _build_parser() -> argparse.ArgumentParser:
         default=None,
         help="override Vikunja base URL (else canonical config)",
     )
+    parser.add_argument(
+        "--allow-nonstandard-endpoint",
+        action="store_true",
+        help=(
+            "escape hatch for unusual ops: permit --apply with a non-default "
+            "--token-file and/or an explicit --base-url. Without it, a live "
+            "--apply run is locked to the canonical kent token "
+            f"({DEFAULT_KENT_TOKEN_FILE}) and the config-resolved base URL so a "
+            "stray credential or endpoint cannot mutate live data."
+        ),
+    )
     return parser
 
 
@@ -1100,6 +1205,37 @@ def _read_token_file(path: str) -> str:
     return token
 
 
+def _assert_canonical_apply_endpoint(args: argparse.Namespace) -> None:
+    """Lock a live ``--apply`` run to the canonical kent token + endpoint.
+
+    Refusing the felix-bot token path is necessary but not sufficient: any other
+    kent-visible token file, or a non-canonical ``--base-url``, could still pass
+    the owner/title preflight yet point at the wrong instance or identity. When
+    running ``--apply`` against a real (non-injected) client we therefore REQUIRE
+    ``--token-file == DEFAULT_KENT_TOKEN_FILE`` and no explicit ``--base-url``
+    (the base URL resolves from canonical config), unless the operator passes the
+    documented ``--allow-nonstandard-endpoint`` escape hatch. Dry-run (read-only)
+    is unaffected — it may use a non-default token-file / base URL.
+    """
+    if args.allow_nonstandard_endpoint:
+        return
+    if os.path.abspath(args.token_file) != os.path.abspath(DEFAULT_KENT_TOKEN_FILE):
+        raise ReconcileError(
+            f"--apply is locked to the canonical kent token file "
+            f"{DEFAULT_KENT_TOKEN_FILE!r}, but --token-file is "
+            f"{args.token_file!r}. A live mutation must use the kent-owned "
+            f"'vikunja-api-kent' credential; pass --allow-nonstandard-endpoint "
+            f"to override (unusual ops only)."
+        )
+    if args.base_url is not None:
+        raise ReconcileError(
+            f"--apply is locked to the config-resolved canonical Vikunja base "
+            f"URL, but --base-url {args.base_url!r} was supplied. Drop "
+            f"--base-url so it resolves from canonical config, or pass "
+            f"--allow-nonstandard-endpoint to override (unusual ops only)."
+        )
+
+
 def _build_client(args: argparse.Namespace) -> Any:
     from scripts.common.vikunja_client import VikunjaClient
 
@@ -1121,6 +1257,11 @@ def main(argv: list[str] | None = None, *, client: Any | None = None) -> int:
         manifest = load_manifest(args.manifest)
         # Refuse the felix-bot token path up front (independent of preflight).
         if client is None:
+            # Live path: a mutating --apply run is locked to the canonical kent
+            # token + config-resolved endpoint (HIGH-2). Dry-run may use a
+            # non-default token-file / base URL.
+            if args.apply:
+                _assert_canonical_apply_endpoint(args)
             active_client = _build_client(args)
         else:
             # Still enforce the token-path refusal even when a client is injected

@@ -525,7 +525,7 @@ def reconcile(
         dry_run: If True, no writes occur. Report still populated with
             parseable + malformed counts.
         excluded_project_ids: Projects to skip (defaults to
-            :data:`EXCLUDED_PROJECT_IDS`: Goals + Habits).
+            :data:`EXCLUDED_PROJECT_IDS`: Habits).
 
     Returns:
         A populated :class:`ReconcileReport`.
