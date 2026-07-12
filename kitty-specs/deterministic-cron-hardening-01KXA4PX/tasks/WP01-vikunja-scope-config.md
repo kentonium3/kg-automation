@@ -13,7 +13,8 @@ subtasks:
 - T002
 - T003
 - T004
-agent: claude
+agent: "claude:sonnet:python-pedro:implementer"
+shell_pid: "80179"
 history:
 - '2026-07-12: authored by /spec-kitty.tasks'
 agent_profile: python-pedro
@@ -114,3 +115,7 @@ Deterministic pytest only — fake `VikunjaClient`, no network, no LLM. Run `pyt
 - Verify the accessor returns a copy (no shared-mutable-state leak).
 - Verify no other consumer of `HABITS_PROJECT_ID` was missed (grep the helper for all uses).
 - Keep the module dependency-free (importable from both escalation and habits code without cycles).
+
+## Activity Log
+
+- 2026-07-12T03:49:54Z – claude:sonnet:python-pedro:implementer – shell_pid=80179 – Assigned agent via action command
