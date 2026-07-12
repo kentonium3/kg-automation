@@ -11,5 +11,7 @@
   "purpose_tldr": "Establish Vikunja's canonical topic-project structure and remove legacy saved filters.",
   "slug": "vikunja-restructure-projects-01KXBS2P",
   "target_branch": "feat/vikunja-restructure-projects",
-  "topology": "lanes"
+  "topology": "lanes",
+  "vcs": "git",
+  "vcs_locked_at": "2026-07-12T18:46:56.444805+00:00"
 }
