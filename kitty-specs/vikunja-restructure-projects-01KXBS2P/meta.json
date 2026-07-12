@@ -17,7 +17,7 @@
   "flattened": true,
   "friendly_name": "Vikunja Project Restructure",
   "mission_id": "01KXBS2P445A3BRNGZ8S7VC4PY",
-  "mission_number": null,
+  "mission_number": 98,
   "mission_slug": "vikunja-restructure-projects-01KXBS2P",
   "mission_type": "software-dev",
   "pr_bound": true,

@@ -3,7 +3,7 @@ title: "Vikunja Configuration Design"
 doc_type: design
 status: draft
 owners: ["@kentonium3"]
-last_updated: '2026-07-11'
+last_updated: '2026-07-12'
 audience: agents_and_humans
 ---
 
@@ -66,21 +66,34 @@ Projects are topic buckets — containers for related tasks. The sidebar
 hierarchy reflects domain ownership, not temporal or priority context.
 
 ```
-Inbox
-Felix / kg-automation
-Intentional LLC
-Business Acquisition
-Health & Conditioning
-Clients
-  └── PointerHealth
-  └── spec-kitty
-Personal
+Inbox                      (native, kent-owned — verified, never recreated)
+Felix / kg-automation      (created by #716)
+Clients                    (created by #716 — parent folder, holds no tasks)
+  └── PointerHealth         (created by #716, under Clients)
+  └── spec-kitty            (created by #716, under Clients)
+Personal                   (created by #716)
+Metal Casework             (retained — pre-existing, empty)
+CT-90day                   (retained — pre-existing, empty)
+Habits                     (retained — pre-existing, id 13; untouched by #716)
 ```
+
+Issue **#716** establishes this structure as an **additive-only** reconcile: it
+creates the five new topic projects (`Felix / kg-automation`, `Clients`,
+`PointerHealth`, `spec-kitty`, `Personal`) as kent, verifies `Inbox`, and
+deletes the legacy saved filters (below). It never deletes a project. The
+task-bearing legacy projects (`Everyday`, `Someday`, `Personal Growth &
+Transformation`, `Household`, `Goals`, `Research`) and all task migration are
+deferred to **#717**, which requires human judgment; the `t:habit` label (created
+in #715) becomes the habit identity there, at which point the `Habits` project
+(id 13) can be retired. Until #717 runs, `Habits` and the other task-bearing
+projects remain intact.
 
 **Inbox** is Vikunja's native quick-capture project. Tasks created without
 a project assignment land here. It is a staging area only — tasks should
 be triaged out of Inbox daily into their correct project with full label
-metadata applied. Inbox is never a permanent home for any task.
+metadata applied. Inbox is never a permanent home for any task. The reconcile
+helper **verifies** Inbox (id 1, kent-owned) and never recreates it; owner-scoped
+matching ignores the felix-bot token's separate `Inbox` (id 14).
 
 **Clients** is a parent project (folder) with no tasks of its own.
 `PointerHealth` and `spec-kitty` are sub-projects that inherit the
@@ -89,6 +102,16 @@ isolated and browsable without requiring a label to identify it.
 
 **Personal** catches everything that doesn't belong to a named domain:
 household, administrative, learning, relationships.
+
+**Pseudo-views vs. native filters.** Earlier ad-hoc "views" — `Today`,
+`Upcoming`, `Overdue`, `Goals`, and `Completed` — were **saved filters**, which
+Vikunja surfaces in the project sidebar as **negative-id pseudo-projects**
+(`id <= -2`). They are not real projects. Issue **#716** removes these five
+legacy saved filters (deriving each filter id from its pseudo-project and reading
+back the title before deleting). `Favorites` (pseudo-id `-1`) is a **native**
+Vikunja view, not a deletable saved filter, and is left untouched. The six
+canonical replacement saved filters are created separately by **#718** (see the
+Saved Filters section below).
 
 ---
 
