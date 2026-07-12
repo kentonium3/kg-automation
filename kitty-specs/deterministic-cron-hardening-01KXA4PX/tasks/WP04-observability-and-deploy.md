@@ -16,7 +16,8 @@ subtasks:
 - T012
 - T013
 - T014
-agent: claude
+agent: "claude:sonnet:implementer-ivan:implementer"
+shell_pid: "4477"
 history:
 - '2026-07-12: authored by /spec-kitty.tasks'
 agent_profile: implementer-ivan
@@ -104,3 +105,7 @@ Planning base + merge target: **`fix/deterministic-cron-hardening`**. Run in thi
 - Verify the manifest is NOT pre-numbered and the entrypoint is chmod +x.
 - Verify the freshness `max_age_seconds` (~8 days) suits the weekly cadence and the `expected` text encodes status=success + exit_code=0 (H4 — a fresh failure tick must read unhealthy).
 - Do NOT deploy or touch office2 in this WP.
+
+## Activity Log
+
+- 2026-07-12T04:19:11Z – claude:sonnet:implementer-ivan:implementer – shell_pid=4477 – Assigned agent via action command
