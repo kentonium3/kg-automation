@@ -16,7 +16,8 @@ subtasks:
 - T006
 - T007
 - T008
-agent: claude
+agent: "claude:sonnet:python-pedro:implementer"
+shell_pid: "91777"
 history:
 - '2026-07-12: authored by /spec-kitty.tasks'
 agent_profile: python-pedro
@@ -117,3 +118,7 @@ Planning base + merge target: **`fix/deterministic-cron-hardening`**. Run in thi
 - Verify `/tasks/all` (not `/projects/...`) and per_page=50 stop-on-empty (grep the memory gotcha).
 - Verify AGENTS.md edit is surgical + audited-surface-safe (no unrelated churn) and the failure-propagation wording is unambiguous.
 - Verify the helper reads exclusions from `vikunja_scope` (WP01), not a hardcoded list.
+
+## Activity Log
+
+- 2026-07-12T04:05:14Z – claude:sonnet:python-pedro:implementer – shell_pid=91777 – Assigned agent via action command
