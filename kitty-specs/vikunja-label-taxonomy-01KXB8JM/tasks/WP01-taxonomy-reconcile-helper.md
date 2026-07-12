@@ -31,7 +31,7 @@ subtasks:
 - T007
 - T008
 agent: "claude"
-shell_pid: "14061"
+shell_pid: "16518"
 history:
 - '2026-07-12: authored by /spec-kitty.tasks'
 agent_profile: python-pedro
@@ -213,3 +213,5 @@ post-merge Codex review — not in this WP.
 ## Activity Log
 
 - 2026-07-12T14:02:35Z – claude – shell_pid=14061 – Assigned agent via action command
+- 2026-07-12T14:10:03Z – claude – shell_pid=14061 – Ready for review
+- 2026-07-12T14:10:29Z – claude – shell_pid=16518 – Started review via action command

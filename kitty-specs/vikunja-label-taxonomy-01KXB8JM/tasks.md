@@ -30,14 +30,14 @@ and the design-doc color addition. The live run is a post-merge operational step
 - **Dependencies**: none.
 - **Estimated prompt size**: ~500 lines (8 subtasks).
 - **Included subtasks**:
-  - [ ] T001 Declare taxonomy + legacy constants (WP01)
-  - [ ] T002 Paginated listing + duplicate-title detection (WP01)
-  - [ ] T003 Create pass (create / already-present / color-mismatch) (WP01)
-  - [ ] T004 Delete pass (backup-gated, delete-all, 404 re-list) (WP01)
-  - [ ] T005 CLI + reporting + exit codes (WP01)
-  - [ ] T006 Design-doc color column (WP01)
-  - [ ] T007 Tests: create/idempotency/fidelity (WP01)
-  - [ ] T008 Tests: delete/failure-modes/dry-run (WP01)
+  - [x] T001 Declare taxonomy + legacy constants (WP01)
+  - [x] T002 Paginated listing + duplicate-title detection (WP01)
+  - [x] T003 Create pass (create / already-present / color-mismatch) (WP01)
+  - [x] T004 Delete pass (backup-gated, delete-all, 404 re-list) (WP01)
+  - [x] T005 CLI + reporting + exit codes (WP01)
+  - [x] T006 Design-doc color column (WP01)
+  - [x] T007 Tests: create/idempotency/fidelity (WP01)
+  - [x] T008 Tests: delete/failure-modes/dry-run (WP01)
 - **Implementation sketch**: constants → list+dedup → create pass → delete pass → CLI/report → doc edit → tests. See `contracts/create_taxonomy_labels.md` and `data-model.md` for the authoritative behavior.
 - **Risks**: id-vs-title (identify by title, mutate by id); `per_page` ≤ 50; create = `PUT /labels`; destructive delete must be gated; mock must mirror the real `VikunjaClient` surface.
 - **Prompt**: `tasks/WP01-taxonomy-reconcile-helper.md`
