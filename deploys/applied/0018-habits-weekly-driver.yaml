@@ -29,3 +29,7 @@ notes: "Installs the felix-habits-weekly deterministic weekly habit-report drive
   \ and auto-rebaseline without declaration.\n\nTier 3 (installs a user timer + retires\
   \ one openclaw cron via the vetted CLI path; no Tier 0/1/2 action).\n"
 applied_at: '2026-07-12T05:33:55Z'
+rebaseline:
+  outcome: completed
+  at_utc: '2026-07-12T05:34:06Z'
+  baseline_count: 14
