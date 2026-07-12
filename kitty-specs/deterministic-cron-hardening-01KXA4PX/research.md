@@ -8,7 +8,7 @@ Phase 0. Load-bearing facts were probed **live on office2** (OpenClaw 2026.6.11)
 `openclaw message send --channel whatsapp --target +16179300916 --message "<body>" --json`.
 **Evidence** (`openclaw message send --help`, office2): flags `--channel whatsapp`, `-t/--target <E.164>`, `-m/--message <text>` (required unless `--media`), `--dry-run` (print payload, skip send), `--json` (structured result). WhatsApp target is E.164.
 **Rationale**: A deterministic CLI send removes the LLM agent from the path entirely. `--json` gives a machine-checkable delivery result for FR-006 truthful confirmation; `--dry-run` supports the deploy self-test.
-**Open (resolve in implement, not blocking)**: confirm the exact success/failure shape of the `--json` result so the driver stamps "delivered" only on confirmed success. Verify with one real `--dry-run` and one real send during implementation.
+**RESOLVED (post-plan review C1)**: a real send returns exit 0 with a non-empty `payload.result.messageId` (+ `runId`) and `dryRun:false`. **Confirmation predicate**: exit 0 AND non-empty `messageId` AND `dryRun==false`; any other shape ⇒ not delivered. A `--dry-run --json` send omits `result` (has only `dryRun:true`). See `contracts/post-plan-review-resolutions.md` C1.
 **Alternatives rejected**: keeping it an openclaw agent cron (the current failing design); ntfy/alert-bus (that is for alerts, not a scheduled user-facing report).
 
 ## R2 — `VikunjaClient` + the all-tasks endpoint (escalation enumeration)
