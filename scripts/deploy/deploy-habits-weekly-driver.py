@@ -8,7 +8,8 @@ Installs the ``felix-habits-weekly.{service,timer}`` +
 ``claude`` account on office2, verifies the deployed driver actually reaches
 its delivery path via a self-test gate BEFORE touching any scheduler state,
 then performs a **transactional cutover** from the legacy
-``habits-weekly-report`` openclaw cron to the new timer — never leaving both
+``habits-weekly-report`` openclaw cron to the new timer, ordered to **fail
+toward exactly one active producer, never zero** — never leaving both
 producers active, and never leaving neither active. Tier 3 (Logic/Workflow —
 installs a user timer + retires one openclaw cron; no Tier 0/1/2 action).
 ``audited_surface: true`` (systemd units are a hashed audited surface; the
@@ -22,8 +23,13 @@ Authoritative contracts:
   — C2 (``--self-test`` deploy gate), C3 (transactional scheduler cutover),
   M11 (systemd unit fields), M12 (service-inventory full cleanup + postcheck).
 
-Strict, halt-on-error order (C3):
+Strict, halt-on-error order (C3; reordered post-merge Codex review, #723 —
+enable-before-retire so a failure never drops to zero active producers):
 
+  0. **Preflight: assert the deploy user (``--apply`` only)** — ``systemd``
+     user units install under ``Path.home()``; abort BEFORE any mutation if
+     this process is not running as the intended office2 ``claude`` account
+     (post-merge Codex review, #723). Not enforced on ``--dry-run``.
   1. **Install units** — copy ``felix-habits-weekly.service``,
      ``felix-habits-weekly.timer``, and
      ``felix-habits-weekly-onfailure.service`` into
@@ -32,17 +38,26 @@ Strict, halt-on-error order (C3):
      ``python3 -m scripts.habits.weekly_report_driver --self-test``: the
      driver runs the report helper, composes the message, exercises the
      full ``openclaw message send --dry-run`` round-trip (no real send),
-     and writes a fresh ``last-tick.json``. Exit 0 is required. **Abort the
-     deploy on any failure — no cutover on a bad build** (the #711/#703
-     lesson: never enable/retire on an unverified deploy).
-  3. **Retire the legacy producer** — resolve the ``habits-weekly-report``
+     and writes a fresh ``self-test-last-tick.json`` (a SEPARATE path from
+     the production ``last-tick.json`` the freshness canary reads — a
+     self-test dry-run must never be able to make the canary report the
+     weekly producer "healthy" without a real delivery). Exit 0 is
+     required. **Abort the deploy on any failure — no cutover on a bad
+     build** (the #711/#703 lesson: never enable/retire on an unverified
+     deploy).
+  3. **Enable the new producer FIRST** — ``systemctl --user enable --now
+     felix-habits-weekly.timer``; assert ``next elapse`` is scheduled via
+     ``systemctl --user list-timers``. ``enable --now`` only *schedules*
+     the Monday run; it does not fire a report immediately, so enabling
+     before retiring the legacy cron cannot double-deliver. If this step
+     fails, the legacy cron is still active (one producer, no outage).
+  4. **Retire the legacy producer** — resolve the ``habits-weekly-report``
      openclaw cron's id via ``openclaw cron list --json`` and remove it via
      ``openclaw cron rm <id>``; assert it is absent afterward. Idempotent:
      an already-absent cron is treated as success (a prior partial apply
-     may have already removed it).
-  4. **Enable the new producer** — ``systemctl --user enable --now
-     felix-habits-weekly.timer``; assert ``next elapse`` is scheduled via
-     ``systemctl --user list-timers``.
+     may have already removed it). If this step fails, BOTH producers are
+     now active — a recoverable duplicate the postcheck below alerts on,
+     not a silent miss.
   5. **Exactly-one-producer postcheck (C3/M12)** — assert the openclaw cron
      is ABSENT and the timer is enabled. FAIL (and alert) if both producers
      exist or neither does — the cutover must never leave a half state.
@@ -98,6 +113,13 @@ _ONFAILURE_UNIT = "felix-habits-weekly-onfailure.service"
 _UNIT_NAMES = (_SERVICE_UNIT, _TIMER_UNIT, _ONFAILURE_UNIT)
 _SYSTEMD_USER_DIR = Path.home() / ".config/systemd/user"
 
+# The intended office2 deploy user (matches the canary-deploy precedent —
+# felix-deployer runs as `claude`). `_SYSTEMD_USER_DIR` derives from
+# `Path.home()`, so installing under the wrong account silently writes units
+# nothing will ever load. Asserted early in `--apply` only (post-merge Codex
+# review, #723) — `--dry-run` and local/self-test runs are not blocked by it.
+_EXPECTED_DEPLOY_HOME = Path("/home/claude")
+
 # The legacy producer this cutover retires (habit-checkin's health_check.crons
 # list, and its schedules[], were stripped of this name by T012).
 _LEGACY_CRON_NAME = "habits-weekly-report"
@@ -146,6 +168,35 @@ def _run(argv: list[str], cwd: Path | None = None) -> tuple[int, str, str]:
 
 
 # --------------------------------------------------------------------------- #
+# Step 0 — preflight: assert the intended office2 deploy user (--apply only).
+# --------------------------------------------------------------------------- #
+
+
+def _step_assert_deploy_user() -> tuple[bool, dict]:
+    """Assert ``Path.home() == _EXPECTED_DEPLOY_HOME`` before any mutation.
+
+    ``_SYSTEMD_USER_DIR`` is derived from ``Path.home()``; running ``--apply``
+    under the wrong account would silently install units under a home
+    directory systemd never loads from, or (worse) write into an unintended
+    account's config. Cheap and early — checked before install/self-test/
+    cutover (post-merge Codex review, #723). Only enforced for ``--apply``;
+    ``--dry-run`` and local/self-test invocations are not blocked by it.
+    """
+    actual_home = Path.home()
+    details: dict = {
+        "expected_home": str(_EXPECTED_DEPLOY_HOME),
+        "actual_home": str(actual_home),
+    }
+    if actual_home != _EXPECTED_DEPLOY_HOME:
+        details["error"] = (
+            f"unexpected deploy user: Path.home()={actual_home!s}, expected "
+            f"{_EXPECTED_DEPLOY_HOME!s} (the office2 claude account)"
+        )
+        return False, details
+    return True, details
+
+
+# --------------------------------------------------------------------------- #
 # Step 1 — install the systemd user units + daemon-reload.
 # --------------------------------------------------------------------------- #
 
@@ -191,19 +242,26 @@ def _tick_completed_at(tick_path: Path) -> str | None:
     return value if isinstance(value, str) else None
 
 
-# The driver's own default tick path (mirrors the module constant so this
-# deploy script and the driver never diverge on where freshness is asserted).
-_TICK_PATH = Path("/data/services/felix-habits-weekly/state/last-tick.json")
+# The driver's own SELF-TEST tick path (mirrors weekly_report_driver's
+# SELF_TEST_TICK_PATH constant so this deploy script and the driver never
+# diverge on where the self-test's freshness is asserted). The gate must
+# NEVER assert against the production last-tick.json — a dry-run self-test
+# writing there would make the freshness canary report the weekly producer
+# "healthy" without any real delivery (post-merge Codex review, #723).
+_SELF_TEST_TICK_PATH = Path(
+    "/data/services/felix-habits-weekly/state/self-test-last-tick.json"
+)
 
 
 def _step_self_test() -> tuple[bool, dict]:
-    """C2: run the driver's --self-test and assert exit 0 + a fresh tick.
+    """C2: run the driver's --self-test and assert exit 0 + a fresh SELF-TEST tick.
 
     The self-test exercises the full path (helper -> compose -> dry-run send)
-    without a real WhatsApp send, then writes last-tick.json. We additionally
-    assert the tick advanced so a driver that silently no-ops cannot pass.
+    without a real WhatsApp send, then writes the self-test-scoped tick
+    (NOT the production last-tick.json). We additionally assert the tick
+    advanced so a driver that silently no-ops cannot pass.
     """
-    before_ts = _tick_completed_at(_TICK_PATH)
+    before_ts = _tick_completed_at(_SELF_TEST_TICK_PATH)
     rc, stdout, stderr = _run(_SELF_TEST_ARGV, cwd=_REPO_ROOT)
     details: dict = {
         "self_test_rc": rc,
@@ -215,15 +273,17 @@ def _step_self_test() -> tuple[bool, dict]:
         details["error"] = "self-test exited non-zero"
         return False, details
 
-    after_ts = _tick_completed_at(_TICK_PATH)
+    after_ts = _tick_completed_at(_SELF_TEST_TICK_PATH)
     details["tick_after"] = after_ts
     if after_ts is None:
-        details["error"] = "last-tick.json absent or missing completed_at_utc after self-test"
+        details["error"] = (
+            "self-test-last-tick.json absent or missing completed_at_utc after self-test"
+        )
         return False, details
     if before_ts is not None and after_ts == before_ts:
         details["error"] = (
-            "last-tick.json completed_at_utc did not advance — the self-test "
-            "did not write a fresh tick"
+            "self-test-last-tick.json completed_at_utc did not advance — the "
+            "self-test did not write a fresh tick"
         )
         return False, details
     return True, details
@@ -379,19 +439,25 @@ def _dry_run() -> int:
     _print_line(
         "DRY-RUN",
         "would run `python3 -m scripts.habits.weekly_report_driver --self-test` "
-        "and require exit 0 + a fresh last-tick.json (C2 gate — abort on failure)",
-        {"argv": _SELF_TEST_ARGV, "tick_path": str(_TICK_PATH)},
+        "and require exit 0 + a fresh self-test-last-tick.json (C2 gate — abort "
+        "on failure; the production last-tick.json is never touched by self-test)",
+        {"argv": _SELF_TEST_ARGV, "tick_path": str(_SELF_TEST_TICK_PATH)},
+    )
+    _print_line(
+        "DRY-RUN",
+        f"would `systemctl --user enable --now {_TIMER_UNIT}` and verify via "
+        "list-timers — FIRST, only after the self-test gate passes (C3); "
+        "enable-now only schedules the Monday run, so a failure here leaves "
+        "the legacy cron as the sole active producer",
+        {},
     )
     _print_line(
         "DRY-RUN",
         f"would resolve + remove the legacy openclaw cron {_LEGACY_CRON_NAME!r} "
-        "via `openclaw cron rm <id>` — only after the self-test gate passes (C3)",
+        "via `openclaw cron rm <id>` — only after the timer is enabled (C3); a "
+        "failure here leaves BOTH producers active (recoverable duplicate, "
+        "not an outage)",
         {"legacy_cron_name": _LEGACY_CRON_NAME},
-    )
-    _print_line(
-        "DRY-RUN",
-        f"would `systemctl --user enable --now {_TIMER_UNIT}` and verify via list-timers",
-        {},
     )
     _print_line(
         "DRY-RUN",
@@ -432,6 +498,21 @@ def _report(*, ok: bool, phase: str, details: dict) -> None:
 
 
 def _apply() -> int:
+    # ---- Step 0: preflight deploy-user assertion — before ANY mutation. ---- #
+    ok, details = _step_assert_deploy_user()
+    _print_line("APPLY", "preflight deploy-user " + ("OK" if ok else "FAILED"), details)
+    if not ok:
+        _print_recovery(
+            [
+                f"This deploy must run as {_EXPECTED_DEPLOY_HOME!s} (office2 "
+                "claude account) — re-run via `ssh office2-claude` or the "
+                "felix-deployer applier.",
+                "Nothing was installed or mutated.",
+            ]
+        )
+        _report(ok=False, phase="preflight_user", details=details)
+        return 1
+
     ok, details = _step_install_units()
     _print_line("APPLY", "install units " + ("OK" if ok else "FAILED"), details)
     if not ok:
@@ -471,31 +552,42 @@ def _apply() -> int:
         _report(ok=False, phase="self_test", details=details)
         return 1
 
-    # ---- C3 transactional cutover: retire legacy cron, then enable timer. -- #
-    ok, details = _step_retire_legacy_cron()
-    _print_line("APPLY", "retire legacy cron " + ("OK" if ok else "FAILED"), details)
-    if not ok:
-        _print_recovery(
-            [
-                f"Inspect `openclaw cron list --json` for {_LEGACY_CRON_NAME!r}.",
-                f"Manually: openclaw cron rm <id-of-{_LEGACY_CRON_NAME}>",
-            ]
-        )
-        _report(ok=False, phase="retire_legacy_cron", details=details)
-        return 1
-
+    # ---- C3 transactional cutover: enable timer FIRST, then retire legacy --- #
+    # cron (post-merge Codex review, #723). `systemctl --user enable --now`
+    # only SCHEDULES the Monday run — it does not fire a report immediately —
+    # so enabling first cannot double-deliver. Enabling first means a failure
+    # here fails toward ONE producer (the legacy cron, untouched) rather than
+    # ZERO (the old order: retire-then-enable could leave neither active).
     ok, details = _step_enable_and_verify_timer()
     _print_line("APPLY", "enable+verify timer " + ("OK" if ok else "FAILED"), details)
     if not ok:
         _print_recovery(
             [
-                "The legacy cron was already retired but the new timer failed "
-                "to enable — this leaves NEITHER producer active. Manually: "
+                "The new timer failed to enable. The legacy "
+                f"{_LEGACY_CRON_NAME!r} openclaw cron is STILL ACTIVE (one "
+                "producer, no outage) — it was not touched. Manually: "
                 f"systemctl --user enable --now {_TIMER_UNIT}",
                 "Then re-run this deploy to confirm the postcheck passes.",
             ]
         )
         _report(ok=False, phase="enable_timer", details=details)
+        return 1
+
+    ok, details = _step_retire_legacy_cron()
+    _print_line("APPLY", "retire legacy cron " + ("OK" if ok else "FAILED"), details)
+    if not ok:
+        _print_recovery(
+            [
+                "The new timer is already enabled, so this is a recoverable "
+                "DUPLICATE-producer state (both the legacy cron and the new "
+                "timer are active), NOT a silent-miss outage. "
+                f"Inspect `openclaw cron list --json` for {_LEGACY_CRON_NAME!r}.",
+                f"Manually: openclaw cron rm <id-of-{_LEGACY_CRON_NAME}>",
+                "The exactly-one-producer postcheck below will also flag "
+                "this and alert.",
+            ]
+        )
+        _report(ok=False, phase="retire_legacy_cron", details=details)
         return 1
 
     # ---- C3/M12 exactly-one-producer postcheck. ---------------------------- #

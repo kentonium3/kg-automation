@@ -14,8 +14,9 @@ Coverage groups (per ``contracts/weekly_report_driver.md`` +
   non-zero exit (FR-006 — never claim delivery that did not happen).
 - Malformed JSON from send: not confirmed; failure tick.
 - ``dryRun=true`` on an otherwise "successful" send: not confirmed.
-- ``--self-test``: writes a fresh tick, calls send with the dry-run flag,
-  never invokes a real send.
+- ``--self-test``: writes a fresh tick to the SEPARATE self-test tick path
+  (never the production ``last-tick.json``), calls send with the dry-run
+  flag, never invokes a real send.
 - ``--dry-run``: no state written, no send at all.
 """
 from __future__ import annotations
@@ -253,7 +254,7 @@ def test_self_test_writes_tick_calls_dry_run_send_no_real_send(tmp_path: Path) -
         payload = {"dryRun": True, "queued": False}
         return driver.SendResult(exit_code=0, stdout=json.dumps(payload), stderr="")
 
-    tick_path = tmp_path / "last-tick.json"
+    tick_path = tmp_path / "self-test-last-tick.json"
     exit_code = driver.run(
         mode="self-test",
         run_helper=_ok_helper(),
@@ -274,11 +275,70 @@ def test_self_test_writes_tick_calls_dry_run_send_no_real_send(tmp_path: Path) -
     assert tick["delivery_confirmed"] is False
 
 
+def test_self_test_default_tick_path_is_self_test_scoped_not_production(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """--self-test with no explicit tick_path must write ONLY the self-test
+    path and must NOT touch DEFAULT_TICK_PATH (production).
+
+    Regression guard (post-merge Codex review, #723): a self-test dry-run
+    must never be able to make the production freshness canary report the
+    weekly producer "healthy" when no real delivery occurred.
+    """
+    production_tick_path = tmp_path / "last-tick.json"
+    self_test_tick_path = tmp_path / "self-test-last-tick.json"
+    monkeypatch.setattr(driver, "DEFAULT_TICK_PATH", production_tick_path)
+    monkeypatch.setattr(driver, "SELF_TEST_TICK_PATH", self_test_tick_path)
+
+    def _send(message: str, dry_run: bool) -> driver.SendResult:
+        payload = {"dryRun": True, "queued": False}
+        return driver.SendResult(exit_code=0, stdout=json.dumps(payload), stderr="")
+
+    exit_code = driver.run(
+        mode="self-test",
+        run_helper=_ok_helper(),
+        send=_send,
+        now=_now,
+        # tick_path intentionally omitted — exercise the mode-aware default.
+    )
+
+    assert exit_code == 0
+    assert self_test_tick_path.exists()
+    assert not production_tick_path.exists()
+
+
+def test_run_mode_default_tick_path_is_production_last_tick(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """A real ``mode="run"`` pass with no explicit tick_path still writes
+    the production DEFAULT_TICK_PATH (unaffected by the self-test isolation
+    change)."""
+    production_tick_path = tmp_path / "last-tick.json"
+    self_test_tick_path = tmp_path / "self-test-last-tick.json"
+    monkeypatch.setattr(driver, "DEFAULT_TICK_PATH", production_tick_path)
+    monkeypatch.setattr(driver, "SELF_TEST_TICK_PATH", self_test_tick_path)
+
+    def _send(message: str, dry_run: bool) -> driver.SendResult:
+        return _confirmed_send_result()
+
+    exit_code = driver.run(
+        mode="run",
+        run_helper=_ok_helper(),
+        send=_send,
+        now=_now,
+        # tick_path intentionally omitted — exercise the mode-aware default.
+    )
+
+    assert exit_code == 0
+    assert production_tick_path.exists()
+    assert not self_test_tick_path.exists()
+
+
 def test_self_test_send_path_failure_writes_failure_tick(tmp_path: Path) -> None:
     def _send(message: str, dry_run: bool) -> driver.SendResult:
         return driver.SendResult(exit_code=1, stdout="", stderr="boom")
 
-    tick_path = tmp_path / "last-tick.json"
+    tick_path = tmp_path / "self-test-last-tick.json"
     exit_code = driver.run(
         mode="self-test",
         run_helper=_ok_helper(),
@@ -300,7 +360,7 @@ def test_self_test_helper_failure_writes_failure_tick_no_send(tmp_path: Path) ->
         calls.append((message, dry_run))
         return _confirmed_send_result()
 
-    tick_path = tmp_path / "last-tick.json"
+    tick_path = tmp_path / "self-test-last-tick.json"
     exit_code = driver.run(
         mode="self-test",
         run_helper=_failing_helper(),
@@ -391,7 +451,7 @@ def test_main_dry_run_end_to_end(tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 
 
 def test_main_self_test_end_to_end(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    tick_path = tmp_path / "last-tick.json"
+    tick_path = tmp_path / "self-test-last-tick.json"
     monkeypatch.setattr(driver, "run_report_helper", _ok_helper("Body.\n"))
 
     def _fake_send(message: str, dry_run: bool, **kwargs) -> driver.SendResult:
@@ -405,6 +465,29 @@ def test_main_self_test_end_to_end(tmp_path: Path, monkeypatch: pytest.MonkeyPat
     assert tick_path.exists()
     tick = _read_tick(tick_path)
     assert tick["status"] == "success"
+
+
+def test_main_self_test_no_tick_path_flag_uses_self_test_default(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """``main(["--self-test"])`` with no --tick-path override must resolve
+    to SELF_TEST_TICK_PATH, not DEFAULT_TICK_PATH (production)."""
+    production_tick_path = tmp_path / "last-tick.json"
+    self_test_tick_path = tmp_path / "self-test-last-tick.json"
+    monkeypatch.setattr(driver, "DEFAULT_TICK_PATH", production_tick_path)
+    monkeypatch.setattr(driver, "SELF_TEST_TICK_PATH", self_test_tick_path)
+    monkeypatch.setattr(driver, "run_report_helper", _ok_helper("Body.\n"))
+
+    def _fake_send(message: str, dry_run: bool, **kwargs) -> driver.SendResult:
+        assert dry_run is True
+        payload = {"dryRun": True}
+        return driver.SendResult(exit_code=0, stdout=json.dumps(payload), stderr="")
+
+    monkeypatch.setattr(driver, "send_message", _fake_send)
+    exit_code = driver.main(["--self-test"])
+    assert exit_code == 0
+    assert self_test_tick_path.exists()
+    assert not production_tick_path.exists()
 
 
 # --------------------------------------------------------------------------- #

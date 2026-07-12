@@ -3,8 +3,12 @@
 Covers T013/T014:
   * cron-id resolution parsing (via scripts.deploy.lib.cron, mocked);
   * the C2 self-test gate: aborts on failure/no-fresh-tick, passes on a clean run;
-  * C3 transactional cutover ORDER: units -> self-test -> retire legacy cron ->
-    enable timer -> exactly-one-producer postcheck;
+  * C3 transactional cutover ORDER: units -> self-test -> enable timer ->
+    retire legacy cron -> exactly-one-producer postcheck (enable-before-retire,
+    post-merge Codex review #723 — fails toward ONE producer, never zero);
+  * failure semantics: an enable failure leaves the legacy cron intact (one
+    producer, no outage); a retire failure after a successful enable leaves
+    BOTH producers active (a recoverable duplicate, not a silent miss);
   * the C3 postcheck itself: FAILS when both producers are present, FAILS when
     neither is present, passes only on exactly-one-producer;
   * legacy-cron removal is idempotent (already-absent = success);
@@ -106,9 +110,30 @@ def _install_fake_units(monkeypatch, tmp_path) -> pathlib.Path:
 
 
 def _patch_tick(monkeypatch, tmp_path):
-    tick_path = tmp_path / "state" / "last-tick.json"
-    monkeypatch.setattr(_mod, "_TICK_PATH", tick_path)
+    """Patch the SELF-TEST tick path the C2 gate asserts against.
+
+    Renamed from ``_TICK_PATH`` (production last-tick.json) to
+    ``_SELF_TEST_TICK_PATH`` (post-merge Codex review, #723): the deploy
+    gate must assert freshness of the self-test-scoped tick, never the
+    production one.
+    """
+    tick_path = tmp_path / "state" / "self-test-last-tick.json"
+    monkeypatch.setattr(_mod, "_SELF_TEST_TICK_PATH", tick_path)
     return tick_path
+
+
+def _patch_deploy_user_ok(monkeypatch, home: pathlib.Path | None = None) -> pathlib.Path:
+    """Make the Step-0 deploy-user preflight pass regardless of the local
+    test-running account, by pointing `_EXPECTED_DEPLOY_HOME` at whatever
+    `Path.home()` actually is in this environment (or an explicit `home`).
+
+    Every test that drives `main(["--apply"])` end-to-end must call this
+    (post-merge Codex review, #723 — the guard is real and must not be
+    accidentally satisfied/unsatisfied by the CI account's home directory).
+    """
+    expected = home if home is not None else pathlib.Path.home()
+    monkeypatch.setattr(_mod, "_EXPECTED_DEPLOY_HOME", expected)
+    return expected
 
 
 def _write_fresh_tick(tick_path: pathlib.Path, ts: str = "2026-07-12T06:00:00+00:00") -> None:
@@ -380,14 +405,74 @@ def test_postcheck_fails_when_cron_present_but_timer_not_enabled(monkeypatch):
 
 
 # ---------------------------------------------------------------------------
+# Step 0 — deploy-user preflight guard (post-merge Codex review, #723).
+# ---------------------------------------------------------------------------
+
+
+def test_step_assert_deploy_user_passes_when_home_matches(monkeypatch, tmp_path):
+    monkeypatch.setattr(_mod, "_EXPECTED_DEPLOY_HOME", tmp_path)
+    monkeypatch.setattr(_mod.Path, "home", classmethod(lambda cls: tmp_path))
+    ok, details = _mod._step_assert_deploy_user()
+    assert ok is True
+    assert details["actual_home"] == str(tmp_path)
+
+
+def test_step_assert_deploy_user_fails_when_home_mismatches(monkeypatch, tmp_path):
+    other = tmp_path / "not-claude"
+    monkeypatch.setattr(_mod, "_EXPECTED_DEPLOY_HOME", tmp_path / "claude-home")
+    monkeypatch.setattr(_mod.Path, "home", classmethod(lambda cls: other))
+    ok, details = _mod._step_assert_deploy_user()
+    assert ok is False
+    assert "unexpected deploy user" in details["error"]
+
+
+def test_apply_aborts_before_any_mutation_when_deploy_user_wrong(monkeypatch, tmp_path):
+    """--apply must halt at the Step-0 preflight, before install/self-test/
+    cutover, when running under the wrong account."""
+    other = tmp_path / "not-claude"
+    other.mkdir()
+    monkeypatch.setattr(_mod, "_EXPECTED_DEPLOY_HOME", tmp_path / "claude-home")
+    monkeypatch.setattr(_mod.Path, "home", classmethod(lambda cls: other))
+
+    run = _RunRecorder()
+    monkeypatch.setattr(_mod, "_run", run)
+    emitted = {"called": False}
+
+    def _capture_emit(*a, **k):
+        emitted["called"] = True
+
+    monkeypatch.setattr(_mod, "emit", _capture_emit)
+
+    assert _mod.main(["--apply"]) == 1
+    assert run.calls == [], "no subprocess step may run when the deploy-user guard fails"
+    assert emitted["called"] is True
+
+
+def test_dry_run_not_blocked_by_deploy_user_guard(monkeypatch, tmp_path):
+    """--dry-run must NOT be blocked by the deploy-user guard — it is only
+    enforced for --apply (per the FIX-4 allowance for local testing)."""
+    other = tmp_path / "not-claude"
+    monkeypatch.setattr(_mod, "_EXPECTED_DEPLOY_HOME", tmp_path / "claude-home")
+    monkeypatch.setattr(_mod.Path, "home", classmethod(lambda cls: other))
+
+    run = _RunRecorder()
+    monkeypatch.setattr(_mod, "_run", run)
+    monkeypatch.setattr(_mod, "emit", lambda *a, **k: None)
+
+    assert _mod.main(["--dry-run"]) == 0
+    assert run.calls == []
+
+
+# ---------------------------------------------------------------------------
 # Full --apply order + halt-on-failure behavior.
 # ---------------------------------------------------------------------------
 
 
 def test_apply_happy_path_order_and_success(monkeypatch, tmp_path):
-    """install -> daemon-reload -> self-test -> retire cron -> enable timer ->
-    postcheck, in that order, and enable is the LAST systemctl mutation before
-    the postcheck's read-only checks."""
+    """install -> daemon-reload -> self-test -> enable timer -> retire cron ->
+    postcheck, in that order (post-merge Codex review #723: enable-before-
+    retire so a failure never drops to zero active producers)."""
+    _patch_deploy_user_ok(monkeypatch)
     systemd_dir = _install_fake_units(monkeypatch, tmp_path)
     tick_path = _patch_tick(monkeypatch, tmp_path)
 
@@ -430,18 +515,20 @@ def test_apply_happy_path_order_and_success(monkeypatch, tmp_path):
     joined = [" ".join(c) for c in run.calls]
     reload_idx = next(i for i, c in enumerate(joined) if "daemon-reload" in c)
     selftest_idx = next(i for i, c in enumerate(joined) if "weekly_report_driver" in c)
-    rm_idx = next(i for i, c in enumerate(joined) if "cron rm" in c)
     enable_idx = next(
         i for i, c in enumerate(joined) if "enable" in c and "felix-habits-weekly.timer" in c
     )
-    assert reload_idx < selftest_idx < rm_idx < enable_idx
+    rm_idx = next(i for i, c in enumerate(joined) if "cron rm" in c)
+    assert reload_idx < selftest_idx < enable_idx < rm_idx
 
     for name in _mod._UNIT_NAMES:
         assert (systemd_dir / name).exists()
 
 
-def test_apply_halts_before_cron_removal_when_self_test_fails(monkeypatch, tmp_path):
-    """A failing self-test must abort BEFORE the legacy cron is touched (C2)."""
+def test_apply_halts_before_cutover_when_self_test_fails(monkeypatch, tmp_path):
+    """A failing self-test must abort BEFORE either producer is touched (C2):
+    no timer enable, no legacy cron removal."""
+    _patch_deploy_user_ok(monkeypatch)
     _install_fake_units(monkeypatch, tmp_path)
     _patch_tick(monkeypatch, tmp_path)
 
@@ -464,11 +551,78 @@ def test_apply_halts_before_cron_removal_when_self_test_fails(monkeypatch, tmp_p
     assert _mod.main(["--apply"]) == 1
     joined = [" ".join(c) for c in run.calls]
     assert not any("enable" in c and "felix-habits-weekly.timer" in c for c in joined)
+    assert not any("cron" in c and "rm" in c for c in joined)
+
+
+def test_apply_enable_failure_leaves_legacy_cron_untouched(monkeypatch, tmp_path):
+    """Enable-timer failure (post-self-test) must NOT touch the legacy cron —
+    the cutover fails toward ONE producer (the still-active legacy cron),
+    never zero (post-merge Codex review, #723)."""
+    _patch_deploy_user_ok(monkeypatch)
+    _install_fake_units(monkeypatch, tmp_path)
+    tick_path = _patch_tick(monkeypatch, tmp_path)
+
+    def _list():
+        raise AssertionError(
+            "openclaw_cron_list (cron resolution/removal) must not be called "
+            "when the timer enable step fails"
+        )
+
+    monkeypatch.setattr(_mod.cron_lib, "openclaw_cron_list", _list)
+
+    def _run(argv, cwd=None):
+        joined = " ".join(argv)
+        if "weekly_report_driver" in joined:
+            _write_fresh_tick(tick_path)
+            return (0, "self-test OK\n", "")
+        if "enable" in joined and "felix-habits-weekly.timer" in joined:
+            return (1, "", "unit not found")
+        return (0, "", "")
+
+    monkeypatch.setattr(_mod, "_run", _run)
+    monkeypatch.setattr(_mod, "emit", lambda *a, **k: None)
+
+    assert _mod.main(["--apply"]) == 1
+
+
+def test_apply_retire_failure_after_enable_leaves_both_producers_active(monkeypatch, tmp_path):
+    """A retire failure AFTER a successful enable is a recoverable duplicate
+    (both producers active), not a silent-miss outage — the deploy still
+    fails (so the operator intervenes) but the failure mode is a double,
+    not a zero (post-merge Codex review, #723)."""
+    _patch_deploy_user_ok(monkeypatch)
+    _install_fake_units(monkeypatch, tmp_path)
+    tick_path = _patch_tick(monkeypatch, tmp_path)
+
+    monkeypatch.setattr(
+        _mod.cron_lib,
+        "openclaw_cron_list",
+        _fake_cron_list([{"name": "habits-weekly-report", "id": "abc-123"}]),
+    )
+
+    def _run(argv, cwd=None):
+        joined = " ".join(argv)
+        if "weekly_report_driver" in joined:
+            _write_fresh_tick(tick_path)
+            return (0, "self-test OK\n", "")
+        if "list-timers" in joined:
+            return (0, "felix-habits-weekly.timer  next elapse\n", "")
+        if "enable" in joined and "felix-habits-weekly.timer" in joined:
+            return (0, "", "")
+        if "cron" in joined and "rm" in joined:
+            return (1, "", "permission denied")
+        return (0, "", "")
+
+    monkeypatch.setattr(_mod, "_run", _run)
+    monkeypatch.setattr(_mod, "emit", lambda *a, **k: None)
+
+    assert _mod.main(["--apply"]) == 1
 
 
 def test_apply_fails_when_postcheck_detects_double_producer(monkeypatch, tmp_path):
     """Even if the cutover steps individually 'succeed', the final postcheck
     must still catch a double-producer state and fail the deploy."""
+    _patch_deploy_user_ok(monkeypatch)
     _install_fake_units(monkeypatch, tmp_path)
     tick_path = _patch_tick(monkeypatch, tmp_path)
 

@@ -69,6 +69,21 @@ class TestNormalizeDueDate:
     def test_sentinel_rejected(self) -> None:
         assert ec.normalize_due_date("0001-01-01T00:00:00Z") is None
 
+    def test_sentinel_offset_variant_rejected_no_crash(self) -> None:
+        """Regression guard (post-merge Codex review, #723): a sentinel
+        spelled with an explicit +00:00 offset (rather than Z) must be
+        excluded, not raise OverflowError from .astimezone() on a year-1
+        datetime."""
+        assert ec.normalize_due_date("0001-01-01T00:00:00+00:00") is None
+
+    def test_sentinel_with_microseconds_variant_rejected_no_crash(self) -> None:
+        assert ec.normalize_due_date("0001-01-01T00:00:00.000000Z") is None
+
+    def test_sentinel_naive_variant_rejected_no_crash(self) -> None:
+        """A naive (no tzinfo) year-1 timestamp is already excluded by the
+        naive-datetime guard, but confirm it doesn't crash either."""
+        assert ec.normalize_due_date("0001-01-01T00:00:00") is None
+
     def test_malformed_rejected(self) -> None:
         assert ec.normalize_due_date("not-a-date") is None
         assert ec.normalize_due_date("2026-13-40T00:00:00Z") is None

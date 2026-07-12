@@ -39,12 +39,16 @@ Behavior (contract steps)
 Modes
 -----
 - ``--self-test``: runs the helper + composes the message, calls the send
-  path with ``--dry-run`` (no real send), and **writes** a fresh tick. This
-  is the WP04 deploy gate — it exercises the full path without messaging
-  Kent.
+  path with ``--dry-run`` (no real send), and **writes** a fresh tick to a
+  SEPARATE self-test-scoped path (:data:`SELF_TEST_TICK_PATH`) — never to
+  the production ``last-tick.json``. This is the WP04 deploy gate — it
+  exercises the full path without messaging Kent, and without the
+  freshness canary mistaking a dry-run for a delivered report (post-merge
+  Codex review, #723).
 - ``--dry-run``: local preview only. Prints the composed message; issues
   no send and writes **no** state.
-- default (no flag): the real scheduled run — real send + tick.
+- default (no flag): the real scheduled run — real send + the production
+  ``last-tick.json``.
 
 All effects (running the helper, sending the message, the clock, and the
 tick path) are injectable so the test suite
@@ -53,7 +57,7 @@ tick path) are injectable so the test suite
 Public surface
 --------------
 Constants: ``ATTRIBUTION_LINE``, ``DEFAULT_TARGET``, ``DEFAULT_TICK_PATH``,
-    ``OPENCLAW_BIN``
+    ``SELF_TEST_TICK_PATH``, ``OPENCLAW_BIN``
 Dataclasses: ``HelperResult``, ``SendResult``
 Functions: ``run_report_helper``, ``send_message``, ``compose_message``,
     ``confirm_delivery``, ``write_tick``, ``run``, ``main``
@@ -85,8 +89,18 @@ ATTRIBUTION_LINE = "Sent by felix-habits-weekly-driver"
 DEFAULT_TARGET = "+16179300916"
 
 #: Freshness-tick home (mirrors the canary/#720 ``last-tick.json`` pattern).
+#: Written ONLY by real (``mode="run"``) scheduled runs — the freshness
+#: canary reads this path's ``status`` to decide the producer is healthy,
+#: so a dry-run must never touch it (post-merge Codex review, #723).
 DEFAULT_TICK_PATH = Path(
     "/data/services/felix-habits-weekly/state/last-tick.json"
+)
+
+#: Self-test-scoped tick path — written by ``--self-test`` instead of
+#: :data:`DEFAULT_TICK_PATH` so a dry-run self-test can never be mistaken
+#: by the freshness canary for a real, delivered weekly report.
+SELF_TEST_TICK_PATH = DEFAULT_TICK_PATH.with_name(
+    "self-test-" + DEFAULT_TICK_PATH.name
 )
 
 #: Absolute path — systemd units have no ``PATH`` (recurring deploy gotcha;
@@ -353,14 +367,24 @@ def run(
     run_helper: Optional[RunHelper] = None,
     send: Optional[SendMessage] = None,
     now: NowFn = _default_now,
-    tick_path: Path = DEFAULT_TICK_PATH,
+    tick_path: Optional[Path] = None,
     attribution: str = ATTRIBUTION_LINE,
 ) -> int:
     """Execute one driver pass. Returns the process exit code.
 
-    ``mode`` is one of ``"run"`` (default: real send + tick),
-    ``"self-test"`` (dry-run send + tick written — the deploy gate), or
-    ``"dry-run"`` (preview only: no send, no state written).
+    ``mode`` is one of ``"run"`` (default: real send + production tick),
+    ``"self-test"`` (dry-run send + a tick written to the SEPARATE
+    :data:`SELF_TEST_TICK_PATH` — the deploy gate), or ``"dry-run"``
+    (preview only: no send, no state written).
+
+    ``tick_path`` defaults to :data:`DEFAULT_TICK_PATH` for ``mode="run"``
+    and to :data:`SELF_TEST_TICK_PATH` for ``mode="self-test"`` — resolved
+    at call time so a caller that does not pass ``tick_path`` explicitly
+    never has a self-test write to the production freshness tick (the
+    freshness canary reads ``status`` there, not ``delivery_confirmed``, so
+    a dry-run tick in that path would report the producer falsely healthy;
+    post-merge Codex review, #723). ``tick_path`` remains overridable so
+    tests can inject an isolated path for either mode.
 
     ``run_helper``/``send`` default to the module-level
     :func:`run_report_helper` / :func:`send_message` production effects,
@@ -374,6 +398,9 @@ def run(
 
     if mode not in ("run", "self-test", "dry-run"):
         raise ValueError(f"unknown mode: {mode!r}")
+
+    if tick_path is None:
+        tick_path = SELF_TEST_TICK_PATH if mode == "self-test" else DEFAULT_TICK_PATH
 
     helper_result = run_helper()
     if not helper_result.ok:
@@ -492,8 +519,13 @@ def _parse_args(argv: Optional[list[str]]) -> argparse.Namespace:
     parser.add_argument(
         "--tick-path",
         type=Path,
-        default=DEFAULT_TICK_PATH,
-        help="Override the last-tick.json path (for tests/manual runs).",
+        default=None,
+        help=(
+            "Override the tick path (for tests/manual runs). Defaults to "
+            "DEFAULT_TICK_PATH for a real run and to SELF_TEST_TICK_PATH "
+            "for --self-test — never pass this to point --self-test at the "
+            "production last-tick.json."
+        ),
     )
     return parser.parse_args(argv)
 
