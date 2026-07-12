@@ -215,3 +215,4 @@ post-merge Codex review — not in this WP.
 - 2026-07-12T14:02:35Z – claude – shell_pid=14061 – Assigned agent via action command
 - 2026-07-12T14:10:03Z – claude – shell_pid=14061 – Ready for review
 - 2026-07-12T14:10:29Z – claude – shell_pid=16518 – Started review via action command
+- 2026-07-12T14:15:39Z – user – shell_pid=16518 – reviewer-renata APPROVE; nit folded (delete-inconsistent action for INV-8)
