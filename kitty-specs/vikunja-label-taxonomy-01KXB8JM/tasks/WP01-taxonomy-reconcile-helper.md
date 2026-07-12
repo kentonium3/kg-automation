@@ -30,7 +30,8 @@ subtasks:
 - T006
 - T007
 - T008
-agent: claude:opus:reviewer-renata:reviewer
+agent: "claude"
+shell_pid: "14061"
 history:
 - '2026-07-12: authored by /spec-kitty.tasks'
 agent_profile: python-pedro
@@ -208,3 +209,7 @@ post-merge Codex review — not in this WP.
 
 - **Reviewer**: verify create = `PUT /labels` (not POST); titles matched case-sensitively (`Duplicate` stays capitalized); colors normalized on compare; delete gated on BOTH `--delete-legacy` AND `--backup-confirmed`; duplicate-title and color-mismatch both force non-zero exit; the mock mirrors the real `VikunjaClient` surface (leading-slash paths, `.put` for create). Confirm the fidelity test would actually fail if a title/color drifted (not a tautology). Confirm zero real network calls.
 - **Gotcha**: `VikunjaClient` paths need a leading slash; `per_page` caps at 50; `hex_color` returns without `#`.
+
+## Activity Log
+
+- 2026-07-12T14:02:35Z – claude – shell_pid=14061 – Assigned agent via action command
