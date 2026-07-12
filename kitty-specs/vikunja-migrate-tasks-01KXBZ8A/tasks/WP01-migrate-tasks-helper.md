@@ -33,8 +33,8 @@ subtasks:
 - T008
 - T009
 agent: "claude"
-shell_pid: "61789"
-shell_pid_created_at: "1783890876.786286"
+shell_pid: "73093"
+shell_pid_created_at: "1783891900.577683"
 history:
 - created by /spec-kitty.tasks 2026-07-12
 agent_profile: python-pedro
@@ -257,3 +257,5 @@ feature branch.
 ## Activity Log
 
 - 2026-07-12T21:14:47Z – claude – shell_pid=61789 – Assigned agent via action command
+- 2026-07-12T21:31:19Z – claude – shell_pid=61789 – WP01 implemented: helper+manifest+tests+scope cleanup+docs; 124 targeted tests + full make test green (5148/0); 94% branch cov.
+- 2026-07-12T21:31:48Z – claude – shell_pid=73093 – Started review via action command

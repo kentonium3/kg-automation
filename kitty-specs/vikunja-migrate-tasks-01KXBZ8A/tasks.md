@@ -35,15 +35,15 @@ escalation/scope tests pass — with no live Vikunja calls.
 
 **Included subtasks**:
 
-- [ ] T001 Committed manifest + loader/validator (WP01)
-- [ ] T002 `list_all_tasks` paginated done-inclusive enumeration (WP01)
-- [ ] T003 `preflight` identity/target/complex-state validation (WP01)
-- [ ] T004 `build_plan` live-vs-manifest diff (WP01)
-- [ ] T005 `move_task` allowlisted RMW + readback + `apply_habit_label` (WP01)
-- [ ] T006 Deletions + `reconcile` orchestration + summary + CLI (WP01)
-- [ ] T007 `vikunja_scope.py` drop Goals(11) + test updates (WP01)
-- [ ] T008 Helper unit tests (WP01)
-- [ ] T009 Design-doc update (WP01)
+- [x] T001 Committed manifest + loader/validator (WP01)
+- [x] T002 `list_all_tasks` paginated done-inclusive enumeration (WP01)
+- [x] T003 `preflight` identity/target/complex-state validation (WP01)
+- [x] T004 `build_plan` live-vs-manifest diff (WP01)
+- [x] T005 `move_task` allowlisted RMW + readback + `apply_habit_label` (WP01)
+- [x] T006 Deletions + `reconcile` orchestration + summary + CLI (WP01)
+- [x] T007 `vikunja_scope.py` drop Goals(11) + test updates (WP01)
+- [x] T008 Helper unit tests (WP01)
+- [x] T009 Design-doc update (WP01)
 
 **Dependencies**: none.
 
