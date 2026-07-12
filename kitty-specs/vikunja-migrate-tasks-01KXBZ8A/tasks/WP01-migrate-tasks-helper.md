@@ -32,7 +32,9 @@ subtasks:
 - T007
 - T008
 - T009
-agent: claude
+agent: "claude"
+shell_pid: "61789"
+shell_pid_created_at: "1783890876.786286"
 history:
 - created by /spec-kitty.tasks 2026-07-12
 agent_profile: python-pedro
@@ -251,3 +253,7 @@ feature branch.
 - **Identity** — reviewer: confirm felix-bot path refusal + preflight owner==kent.
 - **Idempotency** — reviewer: confirm a second `build_plan` over post-state yields an empty plan.
 - **Backup gate** — reviewer: confirm deletes require non-empty `--backup-ref`, echoed in the summary; the helper does not fake a Restic check.
+
+## Activity Log
+
+- 2026-07-12T21:14:47Z – claude – shell_pid=61789 – Assigned agent via action command
