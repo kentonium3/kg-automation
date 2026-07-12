@@ -13,6 +13,7 @@
   "accepted_at": "2026-07-12T14:17:26.019119+00:00",
   "accepted_by": "kentgale",
   "accepted_from_commit": "1c914fe22f0b4251e279959df7d9173d2747a1bf",
+  "baseline_merge_commit": "f34d7e4119fc8970507fd4d91d2b703bf7cfbc17",
   "created_at": "2026-07-12T13:34:27.612005+00:00",
   "flattened": true,
   "friendly_name": "Vikunja Label Taxonomy",
