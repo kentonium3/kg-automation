@@ -60,10 +60,10 @@ WP02 ∥ WP03 (parallel; both depend only on WP01)
 **Dependencies**: WP01.
 **Prompt**: `tasks/WP02-escalation-enumerate-helper.md` (~350 lines)
 
-- [ ] T005 Create `scripts/escalation/enumerate_candidates.py` (WP02)
-- [ ] T006 Tests `tests/escalation/test_enumerate_candidates.py` (WP02)
-- [ ] T007 Rewrite `scripts/openclaw/agents/felix-admin-escalation/AGENTS.md` Step 2 (WP02)
-- [ ] T008 Update `scripts/openclaw/skills/escalation/SKILL.md` §1 (WP02)
+- [x] T005 Create `scripts/escalation/enumerate_candidates.py` (WP02)
+- [x] T006 Tests `tests/escalation/test_enumerate_candidates.py` (WP02)
+- [x] T007 Rewrite `scripts/openclaw/agents/felix-admin-escalation/AGENTS.md` Step 2 (WP02)
+- [x] T008 Update `scripts/openclaw/skills/escalation/SKILL.md` §1 (WP02)
 
 ## WP03 — Weekly-report deterministic driver + systemd units
 
