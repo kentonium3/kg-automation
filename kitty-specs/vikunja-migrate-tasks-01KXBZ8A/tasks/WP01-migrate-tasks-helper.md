@@ -259,3 +259,4 @@ feature branch.
 - 2026-07-12T21:14:47Z – claude – shell_pid=61789 – Assigned agent via action command
 - 2026-07-12T21:31:19Z – claude – shell_pid=61789 – WP01 implemented: helper+manifest+tests+scope cleanup+docs; 124 targeted tests + full make test green (5148/0); 94% branch cov.
 - 2026-07-12T21:31:48Z – claude – shell_pid=73093 – Started review via action command
+- 2026-07-12T21:38:41Z – user – shell_pid=73093 – reviewer-renata APPROVE; issue-matrix filled+committed.
