@@ -5,6 +5,7 @@ dependencies:
 - WP02
 - WP03
 requirement_refs:
+- FR-007
 - FR-009
 - FR-010
 tracker_refs: []
