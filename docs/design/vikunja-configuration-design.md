@@ -110,12 +110,12 @@ The key insight: discomfort is not a side effect of growth — it is the
 mechanism. The avoidance urge on an Edge task is the aMCC being challenged.
 Every push-through is literal neural remodeling.
 
-| Label | Name | Nervous System State |
-|---|---|---|
-| `f:1-flow` | Flow | No internal resistance. Confident execution regardless of effort level. Basal ganglia autopilot or full engagement — neither generates a threat response. |
-| `f:2-growth` | Growth | Moderate activation. Prefrontal cortex engaged. Discomfort is present and functional — the signal that learning is occurring. |
-| `f:3-edge` | Edge | aMCC activated. Visceral avoidance urge. Maximum neuroplasticity territory. The exact zone where tenacity is built. Discomfort as power, not pain. |
-| `f:4-overload` | Overload | Amygdala hijack. Prefrontal cortex offline. Cognitive shutdown. Not an executable task — requires decomposition before it can be scheduled. |
+| Label | Name | Color (hex) | Nervous System State |
+|---|---|---|---|
+| `f:1-flow` | Flow | `4caf50` | No internal resistance. Confident execution regardless of effort level. Basal ganglia autopilot or full engagement — neither generates a threat response. |
+| `f:2-growth` | Growth | `fbc02d` | Moderate activation. Prefrontal cortex engaged. Discomfort is present and functional — the signal that learning is occurring. |
+| `f:3-edge` | Edge | `fb8c00` | aMCC activated. Visceral avoidance urge. Maximum neuroplasticity territory. The exact zone where tenacity is built. Discomfort as power, not pain. |
+| `f:4-overload` | Overload | `e53935` | Amygdala hijack. Prefrontal cortex offline. Cognitive shutdown. Not an executable task — requires decomposition before it can be scheduled. |
 
 **Critical distinction:** Friction is orthogonal to effort and importance. A
 high-effort, high-value task can be `f:1-flow` if it feels natural to
@@ -135,12 +135,12 @@ briefing.
 The Eisenhower Matrix classifies tasks on two axes: importance and urgency.
 It forces the question of whether a task deserves attention and why.
 
-| Label | Quadrant | Meaning |
-|---|---|---|
-| `q:do` | Important + Urgent | Do first. Uses native priority field to order within this quadrant. |
-| `q:schedule` | Important + Not Urgent | Schedule deliberately. Highest strategic value — most likely to be deferred. The quadrant Felix should surface most aggressively. |
-| `q:delegate` | Not Important + Urgent | Handle but don't personally own. |
-| `q:eliminate` | Not Important + Not Urgent | Remove from the list. Exists briefly to make the elimination decision explicit. |
+| Label | Quadrant | Color (hex) | Meaning |
+|---|---|---|---|
+| `q:do` | Important + Urgent | `1565c0` | Do first. Uses native priority field to order within this quadrant. |
+| `q:schedule` | Important + Not Urgent | `1e88e5` | Schedule deliberately. Highest strategic value — most likely to be deferred. The quadrant Felix should surface most aggressively. |
+| `q:delegate` | Not Important + Urgent | `42a5f5` | Handle but don't personally own. |
+| `q:eliminate` | Not Important + Not Urgent | `90caf9` | Remove from the list. Exists briefly to make the elimination decision explicit. |
 
 **Relationship to native Priority field:** Eisenhower captures strategic
 classification. Native priority (0–5 integer, displayed as Not set / Low /
@@ -157,9 +157,9 @@ the primary focus signal for Felix.
 
 Type describes how a task behaves, not what domain it belongs to.
 
-| Label | Name | Meaning |
-|---|---|---|
-| `t:habit` | Habit | A recurring task tracked by Felix. Completion is reported via WhatsApp daily. Felix maintains a persistent completion record. Frequency lives on the task via repeat interval / RRULE, not in a project or bucket. |
+| Label | Name | Color (hex) | Meaning |
+|---|---|---|---|
+| `t:habit` | Habit | `8e24aa` | A recurring task tracked by Felix. Completion is reported via WhatsApp daily. Felix maintains a persistent completion record. Frequency lives on the task via repeat interval / RRULE, not in a project or bucket. |
 
 Additional type labels will be defined as Felix functionality requires them.
 
@@ -170,11 +170,11 @@ task should be scheduled as-is, calendar-blocked, or decomposed into
 sub-tasks. Custom fields are not filterable in Vikunja's current query
 language, so LOE is implemented as labels.
 
-| Label | Name | Meaning | Felix Implication |
-|---|---|---|---|
-| `loe:s` | Small | Single focused session, ~1 hour or less | Schedule as-is |
-| `loe:m` | Medium | Multiple sessions or roughly half a day | Consider calendar blocking |
-| `loe:l` | Large | Multi-day effort | Prompt decomposition into sub-tasks |
+| Label | Name | Color (hex) | Meaning | Felix Implication |
+|---|---|---|---|---|
+| `loe:s` | Small | `bdbdbd` | Single focused session, ~1 hour or less | Schedule as-is |
+| `loe:m` | Medium | `757575` | Multiple sessions or roughly half a day | Consider calendar blocking |
+| `loe:l` | Large | `424242` | Multi-day effort | Prompt decomposition into sub-tasks |
 
 `loe:l` is a soft signal analogous to `f:4-overload`: Felix should flag
 large tasks and confirm they don't need breaking down before scheduling.

@@ -1,0 +1,31 @@
+{
+  "version": 1,
+  "mission_slug": "vikunja-label-taxonomy-01KXB8JM",
+  "mission_id": "01KXB8JM8S3ZJ4V20PEJSECS4N",
+  "mission_branch": "kitty/mission-vikunja-label-taxonomy-01KXB8JM",
+  "target_branch": "feat/vikunja-label-taxonomy",
+  "lanes": [
+    {
+      "lane_id": "lane-a",
+      "wp_ids": [
+        "WP01"
+      ],
+      "write_scope": [
+        "docs/design/vikunja-configuration-design.md",
+        "scripts/vikunja/create_taxonomy_labels.py",
+        "tests/vikunja/test_create_taxonomy_labels.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "artifact-rendering",
+        "legacy-cleanup",
+        "tests"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    }
+  ],
+  "computed_at": "2026-07-12T13:55:58.770918+00:00",
+  "computed_from": "dependency_graph+ownership",
+  "planning_artifact_wps": []
+}
