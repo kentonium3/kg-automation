@@ -62,6 +62,7 @@ relies on exactly this probe.
 """
 from __future__ import annotations
 
+import json
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime, timedelta
@@ -131,6 +132,20 @@ _FRESHNESS_METHODS: frozenset[str] = frozenset(
     {"tick-signal-file", "signal-file", "state-file"}
 )
 _LOG_SCAN_METHODS: frozenset[str] = frozenset({"log-tail", "journal"})
+
+# OpenClaw cron-state probe (#722). Reads `openclaw cron list --json` (the
+# ``endpoint`` command) and evaluates the service's mapped crons (``crons``) for
+# presence+enabled, last-run status, and schedule-aware freshness. Named
+# distinctly from the ``openclaw-cron`` service *type* to keep the type and
+# method vocabularies separate.
+_OPENCLAW_CRON_METHOD = "openclaw-cron-state"
+
+# Default grace past ``nextRunAtMs`` before a cron is judged overdue/stale. Must
+# absorb the canary tick granularity (~15 min), a run's own duration (agent
+# timeouts run to ~240–600s), and clock skew — so a cron that is merely mid-run
+# at its scheduled instant is not falsely flagged. Overridable per health_check
+# via ``grace_seconds``.
+_DEFAULT_CRON_GRACE_SECONDS: float = 900.0
 
 
 @dataclass(frozen=True)
@@ -473,6 +488,137 @@ def _probe_log_scan(
     )
 
 
+def _evaluate_openclaw_crons(
+    jobs: list[Any],
+    crons: list[str],
+    now: datetime,
+    grace_seconds: float,
+) -> ProbeResult:
+    """Aggregate the health of a service's mapped OpenClaw crons (pure, #722).
+
+    ``jobs`` is the ``jobs`` array from ``openclaw cron list --json``; ``crons``
+    is the list of cron names this service owns. Precedence — **failed > stale >
+    healthy** — worst cron wins:
+
+    * a mapped cron **missing** from ``jobs`` or **disabled** → ``failed`` (real
+      config drift: the cron this service depends on is gone).
+    * a mapped cron whose most-recent run **errored**
+      (``lastRunStatus``/``lastStatus`` in :data:`_STATUS_FAILURE_VALUES`) →
+      ``failed`` (single-error trigger; evidence carries ``lastError``).
+    * a mapped cron the scheduler **stopped firing** — ``now`` is past its
+      ``nextRunAtMs`` by more than ``grace_seconds`` → ``stale``. Schedule-aware:
+      a healthy cron always has ``now < nextRunAtMs``, and ``nextRunAtMs``
+      advances after every run (incl. errored ones), so this needs no per-cron
+      ``max_age`` and copes with heterogeneous cadences (a daily + a weekly cron
+      under one service) automatically. A cron that has never run but is not yet
+      due (``nextRunAtMs`` in the future) is healthy — nothing is wrong yet.
+
+    Never raises; the caller's dispatcher wrapper is the fail-safe boundary.
+    """
+    by_name = {
+        job.get("name"): job for job in jobs if isinstance(job, dict)
+    }
+    now_ms = now.timestamp() * 1000.0
+    grace_ms = grace_seconds * 1000.0
+
+    failures: list[str] = []
+    stale: list[str] = []
+
+    for name in crons:
+        job = by_name.get(name)
+        if job is None:
+            failures.append(f"{name}: not present in cron list")
+            continue
+        if not job.get("enabled", False):
+            failures.append(f"{name}: disabled")
+            continue
+
+        state = job.get("state") if isinstance(job.get("state"), dict) else {}
+        status = state.get("lastRunStatus") or state.get("lastStatus")
+        if isinstance(status, str) and status.lower() in _STATUS_FAILURE_VALUES:
+            last_err = (
+                state.get("lastError")
+                or state.get("lastDiagnosticSummary")
+                or ""
+            )
+            failures.append(
+                f"{name}: lastRunStatus={status} ({str(last_err).strip()[:80]})"
+            )
+            continue
+
+        next_run = state.get("nextRunAtMs")
+        if isinstance(next_run, (int, float)) and now_ms > next_run + grace_ms:
+            overdue_s = (now_ms - next_run) / 1000.0
+            stale.append(f"{name}: overdue {overdue_s:.0f}s past nextRunAtMs")
+            continue
+
+    if failures:
+        return ProbeResult(
+            ok=False, stale=False, evaluable=True,
+            evidence="cron failure(s): " + "; ".join(failures),
+        )
+    if stale:
+        return ProbeResult(
+            ok=True, stale=True, evaluable=True,
+            evidence="cron(s) overdue: " + "; ".join(stale),
+        )
+    return ProbeResult(
+        ok=True, stale=False, evaluable=True,
+        evidence=(
+            f"{len(crons)} cron(s) enabled, ok, and on schedule: "
+            f"{', '.join(crons)}"
+        ),
+    )
+
+
+def _probe_openclaw_cron(
+    health_check: dict[str, Any],
+    now: datetime,
+    *,
+    http_get: HttpGet,
+    run_cmd: RunCmd,
+    read_state: ReadState,
+) -> ProbeResult:
+    """OpenClaw cron-state probe (#722).
+
+    Runs the ``endpoint`` command (``/usr/bin/openclaw cron list --json`` — an
+    absolute path because the canary's systemd unit has no ``PATH``), parses its
+    JSON, and delegates to :func:`_evaluate_openclaw_crons` for the service's
+    mapped ``crons``.
+
+    Fail-open (INV-D): a non-zero exit (gateway unreachable / CLI error) or
+    unparseable output returns ``evaluable=False`` → the caller maps it to
+    ``unknown``, never a false ``failed``. A missing ``endpoint``/``crons`` is a
+    config error surfaced the same honest way.
+    """
+    endpoint = health_check.get("endpoint")
+    if not endpoint:
+        return _unevaluable("openclaw-cron-state: no endpoint command configured")
+    crons = health_check.get("crons")
+    if not isinstance(crons, list) or not crons:
+        return _unevaluable("openclaw-cron-state: no crons configured")
+
+    grace = health_check.get("grace_seconds", _DEFAULT_CRON_GRACE_SECONDS)
+    timeout = health_check.get("timeout_seconds")
+    exit_code, stdout, stderr = run_cmd(endpoint, timeout=timeout)
+    if exit_code != 0:
+        return _unevaluable(
+            f"openclaw cron list exit {exit_code}: "
+            f"{(stderr or stdout).strip()[:120]}"
+        )
+
+    try:
+        payload = json.loads(stdout)
+    except (ValueError, TypeError) as exc:
+        return _unevaluable(f"openclaw cron list output not JSON: {exc}")
+
+    jobs = payload.get("jobs") if isinstance(payload, dict) else None
+    if not isinstance(jobs, list):
+        return _unevaluable("openclaw cron list JSON has no 'jobs' array")
+
+    return _evaluate_openclaw_crons(jobs, crons, now, grace)
+
+
 # method → handler map. Keys mirror WP02's HANDLED_METHODS (contracts §2).
 _DISPATCH: dict[
     str,
@@ -488,6 +634,7 @@ _DISPATCH: dict[
     "state-file": _probe_freshness,
     "log-tail": _probe_log_scan,
     "journal": _probe_log_scan,
+    _OPENCLAW_CRON_METHOD: _probe_openclaw_cron,
 }
 
 

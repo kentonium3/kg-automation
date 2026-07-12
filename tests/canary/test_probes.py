@@ -569,3 +569,192 @@ def test_run_probe_never_raises_on_effect_exception():
                        run_cmd=_boom, read_state=_boom)
     assert isinstance(result, ProbeResult)
     assert not result.evaluable and "RuntimeError" in result.evidence
+
+
+# --------------------------------------------------------------------------- #
+# openclaw-cron-state (#722) — schedule-aware cron health via
+# `openclaw cron list --json`. Every case drives the probe through the public
+# run_probe() with a fake run_cmd returning a canned cron-list JSON payload.
+# Timestamps are built relative to NOW so the schedule-aware freshness (now vs
+# nextRunAtMs + grace) is exercised deterministically.
+# --------------------------------------------------------------------------- #
+import json as _json
+
+NOW_MS = NOW.timestamp() * 1000.0
+_GRACE_MS = 900_000.0  # default grace_seconds=900
+
+
+def _cron_job(name, *, enabled=True, status="ok", last_run_ms=None,
+              next_run_ms=None, last_error=None):
+    """One entry shaped like a real `openclaw cron list --json` job."""
+    state = {}
+    if status is not None:
+        state["lastRunStatus"] = status
+    if last_run_ms is not None:
+        state["lastRunAtMs"] = last_run_ms
+    if next_run_ms is not None:
+        state["nextRunAtMs"] = next_run_ms
+    if last_error is not None:
+        state["lastError"] = last_error
+    return {"name": name, "enabled": enabled, "state": state}
+
+
+def _cron_list(*jobs):
+    """A run_cmd result tuple (exit 0) carrying the jobs as `{"jobs": [...]}`."""
+    return (0, _json.dumps({"jobs": list(jobs)}), "")
+
+
+def _cron_hc(crons, **overrides):
+    hc = {
+        "method": "openclaw-cron-state",
+        "endpoint": "/usr/bin/openclaw cron list --json",
+        "crons": crons,
+        "timeout_seconds": 30,
+        "grace_seconds": 900,
+    }
+    hc.update(overrides)
+    return hc
+
+
+def test_openclaw_cron_all_healthy():
+    # Two crons of different cadence, both ok + next fire in the future → healthy.
+    payload = _cron_list(
+        _cron_job("habits-morning-checkin", next_run_ms=NOW_MS + 3_600_000),
+        _cron_job("habits-weekly-report", next_run_ms=NOW_MS + 5 * 86_400_000),
+    )
+    result = run_probe(
+        _cron_hc(["habits-morning-checkin", "habits-weekly-report"]),
+        NOW, http_get=_boom, run_cmd=make_cmd(payload), read_state=_boom,
+    )
+    assert result.ok and not result.stale and result.evaluable
+    assert "on schedule" in result.evidence
+
+
+def test_openclaw_cron_errored_run_is_failed():
+    payload = _cron_list(
+        _cron_job("escalation-daily", status="error", next_run_ms=NOW_MS + 3_600_000,
+                  last_error="fetch projects/-4 -> python3 inline script failed"),
+    )
+    result = run_probe(
+        _cron_hc(["escalation-daily"]),
+        NOW, http_get=_boom, run_cmd=make_cmd(payload), read_state=_boom,
+    )
+    assert not result.ok and not result.stale and result.evaluable
+    assert "escalation-daily" in result.evidence
+    assert "lastRunStatus=error" in result.evidence
+    assert "python3 inline script failed" in result.evidence
+
+
+def test_openclaw_cron_overdue_is_stale():
+    # Scheduler stopped firing it: nextRunAtMs is in the past by > grace.
+    payload = _cron_list(
+        _cron_job("inbox-7am", status="ok", next_run_ms=NOW_MS - _GRACE_MS - 60_000),
+    )
+    result = run_probe(
+        _cron_hc(["inbox-7am"]),
+        NOW, http_get=_boom, run_cmd=make_cmd(payload), read_state=_boom,
+    )
+    assert result.ok and result.stale and result.evaluable
+    assert "inbox-7am" in result.evidence and "overdue" in result.evidence
+
+
+def test_openclaw_cron_within_grace_is_not_stale():
+    # Just past nextRunAtMs but inside the grace window (mid-run) → healthy.
+    payload = _cron_list(
+        _cron_job("inbox-7am", status="ok", next_run_ms=NOW_MS - (_GRACE_MS / 2)),
+    )
+    result = run_probe(
+        _cron_hc(["inbox-7am"]),
+        NOW, http_get=_boom, run_cmd=make_cmd(payload), read_state=_boom,
+    )
+    assert result.ok and not result.stale
+
+
+def test_openclaw_cron_missing_from_list_is_failed():
+    payload = _cron_list(_cron_job("inbox-7am", next_run_ms=NOW_MS + 3_600_000))
+    result = run_probe(
+        _cron_hc(["inbox-7am", "inbox-noon"]),
+        NOW, http_get=_boom, run_cmd=make_cmd(payload), read_state=_boom,
+    )
+    assert not result.ok and result.evaluable
+    assert "inbox-noon" in result.evidence and "not present" in result.evidence
+
+
+def test_openclaw_cron_disabled_is_failed():
+    payload = _cron_list(
+        _cron_job("inbox-7am", enabled=False, next_run_ms=NOW_MS + 3_600_000),
+    )
+    result = run_probe(
+        _cron_hc(["inbox-7am"]),
+        NOW, http_get=_boom, run_cmd=make_cmd(payload), read_state=_boom,
+    )
+    assert not result.ok and result.evaluable
+    assert "disabled" in result.evidence
+
+
+def test_openclaw_cron_never_run_but_not_due_is_healthy():
+    # No lastRunStatus yet, next fire in the future → nothing is wrong.
+    payload = _cron_list(_cron_job("inbox-7am", status=None, next_run_ms=NOW_MS + 3_600_000))
+    result = run_probe(
+        _cron_hc(["inbox-7am"]),
+        NOW, http_get=_boom, run_cmd=make_cmd(payload), read_state=_boom,
+    )
+    assert result.ok and not result.stale and result.evaluable
+
+
+def test_openclaw_cron_gateway_down_is_unevaluable():
+    # Non-zero exit (gateway unreachable) → fail-open unknown, never false-failed.
+    result = run_probe(
+        _cron_hc(["inbox-7am"]),
+        NOW, http_get=_boom,
+        run_cmd=make_cmd((1, "", "connect ECONNREFUSED 127.0.0.1")),
+        read_state=_boom,
+    )
+    assert not result.evaluable
+    assert "exit 1" in result.evidence
+
+
+def test_openclaw_cron_non_json_is_unevaluable():
+    result = run_probe(
+        _cron_hc(["inbox-7am"]),
+        NOW, http_get=_boom, run_cmd=make_cmd((0, "not json at all", "")),
+        read_state=_boom,
+    )
+    assert not result.evaluable
+
+
+def test_openclaw_cron_no_jobs_key_is_unevaluable():
+    result = run_probe(
+        _cron_hc(["inbox-7am"]),
+        NOW, http_get=_boom, run_cmd=make_cmd((0, _json.dumps({"foo": 1}), "")),
+        read_state=_boom,
+    )
+    assert not result.evaluable and "jobs" in result.evidence
+
+
+def test_openclaw_cron_no_crons_configured_is_unevaluable():
+    hc = {"method": "openclaw-cron-state",
+          "endpoint": "/usr/bin/openclaw cron list --json"}
+    result = run_probe(hc, NOW, http_get=_boom, run_cmd=_boom, read_state=_boom)
+    assert not result.evaluable and "no crons" in result.evidence
+
+
+def test_openclaw_cron_failed_precedence_over_stale():
+    # One errored + one overdue → failed wins (worst outcome).
+    payload = _cron_list(
+        _cron_job("a", status="error", next_run_ms=NOW_MS + 3_600_000, last_error="boom"),
+        _cron_job("b", status="ok", next_run_ms=NOW_MS - _GRACE_MS - 60_000),
+    )
+    result = run_probe(
+        _cron_hc(["a", "b"]),
+        NOW, http_get=_boom, run_cmd=make_cmd(payload), read_state=_boom,
+    )
+    assert not result.ok and not result.stale
+
+
+def test_dispatch_covers_every_handled_method():
+    # Guard against registry/probes drift: every method the registry says is
+    # handled must have a probe dispatcher, and vice versa.
+    from scripts.canary.probes import _DISPATCH
+    from scripts.canary.registry import HANDLED_METHODS
+    assert set(_DISPATCH) == set(HANDLED_METHODS)

@@ -780,8 +780,18 @@
         }
       ],
       "health_check": {
-        "method": "none",
-        "note": "Scheduled job \u2014 health inferred from agent activity logs"
+        "method": "openclaw-cron-state",
+        "endpoint": "/usr/bin/openclaw cron list --json",
+        "crons": [
+          "inbox-7am",
+          "inbox-noon",
+          "inbox-5pm",
+          "inbox-10pm"
+        ],
+        "timeout_seconds": 30,
+        "grace_seconds": 900,
+        "expected": "each listed OpenClaw cron enabled, lastRunStatus=ok, and fired by its nextRunAtMs (schedule-aware freshness)",
+        "note": "Probed via `openclaw cron list --json`: per-cron enabled + last-run status + schedule-aware freshness (nextRunAtMs). Replaces method:none (#722)."
       },
       "config_files": [
         {
@@ -833,8 +843,16 @@
         }
       ],
       "health_check": {
-        "method": "none",
-        "note": "Scheduled job \u2014 health inferred from agent activity logs"
+        "method": "openclaw-cron-state",
+        "endpoint": "/usr/bin/openclaw cron list --json",
+        "crons": [
+          "habits-morning-checkin",
+          "habits-weekly-report"
+        ],
+        "timeout_seconds": 30,
+        "grace_seconds": 900,
+        "expected": "each listed OpenClaw cron enabled, lastRunStatus=ok, and fired by its nextRunAtMs (schedule-aware freshness handles the daily check-in and weekly report cadences together)",
+        "note": "Probed via `openclaw cron list --json`: per-cron enabled + last-run status + schedule-aware freshness (nextRunAtMs). Replaces method:none (#722)."
       },
       "config_files": [
         {
@@ -1192,8 +1210,15 @@
         }
       ],
       "health_check": {
-        "method": "none",
-        "note": "Scheduled job \u2014 health inferred from agent activity logs"
+        "method": "openclaw-cron-state",
+        "endpoint": "/usr/bin/openclaw cron list --json",
+        "crons": [
+          "escalation-daily"
+        ],
+        "timeout_seconds": 30,
+        "grace_seconds": 900,
+        "expected": "the OpenClaw cron enabled, lastRunStatus=ok, and fired by its nextRunAtMs (schedule-aware freshness)",
+        "note": "Probed via `openclaw cron list --json`: per-cron enabled + last-run status + schedule-aware freshness (nextRunAtMs). Replaces method:none (#722)."
       },
       "config_files": [
         {

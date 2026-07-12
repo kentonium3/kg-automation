@@ -82,6 +82,11 @@ FRESHNESS_METHODS: frozenset[str] = frozenset(
 
 # Every method WP03 knows how to dispatch (contracts §2). ``none`` is
 # deliberately excluded: it means "no evaluable check" ⇒ coverage gap.
+#
+# ``openclaw-cron-state`` (#722): reads ``openclaw cron list --json`` and
+# evaluates a service's mapped crons (presence/enabled + last-run status +
+# schedule-aware freshness). Not a freshness-pointer method (no ``pointer_path``)
+# — it carries its own ``crons`` list and shells to the OpenClaw CLI.
 HANDLED_METHODS: frozenset[str] = frozenset(
     FRESHNESS_METHODS
     | {
@@ -92,6 +97,7 @@ HANDLED_METHODS: frozenset[str] = frozenset(
         "journal",
         "self-check-command",
         "self-test",
+        "openclaw-cron-state",
     }
 )
 
