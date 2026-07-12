@@ -89,7 +89,7 @@ package, service, or credential.
 - **Relevant requirements**: FR-001, FR-002, FR-003, FR-004, FR-005, FR-006, FR-008, FR-009, FR-012.
 - **Affected surfaces**: `scripts/vikunja/reconcile_projects.py`, `tests/vikunja/test_reconcile_projects.py`.
 - **Sequencing/depends-on**: none.
-- **Risks**: parent/child ordering (create `Clients` before its sub-projects; resolve parent id at runtime); match projects by `title` to avoid duplicates; handle JSON `null` for empty collections (#715 quirk).
+- **Risks**: parent/child ordering (create `Clients` before its sub-projects; resolve parent id at runtime); **owner-scoped match** (only active, correctly-parented, `owner==kent` projects — ignores felix-bot's `Inbox` id 14) with fail-loud abort on ambiguity; token read only from the explicit kent token file with create-response `owner==kent` assertion (no `/user` whoami — 401 for API tokens); paginate `GET /projects`; handle JSON `null` for empty collections (#715 quirk).
 
 ### IC-02 — Legacy saved-filter removal
 
@@ -97,7 +97,7 @@ package, service, or credential.
 - **Relevant requirements**: FR-007, FR-010 (do-no-harm), NFR-002, NFR-004, C-005, C-006.
 - **Affected surfaces**: same helper + tests.
 - **Sequencing/depends-on**: independent of IC-01 (can run in either order); shares the CLI entrypoint.
-- **Risks**: no `/filters` list endpoint on v0.24.6 → derive filter ids from negative-id pseudo-projects (`filter_id = -pseudo_id - 1`); never touch `Favorites` (`-1`, no backing filter id); refuse the pass without `--backup-confirmed`.
+- **Risks**: no `/filters` list endpoint on v0.24.6 → derive filter ids from negative-id pseudo-projects (`filter_id = -pseudo_id - 1`) with a `GET /filters/{id}` **title readback** before delete; never touch `Favorites` (`-1`, no backing filter id); refuse the pass unless both `--delete-legacy` and a non-blank `--backup-confirmed <ref>` are given (exit 2 otherwise); ids are environment-specific (don't assume `1..5`).
 
 ### IC-03 — Documentation reconciliation
 

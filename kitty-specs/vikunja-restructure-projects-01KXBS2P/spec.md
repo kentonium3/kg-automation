@@ -60,15 +60,27 @@ exit. It never reports success on a partial run.
 - **Empty label/project responses**: Vikunja returns JSON `null` (not `[]`)
   for empty collections (per the #715 finding). The helper must treat `null`
   as an empty list, not error.
-- **Saved-filter delete endpoint unknown**: `GET /api/v1/filters` returned
-  `Not Found` during the audit. The working delete path must be confirmed
-  against the live API before the delete path is exercised; if no API delete
-  is available on this Vikunja version, the helper documents a manual UI
-  fallback and skips the automated filter delete (the additive work still
-  proceeds).
-- **Per-user object scoping**: objects created by the felix-bot token are
-  invisible in Kent's UI (#715). All objects here must be created with the
-  kent-owned token so they appear in Kent's account.
+- **Saved-filter delete path**: `GET /api/v1/filters` returns `Not Found` on
+  v0.24.6 (no list endpoint), but `DELETE /api/v1/filters/{id}` works and
+  individual filters resolve via `GET /api/v1/filters/{id}` (confirmed in
+  research). The helper derives each target filter id from its negative-id
+  pseudo-project and reads back the title before deleting.
+- **Ambiguous target title**: if a target project title matches more than one
+  project, or matches an archived / wrong-parent project, the helper aborts
+  fail-loud rather than creating a duplicate or binding to the wrong project
+  (FR-014). In particular `Clients` must resolve to exactly one active
+  top-level project before its sub-projects are created.
+- **Pagination**: `GET /projects` caps `per_page` at 50; the helper paginates
+  until an empty batch so targets/filters on a second page are not missed.
+- **Per-user object scoping + shared-project trap**: the felix-bot token can
+  see Kent's shared projects **and** has its own `Inbox` (id 14, owner
+  `felix-bot`). If the helper ran under felix-bot it would see a duplicate
+  `Inbox` and create projects owned by felix-bot (invisible to Kent — the #715
+  failure). Mitigation: explicit kent token file + owner-scoped matching +
+  create-response owner assertion (FR-009). Matching only `owner==kent` projects
+  ignores felix-bot's `Inbox` (14).
+- **JSON null collections**: Vikunja returns `null` (not `[]`) for an empty
+  collection; the helper normalises `null → []` (the #715 bug).
 
 ## Requirements
 
@@ -82,12 +94,14 @@ exit. It never reports success on a partial run.
 | FR-004 | Create sub-project `spec-kitty` under `Clients` if absent. | Draft |
 | FR-005 | Create catch-all project `Personal` if absent. | Draft |
 | FR-006 | Verify `Inbox` exists; do not create a duplicate. | Draft |
-| FR-007 | Delete the legacy saved filters `Today`, `Upcoming`, `Overdue`, `Goals`, `Completed`; leave the native `Favorites` view untouched. | Draft |
+| FR-007 | Delete the legacy saved filters `Today`, `Upcoming`, `Overdue`, `Goals`, `Completed` by deriving each filter id from its negative-id pseudo-project and confirming (GET readback) the filter's title matches the intended target before issuing the DELETE; never delete pseudo-id `-1` (native `Favorites`). | Draft |
 | FR-008 | Reconciliation is idempotent: a second run with no intervening changes performs no create/delete operations. | Draft |
-| FR-009 | All created projects (and any filter operations) are performed with the kent-owned token so objects are owned by and visible to Kent. | Draft |
-| FR-010 | Do not delete or modify any task-bearing project; do not touch the `Habits` project (id 13) or its crons. | Draft |
+| FR-009 | Enforce kent ownership without a whoami endpoint (`GET /user` is 401 for API tokens): read the token only from an explicit `--token-file` defaulting to the kent secret (never fall back to the felix-bot default); match/act only on projects whose `owner.username == "kent"`; and assert each create response's `owner.username == "kent"`, aborting fail-loud otherwise — so objects are Kent-owned/visible and the felix-bot token cannot be used by mistake. | Draft |
+| FR-010 | No write operation (create/update/delete) targets any existing project — including `Habits` (id 13) — outside the additive create set; the reconcile plan is asserted to contain zero project-delete operations and zero mutations of project id 13. | Draft |
 | FR-011 | Update `docs/design/vikunja-configuration-design.md` so its Project Structure section reflects the final agreed structure (retained projects, corrected pseudo-view vs native-filter distinction). | Draft |
-| FR-012 | Emit a human-readable reconciliation summary (created / verified / deleted / skipped) on completion. | Draft |
+| FR-012 | Emit a human-readable reconciliation summary (created / verified / deleted / skipped) on completion; on mid-run failure the summary shows which operations completed vs were skipped. | Draft |
+| FR-013 | Provide explicit CLI modes with defined exit codes: create-only (default), `--delete-legacy` + `--backup-confirmed <ref>` (delete pass), `--dry-run` (no mutation), `--json`. Exit 2 when `--delete-legacy` is given without a non-blank backup ref; exit 1 on any API error/inconsistency; exit 0 on success or dry-run. | Draft |
+| FR-014 | Match target projects by exact title among **active, correctly-parented** projects; abort (fail-loud) if a target title is ambiguous (duplicate / archived / wrong-parent) rather than binding to the wrong project. | Draft |
 
 ### Non-Functional Requirements
 
@@ -97,6 +111,7 @@ exit. It never reports success on a partial run.
 | NFR-002 | Fail-loud: any API error aborts with a non-zero exit and a descriptive message; no partial run reports success. | Non-zero exit on any API error | Draft |
 | NFR-003 | Automated test coverage for the helper meets the repository gate. | ≥ 90% line coverage | Draft |
 | NFR-004 | Destructive operations (filter deletion) are gated behind an explicit backup-confirmation flag. | Delete refused without `--backup-confirmed` | Draft |
+| NFR-005 | On a mid-run API failure after one or more successful mutations, the summary reports completed vs skipped operations; a test simulates a failure after one successful mutation. | Completed/skipped shown; test present | Draft |
 
 ### Constraints
 
@@ -106,7 +121,7 @@ exit. It never reports success on a partial run.
 | C-002 | Use the `vikunja-api-kent` token (kent-owned, all-perms) for all operations — required for project/filter config and Kent-visible ownership (#715 two-token model). | Draft |
 | C-003 | The helper lives in `scripts/vikunja/` and is invoked in `python3 -m scripts.vikunja.<module>` form. | Draft |
 | C-004 | No project deletions in this mission — all project deletions and task migration are deferred to #717. | Draft |
-| C-005 | The saved-filter delete endpoint must be verified against the live Vikunja API before implementing the delete path; if unavailable, document a manual UI fallback and skip the automated delete. | Draft |
+| C-005 | The saved-filter delete path is confirmed on v0.24.6: `DELETE /api/v1/filters/{id}` (no `/filters` list endpoint — derive ids from negative-id pseudo-projects). If an individual delete fails, the mission is not complete until that filter is confirmed gone; a manual UI fallback is acceptable only with verified evidence, never a silent skip. | Draft |
 | C-006 | This is a Tier-2 (Application/State) change: confirm a recent Restic backup before the filter-delete pass. | Draft |
 
 ## Success Criteria
@@ -118,8 +133,10 @@ exit. It never reports success on a partial run.
 - **SC-003**: The five legacy saved filters no longer appear in Kent's
   sidebar; `Favorites` remains.
 - **SC-004**: Re-running the helper makes no changes (idempotent).
-- **SC-005**: No task-bearing project was deleted, and the `Habits` project
-  plus its daily/weekly prompts continue to function unchanged.
+- **SC-005**: The run issues **zero** write operations against any existing
+  project outside the create set — in particular project id 13 (`Habits`) — so
+  no task-bearing project is deleted and the Habits prompts keep working
+  unchanged (asserted in the run summary and tests).
 - **SC-006**: `docs/design/vikunja-configuration-design.md` matches the live
   structure.
 
