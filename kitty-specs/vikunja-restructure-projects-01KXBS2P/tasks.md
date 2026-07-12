@@ -31,13 +31,13 @@ prints the correct plan against the live instance; `pytest tests/vikunja/test_re
 
 **Included subtasks**:
 
-- [ ] T001 Token loading + paginated owner-scoped project fetch with `null→[]` (WP01)
-- [ ] T002 Reconcile-plan builder with ambiguity abort + legacy-filter derivation (WP01)
-- [ ] T003 Create pass + create-response owner assertion + verify Inbox (WP01)
-- [ ] T004 Filter-delete pass (backup-gated, title readback, never `-1`) (WP01)
-- [ ] T005 CLI entrypoint (flags, exit codes, dry-run, json, partial-failure report) (WP01)
-- [ ] T006 Tests to ≥90% coverage (WP01)
-- [ ] T007 Update design doc Project Structure section (WP01)
+- [x] T001 Token loading + paginated owner-scoped project fetch with `null→[]` (WP01)
+- [x] T002 Reconcile-plan builder with ambiguity abort + legacy-filter derivation (WP01)
+- [x] T003 Create pass + create-response owner assertion + verify Inbox (WP01)
+- [x] T004 Filter-delete pass (backup-gated, title readback, never `-1`) (WP01)
+- [x] T005 CLI entrypoint (flags, exit codes, dry-run, json, partial-failure report) (WP01)
+- [x] T006 Tests to ≥90% coverage (WP01)
+- [x] T007 Update design doc Project Structure section (WP01)
 
 **Implementation sketch**: build the plan from a paginated, owner-scoped read →
 run the additive create pass (parent before children, assert owner) → optionally

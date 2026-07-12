@@ -42,7 +42,7 @@ subtasks:
 - T006
 - T007
 agent: "claude"
-shell_pid: "9643"
+shell_pid: "13817"
 history:
 - '2026-07-12: authored by /spec-kitty.tasks'
 agent_profile: python-pedro
@@ -259,3 +259,5 @@ the primary checkout.
 ## Activity Log
 
 - 2026-07-12T18:47:09Z – claude – shell_pid=9643 – Assigned agent via action command
+- 2026-07-12T18:59:10Z – claude – shell_pid=9643 – Moved to for_review
+- 2026-07-12T18:59:32Z – claude – shell_pid=13817 – Started review via action command
