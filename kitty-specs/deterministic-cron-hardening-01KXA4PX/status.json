@@ -1,16 +1,16 @@
 {
-  "event_count": 25,
-  "last_event_id": "01KXAAVBZHT93H2VRHCT4AMPZ8",
-  "materialized_at": "2026-07-12T04:54:56.753680+00:00",
+  "event_count": 26,
+  "last_event_id": "01KXAAVDMHGC8CF5G1M0G7XMF5",
+  "materialized_at": "2026-07-12T04:54:58.449863+00:00",
   "mission_number": "96",
   "mission_slug": "deterministic-cron-hardening-01KXA4PX",
   "mission_type": "software-dev",
   "summary": {
-    "approved": 3,
+    "approved": 2,
     "blocked": 0,
     "canceled": 0,
     "claimed": 0,
-    "done": 1,
+    "done": 2,
     "for_review": 0,
     "in_progress": 0,
     "in_review": 0,
@@ -25,11 +25,11 @@
       "last_transition_at": "2026-07-12T04:54:56.753680+00:00"
     },
     "WP02": {
-      "actor": "user",
+      "actor": "merge",
       "force_count": 0,
-      "lane": "approved",
-      "last_event_id": "01KXA8SB6FA812GREJ6KP0VHJB",
-      "last_transition_at": "2026-07-12T04:18:53.263432+00:00"
+      "lane": "done",
+      "last_event_id": "01KXAAVDMHGC8CF5G1M0G7XMF5",
+      "last_transition_at": "2026-07-12T04:54:58.449863+00:00"
     },
     "WP03": {
       "actor": "user",
