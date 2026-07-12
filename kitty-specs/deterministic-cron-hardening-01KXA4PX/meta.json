@@ -13,6 +13,7 @@
   "accepted_at": "2026-07-12T04:53:59.534595+00:00",
   "accepted_by": "kentgale",
   "accepted_from_commit": "80ed7971ab57a3bcb3d4312b18b25574d79402cc",
+  "baseline_merge_commit": "407de33edd422a77ac7e76e7bdb4117bee3ece8e",
   "created_at": "2026-07-12T03:07:39.449198+00:00",
   "flattened": true,
   "friendly_name": "Deterministic escalation + weekly-report crons",
