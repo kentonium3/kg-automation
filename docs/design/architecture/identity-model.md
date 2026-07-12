@@ -2,8 +2,8 @@
 title: Identity Model
 doc_type: reference
 status: approved
-last_updated: '2026-06-04'
-updated_by: '#523-kg-felix-bot-project-sync-pat-added + #341-felix-bot-expiry-context + #304-felix-bot-rotation + #100-google-workspace-foundation + #227'
+last_updated: '2026-07-12'
+updated_by: '#715-vikunja-api-kent-config-token-audit-exception + #523-kg-felix-bot-project-sync-pat-added + #341-felix-bot-expiry-context + #304-felix-bot-rotation + #100-google-workspace-foundation + #227'
 ---
 
 # Identity Model
@@ -84,6 +84,26 @@ The shared Vikunja service account for all Felix sub-agents performing API write
 | Created by | #304 / ADR-0002 Phase 1 |
 
 Note: `kg-felix-bot` (GitHub) and `felix-bot` (Vikunja) are two distinct accounts on two distinct surfaces. They share an email alias (`kentgale+felix-bot@gmail.com`) for routing convenience, but the credentials, password stores, and audit timelines are independent. `felix-doc-auditor` uses `kg-felix-bot` and does NOT use the Vikunja API.
+
+### `kent` — Vikunja config/system token (the audit-separation exception, #715)
+
+The `felix-bot`/`kent` separation above holds for **task writes** but has a
+**deliberate exception for Vikunja configuration**. Vikunja scopes some objects
+(labels, saved filters) **per user**: a label created by `felix-bot` is
+invisible in Kent's `kent` UI, and `felix-bot` cannot attach a `kent`-owned
+label to a task (HTTP 403). So configuration Kent must see and manage — the
+label taxonomy, saved filters, projects — has to be created **as `kent`**.
+
+Felix therefore also holds an all-permissions **`kent`** Vikunja API token
+(`vikunja-api-kent`, #715) used only for these config/system changes and for
+label-attach. The consequence, accepted knowingly: **Vikunja config changes
+attribute to `kent`, not `felix-bot`** — the agent-vs-UI audit separation is
+kept for task writes (`vikunja-api`) but given up for config, because Vikunja
+offers no delegation model that would let an agent make user-visible config
+changes under a distinct identity. Verified 2026-07-12: `felix-bot` **can**
+read/filter `kent`-owned labels on shared tasks (Felix's label-based queries
+work) but **cannot** attach them. Full detail and the credential entry live in
+[`credentials-and-secrets.md` §3](<./credentials-and-secrets.md>).
 
 Canonical registry: [`AGENT-REGISTRY.md` §Service Accounts](<../../constitution/AGENT-REGISTRY.md#service-accounts>).
 
