@@ -85,19 +85,19 @@ planning proposal; `/spec-kitty.tasks` may refine it.
 
 ### IC-01 — Taxonomy declaration + reconcile helper
 
-- **Purpose**: Declare the 12 taxonomy labels (title + color) and the 3 legacy labels as explicit constants matching the design doc, and implement the idempotent reconcile logic (list existing → create missing with color → optionally delete legacy → emit outcomes + title→id map) on `VikunjaClient`, exposed via a CLI.
-- **Relevant requirements**: FR-001, FR-002, FR-003, FR-004, FR-005, FR-006, FR-007, FR-008, FR-009; C-001, C-005.
-- **Affected surfaces**: `scripts/vikunja/create_taxonomy_labels.py` (new); consumes `scripts/common/vikunja_client.py`, `scripts/common/vikunja_config.py`.
+- **Purpose**: Declare the 12 taxonomy labels (title + color) and the 3 legacy labels as explicit constants, add the color values to the design doc, and implement the idempotent reconcile logic (list existing → create missing with color → optionally delete legacy → emit outcomes + title→id map) on `VikunjaClient`, exposed via a CLI. Titles/dimensions match the design doc; colors are this mission's decision, written identically into the helper constants, data-model, and the design doc.
+- **Relevant requirements**: FR-001, FR-002, FR-003, FR-004, FR-005, FR-006, FR-007, FR-008, FR-009, FR-010, FR-011; C-001, C-002, C-005.
+- **Affected surfaces**: `scripts/vikunja/create_taxonomy_labels.py` (new); `docs/design/vikunja-configuration-design.md` (add the color column to the label tables); consumes `scripts/common/vikunja_client.py`, `scripts/common/vikunja_config.py`.
 - **Sequencing/depends-on**: none.
-- **Risks**: the id-vs-title gotcha (mutate by id); `per_page` ≤ 50 pagination; deletion is destructive and must be gated behind an explicit flag (default create-only); Vikunja `hex_color` is stored without a leading `#`.
+- **Risks**: the id-vs-title gotcha (identify by title, mutate by id); `per_page` ≤ 50 pagination; deletion is destructive and gated behind an explicit flag **plus** a required `--backup-confirmed <ref>` companion (FR-006); duplicate live titles must fail loud, not silently overwrite (FR-010); an already-present label with a wrong color must fail loud (FR-011); Vikunja `hex_color` is stored without a leading `#` (normalize on compare).
 
 ### IC-02 — Automated test suite
 
-- **Purpose**: Prove every reconcile path against a mocked client with zero live calls: create-all-from-empty, skip-existing (partial pre-existing state), delete-legacy, idempotent re-run (0 changes), and failure modes (store unreachable, delete without the flag is a no-op), plus a fidelity assertion that the constants exactly match the design-doc taxonomy.
-- **Relevant requirements**: NFR-001, NFR-002; guards FR-001/FR-004/FR-005/FR-006; C-001.
+- **Purpose**: Prove every reconcile path against a mocked client with zero live calls: create-all-from-empty, skip-existing (partial pre-existing state), delete-legacy, idempotent re-run (0 changes), duplicate-title detection (fail loud), color-mismatch detection (fail loud), delete-without-`--backup-confirmed` refusal, and failure modes (store unreachable, delete-404 re-list, delete without the flag is a no-op), plus a fidelity assertion that the helper constants exactly match the design-doc taxonomy titles + the shared color set.
+- **Relevant requirements**: NFR-001, NFR-002; guards FR-001/FR-004/FR-005/FR-006/FR-010/FR-011; C-001.
 - **Affected surfaces**: `tests/vikunja/test_create_taxonomy_labels.py` (new).
 - **Sequencing/depends-on**: IC-01 (imports the helper).
-- **Risks**: mocks must mirror the real `VikunjaClient` method surface (`get`/`post`/`delete`, leading-slash paths, empty-body → `{}`), or tests pass while live behavior diverges (the mock-fidelity lesson from prior missions).
+- **Risks**: mocks must mirror the real `VikunjaClient` method surface — `get`, **`put`** (create = `PUT /labels`), `delete` — with leading-slash paths, the `PUT /labels` body shape `{title, hex_color}`, and empty-body → `{}`, or tests pass while live behavior diverges (the mock-fidelity lesson from prior missions).
 
 ### IC-03 — Operational run procedure + verification
 
