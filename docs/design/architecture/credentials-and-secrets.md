@@ -2,9 +2,9 @@
 title: Credentials and Secrets
 doc_type: reference
 status: approved
-last_updated: '2026-07-09'
-last_validated: '2026-07-09'
-updated_by: '#699-felix-calendar-helper-personal-google-oauth (RFC #681 calendar phase) + #520-felix-vikunja-sync-project-layer-and-url-config + #523-kg-felix-bot-project-sync-pat-added + #345-audit-confirms-sync (silent-removal policy per change-control.md) + #304-felix-bot-rotation + #267-openclaw-gateway-env-narrative + #100-google-workspace-foundation + #227 + #115 + #115-narrative-sync + rename-kentonium3-pat-to-gh-oauth'
+last_updated: '2026-07-12'
+last_validated: '2026-07-12'
+updated_by: '#715-vikunja-api-kent-config-token + #699-felix-calendar-helper-personal-google-oauth (RFC #681 calendar phase) + #520-felix-vikunja-sync-project-layer-and-url-config + #523-kg-felix-bot-project-sync-pat-added + #345-audit-confirms-sync (silent-removal policy per change-control.md) + #304-felix-bot-rotation + #267-openclaw-gateway-env-narrative + #100-google-workspace-foundation + #227 + #115 + #115-narrative-sync + rename-kentonium3-pat-to-gh-oauth'
 tags: [304, 343, 490, 115, 520]
 ---
 
@@ -77,7 +77,7 @@ OpenClaw handles auth refresh and session management.
 
 ### 3. Scoped plaintext files (mode 600)
 
-Used by: `vikunja-api`
+Used by: `vikunja-api`, `vikunja-api-kent`
 
 OpenClaw skills read credentials at runtime via `cat /data/services/openclaw/secrets/<name>`.
 Files are owned by the `claude` user, mode 600. This pattern is appropriate
@@ -91,6 +91,24 @@ audit-trail separation between agent-driven writes (felix-bot) and Kent's UI
 interactions (kent). See [`identity-model.md` §Agent Service Accounts](<./identity-model.md#agent-service-accounts>)
 for the identity model and [`docs/runbooks/felix-bot-vikunja-provisioning.md`](<../../runbooks/felix-bot-vikunja-provisioning.md>)
 for the rotation procedure.
+
+**`vikunja-api-kent` (#715) — the config/system token.** Vikunja scopes some
+objects **per user**: labels and saved filters created by `felix-bot` are
+invisible in Kent's `kent` UI, and `felix-bot` cannot attach a `kent`-owned
+label to a task (HTTP 403). So Vikunja **configuration/system** changes that
+Kent must see and manage (the label taxonomy, saved filters, projects) have to
+be made **as `kent`**. `vikunja-api-kent` is an all-permissions API token owned
+by the `kent` Vikunja user, stored in this same §3 slot, used by
+`scripts/vikunja/create_taxonomy_labels.py` (and future #714-chain config
+tooling) via `--token-file`. This **deliberately reintroduces** a kent-scoped
+token that #304 rotated away: the felix-bot/kent audit separation is **kept for
+task writes** (`vikunja-api`) but **knowingly given up for config changes**,
+which attribute to `kent` — an accepted trade because Vikunja offers no
+delegation model that would let Felix make user-visible config changes under a
+distinct identity. Verified 2026-07-12: `felix-bot` **can** read/filter
+`kent`-owned labels on shared tasks (so Felix's label-based queries work) but
+**cannot** attach them, so label application uses this token. Day-to-day task
+CRUD stays on `vikunja-api` (felix-bot).
 
 ### 4. System-managed or standalone tool
 
@@ -298,6 +316,7 @@ graph TD
 | `tailscale-auth` | system-managed | Managed by `tailscaled` | Tailscale daemon |
 | `anthropic` | API key | OpenClaw native auth store (`/home/claude/.openclaw/agents/main/agent/auth-profiles.json`) + scoped plaintext (`/data/services/openclaw/secrets/anthropic`, 0600) | `openclaw-gateway` (proxies API calls for all openclaw-launched agents), `felix-doc-auditor-driver` (reads the plaintext file directly each systemd tick and calls `api.anthropic.com` via the `anthropic` Python SDK — bypasses openclaw-gateway; #343), `felix-heartbeat-gate` (same file-read pattern as the doc-auditor driver — reads the key each 30-min systemd tick and calls `api.anthropic.com` directly with `claude-haiku-4-5`; #490) |
 | `vikunja-api` | API token (owner: `felix-bot` Vikunja user, #304) | Scoped plaintext — `/data/services/openclaw/secrets/vikunja-api` | OpenClaw skills (all Felix sub-agents — habits, escalation, capture, tasker) |
+| `vikunja-api-kent` | API token, all-permissions (owner: `kent` Vikunja user, #715) | Scoped plaintext — `/data/services/openclaw/secrets/vikunja-api-kent` (mode 600, claude:claude) | Felix Vikunja **config/system** changes (labels, saved filters, projects) + label-attach — `scripts/vikunja/create_taxonomy_labels.py` via `--token-file`; future #714-chain config tooling. Config changes attribute to `kent` (see §3). |
 | `whatsapp-session` | session | OpenClaw native (Baileys) | `openclaw-gateway` |
 | `google-workspace-client` | OAuth Desktop `client_secret` | Scoped plaintext — `/data/services/openclaw/secrets/google-workspace-client.json` | `gog auth credentials` (one-time ingest) |
 | `gog-keyring-password` | passphrase | Scoped plaintext — `/data/services/openclaw/secrets/gog-keyring-password` | `gog` (via `GOG_KEYRING_PASSWORD` env var in claude's `~/.bashrc`) |
