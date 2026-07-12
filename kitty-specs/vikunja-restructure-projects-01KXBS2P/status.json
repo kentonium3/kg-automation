@@ -1,7 +1,7 @@
 {
-  "event_count": 1,
-  "last_event_id": "01KXBT88NHSYQNPDNNM5ZZV68Q",
-  "materialized_at": "2026-07-12T18:43:22.417420+00:00",
+  "event_count": 3,
+  "last_event_id": "01KXBTEWT9TGT1NZ6Y9EBBDSS4",
+  "materialized_at": "2026-07-12T18:46:59.655111+00:00",
   "mission_number": "",
   "mission_slug": "vikunja-restructure-projects-01KXBS2P",
   "mission_type": "software-dev",
@@ -12,17 +12,17 @@
     "claimed": 0,
     "done": 0,
     "for_review": 0,
-    "in_progress": 0,
+    "in_progress": 1,
     "in_review": 0,
-    "planned": 1
+    "planned": 0
   },
   "work_packages": {
     "WP01": {
-      "actor": "finalize-tasks",
+      "actor": "claude",
       "force_count": 0,
-      "lane": "planned",
-      "last_event_id": "01KXBT88NHSYQNPDNNM5ZZV68Q",
-      "last_transition_at": "2026-07-12T18:43:22.417420+00:00"
+      "lane": "in_progress",
+      "last_event_id": "01KXBTEWT9TGT1NZ6Y9EBBDSS4",
+      "last_transition_at": "2026-07-12T18:46:59.655111+00:00"
     }
   }
 }
