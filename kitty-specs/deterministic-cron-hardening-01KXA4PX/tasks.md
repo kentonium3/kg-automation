@@ -74,9 +74,9 @@ WP02 ∥ WP03 (parallel; both depend only on WP01)
 **Dependencies**: WP01.
 **Prompt**: `tasks/WP03-weekly-report-driver.md` (~350 lines)
 
-- [ ] T009 Create `scripts/habits/weekly_report_driver.py` (WP03)
-- [ ] T010 Create systemd units `scripts/office2/felix-habits-weekly.{service,timer,onfailure}` (WP03)
-- [ ] T011 Tests `tests/habits/test_weekly_report_driver.py` (WP03)
+- [x] T009 Create `scripts/habits/weekly_report_driver.py` (WP03)
+- [x] T010 Create systemd units `scripts/office2/felix-habits-weekly.{service,timer,onfailure}` (WP03)
+- [x] T011 Tests `tests/habits/test_weekly_report_driver.py` (WP03)
 
 ## WP04 — Observability + deploy
 
