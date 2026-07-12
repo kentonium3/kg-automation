@@ -13,6 +13,7 @@
   "accepted_at": "2026-07-12T21:40:20.216302+00:00",
   "accepted_by": "kentgale",
   "accepted_from_commit": "131b27c92bafdea0ade4e3323695689df2c61038",
+  "baseline_merge_commit": "71137b6b434aa93626c8bb133c72d03cb845b743",
   "created_at": "2026-07-12T20:10:47.638401+00:00",
   "flattened": true,
   "friendly_name": "Vikunja Task Migration & Project Teardown",
