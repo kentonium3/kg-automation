@@ -17,11 +17,12 @@ and removes the three legacy labels so the label set is clean.
 This is **migration-sequence step 2** of the Vikunja configuration reset epic
 (kentonium3/kg-automation#714) and its base child (#715). It is a hard
 prerequisite for the rest of the chain: project restructure (#716) will point
-habit identity at the `t:habit` label produced here (via the
-`scripts/common/vikunja_scope.py` seam shipped by #723), task migration (#717)
-applies these labels, and saved filters (#718) reference these exact label
-names. The label→id map this mission produces is a direct input to those
-children.
+habit identity at the `t:habit` label produced here, by title, via the
+`scripts/common/vikunja_scope.py` seam shipped by #723 (its selector is
+`{"kind": "label", "value": "t:habit"}` — a title, not an id); task migration
+(#717) applies these labels; and saved filters (#718) reference these exact
+label names. The title→id map this mission produces is a direct input to the
+migration work (#717) that mutates tasks by numeric label id.
 
 Labels are created by a deterministic, idempotent, tested helper (a candidate
 for `scripts/vikunja/` per helper-script conventions), because label
@@ -67,20 +68,22 @@ during migration, and to reference labels in saved-filter queries).
 | ID | Requirement | Status |
 |----|-------------|--------|
 | FR-001 | The system MUST create the 12 taxonomy labels with titles matching the design doc exactly: `f:1-flow`, `f:2-growth`, `f:3-edge`, `f:4-overload`, `q:do`, `q:schedule`, `q:delegate`, `q:eliminate`, `t:habit`, `loe:s`, `loe:m`, `loe:l`. | Draft |
-| FR-002 | Each created label MUST carry its assigned color per the locked scheme (friction green→red gradient; Eisenhower blue family; type purple; LOE gray light→dark). | Draft |
-| FR-003 | Label creation and deletion MUST be performed by a single deterministic, tested helper invocation — not by agent-improvised API calls or ad-hoc scripting. | Draft |
+| FR-002 | Each created label MUST carry its assigned color per the locked scheme (friction green→red gradient; Eisenhower blue family; type purple; LOE gray light→dark). The concrete color values are added to `docs/design/vikunja-configuration-design.md` by this mission so the design doc remains the single taxonomy authority. | Draft |
+| FR-003 | Label creation and deletion MUST be performed by a single deterministic, tested helper (one implementation / CLI) — not by agent-improvised API calls or ad-hoc scripting. The operational sequence MAY invoke that one helper multiple times (dry-run, create pass, delete pass, re-run). | Draft |
 | FR-004 | The helper MUST be idempotent: creating a label that already exists (matched by title) is a no-op, and a second full run makes zero changes and exits successfully. | Draft |
-| FR-005 | The helper MUST delete exactly the three legacy labels — `personal`, `intentional`, `Duplicate` — leaving no label outside the taxonomy. | Draft |
-| FR-006 | Deletion (destructive state change) MUST require an explicit opt-in flag; the default run is create-only and performs no deletions. | Draft |
-| FR-007 | The helper MUST report a per-label outcome for every label it touches (created / already-present / deleted / already-absent). | Draft |
-| FR-008 | The helper MUST emit the resulting taxonomy label→id map on success, so downstream work can consume the ids. | Draft |
+| FR-005 | The helper MUST delete exactly the three legacy labels — `personal`, `intentional`, `Duplicate` — leaving no label outside the taxonomy. If a legacy title matches more than one live label, ALL exact-title matches MUST be deleted. | Draft |
+| FR-006 | Deletion (destructive state change) MUST require an explicit opt-in flag AND a backup-confirmation reference (a Restic snapshot id or timestamp) supplied at invocation; the default run is create-only and performs no deletions. The confirmation reference MUST be echoed in the run output. | Draft |
+| FR-007 | The helper MUST report a per-label outcome for every label it touches (created / already-present / color-mismatch / deleted / already-absent / skipped-no-flag). | Draft |
+| FR-008 | The helper MUST emit the resulting taxonomy label→id map on success, so downstream work (task migration #717) can consume the ids. | Draft |
 | FR-009 | Label reads MUST paginate the Vikunja label list until exhausted (the API caps `per_page` at 50) and MUST reference labels by `id`, never by display title, for mutation. | Draft |
+| FR-010 | If any taxonomy title matches more than one live label (duplicate titles), the helper MUST fail non-zero and report all matching ids rather than mutate ambiguously; it MUST NOT silently pick one. | Draft |
+| FR-011 | If a taxonomy label already exists but its color differs from the declared color, the helper MUST report `color-mismatch` and exit non-zero — it MUST NOT report success while a color is wrong (guards SC-001). | Draft |
 
 ### Non-Functional Requirements
 
 | ID | Requirement | Threshold | Status |
 |----|-------------|-----------|--------|
-| NFR-001 | The helper is covered by automated tests including create, skip-existing, delete, idempotent re-run, and failure modes (store unreachable, partial pre-existing state). | Each path independently tested; failure modes asserted | Draft |
+| NFR-001 | The helper is covered by automated tests including create, skip-existing, delete, idempotent re-run, duplicate-title detection, color-mismatch detection, delete-without-backup-ref refusal, and failure modes (store unreachable, delete-404, partial pre-existing state). | Each path independently tested; failure modes asserted | Draft |
 | NFR-002 | A second full run of the helper against the resulting state makes no changes. | 0 create and 0 delete operations on re-run | Draft |
 | NFR-003 | The helper completes a full run within one operator window. | ≤ 30 seconds under normal Vikunja latency | Draft |
 
@@ -88,8 +91,8 @@ during migration, and to reference labels in saved-filter queries).
 
 | ID | Constraint | Status |
 |----|-----------|--------|
-| C-001 | Label names and colors are locked to the design doc. Felix skill/briefing queries and the #718 saved-filter definitions reference these exact strings, so spelling, casing, and prefixes MUST NOT drift. | Draft |
-| C-002 | The three deletions modify Vikunja application state (a label delete cascades off every task carrying it) — a Tier-2 change. A recent Restic backup (within 24h) MUST be confirmed before the delete pass; if none exists, one MUST be triggered first. | Draft |
+| C-001 | Label **titles and dimensions** are locked to the design doc; Felix skill/briefing queries and the #718 saved-filter definitions reference these exact strings, so spelling, casing, and prefixes MUST NOT drift. **Colors** are this mission's operator decision (2026-07-12), written into the design doc, the helper constants, and data-model in one consistent set; a fidelity test asserts all three agree. | Draft |
+| C-002 | The three deletions modify Vikunja application state (a label delete cascades off every task carrying it) — a Tier-2 change. A recent Restic backup (within 24h) MUST be confirmed before the delete pass; if none exists, one MUST be triggered first. The backup reference is passed to the helper (FR-006), making the gate machine-checkable rather than operator-memory-only. | Draft |
 | C-003 | `area:` labels (e.g. `area:health`, `area:felix`) are deferred per the design doc's "Deferred Dimensions" and MUST NOT be created here. The deleted `personal`/`intentional` labels are the informal precursor of that dimension; it will be reintroduced deliberately later, not carried over. | Draft |
 | C-004 | Every Felix behavior that reads or acts on this taxonomy — the task-intake validation loop, habit prompting, Edge/Overload handling, LOE-based scheduling — is out of scope and belongs to the future Felix/Vikunja integration epic. | Draft |
 | C-005 | The helper is the deterministic infrastructure layer (Directive 6): it builds on the existing canonical Vikunja access rather than introducing a new HTTP dependency, and its selectors/values are explicit constants matching the design doc. | Draft |
