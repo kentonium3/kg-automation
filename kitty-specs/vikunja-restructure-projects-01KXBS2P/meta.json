@@ -1,15 +1,15 @@
 {
-  "coordination_branch": "kitty/mission-vikunja-restructure-projects-01KXBS2P",
   "created_at": "2026-07-12T18:22:51.014000+00:00",
-  "flattened": false,
+  "flattened": true,
   "friendly_name": "Vikunja Project Restructure",
   "mission_id": "01KXBS2P445A3BRNGZ8S7VC4PY",
   "mission_number": null,
   "mission_slug": "vikunja-restructure-projects-01KXBS2P",
   "mission_type": "software-dev",
+  "pr_bound": true,
   "purpose_context": "Vikunja's project structure drifted into pseudo-view projects (Today, Someday, etc.) that conflate cross-project views with topic buckets. This mission additively creates the canonical topic projects — Felix / kg-automation, a Clients folder with PointerHealth and spec-kitty sub-projects, and a Personal catch-all — verifies Inbox is present, and deletes the legacy ad-hoc saved filters, so Kent's task system reflects domain ownership rather than temporal context. Task migration and deletion of task-bearing projects are handled separately in issue #717.",
   "purpose_tldr": "Establish Vikunja's canonical topic-project structure and remove legacy saved filters.",
   "slug": "vikunja-restructure-projects-01KXBS2P",
   "target_branch": "feat/vikunja-restructure-projects",
-  "topology": "coord"
+  "topology": "lanes"
 }
