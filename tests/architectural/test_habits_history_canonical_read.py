@@ -62,6 +62,7 @@ VIKUNJA_CURRENT_STATE_ALLOWLIST: frozenset[str] = frozenset({
     "identify_workout_task.py",          # current-state query for the day's workout task
     "backfill_jsonl_from_comments.py",   # one-time backfill READS Vikunja COMMENTS (not done_at)
     "query_active_habits_weekly.py",     # current-state ONLY: titles + repeat_after classification
+    "weekly_report_driver.py",           # wraps query_active_habits_weekly in-process; same current-state-only VikunjaClient use (#723)
 })
 
 

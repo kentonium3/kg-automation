@@ -26,6 +26,22 @@ substrate.
 
 ## 1. Escalation Criteria
 
+### Mechanism (how these criteria are applied)
+
+The date/priority/project slice of this section — everything under "What
+qualifies for escalation" except the snooze/dismiss lines — is enumerated
+deterministically by `scripts/escalation/enumerate_candidates.py`
+(invoked by the agent as `python3 -m scripts.escalation.enumerate_candidates`;
+see AGENTS.md "Tick workflow" Step 2). Its output is a set of
+**pre-candidates**: tasks that clear the date/priority/project bar, before
+lifecycle state is considered. The snooze/dismiss/level eligibility lines
+below are NOT evaluated by that helper — they are applied per-candidate by
+`derive_state` (§2), which the agent calls for each pre-candidate and
+which alone determines whether an alert is actually sent
+(`next_eligible_level != null`). This section's wording remains the
+authoritative source of truth for the criteria themselves; the helper is
+the mechanism, not a separate rule set.
+
 ### What qualifies for escalation
 
 A task qualifies if ALL of the following are true:

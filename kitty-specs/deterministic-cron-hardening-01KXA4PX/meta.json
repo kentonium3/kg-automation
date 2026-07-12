@@ -17,7 +17,7 @@
   "flattened": true,
   "friendly_name": "Deterministic escalation + weekly-report crons",
   "mission_id": "01KXA4PXHQAW3WWPHT7P465Z6V",
-  "mission_number": null,
+  "mission_number": 96,
   "mission_slug": "deterministic-cron-hardening-01KXA4PX",
   "mission_type": "software-dev",
   "pr_bound": true,

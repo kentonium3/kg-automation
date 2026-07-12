@@ -123,28 +123,37 @@ briefings (felix-core-digest), or goal-level commitment assessment
    `HARDFAIL` line means a P2-bug was filed (or deduped). Do not retry — these
    are operator-triageable.
 
-2. **Candidate enumeration**: per SKILL.md §1, walk Vikunja tasks that qualify
-   for escalation today.
+2. **Candidate enumeration**: invoke the deterministic helper — do NOT read
+   the vikunja_api skill, build ad-hoc queries, or write inline python3 for
+   this step:
 
-   Read the vikunja_api skill first: `cat ~/.openclaw/skills/vikunja-api/SKILL.md`.
+       cd /home/claude/kg-automation && python3 -m scripts.escalation.enumerate_candidates
 
-   Build the candidate set from two queries:
+   Parse the stdout JSON array. Each item is a **pre-candidate**
+   (`task_id`, `project_id`, `title`, `due_date`, `priority`, `reason`) —
+   the date/priority/project slice of SKILL.md §1 only. This is NOT the
+   final alert set: every pre-candidate still has to clear Step 3's
+   `derive_state` gate before anything is sent.
 
-   - **Overdue tasks**: `done = false`, `due_date < today` (not null sentinel
-     `0001-01-01T00:00:00Z`), `priority >= 2`, `project_id NOT IN (11, 13)`.
-   - **At-risk tasks**: `done = false`, `due_date = today`, `priority >= 3`,
-     same project exclusions.
+   **Failure propagation (required, do not weaken)**: if the helper exits
+   non-zero, it means Vikunja was unreachable or errored (exit 1) or the
+   invocation was malformed (exit 3) — in both cases stdout is empty. You
+   MUST surface a truthful failure for this run and let it register as a
+   failed run (`status=error`) so `openclaw-cron-state` sees it. Do NOT
+   report a clean/IDLE run in this case, and do NOT fabricate an empty
+   candidate set to paper over the failure — a helper failure is a
+   distinct outcome from "zero candidates today."
 
-   Combine both sets.
-
-3. **State derivation**: for each candidate, invoke:
+3. **State derivation**: for each pre-candidate, invoke:
 
        cd /home/claude/kg-automation && python3 -m scripts.escalation.derive_state \
          --task-id <id> --project-id <pid>
 
-   Parse stdout JSON. Use `next_eligible_level` to decide whether to alert
-   this tick (per SKILL.md §2). On exit code 3, the helper has filed a P2-bug
-   — skip this task and continue.
+   Parse stdout JSON. **Alert ONLY when `next_eligible_level != null`** (per
+   SKILL.md §2) — a pre-candidate whose derived state is snoozed,
+   dismissed, or otherwise not yet eligible produces NO alert this tick,
+   even though it appeared in Step 2's output. On exit code 3, the helper
+   has filed a P2-bug — skip this task and continue.
 
 4. **Compose WhatsApp message**: per SKILL.md §4. Apply daily dedup per §7
    using the JSONL state already returned by `derive_state` (do NOT re-query
