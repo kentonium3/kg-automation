@@ -1350,10 +1350,10 @@
       "health_check": {
         "method": "tick-signal-file",
         "max_age_seconds": 600,
-        "endpoint": "/data/services/openclaw/deploy/agent-prompt-sync.jsonl",
-        "expected": "tick_summary entry with exit_code=0 within the last 10 minutes",
+        "endpoint": "/data/services/openclaw/deploy/last-tick.json",
+        "expected": "status within {success, deferred, partial, git_pull_failed} with completed_at_utc and exit_code=0 within the last 10 minutes",
         "timeout_seconds": 5,
-        "note": "Audit log is append-only JSONL with 5 per-action record kinds (copy / skip / error / git_pull_failed / warning) plus one tick_summary per tick."
+        "note": "last-tick.json is a flat freshness pointer overwritten atomically every real (non-dry-run) tick — including a benign lock-defer — so it reflects timer liveness, not deploy outcome (exit_code is always 0; git-advance failures escalate via git-health.json, per-file copy failures land in the audit log). The canary reads this because the co-located append-only audit log (agent-prompt-sync.jsonl; record kinds copy / skip / error / git_pull_failed / warning + tick_summary) is a JSONL, which the freshness probe cannot interpret as a flat pointer (#721)."
       },
       "config_files": [
         {
@@ -2237,8 +2237,8 @@
       "health_check": {
         "method": "state-file",
         "max_age_seconds": 1800,
-        "endpoint": "/data/services/trust/state/seen-findings.json",
-        "expected": "Seen-findings state map written atomically each non-dry-run tick (scripts/trust/state.py); a stale/missing file beyond ~30 minutes indicates the timer stopped ticking. The JSON scan summary (`{ok, drift_findings, assertion_findings, alerts_emitted, errors}`) printed by `run_trust_scan --json` is the per-tick machine-readable result; `errors: []` and `ok: true` indicate a clean tick.",
+        "endpoint": "/data/services/trust/state/last-tick.json",
+        "expected": "last-tick.json written atomically each non-dry-run tick (scripts/trust/run_trust_scan.py) carrying completed_at_utc + exit_status; exit_status=success with completed_at_utc within the last ~30 minutes is a clean tick; exit_status=failure signals a hard scan-inability (e.g. an unreadable cron baseline); a stale/missing file beyond ~30 minutes indicates the timer stopped ticking. The seen-findings state map (seen-findings.json) is a bare fingerprint map with no timestamp key, so it cannot be a freshness pointer. The JSON scan summary (`{ok, drift_findings, assertion_findings, alerts_emitted, errors}`) printed by `run_trust_scan --json` remains the per-tick machine-readable result; `errors: []` and `ok: true` indicate a clean tick (#721).",
         "timeout_seconds": 5
       },
       "config_files": [

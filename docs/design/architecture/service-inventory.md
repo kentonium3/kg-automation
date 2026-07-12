@@ -68,7 +68,10 @@ content loss) and unsticks stranded changes from #558 + #561.
    (c) MD5-compares each in-scope file in `<source_in_repo>` against the file
    at `<workspace>/<filename>`, (d) atomically copies any drifted file
    (preserving destination mode), (e) appends structured records to
-   `/data/services/openclaw/deploy/agent-prompt-sync.jsonl`
+   `/data/services/openclaw/deploy/agent-prompt-sync.jsonl`, (f) overwrites a
+   flat `/data/services/openclaw/deploy/last-tick.json` freshness pointer
+   (`completed_at_utc` + `exit_code=0`) every real tick — the canary's freshness
+   anchor, since the JSONL audit log is shape-unevaluable to the freshness probe (#721)
 
 **Slug → deploy-dir mapping** (NOT 1:1; sourced from `service-inventory.json`
 `services[openclaw].agents.<slug>.workspace`):
@@ -666,7 +669,7 @@ Per-module metadata mirrors `docs/design/architecture/data/service-inventory.jso
 - **Source in repo**: `scripts/trust/` (`cron_baseline.py`, `cron_drift_detector.py`, `completion_assertion.py`, `assertion_verifier.py`, `state.py`, `alert_render.py`, `run_trust_scan.py`) + `scripts/office2/felix-trust-scan.{service,timer}`
 - **Deploy**: `deploys/queued/truthful-reporting-detector.yaml` + `scripts/deploy/deploy-truthful-reporting.py` — installs the units, enables the timer, runs a preflight self-test, and verifies the WP01 truthful-reporting doctrine landed in the deployed `main` `AGENTS.md` via a triggered `agent-prompt-sync.service` run.
 - **Rebaseline**: not required (gap #621 — `audit.sh` does not hash deployed `AGENTS.md`; the detector code is not a hashed baseline either).
-- **Health check (self)**: `/data/services/trust/state/seen-findings.json` (seen-findings state, written atomically each non-dry-run tick) plus the per-tick JSON scan summary (`{ok, drift_findings, assertion_findings, alerts_emitted, errors}`).
+- **Health check (self)**: `/data/services/trust/state/last-tick.json` (flat freshness pointer written each non-dry-run tick — `completed_at_utc` + `exit_status`, `failure` only on a hard scan-inability such as an unreadable cron baseline; the canary's freshness anchor since the `seen-findings.json` state map is a bare fingerprint map with no timestamp key, #721) plus the per-tick JSON scan summary (`{ok, drift_findings, assertion_findings, alerts_emitted, errors}`).
 - **Runbook**: [Trust Reporting Detector Operations](<../runbooks/trust-reporting-detector.md>)
 - **Mission context**: `kitty-specs/felix-truthful-reporting-01KX6MN5/spec.md`
 

@@ -66,6 +66,12 @@ REPO_ROOT_DEFAULT = Path("/home/claude/kg-automation")
 AUDIT_PATH_DEFAULT = Path("/data/services/openclaw/deploy/agent-prompt-sync.jsonl")
 SERVICE_INVENTORY_RELATIVE = Path("docs/design/architecture/data/service-inventory.json")
 
+# Per-tick freshness signal (#721). A flat JSON pointer the canary reads —
+# written beside the append-only audit log because the JSONL itself is
+# shape-unevaluable to the freshness probe (it is not a flat JSON object). See
+# scripts/canary/probes.py and the felix-deployer last-tick.json precedent (#720).
+LAST_TICK_FILENAME = "last-tick.json"
+
 # Per-actor git-advance health watermark (#667, WP05). Lives beside the audit
 # log so the prompt-sync deploy state is co-located.
 HEALTH_STATE_PATH_DEFAULT = Path("/data/services/openclaw/deploy/git-health.json")
@@ -358,6 +364,39 @@ def _utc_now_iso() -> str:
     return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
+def write_last_tick(signal_dir: Path, *, status: str, exit_code: int = 0) -> None:
+    """Atomically write the per-tick freshness signal the canary reads (#721).
+
+    The agent-prompt-sync ``health_check`` in ``service-inventory.json`` points at
+    ``last-tick.json`` beside the audit log; the canary freshness probe reads it
+    and judges staleness against ``max_age_seconds``. ``completed_at_utc`` is the
+    canary-recognized timestamp key and ``exit_code=0`` is the good signal.
+
+    Written on EVERY real (non-dry-run) tick — including a benign lock-defer — so
+    the pointer reflects *timer liveness*, not deploy-work outcome. Git-advance
+    failures escalate through the ``git-health.json`` watermark (streak-based
+    ntfy) and per-file copy failures land in the JSONL audit log, never this
+    pointer, so it stays ``exit_code=0`` while the timer runs. ``status`` carries
+    the tick disposition for human debugging only (it is NOT one of the canary's
+    failure values, so it never flips the probe). Best-effort: a write failure
+    must not crash the tick (mirrors felix-deployer ``_tick.py``).
+    """
+    payload = {
+        "status": status,
+        "exit_code": exit_code,
+        "completed_at_utc": _utc_now_iso(),
+    }
+    path = signal_dir / LAST_TICK_FILENAME
+    try:
+        signal_dir.mkdir(parents=True, exist_ok=True)
+        tmp = path.with_name(path.name + ".tmp")
+        tmp.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+        os.replace(tmp, path)
+    except OSError:
+        # Freshness-signal loss is preferable to crashing the tick.
+        pass
+
+
 def audit_record(kind: str, tick_id: str, **fields) -> dict:
     """Build an audit record dict with timestamp, tick_id, kind, and arbitrary extra fields."""
     record = {"timestamp": _utc_now_iso(), "tick_id": tick_id, "kind": kind}
@@ -629,31 +668,47 @@ def run_tick(
             sys.stdout.write(line + "\n")
         return EXIT_SUCCESS
 
-    # Real tick: hold the shared checkout lock across fetch/merge + copy.
+    # Real tick: hold the shared checkout lock across fetch/merge + copy. The
+    # per-tick freshness signal (last-tick.json, read by the canary) is written
+    # in the finally so it reflects timer liveness on EVERY real tick — the
+    # locked path AND a benign lock-defer (#721).
+    status = "success"
     try:
-        with deploylock():
-            return _run_locked_tick(
-                inventory_path=inventory_path,
-                repo_root=repo_root,
-                audit_path=audit_path,
-                health_state_path=health_state_path,
-                tick_id=tick_id,
-                start=start,
-                agent_filter=args.agent,
+        try:
+            with deploylock():
+                rc = _run_locked_tick(
+                    inventory_path=inventory_path,
+                    repo_root=repo_root,
+                    audit_path=audit_path,
+                    health_state_path=health_state_path,
+                    tick_id=tick_id,
+                    start=start,
+                    agent_filter=args.agent,
+                )
+                if rc == EXIT_GIT_PULL_FAILED:
+                    status = "git_pull_failed"
+                elif rc == EXIT_PARTIAL_FAILURE:
+                    status = "partial"
+                return rc
+        except LockUnavailable:
+            # Benign defer: the other actor held the lock. Record it and retry
+            # next tick. NOT a git failure and NOT a health failure — no prompts
+            # copied.
+            status = "deferred"
+            audit_append(
+                audit_path,
+                audit_record(
+                    kind="git_pull_skipped",
+                    tick_id=tick_id,
+                    stage="lock",
+                    reason="lock_unavailable",
+                ),
             )
-    except LockUnavailable:
-        # Benign defer: the other actor held the lock. Record it and retry next
-        # tick. NOT a git failure and NOT a health failure — no prompts copied.
-        audit_append(
-            audit_path,
-            audit_record(
-                kind="git_pull_skipped",
-                tick_id=tick_id,
-                stage="lock",
-                reason="lock_unavailable",
-            ),
-        )
-        return EXIT_SUCCESS
+            return EXIT_SUCCESS
+    finally:
+        # exit_code=0 always: the pointer is timer-liveness, not deploy outcome
+        # (failures escalate via git-health.json + the audit log).
+        write_last_tick(audit_path.parent, status=status)
 
 
 def _run_locked_tick(

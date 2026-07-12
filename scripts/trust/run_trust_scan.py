@@ -59,9 +59,56 @@ __all__ = ["main", "run_scan"]
 # state directory (module constant; injectable for tests).
 DEFAULT_WATERMARK_PATH = Path("/data/services/trust/state/assertion-watermark.json")
 
+# Per-tick freshness signal (#721). A flat JSON pointer the canary reads for
+# staleness. The seen-findings state map is a bare fingerprint map with no
+# timestamp key (shape-unevaluable to the freshness probe), so this dedicated
+# last-tick.json is the canary's freshness anchor. ``completed_at_utc`` is a
+# canary-recognized timestamp key; ``exit_status`` is a closed enum the probe
+# reads (``failure`` on a hard scan-inability → the probe flags it). See
+# scripts/canary/probes.py and the felix-deployer precedent (#720).
+DEFAULT_LAST_TICK_PATH = Path("/data/services/trust/state/last-tick.json")
+
 
 def _utc_now() -> datetime:
     return datetime.now(timezone.utc)
+
+
+def _write_last_tick(
+    path: Path, *, now: datetime, scan_inability: bool, error_count: int
+) -> None:
+    """Atomically write the per-tick freshness signal the canary reads (#721).
+
+    ``exit_status`` is ``failure`` only on a hard **scan-inability** (e.g. the
+    cron baseline is unreadable — a sub-scan could not run at all); transient
+    finding-side faults (an indeterminate Vikunja re-verify) leave it
+    ``success`` so the canary is not paged on recoverable hiccups. ``error_count``
+    is informational and deliberately NOT named ``errors``/``error`` so it never
+    trips the probe's explicit-error detection. Best-effort: a write failure must
+    not crash the tick (fail-safe, NFR-001).
+    """
+    import os
+    import tempfile
+
+    payload = {
+        "completed_at_utc": now.strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "exit_status": "failure" if scan_inability else "success",
+        "scan_inability": scan_inability,
+        "error_count": error_count,
+    }
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        fd, tmp_name = tempfile.mkstemp(
+            dir=str(path.parent), prefix=f".{path.name}.", suffix=".tmp"
+        )
+        with os.fdopen(fd, "w", encoding="utf-8") as fh:
+            json.dump(payload, fh, sort_keys=True, indent=2)
+            fh.write("\n")
+            fh.flush()
+            os.fsync(fh.fileno())
+        os.replace(tmp_name, path)
+    except OSError:
+        # Freshness-signal loss is preferable to crashing the scan tick.
+        pass
 
 
 def _load_watermark(path: Path) -> dict[str, int]:
@@ -198,6 +245,7 @@ def run_scan(
     state_path: Path | str = state_mod.DEFAULT_STATE_PATH,
     watermark_path: Path | str = DEFAULT_WATERMARK_PATH,
     assertions_base_dir: Path | None = None,
+    last_tick_path: Path | str = DEFAULT_LAST_TICK_PATH,
 ) -> dict[str, Any]:
     """Run one scan tick: both sub-scans, cadence reconciliation, and emission.
 
@@ -359,6 +407,19 @@ def run_scan(
         "alerts_emitted": alerts_emitted,
         "errors": errors,
     }
+
+    # Per-tick freshness signal for the canary (#721). Written only on a real
+    # (non-dry-run) tick — a --dry-run must not mutate state — after all sub-scan
+    # work, so completed_at_utc reflects tick completion. Independent of state/
+    # watermark save success (its own guard); a stalled timer goes stale here.
+    if not dry_run:
+        _write_last_tick(
+            Path(last_tick_path),
+            now=tick_now,
+            scan_inability=scan_inability,
+            error_count=len(errors),
+        )
+
     # Internal-only signal consumed by main() to select the preflight exit
     # code; not part of the public JSON contract (kept out of `summary`).
     summary["_scan_inability"] = scan_inability

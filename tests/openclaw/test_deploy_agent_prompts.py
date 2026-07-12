@@ -859,6 +859,94 @@ def test_run_tick_lock_unavailable_defers_cleanly(tmp_path):
 
 
 # ---------------------------------------------------------------------------
+# #721 — last-tick.json freshness signal (canary freshness pointer)
+# ---------------------------------------------------------------------------
+
+
+def test_run_tick_writes_last_tick_on_success(tmp_path):
+    """A real tick writes last-tick.json beside the audit log (exit_code=0)."""
+    dst_dir = tmp_path / "dst"
+    dst_dir.mkdir()
+    repo = _setup_fake_repo(tmp_path, {
+        "test-agent": {"source_in_repo": "src/", "workspace": str(dst_dir)},
+    })
+    src_dir = repo / "src"
+    src_dir.mkdir()
+    (src_dir / "AGENTS.md").write_bytes(b"identical")
+    (dst_dir / "AGENTS.md").write_bytes(b"identical")
+    log = tmp_path / "audit.jsonl"
+    args = dap.parse_args([])
+    with _patch_advance_success("a" * 40):
+        rc = dap.run_tick(args, repo_root=repo, audit_path=log)
+    assert rc == dap.EXIT_SUCCESS
+    signal = log.parent / dap.LAST_TICK_FILENAME
+    assert signal.exists()
+    payload = json.loads(signal.read_text())
+    assert payload["status"] == "success"
+    assert payload["exit_code"] == 0
+    assert payload["completed_at_utc"].endswith("Z")
+
+
+def test_run_tick_writes_last_tick_on_lock_defer(tmp_path):
+    """A benign lock-defer still refreshes the pointer (status=deferred, exit_code=0)."""
+    repo = _setup_fake_repo(tmp_path, {
+        "test-agent": {"source_in_repo": "src/", "workspace": str(tmp_path / "dst")},
+    })
+    (repo / "src").mkdir()
+    log = tmp_path / "audit.jsonl"
+    args = dap.parse_args([])
+
+    def _raise_lock(*a, **k):
+        raise dap.LockUnavailable("held by other actor")
+
+    with patch.object(dap, "deploylock", side_effect=_raise_lock):
+        rc = dap.run_tick(args, repo_root=repo, audit_path=log)
+    assert rc == dap.EXIT_SUCCESS
+    payload = json.loads((log.parent / dap.LAST_TICK_FILENAME).read_text())
+    assert payload["status"] == "deferred"
+    assert payload["exit_code"] == 0
+
+
+def test_run_tick_last_tick_exit_code_zero_on_git_failure(tmp_path):
+    """Git-advance failure is timer-live: last-tick stays exit_code=0 (canary healthy).
+
+    The failure escalates via git-health.json + the audit log, never this pointer.
+    """
+    repo = _setup_fake_repo(tmp_path, {
+        "test-agent": {"source_in_repo": "src/", "workspace": str(tmp_path / "dst")},
+    })
+    (repo / "src").mkdir()
+    log = tmp_path / "audit.jsonl"
+    args = dap.parse_args([])
+    adv = AdvanceResult(
+        ok=False, advanced=False, pre_head="1", post_head="1",
+        origin_head="", behind=0, ahead=0, diverged=False, reason="fetch_failed",
+    )
+    with patch.object(dap, "advance_checkout", return_value=adv):
+        rc = dap.run_tick(args, repo_root=repo, audit_path=log)
+    assert rc == dap.EXIT_GIT_PULL_FAILED
+    payload = json.loads((log.parent / dap.LAST_TICK_FILENAME).read_text())
+    assert payload["status"] == "git_pull_failed"
+    assert payload["exit_code"] == 0  # timer-liveness pointer, not deploy outcome
+
+
+def test_run_tick_dry_run_writes_no_last_tick(tmp_path, capsys):
+    """--dry-run must not write the freshness pointer (read-only tick)."""
+    dst_dir = tmp_path / "dst"
+    dst_dir.mkdir()
+    repo = _setup_fake_repo(tmp_path, {
+        "test-agent": {"source_in_repo": "src/", "workspace": str(dst_dir)},
+    })
+    (repo / "src").mkdir()
+    (repo / "src" / "AGENTS.md").write_bytes(b"v2")
+    (dst_dir / "AGENTS.md").write_bytes(b"v1")
+    log = tmp_path / "audit.jsonl"
+    args = dap.parse_args(["--dry-run"])
+    dap.run_tick(args, repo_root=repo, audit_path=log)
+    assert not (log.parent / dap.LAST_TICK_FILENAME).exists()
+
+
+# ---------------------------------------------------------------------------
 # T017 — health watermark + notifier wiring
 # ---------------------------------------------------------------------------
 

@@ -40,13 +40,20 @@ field → ``failed``), all as generic field-convention detection, never keyed on
 component name.
 
 If the pointer is a shape the probe cannot interpret — a bare map with no
-candidate timestamp key (e.g. ``felix-trust-scan``'s ``seen-findings.json``
-fingerprint map) or a JSONL audit log (e.g. ``agent-prompt-sync``) surfaced as
-a non-dict — the probe returns ``evaluable=False`` → the caller maps it to
+candidate timestamp key (a fingerprint map) or a JSONL audit log surfaced as a
+non-dict — the probe returns ``evaluable=False`` → the caller maps it to
 ``unknown`` with evidence naming why. This is deliberately honest: a persistent
-``unknown`` WARN is correct behavior, better than a false ``healthy``. Such
-components read as persistent-unknown by design until a future pass extends the
-probe; that is expected (INV-002), not a bug.
+``unknown`` WARN is correct behavior, better than a false ``healthy``.
+
+The probe stays generic on purpose: rather than teach it to parse every
+component's private state shape, the fix for a shape-unevaluable component is
+**service-side** — the component emits a small flat ``last-tick.json`` pointer
+with a :data:`TIMESTAMP_KEYS` timestamp and its ``health_check.endpoint`` is
+repointed at it. ``felix-trust-scan`` (whose ``seen-findings.json`` is a bare
+fingerprint map) and ``agent-prompt-sync`` (whose audit log is JSONL) were both
+migrated this way in #721; ``felix-deployer`` / ``felix-habit-sweeper`` in #720.
+A component that still reads ``unknown`` is one that has not yet grown such a
+pointer — expected (INV-002), not a bug.
 
 ``restic`` note: restic's ``last-backup.json`` uses ``snapshot_timestamp_utc``
 (in :data:`TIMESTAMP_KEYS`) and a ``restic_exit_code`` in ``{0, 3}`` as the

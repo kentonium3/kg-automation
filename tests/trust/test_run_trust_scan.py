@@ -696,3 +696,118 @@ def test_main_json_flag_prints_summary(isolated_paths, capsys):
         "errors",
     }
     assert exit_code == 0
+
+
+# --- last-tick.json freshness signal (#721) ----------------------------------
+
+
+def test_run_scan_writes_last_tick_on_clean_tick(isolated_paths, tmp_path):
+    """A real (non-dry-run) tick writes last-tick.json with a fresh timestamp."""
+    state_path, watermark_path, assertions_dir = isolated_paths
+    last_tick = tmp_path / "state" / "last-tick.json"
+
+    with patch("scripts.trust.run_trust_scan.load_baseline", return_value=BASELINE), patch(
+        "scripts.trust.run_trust_scan.enumerate_live_crons", return_value=[_live_job()]
+    ), patch("scripts.trust.alert_render.emit"):
+        summary = rts.run_scan(
+            now=T0,
+            state_path=state_path,
+            watermark_path=watermark_path,
+            assertions_base_dir=assertions_dir,
+            last_tick_path=last_tick,
+        )
+
+    assert summary["ok"] is True
+    assert last_tick.exists()
+    payload = json.loads(last_tick.read_text())
+    assert payload["completed_at_utc"] == "2026-07-10T12:00:00Z"
+    assert payload["exit_status"] == "success"
+    assert payload["scan_inability"] is False
+    assert payload["error_count"] == 0
+
+
+def test_dry_run_writes_no_last_tick(isolated_paths, tmp_path):
+    """--dry-run must mutate nothing, including the freshness pointer."""
+    state_path, watermark_path, assertions_dir = isolated_paths
+    last_tick = tmp_path / "state" / "last-tick.json"
+
+    with patch("scripts.trust.run_trust_scan.load_baseline", return_value=BASELINE), patch(
+        "scripts.trust.run_trust_scan.enumerate_live_crons", return_value=[_live_job()]
+    ), patch("scripts.trust.alert_render.emit"):
+        rts.run_scan(
+            dry_run=True,
+            now=T0,
+            state_path=state_path,
+            watermark_path=watermark_path,
+            assertions_base_dir=assertions_dir,
+            last_tick_path=last_tick,
+        )
+
+    assert not last_tick.exists()
+
+
+def test_scan_inability_marks_last_tick_failure(isolated_paths, tmp_path):
+    """A hard scan-inability (unreadable baseline) writes exit_status=failure."""
+    state_path, watermark_path, assertions_dir = isolated_paths
+    last_tick = tmp_path / "state" / "last-tick.json"
+
+    with patch(
+        "scripts.trust.run_trust_scan.load_baseline",
+        side_effect=Exception("baseline unreadable"),
+    ), patch(
+        "scripts.trust.run_trust_scan.enumerate_live_crons", return_value=[]
+    ), patch("scripts.trust.alert_render.emit"):
+        summary = rts.run_scan(
+            now=T0,
+            state_path=state_path,
+            watermark_path=watermark_path,
+            assertions_base_dir=assertions_dir,
+            last_tick_path=last_tick,
+        )
+
+    assert summary["ok"] is False
+    payload = json.loads(last_tick.read_text())
+    assert payload["exit_status"] == "failure"
+    assert payload["scan_inability"] is True
+    assert payload["error_count"] >= 1
+    # The canary probe (state-file/_explicit_error) must read this as a failure.
+    from scripts.canary.probes import _explicit_error
+
+    assert _explicit_error(payload) is not None
+
+
+def test_last_tick_stays_success_on_transient_finding_fault(isolated_paths, tmp_path):
+    """A transient assertion-side fault (not scan-inability) keeps exit_status=success.
+
+    The freshness pointer must not page the canary on a recoverable Vikunja
+    hiccup — only a hard scan-inability flips exit_status to failure.
+    """
+    state_path, watermark_path, assertions_dir = isolated_paths
+    last_tick = tmp_path / "state" / "last-tick.json"
+
+    # An assertion JSONL whose verification raises inside the assertion sub-scan
+    # populates errors[] (ok=False) WITHOUT setting scan_inability.
+    (assertions_dir / "a.jsonl").write_text(
+        json.dumps({"artifact_kind": "vikunja_task", "artifact_ids": [1]}) + "\n"
+    )
+    with patch("scripts.trust.run_trust_scan.load_baseline", return_value=BASELINE), patch(
+        "scripts.trust.run_trust_scan.enumerate_live_crons", return_value=[_live_job()]
+    ), patch(
+        "scripts.trust.run_trust_scan.verify_assertion_detailed",
+        side_effect=Exception("vikunja down"),
+    ), patch("scripts.trust.alert_render.emit"):
+        summary = rts.run_scan(
+            now=T0,
+            state_path=state_path,
+            watermark_path=watermark_path,
+            assertions_base_dir=assertions_dir,
+            last_tick_path=last_tick,
+        )
+
+    assert summary["ok"] is False  # errors[] populated
+    payload = json.loads(last_tick.read_text())
+    assert payload["exit_status"] == "success"  # but NOT a scan-inability
+    assert payload["scan_inability"] is False
+    from scripts.canary.probes import _explicit_error
+
+    assert _explicit_error(payload) is None  # canary stays healthy
