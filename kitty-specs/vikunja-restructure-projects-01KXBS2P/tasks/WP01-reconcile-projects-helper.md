@@ -41,7 +41,8 @@ subtasks:
 - T005
 - T006
 - T007
-agent: claude
+agent: "claude"
+shell_pid: "9643"
 history:
 - '2026-07-12: authored by /spec-kitty.tasks'
 agent_profile: python-pedro
@@ -254,3 +255,7 @@ the primary checkout.
 - Filter ids are environment-specific — verify tests use a non-`1..5` derived id.
 - Backup gate must refuse before mutation — verify exit 2 with no `DELETE` issued.
 - Do not construct a real `VikunjaClient` that hits the wire in tests.
+
+## Activity Log
+
+- 2026-07-12T18:47:09Z – claude – shell_pid=9643 – Assigned agent via action command
