@@ -73,7 +73,7 @@ graph LR
 
     subgraph Sync["Sync Services (Tier 3)"]
         obsidian["obsidian-sync<br/>Tier 3"]
-        secondbrain["second-brain-sync<br/>Tier 3"]
+        secondbrain["second-brain-sync<br/>Tier 3<br/>🗑 RETIRED #712"]
         vikunja_sync["felix-vikunja-sync-driver<br/>Tier 3<br/>(full-poll #518+#520)"]
     end
 
@@ -140,9 +140,9 @@ graph LR
 - **Infrastructure isolation**: security-monitor has no upstream
   dependencies and no downstream consumers shown here; it operates
   independently.
-- **Sync independence**: obsidian-sync and second-brain-sync have no
-  dependency on the core or agent tiers, so sync continues even during
-  service outages.
+- **Sync independence**: obsidian-sync has no dependency on the core or
+  agent tiers, so sync continues even during service outages.
+  (second-brain-sync was retired 2026-07-12 — #712.)
 - **Sync driver read-only contract**: felix-vikunja-sync-driver reads
   Vikunja state via the REST API (full-poll, GET only — never writes to
   Vikunja) and resolves the base URL from the shared config file

@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "last_updated": "2026-07-11",
+  "last_updated": "2026-07-12",
   "updated_by": "felix-canary-registry-01KX8T7B (#327 — +felix-canary component-health scanner, +felix-trust-scan trust-drift sibling, +unified-alert-bus-emit shared #701 emit path) + felix-time-logging-01KX79HT (#703 — WhatsApp -> timelog -> Sheets flow added) + felix-calendar-helper-01KX4H3C (#699 — calendar surface now flows Felix helper -> Google directly, not gog; closes #679)",
   "flows": [
     {
@@ -63,9 +63,11 @@
     },
     {
       "name": "second-brain-sync",
-      "status": "active",
+      "status": "retired",
       "deployed_by": "F011",
-      "description": "Bidirectional git sync for non-vault second-brain content: office2 ↔ GitHub (every 15 min)",
+      "retired_on": "2026-07-12",
+      "updated_by": "#712 (retired — consumers removed around it: the /home/claude/second-brain clone decommissioned by #659, Restic superseding its backup role; timer dead since 2026-06-12, unnoticed)",
+      "description": "RETIRED (#712). Was: bidirectional git sync for non-vault second-brain content: office2 ↔ GitHub (every 15 min). No longer runs; non-vault content is backed up by Restic and read in place on office2, the vault syncs via Obsidian.",
       "path": [
         {
           "from": "office2 (/home/kgale/second-brain)",

@@ -32,14 +32,14 @@ Three-device sync loop: Mac, office2, and iPhone all stay in sync via Obsidian S
 
 **Consumer**: `felix-admin-capture` reads from `/home/kgale/second-brain/notes/01-Inbox/` (3x daily via OpenClaw cron). Processed items are moved to `/home/kgale/second-brain/notes/02-Inbox-Processed/` once the inbox pre-scan helper (#149) ships.
 
-### Second Brain Git Sync (F011)
+### Second Brain Git Sync (F011) — 🗑 RETIRED 2026-07-12 (#712)
 
-**Non-vault content** (git — bidirectional, every 15 min):
+**Retired.** Was a bidirectional git sync (every 15 min, `second-brain-sync.timer`, kgale user unit) of non-vault content (agents/, logs/, config) between `/home/kgale/second-brain` and GitHub:
 ```
-office2 (/home/kgale/second-brain) ↔ git pull --rebase + push ↔ GitHub
+office2 (/home/kgale/second-brain) ↔ git pull --rebase + push ↔ GitHub   [no longer runs]
 ```
 
-Bidirectional git sync every 15 minutes via `second-brain-sync.timer` (kgale user unit). Syncs non-vault content (agents/, logs/, config). Vault content (`notes/`) is excluded via `.gitignore` — Obsidian Sync handles that. Replaces the old outbound-only vault-snapshot.
+The timer stopped ~2026-06-12 and was retired once it was clear nothing depended on it: the `/home/claude/second-brain` clone that consumed the GitHub side was decommissioned by #659, Restic (nightly `/home/kgale`) covers backup, non-vault logs are read in place on office2, and the vault (`notes/`) syncs via Obsidian Sync. Deploy sources archived to `docs/archive/scripts/office2/`.
 
 ### Nightly Backup
 
