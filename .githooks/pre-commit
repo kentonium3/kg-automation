@@ -9,11 +9,13 @@
 # catch to commit time removes that churn: the bad frontmatter never enters a
 # commit.
 #
-# Cost-tiered so it is not friction on every commit (measured 2026-07-08):
-#   - privacy-boundary (~0.2s) + architecture-data (~0.1s) are cheap and
-#     repo-wide, so they ALWAYS run;
-#   - validate_docs.py (~3.9s, whole-tree frontmatter scan) runs ONLY when the
-#     commit stages markdown/docs — a code-only commit pays ~0.3s.
+# All three validators run on EVERY commit (~4s total, measured 2026-07-08).
+# validate_docs.py used to run ONLY when the commit staged docs/markdown, but
+# because it is a WHOLE-TREE scan while its trigger was per-commit, a frontmatter
+# issue already sitting in the tree (introduced via --no-verify, an inactive
+# hook, or a spec-kitty-driven commit) slipped past a later code-only commit and
+# reddened Docs CI on push — the pre-commit ↔ Docs-CI trigger gap. Running it
+# unconditionally re-checks the whole tree every commit and closes that gap.
 #
 # Active only when hooks are enabled for this clone:
 #   git config core.hooksPath .githooks
@@ -32,14 +34,12 @@ fail=0
 
 echo ">>> pre-commit: doc validation (see #678; skip with --no-verify)"
 
-# Cheap + repo-wide — always run.
+# All whole-tree + repo-wide — run on EVERY commit (unconditional). Running
+# validate_docs every commit (not only when docs are staged) closes the gap
+# where a frontmatter issue already in the tree slips past a code-only commit.
 "$PY" tooling/scripts/validate_privacy_boundary.py || fail=1
 "$PY" tooling/scripts/validate_architecture_data.py --strict || fail=1
-
-# Expensive whole-tree frontmatter scan — only when this commit stages docs.
-if git diff --cached --name-only --diff-filter=ACM | grep -qE '(^|/)docs/|\.md$'; then
-  "$PY" tooling/scripts/validate_docs.py || fail=1
-fi
+"$PY" tooling/scripts/validate_docs.py || fail=1
 
 if [[ "$fail" -ne 0 ]]; then
   echo

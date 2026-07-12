@@ -4,7 +4,7 @@ doc_type: runbook
 status: approved
 owners: ["@kentonium3"]
 last_updated: '2026-07-12'
-updated_by: '#719-prepush-gate-removed'
+updated_by: '#719-prepush-gate-removed + pre-commit-validate-docs-unconditional'
 audience: humans
 ---
 
@@ -17,7 +17,7 @@ a workflow on `main`. The former **pre-push** `make test` gate was removed
 
 | Hook | Runs | Catches | Cost |
 |---|---|---|---|
-| `.githooks/pre-commit` | the Docs CI validators (cost-tiered) | `docs-ci.yml` failures | ~0.3s code-only, ~4s doc commits |
+| `.githooks/pre-commit` | the three Docs CI validators (whole-tree, every commit) | `docs-ci.yml` failures | ~4s every commit |
 | `.githooks/pre-push` | **nothing (no-op)** — removed #719 | — (code is checked post-push by `test-ci.yml`) | ~0s |
 
 ## One-time setup (per clone)
@@ -44,12 +44,18 @@ Runs the same validators as the Docs CI workflow, so a doc-frontmatter problem
 (an unknown `doc_type`/`status` enum value, a broken required key, etc.) is
 caught at commit time — closest to authoring — and never enters a commit.
 
-It is **cost-tiered** so it isn't friction on every commit:
+All three validators run **unconditionally on every commit** (~4s total):
+`validate_privacy_boundary.py` (~0.2s), `validate_architecture_data.py --strict`
+(~0.1s), and `validate_docs.py` (~3.9s, a whole-tree frontmatter + secret scan).
 
-1. `validate_privacy_boundary.py` (~0.2s) and `validate_architecture_data.py
-   --strict` (~0.1s) are cheap and repo-wide, so they **always** run.
-2. `validate_docs.py` (~3.9s, a whole-tree frontmatter scan) runs **only when
-   the commit stages markdown/docs**. A code-only commit pays ~0.3s.
+`validate_docs.py` used to run **only when the commit staged docs/markdown** (a
+code-only commit paid ~0.3s). That was dropped: because the check is whole-tree
+but its trigger was per-commit, a frontmatter issue **already in the tree**
+(introduced via `--no-verify`, an inactive hook, or a spec-kitty-driven commit)
+would slip past a later code-only commit and only surface as a red Docs CI on
+push — the pre-commit ↔ Docs-CI **trigger gap**. Running it every commit
+re-checks the whole tree and closes that gap. (It does **not** close the
+"hook wasn't active at all" gap — that's covered only by the Docs CI backstop.)
 
 If validation fails, the commit is aborted with the finding and the fix
 (e.g. add the new `doc_type` to `docs/design/standards/allowed-values.json`).
