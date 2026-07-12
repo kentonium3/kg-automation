@@ -34,6 +34,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from dataclasses import dataclass, field
 from typing import Any
@@ -58,6 +59,12 @@ __all__ = [
 # The kent-owned, all-perms token (#715 two-token model). Read ONLY this file;
 # never fall back to VikunjaClient's felix-bot default token path.
 DEFAULT_KENT_TOKEN_FILE = "/data/services/openclaw/secrets/vikunja-api-kent"
+
+# The felix-bot task-CRUD token path. Explicitly refused as a token source: a
+# felix-bot run would create kent-invisible, felix-bot-owned projects (the #715
+# failure). Rejecting the path up front is a pre-mutation guard that does not
+# depend on a create response firing (post-merge review HIGH #1).
+FELIX_BOT_TOKEN_FILE = "/data/services/openclaw/secrets/vikunja-api"
 
 KENT_USERNAME = "kent"
 
@@ -291,15 +298,21 @@ def _resolve_target(
 def _derive_legacy_filters(projects: list[dict]) -> list[tuple[str, int, int]]:
     """Derive ``(title, filter_id, pseudo_id)`` for present legacy filters.
 
-    From negative-id pseudo-projects with ``id <= -2`` (excludes native
-    ``Favorites`` at ``-1``) whose title is in the legacy set, compute
+    From **kent-owned** negative-id pseudo-projects with ``id <= -2`` (excludes
+    native ``Favorites`` at ``-1``) whose title is in the legacy set, compute
     ``filter_id = -id - 1``. Favorites (``-1``) is never derived or targeted.
+    The owner check (post-merge review HIGH #2) is defense-in-depth: filters are
+    per-user, but deriving only from kent-owned pseudo-projects guarantees a
+    shared/other-user filter with a legacy title is never queued for deletion.
     """
     derived: list[tuple[str, int, int]] = []
     for project in projects:
         pseudo_id = _project_id(project)
         if pseudo_id is None or pseudo_id > -2:
             # Skips positive real projects, 0, and Favorites (-1).
+            continue
+        if not _is_kent_owned(project):
+            # Only delete Kent's own legacy filters.
             continue
         title = project.get("title")
         if not isinstance(title, str) or title not in LEGACY_FILTER_TITLES:
@@ -777,10 +790,19 @@ def _build_parser() -> argparse.ArgumentParser:
 def _read_token_file(path: str) -> str:
     """Read the kent token from ``path``; abort if missing or blank.
 
-    Reads ONLY this file — never the VikunjaClient felix-bot default. A
+    Reads ONLY this file — never the VikunjaClient felix-bot default. The
+    known felix-bot token path is refused outright (pre-mutation guard,
+    independent of the create-response owner assertion). A
     missing/unreadable/blank file is a hard error whose message names the
     credential so the operator can provision/refresh ``vikunja-api-kent``.
     """
+    if os.path.abspath(path) == os.path.abspath(FELIX_BOT_TOKEN_FILE):
+        raise ReconcileError(
+            f"refusing to use the felix-bot token file {path!r}: this helper "
+            f"makes kent-owned config changes and must use the "
+            f"'vikunja-api-kent' credential. A felix-bot run would create "
+            f"kent-invisible, felix-bot-owned projects (#715)."
+        )
     try:
         with open(path, encoding="utf-8") as handle:
             token = handle.read()

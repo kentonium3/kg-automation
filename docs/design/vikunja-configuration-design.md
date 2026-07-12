@@ -261,21 +261,29 @@ that would be excluded by active filters.
 ## Migration Sequence
 
 The following sequence transitions from the current state to this design.
-Steps 1 and 4 require human judgment; the rest are mechanical and could be
-scripted via the Vikunja API.
+Steps 1 and 5 require human judgment; the rest are mechanical and scripted via
+the Vikunja API. Steps are annotated with the issue that owns them.
 
 1. **Audit current tasks** — identify real vs. stale across all existing
    projects. Delete or archive anything no longer active.
-2. **Create the label taxonomy** — all `f:`, `q:`, `t:`, and `loe:` labels
-   via UI or API.
-3. **Create the project structure** — Inbox (verify exists), Felix /
-   kg-automation, Intentional LLC, Business Acquisition, Health &
-   Conditioning, Clients (parent), PointerHealth, spec-kitty, Personal.
-4. **Migrate surviving tasks** — move tasks from pseudo-view projects into
-   correct topic projects, applying Tier 1 and Tier 2 labels as appropriate.
-5. **Delete pseudo-view projects** — Everyday, Someday, Today, Upcoming,
-   Favorites. Confirm all tasks migrated before deletion.
-6. **Create saved filters** — all six filters defined above.
+2. **Create the label taxonomy** (#715) — all `f:`, `q:`, `t:`, and `loe:`
+   labels, created as kent via the API. (Done.)
+3. **Create the project structure** (#716) — verify Inbox exists, then
+   additively create the *missing* topic projects: Felix / kg-automation,
+   Clients (parent), PointerHealth, spec-kitty, Personal. (Intentional LLC,
+   Business Acquisition, Health & Conditioning, Metal Casework, CT-90day, and
+   Habits already exist and are retained — not recreated.)
+4. **Delete the legacy saved filters** (#716) — Today, Upcoming, Overdue,
+   Goals, Completed. These are negative-id *saved filters*, not projects;
+   Favorites is Vikunja's native view and is left untouched. Backup-gated
+   (Tier 2). The canonical replacement filters are created in step 7 (#718).
+5. **Migrate surviving tasks + delete emptied projects** (#717, human
+   judgment) — move tasks out of the task-bearing projects (Everyday, Someday,
+   Personal Growth & Transformation, Household, Goals, Research) into their
+   correct topic projects with Tier 1/2 labels, then delete those projects
+   once confirmed empty. (Personal Growth & Transformation + Household fold
+   into the new Personal.)
+6. **Create saved filters** (#718) — all six filters defined above.
 7. **Set dashboard** — Today filter as home screen default.
 8. **Verify Felix label references** — confirm Felix skill and briefing
    queries match the locked label names in this document.

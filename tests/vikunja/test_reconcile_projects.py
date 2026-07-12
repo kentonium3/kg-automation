@@ -546,6 +546,25 @@ def test_favorites_never_derived_or_deleted():
     assert all("/filters/0" != c for c in client.delete_calls)
 
 
+def test_legacy_filter_owned_by_other_user_not_derived():
+    # Post-merge review HIGH #2 (defense-in-depth): a legacy-titled negative-id
+    # pseudo-project owned by someone other than kent must NOT be derived for
+    # deletion, even though filters are per-user.
+    projects = [
+        _inbox(1),
+        _project(20, "Felix / kg-automation", owner="kent"),
+        _project(21, "Clients", owner="kent"),
+        _project(22, "PointerHealth", parent=21, owner="kent"),
+        _project(23, "spec-kitty", parent=21, owner="kent"),
+        _project(24, "Personal", owner="kent"),
+        _project(-102, "Today", owner="someone-else"),  # not kent's filter
+    ]
+    client = _FakeClient(pages=[projects])
+    outcomes, plan = rp.reconcile(client, delete_legacy=True, backup_confirmed="ts")
+    assert client.delete_calls == []
+    assert "Today" in plan.filters_absent
+
+
 def test_favorites_titled_as_legacy_still_skipped_by_id_guard():
     # Defensive: even if a pseudo -1 somehow carried a legacy title, id<=-2
     # filter derivation excludes it; and the pass guards pseudo_id == -1.
@@ -904,6 +923,20 @@ def test_blank_token_file_exit_one(tmp_path, capsys):
 def test_read_token_file_helper_missing_raises(tmp_path):
     with pytest.raises(rp.ReconcileError, match="vikunja-api-kent"):
         rp._read_token_file(str(tmp_path / "absent"))
+
+
+def test_felix_bot_token_path_refused():
+    # Post-merge review HIGH #1: the known felix-bot token path is refused as a
+    # source before any read/mutation, independent of the create-response owner
+    # assertion (which would not fire on a converged/delete-only run).
+    with pytest.raises(rp.ReconcileError, match="felix-bot"):
+        rp._read_token_file(rp.FELIX_BOT_TOKEN_FILE)
+
+
+def test_felix_bot_token_path_refused_via_cli_exit_one(capsys):
+    rc = rp.main(["--token-file", rp.FELIX_BOT_TOKEN_FILE])
+    assert rc == 1
+    assert "felix-bot" in capsys.readouterr().err
 
 
 # ---------------------------------------------------------------------------
