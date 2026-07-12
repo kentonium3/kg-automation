@@ -445,11 +445,11 @@ class TestReconcileHappyPath:
         ledger_path,
         activity_log_sandbox,
     ):
-        """Projects 11 (Goals) and 13 (Habits) are excluded from the sweep."""
+        """Habits (13) is excluded from the sweep (Goals 11 deleted by #717)."""
         mock_sync_cache_fixture(
             tasks={
                 100: _task_fields(100, project_id=5),    # included
-                1100: _task_fields(1100, project_id=11),  # excluded (Goals)
+                1100: _task_fields(1100, project_id=13),  # excluded (Habits)
                 1300: _task_fields(1300, project_id=13),  # excluded (Habits)
             }
         )
@@ -1100,3 +1100,13 @@ class TestCLI:
         assert rc == 0
         assert "MALFORMED task=100" in captured.out
         assert "unknown state token" in captured.out
+
+
+class TestReconcileDocstring:
+    def test_reconcile_docstring_names_habits_only(self):
+        """The ``reconcile`` docstring must describe the default exclusion as
+        "Habits" only — Goals(11) was deleted by #717 and the constant is now
+        ``frozenset({13})`` (LOW-5, post-merge Codex hardening)."""
+        doc = reconcile.__doc__ or ""
+        assert "Goals" not in doc
+        assert "Habits" in doc

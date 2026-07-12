@@ -147,10 +147,10 @@ HTTP_TIMEOUT_SECONDS: int = 30
 FELIX_COMMENT_PREFIX: str = "[Felix]"
 
 #: Project ids excluded from ``reconcile`` per the deployed tasker AGENTS.md
-#: scope rules. ``11`` (Goals) and ``13`` (Habits) carry their own state
-#: substrate (Habits is owned by felix-admin-habits; Goals are anchors,
-#: not enrichable tasks).
-EXCLUDED_PROJECT_IDS: frozenset[int] = frozenset({11, 13})
+#: scope rules. ``13`` (Habits) carries its own state substrate (owned by
+#: felix-admin-habits). Goals (11) was deleted by #717 — its tasks moved to
+#: Intentional LLC — so it is no longer a project and no longer excluded.
+EXCLUDED_PROJECT_IDS: frozenset[int] = frozenset({13})
 
 
 # ---------------------------------------------------------------------------
@@ -525,7 +525,7 @@ def reconcile(
         dry_run: If True, no writes occur. Report still populated with
             parseable + malformed counts.
         excluded_project_ids: Projects to skip (defaults to
-            :data:`EXCLUDED_PROJECT_IDS`: Goals + Habits).
+            :data:`EXCLUDED_PROJECT_IDS`: Habits).
 
     Returns:
         A populated :class:`ReconcileReport`.

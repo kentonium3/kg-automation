@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "mission_slug": "vikunja-migrate-tasks-01KXBZ8A",
+  "mission_id": "01KXBZ8AYK5176DQ8W6M01CA64",
+  "mission_branch": "kitty/mission-vikunja-migrate-tasks-01KXBZ8A",
+  "target_branch": "feat/vikunja-migrate-tasks",
+  "lanes": [
+    {
+      "lane_id": "lane-a",
+      "wp_ids": [
+        "WP01"
+      ],
+      "write_scope": [
+        "docs/design/vikunja-configuration-design.md",
+        "scripts/common/vikunja_scope.py",
+        "scripts/enrichment/reconcile_completions.py",
+        "scripts/vikunja/migrate_tasks.py",
+        "scripts/vikunja/task_migration_manifest.yaml",
+        "tests/common/test_vikunja_scope.py",
+        "tests/enrichment/test_reconcile_completions.py",
+        "tests/vikunja/test_migrate_tasks.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "artifact-rendering",
+        "legacy-cleanup"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    }
+  ],
+  "computed_at": "2026-07-12T21:12:13.306839+00:00",
+  "computed_from": "dependency_graph+ownership",
+  "planning_artifact_wps": []
+}

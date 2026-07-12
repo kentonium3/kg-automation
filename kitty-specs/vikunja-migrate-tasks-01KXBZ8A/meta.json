@@ -1,0 +1,32 @@
+{
+  "accept_commit": "f624d8fa58604670987147061cb69b0bf6b6f64c",
+  "acceptance_history": [
+    {
+      "accept_commit": "f624d8fa58604670987147061cb69b0bf6b6f64c",
+      "acceptance_mode": "pr",
+      "accepted_at": "2026-07-12T21:40:20.216302+00:00",
+      "accepted_by": "kentgale",
+      "accepted_from_commit": "131b27c92bafdea0ade4e3323695689df2c61038"
+    }
+  ],
+  "acceptance_mode": "pr",
+  "accepted_at": "2026-07-12T21:40:20.216302+00:00",
+  "accepted_by": "kentgale",
+  "accepted_from_commit": "131b27c92bafdea0ade4e3323695689df2c61038",
+  "baseline_merge_commit": "71137b6b434aa93626c8bb133c72d03cb845b743",
+  "created_at": "2026-07-12T20:10:47.638401+00:00",
+  "flattened": true,
+  "friendly_name": "Vikunja Task Migration & Project Teardown",
+  "mission_id": "01KXBZ8AYK5176DQ8W6M01CA64",
+  "mission_number": 99,
+  "mission_slug": "vikunja-migrate-tasks-01KXBZ8A",
+  "mission_type": "software-dev",
+  "pr_bound": true,
+  "purpose_context": "After the label taxonomy (#715) and topic-project creation (#716), the Vikunja task store still holds two structures at once. This mission runs the human-judgment migration — routing every task out of the six doomed projects into its correct topic project per Kent's locked manifest, applying the t:habit label, deleting test artifacts, and removing the emptied projects — so Felix task-intake and escalation reason over one coherent structure.",
+  "purpose_tldr": "Move surviving Vikunja tasks into the new topic projects, label habits, and delete the emptied legacy projects.",
+  "slug": "vikunja-migrate-tasks-01KXBZ8A",
+  "target_branch": "feat/vikunja-migrate-tasks",
+  "topology": "single_branch",
+  "vcs": "git",
+  "vcs_locked_at": "2026-07-12T21:14:39.509700+00:00"
+}

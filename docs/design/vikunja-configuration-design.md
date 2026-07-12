@@ -282,7 +282,25 @@ the Vikunja API. Steps are annotated with the issue that owns them.
    Personal Growth & Transformation, Household, Goals, Research) into their
    correct topic projects with Tier 1/2 labels, then delete those projects
    once confirmed empty. (Personal Growth & Transformation + Household fold
-   into the new Personal.)
+   into the new Personal.) **(Done — helper `scripts/vikunja/migrate_tasks.py`
+   ships the code; the live run is operator-invoked post-merge.)**
+
+   Final distribution (locked routing, 29 moves + 11 labels + 2 task-deletes +
+   6 project-deletes):
+
+   - **Personal (20)** ← 22 tasks: 7 from Everyday, 7 from Someday, 1 from
+     Personal Growth, 4 from Household, 3 open from Inbox.
+   - **Felix / kg-automation (16)** ← 3 tasks: 1 from Everyday, 2 from Research.
+   - **Intentional LLC (9)** ← 4 tasks: 3 former Goals anchors, 1 from Someday.
+   - **Habits (13)** — retained; 11 tasks receive the `t:habit` label and stay
+     in place.
+   - **Deleted test tasks:** #89 (in Someday), #44 (in Inbox).
+   - **Deleted legacy projects (children first):** Someday (4), Everyday (2),
+     Personal Growth & Transformation (5), Household (15), Goals (11),
+     Research (12).
+
+   Escalation/enrichment exclusion seams drop the deleted Goals id (11); only
+   Habits (13) remains excluded.
 6. **Create saved filters** (#718) — all six filters defined above.
 7. **Set dashboard** — Today filter as home screen default.
 8. **Verify Felix label references** — confirm Felix skill and briefing

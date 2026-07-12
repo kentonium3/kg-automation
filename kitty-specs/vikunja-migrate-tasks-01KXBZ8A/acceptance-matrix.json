@@ -1,0 +1,119 @@
+{
+  "mission_slug": "vikunja-migrate-tasks-01KXBZ8A",
+  "mission_number": "",
+  "mission_type": "software-dev",
+  "overall_verdict": "pass",
+  "criteria": [
+    {
+      "criterion_id": "FR-001",
+      "description": "Manifest tasks move to their target project via allowlisted RMW",
+      "proof_type": "automated_test",
+      "evidence": "tests/vikunja/test_migrate_tasks.py (move_task + build_plan move tests); full make test green",
+      "pass_fail": "pass",
+      "verified_by": "python-pedro (impl) + reviewer-renata (review) + full make test 5148 pass / 0 fail",
+      "verified_at": "2026-07-12T21:40:02Z",
+      "notes": "Verified via mocked-client unit tests + full suite; reviewer-renata APPROVE."
+    },
+    {
+      "criterion_id": "FR-002",
+      "description": "t:habit label applied to Habits tasks, idempotent",
+      "proof_type": "automated_test",
+      "evidence": "tests/vikunja/test_migrate_tasks.py (apply_habit_label skip-if-present tests)",
+      "pass_fail": "pass",
+      "verified_by": "python-pedro (impl) + reviewer-renata (review) + full make test 5148 pass / 0 fail",
+      "verified_at": "2026-07-12T21:40:02Z",
+      "notes": "Verified via mocked-client unit tests + full suite; reviewer-renata APPROVE."
+    },
+    {
+      "criterion_id": "FR-003",
+      "description": "Test-artifact tasks #89/#44 deleted",
+      "proof_type": "automated_test",
+      "evidence": "tests/vikunja/test_migrate_tasks.py (delete_test_tasks tests)",
+      "pass_fail": "pass",
+      "verified_by": "python-pedro (impl) + reviewer-renata (review) + full make test 5148 pass / 0 fail",
+      "verified_at": "2026-07-12T21:40:02Z",
+      "notes": "Verified via mocked-client unit tests + full suite; reviewer-renata APPROVE."
+    },
+    {
+      "criterion_id": "FR-004",
+      "description": "Emptied projects deleted only when empty (done-inclusive re-list), children before parents, test-deletes first",
+      "proof_type": "automated_test",
+      "evidence": "test_reconcile_empty_check_blocks_50plus_task_project, test_build_plan_done_only_task_blocks_project, test_reconcile_test_delete_precedes_empty_check",
+      "pass_fail": "pass",
+      "verified_by": "python-pedro (impl) + reviewer-renata (review) + full make test 5148 pass / 0 fail",
+      "verified_at": "2026-07-12T21:40:02Z",
+      "notes": "Verified via mocked-client unit tests + full suite; reviewer-renata APPROVE."
+    },
+    {
+      "criterion_id": "FR-005",
+      "description": "Idempotent: second build_plan over post-migration state is empty",
+      "proof_type": "automated_test",
+      "evidence": "test_build_plan_idempotent_over_post_state",
+      "pass_fail": "pass",
+      "verified_by": "python-pedro (impl) + reviewer-renata (review) + full make test 5148 pass / 0 fail",
+      "verified_at": "2026-07-12T21:40:02Z",
+      "notes": "Verified via mocked-client unit tests + full suite; reviewer-renata APPROVE."
+    },
+    {
+      "criterion_id": "FR-006",
+      "description": "Fail-loud on non-empty doomed project and on felix-bot identity",
+      "proof_type": "automated_test",
+      "evidence": "felix-bot path refusal test + non-empty-doomed-project block tests",
+      "pass_fail": "pass",
+      "verified_by": "python-pedro (impl) + reviewer-renata (review) + full make test 5148 pass / 0 fail",
+      "verified_at": "2026-07-12T21:40:02Z",
+      "notes": "Verified via mocked-client unit tests + full suite; reviewer-renata APPROVE."
+    },
+    {
+      "criterion_id": "FR-007",
+      "description": "Goals(11) dropped from both exclusion seams; HABIT_SELECTOR unchanged",
+      "proof_type": "automated_test",
+      "evidence": "tests/common/test_vikunja_scope.py (== [13]); tests/enrichment/test_reconcile_completions.py (fixture 11->13)",
+      "pass_fail": "pass",
+      "verified_by": "python-pedro (impl) + reviewer-renata (review) + full make test 5148 pass / 0 fail",
+      "verified_at": "2026-07-12T21:40:02Z",
+      "notes": "Verified via mocked-client unit tests + full suite; reviewer-renata APPROVE."
+    },
+    {
+      "criterion_id": "FR-008",
+      "description": "Committed manifest exactly matches locked routing",
+      "proof_type": "automated_test",
+      "evidence": "test_manifest_fidelity_exact_locked_sets (exact dict/list equality)",
+      "pass_fail": "pass",
+      "verified_by": "python-pedro (impl) + reviewer-renata (review) + full make test 5148 pass / 0 fail",
+      "verified_at": "2026-07-12T21:40:02Z",
+      "notes": "Verified via mocked-client unit tests + full suite; reviewer-renata APPROVE."
+    },
+    {
+      "criterion_id": "FR-009",
+      "description": "Applied summary classifies actions completed/skipped/blocked and echoes backup_ref",
+      "proof_type": "automated_test",
+      "evidence": "tests/vikunja/test_migrate_tasks.py (summary/reconcile tests)",
+      "pass_fail": "pass",
+      "verified_by": "python-pedro (impl) + reviewer-renata (review) + full make test 5148 pass / 0 fail",
+      "verified_at": "2026-07-12T21:40:02Z",
+      "notes": "Verified via mocked-client unit tests + full suite; reviewer-renata APPROVE."
+    },
+    {
+      "criterion_id": "FR-010",
+      "description": "Preflight validates identity/owner==kent + target/doomed title+parent + unique t:habit + label_habit-in-13 before mutation",
+      "proof_type": "automated_test",
+      "evidence": "preflight tests (owner/title mismatch raise)",
+      "pass_fail": "pass",
+      "verified_by": "python-pedro (impl) + reviewer-renata (review) + full make test 5148 pass / 0 fail",
+      "verified_at": "2026-07-12T21:40:02Z",
+      "notes": "Verified via mocked-client unit tests + full suite; reviewer-renata APPROVE."
+    },
+    {
+      "criterion_id": "FR-011",
+      "description": "Moved task preserves writable-field allowlist (readback raises on change); complex-state tasks blocked not migrated",
+      "proof_type": "automated_test",
+      "evidence": "test_move_task_readback_field_changed_raises; complex-state block tests",
+      "pass_fail": "pass",
+      "verified_by": "python-pedro (impl) + reviewer-renata (review) + full make test 5148 pass / 0 fail",
+      "verified_at": "2026-07-12T21:40:02Z",
+      "notes": "Verified via mocked-client unit tests + full suite; reviewer-renata APPROVE."
+    }
+  ],
+  "negative_invariants": []
+}

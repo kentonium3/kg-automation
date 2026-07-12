@@ -46,10 +46,11 @@ __all__ = [
 ]
 
 #: Project ids that escalation excludes from candidate enumeration.
-#: Today: Goals (11) and Habits (13). Project-ID-only (see H6 above) —
-#: re-deriving this from ``habit_selector`` when it becomes a label is
-#: #716's work.
-ESCALATION_EXCLUDED_PROJECT_IDS: list[int] = [11, 13]
+#: Today: Habits (13) only. Goals (11) was deleted by #717 (its tasks moved
+#: to Intentional LLC and are now normal escalation candidates), so it is no
+#: longer excluded. Project-ID-only (see H6 above) — re-deriving this from
+#: ``habit_selector`` when it becomes a label is #716's work.
+ESCALATION_EXCLUDED_PROJECT_IDS: list[int] = [13]
 
 #: Habit identity selector. ``kind`` is ``"project_id"`` or ``"label"``;
 #: today's value uses ``project_id``. A future #714/#716 label move sets

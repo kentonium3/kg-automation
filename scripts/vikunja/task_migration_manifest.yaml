@@ -1,0 +1,78 @@
+# Vikunja task-migration routing manifest (#717).
+#
+# The committed carrier of Kent's locked, human-judgment routing. Consumed by
+# `scripts/vikunja/migrate_tasks.py`; validated on load (static invariants) and
+# checked for exact fidelity against the locked sets by the test suite (FR-008).
+#
+# EXACT transcription of contracts/manifest_schema.md -> "Locked content".
+# Do NOT re-derive routing here — this is the human-authored source of truth.
+#
+# Live ids are the #716 layout: Personal 20, Felix/kg-automation 16,
+# Intentional LLC 9, Habits 13 (retained). Doomed legacy projects: Someday 4
+# (child of Everyday 2), Everyday 2, Personal Growth 5, Household 15, Goals 11,
+# Research 12.
+
+target_projects:          # selector-key -> live project id (#716)
+  personal: 20
+  felix: 16
+  intentional: 9
+  habits: 13
+
+moves:                    # task_id (int) -> target project key (str) — 29 entries
+  # -> personal (20)
+  42: personal            # Everyday (2)
+  51: personal            # Everyday (2)
+  54: personal            # Everyday (2)
+  61: personal            # Everyday (2)
+  64: personal            # Everyday (2)
+  72: personal            # Everyday (2)
+  81: personal            # Everyday (2)
+  6: personal             # Someday (4)
+  29: personal            # Someday (4)
+  30: personal            # Someday (4)
+  31: personal            # Someday (4)
+  32: personal            # Someday (4)
+  84: personal            # Someday (4)
+  85: personal            # Someday (4)
+  59: personal            # Personal Growth (5)
+  5: personal             # Household (15)
+  25: personal            # Household (15)
+  33: personal            # Household (15)
+  79: personal            # Household (15)
+  26: personal            # Inbox (1, open)
+  34: personal            # Inbox (1, open)
+  100: personal           # Inbox (1, open)
+  # -> felix (16)
+  50: felix               # Everyday (2)
+  11: felix               # Research (12)
+  46: felix               # Research (12)
+  # -> intentional (9)
+  1: intentional          # Goals (11)
+  2: intentional          # Goals (11)
+  13: intentional         # Goals (11)
+  86: intentional         # Someday (4)
+
+label_habit:              # list[int]: task ids to receive t:habit (stay in Habits 13) — 11 entries
+  - 14
+  - 15
+  - 16
+  - 17
+  - 18
+  - 19
+  - 20
+  - 65
+  - 75
+  - 76
+  - 77
+
+delete_tasks:             # list[int]: test-artifact tasks to delete — 2 entries
+  - 89                    # in Someday (4)
+  - 44                    # in Inbox (1)
+
+delete_projects:          # list[int]: project ids to delete, CHILDREN FIRST — 6 entries
+  - 4                     # Someday (child of Everyday 2)
+  - 2                     # Everyday (parent)
+  - 5                     # Personal Growth
+  - 15                    # Household
+  - 11                    # Goals
+  - 12                    # Research

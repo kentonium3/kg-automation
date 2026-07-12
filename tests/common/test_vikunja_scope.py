@@ -25,13 +25,14 @@ from scripts.common import vikunja_scope
 
 
 def test_get_escalation_excluded_project_ids_returns_current_values() -> None:
-    assert vikunja_scope.get_escalation_excluded_project_ids() == [11, 13]
+    # Goals (11) was deleted by #717; only Habits (13) remains excluded (SC-006).
+    assert vikunja_scope.get_escalation_excluded_project_ids() == [13]
 
 
 def test_get_escalation_excluded_project_ids_returns_a_copy() -> None:
     result = vikunja_scope.get_escalation_excluded_project_ids()
     result.append(999)
-    assert vikunja_scope.get_escalation_excluded_project_ids() == [11, 13]
+    assert vikunja_scope.get_escalation_excluded_project_ids() == [13]
 
 
 # ---------------------------------------------------------------------------
