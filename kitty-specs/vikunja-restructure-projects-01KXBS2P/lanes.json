@@ -1,0 +1,31 @@
+{
+  "version": 1,
+  "mission_slug": "vikunja-restructure-projects-01KXBS2P",
+  "mission_id": "01KXBS2P445A3BRNGZ8S7VC4PY",
+  "mission_branch": "kitty/mission-vikunja-restructure-projects-01KXBS2P",
+  "target_branch": "feat/vikunja-restructure-projects",
+  "lanes": [
+    {
+      "lane_id": "lane-a",
+      "wp_ids": [
+        "WP01"
+      ],
+      "write_scope": [
+        "docs/design/vikunja-configuration-design.md",
+        "scripts/vikunja/reconcile_projects.py",
+        "tests/vikunja/test_reconcile_projects.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "app-shell",
+        "legacy-cleanup",
+        "tests"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    }
+  ],
+  "computed_at": "2026-07-12T18:43:31.178540+00:00",
+  "computed_from": "dependency_graph+ownership",
+  "planning_artifact_wps": []
+}

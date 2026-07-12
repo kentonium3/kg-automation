@@ -1,0 +1,149 @@
+{
+  "mission_slug": "vikunja-restructure-projects-01KXBS2P",
+  "mission_number": "",
+  "mission_type": "software-dev",
+  "overall_verdict": "pass",
+  "criteria": [
+    {
+      "criterion_id": "FR-001",
+      "description": "Create topic project 'Felix / kg-automation' if absent",
+      "proof_type": "automated_test",
+      "evidence": "create-pass tests; PUT /projects create path | tests/vikunja/test_reconcile_projects.py (60 tests, 95.88% cov, lane d5af217/bacd5f30)",
+      "pass_fail": "pass",
+      "verified_by": "reviewer-renata",
+      "verified_at": "2026-07-12T19:05:31Z",
+      "notes": "Verified via mocked-client unit tests; reviewer-renata APPROVE."
+    },
+    {
+      "criterion_id": "FR-002",
+      "description": "Create parent project 'Clients' (folder) if absent",
+      "proof_type": "automated_test",
+      "evidence": "create-pass tests; parent-before-children ordering asserted | tests/vikunja/test_reconcile_projects.py (60 tests, 95.88% cov, lane d5af217/bacd5f30)",
+      "pass_fail": "pass",
+      "verified_by": "reviewer-renata",
+      "verified_at": "2026-07-12T19:05:31Z",
+      "notes": "Verified via mocked-client unit tests; reviewer-renata APPROVE."
+    },
+    {
+      "criterion_id": "FR-003",
+      "description": "Create sub-project 'PointerHealth' under Clients",
+      "proof_type": "automated_test",
+      "evidence": "test resolves Clients id before child create | tests/vikunja/test_reconcile_projects.py (60 tests, 95.88% cov, lane d5af217/bacd5f30)",
+      "pass_fail": "pass",
+      "verified_by": "reviewer-renata",
+      "verified_at": "2026-07-12T19:05:31Z",
+      "notes": "Verified via mocked-client unit tests; reviewer-renata APPROVE."
+    },
+    {
+      "criterion_id": "FR-004",
+      "description": "Create sub-project 'spec-kitty' under Clients",
+      "proof_type": "automated_test",
+      "evidence": "test resolves Clients id before child create | tests/vikunja/test_reconcile_projects.py (60 tests, 95.88% cov, lane d5af217/bacd5f30)",
+      "pass_fail": "pass",
+      "verified_by": "reviewer-renata",
+      "verified_at": "2026-07-12T19:05:31Z",
+      "notes": "Verified via mocked-client unit tests; reviewer-renata APPROVE."
+    },
+    {
+      "criterion_id": "FR-005",
+      "description": "Create catch-all project 'Personal' if absent",
+      "proof_type": "automated_test",
+      "evidence": "create-pass tests | tests/vikunja/test_reconcile_projects.py (60 tests, 95.88% cov, lane d5af217/bacd5f30)",
+      "pass_fail": "pass",
+      "verified_by": "reviewer-renata",
+      "verified_at": "2026-07-12T19:05:31Z",
+      "notes": "Verified via mocked-client unit tests; reviewer-renata APPROVE."
+    },
+    {
+      "criterion_id": "FR-006",
+      "description": "Verify Inbox exists; never recreate; absent = hard error",
+      "proof_type": "automated_test",
+      "evidence": "inbox-verify test (kent-owned, top-level) | tests/vikunja/test_reconcile_projects.py (60 tests, 95.88% cov, lane d5af217/bacd5f30)",
+      "pass_fail": "pass",
+      "verified_by": "reviewer-renata",
+      "verified_at": "2026-07-12T19:05:31Z",
+      "notes": "Verified via mocked-client unit tests; reviewer-renata APPROVE."
+    },
+    {
+      "criterion_id": "FR-007",
+      "description": "Delete legacy filters via derivation + title readback; never -1",
+      "proof_type": "automated_test",
+      "evidence": "test_filter_readback_mismatch_no_delete_fails_loud; never -1 double-guard | tests/vikunja/test_reconcile_projects.py (60 tests, 95.88% cov, lane d5af217/bacd5f30)",
+      "pass_fail": "pass",
+      "verified_by": "reviewer-renata",
+      "verified_at": "2026-07-12T19:05:31Z",
+      "notes": "Verified via mocked-client unit tests; reviewer-renata APPROVE."
+    },
+    {
+      "criterion_id": "FR-008",
+      "description": "Idempotent: converged second run = zero mutations",
+      "proof_type": "automated_test",
+      "evidence": "test_idempotent_converged_zero_mutations | tests/vikunja/test_reconcile_projects.py (60 tests, 95.88% cov, lane d5af217/bacd5f30)",
+      "pass_fail": "pass",
+      "verified_by": "reviewer-renata",
+      "verified_at": "2026-07-12T19:05:31Z",
+      "notes": "Verified via mocked-client unit tests; reviewer-renata APPROVE."
+    },
+    {
+      "criterion_id": "FR-009",
+      "description": "Kent-owner enforcement: explicit token file, owner-scoped match, create-response owner==kent",
+      "proof_type": "automated_test",
+      "evidence": "test_create_response_wrong_owner_aborts; test_felix_bot_inbox_id14_ignored_by_matching; test_missing_token_file_names_credential_exit_one | tests/vikunja/test_reconcile_projects.py (60 tests, 95.88% cov, lane d5af217/bacd5f30)",
+      "pass_fail": "pass",
+      "verified_by": "reviewer-renata",
+      "verified_at": "2026-07-12T19:05:31Z",
+      "notes": "Verified via mocked-client unit tests; reviewer-renata APPROVE."
+    },
+    {
+      "criterion_id": "FR-010",
+      "description": "No write op targets a project outside the create set; zero project-delete; id 13 untouched",
+      "proof_type": "automated_test",
+      "evidence": "test_no_delete_projects_endpoint_ever_called; test_habits_id13_never_written; _assert_no_project_delete guard | tests/vikunja/test_reconcile_projects.py (60 tests, 95.88% cov, lane d5af217/bacd5f30)",
+      "pass_fail": "pass",
+      "verified_by": "reviewer-renata",
+      "verified_at": "2026-07-12T19:05:31Z",
+      "notes": "Verified via mocked-client unit tests; reviewer-renata APPROVE."
+    },
+    {
+      "criterion_id": "FR-011",
+      "description": "Design doc Project Structure reconciled to final structure",
+      "proof_type": "automated_test",
+      "evidence": "validate_docs OK; design-doc fidelity test parses the edited section | tests/vikunja/test_reconcile_projects.py (60 tests, 95.88% cov, lane d5af217/bacd5f30)",
+      "pass_fail": "pass",
+      "verified_by": "reviewer-renata",
+      "verified_at": "2026-07-12T19:05:31Z",
+      "notes": "Verified via mocked-client unit tests; reviewer-renata APPROVE."
+    },
+    {
+      "criterion_id": "FR-012",
+      "description": "Summary created/verified/deleted/skipped; mid-run failure shows completed vs skipped",
+      "proof_type": "automated_test",
+      "evidence": "test_api_error_after_one_create_*; test_delete_failure_mid_run_reports_partial | tests/vikunja/test_reconcile_projects.py (60 tests, 95.88% cov, lane d5af217/bacd5f30)",
+      "pass_fail": "pass",
+      "verified_by": "reviewer-renata",
+      "verified_at": "2026-07-12T19:05:31Z",
+      "notes": "Verified via mocked-client unit tests; reviewer-renata APPROVE."
+    },
+    {
+      "criterion_id": "FR-013",
+      "description": "CLI exit codes 0/1/2 with dry-run + json",
+      "proof_type": "automated_test",
+      "evidence": "test_delete_refused_without_backup_ref_exit_two_no_mutation; test_dry_run_zero_mutations_exit_zero | tests/vikunja/test_reconcile_projects.py (60 tests, 95.88% cov, lane d5af217/bacd5f30)",
+      "pass_fail": "pass",
+      "verified_by": "reviewer-renata",
+      "verified_at": "2026-07-12T19:05:31Z",
+      "notes": "Verified via mocked-client unit tests; reviewer-renata APPROVE."
+    },
+    {
+      "criterion_id": "FR-014",
+      "description": "Owner+active+parent match; ambiguity/collision abort fail-loud",
+      "proof_type": "automated_test",
+      "evidence": "test_duplicate_active_target_aborts; test_archived_twin_collision_aborts; test_wrong_parent_collision_when_no_active_match_aborts; test_clients_ambiguous_aborts_before_children | tests/vikunja/test_reconcile_projects.py (60 tests, 95.88% cov, lane d5af217/bacd5f30)",
+      "pass_fail": "pass",
+      "verified_by": "reviewer-renata",
+      "verified_at": "2026-07-12T19:05:31Z",
+      "notes": "Verified via mocked-client unit tests; reviewer-renata APPROVE."
+    }
+  ],
+  "negative_invariants": []
+}
