@@ -619,3 +619,13 @@ def test_reconcile_delete_legacy_requires_backup_ref():
     with pytest.raises(ValueError):
         ctl.reconcile(client, delete_legacy=True, backup_confirmed="   ")
     assert client.delete_calls == []
+
+
+def test_create_from_empty_null_response():
+    """Vikunja returns JSON null (not []) for an empty label set — the helper
+    must treat that as empty and create all 12, not raise (live bug, #715)."""
+    client = _FakeClient(pages=[None])
+    outcomes, id_map, failed = ctl.reconcile(client)
+    assert failed is False
+    assert sum(1 for o in outcomes if o.action == "created") == 12
+    assert len(id_map) == 12

@@ -122,9 +122,14 @@ def list_labels(client: Any) -> dict[str, list[dict]]:
             "/labels",
             params={"per_page": str(_PAGE_SIZE), "page": str(page)},
         )
+        if batch is None:
+            # Vikunja returns JSON ``null`` (not ``[]``) for an empty label set
+            # (and for a page past the last). Treat it as an exhausted/empty
+            # page and stop — this is the empty-instance / fresh-user case.
+            break
         if not isinstance(batch, list):
-            # A non-list body from a 200 is a contract violation; surface it
-            # as a server error rather than silently treating it as empty.
+            # Any other non-list body from a 200 is a contract violation;
+            # surface it as a server error rather than silently continuing.
             raise VikunjaError(path="/labels", status=200)
         for label in batch:
             if not isinstance(label, dict):
