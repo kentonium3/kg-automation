@@ -523,14 +523,20 @@ def _evaluate_openclaw_crons(
 
     failures: list[str] = []
     stale: list[str] = []
+    indeterminate: list[str] = []
 
     for name in crons:
         job = by_name.get(name)
         if job is None:
             failures.append(f"{name}: not present in cron list")
             continue
-        if not job.get("enabled", False):
-            failures.append(f"{name}: disabled")
+        # Strict boolean check: anything that is not literally ``True`` (missing,
+        # ``False``, or a drifted string like ``"disabled"``) fails loud rather
+        # than silently healing a not-enabled cron. OpenClaw emits a boolean
+        # ``enabled`` today (verified live); if that ever drifts, "not True" is
+        # the safe direction — page, never false-heal.
+        if job.get("enabled") is not True:
+            failures.append(f"{name}: not enabled (enabled={job.get('enabled')!r})")
             continue
 
         state = job.get("state") if isinstance(job.get("state"), dict) else {}
@@ -547,11 +553,21 @@ def _evaluate_openclaw_crons(
             continue
 
         next_run = state.get("nextRunAtMs")
-        if isinstance(next_run, (int, float)) and now_ms > next_run + grace_ms:
+        if not isinstance(next_run, (int, float)):
+            # The freshness anchor is missing/malformed on an enabled, non-errored
+            # cron — the one signal this probe exists to check. Do NOT fall through
+            # to healthy (that would be a false-healthy on freshness); record it as
+            # indeterminate so the service resolves to unknown with named evidence.
+            indeterminate.append(f"{name}: missing/invalid nextRunAtMs ({next_run!r})")
+            continue
+        if now_ms > next_run + grace_ms:
             overdue_s = (now_ms - next_run) / 1000.0
             stale.append(f"{name}: overdue {overdue_s:.0f}s past nextRunAtMs")
             continue
 
+    # Precedence: a concrete failure or overdue signal outranks an indeterminate
+    # freshness anchor; only when nothing is failed/stale does an indeterminate
+    # cron make the whole service unknown (honest, never a false healthy).
     if failures:
         return ProbeResult(
             ok=False, stale=False, evaluable=True,
@@ -562,6 +578,8 @@ def _evaluate_openclaw_crons(
             ok=True, stale=True, evaluable=True,
             evidence="cron(s) overdue: " + "; ".join(stale),
         )
+    if indeterminate:
+        return _unevaluable("cron freshness indeterminate: " + "; ".join(indeterminate))
     return ProbeResult(
         ok=True, stale=False, evaluable=True,
         evidence=(

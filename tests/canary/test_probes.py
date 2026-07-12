@@ -689,7 +689,63 @@ def test_openclaw_cron_disabled_is_failed():
         NOW, http_get=_boom, run_cmd=make_cmd(payload), read_state=_boom,
     )
     assert not result.ok and result.evaluable
-    assert "disabled" in result.evidence
+    assert "not enabled" in result.evidence
+
+
+def test_openclaw_cron_string_enabled_does_not_false_heal():
+    # A drifted non-boolean `enabled` must fail loud, never silently heal.
+    payload = _cron_list(
+        _cron_job("inbox-7am", status="ok", next_run_ms=NOW_MS + 3_600_000),
+    )
+    # Overwrite enabled to a drifted non-boolean string ("disabled" is truthy).
+    doc = _json.loads(payload[1])
+    doc["jobs"][0]["enabled"] = "disabled"
+    result = run_probe(
+        _cron_hc(["inbox-7am"]),
+        NOW, http_get=_boom, run_cmd=make_cmd((0, _json.dumps(doc), "")),
+        read_state=_boom,
+    )
+    assert not result.ok and result.evaluable
+    assert "not enabled" in result.evidence
+
+
+def test_openclaw_cron_missing_next_run_is_unevaluable():
+    # Enabled + ok but no freshness anchor → indeterminate, NOT false-healthy.
+    payload = _cron_list(_cron_job("inbox-7am", status="ok", next_run_ms=None))
+    result = run_probe(
+        _cron_hc(["inbox-7am"]),
+        NOW, http_get=_boom, run_cmd=make_cmd(payload), read_state=_boom,
+    )
+    assert not result.evaluable
+    assert "inbox-7am" in result.evidence and "nextRunAtMs" in result.evidence
+
+
+def test_openclaw_cron_non_numeric_next_run_is_unevaluable():
+    payload = _cron_list(
+        _cron_job("inbox-7am", status="ok", next_run_ms=None),
+    )
+    doc = _json.loads(payload[1])
+    doc["jobs"][0]["state"]["nextRunAtMs"] = "soon"
+    result = run_probe(
+        _cron_hc(["inbox-7am"]),
+        NOW, http_get=_boom, run_cmd=make_cmd((0, _json.dumps(doc), "")),
+        read_state=_boom,
+    )
+    assert not result.evaluable and "nextRunAtMs" in result.evidence
+
+
+def test_openclaw_cron_failure_outranks_indeterminate():
+    # A concrete failure surfaces even when another cron is indeterminate.
+    payload = _cron_list(
+        _cron_job("a", status="error", next_run_ms=NOW_MS + 3_600_000, last_error="boom"),
+        _cron_job("b", status="ok", next_run_ms=None),
+    )
+    result = run_probe(
+        _cron_hc(["a", "b"]),
+        NOW, http_get=_boom, run_cmd=make_cmd(payload), read_state=_boom,
+    )
+    assert not result.ok and result.evaluable  # failed, not unknown
+    assert "lastRunStatus=error" in result.evidence
 
 
 def test_openclaw_cron_never_run_but_not_due_is_healthy():
