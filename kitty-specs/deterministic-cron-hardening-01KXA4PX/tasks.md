@@ -87,9 +87,9 @@ WP02 ∥ WP03 (parallel; both depend only on WP01)
 **Dependencies**: WP02, WP03.
 **Prompt**: `tasks/WP04-observability-and-deploy.md` (~350 lines)
 
-- [ ] T012 Update `docs/design/architecture/data/service-inventory.json` (WP04)
-- [ ] T013 Create `scripts/deploy/deploy-habits-weekly-driver.py` (WP04)
-- [ ] T014 Create `deploys/queued/00NN-habits-weekly-driver.yaml` (WP04)
+- [x] T012 Update `docs/design/architecture/data/service-inventory.json` (WP04)
+- [x] T013 Create `scripts/deploy/deploy-habits-weekly-driver.py` (WP04)
+- [x] T014 Create `deploys/queued/00NN-habits-weekly-driver.yaml` (WP04)
 
 ## MVP / sequencing
 
