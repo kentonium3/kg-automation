@@ -445,11 +445,11 @@ class TestReconcileHappyPath:
         ledger_path,
         activity_log_sandbox,
     ):
-        """Projects 11 (Goals) and 13 (Habits) are excluded from the sweep."""
+        """Habits (13) is excluded from the sweep (Goals 11 deleted by #717)."""
         mock_sync_cache_fixture(
             tasks={
                 100: _task_fields(100, project_id=5),    # included
-                1100: _task_fields(1100, project_id=11),  # excluded (Goals)
+                1100: _task_fields(1100, project_id=13),  # excluded (Habits)
                 1300: _task_fields(1300, project_id=13),  # excluded (Habits)
             }
         )

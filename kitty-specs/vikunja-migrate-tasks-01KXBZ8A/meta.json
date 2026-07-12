@@ -17,7 +17,7 @@
   "flattened": true,
   "friendly_name": "Vikunja Task Migration & Project Teardown",
   "mission_id": "01KXBZ8AYK5176DQ8W6M01CA64",
-  "mission_number": null,
+  "mission_number": 99,
   "mission_slug": "vikunja-migrate-tasks-01KXBZ8A",
   "mission_type": "software-dev",
   "pr_bound": true,
