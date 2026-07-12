@@ -438,7 +438,14 @@ def test_query_events_dedup_by_date(mock_state_log_dir) -> None:
 
 
 def test_query_events_pagination_no_dupe(mock_state_log_dir) -> None:
-    """A habit appearing on multiple Vikunja pages (edge case) is counted once."""
+    """A habit appearing on multiple Vikunja pages (edge case) is counted once.
+
+    Also guards the >50-task pagination path (post-plan review M10) and
+    proves the fetch uses the config-sourced habit project id (#723
+    T002/T004): the first page is a full ``_PAGE_SIZE`` (200) batch, so
+    ``_paginate`` must request a second page rather than stopping early
+    (stop-on-empty-page semantics, not a hardcoded ``len < 100`` cutoff).
+    """
     full_page = [
         _vk_task(habit_id=1, title="Meditate") for _ in range(200)
     ]
@@ -467,6 +474,15 @@ def test_query_events_pagination_no_dupe(mock_state_log_dir) -> None:
     # Single bucket (de-duped), with the 7 distinct dates from the JSONL.
     assert list(events.keys()) == ["Meditate"]
     assert events["Meditate"]["current_count"] == 7
+    # Both pages were requested against the config-sourced habit project
+    # id (13 today, via scripts.common.vikunja_scope.habit_project_id()),
+    # confirming no hardcoded id was reintroduced and pagination consumed
+    # the full first page before requesting the second.
+    called_paths = [call.args[0] for call in client.get.call_args_list]
+    assert called_paths == [
+        f"/projects/{helper.HABITS_PROJECT_ID}/tasks",
+        f"/projects/{helper.HABITS_PROJECT_ID}/tasks",
+    ]
 
 
 def test_query_events_active_no_completions_creates_zero_row(

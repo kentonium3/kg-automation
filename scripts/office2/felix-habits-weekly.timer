@@ -1,0 +1,12 @@
+[Unit]
+Description=felix-habits-weekly — weekly habit-report driver schedule (Monday 06:00 America/New_York)
+
+[Timer]
+# Matches the retired openclaw cron's Monday 06:00 ET slot (contract M11 /
+# C3 transactional cutover — the openclaw cron is retired as this timer is
+# enabled so exactly one producer exists at any time).
+OnCalendar=Mon *-*-* 06:00:00 America/New_York
+Persistent=true
+
+[Install]
+WantedBy=timers.target

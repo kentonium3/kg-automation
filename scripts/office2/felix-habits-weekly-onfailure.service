@@ -1,0 +1,16 @@
+[Unit]
+Description=felix-habits-weekly OnFailure shim — emit an out-of-band ERROR when a weekly-report run fails
+
+[Service]
+Type=oneshot
+# Fires only when felix-habits-weekly.service exits non-zero (helper failure,
+# unconfirmed delivery, or a runner-level fault such as an unwritable state
+# dir). This is independent of the driver's own tick — if the driver crashed
+# before it could write last-tick.json, this shim guarantees the operator is
+# paged that the weekly report did not complete a confirmed delivery.
+# The bus shim exits 0 on a best-effort emit, so a delivery hiccup here never
+# masks the underlying failure that already triggered OnFailure.
+ExecStart=/home/claude/kg-automation/scripts/common/alert_bus.sh emit --source felix-habits-weekly/onfailure --severity error --title "felix-habits-weekly run failed" --description "The felix-habits-weekly.service run exited non-zero; the weekly habit report was not confirmed delivered."
+# Same alert-bus topic env-file as the main unit (leading "-" keeps it
+# non-fatal if absent — the shim also sources it itself as a fallback).
+EnvironmentFile=-/home/claude/.config/felix/alert-bus/env

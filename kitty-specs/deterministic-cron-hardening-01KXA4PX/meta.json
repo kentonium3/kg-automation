@@ -1,0 +1,32 @@
+{
+  "accept_commit": "aff3899846338ec42403f93f468dc72cfb52218f",
+  "acceptance_history": [
+    {
+      "accept_commit": "aff3899846338ec42403f93f468dc72cfb52218f",
+      "acceptance_mode": "pr",
+      "accepted_at": "2026-07-12T04:53:59.534595+00:00",
+      "accepted_by": "kentgale",
+      "accepted_from_commit": "80ed7971ab57a3bcb3d4312b18b25574d79402cc"
+    }
+  ],
+  "acceptance_mode": "pr",
+  "accepted_at": "2026-07-12T04:53:59.534595+00:00",
+  "accepted_by": "kentgale",
+  "accepted_from_commit": "80ed7971ab57a3bcb3d4312b18b25574d79402cc",
+  "baseline_merge_commit": "407de33edd422a77ac7e76e7bdb4117bee3ece8e",
+  "created_at": "2026-07-12T03:07:39.449198+00:00",
+  "flattened": true,
+  "friendly_name": "Deterministic escalation + weekly-report crons",
+  "mission_id": "01KXA4PXHQAW3WWPHT7P465Z6V",
+  "mission_number": 96,
+  "mission_slug": "deterministic-cron-hardening-01KXA4PX",
+  "mission_type": "software-dev",
+  "pr_bound": true,
+  "purpose_context": "Two scheduled Felix crons fail silently by improvising fragile operations through an LLM. This mission mechanizes their deterministic work into tested helpers and a non-LLM driver, and makes their Vikunja scope selection config-driven so the upcoming Vikunja reorganization (#714) is a config change, not code. It is a stability precondition before expanding Felix's executive-assistant capabilities.",
+  "purpose_tldr": "Make Felix's daily escalation and weekly habit-report crons run deterministically and deliver reliably, ending silent failures.",
+  "slug": "deterministic-cron-hardening-01KXA4PX",
+  "target_branch": "fix/deterministic-cron-hardening",
+  "topology": "lanes",
+  "vcs": "git",
+  "vcs_locked_at": "2026-07-12T03:49:50.279548+00:00"
+}

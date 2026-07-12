@@ -30,6 +30,17 @@ Constants: ``HABITS_PROJECT_ID``, ``DAILY_REPEAT_AFTER``
 Functions: ``parse_weekday_in_title``, ``classify_habit``,
     ``scheduled_days_for_window``, ``query_completion_events``,
     ``build_report``, ``main``
+
+Habit project id (mission deterministic-cron-hardening-01KXA4PX, #723)
+------------------------------------------------------------------------
+``HABITS_PROJECT_ID`` is sourced from
+:func:`scripts.common.vikunja_scope.habit_project_id` at module import
+time rather than hardcoded, so the #714 taxonomy move is a config-only
+edit to ``vikunja_scope.py`` (FR-008). The label selector fetch strategy
+is out of scope here (deferred to #716) — if the scope module ever
+reports a label selector (``habit_project_id()`` returns ``None``), this
+module raises :class:`NotImplementedError` rather than silently
+misbehaving.
 """
 from __future__ import annotations
 
@@ -44,6 +55,7 @@ from pathlib import Path
 from typing import Iterable, Optional
 from zoneinfo import ZoneInfo
 
+from scripts.common import vikunja_scope
 from scripts.common.vikunja_client import VikunjaClient, VikunjaError
 from scripts.habits import history
 
@@ -68,7 +80,23 @@ __all__ = [
 REPORT_TZ: ZoneInfo = ZoneInfo("America/New_York")
 
 
-HABITS_PROJECT_ID = 13
+def _resolve_habits_project_id() -> int:
+    """Resolve the habit project id from the shared scope config (#723).
+
+    Raises :class:`NotImplementedError` if the configured habit selector is
+    a label form — the label fetch strategy is out of scope for this
+    mission (see #716). This makes the boundary explicit rather than
+    silently misbehaving (e.g. fetching ``/projects/None/tasks``).
+    """
+    project_id = vikunja_scope.habit_project_id()
+    if project_id is None:
+        raise NotImplementedError(
+            "label habit selector not supported yet — see #716"
+        )
+    return project_id
+
+
+HABITS_PROJECT_ID = _resolve_habits_project_id()
 DAILY_REPEAT_AFTER = 86400  # seconds — Vikunja's encoding of "every 24 hours"
 
 #: Matches weekday names in habit titles. Both the 3-letter abbreviation

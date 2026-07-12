@@ -577,11 +577,11 @@
           "skills": [
             "vikunja_api"
           ],
-          "purpose": "Daily habit check-in, completion tracking, weekly pattern reports. Post-#371 (scripts-first morning + reply flow): the agent is a thin orchestrator that invokes scripts/habits/morning_checkin_list.py for the morning tick (script writes the canonical morning-list artifact + emits the formatted WhatsApp message), scripts/habits/parse_morning_reply.py for reply handling (deterministic mapping of Kent's reply against the persisted morning list), and scripts/habits/judgment/disambiguate_reply.py only for ambiguous reply tokens. Post-mission trustworthy-weekly-habit-report-01KV4GZ7 (#605): the weekly Monday-06:00 cron tick is deterministic-helper-backed \u2014 the agent invokes scripts/habits/query_active_habits_weekly.py, which reads completion history from the canonical /data/services/openclaw/state/habits-history.jsonl via the scripts/habits/history.py domain wrapper (built on scripts/common/state_log.py); Vikunja is queried for current-state habit metadata (titles + repeat_after for classification) only. The helper now emits the pre-rendered WhatsApp body alongside the WeeklyHabitReport JSON (`rendered_text` field, --output text), and the agent posts that text verbatim; in-prompt rendering was removed in WP04 to eliminate LLM drift. Vikunja `done_at` is NOT consulted for history because `repeat_after` recurrence resets that field on each cycle (#605). The prior mission vikunja-client-and-habits-weekly-report-01KTKSFT (#542 + #562) introduced the helper itself; this mission corrected its read path. Co-shipped output-discipline Hard Rules (#561) mirror the felix-admin-capture pattern \u2014 no preamble before the `Sent by felix-admin-habits:<model>` identity line, no between-tool-calls narration. AGENTS.md is cut to <=14,000 source chars to stay within the openclaw effective budget per memory reference_openclaw_gotchas.md.",
+          "purpose": "Daily habit check-in and completion tracking. Post-#371 (scripts-first morning + reply flow): the agent is a thin orchestrator that invokes scripts/habits/morning_checkin_list.py for the morning tick (script writes the canonical morning-list artifact + emits the formatted WhatsApp message), scripts/habits/parse_morning_reply.py for reply handling (deterministic mapping of Kent's reply against the persisted morning list), and scripts/habits/judgment/disambiguate_reply.py only for ambiguous reply tokens. The weekly habit pattern report is NO LONGER part of this agent's cron path \u2014 deterministic-cron-hardening-01KXA4PX (#723) retired the habits-weekly-report openclaw cron and moved delivery to the deterministic felix-habits-weekly systemd user timer (scripts/habits/weekly_report_driver.py), which invokes the same scripts/habits/query_active_habits_weekly.py helper directly with zero LLM turns (see the felix-habits-weekly service entry). Co-shipped output-discipline Hard Rules (#561) mirror the felix-admin-capture pattern \u2014 no preamble before the `Sent by felix-admin-habits:<model>` identity line, no between-tool-calls narration. AGENTS.md is cut to <=14,000 source chars to stay within the openclaw effective budget per memory reference_openclaw_gotchas.md.",
           "source_in_repo": "scripts/openclaw/agents/felix-admin-habits/",
           "deployed_by": "F009",
           "autonomy_level": "assisted",
-          "updated_by": "#371 + vikunja-client-and-habits-weekly-report-01KTKSFT (#542 + #561 + #562) + f0-exec-hardening-01KX4ZCY (#675 — exec-hardening finding + live-config reconcile)",
+          "updated_by": "deterministic-cron-hardening-01KXA4PX (#723 — retired the weekly-report cron off this agent's schedule) + #371 + vikunja-client-and-habits-weekly-report-01KTKSFT (#542 + #561 + #562) + f0-exec-hardening-01KX4ZCY (#675 — exec-hardening finding + live-config reconcile)",
           "last_updated": "2026-07-10",
           "depends_on": [
             "scripts/habits/morning_checkin_list.py",
@@ -812,22 +812,16 @@
           "cron": "5 11 * * *",
           "local_time": "7:05 AM ET",
           "timeout_seconds": 240
-        },
-        {
-          "name": "habits-weekly-report",
-          "cron": "0 6 * * 1",
-          "local_time": "Monday 6:00 AM ET",
-          "timeout_seconds": 120
         }
       ],
       "timeout_seconds": 240,
-      "timeout_seconds_note": "Per-schedule timeouts diverge \u2014 see schedules array.",
+      "timeout_seconds_note": "Morning check-in only \u2014 the weekly report cron was retired (deterministic-cron-hardening-01KXA4PX / #723) and is now the felix-habits-weekly systemd user timer (see that service entry).",
       "session_mode": "isolated",
       "deployed_by": "F009",
-      "updated_by": "vikunja-client-and-habits-weekly-report-01KTKSFT (#542 + #561 + #562) + #519-touchpoint-migration + #371-habits-checkin-reply-scripts-first + #307-backfill-habits-jsonl-from-comments + #306-habits-native-repeat-jsonl-state + #285-cron-delivery-restore-path-c + #282-habits-d6-extract + #273-felix-tier2-self-repair-incident-audit + #263-cron-delivery-mode-round2",
-      "last_updated": "2026-06-08",
+      "updated_by": "deterministic-cron-hardening-01KXA4PX (#723 \u2014 retired the habits-weekly-report openclaw cron; the weekly report is now delivered by the deterministic felix-habits-weekly systemd user timer, no LLM turn in the path) + vikunja-client-and-habits-weekly-report-01KTKSFT (#542 + #561 + #562) + #519-touchpoint-migration + #371-habits-checkin-reply-scripts-first + #307-backfill-habits-jsonl-from-comments + #306-habits-native-repeat-jsonl-state + #285-cron-delivery-restore-path-c + #282-habits-d6-extract + #273-felix-tier2-self-repair-incident-audit + #263-cron-delivery-mode-round2",
+      "last_updated": "2026-07-12",
       "status": "active",
-      "purpose": "Daily habit check-in (morning tick, scripts-first per #371) and weekly habit pattern report (Monday 06:00 tick post trustworthy-weekly-habit-report-01KV4GZ7 #605; previously Sunday 22:00 per #542 + #562). The pre-#605 weekly path queried Vikunja `done_at` for completion history, which is volatile under `repeat_after` recurrence (it resets each cycle, so daily habits read 0%). Post-#605 the helper scripts/habits/query_active_habits_weekly.py reads completion history from the canonical /data/services/openclaw/state/habits-history.jsonl via scripts/habits/history.py (built on scripts/common/state_log.py); Vikunja is queried only for current-state habit metadata (titles + repeat_after for classification). The helper now also emits the pre-rendered WhatsApp body (`rendered_text` field, --output text) so the agent posts it verbatim, eliminating LLM render drift. The morning tick continues to read the local sync cache via query_active_habits_v2.py (unchanged). Co-shipped output-discipline Hard Rules (#561) prevent internal-reasoning leakage above the identity line.",
+      "purpose": "Daily habit check-in (morning tick, scripts-first per #371). The weekly habit pattern report is no longer part of this openclaw-cron service \u2014 it was migrated off the LLM-agent cron path to the deterministic felix-habits-weekly systemd user timer (deterministic-cron-hardening-01KXA4PX / #723; see that service entry for the weekly-report health check and cadence). The morning tick continues to read the local sync cache via query_active_habits_v2.py (unchanged). Co-shipped output-discipline Hard Rules (#561) prevent internal-reasoning leakage above the identity line.",
       "runbook": "docs/runbooks/habits-ops.md",
       "risk_tier": 3,
       "dependencies": [
@@ -846,13 +840,12 @@
         "method": "openclaw-cron-state",
         "endpoint": "/usr/bin/openclaw cron list --json",
         "crons": [
-          "habits-morning-checkin",
-          "habits-weekly-report"
+          "habits-morning-checkin"
         ],
         "timeout_seconds": 30,
         "grace_seconds": 900,
-        "expected": "each listed OpenClaw cron enabled, lastRunStatus=ok, and fired by its nextRunAtMs (schedule-aware freshness handles the daily check-in and weekly report cadences together)",
-        "note": "Probed via `openclaw cron list --json`: per-cron enabled + last-run status + schedule-aware freshness (nextRunAtMs). Replaces method:none (#722)."
+        "expected": "the listed OpenClaw cron enabled, lastRunStatus=ok, and fired by its nextRunAtMs (schedule-aware freshness for the daily morning check-in)",
+        "note": "Probed via `openclaw cron list --json`: per-cron enabled + last-run status + schedule-aware freshness (nextRunAtMs). Replaces method:none (#722). The habits-weekly-report cron was retired and removed from this list by #723 — its freshness is now tracked under the felix-habits-weekly service entry (tick-signal-file method)."
       },
       "config_files": [
         {
@@ -928,7 +921,7 @@
           "path": "/home/claude/kg-automation/scripts/habits/query_active_habits_weekly.py",
           "format": "python",
           "source_in_repo": "scripts/habits/query_active_habits_weekly.py",
-          "purpose": "Deterministic weekly-report helper invoked by the Monday 06:00 ET habits-weekly-report cron (post mission trustworthy-weekly-habit-report-01KV4GZ7 / #605; previously Sunday 22:00 per #542 + #562). Reads completion history from canonical /data/services/openclaw/state/habits-history.jsonl via scripts/habits/history.py (built on scripts/common/state_log.py); queries Vikunja project-13 only for current-state habit metadata (titles + repeat_after for classification) via scripts/common/vikunja_client.py. Rolls up by canonical title (treating weekday-in-title variants as distinct habits) and emits a WeeklyHabitReport JSON on stdout (--output json, default) or the pre-rendered WhatsApp body (--output text). Per-habit percentage = dedup-by-date completed_count / scheduled_days_in_window * 100; scheduled-days math is 7 for daily-cadence habits (`repeat_after == 86400`) and 1 per matched-weekday occurrence for weekday-in-title habits. Vikunja `done_at` is NOT read for completion history \u2014 `repeat_after` recurrence resets that field on each cycle, collapsing daily-habit history to 0% (the original #605 bug). Standard library only beyond the shared client + state-log primitive. Failure mode: typed VikunjaError exceptions propagate to the agent, which renders `Weekly report unavailable: <reason>` rather than fabricating data.",
+          "purpose": "Deterministic weekly-report helper invoked by the felix-habits-weekly systemd user timer (Monday 06:00 ET; deterministic-cron-hardening-01KXA4PX / #723 retired the prior habits-weekly-report openclaw cron and moved invocation to scripts/habits/weekly_report_driver.py \u2014 see the felix-habits-weekly service entry). Previously invoked by that agent cron (post mission trustworthy-weekly-habit-report-01KV4GZ7 / #605; before that, Sunday 22:00 per #542 + #562). Reads completion history from canonical /data/services/openclaw/state/habits-history.jsonl via scripts/habits/history.py (built on scripts/common/state_log.py); queries Vikunja project-13 only for current-state habit metadata (titles + repeat_after for classification) via scripts/common/vikunja_client.py. Rolls up by canonical title (treating weekday-in-title variants as distinct habits) and emits a WeeklyHabitReport JSON on stdout (--output json, default) or the pre-rendered WhatsApp body (--output text). Per-habit percentage = dedup-by-date completed_count / scheduled_days_in_window * 100; scheduled-days math is 7 for daily-cadence habits (`repeat_after == 86400`) and 1 per matched-weekday occurrence for weekday-in-title habits. Vikunja `done_at` is NOT read for completion history \u2014 `repeat_after` recurrence resets that field on each cycle, collapsing daily-habit history to 0% (the original #605 bug). Standard library only beyond the shared client + state-log primitive. Failure mode: typed VikunjaError exceptions propagate to the agent, which renders `Weekly report unavailable: <reason>` rather than fabricating data.",
           "host": "office2",
           "introduced_by": "vikunja-client-and-habits-weekly-report-01KTKSFT (#542 + #562)"
         },
@@ -2340,6 +2333,70 @@
           "path": "/home/claude/kg-automation/scripts/canary/",
           "format": "python-package",
           "source_in_repo": "scripts/canary/"
+        }
+      ]
+    },
+    {
+      "name": "felix-habits-weekly",
+      "type": "systemd_user_timer",
+      "host": "office2",
+      "agent": "n/a (agent-independent deterministic driver; no openclaw agent identity)",
+      "user": "claude",
+      "systemd_unit": "felix-habits-weekly.timer (user unit) + felix-habits-weekly.service (user oneshot)",
+      "systemd_user": "claude",
+      "schedule": "Monday 06:00 America/New_York",
+      "deployed_by": "723",
+      "updated_by": "deterministic-cron-hardening-01KXA4PX (#723 — deterministic weekly-report driver added; replaces the retired habits-weekly-report openclaw cron on habit-checkin)",
+      "status": "active",
+      "purpose": "Deterministic weekly habit-report driver (kentonium3/kg-automation#723, FR-009/FR-010). Runs scripts/habits/weekly_report_driver.py on a Monday 06:00 America/New_York systemd timer: invokes the existing weekly-report helper (scripts/habits/query_active_habits_weekly.py) in-process, composes the outbound message, delivers it via `openclaw message send --json`, confirms delivery truthfully against the empirically-verified C1 predicate, and writes a freshness tick — with no LLM turn anywhere in the path. Replaces the retired habits-weekly-report openclaw cron (see habit-checkin service entry) as the mission's transactional cutover: exactly one producer (this timer) is active for the weekly report at any time.",
+      "runbook": "docs/runbooks/habits-ops.md",
+      "risk_tier": 3,
+      "dependencies": [
+        {
+          "target": "alert-bus",
+          "type": "requires",
+          "description": "A runner-level failure (non-zero exit) triggers an out-of-band ERROR via the #701 felix-alert bus through the felix-habits-weekly-onfailure.service OnFailure shim, independent of the driver's own tick/logging."
+        },
+        {
+          "target": "openclaw-gateway:18789",
+          "type": "requires",
+          "description": "Delivery is dispatched via `/usr/bin/openclaw message send --channel whatsapp --json` (absolute path — systemd units have no PATH)."
+        },
+        {
+          "target": "felix-vikunja-sync-driver",
+          "type": "consumes",
+          "description": "The weekly-report helper (scripts/habits/query_active_habits_weekly.py, unchanged by this mission) reads habit metadata from Vikunja via scripts/common/vikunja_client.py and completion history from /data/services/openclaw/state/habits-history.jsonl."
+        }
+      ],
+      "health_check": {
+        "method": "tick-signal-file",
+        "endpoint": "/data/services/felix-habits-weekly/state/last-tick.json",
+        "max_age_seconds": 691200,
+        "timeout_seconds": 5,
+        "expected": "status=success, exit_code=0, fresh within ~8 days",
+        "note": "Freshness anchor is completed_at_utc in the driver's last-tick.json (TickSignal schema: completed_at_utc, exit_code, status, delivery_confirmed, failure_reason — post-plan-review-resolutions.md H4). status/exit_code are truthful: a fresh FAILURE tick (e.g. delivery not confirmed) still reads as unhealthy, never as healthy-because-fresh. max_age_seconds=691200 (8 days = 7-day weekly cadence + 1-day slack) bounds the Monday 06:00 ET cadence; a stale tick means the timer stopped ticking or has not yet completed its first scheduled run."
+      },
+      "config_files": [
+        {
+          "path": "~/.config/systemd/user/felix-habits-weekly.timer",
+          "format": "systemd-unit",
+          "source_in_repo": "scripts/office2/felix-habits-weekly.timer"
+        },
+        {
+          "path": "~/.config/systemd/user/felix-habits-weekly.service",
+          "format": "systemd-unit",
+          "source_in_repo": "scripts/office2/felix-habits-weekly.service"
+        },
+        {
+          "path": "~/.config/systemd/user/felix-habits-weekly-onfailure.service",
+          "format": "systemd-unit",
+          "source_in_repo": "scripts/office2/felix-habits-weekly-onfailure.service"
+        },
+        {
+          "path": "/home/claude/kg-automation/scripts/habits/weekly_report_driver.py",
+          "format": "python",
+          "source_in_repo": "scripts/habits/weekly_report_driver.py",
+          "purpose": "Deterministic driver (#723): runs the weekly-report helper in-process, composes + delivers the WhatsApp message via `openclaw message send`, confirms delivery against the C1 predicate, and writes the last-tick.json freshness signal. Modes: default (real send + tick), --self-test (dry-run send + tick written — the WP04 deploy gate), --dry-run (local preview only, no send, no state)."
         }
       ]
     },
