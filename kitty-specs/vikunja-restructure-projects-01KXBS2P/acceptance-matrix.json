@@ -145,36 +145,5 @@
       "notes": "Verified via mocked-client unit tests; reviewer-renata APPROVE."
     }
   ],
-  "negative_invariants": [
-    {
-      "invariant_id": "NI-1",
-      "description": "No DELETE /projects is ever issued (no task-bearing project deleted)",
-      "proof_type": "automated_test",
-      "evidence": "test_no_delete_projects_endpoint_ever_called; _assert_no_project_delete plan-boundary guard",
-      "result": "pass",
-      "verified_by": "reviewer-renata",
-      "verified_at": "2026-07-12T19:05:31Z",
-      "notes": "Only delete site is /filters/{id}."
-    },
-    {
-      "invariant_id": "NI-2",
-      "description": "Habits project (id 13) is never written",
-      "proof_type": "automated_test",
-      "evidence": "test_habits_id13_never_written",
-      "result": "pass",
-      "verified_by": "reviewer-renata",
-      "verified_at": "2026-07-12T19:05:31Z",
-      "notes": ""
-    },
-    {
-      "invariant_id": "NI-3",
-      "description": "Favorites (-1) is never targeted for deletion",
-      "proof_type": "automated_test",
-      "evidence": "derivation excludes id>-2; explicit pseudo_id==-1 guard in delete pass; tests use non-1..5 ids",
-      "result": "pass",
-      "verified_by": "reviewer-renata",
-      "verified_at": "2026-07-12T19:05:31Z",
-      "notes": ""
-    }
-  ]
+  "negative_invariants": []
 }
