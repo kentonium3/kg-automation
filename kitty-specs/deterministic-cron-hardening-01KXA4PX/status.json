@@ -1,7 +1,7 @@
 {
-  "event_count": 4,
-  "last_event_id": "01KXA69HWPQPR9WERDAR598196",
-  "materialized_at": "2026-07-12T03:35:18.678932+00:00",
+  "event_count": 6,
+  "last_event_id": "01KXA746KX5V9H4RZVXJSYKT01",
+  "materialized_at": "2026-07-12T03:49:51.867838+00:00",
   "mission_number": "",
   "mission_slug": "deterministic-cron-hardening-01KXA4PX",
   "mission_type": "software-dev",
@@ -12,17 +12,17 @@
     "claimed": 0,
     "done": 0,
     "for_review": 0,
-    "in_progress": 0,
+    "in_progress": 1,
     "in_review": 0,
-    "planned": 4
+    "planned": 3
   },
   "work_packages": {
     "WP01": {
-      "actor": "finalize-tasks",
+      "actor": "claude:sonnet:python-pedro:implementer",
       "force_count": 0,
-      "lane": "planned",
-      "last_event_id": "01KXA69DWSXVNGCVCKFDH1BWG6",
-      "last_transition_at": "2026-07-12T03:35:14.585866+00:00"
+      "lane": "in_progress",
+      "last_event_id": "01KXA746KX5V9H4RZVXJSYKT01",
+      "last_transition_at": "2026-07-12T03:49:51.867838+00:00"
     },
     "WP02": {
       "actor": "finalize-tasks",
