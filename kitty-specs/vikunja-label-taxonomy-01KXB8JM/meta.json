@@ -11,5 +11,7 @@
   "purpose_tldr": "Create the canonical 12-label friction/Eisenhower/type/effort taxonomy in Vikunja and clear the legacy labels.",
   "slug": "vikunja-label-taxonomy-01KXB8JM",
   "target_branch": "feat/vikunja-label-taxonomy",
-  "topology": "lanes"
+  "topology": "lanes",
+  "vcs": "git",
+  "vcs_locked_at": "2026-07-12T14:02:31.770559+00:00"
 }
