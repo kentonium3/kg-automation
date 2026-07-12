@@ -541,3 +541,81 @@ def test_token_file_read(tmp_path, monkeypatch):
     assert rc == 0
     assert captured["token"] == "secret-token\n"
     assert captured["base_url"] == "https://x/api/v1"
+
+
+# ---------------------------------------------------------------------------
+# Post-merge Codex fixes — design-doc fidelity, INV-5 unexpected labels,
+# backup-ref hardening, non-int-id fail-loud, reconcile-boundary gate.
+# ---------------------------------------------------------------------------
+
+
+def test_fidelity_design_doc_colors_match_constants():
+    """INV-1: the design doc's Color column agrees with the code constants.
+
+    Parses the label tables in docs/design/vikunja-configuration-design.md so
+    the "single taxonomy authority" claim is actually verified, not asserted in
+    a comment (post-merge review LOW-5).
+    """
+    from pathlib import Path
+
+    repo_root = Path(__file__).resolve().parents[2]
+    doc = (repo_root / "docs/design/vikunja-configuration-design.md").read_text(
+        encoding="utf-8"
+    )
+    lines = doc.splitlines()
+    for title, color in EXPECTED_TAXONOMY.items():
+        rows = [ln for ln in lines if f"`{title}`" in ln]
+        assert rows, f"design doc has no table row for {title!r}"
+        assert any(color.lower() in ln.lower() for ln in rows), (
+            f"design doc row for {title!r} is missing color {color}"
+        )
+
+
+def test_unexpected_label_reports_and_fails():
+    """INV-5/SC-002: a live label outside taxonomy ∪ legacy is surfaced + fails."""
+    page = _all_taxonomy_present() + [_label(9999, "stray-label", "000000")]
+    client = _FakeClient(pages=[page])
+    outcomes, _id_map, failed = ctl.reconcile(client)
+    assert failed is True
+    actions = {o.title: o.action for o in outcomes}
+    assert actions.get("stray-label") == "unexpected-label"
+
+
+def test_main_unexpected_label_exits_nonzero():
+    page = _all_taxonomy_present() + [_label(9999, "stray-label", "abcdef")]
+    client = _FakeClient(pages=[page])
+    assert ctl.main([], client=client) == 1
+
+
+def test_delete_legacy_blank_backup_ref_refused(capsys):
+    """A whitespace-only --backup-confirmed does not pass the destructive gate."""
+    client = _FakeClient(pages=[_all_taxonomy_present()])
+    rc = ctl.main(["--delete-legacy", "--backup-confirmed", "   "], client=client)
+    assert rc == 2
+    assert client.delete_calls == []
+
+
+def test_delete_legacy_non_int_id_fails_loud():
+    """A legacy label lacking an int id fails loud rather than silently skipping."""
+    page = _all_taxonomy_present() + [
+        {"id": None, "title": "personal", "hex_color": "2196f3"}
+    ]
+    client = _FakeClient(pages=[page])
+    outcomes, _id_map, failed = ctl.reconcile(
+        client, delete_legacy=True, backup_confirmed="snap-1"
+    )
+    assert failed is True
+    assert any(
+        o.title == "personal" and o.action == "delete-failed" for o in outcomes
+    )
+    assert client.delete_calls == []  # no resolvable id, nothing deleted
+
+
+def test_reconcile_delete_legacy_requires_backup_ref():
+    """reconcile() enforces the backup gate at the function boundary too."""
+    client = _FakeClient(pages=[_all_taxonomy_present()])
+    with pytest.raises(ValueError):
+        ctl.reconcile(client, delete_legacy=True)
+    with pytest.raises(ValueError):
+        ctl.reconcile(client, delete_legacy=True, backup_confirmed="   ")
+    assert client.delete_calls == []

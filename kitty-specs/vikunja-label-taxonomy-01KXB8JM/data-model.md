@@ -35,7 +35,7 @@ A title the helper deletes when `--delete-legacy` is set: `personal`,
 | Field | Type | Values |
 |-------|------|--------|
 | `title` | str | The label acted on. |
-| `action` | enum | `created` \| `already-present` \| `color-mismatch` \| `deleted` \| `already-absent` \| `skipped-no-flag` \| `duplicate-title` |
+| `action` | enum | `created` \| `already-present` \| `color-mismatch` \| `deleted` \| `already-absent` \| `skipped-no-flag` \| `duplicate-title` \| `delete-inconsistent` \| `delete-failed` \| `unexpected-label` |
 | `id` | int \| null | Resolved/assigned id (null when not applicable). |
 
 ### Title→id map (run artifact)

@@ -92,7 +92,7 @@ class ReconcileOutcome:
     title: str
     action: str  # created | already-present | color-mismatch | deleted
     #            | already-absent | skipped-no-flag | duplicate-title
-    #            | delete-inconsistent
+    #            | delete-inconsistent | delete-failed | unexpected-label
     id: int | None = None
     ids: tuple[int, ...] | None = None  # populated for duplicate-title
 
@@ -242,6 +242,11 @@ def _delete_pass(
         for match in matches:
             mid = match.get("id")
             if not isinstance(mid, int):
+                # A legacy label we intend to delete but cannot resolve to an
+                # int id (malformed/contract-drift response). Fail loud rather
+                # than silently leave it in place and still report success.
+                outcomes.append(ReconcileOutcome(title, "delete-failed", None))
+                failed = True
                 continue
             if dry_run:
                 outcomes.append(ReconcileOutcome(title, "deleted", mid))
@@ -286,6 +291,14 @@ def reconcile(
     is called, so a caller passing ``delete_legacy=True`` here has already
     satisfied the backup gate.
     """
+    # Enforce the destructive-operation gate at the FUNCTION boundary too, not
+    # only in main(): reconcile() is part of the public API, so a programmatic
+    # caller must not be able to delete legacy labels without a backup ref.
+    if delete_legacy and not (backup_confirmed and backup_confirmed.strip()):
+        raise ValueError(
+            "delete_legacy=True requires a non-empty backup_confirmed reference"
+        )
+
     by_title = list_labels(client)
     outcomes, id_map, failed = _create_pass(client, by_title, dry_run=dry_run)
 
@@ -305,6 +318,21 @@ def reconcile(
             dry_run=dry_run,
         )
     outcomes.extend(del_outcomes)
+
+    # INV-5 / SC-002: the intended end state is EXACTLY the 12 taxonomy labels.
+    # Any live label outside taxonomy ∪ legacy is unexpected — the helper models
+    # neither creating nor deleting it, so it must be surfaced and force a
+    # non-zero exit rather than let the run falsely claim a clean end state.
+    known_titles = {entry.title for entry in TAXONOMY_LABELS} | set(LEGACY_TITLES)
+    for title in sorted(t for t in by_title if t not in known_titles):
+        ids = tuple(
+            int(m["id"]) for m in by_title[title] if isinstance(m.get("id"), int)
+        )
+        outcomes.append(
+            ReconcileOutcome(title, "unexpected-label", ids=ids or None)
+        )
+        failed = True
+
     return outcomes, id_map, failed
 
 
@@ -409,9 +437,13 @@ def main(argv: list[str] | None = None, *, client: Any | None = None) -> int:
     """CLI entrypoint. Returns 0 on full success, non-zero otherwise."""
     args = _build_parser().parse_args(argv)
 
-    # Delete pass is gated on BOTH --delete-legacy AND --backup-confirmed —
-    # refuse before any mutation (C-002).
-    if args.delete_legacy and not args.backup_confirmed:
+    # Delete pass is gated on BOTH --delete-legacy AND a non-blank
+    # --backup-confirmed — refuse before any mutation (C-002). A whitespace-only
+    # ref is not a meaningful Restic reference and must not pass the gate.
+    backup_ref_clean = (
+        args.backup_confirmed.strip() if args.backup_confirmed else ""
+    )
+    if args.delete_legacy and not backup_ref_clean:
         print(
             "ERROR: --delete-legacy requires --backup-confirmed <ref> "
             "(a Restic snapshot id or ISO timestamp). Refusing to delete.",
@@ -424,7 +456,7 @@ def main(argv: list[str] | None = None, *, client: Any | None = None) -> int:
         outcomes, id_map, failed = reconcile(
             active_client,
             delete_legacy=args.delete_legacy,
-            backup_confirmed=args.backup_confirmed,
+            backup_confirmed=backup_ref_clean or None,
             dry_run=args.dry_run,
         )
     except VikunjaError as exc:
@@ -434,7 +466,7 @@ def main(argv: list[str] | None = None, *, client: Any | None = None) -> int:
         print(f"ERROR: {type(exc).__name__}: {exc}", file=sys.stderr)
         return 1
 
-    backup_ref = args.backup_confirmed if args.delete_legacy else None
+    backup_ref = backup_ref_clean if args.delete_legacy else None
 
     if args.json:
         print(
