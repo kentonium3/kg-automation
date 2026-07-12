@@ -16,7 +16,8 @@ subtasks:
 - T009
 - T010
 - T011
-agent: claude
+agent: "claude:sonnet:python-pedro:implementer"
+shell_pid: "91777"
 history:
 - '2026-07-12: authored by /spec-kitty.tasks'
 agent_profile: python-pedro
@@ -112,3 +113,7 @@ Planning base + merge target: **`fix/deterministic-cron-hardening`**. Run in thi
 - Verify the units use the **absolute** `/usr/bin/python3` and the driver uses **absolute** `/usr/bin/openclaw` (systemd has no PATH — the recurring deploy gotcha).
 - Verify `--self-test` writes a tick (so WP04's deploy gate can assert freshness) while NOT sending a real message.
 - Do NOT edit `query_active_habits_weekly.py` here (WP01 owns it); the driver only invokes it.
+
+## Activity Log
+
+- 2026-07-12T04:05:32Z – claude:sonnet:python-pedro:implementer – shell_pid=91777 – Assigned agent via action command
