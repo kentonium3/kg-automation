@@ -13,18 +13,19 @@ notes: "Installs the felix-habits-weekly deterministic weekly habit-report drive
   \ as a systemd user timer (Monday 06:00 America/New_York) on office2 (kentonium3/kg-automation#723,\
   \ WP04). Runs `python3 -m scripts.habits.weekly_report_driver`: helper -> compose\
   \ -> `openclaw message send --json` -> C1-predicate delivery confirmation -> last-tick.json.\
-  \ No LLM turn in the path.\n\nEntrypoint performs a TRANSACTIONAL CUTOVER (C3)\
-  \ so exactly one producer is ever active: (1) install the 3 units + daemon-reload;\
-  \ (2) C2 self-test gate — `--self-test` (dry-run send, no real WhatsApp message)\
+  \ No LLM turn in the path.\n\nEntrypoint performs a TRANSACTIONAL CUTOVER (C3) so\
+  \ exactly one producer is ever active: (1) install the 3 units + daemon-reload;\
+  \ (2) C2 self-test gate \u2014 `--self-test` (dry-run send, no real WhatsApp message)\
   \ must exit 0 with a fresh tick; ABORT on failure, no cutover on a bad build (#711);\
   \ (3) ONLY after the gate passes: retire the legacy `habits-weekly-report` openclaw\
   \ cron via `openclaw cron rm <id>` (idempotent) and assert absence; (4) `systemctl\
   \ --user enable --now felix-habits-weekly.timer`, verify via list-timers; (5) exactly-one-producer\
-  \ POSTCHECK — legacy cron ABSENT and timer ENABLED; FAIL+alert if both or neither,\
-  \ never a half state; (6) report via the #701 felix-alert bus.\n\nREBASELINE:\
-  \ `openclaw cron rm` mutates live openclaw config with NO repo-file signal, so\
-  \ felix-deployer's observe-range rebaseline can't see it — declared via expected_baselines:\
-  \ [openclaw-cron.txt] so deferred-confirm treats the drift as expected instead\
-  \ of alerting unexpected_drift. The systemd-unit installs DO have a repo-file signal\
+  \ POSTCHECK \u2014 legacy cron ABSENT and timer ENABLED; FAIL+alert if both or neither,\
+  \ never a half state; (6) report via the #701 felix-alert bus.\n\nREBASELINE: `openclaw\
+  \ cron rm` mutates live openclaw config with NO repo-file signal, so felix-deployer's\
+  \ observe-range rebaseline can't see it \u2014 declared via expected_baselines:\
+  \ [openclaw-cron.txt] so deferred-confirm treats the drift as expected instead of\
+  \ alerting unexpected_drift. The systemd-unit installs DO have a repo-file signal\
   \ and auto-rebaseline without declaration.\n\nTier 3 (installs a user timer + retires\
   \ one openclaw cron via the vetted CLI path; no Tier 0/1/2 action).\n"
+applied_at: '2026-07-12T05:33:55Z'
