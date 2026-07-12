@@ -13,8 +13,8 @@ subtasks:
 - T002
 - T003
 - T004
-agent: "claude:sonnet:python-pedro:implementer"
-shell_pid: "80179"
+agent: "claude:opus:reviewer-renata:reviewer"
+shell_pid: "89726"
 history:
 - '2026-07-12: authored by /spec-kitty.tasks'
 agent_profile: python-pedro
@@ -119,3 +119,5 @@ Deterministic pytest only — fake `VikunjaClient`, no network, no LLM. Run `pyt
 ## Activity Log
 
 - 2026-07-12T03:49:54Z – claude:sonnet:python-pedro:implementer – shell_pid=80179 – Assigned agent via action command
+- 2026-07-12T03:59:30Z – claude:sonnet:python-pedro:implementer – shell_pid=80179 – WP01 impl complete: vikunja_scope config + weekly-helper rewire; 4863 tests pass, integration-verified
+- 2026-07-12T03:59:59Z – claude:opus:reviewer-renata:reviewer – shell_pid=89726 – Started review via action command

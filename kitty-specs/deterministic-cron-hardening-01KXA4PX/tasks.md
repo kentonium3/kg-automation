@@ -46,10 +46,10 @@ WP02 ∥ WP03 (parallel; both depend only on WP01)
 **Dependencies**: none.
 **Prompt**: `tasks/WP01-vikunja-scope-config.md` (~250 lines)
 
-- [ ] T001 Create `scripts/common/vikunja_scope.py` — selectors + accessors (WP01)
-- [ ] T002 Refactor `query_active_habits_weekly.py` to read habit project id from the scope module (WP01)
-- [ ] T003 Tests `tests/common/test_vikunja_scope.py` — accessors + label-form round-trip (WP01)
-- [ ] T004 Regression fixture: weekly helper with config-sourced id + a >50-task pagination fixture (WP01)
+- [x] T001 Create `scripts/common/vikunja_scope.py` — selectors + accessors (WP01)
+- [x] T002 Refactor `query_active_habits_weekly.py` to read habit project id from the scope module (WP01)
+- [x] T003 Tests `tests/common/test_vikunja_scope.py` — accessors + label-form round-trip (WP01)
+- [x] T004 Regression fixture: weekly helper with config-sourced id + a >50-task pagination fixture (WP01)
 
 ## WP02 — Escalation enumeration helper + prompt rewrite
 
