@@ -11,5 +11,7 @@
   "purpose_tldr": "Make Felix's daily escalation and weekly habit-report crons run deterministically and deliver reliably, ending silent failures.",
   "slug": "deterministic-cron-hardening-01KXA4PX",
   "target_branch": "fix/deterministic-cron-hardening",
-  "topology": "lanes"
+  "topology": "lanes",
+  "vcs": "git",
+  "vcs_locked_at": "2026-07-12T03:49:50.279548+00:00"
 }
