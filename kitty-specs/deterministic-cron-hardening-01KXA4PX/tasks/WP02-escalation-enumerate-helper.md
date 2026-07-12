@@ -122,3 +122,4 @@ Planning base + merge target: **`fix/deterministic-cron-hardening`**. Run in thi
 ## Activity Log
 
 - 2026-07-12T04:05:14Z – claude:sonnet:python-pedro:implementer – shell_pid=91777 – Assigned agent via action command
+- 2026-07-12T04:15:19Z – claude:sonnet:python-pedro:implementer – shell_pid=91777 – WP02 impl complete: enumerate_candidates (/tasks/all + §1 filter + H8 due-parse + H9 failure-prop) + surgical AGENTS.md/SKILL.md; 40 tests, full suite 4903 pass
