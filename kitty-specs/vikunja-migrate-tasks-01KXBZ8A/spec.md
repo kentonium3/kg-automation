@@ -56,20 +56,23 @@ felix-bot receives 403), rather than partially mutating.
 | FR-001 | Move each task listed in the routing manifest from its current project to its designated topic project (Personal, Felix / kg-automation, Intentional LLC, or retained Habits). | Accepted |
 | FR-002 | Apply the `t:habit` label to every Habits task named in the manifest; tasks remain in the Habits project. | Accepted |
 | FR-003 | Delete the two designated test-artifact tasks (#89 TEST-679C, #44 027 SC-002 test task). | Accepted |
-| FR-004 | Delete each of the six emptied legacy projects (Someday, Everyday, Personal Growth & Transformation, Household, Goals, Research) only after confirming it holds zero tasks, deleting children before parents (Someday before its parent Everyday). | Accepted |
+| FR-004 | Delete each of the six emptied legacy projects (Someday, Everyday, Personal Growth & Transformation, Household, Goals, Research) only after confirming it holds **zero tasks including done tasks** (enumerated via paginated `/tasks/all` filtered by project id — see NFR-004), re-checked **immediately before** each delete, deleting children before parents (Someday before its parent Everyday). Test-artifact deletions (FR-003) run **before** the empty-check so a doomed project holding a designated test task does not self-block. | Accepted |
 | FR-005 | The helper is idempotent: re-running it after a complete run performs zero mutations and reports all no-ops. | Accepted |
 | FR-006 | The helper fails loud rather than proceeding when (a) a project marked for deletion still holds tasks, or (b) it is run as any identity other than `kent`. | Accepted |
-| FR-007 | Update the escalation scope config so it no longer references the deleted Goals project id (11); habit identity stays project-id based (Habits retained) with `t:habit` applied additively. | Accepted |
-| FR-008 | The routing decisions are carried in a committed manifest whose contents match the locked routing in #717. | Accepted |
-| FR-009 | The helper emits a machine-and-human-readable summary of the actions taken (moves, labels, deletions) for operator verification. | Accepted |
+| FR-007 | Update the escalation scope config so it no longer references the deleted Goals project id (11); habit identity stays project-id based (Habits retained) with `t:habit` applied additively. Former Goals tasks (#1, #13) move to Intentional LLC and are **accepted as normal escalation candidates** (far-future due dates; no near-term change) — verified by a test. | Accepted |
+| FR-008 | The routing decisions are carried in a committed manifest whose contents **exactly** match the locked id→target map in #717 (asserted by a fidelity test — exact dict equality, not counts). | Accepted |
+| FR-009 | The helper emits a machine-and-human-readable summary of the actions taken (moves, labels, deletions), each classified completed / skipped / blocked, for operator verification. | Accepted |
+| FR-010 | Before any mutation, a live **preflight** validates: the token identity is kent (target/doomed projects resolve with `owner.username == "kent"`); every target and doomed project matches its expected title and parent id; and `t:habit` resolves to exactly one kent-visible label. Any mismatch aborts fail-loud before mutation. | Accepted |
+| FR-011 | A moved task preserves a defined allowlist of writable fields (verified by a post-move readback diff: only `project_id` changed). A task carrying complex state the move cannot safely preserve (assignees, task relations, reminders, attachments, kanban bucket position, sub/parent-task links) is **preflight-blocked and reported**, not silently migrated. | Accepted |
 
 ### Non-Functional
 
 | ID | Requirement | Status |
 |----|-------------|--------|
-| NFR-001 | Every task mutation uses read-modify-write so no task loses existing fields (due date, `repeat_after`, existing labels) — Vikunja POST is partial-replace and zeros unstated fields (#524). Verified: no migrated task loses `due_date`/`repeat_after`/labels after a move. | Accepted |
-| NFR-002 | The destructive run is gated on a confirmed Restic backup of `vikunja.db` no older than 24 hours (Change-Risk Tier 2); the helper will not perform deletions without an explicit backup-confirmed flag. | Accepted |
+| NFR-001 | Every task move uses read-modify-write over a defined writable-field allowlist (title, description, due date, `repeat_after`, `repeat_mode`, priority, done/`done_at`, `hex_color`, `percent_done`, `start_date`, `end_date`, plus `project_id`) — never a blind echo of GET output — because Vikunja POST is partial-replace and zeros unstated fields (#524). A post-move readback verifies only `project_id` changed. | Accepted |
+| NFR-002 | The destructive run requires operator-supplied backup evidence: a non-empty `--backup-ref` (Restic snapshot id or ISO timestamp of a `vikunja.db` snapshot ≤24h old, Change-Risk Tier 2), which the helper records verbatim in its applied summary. The helper does not itself validate Restic (honest evidence, not a fabricated check); absent `--backup-ref`, deletions abort. | Accepted |
 | NFR-003 | New helper code meets the repository branch-coverage threshold under `pytest --cov-branch`. | Accepted |
+| NFR-004 | Every live task enumeration paginates `/tasks/all` at `per_page=50` (Vikunja's cap) until a short page, and includes done tasks; a `null` body is treated as empty; a non-list/non-null body fails loud. | Accepted |
 
 ### Constraints
 
@@ -87,7 +90,8 @@ felix-bot receives 403), rather than partially mutating.
 - **SC-003**: Every Habits task carries the `t:habit` label, verified in Kent's Vikunja UI.
 - **SC-004**: The two test-artifact tasks no longer exist.
 - **SC-005**: A second run of the helper reports zero mutations.
-- **SC-006**: Escalation and habit queries continue to function after the migration — no code references a deleted project id in a way that raises.
+- **SC-006**: Escalation and habit queries continue to function after the migration — no code references a deleted project id in a way that raises; the two former Goals tasks are enumerable as escalation candidates.
+- **SC-007**: For every moved task, a post-move readback shows only `project_id` changed and all writable fields preserved; any task with unsupported complex state was preflight-blocked and reported rather than migrated.
 
 ## Key Entities
 

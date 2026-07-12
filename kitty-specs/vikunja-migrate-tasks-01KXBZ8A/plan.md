@@ -25,7 +25,7 @@ wraps the canonical `VikunjaClient` and mirrors the shape of the shipped
 **Target Platform**: office2 (Ubuntu 24.04) for the live run; helper is host-agnostic
 **Project Type**: single (Python helper under `scripts/vikunja/`)
 **Performance Goals**: N/A — one-shot migration of <80 tasks; per-page cap 50 (Vikunja)
-**Constraints**: idempotent; fail-loud on non-empty doomed project or wrong identity; read-modify-write on every task mutation; deletions gated on `--backup-confirmed`
+**Constraints**: idempotent; live preflight (owner==kent + target/doomed titles+parents + unique t:habit + complex-state block); fail-loud on non-empty doomed project or wrong identity; allowlisted read-modify-write + post-move readback on every task move; deletions gated on non-empty `--backup-ref`
 **Scale/Scope**: 30 task moves, 11 habit labels, 2 task deletes, 6 project deletes; one config module edit; one design-doc edit
 
 ## Charter Check
@@ -75,11 +75,11 @@ docs/design/
 
 | IC | Concern | Surfaces | Notes |
 |----|---------|----------|-------|
-| IC-01 | **Manifest** — committed routing data + loader/validator | `task_migration_manifest.yaml`, `migrate_tasks.py::load_manifest` | Schema: `moves` (id→project key), `label_habit` (ids), `delete_tasks` (ids), `delete_projects` (ordered ids), `target_projects` (key→id). Validate: known keys, int ids, delete order children-first. FR-008. |
-| IC-02 | **Task move (RMW)** — move a task to a target project without zeroing fields | `migrate_tasks.py::move_task` | GET task → POST `/tasks/{id}` with full body + new `project_id` (NFR-001, #524). Idempotent: skip if already in target. FR-001/FR-005. |
+| IC-01 | **Manifest** — committed routing data + loader/validator | `task_migration_manifest.yaml`, `migrate_tasks.py::load_manifest` | Schema: `moves` (id→project key), `label_habit` (ids), `delete_tasks` (ids), `delete_projects` (ordered ids), `target_projects` (key→id). Validate: known keys, int ids, delete order children-first, three id-sets pairwise disjoint (M-8), target ids == #716. FR-008. |
+| IC-02 | **Task move (allowlisted RMW + readback)** — move without zeroing/dropping fields | `migrate_tasks.py::move_task`, `::_writable_payload` | GET task → POST `/tasks/{id}` copying the writable-field allowlist + new `project_id` (NFR-001, #524); readback asserts only `project_id` changed. Idempotent: skip if already in target. FR-001/FR-011. |
 | IC-03 | **Habit labelling** — attach `t:habit` (kent-owned) | `migrate_tasks.py::apply_habit_label` | Resolve label id by title (`t:habit`); PUT `/tasks/{id}/labels` `{label_id}`; skip if already present. Requires kent token (felix-bot 403). FR-002. |
-| IC-04 | **Deletions** — test-artifact tasks + emptied projects, gated + fail-loud | `migrate_tasks.py::delete_tasks`, `::delete_projects` | DELETE `/tasks/{id}`; for projects, re-list tasks and refuse if non-empty; delete children before parents; all gated on `--backup-confirmed`. FR-003/FR-004/FR-006, NFR-002. |
-| IC-05 | **Identity guard** — kent-only | `migrate_tasks.py::_load_token`, `main` | Token read only from explicit `--token-file` defaulting to the kent secret; refuse the felix-bot token path up front (mirror `reconcile_projects.py`). FR-006. |
+| IC-04 | **Deletions** — test-artifact tasks + emptied projects, ordered, gated, fail-loud | `migrate_tasks.py::delete_test_tasks`, `::delete_projects`, `::list_all_tasks` | Test-task DELETE runs first (H-5); project empty-check enumerates all tasks incl done via paginated `/tasks/all` filtered by project (NFR-004), re-listed immediately before each delete (C-1), refuse if non-empty; children before parents; all gated on non-empty `--backup-ref`. FR-003/FR-004/FR-006, NFR-002/NFR-004. |
+| IC-05 | **Preflight + identity guard** — kent-only + live validation | `migrate_tasks.py::_load_token`, `::preflight`, `main` | Token read only from explicit `--token-file` (kent secret); refuse felix-bot path up front. Live preflight: target+doomed projects match title/parent/`owner==kent`, `t:habit` unique, `label_habit` in Habits(13), moved tasks scanned for complex state (block if present). Abort before any mutation. FR-006/FR-010/FR-011 (H-3/H-4). |
 | IC-06 | **Summary + plan/apply** — dry-run plan, applied summary | `migrate_tasks.py::build_plan`, `reconcile`, `main` | `build_plan()` computes the mutation set from live state (pure); `--apply` executes; default is dry-run print. Emits counts (moved/labelled/deleted/skipped). FR-009. |
 | IC-07 | **Scope config** — drop dead Goals(11) | `scripts/common/vikunja_scope.py` | Remove `11` from `ESCALATION_EXCLUDED_PROJECT_IDS` (Habits 13 stays); leave `HABIT_SELECTOR` on project_id:13 (C-004). Update tests. FR-007, SC-006. |
 | IC-08 | **Docs** — design doc | `docs/design/vikunja-configuration-design.md` | Mark migration-sequence step 5 done; note final project distribution. |

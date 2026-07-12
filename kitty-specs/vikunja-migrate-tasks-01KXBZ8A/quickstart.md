@@ -25,7 +25,8 @@ manifest before applying.
 ## 3. Apply
 
 ```
-ssh office2-claude 'cd /home/claude/kg-automation && python3 -m scripts.vikunja.migrate_tasks --apply --backup-confirmed'
+# pass the verified Restic snapshot id (or ISO timestamp) from step 1 as backup evidence
+ssh office2-claude 'cd /home/claude/kg-automation && python3 -m scripts.vikunja.migrate_tasks --apply --backup-ref <snapshot-id>'
 ```
 
 ## 4. Verify (SC-001..006)
