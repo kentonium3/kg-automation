@@ -17,7 +17,7 @@
   "flattened": true,
   "friendly_name": "Author main agent workspace",
   "mission_id": "01KXE90ZF99YM5AKK17DNA6V6Q",
-  "mission_number": null,
+  "mission_number": 100,
   "mission_slug": "author-main-workspace-01KXE90Z",
   "mission_type": "software-dev",
   "pr_bound": true,
