@@ -109,9 +109,9 @@ Vikunja surfaces in the project sidebar as **negative-id pseudo-projects**
 (`id <= -2`). They are not real projects. Issue **#716** removes these five
 legacy saved filters (deriving each filter id from its pseudo-project and reading
 back the title before deleting). `Favorites` (pseudo-id `-1`) is a **native**
-Vikunja view, not a deletable saved filter, and is left untouched. The six
+Vikunja view, not a deletable saved filter, and is left untouched. The **five**
 canonical replacement saved filters are created separately by **#718** (see the
-Saved Filters section below).
+Saved Filters section below); the sixth, Someday, is deferred to **#725**.
 
 ---
 
@@ -238,18 +238,58 @@ stays populated rather than decaying into inconsistency.
 
 Saved filters are personal cross-project views. They replace the pseudo-view
 projects (Today, Upcoming, Someday, Everyday, Favorites) that previously
-polluted the project structure.
+polluted the project structure. They are created (as kent) by the #718 helper
+`scripts/vikunja/create_saved_filters.py`.
 
-| Filter | Query | Purpose |
-|---|---|---|
-| **Today** | `dueDate <= now/d && done = false` | Primary daily driver. Set as dashboard default. |
-| **Habits** | `label = t:habit && done = false` | All habit tasks regardless of schedule. Felix's daily prompt source. |
-| **Upcoming** | `dueDate > now/d && dueDate < now+7d && done = false` | 7-day horizon. |
-| **Someday** | `label = q:schedule && dueDate = null && done = false` | Important but not yet committed to a date. |
-| **High Priority** | `priority >= 4 && done = false` | Urgent items by native priority. |
-| **Edge + Schedule** | `label = f:3-edge && label = q:schedule && done = false` | The most important filter: high-value, not urgent, high resistance. The work most likely to be avoided and most worth doing. |
+The **Intent** column below is the human-readable view meaning. The **API query**
+column is the actual query string stored in each saved filter — verified live
+against Vikunja **v0.24.6**. The two differ: the frontend's camelCase
+(`dueDate`) and by-title label syntax (`label = t:habit`) do **not** work at the
+API level. The stored query must use **snake_case field names** (`due_date`,
+`done`, `priority`) and reference labels by **numeric id** via `labels in <id>`.
+The helper never hardcodes label ids — it resolves each label title to its live
+id at runtime (so the ids below are illustrative of one environment, not fixed).
 
-**Dashboard default:** Today filter. This is what Felix and Kent see on login.
+| Filter | Intent | API query (v0.24.6, snake_case + label ids) | Purpose |
+|---|---|---|---|
+| **Today** | `dueDate < now/d+1d && done = false` | `due_date < now/d+1d && done = false` | Primary daily driver — tasks due today or overdue. Dashboard default (set manually — see below). |
+| **Habits** | `label = t:habit && done = false` | `labels in <t:habit-id> && done = false` | All habit tasks regardless of schedule. Felix's daily prompt source. |
+| **Upcoming** | `dueDate > now/d && dueDate < now+7d && done = false` | `due_date > now/d && due_date < now+7d && done = false` | 7-day horizon. |
+| **High Priority** | `priority >= 4 && done = false` | `priority >= 4 && done = false` | Urgent items by native priority. |
+| **Edge + Schedule** | `label = f:3-edge && label = q:schedule && done = false` | `labels in <f:3-edge-id> && labels in <q:schedule-id> && done = false` | The most important filter: high-value, not urgent, high resistance. The work most likely to be avoided and most worth doing. |
+
+`&&` is a true conjunction on labels: `labels in A && labels in B` matches tasks
+carrying **both** labels (verified live).
+
+**Today window:** the query is `due_date < now/d+1d` (everything due before the
+start of tomorrow = overdue + all of today), **not** `due_date <= now/d`. The
+latter rounds to the start of today and would silently drop a task due *later
+today* — wrong for a daily driver. `filter_include_nulls = false` keeps
+no-due-date tasks out of the result.
+
+**Someday is deferred (#725).** Its intended query
+`label = q:schedule && dueDate = null && done = false` cannot be expressed in
+v0.24.6: the is-null date predicate is rejected (`due_date = null` and
+`due_date = 0` both error `code 4019`), and `filter_include_nulls` only *adds*
+null-dated tasks rather than isolating them. Rather than ship a semantically
+wrong Someday (one that silently includes dated q:schedule tasks), it is tracked
+in **#725** — the durable fix is an upstream Vikunja PR adding is-null date
+filtering, then adopting it here.
+
+**Dashboard default:** the **Today** filter is the intended home-screen default
+(what Felix and Kent see on login). This is a Vikunja **user setting that
+requires web-JWT auth** — the API token returns "invalid token" for
+`/user/settings/*`, so the #718 helper cannot set it. Kent sets it **manually in
+the Vikunja web UI** after the filters are created.
+
+**Note on empty filters:** a saved filter that returns zero tasks is not
+necessarily broken. High Priority, Edge + Schedule, and (often) Upcoming are
+legitimately empty until the corresponding data exists — no task carries a
+priority ≥ 4, no task carries both `f:3-edge` and `q:schedule`, or no task is
+due within 7 days. The #718 helper prints each filter's task count on creation
+so genuine-empty can be distinguished from a silently-broken query. The query
+soundness itself was proven live (e.g. `priority >= 1` returned 23 tasks; the
+label conjunction returned the expected Habits count).
 
 **Note on subtask visibility:** A known Vikunja bug (issue #2494) means
 subtasks are not shown in saved filters if their parent task doesn't match
@@ -276,7 +316,7 @@ the Vikunja API. Steps are annotated with the issue that owns them.
 4. **Delete the legacy saved filters** (#716) — Today, Upcoming, Overdue,
    Goals, Completed. These are negative-id *saved filters*, not projects;
    Favorites is Vikunja's native view and is left untouched. Backup-gated
-   (Tier 2). The canonical replacement filters are created in step 7 (#718).
+   (Tier 2). The canonical replacement filters are created in step 6 (#718).
 5. **Migrate surviving tasks + delete emptied projects** (#717, human
    judgment) — move tasks out of the task-bearing projects (Everyday, Someday,
    Personal Growth & Transformation, Household, Goals, Research) into their
@@ -301,8 +341,13 @@ the Vikunja API. Steps are annotated with the issue that owns them.
 
    Escalation/enrichment exclusion seams drop the deleted Goals id (11); only
    Habits (13) remains excluded.
-6. **Create saved filters** (#718) — all six filters defined above.
-7. **Set dashboard** — Today filter as home screen default.
+6. **Create saved filters** (#718) — **five** of the six filters above (Someday
+   deferred to #725). Shipped as the idempotent helper
+   `scripts/vikunja/create_saved_filters.py` (creates as kent, matches by title,
+   resolves label ids live); the live run is operator-invoked.
+7. **Set dashboard** (#718, manual) — Today filter as home-screen default. This
+   is a web-JWT-only user setting; Kent sets it in the Vikunja web UI (the API
+   token cannot).
 8. **Verify Felix label references** — confirm Felix skill and briefing
    queries match the locked label names in this document.
 
@@ -339,13 +384,19 @@ model against it.
 
 ## Open Items
 
-- [ ] Confirm Vikunja version on office2 supports all filter syntax used
-      in saved filter definitions above
-- [ ] Decide whether migration should be manual or API-scripted based on
-      task volume in current pseudo-view projects
+- [x] Confirm Vikunja version on office2 supports all filter syntax used
+      in saved filter definitions above — **done (#718):** office2 runs
+      **v0.24.6**; API requires snake_case fields + label-ids (see Saved Filters
+      above); the is-null date predicate for Someday is unsupported (deferred to
+      #725).
+- [x] Decide whether migration should be manual or API-scripted based on
+      task volume in current pseudo-view projects — **done (#717):** API-scripted
+      via `scripts/vikunja/migrate_tasks.py`.
 - [ ] Upstream contribution opportunity: rename native priority display
       labels to professional values (`None`, `Low`, `Medium`, `High`,
       `Critical`, `Immediate`)
+- [ ] Upstream contribution opportunity (#725): add is-null / is-not-null
+      date filtering to the saved-filter query language (unblocks Someday)
 - [ ] Upstream contribution opportunity: redesign task relation types —
       current set conflates hierarchy, sequencing, state, and provenance
       into a single attribute
