@@ -25,7 +25,9 @@ subtasks:
 - T005
 - T006
 - T007
-agent: claude
+agent: "claude:sonnet:curator-carla:implementer"
+shell_pid: "21257"
+shell_pid_created_at: "1783968102.114508"
 history:
 - '2026-07-13: authored from spec + plan (post-plan Codex folded; de-hardcode dropped per operator)'
 agent_profile: curator-carla
@@ -154,3 +156,7 @@ improvements.
 - **Adapted block**: reviewer confirms the Output Discipline block is main-specific (HEARTBEAT_OK reconciled), NOT capture's inbox text.
 - **Invariant homes**: privacy rule in TOOLS (not just SOUL stance); `output discipline` marker in AGENTS.
 - **Scope**: reviewer confirms GOVERNANCE.md unchanged, identity line unchanged, no `deploys/queued/` manifest, no speculative mail behavior.
+
+## Activity Log
+
+- 2026-07-13T18:41:54Z – claude:sonnet:curator-carla:implementer – shell_pid=21257 – Assigned agent via action command
