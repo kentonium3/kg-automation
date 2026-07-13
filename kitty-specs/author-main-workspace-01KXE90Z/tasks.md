@@ -32,13 +32,13 @@ in `quickstart.md`, not a code WP.
 
 ### Included subtasks
 
-- [ ] T001 Author SOUL.md → voice-only + one-line privacy stance (WP01)
-- [ ] T002 Author USER.md → filtered Kent-context + Felix "why" (WP01)
-- [ ] T003 Author TOOLS.md → real surface + delegation/timelog/issue mechanics + enforceable `04-Growth/_private` rule (WP01)
-- [ ] T004 Author IDENTITY.md → Felix identity card (WP01)
-- [ ] T005 Author AGENTS.md → role statement, adapted Output Discipline block, six-specialist routing matrix, consolidated red lines; keep rules, push mechanics to TOOLS, drop Make-It-Yours (under 12K cap; message-identity line left unchanged) (WP01)
-- [ ] T006 Add the one-line GOVERNANCE.md roster note to `docs/design/openclaw-workspace-authoring-standard.md` (WP01)
-- [ ] T007 Validate: main `ok:true` (main-scoped) + `test_agents_md_size.py` + full openclaw suite + conservation self-check (WP01)
+- [x] T001 Author SOUL.md → voice-only + one-line privacy stance (WP01)
+- [x] T002 Author USER.md → filtered Kent-context + Felix "why" (WP01)
+- [x] T003 Author TOOLS.md → real surface + delegation/timelog/issue mechanics + enforceable `04-Growth/_private` rule (WP01)
+- [x] T004 Author IDENTITY.md → Felix identity card (WP01)
+- [x] T005 Author AGENTS.md → role statement, adapted Output Discipline block, six-specialist routing matrix, consolidated red lines; keep rules, push mechanics to TOOLS, drop Make-It-Yours (under 12K cap; message-identity line left unchanged) (WP01)
+- [x] T006 Add the one-line GOVERNANCE.md roster note to `docs/design/openclaw-workspace-authoring-standard.md` (WP01)
+- [x] T007 Validate: main `ok:true` (main-scoped) + `test_agents_md_size.py` + full openclaw suite + conservation self-check (WP01)
 
 ### Dependencies
 

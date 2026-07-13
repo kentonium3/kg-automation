@@ -25,9 +25,9 @@ subtasks:
 - T005
 - T006
 - T007
-agent: "claude:sonnet:curator-carla:implementer"
-shell_pid: "21257"
-shell_pid_created_at: "1783968102.114508"
+agent: "claude:opus:reviewer-renata:reviewer"
+shell_pid: "25652"
+shell_pid_created_at: "1783968976.342954"
 history:
 - '2026-07-13: authored from spec + plan (post-plan Codex folded; de-hardcode dropped per operator)'
 agent_profile: curator-carla
@@ -160,3 +160,5 @@ improvements.
 ## Activity Log
 
 - 2026-07-13T18:41:54Z – claude:sonnet:curator-carla:implementer – shell_pid=21257 – Assigned agent via action command
+- 2026-07-13T18:55:54Z – claude:sonnet:curator-carla:implementer – shell_pid=21257 – Ready for review: main authored to #587; main ok:true; AGENTS.md 11586B (<12K); full openclaw suite 72 passed; all six routes preserved; timelog section kept in AGENTS per test_timelog_prompt.py guard (pointer in TOOLS)
+- 2026-07-13T18:56:25Z – claude:opus:reviewer-renata:reviewer – shell_pid=25652 – Started review via action command
