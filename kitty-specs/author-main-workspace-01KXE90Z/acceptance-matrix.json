@@ -39,7 +39,7 @@
       "description": "After deploy and session rotation, repo and office2 copies match; evidence-based smoke shows a direct exchange and one delegation route working.",
       "proof_type": "operator_verification",
       "evidence": "Post-merge operator acceptance per quickstart.md steps 6-9 (agent-prompt-sync deploy to /data/services/openclaw/data/, md5 parity, rotate_main_session.py, evidence smoke). Not runnable pre-merge.",
-      "pass_fail": "deferred",
+      "pass_fail": "pending",
       "verified_by": "operator (post-merge, per quickstart.md)",
       "verified_at": "2026-07-13T19:04:57Z",
       "notes": "Deploy/parity/smoke is inherently post-merge (agent-prompt-sync fires on merge-to-main). Deferred to operator acceptance; not a code gate."
