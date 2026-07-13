@@ -74,7 +74,7 @@ cd /home/claude/kg-automation && /data/services/openclaw/felix-calendar/venv/bin
     --channel whatsapp --conversation <cid> --source-msg-id <mid>
 ```
 
-Read `TimelogResult` JSON on stdout (always exit `0` — branch on `status`). **Relay the helper's text, don't re-author:** `logged`/`corrected`/`deleted` → relay `receipt`; `unknown_client` → confirm/add client; `need_field` → ask `missing`; `ambiguous` → disambiguate; `client_created_entry_failed` → tab created, time **NOT** logged — never say "logged" (#683); `not_timelog` → nothing; `error` → report honestly, never fake success (#683; #701). Follow-ups re-invoke with the same `--conversation`/`--source-msg-id`: `--confirm-client`/`--add-client "<name>"` · `--field <n>=<v>` · `--correct --hours <n>` · `--delete-last`.
+Read `TimelogResult` (exit 0; branch `status`). **Relay verbatim, don't re-author:** `logged`/`corrected`/`deleted` → relay `receipt`; `unknown_client` → confirm/add client; `need_field` → ask `missing`; `ambiguous` → disambiguate; `client_created_entry_failed` → tab made, NOT logged (#683); `not_timelog` → nothing; `error` → report honestly, never fake success (#683; #701); `correction_ambiguous`/`no_pending`/`stale_pending`/`no_last_write` → report/ask; nothing mutated. Follow-ups reuse `--conversation`/`--source-msg-id`: `--confirm-client`/`--add-client "<name>"` · `--field <n>=<v>` · `--correct --hours <n>` · `--delete-last`.
 
 ## Cron-driven sub-agent output — don't relay it
 
