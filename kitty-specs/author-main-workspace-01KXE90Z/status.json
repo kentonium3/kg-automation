@@ -1,7 +1,7 @@
 {
-  "event_count": 3,
-  "last_event_id": "01KXECJ2YDMEBK7TW2Q4P7PW8G",
-  "materialized_at": "2026-07-13T18:41:47.468255+00:00",
+  "event_count": 4,
+  "last_event_id": "01KXEDBNK5RF9J069KYTR88RRA",
+  "materialized_at": "2026-07-13T18:55:45.765931+00:00",
   "mission_number": "",
   "mission_slug": "author-main-workspace-01KXE90Z",
   "mission_type": "software-dev",
@@ -11,8 +11,8 @@
     "canceled": 0,
     "claimed": 0,
     "done": 0,
-    "for_review": 0,
-    "in_progress": 1,
+    "for_review": 1,
+    "in_progress": 0,
     "in_review": 0,
     "planned": 0
   },
@@ -20,9 +20,9 @@
     "WP01": {
       "actor": "claude:sonnet:curator-carla:implementer",
       "force_count": 0,
-      "lane": "in_progress",
-      "last_event_id": "01KXECJ2YDMEBK7TW2Q4P7PW8G",
-      "last_transition_at": "2026-07-13T18:41:47.468255+00:00"
+      "lane": "for_review",
+      "last_event_id": "01KXEDBNK5RF9J069KYTR88RRA",
+      "last_transition_at": "2026-07-13T18:55:45.765931+00:00"
     }
   }
 }
