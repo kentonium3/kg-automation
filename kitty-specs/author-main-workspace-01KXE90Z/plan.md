@@ -20,11 +20,11 @@ a post-deploy smoke test on office2 confirms no regression on the live agent.
 **Language/Version**: Markdown (OpenClaw agent prompt files) + Python 3.12 (existing validator, reused — no new code)
 **Primary Dependencies**: `scripts/openclaw/agents/validate_workspace.py` (from #587); the #587 standard doc `docs/design/openclaw-workspace-authoring-standard.md`; the felix-admin-capture workspace as the Output Discipline canonical source
 **Storage**: N/A — prompt files live in the repo at `scripts/openclaw/agents/main/`
-**Testing**: `python3 -m scripts.openclaw.agents.validate_workspace --json` (invariant gate); the existing `scripts/openclaw/agents/tests/` suite; a manual post-deploy smoke test documented in `quickstart.md`
-**Target Platform**: OpenClaw agent runtime on office2 (Ubuntu 24.04 LTS); deployed copy under the office2 agent-prompt-sync destination for `main`
+**Testing**: `python3 -m scripts.openclaw.agents.validate_workspace --json` (invariant gate — **main-scoped**: read main's `ok:true`, not the process exit, which is independently RED via calendar/#635); `scripts/openclaw/agents/tests/test_agents_md_size.py` (12K cap); the existing `scripts/openclaw/agents/tests/` suite; an evidence-based post-deploy smoke test (after session rotation) documented in `quickstart.md`
+**Target Platform**: OpenClaw agent runtime on office2 (Ubuntu 24.04 LTS); deployed copy at `/data/services/openclaw/data/` (main's agent-prompt-sync destination — verified via service-inventory)
 **Project Type**: single
 **Performance Goals**: N/A (prompt authoring)
-**Constraints**: Tier 3 (agent prompts); deploy via agent-prompt-sync on merge-to-main — **no `deploys/queued/` manifest** (#636 boundary); rebaseline **not required** (agent prompt files not hashed by `audit.sh`, #621); zero behavior regression on the live front-desk agent
+**Constraints**: Tier 3 (agent prompts); deploy via agent-prompt-sync on merge-to-main — **no `deploys/queued/` manifest** (#636 boundary); rebaseline **not required** (agent prompt files not hashed by `audit.sh`, #621); **`main/AGENTS.md` < 12,000 B hard cap** (post-plan Codex F4) — resolved by moving privacy rule + delegation/timelog mechanics to `TOOLS.md` and keeping only rules + a lean adapted Output Discipline block in AGENTS; **live main session rotated** (`rotate_main_session.py`) before smoke (Codex F5); zero behavior regression on the live front-desk agent
 **Scale/Scope**: one agent workspace (`main`) — five standard files re-authored + a one-line roster note in the #587 standard; `GOVERNANCE.md` and `felix-file-issue.py` unchanged
 
 ## Charter Check
@@ -107,13 +107,13 @@ Not required — Charter Check passed with no violations.
 - **Sequencing/depends-on**: none.
 - **Risks**: inlining stale lists in TOOLS (use pointers); IDENTITY vibe needs Kent's review-time refinement.
 
-### IC-03 — AGENTS re-authoring (both invariant fixes + folded improvements)
+### IC-03 — AGENTS re-authoring + AGENTS↔TOOLS rebalance (both invariant fixes + folded improvements)
 
-- **Purpose**: Make `AGENTS.md` the correct enforceable home and fold in the three approved improvements.
-- **Relevant requirements**: FR-005, FR-006 (Inv-A + Inv-B), FR-007, FR-008, FR-009.
-- **Affected surfaces**: `main/AGENTS.md`.
-- **Sequencing/depends-on**: receives content from IC-01; must land the canonical Output Discipline block (mirror capture) and the enforceable `04-Growth/_private/` rule.
-- **Risks**: instruction conflicts with the existing SOPs / GOVERNANCE.md; the de-hardcoded identity line must stay consistent with the `Sent by ...` convention; delegation consolidation must not drop the cron-vs-ask / verbatim rules.
+- **Purpose**: Make `AGENTS.md` carry the role statement, adapted Output Discipline block (Inv-B), full routing matrix, and consolidated red lines — while staying under the 12K cap by pushing mechanics + the enforceable privacy rule to `TOOLS.md` (Inv-A home).
+- **Relevant requirements**: FR-005, FR-006 (Inv-A via TOOLS + Inv-B via AGENTS), FR-007, FR-008, FR-009; NFR-005 (byte cap).
+- **Affected surfaces**: `main/AGENTS.md`, `main/TOOLS.md` (tightly co-authored with IC-02).
+- **Sequencing/depends-on**: receives content from IC-01; must land an **adapted** (not mirrored) Output Discipline block, the full six-specialist routing matrix (escalation + tasker must survive), and `Sent by main:<model>`.
+- **Risks (Codex-surfaced)**: (F1) silently dropping current AGENTS blocks — mitigated by the full keep/move/drop table in `data-model.md`; (F2) dropping escalation/tasker routing; (F3) importing capture-specific inbox text; (F4) blowing the 12K cap; (F8) breaking the fleet identity convention. All have explicit resolutions in `data-model.md` / `research.md`.
 
 ### IC-04 — Standard acknowledgment + validation gate
 
@@ -123,10 +123,10 @@ Not required — Charter Check passed with no violations.
 - **Sequencing/depends-on**: after IC-01..03.
 - **Risks**: none material; the validator is deterministic.
 
-### IC-05 — Deploy, parity, smoke (post-merge operator)
+### IC-05 — Deploy, parity, session-rotation, smoke (post-merge operator)
 
-- **Purpose**: Verify the live deploy and no regression.
+- **Purpose**: Verify the live deploy and no regression on the front-desk agent.
 - **Relevant requirements**: FR-011, NFR-003, NFR-004; SC-004.
-- **Affected surfaces**: office2 agent-prompt-sync destination for `main`; documented in `quickstart.md` (not a code WP — planning_artifact WPs cannot own `kitty-specs/` paths, per the #584 lesson).
+- **Affected surfaces**: `/data/services/openclaw/data/` (main's deploy dest); `scripts/openclaw/helpers/rotate_main_session.py`; documented in `quickstart.md` (not a code WP — planning_artifact WPs cannot own `kitty-specs/` paths, per the #584 lesson).
 - **Sequencing/depends-on**: after merge-to-main.
-- **Risks**: agent-prompt-sync timing (the tick that pulls runs old code; the *next* tick writes the change); smoke must exercise a real delegation route.
+- **Risks**: agent-prompt-sync timing (the tick that pulls runs old code; the *next* tick writes the change); **the live session caches its prompt — must run `rotate_main_session.py` before smoke** (Codex F5, INV-9) else smoke tests the stale prompt; smoke must be evidence-based and exercise a real delegation route.

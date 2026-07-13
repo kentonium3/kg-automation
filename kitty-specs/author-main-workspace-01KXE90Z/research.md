@@ -70,14 +70,20 @@ session). Decisions below record the rationale for the plan.
 - **Alternatives considered**: one WP per file — rejected (the moves span files;
   a per-file split fractures a single conservation operation).
 
-## D7 — Output Discipline canonical source = felix-admin-capture
+## D7 — Output Discipline: ADAPT capture's block, do not literal-mirror (post-plan Codex F3)
 
-- **Decision**: Mirror the Output Discipline (Hard Rules) block from
-  `scripts/openclaw/agents/felix-admin-capture/AGENTS.md` into `main/AGENTS.md`
-  (fixes Invariant B).
-- **Rationale**: #587 names capture's block as canonical; the block is already
-  mirrored across capture + habits. main is a user-facing-WhatsApp agent, so the
-  block (not the annotation) is required.
+- **Decision**: Author a lean, main-specific Output Discipline block under the
+  `## Output discipline` heading (the validator marker) following the fleet
+  3-Hard-Rules shape (as installed on habits/escalation/tasker), reconciled with
+  main's `HEARTBEAT_OK` no-op behavior. Do **not** copy capture's block verbatim.
+- **Rationale**: Codex correctly flagged that capture's block is inbox-cron /
+  `[felix-admin-capture]: IDLE` specific — literal-mirroring would import
+  nonsensical inbox semantics and "main relays your output" language into main,
+  conflicting with main's direct-conversation + `HEARTBEAT_OK` role. The
+  validator (`OUTPUT_DISCIPLINE_TOKEN = "output discipline"`) only requires the
+  marker + a real block, so a concise adapted block passes and saves bytes (see
+  D10). main is user-facing WhatsApp, so the block (not the annotation) is required.
+- **Alternatives considered**: literal mirror — rejected (behavior-risky, F3).
 
 ## D8 — EA-orchestrator framing = current reality only
 
@@ -88,10 +94,53 @@ session). Decisions below record the rationale for the plan.
   #635 RRULE caution). The framing sets up the mail work without pre-committing
   its shape.
 
-## D9 — Identity line de-hardcode
+## D9 — Identity line de-hardcode → `Sent by main:<model>` (revised, post-plan Codex F8)
 
-- **Decision**: Replace the model-embedded message-identity line
-  (`Sent by main:sonnet`) with a model-agnostic form.
-- **Rationale**: The model name goes stale when main's model changes; the
-  identity line should identify the agent, not the model. The exact string is a
-  small authoring choice confirmed at review (proposed: `Sent by Felix`).
+- **Decision**: `Sent by main:sonnet` → `Sent by main:<model>` — de-hardcode the
+  *model token*, keep the fleet `Sent by <agent-id>:<model>` shape and the
+  `Sent by main` evidence prefix.
+- **Rationale**: The literal `sonnet` goes stale when main's model changes. But
+  Codex F8 verified the whole fleet uses `Sent by <agent-id>:<model>` and the
+  Output Discipline Hard Rule #2 references that exact format — so the originally-
+  proposed `Sent by Felix` would break fleet consistency and the Hard Rule. No
+  Python parser greps `main:sonnet` (only the weekly-driver has its own line), so
+  dropping the literal model is safe; keeping the `main:<model>` shape preserves
+  evidence greps and fleet consistency.
+- **Operator note**: this refines Kent's "de-hardcode identity line" pick; the
+  exact rendered form is `Sent by main:<model>`. Open to `Sent by main` (drop
+  model) if Kent prefers, but that diverges from the fleet convention.
+- **Alternatives**: `Sent by Felix` (rejected — breaks fleet + Hard Rule);
+  defer to a fleet-wide de-hardcode (rejected — scope is main; others follow in
+  their own #167 missions).
+
+## D10 — AGENTS↔TOOLS byte-budget rebalance (post-plan Codex F4)
+
+- **Decision**: Keep `main/AGENTS.md` under the hard 12,000-byte cap by moving the
+  enforceable privacy rule and all delegation/timelog/issue-filing **mechanics**
+  to `TOOLS.md`, keeping only **rules** + a lean Output Discipline block in
+  AGENTS, and dropping the `## Make It Yours` filler.
+- **Rationale**: Codex F4 (verified) — `test_agents_md_size.py` enforces
+  `size < 12000`; main is at 11,592 B (~408 B headroom) and the mission adds a
+  role statement, Output Discipline block, and escalation/tasker routing. Invariant
+  A accepts the privacy rule in TOOLS; Invariant B only needs the marker in AGENTS.
+  So mechanics→TOOLS + privacy→TOOLS buys the room while satisfying both invariants.
+- **Alternatives**: cram everything into AGENTS + compress prose only — rejected
+  (insufficient; risks dropping load-bearing rules to save bytes).
+
+## D11 — Validator acceptance is main-scoped (post-plan Codex F6)
+
+- **Decision**: Acceptance reads the `main` object's `ok: true` from the validator
+  JSON, not the process exit code.
+- **Rationale**: `validate_workspace` validates all active workspaces and the
+  process is currently RED because `felix-admin-calendar` also fails
+  `output_discipline` — that belongs to the #635 mission, out of scope here. A
+  process-exit gate would wrongly block on an unrelated failure.
+
+## D12 — Rotate the live main session before smoke (post-plan Codex F5)
+
+- **Decision**: After deploy (and after any rollback), run
+  `scripts/openclaw/helpers/rotate_main_session.py` before the smoke test.
+- **Rationale**: Codex F5 (verified helper exists) — prompt-sync copies the files
+  but an active `main` session caches its prompt at session-init (known
+  systemPromptReport staleness), so smoke would test the old prompt. Rotation
+  forces a fresh session that loads the new prompt.
