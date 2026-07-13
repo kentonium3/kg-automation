@@ -16,10 +16,10 @@ invariants (privacy boundary, Output Discipline) currently fail validation.
 
 This mission re-authors `main`'s workspace as a coherent, self-contained set
 against the #587 standard, and — because `main` is the agent the future mail /
-EA capability (#165) will extend — folds in three approved behavior
-improvements. It is not a pure refactor: it changes authored behavior on the
-live front-desk agent, so validation, review, and a post-deploy smoke test are
-load-bearing.
+EA capability (#165) will extend — folds in two approved behavior improvements
+(EA-orchestrator role framing; tighter delegation reliability). It is not a pure
+refactor: it changes authored behavior on the live front-desk agent, so
+validation, review, and a post-deploy smoke test are load-bearing.
 
 ## Domain Language
 
@@ -47,7 +47,7 @@ block present) pass.
 
 ### Scenario 2 — Direct conversation post-deploy (runtime happy path)
 Kent sends a direct WhatsApp message to Felix. `main` replies in Kent's voice,
-leads with a **model-agnostic** identity line (no hard-coded model name), and
+leads with its `Sent by main:...` identity line (unchanged by this mission), and
 never reads, writes, references, or logs `04-Growth/_private/`.
 
 ### Scenario 3 — Delegation relay (runtime happy path)
@@ -75,10 +75,11 @@ without double-relaying cron-driven (announce-mode) output.
 | FR-005 | `AGENTS.md` receives a concise role/authority statement framing `main` as the front-desk / EA-orchestrator (current reality only, no speculative mail behavior). | Approved |
 | FR-006 | `AGENTS.md` carries an **adapted** Output Discipline block (main-specific, reconciled with `HEARTBEAT_OK`; not a literal copy of capture's inbox-specific block) under the `output discipline` marker (fixes Invariant B). The enforceable `04-Growth/_private/` privacy rule lives in `TOOLS.md` (fixes Invariant A; keeps AGENTS under its byte cap). | Approved |
 | FR-007 | Delegation is consolidated to a single owner (AGENTS routing matrix; drop the SOUL table) covering **all six specialist paths** (capture, habits, escalation, tasker, calendar, timelog) — escalation and tasker, currently only in the SOUL table, must survive. Delegation command **mechanics** (the `openclaw agent` bash, timelog block, issue-filing block) move to `TOOLS.md`; AGENTS keeps the rules. The verbatim-passthrough, cron-vs-ask, and #679 calendar-boundary rules are preserved and unambiguous. | Approved |
-| FR-008 | The message-identity line is de-hardcoded so it no longer embeds a specific model name: `Sent by main:sonnet` → `Sent by main:<model>`, preserving the fleet-wide `Sent by <agent-id>:<model>` convention (referenced by the Output Discipline Hard Rule) and the `Sent by main` evidence prefix. | Approved |
-| FR-009 | Red lines are consolidated into a single enforceable owner (`AGENTS.md`), with only pure behavioral stance (if any) retained in SOUL. | Approved |
-| FR-010 | The #587 standard / roster is updated with a one-line note that `main` carries an on-demand `GOVERNANCE.md` outside the five-file model and outside validator scope; GOVERNANCE.md content itself is unchanged. | Approved |
-| FR-011 | After merge, the authored files deploy via agent-prompt-sync to `/data/services/openclaw/data/` and the deployed copies match the repo copies; the live `main` session is rotated (`rotate_main_session.py`) so it picks up the new prompt; a post-deploy evidence-based smoke test confirms a direct exchange (Scenario 2) and one delegation route (Scenario 3). | Approved |
+| FR-008 | Red lines are consolidated into a single enforceable owner (`AGENTS.md`), with only pure behavioral stance (if any) retained in SOUL. | Approved |
+| FR-009 | The #587 standard / roster is updated with a one-line note that `main` carries an on-demand `GOVERNANCE.md` outside the five-file model and outside validator scope; GOVERNANCE.md content itself is unchanged. | Approved |
+| FR-010 | After merge, the authored files deploy via agent-prompt-sync to `/data/services/openclaw/data/` and the deployed copies match the repo copies; the live `main` session is rotated (`rotate_main_session.py`) so it picks up the new prompt; a post-deploy evidence-based smoke test confirms a direct exchange (Scenario 2) and one delegation route (Scenario 3). | Approved |
+
+> **Dropped (operator decision 2026-07-13):** the message-identity-line de-hardcode (formerly FR-008). The fleet-wide `Sent by <agent-id>:<model>` convention is referenced by the Output Discipline Hard Rule; changing it on `main` alone creates inconsistency for marginal value. The identity line (`Sent by main:sonnet`) is left **unchanged**; the message-identity section is authored as-is. A fleet-wide de-hardcode may be reconsidered separately.
 
 ## Non-Functional Requirements
 
@@ -87,7 +88,7 @@ without double-relaying cron-driven (announce-mode) output.
 | NFR-001 | Shared invariants pass (main-scoped). | `python3 -m scripts.openclaw.agents.validate_workspace --json` reports the **`main`** entry `ok: true` (Invariant A and B). Acceptance reads main's object, not the process exit code — the full-fleet exit is independently RED due to `felix-admin-calendar` (out of scope, #635). | Approved |
 | NFR-002 | No file-ownership duplication. | Each shared concern (privacy rule, voice, role, delegation, heartbeat) appears in exactly one owner file per the #587 ownership table; zero duplicated rules across files. | Approved |
 | NFR-003 | Deploy parity. | 100% md5 match between repo and `/data/services/openclaw/data/` for every authored file after agent-prompt-sync runs. | Approved |
-| NFR-004 | No runtime regression. | After session rotation, post-deploy smoke: direct exchange + one delegation route both succeed with log/session evidence; identity line is `Sent by main:<model>`; no `04-Growth/_private/` access. | Approved |
+| NFR-004 | No runtime regression. | After session rotation, post-deploy smoke: direct exchange + one delegation route both succeed with log/session evidence; the `Sent by main:...` identity line still leads replies (unchanged); no `04-Growth/_private/` access. | Approved |
 | NFR-005 | AGENTS byte cap. | `main/AGENTS.md` stays below the 12,000-byte hard cap (`scripts/openclaw/agents/tests/test_agents_md_size.py` green), with ≥ ~300 B headroom after authoring. | Approved |
 
 ## Constraints
@@ -106,7 +107,7 @@ without double-relaying cron-driven (announce-mode) output.
 - **SC-001**: The workspace validator reports the `main` entry `ok: true` for both shared invariants, and `main/AGENTS.md` is under the 12,000-byte cap.
 - **SC-002**: All five standard files are intentionally authored — no factory-template or placeholder content remains in `IDENTITY.md` or `TOOLS.md`, and `SOUL.md` contains voice/stance only.
 - **SC-003**: No instruction conflicts exist across `main`'s workspace files, and all six specialist routing paths plus the load-bearing delegation rules survive (validated during review).
-- **SC-004**: After deploy and session rotation, repo and office2 copies match, and an evidence-based smoke test shows a direct exchange and one delegation route both working with the `Sent by main:<model>` identity line.
+- **SC-004**: After deploy and session rotation, repo and office2 copies match, and an evidence-based smoke test shows a direct exchange and one delegation route both working (identity line unchanged).
 - **SC-005**: The privacy boundary (`04-Growth/_private/` never-touch) is preserved and lives in its enforceable home (`TOOLS.md`).
 
 ## Key Entities

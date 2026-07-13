@@ -36,10 +36,10 @@ Acceptance: `test_agents_md_size.py` green (AGENTS < 12,000 B, target ≥ ~300 B
 | Current heading | Disposition | Destination / note |
 |-----------------|-------------|--------------------|
 | First Run | keep | BOOTSTRAP handling |
-| Message identity | **keep + modify** | de-hardcode `Sent by main:sonnet` → `Sent by main:<model>` (FR-008, F8) |
+| Message identity | **keep (unchanged)** | de-hardcode DROPPED (operator 2026-07-13); `Sent by main:sonnet` left as-is |
 | Session Startup | keep | |
 | Memory | keep | |
-| Red Lines | **keep + merge** | absorb SOUL `## Red lines` (single owner, FR-009) |
+| Red Lines | **keep + merge** | absorb SOUL `## Red lines` (single owner, FR-008) |
 | Truthful Reporting & Mechanism Fidelity | keep | fleet doctrine (ABSOLUTE) |
 | Verbatim pass-through | keep | load-bearing delegation reliability (INV-5) |
 | Governance — read GOVERNANCE.md | keep (concise) | pointer + tier-citation rule; GOVERNANCE.md itself unchanged |
@@ -70,7 +70,7 @@ Acceptance: `test_agents_md_size.py` green (AGENTS < 12,000 B, target ≥ ~300 B
 | Sub-agent delegation (table) | **drop** | AGENTS routing matrix supersedes; escalation+tasker MUST survive into it (F2) |
 | Heartbeat behavior | **drop** | AGENTS `## Heartbeats` owns it |
 | Privacy boundary (full rule) | **reduce** | one-line stance in SOUL; enforceable rule → TOOLS (FR-006/Inv-A) |
-| Red lines | **move** | merge into AGENTS `## Red Lines` (FR-009) |
+| Red lines | **move** | merge into AGENTS `## Red Lines` (FR-008) |
 
 ## TOOLS.md / USER.md — disposition
 

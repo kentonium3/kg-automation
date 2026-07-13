@@ -18,9 +18,9 @@ AGENTS cap:
 - `USER.md` → filtered Kent-context + Felix "why"
 - `TOOLS.md` → real surface **+ delegation/timelog/issue-filing mechanics + the enforceable `04-Growth/_private/` privacy rule (Invariant A home)**
 - `IDENTITY.md` → Felix + vibe
-- `AGENTS.md` → role statement (EA-orchestrator), adapted Output Discipline block, full routing matrix (all six specialists), consolidated red lines, de-hardcoded identity line `Sent by main:<model>`; delegation **rules** only (mechanics live in TOOLS)
+- `AGENTS.md` → role statement (EA-orchestrator), adapted Output Discipline block, full routing matrix (all six specialists), consolidated red lines; delegation **rules** only (mechanics live in TOOLS). Message-identity line left unchanged.
 
-Add the one-line GOVERNANCE.md roster note to the #587 standard (FR-010).
+Add the one-line GOVERNANCE.md roster note to the #587 standard (FR-009).
 
 ## 2. Validate (deterministic gate — main-scoped, Codex F6)
 
@@ -106,8 +106,8 @@ Run a real WhatsApp exchange, then confirm with logs/session evidence — not ju
 by eyeballing the reply:
 
 - **Direct exchange**: send Felix a direct message. Evidence: main session JSONL
-  shows a reply beginning with `Sent by main:<model>` (model-agnostic form, no
-  `:sonnet`); gateway send log shows delivery.
+  shows a reply beginning with the `Sent by main:...` identity line (unchanged by
+  this mission); gateway send log shows delivery.
 - **Delegation route**: send one specialist-bound message (e.g. a habit
   completion). Evidence: the specialist's session JSONL received Kent's text
   **verbatim** (grep the exact phrase); main did not double-relay cron output.

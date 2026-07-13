@@ -9,9 +9,9 @@ Re-author Felix's `main` (front-desk / orchestrator) OpenClaw workspace to the
 #587 authoring standard: fix the two failing shared invariants (privacy →
 enforceable home; add the Output Discipline block), author the two factory-
 template files (`IDENTITY.md`, `TOOLS.md`), clean `SOUL.md` to voice-only
-(role → `AGENTS.md`, "why" → `USER.md`), and fold in three approved behavior
-improvements (model-agnostic identity line; EA-orchestrator role framing;
-tighter delegation reliability). Deterministic verification is the existing
+(role → `AGENTS.md`, "why" → `USER.md`), and fold in two approved behavior
+improvements (EA-orchestrator role framing; tighter delegation reliability).
+Deterministic verification is the existing
 #587 validator; deploy is via agent-prompt-sync on merge-to-main (no manifest);
 a post-deploy smoke test on office2 confirms no regression on the live agent.
 
@@ -65,7 +65,7 @@ scripts/openclaw/agents/
 │   ├── USER.md                   # absorbs filtered Kent-context + Felix "why"
 │   ├── TOOLS.md                  # authored from factory scaffold to real surface
 │   ├── AGENTS.md                 # role statement, Output Discipline, enforceable privacy,
-│   │                             #   consolidated red lines + delegation, de-hardcoded id line
+│   │                             #   consolidated red lines + delegation (rules)
 │   ├── GOVERNANCE.md             # UNCHANGED (acknowledged in standard/roster only)
 │   └── felix-file-issue.py       # UNCHANGED
 └── validate_workspace.py         # REUSED as-is (invariant checker)
@@ -76,7 +76,7 @@ docs/design/
 
 **Structure Decision**: Single-project. All authored content lives under
 `scripts/openclaw/agents/main/`; the only file touched outside that directory is
-the #587 standard doc (a one-line roster acknowledgment, FR-010). No new source
+the #587 standard doc (a one-line roster acknowledgment, FR-009). No new source
 modules, no new tests beyond exercising the reused validator.
 
 ## Complexity Tracking
@@ -110,15 +110,15 @@ Not required — Charter Check passed with no violations.
 ### IC-03 — AGENTS re-authoring + AGENTS↔TOOLS rebalance (both invariant fixes + folded improvements)
 
 - **Purpose**: Make `AGENTS.md` carry the role statement, adapted Output Discipline block (Inv-B), full routing matrix, and consolidated red lines — while staying under the 12K cap by pushing mechanics + the enforceable privacy rule to `TOOLS.md` (Inv-A home).
-- **Relevant requirements**: FR-005, FR-006 (Inv-A via TOOLS + Inv-B via AGENTS), FR-007, FR-008, FR-009; NFR-005 (byte cap).
+- **Relevant requirements**: FR-005, FR-006 (Inv-A via TOOLS + Inv-B via AGENTS), FR-007, FR-008 (red lines); NFR-005 (byte cap).
 - **Affected surfaces**: `main/AGENTS.md`, `main/TOOLS.md` (tightly co-authored with IC-02).
-- **Sequencing/depends-on**: receives content from IC-01; must land an **adapted** (not mirrored) Output Discipline block, the full six-specialist routing matrix (escalation + tasker must survive), and `Sent by main:<model>`.
-- **Risks (Codex-surfaced)**: (F1) silently dropping current AGENTS blocks — mitigated by the full keep/move/drop table in `data-model.md`; (F2) dropping escalation/tasker routing; (F3) importing capture-specific inbox text; (F4) blowing the 12K cap; (F8) breaking the fleet identity convention. All have explicit resolutions in `data-model.md` / `research.md`.
+- **Sequencing/depends-on**: receives content from IC-01; must land an **adapted** (not mirrored) Output Discipline block and the full six-specialist routing matrix (escalation + tasker must survive). The message-identity line is left unchanged (de-hardcode dropped).
+- **Risks (Codex-surfaced)**: (F1) silently dropping current AGENTS blocks — mitigated by the full keep/move/drop table in `data-model.md`; (F2) dropping escalation/tasker routing; (F3) importing capture-specific inbox text; (F4) blowing the 12K cap. All have explicit resolutions in `data-model.md` / `research.md`.
 
 ### IC-04 — Standard acknowledgment + validation gate
 
 - **Purpose**: Record GOVERNANCE.md's out-of-standard status and prove both invariants pass.
-- **Relevant requirements**: FR-010, NFR-001, NFR-002; SC-001, SC-002, SC-003, SC-005.
+- **Relevant requirements**: FR-009, NFR-001, NFR-002; SC-001, SC-002, SC-003, SC-005.
 - **Affected surfaces**: `docs/design/openclaw-workspace-authoring-standard.md`; the validator output for `main`.
 - **Sequencing/depends-on**: after IC-01..03.
 - **Risks**: none material; the validator is deterministic.
@@ -126,7 +126,7 @@ Not required — Charter Check passed with no violations.
 ### IC-05 — Deploy, parity, session-rotation, smoke (post-merge operator)
 
 - **Purpose**: Verify the live deploy and no regression on the front-desk agent.
-- **Relevant requirements**: FR-011, NFR-003, NFR-004; SC-004.
+- **Relevant requirements**: FR-010, NFR-003, NFR-004; SC-004.
 - **Affected surfaces**: `/data/services/openclaw/data/` (main's deploy dest); `scripts/openclaw/helpers/rotate_main_session.py`; documented in `quickstart.md` (not a code WP — planning_artifact WPs cannot own `kitty-specs/` paths, per the #584 lesson).
 - **Sequencing/depends-on**: after merge-to-main.
 - **Risks**: agent-prompt-sync timing (the tick that pulls runs old code; the *next* tick writes the change); **the live session caches its prompt — must run `rotate_main_session.py` before smoke** (Codex F5, INV-9) else smoke tests the stale prompt; smoke must be evidence-based and exercise a real delegation route.

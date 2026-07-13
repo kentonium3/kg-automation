@@ -94,24 +94,19 @@ session). Decisions below record the rationale for the plan.
   #635 RRULE caution). The framing sets up the mail work without pre-committing
   its shape.
 
-## D9 — Identity line de-hardcode → `Sent by main:<model>` (revised, post-plan Codex F8)
+## D9 — Identity line de-hardcode: **DROPPED** (operator decision 2026-07-13)
 
-- **Decision**: `Sent by main:sonnet` → `Sent by main:<model>` — de-hardcode the
-  *model token*, keep the fleet `Sent by <agent-id>:<model>` shape and the
-  `Sent by main` evidence prefix.
-- **Rationale**: The literal `sonnet` goes stale when main's model changes. But
-  Codex F8 verified the whole fleet uses `Sent by <agent-id>:<model>` and the
-  Output Discipline Hard Rule #2 references that exact format — so the originally-
-  proposed `Sent by Felix` would break fleet consistency and the Hard Rule. No
-  Python parser greps `main:sonnet` (only the weekly-driver has its own line), so
-  dropping the literal model is safe; keeping the `main:<model>` shape preserves
-  evidence greps and fleet consistency.
-- **Operator note**: this refines Kent's "de-hardcode identity line" pick; the
-  exact rendered form is `Sent by main:<model>`. Open to `Sent by main` (drop
-  model) if Kent prefers, but that diverges from the fleet convention.
-- **Alternatives**: `Sent by Felix` (rejected — breaks fleet + Hard Rule);
-  defer to a fleet-wide de-hardcode (rejected — scope is main; others follow in
-  their own #167 missions).
+- **Decision**: Do **not** de-hardcode the message-identity line. `Sent by main:sonnet`
+  is left unchanged; the message-identity section is authored as-is. FR-008 removed
+  from scope; folded improvements are now two (EA-orchestrator framing + delegation
+  reliability).
+- **Why dropped**: Codex F8 established that the whole fleet uses
+  `Sent by <agent-id>:<model>` and the Output Discipline Hard Rule #2 references
+  that exact format — so `Sent by Felix` was out, and the only safe form was
+  `Sent by main:<model>` (drop the stale model token, keep the shape). But that is
+  a *fleet-wide* convention; changing it on `main` alone creates inconsistency for
+  marginal value (avoiding a stale model name). Kent's call: drop it here; a
+  fleet-wide de-hardcode can be considered separately if it ever matters.
 
 ## D10 — AGENTS↔TOOLS byte-budget rebalance (post-plan Codex F4)
 
