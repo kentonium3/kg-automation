@@ -1,0 +1,34 @@
+{
+  "version": 1,
+  "mission_slug": "author-main-workspace-01KXE90Z",
+  "mission_id": "01KXE90ZF99YM5AKK17DNA6V6Q",
+  "mission_branch": "kitty/mission-author-main-workspace-01KXE90Z",
+  "target_branch": "feat/author-main-workspace",
+  "lanes": [
+    {
+      "lane_id": "lane-a",
+      "wp_ids": [
+        "WP01"
+      ],
+      "write_scope": [
+        "docs/design/openclaw-workspace-authoring-standard.md",
+        "scripts/openclaw/agents/main/AGENTS.md",
+        "scripts/openclaw/agents/main/IDENTITY.md",
+        "scripts/openclaw/agents/main/SOUL.md",
+        "scripts/openclaw/agents/main/TOOLS.md",
+        "scripts/openclaw/agents/main/USER.md"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "artifact-rendering",
+        "legacy-cleanup",
+        "workspace"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    }
+  ],
+  "computed_at": "2026-07-13T18:09:22.784595+00:00",
+  "computed_from": "dependency_graph+ownership",
+  "planning_artifact_wps": []
+}

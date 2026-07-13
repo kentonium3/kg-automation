@@ -1,0 +1,32 @@
+{
+  "accept_commit": "626ddafad84bb8ffe4bd4b7ee157917f5a4fe2dc",
+  "acceptance_history": [
+    {
+      "accept_commit": "626ddafad84bb8ffe4bd4b7ee157917f5a4fe2dc",
+      "acceptance_mode": "pr",
+      "accepted_at": "2026-07-13T19:07:43.669196+00:00",
+      "accepted_by": "kentgale",
+      "accepted_from_commit": "6dc1cfaee3825bf955b1355c59d915edc4e6e7d2"
+    }
+  ],
+  "acceptance_mode": "pr",
+  "accepted_at": "2026-07-13T19:07:43.669196+00:00",
+  "accepted_by": "kentgale",
+  "accepted_from_commit": "6dc1cfaee3825bf955b1355c59d915edc4e6e7d2",
+  "baseline_merge_commit": "c9071f2537528f2994a672d3b8fedf1ab42c29b1",
+  "created_at": "2026-07-13T17:40:01.130767+00:00",
+  "flattened": true,
+  "friendly_name": "Author main agent workspace",
+  "mission_id": "01KXE90ZF99YM5AKK17DNA6V6Q",
+  "mission_number": 100,
+  "mission_slug": "author-main-workspace-01KXE90Z",
+  "mission_type": "software-dev",
+  "pr_bound": true,
+  "purpose_context": "main is the front-desk / orchestrator agent that handles all direct WhatsApp conversation and delegates to specialists. Its workspace files are the least intentionally-authored of the active agents (two are still factory templates, SOUL is cross-contaminated, and both #587 shared invariants — privacy and Output Discipline — fail). This mission re-authors main's workspace as a coherent, self-contained set against the standard, and because main is what the mail EA capability will extend, also folds in two approved improvements: EA-orchestrator role framing and tighter delegation reliability. Deploys via agent-prompt-sync on merge-to-main; Tier 3.",
+  "purpose_tldr": "Author Felix's main (front-desk) agent workspace to the #587 standard: fix two failed invariants, author the two factory-template files, and fold in two targeted behavior improvements.",
+  "slug": "author-main-workspace-01KXE90Z",
+  "target_branch": "feat/author-main-workspace",
+  "topology": "lanes",
+  "vcs": "git",
+  "vcs_locked_at": "2026-07-13T18:41:45.747948+00:00"
+}
