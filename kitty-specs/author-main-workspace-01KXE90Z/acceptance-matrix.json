@@ -1,0 +1,58 @@
+{
+  "mission_slug": "author-main-workspace-01KXE90Z",
+  "mission_number": "",
+  "mission_type": "software-dev",
+  "overall_verdict": "pass",
+  "criteria": [
+    {
+      "criterion_id": "SC-001",
+      "description": "Workspace validator reports the main object ok:true for both shared invariants; main/AGENTS.md under the 12,000-byte cap.",
+      "proof_type": "automated_test",
+      "evidence": "validate_workspace.py --json (lane worktree): main ok:true (privacy_boundary present in TOOLS.md; output_discipline block present in AGENTS.md). wc -c main/AGENTS.md = 11586 (<12000). test_agents_md_size.py: 2 passed.",
+      "pass_fail": "pass",
+      "verified_by": "curator-carla (impl) + reviewer-renata (review) + full openclaw suite 72 passed / 0 failed",
+      "verified_at": "2026-07-13T19:04:57Z",
+      "notes": "Main-scoped acceptance: process exit is independently RED via felix-admin-calendar (#635), out of scope. Verified from the lane worktree where WP01 changes live."
+    },
+    {
+      "criterion_id": "SC-002",
+      "description": "All five standard files intentionally authored; no factory/placeholder content in IDENTITY.md or TOOLS.md; SOUL.md contains voice/stance only; AGENTS.md under the cap.",
+      "proof_type": "code_review",
+      "evidence": "reviewer-renata diff review of the 6 owned files: SOUL headings = Voice + one-line Privacy stance; USER absorbed filtered Kent-context + the Felix why; TOOLS has real surface + enforceable privacy rule; IDENTITY authored as Felix (fox), no placeholders.",
+      "pass_fail": "pass",
+      "verified_by": "reviewer-renata (APPROVE)",
+      "verified_at": "2026-07-13T19:04:57Z",
+      "notes": "No factory scaffold text remains in any of the five files."
+    },
+    {
+      "criterion_id": "SC-003",
+      "description": "No instruction conflicts across main's workspace files; all six specialist routing paths plus load-bearing delegation rules survive.",
+      "proof_type": "code_review",
+      "evidence": "reviewer-renata INV-5 check: six routes present (capture/habits/escalation/tasker/calendar + timelog); escalation+tasker (previously only in SOUL table) survived into AGENTS routing matrix; Truthful Reporting, Verbatim pass-through, Governance tier-citation, No-Unrequested-Infra, cron-vs-ask relay (#263/#285), #679 boundary, timelog 13-status all present. INV-3 no cross-file duplication.",
+      "pass_fail": "pass",
+      "verified_by": "reviewer-renata (APPROVE)",
+      "verified_at": "2026-07-13T19:04:57Z",
+      "notes": "Timelog kept in AGENTS per committed fleet-guard test_timelog_prompt.py (pointer, not duplicate, in TOOLS) — correct reconciliation."
+    },
+    {
+      "criterion_id": "SC-004",
+      "description": "After deploy and session rotation, repo and office2 copies match; evidence-based smoke shows a direct exchange and one delegation route working.",
+      "proof_type": "operator_verification",
+      "evidence": "Post-merge operator acceptance per quickstart.md steps 6-9 (agent-prompt-sync deploy to /data/services/openclaw/data/, md5 parity, rotate_main_session.py, evidence smoke). Not runnable pre-merge.",
+      "pass_fail": "deferred",
+      "verified_by": "operator (post-merge, per quickstart.md)",
+      "verified_at": "2026-07-13T19:04:57Z",
+      "notes": "Deploy/parity/smoke is inherently post-merge (agent-prompt-sync fires on merge-to-main). Deferred to operator acceptance; not a code gate."
+    },
+    {
+      "criterion_id": "SC-005",
+      "description": "The privacy boundary (04-Growth/_private never-touch) is preserved and lives in its enforceable home (TOOLS.md).",
+      "proof_type": "automated_test",
+      "evidence": "validate_workspace.py privacy_boundary check: present in TOOLS.md. SOUL carries only the one-line stance. reviewer-renata confirmed the USER.md occurrence is an incidental context reference (naming Kent's private pursuit), not the enforceable rule.",
+      "pass_fail": "pass",
+      "verified_by": "curator-carla (impl) + reviewer-renata (review)",
+      "verified_at": "2026-07-13T19:04:57Z",
+      "notes": "Invariant A home is TOOLS.md (keeps AGENTS under the byte cap)."
+    }
+  ]
+}
