@@ -128,18 +128,15 @@ target Google account:
    consent screen**. Use type **External**. Add the Google account you
    intend to authorize as a Test user (under "Test users" → Add users).
 
-   > **⚠ Operational consequence — refresh tokens expire every 7 days.**
-   > Google issues refresh tokens with a hard **7-day expiration** for any
-   > OAuth app in `External` + `Testing` publishing status (current setup).
-   > See [Google OAuth 2.0 expiration docs](https://developers.google.com/identity/protocols/oauth2#expiration).
-   > Symptom: `oauth2: "invalid_grant" "Token has been expired or revoked."`
-   > on the next `gog` call after the 7-day window elapses. Re-auth procedure
-   > is §2.8 below. To eliminate the weekly cycle, the OAuth app must be
-   > moved to "In Production" publishing status (requires Google's
-   > brand-only or sensitive-scope verification, depending on the scope set)
-   > OR replaced with a Workspace-internal OAuth app under a Workspace
-   > tenant. See §"Common issues" → "Refresh token expired (Testing-app
-   > 7-day cycle)" for the day-to-day re-auth pattern.
+   > **⚠ Historical note — Testing-mode refresh tokens expired every 7 days.**
+   > While an OAuth app is in `External` + `Testing` publishing status, Google
+   > issues refresh tokens with a hard **7-day expiration**
+   > ([Google OAuth 2.0 expiration docs](https://developers.google.com/identity/protocols/oauth2#expiration));
+   > symptom: `oauth2: "invalid_grant" "Token has been expired or revoked."`.
+   > **This app has since been published ("In production"), so the 7-day
+   > expiry no longer applies** (kentonium3/kg-automation#731) — re-auth is only
+   > needed after an actual revocation (§2.8). If you stand up a *new* app in
+   > Testing, the 7-day cycle applies until you publish it.
 
 4. **Credentials**: navigate to **APIs & Services → Credentials → Create
    Credentials → OAuth Client ID**. Application type: **Desktop app**.
@@ -202,7 +199,7 @@ authorize any account yet — that happens in the next step.
 > [`scripts/security/gog-reauth.sh`](<../../scripts/security/gog-reauth.sh>)
 > automates everything in this section except the two intrinsically-
 > interactive bits (operator clicks consent in the Mac browser; operator
-> pastes the redirect URL). For the weekly 7-day-cycle re-auth, run from
+> pastes the redirect URL). To re-auth after a revocation, run from
 > Mac: `ssh -t office2-claude /home/claude/kg-automation/scripts/security/gog-reauth.sh`.
 > The full manual procedure below is the authoritative reference and is
 > still needed for first-time setup (when the env vars + `~/.bashrc`
@@ -654,35 +651,35 @@ openclaw skills info gog
 
 ### Common issues
 
-**Refresh token expired (Testing-app 7-day cycle — DOMINANT cause for
-current setup)**: while the OAuth app is in `External` + `Testing`
-publishing status, Google expires every refresh token exactly 7 days
-after issuance, regardless of activity. Surface symptom is identical to
-revocation: `oauth2: "invalid_grant" "Token has been expired or
-revoked."` on the next `gog` call. **Routine remediation:** from Mac, run
+**Refresh token expired (historical — Testing-app 7-day cycle, resolved by
+#731)**: the app **was** in `External` + `Testing` publishing status, where
+Google expired every refresh token 7 days after issuance regardless of
+activity — the dominant cause of re-auth churn (#572). The app has since been
+**published ("In production")**, so this weekly cycle no longer applies (#731).
+A token now dies only on an actual revocation (see the next item). Symptom (any
+death): `oauth2: "invalid_grant" "Token has been expired or revoked."` on the
+next `gog` call. **Remediation:** from Mac, run
 `ssh -t office2-claude /home/claude/kg-automation/scripts/security/gog-reauth.sh`
 (wraps §2.8, ~3 min total including browser consent). Fallback is §2.8
-step 1+2 manually. Until the OAuth app's publishing status changes
-(see §2.4 callout), expect this re-auth roughly every Monday-ish
-(matched to the previous mint date). Tracking issue: #572.
+step 1+2 manually.
 
 > **Automatic detection** (post-#572): the `credential-liveness-probe`
 > systemd timer probes the gog token every 6 hours and auto-files a
 > GitHub issue when the token dies, with the `gog-reauth.sh` recovery
 > command in the body. You don't need to manually monitor for expiration.
 > See [credential-liveness-probe-ops.md](<./credential-liveness-probe-ops.md>)
-> for the probe's cadence, classification logic (`dead-routine-7day` vs
-> `dead-unexpected` vs `probe-error`), manifest configuration, manual
-> trigger commands, and troubleshooting.
+> for the probe's cadence, classification (`dead` vs `probe-error`),
+> manifest configuration, manual trigger commands, and troubleshooting.
 
-**Refresh token revoked (other causes)**: if `gog auth doctor` reports a
-revoked token AND fewer than 7 days have passed since the last re-mint,
-the cause is one of: Google account password change, 6+ months of
-inactivity, manual revocation at https://myaccount.google.com/permissions,
-or a Google security review. Same remediation — re-run §2.8 step 1
-(client credentials are still valid). The liveness probe will file a
-`credential-liveness-unexpected: gog-credentials-keyring (<date>)` issue for
-out-of-cycle revocations.
+**Refresh token revoked**: if `gog auth doctor` reports a revoked token
+(now that the app is published, this is the *only* way the token dies —
+there is no 7-day cycle), the cause is one of: Google account password
+change, 6+ months of inactivity, manual revocation at
+https://myaccount.google.com/permissions, or a Google security review.
+Same remediation — re-run §2.8 step 1 (client credentials are still
+valid). The liveness probe files a single
+`credential-liveness-dead: gog-credentials-keyring (<date>)` issue on any
+token death.
 
 **Scope expansion**: if a future use case needs a scope not in the
 original `--services` list (e.g., adding `tasks` later), re-run `gog auth

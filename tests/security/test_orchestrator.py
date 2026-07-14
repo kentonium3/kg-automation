@@ -295,7 +295,7 @@ def _make_cred_no_liveness(name: str = "no-liveness-cred") -> Credential:
     )
 
 
-def _fake_dead_result(cred, classification: str = "dead-routine-7day") -> LivenessResult:
+def _fake_dead_result(cred, classification: str = "dead") -> LivenessResult:
     return LivenessResult(
         credential_name=cred.name,
         classification=classification,
@@ -345,13 +345,13 @@ def test_orchestrator_skips_credentials_without_liveness_probe():
     assert any("liveness_skipped" in msg for msg in log_records)
 
 
-def test_orchestrator_files_issue_on_dead_routine():
-    """Probe returns dead-routine-7day; no dedup match → issue filed, liveness_alerts_filed=1."""
+def test_orchestrator_files_issue_on_dead():
+    """Probe returns dead; no dedup match → issue filed, liveness_alerts_filed=1."""
     cred = _make_cred_with_liveness()
     captured: dict = {}
 
     def fake_probe(c):
-        return _fake_dead_result(c, "dead-routine-7day")
+        return _fake_dead_result(c, "dead")
 
     def fake_file(title, body, labels):
         captured["title"] = title
@@ -370,31 +370,26 @@ def test_orchestrator_files_issue_on_dead_routine():
         result = run_cycle("/fake/manifest.json", today=date(2026, 6, 9))
 
     assert result.liveness_alerts_filed == 1
-    assert captured["title"].startswith("credential-liveness-routine-7day:")
+    assert captured["title"].startswith("credential-liveness-dead:")
     assert cred.name in captured["title"]
 
 
-def test_orchestrator_files_separate_issue_on_dead_unexpected():
-    """Probe returns dead-unexpected; routine issue exists → new issue filed with unexpected prefix."""
+def test_orchestrator_dead_body_has_unconditional_investigate_block():
+    """Post-#731 every dead alert body includes the 'investigate' guidance."""
     cred = _make_cred_with_liveness()
     captured: dict = {}
 
     def fake_probe(c):
-        return _fake_dead_result(c, "dead-unexpected")
-
-    def fake_dedup(prefix):
-        # Simulate a routine issue open, but not the unexpected one
-        if "routine-7day" in prefix:
-            return [100]
-        return []
+        return _fake_dead_result(c, "dead")
 
     def fake_file(title, body, labels):
         captured["title"] = title
+        captured["body"] = body
         return 101
 
     with (
         patch(_LIVENESS_PATCH, side_effect=fake_probe),
-        patch(_DEDUP_PATCH, side_effect=fake_dedup),
+        patch(_DEDUP_PATCH, return_value=[]),
         patch(_CREATE_ISSUE_PATCH, side_effect=fake_file),
         patch("credential_health_check.orchestrator.read_manifest", return_value=([cred], [])),
         patch("credential_health_check.orchestrator.MONITOR_ACTIVITY_READERS", new={}),
@@ -403,15 +398,15 @@ def test_orchestrator_files_separate_issue_on_dead_unexpected():
         result = run_cycle("/fake/manifest.json", today=date(2026, 6, 9))
 
     assert result.liveness_alerts_filed == 1
-    assert captured["title"].startswith("credential-liveness-unexpected:")
+    assert "myaccount.google.com/permissions" in captured["body"]
 
 
-def test_orchestrator_dedups_repeat_routine_failures():
-    """Probe returns dead-routine-7day; existing open issue → deduped, no new issue."""
+def test_orchestrator_dedups_repeat_dead_failures():
+    """Probe returns dead; existing open issue → deduped, no new issue."""
     cred = _make_cred_with_liveness()
 
     def fake_probe(c):
-        return _fake_dead_result(c, "dead-routine-7day")
+        return _fake_dead_result(c, "dead")
 
     with (
         patch(_LIVENESS_PATCH, side_effect=fake_probe),
@@ -443,7 +438,7 @@ def test_orchestrator_dry_run_does_not_file():
     logger.setLevel(logging.DEBUG)
 
     def fake_probe(c):
-        return _fake_dead_result(c, "dead-routine-7day")
+        return _fake_dead_result(c, "dead")
 
     with (
         patch(_LIVENESS_PATCH, side_effect=fake_probe),
@@ -542,14 +537,8 @@ def test_liveness_runs_in_both_modes():
     assert liveness_calls[0] == cred.name
 
 
-def test_dedup_title_prefixes_differ_routine_vs_unexpected():
-    """String-level assertion: routine prefix != unexpected prefix."""
-    routine_prefix = "credential-liveness-routine-7day: gog-credentials-keyring"
-    unexpected_prefix = "credential-liveness-unexpected: gog-credentials-keyring"
-
-    assert routine_prefix.startswith("credential-liveness-routine-7day:")
-    assert unexpected_prefix.startswith("credential-liveness-unexpected:")
-    assert routine_prefix != unexpected_prefix
-    # Verify the removeprefix logic used in the orchestrator.
-    assert "dead-routine-7day".removeprefix("dead-") == "routine-7day"
-    assert "dead-unexpected".removeprefix("dead-") == "unexpected"
+def test_dead_title_prefix_is_single_value():
+    """Post-#731 there is one dead-alert title prefix, keyed on credential name."""
+    prefix = "credential-liveness-dead: gog-credentials-keyring"
+    assert prefix.startswith("credential-liveness-dead:")
+    assert "gog-credentials-keyring" in prefix

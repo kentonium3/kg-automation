@@ -2474,7 +2474,7 @@
       "type": "systemd_user_timer",
       "schedule": "OnCalendar=*-*-* 00,06,12,18:00:00; Persistent=true",
       "schedule_note": "Probes OAuth token health every 6 hours (00:00, 06:00, 12:00, 18:00 UTC); Persistent=true ensures a catch-up run after host downtime",
-      "exec_start": "cd /home/claude/kg-automation && python3 -m scripts.security.credential_liveness_probe",
+      "exec_start": "cd /home/claude/kg-automation && python3 -m scripts.security.credential_health_check --manifest docs/design/architecture/data/credential-manifest.json --liveness-only",
       "host": "office2",
       "user": "claude",
       "log_path": "journalctl --user -u credential-liveness-probe.service",
@@ -2483,7 +2483,7 @@
       "updated_by": "#572-credential-liveness-probe",
       "last_updated": "2026-06-09",
       "status": "active",
-      "purpose": "OAuth credential liveness probe \u2014 issues a cheap `gog calendar list` call per monitored credential and files a GitHub issue on `invalid_grant` (kentonium3/kg-automation#572). Surfaces dead refresh tokens within \u22646h instead of waiting for a user-facing failure. Two issue title prefixes: `credential-liveness-routine-7day:` (expected 7-day Testing-app cycle) vs `credential-liveness-unexpected:` (out-of-cycle revocation). Issue body includes the exact `gog-reauth.sh` recovery command.",
+      "purpose": "OAuth credential liveness probe \u2014 issues a cheap `gog calendar list` call per monitored credential and files a GitHub issue on `invalid_grant` (kentonium3/kg-automation#572). Surfaces dead refresh tokens within \u22646h instead of waiting for a user-facing failure. Since the gog OAuth app was published (kentonium3/kg-automation#731), every dead token is a single `credential-liveness-dead:` classification (the earlier routine-7day/unexpected split is retired). Issue body includes the exact `gog-reauth.sh` recovery command.",
       "risk_tier": 3,
       "dependencies": [
         {

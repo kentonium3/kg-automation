@@ -49,24 +49,12 @@ class LivenessProbeConfig:
     When `enabled is True`, all of `gog_account`, `keyring_file`, and
     `recovery_command` MUST be set. See
     kitty-specs/credential-liveness-probe-01KTP9M8/contracts/manifest-liveness-probe-block.md.
-
-    `reauth_marker_glob` is optional. When set, it points at a glob
-    pattern (e.g. ``"~/.config/gogcli/oauth-manual-state-*.json"``) whose
-    matching files are touched ONLY by the manual re-auth flow — not by
-    routine 6h probe refreshes. The probe uses ``max(mtime)`` across
-    matches as the 7-day-cycle baseline, which correctly tracks the
-    OAuth refresh-token TTL (anchored at issuance / re-auth, not at last
-    access-token refresh). When unset, the probe falls back to
-    ``keyring_file`` mtime; that fallback always misclassifies routine
-    7-day expiries as ``dead-unexpected`` because the keyring file is
-    rewritten on each probe tick. See kentonium3/kg-automation#616.
     """
 
     enabled: bool
     gog_account: Optional[str] = None
     keyring_file: Optional[str] = None
     recovery_command: Optional[str] = None
-    reauth_marker_glob: Optional[str] = None
 
 
 @dataclass(frozen=True)
@@ -177,7 +165,6 @@ def _validate_and_construct(
             "gog_account",
             "keyring_file",
             "recovery_command",
-            "reauth_marker_glob",
         }
         unknown = set(liveness_probe_raw.keys()) - allowed_keys
         if unknown:
@@ -198,7 +185,6 @@ def _validate_and_construct(
             gog_account=liveness_probe_raw.get("gog_account"),
             keyring_file=liveness_probe_raw.get("keyring_file"),
             recovery_command=liveness_probe_raw.get("recovery_command"),
-            reauth_marker_glob=liveness_probe_raw.get("reauth_marker_glob"),
         )
 
     cred = Credential(

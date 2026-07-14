@@ -265,9 +265,8 @@ def test_list_liveness_includes_credential_table(tmp_path):
     assert row.name == cred.name
     assert row.gog_account == "kentgale@gmail.com"
     assert row.enabled == "yes"
-    # The keyring exists, so age + expiration are non-dash.
+    # The keyring exists, so the mtime age is non-dash.
     assert row.keyring_mtime_age != "—"
-    assert row.expected_next_expiration != "—"
 
     # Also verify the render doesn't crash and includes expected columns.
     output = render_liveness_table(listings)
@@ -275,7 +274,6 @@ def test_list_liveness_includes_credential_table(tmp_path):
     assert "kentgale@gmail.com" in output
     assert "gog_account" in output
     assert "keyring_mtime_age" in output
-    assert "expected_next_expiration" in output
     # Deliberately NOT checking for "current_classification" — it's intentionally absent.
     assert "current_classification" not in output
 
@@ -310,7 +308,6 @@ def test_list_liveness_oauth2_no_probe_block_shows_dashes():
     assert row.enabled == "—"
     assert row.gog_account == "—"
     assert row.keyring_mtime_age == "—"
-    assert row.expected_next_expiration == "—"
 
 
 def test_list_credentials_liveness_flag_prints_extra_table(tmp_path):
@@ -327,5 +324,4 @@ def test_list_credentials_liveness_flag_prints_extra_table(tmp_path):
     assert "Enabled" in first_line
     assert "gog_account" in first_line
     assert "keyring_mtime_age" in first_line
-    assert "expected_next_expiration" in first_line
     assert "recovery_command" in first_line

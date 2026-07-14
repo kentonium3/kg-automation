@@ -1,0 +1,73 @@
+{
+  "version": 1,
+  "mission_slug": "gog-credential-post-publish-cleanup-01KXGMRP",
+  "mission_id": "01KXGMRPK9HRYYPY559KS0ZPCE",
+  "mission_branch": "kitty/mission-gog-credential-post-publish-cleanup-01KXGMRP",
+  "target_branch": "feat/731-gog-cred-post-publish-cleanup",
+  "lanes": [
+    {
+      "lane_id": "lane-a",
+      "wp_ids": [
+        "WP01"
+      ],
+      "write_scope": [
+        "docs/design/architecture/data/credential-manifest.json",
+        "scripts/security/credential_health_check/liveness.py",
+        "scripts/security/credential_health_check/manifest.py",
+        "tests/security/test_liveness.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "legacy-cleanup"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    },
+    {
+      "lane_id": "lane-c",
+      "wp_ids": [
+        "WP03"
+      ],
+      "write_scope": [
+        "docs/INDEX.md",
+        "docs/design/architecture/data/service-inventory.json",
+        "docs/design/architecture/service-inventory.md",
+        "docs/runbooks/calendar-helper-ops.md",
+        "docs/runbooks/credential-liveness-probe-ops.md",
+        "docs/runbooks/google-workspace-ops.md",
+        "scripts/security/gog-reauth.sh"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "legacy-cleanup",
+        "workspace"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    },
+    {
+      "lane_id": "lane-b",
+      "wp_ids": [
+        "WP02"
+      ],
+      "write_scope": [
+        "scripts/security/credential_health_check/listing.py",
+        "scripts/security/credential_health_check/orchestrator.py",
+        "tests/security/test_listing.py",
+        "tests/security/test_orchestrator.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "artifact-rendering",
+        "legacy-cleanup"
+      ],
+      "depends_on_lanes": [
+        "lane-a"
+      ],
+      "parallel_group": 1
+    }
+  ],
+  "computed_at": "2026-07-14T16:07:44.982034+00:00",
+  "computed_from": "dependency_graph+ownership",
+  "planning_artifact_wps": []
+}

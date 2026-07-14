@@ -66,40 +66,30 @@ For each manifest entry whose `liveness_probe.enabled` is `true`:
    | Outcome | Classification | What the probe does |
    |---|---|---|
    | `rc=0` (alive) | — | Returns `None`; no issue filed. |
-   | `rc≠0` + stderr contains `invalid_grant` | `dead-routine-7day` *or* `dead-unexpected` (see below) | Files a GitHub issue tagged `P1-bug`, `area/infrastructure`. |
+   | `rc≠0` + stderr contains `invalid_grant` | `dead` | Files a GitHub issue tagged `P1-bug`, `area/infrastructure`, titled `credential-liveness-dead: <name>`. |
    | Subprocess timeout, `gog` binary missing, other non-`invalid_grant` failure | `probe-error` | Files an issue tagged the same way; recovery command is `None`. |
 
-3. The `dead-routine-7day` vs `dead-unexpected` distinction is the
-   probe's only useful security signal — see the next section.
+3. Since the gog OAuth app was published (#731), a dead token is no longer a
+   routine weekly event — every `dead` result is genuinely unexpected and
+   actionable. See the next section.
 
 ---
 
-## Classification baseline (the routine vs unexpected call)
+## Classification: a single `dead` state (post-#731)
 
-The Testing-mode OAuth refresh token has a hard 7-day lifetime from
-**issuance** (i.e. from the manual re-auth event). When a `dead`
-result lands, the probe compares "now" against an estimated 7-day
-expiry and classifies:
+The gog OAuth app is now **published** ('In production'), so its refresh tokens
+no longer expire on the External+Testing 7-day cycle. There is therefore no
+"routine" token death to distinguish from an "unexpected" one: **every
+`invalid_grant` is classified `dead`** and is genuinely actionable (a password
+change, manual revoke, Google security review, or 6+ months inactivity). The
+alert body always advises investigating at myaccount.google.com/permissions
+before re-auth.
 
-- `|now − (baseline + 7d)| ≤ 24h` → **`dead-routine-7day`** — routine
-  cycle; just re-auth. Low-noise alert.
-- Otherwise → **`dead-unexpected`** — mid-week token death suggests
-  a password change, manual revoke, or Google security review. Higher-
-  signal alert that says "investigate at
-  myaccount.google.com/permissions before re-auth."
-
-### Why the baseline matters (#616)
-
-The 7-day clock is anchored at OAuth **re-auth time**, not at last
-token-refresh time. The keyring file's mtime advances every 6 hours
-(each successful probe refreshes the access token and gogcli persists
-it back), so `keyring_mtime + 7d` always slides forward to ~6 days in
-the future and never lands in the ±24h window. Using the keyring
-mtime as the baseline misclassifies *every* routine 7-day expiry as
-`dead-unexpected`.
-
-The fix (shipped 2026-06-16, commit `cab0a2af`) is the
-`reauth_marker_glob` config field — see the next section.
+> **History (#616, retired by #731):** while the app was in Testing, the probe
+> tried to distinguish routine 7-day expiries from mid-week deaths using a
+> `reauth_marker_glob` / keyring-mtime baseline. That machinery was removed once
+> the app was published — the baseline no longer maps to anything real, and the
+> probe no longer reads the keyring mtime for classification.
 
 ---
 
@@ -117,8 +107,7 @@ entry must declare a `liveness_probe` block:
     "enabled": true,
     "gog_account": "kentgale@gmail.com",
     "keyring_file": "/home/claude/.config/gogcli/keyring/_gogcli_key_v1_…",
-    "recovery_command": "ssh -t office2-claude /home/claude/kg-automation/scripts/security/gog-reauth.sh",
-    "reauth_marker_glob": "/home/claude/.config/gogcli/oauth-manual-state-*.json"
+    "recovery_command": "ssh -t office2-claude /home/claude/kg-automation/scripts/security/gog-reauth.sh"
   }
 }
 ```
@@ -127,9 +116,8 @@ entry must declare a `liveness_probe` block:
 |---|---|---|
 | `enabled` | always | Set to `false` to keep the entry in the manifest but suppress probing. |
 | `gog_account` | yes | Google account email. Passed to `gog --account`. |
-| `keyring_file` | yes | Absolute path to the gogcli-managed keyring file. Used as the 7-day baseline **only when `reauth_marker_glob` is unset or matches no files** (fallback only — biased toward `dead-unexpected` false alarms; do not rely on it). |
+| `keyring_file` | yes | Absolute path to the gogcli-managed keyring file. Retained as a descriptive pointer to the keyring location; the probe no longer reads it for classification (post-#731). |
 | `recovery_command` | yes | Verbatim command embedded in any filed GitHub issue. For gog: `ssh -t office2-claude /home/claude/kg-automation/scripts/security/gog-reauth.sh`. |
-| `reauth_marker_glob` | no but **strongly recommended for any Testing-mode OAuth credential** | Glob pattern whose matching files are touched **only** by the manual re-auth flow (e.g. `~/.config/gogcli/oauth-manual-state-*.json`). The probe takes `max(mtime)` across matches as the 7-day baseline. Stable across the 6-hour probe refresh cycle. |
 
 The manifest parser rejects unknown keys in the `liveness_probe` block —
 see [manifest-liveness-probe-block.md](<../../kitty-specs/credential-liveness-probe-01KTP9M8/contracts/manifest-liveness-probe-block.md>) for the
@@ -160,30 +148,13 @@ validation rules.
 The probe files issues with the recovery command in the body. The
 right operator response depends on classification:
 
-### `credential-liveness-routine-7day: <name> (<date>)`
+### `credential-liveness-dead: <name> (<date>)`
 
-Routine cycle; just re-auth. The issue body includes the verbatim
-recovery command. For `gog-credentials-keyring`, that's:
-
-```bash
-ssh -t office2-claude /home/claude/kg-automation/scripts/security/gog-reauth.sh
-```
-
-Wraps the gog two-step OAuth flow; ~3 min total including the browser
-consent step. See
-[google-workspace-ops.md §2.8](<./google-workspace-ops.md>) for the
-underlying procedure if you need to step through it manually.
-
-After re-auth, the next 6-hour probe will confirm liveness; close the
-GitHub issue manually (auto-close is a future-work item per
-`kitty-specs/credential-liveness-probe-01KTP9M8/spec.md` §Future Work).
-
-### `credential-liveness-unexpected: <name> (<date>)`
-
-The token died mid-cycle. Investigate before re-authing — the issue
-body's link to
-[myaccount.google.com/permissions](https://myaccount.google.com/permissions)
-shows whether the OAuth grant was revoked manually or via a Google
+The refresh token is no longer valid. Because the gog OAuth app is
+published (#731), this is never a routine expiry — investigate before
+re-authing. The issue body links to
+[myaccount.google.com/permissions](https://myaccount.google.com/permissions),
+which shows whether the OAuth grant was revoked manually or via a Google
 security event. Common causes:
 
 - Password change on the linked Google account.
@@ -191,10 +162,19 @@ security event. Common causes:
 - Manual revocation at myaccount.google.com/permissions.
 - Google security review (rare; emails the account first).
 
-If nothing suspicious is found and the re-auth marker says "close to
-the 7-day mark anyway," it's probably a borderline-cycle false alarm
-caused by Google's clock vs office2's clock. After investigation,
-re-auth via the same recovery command.
+After investigating, re-auth via the verbatim recovery command in the
+issue body. For `gog-credentials-keyring`, that's:
+
+```bash
+ssh -t office2-claude /home/claude/kg-automation/scripts/security/gog-reauth.sh
+```
+
+It wraps the gog two-step OAuth flow (~3 min including browser consent).
+See [google-workspace-ops.md](<./google-workspace-ops.md>) for the
+underlying procedure if you need to step through it manually. After
+re-auth, the next 6-hour probe confirms liveness; close the GitHub issue
+manually (auto-close is a future-work item per
+`kitty-specs/credential-liveness-probe-01KTP9M8/spec.md` §Future Work).
 
 ### `credential-liveness-error: <name> (<date>)`
 
@@ -235,15 +215,6 @@ instead of the actual token state.
 ---
 
 ## Troubleshooting
-
-### Probe reports `dead-unexpected` but the actual gog call (with env loaded) returns `invalid_grant` near the 7-day mark
-
-This is the #616 baseline-misclassification class. Check the manifest
-entry's `liveness_probe.reauth_marker_glob`: if unset, the probe is
-falling back to the keyring-mtime baseline (always biased toward
-unexpected). Set the field per the [Manifest entry shape](<#manifest-entry-shape>)
-section and re-run the probe; the next failure should classify
-correctly. (Fixed in commit `cab0a2af` for `gog-credentials-keyring`.)
 
 ### Probe reports `probe-error` with `no TTY available for keyring file backend password prompt`
 
