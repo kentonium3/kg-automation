@@ -13,11 +13,11 @@ Re-home the `felix-admin-escalation` OpenClaw workspace content to its #587-cano
 **Primary Dependencies**: `scripts/openclaw/agents/validate_workspace.py` (the #587 invariant checker, reused as-is); agent-prompt-sync (`deploy_agent_prompts.py`, #567/#136/#636)
 **Storage**: N/A (no data model; the "state" is file content in the agent workspace directory)
 **Testing**: `python3 -m scripts.openclaw.agents.validate_workspace --json` (both escalation invariants must report `ok: true`); the openclaw agent test suite (`pytest scripts/openclaw/agents/tests tests/openclaw`); a content-conservation grep/diff of moved blocks; post-deploy repo↔office2 md5 parity + live smoke
-**Target Platform**: office2 (Ubuntu 24.04, agents run as the `claude` user); deploy dest `/data/services/openclaw/data/` (per #583 — the agent-prompt-sync destination)
+**Target Platform**: office2 (Ubuntu 24.04, agents run as the `claude` user); agent-prompt-sync deploy dest is `/data/services/openclaw/escalation-agent/` (NOT `data/felix-admin-escalation/` — corrected per Codex HIGH-3; slug≠deploy-dir). SKILL.md is NOT agent-prompt-sync'd and syncs by a separate path.
 **Project Type**: single (repo-resident agent prompt authoring)
 **Performance Goals**: N/A (authoring; no runtime perf surface)
-**Constraints**: pure refactor — zero behavior change; diff scoped to escalation SOUL/USER/TOOLS.md + `scripts/vikunja/setup_vikunja.py` (+ mission artifacts); no `deploys/queued/` manifest; rebaseline expected "not required" (#621)
-**Scale/Scope**: 3 workspace files edited (SOUL/USER/TOOLS), 2 files unchanged (AGENTS/IDENTITY), 1 dormant script edited; single agent (`felix-admin-escalation`)
+**Constraints**: refactor + internal-coherence fixes (no feature/behavior additions); diff scoped to the NFR-002 file set; no `deploys/queued/` manifest; rebaseline expected "not required" (#621)
+**Scale/Scope**: 4 escalation workspace files edited (SOUL/USER/TOOLS + AGENTS narrowly), IDENTITY unchanged; plus SKILL.md, escalation-ops.md, setup_vikunja.py, test_enumerate_candidates.py; single agent (`felix-admin-escalation`)
 
 ## Charter Check
 
@@ -45,26 +45,27 @@ kitty-specs/author-escalation-workspace-01KXGZN1/
 └── tasks/               # WP files (created by /spec-kitty.tasks — NOT here)
 ```
 
-No `contracts/` directory: this is a content-authoring mission with **no API surface**. A `contracts/README.md` noting that will be added at tasks/accept time (the accept gate expects the directory to exist — #584 precedent).
+`contracts/` holds `post-plan-review-resolutions.md` (the Codex findings + dispositions; also satisfies the accept-gate `contracts/` requirement). No API surface.
 
-### Source Code (repository root)
+### Source Code (repository root) — expanded per post-plan Codex
 
 ```
 scripts/openclaw/agents/felix-admin-escalation/
 ├── SOUL.md      # EDITED — voice/stance only (trim role, privacy→stance, ADD-justification)
 ├── USER.md      # EDITED — filtered person-view (remove Date handling)
-├── TOOLS.md     # EDITED — receive Date handling; remove Goals(11) from filter + table
-├── AGENTS.md    # UNCHANGED — already owns role/authority + both invariants
-└── IDENTITY.md  # UNCHANGED — already authored
+├── TOOLS.md     # EDITED — receive Date handling; remove Goals(11); fix Z→ET-offset (FR-010)
+├── AGENTS.md    # EDITED (NARROW) — Z→ET-offset (FR-010) + enforcement-sentence fix (FR-012); nothing else
+└── IDENTITY.md  # UNCHANGED
 
-scripts/vikunja/
-└── setup_vikunja.py   # EDITED — remove dormant "Goals" saved-filter block (project = 11)
+scripts/openclaw/skills/escalation/SKILL.md   # EDITED — remove Goals(11) candidate-model refs (FR-011)
+docs/runbooks/escalation-ops.md               # EDITED — remove Goals(11) prose (FR-011)
+scripts/vikunja/setup_vikunja.py              # EDITED — remove dormant "Goals" saved-filter block (FR-007)
+tests/escalation/test_enumerate_candidates.py # EDITED — de-Goals(11) the generic exclusion test (FR-011)
 
-scripts/openclaw/agents/
-└── validate_workspace.py  # REUSED (not edited) — invariant checker
+scripts/openclaw/agents/validate_workspace.py # REUSED (not edited) — invariant checker (escalation-scoped assertion)
 ```
 
-**Structure Decision**: single-project repo-resident authoring; the only edited surfaces are the three escalation workspace markdown files and the one dormant Python script. The validator is reused, not modified.
+**Structure Decision**: single-project repo-resident authoring. Edited surfaces = the four escalation workspace markdown files (AGENTS narrowly), the escalation SKILL.md, the escalation-ops runbook, the dormant setup script, and one unit test. The validator is reused, not modified.
 
 ## Complexity Tracking
 
@@ -82,21 +83,29 @@ scripts/openclaw/agents/
 - **Sequencing/depends-on**: none (self-contained single-agent authoring)
 - **Risks**: (1) reducing SOUL's privacy block must NOT remove the enforceable rule from its AGENTS/TOOLS home (Invariant A regression); (2) the date-handling block must land in TOOLS verbatim-in-substance (conservation); (3) staying within scope — do not touch AGENTS.md content, IDENTITY.md, the `_private` path, or other agents.
 
-### IC-02 — Absorb #724 Goals(11) cleanup
+### IC-02 — Fully absorb #724 (all Goals(11) surfaces) + date-format coherence
 
-- **Purpose**: Remove residual references to the deleted Goals Vikunja project (11) from escalation's TOOLS.md query + exclusion table and from the dormant `setup_vikunja.py` saved-filter definitions.
-- **Relevant requirements**: FR-006, FR-007
-- **Affected surfaces**: `scripts/openclaw/agents/felix-admin-escalation/TOOLS.md`, `scripts/vikunja/setup_vikunja.py`
-- **Sequencing/depends-on**: IC-01 (TOOLS.md is edited by both; same file/WP is fine)
-- **Risks**: the `project_id NOT IN (11, 13)` → `NOT IN (13)` change must keep the Habits(13) exclusion intact; the dormant-script edit must not disturb its other saved-filter definitions.
+- **Purpose**: Remove EVERY residual reference to the deleted Goals project (11) — TOOLS.md query + table, dormant `setup_vikunja.py`, escalation SKILL.md candidate-model, escalation-ops.md runbook, and the exclusion unit test — and fix the reschedule Z-examples (TOOLS + AGENTS) to the ET-offset form so the moved no-Z rule is coherent (Codex HIGH-1/HIGH-2/LOW-9).
+- **Relevant requirements**: FR-006, FR-007, FR-010, FR-011
+- **Affected surfaces**: escalation `TOOLS.md` + `AGENTS.md` (narrow), `scripts/openclaw/skills/escalation/SKILL.md`, `docs/runbooks/escalation-ops.md`, `scripts/vikunja/setup_vikunja.py`, `tests/escalation/test_enumerate_candidates.py`
+- **Sequencing/depends-on**: IC-01 (TOOLS.md/AGENTS.md edited by both — same WP is fine)
+- **Risks**: keep Habits(13) exclusion intact; keep the exclusion test's mechanism assertion meaningful after switching off id 11; SKILL.md is NOT agent-prompt-sync'd (separate deploy — verify at §7a); the Z→offset fix is behavior-adjacent (a correctness fix) — verify via the FR-010/NFR-004 checks.
+
+### IC-02b — AGENTS truthfulness fix
+
+- **Purpose**: After SOUL is reduced to a stance, correct the AGENTS privacy-enforcement sentence so it no longer claims SOUL enforces the rule (Codex MED-5).
+- **Relevant requirements**: FR-012, FR-008
+- **Affected surfaces**: escalation `AGENTS.md` (one sentence)
+- **Sequencing/depends-on**: IC-01 (must reflect the reduced SOUL)
+- **Risks**: keep the edit to the single sentence; do not perturb the Output Discipline block (Invariant B) or any other AGENTS content.
 
 ### IC-03 — Validate, deploy, and smoke-test
 
 - **Purpose**: Prove both invariants still pass, no content was dropped, and the deployed agent behaves unchanged.
 - **Relevant requirements**: FR-009; NFR-001, NFR-002, NFR-004, NFR-005
 - **Affected surfaces**: no repo files beyond the mission's edits; verification/runbook only (post-merge, operator-owned — documented in quickstart.md, not the acceptance matrix per C-006).
-- **Sequencing/depends-on**: IC-01, IC-02
-- **Risks**: session-rotation at deploy can wedge the live WhatsApp DM lane → must pair with `openclaw gateway restart` (C-007, #583 SOP). agent-prompt-sync deploys on merge-to-main; verify md5 parity + smoke before closing.
+- **Sequencing/depends-on**: IC-01, IC-02, IC-02b
+- **Risks**: use the escalation-SCOPED validator assertion (whole-fleet exits 1 on calendar/#635 — Codex HIGH-4); verify parity at the CORRECT dest `/data/services/openclaw/escalation-agent/` (Codex HIGH-3); SKILL.md needs a separate sync (§7a); behavior evidence is the deterministic `enumerate_candidates` before/after (Codex MED-8) plus live smoke; session-rotation must pair with `openclaw gateway restart` (C-007, #583 SOP).
 
 ## Branch Contract (restated)
 
