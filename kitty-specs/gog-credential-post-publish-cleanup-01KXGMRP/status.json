@@ -1,19 +1,19 @@
 {
-  "event_count": 17,
-  "last_event_id": "01KXGQN25DRWMNVY8RE5KP0ND2",
-  "materialized_at": "2026-07-14T16:34:08.173270+00:00",
+  "event_count": 18,
+  "last_event_id": "01KXGQPEM34P24NZ8009APQMRR",
+  "materialized_at": "2026-07-14T16:34:53.699707+00:00",
   "mission_number": "",
   "mission_slug": "gog-credential-post-publish-cleanup-01KXGMRP",
   "mission_type": "software-dev",
   "summary": {
-    "approved": 2,
+    "approved": 3,
     "blocked": 0,
     "canceled": 0,
     "claimed": 0,
     "done": 0,
     "for_review": 0,
     "in_progress": 0,
-    "in_review": 1,
+    "in_review": 0,
     "planned": 0
   },
   "work_packages": {
@@ -32,11 +32,11 @@
       "last_transition_at": "2026-07-14T16:26:04.202363+00:00"
     },
     "WP03": {
-      "actor": "claude",
+      "actor": "user",
       "force_count": 0,
-      "lane": "in_review",
-      "last_event_id": "01KXGQN25DRWMNVY8RE5KP0ND2",
-      "last_transition_at": "2026-07-14T16:34:08.173270+00:00"
+      "lane": "approved",
+      "last_event_id": "01KXGQPEM34P24NZ8009APQMRR",
+      "last_transition_at": "2026-07-14T16:34:53.699707+00:00"
     }
   }
 }
