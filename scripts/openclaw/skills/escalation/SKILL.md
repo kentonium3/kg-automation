@@ -47,7 +47,7 @@ the mechanism, not a separate rule set.
 A task qualifies if ALL of the following are true:
 - `done = false`
 - `priority >= 2` (medium=2, high=3, urgent=4)
-- `project_id` is NOT 11 (Goals) and NOT 13 (Habits)
+- `project_id` is NOT 13 (Habits)
 - The task is overdue (`due_date < today`) OR due today with `priority >= 3`
 - The task is not currently snoozed (snooze window not expired)
 - The task is not dismissed (unless `due_date` was updated after the dismiss)
@@ -57,7 +57,6 @@ A task qualifies if ALL of the following are true:
 - Done tasks (`done = true`) — never escalated
 - Low priority tasks (`priority = 1`) or unset priority (`priority = 0`)
 - Tasks in the Habits project (ID 13) — managed by felix-admin-habits
-- Tasks in the Goals project (ID 11) — goals are anchors, not tasks
 - Tasks with no `due_date` (null sentinel `0001-01-01T00:00:00Z`)
 
 ### Priority values

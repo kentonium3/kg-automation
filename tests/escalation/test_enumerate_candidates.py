@@ -167,8 +167,8 @@ class TestFilterCandidatesQualification:
         assert result == []
 
     def test_excluded_project_id_excluded(self) -> None:
-        task = make_task(7, due_date="2026-07-01T12:00:00Z", priority=3, project_id=11)
-        result = ec.filter_candidates([task], TODAY, [11, 13])
+        task = make_task(7, due_date="2026-07-01T12:00:00Z", priority=3, project_id=13)
+        result = ec.filter_candidates([task], TODAY, [13])
         assert result == []
 
     def test_excluded_project_config_swap_changes_result(self) -> None:
@@ -180,10 +180,10 @@ class TestFilterCandidatesQualification:
         a hardcoded list.
         """
         task = make_task(8, due_date="2026-07-01T12:00:00Z", priority=3, project_id=99)
-        excluded_default = ec.filter_candidates([task], TODAY, [11, 13])
+        excluded_default = ec.filter_candidates([task], TODAY, [13])
         assert len(excluded_default) == 1
 
-        excluded_swapped = ec.filter_candidates([task], TODAY, [11, 13, 99])
+        excluded_swapped = ec.filter_candidates([task], TODAY, [13, 99])
         assert excluded_swapped == []
 
     def test_done_task_excluded(self) -> None:

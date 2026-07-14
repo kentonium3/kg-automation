@@ -1,0 +1,109 @@
+{
+  "mission_slug": "author-escalation-workspace-01KXGZN1",
+  "mission_number": "",
+  "mission_type": "software-dev",
+  "overall_verdict": "pass",
+  "criteria": [
+    {
+      "criterion_id": "FR-001",
+      "description": "Verify FR-001 is satisfied",
+      "proof_type": "manual_verification",
+      "evidence": "reviewer-renata check 4: SOUL is voice/stance only (## Voice kept; ADD-justification trimmed; Purpose role removed; insistence stance preserved). Validator ok.",
+      "pass_fail": "pass",
+      "verified_by": "reviewer-renata",
+      "verified_at": "2026-07-14T19:37:32Z",
+      "notes": "Verified in-lane at approval (commit 975d916f)."
+    },
+    {
+      "criterion_id": "FR-002",
+      "description": "Verify FR-002 is satisfied",
+      "proof_type": "manual_verification",
+      "evidence": "reviewer-renata check 4: operational Purpose removed from SOUL; role remains owned by AGENTS ## Authority/## Scope; insistence stance preserved.",
+      "pass_fail": "pass",
+      "verified_by": "reviewer-renata",
+      "verified_at": "2026-07-14T19:37:32Z",
+      "notes": "Verified in-lane at approval (commit 975d916f)."
+    },
+    {
+      "criterion_id": "FR-003",
+      "description": "Verify FR-003 is satisfied",
+      "proof_type": "manual_verification",
+      "evidence": "reviewer-renata check 2/4 + validator: SOUL privacy reduced to one-line stance; enforceable rule/path/changelog removed from SOUL; enforceable copy present in AGENTS.md + TOOLS.md (Invariant A ok).",
+      "pass_fail": "pass",
+      "verified_by": "reviewer-renata",
+      "verified_at": "2026-07-14T19:37:32Z",
+      "notes": "Verified in-lane at approval (commit 975d916f)."
+    },
+    {
+      "criterion_id": "FR-004",
+      "description": "Verify FR-004 is satisfied",
+      "proof_type": "manual_verification",
+      "evidence": "reviewer-renata check 5: USER ## Date handling removed; person-view + ## Context kept; 'ADD (managed)' retained.",
+      "pass_fail": "pass",
+      "verified_by": "reviewer-renata",
+      "verified_at": "2026-07-14T19:37:32Z",
+      "notes": "Verified in-lane at approval (commit 975d916f)."
+    },
+    {
+      "criterion_id": "FR-005",
+      "description": "Verify FR-005 is satisfied",
+      "proof_type": "manual_verification",
+      "evidence": "reviewer-renata check 6: TOOLS received the date-handling block (America/New_York, ET offset, no-Z).",
+      "pass_fail": "pass",
+      "verified_by": "reviewer-renata",
+      "verified_at": "2026-07-14T19:37:32Z",
+      "notes": "Verified in-lane at approval (commit 975d916f)."
+    },
+    {
+      "criterion_id": "FR-006",
+      "description": "Verify FR-006 is satisfied",
+      "proof_type": "manual_verification",
+      "evidence": "reviewer-renata check 6/8: TOOLS overdue filter NOT IN (11,13)->NOT IN (13); Goals row dropped, Habits(13) kept; _private path line byte-unchanged.",
+      "pass_fail": "pass",
+      "verified_by": "reviewer-renata",
+      "verified_at": "2026-07-14T19:37:32Z",
+      "notes": "Verified in-lane at approval (commit 975d916f)."
+    },
+    {
+      "criterion_id": "FR-007",
+      "description": "Verify FR-007 is satisfied",
+      "proof_type": "manual_verification",
+      "evidence": "reviewer-renata check 9: setup_vikunja.py Goals saved-filter block removed; py_compile OK; other filters intact.",
+      "pass_fail": "pass",
+      "verified_by": "reviewer-renata",
+      "verified_at": "2026-07-14T19:37:32Z",
+      "notes": "Verified in-lane at approval (commit 975d916f)."
+    },
+    {
+      "criterion_id": "FR-008",
+      "description": "Verify FR-008 is satisfied",
+      "proof_type": "manual_verification",
+      "evidence": "reviewer-renata check 1/7: AGENTS edited in exactly 2 hunks (FR-010+FR-012); IDENTITY.md untouched; Output Discipline block intact (Invariant B).",
+      "pass_fail": "pass",
+      "verified_by": "reviewer-renata",
+      "verified_at": "2026-07-14T19:37:32Z",
+      "notes": "Verified in-lane at approval (commit 975d916f)."
+    },
+    {
+      "criterion_id": "FR-011",
+      "description": "Verify FR-011 is satisfied",
+      "proof_type": "manual_verification",
+      "evidence": "reviewer-renata check 8 + pytest: git grep for project 11/Goals across SKILL.md, escalation-ops.md, setup_vikunja.py, tests/escalation returns nothing; null-sentinel left untouched; 469 tests pass.",
+      "pass_fail": "pass",
+      "verified_by": "reviewer-renata",
+      "verified_at": "2026-07-14T19:37:32Z",
+      "notes": "Verified in-lane at approval (commit 975d916f)."
+    },
+    {
+      "criterion_id": "FR-012",
+      "description": "Verify FR-012 is satisfied",
+      "proof_type": "manual_verification",
+      "evidence": "reviewer-renata check 7: AGENTS enforcement sentence corrected to 'enforced in AGENTS.md and TOOLS.md; SOUL carries a stance'.",
+      "pass_fail": "pass",
+      "verified_by": "reviewer-renata",
+      "verified_at": "2026-07-14T19:37:32Z",
+      "notes": "Verified in-lane at approval (commit 975d916f)."
+    }
+  ],
+  "negative_invariants": []
+}

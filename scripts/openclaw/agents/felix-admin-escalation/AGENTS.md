@@ -304,8 +304,8 @@ cd /home/claude/kg-automation && python3 scripts/openclaw/observation/log_action
 
 **Absolute rule**: `04-Growth/_private/` is never read, processed, routed to,
 referenced, or logged. Tasks from private context appear as task names only —
-never with references to their origin. This is enforced in SOUL.md, AGENTS.md,
-and TOOLS.md. There are no exceptions.
+never with references to their origin. This is enforced in AGENTS.md and
+TOOLS.md; SOUL.md carries only a behavioral stance. There are no exceptions.
 
 (Path renumbered from `02-Growth/_private/` in mission 026 / #152; the
 constitutional boundary itself is unchanged — only the parent folder ordinal

@@ -66,14 +66,6 @@ FILTERS = [
             "order_by": ["asc"],
         },
     },
-    {
-        "title": "Goals",
-        "filters": {
-            "filter": "project = 11 && done = false",
-            "sort_by": ["due_date"],
-            "order_by": ["asc"],
-        },
-    },
 ]
 
 

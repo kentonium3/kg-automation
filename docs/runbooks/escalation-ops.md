@@ -28,10 +28,10 @@ ADR-0002 Phase 6). The agent reads state via
 
 **What it escalates**: tasks where `done=false`, `due_date < today` (or
 due today with high+ priority), and `priority >= 2`. Habits project
-(id=13) and Goals project (id=11) are excluded.
+(id=13) is excluded.
 
 **What it does NOT escalate**: low-priority tasks, done tasks, habits,
-goals, snoozed tasks (until snooze expires), or tasks Kent has
+snoozed tasks (until snooze expires), or tasks Kent has
 dismissed.
 
 ## Daily operation (steady state)
