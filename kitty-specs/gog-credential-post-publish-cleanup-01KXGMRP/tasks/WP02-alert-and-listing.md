@@ -19,8 +19,8 @@ subtasks:
 - T007
 - T008
 agent: "claude"
-shell_pid: "79576"
-shell_pid_created_at: "1784046004.931338"
+shell_pid: "81600"
+shell_pid_created_at: "1784046324.75678"
 history:
 - '2026-07-14: authored from spec + plan (post-plan Codex folded)'
 agent_profile: python-pedro
@@ -141,3 +141,5 @@ WP01 result per the implement flow. Execution worktrees are per-lane from `lanes
 ## Activity Log
 
 - 2026-07-14T16:20:17Z – claude – shell_pid=79576 – Assigned agent via action command
+- 2026-07-14T16:25:09Z – claude – shell_pid=79576 – Alert single-classification + listing column removal; 217 security tests green in lane
+- 2026-07-14T16:25:34Z – claude – shell_pid=81600 – Started review via action command

@@ -45,10 +45,10 @@ Small, tightly-coupled cleanup mission. 3 work packages. WP02 depends on WP01
 - **Independent test**: `pytest tests/security/test_orchestrator.py tests/security/test_listing.py` green.
 - **Dependencies**: WP01 (uses the `dead` classification value)
 - **Subtasks**:
-  - [ ] T005 `orchestrator.py` single-classification alert (WP02)
-  - [ ] T006 `listing.py` remove `expected_next_expiration` (WP02)
-  - [ ] T007 Update `test_orchestrator.py` (WP02)
-  - [ ] T008 Update `test_listing.py` (WP02)
+  - [x] T005 `orchestrator.py` single-classification alert (WP02)
+  - [x] T006 `listing.py` remove `expected_next_expiration` (WP02)
+  - [x] T007 Update `test_orchestrator.py` (WP02)
+  - [x] T008 Update `test_listing.py` (WP02)
 - **Risks**: dedup vs old issue titles handled out-of-band (IC-08, see Deploy notes); keep `--cov-branch`.
 - **Prompt**: `tasks/WP02-alert-and-listing.md` (~220 lines)
 
