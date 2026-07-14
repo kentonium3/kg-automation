@@ -2,107 +2,107 @@
   "mission_slug": "gog-credential-post-publish-cleanup-01KXGMRP",
   "mission_number": "",
   "mission_type": "software-dev",
-  "overall_verdict": "pending",
+  "overall_verdict": "pass",
   "criteria": [
     {
       "criterion_id": "FR-001",
-      "description": "Verify FR-001 is satisfied",
+      "description": "Liveness probe classifies any invalid_grant as a single 'dead' classification (routine/unexpected split removed).",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "TODO: replace with a real acceptance criterion"
+      "evidence": "tests/security/test_liveness.py::test_invalid_grant_is_dead asserts classification=='dead'; LivenessClassification Literal reduced to {dead, probe-error}. pytest tests/security/ = 217 passed.",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-07-14T16:36:12Z",
+      "notes": "WP01"
     },
     {
       "criterion_id": "FR-002",
-      "description": "Verify FR-002 is satisfied",
+      "description": "Dead-credential reason text contains no 7-day / Testing-app / cycle-boundary / baseline-source reference.",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "TODO: replace with a real acceptance criterion"
+      "evidence": "test_invalid_grant_is_dead asserts the reason contains none of '7-day','testing','reauth','keyring+','cycle boundary'. NFR-004 grep over liveness.py is clean.",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-07-14T16:36:12Z",
+      "notes": "WP01"
     },
     {
       "criterion_id": "FR-003",
-      "description": "Verify FR-003 is satisfied",
-      "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "TODO: replace with a real acceptance criterion"
+      "description": "#616 baseline machinery deleted (_resolve_cycle_baseline, CYCLE_WINDOW_HOURS, EXPECTED_TTL_DAYS, reauth_marker_glob) from liveness.py + manifest.py schema, and reauth_marker_glob removed from credential-manifest.json (atomic).",
+      "proof_type": "command",
+      "evidence": "grep -rnE 'reauth_marker_glob|CYCLE_WINDOW_HOURS|EXPECTED_TTL_DAYS|_resolve_cycle_baseline' scripts/security/credential_health_check/ credential-manifest.json returns 0; credential-manifest.json valid JSON; manifest allowed_keys no longer lists reauth_marker_glob.",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-07-14T16:36:12Z",
+      "notes": "WP01"
     },
     {
       "criterion_id": "FR-004",
-      "description": "Verify FR-004 is satisfied",
+      "description": "Alert writer files exactly one 'credential-liveness-dead: <name>' issue with an unconditional investigate block.",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "TODO: replace with a real acceptance criterion"
+      "evidence": "test_orchestrator.py::test_orchestrator_files_issue_on_dead (title prefix) + test_orchestrator_dead_body_has_unconditional_investigate_block (body contains myaccount.google.com/permissions). 217 tests green.",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-07-14T16:36:12Z",
+      "notes": "WP02"
     },
     {
       "criterion_id": "FR-005",
-      "description": "Verify FR-005 is satisfied",
+      "description": "Alive->None and all probe-error paths (timeout, gog-missing, non-invalid_grant nonzero) preserved.",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "TODO: replace with a real acceptance criterion"
+      "evidence": "test_liveness.py retains test_alive_returns_none, test_probe_timeout, test_probe_missing_binary, test_probe_other_failure, test_recovery_command_none_in_probe_error, test_raises_if_liveness_probe_disabled, test_probed_at_is_utc — all pass.",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-07-14T16:36:12Z",
+      "notes": "WP01"
     },
     {
       "criterion_id": "FR-006",
-      "description": "Verify FR-006 is satisfied",
-      "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "TODO: replace with a real acceptance criterion"
+      "description": "gog-reauth.sh no longer asserts an External+Testing 7-day expiry cycle nor projects a next-forced-re-auth date.",
+      "proof_type": "command",
+      "evidence": "grep -nE '7-day|Testing|Next forced re-auth|NEXT_DUE' scripts/security/gog-reauth.sh returns 0; bash -n passes; auth flow (gog auth add/--step 2/keyring/git-pull) unchanged.",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-07-14T16:36:12Z",
+      "notes": "WP03"
     },
     {
       "criterion_id": "FR-007",
-      "description": "Verify FR-007 is satisfied",
-      "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "TODO: replace with a real acceptance criterion"
+      "description": "gog-reauth.sh consent guidance matches the real ~10-box consent screen and marks the org-directory box decline-by-default; 'six boxes' removed.",
+      "proof_type": "manual_inspection",
+      "evidence": "Consent heredoc enumerates the personal-data scopes and instructs to LEAVE UNCHECKED 'See and download your organization's Google Workspace directory'; no 'six' count remains.",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-07-14T16:36:12Z",
+      "notes": "WP03"
     },
     {
       "criterion_id": "FR-008",
-      "description": "Verify FR-008 is satisfied",
-      "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "TODO: replace with a real acceptance criterion"
+      "description": "Architecture data/narrative + runbooks updated: credential-manifest.json drops reauth_marker_glob; service-inventory.json/.md, INDEX.md, credential-liveness-probe-ops.md, google-workspace-ops.md, calendar-helper-ops.md drop routine-7day/Testing-app framing; service-inventory.json exec_start corrected.",
+      "proof_type": "manual_inspection",
+      "evidence": "Docs reframed to single 'dead' classification / published-app reality; pre-commit validate_docs + validate_architecture_data passed; remaining grep hits are explicit retired-history notes only. exec_start now scripts.security.credential_health_check ... --liveness-only.",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-07-14T16:36:12Z",
+      "notes": "WP01 (credential-manifest.json) + WP03 (other docs)"
     },
     {
       "criterion_id": "FR-009",
-      "description": "Verify FR-009 is satisfied",
+      "description": "Test suites updated to assert single-classification behavior and absence of removed machinery.",
       "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "TODO: replace with a real acceptance criterion"
+      "evidence": "test_liveness.py (marker/timing tests removed, invalid_grant->dead added), test_orchestrator.py (single dead title/body), test_listing.py (expected_next_expiration dropped). pytest tests/security/ = 217 passed.",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-07-14T16:36:12Z",
+      "notes": "WP01 + WP02"
     },
     {
       "criterion_id": "FR-010",
-      "description": "Verify FR-010 is satisfied",
-      "proof_type": "automated_test",
-      "evidence": null,
-      "pass_fail": "pending",
-      "verified_by": null,
-      "verified_at": null,
-      "notes": "TODO: replace with a real acceptance criterion"
+      "description": "Operator --list --liveness view no longer renders the fabricated expected_next_expiration (keyring_mtime+7d).",
+      "proof_type": "command",
+      "evidence": "grep -n 'expected_next_expiration' listing.py returns 0; keyring_mtime_age retained; test_listing.py assertions updated; 217 tests green.",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-07-14T16:36:12Z",
+      "notes": "WP02"
     }
   ],
   "negative_invariants": []
