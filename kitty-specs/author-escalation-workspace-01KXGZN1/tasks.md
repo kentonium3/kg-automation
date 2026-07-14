@@ -29,14 +29,14 @@ One coherent single-agent authoring refactor (like the #584 capture pilot): re-h
 
 **Included subtasks**:
 
-- [ ] T001 SOUL.md → voice/stance only (WP01)
-- [ ] T002 USER.md → remove Date handling (WP01)
-- [ ] T003 TOOLS.md → receive Date handling; remove Goals(11); fix Z→ET-offset (WP01)
-- [ ] T004 AGENTS.md → narrow Z→ET-offset + enforcement-sentence fix (WP01)
-- [ ] T005 SKILL.md + escalation-ops.md → remove Goals(11) (WP01)
-- [ ] T006 setup_vikunja.py → remove dormant Goals saved-filter block (WP01)
-- [ ] T007 test_enumerate_candidates.py → de-Goals(11) exclusion test (WP01)
-- [ ] T008 Validate + conservation checklist + suite green (WP01)
+- [x] T001 SOUL.md → voice/stance only (WP01)
+- [x] T002 USER.md → remove Date handling (WP01)
+- [x] T003 TOOLS.md → receive Date handling; remove Goals(11); fix Z→ET-offset (WP01)
+- [x] T004 AGENTS.md → narrow Z→ET-offset + enforcement-sentence fix (WP01)
+- [x] T005 SKILL.md + escalation-ops.md → remove Goals(11) (WP01)
+- [x] T006 setup_vikunja.py → remove dormant Goals saved-filter block (WP01)
+- [x] T007 test_enumerate_candidates.py → de-Goals(11) exclusion test (WP01)
+- [x] T008 Validate + conservation checklist + suite green (WP01)
 
 **Implementation sketch**: work the data-model move-table row by row (T001–T004 = the escalation workspace files; T005–T007 = the remaining Goals(11) surfaces); then T008 runs the escalation-scoped validator + conservation checklist + test suite. Reference `data-model.md` (move-table + invariants), `quickstart.md` §1–§3 (exact edits + checks), and `contracts/post-plan-review-resolutions.md` (why each fix).
 

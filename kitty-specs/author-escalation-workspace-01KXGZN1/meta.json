@@ -10,5 +10,7 @@
   "purpose_tldr": "Re-home felix-admin-escalation workspace files to their #587-canonical owners and absorb the #724 Goals(11) cleanup.",
   "slug": "author-escalation-workspace-01KXGZN1",
   "target_branch": "feat/author-escalation-workspace",
-  "topology": "single_branch"
+  "topology": "single_branch",
+  "vcs": "git",
+  "vcs_locked_at": "2026-07-14T19:23:07.206857+00:00"
 }
