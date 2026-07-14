@@ -17,7 +17,7 @@
   "flattened": false,
   "friendly_name": "Author felix-admin-escalation workspace",
   "mission_id": "01KXGZN1NM1B4QF3EMS6YQXM6E",
-  "mission_number": null,
+  "mission_number": 102,
   "mission_slug": "author-escalation-workspace-01KXGZN1",
   "mission_type": "software-dev",
   "purpose_context": "felix-admin-escalation's OpenClaw workspace passes both #587 invariants but is cross-contaminated at the ownership level: SOUL carries an operational role block and the full enforceable privacy rule; USER carries date-handling mechanics. This mission re-homes each block to its canonical file (a pure clean-separation refactor, no behavior change), removes stale references to the deleted Goals project (#724), and deploys to office2 via agent-prompt-sync with a smoke test.",

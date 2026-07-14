@@ -16,7 +16,7 @@ GET /api/v1/tasks/all?sort_by=due_date&order_by=asc
 ```
 
 Then filter in-agent: `done = false`, `due_date < today`,
-`priority >= 2`, `project_id NOT IN (11, 13)`.
+`priority >= 2`, `project_id NOT IN (13)`.
 
 Alternatively, query per-project for each in-scope project.
 
@@ -35,8 +35,11 @@ Content-Type: application/json
 POST /api/v1/tasks/{id}
 Content-Type: application/json
 
-{"due_date": "2026-04-10T00:00:00Z"}
+{"due_date": "2026-04-10T00:00:00-04:00"}
 ```
+
+Use the ET offset, never the `Z` (UTC) suffix — `-04:00` during EDT,
+`-05:00` during EST. See "Date handling" below.
 
 ### Resolve project name
 
@@ -60,8 +63,15 @@ Use the `title` field for the `[Project]` tag in alert messages.
 
 | ID | Project | Reason |
 |----|---------|--------|
-| 11 | Goals | Goals are anchors, not completable tasks |
 | 13 | Habits | Managed by felix-admin-habits |
+
+## Date handling
+
+All dates must be resolved in Kent's timezone (America/New_York), not UTC.
+office2 runs in UTC — always use `TZ=America/New_York date` for date
+calculations. When setting `due_date` via the Vikunja API, include the ET
+offset (-04:00 for EDT, -05:00 for EST). Never use the `Z` (UTC) suffix
+for due dates.
 
 ## Privacy
 

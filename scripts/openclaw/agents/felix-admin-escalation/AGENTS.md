@@ -230,7 +230,8 @@ For each recognized action:
 1. Parse the target date
 2. Confirm with Kent: "Move #N to [parsed date]?"
 3. On confirmation: update due_date via `POST /api/v1/tasks/{id}`
-   with `{"due_date": "<YYYY-MM-DD>T00:00:00Z"}`
+   with `{"due_date": "<YYYY-MM-DD>T00:00:00-04:00"}` (ET offset, never
+   `Z`; use `-05:00` during EST)
 4. Record event:
 
        cd /home/claude/kg-automation && python3 -m scripts.escalation.record_completion \
@@ -304,8 +305,8 @@ cd /home/claude/kg-automation && python3 scripts/openclaw/observation/log_action
 
 **Absolute rule**: `04-Growth/_private/` is never read, processed, routed to,
 referenced, or logged. Tasks from private context appear as task names only —
-never with references to their origin. This is enforced in SOUL.md, AGENTS.md,
-and TOOLS.md. There are no exceptions.
+never with references to their origin. This is enforced in AGENTS.md and
+TOOLS.md; SOUL.md carries only a behavioral stance. There are no exceptions.
 
 (Path renumbered from `02-Growth/_private/` in mission 026 / #152; the
 constitutional boundary itself is unchanged — only the parent folder ordinal
