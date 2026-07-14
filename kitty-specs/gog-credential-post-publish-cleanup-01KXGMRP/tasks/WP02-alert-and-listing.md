@@ -18,6 +18,9 @@ subtasks:
 - T006
 - T007
 - T008
+agent: "claude"
+shell_pid: "79576"
+shell_pid_created_at: "1784046004.931338"
 history:
 - '2026-07-14: authored from spec + plan (post-plan Codex folded)'
 agent_profile: python-pedro
@@ -134,3 +137,7 @@ WP01 result per the implement flow. Execution worktrees are per-lane from `lanes
 - Confirm `keyring_mtime_age` is retained in `listing.py` (only the projection is removed).
 - Dedup vs pre-existing old-titled open issues (#629) is handled out-of-band at deploy
   (IC-08) — not this WP's concern, but do not add transitional dedup code here.
+
+## Activity Log
+
+- 2026-07-14T16:20:17Z – claude – shell_pid=79576 – Assigned agent via action command
