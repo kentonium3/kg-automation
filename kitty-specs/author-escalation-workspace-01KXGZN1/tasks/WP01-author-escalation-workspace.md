@@ -30,7 +30,9 @@ subtasks:
 - T008
 phase: Phase 1 - Author
 assignee: ''
-agent: claude
+agent: "claude"
+shell_pid: "78850"
+shell_pid_created_at: "1784056983.424306"
 history:
 - at: '2026-07-14T19:19:26Z'
   actor: system
@@ -198,3 +200,4 @@ Read these mission artifacts before editing — they are authoritative:
 ## Activity Log
 
 - 2026-07-14T19:19:26Z – system – Prompt created.
+- 2026-07-14T19:23:16Z – claude – shell_pid=78850 – Assigned agent via action command
