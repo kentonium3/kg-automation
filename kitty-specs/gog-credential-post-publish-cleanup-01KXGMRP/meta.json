@@ -10,5 +10,7 @@
   "purpose_tldr": "Retire obsolete 7-day-Testing assumptions from Felix's Google-credential liveness monitoring now that the OAuth app is published.",
   "slug": "gog-credential-post-publish-cleanup-01KXGMRP",
   "target_branch": "feat/731-gog-cred-post-publish-cleanup",
-  "topology": "single_branch"
+  "topology": "single_branch",
+  "vcs": "git",
+  "vcs_locked_at": "2026-07-14T16:10:09.790298+00:00"
 }
