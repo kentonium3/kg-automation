@@ -22,6 +22,9 @@ subtasks:
 - T002
 - T003
 - T004
+agent: "claude"
+shell_pid: "76216"
+shell_pid_created_at: "1784045406.077521"
 history:
 - '2026-07-14: authored from spec + plan (post-plan Codex folded)'
 agent_profile: python-pedro
@@ -177,3 +180,7 @@ from `lanes.json` at implement time.
 - Confirm the alive and all three probe-error paths are byte-for-byte behavior-preserved.
 - Confirm `keyring_file` remains in the schema and required-when-enabled (NOT removed).
 - Confirm no leftover import warnings (unused `timedelta`/`Path`/`glob`).
+
+## Activity Log
+
+- 2026-07-14T16:10:20Z – claude – shell_pid=76216 – Assigned agent via action command
