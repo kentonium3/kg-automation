@@ -31,8 +31,8 @@ subtasks:
 phase: Phase 1 - Author
 assignee: ''
 agent: "claude"
-shell_pid: "78850"
-shell_pid_created_at: "1784056983.424306"
+shell_pid: "84195"
+shell_pid_created_at: "1784057402.499142"
 history:
 - at: '2026-07-14T19:19:26Z'
   actor: system
@@ -202,3 +202,4 @@ Read these mission artifacts before editing — they are authoritative:
 - 2026-07-14T19:19:26Z – system – Prompt created.
 - 2026-07-14T19:23:16Z – claude – shell_pid=78850 – Assigned agent via action command
 - 2026-07-14T19:29:10Z – claude – shell_pid=78850 – WP01 implemented by curator-carla: validator ok, 469 tests green, conservation checklist all-pass (commit 975d916f)
+- 2026-07-14T19:30:09Z – claude – shell_pid=84195 – Started review via action command
