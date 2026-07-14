@@ -152,3 +152,4 @@ Execution worktrees are per-lane from `lanes.json`.
 - 2026-07-14T16:26:43Z – claude – shell_pid=82031 – Assigned agent via action command
 - 2026-07-14T16:33:59Z – claude – shell_pid=82031 – gog-reauth wording+consent + 6 docs reframed; JSON valid; doc validation passed; grep clean (only retired-history refs remain)
 - 2026-07-14T16:34:15Z – claude – shell_pid=84559 – Started review via action command
+- 2026-07-14T16:35:00Z – user – shell_pid=84559 – Review passed: gog-reauth wording+consent (auth flow untouched, bash -n OK), 6 docs reframed to single 'dead' + published-app reality, exec_start fixed, JSON valid, doc-CI passed
