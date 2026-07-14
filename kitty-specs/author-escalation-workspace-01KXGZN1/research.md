@@ -41,8 +41,20 @@ Phase 0 output. All items resolved — no open `[NEEDS CLARIFICATION]` markers. 
 - **Rationale**: the `/home/kgale/…` vs `~/…` split is a 4-agent fleet inconsistency requiring investigation of the vault's physical location on office2 relative to the `claude` runtime. Fixing only escalation would deepen the split. Filed as #732 (Kent's scope call).
 - **Consequence**: C-005; the enforceable path stays present so Invariant A is unaffected.
 
-## D-7: Scope discipline — AGENTS.md untouched, no size tightening
+## D-8: Post-plan Codex review folded (2026-07-14)
 
-- **Decision**: Do not edit escalation's AGENTS.md or IDENTITY.md; do not tighten the 15KB AGENTS.md.
-- **Rationale**: AGENTS already owns the role/authority (`## Authority`/`## Scope`) so no move requires editing it; no hard size-cap test applies to escalation (`test_agents_md_size.py` caps only `main` and `felix-admin-calendar`). Operator scope call: pure refactor, leave AGENTS size (its verbose Output-discipline prose encodes hard-won anti-incident history). IDENTITY is already authored.
-- **Consequence**: FR-008; NFR-002 scope discipline gate.
+- **Decision**: Fold all 9 Codex findings; three were scope-affecting and resolved by Kent (see `contracts/post-plan-review-resolutions.md`): fix the Z date examples to ET offset (HIGH-1); fully eliminate Goals(11) across SKILL.md + escalation-ops.md + the test (HIGH-2/LOW-9); allow the narrow AGENTS truthfulness fix (MED-5). Clear technical fixes folded without a scope change: correct deploy dest to `/data/services/openclaw/escalation-agent/` (HIGH-3); escalation-scoped validator assertion (HIGH-4); harden conservation to both-AGENTS+TOOLS-and-absent-from-SOUL (MED-6), row-by-row checklist (MED-7), deterministic `enumerate_candidates` before/after (MED-8).
+- **Rationale**: the review is review-AND-fix; the scope forks were surfaced to Kent because they crossed his original "pure refactor" boundary with information he could not have had at scope-setting time. The folded changes are correctness/consistency/doc-hygiene, not features.
+- **Consequence**: scope = refactor + coherence fixes + full #724 absorption; NFR-002 file set expanded; FR-008 relaxed; FR-010/011/012 added.
+
+## D-9: SKILL.md deploy path (not agent-prompt-sync)
+
+- **Decision**: Clean SKILL.md's Goals(11) refs in the repo; treat its office2 sync as a separate operator-verify step (§7a), not part of agent-prompt-sync.
+- **Rationale**: `deploy_agent_prompts.py:61` restricts agent-prompt-sync to the 5 workspace filenames; SKILL.md is not in that set and is not an audited surface (absent from `audited-surfaces.json`). No automated skill-sync was located during planning — flagged for deploy-time verification.
+- **Consequence**: the merge-to-main deploy trigger covers the 5 workspace files; SKILL.md may need a manual sync. Rebaseline remains "not required" (SKILL.md not audited).
+
+## D-7: Scope discipline — AGENTS.md edited NARROWLY only, no size tightening
+
+- **Decision**: Edit escalation's AGENTS.md only for the two narrow post-plan fixes (FR-010 Z→offset example, FR-012 enforcement sentence); do NOT tighten the 15KB AGENTS.md; do NOT edit IDENTITY.md.
+- **Rationale**: AGENTS already owns the role/authority (`## Authority`/`## Scope`) so no content *move* requires editing it — the only AGENTS edits are the two coherence corrections surfaced by Codex. No hard size-cap test applies to escalation (`test_agents_md_size.py` caps only `main` and `felix-admin-calendar`). Operator scope call: leave AGENTS size (its verbose Output-discipline prose encodes hard-won anti-incident history). IDENTITY is already authored.
+- **Consequence**: FR-008 (relaxed to the two narrow edits); NFR-002 scope discipline gate.

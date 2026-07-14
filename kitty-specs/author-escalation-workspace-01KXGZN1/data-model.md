@@ -16,16 +16,22 @@ No database or serialized data model — the "model" is the **content-conservati
 | `project_id NOT IN (11, 13)` overdue-query filter | TOOLS | TOOLS | **edit** → `NOT IN (13)` (drop 11) | FR-006 |
 | `11 | Goals` project-exclusion row | TOOLS | — | **delete** (Goals project deleted in #717) | FR-006 |
 | `## Privacy` enforceable path line | TOOLS | TOOLS | **keep byte-unchanged** (path canonicalization deferred to #732) | FR-006, C-005 |
+| Reschedule example `"...T00:00:00Z"` | TOOLS (`:38`) | TOOLS | **fix** → ET-offset form (`-04:00`, note `-05:00` for EST) | FR-010 |
 | "Goals" saved-filter block (`project = 11 && done = false`) | `setup_vikunja.py` | — | **delete** (dormant script; other filters unchanged) | FR-007 |
-| AGENTS.md (all content) | AGENTS | AGENTS | **unchanged** | FR-008 |
+| Reschedule example `"<YYYY-MM-DD>T00:00:00Z"` | AGENTS (`:232-233`) | AGENTS | **fix** → ET-offset form (narrow AGENTS edit #1) | FR-010, FR-008 |
+| Enforcement sentence "…enforced in SOUL.md, AGENTS.md, and TOOLS.md" | AGENTS (`:305-308`) | AGENTS | **fix** → "enforced in AGENTS.md and TOOLS.md (SOUL carries a stance)" (narrow AGENTS edit #2) | FR-012, FR-008 |
+| AGENTS.md (all other content) | AGENTS | AGENTS | **unchanged** (only the two edits above) | FR-008 |
 | IDENTITY.md (all content) | IDENTITY | IDENTITY | **unchanged** | FR-008 |
+| Candidate-model Goals(11) lines | SKILL.md (`:50, :60`) | SKILL.md | **remove** the "NOT 11 (Goals)" / "Goals project (ID 11)" refs (helper `[13]` is authoritative) | FR-011 |
+| Goals(11) exclusion prose | escalation-ops.md (`:31, :34`) | escalation-ops.md | **remove** Goals/11 from the excluded-projects prose | FR-011 |
+| Generic exclusion test using `project_id=11` / `[11,13]` | test_enumerate_candidates.py (`:169-170`) | same | **switch to a non-Goals excluded id** (preserve the mechanism assertion) | FR-011 |
 
 ## Invariants (must hold post-refactor)
 
-- **INV-A (privacy enforceable home)**: the enforceable `04-Growth/_private/` rule (path + "never access") is present in AGENTS.md AND TOOLS.md. SOUL carries only a stance. → `validate_workspace.py` Invariant A = pass (NFR-001).
+- **INV-A (privacy enforceable home — non-fakeable)**: the enforceable `04-Growth/_private/` path token is present in **BOTH** AGENTS.md AND TOOLS.md AND **absent** from SOUL.md (SOUL carries only a stance). This is stronger than `validate_workspace.py`'s either-owner check (MED-6). → escalation-scoped validator `ok: true` (NFR-001) + the both-and-absent check (NFR-003).
 - **INV-B (output discipline)**: the Output Discipline block remains present in AGENTS.md (escalation is user-facing WhatsApp). Untouched this mission. → Invariant B = pass (NFR-001).
-- **INV-CONSERVE (no silent drop)**: every "keep" / "move" row above is present in its destination after the refactor; every "delete" row is a deliberate #724/#717-justified removal, not a drop. → conservation grep/diff (NFR-003).
-- **INV-SCOPE (bounded diff)**: the file set touched = escalation SOUL/USER/TOOLS.md + `scripts/vikunja/setup_vikunja.py` + mission artifacts. Nothing else. → NFR-002.
+- **INV-CONSERVE (no silent drop)**: every "keep" / "move" / "fix" row above is present (in its destination / corrected form) after the refactor; every "delete"/"remove" row is a deliberate #724/#717-justified removal, not a drop. → row-by-row conservation checklist (NFR-003).
+- **INV-SCOPE (bounded diff)**: the file set touched = escalation SOUL/USER/TOOLS/AGENTS.md (AGENTS narrowly) + SKILL.md + escalation-ops.md + `setup_vikunja.py` + test_enumerate_candidates.py + mission artifacts. Nothing else. → NFR-002.
 - **INV-BEHAVIOR (zero runtime change)**: the escalation candidate set and message shape are unchanged (Goals(11) exclusion was already a no-op post-#717; date-handling semantics are identical, only relocated). → smoke test (NFR-004).
 
 ## State transitions

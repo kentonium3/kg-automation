@@ -17,8 +17,8 @@
 
 ### Primary scenario (happy path)
 
-1. The maintainer re-homes escalation's content: SOUL's operational `## Purpose` role → already owned by AGENTS; SOUL's full privacy rule → one-line stance (enforceable copy already in AGENTS + TOOLS); USER's `## Date handling` → TOOLS; the SOUL "Kent has ADD…" justification is trimmed off the style bullet.
-2. The maintainer absorbs #724: removes the deleted Goals project (11) from TOOLS.md's overdue-query filter and exclusion table, and from the dormant `scripts/vikunja/setup_vikunja.py` saved-filter definitions.
+1. The maintainer re-homes escalation's content: SOUL's operational `## Purpose` role → already owned by AGENTS; SOUL's full privacy rule → one-line stance (enforceable copy already in AGENTS + TOOLS); USER's `## Date handling` → TOOLS; the SOUL "Kent has ADD…" justification is trimmed off the style bullet. The moved no-Z rule is made coherent by fixing the reschedule examples in TOOLS + AGENTS to the ET-offset form (FR-010), and AGENTS's privacy-enforcement sentence is corrected (FR-012).
+2. The maintainer absorbs #724 fully: removes the deleted Goals project (11) from TOOLS.md's overdue-query filter and exclusion table, the dormant `setup_vikunja.py`, the escalation SKILL.md candidate-model, the escalation-ops.md runbook, and the exclusion unit test (FR-011).
 3. `validate_workspace.py` still reports escalation `ok: true`; a content-conservation check confirms nothing substantive was dropped (only re-homed or reduced to a stance whose enforceable copy lives elsewhere).
 4. The change merges to `main`; agent-prompt-sync deploys the updated escalation files to office2; repo ↔ office2 md5 parity is verified.
 5. A live smoke test confirms escalation's tick behavior is unchanged.
@@ -27,7 +27,9 @@
 
 - **Invariant regression**: if reducing SOUL's privacy block accidentally removes the enforceable rule from its home, Invariant A would fail — the validator must still pass, so the enforceable copy in AGENTS/TOOLS must remain intact.
 - **Silent content drop**: a moved block that lands in neither the source nor the destination is a conservation failure — the conservation check must catch it.
-- **Scope creep**: touching AGENTS.md content, IDENTITY.md, other agents, or the `_private` path is out of scope; the diff must stay within escalation's SOUL/USER/TOOLS.md + `setup_vikunja.py` + mission artifacts.
+- **Scope creep**: AGENTS.md edits are limited to the two narrow FR-010/FR-012 corrections; touching IDENTITY.md, other agents, or the `_private` path (→ #732) is out of scope. The diff must stay within the NFR-002 file set.
+- **Date-format coherence (FR-010)**: after moving the no-Z rule into TOOLS, the reschedule examples in TOOLS + AGENTS must use the ET offset — leaving them as `Z` would co-locate a self-contradiction and preserve the ET-vs-UTC bug.
+- **Incomplete #724 (FR-011)**: SKILL.md, escalation-ops.md, and the exclusion test also carry Goals(11); all must be cleaned for #724 to close. SKILL.md does not deploy via agent-prompt-sync — its office2 sync is verified separately.
 
 ## Requirements
 
@@ -42,17 +44,20 @@
 | FR-005 | `TOOLS.md` receives the date-handling content (timezone resolution in America/New_York, ET offset, no-Z-suffix rule) removed from `USER.md`, preserved in substance. | Draft |
 | FR-006 | `TOOLS.md` no longer references the deleted Goals project (11): the overdue-query in-agent filter changes from `project_id NOT IN (11, 13)` to `NOT IN (13)`, and the `11 | Goals` row is removed from the project-exclusions table. The `_private` privacy-path line is left unchanged. | Draft |
 | FR-007 | `scripts/vikunja/setup_vikunja.py` no longer defines the stale "Goals" saved filter (`project = 11 && done = false`); its other saved-filter definitions are unchanged. | Draft |
-| FR-008 | `AGENTS.md` and `IDENTITY.md` are not edited by this mission (they already own the role/authority and are already authored). | Draft |
-| FR-009 | The updated escalation workspace files deploy to office2 via agent-prompt-sync on merge to `main` (no `deploys/queued/` manifest); repo ↔ office2 md5 parity is verified post-deploy. | Draft |
+| FR-008 | `IDENTITY.md` is not edited. `AGENTS.md` receives **only** the two narrow edits named in FR-010 and FR-012; no other AGENTS content changes. (Relaxed from "AGENTS untouched" per the post-plan Codex review — see `contracts/post-plan-review-resolutions.md`.) | Draft |
+| FR-009 | The updated escalation workspace files deploy to office2 via agent-prompt-sync on merge to `main` (no `deploys/queued/` manifest); repo ↔ office2 md5 parity is verified post-deploy at the correct dest `/data/services/openclaw/escalation-agent/`. `SKILL.md` is not synced by agent-prompt-sync — its office2 sync path is verified/handled separately at deploy. | Draft |
+| FR-010 | The reschedule due-date examples in `TOOLS.md` and `AGENTS.md` are rewritten from the `...T00:00:00Z` form to the ET-offset form (`...T00:00:00-04:00`, with a note to use `-05:00` during EST), consistent with the moved no-Z date-handling rule. (Codex HIGH-1 — a real ET-vs-UTC correctness fix.) | Draft |
+| FR-011 | Every remaining reference to the deleted Goals project (11) is removed: `scripts/openclaw/skills/escalation/SKILL.md` (candidate-model lines), `docs/runbooks/escalation-ops.md`, and `tests/escalation/test_enumerate_candidates.py` (the generic exclusion test is switched to a non-Goals excluded id, preserving the mechanism assertion). (Codex HIGH-2/LOW-9 — full #724 absorption.) | Draft |
+| FR-012 | The `AGENTS.md` privacy-enforcement sentence "…enforced in SOUL.md, AGENTS.md, and TOOLS.md" is corrected to reflect that SOUL now carries only a stance (enforcement in AGENTS.md + TOOLS.md). (Codex MED-5 — keeps AGENTS truthful post-refactor.) | Draft |
 
 ### Non-Functional Requirements
 
 | ID | Requirement | Threshold / Measure | Status |
 |----|-------------|---------------------|--------|
-| NFR-001 | Invariant preservation | `validate_workspace.py` reports `felix-admin-escalation` `ok: true` (both invariants pass) after authoring. | Draft |
-| NFR-002 | Scope discipline | The mission diff touches only escalation's `SOUL.md`, `USER.md`, `TOOLS.md`, and `scripts/vikunja/setup_vikunja.py` (plus mission artifacts) — no other agent workspace, no unrelated file. | Draft |
-| NFR-003 | Content conservation | 100% of substantive pre-refactor instructions are present post-refactor in their canonical home (verified by a grep/diff conservation check over the moved blocks). | Draft |
-| NFR-004 | Behavior preservation | escalation's live tick behavior is unchanged (pure refactor), verified by a post-deploy smoke test producing the correct message shape. | Draft |
+| NFR-001 | Invariant preservation | An escalation-SCOPED assertion (parse `validate_workspace.py --json`, assert the `felix-admin-escalation` object has `ok: true`) passes. Whole-fleet exit code is NOT used (calendar/#635 fails Invariant B, out of scope). | Draft |
+| NFR-002 | Scope discipline | The mission diff touches only: escalation `SOUL.md`/`USER.md`/`TOOLS.md`/`AGENTS.md` (AGENTS narrowly, FR-010+FR-012 only), `scripts/openclaw/skills/escalation/SKILL.md`, `docs/runbooks/escalation-ops.md`, `scripts/vikunja/setup_vikunja.py`, `tests/escalation/test_enumerate_candidates.py` (plus mission artifacts) — no other agent, no unrelated file. | Draft |
+| NFR-003 | Content conservation | A row-by-row conservation checklist (derived from the data-model move-table) passes: every "keep"/"move" block is present in its destination; the enforceable privacy token is in BOTH AGENTS.md and TOOLS.md AND absent from SOUL.md; every "delete" is a deliberate #724/#717 removal. | Draft |
+| NFR-004 | Behavior preservation | Deterministic evidence: before/after `enumerate_candidates` output (candidate IDs + due-date formatting) for the same input/date is identical. Plus a post-deploy live smoke producing the correct message shape. | Draft |
 | NFR-005 | Deploy parity | Every deployed escalation file's md5 on office2 matches the repo copy at the merged commit. | Draft |
 
 ### Constraints
@@ -62,7 +67,7 @@
 | C-001 | Written against the #587 authoring standard (`docs/design/openclaw-workspace-authoring-standard.md`, on main). Mission branches from current `main` so the standard + validator are in-lane (avoids the #584 mid-mission dependency-merge trap). | Active |
 | C-002 | Agent prompt files deploy via agent-prompt-sync on merge-to-main; no `deploys/queued/` manifest is authored (the #636 boundary). | Active |
 | C-003 | Rebaseline is expected "not required" — agent prompt files are not hashed by `audit.sh` (#621 gap). The merge commit records the rebaseline decision. | Active |
-| C-004 | Pure refactor — no behavior or content improvements are folded in (operator scope call). AGENTS.md size (15KB, no hard cap applies) is left as-is. | Active |
+| C-004 | Refactor + internal-coherence fixes + full Goals(11) elimination (operator scope call after post-plan Codex, 2026-07-14). The folded fixes are correctness/consistency/doc-hygiene only (FR-010 Z→offset, FR-011 Goals(11) cleanup, FR-012 AGENTS truthfulness) — NO feature/behavior additions. AGENTS.md size (15KB, no hard cap applies) is left as-is; only the two narrow AGENTS edits are made. | Active |
 | C-005 | The fleet-wide `_private` privacy-path representation inconsistency is out of scope; it is deferred to #732. escalation's path line is left byte-unchanged. | Active |
 | C-006 | Post-merge acceptance criteria (deploy parity, live smoke) are operator-owned and documented in the mission quickstart — they are excluded from the acceptance matrix (the gate rejects post-merge "pending" rows). | Active |
 | C-007 | If session rotation is used at deploy, it must be paired with `openclaw gateway restart` per the #583 SOP (rotation can wedge the live WhatsApp DM lane). | Active |
