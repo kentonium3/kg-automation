@@ -32,10 +32,10 @@ Small, tightly-coupled cleanup mission. 3 work packages. WP02 depends on WP01
 - **Independent test**: `pytest tests/security/test_liveness.py` green; NFR-004 grep clean under `credential_health_check/`.
 - **Dependencies**: none
 - **Subtasks**:
-  - [ ] T001 Collapse classification + delete baseline machinery in `liveness.py` (WP01)
-  - [ ] T002 Remove `reauth_marker_glob` from `manifest.py` (WP01)
-  - [ ] T003 Remove `reauth_marker_glob` key + 7-day/Testing narrative from `credential-manifest.json` (WP01)
-  - [ ] T004 Rewrite `test_liveness.py` (WP01)
+  - [x] T001 Collapse classification + delete baseline machinery in `liveness.py` (WP01)
+  - [x] T002 Remove `reauth_marker_glob` from `manifest.py` (WP01)
+  - [x] T003 Remove `reauth_marker_glob` key + 7-day/Testing narrative from `credential-manifest.json` (WP01)
+  - [x] T004 Rewrite `test_liveness.py` (WP01)
 - **Risks**: manifest schema ↔ config atomicity (T002+T003 same WP/commit); preserve alive/probe-error paths.
 - **Prompt**: `tasks/WP01-probe-classification-collapse.md` (~230 lines)
 

@@ -23,8 +23,8 @@ subtasks:
 - T003
 - T004
 agent: "claude"
-shell_pid: "76216"
-shell_pid_created_at: "1784045406.077521"
+shell_pid: "78397"
+shell_pid_created_at: "1784045813.349397"
 history:
 - '2026-07-14: authored from spec + plan (post-plan Codex folded)'
 agent_profile: python-pedro
@@ -184,3 +184,5 @@ from `lanes.json` at implement time.
 ## Activity Log
 
 - 2026-07-14T16:10:20Z – claude – shell_pid=76216 – Assigned agent via action command
+- 2026-07-14T16:16:35Z – claude – shell_pid=76216 – Probe collapse + schema removal + tests; full security suite (217) green in lane
+- 2026-07-14T16:17:02Z – claude – shell_pid=78397 – Started review via action command
