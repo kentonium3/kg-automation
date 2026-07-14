@@ -1,135 +1,106 @@
-# Implementation Plan: [MISSION]
+# Implementation Plan: Author felix-admin-escalation workspace
 
-**Branch**: `[###-mission-name]` | **Date**: [DATE] | **Spec**: [link]
-**Input**: Feature specification from `/kitty-specs/[###-mission-name]/spec.md`
-
-**Note**: This template is filled in by the `/spec-kitty.plan` command. See `src/doctrine/missions/software-dev/command-templates/plan.md` for the execution workflow.
-
-The planner will not begin until all planning questions have been answered—capture those answers in this document before progressing to later phases.
+**Branch**: `feat/author-escalation-workspace` | **Date**: 2026-07-14 | **Spec**: [spec.md](./spec.md)
+**Input**: Feature specification from `kitty-specs/author-escalation-workspace-01KXGZN1/spec.md`
 
 ## Summary
 
-[Extract from mission spec: primary requirement + technical approach from research]
+Re-home the `felix-admin-escalation` OpenClaw workspace content to its #587-canonical owner files (SOUL = voice/stance only; USER = filtered person-view; TOOLS = environment/setup; AGENTS = operating rules/role — unchanged) and absorb the #724 Goals(11) cleanup, with **no runtime-behavior change**. Both #587 invariants already pass and must stay passing. Approach: hand-authored markdown edits to three workspace files plus one dormant Python setup script, verified by the existing `validate_workspace.py` and a content-conservation grep/diff, then deployed to office2 via agent-prompt-sync on merge-to-main and smoke-tested.
 
 ## Technical Context
 
-<!--
-  ACTION REQUIRED: Replace the content in this section with the technical details
-  for the project. The structure here is presented in advisory capacity to guide
-  the iteration process.
-
-  If multiple developers/agents will work on this mission, add an "Implementation
-  Concern Map" section below to decompose architectural intent into IC-## concerns
-  before generating tasks.
--->
-
-**Language/Version**: [e.g., Python 3.11, Swift 5.9, Rust 1.75 or NEEDS CLARIFICATION]
-**Primary Dependencies**: [e.g., FastAPI, UIKit, LLVM or NEEDS CLARIFICATION]
-**Storage**: [if applicable, e.g., PostgreSQL, CoreData, files or N/A]
-**Testing**: [Project-specific test approach or NEEDS CLARIFICATION]
-**Target Platform**: [e.g., Linux server, iOS 15+, WASM or NEEDS CLARIFICATION]
-**Project Type**: [single/web/mobile - determines source structure]
-**Performance Goals**: [domain-specific, e.g., 1000 req/s, 10k lines/sec, 60 fps or NEEDS CLARIFICATION]
-**Constraints**: [domain-specific, e.g., <200ms p95, <100MB memory, offline-capable or NEEDS CLARIFICATION]
-**Scale/Scope**: [domain-specific, e.g., 10k users, 1M LOC, 50 screens or NEEDS CLARIFICATION]
+**Language/Version**: Markdown (agent prompt files) + Python 3.12 (the dormant `setup_vikunja.py` edit; office2 is python3-only)
+**Primary Dependencies**: `scripts/openclaw/agents/validate_workspace.py` (the #587 invariant checker, reused as-is); agent-prompt-sync (`deploy_agent_prompts.py`, #567/#136/#636)
+**Storage**: N/A (no data model; the "state" is file content in the agent workspace directory)
+**Testing**: `python3 -m scripts.openclaw.agents.validate_workspace --json` (both escalation invariants must report `ok: true`); the openclaw agent test suite (`pytest scripts/openclaw/agents/tests tests/openclaw`); a content-conservation grep/diff of moved blocks; post-deploy repo↔office2 md5 parity + live smoke
+**Target Platform**: office2 (Ubuntu 24.04, agents run as the `claude` user); deploy dest `/data/services/openclaw/data/` (per #583 — the agent-prompt-sync destination)
+**Project Type**: single (repo-resident agent prompt authoring)
+**Performance Goals**: N/A (authoring; no runtime perf surface)
+**Constraints**: pure refactor — zero behavior change; diff scoped to escalation SOUL/USER/TOOLS.md + `scripts/vikunja/setup_vikunja.py` (+ mission artifacts); no `deploys/queued/` manifest; rebaseline expected "not required" (#621)
+**Scale/Scope**: 3 workspace files edited (SOUL/USER/TOOLS), 2 files unchanged (AGENTS/IDENTITY), 1 dormant script edited; single agent (`felix-admin-escalation`)
 
 ## Charter Check
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on charter file]
+- **DIRECTIVE_001 (Architectural Integrity / separation of concerns)**: ✅ directly served — this mission *is* a separation-of-concerns refactor moving each content block to its canonical owner file per the #587 ownership model.
+- **DIRECTIVE_003 (Decision Documentation)**: ✅ the scope decisions (pure refactor; AGENTS size left; `_private` path deferred to #732) are recorded in spec Constraints and this plan.
+- **DIRECTIVE_010 (Specification Fidelity)**: ✅ implementation maps 1:1 to FR-001…FR-009; any deviation gets documented.
+- **Engineering Principles (helper/library/skill, active-surface hygiene, migration-no-vestiges)**: ✅ no new helper is introduced (existing validator reused); the refactor removes vestigial content (Goals(11), duplicated privacy rule in SOUL) rather than adding parity layers — consistent with the migration-no-vestiges principle.
+- **Change-risk tier**: Tier 3 (agent prompt logic/workflow) — no pre-flight checklist; dry-run validation via the validator. Rebaseline: expected "not required" (agent prompts not hashed by `audit.sh`, #621).
+
+**Result**: No violations. No entries in Complexity Tracking.
 
 ## Project Structure
 
 ### Documentation (this mission)
 
 ```
-kitty-specs/[###-mission]/
-├── plan.md              # This file (/spec-kitty.plan command output)
-├── research.md          # Phase 0 output (/spec-kitty.plan command)
-├── data-model.md        # Phase 1 output (/spec-kitty.plan command)
-├── quickstart.md        # Phase 1 output (/spec-kitty.plan command)
-├── contracts/           # Phase 1 output (/spec-kitty.plan command)
-└── tasks.md             # Phase 2 output (/spec-kitty.tasks command - NOT created by /spec-kitty.plan)
+kitty-specs/author-escalation-workspace-01KXGZN1/
+├── plan.md              # This file
+├── research.md          # Phase 0 output
+├── data-model.md        # Phase 1 output (content-conservation model)
+├── quickstart.md        # Phase 1 output (author → validate → merge → deploy → smoke runbook)
+├── checklists/          # spec quality checklist
+└── tasks/               # WP files (created by /spec-kitty.tasks — NOT here)
 ```
+
+No `contracts/` directory: this is a content-authoring mission with **no API surface**. A `contracts/README.md` noting that will be added at tasks/accept time (the accept gate expects the directory to exist — #584 precedent).
 
 ### Source Code (repository root)
-<!--
-  ACTION REQUIRED: Replace the placeholder tree below with the concrete layout
-  for this mission. Delete unused options and expand the chosen structure with
-  real paths (e.g., apps/admin, packages/something). The delivered plan must
-  not include Option labels.
--->
 
 ```
-# [REMOVE IF UNUSED] Option 1: Single project (DEFAULT)
-src/
-├── models/
-├── services/
-├── cli/
-└── lib/
+scripts/openclaw/agents/felix-admin-escalation/
+├── SOUL.md      # EDITED — voice/stance only (trim role, privacy→stance, ADD-justification)
+├── USER.md      # EDITED — filtered person-view (remove Date handling)
+├── TOOLS.md     # EDITED — receive Date handling; remove Goals(11) from filter + table
+├── AGENTS.md    # UNCHANGED — already owns role/authority + both invariants
+└── IDENTITY.md  # UNCHANGED — already authored
 
-tests/
-├── contract/
-├── integration/
-└── unit/
+scripts/vikunja/
+└── setup_vikunja.py   # EDITED — remove dormant "Goals" saved-filter block (project = 11)
 
-# [REMOVE IF UNUSED] Option 2: Web application (when "frontend" + "backend" detected)
-backend/
-├── src/
-│   ├── models/
-│   ├── services/
-│   └── api/
-└── tests/
-
-frontend/
-├── src/
-│   ├── components/
-│   ├── pages/
-│   └── services/
-└── tests/
-
-# [REMOVE IF UNUSED] Option 3: Mobile + API (when "iOS/Android" detected)
-api/
-└── [same as backend above]
-
-ios/ or android/
-└── [platform-specific structure: feature modules, UI flows, platform tests]
+scripts/openclaw/agents/
+└── validate_workspace.py  # REUSED (not edited) — invariant checker
 ```
 
-**Structure Decision**: [Document the selected structure and reference the real
-directories captured above]
+**Structure Decision**: single-project repo-resident authoring; the only edited surfaces are the three escalation workspace markdown files and the one dormant Python script. The validator is reused, not modified.
 
 ## Complexity Tracking
 
-*Fill ONLY if Charter Check has violations that must be justified*
-
-| Violation | Why Needed | Simpler Alternative Rejected Because |
-|-----------|------------|-------------------------------------|
-| [e.g., 4th project] | [current need] | [why 3 projects insufficient] |
-| [e.g., Repository pattern] | [specific problem] | [why direct DB access insufficient] |
+*No Charter Check violations — table intentionally empty.*
 
 ## Implementation Concern Map
 
-*Include this section when the mission has multiple distinct architectural areas that inform how tasks are decomposed.*
+> Concerns, not work packages. `/spec-kitty.tasks` decides WP decomposition.
 
-> **Note**: Implementation concerns are NOT work packages and are NOT executable units.
-> `/spec-kitty.tasks` translates these into executable WPs — one concern may become
-> multiple WPs; multiple small concerns may merge into one WP. Do not label concerns
-> with WP-style IDs or sequencing language.
+### IC-01 — Re-home escalation workspace content to #587 owners
 
-### IC-01 — [Name]
+- **Purpose**: Move each content block to its canonical file so SOUL is voice/stance-only, USER is a filtered person-view, and TOOLS holds operational date-handling — without dropping any substantive instruction or breaking either invariant.
+- **Relevant requirements**: FR-001, FR-002, FR-003, FR-004, FR-005, FR-008; NFR-001, NFR-003
+- **Affected surfaces**: `scripts/openclaw/agents/felix-admin-escalation/{SOUL,USER,TOOLS}.md`
+- **Sequencing/depends-on**: none (self-contained single-agent authoring)
+- **Risks**: (1) reducing SOUL's privacy block must NOT remove the enforceable rule from its AGENTS/TOOLS home (Invariant A regression); (2) the date-handling block must land in TOOLS verbatim-in-substance (conservation); (3) staying within scope — do not touch AGENTS.md content, IDENTITY.md, the `_private` path, or other agents.
 
-- **Purpose**: [One sentence: what this concern addresses and why it matters]
-- **Relevant requirements**: [FR-### refs from spec.md]
-- **Affected surfaces**: [File paths or module names this concern touches]
-- **Sequencing/depends-on**: [IC-## IDs this concern must follow, or "none"]
-- **Risks**: [Key coordination notes or implementation risks]
+### IC-02 — Absorb #724 Goals(11) cleanup
 
-### IC-02 — [Name]
+- **Purpose**: Remove residual references to the deleted Goals Vikunja project (11) from escalation's TOOLS.md query + exclusion table and from the dormant `setup_vikunja.py` saved-filter definitions.
+- **Relevant requirements**: FR-006, FR-007
+- **Affected surfaces**: `scripts/openclaw/agents/felix-admin-escalation/TOOLS.md`, `scripts/vikunja/setup_vikunja.py`
+- **Sequencing/depends-on**: IC-01 (TOOLS.md is edited by both; same file/WP is fine)
+- **Risks**: the `project_id NOT IN (11, 13)` → `NOT IN (13)` change must keep the Habits(13) exclusion intact; the dormant-script edit must not disturb its other saved-filter definitions.
 
-- **Purpose**: [One sentence]
-- **Relevant requirements**: [FR-### refs]
-- **Affected surfaces**: [Paths/modules]
-- **Sequencing/depends-on**: [IC-## or "none"]
-- **Risks**: [Notes]
+### IC-03 — Validate, deploy, and smoke-test
+
+- **Purpose**: Prove both invariants still pass, no content was dropped, and the deployed agent behaves unchanged.
+- **Relevant requirements**: FR-009; NFR-001, NFR-002, NFR-004, NFR-005
+- **Affected surfaces**: no repo files beyond the mission's edits; verification/runbook only (post-merge, operator-owned — documented in quickstart.md, not the acceptance matrix per C-006).
+- **Sequencing/depends-on**: IC-01, IC-02
+- **Risks**: session-rotation at deploy can wedge the live WhatsApp DM lane → must pair with `openclaw gateway restart` (C-007, #583 SOP). agent-prompt-sync deploys on merge-to-main; verify md5 parity + smoke before closing.
+
+## Branch Contract (restated)
+
+- Current branch at plan start: `feat/author-escalation-workspace`
+- Planning/base branch: `feat/author-escalation-workspace`
+- Final merge target for completed changes: `feat/author-escalation-workspace` (mission WPs), then a separate `feat/author-escalation-workspace → main` merge is the office2 deploy trigger.
+- `branch_matches_target`: true (single_branch topology; no coordination branch).
