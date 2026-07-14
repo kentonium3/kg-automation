@@ -106,7 +106,7 @@ The probe runs against a live credential, `gog` exits 0, the probe returns
 
 | ID | Constraint | Status |
 |----|------------|--------|
-| C-001 | `scripts/security/**` is an audited surface (rebaseline obligation, #557). The mission merge must record `Rebaseline: completed at <ts>` or `Rebaseline: not required — <reason>`, and any office2 deploy flows through the manifest discipline / felix-deployer. | Draft |
+| C-001 | Rebaseline is **not required**: none of the touched paths match an audited surface in `audited-surfaces.json` (only `scripts/security/ssh-keys/*` under `scripts/security/` is audited; `credential_health_check/`, `gog-reauth.sh`, `credential-manifest.json`, docs, and tests are not). The mission/feat→main merge records `Rebaseline: not required — <reason>`. Deploy is by felix-deployer's `git pull origin/main` into the office2 checkout (the routine runs from `/home/claude/kg-automation` with `PYTHONPATH` = checkout root); **no `deploys/queued` manifest is needed** (no systemd/service/cron/out-of-checkout change). | Draft |
 | C-002 | `kitty-specs/` and `.kittify/` are spec-kitty-managed; no manual edits outside workflow commands. | Draft |
 | C-003 | Code + docs only. No re-minting or touching the live OAuth token; no Google Cloud Console changes. | Draft |
 | C-004 | Change-risk tier: probe logic is Tier 3 (logic/workflow); it is also an audited surface, so the rebaseline obligation applies regardless of tier. | Draft |
