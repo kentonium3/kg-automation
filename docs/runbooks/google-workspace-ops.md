@@ -671,14 +671,15 @@ step 1+2 manually.
 > for the probe's cadence, classification (`dead` vs `probe-error`),
 > manifest configuration, manual trigger commands, and troubleshooting.
 
-**Refresh token revoked (other causes)**: if `gog auth doctor` reports a
-revoked token AND fewer than 7 days have passed since the last re-mint,
-the cause is one of: Google account password change, 6+ months of
-inactivity, manual revocation at https://myaccount.google.com/permissions,
-or a Google security review. Same remediation — re-run §2.8 step 1
-(client credentials are still valid). The liveness probe will file a
-`credential-liveness-unexpected: gog-credentials-keyring (<date>)` issue for
-out-of-cycle revocations.
+**Refresh token revoked**: if `gog auth doctor` reports a revoked token
+(now that the app is published, this is the *only* way the token dies —
+there is no 7-day cycle), the cause is one of: Google account password
+change, 6+ months of inactivity, manual revocation at
+https://myaccount.google.com/permissions, or a Google security review.
+Same remediation — re-run §2.8 step 1 (client credentials are still
+valid). The liveness probe files a single
+`credential-liveness-dead: gog-credentials-keyring (<date>)` issue on any
+token death.
 
 **Scope expansion**: if a future use case needs a scope not in the
 original `--services` list (e.g., adding `tasks` later), re-run `gog auth
