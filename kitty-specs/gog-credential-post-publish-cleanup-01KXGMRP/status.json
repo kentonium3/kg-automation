@@ -1,7 +1,7 @@
 {
-  "event_count": 8,
-  "last_event_id": "01KXGPT3G6MNM8T3NJCT8NNYEK",
-  "materialized_at": "2026-07-14T16:19:24.806751+00:00",
+  "event_count": 10,
+  "last_event_id": "01KXGPVFYQXBTD3W60W0TPAH1E",
+  "materialized_at": "2026-07-14T16:20:10.326162+00:00",
   "mission_number": "",
   "mission_slug": "gog-credential-post-publish-cleanup-01KXGMRP",
   "mission_type": "software-dev",
@@ -12,9 +12,9 @@
     "claimed": 0,
     "done": 0,
     "for_review": 0,
-    "in_progress": 0,
+    "in_progress": 1,
     "in_review": 0,
-    "planned": 2
+    "planned": 1
   },
   "work_packages": {
     "WP01": {
@@ -25,11 +25,11 @@
       "last_transition_at": "2026-07-14T16:19:24.806751+00:00"
     },
     "WP02": {
-      "actor": "finalize-tasks",
+      "actor": "claude",
       "force_count": 0,
-      "lane": "planned",
-      "last_event_id": "01KXGP44566QZ39S1QC147ER9S",
-      "last_transition_at": "2026-07-14T16:07:24.582884+00:00"
+      "lane": "in_progress",
+      "last_event_id": "01KXGPVFYQXBTD3W60W0TPAH1E",
+      "last_transition_at": "2026-07-14T16:20:10.326162+00:00"
     },
     "WP03": {
       "actor": "finalize-tasks",
