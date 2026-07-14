@@ -219,7 +219,7 @@ state into Vikunja comments directly.
 | `N snooze` | `record_completion --state snoozed --snooze-days 1 --source kent_reply` (default N=1). |
 | `N snooze Nd` | `record_completion --state snoozed --snooze-days N --source kent_reply`. |
 | `N dismiss` | `record_completion --state dismissed --source kent_reply`. Leave task open. |
-| `move N to <date>` or `N move to <date>` | Parse the date. Confirm with Kent. Update `due_date` via `POST /api/v1/tasks/{id}`. Then `record_completion --state rescheduled --reschedule-to YYYY-MM-DD --source kent_reply`. |
+| `move N to <date>` or `N move to <date>` | Parse the date. Confirm with Kent. Then `record_completion --state rescheduled --reschedule-to YYYY-MM-DD --source kent_reply` — the helper performs the Vikunja `due_date` PATCH (end-of-day ET) itself; do NOT write `due_date` separately. |
 | `N and M done` | Mark multiple tasks complete. Process each independently — one `record_completion` invocation per task. |
 | `all snooze Nd` | Apply snooze to every task in the message — one `record_completion` invocation per task. |
 | `got it` or vague acknowledgment | No task mutation. No per-task `record_completion`. If a Level 2 task exists, it stays at Level 2 but won't re-alert today (daily dedup per §7). |

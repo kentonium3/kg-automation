@@ -178,8 +178,10 @@ briefings (felix-core-digest), or goal-level commitment assessment
 7. **Wait for Kent's reply**: per SKILL.md §5. When Kent replies, parse the
    response and route each task's event through `record_completion` with the
    appropriate `--state` (`done`, `snoozed`, `dismissed`, `rescheduled`) and
-   `--source kent_reply`. For `done` and `rescheduled`, perform the Vikunja
-   mutation BEFORE invoking `record_completion`.
+   `--source kent_reply`. For `rescheduled`, do NOT issue a separate Vikunja
+   due-date write — `record_completion` performs the `due_date` PATCH itself
+   (see the Reschedule steps below). For `done`, mark the task done via the
+   API, then invoke `record_completion`.
 
 ---
 
@@ -229,16 +231,17 @@ For each recognized action:
 **Reschedule** (`move N to <date>` or `N move to <date>`):
 1. Parse the target date
 2. Confirm with Kent: "Move #N to [parsed date]?"
-3. On confirmation: update due_date via `POST /api/v1/tasks/{id}`
-   with `{"due_date": "<YYYY-MM-DD>T00:00:00Z"}`
-4. Record event:
+3. On confirmation, record the event. `record_completion` performs the
+   Vikunja `due_date` PATCH (written as end-of-day Eastern Time, never UTC
+   `Z` — see Date handling in TOOLS.md) and the JSONL append in one step —
+   do NOT issue a separate `POST`/`PATCH` for the due date:
 
        cd /home/claude/kg-automation && python3 -m scripts.escalation.record_completion \
          --task-id <id> --project-id <pid> --title "<title>" \
          --date <today-local> --state rescheduled \
          --reschedule-to <YYYY-MM-DD> --source kent_reply
 
-5. Confirm to Kent: "Rescheduled #N to [date]."
+4. Confirm to Kent: "Rescheduled #N to [date]."
 
 **Acknowledge** (`got it` or vague response):
 1. No task mutation

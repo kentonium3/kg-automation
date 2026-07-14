@@ -179,9 +179,9 @@ class TestHappyPathPerEventType:
         tmp_token_file,
         make_jsonl_record,
     ):
-        """`rescheduled` path PATCHes due_date once; no other Vikunja call."""
+        """`rescheduled` PATCHes due_date once as end-of-day ET (#733)."""
         mock_urlopen.side_effect = [
-            _resp({"id": 1234, "due_date": "2026-06-15T00:00:00Z"}),
+            _resp({"id": 1234, "due_date": "2026-06-15T23:59:59-04:00"}),
         ]
         record = make_jsonl_record(
             state="rescheduled",
@@ -195,7 +195,32 @@ class TestHappyPathPerEventType:
         assert first_req.get_method() == "PATCH"
         assert first_req.full_url.endswith("/tasks/1234")
         body = json.loads(first_req.data.decode("utf-8"))
-        assert body == {"due_date": "2026-06-15T00:00:00Z"}
+        # #733: never UTC `Z` — a "to June 15" reschedule must read back as
+        # June 15 in ET (enumerate_candidates converts the instant to an ET
+        # calendar date). June is EDT, so the offset is -04:00.
+        assert body == {"due_date": "2026-06-15T23:59:59-04:00"}
+
+    def test_reschedule_due_date_et_uses_dst_aware_offset(self):
+        """`_reschedule_due_date_et` picks EDT vs EST by the target date (#733)."""
+        # Summer target -> EDT (-04:00); winter target -> EST (-05:00).
+        assert rc._reschedule_due_date_et("2026-06-15") == "2026-06-15T23:59:59-04:00"
+        assert rc._reschedule_due_date_et("2026-01-15") == "2026-01-15T23:59:59-05:00"
+        # Day after the 2026 spring-forward transition (2026-03-08) is EDT.
+        assert rc._reschedule_due_date_et("2026-03-09") == "2026-03-09T23:59:59-04:00"
+        # Day before spring-forward is still EST.
+        assert rc._reschedule_due_date_et("2026-03-07") == "2026-03-07T23:59:59-05:00"
+
+    def test_reschedule_due_date_et_rejects_bad_date(self):
+        """`_reschedule_due_date_et` raises on invalid / pre-modern dates."""
+        # Not a real calendar date.
+        with pytest.raises(ValueError):
+            rc._reschedule_due_date_et("2026-13-99")
+        # Pre-standardization (pre-1883) ET carries a sub-minute LMT offset
+        # (e.g. -04:56:02) that would emit a malformed due_date; reject it.
+        with pytest.raises(ValueError):
+            rc._reschedule_due_date_et("0001-01-01")
+        with pytest.raises(ValueError):
+            rc._reschedule_due_date_et("1800-06-15")
 
     def test_record_snoozed_computes_snooze_until_at_write_time(
         self,

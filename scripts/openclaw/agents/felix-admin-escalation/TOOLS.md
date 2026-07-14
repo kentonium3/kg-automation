@@ -29,14 +29,13 @@ Content-Type: application/json
 {"done": true}
 ```
 
-### Update task due date (reschedule)
+### Reschedule a task (due date)
 
-```
-POST /api/v1/tasks/{id}
-Content-Type: application/json
-
-{"due_date": "2026-04-10T00:00:00Z"}
-```
+Reschedules flow through `record_completion --state rescheduled
+--reschedule-to YYYY-MM-DD` (see SKILL.md / AGENTS.md). The helper performs
+the Vikunja `due_date` PATCH itself, writing an **end-of-day Eastern Time**
+instant with the correct DST offset — never a UTC `Z` value (see Date
+handling below). Do not `POST`/`PATCH` `due_date` directly.
 
 ### Resolve project name
 
@@ -66,9 +65,11 @@ Use the `title` field for the `[Project]` tag in alert messages.
 
 All dates must be resolved in Kent's timezone (America/New_York), not UTC.
 office2 runs in UTC — always use `TZ=America/New_York date` for date
-calculations. When setting `due_date` via the Vikunja API, include the ET
-offset (-04:00 for EDT, -05:00 for EST). Never use the `Z` (UTC) suffix
-for due dates.
+calculations. Due dates are written as **end-of-day ET** with the correct
+DST offset (-04:00 for EDT, -05:00 for EST) — never the `Z` (UTC) suffix,
+which lands in the prior ET day and mis-dates the task. Reschedules go
+through `record_completion`, which enforces this; do not write `due_date`
+directly.
 
 ## Privacy
 

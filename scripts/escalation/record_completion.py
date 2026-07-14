@@ -320,6 +320,52 @@ def _compute_snooze_until(snooze_days: int) -> str:
     return (_today_local() + timedelta(days=snooze_days)).isoformat()
 
 
+def _reschedule_due_date_et(reschedule_to: str) -> str:
+    """Render a ``YYYY-MM-DD`` reschedule target as an end-of-day ET instant.
+
+    Vikunja stores ``due_date`` as an instant, but the escalation candidate
+    logic (:func:`scripts.escalation.enumerate_candidates.normalize_due_date`)
+    reads it back as an **America/New_York calendar date**. Writing UTC
+    midnight (``<date>T00:00:00Z``) lands in the *prior* ET evening, so a task
+    rescheduled "to June 15" would read back as June 14 and be mis-classified
+    as overdue a day early (#733).
+
+    We anchor to ``23:59:59`` in :data:`LOCAL_TZ` with the DST-correct offset
+    (``-04:00`` EDT / ``-05:00`` EST), matching the habits #112 fix
+    (``scripts/habits/set_due_dates.py``). The ``## Date handling`` rule in the
+    escalation agent prompt ("resolve in America/New_York, never use the ``Z``
+    suffix") is thereby enforced at the single write site.
+
+    Args:
+        reschedule_to: Target due date as ``YYYY-MM-DD``.
+
+    Returns:
+        ISO-8601 string ``YYYY-MM-DDT23:59:59<offset>``.
+
+    Raises:
+        ValueError: If ``reschedule_to`` is not a valid ``YYYY-MM-DD`` date.
+    """
+    target = date.fromisoformat(reschedule_to)
+    anchor = datetime(
+        target.year, target.month, target.day, 23, 59, 59, tzinfo=LOCAL_TZ
+    )
+    raw_offset = anchor.strftime("%z")
+    if len(raw_offset) != 5:
+        # Modern Eastern Time is always a whole-hour offset (``-0400`` /
+        # ``-0500`` → 5 chars). A longer value means a pre-standardization
+        # Local Mean Time offset carrying seconds (e.g. ``-045602`` for
+        # year-1 / pre-1883 targets), which is never a real reschedule and
+        # would violate the ``YYYY-MM-DDT23:59:59±HH:MM`` contract. Reject
+        # rather than emit a malformed due_date.
+        raise ValueError(
+            f"reschedule_to {reschedule_to!r} resolves to a non-standard "
+            f"UTC offset {raw_offset!r}; expected a modern Eastern date"
+        )
+    # raw_offset is a whole-hour ``±HHMM``; render as ISO-8601 ``±HH:MM``.
+    offset = f"{raw_offset[:3]}:{raw_offset[3:]}"
+    return f"{target.isoformat()}T23:59:59{offset}"
+
+
 # ---------------------------------------------------------------------------
 # JSONL append (per-project, fcntl-locked)
 # ---------------------------------------------------------------------------
@@ -457,7 +503,7 @@ def _vikunja_side_effects(
             "PATCH",
             url,
             token,
-            body={"due_date": f"{reschedule_to}T00:00:00Z"},
+            body={"due_date": _reschedule_due_date_et(reschedule_to)},
         )
         actions.append("task_PATCH_due_date")
 

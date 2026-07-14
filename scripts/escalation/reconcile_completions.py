@@ -68,7 +68,7 @@ import re
 import sys
 import time
 from dataclasses import asdict, dataclass, field
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any, Iterable, Literal, Optional
 
@@ -84,6 +84,7 @@ from scripts.escalation.derive_state import (
     EscalationStateError,
     derive_state,
 )
+from scripts.escalation.enumerate_candidates import normalize_due_date
 from scripts.escalation.hard_fail import (
     HardFailReason,
     file_hard_fail_bug,
@@ -138,10 +139,6 @@ DEFAULT_TOKEN_PATH = Path("/data/services/openclaw/secrets/vikunja-api")
 #: records into) the per-project files matching
 #: ``project-<project_id>-escalation-history.jsonl``.
 JSONL_STATE_DIR = Path("/data/services/openclaw/state/escalation")
-
-#: Vikunja's "unset" sentinel value for ``due_date``. The cache inherits
-#: the same serialization format from the sync driver.
-ZERO_DATE_SENTINEL = "0001-01-01T00:00:00Z"
 
 #: Regex extracting the integer ``project_id`` from a per-project JSONL
 #: filename. Used by ``reconcile_all`` to discover projects from
@@ -598,20 +595,30 @@ def _has_done_record(records: list[dict]) -> bool:
 
 
 def _cache_due_date(fields: dict) -> Optional[str]:
-    """Extract the ``YYYY-MM-DD`` form of ``fields["due_date"]``, or ``None``.
+    """Return the America/New_York calendar date of ``fields["due_date"]``.
 
-    The sync cache inherits Vikunja's serialization format for ``due_date``
-    (``YYYY-MM-DDTHH:MM:SSZ``). We strip the time portion for comparison
-    against JSONL ``reschedule_to`` (which is always a calendar date). The
-    zero-sentinel ``0001-01-01T00:00:00Z`` is treated as ``None`` (no due date).
+    Vikunja stores ``due_date`` as an instant and **serializes it back as UTC**
+    (``YYYY-MM-DDTHH:MM:SSZ``) regardless of the offset it was written with
+    (confirmed live on office2). We therefore normalize the instant to Kent's
+    ET calendar date — the same interpretation the escalation candidate logic
+    uses (:func:`scripts.escalation.enumerate_candidates.normalize_due_date`) —
+    before comparing against the JSONL ``reschedule_to`` (a plain
+    ``YYYY-MM-DD`` in ET).
+
+    Taking the raw string prefix instead would mis-date any instant whose ET
+    calendar day differs from its UTC day. In particular an end-of-day-ET
+    reschedule (``...T23:59:59-04:00``, #733) comes back from Vikunja as the
+    *next* UTC day (``...T03:59:59Z``); a naive prefix would read it a day late
+    and emit a spurious synthetic ``rescheduled`` record on every tick. The
+    year-1 zero sentinel and any unparseable / naive value normalize to
+    ``None`` (no due date).
     """
-    raw = fields.get("due_date")
-    if not isinstance(raw, str) or not raw:
-        return None
-    if raw == ZERO_DATE_SENTINEL:
-        return None
-    # Take the YYYY-MM-DD prefix.
-    return raw.split("T", 1)[0]
+    return _et_date_iso(normalize_due_date(fields.get("due_date")))
+
+
+def _et_date_iso(value: Optional[date]) -> Optional[str]:
+    """Render an optional ``date`` as ``YYYY-MM-DD`` (or ``None``)."""
+    return value.isoformat() if value is not None else None
 
 
 def _now_utc() -> datetime:
