@@ -687,7 +687,7 @@ Per-module metadata mirrors `docs/design/architecture/data/service-inventory.jso
 - **Schedule**: every 6 hours via `credential-liveness-probe.timer` (`OnCalendar=*-*-* 00,06,12,18:00:00`, `Persistent=true`)
 - **Source in repo**: `scripts/office2/credential-liveness-probe.{service,timer}`; deploy script: `scripts/office2/deploy/credential-liveness-probe.sh`
 - **Purpose**: OAuth credential liveness probe — issues a cheap `gog calendar list` call per monitored credential and files a GitHub issue on `invalid_grant`. Surfaces dead refresh tokens within ≤6h instead of waiting for user-facing failure.
-- **Alert path**: GitHub issue only. Title prefix `credential-liveness-routine-7day:` for expected 7-day Testing-app cycle expiry; `credential-liveness-unexpected:` for out-of-cycle revocations. Issue body includes the exact `gog-reauth.sh` recovery command.
+- **Alert path**: GitHub issue only. Since the gog OAuth app was published (#731), every dead token is a single `credential-liveness-dead:` classification (the earlier routine-7day/unexpected split is retired). Issue body includes the exact `gog-reauth.sh` recovery command.
 - **Depends on**: `openclaw-gateway.service`, `network-online.target`; consumes `gog-credentials-keyring`
 - **Runbook**: [Google Workspace Operations](<../../runbooks/google-workspace-ops.md>) §Common issues → "Automatic detection (post-#572)"
 

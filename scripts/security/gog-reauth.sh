@@ -1,18 +1,20 @@
 #!/usr/bin/env bash
 # gog-reauth.sh — automate the gog OAuth two-step re-authorization flow.
 #
-# Why this exists: the OAuth app is in External + Testing publishing status,
-# so Google issues refresh tokens with a hard 7-day expiration. Every ~week
-# this script needs to be run to re-mint the refresh token. Tracking issue:
-# kentonium3/kg-automation#572. Canonical procedure:
-# docs/runbooks/google-workspace-ops.md §2.8.
+# Why this exists: run this to (re)mint or repair the gog refresh token after a
+# revocation (password change, 6+ months inactivity, Google security review, or
+# manual revocation at myaccount.google.com/permissions). The gog OAuth app is
+# published ('In production'), so tokens stay valid until revoked — there is no
+# fixed re-auth cycle. Refs: kentonium3/kg-automation#572 (original expiry bug)
+# and #731 (removed once the app was published). Canonical procedure:
+# docs/runbooks/google-workspace-ops.md.
 #
 # Two interactive steps remain (cannot be automated):
 #   - Operator clicks through the Google consent screen in their Mac browser.
 #   - Operator copy-pastes the redirect URL back to the script.
 #
 # Everything else (env-var setup, path resolution, services list, account email,
-# verification, liveness probe, next-due-date) is handled here.
+# verification, liveness probe) is handled here.
 #
 # Usage (on office2 as the claude user):
 #   /home/claude/kg-automation/scripts/security/gog-reauth.sh
@@ -114,9 +116,15 @@ cat <<EOF
 ==> Browser-side steps:
     1. Open the URL above in your Mac browser.
     2. Sign in as $ACCOUNT.
-    3. "Google hasn't verified this app" → click Advanced → Continue (unsafe).
-    4. Check ALL six scope boxes (Gmail, Calendar, Drive, Contacts,
-       Sheets, Docs), then Continue.
+    3. If "Google hasn't verified this app" appears → click Advanced → Continue.
+    4. Grant the personal-data scopes. The consent screen expands the requested
+       services into ~10 checkboxes: Google Drive; "Other contacts"; Contacts;
+       Docs; Sheets; Calendar; and the three Gmail scopes (settings, filters,
+       read/compose/send). Check those, then Continue.
+         • LEAVE UNCHECKED the box "See and download your organization's Google
+           Workspace directory" unless you specifically want Felix to read your
+           org directory. Declining it does NOT break the token (gog's 'contacts'
+           service is why that box appears). See kentonium3/kg-automation#731.
     5. You will land on http://localhost:...?state=...&code=... showing
        a "site can't be reached" page — that is expected.
 
@@ -153,11 +161,12 @@ fi
 
 # ---- closing summary -------------------------------------------------------
 
-NEXT_DUE="$(date -u -d '+7 days' '+%Y-%m-%d')"
 cat <<EOF
 
 ==> gog-reauth complete.
-    Next forced re-auth: ~$NEXT_DUE (External+Testing OAuth app 7-day cycle).
-    Eliminate the cycle: publish the OAuth app or migrate to a Workspace-internal app.
-    See: docs/runbooks/google-workspace-ops.md §2.4 + #572.
+    The gog OAuth app is published ('In production'), so the token does not
+    expire on a fixed cycle — it stays valid until revoked (password change,
+    6+ months inactivity, Google security review, or manual revocation). Only
+    re-run this script after such a revocation.
+    See: docs/runbooks/google-workspace-ops.md + kentonium3/kg-automation#731.
 EOF

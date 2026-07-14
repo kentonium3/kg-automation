@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import IO, Iterable, Optional
 
@@ -120,7 +120,6 @@ class LivenessListing:
     enabled: str
     gog_account: str
     keyring_mtime_age: str
-    expected_next_expiration: str
     recovery_command: str
 
 
@@ -140,7 +139,6 @@ def build_liveness_listings(
                 enabled="—",
                 gog_account="—",
                 keyring_mtime_age="—",
-                expected_next_expiration="—",
                 recovery_command="—",
             ))
             continue
@@ -151,7 +149,6 @@ def build_liveness_listings(
 
         # Compute keyring mtime age.
         keyring_mtime_age = "—"
-        expected_next_expiration = "—"
         if lp.keyring_file:
             keyring_path = Path(lp.keyring_file)
             try:
@@ -159,18 +156,14 @@ def build_liveness_listings(
                 mtime = datetime.fromtimestamp(mtime_ts, tz=timezone.utc)
                 age_seconds = (now - mtime).total_seconds()
                 keyring_mtime_age = _format_age(age_seconds)
-                expiration = mtime + timedelta(days=7)
-                expected_next_expiration = expiration.date().isoformat()
             except (FileNotFoundError, OSError):
                 keyring_mtime_age = "—"
-                expected_next_expiration = "—"
 
         rows.append(LivenessListing(
             name=cred.name,
             enabled=enabled_str,
             gog_account=gog_account,
             keyring_mtime_age=keyring_mtime_age,
-            expected_next_expiration=expected_next_expiration,
             recovery_command=recovery_command,
         ))
     return rows
@@ -180,13 +173,13 @@ def render_liveness_table(listings: list[LivenessListing]) -> str:
     """Render liveness listings as aligned plain text."""
     headers = [
         "Name", "Enabled", "gog_account",
-        "keyring_mtime_age", "expected_next_expiration", "recovery_command",
+        "keyring_mtime_age", "recovery_command",
     ]
 
     def _row(r: LivenessListing) -> list[str]:
         return [
             r.name, r.enabled, r.gog_account,
-            r.keyring_mtime_age, r.expected_next_expiration, r.recovery_command,
+            r.keyring_mtime_age, r.recovery_command,
         ]
 
     data_rows = [_row(r) for r in listings]

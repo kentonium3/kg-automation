@@ -423,11 +423,10 @@ def _build_liveness_issue_body(r: LivenessResult) -> str:
         f"Classification: {r.classification}\n"
         f"Reason: {r.reason}\n\n"
     )
-    if r.classification == "dead-unexpected":
-        body += (
-            "If you didn't recently change passwords or revoke access, "
-            "investigate at https://myaccount.google.com/permissions before re-auth.\n\n"
-        )
+    body += (
+        "If you didn't recently change passwords or revoke access, "
+        "investigate at https://myaccount.google.com/permissions before re-auth.\n\n"
+    )
     recovery = r.recovery_command or "(no recovery command configured)"
     body += (
         f"Recovery command:\n"
@@ -491,13 +490,8 @@ def _process_liveness_alert(
         )
         return
 
-    # dead-routine-7day or dead-unexpected
-    # Title prefix: "credential-liveness-routine-7day: <name>" or
-    #               "credential-liveness-unexpected: <name>"
-    title_prefix = (
-        f"credential-liveness-{liveness_result.classification.removeprefix('dead-')}: "
-        f"{cred.name}"
-    )
+    # Single 'dead' classification post-#731 (no routine/unexpected split).
+    title_prefix = f"credential-liveness-dead: {cred.name}"
 
     try:
         existing = dedup_check(title_prefix)

@@ -17,7 +17,7 @@
   "flattened": false,
   "friendly_name": "gog credential post-publish cleanup",
   "mission_id": "01KXGMRPK9HRYYPY559KS0ZPCE",
-  "mission_number": null,
+  "mission_number": 101,
   "mission_slug": "gog-credential-post-publish-cleanup-01KXGMRP",
   "mission_type": "software-dev",
   "purpose_context": "Felix's credential-liveness probe and its gog re-auth script were built when the Google OAuth app was in External+Testing mode, which forced a hard 7-day refresh-token expiry. The app is now published, so that expiry no longer applies. This mission removes the now-false '7-day routine' classification and its dead baseline machinery from the probe, and corrects the re-auth script's stale wording and consent-screen guidance, so future credential alerts are accurate and operators are not misdirected during re-auth.",

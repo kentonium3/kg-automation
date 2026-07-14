@@ -92,9 +92,10 @@ Each account has its own OAuth store, independent of gog:
 - Scope: `https://www.googleapis.com/auth/calendar.events` — sufficient for
   event CRUD and the bounded `--self-check`.
 - The token is **durable** (RFC #681): the personal `@gmail` account under an
-  "In production" OAuth app yields a non-expiring authorization. The 7-day
-  Testing-mode expiry that affects the gog credential (#572) does **not**
-  apply here.
+  "In production" OAuth app yields a non-expiring authorization. (The original
+  weekly re-auth pain was the External+Testing 7-day expiry, #572; that no
+  longer applies here — and, since the gog OAuth app was also published, it no
+  longer applies to the gog credential either, see #731.)
 
 **Credentials are never committed.** They are minted on the Mac and staged to
 office2 out-of-band (see the deploy runbook / mission quickstart). The deploy
