@@ -16,6 +16,9 @@ subtasks:
 - T011
 - T012
 - T013
+agent: "claude"
+shell_pid: "82031"
+shell_pid_created_at: "1784046384.381823"
 history:
 - '2026-07-14: authored from spec + plan (post-plan Codex folded)'
 agent_profile: curator-carla
@@ -143,3 +146,7 @@ Execution worktrees are per-lane from `lanes.json`.
 - Verify `gog-reauth.sh` behavior is unchanged (only comments/echo text edited).
 - Verify the `service-inventory.json` `exec_start` correction matches the real unit
   (`/usr/bin/python3 -m scripts.security.credential_health_check`).
+
+## Activity Log
+
+- 2026-07-14T16:26:43Z – claude – shell_pid=82031 – Assigned agent via action command
