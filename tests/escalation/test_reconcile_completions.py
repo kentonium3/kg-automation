@@ -375,9 +375,11 @@ def test_due_date_change_emits_synthetic_rescheduled(
         ],
     )
 
-    # Cache shows due_date = 2026-05-25 (differs from JSONL reschedule_to=2026-05-22)
+    # Cache shows an instant whose ET calendar date is 2026-05-25 (differs
+    # from JSONL reschedule_to=2026-05-22). Vikunja serializes as UTC `Z`;
+    # noon UTC is unambiguously May 25 in ET (both EDT and EST).
     mock_sync_cache_fixture(
-        tasks={task_id: _cache_task_fields(task_id, done=False, due_date="2026-05-25T00:00:00Z")},
+        tasks={task_id: _cache_task_fields(task_id, done=False, due_date="2026-05-25T12:00:00Z")},
     )
     mock_urlopen.return_value = _resp({"ok": True})  # stub record_event HTTP
 
@@ -403,7 +405,13 @@ def test_due_date_unchanged_no_emit(
     mock_urlopen,
     recorded_hard_fails: _HardFailRecorder,
 ) -> None:
-    """Cache due_date matches last ``reschedule_to`` → no emit."""
+    """Cache due_date matches last ``reschedule_to`` (ET) → no emit.
+
+    The cache value is what Vikunja returns for an end-of-day-ET reschedule
+    write (``2026-05-25T23:59:59-04:00``): Vikunja normalizes to UTC, so it
+    comes back as the *next* UTC day ``2026-05-26T03:59:59Z``. Its ET calendar
+    date is 2026-05-25, matching ``reschedule_to`` → no spurious drift (#733).
+    """
     project_id = 4
     task_id = 1234
     jsonl_path = jsonl_sandbox / f"project-{project_id}-escalation-history.jsonl"
@@ -428,13 +436,132 @@ def test_due_date_unchanged_no_emit(
         ],
     )
     mock_sync_cache_fixture(
-        tasks={task_id: _cache_task_fields(task_id, done=False, due_date="2026-05-25T00:00:00Z")},
+        tasks={task_id: _cache_task_fields(task_id, done=False, due_date="2026-05-26T03:59:59Z")},
     )
 
     report = reconcile_project(project_id, jsonl_dir=jsonl_sandbox)
 
     assert report.synthetic_rescheduled_emitted == 0
     assert report.synthetic_done_emitted == 0
+
+
+def test_eod_et_reschedule_winter_roundtrip_no_spurious_drift(
+    jsonl_sandbox: Path,
+    tmp_token_file: Path,
+    mock_sync_cache_fixture,
+    mock_urlopen,
+    recorded_hard_fails: _HardFailRecorder,
+) -> None:
+    """#733: EST end-of-day reschedule round-trips without spurious drift.
+
+    A reschedule to 2026-01-15 is written by ``record_completion`` as
+    ``2026-01-15T23:59:59-05:00`` (EST). Vikunja normalizes to UTC, returning
+    ``2026-01-16T04:59:59Z``. Reconcile must read its ET calendar date
+    (2026-01-15) and see no drift versus ``reschedule_to=2026-01-15``.
+    """
+    project_id = 4
+    task_id = 1234
+    jsonl_path = jsonl_sandbox / f"project-{project_id}-escalation-history.jsonl"
+    _write_jsonl(
+        jsonl_path,
+        [
+            _make_record(
+                task_id=task_id,
+                project_id=project_id,
+                state="level_sent",
+                date_str="2026-01-08",
+                level=1,
+            ),
+            _make_record(
+                task_id=task_id,
+                project_id=project_id,
+                state="rescheduled",
+                date_str="2026-01-10",
+                timestamp="2026-01-10T12:00:00+00:00",
+                reschedule_to="2026-01-15",
+            ),
+        ],
+    )
+    mock_sync_cache_fixture(
+        tasks={task_id: _cache_task_fields(task_id, done=False, due_date="2026-01-16T04:59:59Z")},
+    )
+
+    report = reconcile_project(project_id, jsonl_dir=jsonl_sandbox)
+
+    assert report.synthetic_rescheduled_emitted == 0
+    assert report.synthetic_done_emitted == 0
+
+
+def test_legacy_utc_midnight_due_date_self_heals_in_one_emit(
+    jsonl_sandbox: Path,
+    tmp_token_file: Path,
+    mock_sync_cache_fixture,
+    mock_urlopen,
+    recorded_hard_fails: _HardFailRecorder,
+) -> None:
+    """#733 transition: a legacy ``<date>T00:00:00Z`` due_date self-heals.
+
+    A task rescheduled under the old code holds Vikunja due_date
+    ``2026-06-15T00:00:00Z``; its ET calendar date is 2026-06-14. The JSONL's
+    last ``reschedule_to`` is the old naive prefix ``2026-06-15``, so tick 1
+    detects drift and emits ONE synthetic ``rescheduled`` with
+    ``reschedule_to="2026-06-14"`` (JSONL-only, no Vikunja re-write). Tick 2
+    sees the JSONL now agrees with the ET reading → no further emit. This
+    proves the transitional reinterpretation is one-time / self-healing, not
+    an every-tick loop.
+    """
+    project_id = 4
+    task_id = 1234
+    jsonl_path = jsonl_sandbox / f"project-{project_id}-escalation-history.jsonl"
+    _write_jsonl(
+        jsonl_path,
+        [
+            _make_record(
+                task_id=task_id,
+                project_id=project_id,
+                state="level_sent",
+                date_str="2026-06-08",
+                level=1,
+            ),
+            _make_record(
+                task_id=task_id,
+                project_id=project_id,
+                state="rescheduled",
+                date_str="2026-06-10",
+                timestamp="2026-06-10T12:00:00+00:00",
+                reschedule_to="2026-06-15",
+            ),
+        ],
+    )
+    mock_sync_cache_fixture(
+        tasks={task_id: _cache_task_fields(task_id, done=False, due_date="2026-06-15T00:00:00Z")},
+    )
+    mock_urlopen.return_value = _resp({"ok": True})
+
+    first = reconcile_project(project_id, jsonl_dir=jsonl_sandbox)
+    assert first.synthetic_rescheduled_emitted == 1
+    new = [
+        r for r in _read_jsonl(jsonl_path)
+        if r.get("state") == "rescheduled" and r.get("source") == "reconcile"
+    ]
+    assert len(new) == 1
+    assert new[0]["reschedule_to"] == "2026-06-14"
+
+    # Second tick: JSONL now agrees with the ET reading → stable, no re-emit.
+    second = reconcile_project(project_id, jsonl_dir=jsonl_sandbox)
+    assert second.synthetic_rescheduled_emitted == 0
+
+
+def test_cache_due_date_normalizes_or_rejects() -> None:
+    """`_cache_due_date` returns the ET calendar date or ``None`` (#733)."""
+    # UTC instant → ET calendar date (the next-UTC-day round-trip case).
+    assert rcn._cache_due_date({"due_date": "2026-06-16T03:59:59Z"}) == "2026-06-15"
+    # Year-1 zero sentinel → None (no due date).
+    assert rcn._cache_due_date({"due_date": "0001-01-01T00:00:00Z"}) is None
+    # Naive / garbage / missing → None (never guessed as a date).
+    assert rcn._cache_due_date({"due_date": "2026-05-25"}) is None
+    assert rcn._cache_due_date({"due_date": "not-a-date"}) is None
+    assert rcn._cache_due_date({}) is None
 
 
 def test_due_date_change_with_terminal_record_no_emit(
