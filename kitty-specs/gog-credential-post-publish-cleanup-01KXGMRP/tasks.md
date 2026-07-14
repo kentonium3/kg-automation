@@ -58,11 +58,11 @@ Small, tightly-coupled cleanup mission. 3 work packages. WP02 depends on WP01
 - **Independent test**: greps in `quickstart.md` for `7-day`/`Testing`/`routine-7day` over the in-scope files return clean; script still runs its auth flow unchanged.
 - **Dependencies**: none (parallel with WP01/WP02)
 - **Subtasks**:
-  - [ ] T009 `gog-reauth.sh` header/closing wording (WP03)
-  - [ ] T010 `gog-reauth.sh` consent guidance rewrite (WP03)
-  - [ ] T011 `service-inventory.json` framing + `exec_start` fix (WP03)
-  - [ ] T012 `service-inventory.md` + `docs/INDEX.md` framing (WP03)
-  - [ ] T013 runbooks: credential-liveness-probe-ops + google-workspace-ops + calendar-helper-ops (WP03)
+  - [x] T009 `gog-reauth.sh` header/closing wording (WP03)
+  - [x] T010 `gog-reauth.sh` consent guidance rewrite (WP03)
+  - [x] T011 `service-inventory.json` framing + `exec_start` fix (WP03)
+  - [x] T012 `service-inventory.md` + `docs/INDEX.md` framing (WP03)
+  - [x] T013 runbooks: credential-liveness-probe-ops + google-workspace-ops + calendar-helper-ops (WP03)
 - **Risks**: touch ONLY credential-liveness/gog occurrences; leave unrelated `7-day` strings (habits, vikunja, etc.) alone (C-005). Do not alter the script's auth flow — only comments/echo text.
 - **Prompt**: `tasks/WP03-operator-text-and-docs.md` (~230 lines)
 

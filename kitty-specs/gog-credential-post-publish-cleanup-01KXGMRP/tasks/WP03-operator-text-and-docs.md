@@ -17,8 +17,8 @@ subtasks:
 - T012
 - T013
 agent: "claude"
-shell_pid: "82031"
-shell_pid_created_at: "1784046384.381823"
+shell_pid: "84559"
+shell_pid_created_at: "1784046844.430985"
 history:
 - '2026-07-14: authored from spec + plan (post-plan Codex folded)'
 agent_profile: curator-carla
@@ -150,3 +150,5 @@ Execution worktrees are per-lane from `lanes.json`.
 ## Activity Log
 
 - 2026-07-14T16:26:43Z – claude – shell_pid=82031 – Assigned agent via action command
+- 2026-07-14T16:33:59Z – claude – shell_pid=82031 – gog-reauth wording+consent + 6 docs reframed; JSON valid; doc validation passed; grep clean (only retired-history refs remain)
+- 2026-07-14T16:34:15Z – claude – shell_pid=84559 – Started review via action command
