@@ -91,7 +91,8 @@ The probe runs against a live credential, `gog` exits 0, the probe returns
 | FR-006 | `gog-reauth.sh` header comments and closing summary no longer assert an External+Testing 7-day expiry cycle and no longer project a "next forced re-auth ~<date>" 7-day date. | Draft |
 | FR-007 | `gog-reauth.sh` consent guidance accurately describes the real consent screen: the correct number of scope boxes, an instruction to grant the personal-data scopes, and explicit identification of the "organization's Google Workspace directory" box as optional / decline-by-default. | Draft |
 | FR-008 | Architecture data and narrative docs are updated to match: `credential-manifest.json` drops the `reauth_marker_glob` config; `service-inventory.json` / `service-inventory.md` / `docs/INDEX.md` / the credential-liveness and google-workspace runbooks drop the "routine-7day" / "Testing-app cycle" framing. | Draft |
-| FR-009 | The credential-liveness test suite (`tests/security/test_liveness.py`, `tests/security/test_orchestrator.py`) is updated to assert the single-dead-classification behavior and the absence of the removed machinery. | Draft |
+| FR-009 | The credential-liveness test suite (`tests/security/test_liveness.py`, `tests/security/test_orchestrator.py`, `tests/security/test_listing.py`) is updated to assert the single-dead-classification behavior and the absence of the removed machinery. | Draft |
+| FR-010 | The operator `--list --liveness` view (`listing.py`) no longer renders a fabricated `expected_next_expiration` derived from `keyring_file` + 7 days. The column is removed (the factual `keyring_mtime_age` may remain). | Draft |
 
 ## Non-Functional Requirements
 
@@ -109,7 +110,7 @@ The probe runs against a live credential, `gog` exits 0, the probe returns
 | C-001 | Rebaseline is **not required**: none of the touched paths match an audited surface in `audited-surfaces.json` (only `scripts/security/ssh-keys/*` under `scripts/security/` is audited; `credential_health_check/`, `gog-reauth.sh`, `credential-manifest.json`, docs, and tests are not). The mission/feat→main merge records `Rebaseline: not required — <reason>`. Deploy is by felix-deployer's `git pull origin/main` into the office2 checkout (the routine runs from `/home/claude/kg-automation` with `PYTHONPATH` = checkout root); **no `deploys/queued` manifest is needed** (no systemd/service/cron/out-of-checkout change). | Draft |
 | C-002 | `kitty-specs/` and `.kittify/` are spec-kitty-managed; no manual edits outside workflow commands. | Draft |
 | C-003 | Code + docs only. No re-minting or touching the live OAuth token; no Google Cloud Console changes. | Draft |
-| C-004 | Change-risk tier: probe logic is Tier 3 (logic/workflow); it is also an audited surface, so the rebaseline obligation applies regardless of tier. | Draft |
+| C-004 | Change-risk tier: Tier 3 (logic/workflow). Per C-001 the touched paths are **not** an audited surface, so **no rebaseline obligation** applies (supersedes any earlier "audited surface" framing). | Draft |
 | C-005 | The `7-day` string appears widely in unrelated surfaces (habits, vikunja token rotation, other runbooks). Only the credential-liveness / gog-reauth occurrences are in scope; unrelated occurrences must not be touched. | Draft |
 
 ## Success Criteria

@@ -63,7 +63,8 @@ scripts/security/
 ├── credential_health_check/
 │   ├── liveness.py       # IC-01: collapse classification, delete baseline machinery
 │   ├── manifest.py       # IC-02: drop reauth_marker_glob from schema
-│   └── orchestrator.py   # IC-03: single-classification alert construction
+│   ├── orchestrator.py   # IC-03: single-classification alert construction
+│   └── listing.py        # IC-07: remove fabricated expected_next_expiration column
 └── gog-reauth.sh         # IC-04: wording + consent guidance
 
 docs/design/architecture/
@@ -77,7 +78,8 @@ docs/runbooks/google-workspace-ops.md            # IC-06
 
 tests/security/
 ├── test_liveness.py       # IC-05
-└── test_orchestrator.py   # IC-05
+├── test_orchestrator.py   # IC-05
+└── test_listing.py        # IC-07
 ```
 
 **Structure Decision**: Single Python package; no new modules. All changes are in-place edits to existing files above.
@@ -134,9 +136,39 @@ tests/security/
 ### IC-06 — Update architecture data + narrative + runbooks
 - **Purpose**: Keep docs faithful — drop routine-7day / Testing-app framing; describe the single `dead` classification.
 - **Relevant requirements**: FR-008, SC-006
-- **Affected surfaces**: `docs/design/architecture/data/credential-manifest.json` & `service-inventory.json`, `docs/design/architecture/service-inventory.md`, `docs/INDEX.md`, `docs/runbooks/credential-liveness-probe-ops.md`, `docs/runbooks/google-workspace-ops.md`
+- **Affected surfaces**: `docs/design/architecture/data/credential-manifest.json` & `service-inventory.json`, `docs/design/architecture/service-inventory.md`, `docs/INDEX.md`, `docs/runbooks/credential-liveness-probe-ops.md`, `docs/runbooks/google-workspace-ops.md`, `docs/runbooks/calendar-helper-ops.md` (7-day/residual framing — Codex #4)
 - **Sequencing/depends-on**: none (docs); credential-manifest.json config key also covered by IC-02
-- **Risks**: touch only credential-liveness/gog occurrences; leave unrelated `7-day` strings alone (C-005).
+- **Risks**: touch only credential-liveness/gog occurrences; leave unrelated `7-day` strings alone (C-005). While editing the `credential-liveness-probe` entry in `service-inventory.json`, also correct its stale `exec_start` (`scripts.security.credential_liveness_probe` → `scripts.security.credential_health_check`, Codex #5).
+
+### IC-07 — Remove the fabricated 7-day expiration from the operator `--list` view
+- **Purpose**: The `--list --liveness` table renders `expected_next_expiration = keyring_mtime + 7d` — the same obsolete 7-day model as the probe (Codex #1). Remove that column so the CLI stops showing a fake expiration.
+- **Relevant requirements**: FR-010, NFR-002
+- **Affected surfaces**: `scripts/security/credential_health_check/listing.py` (`LivenessListing.expected_next_expiration` field, `build_liveness_listings` computation at ~line 162, `render_liveness_table` header/row), `tests/security/test_listing.py` (assertions at ~269, ~329)
+- **Sequencing/depends-on**: none (independent view; parallel to IC-01)
+- **Risks**: keep the factual `keyring_mtime_age` column; remove only the `expected_next_expiration` projection. Drop now-unused `timedelta` import if applicable. Maintain `--cov-branch`.
+
+### IC-08 — Close stale pre-rename liveness alert issues (transitional dedup, Codex #2)
+- **Purpose**: The dedup key is the issue title prefix. Renaming `credential-liveness-{unexpected,routine-7day}` → `credential-liveness-dead` means a future dead alert won't dedup against an old-titled open issue, risking a duplicate. Handle deterministically rather than as a soft note.
+- **Relevant requirements**: FR-004 (contract: exactly one issue per dead credential per dedup window)
+- **Affected surfaces**: GitHub issues only (no code) — close any open `credential-liveness-unexpected:` / `credential-liveness-routine-7day:` issues (currently #629) as part of mission close-out, BEFORE the feat→main deploy so the new prefix starts clean.
+- **Sequencing/depends-on**: at mission merge / deploy time
+- **Risks**: chosen over adding transitional dedup code (which would be a throwaway vestige the moment the old issues close). Verify the open-issue set at close-out in case new ones arrive.
+
+## Post-plan Codex review (mandatory checkpoint — completed)
+
+Codex (`spec-kitty-review` profile) reviewed spec + plan + research + data-model +
+contract + the target code. Verdict: "core `dead` collapse directionally good" with 5
+gaps, all folded back in before tasks:
+- **#1 HIGH** — `listing.py` `--list --liveness` independently computes a 7-day
+  `expected_next_expiration` → added as **IC-07** + **FR-010** + **R-08**.
+- **#2 MED** — transitional dedup vs old issue titles → made explicit as **IC-08**
+  (close stale liveness issues pre-deploy) instead of an operator note.
+- **#3 MED** — spec rebaseline contradiction (C-001 vs C-004) → **C-004 corrected**.
+- **#4 LOW** — `docs/runbooks/calendar-helper-ops.md` stale 7-day framing → added to **IC-06**.
+- **#5 LOW** — `service-inventory.json` stale `exec_start` → folded into **IC-06**.
+
+Codex cleared: no old-classification branch in `cadence.py` / `signals.py` / `__main__.py`;
+`reauth_marker_glob` confined to the planned surfaces; no other manifest.
 
 ## Branch contract (restated)
 

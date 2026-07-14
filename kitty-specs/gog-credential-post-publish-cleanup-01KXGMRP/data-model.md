@@ -55,6 +55,17 @@ longer references a 7-day / Testing-app cycle or a baseline source label.
 - all `reauth_marker_glob` references
 - `glob` / `timedelta` / `Path` imports if they become unused after removal
 
+## LivenessListing (`listing.py`) — operator `--list --liveness` view
+
+| Field | Before | After |
+|-------|--------|-------|
+| `name`, `enabled`, `gog_account`, `keyring_mtime_age`, `recovery_command` | present | unchanged |
+| `expected_next_expiration` | `keyring_mtime + 7d` (fabricated) | **removed** (field, computation, and table column) |
+
+`build_liveness_listings` drops the `mtime + timedelta(days=7)` computation;
+`render_liveness_table` drops the header/cell. Drop the now-unused `timedelta`
+import if applicable.
+
 ## Alert construction (`orchestrator.py`)
 
 - `_build_liveness_issue_body`: the "investigate at myaccount.google.com/permissions"

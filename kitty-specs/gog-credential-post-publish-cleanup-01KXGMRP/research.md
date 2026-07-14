@@ -57,10 +57,13 @@ contrast); (b) gate a `dead-routine-7day` behind a manifest `testing_mode` flag 
 rejected by the operator (spec §Scope Decision): no account is in External+Testing, and
 re-introducing it later is cheap.
 
-**Migration note (operator, not code)**: pre-existing open liveness issues carry old
-titles (`credential-liveness-unexpected: …`, e.g. #629 from 2026-06-24). A future
-`dead` alert will not dedup against them. Recommend closing stale liveness issues;
-this is an operator note, not a code requirement.
+**Migration note → explicit task (Codex post-plan #2)**: pre-existing open liveness
+issues carry old titles (`credential-liveness-unexpected: …`, e.g. #629 from
+2026-06-24; also any `credential-liveness-routine-7day: …`). Because dedup keys on the
+title prefix, a future `dead` alert would not dedup against them and could create a
+duplicate. Resolved as **IC-08**: close the open old-titled liveness issues as a mission
+close-out step *before* the feat→main deploy, rather than adding throwaway transitional
+dedup code. Verify the open-issue set at close-out.
 
 ## R-04 — `keyring_file` scope boundary
 
@@ -136,3 +139,20 @@ on the resulting token, 2026-07-14). The gog `contacts` service bundles
 **Alternatives considered**: Drop `contacts` from the script's `--services` to remove
 the directory box entirely — rejected; that would also drop the wanted personal
 Contacts scopes, and the box is optional at consent time anyway.
+
+## R-08 — Operator `--list --liveness` view also carries the 7-day model (Codex post-plan #1)
+
+**Decision**: Remove the `expected_next_expiration` column from `listing.py` (the
+`LivenessListing` dataclass field, the `mtime + timedelta(days=7)` computation in
+`build_liveness_listings`, and the header/row in `render_liveness_table`), plus its
+`test_listing.py` assertions. Keep the factual `keyring_mtime_age` column.
+
+**Rationale**: `listing.py:162` computes `expected_next_expiration = keyring_mtime + 7d`
+independently of the probe's classification. My initial identifier-grep (for
+`reauth_marker_glob`/`CYCLE_WINDOW_HOURS`/etc.) missed it because it uses a bare
+`timedelta(days=7)`. Post-publish this projection is fabricated and would mislead the
+operator. `keyring_mtime_age` is a factual observation (age of the keyring file), not a
+projection, so it can stay.
+
+**Alternatives considered**: Replace `expected_next_expiration` with a "n/a
+(non-expiring)" literal — rejected as noise; removing the column is cleaner.
