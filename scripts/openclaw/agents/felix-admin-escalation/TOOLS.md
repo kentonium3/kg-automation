@@ -35,11 +35,8 @@ Content-Type: application/json
 POST /api/v1/tasks/{id}
 Content-Type: application/json
 
-{"due_date": "2026-04-10T00:00:00-04:00"}
+{"due_date": "2026-04-10T00:00:00Z"}
 ```
-
-Use the ET offset, never the `Z` (UTC) suffix — `-04:00` during EDT,
-`-05:00` during EST. See "Date handling" below.
 
 ### Resolve project name
 

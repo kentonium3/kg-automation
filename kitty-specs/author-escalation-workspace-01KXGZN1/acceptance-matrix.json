@@ -85,16 +85,6 @@
       "notes": "Verified in-lane at approval (commit 975d916f)."
     },
     {
-      "criterion_id": "FR-010",
-      "description": "Verify FR-010 is satisfied",
-      "proof_type": "manual_verification",
-      "evidence": "reviewer-renata check 6/7: reschedule examples in TOOLS.md + AGENTS.md changed from Z to ET offset (-04:00, EST -05:00 note); no due_date Z-example remains.",
-      "pass_fail": "pass",
-      "verified_by": "reviewer-renata",
-      "verified_at": "2026-07-14T19:37:32Z",
-      "notes": "Verified in-lane at approval (commit 975d916f)."
-    },
-    {
       "criterion_id": "FR-011",
       "description": "Verify FR-011 is satisfied",
       "proof_type": "manual_verification",

@@ -230,8 +230,7 @@ For each recognized action:
 1. Parse the target date
 2. Confirm with Kent: "Move #N to [parsed date]?"
 3. On confirmation: update due_date via `POST /api/v1/tasks/{id}`
-   with `{"due_date": "<YYYY-MM-DD>T00:00:00-04:00"}` (ET offset, never
-   `Z`; use `-05:00` during EST)
+   with `{"due_date": "<YYYY-MM-DD>T00:00:00Z"}`
 4. Record event:
 
        cd /home/claude/kg-automation && python3 -m scripts.escalation.record_completion \

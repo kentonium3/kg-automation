@@ -53,3 +53,19 @@ Net effect: scope moves from "pure refactor" to "refactor + internal-coherence f
 - **New**: FR-010 (Z→offset), FR-011 (SKILL.md + escalation-ops.md + test Goals(11) cleanup), FR-012 (AGENTS enforcement-sentence fix).
 - **NFR-002** scope set updated to the expanded file list.
 - **NFR-001/003/004** verification hardened per MED-6/7/8, HIGH-4.
+
+## Post-merge Codex review (2026-07-14) — findings & resolutions
+
+Ran on the complete merged diff (feat vs main) before `feat→main`. Verdict: FAIL → resolved.
+
+### HIGH — FR-010 prompt fix contradicts the runtime helper (REVERTED)
+- **Evidence**: `scripts/escalation/record_completion.py:460` PATCHes reschedules with `{"due_date": f"{reschedule_to}T00:00:00Z"}`; `tests/escalation/test_record_completion.py:198` asserts it; reschedules flow through this helper (`SKILL.md:123`). So the FR-010 prompt-example change (Z→ET) created a prompt↔runtime contradiction and did NOT fix the off-by-one bug — the helper overwrites with `Z`. Fixing the helper is a behavior change (violates NFR-004).
+- **Resolution (Kent's call)**: **REVERT FR-010** — restore the `Z` examples in AGENTS.md + TOOLS.md so the prompt matches the runtime; keep the mission a faithful zero-behavior-change refactor. File the real ET-vs-UTC reschedule bug as **#733** (reconcile helper + prompt + tests + rule text with DST-aware coverage). FR-012 (AGENTS enforcement sentence) and the date-handling block move are unaffected.
+
+### MED — Goals(11) still in general (non-escalation) Vikunja surfaces (DEFERRED)
+- **Evidence**: `vikunja-api/SKILL.md:114,317,319`, `service-inventory.md:125`, `vikunja-ops.md:187,210` still reference the deleted Goals project (11).
+- **Resolution (Kent's call)**: out of escalation scope (these are #717 residuals). Filed as **#734** (P3-debt) for a general Vikunja-docs cleanup.
+
+### LOW — neighbor test retained a `[11, 13]` literal (FIXED)
+- **Evidence**: `tests/escalation/test_enumerate_candidates.py:183,186` used `[11, 13]` in the config-swap test (task `project_id=99`).
+- **Resolution (FIXED)**: switched to `[13]` / `[13, 99]` — preserves the swap-changes-result assertion, removes the deleted Goals id.
