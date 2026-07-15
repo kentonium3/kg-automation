@@ -10,5 +10,7 @@
   "purpose_tldr": "One declared, validated source of truth for how Felix resolves Vikunja projects and labels, so structure changes don't silently break routing.",
   "slug": "vikunja-reference-seam-01KXK68Z",
   "target_branch": "feat/vikunja-reference-seam",
-  "topology": "single_branch"
+  "topology": "single_branch",
+  "vcs": "git",
+  "vcs_locked_at": "2026-07-15T17:37:54.782983+00:00"
 }
