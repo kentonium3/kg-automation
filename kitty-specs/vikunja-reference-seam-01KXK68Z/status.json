@@ -1,16 +1,16 @@
 {
-  "event_count": 54,
-  "last_event_id": "01KXKTQ8Y2NYPPGXRNP5P43VHV",
-  "materialized_at": "2026-07-15T21:25:29.666470+00:00",
-  "mission_number": "",
+  "event_count": 55,
+  "last_event_id": "01KXKTVXF8RMZQYHYFAQWNWNRN",
+  "materialized_at": "2026-07-15T21:28:01.769041+00:00",
+  "mission_number": "103",
   "mission_slug": "vikunja-reference-seam-01KXK68Z",
   "mission_type": "software-dev",
   "summary": {
-    "approved": 5,
+    "approved": 4,
     "blocked": 0,
     "canceled": 0,
     "claimed": 0,
-    "done": 0,
+    "done": 1,
     "for_review": 0,
     "in_progress": 0,
     "in_review": 0,
@@ -18,11 +18,11 @@
   },
   "work_packages": {
     "WP01": {
-      "actor": "user",
+      "actor": "merge",
       "force_count": 3,
-      "lane": "approved",
-      "last_event_id": "01KXKPBP9ESA0TQE1GJZ78THKW",
-      "last_transition_at": "2026-07-15T20:09:15.822271+00:00"
+      "lane": "done",
+      "last_event_id": "01KXKTVXF8RMZQYHYFAQWNWNRN",
+      "last_transition_at": "2026-07-15T21:28:01.769041+00:00"
     },
     "WP02": {
       "actor": "user",
