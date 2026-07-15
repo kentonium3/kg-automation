@@ -1,0 +1,126 @@
+{
+  "version": 1,
+  "mission_slug": "vikunja-reference-seam-01KXK68Z",
+  "mission_id": "01KXK68ZQGWPK68ES7809SM148",
+  "mission_branch": "kitty/mission-vikunja-reference-seam-01KXK68Z",
+  "target_branch": "feat/vikunja-reference-seam",
+  "lanes": [
+    {
+      "lane_id": "lane-a",
+      "wp_ids": [
+        "WP01"
+      ],
+      "write_scope": [
+        "scripts/common/vikunja_refs.json",
+        "scripts/common/vikunja_refs.py",
+        "tests/common/test_vikunja_refs.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "artifact-rendering",
+        "workspace"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    },
+    {
+      "lane_id": "lane-b",
+      "wp_ids": [
+        "WP02"
+      ],
+      "write_scope": [
+        "scripts/common/vikunja_refs_validate.py",
+        "scripts/vikunja/validate_refs.py",
+        "tests/common/test_vikunja_refs_validate.py",
+        "tests/vikunja/test_validate_refs.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "workspace"
+      ],
+      "depends_on_lanes": [
+        "lane-a"
+      ],
+      "parallel_group": 1
+    },
+    {
+      "lane_id": "lane-c",
+      "wp_ids": [
+        "WP03"
+      ],
+      "write_scope": [
+        "scripts/common/vikunja_scope.py",
+        "scripts/habits/backfill_jsonl_from_comments.py",
+        "scripts/habits/query_active_habits_v2.py",
+        "scripts/habits/query_active_habits_weekly.py",
+        "scripts/habits/reconcile_completions.py",
+        "scripts/security/credential_health_check/vikunja_writer.py",
+        "tests/common/test_vikunja_scope.py",
+        "tests/habits/test_backfill_jsonl_from_comments.py",
+        "tests/habits/test_query_active_habits_v2.py",
+        "tests/habits/test_query_active_habits_v2_day_of_week.py",
+        "tests/habits/test_query_active_habits_v2_filter.py",
+        "tests/habits/test_query_active_habits_weekly.py",
+        "tests/habits/test_reconcile_completions.py",
+        "tests/security/test_vikunja_writer.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "legacy-cleanup",
+        "workspace"
+      ],
+      "depends_on_lanes": [
+        "lane-a"
+      ],
+      "parallel_group": 1
+    },
+    {
+      "lane_id": "lane-d",
+      "wp_ids": [
+        "WP04"
+      ],
+      "write_scope": [
+        "scripts/sync/classify.py",
+        "scripts/sync/diff.py",
+        "tests/sync/test_classify.py",
+        "tests/sync/test_diff.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "legacy-cleanup",
+        "tracker-integration",
+        "workspace"
+      ],
+      "depends_on_lanes": [
+        "lane-a"
+      ],
+      "parallel_group": 1
+    },
+    {
+      "lane_id": "lane-e",
+      "wp_ids": [
+        "WP05"
+      ],
+      "write_scope": [
+        "scripts/inbox/route_someday.py",
+        "scripts/openclaw/agents/felix-admin-capture/AGENTS.md",
+        "tests/common/test_sc001_grep.py",
+        "tests/inbox/test_route_someday.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "tracker-integration",
+        "workspace"
+      ],
+      "depends_on_lanes": [
+        "lane-a",
+        "lane-c",
+        "lane-d"
+      ],
+      "parallel_group": 2
+    }
+  ],
+  "computed_at": "2026-07-15T17:28:58.198365+00:00",
+  "computed_from": "dependency_graph+ownership",
+  "planning_artifact_wps": []
+}

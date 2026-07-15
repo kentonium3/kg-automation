@@ -15,6 +15,7 @@ import re
 from dataclasses import dataclass
 from typing import Any
 
+from scripts.common import vikunja_refs
 from scripts.sync.fetch import FetchedSnapshot
 from scripts.sync.state import LayerSummary, PerLayerSummary, ProjectCacheRecord, TaskCacheRecord
 
@@ -47,12 +48,20 @@ TRACKED_TASK_FIELDS: frozenset[str] = frozenset({
 })
 
 
-# Operator-configurable set of project_ids treated as "private". Default empty;
-# downstream WPs may override via the driver's config surface. Tasks in private
-# projects produce NO DivergenceCandidate rows from the in_both diff path
-# (privacy boundary applied at diff time). Structural operations (additions and
-# deletions) are NOT gated by this filter.
-PRIVATE_PROJECT_IDS: frozenset[int] = frozenset()
+# Operator-configurable set of project_ids treated as "private". The default is
+# now sourced from the declared Vikunja reference registry (WP01 seam) via
+# ``vikunja_refs.private_project_ids()`` — the single declared home for the
+# privacy set (finding #4). It is empty today (no private project is
+# provisioned), so behavior is identical to the prior bare ``frozenset()``.
+# Callers may still override via the function parameter / driver config surface;
+# only the DEFAULT source moved onto the seam. Resolved at import time — the
+# registry load is a pure, network-free file+JSON read (NFR-001/NFR-003). A
+# malformed registry fails loud here (as it should), never silently.
+#
+# Tasks in private projects produce NO DivergenceCandidate rows from the in_both
+# diff path (privacy boundary applied at diff time). Structural operations
+# (additions and deletions) are NOT gated by this filter.
+PRIVATE_PROJECT_IDS: frozenset[int] = vikunja_refs.private_project_ids()
 
 
 # ---------------------------------------------------------------------------

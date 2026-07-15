@@ -474,14 +474,16 @@ def test_query_events_pagination_no_dupe(mock_state_log_dir) -> None:
     # Single bucket (de-duped), with the 7 distinct dates from the JSONL.
     assert list(events.keys()) == ["Meditate"]
     assert events["Meditate"]["current_count"] == 7
-    # Both pages were requested against the config-sourced habit project
-    # id (13 today, via scripts.common.vikunja_scope.habit_project_id()),
-    # confirming no hardcoded id was reintroduced and pagination consumed
-    # the full first page before requesting the second.
+    # Both pages were requested against the registry-sourced habit project
+    # id (13 today, resolved via helper._resolve_habits_project_id() →
+    # scripts.common.vikunja_scope.habit_project_id()), confirming no
+    # hardcoded id was reintroduced and pagination consumed the full first
+    # page before requesting the second.
+    resolved_id = helper._resolve_habits_project_id()
     called_paths = [call.args[0] for call in client.get.call_args_list]
     assert called_paths == [
-        f"/projects/{helper.HABITS_PROJECT_ID}/tasks",
-        f"/projects/{helper.HABITS_PROJECT_ID}/tasks",
+        f"/projects/{resolved_id}/tasks",
+        f"/projects/{resolved_id}/tasks",
     ]
 
 

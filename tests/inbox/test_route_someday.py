@@ -1,289 +1,349 @@
-"""Tests for scripts/inbox/route_someday.py (WP03 of mission
-capture-d6-helpers-extraction-01KTMS5Q).
+"""Tests for scripts/inbox/route_someday.py — post-#745 routing model
+(WP05 of mission ``vikunja-reference-seam-01KXK68Z``).
 
-Per FR-004 + helper-cli.md `route_someday` section + C-006:
+Post-reset behavior under test (SC-005 / FR-010..FR-013):
 
-- Resolve the project named ``Someday`` via ``client.get('/projects')``.
-- Create the task via ``client.put('/projects/<id>/tasks', json={...})``
-  (Vikunja's CREATE endpoint is ``PUT /projects/<id>/tasks`` per the
-  existing ``scripts/habits/record_completion.py`` and
-  ``scripts/security/credential_health_check/vikunja_writer.py``
-  precedents). The C-006 invariant is "use CREATE, not partial update of
-  an existing task" — POST on an existing /tasks/<id> partial-replaces
-  unstated fields, which is the bug we are avoiding.
-- Body includes a ``Source: <note-filename>`` footer line.
+- "someday" is NOT a project. The block becomes a task carrying the
+  ``q:schedule`` label with **no due date**, created in **Inbox** (id resolved
+  through the reference seam ``scripts.common.vikunja_refs``) or a caller-supplied
+  topic project. The retired ``find_someday_project`` / ``SOMEDAY_PROJECT_TITLE``
+  by-title lookup is gone (it looked up a deleted project — the direct #743 cause).
+- The task is **always created** first (anti-silent-loss #743); the ``q:schedule``
+  attach is **fail-soft**: felix-bot cannot attach the kent-owned ``q:schedule``
+  label (live-probe 2026-07-15 → HTTP 403, #715), so an attach failure is logged
+  loudly on stderr and the route still succeeds (exit 0).
+- No live ``/projects`` listing occurs — the seam resolves ids from the registry.
 
-Mocking: ``VikunjaClient`` is patched at the module level (``rs.VikunjaClient``).
-No real HTTP — the global ``_block_live_http`` fixture in
-``tests/conftest.py`` ensures any escape blows up loudly.
+Resolution is injected via ``vikunja_refs.set_registry_for_test`` (network-free);
+``VikunjaClient`` is patched at the module level (``rs.VikunjaClient``). The global
+``_block_live_http`` guard in ``tests/conftest.py`` blows up loudly on any escape.
 """
 from __future__ import annotations
 
-from unittest.mock import MagicMock
+import json
 
 import pytest
 
+from scripts.common import vikunja_refs
 from scripts.common.vikunja_client import VikunjaError
 from scripts.inbox import route_someday as rs
 
 
 # ---------------------------------------------------------------------------
-# Fixtures
+# Registry injection (network-free) — matches vikunja_refs.json shape
 # ---------------------------------------------------------------------------
 
-
-def _make_fake_client(projects=None, create_response=None, raise_on=None):
-    """Construct a MagicMock client with .get/.put scripted.
-
-    - ``projects``: list returned for GET /projects
-    - ``create_response``: dict returned for PUT /projects/<id>/tasks
-    - ``raise_on``: optional dict mapping method ("get"|"put") to an
-      exception to raise on that call
-    """
-    client = MagicMock()
-    raise_on = raise_on or {}
-
-    def fake_get(path, **kwargs):
-        if "get" in raise_on:
-            raise raise_on["get"]
-        return projects if projects is not None else []
-
-    def fake_put(path, json=None, **kwargs):
-        if "put" in raise_on:
-            raise raise_on["put"]
-        return create_response if create_response is not None else {"id": 1234}
-
-    client.get.side_effect = fake_get
-    client.put.side_effect = fake_put
-    return client
+_TEST_REGISTRY = {
+    "schema_version": 1,
+    "source_of_truth": "test",
+    "last_verified_utc": "2026-07-15T00:00:00Z",
+    "projects": [
+        {
+            "name": "inbox",
+            "selector": {"kind": "project_id", "value": 1},
+            "title": "Inbox",
+            "owner": "kent",
+            "provisioned": True,
+        },
+        {
+            "name": "personal",
+            "selector": {"kind": "project_id", "value": 20},
+            "title": "Personal",
+            "owner": "kent",
+            "provisioned": True,
+        },
+    ],
+    "labels": [
+        {
+            "name": "q:schedule",
+            "selector": {"kind": "label", "value": 23},
+            "title": "q:schedule",
+            "owner_token": "kent",
+        },
+    ],
+    "private_projects": [],
+}
 
 
 @pytest.fixture(autouse=True)
-def _patch_client(monkeypatch):
-    """Default: VikunjaClient() returns a fake client with the Someday project."""
-    fake = _make_fake_client(
-        projects=[
-            {"id": 7, "title": "Work"},
-            {"id": 99, "title": "Someday"},
-            {"id": 13, "title": "Habits"},
-        ],
-        create_response={"id": 4321, "title": "test-task"},
-    )
-    monkeypatch.setattr(rs, "VikunjaClient", lambda: fake)
-    return fake
+def _inject_registry():
+    """Install the in-memory registry for every test; clear it afterward."""
+    vikunja_refs.set_registry_for_test(_TEST_REGISTRY)
+    yield
+    vikunja_refs.set_registry_for_test(None)
 
 
 # ---------------------------------------------------------------------------
-# Core behavior
+# Fake VikunjaClient
 # ---------------------------------------------------------------------------
 
 
-def test_resolves_someday_project_by_name(_patch_client, capsys):
-    rc = rs.main(
-        [
-            "--title",
-            "Try Iceland again",
-            "--body",
-            "Planning notes",
-            "--note-filename",
-            "2026-06-09-iceland.md",
-        ]
-    )
+class FakeClient:
+    """Records .get/.put calls; distinguishes task-create from label-attach.
+
+    ``create_response`` is returned for a ``PUT /projects/<id>/tasks`` call.
+    ``attach_error`` (if set) is raised for a ``PUT /tasks/<id>/labels`` call to
+    simulate the felix-bot 403. Any ``.get`` (a live ``/projects`` listing) is a
+    contract violation and blows up loudly.
+    """
+
+    def __init__(self, *, create_response=None, attach_error=None, create_error=None):
+        self._create_response = create_response or {"id": 4321, "title": "t"}
+        self._attach_error = attach_error
+        self._create_error = create_error
+        self.get_calls: list[tuple] = []
+        self.create_calls: list[tuple] = []
+        self.attach_calls: list[dict] = []
+
+    def get(self, path, **kwargs):  # pragma: no cover - must never be called
+        self.get_calls.append((path, kwargs))
+        raise AssertionError(
+            f"route_someday made a live GET {path!r}; the reference seam must "
+            f"resolve ids without listing /projects"
+        )
+
+    def put(self, path, json=None, **kwargs):
+        if path.endswith("/labels"):
+            self.attach_calls.append({"path": path, "json": json})
+            if self._attach_error is not None:
+                raise self._attach_error
+            return {}
+        # task-create path: /projects/<id>/tasks
+        self.create_calls.append((path, json))
+        if self._create_error is not None:
+            raise self._create_error
+        return self._create_response
+
+    # route_someday never uses .post — expose it so the C-006 assertion holds.
+    def post(self, *a, **k):  # pragma: no cover - guard
+        raise AssertionError("route_someday must not call POST (partial-replace, #524)")
+
+
+def _install(monkeypatch, client):
+    monkeypatch.setattr(rs, "VikunjaClient", lambda: client)
+    return client
+
+
+_ARGS = ["--title", "Try Iceland again", "--body", "Planning notes",
+         "--note-filename", "2026-06-09-iceland.md"]
+
+
+# ---------------------------------------------------------------------------
+# Core behavior — SC-005
+# ---------------------------------------------------------------------------
+
+
+def test_someday_lands_in_inbox_with_qschedule_and_no_due_date(monkeypatch, capsys):
+    client = _install(monkeypatch, FakeClient(create_response={"id": 555}))
+    rc = rs.main(_ARGS)
     assert rc == 0
-    # PUT was hit on /projects/99/tasks — id 99 is the Someday project.
-    args, kwargs = _patch_client.put.call_args
-    assert args[0] == "/projects/99/tasks"
+    # Created in Inbox (id 1 via the seam), not a "Someday" project.
+    assert len(client.create_calls) == 1
+    path, payload = client.create_calls[0]
+    assert path == "/projects/1/tasks"
+    # No due date on the "someday" state.
+    assert "due_date" not in payload
+    assert payload["title"] == "Try Iceland again"
+    assert "Source: 2026-06-09-iceland.md" in payload["description"]
+    # q:schedule attach WAS attempted, by id (23), on the created task.
+    assert len(client.attach_calls) == 1
+    assert client.attach_calls[0]["path"] == "/tasks/555/labels"
+    assert client.attach_calls[0]["json"] == {"label_id": 23}
+    assert "task_id=555" in capsys.readouterr().out
 
 
-def test_creates_task_with_title_and_description_including_source(
-    _patch_client, capsys
-):
-    rc = rs.main(
-        [
-            "--title",
-            "Build greenhouse",
-            "--body",
-            "Need 8x12 footprint, polycarbonate panels",
-            "--note-filename",
-            "2026-06-09-greenhouse.md",
-        ]
+def test_attach_failure_still_creates_task_and_logs_loudly(monkeypatch, capsys):
+    """The #715 403 case: attach fails, task is still created, route succeeds,
+    and the degraded state is logged loudly (never silently swallowed)."""
+    client = _install(
+        monkeypatch,
+        FakeClient(
+            create_response={"id": 777},
+            attach_error=VikunjaError(path="/tasks/777/labels", status=403),
+        ),
     )
+    rc = rs.main(_ARGS)
+    assert rc == 0  # route SUCCEEDS despite attach failure
+    assert len(client.create_calls) == 1  # task created
+    assert len(client.attach_calls) == 1  # attach attempted
+    captured = capsys.readouterr()
+    assert "task_id=777" in captured.out
+    # Loud, structured warning on stderr — not swallowed.
+    warning = json.loads(captured.err.strip().splitlines()[-1])
+    assert warning["warning"] == "label_attach_failed"
+    assert warning["label"] == "q:schedule"
+    assert warning["task_id"] == 777
+
+
+def _registry_with_label(label_entries):
+    """Return a copy of ``_TEST_REGISTRY`` whose ``labels`` list is replaced."""
+    reg = json.loads(json.dumps(_TEST_REGISTRY))
+    reg["labels"] = label_entries
+    return reg
+
+
+def test_unprovisioned_qschedule_label_degrades_gracefully(monkeypatch, capsys):
+    """The ``q:schedule`` label is declared but not yet provisioned (value null)
+    -> dormant/graceful: task still created, exit 0, loud warning, no raise."""
+    # q:schedule declared but unprovisioned for the kent token.
+    vikunja_refs.set_registry_for_test(
+        _registry_with_label(
+            [
+                {
+                    "name": "q:schedule",
+                    "selector": {"kind": "label", "value": None},
+                    "title": "q:schedule",
+                    "owner_token": "kent",
+                }
+            ]
+        )
+    )
+    client = _install(monkeypatch, FakeClient(create_response={"id": 888}))
+    rc = rs.main(_ARGS)
+    assert rc == 0  # graceful — task created, route succeeds
+    assert len(client.create_calls) == 1
+    # Attach was never attempted (resolution degraded before the PUT).
+    assert client.attach_calls == []
+    captured = capsys.readouterr()
+    assert "task_id=888" in captured.out
+    warning = json.loads(captured.err.strip().splitlines()[-1])
+    assert warning["warning"] == "label_attach_failed"
+    assert warning["label"] == "q:schedule"
+    assert warning["task_id"] == 888
+
+
+def test_broken_qschedule_label_reference_fails_loud_naming_task(monkeypatch, capsys):
+    """A non-unprovisioned registry breakage of ``q:schedule`` (here: undeclared)
+    must PROPAGATE as a hard RouteSomedayError that NAMES the created task id —
+    the capture is preserved (created) while the breakage surfaces loudly."""
+    # q:schedule entirely undeclared -> label_id raises base VikunjaRefError.
+    vikunja_refs.set_registry_for_test(_registry_with_label([]))
+    client = _install(monkeypatch, FakeClient(create_response={"id": 999}))
+    with pytest.raises(rs.RouteSomedayError) as exc:
+        rs.route_someday(
+            title="Try Iceland again",
+            body="Planning notes",
+            note_filename="2026-06-09-iceland.md",
+        )
+    # Task WAS created (anti-silent-loss) and its id is named in the error.
+    assert len(client.create_calls) == 1
+    assert "999" in str(exc.value)
+
+
+def test_broken_qschedule_label_reference_exits_2_via_cli(monkeypatch, capsys):
+    """The CLI maps the propagated registry-breakage error to exit 2 while the
+    task remains created."""
+    vikunja_refs.set_registry_for_test(_registry_with_label([]))
+    client = _install(monkeypatch, FakeClient(create_response={"id": 1001}))
+    rc = rs.main(_ARGS)
+    assert rc == 2
+    assert len(client.create_calls) == 1  # task created before the loud failure
+    err = capsys.readouterr().err
+    assert "vikunja_error" in err
+    assert "1001" in err
+
+
+def test_no_live_projects_listing(monkeypatch, capsys):
+    """The old find_someday_project GET /projects listing is gone."""
+    client = _install(monkeypatch, FakeClient(create_response={"id": 1}))
+    rs.main(_ARGS)
+    assert client.get_calls == []
+
+
+def test_uses_create_endpoint_not_partial_update(monkeypatch):
+    """Create via PUT /projects/<id>/tasks — never POST /tasks/<id> (#524)."""
+    client = _install(monkeypatch, FakeClient(create_response={"id": 9}))
+    rs.main(_ARGS)
+    assert len(client.create_calls) == 1
+    path, _ = client.create_calls[0]
+    assert path.startswith("/projects/")
+    assert path.endswith("/tasks")
+
+
+def test_topic_project_used_when_supplied(monkeypatch, capsys):
+    client = _install(monkeypatch, FakeClient(create_response={"id": 3}))
+    rc = rs.main(_ARGS + ["--project", "personal"])
     assert rc == 0
-    args, kwargs = _patch_client.put.call_args
-    payload = kwargs.get("json") or (args[1] if len(args) > 1 else None)
-    assert payload is not None
-    assert payload["title"] == "Build greenhouse"
-    assert "Need 8x12 footprint" in payload["description"]
-    assert "Source: 2026-06-09-greenhouse.md" in payload["description"]
+    path, _ = client.create_calls[0]
+    assert path == "/projects/20/tasks"  # Personal, id 20 via the seam
 
 
-def test_uses_create_endpoint_not_partial_update(_patch_client):
-    """C-006 protection: route_someday MUST use PUT /projects/<id>/tasks
-    (Vikunja CREATE endpoint), NOT POST /tasks/<id> (which partial-replaces
-    on existing tasks and was the root cause of #524)."""
-    rs.main(
-        [
-            "--title",
-            "Anything",
-            "--body",
-            "x",
-            "--note-filename",
-            "n.md",
-        ]
-    )
-    # PUT path = create. Assert .put was called, .post was not.
-    assert _patch_client.put.called
-    assert not _patch_client.post.called
-    args, _ = _patch_client.put.call_args
-    # Path matches the create-task pattern, not a /tasks/<id> partial-update path.
-    assert args[0].startswith("/projects/")
-    assert args[0].endswith("/tasks")
+def test_unresolved_topic_project_fails_loud(monkeypatch, capsys):
+    """FR-003/SC-002: a supplied-but-unresolvable topic project must FAIL LOUD,
+    not silently fall back to Inbox (which would act on the WRONG target). No
+    task is created at any project."""
+    client = _install(monkeypatch, FakeClient(create_response={"id": 4}))
+    with pytest.raises(rs.RouteSomedayError) as exc:
+        rs.route_someday(
+            title="Try Iceland again",
+            body="Planning notes",
+            note_filename="2026-06-09-iceland.md",
+            project="does_not_exist",
+        )
+    assert "does_not_exist" in str(exc.value)
+    # No task created at a wrong (or any) project — resolution fails first.
+    assert client.create_calls == []
 
 
-def test_emits_task_id_on_stdout(_patch_client, capsys):
-    rs.main(
-        [
-            "--title",
-            "x",
-            "--body",
-            "y",
-            "--note-filename",
-            "n.md",
-        ]
-    )
-    out = capsys.readouterr().out
-    assert "task_id=4321" in out
+def test_unresolved_topic_project_exits_2_via_cli(monkeypatch, capsys):
+    """The CLI maps the fail-loud unresolvable-project error to exit 2."""
+    client = _install(monkeypatch, FakeClient(create_response={"id": 4}))
+    rc = rs.main(_ARGS + ["--project", "does_not_exist"])
+    assert rc == 2
+    assert client.create_calls == []  # nothing created at a wrong target
+    err = capsys.readouterr().err
+    assert "vikunja_error" in err
+    assert "does_not_exist" in err
+
+
+def test_retired_symbols_are_gone():
+    """find_someday_project / SOMEDAY_PROJECT_TITLE no longer exist (FR-011)."""
+    assert not hasattr(rs, "find_someday_project")
+    assert not hasattr(rs, "SOMEDAY_PROJECT_TITLE")
 
 
 # ---------------------------------------------------------------------------
-# Error paths
+# Hard error paths — CLI contract preserved (exit 2 + vikunja_error stderr)
 # ---------------------------------------------------------------------------
-
-
-def test_vikunja_unreachable_exits_2(monkeypatch, capsys):
-    fake = _make_fake_client(
-        raise_on={"get": ConnectionError("network down")},
-    )
-    monkeypatch.setattr(rs, "VikunjaClient", lambda: fake)
-    rc = rs.main(
-        [
-            "--title",
-            "x",
-            "--body",
-            "y",
-            "--note-filename",
-            "n.md",
-        ]
-    )
-    assert rc == 2
-    err = capsys.readouterr().err
-    assert "vikunja_error" in err
-
-
-def test_vikunja_error_exits_2(monkeypatch, capsys):
-    fake = _make_fake_client(
-        raise_on={"get": VikunjaError(path="/projects", status=500)},
-    )
-    monkeypatch.setattr(rs, "VikunjaClient", lambda: fake)
-    rc = rs.main(
-        [
-            "--title",
-            "x",
-            "--body",
-            "y",
-            "--note-filename",
-            "n.md",
-        ]
-    )
-    assert rc == 2
-    err = capsys.readouterr().err
-    assert "vikunja_error" in err
-
-
-def test_someday_project_missing_exits_2(monkeypatch, capsys):
-    fake = _make_fake_client(
-        projects=[
-            {"id": 7, "title": "Work"},
-            {"id": 13, "title": "Habits"},
-        ],
-    )
-    monkeypatch.setattr(rs, "VikunjaClient", lambda: fake)
-    rc = rs.main(
-        [
-            "--title",
-            "x",
-            "--body",
-            "y",
-            "--note-filename",
-            "n.md",
-        ]
-    )
-    assert rc == 2
-    err = capsys.readouterr().err
-    assert "Someday" in err
-    assert "vikunja_error" in err
-
-
-def test_projects_response_not_a_list_exits_2(monkeypatch, capsys):
-    """Defensive: /projects MUST return a list. If it returns something else
-    (server bug, schema drift), surface it as a vikunja_error not a crash."""
-    fake = _make_fake_client(projects={"not": "a list"})
-    monkeypatch.setattr(rs, "VikunjaClient", lambda: fake)
-    rc = rs.main(
-        [
-            "--title",
-            "x",
-            "--body",
-            "y",
-            "--note-filename",
-            "n.md",
-        ]
-    )
-    assert rc == 2
-    err = capsys.readouterr().err
-    assert "vikunja_error" in err
 
 
 def test_create_task_error_exits_2(monkeypatch, capsys):
-    fake = _make_fake_client(
-        projects=[{"id": 99, "title": "Someday"}],
-        raise_on={"put": VikunjaError(path="/projects/99/tasks", status=500)},
+    _install(
+        monkeypatch,
+        FakeClient(create_error=VikunjaError(path="/projects/1/tasks", status=500)),
     )
-    monkeypatch.setattr(rs, "VikunjaClient", lambda: fake)
-    rc = rs.main(
-        [
-            "--title",
-            "x",
-            "--body",
-            "y",
-            "--note-filename",
-            "n.md",
-        ]
-    )
+    rc = rs.main(_ARGS)
     assert rc == 2
-    err = capsys.readouterr().err
-    assert "vikunja_error" in err
+    assert "vikunja_error" in capsys.readouterr().err
 
 
 def test_create_task_response_missing_id_exits_2(monkeypatch, capsys):
-    fake = _make_fake_client(
-        projects=[{"id": 99, "title": "Someday"}],
-        create_response={"title": "no id here"},
+    _install(monkeypatch, FakeClient(create_response={"title": "no id"}))
+    rc = rs.main(_ARGS)
+    assert rc == 2
+    assert "vikunja_error" in capsys.readouterr().err
+
+
+def test_vikunja_unreachable_exits_2(monkeypatch, capsys):
+    _install(
+        monkeypatch,
+        FakeClient(create_error=ConnectionError("network down")),
     )
-    monkeypatch.setattr(rs, "VikunjaClient", lambda: fake)
-    rc = rs.main(
-        [
-            "--title",
-            "x",
-            "--body",
-            "y",
-            "--note-filename",
-            "n.md",
-        ]
-    )
+    rc = rs.main(_ARGS)
+    assert rc == 2
+    assert "vikunja_error" in capsys.readouterr().err
+
+
+def test_client_construction_error_exits_2(monkeypatch, capsys):
+    def boom():
+        raise ValueError("token file missing")
+
+    monkeypatch.setattr(rs, "VikunjaClient", boom)
+    rc = rs.main(_ARGS)
     assert rc == 2
     err = capsys.readouterr().err
     assert "vikunja_error" in err
+    assert "token file missing" in err
 
 
 # ---------------------------------------------------------------------------
@@ -291,60 +351,14 @@ def test_create_task_response_missing_id_exits_2(monkeypatch, capsys):
 # ---------------------------------------------------------------------------
 
 
-def test_help_exits_0_with_usage_text(capsys):
+def test_help_exits_0(capsys):
     with pytest.raises(SystemExit) as exc:
         rs.main(["--help"])
     assert exc.value.code == 0
-    out = capsys.readouterr().out
-    assert "route_someday" in out or "Someday" in out or "title" in out
+    assert "route_someday" in capsys.readouterr().out
 
 
-def test_missing_required_flag_argparse_exits_nonzero(capsys):
-    """argparse exits 2 on missing required args; verify our CLI declares them required."""
+def test_missing_required_flag_exits_nonzero(capsys):
     with pytest.raises(SystemExit) as exc:
         rs.main(["--title", "x"])
     assert exc.value.code != 0
-
-
-# ---------------------------------------------------------------------------
-# Helper-function unit coverage (raises path on find_someday_project)
-# ---------------------------------------------------------------------------
-
-
-def test_find_someday_project_raises_when_missing():
-    """The internal helper raises a domain exception when the project is absent."""
-    fake = _make_fake_client(projects=[{"id": 7, "title": "Work"}])
-    client = fake  # already configured
-    with pytest.raises(rs.RouteSomedayError):
-        rs.find_someday_project(client)
-
-
-def test_find_someday_project_returns_id_when_present():
-    fake = _make_fake_client(
-        projects=[{"id": 7, "title": "Work"}, {"id": 99, "title": "Someday"}]
-    )
-    assert rs.find_someday_project(fake) == 99
-
-
-def test_client_construction_error_exits_2(monkeypatch, capsys):
-    """If VikunjaClient() raises ValueError (e.g., bad config), surface as
-    vikunja_error with exit 2 — not as an uncaught crash."""
-
-    def boom():
-        raise ValueError("token file missing")
-
-    monkeypatch.setattr(rs, "VikunjaClient", boom)
-    rc = rs.main(
-        [
-            "--title",
-            "x",
-            "--body",
-            "y",
-            "--note-filename",
-            "n.md",
-        ]
-    )
-    assert rc == 2
-    err = capsys.readouterr().err
-    assert "vikunja_error" in err
-    assert "token file missing" in err

@@ -46,6 +46,7 @@ from pathlib import Path
 from typing import Any
 
 from scripts.common import state_log
+from scripts.common import vikunja_refs
 from scripts.common.sync_cache import (
     SLA_NORMAL,
     SLATier,
@@ -65,13 +66,13 @@ TOUCHPOINT_NAME = "habits.reconcile_completions"
 #: Root directory for per-domain JSONL state logs on office2.
 STATE_LOG_DIR = Path("/data/services/openclaw/state")
 
-#: Vikunja project id for the Habits project. The sync cache stores
-#: ``project_id`` in task fields; we scope enumeration to this id.
-#: Was ``2`` — a stale pre-#714-reorg id (project 2 was the deleted "Everyday");
-#: the live Habits project is 13, matching scripts/common/vikunja_scope.py.
-#: With the stale value this reconcile skipped every real habit task
-#: (examined 0). #748 will consolidate this onto the reference registry.
-HABITS_PROJECT_ID = 13
+#: Vikunja project id for the Habits project, resolved through the reference
+#: seam (``vikunja_refs.project_id("habits")`` → registry, seeds to 13). The
+#: sync cache stores ``project_id`` in task fields; we scope enumeration to
+#: this id. Resolution is fail-loud: a deleted/unprovisioned or label-form
+#: habits ref raises :class:`~scripts.common.vikunja_refs.VikunjaRefError`
+#: rather than silently mis-scoping (#748/#745).
+HABITS_PROJECT_ID = vikunja_refs.project_id("habits")
 
 #: Regex for the --today flag (ISO-8601 date).
 _DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")

@@ -14,12 +14,56 @@ from credential_health_check.vikunja_writer import (
     create_task,
     due_date_for_boundary,
     load_token,
-    lookup_inbox_project_id,
     render_due_date_iso,
     task_description,
     task_title,
 )
 from credential_health_check.manifest import Credential
+
+from scripts.common import vikunja_refs
+
+
+def _registry_with_inbox(value) -> dict:
+    """Build a minimal in-memory registry declaring the ``inbox`` project.
+
+    ``value`` is the project_id (or ``None`` for an unprovisioned ref).
+    """
+    return {
+        "schema_version": 1,
+        "source_of_truth": "test",
+        "last_verified_utc": "2026-07-15T00:00:00Z",
+        "projects": [
+            {
+                "name": "inbox",
+                "selector": {"kind": "project_id", "value": value},
+                "title": "Inbox",
+                "owner": "kent",
+                "provisioned": value is not None,
+            }
+        ],
+        "labels": [],
+        "private_projects": [],
+    }
+
+
+_REGISTRY_NO_INBOX = {
+    "schema_version": 1,
+    "source_of_truth": "test",
+    "last_verified_utc": "2026-07-15T00:00:00Z",
+    "projects": [],
+    "labels": [],
+    "private_projects": [],
+}
+
+
+@pytest.fixture
+def pinned_inbox_registry():
+    """Install an in-memory registry (inbox=12) for the resolution path."""
+    vikunja_refs.set_registry_for_test(_registry_with_inbox(12))
+    try:
+        yield 12
+    finally:
+        vikunja_refs.set_registry_for_test(None)
 
 
 def _credential() -> Credential:
@@ -90,48 +134,63 @@ def _mock_urlopen_response(data, code: int = 200):
     return mock
 
 
-def test_lookup_inbox_project_returns_id():
-    projects = [
-        {"id": 5, "title": "Other"},
-        {"id": 12, "title": "Inbox"},
-    ]
+# ---------- Inbox resolution via the reference seam ----------
+
+
+def test_create_task_resolves_inbox_via_registry(pinned_inbox_registry):
+    """With no explicit inbox_project_id, the writer resolves it through the
+    registry (network-free) and targets that project — no by-title GET."""
+    captured: dict = {}
+
+    def fake_urlopen(req, timeout=None):
+        captured["url"] = req.full_url
+        return _mock_urlopen_response({"id": 7})
+
     with patch(
         "credential_health_check.vikunja_writer.urllib.request.urlopen",
-        return_value=_mock_urlopen_response(projects),
+        side_effect=fake_urlopen,
     ):
-        assert lookup_inbox_project_id("test-token") == 12
+        create_task(
+            _credential(),
+            date(2026, 6, 1),
+            github_issue_number=42,
+            token="test-token",
+        )
+
+    # Resolution was registry-backed (inbox=12) — the only HTTP call is the
+    # task PUT, never a GET /projects list.
+    assert f"/projects/{pinned_inbox_registry}/tasks" in captured["url"]
 
 
-def test_lookup_inbox_project_returns_smallest_when_multiple():
-    projects = [
-        {"id": 99, "title": "Inbox"},
-        {"id": 12, "title": "Inbox"},
-        {"id": 5, "title": "Other"},
-    ]
-    with patch(
-        "credential_health_check.vikunja_writer.urllib.request.urlopen",
-        return_value=_mock_urlopen_response(projects),
-    ):
-        assert lookup_inbox_project_id("test-token") == 12
+def test_create_task_fails_loud_when_inbox_undeclared():
+    """SC-002: a deleted/undeclared inbox ref raises VikunjaRefError rather
+    than silently mis-routing or returning a falsy id."""
+    vikunja_refs.set_registry_for_test(_REGISTRY_NO_INBOX)
+    try:
+        with pytest.raises(vikunja_refs.VikunjaRefError):
+            create_task(
+                _credential(),
+                date(2026, 6, 1),
+                github_issue_number=42,
+                token="test-token",
+            )
+    finally:
+        vikunja_refs.set_registry_for_test(None)
 
 
-def test_lookup_inbox_project_raises_when_missing():
-    projects = [{"id": 5, "title": "Other"}]
-    with patch(
-        "credential_health_check.vikunja_writer.urllib.request.urlopen",
-        return_value=_mock_urlopen_response(projects),
-    ):
-        with pytest.raises(VikunjaWriteError):
-            lookup_inbox_project_id("test-token")
-
-
-def test_lookup_inbox_project_raises_on_non_list_response():
-    with patch(
-        "credential_health_check.vikunja_writer.urllib.request.urlopen",
-        return_value=_mock_urlopen_response({"unexpected": "shape"}),
-    ):
-        with pytest.raises(VikunjaWriteError):
-            lookup_inbox_project_id("test-token")
+def test_create_task_fails_loud_when_inbox_unprovisioned():
+    """SC-002: a declared-but-unprovisioned inbox ref (value null) fails loud."""
+    vikunja_refs.set_registry_for_test(_registry_with_inbox(None))
+    try:
+        with pytest.raises(vikunja_refs.VikunjaRefError):
+            create_task(
+                _credential(),
+                date(2026, 6, 1),
+                github_issue_number=42,
+                token="test-token",
+            )
+    finally:
+        vikunja_refs.set_registry_for_test(None)
 
 
 # ---------- create_task ----------

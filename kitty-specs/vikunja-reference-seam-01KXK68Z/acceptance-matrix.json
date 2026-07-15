@@ -1,0 +1,139 @@
+{
+  "mission_slug": "vikunja-reference-seam-01KXK68Z",
+  "mission_number": "",
+  "mission_type": "software-dev",
+  "overall_verdict": "pass",
+  "criteria": [
+    {
+      "criterion_id": "FR-001",
+      "description": "FR-001 satisfied and verified",
+      "proof_type": "automated_test",
+      "evidence": "WP01: scripts/common/vikunja_refs.json declared registry + tests/common/test_vikunja_refs.py (52 tests). Codex-approved.",
+      "pass_fail": "pass",
+      "verified_by": "codex:gpt-5-codex (review) + pytest",
+      "verified_at": "2026-07-15T21:26:41Z",
+      "notes": "Verified via per-WP Codex review + passing test suite."
+    },
+    {
+      "criterion_id": "FR-002",
+      "description": "FR-002 satisfied and verified",
+      "proof_type": "automated_test",
+      "evidence": "WP03/WP04/WP05 migrate all runtime consumers; SC-001 grep gate (tests/common/test_sc001_grep.py) green over full surface, exempts C-005 tools. Codex-approved.",
+      "pass_fail": "pass",
+      "verified_by": "codex:gpt-5-codex (review) + pytest",
+      "verified_at": "2026-07-15T21:26:41Z",
+      "notes": "Verified via per-WP Codex review + passing test suite."
+    },
+    {
+      "criterion_id": "FR-003",
+      "description": "FR-003 satisfied and verified",
+      "proof_type": "automated_test",
+      "evidence": "WP01: fail-loud accessor (undeclared/unprovisioned/wrong-kind/invalid-id raise VikunjaRefError) \u2014 test_vikunja_refs.py. Codex-approved.",
+      "pass_fail": "pass",
+      "verified_by": "codex:gpt-5-codex (review) + pytest",
+      "verified_at": "2026-07-15T21:26:41Z",
+      "notes": "Verified via per-WP Codex review + passing test suite."
+    },
+    {
+      "criterion_id": "FR-004",
+      "description": "FR-004 satisfied and verified",
+      "proof_type": "automated_test",
+      "evidence": "WP02: validate() + validate_refs CLI (missing/id_drift/title_drift/unprovisioned/unreachable, non-zero exit) \u2014 test_vikunja_refs_validate.py + test_validate_refs.py. Codex-approved.",
+      "pass_fail": "pass",
+      "verified_by": "codex:gpt-5-codex (review) + pytest",
+      "verified_at": "2026-07-15T21:26:41Z",
+      "notes": "Verified via per-WP Codex review + passing test suite."
+    },
+    {
+      "criterion_id": "FR-005",
+      "description": "FR-005 satisfied and verified",
+      "proof_type": "automated_test",
+      "evidence": "WP03 (9-site project-id migration) + WP04 (sync) + WP05 (route_someday + enrichment/orchestrator surfaced by SC-001 gate); zero vestiges \u2014 grep-clean + SC-001 gate green. Codex-approved.",
+      "pass_fail": "pass",
+      "verified_by": "codex:gpt-5-codex (review) + pytest",
+      "verified_at": "2026-07-15T21:26:41Z",
+      "notes": "Verified via per-WP Codex review + passing test suite."
+    },
+    {
+      "criterion_id": "FR-006",
+      "description": "FR-006 satisfied and verified",
+      "proof_type": "automated_test",
+      "evidence": "WP04: felix:ignore per-token (owner_token kent) resolution with graceful degrade when unprovisioned \u2014 test_classify.py 4 variants. Codex-approved.",
+      "pass_fail": "pass",
+      "verified_by": "codex:gpt-5-codex (review) + pytest",
+      "verified_at": "2026-07-15T21:26:41Z",
+      "notes": "Verified via per-WP Codex review + passing test suite."
+    },
+    {
+      "criterion_id": "FR-007",
+      "description": "FR-007 satisfied and verified",
+      "proof_type": "automated_test",
+      "evidence": "WP01: registry seeded from live post-reset ids (office2 probe); felix-bot Inbox id 14 never declared (C-002) \u2014 test_vikunja_refs.py. Codex-approved.",
+      "pass_fail": "pass",
+      "verified_by": "codex:gpt-5-codex (review) + pytest",
+      "verified_at": "2026-07-15T21:26:41Z",
+      "notes": "Verified via per-WP Codex review + passing test suite."
+    },
+    {
+      "criterion_id": "FR-008",
+      "description": "FR-008 satisfied and verified",
+      "proof_type": "automated_test",
+      "evidence": "WP01 selector() returns {kind,value}; WP03 vikunja_scope reads through it (HABIT_SELECTOR preserved) \u2014 test_vikunja_scope.py. Codex-approved.",
+      "pass_fail": "pass",
+      "verified_by": "codex:gpt-5-codex (review) + pytest",
+      "verified_at": "2026-07-15T21:26:41Z",
+      "notes": "Verified via per-WP Codex review + passing test suite."
+    },
+    {
+      "criterion_id": "FR-009",
+      "description": "FR-009 satisfied and verified",
+      "proof_type": "automated_test",
+      "evidence": "WP01: VikunjaRefUnprovisioned subclass distinct from base error for value:null \u2014 test_vikunja_refs.py. Codex-approved.",
+      "pass_fail": "pass",
+      "verified_by": "codex:gpt-5-codex (review) + pytest",
+      "verified_at": "2026-07-15T21:26:41Z",
+      "notes": "Verified via per-WP Codex review + passing test suite."
+    },
+    {
+      "criterion_id": "FR-010",
+      "description": "FR-010 satisfied and verified",
+      "proof_type": "automated_test",
+      "evidence": "WP05: fall-through target = Inbox id 1; capture AGENTS.md wording corrected \u2014 test_route_someday.py. Codex-approved.",
+      "pass_fail": "pass",
+      "verified_by": "codex:gpt-5-codex (review) + pytest",
+      "verified_at": "2026-07-15T21:26:41Z",
+      "notes": "Verified via per-WP Codex review + passing test suite."
+    },
+    {
+      "criterion_id": "FR-011",
+      "description": "FR-011 satisfied and verified",
+      "proof_type": "automated_test",
+      "evidence": "WP05: someday -> q:schedule + no-due-date task; find_someday_project retired \u2014 test_route_someday.py (SC-005). Codex-approved.",
+      "pass_fail": "pass",
+      "verified_by": "codex:gpt-5-codex (review) + pytest",
+      "verified_at": "2026-07-15T21:26:41Z",
+      "notes": "Verified via per-WP Codex review + passing test suite."
+    },
+    {
+      "criterion_id": "FR-012",
+      "description": "FR-012 satisfied and verified",
+      "proof_type": "automated_test",
+      "evidence": "WP05: Tier-1 label attach where determinable with graceful fallback (felix-bot 403 confirmed live; task always created, no capture loss) \u2014 test_route_someday.py. Codex-approved.",
+      "pass_fail": "pass",
+      "verified_by": "codex:gpt-5-codex (review) + pytest",
+      "verified_at": "2026-07-15T21:26:41Z",
+      "notes": "Verified via per-WP Codex review + passing test suite."
+    },
+    {
+      "criterion_id": "FR-013",
+      "description": "FR-013 satisfied and verified",
+      "proof_type": "automated_test",
+      "evidence": "WP05: routing-log/dedup substrate preserved \u2014 test_route_someday.py + tests/inbox/ ripple green. Codex-approved.",
+      "pass_fail": "pass",
+      "verified_by": "codex:gpt-5-codex (review) + pytest",
+      "verified_at": "2026-07-15T21:26:41Z",
+      "notes": "Verified via per-WP Codex review + passing test suite."
+    }
+  ],
+  "negative_invariants": []
+}

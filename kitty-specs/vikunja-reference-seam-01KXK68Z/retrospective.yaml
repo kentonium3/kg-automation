@@ -1,0 +1,185 @@
+schema_version: 1
+mission_id: 01KXK68ZQGWPK68ES7809SM148
+mission_slug: vikunja-reference-seam-01KXK68Z
+mission_number: 103
+friendly_name: Felix Vikunja reference-resolution seam
+mission_type: software-dev
+target_branch: feat/vikunja-reference-seam
+created_at: '2026-07-15T21:29:11.446175+00:00'
+created_by:
+  kind: runtime
+  id: spec-kitty-generator
+  display: Spec Kitty Generator
+provenance:
+  kind: runtime_post_completion
+  invoked_at: '2026-07-15T21:29:11.446175+00:00'
+  policy_resolved_from:
+    enabled: <default>
+    timing: <default>
+    failure_policy: <default>
+    write_record: <default>
+    generate_proposals: <default>
+    apply_proposals: <default>
+    permissions.write_record: <default>
+    permissions.inspect_mission_artifacts: <default>
+    permissions.propose_glossary_changes: <default>
+    permissions.propose_drg_changes: <default>
+    permissions.propose_doctrine_changes: <default>
+    permissions.apply_low_risk_changes: <default>
+    permissions.apply_structural_changes: <default>
+    precedence: <default>
+    generator: <default>
+policy_source:
+  enabled: <default>
+  timing: <default>
+  failure_policy: <default>
+  write_record: <default>
+  generate_proposals: <default>
+  apply_proposals: <default>
+  permissions.write_record: <default>
+  permissions.inspect_mission_artifacts: <default>
+  permissions.propose_glossary_changes: <default>
+  permissions.propose_drg_changes: <default>
+  permissions.propose_doctrine_changes: <default>
+  permissions.apply_low_risk_changes: <default>
+  permissions.apply_structural_changes: <default>
+  precedence: <default>
+  generator: <default>
+findings_status: has_findings
+helped:
+- id: h-001
+  category: implementation
+  summary: WP02 completed without rejection cycles
+  evidence_refs:
+  - e-010
+- id: h-002
+  category: implementation
+  summary: WP03 completed without rejection cycles
+  evidence_refs:
+  - e-010
+- id: h-003
+  category: implementation
+  summary: WP04 completed without rejection cycles
+  evidence_refs:
+  - e-010
+not_helpful:
+- id: n-007
+  category: doc
+  summary: analysis-report.md present with findings
+  evidence_refs:
+  - e-018
+  details: An analysis-report.md artifact is present for this mission. Review its findings to understand documented 
+    issues and decisions.
+- id: n-005
+  category: implementation
+  summary: WP01 needed 3 implementation cycles
+  evidence_refs:
+  - e-016
+  details: WP WP01 entered in_progress 3 times. Multiple implementation cycles suggest rework not captured as a 
+    documented review rejection; the WP scope or contract may need refinement.
+- id: n-006
+  category: implementation
+  summary: WP05 needed 3 implementation cycles
+  evidence_refs:
+  - e-017
+  details: WP WP05 entered in_progress 3 times. Multiple implementation cycles suggest rework not captured as a 
+    documented review rejection; the WP scope or contract may need refinement.
+- id: n-003
+  category: process
+  summary: WP01 required 3 --force override(s) during workflow
+  evidence_refs:
+  - e-013
+  details: WP WP01 required 3 operator-driven --force lane transition(s). Force overrides typically indicate the runtime
+    guard failed or the operator routed around it; investigate the underlying cause.
+- id: n-004
+  category: process
+  summary: WP05 required 3 --force override(s) during workflow
+  evidence_refs:
+  - e-014
+  details: WP WP05 required 3 operator-driven --force lane transition(s). Force overrides typically indicate the runtime
+    guard failed or the operator routed around it; investigate the underlying cause.
+- id: n-001
+  category: review_loop
+  summary: WP01 required 2 rejection cycle(s) before approval
+  evidence_refs:
+  - e-011
+  details: WP WP01 was sent back from review to planning 2 time(s).
+- id: n-002
+  category: review_loop
+  summary: WP05 required 2 rejection cycle(s) before approval
+  evidence_refs:
+  - e-012
+  details: WP WP05 was sent back from review to planning 2 time(s).
+gaps:
+- id: g-001
+  category: process
+  summary: Arbiter override needed for WP05 (1x)
+  evidence_refs:
+  - e-015
+  details: WP WP05 required 1 arbiter override(s). Arbiter overrides are an escape hatch; recurring use suggests the 
+    normal review path is blocked and the underlying policy/guard may need adjustment.
+proposals: []
+evidence_refs:
+- id: e-001
+  kind: file
+  path: kitty-specs/vikunja-reference-seam-01KXK68Z/meta.json
+- id: e-002
+  kind: file
+  path: kitty-specs/vikunja-reference-seam-01KXK68Z/spec.md
+- id: e-003
+  kind: file
+  path: kitty-specs/vikunja-reference-seam-01KXK68Z/plan.md
+- id: e-004
+  kind: file
+  path: kitty-specs/vikunja-reference-seam-01KXK68Z/tasks.md
+- id: e-005
+  kind: file
+  path: kitty-specs/vikunja-reference-seam-01KXK68Z/tasks/WP01-registry-and-accessor.md
+- id: e-006
+  kind: file
+  path: kitty-specs/vikunja-reference-seam-01KXK68Z/tasks/WP02-validator-and-cli.md
+- id: e-007
+  kind: file
+  path: kitty-specs/vikunja-reference-seam-01KXK68Z/tasks/WP03-migrate-project-id-consumers.md
+- id: e-008
+  kind: file
+  path: kitty-specs/vikunja-reference-seam-01KXK68Z/tasks/WP04-migrate-sync-consumers.md
+- id: e-009
+  kind: file
+  path: kitty-specs/vikunja-reference-seam-01KXK68Z/tasks/WP05-capture-routing-and-sc001-gate.md
+- id: e-010
+  kind: file
+  path: kitty-specs/vikunja-reference-seam-01KXK68Z/status.events.jsonl
+- id: e-011
+  kind: event_range
+  path: kitty-specs/vikunja-reference-seam-01KXK68Z/status.events.jsonl
+  range: 01KXKEQKBT85AMZ5ZXMYTEPH0S..01KXKF58Y85WRFZTG6X1QR808C
+- id: e-012
+  kind: event_range
+  path: kitty-specs/vikunja-reference-seam-01KXK68Z/status.events.jsonl
+  range: 01KXKR88BH4RVGEA5F3E1TF3H9..01KXKS41TEKG0VGMTH405QAMBK
+- id: e-013
+  kind: event_range
+  path: kitty-specs/vikunja-reference-seam-01KXK68Z/status.events.jsonl
+  range: 01KXKEQKBT85AMZ5ZXMYTEPH0S..01KXKNYRH34P73DHRY72CP00JE
+- id: e-014
+  kind: event_range
+  path: kitty-specs/vikunja-reference-seam-01KXK68Z/status.events.jsonl
+  range: 01KXKR88BH4RVGEA5F3E1TF3H9..01KXKTQ8Y2NYPPGXRNP5P43VHV
+- id: e-015
+  kind: event_range
+  path: kitty-specs/vikunja-reference-seam-01KXK68Z/status.events.jsonl
+  range: 01KXKTQ8Y2NYPPGXRNP5P43VHV
+- id: e-016
+  kind: event_range
+  path: kitty-specs/vikunja-reference-seam-01KXK68Z/status.events.jsonl
+  range: implementation_cycles
+- id: e-017
+  kind: event_range
+  path: kitty-specs/vikunja-reference-seam-01KXK68Z/status.events.jsonl
+  range: implementation_cycles
+- id: e-018
+  kind: file
+  path: kitty-specs/vikunja-reference-seam-01KXK68Z/analysis-report.md
+generator_version: '1.0'
+provenance_history: []

@@ -54,6 +54,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
+from scripts.common import vikunja_scope
 from scripts.common.sync_cache import (
     SLA_NORMAL,
     SLATier,
@@ -90,18 +91,30 @@ TOUCHPOINT_SLA: SLATier = SLA_NORMAL
 #: Touchpoint name used in structured error messages.
 TOUCHPOINT_NAME = "habits.query_active_habits_v2"
 
-#: Vikunja project_id for the Habits project on office2. The sync driver
-#: records ``project_id`` in the cache for every task; this constant lets
-#: the touchpoint scope the enumeration to habits without a live API call.
-#: Value is the well-known project_id from the production Vikunja instance.
-#: See research.md § TP-03 for the field-availability confirmation. If
-#: the project_id ever changes, update this constant (dynamic resolution
-#: via HABITS_PROJECT_TITLE was scoped but not implemented).
-HABITS_PROJECT_ID: int = 13
+def _resolve_habits_project_id() -> int:
+    """Resolve the Habits project id through the reference seam (#748/#745).
 
-#: Title of the Vikunja project holding all habit tasks.  Used as fallback
-#: project-scoping mechanism when HABITS_PROJECT_ID is None.
-HABITS_PROJECT_TITLE = "Habits"
+    Reads :func:`scripts.common.vikunja_scope.habit_project_id`, which is
+    sourced from the reference registry (``vikunja_refs.json``) — the sync
+    driver records ``project_id`` in the cache for every task, so this lets
+    the touchpoint scope enumeration to habits without a live API call.
+    Raises :class:`NotImplementedError` if the configured habit selector is
+    a label form (label fetch strategy is #716's work); this fails loud
+    rather than silently scoping to ``/projects/None`` (mirrors
+    :func:`scripts.habits.query_active_habits_weekly._resolve_habits_project_id`).
+    """
+    project_id = vikunja_scope.habit_project_id()
+    if project_id is None:
+        raise NotImplementedError(
+            "label habit selector not supported yet — see #716"
+        )
+    return project_id
+
+
+#: Vikunja project_id for the Habits project on office2, resolved through the
+#: reference seam (seeds to 13 today). See research.md § TP-03 for the
+#: field-availability confirmation.
+HABITS_PROJECT_ID: int = _resolve_habits_project_id()
 
 #: Regex for the --today flag (ISO-8601 date).
 _DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")

@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "source_of_truth": "docs/design/vikunja-configuration-design.md",
+  "last_verified_utc": "2026-07-15T00:00:00Z",
+  "projects": [
+    { "name": "inbox",               "selector": { "kind": "project_id", "value": 1 },  "title": "Inbox",               "owner": "kent", "provisioned": true },
+    { "name": "habits",              "selector": { "kind": "project_id", "value": 13 }, "title": "Habits",              "owner": "kent", "provisioned": true },
+    { "name": "personal",            "selector": { "kind": "project_id", "value": 20 }, "title": "Personal",            "owner": "kent", "provisioned": true },
+    { "name": "felix_kg_automation", "selector": { "kind": "project_id", "value": 16 }, "title": "Felix / kg-automation", "owner": "kent", "provisioned": true },
+    { "name": "clients",             "selector": { "kind": "project_id", "value": 17 }, "title": "Clients",             "owner": "kent", "provisioned": true },
+    { "name": "pointerhealth",       "selector": { "kind": "project_id", "value": 18 }, "title": "PointerHealth",       "owner": "kent", "provisioned": true },
+    { "name": "spec_kitty",          "selector": { "kind": "project_id", "value": 19 }, "title": "spec-kitty",          "owner": "kent", "provisioned": true },
+    { "name": "metal_casework",      "selector": { "kind": "project_id", "value": 10 }, "title": "Metal Casework",      "owner": "kent", "provisioned": true },
+    { "name": "ct_90day",            "selector": { "kind": "project_id", "value": 7 },  "title": "CT-90day",            "owner": "kent", "provisioned": true }
+  ],
+  "labels": [
+    { "name": "q:schedule",   "selector": { "kind": "label", "value": 23 },   "title": "q:schedule",   "owner_token": "kent" },
+    { "name": "felix:ignore", "selector": { "kind": "label", "value": null }, "title": "felix:ignore", "owner_token": "kent" }
+  ],
+  "private_projects": []
+}

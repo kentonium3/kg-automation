@@ -21,6 +21,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from scripts.common import vikunja_refs
 from scripts.sync import cycle as cy
 from scripts.sync import state as st
 from scripts.sync.send_whatsapp import SendResult
@@ -190,6 +191,34 @@ class TestSteadyStateHappy:
         assert cache.tasks["14"].fields["title"] == "NewTitle"
 
     def test_auto_resolved_does_not_invoke_send(self, env, mock_urlopen):
+        # WP04 seam: felix:ignore is now resolved by id through the reference
+        # registry. It is unprovisioned in the shipped registry today (value:
+        # null), so inject a provisioned registry (id 1, matching the fixture
+        # label id below) to exercise the label-override → auto_resolved path
+        # end-to-end. Cleared in the finally so no state leaks to sibling tests.
+        vikunja_refs.set_registry_for_test(
+            {
+                "schema_version": 1,
+                "source_of_truth": "test",
+                "last_verified_utc": "2026-07-15T00:00:00Z",
+                "projects": [],
+                "labels": [
+                    {
+                        "name": "felix:ignore",
+                        "selector": {"kind": "label", "value": 1},
+                        "title": "felix:ignore",
+                        "owner_token": "kent",
+                    }
+                ],
+                "private_projects": [],
+            }
+        )
+        try:
+            self._run_auto_resolved_does_not_invoke_send(env, mock_urlopen)
+        finally:
+            vikunja_refs.set_registry_for_test(None)
+
+    def _run_auto_resolved_does_not_invoke_send(self, env, mock_urlopen):
         state_dir, secrets_dir = env
         st.write_task_cache(
             state_dir,

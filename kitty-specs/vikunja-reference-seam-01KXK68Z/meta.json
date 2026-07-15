@@ -1,0 +1,31 @@
+{
+  "accept_commit": "7cc8f21211b8bb453c493afdafe25df1728a39bc",
+  "acceptance_history": [
+    {
+      "accept_commit": "7cc8f21211b8bb453c493afdafe25df1728a39bc",
+      "acceptance_mode": "pr",
+      "accepted_at": "2026-07-15T21:27:01.404087+00:00",
+      "accepted_by": "kentgale",
+      "accepted_from_commit": "9f7914fd3f81f409d2d4fc611850d2d38be0ff7f"
+    }
+  ],
+  "acceptance_mode": "pr",
+  "accepted_at": "2026-07-15T21:27:01.404087+00:00",
+  "accepted_by": "kentgale",
+  "accepted_from_commit": "9f7914fd3f81f409d2d4fc611850d2d38be0ff7f",
+  "baseline_merge_commit": "b33e6d4fe09d8a912bfb96fa1e7fa836885f2e04",
+  "created_at": "2026-07-15T15:28:09.973220+00:00",
+  "flattened": false,
+  "friendly_name": "Felix Vikunja reference-resolution seam",
+  "mission_id": "01KXK68ZQGWPK68ES7809SM148",
+  "mission_number": 103,
+  "mission_slug": "vikunja-reference-seam-01KXK68Z",
+  "mission_type": "software-dev",
+  "purpose_context": "Felix resolves Vikunja projects and labels ad-hoc today — by title in some places, hardcoded ids in others, with no single mapping. That fragility silently broke inbox routing when the #714 Vikunja reset deleted a project (#743). This mission consolidates all project/label resolution into one declared seam that resolves against the locked post-reset names and fails loud on drift, so Felix stays correct across Vikunja structure changes and the downstream routing/atomicity/validation work (#745/#746/#749) builds on solid ground.",
+  "purpose_tldr": "One declared, validated source of truth for how Felix resolves Vikunja projects and labels, so structure changes don't silently break routing.",
+  "slug": "vikunja-reference-seam-01KXK68Z",
+  "target_branch": "feat/vikunja-reference-seam",
+  "topology": "single_branch",
+  "vcs": "git",
+  "vcs_locked_at": "2026-07-15T17:37:54.782983+00:00"
+}

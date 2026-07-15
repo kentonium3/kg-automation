@@ -1,0 +1,56 @@
+{
+  "event_count": 59,
+  "last_event_id": "01KXKTWXHE6JXZCY3YTDHT1NDG",
+  "materialized_at": "2026-07-15T21:28:34.606119+00:00",
+  "mission_number": "103",
+  "mission_slug": "vikunja-reference-seam-01KXK68Z",
+  "mission_type": "software-dev",
+  "summary": {
+    "approved": 0,
+    "blocked": 0,
+    "canceled": 0,
+    "claimed": 0,
+    "done": 5,
+    "for_review": 0,
+    "in_progress": 0,
+    "in_review": 0,
+    "planned": 0
+  },
+  "work_packages": {
+    "WP01": {
+      "actor": "merge",
+      "force_count": 3,
+      "lane": "done",
+      "last_event_id": "01KXKTVXF8RMZQYHYFAQWNWNRN",
+      "last_transition_at": "2026-07-15T21:28:01.769041+00:00"
+    },
+    "WP02": {
+      "actor": "merge",
+      "force_count": 0,
+      "lane": "done",
+      "last_event_id": "01KXKTW6048HF17D89DW3R6EKB",
+      "last_transition_at": "2026-07-15T21:28:10.500443+00:00"
+    },
+    "WP03": {
+      "actor": "merge",
+      "force_count": 0,
+      "lane": "done",
+      "last_event_id": "01KXKTWE6P3V5XQW21WSCX0MYQ",
+      "last_transition_at": "2026-07-15T21:28:18.902944+00:00"
+    },
+    "WP04": {
+      "actor": "merge",
+      "force_count": 0,
+      "lane": "done",
+      "last_event_id": "01KXKTWPC5DST6GSSAC52MKSF5",
+      "last_transition_at": "2026-07-15T21:28:27.269260+00:00"
+    },
+    "WP05": {
+      "actor": "merge",
+      "force_count": 3,
+      "lane": "done",
+      "last_event_id": "01KXKTWXHE6JXZCY3YTDHT1NDG",
+      "last_transition_at": "2026-07-15T21:28:34.606119+00:00"
+    }
+  }
+}
