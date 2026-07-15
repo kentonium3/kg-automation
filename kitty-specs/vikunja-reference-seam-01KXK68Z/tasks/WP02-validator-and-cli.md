@@ -16,7 +16,10 @@ subtasks:
 - T008
 phase: Phase 1 - Foundation
 assignee: ''
-agent: ''
+agent: claude
+agent_profile: python-pedro
+role: implementer
+model: claude-sonnet-5
 history:
 - at: '2026-07-15T17:18:48Z'
   actor: system

@@ -17,7 +17,10 @@ subtasks:
 - T017
 phase: Phase 2 - Migration
 assignee: ''
-agent: ''
+agent: claude
+agent_profile: python-pedro
+role: implementer
+model: claude-sonnet-5
 history:
 - at: '2026-07-15T17:18:48Z'
   actor: system
