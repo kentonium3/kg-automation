@@ -7,10 +7,10 @@ reviewed_at: '2026-07-15T18:03:25Z'
 reviewer_agent: unknown
 verdict: rejected
 wp_id: WP01
-review_artifact_override_at: "2026-07-15T18:11:38Z"
+review_artifact_override_at: "2026-07-15T18:13:11Z"
 review_artifact_override_actor: "operator"
 review_artifact_override_wp_id: "WP01"
-review_artifact_override_reason: "Codex (gpt-5-codex) cycle-3 review = APPROVE (fail-loud id validation + full-path import-graph guard, 40 tests). review-cycle-3.md holds the now-resolved cycle-2 rejection; reviewer dispatched via orchestrator verdict-capture so no approval artifact was auto-written."
+review_artifact_override_reason: "Codex (gpt-5-codex) cycle-3 review = APPROVE (fail-loud id validation + full-path import-graph guard, 40 tests). review-cycle-3.md holds the resolved cycle-2 rejection; reviewer dispatched via orchestrator verdict-capture."
 ---
 
 # WP01 Review — Cycle 2 — REQUEST_CHANGES (reviewer: codex, gpt-5-codex)
