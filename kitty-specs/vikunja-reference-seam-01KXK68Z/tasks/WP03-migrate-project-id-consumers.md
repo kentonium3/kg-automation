@@ -20,12 +20,12 @@ subtasks:
 - T014
 phase: Phase 2 - Migration
 assignee: ''
-agent: "claude:sonnet:python-pedro:implementer"
+agent: "codex:gpt-5-codex:reviewer-renata:reviewer"
 agent_profile: python-pedro
 role: implementer
 model: claude-sonnet-5
-shell_pid: "98269"
-shell_pid_created_at: "1784139360.469166"
+shell_pid: "30656"
+shell_pid_created_at: "1784146294.083244"
 history:
 - at: '2026-07-15T17:18:48Z'
   actor: system
@@ -235,3 +235,5 @@ route it through the accessor.
 
 - 2026-07-15T17:18:48Z – system – Prompt created.
 - 2026-07-15T18:16:35Z – claude:sonnet:python-pedro:implementer – shell_pid=98269 – Assigned agent via action command
+- 2026-07-15T20:11:28Z – claude:sonnet:python-pedro:implementer – shell_pid=98269 – Project-id consumer migration; 757 tests; rebased on WP01 additions (7f66ea4b)
+- 2026-07-15T20:11:45Z – codex:gpt-5-codex:reviewer-renata:reviewer – shell_pid=30656 – Started review via action command
