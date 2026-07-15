@@ -93,9 +93,9 @@ Included subtasks:
 - **Estimated prompt size**: ~230 lines.
 
 Included subtasks:
-- [ ] T015 Migrate sync `PRIVATE_PROJECT_IDS` (WP04)
-- [ ] T016 Migrate sync `felix:ignore` label per-token (WP04)
-- [ ] T017 Sync tests + #743 fail-loud regression guard (WP04)
+- [x] T015 Migrate sync `PRIVATE_PROJECT_IDS` (WP04)
+- [x] T016 Migrate sync `felix:ignore` label per-token (WP04)
+- [x] T017 Sync tests + #743 fail-loud regression guard (WP04)
 
 ## WP05 — #745 capture routing alignment + SC-001 gate
 
