@@ -62,9 +62,9 @@ Included subtasks:
 - **Estimated prompt size**: ~250 lines.
 
 Included subtasks:
-- [ ] T006 `validate()` pure function → findings (WP02)
-- [ ] T007 CLI `validate_refs.py` (≤2 live calls, unreachable, exit codes) (WP02)
-- [ ] T008 Validator unit tests (WP02)
+- [x] T006 `validate()` pure function → findings (WP02)
+- [x] T007 CLI `validate_refs.py` (≤2 live calls, unreachable, exit codes) (WP02)
+- [x] T008 Validator unit tests (WP02)
 
 ## WP03 — Migrate project-id resolution consumers (scope + habits + security)
 
@@ -76,12 +76,12 @@ Included subtasks:
 - **Estimated prompt size**: ~340 lines.
 
 Included subtasks:
-- [ ] T009 `vikunja_scope` read-through + derive `ESCALATION_EXCLUDED` (WP03)
-- [ ] T010 Migrate `query_active_habits_v2` (WP03)
-- [ ] T011 Migrate `reconcile_completions` (WP03)
-- [ ] T012 Migrate `backfill_jsonl_from_comments` (WP03)
-- [ ] T013 Collapse `query_active_habits_weekly` mirror (WP03)
-- [ ] T014 Migrate `vikunja_writer` inbox lookup (WP03)
+- [x] T009 `vikunja_scope` read-through + derive `ESCALATION_EXCLUDED` (WP03)
+- [x] T010 Migrate `query_active_habits_v2` (WP03)
+- [x] T011 Migrate `reconcile_completions` (WP03)
+- [x] T012 Migrate `backfill_jsonl_from_comments` (WP03)
+- [x] T013 Collapse `query_active_habits_weekly` mirror (WP03)
+- [x] T014 Migrate `vikunja_writer` inbox lookup (WP03)
 
 ## WP04 — Migrate sync consumers (private set + felix:ignore label)
 
