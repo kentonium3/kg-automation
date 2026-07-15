@@ -1,4 +1,4 @@
-# Research: Felix Vikunja reference-resolution seam
+# Research: Felix Vikunja reference seam + capture routing alignment
 
 Phase 0 decisions. All `[NEEDS CLARIFICATION]` items resolved; no markers carried forward.
 
@@ -32,5 +32,41 @@ Phase 0 decisions. All `[NEEDS CLARIFICATION]` items resolved; no markers carrie
 - **Rationale:** NFR-002; keeps the hot path network-free (D2) while giving an explicit, cheap way to confirm reality == registry (mirrors the `approved-crons.json` baseline-vs-live discipline already used elsewhere in the repo).
 - **Alternatives considered:** per-call validation — rejected (violates NFR-001).
 
+## D6 — Rescope decisions (post-plan review 2026-07-15)
+
+- **Scope combines #748 + #745.** They share one code surface (the same routing
+  helper both resolves references and picks routing targets) and cannot be cleanly
+  split. #746 (atomic finalize) and #749 (intake validation loop) stay separate
+  fast-follows.
+- **Runtime call-site inventory is 9, not 4** (full list in spec.md FR-005): the
+  four originally listed plus four habits sites, `sync/classify.py` (`felix:ignore`),
+  and the `query_active_habits_weekly` mirror. The SC-001 grep gate enforces zero
+  remaining runtime by-title/hardcoded-id lookups.
+- **FR-002 / SC-001 mean "runtime resolution by Felix consumers"**, not "anywhere
+  in the codebase" — the `scripts/vikunja/` provisioning tools (#714 domain) and
+  the operator-invoked `create_task.py` legitimately resolve by title/id and are
+  exempt (C-005). This resolves the earlier contradiction with C-001.
+- **vikunja_scope ownership:** the registry owns the identity value;
+  `vikunja_scope.py` stays the selector layer and reads through the registry
+  (`HABIT_SELECTOR` ← `selector("habits")`; `ESCALATION_EXCLUDED` derives from
+  `project_id("habits")`). One source, and the `{kind, value}` selector shape is
+  preserved for the #717 Habits project-id → `t:habit` label migration.
+- **Private-project set:** `sync/diff.py`'s `PRIVATE_PROJECT_IDS` (a config set,
+  not a name→id) moves into the registry as `private_projects` names resolved to an
+  id set — one declared home (empty today until a private project exists).
+- **Labels scoped to `felix:ignore`** (the only live runtime label consumer);
+  taxonomy `f:/q:/t:/loe:` per-token registry handling deferred to #749. Live-probe
+  the resolving token + felix-bot visibility before locking label handling.
+- **Unprovisioned + unreachable are explicit states.** A declared `null`-id ref
+  fails loud as "unprovisioned" (not `id_drift`); a validator that can't reach
+  Vikunja exits non-zero as "could not validate" (not "registry clean").
+- **route_someday is a behavior change, not a mechanical swap:** it retargets
+  someday → `q:schedule`+no-due-date and fall-through → Inbox (#745), and no
+  "someday" project is ever declared (C-004).
+
 ## Non-goals confirmed
-No Vikunja config change (C-001); no dependence on is-null date filtering #725 (C-003); no capture-routing / atomicity / intake-loop work (those are #745/#746/#749).
+No Vikunja config change (C-001); no dependence on is-null date filtering #725
+(C-003); no atomicity (#746) or task-intake validation loop (#749); no taxonomy
+`f:/q:/t:/loe:` runtime registry (deferred to #749); the exempt `scripts/vikunja/`
+provisioning tools + `create_task.py` are not migrated (C-005). **#745 capture
+routing IS now in scope** (superseding the earlier draft's non-goal line).

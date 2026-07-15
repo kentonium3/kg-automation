@@ -1,8 +1,29 @@
 # Post-plan review + rescope checklist — vikunja-reference-seam (#748 + #745)
 
-**Status: plan committed; RESCOPE PENDING before `/spec-kitty.tasks`.** This file is the
-authoritative resume record (conversation context was cleared). Read this, apply the rescope to
-`spec.md` + `plan.md`, commit, then run `/spec-kitty.tasks` → **stop before `/implement`**.
+**Status: RESCOPE APPLIED 2026-07-15; ready for `/spec-kitty.tasks`.** This file is the
+authoritative resume record (conversation context was cleared). The rescope below was folded into
+`spec.md` + `plan.md` + `data-model.md` + `contracts/vikunja-refs.contract.md` + `research.md` (D6)
++ `quickstart.md`. Next: commit, run `/spec-kitty.tasks` (read runbook fresh) → **stop before
+`/implement`**.
+
+**Rescope resolutions (how each finding landed):**
+- #1 (9 sites): full inventory in spec.md FR-005 + contract migration table; SC-001 grep gate added.
+- #2 (habits 2-vs-13): registry consolidates to one value; live-probe Habits=13 at seed.
+- #3 (route_someday): FR-011 — retarget to `q:schedule`+no-due-date, retire project lookup (behavior change, carries SC-005).
+- #4 (PRIVATE_PROJECT_IDS): registry `private_projects` names → `private_project_ids()` accessor (data-model + plan).
+- #5 (vikunja_scope): registry owns the id; vikunja_scope stays selector layer reading through it; ESCALATION_EXCLUDED derives from `project_id("habits")`; `{kind,value}` preserved (FR-008).
+- #6 (labels): scoped to `felix:ignore`; taxonomy labels deferred to #749; live-probe token/visibility (FR-006).
+- #7 (C-001 conflict): FR-002/SC-001 reworded to "runtime resolution by Felix consumers"; C-005 enumerates exempt tools; create_task.py classified EXEMPT (operator-invoked).
+- #8 (edges): FR-009 unprovisioned state; validator `unreachable` finding; sub-project non-modeling note (contract).
+
+**Open judgment call surfaced to Kent:** `create_task.py` classified as exempt (operator/agent
+slash-command tool resolving a caller-supplied `--project`; not a Felix autonomous path). Optional
+future hardening (registry-aware by-name resolution) noted out-of-scope. Override if you want it
+migrated in-mission.
+
+---
+
+_Original review record below (unchanged)._
 
 ## Mission facts
 - Branch `feat/vikunja-reference-seam`, topology **single_branch** (no coord branch). Mission id
