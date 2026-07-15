@@ -23,10 +23,12 @@ subtasks:
 - T022
 phase: Phase 3 - Routing + Gate
 assignee: ''
-agent: claude
+agent: "claude:sonnet:python-pedro:implementer"
 agent_profile: python-pedro
 role: implementer
 model: claude-sonnet-5
+shell_pid: "35538"
+shell_pid_created_at: "1784146986.845304"
 history:
 - at: '2026-07-15T17:18:48Z'
   actor: system
@@ -245,3 +247,4 @@ requires a change (note any change loudly).
 > Append new entries at the END, chronological order, UTC `YYYY-MM-DDTHH:MM:SSZ`.
 
 - 2026-07-15T17:18:48Z – system – Prompt created.
+- 2026-07-15T20:23:22Z – claude:sonnet:python-pedro:implementer – shell_pid=35538 – Assigned agent via action command
