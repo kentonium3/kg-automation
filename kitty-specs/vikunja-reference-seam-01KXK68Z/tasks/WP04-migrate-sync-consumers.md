@@ -189,3 +189,4 @@ source** in `diff.py`, not the threading.
 - 2026-07-15T18:16:55Z – claude:sonnet:python-pedro:implementer – shell_pid=98269 – Assigned agent via action command
 - 2026-07-15T20:18:36Z – claude:sonnet:python-pedro:implementer – shell_pid=98269 – Sync migration; graceful degrade on unprovisioned felix:ignore; 49+242 tests; 54d6b985
 - 2026-07-15T20:18:51Z – codex:gpt-5-codex:reviewer-renata:reviewer – shell_pid=33713 – Started review via action command
+- 2026-07-15T20:22:39Z – user – shell_pid=33713 – Codex APPROVE: graceful degrade on unprovisioned felix:ignore (only VikunjaRefUnprovisioned caught); private-set on seam; 49+242 tests
