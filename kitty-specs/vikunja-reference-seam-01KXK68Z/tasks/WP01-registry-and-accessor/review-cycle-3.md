@@ -7,10 +7,10 @@ reviewed_at: '2026-07-15T18:03:25Z'
 reviewer_agent: unknown
 verdict: rejected
 wp_id: WP01
-review_artifact_override_at: "2026-07-15T18:14:58Z"
+review_artifact_override_at: "2026-07-15T20:09:15Z"
 review_artifact_override_actor: "operator"
 review_artifact_override_wp_id: "WP01"
-review_artifact_override_reason: "Codex cycle-3 APPROVE; 40 tests; issue-matrix filled"
+review_artifact_override_reason: "Codex APPROVE of additions (VikunjaRefUnprovisioned + declared_projects/declared_labels); 52 tests"
 ---
 
 # WP01 Review — Cycle 2 — REQUEST_CHANGES (reviewer: codex, gpt-5-codex)

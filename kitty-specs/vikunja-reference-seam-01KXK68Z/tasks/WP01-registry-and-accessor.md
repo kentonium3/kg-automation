@@ -269,3 +269,4 @@ Grep the codebase for import conventions before writing imports (per
 - 2026-07-15T20:02:21Z – claude:sonnet:python-pedro:implementer – shell_pid=27002 – Started implementation via action command
 - 2026-07-15T20:06:31Z – claude:sonnet:python-pedro:implementer – shell_pid=27002 – Added VikunjaRefUnprovisioned subclass + declared_projects/declared_labels accessors (52 tests, ruff clean, a7391525)
 - 2026-07-15T20:06:41Z – codex:gpt-5-codex:reviewer-renata:reviewer – shell_pid=28463 – Started review via action command
+- 2026-07-15T20:09:26Z – user – shell_pid=28463 – Codex APPROVE of additions (VikunjaRefUnprovisioned + declared_projects/declared_labels); 52 tests
