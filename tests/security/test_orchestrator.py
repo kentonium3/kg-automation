@@ -27,7 +27,10 @@ def _patch_paths():
         "create_issue": "credential_health_check.orchestrator.create_issue",
         "create_task": "credential_health_check.orchestrator.create_task",
         "load_token": "credential_health_check.orchestrator.load_token",
-        "lookup_inbox_project_id": "credential_health_check.orchestrator.lookup_inbox_project_id",
+        # WP03 deleted the by-title lookup_inbox_project_id helper; the
+        # orchestrator now resolves "inbox" through the network-free reference
+        # seam (scripts.common.vikunja_refs.project_id), so tests patch that.
+        "project_id": "credential_health_check.orchestrator.vikunja_refs.project_id",
         "MONITOR_ACTIVITY_READERS": "credential_health_check.orchestrator.MONITOR_ACTIVITY_READERS",
     }
 
@@ -42,7 +45,7 @@ def test_cycle_no_credentials_due_files_nothing():
         patch(p["create_issue"], return_value=999) as mock_issue,
         patch(p["create_task"], return_value=999) as mock_task,
         patch(p["load_token"], return_value="t"),
-        patch(p["lookup_inbox_project_id"], return_value=1),
+        patch(p["project_id"], return_value=1),
         patch(p["MONITOR_ACTIVITY_READERS"], new={}),  # disable signal readers
     ):
         result = run_cycle(
@@ -77,7 +80,7 @@ def test_cycle_near_expiry_files_paired_alert():
         patch(p["create_task"], side_effect=fake_create_task),
         patch(p["create_issue"], side_effect=fake_create_issue),
         patch(p["load_token"], return_value="t"),
-        patch(p["lookup_inbox_project_id"], return_value=1),
+        patch(p["project_id"], return_value=1),
         patch(p["MONITOR_ACTIVITY_READERS"], new={}),
     ):
         result = run_cycle(
@@ -100,7 +103,7 @@ def test_cycle_dedup_skips_already_open():
         patch(p["create_task"]) as mock_task,
         patch(p["create_issue"]) as mock_issue,
         patch(p["load_token"], return_value="t"),
-        patch(p["lookup_inbox_project_id"], return_value=1),
+        patch(p["project_id"], return_value=1),
         patch(p["MONITOR_ACTIVITY_READERS"], new={}),
     ):
         result = run_cycle(
@@ -123,7 +126,7 @@ def test_cycle_vikunja_failure_skips_credential():
         patch(p["create_task"], side_effect=VikunjaWriteError("boom")),
         patch(p["create_issue"]) as mock_issue,
         patch(p["load_token"], return_value="t"),
-        patch(p["lookup_inbox_project_id"], return_value=1),
+        patch(p["project_id"], return_value=1),
         patch(p["MONITOR_ACTIVITY_READERS"], new={}),
     ):
         result = run_cycle(
@@ -146,7 +149,7 @@ def test_cycle_github_failure_after_task_orphans_task():
         patch(p["create_task"], return_value=88),
         patch(p["create_issue"], side_effect=GitHubWriteError("issue boom")),
         patch(p["load_token"], return_value="t"),
-        patch(p["lookup_inbox_project_id"], return_value=1),
+        patch(p["project_id"], return_value=1),
         patch(p["MONITOR_ACTIVITY_READERS"], new={}),
     ):
         result = run_cycle(
@@ -175,7 +178,7 @@ def test_cycle_manifest_quality_batched():
         patch(p["create_task"]),
         patch(p["create_issue"], return_value=555),
         patch(p["load_token"], return_value="t"),
-        patch(p["lookup_inbox_project_id"], return_value=1),
+        patch(p["project_id"], return_value=1),
         patch(p["MONITOR_ACTIVITY_READERS"], new={}),
     ):
         result = run_cycle(
@@ -195,7 +198,7 @@ def test_cycle_dry_run_does_not_call_writers():
         patch(p["create_task"]) as mock_task,
         patch(p["create_issue"]) as mock_issue,
         patch(p["load_token"]) as mock_load,
-        patch(p["lookup_inbox_project_id"]) as mock_lookup,
+        patch(p["project_id"]) as mock_lookup,
         patch(p["MONITOR_ACTIVITY_READERS"], new={}),
     ):
         run_cycle(
@@ -225,7 +228,7 @@ def test_cycle_activity_staleness_files_issue_only():
         patch(p["create_task"]) as mock_task,
         patch(p["create_issue"], return_value=42),
         patch(p["load_token"], return_value="t"),
-        patch(p["lookup_inbox_project_id"], return_value=1),
+        patch(p["project_id"], return_value=1),
         patch(p["MONITOR_ACTIVITY_READERS"], new={"tailscale-auth": fake_reader, "whatsapp-session": fake_reader}),
     ):
         result = run_cycle(
@@ -249,7 +252,7 @@ def test_cycle_activity_signal_healthy_does_not_alert():
         patch(p["create_task"]),
         patch(p["create_issue"]) as mock_issue,
         patch(p["load_token"], return_value="t"),
-        patch(p["lookup_inbox_project_id"], return_value=1),
+        patch(p["project_id"], return_value=1),
         patch(p["MONITOR_ACTIVITY_READERS"], new={"tailscale-auth": healthy_reader, "whatsapp-session": healthy_reader}),
     ):
         result = run_cycle(

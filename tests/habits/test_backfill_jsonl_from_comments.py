@@ -6,7 +6,7 @@ I/O is sandboxed via the ``mock_state_log_dir`` fixture from conftest.
 
 Test layout mirrors the WP01 spec's Steps 2-8:
 
-  - TestProjectResolution     (zero / one / many "Habits" projects)
+  - TestProjectResolution     (registry-backed resolution + fail-loud, #748/#745)
   - TestSnapshot              (created / skipped / failure)
   - TestBackfillDryRun        (happy path / unmapped / malformed)
   - TestBackfillLive          (happy path / source / timestamp / state map)
@@ -14,9 +14,12 @@ Test layout mirrors the WP01 spec's Steps 2-8:
   - TestErrorHandling         (project enum / comment fetch / validation)
   - TestCLI                   (--help / --dry-run / live / token / project)
 
-Each test scripts a sequence of Vikunja responses via
-``mock_urlopen.side_effect`` — the helper makes 1 GET /projects + 1 GET
-/projects/<id>/tasks + N GETs /tasks/<id>/comments per task.
+The Habits project id is resolved through the reference registry
+(``scripts.common.vikunja_refs.project_id("habits")``, network-free); an
+autouse fixture pins that ref to id 42 for these tests. Each test then
+scripts a sequence of Vikunja responses via ``mock_urlopen.side_effect`` —
+the helper makes 1 GET /projects/<id>/tasks + N GETs /tasks/<id>/comments
+per task (no by-title GET /projects any more).
 """
 from __future__ import annotations
 
@@ -31,7 +34,48 @@ from unittest.mock import MagicMock
 import pytest
 
 from scripts.common import state_log
+from scripts.common import vikunja_refs
 from scripts.habits import backfill_jsonl_from_comments as bf
+
+
+# ---------------------------------------------------------------------------
+# Registry seam: pin the "habits" ref to id 42 (network-free resolution).
+# ---------------------------------------------------------------------------
+
+HABITS_PROJECT_ID = 42
+
+
+def _registry(*, with_habits: bool = True, habits_value: int | None = HABITS_PROJECT_ID) -> dict:
+    projects = []
+    if with_habits:
+        projects.append(
+            {
+                "name": "habits",
+                "selector": {"kind": "project_id", "value": habits_value},
+                "title": "Habits",
+                "owner": "kent",
+                "provisioned": habits_value is not None,
+            }
+        )
+    return {
+        "schema_version": 1,
+        "source_of_truth": "test",
+        "last_verified_utc": "2026-07-15T00:00:00Z",
+        "projects": projects,
+        "labels": [],
+        "private_projects": [],
+    }
+
+
+@pytest.fixture(autouse=True)
+def _pin_habits_registry():
+    """Pin the ``habits`` ref to id 42 so resolution is network-free and the
+    id assertions below hold. Individual fail-loud tests re-override."""
+    vikunja_refs.set_registry_for_test(_registry())
+    try:
+        yield
+    finally:
+        vikunja_refs.set_registry_for_test(None)
 
 
 # ---------------------------------------------------------------------------
@@ -61,21 +105,6 @@ def _http_error(code: int = 500, body: bytes = b'{"message":"boom"}'):
     )
 
 
-HABITS_PROJECT_ID = 42
-
-
-def _projects_payload(*, with_habits: bool = True, duplicates: int = 0):
-    """Return a Vikunja-shaped ``GET /projects`` payload."""
-    out: list[dict] = [{"id": 1, "title": "Inbox"}, {"id": 99, "title": "Goals"}]
-    if with_habits:
-        out.append({"id": HABITS_PROJECT_ID, "title": "Habits"})
-    for i in range(duplicates):
-        # Add additional Habits-titled projects to drive the "0 or >1 match"
-        # path. Use distinct ids.
-        out.append({"id": 200 + i, "title": "Habits"})
-    return out
-
-
 def _task(task_id: int, title: str = "Habit") -> dict:
     return {"id": task_id, "title": title}
 
@@ -93,26 +122,26 @@ def _felix_comment(
     return {"id": comment_id, "comment": body, "created": created}
 
 
-def _responses(*, projects=None, tasks=None, comments_by_task=None):
+def _responses(*, tasks=None, comments_by_task=None):
     """Build the urlopen side_effect sequence.
 
+    Project resolution is now registry-backed (no HTTP), so the first HTTP
+    call is the task enumeration.
+
     Order:
-      1. GET /projects
-      2. GET /projects/<id>/tasks  (no server-side filter per Verified API
+      1. GET /projects/<id>/tasks  (no server-side filter per Verified API
          Gotcha G5; ``is_archived`` is filtered client-side)
-      3. GET /tasks/<task_id>/comments  (one per task, in the order tasks
+      2. GET /tasks/<task_id>/comments  (one per task, in the order tasks
          appear in ``tasks``)
 
     ``comments_by_task`` is a dict {task_id: [comment_dict, ...]} OR a dict
     {task_id: Exception_instance | callable} for failure injection.
     """
-    if projects is None:
-        projects = _projects_payload()
     if tasks is None:
         tasks = []
     if comments_by_task is None:
         comments_by_task = {}
-    seq = [_resp(projects), _resp(tasks)]
+    seq = [_resp(tasks)]
     for task in tasks:
         tid = task["id"]
         value = comments_by_task.get(tid, [])
@@ -129,30 +158,34 @@ def _responses(*, projects=None, tasks=None, comments_by_task=None):
 
 
 class TestProjectResolution:
-    def test_resolves_unique_habits_project(self, mock_urlopen):
-        mock_urlopen.return_value = _resp(_projects_payload())
-        pid = bf._resolve_habits_project_id("http://test/api/v1/", "t")
-        assert pid == HABITS_PROJECT_ID
+    def test_resolves_habits_project_via_registry(
+        self, mock_urlopen, mock_state_log_dir
+    ):
+        """The Habits id comes from the registry (42, pinned) and no by-title
+        GET /projects is issued — the only HTTP call is task enumeration."""
+        mock_urlopen.side_effect = _responses(tasks=[])
+        result = bf.backfill("http://test/api/v1/", "t", dry_run=True)
+        assert result["habits_project_id"] == HABITS_PROJECT_ID
+        # Network-free resolution: no request hit a bare ``/projects`` list.
+        assert all(
+            not call.args[0].full_url.rstrip("/").endswith("/projects")
+            for call in mock_urlopen.call_args_list
+        )
 
-    def test_zero_matches_raises_value_error(self, mock_urlopen):
-        mock_urlopen.return_value = _resp(_projects_payload(with_habits=False))
-        with pytest.raises(ValueError, match="not uniquely resolvable"):
-            bf._resolve_habits_project_id("http://test/api/v1/", "t")
+    def test_undeclared_habits_ref_fails_loud(self, mock_urlopen, mock_state_log_dir):
+        """SC-002: a deleted/undeclared habits ref raises VikunjaRefError
+        instead of silently enumerating an empty task set."""
+        vikunja_refs.set_registry_for_test(_registry(with_habits=False))
+        with pytest.raises(vikunja_refs.VikunjaRefError):
+            bf.backfill("http://test/api/v1/", "t", dry_run=True)
 
-    def test_multiple_matches_raises_value_error(self, mock_urlopen):
-        mock_urlopen.return_value = _resp(_projects_payload(duplicates=2))
-        with pytest.raises(ValueError, match="found 3 matches"):
-            bf._resolve_habits_project_id("http://test/api/v1/", "t")
-
-    def test_non_list_payload_raises_oserror(self, mock_urlopen):
-        mock_urlopen.return_value = _resp({"not": "a list"})
-        with pytest.raises(OSError, match="non-list payload"):
-            bf._resolve_habits_project_id("http://test/api/v1/", "t")
-
-    def test_http_error_propagates_as_oserror(self, mock_urlopen):
-        mock_urlopen.side_effect = _http_error(500)
-        with pytest.raises(OSError):
-            bf._resolve_habits_project_id("http://test/api/v1/", "t")
+    def test_unprovisioned_habits_ref_fails_loud(
+        self, mock_urlopen, mock_state_log_dir
+    ):
+        """SC-002: a declared-but-unprovisioned (value null) habits ref fails loud."""
+        vikunja_refs.set_registry_for_test(_registry(habits_value=None))
+        with pytest.raises(vikunja_refs.VikunjaRefError):
+            bf.backfill("http://test/api/v1/", "t", dry_run=True)
 
 
 # ===========================================================================
@@ -484,9 +517,9 @@ class TestEnumerateArchivedFilter:
     ):
         mock_urlopen.side_effect = _responses(tasks=[], comments_by_task={})
         bf.backfill(api_base_url="http://test/api/v1/", token="t", dry_run=True)
-        # Two HTTP calls: GET /projects, then GET /projects/<id>/tasks.
-        assert len(mock_urlopen.call_args_list) == 2
-        tasks_req = mock_urlopen.call_args_list[1][0][0]
+        # One HTTP call: GET /projects/<id>/tasks (resolution is registry-backed).
+        assert len(mock_urlopen.call_args_list) == 1
+        tasks_req = mock_urlopen.call_args_list[0][0][0]
         assert "filter=" not in tasks_req.full_url
         assert "is_archived" not in tasks_req.full_url
 
@@ -714,9 +747,8 @@ class TestErrorHandling:
     def test_project_enumeration_failure_propagates_as_oserror(
         self, mock_urlopen, mock_state_log_dir
     ):
-        # /projects ok, /tasks fails.
+        # Registry resolves habits (no HTTP); /tasks enumeration fails.
         mock_urlopen.side_effect = [
-            _resp(_projects_payload()),
             _http_error(500),
         ]
         with pytest.raises(OSError):
@@ -729,7 +761,6 @@ class TestErrorHandling:
         # Comments for 14 succeed; comments for 15 raise. The backfill
         # must continue to subsequent tasks (but in this case 15 is last).
         mock_urlopen.side_effect = [
-            _resp(_projects_payload()),
             _resp(tasks),
             _resp([_felix_comment(101, "2026-05-15", "complete")]),
             _http_error(404),
@@ -749,7 +780,6 @@ class TestErrorHandling:
     ):
         tasks = [_task(14, "Wake"), _task(15, "Meditate"), _task(16, "PT")]
         mock_urlopen.side_effect = [
-            _resp(_projects_payload()),
             _resp(tasks),
             # Task 14: error.
             _http_error(500),
@@ -793,10 +823,8 @@ class TestErrorHandling:
             _task(14, "Wake"),
         ]
         # Bad task has no id — its comments are NOT fetched, so the side
-        # effect sequence only needs the projects + tasks + comments-for-14
-        # responses.
+        # effect sequence only needs the tasks + comments-for-14 responses.
         mock_urlopen.side_effect = [
-            _resp(_projects_payload()),
             _resp(tasks),
             _resp([_felix_comment(101, "2026-05-15", "complete")]),
         ]
@@ -937,23 +965,21 @@ class TestCLI:
     def test_project_resolution_failure_exits_two(
         self, mock_urlopen, mock_state_log_dir, tmp_token_file, capsys
     ):
-        # /projects returns no Habits project.
-        mock_urlopen.return_value = _resp(
-            _projects_payload(with_habits=False)
-        )
+        # Registry declares no Habits project → fail-loud VikunjaRefError,
+        # which the CLI maps to exit 2 (config error).
+        vikunja_refs.set_registry_for_test(_registry(with_habits=False))
         exit_code = bf.main([
             "--token-file", str(tmp_token_file),
             "--base-url", "http://test/api/v1/",
         ])
         assert exit_code == 2
         err = capsys.readouterr().err
-        assert "not uniquely resolvable" in err
+        assert "habits" in err.lower()
 
     def test_enumerate_http_failure_exits_one(
         self, mock_urlopen, mock_state_log_dir, tmp_token_file, capsys
     ):
         mock_urlopen.side_effect = [
-            _resp(_projects_payload()),
             _http_error(500),
         ]
         exit_code = bf.main([
@@ -1000,20 +1026,26 @@ class TestCLI:
     def test_enumerate_uses_project_scoped_endpoint(
         self, mock_urlopen, mock_state_log_dir, tmp_token_file
     ):
-        """Regression: backfill MUST enumerate /projects/<id>/tasks, not /tasks/all."""
+        """Regression: backfill MUST enumerate /projects/<id>/tasks, not /tasks/all.
+
+        Resolution is registry-backed (no by-title GET /projects), so the
+        first — and only — HTTP call is the project-scoped task enumeration.
+        """
         mock_urlopen.side_effect = _responses(tasks=[])
         bf.main([
             "--dry-run",
             "--token-file", str(tmp_token_file),
             "--base-url", "http://test/api/v1/",
         ])
-        # First call: /projects. Second call: /projects/<id>/tasks?...
-        assert len(mock_urlopen.call_args_list) >= 2
-        projects_req = mock_urlopen.call_args_list[0][0][0]
-        assert projects_req.full_url.endswith("/projects")
-        tasks_req = mock_urlopen.call_args_list[1][0][0]
+        assert len(mock_urlopen.call_args_list) >= 1
+        tasks_req = mock_urlopen.call_args_list[0][0][0]
         assert f"projects/{HABITS_PROJECT_ID}/tasks" in tasks_req.full_url
         assert "tasks/all" not in tasks_req.full_url
+        # No bare GET /projects list request (resolution is network-free).
+        assert all(
+            not call.args[0].full_url.rstrip("/").endswith("/projects")
+            for call in mock_urlopen.call_args_list
+        )
 
 
 # ===========================================================================

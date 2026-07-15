@@ -216,7 +216,7 @@ Each meaningful action gets ONE line in the daily processing log. Terse — fiel
 
 ## Task delegation to felix-admin-tasker
 
-felix-admin-tasker handles structured Vikunja task creation. Delegate when: (1) block is `vikunja_task` and NOT a simple Someday item; (2) task needs enrichment (project, labels, priority, due date); (3) block is a research request (tasker shapes for Research project).
+felix-admin-tasker handles structured Vikunja task creation. Delegate when: (1) block is `vikunja_task` and NOT a simple someday item; (2) task needs enrichment (project, labels, priority, due date); (3) block is a research request (tasker shapes for Research project).
 
 Main forwards your message verbatim to tasker per the verbatim-passthrough rule (#374). Payload to main:
 
@@ -230,6 +230,6 @@ Tasker returns `task_created (id=<n>)`, `task_failed (reason)`, or `task_needs_c
 
 ## Task bridge — Vikunja task creation (fallback)
 
-When tasker is unreachable, do basic structured task creation yourself. For `vikunja_task` kinds: invoke `cd /home/claude/kg-automation && python3 -m scripts.inbox.route_someday --title <t> --body <b> --note-filename <n>` (lands in Someday by default; tasker would have placed it more precisely, but Someday is the safe-fallback bucket). For `research-request` types, fall through to the parse-failure path so a human can shape it.
+When tasker is unreachable, do basic structured task creation yourself. For `vikunja_task` kinds: invoke `cd /home/claude/kg-automation && python3 -m scripts.inbox.route_someday --title <t> --body <b> --note-filename <n>` — this lands the capture in **Inbox** (id 1) as a `q:schedule` + no-due-date task (the "important, not date-committed" state), which is also the safe-fallback / fall-through bucket for anything unclassifiable or without a resolved project. There is **no "Someday" project** — "someday" is a task state (the `q:schedule` label + no due date), not a project; tasker would have enriched the task with a more precise project/labels/priority. For `research-request` types, fall through to the parse-failure path so a human can shape it.
 
 **Duplicate detection** is handled by the routing log dedup (Step 5b's `append_routing_entry`); the same inbox filename won't be re-routed on a subsequent tick.

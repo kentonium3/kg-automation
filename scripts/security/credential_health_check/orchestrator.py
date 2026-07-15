@@ -11,6 +11,8 @@ from dataclasses import dataclass, field
 from datetime import date
 from typing import Optional
 
+from scripts.common import vikunja_refs
+
 from .cadence import compute_boundary, is_fixed_interval_cadence, is_within_warning_window
 from .github_writer import (
     GitHubWriteError,
@@ -33,7 +35,7 @@ from .manifest import (
     read_manifest,
 )
 from .signals import MONITOR_ACTIVITY_READERS
-from .vikunja_writer import VikunjaWriteError, create_task, load_token, lookup_inbox_project_id
+from .vikunja_writer import VikunjaWriteError, create_task, load_token
 
 
 @dataclass
@@ -150,7 +152,7 @@ def run_cycle(
                     if vikunja_token is None and not dry_run:
                         try:
                             vikunja_token = load_token()
-                            inbox_project_id = lookup_inbox_project_id(vikunja_token)
+                            inbox_project_id = vikunja_refs.project_id("inbox")
                         except VikunjaWriteError:
                             # _process_cadence_alert already logged. The cached state
                             # will remain None and subsequent credentials will retry.
@@ -254,7 +256,7 @@ def _process_cadence_alert(
     # Step 1: Vikunja task first.
     try:
         token = vikunja_token or load_token()
-        proj_id = inbox_project_id if inbox_project_id is not None else lookup_inbox_project_id(token)
+        proj_id = inbox_project_id if inbox_project_id is not None else vikunja_refs.project_id("inbox")
         task_id = create_task(cred, boundary, github_issue_number=0, token=token, inbox_project_id=proj_id)
     except VikunjaWriteError as e:
         _log(

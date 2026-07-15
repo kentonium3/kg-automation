@@ -223,6 +223,36 @@ class TestMixedTaskScenario:
 
 
 # ===========================================================================
+# Scenario 5b — Private-set default now sourced from the WP01 seam (T015)
+# ===========================================================================
+
+
+class TestPrivateSetDefaultSource:
+    def test_default_sourced_from_registry(self):
+        """The module default derives from ``vikunja_refs.private_project_ids()``."""
+        from scripts.common import vikunja_refs
+
+        assert d.PRIVATE_PROJECT_IDS == vikunja_refs.private_project_ids()
+
+    def test_default_is_empty_today(self):
+        """No private project is provisioned today → empty set → behavior unchanged."""
+        assert d.PRIVATE_PROJECT_IDS == frozenset()
+
+    def test_default_path_filters_nothing_today(self):
+        """With the empty default (no explicit override), a content change in any
+        project still produces a divergence — the privacy filter is a no-op today.
+        """
+        snap = _snapshot(
+            {"id": 7, "title": "New Title", "project_id": 99, "updated": "2026-06-04T18:00:00Z"},
+        )
+        tc = _task_cache(_task_entry(7, {"title": "Old Title", "project_id": 99}))
+        pc = _project_cache()
+        # Note: no private_ids passed → uses the module default.
+        divergences, _, _, _, _ = _run(snap, tc, pc)
+        assert [c.field for c in divergences] == ["title"]
+
+
+# ===========================================================================
 # Scenario 6 — Privacy filter on content events; NOT on structural ops
 # ===========================================================================
 

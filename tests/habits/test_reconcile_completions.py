@@ -38,7 +38,7 @@ from tests.common.conftest import mock_sync_cache_fixture  # noqa: F401
 # Test constants
 # ---------------------------------------------------------------------------
 
-HABITS_PROJECT_ID = rec.HABITS_PROJECT_ID  # 2
+HABITS_PROJECT_ID = rec.HABITS_PROJECT_ID  # registry-sourced (13 today)
 
 
 # ---------------------------------------------------------------------------

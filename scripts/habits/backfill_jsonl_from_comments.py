@@ -41,6 +41,7 @@ from pathlib import Path
 from typing import Any, Optional
 
 from scripts.common import state_log
+from scripts.common import vikunja_refs
 from scripts.common.vikunja_config import get_vikunja_base_url
 from scripts.habits.exclude_completed import FELIX_COMMENT_PATTERN
 
@@ -57,10 +58,6 @@ DEFAULT_TOKEN_PATH = "/data/services/openclaw/secrets/vikunja-api"
 
 #: Suffix appended to ``habits-history.jsonl`` for the pre-backfill snapshot.
 SNAPSHOT_SUFFIX = ".pre-phase4-backfill.bak"
-
-#: Title of the Vikunja project that holds all habit tasks. Mirrors the
-#: project-scoped enumeration pattern from ``reconcile_completions.py``.
-HABITS_PROJECT_TITLE = "Habits"
 
 #: HTTP socket timeout in seconds for every Vikunja API call.
 HTTP_TIMEOUT_SECONDS = 30
@@ -143,42 +140,6 @@ def _http_get(url: str, token: str) -> Any:
 # ---------------------------------------------------------------------------
 # Vikunja access helpers
 # ---------------------------------------------------------------------------
-
-
-def _resolve_habits_project_id(api_base_url: str, token: str) -> int:
-    """Resolve the Vikunja project id of the Habits project by exact title.
-
-    Mirrors ``scripts.habits.reconcile_completions._resolve_habits_project_id``
-    but raises ``ValueError`` (not OSError) on resolution failure so the CLI
-    can surface that as exit code 2 (config error) rather than exit code 1
-    (network error).
-
-    Raises:
-        OSError: On HTTP/network failure or non-list payload.
-        ValueError: If exactly one project titled ``"Habits"`` is not found
-            (zero or multiple matches).
-    """
-    url = _join_url(api_base_url, "projects")
-    payload = _http_get(url, token)
-    if not isinstance(payload, list):
-        raise OSError(
-            f"GET {url} returned non-list payload "
-            f"(got {type(payload).__name__})"
-        )
-    matches: list[int] = []
-    for project in payload:
-        if (
-            isinstance(project, dict)
-            and project.get("title") == HABITS_PROJECT_TITLE
-        ):
-            project_id = project.get("id")
-            if isinstance(project_id, int):
-                matches.append(project_id)
-    if len(matches) == 1:
-        return matches[0]
-    raise ValueError(
-        f"Habits project not uniquely resolvable: found {len(matches)} matches"
-    )
 
 
 def _enumerate_habit_tasks(
@@ -344,7 +305,8 @@ def backfill(
 
     See ``contracts/api.md`` for the full contract. Summary:
 
-    - Resolves the "Habits" Vikunja project (exact title match).
+    - Resolves the Habits Vikunja project via the reference registry
+      (logical name ``"habits"`` → ``vikunja_refs.project_id``; network-free).
     - Enumerates active (non-archived) tasks in that project.
     - For each task: GETs comments; parses ``[Felix]`` matches; maps the
       parsed state through ``HISTORICAL_STATE_MAP``; on dry_run counts
@@ -366,11 +328,12 @@ def backfill(
         Summary dict (see ``data-model.md`` Entity 4).
 
     Raises:
-        ValueError: If the Habits project cannot be uniquely resolved
-            (zero or multiple matches by exact title).
-        OSError: If the Vikunja API is unreachable for project resolution
-            or task enumeration, or if the snapshot copy fails
-            (``_SnapshotError``). Per-comment fetch failures DO NOT raise.
+        vikunja_refs.VikunjaRefError: If the ``"habits"`` reference is
+            undeclared, unprovisioned, or label-form (fail-loud registry
+            resolution; caller maps to exit 2).
+        OSError: If the Vikunja API is unreachable for task enumeration, or
+            if the snapshot copy fails (``_SnapshotError``). Per-comment
+            fetch failures DO NOT raise.
     """
     summary: dict[str, Any] = {
         "run_mode": "dry-run" if dry_run else "live",
@@ -394,8 +357,10 @@ def backfill(
         "snapshot_created": False,  # False if .bak preserved from prior run or no source
     }
 
-    # Resolve Habits project. ValueError → caller maps to exit 2.
-    project_id = _resolve_habits_project_id(api_base_url, token)
+    # Resolve Habits project via the reference seam (network-free, fail-loud).
+    # A deleted/renamed/unprovisioned "habits" ref raises VikunjaRefError →
+    # caller maps to exit 2 (config error), never a silent empty run (#748/#745).
+    project_id = vikunja_refs.project_id("habits")
     summary["habits_project_id"] = project_id
 
     # Enumerate habit tasks. OSError → caller maps to exit 1.
@@ -580,7 +545,10 @@ def _format_summary(summary: dict) -> str:
     lines.append("Vikunja API:")
     proj = summary["habits_project_id"]
     if proj is not None:
-        lines.append(f"  Habits project resolved: id={proj} title=\"Habits\"")
+        lines.append(
+            f"  Habits project resolved: id={proj} "
+            f'title="{vikunja_refs.project_title("habits")}"'
+        )
     lines.append(f"  Habit tasks enumerated: {summary['tasks_enumerated']}")
     lines.append(f"  Comments fetched: {summary['comments_fetched']}")
     lines.append("")
@@ -769,8 +737,13 @@ def main(argv: list[str] | None = None) -> int:
 
     try:
         summary = backfill(args.base_url, token, dry_run=args.dry_run)
+    except vikunja_refs.VikunjaRefError as e:
+        # Fail-loud registry resolution failure (undeclared / unprovisioned /
+        # label-form "habits" ref) → config-level error.
+        print(f"ERROR: {e}", file=sys.stderr)
+        return 2
     except ValueError as e:
-        # Project resolution failure or other config-level error.
+        # Other config-level error.
         print(f"ERROR: {e}", file=sys.stderr)
         return 2
     except _SnapshotError as e:
@@ -787,7 +760,7 @@ def main(argv: list[str] | None = None) -> int:
     if summary.get("habits_project_id") is not None:
         print(
             f"Resolved Habits project: id={summary['habits_project_id']} "
-            f'title="{HABITS_PROJECT_TITLE}"'
+            f'title="{vikunja_refs.project_title("habits")}"'
         )
     if summary.get("snapshot_path"):
         print(f"Snapshot created: {summary['snapshot_path']}")

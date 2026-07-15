@@ -26,21 +26,23 @@ Authoritative contracts:
 
 Public surface
 --------------
-Constants: ``HABITS_PROJECT_ID``, ``DAILY_REPEAT_AFTER``
+Constants: ``DAILY_REPEAT_AFTER``
 Functions: ``parse_weekday_in_title``, ``classify_habit``,
     ``scheduled_days_for_window``, ``query_completion_events``,
     ``build_report``, ``main``
 
-Habit project id (mission deterministic-cron-hardening-01KXA4PX, #723)
+Habit project id (mission deterministic-cron-hardening-01KXA4PX, #723;
+mission vikunja-reference-seam-01KXK68Z, #748/#745)
 ------------------------------------------------------------------------
-``HABITS_PROJECT_ID`` is sourced from
-:func:`scripts.common.vikunja_scope.habit_project_id` at module import
-time rather than hardcoded, so the #714 taxonomy move is a config-only
-edit to ``vikunja_scope.py`` (FR-008). The label selector fetch strategy
-is out of scope here (deferred to #716) — if the scope module ever
-reports a label selector (``habit_project_id()`` returns ``None``), this
-module raises :class:`NotImplementedError` rather than silently
-misbehaving.
+The habit project id is resolved on demand via
+:func:`_resolve_habits_project_id`, which reads
+:func:`scripts.common.vikunja_scope.habit_project_id` (in turn sourced
+from the reference registry ``vikunja_refs.json``) — never hardcoded and
+never mirrored into a module-level constant, so the one source is the
+registry (FR-002/FR-005/FR-008). The label selector fetch strategy is out
+of scope here (deferred to #716) — if the scope module ever reports a
+label selector (``habit_project_id()`` returns ``None``), the resolver
+raises :class:`NotImplementedError` rather than silently misbehaving.
 """
 from __future__ import annotations
 
@@ -60,7 +62,6 @@ from scripts.common.vikunja_client import VikunjaClient, VikunjaError
 from scripts.habits import history
 
 __all__ = [
-    "HABITS_PROJECT_ID",
     "DAILY_REPEAT_AFTER",
     "WEEKDAY_PATTERN",
     "WEEKDAY_TO_ISO",
@@ -96,7 +97,6 @@ def _resolve_habits_project_id() -> int:
     return project_id
 
 
-HABITS_PROJECT_ID = _resolve_habits_project_id()
 DAILY_REPEAT_AFTER = 86400  # seconds — Vikunja's encoding of "every 24 hours"
 
 #: Matches weekday names in habit titles. Both the 3-letter abbreviation
@@ -315,7 +315,7 @@ def query_completion_events(
     """
     events: dict[str, dict] = {}
 
-    tasks_path = f"/projects/{HABITS_PROJECT_ID}/tasks"
+    tasks_path = f"/projects/{_resolve_habits_project_id()}/tasks"
     # No ``filter`` param — we want every habit in project 13 regardless
     # of current-tick done flag; the report enumerates each habit and
     # consults the canonical store for completion counts.
@@ -414,7 +414,7 @@ def _emit_anomaly_log_action(
     _emit_log_action(
         category="flagged",
         action="weekly_report_anomaly",
-        target=f"/projects/{HABITS_PROJECT_ID}/tasks",
+        target=f"/projects/{_resolve_habits_project_id()}/tasks",
         outcome="capped",
         context={
             "habit_title": habit_title,
@@ -937,7 +937,7 @@ def main(argv: Optional[list[str]] = None) -> int:
         _emit_log_action(
             category="routine",
             action="weekly_report_generated",
-            target=f"/projects/{HABITS_PROJECT_ID}/tasks",
+            target=f"/projects/{_resolve_habits_project_id()}/tasks",
             outcome="success",
             context={
                 "window_start_iso": report["window_start_iso"],

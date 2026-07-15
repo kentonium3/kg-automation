@@ -89,6 +89,7 @@ from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any, Iterable, Optional
 
+from scripts.common import vikunja_refs
 from scripts.common.sync_cache import (
     SLA_NORMAL,
     SLATier,
@@ -147,10 +148,14 @@ HTTP_TIMEOUT_SECONDS: int = 30
 FELIX_COMMENT_PREFIX: str = "[Felix]"
 
 #: Project ids excluded from ``reconcile`` per the deployed tasker AGENTS.md
-#: scope rules. ``13`` (Habits) carries its own state substrate (owned by
+#: scope rules. Habits carries its own state substrate (owned by
 #: felix-admin-habits). Goals (11) was deleted by #717 — its tasks moved to
 #: Intentional LLC — so it is no longer a project and no longer excluded.
-EXCLUDED_PROJECT_IDS: frozenset[int] = frozenset({13})
+#: The Habits id is **derived** from the reference-seam registry
+#: (``vikunja_refs.project_id("habits")`` → ``13`` today), not restated as a
+#: literal, per FR-005 / SC-001 (zero hardcoded resolution ids in runtime
+#: consumers). Mirrors ``vikunja_scope.ESCALATION_EXCLUDED_PROJECT_IDS``.
+EXCLUDED_PROJECT_IDS: frozenset[int] = frozenset({vikunja_refs.project_id("habits")})
 
 
 # ---------------------------------------------------------------------------

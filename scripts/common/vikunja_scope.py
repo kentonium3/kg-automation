@@ -4,8 +4,12 @@ Decouples escalation and habit logic from the concrete Vikunja project/label
 taxonomy (mission ``deterministic-cron-hardening-01KXA4PX``, issue
 kentonium3/kg-automation#723, FR-008/NFR-004). The #714 Vikunja
 reorganization may move habit identity from a project id to a label; when
-that happens, the swap is a **value edit in this module only** — consumers
-never hardcode ids.
+that happens, the value lives in the registry
+(``scripts/common/vikunja_refs.json``) and this module reads it **through
+the accessor** (``vikunja_refs.selector`` / ``vikunja_refs.project_id``) —
+consumers never hardcode ids and this module never restates them (mission
+``vikunja-reference-seam-01KXK68Z``, kentonium3/kg-automation#748/#745,
+FR-002/FR-005/FR-008).
 
 Authoritative contract:
 ``kitty-specs/deterministic-cron-hardening-01KXA4PX/contracts/vikunja_scope.md``.
@@ -37,6 +41,8 @@ Functions: ``get_escalation_excluded_project_ids``, ``get_habit_selector``,
 """
 from __future__ import annotations
 
+from scripts.common import vikunja_refs
+
 __all__ = [
     "ESCALATION_EXCLUDED_PROJECT_IDS",
     "HABIT_SELECTOR",
@@ -45,18 +51,23 @@ __all__ = [
     "habit_project_id",
 ]
 
-#: Project ids that escalation excludes from candidate enumeration.
-#: Today: Habits (13) only. Goals (11) was deleted by #717 (its tasks moved
-#: to Intentional LLC and are now normal escalation candidates), so it is no
+#: Project ids that escalation excludes from candidate enumeration. Today:
+#: Habits only. Goals (11) was deleted by #717 (its tasks moved to
+#: Intentional LLC and are now normal escalation candidates), so it is no
 #: longer excluded. Project-ID-only (see H6 above) — re-deriving this from
-#: ``habit_selector`` when it becomes a label is #716's work.
-ESCALATION_EXCLUDED_PROJECT_IDS: list[int] = [13]
+#: ``habit_selector`` when it becomes a label is #716's work. The id is
+#: **derived** from the registry, not restated: ``[project_id("habits")]``
+#: (seeds to 13 today).
+ESCALATION_EXCLUDED_PROJECT_IDS: list[int] = [vikunja_refs.project_id("habits")]
 
-#: Habit identity selector. ``kind`` is ``"project_id"`` or ``"label"``;
-#: today's value uses ``project_id``. A future #714/#716 label move sets
-#: this to e.g. ``{"kind": "label", "value": "t:habit"}`` — a config edit,
-#: not a logic change, once #716 ships the label fetch strategy.
-HABIT_SELECTOR: dict[str, object] = {"kind": "project_id", "value": 13}
+#: Habit identity selector, read **through** the registry so the seam owns
+#: the value. ``kind`` is ``"project_id"`` or ``"label"``; today's value
+#: uses ``project_id`` (seeds to 13). A future #714/#716 label move is a
+#: registry edit (``vikunja_refs.json`` → e.g.
+#: ``{"kind": "label", "value": "t:habit"}``), not a logic change, once #716
+#: ships the label fetch strategy. The ``{kind, value}`` shape is preserved
+#: for that migration (FR-008).
+HABIT_SELECTOR: dict[str, object] = vikunja_refs.selector("habits")
 
 _VALID_SELECTOR_KINDS = frozenset({"project_id", "label"})
 

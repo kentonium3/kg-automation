@@ -17,7 +17,7 @@
   "flattened": false,
   "friendly_name": "Felix Vikunja reference-resolution seam",
   "mission_id": "01KXK68ZQGWPK68ES7809SM148",
-  "mission_number": null,
+  "mission_number": 103,
   "mission_slug": "vikunja-reference-seam-01KXK68Z",
   "mission_type": "software-dev",
   "purpose_context": "Felix resolves Vikunja projects and labels ad-hoc today — by title in some places, hardcoded ids in others, with no single mapping. That fragility silently broke inbox routing when the #714 Vikunja reset deleted a project (#743). This mission consolidates all project/label resolution into one declared seam that resolves against the locked post-reset names and fails loud on drift, so Felix stays correct across Vikunja structure changes and the downstream routing/atomicity/validation work (#745/#746/#749) builds on solid ground.",

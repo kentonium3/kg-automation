@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Optional
 from zoneinfo import ZoneInfo
 
+from scripts.common import vikunja_refs
 from scripts.common.vikunja_config import get_vikunja_base_url
 from .manifest import Credential
 
@@ -20,7 +21,6 @@ from .manifest import Credential
 #: Sentinel; resolved at call-time via get_vikunja_base_url().
 VIKUNJA_API_BASE: str = ""
 VIKUNJA_TOKEN_PATH = Path("/data/services/openclaw/secrets/vikunja-api")
-INBOX_PROJECT_TITLE = "Inbox"
 DUE_DATE_TIMEZONE = "America/New_York"
 DUE_DATE_DAYS_BEFORE_BOUNDARY = 7
 
@@ -104,21 +104,6 @@ def _request_json(
         raise VikunjaWriteError(f"Vikunja {method} {url} returned non-JSON: {e}") from e
 
 
-def lookup_inbox_project_id(token: str) -> int:
-    """Find the Inbox project by title. Returns the smallest matching ID if multiple."""
-    projects = _request_json("GET", f"{get_vikunja_base_url()}projects", token, timeout=10)
-    if not isinstance(projects, list):
-        raise VikunjaWriteError(
-            f"Vikunja /projects did not return a list (got {type(projects).__name__})"
-        )
-    matches = [p for p in projects if isinstance(p, dict) and p.get("title") == INBOX_PROJECT_TITLE]
-    if not matches:
-        raise VikunjaWriteError(
-            f"Vikunja project titled {INBOX_PROJECT_TITLE!r} not found."
-        )
-    return min(int(p["id"]) for p in matches)
-
-
 def create_task(
     credential: Credential,
     boundary: date,
@@ -130,12 +115,16 @@ def create_task(
     """Create the Vikunja task and return its ID.
 
     Optional token/inbox_project_id allow the orchestrator to cache them
-    across credentials in a single cycle.
+    across credentials in a single cycle. When ``inbox_project_id`` is not
+    supplied it is resolved through the reference seam
+    (``vikunja_refs.project_id("inbox")`` → registry, network-free, targets
+    Inbox id 1); a deleted/unprovisioned "inbox" ref fails loud with
+    :class:`~scripts.common.vikunja_refs.VikunjaRefError` (#748/#745).
     """
     if token is None:
         token = load_token()
     if inbox_project_id is None:
-        inbox_project_id = lookup_inbox_project_id(token)
+        inbox_project_id = vikunja_refs.project_id("inbox")
     payload = {
         "title": task_title(credential),
         "description": task_description(credential, boundary, github_issue_number),

@@ -1110,3 +1110,27 @@ class TestReconcileDocstring:
         doc = reconcile.__doc__ or ""
         assert "Goals" not in doc
         assert "Habits" in doc
+
+
+class TestExcludedProjectIdsDerivedFromSeam:
+    """``EXCLUDED_PROJECT_IDS`` must be *derived* from the reference-seam
+    registry (FR-005 / SC-001), not a hardcoded ``frozenset({13})`` literal.
+    This is the no-vestiges completion of the FR-005 migration — the constant
+    was missed in the original inventory and surfaced by the broadened SC-001
+    gate (WP05)."""
+
+    def test_excluded_project_ids_equals_seam_derived_habits(self):
+        """The constant must equal the seam accessor's habits id, not a baked-in
+        literal — asserting the *derived* value keeps it honest if the registry
+        id ever changes."""
+        from scripts.common import vikunja_refs
+
+        assert EXCLUDED_PROJECT_IDS == frozenset(
+            {vikunja_refs.project_id("habits")}
+        )
+
+    def test_excluded_project_ids_resolves_to_13_today(self):
+        """Behavior is preserved: the registry maps habits -> 13, so the
+        runtime value of the derived frozenset is identical to the prior
+        hardcoded ``frozenset({13})``."""
+        assert EXCLUDED_PROJECT_IDS == frozenset({13})

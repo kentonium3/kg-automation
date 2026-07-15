@@ -15,6 +15,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from scripts.common import vikunja_refs
+from scripts.common.vikunja_refs import VikunjaRefUnprovisioned
 from scripts.sync.diff import DivergenceCandidate
 
 
@@ -43,9 +45,17 @@ DOWNSTREAM_AFFECTING_FIELDS: frozenset[str] = frozenset({
 })
 
 
-# UC-4 markers. Either a label-title match OR a task-title prefix match.
+# UC-4 markers. Either a felix:ignore *label* match (resolved by id through the
+# WP01 reference seam) OR a task-title prefix match.
 MANUAL_OVERRIDE_LABEL: str = "felix:ignore"
 MANUAL_OVERRIDE_TITLE_PREFIX: str = "[NO FELIX]"
+
+# The token namespace the sync classifier resolves the felix:ignore label in.
+# felix:ignore is owned by kent (#715 two-token model): its id is only valid
+# inside kent's namespace. The sync bearer is felix-bot, but felix-bot READS and
+# FILTERS kent's labels fine (it only 403'd on ATTACHING kent-owned labels), so
+# resolving in kent's namespace is correct here.
+MANUAL_OVERRIDE_LABEL_TOKEN: str = "kent"
 
 
 # Class labels.
@@ -72,21 +82,48 @@ class ClassifiedConflict:
 # ---------------------------------------------------------------------------
 
 
+def _manual_override_label_id() -> int | None:
+    """Resolve the ``felix:ignore`` label id in kent's namespace through the seam.
+
+    Returns the pinned integer id when the label is provisioned, or ``None``
+    when it is declared-but-**unprovisioned** (``value: null`` — the case today,
+    since the label is not yet created in Vikunja). A ``None`` return means the
+    label-based override is simply **dormant**: the caller degrades gracefully
+    and relies on the ``[NO FELIX]`` title-prefix override instead.
+
+    A genuinely *broken* reference — undeclared/deleted, wrong owner token, or an
+    invalid provisioned id — raises the base :class:`VikunjaRefError` (NOT the
+    ``VikunjaRefUnprovisioned`` subclass) and propagates loudly. That is the
+    SC-002 / #743 fail-loud guard: a broken reference must never silently
+    classify-miss. Only ``VikunjaRefUnprovisioned`` is caught here.
+    """
+    try:
+        return vikunja_refs.label_id(MANUAL_OVERRIDE_LABEL, MANUAL_OVERRIDE_LABEL_TOKEN)
+    except VikunjaRefUnprovisioned:
+        return None
+
+
 def has_override_signal(task: dict) -> bool:
     """Return True iff the task carries an explicit operator-override marker.
 
     UC-4 fires when:
-    - any of the task's labels has ``title == MANUAL_OVERRIDE_LABEL``
+    - any of the task's labels has ``id == felix:ignore``'s resolved id (the
+      robust, rename-proof check — the label id is resolved through the WP01
+      seam, not matched by title); this check is SKIPPED when the label is
+      unprovisioned (``_manual_override_label_id()`` returns ``None``)
     - OR the task's title starts with ``MANUAL_OVERRIDE_TITLE_PREFIX``
 
     Operator-explicit markers are the only mechanism that REDUCES urgency
-    (inverts class to auto_resolved).
+    (inverts class to auto_resolved). A genuinely broken felix:ignore reference
+    propagates a :class:`VikunjaRefError` (SC-002 fail-loud), never a silent miss.
     """
-    labels = task.get("labels") or []
-    if isinstance(labels, list):
-        for label in labels:
-            if isinstance(label, dict) and label.get("title") == MANUAL_OVERRIDE_LABEL:
-                return True
+    ignore_id = _manual_override_label_id()
+    if ignore_id is not None:
+        labels = task.get("labels") or []
+        if isinstance(labels, list):
+            for label in labels:
+                if isinstance(label, dict) and label.get("id") == ignore_id:
+                    return True
     title = task.get("title")
     if isinstance(title, str) and title.startswith(MANUAL_OVERRIDE_TITLE_PREFIX):
         return True
