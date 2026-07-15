@@ -1,3 +1,14 @@
+---
+affected_files: []
+cycle_number: 3
+mission_slug: vikunja-reference-seam-01KXK68Z
+reproduction_command:
+reviewed_at: '2026-07-15T20:57:30Z'
+reviewer_agent: unknown
+verdict: rejected
+wp_id: WP05
+---
+
 # WP05 Review — Cycle 2 — REQUEST_CHANGES (reviewer: codex, gpt-5-codex)
 
 The enrichment migration + broadened gate (single-line forms) are confirmed good.
