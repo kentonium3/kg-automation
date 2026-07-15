@@ -1,7 +1,7 @@
 {
-  "event_count": 20,
-  "last_event_id": "01KXKFTDMRFVTFYBQYCGTSWTPN",
-  "materialized_at": "2026-07-15T18:14:58.456231+00:00",
+  "event_count": 22,
+  "last_event_id": "01KXKFWKN2ZTWC1CQSV6XD16QT",
+  "materialized_at": "2026-07-15T18:16:10.145809+00:00",
   "mission_number": "",
   "mission_slug": "vikunja-reference-seam-01KXK68Z",
   "mission_type": "software-dev",
@@ -12,9 +12,9 @@
     "claimed": 0,
     "done": 0,
     "for_review": 0,
-    "in_progress": 0,
+    "in_progress": 1,
     "in_review": 0,
-    "planned": 4
+    "planned": 3
   },
   "work_packages": {
     "WP01": {
@@ -25,11 +25,11 @@
       "last_transition_at": "2026-07-15T18:14:58.456231+00:00"
     },
     "WP02": {
-      "actor": "finalize-tasks",
+      "actor": "claude:sonnet:python-pedro:implementer",
       "force_count": 0,
-      "lane": "planned",
-      "last_event_id": "01KXKD57TRP4RMXAG4W7BN7GRF",
-      "last_transition_at": "2026-07-15T17:28:27.224675+00:00"
+      "lane": "in_progress",
+      "last_event_id": "01KXKFWKN2ZTWC1CQSV6XD16QT",
+      "last_transition_at": "2026-07-15T18:16:10.145809+00:00"
     },
     "WP03": {
       "actor": "finalize-tasks",
