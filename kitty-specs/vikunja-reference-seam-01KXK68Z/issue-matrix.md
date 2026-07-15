@@ -9,10 +9,10 @@ Per FR-037 of the spec-kitty-mission-review skill Gate-4. One row per issue refe
 | #747 | Epic: Felix ↔ Vikunja integration | deferred-with-followup | Parent epic; this mission is one child (#748+#745). Epic stays open for #746/#749 and further children. |
 | #714 | Vikunja post-reset configuration | verified-already-fixed | The reset is complete; this mission consumes the locked post-reset names (C-004) and does not modify Vikunja config (C-001). Registry seeded from live post-reset ids (WP01). |
 | #743 | Inbox capture silent-loss (by-title lookup of deleted project) | in-mission | Structural guard for the silent-loss class: fail-loud accessor (WP01) + drift/unreachable validator (WP02) + routing retarget (WP05). SC-002 regression guard. Terminal at done. |
-| #746 | Routing atomicity (atomic finalize) | deferred-with-followup | Explicitly out of scope; separate sequenced fast-follow (spec Scope). |
-| #749 | Task-intake validation loop | deferred-with-followup | Explicitly out of scope; separate fast-follow. Also owns the deferred `f:/q:/t:/loe:` taxonomy-label registry (FR-006). |
+| #746 | Routing atomicity (atomic finalize) | deferred-with-followup | Explicitly out of scope; tracked as Follow-up: #746 (separate sequenced fast-follow, spec Scope). |
+| #749 | Task-intake validation loop | deferred-with-followup | Out of scope; tracked as Follow-up: #749 (also owns the deferred `f:/q:/t:/loe:` taxonomy-label registry, FR-006). |
 | #715 | Per-user (two-token) Vikunja labels | verified-already-fixed | The two-token model is already in place; this mission consumes it for per-token label resolution (FR-006, WP04). Not modified here. |
-| #717 | Migrate Habits identity project-id 13 → t:habit label | deferred-with-followup | Future migration; this mission preserves the `{kind,value}` selector shape (FR-008, WP01/WP03) so it lands as a registry value edit. Not performed here. |
+| #717 | Migrate Habits identity project-id 13 → t:habit label | deferred-with-followup | Future migration tracked as Follow-up: #717; this mission preserves the `{kind,value}` selector shape (FR-008, WP01/WP03) so it lands as a registry value edit. Not performed here. |
 | #725 | Native is-null date filtering | deferred-with-followup | Not depended on (C-003); the `q:schedule`+no-due-date convention is independent of the #725 saved filter. Blocked upstream. |
 | #723 | Shared vikunja_scope selector seam | verified-already-fixed | The seam #723 established is consumed and folded onto the registry here (WP03 read-through); its behavior is preserved, not changed. |
 
