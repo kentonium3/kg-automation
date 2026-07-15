@@ -23,11 +23,9 @@ subtasks:
 - T022
 phase: Phase 3 - Routing + Gate
 assignee: ''
-agent: "codex:gpt-5-codex:reviewer-renata:reviewer"
 agent_profile: python-pedro
 role: implementer
 model: claude-sonnet-5
-shell_pid: "40161"
 shell_pid_created_at: "1784147819.144956"
 history:
 - at: '2026-07-15T17:18:48Z'
@@ -251,3 +249,4 @@ requires a change (note any change loudly).
 - 2026-07-15T20:36:10Z – claude:sonnet:python-pedro:implementer – shell_pid=35538 – Live-probe (2026-07-15, ssh office2-claude, felix-bot vikunja-api token): PUT /tasks/<id>/labels {label_id:23 q:schedule kent-owned} -> HTTP 403 Forbidden (temp task 109 created+deleted). Confirms #715 per-token boundary. Implemented decided graceful fail-soft: task ALWAYS created in Inbox (no due date) first (anti-silent-loss #743); q:schedule attach attempted then, on failure logs a loud structured {warning:label_attach_failed} envelope on stderr and route still exits 0. Feature activates automatically if felix-bot ever gains attach capability; #749 applies labels meanwhile.
 - 2026-07-15T20:37:12Z – claude:sonnet:python-pedro:implementer – shell_pid=35538 – Routing to q:schedule+Inbox; graceful attach-fallback (felix-bot 403 confirmed live); SC-001 gate green; 17+335 tests; 23e61d29
 - 2026-07-15T20:37:25Z – codex:gpt-5-codex:reviewer-renata:reviewer – shell_pid=40161 – Started review via action command
+- 2026-07-15T20:42:29Z – user – Moved to planned
