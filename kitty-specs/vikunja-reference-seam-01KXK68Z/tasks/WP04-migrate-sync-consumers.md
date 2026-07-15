@@ -17,10 +17,12 @@ subtasks:
 - T017
 phase: Phase 2 - Migration
 assignee: ''
-agent: claude
+agent: "claude:sonnet:python-pedro:implementer"
 agent_profile: python-pedro
 role: implementer
 model: claude-sonnet-5
+shell_pid: "98269"
+shell_pid_created_at: "1784139360.469166"
 history:
 - at: '2026-07-15T17:18:48Z'
   actor: system
@@ -184,3 +186,4 @@ source** in `diff.py`, not the threading.
 > Append new entries at the END, chronological order, UTC `YYYY-MM-DDTHH:MM:SSZ`.
 
 - 2026-07-15T17:18:48Z – system – Prompt created.
+- 2026-07-15T18:16:55Z – claude:sonnet:python-pedro:implementer – shell_pid=98269 – Assigned agent via action command
