@@ -25,9 +25,9 @@ assignee: ''
 agent_profile: python-pedro
 role: implementer
 model: claude-sonnet-5
-shell_pid_created_at: "1784145724.84628"
-agent: "claude:sonnet:python-pedro:implementer"
-shell_pid: "27002"
+shell_pid_created_at: "1784145974.011878"
+agent: "codex:gpt-5-codex:reviewer-renata:reviewer"
+shell_pid: "28463"
 history:
 - at: '2026-07-15T17:18:48Z'
   actor: system
@@ -267,3 +267,5 @@ Grep the codebase for import conventions before writing imports (per
 - 2026-07-15T18:06:23Z – codex:gpt-5-codex:reviewer-renata:reviewer – shell_pid=94584 – Started review via action command
 - 2026-07-15T18:15:04Z – user – shell_pid=94584 – Codex cycle-3 APPROVE; 40 tests; issue-matrix filled
 - 2026-07-15T20:02:21Z – claude:sonnet:python-pedro:implementer – shell_pid=27002 – Started implementation via action command
+- 2026-07-15T20:06:31Z – claude:sonnet:python-pedro:implementer – shell_pid=27002 – Added VikunjaRefUnprovisioned subclass + declared_projects/declared_labels accessors (52 tests, ruff clean, a7391525)
+- 2026-07-15T20:06:41Z – codex:gpt-5-codex:reviewer-renata:reviewer – shell_pid=28463 – Started review via action command
