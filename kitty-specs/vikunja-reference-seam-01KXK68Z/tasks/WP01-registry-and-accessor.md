@@ -22,12 +22,12 @@ subtasks:
 - T005
 phase: Phase 1 - Foundation
 assignee: ''
-agent: "claude:sonnet:python-pedro:implementer"
+agent: "codex:gpt-5-codex:reviewer-renata:reviewer"
 agent_profile: python-pedro
 role: implementer
 model: claude-sonnet-5
-shell_pid: "85299"
-shell_pid_created_at: "1784137070.889075"
+shell_pid: "89485"
+shell_pid_created_at: "1784137884.094923"
 history:
 - at: '2026-07-15T17:18:48Z'
   actor: system
@@ -255,3 +255,5 @@ Grep the codebase for import conventions before writing imports (per
 
 - 2026-07-15T17:18:48Z – system – Prompt created.
 - 2026-07-15T17:38:04Z – claude:sonnet:python-pedro:implementer – shell_pid=85299 – Assigned agent via action command
+- 2026-07-15T17:51:11Z – claude:sonnet:python-pedro:implementer – shell_pid=85299 – Ready for review (moved from primary checkout per known #710 lane-vs-primary stale-event-log SOP)
+- 2026-07-15T17:51:35Z – codex:gpt-5-codex:reviewer-renata:reviewer – shell_pid=89485 – Started review via action command
