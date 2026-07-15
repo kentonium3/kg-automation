@@ -67,8 +67,11 @@ STATE_LOG_DIR = Path("/data/services/openclaw/state")
 
 #: Vikunja project id for the Habits project. The sync cache stores
 #: ``project_id`` in task fields; we scope enumeration to this id.
-#: If the project id ever changes, update this constant.
-HABITS_PROJECT_ID = 2
+#: Was ``2`` — a stale pre-#714-reorg id (project 2 was the deleted "Everyday");
+#: the live Habits project is 13, matching scripts/common/vikunja_scope.py.
+#: With the stale value this reconcile skipped every real habit task
+#: (examined 0). #748 will consolidate this onto the reference registry.
+HABITS_PROJECT_ID = 13
 
 #: Regex for the --today flag (ISO-8601 date).
 _DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
