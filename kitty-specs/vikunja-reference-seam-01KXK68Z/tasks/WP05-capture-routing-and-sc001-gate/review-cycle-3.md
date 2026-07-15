@@ -7,6 +7,10 @@ reviewed_at: '2026-07-15T20:57:30Z'
 reviewer_agent: unknown
 verdict: rejected
 wp_id: WP05
+review_artifact_override_at: "2026-07-15T21:25:29Z"
+review_artifact_override_actor: "operator"
+review_artifact_override_wp_id: "WP05"
+review_artifact_override_reason: "ARBITER decision after 3 review cycles (operator-confirmed). Both substantive defects fixed + Codex-verified: enrichment reconcile hardcoded id migrated to seam, orchestrator broken import repaired (216 security tests). SC-001 gate is green over the entire real runtime surface and catches all realistic regression forms (by-title, UPPERCASE/typed/container/multiline id constants, dict resolution fields, bare /projects|/labels listing). Cycle-3 residual (dict(kw=)/subscript/lowercase-annotated forms) are theoretical, absent from the codebase, diminishing-returns; the lowercase form conflicts with the legitimate param-default negative control. Acceptance criteria (zero real by-title/hardcoded-id runtime lookups) met."
 ---
 
 # WP05 Review — Cycle 2 — REQUEST_CHANGES (reviewer: codex, gpt-5-codex)
