@@ -537,3 +537,268 @@ class TestCreateMode:
         )
         monkeypatch.setenv("FELIX_CALENDAR_HELPER_PYTHON", "/tmp/venv/bin/python")
         assert helper._calendar_helper_python() == "/tmp/venv/bin/python"
+
+
+# ---------------------------------------------------------------------------
+# --finalize mode (#737/#738/#657): atomic create -> verify -> mark -> log
+#
+# _invoke_calendar_helper (create) and _invoke_mark_processed (subprocess) are
+# MOCKED; the routing log is redirected to a tmp file.
+# ---------------------------------------------------------------------------
+
+
+from scripts.inbox import routing_log as _routing_log  # noqa: E402
+
+
+def _created_stdout(event_id="evt_1", html="https://cal/evt_1", idempotent=False):
+    return (
+        f'{{"status": "created", "idempotent": {str(idempotent).lower()}, '
+        f'"event_id": "{event_id}", "html_link": "{html}"}}\n'
+        "SUMMARY: op=create status=created\n"
+    )
+
+
+class TestFinalizeMode:
+    def _redirect_log(self, tmp_path, monkeypatch):
+        log = tmp_path / "routing.jsonl"
+        monkeypatch.setattr(_routing_log, "DEFAULT_ROUTING_LOG_PATH", log)
+        return log
+
+    def test_finalize_success_marks_and_logs(self, tmp_path, capsys, monkeypatch):
+        log = self._redirect_log(tmp_path, monkeypatch)
+        monkeypatch.setattr(
+            helper, "_invoke_calendar_helper",
+            lambda *a, **k: _fake_completed(0, stdout=_created_stdout()),
+        )
+        marked = {"called_with": None}
+
+        def fake_mark(source_path):
+            marked["called_with"] = source_path
+            return _fake_completed(0, stdout='{"finalized": true, "status": "processed"}\n')
+
+        monkeypatch.setattr(helper, "_invoke_mark_processed", fake_mark)
+
+        pf = _write_payload(tmp_path, {"title": "Emanuel call", "start": "2026-07-16T12:00:00-04:00"})
+        code, out, err = _run(
+            ["--payload-file", str(pf), "--finalize", "--source-path", "/inbox/Note 1.md"],
+            capsys,
+        )
+        assert code == 0, err
+        result = json.loads(out)
+        assert result["status"] == "finalized"
+        assert result["event_id"] == "evt_1"
+        assert result["marked_processed"] is True
+        assert result["routing_logged"] is True
+        # mark_processed was invoked with the raw source path.
+        assert marked["called_with"] == "/inbox/Note 1.md"
+        # A calendar routing-log row was written (basename key, kind, destination).
+        rows = [json.loads(l) for l in log.read_text().splitlines() if l.strip()]
+        assert len(rows) == 1
+        assert rows[0]["filename"] == "Note 1.md"
+        assert rows[0]["kind"] == "calendar"
+        assert rows[0]["destination"] == "evt_1"
+
+    def test_finalize_idempotent_hit_still_finalizes(self, tmp_path, capsys, monkeypatch):
+        self._redirect_log(tmp_path, monkeypatch)
+        monkeypatch.setattr(
+            helper, "_invoke_calendar_helper",
+            lambda *a, **k: _fake_completed(0, stdout=_created_stdout(idempotent=True)),
+        )
+        monkeypatch.setattr(helper, "_invoke_mark_processed", lambda p: _fake_completed(0))
+        pf = _write_payload(tmp_path, {"title": "Sync", "start": "2026-07-16T12:00:00-04:00"})
+        code, out, err = _run(
+            ["--payload-file", str(pf), "--finalize", "--source-path", "/inbox/n.md"], capsys
+        )
+        assert code == 0, err
+        assert json.loads(out)["status"] == "finalized"
+
+    def test_finalize_create_error_does_not_mark_or_log(self, tmp_path, capsys, monkeypatch):
+        log = self._redirect_log(tmp_path, monkeypatch)
+        monkeypatch.setattr(
+            helper, "_invoke_calendar_helper",
+            lambda *a, **k: _fake_completed(3, stderr="ERROR: auth_failed invalid_grant\n"),
+        )
+
+        def fake_mark(source_path):  # pragma: no cover - must NOT be called
+            raise AssertionError("mark_processed must not run when create fails")
+
+        monkeypatch.setattr(helper, "_invoke_mark_processed", fake_mark)
+        pf = _write_payload(tmp_path, {"title": "Sync", "start": "2026-07-16T12:00:00-04:00"})
+        code, out, err = _run(
+            ["--payload-file", str(pf), "--finalize", "--source-path", "/inbox/n.md"], capsys
+        )
+        assert code == 1, "create failure must be a NON-zero exit (fail-loud)"
+        result = json.loads(out)
+        assert result["status"] == "error"
+        assert "auth_failed invalid_grant" in result["error"]
+        assert not log.exists() or log.read_text().strip() == ""
+
+    def test_finalize_needs_clarification_not_finalized(self, tmp_path, capsys, monkeypatch):
+        self._redirect_log(tmp_path, monkeypatch)
+
+        def fake_invoke(*a, **k):  # pragma: no cover - not called for invalid payload
+            raise AssertionError("helper must not be called for an invalid payload")
+
+        monkeypatch.setattr(helper, "_invoke_calendar_helper", fake_invoke)
+        monkeypatch.setattr(helper, "_invoke_mark_processed", lambda p: _fake_completed(0))
+        pf = _write_payload(tmp_path, {"title": "Sync"})  # missing start
+        code, out, err = _run(
+            ["--payload-file", str(pf), "--finalize", "--source-path", "/inbox/n.md"], capsys
+        )
+        assert code == 0, err
+        result = json.loads(out)
+        assert result["status"] == "needs_clarification"
+        assert "start" in result["missing"]
+
+    def test_finalize_mark_failure_is_error_not_logged(self, tmp_path, capsys, monkeypatch):
+        log = self._redirect_log(tmp_path, monkeypatch)
+        monkeypatch.setattr(
+            helper, "_invoke_calendar_helper",
+            lambda *a, **k: _fake_completed(0, stdout=_created_stdout()),
+        )
+        monkeypatch.setattr(
+            helper, "_invoke_mark_processed",
+            lambda p: _fake_completed(3, stderr='{"error": "refused"}'),
+        )
+        pf = _write_payload(tmp_path, {"title": "Sync", "start": "2026-07-16T12:00:00-04:00"})
+        code, out, err = _run(
+            ["--payload-file", str(pf), "--finalize", "--source-path", "/inbox/n.md"], capsys
+        )
+        assert code == 1, "mark_processed failure must be NON-zero (fail-loud)"
+        result = json.loads(out)
+        assert result["status"] == "error"
+        assert result["stage"] == "mark_processed"
+        assert result["event_id"] == "evt_1"  # the event DID get created — surface it
+        # routing log must NOT be written (mark did not succeed).
+        assert not log.exists() or log.read_text().strip() == ""
+
+    def test_finalize_routing_log_failure_still_finalized(self, tmp_path, capsys, monkeypatch):
+        self._redirect_log(tmp_path, monkeypatch)
+        monkeypatch.setattr(
+            helper, "_invoke_calendar_helper",
+            lambda *a, **k: _fake_completed(0, stdout=_created_stdout()),
+        )
+        monkeypatch.setattr(helper, "_invoke_mark_processed", lambda p: _fake_completed(0))
+        # Simulate a routing-log write failure (best-effort; non-fatal).
+        monkeypatch.setattr(helper, "_append_calendar_routing_log", lambda *a, **k: False)
+        pf = _write_payload(tmp_path, {"title": "Sync", "start": "2026-07-16T12:00:00-04:00"})
+        code, out, err = _run(
+            ["--payload-file", str(pf), "--finalize", "--source-path", "/inbox/n.md"], capsys
+        )
+        # The note IS processed and the event IS created → success, with a warning flag.
+        assert code == 0, err
+        result = json.loads(out)
+        assert result["status"] == "finalized"
+        assert result["routing_logged"] is False
+
+    def test_finalize_routing_log_is_idempotent(self, tmp_path, capsys, monkeypatch):
+        log = self._redirect_log(tmp_path, monkeypatch)
+        # Pre-seed an existing calendar row for this note.
+        log.write_text(json.dumps({"filename": "n.md", "kind": "calendar", "destination": "old"}) + "\n")
+        monkeypatch.setattr(
+            helper, "_invoke_calendar_helper",
+            lambda *a, **k: _fake_completed(0, stdout=_created_stdout()),
+        )
+        monkeypatch.setattr(helper, "_invoke_mark_processed", lambda p: _fake_completed(0))
+        pf = _write_payload(tmp_path, {"title": "Sync", "start": "2026-07-16T12:00:00-04:00"})
+        code, out, err = _run(
+            ["--payload-file", str(pf), "--finalize", "--source-path", "/inbox/n.md"], capsys
+        )
+        assert code == 0, err
+        assert json.loads(out)["routing_logged"] is True
+        # No duplicate row appended.
+        rows = [json.loads(l) for l in log.read_text().splitlines() if l.strip()]
+        assert len(rows) == 1
+
+    def test_finalize_dry_run_no_side_effects(self, tmp_path, capsys, monkeypatch):
+        log = self._redirect_log(tmp_path, monkeypatch)
+
+        def fake_invoke(*a, **k):  # pragma: no cover
+            raise AssertionError("dry-run must not call the calendar helper")
+
+        def fake_mark(p):  # pragma: no cover
+            raise AssertionError("dry-run must not mark processed")
+
+        monkeypatch.setattr(helper, "_invoke_calendar_helper", fake_invoke)
+        monkeypatch.setattr(helper, "_invoke_mark_processed", fake_mark)
+        pf = _write_payload(tmp_path, {"title": "Sync", "start": "2026-07-16T12:00:00-04:00"})
+        code, out, err = _run(
+            ["--payload-file", str(pf), "--finalize", "--dry-run", "--source-path", "/inbox/n.md"],
+            capsys,
+        )
+        assert code == 0, err
+        result = json.loads(out)
+        assert result["status"] == "dry_run"
+        assert result["would_finalize"] is True
+        assert result["envelope"]["summary"] == "Sync"
+        assert not log.exists() or log.read_text().strip() == ""
+
+    def test_finalize_dry_run_invalid_is_needs_clarification(self, tmp_path, capsys):
+        pf = _write_payload(tmp_path, {"title": "Sync"})  # missing start
+        code, out, err = _run(
+            ["--payload-file", str(pf), "--finalize", "--dry-run", "--source-path", "/inbox/n.md"],
+            capsys,
+        )
+        assert code == 0, err
+        assert json.loads(out)["status"] == "needs_clarification"
+
+    def test_finalize_requires_source_path(self, tmp_path, capsys):
+        pf = _write_payload(tmp_path, {"title": "Sync", "start": "2026-07-16T12:00:00-04:00"})
+        code, out, err = _run(["--payload-file", str(pf), "--finalize"], capsys)
+        assert code == 1
+        assert "missing_source_path" in err
+
+    def test_finalize_and_create_mutually_exclusive(self, tmp_path, capsys):
+        pf = _write_payload(tmp_path, {"title": "Sync", "start": "2026-07-16T12:00:00-04:00"})
+        code, out, err = _run(
+            ["--payload-file", str(pf), "--finalize", "--create", "--source-path", "/inbox/n.md"],
+            capsys,
+        )
+        assert code == 1
+        assert "mutually_exclusive" in err
+
+    def test_dry_run_without_finalize_rejected(self, tmp_path, capsys):
+        pf = _write_payload(tmp_path, {"title": "Sync", "start": "2026-07-16T12:00:00-04:00"})
+        code, out, err = _run(["--payload-file", str(pf), "--dry-run"], capsys)
+        assert code == 1
+        assert "invalid_flag" in err
+
+
+class TestSubprocessTimeouts:
+    def test_calendar_helper_timeout_returns_nonzero(self, monkeypatch):
+        import subprocess as _sp
+
+        def raise_timeout(*a, **k):
+            raise _sp.TimeoutExpired(cmd="calendar_helper", timeout=90)
+
+        monkeypatch.setattr(helper.subprocess, "run", raise_timeout)
+        proc = helper._invoke_calendar_helper({"a": 1}, "/inbox/n.md", "personal")
+        assert proc.returncode == helper._TIMEOUT_RETURNCODE
+        assert "timed out" in proc.stderr
+
+    def test_mark_processed_timeout_returns_nonzero(self, monkeypatch):
+        import subprocess as _sp
+
+        def raise_timeout(*a, **k):
+            raise _sp.TimeoutExpired(cmd="mark_processed", timeout=30)
+
+        monkeypatch.setattr(helper.subprocess, "run", raise_timeout)
+        proc = helper._invoke_mark_processed("/inbox/n.md")
+        assert proc.returncode == helper._TIMEOUT_RETURNCODE
+        assert "timed out" in proc.stderr
+
+    def test_finalize_surfaces_helper_timeout_as_error(self, tmp_path, capsys, monkeypatch):
+        import subprocess as _sp
+
+        # subprocess.run raises TimeoutExpired -> _invoke_calendar_helper catches
+        # it and returns rc=124 -> _run_create -> error -> _run_finalize exit 1.
+        monkeypatch.setattr(
+            helper.subprocess, "run",
+            lambda *a, **k: (_ for _ in ()).throw(_sp.TimeoutExpired("x", 90)),
+        )
+        pf = _write_payload(tmp_path, {"title": "Sync", "start": "2026-07-16T12:00:00-04:00"})
+        code, out, err = _run(
+            ["--payload-file", str(pf), "--finalize", "--source-path", "/inbox/n.md"], capsys
+        )
+        assert code == 1
+        assert json.loads(out)["status"] == "error"

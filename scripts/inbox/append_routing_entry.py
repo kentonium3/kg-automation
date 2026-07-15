@@ -29,12 +29,19 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("filename", help="Inbox note filename (basename only).")
     parser.add_argument(
         "issue_number",
+        nargs="?",
         type=int,
-        help="GitHub issue number filed for this note.",
+        default=None,
+        help=(
+            "GitHub issue number filed for this note (issue_task routes). "
+            "Omit for --kind calendar."
+        ),
     )
     parser.add_argument(
         "vikunja_task_id",
-        help="Vikunja task ID, or '-' if no task was created.",
+        nargs="?",
+        default=None,
+        help="Vikunja task ID, or '-' if no task was created (issue_task routes).",
     )
     parser.add_argument(
         "excerpt",
@@ -42,10 +49,73 @@ def main(argv: list[str] | None = None) -> int:
         default="",
         help="Short note excerpt (will be truncated to 120 chars).",
     )
+    parser.add_argument(
+        "--kind",
+        choices=("issue_task", "calendar"),
+        default="issue_task",
+        help=(
+            "Route class. 'calendar' records a Google Calendar event (#737) — "
+            "calendar routes have no GitHub issue or Vikunja task."
+        ),
+    )
+    parser.add_argument(
+        "--event-id",
+        default=None,
+        help="Calendar event id — required (and the destination) with --kind calendar.",
+    )
     args = parser.parse_args(argv)
 
-    task_id = None if args.vikunja_task_id == "-" else int(args.vikunja_task_id)
     writer = RoutingLogWriter()
+
+    if args.kind == "calendar":
+        if not args.event_id:
+            print(
+                "ERROR: --event-id is required with --kind calendar",
+                file=sys.stderr,
+            )
+            return 2
+        if args.issue_number is not None:
+            print(
+                "ERROR: positional issue_number is not allowed with --kind "
+                "calendar (use --event-id)",
+                file=sys.stderr,
+            )
+            return 2
+        try:
+            entry = writer.append(
+                filename=args.filename,
+                kind="calendar",
+                destination=args.event_id,
+                note_excerpt=args.excerpt,
+            )
+        except OSError as exc:
+            print(f"ERROR: could not write routing log: {exc}", file=sys.stderr)
+            return 1
+        print(
+            f"Appended routing log entry: {entry.filename} -> calendar "
+            f"({entry.destination})"
+        )
+        return 0
+
+    # issue_task route (original behavior).
+    if args.issue_number is None:
+        print(
+            "ERROR: issue_number is required with --kind issue_task",
+            file=sys.stderr,
+        )
+        return 2
+    if args.vikunja_task_id in (None, "-"):
+        task_id = None
+    else:
+        try:
+            task_id = int(args.vikunja_task_id)
+        except ValueError:
+            print(
+                "ERROR: vikunja_task_id must be an integer or '-' "
+                f"(got {args.vikunja_task_id!r})",
+                file=sys.stderr,
+            )
+            return 2
     try:
         entry = writer.append(
             filename=args.filename,

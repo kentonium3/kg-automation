@@ -86,6 +86,15 @@ DEFAULT_ACCOUNT = "personal"
 # constant so tests can monkeypatch the subprocess call site.
 CALENDAR_HELPER_MODULE = "scripts.google.calendar_helper"
 
+# Subprocess timeouts (seconds). --finalize is the SINGLE command the capture
+# agent relies on, so a blocked Google API call or a stuck mark_processed must
+# fail cleanly rather than hang until the 600s openclaw cron limit kills the
+# whole turn. On timeout we synthesize a non-zero result so the caller's
+# returncode-based branches surface it as a fail-loud error (note not finalized).
+CALENDAR_HELPER_TIMEOUT_SECONDS = 90
+MARK_PROCESSED_TIMEOUT_SECONDS = 30
+_TIMEOUT_RETURNCODE = 124  # conventional timeout exit code
+
 # The calendar helper's Google client libraries live ONLY in a dedicated venv on
 # office2 (system python3 has neither pip nor the google libs). The helper MUST be
 # invoked with that venv's interpreter — NOT ``sys.executable`` (capture runs this
@@ -251,24 +260,36 @@ def _invoke_calendar_helper(
     try:
         with open(fd, "w", encoding="utf-8") as fh:
             json.dump(envelope, fh)
-        return subprocess.run(
-            [
-                _calendar_helper_python(),
-                "-m",
-                CALENDAR_HELPER_MODULE,
-                "create",
-                "--payload-file",
-                tmp_name,
-                "--idempotency-key",
-                source_inbox_path,
-                "--account",
-                account,
-                "--json",
-            ],
-            capture_output=True,
-            text=True,
-            check=False,
-        )
+        try:
+            return subprocess.run(
+                [
+                    _calendar_helper_python(),
+                    "-m",
+                    CALENDAR_HELPER_MODULE,
+                    "create",
+                    "--payload-file",
+                    tmp_name,
+                    "--idempotency-key",
+                    source_inbox_path,
+                    "--account",
+                    account,
+                    "--json",
+                ],
+                capture_output=True,
+                text=True,
+                check=False,
+                timeout=CALENDAR_HELPER_TIMEOUT_SECONDS,
+            )
+        except subprocess.TimeoutExpired:
+            return subprocess.CompletedProcess(
+                args=["calendar_helper"],
+                returncode=_TIMEOUT_RETURNCODE,
+                stdout="",
+                stderr=(
+                    "ERROR: calendar helper timed out after "
+                    f"{CALENDAR_HELPER_TIMEOUT_SECONDS}s"
+                ),
+            )
     finally:
         try:
             Path(tmp_name).unlink()
@@ -346,6 +367,155 @@ def _run_create(
 
 
 # ---------------------------------------------------------------------------
+# --finalize mode (#737/#738/#657): atomic create -> verify -> mark -> log
+# ---------------------------------------------------------------------------
+
+
+def _invoke_mark_processed(source_path: str) -> "subprocess.CompletedProcess[str]":
+    """Run ``mark_processed`` as a subprocess and return the completed process.
+
+    Deliberately a subprocess, not an in-process import of ``mark_processed()``:
+    the C-001 private-path refusal, inbox-root validation, and — critically —
+    the symlink ``.resolve()`` guard all live in ``mark_processed.main()``, not
+    in the bare function. Calling the function directly would let a symlinked
+    vault note "mark" the symlink while the real target stays ``unprocessed``,
+    re-introducing the silent-loss class this mission closes. The subprocess
+    also isolates ``mark_processed``'s own stdout JSON from this helper's
+    single-result-JSON contract. ``mark_processed`` is stdlib-only, so the
+    system interpreter (``sys.executable``) is correct (unlike the calendar
+    helper, which needs the google venv).
+    """
+    try:
+        return subprocess.run(
+            [sys.executable, "-m", "scripts.inbox.mark_processed", "--path", source_path],
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=MARK_PROCESSED_TIMEOUT_SECONDS,
+        )
+    except subprocess.TimeoutExpired:
+        return subprocess.CompletedProcess(
+            args=["mark_processed"],
+            returncode=_TIMEOUT_RETURNCODE,
+            stdout="",
+            stderr=f"ERROR: mark_processed timed out after {MARK_PROCESSED_TIMEOUT_SECONDS}s",
+        )
+
+
+def _append_calendar_routing_log(
+    filename: str, event_id: str, note_excerpt: str
+) -> bool:
+    """Append a ``calendar`` routing-log entry — LAST, after the frontmatter mark.
+
+    ``prescan`` dedups on the routing-log filename, so writing this BEFORE the
+    frontmatter mark can strand a note (skipped forever, never processed) — so
+    the caller runs this only after ``mark_processed`` exits 0. Idempotent via
+    ``RoutingLogReader().has()`` so a reprocess never double-writes. Best-effort:
+    a write failure is non-fatal (the note is already marked processed, which is
+    the primary dedup) — returns ``False`` so the caller can warn.
+    """
+    from scripts.inbox.routing_log import RoutingLogReader, RoutingLogWriter
+
+    try:
+        if RoutingLogReader().has(filename):
+            return True
+        RoutingLogWriter().append(
+            filename=filename,
+            kind="calendar",
+            destination=event_id,
+            note_excerpt=note_excerpt,
+        )
+        return True
+    except OSError:
+        return False
+
+
+def _run_finalize(
+    payload: object, source_path: str, account: str
+) -> tuple[dict, int]:
+    """Atomic create-and-finalize for a calendar route. Returns ``(result, code)``.
+
+    The single deterministic operation the capture agent invokes for a calendar
+    route — it cannot half-complete. Order (verified against ``prescan`` dedup):
+    create -> verify (``status==created`` AND non-empty ``event_id``) ->
+    ``mark_processed`` (subprocess, exit 0) -> routing-log append (last). Any
+    failure leaves the note UNprocessed so the next tick retries; the calendar
+    helper's idempotency key (= source path) prevents a double-create.
+
+    The exit code is derived from the OUTCOME, never from ``_run_create`` (which
+    returns 0 for created / error / needs_clarification alike):
+
+    - invalid payload -> ``{status: needs_clarification, missing}``; exit 0.
+    - create error / missing event_id -> ``{status: error, ...}``; exit 1. Not finalized.
+    - ``mark_processed`` non-zero -> ``{status: error, stage: mark_processed, ...}``;
+      exit 1. Event exists but note not marked; retried next tick.
+    - success -> ``{status: finalized, event_id, html_link, marked_processed,
+      routing_logged}``; exit 0.
+    """
+    if not isinstance(payload, dict):
+        return {"status": "needs_clarification", "missing": ["payload_not_object"]}, 0
+
+    # Pass the RAW source_path as the idempotency key (identical to --create) so
+    # a note previously touched by --create and now --finalize resolves to the
+    # SAME key — canonicalizing here would risk a double-create.
+    result, _ = _run_create(payload, source_path, account)
+    status = result.get("status")
+    if status == "needs_clarification":
+        return result, 0
+    if status != "created" or not result.get("event_id"):
+        # Create failed (or, defensively, "created" without an id). Fail loud:
+        # preserve the helper's error detail, force a non-zero exit, finalize nothing.
+        err = dict(result)
+        err["status"] = "error"
+        return err, 1
+
+    event_id = result["event_id"]
+    html_link = result.get("html_link", "")
+    title = payload.get("title", "")
+    note_excerpt = title if isinstance(title, str) else ""
+
+    proc = _invoke_mark_processed(source_path)
+    if proc.returncode != 0:
+        return {
+            "status": "error",
+            "stage": "mark_processed",
+            "event_id": event_id,
+            "exit_code": proc.returncode,
+            "error": (proc.stderr or proc.stdout).strip(),
+        }, 1
+
+    routing_logged = _append_calendar_routing_log(
+        Path(source_path).name, event_id, note_excerpt
+    )
+    return {
+        "status": "finalized",
+        "event_id": event_id,
+        "html_link": html_link,
+        "marked_processed": True,
+        "routing_logged": routing_logged,
+    }, 0
+
+
+def _run_finalize_dry_run(payload: object, source_path: str, account: str) -> dict:
+    """Credential-free wiring check for ``--finalize --dry-run``.
+
+    Validates the payload and reports the envelope that WOULD be sent, without
+    invoking the calendar helper, ``mark_processed``, or the routing log. Lets an
+    operator confirm the command is wired correctly on office2 without creating a
+    real event or needing Google credentials.
+    """
+    if not isinstance(payload, dict):
+        return {"status": "needs_clarification", "missing": ["payload_not_object"]}
+    is_valid, missing = validate_payload(payload)
+    if not is_valid:
+        return {"status": "needs_clarification", "missing": missing}
+    normalized = normalize_payload(payload)
+    envelope = build_delegation_payload(normalized, source_path)
+    envelope["account"] = account
+    return {"status": "dry_run", "would_finalize": True, "envelope": envelope}
+
+
+# ---------------------------------------------------------------------------
 # CLI orchestrator
 # ---------------------------------------------------------------------------
 
@@ -414,6 +584,27 @@ def main(argv: Optional[list[str]] = None) -> int:
         ),
     )
     parser.add_argument(
+        "--finalize",
+        action="store_true",
+        help=(
+            "Atomic create-and-finalize (#737/#738/#657): create the event, "
+            "verify it, mark the source note processed, and append the calendar "
+            "routing-log entry — as ONE operation the agent cannot half-complete. "
+            "Emits a single result JSON {status: finalized|error|needs_clarification} "
+            "and a non-zero exit on error. Requires --source-path; mutually "
+            "exclusive with --create/--as-delegation-payload."
+        ),
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help=(
+            "Only valid with --finalize: validate the payload and report the "
+            "envelope that WOULD be sent, WITHOUT creating, marking, or logging "
+            "(credential-free wiring check)."
+        ),
+    )
+    parser.add_argument(
         "--account",
         default=DEFAULT_ACCOUNT,
         help=(
@@ -431,18 +622,41 @@ def main(argv: Optional[list[str]] = None) -> int:
     )
     args = parser.parse_args(argv)
 
-    if args.as_delegation_payload and args.create:
-        _emit_error("mutually_exclusive", detail="--create and --as-delegation-payload are mutually exclusive")
+    if sum(bool(f) for f in (args.as_delegation_payload, args.create, args.finalize)) > 1:
+        _emit_error(
+            "mutually_exclusive",
+            detail="--create, --finalize, and --as-delegation-payload are mutually exclusive",
+        )
         return 1
 
-    if (args.as_delegation_payload or args.create) and not args.source_path:
-        flag = "--create" if args.create else "--as-delegation-payload"
+    if (args.as_delegation_payload or args.create or args.finalize) and not args.source_path:
+        flag = (
+            "--finalize" if args.finalize
+            else "--create" if args.create
+            else "--as-delegation-payload"
+        )
         _emit_error("missing_source_path", detail=f"--source-path is required with {flag}")
+        return 1
+
+    if args.dry_run and not args.finalize:
+        _emit_error("invalid_flag", detail="--dry-run is only valid with --finalize")
         return 1
 
     payload, err_code = _load_payload(Path(args.payload_file))
     if err_code is not None:
         return err_code
+
+    if args.finalize:
+        # Atomic create-and-finalize. Result JSON on stdout; exit code reflects
+        # the outcome (non-zero on error) so a failed create/mark surfaces
+        # loudly and the note is never silently marked processed.
+        if args.dry_run:
+            result = _run_finalize_dry_run(payload, args.source_path, args.account)
+            sys.stdout.write(json.dumps(result) + "\n")
+            return 0
+        result, code = _run_finalize(payload, args.source_path, args.account)
+        sys.stdout.write(json.dumps(result) + "\n")
+        return code
 
     if args.create:
         # In --create mode an invalid payload is a needs_clarification RESULT

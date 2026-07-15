@@ -199,3 +199,44 @@ def test_default_routing_log_path_under_data_services():
     # /data/services/openclaw/state/ per #656 (persistent-state boundary fix).
     assert str(DEFAULT_ROUTING_LOG_PATH) == "/data/services/openclaw/state/inbox-routing.jsonl"
     assert DEFAULT_ROUTING_LOG_PATH.name == "inbox-routing.jsonl"
+
+
+# ---------------------------------------------------------------------------
+# #737 — calendar routes: kind / destination fields
+# ---------------------------------------------------------------------------
+
+
+def test_append_calendar_route_records_kind_and_destination(tmp_path: Path):
+    log = tmp_path / "log.jsonl"
+    writer = RoutingLogWriter(log)
+    entry = writer.append(
+        filename="Note 1.md", kind="calendar", destination="evt_abc", note_excerpt="Emanuel call"
+    )
+    assert entry.kind == "calendar"
+    assert entry.destination == "evt_abc"
+    assert entry.issue_number is None
+    assert entry.vikunja_task_id is None
+    row = json.loads(log.read_text().splitlines()[0])
+    assert row["kind"] == "calendar"
+    assert row["destination"] == "evt_abc"
+    assert row["filename"] == "Note 1.md"
+
+
+def test_append_issue_task_defaults_kind(tmp_path: Path):
+    log = tmp_path / "log.jsonl"
+    writer = RoutingLogWriter(log)
+    entry = writer.append(filename="n.md", issue_number=42, vikunja_task_id=7)
+    assert entry.kind == "issue_task"
+    assert entry.destination == ""
+    assert entry.issue_number == 42
+
+
+def test_reader_tolerates_old_rows_without_kind(tmp_path: Path):
+    # Rows written before #737 have no kind/destination — dedup still works.
+    log = tmp_path / "log.jsonl"
+    log.write_text(
+        json.dumps({"filename": "old.md", "issue_number": 5, "vikunja_task_id": None,
+                    "routed_at": "2026-01-01T00:00:00Z", "note_excerpt": ""}) + "\n"
+    )
+    reader = RoutingLogReader(log)
+    assert reader.has("old.md")
