@@ -23,13 +23,24 @@ DEFAULT_ROUTING_LOG_PATH = Path("/data/services/openclaw/state/inbox-routing.jso
 
 @dataclass(frozen=True)
 class RoutingEntry:
-    """One row in the routing log. Append-only; values never mutate after write."""
+    """One row in the routing log. Append-only; values never mutate after write.
+
+    ``kind`` records the route class (``issue_task`` for the original
+    GitHub-issue / Vikunja-task routes, ``calendar`` for Google Calendar
+    events, etc.) and ``destination`` carries a kind-specific identifier
+    (e.g. a calendar ``event_id``). Both were added in #737 so calendar
+    routes — which have neither a GitHub issue nor a Vikunja task — can be
+    represented. Old on-disk rows predate these fields; the reader only keys
+    on ``filename`` so their absence is harmless.
+    """
 
     filename: str
-    issue_number: int
+    issue_number: Optional[int]
     vikunja_task_id: Optional[int]
     routed_at: str  # ISO-8601 UTC, with trailing Z
     note_excerpt: str = ""
+    kind: str = "issue_task"
+    destination: str = ""
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -114,14 +125,19 @@ class RoutingLogWriter:
     def append(
         self,
         filename: str,
-        issue_number: int,
+        issue_number: Optional[int] = None,
         vikunja_task_id: Optional[int] = None,
         note_excerpt: str = "",
+        kind: str = "issue_task",
+        destination: str = "",
     ) -> RoutingEntry:
         """Append one entry. Creates the parent directory if absent.
 
         `routed_at` is set automatically to UTC now (ISO-8601 with trailing Z).
         `note_excerpt` is truncated to 120 characters per the contract.
+        `kind`/`destination` (#737) record the route class and a kind-specific
+        id (e.g. a calendar ``event_id``); ``issue_number`` defaults to ``None``
+        so calendar routes — which have no GitHub issue — need not supply it.
         """
         entry = RoutingEntry(
             filename=filename,
@@ -129,6 +145,8 @@ class RoutingLogWriter:
             vikunja_task_id=vikunja_task_id,
             routed_at=datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
             note_excerpt=(note_excerpt or "")[:120],
+            kind=kind,
+            destination=destination,
         )
         self._path.parent.mkdir(parents=True, exist_ok=True, mode=0o750)
         new_file = not self._path.exists()

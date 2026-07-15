@@ -99,10 +99,10 @@ For each successfully parsed file, invoke `cd /home/claude/kg-automation && pyth
 - Then route by kind:
   - `journal` → `cd /home/claude/kg-automation && python3 -m scripts.inbox.route_journal_entry --content-file <tmp> --datetime <iso>`. Pass the block content via a tempfile; pass the note's frontmatter `created` (or file mtime if absent) as the datetime.
   - `someday` → `cd /home/claude/kg-automation && python3 -m scripts.inbox.route_someday --title <title> --body <body> --note-filename <name>`. Title = first sentence (≤100 chars); body = full block content. Returns `task_id=<int>`.
-  - `calendar` → assemble a `CalendarPayload` (`title`, `start`, optional `end`/`location`/`description`) into a tempfile; run the **single** deterministic command `cd /home/claude/kg-automation && python3 -m scripts.inbox.route_calendar_event --create --payload-file <tmp> --source-path <abs-path-of-the-source-note>`. This one command validates, builds the envelope, and invokes the calendar helper in-process — **there is no agent-to-agent hop**. Do **NOT** run `openclaw agent`, `sessions_send`, or route through `main`; do **NOT** run `gog` (you have none). On exit 0 the command emits ONE result JSON on stdout — branch on its `status`:
-    - `"created"` → the event was created (`event_id` / `html_link` present). Continue to Step 5 (mark processed) and record `event_id` in the routing log.
-    - `"needs_clarification"` → the payload was incomplete (`missing` lists the fields). Do NOT mark the note processed — enter the clarification flow below.
-    - `"error"` → the helper failed (`exit_code` + verbatim `error`). Do NOT mark the note processed — send Kent ONE WhatsApp with the `error` text verbatim and leave the note unprocessed for retry. **Never treat an `error` as a created event (#683).**
+  - `calendar` → assemble a `CalendarPayload` (`title`, `start`, optional `end`/`location`/`description`) into a tempfile; run the **single atomic** command `cd /home/claude/kg-automation && python3 -m scripts.inbox.route_calendar_event --finalize --payload-file <tmp> --source-path <abs-path-of-the-source-note>`. This ONE command creates the event, verifies it, marks the note processed, AND writes the routing-log entry — so for a calendar route you do **NOT** run Step 5b/5c separately, and there is **no agent-to-agent hop**. Do **NOT** run `openclaw agent`, `sessions_send`, or route through `main`; do **NOT** run `gog` (you have none). It emits ONE result JSON on stdout — branch on its `status`:
+    - `"finalized"` → **done.** The event was created (`event_id` / `html_link`), the note is already marked processed, and the routing-log entry is written. **Skip Step 5 for this note** — do NOT run `mark_processed` or `append_routing_entry`.
+    - `"needs_clarification"` → the payload was incomplete (`missing` lists the fields). The note was NOT marked processed — enter the clarification flow below.
+    - `"error"` → the create or finalize failed (**non-zero exit**; `error` + optional `stage`). The note was NOT marked processed, so there is no silent loss — it retries next tick. Send Kent ONE WhatsApp with the `error` text verbatim. **Never treat an `error` as a created event (#683).**
   - `github_issue` → invoke `cd /home/claude/kg-automation && python3 scripts/openclaw/agents/main/felix-file-issue.py …` (existing surface). Title and body come from the block; labels per heuristic.
 
     **Available Labels** — apply at the `github_issue` route:
@@ -117,7 +117,7 @@ For each successfully parsed file, invoke `cd /home/claude/kg-automation && pyth
   - `vikunja_task` → fall back to the Task bridge (below).
   - `parse_failure` → continue to Step 6.
 
-**Calendar clarification flow** (when `route_calendar_event --create` returns `status: "needs_clarification"`):
+**Calendar clarification flow** (when `route_calendar_event --finalize` returns `status: "needs_clarification"`):
 
 1. `cd /home/claude/kg-automation && python3 -m scripts.inbox.handle_clarification_state add --note-filename <name> --partial-payload <json>` to record what's known (the JSON-array store at `/data/services/openclaw/state/pending-calendar-clarifications.json`).
 2. Compose ONE WhatsApp message asking Kent for the missing fields. Direct voice, single question. Example: `Sent by felix-admin-capture:haiku\n\nWhat time should "<title>" be on <date>?`
@@ -139,9 +139,13 @@ For each path in `marker_cleanup_needed` from prescan: `cd /home/claude/kg-autom
 
 For each fully-routed note (per Step 3): `cd /home/claude/kg-automation && python3 -m scripts.inbox.append_routing_entry <name> <issue-number-or-0> <vikunja-task-id-or-dash> <short-excerpt>` — **positional** args (matching the CLI + `AGENTS.md.tmpl`): note basename, GitHub issue number as an integer (`0` if none), Vikunja task id (or `-` if none), optional ≤120-char excerpt. This is the dedup substrate; future ticks consult it to skip re-routing the same file.
 
+**Exempt: `calendar` routes** — `route_calendar_event --finalize` already wrote their routing-log entry (`--kind calendar`). Do NOT append again for a note that returned `status: "finalized"`.
+
 #### Step 5c — Atomic frontmatter write
 
 For each fully-routed note: `cd /home/claude/kg-automation && python3 -m scripts.inbox.mark_processed --path <path>`. Writes `status: processed` + `processed_at: <ISO-8601 UTC>` atomically, preserves all other frontmatter, preserves the body verbatim, leaves the file at its original path. Idempotent on already-processed notes. This step is frontmatter-only, in place — the note stays in `01-Inbox/` indefinitely; `prescan.py` archives it after the 7-day window. Do NOT move or delete the file (see Step 5 INVARIANT above).
+
+**Exempt: `calendar` routes** — `route_calendar_event --finalize` already marked them processed. Do NOT mark again for a note that returned `status: "finalized"`.
 
 The helper prints a single-line JSON to stdout on exit 0 and `{"error": …, "detail": "…"}` to stderr on non-zero exits. Act on the exit code immediately:
 
