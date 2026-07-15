@@ -175,6 +175,74 @@ def test_attach_failure_still_creates_task_and_logs_loudly(monkeypatch, capsys):
     assert warning["task_id"] == 777
 
 
+def _registry_with_label(label_entries):
+    """Return a copy of ``_TEST_REGISTRY`` whose ``labels`` list is replaced."""
+    reg = json.loads(json.dumps(_TEST_REGISTRY))
+    reg["labels"] = label_entries
+    return reg
+
+
+def test_unprovisioned_qschedule_label_degrades_gracefully(monkeypatch, capsys):
+    """The ``q:schedule`` label is declared but not yet provisioned (value null)
+    -> dormant/graceful: task still created, exit 0, loud warning, no raise."""
+    # q:schedule declared but unprovisioned for the kent token.
+    vikunja_refs.set_registry_for_test(
+        _registry_with_label(
+            [
+                {
+                    "name": "q:schedule",
+                    "selector": {"kind": "label", "value": None},
+                    "title": "q:schedule",
+                    "owner_token": "kent",
+                }
+            ]
+        )
+    )
+    client = _install(monkeypatch, FakeClient(create_response={"id": 888}))
+    rc = rs.main(_ARGS)
+    assert rc == 0  # graceful — task created, route succeeds
+    assert len(client.create_calls) == 1
+    # Attach was never attempted (resolution degraded before the PUT).
+    assert client.attach_calls == []
+    captured = capsys.readouterr()
+    assert "task_id=888" in captured.out
+    warning = json.loads(captured.err.strip().splitlines()[-1])
+    assert warning["warning"] == "label_attach_failed"
+    assert warning["label"] == "q:schedule"
+    assert warning["task_id"] == 888
+
+
+def test_broken_qschedule_label_reference_fails_loud_naming_task(monkeypatch, capsys):
+    """A non-unprovisioned registry breakage of ``q:schedule`` (here: undeclared)
+    must PROPAGATE as a hard RouteSomedayError that NAMES the created task id —
+    the capture is preserved (created) while the breakage surfaces loudly."""
+    # q:schedule entirely undeclared -> label_id raises base VikunjaRefError.
+    vikunja_refs.set_registry_for_test(_registry_with_label([]))
+    client = _install(monkeypatch, FakeClient(create_response={"id": 999}))
+    with pytest.raises(rs.RouteSomedayError) as exc:
+        rs.route_someday(
+            title="Try Iceland again",
+            body="Planning notes",
+            note_filename="2026-06-09-iceland.md",
+        )
+    # Task WAS created (anti-silent-loss) and its id is named in the error.
+    assert len(client.create_calls) == 1
+    assert "999" in str(exc.value)
+
+
+def test_broken_qschedule_label_reference_exits_2_via_cli(monkeypatch, capsys):
+    """The CLI maps the propagated registry-breakage error to exit 2 while the
+    task remains created."""
+    vikunja_refs.set_registry_for_test(_registry_with_label([]))
+    client = _install(monkeypatch, FakeClient(create_response={"id": 1001}))
+    rc = rs.main(_ARGS)
+    assert rc == 2
+    assert len(client.create_calls) == 1  # task created before the loud failure
+    err = capsys.readouterr().err
+    assert "vikunja_error" in err
+    assert "1001" in err
+
+
 def test_no_live_projects_listing(monkeypatch, capsys):
     """The old find_someday_project GET /projects listing is gone."""
     client = _install(monkeypatch, FakeClient(create_response={"id": 1}))
@@ -200,15 +268,31 @@ def test_topic_project_used_when_supplied(monkeypatch, capsys):
     assert path == "/projects/20/tasks"  # Personal, id 20 via the seam
 
 
-def test_unresolved_topic_project_falls_back_to_inbox(monkeypatch, capsys):
-    """Anti-silent-loss: an unresolved topic project lands the capture in Inbox
-    with a loud warning rather than losing it."""
+def test_unresolved_topic_project_fails_loud(monkeypatch, capsys):
+    """FR-003/SC-002: a supplied-but-unresolvable topic project must FAIL LOUD,
+    not silently fall back to Inbox (which would act on the WRONG target). No
+    task is created at any project."""
+    client = _install(monkeypatch, FakeClient(create_response={"id": 4}))
+    with pytest.raises(rs.RouteSomedayError) as exc:
+        rs.route_someday(
+            title="Try Iceland again",
+            body="Planning notes",
+            note_filename="2026-06-09-iceland.md",
+            project="does_not_exist",
+        )
+    assert "does_not_exist" in str(exc.value)
+    # No task created at a wrong (or any) project — resolution fails first.
+    assert client.create_calls == []
+
+
+def test_unresolved_topic_project_exits_2_via_cli(monkeypatch, capsys):
+    """The CLI maps the fail-loud unresolvable-project error to exit 2."""
     client = _install(monkeypatch, FakeClient(create_response={"id": 4}))
     rc = rs.main(_ARGS + ["--project", "does_not_exist"])
-    assert rc == 0
-    path, _ = client.create_calls[0]
-    assert path == "/projects/1/tasks"  # fell back to Inbox
+    assert rc == 2
+    assert client.create_calls == []  # nothing created at a wrong target
     err = capsys.readouterr().err
+    assert "vikunja_error" in err
     assert "does_not_exist" in err
 
 

@@ -58,7 +58,7 @@ import sys
 
 from scripts.common import vikunja_refs
 from scripts.common.vikunja_client import VikunjaClient, VikunjaError
-from scripts.common.vikunja_refs import VikunjaRefError
+from scripts.common.vikunja_refs import VikunjaRefError, VikunjaRefUnprovisioned
 
 __all__ = [
     "RouteSomedayError",
@@ -104,48 +104,43 @@ def _emit_warning(detail: str, **fields: object) -> None:
 def _resolve_destination_project_id(project_name: str) -> int:
     """Resolve the destination project id through the reference seam.
 
-    The default (Inbox) is the guaranteed floor: if it cannot be resolved there
-    is nowhere to safely land the capture, so that is a hard
-    :class:`RouteSomedayError`. A caller-supplied *topic* project that fails to
-    resolve does NOT lose the capture — it falls back to Inbox with a loud
-    warning (anti-silent-loss).
+    Inbox (``DEFAULT_PROJECT_NAME``) is the **default** target for
+    unclassifiable captures — the caller passes ``project="inbox"`` for the
+    fall-through bucket. It is **not** a fallback for a broken supplied topic
+    name: a caller-supplied project that cannot be resolved is a real error,
+    because silently landing the capture in Inbox would act on the WRONG target
+    (violating FR-003/SC-002, "never acts on a wrong target"). ANY unresolvable
+    project name therefore FAILS LOUD as a hard :class:`RouteSomedayError`.
     """
     try:
         return vikunja_refs.project_id(project_name)
     except VikunjaRefError as exc:
-        if project_name == DEFAULT_PROJECT_NAME:
-            raise RouteSomedayError(
-                f"Cannot resolve default project {project_name!r} via the "
-                f"reference registry: {exc}"
-            ) from exc
-        # Topic project unresolved -> never lose the capture; land in Inbox.
-        _emit_warning(
-            f"topic project {project_name!r} did not resolve ({exc}); "
-            f"falling back to {DEFAULT_PROJECT_NAME!r}",
-            unresolved_project=project_name,
-        )
-        try:
-            return vikunja_refs.project_id(DEFAULT_PROJECT_NAME)
-        except VikunjaRefError as inner:
-            raise RouteSomedayError(
-                f"Cannot resolve fallback project {DEFAULT_PROJECT_NAME!r}: {inner}"
-            ) from inner
+        raise RouteSomedayError(
+            f"Cannot resolve project {project_name!r} via the reference registry: {exc}"
+        ) from exc
 
 
 def _attach_someday_label(client: VikunjaClient, task_id: int) -> bool:
     """Best-effort attach of the ``q:schedule`` label to ``task_id``.
 
-    Returns ``True`` if the label was attached, ``False`` otherwise. **Never
-    raises** — a resolution or attach failure is logged loudly via
-    :func:`_emit_warning` and swallowed so the (already created) task is not
-    lost. Attaches via ``PUT /tasks/<id>/labels`` with ``{"label_id": <id>}``
-    (the Vikunja task-label endpoint).
+    Returns ``True`` if the label was attached, ``False`` otherwise. It degrades
+    (warns + returns ``False``) for only two cases: (1) the ``q:schedule`` label
+    is **declared but not yet provisioned** in the registry
+    (:class:`VikunjaRefUnprovisioned` — dormant, graceful), and (2) the attach
+    ``PUT /tasks/<id>/labels`` fails with a Vikunja/network error (the felix-bot
+    HTTP 403 case). A genuine registry breakage of the label reference — an
+    undeclared name, wrong-owner token, or invalid provisioned id (any *other*
+    :class:`VikunjaRefError`) — is NOT swallowed: it **propagates** so the caller
+    surfaces it loudly. Attaches via ``PUT /tasks/<id>/labels`` with
+    ``{"label_id": <id>}`` (the Vikunja task-label endpoint).
     """
     try:
         lbl_id = vikunja_refs.label_id(SOMEDAY_LABEL_NAME, SOMEDAY_LABEL_TOKEN)
-    except VikunjaRefError as exc:
+    except VikunjaRefUnprovisioned as exc:
+        # Label declared but not yet created in Vikunja -> dormant, graceful.
         _emit_warning(
-            f"could not resolve label {SOMEDAY_LABEL_NAME!r} via the registry: {exc}",
+            f"label {SOMEDAY_LABEL_NAME!r} is declared but not yet provisioned "
+            f"in the registry: {exc}",
             label=SOMEDAY_LABEL_NAME,
             task_id=task_id,
         )
@@ -211,8 +206,17 @@ def route_someday(
         )
     task_id = int(response["id"])
 
-    # Anti-silent-loss: the task now exists. The label attach is fail-soft.
-    _attach_someday_label(client, task_id)
+    # Anti-silent-loss: the task now exists. The label attach is fail-soft for
+    # the unprovisioned-label and attach-403/network cases, but a genuine
+    # registry breakage of the q:schedule reference must surface loudly (exit 2)
+    # — while still naming the created task id so the capture is not orphaned.
+    try:
+        _attach_someday_label(client, task_id)
+    except VikunjaRefError as exc:
+        raise RouteSomedayError(
+            f"Task {task_id} created, but the {SOMEDAY_LABEL_NAME!r} label registry "
+            f"reference is broken (not the unprovisioned/attach-degrade case): {exc}"
+        ) from exc
 
     return task_id
 
