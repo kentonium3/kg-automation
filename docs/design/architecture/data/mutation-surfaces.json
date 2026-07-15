@@ -17,7 +17,7 @@
       "governance": "GOVERNANCE.md + main/AGENTS.md pointer (Layer 1). Layer 2 wrapper (felix-change.py) will gate this actor's mutations."
     },
     "felix-admin-capture": {
-      "description": "Inbox processing sub-agent (claude-haiku-4-5). Mutates Vikunja state when classifying inbox notes.",
+      "description": "Inbox processing sub-agent (claude-sonnet-4-6). Mutates Vikunja state when classifying inbox notes.",
       "governance": "Per-agent AGENTS.md + sub-agent inheritance from main; eventually felix-change.py via wrapper."
     },
     "felix-admin-habits": {
