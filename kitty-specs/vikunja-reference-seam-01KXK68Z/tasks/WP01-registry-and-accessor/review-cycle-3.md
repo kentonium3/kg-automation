@@ -1,3 +1,14 @@
+---
+affected_files: []
+cycle_number: 3
+mission_slug: vikunja-reference-seam-01KXK68Z
+reproduction_command:
+reviewed_at: '2026-07-15T18:03:25Z'
+reviewer_agent: unknown
+verdict: rejected
+wp_id: WP01
+---
+
 # WP01 Review — Cycle 2 — REQUEST_CHANGES (reviewer: codex, gpt-5-codex)
 
 Findings 1 & 2 (positive-int validation on project_id/label_id) are **confirmed
