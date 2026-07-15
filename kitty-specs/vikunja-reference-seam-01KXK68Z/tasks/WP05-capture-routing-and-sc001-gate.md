@@ -26,9 +26,9 @@ assignee: ''
 agent_profile: python-pedro
 role: implementer
 model: claude-sonnet-5
-shell_pid_created_at: "1784148162.834231"
-agent: "claude:sonnet:python-pedro:implementer"
-shell_pid: "42251"
+shell_pid_created_at: "1784148732.158788"
+agent: "codex:gpt-5-codex:reviewer-renata:reviewer"
+shell_pid: "45124"
 history:
 - at: '2026-07-15T17:18:48Z'
   actor: system
@@ -253,3 +253,5 @@ requires a change (note any change loudly).
 - 2026-07-15T20:37:25Z – codex:gpt-5-codex:reviewer-renata:reviewer – shell_pid=40161 – Started review via action command
 - 2026-07-15T20:42:29Z – user – Moved to planned
 - 2026-07-15T20:42:55Z – claude:sonnet:python-pedro:implementer – shell_pid=42251 – Started implementation via action command
+- 2026-07-15T20:52:33Z – claude:sonnet:python-pedro:implementer – shell_pid=42251 – SC-001 gate broadened (typed/container/dict) + enrichment reconcile migrated; 715 tests; fedbcb09
+- 2026-07-15T20:52:46Z – codex:gpt-5-codex:reviewer-renata:reviewer – shell_pid=45124 – Started review via action command

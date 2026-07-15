@@ -107,11 +107,11 @@ Included subtasks:
 - **Estimated prompt size**: ~320 lines.
 
 Included subtasks:
-- [ ] T018 Rework `route_someday` → `q:schedule`+no-due-date (WP05)
-- [ ] T019 Apply Tier-1 labels where determinable (WP05)
-- [ ] T020 Fix capture AGENTS.md fall-through wording (WP05)
-- [ ] T021 Routing tests (SC-005) (WP05)
-- [ ] T022 SC-001 acceptance grep gate (WP05)
+- [x] T018 Rework `route_someday` → `q:schedule`+no-due-date (WP05)
+- [x] T019 Apply Tier-1 labels where determinable (WP05)
+- [x] T020 Fix capture AGENTS.md fall-through wording (WP05)
+- [x] T021 Routing tests (SC-005) (WP05)
+- [x] T022 SC-001 acceptance grep gate (WP05)
 
 ---
 
