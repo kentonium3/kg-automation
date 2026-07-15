@@ -46,11 +46,11 @@ Tests are **required** for this mission (spec Testing Strategy + NFR-001/002 + S
 - **Estimated prompt size**: ~330 lines.
 
 Included subtasks:
-- [ ] T001 Seed registry JSON from live post-reset ids (WP01)
-- [ ] T002 `VikunjaRefError` + memoized no-network loader (WP01)
-- [ ] T003 Project accessors fail-loud (WP01)
-- [ ] T004 Label + private accessors fail-loud (WP01)
-- [ ] T005 Accessor unit tests (WP01)
+- [x] T001 Seed registry JSON from live post-reset ids (WP01)
+- [x] T002 `VikunjaRefError` + memoized no-network loader (WP01)
+- [x] T003 Project accessors fail-loud (WP01)
+- [x] T004 Label + private accessors fail-loud (WP01)
+- [x] T005 Accessor unit tests (WP01)
 
 ## WP02 — Drift / unreachable validator + CLI
 
