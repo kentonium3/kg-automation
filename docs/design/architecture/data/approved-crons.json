@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
-  "last_updated": "2026-07-10",
-  "_note": "Committed allowlist of legitimate OpenClaw crons (ApprovedCron, felix-truthful-reporting-01KX6MN5 data-model.md). The cron-drift detector (scripts/trust) diffs live `openclaw cron list --json` output against this baseline. Adding or removing a legitimate cron must edit this file in the same change (keeps reality == baseline). schedule_expr/tz values below were captured live via `ssh office2-claude 'openclaw cron list --json'` on 2026-07-10 and should be reconfirmed at deploy time if this baseline is not deployed same-day. Two crons (habits-morning-checkin, escalation-daily) omit `schedule.tz` in the live payload; office2's system timezone is `Etc/UTC` (confirmed via `timedatectl`), so `tz` for those two entries is recorded as `Etc/UTC` here, not America/New_York.",
+  "last_updated": "2026-07-15",
+  "_note": "Committed allowlist of legitimate OpenClaw crons (ApprovedCron, felix-truthful-reporting-01KX6MN5 data-model.md). The cron-drift detector (scripts/trust) diffs live `openclaw cron list --json` output against this baseline. Adding or removing a legitimate cron must edit this file in the same change (keeps reality == baseline). schedule_expr/tz values below were captured live via `ssh office2-claude 'openclaw cron list --json'` on 2026-07-10 and should be reconfirmed at deploy time if this baseline is not deployed same-day. Two crons (habits-morning-checkin, escalation-daily) omit `schedule.tz` in the live payload; office2's system timezone is `Etc/UTC` (confirmed via `timedatectl`), so `tz` for those two entries is recorded as `Etc/UTC` here, not America/New_York. 2026-07-15: removed `habits-weekly-report` — retired as an OpenClaw cron on 2026-07-12 by the deterministic-cron-hardening cutover (deploys/applied/0018-habits-weekly-driver.yaml, kentonium3/kg-automation#723 WP04) and replaced by the `felix-habits-weekly.timer` systemd user timer; a systemd timer is not an OpenClaw cron and does not belong in this allowlist. The cutover retired the cron but did not update this baseline at the time, which caused the trust-scan `Approved cron missing` false positive.",
   "crons": [
     {
       "name": "inbox-5pm",
@@ -45,15 +45,6 @@
       "schedule_expr": "5 11 * * *",
       "tz": "",
       "purpose": "Daily habit check-in delivery. Live payload omits `schedule.tz`; baseline records empty tz to match the payload (office2 system tz applies at runtime).",
-      "approved_by": "kent",
-      "approved_at": "2026-07-10"
-    },
-    {
-      "name": "habits-weekly-report",
-      "agent_id": "felix-admin-habits",
-      "schedule_expr": "0 6 * * 1",
-      "tz": "America/New_York",
-      "purpose": "Weekly habit pattern report.",
       "approved_by": "kent",
       "approved_at": "2026-07-10"
     },
