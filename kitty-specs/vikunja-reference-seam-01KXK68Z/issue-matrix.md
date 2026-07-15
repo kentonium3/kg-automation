@@ -4,11 +4,11 @@ Per FR-037 of the spec-kitty-mission-review skill Gate-4. One row per issue refe
 
 | Issue | Title | Verdict | Evidence ref |
 |-------|-------|---------|--------------|
-| #748 | Audit + stabilize Felix's Vikunja project/label references (declared resolution seam) | in-mission | Primary deliverable; registry+accessor (WP01, `5aac3b5c`/`3cdc3a17`), validator (WP02), migration (WP03/04), routing (WP05). Terminal `fixed` at mission done. |
-| #745 | Capture routing: align felix-admin-capture to the post-reset Vikunja model | in-mission | Delivered by WP05 (route_someday→q:schedule+no-due-date, Inbox fallback, AGENTS.md). Terminal at done. |
+| #748 | Audit + stabilize Felix's Vikunja project/label references (declared resolution seam) | fixed | Merged to main `bccf1f02`; registry+accessor+validator+migration+SC-001 gate; deployed+verified on office2. Closed. |
+| #745 | Capture routing: align felix-admin-capture to the post-reset Vikunja model | fixed | Merged to main `bccf1f02`; route_someday→q:schedule+no-due-date, Inbox fall-through, AGENTS.md deployed. Graceful attach-degrade follow-up #750. Closed. |
 | #747 | Epic: Felix ↔ Vikunja integration | deferred-with-followup | Parent epic; this mission is one child (#748+#745). Epic stays open for #746/#749 and further children. |
 | #714 | Vikunja post-reset configuration | verified-already-fixed | The reset is complete; this mission consumes the locked post-reset names (C-004) and does not modify Vikunja config (C-001). Registry seeded from live post-reset ids (WP01). |
-| #743 | Inbox capture silent-loss (by-title lookup of deleted project) | in-mission | Structural guard for the silent-loss class: fail-loud accessor (WP01) + drift/unreachable validator (WP02) + routing retarget (WP05). SC-002 regression guard. Terminal at done. |
+| #743 | Inbox capture silent-loss (by-title lookup of deleted project) | fixed | Structural guard delivered (fail-loud accessor + validator + routing retarget + SC-001 gate), merged `bccf1f02`. Issue already closed. |
 | #746 | Routing atomicity (atomic finalize) | deferred-with-followup | Explicitly out of scope; tracked as Follow-up: #746 (separate sequenced fast-follow, spec Scope). |
 | #749 | Task-intake validation loop | deferred-with-followup | Out of scope; tracked as Follow-up: #749 (also owns the deferred `f:/q:/t:/loe:` taxonomy-label registry, FR-006). |
 | #715 | Per-user (two-token) Vikunja labels | verified-already-fixed | The two-token model is already in place; this mission consumes it for per-token label resolution (FR-006, WP04). Not modified here. |
