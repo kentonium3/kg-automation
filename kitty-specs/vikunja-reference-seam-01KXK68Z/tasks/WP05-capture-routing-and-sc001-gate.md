@@ -117,10 +117,13 @@ requires a change (note any change loudly).
   2. Resolve the destination project via the accessor: default **Inbox**
      (`vikunja_refs.project_id("inbox")`); if the caller/classifier supplies a
      resolved topic project, use that. No live `/projects` listing.
-  3. Create the task via `PUT /projects/<id>/tasks` (unchanged CREATE endpoint; per
-     C-006 / `[[reference_vikunja_post_partial_replace]]` never `POST /tasks/<id>`),
-     with **no due date** set.
-  4. Attach the **`q:schedule`** label to the created task (see T019 for the
+  3. Create the task via the CREATE endpoint `PUT /projects/<id>/tasks` — per
+     `[[reference_vikunja_post_partial_replace]]` never `POST /tasks/<id>` (that
+     partial-replaces an existing task; it was the root cause of #524) — with **no
+     due date** set. (Analysis F2: the original helper called this its "C-006"; this
+     spec has no C-006 — cite the endpoint-safety rule directly.)
+  4. Attach the **`q:schedule`** label (declared in the WP01 registry) to the created
+     task by id — `vikunja_refs.label_id("q:schedule", <token>)` (see T019 for the
      attach-token caveat). "Someday" is now a label state, not a project.
   5. Preserve the description footer (`Source: <note-filename>`) and the
      routing-log / dedup substrate (FR-013).
@@ -146,10 +149,12 @@ requires a change (note any change loudly).
      (b) create the task without the label and record the limitation loudly (the
          #749 loop applies labels later).
      Do not silently drop the label (that recreates a taxonomy-never-populated gap).
-     Note: taxonomy label ids beyond `felix:ignore` are **deferred to #749** in the
-     registry (FR-006) — if `q:schedule` is not yet declared/provisioned, either
-     add its declaration here (live-probed id) or route via option (b). Decide with
-     the reviewer; keep it fail-loud.
+     `q:schedule` **is declared in the WP01 registry** (analysis F1), so resolve it by
+     id via the accessor — do not add it to `vikunja_refs.json` from here (that file
+     is WP01-owned). If the live-probe shows felix-bot cannot attach it, that is the
+     option (a)/(b) decision above; keep it fail-loud, never silent. The broader
+     `f:/q:/t:/loe:` taxonomy remains deferred to #749 — if the classifier determines
+     an `f:`/`q:` label not in the registry, route via option (b) (leave for #749).
 - **Files**: `scripts/inbox/route_someday.py`, `tests/inbox/test_route_someday.py`.
 - **Notes**: This is the one genuinely uncertain seam in the mission — treat the
   probe result as authoritative and document it.

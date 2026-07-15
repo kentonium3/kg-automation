@@ -133,19 +133,24 @@ Grep the codebase for import conventions before writing imports (per
      ids from `docs/design/vikunja-configuration-design.md`; any project whose id
      you cannot confirm gets `"value": null, "provisioned": false` (a declared but
      unprovisioned ref — do **not** guess an id).
-  3. **Labels** — one entry for `felix:ignore` only:
-     `{ "name": "felix:ignore", "selector": {"kind": "label", "value": <int|null>},
-     "title": "felix:ignore", "owner_token": "kent" }`. Do **not** declare the
-     `f:/q:/t:/loe:` taxonomy labels — deferred to #749 (spec FR-006).
+  3. **Labels** — declare the **two** labels with a live runtime consumer this
+     mission: `felix:ignore` (sync manual-override, WP04) and **`q:schedule`** (the
+     capture "someday" state, WP05 / FR-011). Each:
+     `{ "name": "<felix:ignore|q:schedule>", "selector": {"kind": "label", "value": <int|null>},
+     "title": "<title>", "owner_token": "kent" }`. Do **not** declare the rest of the
+     `f:/q:/t:/loe:` taxonomy — deferred to #749 (spec FR-006). (Analysis finding F1:
+     `q:schedule` is seeded here, in the registry's owning WP, so WP05 attaches it by
+     id rather than editing this file cross-WP.)
   4. `private_projects`: empty list (no private project exists today; the mechanism
      lives here for when one does — finding #4).
 - **Files**: `scripts/common/vikunja_refs.json` (new).
 - **Notes / LIVE-PROBE (design-phase-research discipline)**: Before locking ids,
   confirm the live post-reset values against office2 (`ssh office2-claude`) —
   especially **Habits = 13** (this branch's `reconcile_completions.py` still reads
-  2; main fixed it to 13) and the **`felix:ignore` label id + owning token**
-  (finding #6; felix-bot could not *attach* kent-owned labels in #715, but *reads*
-  them). If you cannot live-probe in this workspace, seed the known values (inbox=1,
+  2; main fixed it to 13) and the **`felix:ignore` + `q:schedule` label ids + owning
+  token** (finding #6; felix-bot could not *attach* kent-owned labels in #715, but
+  *reads* them — WP05 handles the attach-token question). If you cannot live-probe in
+  this workspace, seed the known values (inbox=1,
   habits=13) and mark anything unconfirmed `null`/`provisioned:false`; the WP02
   validator will surface drift. Record what you confirmed in the Activity Log.
 
