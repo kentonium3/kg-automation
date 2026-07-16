@@ -45,11 +45,18 @@ def _valid_document(entries: list[dict]) -> dict:
 # --- Happy path -------------------------------------------------------------
 
 
-def test_load_baseline_seeded_repo_file_has_seven_crons() -> None:
-    """The real committed baseline seeds all 7 known legitimate crons."""
+def test_load_baseline_seeded_repo_file_has_six_crons() -> None:
+    """The real committed baseline seeds all 6 known legitimate crons.
+
+    ``habits-weekly-report`` was retired as an OpenClaw cron on 2026-07-12 by the
+    deterministic-cron-hardening cutover (deploys/applied/0018-habits-weekly-driver.yaml,
+    #723 WP04) and replaced by the ``felix-habits-weekly.timer`` systemd user timer;
+    a systemd timer is not an OpenClaw cron, so it no longer belongs in this allowlist
+    (baseline drop in commit fccd8346).
+    """
     entries = load_baseline(DEFAULT_BASELINE_PATH)
 
-    assert len(entries) == 7
+    assert len(entries) == 6
     names = {entry.name for entry in entries}
     assert names == {
         "inbox-5pm",
@@ -57,7 +64,6 @@ def test_load_baseline_seeded_repo_file_has_seven_crons() -> None:
         "inbox-7am",
         "inbox-noon",
         "habits-morning-checkin",
-        "habits-weekly-report",
         "escalation-daily",
     }
     for entry in entries:
