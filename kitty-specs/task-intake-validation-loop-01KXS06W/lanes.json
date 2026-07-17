@@ -1,0 +1,140 @@
+{
+  "version": 1,
+  "mission_slug": "task-intake-validation-loop-01KXS06W",
+  "mission_id": "01KXS06W8TTCB0BEXQNYW4YBKY",
+  "mission_branch": "kitty/mission-task-intake-validation-loop-01KXS06W",
+  "target_branch": "feat/task-intake-validation-loop",
+  "lanes": [
+    {
+      "lane_id": "lane-a",
+      "wp_ids": [
+        "WP01"
+      ],
+      "write_scope": [
+        "scripts/common/vikunja_refs.json",
+        "scripts/common/vikunja_refs_validate.py",
+        "tests/common/test_vikunja_refs_labels.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "artifact-rendering"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    },
+    {
+      "lane_id": "lane-b",
+      "wp_ids": [
+        "WP02"
+      ],
+      "write_scope": [
+        "scripts/intake/__init__.py",
+        "scripts/intake/scan_inbox.py",
+        "tests/intake/__init__.py",
+        "tests/intake/test_scan_inbox.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "artifact-rendering"
+      ],
+      "depends_on_lanes": [
+        "lane-a"
+      ],
+      "parallel_group": 1
+    },
+    {
+      "lane_id": "lane-c",
+      "wp_ids": [
+        "WP03"
+      ],
+      "write_scope": [
+        "scripts/intake/shorthand.py",
+        "tests/intake/test_shorthand.py"
+      ],
+      "predicted_surfaces": [
+        "api"
+      ],
+      "depends_on_lanes": [
+        "lane-a"
+      ],
+      "parallel_group": 1
+    },
+    {
+      "lane_id": "lane-d",
+      "wp_ids": [
+        "WP04"
+      ],
+      "write_scope": [
+        "scripts/intake/apply_reply.py",
+        "tests/intake/test_apply_reply.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "legacy-cleanup"
+      ],
+      "depends_on_lanes": [
+        "lane-a",
+        "lane-b",
+        "lane-c"
+      ],
+      "parallel_group": 2
+    },
+    {
+      "lane_id": "lane-e",
+      "wp_ids": [
+        "WP05"
+      ],
+      "write_scope": [
+        "scripts/openclaw/agents/felix-admin-capture/AGENTS.md",
+        "scripts/openclaw/agents/felix-admin-capture/AGENTS.md.tmpl",
+        "scripts/openclaw/agents/main/AGENTS.md",
+        "scripts/openclaw/agents/main/TOOLS.md"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "artifact-rendering",
+        "tracker-integration"
+      ],
+      "depends_on_lanes": [
+        "lane-b",
+        "lane-d"
+      ],
+      "parallel_group": 3
+    },
+    {
+      "lane_id": "lane-f",
+      "wp_ids": [
+        "WP06"
+      ],
+      "write_scope": [
+        "deploys/queued/task-intake-validation-loop.yaml",
+        "docs/DEVELOPER_PORTAL.md",
+        "docs/INDEX.md",
+        "docs/design/architecture/data-flows.md",
+        "docs/design/architecture/data/data-flows.json",
+        "docs/design/architecture/data/service-inventory.json",
+        "docs/design/architecture/service-inventory.md",
+        "docs/design/felix-capability-roadmap.md",
+        "docs/design/vikunja-configuration-design.md",
+        "docs/runbooks/intake-ops.md"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "app-shell",
+        "artifact-rendering",
+        "tracker-integration"
+      ],
+      "depends_on_lanes": [
+        "lane-a",
+        "lane-b",
+        "lane-c",
+        "lane-d",
+        "lane-e"
+      ],
+      "parallel_group": 4
+    }
+  ],
+  "computed_at": "2026-07-17T22:17:54.253087+00:00",
+  "computed_from": "dependency_graph+ownership",
+  "planning_artifact_wps": []
+}
