@@ -385,14 +385,23 @@ def _adapt_vikunja_task(
         return "error", {"stage": "verify", "error": f"task {task_id} did not resolve"}, None
 
     description = task.get("description", "") or ""
-    if note_filename not in description:
+    # Line-anchored provenance match (#746 post-merge, finding 6): require a line
+    # that EQUALS ``Source: <note_filename>`` — the exact footer route_someday
+    # writes. A substring test (``note_filename in description``) false-matches
+    # ``Inbox 1.md`` against ``Source: Inbox 10.md`` and would attribute another
+    # note's task to this one.
+    provenance_line = f"Source: {note_filename}"
+    has_provenance = any(
+        line.rstrip() == provenance_line for line in description.splitlines()
+    )
+    if not has_provenance:
         return (
             "error",
             {
                 "stage": "verify",
                 "error": (
-                    f"task {task_id} provenance mismatch: note {note_filename!r} "
-                    "not found in task description (does not belong to this note)"
+                    f"task {task_id} provenance mismatch: 'Source: {note_filename}' "
+                    "line not found in task description (does not belong to this note)"
                 ),
             },
             None,
@@ -630,6 +639,60 @@ def _is_empty_plan(blocks: list) -> bool:
     return all(isinstance(b, dict) and b.get("kind") == "empty" for b in blocks)
 
 
+def _validate_routed_blocks(blocks: list) -> list[dict]:
+    """Validate every non-empty routed block BEFORE any side effect (#746 post-merge).
+
+    Two load-bearing preconditions, both fail-loud (finalize error, note left
+    UNPROCESSED) so a malformed plan can never partially route or write a
+    degenerate routing-log row:
+
+    - ``block_index`` (finding 3): MUST be a present integer. A missing / ``None``
+      / non-int index skips the per-block idempotency check (``reader.has_block``
+      needs an int) and would write a ``block_index=None`` row that a later tick
+      reads as a legacy filename-wide match — silently suppressing re-routing of
+      the note's other blocks.
+    - ``content`` (finding 5): MUST be a present non-empty string. It is the
+      block's idempotency key (``_block_key_hash``); without it the key falls
+      back to payload JSON and the AGENTS.md "verbatim block text" contract is
+      unenforced. Requiring it here makes that instruction code-enforced.
+
+    Returns a list of issue dicts (empty when the plan is valid). ``empty``-kind
+    sentinel blocks are exempt (they carry no routed content).
+    """
+    issues: list[dict] = []
+    for block in blocks:
+        if not isinstance(block, dict):
+            issues.append(
+                {"stage": "validate", "error": f"block is not an object: {block!r}"}
+            )
+            continue
+        if block.get("kind") == "empty":
+            continue
+        idx = block.get("block_index")
+        kind = block.get("kind")
+        # bool is an int subclass; reject True/False as a block_index.
+        if not isinstance(idx, int) or isinstance(idx, bool):
+            issues.append(
+                {
+                    "block_index": idx,
+                    "kind": kind,
+                    "stage": "validate",
+                    "error": f"missing or non-integer block_index: {idx!r}",
+                }
+            )
+        content = block.get("content")
+        if not (isinstance(content, str) and content.strip()):
+            issues.append(
+                {
+                    "block_index": idx,
+                    "kind": kind,
+                    "stage": "validate",
+                    "error": "missing or empty content (verbatim block text is required)",
+                }
+            )
+    return issues
+
+
 def _run_finalize(source_path: str, plan: dict, account: str) -> tuple[dict, int]:
     """Execute the note-level finalize transaction. Returns ``(result, code)``.
 
@@ -645,6 +708,16 @@ def _run_finalize(source_path: str, plan: dict, account: str) -> tuple[dict, int
 
     if _is_empty_plan(blocks):
         return _finalize_empty(source_path, note_filename)
+
+    # Precondition gate (#746 post-merge): validate block_index + content on
+    # every routed block BEFORE any route / verify / log side effect. A bad plan
+    # fails loud here — note left unprocessed, nothing routed.
+    validation_issues = _validate_routed_blocks(blocks)
+    if validation_issues:
+        return (
+            {"status": "error", "note_filename": note_filename, "blocks": validation_issues},
+            1,
+        )
 
     reader = RoutingLogReader()
     writer = RoutingLogWriter()

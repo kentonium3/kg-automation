@@ -650,7 +650,11 @@ class TestFinalizeMode:
         assert result["status"] == "needs_clarification"
         assert "start" in result["missing"]
 
-    def test_finalize_mark_failure_is_error_not_logged(self, tmp_path, capsys, monkeypatch):
+    def test_finalize_mark_failure_is_error_logged_but_not_marked(self, tmp_path, capsys, monkeypatch):
+        # Under log-before-mark (#746 post-merge), the routing-log entry is
+        # written BEFORE the mark. A mark failure therefore leaves the note
+        # UNprocessed but the log row already present — both the log append and
+        # the mark are idempotent, so the next tick completes cleanly.
         log = self._redirect_log(tmp_path, monkeypatch)
         monkeypatch.setattr(
             helper, "_invoke_calendar_helper",
@@ -669,22 +673,31 @@ class TestFinalizeMode:
         assert result["status"] == "error"
         assert result["stage"] == "mark_processed"
         assert result["event_id"] == "evt_1"  # the event DID get created — surface it
-        # routing log must NOT be written (mark did not succeed).
-        assert not log.exists() or log.read_text().strip() == ""
+        assert result.get("marked_processed") is not True  # note left unprocessed
+        # routing log IS written (log-before-mark) — a calendar row for the note.
+        rows = [json.loads(line) for line in log.read_text().splitlines() if line.strip()]
+        assert len(rows) == 1 and rows[0]["kind"] == "calendar"
 
-    def test_finalize_routing_log_failure_is_error(self, tmp_path, capsys, monkeypatch):
-        # FR-015 / #746: the old leniency (`finalized` + `routing_logged: false`
-        # on a log-write failure) is REMOVED. A log failure is now surfaced
-        # loudly as an error (non-zero exit) so the #746 health rail never sees a
-        # silent `processed`-without-routing-log note. The event IS created and
-        # the note IS marked (durable landing), but the missing log is reported
-        # so the next idempotent tick completes it.
+    def test_finalize_routing_log_failure_is_error_and_not_marked(self, tmp_path, capsys, monkeypatch):
+        # #746 post-merge fix (log-before-mark): a routing-log write failure is
+        # surfaced loudly as an error (non-zero exit) AND the note is left
+        # UNprocessed — `mark_processed` must NOT run when the log write fails, so
+        # the #746 health rail never sees a `processed`-without-routing-log note.
+        # The event IS created (create key dedups it) but the note stays
+        # unprocessed so the next idempotent tick completes the whole finalize.
         self._redirect_log(tmp_path, monkeypatch)
         monkeypatch.setattr(
             helper, "_invoke_calendar_helper",
             lambda *a, **k: _fake_completed(0, stdout=_created_stdout()),
         )
-        monkeypatch.setattr(helper, "_invoke_mark_processed", lambda p: _fake_completed(0))
+
+        def _mark_must_not_run(p):
+            raise AssertionError(
+                "mark_processed must NOT run when the routing-log write fails "
+                "(log-before-mark)"
+            )
+
+        monkeypatch.setattr(helper, "_invoke_mark_processed", _mark_must_not_run)
         # Simulate a routing-log write failure.
         monkeypatch.setattr(helper, "_append_calendar_routing_log", lambda *a, **k: False)
         pf = _write_payload(tmp_path, {"title": "Sync", "start": "2026-07-16T12:00:00-04:00"})
@@ -696,6 +709,7 @@ class TestFinalizeMode:
         assert result["status"] == "error"
         assert result["stage"] == "routing_log"
         assert result["event_id"] == "evt_1"  # the event DID get created — surface it
+        assert result["marked_processed"] is False  # note left unprocessed
 
     def test_finalize_routing_log_is_idempotent(self, tmp_path, capsys, monkeypatch):
         log = self._redirect_log(tmp_path, monkeypatch)

@@ -36,10 +36,32 @@ from scripts.inbox import routing_log as _routing_log
 def _write_plan(tmp_path: Path, plan: dict | str, name: str = "plan.json") -> Path:
     target = tmp_path / name
     if isinstance(plan, str):
+        # Raw-string plans bypass content injection — used by the tests that
+        # deliberately omit `content` to exercise the validation gate.
         target.write_text(plan, encoding="utf-8")
     else:
-        target.write_text(json.dumps(plan), encoding="utf-8")
+        target.write_text(json.dumps(_with_default_content(plan)), encoding="utf-8")
     return target
+
+
+def _with_default_content(plan: dict) -> dict:
+    """Give every non-empty routed block a default verbatim `content` if it lacks
+    one.
+
+    The #746 post-merge validation gate requires a non-empty `content` string on
+    every routed block (it is the D10 idempotency key; AGENTS.md instructs the
+    agent to copy the verbatim block text). Fixtures that don't care about the
+    key get a deterministic default so they stay valid under the gate; tests that
+    assert missing/invalid content build the plan as a raw JSON string (which
+    skips this helper). ``setdefault`` is idempotent, so blocks shared across two
+    plans keep a stable hash.
+    """
+    blocks = plan.get("blocks")
+    if isinstance(blocks, list):
+        for block in blocks:
+            if isinstance(block, dict) and block.get("kind") != "empty":
+                block.setdefault("content", f"verbatim block text {block.get('block_index')}")
+    return plan
 
 
 def _run(argv: list[str], capsys) -> tuple[int, str, str]:
@@ -252,6 +274,38 @@ class TestVikunjaTaskDelegated:
         }
         pf = _write_plan(tmp_path, plan)
         code, out, _ = _run(["--source-path", "/inbox/Note.md", "--plan-file", str(pf)], capsys)
+
+        assert code == 1
+        result = json.loads(out)
+        assert result["status"] == "error"
+        assert result["blocks"][0]["stage"] == "verify"
+        assert "provenance" in result["blocks"][0]["error"]
+        assert mark.calls == []
+        assert _log_rows(log_path) == []
+
+    def test_provenance_substring_false_positive_rejected(self, tmp_path, capsys, monkeypatch, log_path):
+        # Finding 6 (#746 post-merge): provenance must be a line-anchored EXACT
+        # `Source: <filename>` match, not a substring. Here the delegated task
+        # belongs to `Inbox 10.md` (its `Source:` footer) but its body happens to
+        # mention `Inbox 1.md`. The old `note_filename in description` substring
+        # test matched that stray mention and wrongly attributed the task to
+        # `Inbox 1.md`; the exact-line test rejects it.
+        monkeypatch.setattr(
+            raf,
+            "_fetch_vikunja_task",
+            lambda tid: {
+                "id": 777,
+                "description": "Follow-up on Inbox 1.md discussion\n\nSource: Inbox 10.md",
+            },
+        )
+        mark = _MarkSpy()
+        monkeypatch.setattr(raf, "_invoke_mark_processed", mark)
+        plan = {
+            "note_filename": "Inbox 1.md",
+            "blocks": [{"block_index": 0, "kind": "vikunja_task", "task_id": 777}],
+        }
+        pf = _write_plan(tmp_path, plan)
+        code, out, _ = _run(["--source-path", "/inbox/Inbox 1.md", "--plan-file", str(pf)], capsys)
 
         assert code == 1
         result = json.loads(out)
@@ -668,6 +722,107 @@ class TestMultiBlock:
         rows = _log_rows(log_path)
         kinds = sorted(r["kind"] for r in rows)
         assert kinds == ["github_issue", "someday"]  # exactly one row each; no dup
+
+
+# ===========================================================================
+# plan validation gate (#746 post-merge — findings 3 & 5)
+# ===========================================================================
+
+
+class TestPlanValidation:
+    """Every non-empty routed block must carry an integer `block_index` and a
+    non-empty `content` string BEFORE any side effect. A bad plan fails loud
+    (note left unprocessed, nothing routed / marked)."""
+
+    def _guard(self, monkeypatch):
+        monkeypatch.setattr(
+            raf, "_create_vikunja_task", lambda *a, **k: pytest.fail("must not route on a bad plan")
+        )
+        monkeypatch.setattr(
+            raf, "_invoke_mark_processed", lambda p: pytest.fail("must not mark on a bad plan")
+        )
+
+    def test_missing_block_index_is_finalize_error(self, tmp_path, capsys, monkeypatch, log_path):
+        self._guard(monkeypatch)
+        plan = {
+            "note_filename": "Note.md",
+            "blocks": [{"kind": "someday", "content": "buy milk", "payload": {"title": "Buy milk"}}],
+        }
+        pf = _write_plan(tmp_path, plan)
+        code, out, _ = _run(["--source-path", "/inbox/Note.md", "--plan-file", str(pf)], capsys)
+        assert code == 1
+        result = json.loads(out)
+        assert result["status"] == "error"
+        assert result["blocks"][0]["stage"] == "validate"
+        assert "block_index" in result["blocks"][0]["error"]
+        assert _log_rows(log_path) == []
+
+    def test_non_integer_block_index_is_finalize_error(self, tmp_path, capsys, monkeypatch, log_path):
+        self._guard(monkeypatch)
+        plan = {
+            "note_filename": "Note.md",
+            "blocks": [{"block_index": "0", "kind": "someday", "content": "x", "payload": {"title": "t"}}],
+        }
+        pf = _write_plan(tmp_path, plan)
+        code, out, _ = _run(["--source-path", "/inbox/Note.md", "--plan-file", str(pf)], capsys)
+        assert code == 1
+        result = json.loads(out)
+        assert result["status"] == "error"
+        assert result["blocks"][0]["stage"] == "validate"
+        assert "block_index" in result["blocks"][0]["error"]
+        assert _log_rows(log_path) == []
+
+    def test_bool_block_index_is_finalize_error(self, tmp_path, capsys, monkeypatch, log_path):
+        # bool is an int subclass — a JSON `true` must not slip through as index 1.
+        self._guard(monkeypatch)
+        plan = {
+            "note_filename": "Note.md",
+            "blocks": [{"block_index": True, "kind": "someday", "content": "x", "payload": {"title": "t"}}],
+        }
+        pf = _write_plan(tmp_path, plan)
+        code, out, _ = _run(["--source-path", "/inbox/Note.md", "--plan-file", str(pf)], capsys)
+        assert code == 1
+        result = json.loads(out)
+        assert result["status"] == "error"
+        assert result["blocks"][0]["stage"] == "validate"
+        assert _log_rows(log_path) == []
+
+    def test_missing_content_is_finalize_error(self, tmp_path, capsys, monkeypatch, log_path):
+        # Raw JSON string bypasses the fixture's default-content injection so the
+        # block genuinely lacks `content`.
+        self._guard(monkeypatch)
+        plan_str = json.dumps(
+            {
+                "note_filename": "Note.md",
+                "blocks": [{"block_index": 0, "kind": "someday", "payload": {"title": "t"}}],
+            }
+        )
+        pf = _write_plan(tmp_path, plan_str)
+        code, out, _ = _run(["--source-path", "/inbox/Note.md", "--plan-file", str(pf)], capsys)
+        assert code == 1
+        result = json.loads(out)
+        assert result["status"] == "error"
+        assert result["blocks"][0]["stage"] == "validate"
+        assert "content" in result["blocks"][0]["error"]
+        assert _log_rows(log_path) == []
+
+    def test_empty_string_content_is_finalize_error(self, tmp_path, capsys, monkeypatch, log_path):
+        # A present-but-blank content is as bad as a missing one (not a real key).
+        self._guard(monkeypatch)
+        plan_str = json.dumps(
+            {
+                "note_filename": "Note.md",
+                "blocks": [{"block_index": 0, "kind": "someday", "content": "   ", "payload": {"title": "t"}}],
+            }
+        )
+        pf = _write_plan(tmp_path, plan_str)
+        code, out, _ = _run(["--source-path", "/inbox/Note.md", "--plan-file", str(pf)], capsys)
+        assert code == 1
+        result = json.loads(out)
+        assert result["status"] == "error"
+        assert result["blocks"][0]["stage"] == "validate"
+        assert "content" in result["blocks"][0]["error"]
+        assert _log_rows(log_path) == []
 
 
 # ===========================================================================
