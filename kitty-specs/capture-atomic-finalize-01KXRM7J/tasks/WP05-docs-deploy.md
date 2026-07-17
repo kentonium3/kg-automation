@@ -18,7 +18,9 @@ subtasks:
 - T024
 - T025
 phase: Phase 4 - Close-out
-agent: claude
+agent: "claude:sonnet:curator-carla:implementer"
+shell_pid: "3895"
+shell_pid_created_at: "1784317558.270429"
 history:
 - at: '2026-07-17T18:30:00Z'
   actor: system
@@ -104,3 +106,7 @@ health-check) for the canonical doc targets so INDEX/DEVELOPER_PORTAL are not mi
 - Do not invent a runbook filename — list `docs/runbooks/` and edit the real one.
 - Reviewer: confirm the service-inventory health-check entry validates and the deploy story
   matches the actual felix-deployer + agent-prompt-sync mechanics.
+
+## Activity Log
+
+- 2026-07-17T19:46:46Z – claude:sonnet:curator-carla:implementer – shell_pid=3895 – Assigned agent via action command
