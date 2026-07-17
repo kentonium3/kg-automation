@@ -10,5 +10,7 @@
   "purpose_tldr": "Felix prompts Kent over WhatsApp to complete the Tier-1 label metadata on Inbox tasks so the task taxonomy stays populated instead of decaying.",
   "slug": "task-intake-validation-loop-01KXS06W",
   "target_branch": "feat/task-intake-validation-loop",
-  "topology": "single_branch"
+  "topology": "single_branch",
+  "vcs": "git",
+  "vcs_locked_at": "2026-07-17T22:20:56.228274+00:00"
 }
