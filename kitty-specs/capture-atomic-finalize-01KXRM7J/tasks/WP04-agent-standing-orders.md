@@ -18,9 +18,9 @@ subtasks:
 - T020
 - T021
 phase: Phase 3 - Integration
-agent: "claude:sonnet:curator-carla:implementer"
-shell_pid: "96267"
-shell_pid_created_at: "1784316182.512466"
+agent: "claude:opus:reviewer-renata:reviewer"
+shell_pid: "2301"
+shell_pid_created_at: "1784317287.09685"
 history:
 - at: '2026-07-17T18:30:00Z'
   actor: system
@@ -131,3 +131,5 @@ WP02 provides `python3 -m scripts.inbox.route_and_finalize --source-path <note> 
 ## Activity Log
 
 - 2026-07-17T19:23:35Z – claude:sonnet:curator-carla:implementer – shell_pid=96267 – Assigned agent via action command
+- 2026-07-17T19:41:42Z – claude:sonnet:curator-carla:implementer – shell_pid=96267 – Ready for review: note-level single-finalize standing orders; AGENTS.md trimmed to 21015B; IDLE gate surfaces anomalies; T018b verbatim-content; commit f8b62bc5
+- 2026-07-17T19:41:58Z – claude:opus:reviewer-renata:reviewer – shell_pid=2301 – Started review via action command

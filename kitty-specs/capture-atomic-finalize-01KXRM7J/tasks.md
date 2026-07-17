@@ -24,10 +24,10 @@
 | T015 | prescan: classify inbox `needs-review` terminal (exclude from `unprocessed_paths`); dedup shift log→status | WP03 | | [D] |
 | T016 | Wire anomaly into `PrescanResult` for the Step 1 IDLE-gate to read | WP03 | | [D] |
 | T017 | Tests: anomaly detection, no false-positive on empty/needs-review, needs-review not reprocessed | WP03 | | [D] |
-| T018 | Rewrite AGENTS.md routing to note-level single-finalize; remove standalone Steps 5b/5c | WP04 | |
-| T019 | Update Step 1 IDLE gate: block IDLE + report `archive_anomalies` incl processed-without-routing-log | WP04 | |
-| T020 | Update TOOLS.md (remove standalone mark_processed/append_routing_entry); keep needs-review exception; mirror `.tmpl` | WP04 | |
-| T021 | Verify AGENTS.md < 12K byte cap; `.tmpl` parity | WP04 | |
+| T018 | Rewrite AGENTS.md routing to note-level single-finalize; remove standalone Steps 5b/5c | WP04 | | [D] |
+| T019 | Update Step 1 IDLE gate: block IDLE + report `archive_anomalies` incl processed-without-routing-log | WP04 | | [D] |
+| T020 | Update TOOLS.md (remove standalone mark_processed/append_routing_entry); keep needs-review exception; mirror `.tmpl` | WP04 | | [D] |
+| T021 | Verify AGENTS.md < 12K byte cap; `.tmpl` parity | WP04 | | [D] |
 | T022 | Update inbox/capture runbook(s) to note-level finalize flow | WP05 | [P] |
 | T023 | Add new health-check to service-inventory.json + md view; INDEX/roadmap as applicable | WP05 | [P] |
 | T024 | deploys/queued manifest if needed; document deploy split + rebaseline-not-required | WP05 | |
