@@ -130,3 +130,95 @@ on 2026-07-17 (DIR-015: probe the real environment during design).
   merge and stamp the reason.
 - **Verification**: office2 `--dry-run` (credential-free wiring) per kind where a
   dry-run exists; live smoke on the next inbox tick.
+
+---
+
+## Post-plan Codex review fold (2026-07-17)
+
+The mandatory post-plan Codex review (spec-kitty-review profile; 3 lenses) returned
+12 findings (6 HIGH / 6 MEDIUM), verdict "fold findings first." Kent's scope call
+(2026-07-17): fold findings 1–9, 11, 12; defer finding 10 (pending-calendar-clarification
+surfacing) to the already-filed #740. The decisions below resolve them; they reshape the
+design from "per-route finalize" to a **note-level finalize transaction**.
+
+### D8 — Note-level finalize transaction (finding 1)
+
+- **Decision**: Finalize operates on the **whole note**, not a single route. The agent
+  classifies the note's blocks (deterministic via `classify_content` + LLM judgment for
+  ambiguous ones), assembles a per-block routing plan `{block_index, kind, payload|task_id}`,
+  and invokes ONE note-level finalize. The helper routes each block, verifies each artifact,
+  writes a per-block routing-log entry, and marks the note processed **once, only after all
+  blocks are done**.
+- **Rationale**: `classify_content.split_blocks` genuinely emits multiple blocks per note
+  (verified 2026-07-17), and `mark_processed` is note-level. A per-route finalize would mark
+  the whole note processed on the first block's success and silently drop later blocks — a
+  regression versus today's route-all-then-mark-once behavior. Note-level is the correct unit.
+- **Two-layer split (C-005, Directive 6)**: classification stays LLM (its job); the helper
+  owns deterministic route-execute + verify + log + mark. The agent's role shrinks to
+  classify → build plan → call one command. This *removes* the hand-sequencing that caused
+  the bug.
+
+### D9 — Finalize state machine + log/mark ordering (findings 3, 11, 12)
+
+- **Decision**: Resolve the spec-vs-precedent ordering contradiction with an explicit state
+  machine. Per block: route → verify → **write the block's routing-log entry (durable,
+  block-keyed)**. After **all** blocks are logged: mark the note processed (once). A re-run
+  reconciles from the routing log (skip already-logged blocks). This makes log-before-mark at
+  the note level, and there is no "processed but unlogged" state.
+- **prescan dedup shift**: prescan's note-level dedup moves from "filename present in routing
+  log" to note **status** (`processed`/`needs-review` are terminal). Block-level idempotency
+  now lives inside finalize (block keys), so the note-level log dedup is no longer needed and
+  the ordering contradiction dissolves.
+- **Calendar leniency removed (finding 12 / NFR-003 / FR-015)**: #737 currently returns
+  `finalized` with `routing_logged:false` when the log write fails. Under D9 a log failure
+  leaves the note unprocessed (not finalized). This is an intended tightening — that leniency
+  was itself a silent-loss vector. NFR-003 is re-scoped to preserve **created-event fields +
+  the create/needs_clarification/error decision paths**, and the #737 tests that bless
+  `routing_logged:false + finalized` are updated to the new semantics.
+
+### D10 — Per-block routing-log keys + per-kind idempotency (findings 2, 4, 5)
+
+- **Decision**: The routing-log entry key becomes **note filename + block index + block
+  content hash** (not filename alone), so one routed block never masks another and a reused
+  basename never masks an unrelated note. Each kind guards its side effect *before*
+  performing it: calendar keeps its source-path idempotency key; someday/vikunja_task do a
+  block-key precheck (skip create if the block key is already logged); journal writes a
+  **per-block sentinel** into the appended section and verifies it before appending (no
+  duplicate section on reprocess); github_issue does a block-key precheck + issue verify.
+- **Rationale**: fail-loud-then-retry is only safe if a route that succeeded before a later
+  mark/log failure is not repeated on the next tick. `RoutingLogReader.has(filename)` (the
+  #737 dedup) is too coarse for multi-block notes.
+- **Test posture (NFR-004)**: every kind gets a "route-success then mark/log-failure → retry
+  → no double-create" test.
+
+### D11 — Agent-hop route provenance: tasker + github (findings 6, 7)
+
+- **Decision (tasker, finding 6)**: verifying a `vikunja_task` id must prove it **belongs to
+  this note/block**, not merely that some task exists. Finalize checks source provenance (the
+  `Source: <note-filename>` footer `route_someday` already writes, or the tasker envelope) on
+  the fetched task; a mismatched/absent-provenance id is a finalize failure. Retry keyed on
+  the block never re-delegates.
+- **Decision (github, finding 7)**: `felix-file-issue.py` is invoked by the **main** agent
+  and can exit 0 with `issue_number: null` (URL-parse miss). Finalize treats a missing/null
+  issue number as a failure and verifies the issue exists (e.g. `gh issue view`) before
+  contributing it to the mark. The plan specifies the hop explicitly: capture assembles the
+  issue payload, the filer runs (main-agent helper), the returned number flows back into the
+  note-level finalize plan; a null number blocks the note's mark.
+
+### D12 — Empty disposition body validation (finding 8)
+
+- **Decision**: `--kind empty` (no-route) first validates the note body is **genuinely
+  empty / templater-only** (mirrors `prescan.classify_file`'s empty detection) before marking
+  processed with a kind=`empty` routing-log entry. It refuses a non-empty body loudly.
+- **Rationale**: without this guard the `empty` disposition is a silent-loss escape hatch —
+  the exact failure this mission closes. Empty is a verified terminal, not a bypass.
+
+### D13 — needs-review terminal in prescan + health rail surfaced (findings 9, 11→14)
+
+- **Decision (finding 9)**: `prescan` classifies inbox `needs-review` notes as **terminal**
+  (excluded from `unprocessed_paths`) so they don't reprocess every tick; they are also
+  excluded from the new health rail (not `processed`).
+- **Decision (finding 11 → FR-014)**: the new `processed-without-routing-log` anomaly is
+  surfaced in the agent's **Step 1 IDLE gate** — the gate must block the `IDLE` reply and
+  report `archive_anomalies` when any exist. Otherwise the rail writes to a field the agent
+  never reads and the alarm never reaches Kent.

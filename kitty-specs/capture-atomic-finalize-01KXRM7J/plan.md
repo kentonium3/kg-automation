@@ -7,13 +7,23 @@
 ## Summary
 
 Generalize #737's calendar-only atomic `route_calendar_event --finalize` into a
-single generic finalize mechanism that covers **every** inbox route kind. The
-mechanism performs route → verify artifact → write routing-log entry →
-mark-processed as one indivisible, fail-loud operation, and it becomes the
-**only** path by which a note reaches `status: processed`. The capture agent's
-standalone `mark_processed` step is removed from its standing orders. A new
-health rail flags any `processed` note that lacks a routing-log entry, making the
-silent-loss class visible.
+**note-level finalize transaction** covering every inbox route kind. Because
+`classify_content` splits a note into multiple blocks that can route to different
+kinds, and `status: processed` is note-level, finalize routes **all** blocks →
+verifies **all** artifacts → writes a **per-block** routing-log entry → marks the
+note processed **once**, as one indivisible, fail-loud, retry-safe operation. It
+becomes the **only** path to `status: processed`; the agent's standalone
+`mark_processed`/`append_routing_entry` are removed. A health rail flags any
+`processed` note lacking a routing-log entry and is surfaced in the agent's IDLE
+gate so the alarm reaches Kent.
+
+**Post-plan Codex review (2026-07-17) folded**: 12 findings (6H/6M) reshaped the
+design from per-route to note-level (findings 1–2), added an explicit log/mark
+state machine (3, 11-cal), per-block idempotency keys + per-kind
+retry-safety (4, 5), agent-hop provenance for tasker + github (6, 7), empty-note
+body validation (8), prescan `needs-review` terminal + health-rail-in-IDLE-gate
+(9, 11). Finding 10 (pending-calendar-clarification surfacing) deferred to #740
+(Kent's scope call).
 
 ## Technical Context
 
@@ -89,50 +99,50 @@ deploys/queued/<name>.yaml       # deploy manifest if an office2 apply step is n
 
 ## Implementation Concern Map
 
-### IC-01 — Generic finalize skeleton + dispatcher
+### IC-01 — Note-level finalize transaction + state machine
 
-- **Purpose**: One atomic, fail-loud `route_and_finalize(kind, payload, source_path)` operation that performs route → verify → routing-log → mark-processed, deriving its exit code from the OUTCOME (never from the always-0 route step), mirroring the proven `route_calendar_event._run_finalize` shape.
-- **Relevant requirements**: FR-001, FR-003, FR-004, FR-009, FR-011; NFR-001, NFR-002, NFR-004, NFR-005
-- **Affected surfaces**: `scripts/inbox/route_and_finalize.py` (new), `scripts/inbox/mark_processed.py` (subprocess call site), `scripts/inbox/routing_log.py`
+- **Purpose**: The `route_and_finalize` note-level operation — consume the agent's per-block routing plan, route each block, verify each artifact, write each block's routing-log entry, then mark the note processed ONCE, only after all blocks are logged. Exit code from the OUTCOME. Resolves the log/mark ordering with an explicit state machine (log-per-block-before-mark; re-run reconciles from the log).
+- **Relevant requirements**: FR-001, FR-003, FR-004, FR-011; NFR-001, NFR-002, NFR-005
+- **Affected surfaces**: `scripts/inbox/route_and_finalize.py` (new), `mark_processed.py` (subprocess call site), `routing_log.py`, `classify_content.py` (block plan shape)
 - **Sequencing/depends-on**: none (foundation)
-- **Risks**: Ordering correctness — routing-log append MUST come after mark_processed (prescan dedups on routing-log filename; log-before-mark can strand a note). Idempotency via `RoutingLogReader.has()`. mark_processed MUST stay a subprocess (symlink/`_private`/inbox-root guards live in `main()`, and stdout isolation).
+- **Risks**: Partial-failure semantics across blocks (one block succeeds, another fails → note stays unprocessed, succeeded block not re-created next tick). mark_processed MUST stay a subprocess (symlink/`_private`/inbox-root guards live in `main()` + stdout isolation). The note-level mark happens exactly once after all blocks logged.
 
-### IC-02 — Per-kind route + verify adapters
+### IC-02 — Per-block routing-log keys + per-kind idempotency
 
-- **Purpose**: For each kind (someday, journal, vikunja_task incl. tasker-delegated id, github_issue, calendar folded in, empty no-route) provide the route call + artifact-verification predicate the skeleton consumes.
-- **Relevant requirements**: FR-002, FR-003, FR-006, FR-007, FR-012
-- **Affected surfaces**: `route_and_finalize.py` (per-kind adapters), `route_someday.py`, `route_journal_entry.py`, `route_calendar_event.py`, `felix-file-issue.py`, `vikunja_client.py` (verify a task id resolves)
+- **Purpose**: Key routing-log entries on **note filename + block index + block content hash** (findings 2); make each kind's side effect idempotent/retry-safe before performing it (findings 4, 5): calendar source-path key; someday/vikunja_task block-key precheck; journal per-block sentinel + verify-before-append; github block-key + issue verify.
+- **Relevant requirements**: FR-009, FR-010; NFR-004
+- **Affected surfaces**: `routing_log.py` (`RoutingEntry` gains block index/hash + kind vocabulary), `route_someday.py`, `route_journal_entry.py`, `route_calendar_event.py`, `felix-file-issue.py`
 - **Sequencing/depends-on**: IC-01
-- **Risks**: The tasker-delegated `vikunja_task` path supplies an externally-created id — finalize must verify it exists (not create), then log+mark. Calendar fold must preserve #737's `needs_clarification`/`error` behavior exactly (NFR-003). `empty` disposition writes a routing-log entry so the health-rail invariant is total.
+- **Risks**: Block-hash stability across ticks for an unchanged note; reader stays backward-compatible (old rows lack block fields — dedup falls back to filename for legacy rows). Journal sentinel must be invisible/non-disruptive in the rendered note.
 
-### IC-03 — Routing-log schema evolution
+### IC-03 — Per-kind route + verify adapters (incl. agent-hop provenance)
 
-- **Purpose**: Extend the routing-log `kind` vocabulary to the full kind set and ensure every finalize records kind + destination + artifact id; keep old rows readable.
-- **Relevant requirements**: FR-009; C-005
-- **Affected surfaces**: `routing_log.py` (`RoutingEntry.kind` values), `append_routing_entry.py` (`--kind` choices) if retained
+- **Purpose**: For each kind provide route call + artifact verification: someday/vikunja_task (task id resolves), journal (file/section exists), github_issue (issue number non-null + verifiable), calendar (folded #737 create/verify), empty (body-genuinely-empty validation). Tasker-delegated + github are agent-hops: verify **provenance** (task belongs to this note; issue number returned), findings 6/7.
+- **Relevant requirements**: FR-002, FR-003, FR-006, FR-007, FR-012, FR-015
+- **Affected surfaces**: `route_and_finalize.py` (adapters), the route helpers, `vikunja_client.py` (fetch+provenance), `felix-file-issue.py` (null-issue handling)
 - **Sequencing/depends-on**: IC-01
-- **Risks**: Reader keys only on `filename`, so schema growth is backward-compatible; ensure writers populate `destination` per kind.
+- **Risks**: Calendar fold must preserve #737 create/needs_clarification/error behavior (NFR-003); the `finalized`+`routing_logged:false` leniency is intentionally removed (FR-015) — update those tests. `empty` must refuse a non-empty body (finding 8, silent-loss escape hatch). Tasker provenance depends on the `Source:` footer being present.
 
-### IC-04 — Health rail: processed-without-routing-log
+### IC-04 — Health rail + prescan terminal-state hygiene
 
-- **Purpose**: Add a defensive scan that flags any note with `status: processed` (in `01-Inbox/` and `02-Inbox-Processed/`) whose filename is absent from the routing log — the exact signature that hid the loss.
-- **Relevant requirements**: FR-010; NFR-001
-- **Affected surfaces**: `scripts/inbox/prescan.py` (`scan_archive_anomalies` sibling / new `ArchiveAnomaly` classification `processed-without-routing-log`), cross-referencing `RoutingLogReader`
-- **Sequencing/depends-on**: IC-03 (empty disposition must log, else false positives)
-- **Risks**: Must not false-positive on legitimately empty notes (they now log kind=empty) or `needs-review` notes (not `processed`). Latency: reuse the `ARCHIVE_SCAN_CAP` bound.
+- **Purpose**: Add the `processed-without-routing-log` anomaly to `prescan` (scan `01-Inbox/` + `02-Inbox-Processed/`, cross-ref `RoutingLogReader`); classify inbox `needs-review` as terminal (excluded from `unprocessed_paths`, finding 9); shift prescan's note dedup from routing-log-filename to note `status`.
+- **Relevant requirements**: FR-008, FR-013; NFR-001
+- **Affected surfaces**: `scripts/inbox/prescan.py` (`scan_archive_anomalies` + `classify_file`/`unprocessed_paths` logic)
+- **Sequencing/depends-on**: IC-02 (empty/block logging must exist so the rail has no false positives)
+- **Risks**: Must not false-positive on `empty`-logged notes or `needs-review`. Latency via `ARCHIVE_SCAN_CAP`. The dedup shift (log→status) must not reintroduce reprocessing of a note whose blocks are mid-flight — reconciliation is the block-keyed idempotency in IC-02.
 
-### IC-05 — Agent standing-orders rewrite + toolkit removal
+### IC-05 — Agent standing-orders rewrite (note-level) + IDLE-gate surfacing
 
-- **Purpose**: Rewrite `felix-admin-capture` AGENTS.md to the single-finalize-command-per-route model; remove the standalone `mark_processed` / `append_routing_entry` steps so the agent can no longer stamp `processed` on its own.
-- **Relevant requirements**: FR-005, FR-013
+- **Purpose**: Rewrite `felix-admin-capture` AGENTS.md to: classify blocks → assemble routing plan → invoke ONE note-level finalize; remove standalone `mark_processed`/`append_routing_entry` (finding 5-set, FR-005/FR-016). Update Step 1 IDLE gate to block IDLE and report `archive_anomalies` incl. `processed-without-routing-log` (finding 11, FR-014).
+- **Relevant requirements**: FR-005, FR-014, FR-016; C-005
 - **Affected surfaces**: `felix-admin-capture/AGENTS.md`(+`.tmpl`), `TOOLS.md`(+`.tmpl`)
-- **Sequencing/depends-on**: IC-01, IC-02 (the command must exist before the prompt points at it)
-- **Risks**: AGENTS.md 12K byte cap (`test_agents_md_size.py`) — the rewrite likely *reduces* size (collapsing 5b/5c per-kind into one command). Preserve Output-Discipline hard rules and the `needs-review` direct-edit exception. Keep `.tmpl` mirror in parity.
+- **Sequencing/depends-on**: IC-01..IC-04
+- **Risks**: AGENTS.md 12K byte cap (`test_agents_md_size.py`) — the note-level single-command model should *reduce* size (collapsing per-kind 5b/5c). Preserve Output-Discipline hard rules + the `needs-review` direct-edit exception (the only sanctioned non-finalize frontmatter write). `.tmpl` parity.
 
 ### IC-06 — Documentation sync + deploy
 
-- **Purpose**: Synchronize docs (DIR-014) and deploy to office2 through the manifest discipline / agent-prompt-sync.
-- **Relevant requirements**: FR-014; C-002
-- **Affected surfaces**: capture runbook, `docs/design/architecture/data/service-inventory.json` (+ md view) for the new health-check, `docs/INDEX.md`/roadmap as applicable, `deploys/queued/<name>.yaml`
+- **Purpose**: Synchronize docs (DIR-014) and deploy to office2.
+- **Relevant requirements**: FR-017; C-002
+- **Affected surfaces**: capture runbook, `docs/design/architecture/data/service-inventory.json` (+ md view) for the new health-check, `docs/INDEX.md`/roadmap as applicable, `deploys/queued/<name>.yaml` if needed
 - **Sequencing/depends-on**: IC-01..IC-05
-- **Risks**: Deploy split — helpers land via office2 checkout self-pull; AGENTS.md via `agent-prompt-sync` (slug `felix-admin-capture` deploys to `/data/services/openclaw/inbox-agent/`, per [[reference_office2_agent_deploy_paths]]). Confirm rebaseline not-required at merge.
+- **Risks**: Deploy split — helpers via office2 checkout self-pull; AGENTS.md via `agent-prompt-sync` (slug `felix-admin-capture` → `/data/services/openclaw/inbox-agent/`, [[reference_office2_agent_deploy_paths]]). Confirm rebaseline not-required at merge (#621).

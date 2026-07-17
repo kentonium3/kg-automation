@@ -1,52 +1,61 @@
-# Contract: `route_and_finalize` CLI + result shapes
+# Contract: note-level `route_and_finalize` CLI + result shapes
 
-The single deterministic command the `felix-admin-capture` agent runs per route.
-Invocation form (mandatory `-m`, C-001):
+The single deterministic command the `felix-admin-capture` agent runs **per note**
+(not per route). The agent classifies the note's blocks and assembles a routing plan;
+the helper executes it atomically. Invocation form (mandatory `-m`, C-001):
 
 ```
 cd /home/claude/kg-automation && python3 -m scripts.inbox.route_and_finalize \
-    --kind <someday|journal|vikunja_task|github_issue|calendar|empty> \
     --source-path <abs-path-of-source-note> \
-    [--payload-file <abs-path>]        # kind-specific payload (someday/journal/github_issue/calendar)
-    [--task-id <int>]                  # vikunja_task tasker-delegated provenance
-    [--dry-run]                        # credential-free wiring check where supported
+    --plan-file <abs-path-of-routing-plan.json> \
+    [--dry-run]
 ```
 
-## Behavior (atomic, fail-loud)
+`--plan-file` is the agent-assembled `RoutingPlan` (see data-model.md): a per-block list
+of `{block_index, kind, payload | task_id}`. An empty block list (or all-empty note body)
+selects the `empty` disposition, which first validates the body is genuinely empty.
 
-For every kind, the command performs **as one indivisible unit**:
+## Behavior (note-level, atomic, fail-loud, retry-safe)
 
-1. **Route** — perform the kind's route action (create task / append journal /
-   file issue / create event), or, for a tasker-delegated `vikunja_task`, take the
-   supplied `--task-id`; for `empty`, no route.
-2. **Verify** — confirm the produced artifact exists (task id resolves, file
-   exists, issue number returned, `event_id` non-empty). `empty` skips verify.
-3. **Mark processed** — invoke `mark_processed` as a **subprocess** (preserves the
-   `_private`/inbox-root/symlink guards + stdout isolation).
-4. **Routing-log append** — write the routing-log entry **last**, idempotent via
-   `RoutingLogReader.has()` (kind + destination + artifact id).
+The command performs, **as one indivisible note-level transaction**:
 
-Exit code derives from the **outcome**, never from the always-0 route step.
+1. **Per block, in order**: route the block for its kind (create task / append journal /
+   file issue / create event; or, for a tasker-delegated `vikunja_task`, take the supplied
+   `task_id`; `empty` routes nothing) → **verify** the artifact (and, for delegated
+   kinds, its provenance) → **write the block's routing-log entry** (keyed on
+   filename+block_index+block_hash). A block whose key is already logged is **skipped**
+   (idempotent; no side effect repeated).
+2. **After all blocks are logged**: invoke `mark_processed` as a **subprocess** (preserves
+   `_private`/inbox-root/symlink guards + stdout isolation) — marking the note ONCE.
+3. **Any block failure** (route / verify / log) aborts before the mark: the note is left
+   **unprocessed**, the failing block is named, exit is non-zero. Already-logged blocks are
+   not rolled back (their artifacts exist and are logged); the next tick reconciles and
+   completes the remaining blocks, then marks.
+
+Exit code derives from the **note-level outcome**, never from an individual route step.
 
 ## Result JSON (stdout, single object)
 
 ```json
-{"status": "finalized", "kind": "someday", "artifact": "<task_id|path|issue|event_id>",
- "marked_processed": true, "routing_logged": true}
+{"status": "finalized", "note_filename": "...", "marked_processed": true,
+ "blocks": [{"block_index":0,"kind":"calendar","artifact":"<event_id>","logged":true},
+            {"block_index":1,"kind":"someday","artifact":"512","logged":true,"skipped":false}]}
 ```
 
 ```json
-{"status": "needs_clarification", "kind": "calendar", "missing": ["start"]}
+{"status": "needs_clarification", "note_filename": "...",
+ "blocks": [{"block_index":0,"kind":"calendar","missing":["start"]}]}
 ```
 Note left unprocessed; capture enters the kind's clarification flow (calendar only, today).
 
 ```json
-{"status": "error", "kind": "vikunja_task", "stage": "verify", "error": "<verbatim>"}
+{"status": "error", "note_filename": "...",
+ "blocks": [{"block_index":1,"kind":"vikunja_task","stage":"verify","error":"<verbatim>"}]}
 ```
-Route/verify/mark failed. Note left unprocessed → retried next tick. Exit non-zero.
+A block failed → whole note NOT marked → retried next tick. Exit non-zero.
 
 ```json
-{"status": "dry_run", "kind": "someday", "would_finalize": true}
+{"status": "dry_run", "note_filename": "...", "would_finalize": true}
 ```
 
 ## Exit codes
@@ -54,20 +63,30 @@ Route/verify/mark failed. Note left unprocessed → retried next tick. Exit non-
 | code | meaning |
 |---|---|
 | 0 | `finalized`, `needs_clarification`, or `dry_run` |
-| non-zero | `error` (any stage) — note NOT marked processed |
+| non-zero | `error` (any block, any stage) — note NOT marked processed |
 
 ## Invariants
 
-- INV-1: a note is marked `processed` **only** as step 3 of a successful finalize.
-- INV-2: `processed ⇒ routing-log entry` (total; `empty` writes kind=`empty`).
-- INV-3: idempotent re-run never double-creates an artifact (routing-log dedup +
-  kind-specific idempotency keys, e.g. calendar's source-path key).
-- INV-4: calendar behavior is byte-identical to #737 for create /
-  `needs_clarification` / `error` (NFR-003).
+- INV-1: a note is marked `processed` **only** after every block is verified AND logged.
+- INV-2: `processed ⇒ a routing-log entry per routed block` (total; `empty` writes kind=`empty`).
+- INV-3: per-block idempotency — a re-run never double-creates (block-key skip + per-kind
+  pre-side-effect guard: calendar source-path key; someday/vikunja block-key; journal
+  per-block sentinel; github block-key + issue verify).
+- INV-4: calendar create / `needs_clarification` / `error` behavior identical to #737
+  (NFR-003); the old `finalized`+`routing_logged:false` leniency is **removed** (a log
+  failure leaves the note unprocessed).
+- INV-5: delegated `vikunja_task` id must belong to this note (provenance), not merely exist.
+- INV-6: `empty` refuses a non-empty body.
 
-## Removed from the agent toolkit (FR-005)
+## Removed from the agent toolkit (FR-005/FR-016)
 
-- Standalone `mark_processed` invocation — no longer in AGENTS.md standing orders.
-- Standalone `append_routing_entry` invocation — folded into finalize.
-- The only sanctioned non-finalize frontmatter write is the `needs-review`
-  direct edit (unclassifiable notes; no `processed_at`).
+- Standalone `mark_processed` and `append_routing_entry` invocations — gone from the
+  standing orders. The agent classifies → builds the plan → calls one note-level finalize.
+- The only sanctioned non-finalize frontmatter write remains the `needs-review` direct
+  edit for unclassifiable notes (no `processed_at`; prescan-terminal).
+
+## Health-rail surfacing (FR-014)
+
+`prescan` reports a `processed-without-routing-log` anomaly for any `processed` note whose
+blocks are not represented in the routing log; the Step 1 IDLE gate **blocks the `IDLE`
+reply** and reports `archive_anomalies` so the alarm reaches Kent.
