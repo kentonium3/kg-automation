@@ -7,11 +7,11 @@
 
 | ID | Description | WP | Parallel |
 |----|-------------|----|----------|
-| T001 | Extend `RoutingEntry` with `block_index` + `block_hash` (Optional, backward-compat) | WP01 | |
-| T002 | Grow `kind` vocabulary (someday/journal/vikunja_task/github_issue/empty) + `destination` population | WP01 | [P] |
-| T003 | Block-key helpers: compute `block_hash`; `has_block()`; legacy filename fallback | WP01 | |
-| T004 | Update `append_routing_entry` CLI (`--kind` choices + block args) | WP01 | [P] |
-| T005 | Tests: schema round-trip, block-key dedup, legacy-row fallback | WP01 | |
+| T001 | Extend `RoutingEntry` with `block_index` + `block_hash` (Optional, backward-compat) | WP01 | | [D] |
+| T002 | Grow `kind` vocabulary (someday/journal/vikunja_task/github_issue/empty) + `destination` population | WP01 | [D] |
+| T003 | Block-key helpers: compute `block_hash`; `has_block()`; legacy filename fallback | WP01 | | [D] |
+| T004 | Update `append_routing_entry` CLI (`--kind` choices + block args) | WP01 | [D] |
+| T005 | Tests: schema round-trip, block-key dedup, legacy-row fallback | WP01 | | [D] |
 | T006 | `route_and_finalize.py` skeleton: plan parse, per-block loop, note-level mark-once (subprocess), exit-from-outcome, result JSON, `--dry-run` | WP02 | |
 | T007 | Finalize state machine: log-per-block-before-mark; reconcile-from-log on re-run | WP02 | |
 | T008 | someday + vikunja_task adapters (in-process + tasker-delegated id; provenance verify; block-key idempotency) | WP02 | |

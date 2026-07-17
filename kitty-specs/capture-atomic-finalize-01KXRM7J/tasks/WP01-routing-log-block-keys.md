@@ -16,9 +16,9 @@ subtasks:
 - T004
 - T005
 phase: Phase 1 - Foundation
-agent: "claude:sonnet:python-pedro:implementer"
-shell_pid: "82399"
-shell_pid_created_at: "1784313800.985211"
+agent: "claude:opus:reviewer-renata:reviewer"
+shell_pid: "85155"
+shell_pid_created_at: "1784314249.190977"
 history:
 - at: '2026-07-17T18:30:00Z'
   actor: system
@@ -118,3 +118,5 @@ filename only. Multi-block notes and the new kinds need a block-level key.
 ## Activity Log
 
 - 2026-07-17T18:43:34Z – claude:sonnet:python-pedro:implementer – shell_pid=82399 – Assigned agent via action command
+- 2026-07-17T18:50:40Z – claude:sonnet:python-pedro:implementer – shell_pid=82399 – Ready for review: block-keyed routing log; 56 target + 370 inbox tests green; ruff clean; commit c7a6a717
+- 2026-07-17T18:51:03Z – claude:opus:reviewer-renata:reviewer – shell_pid=85155 – Started review via action command
