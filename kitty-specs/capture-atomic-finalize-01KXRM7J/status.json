@@ -1,16 +1,16 @@
 {
-  "event_count": 32,
-  "last_event_id": "01KXRV0AGA9K0Q4Z6WBNKWGJ40",
-  "materialized_at": "2026-07-17T20:06:38.346618+00:00",
+  "event_count": 33,
+  "last_event_id": "01KXRV0HP47J4M5BS70PN0ADWN",
+  "materialized_at": "2026-07-17T20:06:45.700504+00:00",
   "mission_number": "104",
   "mission_slug": "capture-atomic-finalize-01KXRM7J",
   "mission_type": "software-dev",
   "summary": {
-    "approved": 3,
+    "approved": 2,
     "blocked": 0,
     "canceled": 0,
     "claimed": 0,
-    "done": 2,
+    "done": 3,
     "for_review": 0,
     "in_progress": 0,
     "in_review": 0,
@@ -32,11 +32,11 @@
       "last_transition_at": "2026-07-17T20:06:38.346618+00:00"
     },
     "WP03": {
-      "actor": "user",
+      "actor": "merge",
       "force_count": 0,
-      "lane": "approved",
-      "last_event_id": "01KXRR3YNGEZJ40XEB0VRN86Q1",
-      "last_transition_at": "2026-07-17T19:16:11.568413+00:00"
+      "lane": "done",
+      "last_event_id": "01KXRV0HP47J4M5BS70PN0ADWN",
+      "last_transition_at": "2026-07-17T20:06:45.700504+00:00"
     },
     "WP04": {
       "actor": "user",
