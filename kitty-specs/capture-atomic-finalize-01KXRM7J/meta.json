@@ -13,6 +13,7 @@
   "accepted_at": "2026-07-17T20:05:19.727078+00:00",
   "accepted_by": "kentgale",
   "accepted_from_commit": "86337a047cf0808f0db589e6e8b7ce58a773326f",
+  "baseline_merge_commit": "09fda209ff559f68f385b04d9c158547ebf85294",
   "created_at": "2026-07-17T18:08:16.192258+00:00",
   "flattened": false,
   "friendly_name": "Atomic Capture Finalize Across Route Kinds",
