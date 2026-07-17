@@ -89,21 +89,21 @@ script-first.
 - **Relevant requirements:** C-004, FR-006; data-model "Seam registry additions".
 - **Affected surfaces:** `scripts/common/vikunja_refs.json`, `scripts/common/vikunja_refs_validate.py` (drift/AST gate), tests.
 - **Sequencing/depends-on:** none (foundational; IC-02/IC-03 resolve against it).
-- **Risks:** label ids must be reconciled against the live #715 set (ids ~18–29); the AST gate (SC-001 style) must accept the additions.
+- **Risks:** each label id must be reconciled against the **live** #715 set with exact evidence through the drift gate and `owner_token = "kent"` verified per label — **no approximate id ranges** in the final artifacts (Codex post-plan finding #11); the AST gate must accept the additions.
 
 ### IC-02 — Deterministic Inbox scan + Tier-1 classification + digest/observability artifacts
 - **Purpose:** enumerate not-done Inbox tasks, classify Tier-1 completeness, write the correlation record + tick artifact, and render the numbered digest.
 - **Relevant requirements:** FR-001, FR-002, FR-003, FR-008, FR-011, FR-014; NFR-001, NFR-004; SC-001, SC-003, SC-009.
 - **Affected surfaces:** `scripts/intake/scan_inbox.py`, `tests/intake/`, the `/data/services/openclaw/state/intake/` artifacts.
 - **Sequencing/depends-on:** IC-01.
-- **Risks:** felix-bot read pagination (`GET /tasks/all` done-inclusive); injectable clock for determinism; re-prompt-until-resolved overwrite semantics.
+- **Risks:** felix-bot read pagination (`GET /tasks/all` done-inclusive); injectable clock for determinism; **immutable per-`digest_id` correlation records + `latest` pointer + 48h expiry** (NOT overwrite-per-day — Codex finding #1); decomposition-pending tasks excluded from the intake count (finding #4).
 
 ### IC-03 — Shorthand parser + token resolution + apply via kent token
 - **Purpose:** parse the compact-shorthand reply, resolve tokens (with alias table), and apply project + labels + applicable Tier-2 via the kent token, read-modify-write.
 - **Relevant requirements:** FR-005, FR-006, FR-007, FR-009, FR-010, FR-012, FR-013; NFR-002, NFR-003, NFR-005; SC-002, SC-004, SC-005, SC-006, SC-007, SC-008.
 - **Affected surfaces:** `scripts/intake/apply_reply.py`, `tests/intake/`; reuses `migrate_tasks.py` RMW/kent-token + `record_completion` ET-EOD.
 - **Sequencing/depends-on:** IC-01, IC-02 (consumes the correlation record).
-- **Risks:** kent-token-only writes (never felix-bot, the #750 defect); readback-diff non-clobber; `f:4` overload branch; echo-back on unresolved lines; the narrow LLM-fallback interface (`--unresolved`).
+- **Risks:** kent-token-only writes (never felix-bot, the #750 defect); readback-diff non-clobber; **family-replace** for mutually-exclusive `q:`/`f:` (finding #2); **sparse-field** grammar (finding #3); `f:4` decomposition-pending terminal state (finding #4); per-line status set incl. `not_found`/`moved_conflict`/`already_done`/`access_denied` (finding #9); refined `noop` (finding #8); Tier-2 compatibility matrix + apply-time due prompt (findings #5/#6); the **constrained** `{line,token,position,canonical_name}` LLM-fallback re-resolved through the seam (finding #7); evidence-based correlation (finding #1).
 
 ### IC-04 — Agent wiring (capture + main prompts) and the LLM-fallback boundary
 - **Purpose:** capture agent runs the scan after `route_and_finalize` and emits the digest; main DM agent recognizes an intake reply (content-based correlation), invokes the apply helper, and confirms results.
@@ -115,9 +115,9 @@ script-first.
 ### IC-05 — Deploy manifest + documentation synchronization + #750 closure
 - **Purpose:** provision the state dir + assert the kent-token secret; sync all doc surfaces; close #750.
 - **Relevant requirements:** FR-015; C-002; research R7.
-- **Affected surfaces:** `deploys/queued/<name>.yaml`; `docs/design/vikunja-configuration-design.md`, `docs/design/architecture/data/` (service-inventory + data-flow + md views), a new `docs/runbooks/intake-ops.md`, `docs/INDEX.md`/roadmap; the #750 closure note.
+- **Affected surfaces:** `deploys/queued/<name>.yaml`; `docs/design/vikunja-configuration-design.md`, `docs/design/architecture/data/` (service-inventory + data-flow + md views), a new `docs/runbooks/intake-ops.md`, `docs/INDEX.md`, **`docs/DEVELOPER_PORTAL.md`** (per signal-to-doc-map when a doc surface is added — Codex finding #12), roadmap; the #750 closure note.
 - **Sequencing/depends-on:** IC-01..IC-04.
-- **Risks:** signal-to-doc-map coverage (INDEX/DEVELOPER_PORTAL routinely missed — #492); rebaseline recorded not-required (#621).
+- **Risks:** signal-to-doc-map coverage (INDEX/DEVELOPER_PORTAL routinely missed — #492); rebaseline recorded not-required (#621, confirmed by Codex finding #13).
 
 ## Complexity Tracking
 

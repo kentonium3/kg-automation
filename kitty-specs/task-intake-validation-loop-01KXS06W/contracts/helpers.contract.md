@@ -21,10 +21,11 @@ filtered to `project_id == inbox && done == false`.
 | `--dry-run` | classify + render digest, **do not** write the correlation record |
 | `--json` | machine output |
 
-**Writes (unless `--dry-run`):** `intake-digest-<ET-date>.json` (overwrite per ET
-date), `intake-tick-<ET-date>.json`.
+**Writes (unless `--dry-run`):** an **immutable** `digests/intake-<digest_id>.json`
++ `latest.json` pointer (never an overwritten same-day file — FR-016), and
+`intake-tick-<ET-date>.json`. Digests older than `--window-hours` are expired.
 
-**Stdout JSON:** `{status, scanned, incomplete, entries:[{n,task_id,title,missing_fields,tier2_prompted}], digest_text}`.
+**Stdout JSON:** `{status, digest_id, scanned, incomplete, entries:[{n,task_id,title,missing_fields}], digest_text}`.
 `incomplete == 0` ⇒ `digest_text` empty, no message sent (SC-009). Exit non-zero
 only on infrastructure failure (never on "0 incomplete").
 
@@ -44,18 +45,21 @@ diff (C-005/FR-013).
 | `--reply-file <path>` / `--reply -` | the reply text (stdin) |
 | `--state-dir <path>` | correlation-record location |
 | `--window-hours <n>` | default 48 (habits parity) |
-| `--unresolved <json>` | optional map of LLM-resolved tokens the agent supplies for genuine ambiguity only (R6) |
+| `--unresolved <json>` | **constrained** LLM-fallback input (FR-006): a list of `{line, token, position, canonical_name}` only. The helper **re-resolves** each `canonical_name` through `vikunja_refs`; raw ids or free-form label/project values are rejected. Never a channel for arbitrary values. |
 | `--dry-run` | resolve + plan, no writes |
 | `--json` | machine output |
 
-**Stdout JSON:** `{results:[ApplyResult...], applied, echoed_back, overload_flagged, noop}`.
+**Correlation:** selects the digest by the reply's line-number set + task-title
+evidence within `--window-hours` (FR-016), not by newest-file position.
+
+**Stdout JSON:** `{digest_id, results:[ApplyResult...], aggregates:{applied, echoed_back, overload_flagged, noop, not_found, already_done, moved_conflict, access_denied, failed}}`.
 
 **Invariants:**
-- A line whose token is unresolved (and not in `--unresolved`) → `echoed_back`
-  with `understood`/`failed`; other well-formed lines still apply (FR-012).
-- `f:4` → `overload_flagged`, task **not** given a working-project schedule (FR-009).
-- Applying labels/project never removes pre-existing labels or zeros unstated
-  fields; verified by readback diff (NFR-003). Re-applying the same reply, or a
-  task already Tier-1-complete / done, is a `noop` (FR-013).
-- Tier-2 `due:` written as ET end-of-day (R4). Missing Tier-2 never blocks Tier-1
-  apply (FR-010).
+- Sparse lines apply only the supplied fields; already-valid fields are left intact (FR-005).
+- Every line yields an independent status in `{applied, echoed_back, overload_flagged, noop, not_found, already_done, moved_conflict, access_denied}` (FR-012); one failing line never blocks the rest.
+- A line whose token is unresolved (and not covered by `--unresolved`) → `echoed_back` with `understood`/`failed`.
+- `f:4` → `overload_flagged`, decomposition-pending, **not** scheduled; it stops re-prompting (FR-009).
+- **Family-replace:** a new `q:`/`f:` replaces the same-family label; non-family labels preserved; never two quadrants (FR-013). Verified by readback diff (NFR-003).
+- `noop` **only** when live project/labels/due already match the intended values, or the task is done/deleted — a partially-resolved task still gets its missing fields (FR-013).
+- Tier-2 governed by the compatibility matrix (FR-017): `due:` ET-EOD on `q:do`/`q:schedule`, ignored-with-note on `q:eliminate`/`f:4`; malformed `loe:`/`due:` → `echoed_back`; missing Tier-2 never blocks Tier-1 (FR-010). A `q:do`/`q:schedule` apply with no `due:` emits a non-blocking follow-up.
+- `q:eliminate` marks the task done rather than requiring a working project (FR-008).

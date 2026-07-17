@@ -61,3 +61,20 @@ plan-phase decisions before design.
 **Decision:** Risk tier 3. Helpers deploy via office2 checkout self-pull; capture + main agent prompt updates (`AGENTS.md`/`TOOLS.md`) via `agent-prompt-sync`; a `deploys/queued/<name>.yaml` manifest creates the `/data/services/openclaw/state/intake/` dir and asserts the kent-token secret is present. **Rebaseline not required** — `audit.sh` hashes `openclaw.json`, never agent `AGENTS.md` (memory: rebaseline-directives-gap #621); no other audited surface changes.
 
 **Rationale:** Matches the established Felix deploy discipline and the #621 rebaseline determination used by the prior #167/#746 agent-prompt missions.
+
+## R8 — Post-plan Codex review (mandatory checkpoint) outcome
+
+Ran the post-plan adversarial Codex review (`-p spec-kitty-review`, gpt-5.5) over spec/plan/research/data-model/contracts. Verdict: **NEEDS_FIXES_FIRST**, 13 findings (4 HIGH / 5 MED / 4 LOW) — all legitimate; folded before decomposition (review-AND-fix discipline):
+
+- **HIGH-1 (correlation collision):** same-day digest overwrite → delayed reply maps a number to the wrong task across 4 ticks. → FR-016 + data-model: immutable per-`digest_id` records + `latest` pointer + 48h expiry + evidence-based (line-number set + title) correlation.
+- **HIGH-2 (`q:`/`f:` family clobber):** blind RMW leaves two quadrants. → FR-013 family-replace rule + data-model family-replace section.
+- **HIGH-3 (sparse replies):** grammar over-required full form. → FR-005 sparse grammar + examples.
+- **HIGH-4 (`f:4` infinite loop):** overload had no terminal state under re-prompt-until-resolved. → FR-009: `f:4` is a resolution (decomposition-pending), drops out of the prompt.
+- **MED-5/6 (Tier-2):** due prompted before quadrant known; invalid combos undefined. → FR-010 apply-time evaluation + FR-017 compatibility matrix.
+- **MED-7 (`--unresolved` Directive-6 leak):** → FR-006 + contract: `{line,token,position,canonical_name}` only, re-resolved through the seam.
+- **MED-8 (over-eager noop):** → FR-013 noop only when live state already matches.
+- **MED-9 (deleted/moved between digest & reply):** → FR-012 per-line status set (`not_found`/`moved_conflict`/`already_done`/`access_denied`).
+- **LOW-10 (observability):** → FR-014 apply aggregates.
+- **LOW-11 (label reconciliation "~18–29"):** → IC-01 exact-evidence reconciliation, no ranges.
+- **LOW-12 (DEVELOPER_PORTAL doc-sync):** → FR-015 + IC-05.
+- **LOW-13 (rebaseline):** affirmation, no change (R7 stands).
