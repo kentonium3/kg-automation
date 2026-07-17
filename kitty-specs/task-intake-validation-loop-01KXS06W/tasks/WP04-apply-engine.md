@@ -26,7 +26,9 @@ subtasks:
 - T018
 - T019
 phase: Phase 3 - Apply
-shell_pid_created_at: "1784329886.263686"
+shell_pid_created_at: "1784330267.363766"
+agent: "claude:sonnet:python-pedro:implementer"
+shell_pid: "70955"
 history:
 - at: '2026-07-17T21:55:00Z'
   actor: system
@@ -132,3 +134,4 @@ writes.
 - 2026-07-17T23:11:39Z – claude:sonnet:python-pedro:implementer – shell_pid=64436 – WP04 apply engine: kent-token family-replace, Tier-2 matrix, per-line statuses, closes #750; 40 tests (127 intake) green
 - 2026-07-17T23:11:51Z – claude:opus:reviewer-renata:reviewer – shell_pid=68983 – Started review via action command
 - 2026-07-17T23:18:00Z – user – Moved to planned
+- 2026-07-17T23:18:30Z – claude:sonnet:python-pedro:implementer – shell_pid=70955 – Started implementation via action command
