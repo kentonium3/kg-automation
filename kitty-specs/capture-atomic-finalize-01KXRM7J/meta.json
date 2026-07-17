@@ -10,5 +10,7 @@
   "purpose_tldr": "Make inbox capture route-and-finalize atomic for every route kind so a note can never be marked processed without a verified route.",
   "slug": "capture-atomic-finalize-01KXRM7J",
   "target_branch": "fix/capture-atomic-finalize",
-  "topology": "single_branch"
+  "topology": "single_branch",
+  "vcs": "git",
+  "vcs_locked_at": "2026-07-17T18:43:24.339918+00:00"
 }
