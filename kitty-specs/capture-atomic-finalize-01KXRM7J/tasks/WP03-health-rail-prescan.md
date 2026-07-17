@@ -17,9 +17,9 @@ subtasks:
 - T016
 - T017
 phase: Phase 2 - Core
-agent: "claude:sonnet:python-pedro:implementer"
-shell_pid: "87927"
-shell_pid_created_at: "1784314727.75145"
+agent: "claude:opus:reviewer-renata:reviewer"
+shell_pid: "92597"
+shell_pid_created_at: "1784315564.864742"
 history:
 - at: '2026-07-17T18:30:00Z'
   actor: system
@@ -110,3 +110,5 @@ and the current `scripts/inbox/prescan.py` (`scan_archive_anomalies`, `classify_
 ## Activity Log
 
 - 2026-07-17T18:59:04Z – claude:sonnet:python-pedro:implementer – shell_pid=87927 – Assigned agent via action command
+- 2026-07-17T19:12:59Z – claude:sonnet:python-pedro:implementer – shell_pid=87927 – Ready for review: health rail + prescan D9 dedup-shift; full inbox suite green (385 passed); commit ab7bd507; out-of-map test edit recorded
+- 2026-07-17T19:13:09Z – claude:opus:reviewer-renata:reviewer – shell_pid=92597 – Started review via action command

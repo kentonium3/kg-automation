@@ -20,10 +20,10 @@
 | T011 | calendar fold adapter: reuse create/verify; preserve #737 paths; remove `routing_logged:false` leniency | WP02 | |
 | T012 | empty disposition: validate body genuinely empty; kind=empty log entry | WP02 | |
 | T013 | Tests: per-kind success/route-fail/verify-fail + retry-no-double-create; multi-block all-or-nothing; calendar regression | WP02 | |
-| T014 | prescan: `processed-without-routing-log` anomaly (scan 01-Inbox + 02-Inbox-Processed; exclude empty-logged + needs-review) | WP03 | |
-| T015 | prescan: classify inbox `needs-review` terminal (exclude from `unprocessed_paths`); dedup shift log→status | WP03 | |
-| T016 | Wire anomaly into `PrescanResult` for the Step 1 IDLE-gate to read | WP03 | |
-| T017 | Tests: anomaly detection, no false-positive on empty/needs-review, needs-review not reprocessed | WP03 | |
+| T014 | prescan: `processed-without-routing-log` anomaly (scan 01-Inbox + 02-Inbox-Processed; exclude empty-logged + needs-review) | WP03 | | [D] |
+| T015 | prescan: classify inbox `needs-review` terminal (exclude from `unprocessed_paths`); dedup shift log→status | WP03 | | [D] |
+| T016 | Wire anomaly into `PrescanResult` for the Step 1 IDLE-gate to read | WP03 | | [D] |
+| T017 | Tests: anomaly detection, no false-positive on empty/needs-review, needs-review not reprocessed | WP03 | | [D] |
 | T018 | Rewrite AGENTS.md routing to note-level single-finalize; remove standalone Steps 5b/5c | WP04 | |
 | T019 | Update Step 1 IDLE gate: block IDLE + report `archive_anomalies` incl processed-without-routing-log | WP04 | |
 | T020 | Update TOOLS.md (remove standalone mark_processed/append_routing_entry); keep needs-review exception; mirror `.tmpl` | WP04 | |
