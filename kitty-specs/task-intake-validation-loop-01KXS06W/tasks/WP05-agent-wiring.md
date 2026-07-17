@@ -16,7 +16,9 @@ subtasks:
 - T021
 - T022
 phase: Phase 4 - Integration
-agent: claude
+agent: "claude:sonnet:curator-carla:implementer"
+shell_pid: "72753"
+shell_pid_created_at: "1784330535.269304"
 history:
 - at: '2026-07-17T21:55:00Z'
   actor: system
@@ -101,3 +103,7 @@ with headroom; rebalance AGENTS↔TOOLS if needed. Confirm no deterministic work
 
 ## Implementation command
 `spec-kitty agent action implement WP05 --agent claude`
+
+## Activity Log
+
+- 2026-07-17T23:22:55Z – claude:sonnet:curator-carla:implementer – shell_pid=72753 – Assigned agent via action command
