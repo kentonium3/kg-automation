@@ -1,7 +1,7 @@
 {
-  "event_count": 3,
-  "last_event_id": "01KXRNYMWFVY7429YKTHVZA828",
-  "materialized_at": "2026-07-17T18:38:20.559574+00:00",
+  "event_count": 4,
+  "last_event_id": "01KXRNYTMSNEKN2XH9YFYXX9X0",
+  "materialized_at": "2026-07-17T18:38:26.458025+00:00",
   "mission_number": "",
   "mission_slug": "capture-atomic-finalize-01KXRM7J",
   "mission_type": "software-dev",
@@ -14,7 +14,7 @@
     "for_review": 0,
     "in_progress": 0,
     "in_review": 0,
-    "planned": 3
+    "planned": 4
   },
   "work_packages": {
     "WP01": {
@@ -37,6 +37,13 @@
       "lane": "planned",
       "last_event_id": "01KXRNYMWFVY7429YKTHVZA828",
       "last_transition_at": "2026-07-17T18:38:20.559574+00:00"
+    },
+    "WP04": {
+      "actor": "finalize-tasks",
+      "force_count": 0,
+      "lane": "planned",
+      "last_event_id": "01KXRNYTMSNEKN2XH9YFYXX9X0",
+      "last_transition_at": "2026-07-17T18:38:26.458025+00:00"
     }
   }
 }
