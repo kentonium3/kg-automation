@@ -4,7 +4,7 @@ artifact_type: spec-kitty.analysis-report
 command: /spec-kitty.analyze
 mission_slug: capture-atomic-finalize-01KXRM7J
 mission_id: 01KXRM7JSXZBNGX2QTRJG19B9N
-generated_at: '2026-07-17T18:58:02.978156+00:00'
+generated_at: '2026-07-17T19:23:05.193355+00:00'
 analyzer_agent: unknown
 input_artifacts:
   spec.md:
@@ -15,7 +15,7 @@ input_artifacts:
     sha256: 68a4b541588565b9a9e8b3e4a9ee1247f8c50b903aeddc1ccc6e4fed7eb67bfd
   tasks.md:
     path: /Users/kentgale/repos/kg-automation/kitty-specs/capture-atomic-finalize-01KXRM7J/tasks.md
-    sha256: e6f603c4f8fa3a12cee30900bf6402fd3238e305e3dc817e1bc358d3a2694ca1
+    sha256: 25626231ddb51a2080e5273f812b53bc3b16e07b7f0bd09a7c279d21d41b3757
   charter:
     path: /Users/kentgale/repos/kg-automation/.kittify/charter/charter.md
     sha256: 4891223a0c3fc0dc96917475523586e8f3147a3ccaa113ecb7ff19da646e82e2
