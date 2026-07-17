@@ -16,7 +16,9 @@ subtasks:
 - T012
 - T013
 phase: Phase 2 - Engine
-agent: claude
+agent: "claude:sonnet:python-pedro:implementer"
+shell_pid: "59372"
+shell_pid_created_at: "1784328058.563785"
 history:
 - at: '2026-07-17T21:55:00Z'
   actor: system
@@ -100,3 +102,7 @@ accepts only canonical names and rejects a raw id / free-form value.
 
 ## Implementation command
 `spec-kitty agent action implement WP03 --agent claude`
+
+## Activity Log
+
+- 2026-07-17T22:41:12Z – claude:sonnet:python-pedro:implementer – shell_pid=59372 – Assigned agent via action command
