@@ -38,6 +38,12 @@
 - Design-level decisions locked with Kent (2026-07-17): fold calendar into the unified
   finalize mechanism; cover the tasker-delegated vikunja_task path; no-route/empty
   disposition records a routing-log entry so `processed ⇒ logged` is total.
-- The generic-`route_and_finalize`-vs-per-kind-command decomposition is an
-  implementation-strategy choice deferred to `/spec-kitty.plan`; the spec fixes only the
-  atomicity/fail-loud/coverage contract.
+- **Post-plan Codex review (2026-07-17) reshaped the design** from per-route to a
+  **note-level finalize transaction** (12 findings, 6H/6M). Folded: note-level atomicity
+  across multi-block notes (FR-001/003), per-block routing-log keys + per-kind idempotency
+  (FR-009/010), explicit log/mark state machine (FR-011), agent-hop provenance for
+  tasker+github (FR-006/012), empty-body validation (FR-007), prescan needs-review terminal
+  (FR-008), health-rail surfaced in the IDLE gate (FR-014), calendar invariant pinned
+  (FR-015). Finding 10 (pending-calendar-clarification surfacing) deferred to #740 (C-006).
+- Spec fixes the atomicity/coverage/retry-safety contract; the note-level orchestration +
+  block-plan shape is carried in plan.md/contracts.
