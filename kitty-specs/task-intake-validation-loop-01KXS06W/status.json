@@ -1,7 +1,7 @@
 {
-  "event_count": 11,
-  "last_event_id": "01KXS3RKKMTPPZEH8TBEW414DM",
-  "materialized_at": "2026-07-17T22:39:42.708797+00:00",
+  "event_count": 13,
+  "last_event_id": "01KXS3T7D5EG4M1Q3PXBASGEA5",
+  "materialized_at": "2026-07-17T22:40:35.748085+00:00",
   "mission_number": "",
   "mission_slug": "task-intake-validation-loop-01KXS06W",
   "mission_type": "software-dev",
@@ -12,9 +12,9 @@
     "claimed": 0,
     "done": 0,
     "for_review": 0,
-    "in_progress": 0,
+    "in_progress": 1,
     "in_review": 0,
-    "planned": 5
+    "planned": 4
   },
   "work_packages": {
     "WP01": {
@@ -25,11 +25,11 @@
       "last_transition_at": "2026-07-17T22:39:42.708797+00:00"
     },
     "WP02": {
-      "actor": "finalize-tasks",
+      "actor": "claude:sonnet:python-pedro:implementer",
       "force_count": 0,
-      "lane": "planned",
-      "last_event_id": "01KXS2FT2W9FY2RR11H5WSMAYM",
-      "last_transition_at": "2026-07-17T22:17:25.852902+00:00"
+      "lane": "in_progress",
+      "last_event_id": "01KXS3T7D5EG4M1Q3PXBASGEA5",
+      "last_transition_at": "2026-07-17T22:40:35.748085+00:00"
     },
     "WP03": {
       "actor": "finalize-tasks",
