@@ -40,10 +40,10 @@ Tests are **required** for this mission (NFR-001/002/003; deterministic helpers)
 
 ### WP01 — Seam label taxonomy declaration
 **Goal:** declare the friction/Eisenhower/type/LOE label ids in the #748 seam so all resolution is fail-loud + drift-gated. **Priority:** foundational. **Independent test:** `label_id("f:3-edge","kent")` resolves; `vikunja_refs_validate.py` green. **Deps:** none. **Prompt:** ~200 lines.
-- [ ] T001 Reconcile live #715 label ids via seam owner_token=kent (WP01)
-- [ ] T002 Declare labels in `vikunja_refs.json` (owner kent) (WP01)
-- [ ] T003 Extend `vikunja_refs_validate.py` drift/AST gate (WP01)
-- [ ] T004 Unit tests: per-label resolution + drift gate (WP01)
+- [x] T001 Reconcile live #715 label ids via seam owner_token=kent (WP01)
+- [x] T002 Declare labels in `vikunja_refs.json` (owner kent) (WP01)
+- [x] T003 Extend `vikunja_refs_validate.py` drift/AST gate (WP01)
+- [x] T004 Unit tests: per-label resolution + drift gate (WP01)
 
 ### WP02 — Inbox scan, Tier-1 classification, correlation record
 **Goal:** deterministic scan + classification + immutable per-digest correlation record + tick artifact + digest render. **Priority:** foundational. **Independent test:** scan a mocked Inbox → correct incomplete set + digest text + immutable record; SC-009. **Deps:** WP01. **Prompt:** ~320 lines.

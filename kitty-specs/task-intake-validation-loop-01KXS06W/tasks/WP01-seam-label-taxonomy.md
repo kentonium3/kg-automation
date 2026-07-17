@@ -15,9 +15,9 @@ subtasks:
 - T003
 - T004
 phase: Phase 1 - Foundation
-agent: "claude:sonnet:python-pedro:implementer"
-shell_pid: "52864"
-shell_pid_created_at: "1784326852.53875"
+agent: "claude:opus:reviewer-renata:reviewer"
+shell_pid: "57404"
+shell_pid_created_at: "1784327736.623405"
 history:
 - at: '2026-07-17T21:55:00Z'
   actor: system
@@ -107,3 +107,5 @@ Use `set_registry_for_test` for isolation where helpful.
 ## Activity Log
 
 - 2026-07-17T22:21:07Z – claude:sonnet:python-pedro:implementer – shell_pid=52864 – Assigned agent via action command
+- 2026-07-17T22:35:17Z – claude:sonnet:python-pedro:implementer – shell_pid=52864 – WP01 seam label taxonomy: 12 labels declared (ids 18-29 reconciled live), validator+tests green
+- 2026-07-17T22:35:47Z – claude:opus:reviewer-renata:reviewer – shell_pid=57404 – Started review via action command
