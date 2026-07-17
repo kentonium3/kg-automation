@@ -18,7 +18,9 @@ subtasks:
 - T020
 - T021
 phase: Phase 3 - Integration
-agent: claude
+agent: "claude:sonnet:curator-carla:implementer"
+shell_pid: "96267"
+shell_pid_created_at: "1784316182.512466"
 history:
 - at: '2026-07-17T18:30:00Z'
   actor: system
@@ -112,3 +114,7 @@ WP02 provides `python3 -m scripts.inbox.route_and_finalize --source-path <note> 
 - Reviewer: confirm (a) no path lets the agent mark a note processed except via finalize;
   (b) the IDLE gate now includes archive_anomalies; (c) `.tmpl` parity; (d) the calendar
   clarification + parse-failure + privacy + no-delete invariants survive the rewrite.
+
+## Activity Log
+
+- 2026-07-17T19:23:35Z – claude:sonnet:curator-carla:implementer – shell_pid=96267 – Assigned agent via action command
