@@ -17,7 +17,9 @@ subtasks:
 - T016
 - T017
 phase: Phase 2 - Core
-agent: claude
+agent: "claude:sonnet:python-pedro:implementer"
+shell_pid: "87927"
+shell_pid_created_at: "1784314727.75145"
 history:
 - at: '2026-07-17T18:30:00Z'
   actor: system
@@ -104,3 +106,7 @@ and the current `scripts/inbox/prescan.py` (`scan_archive_anomalies`, `classify_
   can reconcile and complete it. Terminal = `processed` or `needs-review` ONLY.
 - Reviewer: confirm the invariant check matches WP02's logging (a processed note always has
   a routing-log entry, incl. empty) so the rail has zero legitimate false positives.
+
+## Activity Log
+
+- 2026-07-17T18:59:04Z – claude:sonnet:python-pedro:implementer – shell_pid=87927 – Assigned agent via action command
