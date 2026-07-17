@@ -81,7 +81,9 @@ Each processing step below runs a deterministic helper as a single self-containe
 
 ### Step 1 — Pre-scan
 
-Invoke `cd /home/claude/kg-automation && python3 -m scripts.inbox.prescan`. Consume the JSON output. If `unprocessed_count == 0` AND `parse_failures` is empty AND `marker_cleanup_needed` is empty, emit the byte string `[felix-admin-capture]: IDLE` and stop. No preceding narration. No "Per Step 1...", no "The prescan reports...", no "my final reply is...". First token = `[`. Last token = `E`. End of turn. (See Hard rule #1 above for the banned 2026-06-09 violation.) Otherwise, proceed.
+Invoke `cd /home/claude/kg-automation && python3 -m scripts.inbox.prescan`. Consume the JSON output. Emit the byte string `[felix-admin-capture]: IDLE` and stop **only when ALL of these hold**: `unprocessed_count == 0` AND `parse_failures` is empty AND `marker_cleanup_needed` is empty AND `archive_anomalies` is empty. No preceding narration. No "Per Step 1...", no "The prescan reports...", no "my final reply is...". First token = `[`. Last token = `E`. End of turn. (See Hard rule #1 above for the banned 2026-06-09 violation.)
+
+**If `archive_anomalies` is non-empty**, do NOT go IDLE — it is a health-rail alarm that must reach Kent. Each entry (e.g. `processed-without-routing-log`: a note marked `processed` whose blocks are NOT in the routing log) signals a note possibly marked without its content landing. Send Kent ONE WhatsApp naming the anomaly kind and affected note(s) verbatim from `archive_anomalies`, record it in the tick summary, then continue with any routing below. Otherwise, proceed.
 
 ### Step 1a — 24h calendar-clarifications sweep
 
@@ -89,82 +91,63 @@ Invoke `cd /home/claude/kg-automation && python3 -m scripts.inbox.handle_clarifi
 
 ### Step 2 — Parse each unprocessed file
 
-For each path in `unprocessed_paths` from prescan: read the file. If frontmatter or body cannot be parsed cleanly, route it to Step 6 (parse-failure handling) and continue to the next file. Otherwise classify it via Step 3.
+For each path in `unprocessed_paths` from prescan: read the file. If frontmatter or body cannot be parsed cleanly, route it to Step 5 (parse-failure handling) and continue to the next file. Otherwise classify it via Step 3.
 
-### Step 3 — Classify and route
+### Step 3 — Classify, assemble the routing plan, and finalize (ONE command per note)
 
-For each successfully parsed file, invoke `cd /home/claude/kg-automation && python3 -m scripts.inbox.classify_content --content-file <path>`. The helper returns `ClassificationOutput` JSON: `{note_filename, blocks: [{index, kind, content, confidence, flag?}]}`. For each block:
+You process each note as a whole: classify its blocks, assemble ONE routing plan, and invoke ONE finalize command. `route_and_finalize` does it all atomically — route → verify → log every block, then mark the note ONCE, only after all blocks are logged. There is no per-kind route call, no standalone routing-log append, and no standalone mark-processed step.
 
-- If `kind == "ambiguous"` and `flag == "needs-llm-disambiguation"`: read the block's `content` and surrounding context; classify it yourself into one of `journal`, `calendar`, `someday`, `github_issue`, `vikunja_task`, or `parse_failure`. If still ambiguous after your judgment, treat as `parse_failure`.
-- Then route by kind:
-  - `journal` → `cd /home/claude/kg-automation && python3 -m scripts.inbox.route_journal_entry --content-file <tmp> --datetime <iso>`. Pass the block content via a tempfile; pass the note's frontmatter `created` (or file mtime if absent) as the datetime.
-  - `someday` → `cd /home/claude/kg-automation && python3 -m scripts.inbox.route_someday --title <title> --body <body> --note-filename <name>`. Title = first sentence (≤100 chars); body = full block content. Returns `task_id=<int>`.
-  - `calendar` → assemble a `CalendarPayload` (`title`, `start`, optional `end`/`location`/`description`) into a tempfile; run the **single atomic** command `cd /home/claude/kg-automation && python3 -m scripts.inbox.route_calendar_event --finalize --payload-file <tmp> --source-path <abs-path-of-the-source-note>`. This ONE command creates the event, verifies it, marks the note processed, AND writes the routing-log entry — so for a calendar route you do **NOT** run Step 5b/5c separately, and there is **no agent-to-agent hop**. Do **NOT** run `openclaw agent`, `sessions_send`, or route through `main`; do **NOT** run `gog` (you have none). It emits ONE result JSON on stdout — branch on its `status`:
-    - `"finalized"` → **done.** The event was created (`event_id` / `html_link`), the note is already marked processed, and the routing-log entry is written. **Skip Step 5 for this note** — do NOT run `mark_processed` or `append_routing_entry`.
-    - `"needs_clarification"` → the payload was incomplete (`missing` lists the fields). The note was NOT marked processed — enter the clarification flow below.
-    - `"error"` → the create or finalize failed (**non-zero exit**; `error` + optional `stage`). The note was NOT marked processed, so there is no silent loss — it retries next tick. Send Kent ONE WhatsApp with the `error` text verbatim. **Never treat an `error` as a created event (#683).**
-  - `github_issue` → invoke `cd /home/claude/kg-automation && python3 scripts/openclaw/agents/main/felix-file-issue.py …` (existing surface). Title and body come from the block; labels per heuristic.
+For each successfully parsed file, invoke `cd /home/claude/kg-automation && python3 -m scripts.inbox.classify_content --content-file <path>`. The helper returns `ClassificationOutput` JSON: `{note_filename, blocks: [{index, kind, content, confidence, flag?}]}`.
 
-    **Available Labels** — apply at the `github_issue` route:
+#### Step 3a — Resolve each block's kind
 
-    *Priority + type* (pick one):
-    `P1-feature`, `P2-feature`, `P3-candidate`, `P1-infra`, `P2-infra`, `P1-bug`, `P2-bug`, `P1-rfc`, `P2-debt`
+For each block whose `kind == "ambiguous"` and `flag == "needs-llm-disambiguation"`: read the block's `content` and surrounding context and classify it yourself into one of `journal`, `calendar`, `someday`, `github_issue`, `vikunja_task`, or `parse_failure`. If still ambiguous after your judgment, treat it as `parse_failure`.
 
-    *Area* (pick at most one):
-    `area/infrastructure`, `area/security`, `area/felix-core`, `area/ea`, `area/task-intel`, `area/content`, `area/docs`, `area/biz-ops`
+If ANY block resolves to `parse_failure`, do **NOT** finalize this note: set `status: needs-review` via a direct frontmatter edit (do NOT write `processed_at` — see the needs-review exception in Step 4) and route the note to Step 5 (parse-failure handling). Do not build a plan for a note with an unclassifiable block.
 
-    *Always apply*: `spec: brief`
-  - `vikunja_task` → fall back to the Task bridge (below).
-  - `parse_failure` → continue to Step 6.
+#### Step 3b — Assemble ONE RoutingPlan for the note
 
-**Calendar clarification flow** (when `route_calendar_event --finalize` returns `status: "needs_clarification"`):
+Build a single JSON object `{"blocks": [ … ]}` with one entry per routable block, in `block_index` order, and write it to a tempfile. Per-block fields and the kind-specific `payload` shapes are in TOOLS.md (§Note finalize). Judgment that stays here:
+
+- `content` is **the verbatim block text from classify_content**, copied byte-for-byte (see Block-key stability below).
+- `vikunja_task` / `github_issue` — use the in-line `payload` form unless felix-admin-tasker (or a prior issue-file) already produced the artifact; then omit `payload` and pass the `task_id` / `issue_number` (finalize verifies it belongs to this note). Labels per the taxonomy in TOOLS.md (§Available Labels).
+- An empty note body → an empty `blocks` list (or a single `{"block_index": 0, "kind": "empty"}`); finalize refuses a non-empty body.
+
+**Block-key stability (LOAD-BEARING — do not skip).** `route_and_finalize` keys each block's idempotency on its verbatim `content`. If a later tick regenerates the plan with paraphrased or non-byte-identical text, the key shifts and an already-created someday / vikunja / github artifact is re-created. ALWAYS copy the exact `content` string classify_content emitted into each plan block's `content` — never paraphrase, re-order, or regenerate it.
+
+#### Step 3c — Finalize the note (ONE command)
+
+Run the single atomic command:
+
+`cd /home/claude/kg-automation && python3 -m scripts.inbox.route_and_finalize --source-path <abs-path-of-the-source-note> --plan-file <abs-path-of-plan.json>`
+
+This ONE command routes every block, verifies each artifact (and provenance for delegated kinds), writes each block's routing-log entry, and marks the note processed ONCE — only after all blocks are logged. There is **no** agent-to-agent hop: do **NOT** run `openclaw agent`, `sessions_send`, or route through `main`; do **NOT** run `gog` (you have none). It emits ONE result JSON on stdout — branch on its `status`:
+
+- `"finalized"` → **done.** Every block routed, verified, and logged; the note is marked processed (`marked_processed: true`).
+- `"needs_clarification"` → a block (calendar only, today) had an incomplete payload (`blocks[].missing` lists the fields). The note was NOT marked — enter the calendar clarification flow below.
+- `"error"` (**non-zero exit**) → a block failed at route / verify / log, or the mark itself failed (`blocks[].stage` + verbatim `error`, or top-level `stage: "mark_processed"`). The note was NOT marked — so there is no silent loss; it retries next tick. Send Kent ONE WhatsApp with the `error` text verbatim, and record it in the tick summary. **Never treat an `error` as success (#683).**
+
+**Standing order**: a non-zero finalize (`error`) MUST be surfaced in the tick summary — no silent failures.
+
+**Calendar clarification flow** (when `route_and_finalize` returns `status: "needs_clarification"` for a calendar block):
 
 1. `cd /home/claude/kg-automation && python3 -m scripts.inbox.handle_clarification_state add --note-filename <name> --partial-payload <json>` to record what's known (the JSON-array store at `/data/services/openclaw/state/pending-calendar-clarifications.json`).
 2. Compose ONE WhatsApp message asking Kent for the missing fields. Direct voice, single question. Example: `Sent by felix-admin-capture:haiku\n\nWhat time should "<title>" be on <date>?`
-3. Leave the note unprocessed. **Kent's later reply is handled by `felix-admin-calendar`, not by you** — his reply lands as an inbound message to that agent, which matches it against the pending record, re-validates, and invokes the calendar helper itself. That is a separate Kent→agent message, not a capture→agent hop. Do not re-dispatch, poll, or re-invoke `route_calendar_event` on a subsequent inbox tick for a note already pending clarification (the 24h `sweep` in Step 1a ages out stale entries).
+3. Leave the note unprocessed. **Kent's later reply is handled by `felix-admin-calendar`, not by you** — his reply lands as an inbound message to that agent, which matches it against the pending record, re-validates, and invokes the calendar helper itself. That is a separate Kent→agent message, not a capture→agent hop. Do not re-dispatch, poll, or re-finalize on a subsequent inbox tick for a note already pending clarification (the 24h `sweep` in Step 1a ages out stale entries).
 
-### Step 4 — Execute the file move (when applicable)
+### Step 4 — Marker cleanup and terminal-state hygiene
 
-If the routing destination requires creating a new file (e.g., a journal entry), the route helper has already done it atomically. Your job is only to record the routing log entry (Step 5b).
+**INVARIANT: never delete or move the original note.** Preserve it in `01-Inbox/` as a record of what came in. `route_and_finalize` (Step 3c) writes `status: processed` in place — frontmatter only, body verbatim, file at its original path — and `prescan.py` archives it after the 7-day window.
 
-### Step 5 — Mark processed
+**A note becomes `processed` ONLY through a successful `route_and_finalize`** — there is no standalone mark or append step. The single sanctioned exception is the **`needs-review`** direct frontmatter edit for a note with an unclassifiable block (Step 3a): it writes `status: needs-review`, NO `processed_at`, and never marks the note processed. Note the reason in the processing log (Step 6).
 
-**INVARIANT: do NOT delete the original file. Preserve it in `01-Inbox/` as a record of what came in.** Step 5 below updates frontmatter only; the file stays at its original path.
+**Strip stale parse-error markers:** for each path in `marker_cleanup_needed` from prescan: `cd /home/claude/kg-automation && python3 -m scripts.inbox.handle_marker_cleanup --path <path>`. Idempotent and atomic. This is independent of routing — run it for every listed path even on a turn with no unprocessed notes.
 
-#### Step 5a — Strip stale parse-error markers (if any)
-
-For each path in `marker_cleanup_needed` from prescan: `cd /home/claude/kg-automation && python3 -m scripts.inbox.handle_marker_cleanup --path <path>`. Idempotent and atomic.
-
-#### Step 5b — Append to the routing log
-
-For each fully-routed note (per Step 3): `cd /home/claude/kg-automation && python3 -m scripts.inbox.append_routing_entry <name> <issue-number-or-0> <vikunja-task-id-or-dash> <short-excerpt>` — **positional** args (matching the CLI + `AGENTS.md.tmpl`): note basename, GitHub issue number as an integer (`0` if none), Vikunja task id (or `-` if none), optional ≤120-char excerpt. This is the dedup substrate; future ticks consult it to skip re-routing the same file.
-
-**Exempt: `calendar` routes** — `route_calendar_event --finalize` already wrote their routing-log entry (`--kind calendar`). Do NOT append again for a note that returned `status: "finalized"`.
-
-#### Step 5c — Atomic frontmatter write
-
-For each fully-routed note: `cd /home/claude/kg-automation && python3 -m scripts.inbox.mark_processed --path <path>`. Writes `status: processed` + `processed_at: <ISO-8601 UTC>` atomically, preserves all other frontmatter, preserves the body verbatim, leaves the file at its original path. Idempotent on already-processed notes. This step is frontmatter-only, in place — the note stays in `01-Inbox/` indefinitely; `prescan.py` archives it after the 7-day window. Do NOT move or delete the file (see Step 5 INVARIANT above).
-
-**Exempt: `calendar` routes** — `route_calendar_event --finalize` already marked them processed. Do NOT mark again for a note that returned `status: "finalized"`.
-
-The helper prints a single-line JSON to stdout on exit 0 and `{"error": …, "detail": "…"}` to stderr on non-zero exits. Act on the exit code immediately:
-
-| Exit | Meaning | Action |
-|------|---------|--------|
-| 0 | finalized (or already processed) | proceed; note stays in `01-Inbox/` |
-| 1 | validation failure (bad path / outside inbox root / bad frontmatter) | record in the run summary; do NOT silently continue |
-| 2 | filesystem error (perm denied / write race) | **surface/escalate** — this is the silent-failure class; note left `unprocessed`, uncorrupted |
-| 3 | privacy refusal (`04-Growth/_private/`) | expected; skip, no escalation |
-
-**Standing order**: a non-zero finalize exit must be surfaced in the tick summary — no silent failures.
-
-**Exception — unclassifiable blocks**: if any content block could not be classified, set `status: needs-review` via a direct frontmatter edit — do NOT call `mark_processed` for this case, and do NOT write `processed_at`. Note the reason in the processing log (Step 7). This is the one legitimate non-`mark_processed` frontmatter write (it mirrors the `AGENTS.md.tmpl` source).
-
-### Step 6 — End-of-turn parse-failure handling
+### Step 5 — End-of-turn parse-failure handling
 
 If any file had a parse failure during this turn: `cd /home/claude/kg-automation && python3 -m scripts.inbox.handle_parse_failures` once at end-of-turn. The helper batches all failures from this turn into ONE GitHub issue (title-deduped) and injects a `> [!error] felix-capture:` callout into each affected note (via `inject_parse_error_marker`). Both operations are idempotent.
 
-### Step 7 — Processing log
+### Step 6 — Processing log
 
 Append one terse entry per turn to `/home/kgale/second-brain/agents/logs/inbox-processing-YYYY-MM-DD.md` with: timestamp, unprocessed count, routed count, parse-failure count, marker-cleanup count, any pending calendar clarifications added/removed. Forensic review surface — not narrative.
 
@@ -176,7 +159,7 @@ Some inbox content declares a goal Kent wants Felix to remember. Judgment-heavy:
 
 **Borderline cases** (route, don't promote): aspirational ("I'd like to be more X") → journal. Open-ended ("I should look into Y") → someday. Task ("I need to do Z by Friday") → vikunja_task via Task bridge.
 
-**When valid**: update `03-Constitution/Goals-MOC.md` in the correct domain (edit in place if exists; do NOT duplicate). Link back: `source: [[Inbox YYYY-MM-DD HHmm]]`. Log as `goal-updated` (Step 5b).
+**When valid**: update `03-Constitution/Goals-MOC.md` in the correct domain (edit in place if exists; do NOT duplicate). Link back: `source: [[Inbox YYYY-MM-DD HHmm]]`. Record it in the processing log (Step 6) as `goal-updated`.
 
 **When goal-adjacent but invalid**: route to journal/someday/task per content. Note `goal-adjacent` in the log (helps Kent see patterns).
 
@@ -185,7 +168,7 @@ Some inbox content declares a goal Kent wants Felix to remember. Judgment-heavy:
 - **Frontmatter**: routed files have `id`, `doc_type`, `title`, `status`, `created`, `last_validated`. Helpers handle for new files; preserve everything except their target field for existing.
 - **File naming**: dated targets follow `Journal YYYY-MM-DD HHmm.md` / `Inbox YYYY-MM-DD HHmm.md`. Helpers derive filenames from datetimes.
 - **Cross-linking**: when routing references another note, add a `[[wikilink]]` in the destination AND a back-reference in the source's `references:` field if present.
-- **Safety**: never modify `04-Growth/_private/` (Privacy below). Never delete files in `01-Inbox/` (Step 5 invariant). Never invoke a route helper with empty payload.
+- **Safety**: never modify `04-Growth/_private/` (Privacy below). Never delete files in `01-Inbox/` (Step 4 invariant). Never build a routing-plan block with an empty payload.
 
 ## Privacy — absolute rule
 
@@ -193,7 +176,7 @@ Some inbox content declares a goal Kent wants Felix to remember. Judgment-heavy:
 
 ## Edge cases
 
-**Empty inbox files:** Some inbox files have frontmatter but no content (just a templater cursor tag). Mark these as `status: processed` (via Step 5c) and note in the log that the file was empty.
+**Empty inbox files:** Some inbox files have frontmatter but no content (just a templater cursor tag). Finalize them with an empty-body plan (an empty `blocks` list or a single `{"kind": "empty"}` block — Step 3b); the `empty` disposition verifies the body is genuinely empty, refuses a non-empty body, then marks the note processed. Note in the log that the file was empty.
 
 **Multi-domain content:** If a single content block legitimately belongs in multiple domains, route to the most relevant domain and add wikilinks from the other relevant locations. Do not duplicate.
 
@@ -232,4 +215,4 @@ Tasker returns `task_created (id=<n>)`, `task_failed (reason)`, or `task_needs_c
 
 When tasker is unreachable, do basic structured task creation yourself. For `vikunja_task` kinds: invoke `cd /home/claude/kg-automation && python3 -m scripts.inbox.route_someday --title <t> --body <b> --note-filename <n>` — this lands the capture in **Inbox** (id 1) as a `q:schedule` + no-due-date task (the "important, not date-committed" state), which is also the safe-fallback / fall-through bucket for anything unclassifiable or without a resolved project. There is **no "Someday" project** — "someday" is a task state (the `q:schedule` label + no due date), not a project; tasker would have enriched the task with a more precise project/labels/priority. For `research-request` types, fall through to the parse-failure path so a human can shape it.
 
-**Duplicate detection** is handled by the routing log dedup (Step 5b's `append_routing_entry`); the same inbox filename won't be re-routed on a subsequent tick.
+**Duplicate detection** is handled by the routing-log dedup that `route_and_finalize` writes per block (Step 3c); the same inbox filename won't be re-routed on a subsequent tick.

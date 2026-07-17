@@ -8,11 +8,8 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from pathlib import Path
 
-import pytest
-
 from prescan import (
     _detect_malformation,
-    _extract_frontmatter_block,
     _has_parse_error_marker,
     classify_file,
 )
@@ -239,7 +236,22 @@ def _run_prescan_against(
     return json.loads(output)
 
 
-def test_dedup_filter_removes_routed_filename(tmp_path: Path, monkeypatch):
+def test_unprocessed_note_with_logged_filename_still_reprocessed(
+    tmp_path: Path, monkeypatch
+):
+    """D9 dedup shift (#746): the note-level routing-log filename dedup is REMOVED.
+
+    Previously an ``unprocessed`` note whose filename appeared in the routing
+    log was filtered OUT of ``unprocessed_paths`` and recorded in
+    ``dedup_skipped``. Under the D9 state machine a note is treated as done by
+    its terminal *status* (``processed``/``needs-review``), NOT by routing-log
+    filename presence — per-block idempotency now lives in finalize's block
+    keys. An ``unprocessed`` note whose blocks are mid-flight (e.g. one block
+    logged on a prior failed tick) MUST therefore still be handed to the agent
+    so finalize can reconcile the remaining blocks. This test pins the NEW
+    contract: such a note STAYS in ``unprocessed_paths`` and ``dedup_skipped``
+    is empty.
+    """
     inbox = tmp_path / "inbox"
     processed = tmp_path / "processed"
     inbox.mkdir()
@@ -251,17 +263,17 @@ def test_dedup_filter_removes_routed_filename(tmp_path: Path, monkeypatch):
         "---\nstatus: unprocessed\n---\n\nBody.\n", encoding="utf-8"
     )
 
-    # Seed the routing log so the filename is "already routed".
+    # Seed the routing log so the filename is already present (a prior partial
+    # route). Under D9 this must NOT strand the note.
     log = tmp_path / "routing.jsonl"
     _seed_routing_log(log, note_name, issue_number=42)
 
     result = _run_prescan_against(inbox, processed, log, monkeypatch)
 
-    # The file should NOT appear in unprocessed_paths.
-    assert all(note_name not in p for p in result["unprocessed_paths"])
-    # It SHOULD appear in dedup_skipped.
-    skipped_filenames = [d["filename"] for d in result["dedup_skipped"]]
-    assert note_name in skipped_filenames
+    # NEW: the note is still handed to the agent for reconciliation.
+    assert any(note_name in p for p in result["unprocessed_paths"])
+    # NEW: the note-level dedup filter is gone → nothing skipped by filename.
+    assert result["dedup_skipped"] == []
 
 
 def test_dedup_filter_passes_through_when_log_empty(tmp_path: Path, monkeypatch):

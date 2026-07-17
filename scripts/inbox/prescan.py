@@ -97,17 +97,27 @@ class ArchiveResult:
 
 @dataclass
 class ArchiveAnomaly:
-    """A file in 02-Inbox-Processed/ whose status is NOT 'processed' (#568).
+    """An anomalous inbox/archive file surfaced by prescan's health rails.
 
-    Detected by ``scan_archive_anomalies()`` as a defensive safety rail for
-    the silent-content-loss bug class tracked in epic #563. The helper emits
-    one anomaly per anomalous file; the prescan agent (or operator) decides
-    what to do based on the visible alarm.
+    Two rails populate this record, both defensive safety rails for the
+    silent-content-loss bug class (epic #563, mission #746):
+
+      1. ``scan_archive_anomalies()`` (#568): a file in ``02-Inbox-Processed/``
+         whose status is NOT ``processed`` (misfiled note).
+      2. ``scan_processed_without_routing_log()`` (#746): a note whose status
+         IS ``processed`` but whose filename is absent from the routing log —
+         the silent-loss signature (a note marked done without any recorded
+         route). Scans BOTH ``01-Inbox/`` and ``02-Inbox-Processed/``.
+
+    Each rail emits one anomaly per anomalous file; the prescan agent (or
+    operator) decides what to do based on the visible alarm.
     """
 
     path: str
     status_raw: Optional[str]
-    classification: str  # "unprocessed" | "needs-review" | "unknown-treated-as-unprocessed" | "parse-failure"
+    # "unprocessed" | "needs-review" | "unknown-treated-as-unprocessed"
+    # | "parse-failure" | "processed-without-routing-log"
+    classification: str
     warning: str
 
 
@@ -439,6 +449,14 @@ def classify_file(path: Path, now_utc: datetime) -> InboxFile:
             classification = "processed-stale"
         else:
             classification = "processed-recent"
+    elif status_raw == "needs-review":
+        # #746 (FR-008 / D13): ``needs-review`` is a TERMINAL inbox state. The
+        # note has been triaged and deliberately parked for human attention; it
+        # must NOT reprocess every tick. Kept out of ``unprocessed`` (below) and
+        # out of the ``processed-without-routing-log`` health rail (not
+        # ``processed``). Distinct classification so it drops out of every
+        # actionable list without being mistaken for a routable note.
+        classification = "needs-review"
     else:
         warning = (
             f"unknown status '{status_raw}'; treated as unprocessed (safety default)"
@@ -643,6 +661,104 @@ def scan_archive_anomalies(
 
 
 # ---------------------------------------------------------------------------
+# processed-without-routing-log health rail (#746) — silent-loss signature
+# ---------------------------------------------------------------------------
+
+# Warning text is load-bearing: the agent's Step 1 IDLE gate (WP04) surfaces it
+# verbatim, so keep it stable.
+_SILENT_LOSS_WARNING = (
+    "status:processed but no routing-log entry (silent-loss signature #746)"
+)
+
+
+def _md_candidates(directory: Path) -> list[Path]:
+    """Non-recursive ``.md`` files in ``directory``, excluding daily logs.
+
+    Mirrors ``scan_archive_anomalies``' collection rule: skips the
+    ``inbox-processing-`` daily-log outputs (pipeline artifacts, not notes).
+    Returns ``[]`` for a missing/unreadable directory.
+    """
+    try:
+        return [
+            p
+            for p in directory.iterdir()
+            if p.is_file()
+            and p.suffix == ".md"
+            and not p.name.startswith("inbox-processing-")
+        ]
+    except OSError:
+        return []
+
+
+def scan_processed_without_routing_log(
+    inbox_dir: Path,
+    processed_dir: Path,
+    now_utc: datetime,
+    reader,
+) -> tuple[list[ArchiveAnomaly], list[str]]:
+    """Flag ``status:processed`` notes whose filename is absent from the log.
+
+    The #746 health rail. A note is marked ``processed`` only after every block
+    is routed AND its routing-log entry is written (FR-001/FR-011 log-before-mark;
+    ``empty`` notes get a ``kind=empty`` entry). So a ``processed`` note with no
+    routing-log entry is the **silent-loss signature**: it was marked done
+    without any recorded route. This rail makes that visible (read-only; no
+    remediation) so WP04's IDLE gate can alarm.
+
+    Scans BOTH ``01-Inbox/`` (processed notes await the 7-day archive there) and
+    ``02-Inbox-Processed/``. Reuses ``ARCHIVE_SCAN_CAP`` and the
+    ``inbox-processing-`` daily-log exclusion.
+
+    Presence is checked with WP01's note-level ``reader.has(filename)`` — any
+    routing-log entry (block-keyed or legacy) satisfies it, so correctly
+    finalized notes (including ``empty``-disposition notes) never trip the rail.
+
+    ``needs-review`` and ``unprocessed`` notes are ignored (not ``processed``);
+    parse-failure notes are likewise skipped (no reliable ``status``).
+
+    Returns ``(anomalies, warnings)``. ``warnings`` carries a cap-applied notice
+    when the combined candidate set exceeds ``ARCHIVE_SCAN_CAP``.
+    """
+    warnings: list[str] = []
+
+    # Combine candidates from both directories (each tagged with its source so
+    # the cap can bound total work across the pair).
+    candidates = _md_candidates(inbox_dir) + _md_candidates(processed_dir)
+
+    # Apply the shared cap (most-recent mtime first) to protect the latency
+    # budget when the corpus grows large.
+    if len(candidates) > ARCHIVE_SCAN_CAP:
+        candidates.sort(key=lambda p: p.stat().st_mtime, reverse=True)
+        skipped = len(candidates) - ARCHIVE_SCAN_CAP
+        candidates = candidates[:ARCHIVE_SCAN_CAP]
+        warnings.append(
+            f"health rail: cap_applied (scanned {ARCHIVE_SCAN_CAP} most-recent; "
+            f"skipped {skipped} older files)"
+        )
+
+    anomalies: list[ArchiveAnomaly] = []
+    for path in candidates:
+        info = classify_file(path, now_utc)
+        # Only 'processed' notes can exhibit the silent-loss signature. Every
+        # other state (unprocessed / needs-review / unknown / parse-failure) is
+        # out of scope for this rail.
+        if info.status_raw != "processed":
+            continue
+        if reader.has(path.name):
+            continue  # correctly finalized — has ≥1 routing-log entry.
+        anomalies.append(
+            ArchiveAnomaly(
+                path=str(path),
+                status_raw=info.status_raw,
+                classification="processed-without-routing-log",
+                warning=_SILENT_LOSS_WARNING,
+            )
+        )
+
+    return anomalies, warnings
+
+
+# ---------------------------------------------------------------------------
 # Output layer (T005)
 # ---------------------------------------------------------------------------
 
@@ -761,10 +877,22 @@ def run_prescan() -> int:
         if not a.success and a.warning:
             warnings.append({"path": a.src, "reason": a.warning})
 
-    # #185 — FR-003 routing-log dedup. Filter already-routed filenames out of
-    # unprocessed. Fail-safe: degraded mode when the module or log file is
-    # unavailable preserves existing behavior.
-    dedup_skipped: list[dict] = []
+    # #746 (D9) — routing-log READER for the health rail. The note-level
+    # routing-log DEDUP that used to filter ``unprocessed`` notes here is
+    # REMOVED. Per D9 a note is treated as done by its terminal *status*
+    # (``processed``/``needs-review``, resolved upstream in classification), not
+    # by routing-log filename presence. Per-block idempotency now lives in
+    # finalize (WP02's block-keyed ``has_block``), so an ``unprocessed`` note
+    # whose blocks are mid-flight — some already logged from a prior failed tick
+    # — MUST still be handed to the agent so finalize can reconcile the
+    # remaining blocks. Filtering it out on filename presence would strand it
+    # (the old silent-loss vector this mission closes).
+    #
+    # The reader is still built (fail-safe) for the processed-without-routing-log
+    # health rail below; ``reader is None`` means the log module is unavailable
+    # and the rail is skipped rather than emitting false positives.
+    dedup_skipped: list[dict] = []  # retained (always empty) for JSON-shape stability
+    reader = None
     try:
         # Local import keeps prescan importable when routing_log is missing
         # (e.g., during partial deploys).
@@ -777,30 +905,26 @@ def run_prescan() -> int:
             _prescan_sys.modules.setdefault("scripts.inbox.routing_log", _bare_rl)
         from scripts.inbox.routing_log import RoutingLogReader  # type: ignore[import-not-found]
         reader = RoutingLogReader()
-        routed_names = reader.routed_filenames()
     except ImportError:
         warnings.append({
             "path": "scripts/inbox/routing_log.py",
-            "reason": "routing_log module not importable; running in dedup-disabled mode",
+            "reason": (
+                "routing_log module not importable; "
+                "processed-without-routing-log health rail disabled this run"
+            ),
         })
-        routed_names = set()
+        reader = None
     except Exception as exc:  # pragma: no cover — defensive
         warnings.append({
             "path": "routing-log",
-            "reason": f"routing log read failed: {exc}; dedup disabled this run",
+            "reason": f"routing log reader init failed: {exc}; health rail disabled this run",
         })
-        routed_names = set()
+        reader = None
 
-    unprocessed_filtered: list[InboxFile] = []
-    for f in unprocessed:
-        if f.path.name in routed_names:
-            dedup_skipped.append({
-                "path": str(f.path),
-                "filename": f.path.name,
-                "existing_issue": None,  # reserved; v1 doesn't surface this
-            })
-        else:
-            unprocessed_filtered.append(f)
+    # Dedup shift (D9): unprocessed notes are handed to the agent every tick
+    # regardless of routing-log presence. Terminal status removes a note from
+    # this list upstream (via classification), not a filename filter here.
+    unprocessed_filtered: list[InboxFile] = list(unprocessed)
 
     # #185 — FR-005 parse_failures list.
     parse_failures_json = [
@@ -828,6 +952,28 @@ def run_prescan() -> int:
     )
     for w in archive_scan_warnings:
         warnings.append({"path": "archive-scan", "reason": w})
+
+    # #746 — processed-without-routing-log health rail. Read-only; surfaces the
+    # silent-loss signature (a note marked ``processed`` with no routing-log
+    # entry) so WP04's Step 1 IDLE gate can alarm. Scans BOTH the inbox and the
+    # archive. Runs AFTER archive_stale so a freshly-moved processed note is
+    # checked in its new home. Skipped (fail-safe) when the routing log is
+    # unreadable, to avoid a false-positive storm.
+    if reader is not None:
+        silent_loss_anomalies, health_rail_warnings = (
+            scan_processed_without_routing_log(inbox, inbox_processed, started, reader)
+        )
+        archive_anomalies.extend(silent_loss_anomalies)
+        for w in health_rail_warnings:
+            warnings.append({"path": "health-rail", "reason": w})
+    else:
+        warnings.append({
+            "path": "health-rail",
+            "reason": (
+                "routing log unreadable; processed-without-routing-log rail "
+                "skipped this run"
+            ),
+        })
 
     finished = datetime.now(timezone.utc)
     duration_ms = int((time.monotonic() - t0) * 1000)

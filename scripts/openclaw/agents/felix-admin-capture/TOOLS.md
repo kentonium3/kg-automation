@@ -7,6 +7,37 @@
 - **Processing logs**: `/home/kgale/second-brain/agents/logs/`
 - **Access**: claude user via secondbrain group
 
+## Note finalize — `route_and_finalize`
+
+The ONE deterministic command capture runs per note (AGENTS.md Step 3c). The
+agent classifies the note's blocks, assembles a routing plan, and invokes this
+once; the helper routes every block, verifies each artifact, writes each block's
+routing-log entry, and marks the note processed ONCE — atomic, fail-loud,
+retry-safe. There is **no** standalone `mark_processed` or `append_routing_entry`
+in the agent toolkit; only a successful finalize can stamp `processed`.
+
+```bash
+cd /home/claude/kg-automation && python3 -m scripts.inbox.route_and_finalize \
+  --source-path <abs-path-of-source-note> --plan-file <abs-path-of-plan.json>
+```
+
+**RoutingPlan** (`--plan-file`): `{"blocks": [ <block>, … ]}`, one entry per
+routable block, in `block_index` order. Each block:
+
+- `block_index` (int), `kind` (`calendar`|`someday`|`vikunja_task`|`journal`|`github_issue`|`empty`),
+  `content` (**verbatim** classify_content block text — the idempotency key; never paraphrase), plus a
+  kind-specific `payload`:
+  - `calendar` → `{"title","start",["end"],["location"],["description"]}` (ET-resolved times)
+  - `someday` → `{"title","body"}` (title = first sentence ≤100 chars; body = full block)
+  - `journal` → `{"content","datetime"}` (datetime = note `created` or mtime, ISO-8601)
+  - `vikunja_task` → `{"title","body"}` in-line; **or** omit `payload`, set `"task_id":<int>` (tasker-delegated; must belong to this note)
+  - `github_issue` → `{"type","title","problem_statement",…}` in-line; **or** omit `payload`, set `"issue_number":<int>` (already filed)
+- Empty note body → empty `blocks` list (or one `{"block_index":0,"kind":"empty"}`); finalize refuses a non-empty body.
+
+**Result JSON** (stdout, ONE object): `status` is `finalized` (exit 0; `marked_processed:true`),
+`needs_clarification` (exit 0; calendar only; note left unprocessed), or `error`
+(non-zero; note NOT marked, retries next tick). Branch per AGENTS.md Step 3c.
+
 ## Vikunja API
 
 - Use the vikunja_api skill for task creation
@@ -31,7 +62,15 @@ for due dates.
 - **Default repo**: `kentonium3/kg-automation`
 - **Multi-repo**: NOT supported yet -- only kg-automation
 
-### Label heuristic
+### Available Labels
 
-See the label taxonomy in AGENTS.md beside the Step 3 `github_issue` route — that is the authoritative label set.
+Authoritative label set for `github_issue` blocks (AGENTS.md Step 3b).
+
+**Priority + type** (pick one):
+`P1-feature`, `P2-feature`, `P3-candidate`, `P1-infra`, `P2-infra`, `P1-bug`, `P2-bug`, `P1-rfc`, `P2-debt`
+
+**Area** (pick at most one):
+`area/infrastructure`, `area/security`, `area/felix-core`, `area/ea`, `area/task-intel`, `area/content`, `area/docs`, `area/biz-ops`
+
+**Always apply**: `spec: brief`
 

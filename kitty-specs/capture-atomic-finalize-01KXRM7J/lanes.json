@@ -1,0 +1,116 @@
+{
+  "version": 1,
+  "mission_slug": "capture-atomic-finalize-01KXRM7J",
+  "mission_id": "01KXRM7JSXZBNGX2QTRJG19B9N",
+  "mission_branch": "kitty/mission-capture-atomic-finalize-01KXRM7J",
+  "target_branch": "fix/capture-atomic-finalize",
+  "lanes": [
+    {
+      "lane_id": "lane-a",
+      "wp_ids": [
+        "WP01"
+      ],
+      "write_scope": [
+        "scripts/inbox/append_routing_entry.py",
+        "scripts/inbox/routing_log.py",
+        "tests/inbox/test_append_routing_entry.py",
+        "tests/inbox/test_routing_log.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "legacy-cleanup"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    },
+    {
+      "lane_id": "lane-b",
+      "wp_ids": [
+        "WP02"
+      ],
+      "write_scope": [
+        "scripts/inbox/route_and_finalize.py",
+        "scripts/inbox/route_calendar_event.py",
+        "scripts/inbox/route_journal_entry.py",
+        "scripts/inbox/route_someday.py",
+        "scripts/openclaw/agents/main/felix-file-issue.py",
+        "tests/inbox/test_route_and_finalize.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "artifact-rendering",
+        "legacy-cleanup"
+      ],
+      "depends_on_lanes": [
+        "lane-a"
+      ],
+      "parallel_group": 1
+    },
+    {
+      "lane_id": "lane-c",
+      "wp_ids": [
+        "WP03"
+      ],
+      "write_scope": [
+        "scripts/inbox/prescan.py",
+        "tests/inbox/test_prescan_health_rail.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "legacy-cleanup"
+      ],
+      "depends_on_lanes": [
+        "lane-a"
+      ],
+      "parallel_group": 1
+    },
+    {
+      "lane_id": "lane-d",
+      "wp_ids": [
+        "WP04"
+      ],
+      "write_scope": [
+        "scripts/openclaw/agents/felix-admin-capture/AGENTS.md",
+        "scripts/openclaw/agents/felix-admin-capture/AGENTS.md.tmpl",
+        "scripts/openclaw/agents/felix-admin-capture/TOOLS.md",
+        "scripts/openclaw/agents/felix-admin-capture/TOOLS.md.tmpl"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "legacy-cleanup"
+      ],
+      "depends_on_lanes": [
+        "lane-b",
+        "lane-c"
+      ],
+      "parallel_group": 2
+    },
+    {
+      "lane_id": "lane-e",
+      "wp_ids": [
+        "WP05"
+      ],
+      "write_scope": [
+        "deploys/queued/capture-atomic-finalize.yaml",
+        "docs/design/architecture/data/service-inventory.json",
+        "docs/design/felix-capability-roadmap.md",
+        "docs/runbooks/inbox-ops.md"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "app-shell",
+        "tracker-integration"
+      ],
+      "depends_on_lanes": [
+        "lane-a",
+        "lane-b",
+        "lane-c",
+        "lane-d"
+      ],
+      "parallel_group": 3
+    }
+  ],
+  "computed_at": "2026-07-17T18:38:37.120062+00:00",
+  "computed_from": "dependency_graph+ownership",
+  "planning_artifact_wps": []
+}

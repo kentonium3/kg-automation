@@ -9,9 +9,11 @@ import pytest
 
 from routing_log import (
     DEFAULT_ROUTING_LOG_PATH,
+    KNOWN_KINDS,
     RoutingEntry,
     RoutingLogReader,
     RoutingLogWriter,
+    block_hash,
 )
 
 
@@ -240,3 +242,261 @@ def test_reader_tolerates_old_rows_without_kind(tmp_path: Path):
     )
     reader = RoutingLogReader(log)
     assert reader.has("old.md")
+
+
+# ---------------------------------------------------------------------------
+# WP01 (#746) — D10 per-block routing-log keys
+# ---------------------------------------------------------------------------
+
+
+# ---------- block_hash helper ----------
+
+
+def test_block_hash_is_deterministic():
+    assert block_hash("- [ ] call Emanuel") == block_hash("- [ ] call Emanuel")
+
+
+def test_block_hash_normalizes_surrounding_whitespace():
+    # Leading/trailing whitespace is stripped before hashing so an unchanged
+    # block re-hashes identically across ticks.
+    assert block_hash("  hello  ") == block_hash("hello")
+    assert block_hash("\nhello\n") == block_hash("hello")
+
+
+def test_block_hash_differs_for_different_content():
+    assert block_hash("block one") != block_hash("block two")
+
+
+def test_block_hash_is_sha256_hexdigest():
+    h = block_hash("anything")
+    assert len(h) == 64
+    assert all(c in "0123456789abcdef" for c in h)
+
+
+# ---------- RoutingEntry block fields ----------
+
+
+def test_entry_block_fields_default_none():
+    entry = RoutingEntry(
+        filename="f.md",
+        issue_number=None,
+        vikunja_task_id=None,
+        routed_at="2026-01-01T00:00:00Z",
+    )
+    assert entry.block_index is None
+    assert entry.block_hash is None
+    d = entry.to_dict()
+    assert d["block_index"] is None
+    assert d["block_hash"] is None
+
+
+def test_entry_block_fields_round_trip(tmp_path: Path):
+    log = tmp_path / "log.jsonl"
+    writer = RoutingLogWriter(log)
+    bh = block_hash("- [ ] a block")
+    entry = writer.append(
+        filename="multi.md",
+        kind="someday",
+        destination="512",
+        block_index=2,
+        block_hash=bh,
+    )
+    assert entry.block_index == 2
+    assert entry.block_hash == bh
+    row = json.loads(log.read_text().splitlines()[0])
+    assert row["block_index"] == 2
+    assert row["block_hash"] == bh
+    assert row["kind"] == "someday"
+    assert row["destination"] == "512"
+
+
+# ---------- has_block ----------
+
+
+def _write_rows(log: Path, rows: list[dict]) -> None:
+    log.write_text("\n".join(json.dumps(r) for r in rows) + "\n")
+
+
+def test_has_block_true_when_all_three_match(tmp_path: Path):
+    log = tmp_path / "log.jsonl"
+    bh = block_hash("payload")
+    _write_rows(
+        log,
+        [
+            {"filename": "n.md", "issue_number": None, "vikunja_task_id": None,
+             "routed_at": "2026-01-01T00:00:00Z", "kind": "someday",
+             "destination": "1", "block_index": 0, "block_hash": bh},
+        ],
+    )
+    reader = RoutingLogReader(log)
+    assert reader.has_block("n.md", 0, bh) is True
+
+
+def test_has_block_false_when_hash_differs(tmp_path: Path):
+    log = tmp_path / "log.jsonl"
+    _write_rows(
+        log,
+        [
+            {"filename": "n.md", "issue_number": None, "vikunja_task_id": None,
+             "routed_at": "2026-01-01T00:00:00Z", "kind": "someday",
+             "destination": "1", "block_index": 0, "block_hash": block_hash("old")},
+        ],
+    )
+    reader = RoutingLogReader(log)
+    assert reader.has_block("n.md", 0, block_hash("new")) is False
+
+
+def test_has_block_false_when_index_differs(tmp_path: Path):
+    log = tmp_path / "log.jsonl"
+    bh = block_hash("payload")
+    _write_rows(
+        log,
+        [
+            {"filename": "n.md", "issue_number": None, "vikunja_task_id": None,
+             "routed_at": "2026-01-01T00:00:00Z", "kind": "someday",
+             "destination": "1", "block_index": 0, "block_hash": bh},
+        ],
+    )
+    reader = RoutingLogReader(log)
+    assert reader.has_block("n.md", 1, bh) is False
+
+
+def test_has_block_false_when_filename_absent(tmp_path: Path):
+    log = tmp_path / "log.jsonl"
+    bh = block_hash("payload")
+    _write_rows(
+        log,
+        [
+            {"filename": "n.md", "issue_number": None, "vikunja_task_id": None,
+             "routed_at": "2026-01-01T00:00:00Z", "kind": "someday",
+             "destination": "1", "block_index": 0, "block_hash": bh},
+        ],
+    )
+    reader = RoutingLogReader(log)
+    assert reader.has_block("other.md", 0, bh) is False
+
+
+def test_has_block_legacy_row_satisfies_filename_fallback(tmp_path: Path):
+    # A pre-WP01 row (no block_index) for a filename satisfies has_block for
+    # ANY block of that filename — preserves the #737 calendar dedup.
+    log = tmp_path / "log.jsonl"
+    _write_rows(
+        log,
+        [
+            {"filename": "cal.md", "issue_number": None, "vikunja_task_id": None,
+             "routed_at": "2026-01-01T00:00:00Z", "kind": "calendar",
+             "destination": "evt_1"},  # no block_index / block_hash
+        ],
+    )
+    reader = RoutingLogReader(log)
+    assert reader.has_block("cal.md", 0, block_hash("whatever")) is True
+    assert reader.has_block("cal.md", 5, "does-not-matter") is True
+
+
+def test_has_block_prefers_exact_match_over_missing(tmp_path: Path):
+    # Block-keyed rows for one filename must not falsely match a different
+    # block; only an exact key or a legacy (index-less) row matches.
+    log = tmp_path / "log.jsonl"
+    bh0 = block_hash("block 0")
+    _write_rows(
+        log,
+        [
+            {"filename": "n.md", "issue_number": None, "vikunja_task_id": None,
+             "routed_at": "2026-01-01T00:00:00Z", "kind": "someday",
+             "destination": "1", "block_index": 0, "block_hash": bh0},
+        ],
+    )
+    reader = RoutingLogReader(log)
+    assert reader.has_block("n.md", 0, bh0) is True
+    assert reader.has_block("n.md", 1, block_hash("block 1")) is False
+
+
+def test_has_block_skips_malformed_and_missing_filename(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+):
+    log = tmp_path / "log.jsonl"
+    bh = block_hash("payload")
+    log.write_text(
+        "{not json\n"
+        + json.dumps({"issue_number": 1, "routed_at": "2026-01-01T00:00:00Z"})  # no filename
+        + "\n"
+        + json.dumps({"filename": "n.md", "issue_number": None, "vikunja_task_id": None,
+                      "routed_at": "2026-01-02T00:00:00Z", "kind": "someday",
+                      "destination": "1", "block_index": 0, "block_hash": bh})
+        + "\n"
+    )
+    reader = RoutingLogReader(log)
+    assert reader.has_block("n.md", 0, bh) is True
+    err = capsys.readouterr().err
+    assert "malformed JSON" in err
+    assert "missing/invalid filename" in err
+
+
+def test_has_block_and_routed_filenames_share_single_read(tmp_path: Path):
+    # has_block + routed_filenames must not double-read; mutating the file
+    # after first access is invisible (read-once per reader instance).
+    log = tmp_path / "log.jsonl"
+    bh = block_hash("payload")
+    _write_rows(
+        log,
+        [
+            {"filename": "n.md", "issue_number": None, "vikunja_task_id": None,
+             "routed_at": "2026-01-01T00:00:00Z", "kind": "someday",
+             "destination": "1", "block_index": 0, "block_hash": bh},
+        ],
+    )
+    reader = RoutingLogReader(log)
+    assert reader.has_block("n.md", 0, bh) is True
+    # Overwrite underneath — cached reader must not see the change.
+    _write_rows(
+        log,
+        [
+            {"filename": "m.md", "issue_number": None, "vikunja_task_id": None,
+             "routed_at": "2026-01-02T00:00:00Z", "kind": "someday",
+             "destination": "9", "block_index": 3, "block_hash": bh},
+        ],
+    )
+    assert reader.routed_filenames() == {"n.md"}
+    assert reader.has_block("m.md", 3, bh) is False
+
+
+# ---------- grown kind vocabulary + destination ----------
+
+
+@pytest.mark.parametrize(
+    "kind,destination",
+    [
+        ("someday", "512"),
+        ("journal", "/data/journal/2026-07-17.md"),
+        ("vikunja_task", "777"),
+        ("github_issue", "746"),
+        ("empty", ""),
+        ("calendar", "evt_1"),
+        ("issue_task", ""),
+    ],
+)
+def test_writer_accepts_all_known_kinds_and_populates_destination(
+    tmp_path: Path, kind: str, destination: str
+):
+    log = tmp_path / "log.jsonl"
+    writer = RoutingLogWriter(log)
+    entry = writer.append(filename="n.md", kind=kind, destination=destination)
+    assert entry.kind == kind
+    assert entry.destination == destination
+    row = json.loads(log.read_text().splitlines()[0])
+    assert row["kind"] == kind
+    assert row["destination"] == destination
+
+
+def test_known_kinds_covers_expected_set():
+    assert KNOWN_KINDS == frozenset(
+        {
+            "issue_task",
+            "calendar",
+            "someday",
+            "journal",
+            "vikunja_task",
+            "github_issue",
+            "empty",
+        }
+    )

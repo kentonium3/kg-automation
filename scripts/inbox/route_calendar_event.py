@@ -436,19 +436,26 @@ def _run_finalize(
     """Atomic create-and-finalize for a calendar route. Returns ``(result, code)``.
 
     The single deterministic operation the capture agent invokes for a calendar
-    route — it cannot half-complete. Order (verified against ``prescan`` dedup):
-    create -> verify (``status==created`` AND non-empty ``event_id``) ->
-    ``mark_processed`` (subprocess, exit 0) -> routing-log append (last). Any
-    failure leaves the note UNprocessed so the next tick retries; the calendar
-    helper's idempotency key (= source path) prevents a double-create.
+    route — it cannot half-complete. Order (log-before-mark, matching the
+    note-level ``route_and_finalize`` invariant): create -> verify
+    (``status==created`` AND non-empty ``event_id``) -> routing-log append ->
+    ``mark_processed`` (subprocess, exit 0) LAST. Any failure leaves the note
+    UNprocessed so the next tick retries; the calendar helper's idempotency key
+    (= source path) prevents a double-create and the routing-log append is
+    idempotent (dedups on filename).
 
     The exit code is derived from the OUTCOME, never from ``_run_create`` (which
     returns 0 for created / error / needs_clarification alike):
 
     - invalid payload -> ``{status: needs_clarification, missing}``; exit 0.
     - create error / missing event_id -> ``{status: error, ...}``; exit 1. Not finalized.
+    - routing-log append failure -> ``{status: error, stage: routing_log, ...}``;
+      exit 1. **The note is NOT marked** (log-before-mark, #746 post-merge fix):
+      a routing-log failure can never leave a ``processed`` note with no log
+      entry. Retried next tick — the create key dedups, so no double-create.
     - ``mark_processed`` non-zero -> ``{status: error, stage: mark_processed, ...}``;
-      exit 1. Event exists but note not marked; retried next tick.
+      exit 1. Event exists and IS logged but note not marked; retried next tick
+      (both the log append and the mark are idempotent).
     - success -> ``{status: finalized, event_id, html_link, marked_processed,
       routing_logged}``; exit 0.
     """
@@ -474,6 +481,30 @@ def _run_finalize(
     title = payload.get("title", "")
     note_excerpt = title if isinstance(title, str) else ""
 
+    # Log BEFORE mark (#746 post-merge fix): write the routing-log entry first;
+    # only mark the note processed once the log write succeeds. A routing-log
+    # failure therefore leaves the note UNprocessed (never a `processed` note
+    # with no log entry — the exact silent-loss / health-rail class #746 closes).
+    routing_logged = _append_calendar_routing_log(
+        Path(source_path).name, event_id, note_excerpt
+    )
+    if not routing_logged:
+        # Routing-log append failed: surface loudly and do NOT mark. The event
+        # exists (create key dedups it) but the note stays unprocessed so the
+        # next tick retries the whole finalize — `_append_calendar_routing_log`
+        # is idempotent, so the retry completes the log and marks cleanly.
+        return {
+            "status": "error",
+            "stage": "routing_log",
+            "event_id": event_id,
+            "html_link": html_link,
+            "marked_processed": False,
+            "error": (
+                "routing-log append failed; note left unprocessed (not marked), "
+                "retried next tick"
+            ),
+        }, 1
+
     proc = _invoke_mark_processed(source_path)
     if proc.returncode != 0:
         return {
@@ -484,9 +515,6 @@ def _run_finalize(
             "error": (proc.stderr or proc.stdout).strip(),
         }, 1
 
-    routing_logged = _append_calendar_routing_log(
-        Path(source_path).name, event_id, note_excerpt
-    )
     return {
         "status": "finalized",
         "event_id": event_id,

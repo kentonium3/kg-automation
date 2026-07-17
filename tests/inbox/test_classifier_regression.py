@@ -291,19 +291,23 @@ def test_live_classifier_matches_expected(fixture: dict) -> None:
 
 
 def test_routing_text_contains_step3_section() -> None:
-    """Sanity check: if the Step 3 routing table header disappears the
-    parser cannot work. Fail loudly so review catches the doc drift.
+    """Sanity check: if the Step 3 classify/route section header disappears
+    the parser cannot work. Fail loudly so review catches the doc drift.
 
     Accepts colon, em-dash, en-dash, or hyphen as the separator — the
     #566 Directive-6 rewrite changed colon to em-dash and broke this
-    test once already.
+    test once already. The #746 note-level-finalize rewrite retitled the
+    section from "Step 3 — Classify and route" to
+    "Step 3 — Classify, assemble the routing plan, and finalize"; the regex
+    matches "Step 3 <sep> Classify" so it still detects section removal
+    without pinning the exact (evolving) title tail.
     """
     text = _load_capture_routing_text()
     # Match the actual section heading used in AGENTS.md.
     assert re.search(
-        r"###\s+Step\s+3\s*[:—–-]\s+Classify\s+and\s+route",
+        r"###\s+Step\s+3\s*[:—–-]\s+Classify",
         text,
-    ), "Step 3 'Classify and route' section header missing from capture AGENTS.md"
+    ), "Step 3 'Classify …' section header missing from capture AGENTS.md"
 
 
 def test_signal_alias_table_matches_destination_enum() -> None:

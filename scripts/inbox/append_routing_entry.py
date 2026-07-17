@@ -19,7 +19,7 @@ if _bare_rl is not None:
     sys.modules.setdefault("scripts.inbox.routing_log", _bare_rl)
 del _bare_rl
 
-from scripts.inbox.routing_log import RoutingLogWriter  # noqa: E402
+from scripts.inbox.routing_log import KNOWN_KINDS, RoutingLogWriter  # noqa: E402
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -51,17 +51,39 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument(
         "--kind",
-        choices=("issue_task", "calendar"),
+        choices=tuple(sorted(KNOWN_KINDS)),
         default="issue_task",
         help=(
-            "Route class. 'calendar' records a Google Calendar event (#737) — "
-            "calendar routes have no GitHub issue or Vikunja task."
+            "Route class. 'issue_task' (default) and 'calendar' (#737) keep "
+            "their original argument shapes; the block-keyed kinds "
+            "('someday', 'journal', 'vikunja_task', 'github_issue', 'empty') "
+            "record their target via --destination."
         ),
     )
     parser.add_argument(
         "--event-id",
         default=None,
         help="Calendar event id — required (and the destination) with --kind calendar.",
+    )
+    parser.add_argument(
+        "--destination",
+        default=None,
+        help=(
+            "Kind-specific target identifier (task id / issue number / file "
+            "path). Used by the block-keyed kinds; for --kind calendar prefer "
+            "--event-id."
+        ),
+    )
+    parser.add_argument(
+        "--block-index",
+        type=int,
+        default=None,
+        help="Index of the routed block within the note (D10 per-block key).",
+    )
+    parser.add_argument(
+        "--block-hash",
+        default=None,
+        help="Content hash of the routed block (D10 per-block key).",
     )
     args = parser.parse_args(argv)
 
@@ -87,12 +109,43 @@ def main(argv: list[str] | None = None) -> int:
                 kind="calendar",
                 destination=args.event_id,
                 note_excerpt=args.excerpt,
+                block_index=args.block_index,
+                block_hash=args.block_hash,
             )
         except OSError as exc:
             print(f"ERROR: could not write routing log: {exc}", file=sys.stderr)
             return 1
         print(
             f"Appended routing log entry: {entry.filename} -> calendar "
+            f"({entry.destination})"
+        )
+        return 0
+
+    if args.kind != "issue_task":
+        # Block-keyed kinds: someday / journal / vikunja_task / github_issue /
+        # empty. These carry their target in --destination and reject the
+        # issue_task positional shape.
+        if args.issue_number is not None:
+            print(
+                f"ERROR: positional issue_number is not allowed with --kind "
+                f"{args.kind} (use --destination)",
+                file=sys.stderr,
+            )
+            return 2
+        try:
+            entry = writer.append(
+                filename=args.filename,
+                kind=args.kind,
+                destination=args.destination or "",
+                note_excerpt=args.excerpt,
+                block_index=args.block_index,
+                block_hash=args.block_hash,
+            )
+        except OSError as exc:
+            print(f"ERROR: could not write routing log: {exc}", file=sys.stderr)
+            return 1
+        print(
+            f"Appended routing log entry: {entry.filename} -> {entry.kind} "
             f"({entry.destination})"
         )
         return 0
@@ -122,6 +175,8 @@ def main(argv: list[str] | None = None) -> int:
             issue_number=args.issue_number,
             vikunja_task_id=task_id,
             note_excerpt=args.excerpt,
+            block_index=args.block_index,
+            block_hash=args.block_hash,
         )
     except OSError as exc:
         print(f"ERROR: could not write routing log: {exc}", file=sys.stderr)
