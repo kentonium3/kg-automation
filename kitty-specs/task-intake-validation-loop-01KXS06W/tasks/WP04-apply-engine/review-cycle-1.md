@@ -7,6 +7,10 @@ reviewed_at: '2026-07-17T23:17:50Z'
 reviewer_agent: unknown
 verdict: rejected
 wp_id: WP04
+review_artifact_override_at: "2026-07-17T23:22:19Z"
+review_artifact_override_actor: "operator"
+review_artifact_override_wp_id: "WP04"
+review_artifact_override_reason: "reviewer-renata APPROVE (cycle 2): kent-token family-replace, Tier-2 matrix, per-line statuses, closes #750; 128 tests"
 ---
 
 # WP04 (apply engine) — Review cycle 1
