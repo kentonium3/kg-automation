@@ -32,7 +32,9 @@ subtasks:
 - T012
 - T013
 phase: Phase 2 - Core
-agent: claude
+agent: "claude:sonnet:python-pedro:implementer"
+shell_pid: "87548"
+shell_pid_created_at: "1784314680.010512"
 history:
 - at: '2026-07-17T18:30:00Z'
   actor: system
@@ -166,3 +168,7 @@ are generalizing).
   (b) every kind has a retry-no-double-create test; (c) the calendar leniency removal is the
   ONLY calendar behavior change; (d) mark_processed stays a subprocess; (e) exit code reflects
   the note-level outcome.
+
+## Activity Log
+
+- 2026-07-17T18:58:30Z – claude:sonnet:python-pedro:implementer – shell_pid=87548 – Assigned agent via action command
