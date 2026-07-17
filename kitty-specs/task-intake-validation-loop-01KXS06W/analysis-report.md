@@ -4,7 +4,7 @@ artifact_type: spec-kitty.analysis-report
 command: /spec-kitty.analyze
 mission_slug: task-intake-validation-loop-01KXS06W
 mission_id: 01KXS06W8TTCB0BEXQNYW4YBKY
-generated_at: '2026-07-17T23:18:10.335636+00:00'
+generated_at: '2026-07-17T23:22:36.152502+00:00'
 analyzer_agent: claude
 input_artifacts:
   spec.md:
@@ -21,11 +21,11 @@ input_artifacts:
     sha256: 4891223a0c3fc0dc96917475523586e8f3147a3ccaa113ecb7ff19da646e82e2
 verdict: unknown
 issue_counts:
-  critical:
-  medium:
-  low:
   info:
+  critical:
+  low:
   high:
+  medium:
 findings: []
 ---
 
