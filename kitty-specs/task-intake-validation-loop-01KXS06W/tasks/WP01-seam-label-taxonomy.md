@@ -15,7 +15,9 @@ subtasks:
 - T003
 - T004
 phase: Phase 1 - Foundation
-agent: claude
+agent: "claude:sonnet:python-pedro:implementer"
+shell_pid: "52864"
+shell_pid_created_at: "1784326852.53875"
 history:
 - at: '2026-07-17T21:55:00Z'
   actor: system
@@ -101,3 +103,7 @@ Use `set_registry_for_test` for isolation where helpful.
 
 ## Implementation command
 `spec-kitty agent action implement WP01 --agent claude`
+
+## Activity Log
+
+- 2026-07-17T22:21:07Z – claude:sonnet:python-pedro:implementer – shell_pid=52864 – Assigned agent via action command
