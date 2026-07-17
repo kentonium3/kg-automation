@@ -62,12 +62,12 @@ Tests are **required** for this mission (NFR-001/002/003; deterministic helpers)
 
 ### WP04 — Apply engine
 **Goal:** correlation selection + kent-token RMW apply with family-replace + Tier-2 matrix + per-line statuses + `apply_reply.py`. **Priority:** core. **Independent test:** apply a shorthand reply against a mocked task → correct family-replace, statuses, Tier-2, idempotency (NFR-003). **Deps:** WP01, WP02, WP03. **Prompt:** ~420 lines.
-- [x] T014 Correlation selection (WP04)
-- [x] T015 kent-token RMW + family-replace + q:eliminate→done (WP04)
-- [x] T016 Tier-2 matrix + due follow-up + f:4 disposition (WP04)
-- [x] T017 Per-line statuses + aggregates + ledger (WP04)
-- [x] T018 `apply_reply.py` CLI (WP04)
-- [x] T019 Unit tests (WP04)
+- [ ] T014 Correlation selection (WP04)
+- [ ] T015 kent-token RMW + family-replace + q:eliminate→done (WP04)
+- [ ] T016 Tier-2 matrix + due follow-up + f:4 disposition (WP04)
+- [ ] T017 Per-line statuses + aggregates + ledger (WP04)
+- [ ] T018 `apply_reply.py` CLI (WP04)
+- [ ] T019 Unit tests (WP04)
 
 ### WP05 — Agent wiring (capture + main prompts)
 **Goal:** capture agent runs scan + emits digest; main agent content-correlates + invokes apply + confirms; LLM-fallback boundary. **Priority:** integration. **Independent test:** prompt review shows single-command scan emit + reply-apply path; AGENTS.md under byte cap. **Deps:** WP02, WP04. **Prompt:** ~240 lines.
