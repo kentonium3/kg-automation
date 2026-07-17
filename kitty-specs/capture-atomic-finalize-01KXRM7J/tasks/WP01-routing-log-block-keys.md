@@ -16,7 +16,9 @@ subtasks:
 - T004
 - T005
 phase: Phase 1 - Foundation
-agent: claude
+agent: "claude:sonnet:python-pedro:implementer"
+shell_pid: "82399"
+shell_pid_created_at: "1784313800.985211"
 history:
 - at: '2026-07-17T18:30:00Z'
   actor: system
@@ -112,3 +114,7 @@ filename only. Multi-block notes and the new kinds need a block-level key.
   note re-hashes identically across ticks.
 - Do not break the `RoutingLogReader` filename cache used elsewhere.
 - Reviewer: confirm legacy on-disk rows (no block fields) still dedup and never raise.
+
+## Activity Log
+
+- 2026-07-17T18:43:34Z – claude:sonnet:python-pedro:implementer – shell_pid=82399 – Assigned agent via action command
