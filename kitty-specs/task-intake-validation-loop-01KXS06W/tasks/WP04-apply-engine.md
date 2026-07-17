@@ -26,9 +26,9 @@ subtasks:
 - T018
 - T019
 phase: Phase 3 - Apply
-shell_pid_created_at: "1784330267.363766"
-agent: "claude:sonnet:python-pedro:implementer"
-shell_pid: "70955"
+shell_pid_created_at: "1784330437.759753"
+agent: "claude:opus:reviewer-renata:reviewer"
+shell_pid: "72078"
 history:
 - at: '2026-07-17T21:55:00Z'
   actor: system
@@ -135,3 +135,5 @@ writes.
 - 2026-07-17T23:11:51Z – claude:opus:reviewer-renata:reviewer – shell_pid=68983 – Started review via action command
 - 2026-07-17T23:18:00Z – user – Moved to planned
 - 2026-07-17T23:18:30Z – claude:sonnet:python-pedro:implementer – shell_pid=70955 – Started implementation via action command
+- 2026-07-17T23:20:52Z – claude:sonnet:python-pedro:implementer – shell_pid=70955 – WP04 cycle-1 fix: _has_due guard + paired test; 128 tests green
+- 2026-07-17T23:21:02Z – claude:opus:reviewer-renata:reviewer – shell_pid=72078 – Started review via action command
