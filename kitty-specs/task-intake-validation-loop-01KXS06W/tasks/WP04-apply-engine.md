@@ -26,7 +26,9 @@ subtasks:
 - T018
 - T019
 phase: Phase 3 - Apply
-agent: claude
+agent: "claude:sonnet:python-pedro:implementer"
+shell_pid: "64436"
+shell_pid_created_at: "1784328975.410204"
 history:
 - at: '2026-07-17T21:55:00Z'
   actor: system
@@ -125,3 +127,7 @@ writes.
 
 ## Implementation command
 `spec-kitty agent action implement WP04 --agent claude`
+
+## Activity Log
+
+- 2026-07-17T22:56:55Z – claude:sonnet:python-pedro:implementer – shell_pid=64436 – Assigned agent via action command
