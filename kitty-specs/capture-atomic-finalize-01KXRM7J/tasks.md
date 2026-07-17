@@ -12,14 +12,14 @@
 | T003 | Block-key helpers: compute `block_hash`; `has_block()`; legacy filename fallback | WP01 | | [D] |
 | T004 | Update `append_routing_entry` CLI (`--kind` choices + block args) | WP01 | [D] |
 | T005 | Tests: schema round-trip, block-key dedup, legacy-row fallback | WP01 | | [D] |
-| T006 | `route_and_finalize.py` skeleton: plan parse, per-block loop, note-level mark-once (subprocess), exit-from-outcome, result JSON, `--dry-run` | WP02 | |
-| T007 | Finalize state machine: log-per-block-before-mark; reconcile-from-log on re-run | WP02 | |
-| T008 | someday + vikunja_task adapters (in-process + tasker-delegated id; provenance verify; block-key idempotency) | WP02 | |
-| T009 | journal adapter: per-block sentinel + verify-before-append (no duplicate section) | WP02 | |
-| T010 | github_issue adapter: null issue# = failure; verify issue exists | WP02 | |
-| T011 | calendar fold adapter: reuse create/verify; preserve #737 paths; remove `routing_logged:false` leniency | WP02 | |
-| T012 | empty disposition: validate body genuinely empty; kind=empty log entry | WP02 | |
-| T013 | Tests: per-kind success/route-fail/verify-fail + retry-no-double-create; multi-block all-or-nothing; calendar regression | WP02 | |
+| T006 | `route_and_finalize.py` skeleton: plan parse, per-block loop, note-level mark-once (subprocess), exit-from-outcome, result JSON, `--dry-run` | WP02 | | [D] |
+| T007 | Finalize state machine: log-per-block-before-mark; reconcile-from-log on re-run | WP02 | | [D] |
+| T008 | someday + vikunja_task adapters (in-process + tasker-delegated id; provenance verify; block-key idempotency) | WP02 | | [D] |
+| T009 | journal adapter: per-block sentinel + verify-before-append (no duplicate section) | WP02 | | [D] |
+| T010 | github_issue adapter: null issue# = failure; verify issue exists | WP02 | | [D] |
+| T011 | calendar fold adapter: reuse create/verify; preserve #737 paths; remove `routing_logged:false` leniency | WP02 | | [D] |
+| T012 | empty disposition: validate body genuinely empty; kind=empty log entry | WP02 | | [D] |
+| T013 | Tests: per-kind success/route-fail/verify-fail + retry-no-double-create; multi-block all-or-nothing; calendar regression | WP02 | | [D] |
 | T014 | prescan: `processed-without-routing-log` anomaly (scan 01-Inbox + 02-Inbox-Processed; exclude empty-logged + needs-review) | WP03 | | [D] |
 | T015 | prescan: classify inbox `needs-review` terminal (exclude from `unprocessed_paths`); dedup shift log→status | WP03 | | [D] |
 | T016 | Wire anomaly into `PrescanResult` for the Step 1 IDLE-gate to read | WP03 | | [D] |

@@ -32,9 +32,9 @@ subtasks:
 - T012
 - T013
 phase: Phase 2 - Core
-agent: "claude:sonnet:python-pedro:implementer"
-shell_pid: "87548"
-shell_pid_created_at: "1784314680.010512"
+agent: "claude:opus:reviewer-renata:reviewer"
+shell_pid: "93430"
+shell_pid_created_at: "1784315679.948309"
 history:
 - at: '2026-07-17T18:30:00Z'
   actor: system
@@ -172,3 +172,5 @@ are generalizing).
 ## Activity Log
 
 - 2026-07-17T18:58:30Z – claude:sonnet:python-pedro:implementer – shell_pid=87548 – Assigned agent via action command
+- 2026-07-17T19:14:52Z – claude:sonnet:python-pedro:implementer – shell_pid=87548 – Ready for review: note-level finalize transaction + all adapters; 400 tests green; commit 7756d9f8; sanctioned calendar-test edit for leniency removal
+- 2026-07-17T19:15:02Z – claude:opus:reviewer-renata:reviewer – shell_pid=93430 – Started review via action command
