@@ -47,18 +47,18 @@ Tests are **required** for this mission (NFR-001/002/003; deterministic helpers)
 
 ### WP02 — Inbox scan, Tier-1 classification, correlation record
 **Goal:** deterministic scan + classification + immutable per-digest correlation record + tick artifact + digest render. **Priority:** foundational. **Independent test:** scan a mocked Inbox → correct incomplete set + digest text + immutable record; SC-009. **Deps:** WP01. **Prompt:** ~320 lines.
-- [ ] T005 `scan_inbox.py` enumerate not-done Inbox tasks (WP02)
-- [ ] T006 Tier-1 classification incl. f:4 exclusion (WP02)
-- [ ] T007 Immutable per-`digest_id` record + `latest.json` + 48h expiry (WP02)
-- [ ] T008 Tick artifact + CLI flags (WP02)
-- [ ] T009 Unit tests (WP02)
+- [x] T005 `scan_inbox.py` enumerate not-done Inbox tasks (WP02)
+- [x] T006 Tier-1 classification incl. f:4 exclusion (WP02)
+- [x] T007 Immutable per-`digest_id` record + `latest.json` + 48h expiry (WP02)
+- [x] T008 Tick artifact + CLI flags (WP02)
+- [x] T009 Unit tests (WP02)
 
 ### WP03 — Shorthand parser + token resolution
 **Goal:** sparse-grammar parser + seam-backed token resolution + constrained LLM-fallback interface. **Priority:** foundational. **Independent test:** 100% documented tokens resolve without LLM; sparse lines parse; unresolved → echo-back. **Deps:** WP01. **Parallel with WP02.** **Prompt:** ~280 lines.
-- [ ] T010 Sparse line grammar parser (WP03)
-- [ ] T011 Token resolution + alias table (WP03)
-- [ ] T012 Constrained `--unresolved` re-resolution (WP03)
-- [ ] T013 Unit tests (WP03)
+- [x] T010 Sparse line grammar parser (WP03)
+- [x] T011 Token resolution + alias table (WP03)
+- [x] T012 Constrained `--unresolved` re-resolution (WP03)
+- [x] T013 Unit tests (WP03)
 
 ### WP04 — Apply engine
 **Goal:** correlation selection + kent-token RMW apply with family-replace + Tier-2 matrix + per-line statuses + `apply_reply.py`. **Priority:** core. **Independent test:** apply a shorthand reply against a mocked task → correct family-replace, statuses, Tier-2, idempotency (NFR-003). **Deps:** WP01, WP02, WP03. **Prompt:** ~420 lines.

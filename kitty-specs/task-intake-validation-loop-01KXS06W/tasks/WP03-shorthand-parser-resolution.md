@@ -16,9 +16,9 @@ subtasks:
 - T012
 - T013
 phase: Phase 2 - Engine
-agent: "claude:sonnet:python-pedro:implementer"
-shell_pid: "59372"
-shell_pid_created_at: "1784328058.563785"
+agent: "claude:opus:reviewer-renata:reviewer"
+shell_pid: "62768"
+shell_pid_created_at: "1784328720.142682"
 history:
 - at: '2026-07-17T21:55:00Z'
   actor: system
@@ -106,3 +106,5 @@ accepts only canonical names and rejects a raw id / free-form value.
 ## Activity Log
 
 - 2026-07-17T22:41:12Z – claude:sonnet:python-pedro:implementer – shell_pid=59372 – Assigned agent via action command
+- 2026-07-17T22:52:12Z – claude:sonnet:python-pedro:implementer – shell_pid=59372 – WP03 sparse shorthand parser + seam resolution + constrained fallback; 58 tests green
+- 2026-07-17T22:52:21Z – claude:opus:reviewer-renata:reviewer – shell_pid=62768 – Started review via action command
