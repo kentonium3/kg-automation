@@ -1,7 +1,7 @@
 {
-  "event_count": 28,
-  "last_event_id": "01KXRTCDWBG3QSV0861TD6BK60",
-  "materialized_at": "2026-07-17T19:55:46.443329+00:00",
+  "event_count": 29,
+  "last_event_id": "01KXRTCT804DN3PMA4BE6N8AKC",
+  "materialized_at": "2026-07-17T19:55:59.104464+00:00",
   "mission_number": "",
   "mission_slug": "capture-atomic-finalize-01KXRM7J",
   "mission_type": "software-dev",
@@ -11,9 +11,9 @@
     "canceled": 0,
     "claimed": 0,
     "done": 0,
-    "for_review": 1,
+    "for_review": 0,
     "in_progress": 0,
-    "in_review": 0,
+    "in_review": 1,
     "planned": 0
   },
   "work_packages": {
@@ -46,11 +46,11 @@
       "last_transition_at": "2026-07-17T19:46:03.040584+00:00"
     },
     "WP05": {
-      "actor": "claude:sonnet:curator-carla:implementer",
+      "actor": "claude:opus:reviewer-renata:reviewer",
       "force_count": 0,
-      "lane": "for_review",
-      "last_event_id": "01KXRTCDWBG3QSV0861TD6BK60",
-      "last_transition_at": "2026-07-17T19:55:46.443329+00:00"
+      "lane": "in_review",
+      "last_event_id": "01KXRTCT804DN3PMA4BE6N8AKC",
+      "last_transition_at": "2026-07-17T19:55:59.104464+00:00"
     }
   }
 }
