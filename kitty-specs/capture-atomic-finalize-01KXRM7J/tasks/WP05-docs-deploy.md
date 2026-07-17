@@ -18,9 +18,9 @@ subtasks:
 - T024
 - T025
 phase: Phase 4 - Close-out
-agent: "claude:sonnet:curator-carla:implementer"
-shell_pid: "3895"
-shell_pid_created_at: "1784317558.270429"
+agent: "claude:opus:reviewer-renata:reviewer"
+shell_pid: "7348"
+shell_pid_created_at: "1784318141.726101"
 history:
 - at: '2026-07-17T18:30:00Z'
   actor: system
@@ -110,3 +110,5 @@ health-check) for the canonical doc targets so INDEX/DEVELOPER_PORTAL are not mi
 ## Activity Log
 
 - 2026-07-17T19:46:46Z – claude:sonnet:curator-carla:implementer – shell_pid=3895 – Assigned agent via action command
+- 2026-07-17T19:55:55Z – claude:sonnet:curator-carla:implementer – shell_pid=3895 – Ready for review: docs sync (inbox-ops runbook + service-inventory JSON + roadmap); no manifest needed; rebaseline not-required w/ evidence; validate_architecture_data OK; commit c55e8f24
+- 2026-07-17T19:56:05Z – claude:opus:reviewer-renata:reviewer – shell_pid=7348 – Started review via action command

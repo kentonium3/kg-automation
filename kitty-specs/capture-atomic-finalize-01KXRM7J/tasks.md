@@ -28,10 +28,10 @@
 | T019 | Update Step 1 IDLE gate: block IDLE + report `archive_anomalies` incl processed-without-routing-log | WP04 | | [D] |
 | T020 | Update TOOLS.md (remove standalone mark_processed/append_routing_entry); keep needs-review exception; mirror `.tmpl` | WP04 | | [D] |
 | T021 | Verify AGENTS.md < 12K byte cap; `.tmpl` parity | WP04 | | [D] |
-| T022 | Update inbox/capture runbook(s) to note-level finalize flow | WP05 | [P] |
-| T023 | Add new health-check to service-inventory.json + md view; INDEX/roadmap as applicable | WP05 | [P] |
-| T024 | deploys/queued manifest if needed; document deploy split + rebaseline-not-required | WP05 | |
-| T025 | Update capability roadmap status (capture reliability) | WP05 | [P] |
+| T022 | Update inbox/capture runbook(s) to note-level finalize flow | WP05 | [D] |
+| T023 | Add new health-check to service-inventory.json + md view; INDEX/roadmap as applicable | WP05 | [D] |
+| T024 | deploys/queued manifest if needed; document deploy split + rebaseline-not-required | WP05 | | [D] |
+| T025 | Update capability roadmap status (capture reliability) | WP05 | [D] |
 
 ## Work Packages
 
