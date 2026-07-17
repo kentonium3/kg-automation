@@ -92,25 +92,38 @@ WP02 provides `python3 -m scripts.inbox.route_and_finalize --source-path <note> 
   **`archive_anomalies` empty**. When `archive_anomalies` is non-empty (incl.
   `processed-without-routing-log`), the agent must NOT go IDLE — it reports the anomaly to Kent.
 
-### T020 — TOOLS.md + `.tmpl` parity
+### T020 — TOOLS.md (+ close TOOLS.md.tmpl twin)
 - Remove the standalone `mark_processed` / `append_routing_entry` tool surfaces from
-  `TOOLS.md`; add the single `route_and_finalize` command surface. Mirror every change into
-  `TOOLS.md.tmpl` and `AGENTS.md.tmpl` (byte-for-byte parity of the relevant sections).
+  `TOOLS.md`; add the single `route_and_finalize` command surface (with the plan shape).
+- `TOOLS.md` and `TOOLS.md.tmpl` are close twins (~1.1 KB each) — mirror the change into
+  `TOOLS.md.tmpl` for consistency. **`AGENTS.md` is the authoritative, deployed artifact**
+  (the deploy pipeline `deploy_agent_prompts.py` copies `AGENTS.md`/`TOOLS.md` literally and
+  **skips `*.tmpl`**). `AGENTS.md.tmpl` is a **stale, non-deployed, structurally-divergent**
+  older generation (42 KB vs the 21.5 KB deployed AGENTS.md, pre-#737) — do **NOT** mirror
+  finalize edits into it (that deepens the Frankenstein). Leave `AGENTS.md.tmpl` untouched;
+  the AGENTS.md/.tmpl divergence is pre-existing debt tracked as a separate follow-up.
 
-### T021 — Size cap + parity verification
-- Confirm `AGENTS.md` stays under the 12,000-byte cap (`tests/openclaw/.../test_agents_md_size.py`
-  or equivalent — locate it). The note-level single-command model should *reduce* size vs. the
-  per-kind 5b/5c blocks; if near the cap, move mechanics to `TOOLS.md`.
-- Verify `AGENTS.md` ↔ `AGENTS.md.tmpl` and `TOOLS.md` ↔ `TOOLS.md.tmpl` parity.
+### T021 — Size discipline + parity verification
+- **There is no 12,000-byte cap on `felix-admin-capture/AGENTS.md`** (the CAP=12000 in
+  `scripts/openclaw/agents/tests/test_agents_md_size.py` covers only `main/` and
+  `felix-admin-calendar/` — a different mission's NFR). AGENTS.md is already ~21.5 KB in
+  production and deployed fine. Requirement: the rewrite must **not materially grow** the
+  file; removing per-kind Step 3 route calls + Steps 5b/5c should **trim** it. Report the
+  before/after `wc -c`. Keep the Output-Discipline hard rules verbatim (do NOT tear the file
+  down to hit an inapplicable cap).
+- Run `python3 -m pytest scripts/openclaw/agents/tests/test_agents_md_size.py -q` — must stay
+  green (it does not cover capture, so any capture size passes; this just confirms no regression
+  to main/calendar).
+- Verify `TOOLS.md` ↔ `TOOLS.md.tmpl` parity.
 
 ## Definition of Done
 - The prompt describes exactly ONE finalize command per note; no standalone mark/append steps remain.
 - Step 1 IDLE gate blocks on `archive_anomalies`.
-- Size-cap test green; `.tmpl` mirrors updated.
+- AGENTS.md not materially grown (before/after wc -c reported); size-cap test green (no main/calendar regression); `TOOLS.md.tmpl` mirrored; AGENTS.md.tmpl left as pre-existing debt.
 - Output-Discipline hard rules and privacy boundary preserved verbatim.
 
 ## Risks / reviewer guidance
-- This is prompt authoring, not code — but the size cap is a hard test. Keep the rewrite tight.
+- This is prompt authoring, not code. No hard byte cap applies to capture; keep the rewrite tight and trim where 5b/5c is removed.
 - Reviewer: confirm (a) no path lets the agent mark a note processed except via finalize;
   (b) the IDLE gate now includes archive_anomalies; (c) `.tmpl` parity; (d) the calendar
   clarification + parse-failure + privacy + no-delete invariants survive the rewrite.
