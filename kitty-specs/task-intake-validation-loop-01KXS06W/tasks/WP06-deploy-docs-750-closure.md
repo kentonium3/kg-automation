@@ -20,7 +20,9 @@ subtasks:
 - T025
 - T026
 phase: Phase 5 - Release
-agent: claude
+agent: "claude:sonnet:curator-carla:implementer"
+shell_pid: "79209"
+shell_pid_created_at: "1784331794.201095"
 history:
 - at: '2026-07-17T21:55:00Z'
   actor: system
@@ -106,3 +108,7 @@ architecture-data validator (`validate_architecture_data.py`) stays green.
 
 ## Implementation command
 `spec-kitty agent action implement WP06 --agent claude`
+
+## Activity Log
+
+- 2026-07-17T23:44:01Z – claude:sonnet:curator-carla:implementer – shell_pid=79209 – Assigned agent via action command
