@@ -16,9 +16,9 @@ subtasks:
 - T021
 - T022
 phase: Phase 4 - Integration
-agent: "claude:sonnet:curator-carla:implementer"
-shell_pid: "72753"
-shell_pid_created_at: "1784330535.269304"
+agent: "claude:opus:reviewer-renata:reviewer"
+shell_pid: "77883"
+shell_pid_created_at: "1784331567.670278"
 history:
 - at: '2026-07-17T21:55:00Z'
   actor: system
@@ -107,3 +107,5 @@ with headroom; rebalance AGENTS↔TOOLS if needed. Confirm no deterministic work
 ## Activity Log
 
 - 2026-07-17T23:22:55Z – claude:sonnet:curator-carla:implementer – shell_pid=72753 – Assigned agent via action command
+- 2026-07-17T23:39:42Z – claude:sonnet:curator-carla:implementer – shell_pid=72753 – WP05 agent wiring: capture scan+digest step, main apply-reply mechanics; main 11554B (446 headroom); .tmpl parity; 268 tests
+- 2026-07-17T23:39:53Z – claude:opus:reviewer-renata:reviewer – shell_pid=77883 – Started review via action command

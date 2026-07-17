@@ -71,9 +71,9 @@ Tests are **required** for this mission (NFR-001/002/003; deterministic helpers)
 
 ### WP05 — Agent wiring (capture + main prompts)
 **Goal:** capture agent runs scan + emits digest; main agent content-correlates + invokes apply + confirms; LLM-fallback boundary. **Priority:** integration. **Independent test:** prompt review shows single-command scan emit + reply-apply path; AGENTS.md under byte cap. **Deps:** WP02, WP04. **Prompt:** ~240 lines.
-- [ ] T020 Capture `AGENTS.md` scan+digest (WP05)
-- [ ] T021 Main `AGENTS.md`/`TOOLS.md` correlate+apply+confirm (WP05)
-- [ ] T022 Byte-cap + Directive-6 leak check (WP05)
+- [x] T020 Capture `AGENTS.md` scan+digest (WP05)
+- [x] T021 Main `AGENTS.md`/`TOOLS.md` correlate+apply+confirm (WP05)
+- [x] T022 Byte-cap + Directive-6 leak check (WP05)
 
 ### WP06 — Deploy manifest + docs sync + #750 closure
 **Goal:** deploy manifest (state dir + kent-token assert) + full doc synchronization + #750 closure. **Priority:** release. **Independent test:** manifest validates; docs updated per signal-to-doc-map; #750 closure note present. **Deps:** WP01–WP05. **Prompt:** ~230 lines.
