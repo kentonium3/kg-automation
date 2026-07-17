@@ -22,9 +22,9 @@ subtasks:
 - T008
 - T009
 phase: Phase 2 - Engine
-agent: "claude:sonnet:python-pedro:implementer"
-shell_pid: "58959"
-shell_pid_created_at: "1784328010.279383"
+agent: "claude:opus:reviewer-renata:reviewer"
+shell_pid: "63112"
+shell_pid_created_at: "1784328759.330247"
 history:
 - at: '2026-07-17T21:55:00Z'
   actor: system
@@ -123,3 +123,5 @@ no message; digest_text numbering.
 ## Activity Log
 
 - 2026-07-17T22:40:45Z – claude:sonnet:python-pedro:implementer – shell_pid=58959 – Assigned agent via action command
+- 2026-07-17T22:52:48Z – claude:sonnet:python-pedro:implementer – shell_pid=58959 – WP02 Inbox scan + Tier-1 classify + immutable correlation record; 29 tests green
+- 2026-07-17T22:52:57Z – claude:opus:reviewer-renata:reviewer – shell_pid=63112 – Started review via action command
