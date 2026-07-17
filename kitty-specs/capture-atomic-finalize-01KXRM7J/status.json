@@ -1,7 +1,7 @@
 {
-  "event_count": 5,
-  "last_event_id": "01KXRNZ03Y8QQ1981GPZZPA3AP",
-  "materialized_at": "2026-07-17T18:38:32.062471+00:00",
+  "event_count": 7,
+  "last_event_id": "01KXRP7ZMJDVTRHZHJ40C8GBWS",
+  "materialized_at": "2026-07-17T18:43:26.481225+00:00",
   "mission_number": "",
   "mission_slug": "capture-atomic-finalize-01KXRM7J",
   "mission_type": "software-dev",
@@ -12,17 +12,17 @@
     "claimed": 0,
     "done": 0,
     "for_review": 0,
-    "in_progress": 0,
+    "in_progress": 1,
     "in_review": 0,
-    "planned": 5
+    "planned": 4
   },
   "work_packages": {
     "WP01": {
-      "actor": "finalize-tasks",
+      "actor": "claude:sonnet:python-pedro:implementer",
       "force_count": 0,
-      "lane": "planned",
-      "last_event_id": "01KXRNY840N4EE0DKSTQAAH6JN",
-      "last_transition_at": "2026-07-17T18:38:07.489060+00:00"
+      "lane": "in_progress",
+      "last_event_id": "01KXRP7ZMJDVTRHZHJ40C8GBWS",
+      "last_transition_at": "2026-07-17T18:43:26.481225+00:00"
     },
     "WP02": {
       "actor": "finalize-tasks",
