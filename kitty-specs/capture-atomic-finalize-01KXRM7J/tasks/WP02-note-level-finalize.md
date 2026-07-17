@@ -174,3 +174,4 @@ are generalizing).
 - 2026-07-17T18:58:30Z – claude:sonnet:python-pedro:implementer – shell_pid=87548 – Assigned agent via action command
 - 2026-07-17T19:14:52Z – claude:sonnet:python-pedro:implementer – shell_pid=87548 – Ready for review: note-level finalize transaction + all adapters; 400 tests green; commit 7756d9f8; sanctioned calendar-test edit for leniency removal
 - 2026-07-17T19:15:02Z – claude:opus:reviewer-renata:reviewer – shell_pid=93430 – Started review via action command
+- 2026-07-17T19:22:32Z – user – shell_pid=93430 – Review passed (reviewer-renata, adversarial): note-level finalize; retry-no-double-create + state-machine + journal-idempotency all confirmed; 400 tests green. 3 residual contract-scoped risks recorded (dup-create window→follow-up; verbatim-content→WP04; substring-provenance→follow-up).
