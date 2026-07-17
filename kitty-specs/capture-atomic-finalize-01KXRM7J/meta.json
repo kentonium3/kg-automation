@@ -17,7 +17,7 @@
   "flattened": false,
   "friendly_name": "Atomic Capture Finalize Across Route Kinds",
   "mission_id": "01KXRM7JSXZBNGX2QTRJG19B9N",
-  "mission_number": null,
+  "mission_number": 104,
   "mission_slug": "capture-atomic-finalize-01KXRM7J",
   "mission_type": "software-dev",
   "purpose_context": "The inbox capture agent can currently mark a note processed without having routed its content on non-calendar routes, silently losing Kent's captured intentions. #737 fixed this for calendar only. This mission generalizes the atomic finalize to all route kinds (someday, journal, vikunja_task including the tasker-delegated path, github_issue, and calendar folded in), removes the agent's standalone mark_processed, and adds a health rail for notes marked processed with no routing-log entry.",

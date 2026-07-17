@@ -449,6 +449,9 @@ def _run_finalize(
     - create error / missing event_id -> ``{status: error, ...}``; exit 1. Not finalized.
     - ``mark_processed`` non-zero -> ``{status: error, stage: mark_processed, ...}``;
       exit 1. Event exists but note not marked; retried next tick.
+    - routing-log append failure -> ``{status: error, stage: routing_log, ...}``;
+      exit 1 (FR-015 / #746: the old lenient ``finalized`` + ``routing_logged:
+      false`` is removed — a log failure is surfaced loudly, not hidden).
     - success -> ``{status: finalized, event_id, html_link, marked_processed,
       routing_logged}``; exit 0.
     """
@@ -487,6 +490,27 @@ def _run_finalize(
     routing_logged = _append_calendar_routing_log(
         Path(source_path).name, event_id, note_excerpt
     )
+    if not routing_logged:
+        # FR-015 / INV-4 (#746): the old leniency returned `finalized` with
+        # `routing_logged: false` when the log write failed — itself a
+        # silent-loss vector (a `processed` note with no routing-log entry trips
+        # the #746 health rail). Under the note-level finalize model a log
+        # failure is surfaced LOUDLY as an error (non-zero exit) instead of a
+        # hidden success. The note IS marked (durable landing done) but the
+        # missing log is reported so the next tick retries — `mark_processed`
+        # and `_append_calendar_routing_log` are both idempotent, so the retry
+        # completes the log and returns `finalized` cleanly.
+        return {
+            "status": "error",
+            "stage": "routing_log",
+            "event_id": event_id,
+            "html_link": html_link,
+            "marked_processed": True,
+            "error": (
+                "routing-log append failed after mark; note marked but unlogged, "
+                "retried next tick"
+            ),
+        }, 1
     return {
         "status": "finalized",
         "event_id": event_id,

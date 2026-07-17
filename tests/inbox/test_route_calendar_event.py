@@ -592,7 +592,7 @@ class TestFinalizeMode:
         # mark_processed was invoked with the raw source path.
         assert marked["called_with"] == "/inbox/Note 1.md"
         # A calendar routing-log row was written (basename key, kind, destination).
-        rows = [json.loads(l) for l in log.read_text().splitlines() if l.strip()]
+        rows = [json.loads(line) for line in log.read_text().splitlines() if line.strip()]
         assert len(rows) == 1
         assert rows[0]["filename"] == "Note 1.md"
         assert rows[0]["kind"] == "calendar"
@@ -672,24 +672,30 @@ class TestFinalizeMode:
         # routing log must NOT be written (mark did not succeed).
         assert not log.exists() or log.read_text().strip() == ""
 
-    def test_finalize_routing_log_failure_still_finalized(self, tmp_path, capsys, monkeypatch):
+    def test_finalize_routing_log_failure_is_error(self, tmp_path, capsys, monkeypatch):
+        # FR-015 / #746: the old leniency (`finalized` + `routing_logged: false`
+        # on a log-write failure) is REMOVED. A log failure is now surfaced
+        # loudly as an error (non-zero exit) so the #746 health rail never sees a
+        # silent `processed`-without-routing-log note. The event IS created and
+        # the note IS marked (durable landing), but the missing log is reported
+        # so the next idempotent tick completes it.
         self._redirect_log(tmp_path, monkeypatch)
         monkeypatch.setattr(
             helper, "_invoke_calendar_helper",
             lambda *a, **k: _fake_completed(0, stdout=_created_stdout()),
         )
         monkeypatch.setattr(helper, "_invoke_mark_processed", lambda p: _fake_completed(0))
-        # Simulate a routing-log write failure (best-effort; non-fatal).
+        # Simulate a routing-log write failure.
         monkeypatch.setattr(helper, "_append_calendar_routing_log", lambda *a, **k: False)
         pf = _write_payload(tmp_path, {"title": "Sync", "start": "2026-07-16T12:00:00-04:00"})
         code, out, err = _run(
             ["--payload-file", str(pf), "--finalize", "--source-path", "/inbox/n.md"], capsys
         )
-        # The note IS processed and the event IS created → success, with a warning flag.
-        assert code == 0, err
+        assert code == 1, "a routing-log failure must be a NON-zero exit (fail-loud)"
         result = json.loads(out)
-        assert result["status"] == "finalized"
-        assert result["routing_logged"] is False
+        assert result["status"] == "error"
+        assert result["stage"] == "routing_log"
+        assert result["event_id"] == "evt_1"  # the event DID get created — surface it
 
     def test_finalize_routing_log_is_idempotent(self, tmp_path, capsys, monkeypatch):
         log = self._redirect_log(tmp_path, monkeypatch)
@@ -707,7 +713,7 @@ class TestFinalizeMode:
         assert code == 0, err
         assert json.loads(out)["routing_logged"] is True
         # No duplicate row appended.
-        rows = [json.loads(l) for l in log.read_text().splitlines() if l.strip()]
+        rows = [json.loads(line) for line in log.read_text().splitlines() if line.strip()]
         assert len(rows) == 1
 
     def test_finalize_dry_run_no_side_effects(self, tmp_path, capsys, monkeypatch):
