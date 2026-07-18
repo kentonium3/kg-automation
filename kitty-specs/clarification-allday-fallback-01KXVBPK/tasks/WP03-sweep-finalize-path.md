@@ -23,9 +23,9 @@ subtasks:
 - T007
 - T008
 - T009
-agent: "claude:sonnet:python-pedro:implementer"
-shell_pid: "71488"
-shell_pid_created_at: "1784412445.562472"
+agent: "claude:opus:reviewer-renata:reviewer"
+shell_pid: "76786"
+shell_pid_created_at: "1784413270.076443"
 history:
 - '2026-07-18: authored by /spec-kitty.tasks'
 agent_profile: python-pedro
@@ -186,3 +186,5 @@ Execution worktree per computed lane in `lanes.json`.
 ## Activity Log
 
 - 2026-07-18T22:07:49Z – claude:sonnet:python-pedro:implementer – shell_pid=71488 – Assigned agent via action command
+- 2026-07-18T22:21:28Z – claude:sonnet:python-pedro:implementer – shell_pid=71488 – Ready for review (from primary): deterministic sweep-finalize, reconciliation ladder, 8h window, calendar_all_day_fallback marker; 39+478 tests green
+- 2026-07-18T22:21:39Z – claude:opus:reviewer-renata:reviewer – shell_pid=76786 – Started review via action command
