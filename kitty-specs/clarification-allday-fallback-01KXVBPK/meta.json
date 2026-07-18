@@ -1,4 +1,16 @@
 {
+  "acceptance_history": [
+    {
+      "acceptance_mode": "pr",
+      "accepted_at": "2026-07-18T23:16:32.558605+00:00",
+      "accepted_by": "kentgale",
+      "accepted_from_commit": "4e417c9ce0b9bfd98820fca97c87fca4860c74b6"
+    }
+  ],
+  "acceptance_mode": "pr",
+  "accepted_at": "2026-07-18T23:16:32.558605+00:00",
+  "accepted_by": "kentgale",
+  "accepted_from_commit": "4e417c9ce0b9bfd98820fca97c87fca4860c74b6",
   "created_at": "2026-07-18T19:36:54.429784+00:00",
   "flattened": false,
   "friendly_name": "All-Day Fallback for Unanswered Clarifications",
