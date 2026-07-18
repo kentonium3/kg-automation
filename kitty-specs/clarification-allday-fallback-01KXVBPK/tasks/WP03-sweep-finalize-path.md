@@ -23,7 +23,9 @@ subtasks:
 - T007
 - T008
 - T009
-agent: claude
+agent: "claude:sonnet:python-pedro:implementer"
+shell_pid: "71488"
+shell_pid_created_at: "1784412445.562472"
 history:
 - '2026-07-18: authored by /spec-kitty.tasks'
 agent_profile: python-pedro
@@ -180,3 +182,7 @@ Execution worktree per computed lane in `lanes.json`.
 - **Canonical path** (Codex MED-2) — confirm the note arg and idempotency-key are the same reconstructed absolute path.
 - **8h blast radius** — confirm the constant change doesn't break `_is_live`/`pending_filenames` semantics beyond the intended window shortening.
 - **Determinism** — no NL re-parse; the date comes only from the persisted `start_date`.
+
+## Activity Log
+
+- 2026-07-18T22:07:49Z – claude:sonnet:python-pedro:implementer – shell_pid=71488 – Assigned agent via action command
