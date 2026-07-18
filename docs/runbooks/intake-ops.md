@@ -169,8 +169,9 @@ what failed. Nothing is silently applied or dropped.
 Each reply line resolves to exactly one status, confirmed to Kent, without
 blocking the others: `applied`, `echoed_back` (unparseable/unresolvable),
 `overload_flagged` (`f:4` decomposition-pending), `noop` (live state already
-matches, or task done/deleted), `not_found`, `already_done`, `moved_conflict`
-(task left Inbox by another process), `access_denied` (kent token can't write).
+matches the intended values), `not_found` (task gone), `already_done`,
+`moved_conflict` (task left Inbox by another process), `access_denied` (kent
+token can't write), `failed` (write/verify error).
 
 ## 30-second health check
 
