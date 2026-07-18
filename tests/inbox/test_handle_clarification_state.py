@@ -598,6 +598,124 @@ def test_subcommand_help_exits_zero(
     assert excinfo.value.code == 0
 
 
+# --------------------------------------------------------------------------
+# pending (#740) — deterministic "is this note awaiting Kent?" query
+# --------------------------------------------------------------------------
+
+
+def _entry(note_filename: str, created: datetime, title: str = "Meet Rob") -> dict:
+    return {
+        "note_filename": note_filename,
+        "partial_payload": {"title": title},
+        "created_at": _iso_z(created),
+    }
+
+
+def _entry_raw(note_filename: str, created_at_value: object) -> dict:
+    """Entry with an arbitrary (possibly malformed) ``created_at`` value."""
+    return {
+        "note_filename": note_filename,
+        "partial_payload": {"title": "Meet Rob"},
+        "created_at": created_at_value,
+    }
+
+
+def test_pending_filenames_returns_live_excludes_aged(tmp_path: Path) -> None:
+    now = datetime(2026, 7, 18, 12, 0, 0, tzinfo=timezone.utc)
+    state = tmp_path / "pending.json"
+    _write_state(
+        state,
+        [
+            _entry("live.md", now - timedelta(hours=1)),
+            _entry("aged.md", now - timedelta(hours=25)),
+        ],
+    )
+    names = hcs.pending_filenames(state, now)
+    assert names == {"live.md"}
+
+
+def test_pending_filenames_dedups_duplicate_entries(tmp_path: Path) -> None:
+    now = datetime(2026, 7, 18, 12, 0, 0, tzinfo=timezone.utc)
+    state = tmp_path / "pending.json"
+    _write_state(
+        state,
+        [
+            _entry("dup.md", now - timedelta(hours=2)),
+            _entry("dup.md", now - timedelta(hours=1)),
+        ],
+    )
+    assert hcs.pending_filenames(state, now) == {"dup.md"}
+
+
+def test_pending_filenames_empty_on_absent_file(tmp_path: Path) -> None:
+    now = datetime(2026, 7, 18, 12, 0, 0, tzinfo=timezone.utc)
+    assert hcs.pending_filenames(tmp_path / "nope.json", now) == set()
+
+
+def test_pending_filenames_fails_open_on_bad_created_at(tmp_path: Path) -> None:
+    """#740 Finding 1: a missing / malformed / future ``created_at`` must NOT
+    withhold the note (fail OPEN — release), or a bad stamp strands it forever."""
+    now = datetime(2026, 7, 18, 12, 0, 0, tzinfo=timezone.utc)
+    state = tmp_path / "pending.json"
+    _write_state(
+        state,
+        [
+            {"note_filename": "missing.md", "partial_payload": {}},  # no created_at
+            {"note_filename": "null.md", "partial_payload": {}, "created_at": None},
+            _entry_raw("bad.md", "not-a-timestamp"),
+            _entry_raw("nonstr.md", 12345),
+            _entry("future.md", now + timedelta(hours=3)),  # future stamp
+            _entry("live.md", now - timedelta(hours=1)),  # the one real live entry
+        ],
+    )
+    # Only the genuinely-live entry is withheld; every doubtful stamp releases.
+    assert hcs.pending_filenames(state, now) == {"live.md"}
+
+
+def test_pending_filenames_normalizes_path_to_basename(tmp_path: Path) -> None:
+    """#740 Finding 3: a path-form stored filename still matches the inbox
+    basename (defensive; the contract is a basename)."""
+    now = datetime(2026, 7, 18, 12, 0, 0, tzinfo=timezone.utc)
+    state = tmp_path / "pending.json"
+    _write_state(
+        state, [_entry("01-Inbox/Deep 2026-07-18 0900.md", now - timedelta(hours=1))]
+    )
+    assert hcs.pending_filenames(state, now) == {"Deep 2026-07-18 0900.md"}
+
+
+def test_pending_subcommand_true_for_live_entry(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    now = datetime.now(timezone.utc)
+    state = tmp_path / "pending.json"
+    _write_state(state, [_entry("here.md", now - timedelta(hours=1))])
+    rc = hcs.main(
+        ["pending", "--note-filename", "here.md", "--state-file", str(state)]
+    )
+    assert rc == 0
+    assert capsys.readouterr().out.strip() == "pending=true"
+
+
+def test_pending_subcommand_false_for_aged_and_unknown(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    now = datetime.now(timezone.utc)
+    state = tmp_path / "pending.json"
+    _write_state(state, [_entry("aged.md", now - timedelta(hours=30))])
+    # aged-out entry → not pending
+    rc = hcs.main(
+        ["pending", "--note-filename", "aged.md", "--state-file", str(state)]
+    )
+    assert rc == 0
+    assert capsys.readouterr().out.strip() == "pending=false"
+    # filename with no entry at all → not pending
+    rc = hcs.main(
+        ["pending", "--note-filename", "other.md", "--state-file", str(state)]
+    )
+    assert rc == 0
+    assert capsys.readouterr().out.strip() == "pending=false"
+
+
 def test_module_runs_as_main(monkeypatch: pytest.MonkeyPatch) -> None:
     """`python3 -m scripts.inbox.handle_clarification_state sweep` works.
 

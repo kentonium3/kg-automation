@@ -155,6 +155,49 @@ def subcommand_sweep(path: Path, now_utc: datetime) -> int:
     return 0
 
 
+def pending_filenames(path: Path, now_utc: datetime) -> set[str]:
+    """Return the set of note **basenames** with a live pending-clarification entry.
+
+    "Live" == a well-formed ``created_at`` in the past and within
+    :data:`SWEEP_MAX_AGE`. This is the WITHHOLD consumer (``prescan`` drops these
+    notes from the tick), so it must fail **open**: an entry with a missing,
+    non-string, unparseable, or future ``created_at`` is treated as NOT live so
+    the note is *released*, never stranded — the opposite doubt-direction from
+    ``sweep``'s :func:`_is_aged_out` ("keep on doubt"). See :func:`_is_live`.
+    Because release is decided here at read time (not by the physical sweep), a
+    note is guaranteed to re-enter the scan once its entry ages out, bounding the
+    re-ask loop to once per window (#740).
+
+    Filenames are normalized to their basename so a path-form and a basename-form
+    key both match the inbox note's ``Path.name`` (the deterministic contract is
+    a basename — ``classify_content`` emits ``path.name`` — but this is defensive
+    against the agent ever passing a path). Deduped, so accumulated duplicate
+    entries for the same note collapse.
+    """
+    out: set[str] = set()
+    for entry in load_state(path):
+        name = entry.get("note_filename")
+        if not isinstance(name, str) or not name:
+            continue
+        if _is_live(entry.get("created_at"), now_utc):
+            out.add(os.path.basename(name))
+    return out
+
+
+def subcommand_pending(path: Path, note_filename: str, now_utc: datetime) -> int:
+    """Print ``pending=true``/``pending=false`` for one note filename (#740).
+
+    True iff a live (non-aged-out) PendingClarification entry exists for
+    ``note_filename``. Gives the capture agent the deterministic "is this note
+    already awaiting Kent?" check its ``AGENTS.md`` re-dispatch rule needs but
+    previously lacked; ``prescan.py`` uses :func:`pending_filenames` directly to
+    filter such notes out of the tick before the agent ever sees them.
+    """
+    is_pending = note_filename in pending_filenames(path, now_utc)
+    print(f"pending={'true' if is_pending else 'false'}")
+    return 0
+
+
 def subcommand_match(path: Path, reply_content: str) -> int:
     """Print the most-recent matching entry as JSON, or `null`.
 
@@ -237,6 +280,29 @@ def _is_aged_out(created_raw: object, now_utc: datetime) -> bool:
     return (now_utc - created) >= SWEEP_MAX_AGE
 
 
+def _is_live(created_raw: object, now_utc: datetime) -> bool:
+    """True iff `created_raw` is a well-formed, non-future, within-window stamp.
+
+    This is the WITHHOLD predicate (see :func:`pending_filenames`) and must fail
+    **open** — the opposite doubt-direction from :func:`_is_aged_out`. A missing,
+    non-string, unparseable, or FUTURE `created_at` returns ``False`` (not live →
+    do not withhold → release the note), so a bad timestamp can never strand a
+    note indefinitely (the #746/D9 silent-loss class). "Live" is strictly a
+    non-negative age below :data:`SWEEP_MAX_AGE`; anything else releases.
+
+    Note `_is_live` and `_is_aged_out` are deliberately NOT complements: a future
+    stamp is neither aged-out (sweep keeps it) nor live (withhold releases it).
+    """
+    if not isinstance(created_raw, str):
+        return False
+    try:
+        created = _parse_iso_z(created_raw)
+    except ValueError:
+        return False
+    age = now_utc - created
+    return timedelta(0) <= age < SWEEP_MAX_AGE
+
+
 # --------------------------------------------------------------------------
 # CLI
 # --------------------------------------------------------------------------
@@ -275,6 +341,13 @@ def _build_parser() -> argparse.ArgumentParser:
     sweep_p = sub.add_parser("sweep", help="Delete entries older than 24h.")
     _add_state_file_arg(sweep_p)
 
+    pending_p = sub.add_parser(
+        "pending",
+        help="Print whether a note filename has a live pending entry (#740).",
+    )
+    pending_p.add_argument("--note-filename", required=True)
+    _add_state_file_arg(pending_p)
+
     match_p = sub.add_parser(
         "match",
         help="Find the most-recent PendingClarification matching a reply.",
@@ -298,6 +371,8 @@ def main(argv: list[str] | None = None) -> int:
         )
     if args.subcommand == "sweep":
         return subcommand_sweep(state_path, now_utc)
+    if args.subcommand == "pending":
+        return subcommand_pending(state_path, args.note_filename, now_utc)
     if args.subcommand == "match":  # pragma: no branch - argparse enforces
         return subcommand_match(state_path, args.reply_content)
     return 2  # pragma: no cover - argparse rejects unknown subcommands

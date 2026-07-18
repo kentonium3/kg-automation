@@ -146,6 +146,11 @@ class PrescanResult:
     marker_cleanup_needed: list = field(default_factory=list)  # [<abs path>]
     # #568 — defensive safety rail for the silent-content-loss bug class (#563).
     archive_anomalies: list = field(default_factory=list)  # [ArchiveAnomaly as dict]
+    # #740 — notes withheld this tick because they are awaiting a calendar
+    # clarification reply from Kent (a live pending-calendar-clarifications
+    # entry). Bounded by the 24h sweep, so a note is released — not stranded —
+    # once its entry ages out. [{"path": ..., "filename": ...}]
+    pending_skipped: list = field(default_factory=list)
 
 
 # ---------------------------------------------------------------------------
@@ -850,6 +855,18 @@ def _append_daily_log(
         lines.append("### Unprocessed handed to agent")
         for u in unprocessed:
             lines.append(f"- {u.path.name}")
+    # #740 — notes withheld this tick because they await a calendar clarification
+    # reply. Rendered so a withheld note is never fully invisible in the forensic
+    # log (it is filtered out of "Unprocessed handed to agent" above). Omitted
+    # when empty to keep healthy ticks quiet.
+    if result.pending_skipped:
+        lines.append("")
+        lines.append(
+            f"### pending calendar clarification — withheld "
+            f"(count={len(result.pending_skipped)})"
+        )
+        for p in result.pending_skipped:
+            lines.append(f"- {p['filename']}")
     # #568 — defensive safety rail. Section is OMITTED when no anomalies
     # to avoid log noise on healthy ticks (the common case).
     if result.archive_anomalies:
@@ -870,6 +887,44 @@ def _append_daily_log(
 
 def _emit_stderr(msg: str) -> None:
     print(msg, file=sys.stderr)
+
+
+def _pending_clarification_filenames(
+    now_utc: datetime,
+) -> tuple[set[str], Optional[dict]]:
+    """Return note filenames awaiting a calendar clarification reply (#740).
+
+    Reads the shared clarification-state file via
+    ``handle_clarification_state.pending_filenames`` (the same 24h aging rule
+    ``sweep`` uses). Returns ``(names, warning_or_None)``. Fail-safe: any
+    import or read error yields an empty set plus a warning dict, so a broken or
+    unreadable clarification store never withholds a note from the agent — it
+    just disables the skip for that run. An absent state file is the normal
+    "nothing pending" case and returns an empty set with no warning.
+    """
+    try:
+        from scripts.inbox.handle_clarification_state import (
+            STATE_PATH_DEFAULT,
+            pending_filenames,
+        )
+    except ImportError as exc:  # pragma: no cover - defensive (partial deploy)
+        return set(), {
+            "path": "scripts/inbox/handle_clarification_state.py",
+            "reason": (
+                f"handle_clarification_state not importable ({exc}); "
+                "pending-calendar skip disabled this run"
+            ),
+        }
+    try:
+        return pending_filenames(STATE_PATH_DEFAULT, now_utc), None
+    except Exception as exc:  # pragma: no cover - defensive
+        return set(), {
+            "path": str(STATE_PATH_DEFAULT),
+            "reason": (
+                f"pending-calendar clarification state unreadable ({exc}); "
+                "pending-calendar skip disabled this run"
+            ),
+        }
 
 
 def run_prescan() -> int:
@@ -955,7 +1010,28 @@ def run_prescan() -> int:
     # Dedup shift (D9): unprocessed notes are handed to the agent every tick
     # regardless of routing-log presence. Terminal status removes a note from
     # this list upstream (via classification), not a filename filter here.
-    unprocessed_filtered: list[InboxFile] = list(unprocessed)
+    #
+    # #740 — the ONE deterministic filename filter that IS safe: a note awaiting
+    # a calendar clarification reply from Kent (a live pending-calendar entry).
+    # Unlike the removed routing-log dedup, this cannot strand a note — the 24h
+    # clarification sweep ages the entry out, after which the note re-enters the
+    # scan and the agent re-asks (once per window instead of every tick). Skipping
+    # it here is what stops the 4×/day re-classify + re-WhatsApp loop. Fail-safe:
+    # any error reading the clarification state → skip the filter (never withhold
+    # a note on a broken read).
+    pending_clarification_names, pending_warning = _pending_clarification_filenames(
+        started
+    )
+    if pending_warning is not None:
+        warnings.append(pending_warning)
+    unprocessed_filtered = [
+        f for f in unprocessed if f.path.name not in pending_clarification_names
+    ]
+    pending_skipped = [
+        {"path": str(f.path), "filename": f.path.name}
+        for f in unprocessed
+        if f.path.name in pending_clarification_names
+    ]
 
     # #185 — FR-005 parse_failures list.
     parse_failures_json = [
@@ -1030,6 +1106,7 @@ def run_prescan() -> int:
         dedup_skipped=dedup_skipped,
         marker_cleanup_needed=marker_cleanup_needed,
         archive_anomalies=[asdict(a) for a in archive_anomalies],
+        pending_skipped=pending_skipped,
     )
 
     _emit_stderr("prescan: writing daily log")
