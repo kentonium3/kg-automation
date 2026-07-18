@@ -14,7 +14,9 @@ subtasks:
 - T017
 - T018
 - T019
-agent: claude
+agent: "claude:sonnet:curator-carla:implementer"
+shell_pid: "92653"
+shell_pid_created_at: "1784415730.552278"
 history:
 - '2026-07-18: authored by /spec-kitty.tasks'
 agent_profile: curator-carla
@@ -115,3 +117,7 @@ Execution worktree per computed lane in `lanes.json`.
 - **Accuracy over prose**: the doc must match shipped behavior (8h, timing-only eligibility, reconcile/fail-closed) — reviewer cross-checks against WP03.
 - **Schema validity**: the `signal-to-doc-map.json` edit must pass the blocking validator — reviewer runs it.
 - **No duplication drift**: the doc is the canonical explanation; runbooks/TOOLS.md (WP05) link to it rather than restating the rules.
+
+## Activity Log
+
+- 2026-07-18T23:02:45Z – claude:sonnet:curator-carla:implementer – shell_pid=92653 – Assigned agent via action command
