@@ -14,16 +14,11 @@ emitters share one behavior.
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from zoneinfo import ZoneInfo
 
+from scripts.common import et_datetime
 from scripts.deploy.lib.verify import redact_secrets
 
 from .model import Alert
-
-# Kent's operating timezone. The "local" timestamp must render in Eastern —
-# office2's system TZ is Etc/UTC, so a bare ``astimezone()`` would make "local"
-# identical to UTC (#759). DST-aware via zoneinfo.
-_ET_ZONE = ZoneInfo("America/New_York")
 
 # Bounded length for redacted detail values. Matches the deployer's
 # ERROR_SUMMARY_MAX so migrated failure alerts keep byte-comparable bodies.
@@ -54,13 +49,14 @@ def _format_timestamp(ts: datetime) -> str:
 
     A naive timestamp is assumed to already be UTC (the Alert default is
     UTC-aware; this only guards hand-built naive values). "local" is rendered in
-    Eastern explicitly — NOT via a bare ``astimezone()``, which would follow the
-    host TZ (office2 = Etc/UTC) and make "local" == UTC (#759).
+    Eastern via the canonical ``et_datetime.to_et`` (#761) — NOT a bare
+    ``astimezone()``, which would follow the host TZ (office2 = Etc/UTC) and make
+    "local" == UTC (#759).
     """
     if ts.tzinfo is None:
         ts = ts.replace(tzinfo=timezone.utc)
     utc = ts.astimezone(timezone.utc)
-    local = ts.astimezone(_ET_ZONE)
+    local = et_datetime.to_et(ts)
     return f"{utc.isoformat()} (UTC) / {local.isoformat()} (local)"
 
 

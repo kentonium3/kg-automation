@@ -53,7 +53,7 @@ day.
 
 Public surface
 --------------
-Constants: ``LOCAL_TZ``, ``SENTINEL_DUE_DATE``, ``PER_PAGE``
+Constants: ``LOCAL_TZ``, ``PER_PAGE``
 Dataclass: ``EscalationCandidate``
 Functions: ``normalize_due_date``, ``filter_candidates``, ``fetch_all_tasks``, ``main``
 """
@@ -64,16 +64,16 @@ import json
 import sys
 import zoneinfo
 from dataclasses import asdict, dataclass
-from datetime import date, datetime
+from datetime import date
 from pathlib import Path
 from typing import Any, Iterable, Literal, Optional
 
+from scripts.common import et_datetime
 from scripts.common.vikunja_client import VikunjaClient, VikunjaError
 from scripts.common.vikunja_scope import get_escalation_excluded_project_ids
 
 __all__ = [
     "LOCAL_TZ",
-    "SENTINEL_DUE_DATE",
     "PER_PAGE",
     "EscalationCandidate",
     "normalize_due_date",
@@ -84,11 +84,9 @@ __all__ = [
 
 #: Local timezone for "today" and due-date comparisons (H8). Escalation
 #: operates in Kent's local TZ so date boundaries fall on America/New_York
-#: calendar days, not UTC days — mirrors ``derive_state.LOCAL_TZ``.
-LOCAL_TZ = zoneinfo.ZoneInfo("America/New_York")
-
-#: Vikunja's "no due date" sentinel value (year 1, per SKILL.md §1).
-SENTINEL_DUE_DATE = "0001-01-01T00:00:00Z"
+#: calendar days, not UTC days. Sourced from the canonical ET utility (#761)
+#: so there is one ``America/New_York`` definition repo-wide.
+LOCAL_TZ = et_datetime.ET_ZONE
 
 #: Vikunja's hard cap on page size for ``/tasks/all``.
 PER_PAGE = 50
@@ -128,26 +126,19 @@ class EscalationCandidate:
 def normalize_due_date(value: Any, *, local_tz: zoneinfo.ZoneInfo = LOCAL_TZ) -> Optional[date]:
     """Parse a Vikunja ``due_date`` value into a local (ET) calendar date.
 
-    Per H8: rejects (returns ``None`` for) ``None``, empty/whitespace-only
-    strings, the ``0001-01-01T00:00:00Z`` sentinel (and any other-offset
-    spelling of the same year-1 "unset" moment, e.g.
-    ``0001-01-01T00:00:00+00:00``), non-str values, and any value that fails
-    ISO-8601 parsing. A successfully parsed value is converted to
-    ``local_tz`` and the **local calendar date** is returned (not the raw
-    UTC date) — this is what makes the day-boundary tests (23:00 UTC vs
-    01:00 UTC) classify consistently.
-
-    Post-merge Codex review (#723): the literal-string sentinel check only
-    caught the exact ``0001-01-01T00:00:00Z`` spelling. A variant like
-    ``0001-01-01T00:00:00+00:00`` parses successfully as a year-1
-    ``datetime``, and converting a year-1 datetime via ``.astimezone()`` can
-    raise ``OverflowError`` (the local-offset arithmetic underflows
-    ``datetime.min``), crashing the whole escalation run instead of
-    excluding the one malformed task. Guarded two ways: (1) any parsed
-    datetime with ``year <= 1`` is treated as the sentinel and excluded
-    BEFORE the timezone conversion; (2) the conversion itself is wrapped to
-    catch ``OverflowError``/``ValueError``/``OSError`` defensively and
-    exclude rather than raise.
+    Thin H8 wrapper over the canonical
+    :func:`scripts.common.et_datetime.et_calendar_date` (#761), which owns the
+    shared parse / sentinel / naive / year-1 exclusion logic. Behavior is
+    unchanged: returns ``None`` for ``None``, empty/whitespace-only strings, the
+    ``0001-01-01`` year-1 "unset" sentinel in any offset spelling, naive
+    datetimes (excluded — not assumed UTC — the deliberate "don't guess a
+    timezone" H8 choice), and any value that fails ISO-8601 parsing; otherwise
+    converts the instant to ``local_tz`` and returns the **local calendar
+    date** (not the raw UTC date), which is what keeps day-boundary
+    classification (23:00 UTC vs 01:00 UTC) consistent. The year-1 exclusion
+    (before conversion) and the defensive ``OverflowError``/``ValueError``/
+    ``OSError`` guard around the conversion (the #723 / H9 fix) both live in the
+    canonical helper now.
 
     Args:
         value: The raw ``due_date`` field from a Vikunja task dict.
@@ -158,34 +149,7 @@ def normalize_due_date(value: Any, *, local_tz: zoneinfo.ZoneInfo = LOCAL_TZ) ->
         The local calendar :class:`date`, or ``None`` if the value must be
         excluded per H8.
     """
-    if not isinstance(value, str):
-        return None
-    stripped = value.strip()
-    if not stripped:
-        return None
-    if stripped == SENTINEL_DUE_DATE:
-        return None
-    normalized = stripped.replace("Z", "+00:00") if stripped.endswith("Z") else stripped
-    try:
-        parsed = datetime.fromisoformat(normalized)
-    except ValueError:
-        return None
-    if parsed.tzinfo is None:
-        # Malformed / naive datetime — H8 requires an aware value. Do not
-        # guess a timezone; exclude rather than silently assume UTC.
-        return None
-    if parsed.year <= 1:
-        # Any spelling of the year-1 "no due date" sentinel (not just the
-        # exact 0001-01-01T00:00:00Z string) — exclude BEFORE the timezone
-        # conversion, which can OverflowError on a year-1 datetime.
-        return None
-    try:
-        local_dt = parsed.astimezone(local_tz)
-    except (OverflowError, ValueError, OSError):
-        # Defensive: a conversion failure means we cannot classify this
-        # value — exclude rather than crash the whole escalation run (H9).
-        return None
-    return local_dt.date()
+    return et_datetime.et_calendar_date(value, zone=local_tz)
 
 
 def _qualifies(
@@ -362,7 +326,7 @@ def main(argv: Optional[list[str]] = None) -> int:
             print(f"error: --date '{args.date}' is not a valid YYYY-MM-DD date", file=sys.stderr)
             return 3
     else:
-        today = datetime.now(LOCAL_TZ).date()
+        today = et_datetime.today_et()
 
     token: Optional[str] = None
     if args.token_path is not None:

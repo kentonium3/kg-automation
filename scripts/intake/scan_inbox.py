@@ -62,9 +62,8 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
-from zoneinfo import ZoneInfo
 
-from scripts.common import vikunja_refs
+from scripts.common import et_datetime, vikunja_refs
 from scripts.common.vikunja_client import VikunjaError
 from scripts.intake.shorthand_key import render_hint
 
@@ -128,8 +127,6 @@ QUADRANT_LABELS = frozenset({"q:do", "q:schedule", "q:delegate", "q:eliminate"})
 
 #: Canonical ordering of the missing-field tokens in the digest/record.
 _MISSING_FIELD_ORDER = ("project", "friction", "quadrant")
-
-ET_ZONE = ZoneInfo("America/New_York")
 
 
 class IntakeError(Exception):
@@ -421,7 +418,7 @@ def build_digest_record(
     return {
         "digest_id": digest_id,
         "created_utc": _utc_iso(now_utc),
-        "created_et_date": now_utc.astimezone(ET_ZONE).date().isoformat(),
+        "created_et_date": et_datetime.to_et(now_utc).date().isoformat(),
         "source_cron": source_cron,
         "entries": [entry.to_dict() for entry in entries],
     }
@@ -572,7 +569,7 @@ def write_tick_artifact(state_dir: Path, tick: TickRecord) -> Path:
     started = datetime.strptime(
         tick.started_at_utc, "%Y-%m-%dT%H:%M:%SZ"
     ).replace(tzinfo=timezone.utc)
-    et_date = started.astimezone(ET_ZONE).date().isoformat()
+    et_date = et_datetime.to_et(started).date().isoformat()
     path = state_dir / f"intake-tick-{et_date}.json"
     _atomic_write_json(path, tick.to_dict())
     _atomic_write_json(state_dir / "intake-tick-latest.json", tick.to_dict())

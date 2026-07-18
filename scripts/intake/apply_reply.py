@@ -63,12 +63,11 @@ import json
 import os
 import sys
 from dataclasses import dataclass, field
-from datetime import date, datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
-from zoneinfo import ZoneInfo
 
-from scripts.common import vikunja_refs
+from scripts.common import et_datetime, vikunja_refs
 from scripts.common.vikunja_client import (
     VikunjaAuthError,
     VikunjaError,
@@ -124,8 +123,6 @@ DEFAULT_WINDOW_HOURS = 48
 #: Bound every external Vikunja call (seconds); the client also has its own
 #: default, but the apply states its budget explicitly (NFR-005).
 _HTTP_TIMEOUT = 30.0
-
-ET_ZONE = ZoneInfo("America/New_York")
 
 #: Logical Inbox project name resolved via the #748 seam (never hardcoded id).
 INBOX_PROJECT_NAME = "inbox"
@@ -375,34 +372,12 @@ def correlate_digest(
 
 # ---------------------------------------------------------------------------
 # Tier-2 helpers — ET end-of-day due date (#733)
+#
+# The ET end-of-day write and the Vikunja-instant parse both live in the
+# canonical ``scripts.common.et_datetime`` module (#761):
+# ``et_datetime.et_end_of_day`` (formerly the inline ``_et_eod``) and
+# ``et_datetime.parse_vikunja_instant`` (formerly the inline ``_due_instant``).
 # ---------------------------------------------------------------------------
-
-
-def _et_eod(date_str: str) -> str:
-    """Render a ``YYYY-MM-DD`` date as an end-of-day ET instant (#733).
-
-    Anchors to ``23:59:59`` in :data:`ET_ZONE` with the DST-correct offset
-    (``-04:00`` EDT / ``-05:00`` EST), never UTC ``Z`` — writing UTC midnight
-    lands in the *prior* ET evening and mis-dates the task a day early. Reuses
-    the ``scripts.escalation.record_completion._reschedule_due_date_et`` approach
-    inline (there is no ``scripts/common/et_datetime.py``).
-
-    Raises :class:`ValueError` for a non-``YYYY-MM-DD`` value or a pre-standard
-    (sub-minute-offset) date, so a malformed ``due:`` is echoed back rather than
-    written as a garbage instant.
-    """
-    target = date.fromisoformat(date_str)
-    anchor = datetime(
-        target.year, target.month, target.day, 23, 59, 59, tzinfo=ET_ZONE
-    )
-    raw_offset = anchor.strftime("%z")
-    if len(raw_offset) != 5:
-        raise ValueError(
-            f"due date {date_str!r} resolves to a non-standard UTC offset "
-            f"{raw_offset!r}; expected a modern Eastern date"
-        )
-    offset = f"{raw_offset[:3]}:{raw_offset[3:]}"
-    return f"{target.isoformat()}T23:59:59{offset}"
 
 
 # ---------------------------------------------------------------------------
@@ -439,27 +414,6 @@ def _has_due(task: dict[str, Any]) -> bool:
     """True iff the task carries a real (non-sentinel) due date."""
     due = task.get("due_date")
     return isinstance(due, str) and bool(due) and not due.startswith(_UNSET_DUE_PREFIX)
-
-
-def _due_instant(value: object) -> datetime | None:
-    """Parse a Vikunja due-date string to an aware UTC instant, or ``None`` when
-    it is missing / the unset sentinel / unparseable.
-
-    Vikunja serializes every ``due_date`` to UTC ``Z`` (#733/#736), so a due-date
-    we write as an ET offset (``…-04:00``) reads back as the same instant in
-    ``…Z`` form. Comparing the *instant* (not the string) is what makes the
-    readback diff correct — a raw string compare false-fails on that
-    representation change (#757).
-    """
-    if not isinstance(value, str) or not value or value.startswith(_UNSET_DUE_PREFIX):
-        return None
-    try:
-        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
-    except ValueError:
-        return None
-    if parsed.tzinfo is None:
-        parsed = parsed.replace(tzinfo=timezone.utc)
-    return parsed.astimezone(timezone.utc)
 
 
 def _is_recurring(task: dict[str, Any]) -> bool:
@@ -515,7 +469,9 @@ def _post_task_fields(
             # Vikunja normalizes due_dates to UTC 'Z' (#733/#736), so compare the
             # INSTANT — a raw string compare of our ET-offset write against the
             # returned UTC form false-fails and triggers a retry storm (#757).
-            if _due_instant(got) != _due_instant(value):
+            if et_datetime.parse_vikunja_instant(
+                got
+            ) != et_datetime.parse_vikunja_instant(value):
                 raise ApplyError(
                     f"field readback for task {task_id}: due_date instant is "
                     f"{got!r}, expected {value!r} (partial-replace drift, #524)."
@@ -665,7 +621,7 @@ def _plan_line(
             )
         else:
             try:
-                eod = _et_eod(line.due)
+                eod = et_datetime.et_end_of_day(line.due)
                 if task.get("due_date") != eod:
                     plan.field_changes["due_date"] = eod
                 plan.applied["due_date"] = eod
@@ -996,7 +952,7 @@ def apply_reply(
 
 
 def _et_date(now_utc: datetime) -> str:
-    return now_utc.astimezone(ET_ZONE).date().isoformat()
+    return et_datetime.to_et(now_utc).date().isoformat()
 
 
 def append_ledger(

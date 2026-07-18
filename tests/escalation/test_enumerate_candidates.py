@@ -405,14 +405,11 @@ class TestMainCli:
     def test_default_date_uses_today_et_when_omitted(
         self, capsys, patch_vikunja_client, patch_excluded_ids, monkeypatch
     ) -> None:
-        from datetime import datetime as real_datetime
-
-        class _FrozenDatetime(real_datetime):
-            @classmethod
-            def now(cls, tz=None):
-                return real_datetime(2026, 7, 12, 9, 0, 0, tzinfo=tz)
-
-        monkeypatch.setattr(ec, "datetime", _FrozenDatetime)
+        # "today" now flows through the canonical et_datetime.today_et() (#761);
+        # freeze it to the test's reference day.
+        monkeypatch.setattr(
+            ec.et_datetime, "today_et", lambda **_: date(2026, 7, 12)
+        )
         task = make_task(1, due_date="2026-07-12T12:00:00Z", priority=3)
         patch_vikunja_client(FakeVikunjaClient(pages=[[task], []]))
         patch_excluded_ids([])

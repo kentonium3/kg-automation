@@ -38,6 +38,14 @@ from datetime import datetime, timedelta
 from typing import Optional
 from zoneinfo import ZoneInfo
 
+# NOTE: this validator is invoked by SCRIPT PATH — its live entrypoint is
+# ``python3 scripts/calendar_routing/validate_calendar_event.py`` (see
+# ``scripts/openclaw/agents/felix-admin-calendar/AGENTS.md``), and its module
+# docstring guarantees purity. It therefore deliberately does NOT import
+# ``scripts.common`` (that would fail with ModuleNotFoundError under script-path
+# invocation — the #668 ``-m`` trap), so it keeps its own local Eastern zone
+# rather than sourcing the canonical ``scripts.common.et_datetime.ET_ZONE`` (the
+# #761 consolidation stops at this boundary by design).
 DEFAULT_TIMEZONE = "America/New_York"
 DEFAULT_CALENDAR_ID = "primary"
 # Credential-set selector for the direct-API calendar helper (D5). Flipped from
