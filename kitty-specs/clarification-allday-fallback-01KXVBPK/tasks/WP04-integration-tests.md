@@ -17,7 +17,9 @@ subtasks:
 - T011
 - T012
 - T013
-agent: claude
+agent: "claude:sonnet:python-pedro:implementer"
+shell_pid: "86676"
+shell_pid_created_at: "1784414816.764008"
 history:
 - '2026-07-18: authored by /spec-kitty.tasks'
 agent_profile: python-pedro
@@ -113,3 +115,7 @@ Execution worktree per computed lane in `lanes.json`.
 - Reviewer confirms T011 actually exercises the **create+mark-then-remove-fail** interleaving (the Codex HIGH-3 case), not just a clean retry.
 - Confirm the boundary tests assert **zero** creates (not just "no exception").
 - Confirm the fake is at a seam that still exercises the **real** `_run_finalize` (so atomicity/log-before-mark is genuinely tested), not a mock of the whole path.
+
+## Activity Log
+
+- 2026-07-18T22:47:12Z – claude:sonnet:python-pedro:implementer – shell_pid=86676 – Assigned agent via action command
