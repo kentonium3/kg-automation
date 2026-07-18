@@ -20,5 +20,16 @@
         ]
       }
     ]
+  },
+  "permissions": {
+    "allow": [
+      "Bash(ssh office2-claude sudo /data/services/backup/scripts/backup.sh:*)"
+    ]
+  },
+  "autoMode": {
+    "allow": [
+      "$defaults",
+      "Triggering the sanctioned office2 Restic backup via `ssh office2-claude sudo /data/services/backup/scripts/backup.sh` (including the `-n` non-interactive form). This is a pre-authorized NOPASSWD sudoers command on office2 — a safe, non-destructive backup that the Tier-2 change-control protocol requires before a destructive deploy (#666). Allow it without a prompt so Felix can self-trigger a backup as part of the deploy motion."
+    ]
   }
 }
