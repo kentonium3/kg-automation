@@ -1609,7 +1609,7 @@
         "endpoint": "/data/services/openclaw/felix-doc-auditor-driver/last-tick.json",
         "expected": "status=success within the last 2 hours; exit_code=0; errors=[] (see contracts/tick-signal.contract.md)",
         "timeout_seconds": 5,
-        "note": "Post-#343 health is determined by parsing last-tick.json (structured), not by tailing the prose activity log. Activity log at /home/kgale/second-brain/agents/logs/doc-auditor-YYYY-MM-DD.md remains as a per-tick prose summary."
+        "note": "Post-#343 health is determined by parsing last-tick.json (structured), not by tailing the prose activity log. Activity log at /home/kgale/second-brain/agents/logs/doc-auditor-YYYY-MM-DD.md remains as a per-tick prose summary. SUSPENSION SEMANTICS (#539): the 'expected: status=success within the last 2 hours' contract applies only to the ACTIVE state and resumes on re-enablement. While operational_status=suspended (timer disabled), last-tick.json intentionally RETAINS the last pre-suspension success (2026-05-25T13:28:34Z, status=success, exit_code=0); that stale tick is the EXPECTED steady state, not a failure, and freshness is not evaluated for a suspended entry (validator excludes suspended per LIVE_STATUS_VALUES). The disabled timer + this suspended status — not a mutation of last-tick.json — are the authoritative suspension signal."
       },
       "config_files": [
         {
