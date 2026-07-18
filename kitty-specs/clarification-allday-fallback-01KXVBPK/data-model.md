@@ -12,7 +12,7 @@ Stored as a JSON array element in
 |---|---|---|---|
 | `note_filename` | str (basename) | existing | The inbox note awaiting an answer |
 | `partial_payload` | object | existing | What's known about the appointment |
-| `created_at` | ISO-8601 `Z` | existing | When the clarification was recorded (drives 24h age-out) |
+| `created_at` | ISO-8601 `Z` | existing | When the clarification was recorded (drives 8h age-out) |
 
 ### `partial_payload` — extended keys (add-time)
 
@@ -30,7 +30,7 @@ delete-and-release path. No migration; no crash.
 
 ## Eligibility predicate (deterministic)
 
-A **aged-out** record (`created_at` ≥ 24h old) is **fallback-eligible** iff:
+A **aged-out** record (`created_at` ≥ 8h old) is **fallback-eligible** iff:
 
 ```
 timing-only gap:
@@ -80,9 +80,9 @@ The sweep-finalize path builds a single-block `RoutingPlan` for `_run_finalize`:
 ## State transitions
 
 ```
-                         ┌─ answered in <24h ─────────────► timed event (existing path, unchanged)
+                         ┌─ answered in <8h ─────────────► timed event (existing path, unchanged)
 pending record created ──┤
-   (add-time: reason +   └─ unanswered ≥24h (sweep-finalize):
+   (add-time: reason +   └─ unanswered ≥8h (sweep-finalize):
     start_date persisted)        │
                                  ├─ eligible ─► build all-day plan ─► _run_finalize
                                  │                 │

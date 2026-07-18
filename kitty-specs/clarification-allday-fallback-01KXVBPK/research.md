@@ -49,7 +49,7 @@ agent persists them into `partial_payload` at add-time. The sweep-finalize path
 reads the already-resolved `start_date` — it never re-parses natural language.
 
 **Rationale**:
-- `start_natural` ("Thursday") re-parsed 24h+ later resolves to the **wrong week**
+- `start_natural` ("Thursday") re-parsed 8h+ later resolves to the **wrong week**
   — a silent-wrong-date bug. The date must be resolved **once**, at capture time
   (when the tick timestamp anchors "Thursday" correctly), and persisted.
 - `validate` already computes `start_dt` (L535) and already emits `start_date` on

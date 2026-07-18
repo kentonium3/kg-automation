@@ -8,7 +8,7 @@ capture, the state store, and the deterministic sweep-finalize path.
 ```jsonc
 {
   "note_filename": "Inbox 42.md",          // basename; existing
-  "created_at": "2026-07-17T14:03:00Z",    // ISO-8601 Z; existing; drives 24h age-out
+  "created_at": "2026-07-17T14:03:00Z",    // ISO-8601 Z; existing; drives 8h age-out
   "partial_payload": {
     "title": "Meet Rob",                   // existing
     "missing_fields": ["start_time"],      // NEW — eligibility signal (from validate)

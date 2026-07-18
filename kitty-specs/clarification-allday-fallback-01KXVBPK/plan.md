@@ -6,7 +6,7 @@
 
 ## Summary
 
-When a start-time calendar clarification goes unanswered for 24h, a **deterministic
+When a start-time calendar clarification goes unanswered for 8h, a **deterministic
 sweep-finalize path** converts the pending record's `partial_payload` into an
 **all-day** Google Calendar event, creates it, and marks the source note processed —
 idempotently and atomically by routing through the existing #746 `route_and_finalize`
@@ -19,7 +19,7 @@ shape this plan and were NOT visible from the issue text:
 1. **The add-time `partial_payload` does not persist a stable resolved date.**
    `validate_calendar_event` discards the resolved `start_dt` when an event is
    incomplete; `fields_so_far` carries only `start_natural` ("Thursday"). Re-parsing
-   that at sweep time (24h+ later) resolves to the **wrong week**. The resolved date
+   that at sweep time (8h+ later) resolves to the **wrong week**. The resolved date
    (and the `missing_fields` eligibility signal) must be persisted at add-time.
 2. **The #746 transaction's calendar seam is timed-only.**
    `route_calendar_event.build_delegation_payload` hard-maps `start → start_rfc3339`
@@ -35,7 +35,7 @@ shape this plan and were NOT visible from the issue text:
 **Testing**: pytest; full gate via `make test` (~5.7k tests); new unit + integration tests for eligibility gate, week-drift avoidance, idempotency-across-retries, fail-closed, and the non-start-time boundary
 **Target Platform**: office2 (Ubuntu 24.04) inside the `felix-admin-capture` agent tick (the sweep's live caller); calendar auth = `personal` account, obtained exactly as the capture happy path does today
 **Project Type**: single (Python helpers under `scripts/`)
-**Performance Goals**: runs within the existing 24h clarification sweep invocation; no new latency budget
+**Performance Goals**: runs within the existing 8h clarification sweep invocation; no new latency budget
 **Constraints**: deterministic — 0 LLM/agent calls on the sweep-finalize path (Directive 6); fail-closed on any create failure (retain record, leave note unprocessed); idempotent (exactly one event across retries); reuse #746 + #786 (0 new calendar-auth or transaction substrate); Tier 3
 **Scale/Scope**: bounded to the count of pending clarification records (single-digit typical); no unbounded scans
 
@@ -113,7 +113,7 @@ tests/inbox/  (+ tests/calendar_routing/)
 
 - **Purpose**: For each aged-out **eligible** record, build a single-block calendar plan from `partial_payload`, run it through `route_and_finalize._run_finalize(note_path, plan, account)` (create → log → mark-once), then remove the pending record; ineligible aged-out records keep today's delete-and-release.
 - **Relevant requirements**: FR-003, FR-004, FR-005, FR-008; NFR-001, NFR-002, NFR-004
-- **Affected surfaces**: new deterministic finalize function/subcommand (placement per R3), `scripts/inbox/handle_clarification_state.py` (eligibility gate + record removal reuse `subcommand_remove`), `scripts/openclaw/agents/felix-admin-capture/AGENTS.md` Step 1a (invoke the finalize path in place of / in addition to `sweep`)
+- **Affected surfaces**: new deterministic finalize function/subcommand (placement per R3), `scripts/inbox/handle_clarification_state.py` (eligibility gate + record removal reuse `subcommand_remove`; **change `SWEEP_MAX_AGE` 24h → 8h per C-006, whole-window**, and update the tests/docstrings that assert 24h aging), `scripts/openclaw/agents/felix-admin-capture/AGENTS.md` Step 1a (invoke the finalize path in place of / in addition to `sweep`). **Observability (C-007)**: the age-out marker extends the existing `calendar_event_clarification_timeout` / `log_action` vocabulary, not a parallel convention.
 - **Sequencing/depends-on**: IC-01 (needs the persisted signal + date), IC-02 (needs the all-day seam)
 - **Risks**: idempotency across partial failure — `_run_finalize` marks the note once and `calendar_helper` dedups on `--idempotency-key`, so a re-run after a failed record-removal does not double-create. **Codex HIGH-3 (reconciliation, FR-009)**: record removal happens *after* the atomic transaction, so after a mark-succeeds/remove-fails the note **is** processed — the finalize path must **reconcile** on retry (detect the note is already processed / the routing-log key exists → remove the stale record, do NOT re-create), and must NOT assume "note unprocessed" after every failure. **Codex MED-2 (idempotency-key identity)**: the pending record stores only `note_filename` (basename); the finalize path MUST reconstruct **one canonical absolute inbox path** for both the note argument and the `--idempotency-key`, so a basename- vs path-form record can never yield two different keys. **Codex HIGH-4 (concurrency)**: exactly-once relies on the serial single-agent tick (NFR-004 narrowed) — no lock; document that concurrent sweep-finalize is out of scope.
 
