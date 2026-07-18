@@ -25,6 +25,16 @@ owners: [kgale]
 > [#137](https://github.com/kentonium3/kg-automation/issues/137) to land
 > plus an explicit operator decision. This runbook is retained as the
 > authoritative reference for when re-enablement occurs.
+>
+> **`last-tick.json` during suspension (#539):** the deployed
+> `last-tick.json` intentionally retains the **last pre-suspension success**
+> (`2026-05-25T13:28:34Z`, `status=success`, `exit_code=0`). This stale tick is
+> the **expected** steady state while suspended — NOT a failure and NOT to be
+> mutated. The authoritative "suspended" signal is the disabled timer plus
+> `operational_status: suspended` in `service-inventory.json`, which excludes the
+> entry from freshness health evaluation. On re-enablement the timer resumes and
+> fresh ticks (< 2h) return. `service-inventory.json`, this runbook, and the live
+> office2 state (disabled timer, stale-success tick) now tell one consistent story.
 
 Authoritative operator reference for the scripts-first `felix-doc-auditor`
 driver introduced by mission [#343 — refactor-doc-auditor-to-scripts-first-driver](https://github.com/kentonium3/kg-automation/issues/343).
