@@ -4,12 +4,12 @@ artifact_type: spec-kitty.analysis-report
 command: /spec-kitty.analyze
 mission_slug: clarification-allday-fallback-01KXVBPK
 mission_id: 01KXVBPKCTH8J2Q6QKER9PGB0J
-generated_at: '2026-07-18T21:21:16.810105+00:00'
+generated_at: '2026-07-18T21:26:43.300987+00:00'
 analyzer_agent: unknown
 input_artifacts:
   spec.md:
     path: /Users/kentgale/repos/kg-automation/kitty-specs/clarification-allday-fallback-01KXVBPK/spec.md
-    sha256: 94b23656c1c0c21ffce1e302f79a3ff0a2eddcc74fb8a7c55511162938f3d859
+    sha256: 4445110814ffd09dbfcb036589f52b3f1a784847724a775acf0d60bbc6c801d6
   plan.md:
     path: /Users/kentgale/repos/kg-automation/kitty-specs/clarification-allday-fallback-01KXVBPK/plan.md
     sha256: ec734f2f0acafb704343d3e47a584e642dafd88f1e6727cc23e6f531c88cecec
@@ -21,16 +21,12 @@ input_artifacts:
     sha256: 4891223a0c3fc0dc96917475523586e8f3147a3ccaa113ecb7ff19da646e82e2
 verdict: ready
 issue_counts:
-  low: 4
-  medium: 2
   high: 0
+  low: 4
   critical: 0
+  medium: 1
   info: 0
 findings:
-- id: I1
-  severity: medium
-  category: inconsistency
-  summary: FR-001/FR-002 + domain-language call the signal a 'reason marker', but the chosen persisted mechanism (data-model, WP01/WP03) is `missing_fields`; the 'reason' alternative lingers and could confuse implementers.
 - id: U1
   severity: medium
   category: underspecification
@@ -55,11 +51,10 @@ findings:
 
 ## Specification Analysis Report
 
-Mission `clarification-allday-fallback-01KXVBPK`. Analyzed spec.md, plan.md, tasks.md (+ data-model.md, research.md, contracts). The post-plan Codex checkpoint already caught and folded the HIGH-severity issues (eligibility bug, reconciliation, sequential exactly-once, canonical key, log marker); this pass finds only consistency/coverage refinements. **Verdict: ready** (no CRITICAL/HIGH).
+Mission `clarification-allday-fallback-01KXVBPK`. Analyzed spec.md, plan.md, tasks.md (+ data-model.md, research.md, contracts). The post-plan Codex checkpoint already caught and folded the HIGH-severity issues (eligibility bug, reconciliation, sequential exactly-once, canonical key, log marker); this pass finds only consistency/coverage refinements. Finding **I1** (reason vs missing_fields naming) from the prior run was **already remediated** in spec.md before this re-run. **Verdict: ready** (no CRITICAL/HIGH).
 
 | ID | Category | Severity | Location(s) | Summary | Recommendation |
 |----|----------|----------|-------------|---------|----------------|
-| I1 | Inconsistency | MEDIUM | spec.md FR-001/FR-002 + Domain Language; data-model.md schema | Signal called "reason marker" in spec but persisted as `missing_fields` everywhere downstream | Standardize on `missing_fields` as the persisted signal name across spec/domain-language; keep "reason" only as a plain-English gloss, not an alternative field |
 | U1 | Underspecification | MEDIUM | spec.md FR-005; research.md R2; WP01 T002 / WP03 T005 | Exact `missing_fields` enum for no-duration case deferred to validate's real output | Already mitigated: WP01 T002 confirms it FIRST (dep-ordered before WP03 consumes it). Accept as bounded, or confirm the enum now to remove the deferral |
 | C1 | Coverage | LOW | spec.md NFR-002/NFR-003 | No explicit test/task; design/review-verified | Add to WP03 reviewer checklist (0 new daemon; reuse-only) — partially present in WP03 risks |
 | U2 | Underspecification | LOW | spec.md FR-007/C-007; WP03 T009 | Marker kind/field name deferred to real routing_log schema | Fine as a bounded IC-04 decision; WP03 T009 fixes it against routing_log.py |
@@ -99,7 +94,6 @@ Mission `clarification-allday-fallback-01KXVBPK`. Analyzed spec.md, plan.md, tas
 
 ## Next Actions
 
-- No CRITICAL/HIGH → **cleared to implement.** The two MEDIUM findings are refinements, not blockers:
-  - **I1** (reason vs missing_fields) — a 2-minute spec wording tidy; worth doing to prevent implementer confusion.
-  - **U1** (missing_fields enum) — already dep-mitigated (WP01 confirms before WP03 consumes); optional to pin now.
+- No CRITICAL/HIGH → **cleared to implement.** I1 already remediated. The one remaining MEDIUM is not a blocker:
+  - **U1** (missing_fields enum) — already dep-mitigated (WP01 T002 confirms the enum before WP03 consumes it).
 - LOW findings can be absorbed during implementation (they're reviewer-checklist / wording items).
