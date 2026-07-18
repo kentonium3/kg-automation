@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "source_of_truth": "docs/design/vikunja-configuration-design.md",
-  "last_verified_utc": "2026-07-15T00:00:00Z",
+  "last_verified_utc": "2026-07-17T00:00:00Z",
   "projects": [
     { "name": "inbox",               "selector": { "kind": "project_id", "value": 1 },  "title": "Inbox",               "owner": "kent", "provisioned": true },
     { "name": "habits",              "selector": { "kind": "project_id", "value": 13 }, "title": "Habits",              "owner": "kent", "provisioned": true },
@@ -15,7 +15,22 @@
   ],
   "labels": [
     { "name": "q:schedule",   "selector": { "kind": "label", "value": 23 },   "title": "q:schedule",   "owner_token": "kent" },
-    { "name": "felix:ignore", "selector": { "kind": "label", "value": null }, "title": "felix:ignore", "owner_token": "kent" }
+    { "name": "felix:ignore", "selector": { "kind": "label", "value": null }, "title": "felix:ignore", "owner_token": "kent" },
+
+    { "name": "f:1-flow",     "selector": { "kind": "label", "value": 18 }, "title": "f:1-flow",     "owner_token": "kent" },
+    { "name": "f:2-growth",   "selector": { "kind": "label", "value": 19 }, "title": "f:2-growth",   "owner_token": "kent" },
+    { "name": "f:3-edge",     "selector": { "kind": "label", "value": 20 }, "title": "f:3-edge",     "owner_token": "kent" },
+    { "name": "f:4-overload", "selector": { "kind": "label", "value": 21 }, "title": "f:4-overload", "owner_token": "kent" },
+
+    { "name": "q:do",         "selector": { "kind": "label", "value": 22 }, "title": "q:do",         "owner_token": "kent" },
+    { "name": "q:delegate",   "selector": { "kind": "label", "value": 24 }, "title": "q:delegate",   "owner_token": "kent" },
+    { "name": "q:eliminate",  "selector": { "kind": "label", "value": 25 }, "title": "q:eliminate",  "owner_token": "kent" },
+
+    { "name": "t:habit",      "selector": { "kind": "label", "value": 26 }, "title": "t:habit",      "owner_token": "kent" },
+
+    { "name": "loe:s",        "selector": { "kind": "label", "value": 27 }, "title": "loe:s",        "owner_token": "kent" },
+    { "name": "loe:m",        "selector": { "kind": "label", "value": 28 }, "title": "loe:m",        "owner_token": "kent" },
+    { "name": "loe:l",        "selector": { "kind": "label", "value": 29 }, "title": "loe:l",        "owner_token": "kent" }
   ],
   "private_projects": []
 }

@@ -3,7 +3,8 @@ title: "Vikunja Configuration Design"
 doc_type: design
 status: draft
 owners: ["@kentonium3"]
-last_updated: '2026-07-12'
+last_updated: '2026-07-17'
+updated_by: 'task-intake-validation-loop-01KXS06W (#749 — §Required Fields validation loop marked implemented; folds in #750)'
 audience: agents_and_humans
 ---
 
@@ -232,6 +233,29 @@ Felix validates Tier 1 completeness and prompts via WhatsApp for any missing
 fields. This validation loop is the mechanism that ensures the label taxonomy
 stays populated rather than decaying into inconsistency.
 
+> **✅ Implemented — task-intake-validation-loop-01KXS06W (#749; folds in #750),
+> 2026-07-17.** The validation loop this section deferred to the integration epic
+> is live. It **rides the existing inbox-processing crons** (~4×/day): after each
+> inbox tick, `scripts/intake/scan_inbox.py` scans the Inbox (felix-bot read,
+> Inbox id via the #748 `vikunja_refs` seam — no hardcoded ids) for not-done
+> Tier-1-incomplete tasks and Felix sends **one batched WhatsApp digest**
+> numbering them with their missing fields. Kent replies in **compact shorthand**
+> (e.g. `1 personal f2 schedule`); a deterministic parser
+> (`scripts/intake/shorthand.py`) resolves the tokens against the seam and
+> `scripts/intake/apply_reply.py` applies the project + labels + applicable
+> Tier-2 **through the kent Vikunja token** (`vikunja-api-kent`, the #715
+> two-token model) using read-modify-write with family-replace for the
+> mutually-exclusive `q:`/`f:` families. Reply→digest **correlation is
+> content-based** (line-number set + task-title evidence, mirroring the habits
+> `correlate_reply_to_checkin` pattern) across the day's ticks, so a delayed reply
+> maps to the correct digest. The loop **re-prompts until resolved** (no
+> suppression state); `f:4-overload` and `q:eliminate` are terminal resolutions
+> that stop the re-prompt. The LLM is a narrow fallback only for a token the
+> deterministic parser cannot resolve (Directive 6). Writing through the kent
+> token — never felix-bot, which 403s on a kent-owned label attach — is what
+> **closes #750** (SC-008). Operations:
+> [`docs/runbooks/intake-ops.md`](<../runbooks/intake-ops.md>).
+
 ---
 
 ## Saved Filters
@@ -359,8 +383,11 @@ This document scopes Vikunja configuration only. The following are
 integration points that will be inputs to a future Felix/Vikunja
 integration design spike:
 
-- **Task intake validation loop** — Felix scans for Tier 1 incomplete tasks
-  in Inbox and prompts via WhatsApp for missing metadata.
+- **Task intake validation loop** — ✅ **implemented (#749, 2026-07-17)**. Felix
+  scans for Tier 1 incomplete tasks in Inbox on each inbox tick and prompts via
+  WhatsApp; Kent's compact-shorthand reply is applied through the kent token
+  (closes #750). See §Required Fields above and
+  [`docs/runbooks/intake-ops.md`](<../runbooks/intake-ops.md>).
 - **Daily habit prompt** — Felix queries the Habits saved filter, assembles
   the day's habit stack, delivers via WhatsApp, and records completion.
 - **Edge accountability signal** — Felix tracks whether at least one

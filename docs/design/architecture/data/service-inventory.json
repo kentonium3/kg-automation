@@ -1,7 +1,7 @@
 {
   "schema_version": "1.1",
   "last_updated": "2026-07-17",
-  "updated_by": "capture-atomic-finalize-01KXRM7J (#746 — note-level atomic finalize transaction: new route_and_finalize.py dispatcher component (the ONE command capture runs per note — routes every block, verifies each artifact, writes a per-block routing-log entry, then marks processed once); routing-log entries gain block_index+block_hash+kind vocabulary; prescan gains the scan_processed_without_routing_log health rail (processed-without-routing-log silent-loss signature) surfaced through WP04's IDLE gate; append_routing_entry retired from the capture standing-orders path (finalize writes the log internally); mark_processed now invoked once per note by route_and_finalize as a subprocess. No deploy manifest (pure helpers + agent prompts via self-pull + agent-prompt-sync); rebaseline not required (#621)) + #712 (second-brain-sync retired — bidirectional non-vault git sync to GitHub; consumers removed around it (the /home/claude/second-brain clone decommissioned by #659, Restic superseding its backup role), timer dead since 2026-06-12; health_check→none, status→retired so the canary status-gate suppresses it) + felix-canary-registry-01KX8T7B (#327 — felix-canary component-health runner registered (systemd_user_timer, tick-signal-file self-observability on last-tick.json, FR-010); restic-backup health_check normalized from method:shell to method:state-file with max_age_seconds:100800 so the shared canary freshness probe drives it uniformly (FR-007)) + felix-time-logging-01KX79HT (#703 — felix-timelog-helper service added: WhatsApp time-logging to Google Sheets, shares the #699 calendar helper's venv + credential with an added spreadsheets scope) + felix-truthful-reporting-01KX6MN5 (#683 — felix-trust-scan systemd timer added: cron-drift + completion-assertion detection, alerts via the #701 felix-alert bus) + unified-alert-bus-01KX5TYT (#701 — felix-alert bus shared library + unified operator-alerts topic added; three ntfy emitters (felix-deployer subsystem, security-monitor, felix-health-check) migrated to the bus, their per-component topics retired) + f0-exec-hardening-01KX4ZCY (#675 — exec-hardening finding + live-config reconcile: habits/tasker model drift, per-agent skills, post-#699 gog paths, gateway version) + felix-calendar-helper-01KX4H3C (#699 — calendar helper on-demand invocation + Google Calendar API dependency + felix-admin-calendar gog-skill removal; RFC #681 calendar phase) + deterministic-monitoring-checks-01KX1XNW (#676) + harden-inbox-capture-01KWVGZM (#662) + felix-admin-cron-path-fix-01KWQTY3 (#656) + finalize-inbox-file-01KW8MSQ (#325) + pull-based-deploy-pipeline-01KTYQQS (#136) + felix-calendar-subagent-extraction-01KTTA33 (#579) + #572-credential-liveness-probe + prescan-archive-anomalies-01KTMZPE (#568) + capture-agents-md-rewrite-01KTMY86 (#566) + capture-d6-helpers-extraction-01KTMS5Q (#566) + agent-prompt-deploy-pipeline-01KTMDDD (#567) + vikunja-client-and-habits-weekly-report-01KTKSFT (#542 + #561 + #562) + inbox-calendar-and-aspiration-routing-01KTHHXS + #520-felix-vikunja-sync-project-layer-and-url-config + #519-touchpoint-migration + #518-felix-vikunja-sync-driver-added + #376-remove-escalation-v1-parity + #400-audit-interpretation-moment0 + #310-tasker-jsonl-migration + #374-main-verbatim-passthrough + #362-drift-event-auto-resolution + #309-migrate-escalation-to-jsonl-state-model + #343-refactor-doc-auditor-to-scripts-first-driver + #307-backfill-habits-jsonl-from-comments + #306-habits-native-repeat-jsonl-state + #304-felix-bot-rotation + #291-felix-file-issue + #289-mutation-surfaces-enumeration + #285-cron-delivery-restore-path-c + #282-habits-d6-extract + #263-cron-delivery-mode-round2 + #100-google-workspace-foundation + #256-scope-discipline-guardrails + #253-step-5a-6-consolidation + #254-atomic-write-perm-preservation + issue-105-doc-auditor + #223-systemd-timer + #208-restic-healthcheck + #202-obsidian-sync-system-level + #203-sync-heartbeat + #199-inbox-schedules + #115-credential-health-check + #189-vikunja-compose + #185-inbox-capture-dedup + restore-whatsapp-dm-reply-delivery-01KTVVHH (#588) + #545-reconcile-doc-auditor-status + freshness-max-age-backfill (#720 \u2014 populated max_age_seconds on 11 live freshness/log-scan health_checks so the canary evaluates staleness instead of liveness-only; bound = ~2x tick interval for sub-hourly, cycle+margin for daily)",
+  "updated_by": "task-intake-validation-loop-01KXS06W (#749 — Tier-1 task-intake validation loop rides each inbox tick: scan_inbox.py (felix-bot read) + apply_reply.py (kent write token) added as inbox-processing capabilities; new /data/services/openclaw/state/intake/ state dir with per-digest correlation records + tick observability + apply ledger; closes #750 felix-bot-can't-attach-kent-labels via kent-token writes) + capture-atomic-finalize-01KXRM7J (#746 — note-level atomic finalize transaction: new route_and_finalize.py dispatcher component (the ONE command capture runs per note — routes every block, verifies each artifact, writes a per-block routing-log entry, then marks processed once); routing-log entries gain block_index+block_hash+kind vocabulary; prescan gains the scan_processed_without_routing_log health rail (processed-without-routing-log silent-loss signature) surfaced through WP04's IDLE gate; append_routing_entry retired from the capture standing-orders path (finalize writes the log internally); mark_processed now invoked once per note by route_and_finalize as a subprocess. No deploy manifest (pure helpers + agent prompts via self-pull + agent-prompt-sync); rebaseline not required (#621)) + #712 (second-brain-sync retired — bidirectional non-vault git sync to GitHub; consumers removed around it (the /home/claude/second-brain clone decommissioned by #659, Restic superseding its backup role), timer dead since 2026-06-12; health_check→none, status→retired so the canary status-gate suppresses it) + felix-canary-registry-01KX8T7B (#327 — felix-canary component-health runner registered (systemd_user_timer, tick-signal-file self-observability on last-tick.json, FR-010); restic-backup health_check normalized from method:shell to method:state-file with max_age_seconds:100800 so the shared canary freshness probe drives it uniformly (FR-007)) + felix-time-logging-01KX79HT (#703 — felix-timelog-helper service added: WhatsApp time-logging to Google Sheets, shares the #699 calendar helper's venv + credential with an added spreadsheets scope) + felix-truthful-reporting-01KX6MN5 (#683 — felix-trust-scan systemd timer added: cron-drift + completion-assertion detection, alerts via the #701 felix-alert bus) + unified-alert-bus-01KX5TYT (#701 — felix-alert bus shared library + unified operator-alerts topic added; three ntfy emitters (felix-deployer subsystem, security-monitor, felix-health-check) migrated to the bus, their per-component topics retired) + f0-exec-hardening-01KX4ZCY (#675 — exec-hardening finding + live-config reconcile: habits/tasker model drift, per-agent skills, post-#699 gog paths, gateway version) + felix-calendar-helper-01KX4H3C (#699 — calendar helper on-demand invocation + Google Calendar API dependency + felix-admin-calendar gog-skill removal; RFC #681 calendar phase) + deterministic-monitoring-checks-01KX1XNW (#676) + harden-inbox-capture-01KWVGZM (#662) + felix-admin-cron-path-fix-01KWQTY3 (#656) + finalize-inbox-file-01KW8MSQ (#325) + pull-based-deploy-pipeline-01KTYQQS (#136) + felix-calendar-subagent-extraction-01KTTA33 (#579) + #572-credential-liveness-probe + prescan-archive-anomalies-01KTMZPE (#568) + capture-agents-md-rewrite-01KTMY86 (#566) + capture-d6-helpers-extraction-01KTMS5Q (#566) + agent-prompt-deploy-pipeline-01KTMDDD (#567) + vikunja-client-and-habits-weekly-report-01KTKSFT (#542 + #561 + #562) + inbox-calendar-and-aspiration-routing-01KTHHXS + #520-felix-vikunja-sync-project-layer-and-url-config + #519-touchpoint-migration + #518-felix-vikunja-sync-driver-added + #376-remove-escalation-v1-parity + #400-audit-interpretation-moment0 + #310-tasker-jsonl-migration + #374-main-verbatim-passthrough + #362-drift-event-auto-resolution + #309-migrate-escalation-to-jsonl-state-model + #343-refactor-doc-auditor-to-scripts-first-driver + #307-backfill-habits-jsonl-from-comments + #306-habits-native-repeat-jsonl-state + #304-felix-bot-rotation + #291-felix-file-issue + #289-mutation-surfaces-enumeration + #285-cron-delivery-restore-path-c + #282-habits-d6-extract + #263-cron-delivery-mode-round2 + #100-google-workspace-foundation + #256-scope-discipline-guardrails + #253-step-5a-6-consolidation + #254-atomic-write-perm-preservation + issue-105-doc-auditor + #223-systemd-timer + #208-restic-healthcheck + #202-obsidian-sync-system-level + #203-sync-heartbeat + #199-inbox-schedules + #115-credential-health-check + #189-vikunja-compose + #185-inbox-capture-dedup + restore-whatsapp-dm-reply-delivery-01KTVVHH (#588) + #545-reconcile-doc-auditor-status + freshness-max-age-backfill (#720 \u2014 populated max_age_seconds on 11 live freshness/log-scan health_checks so the canary evaluates staleness instead of liveness-only; bound = ~2x tick interval for sub-hourly, cycle+margin for daily)",
   "services": [
     {
       "name": "vikunja",
@@ -593,6 +593,17 @@
               "invoked_by": "felix-admin-capture (post #566 follow-on AGENTS.md rewrite)",
               "introduced_by": "#566",
               "updated_at": "2026-06-08"
+            },
+            {
+              "id": "scan-inbox",
+              "type": "script",
+              "language": "python",
+              "source": "scripts/intake/scan_inbox.py",
+              "deploy_path": "/home/claude/kg-automation/scripts/intake/scan_inbox.py",
+              "purpose": "Task-intake validation loop (#749): after route_and_finalize, scans the Vikunja Inbox (felix-bot read, Inbox id via #748 seam) for not-done Tier-1-incomplete tasks, writes the per-digest correlation record + tick artifact under /data/services/openclaw/state/intake/, and emits one numbered WhatsApp digest of missing fields. Deterministic, no LLM. The reply is applied by the main agent via scripts/intake/apply_reply.py. See the inbox-processing service's intake_validation_loop block and docs/runbooks/intake-ops.md.",
+              "invoked_by": "felix-admin-capture (once per inbox tick, after route_and_finalize)",
+              "introduced_by": "task-intake-validation-loop-01KXS06W (#749)",
+              "updated_at": "2026-07-17"
             }
           ]
         },
@@ -713,9 +724,10 @@
           "model": "anthropic/claude-sonnet-4-6",
           "purpose": "Top-level OpenClaw orchestrator. Standing orders at /data/services/openclaw/data/AGENTS.md govern routing of inbound channel messages (WhatsApp, etc.) to the felix-admin-* sub-agents. Per mission `felix-calendar-subagent-extraction-01KTTA33` (#579) the calendar-create and clarification handling moved out of main; per #699 (RFC #681 calendar phase) inbox-captured calendar events reach the calendar inline via `route_calendar_event --create` and conversational calendar requests route to felix-admin-calendar \u2014 main is NOT in the calendar-create path and no longer executes `gog calendar create`. main's remaining `gog` use is Gmail + Drive only. Foundation-0 exec-hardening note (#675): main is the ONLY current `gog` consumer post-#699 (the tracked exception), retained until email/drive get controlled owners (#680). Exec posture is `security: full` fleet-wide \u2014 no per-agent exec allowlist or containment is deployed; the workers running `security: full` is a recorded finding, not a claimed restriction.",
           "verbatim_passthrough_rule": "Per #374 (main-verbatim-passthrough-01KSATRP), the main agent must pass downstream messages to sub-agents VERBATIM (no paraphrase, no summary, no editorial). AGENTS.md changes that affect this rule are governed by the cutover sequence in docs/runbooks/openclaw-agent-setup.md \u00a7'Cutover sequence for main-agent AGENTS.md changes (post-#374)'.",
+          "intake_reply_handling": "Task-intake validation loop (#749): main recognizes Kent's compact-shorthand reply to an intake digest (content-based correlation against /data/services/openclaw/state/intake/), invokes scripts/intake/apply_reply.py which writes project/label/Tier-2 changes through the kent Vikunja token (vikunja-api-kent — never felix-bot, which 403s on kent-owned label attach; closes #750), and confirms the per-line results. The deterministic parse/resolve/apply lives in the helper; main's only LLM touch is the narrow unresolved-token fallback (Directive 6).",
           "deployed_by": "F002",
-          "updated_by": "felix-calendar-subagent-extraction-01KTTA33 (#579) + inbox-calendar-and-aspiration-routing-01KTHHXS + #374 + agent-prompt-deploy-pipeline-01KTMDDD (#567) + f0-exec-hardening-01KX4ZCY (#675 — exec-hardening finding + live-config reconcile)",
-          "updated_at": "2026-07-10"
+          "updated_by": "task-intake-validation-loop-01KXS06W (#749 — intake reply apply via kent token) + felix-calendar-subagent-extraction-01KTTA33 (#579) + inbox-calendar-and-aspiration-routing-01KTHHXS + #374 + agent-prompt-deploy-pipeline-01KTMDDD (#567) + f0-exec-hardening-01KX4ZCY (#675 — exec-hardening finding + live-config reconcile)",
+          "updated_at": "2026-07-17"
         }
       },
       "risk_tier": 2,
@@ -791,11 +803,27 @@
       "timeout_seconds": 600,
       "session_mode": "isolated",
       "deployed_by": "F008",
-      "updated_by": "#285-cron-delivery-restore-path-c + #273-felix-tier2-self-repair-incident-audit + #263-cron-delivery-mode-round2 + #256-scope-discipline-guardrails + #253-step-5a-6-consolidation + #254-atomic-write-perm-preservation + #185-inbox-capture-dedup + #199-inbox-schedules",
-      "last_updated": "2026-05-14",
+      "updated_by": "task-intake-validation-loop-01KXS06W (#749 — intake validation loop rides each inbox tick; folds in #750) + #285-cron-delivery-restore-path-c + #273-felix-tier2-self-repair-incident-audit + #263-cron-delivery-mode-round2 + #256-scope-discipline-guardrails + #253-step-5a-6-consolidation + #254-atomic-write-perm-preservation + #185-inbox-capture-dedup + #199-inbox-schedules",
+      "last_updated": "2026-07-17",
       "status": "active",
-      "purpose": "4x daily Obsidian inbox processing",
+      "purpose": "4x daily Obsidian inbox processing. As of task-intake-validation-loop-01KXS06W (#749): each inbox tick now also runs the Tier-1 task-intake validation loop — after route_and_finalize, felix-admin-capture invokes scripts/intake/scan_inbox.py (felix-bot read) to enumerate not-done Vikunja Inbox tasks that are Tier-1-incomplete (missing a working project ≠ Inbox, a friction label f:1-3, or an Eisenhower quadrant q:*) and emits one batched WhatsApp digest numbering them with their missing fields; Kent's compact-shorthand reply is applied by the main DM agent via scripts/intake/apply_reply.py through the kent Vikunja token (closing #750 — felix-bot 403s on kent-owned label attach). See intake_validation_loop below and docs/runbooks/intake-ops.md.",
       "runbook": "docs/runbooks/inbox-ops.md",
+      "intake_validation_loop": {
+        "introduced_by": "task-intake-validation-loop-01KXS06W (#749)",
+        "closes": "#750",
+        "cadence": "Rides the existing inbox crons (inbox-7am/noon/5pm/10pm) — no separate schedule. The scan runs after route_and_finalize on each tick; a persistently-unlabeled task re-prompts across up to ~4 digests/day (re-prompt-until-resolved, no suppression state).",
+        "scan": {
+          "helper": "scripts/intake/scan_inbox.py",
+          "token": "felix-bot (read-only)",
+          "behavior": "Deterministic (no LLM). Resolves the Inbox project id via the #748 vikunja_refs seam (no hardcoded ids), enumerates not-done tasks, classifies Tier-1 completeness, writes an immutable per-digest correlation record + a per-tick observability artifact, and renders the numbered digest. Emits one digest per tick regardless of task count (Output Discipline); silence when nothing is incomplete."
+        },
+        "apply": {
+          "helper": "scripts/intake/apply_reply.py",
+          "invoked_by": "main DM agent (on Kent's WhatsApp reply)",
+          "token": "vikunja-api-kent (writes; the #715 two-token model)",
+          "behavior": "Deterministic parse + seam resolution + read-modify-write with family-replace for the mutually-exclusive q:/f: families; per-line status set (applied/echoed_back/noop/overload_flagged/not_found/already_done/moved_conflict/access_denied). LLM is a narrow fallback only for a token the deterministic parser cannot resolve (Directive 6), constrained to proposing a canonical name re-resolved through the seam. Correlation is content-based (line-number set + task-title evidence, habits correlate_reply_to_checkin semantics)."
+        }
+      },
       "risk_tier": 3,
       "dependencies": [
         {
@@ -823,6 +851,59 @@
           "path": "/data/services/openclaw/inbox-agent/AGENTS.md",
           "format": "markdown",
           "source_in_repo": "scripts/openclaw/agents/felix-admin-capture/AGENTS.md"
+        },
+        {
+          "path": "/home/claude/kg-automation/scripts/intake/scan_inbox.py",
+          "format": "python",
+          "source_in_repo": "scripts/intake/scan_inbox.py",
+          "purpose": "FR-001/002/003/014/016: deterministic Inbox scan + Tier-1 classification; writes the immutable per-digest correlation record (digests/intake-<digest_id>.json) + latest.json pointer, expires records past the 48h window, writes the per-tick observability artifact (intake-tick-<ET-date>.json), and renders the numbered WhatsApp digest. felix-bot read token. Invoked by felix-admin-capture after route_and_finalize.",
+          "introduced_by": "#749"
+        },
+        {
+          "path": "/home/claude/kg-automation/scripts/intake/apply_reply.py",
+          "format": "python",
+          "source_in_repo": "scripts/intake/apply_reply.py",
+          "purpose": "FR-005..013/017: parses Kent's compact-shorthand reply, correlates it to the right digest (content-based), resolves tokens through the #748 seam, and applies project + labels + applicable Tier-2 via the kent write token with read-modify-write + family-replace. Appends the intake-apply-<ET-date>.jsonl ledger and returns per-line ApplyResults. Invoked by the main DM agent.",
+          "introduced_by": "#749"
+        },
+        {
+          "path": "/home/claude/kg-automation/scripts/intake/shorthand.py",
+          "format": "python",
+          "source_in_repo": "scripts/intake/shorthand.py",
+          "purpose": "FR-005/006: the deterministic shorthand grammar + alias table (f1-4, do/sched/schedule/deleg/delegate/elim/eliminate, project short-names, due:/habit/loe: Tier-2 tokens). Shared parse layer for apply_reply; the LLM-fallback boundary.",
+          "introduced_by": "#749"
+        }
+      ],
+      "state_files": [
+        {
+          "path": "/data/services/openclaw/state/intake/",
+          "format": "directory",
+          "purpose": "Intake validation-loop state root (mirrors the habits state-dir convention /data/services/openclaw/state/habits/). Self-provisioned by the intake helpers on first run (mkdir parents=True, exist_ok=True in scan_inbox.py + apply_reply.py) — NO deploy manifest (manifest-free deploy per #746/#720/#733). Holds the per-digest correlation records, the latest pointer, the per-tick observability artifact, and the apply ledger. NOT git-tracked; backed up by nightly Restic.",
+          "introduced_by": "#749"
+        },
+        {
+          "path": "/data/services/openclaw/state/intake/digests/intake-<digest_id>.json",
+          "format": "json",
+          "purpose": "FR-016: one immutable correlation record per digest_id (never an overwritten same-day file) so a delayed reply across the 4 daily ticks maps its numbers to the correct tasks. Each record: {digest_id, created_utc, created_et_date, source_cron, entries:[{n, task_id, title, missing_fields}]}. Expired past the 48h retention window (habits parity).",
+          "introduced_by": "#749"
+        },
+        {
+          "path": "/data/services/openclaw/state/intake/latest.json",
+          "format": "json",
+          "purpose": "Pointer to the newest digest record (file + digest_id) — the correlation entry point for the apply step.",
+          "introduced_by": "#749"
+        },
+        {
+          "path": "/data/services/openclaw/state/intake/intake-tick-<ET-date>.json",
+          "format": "json",
+          "purpose": "FR-014: per-tick observability artifact (mirrors the habits sweeper tick). Scan fields {started_at_utc, exit_status, scanned, incomplete, prompted, errors[]}; apply aggregates {applied, echoed_back, overload_flagged, noop, not_found, already_done, moved_conflict, access_denied, failed}. A stable intake-tick-latest.json copy is also written for health checks.",
+          "introduced_by": "#749"
+        },
+        {
+          "path": "/data/services/openclaw/state/intake/intake-apply-<ET-date>.jsonl",
+          "format": "jsonl",
+          "purpose": "FR-014: append-only ledger of individual ApplyResults (one line per reply line applied), for the health/doc-audit posture.",
+          "introduced_by": "#749"
         }
       ]
     },

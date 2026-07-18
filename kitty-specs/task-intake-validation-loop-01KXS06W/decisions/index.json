@@ -1,0 +1,30 @@
+{
+  "entries": [
+    {
+      "created_at": "2026-07-17T21:43:40.358379Z",
+      "decision_id": "01KXS0J026H5Z5F647SE911JM1",
+      "final_answer": "WhatsApp quote-reply: Kent uses WhatsApp native reply-to-message on the digest, then types the shorthand lines. Correlates deterministically to the specific digest. CONDITIONAL on Phase-0 research confirming the openclaw WhatsApp plugin surfaces quoted-message context to the agent; if not, fall back to light trigger keyword.",
+      "input_key": "reply_detection",
+      "mission_id": "01KXS06W8TTCB0BEXQNYW4YBKY",
+      "mission_slug": "task-intake-validation-loop-01KXS06W",
+      "opened_by": "cli",
+      "options": [
+        "Auto-detect plain shorthand",
+        "Light trigger keyword",
+        "Reply-to-digest"
+      ],
+      "origin_flow": "plan",
+      "other_answer": false,
+      "question": "How should Felix recognize an intake reply on the main WhatsApp DM lane?",
+      "rationale": null,
+      "resolved_at": "2026-07-17T21:48:01.389053Z",
+      "resolved_by": null,
+      "slot_key": "plan.interaction.reply-detection",
+      "status": "resolved",
+      "step_id": null,
+      "summary_json": null
+    }
+  ],
+  "mission_id": "01KXS06W8TTCB0BEXQNYW4YBKY",
+  "version": 1
+}

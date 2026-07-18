@@ -128,6 +128,7 @@ All three runbooks are also listed under *Agent-executable* below.
 - [Transcribe Operations](<./runbooks/transcribe-ops.md>)
 - [Ollama Operations](<./runbooks/ollama-ops.md>) — local LLM inference runtime (GPU-accelerated)
 - [Inbox Processing](<./runbooks/inbox-ops.md>)
+- [Task-Intake Validation Loop Operations](<./runbooks/intake-ops.md>) — the Tier-1 task-intake loop that rides each inbox tick (#749): `scan_inbox.py` flags Inbox tasks missing a working project / `f:` / `q:`, sends one batched WhatsApp digest, and `apply_reply.py` applies Kent's compact-shorthand reply through the **kent** Vikunja token (closes #750). State-dir layout, shorthand grammar, per-line statuses, 30-second health check.
 - [Goals Operations](<./runbooks/goals-ops.md>)
 - [Habits Operations](<./runbooks/habits-ops.md>)
 - [Task Intelligence Operations](<./runbooks/task-intelligence-ops.md>)

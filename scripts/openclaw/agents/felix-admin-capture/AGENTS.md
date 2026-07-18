@@ -81,13 +81,26 @@ Each processing step below runs a deterministic helper as a single self-containe
 
 ### Step 1 — Pre-scan
 
-Invoke `cd /home/claude/kg-automation && python3 -m scripts.inbox.prescan`. Consume the JSON output. Emit the byte string `[felix-admin-capture]: IDLE` and stop **only when ALL of these hold**: `unprocessed_count == 0` AND `parse_failures` is empty AND `marker_cleanup_needed` is empty AND `archive_anomalies` is empty. No preceding narration. No "Per Step 1...", no "The prescan reports...", no "my final reply is...". First token = `[`. Last token = `E`. End of turn. (See Hard rule #1 above for the banned 2026-06-09 violation.)
+Invoke `cd /home/claude/kg-automation && python3 -m scripts.inbox.prescan`. Consume the JSON output. Emit the byte string `[felix-admin-capture]: IDLE` and stop **only when ALL of these hold**: `unprocessed_count == 0` AND `parse_failures` is empty AND `marker_cleanup_needed` is empty AND `archive_anomalies` is empty AND the Step 1b intake scan returned `incomplete == 0`. If the Step 1b scan found `incomplete > 0`, do NOT go IDLE — send the digest per Step 1b instead. No preceding narration. No "Per Step 1...", no "The prescan reports...", no "my final reply is...". First token = `[`. Last token = `E`. End of turn. (See Hard rule #1 above for the banned 2026-06-09 violation.)
 
 **If `archive_anomalies` is non-empty**, do NOT go IDLE — it is a health-rail alarm that must reach Kent. Each entry (e.g. `processed-without-routing-log`: a note marked `processed` whose blocks are NOT in the routing log) signals a note possibly marked without its content landing. Send Kent ONE WhatsApp naming the anomaly kind and affected note(s) verbatim from `archive_anomalies`, record it in the tick summary, then continue with any routing below. Otherwise, proceed.
 
 ### Step 1a — 24h calendar-clarifications sweep
 
 Invoke `cd /home/claude/kg-automation && python3 -m scripts.inbox.handle_clarification_state sweep`. Continue regardless of its `removed=N` count.
+
+### Step 1b — Inbox intake completeness scan (Tier-1 digest)
+
+Independently of the Obsidian note routing below, scan the **Vikunja Inbox** for not-done tasks missing Tier-1 fields — a real project (not Inbox) + a schedulable friction (`f:1`/`f:2`/`f:3`) + an Eisenhower quadrant (`q:`). Run:
+
+`cd /home/claude/kg-automation && python3 -m scripts.intake.scan_inbox --json` (optionally `--source-cron <this-cron-name>`).
+
+This helper is deterministic (no LLM): it reads with the felix-bot token, writes an immutable per-digest correlation record (so a later reply can be applied), and returns JSON `{status, incomplete, entries, digest_text, …}`. Branch on `incomplete`:
+
+- `incomplete == 0` → no intake content; `digest_text` is empty and this scan does not, by itself, keep you from IDLE (see Step 1's gate).
+- `incomplete > 0` → this turn is **NOT** idle. Include the single, already-numbered `digest_text` **verbatim** in this turn's user-facing WhatsApp message as ONE batched block (Output Discipline — N incomplete tasks → 1 message, **never** one message per task). If this turn also produced a routing/quality report, append the digest block to that **same** single message; if routing was otherwise idle, the message is exactly the identity line, a blank line, then `digest_text`.
+
+Do **not** parse, resolve, or apply anything here — Kent's later numbered compact-shorthand reply is correlated and applied by the **main** agent under its own standing orders, not by you (there is no capture→main hop for this). You only scan and surface the digest.
 
 ### Step 2 — Parse each unprocessed file
 

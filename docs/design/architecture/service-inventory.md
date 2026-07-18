@@ -2,7 +2,7 @@
 title: Service Inventory
 doc_type: reference
 status: approved
-tags: [656, 588, 579, 572, 520, 519, 518, 137, 189, 80, 202, 149, 190, 374, 100, 253, 185, 254, 371, 309, 343, 306, 308, 310, 362, 391, 400, 105, 115, 562, 490, 408, 567, 563, 558, 561, 540, 542, 306/, 152, 376, 368-, 112]
+tags: [749, 750, 656, 588, 579, 572, 520, 519, 518, 137, 189, 80, 202, 149, 190, 374, 100, 253, 185, 254, 371, 309, 343, 306, 308, 310, 362, 391, 400, 105, 115, 562, 490, 408, 567, 563, 558, 561, 540, 542, 306/, 152, 376, 368-, 112]
 ---
 
 # Service Inventory
@@ -268,6 +268,61 @@ Operator workflow: see `docs/runbooks/inbox-ops.md` §"When you see an 'Inbox qu
 - **file_inbox_quality_issue.py** (script, #185 → #253) — Title-prefix-deduped GitHub issue writer. Exposes library functions `find_existing_open_issue()`, `file_new_issue(parse_failures, date_str)`, `build_title()`, `build_body()` alongside its thin `main()` CLI wrapper. As of #253, invoked indirectly via `handle_parse_failures.py`'s direct function imports rather than via the AGENTS.md prompt's bash. Uses `gh issue list --search 'in:title "Inbox quality:"'` + a `startswith()` post-filter to find an existing open issue; if found, returns the existing number without filing. If not, files a new issue against `kentonium3/kg-automation` with title `Inbox quality: <N> notes with parse errors — YYYY-MM-DD`. Body is truncated with an overflow footer if it would exceed the 60K-char safety budget.
 
 - **mark_processed.py** (script, #566 → #325; retired from the agent path by #746) — Atomic in-place finalize helper. **No longer invoked directly by the agent** — as of #746 it is called (as a subprocess, once per note) only by `route_and_finalize`, after every block is routed+verified+logged; the standalone Step 5c agent step is removed so a note can reach `status: processed` only through a successful finalize. `python3 -m scripts.inbox.mark_processed --path <path>` sets `status: processed` + `processed_at` atomically; note stays at its `01-Inbox/` path (never moved). As of mission `finalize-inbox-file-01KW8MSQ` (#325): exit contract is **0/1/2/3** (0 success/idempotent · 1 validation failure · 2 filesystem error · 3 private-path refusal); on success emits a single-line JSON object on stdout for machine-confirmable finalize; validates `--path` is under the inbox root (from `scripts/vault/paths.json`). Write failures (previously uncaught tracebacks) now surface as exit 2 with the OSError detail on stderr; the original note is guaranteed uncorrupted. Authoritative record: `data/service-inventory.json` → `services[openclaw].agents.felix-admin-capture.components[mark-processed]`.
+
+#### Task-Intake Validation Loop (#749; mission `task-intake-validation-loop-01KXS06W`, 2026-07-17)
+
+As of #749, each inbox tick **also** runs the Tier-1 task-intake validation loop
+(the mechanism the #714 reset deferred to this integration epic). It rides the
+existing inbox crons — no separate schedule — and re-prompts until resolved (no
+suppression state). Full operational detail: `docs/runbooks/intake-ops.md`.
+Authoritative record: `data/service-inventory.json` → the `inbox-processing`
+service's `intake_validation_loop`, `config_files[*]`, and `state_files[*]`; the
+apply side is also recorded under `services[openclaw-gateway].agents.main`.
+
+- **scan_inbox.py** (`scripts/intake/scan_inbox.py`, #749) — runs after
+  `route_and_finalize` on each tick. Deterministic (no LLM); resolves the Inbox
+  project id via the #748 `vikunja_refs` seam and reads with the **felix-bot**
+  token. Enumerates not-done Inbox tasks, classifies Tier-1 completeness
+  (project ≠ Inbox **and** a friction `f:1-3` **and** an Eisenhower `q:*` —
+  `f:4-overload` is a decomposition trigger, not a satisfying friction), writes an
+  **immutable per-digest** correlation record + `latest.json` pointer + a per-tick
+  observability artifact under `/data/services/openclaw/state/intake/`, and renders
+  one numbered WhatsApp digest of the incomplete tasks and their missing fields.
+  One digest per tick regardless of count; silence when nothing is incomplete
+  (Output Discipline).
+- **apply_reply.py** (`scripts/intake/apply_reply.py`, #749) — invoked by the
+  **main** DM agent on Kent's compact-shorthand reply. Correlates the reply
+  content-based (line-number set + task-title evidence, habits
+  `correlate_reply_to_checkin` semantics) to the right digest within the 48h
+  window, resolves tokens through the seam, and applies working project + labels +
+  applicable Tier-2 via the **kent** write token (`vikunja-api-kent`, the #715
+  two-token model) using read-modify-write with **family-replace** for the
+  mutually-exclusive `q:`/`f:` families. felix-bot is never used for the
+  kent-owned label attach — **this closes #750** (felix-bot 403 on kent-owned
+  label attach; SC-008). Per-line status set (`applied`/`echoed_back`/`noop`/
+  `overload_flagged`/`not_found`/`already_done`/`moved_conflict`/`access_denied`)
+  is appended to the apply ledger and confirmed to Kent. The LLM is a narrow
+  fallback only for an unresolvable token (Directive 6), constrained to a
+  canonical name re-resolved through the seam.
+- **shorthand.py** (`scripts/intake/shorthand.py`, #749) — the deterministic
+  shorthand grammar + alias table shared by the apply path (friction `f1-4`;
+  quadrant `do`/`sched`/`schedule`/`deleg`/`delegate`/`elim`/`eliminate`; project
+  short-names; `due:`/`habit`/`loe:` Tier-2 tokens).
+
+**State dir** (`/data/services/openclaw/state/intake/`, #749; **self-provisioned**
+by the intake helpers on first run — no deploy manifest, per the #746/#720/#733
+manifest-free pattern) — mirrors the habits state-dir convention. Holds
+`digests/intake-<digest_id>.json` (immutable per-digest
+correlation records, 48h retention), `latest.json` (newest-digest pointer),
+`intake-tick-<ET-date>.json` (per-tick scan counts + apply aggregates, FR-014,
+with a stable `intake-tick-latest.json` copy), and `intake-apply-<ET-date>.jsonl`
+(append-only ApplyResult ledger). NOT git-tracked; backed up by nightly Restic.
+
+**Deploy** (manifest-free, per the #746/#720/#733 pattern): helpers via office2
+checkout self-pull (state dir self-provisioned on first run); capture + main agent
+prompts via `agent-prompt-sync`; the kent-token secret is a pre-existing #715
+dependency; **rebaseline not required** (#621 — only AGENTS.md + non-audited code
+changed). Runbook: [`docs/runbooks/intake-ops.md`](<../../runbooks/intake-ops.md>).
 
 ### Felix Admin Habits Agent (F009; scripts-first morning + reply flow #371; scripts-first weekly report via vikunja-client-and-habits-weekly-report-01KTKSFT #542 + #562)
 - **Deployed by**: F009

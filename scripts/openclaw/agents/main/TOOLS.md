@@ -82,3 +82,55 @@ cd /home/claude/kg-automation && python3 scripts/openclaw/agents/main/felix-file
 Default `--spec-ready-eval brief`; add `--dry-run` if uncertain. Tell Kent the
 number (#291). The GitHub label taxonomy is authoritative in the issue templates
 and `felix-file-issue.py` — don't inline a copy here.
+
+## Intake-triage reply — apply_reply mechanics
+
+`felix-admin-capture` (inbox cron) sends a numbered **inbox-triage digest**
+(`Inbox triage — N tasks need info:`, one `<n>. <title> — needs: <fields>` line
+per task) when a Vikunja Inbox task is missing Tier-1 fields (real project + a
+schedulable `f:1/2/3` + a `q:` quadrant). Kent's later reply is numbered
+**compact shorthand**, one line per digest number, supplying only the missing
+field(s): full form `<n> <project> f<1-3> <quadrant>` + optional Tier-2
+(`due:<when>`, `habit`, `loe:<s|m|l>`). Examples: `1 personal`, `2 f2 schedule`,
+`3 clients f3 do due:fri`.
+
+**Correlation is content-based** — WhatsApp quote-reply metadata is NOT plumbed
+to the agent (habits precedent, research R1), so recognize the reply by its
+numbered compact-shorthand shape; the helper matches it to the most-recent
+digest within the window. Apply it by piping the reply text VERBATIM on stdin
+(never re-author it):
+
+```bash
+cd /home/claude/kg-automation && printf '%s' "<Kent's reply text VERBATIM>" \
+  | python3 -m scripts.intake.apply_reply --reply - --json
+```
+
+The helper is deterministic: it correlates to the right digest, resolves every
+token through the #748 seam, and writes with the **kent** token (read-modify-write
++ family-replace, so a new `q:`/`f:` replaces the same-family label and unrelated
+labels/fields are preserved). It emits
+`{digest_id, results:[{line, task_id, status, applied, notes, understood, failed}], aggregates:{…}}`.
+Relay each line's `status` back to Kent in ONE message:
+
+- `applied` — fields set (cite `applied`); `noop` — live values already matched.
+- `overload_flagged` — `f:4`, decomposition-pending, deliberately NOT scheduled (stops re-prompting).
+- `echoed_back` — a token could not be resolved (`understood` vs `failed`) — see fallback.
+- `not_found` / `already_done` / `moved_conflict` / `access_denied` / `failed` — a per-line
+  problem; other lines in the same reply are still applied (one failing line never blocks the rest).
+- `notes` carry deterministic confirmations (e.g. a non-blocking due-date follow-up on a
+  `q:do`/`q:schedule` with no `due:`, or an ignore-with-note for incompatible Tier-2).
+
+**Constrained LLM fallback (Directive-6 boundary).** ONLY when a line returns
+`echoed_back` with an unresolved token in `failed` may you propose a **canonical
+name** for that token — never a raw id, a label/project id, or a free-form value.
+Re-run with the constrained map (canonical name only):
+
+```bash
+cd /home/claude/kg-automation && printf '%s' "<same reply text VERBATIM>" \
+  | python3 -m scripts.intake.apply_reply --reply - --json \
+    --unresolved '[{"line":<n>,"token":"<raw>","position":<i>,"canonical_name":"<canonical>"}]'
+```
+
+The helper **re-resolves** each `canonical_name` through the seam and rejects ids
+or free-form values outright. A token you cannot confidently map to a canonical
+name stays `echoed_back` — surface it to Kent, never guess.

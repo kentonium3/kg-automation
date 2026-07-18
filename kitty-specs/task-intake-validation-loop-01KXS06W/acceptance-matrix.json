@@ -1,0 +1,179 @@
+{
+  "mission_slug": "task-intake-validation-loop-01KXS06W",
+  "mission_number": "",
+  "mission_type": "software-dev",
+  "overall_verdict": "pass",
+  "criteria": [
+    {
+      "criterion_id": "FR-001",
+      "description": "FR-001: scan enumerates not-done Inbox tasks via seam id, felix-bot read",
+      "proof_type": "automated_test",
+      "evidence": "WP02; tests/intake/test_scan_inbox.py (29); reviewer-renata approved",
+      "pass_fail": "pass",
+      "verified_by": "reviewer-renata (per-WP review)",
+      "verified_at": "2026-07-17T00:00:00Z",
+      "notes": "Implemented in WP02, reviewed + approved, test-covered."
+    },
+    {
+      "criterion_id": "FR-002",
+      "description": "FR-002: Tier-1 completeness = project\u2260Inbox + schedulable f: + one q:; f:4 excluded",
+      "proof_type": "automated_test",
+      "evidence": "WP01+WP02; tests/intake/test_scan_inbox.py + test_vikunja_refs_labels.py; reviewer-renata approved",
+      "pass_fail": "pass",
+      "verified_by": "reviewer-renata (per-WP review)",
+      "verified_at": "2026-07-17T00:00:00Z",
+      "notes": "Implemented in WP01+WP02, reviewed + approved, test-covered."
+    },
+    {
+      "criterion_id": "FR-003",
+      "description": "FR-003: scan rides inbox-processing crons (capture AGENTS.md Step 1b)",
+      "proof_type": "automated_test",
+      "evidence": "WP02+WP05; tests/intake/test_scan_inbox.py + scripts/openclaw/agents/tests; reviewer-renata approved",
+      "pass_fail": "pass",
+      "verified_by": "reviewer-renata (per-WP review)",
+      "verified_at": "2026-07-17T00:00:00Z",
+      "notes": "Implemented in WP02+WP05, reviewed + approved, test-covered."
+    },
+    {
+      "criterion_id": "FR-004",
+      "description": "FR-004: single batched WhatsApp digest per tick; Output Discipline",
+      "proof_type": "automated_test",
+      "evidence": "WP05; tests/openclaw prompt suite (268); reviewer-renata approved",
+      "pass_fail": "pass",
+      "verified_by": "reviewer-renata (per-WP review)",
+      "verified_at": "2026-07-17T00:00:00Z",
+      "notes": "Implemented in WP05, reviewed + approved, test-covered."
+    },
+    {
+      "criterion_id": "FR-005",
+      "description": "FR-005: sparse compact-shorthand parser",
+      "proof_type": "automated_test",
+      "evidence": "WP03; tests/intake/test_shorthand.py (58); reviewer-renata approved",
+      "pass_fail": "pass",
+      "verified_by": "reviewer-renata (per-WP review)",
+      "verified_at": "2026-07-17T00:00:00Z",
+      "notes": "Implemented in WP03, reviewed + approved, test-covered."
+    },
+    {
+      "criterion_id": "FR-006",
+      "description": "FR-006: seam-deterministic token resolution; constrained LLM fallback (canonical name only)",
+      "proof_type": "automated_test",
+      "evidence": "WP01+WP03+WP05; tests/intake/test_shorthand.py; reviewer-renata approved",
+      "pass_fail": "pass",
+      "verified_by": "reviewer-renata (per-WP review)",
+      "verified_at": "2026-07-17T00:00:00Z",
+      "notes": "Implemented in WP01+WP03+WP05, reviewed + approved, test-covered."
+    },
+    {
+      "criterion_id": "FR-007",
+      "description": "FR-007: project/label writes via kent token; felix-bot refused (closes #750)",
+      "proof_type": "automated_test",
+      "evidence": "WP04; tests/intake/test_apply_reply.py (40); reviewer-renata approved",
+      "pass_fail": "pass",
+      "verified_by": "reviewer-renata (per-WP review)",
+      "verified_at": "2026-07-17T00:00:00Z",
+      "notes": "Implemented in WP04, reviewed + approved, test-covered."
+    },
+    {
+      "criterion_id": "FR-008",
+      "description": "FR-008: apply working project+f:+q: leaves Inbox; q:eliminate\u2192done",
+      "proof_type": "automated_test",
+      "evidence": "WP02+WP04; tests/intake/test_apply_reply.py + test_scan_inbox.py; reviewer-renata approved",
+      "pass_fail": "pass",
+      "verified_by": "reviewer-renata (per-WP review)",
+      "verified_at": "2026-07-17T00:00:00Z",
+      "notes": "Implemented in WP02+WP04, reviewed + approved, test-covered."
+    },
+    {
+      "criterion_id": "FR-009",
+      "description": "FR-009: f:4-overload = decomposition-pending, not scheduled, drops from prompt",
+      "proof_type": "automated_test",
+      "evidence": "WP04; tests/intake/test_apply_reply.py; reviewer-renata approved",
+      "pass_fail": "pass",
+      "verified_by": "reviewer-renata (per-WP review)",
+      "verified_at": "2026-07-17T00:00:00Z",
+      "notes": "Implemented in WP04, reviewed + approved, test-covered."
+    },
+    {
+      "criterion_id": "FR-010",
+      "description": "FR-010: applicable Tier-2 at apply time; ET-EOD due; non-blocking follow-up (cycle-1 _has_due guard)",
+      "proof_type": "automated_test",
+      "evidence": "WP04; tests/intake/test_apply_reply.py; reviewer-renata approved",
+      "pass_fail": "pass",
+      "verified_by": "reviewer-renata (per-WP review)",
+      "verified_at": "2026-07-17T00:00:00Z",
+      "notes": "Implemented in WP04, reviewed + approved, test-covered."
+    },
+    {
+      "criterion_id": "FR-011",
+      "description": "FR-011: re-prompt until resolved; fresh digest each tick, no suppression",
+      "proof_type": "automated_test",
+      "evidence": "WP02; tests/intake/test_scan_inbox.py; reviewer-renata approved",
+      "pass_fail": "pass",
+      "verified_by": "reviewer-renata (per-WP review)",
+      "verified_at": "2026-07-17T00:00:00Z",
+      "notes": "Implemented in WP02, reviewed + approved, test-covered."
+    },
+    {
+      "criterion_id": "FR-012",
+      "description": "FR-012: per-line status set; no silent apply/drop",
+      "proof_type": "automated_test",
+      "evidence": "WP04; tests/intake/test_apply_reply.py; reviewer-renata approved",
+      "pass_fail": "pass",
+      "verified_by": "reviewer-renata (per-WP review)",
+      "verified_at": "2026-07-17T00:00:00Z",
+      "notes": "Implemented in WP04, reviewed + approved, test-covered."
+    },
+    {
+      "criterion_id": "FR-013",
+      "description": "FR-013: idempotent, non-clobbering RMW + family-replace; noop only on true match",
+      "proof_type": "automated_test",
+      "evidence": "WP04; tests/intake/test_apply_reply.py (NFR-003); reviewer-renata approved",
+      "pass_fail": "pass",
+      "verified_by": "reviewer-renata (per-WP review)",
+      "verified_at": "2026-07-17T00:00:00Z",
+      "notes": "Implemented in WP04, reviewed + approved, test-covered."
+    },
+    {
+      "criterion_id": "FR-014",
+      "description": "FR-014: deterministic observability: scan counts + apply aggregates + ledger",
+      "proof_type": "automated_test",
+      "evidence": "WP02+WP04; tests/intake (tick + aggregates); reviewer-renata approved",
+      "pass_fail": "pass",
+      "verified_by": "reviewer-renata (per-WP review)",
+      "verified_at": "2026-07-17T00:00:00Z",
+      "notes": "Implemented in WP02+WP04, reviewed + approved, test-covered."
+    },
+    {
+      "criterion_id": "FR-015",
+      "description": "FR-015: docs synchronized (design doc, arch data, runbook, INDEX/DEVELOPER_PORTAL, roadmap)",
+      "proof_type": "automated_test",
+      "evidence": "WP06; validate_docs + validate_architecture_data --strict green; reviewer-renata approved",
+      "pass_fail": "pass",
+      "verified_by": "reviewer-renata (per-WP review)",
+      "verified_at": "2026-07-17T00:00:00Z",
+      "notes": "Implemented in WP06, reviewed + approved, test-covered."
+    },
+    {
+      "criterion_id": "FR-016",
+      "description": "FR-016: collision-safe correlation: immutable per-digest_id + evidence-based selection",
+      "proof_type": "automated_test",
+      "evidence": "WP02+WP04; tests/intake (immutability + two-same-day-digest SC-011); reviewer-renata approved",
+      "pass_fail": "pass",
+      "verified_by": "reviewer-renata (per-WP review)",
+      "verified_at": "2026-07-17T00:00:00Z",
+      "notes": "Implemented in WP02+WP04, reviewed + approved, test-covered."
+    },
+    {
+      "criterion_id": "FR-017",
+      "description": "FR-017: Tier-2 compatibility matrix",
+      "proof_type": "automated_test",
+      "evidence": "WP04; tests/intake/test_apply_reply.py; reviewer-renata approved",
+      "pass_fail": "pass",
+      "verified_by": "reviewer-renata (per-WP review)",
+      "verified_at": "2026-07-17T00:00:00Z",
+      "notes": "Implemented in WP04, reviewed + approved, test-covered."
+    }
+  ],
+  "negative_invariants": []
+}
