@@ -77,10 +77,10 @@ Tests are **required** for this mission (NFR-001/002/003; deterministic helpers)
 
 ### WP06 — Deploy manifest + docs sync + #750 closure
 **Goal:** deploy manifest (state dir + kent-token assert) + full doc synchronization + #750 closure. **Priority:** release. **Independent test:** manifest validates; docs updated per signal-to-doc-map; #750 closure note present. **Deps:** WP01–WP05. **Prompt:** ~230 lines.
-- [ ] T023 `deploys/queued/<name>.yaml` (WP06)
-- [ ] T024 `vikunja-configuration-design.md` update (WP06)
-- [ ] T025 Architecture data + runbook + INDEX + DEVELOPER_PORTAL (WP06)
-- [ ] T026 Roadmap status + #750 closure note (WP06)
+- [x] T023 `deploys/queued/<name>.yaml` (WP06)
+- [x] T024 `vikunja-configuration-design.md` update (WP06)
+- [x] T025 Architecture data + runbook + INDEX + DEVELOPER_PORTAL (WP06)
+- [x] T026 Roadmap status + #750 closure note (WP06)
 
 ## Dependencies
 ```

@@ -20,9 +20,9 @@ subtasks:
 - T025
 - T026
 phase: Phase 5 - Release
-agent: "claude:sonnet:curator-carla:implementer"
-shell_pid: "79209"
-shell_pid_created_at: "1784331794.201095"
+agent: "claude:opus:reviewer-renata:reviewer"
+shell_pid: "86934"
+shell_pid_created_at: "1784333305.009575"
 history:
 - at: '2026-07-17T21:55:00Z'
   actor: system
@@ -112,3 +112,5 @@ architecture-data validator (`validate_architecture_data.py`) stays green.
 ## Activity Log
 
 - 2026-07-17T23:44:01Z – claude:sonnet:curator-carla:implementer – shell_pid=79209 – Assigned agent via action command
+- 2026-07-18T00:08:40Z – claude:sonnet:curator-carla:implementer – shell_pid=79209 – WP06 docs sync + manifest-free deploy (helpers self-provision) + #750 closure; validators green
+- 2026-07-18T00:08:52Z – claude:opus:reviewer-renata:reviewer – shell_pid=86934 – Started review via action command
