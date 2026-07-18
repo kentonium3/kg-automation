@@ -106,6 +106,30 @@ def compute_remote_hashes(ssh_host: str, file_paths: list[str]) -> dict[str, str
     return hashes
 
 
+def compute_office2_hashes(ssh_host: str, file_paths: list[str]) -> dict:
+    """Hash each deployed office2 workspace file, LOCAL-first (#766).
+
+    The drift-check cron runs **on office2**, where the deployed workspace files
+    (``/data/services/openclaw/…``) are on the local filesystem and the
+    ``ssh_host`` alias (``office2-claude``) does NOT resolve — it is a Mac-only
+    ``~/.ssh/config`` alias. An unconditional ``ssh`` therefore failed every read
+    on the cron host, and the enforcement reported garbage (``file_missing_repo``
+    for every agent), i.e. the whole guard was silently inert.
+
+    Fix: if the workspace files are present on THIS host (we are on office2), read
+    them directly — a genuinely-absent file then reads as ``None`` (office2
+    missing), which is correct. Only when they are not local (the tool is run
+    from the Mac, where the alias resolves) do we batch a single SSH. This makes
+    the tool correct from both vantage points with no host flag or hostname probe.
+    """
+    if not file_paths:
+        return {}
+    on_host = any(os.path.isdir(os.path.dirname(fp)) for fp in file_paths)
+    if on_host:
+        return {fp: compute_local_hash(fp) for fp in file_paths}
+    return compute_remote_hashes(ssh_host, file_paths)
+
+
 def compute_all_hashes(config: dict, repo_root: str) -> dict:
     """Compute current hashes for all tracked files on both sides."""
     ssh_host = config.get("ssh_host", "office2-claude")
@@ -120,8 +144,8 @@ def compute_all_hashes(config: dict, repo_root: str) -> dict:
             remote_paths.append(remote_path)
             path_index[remote_path] = (agent_id, filename)
 
-    # Batch remote hashes
-    remote_hashes = compute_remote_hashes(ssh_host, remote_paths)
+    # Office2 workspace hashes — local-first, SSH only when not on-host (#766).
+    remote_hashes = compute_office2_hashes(ssh_host, remote_paths)
 
     # Build result structure — skip files with SSH errors
     result = {}
