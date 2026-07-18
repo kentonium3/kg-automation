@@ -299,6 +299,61 @@ def test_all_day_event_date_only() -> None:
     assert result["calendar_event_payload"]["start_rfc3339"].startswith("2026-06-14T00:00:00")
 
 
+# --- #739 time-of-day policy: timed appointment with no time → clarify --------
+
+
+def test_appointment_date_only_no_time_requires_clarification() -> None:
+    """A timed appointment ('meet Rob Thursday') that resolves a date but gives
+    no explicit time must NOT default to midnight — it surfaces `start_time` so
+    capture asks Kent (calendar time-of-day policy, #739)."""
+    block = {
+        "title": "Meet Rob",
+        "start_natural": "next Thursday",
+        "duration_natural": "1 hour",  # timed, NOT all-day
+        "source_inbox_path": "/tmp/Inbox 2026-06-07 1000.md",
+        "source_block_index": 0,
+        "tick_iso": "2026-06-07T10:00:00-04:00",
+    }
+    result = vce.validate(block)
+    assert result["complete"] is False
+    assert "start_time" in result["missing_fields"]
+    # The date itself resolved fine — only the time is missing.
+    assert "start_datetime" not in result["missing_fields"]
+
+
+def test_appointment_with_explicit_time_no_clarification() -> None:
+    """An appointment WITH an explicit time resolves fully — no start_time ask."""
+    block = {
+        "title": "Meet Rob",
+        "start_natural": "next Thursday at 3pm",
+        "duration_natural": "1 hour",
+        "source_inbox_path": "/tmp/Inbox 2026-06-07 1000.md",
+        "source_block_index": 0,
+        "tick_iso": "2026-06-07T10:00:00-04:00",
+    }
+    result = vce.validate(block)
+    assert result["complete"] is True
+    assert result["calendar_event_payload"]["start_rfc3339"].startswith(
+        "2026-06-11T15:00:00"
+    )
+
+
+def test_all_day_event_date_only_does_not_require_time() -> None:
+    """An all-day event (whole-day duration) is legitimately time-less and must
+    NOT trigger the #739 start_time clarification (regression guard)."""
+    block = {
+        "title": "Anniversary",
+        "start_natural": "June 14, 2026",
+        "duration_natural": "1 day",  # all-day signal
+        "source_inbox_path": "/tmp/Inbox 2026-06-07 1000.md",
+        "source_block_index": 0,
+        "tick_iso": "2026-06-07T10:00:00-04:00",
+    }
+    result = vce.validate(block)
+    assert result["complete"] is True
+    assert "start_time" not in result.get("missing_fields", [])
+
+
 def test_multiple_missing_fields_reported() -> None:
     block = {
         "title": "Mystery event",

@@ -387,6 +387,20 @@ def _phrase_is_fully_explained(text: str, consumed_spans: list[tuple[int, int]])
     return leftover == ""
 
 
+def _is_all_day_duration(duration: Optional[timedelta]) -> bool:
+    """True iff *duration* signals an all-day event: a positive whole number of
+    days (e.g. "1 day", "2 days"), with no partial-day remainder.
+
+    Used by the #739 time-of-day policy — an all-day event (an anniversary, a
+    holiday) is legitimately time-less and must NOT trigger a start-time
+    clarification the way a timed appointment ("meet Rob Thursday") does.
+    """
+    if duration is None:
+        return False
+    seconds = duration.total_seconds()
+    return seconds >= 86400 and seconds % 86400 == 0
+
+
 def parse_recurrence(natural: Optional[str]) -> Optional[str]:
     """Convert a natural-language recurrence phrase to an RFC 5545 RRULE.
 
@@ -519,8 +533,24 @@ def validate(block: dict) -> dict:
     tick_iso = block.get("tick_iso")
     start_natural = block.get("start_natural")
     start_dt = parse_datetime(start_natural, tick_iso) if isinstance(tick_iso, str) else None
+
+    # Parse the duration early — it doubles as the all-day signal for the
+    # start-time policy below (a whole-day duration means an all-day event).
+    duration = parse_duration(block.get("duration_natural"))
+
     if start_dt is None:
         missing.append("start_datetime")
+    elif _parse_time_component(start_natural) is None and not _is_all_day_duration(duration):
+        # #739 calendar time-of-day policy: the date resolved but the note gave
+        # no explicit time, AND this is not an all-day event. A timed calendar
+        # appointment ("meet Rob Thursday", "call X Monday") must NOT be created
+        # at a guessed default time (parse_datetime falls back to 00:00) —
+        # surface "start_time" so capture asks Kent for the time. An all-day
+        # event (whole-day duration, e.g. an anniversary) is legitimately
+        # time-less and is left to create as-is. (The all-day *fallback* for an
+        # unanswered appointment clarification is tracked separately — it needs
+        # all-day-event support in the calendar helper.)
+        missing.append("start_time")
 
     # end_or_duration is satisfied when EITHER an end datetime parses OR a
     # duration parses; both are checked independently of start so the
@@ -530,7 +560,6 @@ def validate(block: dict) -> dict:
     end_dt_candidate: Optional[datetime] = None
     if isinstance(end_natural, str) and end_natural.strip() and isinstance(tick_iso, str):
         end_dt_candidate = parse_datetime(end_natural, tick_iso)
-    duration = parse_duration(block.get("duration_natural"))
     has_end_or_duration = end_dt_candidate is not None or duration is not None
     if not has_end_or_duration:
         missing.append("end_or_duration")
