@@ -84,7 +84,7 @@ idempotent, atomic scheduling.
 
 | Term | Canonical meaning | Avoid |
 |---|---|---|
-| Pending clarification record | The stored `{note_filename, partial_payload, created_at, reason}` entry awaiting an operator answer | "pending note", "queue item" |
+| Pending clarification record | The stored `{note_filename, partial_payload, created_at}` entry awaiting an operator answer; the eligibility signal is `missing_fields` (+ resolved `start_date`) inside `partial_payload` | "pending note", "queue item" |
 | Sweep | The 8-hour clarification garbage-collection pass over pending records | "cleanup", "cron" |
 | Age-out | A pending record older than the 8-hour threshold | "expired", "stale" |
 | Sweep-finalize | The deterministic path that converts an eligible aged-out record into an all-day event and finalizes the note | "agent create", "auto-schedule" |
@@ -95,8 +95,8 @@ idempotent, atomic scheduling.
 
 | ID | Requirement | Status |
 |---|---|---|
-| FR-001 | When a pending clarification record is created because the appointment is missing a start time, the record MUST carry a reason marker identifying it as a start-time clarification (e.g. `reason: "start_time"` or the `missing_fields` list), populated at record-creation time from the validation output. | Approved |
-| FR-002 | A pending record that lacks a start-time reason marker — whether legacy/in-flight or a non-start-time missing field — MUST be treated as **not eligible** for the all-day fallback; the sweep applies today's delete-and-release behavior to it. | Approved |
+| FR-001 | When a pending clarification record is created because the appointment is missing a start time, the record MUST carry the `missing_fields` list (the persisted eligibility signal, e.g. `["start_time", …]`) plus the resolved `start_date`, populated at record-creation time from the validation output. | Approved |
+| FR-002 | A pending record that lacks the `missing_fields` signal (or a usable resolved `start_date`) — whether legacy/in-flight or a non-timing missing field — MUST be treated as **not eligible** for the all-day fallback; the sweep applies today's delete-and-release behavior to it. | Approved |
 | FR-003 | When an **eligible** start-time clarification record ages out (≥8h unanswered), the system MUST create an all-day calendar event derived from the record's partial payload instead of dropping the record. | Approved |
 | FR-004 | The all-day event creation MUST be idempotent and atomic with marking the source note processed and removing the pending record: a failure or crash at any point MUST NOT double-create the event or strand the note. This MUST be achieved by routing the create through the #746 `route_and_finalize` transaction. | Approved |
 | FR-005 | A clarification is eligible for the all-day fallback **iff** the appointment has a **resolved date** and a **title** and the only unresolved fields are **timing** fields — a missing start time, optionally accompanied by a missing end/duration (an all-day event needs no end time). A clarification missing a **title**, or whose **date could not be resolved**, MUST NOT be converted to an all-day event. *(Rationale: the canonical "Meet Rob Thursday" with no stated duration yields `missing_fields = ["start_time", "end_or_duration"]`; the gate keys on "timing-only gap + resolved date + title", not on an exact `["start_time"]` match.)* | Approved |
