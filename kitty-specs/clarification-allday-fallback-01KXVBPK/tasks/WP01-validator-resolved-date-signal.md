@@ -132,3 +132,4 @@ the mission merges to the feature branch, which merges to `main` after the missi
 - 2026-07-18T21:27:07Z – claude:sonnet:python-pedro:implementer – shell_pid=51277 – Assigned agent via action command
 - 2026-07-18T21:56:23Z – claude:sonnet:python-pedro:implementer – shell_pid=51277 – Ready for review (transition run from primary checkout per #2647/#710): validate emits start_date+missing_fields; real no-duration missing_fields=[start_time,end_or_duration]; 85 tests + full gate 5698 passed
 - 2026-07-18T21:57:15Z – claude:opus:reviewer-renata:reviewer – shell_pid=67366 – Started review via action command
+- 2026-07-18T22:05:50Z – user – shell_pid=67366 – Review passed (reviewer-renata): 85 tests green; no-duration vocab locked

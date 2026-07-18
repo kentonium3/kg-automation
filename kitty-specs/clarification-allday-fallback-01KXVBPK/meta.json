@@ -10,5 +10,7 @@
   "purpose_tldr": "When a no-time appointment's start-time clarification goes unanswered for 24h, land it on the calendar as an all-day event instead of re-asking forever.",
   "slug": "clarification-allday-fallback-01KXVBPK",
   "target_branch": "feat/clarification-allday-fallback",
-  "topology": "single_branch"
+  "topology": "single_branch",
+  "vcs": "git",
+  "vcs_locked_at": "2026-07-18T21:26:57.949252+00:00"
 }
