@@ -253,6 +253,23 @@ classification, and interpretation. Helper scripts live in
 when a one-line agent step is genuinely correct — the rule is to
 *recognize the split*, not to mechanize everything.
 
+## Autonomous Fix-Runs (felix-dev-autopilot)
+
+When Kent wants a curated backlog worked down unattended — pick issue → scope →
+implement → test → adversarial-review → PR → CI-gate → merge → deploy →
+live-verify → next — the rules and guardrails are captured in the
+**felix-dev-autopilot** agent (#777). Invoke it with `/felix-dev-autopilot` or by
+spawning the `felix-dev-autopilot` subagent, giving it a `repo`, a `queue`
+(ordered issues), and a `risk_posture` (deploy tolerance + stop condition).
+
+The single source of truth is the canonical operating contract
+[`.agents/autopilot/felix-dev-autopilot-contract.md`](.agents/autopilot/felix-dev-autopilot-contract.md);
+kg-automation's concrete gate/deploy/verify mechanics are in
+[`.agents/autopilot/adapters/kg-automation.md`](.agents/autopilot/adapters/kg-automation.md).
+Edit the rules there, not in copies. Non-negotiables hold regardless of posture:
+never merge red, Tier-0 host changes off-limits autonomously, Issue-First, never
+leave a dirty tree, scoped `git add`.
+
 ## Git Workflow
 
 - Push directly to main for routine changes
