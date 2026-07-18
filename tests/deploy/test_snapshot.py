@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import datetime as _dt
+import json
 from pathlib import Path
 
 import pytest
@@ -17,6 +18,24 @@ def _write_log(log_dir: Path, date: str, body: str) -> Path:
     return path
 
 
+def _write_state(tmp_path: Path, payload: dict | str) -> Path:
+    """Write a ``last-backup.json``-shaped state file and return its path."""
+    path = tmp_path / "last-backup.json"
+    text = payload if isinstance(payload, str) else json.dumps(payload)
+    path.write_text(text, encoding="utf-8")
+    return path
+
+
+def _absent_state(tmp_path: Path) -> Path:
+    """A state_path guaranteed not to exist, to force the log-fallback path.
+
+    The default state_path is the real ``/data/services/backup/state/…`` file,
+    which exists on office2; log-oriented tests must pin an absent path so they
+    exercise the fallback deterministically regardless of host.
+    """
+    return tmp_path / "no-such-state.json"
+
+
 @pytest.fixture
 def freeze_now(monkeypatch):
     """Pin :func:`snapshot._utc_now` for deterministic age math."""
@@ -25,6 +44,11 @@ def freeze_now(monkeypatch):
         monkeypatch.setattr(snapshot, "_utc_now", lambda: when)
 
     return _install
+
+
+# ---------------------------------------------------------------------------
+# Log-fallback path (state file absent). All calls pin an absent state_path.
+# ---------------------------------------------------------------------------
 
 
 def test_returns_ok_when_recent_completed_line_within_window(tmp_path, freeze_now):
@@ -38,11 +62,14 @@ def test_returns_ok_when_recent_completed_line_within_window(tmp_path, freeze_no
     )
     _write_log(log_dir, "2026-06-12", body)
 
-    result = snapshot.verify_restic_recent(max_age_hours=24, log_dir=log_dir)
+    result = snapshot.verify_restic_recent(
+        max_age_hours=24, log_dir=log_dir, state_path=_absent_state(tmp_path)
+    )
 
     assert isinstance(result, LibResult)
     assert result.ok is True
     assert result.details["age_hours"] < 24
+    assert result.details["source"] == "log"
 
 
 def test_returns_too_old_when_completed_line_outside_window(tmp_path, freeze_now):
@@ -52,7 +79,9 @@ def test_returns_too_old_when_completed_line_outside_window(tmp_path, freeze_now
     body = "2026-06-10T03:00:00Z snapshot saved\n"  # 57h ago
     _write_log(log_dir, "2026-06-10", body)
 
-    result = snapshot.verify_restic_recent(max_age_hours=24, log_dir=log_dir)
+    result = snapshot.verify_restic_recent(
+        max_age_hours=24, log_dir=log_dir, state_path=_absent_state(tmp_path)
+    )
 
     assert result.ok is False
     assert result.details["error_code"] == "RESTIC_TOO_OLD"
@@ -61,7 +90,9 @@ def test_returns_too_old_when_completed_line_outside_window(tmp_path, freeze_now
 def test_returns_log_dir_missing_when_directory_absent(tmp_path):
     missing = tmp_path / "does-not-exist"
 
-    result = snapshot.verify_restic_recent(max_age_hours=24, log_dir=missing)
+    result = snapshot.verify_restic_recent(
+        max_age_hours=24, log_dir=missing, state_path=_absent_state(tmp_path)
+    )
 
     assert result.ok is False
     assert result.details["error_code"] == "LOG_DIR_MISSING"
@@ -71,7 +102,9 @@ def test_returns_no_logs_when_directory_empty(tmp_path):
     log_dir = tmp_path / "logs"
     log_dir.mkdir()
 
-    result = snapshot.verify_restic_recent(max_age_hours=24, log_dir=log_dir)
+    result = snapshot.verify_restic_recent(
+        max_age_hours=24, log_dir=log_dir, state_path=_absent_state(tmp_path)
+    )
 
     assert result.ok is False
     assert result.details["error_code"] == "NO_LOGS"
@@ -83,7 +116,9 @@ def test_returns_no_completed_lines_when_log_has_no_success_signature(tmp_path, 
     body = "2026-06-12T03:00:00Z starting restic backup\n2026-06-12T03:05:00Z error: repo unreachable\n"
     _write_log(log_dir, "2026-06-12", body)
 
-    result = snapshot.verify_restic_recent(max_age_hours=24, log_dir=log_dir)
+    result = snapshot.verify_restic_recent(
+        max_age_hours=24, log_dir=log_dir, state_path=_absent_state(tmp_path)
+    )
 
     assert result.ok is False
     assert result.details["error_code"] == "NO_COMPLETED_LINES"
@@ -95,13 +130,17 @@ def test_recognises_alternative_completed_signatures(tmp_path, freeze_now):
     body = "2026-06-12T11:30:00Z backup completed\n"
     _write_log(log_dir, "2026-06-12", body)
 
-    result = snapshot.verify_restic_recent(max_age_hours=24, log_dir=log_dir)
+    result = snapshot.verify_restic_recent(
+        max_age_hours=24, log_dir=log_dir, state_path=_absent_state(tmp_path)
+    )
 
     assert result.ok is True
 
 
 def test_rejects_zero_or_negative_max_age(tmp_path):
-    result = snapshot.verify_restic_recent(max_age_hours=0, log_dir=tmp_path)
+    result = snapshot.verify_restic_recent(
+        max_age_hours=0, log_dir=tmp_path, state_path=_absent_state(tmp_path)
+    )
     assert result.ok is False
     assert result.details["error_code"] == "INVALID_ARGUMENT"
 
@@ -112,7 +151,9 @@ def test_ignores_non_log_filenames(tmp_path, freeze_now):
     (log_dir / "README.md").write_text("not a log", encoding="utf-8")
     freeze_now(_dt.datetime(2026, 6, 12, 12, 0, 0, tzinfo=_dt.timezone.utc))
 
-    result = snapshot.verify_restic_recent(max_age_hours=24, log_dir=log_dir)
+    result = snapshot.verify_restic_recent(
+        max_age_hours=24, log_dir=log_dir, state_path=_absent_state(tmp_path)
+    )
 
     assert result.ok is False
     assert result.details["error_code"] == "NO_LOGS"
@@ -125,7 +166,9 @@ def test_picks_most_recent_log_when_multiple_present(tmp_path, freeze_now):
     _write_log(log_dir, "2026-06-10", "2026-06-10T03:00:00Z snapshot saved\n")  # stale
     _write_log(log_dir, "2026-06-12", "2026-06-12T11:00:00Z snapshot saved\n")  # recent
 
-    result = snapshot.verify_restic_recent(max_age_hours=24, log_dir=log_dir)
+    result = snapshot.verify_restic_recent(
+        max_age_hours=24, log_dir=log_dir, state_path=_absent_state(tmp_path)
+    )
 
     assert result.ok is True
     assert "2026-06-12" in result.details["log_path"]
@@ -156,7 +199,9 @@ def test_bracketed_time_only_line_uses_real_completion_instant(tmp_path, freeze_
     freeze_now(now)
     _write_log(log_dir, "2026-06-12", _REAL_LOG_BODY)  # last completed [03:00:14]
 
-    result = snapshot.verify_restic_recent(max_age_hours=24, log_dir=log_dir)
+    result = snapshot.verify_restic_recent(
+        max_age_hours=24, log_dir=log_dir, state_path=_absent_state(tmp_path)
+    )
 
     assert result.ok is True
     # 12:00:00 - 03:00:14 == 8.996h. Pre-fix this parsed as 23:59:59 EOD →
@@ -177,7 +222,9 @@ def test_bracketed_time_only_recent_snapshot_is_not_negative(tmp_path, freeze_no
     )
     _write_log(log_dir, "2026-06-12", body)
 
-    result = snapshot.verify_restic_recent(max_age_hours=24, log_dir=log_dir)
+    result = snapshot.verify_restic_recent(
+        max_age_hours=24, log_dir=log_dir, state_path=_absent_state(tmp_path)
+    )
 
     assert result.ok is True
     assert result.details["age_hours"] >= 0.0
@@ -193,7 +240,9 @@ def test_bracketed_time_only_too_old_is_detected(tmp_path, freeze_now):
     body = "=== Backup: 2026-06-12 ===\n[03:00:12] Backup completed successfully\n"
     _write_log(log_dir, "2026-06-12", body)  # ~57h before now
 
-    result = snapshot.verify_restic_recent(max_age_hours=24, log_dir=log_dir)
+    result = snapshot.verify_restic_recent(
+        max_age_hours=24, log_dir=log_dir, state_path=_absent_state(tmp_path)
+    )
 
     assert result.ok is False
     assert result.details["error_code"] == "RESTIC_TOO_OLD"
@@ -207,6 +256,288 @@ def test_unparseable_completed_line_still_falls_back_to_end_of_day(tmp_path, fre
     now = _dt.datetime(2026, 6, 12, 23, 0, 0, tzinfo=_dt.timezone.utc)
     freeze_now(now)
     _write_log(log_dir, "2026-06-12", "backup completed\n")  # no timestamp token
-    result = snapshot.verify_restic_recent(max_age_hours=24, log_dir=log_dir)
+    result = snapshot.verify_restic_recent(
+        max_age_hours=24, log_dir=log_dir, state_path=_absent_state(tmp_path)
+    )
     assert result.ok is True
     assert result.details["latest_completed_at"] == "2026-06-12T23:59:59+00:00"
+
+
+# ---------------------------------------------------------------------------
+# #767 — authoritative state-file path. Preferred over the log parse; gives
+# genuine success verification (restic_exit_code) and an exact UTC instant.
+# ---------------------------------------------------------------------------
+
+
+def _state_payload(
+    *,
+    exit_code: int | None = 0,
+    snapshot_ts: str | None = "2026-06-12T03:00:05Z",
+    finished_ts: str | None = "2026-06-12T03:00:13Z",
+) -> dict:
+    payload: dict = {"schema_version": 1}
+    if exit_code is not None:
+        payload["restic_exit_code"] = exit_code
+    if snapshot_ts is not None:
+        payload["snapshot_timestamp_utc"] = snapshot_ts
+    if finished_ts is not None:
+        payload["script_finished_at_utc"] = finished_ts
+    return payload
+
+
+def test_state_file_ok_within_window_uses_snapshot_timestamp(tmp_path, freeze_now):
+    now = _dt.datetime(2026, 6, 12, 12, 0, 0, tzinfo=_dt.timezone.utc)
+    freeze_now(now)
+    state = _write_state(tmp_path, _state_payload(exit_code=0))
+    # A stale LOG in the same call must be ignored — the state file wins.
+    log_dir = tmp_path / "logs"
+    _write_log(log_dir, "2026-06-01", "2026-06-01T03:00:00Z snapshot saved\n")
+
+    result = snapshot.verify_restic_recent(
+        max_age_hours=24, log_dir=log_dir, state_path=state
+    )
+
+    assert result.ok is True
+    assert result.details["source"] == "state"
+    assert result.details["restic_exit_code"] == 0
+    assert result.details["instant_field"] == "snapshot_timestamp_utc"
+    assert result.details["latest_completed_at"] == "2026-06-12T03:00:05+00:00"
+    assert result.details["age_hours"] == pytest.approx(8.999, abs=0.01)
+
+
+def test_state_file_exit_code_3_counts_as_success(tmp_path, freeze_now):
+    """restic exit 3 (snapshot created, some files unreadable) is a valid,
+    restorable snapshot — the system-wide {0, 3} convention."""
+    freeze_now(_dt.datetime(2026, 6, 12, 12, 0, 0, tzinfo=_dt.timezone.utc))
+    state = _write_state(tmp_path, _state_payload(exit_code=3))
+
+    result = snapshot.verify_restic_recent(
+        max_age_hours=24, log_dir=tmp_path / "logs", state_path=state
+    )
+
+    assert result.ok is True
+    assert result.details["restic_exit_code"] == 3
+
+
+def test_state_file_failure_exit_code_blocks_and_does_not_fall_through(tmp_path, freeze_now):
+    """An explicit restic failure must fail the gate — never masked by an
+    older 'completed' log line (the fail-open hole #767 closes)."""
+    freeze_now(_dt.datetime(2026, 6, 12, 12, 0, 0, tzinfo=_dt.timezone.utc))
+    state = _write_state(tmp_path, _state_payload(exit_code=1))
+    # A perfectly fresh, successful-looking log must NOT rescue a failed backup.
+    log_dir = tmp_path / "logs"
+    _write_log(log_dir, "2026-06-12", "2026-06-12T11:59:00Z snapshot saved\n")
+
+    result = snapshot.verify_restic_recent(
+        max_age_hours=24, log_dir=log_dir, state_path=state
+    )
+
+    assert result.ok is False
+    assert result.details["error_code"] == "RESTIC_FAILED"
+    assert result.details["source"] == "state"
+    assert result.details["restic_exit_code"] == 1
+
+
+def test_state_file_too_old_trips_restic_too_old(tmp_path, freeze_now):
+    now = _dt.datetime(2026, 6, 14, 12, 0, 0, tzinfo=_dt.timezone.utc)
+    freeze_now(now)
+    state = _write_state(
+        tmp_path,
+        _state_payload(
+            exit_code=0,
+            snapshot_ts="2026-06-12T03:00:05Z",  # ~57h old
+            finished_ts="2026-06-12T03:00:13Z",
+        ),
+    )
+
+    result = snapshot.verify_restic_recent(
+        max_age_hours=24, log_dir=tmp_path / "logs", state_path=state
+    )
+
+    assert result.ok is False
+    assert result.details["error_code"] == "RESTIC_TOO_OLD"
+    assert result.details["source"] == "state"
+
+
+def test_state_null_snapshot_ts_does_not_anchor_on_script_finished(tmp_path, freeze_now):
+    """#767 review: a good exit code but null snapshot_timestamp_utc must NOT be
+    green-lit off the script-finished witness (the backup-health contract treats
+    a null snapshot instant as unconfirmed). It falls back to the log path."""
+    now = _dt.datetime(2026, 6, 12, 12, 0, 0, tzinfo=_dt.timezone.utc)
+    freeze_now(now)
+    state = _write_state(
+        tmp_path,
+        _state_payload(exit_code=0, snapshot_ts=None, finished_ts="2026-06-12T03:00:13Z"),
+    )
+    log_dir = tmp_path / "logs"
+    _write_log(log_dir, "2026-06-12", "2026-06-12T11:00:00Z snapshot saved\n")
+
+    result = snapshot.verify_restic_recent(
+        max_age_hours=24, log_dir=log_dir, state_path=state
+    )
+
+    assert result.ok is True
+    assert result.details["source"] == "log"
+
+
+def test_state_null_snapshot_ts_and_no_log_fails(tmp_path, freeze_now):
+    """With a null snapshot instant AND no usable log, the gate fails closed —
+    the script-finished witness alone never authorizes the deploy."""
+    now = _dt.datetime(2026, 6, 12, 12, 0, 0, tzinfo=_dt.timezone.utc)
+    freeze_now(now)
+    state = _write_state(
+        tmp_path,
+        _state_payload(exit_code=0, snapshot_ts=None, finished_ts="2026-06-12T03:00:13Z"),
+    )
+
+    result = snapshot.verify_restic_recent(
+        max_age_hours=24, log_dir=tmp_path / "logs", state_path=state
+    )
+
+    assert result.ok is False
+    # Fell through to the log path, which then found no log dir → fails closed.
+    assert result.details["error_code"] == "LOG_DIR_MISSING"
+
+
+def test_state_future_snapshot_ts_fails_closed_no_fallthrough(tmp_path, freeze_now):
+    """#767 review: a snapshot_timestamp_utc in the future beyond skew must fail
+    closed (RESTIC_TIMESTAMP_IN_FUTURE), never read as 'very fresh', and must NOT
+    be rescued by a fresh log line."""
+    now = _dt.datetime(2026, 6, 12, 12, 0, 0, tzinfo=_dt.timezone.utc)
+    freeze_now(now)
+    state = _write_state(
+        tmp_path,
+        _state_payload(exit_code=0, snapshot_ts="2026-06-13T12:00:00Z"),  # +24h
+    )
+    log_dir = tmp_path / "logs"
+    _write_log(log_dir, "2026-06-12", "2026-06-12T11:59:00Z snapshot saved\n")
+
+    result = snapshot.verify_restic_recent(
+        max_age_hours=24, log_dir=log_dir, state_path=state
+    )
+
+    assert result.ok is False
+    assert result.details["error_code"] == "RESTIC_TIMESTAMP_IN_FUTURE"
+    assert result.details["source"] == "state"
+
+
+def test_state_small_future_skew_is_tolerated(tmp_path, freeze_now):
+    """Benign same-host sub-minute future skew is treated as fresh, not rejected."""
+    now = _dt.datetime(2026, 6, 12, 12, 0, 0, tzinfo=_dt.timezone.utc)
+    freeze_now(now)
+    state = _write_state(
+        tmp_path,
+        _state_payload(exit_code=0, snapshot_ts="2026-06-12T12:00:30Z"),  # +30s
+    )
+
+    result = snapshot.verify_restic_recent(
+        max_age_hours=24, log_dir=tmp_path / "logs", state_path=state
+    )
+
+    assert result.ok is True
+    assert result.details["source"] == "state"
+
+
+def test_state_naive_snapshot_ts_falls_back_to_log(tmp_path, freeze_now):
+    """#767 review: a naive (no Z/offset) state timestamp is malformed on the
+    authoritative path — no timezone guessing — and falls back to the log."""
+    now = _dt.datetime(2026, 6, 12, 12, 0, 0, tzinfo=_dt.timezone.utc)
+    freeze_now(now)
+    state = _write_state(
+        tmp_path,
+        _state_payload(exit_code=0, snapshot_ts="2026-06-12T03:00:05"),  # no Z
+    )
+    log_dir = tmp_path / "logs"
+    _write_log(log_dir, "2026-06-12", "2026-06-12T11:00:00Z snapshot saved\n")
+
+    result = snapshot.verify_restic_recent(
+        max_age_hours=24, log_dir=log_dir, state_path=state
+    )
+
+    assert result.ok is True
+    assert result.details["source"] == "log"
+
+
+def test_state_file_missing_falls_back_to_log(tmp_path, freeze_now):
+    now = _dt.datetime(2026, 6, 12, 12, 0, 0, tzinfo=_dt.timezone.utc)
+    freeze_now(now)
+    log_dir = tmp_path / "logs"
+    _write_log(log_dir, "2026-06-12", "2026-06-12T11:00:00Z snapshot saved\n")
+
+    result = snapshot.verify_restic_recent(
+        max_age_hours=24, log_dir=log_dir, state_path=tmp_path / "absent.json"
+    )
+
+    assert result.ok is True
+    assert result.details["source"] == "log"
+
+
+def test_state_file_malformed_json_falls_back_to_log(tmp_path, freeze_now):
+    now = _dt.datetime(2026, 6, 12, 12, 0, 0, tzinfo=_dt.timezone.utc)
+    freeze_now(now)
+    state = _write_state(tmp_path, "{ this is not json")
+    log_dir = tmp_path / "logs"
+    _write_log(log_dir, "2026-06-12", "2026-06-12T11:00:00Z snapshot saved\n")
+
+    result = snapshot.verify_restic_recent(
+        max_age_hours=24, log_dir=log_dir, state_path=state
+    )
+
+    assert result.ok is True
+    assert result.details["source"] == "log"
+
+
+def test_state_file_missing_exit_code_falls_back_to_log(tmp_path, freeze_now):
+    now = _dt.datetime(2026, 6, 12, 12, 0, 0, tzinfo=_dt.timezone.utc)
+    freeze_now(now)
+    state = _write_state(tmp_path, _state_payload(exit_code=None))
+    log_dir = tmp_path / "logs"
+    _write_log(log_dir, "2026-06-12", "2026-06-12T11:00:00Z snapshot saved\n")
+
+    result = snapshot.verify_restic_recent(
+        max_age_hours=24, log_dir=log_dir, state_path=state
+    )
+
+    assert result.ok is True
+    assert result.details["source"] == "log"
+
+
+def test_state_file_no_instant_falls_back_to_log(tmp_path, freeze_now):
+    """exit code says success but neither timestamp is parseable → fall back."""
+    now = _dt.datetime(2026, 6, 12, 12, 0, 0, tzinfo=_dt.timezone.utc)
+    freeze_now(now)
+    state = _write_state(
+        tmp_path, _state_payload(exit_code=0, snapshot_ts=None, finished_ts=None)
+    )
+    log_dir = tmp_path / "logs"
+    _write_log(log_dir, "2026-06-12", "2026-06-12T11:00:00Z snapshot saved\n")
+
+    result = snapshot.verify_restic_recent(
+        max_age_hours=24, log_dir=log_dir, state_path=state
+    )
+
+    assert result.ok is True
+    assert result.details["source"] == "log"
+
+
+def test_state_file_boolean_exit_code_is_rejected(tmp_path, freeze_now):
+    """A JSON ``true`` must not masquerade as exit 1 / ``false`` as exit 0."""
+    now = _dt.datetime(2026, 6, 12, 12, 0, 0, tzinfo=_dt.timezone.utc)
+    freeze_now(now)
+    state = _write_state(
+        tmp_path,
+        {
+            "schema_version": 1,
+            "restic_exit_code": False,
+            "snapshot_timestamp_utc": "2026-06-12T03:00:05Z",
+        },
+    )
+    log_dir = tmp_path / "logs"
+    _write_log(log_dir, "2026-06-12", "2026-06-12T11:00:00Z snapshot saved\n")
+
+    result = snapshot.verify_restic_recent(
+        max_age_hours=24, log_dir=log_dir, state_path=state
+    )
+
+    assert result.ok is True
+    assert result.details["source"] == "log"
