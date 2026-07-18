@@ -86,9 +86,9 @@
 
 **Goal**: Document the calendar-clarification **user process flow** and its operating rules as a canonical, discoverable design doc so future missions find it instead of spelunking prior mission specs — the exemplar convention for #794's systemic back-fill. **Priority**: P2 (docs). **Depends on**: WP03, WP05 (documents the implemented + wired behavior). **Independent test**: a fresh agent, given only `signal-to-doc-map.json` + `INDEX`, can locate the flow doc and read the current-state rules (8h window, timed/all-day/delete branches, eligibility, invariants) without opening any `kitty-specs/` mission.
 
-- [ ] T017 Author the calendar-clarification **process-flow doc** (actors, trigger, 8h window, timed/all-day/delete branches, operating rules + invariants, code seams) (WP06)
-- [ ] T018 Register the flow doc for **machine + human discovery** (signal-to-doc-map.json + docs/INDEX.md) (WP06)
-- [ ] T019 Cross-link the flow doc to #780/#794 and the implementing seams; establish the reusable shape for #794's back-fill (WP06)
+- [x] T017 Author the calendar-clarification **process-flow doc** (actors, trigger, 8h window, timed/all-day/delete branches, operating rules + invariants, code seams) (WP06)
+- [x] T018 Register the flow doc for **machine + human discovery** (signal-to-doc-map.json + docs/INDEX.md) (WP06)
+- [x] T019 Cross-link the flow doc to #780/#794 and the implementing seams; establish the reusable shape for #794's back-fill (WP06)
 
 **Prompt**: [tasks/WP06-calendar-clarification-flow-doc.md](./tasks/WP06-calendar-clarification-flow-doc.md) · ~220 lines
 
