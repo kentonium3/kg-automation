@@ -129,3 +129,84 @@ def test_picks_most_recent_log_when_multiple_present(tmp_path, freeze_now):
 
     assert result.ok is True
     assert "2026-06-12" in result.details["log_path"]
+
+
+# ---------------------------------------------------------------------------
+# #665 — the REAL Restic driver log format: bracketed time-only completion
+# lines (e.g. "[04:00:08] Backup completed successfully"). The pre-#665 tests
+# only fed full-ISO timestamps, so they never exercised the live format and the
+# end-of-day-fallback bug shipped. These use the actual on-disk shape.
+# ---------------------------------------------------------------------------
+
+
+_REAL_LOG_BODY = (
+    "=== Backup: 2026-06-12 ===\n"
+    "[03:00:05] Starting backup of /data and /home...\n"
+    "[03:00:12] Backup completed successfully\n"
+    "[03:00:14] === Backup complete ===\n"
+)
+
+
+def test_bracketed_time_only_line_uses_real_completion_instant(tmp_path, freeze_now):
+    """#665: age is computed from the bracketed [HH:MM:SS] + log date, NOT
+    end-of-day. A snapshot ~9h before `now` must read ~9h, never a negative or
+    end-of-day-derived value."""
+    log_dir = tmp_path / "logs"
+    now = _dt.datetime(2026, 6, 12, 12, 0, 0, tzinfo=_dt.timezone.utc)
+    freeze_now(now)
+    _write_log(log_dir, "2026-06-12", _REAL_LOG_BODY)  # last completed [03:00:14]
+
+    result = snapshot.verify_restic_recent(max_age_hours=24, log_dir=log_dir)
+
+    assert result.ok is True
+    # 12:00:00 - 03:00:14 == 8.996h. Pre-fix this parsed as 23:59:59 EOD →
+    # a NEGATIVE age (-12h). Assert the real, positive value.
+    assert result.details["age_hours"] == pytest.approx(9.0, abs=0.05)
+    assert result.details["latest_completed_at"] == "2026-06-12T03:00:14+00:00"
+
+
+def test_bracketed_time_only_recent_snapshot_is_not_negative(tmp_path, freeze_now):
+    """The headline #665 symptom: a snapshot taken minutes ago must read a
+    small POSITIVE age, not the -21.7h the end-of-day fallback produced."""
+    log_dir = tmp_path / "logs"
+    now = _dt.datetime(2026, 6, 12, 4, 2, 0, tzinfo=_dt.timezone.utc)  # 1.4 min later
+    freeze_now(now)
+    body = (
+        "=== Backup: 2026-06-12 ===\n"
+        "[04:00:36] Backup completed successfully\n"
+    )
+    _write_log(log_dir, "2026-06-12", body)
+
+    result = snapshot.verify_restic_recent(max_age_hours=24, log_dir=log_dir)
+
+    assert result.ok is True
+    assert result.details["age_hours"] >= 0.0
+    assert result.details["age_hours"] == pytest.approx(0.024, abs=0.01)
+
+
+def test_bracketed_time_only_too_old_is_detected(tmp_path, freeze_now):
+    """A genuinely stale bracketed-format snapshot must trip RESTIC_TOO_OLD
+    off its real instant (not a coincidentally-passing EOD value)."""
+    log_dir = tmp_path / "logs"
+    now = _dt.datetime(2026, 6, 14, 12, 0, 0, tzinfo=_dt.timezone.utc)
+    freeze_now(now)
+    body = "=== Backup: 2026-06-12 ===\n[03:00:12] Backup completed successfully\n"
+    _write_log(log_dir, "2026-06-12", body)  # ~57h before now
+
+    result = snapshot.verify_restic_recent(max_age_hours=24, log_dir=log_dir)
+
+    assert result.ok is False
+    assert result.details["error_code"] == "RESTIC_TOO_OLD"
+    assert result.details["age_hours"] == pytest.approx(57.0, abs=0.05)
+
+
+def test_unparseable_completed_line_still_falls_back_to_end_of_day(tmp_path, freeze_now):
+    """The last-resort EOD fallback is preserved for a completion line with no
+    parseable timestamp at all (neither full-ISO nor bracketed time)."""
+    log_dir = tmp_path / "logs"
+    now = _dt.datetime(2026, 6, 12, 23, 0, 0, tzinfo=_dt.timezone.utc)
+    freeze_now(now)
+    _write_log(log_dir, "2026-06-12", "backup completed\n")  # no timestamp token
+    result = snapshot.verify_restic_recent(max_age_hours=24, log_dir=log_dir)
+    assert result.ok is True
+    assert result.details["latest_completed_at"] == "2026-06-12T23:59:59+00:00"
