@@ -97,9 +97,9 @@ tests/inbox/  (+ tests/calendar_routing/)
 
 - **Purpose**: Give the deterministic sweep path the two facts it needs — *why* the record is pending (`missing_fields`/`reason`) and a *stable resolved date* — neither of which the record carries today.
 - **Relevant requirements**: FR-001, FR-002, FR-006; C-002 (backward-compat)
-- **Affected surfaces**: `scripts/calendar_routing/validate_calendar_event.py` (emit `start_date` + `missing_fields` on the `missing==["start_time"]` branch), `scripts/inbox/handle_clarification_state.py` (`subcommand_add` accepts/stores the fields), `scripts/openclaw/agents/felix-admin-capture/AGENTS.md` (Step 3c passes them into `--partial-payload`)
+- **Affected surfaces**: `scripts/calendar_routing/validate_calendar_event.py` (emit resolved `start_date` + `missing_fields` **whenever `start_time` is missing and `start_dt` resolved** — NOT only on an exact `missing==["start_time"]` branch, since the canonical no-duration case yields `["start_time","end_or_duration"]`), `scripts/inbox/handle_clarification_state.py` (`subcommand_add` accepts/stores the fields), `scripts/openclaw/agents/felix-admin-capture/AGENTS.md` (Step 3c passes them into `--partial-payload`)
 - **Sequencing/depends-on**: none (foundation)
-- **Risks**: LLM-in-the-loop at add-time — mitigate by having `validate` emit the fields deterministically so the agent copies `fields_so_far` verbatim; read-side default treats an absent signal as **not eligible** (C-002), so a legacy/in-flight record degrades to delete-and-release, never crashes.
+- **Risks**: LLM-in-the-loop at add-time — mitigate by having `validate` emit the fields deterministically so the agent copies `fields_so_far` verbatim; read-side default treats an absent signal as **not eligible** (C-002), so a legacy/in-flight record degrades to delete-and-release, never crashes. **Codex HIGH-1/HIGH-2**: the eligibility rule is a *timing-only gap* (see FR-005), so `validate` must surface the resolved date on every start-time-missing result, and the gate must accept `end_or_duration` alongside `start_time`.
 
 ### IC-02 — All-day support in the transaction's calendar seam
 
@@ -115,15 +115,15 @@ tests/inbox/  (+ tests/calendar_routing/)
 - **Relevant requirements**: FR-003, FR-004, FR-005, FR-008; NFR-001, NFR-002, NFR-004
 - **Affected surfaces**: new deterministic finalize function/subcommand (placement per R3), `scripts/inbox/handle_clarification_state.py` (eligibility gate + record removal reuse `subcommand_remove`), `scripts/openclaw/agents/felix-admin-capture/AGENTS.md` Step 1a (invoke the finalize path in place of / in addition to `sweep`)
 - **Sequencing/depends-on**: IC-01 (needs the persisted signal + date), IC-02 (needs the all-day seam)
-- **Risks**: idempotency across partial failure — `_run_finalize` marks the note once and `calendar_helper` dedups on `--idempotency-key <source_path>`, so a re-run after a failed record-removal does not double-create; fail-closed (FR-008) — any create/validate failure retains the record and leaves the note unprocessed for the next tick.
+- **Risks**: idempotency across partial failure — `_run_finalize` marks the note once and `calendar_helper` dedups on `--idempotency-key`, so a re-run after a failed record-removal does not double-create. **Codex HIGH-3 (reconciliation, FR-009)**: record removal happens *after* the atomic transaction, so after a mark-succeeds/remove-fails the note **is** processed — the finalize path must **reconcile** on retry (detect the note is already processed / the routing-log key exists → remove the stale record, do NOT re-create), and must NOT assume "note unprocessed" after every failure. **Codex MED-2 (idempotency-key identity)**: the pending record stores only `note_filename` (basename); the finalize path MUST reconstruct **one canonical absolute inbox path** for both the note argument and the `--idempotency-key`, so a basename- vs path-form record can never yield two different keys. **Codex HIGH-4 (concurrency)**: exactly-once relies on the serial single-agent tick (NFR-004 narrowed) — no lock; document that concurrent sweep-finalize is out of scope.
 
 ### IC-04 — Observability: distinct age-out-create signal
 
 - **Purpose**: Let the operator count appointments that landed via the unanswered-clarification fallback, separate from normal creates and plain sweep-deletes.
 - **Relevant requirements**: FR-007; SC-004
-- **Affected surfaces**: the finalize path's routing-log/emit (a distinct event type or marker), and the sweep-delete path for ineligible records
+- **Affected surfaces**: the finalize path's routing-log/emit, and the sweep-delete path for ineligible records
 - **Sequencing/depends-on**: IC-03
-- **Risks**: keep the signal machine-greppable and consistent with existing routing-log conventions.
+- **Risks**: **Codex MED-1**: a normal calendar routing-log row is just `kind="calendar"` + destination — not separable today. Pick a **concrete durable marker** before implementing: preferred is a distinct routing-log `kind`/event `calendar_all_day_fallback` (or an explicit boolean field on the entry), consistent with `RoutingLogWriter` conventions, so the operator can grep an exact count (SC-004).
 
 ### IC-05 — Test coverage for the invariants
 

@@ -53,18 +53,25 @@ add --partial-payload <json>`, where the JSON is `validate`'s incomplete-result
 --idempotency-key <source_inbox_path> --account personal`.
 
 **Guarantees**:
-- Exactly-once via `--idempotency-key` extended-property dedup + `_run_finalize`
-  mark-note-once.
-- Fail-closed: any failure leaves the note unprocessed and the pending record
-  retained.
+- Exactly-once (sequential) via `--idempotency-key` extended-property dedup +
+  `_run_finalize` mark-note-once. The note path AND `--idempotency-key` are derived
+  from **one canonical absolute inbox path** reconstructed from `note_filename`, so
+  basename/path-form records never mint two keys (MED-2, INV-7).
+- Fail-closed **before mark**: a failure that does not reach mark leaves the note
+  unprocessed and the record retained (FR-008).
+- **Reconcile after mark**: if create+mark succeeded but record-removal failed, the
+  next sweep detects the already-processed note / existing routing-log key and
+  removes the stale record **without re-creating** (FR-009, INV-6).
+- Concurrency out of scope: serial `felix-admin-capture` tick (NFR-004 narrowed).
 
 ## C3 — Observability event (FR-007)
 
-The finalize path emits a routing-log entry (or marker) for the age-out-create
-that is **distinct** from:
-- a normal answered/timed calendar create, and
-- a plain sweep-delete of an ineligible aged-out record.
-
-Exact event type/label is fixed at IC-04 implementation to match existing
-`RoutingLogWriter` conventions; the contract is *separability* — an operator can
-grep a count of "landed as all-day via unanswered-clarification fallback".
+The finalize path emits a **concrete durable marker** for the age-out-create that
+is separable from a normal answered/timed calendar create and from a plain
+sweep-delete. Per Codex MED-1, a normal calendar routing-log row is only
+`kind="calendar"` + destination, so separability needs an explicit marker:
+**preferred = a distinct routing-log `kind`/event `calendar_all_day_fallback`** (or
+an explicit boolean field on the entry), consistent with `RoutingLogWriter`
+conventions. The contract is that an operator can grep an **exact count** of
+appointments that landed as all-day via the unanswered-clarification fallback
+(SC-004). Final field/kind name fixed at IC-04 against the real schema.

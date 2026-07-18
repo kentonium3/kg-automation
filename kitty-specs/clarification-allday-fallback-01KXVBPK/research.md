@@ -64,17 +64,58 @@ Rejected — it couples the sweep to the NL parser (re-does work, inherits its
 failure modes) and risks drift if the parser changes between capture and sweep.
 Persisting the resolved answer is simpler and safer.
 
-**Eligibility gate (derived)**: a record is fallback-eligible iff
-`missing_fields == ["start_time"]` **and** a usable `start_date` is present in
-`partial_payload`. Missing either → not eligible → today's delete-and-release
-(FR-002, FR-005). This also cleanly excludes multi-missing-field records
-(`["start_time","end_or_duration"]` is not `== ["start_time"]`) — confirm the
-exact eligibility predicate against `validate`'s real `missing_fields` output for
-the no-time-no-duration case during implementation (a record that is genuinely
-un-time-able but has a resolved date is still a valid all-day candidate; the
-decision to require *exactly* `["start_time"]` vs *"start_time ∈ missing and a
-date is present"* is an IC-03 implementation choice, biased toward the stricter
-`start_time`-present-and-date-present reading).
+**Eligibility gate (derived) — corrected per Codex HIGH-1/HIGH-2.**
+An early draft used `missing_fields == ["start_time"]`. That is **wrong**: the
+canonical "Meet Rob Thursday" with no stated duration makes `validate` return
+`missing_fields = ["start_time", "end_or_duration"]` (verified against
+`validate_calendar_event.py:L541-565`), so the exact-match rule would make the
+feature **fail on its own headline case**. The correct predicate is a
+**timing-only gap**:
+
+```
+eligible iff  title present
+          AND  a resolved start_date is present   (the date WAS parseable)
+          AND  "start_time" in missing_fields
+          AND  missing_fields is a subset of {"start_time", "end_or_duration"}
+```
+
+- `end_or_duration` missing is **fine** for an all-day event (no end time needed;
+  `end_date = start_date + 1 day`).
+- Missing **title**, or a `start_date` that is absent/malformed (date could not be
+  resolved), is **not eligible** — delete-and-release (FR-002, FR-005).
+- Any *non-timing* field in `missing_fields` (e.g. title) is **not eligible**.
+
+`validate` must therefore surface the resolved `start_date` on **every**
+start-time-missing result (not only the exact-`["start_time"]` branch) so the gate
+has the date it needs. Pin the exact `missing_fields` vocabulary against
+`validate`'s real output during IC-01/IC-03.
+
+## R4 — Reconciliation + concurrency (Codex HIGH-3 / HIGH-4)
+
+**Reconciliation (HIGH-3)**: `_run_finalize` is atomic for create->log->mark, but
+the pending-record removal is a **separate** state rewrite that happens *after*.
+Failure ladder:
+- create/mark did NOT complete: note unprocessed, record retained, retry (FR-008).
+- create+mark DID complete, record removal failed: **note is already processed**.
+  The next sweep MUST **reconcile** — detect the note is processed (or the
+  routing-log key exists) and remove the stale record **without re-creating**
+  (FR-009). Do NOT assume "note unprocessed" after every failure.
+
+The `calendar_helper --idempotency-key` dedup makes even a blind re-run safe
+(returns the existing event), but reconciliation avoids a pointless re-drive and
+cleans the record deterministically.
+
+**Idempotency-key identity (MED-2)**: the record stores only `note_filename`
+(basename); the finalize path must reconstruct **one canonical absolute inbox
+path** used identically for the `_run_finalize` note argument and the
+`--idempotency-key`, so basename-form vs path-form records cannot mint two keys.
+Test this explicitly.
+
+**Concurrency (HIGH-4)**: exactly-once is a **find-before-insert**, not a lock — two
+concurrent sweep-finalize processes could both find-no-event and both insert. This
+is **out of scope**: the sweep-finalize runs inside the single, serialized
+`felix-admin-capture` agent tick, so concurrent invocations do not occur. NFR-004
+is narrowed to the sequential model with this rationale rather than adding a lock.
 
 ## R3 — Where the deterministic sweep-finalize logic lives, and how it's invoked
 

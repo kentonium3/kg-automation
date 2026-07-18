@@ -33,16 +33,21 @@ delete-and-release path. No migration; no crash.
 A **aged-out** record (`created_at` ≥ 24h old) is **fallback-eligible** iff:
 
 ```
-partial_payload.missing_fields indicates a missing start time
+timing-only gap:
+      title present
   AND partial_payload.start_date is a well-formed YYYY-MM-DD
+  AND "start_time" in partial_payload.missing_fields
+  AND partial_payload.missing_fields is a subset of {"start_time", "end_or_duration"}
 ```
 
-- The exact `missing_fields` test (strict `== ["start_time"]` vs `"start_time" in
-  missing_fields`) is fixed at IC-03 implementation against `validate`'s real
-  output for the no-time/no-duration case; the bias is the stricter reading so a
-  compound-missing record is **not** silently turned into an all-day event
-  (FR-005).
-- A malformed / absent `start_date` fails the gate → not eligible (fail-closed).
+- **Corrected per Codex HIGH-1/HIGH-2**: an exact `== ["start_time"]` test is
+  wrong — the canonical "Meet Rob Thursday" (no duration) yields
+  `["start_time","end_or_duration"]` and would be wrongly excluded. A missing
+  `end_or_duration` is acceptable for an all-day event, so the gate accepts it.
+- Missing **title**, or any **non-timing** field in `missing_fields`, or an
+  absent/malformed `start_date` → **not eligible** (fail-closed).
+- Pin the exact `missing_fields` vocabulary against `validate`'s real output at
+  IC-01/IC-03.
 
 Ineligible aged-out records → **delete-and-release** (unchanged).
 
@@ -97,9 +102,17 @@ pending record created ──┤
 - **INV-2 (boundary)**: a record whose `missing_fields` is anything other than the
   start-time signal, or that lacks a resolved `start_date`, is never converted to
   an all-day event. [FR-005, SC-002]
-- **INV-3 (no silent loss)**: a create failure never drops the record or marks the
-  note processed; it retries. [FR-008]
+- **INV-3 (no silent loss)**: a failure *before* the transaction reaches mark never
+  drops the record or marks the note processed; it retries (FR-008). A failure
+  *after* mark (record-removal only) leaves the note processed — reconciled by
+  INV-6, never re-created.
 - **INV-4 (determinism)**: the eligibility decision and payload construction use no
   LLM/agent and no NL re-parsing. [NFR-001, R2]
 - **INV-5 (date fidelity)**: the all-day event's date equals the date resolved at
   capture time, independent of when the sweep runs. [R2 week-drift]
+- **INV-6 (reconciliation)**: on retry of a record whose note is already processed /
+  whose routing-log key already exists, the sweep-finalize removes the stale record
+  **without re-creating** the event. [FR-009, Codex HIGH-3]
+- **INV-7 (canonical key)**: the note argument and `--idempotency-key` are derived
+  from **one** canonical absolute inbox path per record, so basename- vs path-form
+  never mint two different idempotency keys. [MED-2]
