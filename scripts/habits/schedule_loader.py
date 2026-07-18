@@ -122,6 +122,15 @@ def _normalize_designated_weekdays(
     return tuple(ordered)
 
 
+#: A day-specific habit recurs on its designated weekday, i.e. once per week, so
+#: its Vikunja ``repeat_after`` must be at least one week. Anything smaller —
+#: notably ``0`` — is the missing-recurrence bug that stranded the Mon/Wed/Fri
+#: strength-training tasks in #607 (a completed one-shot never re-armed). This
+#: ratchet (#608) makes a future day-specific entry that omits/zeros the interval
+#: fail loudly at load time instead of silently reintroducing that bug class.
+_WEEK_SECONDS = 604_800
+
+
 def _validate_entry(raw: Any, *, entry_index: int) -> ScheduleEntry:
     """Validate one raw dict entry and return a ``ScheduleEntry``."""
     if not isinstance(raw, dict):
@@ -158,6 +167,19 @@ def _validate_entry(raw: Any, *, entry_index: int) -> ScheduleEntry:
     weekdays = _normalize_designated_weekdays(
         raw.get("designated_weekdays"), entry_index=entry_index
     )
+
+    # #608 preventive ratchet: a day-specific habit recurs weekly, so it MUST
+    # carry at least a one-week ``repeat_after`` — reject the #607 no-rearm shape
+    # (day-specific but zero/sub-week interval) at load time. Daily habits (no
+    # designated_weekdays) are unaffected; their 86400 interval is validated
+    # elsewhere by the non-negative check above.
+    if weekdays and repeat_after < _WEEK_SECONDS:
+        raise ScheduleConfigError(
+            f"habits[{entry_index}] ({title!r}) is day-specific "
+            f"(designated_weekdays={list(weekdays)}) but repeat_after_seconds="
+            f"{repeat_after} is below one week ({_WEEK_SECONDS}); a day-specific "
+            f"habit must repeat at least weekly or it never re-arms (#607/#608)"
+        )
 
     return ScheduleEntry(
         task_id=task_id,
