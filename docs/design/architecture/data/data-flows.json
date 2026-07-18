@@ -1400,8 +1400,8 @@
       "deployed_by": "pull-based-deploy-pipeline-01KTYQQS (#136)",
       "introduced_by": "pull-based-deploy-pipeline-01KTYQQS (#136)",
       "introduced_at": "2026-06-12",
-      "updated_by": "#136",
-      "last_updated_by": "#136",
+      "updated_by": "#136 + #784 (Tier-2 pre-deploy backup trigger step added)",
+      "last_updated_by": "#784",
       "source": "github.com/kentonium3/kg-automation (main branch)",
       "destination": "office2 (claude user, /home/claude/kg-automation)",
       "transport": "git pull (HTTPS via Tailscale exit node OR public internet)",
@@ -1431,9 +1431,15 @@
         },
         {
           "from": "felix-deployer (office2)",
+          "to": "sudo /data/services/backup/scripts/backup.sh",
+          "protocol": "subprocess (single-command NOPASSWD sudo)",
+          "description": "Tier-2 manifests only (#784): before the dry-run, lib.snapshot.ensure_recent_backup verifies a successful Restic snapshot within 24h and, if stale/failed, triggers backup.sh via the sanctioned NOPASSWD grant, waits, and re-verifies. On trigger or re-verify failure the manifest is NOT applied — a snapshot-phase failure is recorded, one ntfy alert is emitted, and the manifest stays queued."
+        },
+        {
+          "from": "felix-deployer (office2)",
           "to": "deploys/applied/ OR deploys/failed/",
-          "protocol": "file rename (atomic mv)",
-          "description": "On success the manifest moves to deploys/applied/<ts>-<name>.yaml; on failure to deploys/failed/<ts>-<name>.yaml"
+          "protocol": "file write / atomic mv",
+          "description": "On success the queued manifest is recorded as applied under deploys/applied/<NNNN>-<name>.yaml. On failure a failure RECORD is written to deploys/failed/<name>-<ts>.yaml (phase + error_summary) and the queued manifest REMAINS in deploys/queued/ — it is retried (and re-alerts) on the next tick until it succeeds or is removed."
         },
         {
           "from": "felix-deployer (office2)",

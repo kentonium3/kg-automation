@@ -9,8 +9,9 @@ Phase strings (kept here as module-level constants so they cannot drift
 from the contract):
 
 * ``tier_guard`` — :func:`scripts.deploy.lib.tier.tier_guard` failed.
-* ``snapshot`` — :func:`scripts.deploy.lib.snapshot.verify_restic_recent`
-  failed (Tier 2 only).
+* ``snapshot`` — :func:`scripts.deploy.lib.snapshot.ensure_recent_backup`
+  failed (Tier 2 only): the backup was stale/failed and the trigger or
+  re-verify did not produce a fresh successful snapshot.
 * ``verification_pre`` — a ``manifest.verification.pre[*]`` command failed.
 * ``entrypoint_dry_run`` — ``<entrypoint> --dry-run`` failed; apply is
   aborted and the entrypoint is not re-invoked with ``--apply``.
@@ -178,7 +179,8 @@ def dry_run_then_apply_gate(
     The phases (in order) are:
 
     1. ``tier_guard`` — tier policy, mode=runtime.
-    2. ``snapshot`` — Restic recency, only when ``tier == 2``.
+    2. ``snapshot`` — Restic recency (``ensure_recent_backup``: verify, and if
+       stale trigger a backup + re-verify), only when ``tier == 2``.
     3. ``verification_pre`` — every ``verification.pre[]`` command must
        exit 0.
     4. ``entrypoint_dry_run`` — ``<entrypoint> --dry-run`` must exit 0;
@@ -215,9 +217,13 @@ def dry_run_then_apply_gate(
             PHASE_TIER_GUARD,
         )
 
-    # 2. snapshot (Tier 2 only)
+    # 2. snapshot (Tier 2 only). #784: don't merely verify — ensure. If the
+    # backup is stale/failed, trigger the sanctioned backup.sh, wait, and
+    # re-verify before applying. If the trigger or re-verify fails, this returns
+    # ok=False → the manifest is NOT applied and the caller's failure path emits
+    # one ntfy alert and leaves it queued.
     if tier_value == _SNAPSHOT_REQUIRED_TIER:
-        r = snapshot.verify_restic_recent()
+        r = snapshot.ensure_recent_backup()
         if not r.ok:
             return _with_phase(
                 LibResult(

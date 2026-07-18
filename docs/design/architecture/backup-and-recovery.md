@@ -18,6 +18,20 @@ status: approved
 | Effective user | `root` (cron runs `sudo backup.sh`, so snapshots are `root:root`) |
 | Log | `/data/services/backup/logs/backup-YYYY-MM-DD.log` |
 
+### Triggers
+
+`backup.sh` runs from two places, both via the single-command NOPASSWD sudoers
+grant (`claude ALL=(root) NOPASSWD: /data/services/backup/scripts/backup.sh`):
+
+1. **Daily cron** — `claude`'s crontab, `0 4 * * *` (04:00 UTC).
+2. **Pre-deploy trigger (felix-deployer, #784)** — before applying a **Tier-2**
+   manifest, the applier runs `lib.snapshot.ensure_recent_backup`: it verifies a
+   successful snapshot within 24h and, if stale/failed, triggers `sudo
+   backup.sh`, waits, and re-verifies before the destructive change lands. If the
+   trigger or re-verify fails, the manifest is **not applied** (one ntfy alert;
+   manifest stays queued). This closes the gap where a Tier-2 deploy >24h after
+   the last backup could land without a fresh safety net.
+
 ### Backup Sources
 
 | Path | Contents |

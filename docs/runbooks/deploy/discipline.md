@@ -276,8 +276,11 @@ One-line summary per module:
 - `cron` — OpenClaw cron management (`openclaw_cron_list`,
   `openclaw_cron_edit`, `openclaw_cron_add`). Never touches the system
   crontab — that path is closed and CI-enforced.
-- `snapshot` — Restic backup recency check
-  (`verify_restic_recent --max-age-hours <N>`); the canonical Tier 2 gate.
+- `snapshot` — Restic backup recency check + trigger. `verify_restic_recent`
+  confirms a successful snapshot within the window (authoritative
+  `last-backup.json`, log parse as fallback); `ensure_recent_backup` wraps it to
+  trigger `sudo backup.sh` and re-verify when stale (#784). The canonical Tier 2
+  gate.
 - `verify` — file-presence, executability, and content checks for both
   pre-flight (source exists locally) and post-flight (artifact landed on
   office2) verification.
@@ -384,7 +387,7 @@ change to kg-automation. The manifest discipline mirrors it:
 |---|---|
 | **Tier 0 — Hard Lock** | **Never executed via the pipeline.** Tier 0 deploys remain manual via `ssh office2-kgale`. The applier rejects any manifest with `tier: 0` at the tier guard. |
 | **Tier 1 — Verification Required** | Must include a `verification:` block with both `pre:` and `post:` commands proving connectivity / interface health. The applier runs both. |
-| **Tier 2 — Snapshot Required** | Must include a `verification:` block. The applier additionally invokes `lib.snapshot.verify_restic_recent --max-age-hours 24` before the dry-run regardless of what the manifest declares. |
+| **Tier 2 — Snapshot Required** | Must include a `verification:` block. Before the dry-run the applier invokes `lib.snapshot.ensure_recent_backup` (regardless of what the manifest declares): it verifies a successful Restic snapshot within 24h and, if the backup is stale/failed, **triggers the sanctioned `sudo backup.sh`, waits, and re-verifies** (#784). If the trigger or re-verify fails, the manifest is **not applied** — the applier records a `snapshot`-phase failure, emits one ntfy alert, and leaves the manifest queued. |
 | **Tier 3 — Standard** | Manifest + entrypoint script only. No mandatory `verification:` block (though `pre:` / `post:` commands are still encouraged where they catch real failures cheaply). |
 | **Tier 4 — Auto-Commit** | Manifest + entrypoint script only. Lightest path; suited to schema / metadata changes that touch deployed surfaces. |
 

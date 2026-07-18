@@ -157,19 +157,22 @@ def test_phase_tier_guard_failure_on_missing_entrypoint(tmp_path):
 
 
 def test_phase_snapshot_failure_for_tier_2(tmp_path, monkeypatch):
+    """#784: the Tier-2 snapshot phase now goes through ensure_recent_backup.
+    When it can't produce a fresh backup, the apply is blocked at phase=snapshot.
+    """
     ep = _write_entrypoint(tmp_path)
     mani = _tier3_manifest(ep)
     mani["tier"] = 2
     mani["verification"] = {"pre": [], "post": []}
 
-    def _bad_snapshot(*args, **kwargs):
+    def _bad_ensure(*args, **kwargs):
         return LibResult(
             ok=False,
             summary="Restic too old",
             details={"error_code": "RESTIC_TOO_OLD"},
         )
 
-    monkeypatch.setattr(snapshot, "verify_restic_recent", _bad_snapshot)
+    monkeypatch.setattr(snapshot, "ensure_recent_backup", _bad_ensure)
 
     result = apply.dry_run_then_apply_gate(mani, "/fake/path.yaml")
 
@@ -188,12 +191,110 @@ def test_snapshot_not_invoked_for_non_tier_2(tmp_path, monkeypatch):
         sentinel["called"] = True
         return LibResult(ok=True, summary="x")
 
-    monkeypatch.setattr(snapshot, "verify_restic_recent", _spy)
+    monkeypatch.setattr(snapshot, "ensure_recent_backup", _spy)
 
     result = apply.dry_run_then_apply_gate(mani, "/fake/path.yaml")
 
     assert result.ok is True
     assert sentinel["called"] is False
+
+
+# ---------------------------------------------------------------------------
+# #784: Tier-2 pre-deploy backup trigger, exercised end-to-end through
+# dry_run_then_apply_gate. verify_restic_recent + _invoke_backup are stubbed at
+# the module level so no real `sudo backup.sh` is ever spawned.
+# ---------------------------------------------------------------------------
+
+
+def test_tier2_fresh_backup_applies_without_triggering(tmp_path, monkeypatch):
+    ep = _write_entrypoint(tmp_path)
+    mani = _tier3_manifest(ep)
+    mani["tier"] = 2
+    mani["verification"] = {"pre": [], "post": []}
+
+    monkeypatch.setattr(
+        snapshot,
+        "verify_restic_recent",
+        lambda *a, **k: LibResult(ok=True, summary="fresh", details={"source": "state"}),
+    )
+
+    def _boom(*args, **kwargs):  # trigger must NOT be called when already fresh
+        raise AssertionError("backup trigger invoked despite fresh backup")
+
+    monkeypatch.setattr(snapshot, "_invoke_backup", _boom)
+
+    result = apply.dry_run_then_apply_gate(mani, "/fake/path.yaml")
+
+    assert result.ok is True
+    assert result.details["phase"] == apply.PHASE_COMPLETE
+
+
+def test_tier2_stale_backup_triggers_then_applies(tmp_path, monkeypatch):
+    ep = _write_entrypoint(tmp_path)
+    mani = _tier3_manifest(ep)
+    mani["tier"] = 2
+    mani["verification"] = {"pre": [], "post": []}
+
+    calls = {"verify": 0, "trigger": 0}
+
+    def _verify(*args, **kwargs):
+        calls["verify"] += 1
+        # stale on the first (pre) check, fresh on the second (post-trigger).
+        if calls["verify"] == 1:
+            return LibResult(ok=False, summary="stale", details={"error_code": "RESTIC_TOO_OLD"})
+        return LibResult(ok=True, summary="fresh", details={"source": "state"})
+
+    def _trigger(backup_cmd, timeout_sec):
+        calls["trigger"] += 1
+        return LibResult(ok=True, summary="triggered", details={"returncode": 0})
+
+    monkeypatch.setattr(snapshot, "verify_restic_recent", _verify)
+    monkeypatch.setattr(snapshot, "_invoke_backup", _trigger)
+
+    result = apply.dry_run_then_apply_gate(mani, "/fake/path.yaml")
+
+    assert result.ok is True
+    assert result.details["phase"] == apply.PHASE_COMPLETE
+    assert calls["trigger"] == 1
+    assert calls["verify"] == 2
+
+
+def test_tier2_failed_trigger_blocks_apply(tmp_path, monkeypatch):
+    ep = _write_entrypoint(tmp_path)
+    mani = _tier3_manifest(ep)
+    mani["tier"] = 2
+    mani["verification"] = {"pre": [], "post": []}
+
+    entrypoint_called = {"hit": False}
+
+    def _verify(*args, **kwargs):
+        return LibResult(ok=False, summary="stale", details={"error_code": "RESTIC_TOO_OLD"})
+
+    def _trigger(backup_cmd, timeout_sec):
+        return LibResult(
+            ok=False,
+            summary="trigger failed",
+            details={"error_code": "BACKUP_TRIGGER_FAILED", "returncode": 1},
+        )
+
+    # If the entrypoint ever runs, the apply wasn't blocked — catch that.
+    real_run = apply._run_shell
+
+    def _guard_run(cmd, *a, **k):
+        entrypoint_called["hit"] = True
+        return real_run(cmd, *a, **k)
+
+    monkeypatch.setattr(snapshot, "verify_restic_recent", _verify)
+    monkeypatch.setattr(snapshot, "_invoke_backup", _trigger)
+    monkeypatch.setattr(apply, "_run_shell", _guard_run)
+
+    result = apply.dry_run_then_apply_gate(mani, "/fake/path.yaml")
+
+    assert result.ok is False
+    assert result.details["phase"] == apply.PHASE_SNAPSHOT
+    assert result.details["error_code"] == "BACKUP_TRIGGER_FAILED"
+    assert result.details["triggered"] is True
+    assert entrypoint_called["hit"] is False  # apply never reached
 
 
 # ---------------------------------------------------------------------------
