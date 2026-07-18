@@ -9,6 +9,7 @@ from unittest.mock import patch, MagicMock
 from scripts.openclaw.enforcement.drift_check import (
     SSH_ERROR,
     compute_local_hash,
+    compute_office2_hashes,
     compute_remote_hashes,
     compute_all_hashes,
     format_results,
@@ -66,6 +67,65 @@ class TestComputeRemoteHashes:
 
     def test_empty_file_list(self):
         assert compute_remote_hashes("office2-claude", []) == {}
+
+
+class TestComputeOffice2Hashes:
+    """#766 — local-first: on the host where the workspace files live (office2),
+    read them directly; only SSH when they are not local (the Mac)."""
+
+    def test_reads_locally_when_files_present_no_ssh(self, tmp_path):
+        # Simulate on-office2: the workspace files exist on this host.
+        ws = tmp_path / "inbox-agent"
+        ws.mkdir()
+        (ws / "AGENTS.md").write_text("agents body\n")
+        (ws / "TOOLS.md").write_text("tools body\n")
+        paths = [str(ws / "AGENTS.md"), str(ws / "TOOLS.md")]
+
+        with patch(
+            "scripts.openclaw.enforcement.drift_check.subprocess.run"
+        ) as mock_run:
+            result = compute_office2_hashes("office2-claude", paths)
+
+        mock_run.assert_not_called()  # NO ssh when the files are local
+        assert result[paths[0]] == compute_local_hash(paths[0])
+        assert result[paths[1]] == compute_local_hash(paths[1])
+        assert all(v is not None for v in result.values())
+
+    def test_local_missing_file_reads_none_not_ssh_error(self, tmp_path):
+        # On-host, a genuinely-absent workspace file reads as None (office2
+        # missing) — NOT an SSH_ERROR skip.
+        ws = tmp_path / "inbox-agent"
+        ws.mkdir()
+        (ws / "AGENTS.md").write_text("present\n")
+        present = str(ws / "AGENTS.md")
+        absent = str(ws / "GONE.md")
+
+        with patch(
+            "scripts.openclaw.enforcement.drift_check.subprocess.run"
+        ) as mock_run:
+            result = compute_office2_hashes("office2-claude", [present, absent])
+
+        mock_run.assert_not_called()
+        assert result[present] is not None
+        assert result[absent] is None
+
+    def test_falls_back_to_ssh_when_not_on_host(self):
+        # Paths under a non-existent root (the Mac vantage) → SSH.
+        paths = ["/data/services/openclaw/data/AGENTS.md"]
+        mock_result = MagicMock()
+        mock_result.returncode = 0
+        mock_result.stdout = "deadbeef  /data/services/openclaw/data/AGENTS.md\n"
+        mock_result.stderr = ""
+        with patch(
+            "scripts.openclaw.enforcement.drift_check.subprocess.run",
+            return_value=mock_result,
+        ) as mock_run:
+            result = compute_office2_hashes("office2-claude", paths)
+        mock_run.assert_called_once()  # SSH used from the Mac
+        assert result[paths[0]] == "deadbeef"
+
+    def test_empty(self):
+        assert compute_office2_hashes("office2-claude", []) == {}
 
 
 class TestComputeAllHashes:
