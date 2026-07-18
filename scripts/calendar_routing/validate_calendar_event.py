@@ -598,15 +598,27 @@ def validate(block: dict) -> dict:
         "calendar_id": DEFAULT_CALENDAR_ID,
         "account": DEFAULT_ACCOUNT,
         "summary": title,
-        "start_rfc3339": _rfc3339(start_dt),
-        "end_rfc3339": _rfc3339(end_dt),
-        "start_timezone": DEFAULT_TIMEZONE,
         "location": block.get("location"),
         "description": description,
         "rrule": rrule,
         "attendees": block.get("attendees"),
         "source_inbox_path": source_inbox_path,
     }
+    # #780: a whole-day, time-less event is a TRUE all-day event — emit the
+    # date-based (`start_date`/`end_date`) form so the calendar helper creates a
+    # Google all-day event, not a midnight-to-midnight timed one. Google's all-day
+    # end is exclusive; we take `end_dt`'s calendar date directly. For the common
+    # case `end_dt` is start + a whole-day duration (its date is the exclusive end);
+    # if the block instead carried an explicit end (which takes precedence above),
+    # that end's date is used verbatim — also treated as exclusive. Otherwise emit
+    # the timed (`start_rfc3339`) form.
+    if _is_all_day_duration(duration) and _parse_time_component(start_natural) is None:
+        payload["start_date"] = start_dt.date().isoformat()
+        payload["end_date"] = end_dt.date().isoformat()
+    else:
+        payload["start_rfc3339"] = _rfc3339(start_dt)
+        payload["end_rfc3339"] = _rfc3339(end_dt)
+        payload["start_timezone"] = DEFAULT_TIMEZONE
     return {
         "complete": True,
         "missing_fields": [],

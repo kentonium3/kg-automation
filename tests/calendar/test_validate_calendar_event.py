@@ -285,7 +285,10 @@ def test_end_takes_precedence_over_duration_when_both_present() -> None:
 
 
 def test_all_day_event_date_only() -> None:
-    """start_natural is a date-only string → defaults to 00:00; end uses 1-day default."""
+    """A date-only start with a whole-day duration is a TRUE all-day event (#780):
+    the payload uses Google's date form (``start_date``/``end_date``, exclusive
+    end) — NOT a midnight ``start_rfc3339`` — so the calendar helper creates a
+    real all-day event, not a midnight-to-midnight timed one."""
     block = {
         "title": "Anniversary",
         "start_natural": "June 14, 2026",
@@ -296,7 +299,48 @@ def test_all_day_event_date_only() -> None:
     }
     result = vce.validate(block)
     assert result["complete"] is True
-    assert result["calendar_event_payload"]["start_rfc3339"].startswith("2026-06-14T00:00:00")
+    payload = result["calendar_event_payload"]
+    assert payload["start_date"] == "2026-06-14"
+    assert payload["end_date"] == "2026-06-15"  # Google all-day end is exclusive
+    assert "start_rfc3339" not in payload
+    assert "end_rfc3339" not in payload
+
+
+def test_all_day_event_multi_day_exclusive_end() -> None:
+    """A multi-day all-day event: the exclusive end date is start + N days (#780).
+    Guards the off-by-one that a 1-day case cannot catch."""
+    block = {
+        "title": "Conference",
+        "start_natural": "June 14, 2026",
+        "duration_natural": "3 days",
+        "source_inbox_path": "/tmp/Inbox 2026-06-07 1000.md",
+        "source_block_index": 0,
+        "tick_iso": "2026-06-07T10:00:00-04:00",
+    }
+    result = vce.validate(block)
+    assert result["complete"] is True
+    payload = result["calendar_event_payload"]
+    assert payload["start_date"] == "2026-06-14"
+    assert payload["end_date"] == "2026-06-17"  # 3-day span, exclusive end
+    assert "start_rfc3339" not in payload
+
+
+def test_explicit_time_with_whole_day_duration_stays_timed() -> None:
+    """An explicit time PLUS a whole-day duration is a TIMED event, not all-day
+    (#780): the all-day branch must not swallow it — it keeps start_rfc3339."""
+    block = {
+        "title": "Move-out walkthrough",
+        "start_natural": "June 14, 2026 at 3pm",
+        "duration_natural": "1 day",
+        "source_inbox_path": "/tmp/Inbox 2026-06-07 1000.md",
+        "source_block_index": 0,
+        "tick_iso": "2026-06-07T10:00:00-04:00",
+    }
+    result = vce.validate(block)
+    assert result["complete"] is True
+    payload = result["calendar_event_payload"]
+    assert payload["start_rfc3339"].startswith("2026-06-14T15:00:00")
+    assert "start_date" not in payload
 
 
 # --- #739 time-of-day policy: timed appointment with no time → clarify --------
