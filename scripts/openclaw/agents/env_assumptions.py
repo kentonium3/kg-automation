@@ -12,12 +12,12 @@ first, so it depends on neither the deployed cwd nor an inherited env var::
     cd /home/claude/kg-automation && python3 -m scripts.<pkg>.<mod> [absolute args]
     cd /home/claude/kg-automation && python3 scripts/<path>.py [absolute args]
 
-NOTE: this checker validates the invocation *shape*, not whether the target script
-is runnable by path. The file-path form is correct ONLY for a self-contained script;
-any helper that does ``import scripts.…`` must use the ``-m scripts.<pkg>.<mod>`` form
-(running by path does not put the repo root on ``sys.path``). Prefer ``-m`` for every
-repo helper. (Standing rule; strengthening the checker to resolve the target's imports
-is a tracked follow-up.)
+The file-path form is correct ONLY for a self-contained script; any helper that
+does ``import scripts.…`` must use the ``-m scripts.<pkg>.<mod>`` form (running by
+path does not put the repo root on ``sys.path``). As of #668 the checker resolves
+the target of a ``python3 scripts/<path>.py`` invocation against this checkout and
+flags it (``SCRIPT_PATH_IMPORTS_SCRIPTS``) when the target imports ``scripts.…`` —
+so the ``-m`` trap is caught at authoring time, not at the next cron ModuleNotFoundError.
 
 Rationale: OpenClaw's ``exec`` tool runs commands in a sanitized subshell that
 STRIPS ``PYTHONPATH``, so the old #658 ``cd "${PYTHONPATH:?…}"`` anchor exits 127 on
@@ -57,6 +57,7 @@ class ViolationKind(enum.Enum):
 
     BARE_M_SCRIPTS = "bare_m_scripts"
     RELATIVE_SCRIPT = "relative_script"
+    SCRIPT_PATH_IMPORTS_SCRIPTS = "script_path_imports_scripts"
     PYTHONPATH_ANCHOR = "pythonpath_anchor"
     HARDCODED_ABS_PATH = "hardcoded_abs_path"
     HOME_RELATIVE_WRITE = "home_relative_write"
@@ -70,6 +71,10 @@ _REMEDIATION = {
     ),
     ViolationKind.RELATIVE_SCRIPT: (
         "anchor with cd /home/claude/kg-automation && python3 scripts/....py"
+    ),
+    ViolationKind.SCRIPT_PATH_IMPORTS_SCRIPTS: (
+        "target imports scripts.* — run it as python3 -m scripts.<pkg>.<mod>; "
+        "the path form fails ModuleNotFoundError (repo root not on sys.path)"
     ),
     ViolationKind.PYTHONPATH_ANCHOR: (
         "${PYTHONPATH:?...} fails under OpenClaw exec — use "
@@ -137,6 +142,34 @@ _WAIVER_RE = re.compile(r"#\s*env-guard:\s*waive\s+(?P<kind>[a-z_]+)", re.IGNORE
 
 # The hardcoded checkout literal(s) we treat as a checkout-path assumption.
 _HARDCODED_CHECKOUT_RE = re.compile(r"/home/[^/\s]+/(?:repos/)?kg-automation")
+
+# #668 — a target repo helper that imports the ``scripts`` package. Such a helper
+# fails ``ModuleNotFoundError`` when run by path (``python3 scripts/x.py`` does not
+# put the repo root on ``sys.path``); only ``-m scripts.<pkg>.<mod>`` works.
+_IMPORTS_SCRIPTS_RE = re.compile(r"^\s*(?:from|import)\s+scripts[.\s]", re.MULTILINE)
+
+# This checker lives at ``<repo>/scripts/openclaw/agents/env_assumptions.py``; the
+# repo root (which the prompts' ``scripts/<path>.py`` invocations resolve against)
+# is three parents up. Resolving the target against this checkout is correct
+# because every helper a prompt can invoke lives in this same repo.
+_REPO_ROOT = Path(__file__).resolve().parents[3]
+
+
+def _target_imports_scripts(rel_path: str) -> bool:
+    """True if the repo helper at ``scripts/<rel_path>`` imports ``scripts.…``.
+
+    Resolves ``rel_path`` (the capture after ``scripts/``) against this checkout
+    and reads the target. Deterministic file I/O only (same repo state → same
+    answer). A missing/unreadable target returns ``False`` — the shape checks
+    still apply; we only *add* the ``-m``-trap finding when we can prove the
+    target is an importer.
+    """
+    target = _REPO_ROOT / "scripts" / rel_path
+    try:
+        source = target.read_text(encoding="utf-8")
+    except (FileNotFoundError, OSError, ValueError, IsADirectoryError):
+        return False
+    return bool(_IMPORTS_SCRIPTS_RE.search(source))
 
 
 # --- Recognizer ---------------------------------------------------------------
@@ -243,9 +276,20 @@ def _classify(start: int, text: str, path: str) -> list[Finding]:
 
     # Relative-script invocations (`python3 scripts/x.py`) and bare imperative
     # `scripts/x.py` references — same anchor rule as the -m form (Codex HIGH-2).
+    # #668: for the first concrete match, if the target imports scripts.* it is
+    # the `-m` trap — flag SCRIPT_PATH_IMPORTS_SCRIPTS *regardless of the anchor*
+    # (an importer-by-path fails ModuleNotFoundError even with a correct
+    # checkout-cd), and steer to `-m` rather than the anchored-path form. A
+    # self-contained target keeps the existing anchor rule.
     for m in _REL_SCRIPT_RE.finditer(text):
         if "<" in m.group("path"):  # placeholder like scripts/<pkg>/x.py
             continue
+        if _target_imports_scripts(m.group("path")):
+            findings.append(
+                Finding(path, start, ViolationKind.SCRIPT_PATH_IMPORTS_SCRIPTS, snippet,
+                        _REMEDIATION[ViolationKind.SCRIPT_PATH_IMPORTS_SCRIPTS])
+            )
+            break
         if _governing_anchor(text[: m.start()]) is None:
             findings.append(
                 Finding(path, start, ViolationKind.RELATIVE_SCRIPT, snippet,

@@ -29,7 +29,7 @@ def test_canonical_checkout_cd_m_form_passes():
 
 
 def test_canonical_checkout_cd_relative_script_form_passes():
-    text = "cd /home/claude/kg-automation && python3 scripts/inbox/prescan.py --self-check"
+    text = "cd /home/claude/kg-automation && python3 scripts/openclaw/agents/main/felix-file-issue.py --self-check"
     assert scan_text(text) == []
 
 
@@ -97,7 +97,7 @@ def test_home_relative_write_flagged():
 
 
 def test_relative_script_python3_form_unanchored_flagged():
-    assert _kinds("python3 scripts/inbox/prescan.py --self-check") == [
+    assert _kinds("python3 scripts/openclaw/agents/main/felix-file-issue.py --self-check") == [
         ViolationKind.RELATIVE_SCRIPT
     ]
 
@@ -115,14 +115,14 @@ def test_relative_script_with_checkout_cd_passes():
 
 def test_relative_script_backslash_continuation_anchored_passes():
     text = (
-        "cd /home/claude/kg-automation && python3 scripts/inbox/prescan.py \\\n"
+        "cd /home/claude/kg-automation && python3 scripts/openclaw/agents/main/felix-file-issue.py \\\n"
         "  --input-file /tmp/reply.json"
     )
     assert scan_text(text) == []
 
 
 def test_relative_script_backslash_continuation_unanchored_flagged():
-    text = "python3 scripts/inbox/prescan.py \\\n  --input-file /tmp/reply.json"
+    text = "python3 scripts/openclaw/agents/main/felix-file-issue.py \\\n  --input-file /tmp/reply.json"
     findings = scan_text(text)
     assert [f.kind for f in findings] == [ViolationKind.RELATIVE_SCRIPT]
     assert findings[0].line == 1  # reports the STARTING line
@@ -130,7 +130,7 @@ def test_relative_script_backslash_continuation_unanchored_flagged():
 
 def test_relative_script_governed_by_pythonpath_suppressed():
     # A relative script after a ${PYTHONPATH:?} cd is only reported as PYTHONPATH_ANCHOR.
-    text = 'cd "${PYTHONPATH:?x}" && python3 scripts/inbox/prescan.py'
+    text = 'cd "${PYTHONPATH:?x}" && python3 scripts/openclaw/agents/main/felix-file-issue.py'
     assert _kinds(text) == [ViolationKind.PYTHONPATH_ANCHOR]
 
 
@@ -148,7 +148,7 @@ def test_wrong_path_cd_kgale_flagged():
 
 
 def test_wrong_path_cd_tmp_relative_script_flagged():
-    text = "cd /tmp/kg-automation && python3 scripts/inbox/prescan.py"
+    text = "cd /tmp/kg-automation && python3 scripts/openclaw/agents/main/felix-file-issue.py"
     assert _kinds(text) == [ViolationKind.RELATIVE_SCRIPT]
 
 
@@ -254,7 +254,7 @@ def test_waiver_wrong_kind_does_not_suppress():
 
 
 def test_waiver_relative_script_suppresses():
-    text = "python3 scripts/inbox/prescan.py  # env-guard: waive relative_script — intentional"
+    text = "python3 scripts/openclaw/agents/main/felix-file-issue.py  # env-guard: waive relative_script — intentional"
     assert scan_text(text) == []
 
 
@@ -272,3 +272,58 @@ def test_finding_carries_line_and_remediation():
     assert findings[0].line == 1
     # Remediation steers to the checkout-cd form.
     assert "/home/claude/kg-automation" in findings[0].remediation
+
+
+# --- SCRIPT_PATH_IMPORTS_SCRIPTS (the -m trap, #668) --------------------------
+# These use REAL repo files so the checker resolves the target's imports:
+#   scripts/inbox/prescan.py            imports scripts.*  (an importer)
+#   scripts/openclaw/agents/main/felix-file-issue.py       self-contained
+_IMPORTER = "scripts/inbox/prescan.py"
+_SELF_CONTAINED = "scripts/openclaw/agents/main/felix-file-issue.py"
+
+
+def test_script_path_importer_flagged_even_when_anchored():
+    """#668: an importer run by path is the -m trap and fails at runtime EVEN
+    with a correct checkout-cd — so it must be flagged despite the anchor."""
+    text = f"cd /home/claude/kg-automation && python3 {_IMPORTER} --self-check"
+    assert _kinds(text) == [ViolationKind.SCRIPT_PATH_IMPORTS_SCRIPTS]
+
+
+def test_script_path_importer_unanchored_flagged_as_import_trap():
+    """The importer check takes priority over RELATIVE_SCRIPT (the -m form is the
+    correct fix, not the anchored-path form)."""
+    assert _kinds(f"python3 {_IMPORTER}") == [
+        ViolationKind.SCRIPT_PATH_IMPORTS_SCRIPTS
+    ]
+
+
+def test_script_path_importer_remediation_steers_to_m_form():
+    findings = scan_text(f"cd /home/claude/kg-automation && python3 {_IMPORTER}")
+    assert findings[0].kind is ViolationKind.SCRIPT_PATH_IMPORTS_SCRIPTS
+    assert "-m scripts" in findings[0].remediation
+
+
+def test_m_form_of_importer_is_compliant():
+    """The correct -m form of the same importer must NOT be flagged."""
+    text = "cd /home/claude/kg-automation && python3 -m scripts.inbox.prescan"
+    assert scan_text(text) == []
+
+
+def test_self_contained_script_by_path_not_import_trapped():
+    """A genuinely self-contained script by path is compliant when anchored —
+    the importer check must not false-flag it (regression guard)."""
+    text = f"cd /home/claude/kg-automation && python3 {_SELF_CONTAINED}"
+    assert scan_text(text) == []
+
+
+def test_nonexistent_script_path_not_import_trapped():
+    """A path we cannot resolve to a real file cannot be proven an importer, so
+    the -m-trap finding is not added (the shape rules still apply)."""
+    text = "cd /home/claude/kg-automation && python3 scripts/does/not/exist.py"
+    assert ViolationKind.SCRIPT_PATH_IMPORTS_SCRIPTS not in _kinds(text)
+
+
+def test_importer_placeholder_path_not_flagged():
+    """A `<placeholder>` path is documentation, never resolved."""
+    text = "cd /home/claude/kg-automation && python3 scripts/inbox/<helper>.py"
+    assert ViolationKind.SCRIPT_PATH_IMPORTS_SCRIPTS not in _kinds(text)
