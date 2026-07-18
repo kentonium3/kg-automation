@@ -123,3 +123,4 @@ Execution worktree per computed lane in `lanes.json`.
 - 2026-07-18T23:02:45Z – claude:sonnet:curator-carla:implementer – shell_pid=92653 – Assigned agent via action command
 - 2026-07-18T23:10:45Z – claude:sonnet:curator-carla:implementer – shell_pid=92653 – Process-flow doc + signal-to-doc-map (2 change classes) + INDEX; validators green; discoverable without opening kitty-specs
 - 2026-07-18T23:10:56Z – claude:opus:reviewer-renata:reviewer – shell_pid=95570 – Started review via action command
+- 2026-07-18T23:14:08Z – user – shell_pid=95570 – Review passed (reviewer-renata): doc matches shipped code zero-drift; validators green; discoverable
