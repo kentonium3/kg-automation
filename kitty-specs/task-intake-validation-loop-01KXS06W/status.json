@@ -1,19 +1,19 @@
 {
-  "event_count": 40,
-  "last_event_id": "01KXS8VKDD4P9XG9V8KAC89YE6",
-  "materialized_at": "2026-07-18T00:08:43.693187+00:00",
+  "event_count": 41,
+  "last_event_id": "01KXS93KPCEN6R0ME9BPFB44HH",
+  "materialized_at": "2026-07-18T00:13:06.124188+00:00",
   "mission_number": "",
   "mission_slug": "task-intake-validation-loop-01KXS06W",
   "mission_type": "software-dev",
   "summary": {
-    "approved": 5,
+    "approved": 6,
     "blocked": 0,
     "canceled": 0,
     "claimed": 0,
     "done": 0,
     "for_review": 0,
     "in_progress": 0,
-    "in_review": 1,
+    "in_review": 0,
     "planned": 0
   },
   "work_packages": {
@@ -53,11 +53,11 @@
       "last_transition_at": "2026-07-17T23:43:18.825675+00:00"
     },
     "WP06": {
-      "actor": "claude:opus:reviewer-renata:reviewer",
+      "actor": "user",
       "force_count": 0,
-      "lane": "in_review",
-      "last_event_id": "01KXS8VKDD4P9XG9V8KAC89YE6",
-      "last_transition_at": "2026-07-18T00:08:43.693187+00:00"
+      "lane": "approved",
+      "last_event_id": "01KXS93KPCEN6R0ME9BPFB44HH",
+      "last_transition_at": "2026-07-18T00:13:06.124188+00:00"
     }
   }
 }
