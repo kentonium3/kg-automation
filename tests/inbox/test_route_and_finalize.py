@@ -33,6 +33,17 @@ from scripts.inbox import routing_log as _routing_log
 # ---------------------------------------------------------------------------
 
 
+@pytest.fixture(autouse=True)
+def _no_existing_task(monkeypatch):
+    """#751: default the in-process provenance precheck to 'no existing task' so
+    the create path behaves as before. Tests that exercise the reconcile/reuse
+    path override this with their own store-scanning stub. (The delegated
+    vikunja_task path never calls the precheck.)"""
+    monkeypatch.setattr(
+        raf, "_find_existing_task_by_provenance", lambda *a, **k: None
+    )
+
+
 def _write_plan(tmp_path: Path, plan: dict | str, name: str = "plan.json") -> Path:
     target = tmp_path / name
     if isinstance(plan, str):
@@ -220,6 +231,243 @@ class TestSomeday:
         assert create_calls["n"] == 1, "must NOT re-create the task on retry"
         assert ok_mark.calls == ["/inbox/Note.md"]
         assert len(_log_rows(log_path)) == 1, "no duplicate routing-log row"
+
+    # -- #751: the create→verify / create→log failure windows ---------------
+    #
+    # These are the windows the routing-log skip does NOT cover: the create
+    # succeeds but the tick dies BEFORE the routing-log row is written (verify
+    # fails, or the log append itself fails). Without the provenance precheck the
+    # next tick re-creates → orphan. With it, the next tick finds the task the
+    # prior tick created and reuses it (no double-create).
+
+    def _install_store(self, monkeypatch):
+        """Wire the create + precheck seams to a shared in-memory Vikunja 'world'.
+
+        create appends a task whose description carries the SAME Source/Block
+        footer route_someday writes; the precheck runs the REAL line-anchored
+        matcher over the store. Returns (store, create_calls)."""
+        store: list[dict] = []
+        create_calls = {"n": 0}
+        next_id = {"v": 900}
+
+        def fake_create(title, body, note_filename, project, block_key):
+            create_calls["n"] += 1
+            next_id["v"] += 1
+            store.append(
+                {
+                    "id": next_id["v"],
+                    "description": f"{body}\n\nSource: {note_filename}\nBlock: {block_key}",
+                }
+            )
+            return next_id["v"]
+
+        def fake_find(note_filename, block_key):
+            return raf._match_provenance(store, note_filename, block_key)
+
+        monkeypatch.setattr(raf, "_create_vikunja_task", fake_create)
+        monkeypatch.setattr(raf, "_find_existing_task_by_provenance", fake_find)
+        return store, create_calls
+
+    def test_retry_no_double_create_after_verify_failure(
+        self, tmp_path, capsys, monkeypatch, log_path
+    ):
+        """Tick 1: create succeeds, VERIFY fails (task never logged). Tick 2: the
+        precheck finds the task tick 1 created and reuses it — no second create."""
+        store, create_calls = self._install_store(monkeypatch)
+        pf = _write_plan(tmp_path, self._plan())
+
+        # Tick 1: fetch returns a non-matching id → verify failure. The task IS
+        # created (and lands in `store`) but the block is never logged.
+        monkeypatch.setattr(raf, "_fetch_vikunja_task", lambda tid: {})
+        mark1 = _MarkSpy()
+        monkeypatch.setattr(raf, "_invoke_mark_processed", mark1)
+        code, out, _ = _run(
+            ["--source-path", "/inbox/Note.md", "--plan-file", str(pf)], capsys
+        )
+        assert code == 1
+        assert json.loads(out)["blocks"][0]["stage"] == "verify"
+        assert create_calls["n"] == 1
+        assert len(store) == 1  # the orphan-risk task exists
+        assert mark1.calls == []
+        assert _log_rows(log_path) == []
+
+        # Tick 2: verify now resolves. The precheck must find the tick-1 task and
+        # REUSE it (deduped) rather than create a second one.
+        monkeypatch.setattr(
+            raf, "_fetch_vikunja_task", lambda tid: {"id": tid}
+        )
+        mark2 = _MarkSpy()
+        monkeypatch.setattr(raf, "_invoke_mark_processed", mark2)
+        code, out, _ = _run(
+            ["--source-path", "/inbox/Note.md", "--plan-file", str(pf)], capsys
+        )
+        result = json.loads(out)
+        assert code == 0, out
+        assert result["status"] == "finalized"
+        assert result["blocks"][0].get("deduped") is True
+        assert create_calls["n"] == 1, "must NOT re-create; the tick-1 task is reused"
+        assert len(store) == 1, "no duplicate task created"
+        assert mark2.calls == ["/inbox/Note.md"]
+        rows = _log_rows(log_path)
+        assert len(rows) == 1
+        assert rows[0]["vikunja_task_id"] == 901
+
+    def test_retry_no_double_create_after_log_failure(
+        self, tmp_path, capsys, monkeypatch, log_path
+    ):
+        """Tick 1: create + verify succeed but the routing-log APPEND fails (block
+        never logged). Tick 2: the precheck finds the task and reuses it."""
+        store, create_calls = self._install_store(monkeypatch)
+        monkeypatch.setattr(raf, "_fetch_vikunja_task", lambda tid: {"id": tid})
+        pf = _write_plan(tmp_path, self._plan())
+
+        # Tick 1: force the routing-log append to fail AFTER create+verify.
+        real_append = raf.RoutingLogWriter.append
+
+        def boom_append(self, *a, **k):
+            raise OSError("disk full")
+
+        monkeypatch.setattr(raf.RoutingLogWriter, "append", boom_append)
+        mark1 = _MarkSpy()
+        monkeypatch.setattr(raf, "_invoke_mark_processed", mark1)
+        code, out, _ = _run(
+            ["--source-path", "/inbox/Note.md", "--plan-file", str(pf)], capsys
+        )
+        assert code == 1
+        assert json.loads(out)["blocks"][0]["stage"] == "log"
+        assert create_calls["n"] == 1
+        assert len(store) == 1
+        assert mark1.calls == []
+        assert _log_rows(log_path) == []
+
+        # Tick 2: log append works again. Precheck finds the tick-1 task → reuse.
+        monkeypatch.setattr(raf.RoutingLogWriter, "append", real_append)
+        mark2 = _MarkSpy()
+        monkeypatch.setattr(raf, "_invoke_mark_processed", mark2)
+        code, out, _ = _run(
+            ["--source-path", "/inbox/Note.md", "--plan-file", str(pf)], capsys
+        )
+        result = json.loads(out)
+        assert code == 0, out
+        assert result["status"] == "finalized"
+        assert result["blocks"][0].get("deduped") is True
+        assert create_calls["n"] == 1, "must NOT re-create; the tick-1 task is reused"
+        assert len(store) == 1
+        assert mark2.calls == ["/inbox/Note.md"]
+        assert len(_log_rows(log_path)) == 1
+
+    def test_precheck_scan_failure_fails_closed_no_create(
+        self, tmp_path, capsys, monkeypatch, log_path
+    ):
+        """If the precheck scan itself errors, the block fails CLOSED — no task is
+        created (never create when we could not first check for an existing one)."""
+        from scripts.common.vikunja_client import VikunjaError
+
+        def boom_find(note_filename, block_key):
+            raise VikunjaError("tasks/all unreachable")
+
+        created = {"n": 0}
+
+        def must_not_create(*a, **k):
+            created["n"] += 1
+            return 512
+
+        monkeypatch.setattr(raf, "_find_existing_task_by_provenance", boom_find)
+        monkeypatch.setattr(raf, "_create_vikunja_task", must_not_create)
+        mark = _MarkSpy()
+        monkeypatch.setattr(raf, "_invoke_mark_processed", mark)
+
+        pf = _write_plan(tmp_path, self._plan())
+        code, out, _ = _run(
+            ["--source-path", "/inbox/Note.md", "--plan-file", str(pf)], capsys
+        )
+        assert code == 1
+        assert json.loads(out)["blocks"][0]["stage"] == "precheck"
+        assert created["n"] == 0, "must NOT create when the precheck could not run"
+        assert mark.calls == []
+        assert _log_rows(log_path) == []
+
+
+# ===========================================================================
+# #751: the pure provenance matcher (_match_provenance)
+# ===========================================================================
+
+
+class TestMatchProvenance:
+    def _task(self, tid, note, block):
+        return {"id": tid, "description": f"body\n\nSource: {note}\nBlock: {block}"}
+
+    def test_matches_on_both_source_and_block(self):
+        tasks = [self._task(10, "Note.md", "0:hash0")]
+        m = raf._match_provenance(tasks, "Note.md", "0:hash0")
+        assert m is not None and m["id"] == 10
+
+    def test_no_match_when_block_key_differs(self):
+        tasks = [self._task(10, "Note.md", "0:hash0")]
+        assert raf._match_provenance(tasks, "Note.md", "1:hash1") is None
+
+    def test_no_match_when_source_differs(self):
+        tasks = [self._task(10, "Other.md", "0:hash0")]
+        assert raf._match_provenance(tasks, "Note.md", "0:hash0") is None
+
+    def test_source_is_line_anchored_not_substring(self):
+        # A task belonging to "Inbox 10.md" must not match "Inbox 1.md".
+        tasks = [self._task(10, "Inbox 10.md", "0:hash0")]
+        assert raf._match_provenance(tasks, "Inbox 1.md", "0:hash0") is None
+
+    def test_lowest_id_wins_on_duplicate(self):
+        tasks = [
+            self._task(30, "Note.md", "0:h"),
+            self._task(11, "Note.md", "0:h"),
+            self._task(22, "Note.md", "0:h"),
+        ]
+        m = raf._match_provenance(tasks, "Note.md", "0:h")
+        assert m["id"] == 11
+
+    def test_ignores_malformed_entries(self):
+        tasks = ["nope", {"id": 5}, {"id": 6, "description": None}]
+        assert raf._match_provenance(tasks, "Note.md", "0:h") is None
+
+
+class _PagedClient:
+    """Fake VikunjaClient returning a queued sequence of /tasks/all page bodies."""
+
+    def __init__(self, pages):
+        self._pages = list(pages)
+        self.calls = 0
+
+    def get(self, path, params=None, **kwargs):
+        assert path == "/tasks/all"
+        self.calls += 1
+        return self._pages.pop(0) if self._pages else []
+
+
+class TestIterAllTasks:
+    def test_null_body_on_page_one_is_empty_not_error(self):
+        """#751 review: Vikunja returns null for an empty collection — must be
+        treated as an empty page (end of pagination), NOT a scan error that would
+        fail the precheck closed and strand the note."""
+        client = _PagedClient([None])
+        assert raf._iter_all_tasks(client) == []
+
+    def test_null_after_full_page_terminates_with_that_page(self):
+        full = [{"id": i, "description": "x"} for i in range(50)]
+        client = _PagedClient([full, None])
+        result = raf._iter_all_tasks(client)
+        assert len(result) == 50
+        assert client.calls == 2
+
+    def test_partial_page_terminates(self):
+        client = _PagedClient([[{"id": 1, "description": "x"}]])
+        assert len(raf._iter_all_tasks(client)) == 1
+        assert client.calls == 1
+
+    def test_non_list_non_null_body_is_error(self):
+        from scripts.common.vikunja_client import VikunjaError
+
+        client = _PagedClient([{"unexpected": "dict"}])
+        with pytest.raises(VikunjaError):
+            raf._iter_all_tasks(client)
 
 
 # ===========================================================================

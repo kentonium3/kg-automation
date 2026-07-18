@@ -168,6 +168,7 @@ def route_someday(
     body: str,
     note_filename: str,
     project: str = DEFAULT_PROJECT_NAME,
+    block_key: str | None = None,
 ) -> int:
     """Create a ``q:schedule`` + no-due-date task and return its id.
 
@@ -178,6 +179,15 @@ def route_someday(
     underlying Vikunja / network / registry failure) on any *hard* error path so
     the CLI ``main`` maps it to a single exit code + structured stderr. A soft
     label-attach failure does not raise — the task is already created.
+
+    When ``block_key`` is supplied, a second footer line ``Block: <block_key>``
+    is written below ``Source: <note_filename>`` so a caller can look the task up
+    by its originating note **and** the specific block within it (the #751
+    provenance precheck — makes an in-process create idempotent *before* the side
+    effect). The ``Source:`` line is left byte-for-byte intact so the delegated
+    provenance-match path (which matches the exact ``Source:`` line) is
+    unaffected. ``block_key`` defaults to ``None`` (no ``Block:`` line) so the
+    CLI and any legacy caller are unchanged.
     """
     try:
         client = VikunjaClient()
@@ -188,6 +198,8 @@ def route_someday(
     project_id = _resolve_destination_project_id(project)
 
     description = f"{body}\n\nSource: {note_filename}"
+    if block_key:
+        description = f"{description}\nBlock: {block_key}"
     # No due date: the "someday" state is important-but-not-date-committed.
     payload = {
         "title": title,
@@ -246,6 +258,15 @@ def _build_parser() -> argparse.ArgumentParser:
             f"the task in. Default: {DEFAULT_PROJECT_NAME!r} (the fall-through bucket)."
         ),
     )
+    parser.add_argument(
+        "--block-key",
+        default=None,
+        help=(
+            "Optional per-block provenance token; when set, a 'Block: <key>' "
+            "footer line is added below 'Source:' so the task can be looked up by "
+            "its originating block (the #751 idempotency precheck)."
+        ),
+    )
     return parser
 
 
@@ -267,6 +288,7 @@ def main(argv: list[str] | None = None) -> int:
             body=args.body,
             note_filename=args.note_filename,
             project=args.project,
+            block_key=args.block_key,
         )
     except RouteSomedayError as exc:
         _emit_error(str(exc))

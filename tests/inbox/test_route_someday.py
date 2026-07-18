@@ -152,6 +152,35 @@ def test_someday_lands_in_inbox_with_qschedule_and_no_due_date(monkeypatch, caps
     assert "task_id=555" in capsys.readouterr().out
 
 
+def test_block_key_adds_provenance_footer_line(monkeypatch):
+    """#751: a supplied block_key writes a 'Block: <key>' line below 'Source:'
+    (leaving the exact Source line intact for the delegated match)."""
+    client = _install(monkeypatch, FakeClient(create_response={"id": 555}))
+    rs.route_someday(
+        title="Try Iceland again",
+        body="Planning notes",
+        note_filename="2026-06-09-iceland.md",
+        block_key="3:abc123",
+    )
+    _, payload = client.create_calls[0]
+    lines = payload["description"].splitlines()
+    assert "Source: 2026-06-09-iceland.md" in lines
+    assert "Block: 3:abc123" in lines
+
+
+def test_no_block_key_omits_block_line(monkeypatch):
+    """Backward compat: no block_key → no 'Block:' line (CLI/legacy callers)."""
+    client = _install(monkeypatch, FakeClient(create_response={"id": 555}))
+    rs.route_someday(
+        title="Try Iceland again",
+        body="Planning notes",
+        note_filename="2026-06-09-iceland.md",
+    )
+    _, payload = client.create_calls[0]
+    assert "Block:" not in payload["description"]
+    assert "Source: 2026-06-09-iceland.md" in payload["description"]
+
+
 def test_attach_failure_still_creates_task_and_logs_loudly(monkeypatch, capsys):
     """The #715 403 case: attach fails, task is still created, route succeeds,
     and the degraded state is logged loudly (never silently swallowed)."""

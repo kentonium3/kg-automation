@@ -132,15 +132,103 @@ def _invoke_mark_processed(source_path: str) -> "subprocess.CompletedProcess[str
 
 
 def _create_vikunja_task(
-    title: str, body: str, note_filename: str, project: str
+    title: str, body: str, note_filename: str, project: str, block_key: str
 ) -> int:
     """Create a ``q:schedule`` + no-due-date Vikunja task; return its id.
 
     Thin seam over ``route_someday.route_someday`` (the durable-landing creator)
     so the in-process ``someday`` / ``vikunja_task`` paths share one create
-    implementation and tests can monkeypatch this single call site.
+    implementation and tests can monkeypatch this single call site. ``block_key``
+    is written into the task's ``Block:`` provenance footer so a later tick can
+    find this exact block's task before re-creating it (#751).
     """
-    return route_someday.route_someday(title, body, note_filename, project)
+    return route_someday.route_someday(
+        title, body, note_filename, project, block_key=block_key
+    )
+
+
+def _iter_all_tasks(client: VikunjaClient) -> "list[dict]":
+    """Return every task via the paginated ``GET /tasks/all`` (client-side scan).
+
+    Vikunja caps ``/tasks/all`` at 50 per page and rejects several server-side
+    ``?filter=`` expressions (G6/G7), so the #751 provenance precheck reads the
+    full list and filters in Python. ``MAX_PAGES`` is a runaway-loop bound.
+    """
+    PAGE_SIZE = 50
+    MAX_PAGES = 200
+    out: list[dict] = []
+    for page in range(1, MAX_PAGES + 1):
+        batch = client.get("/tasks/all", params={"page": page, "per_page": PAGE_SIZE})
+        # Vikunja returns JSON ``null`` (not ``[]``) for an empty collection /
+        # exhausted page on this endpoint. Treat it as an empty page — the
+        # end of pagination — NOT a scan error: raising here would fail the
+        # precheck closed on an empty task list and strand the note (silent
+        # loss). A genuine HTTP failure surfaces as an exception from ``.get``.
+        if batch is None:
+            break
+        if not isinstance(batch, list):
+            raise VikunjaError(
+                f"GET /tasks/all page {page} returned non-list body: {type(batch).__name__!r}"
+            )
+        if not batch:
+            break
+        out.extend(b for b in batch if isinstance(b, dict))
+        if len(batch) < PAGE_SIZE:
+            break
+    else:
+        raise VikunjaError(
+            f"GET /tasks/all hit page cap ({MAX_PAGES}); refusing an unbounded scan"
+        )
+    return out
+
+
+def _match_provenance(
+    tasks: "list[dict]", note_filename: str, block_key: str
+) -> Optional[dict]:
+    """Return the lowest-id task carrying this note+block's provenance, or ``None``.
+
+    A match requires BOTH the exact ``Source: <note_filename>`` line AND the exact
+    ``Block: <block_key>`` line in the task description (line-anchored, like the
+    delegated provenance match — a substring test would false-match ``Inbox 1.md``
+    inside ``Source: Inbox 10.md``). Lowest-id-wins makes a (pathological)
+    pre-existing double-create converge on one task across ticks. Pure function
+    over an already-fetched task list (the network seam is :func:`_iter_all_tasks`).
+    """
+    source_line = f"Source: {note_filename}"
+    block_line = f"Block: {block_key}"
+    matches: list[dict] = []
+    for task in tasks:
+        if not isinstance(task, dict):
+            continue
+        description = task.get("description")
+        if not isinstance(description, str) or not description:
+            continue
+        lines = [ln.rstrip() for ln in description.splitlines()]
+        if source_line in lines and block_line in lines:
+            matches.append(task)
+    if not matches:
+        return None
+    matches.sort(key=lambda t: int(t.get("id", 0)))
+    return matches[0]
+
+
+def _find_existing_task_by_provenance(
+    note_filename: str, block_key: str
+) -> Optional[dict]:
+    """Return an existing task created for this exact note+block, or ``None``.
+
+    The #751 idempotency precheck: before an in-process ``someday`` /
+    ``vikunja_task`` create, scan all tasks for one whose description carries this
+    note+block's provenance. If a prior tick created the task but failed before
+    logging, this finds it so the block is reused (verified + logged) rather than
+    re-created — closing the create→verify/log-failure orphan window.
+
+    Raises ``VikunjaError`` / ``ConnectionError`` on a scan failure so the caller
+    can fail **closed** (never create when we could not check for an existing
+    task).
+    """
+    client = VikunjaClient()
+    return _match_provenance(_iter_all_tasks(client), note_filename, block_key)
 
 
 def _fetch_vikunja_task(task_id: int) -> dict:
@@ -316,19 +404,59 @@ def _adapt_calendar(
     )
 
 
+def _block_provenance_key(block: dict) -> str:
+    """The per-block provenance token embedded in the task's ``Block:`` footer.
+
+    ``<block_index>:<block_key_hash>`` — mirrors the routing-log idempotency key
+    (filename, block_index, block_hash) so two identical-content blocks in one
+    note (same hash, different index) map to two distinct tasks, and the token is
+    stable across ticks (the property the precheck relies on).
+    """
+    return f"{block.get('block_index')}:{_block_key_hash(block)}"
+
+
 def _create_and_verify_task(
     block: dict, note_filename: str, kind: str
 ) -> tuple[str, dict, Optional[dict]]:
-    """In-process create (someday / vikunja_task) then verify the id resolves."""
+    """In-process create (someday / vikunja_task) then verify the id resolves.
+
+    #751: before the create, run a provenance precheck — if a task for this exact
+    note+block already exists (a prior tick created it but failed before logging),
+    reuse it instead of creating a duplicate. The scan failing-closed (never
+    create when we could not check) preserves the no-double-create guarantee.
+    """
     payload = block.get("payload") if isinstance(block.get("payload"), dict) else {}
     title = payload.get("title")
     if not isinstance(title, str) or not title.strip():
         return "error", {"stage": "route", "error": "missing task title"}, None
     body = payload.get("body", "") if isinstance(payload.get("body", ""), str) else ""
     project = payload.get("project", "inbox") or "inbox"
+    block_key = _block_provenance_key(block)
+
+    # Provenance precheck (idempotency BEFORE the create side effect). A scan
+    # failure fails the block CLOSED — we never create a task we could not first
+    # check for, so a transient outage can never orphan a duplicate.
+    try:
+        existing = _find_existing_task_by_provenance(note_filename, block_key)
+    except (VikunjaError, ConnectionError, ValueError) as exc:
+        return "error", {"stage": "precheck", "error": str(exc)}, None
+
+    if existing is not None:
+        task_id = int(existing.get("id", 0))
+        if task_id <= 0:
+            return (
+                "error",
+                {"stage": "precheck", "error": "matched task has no usable id"},
+                None,
+            )
+        return (
+            "routed",
+            {"artifact": str(task_id), "deduped": True},
+            {"kind": kind, "destination": str(task_id), "vikunja_task_id": task_id},
+        )
 
     try:
-        task_id = _create_vikunja_task(title, body, note_filename, project)
+        task_id = _create_vikunja_task(title, body, note_filename, project, block_key)
     except route_someday.RouteSomedayError as exc:
         return "error", {"stage": "route", "error": str(exc)}, None
 
