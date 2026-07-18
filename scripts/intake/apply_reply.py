@@ -441,6 +441,27 @@ def _has_due(task: dict[str, Any]) -> bool:
     return isinstance(due, str) and bool(due) and not due.startswith(_UNSET_DUE_PREFIX)
 
 
+def _due_instant(value: object) -> datetime | None:
+    """Parse a Vikunja due-date string to an aware UTC instant, or ``None`` when
+    it is missing / the unset sentinel / unparseable.
+
+    Vikunja serializes every ``due_date`` to UTC ``Z`` (#733/#736), so a due-date
+    we write as an ET offset (``…-04:00``) reads back as the same instant in
+    ``…Z`` form. Comparing the *instant* (not the string) is what makes the
+    readback diff correct — a raw string compare false-fails on that
+    representation change (#757).
+    """
+    if not isinstance(value, str) or not value or value.startswith(_UNSET_DUE_PREFIX):
+        return None
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)
+
+
 def _is_recurring(task: dict[str, Any]) -> bool:
     """True iff the task already carries native recurrence (``repeat_after``)."""
     repeat = task.get("repeat_after")
@@ -489,11 +510,21 @@ def _post_task_fields(
             f"to trust the write."
         )
     for name, value in changes.items():
-        if readback.get(name) != value:
+        got = readback.get(name)
+        if name == "due_date":
+            # Vikunja normalizes due_dates to UTC 'Z' (#733/#736), so compare the
+            # INSTANT — a raw string compare of our ET-offset write against the
+            # returned UTC form false-fails and triggers a retry storm (#757).
+            if _due_instant(got) != _due_instant(value):
+                raise ApplyError(
+                    f"field readback for task {task_id}: due_date instant is "
+                    f"{got!r}, expected {value!r} (partial-replace drift, #524)."
+                )
+            continue
+        if got != value:
             raise ApplyError(
                 f"field readback for task {task_id}: {name!r} is "
-                f"{readback.get(name)!r}, expected {value!r} (partial-replace "
-                f"drift, #524)."
+                f"{got!r}, expected {value!r} (partial-replace drift, #524)."
             )
 
 

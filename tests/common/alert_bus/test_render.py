@@ -110,6 +110,18 @@ def test_render_body_naive_timestamp_treated_as_utc():
     assert "2026-07-10T12:00:00+00:00 (UTC)" in body
 
 
+def test_render_body_local_timestamp_is_eastern_not_utc():
+    # #759 — "local" must render in Eastern (DST-aware), never as UTC even though
+    # office2's host TZ is Etc/UTC. Summer date → EDT (-04:00).
+    ts = datetime(2026, 7, 16, 16, 2, 43, tzinfo=timezone.utc)
+    body = render_body(_alert(timestamp=ts))
+    assert "2026-07-16T12:02:43-04:00 (local)" in body
+    # Winter date → EST (-05:00).
+    winter = datetime(2026, 1, 15, 16, 0, 0, tzinfo=timezone.utc)
+    body_w = render_body(_alert(timestamp=winter))
+    assert "2026-01-15T11:00:00-05:00 (local)" in body_w
+
+
 def test_render_body_non_string_detail_value_coerced():
     # CLI always passes strings, but the renderer must not crash on an int.
     body = render_body(_alert(details={"code": 126}))  # type: ignore[dict-item]
