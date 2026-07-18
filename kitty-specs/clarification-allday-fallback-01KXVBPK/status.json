@@ -1,7 +1,7 @@
 {
-  "event_count": 26,
-  "last_event_id": "01KXVPHBR9YHGQVWZCKH7SZE1M",
-  "materialized_at": "2026-07-18T22:46:17.097487+00:00",
+  "event_count": 28,
+  "last_event_id": "01KXVPJSA3JJ0CK2CD7R9KTTRY",
+  "materialized_at": "2026-07-18T22:47:03.746268+00:00",
   "mission_number": "",
   "mission_slug": "clarification-allday-fallback-01KXVBPK",
   "mission_type": "software-dev",
@@ -12,9 +12,9 @@
     "claimed": 0,
     "done": 0,
     "for_review": 0,
-    "in_progress": 0,
+    "in_progress": 1,
     "in_review": 0,
-    "planned": 3
+    "planned": 2
   },
   "work_packages": {
     "WP01": {
@@ -39,11 +39,11 @@
       "last_transition_at": "2026-07-18T22:46:17.097487+00:00"
     },
     "WP04": {
-      "actor": "finalize-tasks",
+      "actor": "claude:sonnet:python-pedro:implementer",
       "force_count": 0,
-      "lane": "planned",
-      "last_event_id": "01KXVH9GB35F43N6ZP9M515XN2",
-      "last_transition_at": "2026-07-18T21:14:36.771737+00:00"
+      "lane": "in_progress",
+      "last_event_id": "01KXVPJSA3JJ0CK2CD7R9KTTRY",
+      "last_transition_at": "2026-07-18T22:47:03.746268+00:00"
     },
     "WP05": {
       "actor": "finalize-tasks",
