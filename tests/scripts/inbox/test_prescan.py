@@ -930,8 +930,14 @@ def test_run_prescan_populates_archive_anomalies_field(monkeypatch, tmp_path, ca
 def test_run_prescan_empty_archive_anomalies_when_healthy(monkeypatch, tmp_path, capsys):
     """FR-009: archive_anomalies section is OMITTED on healthy ticks (no log noise)."""
     inbox, archive, _, log_dir = _setup_env(monkeypatch, tmp_path)
-    # All archive files are processed (the healthy state)
-    _make_archive_file(archive, "Inbox 2026-06-08 0712.md", "processed")
+    # A processed note is the healthy archived state. Post-#746 the health rail
+    # flags a processed note with no routing-log entry, but #753 exempts notes
+    # processed before ROUTING_LOG_CUTOVER_UTC (2026-07-17) — they predate the
+    # log-before-mark guarantee, so a missing entry is not a silent-loss signal.
+    # This fixture is dated 2026-06-08 (pre-cutover); age its mtime to match so
+    # the exemption applies and the tick is genuinely healthy.
+    p = _make_archive_file(archive, "Inbox 2026-06-08 0712.md", "processed")
+    _set_age(p, 40)
 
     rc = run_prescan()
     captured = capsys.readouterr()
@@ -989,10 +995,16 @@ def test_run_prescan_appends_cap_warning_to_warnings_list(
 
     # Only 2 anomalies scanned (cap)
     assert len(payload["archive_anomalies"]) == 2
-    # Warnings list contains the cap_applied entry (path='archive-scan')
-    cap_warnings = [w for w in payload["warnings"] if "cap_applied" in w["reason"]]
+    # Warnings list contains the archive-scan cap_applied entry. Post-#753 the
+    # health-rail scan caps the same corpus and emits its own cap_applied warning
+    # (path='health-rail'), so filter to the archive-scan source rather than
+    # asserting a single total warning.
+    cap_warnings = [
+        w
+        for w in payload["warnings"]
+        if "cap_applied" in w["reason"] and w["path"] == "archive-scan"
+    ]
     assert len(cap_warnings) == 1
-    assert cap_warnings[0]["path"] == "archive-scan"
 
 
 def test_run_prescan_handles_anomaly_as_dict_in_log(
