@@ -2,6 +2,12 @@
 """
 setup_goals.py — Configure Vikunja with Goals project, labels, and filter.
 
+RETIRED (F006 v1, #717/#734): the Goals Vikunja project this script creates
+(formerly id=11) was deleted in the #717/#714 reorg. Retained as the F006-v1
+historical record only. Do NOT run it — it would re-create a project that was
+deliberately retired. The goal-declaration concept is being redesigned as the
+separate steering-wheel substrate, not as a Vikunja project.
+
 Idempotent: safe to run multiple times. Creates only missing entities.
 Authenticates interactively via username/password → JWT (not persisted).
 

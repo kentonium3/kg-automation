@@ -181,10 +181,14 @@ included in `scripts/office2/security-monitor/configure-ufw.sh`.
 The Goals project holds goal declarations — outcome statements with target dates
 and evidence criteria. Goals are distinct from tasks: they are anchors, not actions.
 
-### Project Structure
+### Project Structure (F006 Goals project — RETIRED)
+
+> The F006 Goals Vikunja project (formerly top-level id=11) was **deleted in the
+> #717/#714 reorg**. The structure below is historical (F006 v1); the
+> goal-declaration concept now lives in the separate steering-wheel design effort.
 
 ```
-Goals                        ← Top-level project (id=11)
+Goals                        ← Top-level project (id=11) — DELETED (#717)
 ├── Intentional: $5K/month consulting income
 ├── Intentional: $2.5K/month consulting income by Q2
 └── Personal: Complete Against the Tide 5K
@@ -207,7 +211,7 @@ Every goal task must have exactly one identity label.
 | Today | `due_date >= now/d && due_date < now/d+1d && done = false` | due_date asc | F001 |
 | Upcoming | `due_date > now/d && due_date <= now+14d && done = false` | due_date asc | F001 |
 | Overdue | `due_date < now/d && done = false` | due_date asc | F001 |
-| Goals | `project = 11 && done = false` | due_date asc | F006 |
+| ~~Goals~~ (RETIRED #717) | ~~`project = 11 && done = false`~~ — project deleted | — | F006 |
 
 ### Setup Script
 
