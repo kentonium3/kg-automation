@@ -51,6 +51,8 @@ from __future__ import annotations
 import datetime as _dt
 import json
 import re
+import subprocess
+from collections.abc import Sequence
 from pathlib import Path
 
 from . import LibResult
@@ -59,6 +61,21 @@ DEFAULT_LOG_DIR = Path("/data/services/backup/logs")
 DEFAULT_STATE_PATH = Path("/data/services/backup/state/last-backup.json")
 LOG_PREFIX = "backup-"
 LOG_SUFFIX = ".log"
+
+# Sanctioned Restic backup trigger (#666 / #784). The ``claude`` user on office2
+# holds a single-command NOPASSWD sudoers grant for exactly this path
+# (``claude ALL=(root) NOPASSWD: /data/services/backup/scripts/backup.sh``), so
+# felix-deployer — which runs as ``claude`` — can self-trigger a backup before a
+# Tier-2 apply without any interactive prompt. Kept as an argv tuple (shell=False,
+# no injection surface) and overridable for tests.
+DEFAULT_BACKUP_TRIGGER_CMD: tuple[str, ...] = (
+    "sudo",
+    "/data/services/backup/scripts/backup.sh",
+)
+# backup.sh does a full Restic run; give it a generous ceiling but never hang the
+# deployer tick forever. On timeout the apply is blocked (fail-closed).
+_DEFAULT_BACKUP_TIMEOUT_SEC = 1800
+_BACKUP_STDERR_EXCERPT_MAX = 2000
 
 # Restic exit codes that mean "a snapshot was successfully created":
 #   0 — clean run.
@@ -447,7 +464,154 @@ def verify_restic_recent(
     return _verify_via_logs(max_age_hours, Path(log_dir), now)
 
 
-__all__ = ["verify_restic_recent", "DEFAULT_LOG_DIR", "DEFAULT_STATE_PATH"]
+# ---------------------------------------------------------------------------
+# Backup trigger (#784) — verify → trigger-if-stale → re-verify, so the
+# felix-deployer Tier-2 apply path can guarantee a recent successful snapshot
+# without depending on an agent being in the loop.
+# ---------------------------------------------------------------------------
+
+
+def _invoke_backup(backup_cmd: Sequence[str], timeout_sec: int) -> LibResult:
+    """Run the sanctioned backup trigger and return a LibResult.
+
+    ``shell=False`` (fixed argv, no injection surface). Any spawn failure,
+    non-zero exit, or timeout is a failure — the caller must then NOT apply.
+    """
+    argv = list(backup_cmd)
+    if not argv:
+        return LibResult(
+            ok=False,
+            summary="backup trigger command is empty",
+            details={"error_code": "BACKUP_TRIGGER_SPAWN_FAILED", "backup_cmd": argv},
+        )
+    try:
+        proc = subprocess.run(  # noqa: S603 - fixed argv, no shell
+            argv,
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=timeout_sec,
+        )
+    except subprocess.TimeoutExpired:
+        return LibResult(
+            ok=False,
+            summary=f"backup trigger timed out after {timeout_sec}s",
+            details={
+                "error_code": "BACKUP_TRIGGER_TIMEOUT",
+                "timeout_sec": timeout_sec,
+                "backup_cmd": argv,
+            },
+        )
+    except OSError as exc:  # FileNotFoundError, permission, etc.
+        return LibResult(
+            ok=False,
+            summary=f"backup trigger could not spawn {argv!r}: {exc}",
+            details={
+                "error_code": "BACKUP_TRIGGER_SPAWN_FAILED",
+                "backup_cmd": argv,
+                "error": str(exc),
+            },
+        )
+    if proc.returncode != 0:
+        stderr = proc.stderr or ""
+        return LibResult(
+            ok=False,
+            summary=f"backup trigger exited {proc.returncode}",
+            details={
+                "error_code": "BACKUP_TRIGGER_FAILED",
+                "returncode": proc.returncode,
+                "backup_cmd": argv,
+                "stderr_excerpt": stderr[:_BACKUP_STDERR_EXCERPT_MAX],
+            },
+        )
+    return LibResult(
+        ok=True,
+        summary="backup triggered successfully",
+        details={"returncode": 0, "backup_cmd": argv},
+    )
+
+
+def ensure_recent_backup(
+    max_age_hours: int = 24,
+    *,
+    log_dir: Path | str = DEFAULT_LOG_DIR,
+    state_path: Path | str = DEFAULT_STATE_PATH,
+    backup_cmd: Sequence[str] = DEFAULT_BACKUP_TRIGGER_CMD,
+    timeout_sec: int = _DEFAULT_BACKUP_TIMEOUT_SEC,
+) -> LibResult:
+    """Guarantee a recent successful Restic snapshot, triggering one if stale.
+
+    The Tier-2 change-control protocol requires a successful backup within
+    *max_age_hours* before a destructive deploy. This is the automated form of
+    the #666 agent flow:
+
+    1. :func:`verify_restic_recent` — if a fresh successful snapshot already
+       exists, return ``ok=True`` with ``details['triggered'] = False`` and do
+       **not** trigger a backup.
+    2. Otherwise (stale / failed / unconfirmed) run *backup_cmd*, wait for it to
+       finish, then re-verify.
+    3. Return the re-verify verdict with ``details['triggered'] = True``. If the
+       trigger process fails (spawn / non-zero / timeout) or the re-verify is
+       still not fresh, return ``ok=False`` — the caller MUST NOT apply (the
+       felix-deployer failure path then emits one ntfy alert and leaves the
+       manifest queued).
+
+    Idempotent by construction: a fresh backup short-circuits before any side
+    effect, so repeated calls within the window never re-trigger.
+    """
+    if max_age_hours <= 0:
+        return LibResult(
+            ok=False,
+            summary="ensure_recent_backup requires max_age_hours > 0",
+            details={"error_code": "INVALID_ARGUMENT"},
+        )
+
+    pre = verify_restic_recent(max_age_hours, log_dir=log_dir, state_path=state_path)
+    if pre.ok:
+        return LibResult(
+            ok=True,
+            summary=f"{pre.summary}; no backup trigger needed",
+            details={**pre.details, "triggered": False},
+        )
+
+    pre_error = pre.details.get("error_code")
+    trigger = _invoke_backup(backup_cmd, timeout_sec)
+    if not trigger.ok:
+        return LibResult(
+            ok=False,
+            summary=f"backup trigger failed; not applying ({trigger.summary})",
+            details={**trigger.details, "triggered": True, "pre_trigger_error": pre_error},
+        )
+
+    post = verify_restic_recent(max_age_hours, log_dir=log_dir, state_path=state_path)
+    if post.ok:
+        return LibResult(
+            ok=True,
+            summary=f"backup triggered and re-verified fresh: {post.summary}",
+            details={**post.details, "triggered": True},
+        )
+    return LibResult(
+        ok=False,
+        summary=(
+            "backup triggered but re-verify is still not fresh; not applying "
+            f"({post.summary})"
+        ),
+        details={
+            **post.details,
+            "triggered": True,
+            "reverify_failed": True,
+            "pre_trigger_error": pre_error,
+        },
+    )
+
+
+__all__ = [
+    "verify_restic_recent",
+    "ensure_recent_backup",
+    "DEFAULT_LOG_DIR",
+    "DEFAULT_STATE_PATH",
+    "DEFAULT_BACKUP_TRIGGER_CMD",
+]
 
 
 # ---------------------------------------------------------------------------
@@ -475,8 +639,33 @@ def _cli_verify_restic_recent(*args: str) -> LibResult:
     return verify_restic_recent(**kwargs)
 
 
+def _cli_ensure_recent_backup(*args: str) -> LibResult:
+    """CLI wrapper: positional ``[max_age_hours] [log_dir] [state_path]``.
+
+    Uses the sanctioned default backup trigger; intended for manual ops and the
+    deployer's Python call path (which invokes :func:`ensure_recent_backup`
+    directly). Triggering a real backup is a side effect — invoke deliberately.
+    """
+    kwargs: dict = {}
+    if len(args) >= 1 and args[0]:
+        try:
+            kwargs["max_age_hours"] = int(args[0])
+        except ValueError:
+            return LibResult(
+                ok=False,
+                summary=f"ensure_recent_backup: max_age_hours must be int, got {args[0]!r}",
+                details={"error_code": "INVALID_ARGUMENT"},
+            )
+    if len(args) >= 2 and args[1]:
+        kwargs["log_dir"] = args[1]
+    if len(args) >= 3 and args[2]:
+        kwargs["state_path"] = args[2]
+    return ensure_recent_backup(**kwargs)
+
+
 _CLI_FUNCS = {
     "verify_restic_recent": _cli_verify_restic_recent,
+    "ensure_recent_backup": _cli_ensure_recent_backup,
 }
 
 

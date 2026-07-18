@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import datetime as _dt
 import json
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -541,3 +542,200 @@ def test_state_file_boolean_exit_code_is_rejected(tmp_path, freeze_now):
 
     assert result.ok is True
     assert result.details["source"] == "log"
+
+
+# ---------------------------------------------------------------------------
+# #784 — ensure_recent_backup: verify → trigger-if-stale → re-verify. The real
+# `sudo backup.sh` is never spawned here; the trigger is either injected via
+# `backup_cmd` (a harmless local command) or stubbed at the module level.
+# ---------------------------------------------------------------------------
+
+
+def test_ensure_fresh_backup_does_not_trigger(tmp_path, freeze_now, monkeypatch):
+    """A fresh successful state file short-circuits — no backup is triggered."""
+    now = _dt.datetime(2026, 6, 12, 12, 0, 0, tzinfo=_dt.timezone.utc)
+    freeze_now(now)
+    state = _write_state(tmp_path, _state_payload(exit_code=0))
+
+    def _boom(*args, **kwargs):
+        raise AssertionError("_invoke_backup called despite a fresh backup")
+
+    monkeypatch.setattr(snapshot, "_invoke_backup", _boom)
+
+    result = snapshot.ensure_recent_backup(
+        max_age_hours=24, log_dir=tmp_path / "logs", state_path=state
+    )
+
+    assert result.ok is True
+    assert result.details["triggered"] is False
+    assert result.details["source"] == "state"
+
+
+def test_ensure_stale_backup_triggers_then_reverifies_fresh(tmp_path, freeze_now, monkeypatch):
+    """Stale → trigger (injected harmless cmd) → the trigger makes the state
+    fresh → re-verify passes. We simulate the state transition by rewriting the
+    state file inside the injected trigger."""
+    now = _dt.datetime(2026, 6, 12, 12, 0, 0, tzinfo=_dt.timezone.utc)
+    freeze_now(now)
+    state = _write_state(
+        tmp_path, _state_payload(exit_code=0, snapshot_ts="2026-06-01T03:00:00Z")  # stale
+    )
+    triggered = {"count": 0}
+
+    def _fake_trigger(backup_cmd, timeout_sec):
+        triggered["count"] += 1
+        # emulate backup.sh writing a fresh state file
+        _write_state(tmp_path, _state_payload(exit_code=0, snapshot_ts="2026-06-12T11:59:00Z"))
+        return LibResult(ok=True, summary="triggered", details={"returncode": 0})
+
+    monkeypatch.setattr(snapshot, "_invoke_backup", _fake_trigger)
+
+    result = snapshot.ensure_recent_backup(
+        max_age_hours=24, log_dir=tmp_path / "logs", state_path=state
+    )
+
+    assert result.ok is True
+    assert result.details["triggered"] is True
+    assert result.details["source"] == "state"
+    assert triggered["count"] == 1
+
+
+def test_ensure_failed_trigger_blocks(tmp_path, freeze_now, monkeypatch):
+    """A failed trigger returns ok=False (apply must be blocked)."""
+    now = _dt.datetime(2026, 6, 12, 12, 0, 0, tzinfo=_dt.timezone.utc)
+    freeze_now(now)
+    state = _write_state(
+        tmp_path, _state_payload(exit_code=0, snapshot_ts="2026-06-01T03:00:00Z")  # stale
+    )
+
+    def _fail_trigger(backup_cmd, timeout_sec):
+        return LibResult(
+            ok=False,
+            summary="boom",
+            details={"error_code": "BACKUP_TRIGGER_FAILED", "returncode": 2},
+        )
+
+    monkeypatch.setattr(snapshot, "_invoke_backup", _fail_trigger)
+
+    result = snapshot.ensure_recent_backup(
+        max_age_hours=24, log_dir=tmp_path / "logs", state_path=state
+    )
+
+    assert result.ok is False
+    assert result.details["error_code"] == "BACKUP_TRIGGER_FAILED"
+    assert result.details["triggered"] is True
+    assert result.details["pre_trigger_error"] == "RESTIC_TOO_OLD"
+
+
+def test_ensure_trigger_ok_but_reverify_still_stale_blocks(tmp_path, freeze_now, monkeypatch):
+    """Trigger succeeds but re-verify is still not fresh (e.g. backup produced no
+    snapshot) → ok=False, apply blocked, reverify_failed flagged."""
+    now = _dt.datetime(2026, 6, 12, 12, 0, 0, tzinfo=_dt.timezone.utc)
+    freeze_now(now)
+    state = _write_state(
+        tmp_path, _state_payload(exit_code=0, snapshot_ts="2026-06-01T03:00:00Z")  # stale
+    )
+
+    def _noop_trigger(backup_cmd, timeout_sec):
+        return LibResult(ok=True, summary="triggered", details={"returncode": 0})
+
+    monkeypatch.setattr(snapshot, "_invoke_backup", _noop_trigger)
+
+    result = snapshot.ensure_recent_backup(
+        max_age_hours=24, log_dir=tmp_path / "logs", state_path=state
+    )
+
+    assert result.ok is False
+    assert result.details["error_code"] == "RESTIC_TOO_OLD"
+    assert result.details["triggered"] is True
+    assert result.details["reverify_failed"] is True
+
+
+def test_ensure_rejects_zero_max_age(tmp_path):
+    result = snapshot.ensure_recent_backup(
+        max_age_hours=0, log_dir=tmp_path / "logs", state_path=tmp_path / "s.json"
+    )
+    assert result.ok is False
+    assert result.details["error_code"] == "INVALID_ARGUMENT"
+
+
+def test_ensure_stale_triggers_real_local_command(tmp_path, freeze_now):
+    """End-to-end trigger path with a real (harmless) subprocess: `true` exits 0.
+    Re-verify then still stale (the state file is untouched) → blocked. Proves
+    _invoke_backup actually spawns and the wiring holds without stubbing it."""
+    now = _dt.datetime(2026, 6, 12, 12, 0, 0, tzinfo=_dt.timezone.utc)
+    freeze_now(now)
+    state = _write_state(
+        tmp_path, _state_payload(exit_code=0, snapshot_ts="2026-06-01T03:00:00Z")  # stale
+    )
+
+    result = snapshot.ensure_recent_backup(
+        max_age_hours=24,
+        log_dir=tmp_path / "logs",
+        state_path=state,
+        backup_cmd=["true"],
+    )
+
+    assert result.ok is False  # `true` doesn't refresh the state → still stale
+    assert result.details["triggered"] is True
+    assert result.details["reverify_failed"] is True
+
+
+def test_invoke_backup_nonzero_exit_is_failure():
+    result = snapshot._invoke_backup(["false"], timeout_sec=30)
+    assert result.ok is False
+    assert result.details["error_code"] == "BACKUP_TRIGGER_FAILED"
+    assert result.details["returncode"] != 0
+
+
+def test_invoke_backup_missing_binary_is_spawn_failure():
+    result = snapshot._invoke_backup(
+        ["/nonexistent/path/backup.sh"], timeout_sec=30
+    )
+    assert result.ok is False
+    assert result.details["error_code"] == "BACKUP_TRIGGER_SPAWN_FAILED"
+
+
+def test_invoke_backup_success():
+    result = snapshot._invoke_backup(["true"], timeout_sec=30)
+    assert result.ok is True
+    assert result.details["returncode"] == 0
+
+
+def test_invoke_backup_timeout_is_failure(monkeypatch):
+    """#784 review: a backup.sh that overruns the timeout must fail closed with
+    BACKUP_TRIGGER_TIMEOUT (this gates destructive Tier-2 deploys)."""
+
+    def _raise_timeout(*args, **kwargs):
+        raise subprocess.TimeoutExpired(cmd=args[0] if args else "backup", timeout=kwargs.get("timeout", 0))
+
+    monkeypatch.setattr(snapshot.subprocess, "run", _raise_timeout)
+
+    result = snapshot._invoke_backup(["/data/services/backup/scripts/backup.sh"], timeout_sec=1)
+
+    assert result.ok is False
+    assert result.details["error_code"] == "BACKUP_TRIGGER_TIMEOUT"
+    assert result.details["timeout_sec"] == 1
+
+
+def test_ensure_backup_timeout_blocks_apply(tmp_path, freeze_now, monkeypatch):
+    """A trigger timeout propagates as a snapshot-blocking failure from
+    ensure_recent_backup (triggered=True, ok=False)."""
+    now = _dt.datetime(2026, 6, 12, 12, 0, 0, tzinfo=_dt.timezone.utc)
+    freeze_now(now)
+    state = _write_state(
+        tmp_path, _state_payload(exit_code=0, snapshot_ts="2026-06-01T03:00:00Z")  # stale
+    )
+
+    def _raise_timeout(*args, **kwargs):
+        raise subprocess.TimeoutExpired(cmd="backup", timeout=1)
+
+    monkeypatch.setattr(snapshot.subprocess, "run", _raise_timeout)
+
+    result = snapshot.ensure_recent_backup(
+        max_age_hours=24, log_dir=tmp_path / "logs", state_path=state, timeout_sec=1
+    )
+
+    assert result.ok is False
+    assert result.details["error_code"] == "BACKUP_TRIGGER_TIMEOUT"
+    assert result.details["triggered"] is True
