@@ -12,7 +12,9 @@ branch_strategy: Planning artifacts for this mission were generated on feat/clar
 subtasks:
 - T001
 - T002
-agent: claude
+agent: "claude:sonnet:python-pedro:implementer"
+shell_pid: "51277"
+shell_pid_created_at: "1784410014.425207"
 history:
 - '2026-07-18: authored by /spec-kitty.tasks'
 agent_profile: python-pedro
@@ -124,3 +126,7 @@ the mission merges to the feature branch, which merges to `main` after the missi
 - **Purity**: reviewer confirms no clock reads were introduced; resolution stays against `tick_iso`.
 - **Over-emission**: confirm an *unresolved* date does not produce a `start_date` (would let an un-dateable record become all-day downstream — fail-closed violation).
 - **Shape consistency**: the emitted `start_date` key/location must match what WP03's gate and the all-day complete branch expect.
+
+## Activity Log
+
+- 2026-07-18T21:27:07Z – claude:sonnet:python-pedro:implementer – shell_pid=51277 – Assigned agent via action command
