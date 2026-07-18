@@ -124,11 +124,9 @@ def check_runtime_env_assumptions(workspace_dir: Path) -> CheckResult:
     """
     from scripts.openclaw.agents.env_assumptions import scan_file  # noqa: PLC0415 (cycle-break)
 
-    findings = [
-        f
-        for name in ("AGENTS.md", "AGENTS.md.tmpl")
-        for f in scan_file(workspace_dir / name)
-    ]
+    # The ``.tmpl`` render mechanism was retired (#752); the committed AGENTS.md
+    # is the sole authoring source, so only it is scanned.
+    findings = list(scan_file(workspace_dir / "AGENTS.md"))
     if not findings:
         return CheckResult("runtime_env_assumptions", True, "ok")
     detail = "; ".join(f"{Path(f.path).name}:{f.line} {f.kind.value}" for f in findings)

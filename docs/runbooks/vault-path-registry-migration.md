@@ -3,11 +3,23 @@ title: Vault Path Registry Migration Runbook
 doc_type: runbook
 status: approved
 audience: agents_and_humans
-last_updated: '2026-04-10'
-revision: v1.0
+last_updated: '2026-07-18'
+revision: v1.1
 ---
 
 # Vault path registry migration runbook
+
+> **⚠️ Partially superseded (#752, 2026-07-18).** The `.tmpl` **render**
+> mechanism this runbook describes — `scripts/vault/deploy.py`,
+> `scripts/vault/targets.json`, and `{{VAULT_*}}` markers in `.md.tmpl` files —
+> was **retired**. Agent prompts and instruction files are now hand-authored
+> (the committed `.md` is the sole source; deployed verbatim by agent-prompt-sync).
+> The **registry data + resolvers** (`paths.json` / `resolver.py` / `paths.sh`)
+> are unchanged and still live. When following this runbook for a future folder
+> rename, use the registry + resolvers and update the literal path references in
+> the committed `.md` files directly; **ignore every `deploy.py` / `.tmpl` /
+> `targets.json` step below** — those are retained only as a historical record of
+> how the 026/#152 migration was performed.
 
 A reusable playbook for migrating Felix vault folder names through the
 `scripts/vault/` registry. First executed by mission 026 (#152), which
