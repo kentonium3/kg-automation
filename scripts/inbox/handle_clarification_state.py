@@ -155,6 +155,34 @@ def subcommand_sweep(path: Path, now_utc: datetime) -> int:
     return 0
 
 
+def subcommand_remove(path: Path, note_filename: str) -> int:
+    """Remove all pending entries for a resolved note (#763, Directive 6).
+
+    Deletes every entry whose ``note_filename`` matches ``note_filename`` by
+    basename. The calendar agent calls this once a clarification is resolved,
+    instead of hand-rolling a JSON rewrite of the store (which could drop or
+    malform a surviving entry). Deterministic and atomic (``save_state`` RMW),
+    idempotent (a filename with no entry prints ``removed=0``, no error),
+    basename-normalized (a path-form key still matches the stored basename), and
+    safe on an absent file.
+    """
+    target = os.path.basename(note_filename)
+    if not path.exists():
+        print("removed=0")
+        return 0
+    entries = load_state(path)
+    kept = [
+        e
+        for e in entries
+        if os.path.basename(str(e.get("note_filename", ""))) != target
+    ]
+    removed = len(entries) - len(kept)
+    if removed:
+        save_state(path, kept)
+    print(f"removed={removed}")
+    return 0
+
+
 def pending_filenames(path: Path, now_utc: datetime) -> set[str]:
     """Return the set of note **basenames** with a live pending-clarification entry.
 
@@ -341,6 +369,13 @@ def _build_parser() -> argparse.ArgumentParser:
     sweep_p = sub.add_parser("sweep", help="Delete entries older than 24h.")
     _add_state_file_arg(sweep_p)
 
+    remove_p = sub.add_parser(
+        "remove",
+        help="Remove all pending entries for a resolved note filename (#763).",
+    )
+    remove_p.add_argument("--note-filename", required=True)
+    _add_state_file_arg(remove_p)
+
     pending_p = sub.add_parser(
         "pending",
         help="Print whether a note filename has a live pending entry (#740).",
@@ -371,6 +406,8 @@ def main(argv: list[str] | None = None) -> int:
         )
     if args.subcommand == "sweep":
         return subcommand_sweep(state_path, now_utc)
+    if args.subcommand == "remove":
+        return subcommand_remove(state_path, args.note_filename)
     if args.subcommand == "pending":
         return subcommand_pending(state_path, args.note_filename, now_utc)
     if args.subcommand == "match":  # pragma: no branch - argparse enforces

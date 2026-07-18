@@ -716,6 +716,104 @@ def test_pending_subcommand_false_for_aged_and_unknown(
     assert capsys.readouterr().out.strip() == "pending=false"
 
 
+# --------------------------------------------------------------------------
+# remove (#763) — deterministic resolved-record removal (Directive 6)
+# --------------------------------------------------------------------------
+
+
+def test_remove_deletes_matching_and_keeps_others(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    now = datetime.now(timezone.utc)
+    state = tmp_path / "pending.json"
+    _write_state(
+        state,
+        [
+            _entry("resolved.md", now - timedelta(hours=1)),
+            _entry("keep.md", now - timedelta(hours=1)),
+        ],
+    )
+    rc = hcs.main(
+        ["remove", "--note-filename", "resolved.md", "--state-file", str(state)]
+    )
+    assert rc == 0
+    assert capsys.readouterr().out.strip() == "removed=1"
+    remaining = [e["note_filename"] for e in _read_state(state)]
+    assert remaining == ["keep.md"]
+
+
+def test_remove_is_idempotent_no_match(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    now = datetime.now(timezone.utc)
+    state = tmp_path / "pending.json"
+    _write_state(state, [_entry("other.md", now - timedelta(hours=1))])
+    rc = hcs.main(
+        ["remove", "--note-filename", "nope.md", "--state-file", str(state)]
+    )
+    assert rc == 0
+    assert capsys.readouterr().out.strip() == "removed=0"
+    assert len(_read_state(state)) == 1  # untouched
+
+
+def test_remove_removes_all_duplicate_entries(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    now = datetime.now(timezone.utc)
+    state = tmp_path / "pending.json"
+    _write_state(
+        state,
+        [
+            _entry("dup.md", now - timedelta(hours=2)),
+            _entry("dup.md", now - timedelta(hours=1)),
+            _entry("other.md", now - timedelta(hours=1)),
+        ],
+    )
+    rc = hcs.main(
+        ["remove", "--note-filename", "dup.md", "--state-file", str(state)]
+    )
+    assert rc == 0
+    assert capsys.readouterr().out.strip() == "removed=2"
+    assert [e["note_filename"] for e in _read_state(state)] == ["other.md"]
+
+
+def test_remove_basename_normalized(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """A path-form --note-filename still matches a stored basename, and vice versa."""
+    now = datetime.now(timezone.utc)
+    state = tmp_path / "pending.json"
+    _write_state(state, [_entry("Deep 2026-07-18 0900.md", now - timedelta(hours=1))])
+    rc = hcs.main(
+        [
+            "remove",
+            "--note-filename",
+            "01-Inbox/Deep 2026-07-18 0900.md",
+            "--state-file",
+            str(state),
+        ]
+    )
+    assert rc == 0
+    assert capsys.readouterr().out.strip() == "removed=1"
+    assert _read_state(state) == []
+
+
+def test_remove_safe_on_absent_file(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    rc = hcs.main(
+        [
+            "remove",
+            "--note-filename",
+            "x.md",
+            "--state-file",
+            str(tmp_path / "nope.json"),
+        ]
+    )
+    assert rc == 0
+    assert capsys.readouterr().out.strip() == "removed=0"
+
+
 def test_module_runs_as_main(monkeypatch: pytest.MonkeyPatch) -> None:
     """`python3 -m scripts.inbox.handle_clarification_state sweep` works.
 

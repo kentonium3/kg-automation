@@ -132,7 +132,7 @@ When re-validation returns `complete: true`, do the following in order:
 
 2. **Apply the Calendar event creation handler above** with the synthesized payload (not a literal `openclaw agent` round-trip): tempfile + the same calendar-helper `create --payload-file … --json` invocation. Its Logging subsection auto-emits `calendar_event_created`/`calendar_event_failed`.
 
-3. **Remove the resolved record** from the JSON-array store (`/data/services/openclaw/state/pending-calendar-clarifications.json`) — don't hand-roll parsing. Records age out via the 24h `sweep`; the invariant is only that a *failed* resolution keeps its record (see Failure mode).
+3. **Remove the resolved record** — deterministic helper, not by hand (#763): `cd /home/claude/kg-automation && python3 -m scripts.inbox.handle_clarification_state remove --note-filename "<matched note_filename>"` (prints `removed=N`). (A *failed* resolution keeps its record — see Failure mode.)
 
 4. **Flip the source note's frontmatter** at `source_inbox_path`: locate the YAML block, set `status: processed` and `processed_at: "<tick_iso>"` (same as re-validation). Atomic write via .tmp + rename, matching capture's pattern.
 
