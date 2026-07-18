@@ -76,9 +76,9 @@
 
 **Goal**: Make new records carry the signal (capture Step 3c) and invoke the sweep-finalize path (capture Step 1a); document the new command. Deploys via `agent-prompt-sync`. **Priority**: P2 (deploy-time). **Depends on**: WP03. **Independent test**: prompt review + doc render; the AGENTS.md examples name the exact new command.
 
-- [ ] T014 felix-admin-capture AGENTS.md Step 3c: partial_payload carries `missing_fields` + `start_date` (WP05)
-- [ ] T015 felix-admin-capture AGENTS.md Step 1a: invoke sweep-finalize in place of bare `sweep` (WP05)
-- [ ] T016 TOOLS.md + runbook doc: the new sweep-finalize command + all-day fallback behavior (WP05)
+- [x] T014 felix-admin-capture AGENTS.md Step 3c: partial_payload carries `missing_fields` + `start_date` (WP05)
+- [x] T015 felix-admin-capture AGENTS.md Step 1a: invoke sweep-finalize in place of bare `sweep` (WP05)
+- [x] T016 TOOLS.md + runbook doc: the new sweep-finalize command + all-day fallback behavior (WP05)
 
 **Prompt**: [tasks/WP05-agent-prompts-and-docs.md](./tasks/WP05-agent-prompts-and-docs.md) · ~200 lines
 
