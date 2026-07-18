@@ -111,7 +111,6 @@ curl -s -H "Authorization: Bearer $(cat /data/services/openclaw/secrets/vikunja-
 | Health & Conditioning | 8 | |
 | Intentional LLC | 9 | |
 | Metal Casework | 10 | |
-| Goals | 11 | Goal declarations (F006) |
 
 ## Labels
 
@@ -291,17 +290,12 @@ curl -s -H "Authorization: Bearer $(cat /data/services/openclaw/secrets/vikunja-
   https://office2.tail0f5f56.ts.net/api/v1/projects/-4/tasks
 ```
 
-### Active Goals (Goals Project)
+### Active Goals — RETIRED
 
-Goals is a real project (not a pseudo-project). Query active goal declarations:
-
-```bash
-curl -s -H "Authorization: Bearer $(cat /data/services/openclaw/secrets/vikunja-api)" \
-  "https://office2.tail0f5f56.ts.net/api/v1/tasks/all?filter=done%20%3D%20false%20%26%26%20project_id%20%3D%20GOALS_PROJECT_ID&sort_by=due_date&order_by=asc"
-```
-
-Replace `GOALS_PROJECT_ID` with the ID resolved by name from the Projects section
-(currently 11).
+The F006 Goals Vikunja project (formerly id 11) was **deleted in the #717/#714
+Vikunja reorg**; there is no Goals project to query. The goal-declaration concept
+continues in the separate steering-wheel design effort, not as a Vikunja project.
+Do not query a "Goals" project by name or id.
 
 ### Ad-Hoc Queries
 
@@ -314,9 +308,9 @@ curl -s -H "Authorization: Bearer $(cat /data/services/openclaw/secrets/vikunja-
 
 **Filter syntax** (URL-encode spaces and operators):
 - `done = false` — incomplete tasks
-- `project_id = 11` — tasks in a specific project
+- `project_id = 13` — tasks in a specific project (13 = Habits, a real project)
 - `due_date < 2026-04-01T00:00:00Z` — tasks due before a date
-- Combine with `&&`: `done = false && project_id = 11`
+- Combine with `&&`: `done = false && project_id = 13`
 
 **Sort options**:
 - `sort_by=due_date&order_by=asc` — by due date, earliest first

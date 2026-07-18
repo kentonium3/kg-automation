@@ -7,6 +7,13 @@ status: draft
 
 # Goals Operations Runbook
 
+> **⚠️ RETIRED (F006 v1, #717/#734).** The Vikunja **Goals project (formerly
+> id=11)** this runbook operates on was **deleted in the #717/#714 reorg**. This
+> document is retained as the F006-v1 historical record; the goal-declaration
+> concept is being redesigned as the separate steering-wheel substrate, not as a
+> Vikunja project. Do not follow the operational steps below against live Vikunja
+> — there is no Goals project to operate on.
+
 This runbook covers the goal declaration system established by F006. Goals are
 outcome declarations — distinct from tasks — that anchor all downstream
 prioritization, escalation, and briefing features.

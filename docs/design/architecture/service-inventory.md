@@ -122,7 +122,7 @@ spec FR-017.
 - **Data owner**: uid 1000:gid 0 (matches container runtime user)
 - **Backup**: Automatically included (under `/data/services/`)
 - **Runbook**: `docs/runbooks/vikunja-ops.md`
-- **F006 additions**: Goals project (top-level, id=11) for structured goal declarations, `metalcasework` label (#ff9800), Goals saved filter. Setup script: `scripts/vikunja/setup_goals.py`. Goals runbook: `docs/runbooks/goals-ops.md`
+- **F006 additions (Goals project RETIRED)**: the F006 Goals Vikunja project (formerly top-level id=11) and its Goals saved filter were **deleted in the #717/#714 reorg** — the goal-declaration concept now lives in the separate steering-wheel design effort, not as a Vikunja project. `metalcasework` label (#ff9800) still exists. The `scripts/vikunja/setup_goals.py` setup script and `docs/runbooks/goals-ops.md` runbook are retained as F006-v1 historical record (see their retirement banners).
 
 ### Obsidian Sync (pre-F001, updated F011, system-level confirmed #202)
 - **Deployed by**: Manual setup, updated by F011
@@ -212,7 +212,7 @@ spec FR-017.
 - **Purpose**: Autonomous Obsidian inbox processing — classifies content, routes to vault locations, creates Vikunja tasks, writes processing logs
 - **Schedule**: 4x daily via OpenClaw cron (7 AM, 12 PM, 5 PM, 10 PM ET)
 - **Processing logs**: `/home/kgale/second-brain/agents/logs/inbox-processing-YYYY-MM-DD.md`
-- **Vikunja projects used**: Inbox (tasks), Research (research requests), Goals (goal declarations)
+- **Vikunja projects used**: Inbox (tasks), Research (research requests) — the F006 Goals project was retired in the #717/#714 reorg
 - **Privacy boundary**: `04-Growth/_private/` is never accessed
 - **Runbook**: `docs/runbooks/inbox-ops.md`
 - **Updated by**: `harden-inbox-capture-01KWVGZM` (#662, 2026-07-06) — self-contained helper invocations fleet-wide (corrects the #656/#658 env-assumption failure); capture held on haiku (model choice under evaluation, #671). `#256-scope-discipline-guardrails` (2026-05-13) — adds explicit "no unsanctioned reads/edits" prose to AGENTS.md Step 5a + Step 6 after T011 SC-003 verification of #253 surfaced haiku making unsanctioned `edit` attempts on parse_failure notes. `#253-step-5a-6-consolidation` (2026-05-13) — collapses AGENTS.md Step 5a and Step 6 into single-call orchestrator helpers (`handle_marker_cleanup.py`, `handle_parse_failures.py`); applies the deterministic-work-into-scripts principle. `#254-atomic-write-perm-preservation` (2026-05-13) — fixes `_atomic_write` in both marker scripts to preserve target mode (and default new files to `0o664`) so cross-user access by ob (Obsidian Sync daemon, runs as kgale) is not broken by claude-orphaned `0o600` files. `#185-inbox-capture-dedup` (2026-05-12) — adds routing-log dedup + parse-failure halt-and-surface. Previously: `027-inbox-pre-scan-helper` (2026-04-11).
