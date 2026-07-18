@@ -17,8 +17,13 @@ agent standing orders, scripts, and documentation by centralizing them in
 | `paths.json` | The registry data — logical name → physical path map |
 | `resolver.py` | Python API: `from scripts.vault.resolver import get_vault_path` |
 | `paths.sh` | Shell API: `source paths.sh` → `$VAULT_<NAME>` env vars |
-| `deploy.py` | Build-time: replaces `{{VAULT_*}}` markers in `.tmpl` files |
-| `targets.json` | List of `.tmpl` → resolved file mappings for deploy.py |
+
+> The `.tmpl` render mechanism (`deploy.py` + `targets.json` + `{{VAULT_*}}`
+> markers) was **retired in #752**. Agent prompts and instruction files are now
+> hand-authored directly (the committed `.md` is the sole source) and deployed
+> by the agent-prompt-sync timer, which copies them verbatim. The registry below
+> (`paths.json` / `resolver.py` / `paths.sh`) is unchanged and still consumed by
+> live code (inbox/journal routing).
 
 ## Schema: paths.json
 
@@ -75,68 +80,24 @@ Use the `_NAME` form when you need the shape of a relative-path reference or
 a bare folder name (routing tables, JSON examples, natural-language prose)
 while still flowing the identifier through the registry so renames propagate.
 
-## Deploy workflow
+## Adding a new logical path
 
-The deploy script processes template files and writes resolved output:
-
-```bash
-# Dry-run (default) — show what would change
-python3 scripts/vault/deploy.py
-
-# Apply — write resolved files and SCP to office2 if configured
-python3 scripts/vault/deploy.py --apply
-
-# Apply but skip office2 sync
-python3 scripts/vault/deploy.py --apply --no-office2
-```
-
-### Marker forms in `.tmpl` files
-
-Two marker forms are supported:
-
-| Marker | Resolves to | Use when |
-|---|---|---|
-| `{{VAULT_INBOX}}` | `/home/kgale/second-brain/notes/01-Inbox` (absolute path) | You need the full, unambiguous path — e.g., in an absolute-path reference inside an agent standing order |
-| `{{VAULT_INBOX_NAME}}` | `01-Inbox` (folder name only) | You need the shape of a relative reference, a bare folder name in a routing table, or a natural-language mention — while still flowing the identifier through the registry |
-
-Example mixing both forms in a single `.tmpl`:
-
-```markdown
-<!-- absolute-path reference (agent reads the file directly) -->
-Read the inbox at `{{VAULT_INBOX}}/*.md`
-
-<!-- relative-path fragment in a routing table -->
-| Topic | Route to |
-|---|---|
-| goals | `{{VAULT_CONSTITUTION_NAME}}/Goals-MOC.md` |
-
-<!-- natural-language prose -->
-Items older than 7 days are moved to the `{{VAULT_INBOX_PROCESSED_NAME}}` folder.
-```
-
-### Adding a new migration
-
-1. Create a `.tmpl` version of your target file with `{{VAULT_<NAME>}}` or `{{VAULT_<NAME>_NAME}}` markers
-2. Add an entry to `targets.json` pointing to the template and output
-3. Run `python3 scripts/vault/deploy.py` (dry-run) to preview
-4. Run with `--apply` to write the resolved file
-
-### Adding a new logical path
-
-1. Edit `paths.json` to add the new entry
-2. Update any templates that need the new path
-3. Run `deploy.py --apply` to refresh resolved files
+1. Edit `paths.json` to add the new entry (logical name → absolute path).
+2. Consume it from code via `resolver.get_vault_path("<name>")` (Python) or
+   `$VAULT_<NAME>` after sourcing `paths.sh` (shell).
 
 ## Design principles
 
-- **Build-time resolution, not runtime.** Agents and scripts get resolved paths
-  baked in. The registry is only consulted by humans editing paths and by the
-  deploy script. This keeps runtime behavior unchanged and avoids adding tool-
-  call complexity to agents.
-- **Single source of truth.** When a folder moves, update `paths.json` and
-  redeploy — no hunting through agent standing orders.
+- **One registry for live code.** `paths.json` is consulted by `resolver.py` /
+  `paths.sh` at the point of use (inbox/journal routing), and by humans editing
+  paths. When a folder moves, update `paths.json` — no hunting through consumers.
 - **Deterministic code for deterministic work.** No LLM involvement in path
   lookup. Reserve AI tokens for tasks that actually need reasoning.
+- **Prompts are hand-authored (#752).** Agent standing orders are no longer
+  generated from `.tmpl` templates; their paths are written literally in the
+  committed `.md`. The `04-Growth` privacy-pointer is guarded against silent
+  drift by a CI check (`tests/openclaw/test_privacy_pointer.py`) rather than the
+  retired `{{VAULT_GROWTH_NAME}}` render-time indirection.
 
 ## Privacy boundary
 

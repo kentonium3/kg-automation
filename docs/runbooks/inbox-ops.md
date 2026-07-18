@@ -66,7 +66,7 @@ per-change deploy manifest is required (see below):
 | Surface | Source in repo | How it lands on office2 |
 |---|---|---|
 | Helper scripts | `scripts/inbox/*.py`, `scripts/inbox/prescan.py` | office2 checkout **self-pull** — felix-deployer auto-pulls `origin/main` every ~5 min into `/home/claude/kg-automation/`; the helpers are imported from that checkout at their `-m` module paths. |
-| Agent prompts | `scripts/openclaw/agents/felix-admin-capture/AGENTS.md`, `TOOLS.md` (+ `.tmpl`) | **agent-prompt-sync** (`scripts/openclaw/deploy/deploy_agent_prompts.py`, 5-min timer, #567) copies them to the workspace dir. Note the slug ≠ dir: `felix-admin-capture` → `/data/services/openclaw/inbox-agent/` (see `[[reference_office2_agent_deploy_paths]]`). |
+| Agent prompts | `scripts/openclaw/agents/felix-admin-capture/AGENTS.md`, `TOOLS.md` | **agent-prompt-sync** (`scripts/openclaw/deploy/deploy_agent_prompts.py`, 5-min timer, #567) copies them to the workspace dir. Note the slug ≠ dir: `felix-admin-capture` → `/data/services/openclaw/inbox-agent/` (see `[[reference_office2_agent_deploy_paths]]`). |
 
 **No deploy manifest for mission #746.** A `deploys/queued/<name>.yaml` manifest is
 only needed when an office2-side apply step is required **beyond** the self-pull +

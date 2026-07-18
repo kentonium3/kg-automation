@@ -13,7 +13,6 @@
       "description": "OpenClaw agent workspace files. The 5-min agent-prompt-sync timer (#567) copies these to /data/services/openclaw/<workspace>/. NOTE (gap #621, confirmed finalize-inbox-file-01KW8MSQ #325): audit.sh hashes only openclaw.json into openclaw-config.txt — it does NOT hash deployed AGENTS.md or other agent workspace files. Agent prompts are an unmonitored audited surface; no baseline is written when they change, so no rebaseline is required or possible for AGENTS.md edits.",
       "patterns": [
         "scripts/openclaw/agents/*/AGENTS.md",
-        "scripts/openclaw/agents/*/AGENTS.md.tmpl",
         "scripts/openclaw/agents/*/SOUL.md",
         "scripts/openclaw/agents/*/IDENTITY.md",
         "scripts/openclaw/agents/*/USER.md",

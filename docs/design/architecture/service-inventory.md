@@ -92,7 +92,7 @@ content loss) and unsticks stranded changes from #558 + #561.
 **Files excluded** (would-be candidates the helper deliberately ignores):
 
 - `HEARTBEAT.md` (deployed-side runtime state owned by openclaw's heartbeat process)
-- `*.tmpl` (templates — used to seed new agents, not deployed)
+- `*.tmpl` (still excluded defensively by the sync; the vault `.tmpl` render mechanism was retired in #752 and no agent `.tmpl` files remain)
 - `*.bak*` (backups left by past mission migrations)
 - `GOVERNANCE.md` (manually maintained on the `main` agent only; no repo source)
 

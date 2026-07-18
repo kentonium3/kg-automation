@@ -298,17 +298,17 @@ def scan_file(path: Path) -> list[Finding]:
 
 
 def _prompt_files(workspace_dir: Path) -> list[Path]:
-    """AGENTS.md and AGENTS.md.tmpl under a single workspace, if present."""
-    return [
-        p
-        for name in ("AGENTS.md", "AGENTS.md.tmpl")
-        for p in (workspace_dir / name,)
-        if p.is_file()
-    ]
+    """AGENTS.md under a single workspace, if present.
+
+    The ``.tmpl`` render mechanism was retired (#752): the committed ``AGENTS.md``
+    is now the sole authoring source, so there is no ``AGENTS.md.tmpl`` to scan.
+    """
+    p = workspace_dir / "AGENTS.md"
+    return [p] if p.is_file() else []
 
 
 def scan_agents_root(root: Path) -> list[Finding]:
-    """Scan every active workspace's AGENTS.md/.tmpl under ``root``.
+    """Scan every active workspace's AGENTS.md under ``root``.
 
     Excludes the retired felix-doc-auditor workspace and non-workspace dirs,
     reusing validate_workspace's sets so scope stays in sync.

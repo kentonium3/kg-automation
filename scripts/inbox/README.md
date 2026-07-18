@@ -43,8 +43,8 @@ python3 scripts/inbox/prescan.py --self-check # preflight: verify paths only
 
 ## Troubleshooting
 
-- `Vault registry not found` — `scripts/vault/paths.json` is missing; run the
-  vault deploy or check the deploy wrapper.
+- `Vault registry not found` — `scripts/vault/paths.json` is missing from the
+  checkout; restore it (it is static committed data, not generated).
 - `Inbox path does not exist` — registry resolves to a directory that isn't
   present on this host. Usually a sync/mount issue.
 - `destination already exists` warning — a previous run left a file in
