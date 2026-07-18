@@ -17,9 +17,9 @@ subtasks:
 - T011
 - T012
 - T013
-agent: "claude:sonnet:python-pedro:implementer"
-shell_pid: "86676"
-shell_pid_created_at: "1784414816.764008"
+agent: "claude:opus:reviewer-renata:reviewer"
+shell_pid: "90266"
+shell_pid_created_at: "1784415400.764365"
 history:
 - '2026-07-18: authored by /spec-kitty.tasks'
 agent_profile: python-pedro
@@ -119,3 +119,5 @@ Execution worktree per computed lane in `lanes.json`.
 ## Activity Log
 
 - 2026-07-18T22:47:12Z – claude:sonnet:python-pedro:implementer – shell_pid=86676 – Assigned agent via action command
+- 2026-07-18T22:57:01Z – claude:sonnet:python-pedro:implementer – shell_pid=86676 – Integration suite: 8 tests, all 4 groups incl. mark-fail→reconcile marker; fakes only calendar subprocess; 488 tests green
+- 2026-07-18T22:57:10Z – claude:opus:reviewer-renata:reviewer – shell_pid=90266 – Started review via action command
