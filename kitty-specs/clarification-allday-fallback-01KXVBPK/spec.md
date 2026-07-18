@@ -101,6 +101,7 @@ idempotent, atomic scheduling.
 | C-002 | The pending-record schema change MUST be backward-compatible: records that predate the reason field (in-flight at deploy) MUST degrade to today's delete-and-release, never crash the sweep. | Approved |
 | C-003 | Adding the reason marker requires a calendar-agent AGENTS.md prompt change so newly created records carry it. Per the audited-surface model, agent AGENTS.md changes do not require a rebaseline (audit.sh does not hash agent AGENTS.md); confirm no rebaseline is required in the merge record. | Approved |
 | C-004 | Google Calendar all-day events use `start.date` / `end.date` with an **exclusive** end; a single-day event has `end_date = start_date + 1 day`. | Approved |
+| C-005 | The all-day fallback is **exclusively** the ≥24h age-out path. An incomplete no-time entry MUST first trigger the clarification **ask** (shipped item (i)); the all-day event is created **only after** that ask has gone unanswered for ≥24h. The fallback MUST NEVER pre-empt, skip, or replace the initial ask — an incomplete entry never becomes an all-day event on first sight. | Approved |
 
 ## Success Criteria
 
