@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-18T05:52:30Z",
+  "generated_at": "2026-07-18T13:03:36Z",
   "generated_by": "generate_manifest.py",
   "agents": {
     "main": {
@@ -212,8 +212,8 @@
       "repo_path": "scripts/openclaw/agents/felix-admin-calendar",
       "files": {
         "AGENTS.md": {
-          "repo_sha256": "2ec1bd4aafe3fccace6680d27b76ae17b786b4d8e9c267fec1581dd3b672afd3",
-          "office2_sha256": "2ec1bd4aafe3fccace6680d27b76ae17b786b4d8e9c267fec1581dd3b672afd3",
+          "repo_sha256": "a2bd75c6a77a8d367b7e89332d08e16152fe1651d5cfcfdce6af87bdfdf72863",
+          "office2_sha256": "a2bd75c6a77a8d367b7e89332d08e16152fe1651d5cfcfdce6af87bdfdf72863",
           "lines": 164,
           "tracked": true,
           "factory_default": false
