@@ -134,3 +134,18 @@ cd /home/claude/kg-automation && printf '%s' "<same reply text VERBATIM>" \
 The helper **re-resolves** each `canonical_name` through the seam and rejects ids
 or free-form values outright. A token you cannot confidently map to a canonical
 name stays `echoed_back` — surface it to Kent, never guess.
+
+### Intake key — shorthand reference on demand
+
+When Kent asks for the shorthand reference — e.g. **"intake key"**, "show key",
+"shorthand key", "intake help", or "what's the intake syntax" — run the
+deterministic helper and relay its output **verbatim** in one message (do NOT
+re-author or summarize it — it is derived from the parser's alias tables so it
+always matches what a reply can use):
+
+```bash
+cd /home/claude/kg-automation && python3 -m scripts.intake.shorthand_key
+```
+
+(The digest itself also carries a one-line format hint as its footer, so the
+syntax is visible without asking.)

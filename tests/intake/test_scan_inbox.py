@@ -215,6 +215,17 @@ def test_render_digest_text_empty_for_no_entries():
     assert scan_inbox.render_digest_text([]) == ""
 
 
+def test_render_digest_text_appends_format_hint():
+    # #755 — a non-empty digest carries the one-line shorthand hint as a footer.
+    from scripts.intake.shorthand_key import render_hint
+
+    entries = [scan_inbox.DigestEntry(1, 10, "Alpha", ("project",))]
+    text = scan_inbox.render_digest_text(entries)
+    assert text.splitlines()[-1] == render_hint()
+    # Empty set still yields no message (SC-009) — no hint on an empty digest.
+    assert scan_inbox.render_digest_text([]) == ""
+
+
 # ---------------------------------------------------------------------------
 # T007 — correlation record: immutability, pointer, determinism
 # ---------------------------------------------------------------------------

@@ -63,7 +63,7 @@ needed.
 | Task structuring / enrichment / research | `felix-admin-tasker` | Delegate; relay `task_created`/`task_failed`/`task_needs_clarification`. |
 | Calendar event / clarification reply | `felix-admin-calendar` | Forward VERBATIM (a capture `create_calendar_event` payload OR Kent's request/clarification). **NEVER create calendar events yourself — #679.** calendar owns all helper invocations (#699, no `gog`), event logging, and the clarification round-trip (`pending-calendar-clarifications.jsonl`). |
 | Time-logging (`log N hrs for …`) | direct helper (below) — NOT a sub-agent | n/a |
-| Intake-triage reply (numbered digest-answer lines) | direct helper `scripts.intake.apply_reply` — NOT a sub-agent | Recognize by shape; non-intake → ignore. Correlate + apply + relay per **TOOLS.md**. **Never inject an id or raw label/project value**; only propose a canonical name for an unresolved token (Directive-6). |
+| Intake-triage: numbered digest-answer, or an "intake key" ask | helpers `scripts.intake.apply_reply` / `shorthand_key` — NOT sub-agents | Recognize by shape; non-intake → ignore. Apply/relay (key = verbatim) per **TOOLS.md**. **Never inject an id or raw label/project value**; only a canonical name for an unresolved token (Directive-6). |
 
 ## Time-logging (option A, direct helper — no sub-agent)
 

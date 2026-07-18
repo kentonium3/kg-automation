@@ -164,6 +164,17 @@ A token not in the alias table and not a seam-declared name → **LLM fallback**
 still unresolved → the line is `echoed_back` to Kent with what was understood and
 what failed. Nothing is silently applied or dropped.
 
+### Shorthand reference on demand (#755)
+
+Every digest carries a one-line **format hint** as its footer (from
+`shorthand_key.render_hint()`), so the syntax is visible at reply time. For the
+full card, Kent messages **"intake key"** (or "show key" / "shorthand key") in
+the Felix DM and the `main` agent runs `python3 -m scripts.intake.shorthand_key`
+and relays it verbatim. The card is **derived from the `shorthand` alias tables**
+(`scripts/intake/shorthand_key.py`), so it can never drift from what the parser
+accepts — a token added to the parser appears in the card automatically (guarded
+by `tests/intake/test_shorthand_key.py`).
+
 ### Per-line apply statuses
 
 Each reply line resolves to exactly one status, confirmed to Kent, without
