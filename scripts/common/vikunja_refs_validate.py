@@ -50,6 +50,7 @@ from scripts.common import vikunja_refs
 __all__ = [
     "ValidationFinding",
     "validate",
+    "validate_declarations",
 ]
 
 
@@ -226,3 +227,117 @@ def validate(
             findings.append(finding)
 
     return findings
+
+
+def _duplicate_id_findings(
+    ref_type: str,
+    id_to_names: Mapping[Any, list[str]],
+    namespace: str = "",
+) -> list[ValidationFinding]:
+    """Emit one ``duplicate_id`` finding per collided id in one id-space.
+
+    ``id_to_names`` maps a declared provisioned id to every logical name that
+    claims it. Any id claimed by more than one name is a collision: two refs
+    resolving to the same live entity is a latent mis-routing bug (a caller
+    asking for ``f:3-edge`` and ``q:schedule`` must never get the same id).
+    ``namespace`` names the owning token for labels (labels are per-token,
+    #715), empty for projects.
+    """
+    findings: list[ValidationFinding] = []
+    for declared_id, names in id_to_names.items():
+        if len(names) > 1:
+            where = f" in token {namespace!r}" if namespace else ""
+            findings.append(
+                ValidationFinding(
+                    kind="duplicate_id",
+                    ref_type=ref_type,
+                    name=", ".join(sorted(names)),
+                    detail=(
+                        f"declared id {declared_id} is claimed by "
+                        f"{len(names)} {ref_type}s{where}: "
+                        f"{sorted(names)} (ids must be unique per id-space)"
+                    ),
+                )
+            )
+    return findings
+
+
+def validate_declarations() -> list[ValidationFinding]:
+    """Structural, live-data-free drift gate over the declared registry alone.
+
+    Complements :func:`validate` (which compares declared refs against injected
+    live data) by checking invariants that hold **independent of Vikunja** and
+    that the WP01 loader does not already enforce:
+
+    - **No duplicate provisioned ids.** ``vikunja_refs._normalize`` rejects
+      duplicate *names* at load, but nothing catches two distinct names
+      declaring the same live *id*. That is exactly the mis-routing hazard the
+      seam exists to prevent, so it is surfaced here as a ``duplicate_id``
+      finding. Projects and labels are separate Vikunja id-spaces, and labels
+      are per-token (#715), so collisions are detected **within** each space /
+      token namespace, never across them.
+
+    Unprovisioned refs (``value: null``) are skipped — a not-yet-reconciled id
+    cannot collide. Returns ``list[ValidationFinding]`` (empty == clean), so a
+    caller can fold these findings into the same report as :func:`validate`.
+    Reads the registry through WP01's memoized loader — never by re-parsing the
+    JSON — so it honors the ``set_registry_for_test`` seam and performs no I/O
+    on the hot path.
+    """
+    findings: list[ValidationFinding] = []
+
+    project_ids: dict[Any, list[str]] = {}
+    for entry in vikunja_refs.declared_projects():
+        if not entry.get("provisioned", True):
+            continue
+        declared_id = entry["selector"]["value"]
+        if declared_id is None:
+            continue
+        project_ids.setdefault(declared_id, []).append(entry["name"])
+    findings.extend(_duplicate_id_findings("project", project_ids))
+
+    label_ids_by_token: dict[str, dict[Any, list[str]]] = {}
+    for entry in vikunja_refs.declared_labels():
+        declared_id = entry["selector"]["value"]
+        if declared_id is None:
+            continue
+        token = entry["owner_token"]
+        label_ids_by_token.setdefault(token, {}).setdefault(
+            declared_id, []
+        ).append(entry["name"])
+    for token, id_to_names in label_ids_by_token.items():
+        findings.extend(_duplicate_id_findings("label", id_to_names, token))
+
+    return findings
+
+
+def main(argv: list[str] | None = None) -> int:
+    """Run the live-data-free declaration gate over the shipped registry.
+
+    Loads the committed ``vikunja_refs.json`` through WP01's loader (file + JSON
+    only, no network) and runs :func:`validate_declarations`. Prints any
+    structural finding to stderr and returns a nonzero exit code so
+    ``python3 -m scripts.common.vikunja_refs_validate`` is a real CI/pre-deploy
+    gate (exit ``0`` == clean). The reality-vs-registry drift comparison that
+    needs live Vikunja stays in the operator CLI at
+    ``scripts/vikunja/validate_refs.py`` — this entry point never touches the
+    network.
+    """
+    import sys
+
+    del argv  # no options today; declared for a stable signature
+    findings = validate_declarations()
+    if not findings:
+        print("vikunja_refs declarations OK: no duplicate ids", file=sys.stderr)
+        return 0
+    print(
+        f"vikunja_refs declaration gate found {len(findings)} issue(s):",
+        file=sys.stderr,
+    )
+    for finding in findings:
+        print(f"  [{finding.kind}] {finding.ref_type} {finding.name}: {finding.detail}", file=sys.stderr)
+    return 1
+
+
+if __name__ == "__main__":  # pragma: no cover - thin CLI shim
+    raise SystemExit(main())

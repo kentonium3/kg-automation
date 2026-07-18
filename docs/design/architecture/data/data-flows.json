@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
-  "last_updated": "2026-07-12",
-  "updated_by": "felix-canary-registry-01KX8T7B (#327 — +felix-canary component-health scanner, +felix-trust-scan trust-drift sibling, +unified-alert-bus-emit shared #701 emit path) + felix-time-logging-01KX79HT (#703 — WhatsApp -> timelog -> Sheets flow added) + felix-calendar-helper-01KX4H3C (#699 — calendar surface now flows Felix helper -> Google directly, not gog; closes #679)",
+  "last_updated": "2026-07-17",
+  "updated_by": "task-intake-validation-loop-01KXS06W (#749 — +intake-validation-loop flow: scan (felix-bot read) -> WhatsApp digest -> compact-shorthand reply -> apply (kent write token) with content-based correlation + state under /data/services/openclaw/state/intake/; closes #750) + felix-canary-registry-01KX8T7B (#327 — +felix-canary component-health scanner, +felix-trust-scan trust-drift sibling, +unified-alert-bus-emit shared #701 emit path) + felix-time-logging-01KX79HT (#703 — WhatsApp -> timelog -> Sheets flow added) + felix-calendar-helper-01KX4H3C (#699 — calendar surface now flows Felix helper -> Google directly, not gog; closes #679)",
   "flows": [
     {
       "name": "vikunja-web-ui",
@@ -1627,6 +1627,79 @@
           "description": "Per-assertion-file verified byte offset so each assertion is verified once."
         }
       ]
+    },
+    {
+      "name": "intake-validation-loop",
+      "status": "active",
+      "deployed_by": "task-intake-validation-loop-01KXS06W (#749)",
+      "introduced_by": "task-intake-validation-loop-01KXS06W (#749)",
+      "updated_by": "task-intake-validation-loop-01KXS06W (#749 — folds in #750)",
+      "since": "#749",
+      "description": "Tier-1 task-intake validation loop (#749). Rides each inbox-processing tick: after route_and_finalize, felix-admin-capture runs scripts/intake/scan_inbox.py (felix-bot READ) which resolves the Inbox project id via the #748 vikunja_refs seam, enumerates not-done tasks, classifies Tier-1 completeness (project ≠ Inbox + a friction f:1-3 + an Eisenhower q:*), writes an immutable per-digest correlation record + latest pointer + per-tick observability artifact under /data/services/openclaw/state/intake/, and emits one numbered WhatsApp digest of the incomplete tasks and their missing fields. Kent replies in compact shorthand; the main DM agent correlates the reply content-based (line-number set + task-title evidence, habits correlate_reply_to_checkin semantics) to the right digest and invokes scripts/intake/apply_reply.py, which resolves tokens through the seam and applies project + labels + applicable Tier-2 via the kent WRITE token (vikunja-api-kent, the #715 two-token model — never felix-bot, which 403s on kent-owned label attach; this closes #750). Writes are read-modify-write with family-replace for the mutually-exclusive q:/f: families; a per-line ApplyResult (applied/echoed_back/noop/overload_flagged/not_found/already_done/moved_conflict/access_denied) is appended to the apply ledger and confirmed to Kent. Deterministic throughout; the LLM is a narrow fallback only for a token the parser cannot resolve, constrained to a canonical name re-resolved through the seam (Directive 6). Applying a working project + f: + q: moves the task out of Inbox so it stops re-appearing (re-prompt-until-resolved, no suppression state).",
+      "trigger": "an inbox-processing tick completes route_and_finalize and the intake scan finds ≥1 not-done Tier-1-incomplete task in the Vikunja Inbox; and, asynchronously, Kent's WhatsApp reply to an intake digest",
+      "path": [
+        {
+          "from": "felix-admin-capture (after route_and_finalize, each inbox tick)",
+          "to": "scripts/intake/scan_inbox.py",
+          "protocol": "subprocess (cd /home/claude/kg-automation && python3 -m scripts.intake.scan_inbox)",
+          "description": "Deterministic scan; the agent relays the rendered digest as the WhatsApp message. No LLM."
+        },
+        {
+          "from": "scripts/intake/scan_inbox.py",
+          "to": "Vikunja API (Inbox project, GET /tasks/all)",
+          "protocol": "HTTPS (felix-bot READ token; Inbox id via scripts/common/vikunja_refs.py)",
+          "description": "Enumerate not-done Inbox tasks; classify Tier-1 completeness. Read-only — never the kent write token (#715)."
+        },
+        {
+          "from": "scripts/intake/scan_inbox.py",
+          "to": "/data/services/openclaw/state/intake/digests/intake-<digest_id>.json (+ latest.json)",
+          "protocol": "file write (atomic rename)",
+          "description": "Immutable per-digest correlation record {digest_id, created_utc, created_et_date, source_cron, entries:[{n, task_id, title, missing_fields}]}; latest.json pointer. Records past the 48h window are expired (habits parity)."
+        },
+        {
+          "from": "scripts/intake/scan_inbox.py",
+          "to": "/data/services/openclaw/state/intake/intake-tick-<ET-date>.json (+ intake-tick-latest.json)",
+          "protocol": "file write (atomic rename)",
+          "description": "Per-tick observability artifact (FR-014): scan counts + apply aggregates for the health/doc-audit posture."
+        },
+        {
+          "from": "felix-admin-capture",
+          "to": "Kent (WhatsApp)",
+          "protocol": "openclaw send --channel whatsapp",
+          "description": "One batched digest per tick numbering incomplete tasks + missing fields (Output Discipline). Silence when nothing is incomplete."
+        },
+        {
+          "from": "Kent (WhatsApp reply, compact shorthand)",
+          "to": "Felix main",
+          "protocol": "openclaw inbound WhatsApp",
+          "description": "Async reply on the DM lane, disconnected from the cron that sent the digest; correlated by content."
+        },
+        {
+          "from": "Felix main (intake reply handling)",
+          "to": "/data/services/openclaw/state/intake/ (latest.json + digest records)",
+          "protocol": "file read",
+          "description": "Content-based correlation of the numbered reply lines to the right digest within the 48h window; an orphan number is echoed back."
+        },
+        {
+          "from": "Felix main",
+          "to": "scripts/intake/apply_reply.py",
+          "protocol": "subprocess (cd /home/claude/kg-automation && python3 -m scripts.intake.apply_reply)",
+          "description": "Deterministic parse (scripts/intake/shorthand.py) + seam resolution + apply plan; per-line status. LLM fallback only for an unresolved token."
+        },
+        {
+          "from": "scripts/intake/apply_reply.py",
+          "to": "Vikunja API (POST /tasks/<id> + label attach)",
+          "protocol": "HTTPS (vikunja-api-kent WRITE token; read-modify-write + family-replace)",
+          "description": "Applies working project + f: + q: + applicable Tier-2 (due: ET-EOD). felix-bot is never used for the kent-owned label attach — closes #750 (SC-008). Task leaves Inbox and stops re-appearing."
+        },
+        {
+          "from": "scripts/intake/apply_reply.py",
+          "to": "/data/services/openclaw/state/intake/intake-apply-<ET-date>.jsonl",
+          "protocol": "file write (append)",
+          "description": "Per-line ApplyResult ledger (FR-014). Main confirms the per-line outcomes to Kent."
+        }
+      ],
+      "purpose": "Enforce the #714 Tier-1 intake standard (working project + f: + q:) via a batched WhatsApp digest + compact-shorthand reply applied through the kent token, so the friction/Eisenhower taxonomy stays populated instead of decaying"
     }
   ],
   "planned_flows": [

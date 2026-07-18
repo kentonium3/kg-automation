@@ -2,8 +2,8 @@
 title: Data Flows
 doc_type: reference
 status: approved
-last_updated: '2026-07-11'
-updated_by: 'felix-canary-registry-01KX8T7B (#327 — +felix-canary, +felix-trust-scan, +unified-alert-bus-emit observability flows) + felix-calendar-helper-01KX4H3C (#699 — calendar surface now Felix helper -> Google direct, not gog; closes #679) + felix-admin-cron-path-fix-01KWQTY3 (#656) + restore-whatsapp-dm-reply-delivery-01KTVVHH (#588) + inbox-calendar-and-aspiration-routing-01KTHHXS + #520-felix-vikunja-sync-project-layer-and-url-config'
+last_updated: '2026-07-17'
+updated_by: 'task-intake-validation-loop-01KXS06W (#749 — +intake-validation-loop flow: scan -> WhatsApp digest -> compact-shorthand reply -> kent-token apply; closes #750) + felix-canary-registry-01KX8T7B (#327 — +felix-canary, +felix-trust-scan, +unified-alert-bus-emit observability flows) + felix-calendar-helper-01KX4H3C (#699 — calendar surface now Felix helper -> Google direct, not gog; closes #679) + felix-admin-cron-path-fix-01KWQTY3 (#656) + restore-whatsapp-dm-reply-delivery-01KTVVHH (#588) + inbox-calendar-and-aspiration-routing-01KTHHXS + #520-felix-vikunja-sync-project-layer-and-url-config'
 tags: [327, 683, 701, 706, 516, 656, 588, 520, 507, 519, 518, 309, 343, 362, 391, 400, 310, 374]
 ---
 
@@ -774,6 +774,47 @@ one never aborts the other. A failed emit reverts the finding's `last_alerted` s
 it stays due next scan (no lost alert). Siblings share the *bus*, not the scanner
 (DEC-007). Ops: [`trust-reporting-detector.md`](<../../runbooks/trust-reporting-detector.md>);
 pattern [`observability-and-alerting.md`](<./observability-and-alerting.md>).
+
+### Task-Intake Validation Loop (#749; folds in #750)
+
+```
+felix-admin-capture (each inbox tick, AFTER route_and_finalize)
+  → scripts/intake/scan_inbox.py            (felix-bot READ; Inbox id via #748 seam; no LLM)
+       → Vikunja GET /tasks/all             (enumerate not-done Inbox tasks; classify Tier-1)
+       → /data/services/openclaw/state/intake/digests/intake-<digest_id>.json  (immutable record)
+       → …/intake/latest.json                                                  (newest-digest pointer)
+       → …/intake/intake-tick-<ET-date>.json (+ intake-tick-latest.json)       (FR-014 observability)
+  → Kent (WhatsApp)                          (ONE numbered digest of incomplete tasks + missing fields)
+
+Kent (WhatsApp reply, compact shorthand) → Felix main
+  → …/intake/latest.json + digest records    (content-based correlation: line-# set + title evidence, 48h)
+  → scripts/intake/apply_reply.py            (deterministic parse via shorthand.py; seam resolution)
+       → Vikunja POST /tasks/<id> + label attach   (vikunja-api-kent WRITE token; RMW + family-replace)
+       → …/intake/intake-apply-<ET-date>.jsonl      (append-only ApplyResult ledger)
+  → Kent (WhatsApp)                          (per-line confirmation)
+```
+
+The **Tier-1 task-intake validation loop** the #714 reset deferred to this
+integration epic. It rides the existing inbox crons (no separate schedule): after
+`route_and_finalize`, the scan enumerates not-done Vikunja Inbox tasks and flags
+any that are **Tier-1-incomplete** — lacking a working project (≠ Inbox), a
+friction label `f:1-3`, or an Eisenhower quadrant `q:*` (`f:4-overload` is a
+decomposition trigger, not a satisfying friction). One batched WhatsApp digest per
+tick numbers them with their missing fields (Output Discipline; silence when
+nothing is incomplete). Kent replies in compact shorthand; the **main** DM agent
+correlates the reply **content-based** (line-number set + task-title evidence,
+habits `correlate_reply_to_checkin` semantics) to the correct digest within the
+48h window and applies working project + labels + applicable Tier-2 through the
+**kent** write token (`vikunja-api-kent`, the #715 two-token model) using
+read-modify-write with **family-replace** for the mutually-exclusive `q:`/`f:`
+families. felix-bot is used **read-only** and is never used for the kent-owned
+label attach — **this closes #750** (felix-bot 403; SC-008). Deterministic
+throughout; the LLM is a narrow fallback only for a token the parser cannot
+resolve, constrained to a canonical name re-resolved through the seam (Directive
+6). Applying project + `f:` + `q:` moves the task out of Inbox so it stops
+re-appearing (re-prompt-until-resolved, no suppression state). Ops:
+[`intake-ops.md`](<../../runbooks/intake-ops.md>). Authoritative record:
+`flows[?name=intake-validation-loop]` in `data/data-flows.json`.
 
 ## Planned Flows (Not Yet Implemented)
 

@@ -173,6 +173,7 @@ local validation and CI.
 - [Spec-Kitty Bug Reporting](<./runbooks/spec-kitty-bug-reporting.md>)
 - [Spec-Kitty coord-topology flatten workaround](<./runbooks/spec-kitty-coord-flatten-workaround.md>)
 - [Spec-Kitty Mission Review Cycle](<./runbooks/spec-kitty-review-cycle.md>)
+- [Task-Intake Validation Loop Operations](<./runbooks/intake-ops.md>)
 - [Tasker Operations (Enrichment JSONL Migration)](<./runbooks/tasker-ops.md>)
 - [TeamSpace (spec-kitty-saas) Local QA Setup](<./runbooks/teamspace-saas-local-qa-setup.md>)
 - [Templater Commands (Canon v2)](<./runbooks/templater-commands.md>)
