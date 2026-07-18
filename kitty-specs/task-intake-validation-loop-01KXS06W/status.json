@@ -1,16 +1,16 @@
 {
-  "event_count": 44,
-  "last_event_id": "01KXS9951PD77QG6AJMZWRYWZX",
-  "materialized_at": "2026-07-18T00:16:07.734707+00:00",
+  "event_count": 45,
+  "last_event_id": "01KXS99BN3P0KE37Q63WCP2XN2",
+  "materialized_at": "2026-07-18T00:16:14.499097+00:00",
   "mission_number": "105",
   "mission_slug": "task-intake-validation-loop-01KXS06W",
   "mission_type": "software-dev",
   "summary": {
-    "approved": 3,
+    "approved": 2,
     "blocked": 0,
     "canceled": 0,
     "claimed": 0,
-    "done": 3,
+    "done": 4,
     "for_review": 0,
     "in_progress": 0,
     "in_review": 0,
@@ -39,11 +39,11 @@
       "last_transition_at": "2026-07-18T00:16:07.734707+00:00"
     },
     "WP04": {
-      "actor": "user",
+      "actor": "merge",
       "force_count": 1,
-      "lane": "approved",
-      "last_event_id": "01KXS66MZV8VMMNDGHWB22MHSR",
-      "last_transition_at": "2026-07-17T23:22:20.027483+00:00"
+      "lane": "done",
+      "last_event_id": "01KXS99BN3P0KE37Q63WCP2XN2",
+      "last_transition_at": "2026-07-18T00:16:14.499097+00:00"
     },
     "WP05": {
       "actor": "user",
