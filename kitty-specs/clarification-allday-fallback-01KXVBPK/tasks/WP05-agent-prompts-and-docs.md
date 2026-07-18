@@ -13,9 +13,9 @@ subtasks:
 - T014
 - T015
 - T016
-agent: "claude:sonnet:curator-carla:implementer"
-shell_pid: "86970"
-shell_pid_created_at: "1784414848.66806"
+agent: "claude:opus:reviewer-renata:reviewer"
+shell_pid: "91070"
+shell_pid_created_at: "1784415506.075863"
 history:
 - '2026-07-18: authored by /spec-kitty.tasks'
 agent_profile: curator-carla
@@ -111,3 +111,5 @@ Execution worktree per computed lane in `lanes.json`. Deploy is post-merge via
 ## Activity Log
 
 - 2026-07-18T22:47:41Z – claude:sonnet:curator-carla:implementer – shell_pid=86970 – Assigned agent via action command
+- 2026-07-18T22:58:42Z – claude:sonnet:curator-carla:implementer – shell_pid=86970 – Capture Step 3c persists signal + Step 1a invokes sweep-finalize; docs updated; ask-first C-005 preserved; validators OK, 166 tests green
+- 2026-07-18T22:58:51Z – claude:opus:reviewer-renata:reviewer – shell_pid=91070 – Started review via action command
