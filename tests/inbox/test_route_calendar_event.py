@@ -275,6 +275,215 @@ class TestCli:
 # ---------------------------------------------------------------------------
 
 
+# ---------------------------------------------------------------------------
+# All-day support (#780 FR-006): `start_date`/`end_date` pass-through
+#
+# The all-day shape is `{title, start_date, end_date}` (YYYY-MM-DD, exclusive
+# end). It must validate, normalize, and delegate WITHOUT fabricating any time,
+# and WITHOUT regressing the timed path.
+# ---------------------------------------------------------------------------
+
+
+class TestAllDayValidatePayload:
+    def test_all_day_payload_is_valid(self):
+        payload = {
+            "title": "Conference",
+            "start_date": "2026-07-20",
+            "end_date": "2026-07-21",
+        }
+        is_valid, missing = helper.validate_payload(payload)
+        assert is_valid is True
+        assert missing == []
+
+    def test_all_day_without_end_date_is_valid(self):
+        # end_date is optional — it gets defaulted in normalize_payload.
+        payload = {"title": "Holiday", "start_date": "2026-07-20"}
+        is_valid, missing = helper.validate_payload(payload)
+        assert is_valid is True
+        assert missing == []
+
+    def test_unparseable_start_date_is_missing(self):
+        payload = {"title": "Conf", "start_date": "not-a-date"}
+        is_valid, missing = helper.validate_payload(payload)
+        assert is_valid is False
+        assert "start_date" in missing
+
+    def test_datetime_string_rejected_as_start_date(self):
+        # A YYYY-MM-DDTHH:MM value is a timed shape, not an all-day date.
+        payload = {"title": "Conf", "start_date": "2026-07-20T09:00:00-04:00"}
+        is_valid, missing = helper.validate_payload(payload)
+        assert is_valid is False
+        assert "start_date" in missing
+
+    def test_unparseable_end_date_is_missing(self):
+        payload = {"title": "Conf", "start_date": "2026-07-20", "end_date": "nope"}
+        is_valid, missing = helper.validate_payload(payload)
+        assert is_valid is False
+        assert "end_date" in missing
+
+    def test_mixing_start_and_start_date_is_ambiguous(self):
+        payload = {
+            "title": "Conf",
+            "start": "2026-07-20T09:00:00-04:00",
+            "start_date": "2026-07-20",
+        }
+        is_valid, missing = helper.validate_payload(payload)
+        assert is_valid is False
+        assert "ambiguous_start" in missing
+
+    def test_neither_start_nor_start_date_is_rejected(self):
+        # Backward-compatible contract: a payload with no timing key reports
+        # missing `start` (and is rejected).
+        payload = {"title": "Conf"}
+        is_valid, missing = helper.validate_payload(payload)
+        assert is_valid is False
+        assert "start" in missing
+
+
+class TestAllDayNormalizePayload:
+    def test_passes_through_start_and_end_date(self):
+        payload = {
+            "title": "Conference",
+            "start_date": "2026-07-20",
+            "end_date": "2026-07-21",
+        }
+        result = helper.normalize_payload(payload)
+        assert result["start_date"] == "2026-07-20"
+        assert result["end_date"] == "2026-07-21"
+        # No timed keys are introduced — nothing fabricated.
+        assert "start" not in result
+        assert "end" not in result
+
+    def test_defaults_end_date_to_start_plus_one_day(self):
+        payload = {"title": "Holiday", "start_date": "2026-07-20"}
+        result = helper.normalize_payload(payload)
+        # Single-day, exclusive end per the Google all-day convention.
+        assert result["end_date"] == "2026-07-21"
+
+    def test_preserves_optional_fields(self):
+        payload = {
+            "title": "Conf",
+            "start_date": "2026-07-20",
+            "end_date": "2026-07-21",
+            "location": "Boston",
+            "description": "All-day offsite",
+        }
+        result = helper.normalize_payload(payload)
+        assert result["location"] == "Boston"
+        assert result["description"] == "All-day offsite"
+
+
+class TestAllDayBuildDelegationPayload:
+    def test_emits_start_date_end_date_not_rfc3339(self):
+        normalized = {
+            "title": "Conference",
+            "start_date": "2026-07-20",
+            "end_date": "2026-07-21",
+        }
+        env = helper.build_delegation_payload(normalized, "/inbox/note.md")
+        # All-day timing keys — exactly what calendar_helper expects.
+        assert env["start_date"] == "2026-07-20"
+        assert env["end_date"] == "2026-07-21"
+        # No timed keys fabricated (no T00:00:00 sneaking in).
+        assert "start_rfc3339" not in env
+        assert "end_rfc3339" not in env
+        # The rest of the envelope is unchanged.
+        assert env["action"] == "create_calendar_event"
+        assert env["summary"] == "Conference"
+        assert env["account"] == "personal"
+        assert env["source_inbox_path"] == "/inbox/note.md"
+        assert env["start_timezone"] is None
+
+    def test_exclusive_end_preserved_as_received(self):
+        # A multi-day span is passed through untouched (route layer does not
+        # recompute the exclusive end — WP03 owns that).
+        normalized = {
+            "title": "Retreat",
+            "start_date": "2026-07-20",
+            "end_date": "2026-07-23",
+        }
+        env = helper.build_delegation_payload(normalized, "/inbox/n.md")
+        assert env["start_date"] == "2026-07-20"
+        assert env["end_date"] == "2026-07-23"
+
+
+class TestAllDayCli:
+    def test_all_day_finalize_dry_run_emits_all_day_envelope(self, tmp_path, capsys):
+        # Integration-style: an all-day payload through --finalize --dry-run yields
+        # the all-day delegated shape (no helper/mark/log side effects).
+        pf = _write_payload(
+            tmp_path,
+            {"title": "Conference", "start_date": "2026-07-20", "end_date": "2026-07-21"},
+        )
+        code, out, err = _run(
+            ["--payload-file", str(pf), "--finalize", "--dry-run", "--source-path", "/inbox/n.md"],
+            capsys,
+        )
+        assert code == 0, err
+        result = json.loads(out)
+        assert result["status"] == "dry_run"
+        env = result["envelope"]
+        assert env["start_date"] == "2026-07-20"
+        assert env["end_date"] == "2026-07-21"
+        assert "start_rfc3339" not in env
+
+    def test_all_day_delegation_via_cli(self, tmp_path, capsys):
+        pf = _write_payload(
+            tmp_path,
+            {"title": "Conf", "start_date": "2026-07-20", "end_date": "2026-07-21"},
+        )
+        code, out, err = _run(
+            ["--payload-file", str(pf), "--as-delegation-payload", "--source-path", "/inbox/n.md"],
+            capsys,
+        )
+        assert code == 0, err
+        env = json.loads(out)
+        assert env["start_date"] == "2026-07-20"
+        assert env["end_date"] == "2026-07-21"
+
+
+class TestTimedPathRegression:
+    """The timed path must stay byte-for-byte unchanged after all-day support."""
+
+    def test_timed_envelope_bytes_unchanged(self):
+        normalized = {
+            "title": "Tuesday trivia night",
+            "start": "2026-06-09T18:00:00-04:00",
+            "end": "2026-06-09T19:00:00-04:00",
+            "location": "Tru West Brewery",
+            "description": "Source note",
+        }
+        env = helper.build_delegation_payload(normalized, "/inbox/note.md")
+        # Exact key ORDER and values the pre-all-day mapping produced.
+        assert json.dumps(env) == json.dumps(
+            {
+                "action": "create_calendar_event",
+                "calendar_id": "primary",
+                "account": "personal",
+                "summary": "Tuesday trivia night",
+                "start_rfc3339": "2026-06-09T18:00:00-04:00",
+                "end_rfc3339": "2026-06-09T19:00:00-04:00",
+                "start_timezone": None,
+                "location": "Tru West Brewery",
+                "description": "Source note",
+                "rrule": None,
+                "attendees": None,
+                "source_inbox_path": "/inbox/note.md",
+                "clarification_id": None,
+            }
+        )
+
+    def test_timed_normalize_defaults_end_unchanged(self):
+        payload = {"title": "Sync", "start": "2026-06-12T15:00:00-04:00"}
+        result = helper.normalize_payload(payload)
+        assert result["end"] == "2026-06-12T16:00:00-04:00"
+        assert "start_date" not in result
+
+    def test_timed_validation_unchanged(self):
+        payload = {"title": "Sync", "start": "2026-06-12T15:00:00-04:00"}
+        assert helper.validate_payload(payload) == (True, [])
+
+
 class TestBuildDelegationPayload:
     def test_maps_fields_and_defaults(self):
         normalized = {

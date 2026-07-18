@@ -386,6 +386,129 @@ def test_appointment_date_only_no_time_requires_clarification() -> None:
     assert "start_datetime" not in result["missing_fields"]
 
 
+# ---------------------------------------------------------------------------
+# #780 WP01 — validate surfaces resolved start_date + missing_fields on
+# start-time-missing results (add-time foundation for the all-day fallback).
+# ---------------------------------------------------------------------------
+
+
+def test_start_time_missing_result_surfaces_resolved_start_date() -> None:
+    """An incomplete result whose date resolved but time is missing carries a
+    tick-anchored `start_date` (resolved once at capture time), so the sweep can
+    finalize an all-day event without re-parsing the natural phrase later."""
+    block = {
+        "title": "Meet Rob",
+        "start_natural": "next Thursday",
+        "duration_natural": "1 hour",  # timed appointment, no explicit time
+        "source_inbox_path": "/tmp/Inbox 2026-06-07 1000.md",
+        "source_block_index": 0,
+        "tick_iso": "2026-06-07T10:00:00-04:00",
+    }
+    result = vce.validate(block)
+    assert result["complete"] is False
+    assert "start_time" in result["missing_fields"]
+    # 2026-06-07 is a Sunday; "next Thursday" resolves to 2026-06-11.
+    assert result["start_date"] == "2026-06-11"
+
+
+def test_start_date_is_anchored_to_tick_not_now() -> None:
+    """Week-drift guard: the SAME natural phrase at two `tick_iso` values that
+    straddle a week boundary yields two DIFFERENT `start_date`s — proving the
+    date is resolved against the caller's tick, not wall-clock 'now'."""
+    base = {
+        "title": "Meet Rob",
+        "start_natural": "Thursday",
+        "duration_natural": "1 hour",
+        "source_inbox_path": "/tmp/Inbox.md",
+        "source_block_index": 0,
+    }
+    # Tick in the week of 2026-06-07 (Sun): "Thursday" → 2026-06-11.
+    early = vce.validate({**base, "tick_iso": "2026-06-07T10:00:00-04:00"})
+    # Tick one week later (2026-06-14 Sun): "Thursday" → 2026-06-18.
+    late = vce.validate({**base, "tick_iso": "2026-06-14T10:00:00-04:00"})
+    assert early["start_date"] == "2026-06-11"
+    assert late["start_date"] == "2026-06-18"
+    assert early["start_date"] != late["start_date"]
+
+
+def test_no_time_no_duration_missing_fields_vocabulary() -> None:
+    """Source-of-truth for WP03's eligibility gate: the canonical 'Meet Rob
+    Thursday' block with NO time and NO duration yields BOTH timing fields as
+    missing — `missing_fields == ['start_time', 'end_or_duration']` — and still
+    surfaces a `start_date` (both are timing fields; the record is all-day
+    eligible)."""
+    block = {
+        "title": "Meet Rob",
+        "start_natural": "next Thursday",
+        # no duration_natural, no end_natural
+        "source_inbox_path": "/tmp/Inbox 2026-06-07 1000.md",
+        "source_block_index": 0,
+        "tick_iso": "2026-06-07T10:00:00-04:00",
+    }
+    result = vce.validate(block)
+    assert result["complete"] is False
+    # The REAL vocabulary WP03 keys off — both timing fields are absent.
+    assert result["missing_fields"] == ["start_time", "end_or_duration"]
+    assert result["start_date"] == "2026-06-11"
+
+
+def test_unresolved_date_gains_no_start_date() -> None:
+    """Fail-closed: when the date does NOT resolve (unparseable/absent), the
+    result surfaces `start_datetime` as missing and carries NO `start_date` —
+    an un-dateable record must remain ineligible for the all-day fallback."""
+    block = {
+        "title": "Mystery event",
+        "start_natural": "vibes only",
+        "source_inbox_path": "/tmp/Inbox 2026-06-07 1000.md",
+        "source_block_index": 0,
+        "tick_iso": "2026-06-07T10:00:00-04:00",
+    }
+    result = vce.validate(block)
+    assert result["complete"] is False
+    assert "start_datetime" in result["missing_fields"]
+    assert "start_time" not in result["missing_fields"]
+    assert "start_date" not in result
+
+
+def test_complete_timed_event_gains_no_start_date_key() -> None:
+    """Regression: a complete timed event is unchanged — no top-level
+    `start_date` leaks onto the result (that key lives only inside the payload's
+    all-day form)."""
+    block = {
+        "title": "Standup",
+        "start_natural": "June 10, 2026 at 2pm",
+        "duration_natural": "30 minutes",
+        "source_inbox_path": "/tmp/Inbox 2026-06-07 1000.md",
+        "source_block_index": 0,
+        "tick_iso": "2026-06-07T10:00:00-04:00",
+    }
+    result = vce.validate(block)
+    assert result["complete"] is True
+    assert "start_date" not in result
+    payload = result["calendar_event_payload"]
+    assert payload["start_rfc3339"].startswith("2026-06-10T14:00:00")
+    assert "start_date" not in payload
+
+
+def test_complete_all_day_event_unaffected_by_wp01() -> None:
+    """Regression: a complete all-day event still emits its payload `start_date`
+    (Google date form) and carries no top-level `start_date` on the result."""
+    block = {
+        "title": "Anniversary",
+        "start_natural": "June 14, 2026",
+        "duration_natural": "1 day",
+        "source_inbox_path": "/tmp/Inbox 2026-06-07 1000.md",
+        "source_block_index": 0,
+        "tick_iso": "2026-06-07T10:00:00-04:00",
+    }
+    result = vce.validate(block)
+    assert result["complete"] is True
+    assert "start_date" not in result
+    payload = result["calendar_event_payload"]
+    assert payload["start_date"] == "2026-06-14"
+    assert "start_rfc3339" not in payload
+
+
 def test_appointment_with_explicit_time_no_clarification() -> None:
     """An appointment WITH an explicit time resolves fully — no start_time ask."""
     block = {

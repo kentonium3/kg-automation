@@ -5,7 +5,7 @@ capture-d6-helpers-extraction-01KTMS5Q mission spec.
 
 Subcommands under test:
   - add    — append a PendingClarification to the state file
-  - sweep  — delete entries with `created_at` >= 24h old (safe on missing file)
+  - sweep  — delete entries with `created_at` >= 8h old (safe on missing file)
   - match  — return the most-recent entry whose title appears (case-
              insensitive substring) in the incoming reply
 
@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import json
 import os
+import subprocess
 import sys
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -32,6 +33,10 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from scripts.inbox import handle_clarification_state as hcs  # noqa: E402
+from scripts.inbox import clarification_sweep_finalize as csf  # noqa: E402
+from scripts.inbox import route_and_finalize as raf  # noqa: E402
+from scripts.inbox import route_calendar_event as rce  # noqa: E402
+from scripts.inbox import routing_log as _routing_log  # noqa: E402
 
 
 # --------------------------------------------------------------------------
@@ -232,7 +237,7 @@ def test_sweep_safe_on_empty_array(
     assert _read_state(state_path) == []
 
 
-def test_sweep_removes_entries_older_than_24h(
+def test_sweep_removes_entries_older_than_8h(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
     state_path = tmp_path / "pending.json"
@@ -243,7 +248,7 @@ def test_sweep_removes_entries_older_than_24h(
             {
                 "note_filename": "old.md",
                 "partial_payload": {"title": "Old"},
-                "created_at": _iso_z(now - timedelta(hours=25)),
+                "created_at": _iso_z(now - timedelta(hours=9)),
             },
             {
                 "note_filename": "fresh.md",
@@ -262,13 +267,13 @@ def test_sweep_removes_entries_older_than_24h(
     assert remaining[0]["note_filename"] == "fresh.md"
 
 
-def test_sweep_24h_boundary_inclusive(
+def test_sweep_8h_boundary_inclusive(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    """Entry exactly 24h old is REMOVED (>= 24h semantic; documented inline)."""
+    """Entry exactly 8h old is REMOVED (>= 8h semantic; documented inline)."""
     state_path = tmp_path / "pending.json"
     now = datetime.now(timezone.utc)
-    # Subtract a small fudge so the entry registers as slightly >= 24h once
+    # Subtract a small fudge so the entry registers as slightly >= 8h once
     # the helper computes its own `now`. Even just past the boundary is fine.
     _write_state(
         state_path,
@@ -276,7 +281,7 @@ def test_sweep_24h_boundary_inclusive(
             {
                 "note_filename": "boundary.md",
                 "partial_payload": {"title": "Boundary"},
-                "created_at": _iso_z(now - timedelta(hours=24, seconds=1)),
+                "created_at": _iso_z(now - timedelta(hours=8, seconds=1)),
             },
         ],
     )
@@ -288,10 +293,10 @@ def test_sweep_24h_boundary_inclusive(
     assert _read_state(state_path) == []
 
 
-def test_sweep_keeps_entries_just_under_24h(
+def test_sweep_keeps_entries_just_under_8h(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    """Entry that is freshly added (well under 24h) is kept."""
+    """Entry that is freshly added (well under 8h) is kept."""
     state_path = tmp_path / "pending.json"
     now = datetime.now(timezone.utc)
     _write_state(
@@ -300,7 +305,7 @@ def test_sweep_keeps_entries_just_under_24h(
             {
                 "note_filename": "almost.md",
                 "partial_payload": {"title": "Almost"},
-                "created_at": _iso_z(now - timedelta(hours=23, minutes=59)),
+                "created_at": _iso_z(now - timedelta(hours=7, minutes=59)),
             },
         ],
     )
@@ -837,3 +842,157 @@ def test_module_runs_as_main(monkeypatch: pytest.MonkeyPatch) -> None:
             "scripts.inbox.handle_clarification_state", run_name="__main__"
         )
     assert excinfo.value.code == 0
+
+
+# --------------------------------------------------------------------------
+# clarification_sweep_finalize (#780) — FR-007 marker idempotency across the
+# create+log-succeed / mark-fail -> reconcile interleaving (WP03 cycle-2 fix).
+#
+# These live here (not in tests/inbox/test_clarification_sweep_finalize.py,
+# which WP04 owns) per the review directive: they cover the exact reconcile
+# marker-loss regression and the canonical FR-009 no-re-emit case.
+# --------------------------------------------------------------------------
+
+
+def _fake_completed(
+    returncode: int, stdout: str = "", stderr: str = ""
+) -> "subprocess.CompletedProcess[str]":
+    return subprocess.CompletedProcess(
+        args=["seam"], returncode=returncode, stdout=stdout, stderr=stderr
+    )
+
+
+def _created_stdout(event_id: str = "evt_1", html: str = "https://cal/evt_1") -> str:
+    """Mirror route_calendar_event's helper-success stdout (parsed by rce)."""
+    return (
+        f'{{"status": "created", "idempotent": false, '
+        f'"event_id": "{event_id}", "html_link": "{html}"}}\n'
+    )
+
+
+def _log_rows(path: Path) -> list[dict]:
+    if not path.exists():
+        return []
+    return [json.loads(line) for line in path.read_text().splitlines() if line.strip()]
+
+
+def _eligible_entry(note: str, created: datetime, title: str = "Meet Rob") -> dict:
+    """An aged-out, timing-only-gap record eligible for the all-day fallback."""
+    return {
+        "note_filename": note,
+        "partial_payload": {
+            "title": title,
+            "start_date": "2026-07-20",
+            "missing_fields": ["start_time", "end_or_duration"],
+        },
+        "created_at": _iso_z(created),
+    }
+
+
+def test_sweep_finalize_emits_marker_once_across_mark_fail_then_reconcile(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """FR-007 regression: tick-1 creates + logs the ``calendar`` row but
+    ``mark_processed`` FAILS (record retained, marker not yet emitted); tick-2
+    reconciles the stale record and MUST still emit exactly one
+    ``calendar_all_day_fallback`` marker — sourced from the existing calendar
+    row, without re-creating the event."""
+    log = tmp_path / "routing.jsonl"
+    monkeypatch.setattr(_routing_log, "DEFAULT_ROUTING_LOG_PATH", log)
+
+    # Calendar create "succeeds" (evt_1); count invocations to prove no
+    # double-create across ticks.
+    create_calls = {"n": 0}
+
+    def counting_invoke(*a, **k):
+        create_calls["n"] += 1
+        return _fake_completed(0, stdout=_created_stdout())
+
+    monkeypatch.setattr(rce, "_invoke_calendar_helper", counting_invoke)
+
+    now = datetime(2026, 7, 18, 12, 0, 0, tzinfo=timezone.utc)
+    state = tmp_path / "pending.json"
+    note = "Meet Rob 2026-07-18 0900.md"
+    _write_state(state, [_eligible_entry(note, now - timedelta(hours=9))])
+    inbox_root = tmp_path / "inbox"
+
+    # tick-1: mark_processed FAILS → the calendar row is logged (log-before-mark)
+    # but the transaction returns error → record retained, NO marker emitted.
+    monkeypatch.setattr(
+        raf,
+        "_invoke_mark_processed",
+        lambda p: _fake_completed(1, stderr="ERROR: mark_processed timed out"),
+    )
+    counts1 = csf.sweep_finalize(state, now, inbox_root)
+    assert counts1["retained"] == 1
+    assert counts1["finalized"] == 0
+    assert counts1["reconciled"] == 0
+    rows1 = _log_rows(log)
+    assert [r["kind"] for r in rows1] == ["calendar"]  # marker not yet present
+    assert len(_read_state(state)) == 1  # record retained for a later retry
+
+    # tick-2: mark_processed SUCCEEDS → block already logged → skipped →
+    # reconciled; the previously-missing marker is now emitted exactly once.
+    monkeypatch.setattr(
+        raf,
+        "_invoke_mark_processed",
+        lambda p: _fake_completed(0, stdout='{"finalized": true}\n'),
+    )
+    counts2 = csf.sweep_finalize(state, now, inbox_root)
+    assert counts2["reconciled"] == 1
+    assert counts2["finalized"] == 0
+    assert _read_state(state) == []  # stale record removed
+
+    assert create_calls["n"] == 1, "event must NOT be re-created on reconcile"
+    rows2 = _log_rows(log)
+    markers = [r for r in rows2 if r["kind"] == csf.FALLBACK_MARKER_KIND]
+    assert len(markers) == 1, "exactly one calendar_all_day_fallback marker"
+    assert markers[0]["destination"] == "evt_1"  # sourced from the calendar row
+    assert markers[0]["filename"] == note
+
+
+def test_finalize_record_reconcile_does_not_reemit_existing_marker(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Canonical FR-009: when the ``calendar_all_day_fallback`` marker already
+    exists for the note, a reconcile pass removes the stale record WITHOUT
+    re-emitting the marker (still exactly one)."""
+    log = tmp_path / "routing.jsonl"
+    monkeypatch.setattr(_routing_log, "DEFAULT_ROUTING_LOG_PATH", log)
+
+    title = "Meet Rob"
+    note = "Meet Rob 2026-07-18 0900.md"
+
+    # The block is already logged, so the helper must never run on reconcile.
+    def _must_not_run(*a, **k):
+        pytest.fail("calendar helper must not run on a reconcile pass")
+
+    monkeypatch.setattr(rce, "_invoke_calendar_helper", _must_not_run)
+    monkeypatch.setattr(
+        raf,
+        "_invoke_mark_processed",
+        lambda p: _fake_completed(0, stdout='{"finalized": true}\n'),
+    )
+
+    # Pre-seed BOTH the calendar row and the fallback marker (a prior full
+    # success whose record-removal never landed). The block_hash matches
+    # build_all_day_plan's content (the title), so the transaction skips it.
+    writer = _routing_log.RoutingLogWriter()
+    bh = _routing_log.block_hash(title)
+    writer.append(
+        filename=note, note_excerpt=title, kind="calendar",
+        destination="evt_1", block_index=0, block_hash=bh,
+    )
+    writer.append(
+        filename=note, note_excerpt=title, kind=csf.FALLBACK_MARKER_KIND,
+        destination="evt_1", block_index=0, block_hash=bh,
+    )
+
+    record = _eligible_entry(
+        note, datetime(2026, 7, 18, 3, 0, 0, tzinfo=timezone.utc), title=title
+    )
+    outcome = csf.finalize_record(record, tmp_path / "inbox")
+
+    assert outcome == "reconciled"
+    markers = [r for r in _log_rows(log) if r["kind"] == csf.FALLBACK_MARKER_KIND]
+    assert len(markers) == 1, "marker must NOT be re-emitted when already present"

@@ -1,7 +1,7 @@
 {
   "schema_version": "1.1",
-  "last_updated": "2026-06-12",
-  "updated_by": "pull-based-deploy-pipeline-01KTYQQS (#136 deploy-manifest-added, office2-service-deployment, deploy-library-modified) + agent-prompt-deploy-pipeline-01KTMDDD (#567) + inbox-calendar-and-aspiration-routing-01KTHHXS (verified service-added-or-modified and data-flow-added-or-modified targets) + #510-sweeper-tick + #343-wp01 + #492-mission-end-classes",
+  "last_updated": "2026-07-18",
+  "updated_by": "pull-based-deploy-pipeline-01KTYQQS (#136 deploy-manifest-added, office2-service-deployment, deploy-library-modified) + agent-prompt-deploy-pipeline-01KTMDDD (#567) + inbox-calendar-and-aspiration-routing-01KTHHXS (verified service-added-or-modified and data-flow-added-or-modified targets) + #510-sweeper-tick + #343-wp01 + #492-mission-end-classes + clarification-allday-fallback-01KXVBPK (#780 — calendar-flow-changed + inbox-routing-changed classes route to the new calendar-clarification process-flow doc)",
   "description": "Maps deterministic change signals to the documentation surfaces that likely need review when the signal fires. Two consumer classes: (1) drift-event entries (match.source='audit.sh') consumed by scripts/doc_audit/helpers/handle_drift_events.py to auto-file [doc-audit] issues; (2) mission-end entries (match.source='mission-architecture-impact') consumed by /spec-kitty.specify and /spec-kitty.plan agents per CLAUDE.md to populate a mission's Architecture Impact section with the full set of likely-affected docs. v1.1 adds match.change_class and consumer_hint fields; existing v1.0 entries unchanged.",
   "mappings": [
     {
@@ -352,6 +352,36 @@
       "issue_labels": ["P3-candidate", "spec: brief", "area/infrastructure"],
       "consumer_hint": "spec-author",
       "introduced_by": "#136"
+    },
+    {
+      "id": "mission-calendar-flow-changed",
+      "match": {
+        "source": "mission-architecture-impact",
+        "change_class": "calendar-flow-changed"
+      },
+      "doc_targets": [
+        "docs/design/process-flows/calendar-clarification.md",
+        "docs/INDEX.md"
+      ],
+      "rationale": "A mission changes the calendar-clarification lifecycle — the validate → route_calendar_event → route_and_finalize → clarification sweep-finalize path, the 8h SWEEP_MAX_AGE window, the timing-only eligibility gate, the all-day fallback, or the calendar_all_day_fallback observability marker. The current-state explanation lives in docs/design/process-flows/calendar-clarification.md and MUST be updated so future missions read shipped behavior there instead of spelunking prior kitty-specs/ missions (the pain #780 hit). INDEX.md lists the process-flow doc, so it is transitively discoverable, but is named here because the process-flows group is new and easily missed. Seams: scripts/calendar_routing/validate_calendar_event.py, scripts/inbox/route_calendar_event.py, scripts/inbox/route_and_finalize.py, scripts/inbox/handle_clarification_state.py, scripts/inbox/clarification_sweep_finalize.py, scripts/openclaw/agents/felix-admin-capture/AGENTS.md.",
+      "issue_labels": ["P3-candidate", "spec: brief", "area/felix-core"],
+      "consumer_hint": "spec-author",
+      "introduced_by": "#780"
+    },
+    {
+      "id": "mission-inbox-routing-changed",
+      "match": {
+        "source": "mission-architecture-impact",
+        "change_class": "inbox-routing-changed"
+      },
+      "doc_targets": [
+        "docs/design/process-flows/calendar-clarification.md",
+        "docs/INDEX.md"
+      ],
+      "rationale": "A mission changes the felix-admin-capture inbox routing/finalize path (prescan → classify → route_and_finalize → mark processed, or the clarification/sweep steps in the capture AGENTS.md). Where the change touches the calendar-clarification flow, the current-state process-flow doc docs/design/process-flows/calendar-clarification.md MUST be updated. This is the first process-flow doc registered under docs/design/process-flows/; #794 will generalize the shape and add the sibling flow docs (someday, journal, habits) — add their change classes here as they land.",
+      "issue_labels": ["P3-candidate", "spec: brief", "area/felix-core"],
+      "consumer_hint": "spec-author",
+      "introduced_by": "#780"
     }
   ]
 }

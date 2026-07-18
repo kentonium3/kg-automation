@@ -580,11 +580,22 @@ def validate(block: dict) -> dict:
             missing.append("recurrence_pattern")
 
     if missing:
-        return {
+        result: dict = {
             "complete": False,
             "missing_fields": missing,
             "fields_so_far": _fields_so_far(block),
         }
+        # #780 all-day fallback: when the date resolved but the time is missing,
+        # surface the resolved `start_date` (tick-anchored, resolved once at
+        # capture time) so the downstream sweep-finalize path can create an
+        # all-day event without re-parsing `start_natural` hours later — which
+        # would silently resolve to the wrong week. Emit only when `start_dt`
+        # resolved (fail-closed: an un-dateable record stays ineligible and
+        # gains no `start_date`). Shape matches the complete all-day branch's
+        # `start_date` (`start_dt.date().isoformat()`).
+        if start_dt is not None and "start_time" in missing:
+            result["start_date"] = start_dt.date().isoformat()
+        return result
 
     # All required parts present — assemble the payload.
     assert title is not None
