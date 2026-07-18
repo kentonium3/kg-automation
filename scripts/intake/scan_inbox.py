@@ -66,6 +66,7 @@ from zoneinfo import ZoneInfo
 
 from scripts.common import vikunja_refs
 from scripts.common.vikunja_client import VikunjaError
+from scripts.intake.shorthand_key import render_hint
 
 __all__ = [
     "DEFAULT_STATE_DIR",
@@ -375,6 +376,8 @@ def render_digest_text(entries: list[DigestEntry]) -> str:
     for entry in entries:
         fields = ", ".join(entry.missing_fields) if entry.missing_fields else "-"
         lines.append(f"{entry.n}. {entry.title} — needs: {fields}")
+    lines.append("")
+    lines.append(render_hint())  # #755 — reply-format hint at the moment of use
     return "\n".join(lines)
 
 
