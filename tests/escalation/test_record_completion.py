@@ -200,27 +200,12 @@ class TestHappyPathPerEventType:
         # calendar date). June is EDT, so the offset is -04:00.
         assert body == {"due_date": "2026-06-15T23:59:59-04:00"}
 
-    def test_reschedule_due_date_et_uses_dst_aware_offset(self):
-        """`_reschedule_due_date_et` picks EDT vs EST by the target date (#733)."""
-        # Summer target -> EDT (-04:00); winter target -> EST (-05:00).
-        assert rc._reschedule_due_date_et("2026-06-15") == "2026-06-15T23:59:59-04:00"
-        assert rc._reschedule_due_date_et("2026-01-15") == "2026-01-15T23:59:59-05:00"
-        # Day after the 2026 spring-forward transition (2026-03-08) is EDT.
-        assert rc._reschedule_due_date_et("2026-03-09") == "2026-03-09T23:59:59-04:00"
-        # Day before spring-forward is still EST.
-        assert rc._reschedule_due_date_et("2026-03-07") == "2026-03-07T23:59:59-05:00"
-
-    def test_reschedule_due_date_et_rejects_bad_date(self):
-        """`_reschedule_due_date_et` raises on invalid / pre-modern dates."""
-        # Not a real calendar date.
-        with pytest.raises(ValueError):
-            rc._reschedule_due_date_et("2026-13-99")
-        # Pre-standardization (pre-1883) ET carries a sub-minute LMT offset
-        # (e.g. -04:56:02) that would emit a malformed due_date; reject it.
-        with pytest.raises(ValueError):
-            rc._reschedule_due_date_et("0001-01-01")
-        with pytest.raises(ValueError):
-            rc._reschedule_due_date_et("1800-06-15")
+    # The ET end-of-day write logic moved to the canonical helper
+    # ``scripts.common.et_datetime.et_end_of_day`` (#761); its DST-offset and
+    # pre-standard-date rejection are unit-tested in
+    # ``tests/common/test_et_datetime.py``. The reschedule write path is still
+    # covered end-to-end by ``test_record_rescheduled_*`` above, which asserts
+    # the emitted ``due_date`` body is ``2026-06-15T23:59:59-04:00``.
 
     def test_record_snoozed_computes_snooze_until_at_write_time(
         self,
