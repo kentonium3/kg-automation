@@ -192,3 +192,4 @@ Execution worktree per computed lane in `lanes.json`.
 - 2026-07-18T22:29:57Z – claude:sonnet:python-pedro:implementer – shell_pid=79822 – Started implementation via action command
 - 2026-07-18T22:39:46Z – claude:sonnet:python-pedro:implementer – shell_pid=79822 – Cycle 2: FR-007 marker idempotent+reconcile-aware; 480 tests green
 - 2026-07-18T22:39:55Z – claude:opus:reviewer-renata:reviewer – shell_pid=83807 – Started review via action command
+- 2026-07-18T22:46:25Z – user – shell_pid=83807 – Arbiter override: cycle-2 reviewer-renata APPROVE (mutation-verified) supersedes cycle-1 REJECT; fix 64cbede2. Override required by review-artifact gate (#574/#1817 class, approve-gate variant on 3.2.6).

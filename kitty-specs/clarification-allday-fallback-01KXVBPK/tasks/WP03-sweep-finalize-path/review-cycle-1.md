@@ -7,6 +7,10 @@ reviewed_at: '2026-07-18T22:29:31Z'
 reviewer_agent: unknown
 verdict: rejected
 wp_id: WP03
+review_artifact_override_at: "2026-07-18T22:46:16Z"
+review_artifact_override_actor: "operator"
+review_artifact_override_wp_id: "WP03"
+review_artifact_override_reason: "Arbiter override: cycle-2 reviewer-renata APPROVE (mutation-verified) supersedes cycle-1 REJECT; fix 64cbede2. Override required by review-artifact gate (#574/#1817 class, approve-gate variant on 3.2.6)."
 ---
 
 # WP03 review feedback — cycle 1/3 (reviewer-renata, REJECT)
