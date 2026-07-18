@@ -1,7 +1,7 @@
 {
-  "event_count": 36,
-  "last_event_id": "01KXVQEKBKGJMWVXT26AVGDTCY",
-  "materialized_at": "2026-07-18T23:02:15.155623+00:00",
+  "event_count": 38,
+  "last_event_id": "01KXVQF8J7HDH8JEJMK29K0MTF",
+  "materialized_at": "2026-07-18T23:02:36.867967+00:00",
   "mission_number": "",
   "mission_slug": "clarification-allday-fallback-01KXVBPK",
   "mission_type": "software-dev",
@@ -12,9 +12,9 @@
     "claimed": 0,
     "done": 0,
     "for_review": 0,
-    "in_progress": 0,
+    "in_progress": 1,
     "in_review": 0,
-    "planned": 1
+    "planned": 0
   },
   "work_packages": {
     "WP01": {
@@ -53,11 +53,11 @@
       "last_transition_at": "2026-07-18T23:02:15.155623+00:00"
     },
     "WP06": {
-      "actor": "finalize-tasks",
+      "actor": "claude:sonnet:curator-carla:implementer",
       "force_count": 0,
-      "lane": "planned",
-      "last_event_id": "01KXVH9TPV15AJ685N4DTTZSBC",
-      "last_transition_at": "2026-07-18T21:14:47.387500+00:00"
+      "lane": "in_progress",
+      "last_event_id": "01KXVQF8J7HDH8JEJMK29K0MTF",
+      "last_transition_at": "2026-07-18T23:02:36.867967+00:00"
     }
   }
 }
