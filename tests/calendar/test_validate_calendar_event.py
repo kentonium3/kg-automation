@@ -285,7 +285,10 @@ def test_end_takes_precedence_over_duration_when_both_present() -> None:
 
 
 def test_all_day_event_date_only() -> None:
-    """start_natural is a date-only string → defaults to 00:00; end uses 1-day default."""
+    """A date-only start with a whole-day duration is a TRUE all-day event (#780):
+    the payload uses Google's date form (``start_date``/``end_date``, exclusive
+    end) — NOT a midnight ``start_rfc3339`` — so the calendar helper creates a
+    real all-day event, not a midnight-to-midnight timed one."""
     block = {
         "title": "Anniversary",
         "start_natural": "June 14, 2026",
@@ -296,7 +299,11 @@ def test_all_day_event_date_only() -> None:
     }
     result = vce.validate(block)
     assert result["complete"] is True
-    assert result["calendar_event_payload"]["start_rfc3339"].startswith("2026-06-14T00:00:00")
+    payload = result["calendar_event_payload"]
+    assert payload["start_date"] == "2026-06-14"
+    assert payload["end_date"] == "2026-06-15"  # Google all-day end is exclusive
+    assert "start_rfc3339" not in payload
+    assert "end_rfc3339" not in payload
 
 
 # --- #739 time-of-day policy: timed appointment with no time → clarify --------

@@ -283,6 +283,34 @@ def test_create_payload_file_mode(helper, recorder, capsys, tmp_path: Path):
     assert _last_line(capsys).startswith("SUMMARY:")
 
 
+def test_create_payload_all_day_uses_date_form(helper, recorder, capsys, tmp_path: Path):
+    """#780: a payload with ``start_date`` creates a Google all-day event —
+    ``start.date``/``end.date`` (bare dates, exclusive end), never ``dateTime``."""
+    payload = {
+        "action": "create_calendar_event",
+        "calendar_id": "primary",
+        "account": "personal",
+        "summary": "Conference",
+        "start_date": "2026-06-15",
+        "end_date": "2026-06-16",
+        "location": None,
+        "description": "Source: note-9.md",
+        "rrule": None,
+        "attendees": None,
+        "source_inbox_path": "/x/note-9.md",
+    }
+    pf = tmp_path / "payload.json"
+    pf.write_text(json.dumps(payload))
+    recorder.outcomes["insert"] = {"id": "evtA", "htmlLink": "L"}
+    code = run(helper, ["create", "--payload-file", str(pf), "--json"])
+    assert code == 0
+    body = recorder.calls_for("insert")[0]["body"]
+    assert body["start"] == {"date": "2026-06-15"}
+    assert body["end"] == {"date": "2026-06-16"}
+    assert "dateTime" not in body["start"]
+    assert "dateTime" not in body["end"]
+
+
 def test_create_payload_attendees_rejected_without_flag(
     helper, recorder, capsys, tmp_path: Path
 ):

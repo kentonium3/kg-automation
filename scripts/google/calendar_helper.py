@@ -179,6 +179,17 @@ def _time_field(value: str, timezone: str | None) -> dict[str, str]:
     return field
 
 
+def _all_day_field(date_str: str) -> dict[str, str]:
+    """Build a Google all-day ``{date}`` object from a ``YYYY-MM-DD`` string (#780).
+
+    Google represents an all-day event with ``start.date`` / ``end.date`` (a bare
+    calendar date, no time or zone) instead of ``start.dateTime``. The end date is
+    **exclusive**, so a single all-day event on 2026-06-15 is
+    ``start.date=2026-06-15``, ``end.date=2026-06-16``.
+    """
+    return {"date": date_str}
+
+
 def _parse_attendees(raw: str | list[str] | None) -> list[dict[str, str]]:
     """Normalize a comma list or list of emails to ``[{"email": …}]``."""
     if not raw:
@@ -201,19 +212,24 @@ def _build_event_body(
     rrule: str | None,
     attendees: list[dict[str, str]] | None,
     idempotency_key: str | None,
+    all_day: bool = False,
 ) -> dict[str, Any]:
     """Map explicit/envelope fields to a Google Calendar event request body.
 
     Only provided fields are included, so this is reusable for both ``create``
     (full body) and ``update`` (patch — the caller supplies only changed fields).
+
+    When ``all_day`` is set, ``start``/``end`` are ``YYYY-MM-DD`` dates and the
+    body uses Google's all-day ``{date}`` form (no time/zone, exclusive end),
+    #780.
     """
     body: dict[str, Any] = {}
     if summary is not None:
         body["summary"] = summary
     if start is not None:
-        body["start"] = _time_field(start, start_timezone)
+        body["start"] = _all_day_field(start) if all_day else _time_field(start, start_timezone)
     if end is not None:
-        body["end"] = _time_field(end, start_timezone)
+        body["end"] = _all_day_field(end) if all_day else _time_field(end, start_timezone)
     if location is not None:
         body["location"] = location
     if description is not None:
@@ -261,15 +277,23 @@ def _create_fields_from_payload(
             "payload declares attendees; refusing to send invitations from the "
             "inbox path without --allow-attendees"
         )
+    # All-day mode (#780): a payload with `start_date` (YYYY-MM-DD) is an all-day
+    # event; it uses Google's {date} form. `start_rfc3339` is the timed form.
+    all_day = payload.get("start_date") is not None
+    if all_day:
+        start, end = payload.get("start_date"), payload.get("end_date")
+    else:
+        start, end = payload.get("start_rfc3339"), payload.get("end_rfc3339")
     return {
         "summary": payload.get("summary"),
-        "start": payload.get("start_rfc3339"),
-        "end": payload.get("end_rfc3339"),
+        "start": start,
+        "end": end,
         "start_timezone": payload.get("start_timezone"),
         "location": payload.get("location"),
         "description": payload.get("description"),
         "rrule": payload.get("rrule"),
         "attendees": _parse_attendees(attendees_raw) if allow_attendees else [],
+        "all_day": all_day,
     }
 
 
@@ -356,6 +380,7 @@ def _cmd_create(service: Any, args: argparse.Namespace) -> int:
         rrule=fields.get("rrule"),
         attendees=fields.get("attendees"),
         idempotency_key=key,
+        all_day=fields.get("all_day", False),
     )
 
     if args.dry_run:
