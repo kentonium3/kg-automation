@@ -78,7 +78,7 @@ habits:
   - task_id: 9
     title: "Multi"
     designated_weekdays: ["Thu", "Mon", "Thu", "Fri"]
-    repeat_after_seconds: 86400
+    repeat_after_seconds: 604800
 """,
         )
         entries = sl.load_schedule(path)
@@ -165,6 +165,70 @@ habits:
         )
         with pytest.raises(sl.ScheduleConfigError, match="not a valid"):
             sl.load_schedule(path)
+
+    def test_day_specific_zero_repeat_rejected(self, tmp_path: Path) -> None:
+        """#608 ratchet: a day-specific habit with repeat_after_seconds=0 (the
+        #607 no-rearm shape) must fail loudly at load time."""
+        path = _write(
+            tmp_path,
+            """
+habits:
+  - task_id: 75
+    title: "Strength training — Monday"
+    designated_weekdays: ["Mon"]
+    repeat_after_seconds: 0
+""",
+        )
+        with pytest.raises(sl.ScheduleConfigError, match="never re-arms"):
+            sl.load_schedule(path)
+
+    def test_day_specific_sub_week_repeat_rejected(self, tmp_path: Path) -> None:
+        """A day-specific habit with a sub-week interval (e.g. daily 86400) is
+        also rejected — a weekday habit recurs at least weekly."""
+        path = _write(
+            tmp_path,
+            """
+habits:
+  - task_id: 76
+    title: "Strength training — Wednesday"
+    designated_weekdays: ["Wed"]
+    repeat_after_seconds: 86400
+""",
+        )
+        with pytest.raises(sl.ScheduleConfigError, match="below one week"):
+            sl.load_schedule(path)
+
+    def test_daily_habit_zero_repeat_allowed_by_ratchet(self, tmp_path: Path) -> None:
+        """The ratchet is scoped to DAY-SPECIFIC entries: a daily habit (no
+        designated_weekdays) is unaffected — repeat_after_seconds=0 loads (the
+        non-negative check still applies, but the weekly-minimum does not)."""
+        path = _write(
+            tmp_path,
+            """
+habits:
+  - task_id: 14
+    title: "Wake at 5:00 AM"
+    repeat_after_seconds: 0
+""",
+        )
+        entries = sl.load_schedule(path)
+        assert entries[0].repeat_after_seconds == 0
+        assert entries[0].designated_weekdays == ()
+
+    def test_day_specific_exactly_one_week_allowed(self, tmp_path: Path) -> None:
+        """The canonical weekly value (604800) is the accepted floor."""
+        path = _write(
+            tmp_path,
+            """
+habits:
+  - task_id: 77
+    title: "Strength training — Friday"
+    designated_weekdays: ["Fri"]
+    repeat_after_seconds: 604800
+""",
+        )
+        entries = sl.load_schedule(path)
+        assert entries[0].repeat_after_seconds == 604800
 
     def test_lowercase_weekday_rejected(self, tmp_path: Path) -> None:
         """3-letter ISO names are case-sensitive — `wed` is not `Wed`."""
