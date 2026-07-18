@@ -1,0 +1,14 @@
+{
+  "created_at": "2026-07-18T19:36:54.429784+00:00",
+  "flattened": false,
+  "friendly_name": "All-Day Fallback for Unanswered Clarifications",
+  "mission_id": "01KXVBPKCTH8J2Q6QKER9PGB0J",
+  "mission_number": null,
+  "mission_slug": "clarification-allday-fallback-01KXVBPK",
+  "mission_type": "software-dev",
+  "purpose_context": "The #739 policy asks Kent for a missing appointment start-time and, per option (iii), should fall back to an all-day event if unanswered. Today the 24h clarification sweep just drops the pending record, so the appointment is re-asked every window but never scheduled. This mission adds a deterministic age-out to create-all-day fallback, scoped strictly to start-time-missing clarifications, reusing the already-shipped all-day calendar-helper support (#786) and the #746 route_and_finalize transaction for idempotent, atomic scheduling.",
+  "purpose_tldr": "When a no-time appointment's start-time clarification goes unanswered for 24h, land it on the calendar as an all-day event instead of re-asking forever.",
+  "slug": "clarification-allday-fallback-01KXVBPK",
+  "target_branch": "feat/clarification-allday-fallback",
+  "topology": "single_branch"
+}
