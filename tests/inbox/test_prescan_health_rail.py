@@ -51,8 +51,23 @@ class _FakeReader:
         return filename in self._present
 
 
-def _write_note(path: Path, status: str, body: str = "Body.\n") -> None:
-    path.write_text(f"---\nstatus: {status}\n---\n\n{body}", encoding="utf-8")
+def _write_note(
+    path: Path,
+    status: str,
+    body: str = "Body.\n",
+    processed_at: str | None = None,
+) -> None:
+    """Write a note. ``processed`` notes get a ``processed_at`` so the #753
+    pre-cutover exemption does not make silent-loss-rail tests depend on the
+    real filesystem clock; default is post-cutover (flag-eligible). Pass an
+    explicit ``processed_at`` (e.g. a pre-cutover date) to exercise the guard.
+    """
+    fm = f"status: {status}\n"
+    if processed_at is not None:
+        fm += f"processed_at: {processed_at}\n"
+    elif status == "processed":
+        fm += "processed_at: 2026-07-17T12:00:00Z\n"  # post-#753-cutover default
+    path.write_text(f"---\n{fm}---\n\n{body}", encoding="utf-8")
 
 
 def _run_prescan_against(
@@ -227,6 +242,95 @@ class TestSilentLossRailUnit:
         )
         assert anomalies == []
         assert warnings == []
+
+
+# ---------------------------------------------------------------------------
+# #753 — pre-#746 cutover exemption for the silent-loss rail
+# ---------------------------------------------------------------------------
+
+
+class TestSilentLossRailCutover:
+    def test_pre_cutover_processed_note_exempt(self, tmp_path: Path):
+        """A note processed BEFORE the #746 go-live is not flagged (it predates
+        the routing-log guarantee, so a missing entry is not a loss signal)."""
+        inbox = tmp_path / "inbox"
+        processed = tmp_path / "processed"
+        inbox.mkdir()
+        processed.mkdir()
+        # One of the real 51 pre-#746 notes (#753): processed 2026-07-15.
+        _write_note(
+            inbox / "old-orphan.md", "processed", processed_at="2026-07-15T16:00:31Z"
+        )
+        anomalies, _ = prescan.scan_processed_without_routing_log(
+            inbox, processed, NOW, _FakeReader(present=set())
+        )
+        assert anomalies == []
+
+    def test_post_cutover_processed_note_still_flagged(self, tmp_path: Path):
+        """A note processed AT/AFTER the cutover with no log entry is a real
+        silent-loss anomaly and must still be flagged."""
+        inbox = tmp_path / "inbox"
+        processed = tmp_path / "processed"
+        inbox.mkdir()
+        processed.mkdir()
+        _write_note(
+            inbox / "new-orphan.md", "processed", processed_at="2026-07-18T09:00:00Z"
+        )
+        anomalies, _ = prescan.scan_processed_without_routing_log(
+            inbox, processed, NOW, _FakeReader(present=set())
+        )
+        assert len(anomalies) == 1
+        assert anomalies[0].classification == "processed-without-routing-log"
+
+    def test_cutover_boundary_is_inclusive_of_cutover_instant(self, tmp_path: Path):
+        """A note processed exactly at the cutover instant is flagged (the
+        guarantee holds from the cutover onward)."""
+        inbox = tmp_path / "inbox"
+        processed = tmp_path / "processed"
+        inbox.mkdir()
+        processed.mkdir()
+        _write_note(
+            inbox / "boundary.md", "processed", processed_at="2026-07-17T00:00:00Z"
+        )
+        anomalies, _ = prescan.scan_processed_without_routing_log(
+            inbox, processed, NOW, _FakeReader(present=set())
+        )
+        assert len(anomalies) == 1
+
+    def test_no_processed_at_falls_back_to_mtime(self, tmp_path: Path):
+        """When ``processed_at`` is absent, the guard uses file mtime: an old
+        mtime is exempt, a recent mtime is flagged."""
+        import os
+
+        inbox = tmp_path / "inbox"
+        processed = tmp_path / "processed"
+        inbox.mkdir()
+        processed.mkdir()
+        # No processed_at frontmatter; set mtime pre-cutover → exempt.
+        old = inbox / "undated-old.md"
+        old.write_text("---\nstatus: processed\n---\n\nBody.\n", encoding="utf-8")
+        pre = datetime(2026, 6, 1, tzinfo=timezone.utc).timestamp()
+        os.utime(old, (pre, pre))
+        # No processed_at; recent mtime post-cutover → flagged.
+        new = inbox / "undated-new.md"
+        new.write_text("---\nstatus: processed\n---\n\nBody.\n", encoding="utf-8")
+        post = datetime(2026, 7, 18, tzinfo=timezone.utc).timestamp()
+        os.utime(new, (post, post))
+
+        anomalies, _ = prescan.scan_processed_without_routing_log(
+            inbox, processed, NOW, _FakeReader(present=set())
+        )
+        flagged = {Path(a.path).name for a in anomalies}
+        assert flagged == {"undated-new.md"}
+
+    def test_classify_file_populates_processed_at_utc(self, tmp_path: Path):
+        """``classify_file`` exposes the parsed ``processed_at`` for the guard."""
+        note = tmp_path / "n.md"
+        _write_note(note, "processed", processed_at="2026-07-15T16:00:31Z")
+        info = prescan.classify_file(note, NOW)
+        assert info.processed_at_utc == datetime(
+            2026, 7, 15, 16, 0, 31, tzinfo=timezone.utc
+        )
 
 
 # ---------------------------------------------------------------------------
