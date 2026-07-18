@@ -11,7 +11,9 @@ branch_strategy: Planning artifacts for this mission were generated on feat/clar
 subtasks:
 - T003
 - T004
-agent: claude
+agent: "claude:sonnet:python-pedro:implementer"
+shell_pid: "51527"
+shell_pid_created_at: "1784410041.160614"
 history:
 - '2026-07-18: authored by /spec-kitty.tasks'
 agent_profile: python-pedro
@@ -108,3 +110,7 @@ Execution worktree per computed lane in `lanes.json`.
 - **Timed regression** is the top risk — reviewer confirms the timed mapping is untouched and its tests still pass verbatim.
 - Confirm no time is fabricated for the all-day form (no `T00:00:00` sneaking in).
 - Confirm the delegated payload-file keys are exactly what `calendar_helper._create_fields_from_payload` expects (`start_date`/`end_date`).
+
+## Activity Log
+
+- 2026-07-18T21:27:33Z – claude:sonnet:python-pedro:implementer – shell_pid=51527 – Assigned agent via action command
