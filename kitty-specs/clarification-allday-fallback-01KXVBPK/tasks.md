@@ -55,9 +55,9 @@
 
 - [ ] T005 New `clarification_sweep_finalize` module: partition aged-out into eligible/ineligible (timing-only-gap gate) (WP03)
 - [ ] T006 Build single-block all-day RoutingPlan (canonical abs inbox path) + call `_run_finalize` (WP03)
-- [ ] T007 Reconciliation + fail-closed (FR-008/FR-009): reconcile-after-mark, retain-before-mark, remove-on-success (WP03)
+- [x] T007 Reconciliation + fail-closed (FR-008/FR-009): reconcile-after-mark, retain-before-mark, remove-on-success (WP03)
 - [ ] T008 Ineligible aged-out → delete-and-release; `SWEEP_MAX_AGE` 24h→8h (C-006); non-aged-out untouched (WP03)
-- [ ] T009 Observability marker (`calendar_all_day_fallback`) extending the `calendar_event_clarification_timeout` vocab (C-007) (WP03)
+- [x] T009 Observability marker (`calendar_all_day_fallback`) extending the `calendar_event_clarification_timeout` vocab (C-007) (WP03)
 
 **Prompt**: [tasks/WP03-sweep-finalize-path.md](./tasks/WP03-sweep-finalize-path.md) · ~420 lines
 
