@@ -39,6 +39,13 @@ _COMPLETED_RE = re.compile(
 _TS_RE = re.compile(
     r"^\s*(?P<ts>\d{4}-\d{2}-\d{2}[T\s]\d{2}:\d{2}:\d{2}(?:[\.\d+]*)?(?:Z|[+\-]\d{2}:?\d{2})?)"
 )
+# The live Restic driver writes completion lines with a bracketed TIME-ONLY
+# stamp and no date, e.g. ``[04:00:08] Backup completed successfully`` (the log's
+# date lives in the ``backup-YYYY-MM-DD.log`` filename + the ``=== Backup: … ===``
+# header). Before #665, ``_TS_RE`` did not match this form, so every real line
+# fell through to the end-of-day fallback and the computed age was taken from
+# 23:59:59 of the log date — yielding nonsensical / negative "ago" values.
+_BRACKET_TIME_RE = re.compile(r"^\s*\[(?P<h>\d{2}):(?P<m>\d{2}):(?P<s>\d{2})\]")
 
 
 def _utc_now() -> _dt.datetime:
@@ -69,8 +76,22 @@ def _parse_line_ts(line: str, fallback_date: _dt.date) -> _dt.datetime | None:
             return parsed
         except ValueError:
             pass
-    # Fall back to end-of-day on the log's date so a "completed" line without
-    # a parseable timestamp still produces a comparable value.
+    # Bracketed time-only stamp (the live driver format, #665). Combine the
+    # ``[HH:MM:SS]`` with the log's date to recover the true completion instant.
+    # office2's host TZ is Etc/UTC, so the driver's wall-clock times are UTC.
+    bracket = _BRACKET_TIME_RE.match(line)
+    if bracket:
+        try:
+            t = _dt.time(
+                int(bracket["h"]), int(bracket["m"]), int(bracket["s"])
+            )
+        except ValueError:
+            pass  # e.g. "[25:00:00]" — fall through to the last-resort fallback
+        else:
+            return _dt.datetime.combine(fallback_date, t, tzinfo=_dt.timezone.utc)
+    # Last-resort fallback: end-of-day on the log's date so a "completed" line
+    # with no parseable timestamp at all still produces a comparable value.
+    # Rarely hit now that the real bracketed-time format is parsed.
     return _dt.datetime.combine(
         fallback_date,
         _dt.time(hour=23, minute=59, second=59),
