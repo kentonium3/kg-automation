@@ -38,14 +38,21 @@ class TestClassifyDrift:
         """Both missing — treated as file_missing_repo."""
         assert classify_drift(None, None, "aaa", "aaa") == DriftState.FILE_MISSING_REPO
 
-    def test_no_baseline_both_present(self):
-        """No baseline hashes (new file on both sides) → both changed from None."""
-        assert classify_drift("aaa", "aaa", None, None) == DriftState.CONFLICT
+    def test_repo_office2_match_is_no_change_regardless_of_baseline(self):
+        """#779: repo == office2 is the deployed-correctly state → NO_CHANGE, even
+        with no/stale baseline (a legit prompt deploy moves both sides to the same
+        new value; that must NOT false-alarm CONFLICT)."""
+        assert classify_drift("aaa", "aaa", None, None) == DriftState.NO_CHANGE
+        # Same match, but the baseline holds an older agreed value (the stale case).
+        assert classify_drift("new", "new", "old", "old") == DriftState.NO_CHANGE
 
-    def test_no_baseline_same_hash(self):
-        """Both sides have same hash but baseline is None → both changed."""
-        result = classify_drift("same", "same", None, None)
-        assert result == DriftState.CONFLICT
+    def test_divergence_still_classified_by_baseline(self):
+        """#779: when the two sides genuinely diverge, the baseline still attributes
+        direction (this is the only case the baseline is consulted)."""
+        # repo moved off the agreed baseline, office2 hasn't → repo changed.
+        assert classify_drift("new", "old", "old", "old") == DriftState.REPO_CHANGED
+        # office2 hand-edited off the agreed baseline, repo hasn't → office2 changed.
+        assert classify_drift("old", "hand", "old", "old") == DriftState.OFFICE2_CHANGED
 
 
 class TestIsFactoryDefault:

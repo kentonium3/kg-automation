@@ -43,6 +43,14 @@ def classify_drift(
 
     Compares current hashes on both sides against their respective baselines
     to determine which side(s) changed since the last reconciliation.
+
+    #779: repo and office2 **agreeing** is the deployed-correctly state — it is
+    NOT drift, regardless of the (possibly stale) baseline. When both sides move
+    to the same new value via a legitimate deploy (e.g. an agent-prompt-sync of an
+    edited prompt), an un-regenerated manifest baseline would otherwise classify
+    it CONFLICT (both differ from baseline) and false-alarm. So a repo==office2
+    match short-circuits to NO_CHANGE; the baseline is consulted only to attribute
+    DIRECTION when the two sides genuinely diverge.
     """
     if current_repo is None and current_office2 is None:
         return DriftState.FILE_MISSING_REPO  # Both missing is unusual
@@ -52,6 +60,12 @@ def classify_drift(
 
     if current_office2 is None:
         return DriftState.FILE_MISSING_OFFICE2
+
+    # A repo↔office2 match is definitionally not drift (they agree = deployed
+    # correctly), regardless of the baseline. This removes the false CONFLICT on
+    # every legitimate prompt deploy (#779).
+    if current_repo == current_office2:
+        return DriftState.NO_CHANGE
 
     repo_changed = current_repo != baseline_repo
     office2_changed = current_office2 != baseline_office2
