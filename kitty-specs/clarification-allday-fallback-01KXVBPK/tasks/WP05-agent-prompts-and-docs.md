@@ -13,7 +13,9 @@ subtasks:
 - T014
 - T015
 - T016
-agent: claude
+agent: "claude:sonnet:curator-carla:implementer"
+shell_pid: "86970"
+shell_pid_created_at: "1784414848.66806"
 history:
 - '2026-07-18: authored by /spec-kitty.tasks'
 agent_profile: curator-carla
@@ -105,3 +107,7 @@ Execution worktree per computed lane in `lanes.json`. Deploy is post-merge via
 - Confirm the agent is instructed to **copy** `start_date`/`missing_fields`, never to compute a date (determinism lives in code, not the prompt).
 - Confirm the exact command string matches WP03's `-m` entry point.
 - AGENTS.md rawChars inflation (~26%) — confirm the edit stays within the deployed size cap ([[reference_openclaw_gotchas]]).
+
+## Activity Log
+
+- 2026-07-18T22:47:41Z – claude:sonnet:curator-carla:implementer – shell_pid=86970 – Assigned agent via action command
