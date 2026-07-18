@@ -31,6 +31,12 @@
       "repo_path": "scripts/openclaw/agents/felix-admin-tasker",
       "tracked_files": ["AGENTS.md", "SOUL.md", "TOOLS.md", "USER.md", "IDENTITY.md"],
       "excluded_files": ["HEARTBEAT.md", "BOOTSTRAP.md"]
+    },
+    "felix-admin-calendar": {
+      "workspace_path": "/data/services/openclaw/calendar-agent",
+      "repo_path": "scripts/openclaw/agents/felix-admin-calendar",
+      "tracked_files": ["AGENTS.md", "SOUL.md", "TOOLS.md", "USER.md", "IDENTITY.md"],
+      "excluded_files": ["HEARTBEAT.md", "BOOTSTRAP.md"]
     }
   },
   "notification": {
