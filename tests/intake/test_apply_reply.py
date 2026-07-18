@@ -279,10 +279,50 @@ def test_due_on_q_do_writes_et_end_of_day():
 def test_due_on_q_schedule_writes_et_end_of_day():
     task = _task(202)
     client = FakeVikunja([task])
-    result = _apply(client, "1 personal schedule due:2026-01-15", 202)
+    _apply(client, "1 personal schedule due:2026-01-15", 202)
     # January → EST (-05:00).
     assert client.tasks[202]["due_date"] == "2026-01-15T23:59:59-05:00"
-    assert result.status == "applied"
+
+
+class _NormalizingVikunja(FakeVikunja):
+    """FakeVikunja that mimics live Vikunja: it normalizes a written due_date to
+    UTC 'Z' on store, so the readback returns a different STRING for the same
+    instant (#733/#736). This is what the mock-only tests could not exercise."""
+
+    def post(self, path, *, json=None, params=None, timeout=None):
+        payload = dict(json or {})
+        due = payload.get("due_date")
+        if isinstance(due, str) and due:
+            inst = datetime.fromisoformat(due).astimezone(timezone.utc)
+            payload["due_date"] = inst.strftime("%Y-%m-%dT%H:%M:%SZ")
+        return super().post(path, json=payload, params=params, timeout=timeout)
+
+
+def test_due_readback_tolerates_vikunja_utc_normalization():
+    # #757 — the ET-offset write reads back as UTC 'Z' (same instant). The
+    # readback must compare INSTANTS, not strings, or it false-fails 'applied'
+    # into 'failed' and the caller retries (the live retry storm).
+    client = _NormalizingVikunja([_task(201)])
+    result = _apply(client, "1 personal do due:2026-07-20", 201)
+    assert result.status == "applied", result.notes
+    assert result.applied.get("due_date") == "2026-07-20T23:59:59-04:00"
+    # Stored (normalized) as the same instant in UTC 'Z' = Mon EOD ET.
+    assert client.tasks[201]["due_date"] == "2026-07-21T03:59:59Z"
+
+
+def test_due_readback_still_catches_a_genuinely_wrong_instant():
+    # The instant compare must NOT mask a real partial-replace drift: a mock that
+    # stores a DIFFERENT day must still raise → per-line 'failed'.
+    class _WrongDayVikunja(FakeVikunja):
+        def post(self, path, *, json=None, params=None, timeout=None):
+            payload = dict(json or {})
+            if isinstance(payload.get("due_date"), str) and payload["due_date"]:
+                payload["due_date"] = "2026-07-25T03:59:59Z"  # wrong day
+            return super().post(path, json=payload, params=params, timeout=timeout)
+
+    client = _WrongDayVikunja([_task(201)])
+    result = _apply(client, "1 personal do due:2026-07-20", 201)
+    assert result.status == "failed", result.notes
 
 
 def test_due_on_q_eliminate_is_ignored_with_note():

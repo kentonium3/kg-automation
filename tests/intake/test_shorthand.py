@@ -118,6 +118,29 @@ def test_sparse_project_only():
     assert line.unresolved_tokens == []
 
 
+def test_leading_number_tolerates_digest_punctuation():
+    # #758 — the digest prints "1. Title", so a reply mirroring it ("1. …",
+    # "2) …", "3: …") must parse the number, not reject the whole line.
+    for raw, n in [
+        ("1. personal f2 schedule", 1),
+        ("2) clients f3 do", 2),
+        ("3: personal", 3),
+        ("10. personal", 10),
+    ]:
+        line = _only(parse_reply(raw))
+        assert line.n == n, f"{raw!r} should parse n={n}"
+        assert line.project == "personal" or line.project == "clients"
+        # the punctuation token is consumed as the number, not left unresolved
+        assert all(not t[0].isdigit() for t in line.unresolved_tokens)
+
+
+def test_leading_number_still_rejects_non_number_and_decimals():
+    # A real decimal or an attached token is NOT a bare digest number.
+    assert _only(parse_reply("1.5 personal")).n is None
+    assert _only(parse_reply("1.personal")).n is None
+    assert _only(parse_reply("x personal")).n is None
+
+
 def test_sparse_labels_only():
     line = _only(parse_reply("2 f2 schedule"))
     assert line.n == 2

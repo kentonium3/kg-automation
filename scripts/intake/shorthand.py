@@ -118,6 +118,12 @@ _FALLBACK_ITEM_KEYS: frozenset[str] = frozenset(
 )
 
 _INT_RE = re.compile(r"^\d+$")
+
+#: Leading digest-number token, tolerant of the punctuation the digest itself
+#: prints ("1. Title") and other common list forms — ``1``, ``1.``, ``1)``,
+#: ``1:`` all mean digest number 1 (#758). Only the LEADING token; does not relax
+#: :data:`_INT_RE` (which still rejects raw ids in the fallback path).
+_LEADING_NUM_RE = re.compile(r"^(\d+)[.):]?$")
 #: An ``f`` followed by digits that is *not* a valid ``f1``–``f4`` — a malformed
 #: friction token (e.g. ``f5``, ``f0``) that must be captured, not treated as a
 #: project candidate.
@@ -243,8 +249,9 @@ def parse_line(raw: str) -> ParsedLine:
         return line
 
     start = 1
-    if _INT_RE.match(tokens[0]):
-        line.n = int(tokens[0])
+    leading = _LEADING_NUM_RE.match(tokens[0])
+    if leading:
+        line.n = int(leading.group(1))
     else:
         line.unresolved_tokens.append(tokens[0])
 
