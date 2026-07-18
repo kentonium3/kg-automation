@@ -325,6 +325,27 @@ def test_all_day_event_multi_day_exclusive_end() -> None:
     assert "start_rfc3339" not in payload
 
 
+def test_explicit_end_time_with_whole_day_duration_not_dropped() -> None:
+    """An explicit END time must not be silently dropped by the all-day branch
+    (#788): whole-day duration + no start time + an explicit end WITH a time is a
+    TIMED event (end takes precedence), so it keeps start_rfc3339/end_rfc3339 and
+    the 5pm end survives — it does NOT become an all-day date payload."""
+    block = {
+        "title": "Setup then event",
+        "start_natural": "June 14, 2026",
+        "end_natural": "June 15, 2026 at 5pm",
+        "duration_natural": "1 day",
+        "source_inbox_path": "/tmp/Inbox 2026-06-07 1000.md",
+        "source_block_index": 0,
+        "tick_iso": "2026-06-07T10:00:00-04:00",
+    }
+    result = vce.validate(block)
+    assert result["complete"] is True
+    payload = result["calendar_event_payload"]
+    assert "start_date" not in payload  # not classified all-day
+    assert payload["end_rfc3339"].startswith("2026-06-15T17:00:00")  # 5pm preserved
+
+
 def test_explicit_time_with_whole_day_duration_stays_timed() -> None:
     """An explicit time PLUS a whole-day duration is a TIMED event, not all-day
     (#780): the all-day branch must not swallow it — it keeps start_rfc3339."""
