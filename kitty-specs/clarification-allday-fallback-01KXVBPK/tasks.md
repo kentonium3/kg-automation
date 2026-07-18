@@ -65,10 +65,10 @@
 
 **Goal**: Prove the safety invariants end-to-end against the real transaction + fake calendar: exactly-once, reconciliation, boundary, fail-closed, week-drift. **Priority**: P1. **Depends on**: WP03. **Independent test**: the WP04 suite is the test.
 
-- [ ] T010 Integration: eligible age-out → one all-day event, note processed, distinct marker, record removed (WP04)
-- [ ] T011 Integration: idempotency across retry + reconciliation (create+mark then remove-fail → no double-create) (WP04)
-- [ ] T012 Integration: boundary + legacy (missing-title / non-timing / no-signal → zero all-day, delete-and-release) (WP04)
-- [ ] T013 Integration: fail-closed (create error → retain, unprocessed) + week-drift (event date == persisted start_date) (WP04)
+- [x] T010 Integration: eligible age-out → one all-day event, note processed, distinct marker, record removed (WP04)
+- [x] T011 Integration: idempotency across retry + reconciliation (create+mark then remove-fail → no double-create) (WP04)
+- [x] T012 Integration: boundary + legacy (missing-title / non-timing / no-signal → zero all-day, delete-and-release) (WP04)
+- [x] T013 Integration: fail-closed (create error → retain, unprocessed) + week-drift (event date == persisted start_date) (WP04)
 
 **Prompt**: [tasks/WP04-integration-tests.md](./tasks/WP04-integration-tests.md) · ~260 lines
 
