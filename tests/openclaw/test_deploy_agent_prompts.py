@@ -13,7 +13,7 @@ import json
 import os
 import sys
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 
 import pytest
 
@@ -643,6 +643,64 @@ def test_run_tick_per_file_error_exit_1(tmp_path):
     assert parsed[-1]["files_errored"] == 1
 
 
+def _copy_failure_repo(tmp_path):
+    dst_dir = tmp_path / "dst"
+    dst_dir.mkdir()
+    repo = _setup_fake_repo(tmp_path, {
+        "test-agent": {"source_in_repo": "src/", "workspace": str(dst_dir)},
+    })
+    (repo / "src").mkdir()
+    (repo / "src" / "AGENTS.md").write_bytes(b"v2")
+    (dst_dir / "AGENTS.md").write_bytes(b"v1")  # drifted → copy attempted
+    return repo
+
+
+def test_single_copy_failure_increments_copy_health_no_alert(tmp_path):
+    """#637: one per-file copy failure increments the SEPARATE copy-health
+    watermark (the git-advance one stays clean — the pull succeeded) and does not
+    alert below threshold."""
+    repo = _copy_failure_repo(tmp_path)
+    log = tmp_path / "audit.jsonl"
+    health_state = tmp_path / "git-health.json"
+    args = dap.parse_args([])
+    notifier = MagicMock(return_value=True)
+    with patch.object(dap, "_health_notifier", notifier), \
+         patch.object(dap, "atomic_copy", side_effect=OSError("disk full")), \
+         _patch_advance_success("a" * 40):
+        rc = dap.run_tick(args, repo_root=repo, audit_path=log,
+                          health_state_path=health_state)
+    assert rc == dap.EXIT_PARTIAL_FAILURE
+    copy_state = json.loads((tmp_path / dap.COPY_HEALTH_FILENAME).read_text())
+    assert copy_state["consecutive_failures"] == 1
+    git_state = json.loads(health_state.read_text())
+    assert git_state["consecutive_failures"] == 0  # git advance was clean
+    notifier.assert_not_called()  # 1 < threshold
+
+
+def test_copy_failure_streak_alerts_at_threshold(tmp_path):
+    """#637: a copy failure repeated to threshold fires exactly one copy-health
+    alert, with copy-accurate wording (not the git 'advance stalled' text)."""
+    from scripts.deploy.lib.health import DEFAULT_THRESHOLD
+
+    repo = _copy_failure_repo(tmp_path)
+    log = tmp_path / "audit.jsonl"
+    health_state = tmp_path / "git-health.json"
+    args = dap.parse_args([])
+    notifier = MagicMock(return_value=True)
+    with patch.object(dap, "_health_notifier", notifier), \
+         patch.object(dap, "atomic_copy", side_effect=OSError("disk full")):
+        for i in range(DEFAULT_THRESHOLD):
+            with _patch_advance_success(chr(ord("a") + i) * 40):
+                rc = dap.run_tick(args, repo_root=repo, audit_path=log,
+                                  health_state_path=health_state)
+            assert rc == dap.EXIT_PARTIAL_FAILURE
+    copy_state = json.loads((tmp_path / dap.COPY_HEALTH_FILENAME).read_text())
+    assert copy_state["consecutive_failures"] == DEFAULT_THRESHOLD
+    notifier.assert_called_once()  # exactly one alert per streak
+    title, _body = notifier.call_args.args
+    assert "prompt-copy failing" in title  # copy-accurate, not "git advance stalled"
+
+
 def test_run_tick_dry_run_no_mutations(tmp_path, capsys):
     """--dry-run mode: drift present, but no audit log entries, no file changes."""
     dst_dir = tmp_path / "dst"
@@ -972,16 +1030,21 @@ def test_run_tick_records_health_on_success(tmp_path):
                           health_state_path=health_state)
 
     assert rc == dap.EXIT_SUCCESS
-    rec_spy.assert_called_once()
-    call = rec_spy.call_args
-    assert call.args[0] == dap.HEALTH_ACTOR
+    # health.record is called twice now: the git advance AND the copy outcome
+    # (#637). Locate the git-advance call by actor.
+    git_calls = [c for c in rec_spy.call_args_list if c.args[0] == dap.HEALTH_ACTOR]
+    assert len(git_calls) == 1
+    call = git_calls[0]
     assert isinstance(call.args[1], AdvanceResult)
     assert call.kwargs["state_path"] == health_state
     assert call.kwargs["notifier"] is dap._health_notifier
-    # The watermark was written with a success reset.
+    # The git watermark was written with a success reset.
     state = json.loads(health_state.read_text())
     assert state["consecutive_failures"] == 0
     assert state["last_success_head"] == sha
+    # #637: a clean tick also resets the copy-health watermark (0 failures).
+    copy_state = json.loads((health_state.parent / dap.COPY_HEALTH_FILENAME).read_text())
+    assert copy_state["consecutive_failures"] == 0
 
 
 def test_run_tick_records_health_on_failure(tmp_path):

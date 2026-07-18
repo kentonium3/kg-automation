@@ -84,6 +84,17 @@ HEALTH_STATE_PATH_DEFAULT = Path("/data/services/openclaw/deploy/git-health.json
 HEALTH_ACTOR = "agent-prompt-sync"
 HEALTH_TOPIC_ENV = "AGENT_PROMPT_SYNC_NTFY_TOPIC"
 
+# Copy-failure health watermark (#637). A per-file copy failure (exit 1) happens
+# AFTER a successful git advance, so it never reaches the git-advance watermark
+# above — a persistent copy failure (an agent prompt silently not updating, the
+# #563 class this service exists to prevent) was unalerted. Track it on a sibling
+# watermark with its own confirmed reason + render so a copy-failure STREAK fires
+# one ntfy alert, mirroring the git-advance path. Reuses scripts.deploy.lib.health.
+COPY_HEALTH_ACTOR = "agent-prompt-sync-copy"
+COPY_FAILED_REASON = "copy_failed"
+COPY_CONFIRMED_REASONS = frozenset({COPY_FAILED_REASON})
+COPY_HEALTH_FILENAME = "copy-health.json"
+
 MD5_CHUNK_BYTES = 65536
 
 
@@ -150,6 +161,26 @@ def _health_notifier(title: str, body: str) -> bool:
         body,
         topic_env=HEALTH_TOPIC_ENV,
     )
+
+
+def _copy_render(state, result, threshold: int) -> tuple[str, str]:
+    """Render seam for the copy-failure watermark (#637) — copy-accurate wording
+    (the default health render says "git advance stalled", which is wrong here).
+    """
+    title = (
+        f"{state.actor}: prompt-copy failing "
+        f"({state.consecutive_failures}x)"
+    )
+    body = (
+        f"Actor: {state.actor}\n"
+        f"Consecutive ticks with per-file prompt-copy failures: "
+        f"{state.consecutive_failures} (threshold {threshold})\n"
+        f"Streak started: {state.failure_streak_started_ts}\n"
+        f"A deployed agent prompt is not being updated on office2 — inspect the "
+        f"agent-prompt-sync audit log (agent-prompt-sync.jsonl) for the failing "
+        f"file(s). This is the #563 silent-prompt-loss class."
+    )
+    return title, body
 
 
 # Exit codes
@@ -797,6 +828,44 @@ def _run_locked_tick(
     )
 
     exit_code = EXIT_PARTIAL_FAILURE if total_errored > 0 else EXIT_SUCCESS
+
+    # #637 — record the per-file COPY outcome on a sibling health watermark so a
+    # persistent copy failure alerts (the git-advance watermark above can't see
+    # it — the pull succeeded). Adapt the copy result onto the health-lib's
+    # AdvanceResult contract (ok=False iff a confirmed reason is set); a clean
+    # copy tick resets the streak. Best-effort: never crash the tick.
+    copy_ok = total_errored == 0
+    copy_result = AdvanceResult(
+        ok=copy_ok,
+        advanced=False,
+        pre_head=git_head,
+        post_head=git_head,
+        origin_head=git_head,
+        behind=0,
+        ahead=0,
+        diverged=False,
+        reason=None if copy_ok else COPY_FAILED_REASON,
+    )
+    try:
+        _health.record(
+            COPY_HEALTH_ACTOR,
+            copy_result,
+            state_path=health_state_path.with_name(COPY_HEALTH_FILENAME),
+            notifier=_health_notifier,
+            confirmed_reasons=COPY_CONFIRMED_REASONS,
+            render=_copy_render,
+        )
+    except Exception as exc:  # noqa: BLE001 - copy-health is escalation, never fatal
+        audit_append(
+            audit_path,
+            audit_record(
+                kind="copy_health_record_error",
+                tick_id=tick_id,
+                error=str(exc)[:200],
+                error_class=type(exc).__name__,
+            ),
+        )
+
     duration_ms = int((time.monotonic() - start) * 1000)
     audit_tick_summary(
         audit_path,
