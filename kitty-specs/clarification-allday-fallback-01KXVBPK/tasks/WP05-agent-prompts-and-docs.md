@@ -113,3 +113,4 @@ Execution worktree per computed lane in `lanes.json`. Deploy is post-merge via
 - 2026-07-18T22:47:41Z – claude:sonnet:curator-carla:implementer – shell_pid=86970 – Assigned agent via action command
 - 2026-07-18T22:58:42Z – claude:sonnet:curator-carla:implementer – shell_pid=86970 – Capture Step 3c persists signal + Step 1a invokes sweep-finalize; docs updated; ask-first C-005 preserved; validators OK, 166 tests green
 - 2026-07-18T22:58:51Z – claude:opus:reviewer-renata:reviewer – shell_pid=91070 – Started review via action command
+- 2026-07-18T23:02:24Z – user – shell_pid=91070 – Review passed (reviewer-renata): Step 3c shape matches is_eligible; Step 1a exact entry point; ask-first C-005 intact; 78 tests + validators green
