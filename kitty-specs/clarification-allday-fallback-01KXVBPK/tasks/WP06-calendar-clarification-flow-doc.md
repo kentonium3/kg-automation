@@ -14,9 +14,9 @@ subtasks:
 - T017
 - T018
 - T019
-agent: "claude:sonnet:curator-carla:implementer"
-shell_pid: "92653"
-shell_pid_created_at: "1784415730.552278"
+agent: "claude:opus:reviewer-renata:reviewer"
+shell_pid: "95570"
+shell_pid_created_at: "1784416221.304527"
 history:
 - '2026-07-18: authored by /spec-kitty.tasks'
 agent_profile: curator-carla
@@ -121,3 +121,5 @@ Execution worktree per computed lane in `lanes.json`.
 ## Activity Log
 
 - 2026-07-18T23:02:45Z – claude:sonnet:curator-carla:implementer – shell_pid=92653 – Assigned agent via action command
+- 2026-07-18T23:10:45Z – claude:sonnet:curator-carla:implementer – shell_pid=92653 – Process-flow doc + signal-to-doc-map (2 change classes) + INDEX; validators green; discoverable without opening kitty-specs
+- 2026-07-18T23:10:56Z – claude:opus:reviewer-renata:reviewer – shell_pid=95570 – Started review via action command
