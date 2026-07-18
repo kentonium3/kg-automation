@@ -79,6 +79,7 @@ class InboxFile:
     warning: Optional[str] = None
     parse_failure_reason: Optional[str] = None  # set when classification == "parse-failure" (#185)
     has_stale_error_marker: bool = False  # True when the body has a felix-capture marker but parses cleanly (#185)
+    processed_at_utc: Optional[datetime] = None  # parsed `processed_at` frontmatter (#753 cutover guard); None if absent/unparseable
 
     @property
     def age_days(self) -> float:
@@ -249,6 +250,23 @@ def _extract_frontmatter_block(text: str) -> Optional[str]:
     return None  # unterminated fence → no frontmatter
 
 
+def _parse_processed_at_dt(raw: object) -> Optional[datetime]:
+    """Parse a ``processed_at`` frontmatter value into a tz-aware UTC datetime.
+
+    Returns ``None`` when the value is missing, malformed, or unparseable.
+    Naive datetimes / ISO strings are assumed to be UTC.
+    """
+    if isinstance(raw, datetime):
+        return raw if raw.tzinfo else raw.replace(tzinfo=timezone.utc)
+    if isinstance(raw, str):
+        try:
+            ts = datetime.fromisoformat(raw)
+        except (ValueError, TypeError):
+            return None
+        return ts if ts.tzinfo else ts.replace(tzinfo=timezone.utc)
+    return None
+
+
 def _parse_processed_at_age(
     raw: object, now_utc: datetime
 ) -> Optional[float]:
@@ -257,16 +275,8 @@ def _parse_processed_at_age(
     Returns ``None`` when the value is missing, malformed, or unparseable —
     the caller should fall back to filesystem mtime in that case.
     """
-    if isinstance(raw, datetime):
-        ts = raw if raw.tzinfo else raw.replace(tzinfo=timezone.utc)
-    elif isinstance(raw, str):
-        try:
-            ts = datetime.fromisoformat(raw)
-        except (ValueError, TypeError):
-            return None
-        if ts.tzinfo is None:
-            ts = ts.replace(tzinfo=timezone.utc)
-    else:
+    ts = _parse_processed_at_dt(raw)
+    if ts is None:
         return None
     return (now_utc - ts).total_seconds() / 86400.0
 
@@ -368,6 +378,7 @@ def classify_file(path: Path, now_utc: datetime) -> InboxFile:
     status_raw: Optional[str] = None
     warning: Optional[str] = None
     frontmatter: Optional[dict] = None
+    processed_at_utc: Optional[datetime] = None
 
     try:
         text = path.read_text(encoding="utf-8")
@@ -440,11 +451,9 @@ def classify_file(path: Path, now_utc: datetime) -> InboxFile:
         classification = "unprocessed"
     elif status_raw == "processed":
         # Prefer processed_at frontmatter over filesystem mtime (issue #187).
-        processed_at_age = _parse_processed_at_age(
-            frontmatter.get("processed_at"), now_utc
-        )
-        if processed_at_age is not None:
-            age_days = processed_at_age
+        processed_at_utc = _parse_processed_at_dt(frontmatter.get("processed_at"))
+        if processed_at_utc is not None:
+            age_days = (now_utc - processed_at_utc).total_seconds() / 86400.0
         if age_days > STALE_AGE_DAYS:
             classification = "processed-stale"
         else:
@@ -475,6 +484,7 @@ def classify_file(path: Path, now_utc: datetime) -> InboxFile:
         classification=classification,
         warning=warning,
         has_stale_error_marker=has_stale_error_marker,
+        processed_at_utc=processed_at_utc,
     )
 
 
@@ -670,6 +680,16 @@ _SILENT_LOSS_WARNING = (
     "status:processed but no routing-log entry (silent-loss signature #746)"
 )
 
+# #753 — the #746 atomic-finalize log-before-mark guarantee went live on
+# 2026-07-17 (merge 5f6c0c5e, deployed same day). Notes processed BEFORE this
+# instant predate the routing-log guarantee, so a missing routing-log entry is
+# NOT a silent-loss signal for them (the log simply never covered them). The
+# rail exempts pre-cutover notes to stop a retroactive false-positive storm
+# (51 pre-#746 notes flagged every tick). All pre-#746 processed notes are
+# dated 2026-07-15 or earlier, so a 2026-07-17 cutover has zero false-negative
+# risk for any note the guarantee actually covers.
+ROUTING_LOG_CUTOVER_UTC = datetime(2026, 7, 17, tzinfo=timezone.utc)
+
 
 def _md_candidates(directory: Path) -> list[Path]:
     """Non-recursive ``.md`` files in ``directory``, excluding daily logs.
@@ -714,7 +734,11 @@ def scan_processed_without_routing_log(
     finalized notes (including ``empty``-disposition notes) never trip the rail.
 
     ``needs-review`` and ``unprocessed`` notes are ignored (not ``processed``);
-    parse-failure notes are likewise skipped (no reliable ``status``).
+    parse-failure notes are likewise skipped (no reliable ``status``). Notes
+    processed before ``ROUTING_LOG_CUTOVER_UTC`` (the #746 go-live) are exempt
+    (#753): they predate the routing-log guarantee, so a missing entry is not a
+    loss signal. ``processed_at`` frontmatter dates the note; file mtime is the
+    fallback when it is absent/unparseable.
 
     Returns ``(anomalies, warnings)``. ``warnings`` carries a cap-applied notice
     when the combined candidate set exceeds ``ARCHIVE_SCAN_CAP``.
@@ -746,6 +770,13 @@ def scan_processed_without_routing_log(
             continue
         if reader.has(path.name):
             continue  # correctly finalized — has ≥1 routing-log entry.
+        # #753 — exempt notes processed before the #746 routing-log guarantee.
+        # Such notes cannot have a routing-log entry (the guarantee did not yet
+        # exist), so a missing entry is not a silent-loss signal. Fall back to
+        # filesystem mtime when processed_at is absent/unparseable.
+        effective_utc = info.processed_at_utc or info.mtime_utc
+        if effective_utc < ROUTING_LOG_CUTOVER_UTC:
+            continue
         anomalies.append(
             ArchiveAnomaly(
                 path=str(path),
