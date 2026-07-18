@@ -1,16 +1,16 @@
 {
-  "event_count": 45,
-  "last_event_id": "01KXVRBT0MTSRQJ3J76ZYK4M3D",
-  "materialized_at": "2026-07-18T23:18:12.244989+00:00",
+  "event_count": 46,
+  "last_event_id": "01KXVRC1YQKSQZ65GCEMZCP5F4",
+  "materialized_at": "2026-07-18T23:18:20.375119+00:00",
   "mission_number": "106",
   "mission_slug": "clarification-allday-fallback-01KXVBPK",
   "mission_type": "software-dev",
   "summary": {
-    "approved": 2,
+    "approved": 1,
     "blocked": 0,
     "canceled": 0,
     "claimed": 0,
-    "done": 4,
+    "done": 5,
     "for_review": 0,
     "in_progress": 0,
     "in_review": 0,
@@ -46,11 +46,11 @@
       "last_transition_at": "2026-07-18T23:18:12.244989+00:00"
     },
     "WP05": {
-      "actor": "user",
+      "actor": "merge",
       "force_count": 0,
-      "lane": "approved",
-      "last_event_id": "01KXVQEKBKGJMWVXT26AVGDTCY",
-      "last_transition_at": "2026-07-18T23:02:15.155623+00:00"
+      "lane": "done",
+      "last_event_id": "01KXVRC1YQKSQZ65GCEMZCP5F4",
+      "last_transition_at": "2026-07-18T23:18:20.375119+00:00"
     },
     "WP06": {
       "actor": "user",
