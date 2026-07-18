@@ -64,6 +64,12 @@ Clock = Callable[[], str]
 # is NOT stamped so it re-attempts on the next failing tick.
 Notifier = Callable[[str, str], bool]
 
+# Render seam (#637): builds the (title, body) for a streak-crossing alert. The
+# default renders the git-advance wording; callers reusing this watermark for a
+# non-git streak (e.g. agent-prompt-sync's per-file COPY failures) pass their own
+# so the alert reads accurately.
+RenderAlert = Callable[["HealthWatermark", AdvanceResult, int], "tuple[str, str]"]
+
 
 def utc_now_iso() -> str:
     """Default clock: current time as ISO-8601 UTC with a trailing ``Z``."""
@@ -161,6 +167,8 @@ def record(
     threshold: int = DEFAULT_THRESHOLD,
     notifier: Notifier | None = None,
     clock: Clock = utc_now_iso,
+    confirmed_reasons: frozenset[str] = CONFIRMED_FAILURE_REASONS,
+    render: "RenderAlert | None" = None,
 ) -> bool:
     """Update *actor*'s watermark from *result*; return True iff an alert fired.
 
@@ -205,7 +213,7 @@ def record(
     elif result.reason == "lock_unavailable":
         # Benign defer — leave the streak untouched. Just re-stamp updated_ts.
         pass
-    elif result.reason in CONFIRMED_FAILURE_REASONS:
+    elif result.reason in confirmed_reasons:
         if state.consecutive_failures == 0 or state.failure_streak_started_ts is None:
             # Starting a new streak: anchor the throttle timestamp.
             state.failure_streak_started_ts = now
@@ -227,7 +235,7 @@ def record(
             # streak.
             delivered = False
             if notifier is not None:
-                title, body = _render_alert(state, result, threshold)
+                title, body = (render or _render_alert)(state, result, threshold)
                 try:
                     delivered = bool(notifier(title, body))
                 except Exception as exc:  # noqa: BLE001 - never crash the tick
