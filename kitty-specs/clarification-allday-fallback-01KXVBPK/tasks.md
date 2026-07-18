@@ -35,8 +35,8 @@
 
 **Goal**: Give the deterministic sweep the two facts it needs from add-time — the `missing_fields` eligibility signal and a **stable resolved `start_date`** — by having `validate_calendar_event.validate` emit them on **every** start-time-missing result (not only the exact-`["start_time"]` branch). **Priority**: P1 (foundation). **Depends on**: none. **Independent test**: feed a no-time block at a fixed tick → incomplete result carries `missing_fields` + a tick-anchored `start_date`.
 
-- [ ] T001 `validate` surfaces resolved `start_date` on every start-time-missing result (WP01)
-- [ ] T002 Unit tests: start_date emitted, tick-anchored (week-drift), missing_fields shape, complete-event unaffected (WP01)
+- [x] T001 `validate` surfaces resolved `start_date` on every start-time-missing result (WP01)
+- [x] T002 Unit tests: start_date emitted, tick-anchored (week-drift), missing_fields shape, complete-event unaffected (WP01)
 
 **Prompt**: [tasks/WP01-validator-resolved-date-signal.md](./tasks/WP01-validator-resolved-date-signal.md) · ~200 lines
 
@@ -44,8 +44,8 @@
 
 **Goal**: Teach `route_calendar_event` (`REQUIRED_FIELDS` / `validate_payload` / `build_delegation_payload`) the all-day (`start_date`/`end_date`) shape so the #746 transaction can route an all-day create end-to-end, **without regressing the timed path**. **Priority**: P1 (foundation). **Depends on**: none. **Independent test**: an all-day payload validates + builds a `--payload-file` with `start_date`/`end_date`; timed payloads unchanged.
 
-- [ ] T003 `route_calendar_event` accepts + delegates all-day (`start_date`/`end_date`) payloads (WP02)
-- [ ] T004 Tests: all-day acceptance (exclusive end) + timed-path regression (WP02)
+- [x] T003 `route_calendar_event` accepts + delegates all-day (`start_date`/`end_date`) payloads (WP02)
+- [x] T004 Tests: all-day acceptance (exclusive end) + timed-path regression (WP02)
 
 **Prompt**: [tasks/WP02-route-calendar-allday-seam.md](./tasks/WP02-route-calendar-allday-seam.md) · ~200 lines
 
