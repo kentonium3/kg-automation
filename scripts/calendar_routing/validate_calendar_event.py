@@ -608,11 +608,21 @@ def validate(block: dict) -> dict:
     # date-based (`start_date`/`end_date`) form so the calendar helper creates a
     # Google all-day event, not a midnight-to-midnight timed one. Google's all-day
     # end is exclusive; we take `end_dt`'s calendar date directly. For the common
-    # case `end_dt` is start + a whole-day duration (its date is the exclusive end);
-    # if the block instead carried an explicit end (which takes precedence above),
-    # that end's date is used verbatim — also treated as exclusive. Otherwise emit
-    # the timed (`start_rfc3339`) form.
-    if _is_all_day_duration(duration) and _parse_time_component(start_natural) is None:
+    # case `end_dt` is start + a whole-day duration (its date is the exclusive end).
+    # An event is all-day only when NEITHER endpoint carries an explicit time: if
+    # the block gave an explicit end WITH a time (which takes precedence for
+    # `end_dt` above), it is a timed event and must keep that time — classifying it
+    # all-day would silently drop the end time (#788). Otherwise emit the timed
+    # (`start_rfc3339`) form.
+    end_has_explicit_time = (
+        end_dt_candidate is not None
+        and _parse_time_component(end_natural) is not None
+    )
+    if (
+        _is_all_day_duration(duration)
+        and _parse_time_component(start_natural) is None
+        and not end_has_explicit_time
+    ):
         payload["start_date"] = start_dt.date().isoformat()
         payload["end_date"] = end_dt.date().isoformat()
     else:

@@ -28,7 +28,7 @@ Judgment paths only (conversational via main + the clarification handler below);
 
 ### Input payload
 
-Parse JSON. **Required**: `action`, `calendar_id`, `account`, `summary`, `start_rfc3339`, `end_rfc3339`, `source_inbox_path`. **Optional**: `start_timezone`, `location`, `description`, `rrule`, `attendees` (list of emails or null), `clarification_id` (set on self-dispatch from the clarification handler below). Use payload values verbatim — defaults (`personal`, `primary`) already resolved upstream.
+Parse JSON. **Required**: `action`, `calendar_id`, `account`, `summary`, `source_inbox_path`, and a start/end pair — **either** `start_rfc3339`+`end_rfc3339` (timed) **or** `start_date`+`end_date` (all-day, `YYYY-MM-DD`). **Optional**: `start_timezone`, `location`, `description`, `rrule`, `attendees` (emails or null), `clarification_id` (set on self-dispatch below). Pass whichever pair is present verbatim — defaults (`personal`, `primary`) already resolved upstream.
 
 ### Calendar helper invocation
 
@@ -41,7 +41,7 @@ cd /home/claude/kg-automation && /data/services/openclaw/felix-calendar/venv/bin
   --idempotency-key "<source_inbox_path>" --json
 ```
 
-The helper reads `summary`/`start_rfc3339`/`end_rfc3339`/`start_timezone`/`location`/`description`/`rrule` from the payload file; refuses `attendees` unless `--allow-attendees` (a note must not silently email people). `--idempotency-key` makes a re-run of the same note a no-op, not a duplicate. `--json` emits `{"status": "created", "event_id": …, "html_link": …}` on a line *before* the final `SUMMARY:` — parse it for `event_id`/`html_link`.
+The helper reads `summary`, the start/end pair (`start_rfc3339`/`end_rfc3339`, or all-day `start_date`/`end_date`), `start_timezone`/`location`/`description`/`rrule` from the payload file; refuses `attendees` unless `--allow-attendees` (a note must not silently email people). `--idempotency-key` makes a re-run of the same note a no-op, not a duplicate. `--json` emits `{"status": "created", "event_id": …, "html_link": …}` on a line *before* the final `SUMMARY:` — parse it for `event_id`/`html_link`.
 
 **Exit codes (contract):** `0` success · `1` operational/API error · `2` usage error · `3` auth failure. On non-zero exit the helper writes `ERROR: …` to stderr and never mutated the calendar. **Surface that error verbatim; NEVER report a created event that did not create (#683); never fall back to `gog` — you have none.**
 
@@ -146,7 +146,7 @@ When re-validation returns `complete: true`, do the following in order:
      --context '{"source_file": "<source_inbox_path>", "gcal_event_id": "<from helper response>"}'
    ```
 
-   The Calendar event creation section's `calendar_event_created` log_action also fires in step 2 — both events cover the resolution flow.
+   (Step 2 also fires `calendar_event_created`.)
 
 6. **Send a turn-summary to Kent on WhatsApp** confirming the event (with gcal html_link if available). Standard end-of-turn output, not a channel-action call.
 
@@ -161,4 +161,4 @@ If the calendar helper in step 2 exits non-zero (`status: "error"`):
 
 ### Why this handler runs first
 
-Main's intent-classification (chat, scheduling, habits, inbox-process) must NOT preempt a calendar clarification reply. The check is cheap and the negative case costs nothing — running it first guarantees a calendar reply is never mis-routed.
+Main's intent-classification must NOT preempt a calendar clarification reply. The check is cheap and the negative case costs nothing — run it first so a calendar reply is never mis-routed.
