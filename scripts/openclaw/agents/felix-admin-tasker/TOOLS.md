@@ -27,9 +27,10 @@ REST API for task management.
 
 ### Action log
 
-Central logging to `/home/kgale/second-brain/agents/logs/`.
+Central logging to `/home/kgale/second-brain/agents/logs/felix-admin-tasker/`.
 
-- **Format**: task-intelligence-YYYY-MM-DD.md
+- **Format**: `/home/kgale/second-brain/agents/logs/felix-admin-tasker/YYYY-MM-DD.jsonl`
+  — one JSON-Lines file per day in the per-agent subdirectory.
 - Required per Felix Constitution Directive 3
 - Every action must be logged with: agent name, action type, target, outcome,
   timestamp, and autonomy level
@@ -38,4 +39,3 @@ Central logging to `/home/kgale/second-brain/agents/logs/`.
 
 - NEVER read, write, or reference `/home/kgale/second-brain/notes/04-Growth/_private/` (path renumbered from `02-Growth/_private/` in mission 026 / #152)
 - NEVER log API tokens or credentials
-- NEVER create tasks without Kent's confirmation (while at Assisted level)

@@ -1,0 +1,109 @@
+{
+  "mission_slug": "author-tasker-workspace-01KXXEVB",
+  "mission_number": "",
+  "mission_type": "software-dev",
+  "overall_verdict": "pass",
+  "criteria": [
+    {
+      "criterion_id": "FR-001",
+      "description": "SOUL.md retains only ## Voice (kept byte-identical) + a one-line privacy stance",
+      "proof_type": "manual_verification",
+      "evidence": "reviewer-renata: Voice section byte-identical pre/post (diff empty); SOUL reduced to Voice + stance (commit 76a8f9d3)",
+      "pass_fail": "pass",
+      "verified_by": "reviewer-renata + curator-carla implementer (commit 76a8f9d3)",
+      "verified_at": "2026-07-19T15:52:52Z",
+      "notes": ""
+    },
+    {
+      "criterion_id": "FR-002",
+      "description": "SOUL ## Purpose role block removed; role owned by AGENTS ## Authority/## Scope",
+      "proof_type": "manual_verification",
+      "evidence": "grep: role absent from SOUL, present in AGENTS ## Authority/## Scope (renata trap-check)",
+      "pass_fail": "pass",
+      "verified_by": "reviewer-renata + curator-carla implementer (commit 76a8f9d3)",
+      "verified_at": "2026-07-19T15:52:52Z",
+      "notes": ""
+    },
+    {
+      "criterion_id": "FR-003",
+      "description": "SOUL ## Behavioral principles removed; each item owned by AGENTS or SOUL Voice",
+      "proof_type": "manual_verification",
+      "evidence": "renata traced every item: confirmation\u2192AGENTS Operating Mode; one-question\u2192enrich_task Step 3; batch\u2192retroactive_enrichment; minimize-questions\u2192enrich_task Step 1 thresholds; propose-confidently\u2192SOUL Voice",
+      "pass_fail": "pass",
+      "verified_by": "reviewer-renata + curator-carla implementer (commit 76a8f9d3)",
+      "verified_at": "2026-07-19T15:52:52Z",
+      "notes": ""
+    },
+    {
+      "criterion_id": "FR-004",
+      "description": "SOUL privacy reduced to one-line stance; enforceable copy stays in AGENTS+TOOLS",
+      "proof_type": "manual_verification",
+      "evidence": "validate_workspace privacy_boundary ok (present AGENTS+TOOLS); policy body/path/changelog removed from SOUL",
+      "pass_fail": "pass",
+      "verified_by": "reviewer-renata + curator-carla implementer (commit 76a8f9d3)",
+      "verified_at": "2026-07-19T15:52:52Z",
+      "notes": ""
+    },
+    {
+      "criterion_id": "FR-005",
+      "description": "USER ## Privacy boundary removed entirely; enforceable copy in AGENTS+TOOLS",
+      "proof_type": "manual_verification",
+      "evidence": "grep: privacy rule absent from USER, present AGENTS+TOOLS; validator ok",
+      "pass_fail": "pass",
+      "verified_by": "reviewer-renata + curator-carla implementer (commit 76a8f9d3)",
+      "verified_at": "2026-07-19T15:52:52Z",
+      "notes": ""
+    },
+    {
+      "criterion_id": "FR-006",
+      "description": "USER ## Context role re-statement trimmed; Kent-context + ## Identities kept",
+      "proof_type": "manual_verification",
+      "evidence": "renata: \"Your job is to take raw\u2026\" removed; Kent-context retained; Identities unchanged",
+      "pass_fail": "pass",
+      "verified_by": "reviewer-renata + curator-carla implementer (commit 76a8f9d3)",
+      "verified_at": "2026-07-19T15:52:52Z",
+      "notes": ""
+    },
+    {
+      "criterion_id": "FR-007",
+      "description": "USER ## Communication preferences \"concise/direct\" voice line trimmed; genuine prefs kept",
+      "proof_type": "manual_verification",
+      "evidence": "renata: voice line removed (owned by SOUL Voice); proposals/yes-no/batch prefs retained",
+      "pass_fail": "pass",
+      "verified_by": "reviewer-renata + curator-carla implementer (commit 76a8f9d3)",
+      "verified_at": "2026-07-19T15:52:52Z",
+      "notes": ""
+    },
+    {
+      "criterion_id": "FR-008",
+      "description": "TOOLS ## Action log corrected to log_action.py shape; Directive-3 required fields preserved",
+      "proof_type": "manual_verification",
+      "evidence": "renata verified vs source: log_action.py::_write_entry writes <log_dir>/<agent>/YYYY-MM-DD.jsonl; TOOLS matches; required-fields line survives (conservation inv #9); no task-intelligence-*.md remains",
+      "pass_fail": "pass",
+      "verified_by": "reviewer-renata + curator-carla implementer (commit 76a8f9d3)",
+      "verified_at": "2026-07-19T15:52:52Z",
+      "notes": ""
+    },
+    {
+      "criterion_id": "FR-009",
+      "description": "TOOLS ## Restrictions confirmation rule removed; privacy path + token rule kept",
+      "proof_type": "manual_verification",
+      "evidence": "grep: confirmation rule absent from TOOLS, present in AGENTS ## Operating Mode; _private path + token rule retained",
+      "pass_fail": "pass",
+      "verified_by": "reviewer-renata + curator-carla implementer (commit 76a8f9d3)",
+      "verified_at": "2026-07-19T15:52:52Z",
+      "notes": ""
+    },
+    {
+      "criterion_id": "FR-010",
+      "description": "AGENTS.md and IDENTITY.md byte-unchanged; AGENTS owns all removed concerns",
+      "proof_type": "manual_verification",
+      "evidence": "git diff 76a8f9d3^..76a8f9d3 touches only SOUL/USER/TOOLS; AGENTS/IDENTITY 0 lines changed; ownership grep-confirmed",
+      "pass_fail": "pass",
+      "verified_by": "reviewer-renata + curator-carla implementer (commit 76a8f9d3)",
+      "verified_at": "2026-07-19T15:52:52Z",
+      "notes": ""
+    }
+  ],
+  "negative_invariants": []
+}

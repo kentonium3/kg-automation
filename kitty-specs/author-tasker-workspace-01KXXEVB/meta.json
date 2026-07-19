@@ -1,0 +1,31 @@
+{
+  "accept_commit": "c0c75571604dbfc6768b8b9c8df23dcb096a6d63",
+  "acceptance_history": [
+    {
+      "accept_commit": "c0c75571604dbfc6768b8b9c8df23dcb096a6d63",
+      "acceptance_mode": "pr",
+      "accepted_at": "2026-07-19T15:53:12.403480+00:00",
+      "accepted_by": "kentgale",
+      "accepted_from_commit": "d51ca9a12e45efc35a43970b00f81d32e772b645"
+    }
+  ],
+  "acceptance_mode": "pr",
+  "accepted_at": "2026-07-19T15:53:12.403480+00:00",
+  "accepted_by": "kentgale",
+  "accepted_from_commit": "d51ca9a12e45efc35a43970b00f81d32e772b645",
+  "baseline_merge_commit": "7208f41b24c6a0bd6be15f7c44ca629b9ad06d16",
+  "created_at": "2026-07-19T15:10:25.075294+00:00",
+  "flattened": false,
+  "friendly_name": "Author felix-admin-tasker workspace",
+  "mission_id": "01KXXEVBSGWCYBF9MDE3NQPNS8",
+  "mission_number": 109,
+  "mission_slug": "author-tasker-workspace-01KXXEVB",
+  "mission_type": "software-dev",
+  "purpose_context": "felix-admin-tasker's workspace files carry the cross-contamination pattern the OpenClaw Workspace Authoring Standard (#587) exists to correct: role and operating rules in SOUL, a duplicated enforceable privacy rule in USER, and a stale action-log format in TOOLS. This mission intentionally re-authors SOUL, USER, and TOOLS to the file-ownership contract as a coherent set, keeping the agent's behavior unchanged (it already passes validate_workspace and must stay green).",
+  "purpose_tldr": "Re-author the tasker agent's SOUL/USER/TOOLS to the #587 ownership standard — behavior-preserving.",
+  "slug": "author-tasker-workspace-01KXXEVB",
+  "target_branch": "feat/author-tasker-workspace",
+  "topology": "single_branch",
+  "vcs": "git",
+  "vcs_locked_at": "2026-07-19T15:40:27.933967+00:00"
+}
