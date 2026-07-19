@@ -138,3 +138,4 @@ parallel-lane safe.
 - 2026-07-19T02:54:52Z – claude – shell_pid=88924 – Assigned agent via action command
 - 2026-07-19T02:57:37Z – claude – shell_pid=88924 – Units + manifest (schema-valid) + hard verify-before-enable gate; bash -n clean
 - 2026-07-19T02:57:47Z – claude – shell_pid=89929 – Started review via action command
+- 2026-07-19T02:58:07Z – user – shell_pid=89929 – Hard enable gate verified: smoke-before-enable, XDG_RUNTIME_DIR, loud failure, no sudo. Manifest schema-valid. systemd-analyze runs on office2 at deploy.
