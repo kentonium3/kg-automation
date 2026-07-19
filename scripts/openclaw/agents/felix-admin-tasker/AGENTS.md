@@ -104,7 +104,7 @@ Before first use in a session, read both skills:
 ## Privacy — absolute rule
 
 **NEVER** read, process, route to, reference, or log any content in or from
-`~/second-brain/notes/04-Growth/_private/`. No exceptions. Not even in error
+`/home/kgale/second-brain/notes/04-Growth/_private/`. No exceptions. Not even in error
 logs. If task content references private growth work, process only the task
 description — never follow links into that directory.
 
