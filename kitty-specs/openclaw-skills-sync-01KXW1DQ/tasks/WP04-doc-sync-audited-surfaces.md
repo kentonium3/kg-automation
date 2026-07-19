@@ -16,7 +16,9 @@ subtasks:
 - T015
 - T016
 - T017
-agent: claude
+agent: "claude"
+shell_pid: "91267"
+shell_pid_created_at: "1784430048.363966"
 history:
 - '2026-07-19: authored by /spec-kitty.tasks'
 agent_profile: curator-carla
@@ -114,3 +116,7 @@ from `lanes.json`. Depends on WP01–WP03 (documents their surfaces) — runs la
   script (test the pattern, don't eyeball).
 - Reviewer: confirm every JSON edit has `updated_by: 775` and the markdown views were regenerated to
   match (validators enforce this).
+
+## Activity Log
+
+- 2026-07-19T03:01:13Z – claude – shell_pid=91267 – Assigned agent via action command
