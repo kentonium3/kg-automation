@@ -6,13 +6,24 @@ status: approved
 level: howto
 owners: [kent]
 audience: agents_and_humans
-last_validated: 2026-04-13
-version: "1.0"
+last_validated: 2026-07-19
+version: "1.1"
 ---
 
 # Agent Workspace Reconciliation
 
 Operational runbook for the automated drift enforcement system that keeps OpenClaw agent workspace files synchronized between the kg-automation repo and office2.
+
+> **Scope note (#636, 2026-07-19).** This runbook covers the drift-**enforcement**
+> layer (`scripts/openclaw/enforcement/drift-check.py` — it *compares* deployed
+> workspaces against the repo baseline and alerts), **not** the deploy copy. The
+> repo→office2 **copy** of agent prompt files now flows through the pull-based
+> `agent-prompt-sync` timer (#567), which superseded drift-check as the delivery
+> path. For which mechanism delivers which surface, see
+> [office2 deploy paths — surface partition](<./deploy/office2-deploy-paths.md>).
+> **Enforcement is currently inert** — as of #766 the drift-check cron invokes a
+> Mac-only SSH alias on-host and reports every agent as `file_missing_repo`;
+> drift is not being enforced until #766 is fixed.
 
 **Source issue**: [#166](https://github.com/kentonium3/kg-automation/issues/166)
 **Mission**: 028-agent-workspace-reconciliation
@@ -69,11 +80,11 @@ This mapping is stored in `scripts/openclaw/enforcement/drift-check-config.json`
 
 - **`felix-admin-calendar`** (added #579) is a live, deployed agent
   (`scripts/openclaw/agents/felix-admin-calendar/` → `/data/services/openclaw/calendar-agent/`,
-  registered in `service-inventory.json`) but is **not yet listed in
-  `drift-check-config.json`** — so its workspace deploys via the manifest pipeline
-  but is **not currently drift-monitored**. Closing this gap (adding the
-  `felix-admin-calendar` entry and regenerating the baseline manifest) is a tracked
-  follow-up; it is out of #587's file scope.
+  registered in `service-inventory.json`). Its workspace **deploys via
+  `agent-prompt-sync`** (the pull-based copier — like every other agent), **not**
+  via the felix-deployer manifest pipeline. It was added to
+  `drift-check-config.json` in #654 (so it is now in the drift roster), though
+  drift enforcement overall is inert pending #766 (see the scope note above).
 - **`felix-doc-auditor`** was refactored to a scripts-first Python driver (#343) and
   is **suspended** as a live agent — no deployed workspace, intentionally absent from
   the drift roster. Its repo directory is retained as history only.

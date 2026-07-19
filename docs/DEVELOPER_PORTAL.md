@@ -167,6 +167,7 @@ local validation and CI.
 - [Observation Intelligence Layer — Operations Runbook](<./runbooks/observation-ops.md>)
 - [Obsidian Setup Guide](<./runbooks/obsidian-setup.md>)
 - [Obsidian Vault (kg-automation/docs)](<./runbooks/obsidian.md>)
+- [office2 Deploy Paths — Surface Partition (reference)](<./runbooks/deploy/office2-deploy-paths.md>)
 - [Ollama Operations Runbook](<./runbooks/ollama-ops.md>)
 - [OpenClaw Agent Setup](<./runbooks/openclaw-agent-setup.md>)
 - [Post-Change Verification Protocol](<./runbooks/governance/post-change-verification.md>)

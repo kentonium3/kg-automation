@@ -1,7 +1,7 @@
 {
   "schema_version": "1.1",
   "last_updated": "2026-07-19",
-  "updated_by": "pull-based-deploy-pipeline-01KTYQQS (#136 deploy-manifest-added, office2-service-deployment, deploy-library-modified) + agent-prompt-deploy-pipeline-01KTMDDD (#567) + inbox-calendar-and-aspiration-routing-01KTHHXS (verified service-added-or-modified and data-flow-added-or-modified targets) + #510-sweeper-tick + #343-wp01 + #492-mission-end-classes + clarification-allday-fallback-01KXVBPK (#780 — calendar-flow-changed + inbox-routing-changed classes route to the new calendar-clarification process-flow doc) + process-flow-docs-home (#794 — inbox-routing.md added to inbox-routing-changed; someday/journal/habits-flow-changed classes added for the back-filled process-flow docs)",
+  "updated_by": "pull-based-deploy-pipeline-01KTYQQS (#136 deploy-manifest-added, office2-service-deployment, deploy-library-modified) + agent-prompt-deploy-pipeline-01KTMDDD (#567) + inbox-calendar-and-aspiration-routing-01KTHHXS (verified service-added-or-modified and data-flow-added-or-modified targets) + #510-sweeper-tick + #343-wp01 + #492-mission-end-classes + clarification-allday-fallback-01KXVBPK (#780 — calendar-flow-changed + inbox-routing-changed classes route to the new calendar-clarification process-flow doc) + process-flow-docs-home (#794 — inbox-routing.md added to inbox-routing-changed; someday/journal/habits-flow-changed classes added for the back-filled process-flow docs) + office2-deploy-paths (#636 — office2-deploy-paths.md surface-partition doc added to agent-prompt-changed / office2-service-deployment / deploy-library-modified targets)",
   "description": "Maps deterministic change signals to the documentation surfaces that likely need review when the signal fires. Two consumer classes: (1) drift-event entries (match.source='audit.sh') consumed by scripts/doc_audit/helpers/handle_drift_events.py to auto-file [doc-audit] issues; (2) mission-end entries (match.source='mission-architecture-impact') consumed by /spec-kitty.specify and /spec-kitty.plan agents per CLAUDE.md to populate a mission's Architecture Impact section with the full set of likely-affected docs. v1.1 adds match.change_class and consumer_hint fields; existing v1.0 entries unchanged.",
   "mappings": [
     {
@@ -285,9 +285,10 @@
         "docs/design/architecture/service-inventory.md",
         "docs/runbooks/openclaw-agent-setup.md",
         "docs/runbooks/agent-prompt-sync-ops.md",
+        "docs/runbooks/deploy/office2-deploy-paths.md",
         "docs/design/architecture/data/audited-surfaces.json"
       ],
-      "rationale": "A mission modifies an agent prompt file under scripts/openclaw/agents/<slug>/ (AGENTS.md, IDENTITY.md, SOUL.md, TOOLS.md, USER.md). Service inventory's agent entry purpose/notes/depends_on fields may need updating; the openclaw-agent-setup runbook covers per-agent deploy expectations; the agent-prompt-sync-ops runbook covers the auto-deploy pipeline. No need to touch the helper itself; deployment is handled by the agent-prompt-sync service. Triggers the rebaseline obligation (#557): the merge commit must record `Rebaseline: completed at <ts>` or `Rebaseline: not required — <reason>` per `docs/runbooks/security-baseline-ops.md`.",
+      "rationale": "A mission modifies an agent prompt file under scripts/openclaw/agents/<slug>/ (AGENTS.md, IDENTITY.md, SOUL.md, TOOLS.md, USER.md). Service inventory's agent entry purpose/notes/depends_on fields may need updating; the openclaw-agent-setup runbook covers per-agent deploy expectations; the agent-prompt-sync-ops runbook covers the auto-deploy pipeline; the office2-deploy-paths surface partition confirms agent prompts deploy via agent-prompt-sync (NOT a manifest) and are rebaseline-exempt (#621). No need to touch the helper itself; deployment is handled by the agent-prompt-sync service. Prompt-only deploys record `Rebaseline: not required — agent prompts not hashed (#621)`.",
       "consumer_hint": "spec-author"
     },
     {
@@ -331,9 +332,10 @@
       },
       "doc_targets": [
         "docs/runbooks/deploy/discipline.md",
+        "docs/runbooks/deploy/office2-deploy-paths.md",
         "docs/design/architecture/data/service-inventory.json"
       ],
-      "rationale": "Any new or modified office2 service should be planned against the discipline runbook and recorded in service-inventory.json.",
+      "rationale": "Any new or modified office2 service should be planned against the discipline runbook and recorded in service-inventory.json. Consult the office2-deploy-paths surface partition first to confirm WHICH mechanism delivers the change (felix-deployer manifest vs agent-prompt-sync vs self-pull) — not everything needs a manifest.",
       "issue_labels": ["P3-candidate", "spec: brief", "area/infrastructure"],
       "consumer_hint": "spec-author",
       "introduced_by": "#136"
@@ -346,9 +348,10 @@
       },
       "doc_targets": [
         "scripts/deploy/lib/README.md",
-        "docs/runbooks/deploy/discipline.md"
+        "docs/runbooks/deploy/discipline.md",
+        "docs/runbooks/deploy/office2-deploy-paths.md"
       ],
-      "rationale": "Changes to scripts/deploy/lib/ affect every downstream deploy. Library API contract (kitty-specs/<slug>/contracts/deploy-library-api.md) should be reviewed.",
+      "rationale": "Changes to scripts/deploy/lib/ affect every downstream deploy. Library API contract (kitty-specs/<slug>/contracts/deploy-library-api.md) should be reviewed. The office2-deploy-paths surface partition names the felix-deployer half of the deploy surface.",
       "issue_labels": ["P3-candidate", "spec: brief", "area/infrastructure"],
       "consumer_hint": "spec-author",
       "introduced_by": "#136"
