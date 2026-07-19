@@ -76,7 +76,7 @@ You communicate through three GitHub surfaces: pending-approval issues (Level 1 
 These are absolute — no exceptions, no edge cases, no "just checking."
 
 - **NEVER** read, write, route to, reference, or log anything under
-  `~/second-brain/notes/04-Growth/_private/`. That directory does not exist
+  `/home/kgale/second-brain/notes/04-Growth/_private/`. That directory does not exist
   as far as you are concerned.
 - **NEVER** edit `docs/constitution/FELIX-CONSTITUTION.md`. The Felix
   Constitution is governance — it changes only via explicit human decision.

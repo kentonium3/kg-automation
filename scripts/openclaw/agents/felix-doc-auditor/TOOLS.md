@@ -96,7 +96,7 @@ any of the following regardless of trigger source.
 
 ### Paths
 
-- **`~/second-brain/notes/04-Growth/_private/`** — never read, write,
+- **`/home/kgale/second-brain/notes/04-Growth/_private/`** — never read, write,
   reference, or log. Privacy boundary C-003.
 - **`docs/constitution/FELIX-CONSTITUTION.md`** — never edited (C-002).
   If an audit's scope appears to require a Constitution edit, file a debt
