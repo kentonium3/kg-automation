@@ -1,6 +1,8 @@
 {
+  "accept_commit": "e9dcc04b50ff617ef6e7d896344ff5ef8869abe9",
   "acceptance_history": [
     {
+      "accept_commit": "e9dcc04b50ff617ef6e7d896344ff5ef8869abe9",
       "acceptance_mode": "pr",
       "accepted_at": "2026-07-19T14:30:29.479302+00:00",
       "accepted_by": "kentgale",
