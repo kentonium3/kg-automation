@@ -143,6 +143,7 @@ local validation and CI.
 - [Vikunja Operations Runbook](<./runbooks/vikunja-ops.md>)
 
 ### Dual-audience
+- [Agent skill sync — operator runbook](<./runbooks/agent-skill-sync-ops.md>)
 - [Agent Workspace Reconciliation](<./runbooks/agent-workspace-reconciliation.md>)
 - [Alerting via the felix-alert Bus](<./runbooks/alerting.md>)
 - [Calendar Helper Operations](<./runbooks/calendar-helper-ops.md>)

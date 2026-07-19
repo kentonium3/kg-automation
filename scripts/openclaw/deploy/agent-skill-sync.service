@@ -1,0 +1,57 @@
+# Agent Skill Deploy Pipeline — systemd user service unit (#775)
+#
+# One-shot unit. Each invocation runs ONE sync tick: git fetch + fast-forward
+# inside /home/claude/kg-automation, then MD5-compare each repo skill under
+# scripts/openclaw/skills/<skill>/SKILL.md against the deployed file at
+# /home/claude/.openclaw/skills/<skill>/SKILL.md, atomically copying any drifted
+# file (copy-only, never prune). Audit log at
+# /data/services/openclaw/deploy/agent-skill-sync.jsonl.
+#
+# Sibling to agent-prompt-sync (#567) — same discipline, the SKILLS surface.
+# The sibling unit (agent-skill-sync.timer) schedules invocations every 5
+# minutes after the previous tick exits.
+#
+# Operator deploy is handled by the manifest pipeline
+# (deploys/queued/skills-sync.yaml → scripts/deploy/deploy-skills-sync.sh), which
+# runs a HARD verify-before-enable gate. Manual enable (recovery), as claude:
+#   export XDG_RUNTIME_DIR=/run/user/$(id -u)
+#   cp scripts/openclaw/deploy/agent-skill-sync.{service,timer} ~/.config/systemd/user/
+#   systemctl --user daemon-reload
+#   systemctl --user enable --now agent-skill-sync.timer
+#   systemctl --user list-timers | grep agent-skill-sync
+#
+# Operator validation (on office2 from /home/claude/kg-automation):
+#   systemd-analyze --user verify scripts/openclaw/deploy/agent-skill-sync.service
+#   systemd-analyze --user verify scripts/openclaw/deploy/agent-skill-sync.timer
+#
+# Full runbook: file:///home/claude/kg-automation/docs/runbooks/agent-skill-sync-ops.md
+#
+# Note: ExecStart uses the `-m` invocation form (NOT script-path form). The
+# helper imports siblings via scripts.openclaw.deploy.* / scripts.deploy.* /
+# scripts.common.*; script-path invocation would fail ModuleNotFoundError. See
+# the repo memory feedback_helper_m_invocation_form (#668).
+
+[Unit]
+Description=Agent Skill Deploy Pipeline (one-shot tick)
+Documentation=file:///home/claude/kg-automation/docs/runbooks/agent-skill-sync-ops.md
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/home/claude/kg-automation
+ExecStart=/usr/bin/python3 -m scripts.openclaw.deploy.deploy_agent_skills
+StandardOutput=journal
+StandardError=journal
+# Generous timeout: no-drift ticks complete in <2s normally (NFR-001); this
+# ceiling accommodates a slow git fetch on a flaky network without prematurely
+# killing the process.
+TimeoutStartSec=120s
+# Load FELIX_ALERT_NTFY_TOPIC for the unified felix-alert bus
+# (scripts/common/alert_bus/). Leading "-" keeps startup non-fatal if the topic
+# env-file is absent (the bus returns NTFY_MISSING_TOPIC instead of crashing the
+# tick).
+EnvironmentFile=-/home/claude/.config/felix/alert-bus/env
+
+[Install]
+WantedBy=default.target

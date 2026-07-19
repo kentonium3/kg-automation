@@ -1,0 +1,169 @@
+{
+  "mission_slug": "openclaw-skills-sync-01KXW1DQ",
+  "mission_number": "",
+  "mission_type": "software-dev",
+  "overall_verdict": "pass",
+  "criteria": [
+    {
+      "criterion_id": "FR-001",
+      "description": "Sync copies drifted SKILL",
+      "proof_type": "automated_test",
+      "evidence": "tests/openclaw/test_deploy_agent_skills.py::test_run_tick_real_converges_and_writes_freshness",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-07-19T02:00:00Z",
+      "notes": "Sync copies drifted SKILL.md repo->deployed for all 6 skills; live dry-run enumerated all 6."
+    },
+    {
+      "criterion_id": "FR-002",
+      "description": "MD5-compare: unchanged->skip, changed->copy",
+      "proof_type": "automated_test",
+      "evidence": "test_sync_skill_no_drift_skips / test_sync_skill_drift_copies_and_creates_parent",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-07-19T02:00:00Z",
+      "notes": "MD5-compare: unchanged->skip, changed->copy."
+    },
+    {
+      "criterion_id": "FR-003",
+      "description": "Atomic temp+fsync+os",
+      "proof_type": "automated_test",
+      "evidence": "test_atomic_copy_preserves_existing_mode / test_atomic_copy_raises_and_cleans_temp",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-07-19T02:00:00Z",
+      "notes": "Atomic temp+fsync+os.replace, dst mode preserved, temp cleaned on failure."
+    },
+    {
+      "criterion_id": "FR-004",
+      "description": "Copy-only: a dest skill with no repo counterpart survives a tick (never pruned)",
+      "proof_type": "automated_test",
+      "evidence": "test_copy_only_preserves_dest_orphan",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-07-19T02:00:00Z",
+      "notes": "Copy-only: a dest skill with no repo counterpart survives a tick (never pruned)."
+    },
+    {
+      "criterion_id": "FR-005",
+      "description": "Append-only JSONL audit: copy/skip/warning/error/tick_summary",
+      "proof_type": "automated_test",
+      "evidence": "test_run_tick_real_converges... asserts copy+tick_summary audit kinds",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-07-19T02:00:00Z",
+      "notes": "Append-only JSONL audit: copy/skip/warning/error/tick_summary."
+    },
+    {
+      "criterion_id": "FR-006",
+      "description": "Streak-dedup: DEFAULT_THRESHOLD copy failures -> exactly one alert via _copy_render",
+      "proof_type": "automated_test",
+      "evidence": "test_copy_failure_streak_fires_exactly_one_alert / test_copy_watermark_uses_copy_confirmed_reasons",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-07-19T02:00:00Z",
+      "notes": "Streak-dedup: DEFAULT_THRESHOLD copy failures -> exactly one alert via _copy_render."
+    },
+    {
+      "criterion_id": "FR-007",
+      "description": "--dry-run prints DRIFT lines, writes nothing (no audit, no dest, no freshness)",
+      "proof_type": "automated_test",
+      "evidence": "test_run_tick_dry_run_prints_and_no_writes",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-07-19T02:00:00Z",
+      "notes": "--dry-run prints DRIFT lines, writes nothing (no audit, no dest, no freshness)."
+    },
+    {
+      "criterion_id": "FR-008",
+      "description": "Timer unit authored+valid; runtime schedule confirmed live at deploy (task 6)",
+      "proof_type": "manual",
+      "evidence": "scripts/openclaw/deploy/agent-skill-sync.timer (OnUnitInactiveSec=300s+OnBootSec+Persistent); mirrors the live agent-prompt-sync.timer",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-07-19T02:00:00Z",
+      "notes": "Timer unit authored+valid; runtime schedule confirmed live at deploy (task 6)."
+    },
+    {
+      "criterion_id": "FR-009",
+      "description": "Independent comparator (not the sync code path) detects drift, exit!=0; canary-wired",
+      "proof_type": "automated_test",
+      "evidence": "tests/openclaw/enforcement/test_skills_drift_check.py::test_main_drift_exit_1 (+ service-inventory self-check-command health_check)",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-07-19T02:00:00Z",
+      "notes": "Independent comparator (not the sync code path) detects drift, exit!=0; canary-wired."
+    },
+    {
+      "criterion_id": "FR-010",
+      "description": "*",
+      "proof_type": "automated_test",
+      "evidence": "test_evaluate_ignores_backup_sidecar (WP02) + is_backup tests (WP01)",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-07-19T02:00:00Z",
+      "notes": "*.backup* ignored by both sync and drift check."
+    },
+    {
+      "criterion_id": "FR-011",
+      "description": "Scope derived from repo scripts/openclaw/skills/ dir; new dir picked up with no code change",
+      "proof_type": "automated_test",
+      "evidence": "test_iter_skills_derivation / test_iter_skills_missing_skillmd_is_skipped_and_reported",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-07-19T02:00:00Z",
+      "notes": "Scope derived from repo scripts/openclaw/skills/ dir; new dir picked up with no code change."
+    },
+    {
+      "criterion_id": "FR-012",
+      "description": "Manifest validates against manifest-v1",
+      "proof_type": "manual",
+      "evidence": "deploys/queued/skills-sync.yaml (schema-valid, tier 3, audited_surface) + scripts/deploy/deploy-skills-sync.sh (hard verify-before-enable gate, bash -n clean)",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-07-19T02:00:00Z",
+      "notes": "Manifest validates against manifest-v1.schema.json; deploy is a hard gate (smoke-before-enable, loud failure). Live-applied at deploy (task 6)."
+    },
+    {
+      "criterion_id": "FR-013",
+      "description": "Architecture docs/data synchronized (service-inventory, audited-surfaces, data-flows, runbook, INDEX, roadmap)",
+      "proof_type": "manual",
+      "evidence": "WP04 commit e50f87f1; validate_docs + validate_architecture_data green",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-07-19T02:00:00Z",
+      "notes": "Architecture docs/data synchronized (service-inventory, audited-surfaces, data-flows, runbook, INDEX, roadmap)."
+    },
+    {
+      "criterion_id": "FR-014",
+      "description": "Orphan detection: deployed skill with no repo counterpart reported (alert-only, not pruned)",
+      "proof_type": "automated_test",
+      "evidence": "test_evaluate_orphan / test_main_orphan_exit_1",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-07-19T02:00:00Z",
+      "notes": "Orphan detection: deployed skill with no repo counterpart reported (alert-only, not pruned)."
+    },
+    {
+      "criterion_id": "FR-015",
+      "description": "Multi-file skill dir emits a warning-audit; payload stays SKILL",
+      "proof_type": "automated_test",
+      "evidence": "test_sync_skill_multi_file_warns / test_iter_skills_multi_file_populates_extra",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-07-19T02:00:00Z",
+      "notes": "Multi-file skill dir emits a warning-audit; payload stays SKILL.md only."
+    },
+    {
+      "criterion_id": "FR-016",
+      "description": "dest",
+      "proof_type": "automated_test",
+      "evidence": "test_sync_skill_drift_copies_and_creates_parent (asserts parent absent then created)",
+      "pass_fail": "pass",
+      "verified_by": "claude",
+      "verified_at": "2026-07-19T02:00:00Z",
+      "notes": "dest.parent created (parents=True) before atomic copy."
+    }
+  ],
+  "negative_invariants": []
+}
