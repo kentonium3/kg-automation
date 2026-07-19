@@ -57,12 +57,12 @@ Vikunja-config epic.
 - **Then** exactly one ntfy alert fires per failure streak (not once per run), the health watermark
   reflects the failure, and the deployed skill is left in its prior state (no partial/corrupt write).
 
-### Scenario 4 — drift is detected (belt-and-suspenders guard)
-- **Given** a deployed `SKILL.md` diverges from the repo (e.g., the sync silently stalled, or an
-  out-of-band hand-edit was made directly on office2),
-- **When** the drift check runs,
-- **Then** the divergence is reported/alerted with the skill name and the differing files, and
-  `*.backup*` sidecar files on office2 are ignored (not reported as drift).
+### Scenario 4 — drift is detected independently (belt-and-suspenders guard)
+- **Given** a deployed `SKILL.md` diverges from the repo (the sync stalled, a copy silently failed,
+  or an out-of-band hand-edit was made directly on office2),
+- **When** the independent drift-check probe runs (its own observer, not the sync's code path),
+- **Then** the divergence is alerted with the skill name and the differing MD5s, `*.backup*` sidecars
+  are ignored, and a deployed skill with no repo counterpart is reported as an orphan (FR-014).
 
 ### Scenario 5 — dry-run preview
 - **Given** an operator wants to preview what the sync would change,
@@ -81,11 +81,14 @@ Vikunja-config epic.
 | FR-006 | On sync failure, the system emits exactly one ntfy alert per failure streak (deduplicated across consecutive failing runs), and updates a health watermark. On recovery, the streak resets. | Proposed |
 | FR-007 | The sync supports a `--dry-run` mode that reports drift (`DRIFT <skill> SKILL.md src_md5=… dst_md5=…`) and makes no changes. | Proposed |
 | FR-008 | The sync runs automatically on office2 on a recurring schedule (systemd user timer), with cadence matching `agent-prompt-sync`. | Proposed |
-| FR-009 | A drift check detects any divergence between repo and deployed skills and reports/alerts it (alert-only — it does not itself remediate; the sync is the remediation path). | Proposed |
-| FR-010 | The drift check ignores office2-side sidecar/backup files matching `*.backup*` (does not classify them as drift). | Proposed |
+| FR-009 | An **independent** drift check detects divergence between repo and deployed skills and alerts (alert-only — it does not remediate; the sync is the remediation path). It runs as its own observer (a canary probe), **not** by re-invoking the sync helper's code path, so it can catch a sync that reports success while the deployed file still differs. It states its own cadence, exit-code, and alert-dedup behavior. | Proposed |
+| FR-010 | The drift check and the sync both ignore office2-side sidecar/backup files matching `*.backup*` (never a sync target, never classified as drift). | Proposed |
 | FR-011 | The scope of skills to sync is derived from the repo's `scripts/openclaw/skills/` directory (currently 6). Adding a new repo skill dir brings it into scope without code changes to the enumerator. | Proposed |
-| FR-012 | Deployment of the new mechanism to office2 flows through a `deploys/queued/<name>.yaml` manifest consumed by felix-deployer (per DIR-004), not by ad-hoc scripts. | Proposed |
+| FR-012 | Deployment of the new mechanism to office2 flows through a `deploys/queued/<name>.yaml` manifest consumed by felix-deployer (per DIR-004), not by ad-hoc scripts. The deploy's success **requires** the timer to be enabled and proven running (a verify-before-enable smoke that the sync wrote its freshness signal); a failed enable/smoke fails the deploy loudly rather than marking it applied. | Proposed |
 | FR-013 | The mission updates the architecture documentation surfaces enumerated in "Documentation Synchronization" below (DIR-014). | Proposed |
+| FR-014 | Orphan detection (alert-only): the drift check reports a **deployed** skill dir that has no corresponding repo skill (a repo-removed skill whose deployed copy lingers), ignoring `*.backup*`. Copy-only is preserved — the orphan is reported, not deleted. | Proposed |
+| FR-015 | Multi-file guard: if a repo skill dir contains any file other than `SKILL.md`, the sync emits a warning-audit record (surfacing the currently-out-of-scope multi-file case) rather than silently syncing only `SKILL.md`. | Proposed |
+| FR-016 | First-run safety: the sync creates the deployed skill's parent directory (`parents=True, exist_ok=True`) before the atomic copy, so a missing `/home/claude/.openclaw/skills/<skill>/` on a new skill or repaired host does not fail the copy. | Proposed |
 
 ## Non-Functional Requirements
 
@@ -129,8 +132,12 @@ Vikunja-config epic.
   alerts. *(Measurable: 0 writes, 0 alerts.)*
 - **SC-003** — An induced sync failure produces exactly one ntfy alert per failure streak and a health
   watermark reflecting it; recovery resets the streak. *(Measurable: 1 alert / streak.)*
-- **SC-004** — An intentionally-diverged deployed skill is flagged by the drift check; a `*.backup*`
-  sidecar is not. *(Measurable: diverged skill reported, backup ignored.)*
+- **SC-004** — An intentionally-diverged deployed skill is flagged by the **independent** drift-check
+  probe; a `*.backup*` sidecar is not; a deployed skill with no repo counterpart is reported as an
+  orphan. *(Measurable: diverged skill reported, backup ignored, orphan reported.)*
+- **SC-008** — Deploy is not marked applied unless the timer is enabled and a verify-before-enable
+  smoke proved the sync wrote its freshness signal. *(Measurable: failed enable/smoke → deploy fails
+  loudly, not silently-applied.)*
 - **SC-005** — `--dry-run` reports current drift and writes nothing. *(Measurable: 0 writes; drift lines printed.)*
 - **SC-006** — The mechanism is deployed via a `deploys/queued/` manifest and the merge records a
   rebaseline outcome for the audited surface.
@@ -141,7 +148,7 @@ Vikunja-config epic.
 - **A1** — Drift check is **alert-only** (mirrors the workspace guard); the sync is the remediation path. *(Confirmed with Kent.)*
 - **A2** — Sync is **copy-only, no pruning**; unexpected office2-side files (e.g. `*.backup*`) are left in place and the drift check ignores `*.backup*`. *(Confirmed with Kent.)*
 - **A3** — Timer **cadence matches `agent-prompt-sync`**. *(Confirmed with Kent.)*
-- **A4** — Sync surface per skill is a single `SKILL.md` (verified: every skill dir contains exactly one file, both repo and office2). If a future skill dir gains supporting files, the enumerator should sync the whole dir; captured as a plan consideration, not required for the current 6.
+- **A4** — Sync surface per skill is a single `SKILL.md` (verified: every skill dir contains exactly one file, both repo and office2). A future multi-file skill dir is out of scope for the sync payload now, but is **not** silently ignored — FR-015 emits a warning-audit if a repo skill dir gains other files, so the expansion is surfaced rather than stranded.
 - **A5** — office2 access for the deploy is the existing `claude`-user path; no new credential is introduced.
 
 ## Out of Scope
@@ -159,7 +166,8 @@ Per the signal-to-doc-map for this mission's change classes (`service-added-or-m
 |-------------|-----|
 | `docs/design/architecture/data/service-inventory.json` + `service-inventory.md` | new skills-sync service + systemd unit registered |
 | `docs/design/architecture/service-dependencies.view.md` | new sync service relationship |
-| `docs/design/architecture/data/audited-surfaces.json` | confirm new systemd unit + deploy script are covered by existing globs (or extend) |
+| `docs/design/architecture/data/audited-surfaces.json` | **extend globs** — current `systemd-user-units` covers `scripts/office2/*.{service,timer}` (not `scripts/openclaw/deploy/*`) and `deploy-pipeline` covers `scripts/deploy/lib/**` (not `scripts/deploy/deploy-skills-sync.sh`); add the new unit + deploy-script paths so C-002 rebaseline actually holds |
+| `scripts/canary/registry.py` (+ `probes.py`) | register the independent skills-drift + freshness probes (FR-009); this is the observability surface, not a doc |
 | `docs/design/architecture/data/data-flows.json` + `data-flows.md` + `data-flows.view.md` | new repo→office2 skill-sync data flow |
 | `docs/runbooks/deployment.md` | document the skills-sync alongside agent-prompt-sync |
 | `docs/INDEX.md` (+ `DEVELOPER_PORTAL.md` if a new runbook is added) | navigation for any added/modified runbook |
