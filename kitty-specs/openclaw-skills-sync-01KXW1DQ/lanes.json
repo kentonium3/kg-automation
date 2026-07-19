@@ -1,0 +1,103 @@
+{
+  "version": 1,
+  "mission_slug": "openclaw-skills-sync-01KXW1DQ",
+  "mission_id": "01KXW1DQQGZDHH0NK0YGM9WY10",
+  "mission_branch": "kitty/mission-openclaw-skills-sync-01KXW1DQ",
+  "target_branch": "feat/openclaw-skills-sync",
+  "lanes": [
+    {
+      "lane_id": "lane-a",
+      "wp_ids": [
+        "WP01"
+      ],
+      "write_scope": [
+        "scripts/openclaw/deploy/deploy_agent_skills.py",
+        "tests/openclaw/deploy/test_deploy_agent_skills.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "artifact-rendering",
+        "legacy-cleanup",
+        "tracker-integration",
+        "workspace"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    },
+    {
+      "lane_id": "lane-b",
+      "wp_ids": [
+        "WP02"
+      ],
+      "write_scope": [
+        "scripts/canary/registry.py",
+        "scripts/openclaw/enforcement/skills_drift_check.py",
+        "tests/openclaw/enforcement/test_skills_drift_check.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "legacy-cleanup",
+        "tracker-integration"
+      ],
+      "depends_on_lanes": [
+        "lane-a"
+      ],
+      "parallel_group": 1
+    },
+    {
+      "lane_id": "lane-c",
+      "wp_ids": [
+        "WP03"
+      ],
+      "write_scope": [
+        "deploys/queued/skills-sync.yaml",
+        "scripts/deploy/deploy-skills-sync.sh",
+        "scripts/openclaw/deploy/agent-skill-sync.service",
+        "scripts/openclaw/deploy/agent-skill-sync.timer"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "tracker-integration"
+      ],
+      "depends_on_lanes": [
+        "lane-a"
+      ],
+      "parallel_group": 1
+    },
+    {
+      "lane_id": "lane-d",
+      "wp_ids": [
+        "WP04"
+      ],
+      "write_scope": [
+        "docs/DEVELOPER_PORTAL.md",
+        "docs/INDEX.md",
+        "docs/design/architecture/data-flows.md",
+        "docs/design/architecture/data-flows.view.md",
+        "docs/design/architecture/data/audited-surfaces.json",
+        "docs/design/architecture/data/data-flows.json",
+        "docs/design/architecture/data/service-inventory.json",
+        "docs/design/architecture/service-dependencies.view.md",
+        "docs/design/architecture/service-inventory.md",
+        "docs/design/felix-capability-roadmap.md",
+        "docs/runbooks/agent-skill-sync-ops.md",
+        "docs/runbooks/deployment.md"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "app-shell",
+        "artifact-rendering",
+        "tracker-integration"
+      ],
+      "depends_on_lanes": [
+        "lane-a",
+        "lane-b",
+        "lane-c"
+      ],
+      "parallel_group": 2
+    }
+  ],
+  "computed_at": "2026-07-19T02:32:12.483406+00:00",
+  "computed_from": "dependency_graph+ownership",
+  "planning_artifact_wps": []
+}
