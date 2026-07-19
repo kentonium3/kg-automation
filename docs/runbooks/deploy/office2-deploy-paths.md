@@ -97,14 +97,18 @@ agent prompt/skill **content**; helper scripts ride **self-pull**.
 
 ## Not a deploy path: drift-check enforcement
 
-`scripts/openclaw/enforcement/drift-check.py` (mission 028,
+`scripts/openclaw/enforcement/drift_check.py` (mission 028,
 [agent-workspace-reconciliation.md](../agent-workspace-reconciliation.md)) is a
-separate **drift-detection/enforcement** concern, not a deploy mechanism — it
-*compares* deployed agent workspaces against the repo baseline and alerts on
-conflicts. It does not deliver changes; agent-prompt-sync (#567) superseded it as
-the repo→office2 **copy** path. As of #766 the drift-check cron is non-functional
-(it invokes a Mac-only SSH alias on-host), so drift enforcement is currently inert
-— tracked in #766. Do not treat drift-check as a third deploy path.
+separate **drift-detection/enforcement** concern — it *compares* deployed agent
+workspaces against the repo baseline and alerts on conflicts (daily 06:00 UTC
+cron). **agent-prompt-sync (#567) is the authoritative repo→office2 copier**; do
+not plan a deploy against drift_check. Note that drift_check's `check` mode still
+performs last-author-wins *remediation* (it can copy in either direction to
+resolve drift), so it is not purely read-only — but it is enforcement-oriented,
+not the primary delivery path. The #766 defect (the cron had used a Mac-only SSH
+alias on-host) was **fixed** (commit `fac206f1`, 2026-07-18): drift_check now reads
+the office2 workspace files locally when running on-host, so enforcement is
+functional. Do not treat drift_check as a deploy path.
 
 ## Audit-parity note (open — see #636 recommendation)
 
@@ -119,7 +123,8 @@ The two recorded mechanisms are **asymmetric on audit granularity**:
 This is partly **by design**: agent prompts are an *unmonitored* audited surface —
 `audited-surfaces.json` sets `openclaw-agent-prompts.rebaseline_required: false`
 with `affected_baselines: []`, because `security-monitor/audit.sh` hashes only
-`openclaw.json`, **never** the deployed `AGENTS.md` (the #621 gap). So a prompt-only
+`openclaw.json` and the OpenClaw cron list, **never** the deployed `AGENTS.md`
+(the #621 gap). So a prompt-only
 deploy has no baseline, no rebaseline, and no `applied/` record — only the JSONL
 trail.
 
@@ -139,6 +144,6 @@ tracks the implementation.
   `expected_baselines`, applied-record stamp #688), deploylock, controlled bootstrap.
 - [`../agent-prompt-sync-ops.md`](../agent-prompt-sync-ops.md) — operator steps for the pull path.
 - [`../agent-workspace-reconciliation.md`](../agent-workspace-reconciliation.md) —
-  the drift-*enforcement* layer (mission 028; enforcement currently inert per #766).
+  the drift-*enforcement* layer (mission 028; #766 on-host-read fix landed 2026-07-18).
 - [`../../design/felix-bedrock-stabilization.md`](../../design/felix-bedrock-stabilization.md)
   — Foundation 2, the #636 problem statement.

@@ -461,7 +461,8 @@ Audited surfaces (per `docs/design/architecture/data/audited-surfaces.json`):
 - OpenClaw agent prompts — **rebaseline-exempt (not currently possible).**
   `audited-surfaces.json` sets `openclaw-agent-prompts.rebaseline_required: false`
   with `affected_baselines: []`, because `security-monitor/audit.sh` hashes only
-  `openclaw.json`, never the deployed `AGENTS.md` (the #621 gap). A prompt-only
+  `openclaw.json` and the OpenClaw cron list, never the deployed `AGENTS.md`
+  (the #621 gap). A prompt-only
   deploy — which ships via `agent-prompt-sync`, not a manifest — writes no
   baseline, so there is nothing to rebaseline. Record `Rebaseline: not required`
   and cite #621.
