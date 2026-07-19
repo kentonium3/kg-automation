@@ -498,5 +498,8 @@ def test_known_kinds_covers_expected_set():
             "vikunja_task",
             "github_issue",
             "empty",
+            # #780 all-day fallback: the age-out sweep-finalize marker kind,
+            # distinct from a normal `calendar` create (C-007).
+            "calendar_all_day_fallback",
         }
     )

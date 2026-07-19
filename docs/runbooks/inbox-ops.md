@@ -209,7 +209,8 @@ content — the silent-loss escape hatch this mission closes.
   marked processed once, so it leaves a recorded disposition (never a silent skip).
 - **`needs_clarification`** — currently calendar-only. The block is left unrouted,
   the note stays `unprocessed` (exit 0), and capture enters the calendar
-  clarification flow (pending-calendar-clarifications state, 24h sweep).
+  clarification flow (pending-calendar-clarifications state, **8h** sweep-finalize —
+  see [§ Calendar clarification sweep-finalize (8h + all-day fallback)](#calendar-clarification-sweep-finalize-8h--all-day-fallback-780)).
 
 ### Standalone helpers removed from the agent flow
 
@@ -233,6 +234,55 @@ health rail as work — the agent does **not** reply `[felix-admin-capture]: IDL
 when the rail has findings; it surfaces them so the anomaly is not buried by a
 quiet tick. If the routing log is unreadable the rail is disabled for that run and
 a warning is emitted rather than a false all-clear.
+
+## Calendar clarification sweep-finalize (8h + all-day fallback, #780)
+
+When a captured note resolves to an appointment with a **date but no time**
+("Meet Rob Thursday"), capture asks Kent for the start time (Step 3c) and records
+a **pending clarification** carrying the resolved `start_date` and the
+`missing_fields` signal. The **ask always fires first** — the all-day event is a
+timeout-only fallback, never a substitute for asking (spec C-005).
+
+Each tick, capture's **Step 1a** runs the deterministic sweep-finalize command
+(replaces the old bare `handle_clarification_state sweep`):
+
+```bash
+cd /home/claude/kg-automation && python3 -m scripts.inbox.clarification_sweep_finalize
+```
+
+- **8h window (C-006).** The whole clarification lifecycle ages out at **8h**
+  (reduced from 24h — the single `SWEEP_MAX_AGE` in `handle_clarification_state.py`).
+  A record is aged out once `now − created_at ≥ 8h`; non-aged-out records are
+  untouched.
+- **All-day fallback (eligible).** An aged-out record is **eligible** iff its
+  `partial_payload` has a `title`, a well-formed `start_date` (`YYYY-MM-DD`), and a
+  `missing_fields` list that contains `start_time` and is a subset of the timing
+  fields `{start_time, end_or_duration}`. For an eligible record the sweep builds a
+  single-block all-day `calendar` plan and creates the event through the #746
+  `route_and_finalize` transaction (atomic + idempotent), marks the note processed,
+  removes the record, and writes a distinct **`calendar_all_day_fallback`**
+  routing-log marker (so the operator can count fallback creates separately from
+  normal creates and sweep-deletes — spec SC-004).
+- **Delete-and-release (ineligible).** An aged-out record that is **not** eligible
+  (missing title, a non-timing gap, or a legacy record with no `missing_fields` /
+  `start_date`) gets today's delete-and-release: the record is dropped so the note
+  re-scans / re-asks — consistent with the prior timeout semantics (C-007).
+- **Fail-closed + reconcile.** If the create/mark does not complete, the record is
+  **retained** and the note left unprocessed for a later retry — never a partial or
+  duplicate. On a retry where a prior run already created + logged the event but the
+  note-mark or record-removal did not finish, the transaction's per-block
+  idempotency recognizes the reconcile and removes the stale record **without
+  re-creating** the event (the `calendar_all_day_fallback` marker still emits exactly
+  once).
+- **Output.** One-line JSON counts summary
+  (`{"aged_out","finalized","reconciled","released","retained"}`); exit 0 even when
+  records are retained (that is the expected fail-closed outcome). The agent
+  continues regardless of the counts and never creates the event itself.
+
+**Canonical flow doc:** the full ask → 8h age-out → all-day-fallback process flow
+(with the reconciliation/idempotency ladder) lives at
+[`../design/process-flows/calendar-clarification.md`](../design/process-flows/calendar-clarification.md).
+This runbook is the operational pointer; that doc is the source of truth for the flow.
 
 ## WhatsApp trigger
 

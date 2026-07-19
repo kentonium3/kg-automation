@@ -1,0 +1,99 @@
+{
+  "mission_slug": "clarification-allday-fallback-01KXVBPK",
+  "mission_number": "",
+  "mission_type": "software-dev",
+  "overall_verdict": "pass",
+  "criteria": [
+    {
+      "criterion_id": "FR-001",
+      "description": "Pending clarification record carries the missing_fields signal + resolved start_date (persisted at add-time).",
+      "proof_type": "automated_test",
+      "evidence": "WP01 validate_calendar_event emits start_date+missing_fields on start-time-missing (tests/calendar/test_validate_calendar_event.py, 85 passed); WP05 felix-admin-capture Step 3c records them (agent copies, no compute).",
+      "pass_fail": "pass",
+      "verified_by": "reviewer-renata (WP01, WP05)",
+      "verified_at": "2026-07-18T23:15:42Z",
+      "notes": "Real no-duration vocabulary confirmed: missing_fields == [start_time, end_or_duration]."
+    },
+    {
+      "criterion_id": "FR-002",
+      "description": "A record lacking the missing_fields signal / usable start_date is not eligible (delete-and-release).",
+      "proof_type": "automated_test",
+      "evidence": "WP03 clarification_sweep_finalize.is_eligible fail-closed; WP04 T012 asserts legacy no-signal + missing-title + non-timing records produce zero all-day events (tests/inbox/test_clarification_sweep_finalize.py).",
+      "pass_fail": "pass",
+      "verified_by": "reviewer-renata (WP03, WP04)",
+      "verified_at": "2026-07-18T23:15:42Z",
+      "notes": "Backward-compat C-002 verified."
+    },
+    {
+      "criterion_id": "FR-003",
+      "description": "Eligible start-time clarification aging out (>=8h) creates an all-day event instead of dropping.",
+      "proof_type": "automated_test",
+      "evidence": "WP03 sweep-finalize path; WP04 T010 asserts eligible age-out -> one all-day event, note processed, record removed.",
+      "pass_fail": "pass",
+      "verified_by": "reviewer-renata (WP03, WP04)",
+      "verified_at": "2026-07-18T23:15:42Z",
+      "notes": "8h window per C-006."
+    },
+    {
+      "criterion_id": "FR-004",
+      "description": "All-day create is idempotent + atomic with mark-processed + record removal via the #746 transaction.",
+      "proof_type": "automated_test",
+      "evidence": "WP03 routes through route_and_finalize._run_finalize (log-before-mark, mark-once); WP04 T011 asserts exactly-once across retries (removal-fail reconcile).",
+      "pass_fail": "pass",
+      "verified_by": "reviewer-renata (WP03, WP04)",
+      "verified_at": "2026-07-18T23:15:42Z",
+      "notes": "Canonical absolute inbox path (INV-7) for note + idempotency key."
+    },
+    {
+      "criterion_id": "FR-005",
+      "description": "Only timing-only-gap clarifications (start_time missing, end/duration optional) with resolved date + title are eligible; missing title / unresolved date are not.",
+      "proof_type": "automated_test",
+      "evidence": "WP03 is_eligible predicate; WP04 T012 boundary suite (mutation-verified by reviewer: forcing is_eligible True fails T012).",
+      "pass_fail": "pass",
+      "verified_by": "reviewer-renata (WP03, WP04)",
+      "verified_at": "2026-07-18T23:15:42Z",
+      "notes": "Corrected from an exact ==[start_time] match after post-plan Codex."
+    },
+    {
+      "criterion_id": "FR-006",
+      "description": "All-day payload = start_date, end_date = start_date + 1 day (exclusive), timed fields dropped.",
+      "proof_type": "automated_test",
+      "evidence": "WP02 route_calendar_event all-day delegation; WP03 build_all_day_plan; WP04 T010/T013 assert end_date=+1 (mutation-verified: breaking _next_day fails T010/T013).",
+      "pass_fail": "pass",
+      "verified_by": "reviewer-renata (WP02, WP03, WP04)",
+      "verified_at": "2026-07-18T23:15:42Z",
+      "notes": "Timed path proven byte-identical (WP02)."
+    },
+    {
+      "criterion_id": "FR-007",
+      "description": "Age-out create recorded via a durable, separable routing-log marker (calendar_all_day_fallback).",
+      "proof_type": "automated_test",
+      "evidence": "WP03 (cycle 2) idempotent reconcile-aware marker extending routing_log KNOWN_KINDS; WP04 T011b asserts exactly one marker even on mark-fail->reconcile.",
+      "pass_fail": "pass",
+      "verified_by": "reviewer-renata (WP03 cycle 2, WP04)",
+      "verified_at": "2026-07-18T23:15:42Z",
+      "notes": "Marker-loss gap caught at WP03 cycle 1 and fixed cycle 2 (mutation-verified). Extends calendar_event_clarification_timeout vocabulary (C-007)."
+    },
+    {
+      "criterion_id": "FR-008",
+      "description": "On create/mark failure the operation fails closed: record retained, note unprocessed, retry; no partial/duplicate state.",
+      "proof_type": "automated_test",
+      "evidence": "WP03 failure ladder (retained before mark); WP04 T013 fail-closed asserts retained + unprocessed + no partial event/log.",
+      "pass_fail": "pass",
+      "verified_by": "reviewer-renata (WP03, WP04)",
+      "verified_at": "2026-07-18T23:15:42Z",
+      "notes": "INV-3."
+    },
+    {
+      "criterion_id": "FR-009",
+      "description": "After create+mark succeed but record-removal fails, a later tick reconciles (removes stale record without re-creating).",
+      "proof_type": "automated_test",
+      "evidence": "WP03 reconcile branch; WP04 T011a asserts reconcile removes survivor with no re-create; note stays processed.",
+      "pass_fail": "pass",
+      "verified_by": "reviewer-renata (WP03, WP04)",
+      "verified_at": "2026-07-18T23:15:42Z",
+      "notes": "INV-6. Sequential exactly-once (NFR-004 narrowed to serial capture tick per Codex)."
+    }
+  ],
+  "negative_invariants": []
+}

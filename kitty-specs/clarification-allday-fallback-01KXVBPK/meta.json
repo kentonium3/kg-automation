@@ -1,0 +1,31 @@
+{
+  "accept_commit": "468a4f30f5cffe73c660601002ec5327464916e3",
+  "acceptance_history": [
+    {
+      "accept_commit": "468a4f30f5cffe73c660601002ec5327464916e3",
+      "acceptance_mode": "pr",
+      "accepted_at": "2026-07-18T23:16:32.558605+00:00",
+      "accepted_by": "kentgale",
+      "accepted_from_commit": "4e417c9ce0b9bfd98820fca97c87fca4860c74b6"
+    }
+  ],
+  "acceptance_mode": "pr",
+  "accepted_at": "2026-07-18T23:16:32.558605+00:00",
+  "accepted_by": "kentgale",
+  "accepted_from_commit": "4e417c9ce0b9bfd98820fca97c87fca4860c74b6",
+  "baseline_merge_commit": "ebff04b1e65c6907fe3d483fd965904604e017c6",
+  "created_at": "2026-07-18T19:36:54.429784+00:00",
+  "flattened": false,
+  "friendly_name": "All-Day Fallback for Unanswered Clarifications",
+  "mission_id": "01KXVBPKCTH8J2Q6QKER9PGB0J",
+  "mission_number": 106,
+  "mission_slug": "clarification-allday-fallback-01KXVBPK",
+  "mission_type": "software-dev",
+  "purpose_context": "The #739 policy asks Kent for a missing appointment start-time and, per option (iii), should fall back to an all-day event if unanswered. Today the 24h clarification sweep just drops the pending record, so the appointment is re-asked every window but never scheduled. This mission adds a deterministic age-out to create-all-day fallback, scoped strictly to start-time-missing clarifications, reusing the already-shipped all-day calendar-helper support (#786) and the #746 route_and_finalize transaction for idempotent, atomic scheduling.",
+  "purpose_tldr": "When a no-time appointment's start-time clarification goes unanswered for 24h, land it on the calendar as an all-day event instead of re-asking forever.",
+  "slug": "clarification-allday-fallback-01KXVBPK",
+  "target_branch": "feat/clarification-allday-fallback",
+  "topology": "single_branch",
+  "vcs": "git",
+  "vcs_locked_at": "2026-07-18T21:26:57.949252+00:00"
+}

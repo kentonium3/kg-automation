@@ -21,6 +21,7 @@ from pathlib import Path
 
 import pytest
 
+from scripts.inbox import clarification_sweep_finalize as csf
 from scripts.inbox import route_and_finalize as raf
 from scripts.inbox import route_calendar_event as rce
 from scripts.inbox import route_journal_entry as rje
@@ -859,6 +860,120 @@ class TestCalendar:
         assert json.loads(out)["blocks"][0]["skipped"] is True
         assert create_calls["n"] == 1
         assert len(_log_rows(log_path)) == 1
+
+
+# ===========================================================================
+# calendar clarification eligibility signal (#780 — Codex post-merge gap fix)
+# ===========================================================================
+
+
+class TestCalendarClarificationSignal:
+    """The needs_clarification path builds the all-day-fallback eligibility signal
+    ``{title, start_date, missing_fields}`` deterministically in code and surfaces
+    it on the calendar block so it reaches the pending record — the reachable path
+    the aged-out sweep (``clarification_sweep_finalize.is_eligible``) reads. The
+    ``start_date`` is resolved against the note's CAPTURE-time anchor (INV-5: a
+    relative "Thursday" must not drift to the wrong week when re-parsed later).
+    """
+
+    def _note(self, tmp_path, name, *, date="2026-07-14", time="16:28", body):
+        note = tmp_path / name
+        note.write_text(
+            f"---\ndate: {date}\ntime: {time}\ntype: inbox\nstatus: unprocessed\n---\n\n{body}\n",
+            encoding="utf-8",
+        )
+        return note
+
+    def _plan(self, content, filename="Inbox.md"):
+        # Title present but NO valid `start` → needs_clarification (helper NOT
+        # called); `content` is the verbatim block text parse_datetime searches.
+        return {
+            "note_filename": filename,
+            "blocks": [
+                {
+                    "block_index": 0,
+                    "kind": "calendar",
+                    "content": content,
+                    "payload": {"title": "Meet Rob"},
+                }
+            ],
+        }
+
+    @staticmethod
+    def _no_helper(monkeypatch):
+        def fake_invoke(*a, **k):
+            pytest.fail("calendar helper must not be called for an invalid payload")
+
+        monkeypatch.setattr(rce, "_invoke_calendar_helper", fake_invoke)
+
+    def test_no_time_block_surfaces_tick_anchored_signal(
+        self, tmp_path, capsys, monkeypatch, log_path
+    ):
+        self._no_helper(monkeypatch)
+        mark = _MarkSpy()
+        monkeypatch.setattr(raf, "_invoke_mark_processed", mark)
+
+        # Capture anchor: Tuesday 2026-07-14 → "Thursday" resolves to 2026-07-16.
+        note = self._note(tmp_path, "Inbox.md", body="Meet Rob Thursday")
+        pf = _write_plan(tmp_path, self._plan("Meet Rob Thursday"))
+        code, out, err = _run(["--source-path", str(note), "--plan-file", str(pf)], capsys)
+
+        assert code == 0, err
+        result = json.loads(out)
+        assert result["status"] == "needs_clarification"
+        block = result["blocks"][0]
+        # `missing` (backward-compat) is still present alongside the new signal.
+        assert "start" in block["missing"]
+        signal = block["clarification_signal"]
+        assert signal["title"] == "Meet Rob"
+        # Tick-anchored (this Thursday from the Tuesday capture), NOT `now`.
+        assert signal["start_date"] == "2026-07-16"
+        assert "start_time" in signal["missing_fields"]
+        assert mark.calls == []  # note left unprocessed
+        assert _log_rows(log_path) == []
+
+    def test_undateable_block_is_fail_closed_no_start_date(
+        self, tmp_path, capsys, monkeypatch, log_path
+    ):
+        self._no_helper(monkeypatch)
+        mark = _MarkSpy()
+        monkeypatch.setattr(raf, "_invoke_mark_processed", mark)
+
+        note = self._note(tmp_path, "Inbox.md", body="Meet Rob sometime soon")
+        pf = _write_plan(tmp_path, self._plan("Meet Rob sometime soon"))
+        code, out, err = _run(["--source-path", str(note), "--plan-file", str(pf)], capsys)
+
+        assert code == 0, err
+        result = json.loads(out)
+        assert result["status"] == "needs_clarification"
+        block = result["blocks"][0]
+        assert "start" in block["missing"]
+        # Fail-closed: an un-dateable block surfaces NO signal (the validator
+        # emits no start_date) → the record stays ineligible for the fallback.
+        assert "clarification_signal" not in block
+        assert mark.calls == []
+
+    def test_produced_signal_drives_is_eligible_true_and_false(
+        self, tmp_path, capsys, monkeypatch, log_path
+    ):
+        # End-to-end: the produced signal, recorded as `partial_payload`, drives
+        # the aged-out sweep's eligibility predicate — True for the dateable case,
+        # False for the un-dateable one.
+        self._no_helper(monkeypatch)
+        monkeypatch.setattr(raf, "_invoke_mark_processed", _MarkSpy())
+
+        good = self._note(tmp_path, "Good.md", body="Meet Rob Thursday")
+        pf = _write_plan(tmp_path, self._plan("Meet Rob Thursday", "Good.md"), name="good.json")
+        _c, out, _e = _run(["--source-path", str(good), "--plan-file", str(pf)], capsys)
+        good_signal = json.loads(out)["blocks"][0]["clarification_signal"]
+        assert csf.is_eligible({"partial_payload": good_signal}) is True
+
+        bad = self._note(tmp_path, "Bad.md", body="Meet Rob sometime soon")
+        pf2 = _write_plan(tmp_path, self._plan("Meet Rob sometime soon", "Bad.md"), name="bad.json")
+        _c2, out2, _e2 = _run(["--source-path", str(bad), "--plan-file", str(pf2)], capsys)
+        bad_block = json.loads(out2)["blocks"][0]
+        bad_signal = bad_block.get("clarification_signal", {})
+        assert csf.is_eligible({"partial_payload": bad_signal}) is False
 
 
 # ===========================================================================

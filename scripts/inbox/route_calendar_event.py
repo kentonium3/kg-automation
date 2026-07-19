@@ -7,9 +7,11 @@ CLI surface (per FR-005 / contracts/helper-cli.md):
 
 Behavior:
   * Read JSON from ``--payload-file``.
-  * Validate that ``title`` and ``start`` are present and parseable
-    (ISO 8601 datetime). Optional ``end`` must also be parseable when
-    supplied.
+  * Validate that ``title`` and EITHER a timed ``start`` (ISO 8601 datetime) OR
+    an all-day ``start_date`` (``YYYY-MM-DD``, #780 FR-006) are present and
+    parseable. Optional ``end`` / ``end_date`` must also be parseable when
+    supplied. The all-day form is pure pass-through — ``start_date`` / ``end_date``
+    flow verbatim to the calendar helper's all-day branch; no time is fabricated.
   * On valid: write the normalized payload to stdout as JSON. ``end`` is
     filled in (start + 1 hour) when absent so downstream consumers always
     have an explicit interval. Optional fields (``location``,
@@ -59,13 +61,21 @@ import os
 import subprocess
 import sys
 import tempfile
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import Optional
 
+# A valid CalendarPayload is `title` + EITHER a timed `start` (ISO 8601 datetime)
+# OR an all-day `start_date` (YYYY-MM-DD). The two timing shapes are mutually
+# exclusive — a payload that supplies both is rejected as `ambiguous_start`
+# (see validate_payload). All-day support (#780 FR-006) is pure pass-through:
+# `start_date`/`end_date` flow verbatim to the calendar helper, which keys its
+# all-day branch on `start_date`. No time is ever fabricated for the all-day form.
 REQUIRED_FIELDS = ("title", "start")
+ALL_DAY_REQUIRED_FIELDS = ("title", "start_date")
 OPTIONAL_FIELDS = ("end", "location", "description")
 DEFAULT_DURATION = timedelta(hours=1)
+ALL_DAY_DURATION = timedelta(days=1)  # single-day, exclusive end (Google convention)
 
 # Contract defaults for the capture -> main -> felix-admin-calendar delegation
 # envelope (`create_calendar_event`). Per
@@ -138,6 +148,36 @@ def _parse_iso(value: object) -> Optional[datetime]:
         return None
 
 
+def _parse_date(value: object) -> Optional[date]:
+    """Parse an all-day ``YYYY-MM-DD`` date string; return None when unparseable.
+
+    Accepts only the calendar-date form Google's all-day events use (``start.date``
+    / ``end.date``). A datetime string (with a ``T`` time component) is rejected so
+    a timed payload never sneaks in through the all-day branch.
+    """
+    if not isinstance(value, str):
+        return None
+    text = value.strip()
+    if not text:
+        return None
+    try:
+        return date.fromisoformat(text)
+    except ValueError:
+        return None
+
+
+def _is_all_day(payload: dict) -> bool:
+    """True when the payload carries the all-day ``start_date`` timing key.
+
+    Classification is by key presence (mirrors
+    ``calendar_helper._create_fields_from_payload``, which sets ``all_day`` from
+    ``payload.get("start_date") is not None``). ``validate_payload`` rejects a
+    payload that mixes ``start`` and ``start_date``, so by the time normalize /
+    build run exactly one timing shape is present.
+    """
+    return "start_date" in payload
+
+
 def _format_iso(dt: datetime) -> str:
     """Render an aware datetime in the same `2026-06-12T15:00:00-04:00` shape
     the rest of the pipeline emits.
@@ -151,10 +191,20 @@ def _format_iso(dt: datetime) -> str:
 def validate_payload(payload: object) -> tuple[bool, list[str]]:
     """Return ``(is_valid, missing)`` for a CalendarPayload-shaped object.
 
+    A valid payload is ``title`` + EITHER a timed ``start`` (ISO 8601 datetime)
+    OR an all-day ``start_date`` (``YYYY-MM-DD``):
+
+    - **Timed** (``start`` present): ``start`` must parse as ISO 8601; a supplied
+      ``end`` must parse too. This path is unchanged from the timed-only original.
+    - **All-day** (``start_date`` present): ``start_date`` must parse as
+      ``YYYY-MM-DD``; a supplied ``end_date`` must parse too. No time is required.
+    - **Ambiguous** (both ``start`` and ``start_date`` present): rejected as
+      ``ambiguous_start`` — the two timing shapes are mutually exclusive.
+    - **Neither**: reported as a missing ``start`` (backward-compatible contract).
+
     ``missing`` enumerates every required field that is absent, blank, or
-    unparseable. The optional ``end`` field is reported under ``missing``
-    only when SUPPLIED-BUT-UNPARSEABLE (an absent ``end`` is not missing —
-    it gets defaulted later by ``normalize_payload``).
+    unparseable. An absent optional end (``end`` / ``end_date``) is not missing —
+    it gets defaulted later by ``normalize_payload``.
     """
     if not isinstance(payload, dict):
         return False, ["payload_not_object"]
@@ -165,23 +215,59 @@ def validate_payload(payload: object) -> tuple[bool, list[str]]:
     if not isinstance(title, str) or not title.strip():
         missing.append("title")
 
-    if _parse_iso(payload.get("start")) is None:
-        missing.append("start")
+    has_timed = "start" in payload
+    has_all_day = "start_date" in payload
 
-    if "end" in payload and _parse_iso(payload.get("end")) is None:
-        missing.append("end")
+    if has_timed and has_all_day:
+        # Mixing timed + all-day timing keys is ambiguous — refuse rather than
+        # silently pick one and risk fabricating or dropping a time.
+        missing.append("ambiguous_start")
+    elif has_all_day:
+        if _parse_date(payload.get("start_date")) is None:
+            missing.append("start_date")
+        if "end_date" in payload and _parse_date(payload.get("end_date")) is None:
+            missing.append("end_date")
+    else:
+        # Timed path (also the "neither supplied" path — reports missing `start`).
+        if _parse_iso(payload.get("start")) is None:
+            missing.append("start")
+        if "end" in payload and _parse_iso(payload.get("end")) is None:
+            missing.append("end")
 
     return (not missing), missing
 
 
 def normalize_payload(payload: dict) -> dict:
-    """Return a copy of ``payload`` with ``end`` defaulted when absent.
+    """Return a copy of ``payload`` with the end defaulted when absent.
 
     Caller must ensure the payload has already passed ``validate_payload``;
-    this function trusts that ``start`` parses and that any supplied ``end``
-    parses. ``location`` / ``description`` pass through untouched.
+    this function trusts that the timing fields parse. ``location`` /
+    ``description`` pass through untouched.
+
+    - **All-day** (``start_date`` present): ``start_date`` / ``end_date`` pass
+      through verbatim. An absent ``end_date`` defaults to ``start_date + 1 day``
+      (single-day, exclusive-end Google convention). No time is fabricated.
+    - **Timed**: ``start`` passes through and ``end`` defaults to ``start + 1h``
+      when absent — byte-for-byte the original behavior.
     """
-    result: dict = {
+    if _is_all_day(payload):
+        result: dict = {
+            "title": payload["title"],
+            "start_date": payload["start_date"],
+        }
+        if "end_date" in payload:
+            result["end_date"] = payload["end_date"]
+        else:
+            # _parse_date is guaranteed to succeed here per the validate gate.
+            start_d = _parse_date(payload["start_date"])
+            assert start_d is not None, "validate_payload must precede normalize_payload"
+            result["end_date"] = (start_d + ALL_DAY_DURATION).isoformat()
+        for field in ("location", "description"):
+            if field in payload:
+                result[field] = payload[field]
+        return result
+
+    result = {
         "title": payload["title"],
         "start": payload["start"],
     }
@@ -207,24 +293,40 @@ def build_delegation_payload(normalized: dict, source_inbox_path: str) -> dict:
     delegation envelope consumed by felix-admin-calendar.
 
     Deterministic field mapping (kept out of the agent prompt per the two-layer
-    doctrine): ``title`` -> ``summary``, ``start`` -> ``start_rfc3339``,
-    ``end`` -> ``end_rfc3339``; constant defaults (`action`, `calendar_id`,
-    `account`) + ``source_inbox_path`` added; optional ``location`` /
-    ``description`` pass through (null when absent); ``start_timezone`` /
-    ``rrule`` / ``attendees`` default to null (the inbox path does not extract
-    them — the RFC3339 offset in ``start_rfc3339`` carries the zone).
-    ``clarification_id`` is null on first dispatch from capture.
+    doctrine): ``title`` -> ``summary``; timing depends on the payload shape:
+
+    - **Timed** (``start`` present): ``start`` -> ``start_rfc3339``,
+      ``end`` -> ``end_rfc3339`` — byte-for-byte the original mapping.
+    - **All-day** (``start_date`` present, #780 FR-006): ``start_date`` /
+      ``end_date`` pass through verbatim into the envelope's timing slot (the
+      keys ``calendar_helper._create_fields_from_payload`` expects for its
+      all-day branch). No RFC3339 / time is fabricated.
+
+    Constant defaults (`action`, `calendar_id`, `account`) + ``source_inbox_path``
+    added; optional ``location`` / ``description`` pass through (null when absent);
+    ``start_timezone`` / ``rrule`` / ``attendees`` default to null (the inbox path
+    does not extract them — the RFC3339 offset in ``start_rfc3339`` carries the
+    zone for the timed form). ``clarification_id`` is null on first dispatch.
 
     The envelope is forwarded verbatim capture -> main -> felix-admin-calendar;
     no agent reshapes it.
     """
+    if _is_all_day(normalized):
+        timing = {
+            "start_date": normalized["start_date"],
+            "end_date": normalized["end_date"],
+        }
+    else:
+        timing = {
+            "start_rfc3339": normalized["start"],
+            "end_rfc3339": normalized["end"],
+        }
     return {
         "action": DELEGATION_ACTION,
         "calendar_id": DEFAULT_CALENDAR_ID,
         "account": DEFAULT_ACCOUNT,
         "summary": normalized["title"],
-        "start_rfc3339": normalized["start"],
-        "end_rfc3339": normalized["end"],
+        **timing,
         "start_timezone": None,
         "location": normalized.get("location"),
         "description": normalized.get("description"),

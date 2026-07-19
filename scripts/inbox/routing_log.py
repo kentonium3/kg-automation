@@ -31,6 +31,12 @@ DEFAULT_ROUTING_LOG_PATH = Path("/data/services/openclaw/state/inbox-routing.jso
 #   - ``vikunja_task`` — tasker-delegated Vikunja task; destination = task id.
 #   - ``github_issue`` — filed GitHub issue; destination = issue number.
 #   - ``empty``       — verified-empty note, no route; destination = "".
+#   - ``calendar_all_day_fallback`` — an all-day event created by the #780
+#     age-out sweep-finalize path (an unanswered start-time clarification that
+#     aged out); destination = event id. Distinct from a normal ``calendar``
+#     create (timed/answered) and from a plain sweep-delete so the operator can
+#     count appointments that landed via this fallback (FR-007/SC-004). Extends —
+#     does not replace — the existing vocabulary (C-007).
 KNOWN_KINDS: frozenset[str] = frozenset(
     {
         "issue_task",
@@ -40,6 +46,7 @@ KNOWN_KINDS: frozenset[str] = frozenset(
         "vikunja_task",
         "github_issue",
         "empty",
+        "calendar_all_day_fallback",
     }
 )
 
@@ -197,6 +204,36 @@ class RoutingLogReader:
             if rec_index == block_index and rec.get("block_hash") == block_hash:
                 return True
         return False
+
+    def has_kind(self, filename: str, kind: str) -> bool:
+        """True if any routing-log entry for ``filename`` carries this ``kind``.
+
+        Used by the #780 sweep-finalize path to make the
+        ``calendar_all_day_fallback`` marker idempotent: before emitting the
+        marker it checks whether one already exists for the note, so the marker
+        is written exactly once even across a mark-fail → reconcile interleaving.
+        """
+        for rec in self._read_records():
+            if rec.get("filename") == filename and rec.get("kind") == kind:
+                return True
+        return False
+
+    def destination_for(self, filename: str, kind: str) -> Optional[str]:
+        """Return the ``destination`` of the last ``(filename, kind)`` row, or None.
+
+        The last matching row wins (append-only log; a re-created event keeps the
+        same id, so order is immaterial in practice). Returns ``None`` when no row
+        matches — distinct from a matched row whose ``destination`` is the empty
+        string. Used by the sweep-finalize reconcile branch to source the created
+        event id from the existing ``calendar`` row when the skipped block result
+        no longer carries the artifact.
+        """
+        found: Optional[str] = None
+        for rec in self._read_records():
+            if rec.get("filename") == filename and rec.get("kind") == kind:
+                dest = rec.get("destination")
+                found = dest if isinstance(dest, str) else ""
+        return found
 
 
 class RoutingLogWriter:

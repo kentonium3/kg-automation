@@ -54,9 +54,12 @@ import re
 import subprocess
 import sys
 import tempfile
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
+from zoneinfo import ZoneInfo
 
+from scripts.calendar_routing import validate_calendar_event
 from scripts.common.vikunja_client import VikunjaClient, VikunjaError
 from scripts.inbox import classify_content
 from scripts.inbox import route_calendar_event as rce
@@ -373,6 +376,141 @@ def _block_excerpt(block: dict) -> str:
 # The orchestrator owns the block-key skip, the routing-log write, and the mark.
 
 
+def _tick_iso_from_frontmatter(fm: dict) -> Optional[str]:
+    """Build an ISO capture-anchor from the note's ``date`` + ``time`` frontmatter.
+
+    The Obsidian capture template stamps ``date`` (``YYYY-MM-DD``) and ``time``
+    (``HH:MM``, Eastern local) at capture. Returns a naive ISO datetime string
+    (``2026-07-14T16:28:00``) — Eastern is implied; ``parse_datetime`` treats a
+    naive anchor as America/New_York. ``time`` defaults to midnight when absent.
+    Returns ``None`` when ``date`` is absent or the composed value is unparseable.
+    """
+    date_s = fm.get("date")
+    if not (isinstance(date_s, str) and date_s.strip()):
+        return None
+    date_s = date_s.strip()
+    time_raw = fm.get("time")
+    time_s = time_raw.strip() if isinstance(time_raw, str) and time_raw.strip() else "00:00"
+    # Normalize HH:MM -> HH:MM:SS so datetime.fromisoformat accepts it on every
+    # supported interpreter (3.10's fromisoformat is stricter than 3.11+).
+    if time_s.count(":") == 1:
+        time_s = f"{time_s}:00"
+    candidate = f"{date_s}T{time_s}"
+    try:
+        datetime.fromisoformat(candidate)
+    except ValueError:
+        return None
+    return candidate
+
+
+def _tick_iso_from_mtime(source_path: str) -> Optional[str]:
+    """Fallback capture-anchor: the file mtime rendered in Eastern time.
+
+    Used only when the note's frontmatter capture datetime is unreadable. Returns
+    ``None`` when the file cannot be stat'd.
+    """
+    try:
+        mtime = Path(source_path).stat().st_mtime
+    except OSError:
+        return None
+    dt = datetime.fromtimestamp(mtime, tz=timezone.utc).astimezone(
+        ZoneInfo(validate_calendar_event.DEFAULT_TIMEZONE)
+    )
+    return dt.isoformat()
+
+
+def _capture_tick_iso(source_path: str) -> Optional[str]:
+    """Return the note's CAPTURE-time anchor as an ISO datetime string (INV-5).
+
+    The all-day fallback's ``start_date`` must resolve against WHEN THE NOTE WAS
+    CAPTURED, not ``now`` — a relative phrase like "Thursday" re-parsed hours or
+    days later would silently drift to the wrong week. The capture reference is the
+    note's frontmatter ``date`` + ``time`` (Eastern), written by the capture
+    template; the file mtime (in Eastern) is a last-resort fallback. Returns
+    ``None`` only when neither source yields a usable anchor.
+    """
+    fm: dict = {}
+    try:
+        fm, _body = classify_content.read_note(Path(source_path))
+    except OSError:
+        fm = {}
+    anchor = _tick_iso_from_frontmatter(fm)
+    if anchor is not None:
+        return anchor
+    return _tick_iso_from_mtime(source_path)
+
+
+def _build_clarification_signal(block: dict, source_path: str) -> Optional[dict]:
+    """Deterministically build the #780 all-day-fallback eligibility signal.
+
+    Runs ``validate_calendar_event.validate`` on the calendar block so the
+    ``{title, start_date, missing_fields}`` signal the aged-out sweep
+    (``clarification_sweep_finalize.is_eligible``) needs is built IN CODE — not
+    copied by the capture agent from a separately-run validator the capture path
+    never actually invoked (the reason the signal was unreachable and the fallback
+    never fired). The date is resolved ONCE, here, against the note's CAPTURE-time
+    anchor (INV-5 no-week-drift), and the value shape matches the validator's
+    ``start_date`` (``YYYY-MM-DD``).
+
+    Fail-closed — returns ``None`` (no signal → the pending record stays
+    ineligible, exactly as before) when a date cannot be resolved (the validator
+    emits no ``start_date``), when there is no usable title / verbatim content /
+    capture anchor, or on ANY error. Wrapped defensively so a clarification-signal
+    failure never crashes the note's finalize.
+    """
+    try:
+        payload = block.get("payload") if isinstance(block.get("payload"), dict) else {}
+        content = block.get("content")
+        if not (isinstance(content, str) and content.strip()):
+            return None
+        title = payload.get("title")
+        if not (isinstance(title, str) and title.strip()):
+            # No structured title — fall back to the verbatim block text as the
+            # event summary (is_eligible only needs a non-empty title).
+            title = content
+        # start_natural is the verbatim block text: parse_datetime regex-searches
+        # free text, so the whole content is the right natural-language surface.
+        extracted = {
+            "title": title,
+            "start_natural": content,
+            "source_inbox_path": source_path,
+            "source_block_index": block.get("block_index"),
+            "tick_iso": _capture_tick_iso(source_path),
+        }
+        if not isinstance(extracted["tick_iso"], str):
+            return None
+        result = validate_calendar_event.validate(extracted)
+        start_date = result.get("start_date")
+        if not isinstance(start_date, str) or not start_date:
+            # Un-dateable / date unresolved: fail-closed, no start_date surfaced —
+            # the record stays ineligible for the all-day fallback (no regression).
+            return None
+        missing_fields = result.get("missing_fields")
+        if not isinstance(missing_fields, list):
+            missing_fields = []
+        return {
+            "title": title,
+            "start_date": start_date,
+            "missing_fields": missing_fields,
+        }
+    except Exception as exc:  # never let a clarification-signal failure crash finalize
+        # Observability (post-fix review): a swallowed error here degrades the
+        # all-day fallback to "off" silently — the exact silent-inert failure
+        # class #780 itself was. Emit a diagnostic (module stderr-JSON convention)
+        # so a genuine signal-builder defect is visible, while still failing closed.
+        sys.stderr.write(
+            json.dumps(
+                {
+                    "warning": "clarification_signal_failed",
+                    "source_path": source_path,
+                    "detail": str(exc),
+                }
+            )
+            + "\n"
+        )
+        return None
+
+
 def _adapt_calendar(
     block: dict, source_path: str, account: str
 ) -> tuple[str, dict, Optional[dict]]:
@@ -382,6 +520,12 @@ def _adapt_calendar(
     ``needs_clarification`` (helper NOT called); a create failure / missing
     event_id is ``error``. The source-path idempotency key (the calendar helper
     dedups on it) is kept — a re-create returns the same event, never a duplicate.
+
+    On ``needs_clarification`` (#780): ALSO run ``validate_calendar_event`` on the
+    block to build the ``{title, start_date, missing_fields}`` all-day-fallback
+    eligibility signal deterministically in code and surface it as
+    ``clarification_signal`` so the capture agent records it into the pending
+    record verbatim — this is the reachable path the aged-out sweep reads.
     """
     payload = block.get("payload")
     result, _ = rce._run_create(
@@ -389,7 +533,11 @@ def _adapt_calendar(
     )
     status = result.get("status")
     if status == "needs_clarification":
-        return "needs_clarification", {"missing": result.get("missing", [])}, None
+        sub: dict = {"missing": result.get("missing", [])}
+        signal = _build_clarification_signal(block, source_path)
+        if signal is not None:
+            sub["clarification_signal"] = signal
+        return "needs_clarification", sub, None
     if status != "created" or not result.get("event_id"):
         return (
             "error",
@@ -879,9 +1027,19 @@ def _run_finalize(source_path: str, plan: dict, account: str) -> tuple[dict, int
             continue
         if status == "needs_clarification":
             had_clarification = True
-            block_results.append(
-                {"block_index": idx, "kind": kind, "missing": sub.get("missing", [])}
-            )
+            clar_entry: dict = {
+                "block_index": idx,
+                "kind": kind,
+                "missing": sub.get("missing", []),
+            }
+            # #780: carry the deterministically-built all-day-fallback eligibility
+            # signal (title/start_date/missing_fields) to the agent-visible result
+            # so it lands in the pending record verbatim (kept alongside `missing`
+            # for backward-compat).
+            signal = sub.get("clarification_signal")
+            if signal is not None:
+                clar_entry["clarification_signal"] = signal
+            block_results.append(clar_entry)
             continue
 
         # Routed: write the block's routing-log entry BEFORE the note-level mark.

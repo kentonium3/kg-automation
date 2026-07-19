@@ -184,6 +184,10 @@ All three runbooks are also listed under *Agent-executable* below.
 - [Risk Register](<./archive/risk-register.md>) *(archived — items transcribed to GitHub issues #114, #115, #116)*
 - [Decision Log](<./archive/decision-log.md>) *(archived — decisions tracked as GitHub issues with RFC labels)*
 
+### docs/design/process-flows/ — Current-state process flows
+
+- [Calendar Clarification Process Flow](<./design/process-flows/calendar-clarification.md>) — *Explanation/Reference* — current-state behavior when a captured note resolves to an appointment with a date but no time: actors + trigger, the full flow & states (ask-first → 8h window → answered-timed / eligible→all-day fallback / ineligible→delete-and-release), the operating rules & invariants (with FR/INV IDs), the implementing seams, and a Mermaid state diagram. Consolidates #739 + FR-007 (routing mission) + #746 + #786 + #780. Its shape is the reusable template #794 will apply to the other flows (inbox routing, someday, journal, habits).
+
 ### docs/design/coherence/ — Coherence doctrine (Foundation 3)
 
 - [Coherence Practice](<./design/coherence/README.md>) — the anti-myopia practice: how the point-cut coherence review, the action-scoped injection map, and the 3-boolean significance gate work (Bedrock Foundation 3, #677; machinery deferred to #643)

@@ -4,7 +4,7 @@
 Three subcommands:
 
   add    Append a PendingClarification to the state file.
-  sweep  Delete entries with `created_at` >= 24h old (relative to now UTC).
+  sweep  Delete entries with `created_at` >= 8h old (relative to now UTC).
          Safe on absent state file (exit 0, no error).
   match  Find the most-recent PendingClarification whose
          `partial_payload.title` substring appears (case-insensitive) in
@@ -28,9 +28,13 @@ Exit codes:
 Atomic write: write-temp + os.replace in the state file's parent directory.
 Mirrors the pattern in `scripts/inbox/inject_parse_error_marker.py`.
 
-24h aging semantic: entries with `now - created_at >= 24h` are removed.
-The boundary is inclusive of 24h exactly. Documented here so callers don't
-need to read tests to confirm the semantic.
+8h aging semantic (#780, C-006): entries with `now - created_at >= 8h` are
+removed. The boundary is inclusive of 8h exactly. This single `SWEEP_MAX_AGE`
+governs the **whole** clarification lifecycle — both the #780 all-day fallback
+trigger (an eligible aged-out record) and the delete-and-release / re-ask aging
+for ineligible records. Reduced from the original 24h (operator decision
+2026-07-18: 24h is too long to sit on an open-ended calendar question).
+Documented here so callers don't need to read tests to confirm the semantic.
 """
 from __future__ import annotations
 
@@ -45,7 +49,7 @@ from pathlib import Path
 
 STATE_PATH_DEFAULT = Path("/data/services/openclaw/state/pending-calendar-clarifications.json")
 
-SWEEP_MAX_AGE = timedelta(hours=24)
+SWEEP_MAX_AGE = timedelta(hours=8)
 
 
 # --------------------------------------------------------------------------
@@ -133,7 +137,7 @@ def subcommand_add(
 
 
 def subcommand_sweep(path: Path, now_utc: datetime) -> int:
-    """Remove entries with `created_at` >= 24h old. Safe on absent file."""
+    """Remove entries with `created_at` >= 8h old. Safe on absent file."""
     if not path.exists():
         print("removed=0")
         return 0
@@ -366,7 +370,7 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     _add_state_file_arg(add_p)
 
-    sweep_p = sub.add_parser("sweep", help="Delete entries older than 24h.")
+    sweep_p = sub.add_parser("sweep", help="Delete entries older than 8h.")
     _add_state_file_arg(sweep_p)
 
     remove_p = sub.add_parser(
