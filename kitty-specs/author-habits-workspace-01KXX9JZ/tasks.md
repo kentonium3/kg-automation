@@ -32,12 +32,12 @@ coherent, invariant-green, and behavior-preserving.
 tick/reply workflow is byte-unchanged (except FR-009 if applicable).
 
 **Included subtasks**:
-- [ ] T001 SOUL.md → voice + one-line privacy stance (WP01)
-- [ ] T002 USER.md → filtered person-view; remove Date handling; correct reporting claim (WP01)
-- [ ] T003 TOOLS.md → de-inline IDs; receive date-handling; keep completion contract (WP01)
-- [ ] T004 AGENTS.md → narrow truthfulness fix only if warranted (WP01)
-- [ ] T005 service-inventory.md → weekly-report rows match the JSON (WP01)
-- [ ] T006 Validate + conservation + prompt-behavior static diff (WP01)
+- [x] T001 SOUL.md → voice + one-line privacy stance (WP01)
+- [x] T002 USER.md → filtered person-view; remove Date handling; correct reporting claim (WP01)
+- [x] T003 TOOLS.md → de-inline IDs; receive date-handling; keep completion contract (WP01)
+- [x] T004 AGENTS.md → narrow truthfulness fix only if warranted (WP01)
+- [x] T005 service-inventory.md → weekly-report rows match the JSON (WP01)
+- [x] T006 Validate + conservation + prompt-behavior static diff (WP01)
 
 **Implementation sketch**: apply the `data-model.md` move-table file by file; run the validator
 and the row-by-row conservation checklist from `quickstart.md`; confirm AGENTS workflow byte

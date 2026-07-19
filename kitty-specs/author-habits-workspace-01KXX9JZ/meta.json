@@ -10,5 +10,7 @@
   "purpose_tldr": "Author felix-admin-habits SOUL/USER/TOOLS to the #587 standard as a behavior-preserving concern-separation refactor.",
   "slug": "author-habits-workspace-01KXX9JZ",
   "target_branch": "feat/author-habits-workspace",
-  "topology": "single_branch"
+  "topology": "single_branch",
+  "vcs": "git",
+  "vcs_locked_at": "2026-07-19T14:12:27.322370+00:00"
 }
