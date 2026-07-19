@@ -26,12 +26,12 @@ Single work package — a behavior-preserving authoring refactor of one agent's 
 
 **Included subtasks**:
 
-- [ ] T001 Author SOUL.md → voice-only + one-line privacy stance (WP01)
-- [ ] T002 Author USER.md → filtered person-view; remove privacy dup; trim role re-statement + comms voice-line (WP01)
-- [ ] T003 Author TOOLS.md → correct action-log format (preserve Directive-3 required fields); remove behavioral confirmation rule; keep privacy path + token rule (WP01)
-- [ ] T004 Verify AGENTS.md + IDENTITY.md byte-unchanged; grep-confirm AGENTS owns role + confirmation rule + enforceable privacy (WP01)
-- [ ] T005 Run validate_workspace — assert felix-admin-tasker `ok:true` (WP01)
-- [ ] T006 Run the content-conservation checklist from data-model.md (incl. invariant #9 action-log required-fields) (WP01)
+- [x] T001 Author SOUL.md → voice-only + one-line privacy stance (WP01)
+- [x] T002 Author USER.md → filtered person-view; remove privacy dup; trim role re-statement + comms voice-line (WP01)
+- [x] T003 Author TOOLS.md → correct action-log format (preserve Directive-3 required fields); remove behavioral confirmation rule; keep privacy path + token rule (WP01)
+- [x] T004 Verify AGENTS.md + IDENTITY.md byte-unchanged; grep-confirm AGENTS owns role + confirmation rule + enforceable privacy (WP01)
+- [x] T005 Run validate_workspace — assert felix-admin-tasker `ok:true` (WP01)
+- [x] T006 Run the content-conservation checklist from data-model.md (incl. invariant #9 action-log required-fields) (WP01)
 
 **Independent test**: `python3 -m scripts.openclaw.agents.validate_workspace --json` → tasker `ok:true`; `git diff --name-only` lists only the three files + mission artifacts; AGENTS.md/IDENTITY.md byte-identical; conservation greps pass.
 

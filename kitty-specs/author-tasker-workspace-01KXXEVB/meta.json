@@ -10,5 +10,7 @@
   "purpose_tldr": "Re-author the tasker agent's SOUL/USER/TOOLS to the #587 ownership standard — behavior-preserving.",
   "slug": "author-tasker-workspace-01KXXEVB",
   "target_branch": "feat/author-tasker-workspace",
-  "topology": "single_branch"
+  "topology": "single_branch",
+  "vcs": "git",
+  "vcs_locked_at": "2026-07-19T15:40:27.933967+00:00"
 }
