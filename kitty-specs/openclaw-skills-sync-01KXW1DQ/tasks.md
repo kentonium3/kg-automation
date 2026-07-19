@@ -56,9 +56,9 @@ deploy) both depend only on WP01 and can run in parallel; WP04 (doc-sync) docume
 - **Dependencies**: WP01 (references the freshness signal + shares the skill-path model; not an import).
 - **Requirements**: FR-009, FR-010, FR-014, NFR-003, NFR-006.
 - **Subtasks**:
-  - [ ] T007 `skills_drift_check.py` comparator (drift + orphan + backup-ignore + exit + `--json`) (WP02)
-  - [ ] T008 Register drift + freshness canary probes (WP02)
-  - [ ] T009 Unit + integration tests (WP02)
+  - [x] T007 `skills_drift_check.py` comparator (drift + orphan + backup-ignore + exit + `--json`) (WP02)
+  - [x] T008 Register drift + freshness canary probes (WP02)
+  - [x] T009 Unit + integration tests (WP02)
 - **Est. prompt size**: ~300 lines.
 
 ## WP03 — Systemd units + deploy manifest + entrypoint (hard enable gate)

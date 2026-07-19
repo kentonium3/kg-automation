@@ -18,8 +18,8 @@ subtasks:
 - T008
 - T009
 agent: "claude"
-shell_pid: "86809"
-shell_pid_created_at: "1784429345.435362"
+shell_pid: "88535"
+shell_pid_created_at: "1784429630.771975"
 history:
 - '2026-07-19: authored by /spec-kitty.tasks'
 agent_profile: python-pedro
@@ -123,3 +123,5 @@ from `lanes.json`. WP02 depends on WP01 but touches disjoint files (safe to lane
 ## Activity Log
 
 - 2026-07-19T02:49:19Z – claude – shell_pid=86809 – Assigned agent via action command
+- 2026-07-19T02:53:42Z – claude – shell_pid=86809 – Independent drift-check comparator + 16 tests; canary wiring via service-inventory health_check in WP04
+- 2026-07-19T02:54:00Z – claude – shell_pid=88535 – Started review via action command
