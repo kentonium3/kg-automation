@@ -18,19 +18,47 @@ python3 -m scripts.openclaw.agents.validate_workspace --json
 ```
 Assert the `felix-admin-habits` object has `ok: true` (habits-scoped; do NOT rely on whole-fleet exit code — calendar/#635 fails Invariant B).
 
-## 3. Content conservation (NFR-003)
+## 3. Content conservation — row-by-row (NFR-003, Finding 3)
 
-Verify the `data-model.md` invariants by grep:
-- `04-Growth/_private/` present in AGENTS.md + TOOLS.md, absent in SOUL.md
-- weekly-out-of-scope statement present in AGENTS.md, absent in SOUL.md
-- date-handling present in TOOLS.md, absent in USER.md
-- no `id=13` / `14-20` in TOOLS.md
-- no "report on patterns" reporting claim in USER.md
-- `## Voice` present in SOUL.md; no `## Purpose` in SOUL.md
+Grep alone is too coarse (it would pass even if a substantive sub-block were dropped). Walk the `data-model.md` move-table row by row and confirm each:
 
-## 4. Behavior preservation (NFR-004)
+**SOUL.md**
+- [ ] `## Voice — write as Kent` retained: Principles list, "Words and phrases to avoid", "Words and phrases that are Kent" all present
+- [ ] "Structured and chunked" style rule retained; only the "Kent has ADD…" justification trimmed
+- [ ] `## Purpose` gone; no role text remains
+- [ ] `## Weekly report — out of scope` block gone (single copy now only in AGENTS)
+- [ ] `## Privacy boundary` reduced to a one-line stance; enforceable rule + path + mission-026/#152 changelog gone from SOUL
 
-Before editing, capture the morning-list helper output for a fixed date; after editing (prompt-only changes should not affect it), confirm identical. (Prompt files do not change helper output — this is a guard, not an expected diff.) Confirm the de-inline assumption from research.md Decision 3: the helper resolves the Habits project by name, not from a TOOLS literal.
+**USER.md**
+- [ ] Name / call / timezone / Notes (incl. "ADD (managed)") retained
+- [ ] `## Context` retained but the "report on patterns over time" claim removed; concise-WhatsApp guidance retained
+- [ ] `## Date handling` gone from USER
+
+**TOOLS.md**
+- [ ] `## Vikunja API` (skill pointer) retained; `id=13` and `14-20` literals gone; `vikunja_refs.json` named as canonical id source
+- [ ] `## Habit completion storage` (one-task-per-habit, comment format, idempotent) retained verbatim in substance
+- [ ] `## Privacy` (enforceable path) retained byte-unchanged
+- [ ] date-handling section received from USER
+
+**AGENTS.md**
+- [ ] Unchanged except FR-009 (only if it named SOUL as a privacy-enforcement home)
+
+**Cross-file invariants**
+- [ ] `04-Growth/_private/` present in AGENTS.md + TOOLS.md, absent in SOUL.md
+- [ ] weekly-out-of-scope present in AGENTS.md, absent in SOUL.md
+- [ ] date-handling present in TOOLS.md, absent in USER.md
+
+## 4. Behavior preservation — two guards (NFR-004, Finding 2)
+
+**(a) Scope-creep guard (NOT a prompt-behavior gate):** capture morning-list helper output for a fixed date before and after; confirm identical. A prompt-only edit *cannot* change deterministic helper output, so this only proves no helper/config file was accidentally touched.
+
+**(b) Prompt-behavior guard (the real check):** static-diff the AGENTS.md tick/reply workflow — confirm the workflow commands, the relay-verbatim rule, the Output Discipline block, the completion-marking flow, and the habit-management rules are byte-identical (AGENTS is not edited except FR-009). Then the **live smoke** (step 8) is the actual prompt-mediated behavior verification.
+
+Note (research.md Decision 3, corrected): the deterministic helpers resolve the Habits project via `scripts/common/vikunja_refs.json` and the task set via sync-cache + `phase3-schedule.yaml` + morning artifact — they do NOT read TOOLS — so the de-inline is safe.
+
+## 4b. Repo-wide weekly-report doc coherence (FR-012, Finding 4)
+
+Correct the weekly-report rows of `docs/design/architecture/service-inventory.md` (the rows describing a weekly OpenClaw cron via `felix-admin-habits`) to match `service-inventory.json`, which correctly attributes weekly reporting to the `felix-habits-weekly` timer (#723). Bounded to the weekly-report lines. Re-run `validate_architecture_data` (pre-commit runs it) to confirm JSON↔MD coherence.
 
 ## 5. Merge to main (operator)
 
@@ -38,18 +66,17 @@ Merge `feat/author-habits-workspace` → `main`. Record the rebaseline decision 
 
 ## 6. Confirm agent-prompt-sync deploy (operator)
 
-agent-prompt-sync (`deploy_agent_prompts.py`) pulls main every ~5 min on office2 and copies the five workspace files. Confirm the sync tick ran post-merge:
+agent-prompt-sync (`deploy_agent_prompts.py`) pulls main every ~5 min on office2 and copies the five workspace files. Confirm the sync tick ran post-merge (Finding 5 — correct audit path):
 ```bash
-ssh office2-claude 'tail -5 /data/services/openclaw/logs/agent-prompt-sync.jsonl'   # path confirmed at deploy
+ssh office2-claude 'tail -5 /data/services/openclaw/deploy/agent-prompt-sync.jsonl'
 ```
 
 ## 7. Verify deploy directory + md5 parity (FR-010, NFR-005)
 
-**First confirm the habits deploy directory** (agent slug ≠ deploy dir):
+The habits deploy directory is **`/data/services/openclaw/habits-agent/`** (per `service-inventory.json`; agent slug ≠ deploy dir — Finding 5). Confirm, then compare md5 of each of the 5 files repo↔office2 at the merged commit:
 ```bash
-ssh office2-claude 'find /data/services/openclaw -maxdepth 2 -name SOUL.md | grep -i habit'
+ssh office2-claude 'ls /data/services/openclaw/habits-agent/'
 ```
-Then compare md5 of each of the 5 files repo↔office2 at the merged commit.
 
 ## 8. Live smoke (Success Criterion 5)
 

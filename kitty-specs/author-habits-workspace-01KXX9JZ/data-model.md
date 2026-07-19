@@ -32,8 +32,8 @@ This mission has no runtime data schema. The "data model" is the **content-block
 | Block (current) | Action | Destination / Result |
 |---|---|---|
 | `## Vikunja API` — "use the vikunja_api skill", "run `openclaw skills info vikunja_api`" | **keep** | Environment/setup — TOOLS's concern. |
-| — "**Habits project**: resolve by name 'Habits' at runtime **(id=13)**" | **de-inline** | Keep "resolve by name 'Habits' at runtime"; **remove the `(id=13)`** parenthetical. (FR-008) |
-| — "**Habit task IDs**: 14-20 (7 habits, all personal label)" | **delete** | Volatile inlined IDs (staleness trap). Replaced by name-based resolution guidance. (FR-008) |
+| — "**Habits project**: resolve by name 'Habits' at runtime **(id=13)**" | **de-inline** | **Remove the `(id=13)`** parenthetical; point to `scripts/common/vikunja_refs.json` as the canonical project-id source. Name-based `vikunja_api` resolution is the agent's ad-hoc path only. (FR-008) |
+| — "**Habit task IDs**: 14-20 (7 habits, all personal label)" | **delete** | Volatile inlined IDs (staleness trap), consumed by neither the helpers (which use sync-cache + `phase3-schedule.yaml` + morning artifact) nor the agent as authority. Deleting is behavior-preserving. (FR-008) |
 | `## Habit completion storage` (one task per habit; comment format; idempotent search-before-create) | **keep** | The completion-comment storage contract — retained. (FR-008) |
 | `## Privacy` — "NEVER access: `/home/kgale/second-brain/notes/04-Growth/_private/` …" | **keep (byte-unchanged)** | Enforceable privacy token stays in TOOLS (Invariant A home). Path already canonical (C-005). |
 | *(new)* date-handling section | **receive from USER** | The America/New_York / ET-offset / no-Z content lands here. (FR-007) |
@@ -54,4 +54,5 @@ This mission has no runtime data schema. The "data model" is the **content-block
 5. No `id=13` / `14-20` literal in **TOOLS.md**. (FR-008)
 6. No "report on patterns over time" (or equivalent reporting claim) in **USER.md**. (FR-006)
 7. `## Voice` section still present in **SOUL.md**; no `## Purpose` / role text in **SOUL.md**. (FR-001, FR-002)
-8. Before/after morning-list helper output identical for the same date/input. (NFR-004)
+8. Behavior preservation is TWO checks (Finding 2): (a) before/after morning-list helper output identical = a *no-helper/config-change* scope guard (NOT a prompt-behavior gate); (b) static-diff that the AGENTS tick/reply commands, relay-verbatim rule, Output Discipline, completion flow, and habit-management rules are unchanged, + the live smoke as the real prompt-behavior check. (NFR-004)
+9. `service-inventory.md` weekly-report rows match `service-inventory.json` (no residual "weekly cron via felix-admin-habits"). (FR-012)
