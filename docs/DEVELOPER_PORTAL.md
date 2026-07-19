@@ -65,9 +65,13 @@ few hops as possible.
    [Virtual Runbook Filter](<#virtual-runbook-filter>) below
 3. The relevant [architecture](<./design/architecture/README.md>) doc for
    context on the service or data flow being changed
-4. [Change Control Protocol](<./design/architecture/change-control.md>) — when
+4. The relevant [process-flow doc](<./design/process-flows/README.md>) when the
+   fix touches a user-facing flow (inbox routing, calendar clarification, someday,
+   journal, habits) — current-state behavior + the rules/invariants the code
+   enforces, so a fix doesn't contradict a settled rule
+5. [Change Control Protocol](<./design/architecture/change-control.md>) — when
    architecture JSON/markdown must update as part of the fix
-5. [Repository Governance](<./runbooks/repo-governance.md>) — git workflow,
+6. [Repository Governance](<./runbooks/repo-governance.md>) — git workflow,
    commit conventions, and the `[doc-audit]` marker
 
 ---

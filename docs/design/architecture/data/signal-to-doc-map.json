@@ -1,7 +1,7 @@
 {
   "schema_version": "1.1",
-  "last_updated": "2026-07-18",
-  "updated_by": "pull-based-deploy-pipeline-01KTYQQS (#136 deploy-manifest-added, office2-service-deployment, deploy-library-modified) + agent-prompt-deploy-pipeline-01KTMDDD (#567) + inbox-calendar-and-aspiration-routing-01KTHHXS (verified service-added-or-modified and data-flow-added-or-modified targets) + #510-sweeper-tick + #343-wp01 + #492-mission-end-classes + clarification-allday-fallback-01KXVBPK (#780 — calendar-flow-changed + inbox-routing-changed classes route to the new calendar-clarification process-flow doc)",
+  "last_updated": "2026-07-19",
+  "updated_by": "pull-based-deploy-pipeline-01KTYQQS (#136 deploy-manifest-added, office2-service-deployment, deploy-library-modified) + agent-prompt-deploy-pipeline-01KTMDDD (#567) + inbox-calendar-and-aspiration-routing-01KTHHXS (verified service-added-or-modified and data-flow-added-or-modified targets) + #510-sweeper-tick + #343-wp01 + #492-mission-end-classes + clarification-allday-fallback-01KXVBPK (#780 — calendar-flow-changed + inbox-routing-changed classes route to the new calendar-clarification process-flow doc) + process-flow-docs-home (#794 — inbox-routing.md added to inbox-routing-changed; someday/journal/habits-flow-changed classes added for the back-filled process-flow docs)",
   "description": "Maps deterministic change signals to the documentation surfaces that likely need review when the signal fires. Two consumer classes: (1) drift-event entries (match.source='audit.sh') consumed by scripts/doc_audit/helpers/handle_drift_events.py to auto-file [doc-audit] issues; (2) mission-end entries (match.source='mission-architecture-impact') consumed by /spec-kitty.specify and /spec-kitty.plan agents per CLAUDE.md to populate a mission's Architecture Impact section with the full set of likely-affected docs. v1.1 adds match.change_class and consumer_hint fields; existing v1.0 entries unchanged.",
   "mappings": [
     {
@@ -375,13 +375,59 @@
         "change_class": "inbox-routing-changed"
       },
       "doc_targets": [
+        "docs/design/process-flows/inbox-routing.md",
         "docs/design/process-flows/calendar-clarification.md",
         "docs/INDEX.md"
       ],
-      "rationale": "A mission changes the felix-admin-capture inbox routing/finalize path (prescan → classify → route_and_finalize → mark processed, or the clarification/sweep steps in the capture AGENTS.md). Where the change touches the calendar-clarification flow, the current-state process-flow doc docs/design/process-flows/calendar-clarification.md MUST be updated. This is the first process-flow doc registered under docs/design/process-flows/; #794 will generalize the shape and add the sibling flow docs (someday, journal, habits) — add their change classes here as they land.",
+      "rationale": "A mission changes the felix-admin-capture inbox routing/finalize path (prescan → classify → route_and_finalize → mark processed, or the clarification/sweep steps in the capture AGENTS.md). The umbrella current-state explanation lives in docs/design/process-flows/inbox-routing.md and MUST be updated. Where the change touches the calendar-clarification sub-flow, also update docs/design/process-flows/calendar-clarification.md. Where it touches the someday or journal routes, update someday-flow-changed / journal-flow-changed too. Seams: scripts/inbox/prescan.py, scripts/inbox/classify_content.py, scripts/inbox/route_and_finalize.py, scripts/inbox/mark_processed.py, scripts/inbox/routing_log.py, scripts/openclaw/agents/felix-admin-capture/AGENTS.md.",
       "issue_labels": ["P3-candidate", "spec: brief", "area/felix-core"],
       "consumer_hint": "spec-author",
       "introduced_by": "#780"
+    },
+    {
+      "id": "mission-someday-flow-changed",
+      "match": {
+        "source": "mission-architecture-impact",
+        "change_class": "someday-flow-changed"
+      },
+      "doc_targets": [
+        "docs/design/process-flows/someday.md",
+        "docs/INDEX.md"
+      ],
+      "rationale": "A mission changes the someday routing flow — the route_someday creator (q:schedule + no-due-date task landed in Inbox), the reference-seam destination resolution, the fail-soft q:schedule label attach (felix-bot #715 403 boundary), the anti-silent-loss guarantee (#743), or the CREATE-endpoint-only rule (#524). The current-state explanation lives in docs/design/process-flows/someday.md and MUST be updated. Seams: scripts/inbox/route_someday.py, scripts/inbox/route_and_finalize.py (_adapt_someday/_adapt_vikunja_task), scripts/common/vikunja_refs.py, scripts/common/vikunja_refs.json.",
+      "issue_labels": ["P3-candidate", "spec: brief", "area/task-intel"],
+      "consumer_hint": "spec-author",
+      "introduced_by": "#794"
+    },
+    {
+      "id": "mission-journal-flow-changed",
+      "match": {
+        "source": "mission-architecture-impact",
+        "change_class": "journal-flow-changed"
+      },
+      "doc_targets": [
+        "docs/design/process-flows/journal.md",
+        "docs/INDEX.md"
+      ],
+      "rationale": "A mission changes the journal routing flow — the route_journal_entry helper (dated atomic append into 08-Journal/, canonical frontmatter, registry path resolution), the _adapt_journal per-block sentinel + verify-before-append idempotency, or the JOURNAL_KEYWORDS classification. The current-state explanation lives in docs/design/process-flows/journal.md and MUST be updated. Seams: scripts/inbox/route_journal_entry.py, scripts/inbox/route_and_finalize.py (_adapt_journal), scripts/inbox/classify_content.py, scripts/vault/resolver.py + scripts/vault/paths.json (key 'journal').",
+      "issue_labels": ["P3-candidate", "spec: brief", "area/felix-core"],
+      "consumer_hint": "spec-author",
+      "introduced_by": "#794"
+    },
+    {
+      "id": "mission-habits-flow-changed",
+      "match": {
+        "source": "mission-architecture-impact",
+        "change_class": "habits-flow-changed"
+      },
+      "doc_targets": [
+        "docs/design/process-flows/habits.md",
+        "docs/INDEX.md"
+      ],
+      "rationale": "A mission changes the habits completion lifecycle — morning check-in, record_completion (done=true POST echoing repeat_after/repeat_mode #524; three-write atomic; idempotent), the 48h auto-skip sweeper, the EOD-ET due_date write (#112) or its ET helper migration (#761), the schedule-load no-rearm ratchet (#608), reconcile, or the weekly-report ownership (#409). The current-state explanation lives in docs/design/process-flows/habits.md and MUST be updated. Seams: scripts/habits/record_completion.py, scripts/habits/sweeper.py, scripts/habits/set_due_dates.py, scripts/habits/schedule_loader.py, scripts/habits/reconcile_completions.py, scripts/habits/query_active_habits_weekly.py, scripts/habits/weekly_report_driver.py, scripts/openclaw/agents/felix-admin-habits/{AGENTS,SOUL,TOOLS}.md.",
+      "issue_labels": ["P3-candidate", "spec: brief", "area/felix-core"],
+      "consumer_hint": "spec-author",
+      "introduced_by": "#794"
     }
   ]
 }
