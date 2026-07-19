@@ -195,5 +195,6 @@ local validation and CI.
 
 ### Unclassified
 - [Agent prompt sync — operator runbook](<./runbooks/agent-prompt-sync-ops.md>) — missing `audience:` frontmatter
+- [Spec-Kitty Workflow-Fault Detour Protocol](<./runbooks/spec-kitty-workflow-fault-protocol.md>) — missing `audience:` frontmatter
 
 <!-- end:runbook-filter -->

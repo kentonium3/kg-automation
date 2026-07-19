@@ -41,6 +41,13 @@ protocols are linked, not inlined.
   Silently working around a resolvable anomaly is prohibited: it destroys the evidence that is
   the only way spec-kitty gets better. This is NOT narrowed by auto-drive — auto-drive removes
   per-step approval, never the duty to surface unexpected conditions.
+- **Exception — the named spec-kitty mission-running repo set** (`kg-automation`, `spec-kitty`,
+  `spec-kitty-analyzer`, `spec-kitty-saas`, `spec-kitty-telescope`, `vikunja-harness`): the
+  **Spec-Kitty workflow-fault detour protocol** (below) supersedes the *stop-and-ask-how-to-proceed*
+  step. There you still fully **capture** the evidence (diagnose + track the issue) and still get
+  Kent's sign-off on any **upstream** copy, but you run the detour **autonomously** and only halt
+  when there is **no pre-known workaround**. This narrows *where you must halt* — never the duty to
+  preserve evidence, and never the ban on silent (improvised) workarounds.
 - **Happy-path decisions *within* the prescribed path are fine** and do NOT trigger a stop:
   authoring spec/plan/tasks/matrix artifacts through the workflow, and committing
   workflow-generated status files from the primary checkout, are expected parts of the flow.
@@ -53,3 +60,28 @@ protocols are linked, not inlined.
   `docs/diagnostics/spec-kitty-bug-report-external-template.md`.
 - Internal kg-automation issues use the `.github/ISSUE_TEMPLATE/` forms (bug / feature / infra /
   docs-debt / research / rfc).
+
+## Spec-kitty workflow-fault detour protocol (named repo set)
+- **Applies in:** `kg-automation`, `spec-kitty`, `spec-kitty-analyzer`, `spec-kitty-saas`,
+  `spec-kitty-telescope`, `vikunja-harness`. On ANY unexpected spec-kitty (or sibling-tooling)
+  workflow fault in these repos, run the protocol
+  `~/repos/kg-automation/docs/runbooks/spec-kitty-workflow-fault-protocol.md` **autonomously** —
+  do NOT stop to ask how to proceed when a workaround is pre-known. Evidence-preservation is
+  unchanged (met by diagnose+track, not by halting).
+  1. **Stop the failing action and fully diagnose the root cause** while evidence is fresh (exact
+     command+error, state, code inspection); note the spec-kitty build.
+  2. **Local issue** (kg-automation): exists → comment noting recurrence on the current build (or
+     persistence on a newer build); none → create per `spec-kitty-bug-reporting.md`.
+  3. **Upstream:** search (ours or others'). Exists → comment confirming recurrence-same-build /
+     persistence-newer-build; if the issue is CLOSED, `@mention` **that program/repo's current
+     maintainer** as a safety check — **resolve per-repo, do NOT hardcode a name** (ownership
+     varies by program: spec-kitty-CLI, spec-kitty-SaaS, analyzer+telescope [Kent], Vikunja are
+     separately owned). **[STOP: show Kent the exact copy before posting.]** None → prep the
+     upstream embed in the local issue per the runbook. **[STOP: Kent reviews copy before filing.]**
+  4. **Known workaround** (documented in the runbook's registry / a tracked issue / upstream /
+     memory) → apply it and continue. An **improvised** workaround is NOT "known" — improvising is
+     a prohibited silent workaround → treat as step 5.
+  5. **No known workaround → [STOP: present continue-with-a-manual-step vs abandon-mission.]**
+- The **only** stops in this set are the two upstream-copy reviews (3) and the no-workaround
+  decision (5). Outside the set, the general stop-and-capture rule (stop + surface) applies. Full
+  protocol + the Known-Workarounds Registry live in the runbook above.
