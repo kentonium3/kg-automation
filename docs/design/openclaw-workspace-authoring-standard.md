@@ -88,6 +88,16 @@ mechanically-checked home. `SOUL.md` may carry only a one-line behavioral **stan
 ("I work only where I'm invited"); the stance never substitutes for the enforceable
 rule. A workspace with the stance but no enforceable rule fails validation.
 
+**Path-representation convention (#732 / #801).** In agent prompts the enforceable
+privacy path is written as the **physical absolute path** `/home/kgale/second-brain/notes/04-Growth/_private/`
+— because agents run as the `claude` user on office2, where `~` resolves to
+`/home/claude` (no vault; the clone was retired by #659) and the vault is reachable
+only under `/home/kgale` via the `secondbrain` group. This is enforced by
+`validate_workspace` **Invariant D**. **Docs and governance files deliberately use
+the `~/second-brain/...` form instead** — that is correct for the human/Mac authoring
+context, not a drift. The two forms are context-correct by design; do not "unify"
+them (a `~/` path in a prompt is the #732 nonexistent-path bug the guard now rejects).
+
 ### Invariant B — Output Discipline
 
 Any agent that emits **user-facing WhatsApp** must carry the Output Discipline
