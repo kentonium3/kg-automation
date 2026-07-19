@@ -103,6 +103,12 @@ A spec-kitty upgrade is two layers:
 - **Global CLI** — one pipx binary serves every repo.
 - **Per-repo project state** — `.kittify/metadata.yaml` + harness files are versioned independently per repo. The CLI bump does NOT auto-bump these; `spec-kitty upgrade --agent-check --json` reports `up_to_date` even when projects have drifted.
 
+> **Surface drift across the whole fleet first.** Run
+> `python3 -m scripts.spec_kitty.check_version_drift` (from the kg-automation
+> checkout) to see which repos have fallen behind the installed CLI before you
+> start. The fleet-sweep checklist that wraps this upgrade is
+> [`spec-kitty-per-repo-upgrade.md`](spec-kitty-per-repo-upgrade.md) (#599).
+
 ### 3.1 Pre-flight: no missions in flight
 
 Spec-kitty migrations applied mid-mission can permanently break that mission's accept/merge gates (see `feedback_no_mid_feature_upgrades.md`).
