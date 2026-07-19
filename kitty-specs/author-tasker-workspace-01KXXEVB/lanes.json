@@ -1,0 +1,32 @@
+{
+  "version": 1,
+  "mission_slug": "author-tasker-workspace-01KXXEVB",
+  "mission_id": "01KXXEVBSGWCYBF9MDE3NQPNS8",
+  "mission_branch": "kitty/mission-author-tasker-workspace-01KXXEVB",
+  "target_branch": "feat/author-tasker-workspace",
+  "lanes": [
+    {
+      "lane_id": "lane-a",
+      "wp_ids": [
+        "WP01"
+      ],
+      "write_scope": [
+        "scripts/openclaw/agents/felix-admin-tasker/SOUL.md",
+        "scripts/openclaw/agents/felix-admin-tasker/TOOLS.md",
+        "scripts/openclaw/agents/felix-admin-tasker/USER.md"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "artifact-rendering",
+        "legacy-cleanup",
+        "tracker-integration",
+        "workspace"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    }
+  ],
+  "computed_at": "2026-07-19T15:38:15.918321+00:00",
+  "computed_from": "dependency_graph+ownership",
+  "planning_artifact_wps": []
+}
