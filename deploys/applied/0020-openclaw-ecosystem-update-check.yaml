@@ -26,3 +26,7 @@ notes: "Installs the felix-openclaw-updates weekly ecosystem update-availability
   \ 3 (installs user timer units + runs the real unit once via the vetted systemctl\
   \ --user path; no Tier 0/1/2 action)."
 applied_at: '2026-07-19T12:31:13Z'
+rebaseline:
+  outcome: completed
+  at_utc: '2026-07-19T12:31:24Z'
+  baseline_count: 14
