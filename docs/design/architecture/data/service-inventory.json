@@ -2493,6 +2493,64 @@
       ]
     },
     {
+      "name": "felix-openclaw-updates",
+      "type": "systemd_user_timer",
+      "host": "office2",
+      "agent": "n/a (agent-independent deterministic runner; no openclaw agent identity)",
+      "user": "claude",
+      "systemd_unit": "felix-openclaw-updates.timer (user unit) + felix-openclaw-updates.service (user oneshot) + felix-openclaw-updates-onfailure.service (OnFailure shim)",
+      "systemd_user": "claude",
+      "schedule": "weekly (Monday 07:00 America/New_York)",
+      "deployed_by": "628",
+      "updated_by": "628",
+      "status": "active",
+      "purpose": "Weekly OpenClaw ecosystem update-availability check (kentonium3/kg-automation#628). Each tick checks the openclaw core global package (`npm outdated -g openclaw`) plus every installed @openclaw/* channel plugin (~/.openclaw/npm/projects/ enumeration vs the npm registry). Output discipline: SILENT no-op when the ecosystem is current; a single WARN digest via the #701 felix-alert bus only when >=1 update is available or a component check failed. Detection-only — the upgrade itself is an attended Tier-0 change per docs/runbooks/openclaw-ecosystem-upgrade.md. Prevents the #588/#617 class of silent core-vs-plugin drift by surfacing available upgrades before they bite.",
+      "runbook": "docs/runbooks/openclaw-ecosystem-upgrade.md",
+      "risk_tier": 3,
+      "dependencies": [
+        {
+          "target": "alert-bus",
+          "type": "requires",
+          "description": "The update digest is rendered and emitted via the shared #701 felix-alert bus (scripts/common/alert_bus/) — no parallel alerting mechanism."
+        },
+        {
+          "target": "npm-registry",
+          "type": "requires",
+          "description": "Reads current-vs-latest versions from the public npm registry (`npm outdated`, `npm view`). A per-component registry failure fails that component open (recorded + digested), not the whole pass."
+        }
+      ],
+      "health_check": {
+        "method": "tick-signal-file",
+        "expected": "Tick-signal written each completed pass to last-tick.json (status: success + completed_at_utc ISO-8601 UTC); healthy iff status is success and completed_at_utc is within max_age_seconds (777600 s = 7-day cadence + 2-day slack for Persistent replay / reboot). A stale or missing signal beyond that window means the weekly timer stopped ticking (the runner went dark); a runner-level fault (npm absent, projects dir unreadable, tick unwritable) raises before the tick is written and is caught immediately by the OnFailure shim.",
+        "timeout_seconds": 5,
+        "state_path": "/data/services/felix-openclaw-updates/state/last-tick.json",
+        "max_age_seconds": 777600,
+        "note": "Self-observability signal for a SILENT-on-success weekly check — without it a check that never ran is indistinguishable from a check that ran and found nothing. Mirrors the felix-canary / felix-trust-scan last-tick.json health-signal pattern; the felix-canary freshness probe reads completed_at_utc as the anchor. Operational detail in docs/runbooks/openclaw-ecosystem-upgrade.md."
+      },
+      "config_files": [
+        {
+          "path": "~/.config/systemd/user/felix-openclaw-updates.timer",
+          "format": "systemd-unit",
+          "source_in_repo": "scripts/office2/felix-openclaw-updates.timer"
+        },
+        {
+          "path": "~/.config/systemd/user/felix-openclaw-updates.service",
+          "format": "systemd-unit",
+          "source_in_repo": "scripts/office2/felix-openclaw-updates.service"
+        },
+        {
+          "path": "~/.config/systemd/user/felix-openclaw-updates-onfailure.service",
+          "format": "systemd-unit",
+          "source_in_repo": "scripts/office2/felix-openclaw-updates-onfailure.service"
+        },
+        {
+          "path": "/home/claude/kg-automation/scripts/openclaw/check_ecosystem_updates.py",
+          "format": "python-module",
+          "source_in_repo": "scripts/openclaw/check_ecosystem_updates.py"
+        }
+      ]
+    },
+    {
       "name": "felix-habits-weekly",
       "type": "systemd_user_timer",
       "host": "office2",

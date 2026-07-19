@@ -65,6 +65,28 @@ def test_build_payload_empty_title_raises():
         ct.build_payload("   ")
 
 
+def test_build_payload_monthly_recurrence():
+    payload = ct.build_payload("Check updates", due_date="2026-07-31T13:00:00Z", repeat_mode=1)
+    assert payload == {
+        "title": "Check updates",
+        "due_date": "2026-07-31T13:00:00Z",
+        "repeat_mode": 1,
+    }
+
+
+def test_build_payload_interval_recurrence():
+    payload = ct.build_payload("Ping", due_date="2026-07-31T13:00:00Z", repeat_after=86400, repeat_mode=0)
+    assert payload["repeat_after"] == 86400
+    assert payload["repeat_mode"] == 0
+
+
+def test_build_payload_repeat_without_due_raises():
+    with pytest.raises(ValueError, match="due date is required"):
+        ct.build_payload("Ping", repeat_mode=1)
+    with pytest.raises(ValueError, match="due date is required"):
+        ct.build_payload("Ping", repeat_after=86400)
+
+
 # --- resolve_project_id ----------------------------------------------------
 
 

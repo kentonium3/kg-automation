@@ -1,0 +1,34 @@
+schema_version: v1
+name: openclaw-ecosystem-update-check
+issue: kentonium3/kg-automation#628
+tier: 3
+entrypoint: scripts/deploy/deploy-openclaw-update-check.py
+audited_surface: true
+created_at: '2026-07-19T00:00:00Z'
+created_by: kentonium3/kg-automation#628
+apply_mode: manifest
+notes: >-
+  Installs the felix-openclaw-updates weekly ecosystem update-availability check
+  (kentonium3/kg-automation#628) as systemd user units on office2 (claude
+  account): felix-openclaw-updates.{service,timer} + the OnFailure shim. The
+  timer fires Monday 07:00 America/New_York and runs
+  `python3 -m scripts.openclaw.check_ecosystem_updates --once`, which checks the
+  openclaw core global package (`npm outdated -g openclaw`) plus every installed
+  @openclaw/* channel plugin (~/.openclaw/npm/projects/ enumeration vs the npm
+  registry). Output discipline: SILENT no-op when the ecosystem is current;
+  a single WARN digest via the #701 felix-alert bus only when >=1 update is
+  available or a component check failed. Detection-only — the upgrade itself is
+  performed manually as an attended Tier-0 change per
+  docs/runbooks/openclaw-ecosystem-upgrade.md.
+
+  Entrypoint verify-before-enable gate (no broken-but-enabled timer on a bad
+  build, #703/#711): install units -> daemon-reload -> #703 byte-identical
+  ExecStart guard -> `--self-check` (npm + projects dir + bus) -> run the REAL
+  unit once and require a clean pass (rc=0) under systemd -> only then
+  `enable --now` the timer -> report via the bus.
+
+  REBASELINE: systemd unit installs have a repo-file signal, so felix-deployer's
+  observe-range rebaseline auto-covers them (no expected_baselines needed).
+
+  Tier 3 (installs user timer units + runs the real unit once via the vetted
+  systemctl --user path; no Tier 0/1/2 action).
