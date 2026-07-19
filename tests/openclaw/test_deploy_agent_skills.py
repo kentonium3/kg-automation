@@ -513,6 +513,44 @@ def test_copy_failure_writes_error_audit_and_partial_status(tmp_path, monkeypatc
     assert lt["status"] == "partial" and lt["exit_code"] == 0
 
 
+def test_smoke_does_real_copy_without_lock_or_git_advance(tmp_path, monkeypatch):
+    """--smoke (deploy-time gate, Codex #2 HIGH-1): real copies, NO deploylock, NO
+    git advance; writes status='smoke' so the deploy script proves a real sync ran."""
+    repo = _make_repo(tmp_path, {"a": {"files": {"SKILL.md": "fresh"}}})
+    dest_base = _point_dest(monkeypatch, tmp_path)
+    audit = tmp_path / "deploy" / "audit.jsonl"
+
+    # Fail loudly if smoke touches the lock or the git advance.
+    def _boom_lock():
+        raise AssertionError("smoke must NOT acquire the deploylock")
+    monkeypatch.setattr(das, "deploylock", _boom_lock)
+    monkeypatch.setattr(das, "advance_checkout",
+                        lambda *a, **k: (_ for _ in ()).throw(AssertionError("smoke must NOT git-advance")))
+    monkeypatch.setattr(das, "emit", lambda alert: _fake_result(ok=True))
+
+    rc = das.run_tick(das.parse_args(["--smoke"]), repo_root=repo, audit_path=audit,
+                      health_state_path=tmp_path / "h.json")
+    assert rc == das.EXIT_SUCCESS
+    assert (dest_base / "a" / "SKILL.md").read_text() == "fresh"  # real copy happened
+    lt = json.loads((audit.parent / das.LAST_TICK_FILENAME).read_text())
+    assert lt["status"] == "smoke"  # never 'deferred'
+    kinds = [json.loads(l)["kind"] for l in audit.read_text().splitlines()]
+    assert "copy" in kinds and "tick_summary" in kinds
+
+
+def test_smoke_copy_failure_sets_smoke_partial(tmp_path, monkeypatch):
+    repo = _make_repo(tmp_path, {"a": {"files": {"SKILL.md": "x"}}})
+    _point_dest(monkeypatch, tmp_path)
+    audit = tmp_path / "deploy" / "audit.jsonl"
+    monkeypatch.setattr(das, "atomic_copy", lambda s, d: (_ for _ in ()).throw(OSError("boom")))
+    monkeypatch.setattr(das, "emit", lambda alert: _fake_result(ok=True))
+    rc = das.run_tick(das.parse_args(["--smoke"]), repo_root=repo, audit_path=audit,
+                      health_state_path=tmp_path / "h.json")
+    assert rc == das.EXIT_PARTIAL_FAILURE
+    lt = json.loads((audit.parent / das.LAST_TICK_FILENAME).read_text())
+    assert lt["status"] == "smoke_partial"
+
+
 def test_git_pull_failed_audit_has_exit_code(tmp_path, monkeypatch):
     """L1: parity with the reference — the git_pull_failed audit carries git_exit_code."""
     repo = _make_repo(tmp_path, {"a": {"files": {"SKILL.md": "x"}}})

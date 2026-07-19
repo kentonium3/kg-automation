@@ -518,6 +518,15 @@ def parse_args(argv: List[str]) -> argparse.Namespace:
         help="Compute drift; print DRIFT lines to stdout; no audit writes; no file modifications.",
     )
     parser.add_argument(
+        "--smoke",
+        action="store_true",
+        help=(
+            "Deploy-time gate: do REAL skill copies WITHOUT acquiring the deploylock "
+            "and WITHOUT a git advance (the caller — felix-deployer — already holds the "
+            "lock and advanced the checkout). Writes status='smoke'. See run_tick."
+        ),
+    )
+    parser.add_argument(
         "--skill",
         type=str,
         default=None,
@@ -617,6 +626,35 @@ def run_tick(
             sys.stdout.write(line + "\n")
         return EXIT_SUCCESS
 
+    # --smoke is the DEPLOY-TIME real-copy gate (Codex #2 HIGH-1). The manifest
+    # entrypoint runs while felix-deployer HOLDS the shared checkout deploylock
+    # (scripts/deploy/felix-deployer/_tick.py wraps the whole apply in
+    # `with deploylock()`). A normal tick launched via `systemctl start` in that
+    # window is a SEPARATE process that contends the same lock, defers, and still
+    # writes the freshness pointer — so an mtime-only smoke would pass on a no-op
+    # and the "hard verify-before-enable" gate would be defeated. --smoke instead
+    # does REAL skill copies in-process WITHOUT acquiring the lock (safe: it only
+    # reads the checkout — which felix-deployer already advanced — and writes the
+    # deployed skills dir, which the checkout lock does not protect) and WITHOUT a
+    # git advance (the checkout is already current). It writes status="smoke" (never
+    # "deferred"), so the deploy script can prove a real sync ran, not a lock-defer.
+    if args.smoke:
+        status = "smoke"
+        rc = _run_skill_copies(
+            repo_root=repo_root,
+            audit_path=audit_path,
+            health_state_path=health_state_path,
+            tick_id=tick_id,
+            start=start,
+            skill_filter=args.skill,
+            git_head=None,
+            record_copy_health=False,
+        )
+        if rc == EXIT_PARTIAL_FAILURE:
+            status = "smoke_partial"
+        write_last_tick(audit_path.parent, status=status)
+        return rc
+
     status = "success"
     try:
         try:
@@ -705,8 +743,37 @@ def _run_locked_tick(
         )
         return EXIT_GIT_PULL_FAILED
 
-    git_head = pull_result.head_sha
+    return _run_skill_copies(
+        repo_root=repo_root,
+        audit_path=audit_path,
+        health_state_path=health_state_path,
+        tick_id=tick_id,
+        start=start,
+        skill_filter=skill_filter,
+        git_head=pull_result.head_sha,
+        record_copy_health=True,
+    )
 
+
+def _run_skill_copies(
+    *,
+    repo_root: Path,
+    audit_path: Path,
+    health_state_path: Path,
+    tick_id: str,
+    start: float,
+    skill_filter: Optional[str],
+    git_head: Optional[str],
+    record_copy_health: bool = True,
+) -> int:
+    """The per-skill copy loop + copy-health watermark + tick_summary.
+
+    Shared by ``_run_locked_tick`` (after a successful git advance, under the
+    deploylock) and by the deploy-time ``--smoke`` gate (no git advance, no lock,
+    ``record_copy_health=False`` — a smoke failure is surfaced by the deploy exit
+    code, not a streak alert). Copies only read the checkout and write the deployed
+    skills dir, so they are safe without the checkout lock.
+    """
     (
         skills_processed,
         total_copied,
@@ -722,37 +789,38 @@ def _run_locked_tick(
     # Record the per-file COPY outcome on a sibling health watermark so a
     # persistent copy failure alerts (the git-advance watermark can't see it —
     # the pull succeeded). Adapt the copy result onto the AdvanceResult contract.
-    copy_ok = total_errored == 0
-    copy_result = AdvanceResult(
-        ok=copy_ok,
-        advanced=False,
-        pre_head=git_head or "",
-        post_head=git_head or "",
-        origin_head=git_head or "",
-        behind=0,
-        ahead=0,
-        diverged=False,
-        reason=None if copy_ok else COPY_FAILED_REASON,
-    )
-    try:
-        _health.record(
-            COPY_HEALTH_ACTOR,
-            copy_result,
-            state_path=health_state_path.with_name(COPY_HEALTH_FILENAME),
-            notifier=_health_notifier,
-            confirmed_reasons=COPY_CONFIRMED_REASONS,
-            render=_copy_render,
+    if record_copy_health:
+        copy_ok = total_errored == 0
+        copy_result = AdvanceResult(
+            ok=copy_ok,
+            advanced=False,
+            pre_head=git_head or "",
+            post_head=git_head or "",
+            origin_head=git_head or "",
+            behind=0,
+            ahead=0,
+            diverged=False,
+            reason=None if copy_ok else COPY_FAILED_REASON,
         )
-    except Exception as exc:  # noqa: BLE001 - copy-health is escalation, never fatal
-        audit_append(
-            audit_path,
-            audit_record(
-                kind="copy_health_record_error",
-                tick_id=tick_id,
-                error=str(exc)[:200],
-                error_class=type(exc).__name__,
-            ),
-        )
+        try:
+            _health.record(
+                COPY_HEALTH_ACTOR,
+                copy_result,
+                state_path=health_state_path.with_name(COPY_HEALTH_FILENAME),
+                notifier=_health_notifier,
+                confirmed_reasons=COPY_CONFIRMED_REASONS,
+                render=_copy_render,
+            )
+        except Exception as exc:  # noqa: BLE001 - copy-health is escalation, never fatal
+            audit_append(
+                audit_path,
+                audit_record(
+                    kind="copy_health_record_error",
+                    tick_id=tick_id,
+                    error=str(exc)[:200],
+                    error_class=type(exc).__name__,
+                ),
+            )
 
     duration_ms = int((time.monotonic() - start) * 1000)
     audit_tick_summary(
