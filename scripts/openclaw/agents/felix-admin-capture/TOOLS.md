@@ -38,6 +38,16 @@ routable block, in `block_index` order. Each block:
 `needs_clarification` (exit 0; calendar only; note left unprocessed), or `error`
 (non-zero; note NOT marked, retries next tick). Branch per AGENTS.md Step 3c.
 
+On `needs_clarification`, the calendar block in `blocks[]` carries `missing` (the
+raw missing list) and — **when the date resolved** — a `clarification_signal`
+object `{"title","start_date","missing_fields"}`. This signal is built
+**deterministically in code** (`route_and_finalize` runs `validate_calendar_event`
+on the block, resolving `start_date` against the note's capture-time anchor — the
+correct week). Step 3c copies it **byte-for-byte** into the pending record's
+`--partial-payload`; the agent never runs the validator or computes the date. An
+un-dateable block carries **no** `clarification_signal` (fail-closed → the record
+stays ineligible for the all-day fallback).
+
 ## Calendar clarification sweep-finalize — `clarification_sweep_finalize`
 
 The deterministic per-tick command AGENTS.md **Step 1a** runs. It replaces the
@@ -63,8 +73,9 @@ cd /home/claude/kg-automation && python3 -m scripts.inbox.clarification_sweep_fi
   `missing_fields` is a subset of the timing fields `{start_time, end_or_duration}`.
   Anything else (missing title, non-timing gap, legacy record with no
   `missing_fields`/`start_date`) is **ineligible** → today's delete-and-release
-  (drop the record so the note re-scans / re-asks). This is why Step 3c records
-  `start_date` + `missing_fields` verbatim into the pending record.
+  (drop the record so the note re-scans / re-asks). This is why Step 3c copies the
+  finalize block's `clarification_signal` (`title` + `start_date` + `missing_fields`,
+  built in code) verbatim into the pending record.
 - **Output.** A one-line JSON counts summary on stdout
   (`{"aged_out","finalized","reconciled","released","retained"}`); exit 0 even when
   records are `retained` for a later retry (fail-closed). Continue regardless.
