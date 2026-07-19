@@ -16,7 +16,15 @@ helper, a systemd unit, or a config change, the path to office2 is the same:
 write a manifest under `deploys/queued/`, write a deploy script that uses the
 shared library under `scripts/deploy/lib/`, merge to `main`, and the
 `felix-deployer` applier on office2 picks it up within 5 minutes and applies
-it under a tier-aware safety gate. There is no other supported deploy path.
+it under a tier-aware safety gate. This is the canonical path for anything that
+needs a tier-guarded, recorded, rebaseline-aware apply — **crons, systemd units,
+service config, venvs, and office2-path installs.** It is **not** the only path
+to office2: agent **prompt/skill file content** is delivered by the pull-based
+`agent-prompt-sync` (+ `agent-skill-sync`) copier, and Python **helper scripts**
+under `scripts/**` ride the shared checkout's `git pull` (self-pull) with no copy
+step. Which mechanism owns which surface is the
+[office2 deploy-paths surface partition](./office2-deploy-paths.md); this runbook
+is the manifest-pipeline half of it.
 The grandfathered per-mission scripts at `scripts/deploy/deploy-{028,149,f013,
 f014,f026,felix-admin-calendar,restore-whatsapp-dm-reply-delivery}.sh` remain
 in place and continue to work — sibling issue #548 handles their cleanup —
@@ -450,7 +458,14 @@ charter and in [`docs/runbooks/security-baseline-ops.md`](<../security-baseline-
 
 Audited surfaces (per `docs/design/architecture/data/audited-surfaces.json`):
 
-- OpenClaw agent prompts.
+- OpenClaw agent prompts — **rebaseline-exempt (not currently possible).**
+  `audited-surfaces.json` sets `openclaw-agent-prompts.rebaseline_required: false`
+  with `affected_baselines: []`, because `security-monitor/audit.sh` hashes only
+  `openclaw.json` and the OpenClaw cron list, never the deployed `AGENTS.md`
+  (the #621 gap). A prompt-only
+  deploy — which ships via `agent-prompt-sync`, not a manifest — writes no
+  baseline, so there is nothing to rebaseline. Record `Rebaseline: not required`
+  and cite #621.
 - OpenClaw config.
 - Systemd user units and deploy scripts.
 - Python dependency manifests.
