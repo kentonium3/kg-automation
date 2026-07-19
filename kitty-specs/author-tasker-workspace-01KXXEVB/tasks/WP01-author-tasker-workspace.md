@@ -27,7 +27,9 @@ subtasks:
 - T006
 phase: Phase 1 - Author
 assignee: ''
-agent: claude
+agent: "claude"
+shell_pid: "57526"
+shell_pid_created_at: "1784475623.935379"
 history:
 - at: '2026-07-19T15:20:00Z'
   actor: system
@@ -184,3 +186,7 @@ the operator-owned deploy trigger (quickstart.md §5), AFTER the post-merge Code
 FR-011 + NFR-005 (feat→main merge, agent-prompt-sync deploy, md5 parity at
 `/data/services/openclaw/tasker-agent/`, live smoke) are documented in quickstart.md §5–9 and excluded from
 the acceptance matrix (C-006). Do not attempt them from the lane worktree.
+
+## Activity Log
+
+- 2026-07-19T15:40:41Z – claude – shell_pid=57526 – Assigned agent via action command
