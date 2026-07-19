@@ -1,7 +1,7 @@
 {
-  "event_count": 1,
-  "last_event_id": "01KXXGDZWVCDPD1X8MTM2J80R7",
-  "materialized_at": "2026-07-19T15:38:04.059167+00:00",
+  "event_count": 3,
+  "last_event_id": "01KXXGJF02E042Z910AGRVC2BG",
+  "materialized_at": "2026-07-19T15:40:30.593146+00:00",
   "mission_number": "",
   "mission_slug": "author-tasker-workspace-01KXXEVB",
   "mission_type": "software-dev",
@@ -12,17 +12,17 @@
     "claimed": 0,
     "done": 0,
     "for_review": 0,
-    "in_progress": 0,
+    "in_progress": 1,
     "in_review": 0,
-    "planned": 1
+    "planned": 0
   },
   "work_packages": {
     "WP01": {
-      "actor": "finalize-tasks",
+      "actor": "claude",
       "force_count": 0,
-      "lane": "planned",
-      "last_event_id": "01KXXGDZWVCDPD1X8MTM2J80R7",
-      "last_transition_at": "2026-07-19T15:38:04.059167+00:00"
+      "lane": "in_progress",
+      "last_event_id": "01KXXGJF02E042Z910AGRVC2BG",
+      "last_transition_at": "2026-07-19T15:40:30.593146+00:00"
     }
   }
 }
