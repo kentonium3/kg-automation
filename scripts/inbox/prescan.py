@@ -148,7 +148,7 @@ class PrescanResult:
     archive_anomalies: list = field(default_factory=list)  # [ArchiveAnomaly as dict]
     # #740 — notes withheld this tick because they are awaiting a calendar
     # clarification reply from Kent (a live pending-calendar-clarifications
-    # entry). Bounded by the 24h sweep, so a note is released — not stranded —
+    # entry). Bounded by the 8h sweep, so a note is released — not stranded —
     # once its entry ages out. [{"path": ..., "filename": ...}]
     pending_skipped: list = field(default_factory=list)
 
@@ -895,7 +895,7 @@ def _pending_clarification_filenames(
     """Return note filenames awaiting a calendar clarification reply (#740).
 
     Reads the shared clarification-state file via
-    ``handle_clarification_state.pending_filenames`` (the same 24h aging rule
+    ``handle_clarification_state.pending_filenames`` (the same 8h aging rule
     ``sweep`` uses). Returns ``(names, warning_or_None)``. Fail-safe: any
     import or read error yields an empty set plus a warning dict, so a broken or
     unreadable clarification store never withholds a note from the agent — it
@@ -1013,7 +1013,7 @@ def run_prescan() -> int:
     #
     # #740 — the ONE deterministic filename filter that IS safe: a note awaiting
     # a calendar clarification reply from Kent (a live pending-calendar entry).
-    # Unlike the removed routing-log dedup, this cannot strand a note — the 24h
+    # Unlike the removed routing-log dedup, this cannot strand a note — the 8h
     # clarification sweep ages the entry out, after which the note re-enters the
     # scan and the agent re-asks (once per window instead of every tick). Skipping
     # it here is what stops the 4×/day re-classify + re-WhatsApp loop. Fail-safe:

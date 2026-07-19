@@ -493,7 +493,21 @@ def _build_clarification_signal(block: dict, source_path: str) -> Optional[dict]
             "start_date": start_date,
             "missing_fields": missing_fields,
         }
-    except Exception:  # never let a clarification-signal failure crash finalize
+    except Exception as exc:  # never let a clarification-signal failure crash finalize
+        # Observability (post-fix review): a swallowed error here degrades the
+        # all-day fallback to "off" silently — the exact silent-inert failure
+        # class #780 itself was. Emit a diagnostic (module stderr-JSON convention)
+        # so a genuine signal-builder defect is visible, while still failing closed.
+        sys.stderr.write(
+            json.dumps(
+                {
+                    "warning": "clarification_signal_failed",
+                    "source_path": source_path,
+                    "detail": str(exc),
+                }
+            )
+            + "\n"
+        )
         return None
 
 
