@@ -70,10 +70,10 @@ deploy) both depend only on WP01 and can run in parallel; WP04 (doc-sync) docume
 - **Dependencies**: WP01 (the helper must exist for the smoke to run).
 - **Requirements**: FR-008, FR-012, C-002.
 - **Subtasks**:
-  - [ ] T010 `agent-skill-sync.service` (WP03)
-  - [ ] T011 `agent-skill-sync.timer` + `systemd-analyze verify` (WP03)
-  - [ ] T012 `deploys/queued/skills-sync.yaml` manifest (WP03)
-  - [ ] T013 `deploy-skills-sync.sh` hard verify-before-enable gate (WP03)
+  - [x] T010 `agent-skill-sync.service` (WP03)
+  - [x] T011 `agent-skill-sync.timer` + `systemd-analyze verify` (WP03)
+  - [x] T012 `deploys/queued/skills-sync.yaml` manifest (WP03)
+  - [x] T013 `deploy-skills-sync.sh` hard verify-before-enable gate (WP03)
 - **Est. prompt size**: ~420 lines.
 
 ## WP04 — Documentation synchronization + audited-surface globs

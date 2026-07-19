@@ -17,8 +17,8 @@ subtasks:
 - T012
 - T013
 agent: "claude"
-shell_pid: "88924"
-shell_pid_created_at: "1784429671.968597"
+shell_pid: "89929"
+shell_pid_created_at: "1784429842.402429"
 history:
 - '2026-07-19: authored by /spec-kitty.tasks'
 agent_profile: implementer-ivan
@@ -136,3 +136,5 @@ parallel-lane safe.
 ## Activity Log
 
 - 2026-07-19T02:54:52Z – claude – shell_pid=88924 – Assigned agent via action command
+- 2026-07-19T02:57:37Z – claude – shell_pid=88924 – Units + manifest (schema-valid) + hard verify-before-enable gate; bash -n clean
+- 2026-07-19T02:57:47Z – claude – shell_pid=89929 – Started review via action command
