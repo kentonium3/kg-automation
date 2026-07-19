@@ -130,8 +130,9 @@ user timer (module `scripts.habits.weekly_report_driver`, Monday 06:00
 America/New_York, zero LLM turns — #723), which invokes the
 `scripts.habits.query_active_habits_weekly` helper directly and delivers the
 message itself. The prior `habits-weekly-report` openclaw cron on this agent was
-retired. Do NOT generate, render, or relay a weekly report. Any future move to a
-dedicated LLM reporting agent is tracked in #796.
+retired. Do NOT generate, render, or relay a weekly report. A dedicated LLM
+reporting agent was considered and declined (#796, 2026-07-19); the deterministic
+timer is the permanent owner.
 
 ---
 

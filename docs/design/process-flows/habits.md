@@ -38,7 +38,7 @@ This is the single canonical explanation, crediting the missions that built it.
 | 48h auto-skip sweeper (idempotent, day-specific EOD-ET advance) | `habit-day-specific-scheduling-01KT48Y6` (FR-003, FR-005) |
 | JSONL is canonical history; comment is a UI mirror; weekly report reads the JSONL not `done_at` | ADR-0002 Phase 2; `trustworthy-weekly-habit-report-01KV4GZ7` ([#605](https://github.com/kentonium3/kg-automation/issues/605)) |
 | Deterministic weekly cron driver with truthful delivery confirmation | `deterministic-cron-hardening-01KXA4PX` ([#723](https://github.com/kentonium3/kg-automation/issues/723)) |
-| Weekly-report ownership decision (dedicated reporting agent; habits out-of-scope) | [#409](https://github.com/kentonium3/kg-automation/issues/409) |
+| Weekly-report ownership: deterministic `felix-habits-weekly` timer owns it; habits out-of-scope (dedicated LLM agent declined) | [#409](https://github.com/kentonium3/kg-automation/issues/409) / [#796](https://github.com/kentonium3/kg-automation/issues/796) |
 
 ## Actors & trigger
 
@@ -173,24 +173,22 @@ RECONCILE (reconcile_completions.py, cache-driven)
     `source="vikunja-ui"`; JSONL `complete` today with cache `done=false` → drift
     reported on stdout only.
 
-## Weekly reporting — ownership relocated ([#409](https://github.com/kentonium3/kg-automation/issues/409))
+## Weekly reporting — owned by the deterministic timer ([#409](https://github.com/kentonium3/kg-automation/issues/409) / [#723](https://github.com/kentonium3/kg-automation/issues/723))
 
-Weekly habit pattern reporting is **being moved out of `felix-admin-habits`.** Per
-the [#409](https://github.com/kentonium3/kg-automation/issues/409) decision
-(Kent, 2026-07-19), a **dedicated reporting agent** will own weekly pattern
-reports; the felix-admin-habits `SOUL.md` and `AGENTS.md` are being updated (via
-#409) to mark them out-of-scope. Until that change lands, the in-repo habits
-prompts still describe the weekly report as an agent job — this doc records the
-decided target so a future mission reads the intended end-state, not the transient.
-
-Current-state delivery mechanism: the deterministic **`felix-habits-weekly-driver`**
-cron (`scripts/habits/weekly_report_driver.py`, systemd `felix-habits-weekly.timer`,
-Mon 06:00 ET) runs `query_active_habits_weekly` in-process — reading
+Weekly habit pattern reporting is **not owned by `felix-admin-habits`** ([#409](https://github.com/kentonium3/kg-automation/issues/409)):
+the agent's `SOUL.md`/`AGENTS.md` mark it out-of-scope and the agent never
+generates a report. The **owner is the deterministic `felix-habits-weekly` timer**
+(`scripts/habits/weekly_report_driver.py`, systemd `felix-habits-weekly.timer`,
+Mon 06:00 ET), which runs `query_active_habits_weekly` in-process — reading
 `habits-history.jsonl` (not `done_at`, [#605](https://github.com/kentonium3/kg-automation/issues/605))
 — and delivers via `openclaw message send` with truthful delivery confirmation
-([#723](https://github.com/kentonium3/kg-automation/issues/723)). The report
-*content* pipeline is stable; only *agent ownership* moved. A follow-up issue
-tracks authoring the dedicated reporting agent that will own this responsibility.
+([#723](https://github.com/kentonium3/kg-automation/issues/723)).
+
+A dedicated **LLM** reporting agent was considered and **declined** (Kent,
+2026-07-19, [#796](https://github.com/kentonium3/kg-automation/issues/796)): the
+deterministic timer already produces a trustworthy report, and an LLM layer would
+reintroduce exactly the fabrication risk the #605 ratchet exists to prevent. The
+deterministic timer is the permanent owner.
 
 ## Implementing seams
 
@@ -252,7 +250,7 @@ stateDiagram-v2
   [#582](https://github.com/kentonium3/kg-automation/issues/582) (intentional
   authoring of the habits agent workspace).
 - **Ownership decision**: [#409](https://github.com/kentonium3/kg-automation/issues/409)
-  (weekly reports → dedicated reporting agent; see the weekly-reporting section).
+  (weekly reports → deterministic `felix-habits-weekly` timer; dedicated LLM agent declined; see the weekly-reporting section).
 - **Migration debt**: `scripts/habits/*` should adopt
   `scripts/common/et_datetime.py` ([#761](https://github.com/kentonium3/kg-automation/issues/761))
   to retire the inline ET copies.
