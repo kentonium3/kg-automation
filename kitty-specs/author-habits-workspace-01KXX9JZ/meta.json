@@ -1,0 +1,31 @@
+{
+  "accept_commit": "e9dcc04b50ff617ef6e7d896344ff5ef8869abe9",
+  "acceptance_history": [
+    {
+      "accept_commit": "e9dcc04b50ff617ef6e7d896344ff5ef8869abe9",
+      "acceptance_mode": "pr",
+      "accepted_at": "2026-07-19T14:30:29.479302+00:00",
+      "accepted_by": "kentgale",
+      "accepted_from_commit": "8449771c8684a091fdb2dbd098d7d4ee93115355"
+    }
+  ],
+  "acceptance_mode": "pr",
+  "accepted_at": "2026-07-19T14:30:29.479302+00:00",
+  "accepted_by": "kentgale",
+  "accepted_from_commit": "8449771c8684a091fdb2dbd098d7d4ee93115355",
+  "baseline_merge_commit": "335acc479562b2bbf7b923bf373886f938e248d2",
+  "created_at": "2026-07-19T13:38:27.700904+00:00",
+  "flattened": false,
+  "friendly_name": "Author felix-admin-habits workspace",
+  "mission_id": "01KXX9JZQG7ZYAVJNZC0MR0XHP",
+  "mission_number": 108,
+  "mission_slug": "author-habits-workspace-01KXX9JZ",
+  "mission_type": "software-dev",
+  "purpose_context": "The habits agent's workspace files are cross-contaminated and partly stale: SOUL duplicates role, weekly-scope, and the full enforceable privacy rule; USER carries date-handling mechanics and a now-false claim that the agent reports on patterns (moved off to the felix-habits-weekly timer per #723); TOOLS inlines volatile Vikunja habit task IDs. This mission relocates each concern to its correct #587 home, corrects the stale scope text, and confirms #409 is incorporated — without changing the live daily check-in behavior.",
+  "purpose_tldr": "Author felix-admin-habits SOUL/USER/TOOLS to the #587 standard as a behavior-preserving concern-separation refactor.",
+  "slug": "author-habits-workspace-01KXX9JZ",
+  "target_branch": "feat/author-habits-workspace",
+  "topology": "single_branch",
+  "vcs": "git",
+  "vcs_locked_at": "2026-07-19T14:12:27.322370+00:00"
+}
