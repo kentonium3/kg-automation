@@ -10,7 +10,7 @@ Behavior-preserving authoring refactor of the `felix-admin-tasker` OpenClaw work
 ## Technical Context
 
 **Language/Version**: Markdown (OpenClaw workspace prompt files); Python 3.12 for the reused validator and any conservation checks
-**Primary Dependencies**: `scripts/openclaw/agents/validate_workspace.py` (#587, reused as-is); agent-prompt-sync (`scripts/openclaw/deploy_agent_prompts.py`, #567/#136/#636); `scripts/openclaw/observation/log_action.py` + `config.py` (the authority the TOOLS action-log format must match, FR-008); bash for smoke
+**Primary Dependencies**: `scripts/openclaw/agents/validate_workspace.py` (#587, reused as-is); agent-prompt-sync (`scripts/openclaw/deploy/deploy_agent_prompts.py`, #567/#136/#636); `scripts/openclaw/observation/log_action.py` + `config.py` (the authority the TOOLS action-log format must match, FR-008); bash for smoke
 **Storage**: N/A (no schema/state change); Vikunja projects/labels resolved by name at runtime
 **Testing**: tasker-scoped `validate_workspace.py --json` assertion (`felix-admin-tasker` → `ok:true`); row-by-row content-conservation checklist (data-model.md); behavior preservation = (a) `AGENTS.md`/`IDENTITY.md` byte-identical before/after as the scope guard + (b) live smoke as the real prompt-behavior gate
 **Target Platform**: office2 (Ubuntu 24.04); tasker agent runs as a per-dispatch OpenClaw sub-agent (delegation from felix-admin-capture)
