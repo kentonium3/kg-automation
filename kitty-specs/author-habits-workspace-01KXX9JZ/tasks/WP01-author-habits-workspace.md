@@ -28,7 +28,9 @@ subtasks:
 - T006
 phase: Phase 1 - Author
 assignee: ''
-agent: claude
+agent: "claude"
+shell_pid: "27940"
+shell_pid_created_at: "1784470341.522141"
 history:
 - at: '2026-07-19T13:50:00Z'
   actor: system
@@ -245,3 +247,7 @@ from `lanes.json`. The feature branch merges to `main` at mission end (single-br
 - Verify no numeric Vikunja id remains in TOOLS and the mechanism pointer is correct (research Decision 3).
 - Verify AGENTS is byte-unchanged except at most the FR-009 sentence.
 - Verify `service-inventory.md` weekly rows now match the JSON.
+
+## Activity Log
+
+- 2026-07-19T14:12:43Z – claude – shell_pid=27940 – Assigned agent via action command
