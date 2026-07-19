@@ -237,7 +237,7 @@ The helper does NOT trigger an openclaw restart.
 ### OpenClaw Gateway (F002)
 - **Deployed by**: F002
 - **Installation**: `npm install -g openclaw@2026.6.11` (global, requires sudo)
-- **Binary**: `/usr/bin/openclaw`
+- **Binary**: `/home/claude/.local/bin/openclaw`
 - **Config**: `/home/claude/.openclaw/openclaw.json`
 - **Service level**: User-level systemd with lingering (not system-level)
 - **Config in repo**: `scripts/openclaw/openclaw-gateway.service`, `scripts/openclaw/install.sh`

@@ -834,7 +834,7 @@
       ],
       "health_check": {
         "method": "openclaw-cron-state",
-        "endpoint": "/usr/bin/openclaw cron list --json",
+        "endpoint": "/home/claude/.local/bin/openclaw cron list --json",
         "crons": [
           "inbox-7am",
           "inbox-noon",
@@ -944,7 +944,7 @@
       ],
       "health_check": {
         "method": "openclaw-cron-state",
-        "endpoint": "/usr/bin/openclaw cron list --json",
+        "endpoint": "/home/claude/.local/bin/openclaw cron list --json",
         "crons": [
           "habits-morning-checkin"
         ],
@@ -1310,7 +1310,7 @@
       ],
       "health_check": {
         "method": "openclaw-cron-state",
-        "endpoint": "/usr/bin/openclaw cron list --json",
+        "endpoint": "/home/claude/.local/bin/openclaw cron list --json",
         "crons": [
           "escalation-daily"
         ],
@@ -2574,7 +2574,7 @@
         {
           "target": "openclaw-gateway:18789",
           "type": "requires",
-          "description": "Delivery is dispatched via `/usr/bin/openclaw message send --channel whatsapp --json` (absolute path — systemd units have no PATH)."
+          "description": "Delivery is dispatched via `/home/claude/.local/bin/openclaw message send --channel whatsapp --json` (absolute path — systemd units have no PATH)."
         },
         {
           "target": "felix-vikunja-sync-driver",

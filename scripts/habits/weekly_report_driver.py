@@ -26,7 +26,7 @@ Behavior (contract steps)
 3. Compose ``"<attribution>\\n\\n" + report_body``. The report portion is
    byte-identical to the helper's output (FR-005).
 4. Deliver via ``openclaw message send --channel whatsapp --target <E.164>
-   --message <message> --json`` (absolute ``/usr/bin/openclaw`` — systemd
+   --message <message> --json`` (absolute ``/home/claude/.local/bin/openclaw`` — systemd
    units have no ``PATH``).
 5. Confirm delivery: ``delivery_confirmed=True`` **only** when the C1
    predicate holds (exit 0 AND a non-empty ``messageId`` AND
@@ -105,7 +105,7 @@ SELF_TEST_TICK_PATH = DEFAULT_TICK_PATH.with_name(
 
 #: Absolute path — systemd units have no ``PATH`` (recurring deploy gotcha;
 #: see the canary probes' ``openclaw cron list`` invocation for precedent).
-OPENCLAW_BIN = "/usr/bin/openclaw"
+OPENCLAW_BIN = "/home/claude/.local/bin/openclaw"
 
 
 # --------------------------------------------------------------------------- #
@@ -207,7 +207,7 @@ def send_message(
 ) -> SendResult:
     """Deliver ``message`` via ``openclaw message send --json`` (production effect).
 
-    Uses the absolute ``/usr/bin/openclaw`` (systemd units have no ``PATH``).
+    Uses the absolute ``/home/claude/.local/bin/openclaw`` (systemd units have no ``PATH``).
     ``dry_run`` appends ``--dry-run`` so ``--self-test`` never sends a real
     message while still exercising the full CLI round-trip.
     """
