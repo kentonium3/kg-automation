@@ -46,7 +46,11 @@ set -euo pipefail
 : "${ANTHROPIC_ROTATE_GATEWAY_RESTART_CMD:=systemctl --user restart openclaw-gateway.service}"
 
 PLAINTEXT_FILE="${ANTHROPIC_ROTATE_PLAINTEXT_FILE}"
-OPENCLAW_BIN="openclaw"
+# Absolute claude-space path (overridable): rotation may run via non-login ssh
+# where ~/.local/bin is not on PATH, and after the #653 root-global removal bare
+# `openclaw` no longer resolves there. The `command -v` guard below would abort
+# rotation. Pin to the sole install so rotation works in any context.
+: "${OPENCLAW_BIN:=/home/claude/.local/bin/openclaw}"
 GATEWAY_UNIT="openclaw-gateway.service"
 # Canonical liveness cron: inbox-7am on felix-admin-capture. Manual run is cheap
 # and exercises the openclaw-gateway → sub-agent → anthropic API path end-to-end.

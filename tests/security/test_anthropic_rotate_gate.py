@@ -139,6 +139,10 @@ def _rotate_env(tmp_path: Path, tmp_bin: Path, *, verify_bin: Path | None = None
         "PATH": f"{tmp_bin}:{os.environ.get('PATH', '/usr/bin:/bin')}",
         "ANTHROPIC_ROTATE_PLAINTEXT_FILE": str(plaintext),
         "ANTHROPIC_VERIFY_BIN": str(verify_bin or (tmp_bin / "anthropic-verify-stub")),
+        # Point OPENCLAW_BIN at the stub explicitly. Production defaults to the
+        # absolute claude-space path (/home/claude/.local/bin/openclaw) so rotation
+        # works under a PATH-less non-login shell; tests override it to tmp_bin.
+        "OPENCLAW_BIN": str(tmp_bin / "openclaw"),
         "ANTHROPIC_ROTATE_OPENCLAW_HOME": str(tmp_path / ".openclaw"),
         "ANTHROPIC_ROTATE_GATEWAY_RESTART_CMD": "true",
         "ANTHROPIC_ROTATE_SKIP_SELF_UPDATE": "1",
