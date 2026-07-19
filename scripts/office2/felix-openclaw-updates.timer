@@ -1,0 +1,12 @@
+[Unit]
+Description=felix-openclaw-updates — weekly OpenClaw ecosystem update check (Monday 07:00 America/New_York)
+
+[Timer]
+# Weekly, one hour after the felix-habits-weekly Monday 06:00 ET slot so the two
+# weekly timers never contend. Persistent=true replays a missed run after a
+# reboot/outage (a weekly availability check should still fire late).
+OnCalendar=Mon *-*-* 07:00:00 America/New_York
+Persistent=true
+
+[Install]
+WantedBy=timers.target

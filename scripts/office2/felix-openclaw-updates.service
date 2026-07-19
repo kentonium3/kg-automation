@@ -1,0 +1,25 @@
+[Unit]
+Description=felix-openclaw-updates — weekly OpenClaw ecosystem update-availability check (timer mode, #628)
+After=network-online.target
+Wants=network-online.target
+# A runner-level failure (non-zero exit: npm absent, plugin projects dir
+# unreadable) triggers an out-of-band ERROR alert independent of runner logic —
+# the check must page the operator that it did NOT complete a pass, so a silent
+# "no alert" tick can always be trusted as "checked, nothing to upgrade".
+OnFailure=felix-openclaw-updates-onfailure.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 -m scripts.openclaw.check_ecosystem_updates --once
+Environment=HOME=/home/claude
+Environment=PYTHONPATH=/home/claude/kg-automation
+# npm + node live in /usr/bin on office2 (probed 2026-07-19); pin an explicit
+# PATH so `npm outdated`/`npm view` resolve under the minimal systemd env.
+Environment=PATH=/usr/local/bin:/usr/bin:/bin
+WorkingDirectory=/home/claude/kg-automation
+# Load FELIX_ALERT_NTFY_TOPIC for the unified #701 felix-alert bus
+# (scripts/common/alert_bus/). Credential: felix-alert-ntfy-topic; template
+# scripts/common/alert_bus.env.sample. Leading "-" keeps startup non-fatal if
+# the topic env-file is absent (the bus returns NTFY_MISSING_TOPIC instead of
+# failing the run).
+EnvironmentFile=-/home/claude/.config/felix/alert-bus/env

@@ -1,0 +1,15 @@
+[Unit]
+Description=felix-openclaw-updates OnFailure shim — emit an out-of-band ERROR when the weekly update check fails to complete a pass
+
+[Service]
+Type=oneshot
+# Fires only when felix-openclaw-updates.service exits non-zero (a runner-level
+# fault: npm absent, plugin projects dir unreadable). Independent of the runner's
+# own emit logic — if the check crashed before it could report, this shim
+# guarantees the operator is paged that no pass completed. The bus shim exits 0
+# on a best-effort emit, so a delivery hiccup here never masks the underlying
+# failure that already triggered OnFailure.
+ExecStart=/home/claude/kg-automation/scripts/common/alert_bus.sh emit --source felix-openclaw-updates/onfailure --severity error --title "felix-openclaw-updates run failed" --description "The felix-openclaw-updates.service run exited non-zero; the weekly OpenClaw ecosystem update check did not complete a pass."
+# Same alert-bus topic env-file as the main unit (leading "-" keeps it
+# non-fatal if absent — the shim also sources it itself as a fallback).
+EnvironmentFile=-/home/claude/.config/felix/alert-bus/env

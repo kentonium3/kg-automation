@@ -51,15 +51,27 @@ def build_payload(
     due_date: str | None = None,
     description: str | None = None,
     priority: int | None = None,
+    repeat_after: int | None = None,
+    repeat_mode: int | None = None,
 ) -> dict[str, Any]:
     """Build the Vikunja task-create body from CLI inputs.
 
     Only non-empty fields are included, so the create never sends stray
     nulls. ``title`` is required (Vikunja rejects an empty title).
+
+    Recurrence uses Vikunja's ``repeat_after`` (seconds) + ``repeat_mode``
+    (0=default/interval, 1=monthly, 2=from-current-date) — NOT RRULE (see
+    reference_vikunja_recurrence_model). A repeating task advances its own
+    ``due_date`` on completion, so a ``due_date`` anchor is required whenever a
+    repeat is set. ``repeat_mode`` alone (e.g. 1=monthly) is honored without a
+    ``repeat_after``; a bare ``repeat_after`` implies default-mode interval
+    recurrence.
     """
     title = title.strip()
     if not title:
         raise ValueError("task title must be non-empty")
+    if (repeat_after is not None or repeat_mode is not None) and not due_date:
+        raise ValueError("a due date is required when a repeat is set (recurrence advances the due date)")
     payload: dict[str, Any] = {"title": title}
     if due_date:
         payload["due_date"] = due_date
@@ -67,6 +79,10 @@ def build_payload(
         payload["description"] = description
     if priority is not None:
         payload["priority"] = priority
+    if repeat_after is not None:
+        payload["repeat_after"] = repeat_after
+    if repeat_mode is not None:
+        payload["repeat_mode"] = repeat_mode
     return payload
 
 
@@ -154,6 +170,19 @@ def _build_parser() -> argparse.ArgumentParser:
         "--priority", type=int, default=None, help="optional priority (Vikunja 0-5)"
     )
     parser.add_argument(
+        "--repeat-after",
+        type=int,
+        default=None,
+        help="recurrence interval in SECONDS (Vikunja repeat_after); requires --due",
+    )
+    parser.add_argument(
+        "--repeat-mode",
+        type=int,
+        choices=[0, 1, 2],
+        default=None,
+        help="recurrence mode: 0=default/interval, 1=monthly, 2=from-current-date (requires --due)",
+    )
+    parser.add_argument(
         "--json", action="store_true", help="emit the raw created-task JSON"
     )
     return parser
@@ -168,6 +197,8 @@ def main(argv: list[str] | None = None, *, client: Any | None = None) -> int:
             due_date=args.due,
             description=args.description,
             priority=args.priority,
+            repeat_after=args.repeat_after,
+            repeat_mode=args.repeat_mode,
         )
         active_client = client if client is not None else _build_client()
         project_id = resolve_project_id(active_client, args.project)
