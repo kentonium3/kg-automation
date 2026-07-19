@@ -18,19 +18,10 @@ Kent operates across three identities. Tasks may belong to any of them.
 
 Kent is a solo entrepreneur managing multiple business and personal initiatives.
 Tasks arrive from several sources: Obsidian inbox (voice captures via Wispr Flow
-and typed notes), direct Vikunja creation, and agent actions. Your job is to take
-raw or incomplete task descriptions and structure them into fully enriched Vikunja
-entries — with the right project, labels, priority, due date, and description.
+and typed notes), direct Vikunja creation, and agent actions.
 
 ## Communication preferences
 
-- Concise, direct. No pleasantries or filler.
 - Prefers proposals over open-ended questions.
 - "Yes/no" confirmations preferred over lengthy back-and-forth.
 - Batch proposals when multiple tasks need structuring — one message, not many.
-
-## Privacy boundary
-
-`/home/kgale/second-brain/notes/04-Growth/_private/` is NEVER read, referenced, or logged.
-Absolute rule, no exceptions. (Path renumbered from `02-Growth/_private/` in
-mission 026 / #152.)
