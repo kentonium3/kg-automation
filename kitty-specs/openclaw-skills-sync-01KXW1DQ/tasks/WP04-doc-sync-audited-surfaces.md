@@ -122,3 +122,4 @@ from `lanes.json`. Depends on WP01–WP03 (documents their surfaces) — runs la
 - 2026-07-19T03:01:13Z – claude – shell_pid=91267 – Assigned agent via action command
 - 2026-07-19T03:17:20Z – claude – shell_pid=91267 – Doc-sync + audited-surface globs; validators green
 - 2026-07-19T03:17:32Z – claude – shell_pid=96426 – Started review via action command
+- 2026-07-19T03:17:56Z – user – shell_pid=96426 – Audited-surface globs verified to match new units + deploy script; service entry wires independent drift check as canary probe; validators green. Post-merge Codex is the whole-diff backstop.
