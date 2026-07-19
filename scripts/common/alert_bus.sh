@@ -14,9 +14,16 @@ set -uo pipefail
 
 # Source the single topic env-file if present. This is what lets a
 # cron-launched audit.sh (no systemd EnvironmentFile) resolve the topic.
+# `set -a` around the source is REQUIRED: the env-file uses plain `KEY=value`
+# (no `export`, so systemd `EnvironmentFile=` can parse it), so without allexport
+# the sourced FELIX_ALERT_NTFY_TOPIC stays a non-exported shell var and the
+# `python3 -m scripts.common.alert_bus` subprocess never sees it → NTFY_MISSING_TOPIC.
+# Systemd callers are unaffected (they get the topic via EnvironmentFile=).
 if [ -f /home/claude/.config/felix/alert-bus/env ]; then
   # shellcheck disable=SC1091
+  set -a
   . /home/claude/.config/felix/alert-bus/env
+  set +a
 fi
 
 # Decide the exit-code policy from the args BEFORE invoking: self-test or a
