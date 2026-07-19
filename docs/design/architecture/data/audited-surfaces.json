@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
-  "last_updated": "2026-07-05",
-  "updated_by": "felix-admin-cron-path-fix-01KWQTY3 (#656) + finalize-inbox-file-01KW8MSQ (#325, #621 correction) + pull-based-deploy-pipeline-01KTYQQS (#136) + #557-rebaseline-workflow",
+  "last_updated": "2026-07-19",
+  "updated_by": "felix-admin-cron-path-fix-01KWQTY3 (#656) + finalize-inbox-file-01KW8MSQ (#325, #621 correction) + pull-based-deploy-pipeline-01KTYQQS (#136) + #557-rebaseline-workflow + openclaw-skills-sync-01KXW1DQ (#775: scripts/openclaw/deploy/*.{service,timer} + scripts/deploy/*.sh)",
   "description": "Repo-side inputs whose changes alter the office2 security-monitor baselines. When a commit modifies any matching path, the rebaseline procedure in security-baseline-ops.md should be triggered after the change deploys, otherwise the daily audit will alert as drift. Consumed by tooling/scripts/check_audited_surface_drift.py (CI soft-reminder) and referenced by docs/design/architecture/change-control.md + spec-kitty charter quality gates.",
   "rebaseline_runbook": "docs/runbooks/security-baseline-ops.md",
   "rebaseline_command": "ssh office2-claude 'rm /data/services/security-monitor/baselines/* && sg docker -c /data/services/security-monitor/scripts/audit.sh'",
@@ -35,13 +35,15 @@
     },
     {
       "id": "systemd-user-units",
-      "description": "Systemd user units and drop-ins deployed to ~/.config/systemd/user/ on office2. The audit hashes the enabled-services / systemd-user-units / systemd-user-dropins baselines. Patterns cover both the scripts/office2/ conventional location and scripts/openclaw/*.service.d/ drop-ins (introduced by #656 for the PYTHONPATH guardrail).",
+      "description": "Systemd user units and drop-ins deployed to ~/.config/systemd/user/ on office2. The audit hashes the enabled-services / systemd-user-units / systemd-user-dropins baselines. Patterns cover the scripts/office2/ conventional location, scripts/openclaw/*.service.d/ drop-ins (#656 PYTHONPATH guardrail), and scripts/openclaw/deploy/*.{service,timer} — the agent-prompt-sync (#567) and agent-skill-sync (#775) deploy-pipeline units live there, not under scripts/office2/.",
       "patterns": [
         "scripts/office2/*.service",
         "scripts/office2/*.timer",
         "scripts/office2/*.target",
         "scripts/office2/*.path",
         "scripts/office2/deploy/*.sh",
+        "scripts/openclaw/deploy/*.service",
+        "scripts/openclaw/deploy/*.timer",
         "scripts/openclaw/*.service.d/*.conf",
         "scripts/openclaw/*.service.d/*.conf.tmpl"
       ],
@@ -97,6 +99,7 @@
         "deploys/queued/*.yml",
         "deploys/applied/*.yaml",
         "deploys/failed/*.yaml",
+        "scripts/deploy/*.sh",
         "scripts/deploy/lib/**/*.py",
         "scripts/deploy/lib/README.md"
       ],

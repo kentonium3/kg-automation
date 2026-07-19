@@ -207,14 +207,18 @@ outcome. Tracked for a future enhancement.
 
 ---
 
-## Two-actor shared-checkout lock (deploylock)
+## Shared-checkout lock (deploylock)
 
-Two systemd-timed actors share the single office2 checkout at
+Three systemd-timed actors share the single office2 checkout at
 `/home/claude/kg-automation`:
 
 - **felix-deployer** — the manifest applier (`felix-deployer.timer`, ~5 min).
 - **agent-prompt-sync** — the Felix agent-prompt sync (`agent-prompt-sync.timer`,
   ~5 min).
+- **agent-skill-sync** — the OpenClaw skill (`SKILL.md`) sync (`agent-skill-sync.timer`,
+  ~5 min, #775). Sibling to agent-prompt-sync; reuses the same
+  `scripts/deploy/lib/gitsync` race-immune advance + `deploylock` advisory lock.
+  See [`agent-skill-sync-ops.md`](<./agent-skill-sync-ops.md>).
 
 Both advance the checkout to `origin/main` every tick, and felix-deployer keeps
 mutating the checkout after the pull (queue-apply commits, applied-record

@@ -1,0 +1,40 @@
+# Agent Skill Deploy Pipeline — systemd user timer (#775)
+#
+# Fires the sibling service unit at 5-minute cadence (matches agent-prompt-sync).
+#
+# Why OnUnitInactiveSec=300s (not OnCalendar="*/5"):
+#   OnUnitInactiveSec means "300s after the LAST tick exited" — guarantees
+#   non-overlapping ticks even if a cycle takes >5 min (rare; no-drift ticks
+#   normally complete in <2s per NFR-001). With OnCalendar="*/5", a slow tick
+#   could race the next scheduled fire — a serialization hazard.
+#
+# Why OnBootSec=120s:
+#   Delay the first tick 2 minutes after office2 boot so the network and git
+#   remote have settled (Tailscale connection).
+#
+# Why Persistent=true:
+#   If office2 was off (or the timer disabled) when a tick was due, run ONE
+#   catch-up tick on resume. The helper is idempotent (NFR-002), so a catch-up
+#   tick is harmless.
+#
+# Operator enable (via the manifest pipeline's hard gate, or manual recovery):
+#   systemctl --user enable --now agent-skill-sync.timer
+#
+# Operator validation:
+#   systemd-analyze --user verify scripts/openclaw/deploy/agent-skill-sync.timer
+#   systemctl --user list-timers | grep agent-skill-sync
+#
+# Full runbook: file:///home/claude/kg-automation/docs/runbooks/agent-skill-sync-ops.md
+
+[Unit]
+Description=Agent Skill Deploy Pipeline (5-min cadence)
+Documentation=file:///home/claude/kg-automation/docs/runbooks/agent-skill-sync-ops.md
+
+[Timer]
+OnUnitInactiveSec=300s
+OnBootSec=120s
+Unit=agent-skill-sync.service
+Persistent=true
+
+[Install]
+WantedBy=timers.target

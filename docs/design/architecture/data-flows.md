@@ -2,9 +2,9 @@
 title: Data Flows
 doc_type: reference
 status: approved
-last_updated: '2026-07-17'
-updated_by: 'task-intake-validation-loop-01KXS06W (#749 — +intake-validation-loop flow: scan -> WhatsApp digest -> compact-shorthand reply -> kent-token apply; closes #750) + felix-canary-registry-01KX8T7B (#327 — +felix-canary, +felix-trust-scan, +unified-alert-bus-emit observability flows) + felix-calendar-helper-01KX4H3C (#699 — calendar surface now Felix helper -> Google direct, not gog; closes #679) + felix-admin-cron-path-fix-01KWQTY3 (#656) + restore-whatsapp-dm-reply-delivery-01KTVVHH (#588) + inbox-calendar-and-aspiration-routing-01KTHHXS + #520-felix-vikunja-sync-project-layer-and-url-config'
-tags: [327, 683, 701, 706, 516, 656, 588, 520, 507, 519, 518, 309, 343, 362, 391, 400, 310, 374]
+last_updated: '2026-07-19'
+updated_by: 'openclaw-skills-sync-01KXW1DQ (#775 — +openclaw-skill-sync flow: pull-based SKILL.md deploy/sync repo -> office2 via agent-skill-sync, sibling to agent-prompt-sync #567; closes the #563 skills silent-drift class) + task-intake-validation-loop-01KXS06W (#749 — +intake-validation-loop flow: scan -> WhatsApp digest -> compact-shorthand reply -> kent-token apply; closes #750) + felix-canary-registry-01KX8T7B (#327 — +felix-canary, +felix-trust-scan, +unified-alert-bus-emit observability flows) + felix-calendar-helper-01KX4H3C (#699 — calendar surface now Felix helper -> Google direct, not gog; closes #679) + felix-admin-cron-path-fix-01KWQTY3 (#656) + restore-whatsapp-dm-reply-delivery-01KTVVHH (#588) + inbox-calendar-and-aspiration-routing-01KTHHXS + #520-felix-vikunja-sync-project-layer-and-url-config'
+tags: [775, 567, 563, 327, 683, 701, 706, 516, 656, 588, 520, 507, 519, 518, 309, 343, 362, 391, 400, 310, 374]
 ---
 
 # Data Flows
@@ -815,6 +815,40 @@ resolve, constrained to a canonical name re-resolved through the seam (Directive
 re-appearing (re-prompt-until-resolved, no suppression state). Ops:
 [`intake-ops.md`](<../../runbooks/intake-ops.md>). Authoritative record:
 `flows[?name=intake-validation-loop]` in `data/data-flows.json`.
+
+### OpenClaw Skill Sync (#775)
+
+```
+GitHub main → office2 checkout /home/claude/kg-automation
+  → agent-skill-sync (MD5-diff scripts/openclaw/skills/<skill>/SKILL.md)
+  → atomic copy → /home/claude/.openclaw/skills/<skill>/SKILL.md
+```
+
+Pull-based OpenClaw **skill** deploy pipeline (`agent-skill-sync.timer`, ~5 min),
+sibling to the agent-prompt sync (#567) and a **third actor** on the shared
+office2 checkout — it reuses the same race-immune advance + advisory `deploylock`
+as `felix-deployer` and `agent-prompt-sync`. Each tick advances the checkout to
+`origin/main`, then for each of the six skills (`doc-audit`, `escalation`,
+`skill-author`, `task-intelligence`, `vikunja-api`, `whisper`) MD5-compares the
+repo `scripts/openclaw/skills/<skill>/SKILL.md` against the deployed
+`/home/claude/.openclaw/skills/<skill>/SKILL.md` and atomically copies any drifted
+file (destination dir created first).
+
+**Copy-only**: it never prunes a deployed skill that has no repo counterpart (an
+**orphan** — reported as an alert, never deleted), ignores `*.backup*` sidecars,
+and emits a warning-audit when a repo skill dir carries files beyond `SKILL.md`
+(the copied payload stays `SKILL.md` only). An **independent** comparator
+(`scripts/openclaw/enforcement/skills_drift_check.py`, NOT the sync's own code
+path) is wired as the service canary `health_check` and reports drift + orphans
+(`--json`; exit `0`=clean / `1`=drift-or-orphan / `2`=unreadable). Observability:
+audit log `agent-skill-sync.jsonl`, freshness pointer `skills-last-tick.json`
+(timer-liveness, `exit_code` always 0), and the `agent-skill-sync-git-health.json`
+/ `agent-skill-sync-copy-health.json` streak-deduped watermarks on the felix-alert
+bus. Closes the SKILL.md silent-drift gap (#563 class); deploy/sync **mechanism**
+only — skill **content** refresh is #714. Ops:
+[`agent-skill-sync-ops.md`](<../../runbooks/agent-skill-sync-ops.md>).
+Authoritative record: `flows[?name=openclaw-skill-sync]` in
+`data/data-flows.json`.
 
 ## Planned Flows (Not Yet Implemented)
 

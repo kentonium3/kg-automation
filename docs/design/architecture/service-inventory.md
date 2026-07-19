@@ -2,7 +2,7 @@
 title: Service Inventory
 doc_type: reference
 status: approved
-tags: [749, 750, 656, 588, 579, 572, 520, 519, 518, 137, 189, 80, 202, 149, 190, 374, 100, 253, 185, 254, 371, 309, 343, 306, 308, 310, 362, 391, 400, 105, 115, 562, 490, 408, 567, 563, 558, 561, 540, 542, 306/, 152, 376, 368-, 112]
+tags: [775, 749, 750, 656, 588, 579, 572, 520, 519, 518, 137, 189, 80, 202, 149, 190, 374, 100, 253, 185, 254, 371, 309, 343, 306, 308, 310, 362, 391, 400, 105, 115, 562, 490, 408, 567, 563, 558, 561, 540, 542, 306/, 152, 376, 368-, 112]
 ---
 
 # Service Inventory
@@ -44,6 +44,7 @@ All services run on office2 unless otherwise noted.
 | Felix Health Check | Twice daily 11:00 + 23:00 local | `felix-health-check.timer` (systemd, #676) → `python3 -m scripts.office2.felix_health_check.run` | claude | Runs the existing bash health check off the Sonnet `main` agent (zero `main` sessions per run); ntfy alert on failure. Replaces the openclaw crons `health-check-morning` / `health-check-evening`. (#676) |
 | Felix Habit Sweeper | 7:30 AM ET daily (`OnCalendar=*-*-* 07:30 America/New_York`) | `felix-habit-sweeper.timer` (systemd, #408) → `/usr/bin/python3 /home/claude/kg-automation/scripts/habits/sweeper.py` | claude | Daily 48hr auto-skip pass for habit check-ins — marks unresolved habits as `auto_skipped` and advances day-specific habit `due_date` to the next designated weekday EOD-ET. Deterministic, zero LLM calls. (#408) |
 | Agent Prompt Sync | Every 5 min after last tick (`OnUnitInactiveSec=300s`) | `agent-prompt-sync.timer` (systemd, #567) → `/usr/bin/python3 -m scripts.openclaw.deploy.deploy_agent_prompts` | claude | Pull-based deploy pipeline. Each tick `git pull --ff-only` then MD5-compare + atomic-copy any drifted agent prompt file from repo into `/data/services/openclaw/<deploy-dir>/`. Slug → deploy-dir mapping is NOT 1:1 (see Agent Prompt Deploy Pipeline section below). Deterministic, zero LLM calls. (#567) |
+| Agent Skill Sync | Every 5 min after last tick (`OnUnitInactiveSec=300s` + `OnBootSec=120s` + `Persistent=true`) | `agent-skill-sync.timer` (systemd, #775) → `/usr/bin/python3 -m scripts.openclaw.deploy.deploy_agent_skills` | claude | Pull-based deploy pipeline, sibling to Agent Prompt Sync (#567). Each tick advances the shared checkout then MD5-compares + atomic-copies any drifted `scripts/openclaw/skills/<skill>/SKILL.md` into `/home/claude/.openclaw/skills/<skill>/SKILL.md`. Copy-only (never prunes; `*.backup*` ignored; a skill dir with files beyond SKILL.md emits a warning-audit). Reuses the shared deploylock + gitsync + streak-dedup health. Six skills (see OpenClaw Skill Deploy Pipeline section below). Deterministic, zero LLM calls. (#775) |
 | Felix-Deployer | Every 5 min (`felix-deployer.timer`, systemd-user, #136) | `/usr/bin/python3 scripts/deploy/felix-deployer/deployer.py` (Type=oneshot) | claude | Pull-based deploy applier. Each tick `git pull` then scans `deploys/queued/*.yaml`, applies each via `scripts/deploy/lib/`, dispatches **ntfy.sh push notification on failure** (substrate set by #595, replaces broken openclaw-cron WhatsApp DM path). Reads `FELIX_DEPLOYER_NTFY_TOPIC` from `EnvironmentFile=-/home/claude/.config/felix-deployer/env` (non-fatal if missing). Outbound dep: `ntfy.sh:443/tcp`. Runbook: [`deploy/discipline.md`](../runbooks/deploy/discipline.md). |
 | Felix Trust Scan | Every 15 min (`OnBootSec=5min`, `OnUnitActiveSec=15min`, `Persistent=true`) | `felix-trust-scan.timer` (systemd, #683) → `python3 -m scripts.trust.run_trust_scan --json` | claude | Detection half of the Felix Truthful Reporting Guardrails: cron-drift detection (live OpenClaw crons vs the committed approved-cron baseline — agent-independent, load-bearing) + completion-assertion verification (asserted artifact ids checked against their owning system). Alerts via the #701 `felix-alert` bus. Fail-safe: timer mode always exits 0. (#683) |
 | Felix Canary | Every 15 min (`OnBootSec=5min`, `OnUnitActiveSec=15min`, `Persistent=true`) | `felix-canary.timer` (systemd-user, #327) → `python3 -m scripts.canary.run --once` | claude | Component-health canary: reads each service's declared `health_check` from `service-inventory.json`, computes health per ADR-0006 (only `active`/`running` alert-eligible), and emits stale/failed/coverage-gap/persistent-unknown findings via the #701 `felix-alert` bus. Deterministic (0 LLM tokens/tick). State + per-component ledger under `/data/services/felix-canary/`; `OnFailure=felix-canary-onfailure.service` pages an out-of-band ERROR on a crashed run (dead-timer detection deferred to #269). Sibling scanner to Felix Trust Scan. Runbook: [`canary-registry-ops.md`](<../../runbooks/canary-registry-ops.md>). (#327) |
@@ -105,6 +106,77 @@ session-init only (no hot-reload). A new prompt deployed at 09:32 reaches a
 felix-admin-capture cron tick at 12:00 ET (the next scheduled invocation).
 The helper does NOT trigger an openclaw restart — that is intentional per
 spec FR-017.
+
+## OpenClaw Skill Deploy Pipeline (#775)
+
+**Purpose**: Automate the sync of the OpenClaw agent skills (`SKILL.md`) from
+the `kg-automation` repo on office2 (`/home/claude/kg-automation/scripts/openclaw/skills/<skill>/`)
+into the deployed skills directory under `/home/claude/.openclaw/skills/`.
+Sibling to the Agent Prompt Deploy Pipeline (#567); closes the same silent-drift
+gap (#563 class) for the skills surface. **Scope**: deploy/sync MECHANISM only —
+skill CONTENT refresh is [#714].
+
+**Architecture** (pull-based; see [agent-skill-sync-ops.md](../../runbooks/agent-skill-sync-ops.md)):
+
+1. User-level systemd timer (`agent-skill-sync.timer`) fires every 5 minutes
+   after the previous tick exits (`OnUnitInactiveSec=300s`), plus `OnBootSec=120s`
+   and `Persistent=true`
+2. The service unit runs `python3 -m scripts.openclaw.deploy.deploy_agent_skills`
+   inside `/home/claude/kg-automation`
+3. The helper: (a) advances the shared checkout to `origin/main` (git fetch +
+   `merge --ff-only` via `scripts/deploy/lib/gitsync`, under the shared
+   `deploylock`), (b) for each skill MD5-compares the repo
+   `scripts/openclaw/skills/<skill>/SKILL.md` against the deployed
+   `/home/claude/.openclaw/skills/<skill>/SKILL.md`, (c) atomically copies any
+   drifted file (destination dir created first), (d) appends structured records
+   to `/data/services/openclaw/deploy/agent-skill-sync.jsonl`, (e) overwrites the
+   flat `/data/services/openclaw/deploy/skills-last-tick.json` freshness pointer
+   (timer-liveness anchor, `exit_code` always 0) every real tick
+
+**Third actor on the shared checkout**: `agent-skill-sync` joins `felix-deployer`
+and `agent-prompt-sync` on the single office2 checkout, reusing the same
+race-immune advance + advisory `deploylock` (a lock-unavailable tick defers
+cleanly to the next interval — a benign, non-failing event). See
+[`deployment.md` §Shared-checkout lock](../../runbooks/deployment.md).
+
+**Skills synced** (six today):
+
+- `doc-audit`, `escalation`, `skill-author`, `task-intelligence`, `vikunja-api`, `whisper`
+
+**Copy-only discipline**:
+
+- Never prunes — a deployed skill with no repo counterpart (an **orphan**) is
+  left in place and reported as an alert (never deleted)
+- `*.backup*` sidecars are ignored
+- A repo skill dir carrying files beyond `SKILL.md` emits a **warning-audit**
+  (the copied payload stays `SKILL.md` only)
+
+**Independent drift check**: `scripts/openclaw/enforcement/skills_drift_check.py`
+is a standalone comparator (NOT the sync's own code path) that MD5-compares each
+repo `SKILL.md` against its deployed copy and reports drift + orphans, ignoring
+`*.backup*` (exit `0`=clean / `1`=drift-or-orphan / `2`=unreadable; `--json`).
+It is wired as the service's canary `health_check` (method `self-check-command`,
+endpoint `cd /home/claude/kg-automation && python3 -m scripts.openclaw.enforcement.skills_drift_check`).
+A separate comparator is used deliberately: the sync overwrites office2 every
+tick, so a dry-run of the sync would be circular and maskable by the next
+remediating tick.
+
+**Observability surfaces**:
+
+- Audit log: `/data/services/openclaw/deploy/agent-skill-sync.jsonl`
+- Freshness pointer: `/data/services/openclaw/deploy/skills-last-tick.json`
+  (timer-liveness; `exit_code` always 0)
+- Health watermarks: `agent-skill-sync-git-health.json` (git-advance failures)
+  and `agent-skill-sync-copy-health.json` (copy failures) — streak-deduped
+  escalation via the felix-alert bus
+
+**Operator surface**: see [`docs/runbooks/agent-skill-sync-ops.md`](../../runbooks/agent-skill-sync-ops.md)
+for the manifest-pipeline deploy + hard verify-before-enable gate, manual
+enable/validation, the independent drift check, and rollback.
+
+**Behavior on skill change**: agents read their skills at openclaw session-init;
+a newly synced `SKILL.md` reaches an agent at its next session (next cron tick).
+The helper does NOT trigger an openclaw restart.
 
 ## Deployment Details
 

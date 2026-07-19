@@ -17,7 +17,7 @@
   "flattened": false,
   "friendly_name": "OpenClaw Skills Deploy/Sync",
   "mission_id": "01KXW1DQQGZDHH0NK0YGM9WY10",
-  "mission_number": null,
+  "mission_number": 107,
   "mission_slug": "openclaw-skills-sync-01KXW1DQ",
   "mission_type": "software-dev",
   "purpose_context": "OpenClaw agent skills edited in the repo currently have no path to the deployed skills on office2, so a SKILL.md edit is stranded and can go months out of date with no signal. This mission builds the auto-deploy sync plus a drift check, mirroring the proven agent-prompt-sync mechanism, so deployed skills stay faithful to the repo and any divergence is surfaced.",
