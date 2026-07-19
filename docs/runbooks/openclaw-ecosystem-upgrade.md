@@ -7,8 +7,8 @@ level: howto
 created: 2026-07-19
 last_validated: '2026-07-19'
 last_updated: '2026-07-19'
-updated_by: '#628'
-version: v1.0
+updated_by: '#628; #653 PATH-shadow + plugins-update-verb gotchas (2026.7.1-2 apply)'
+version: v1.1
 owners: [kgale]
 ---
 
@@ -74,36 +74,57 @@ user-local npm global under `/home/claude/.local`; no `sudo` is required). If an
 step unexpectedly demands elevation, **stop** — that would be a Tier-0 action and
 must be handed to Kent per the change-control hard lock.
 
+> **⚠️ PATH shadow — use the absolute claude-space binary.** Until #653's
+> root-global removal lands, a stale root-owned `/usr/bin/openclaw` →
+> `/usr/lib/node_modules/openclaw` (an OLD version) sits ahead of the claude-space
+> install on the non-interactive ssh PATH (which has `/usr/bin` but **not**
+> `/home/claude/.local/bin`). So **bare `openclaw` resolves to the stale
+> root-global** — `openclaw --version` will report the OLD version even after a
+> successful upgrade (a false-negative), and a bare `openclaw plugins …` would
+> drive the wrong CLI + plugin tree. **Run every openclaw CLI command in this
+> section as `/home/claude/.local/bin/openclaw`**, and verify the *running* host
+> with `openclaw gateway status --deep` (`Gateway version:`), not bare
+> `openclaw --version`. The running gateway itself is unaffected — its systemd
+> `ExecStart` invokes the claude-space `dist/index.js` by absolute path. Once #653
+> removes the root-global, bare `openclaw` becomes safe again.
+
 1. **Snapshot precondition (Tier 2).** Confirm a Restic backup within 24h exists
    (see [`security-baseline-ops.md`](<./security-baseline-ops.md>) /
    [`deploy/discipline.md`](<./deploy/discipline.md>) for the backup story);
    trigger one first if stale.
 
-2. **Record current versions** (so a rollback target is known):
+2. **Record current versions** (so a rollback target is known — use the absolute
+   claude-space binary per the PATH-shadow warning above):
 
    ```
-   ssh office2-claude 'openclaw --version && ls ~/.openclaw/npm/projects/'
+   ssh office2-claude '/home/claude/.local/bin/openclaw --version && ls ~/.openclaw/npm/projects/'
    ```
 
-3. **Upgrade core:**
+3. **Upgrade core** (the `npm install -g` correctly targets the claude-space tree;
+   verify with `gateway status --deep` after the restart, NOT bare
+   `openclaw --version`, which is shadowed):
 
    ```
-   ssh office2-claude 'npm install -g openclaw@latest && openclaw --version'
+   ssh office2-claude 'npm install -g openclaw@latest && /home/claude/.local/bin/openclaw --version'
    ```
 
 4. **Upgrade every channel plugin to match** (do NOT skip — this is the #588/#617
    guard). For each `@openclaw/<plugin>` the digest flagged, upgrade it through
    openclaw's own plugin mechanism so it lands under `~/.openclaw/npm/projects/`
-   (NOT a bare `npm -g install`, which would put it in the wrong tree):
+   (NOT a bare `npm -g install`, which would put it in the wrong tree). The
+   subcommand is **`plugins update`** (renamed from `plugins upgrade` in 2026.7.1)
+   and needs the explicit `@latest` spec — the bare id refuses because the plugin
+   is version-pinned. Dry-run first, then apply:
 
    ```
-   ssh office2-claude 'openclaw plugins upgrade @openclaw/whatsapp'   # repeat per flagged plugin
+   ssh office2-claude '/home/claude/.local/bin/openclaw plugins update @openclaw/whatsapp@latest --dry-run'
+   ssh office2-claude '/home/claude/.local/bin/openclaw plugins update @openclaw/whatsapp@latest'   # repeat per flagged plugin
    ```
 
-   If `openclaw plugins upgrade` is unavailable on the installed build, re-add
-   the plugin at the target version via the same command used to install it
-   originally (see [`openclaw-upgrade-gotchas`](<./openclaw-ops.md>) /
-   memory `reference_openclaw_upgrade_gotchas`). Confirm the on-disk version:
+   If `plugins update` is unavailable on the installed build, re-add the plugin at
+   the target version via the same command used to install it originally (see
+   [`openclaw-upgrade-gotchas`](<./openclaw-ops.md>) / memory
+   `reference_openclaw_upgrade_gotchas`). Confirm the on-disk version:
 
    ```
    ssh office2-claude 'for p in ~/.openclaw/npm/projects/*/node_modules/@openclaw/*/package.json; do node -e "const x=require(\"$p\"); console.log(x.name, x.version)"; done'
@@ -113,7 +134,14 @@ must be handed to Kent per the change-control hard lock.
    restart — deploy gotcha #11):
 
    ```
-   ssh office2-claude 'openclaw gateway restart'
+   ssh office2-claude '/home/claude/.local/bin/openclaw gateway restart'
+   ```
+
+   Confirm the *running* host is the new version (bare `openclaw --version` is
+   shadowed; this reads the live process):
+
+   ```
+   ssh office2-claude '/home/claude/.local/bin/openclaw gateway status --deep 2>&1 | grep -iE "Gateway version|Runtime|Listening"'
    ```
 
 6. **DM-reply smoke (mandatory — this is the #588/#617 verification).** Send a
