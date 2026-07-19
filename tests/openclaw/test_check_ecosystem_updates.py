@@ -287,7 +287,8 @@ def test_run_pass_emits_digest_on_updates(tmp_path):
     assert "update" in alert.title.lower()
     assert "@openclaw/whatsapp" in alert.description
     assert "openclaw" in alert.description
-    assert "runbook" in alert.action.lower() or ".md" in alert.action
+    assert ".md" in alert.action
+    assert "tier-0" not in alert.action.lower()  # OpenClaw apply is Tier-2, not Tier-0
     # a tick with the finding counts is still recorded
     assert json.loads(_tick(tmp_path).read_text())["updates_available"] == 2
 

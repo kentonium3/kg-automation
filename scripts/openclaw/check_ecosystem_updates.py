@@ -390,7 +390,7 @@ def run_pass(
     if result.has_findings:
         title, body = _render_digest(result)
         severity = Severity.WARN
-        action = f"Follow {_RUNBOOK} (attended Tier-0 upgrade)."
+        action = f"Follow {_RUNBOOK} (attended manual upgrade)."
         if dry_run:
             sys.stdout.write(f"[dry-run] would emit ({severity.value}): {title}\n{body}\n")
         else:
