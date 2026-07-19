@@ -13,6 +13,7 @@
   "accepted_at": "2026-07-19T14:30:29.479302+00:00",
   "accepted_by": "kentgale",
   "accepted_from_commit": "8449771c8684a091fdb2dbd098d7d4ee93115355",
+  "baseline_merge_commit": "335acc479562b2bbf7b923bf373886f938e248d2",
   "created_at": "2026-07-19T13:38:27.700904+00:00",
   "flattened": false,
   "friendly_name": "Author felix-admin-habits workspace",
