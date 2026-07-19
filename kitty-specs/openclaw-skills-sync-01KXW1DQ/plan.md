@@ -73,28 +73,35 @@ No violations. No Complexity Tracking entries required.
 
 2. **Alert via the felix-alert bus directly** (D-3). The health watermark's notifier seam
    (`health.record(..., notifier=)` calling `(title, body) -> bool`) dispatches through
-   `scripts.common.alert_bus.emit(Alert(...))`, returning `result.delivered`. This is the canonical
-   modern bus (prompt-sync's importlib load of felix-deployer `notify.py` is a documented vestigial
-   wrapper over the *same* bus) — cleaner and no hyphenated-dir importlib dance.
+   `scripts.common.alert_bus.emit(Alert(source=…, severity=…, title=…, description=…))` and returns
+   **`result.ok`** (the `AlertResult` field is `.ok`, **not** `.delivered` — verified in `model.py`;
+   using `.delivered` would raise `AttributeError`, be swallowed by `health.record`, and silently
+   never alert). `Alert` requires `source, severity, title, description` (+ optional `action`,
+   `details`). This is the canonical modern bus (prompt-sync's importlib load of felix-deployer
+   `notify.py` is a documented vestigial wrapper over the *same* bus). *(Codex #1 HIGH-2.)*
 
-3. **Drift check reuses the sync's own `--dry-run`** (D-4). The read-only `--dry-run` path already
-   computes the authoritative repo↔office2 MD5 comparison and prints `DRIFT` lines. The drift check
-   is that computation surfaced on a cadence/enforcement pass, alert-only, ignoring `*.backup*`
-   (FR-010). It also registers skills in the existing enforcement surface
-   (`drift-check-config.json`) **only if** skills fit the detection model cleanly; the
-   baseline-manifest three-way-diff that `detection.py` uses is agent-specific, so the default is a
-   self-contained skills drift report through the same alert bus rather than force-fitting skills
-   into that model. (Flagged for the post-plan Codex review.)
+3. **Drift check = an INDEPENDENT canary probe, not the sync's own `--dry-run`** (D-4). The sync's
+   `--dry-run` shares the sync's code path and — because the sync overwrites office2 every tick — a
+   dry-run would be partly circular and could be masked by the next remediating tick. Instead, a
+   standalone comparator `scripts/openclaw/enforcement/skills_drift_check.py` (independent of
+   `deploy_agent_skills.py`) directly MD5-compares each checkout-repo `SKILL.md` against its deployed
+   copy, alert-only, ignoring `*.backup*` (FR-010), and reports **orphans** — deployed skills with no
+   repo counterpart (FR-014). It is registered as a **canary probe** (`scripts/canary/registry.py` +
+   `probes.py`, the established independent-observer surface, #327) so it inherits the canary's
+   cadence + alert-dedup. The `--dry-run` on the sync remains an operator convenience, not the
+   FR-009 mechanism. *(Codex #1 HIGH-3.)*
 
-4. **Deploy = queued manifest that places code+units + verifies; enable is a linger-aware step**
-   (D-5). felix-deployer applies `deploys/queued/skills-sync.yaml`: pre-flight → confirm new code
-   present in the checkout (arrives via the checkout's own self-advance in the merge) → copy
-   `.service`/`.timer` into `~/.config/systemd/user/` → verify. The `systemctl --user enable --now`
-   is performed with `XDG_RUNTIME_DIR=/run/user/$(id -u)` set (non-login ssh shows `--user` as
-   `degraded`; the units run under user-linger). The manifest treats the enable as best-effort/
-   non-fatal and the `.service`/`.timer` headers document the one-time operator/live enable
-   (mirroring how agent-prompt-sync was enabled); the mission's live-verify step (task 6) confirms
-   the timer is active.
+4. **Deploy = queued manifest with a HARD verify-before-enable gate** (D-5). felix-deployer applies
+   `deploys/queued/skills-sync.yaml`: pre-flight → confirm new code present in the checkout (arrives
+   via the checkout self-advance in the merge) → copy `.service`/`.timer` into
+   `~/.config/systemd/user/` → `systemctl --user daemon-reload` → **run the real unit once**
+   (`systemctl --user start agent-skill-sync.service`) and assert it wrote `skills-last-tick.json`
+   (the smoke gate) → **only then** `enable --now` → assert `is-enabled` + `list-timers` shows the
+   timer. `systemctl --user` **works** from the deploy pipeline (precedent: `deploy-felix-canary.py`,
+   `deploy-habits-weekly-driver.py`), exporting `XDG_RUNTIME_DIR=/run/user/$(id -u)`. A failed
+   smoke/enable **fails the deploy loudly** (felix-deployer marks it failed + alerts) — it is NOT
+   best-effort, because an installed-but-not-running timer is exactly the stranded-edit failure this
+   mission exists to eliminate. *(Codex #1 HIGH-1.)*
 
 ## Project Structure
 
@@ -126,10 +133,17 @@ scripts/deploy/
 └── lib/{gitsync,deploylock,health}.py   # REUSED as-is (imported)
 
 scripts/openclaw/enforcement/
-├── drift-check-config.json           # MODIFIED (only if skills fit cleanly — see D-4)
+├── skills_drift_check.py             # NEW — independent repo↔deployed MD5 comparator (drift + orphans), alert-only
+
+scripts/canary/
+├── registry.py                       # MODIFIED — register skills-drift + skills-freshness probes
+├── probes.py                         # MODIFIED only if a new probe kind is needed (else reuse _probe_command/_probe_freshness)
+
+docs/design/architecture/data/
+├── audited-surfaces.json             # MODIFIED — extend globs to cover the new unit + deploy script (Codex #1 MEDIUM-1)
 
 deploys/queued/
-└── skills-sync.yaml                  # NEW — v1 manifest (tier 1/3, audited_surface: true)
+└── skills-sync.yaml                  # NEW — v1 manifest (tier: 3, audited_surface: true)
 
 tests/openclaw/deploy/
 └── test_deploy_agent_skills.py       # NEW — unit + integration tests (test-first)
@@ -156,25 +170,29 @@ the agent-prompt-sync template verbatim so the two syncs are operationally symme
 
 ### IC-01 — Skills sync helper (core deterministic path)
 
-- **Purpose**: Enumerate repo skills, MD5-compare against deployed copies, atomic-copy drift,
-  emit audit + freshness + health signals, support `--dry-run` and `--skill <name>` filter.
-- **Relevant requirements**: FR-001…FR-008, FR-011, NFR-001…NFR-006.
+- **Purpose**: Enumerate repo skills, MD5-compare against deployed copies, atomic-copy drift
+  (creating `dest.parent` first — FR-016), emit audit + freshness + health signals, warning-audit a
+  multi-file skill dir (FR-015), support `--dry-run` and `--skill <name>` filter.
+- **Relevant requirements**: FR-001…FR-008, FR-011, FR-015, FR-016, NFR-001…NFR-006.
 - **Affected surfaces**: `scripts/openclaw/deploy/deploy_agent_skills.py`; imports
-  `scripts/deploy/lib/{gitsync,deploylock,health}`, `scripts/common/alert_bus`.
+  `scripts/deploy/lib/{gitsync,deploylock,health}`, `scripts/common/alert_bus` (notifier returns
+  `emit(Alert(...)).ok`).
 - **Sequencing/depends-on**: none (foundation).
 - **Risks**: reuse the shared `deploylock` so the tick never races felix-deployer / prompt-sync on
   the checkout; `-m` invocation form; copy-only (never prune); exit-code contract mirrors prompt-sync.
 
-### IC-02 — Drift check (alert-only)
+### IC-02 — Independent drift check (alert-only)
 
-- **Purpose**: Detect repo↔office2 skill divergence and alert (no remediation — the sync remediates),
-  ignoring `*.backup*`.
-- **Relevant requirements**: FR-009, FR-010, NFR-003.
-- **Affected surfaces**: the helper's `--dry-run` drift computation; optionally
-  `scripts/openclaw/enforcement/drift-check-config.json` (only if skills fit the model — D-4).
-- **Sequencing/depends-on**: IC-01 (uses its drift computation).
-- **Risks**: avoid force-fitting skills into the agent baseline-manifest three-way-diff; keep the
-  skills drift report deterministic and alert-only.
+- **Purpose**: A standalone comparator (`scripts/openclaw/enforcement/skills_drift_check.py`),
+  independent of the sync code path, that MD5-compares repo↔deployed per skill and alerts — including
+  orphan detection (deployed skill absent from repo, FR-014) — ignoring `*.backup*`. Registered as a
+  canary probe for cadence + dedup.
+- **Relevant requirements**: FR-009, FR-010, FR-014, NFR-003.
+- **Affected surfaces**: `scripts/openclaw/enforcement/skills_drift_check.py`,
+  `scripts/canary/registry.py` (+ `probes.py` only if a new probe kind is needed).
+- **Sequencing/depends-on**: none for the comparator; the canary registration references the freshness
+  signal IC-01 emits.
+- **Risks**: must be genuinely independent (not re-invoke the sync); deterministic; alert-only.
 
 ### IC-03 — Systemd units + timer
 
@@ -182,24 +200,33 @@ the agent-prompt-sync template verbatim so the two syncs are operationally symme
 - **Relevant requirements**: FR-008, NFR-001.
 - **Affected surfaces**: `scripts/openclaw/deploy/agent-skill-sync.{service,timer}`.
 - **Sequencing/depends-on**: IC-01.
-- **Risks**: `systemctl --user` needs `XDG_RUNTIME_DIR` in non-login contexts; document the enable.
+- **Risks**: `systemctl --user` needs `XDG_RUNTIME_DIR` in non-login contexts (handled in the deploy
+  entrypoint per precedent).
 
-### IC-04 — Deploy manifest + entrypoint
+### IC-04 — Deploy manifest + entrypoint (hard verify-before-enable gate)
 
 - **Purpose**: Roll the mechanism to office2 through the manifest pipeline (DIR-004), audited-surface
-  aware, with the linger-aware enable and safe-deploy ordering (DIR-005).
+  aware, with a HARD enable gate + safe-deploy ordering (DIR-005): daemon-reload → real-unit smoke
+  (freshness signal written) → enable --now → assert is-enabled/list-timers. A failed smoke/enable
+  fails the deploy loudly.
 - **Relevant requirements**: FR-012, C-002.
 - **Affected surfaces**: `deploys/queued/skills-sync.yaml`, `scripts/deploy/deploy-skills-sync.sh`.
 - **Sequencing/depends-on**: IC-01, IC-03.
-- **Risks**: entrypoint must not hard-fail on a `systemctl --user` enable hiccup (would fail the
-  felix-deployer apply + alert); code presence must be verified before unit enable.
+- **Risks**: an installed-but-not-running timer silently defeats the mission — the enable must NOT be
+  best-effort; export `XDG_RUNTIME_DIR`; verify the smoke before enable (mirror `deploy-felix-canary.py`).
 
 ### IC-05 — Documentation synchronization
 
 - **Purpose**: Register the new service/unit/data-flow and the ops runbook across the arch docs.
 - **Relevant requirements**: FR-013, DIR-014.
-- **Affected surfaces**: `service-inventory.json`+`.md`, `service-dependencies.view.md`,
-  `audited-surfaces.json`, `data-flows.json`+`.md`+`.view.md`, `docs/runbooks/agent-skill-sync-ops.md`,
-  `docs/runbooks/deployment.md`, `docs/INDEX.md`, `docs/DEVELOPER_PORTAL.md`, roadmap note.
+- **Affected surfaces**: `service-inventory.json`+`.md` (new service + its `skills-last-tick.json`
+  health_check: endpoint `/data/services/openclaw/deploy/skills-last-tick.json`, tick-signal method,
+  `max_age_seconds: 600`), `service-dependencies.view.md`, `audited-surfaces.json`
+  (**extend globs** to cover `scripts/openclaw/deploy/*.{service,timer}` +
+  `scripts/deploy/deploy-skills-sync.sh` — Codex #1 MEDIUM-1), `data-flows.json`+`.md`+`.view.md`,
+  `docs/runbooks/agent-skill-sync-ops.md`, `docs/runbooks/deployment.md`, `docs/INDEX.md`,
+  `docs/DEVELOPER_PORTAL.md`, roadmap note.
 - **Sequencing/depends-on**: IC-01…IC-04 (documents what they build).
-- **Risks**: keep JSON authoritative + markdown views in sync; `updated_by: 775`.
+- **Risks**: keep JSON authoritative + markdown views in sync; `updated_by: 775`; the
+  audited-surfaces glob extension is what makes the C-002 rebaseline claim true (verify with
+  `validate_architecture_data`).
