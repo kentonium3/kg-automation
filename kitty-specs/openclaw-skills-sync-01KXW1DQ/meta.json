@@ -10,5 +10,7 @@
   "purpose_tldr": "Repo skill edits reach office2, and skill drift is detected instead of accruing silently.",
   "slug": "openclaw-skills-sync-01KXW1DQ",
   "target_branch": "feat/openclaw-skills-sync",
-  "topology": "single_branch"
+  "topology": "single_branch",
+  "vcs": "git",
+  "vcs_locked_at": "2026-07-19T02:35:30.829208+00:00"
 }
