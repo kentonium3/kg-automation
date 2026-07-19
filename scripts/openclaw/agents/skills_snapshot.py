@@ -50,7 +50,11 @@ def discover_agents(config_path: str) -> list[str]:
 def query_agent(agent_id: str) -> dict:
     """Run `openclaw skills check --agent <id>` and parse visible skills + counts."""
     proc = subprocess.run(
-        ["openclaw", "skills", "check", "--agent", agent_id],
+        # Absolute claude-space path: agent-skill-sync.service has no PATH
+        # override, so the systemd-user default PATH lacks ~/.local/bin. Bare
+        # `openclaw` broke after the #653 root-global removal deleted
+        # /usr/bin/openclaw.
+        ["/home/claude/.local/bin/openclaw", "skills", "check", "--agent", agent_id],
         capture_output=True,
         text=True,
     )

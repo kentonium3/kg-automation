@@ -35,8 +35,11 @@ KIND_SCHEDULE_MISMATCH = "schedule_mismatch"
 KIND_ENABLED_MISMATCH = "enabled_mismatch"
 
 # Fixed argv for the live-enumeration subprocess (no shell, never `exec` —
-# matches the felix-health-check runner style).
-OPENCLAW_CRON_LIST_ARGV = ["openclaw", "cron", "list", "--json"]
+# matches the felix-health-check runner style). Absolute claude-space path:
+# felix-trust-scan.service has no PATH override, so the systemd-user default
+# PATH lacks ~/.local/bin. After the #653 root-global removal deleted
+# /usr/bin/openclaw, bare `openclaw` raised FileNotFoundError → the scan failed.
+OPENCLAW_CRON_LIST_ARGV = ["/home/claude/.local/bin/openclaw", "cron", "list", "--json"]
 SUBPROCESS_TIMEOUT_SECONDS = 30
 
 

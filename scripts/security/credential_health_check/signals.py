@@ -121,7 +121,11 @@ def whatsapp_session_signal(
     """Detect not-connected or stale WhatsApp session."""
     try:
         result = subprocess.run(
-            ["openclaw", "channels", "status"],
+            # Absolute claude-space path: this runs under
+            # credential-health-check.service which has no PATH override, so the
+            # systemd-user default PATH lacks ~/.local/bin. Bare `openclaw` broke
+            # after the #653 root-global removal deleted /usr/bin/openclaw.
+            ["/home/claude/.local/bin/openclaw", "channels", "status"],
             capture_output=True,
             text=True,
             timeout=10,
