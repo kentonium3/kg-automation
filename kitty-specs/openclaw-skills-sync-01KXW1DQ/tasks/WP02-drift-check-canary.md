@@ -125,3 +125,4 @@ from `lanes.json`. WP02 depends on WP01 but touches disjoint files (safe to lane
 - 2026-07-19T02:49:19Z – claude – shell_pid=86809 – Assigned agent via action command
 - 2026-07-19T02:53:42Z – claude – shell_pid=86809 – Independent drift-check comparator + 16 tests; canary wiring via service-inventory health_check in WP04
 - 2026-07-19T02:54:00Z – claude – shell_pid=88535 – Started review via action command
+- 2026-07-19T02:54:23Z – user – shell_pid=88535 – Comparator reviewed: independent of sync, exit contract + orphan + backup-ignore covered by 16 tests; smoke green. Canary wiring in WP04.
