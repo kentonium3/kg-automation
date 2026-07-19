@@ -17,7 +17,9 @@ subtasks:
 - T007
 - T008
 - T009
-agent: claude
+agent: "claude"
+shell_pid: "86809"
+shell_pid_created_at: "1784429345.435362"
 history:
 - '2026-07-19: authored by /spec-kitty.tasks'
 agent_profile: python-pedro
@@ -117,3 +119,7 @@ from `lanes.json`. WP02 depends on WP01 but touches disjoint files (safe to lane
 - Reviewer: confirm the check does NOT re-invoke the sync (independence is the whole point).
 - Confirm orphan detection ignores `*.backup*` and never deletes.
 - Confirm the freshness probe points at `skills-last-tick.json` (not the prompt-sync `last-tick.json`).
+
+## Activity Log
+
+- 2026-07-19T02:49:19Z – claude – shell_pid=86809 – Assigned agent via action command
