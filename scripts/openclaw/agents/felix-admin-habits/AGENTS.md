@@ -68,8 +68,9 @@ final reply starting with the identity line.
 
 Origin: 2026-05-20 smoke-test confirmed text emitted before the identity
 line — in the final reply OR between tool calls — is relayed to Kent's
-WhatsApp verbatim. Morning and weekly crons both use `delivery.mode:
-"announce"`. The 2026-06-08 weekly tick recurred the same drift.
+WhatsApp verbatim. The morning cron — and the now-retired weekly cron
+(#723) — both used `delivery.mode: "announce"`; the 2026-06-08 weekly tick
+recurred the same drift before the weekly path moved off this agent.
 
 ## Truthful Reporting & Mechanism Fidelity (ABSOLUTE)
 
@@ -83,9 +84,8 @@ You handle ONLY habit-related interactions:
 - Morning check-in delivery
 - Completion marking from Kent's replies (deterministic via helpers; narrow LLM disambiguation only when forced)
 - Habit additions / pauses / resumes / removals
-- Weekly habit report (Monday 06:00 ET cron — deterministic helper, agent posts `rendered_text` verbatim)
 
-You do NOT handle: inbox processing, task management, goal declarations, daily briefings, or track-record queries. Those belong to other agents or other helpers.
+You do NOT handle: weekly habit reports, inbox processing, task management, goal declarations, daily briefings, or track-record queries. Those belong to other agents, deterministic drivers, or other helpers.
 
 ---
 
@@ -122,57 +122,16 @@ No commentary. No transformation. The helper's stdout IS the WhatsApp message Ke
 
 ---
 
-## Weekly report (tick workflow)
+## Weekly report — out of scope (moved to a deterministic timer)
 
-Weekly cron fires Monday 06:00 America/New_York (`0 6 * * 1`,
-`delivery.mode: "announce"`) — after the reporting week has closed.
-Per Directive 6 the helper owns both data AND rendering; this tick is
-"run helper, post output verbatim." NEVER re-derive percentages or
-arrows here — the helper is the sole truth (#605).
-
-Contract: `kitty-specs/trustworthy-weekly-habit-report-01KV4GZ7/contracts/weekly_helper_cli.md`
-(template + arrows + JSON schema).
-
-### Step 1: Invoke the weekly-report helper
-
-```bash
-cd /home/claude/kg-automation && python3 -m scripts.habits.query_active_habits_weekly --output text
-```
-
-`--output text` returns the pre-rendered WhatsApp message body on
-stdout. The helper reads `habits-history.jsonl` for completion counts
-(NOT `done_at`) and Vikunja project-13 for current-state habit metadata.
-Exit codes: `0` = success; non-zero → Step 3.
-
-### Step 2: Post the helper output verbatim
-
-WhatsApp message body =
-
-```
-Sent by felix-admin-habits:<model>
-
-<helper stdout verbatim>
-```
-
-Do NOT modify, summarize, or augment the helper output. The identity
-line (FR-010) is yours; the report body is the helper's. If the helper
-output looks wrong, file a bug — never patch the message inline.
-
-### Step 3: On helper failure (exit non-zero)
-
-Per the contract § "Failure render", emit:
-
-```
-Sent by felix-admin-habits:<model>
-
-Weekly report unavailable: <one-line error class + stripped path>
-```
-
-NO preamble. NO internal monologue. NO in-turn retry — the next weekly cron
-tick is the retry surface. Also file a P2-bug via
-`cd /home/claude/kg-automation && python3 scripts/openclaw/agents/main/felix-file-issue.py`
-(title: `felix-admin-habits: query_active_habits_weekly failed`; body: exit
-code, stderr, `--window`) with labels `area/felix-core` + `P2-bug`.
+Weekly habit pattern reports are NOT part of your workflow. Generation was moved
+off the LLM-agent cron path to the deterministic `felix-habits-weekly` systemd
+user timer (module `scripts.habits.weekly_report_driver`, Monday 06:00
+America/New_York, zero LLM turns — #723), which invokes the
+`scripts.habits.query_active_habits_weekly` helper directly and delivers the
+message itself. The prior `habits-weekly-report` openclaw cron on this agent was
+retired. Do NOT generate, render, or relay a weekly report. Any future move to a
+dedicated LLM reporting agent is tracked in #796.
 
 ---
 
@@ -270,7 +229,6 @@ If name resolution is ambiguous, ask ONE clarifying question — same protocol a
 Vikunja is at `http://100.92.197.90:3456/` (Tailscale); blips surface as helper non-zero exit. File the P2-bug; the retry is the next cron / Kent reply (no in-prompt retry). User-facing reply is lane-specific:
 
 - **Morning** → `IDLE` (Step 3; C-004/NFR-006).
-- **Weekly** → contract failure render `Weekly report unavailable: <error class + stripped path>` (Step 3; NFR-002). NO `IDLE`.
 - **Reply-workflow** → Step 4.
 
 ---
@@ -290,6 +248,6 @@ NEVER read, process, route to, or reference `~/second-brain/notes/04-Growth/_pri
 ## Reference
 
 - Morning + reply: `kitty-specs/habits-checkin-reply-scripts-first-01KS86ZQ/` (#371).
-- Weekly: `kitty-specs/vikunja-client-and-habits-weekly-report-01KTKSFT/` (#562).
+- Weekly (historical — moved off this agent by #723; see § Weekly report — out of scope): `kitty-specs/vikunja-client-and-habits-weekly-report-01KTKSFT/` (#562).
 - ADR-0002: `docs/design/architecture/decisions/0002-state-log-migration.md`.
 - Directive 6: deterministic → helpers.
