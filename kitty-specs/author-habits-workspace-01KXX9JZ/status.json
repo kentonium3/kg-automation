@@ -1,16 +1,16 @@
 {
-  "event_count": 6,
-  "last_event_id": "01KXXCEGZ4Q1D5ZM2MQ59TBH51",
-  "materialized_at": "2026-07-19T14:28:27.236847+00:00",
-  "mission_number": "",
+  "event_count": 7,
+  "last_event_id": "01KXXCKNE2YRRCKA4KW7H1YBT6",
+  "materialized_at": "2026-07-19T14:31:15.650130+00:00",
+  "mission_number": "108",
   "mission_slug": "author-habits-workspace-01KXX9JZ",
   "mission_type": "software-dev",
   "summary": {
-    "approved": 1,
+    "approved": 0,
     "blocked": 0,
     "canceled": 0,
     "claimed": 0,
-    "done": 0,
+    "done": 1,
     "for_review": 0,
     "in_progress": 0,
     "in_review": 0,
@@ -18,11 +18,11 @@
   },
   "work_packages": {
     "WP01": {
-      "actor": "user",
+      "actor": "merge",
       "force_count": 0,
-      "lane": "approved",
-      "last_event_id": "01KXXCEGZ4Q1D5ZM2MQ59TBH51",
-      "last_transition_at": "2026-07-19T14:28:27.236847+00:00"
+      "lane": "done",
+      "last_event_id": "01KXXCKNE2YRRCKA4KW7H1YBT6",
+      "last_transition_at": "2026-07-19T14:31:15.650130+00:00"
     }
   }
 }
