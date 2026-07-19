@@ -74,15 +74,22 @@ entrypoint `scripts/deploy/deploy-skills-sync.sh`. felix-deployer applies it
 within ~5 min of the merge landing on `main`: it advances the checkout (so the
 helper, units, and entrypoint are present), then runs the entrypoint.
 
-The entrypoint is a **HARD verify-before-enable gate** — a failed smoke or enable
-fails the deploy **loudly** rather than leaving a half-enabled timer:
+felix-deployer invokes the entrypoint **twice** — `--dry-run` (non-mutating:
+validate + print the plan) then `--apply` (does the work). The `--apply` path is a
+**HARD verify-before-enable gate** — a failed smoke or enable fails the deploy
+**loudly** rather than leaving a half-enabled timer:
 
 1. Place the unit files into `~/.config/systemd/user/`
 2. `systemctl --user daemon-reload`
-3. **Real-unit smoke**: run one service invocation and assert
-   `/data/services/openclaw/deploy/skills-last-tick.json` was written (proves the
-   unit actually executes end-to-end)
-4. `systemctl --user enable --now agent-skill-sync.timer`
+3. **Lock-free real-copy smoke**: run `python3 -m scripts.openclaw.deploy.deploy_agent_skills --smoke`
+   **in-process** and assert it wrote `skills-last-tick.json` with `status=smoke`.
+   This does REAL `SKILL.md` copies without acquiring the shared checkout
+   `deploylock` (which felix-deployer already holds around the whole apply) and
+   without a git advance (the checkout is already current). A `systemctl start`
+   smoke would run in a separate process, contend the held lock, defer, and pass on
+   a no-op — so the smoke uses `--smoke` to prove a *real* sync ran (Codex #2 HIGH-1).
+4. `systemctl --user enable --now agent-skill-sync.timer` (schedules the timer; its
+   first real, lock-held tick runs after felix-deployer releases the lock)
 5. Assert `is-enabled` and that the timer shows in `list-timers`
 
 `XDG_RUNTIME_DIR` is exported so the `systemctl --user` calls reach the user bus.
