@@ -31,8 +31,8 @@ subtasks:
 - T005
 - T006
 agent: "claude"
-shell_pid: "82059"
-shell_pid_created_at: "1784428527.865069"
+shell_pid: "84204"
+shell_pid_created_at: "1784428902.119846"
 history:
 - '2026-07-19: authored by /spec-kitty.tasks'
 agent_profile: python-pedro
@@ -209,3 +209,5 @@ Planning artifacts were generated on `feat/openclaw-skills-sync`; the final merg
 ## Activity Log
 
 - 2026-07-19T02:35:39Z – claude – shell_pid=82059 – Assigned agent via action command
+- 2026-07-19T02:41:04Z – claude – shell_pid=82059 – Skills sync helper + 33 tests; dry-run smoke green
+- 2026-07-19T02:41:52Z – claude – shell_pid=84204 – Started review via action command

@@ -40,12 +40,12 @@ deploy) both depend only on WP01 and can run in parallel; WP04 (doc-sync) docume
 - **Dependencies**: none.
 - **Requirements**: FR-001…FR-008, FR-010, FR-011, FR-015, FR-016, NFR-001…NFR-006.
 - **Subtasks**:
-  - [ ] T001 Local `compute_md5` + `atomic_copy` (WP01)
-  - [ ] T002 Skill scope enumerator + multi-file guard + `--skill` filter (WP01)
-  - [ ] T003 `sync_skill` MD5-compare + drift copy + backup-ignore + audit records (WP01)
-  - [ ] T004 `run_tick` (deploylock + gitsync + exit codes + dry-run + freshness) (WP01)
-  - [ ] T005 Health watermarks via `alert_bus.emit(...).ok` notifier (WP01)
-  - [ ] T006 Unit + integration tests (WP01)
+  - [x] T001 Local `compute_md5` + `atomic_copy` (WP01)
+  - [x] T002 Skill scope enumerator + multi-file guard + `--skill` filter (WP01)
+  - [x] T003 `sync_skill` MD5-compare + drift copy + backup-ignore + audit records (WP01)
+  - [x] T004 `run_tick` (deploylock + gitsync + exit codes + dry-run + freshness) (WP01)
+  - [x] T005 Health watermarks via `alert_bus.emit(...).ok` notifier (WP01)
+  - [x] T006 Unit + integration tests (WP01)
 - **Est. prompt size**: ~480 lines.
 
 ## WP02 — Independent drift check + canary registration
