@@ -93,7 +93,7 @@ Invoke `cd /home/claude/kg-automation && python3 -m scripts.inbox.clarification_
 
 Independently of the Obsidian note routing below, scan the **Vikunja Inbox** for not-done tasks missing Tier-1 fields — a real project (not Inbox) + a schedulable friction (`f:1`/`f:2`/`f:3`) + an Eisenhower quadrant (`q:`). Run:
 
-`cd /home/claude/kg-automation && python3 -m scripts.intake.scan_inbox --json` (optionally `--source-cron <this-cron-name>`).
+`cd /home/claude/kg-automation && python3 -m scripts.inbox.scan_inbox --json` (optionally `--source-cron <this-cron-name>`).
 
 This helper is deterministic (no LLM): it reads with the felix-bot token, writes an immutable per-digest correlation record (so a later reply can be applied), and returns JSON `{status, incomplete, entries, digest_text, …}`. Branch on `incomplete`:
 
