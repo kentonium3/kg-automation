@@ -30,7 +30,9 @@ subtasks:
 - T004
 - T005
 - T006
-agent: claude
+agent: "claude"
+shell_pid: "82059"
+shell_pid_created_at: "1784428527.865069"
 history:
 - '2026-07-19: authored by /spec-kitty.tasks'
 agent_profile: python-pedro
@@ -203,3 +205,7 @@ Planning artifacts were generated on `feat/openclaw-skills-sync`; the final merg
 - **Freshness pointer** stays `exit_code=0` (timer-liveness, not deploy outcome).
 - Reviewer: verify the normalizing fixture actually stores landed bytes (not an echo) and that the
   copy-failure streak test asserts one alert per streak, not per tick.
+
+## Activity Log
+
+- 2026-07-19T02:35:39Z – claude – shell_pid=82059 – Assigned agent via action command
