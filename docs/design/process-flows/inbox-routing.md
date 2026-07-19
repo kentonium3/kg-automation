@@ -215,7 +215,7 @@ any `error` ⇒ note errored; else any `needs_clarification` ⇒ note
 | `_adapt_journal`, `_adapt_github_issue`, `_parse_filed_issue_number` | `scripts/inbox/route_and_finalize.py` | Journal sentinel append+verify (FR-010); github_issue file/verify (FR-012). |
 | `route_someday`, `_attach_someday_label`, `_resolve_destination_project_id` | `scripts/inbox/route_someday.py` | Durable-landing task creator (see [someday.md](./someday.md)). |
 | `resolve_journal_dir`, `target_filename`, `append_section`, `ensure_journal_file`, `_atomic_write` | `scripts/inbox/route_journal_entry.py` | Journal write primitives (see [journal.md](./journal.md)). |
-| `mark_main`, `_is_private_path` | `scripts/inbox/mark_processed.py` | The ONLY processed-stamper; subprocess-only; `_private` refusal (exit 3); symlink `.resolve()` guard. |
+| `main`, `_is_private_path` | `scripts/inbox/mark_processed.py` | The ONLY processed-stamper; subprocess-only; `_private` refusal (exit 3); symlink `.resolve()` guard. |
 | `RoutingLogReader.has_block` / `has_kind`, `RoutingLogWriter.append`, `block_hash`, `KNOWN_KINDS` | `scripts/inbox/routing_log.py` | Append-only dedup substrate + per-block idempotency key. |
 | `pending_filenames`, `_is_live`, `SWEEP_MAX_AGE`, `subcommand_add`/`remove` | `scripts/inbox/handle_clarification_state.py` | Pending-clarification store: WITHHOLD read contract + record add/remove; 8h window. |
 | `is_eligible`, `build_all_day_plan`, `sweep_finalize`, `FALLBACK_MARKER_KIND` | `scripts/inbox/clarification_sweep_finalize.py` | Step 1a child-flow boundary (see [calendar-clarification.md](./calendar-clarification.md)). |

@@ -175,10 +175,13 @@ RECONCILE (reconcile_completions.py, cache-driven)
 
 ## Weekly reporting — ownership relocated ([#409](https://github.com/kentonium3/kg-automation/issues/409))
 
-Weekly habit pattern reporting is **not owned by `felix-admin-habits`.** Per the
-[#409](https://github.com/kentonium3/kg-automation/issues/409) decision
-(Kent, 2026-07-19), a **dedicated reporting agent** owns weekly pattern reports;
-`felix-admin-habits` marks them out-of-scope in both its `SOUL.md` and `AGENTS.md`.
+Weekly habit pattern reporting is **being moved out of `felix-admin-habits`.** Per
+the [#409](https://github.com/kentonium3/kg-automation/issues/409) decision
+(Kent, 2026-07-19), a **dedicated reporting agent** will own weekly pattern
+reports; the felix-admin-habits `SOUL.md` and `AGENTS.md` are being updated (via
+#409) to mark them out-of-scope. Until that change lands, the in-repo habits
+prompts still describe the weekly report as an agent job — this doc records the
+decided target so a future mission reads the intended end-state, not the transient.
 
 Current-state delivery mechanism: the deterministic **`felix-habits-weekly-driver`**
 cron (`scripts/habits/weekly_report_driver.py`, systemd `felix-habits-weekly.timer`,
@@ -193,18 +196,18 @@ tracks authoring the dedicated reporting agent that will own this responsibility
 
 | Seam | File | Role |
 |---|---|---|
-| `morning_checkin_list` | `scripts/habits/morning_checkin_list.py` | Builds today's due-and-not-done list; writes `morning-checkin-<date>.json`; emits WhatsApp text. |
+| `build_morning_list` | `scripts/habits/morning_checkin_list.py` | Builds today's due-and-not-done list; writes `morning-checkin-<date>.json`; emits WhatsApp text. |
 | `parse_reply`, `correlated_checkin_date_et` stamping | `scripts/habits/parse_morning_reply.py` | Deterministic reply → `tuples[]/judgment_required[]/errors[]`; pins the correlated check-in date (#515). |
 | `record`, `_format_comment`, `main` | `scripts/habits/record_completion.py` | Three-write atomic completion; idempotency read; `done=true` POST echoing `repeat_after`/`repeat_mode` (#524); comment PUT; `state_log.append`. |
-| `disambiguate_reply` | `scripts/habits/judgment/disambiguate_reply.py` | Narrow LLM resolution for `judgment_required` items. |
+| `disambiguate` | `scripts/habits/judgment/disambiguate_reply.py` | Narrow LLM resolution for `judgment_required` items. |
 | `run_sweep`, `evaluate_habit_resolution`, `find_expired_checkins`, `_vikunja_put_due_date`, `_append_history_event` | `scripts/habits/sweeper.py` | 48h auto-skip: candidate discovery, resolution eval (FR-005), EOD-ET PUT for day-specific, `auto_skipped` append, tick artifact + ledger. |
 | `ISO_EOD_PATTERN`, `validate_iso_eod_et`, `compute_next_eod_et_for_weekdays` | `scripts/habits/set_due_dates.py` | The #112 EOD-ET format guard and next-weekday EOD-ET computation reused by the sweeper. |
 | `_validate_entry` (#608 ratchet), `is_day_specific`, `load_schedule` | `scripts/habits/schedule_loader.py` | Parse of `migrations/phase3-schedule.yaml`; rejects day-specific-but-sub-week `repeat_after` at load. |
-| `reconcile_completions` | `scripts/habits/reconcile_completions.py` | Cache↔JSONL backfill of UI completions + drift reporting. |
+| `reconcile` | `scripts/habits/reconcile_completions.py` | Cache↔JSONL backfill of UI completions + drift reporting. |
 | `query_completion_events`, `build_report` | `scripts/habits/query_active_habits_weekly.py` | Weekly report — reads `habits-history.jsonl` (not `done_at`, #605). |
 | `run`, `confirm_delivery` | `scripts/habits/weekly_report_driver.py` | Deterministic weekly cron driver; in-process helper call + truthful delivery confirmation (#723). |
 | ET boundary helpers | `scripts/common/et_datetime.py` | `et_end_of_day` / `today_et` / `et_calendar_date` (#761). **Habits not yet migrated.** |
-| Agent standing orders | `scripts/openclaw/agents/felix-admin-habits/{AGENTS,SOUL,TOOLS}.md` | Tick wiring: morning, reply, habit management, output discipline. (Weekly-report ownership removed per #409.) |
+| Agent standing orders | `scripts/openclaw/agents/felix-admin-habits/{AGENTS,SOUL,TOOLS}.md` | Tick wiring: morning, reply, habit management, output discipline. (Weekly-report ownership being removed per #409.) |
 | systemd units | `scripts/office2/felix-habit-sweeper.{service,timer}`, `felix-habits-weekly.{service,timer}` | Timer wiring: sweeper (07:30 ET), weekly driver (Mon 06:00 ET). |
 
 **State stores.** `/data/services/openclaw/state/habits-history.jsonl` (canonical

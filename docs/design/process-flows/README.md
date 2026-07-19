@@ -78,6 +78,12 @@ knows one doc knows them all:
 9. **Cross-references** — source issue(s), related/next work, prior missions
    consolidated, and the mission spec(s) for full FR detail.
 
+A flow **may** insert **one optional flow-specific section** between *Operating
+rules & invariants* and *Implementing seams* when a cross-cutting concern needs
+its own explanation (e.g. habits.md's "Weekly reporting — ownership relocated").
+Keep it the exception, not the norm; the nine sections above and their order are
+otherwise fixed.
+
 ### Frontmatter convention
 
 Use the kg-automation front-matter keys plus the process-flow specifics:
