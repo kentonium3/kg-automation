@@ -17,8 +17,8 @@ subtasks:
 - T016
 - T017
 agent: "claude"
-shell_pid: "91267"
-shell_pid_created_at: "1784430048.363966"
+shell_pid: "96426"
+shell_pid_created_at: "1784431015.853065"
 history:
 - '2026-07-19: authored by /spec-kitty.tasks'
 agent_profile: curator-carla
@@ -120,3 +120,5 @@ from `lanes.json`. Depends on WP01–WP03 (documents their surfaces) — runs la
 ## Activity Log
 
 - 2026-07-19T03:01:13Z – claude – shell_pid=91267 – Assigned agent via action command
+- 2026-07-19T03:17:20Z – claude – shell_pid=91267 – Doc-sync + audited-surface globs; validators green
+- 2026-07-19T03:17:32Z – claude – shell_pid=96426 – Started review via action command

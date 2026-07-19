@@ -85,10 +85,10 @@ deploy) both depend only on WP01 and can run in parallel; WP04 (doc-sync) docume
 - **Dependencies**: WP01, WP02, WP03 (documents what they build).
 - **Requirements**: FR-013.
 - **Subtasks**:
-  - [ ] T014 Extend `audited-surfaces.json` globs (WP04)
-  - [ ] T015 `service-inventory.json` + `.md` + health_check (WP04)
-  - [ ] T016 `data-flows.*` + `service-dependencies.view.md` (WP04)
-  - [ ] T017 `agent-skill-sync-ops.md` + `deployment.md` + `INDEX.md` + `DEVELOPER_PORTAL.md` + roadmap (WP04)
+  - [x] T014 Extend `audited-surfaces.json` globs (WP04)
+  - [x] T015 `service-inventory.json` + `.md` + health_check (WP04)
+  - [x] T016 `data-flows.*` + `service-dependencies.view.md` (WP04)
+  - [x] T017 `agent-skill-sync-ops.md` + `deployment.md` + `INDEX.md` + `DEVELOPER_PORTAL.md` + roadmap (WP04)
 - **Est. prompt size**: ~360 lines.
 
 ---
