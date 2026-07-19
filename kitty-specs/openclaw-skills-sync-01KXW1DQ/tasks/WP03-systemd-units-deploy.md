@@ -16,7 +16,9 @@ subtasks:
 - T011
 - T012
 - T013
-agent: claude
+agent: "claude"
+shell_pid: "88924"
+shell_pid_created_at: "1784429671.968597"
 history:
 - '2026-07-19: authored by /spec-kitty.tasks'
 agent_profile: implementer-ivan
@@ -130,3 +132,7 @@ parallel-lane safe.
   (order matters — mirror `deploy-felix-canary.py`).
 - Confirm `XDG_RUNTIME_DIR` is exported for every `systemctl --user` call (non-login ssh is `degraded`).
 - Manifest `entrypoint` regex is `^scripts/deploy/.+\.(sh|py)$` — the path matches.
+
+## Activity Log
+
+- 2026-07-19T02:54:52Z – claude – shell_pid=88924 – Assigned agent via action command
