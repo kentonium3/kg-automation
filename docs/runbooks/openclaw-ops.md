@@ -11,9 +11,15 @@ This runbook covers operations for the OpenClaw gateway service on office2.
 
 ## Installed Version
 
-- **Version**: OpenClaw 2026.6.5 (upgraded from 2026.3.24 on 2026-06-12)
-- **Installation**: `sudo npm install -g openclaw@<version>` (global)
-- **Binary**: `/usr/bin/openclaw` → symlink to `/usr/lib/node_modules/openclaw/openclaw.mjs`
+- **Version**: OpenClaw 2026.7.1-2 (core; `@openclaw/whatsapp` 2026.7.1 — lockstep-upgraded 2026-07-19)
+- **Installation**: `npm install -g openclaw@<version>` as the **claude** user into the
+  user-space npm prefix `/home/claude/.local` — **no sudo**. Per #653 the core was
+  relocated out of the root-owned `/usr/lib/node_modules/openclaw` into claude space,
+  and the stale root-global was removed 2026-07-19. Upgrade core + every channel plugin
+  in lockstep via the [OpenClaw Ecosystem Upgrade runbook](<./openclaw-ecosystem-upgrade.md>).
+- **Binary**: `/home/claude/.local/bin/openclaw` (sole install). Bare `openclaw` resolves
+  here only on a **login** shell; systemd-user units, cron, and non-login ssh have no
+  `~/.local/bin` on PATH and must call the **absolute** path.
 - **Config**: `/home/claude/.openclaw/openclaw.json`
 - **Per-agent auth (2026.6+)**: `~/.openclaw/agents/<id>/agent/openclaw-agent.sqlite`
   (replaces the legacy `auth-profiles.json` file-based store; see
@@ -100,7 +106,12 @@ sudo loginctl enable-linger claude
 2. **Verify a recent backup exists**: `restic snapshots --latest 1` (with correct env vars)
 3. **Verify no missions are in flight**: `openclaw cron list` (no `error` state
    except known-stale displays) and any in-progress agent sessions are quiesced.
-4. **Install new version** (Kent runs): `sudo npm install -g openclaw@<new-version>`
+4. **Install new version** (claude user, **no sudo** — user-space prefix `/home/claude/.local`):
+   `npm install -g openclaw@<new-version>`. **Upgrade core + every `@openclaw/*` channel
+   plugin in lockstep** (`openclaw plugins update @openclaw/<plugin>@latest`) — a stale
+   channel plugin re-triggers the #588/#617 DM-reply break. The full attended procedure
+   (snapshot precondition, absolute-path CLI, DM smoke) is the
+   [OpenClaw Ecosystem Upgrade runbook](<./openclaw-ecosystem-upgrade.md>).
 5. **Restart**: `systemctl --user restart openclaw-gateway`
 6. **Run the post-upgrade migration sweep** (REQUIRED after every upgrade,
    even minor ones — `openclaw doctor` without `--fix` does NOT surface
@@ -243,9 +254,10 @@ values are printed.
 
 ### Rollback
 
-1. `sudo npm install -g openclaw@<previous-version>`
+1. `npm install -g openclaw@<previous-version>` (claude user, no sudo) — and roll the
+   channel plugin(s) back to match (`openclaw plugins update @openclaw/<plugin>@<prev>`).
 2. `systemctl --user restart openclaw-gateway`
-3. Verify service is healthy
+3. Verify service is healthy (and DM-reply round-trips)
 
 ## API Connectivity Check
 

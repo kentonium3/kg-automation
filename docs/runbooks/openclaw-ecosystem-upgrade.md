@@ -74,19 +74,20 @@ user-local npm global under `/home/claude/.local`; no `sudo` is required). If an
 step unexpectedly demands elevation, **stop** — that would be a Tier-0 action and
 must be handed to Kent per the change-control hard lock.
 
-> **⚠️ PATH shadow — use the absolute claude-space binary.** Until #653's
-> root-global removal lands, a stale root-owned `/usr/bin/openclaw` →
-> `/usr/lib/node_modules/openclaw` (an OLD version) sits ahead of the claude-space
-> install on the non-interactive ssh PATH (which has `/usr/bin` but **not**
-> `/home/claude/.local/bin`). So **bare `openclaw` resolves to the stale
-> root-global** — `openclaw --version` will report the OLD version even after a
-> successful upgrade (a false-negative), and a bare `openclaw plugins …` would
-> drive the wrong CLI + plugin tree. **Run every openclaw CLI command in this
-> section as `/home/claude/.local/bin/openclaw`**, and verify the *running* host
-> with `openclaw gateway status --deep` (`Gateway version:`), not bare
-> `openclaw --version`. The running gateway itself is unaffected — its systemd
-> `ExecStart` invokes the claude-space `dist/index.js` by absolute path. Once #653
-> removes the root-global, bare `openclaw` becomes safe again.
+> **⚠️ Use the absolute claude-space binary for every CLI command here.** The sole
+> install lives in claude user-space at `/home/claude/.local/bin/openclaw` (#653
+> relocated the core out of the root-owned `/usr/lib` and removed the root-global on
+> 2026-07-19). The non-interactive ssh PATH — and the systemd-user / cron PATH — do
+> **not** include `/home/claude/.local/bin`, so bare `openclaw` there is now
+> `command not found` (before the removal it silently resolved to the *stale*
+> root-global, reporting the wrong version — that false-negative is gone, replaced by
+> a clean fail-loud). Either way, **run every openclaw CLI command in this section as
+> `/home/claude/.local/bin/openclaw`**, and verify the *running* host with
+> `openclaw gateway status --deep` (`Gateway version:`), not bare `openclaw --version`.
+> The running gateway is unaffected regardless — its systemd `ExecStart` invokes the
+> claude-space `dist/index.js` by absolute path. (Bare `openclaw` works only in a
+> **login** shell, whose `.profile` puts `~/.local/bin` first — do not rely on that
+> for scripted/systemd/cron callers; those must use the absolute path.)
 
 1. **Snapshot precondition (Tier 2).** Confirm a Restic backup within 24h exists
    (see [`security-baseline-ops.md`](<./security-baseline-ops.md>) /

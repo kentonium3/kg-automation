@@ -355,7 +355,7 @@
     {
       "name": "openclaw-gateway",
       "type": "npm-global",
-      "version": "2026.6.11",
+      "version": "2026.7.1-2",
       "host": "office2",
       "port": 18789,
       "bind_ip": "127.0.0.1",

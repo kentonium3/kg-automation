@@ -236,8 +236,9 @@ The helper does NOT trigger an openclaw restart.
 
 ### OpenClaw Gateway (F002)
 - **Deployed by**: F002
-- **Installation**: `npm install -g openclaw@2026.6.11` (global, requires sudo)
-- **Binary**: `/home/claude/.local/bin/openclaw`
+- **Version**: OpenClaw 2026.7.1-2 (core + `@openclaw/whatsapp` 2026.7.1, lockstep-upgraded 2026-07-19)
+- **Installation**: `npm install -g openclaw@<version>` into the **claude user-space** npm prefix `/home/claude/.local` (**no sudo** — per #653 the core was relocated out of the root-owned `/usr/lib/node_modules/openclaw` into claude space; the root-global was removed 2026-07-19). Channel plugins upgrade in lockstep via `openclaw plugins update @openclaw/<plugin>@latest`. See [`openclaw-ecosystem-upgrade.md`](../../runbooks/openclaw-ecosystem-upgrade.md).
+- **Binary**: `/home/claude/.local/bin/openclaw` (sole install; bare `openclaw` resolves here only on a **login** shell — systemd-user units, cron, and non-login ssh must use the absolute path)
 - **Config**: `/home/claude/.openclaw/openclaw.json`
 - **Service level**: User-level systemd with lingering (not system-level)
 - **Config in repo**: `scripts/openclaw/openclaw-gateway.service`, `scripts/openclaw/install.sh`

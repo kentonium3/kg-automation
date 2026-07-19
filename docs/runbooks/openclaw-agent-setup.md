@@ -449,10 +449,10 @@ The canonical pattern reference is
 
 Per `research.md` §4 + §5 D1 of the mission, in cost order:
 
-1. **H6 — `openclaw` version**: confirm running version with `openclaw --version`. Lifecycle regression first surfaced on 2026.5.28; upgrade to 2026.6.5+ is the fix shape WP01 landed.
+1. **H6 — `openclaw` version**: confirm the **running** version with `openclaw gateway status --deep` (`Gateway version:`) or `/home/claude/.local/bin/openclaw --version` — bare `openclaw` is not on the non-login/systemd PATH after the #653 root-global removal. Lifecycle regression first surfaced on 2026.5.28; current running version is 2026.7.1-2 (2026-07-19).
 2. **H5 — plugin install state**: `openclaw plugins list` — verify `@openclaw/whatsapp` is present and matches the running openclaw version (channels moved to external plugins in 2026.5.28 per `reference_openclaw_upgrade_gotchas`).
 3. **H4 — config drift**: read `/home/claude/.openclaw/openclaw.json` `channels.whatsapp` + `session` blocks; compare against vendored docs for required-field deltas.
-4. **H2 — vendored docs**: read `/usr/lib/node_modules/openclaw/docs/{channels,gateway}/*.md` for any required field absent from our config.
+4. **H2 — vendored docs**: read `/home/claude/.local/lib/node_modules/openclaw/docs/{channels,gateway}/*.md` for any required field absent from our config (claude user-space install path since #653; the old root-global `/usr/lib/node_modules/openclaw` was removed 2026-07-19).
 5. **H3 — AGENTS.md rollback probe**: try a `main/AGENTS.md` rollback to pre-#579 (fast-rollback probe; always restore current state before continuing).
 6. **H1 escalation** — if all in-scope hypotheses fail, the bug is in vendored `openclaw/dist/`. File an internal tracking issue per FR-009. Do NOT patch vendored code.
 
