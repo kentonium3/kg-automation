@@ -49,9 +49,10 @@ class TestArgumentOrder:
         mock_run.return_value = subprocess.CompletedProcess(args=[], returncode=0, stdout="", stderr="")
         sw.send(message="msg", recipient="+15551234567")
         called_args = mock_run.call_args[0][0]
-        # Exact precedence per contracts/whatsapp-send.md.
+        # Exact precedence per contracts/whatsapp-send.md. argv[0] is the
+        # seam-resolved openclaw path (#811), not a bare "openclaw".
         assert called_args == [
-            "openclaw", "agent",
+            sw.openclaw_bin(), "agent",
             "--agent", "main",
             "--message", "msg",
             "--deliver",

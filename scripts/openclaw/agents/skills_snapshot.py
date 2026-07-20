@@ -11,8 +11,9 @@ Emit a stable, diffable report so a scoping change can be verified as a clean
 before/after diff. The boundary-critical check is surfaced explicitly: which
 agents can see `gog` (must be calendar-only after scoping).
 
-Runs on office2 (needs the `openclaw` CLI on PATH). Self-contained — no
-scripts.* imports, so it is safe to run by script path or `-m`.
+Runs on office2. The openclaw binary path is resolved by the seam
+(scripts/common/openclaw_bin.py); a repo-root sys.path shim (below) lets this
+run safely by script path or `-m`.
 
 Usage:
   python3 scripts/openclaw/agents/skills_snapshot.py            # human report, all agents
@@ -30,6 +31,16 @@ import os
 import re
 import subprocess
 import sys
+from pathlib import Path
+
+# This oracle may be invoked by script path (``python3 scripts/openclaw/agents/
+# skills_snapshot.py``), so the repo root is not on sys.path unless we put it
+# there ourselves — required for the ``scripts.common.openclaw_bin`` seam import.
+_REPO_ROOT = Path(__file__).resolve().parents[3]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+
+from scripts.common.openclaw_bin import openclaw_argv  # noqa: E402
 
 DEFAULT_CONFIG = os.path.expanduser("~/.openclaw/openclaw.json")
 SKILL_NAME_RE = re.compile(r"^[a-z0-9][a-z0-9_-]+$")
@@ -50,11 +61,11 @@ def discover_agents(config_path: str) -> list[str]:
 def query_agent(agent_id: str) -> dict:
     """Run `openclaw skills check --agent <id>` and parse visible skills + counts."""
     proc = subprocess.run(
-        # Absolute claude-space path: agent-skill-sync.service has no PATH
-        # override, so the systemd-user default PATH lacks ~/.local/bin. Bare
-        # `openclaw` broke after the #653 root-global removal deleted
-        # /usr/bin/openclaw.
-        ["/home/claude/.local/bin/openclaw", "skills", "check", "--agent", agent_id],
+        # Binary path via the seam (scripts/common/openclaw_bin.py):
+        # agent-skill-sync.service has no PATH override, so the systemd-user
+        # default PATH lacks ~/.local/bin and a bare `openclaw` would fail
+        # (#653/#811).
+        openclaw_argv("skills", "check", "--agent", agent_id),
         capture_output=True,
         text=True,
     )

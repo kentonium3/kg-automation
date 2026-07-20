@@ -25,6 +25,7 @@ import json
 import subprocess
 from dataclasses import dataclass
 
+from scripts.common.openclaw_bin import openclaw_argv
 from scripts.trust.cron_baseline import ApprovedCron
 
 # Closed set of finding kinds (mirrors the token-constant pattern in
@@ -35,11 +36,11 @@ KIND_SCHEDULE_MISMATCH = "schedule_mismatch"
 KIND_ENABLED_MISMATCH = "enabled_mismatch"
 
 # Fixed argv for the live-enumeration subprocess (no shell, never `exec` —
-# matches the felix-health-check runner style). Absolute claude-space path:
-# felix-trust-scan.service has no PATH override, so the systemd-user default
-# PATH lacks ~/.local/bin. After the #653 root-global removal deleted
-# /usr/bin/openclaw, bare `openclaw` raised FileNotFoundError → the scan failed.
-OPENCLAW_CRON_LIST_ARGV = ["/home/claude/.local/bin/openclaw", "cron", "list", "--json"]
+# matches the felix-health-check runner style). The binary path is resolved by
+# the seam (scripts/common/openclaw_bin.py): felix-trust-scan.service has no
+# PATH override, so the systemd-user default PATH lacks ~/.local/bin and a bare
+# `openclaw` would raise FileNotFoundError → the scan would fail (#653/#811).
+OPENCLAW_CRON_LIST_ARGV = openclaw_argv("cron", "list", "--json")
 SUBPROCESS_TIMEOUT_SECONDS = 30
 
 

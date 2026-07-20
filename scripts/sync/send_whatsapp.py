@@ -17,6 +17,8 @@ import subprocess
 import sys
 from dataclasses import dataclass
 
+from scripts.common.openclaw_bin import openclaw_bin
+
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -77,7 +79,9 @@ def send(
     - subprocess exit 0 → SendResult(True, 0, None)
     - subprocess exit nonzero → SendResult(False, exit_code, stderr_text)
     - TimeoutExpired → SendResult(False, -1, "timeout after Ns")
-    - FileNotFoundError → SendResult(False, -2, "openclaw binary not found on PATH")
+    - FileNotFoundError → SendResult(False, -2, "openclaw binary not found ...")
+
+    The binary path is resolved by the seam (scripts/common/openclaw_bin.py).
     """
     if dry_run:
         sys.stderr.write(
@@ -88,7 +92,7 @@ def send(
     try:
         result = subprocess.run(
             [
-                "openclaw", "agent",
+                openclaw_bin(), "agent",
                 "--agent", agent,
                 "--message", message,
                 "--deliver",
@@ -109,7 +113,7 @@ def send(
         return SendResult(
             success=False,
             exit_code=-2,
-            stderr="openclaw binary not found on PATH",
+            stderr=f"openclaw binary not found at {openclaw_bin()}",
         )
 
     if result.returncode == 0:

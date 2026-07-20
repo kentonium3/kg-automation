@@ -599,10 +599,11 @@ def _probe_openclaw_cron(
 ) -> ProbeResult:
     """OpenClaw cron-state probe (#722).
 
-    Runs the ``endpoint`` command (``/usr/bin/openclaw cron list --json`` — an
-    absolute path because the canary's systemd unit has no ``PATH``), parses its
-    JSON, and delegates to :func:`_evaluate_openclaw_crons` for the service's
-    mapped ``crons``.
+    Runs the ``endpoint`` command (an absolute ``openclaw cron list --json`` —
+    the endpoint string carries the absolute path from service-inventory.json
+    because the canary's systemd unit has no ``PATH``; see the seam exception in
+    scripts/common/openclaw_bin.py), parses its JSON, and delegates to
+    :func:`_evaluate_openclaw_crons` for the service's mapped ``crons``.
 
     Fail-open (INV-D): a non-zero exit (gateway unreachable / CLI error) or
     unparseable output returns ``evaluable=False`` → the caller maps it to

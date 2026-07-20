@@ -8,6 +8,7 @@ import logging
 import subprocess
 
 from scripts.common.alert_bus import Alert, Severity, emit
+from scripts.common.openclaw_bin import openclaw_bin
 
 logger = logging.getLogger(__name__)
 
@@ -139,7 +140,7 @@ def send_whatsapp(
     try:
         result = subprocess.run(
             [
-                "openclaw", "agent",
+                openclaw_bin(), "agent",
                 "--agent", agent,
                 "--message", message,
                 "--deliver",

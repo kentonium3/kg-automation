@@ -32,6 +32,8 @@ import subprocess
 from dataclasses import dataclass
 from typing import Optional
 
+from scripts.common.openclaw_bin import openclaw_bin
+
 
 __all__ = [
     "DEFAULT_TIMEOUT_SECONDS",
@@ -65,7 +67,7 @@ def escalate(
     reason: str,
     *,
     timeout_seconds: int = DEFAULT_TIMEOUT_SECONDS,
-    openclaw_binary: str = "openclaw",
+    openclaw_binary: Optional[str] = None,
 ) -> EscalationResult:
     """Wake the expensive-tier path with ``reason`` as context.
 
@@ -83,7 +85,11 @@ def escalate(
     timeout_seconds:
         Per-subprocess timeout. Default 30s.
     openclaw_binary:
-        Override hook for tests; production uses ``openclaw`` from PATH.
+        Override hook for tests. When ``None`` (production default) the path
+        is resolved by the seam (:func:`scripts.common.openclaw_bin.openclaw_bin`)
+        to the absolute install — felix-heartbeat-gate.service has no ``PATH``,
+        so a bare ``openclaw`` resolved to ``None`` via ``shutil.which`` and the
+        escalation silently never fired (#653/#811, H3).
 
     Returns
     -------
@@ -99,16 +105,21 @@ def escalate(
         # shows up in the ledger rather than silently passing.
         return EscalationResult(error="empty reason supplied to escalator")
 
-    # Verify the binary exists before exec. ``shutil.which`` returns
-    # None if not on PATH; surface a clear error instead of a confusing
-    # FileNotFoundError later.
-    if shutil.which(openclaw_binary) is None:
+    # Resolve via the seam by default (absolute path) so the check below passes
+    # in the PATH-less unit; an explicit override (tests) still wins.
+    binary = openclaw_binary or openclaw_bin()
+
+    # Verify the binary exists before exec. ``shutil.which`` returns None if the
+    # path/name does not resolve to an executable; surface a clear error instead
+    # of a confusing FileNotFoundError later. (An absolute path resolves here as
+    # long as it is executable.)
+    if shutil.which(binary) is None:
         return EscalationResult(
-            error=f"openclaw binary not found on PATH: {openclaw_binary}"
+            error=f"openclaw binary not found: {binary}"
         )
 
     cmd = [
-        openclaw_binary,
+        binary,
         "system",
         "event",
         "--mode",

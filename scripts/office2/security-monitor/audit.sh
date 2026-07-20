@@ -24,6 +24,11 @@
 
 # --- Configuration ---
 BASE_DIR="/data/services/security-monitor"
+# OpenClaw binary path — the shell arm of the resolution seam
+# (scripts/common/openclaw_bin.py). Overridable via OPENCLAW_BIN; defaults to the
+# sole claude-space install. This script runs from crontab (minimal PATH) and via
+# non-login `sg docker -c`, neither of which has ~/.local/bin on PATH (#653/#811).
+: "${OPENCLAW_BIN:=/home/claude/.local/bin/openclaw}"
 BASELINE_DIR="$BASE_DIR/baselines"
 LOG_DIR="$BASE_DIR/logs"
 DATE=$(date +%Y-%m-%d)
@@ -224,11 +229,10 @@ rm -f "$tmp"
 # diffs (lastDelivered, nextRunAtMs, etc.) don't trigger false positives.
 log "Scanning OpenClaw cron config..."
 tmp=$(mktemp)
-# Absolute claude-space path: this runs from crontab (minimal PATH) and via
-# non-login `sg docker -c`, neither of which has ~/.local/bin on PATH. Bare
-# `openclaw` here silently captured an empty list after the #653 root-global
-# removal (deleted /usr/bin/openclaw) → false daily drift on openclaw-cron.txt.
-/home/claude/.local/bin/openclaw cron list --json 2>/dev/null \
+# Binary path via the seam convention ($OPENCLAW_BIN, set above): a bare
+# `openclaw` here silently captured an empty list in the PATH-less cron/`sg
+# docker -c` context → false daily drift on openclaw-cron.txt (#653/#811).
+"$OPENCLAW_BIN" cron list --json 2>/dev/null \
     | jq -S '[.jobs[] | {name, enabled, agentId, schedule, timeoutSeconds: .payload.timeoutSeconds, deliveryMode: .delivery.mode, failureAlert: (.failureAlert // null)}] | sort_by(.name)' \
         > "$tmp" 2>/dev/null \
     || echo "no-openclaw" > "$tmp"

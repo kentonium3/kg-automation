@@ -97,13 +97,14 @@ if str(_REPO_ROOT) not in sys.path:
 
 from scripts.common.alert_bus import emit  # noqa: E402
 from scripts.common.alert_bus.model import Alert, Severity  # noqa: E402
+from scripts.common.openclaw_bin import openclaw_bin  # noqa: E402
 from scripts.deploy.lib import cron as cron_lib  # noqa: E402
 
 # --------------------------------------------------------------------------- #
 # Grounded constants.
 # --------------------------------------------------------------------------- #
 
-_OPENCLAW_BIN = "/home/claude/.local/bin/openclaw"
+_OPENCLAW_BIN = openclaw_bin()
 _PYTHON3_BIN = "/usr/bin/python3"
 
 _UNIT_SOURCE_DIR = _REPO_ROOT / "scripts" / "office2"

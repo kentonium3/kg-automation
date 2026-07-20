@@ -20,6 +20,18 @@ This runbook covers operations for the OpenClaw gateway service on office2.
 - **Binary**: `/home/claude/.local/bin/openclaw` (sole install). Bare `openclaw` resolves
   here only on a **login** shell; systemd-user units, cron, and non-login ssh have no
   `~/.local/bin` on PATH and must call the **absolute** path.
+  - **Canonical path source for code (#811)**: the resolution seam
+    [`scripts/common/openclaw_bin.py`](../../scripts/common/openclaw_bin.py) —
+    `openclaw_bin()` / `openclaw_argv()` (env `OPENCLAW_BIN` override → absolute
+    default). All Python subprocess callers import it; shell callers use the
+    `: "${OPENCLAW_BIN:=…}"` convention (`audit.sh`, `anthropic-rotate.sh`). A
+    future relocation is a one-line change in the seam. **Documented exceptions**
+    (not routed through the seam): the felix-deployer PATH-safe cron primitives
+    (`scripts/deploy/lib/cron.py`, `deploy-deterministic-monitoring-checks.py`),
+    two already-applied one-shot cron deploy scripts, and the 3 canary
+    `openclaw-cron-state` `endpoint` strings in `service-inventory.json`
+    (executed by a shell in a unit with no `OPENCLAW_BIN`/PATH). The guard test
+    `tests/common/test_openclaw_bin_seam.py` enforces this.
 - **Config**: `/home/claude/.openclaw/openclaw.json`
 - **Per-agent auth (2026.6+)**: `~/.openclaw/agents/<id>/agent/openclaw-agent.sqlite`
   (replaces the legacy `auth-profiles.json` file-based store; see

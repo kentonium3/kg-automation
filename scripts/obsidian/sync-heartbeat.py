@@ -22,6 +22,14 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
+# Hyphenated filename → only runnable by script path, so the repo root is not on
+# sys.path unless we put it there ourselves — required for the seam import below.
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+
+from scripts.common.openclaw_bin import openclaw_bin  # noqa: E402
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [sync-heartbeat] %(levelname)s %(message)s",
@@ -120,7 +128,7 @@ def send_alert(message: str, dry_run: bool = False) -> bool:
     try:
         result = subprocess.run(
             [
-                "openclaw", "agent",
+                openclaw_bin(), "agent",
                 "--agent", OPENCLAW_AGENT,
                 "--message", message,
                 "--deliver",
