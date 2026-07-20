@@ -16,6 +16,7 @@ from scripts.common.alert_bus.model import Alert, AlertResult, Severity
 from scripts.trust import alert_render
 from scripts.trust.assertion_verifier import AssertionFinding
 from scripts.trust.cron_drift_detector import CronDriftFinding
+from scripts.trust.unit_drift_detector import UnitDriftFinding
 
 
 def _cron_finding(**overrides) -> CronDriftFinding:
@@ -175,6 +176,49 @@ def test_emit_finding_accepts_prebuilt_alert():
 
     mock_emit.assert_called_once_with(alert)
     assert result.ok is True
+
+
+def test_render_unit_finding_severity_and_details():
+    finding = UnitDriftFinding(
+        kind="content_drift",
+        name="felix-canary.service",
+        repo_source="scripts/office2/felix-canary.service",
+        detail="deployed unit content differs from repo canonical (whitespace-normalized)",
+    )
+    alert = alert_render.render_unit_finding(finding)
+    assert alert.source == alert_render.SOURCE_UNIT
+    assert alert.severity == Severity.WARN
+    assert "felix-canary.service" in alert.title
+    assert alert.details["repo_source"] == "scripts/office2/felix-canary.service"
+    assert all(isinstance(v, str) for v in alert.details.values())
+
+
+def test_emit_finding_accepts_unit_finding():
+    finding = UnitDriftFinding(
+        kind="content_drift",
+        name="felix-trust-scan.service",
+        repo_source="scripts/office2/felix-trust-scan.service",
+    )
+    with patch("scripts.trust.alert_render.emit") as mock_emit:
+        mock_emit.return_value = AlertResult(ok=True)
+        result = alert_render.emit_finding(finding)
+
+    assert result.ok is True
+    mock_emit.assert_called_once()
+    (called_alert,), _ = mock_emit.call_args
+    assert called_alert.source == alert_render.SOURCE_UNIT
+
+
+def test_render_drift_resolved_unit_source():
+    alert = alert_render.render_drift_resolved(
+        "felix-canary.service",
+        "2026-01-01T00:00:00+00:00",
+        "2026-01-02T00:00:00+00:00",
+        source="unit-drift",
+    )
+    assert alert.source == alert_render.SOURCE_UNIT
+    assert alert.severity == Severity.INFO
+    assert "cleared" in alert.title.lower()
 
 
 def test_emit_finding_unknown_type_does_not_raise():

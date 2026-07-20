@@ -1,9 +1,9 @@
 """Trust-scan entrypoint — the single systemd/CLI target (WP04, contract C2).
 
-Drives both sub-scans (cron-drift via WP02, completion-assertion verification
-via WP03), applies the seen-findings alert cadence (:mod:`scripts.trust.state`),
-and emits alerts via the shared ``#701`` bus
-(:mod:`scripts.trust.alert_render`). No other module runs the timer loop.
+Drives the sub-scans (cron-drift via WP02, completion-assertion verification via
+WP03, and deployed-unit-vs-repo drift via #817), applies the seen-findings alert
+cadence (:mod:`scripts.trust.state`), and emits alerts via the shared ``#701``
+bus (:mod:`scripts.trust.alert_render`). No other module runs the timer loop.
 
 ::
 
@@ -51,8 +51,30 @@ from scripts.trust.cron_drift_detector import (
     detect_cron_drift,
     enumerate_live_crons,
 )
+from scripts.trust.unit_drift_detector import (
+    DEPLOYED_UNIT_DIR,
+    UnitDriftFinding,
+    UnitEnumerationError,
+    detect_unit_drift,
+    enumerate_unit_pairs,
+)
 
 __all__ = ["main", "run_scan"]
+
+
+def _finding_baseline_hash(finding: Any, cron_baseline_hash: str) -> str:
+    """Fingerprint-versioning hash per finding type. Cron/assertion findings are
+    versioned by the approved-cron baseline content hash; unit-drift findings are
+    NOT baseline-versioned (their identity is ``(unit, kind)``), so they use
+    ``""``. This is the single source of the rule so the reconcile-time fingerprint
+    and the emit-retry ``keep_due`` fingerprint always agree (#817 H1)."""
+    return "" if isinstance(finding, UnitDriftFinding) else cron_baseline_hash
+
+# Repo root, resolved from this module's location (scripts/trust/run_trust_scan.py
+# → parents[2]). The unit-drift sub-scan (#817) globs the repo's canonical unit
+# sources under here. felix-trust-scan.service runs from WorkingDirectory=
+# /home/claude/kg-automation, so this matches the deployed checkout.
+REPO_ROOT = Path(__file__).resolve().parents[2]
 
 # Watermark file: tracks the last-verified byte offset per assertion JSONL
 # file so each assertion is verified once. Lives alongside the seen-findings
@@ -246,6 +268,8 @@ def run_scan(
     watermark_path: Path | str = DEFAULT_WATERMARK_PATH,
     assertions_base_dir: Path | None = None,
     last_tick_path: Path | str = DEFAULT_LAST_TICK_PATH,
+    repo_root: Path | None = None,
+    unit_deployed_dir: Path | None = None,
 ) -> dict[str, Any]:
     """Run one scan tick: both sub-scans, cadence reconciliation, and emission.
 
@@ -276,6 +300,42 @@ def run_scan(
     except Exception as exc:  # noqa: BLE001 - fail-safe isolation (NFR-001)
         errors.append(f"cron_scan:{exc.__class__.__name__}:{exc}")
         scan_inability = True
+
+    # ---- Unit-drift sub-scan (#817) -----------------------------------
+    # Diff each deployed systemd-user unit against its repo canonical; a content
+    # difference is the #816 class (a stale deployed unit that fails silently).
+    # Fail-safe like the cron sub-scan: a fault is recorded and never aborts the
+    # other sub-scans. Coverage is surfaced in the summary (no silent gaps).
+    unit_findings: list[Any] = []
+    unit_coverage: dict[str, Any] = {}
+    resolved_deployed_dir = (
+        unit_deployed_dir if unit_deployed_dir is not None else DEPLOYED_UNIT_DIR
+    )
+    if not Path(resolved_deployed_dir).is_dir():
+        # The deployed-unit dir is office2-specific (claude's ~/.config/systemd/
+        # user). Its absence means this environment (CI/dev) has nothing to check
+        # — a transparent skip, not a fault. On office2 the dir always exists, so
+        # this never silently hides real drift there.
+        unit_coverage = {"skipped": f"deployed unit dir not present ({resolved_deployed_dir})"}
+    else:
+        try:
+            pairs, coverage = enumerate_unit_pairs(
+                repo_root if repo_root is not None else REPO_ROOT,
+                resolved_deployed_dir,
+            )
+            unit_findings = detect_unit_drift(pairs)
+            unit_coverage = {
+                "compared": len(coverage.compared),
+                "excluded": len(coverage.excluded),
+                "deployed_no_repo_source": coverage.deployed_no_repo_source,
+                "repo_only": len(coverage.repo_only),
+            }
+        except UnitEnumerationError as exc:
+            errors.append(f"unit_scan:UnitEnumerationError:{exc}")
+            scan_inability = True
+        except Exception as exc:  # noqa: BLE001 - fail-safe isolation (NFR-001)
+            errors.append(f"unit_scan:{exc.__class__.__name__}:{exc}")
+            scan_inability = True
 
     # ---- Seen-findings state (loaded up front) -------------------------
     # Loaded before the assertion sub-scan so the F2 re-verify of outstanding
@@ -360,9 +420,15 @@ def run_scan(
     alerts_emitted = 0
     if not dry_run:
         try:
+            # Per-finding fingerprint hash comes from the single _finding_baseline_hash
+            # rule so the reconcile-time and emit-retry fingerprints always agree.
+            # Unit-drift findings use "" (identity is (unit, kind), stable across
+            # ticks) so a persistent drift dedups on the 24h cadence and clears by
+            # absence when the unit is redeployed.
             findings_with_hash: list[tuple[Any, str]] = [
-                (finding, current_baseline_hash) for finding in cron_findings
-            ] + [(finding, current_baseline_hash) for finding in assertion_findings]
+                (finding, _finding_baseline_hash(finding, current_baseline_hash))
+                for finding in (*cron_findings, *assertion_findings, *unit_findings)
+            ]
             to_alert, resolved_events, new_state = state_mod.reconcile(
                 findings_with_hash, tick_now, current_state
             )
@@ -377,7 +443,7 @@ def run_scan(
                     alerts_emitted += 1
                 else:
                     fingerprint = state_mod.fingerprint_finding(
-                        finding, current_baseline_hash
+                        finding, _finding_baseline_hash(finding, current_baseline_hash)
                     )
                     state_mod.keep_due(new_state, fingerprint, current_state)
 
@@ -404,6 +470,8 @@ def run_scan(
         "ok": ok,
         "drift_findings": len(cron_findings),
         "assertion_findings": len(assertion_findings),
+        "unit_drift_findings": len(unit_findings),
+        "unit_coverage": unit_coverage,
         "alerts_emitted": alerts_emitted,
         "errors": errors,
     }
@@ -431,8 +499,8 @@ def _build_parser() -> argparse.ArgumentParser:
         prog="scripts.trust.run_trust_scan",
         description=(
             "Run one trust-scan tick: cron-drift detection (WP02) + "
-            "completion-assertion verification (WP03), alerting via the "
-            "#701 bus."
+            "completion-assertion verification (WP03) + deployed-unit-vs-repo "
+            "drift detection (#817), alerting via the #701 bus."
         ),
     )
     parser.add_argument(

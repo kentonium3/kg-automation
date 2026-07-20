@@ -38,6 +38,7 @@ from pathlib import Path
 
 from scripts.trust.assertion_verifier import AssertionFinding
 from scripts.trust.cron_drift_detector import CronDriftFinding
+from scripts.trust.unit_drift_detector import UnitDriftFinding
 
 __all__ = [
     "DEFAULT_STATE_PATH",
@@ -107,16 +108,25 @@ def _assertion_identity(finding: AssertionFinding) -> tuple[str, ...]:
     )
 
 
-def _finding_name(finding: CronDriftFinding | AssertionFinding) -> str:
+def _unit_identity(finding: UnitDriftFinding) -> tuple[str, ...]:
+    return ("unit", finding.kind, finding.name)
+
+
+def _finding_name(finding: CronDriftFinding | AssertionFinding | UnitDriftFinding) -> str:
     """Human-readable name for the finding, used in drift_resolved rendering."""
-    if isinstance(finding, CronDriftFinding):
+    if isinstance(finding, (CronDriftFinding, UnitDriftFinding)):
         return finding.name
     return f"{finding.artifact_kind}:{finding.artifact_id}"
 
 
-def _finding_source(finding: CronDriftFinding | AssertionFinding) -> str:
-    """Return ``"cron"`` or ``"assertion"`` for a finding (F2 resolution routing)."""
-    return "cron" if isinstance(finding, CronDriftFinding) else "assertion"
+def _finding_source(finding: CronDriftFinding | AssertionFinding | UnitDriftFinding) -> str:
+    """Return the source tag (``"cron"`` / ``"assertion"`` / ``"unit-drift"``) for
+    a finding (F2 resolution routing — selects the drift_resolved copy)."""
+    if isinstance(finding, CronDriftFinding):
+        return "cron"
+    if isinstance(finding, UnitDriftFinding):
+        return "unit-drift"
+    return "assertion"
 
 
 def _assertion_identity_fields(finding: AssertionFinding) -> dict[str, str]:
@@ -137,7 +147,7 @@ def _assertion_identity_fields(finding: AssertionFinding) -> dict[str, str]:
 
 
 def fingerprint_finding(
-    finding: CronDriftFinding | AssertionFinding, baseline_hash: str
+    finding: CronDriftFinding | AssertionFinding | UnitDriftFinding, baseline_hash: str
 ) -> str:
     """Return a stable fingerprint for *finding*, versioned by *baseline_hash*.
 
@@ -152,6 +162,8 @@ def fingerprint_finding(
         identity = _cron_identity(finding)
     elif isinstance(finding, AssertionFinding):
         identity = _assertion_identity(finding)
+    elif isinstance(finding, UnitDriftFinding):
+        identity = _unit_identity(finding)
     else:
         raise TypeError(f"fingerprint_finding: unsupported finding type {type(finding)!r}")
 
@@ -251,11 +263,11 @@ def save_state(state: dict[str, dict[str, str]], path: Path | str = DEFAULT_STAT
 
 
 def reconcile(
-    current_findings: list[tuple[CronDriftFinding | AssertionFinding, str]],
+    current_findings: list[tuple[CronDriftFinding | AssertionFinding | UnitDriftFinding, str]],
     now: datetime,
     state: dict[str, dict[str, str]] | None = None,
 ) -> tuple[
-    list[CronDriftFinding | AssertionFinding],
+    list[CronDriftFinding | AssertionFinding | UnitDriftFinding],
     list[ResolvedEvent],
     dict[str, dict[str, str]],
 ]:
@@ -287,7 +299,7 @@ def reconcile(
     now_str = _utc_iso(now)
 
     seen_fingerprints: set[str] = set()
-    to_alert: list[CronDriftFinding | AssertionFinding] = []
+    to_alert: list[CronDriftFinding | AssertionFinding | UnitDriftFinding] = []
     new_state: dict[str, dict[str, str]] = {}
 
     for finding, baseline_hash in current_findings:
