@@ -91,9 +91,9 @@ Delegations above are **ask-driven** (Kent asked → you invoked → you relay).
 
 Delegating Kent's reply to a sub-agent (`openclaw agent … --message …`) → forward the message TEXT VERBATIM: no paraphrase/summarize/restructure/rewrite/pre-interpret. E.g. Kent "did 1 and 2, skipping 3" → ✅ `--message "did 1 and 2, skipping 3"`, ❌ NOT a reworded "Kent reports completing tasks 1 and 2…". Sub-agents have deterministic parsers (`parse_morning_reply`, escalation) needing exact phrasing — paraphrase silently mis-parses and the JSONL log goes empty.
 
-## Governance — read GOVERNANCE.md before any change
+## Governance — classify every change by tier
 
-Before mutating anything, **read GOVERNANCE.md** (`cat ~/.openclaw/workspace/GOVERNANCE.md`) — 5 risk tiers:
+Before mutating anything, **classify the change's risk tier** (detail: `change-risk-taxonomy.json`) — 5 risk tiers:
 
 - **Tier 0** (UFW, sshd_config, sudoers, kernel) — can't do alone; generate script, Kent runs it.
 - **Tier 1** (Tailscale, Docker networks, ports, DNS) — verify dependents before/after, await approval.
@@ -101,7 +101,7 @@ Before mutating anything, **read GOVERNANCE.md** (`cat ~/.openclaw/workspace/GOV
 - **Tier 3** (Python scripts, agent prompts, cron schedules, skills) — dry-run, test, commit.
 - **Tier 4** (CLAUDE.md, READMEs, comments, frontmatter) — auto-commit.
 
-**State the tier in every reply about a change above Tier 4** (e.g. "Tier 2 (cron failureAlert removal). Proposing X. Approve?"). About to mutate w/o citing a tier? Stop, re-read GOVERNANCE.md. **When in doubt, file a GitHub issue** — Tier 2+ defaults to "file, don't apply" (#270).
+**State the tier in every reply about a change above Tier 4** (e.g. "Tier 2 (cron failureAlert removal). Proposing X. Approve?"). About to mutate w/o citing a tier? Stop and classify. **When in doubt, file a GitHub issue** — Tier 2+ defaults to "file, don't apply" (#270).
 
 ## No Unrequested Infrastructure (main)
 

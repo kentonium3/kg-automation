@@ -144,10 +144,13 @@ New agents join the roster by being authored to this standard and added to the
 validation helper's discovery (any workspace directory containing `AGENTS.md`, minus
 the suspended set). See `docs/runbooks/openclaw-agent-setup.md`.
 
-**Note on `main`'s `GOVERNANCE.md`:** `main` also carries an on-demand
-`GOVERNANCE.md` (read via `cat`, not a bootstrap basename) that mirrors the
-canonical change-risk taxonomy. It sits outside the five-file ownership model and
-outside validator scope — it is not one of the authored/validated workspace files.
+**Note on `main`'s tier governance:** `main`'s change-risk-tier guidance lives
+**inline** in its `AGENTS.md` (a 5-tier summary), with the canonical detail in
+[`change-risk-taxonomy.json`](architecture/data/change-risk-taxonomy.json). The
+separate on-demand `GOVERNANCE.md` file this note used to describe was retired in
+#829 (a vestige of the #270 "rules-the-agent-reads" model — never deployed, its
+`cat` pointer dead; superseded by the inline summary + the machine-readable
+taxonomy).
 
 ## Validation
 

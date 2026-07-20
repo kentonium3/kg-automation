@@ -303,9 +303,10 @@ The pipeline is operator-owned but agent-readable:
    `services[openclaw].agents.<slug>.workspace`. New agents must be registered
    there with both `source_in_repo` AND `workspace` populated before the sync
    helper will pick them up.
-4. `HEARTBEAT.md`, `*.tmpl`, `*.bak*`, and `GOVERNANCE.md` are explicitly
-   excluded from sync — they live in the deploy dir but are not repo-sourced
-   (or, for `*.tmpl`, are templates not intended for runtime).
+4. `HEARTBEAT.md`, `*.tmpl`, and `*.bak*` are explicitly excluded from sync —
+   they live in the deploy dir but are not repo-sourced (or, for `*.tmpl`, are
+   templates not intended for runtime). Any other non-prompt filename is excluded
+   by the `IN_SCOPE_FILENAMES` allowlist ({AGENTS, IDENTITY, SOUL, TOOLS, USER}.md).
 5. The sync helper does NOT restart openclaw. Prompt changes take effect at
    the agent's next session-init (next cron tick).
 
