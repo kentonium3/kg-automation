@@ -12,7 +12,8 @@ audience: agents_and_humans
 **Status:** Draft (captured from the 2026-07-20 design conversations; expect iteration)
 **Author:** Kent Gale
 **Location:** `docs/design/executive-assistant-architecture.md`
-**Related:** Epic [#692](https://github.com/kentonium3/kg-automation/issues/692) (Second Brain Graph Layer) · [`second-brain-graph-layer.md`](second-brain-graph-layer.md) · [`felix-capability-roadmap.md`](felix-capability-roadmap.md) · [`felix-openclaw-boundary.md`](felix-openclaw-boundary.md) · [`engineering-principles.md`](engineering-principles.md) · #165 (mail) · #698 (life-coach, deferred) · #679 (delegation broke) · #817 (deploy-integrity)
+**Tracked by:** Theme [#366](https://github.com/kentonium3/kg-automation/issues/366) (Felix as life-steering substrate — this brief is its architecture doc) · Epic [#820](https://github.com/kentonium3/kg-automation/issues/820) (the net-new decision-router — §7/§10 forward work)
+**Related:** Epic [#692](https://github.com/kentonium3/kg-automation/issues/692) (Second Brain Graph Layer / world-model) · [`second-brain-graph-layer.md`](second-brain-graph-layer.md) · [`felix-capability-roadmap.md`](felix-capability-roadmap.md) · [`felix-openclaw-boundary.md`](felix-openclaw-boundary.md) · [`engineering-principles.md`](engineering-principles.md) · #271 (mirror/back-chaining behavior) · #165 (mail intake) · #164 (calendar executor) · #698 (life-coach, deferred) · #679 (delegation broke) · #643 (doctrine-substrate parallel) · #817 (deploy-integrity)
 
 > **Confidentiality:** ties to #692 material. Internal to `kentonium3/kg-automation` — do not republish externally.
 
@@ -132,14 +133,14 @@ Build-now = demanded by ≥2 capabilities. Single-capability primitives are buil
 |---|---|
 | **P1 World-model** (Purpose→…→Task + **Principles**, bi-temporal, write-back, hybrid graph+vector store) | **≡ #692** (Principle refinement now landed in the ontology) — designed, awaiting build/seed |
 | **P2 Intake → intent normalization** (+ the **intent-pattern library**) | New; email (#165) is the trigger modality; the library is the deterministic first pass of the router |
-| **P3 Delegation / decision-router** (cheap-first cascade) | **The net-new design** (§4/§10); #679 is the negative evidence |
+| **P3 Delegation / decision-router** (cheap-first cascade) | **The net-new design** (§4/§10), tracked in **#820**; #679 is the negative evidence |
 | **P4 Identity / consent / scope** | Partial: #715 two-token, #696 privacy gate |
 | **P5 Temporal / scheduler** | Fragmented today (heartbeat gate, escalator, crons, calendar); coaching-cadence part defers |
 | **P6 Provenance / decision-ledger** | **Absorbed into #692** (durable trade-off records) |
 | **P7 Promotion gate** (`propose → human-approve → structure grows`) | **New keystone (§7)** — shared by intents (P2), world-model (P1), autonomy (P3); demanded by ≥3, build early |
 | *Backward infra (mostly guarded already):* | resource-identity **seams** (#811, #748); **deploy-integrity canary** (#817 + #818, the last named gap); **alert bus** (#701, done) |
 
-## 10. The decision-router (the forward design work)
+## 10. The decision-router (the forward design work) — Epic #820
 
 The CEO-EA framing **is** the router's spec:
 
@@ -175,7 +176,7 @@ Long-term framing (not a near-term goal): Felix as an **opinionated OpenClaw add
 ## 13. Sequencing (proposed)
 
 1. **Seed the world-model** — #695 (Kent-authored **Purposes / Principles / Domains / Outcomes**) + stand up the #692 graph substrate (#693/#694, with the Principle node type).
-2. **Design + build the decision-router** (§10) on top, grounded in this brief — including the intent-pattern library and the promotion gate (§7).
+2. **Design + build the decision-router** (§10, Epic #820) on top, grounded in this brief — including the intent-pattern library and the promotion gate (§7).
 3. **Wire email intake** (#165) as the first intake modality feeding the router.
 4. **Thin principal-model** (declared Principles + light tendencies) + `Vikunja → Graphiti` sync as connective tissue.
 5. **Defer:** coaching (#698), full vault ingest, learned-tendencies model, two-way voice, additional adapters.
