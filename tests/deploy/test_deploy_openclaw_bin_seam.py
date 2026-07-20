@@ -20,6 +20,16 @@ _ENTRYPOINT_PATH = _REPO_ROOT / "scripts" / "deploy" / "deploy-openclaw-bin-seam
 _MANIFEST_QUEUED = _REPO_ROOT / "deploys" / "queued" / "0021-openclaw-bin-seam.yaml"
 
 
+def _resolve_manifest_path() -> pathlib.Path:
+    """queued pre-deploy, applied/<NNNN>-... once felix-deployer relocates it."""
+    if _MANIFEST_QUEUED.exists():
+        return _MANIFEST_QUEUED
+    applied = sorted(
+        (_REPO_ROOT / "deploys" / "applied").glob("*-openclaw-bin-seam.yaml")
+    )
+    return applied[-1] if applied else _MANIFEST_QUEUED
+
+
 def _load_entrypoint():
     if str(_REPO_ROOT) not in sys.path:
         sys.path.insert(0, str(_REPO_ROOT))
@@ -125,7 +135,7 @@ def test_apply_missing_source_fails(monkeypatch, tmp_path, capsys):
 
 
 def test_manifest_shape():
-    m = yaml.safe_load(_MANIFEST_QUEUED.read_text())
+    m = yaml.safe_load(_resolve_manifest_path().read_text())
     assert m["schema_version"] == "v1"
     assert m["tier"] == 3
     assert m["audited_surface"] is False
