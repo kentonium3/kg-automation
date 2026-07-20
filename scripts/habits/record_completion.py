@@ -200,6 +200,7 @@ def record(
     *,
     api_base_url: str,
     token: str,
+    correlated_checkin_date_et: str | None = None,
 ) -> None:
     """Three-write atomic completion record per ADR Q3-D.
 
@@ -227,6 +228,12 @@ def record(
             body if non-empty.
         api_base_url: Vikunja API base URL.
         token: Vikunja bearer token (felix-bot per Phase 1).
+        correlated_checkin_date_et: Optional instrumentation field (#515) —
+            the ``correlated_checkin_date_et`` the parser emitted (mission
+            #408 / WP-02): which morning-list check-in date this completion
+            was correlated to via the 48hr reply-correlation chain. Persisted
+            to the JSONL row when non-empty so mis-correlations are observable
+            (#509 trigger 2). Empty/absent → omitted (harmless).
 
     Raises:
         ValueError: On invalid state, missing field, or other schema
@@ -247,6 +254,10 @@ def record(
     }
     if note is not None:
         record_dict["note"] = note
+    # #515: instrumentation metadata, not part of the dedup key. Stored only
+    # when non-empty so the common no-correlation case leaves row shape stable.
+    if correlated_checkin_date_et:
+        record_dict["correlated_checkin_date_et"] = correlated_checkin_date_et
 
     # Step 0: validate. Raises ValueError before any I/O.
     state_log.validate_record(record_dict, "habits")
@@ -372,6 +383,15 @@ def build_parser() -> argparse.ArgumentParser:
         help="Optional free-form note appended to the Felix comment body.",
     )
     parser.add_argument(
+        "--correlated-checkin-date-et", default=None,
+        help=(
+            "Optional instrumentation field (#515): the parser's top-level "
+            "correlated_checkin_date_et (which check-in date this completion "
+            "was correlated to). Persisted to the JSONL row when non-empty; "
+            "empty/absent is harmless."
+        ),
+    )
+    parser.add_argument(
         "--token-file",
         type=Path,
         default=Path(DEFAULT_TOKEN_PATH),
@@ -424,6 +444,7 @@ def _build_args_from_flags(args: argparse.Namespace) -> dict:
         "state": args.state,
         "source": args.source,
         "note": args.note,
+        "correlated_checkin_date_et": args.correlated_checkin_date_et,
     }
 
 
@@ -448,6 +469,9 @@ def main(argv: list[str] | None = None) -> int:
             "state": stdin_record.get("state"),
             "source": stdin_record.get("source"),
             "note": stdin_record.get("note"),
+            "correlated_checkin_date_et": stdin_record.get(
+                "correlated_checkin_date_et"
+            ),
         }
     else:
         try:
@@ -474,6 +498,7 @@ def main(argv: list[str] | None = None) -> int:
             note=kwargs.get("note"),
             api_base_url=args.base_url,
             token=token,
+            correlated_checkin_date_et=kwargs.get("correlated_checkin_date_et"),
         )
     except ValueError as e:
         print(f"ERROR: validation failed: {e}", file=sys.stderr)

@@ -164,10 +164,13 @@ cd /home/claude/kg-automation && python3 -m scripts.habits.record_completion \
     --title "<title from the morning-list artifact>" \
     --date $(TZ=America/New_York date +%Y-%m-%d) \
     --state <complete|incomplete|skipped> \
-    --source whatsapp
+    --source whatsapp \
+    --correlated-checkin-date-et "<parser top-level correlated_checkin_date_et>"
 ```
 
 `--state` accepts only `complete`, `incomplete`, or `skipped` (Phase 2 strict enum). Pass the value the parser put in `tuples[i].state`.
+
+Pass the parser's **top-level** `correlated_checkin_date_et` (the same value on every call this reply produces — it is per-reply, not per-tuple) to `--correlated-checkin-date-et`. It is instrumentation (#515): when non-empty it records which check-in date this completion was correlated to, so mis-correlations are observable. When the parser emits `""` (the common case), pass the empty string — `record_completion` drops it and the row is unchanged.
 
 Exit codes: `0` = success or idempotent no-op; `1` = Vikunja write failure; `2` = state-log write failure (Vikunja already committed — surface in the action log); `3` = validation/usage error.
 
