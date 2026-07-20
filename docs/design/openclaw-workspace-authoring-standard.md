@@ -101,12 +101,23 @@ them (a `~/` path in a prompt is the #732 nonexistent-path bug the guard now rej
 ### Invariant B — Output Discipline
 
 Any agent that emits **user-facing WhatsApp** must carry the Output Discipline
-(Hard Rules) block in `AGENTS.md` (the canonical source is felix-admin-capture's
-block). An agent that does **not** emit user-facing WhatsApp must instead carry an
-explicit annotation — the literal marker **`no user-facing WhatsApp`** — so the
-absence is a deliberate, declared choice rather than an oversight. The validation
-check is **presence-or-annotation**: block present *or* annotation present passes;
-neither fails.
+(Hard Rules) block (the canonical source is felix-admin-capture's block).
+`AGENTS.md` is the **preferred home** — it is where the fleet keeps the block and
+where an auditor looks first (`grep '## Output discipline' */AGENTS.md`). The block
+is also **accepted in `SOUL.md`**, because OpenClaw loads it into the agent's system
+context too, so the discipline genuinely governs the running agent wherever the block
+sits (#805). A block found in `SOUL.md` passes but is annotated *(preferred home is
+AGENTS.md)* in the report so a canonical relocation can be tracked per-agent (e.g.
+`felix-admin-calendar`'s block lives in `SOUL.md` today; relocation is owned by
+#635's workspace-authoring mission). `TOOLS.md` is **not** accepted — it is a
+tool-reference file, not a home for a behavioral output rule. The check matches the
+`## Output discipline` heading (not a bare phrase in prose), and this Invariant B
+acceptance of `SOUL.md` is deliberately more permissive than Invariant A, which
+holds the privacy red-line to a higher bar (enforceable home only). An agent that does **not** emit user-facing
+WhatsApp must instead carry an explicit annotation — the literal marker
+**`no user-facing WhatsApp`** — so the absence is a deliberate, declared choice
+rather than an oversight. The validation check is **presence-or-annotation**: block
+present (in any prompt file) *or* annotation present passes; neither fails.
 
 ## Principle 4 — Filtered, not identical (USER.md)
 
