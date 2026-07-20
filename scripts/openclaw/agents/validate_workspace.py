@@ -9,8 +9,9 @@ workspace (they are intentionally per-agent, not inherited — see #553):
   never-touch rule is present in the workspace's enforceable home (``AGENTS.md`` or
   ``TOOLS.md``). A SOUL-only stance does not satisfy it.
 * **Invariant B — Output Discipline**: an agent that emits user-facing WhatsApp
-  carries the Output Discipline block in ``AGENTS.md``; an agent that does not
-  carries the explicit ``no user-facing WhatsApp`` annotation. Presence-or-annotation.
+  carries the Output Discipline block in a deployed prompt file (``AGENTS.md``
+  preferred, ``SOUL.md`` accepted — #805); an agent that does not carries the
+  explicit ``no user-facing WhatsApp`` annotation. Presence-or-annotation.
 * **Invariant D — Privacy path canonical form** (#732): when the enforceable
   privacy path is written with a HOME prefix, it must use the physical
   ``/home/kgale/second-brain/notes/04-Growth/_private/`` — never the ambiguous
@@ -59,8 +60,19 @@ CANONICAL_PRIVATE_PATH = "/home/kgale/second-brain/notes/04-Growth/_private"
 #: ``claude`` runtime and thus misprotects the boundary (Invariant D, #732).
 NONCANONICAL_PRIVATE_TOKEN = "~/second-brain/notes/04-Growth/_private"
 
-#: Case-insensitive marker for the Output Discipline block heading.
-OUTPUT_DISCIPLINE_TOKEN = "output discipline"
+#: Case-insensitive marker for the Output Discipline block. Anchored to the ``##``
+#: heading form (every real block is authored as ``## Output discipline``) so a
+#: stray mention of the phrase in prose cannot false-pass the invariant.
+OUTPUT_DISCIPLINE_TOKEN = "## output discipline"
+
+#: Prompt files scanned for the Output Discipline block, in preference order.
+#: AGENTS.md is the fleet-canonical home; SOUL.md is accepted because OpenClaw
+#: loads it into the agent context too, so a block there enforces the discipline
+#: on the live agent (#805, Invariant B — felix-admin-calendar's block lives in
+#: SOUL.md today, canonical relocation owned by #635). Deliberately narrower than
+#: Invariant A's privacy owner set: TOOLS.md is a tool-reference file, not a home
+#: for a behavioral output rule, so it is not scanned here.
+OUTPUT_DISCIPLINE_OWNER_FILES = ("AGENTS.md", "SOUL.md")
 
 #: Case-insensitive annotation an agent uses to declare it emits no user-facing WhatsApp.
 NO_WHATSAPP_ANNOTATION = "no user-facing whatsapp"
@@ -148,10 +160,21 @@ def check_privacy_path_canonical(workspace_dir: Path) -> CheckResult:
 
 
 def check_output_discipline(workspace_dir: Path) -> CheckResult:
-    """Invariant B: Output Discipline block present, or no-WhatsApp annotation present."""
-    agents_text = _read(workspace_dir / "AGENTS.md").lower()
-    if OUTPUT_DISCIPLINE_TOKEN in agents_text:
-        return CheckResult("output_discipline", True, "Output Discipline block present in AGENTS.md")
+    """Invariant B: Output Discipline block present, or no-WhatsApp annotation present.
+
+    The block is accepted in AGENTS.md (preferred) or SOUL.md, because OpenClaw
+    loads both into the agent's system context so the discipline genuinely governs
+    the running agent wherever the block sits (#805). A block found in SOUL.md
+    passes but is annotated so it stays discoverable and a canonical relocation
+    can be tracked per-agent (e.g. felix-admin-calendar → SOUL.md today, relocation
+    owned by #635). This is intentionally more permissive than Invariant A (privacy),
+    which rejects a SOUL-only stance: a privacy red-line is held to a higher bar
+    (must live in an enforceable-rule home), whereas output formatting is softer.
+    """
+    for fname in OUTPUT_DISCIPLINE_OWNER_FILES:
+        if OUTPUT_DISCIPLINE_TOKEN in _read(workspace_dir / fname).lower():
+            note = "" if fname == "AGENTS.md" else " (preferred home is AGENTS.md)"
+            return CheckResult("output_discipline", True, f"Output Discipline block present in {fname}{note}")
     # Presence-or-annotation: an explicit no-WhatsApp declaration satisfies the invariant.
     for md in sorted(workspace_dir.glob("*.md")):
         if NO_WHATSAPP_ANNOTATION in _read(md).lower():
@@ -159,7 +182,8 @@ def check_output_discipline(workspace_dir: Path) -> CheckResult:
     return CheckResult(
         "output_discipline",
         False,
-        f"missing — no Output Discipline block in AGENTS.md and no '{NO_WHATSAPP_ANNOTATION}' annotation",
+        f"missing — no Output Discipline block in {'/'.join(OUTPUT_DISCIPLINE_OWNER_FILES)} "
+        f"and no '{NO_WHATSAPP_ANNOTATION}' annotation",
     )
 
 

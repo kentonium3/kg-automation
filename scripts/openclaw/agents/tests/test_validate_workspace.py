@@ -147,6 +147,56 @@ def test_output_discipline_block_passes(tmp_path: Path) -> None:
     assert _check(validate_workspace(ws), "output_discipline").ok
 
 
+def test_output_discipline_block_in_soul_passes(tmp_path: Path) -> None:
+    """#805: the block is accepted in SOUL.md (OpenClaw loads all prompt files),
+    but the detail flags AGENTS.md as the preferred home for discoverability."""
+    ws = _write(
+        tmp_path / "agent",
+        AGENTS_md="04-Growth/_private/\nSome routing rules.\n",
+        SOUL_md="## Output discipline\nHard rule #1 ...\n",
+    )
+    result = _check(validate_workspace(ws), "output_discipline")
+    assert result.ok
+    assert "SOUL.md" in result.detail
+    assert "preferred home is AGENTS.md" in result.detail
+
+
+def test_output_discipline_block_in_tools_not_accepted(tmp_path: Path) -> None:
+    """TOOLS.md is a tool-reference file, not a home for a behavioral output
+    rule — a block there does NOT satisfy Invariant B (#805 scoped to AGENTS/SOUL)."""
+    ws = _write(
+        tmp_path / "agent",
+        AGENTS_md="04-Growth/_private/\nSome routing rules.\n",
+        TOOLS_md="## Output discipline\nHard rule #1 ...\n",
+    )
+    result = _check(validate_workspace(ws), "output_discipline")
+    assert not result.ok
+    assert "missing" in result.detail
+
+
+def test_output_discipline_prose_mention_does_not_false_pass(tmp_path: Path) -> None:
+    """Anchored to the ## heading: a bare phrase in prose must not satisfy it."""
+    ws = _write(
+        tmp_path / "agent",
+        AGENTS_md="04-Growth/_private/\nThis agent controls its output discipline tightly.\n",
+    )
+    assert not _check(validate_workspace(ws), "output_discipline").ok
+
+
+def test_output_discipline_agents_md_preferred_when_in_both(tmp_path: Path) -> None:
+    """AGENTS.md wins the report even if the block also appears in SOUL.md —
+    no 'preferred home' note when it is already in AGENTS.md."""
+    ws = _write(
+        tmp_path / "agent",
+        AGENTS_md="04-Growth/_private/\n## Output discipline\nrules\n",
+        SOUL_md="## Output discipline\ncopy\n",
+    )
+    result = _check(validate_workspace(ws), "output_discipline")
+    assert result.ok
+    assert "AGENTS.md" in result.detail
+    assert "preferred home" not in result.detail
+
+
 def test_no_whatsapp_annotation_passes(tmp_path: Path) -> None:
     ws = _write(
         tmp_path / "agent",
