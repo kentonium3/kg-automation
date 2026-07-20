@@ -773,6 +773,23 @@ Per-module metadata mirrors `docs/design/architecture/data/service-inventory.jso
 - **Runbook**: `docs/runbooks/habits-ops.md`
 - **Mission context**: `kitty-specs/habit-day-specific-scheduling-01KT48Y6/spec.md`
 
+### Felix Habits Weekly (#723, 2026-07-12)
+- **Deployed by**: #723 / mission `deterministic-cron-hardening-01KXA4PX` (FR-009/FR-010)
+- **Type**: systemd user timer + oneshot service (deterministic Python — **no LLM turn anywhere in the path**, Directive 6). Replaces the retired `habits-weekly-report` OpenClaw cron on the habit-checkin agent as the mission's transactional cutover: exactly one producer is active for the weekly report at any time.
+- **systemd unit**: `felix-habits-weekly.timer` + `felix-habits-weekly.service` (user oneshot under claude) + `felix-habits-weekly-onfailure.service` (OnFailure shim)
+- **Schedule**: `OnCalendar=Mon *-*-* 06:00:00 America/New_York`, `Persistent=true` — Monday 06:00 ET
+- **Per-tick invocation**: `felix-habits-weekly.service` runs `/usr/bin/python3 -m scripts.habits.weekly_report_driver` from `WorkingDirectory=/home/claude/kg-automation`
+- **Driver** (`scripts/habits/weekly_report_driver.py`): invokes the weekly-report helper in-process, composes the outbound message, delivers it via `/home/claude/.local/bin/openclaw message send --channel whatsapp --json` (absolute path — systemd units have no PATH; resolved through the #811 openclaw-bin seam), **confirms delivery truthfully** against the empirically-verified C1 predicate, then writes a freshness tick. Modes:
+  - **default** — real send + tick to `DEFAULT_TICK_PATH`;
+  - **`--self-test`** — runs the helper + compose, calls the send path with `--dry-run` (no real send), and writes a tick to a **separate** self-test-scoped path (`SELF_TEST_TICK_PATH`) so the freshness canary can never mistake a dry-run for a delivered report (post-merge Codex, #723). This is the WP04 deploy gate;
+  - **`--dry-run`** — local preview only: prints the composed message, no send, **no state written**.
+- **Helper** (`scripts/habits/query_active_habits_weekly.py`, unchanged by this mission): reads habit metadata from Vikunja via `scripts/common/vikunja_client.py` and completion history from the canonical `/data/services/openclaw/state/habits-history.jsonl` (read path corrected to `habits-history.jsonl`, not Vikunja `done_at`, by #605).
+- **Alert path**: a runner-level failure (non-zero exit) triggers an out-of-band ERROR via the #701 felix-alert bus through the `felix-habits-weekly-onfailure.service` OnFailure shim, independent of the driver's own tick/logging.
+- **Health check (self)**: `/data/services/felix-habits-weekly/state/last-tick.json` — `method: tick-signal-file`, TickSignal schema (`completed_at_utc`, `exit_code`, `status`, `delivery_confirmed`, `failure_reason`). Freshness anchor is `completed_at_utc`; `max_age_seconds=691200` (8 days = 7-day cadence + 1-day slack). `status`/`exit_code` are **truthful** — a fresh FAILURE tick (e.g. delivery not confirmed) reads as unhealthy, never healthy-because-fresh. A stale tick means the timer stopped ticking or has not yet run.
+- **Source in repo**: `scripts/habits/weekly_report_driver.py` + `scripts/habits/query_active_habits_weekly.py` + `scripts/office2/felix-habits-weekly.{service,timer}` + `scripts/office2/felix-habits-weekly-onfailure.service`
+- **Runbook**: `docs/runbooks/habits-ops.md`
+- **Mission context**: `kitty-specs/deterministic-cron-hardening-01KXA4PX/spec.md`
+
 ### Felix Health Check (#676, 2026-07-08)
 - **Deployed by**: #676 / mission `deterministic-monitoring-checks-01KX1XNW`
 - **Type**: systemd user timer + oneshot service (no LLM — the existing bash health check's assertions are reused unchanged; only the execution path moves off the Sonnet `main` agent)
