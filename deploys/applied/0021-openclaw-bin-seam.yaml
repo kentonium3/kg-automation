@@ -32,3 +32,6 @@ notes: "Syncs the seam-migrated security-monitor audit.sh to its standalone offi
   \ not required` line for the #557 CI\nsoft-reminder that fires on the deploys/queued/*.yaml\
   \ path match.\n"
 applied_at: '2026-07-20T02:43:56Z'
+rebaseline:
+  outcome: pending_clean
+  at_utc: '2026-07-20T02:44:01Z'
