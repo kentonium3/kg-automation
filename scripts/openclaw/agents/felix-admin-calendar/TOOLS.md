@@ -1,107 +1,23 @@
 # TOOLS.md
 
-## calendar helper (deterministic Google Calendar CLI)
+## calendar request orchestrator (your single calendar tool)
 
-- Sole calendar-write tool. This agent has **no `gog` skill** — the terminal
-  create/update/delete is the deterministic helper `scripts.google.calendar_helper`,
-  invoked via the standard `exec` tool. Write the fully-resolved
-  `create_calendar_event` payload to a tempfile and pass `--payload-file` (never
-  hand-build event bodies). Invocation template (deploy venv, run from
-  `/home/claude/kg-automation`):
+`scripts.calendar_routing.handle_calendar_request` is the ONE deterministic command you run for EVERY calendar request — a conversational request or a clarification reply. You have **no `gog`**, and you do **not** call the calendar helper, the validator, the clarification-state helper, or `log_action` directly — the orchestrator invokes all of them for you. This is what makes scheduling reliable: all date/time math and state changes are deterministic, never hand-built by you.
+
+- Invocation (pipe the ExtractedCalendarBlock JSON on stdin). The orchestrator is stdlib-only and resolves the deploy venv internally for the helper subprocess, so run it under system `python3` anchored to the checkout:
 
   ```bash
-  /data/services/openclaw/felix-calendar/venv/bin/python \
-    -m scripts.google.calendar_helper create \
-    --payload-file <tmp> --account <account> \
-    --idempotency-key "<source_inbox_path>" --json
+  cd /home/claude/kg-automation && echo '<ExtractedCalendarBlock JSON>' | python3 -m scripts.calendar_routing.handle_calendar_request --account <account>
   ```
 
-  The helper reads `summary`, the start/end pair (`start_rfc3339`/`end_rfc3339`,
-  or all-day `start_date`/`end_date`), and `start_timezone`/`location`/
-  `description`/`rrule` from the payload file; it refuses `attendees` unless
-  `--allow-attendees` (a note must not silently email people).
-- Authoritative flag/exit-code contract:
-  `kitty-specs/felix-calendar-helper-*/contracts/calendar-helper-cli.md`.
-  Payload (event-body) contract:
-  `kitty-specs/felix-calendar-subagent-extraction-01KTTA33/contracts/calendar-event-payload.md`.
-- `--json` is required for the response envelope: the helper emits a JSON line
-  (`{"status": "created", "event_id": …, "html_link": …}`) *before* its final
-  `SUMMARY:` line. Parse the JSON line.
-- `--idempotency-key "<source_inbox_path>"` de-dupes re-runs of the same source
-  note so a retry never double-creates.
-- Exit codes: `0` success · `1` operational/API error · `2` usage error ·
-  `3` auth failure. A non-zero exit writes `ERROR: …` to stderr and never
-  mutated the calendar — surface it verbatim (never fake a created event, #683;
-  there is no `gog` fallback).
-- OAuth is per-account (credential-set selector `--account`, default `personal`),
-  resolved inside the helper from `~/.config/felix/google/<account>/`. Do NOT
-  prompt for credentials or run any auth flow in-handler — that's an operator
-  surface. An expired/invalid token surfaces as exit `3`.
+- Default `--account` is `personal`. The block fields you assemble are listed in **AGENTS.md → Calendar request handling, Step 1**.
+- It returns ONE JSON object on stdout with a `status`; branch on it (AGENTS.md → Step 3):
+  - `{"status":"created","mode":"conversational"|"clarification","event_id":…,"html_link":…,"summary":…,"start":…}` — created at the correct ET date/time. A clarification result also carries `"cleanup_ok": <bool>` (and a `cleanup` block): the orchestrator best-effort removes the pending record, flips the source note, and logs — so `cleanup_ok: false` means the event exists but the reminder wasn't cleared (surface that to Kent).
+  - `{"status":"needs_clarification","mode":…,"missing":[…]}` — a required field is missing; ask Kent for exactly those.
+  - `{"status":"ambiguous","candidates":[{"title","note_filename","created_at"},…]}` — the reply could resolve more than one open clarification; ask Kent which.
+  - `{"status":"error","exit_code":<n>,"error":"<verbatim>"}` — the calendar helper failed and the calendar was NOT mutated; surface `error` VERBATIM (never fake a create, #683; no `gog` fallback).
 
-## State file: pending-calendar-clarifications.json
-
-- Path: `/data/services/openclaw/state/pending-calendar-clarifications.json`
-- Format: a JSON **array** of PendingClarification objects
-  (`{"note_filename", "partial_payload", "created_at"}`). Managed by
-  `scripts.inbox.handle_clarification_state` (`add` / `sweep` / `match`).
-  Schema context:
-  `kitty-specs/inbox-calendar-and-aspiration-routing-01KTHHXS/contracts/pending_clarification_record.md`.
-- Do NOT hand-roll parsing — use the `handle_clarification_state match` helper to
-  match a reply, and let the 24h `sweep` age out resolved/stale entries. The
-  helper writes atomically (temp + `os.replace`). Commands (run from
-  `/home/claude/kg-automation`):
-
-  ```bash
-  # Match an inbound reply to the most-recent open record (prints the entry, or null):
-  python3 -m scripts.inbox.handle_clarification_state match --reply-content "<inbound message body>"
-
-  # Remove a resolved record by note filename (prints removed=N):
-  python3 -m scripts.inbox.handle_clarification_state remove --note-filename "<matched note_filename>"
-  ```
-
-## Validator: validate_calendar_event.py
-
-- Path: `/home/claude/kg-automation/scripts/calendar_routing/validate_calendar_event.py`
-- Reads merged candidate block JSON from stdin; emits `complete: true|false`
-  plus `missing_fields` and (when complete) `calendar_event_payload`. Invoke
-  (from `/home/claude/kg-automation`):
-
-  ```bash
-  echo "<merged candidate block JSON>" | python3 scripts/calendar_routing/validate_calendar_event.py
-  ```
-- Owns deterministic field validation. The LLM job is signal extraction
-  from natural-language reply text; the validator does the math.
-
-## log_action
-
-- Path: `/home/claude/kg-automation/scripts/openclaw/observation/log_action.py`
-- Every calendar-create attempt emits a structured `log_action` event before the
-  response envelope returns (run from `/home/claude/kg-automation`):
-
-  ```bash
-  # On success:
-  python3 scripts/openclaw/observation/log_action.py \
-    --agent felix-admin-calendar --category routine \
-    --action calendar_event_created --target "<gcal_event_id>" --outcome success \
-    --context '{"source_inbox_path": "<from payload>", "account": "<from payload>", "calendar_id": "<from payload>", "rrule": "<from payload or null>", "clarification_id": "<from payload or null>"}'
-
-  # On failure:
-  python3 scripts/openclaw/observation/log_action.py \
-    --agent felix-admin-calendar --category error \
-    --action calendar_event_failed --target "<source_inbox_path>" --outcome error \
-    --context '{"error_detail": "<helper stderr>", "exit_code": <helper exit code>, "clarification_id": "<from payload or null>"}'
-  ```
-- Clarification resolution ALSO emits `calendar_event_clarification_resolved`:
-
-  ```bash
-  python3 scripts/openclaw/observation/log_action.py \
-    --agent felix-admin-calendar --category routine \
-    --action calendar_event_clarification_resolved \
-    --target "<clarification_id>" --outcome success \
-    --context '{"source_file": "<source_inbox_path>", "gcal_event_id": "<from helper response>"}'
-  ```
-- If `log_action.py` itself fails, write a short note to stderr and continue —
-  don't block the response envelope on observability failure.
+- What it owns internally (so you never do): matching a reply to a live pending clarification (`/data/services/openclaw/state/pending-calendar-clarifications.json`), merging the reply onto the record, deterministic date/time parsing + timezone (America/New_York) → RFC3339, all-day handling, the `calendar_helper create` call with an idempotency key, removing the resolved record, flipping the source note (`mark_processed`), and `log_action` (`calendar_event_created` / `calendar_event_failed` / `calendar_event_clarification_resolved`).
 
 ## Privacy
 
