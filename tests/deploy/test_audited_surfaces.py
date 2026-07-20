@@ -139,7 +139,7 @@ def test_ci_script_imports_shared_matcher_not_a_copy():
 
 def test_real_registry_loads_and_matches():
     audited = audited_surfaces.load_audited_surfaces()
-    assert audited.get("expected_baseline_count") == 14
+    assert audited.get("expected_baseline_count") == 15
     assert any(s["id"] == "openclaw-config" for s in audited["audited_surfaces"])
     # A real openclaw.json change matches the real openclaw-config surface.
     matches = audited_surfaces.match_surfaces(["scripts/openclaw/openclaw.json"], audited)
@@ -156,7 +156,7 @@ def test_load_audited_surfaces_exits_2_when_missing(monkeypatch, tmp_path):
 
 # --- known_baselines guard (WP02 T012, Codex LOW) -------------------------
 
-# The documented 14-baseline inventory audit.sh emits (== expected_baseline_count).
+# The documented 15-baseline inventory audit.sh emits (== expected_baseline_count).
 # Pinning this set catches a stale registry name that audit.sh no longer emits
 # being silently accepted as a "known" declaration target.
 _KNOWN_BASELINES_INVENTORY = {
@@ -174,23 +174,24 @@ _KNOWN_BASELINES_INVENTORY = {
     "ssh-keys.txt",
     "systemd-user-dropins.txt",
     "systemd-user-units.txt",
+    "systemd-user-unit-contents.txt",
 }
 
 
-def test_known_baselines_equals_documented_14_inventory():
+def test_known_baselines_equals_documented_15_inventory():
     registry = audited_surfaces.load_audited_surfaces()
     names = audited_surfaces.known_baselines(registry)
-    assert len(names) == 14
+    assert len(names) == 15
     assert names == _KNOWN_BASELINES_INVENTORY
     # And the registry's own count field agrees.
-    assert registry.get("expected_baseline_count") == 14
+    assert registry.get("expected_baseline_count") == 15
 
 
 def test_load_audited_surfaces_or_error_success():
     registry, reason = audited_surfaces.load_audited_surfaces_or_error()
     assert reason is None
     assert registry is not None
-    assert registry.get("expected_baseline_count") == 14
+    assert registry.get("expected_baseline_count") == 15
 
 
 def test_load_audited_surfaces_or_error_missing_does_not_exit(monkeypatch, tmp_path):
