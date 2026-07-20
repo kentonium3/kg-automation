@@ -743,3 +743,114 @@ class TestCli:
         assert exit_code == 3
         err = capsys.readouterr().err
         assert "Token file not found" in err
+
+
+# ===========================================================================
+# Group 11 — correlated_checkin_date_et instrumentation (#515)
+# ===========================================================================
+
+
+class TestCorrelatedCheckinDateEt:
+    """The parser's top-level ``correlated_checkin_date_et`` (mission #408 /
+    WP-02) must round-trip through ``record()`` and both CLI surfaces into the
+    persisted JSONL row so mis-correlations are observable (#509 trigger 2)."""
+
+    def _three_ok(self, mock_urlopen):
+        mock_urlopen.side_effect = [
+            _resp({"id": 14, "repeat_after": 86400, "repeat_mode": 0}),
+            _resp({"id": 14, "done": True}),
+            _resp({"id": 999}),
+        ]
+
+    def test_record_persists_field_when_non_empty(
+        self, mock_urlopen, mock_state_log_dir
+    ):
+        self._three_ok(mock_urlopen)
+        rc.record(**VALID_KWARGS, correlated_checkin_date_et="2026-05-19")
+
+        rows = state_log.read("habits", task_id=14, date="2026-05-20")
+        assert len(rows) == 1
+        assert rows[0]["correlated_checkin_date_et"] == "2026-05-19"
+
+    def test_record_omits_field_when_empty(
+        self, mock_urlopen, mock_state_log_dir
+    ):
+        self._three_ok(mock_urlopen)
+        rc.record(**VALID_KWARGS, correlated_checkin_date_et="")
+
+        rows = state_log.read("habits", task_id=14, date="2026-05-20")
+        assert len(rows) == 1
+        assert "correlated_checkin_date_et" not in rows[0]
+
+    def test_record_omits_field_when_absent(
+        self, mock_urlopen, mock_state_log_dir
+    ):
+        # Default (None) — the field never appears; row shape unchanged.
+        self._three_ok(mock_urlopen)
+        rc.record(**VALID_KWARGS)
+
+        rows = state_log.read("habits", task_id=14, date="2026-05-20")
+        assert len(rows) == 1
+        assert "correlated_checkin_date_et" not in rows[0]
+
+    def test_cli_persists_field_via_flag(
+        self, mock_urlopen, mock_state_log_dir, tmp_token_file, monkeypatch
+    ):
+        self._three_ok(mock_urlopen)
+        _patch_stdin(monkeypatch, None)  # no stdin -> flags path
+        exit_code = rc.main([
+            "--task-id", "14",
+            "--title", "Wake at 5:00 AM",
+            "--date", "2026-05-20",
+            "--state", "complete",
+            "--source", "whatsapp",
+            "--correlated-checkin-date-et", "2026-05-19",
+            "--token-file", str(tmp_token_file),
+            "--base-url", "http://test/api/v1/",
+        ])
+        assert exit_code == 0
+        rows = state_log.read("habits", task_id=14, date="2026-05-20")
+        assert len(rows) == 1
+        assert rows[0]["correlated_checkin_date_et"] == "2026-05-19"
+
+    def test_cli_persists_field_via_stdin(
+        self, mock_urlopen, mock_state_log_dir, tmp_token_file, monkeypatch
+    ):
+        self._three_ok(mock_urlopen)
+        payload = json.dumps({
+            "task_id": 14,
+            "title": "Wake at 5:00 AM",
+            "date": "2026-05-20",
+            "state": "complete",
+            "source": "whatsapp",
+            "correlated_checkin_date_et": "2026-05-19",
+        })
+        _patch_stdin(monkeypatch, payload)
+        exit_code = rc.main([
+            "--token-file", str(tmp_token_file),
+            "--base-url", "http://test/api/v1/",
+        ])
+        assert exit_code == 0
+        rows = state_log.read("habits", task_id=14, date="2026-05-20")
+        assert len(rows) == 1
+        assert rows[0]["correlated_checkin_date_et"] == "2026-05-19"
+
+    def test_field_is_not_part_of_dedup_key(
+        self, mock_urlopen, mock_state_log_dir
+    ):
+        """A second call for the same (task_id, date, state) is still an
+        idempotent no-op even if the correlation value differs — the field is
+        metadata, not part of the dedup key."""
+        self._three_ok(mock_urlopen)
+        rc.record(**VALID_KWARGS, correlated_checkin_date_et="2026-05-19")
+
+        # Second call: no Vikunja traffic allowed (idempotent short-circuit).
+        mock_urlopen.side_effect = AssertionError(
+            "urlopen must not be called on idempotent re-record"
+        )
+        rc.record(**VALID_KWARGS, correlated_checkin_date_et="2026-05-18")
+
+        rows = state_log.read("habits", task_id=14, date="2026-05-20")
+        assert len(rows) == 1
+        # First write wins; no duplicate row.
+        assert rows[0]["correlated_checkin_date_et"] == "2026-05-19"
