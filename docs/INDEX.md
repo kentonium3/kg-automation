@@ -178,6 +178,7 @@ All three runbooks are also listed under *Agent-executable* below.
 
 - [Felix System Overview](<./design/README.md>) — **start here for new contributors.** Day-1 orientation: what Felix is, what it does for Kent, how he interacts with it, key flows, components, and architectural principles. 5 high-level mermaid diagrams.
 - [Felix Capability Roadmap](<./design/felix-capability-roadmap.md>) — living capability status, feature sequence, and design principles
+- [Executive Assistant Architecture — Design Brief](<./design/executive-assistant-architecture.md>) — the CEO-EA organizing frame; intake→router→executor layering; the keystone reconciliation that the world-model **is** the #692 graph layer; settled decisions (write-back, federated, coaching deferred); the router as the net-new forward design *(draft)*
 - [OpenClaw Workspace Authoring Standard](<./design/openclaw-workspace-authoring-standard.md>) — file-ownership contract (SOUL/USER/TOOLS/IDENTITY/AGENTS) + shared-invariant rules every agent workspace is authored against; validated by `scripts/openclaw/agents/validate_workspace.py` (#587)
 - [Vision & Architecture](<./archive/vision-framework.md>) *(archived — superseded by capability roadmap)*
 - [Personal AI System Spec v1.0](<./archive/personal-ai-system-spec-v1.0.md>) *(archived — design intent consolidated into roadmap; work items in GitHub issues)*
