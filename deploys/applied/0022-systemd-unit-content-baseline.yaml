@@ -31,3 +31,6 @@ notes: "Syncs the updated security-monitor audit.sh to its standalone office2 co
   \ not required - no hashed baseline drifts; the 15th baseline\nauto-creates on the\
   \ next audit run.\n"
 applied_at: '2026-07-20T16:50:55Z'
+rebaseline:
+  outcome: pending_clean
+  at_utc: '2026-07-20T16:50:59Z'
