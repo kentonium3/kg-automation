@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
-  "last_updated": "2026-07-19",
-  "updated_by": "felix-admin-cron-path-fix-01KWQTY3 (#656) + finalize-inbox-file-01KW8MSQ (#325, #621 correction) + pull-based-deploy-pipeline-01KTYQQS (#136) + #557-rebaseline-workflow + openclaw-skills-sync-01KXW1DQ (#775: scripts/openclaw/deploy/*.{service,timer} + scripts/deploy/*.sh)",
+  "last_updated": "2026-07-20",
+  "updated_by": "felix-admin-cron-path-fix-01KWQTY3 (#656) + finalize-inbox-file-01KW8MSQ (#325, #621 correction) + pull-based-deploy-pipeline-01KTYQQS (#136) + #557-rebaseline-workflow + openclaw-skills-sync-01KXW1DQ (#775: scripts/openclaw/deploy/*.{service,timer} + scripts/deploy/*.sh) + #808 (add TOOLS.md to openclaw-agent-prompts patterns — matches deploy_agent_prompts.py IN_SCOPE_FILENAMES)",
   "description": "Repo-side inputs whose changes alter the office2 security-monitor baselines. When a commit modifies any matching path, the rebaseline procedure in security-baseline-ops.md should be triggered after the change deploys, otherwise the daily audit will alert as drift. Consumed by tooling/scripts/check_audited_surface_drift.py (CI soft-reminder) and referenced by docs/design/architecture/change-control.md + spec-kitty charter quality gates.",
   "rebaseline_runbook": "docs/runbooks/security-baseline-ops.md",
   "rebaseline_command": "ssh office2-claude 'rm /data/services/security-monitor/baselines/* && sg docker -c /data/services/security-monitor/scripts/audit.sh'",
@@ -14,6 +14,7 @@
       "patterns": [
         "scripts/openclaw/agents/*/AGENTS.md",
         "scripts/openclaw/agents/*/SOUL.md",
+        "scripts/openclaw/agents/*/TOOLS.md",
         "scripts/openclaw/agents/*/IDENTITY.md",
         "scripts/openclaw/agents/*/USER.md",
         "scripts/openclaw/agents/*/GOVERNANCE.md"
