@@ -3,7 +3,7 @@ title: "Second Brain Graph Layer — Design"
 doc_type: design
 status: draft
 owners: ["@kentonium3"]
-last_updated: '2026-07-09'
+last_updated: '2026-07-20'
 audience: agents_and_humans
 ---
 
@@ -76,6 +76,8 @@ FalkorDB is preferred over Neo4j for this deployment:
 
 5. **Decisions are first-class nodes.** Every trade-off conversation that reaches a resolution is ingested as an episode and creates a durable `DECIDED` relationship. Future conflicts can be checked against past decisions.
 
+6. **Principles are a first-class, cross-cutting constraint axis** (Kent, 2026-07-20). Where the Purpose→…→Task hierarchy *directs* decisions (what/why you pursue), **Principles *constrain*** them (how you decide — the values, standards, and non-negotiables the boss will or won't accept). A Principle is definitional-tier (slow-changing, like Purpose) and cross-cutting (not in the hierarchy, like Commitment). It is seeded explicitly and is the least-duplicable element in the system — the deepest moat. See [`executive-assistant-architecture.md`](executive-assistant-architecture.md) §6 for the EA framing that motivated adding this type.
+
 ---
 
 ### Tier Definitions
@@ -113,6 +115,11 @@ A hard temporal constraint. Not in the hierarchy — a cross-cutting node type t
 
 *Examples:* "Contrarian cohort call Thursday 2pm," "Client delivery deadline"
 
+#### PRINCIPLE
+A cross-cutting **constraint** on decisions — a value, standard, or non-negotiable. Definitional tier: slow-changing and foundational like Purpose, but *not in the hierarchy* — it does not direct work, it governs *how* work and inbound decisions are judged. The reasoning agent (and the EA decision-router) checks a proposed action against applicable Principles before acting: a high-value action that violates a **hard** Principle is never auto-handled — it surfaces. Applies globally by default, or is scoped to specific Purposes/Domains via `SCOPED_TO`. Seeded explicitly by Kent alongside Purposes and Outcomes; not extracted from source material.
+
+*Examples:* "Never commit secrets or bypass a governance gate for expediency," "Protect deep-work mornings — no meetings before noon," "Reversible internal actions are autonomous; irreversible/outbound actions require preview"
+
 ---
 
 ### Pydantic Entity Models
@@ -129,6 +136,11 @@ class StatusEnum(str, Enum):
     DEFERRED = "deferred"
     ABANDONED = "abandoned"
     BLOCKED = "blocked"
+
+
+class StrictnessEnum(str, Enum):
+    HARD = "hard"   # never violate; a violating action always surfaces, never auto-handled
+    SOFT = "soft"   # strong preference; weighed against the action's value
 
 
 class Purpose(BaseModel):
@@ -196,6 +208,16 @@ class Commitment(BaseModel):
     duration_hours: Optional[float] = None
     is_external: bool = True                # False = hard internal deadline
     counterparty: Optional[str] = None
+
+
+class Principle(BaseModel):
+    """Cross-cutting definitional constraint — a value, standard, or non-negotiable.
+    Governs *how* decisions are made, not *what* is pursued. Slow-changing."""
+    name: str
+    description: str
+    rationale: str = ""                      # why this matters to Kent
+    strictness: StrictnessEnum = StrictnessEnum.HARD
+    is_global: bool = True                   # False = scoped via SCOPED_TO edges
 ```
 
 ---
@@ -220,6 +242,9 @@ All edges carry `valid_from` / `valid_until` automatically via Graphiti's bi-tem
 | `CONFLICTS_WITH` | Task | Task | Agent-detected scheduling conflict |
 | `TRADES_OFF` | Outcome | Outcome | Agent-detected tension between Outcomes |
 | `DECIDED` | Episode | any | Decision recorded with timestamp and rationale |
+| `SCOPED_TO` | Principle | Purpose/Domain | Principle applies only within this Purpose/Domain (absence = global) |
+| `GOVERNED_BY` | Episode | Principle | A decision was constrained by / cited this Principle |
+| `VIOLATES` | Task/Project | Principle | Agent-detected tension between a proposed action and a Principle |
 
 ---
 
@@ -233,10 +258,11 @@ The life-coach agent operates on this graph to perform trade-off reasoning. Its 
 4. Traverse each competing node upward to its Outcome; compare `priority_rank` and `target_date` urgency
 5. Retrieve active Commitments for the time window (fixed points)
 6. Calculate available effort: window capacity minus Commitments minus existing scheduled work
-7. Determine fit: does the proposed node fit without displacing higher-priority work?
-8. If no fit: identify the lowest-priority scheduled item whose Outcome ranks below the proposed node's Outcome
-9. Surface the conflict: "You have [A] by [date], which needs [B]. This week also has [C] and [D] at [hours]. [E] would require displacing [F] (serving Outcome [X], priority [N]). Postpone E or trade off F?"
-10. Ingest the decision as an episode → creates `DECIDED` edge with timestamp and rationale
+7. **Check applicable Principles** (global + those `SCOPED_TO` the traversed Purpose/Domain): does the proposed action violate any? A **hard** violation is never auto-handled — it surfaces regardless of priority; a **soft** violation is weighed against the action's value. Record the check via `GOVERNED_BY` (and `VIOLATES` when detected).
+8. Determine fit: does the proposed node fit without displacing higher-priority work?
+9. If no fit: identify the lowest-priority scheduled item whose Outcome ranks below the proposed node's Outcome
+10. Surface the conflict: "You have [A] by [date], which needs [B]. This week also has [C] and [D] at [hours]. [E] would require displacing [F] (serving Outcome [X], priority [N]). Postpone E or trade off F?"
+11. Ingest the decision as an episode → creates `DECIDED` edge (and `GOVERNED_BY` edges to any Principles that bore on it) with timestamp and rationale
 
 Past decisions are retrievable: "You've deferred E four times since March. Either commit to it or explicitly abandon it."
 
@@ -278,7 +304,7 @@ Graph data directory included in restic backup scope. This is a gap risk until o
 
 ## Open Questions
 
-1. **Initial ontology seeding:** Does Kent define Purpose/Outcome/Domain nodes manually as a structured exercise before vault ingest, or does the first ingest attempt to extract them from existing notes? Recommendation: manual seeding first — these are definitional and too important to leave to LLM extraction from potentially inconsistent source material.
+1. **Initial ontology seeding:** Does Kent define Purpose/Principle/Outcome/Domain nodes manually as a structured exercise before vault ingest, or does the first ingest attempt to extract them from existing notes? Recommendation: manual seeding first — these are definitional and too important to leave to LLM extraction from potentially inconsistent source material. **Principles especially** are authored by Kent, never extracted.
 
 2. **Vikunja sync direction:** One-way (Vikunja → Graphiti) or bidirectional? Bidirectional introduces write-back complexity. Start one-way.
 
