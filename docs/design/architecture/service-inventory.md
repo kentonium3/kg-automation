@@ -96,7 +96,6 @@ content loss) and unsticks stranded changes from #558 + #561.
 - `HEARTBEAT.md` (deployed-side runtime state owned by openclaw's heartbeat process)
 - `*.tmpl` (still excluded defensively by the sync; the vault `.tmpl` render mechanism was retired in #752 and no agent `.tmpl` files remain)
 - `*.bak*` (backups left by past mission migrations)
-- `GOVERNANCE.md` (manually maintained on the `main` agent only; no repo source)
 
 **Operator surface**: see [`docs/runbooks/agent-prompt-sync-ops.md`](../runbooks/agent-prompt-sync-ops.md)
 for the install procedure, dry-run, single-agent force-sync, troubleshooting,

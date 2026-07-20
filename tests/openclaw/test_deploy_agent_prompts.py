@@ -37,7 +37,7 @@ from scripts.openclaw.deploy import deploy_agent_prompts as dap
     ("AGENTS.md.tmpl", False),
     ("TOOLS.md.tmpl", False),
     ("USER.md.tmpl", False),
-    ("GOVERNANCE.md", False),
+    ("NOTES.md", False),  # any non-allowlisted file is not synced
     ("AGENTS.md.bak", False),
     ("AGENTS.md.bak.foo", False),
     ("random.md", False),
@@ -809,7 +809,7 @@ def test_main_explicit_argv(tmp_path, monkeypatch):
 # ---------------------------------------------------------------------------
 
 
-def test_run_tick_excludes_heartbeat_tmpl_bak_governance(tmp_path):
+def test_run_tick_excludes_heartbeat_tmpl_bak_non_prompt(tmp_path):
     """Source dir contains excluded files; helper must NOT copy them even if drifted."""
     dst_dir = tmp_path / "dst"
     dst_dir.mkdir()
@@ -822,7 +822,7 @@ def test_run_tick_excludes_heartbeat_tmpl_bak_governance(tmp_path):
     (src / "HEARTBEAT.md").write_bytes(b"should not deploy")
     (src / "AGENTS.md.tmpl").write_bytes(b"template")
     (src / "AGENTS.md.bak").write_bytes(b"backup")
-    (src / "GOVERNANCE.md").write_bytes(b"manual")
+    (src / "NOTES.md").write_bytes(b"non-prompt file")
     log = tmp_path / "audit.jsonl"
     args = dap.parse_args([])
     sha = "a" * 40
@@ -833,7 +833,7 @@ def test_run_tick_excludes_heartbeat_tmpl_bak_governance(tmp_path):
     assert not (dst_dir / "HEARTBEAT.md").exists()
     assert not (dst_dir / "AGENTS.md.tmpl").exists()
     assert not (dst_dir / "AGENTS.md.bak").exists()
-    assert not (dst_dir / "GOVERNANCE.md").exists()
+    assert not (dst_dir / "NOTES.md").exists()
 
 
 # ---------------------------------------------------------------------------

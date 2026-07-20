@@ -5,8 +5,10 @@ body construction, label discipline, and kg-felix-bot identity verification.
 Mission #291 / epic #270 (Felix governance discipline).
 
 This helper is the operational implementation of the "queue an issue, do not
-apply" reflex from GOVERNANCE.md. When Felix observes something worth surfacing
-but doesn't have approval to act (Tier 2+ default per the governance protocol),
+apply" reflex from the tier-governance protocol (the inline governance summary in
+main's AGENTS.md; canonical detail in change-risk-taxonomy.json). When Felix
+observes something worth surfacing but doesn't have approval to act (Tier 2+
+default per the governance protocol),
 it invokes this helper instead of composing `gh issue create` ad-hoc or
 attempting autonomous mutation.
 

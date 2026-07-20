@@ -15,8 +15,8 @@ boundary is unchanged — only the parent folder ordinal moved.)
 
 - **Host:** office2 (Ubuntu 24.04 LTS), reached over Tailscale. Repo checkout at
   `/home/claude/kg-automation`; Obsidian vault at `/home/kgale/second-brain`.
-- **OpenClaw workspace:** `~/.openclaw/workspace/` — home of `GOVERNANCE.md`,
-  `MEMORY.md`, `memory/YYYY-MM-DD.md`, `HEARTBEAT.md`.
+- **OpenClaw workspace:** `~/.openclaw/workspace/` — home of `MEMORY.md`,
+  `memory/YYYY-MM-DD.md`, `HEARTBEAT.md`.
 - **State files:** `/data/services/openclaw/state/pending-calendar-clarifications.jsonl`
   (calendar clarification round-trips), `memory/heartbeat-state.json` (heartbeat
   check tracking).

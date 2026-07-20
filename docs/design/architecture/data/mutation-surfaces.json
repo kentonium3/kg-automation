@@ -14,7 +14,7 @@
     },
     "main": {
       "description": "Felix main agent on office2 (claude-sonnet-4-6 via OpenClaw default workspace). The primary autonomous agent.",
-      "governance": "GOVERNANCE.md + main/AGENTS.md pointer (Layer 1). Layer 2 wrapper (felix-change.py) will gate this actor's mutations."
+      "governance": "main/AGENTS.md inline tier-governance summary (canonical detail: change-risk-taxonomy.json) (Layer 1; GOVERNANCE.md retired #829). Layer 2 wrapper (felix-change.py) will gate this actor's mutations."
     },
     "felix-admin-capture": {
       "description": "Inbox processing sub-agent (claude-sonnet-4-6). Mutates Vikunja state when classifying inbox notes.",
@@ -67,7 +67,7 @@
   "gating_treatments": {
     "prune": "Remove the surface from the actor's tool catalog or PATH. The actor cannot invoke it at all.",
     "wrap": "Replace direct invocation with a wrapper (felix-change.py) that enforces the tier protocol before letting the operation through.",
-    "prompt_forbid": "Surface remains available; prompts (GOVERNANCE.md + main/AGENTS.md pointer) forbid direct use and require routing through the proper channel. Weakest enforcement; depends on LLM compliance.",
+    "prompt_forbid": "Surface remains available; prompts (main/AGENTS.md inline tier-governance summary) forbid direct use and require routing through the proper channel. Weakest enforcement; depends on LLM compliance.",
     "allow": "No gating. Surface is Tier 3 or below; standard care applies but no special wrapper needed."
   },
   "surfaces": [
@@ -159,7 +159,7 @@
       "scope": "Install community skill from ClawHub (introduces external code into actor's tool catalog)",
       "available_to": ["main", "claude-code", "kent-manual"],
       "gating_treatment": "prompt_forbid",
-      "notes": "Per Constitution: community skills require Kent's explicit approval. Tier 1 because supply-chain risk + connectivity to ClawHub. Until Layer 2 has a wrapper, GOVERNANCE.md must explicitly forbid autonomous use."
+      "notes": "Per Constitution: community skills require Kent's explicit approval. Tier 1 because supply-chain risk + connectivity to ClawHub. Until Layer 2 has a wrapper, main's AGENTS.md governance summary must explicitly forbid autonomous use."
     },
     {
       "id": "openclaw-agent-invoke",
@@ -179,7 +179,7 @@
       "scope": "Vikunja write operations (task create/update/delete, comments, project changes, labels)",
       "available_to": ["main", "felix-admin-capture", "felix-admin-habits", "felix-admin-escalation", "felix-admin-tasker", "claude-code"],
       "gating_treatment": "allow",
-      "notes": "Tier 2 application state, but most invocations are legitimate domain work (habits agent marking habits complete, capture agent creating tasks). Layer 2 wrapper may eventually intercept; for now, per-agent Output Discipline + GOVERNANCE.md awareness is the discipline. Watch for Vikunja schema-affecting writes (label creation, project creation) which warrant Tier 2 protocol."
+      "notes": "Tier 2 application state, but most invocations are legitimate domain work (habits agent marking habits complete, capture agent creating tasks). Layer 2 wrapper may eventually intercept; for now, per-agent Output Discipline + tier-governance awareness (main's AGENTS.md summary) is the discipline. Watch for Vikunja schema-affecting writes (label creation, project creation) which warrant Tier 2 protocol."
     },
     {
       "id": "vikunja-token-rotation",
@@ -299,7 +299,7 @@
       "scope": "Rewriting main branch history — affects all downstream consumers, including auto-deploy hooks",
       "available_to": ["claude-code", "kent-manual"],
       "gating_treatment": "prompt_forbid",
-      "notes": "Per CLAUDE.md: never force push to main. GOVERNANCE.md should reinforce. Even if access exists, this command must NOT be invoked."
+      "notes": "Per CLAUDE.md: never force push to main. main's AGENTS.md governance summary should reinforce. Even if access exists, this command must NOT be invoked."
     },
     {
       "id": "gh-issue-mutate",

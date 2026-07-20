@@ -78,7 +78,7 @@ Separate from the service-health verification above, ANY change that touches an 
 
 **Trigger classes** (any of these → rebaseline required):
 
-- OpenClaw agent prompts (`AGENTS.md`, `SOUL.md`, `IDENTITY.md`, `USER.md`, `GOVERNANCE.md` under `scripts/openclaw/agents/`) — **intended** trigger, but **not yet enforced**: `audit.sh` does not currently hash agent-prompt files (gap #621), so these edits are `Rebaseline: not required` until coverage is added
+- OpenClaw agent prompts (`AGENTS.md`, `SOUL.md`, `IDENTITY.md`, `USER.md`, `TOOLS.md` under `scripts/openclaw/agents/`) — **intended** trigger, but **not yet enforced**: `audit.sh` does not currently hash agent-prompt files (gap #621), so these edits are `Rebaseline: not required` until coverage is added
 - OpenClaw runtime config (`scripts/openclaw/openclaw*.json`)
 - Systemd user units + deploy scripts (`scripts/office2/*.{service,timer,target,path}` + `scripts/office2/deploy/*.sh`)
 - Python dependency manifests (`requirements*.txt`, `pyproject.toml`)

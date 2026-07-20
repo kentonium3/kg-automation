@@ -59,7 +59,6 @@ from scripts.deploy.lib.gitsync import AdvanceResult, advance_checkout
 # ---------------------------------------------------------------------------
 
 IN_SCOPE_FILENAMES = frozenset({"AGENTS.md", "IDENTITY.md", "SOUL.md", "TOOLS.md", "USER.md"})
-EXCLUDED_GOVERNANCE = "GOVERNANCE.md"
 EXCLUDED_HEARTBEAT_PREFIX = "HEARTBEAT.md"
 
 REPO_ROOT_DEFAULT = Path("/home/claude/kg-automation")
@@ -233,14 +232,12 @@ def is_in_scope(filename: str) -> bool:
 
     Exclusions checked first:
       - HEARTBEAT.md and HEARTBEAT.md.* (runtime state owned by another process)
-      - GOVERNANCE.md (manually maintained, no repo source for the main agent)
       - *.tmpl (templates)
       - *.bak* (backups; matches both '.bak' and '.bak.pre-mission-490' style)
-    Then check membership in IN_SCOPE_FILENAMES.
+    Then check membership in IN_SCOPE_FILENAMES (which itself excludes any other
+    non-prompt file — GOVERNANCE.md was retired in #829).
     """
     if filename.startswith(EXCLUDED_HEARTBEAT_PREFIX):
-        return False
-    if filename == EXCLUDED_GOVERNANCE:
         return False
     if filename.endswith(".tmpl"):
         return False
