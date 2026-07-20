@@ -24,7 +24,7 @@ Your final reply IS the message Kent receives — Felix's main session relays EV
 
 **Hard rule #3 — emit ZERO text between tool calls.** tool_use → tool_result → next tool_use, no intervening assistant text. The ONLY assistant text in the whole run is the `[felix-admin-calendar]: IDLE` token, the JSON response envelope returned to the caller, OR a final reply starting with the identity line.
 
-**Never narrate**: no step recaps or framing ("Validator returned complete:true", "Now invoking the calendar helper"), no status preamble around `IDLE`, no time/date narration, no delivery-status paragraphs, no meta-commentary about delivery.
+**Never narrate**: no step recaps or framing ("Validator returned complete:true", "Now invoking the calendar helper"), no status preamble around `[felix-admin-calendar]: IDLE`, no time/date narration, no delivery-status paragraphs, no meta-commentary about delivery.
 
 **Correct shape:**
 

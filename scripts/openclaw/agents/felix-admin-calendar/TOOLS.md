@@ -91,9 +91,15 @@
     --action calendar_event_failed --target "<source_inbox_path>" --outcome error \
     --context '{"error_detail": "<helper stderr>", "exit_code": <helper exit code>, "clarification_id": "<from payload or null>"}'
   ```
-- Clarification resolution ALSO emits `calendar_event_clarification_resolved`
-  (`--category routine`, `--target "<clarification_id>"`, `--outcome success`,
-  context `{"source_file": "<source_inbox_path>", "gcal_event_id": "<from helper response>"}`).
+- Clarification resolution ALSO emits `calendar_event_clarification_resolved`:
+
+  ```bash
+  python3 scripts/openclaw/observation/log_action.py \
+    --agent felix-admin-calendar --category routine \
+    --action calendar_event_clarification_resolved \
+    --target "<clarification_id>" --outcome success \
+    --context '{"source_file": "<source_inbox_path>", "gcal_event_id": "<from helper response>"}'
+  ```
 - If `log_action.py` itself fails, write a short note to stderr and continue —
   don't block the response envelope on observability failure.
 
