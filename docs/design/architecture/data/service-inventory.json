@@ -1,7 +1,7 @@
 {
   "schema_version": "1.1",
   "last_updated": "2026-07-19",
-  "updated_by": "openclaw-skills-sync-01KXW1DQ (#775 — agent-skill-sync systemd_user_timer added: pull-based OpenClaw skill (SKILL.md) deploy/sync repo->office2 mirroring agent-prompt-sync; health_check is the INDEPENDENT skills_drift_check self-check-command (FR-009), sync writes skills-last-tick.json freshness + git-advance/copy health watermarks) + task-intake-validation-loop-01KXS06W (#749 — Tier-1 task-intake validation loop rides each inbox tick: scan_inbox.py (felix-bot read) + apply_reply.py (kent write token) added as inbox-processing capabilities; new /data/services/openclaw/state/intake/ state dir with per-digest correlation records + tick observability + apply ledger; closes #750 felix-bot-can't-attach-kent-labels via kent-token writes) + capture-atomic-finalize-01KXRM7J (#746 — note-level atomic finalize transaction: new route_and_finalize.py dispatcher component (the ONE command capture runs per note — routes every block, verifies each artifact, writes a per-block routing-log entry, then marks processed once); routing-log entries gain block_index+block_hash+kind vocabulary; prescan gains the scan_processed_without_routing_log health rail (processed-without-routing-log silent-loss signature) surfaced through WP04's IDLE gate; append_routing_entry retired from the capture standing-orders path (finalize writes the log internally); mark_processed now invoked once per note by route_and_finalize as a subprocess. No deploy manifest (pure helpers + agent prompts via self-pull + agent-prompt-sync); rebaseline not required (#621)) + #712 (second-brain-sync retired — bidirectional non-vault git sync to GitHub; consumers removed around it (the /home/claude/second-brain clone decommissioned by #659, Restic superseding its backup role), timer dead since 2026-06-12; health_check→none, status→retired so the canary status-gate suppresses it) + felix-canary-registry-01KX8T7B (#327 — felix-canary component-health runner registered (systemd_user_timer, tick-signal-file self-observability on last-tick.json, FR-010); restic-backup health_check normalized from method:shell to method:state-file with max_age_seconds:100800 so the shared canary freshness probe drives it uniformly (FR-007)) + felix-time-logging-01KX79HT (#703 — felix-timelog-helper service added: WhatsApp time-logging to Google Sheets, shares the #699 calendar helper's venv + credential with an added spreadsheets scope) + felix-truthful-reporting-01KX6MN5 (#683 — felix-trust-scan systemd timer added: cron-drift + completion-assertion detection, alerts via the #701 felix-alert bus) + unified-alert-bus-01KX5TYT (#701 — felix-alert bus shared library + unified operator-alerts topic added; three ntfy emitters (felix-deployer subsystem, security-monitor, felix-health-check) migrated to the bus, their per-component topics retired) + f0-exec-hardening-01KX4ZCY (#675 — exec-hardening finding + live-config reconcile: habits/tasker model drift, per-agent skills, post-#699 gog paths, gateway version) + felix-calendar-helper-01KX4H3C (#699 — calendar helper on-demand invocation + Google Calendar API dependency + felix-admin-calendar gog-skill removal; RFC #681 calendar phase) + deterministic-monitoring-checks-01KX1XNW (#676) + harden-inbox-capture-01KWVGZM (#662) + felix-admin-cron-path-fix-01KWQTY3 (#656) + finalize-inbox-file-01KW8MSQ (#325) + pull-based-deploy-pipeline-01KTYQQS (#136) + felix-calendar-subagent-extraction-01KTTA33 (#579) + #572-credential-liveness-probe + prescan-archive-anomalies-01KTMZPE (#568) + capture-agents-md-rewrite-01KTMY86 (#566) + capture-d6-helpers-extraction-01KTMS5Q (#566) + agent-prompt-deploy-pipeline-01KTMDDD (#567) + vikunja-client-and-habits-weekly-report-01KTKSFT (#542 + #561 + #562) + inbox-calendar-and-aspiration-routing-01KTHHXS + #520-felix-vikunja-sync-project-layer-and-url-config + #519-touchpoint-migration + #518-felix-vikunja-sync-driver-added + #376-remove-escalation-v1-parity + #400-audit-interpretation-moment0 + #310-tasker-jsonl-migration + #374-main-verbatim-passthrough + #362-drift-event-auto-resolution + #309-migrate-escalation-to-jsonl-state-model + #343-refactor-doc-auditor-to-scripts-first-driver + #307-backfill-habits-jsonl-from-comments + #306-habits-native-repeat-jsonl-state + #304-felix-bot-rotation + #291-felix-file-issue + #289-mutation-surfaces-enumeration + #285-cron-delivery-restore-path-c + #282-habits-d6-extract + #263-cron-delivery-mode-round2 + #100-google-workspace-foundation + #256-scope-discipline-guardrails + #253-step-5a-6-consolidation + #254-atomic-write-perm-preservation + issue-105-doc-auditor + #223-systemd-timer + #208-restic-healthcheck + #202-obsidian-sync-system-level + #203-sync-heartbeat + #199-inbox-schedules + #115-credential-health-check + #189-vikunja-compose + #185-inbox-capture-dedup + restore-whatsapp-dm-reply-delivery-01KTVVHH (#588) + #545-reconcile-doc-auditor-status + freshness-max-age-backfill (#720 \u2014 populated max_age_seconds on 11 live freshness/log-scan health_checks so the canary evaluates staleness instead of liveness-only; bound = ~2x tick interval for sub-hourly, cycle+margin for daily)",
+  "updated_by": "openclaw-skills-sync-01KXW1DQ (#775 — agent-skill-sync systemd_user_timer added: pull-based OpenClaw skill (SKILL.md) deploy/sync repo->office2 mirroring agent-prompt-sync; health_check is the INDEPENDENT skills_drift_check self-check-command (FR-009), sync writes skills-last-tick.json freshness + git-advance/copy health watermarks) + task-intake-validation-loop-01KXS06W (#749 — Tier-1 task-intake validation loop rides each inbox tick: scan_inbox.py (felix-bot read) + apply_reply.py (kent write token) added as inbox-processing capabilities; new /data/services/openclaw/state/intake/ state dir with per-digest correlation records + tick observability + apply ledger; closes #750 felix-bot-can't-attach-kent-labels via kent-token writes) + capture-atomic-finalize-01KXRM7J (#746 — note-level atomic finalize transaction: new route_and_finalize.py dispatcher component (the ONE command capture runs per note — routes every block, verifies each artifact, writes a per-block routing-log entry, then marks processed once); routing-log entries gain block_index+block_hash+kind vocabulary; prescan gains the scan_processed_without_routing_log health rail (processed-without-routing-log silent-loss signature) surfaced through WP04's IDLE gate; append_routing_entry retired from the capture standing-orders path (finalize writes the log internally); mark_processed now invoked once per note by route_and_finalize as a subprocess. No deploy manifest (pure helpers + agent prompts via self-pull + agent-prompt-sync); rebaseline not required (#621)) + #712 (second-brain-sync retired — bidirectional non-vault git sync to GitHub; consumers removed around it (the /home/claude/second-brain clone decommissioned by #659, Restic superseding its backup role), timer dead since 2026-06-12; health_check→none, status→retired so the canary status-gate suppresses it) + felix-canary-registry-01KX8T7B (#327 — felix-canary component-health runner registered (systemd_user_timer, tick-signal-file self-observability on last-tick.json, FR-010); restic-backup health_check normalized from method:shell to method:state-file with max_age_seconds:100800 so the shared canary freshness probe drives it uniformly (FR-007)) + felix-time-logging-01KX79HT (#703 — felix-timelog-helper service added: WhatsApp time-logging to Google Sheets, shares the #699 calendar helper's venv + credential with an added spreadsheets scope) + felix-truthful-reporting-01KX6MN5 (#683 — felix-trust-scan systemd timer added: cron-drift + completion-assertion detection, alerts via the #701 felix-alert bus) + unified-alert-bus-01KX5TYT (#701 — felix-alert bus shared library + unified operator-alerts topic added; three ntfy emitters (felix-deployer subsystem, security-monitor, felix-health-check) migrated to the bus, their per-component topics retired) + f0-exec-hardening-01KX4ZCY (#675 — exec-hardening finding + live-config reconcile: habits/tasker model drift, per-agent skills, post-#699 gog paths, gateway version) + felix-calendar-helper-01KX4H3C (#699 — calendar helper on-demand invocation + Google Calendar API dependency + felix-admin-calendar gog-skill removal; RFC #681 calendar phase) + deterministic-monitoring-checks-01KX1XNW (#676) + harden-inbox-capture-01KWVGZM (#662) + felix-admin-cron-path-fix-01KWQTY3 (#656) + finalize-inbox-file-01KW8MSQ (#325) + pull-based-deploy-pipeline-01KTYQQS (#136) + felix-calendar-subagent-extraction-01KTTA33 (#579) + #572-credential-liveness-probe + prescan-archive-anomalies-01KTMZPE (#568) + capture-agents-md-rewrite-01KTMY86 (#566) + capture-d6-helpers-extraction-01KTMS5Q (#566) + agent-prompt-deploy-pipeline-01KTMDDD (#567) + vikunja-client-and-habits-weekly-report-01KTKSFT (#542 + #561 + #562) + inbox-calendar-and-aspiration-routing-01KTHHXS + #520-felix-vikunja-sync-project-layer-and-url-config + #519-touchpoint-migration + #518-felix-vikunja-sync-driver-added + #376-remove-escalation-v1-parity + #400-audit-interpretation-moment0 + #310-tasker-jsonl-migration + #374-main-verbatim-passthrough + #362-drift-event-auto-resolution + #309-migrate-escalation-to-jsonl-state-model + #343-refactor-doc-auditor-to-scripts-first-driver + #307-backfill-habits-jsonl-from-comments + #306-habits-native-repeat-jsonl-state + #304-felix-bot-rotation + #291-felix-file-issue + #289-mutation-surfaces-enumeration + #285-cron-delivery-restore-path-c + #282-habits-d6-extract + #263-cron-delivery-mode-round2 + #100-google-workspace-foundation + #256-scope-discipline-guardrails + #253-step-5a-6-consolidation + #254-atomic-write-perm-preservation + issue-105-doc-auditor + #223-systemd-timer + #208-restic-healthcheck + #202-obsidian-sync-system-level + #203-sync-heartbeat + #199-inbox-schedules + #115-credential-health-check + #189-vikunja-compose + #185-inbox-capture-dedup + restore-whatsapp-dm-reply-delivery-01KTVVHH (#588) + #545-reconcile-doc-auditor-status + freshness-max-age-backfill (#720 — populated max_age_seconds on 11 live freshness/log-scan health_checks so the canary evaluates staleness instead of liveness-only; bound = ~2x tick interval for sub-hourly, cycle+margin for daily)",
   "services": [
     {
       "name": "vikunja",
@@ -22,7 +22,7 @@
       "tls_termination": "tailscale-serve",
       "status": "running",
       "purpose": "Task store and web UI",
-      "notes": "F006 added Goals project. HTTPS via Tailscale Serve with auto-provisioned certs. Type=oneshot + RemainAfterExit=yes systemd unit invokes `docker compose up -d`; compose declares `restart: unless-stopped` so Docker handles container restarts including across daemon restarts (#189, replacing the legacy `Type=simple` + `docker run --rm` pattern that died on the docker.io\u2192docker-ce migration in #80).",
+      "notes": "F006 added Goals project. HTTPS via Tailscale Serve with auto-provisioned certs. Type=oneshot + RemainAfterExit=yes systemd unit invokes `docker compose up -d`; compose declares `restart: unless-stopped` so Docker handles container restarts including across daemon restarts (#189, replacing the legacy `Type=simple` + `docker run --rm` pattern that died on the docker.io→docker-ce migration in #80).",
       "risk_tier": 2,
       "dependencies": [
         {
@@ -33,7 +33,7 @@
         {
           "target": "tailscale-serve:443",
           "type": "requires",
-          "description": "HTTPS ingress \u2014 origin incident 2026-04-03 traced to this dependency chain"
+          "description": "HTTPS ingress — origin incident 2026-04-03 traced to this dependency chain"
         }
       ],
       "health_check": {
@@ -248,7 +248,7 @@
       },
       "source_in_repo": "services/transcribe/",
       "updated_by": "#190",
-      "deploy_flow": "Edit in repo \u2192 push \u2192 git pull on office2 (/home/claude/kg-automation) \u2192 docker compose up -d --build (or systemctl restart transcribe). Models bind mount at /data/services/transcribe/models/ stays unchanged.",
+      "deploy_flow": "Edit in repo → push → git pull on office2 (/home/claude/kg-automation) → docker compose up -d --build (or systemctl restart transcribe). Models bind mount at /data/services/transcribe/models/ stays unchanged.",
       "config_files": [
         {
           "path": "/etc/systemd/system/transcribe.service",
@@ -306,7 +306,7 @@
         "timeout_seconds": 5,
         "state_path": "/data/services/backup/state/last-backup.json",
         "max_age_seconds": 100800,
-        "note": "Pointer file is written by /data/services/backup/scripts/backup.sh on every run (#511; writer unchanged by #327). Freshness anchor = snapshot_timestamp_utc (confirmed authoritative in docs/runbooks/restic-backup-ops.md); the good-exit set is restic_exit_code \u2208 {0, 3}. Schema v1 fields: snapshot_timestamp_utc (authoritative \u2014 derived from `restic snapshots --latest 1 --json` after the run), snapshot_id, restic_exit_code (the backup step's actual exit, not the script's overall exit), script_finished_at_utc (separate witness), repo_size_bytes, snapshot_count, integrity_check_run, integrity_check_passed. Atomic write via .tmp + mv so concurrent readers never see a partial file. WP03 coordination (#327): the shared freshness probe must include snapshot_timestamp_utc in its candidate-timestamp-key list and treat restic_exit_code \u2209 {0, 3} as an explicit failure. See docs/runbooks/restic-backup-ops.md."
+        "note": "Pointer file is written by /data/services/backup/scripts/backup.sh on every run (#511; writer unchanged by #327). Freshness anchor = snapshot_timestamp_utc (confirmed authoritative in docs/runbooks/restic-backup-ops.md); the good-exit set is restic_exit_code ∈ {0, 3}. Schema v1 fields: snapshot_timestamp_utc (authoritative — derived from `restic snapshots --latest 1 --json` after the run), snapshot_id, restic_exit_code (the backup step's actual exit, not the script's overall exit), script_finished_at_utc (separate witness), repo_size_bytes, snapshot_count, integrity_check_run, integrity_check_passed. Atomic write via .tmp + mv so concurrent readers never see a partial file. WP03 coordination (#327): the shared freshness probe must include snapshot_timestamp_utc in its candidate-timestamp-key list and treat restic_exit_code ∉ {0, 3} as an explicit failure. See docs/runbooks/restic-backup-ops.md."
       },
       "config_files": [
         {
@@ -394,20 +394,20 @@
             "vikunja_api",
             "github"
           ],
-          "purpose": "Obsidian inbox processing \u2014 classifies, routes, creates Vikunja tasks. Per mission inbox-calendar-and-aspiration-routing-01KTHHXS, the classifier vocabulary is extended to also (a) classify and route calendar events to Google Calendar inline via the Felix calendar helper (`route_calendar_event --create`, post-#699; was Felix main delegation pre-#699), (b) classify and route aspirations to dated journal entries (08-Journal/), (c) classify and route Someday items to the Vikunja Someday project (resolved by name), and (d) maintain a pending-calendar-clarifications state file with a 24h timeout sweep.",
+          "purpose": "Obsidian inbox processing — classifies, routes, creates Vikunja tasks. Per mission inbox-calendar-and-aspiration-routing-01KTHHXS, the classifier vocabulary is extended to also (a) classify and route calendar events to Google Calendar inline via the Felix calendar helper (`route_calendar_event --create`, post-#699; was Felix main delegation pre-#699), (b) classify and route aspirations to dated journal entries (08-Journal/), (c) classify and route Someday items to the Vikunja Someday project (resolved by name), and (d) maintain a pending-calendar-clarifications state file with a 24h timeout sweep.",
           "source_in_repo": "scripts/openclaw/agents/felix-admin-capture/",
           "deployed_by": "F008",
           "autonomy_level": "assisted",
           "updated_by": "capture-atomic-finalize-01KXRM7J (#746 — note-level atomic finalize transaction) + harden-inbox-capture-01KWVGZM (#662) + felix-admin-cron-path-fix-01KWQTY3 (#656) + finalize-inbox-file-01KW8MSQ (#325) + capture-agents-md-rewrite-01KTMY86 (#566) + inbox-calendar-and-aspiration-routing-01KTHHXS + #185-inbox-capture-dedup + f0-exec-hardening-01KX4ZCY (#675 — exec-hardening finding + live-config reconcile)",
           "updated_at": "2026-07-17",
-          "notes": "As of #185 (2026-05-12): routes are deduped via a filename-keyed routing log (see state_files). Notes with malformed frontmatter halt routing and surface via a batched 'Inbox quality:' GitHub issue + an Obsidian `> [!error] felix-capture:` callout marker injected at the top of the affected note. Markers auto-strip when the note next parses cleanly. As of inbox-calendar-and-aspiration-routing-01KTHHXS (2026-06-08) and reconciled by #699 (RFC #681 calendar phase): calendar events with all required fields are created inline via `route_calendar_event --create` (which invokes the Felix calendar helper directly against the Google Calendar API — no hop through Felix main, no `gog`); incomplete calendar events trigger a single WhatsApp clarification prompt and a write to the pending-calendar-clarifications state file (24h timeout sweep); aspirations and musings are appended to the dated `08-Journal/Journal YYYY-MM-DD HHmm.md` entry; Someday items are routed to the Vikunja Someday project resolved by name. Post-mission capture-agents-md-rewrite-01KTMY86 (2026-06-08): AGENTS.md rewritten from 52,942 chars to ~13,986 chars per Felix Constitution Directive 6; deterministic Step 1-7 recipes extracted to scripts/inbox/ helpers (6 new from capture-d6-helpers-extraction-01KTMS5Q + 8 existing); Step 5 invariant ('do NOT delete the original file \u2014 preserve it in 01-Inbox/') now visible in the first 8K bootstrap chars. As of finalize-inbox-file-01KW8MSQ (#325, 2026-06-28): the per-file finalize (Step 5c) is now an error-surfacing call \u2014 mark_processed.py exposes a 0/1/2/3 exit contract (0 success/idempotent, 1 validation failure incl. outside-inbox-root, 2 filesystem error surfaced via OSError where previously an uncaught traceback, 3 privacy refusal) and emits a single-line JSON success object on stdout (exit 0). The felix-admin-capture Step 5c standing orders act on these exit codes, surfacing/escalating any non-zero finalize rather than silently continuing. As of capture-atomic-finalize-01KXRM7J (#746, 2026-07-17): the per-route mark-then-log sequence is replaced by a single NOTE-LEVEL finalize transaction. The agent classifies the note's blocks, assembles one RoutingPlan, and invokes `python3 -m scripts.inbox.route_and_finalize --source-path <p> --plan-file <p>` ONCE per note; the helper routes every block, verifies each artifact — delegated vikunja_task ids are additionally checked to belong to this note (source provenance via the Source: footer); delegated github_issue numbers are verified to exist (gh issue view), with a null/missing number a finalize failure — writes a per-block routing-log entry keyed on filename+block_index+block_hash, then invokes mark_processed as a subprocess EXACTLY ONCE — only after all blocks are logged (log-before-mark). Any block failure aborts before the mark (note left unprocessed, non-zero exit, succeeded blocks already logged so only missing blocks re-route next tick). The standalone `mark_processed`/`append_routing_entry` agent steps are removed (finalize owns both internally; append_routing_entry.py kept only as a non-capture CLI). `empty` disposition refuses a non-empty body; `needs-review` is a terminal inbox state excluded from unprocessed_paths. New prescan health rail `scan_processed_without_routing_log` flags the silent-loss signature (status:processed but no routing-log entry) across 01-Inbox/ + 02-Inbox-Processed/, surfaced through WP04's Step 1 IDLE gate. Deploy: pure helpers (self-pull) + agent prompts (agent-prompt-sync); no deploy manifest; rebaseline not required (#621 — AGENTS.md not a hashed audited surface; scripts/inbox not in audited-surfaces.json).",
+          "notes": "As of #185 (2026-05-12): routes are deduped via a filename-keyed routing log (see state_files). Notes with malformed frontmatter halt routing and surface via a batched 'Inbox quality:' GitHub issue + an Obsidian `> [!error] felix-capture:` callout marker injected at the top of the affected note. Markers auto-strip when the note next parses cleanly. As of inbox-calendar-and-aspiration-routing-01KTHHXS (2026-06-08) and reconciled by #699 (RFC #681 calendar phase): calendar events with all required fields are created inline via `route_calendar_event --create` (which invokes the Felix calendar helper directly against the Google Calendar API — no hop through Felix main, no `gog`); incomplete calendar events trigger a single WhatsApp clarification prompt and a write to the pending-calendar-clarifications state file (24h timeout sweep); aspirations and musings are appended to the dated `08-Journal/Journal YYYY-MM-DD HHmm.md` entry; Someday items are routed to the Vikunja Someday project resolved by name. Post-mission capture-agents-md-rewrite-01KTMY86 (2026-06-08): AGENTS.md rewritten from 52,942 chars to ~13,986 chars per Felix Constitution Directive 6; deterministic Step 1-7 recipes extracted to scripts/inbox/ helpers (6 new from capture-d6-helpers-extraction-01KTMS5Q + 8 existing); Step 5 invariant ('do NOT delete the original file — preserve it in 01-Inbox/') now visible in the first 8K bootstrap chars. As of finalize-inbox-file-01KW8MSQ (#325, 2026-06-28): the per-file finalize (Step 5c) is now an error-surfacing call — mark_processed.py exposes a 0/1/2/3 exit contract (0 success/idempotent, 1 validation failure incl. outside-inbox-root, 2 filesystem error surfaced via OSError where previously an uncaught traceback, 3 privacy refusal) and emits a single-line JSON success object on stdout (exit 0). The felix-admin-capture Step 5c standing orders act on these exit codes, surfacing/escalating any non-zero finalize rather than silently continuing. As of capture-atomic-finalize-01KXRM7J (#746, 2026-07-17): the per-route mark-then-log sequence is replaced by a single NOTE-LEVEL finalize transaction. The agent classifies the note's blocks, assembles one RoutingPlan, and invokes `python3 -m scripts.inbox.route_and_finalize --source-path <p> --plan-file <p>` ONCE per note; the helper routes every block, verifies each artifact — delegated vikunja_task ids are additionally checked to belong to this note (source provenance via the Source: footer); delegated github_issue numbers are verified to exist (gh issue view), with a null/missing number a finalize failure — writes a per-block routing-log entry keyed on filename+block_index+block_hash, then invokes mark_processed as a subprocess EXACTLY ONCE — only after all blocks are logged (log-before-mark). Any block failure aborts before the mark (note left unprocessed, non-zero exit, succeeded blocks already logged so only missing blocks re-route next tick). The standalone `mark_processed`/`append_routing_entry` agent steps are removed (finalize owns both internally; append_routing_entry.py kept only as a non-capture CLI). `empty` disposition refuses a non-empty body; `needs-review` is a terminal inbox state excluded from unprocessed_paths. New prescan health rail `scan_processed_without_routing_log` flags the silent-loss signature (status:processed but no routing-log entry) across 01-Inbox/ + 02-Inbox-Processed/, surfaced through WP04's Step 1 IDLE gate. Deploy: pure helpers (self-pull) + agent prompts (agent-prompt-sync); no deploy manifest; rebaseline not required (#621 — AGENTS.md not a hashed audited surface; scripts/inbox not in audited-surfaces.json).",
           "state_files": [
             {
               "path": "/data/services/openclaw/state/inbox-routing.jsonl",
               "format": "jsonl",
-              "purpose": "Routing log \u2014 load-bearing dedup substrate. Each line: {filename, issue_number, vikunja_task_id, routed_at, note_excerpt}. As of #746 each block a finalize routes appends its own row keyed on filename+block_index+block_hash with a kind field (calendar|someday|vikunja_task|journal|github_issue|empty); legacy rows without block fields still satisfy the note-level reader.has(filename) dedup check (backward-compatible reader). Append-only. NOT git-tracked; backed up by nightly Restic.",
+              "purpose": "Routing log — load-bearing dedup substrate. Each line: {filename, issue_number, vikunja_task_id, routed_at, note_excerpt}. As of #746 each block a finalize routes appends its own row keyed on filename+block_index+block_hash with a kind field (calendar|someday|vikunja_task|journal|github_issue|empty); legacy rows without block fields still satisfy the note-level reader.has(filename) dedup check (backward-compatible reader). Append-only. NOT git-tracked; backed up by nightly Restic.",
               "introduced_by": "#185",
-              "updated_by": "felix-admin-cron-path-fix-01KWQTY3 (#656) + capture-atomic-finalize-01KXRM7J (#746 \u2014 per-block keyed rows + kind vocabulary)",
+              "updated_by": "felix-admin-cron-path-fix-01KWQTY3 (#656) + capture-atomic-finalize-01KXRM7J (#746 — per-block keyed rows + kind vocabulary)",
               "owner": "claude:secondbrain",
               "dir_mode": "0750",
               "file_mode": "0640",
@@ -428,9 +428,9 @@
               ],
               "invoked_by": "felix-admin-capture step 1",
               "introduced_by": "027-inbox-pre-scan-helper",
-              "updated_by": "prescan-archive-anomalies-01KTMZPE (#568) + #185 (parse-failure classification + routing-log dedup filter) + capture-atomic-finalize-01KXRM7J (#746 \u2014 processed-without-routing-log health rail + needs-review terminal + status-based note dedup)",
+              "updated_by": "prescan-archive-anomalies-01KTMZPE (#568) + #185 (parse-failure classification + routing-log dedup filter) + capture-atomic-finalize-01KXRM7J (#746 — processed-without-routing-log health rail + needs-review terminal + status-based note dedup)",
               "updated_at": "2026-07-17",
-              "notes": "Post-mission `prescan-archive-anomalies-01KTMZPE` (#568) added scan_archive_anomalies() \u2014 scans 02-Inbox-Processed/ for files whose status is not 'processed' (unprocessed/needs-review/missing/parse-failure); surfaces via new PrescanResult.archive_anomalies field + daily-log section + stderr summary. Read-only defensive safety rail for epic #563. As of capture-atomic-finalize-01KXRM7J (#746): added `scan_processed_without_routing_log()` \u2014 a second read-only health rail scanning BOTH 01-Inbox/ and 02-Inbox-Processed/ for notes whose frontmatter is `status:processed` but which have NO routing-log entry (reader.has(filename) is False). That is the silent-loss signature (a note marked done with no recorded route); the rail classifies it `processed-without-routing-log` with the load-bearing warning `status:processed but no routing-log entry (silent-loss signature #746)`, which WP04's Step 1 IDLE gate surfaces (a non-empty rail suppresses the IDLE reply). Reuses ARCHIVE_SCAN_CAP + the inbox-processing- daily-log exclusion; if the routing log is unreadable the rail is disabled for that run with a warning (no false all-clear). Also (#746 FR-008/D13): `needs-review` is now a TERMINAL inbox state \u2014 excluded from unprocessed_paths so prescan never re-offers it, and out of the health rail's scope; note dedup shifted from routing-log-filename to note `status`."
+              "notes": "Post-mission `prescan-archive-anomalies-01KTMZPE` (#568) added scan_archive_anomalies() — scans 02-Inbox-Processed/ for files whose status is not 'processed' (unprocessed/needs-review/missing/parse-failure); surfaces via new PrescanResult.archive_anomalies field + daily-log section + stderr summary. Read-only defensive safety rail for epic #563. As of capture-atomic-finalize-01KXRM7J (#746): added `scan_processed_without_routing_log()` — a second read-only health rail scanning BOTH 01-Inbox/ and 02-Inbox-Processed/ for notes whose frontmatter is `status:processed` but which have NO routing-log entry (reader.has(filename) is False). That is the silent-loss signature (a note marked done with no recorded route); the rail classifies it `processed-without-routing-log` with the load-bearing warning `status:processed but no routing-log entry (silent-loss signature #746)`, which WP04's Step 1 IDLE gate surfaces (a non-empty rail suppresses the IDLE reply). Reuses ARCHIVE_SCAN_CAP + the inbox-processing- daily-log exclusion; if the routing log is unreadable the rail is disabled for that run with a warning (no false all-clear). Also (#746 FR-008/D13): `needs-review` is now a TERMINAL inbox state — excluded from unprocessed_paths so prescan never re-offers it, and out of the health rail's scope; note dedup shifted from routing-log-filename to note `status`."
             },
             {
               "id": "routing-log-module",
@@ -451,7 +451,7 @@
               "source": "scripts/inbox/inject_parse_error_marker.py",
               "deploy_path": "/home/claude/kg-automation/scripts/inbox/inject_parse_error_marker.py",
               "purpose": "Inserts/refreshes a `> [!error] felix-capture:` callout at the top of a malformed note's body. Idempotent + atomic.",
-              "invoked_by": "felix-admin-capture \u00a7Step 6.2 (per parse-failure entry)",
+              "invoked_by": "felix-admin-capture §Step 6.2 (per parse-failure entry)",
               "introduced_by": "#185"
             },
             {
@@ -461,7 +461,7 @@
               "source": "scripts/inbox/strip_parse_error_marker.py",
               "deploy_path": "/home/claude/kg-automation/scripts/inbox/strip_parse_error_marker.py",
               "purpose": "Removes the felix-capture marker when a note now parses cleanly. No-op if absent.",
-              "invoked_by": "felix-admin-capture \u00a7Step 5a (per marker_cleanup_needed path)",
+              "invoked_by": "felix-admin-capture §Step 5a (per marker_cleanup_needed path)",
               "introduced_by": "#185"
             },
             {
@@ -470,10 +470,10 @@
               "language": "python",
               "source": "scripts/inbox/append_routing_entry.py",
               "deploy_path": "/home/claude/kg-automation/scripts/inbox/append_routing_entry.py",
-              "purpose": "CLI wrapper around RoutingLogWriter. Appends one entry to the routing log. As of #746 this is RETIRED from the capture agent's standing-orders path \u2014 route_and_finalize.py writes the routing-log entry internally (per block, before the note-level mark). Retained only as a standalone CLI for any non-capture caller.",
-              "invoked_by": "non-capture CLI callers only (removed from felix-admin-capture standing orders by #746; was \u00a7Step 5b once per fully-routed note)",
+              "purpose": "CLI wrapper around RoutingLogWriter. Appends one entry to the routing log. As of #746 this is RETIRED from the capture agent's standing-orders path — route_and_finalize.py writes the routing-log entry internally (per block, before the note-level mark). Retained only as a standalone CLI for any non-capture caller.",
+              "invoked_by": "non-capture CLI callers only (removed from felix-admin-capture standing orders by #746; was §Step 5b once per fully-routed note)",
               "introduced_by": "#185",
-              "updated_by": "capture-atomic-finalize-01KXRM7J (#746 \u2014 retired from the capture agent flow)",
+              "updated_by": "capture-atomic-finalize-01KXRM7J (#746 — retired from the capture agent flow)",
               "updated_at": "2026-07-17"
             },
             {
@@ -483,7 +483,7 @@
               "source": "scripts/inbox/file_inbox_quality_issue.py",
               "deploy_path": "/home/claude/kg-automation/scripts/inbox/file_inbox_quality_issue.py",
               "purpose": "Title-prefix-deduped GitHub issue writer for batched 'Inbox quality:' issues filed when prescan reports parse_failures.",
-              "invoked_by": "felix-admin-capture \u00a7Step 6.1 (once per turn when parse_failures non-empty)",
+              "invoked_by": "felix-admin-capture §Step 6.1 (once per turn when parse_failures non-empty)",
               "introduced_by": "#185"
             },
             {
@@ -492,7 +492,7 @@
               "language": "python",
               "source": "scripts/inbox/mark_processed.py",
               "deploy_path": "/home/claude/kg-automation/scripts/inbox/mark_processed.py",
-              "purpose": "Atomic frontmatter mutation \u2014 sets status:processed + processed_at while preserving file location, other frontmatter, and body verbatim. Idempotent on already-processed notes. Refuses 04-Growth/_private/ paths per C-001. As of finalize-inbox-file-01KW8MSQ (#325): error-surfacing exit contract 0/1/2/3 (0 success/idempotent \u00b7 1 validation failure \u00b7 2 filesystem error/OSError \u00b7 3 private-path refusal); emits single-line JSON on stdout on success ({\"finalized\": true, \"already_processed\": <bool>, \"status\": \"processed\", \"file_final_path\": \"<abs-path>\"}); validates --path is under the inbox root (resolved from scripts/vault/paths.json). Write failures (previously uncaught tracebacks) now surface as exit 2 with the OSError on stderr; the original note is guaranteed uncorrupted (atomic write unlinks temp on failure).",
+              "purpose": "Atomic frontmatter mutation — sets status:processed + processed_at while preserving file location, other frontmatter, and body verbatim. Idempotent on already-processed notes. Refuses 04-Growth/_private/ paths per C-001. As of finalize-inbox-file-01KW8MSQ (#325): error-surfacing exit contract 0/1/2/3 (0 success/idempotent · 1 validation failure · 2 filesystem error/OSError · 3 private-path refusal); emits single-line JSON on stdout on success ({\"finalized\": true, \"already_processed\": <bool>, \"status\": \"processed\", \"file_final_path\": \"<abs-path>\"}); validates --path is under the inbox root (resolved from scripts/vault/paths.json). Write failures (previously uncaught tracebacks) now surface as exit 2 with the OSError on stderr; the original note is guaranteed uncorrupted (atomic write unlinks temp on failure).",
               "invoked_by": "route_and_finalize.py (#746 — invoked ONCE per note as a subprocess, only after all blocks are logged; the _private refusal/inbox-root/symlink guards live in mark_processed.main() so finalize deliberately never calls it in-process). Previously felix-admin-capture Step 5c directly.",
               "introduced_by": "#566",
               "updated_by": "finalize-inbox-file-01KW8MSQ (#325) + capture-atomic-finalize-01KXRM7J (#746 — now invoked by route_and_finalize as the note-level mark, once per note)",
@@ -565,7 +565,7 @@
               "language": "python",
               "source": "scripts/inbox/handle_clarification_state.py",
               "deploy_path": "/home/claude/kg-automation/scripts/inbox/handle_clarification_state.py",
-              "purpose": "Manages /data/services/openclaw/state/pending-calendar-clarifications.json \u2014 add / sweep (24h aging) / match subcommands. Safe on missing state file. Significant-token match heuristic for incoming WhatsApp replies.",
+              "purpose": "Manages /data/services/openclaw/state/pending-calendar-clarifications.json — add / sweep (24h aging) / match subcommands. Safe on missing state file. Significant-token match heuristic for incoming WhatsApp replies.",
               "invoked_by": "felix-admin-capture (post #566 follow-on AGENTS.md rewrite); separate sweep cron tick (TBD)",
               "introduced_by": "#566",
               "updated_at": "2026-06-08",
@@ -613,7 +613,7 @@
           "skills": [
             "vikunja_api"
           ],
-          "purpose": "Daily habit check-in and completion tracking. Post-#371 (scripts-first morning + reply flow): the agent is a thin orchestrator that invokes scripts/habits/morning_checkin_list.py for the morning tick (script writes the canonical morning-list artifact + emits the formatted WhatsApp message), scripts/habits/parse_morning_reply.py for reply handling (deterministic mapping of Kent's reply against the persisted morning list), and scripts/habits/judgment/disambiguate_reply.py only for ambiguous reply tokens. The weekly habit pattern report is NO LONGER part of this agent's cron path \u2014 deterministic-cron-hardening-01KXA4PX (#723) retired the habits-weekly-report openclaw cron and moved delivery to the deterministic felix-habits-weekly systemd user timer (scripts/habits/weekly_report_driver.py), which invokes the same scripts/habits/query_active_habits_weekly.py helper directly with zero LLM turns (see the felix-habits-weekly service entry). Co-shipped output-discipline Hard Rules (#561) mirror the felix-admin-capture pattern \u2014 no preamble before the `Sent by felix-admin-habits:<model>` identity line, no between-tool-calls narration. AGENTS.md is cut to <=14,000 source chars to stay within the openclaw effective budget per memory reference_openclaw_gotchas.md.",
+          "purpose": "Daily habit check-in and completion tracking. Post-#371 (scripts-first morning + reply flow): the agent is a thin orchestrator that invokes scripts/habits/morning_checkin_list.py for the morning tick (script writes the canonical morning-list artifact + emits the formatted WhatsApp message), scripts/habits/parse_morning_reply.py for reply handling (deterministic mapping of Kent's reply against the persisted morning list), and scripts/habits/judgment/disambiguate_reply.py only for ambiguous reply tokens. The weekly habit pattern report is NO LONGER part of this agent's cron path — deterministic-cron-hardening-01KXA4PX (#723) retired the habits-weekly-report openclaw cron and moved delivery to the deterministic felix-habits-weekly systemd user timer (scripts/habits/weekly_report_driver.py), which invokes the same scripts/habits/query_active_habits_weekly.py helper directly with zero LLM turns (see the felix-habits-weekly service entry). Co-shipped output-discipline Hard Rules (#561) mirror the felix-admin-capture pattern — no preamble before the `Sent by felix-admin-habits:<model>` identity line, no between-tool-calls narration. AGENTS.md is cut to <=14,000 source chars to stay within the openclaw effective budget per memory reference_openclaw_gotchas.md.",
           "source_in_repo": "scripts/openclaw/agents/felix-admin-habits/",
           "deployed_by": "F009",
           "autonomy_level": "assisted",
@@ -636,7 +636,7 @@
         "felix-admin-tasker": {
           "workspace": "/data/services/openclaw/tasker-agent",
           "model": "anthropic/claude-haiku-4-5",
-          "purpose": "Task intelligence \u2014 transforms raw tasks into structured Vikunja entries. Post-#310 (ADR-0002 Phase 7): enrichment state migration complete. AGENTS.md cut from 19,391 to ~13,800 chars; canonical state lives in JSONL ledger at /data/services/openclaw/state/enrichment/enrichment-history.jsonl; `[Felix] enrichment` Vikunja comments are written through during the post-cutover soak (C-002) but are no longer the source of truth. The agent delegates state transitions to scripts/enrichment/record_completion.py rather than writing comments directly.",
+          "purpose": "Task intelligence — transforms raw tasks into structured Vikunja entries. Post-#310 (ADR-0002 Phase 7): enrichment state migration complete. AGENTS.md cut from 19,391 to ~13,800 chars; canonical state lives in JSONL ledger at /data/services/openclaw/state/enrichment/enrichment-history.jsonl; `[Felix] enrichment` Vikunja comments are written through during the post-cutover soak (C-002) but are no longer the source of truth. The agent delegates state transitions to scripts/enrichment/record_completion.py rather than writing comments directly.",
           "source_in_repo": "scripts/openclaw/agents/felix-admin-tasker/",
           "skills": [
             "task_intelligence",
@@ -660,7 +660,7 @@
         "felix-admin-escalation": {
           "workspace": "/data/services/openclaw/escalation-agent",
           "model": "anthropic/claude-sonnet-4-6",
-          "purpose": "Overdue task escalation \u2014 detects overdue tasks, delivers WhatsApp alerts, tracks escalation state. JSONL state log at /data/services/openclaw/state/escalation/<project-slug>-escalation-history.jsonl is the sole canonical state source.",
+          "purpose": "Overdue task escalation — detects overdue tasks, delivers WhatsApp alerts, tracks escalation state. JSONL state log at /data/services/openclaw/state/escalation/<project-slug>-escalation-history.jsonl is the sole canonical state source.",
           "source_in_repo": "scripts/openclaw/agents/felix-admin-escalation/",
           "skills": [
             "escalation",
@@ -687,7 +687,7 @@
           "workspace": "/data/services/openclaw/calendar-agent",
           "agentDir": "/home/claude/.openclaw/agents/felix-admin-calendar/agent",
           "model": "anthropic/claude-haiku-4-5",
-          "purpose": "Calendar judgment layer (reshaped by #699, RFC #681 calendar phase \u2014 formerly a gog-executing substrate). Extracted from main/AGENTS.md per mission `felix-calendar-subagent-extraction-01KTTA33` (#579) to restore WhatsApp reply relay (delegations to main were blocking on the deprecated 'main' alias surface). Handles only the LLM-needing work: the conversational calendar path and clarification round-trips. Its terminal action is a call to the Felix calendar helper (`scripts/google/calendar_helper.py`, google-api-python-client) via `exec` \u2014 it does NOT run `gog calendar create` and must not fall back to gog. On inbound WhatsApp clarification reply, reads pending-calendar-clarifications state file, merges Kent's reply into the deferred event payload, re-validates, and issues the deferred create via the helper. Future home for calendar credential health, recurrence (Vikunja-side RRULE parity pending), and attendee tracking.",
+          "purpose": "Calendar judgment layer (reshaped by #699, RFC #681 calendar phase — formerly a gog-executing substrate). Extracted from main/AGENTS.md per mission `felix-calendar-subagent-extraction-01KTTA33` (#579) to restore WhatsApp reply relay (delegations to main were blocking on the deprecated 'main' alias surface). Handles only the LLM-needing work: the conversational calendar path and clarification round-trips. Its terminal action is a call to the Felix calendar helper (`scripts/google/calendar_helper.py`, google-api-python-client) via `exec` — it does NOT run `gog calendar create` and must not fall back to gog. On inbound WhatsApp clarification reply, reads pending-calendar-clarifications state file, merges Kent's reply into the deferred event payload, re-validates, and issues the deferred create via the helper. Future home for calendar credential health, recurrence (Vikunja-side RRULE parity pending), and attendee tracking.",
           "source_in_repo": "scripts/openclaw/agents/felix-admin-calendar/",
           "skills": [],
           "triggers": [
@@ -707,7 +707,7 @@
             {
               "path": "/data/services/openclaw/state/pending-calendar-clarifications.jsonl",
               "format": "jsonl",
-              "purpose": "Pending calendar clarifications awaiting Kent's WhatsApp reply. 24h aged out by sweep. Atomic-write protocol (LOCK_EX + .tmp + rename) preserved verbatim from main/AGENTS.md \u2014 contract is moved 1:1 from main per mission spec (no behavioral change).",
+              "purpose": "Pending calendar clarifications awaiting Kent's WhatsApp reply. 24h aged out by sweep. Atomic-write protocol (LOCK_EX + .tmp + rename) preserved verbatim from main/AGENTS.md — contract is moved 1:1 from main per mission spec (no behavioral change).",
               "moved_from": "main/AGENTS.md (lines 333-440 pre-mission)",
               "updated_by": "felix-admin-cron-path-fix-01KWQTY3 (#656)",
               "owner": "claude:secondbrain",
@@ -716,14 +716,14 @@
               "migration_note": "Relocated from ~/second-brain/agents/state/ (stray unsynced dir) to /data/services/openclaw/state/ by felix-admin-cron-path-fix-01KWQTY3 (#656) via deploy manifest 0007-migrate-inbox-state-and-logs.yaml."
             }
           ],
-          "notes": "Per data-model.md: openclaw.json agents.list[] entry shape is `{id, name, workspace, agentDir, model}`. Model anthropic/claude-haiku-4-5 chosen per F-06 decision (routine workload, validator-driven). On WhatsApp inbound clarification reply, main no longer holds the deferred-event payload \u2014 felix-admin-calendar reads pending-calendar-clarifications state file and resolves the round-trip. As of #699 (RFC #681 calendar phase) this agent's `skills` are `[]`: `calendar` was never a real OpenClaw skill and the `gog` skill was removed when the calendar surface migrated onto the Felix calendar helper (google-api-python-client), invoked via `exec`. Complete inbox-captured calendar events no longer dispatch to this agent \u2014 since #699 they reach the calendar inline via `route_calendar_event --create` (closes #679); this agent now handles only the conversational/clarification path. The contract owner after extraction is felix-admin-calendar. Authoritative deployment + verification: docs/runbooks/openclaw-agent-setup.md."
+          "notes": "Per data-model.md: openclaw.json agents.list[] entry shape is `{id, name, workspace, agentDir, model}`. Model anthropic/claude-haiku-4-5 chosen per F-06 decision (routine workload, validator-driven). On WhatsApp inbound clarification reply, main no longer holds the deferred-event payload — felix-admin-calendar reads pending-calendar-clarifications state file and resolves the round-trip. As of #699 (RFC #681 calendar phase) this agent's `skills` are `[]`: `calendar` was never a real OpenClaw skill and the `gog` skill was removed when the calendar surface migrated onto the Felix calendar helper (google-api-python-client), invoked via `exec`. Complete inbox-captured calendar events no longer dispatch to this agent — since #699 they reach the calendar inline via `route_calendar_event --create` (closes #679); this agent now handles only the conversational/clarification path. The contract owner after extraction is felix-admin-calendar. Authoritative deployment + verification: docs/runbooks/openclaw-agent-setup.md."
         },
         "main": {
           "workspace": "/data/services/openclaw/data",
           "source_in_repo": "scripts/openclaw/agents/main/",
           "model": "anthropic/claude-sonnet-4-6",
-          "purpose": "Top-level OpenClaw orchestrator. Standing orders at /data/services/openclaw/data/AGENTS.md govern routing of inbound channel messages (WhatsApp, etc.) to the felix-admin-* sub-agents. Per mission `felix-calendar-subagent-extraction-01KTTA33` (#579) the calendar-create and clarification handling moved out of main; per #699 (RFC #681 calendar phase) inbox-captured calendar events reach the calendar inline via `route_calendar_event --create` and conversational calendar requests route to felix-admin-calendar \u2014 main is NOT in the calendar-create path and no longer executes `gog calendar create`. main's remaining `gog` use is Gmail + Drive only. Foundation-0 exec-hardening note (#675): main is the ONLY current `gog` consumer post-#699 (the tracked exception), retained until email/drive get controlled owners (#680). Exec posture is `security: full` fleet-wide \u2014 no per-agent exec allowlist or containment is deployed; the workers running `security: full` is a recorded finding, not a claimed restriction.",
-          "verbatim_passthrough_rule": "Per #374 (main-verbatim-passthrough-01KSATRP), the main agent must pass downstream messages to sub-agents VERBATIM (no paraphrase, no summary, no editorial). AGENTS.md changes that affect this rule are governed by the cutover sequence in docs/runbooks/openclaw-agent-setup.md \u00a7'Cutover sequence for main-agent AGENTS.md changes (post-#374)'.",
+          "purpose": "Top-level OpenClaw orchestrator. Standing orders at /data/services/openclaw/data/AGENTS.md govern routing of inbound channel messages (WhatsApp, etc.) to the felix-admin-* sub-agents. Per mission `felix-calendar-subagent-extraction-01KTTA33` (#579) the calendar-create and clarification handling moved out of main; per #699 (RFC #681 calendar phase) inbox-captured calendar events reach the calendar inline via `route_calendar_event --create` and conversational calendar requests route to felix-admin-calendar — main is NOT in the calendar-create path and no longer executes `gog calendar create`. main's remaining `gog` use is Gmail + Drive only. Foundation-0 exec-hardening note (#675): main is the ONLY current `gog` consumer post-#699 (the tracked exception), retained until email/drive get controlled owners (#680). Exec posture is `security: full` fleet-wide — no per-agent exec allowlist or containment is deployed; the workers running `security: full` is a recorded finding, not a claimed restriction.",
+          "verbatim_passthrough_rule": "Per #374 (main-verbatim-passthrough-01KSATRP), the main agent must pass downstream messages to sub-agents VERBATIM (no paraphrase, no summary, no editorial). AGENTS.md changes that affect this rule are governed by the cutover sequence in docs/runbooks/openclaw-agent-setup.md §'Cutover sequence for main-agent AGENTS.md changes (post-#374)'.",
           "intake_reply_handling": "Task-intake validation loop (#749): main recognizes Kent's compact-shorthand reply to an intake digest (content-based correlation against /data/services/openclaw/state/intake/), invokes scripts/intake/apply_reply.py which writes project/label/Tier-2 changes through the kent Vikunja token (vikunja-api-kent — never felix-bot, which 403s on kent-owned label attach; closes #750), and confirms the per-line results. The deterministic parse/resolve/apply lives in the helper; main's only LLM touch is the narrow unresolved-token fallback (Directive 6).",
           "deployed_by": "F002",
           "updated_by": "task-intake-validation-loop-01KXS06W (#749 — intake reply apply via kent token) + felix-calendar-subagent-extraction-01KTTA33 (#579) + inbox-calendar-and-aspiration-routing-01KTHHXS + #374 + agent-prompt-deploy-pipeline-01KTMDDD (#567) + f0-exec-hardening-01KX4ZCY (#675 — exec-hardening finding + live-config reconcile)",
@@ -763,7 +763,7 @@
           "path": "/home/claude/.config/systemd/user/openclaw-gateway.service.d/pythonpath.conf",
           "format": "systemd-unit-dropin",
           "source_in_repo": "scripts/openclaw/openclaw-gateway.service.d/pythonpath.conf",
-          "note": "Sets PYTHONPATH=/home/claude/kg-automation on the openclaw-gateway *process* environment. CORRECTION (harden-inbox-capture-01KWVGZM #662, verified #658): this does NOT make bare `python3 -m scripts.<pkg>.<mod>` work inside agent helper invocations \u2014 OpenClaw's `exec` tool STRIPS PYTHONPATH from the subshells it spawns, so an inherited gateway PYTHONPATH is not visible to helpers launched via exec. Agents must invoke helpers with the self-contained `cd /home/claude/kg-automation && python3 -m scripts.<pkg>.<mod> \u2026` form; the leading `cd` makes cwd the checkout root so `scripts.*` imports resolve regardless of env. The drop-in still usefully sets the process env for non-exec import paths and composes with the base unit (systemd merges .d/*.conf), avoiding source-line collision with #653's in-flight ExecStart relocation. Introduced by felix-admin-cron-path-fix-01KWQTY3 (#656). Deployed via deploys/queued/0006-gateway-pythonpath-dropin.yaml."
+          "note": "Sets PYTHONPATH=/home/claude/kg-automation on the openclaw-gateway *process* environment. CORRECTION (harden-inbox-capture-01KWVGZM #662, verified #658): this does NOT make bare `python3 -m scripts.<pkg>.<mod>` work inside agent helper invocations — OpenClaw's `exec` tool STRIPS PYTHONPATH from the subshells it spawns, so an inherited gateway PYTHONPATH is not visible to helpers launched via exec. Agents must invoke helpers with the self-contained `cd /home/claude/kg-automation && python3 -m scripts.<pkg>.<mod> …` form; the leading `cd` makes cwd the checkout root so `scripts.*` imports resolve regardless of env. The drop-in still usefully sets the process env for non-exec import paths and composes with the base unit (systemd merges .d/*.conf), avoiding source-line collision with #653's in-flight ExecStart relocation. Introduced by felix-admin-cron-path-fix-01KWQTY3 (#656). Deployed via deploys/queued/0006-gateway-pythonpath-dropin.yaml."
         },
         {
           "path": "/home/claude/.openclaw/openclaw.json",
@@ -921,13 +921,13 @@
         }
       ],
       "timeout_seconds": 240,
-      "timeout_seconds_note": "Morning check-in only \u2014 the weekly report cron was retired (deterministic-cron-hardening-01KXA4PX / #723) and is now the felix-habits-weekly systemd user timer (see that service entry).",
+      "timeout_seconds_note": "Morning check-in only — the weekly report cron was retired (deterministic-cron-hardening-01KXA4PX / #723) and is now the felix-habits-weekly systemd user timer (see that service entry).",
       "session_mode": "isolated",
       "deployed_by": "F009",
-      "updated_by": "deterministic-cron-hardening-01KXA4PX (#723 \u2014 retired the habits-weekly-report openclaw cron; the weekly report is now delivered by the deterministic felix-habits-weekly systemd user timer, no LLM turn in the path) + vikunja-client-and-habits-weekly-report-01KTKSFT (#542 + #561 + #562) + #519-touchpoint-migration + #371-habits-checkin-reply-scripts-first + #307-backfill-habits-jsonl-from-comments + #306-habits-native-repeat-jsonl-state + #285-cron-delivery-restore-path-c + #282-habits-d6-extract + #273-felix-tier2-self-repair-incident-audit + #263-cron-delivery-mode-round2",
+      "updated_by": "deterministic-cron-hardening-01KXA4PX (#723 — retired the habits-weekly-report openclaw cron; the weekly report is now delivered by the deterministic felix-habits-weekly systemd user timer, no LLM turn in the path) + vikunja-client-and-habits-weekly-report-01KTKSFT (#542 + #561 + #562) + #519-touchpoint-migration + #371-habits-checkin-reply-scripts-first + #307-backfill-habits-jsonl-from-comments + #306-habits-native-repeat-jsonl-state + #285-cron-delivery-restore-path-c + #282-habits-d6-extract + #273-felix-tier2-self-repair-incident-audit + #263-cron-delivery-mode-round2",
       "last_updated": "2026-07-12",
       "status": "active",
-      "purpose": "Daily habit check-in (morning tick, scripts-first per #371). The weekly habit pattern report is no longer part of this openclaw-cron service \u2014 it was migrated off the LLM-agent cron path to the deterministic felix-habits-weekly systemd user timer (deterministic-cron-hardening-01KXA4PX / #723; see that service entry for the weekly-report health check and cadence). The morning tick continues to read the local sync cache via query_active_habits_v2.py (unchanged). Co-shipped output-discipline Hard Rules (#561) prevent internal-reasoning leakage above the identity line.",
+      "purpose": "Daily habit check-in (morning tick, scripts-first per #371). The weekly habit pattern report is no longer part of this openclaw-cron service — it was migrated off the LLM-agent cron path to the deterministic felix-habits-weekly systemd user timer (deterministic-cron-hardening-01KXA4PX / #723; see that service entry for the weekly-report health check and cadence). The morning tick continues to read the local sync cache via query_active_habits_v2.py (unchanged). Co-shipped output-discipline Hard Rules (#561) prevent internal-reasoning leakage above the identity line.",
       "runbook": "docs/runbooks/habits-ops.md",
       "risk_tier": 3,
       "dependencies": [
@@ -1027,7 +1027,7 @@
           "path": "/home/claude/kg-automation/scripts/habits/query_active_habits_weekly.py",
           "format": "python",
           "source_in_repo": "scripts/habits/query_active_habits_weekly.py",
-          "purpose": "Deterministic weekly-report helper invoked by the felix-habits-weekly systemd user timer (Monday 06:00 ET; deterministic-cron-hardening-01KXA4PX / #723 retired the prior habits-weekly-report openclaw cron and moved invocation to scripts/habits/weekly_report_driver.py \u2014 see the felix-habits-weekly service entry). Previously invoked by that agent cron (post mission trustworthy-weekly-habit-report-01KV4GZ7 / #605; before that, Sunday 22:00 per #542 + #562). Reads completion history from canonical /data/services/openclaw/state/habits-history.jsonl via scripts/habits/history.py (built on scripts/common/state_log.py); queries Vikunja project-13 only for current-state habit metadata (titles + repeat_after for classification) via scripts/common/vikunja_client.py. Rolls up by canonical title (treating weekday-in-title variants as distinct habits) and emits a WeeklyHabitReport JSON on stdout (--output json, default) or the pre-rendered WhatsApp body (--output text). Per-habit percentage = dedup-by-date completed_count / scheduled_days_in_window * 100; scheduled-days math is 7 for daily-cadence habits (`repeat_after == 86400`) and 1 per matched-weekday occurrence for weekday-in-title habits. Vikunja `done_at` is NOT read for completion history \u2014 `repeat_after` recurrence resets that field on each cycle, collapsing daily-habit history to 0% (the original #605 bug). Standard library only beyond the shared client + state-log primitive. Failure mode: typed VikunjaError exceptions propagate to the agent, which renders `Weekly report unavailable: <reason>` rather than fabricating data.",
+          "purpose": "Deterministic weekly-report helper invoked by the felix-habits-weekly systemd user timer (Monday 06:00 ET; deterministic-cron-hardening-01KXA4PX / #723 retired the prior habits-weekly-report openclaw cron and moved invocation to scripts/habits/weekly_report_driver.py — see the felix-habits-weekly service entry). Previously invoked by that agent cron (post mission trustworthy-weekly-habit-report-01KV4GZ7 / #605; before that, Sunday 22:00 per #542 + #562). Reads completion history from canonical /data/services/openclaw/state/habits-history.jsonl via scripts/habits/history.py (built on scripts/common/state_log.py); queries Vikunja project-13 only for current-state habit metadata (titles + repeat_after for classification) via scripts/common/vikunja_client.py. Rolls up by canonical title (treating weekday-in-title variants as distinct habits) and emits a WeeklyHabitReport JSON on stdout (--output json, default) or the pre-rendered WhatsApp body (--output text). Per-habit percentage = dedup-by-date completed_count / scheduled_days_in_window * 100; scheduled-days math is 7 for daily-cadence habits (`repeat_after == 86400`) and 1 per matched-weekday occurrence for weekday-in-title habits. Vikunja `done_at` is NOT read for completion history — `repeat_after` recurrence resets that field on each cycle, collapsing daily-habit history to 0% (the original #605 bug). Standard library only beyond the shared client + state-log primitive. Failure mode: typed VikunjaError exceptions propagate to the agent, which renders `Weekly report unavailable: <reason>` rather than fabricating data.",
           "host": "office2",
           "introduced_by": "vikunja-client-and-habits-weekly-report-01KTKSFT (#542 + #562)"
         },
@@ -1035,7 +1035,7 @@
           "path": "/home/claude/kg-automation/scripts/common/vikunja_client.py",
           "format": "python",
           "source_in_repo": "scripts/common/vikunja_client.py",
-          "purpose": "Mission vikunja-client-and-habits-weekly-report-01KTKSFT (#542 foundation): shared stateless Vikunja API client. Centralizes base URL composition (via scripts/common/vikunja_config.get_vikunja_base_url()), token loading from /data/services/openclaw/secrets/vikunja-api, urllib.request-based HTTP execution, 30s default timeout, and typed exception hierarchy (VikunjaError -> VikunjaAuthError, VikunjaNotFoundError, VikunjaBadRequestError, VikunjaServerError, VikunjaTimeoutError, VikunjaHttpError). Errors are redaction-safe by default (include request path, exclude request/response bodies). Standard-library only. Listed here under the habits service because the first consumer ships in this mission; future migrations of scripts/sync/, scripts/habits/, scripts/escalation/, etc. will reference this module from their respective service entries. Architectural NOTE: service-inventory.json has no first-class 'shared library' surface \u2014 this entry is registered under the first consuming service per established convention.",
+          "purpose": "Mission vikunja-client-and-habits-weekly-report-01KTKSFT (#542 foundation): shared stateless Vikunja API client. Centralizes base URL composition (via scripts/common/vikunja_config.get_vikunja_base_url()), token loading from /data/services/openclaw/secrets/vikunja-api, urllib.request-based HTTP execution, 30s default timeout, and typed exception hierarchy (VikunjaError -> VikunjaAuthError, VikunjaNotFoundError, VikunjaBadRequestError, VikunjaServerError, VikunjaTimeoutError, VikunjaHttpError). Errors are redaction-safe by default (include request path, exclude request/response bodies). Standard-library only. Listed here under the habits service because the first consumer ships in this mission; future migrations of scripts/sync/, scripts/habits/, scripts/escalation/, etc. will reference this module from their respective service entries. Architectural NOTE: service-inventory.json has no first-class 'shared library' surface — this entry is registered under the first consuming service per established convention.",
           "host": "office2",
           "introduced_by": "vikunja-client-and-habits-weekly-report-01KTKSFT (#542)"
         },
@@ -1059,7 +1059,7 @@
           "path": "/home/claude/kg-automation/scripts/habits/morning_checkin_list.py",
           "format": "python",
           "source_in_repo": "scripts/habits/morning_checkin_list.py",
-          "purpose": "#371 (scripts-first morning tick): builds today's ordered habit list deterministically. Reads active habits from Vikunja via query_active_habits_v2.py + exclude_completed_v2.py, persists the canonical ordering to /data/services/openclaw/state/habits/morning-checkin-<YYYY-MM-DD>.json (data-model Entity 1), and emits the formatted WhatsApp check-in message to stdout (FR-001, FR-002, FR-007). Atomic write via tmp+fsync+rename. Sole source of the ordered list \u2014 replaces the prior AGENTS.md prose that re-derived the list per session.",
+          "purpose": "#371 (scripts-first morning tick): builds today's ordered habit list deterministically. Reads active habits from Vikunja via query_active_habits_v2.py + exclude_completed_v2.py, persists the canonical ordering to /data/services/openclaw/state/habits/morning-checkin-<YYYY-MM-DD>.json (data-model Entity 1), and emits the formatted WhatsApp check-in message to stdout (FR-001, FR-002, FR-007). Atomic write via tmp+fsync+rename. Sole source of the ordered list — replaces the prior AGENTS.md prose that re-derived the list per session.",
           "host": "office2",
           "introduced_by": "#371",
           "updated_by": "#371",
@@ -1085,7 +1085,7 @@
           "path": "/home/claude/kg-automation/scripts/habits/parse_morning_reply.py",
           "format": "python",
           "source_in_repo": "scripts/habits/parse_morning_reply.py",
-          "purpose": "#371 (scripts-first reply tick): deterministic reply parser. Loads the persisted morning-list artifact for the date, tokenizes Kent's reply (number references, exact titles, simple substrings, special 'all done' tokens), and emits canonical {tuples, judgment_required, errors} JSON to stdout (FR-003, FR-004, FR-005, FR-008). Ambiguous substring matches surface as judgment_required (NOT silently picked). Exit code 4 when no morning-list artifact exists for the date \u2014 agent files a P2-bug via felix-file-issue.py rather than falling back to live Vikunja state (FR-009).",
+          "purpose": "#371 (scripts-first reply tick): deterministic reply parser. Loads the persisted morning-list artifact for the date, tokenizes Kent's reply (number references, exact titles, simple substrings, special 'all done' tokens), and emits canonical {tuples, judgment_required, errors} JSON to stdout (FR-003, FR-004, FR-005, FR-008). Ambiguous substring matches surface as judgment_required (NOT silently picked). Exit code 4 when no morning-list artifact exists for the date — agent files a P2-bug via felix-file-issue.py rather than falling back to live Vikunja state (FR-009).",
           "host": "office2",
           "introduced_by": "#371",
           "updated_by": "#371",
@@ -1106,7 +1106,7 @@
           "path": "/home/claude/kg-automation/scripts/habits/judgment/disambiguate_reply.py",
           "format": "python",
           "source_in_repo": "scripts/habits/judgment/disambiguate_reply.py",
-          "purpose": "#371 (narrow LLM judgment surface): disambiguates a single judgment_required cluster from parse_morning_reply.py output. Mirrors the #343 doc-audit judgment pattern \u2014 invoked ONLY when the deterministic parser emits judgment_required, never for the bulk of replies (FR-006). Returns {result: chosen, chosen_task_id} from the candidate set, OR {result: clarify, suggested_question} for the agent to ask Kent. Default model: claude-haiku-4-5. Validates chosen_task_id is within the input's candidate set (out-of-set responses are a hard-fail).",
+          "purpose": "#371 (narrow LLM judgment surface): disambiguates a single judgment_required cluster from parse_morning_reply.py output. Mirrors the #343 doc-audit judgment pattern — invoked ONLY when the deterministic parser emits judgment_required, never for the bulk of replies (FR-006). Returns {result: chosen, chosen_task_id} from the candidate set, OR {result: clarify, suggested_question} for the agent to ask Kent. Default model: claude-haiku-4-5. Validates chosen_task_id is within the input's candidate set (out-of-set responses are a hard-fail).",
           "host": "office2",
           "introduced_by": "#371",
           "updated_by": "#371",
@@ -1140,7 +1140,7 @@
       "updated_by": "#519-touchpoint-migration + #310",
       "last_updated": "2026-06-04",
       "status": "active",
-      "purpose": "ADR-0002 Phase 7 enrichment subsystem (#310). Mirrors the scripts/escalation/ module pattern: record_completion (atomic three-write helper), reconcile_completions (Vikunja-comment backfill), derive_state (compute current state from JSONL), schema (EnrichmentCompletion dataclass + validators). State vocabulary: proposed/confirmed/skipped/declined. Invoked by felix-admin-tasker agent via `python3 -m scripts.enrichment.*`. Tasker is delegation-driven (not cron-driven): no OpenClaw cron entry \u2014 see C-006 in the mission spec. The pre-existing `task-detection` cron entry that previously appeared in this inventory was unverified drift (no matching `openclaw cron list` entry on office2) \u2014 removed by #310.",
+      "purpose": "ADR-0002 Phase 7 enrichment subsystem (#310). Mirrors the scripts/escalation/ module pattern: record_completion (atomic three-write helper), reconcile_completions (Vikunja-comment backfill), derive_state (compute current state from JSONL), schema (EnrichmentCompletion dataclass + validators). State vocabulary: proposed/confirmed/skipped/declined. Invoked by felix-admin-tasker agent via `python3 -m scripts.enrichment.*`. Tasker is delegation-driven (not cron-driven): no OpenClaw cron entry — see C-006 in the mission spec. The pre-existing `task-detection` cron entry that previously appeared in this inventory was unverified drift (no matching `openclaw cron list` entry on office2) — removed by #310.",
       "risk_tier": 2,
       "dependencies": [
         {
@@ -1151,7 +1151,7 @@
       ],
       "health_check": {
         "method": "none",
-        "note": "Library + CLI \u2014 health inferred from per-call exit codes + JSONL ledger growth"
+        "note": "Library + CLI — health inferred from per-call exit codes + JSONL ledger growth"
       },
       "config_files": [
         {
@@ -1408,7 +1408,7 @@
           "path": "/home/claude/kg-automation/scripts/escalation/schema.py",
           "format": "python",
           "source_in_repo": "scripts/escalation/schema.py",
-          "purpose": "Phase 6 (#309) event-parameter validator surface (FR-003). Exposes EVENT_TYPE_PARAMETERS, validate_event_params, EscalationSchemaError. Consumed by record_completion.py to enforce required parameter fields per event_type (level_sent \u2192 level; snoozed \u2192 snooze_days + snooze_until; rescheduled \u2192 reschedule_to; dismissed/done \u2192 no required params). Does NOT file bug reports \u2014 Q10 hard-fail filing is owned by scripts/escalation/hard_fail.py.",
+          "purpose": "Phase 6 (#309) event-parameter validator surface (FR-003). Exposes EVENT_TYPE_PARAMETERS, validate_event_params, EscalationSchemaError. Consumed by record_completion.py to enforce required parameter fields per event_type (level_sent → level; snoozed → snooze_days + snooze_until; rescheduled → reschedule_to; dismissed/done → no required params). Does NOT file bug reports — Q10 hard-fail filing is owned by scripts/escalation/hard_fail.py.",
           "host": "office2",
           "introduced_by": "#309",
           "updated_by": "#309",
@@ -1427,7 +1427,7 @@
           "path": "/home/claude/kg-automation/scripts/escalation/hard_fail.py",
           "format": "python",
           "source_in_repo": "scripts/escalation/hard_fail.py",
-          "purpose": "Phase 6 (#309, owned by WP04 \u2014 forward-referenced) Q10 hard-fail bug-filing + dedup helper (FR-008, FR-009). Pure library helpers: render_bug_body(...) returns the Markdown body per data-model Entity 5; dedup_existing_open(task_id) queries `gh issue list --state open --search 'in:title \"(task #<id>)\" \"Escalation hard-fail\"'` per research D9; file_hard_fail_bug(...) invokes scripts/openclaw/agents/main/felix-file-issue.py as a subprocess with labels P2-bug, area/escalation. Consumed by reconcile_completions.py and record_completion.py (during validate). Module not yet implemented \u2014 landed by WP04.",
+          "purpose": "Phase 6 (#309, owned by WP04 — forward-referenced) Q10 hard-fail bug-filing + dedup helper (FR-008, FR-009). Pure library helpers: render_bug_body(...) returns the Markdown body per data-model Entity 5; dedup_existing_open(task_id) queries `gh issue list --state open --search 'in:title \"(task #<id>)\" \"Escalation hard-fail\"'` per research D9; file_hard_fail_bug(...) invokes scripts/openclaw/agents/main/felix-file-issue.py as a subprocess with labels P2-bug, area/escalation. Consumed by reconcile_completions.py and record_completion.py (during validate). Module not yet implemented — landed by WP04.",
           "host": "office2",
           "introduced_by": "#309 (WP04)",
           "updated_by": "#309",
@@ -1559,7 +1559,7 @@
       "systemd_user": "claude",
       "schedule": "hourly (OnCalendar=hourly, Persistent=true)",
       "exec_start": "/usr/bin/python3 /home/claude/kg-automation/scripts/doc_audit/run.py",
-      "exec_start_note": "Direct Python driver invocation. Post-#343 replaces the prior `openclaw agent --agent felix-doc-auditor --message 'Cron tick\u2026' --timeout 1500` entrypoint. The driver is stateless per tick \u2014 no persistent openclaw session.",
+      "exec_start_note": "Direct Python driver invocation. Post-#343 replaces the prior `openclaw agent --agent felix-doc-auditor --message 'Cron tick…' --timeout 1500` entrypoint. The driver is stateless per tick — no persistent openclaw session.",
       "timeout_seconds": 1800,
       "timeout_seconds_note": "TimeoutStartSec=30min systemd outer failsafe; the driver self-times its judgment calls and exits cleanly on Anthropic SDK errors well before the systemd ceiling.",
       "session_mode": "stateless",
@@ -1569,13 +1569,13 @@
       "updated_by": "#400 + 2026-05-31 suspension reflected + #545 status reconciled active->suspended (matches operational_status)",
       "last_updated": "2026-06-19",
       "status": "suspended",
-      "purpose": "Documentation audit \u2014 processes Doc Audit and Weekly Doc Audit issues; classifies docs as high-confidence edit (commits directly) or judgment gap (files docs-debt issue); detects missing artifacts. Post-#343 implemented as a scripts-first Python driver that calls the Anthropic SDK directly at narrow judgment moments. Post-#362 adds Moment 0 drift interpretation (drift-event-derived audits). Post-#391 the drift Moment 0 invocation site is `signals/drift_event.py::DriftEventSignalSource.commit()` delegating to `routing/drift_moment0.py::route_drift_event()`. Post-#400 adds a SECOND Moment 0 surface for commit-derived `Doc audit:` issues (`scripts/doc_audit/judgment/audit_interpretation.py`): when `handle_audit_routing.py` finds no deterministic-pattern proposals AND `[audit_interpretation].enabled = true`, the no-proposals branch invokes per-doc LLM evaluation (PROPOSED_EDIT routed through tier_classification, JUDGMENT_REQUIRED appended to a consolidated comment on the audit issue, NO_CHANGE_NEEDED auto-closes when all in-scope docs return that verdict). Per-doc verdicts land in `/data/services/openclaw/state/doc_audit/audit-events-ledger.jsonl`. When `[audit_interpretation].enabled = false` the no-proposals branch falls back to the pre-#400 lock-release + 'no automatable edits' comment.",
+      "purpose": "Documentation audit — processes Doc Audit and Weekly Doc Audit issues; classifies docs as high-confidence edit (commits directly) or judgment gap (files docs-debt issue); detects missing artifacts. Post-#343 implemented as a scripts-first Python driver that calls the Anthropic SDK directly at narrow judgment moments. Post-#362 adds Moment 0 drift interpretation (drift-event-derived audits). Post-#391 the drift Moment 0 invocation site is `signals/drift_event.py::DriftEventSignalSource.commit()` delegating to `routing/drift_moment0.py::route_drift_event()`. Post-#400 adds a SECOND Moment 0 surface for commit-derived `Doc audit:` issues (`scripts/doc_audit/judgment/audit_interpretation.py`): when `handle_audit_routing.py` finds no deterministic-pattern proposals AND `[audit_interpretation].enabled = true`, the no-proposals branch invokes per-doc LLM evaluation (PROPOSED_EDIT routed through tier_classification, JUDGMENT_REQUIRED appended to a consolidated comment on the audit issue, NO_CHANGE_NEEDED auto-closes when all in-scope docs return that verdict). Per-doc verdicts land in `/data/services/openclaw/state/doc_audit/audit-events-ledger.jsonl`. When `[audit_interpretation].enabled = false` the no-proposals branch falls back to the pre-#400 lock-release + 'no automatable edits' comment.",
       "judgment_moments": [
         {
           "name": "drift_interpretation",
           "introduced_by": "#362",
           "updated_by": "#391",
-          "purpose": "Moment 0 (drift-event path) \u2014 classify a drift event as PROPOSED_EDIT / JUDGMENT_REQUIRED / NO_CHANGE_NEEDED with explicit confidence before any GitHub issue is filed. Invoked via `signals/drift_event.py::commit()` \u2192 `routing/drift_moment0.py::route_drift_event()` on the cron path (corrected by #391); the library/CLI surface uses the same helper for operator replay only.",
+          "purpose": "Moment 0 (drift-event path) — classify a drift event as PROPOSED_EDIT / JUDGMENT_REQUIRED / NO_CHANGE_NEEDED with explicit confidence before any GitHub issue is filed. Invoked via `signals/drift_event.py::commit()` → `routing/drift_moment0.py::route_drift_event()` on the cron path (corrected by #391); the library/CLI surface uses the same helper for operator replay only.",
           "module": "scripts/doc_audit/judgment/drift_interpretation.py",
           "invocation_site": "scripts/doc_audit/signals/drift_event.py + scripts/doc_audit/routing/drift_moment0.py"
         },
@@ -1583,14 +1583,14 @@
           "name": "audit_interpretation",
           "introduced_by": "#400",
           "updated_by": "#400",
-          "purpose": "Moment 0 (commit-audit path) \u2014 per in-scope doc, classify the commit's impact as PROPOSED_EDIT / JUDGMENT_REQUIRED / NO_CHANGE_NEEDED with explicit confidence. Invoked by `helpers/handle_audit_routing.py` on the no-proposals branch when `[audit_interpretation].enabled = true`. PROPOSED_EDIT at confidence \u22650.80 routes through the existing tier_classification surface (Moment 1); JUDGMENT_REQUIRED appends a specific question to a consolidated comment on the audit issue; NO_CHANGE_NEEDED across ALL in-scope docs auto-closes the audit. Structural twin of drift_interpretation (same JudgmentClient, cache-aware prompt, defense-in-depth schema validation, \u22650.80 confidence threshold).",
+          "purpose": "Moment 0 (commit-audit path) — per in-scope doc, classify the commit's impact as PROPOSED_EDIT / JUDGMENT_REQUIRED / NO_CHANGE_NEEDED with explicit confidence. Invoked by `helpers/handle_audit_routing.py` on the no-proposals branch when `[audit_interpretation].enabled = true`. PROPOSED_EDIT at confidence ≥0.80 routes through the existing tier_classification surface (Moment 1); JUDGMENT_REQUIRED appends a specific question to a consolidated comment on the audit issue; NO_CHANGE_NEEDED across ALL in-scope docs auto-closes the audit. Structural twin of drift_interpretation (same JudgmentClient, cache-aware prompt, defense-in-depth schema validation, ≥0.80 confidence threshold).",
           "module": "scripts/doc_audit/judgment/audit_interpretation.py",
           "invocation_site": "scripts/doc_audit/helpers/handle_audit_routing.py"
         },
         {
           "name": "tier_classification",
           "introduced_by": "#343",
-          "purpose": "Moment 1 \u2014 classify a proposed edit as Tier A (auto-commit) / Tier B (PR) / judgment (debt-issue)",
+          "purpose": "Moment 1 — classify a proposed edit as Tier A (auto-commit) / Tier B (PR) / judgment (debt-issue)",
           "module": "scripts/doc_audit/judgment/tier_classification.py"
         },
         {
@@ -1619,12 +1619,12 @@
         {
           "target": "gh-cli",
           "type": "requires",
-          "description": "All GitHub interactions (issues, comments, labels) \u2014 driver invokes gh CLI as a subprocess, same identity as before (kg-felix-bot)"
+          "description": "All GitHub interactions (issues, comments, labels) — driver invokes gh CLI as a subprocess, same identity as before (kg-felix-bot)"
         },
         {
           "target": "doc-domain-map.json",
           "type": "requires",
-          "description": "Scope contract \u2014 still the canonical mapping from changed-file path to owning doc"
+          "description": "Scope contract — still the canonical mapping from changed-file path to owning doc"
         },
         {
           "target": "signal-to-doc-map.json",
@@ -1676,7 +1676,7 @@
           "path": "/home/claude/kg-automation/scripts/doc_audit/config.toml",
           "format": "toml",
           "source_in_repo": "scripts/doc_audit/config.toml",
-          "purpose": "Driver runtime config \u2014 adapter list, model, API key path, cursor paths, last-tick.json location. Post-#362 adds the [drift_interpretation] block gating the drift-path Moment 0 judgment. Post-#400 adds the [audit_interpretation] block (same field shape: enabled, ledger_path, model, api_key_path, timeout_seconds, confidence_threshold) gating the commit-audit-path Moment 0 judgment in handle_audit_routing.py's no-proposals branch.",
+          "purpose": "Driver runtime config — adapter list, model, API key path, cursor paths, last-tick.json location. Post-#362 adds the [drift_interpretation] block gating the drift-path Moment 0 judgment. Post-#400 adds the [audit_interpretation] block (same field shape: enabled, ledger_path, model, api_key_path, timeout_seconds, confidence_threshold) gating the commit-audit-path Moment 0 judgment in handle_audit_routing.py's no-proposals branch.",
           "updated_by": "#400"
         },
         {
@@ -1708,7 +1708,7 @@
           "path": "/home/claude/kg-automation/scripts/doc_audit/prompts/audit_interpretation.prompt.md",
           "format": "markdown",
           "source_in_repo": "scripts/doc_audit/prompts/audit_interpretation.prompt.md",
-          "purpose": "Judgment prompt for the commit-derived Moment 0 (audit_interpretation) \u2014 one LLM call per in-scope doc, returning PROPOSED_EDIT / JUDGMENT_REQUIRED / NO_CHANGE_NEEDED with explicit confidence. Cache-aware (stable system prompt + dynamic per-doc user content) mirroring drift_interpretation.prompt.md. Introduced by #400.",
+          "purpose": "Judgment prompt for the commit-derived Moment 0 (audit_interpretation) — one LLM call per in-scope doc, returning PROPOSED_EDIT / JUDGMENT_REQUIRED / NO_CHANGE_NEEDED with explicit confidence. Cache-aware (stable system prompt + dynamic per-doc user content) mirroring drift_interpretation.prompt.md. Introduced by #400.",
           "introduced_by": "#400"
         }
       ],
@@ -1739,7 +1739,7 @@
       "credentials": [
         "anthropic-api"
       ],
-      "purpose": "Moment 0 LLM judgment for drift events. Returns a DriftVerdict (PROPOSED_EDIT / JUDGMENT_REQUIRED / NO_CHANGE_NEEDED) with explicit confidence. PROPOSED_EDIT verdicts at confidence \u22650.80 are translated to ProposedEdit and routed through the existing tier_classification surface; lower confidence demotes to JUDGMENT_REQUIRED. Retry policy 30s/60s/120s; on exhaustion falls back to the pre-#362 issue-filing path. Post-#391: the cron-path invocation flows through `signals/drift_event.py::commit()` \u2192 `routing/drift_moment0.py::route_drift_event()`; the library/CLI surface delegates to the same routing helper for operator replay (no longer the cron entry point).",
+      "purpose": "Moment 0 LLM judgment for drift events. Returns a DriftVerdict (PROPOSED_EDIT / JUDGMENT_REQUIRED / NO_CHANGE_NEEDED) with explicit confidence. PROPOSED_EDIT verdicts at confidence ≥0.80 are translated to ProposedEdit and routed through the existing tier_classification surface; lower confidence demotes to JUDGMENT_REQUIRED. Retry policy 30s/60s/120s; on exhaustion falls back to the pre-#362 issue-filing path. Post-#391: the cron-path invocation flows through `signals/drift_event.py::commit()` → `routing/drift_moment0.py::route_drift_event()`; the library/CLI surface delegates to the same routing helper for operator replay (no longer the cron entry point).",
       "introduced_by": "#362",
       "deployed_by": "#362",
       "last_updated": "2026-05-23",
@@ -1773,7 +1773,7 @@
           "path": "/home/claude/kg-automation/scripts/doc_audit/config.toml",
           "format": "toml",
           "source_in_repo": "scripts/doc_audit/config.toml",
-          "purpose": "Drift interpretation enable flag, confidence threshold, model override, timeout, ledger path \u2014 read per tick (no watcher)"
+          "purpose": "Drift interpretation enable flag, confidence threshold, model override, timeout, ledger path — read per tick (no watcher)"
         }
       ]
     },
@@ -1816,7 +1816,7 @@
       "credentials": [
         "anthropic-api"
       ],
-      "purpose": "Moment 0 LLM judgment for commit-derived `Doc audit:` issues. Returns one AuditVerdict per in-scope doc (PROPOSED_EDIT / JUDGMENT_REQUIRED / NO_CHANGE_NEEDED with confidence \u2208 [0.0, 1.0]). PROPOSED_EDIT at confidence \u22650.80 is routed through the existing tier_classification surface (Moment 1); lower confidence demotes to JUDGMENT_REQUIRED. JUDGMENT_REQUIRED accumulates into a single consolidated comment on the audit issue (research D3). NO_CHANGE_NEEDED across ALL in-scope docs auto-closes the audit. Retry policy 30s/60s/120s per doc; failures on doc N do NOT prevent docs N-1 and N+1 from being evaluated (per-doc isolation). On retry exhaustion, emits a synthetic JUDGMENT_REQUIRED verdict for the failed doc; the audit-level fallback to the pre-#400 no-proposals lock-release path is reserved for catastrophic failures.",
+      "purpose": "Moment 0 LLM judgment for commit-derived `Doc audit:` issues. Returns one AuditVerdict per in-scope doc (PROPOSED_EDIT / JUDGMENT_REQUIRED / NO_CHANGE_NEEDED with confidence ∈ [0.0, 1.0]). PROPOSED_EDIT at confidence ≥0.80 is routed through the existing tier_classification surface (Moment 1); lower confidence demotes to JUDGMENT_REQUIRED. JUDGMENT_REQUIRED accumulates into a single consolidated comment on the audit issue (research D3). NO_CHANGE_NEEDED across ALL in-scope docs auto-closes the audit. Retry policy 30s/60s/120s per doc; failures on doc N do NOT prevent docs N-1 and N+1 from being evaluated (per-doc isolation). On retry exhaustion, emits a synthetic JUDGMENT_REQUIRED verdict for the failed doc; the audit-level fallback to the pre-#400 no-proposals lock-release path is reserved for catastrophic failures.",
       "introduced_by": "#400",
       "deployed_by": "#400",
       "last_updated": "2026-05-23",
@@ -1832,7 +1832,7 @@
         {
           "target": "scripts/doc_audit/prompts/audit_interpretation.prompt.md",
           "type": "requires",
-          "description": "Cache-aware prompt (system prompt \u226580% of tokens marked cache_control=ephemeral + dynamic per-doc user content) mirroring drift_interpretation.prompt.md"
+          "description": "Cache-aware prompt (system prompt ≥80% of tokens marked cache_control=ephemeral + dynamic per-doc user content) mirroring drift_interpretation.prompt.md"
         },
         {
           "target": "scripts/doc_audit/judgment/client.py",
@@ -1845,7 +1845,7 @@
           "path": "/home/claude/kg-automation/scripts/doc_audit/config.toml",
           "format": "toml",
           "source_in_repo": "scripts/doc_audit/config.toml",
-          "purpose": "Reads [audit_interpretation] block \u2014 enabled flag, confidence_threshold, model, api_key_path, timeout_seconds, ledger_path. Introduced by #400."
+          "purpose": "Reads [audit_interpretation] block — enabled flag, confidence_threshold, model, api_key_path, timeout_seconds, ledger_path. Introduced by #400."
         }
       ]
     },
@@ -1859,7 +1859,7 @@
       "deployed_path": "/home/claude/kg-automation/scripts/doc_audit/output/audit_ledger.py",
       "invoked_by": "scripts/doc_audit/helpers/handle_audit_routing.py (one append per in-scope doc evaluated by audit_interpretation); operator (read-only CLI subcommands: summary, tail, triage-rate)",
       "writes_to": "/data/services/openclaw/state/doc_audit/audit-events-ledger.jsonl",
-      "purpose": "Append-only JSONL ledger writer for the commit-audit Moment 0 path. One row per (audit_issue, doc_path) capturing audit_issue, doc_path, verdict, confidence, outcome \u2208 {auto_committed, pr_filed, judgment_required_posted, auto_closed, retry_exhausted}, retry_count, latency_ms, tier_classification_outcome. Atomic appends (tempfile + rename). Schema mirrors drift_ledger with two adaptations per spec D1/E3: (a) audit_issue:int replaces event_id/baseline/mapping_id (audit issue number is the cursor for the commit-audit path); (b) judgment_required_posted is a distinct outcome (drift uses issue_filed for JUDGMENT_REQUIRED because drift creates a NEW issue per event; audit appends a comment to the EXISTING audit issue, so a separate outcome lets operators query the two pipelines independently). Read-only CLI subcommands back the NFR-001 operator-triage-rate metric (target \u226430%).",
+      "purpose": "Append-only JSONL ledger writer for the commit-audit Moment 0 path. One row per (audit_issue, doc_path) capturing audit_issue, doc_path, verdict, confidence, outcome ∈ {auto_committed, pr_filed, judgment_required_posted, auto_closed, retry_exhausted}, retry_count, latency_ms, tier_classification_outcome. Atomic appends (tempfile + rename). Schema mirrors drift_ledger with two adaptations per spec D1/E3: (a) audit_issue:int replaces event_id/baseline/mapping_id (audit issue number is the cursor for the commit-audit path); (b) judgment_required_posted is a distinct outcome (drift uses issue_filed for JUDGMENT_REQUIRED because drift creates a NEW issue per event; audit appends a comment to the EXISTING audit issue, so a separate outcome lets operators query the two pipelines independently). Read-only CLI subcommands back the NFR-001 operator-triage-rate metric (target ≤30%).",
       "introduced_by": "#400",
       "deployed_by": "#400",
       "last_updated": "2026-05-23",
@@ -1882,8 +1882,8 @@
       "user": "claude",
       "path": "scripts/doc_audit/routing/drift_to_proposed_edit.py",
       "deployed_path": "/home/claude/kg-automation/scripts/doc_audit/routing/drift_to_proposed_edit.py",
-      "invoked_by": "routing/drift_moment0.py::route_drift_event (when DriftVerdict.verdict == PROPOSED_EDIT and confidence \u22650.80; reached from both `signals/drift_event.py` cron path and `helpers/handle_drift_events.py` replay path post-#391)",
-      "purpose": "Pure-function translator. Builds a ProposedEdit (change_type='drift_derived', tier='tier_b' placeholder, confidence='high') from a high-confidence PROPOSED_EDIT DriftVerdict + its DriftInterpretationContext. Validates that proposed doc_path is within the mapping's doc_targets list (out-of-set \u2192 ValueError \u2192 caller demotes to JUDGMENT_REQUIRED). The resulting ProposedEdit feeds the existing tier_classification surface; its conservative rules ultimately decide Tier A / Tier B / judgment.",
+      "invoked_by": "routing/drift_moment0.py::route_drift_event (when DriftVerdict.verdict == PROPOSED_EDIT and confidence ≥0.80; reached from both `signals/drift_event.py` cron path and `helpers/handle_drift_events.py` replay path post-#391)",
+      "purpose": "Pure-function translator. Builds a ProposedEdit (change_type='drift_derived', tier='tier_b' placeholder, confidence='high') from a high-confidence PROPOSED_EDIT DriftVerdict + its DriftInterpretationContext. Validates that proposed doc_path is within the mapping's doc_targets list (out-of-set → ValueError → caller demotes to JUDGMENT_REQUIRED). The resulting ProposedEdit feeds the existing tier_classification surface; its conservative rules ultimately decide Tier A / Tier B / judgment.",
       "introduced_by": "#362",
       "deployed_by": "#362",
       "last_updated": "2026-05-22",
@@ -1906,7 +1906,7 @@
       "user": "claude",
       "path": "scripts/doc_audit/helpers/cutover_362.py",
       "deployed_path": "/home/claude/kg-automation/scripts/doc_audit/helpers/cutover_362.py",
-      "invoked_by": "operator (Kent) \u2014 manual, one-shot post-deploy",
+      "invoked_by": "operator (Kent) — manual, one-shot post-deploy",
       "purpose": "Idempotent one-shot backlog cutover script. Closes the 13 known pre-#362 [doc-audit] P3 issues (#351-#360, #368-#370) with a comment noting the new pipeline will reprocess them, resets the drift-events cursor to 0 so existing piled-up drift events get reprocessed via Moment 0, and writes a marker at ~/.config/doc-audit/cutover-362.done. Re-runs are no-ops unless --force is passed. Supports --dry-run.",
       "introduced_by": "#362",
       "deployed_by": "#362",
@@ -1923,7 +1923,7 @@
         {
           "target": "/data/services/security-monitor/.drift-events.cursor",
           "type": "writes_to",
-          "description": "Cursor reset to 0 on success \u2014 enables reprocessing of piled-up drift events"
+          "description": "Cursor reset to 0 on success — enables reprocessing of piled-up drift events"
         },
         {
           "target": "~/.config/doc-audit/cutover-362.done",
@@ -1940,7 +1940,7 @@
       "user": "claude",
       "path": "scripts/doc_audit/helpers/handle_drift_events.py",
       "deployed_path": "/home/claude/kg-automation/scripts/doc_audit/helpers/handle_drift_events.py",
-      "invoked_by": "operator (replay only, via `python3 -m doc_audit.helpers.handle_drift_events`); programmatic callers needing library access to find_mapping/file_doc_audit_issue/append_unmapped/write_cursor_atomic primitives. Post-#391 NOT invoked by the cron service \u2014 the cron path lives at `signals/drift_event.py::DriftEventSignalSource.commit()`.",
+      "invoked_by": "operator (replay only, via `python3 -m doc_audit.helpers.handle_drift_events`); programmatic callers needing library access to find_mapping/file_doc_audit_issue/append_unmapped/write_cursor_atomic primitives. Post-#391 NOT invoked by the cron service — the cron path lives at `signals/drift_event.py::DriftEventSignalSource.commit()`.",
       "purpose": "Library + operator-replay CLI for drift-event processing. Exposes the atomic primitives (find_mapping, file_doc_audit_issue, append_unmapped, write_cursor_atomic) that both this module's process_events() and `signals/drift_event.py::commit()` (the cron entry point) share. Both call sites delegate to `routing/drift_moment0.py::route_drift_event()` for Moment 0 + verdict routing + ledger append, so behavior is identical regardless of entry point. The CLI surface (`--reset-cursor`, etc.) is for operator replay and one-off invocations.",
       "introduced_by": "#343",
       "deployed_by": "#343",
@@ -1952,26 +1952,26 @@
         {
           "target": "drift_moment0",
           "type": "requires",
-          "description": "Shared Moment 0 routing helper \u2014 single source of truth for LLM call + verdict routing + ledger append. Promoted from inline orchestration by #391 so both entry points (cron + replay) execute identical behavior.",
+          "description": "Shared Moment 0 routing helper — single source of truth for LLM call + verdict routing + ledger append. Promoted from inline orchestration by #391 so both entry points (cron + replay) execute identical behavior.",
           "introduced_by": "#391"
         },
         {
           "target": "drift_interpretation",
           "type": "requires",
-          "description": "Moment 0 LLM judgment module \u2014 reached via routing/drift_moment0.py. Introduced by #362; invocation path corrected by #391.",
+          "description": "Moment 0 LLM judgment module — reached via routing/drift_moment0.py. Introduced by #362; invocation path corrected by #391.",
           "introduced_by": "#362",
           "updated_by": "#391"
         },
         {
           "target": "drift_to_proposed_edit",
           "type": "requires",
-          "description": "Translator for PROPOSED_EDIT verdicts at confidence \u22650.80 \u2014 reached via routing/drift_moment0.py. Introduced by #362.",
+          "description": "Translator for PROPOSED_EDIT verdicts at confidence ≥0.80 — reached via routing/drift_moment0.py. Introduced by #362.",
           "introduced_by": "#362"
         },
         {
           "target": "drift_ledger",
           "type": "writes_to",
-          "description": "Append one AuditLedgerEntry per processed drift event regardless of path \u2014 reached via routing/drift_moment0.py. Introduced by #362.",
+          "description": "Append one AuditLedgerEntry per processed drift event regardless of path — reached via routing/drift_moment0.py. Introduced by #362.",
           "introduced_by": "#362"
         },
         {
@@ -1990,7 +1990,7 @@
           "path": "/home/claude/kg-automation/scripts/doc_audit/config.toml",
           "format": "toml",
           "source_in_repo": "scripts/doc_audit/config.toml",
-          "purpose": "Reads [drift_interpretation] block \u2014 enabled flag (gates whether Moment 0 runs at all), confidence_threshold, model, api_key_path, timeout_seconds, ledger_path. Introduced by #362.",
+          "purpose": "Reads [drift_interpretation] block — enabled flag (gates whether Moment 0 runs at all), confidence_threshold, model, api_key_path, timeout_seconds, ledger_path. Introduced by #362.",
           "introduced_by": "#362"
         }
       ]
@@ -2004,7 +2004,7 @@
       "path": "scripts/doc_audit/routing/drift_moment0.py",
       "deployed_path": "/home/claude/kg-automation/scripts/doc_audit/routing/drift_moment0.py",
       "invoked_by": "scripts/doc_audit/signals/drift_event.py::DriftEventSignalSource.commit (cron path); scripts/doc_audit/helpers/handle_drift_events.py::process_events (library/CLI replay path)",
-      "purpose": "Shared Moment 0 routing helper. Single source of truth for: (1) the LLM call (drift_interpretation.interpret() with internal retries per #362 D6); (2) verdict routing side-effects (PROPOSED_EDIT \u2192 drift_to_proposed_edit \u2192 tier_classification; PROPOSED_EDIT/NO_CHANGE_NEEDED at confidence <threshold \u2192 JUDGMENT_REQUIRED; JUDGMENT_REQUIRED \u2192 [doc-audit] issue; NO_CHANGE_NEEDED at confidence \u2265threshold \u2192 auto-close + ledger only); (3) ledger append (drift_ledger.append() \u2014 written last for crash recovery). Exposes RoutingOutcome dataclass + route_drift_event() function; callers (cron + replay) catch DriftInterpretationError externally to drive the RETRY_EXHAUSTED fallback path so the fallback semantics live in one place.",
+      "purpose": "Shared Moment 0 routing helper. Single source of truth for: (1) the LLM call (drift_interpretation.interpret() with internal retries per #362 D6); (2) verdict routing side-effects (PROPOSED_EDIT → drift_to_proposed_edit → tier_classification; PROPOSED_EDIT/NO_CHANGE_NEEDED at confidence <threshold → JUDGMENT_REQUIRED; JUDGMENT_REQUIRED → [doc-audit] issue; NO_CHANGE_NEEDED at confidence ≥threshold → auto-close + ledger only); (3) ledger append (drift_ledger.append() — written last for crash recovery). Exposes RoutingOutcome dataclass + route_drift_event() function; callers (cron + replay) catch DriftInterpretationError externally to drive the RETRY_EXHAUSTED fallback path so the fallback semantics live in one place.",
       "introduced_by": "#391",
       "deployed_by": "#391",
       "last_updated": "2026-05-23",
@@ -2015,12 +2015,12 @@
         {
           "target": "drift_interpretation",
           "type": "requires",
-          "description": "Moment 0 LLM judgment module \u2014 called once per route_drift_event invocation"
+          "description": "Moment 0 LLM judgment module — called once per route_drift_event invocation"
         },
         {
           "target": "drift_to_proposed_edit",
           "type": "requires",
-          "description": "Translator invoked on PROPOSED_EDIT verdicts at confidence \u22650.80"
+          "description": "Translator invoked on PROPOSED_EDIT verdicts at confidence ≥0.80"
         },
         {
           "target": "drift_ledger",
@@ -2042,8 +2042,8 @@
       "user": "claude",
       "path": "scripts/doc_audit/helpers/cleanup_391.py",
       "deployed_path": "/home/claude/kg-automation/scripts/doc_audit/helpers/cleanup_391.py",
-      "invoked_by": "operator (Kent) \u2014 manual, one-shot post-deploy",
-      "purpose": "Idempotent one-shot cleanup script. Closes the 13 broken-pipeline [doc-audit] artifact issues (#378-#390) that were filed by the broken pre-#391 pipeline replay on 2026-05-22T22:28 UTC, and writes a sentinel marker at ~/.config/doc-audit/cleanup-391.done. Re-runs are no-ops unless --force is passed. Supports --dry-run. Structurally identical to cutover_362.py except: (a) uses a static issue list (no `gh issue list` query); (b) does NOT reset the drift-events cursor \u2014 the fixed pipeline at signals/drift_event.py processes subsequent events via Moment 0 naturally.",
+      "invoked_by": "operator (Kent) — manual, one-shot post-deploy",
+      "purpose": "Idempotent one-shot cleanup script. Closes the 13 broken-pipeline [doc-audit] artifact issues (#378-#390) that were filed by the broken pre-#391 pipeline replay on 2026-05-22T22:28 UTC, and writes a sentinel marker at ~/.config/doc-audit/cleanup-391.done. Re-runs are no-ops unless --force is passed. Supports --dry-run. Structurally identical to cutover_362.py except: (a) uses a static issue list (no `gh issue list` query); (b) does NOT reset the drift-events cursor — the fixed pipeline at signals/drift_event.py processes subsequent events via Moment 0 naturally.",
       "introduced_by": "#391",
       "deployed_by": "#391",
       "last_updated": "2026-05-23",
@@ -2071,8 +2071,8 @@
       "user": "claude",
       "path": "scripts/openclaw/helpers/rotate_main_session.py",
       "deployed_path": "/home/claude/kg-automation/scripts/openclaw/helpers/rotate_main_session.py",
-      "invoked_by": "operator (Kent) \u2014 manual, post-AGENTS.md-deploy",
-      "purpose": "Force-rotate every active main-agent session so the next openclaw invocation re-loads /data/services/openclaw/data/AGENTS.md (which would otherwise stay cached in already-running sessions). Mirrors the existing auto-rotation pattern observed on office2: renames <uuid>.jsonl \u2192 <uuid>.jsonl.reset.<timestamp>. Skips already-rotated .reset.* files. Writes a marker at ~/.config/openclaw/main-rotation-<timestamp>.done listing the rotated sessions for operator audit. Naturally idempotent (each call produces a uniquely-timestamped marker + reset suffix). --dry-run prints intent without mutations.",
+      "invoked_by": "operator (Kent) — manual, post-AGENTS.md-deploy",
+      "purpose": "Force-rotate every active main-agent session so the next openclaw invocation re-loads /data/services/openclaw/data/AGENTS.md (which would otherwise stay cached in already-running sessions). Mirrors the existing auto-rotation pattern observed on office2: renames <uuid>.jsonl → <uuid>.jsonl.reset.<timestamp>. Skips already-rotated .reset.* files. Writes a marker at ~/.config/openclaw/main-rotation-<timestamp>.done listing the rotated sessions for operator audit. Naturally idempotent (each call produces a uniquely-timestamped marker + reset suffix). --dry-run prints intent without mutations.",
       "introduced_by": "#374",
       "deployed_by": "#374",
       "last_updated": "2026-05-23",
@@ -2093,14 +2093,14 @@
         {
           "target": "docs/runbooks/openclaw-agent-setup.md",
           "type": "documented_by",
-          "description": "\u00a7'Cutover sequence for main-agent AGENTS.md changes (post-#374)' \u2014 the canonical 5-step operator runbook that invokes this helper as step 4."
+          "description": "§'Cutover sequence for main-agent AGENTS.md changes (post-#374)' — the canonical 5-step operator runbook that invokes this helper as step 4."
         }
       ]
     },
     {
       "name": "felix-core-digest",
       "type": "scheduled",
-      "description": "Felix Core Digest \u2014 agent activity digest + OpenClaw signal extraction. Each 15-minute tick runs summarize.py (existing agent-log digest) and tick.py (new deterministic signal extraction + threshold-driven issue filing) as chained ExecStart steps under a single Type=oneshot service.",
+      "description": "Felix Core Digest — agent activity digest + OpenClaw signal extraction. Each 15-minute tick runs summarize.py (existing agent-log digest) and tick.py (new deterministic signal extraction + threshold-driven issue filing) as chained ExecStart steps under a single Type=oneshot service.",
       "host": "office2",
       "user": "claude",
       "systemd_unit": "felix-core-digest.timer (user unit) + felix-core-digest.service (user oneshot, two chained ExecStart)",
@@ -2116,7 +2116,7 @@
       "deployed_by": "F014",
       "deployed_on": "2026-04-28",
       "status": "active",
-      "purpose": "Observation intelligence layer \u2014 reads agent JSONL logs and OpenClaw logs, generates per-agent Markdown digests for Obsidian (summarize.py), AND extracts defined signals from OpenClaw logs to file threshold-triggered GitHub issues deterministically via kg-felix-bot (tick.py; introduced by #490).",
+      "purpose": "Observation intelligence layer — reads agent JSONL logs and OpenClaw logs, generates per-agent Markdown digests for Obsidian (summarize.py), AND extracts defined signals from OpenClaw logs to file threshold-triggered GitHub issues deterministically via kg-felix-bot (tick.py; introduced by #490).",
       "runbook": "docs/runbooks/observation-ops.md (summary digest), docs/runbooks/signal-driven-monitoring-ops.md (signal extraction + cutover)",
       "updated_by": "#659",
       "last_updated": "2026-06-01",
@@ -2124,7 +2124,7 @@
       "capabilities": {
         "agent_log_digest": true,
         "files_issues": true,
-        "files_issues_note": "Introduced by #490 \u2014 tick.py extracts named signals from /tmp/openclaw/openclaw-*.log and files issues via felix-file-issue.py when a signal crosses its threshold. Deterministic (no LLM); identity is kg-felix-bot."
+        "files_issues_note": "Introduced by #490 — tick.py extracts named signals from /tmp/openclaw/openclaw-*.log and files issues via felix-file-issue.py when a signal crosses its threshold. Deterministic (no LLM); identity is kg-felix-bot."
       },
       "dependencies": [
         {
@@ -2183,14 +2183,14 @@
     {
       "name": "felix-heartbeat-gate",
       "type": "systemd-timer",
-      "description": "Heartbeat routing gate \u2014 DETERMINISTIC decision over OpenClaw heartbeat invocations (deterministic-monitoring-checks-01KX1XNW, #676; previously Haiku-tier). Each 30-minute tick reads the latest signal-extraction snapshot (last-tick.json) and HEARTBEAT.md, and a pure stdlib rule (decide_deterministic, no LLM call) classifies the situation into one of HEARTBEAT_OK / LOG_AND_SKIP / ESCALATE_TO_SONNET by reproducing the former routing prompt's boolean escalation contract. On ESCALATE_TO_SONNET the gate invokes `openclaw system event --mode now` exactly once to wake the existing Sonnet main-agent path. On a step-1/step-2 failure the gate falls back to the same escalation path so observation is never silently dropped (FR-007); the deterministic rule is total over any GateContext load_context can produce. Validated against the full historical gate-ledger.jsonl (0 missed escalations, INV-006) before cutover.",
+      "description": "Heartbeat routing gate — DETERMINISTIC decision over OpenClaw heartbeat invocations (deterministic-monitoring-checks-01KX1XNW, #676; previously Haiku-tier). Each 30-minute tick reads the latest signal-extraction snapshot (last-tick.json) and HEARTBEAT.md, and a pure stdlib rule (decide_deterministic, no LLM call) classifies the situation into one of HEARTBEAT_OK / LOG_AND_SKIP / ESCALATE_TO_SONNET by reproducing the former routing prompt's boolean escalation contract. On ESCALATE_TO_SONNET the gate invokes `openclaw system event --mode now` exactly once to wake the existing Sonnet main-agent path. On a step-1/step-2 failure the gate falls back to the same escalation path so observation is never silently dropped (FR-007); the deterministic rule is total over any GateContext load_context can produce. Validated against the full historical gate-ledger.jsonl (0 missed escalations, INV-006) before cutover.",
       "host": "office2",
       "user": "claude",
       "systemd_unit": "felix-heartbeat-gate.timer (user unit) + felix-heartbeat-gate.service (user oneshot)",
       "systemd_user": "claude",
       "schedule": "OnUnitActiveSec=30min, OnBootSec=5min, Persistent=true",
       "exec_start": "/usr/bin/python3 /home/claude/repos/kg-automation/scripts/openclaw/heartbeat_gate/run.py",
-      "exec_start_note": "Direct Python driver invocation. Stateless per tick \u2014 each run is a fresh Python process; persistent state lives in /data/services/openclaw/felix-heartbeat-gate/ (last-gate-decision.json + gate-ledger.jsonl) and the heartbeat contract file at /data/services/openclaw/data/HEARTBEAT.md.",
+      "exec_start_note": "Direct Python driver invocation. Stateless per tick — each run is a fresh Python process; persistent state lives in /data/services/openclaw/felix-heartbeat-gate/ (last-gate-decision.json + gate-ledger.jsonl) and the heartbeat contract file at /data/services/openclaw/data/HEARTBEAT.md.",
       "source_in_repo": "scripts/openclaw/heartbeat_gate/run.py",
       "state_path": "/data/services/openclaw/felix-heartbeat-gate/",
       "deployed_by": "#490",
@@ -2202,7 +2202,7 @@
       "updated_by": "676",
       "last_updated": "2026-07-08",
       "model": null,
-      "model_policy_note": "No model \u2014 the tick decision path is Python-standard-library-only (no anthropic SDK import, no API key read) per deterministic-monitoring-checks-01KX1XNW (#676). The prior claude-haiku-4-5 / pinned model dependency is REMOVED from the hot path.",
+      "model_policy_note": "No model — the tick decision path is Python-standard-library-only (no anthropic SDK import, no API key read) per deterministic-monitoring-checks-01KX1XNW (#676). The prior claude-haiku-4-5 / pinned model dependency is REMOVED from the hot path.",
       "autonomy_level": "Observed (Level 2)",
       "risk_tier": 3,
       "dependencies": [
@@ -2214,12 +2214,12 @@
         {
           "target": "openclaw-gateway",
           "type": "requires",
-          "description": "On ESCALATE_TO_SONNET the gate shells out `openclaw system event --mode now` to wake the existing main-agent (Sonnet 4.6) path. Internal openclaw heartbeat must be disabled to avoid double-fire \u2014 see runbook cutover step."
+          "description": "On ESCALATE_TO_SONNET the gate shells out `openclaw system event --mode now` to wake the existing main-agent (Sonnet 4.6) path. Internal openclaw heartbeat must be disabled to avoid double-fire — see runbook cutover step."
         },
         {
           "target": "/data/services/openclaw/data/HEARTBEAT.md",
           "type": "requires",
-          "description": "Heartbeat contract file \u2014 read each tick to honor scheduled-task semantics (FR-010). Empty/template content = skip (per existing convention)."
+          "description": "Heartbeat contract file — read each tick to honor scheduled-task semantics (FR-010). Empty/template content = skip (per existing convention)."
         }
       ],
       "dependencies_removed": [
@@ -2228,7 +2228,7 @@
           "type": "requires",
           "removed_by": "676",
           "removed_on": "2026-07-08",
-          "description": "Formerly: API key read at tick start from /data/services/openclaw/secrets/anthropic; sent directly to Anthropic via the anthropic-python SDK. Deterministic-monitoring-checks-01KX1XNW (#676) removes this from the tick hot path \u2014 the decision is now pure stdlib (NFR-005). The anthropic dependency may still exist elsewhere (e.g. felix-doc-auditor-driver) but is no longer read or required by this service."
+          "description": "Formerly: API key read at tick start from /data/services/openclaw/secrets/anthropic; sent directly to Anthropic via the anthropic-python SDK. Deterministic-monitoring-checks-01KX1XNW (#676) removes this from the tick hot path — the decision is now pure stdlib (NFR-005). The anthropic dependency may still exist elsewhere (e.g. felix-doc-auditor-driver) but is no longer read or required by this service."
         }
       ],
       "health_check": {
@@ -2253,7 +2253,7 @@
           "path": "/home/claude/repos/kg-automation/scripts/openclaw/heartbeat_gate/validate_ledger.py",
           "format": "python",
           "source_in_repo": "scripts/openclaw/heartbeat_gate/validate_ledger.py",
-          "purpose": "INV-006 ledger-replay validation harness introduced by #676 \u2014 confirms the deterministic rule reproduces 100% of historical escalations before/after cutover."
+          "purpose": "INV-006 ledger-replay validation harness introduced by #676 — confirms the deterministic rule reproduces 100% of historical escalations before/after cutover."
         }
       ],
       "config_files_removed": [
@@ -2261,7 +2261,7 @@
           "path": "/home/claude/repos/kg-automation/scripts/openclaw/heartbeat_gate/prompts/routing.prompt.md",
           "format": "markdown",
           "removed_by": "676",
-          "description": "Former cache-aware routing prompt read by the Haiku call. No longer read \u2014 the routing decision is now the pure-stdlib decide_deterministic(context) function, which reproduces this prompt's boolean escalation contract in code."
+          "description": "Former cache-aware routing prompt read by the Haiku call. No longer read — the routing decision is now the pure-stdlib decide_deterministic(context) function, which reproduces this prompt's boolean escalation contract in code."
         }
       ]
     },
@@ -2364,7 +2364,10 @@
       ],
       "replaces": {
         "description": "The two openclaw crons this systemd timer replaces were never modeled as first-class service-inventory entries (they ran as scheduled agent invocations inside openclaw config, not a tracked systemd/cron surface); removed by deploys/queued/deterministic-monitoring-checks.yaml via `openclaw cron rm` after this timer is verified active.",
-        "removed_openclaw_crons": ["health-check-morning", "health-check-evening"],
+        "removed_openclaw_crons": [
+          "health-check-morning",
+          "health-check-evening"
+        ],
         "removed_by": "676"
       }
     },
@@ -2383,7 +2386,7 @@
       "deployed_on": "2026-07-10",
       "updated_by": "683 (felix-truthful-reporting-01KX6MN5, WP05)",
       "status": "active",
-      "purpose": "Detection half of the Felix Truthful Reporting Guardrails (kentonium3/kg-automation#683). Each tick runs two deterministic scans and alerts via the #701 unified alert bus (felix-alert topic; C-002, no parallel channel): (1) cron-drift detection — diffs live OpenClaw crons (`openclaw cron list --json`) against the committed approved-cron baseline (approved-crons.json), the load-bearing agent-independent guard against unrequested standing infrastructure (FR-003/FR-005/FR-006(b)); (2) completion-assertion verification — checks artifact ids named in completion-assertion ledger records (auto-emitted by artifact-creation helpers, e.g. the Vikunja task helper) against their owning system, grounding completion claims (FR-004/FR-005/FR-006(a)). Run-mode exit-code contract: timer mode (default, this unit's ExecStart) always exits 0 — a scan fault is caught, recorded in `errors[]`, and reported as `ok:false` in the JSON summary, never a non-zero process exit (NFR-001); preflight/explicit mode (`--preflight`/`--once`) may exit 2 on a hard scan-inability fault (used by the deploy self-test). Finding drift itself is never a non-zero exit in either mode. Explicit non-goal: a pure verbal completion claim with no artifact and no assertion is not detectable (doctrine-only, FR-006 blind spot).",
+      "purpose": "Detection half of the Felix Truthful Reporting Guardrails (kentonium3/kg-automation#683). Each tick runs three deterministic scans and alerts via the #701 unified alert bus (felix-alert topic; C-002, no parallel channel): (1) cron-drift detection — diffs live OpenClaw crons (`openclaw cron list --json`) against the committed approved-cron baseline (approved-crons.json), the load-bearing agent-independent guard against unrequested standing infrastructure (FR-003/FR-005/FR-006(b)); (2) completion-assertion verification — checks artifact ids named in completion-assertion ledger records (auto-emitted by artifact-creation helpers, e.g. the Vikunja task helper) against their owning system, grounding completion claims (FR-004/FR-005/FR-006(a)). (3) deployed-unit-vs-repo drift detection (kentonium3/kg-automation#817) — diffs each deployed systemd-user unit against its repo canonical (globbed from scripts/office2, scripts/openclaw/deploy, scripts/sync/systemd, scripts/deploy/felix-deployer), functional-content-normalized (comments/whitespace ignored), catching the #816 class of a stale deployed unit (ExecStart/PYTHONPATH) that fails silently; openclaw-gateway.service is OpenClaw-managed and excluded; coverage reported in the tick summary; lean v1 alerts on content_drift only (declared-registry + missing-deployment detection deferred). Run-mode exit-code contract: timer mode (default, this unit's ExecStart) always exits 0 — a scan fault is caught, recorded in `errors[]`, and reported as `ok:false` in the JSON summary, never a non-zero process exit (NFR-001); preflight/explicit mode (`--preflight`/`--once`) may exit 2 on a hard scan-inability fault (used by the deploy self-test). Finding drift itself is never a non-zero exit in either mode. Explicit non-goal: a pure verbal completion claim with no artifact and no assertion is not detectable (doctrine-only, FR-006 blind spot).",
       "runbook": "docs/runbooks/trust-reporting-detector.md",
       "risk_tier": 3,
       "dependencies": [
@@ -2697,7 +2700,7 @@
       "updated_by": "#572-credential-liveness-probe",
       "last_updated": "2026-06-09",
       "status": "active",
-      "purpose": "OAuth credential liveness probe \u2014 issues a cheap `gog calendar list` call per monitored credential and files a GitHub issue on `invalid_grant` (kentonium3/kg-automation#572). Surfaces dead refresh tokens within \u22646h instead of waiting for a user-facing failure. Since the gog OAuth app was published (kentonium3/kg-automation#731), every dead token is a single `credential-liveness-dead:` classification (the earlier routine-7day/unexpected split is retired). Issue body includes the exact `gog-reauth.sh` recovery command.",
+      "purpose": "OAuth credential liveness probe — issues a cheap `gog calendar list` call per monitored credential and files a GitHub issue on `invalid_grant` (kentonium3/kg-automation#572). Surfaces dead refresh tokens within ≤6h instead of waiting for a user-facing failure. Since the gog OAuth app was published (kentonium3/kg-automation#731), every dead token is a single `credential-liveness-dead:` classification (the earlier routine-7day/unexpected split is retired). Issue body includes the exact `gog-reauth.sh` recovery command.",
       "risk_tier": 3,
       "dependencies": [
         {
@@ -2756,11 +2759,11 @@
       "host": "office2",
       "agent": null,
       "deployed_by": "#100",
-      "updated_by": "felix-calendar-helper-01KX4H3C (#699 \u2014 calendar surface migrated off gog to the Felix calendar helper; RFC #681 phase) + inbox-calendar-and-aspiration-routing-01KTHHXS + #100-google-workspace-foundation",
+      "updated_by": "felix-calendar-helper-01KX4H3C (#699 — calendar surface migrated off gog to the Felix calendar helper; RFC #681 phase) + inbox-calendar-and-aspiration-routing-01KTHHXS + #100-google-workspace-foundation",
       "last_updated": "2026-07-09",
       "status": "active",
       "purpose": "Google Workspace API access (Gmail, Drive, Contacts, Sheets, Docs) via the gog CLI for consumption by any Felix agent. NOTE: the CALENDAR surface migrated off gog to the Felix calendar helper by #699 (RFC #681 phase); gog retains its other surfaces and is not retired.",
-      "notes": "As of #699 (RFC #681 calendar phase) the CALENDAR surface no longer flows through gog \u2014 it flows through the Felix calendar helper (see the `felix-calendar-helper` service entry) directly against the Google Calendar API using the personal-account credential. Accordingly, felix-admin-calendar's openclaw.json `skills` no longer include gog (the gog calendar skill was removed; the agent is now judgment-only and invokes the helper via exec), and the inbox->calendar delegation to Felix main is retired (inbox now reaches the calendar inline via route_calendar_event --create). gog is NOT retired: it retains Gmail/Drive/Contacts/Sheets/Docs for other agents, and the #572 gog re-auth residual stays open. Pre-#699 calendar behavior (retired): felix-admin-capture delegated calendar events to Felix main, which was the gog process owner and executed `gog calendar create`.",
+      "notes": "As of #699 (RFC #681 calendar phase) the CALENDAR surface no longer flows through gog — it flows through the Felix calendar helper (see the `felix-calendar-helper` service entry) directly against the Google Calendar API using the personal-account credential. Accordingly, felix-admin-calendar's openclaw.json `skills` no longer include gog (the gog calendar skill was removed; the agent is now judgment-only and invokes the helper via exec), and the inbox->calendar delegation to Felix main is retired (inbox now reaches the calendar inline via route_calendar_event --create). gog is NOT retired: it retains Gmail/Drive/Contacts/Sheets/Docs for other agents, and the #572 gog re-auth residual stays open. Pre-#699 calendar behavior (retired): felix-admin-capture delegated calendar events to Felix main, which was the gog process owner and executed `gog calendar create`.",
       "runbook": "docs/runbooks/google-workspace-ops.md",
       "risk_tier": 3,
       "binary": "/home/linuxbrew/.linuxbrew/bin/gog",
@@ -2794,14 +2797,14 @@
     {
       "name": "felix-habit-sweeper",
       "type": "systemd-timer",
-      "description": "Daily 48hr auto-skip pass for habit check-ins \u2014 scans morning-checkin-<date>.json artifacts older than 48hr, appends auto_skipped events to habits-history.jsonl for unresolved habits, and (for day-specific habits) advances Vikunja due_date to the next designated weekday at EOD-ET. Stateless Python oneshot; no LLM calls (mission #408 / Directive 6).",
+      "description": "Daily 48hr auto-skip pass for habit check-ins — scans morning-checkin-<date>.json artifacts older than 48hr, appends auto_skipped events to habits-history.jsonl for unresolved habits, and (for day-specific habits) advances Vikunja due_date to the next designated weekday at EOD-ET. Stateless Python oneshot; no LLM calls (mission #408 / Directive 6).",
       "host": "office2",
       "user": "claude",
       "systemd_unit": "felix-habit-sweeper.timer (user unit) + felix-habit-sweeper.service (user oneshot)",
       "systemd_user": "claude",
       "schedule": "OnCalendar=*-*-* 07:30 America/New_York, Persistent=true",
       "exec_start": "/usr/bin/python3 /home/claude/kg-automation/scripts/habits/sweeper.py",
-      "exec_start_note": "Direct Python driver invocation. Stateless per tick \u2014 each run is a fresh process; persistent state is the morning-checkin-*.json artifacts + habits-history.jsonl + the per-tick sweeper-tick-<date>.json + sweeper-ledger.jsonl. Path uses /home/claude/kg-automation/ per the post-#59 cutover convention (not /repos/).",
+      "exec_start_note": "Direct Python driver invocation. Stateless per tick — each run is a fresh process; persistent state is the morning-checkin-*.json artifacts + habits-history.jsonl + the per-tick sweeper-tick-<date>.json + sweeper-ledger.jsonl. Path uses /home/claude/kg-automation/ per the post-#59 cutover convention (not /repos/).",
       "source_in_repo": "scripts/habits/sweeper.py",
       "input_path": "/data/services/openclaw/state/habits/morning-checkin-*.json + /data/services/openclaw/state/habits-history.jsonl",
       "output_path": "/data/services/openclaw/state/habits/sweeper-tick-<date>.json (overwrite per-day) + /data/services/openclaw/state/habits/sweeper-ledger.jsonl (append-only) + /data/services/openclaw/state/habits-history.jsonl (append auto_skipped events) + Vikunja /tasks/<id> POST (advance due_date for day-specific habits)",
@@ -2818,7 +2821,7 @@
       "capabilities": {
         "files_issues": false,
         "calls_vikunja": true,
-        "calls_vikunja_note": "Per-habit POST to /tasks/<id> with {due_date: <next-designated-weekday-EOD-ET>} for day-specific habits only. Daily habits inherit their next instance from Vikunja's native repeat_after cadence \u2014 no PUT issued.",
+        "calls_vikunja_note": "Per-habit POST to /tasks/<id> with {due_date: <next-designated-weekday-EOD-ET>} for day-specific habits only. Daily habits inherit their next instance from Vikunja's native repeat_after cadence — no PUT issued.",
         "llm_calls": false,
         "llm_calls_note": "Zero LLM calls. Fully deterministic per Directive 6."
       },
@@ -2841,7 +2844,7 @@
         {
           "target": "scripts/habits/schedule_loader.py",
           "type": "requires",
-          "description": "WP-01 deliverable \u2014 single parse surface for the runtime schedule YAML; identifies day-specific vs daily habits."
+          "description": "WP-01 deliverable — single parse surface for the runtime schedule YAML; identifies day-specific vs daily habits."
         },
         {
           "target": "scripts/habits/set_due_dates.py",
@@ -2890,7 +2893,7 @@
       "updated_by": "#520-felix-vikunja-sync-project-layer-and-url-config",
       "last_updated": "2026-06-05",
       "status": "active",
-      "purpose": "Centralized deterministic reconciliation driver for the Felix-Vikunja task + project layers per ADR-0003. Post-#520: full-poll model \u2014 fetches GET /tasks/all + GET /projects on every tick (no updated_since delta). 7-phase pipeline (Phase 0 preamble \u2192 Phase 1 fetch \u2192 Phase 2 set-diff \u2192 Phase 3 classify \u2192 Phase 4 emit \u2192 Phase 5 update \u2192 Phase 5b deletion-cleanup \u2192 Phase 6 complete). Detects divergences from the local task cache via 3-way set-diff, classifies via UC-1..UC-4, appends conflict rows to conflict-events.jsonl, delivers unsafe-class events via WhatsApp. Also audits the project layer (new/changed/deleted projects stored in project-cache.json for downstream discovery \u2014 no WhatsApp delivery for project events). Phase 5b handles task deletions: appends task_deleted to habits-history.jsonl, prunes phase3-schedule.yaml, cache removal in Phase 6. Read-only against Vikunja. Vikunja base URL read from scripts/common/vikunja_config.py at every cycle start (env var VIKUNJA_BASE_URL \u2192 /data/services/openclaw/config/vikunja-base-url.txt).",
+      "purpose": "Centralized deterministic reconciliation driver for the Felix-Vikunja task + project layers per ADR-0003. Post-#520: full-poll model — fetches GET /tasks/all + GET /projects on every tick (no updated_since delta). 7-phase pipeline (Phase 0 preamble → Phase 1 fetch → Phase 2 set-diff → Phase 3 classify → Phase 4 emit → Phase 5 update → Phase 5b deletion-cleanup → Phase 6 complete). Detects divergences from the local task cache via 3-way set-diff, classifies via UC-1..UC-4, appends conflict rows to conflict-events.jsonl, delivers unsafe-class events via WhatsApp. Also audits the project layer (new/changed/deleted projects stored in project-cache.json for downstream discovery — no WhatsApp delivery for project events). Phase 5b handles task deletions: appends task_deleted to habits-history.jsonl, prunes phase3-schedule.yaml, cache removal in Phase 6. Read-only against Vikunja. Vikunja base URL read from scripts/common/vikunja_config.py at every cycle start (env var VIKUNJA_BASE_URL → /data/services/openclaw/config/vikunja-base-url.txt).",
       "risk_tier": 3,
       "dependencies": [
         {
@@ -2925,7 +2928,7 @@
         {
           "path": "/data/services/openclaw/config/vikunja-base-url.txt",
           "format": "text",
-          "purpose": "Vikunja API base URL \u2014 single source of truth consumed by scripts/common/vikunja_config.py. Mode 0644 (world-readable on host; NOT a secret). Initial value: https://office2.tail0f5f56.ts.net/api/v1/. Also exported as VIKUNJA_BASE_URL env var via ~/.bashrc (interactive) and /data/services/openclaw/secrets/openclaw-gateway.env (systemd). Introduced by #520 (Mission C).",
+          "purpose": "Vikunja API base URL — single source of truth consumed by scripts/common/vikunja_config.py. Mode 0644 (world-readable on host; NOT a secret). Initial value: https://office2.tail0f5f56.ts.net/api/v1/. Also exported as VIKUNJA_BASE_URL env var via ~/.bashrc (interactive) and /data/services/openclaw/secrets/openclaw-gateway.env (systemd). Introduced by #520 (Mission C).",
           "mode": "0644",
           "owner": "claude:claude",
           "introduced_by": "#520"
@@ -2951,16 +2954,16 @@
       "systemd_user": "claude",
       "schedule": "every 5 minutes",
       "account": "claude",
-      "description": "Pull-based deploy applier \u2014 reads deploys/queued/, applies via scripts/deploy/lib/, dispatches ntfy.sh push notification on failure. systemd --user Type=oneshot, 5-min timer.",
-      "purpose": "Pull-based deploy applier on office2. On every 5-minute tick it git-pulls main, scans deploys/queued/<manifest>.yaml for new deploy manifests, and applies them through scripts/deploy/lib/apply.py::dry_run_then_apply_gate. Successful manifests move to deploys/applied/<ts>-<name>.yaml; failures move to deploys/failed/<ts>-<name>.yaml and trigger an ntfy.sh push notification to the operator (substrate set by #595; replaces broken openclaw-cron WhatsApp DM path). Stateless per tick \u2014 state lives entirely in the deploys/ directory plus state/last-tick.json.",
+      "description": "Pull-based deploy applier — reads deploys/queued/, applies via scripts/deploy/lib/, dispatches ntfy.sh push notification on failure. systemd --user Type=oneshot, 5-min timer.",
+      "purpose": "Pull-based deploy applier on office2. On every 5-minute tick it git-pulls main, scans deploys/queued/<manifest>.yaml for new deploy manifests, and applies them through scripts/deploy/lib/apply.py::dry_run_then_apply_gate. Successful manifests move to deploys/applied/<ts>-<name>.yaml; failures move to deploys/failed/<ts>-<name>.yaml and trigger an ntfy.sh push notification to the operator (substrate set by #595; replaces broken openclaw-cron WhatsApp DM path). Stateless per tick — state lives entirely in the deploys/ directory plus state/last-tick.json.",
       "state_root": "/data/services/felix-deployer/",
       "log_root": "/data/services/felix-deployer/logs/",
       "health_signal": "/data/services/felix-deployer/state/last-tick.json",
       "environment_files": [
-        "/home/claude/.config/felix-deployer/env \u2014 provides FELIX_DEPLOYER_NTFY_TOPIC for ntfy.sh dispatch; non-fatal if missing per systemd EnvironmentFile=- directive; added by #595"
+        "/home/claude/.config/felix-deployer/env — provides FELIX_DEPLOYER_NTFY_TOPIC for ntfy.sh dispatch; non-fatal if missing per systemd EnvironmentFile=- directive; added by #595"
       ],
       "outbound_dependencies": [
-        "ntfy.sh:443/tcp \u2014 HTTPS POST for failure notifications; added by #595"
+        "ntfy.sh:443/tcp — HTTPS POST for failure notifications; added by #595"
       ],
       "dependent_services": [],
       "deployed_by": "#136",

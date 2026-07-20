@@ -17,6 +17,7 @@ import pytest
 from scripts.trust import state as state_mod
 from scripts.trust.assertion_verifier import AssertionFinding
 from scripts.trust.cron_drift_detector import CronDriftFinding
+from scripts.trust.unit_drift_detector import UnitDriftFinding
 
 T0 = datetime(2026, 7, 10, 12, 0, 0, tzinfo=timezone.utc)
 BASELINE_HASH_A = "hash-a"
@@ -58,6 +59,55 @@ def test_fingerprint_differs_for_assertion_vs_cron_finding():
     cron_fp = state_mod.fingerprint_finding(_cron_finding(), BASELINE_HASH_A)
     assertion_fp = state_mod.fingerprint_finding(_assertion_finding(), BASELINE_HASH_A)
     assert cron_fp != assertion_fp
+
+
+def _unit_finding(name="felix-canary.service") -> UnitDriftFinding:
+    return UnitDriftFinding(
+        kind="content_drift", name=name, repo_source=f"scripts/office2/{name}"
+    )
+
+
+def test_fingerprint_unit_stable_and_distinct_from_other_sources():
+    fp1 = state_mod.fingerprint_finding(_unit_finding(), "")
+    fp2 = state_mod.fingerprint_finding(_unit_finding(), "")
+    assert fp1 == fp2  # identity = (unit, kind, name); stable across ticks
+    assert fp1 != state_mod.fingerprint_finding(_cron_finding(), "")
+    assert fp1 != state_mod.fingerprint_finding(_unit_finding("felix-trust-scan.service"), "")
+
+
+def test_unit_finding_name_and_source():
+    finding = _unit_finding("felix-trust-scan.service")
+    assert state_mod._finding_name(finding) == "felix-trust-scan.service"
+    assert state_mod._finding_source(finding) == "unit-drift"
+
+
+def test_reconcile_unit_finding_first_observation_alerts():
+    finding = _unit_finding()
+    to_alert, resolved, new_state = state_mod.reconcile(
+        [(finding, "")], datetime(2026, 1, 1, tzinfo=timezone.utc), {}
+    )
+    assert to_alert == [finding]
+    assert resolved == []
+    fp = state_mod.fingerprint_finding(finding, "")
+    assert new_state[fp]["source"] == "unit-drift"
+    assert new_state[fp]["name"] == "felix-canary.service"
+
+
+def test_reconcile_unit_finding_resolves_when_drift_clears():
+    """A redeployed unit (drift gone → finding absent next tick) produces a
+    unit-drift resolution event and drops from state."""
+    finding = _unit_finding()
+    _, _, state1 = state_mod.reconcile(
+        [(finding, "")], datetime(2026, 1, 1, tzinfo=timezone.utc), {}
+    )
+    to_alert, resolved, state2 = state_mod.reconcile(
+        [], datetime(2026, 1, 2, tzinfo=timezone.utc), state1
+    )
+    assert to_alert == []
+    assert len(resolved) == 1
+    assert resolved[0].source == "unit-drift"
+    assert resolved[0].name == "felix-canary.service"
+    assert state_mod.fingerprint_finding(finding, "") not in state2
 
 
 # --- reconcile: first observation --------------------------------------------

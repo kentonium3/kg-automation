@@ -36,6 +36,7 @@ from scripts.common.alert_bus import emit
 from scripts.common.alert_bus.model import Alert, AlertResult, Severity
 from scripts.trust.assertion_verifier import AssertionFinding
 from scripts.trust.cron_drift_detector import CronDriftFinding
+from scripts.trust.unit_drift_detector import UnitDriftFinding
 
 __all__ = [
     "SOURCE_CRON",
@@ -52,6 +53,7 @@ logger = logging.getLogger(__name__)
 # sub-scan without parsing the title.
 SOURCE_CRON = "felix-trust-scan/cron"
 SOURCE_ASSERTION = "felix-trust-scan/assertion"
+SOURCE_UNIT = "felix-trust-scan/unit-drift"
 
 # Cron finding kind -> (Severity, title template, extra detail keys drawn
 # from the finding). Kept as a single source of truth so the severity
@@ -108,6 +110,24 @@ _ASSERTION_DESCRIPTION: dict[str, str] = {
     "unverifiable_kind": (
         "Agent {agent!r} claimed a completed {artifact_kind} "
         "(id={artifact_id!r}) with no existence check available: {claim}"
+    ),
+}
+
+
+_UNIT_SEVERITY: dict[str, Severity] = {
+    "content_drift": Severity.WARN,
+}
+
+_UNIT_TITLE: dict[str, str] = {
+    "content_drift": "Deployed unit drift: {name}",
+}
+
+_UNIT_DESCRIPTION: dict[str, str] = {
+    "content_drift": (
+        "The deployed systemd-user unit {name!r} differs from its repo "
+        "canonical ({repo_source}). A deploy-side drift like this fails "
+        "silently until the unit's next run (#816 class) — redeploy from "
+        "the repo to reconcile."
     ),
 }
 
@@ -204,6 +224,40 @@ def render_assertion_finding(finding: AssertionFinding) -> Alert:
     )
 
 
+def render_unit_finding(finding: UnitDriftFinding) -> Alert:
+    """Render a :class:`UnitDriftFinding` (#817) into an :class:`Alert`."""
+    kind = finding.kind
+    severity = _UNIT_SEVERITY.get(kind, Severity.WARN)
+    title_template = _UNIT_TITLE.get(kind, "Deployed unit drift: {name}")
+    description_template = _UNIT_DESCRIPTION.get(
+        kind, "Deployed unit {name!r} drifted from its repo canonical ({repo_source})."
+    )
+
+    format_fields = {
+        "kind": kind,
+        "name": finding.name,
+        "repo_source": finding.repo_source,
+    }
+    title = title_template.format(**format_fields)
+    description = description_template.format(**format_fields)
+
+    details = _stringify_details(
+        {
+            "unit": finding.name,
+            "repo_source": finding.repo_source,
+            "detail": finding.detail,
+        }
+    )
+
+    return Alert(
+        source=SOURCE_UNIT,
+        severity=severity,
+        title=title,
+        description=description,
+        details=details,
+    )
+
+
 def render_drift_resolved(
     name: str, first_seen: str, cleared_at: str, *, source: str = "cron"
 ) -> Alert:
@@ -223,6 +277,13 @@ def render_drift_resolved(
             "grounded — the asserted artifact was found as of this scan tick."
         )
         alert_source = SOURCE_ASSERTION
+    elif source == "unit-drift":
+        title = f"Deployed unit drift cleared: {name}"
+        description = (
+            f"The deployed systemd unit {name!r} now matches its repo canonical "
+            "as of this scan tick — the deploy-side drift has been reconciled."
+        )
+        alert_source = SOURCE_UNIT
     else:
         title = f"Cron drift cleared: {name}"
         description = (
@@ -242,7 +303,7 @@ def render_drift_resolved(
 
 
 def emit_finding(
-    finding_or_event: CronDriftFinding | AssertionFinding | Alert,
+    finding_or_event: CronDriftFinding | AssertionFinding | UnitDriftFinding | Alert,
 ) -> AlertResult:
     """Render (if needed) and ``emit()`` a finding/event via the ``#701`` bus.
 
@@ -260,6 +321,8 @@ def emit_finding(
             alert = render_cron_finding(finding_or_event)
         elif isinstance(finding_or_event, AssertionFinding):
             alert = render_assertion_finding(finding_or_event)
+        elif isinstance(finding_or_event, UnitDriftFinding):
+            alert = render_unit_finding(finding_or_event)
         else:
             logger.warning(
                 "alert_render.emit_finding: unrecognized finding type %s; skipping",

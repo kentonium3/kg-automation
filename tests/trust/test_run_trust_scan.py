@@ -62,6 +62,140 @@ def isolated_paths(tmp_path: Path):
     return state_path, watermark_path, assertions_dir
 
 
+# --- unit-drift sub-scan (#817) ----------------------------------------------
+
+
+def _mirror_repo_units_into(deployed: Path, repo_root: Path, *, drift_unit: str | None = None) -> None:
+    """Copy each repo canonical unit into a fake deployed dir byte-identical,
+    optionally appending a line to one unit so it drifts."""
+    from scripts.trust.unit_drift_detector import build_repo_index
+
+    deployed.mkdir(parents=True, exist_ok=True)
+    for unit, path in build_repo_index(repo_root).items():
+        text = path.read_text(encoding="utf-8")
+        if unit == drift_unit:
+            # A FUNCTIONAL directive change (not a comment — comments are
+            # normalized out) so the drift is genuinely detected.
+            text += "Environment=INJECTED_DRIFT=1\n"
+        (deployed / unit).write_text(text, encoding="utf-8")
+
+
+def test_unit_drift_clean_when_deployed_matches_repo(isolated_paths, tmp_path):
+    state_path, watermark_path, assertions_dir = isolated_paths
+    deployed = tmp_path / "deployed"
+    _mirror_repo_units_into(deployed, rts.REPO_ROOT)
+
+    with patch("scripts.trust.run_trust_scan.load_baseline", return_value=BASELINE), patch(
+        "scripts.trust.run_trust_scan.enumerate_live_crons", return_value=[_live_job()]
+    ), patch("scripts.trust.alert_render.emit") as mock_emit:
+        from scripts.common.alert_bus.model import AlertResult
+
+        mock_emit.return_value = AlertResult(ok=True)
+        summary = rts.run_scan(
+            now=T0,
+            state_path=state_path,
+            watermark_path=watermark_path,
+            assertions_base_dir=assertions_dir,
+            unit_deployed_dir=deployed,
+        )
+
+    assert summary["ok"] is True
+    assert summary["unit_drift_findings"] == 0
+    assert summary["unit_coverage"]["compared"] > 0
+
+
+def test_unit_drift_detected_and_alerted(isolated_paths, tmp_path):
+    state_path, watermark_path, assertions_dir = isolated_paths
+    deployed = tmp_path / "deployed"
+    _mirror_repo_units_into(deployed, rts.REPO_ROOT, drift_unit="felix-trust-scan.service")
+
+    with patch("scripts.trust.run_trust_scan.load_baseline", return_value=BASELINE), patch(
+        "scripts.trust.run_trust_scan.enumerate_live_crons", return_value=[_live_job()]
+    ), patch("scripts.trust.alert_render.emit") as mock_emit:
+        from scripts.common.alert_bus.model import Alert, AlertResult
+
+        mock_emit.return_value = AlertResult(ok=True)
+        summary = rts.run_scan(
+            now=T0,
+            state_path=state_path,
+            watermark_path=watermark_path,
+            assertions_base_dir=assertions_dir,
+            unit_deployed_dir=deployed,
+        )
+
+    assert summary["ok"] is True
+    assert summary["unit_drift_findings"] == 1
+    # The unit-drift finding produced an emit tagged with the unit source.
+    emitted_sources = [call.args[0].source for call in mock_emit.call_args_list if isinstance(call.args[0], Alert)]
+    assert any(src == "felix-trust-scan/unit-drift" for src in emitted_sources)
+
+
+def test_unit_drift_failed_emit_stays_due_next_tick(isolated_paths, tmp_path):
+    """#817 H1 regression: a unit-drift alert whose #701 emit fails must remain
+    DUE and re-fire on the next tick, not be suppressed for 24h. This only holds
+    if the emit-retry keep_due fingerprint matches the reconcile fingerprint
+    (both use hash "" for unit findings)."""
+    from scripts.common.alert_bus.model import Alert, AlertResult
+
+    state_path, watermark_path, assertions_dir = isolated_paths
+    deployed = tmp_path / "deployed"
+    _mirror_repo_units_into(deployed, rts.REPO_ROOT, drift_unit="felix-trust-scan.service")
+
+    def emit_fail_unit(alert):
+        if isinstance(alert, Alert) and alert.source == "felix-trust-scan/unit-drift":
+            return AlertResult(ok=False, reason="bus down")
+        return AlertResult(ok=True)
+
+    # Tick 1: the unit-drift emit fails.
+    with patch("scripts.trust.run_trust_scan.load_baseline", return_value=BASELINE), patch(
+        "scripts.trust.run_trust_scan.enumerate_live_crons", return_value=[_live_job()]
+    ), patch("scripts.trust.alert_render.emit", side_effect=emit_fail_unit):
+        s1 = rts.run_scan(
+            now=T0,
+            state_path=state_path,
+            watermark_path=watermark_path,
+            assertions_base_dir=assertions_dir,
+            unit_deployed_dir=deployed,
+        )
+    assert s1["unit_drift_findings"] == 1
+    assert s1["alerts_emitted"] == 0  # the only finding's emit failed
+
+    # Tick 2, one minute later (well within the 24h cadence): emit now succeeds.
+    # With the H1 bug the finding would be suppressed; with the fix it re-fires.
+    with patch("scripts.trust.run_trust_scan.load_baseline", return_value=BASELINE), patch(
+        "scripts.trust.run_trust_scan.enumerate_live_crons", return_value=[_live_job()]
+    ), patch("scripts.trust.alert_render.emit", return_value=AlertResult(ok=True)):
+        s2 = rts.run_scan(
+            now=T0 + timedelta(minutes=1),
+            state_path=state_path,
+            watermark_path=watermark_path,
+            assertions_base_dir=assertions_dir,
+            unit_deployed_dir=deployed,
+        )
+    assert s2["alerts_emitted"] == 1  # re-fired because it stayed due (H1 fixed)
+
+
+def test_unit_scan_skipped_when_deployed_dir_absent(isolated_paths, tmp_path):
+    state_path, watermark_path, assertions_dir = isolated_paths
+    with patch("scripts.trust.run_trust_scan.load_baseline", return_value=BASELINE), patch(
+        "scripts.trust.run_trust_scan.enumerate_live_crons", return_value=[_live_job()]
+    ), patch("scripts.trust.alert_render.emit") as mock_emit:
+        from scripts.common.alert_bus.model import AlertResult
+
+        mock_emit.return_value = AlertResult(ok=True)
+        summary = rts.run_scan(
+            now=T0,
+            state_path=state_path,
+            watermark_path=watermark_path,
+            assertions_base_dir=assertions_dir,
+            unit_deployed_dir=tmp_path / "does-not-exist",
+        )
+
+    assert summary["ok"] is True
+    assert summary["unit_drift_findings"] == 0
+    assert "skipped" in summary["unit_coverage"]
+
+
 # --- basic drift + assertion findings drive emits ----------------------------
 
 
@@ -692,6 +826,8 @@ def test_main_json_flag_prints_summary(isolated_paths, capsys):
         "ok",
         "drift_findings",
         "assertion_findings",
+        "unit_drift_findings",
+        "unit_coverage",
         "alerts_emitted",
         "errors",
     }
