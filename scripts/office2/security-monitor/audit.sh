@@ -9,6 +9,7 @@
 #           known IOCs, listening ports, system systemd enabled services,
 #           SSH authorized_keys, /etc/hosts hash, system crontabs
 #   User:   systemd user-scope enabled units + unit-file/drop-in inventory
+#           + normalized unit-file CONTENTS (#818 — catches body/ExecStart drift)
 #   Felix:  OpenClaw cron-job normalized config, openclaw.json content hash
 #
 # Setup:
@@ -175,6 +176,38 @@ tmp=$(mktemp)
 find "$HOME/.config/systemd/user" \( -type f -o -type l \) -printf '%P %y\n' 2>/dev/null \
     | LC_ALL=C sort > "$tmp"
 check_baseline "systemd-user-dropins.txt" "$tmp"
+rm -f "$tmp"
+
+# 6d. Systemd user-scope unit-file CONTENTS (functional, normalized) (#818)
+# 6b/6c track enabled unit NAMES and the unit-file inventory (paths + type), but
+# NOT the file CONTENTS. A change to ExecStart/Environment/WorkingDirectory INSIDE
+# an existing, still-enabled unit — a stale or tampered unit body (the #816 class,
+# which hid a dead service for ~6 weeks) — is invisible to them. This baseline
+# captures the functional content of each user unit file so a body change trips
+# the daily audit. Normalization mirrors the #817 unit-drift canon (scripts/trust/
+# unit_drift_detector.py): drop full-line comments (a directive line never starts
+# with '#'/';') and blank lines, strip trailing whitespace — so a comment/
+# whitespace-only edit is NOT flagged, but any directive change always is.
+log "Scanning systemd user unit-file contents..."
+tmp=$(mktemp)
+if [ -d "$HOME/.config/systemd/user" ]; then
+    # Deterministic order: regular files only (find does not follow symlinks),
+    # sorted by relative path (LC_ALL=C). .wants/ symlinks are skipped here; a
+    # symlink to an in-dir unit file has that target captured as a file (our
+    # case — deployed units are real files under this dir), while a symlink to a
+    # root-owned system unit (/usr/lib/systemd/user) is not content-baselined —
+    # a bounded gap: 6c still records the symlink's existence, and those targets
+    # live outside the user-writable dir (lower tamper surface).
+    while IFS= read -r rel; do
+        [ -z "$rel" ] && continue
+        printf '=== %s ===\n' "$rel" >> "$tmp"
+        awk 'NF && $1 !~ /^[#;]/ { sub(/[ \t]+$/, ""); print }' \
+            "$HOME/.config/systemd/user/$rel" >> "$tmp"
+    done < <(cd "$HOME/.config/systemd/user" && find . -type f -printf '%P\n' 2>/dev/null | LC_ALL=C sort)
+else
+    echo "no-user-systemd" > "$tmp"
+fi
+check_baseline "systemd-user-unit-contents.txt" "$tmp"
 rm -f "$tmp"
 
 # 7. SSH authorized_keys

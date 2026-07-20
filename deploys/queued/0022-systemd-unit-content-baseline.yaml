@@ -1,0 +1,41 @@
+schema_version: v1
+name: systemd-unit-content-baseline
+issue: kentonium3/kg-automation#818
+tier: 3
+entrypoint: scripts/deploy/deploy-security-monitor-audit.py
+audited_surface: false
+created_at: '2026-07-20T00:00:00Z'
+created_by: feat-818-unit-content-baseline
+apply_mode: manifest
+notes: |
+  Syncs the updated security-monitor audit.sh to its standalone office2 copy
+  (/data/services/security-monitor/scripts/audit.sh) for kentonium3/kg-automation#818.
+
+  #818 adds section 6d to audit.sh: a `systemd-user-unit-contents.txt` baseline
+  that captures the functional (comment/whitespace-normalized) CONTENT of each
+  ~/.config/systemd/user unit file. The existing 6b/6c baselines track enabled
+  unit NAMES and the file inventory (paths + type) but NOT the file contents, so
+  a change to ExecStart/Environment INSIDE an existing enabled unit — the #816
+  class that hid a dead service ~6 weeks — was invisible to the daily audit.
+
+  Additive and self-healing: the new baseline AUTO-CREATES on the first audit run
+  after deploy (check_baseline creates a missing baseline with no alert); the 14
+  existing baselines are unchanged. audit.sh is not itself a hashed audited
+  surface, so no rebaseline of existing baselines is required. The paired repo
+  change bumps expected_baseline_count 14 -> 15 in audited-surfaces.json so the
+  felix-deployer rebaseline count-check (rebaseline.py) stays consistent once the
+  15th baseline exists.
+
+  Tier 3 (a file copy into a claude-owned dir - no sudo, no Tier 0/1/2 action).
+  audited_surface: false - audit.sh (scripts/office2/security-monitor/*.sh) does
+  not match any audited-surfaces.json pattern (systemd-user-units covers
+  scripts/office2/*.service and scripts/office2/deploy/*.sh, not security-monitor/
+  audit.sh); the only audited-path match in this commit is this manifest itself
+  (deploy-pipeline surface, affected_baselines []).
+
+  deploy-security-monitor-audit.py is the canonical audit.sh syncer (generic
+  copy+verify), superseding the mission-named deploy-openclaw-bin-seam.py (#811)
+  for future audit.sh syncs.
+
+  Rebaseline: not required - no hashed baseline drifts; the 15th baseline
+  auto-creates on the next audit run.

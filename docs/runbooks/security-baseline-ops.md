@@ -41,10 +41,23 @@ This runbook is the canonical procedure. Service-specific runbooks
 | Docker images | `docker-images.txt` |
 | Listening ports | `listening-ports.txt` |
 | Enabled systemd services (system + user) | `enabled-services.txt`, `systemd-user-units.txt`, `systemd-user-dropins.txt` |
+| Systemd user unit-file **contents** (functional, normalized — #818) | `systemd-user-unit-contents.txt` |
 | SSH `authorized_keys` | `ssh-keys.txt` |
 | `/etc/hosts` (hash) | `hosts-hash.txt` |
 | Crontabs | `crontabs.txt` |
 | OpenClaw cron + config | `openclaw-cron.txt`, `openclaw-config.txt` |
+
+> **Names vs contents (#818).** `systemd-user-units.txt` tracks enabled unit
+> *names* and `systemd-user-dropins.txt` the file *inventory* (paths + type), but
+> neither hashes a unit file's *contents* — so a change to `ExecStart` /
+> `Environment` *inside* an existing enabled unit (a stale or tampered body, the
+> #816 class) was invisible. `systemd-user-unit-contents.txt` closes that gap by
+> baselining each unit file's functional content (comments + blank lines +
+> trailing whitespace normalized out, mirroring the #817 unit-drift canon), so a
+> directive change trips the daily audit. It **auto-creates** on the first run
+> after deploy — no manual reset — and complements the #817 deployed-vs-repo
+> canary (that compares to the repo; this compares to the last approved baseline,
+> so it also covers tamper and non-repo-managed units).
 
 ## Automatic rebaseline (felix-deployer)
 
