@@ -42,8 +42,8 @@ CLI flags
 - ``--heartbeat-md PATH``     operator's contract file.
 - ``--last-decision PATH``    atomic-write target for tick decision.
 - ``--ledger PATH``           append-only JSONL ledger.
-- ``--openclaw-binary PATH``  override hook for tests; production uses
-  ``openclaw`` on PATH.
+- ``--openclaw-binary PATH``  override hook for tests; production resolves the
+  path via the seam (scripts/common/openclaw_bin.py).
 - ``--dry-run``               skip the escalator; print SUMMARY only.
   The ledger is NOT written when ``--dry-run`` is set, so dry-run
   never pollutes the production decision file.
@@ -146,7 +146,7 @@ def run_tick(
     heartbeat_md_path: Path,
     last_decision_path: Path,
     ledger_path: Path,
-    openclaw_binary: str = "openclaw",
+    openclaw_binary: Optional[str] = None,
     dry_run: bool = False,
     now: Optional[datetime] = None,
     escalator_fn: Optional[Any] = None,
@@ -363,8 +363,12 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--openclaw-binary",
-        default="openclaw",
-        help="openclaw CLI binary name or path (default: openclaw on PATH)",
+        default=None,
+        help=(
+            "openclaw CLI binary name or path (default: resolved by the seam "
+            "scripts/common/openclaw_bin.py to the absolute install; "
+            "felix-heartbeat-gate.service has no PATH)"
+        ),
     )
     parser.add_argument(
         "--dry-run",
@@ -434,7 +438,7 @@ def _emergency_fallback_write(
     last_decision_path: Path,
     ledger_path: Path,
     error_text: str,
-    openclaw_binary: str,
+    openclaw_binary: Optional[str],
     dry_run: bool,
 ) -> None:
     """Write a minimal fallback ledger entry after an unhandled exception.

@@ -32,7 +32,13 @@ def test_escalate_success_returns_event_id(
     _patch_which(monkeypatch, present=True)
 
     def fake_run(cmd, **kwargs):  # type: ignore[no-untyped-def]
-        assert cmd[0:5] == ["openclaw", "system", "event", "--mode", "now"]
+        # H3 (#811): with NO explicit binary, argv[0] must be the seam-resolved
+        # absolute path — never bare "openclaw" (which fails PATH-lessly under
+        # felix-heartbeat-gate.service). The guard cannot catch this
+        # param-default pattern, so this assertion is the regression fence.
+        assert cmd[0] == _escalator.openclaw_bin()
+        assert cmd[0] == "/home/claude/.local/bin/openclaw"
+        assert cmd[1:5] == ["system", "event", "--mode", "now"]
         assert "--json" in cmd
         assert "--text" in cmd
         return subprocess.CompletedProcess(
@@ -119,7 +125,7 @@ def test_escalate_binary_not_on_path(
     _patch_which(monkeypatch, present=False)
     result = escalate("reason")
     assert result.escalated_event_id is None
-    assert result.error and "not found on PATH" in result.error
+    assert result.error and "not found" in result.error
 
 
 def test_escalate_subprocess_nonzero_exit(

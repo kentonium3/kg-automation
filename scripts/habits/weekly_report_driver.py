@@ -26,8 +26,8 @@ Behavior (contract steps)
 3. Compose ``"<attribution>\\n\\n" + report_body``. The report portion is
    byte-identical to the helper's output (FR-005).
 4. Deliver via ``openclaw message send --channel whatsapp --target <E.164>
-   --message <message> --json`` (absolute ``/home/claude/.local/bin/openclaw`` — systemd
-   units have no ``PATH``).
+   --message <message> --json`` (binary path from the seam
+   ``scripts/common/openclaw_bin.py`` — systemd units have no ``PATH``).
 5. Confirm delivery: ``delivery_confirmed=True`` **only** when the C1
    predicate holds (exit 0 AND a non-empty ``messageId`` AND
    ``dryRun == False``). Otherwise write a ``failure`` tick and return
@@ -75,6 +75,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Callable, Optional
 
+from scripts.common.openclaw_bin import openclaw_bin
 from scripts.habits import query_active_habits_weekly as weekly_helper
 
 # --------------------------------------------------------------------------- #
@@ -103,9 +104,9 @@ SELF_TEST_TICK_PATH = DEFAULT_TICK_PATH.with_name(
     "self-test-" + DEFAULT_TICK_PATH.name
 )
 
-#: Absolute path — systemd units have no ``PATH`` (recurring deploy gotcha;
-#: see the canary probes' ``openclaw cron list`` invocation for precedent).
-OPENCLAW_BIN = "/home/claude/.local/bin/openclaw"
+#: Resolved by the seam (scripts/common/openclaw_bin.py) — systemd units have no
+#: ``PATH`` (recurring deploy gotcha), so the absolute path is required (#811).
+OPENCLAW_BIN = openclaw_bin()
 
 
 # --------------------------------------------------------------------------- #
@@ -207,7 +208,7 @@ def send_message(
 ) -> SendResult:
     """Deliver ``message`` via ``openclaw message send --json`` (production effect).
 
-    Uses the absolute ``/home/claude/.local/bin/openclaw`` (systemd units have no ``PATH``).
+    Uses the seam-resolved openclaw path (systemd units have no ``PATH``).
     ``dry_run`` appends ``--dry-run`` so ``--self-test`` never sends a real
     message while still exercising the full CLI round-trip.
     """

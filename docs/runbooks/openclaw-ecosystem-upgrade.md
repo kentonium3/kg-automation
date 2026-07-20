@@ -88,6 +88,14 @@ must be handed to Kent per the change-control hard lock.
 > claude-space `dist/index.js` by absolute path. (Bare `openclaw` works only in a
 > **login** shell, whose `.profile` puts `~/.local/bin` first — do not rely on that
 > for scripted/systemd/cron callers; those must use the absolute path.)
+>
+> **In code**, scripted callers resolve the binary through the seam
+> [`scripts/common/openclaw_bin.py`](../../scripts/common/openclaw_bin.py)
+> (`openclaw_bin()` / the `${OPENCLAW_BIN:=…}` shell convention), not a hardcoded
+> literal (#811) — that is the single place to change on the next relocation. The
+> interactive `ssh office2-claude '/home/claude/.local/bin/openclaw …'` commands
+> below are one-off operator commands (no seam import available over ssh), so they
+> use the absolute path directly.
 
 1. **Snapshot precondition (Tier 2).** Confirm a Restic backup within 24h exists
    (see [`security-baseline-ops.md`](<./security-baseline-ops.md>) /

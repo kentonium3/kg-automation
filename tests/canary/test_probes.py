@@ -607,7 +607,7 @@ def _cron_list(*jobs):
 def _cron_hc(crons, **overrides):
     hc = {
         "method": "openclaw-cron-state",
-        "endpoint": "/usr/bin/openclaw cron list --json",
+        "endpoint": "/home/claude/.local/bin/openclaw cron list --json",
         "crons": crons,
         "timeout_seconds": 30,
         "grace_seconds": 900,
@@ -790,7 +790,7 @@ def test_openclaw_cron_no_jobs_key_is_unevaluable():
 
 def test_openclaw_cron_no_crons_configured_is_unevaluable():
     hc = {"method": "openclaw-cron-state",
-          "endpoint": "/usr/bin/openclaw cron list --json"}
+          "endpoint": "/home/claude/.local/bin/openclaw cron list --json"}
     result = run_probe(hc, NOW, http_get=_boom, run_cmd=_boom, read_state=_boom)
     assert not result.evaluable and "no crons" in result.evidence
 

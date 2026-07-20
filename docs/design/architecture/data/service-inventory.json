@@ -844,7 +844,7 @@
         "timeout_seconds": 30,
         "grace_seconds": 900,
         "expected": "each listed OpenClaw cron enabled, lastRunStatus=ok, and fired by its nextRunAtMs (schedule-aware freshness)",
-        "note": "Probed via `openclaw cron list --json`: per-cron enabled + last-run status + schedule-aware freshness (nextRunAtMs). Replaces method:none (#722)."
+        "note": "Probed via `openclaw cron list --json`: per-cron enabled + last-run status + schedule-aware freshness (nextRunAtMs). Replaces method:none (#722). The `endpoint` carries the absolute openclaw path directly — a documented exception to the #811 binary-path seam: the canary systemd unit has no OPENCLAW_BIN/PATH and JSON data cannot import the seam; on a relocation these 3 endpoint strings change alongside the seam default."
       },
       "config_files": [
         {
@@ -951,7 +951,7 @@
         "timeout_seconds": 30,
         "grace_seconds": 900,
         "expected": "the listed OpenClaw cron enabled, lastRunStatus=ok, and fired by its nextRunAtMs (schedule-aware freshness for the daily morning check-in)",
-        "note": "Probed via `openclaw cron list --json`: per-cron enabled + last-run status + schedule-aware freshness (nextRunAtMs). Replaces method:none (#722). The habits-weekly-report cron was retired and removed from this list by #723 — its freshness is now tracked under the felix-habits-weekly service entry (tick-signal-file method)."
+        "note": "Probed via `openclaw cron list --json`: per-cron enabled + last-run status + schedule-aware freshness (nextRunAtMs). Replaces method:none (#722). The habits-weekly-report cron was retired and removed from this list by #723 — its freshness is now tracked under the felix-habits-weekly service entry (tick-signal-file method). The `endpoint` carries the absolute openclaw path directly — a documented exception to the #811 binary-path seam (canary unit has no OPENCLAW_BIN/PATH; JSON data cannot import the seam)."
       },
       "config_files": [
         {
@@ -1317,7 +1317,7 @@
         "timeout_seconds": 30,
         "grace_seconds": 900,
         "expected": "the OpenClaw cron enabled, lastRunStatus=ok, and fired by its nextRunAtMs (schedule-aware freshness)",
-        "note": "Probed via `openclaw cron list --json`: per-cron enabled + last-run status + schedule-aware freshness (nextRunAtMs). Replaces method:none (#722)."
+        "note": "Probed via `openclaw cron list --json`: per-cron enabled + last-run status + schedule-aware freshness (nextRunAtMs). Replaces method:none (#722). The `endpoint` carries the absolute openclaw path directly — a documented exception to the #811 binary-path seam: the canary systemd unit has no OPENCLAW_BIN/PATH and JSON data cannot import the seam; on a relocation these 3 endpoint strings change alongside the seam default."
       },
       "config_files": [
         {

@@ -1,0 +1,40 @@
+schema_version: v1
+name: openclaw-bin-seam
+issue: kentonium3/kg-automation#811
+tier: 3
+entrypoint: scripts/deploy/deploy-openclaw-bin-seam.py
+audited_surface: false
+created_at: '2026-07-19T00:00:00Z'
+created_by: fix-811-openclaw-bin-seam
+apply_mode: manifest
+notes: |
+  Syncs the seam-migrated security-monitor audit.sh to its standalone office2
+  copy (kentonium3/kg-automation#811). The #811 OpenClaw binary-path resolution
+  seam (scripts/common/openclaw_bin.py) migration is otherwise
+  checkout-resident: the 4 systemd Python services (felix-trust-scan,
+  credential-health-check, agent-skill-sync, felix-habits-weekly) and the deploy
+  helpers run `python3 -m scripts.*` from WorkingDirectory=/home/claude/
+  kg-automation (the felix-deployer origin/main checkout), so the new seam module
+  + migrated callers go live on the next pull with no deploy action.
+
+  The one exception is scripts/office2/security-monitor/audit.sh, which runs from
+  a standalone copy at /data/services/security-monitor/scripts/audit.sh that a
+  git pull does not refresh. The entrypoint (deploy-openclaw-bin-seam.py
+  --dry-run / --apply) copies the checkout's audit.sh to that path and verifies
+  it is byte-identical. It mirrors the #653 precedent (commit c163c3be) that last
+  updated this file, but records the copy through the manifest pipeline rather
+  than by hand.
+
+  Tier 3 (a file copy into a claude-owned dir — no sudo, no Tier 0/1/2 action).
+
+  audited_surface: false — the deployed change touches NO hashed audited surface.
+  audit.sh (scripts/office2/security-monitor/*.sh) does not match any
+  audited-surfaces.json pattern (systemd-user-units covers scripts/office2/*.service
+  and scripts/office2/deploy/*.sh, not security-monitor/audit.sh); the change is
+  path-resolution only, so `openclaw cron list` output — and the openclaw-cron.txt
+  baseline — is unchanged. The only audited-path match in this commit is this
+  manifest itself (deploy-pipeline surface, whose affected_baselines is []).
+
+  Rebaseline: not required — no hashed baseline drifts (see above); the merge
+  commit records the equivalent `Rebaseline: not required` line for the #557 CI
+  soft-reminder that fires on the deploys/queued/*.yaml path match.
