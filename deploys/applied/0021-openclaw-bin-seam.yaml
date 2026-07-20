@@ -1,0 +1,34 @@
+schema_version: v1
+name: openclaw-bin-seam
+issue: kentonium3/kg-automation#811
+tier: 3
+entrypoint: scripts/deploy/deploy-openclaw-bin-seam.py
+audited_surface: false
+created_at: '2026-07-19T00:00:00Z'
+created_by: fix-811-openclaw-bin-seam
+apply_mode: manifest
+notes: "Syncs the seam-migrated security-monitor audit.sh to its standalone office2\n\
+  copy (kentonium3/kg-automation#811). The #811 OpenClaw binary-path resolution\n\
+  seam (scripts/common/openclaw_bin.py) migration is otherwise\ncheckout-resident:\
+  \ the 4 systemd Python services (felix-trust-scan,\ncredential-health-check, agent-skill-sync,\
+  \ felix-habits-weekly) and the deploy\nhelpers run `python3 -m scripts.*` from WorkingDirectory=/home/claude/\n\
+  kg-automation (the felix-deployer origin/main checkout), so the new seam module\n\
+  + migrated callers go live on the next pull with no deploy action.\n\nThe one exception\
+  \ is scripts/office2/security-monitor/audit.sh, which runs from\na standalone copy\
+  \ at /data/services/security-monitor/scripts/audit.sh that a\ngit pull does not\
+  \ refresh. The entrypoint (deploy-openclaw-bin-seam.py\n--dry-run / --apply) copies\
+  \ the checkout's audit.sh to that path and verifies\nit is byte-identical. It mirrors\
+  \ the #653 precedent (commit c163c3be) that last\nupdated this file, but records\
+  \ the copy through the manifest pipeline rather\nthan by hand.\n\nTier 3 (a file\
+  \ copy into a claude-owned dir \u2014 no sudo, no Tier 0/1/2 action).\n\naudited_surface:\
+  \ false \u2014 the deployed change touches NO hashed audited surface.\naudit.sh\
+  \ (scripts/office2/security-monitor/*.sh) does not match any\naudited-surfaces.json\
+  \ pattern (systemd-user-units covers scripts/office2/*.service\nand scripts/office2/deploy/*.sh,\
+  \ not security-monitor/audit.sh); the change is\npath-resolution only, so `openclaw\
+  \ cron list` output \u2014 and the openclaw-cron.txt\nbaseline \u2014 is unchanged.\
+  \ The only audited-path match in this commit is this\nmanifest itself (deploy-pipeline\
+  \ surface, whose affected_baselines is []).\n\nRebaseline: not required \u2014 no\
+  \ hashed baseline drifts (see above); the merge\ncommit records the equivalent `Rebaseline:\
+  \ not required` line for the #557 CI\nsoft-reminder that fires on the deploys/queued/*.yaml\
+  \ path match.\n"
+applied_at: '2026-07-20T02:43:56Z'
