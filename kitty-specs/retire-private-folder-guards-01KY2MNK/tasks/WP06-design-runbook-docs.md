@@ -12,7 +12,7 @@ subtasks:
 - T020
 - T021
 - T022
-agent: claude
+agent: "claude:sonnet:implementer:implementer"
 history: []
 agent_profile: curator-carla
 authoritative_surface: docs/design/architecture/
@@ -34,6 +34,8 @@ owned_files:
 - docs/runbooks/tasker-ops.md
 role: implementer
 tags: []
+shell_pid: "22263"
+shell_pid_created_at: "1784651109.595756"
 ---
 
 ## ⚡ Do This First: Load Agent Profile
@@ -73,3 +75,7 @@ Authoritative detail: `data-model.md` IC-05 rows; FR-005; SC-001.
 - `service-inventory.json` is a blocking arch-data gate — keep it valid.
 - Reviewer: confirm no doc now *describes removed behavior as still present* (e.g. an inbox-routing
   step claiming classify_content refuses `_private`, which WP03 deleted).
+
+## Activity Log
+
+- 2026-07-21T16:26:56Z – claude:sonnet:implementer:implementer – shell_pid=22263 – Assigned agent via action command
