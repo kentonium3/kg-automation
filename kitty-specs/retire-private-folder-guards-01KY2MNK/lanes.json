@@ -1,0 +1,166 @@
+{
+  "version": 1,
+  "mission_slug": "retire-private-folder-guards-01KY2MNK",
+  "mission_id": "01KY2MNKPQ3PQ0BDTVA4S8H218",
+  "mission_branch": "kitty/mission-retire-private-folder-guards-01KY2MNK",
+  "target_branch": "feat/retire-private-folder-guards",
+  "lanes": [
+    {
+      "lane_id": "lane-a",
+      "wp_ids": [
+        "WP01"
+      ],
+      "write_scope": [
+        ".agents/autopilot/adapters/kg-automation.md",
+        ".githooks/pre-commit",
+        ".github/workflows/docs-ci.yml",
+        "Makefile",
+        "docs/runbooks/local-test-gate.md",
+        "tooling/scripts/validate_privacy_boundary.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "legacy-cleanup"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    },
+    {
+      "lane_id": "lane-b",
+      "wp_ids": [
+        "WP02"
+      ],
+      "write_scope": [
+        "docs/design/openclaw-workspace-authoring-standard.md",
+        "scripts/openclaw/agents/tests/test_validate_workspace.py",
+        "scripts/openclaw/agents/validate_workspace.py",
+        "tests/openclaw/test_privacy_pointer.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "legacy-cleanup",
+        "workspace"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    },
+    {
+      "lane_id": "lane-c",
+      "wp_ids": [
+        "WP03"
+      ],
+      "write_scope": [
+        "scripts/escalation/hard_fail.py",
+        "scripts/inbox/README.md",
+        "scripts/inbox/classify_content.py",
+        "scripts/inbox/mark_processed.py",
+        "scripts/inbox/prescan.py",
+        "scripts/inbox/route_and_finalize.py",
+        "scripts/office2/gitignore-additions.txt",
+        "scripts/vault/README.md",
+        "tests/escalation/test_hard_fail.py",
+        "tests/inbox/test_classify_content.py",
+        "tests/inbox/test_mark_processed.py",
+        "tests/scripts/inbox/test_prescan.py"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "legacy-cleanup",
+        "tracker-integration"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    },
+    {
+      "lane_id": "lane-e",
+      "wp_ids": [
+        "WP05"
+      ],
+      "write_scope": [
+        "CLAUDE.md",
+        "CODEX.md",
+        "ai-agents/claude-code-instructions.md",
+        "ai-agents/claude-instructions.md",
+        "ai-agents/gemini-instructions.md",
+        "docs/constitution/FELIX-CONSTITUTION.md"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "legacy-cleanup",
+        "tracker-integration"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    },
+    {
+      "lane_id": "lane-f",
+      "wp_ids": [
+        "WP06"
+      ],
+      "write_scope": [
+        "docs/design/architecture/data/service-inventory.json",
+        "docs/design/architecture/glossary.md",
+        "docs/design/architecture/security-posture.md",
+        "docs/design/architecture/service-inventory.md",
+        "docs/design/coherence/doctrine.md",
+        "docs/design/felix-capability-roadmap.md",
+        "docs/design/process-flows/inbox-routing.md",
+        "docs/design/process-flows/journal.md",
+        "docs/runbooks/escalation-ops.md",
+        "docs/runbooks/habits-ops.md",
+        "docs/runbooks/inbox-ops.md",
+        "docs/runbooks/openclaw-agent-setup.md",
+        "docs/runbooks/tasker-ops.md"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "legacy-cleanup"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    },
+    {
+      "lane_id": "lane-g",
+      "wp_ids": [
+        "WP07"
+      ],
+      "write_scope": [
+        "docs/design/executive-assistant-architecture.md",
+        "docs/design/second-brain-graph-layer.md"
+      ],
+      "predicted_surfaces": [
+        "api"
+      ],
+      "depends_on_lanes": [],
+      "parallel_group": 0
+    },
+    {
+      "lane_id": "lane-d",
+      "wp_ids": [
+        "WP04"
+      ],
+      "write_scope": [
+        "scripts/openclaw/agents/felix-admin-calendar/**",
+        "scripts/openclaw/agents/felix-admin-capture/**",
+        "scripts/openclaw/agents/felix-admin-escalation/**",
+        "scripts/openclaw/agents/felix-admin-habits/**",
+        "scripts/openclaw/agents/felix-admin-tasker/**",
+        "scripts/openclaw/agents/felix-doc-auditor/**",
+        "scripts/openclaw/agents/main/**"
+      ],
+      "predicted_surfaces": [
+        "api",
+        "legacy-cleanup",
+        "tracker-integration",
+        "workspace"
+      ],
+      "depends_on_lanes": [
+        "lane-b"
+      ],
+      "parallel_group": 1
+    }
+  ],
+  "computed_at": "2026-07-21T16:21:39.082629+00:00",
+  "computed_from": "dependency_graph+ownership",
+  "planning_artifact_wps": []
+}
