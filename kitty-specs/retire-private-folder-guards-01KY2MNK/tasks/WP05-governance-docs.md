@@ -12,7 +12,7 @@ subtasks:
 - T017
 - T018
 - T019
-agent: claude
+agent: "claude:sonnet:implementer:implementer"
 history: []
 agent_profile: curator-carla
 authoritative_surface: ai-agents/
@@ -27,6 +27,8 @@ owned_files:
 - docs/constitution/FELIX-CONSTITUTION.md
 role: implementer
 tags: []
+shell_pid: "22263"
+shell_pid_created_at: "1784651109.595756"
 ---
 
 ## ⚡ Do This First: Load Agent Profile
@@ -66,3 +68,7 @@ second-brain-repo boundary. Authoritative detail: `data-model.md` IC-04 rows; FR
 - Over-removal that deletes the still-valid repo boundary is the main risk (charter: Two
   Constitutions — Don't Conflate). Reviewer: confirm the repo boundary survives in CLAUDE.md + the
   constitution, and only the folder rule is gone.
+
+## Activity Log
+
+- 2026-07-21T16:26:29Z – claude:sonnet:implementer:implementer – shell_pid=22263 – Assigned agent via action command
