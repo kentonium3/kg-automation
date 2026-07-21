@@ -4,9 +4,9 @@ doc_type: runbook
 audience: agents_and_humans
 status: approved
 created: 2026-05-28
-last_validated: 2026-07-05
-last_updated: '2026-07-05'
-version: v1.4
+last_validated: 2026-07-21
+last_updated: '2026-07-21'
+version: v1.5
 owners: [kgale]
 ---
 
@@ -41,6 +41,7 @@ fields the maintainer benefits from.
 |---|---|---|
 | **Internal issue template** | `.github/ISSUE_TEMPLATE/spec-kitty-bug.md` | Used as the body of new kg-automation issues |
 | **External paste template** | `docs/diagnostics/spec-kitty-bug-report-external-template.md` | Reference for the slim upstream-body shape — embed it directly in the internal issue, no separate paste file |
+| **Upstream comment template** | `docs/diagnostics/spec-kitty-upstream-comment-template.md` | Shape for a comment on an *existing* upstream issue (recurrence/persistence, supplying a missing build ID, evidence, or responding to a maintainer). Draft in the internal issue, operator-approve, then post. |
 | ~~Per-report paste buffer~~ | ~~`docs/diagnostics/{issue#-or-slug}-external.md`~~ | **DEPRECATED 2026-06-08 (v1.3)** — embed the upstream draft directly in the internal issue body instead. See v1.3 change note below. |
 | **Historical archive** | `docs/archive/spec-kitty-feedback/` | Reports for fixed/closed upstream issues |
 
@@ -110,6 +111,18 @@ once for reference in the internal issue, but the short form is the identifier e
                         upstream-released and close the kg-automation issue.
 ```
 
+### v1.5 change note (2026-07-21)
+
+Added a third template — the **upstream comment template**
+(`docs/diagnostics/spec-kitty-upstream-comment-template.md`) — for commenting on an *existing*
+upstream issue (recurrence/persistence, supplying a missing build ID, evidence, or responding
+to a maintainer), a peer of the internal and external report templates. Prompted by upstream
+maintainer feedback that a comment of ours cited a bare `3.2.6` (an in-development version
+string that doesn't pin the build) and that some earlier comments gave no build ID at all. The
+template makes the 9-char build SHA and the recurrence-vs-persistence framing mandatory for any
+comment that makes or renews a defect claim, and carries the same operator pre-posting approval
+gate as an upstream filing. See "Upstream comment template" under **The templates**.
+
 ### v1.4 change note (2026-07-05)
 
 Two changes: (1) **Embed the upstream draft at issue creation** (step 2), not as a
@@ -167,7 +180,7 @@ Before promoting an internal issue to upstream-ready:
 - `upstream-filed` — applied at lifecycle step 6 (FILE UPSTREAM → CROSS-LINK) once we have an upstream issue number. The issue body should also carry an `Upstream: <repo>#<n>` line. The label is the at-a-glance signal in queue views; the body link is the navigable cross-reference.
 - Priority labels (`P1-bug`, `P2-bug`, etc.) — applied based on operational impact
 
-## The two templates
+## The templates
 
 ### Internal template (`.github/ISSUE_TEMPLATE/spec-kitty-bug.md`)
 
@@ -218,6 +231,29 @@ Field rules:
 - **Local tracking** — direct link back to the kentonium3/kg-automation tracking issue, so upstream maintainers can navigate to our internal context if useful.
 
 Rationale: bug reports filed in upstream trackers carry an implicit author voice. The structured 3-line form (v1.2, 2026-06-07) replaces the prior single-line attribution because Kent wanted the human-in-the-loop approval declaration to be unmistakably explicit — separating authoring (collaborative) from submission approval (Kent-only) makes accountability clear and prevents any reading of the report as unattended-agent output. The local-tracking link gives maintainers a one-click path back to our internal queue without requiring a separate "ours: #NNN" cross-reference in the body proper.
+
+### Upstream comment template (`docs/diagnostics/spec-kitty-upstream-comment-template.md`)
+
+For **commenting on an existing upstream issue** rather than filing a new one — confirming a
+bug still reproduces, supplying a build identifier the original report lacked, adding fresh
+evidence, or responding to a maintainer's request for next steps. Same slim external
+discipline as the report template (no internal refs, no priority/status, no Suggested Fix, same
+attribution + approval footer), plus two comment-specific requirements:
+
+- **Pin the build, always.** Never reference a bare version number. Per the Build-ID convention
+  above, `X.Y.Z` (e.g. `3.2.6`) is an in-development string when built from `main` and does not
+  identify the build — carry the 9-char commit SHA. State explicitly whether the comment
+  confirms **recurrence on the same build** or **persistence on a newer build**. (This template
+  was added 2026-07-21 after an upstream maintainer flagged a comment of ours that cited a bare
+  `3.2.6`; some earlier comments failed to provide any build ID.)
+- **Reproduce against current `main`** and, when the comment answers a maintainer request,
+  acknowledge the issue's own *Suggested direction* and any referenced directive (e.g.
+  `DIRECTIVE_041`) — e.g. a red-first failing-test PR — and link the PR once opened. Do not
+  propose a fix to their internals.
+
+Same posting gate as a new upstream filing: it is copy leaving kg-automation, so the operator
+approves the **exact comment text** before it is posted (see the pre-posting approval note in
+the template). Draft it in the internal tracking issue, show Kent, then post.
 
 ## Pre-filing approval checklist (operator-facing)
 

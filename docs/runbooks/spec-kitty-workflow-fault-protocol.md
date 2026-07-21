@@ -71,7 +71,10 @@ pinned to a build.
 Search for an existing report — ours **or** someone else's.
 - **Exists** → add a comment confirming **recurrence on the same build** or
   **persistence on a newer build** (compare the build it was reported against to
-  ours). **If the upstream issue is CLOSED**, `@mention` **that program/repo's
+  ours), using the **upstream comment template**
+  (`docs/diagnostics/spec-kitty-upstream-comment-template.md`) — it mandates the
+  9-char build SHA (never a bare version) and the recurrence-vs-persistence
+  framing. **If the upstream issue is CLOSED**, `@mention` **that program/repo's
   current maintainer** as a safety check / reopen request — **do NOT hardcode a
   name**: ownership is per-program and evolving (spec-kitty-CLI, spec-kitty-SaaS,
   spec-kitty-analyzer + spec-kitty-telescope [Kent], and Vikunja are separately
