@@ -72,3 +72,4 @@ out of scope** (the pipeline is not built yet; #696 implements the check).
 - 2026-07-21T16:29:28Z – claude:sonnet:architect-alphonso:implementer – shell_pid=24119 – Started implementation via action command
 - 2026-07-21T16:36:46Z – claude:sonnet:architect-alphonso:implementer – shell_pid=24119 – WP07 implemented in lane (commit c2a68e55); graph-ingest model reframed to verify-not-present; validate_docs OK. From primary per #710.
 - 2026-07-21T16:38:30Z – claude:sonnet:reviewer-renata:reviewer – shell_pid=38015 – Started review via action command
+- 2026-07-21T16:39:14Z – user – shell_pid=38015 – Review passed: #692/#696 graph-ingest model reframed to verify-not-present physical exclusion in both design docs; #696 forward-consistent; validate_docs OK. FR-006 met.

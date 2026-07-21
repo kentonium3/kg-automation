@@ -81,3 +81,4 @@ path must be physical `/home/kgale/...`). Both exist only to police the `_privat
 - 2026-07-21T16:25:44Z – claude:sonnet:implementer:implementer – shell_pid=22263 – Assigned agent via action command
 - 2026-07-21T16:33:50Z – claude:sonnet:implementer:implementer – shell_pid=22263 – WP02 implemented in lane (commit a31c4e96); Inv A+D+constants removed, B/C intact, 78 tests pass. Transition from primary per #710.
 - 2026-07-21T16:37:49Z – claude:sonnet:reviewer-renata:reviewer – shell_pid=38015 – Started review via action command
+- 2026-07-21T16:38:52Z – user – shell_pid=38015 – Review passed: Inv A+D + constants removed cleanly, Inv B/C (output-discipline, runtime-env) intact, 78 tests pass, no other consumers of removed constants. FR-002 met.

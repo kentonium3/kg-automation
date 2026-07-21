@@ -74,3 +74,4 @@ second-brain-repo boundary. Authoritative detail: `data-model.md` IC-04 rows; FR
 - 2026-07-21T16:26:29Z – claude:sonnet:implementer:implementer – shell_pid=22263 – Assigned agent via action command
 - 2026-07-21T16:33:30Z – claude:sonnet:implementer:implementer – shell_pid=22263 – WP05 implemented in lane (commit 880c7308); absolute rule removed, repo boundary preserved, _private scrubbed. Transition from primary per #710.
 - 2026-07-21T16:38:09Z – claude:sonnet:reviewer-renata:reviewer – shell_pid=38015 – Started review via action command
+- 2026-07-21T16:39:03Z – user – shell_pid=38015 – Review passed: _private absolute rule removed from CLAUDE.md/CODEX.md/ai-agents/constitution; general repo boundary preserved (verified); physical-exclusion note added. FR-004 met.

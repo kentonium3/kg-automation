@@ -89,3 +89,4 @@ merge the lane.
 - 2026-07-21T16:25:22Z – claude:sonnet:implementer:implementer – shell_pid=22263 – Assigned agent via action command
 - 2026-07-21T16:32:24Z – claude:sonnet:implementer:implementer – shell_pid=22263 – WP01 implemented in lane (commit 10dbb447); validator+wiring removed, grep clean. Transition from primary per #710.
 - 2026-07-21T16:35:04Z – claude:sonnet:reviewer-renata:reviewer – shell_pid=36550 – Started review via action command
+- 2026-07-21T16:36:58Z – user – shell_pid=36550 – Review passed: validator + all 5 wiring points cleanly removed (243-line delete, grep-clean, no scope creep). FR-001 DoD met.

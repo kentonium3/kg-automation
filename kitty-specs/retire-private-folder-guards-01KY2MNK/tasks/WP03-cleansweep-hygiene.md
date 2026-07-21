@@ -97,3 +97,4 @@ findings are folded into the guidance below. Preserve behavior everywhere except
 ## Activity Log
 
 - 2026-07-21T16:26:06Z – claude:sonnet:implementer:implementer – shell_pid=22263 – Assigned agent via action command
+- 2026-07-21T16:39:52Z – claude:sonnet:implementer:implementer – shell_pid=22263 – WP03 in lane (d742a032); clean-sweep done, MED-1 guardrails verified (inbox-root allowed + vault redaction retained), 148/755 tests pass. From primary per #710.

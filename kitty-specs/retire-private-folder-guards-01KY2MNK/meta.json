@@ -10,5 +10,7 @@
   "purpose_tldr": "Retire the obsolete in-repo guards for the _private folder (now a laptop/phone-only vault office2 never syncs), keeping and generalizing the still-valuable vault-path hygiene.",
   "slug": "retire-private-folder-guards-01KY2MNK",
   "target_branch": "feat/retire-private-folder-guards",
-  "topology": "single_branch"
+  "topology": "single_branch",
+  "vcs": "git",
+  "vcs_locked_at": "2026-07-21T16:25:12.745090+00:00"
 }
