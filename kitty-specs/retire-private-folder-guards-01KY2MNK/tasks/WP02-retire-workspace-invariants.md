@@ -13,7 +13,7 @@ subtasks:
 - T007
 - T008
 - T009
-agent: claude
+agent: "claude:sonnet:implementer:implementer"
 history: []
 agent_profile: implementer-ivan
 authoritative_surface: scripts/openclaw/agents/
@@ -26,6 +26,8 @@ owned_files:
 - docs/design/openclaw-workspace-authoring-standard.md
 role: implementer
 tags: []
+shell_pid: "22263"
+shell_pid_created_at: "1784651109.595756"
 ---
 
 ## ⚡ Do This First: Load Agent Profile
@@ -73,3 +75,7 @@ path must be physical `/home/kgale/...`). Both exist only to police the `_privat
 - Do NOT weaken other invariants — excise ONLY the two privacy checks + their exclusive constants.
 - Reviewer: confirm `validate_workspace` still runs and reports its remaining invariants, and that no
   other module imports the removed constants (grep the repo).
+
+## Activity Log
+
+- 2026-07-21T16:25:44Z – claude:sonnet:implementer:implementer – shell_pid=22263 – Assigned agent via action command
