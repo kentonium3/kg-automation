@@ -20,19 +20,19 @@ Every WP's authoritative detail is the shared [data-model.md](./data-model.md) s
 | T007 | Trim privacy tests in test_validate_workspace.py | WP02 | | [D] |
 | T008 | Delete tests/openclaw/test_privacy_pointer.py | WP02 | [D] |
 | T009 | Drop "prompts must carry privacy red-line" from openclaw-workspace-authoring-standard.md | WP02 | [D] |
-| T010 | hard_fail: keep second-brain redaction, drop bare _private fragment | WP03 | |
-| T011 | mark_processed: refuse-outside-inbox-root (drop _private literal) | WP03 | |
-| T012 | classify_content + prescan: delete _private refusal/skip | WP03 | |
-| T013 | route_and_finalize + gitignore-additions + inbox/vault READMEs: strip _private | WP03 | [P] |
-| T014 | Update hygiene tests (hard_fail, mark_processed, classify_content, prescan) | WP03 | |
+| T010 | hard_fail: keep second-brain redaction, drop bare _private fragment | WP03 | | [D] |
+| T011 | mark_processed: refuse-outside-inbox-root (drop _private literal) | WP03 | | [D] |
+| T012 | classify_content + prescan: delete _private refusal/skip | WP03 | | [D] |
+| T013 | route_and_finalize + gitignore-additions + inbox/vault READMEs: strip _private | WP03 | [D] |
+| T014 | Update hygiene tests (hard_fail, mark_processed, classify_content, prescan) | WP03 | | [D] |
 | T015 | Strip red-line from 6 deployed agents' prompts | WP04 | |
 | T016 | Strip red-line from felix-doc-auditor prompts (repo-only) | WP04 | [P] |
 | T017 | CLAUDE.md + CODEX.md: remove absolute rule, keep repo boundary | WP05 | | [D] |
 | T018 | ai-agents/{claude,claude-code,gemini}-instructions.md: same | WP05 | [D] |
 | T019 | FELIX-CONSTITUTION.md: reframe folder rule to physical exclusion | WP05 | [D] |
-| T020 | architecture docs (glossary, security-posture, service-inventory.{md,json}): reframe | WP06 | |
-| T021 | coherence/doctrine + roadmap + process-flows: reframe | WP06 | [P] |
-| T022 | runbooks (escalation/habits/inbox/openclaw-agent-setup/tasker-ops): reframe | WP06 | [P] |
+| T020 | architecture docs (glossary, security-posture, service-inventory.{md,json}): reframe | WP06 | | [D] |
+| T021 | coherence/doctrine + roadmap + process-flows: reframe | WP06 | [D] |
+| T022 | runbooks (escalation/habits/inbox/openclaw-agent-setup/tasker-ops): reframe | WP06 | [D] |
 | T023 | second-brain-graph-layer.md: reframe #692/#696 gate to "verify not present" | WP07 | | [D] |
 | T024 | executive-assistant-architecture.md: same model reframe | WP07 | [D] |
 
